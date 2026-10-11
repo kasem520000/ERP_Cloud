@@ -1,4 +1,4 @@
-import { Body, Controller, HttpCode, Post, Req } from '@nestjs/common';
+import { Body, Controller, HttpCode, Patch, Post, Req } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
 import { env } from '@erp/config';
@@ -140,6 +140,15 @@ export class AuthController {
     @Body(new ZodValidationPipe(changePasswordRequestSchema)) body: ChangePasswordRequest,
   ): Promise<void> {
     await this.auth.changePassword(getAuthContext(), body);
+  }
+
+  @Patch('profile')
+  @HttpCode(200)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Update caller profile fullName' })
+  async updateProfile(@Body() body: { fullName?: string }): Promise<{ data: { fullName: string } }> {
+    const data = await this.auth.updateProfile(getAuthContext(), body ?? {});
+    return { data };
   }
 
   @Public()

@@ -3,7 +3,7 @@ import { Module } from '@nestjs/common';
 import { PlatformModule } from '../platform/platform.module.js';
 import { PlatformServicesModule } from '../platform-services/platform-services.module.js';
 
-import { SupportController } from './support.controller.js';
+import { SupportController, TenantSupportController } from './support.controller.js';
 import { SupportService } from './support.service.js';
 
 /**
@@ -15,7 +15,7 @@ import { SupportService } from './support.service.js';
  */
 @Module({
   imports: [PlatformModule, PlatformServicesModule],
-  controllers: [SupportController],
+  controllers: [SupportController, TenantSupportController],
   providers: [SupportService],
   exports: [SupportService],
 })

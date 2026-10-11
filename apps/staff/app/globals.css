@@ -1802,14 +1802,21 @@ tr.opening td {
 
 .employee-app {
   min-height: 100vh;
-  padding: 16px;
+  padding: 20px 16px;
   background: var(--bg);
+  color: var(--ink);
 }
 .employee-bar {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  margin-bottom: 16px;
+  gap: 12px;
+  max-width: 860px;
+  margin: 0 auto 16px;
+  padding: 14px 16px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  box-shadow: var(--shadow-1);
 }
 .employee-bar nav {
   display: flex;
@@ -1819,19 +1826,23 @@ tr.opening td {
 .employee-card {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  background: white;
+  gap: 14px;
+  background: var(--surface);
+  color: var(--ink);
   border: 1px solid var(--line);
   border-radius: 16px;
-  padding: 16px;
+  padding: 20px;
+  box-shadow: var(--shadow-1);
 }
 .employee-actions {
   display: grid;
   gap: 10px;
 }
 .punch {
-  min-height: 64px;
-  font-size: 20px;
+  min-height: 54px;
+  font-size: 16px;
+  font-weight: 700;
+  justify-content: center;
 }
 
 /* ------------------------------------------- Design v3: coverage + lang switch */

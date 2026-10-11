@@ -731,4 +731,20 @@ export class AuthService {
   private async toMembershipDto(membership: MembershipRow): Promise<MembershipDto> {
     return withTenantTx(this.database.db, membership.tenantId, async (tx) => toMembershipDto(tx, membership));
   }
+
+  async updateProfile(auth: { userId: string }, input: { fullName?: string }): Promise<{ fullName: string }> {
+    const fullName = String(input.fullName ?? '').trim();
+    if (fullName.length < 2 || fullName.length > 120) {
+      throw new DomainError(errorCodes.VALIDATION_FAILED, 'الاسم يجب أن يكون بين حرفين و120 حرفاً', 422, {
+        field: 'fullName',
+      });
+    }
+    await withTx(this.database.db, async (tx) => {
+      await tx
+        .update(users)
+        .set({ fullName, updatedAt: new Date() })
+        .where(eq(users.id, auth.userId));
+    });
+    return { fullName };
+  }
 }

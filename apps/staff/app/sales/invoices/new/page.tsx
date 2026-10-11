@@ -46,6 +46,13 @@ export default function NewSalesInvoicePage() {
   // وتحتها `➕ إضافة مركز تكلفة` — والقائمة هنا تقرأ ما يُدار في شاشة «مراكز التكلفة».
   const costCenters = useQuery<CostCenter[]>(() => listCostCenters(), []);
   const units = useQuery<Unit[]>(() => listUnits(), []);
+  const tenantSettings = useQuery<Record<string, unknown>>(
+    () => apiData<Record<string, unknown>>('/settings').catch(() => ({})),
+    [],
+  );
+  const saveAsDraftByDefault =
+    tenantSettings.data?.['sales.saveAsDraft'] === true ||
+    tenantSettings.data?.['sales.saveAsDraft'] === 'true';
 
   const [branchId, setBranchId] = useState('');
   const [warehouseId, setWarehouseId] = useState('');
@@ -141,13 +148,14 @@ export default function NewSalesInvoicePage() {
    * الاثنان يكتبان المستند؛ الثاني يفتح ورقة الطباعة بعده (`Print.cs` نفسها التي
    * تفتحها «🖨️ طباعة» L1254) بدل شاشة الفاتورة.
    */
-  async function save(event: React.SyntheticEvent, print = false) {
+  async function save(event: React.SyntheticEvent, print = false, forceDraft?: boolean) {
     event.preventDefault();
     setBusy(true);
     setNotice(undefined);
     try {
       if (filledLines(lines).length === 0) throw new ApiError(422, 'VALIDATION_FAILED', 'أضف سطراً واحداً على الأقل.');
       const resolvedCashName = cashName.trim() || 'عميل عام';
+      const shouldAutoPost = forceDraft === true ? false : forceDraft === false ? true : !saveAsDraftByDefault;
       const invoice = await apiPost<{ id: string }>('/sales/invoices', {
         branchId: effectiveBranch,
         warehouseId: effectiveWarehouse || undefined,
@@ -159,6 +167,7 @@ export default function NewSalesInvoicePage() {
         kind: 'sale',
         priceIncludesVat: includesVat,
         invoiceDiscount: invoiceDiscountText.trim() || undefined,
+        autoPost: shouldAutoPost,
         lines: toApiLines(lines),
       });
       router.push(print ? `/print/sales-invoice/${invoice.id}` : `/sales/invoices/${invoice.id}`);
@@ -182,7 +191,11 @@ export default function NewSalesInvoicePage() {
     <Screen
       // «🧾 فاتورة مبيعات» — `Form_WPF/frmInvSale.xaml` L347.
       title="🧾 فاتورة مبيعات"
-      subtitle="تُحفظ الفاتورة كمسودة أولاً، ثم تُرحَّل من شاشة الفاتورة فتأخذ رقمها الرسمي وتتحرك بها المخازن والقيود."
+      subtitle={
+        saveAsDraftByDefault
+          ? 'وضع المسودة مفعّل من الإعدادات العامة: تُحفظ الفاتورة كمسودة أولاً، أو يمكنك ترحيلها فوراً.'
+          : 'تُحفظ الفاتورة وتُرحَّل فوراً بشكل افتراضي فتأخذ رقمها الضريبي وباركود QR وتتحرك بها المخازن والقيود (يمكنك تفعيل خيار المسودة من الإعدادات العامة).'
+      }
       crumbs={['المبيعات', 'العمليات']}
     >
       <form className="card" onSubmit={save}>
@@ -350,14 +363,23 @@ export default function NewSalesInvoicePage() {
         <TotalsPanel totals={totals} />
 
         <Notice notice={notice} />
-        <div className="row">
+        <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
           {/* «💾 حفظ» L1263 و«💾🖨️ حفظ + طباعة» L1257 في `frmInvSale.xaml`. */}
           <button className="btn primary" type="submit" disabled={busy}>
-            {busy ? 'جارٍ الحفظ…' : '💾 حفظ'}
+            {busy ? 'جارٍ الحفظ…' : saveAsDraftByDefault ? '💾 حفظ كمسودة' : '⚡ حفظ وترحيل فوري'}
           </button>
           <button className="btn" type="button" disabled={busy} onClick={(event) => void save(event, true)}>
-            💾🖨️ حفظ + طباعة
+            {saveAsDraftByDefault ? '💾🖨️ حفظ + طباعة' : '⚡🖨️ حفظ وترحيل + طباعة'}
           </button>
+          {saveAsDraftByDefault ? (
+            <button className="btn" type="button" disabled={busy} onClick={(event) => void save(event, false, false)}>
+              ⚡ حفظ وترحيل فوري
+            </button>
+          ) : (
+            <button className="btn" type="button" disabled={busy} onClick={(event) => void save(event, false, true)}>
+              📝 حفظ كمسودة فقط
+            </button>
+          )}
         </div>
       </form>
     </Screen>

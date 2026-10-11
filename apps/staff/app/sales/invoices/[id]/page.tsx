@@ -17,6 +17,7 @@ import {
 import { useState } from 'react';
 
 import { CommentsPanel } from '../../../../components/comments-panel';
+import { ZatcaQrSvg, buildZatcaTlvBase64, printThermalReceipt80mm } from '../../../../components/zatca-qr-svg';
 import { Badge } from '../../../../components/ui/badge';
 import { Button } from '../../../../components/ui/button';
 import { DonutCardChart } from '../../../../components/ui/chart';
@@ -96,6 +97,11 @@ type Invoice = {
   paymentStatus: string;
   createdAt: string;
   postedAt: string | null;
+  qrCode?: string | null;
+  taxInvoiceType?: 'standard' | 'simplified';
+  taxInvoiceTypeLabelAr?: string;
+  partyName?: string | null;
+  partyTaxNo?: string | null;
   lines: InvoiceLine[];
   payments: Payment[];
 };
@@ -513,6 +519,64 @@ export default function SalesInvoiceDetailPage() {
                 <span className="text-[28px] font-bold text-ink tracking-tight" style={{ fontVariantNumeric: 'tabular-nums' }}>
                   {money(doc.total, doc.currency)}
                 </span>
+              </div>
+
+              <div className="mt-4 pt-3 border-t border-line flex flex-col items-center gap-2">
+                <ZatcaQrSvg
+                  payload={
+                    doc.qrCode ||
+                    buildZatcaTlvBase64({
+                      sellerName: 'ERP Cloud KSA',
+                      vatNo: '300000000000003',
+                      timestampIso: doc.postedAt ?? doc.createdAt,
+                      total: doc.total,
+                      tax: doc.taxTotal,
+                    })
+                  }
+                  size={136}
+                  label={doc.taxInvoiceTypeLabelAr ? `باركود ${doc.taxInvoiceTypeLabelAr} (ZATCA QR)` : 'باركود الفاتورة الضريبية (ZATCA QR)'}
+                />
+                <button
+                  type="button"
+                  className="btn sm"
+                  onClick={() => {
+                    const qrPayload =
+                      doc.qrCode ||
+                      buildZatcaTlvBase64({
+                        sellerName: 'ERP Cloud KSA',
+                        vatNo: '300000000000003',
+                        timestampIso: doc.postedAt ?? doc.createdAt,
+                        total: doc.total,
+                        tax: doc.taxTotal,
+                      });
+                    printThermalReceipt80mm({
+                      companyName: 'ERP Cloud KSA',
+                      taxNo: '300000000000003',
+                      invoiceNumber: doc.number ?? doc.id.slice(0, 8),
+                      invoiceTypeLabel: doc.taxInvoiceTypeLabelAr || 'فاتورة ضريبية مبسطة',
+                      issuedAt: dateTime(doc.postedAt ?? doc.createdAt),
+                      customerName: party ? partyLabel(party) : doc.cashCustomerName || 'عميل عام',
+                      paymentMethodLabel: doc.paymentStatus === 'paid' ? 'مدفوعة' : 'آجل',
+                      lines: doc.lines.map((line) => {
+                        const foundItem = (items.data ?? []).find((entry) => entry.id === line.itemId);
+                        return {
+                          name: line.description || (foundItem ? itemLabel(foundItem) : 'صنف'),
+                          quantity: line.quantity,
+                          unitPrice: line.unitPrice,
+                          total: line.total,
+                        };
+                      }),
+                      subtotal: doc.subtotal,
+                      discount: doc.invoiceDiscount ?? '0',
+                      taxTotal: doc.taxTotal,
+                      total: doc.total,
+                      paidAmount: doc.paidTotal,
+                      qrPayload,
+                    });
+                  }}
+                >
+                  🧾 طباعة إيصال كاشير حراري (80mm)
+                </button>
               </div>
 
               {Number(doc.taxTotal) > 0 || Number(doc.subtotal) > 0 ? (

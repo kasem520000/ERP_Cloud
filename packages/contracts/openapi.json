@@ -840,6 +840,26 @@
         ]
       }
     },
+    "/api/v1/auth/profile": {
+      "patch": {
+        "operationId": "AuthController_updateProfile",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update caller profile fullName",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
     "/api/v1/auth/forgot-password": {
       "post": {
         "operationId": "AuthController_forgotPassword",
@@ -9661,6 +9681,98 @@
         ]
       }
     },
+    "/api/v1/support/tickets": {
+      "get": {
+        "operationId": "TenantSupportController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "support"
+        ]
+      },
+      "post": {
+        "operationId": "TenantSupportController_create",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "support"
+        ]
+      }
+    },
+    "/api/v1/support/tickets/{id}": {
+      "get": {
+        "operationId": "TenantSupportController_get",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "support"
+        ]
+      }
+    },
+    "/api/v1/support/tickets/{id}/reply": {
+      "post": {
+        "operationId": "TenantSupportController_reply",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "support"
+        ]
+      }
+    },
     "/api/v1/usage": {
       "get": {
         "operationId": "UsageController_snapshot",
@@ -17831,6 +17943,29 @@
         ]
       }
     },
+    "/api/v1/marketplace/apps/{code}/request": {
+      "post": {
+        "operationId": "MarketplaceController_requestActivation",
+        "parameters": [
+          {
+            "name": "code",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Marketplace"
+        ]
+      }
+    },
     "/api/v1/marketplace/apps/{code}": {
       "delete": {
         "operationId": "MarketplaceController_uninstall",
@@ -17993,6 +18128,83 @@
       "put": {
         "operationId": "MarketplacePlatformController_update",
         "parameters": [
+          {
+            "name": "code",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "MarketplacePlatform"
+        ]
+      }
+    },
+    "/api/v1/platform/marketplace/requests": {
+      "get": {
+        "operationId": "MarketplacePlatformController_listRequests",
+        "parameters": [
+          {
+            "name": "status",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "MarketplacePlatform"
+        ]
+      }
+    },
+    "/api/v1/platform/marketplace/requests/{id}/decide": {
+      "post": {
+        "operationId": "MarketplacePlatformController_decideRequest",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "MarketplacePlatform"
+        ]
+      }
+    },
+    "/api/v1/platform/marketplace/tenants/{tenantId}/apps/{code}": {
+      "put": {
+        "operationId": "MarketplacePlatformController_toggleTenantApp",
+        "parameters": [
+          {
+            "name": "tenantId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
           {
             "name": "code",
             "required": true,
@@ -25786,6 +25998,110 @@
         },
         "tags": [
           "EmployeeHrm"
+        ]
+      }
+    },
+    "/api/v1/van-sales/dashboard": {
+      "get": {
+        "operationId": "VanSalesController_dashboard",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "van-sales"
+        ]
+      }
+    },
+    "/api/v1/van-sales/customer-prices": {
+      "post": {
+        "operationId": "VanSalesController_upsertCustomerPrice",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "van-sales"
+        ]
+      }
+    },
+    "/api/v1/van-sales/load-orders": {
+      "post": {
+        "operationId": "VanSalesController_createLoadOrder",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "van-sales"
+        ]
+      }
+    },
+    "/api/v1/van-sales/documents": {
+      "post": {
+        "operationId": "VanSalesController_createDocument",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "van-sales"
+        ]
+      }
+    },
+    "/api/v1/van-sales/load-orders/{id}/settle": {
+      "post": {
+        "operationId": "VanSalesController_settleLoadOrder",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "van-sales"
         ]
       }
     }

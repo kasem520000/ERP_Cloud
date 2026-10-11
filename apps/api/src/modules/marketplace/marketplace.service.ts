@@ -27,6 +27,118 @@ import { signedContentUrl } from '../platform-services/files/download-token.js';
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const HEX_COLOR = /^#[0-9a-fA-F]{6}$/;
 
+export const SECTOR_ADDON_APPS = [
+  {
+    code: 'van_sales',
+    nameAr: 'توزيع المناديب والمخابز',
+    nameEn: 'Van Sales & Bakery Distribution',
+    descriptionAr:
+      'إدارة سيارات ومناديب التوزيع، أوامر التحميل ودفعات الإنتاج اليومية، ضبط البونص المجاني، تعدد أسعار العملاء، والفواتير الضريبية والعادية.',
+    icon: '🚚',
+    version: '1.0.0',
+    monthlyPrice: '129.0000',
+    isCore: false,
+    category: 'sector' as const,
+    screens: ['/van-sales'] as const,
+  },
+  {
+    code: 'manufacturing',
+    nameAr: 'التصنيع والإنتاج',
+    nameEn: 'Manufacturing',
+    descriptionAr: 'أوامر التصنيع وقوائم المواد (BOM) وتكاليف الإنتاج للمصانع والمعامل والمخابز.',
+    icon: '⚙️',
+    version: '1.0.0',
+    monthlyPrice: '149.0000',
+    isCore: false,
+    category: 'sector' as const,
+    screens: ['/manufacturing/orders', '/inventory/production'] as const,
+  },
+  {
+    code: 'tailoring',
+    nameAr: 'التفصيل والخياطة',
+    nameEn: 'Tailoring',
+    descriptionAr: 'إدارة طلبات التفصيل والمقاسات وخيارات الخياطة والأثواب.',
+    icon: '🧵',
+    version: '1.0.0',
+    monthlyPrice: '99.0000',
+    isCore: false,
+    category: 'sector' as const,
+    screens: ['/tailoring/orders', '/tailoring/options', '/tailoring/types', '/settings/tailoring'] as const,
+  },
+  {
+    code: 'optics',
+    nameAr: 'النظارات والبصريات',
+    nameEn: 'Optics',
+    descriptionAr: 'بيانات فحص النظر والعدسات اليمنى واليسرى وطباعتها في فواتير المبيعات.',
+    icon: '👓',
+    version: '1.0.0',
+    monthlyPrice: '99.0000',
+    isCore: false,
+    category: 'sector' as const,
+    screens: ['/optics/glasses', '/settings/optics'] as const,
+  },
+  {
+    code: 'marina',
+    nameAr: 'إدارة المراسي والقوارب',
+    nameEn: 'Marina',
+    descriptionAr: 'عقود المراسي والتجهيز والمناوبات وربط الفواتير وإغلاق اليومية البحرية.',
+    icon: '⚓',
+    version: '1.0.0',
+    monthlyPrice: '149.0000',
+    isCore: false,
+    category: 'sector' as const,
+    screens: [
+      '/marina/contracts',
+      '/marina/preparation',
+      '/marina/rota',
+      '/marina/link-invoices',
+      '/marina/day-close',
+      '/settings/marina',
+    ] as const,
+  },
+  {
+    code: 'projects',
+    nameAr: 'إدارة المشاريع والمقاولات',
+    nameEn: 'Projects & Contracting',
+    descriptionAr: 'المشاريع وعقود المقاولين والمستخلصات ومرتجعات المقاولات ومتابعة التنفيذ.',
+    icon: '🏗️',
+    version: '1.0.0',
+    monthlyPrice: '149.0000',
+    isCore: false,
+    category: 'sector' as const,
+    screens: [
+      '/projects',
+      '/projects/tasks',
+      '/projects/contractor-contract',
+      '/projects/contractor-payment',
+      '/projects/contracting-return',
+      '/projects/offers',
+      '/projects/followup',
+      '/settings/contracting',
+    ] as const,
+  },
+  {
+    code: 'employee_app',
+    nameAr: 'تطبيق الموظف الذاتي',
+    nameEn: 'Employee Self-Service App',
+    descriptionAr: 'بوابة الجوال للموظفين لتسجيل الحضور والانصراف وطلبات الإجازة والسلفة والعهدة وكشف الراتب.',
+    icon: '📱',
+    version: '1.0.0',
+    monthlyPrice: '79.0000',
+    isCore: false,
+    category: 'sector' as const,
+    screens: ['/m', '/m/attendance', '/m/requests/new', '/m/approvals', '/m/profile'] as const,
+  },
+] as const;
+
+export const ALL_CATALOG_APPS = [
+  ...MARKETPLACE_APPS.map((app) => ({
+    ...app,
+    category: (app.isCore ? 'core' : 'integration') as 'core' | 'integration' | 'sector',
+  })),
+  ...SECTOR_ADDON_APPS,
+];
+
 type AppView = {
   code: string;
   nameAr: string;
@@ -40,12 +152,35 @@ type AppView = {
   enabled: boolean;
   installedAt: string | null;
   screens: string[];
+  category?: 'core' | 'integration' | 'sector';
+  requiresApproval?: boolean;
+  requestStatus?: 'none' | 'pending' | 'approved' | 'rejected';
+  requestNote?: string | null;
+  decisionNote?: string | null;
 };
 
 export type MarketplaceList = {
   apps: AppView[];
   gatedHrefs: string[];
   enabledHrefs: string[];
+  enabledCodes?: string[];
+};
+
+export type AddonRequestView = {
+  id: string;
+  tenantId: string;
+  tenantCode: string;
+  tenantName: string;
+  appCode: string;
+  appNameAr: string;
+  appIcon: string;
+  monthlyPrice: string;
+  status: 'pending' | 'approved' | 'rejected';
+  note: string;
+  decisionNote: string;
+  requesterLabel: string;
+  createdAt: string;
+  decidedAt: string | null;
 };
 
 type DomainView = {
@@ -82,41 +217,69 @@ export class MarketplaceService {
   async listForTenant(tenantId: string): Promise<MarketplaceList> {
     await this.ensureCatalog();
     return withTenantTx(this.database.db, tenantId, async (tx) => {
-      const catalog = rows(await tx.execute(sql`
-        SELECT code, price_monthly::text AS monthly_price, is_active
-        FROM marketplace_apps
-        ORDER BY code
-      `));
-      const installed = rows(await tx.execute(sql`
-        SELECT app_code, is_enabled, installed_at
-        FROM tenant_apps
-        WHERE tenant_id = ${tenantId}::uuid
-      `));
-      const stores = await this.legacyProviders(tx, tenantId);
-      const byCode = new Map(catalog.map((row) => [str(row.code), row]));
-      const installByCode = new Map(installed.map((row) => [str(row.app_code), row]));
-      const apps = MARKETPLACE_APPS.map((app) => {
-        const stored = byCode.get(app.code);
-        const install = installByCode.get(app.code);
-        const explicit = install ? flag(install.is_enabled) : undefined;
-        const legacy = install === undefined && stores.has(app.code);
-        return {
-          code: app.code,
-          nameAr: app.nameAr,
-          nameEn: app.nameEn,
-          descriptionAr: app.descriptionAr,
-          icon: app.icon,
-          version: app.version,
-          monthlyPrice: moneyText(stored?.monthly_price ?? app.monthlyPrice),
-          isCore: app.isCore,
-          isActive: stored ? flag(stored.is_active) : true,
-          enabled: explicit ?? legacy,
-          installedAt: install?.installed_at ? iso(install.installed_at) : null,
-          screens: [...app.screens],
-        };
-      });
+      const apps = await this.listInside(tx, tenantId);
       const enabledCodes = apps.filter((app) => app.enabled).map((app) => app.code);
-      return { apps, gatedHrefs: gatedScreenHrefs(), enabledHrefs: enabledScreenHrefs(enabledCodes) };
+      const allGatedHrefs = [
+        ...new Set([
+          ...gatedScreenHrefs(),
+          ...ALL_CATALOG_APPS.flatMap((app) => [...app.screens]),
+        ]),
+      ];
+      const allEnabledHrefs = [
+        ...new Set([
+          ...enabledScreenHrefs(enabledCodes),
+          ...ALL_CATALOG_APPS.filter((app) => app.isCore || enabledCodes.includes(app.code)).flatMap((app) => [
+            ...app.screens,
+          ]),
+        ]),
+      ];
+      return {
+        apps,
+        gatedHrefs: allGatedHrefs,
+        enabledHrefs: allEnabledHrefs,
+        enabledCodes,
+      };
+    });
+  }
+
+  async requestActivation(
+    tenantId: string,
+    userId: string,
+    code: string,
+    note?: string,
+  ): Promise<{ requestId: string; status: string; app: AppView }> {
+    const app = this.reviewed(code);
+    await this.ensureCatalog();
+    return withTenantTx(this.database.db, tenantId, async (tx) => {
+      const stored = first(await tx.execute(sql`
+        SELECT is_active FROM marketplace_apps WHERE code = ${app.code} LIMIT 1
+      `));
+      if (!stored || !flag(stored.is_active)) {
+        throw new DomainError(errorCodes.NOT_FOUND, 'الإضافة غير متاحة في السوق', 404);
+      }
+      const existingPending = first(await tx.execute(sql`
+        SELECT id FROM marketplace_addon_requests
+        WHERE tenant_id = ${tenantId}::uuid AND app_code = ${app.code} AND status = 'pending'
+        ORDER BY created_at DESC LIMIT 1
+      `));
+      const reqId = existingPending ? str(existingPending.id) : newId();
+      const cleanNote = String(note ?? '').trim().slice(0, 500) || null;
+      if (existingPending) {
+        await tx.execute(sql`
+          UPDATE marketplace_addon_requests
+          SET note = COALESCE(${cleanNote}, note), requested_by = ${userId}::uuid, updated_at = now()
+          WHERE id = ${reqId}::uuid AND tenant_id = ${tenantId}::uuid
+        `);
+      } else {
+        await tx.execute(sql`
+          INSERT INTO marketplace_addon_requests (id, tenant_id, app_code, status, requested_by, note)
+          VALUES (${reqId}::uuid, ${tenantId}::uuid, ${app.code}, 'pending', ${userId}::uuid, ${cleanNote})
+        `);
+      }
+      const list = await this.listInside(tx, tenantId);
+      const view = list.find((item) => item.code === app.code);
+      if (!view) throw new DomainError(errorCodes.NOT_FOUND, 'الإضافة غير متاحة في السوق', 404);
+      return { requestId: reqId, status: 'pending', app: view };
     });
   }
 
@@ -316,13 +479,15 @@ export class MarketplaceService {
         ORDER BY code
       `));
       const byCode = new Map(stored.map((row) => [str(row.code), row]));
-      return MARKETPLACE_APPS.map((app) => {
+      return ALL_CATALOG_APPS.map((app) => {
         const row = byCode.get(app.code);
         return {
           code: app.code,
           nameAr: app.nameAr,
           nameEn: app.nameEn,
           descriptionAr: app.descriptionAr,
+          icon: app.icon,
+          category: app.category,
           monthlyPrice: moneyText(row?.monthly_price ?? app.monthlyPrice),
           isCore: app.isCore,
           isActive: row ? flag(row.is_active) : true,
@@ -330,6 +495,147 @@ export class MarketplaceService {
         };
       });
     });
+  }
+
+  async platformListRequests(status?: string): Promise<AddonRequestView[]> {
+    await this.ensureCatalog();
+    return withPlatformAdminTx(this.database.db, async (tx) => {
+      const found = rows(await tx.execute(sql`
+        SELECT r.id::text, r.tenant_id::text, t.code AS tenant_code, t.name AS tenant_name,
+               r.app_code, r.status, r.note, r.decision_note,
+               COALESCE(u.full_name, u.email, 'مستخدم المنشأة') AS requester_label,
+               r.created_at, r.decided_at
+        FROM marketplace_addon_requests r
+        JOIN tenants t ON t.id = r.tenant_id
+        LEFT JOIN users u ON u.id = r.requested_by
+        WHERE (${status ?? null}::text IS NULL OR r.status = ${status ?? null})
+        ORDER BY CASE r.status WHEN 'pending' THEN 0 ELSE 1 END, r.created_at DESC
+        LIMIT 200
+      `));
+      const prices = rows(await tx.execute(sql`
+        SELECT code, price_monthly::text AS monthly_price FROM marketplace_apps
+      `));
+      const priceMap = new Map(prices.map((row) => [str(row.code), str(row.monthly_price)]));
+      const appMap = new Map(ALL_CATALOG_APPS.map((app) => [app.code, app]));
+      return found.map((row) => {
+        const appCode = str(row.app_code);
+        const app = appMap.get(appCode);
+        return {
+          id: str(row.id),
+          tenantId: str(row.tenant_id),
+          tenantCode: str(row.tenant_code),
+          tenantName: str(row.tenant_name),
+          appCode,
+          appNameAr: app?.nameAr ?? appCode,
+          appIcon: app?.icon ?? '📦',
+          monthlyPrice: moneyText(priceMap.get(appCode) ?? app?.monthlyPrice ?? '0'),
+          status: (str(row.status) || 'pending') as 'pending' | 'approved' | 'rejected',
+          note: str(row.note),
+          decisionNote: str(row.decision_note),
+          requesterLabel: str(row.requester_label),
+          createdAt: iso(row.created_at),
+          decidedAt: row.decided_at ? iso(row.decided_at) : null,
+        };
+      });
+    });
+  }
+
+  async platformDecideRequest(
+    requestId: string,
+    actorUserId: string | undefined,
+    decision: 'approved' | 'rejected',
+    decisionNote?: string,
+  ) {
+    this.uuid(requestId);
+    if (decision !== 'approved' && decision !== 'rejected') {
+      throw new DomainError(errorCodes.VALIDATION_FAILED, 'القرار يجب أن يكون موافقة أو رفض', 422);
+    }
+    const cleanNote = String(decisionNote ?? '').trim().slice(0, 500) || null;
+    const reqRow = await withPlatformAdminTx(this.database.db, async (tx) => {
+      const found = first(await tx.execute(sql`
+        SELECT id::text, tenant_id::text, app_code, requested_by::text
+        FROM marketplace_addon_requests
+        WHERE id = ${requestId}::uuid
+        LIMIT 1
+      `));
+      if (!found) throw new DomainError(errorCodes.NOT_FOUND, 'طلب التفعيل غير موجود', 404);
+      await tx.execute(sql`
+        UPDATE marketplace_addon_requests
+        SET status = ${decision},
+            decision_note = ${cleanNote},
+            decided_by = ${actorUserId ?? null}::uuid,
+            decided_at = now(),
+            updated_at = now()
+        WHERE id = ${requestId}::uuid
+      `);
+      return found;
+    });
+
+    const tenantId = str(reqRow.tenant_id);
+    const appCode = str(reqRow.app_code);
+    const app = this.reviewed(appCode);
+
+    await withTenantTx(this.database.db, tenantId, async (tx) => {
+      if (decision === 'approved') {
+        await tx.execute(sql`
+          INSERT INTO tenant_apps (id, tenant_id, app_code, is_enabled, settings, installed_at, installed_by)
+          VALUES (${newId()}::uuid, ${tenantId}::uuid, ${app.code}, true, '{}'::jsonb, now(), ${actorUserId ?? null}::uuid)
+          ON CONFLICT (tenant_id, app_code) DO UPDATE
+            SET is_enabled = true, updated_at = now()
+        `);
+      }
+      const members = rows(await tx.execute(sql`
+        SELECT id::text AS membership_id
+        FROM memberships
+        WHERE tenant_id = ${tenantId}::uuid
+          AND deleted_at IS NULL
+          AND status = 'active'
+          AND (is_owner = true OR user_id = ${reqRow.requested_by ? str(reqRow.requested_by) : null}::uuid)
+        LIMIT 10
+      `));
+      const title =
+        decision === 'approved'
+          ? `تمت الموافقة وتفعيل باقة «${app.nameAr}»`
+          : `تحديث بخصوص طلب تفعيل «${app.nameAr}»`;
+      const body =
+        decision === 'approved'
+          ? cleanNote || `تم تفعيل باقة ${app.nameAr} لمنشأتكم من إدارة المنصة وأصبحت متاحة الآن في القائمة الجانبية.`
+          : cleanNote || `تم رفض طلب تفعيل باقة ${app.nameAr} من إدارة المنصة.`;
+      for (const m of members) {
+        await tx.execute(sql`
+          INSERT INTO notifications (id, tenant_id, membership_id, type, payload)
+          VALUES (
+            ${newId()}::uuid,
+            ${tenantId}::uuid,
+            ${str(m.membership_id)}::uuid,
+            ${decision === 'approved' ? 'marketplace_addon_approved' : 'marketplace_addon_rejected'},
+            ${JSON.stringify({ title, body, appCode: app.code, href: '/settings/marketplace' })}::jsonb
+          )
+        `);
+      }
+    });
+
+    return { id: requestId, status: decision, appCode: app.code, tenantId };
+  }
+
+  async platformToggleTenantApp(
+    tenantId: string,
+    actorUserId: string | undefined,
+    code: string,
+    enabled: boolean,
+  ) {
+    this.uuid(tenantId);
+    const app = this.reviewed(code);
+    await this.ensureCatalog();
+    await withTenantTx(this.database.db, tenantId, async (tx) => {
+      await tx.execute(sql`
+        INSERT INTO tenant_apps (id, tenant_id, app_code, is_enabled, settings, installed_at, installed_by)
+        VALUES (${newId()}::uuid, ${tenantId}::uuid, ${app.code}, ${enabled}, '{}'::jsonb, now(), ${actorUserId ?? null}::uuid)
+        ON CONFLICT (tenant_id, app_code) DO UPDATE
+          SET is_enabled = ${enabled}, updated_at = now()
+      `);
+    });
+    return { tenantId, code: app.code, enabled };
   }
 
   async platformUpdate(code: string, input: { monthlyPrice?: unknown; isActive?: unknown }) {
@@ -367,6 +673,9 @@ export class MarketplaceService {
   }
 
   private reviewed(code: string) {
+    const normalized = String(code ?? '').trim().toLowerCase();
+    const extended = ALL_CATALOG_APPS.find((item) => item.code === normalized);
+    if (extended) return extended;
     try {
       return assertReviewedApp(code);
     } catch (error) {
@@ -400,7 +709,7 @@ export class MarketplaceService {
    */
   private async ensureCatalog() {
     await withPlatformAdminTx(this.database.db, async (tx) => {
-      for (const app of MARKETPLACE_APPS) {
+      for (const app of ALL_CATALOG_APPS) {
         await tx.execute(sql`
           INSERT INTO marketplace_apps (
             id, code, name_ar, name_en, description_ar, icon, version, price_monthly, is_core, is_active, screens
@@ -430,13 +739,26 @@ export class MarketplaceService {
     const prices = rows(await tx.execute(sql`
       SELECT code, price_monthly::text AS monthly_price, is_active FROM marketplace_apps
     `));
+    const requests = rows(
+      await tx
+        .execute(sql`
+          SELECT DISTINCT ON (app_code) app_code, status, note, decision_note
+          FROM marketplace_addon_requests
+          WHERE tenant_id = ${tenantId}::uuid
+          ORDER BY app_code, created_at DESC
+        `)
+        .catch(() => ({ rows: [] })),
+    );
     const stores = await this.legacyProviders(tx, tenantId);
     const installByCode = new Map(installed.map((row) => [str(row.app_code), row]));
     const priceByCode = new Map(prices.map((row) => [str(row.code), row]));
-    return MARKETPLACE_APPS.map((app) => {
+    const requestByCode = new Map(requests.map((row) => [str(row.app_code), row]));
+    return ALL_CATALOG_APPS.map((app) => {
       const install = installByCode.get(app.code);
       const stored = priceByCode.get(app.code);
+      const req = requestByCode.get(app.code);
       const explicit = install ? flag(install.is_enabled) : undefined;
+      const enabled = explicit ?? (install === undefined && stores.has(app.code));
       return {
         code: app.code,
         nameAr: app.nameAr,
@@ -447,9 +769,16 @@ export class MarketplaceService {
         monthlyPrice: moneyText(stored?.monthly_price ?? app.monthlyPrice),
         isCore: app.isCore,
         isActive: stored ? flag(stored.is_active) : true,
-        enabled: explicit ?? (install === undefined && stores.has(app.code)),
+        enabled,
         installedAt: install?.installed_at ? iso(install.installed_at) : null,
         screens: [...app.screens],
+        category: app.category,
+        requiresApproval: app.category === 'sector',
+        requestStatus: enabled
+          ? 'approved'
+          : ((str(req?.status) || 'none') as 'none' | 'pending' | 'approved' | 'rejected'),
+        requestNote: req?.note ? str(req.note) : null,
+        decisionNote: req?.decision_note ? str(req.decision_note) : null,
       };
     });
   }

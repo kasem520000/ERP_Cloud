@@ -224,6 +224,9 @@ export class SupportService {
    */
   async reply(id: string, input: TicketReply): Promise<TicketDetail> {
     const actorUserId = this.actorUserId();
+    let notifyTenantId = '';
+    let notifySubject = '';
+    let notifyOpenedBy: string | null = null;
     await withPlatformAdminTx(this.database.db, async (tx) => {
       const current = await this.loadTicket(tx, id);
       if (current.status === 'closed') {
@@ -231,6 +234,9 @@ export class SupportService {
           field: 'status',
         });
       }
+      notifyTenantId = String(current.tenant_id);
+      notifySubject = String(current.subject ?? '');
+      notifyOpenedBy = current.opened_by ? String(current.opened_by) : null;
       await this.insertMessage(tx, {
         ticketId: id,
         tenantId: String(current.tenant_id),
@@ -255,6 +261,35 @@ export class SupportService {
         meta: { reason: input.reason ?? (input.isInternal ? 'ملاحظة داخلية' : 'ردٌّ على العميل') },
       });
     });
+
+    if (!input.isInternal && notifyTenantId) {
+      await withTenantTx(this.database.db, notifyTenantId, async (tx) => {
+        const recipients = await tx.execute(sql`
+          SELECT id::text AS membership_id
+          FROM memberships
+          WHERE tenant_id = ${notifyTenantId}::uuid
+            AND deleted_at IS NULL
+            AND status = 'active'
+            AND (is_owner = true OR user_id = ${notifyOpenedBy}::uuid)
+          LIMIT 10
+        `);
+        const title = `رد جديد من الدعم الفني: ${notifySubject}`;
+        const preview = input.body.slice(0, 200);
+        for (const row of recipients.rows as Array<{ membership_id: string }>) {
+          await tx.execute(sql`
+            INSERT INTO notifications (id, tenant_id, membership_id, type, payload)
+            VALUES (
+              ${newId()}::uuid,
+              ${notifyTenantId}::uuid,
+              ${row.membership_id}::uuid,
+              'support_ticket_reply',
+              ${JSON.stringify({ title, body: preview, ticketId: id, href: '/support/help' })}::jsonb
+            )
+          `);
+        }
+      }).catch(() => undefined);
+    }
+
     return this.get(id);
   }
 
@@ -462,6 +497,119 @@ export class SupportService {
       `);
       return rows.rows.map((row) => toTicket(row as Record<string, unknown>));
     });
+  }
+
+  async getForTenant(tenantId: string, id: string): Promise<TicketDetail> {
+    return withTenantTx(this.database.db, tenantId, async (tx) => {
+      const found = await tx.execute(sql`
+        SELECT t.id, t.tenant_id, t.subject, t.status, t.priority, t.category, t.assigned_to,
+               t.opened_by, t.created_at, t.updated_at, t.first_response_at, t.resolved_at,
+               t.closed_at, t.sla_due_at,
+               (SELECT count(*)::int FROM ticket_messages m WHERE m.ticket_id = t.id AND m.is_internal = false) AS message_count,
+               (SELECT max(m.created_at) FROM ticket_messages m WHERE m.ticket_id = t.id AND m.is_internal = false) AS last_message_at
+          FROM support_tickets t
+         WHERE t.tenant_id = ${tenantId}::uuid AND t.id = ${id}::uuid
+         LIMIT 1
+      `);
+      const row = found.rows[0] as Record<string, unknown> | undefined;
+      if (!row) throw new DomainError(errorCodes.NOT_FOUND, 'تذكرةٌ غير موجودة', 404);
+      const messages = await tx.execute(sql`
+        SELECT m.id, m.ticket_id, m.author_user_id, m.author_kind, m.body, m.is_internal, m.created_at,
+               COALESCE(u.full_name, u.email) AS author_label
+          FROM ticket_messages m
+          LEFT JOIN users u ON u.id = m.author_user_id
+         WHERE m.ticket_id = ${id}::uuid
+           AND m.tenant_id = ${tenantId}::uuid
+           AND m.is_internal = false
+         ORDER BY m.created_at ASC
+      `);
+      return {
+        ...toTicket(row),
+        messages: messages.rows.map((message) => toMessage(message as Record<string, unknown>)),
+      };
+    });
+  }
+
+  async createFromTenant(
+    tenantId: string,
+    userId: string,
+    input: { subject?: string; body?: string; priority?: string; category?: string },
+  ): Promise<TicketDetail> {
+    const subject = String(input.subject ?? '').trim();
+    const body = String(input.body ?? '').trim();
+    if (subject.length < 3 || subject.length > 200) {
+      throw new DomainError(errorCodes.VALIDATION_FAILED, 'عنوان الطلب يجب أن يكون بين 3 و200 حرف', 422, {
+        field: 'subject',
+      });
+    }
+    if (body.length < 3 || body.length > 5000) {
+      throw new DomainError(errorCodes.VALIDATION_FAILED, 'تفاصيل الطلب مطلوبة', 422, {
+        field: 'body',
+      });
+    }
+    const priority: TicketPriority =
+      input.priority === 'urgent' || input.priority === 'high' || input.priority === 'low'
+        ? input.priority
+        : 'normal';
+    const category = input.category?.trim() ? input.category.trim().slice(0, 60) : null;
+    const slaHours = ticketSlaHours[priority];
+    const id = newId();
+    await withTenantTx(this.database.db, tenantId, async (tx) => {
+      await tx.execute(sql`
+        INSERT INTO support_tickets (id, tenant_id, subject, status, priority, category, opened_by, sla_due_at, created_at)
+        VALUES (
+          ${id}::uuid, ${tenantId}::uuid, ${subject}, 'open', ${priority},
+          ${category}, ${userId}::uuid, now() + ${`${slaHours} hours`}::interval, now()
+        )
+      `);
+      await this.insertMessage(tx, {
+        ticketId: id,
+        tenantId,
+        authorUserId: userId,
+        authorKind: 'customer',
+        isInternal: false,
+        body,
+      });
+    });
+    return this.getForTenant(tenantId, id);
+  }
+
+  async replyFromTenant(
+    tenantId: string,
+    userId: string,
+    id: string,
+    bodyText?: string,
+  ): Promise<TicketDetail> {
+    const body = String(bodyText ?? '').trim();
+    if (body.length < 1 || body.length > 5000) {
+      throw new DomainError(errorCodes.VALIDATION_FAILED, 'اكتب نص الرد', 422, { field: 'body' });
+    }
+    await withTenantTx(this.database.db, tenantId, async (tx) => {
+      const found = await tx.execute(sql`
+        SELECT id, status FROM support_tickets
+        WHERE tenant_id = ${tenantId}::uuid AND id = ${id}::uuid
+        LIMIT 1
+      `);
+      const row = found.rows[0] as { id: string; status: string } | undefined;
+      if (!row) throw new DomainError(errorCodes.NOT_FOUND, 'تذكرةٌ غير موجودة', 404);
+      if (row.status === 'closed') {
+        throw new DomainError(errorCodes.VALIDATION_FAILED, 'التذكرة المغلقة لا تُردّ عليها', 422);
+      }
+      await this.insertMessage(tx, {
+        ticketId: id,
+        tenantId,
+        authorUserId: userId,
+        authorKind: 'customer',
+        isInternal: false,
+        body,
+      });
+      await tx.execute(sql`
+        UPDATE support_tickets
+        SET status = 'open', resolved_at = NULL, updated_at = now()
+        WHERE tenant_id = ${tenantId}::uuid AND id = ${id}::uuid
+      `);
+    });
+    return this.getForTenant(tenantId, id);
   }
 
   private actorUserId(): string {

@@ -2085,7 +2085,12 @@ export class InventoryService {
   private async assertStockable(
     tx: DrizzleTx,
     tenantId: string,
-    lines: Array<{ itemId: string; lotId?: string | null; serialId?: string | null }>,
+    lines: Array<{
+      itemId: string;
+      lotId?: string | null;
+      serialId?: string | null;
+      serialNos?: readonly string[] | null;
+    }>,
   ): Promise<
     Map<string, { kind: string; trackLot: boolean; trackSerial: boolean; purchasePrice: string | null }>
   > {
@@ -2118,7 +2123,9 @@ export class InventoryService {
         throw new DomainError('INVENTORY_LOT_REQUIRED', 'This item is tracked by lot — choose a lot', 422, {
           field: 'lotId',
         });
-      if (item.trackSerial && !line.serialId)
+      const hasSerialNos =
+        Array.isArray(line.serialNos) && line.serialNos.some((value) => String(value).trim().length > 0);
+      if (item.trackSerial && !line.serialId && !hasSerialNos)
         throw new DomainError(
           'INVENTORY_SERIAL_REQUIRED',
           'This item is tracked by serial — scan a serial',
@@ -2647,7 +2654,7 @@ export class InventoryService {
       // pack says and the movement reads `lot_id`. Resolved before `assertStockable` so a
       // line that names a batch satisfies the lot requirement the same way a picked lot does.
       const lots = await this.resolveUploadedLots(tx, tenantId, input.lines);
-      await this.assertStockable(
+      const catalogue = await this.assertStockable(
         tx,
         tenantId,
         input.lines.map((line, index) => ({ ...line, lotId: lots.get(index)?.lotId ?? null })),
@@ -2660,6 +2667,12 @@ export class InventoryService {
         `stock_voucher:${input.kind}`,
         prefix,
       );
+      const draftTotalCost = input.lines.reduce((sum, line) => {
+        const fallbackPrice = catalogue.get(line.itemId)?.purchasePrice ?? '0';
+        const unitCost = new Decimal(line.unitCost ?? fallbackPrice ?? 0);
+        const qty = new Decimal(line.qty || 0);
+        return sum.plus(qty.mul(unitCost));
+      }, new Decimal(0));
       const [voucher] = await tx
         .insert(stockVouchers)
         .values({
@@ -2673,6 +2686,7 @@ export class InventoryService {
           voucherDate: input.voucherDate ?? new Date().toISOString().slice(0, 10),
           reason: input.reason,
           counterAccountId: input.counterAccountId ?? null,
+          totalCost: draftTotalCost.toFixed(4),
           notes: input.notes,
           createdBy: getRequestContext().tenant?.userId,
         })
@@ -2692,6 +2706,12 @@ export class InventoryService {
       await tx.insert(stockVoucherLines).values(
         input.lines.map((line, index) => {
           const lot = lots.get(index);
+          const fallbackPrice = catalogue.get(line.itemId)?.purchasePrice ?? null;
+          const resolvedUnitCost = line.unitCost ?? (input.kind !== 'stock_out' ? fallbackPrice : null);
+          const lineCost =
+            resolvedUnitCost !== null && resolvedUnitCost !== undefined
+              ? new Decimal(line.qty || 0).mul(new Decimal(resolvedUnitCost || 0)).toFixed(4)
+              : '0';
           return {
             voucherId: id,
             lineNo: index + 1,
@@ -2699,7 +2719,8 @@ export class InventoryService {
             itemId: line.itemId,
             qty: line.qty,
             unitId: line.unitId ?? null,
-            unitCost: line.unitCost ?? null,
+            unitCost: resolvedUnitCost,
+            lineCost,
             lotId: lot?.lotId ?? null,
             batchNo: lot?.batchNo ?? null,
             productionDate: lot?.productionDate ?? null,
@@ -2718,7 +2739,8 @@ export class InventoryService {
     return tx
       .select()
       .from(stockVoucherLines)
-      .where(and(eq(stockVoucherLines.tenantId, tenantId), eq(stockVoucherLines.voucherId, voucherId)));
+      .where(and(eq(stockVoucherLines.tenantId, tenantId), eq(stockVoucherLines.voucherId, voucherId)))
+      .orderBy(asc(stockVoucherLines.lineNo));
   }
 
   private async getVoucherInTx(tx: DrizzleTx, tenantId: string, id: string) {
@@ -2749,7 +2771,27 @@ export class InventoryService {
         )
         .orderBy(sql`${stockVouchers.createdAt} DESC`)
         .limit(200);
-      return rows.map((row) => ({ ...row, lines: [] as Array<unknown> }));
+      if (rows.length === 0) return [];
+      const allLines = await tx
+        .select()
+        .from(stockVoucherLines)
+        .where(
+          and(
+            eq(stockVoucherLines.tenantId, tenantId),
+            inArray(
+              stockVoucherLines.voucherId,
+              rows.map((row) => row.id),
+            ),
+          ),
+        )
+        .orderBy(asc(stockVoucherLines.lineNo));
+      const linesByVoucher = new Map<string, Array<typeof stockVoucherLines.$inferSelect>>();
+      for (const line of allLines) {
+        const list = linesByVoucher.get(line.voucherId) ?? [];
+        list.push(line);
+        linesByVoucher.set(line.voucherId, list);
+      }
+      return rows.map((row) => ({ ...row, lines: linesByVoucher.get(row.id) ?? [] }));
     });
   }
 
