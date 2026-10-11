@@ -138,18 +138,23 @@ describe('marketing /verify — الفحص في المتصفّح أولاً (P-M
   });
 });
 
-/** يحلّ مصدراً مكتوباً في `lib/trust.ts` إلى مسار ملفٍّ في المستودع. */
+/** يحلّ مصدراً مكتوباً في `lib/trust.ts` إلى مسار ملفٍّ (ورمزٍ إن ذُكر `#symbol`) في المستودع. */
 function sourceFilesExist(source: string): boolean {
   const tokens = source.split('·').map((token) => token.trim());
   let lastDir = repoRoot;
   for (const token of tokens) {
-    const path = token.replace(/\s*§[\d\-.]*\s*$/, '').replace(/:[\d\-.]+$/, '').split(/\s+/)[0] ?? '';
+    const cleaned = token.replace(/\s*§[\d\-.]*\s*$/, '').replace(/:[\d\-.]+$/, '').split(/\s+/)[0] ?? '';
+    const [path = '', anchor] = cleaned.split('#');
     if (path.length === 0) continue;
     const candidates = path.includes('/')
       ? [join(repoRoot, path)]
       : [join(lastDir, path), join(repoRoot, 'docs', path)];
     const found = candidates.find((candidate) => existsSync(candidate));
     if (!found) return false;
+    if (anchor) {
+      const content = readFileSync(found, 'utf8');
+      if (!content.includes(anchor)) return false;
+    }
     lastDir = dirname(found);
   }
   return true;
@@ -204,26 +209,36 @@ describe('marketing /industries — القطاعات من شجرة الموظّ�
     expect(industryBySlug('nope')).toBeUndefined();
   });
 
-  it('كل سطرٍ في كل قطاع يقابل تسميةً فعلية في `apps/staff/lib/navigation.ts` عند السطر المكتوب', () => {
+  it('كل سطرٍ في كل قطاع يقابل تسميةً ومفتاحاً ثابتاً في `apps/staff/lib/navigation.ts` (AUD-18 / F-12)', () => {
     const lines = readFileSync(staffNavigation, 'utf8').split('\n');
     const mismatched: string[] = [];
 
     for (const industry of industries) {
-      const screens: Array<{ label: string; source: string }> = [
+      const screens: Array<{ label: string; source: string; href?: string }> = [
         ...industry.screens,
         { label: industry.module.label, source: industry.module.source },
       ];
       for (const screen of screens) {
-        const match = /navigation\.ts:(\d+)$/.exec(screen.source);
+        const match = /^apps\/staff\/lib\/navigation\.ts#([a-z0-9-]+)$/.exec(screen.source);
         if (!match) {
-          mismatched.push(`${industry.slug}/${screen.label}: مصدرٌ بلا سطر (${screen.source})`);
+          mismatched.push(`${industry.slug}/${screen.label}: مصدرٌ بلا معرّف ثابت (${screen.source})`);
           continue;
         }
-        const line = Number(match[1]);
-        // نافذةٌ صغيرة (±٢) تتحمّل إعادة تنسيقٍ للسطر نفسه، ولا تتحمّل حذف الشاشة أو نقلها.
-        const window = lines.slice(Math.max(0, line - 3), line + 2).join('\n');
+        const key = match[1]!;
+        const anchorLine = lines.findIndex(
+          (line) => line.includes(`'${key}'`) || line.includes(`"${key}"`),
+        );
+        if (anchorLine === -1) {
+          mismatched.push(`${industry.slug}/${screen.label}: المعرّف #${key} غير موجود في navigation.ts`);
+          continue;
+        }
+        // نافذة العقدة حول المعرّف الثابت تضمّ التسمية العربية والـhref (إن كانت شاشةً).
+        const window = lines.slice(Math.max(0, anchorLine - 2), anchorLine + 8).join('\n');
         if (!window.includes(screen.label)) {
-          mismatched.push(`${industry.slug}/${screen.label}: غير موجود عند السطر ${line}`);
+          mismatched.push(`${industry.slug}/${screen.label}: التسمية غائبة عند #${key}`);
+        }
+        if (screen.href && !window.includes(screen.href)) {
+          mismatched.push(`${industry.slug}/${screen.label}: المسار ${screen.href} غائب عند #${key}`);
         }
       }
     }

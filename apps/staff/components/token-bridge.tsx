@@ -1,36 +1,62 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 
 import { writeSession } from '../lib/api';
 import { useSession } from '../lib/session';
 
 /**
- * Consumes a `?token=` session bridge handed over by the marketing smart login.
+ * AUD-08 — يستقبل جسر الدخول من الواجهة التسويقية.
  *
- * The marketing site authenticates the visitor against the same API and redirects
- * here with the fresh tokens. This component stores them as the local session,
- * strips them from the address bar (tokens must never linger in history), and
- * reloads the session — the visitor lands authenticated, without typing twice.
+ * ما كان: `?token=<access>&refresh=<refresh>&tenant=…` — أي أن **رموز الجلسة كاملة**
+ * تمرّ في عنوان الطلب الأول، فتُسجَّل في سجلّات الوسيط/الوكيل وفي `Referer`، وإزالتها
+ * بعد التحميل لا تلغي ما سُجّل. ما صار: العنوان يحمل `?handoff=<code>` فقط، رمزٌ
+ * لمرة واحدة عمره ~60 ثانية **لا يحمل صلاحية بنفسه**، يُستبدل هنا عبر POST بجلسةٍ
+ * جديدة، ثم يُنظَّف العنوان بلا إعادة تحميل.
+ *
+ * الفشل مغلق: رمز منتهٍ أو مُستبدل سابقاً يُلقي المستخدم على شاشة الدخول، لا على جلسة
+ * جزئية. ولا يوجد مسار قراءة `token` من الاستعلام بعد اليوم.
  */
 export function TokenBridge() {
   const { status, reload } = useSession();
+  const inFlight = useRef(false);
 
   useEffect(() => {
-    if (status !== 'anonymous') return;
+    if (status !== 'anonymous' || inFlight.current) return;
     const url = new URL(globalThis.location.href);
-    const token = url.searchParams.get('token');
-    if (!token) return;
-    writeSession({
-      accessToken: token,
-      refreshToken: url.searchParams.get('refresh') ?? '',
-      tenantCode: url.searchParams.get('tenant') ?? '',
-      expiresAt: Date.now() + 14 * 60 * 1000,
-    });
-    url.searchParams.delete('token');
-    url.searchParams.delete('refresh');
+    const code = url.searchParams.get('handoff');
+    if (!code) return;
+    inFlight.current = true;
+
+    // التنظيف فوراً: لا يبقى الرمز في العنوان/المحفوظات حتى لو فشل الاستبدال.
+    url.searchParams.delete('handoff');
     globalThis.history.replaceState(null, '', url.toString());
-    void reload();
+
+    void (async () => {
+      try {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL || '/api/v1'}/auth/handoff/redeem`, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ code }),
+        });
+        if (!response.ok) {
+          globalThis.location.assign('/login?handoff=failed');
+          return;
+        }
+        const payload = (await response.json()) as {
+          data: { accessToken: string; refreshToken: string; expiresIn: number; memberships: Array<{ tenantCode: string }> };
+        };
+        writeSession({
+          accessToken: payload.data.accessToken,
+          refreshToken: payload.data.refreshToken,
+          tenantCode: payload.data.memberships[0]?.tenantCode ?? '',
+          expiresAt: Date.now() + payload.data.expiresIn * 1000,
+        });
+        void reload();
+      } catch {
+        globalThis.location.assign('/login?handoff=failed');
+      }
+    })();
   }, [status, reload]);
 
   return null;

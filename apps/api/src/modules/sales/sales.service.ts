@@ -268,7 +268,12 @@ export class SalesService {
    * movement is the one thing a cashier must never be able to produce, and three
    * separate round trips from a browser can always leave exactly that behind.
    */
-  private async createInTx(tx: DrizzleTx, tenantId: string, input: SalesInvoiceInput): Promise<string> {
+  /**
+   * AUD-11 — بوّابات الكتابة والتحقق من المجاميع، مشتركةً بين الإنشاء واستبدال سطور
+   * المسوّدة: مسارٌ واحد للحساب وحدود الخصم ومراكز الكلفة، فلا يمرّ كتابٌ من بابٍ بلا
+   * الفحوص التي يمرّ منها الباب الآخر.
+   */
+  private prepareLines(tx: DrizzleTx, tenantId: string, input: SalesInvoiceInput) {
     if (!input.lines.length)
       throw new DomainError('SALES_LINES_REQUIRED', 'At least one invoice line is required', 422);
     if (!input.partyId && !input.cashCustomerName)
@@ -288,6 +293,43 @@ export class SalesService {
       discount: sumDiscount(totals),
       field: 'invoiceDiscount',
     });
+    return totals;
+  }
+
+  /** صفوف السطور المشتقّة من المجاميع المحسوبة — مصدرٌ واحد للإنشاء والاستبدال. */
+  private lineRows(invoiceId: string, tenantId: string, input: SalesInvoiceInput, totals: ReturnType<typeof calculateInvoiceTotals>) {
+    return input.lines.map((line, index) => {
+      const calculated = totals.lines[index];
+      if (!calculated)
+        throw new DomainError('SALES_TOTALS_INVALID', 'Invoice totals do not match invoice lines', 422);
+      return {
+        id: newId(),
+        tenantId,
+        invoiceId,
+        lineNo: index + 1,
+        itemId: line.itemId,
+        description: line.description,
+        quantity: line.quantity,
+        unitPrice: line.unitPrice,
+        discountRate: line.discountRate ?? '0',
+        discountAmount: calculated.discount,
+        taxGroupId: line.taxGroupId,
+        taxRate: line.taxRate ?? '0',
+        net: calculated.net,
+        tax: calculated.tax,
+        total: calculated.total,
+        serialNos: cleanSerialNos(line.serialNos),
+        lotId: line.lotId,
+        batchNo: line.batchNo?.trim() || null,
+        productionDate: line.productionDate?.trim() || null,
+        expiryDate: line.expiryDate?.trim() || null,
+        costCenterId: line.costCenterId ?? null,
+      };
+    });
+  }
+
+  private async createInTx(tx: DrizzleTx, tenantId: string, input: SalesInvoiceInput): Promise<string> {
+    const totals = this.prepareLines(tx, tenantId, input);
     // R9 — كل مركزٍ مُسمّى (رأساً أو على سطر) يُفحَص قبل أي كتابة: مركزُ مستأجرٍ آخر ليس
     // مركزاً عندنا، والرسالة تسمّي الحقل. الفحص هنا في مسار الإنشاء الوحيد فيمرّ منه كل
     // ما يُكتب — مسودّةُ الحقل، وفاتورة الكاشير، وعرض السعر، والمردود.
@@ -325,36 +367,7 @@ export class SalesService {
         total: totals.total,
         status: 'draft',
       });
-    await tx.insert(salesInvoiceLines).values(
-      input.lines.map((line, index) => {
-        const calculated = totals.lines[index];
-        if (!calculated)
-          throw new DomainError('SALES_TOTALS_INVALID', 'Invoice totals do not match invoice lines', 422);
-        return {
-          id: newId(),
-          tenantId,
-          invoiceId: id,
-          lineNo: index + 1,
-          itemId: line.itemId,
-          description: line.description,
-          quantity: line.quantity,
-          unitPrice: line.unitPrice,
-          discountRate: line.discountRate ?? '0',
-          discountAmount: calculated.discount,
-          taxGroupId: line.taxGroupId,
-          taxRate: line.taxRate ?? '0',
-          net: calculated.net,
-          tax: calculated.tax,
-          total: calculated.total,
-          serialNos: cleanSerialNos(line.serialNos),
-          lotId: line.lotId,
-          batchNo: line.batchNo?.trim() || null,
-          productionDate: line.productionDate?.trim() || null,
-          expiryDate: line.expiryDate?.trim() || null,
-          costCenterId: line.costCenterId ?? null,
-        };
-      }),
-    );
+    await tx.insert(salesInvoiceLines).values(this.lineRows(id, tenantId, input, totals));
     return id;
   }
 
@@ -415,40 +428,81 @@ export class SalesService {
     return invoice;
   }
 
+  /**
+   * AUD-11 — تعديل المسودّة كلّه في معاملة واحدة، وبهوية الفاتورة نفسها.
+   *
+   * ما كان: حذف السطور في معاملة، ثم `create()` بديل في معاملة ثانية بمعرّفٍ جديد. فشلُ
+   * الإنشاء كان يترك المسودّة **بلا سطور** (تلفُ بيانات ظاهر)، ونجاحُه كان يبدّل المعرّف
+   * فيكسر المراجع (المرفقات، سجلّ التدقيق، `referenceInvoiceId`، مفاتيح العملاء). الآن:
+   * قفل صفّ الفاتورة (`FOR UPDATE`) يمنع تعديلين متزامنين/ترحيلاً متزامناً من التسلسل
+   * الخطأ، والحذف والإدراج وتحديث المجاميع في معاملةٍ واحدة — إما كلها أو لا شيء.
+   */
   async updateDraft(tenantId: string, id: string, input: Partial<SalesInvoiceInput>) {
-    const invoice = await this.get(tenantId, id);
-    if (invoice.status !== 'draft')
-      throw new DomainError('SALES_INVOICE_IMMUTABLE', 'Only draft invoices can be changed', 409);
-    if (invoice.shiftId)
-      await withTenantTx(this.database.db, tenantId, (tx) => this.assertShiftOpen(tx, tenantId, invoice));
-    if (input.lines) {
-      await withTenantTx(this.database.db, tenantId, async (tx) => {
+    await withTenantTx(this.database.db, tenantId, async (tx) => {
+      const [locked] = await tx
+        .select()
+        .from(salesInvoices)
+        .where(and(eq(salesInvoices.tenantId, tenantId), eq(salesInvoices.id, id)))
+        .for('update');
+      if (!locked) throw new DomainError('SALES_INVOICE_NOT_FOUND', 'Sales invoice was not found', 404);
+      if (locked.status !== 'draft')
+        throw new DomainError('SALES_INVOICE_IMMUTABLE', 'Only draft invoices can be changed', 409);
+      await this.assertShiftOpen(tx, tenantId, locked);
+
+      const header = {
+        partyId: input.partyId ?? locked.partyId,
+        salesmanId: input.salesmanId ?? locked.salesmanId,
+        // R9 — مركز الرأس يُعدَّل مع بقية رأس الفاتورة (المسودّة وحدها؛ والمرحَّل لا يُعدَّل).
+        costCenterId: input.costCenterId ?? locked.costCenterId,
+        warehouseId: input.warehouseId ?? locked.warehouseId,
+        cashCustomerName: input.cashCustomerName ?? locked.cashCustomerName,
+        cashCustomerMobile: input.cashCustomerMobile ?? locked.cashCustomerMobile,
+      };
+
+      if (!input.lines) {
         await tx
-          .delete(salesInvoiceLines)
-          .where(and(eq(salesInvoiceLines.tenantId, tenantId), eq(salesInvoiceLines.invoiceId, id)));
-      });
-      const replacement = await this.create(tenantId, {
+          .update(salesInvoices)
+          .set({ ...header, updatedAt: new Date() })
+          .where(and(eq(salesInvoices.tenantId, tenantId), eq(salesInvoices.id, id)));
+        return;
+      }
+
+      const merged: SalesInvoiceInput = {
         ...input,
-        branchId: input.branchId ?? invoice.branchId,
+        branchId: input.branchId ?? locked.branchId,
         lines: input.lines,
-      } as SalesInvoiceInput);
-      return replacement;
-    }
-    await withTenantTx(this.database.db, tenantId, (tx) =>
-      tx
+        partyId: header.partyId,
+        cashCustomerName: header.cashCustomerName,
+        priceIncludesVat: input.priceIncludesVat ?? locked.priceIncludesVat,
+        invoiceDiscount: input.invoiceDiscount ?? locked.invoiceDiscount,
+        extraTax: input.extraTax ?? locked.extraTax,
+        withholding: input.withholding ?? locked.withholding,
+      } as SalesInvoiceInput;
+      const totals = this.prepareLines(tx, tenantId, merged);
+      await this.accounting.assertCostCentersInTx(tx, tenantId, [
+        merged.costCenterId,
+        ...merged.lines.map((line) => line.costCenterId),
+      ]);
+
+      await tx
+        .delete(salesInvoiceLines)
+        .where(and(eq(salesInvoiceLines.tenantId, tenantId), eq(salesInvoiceLines.invoiceId, id)));
+      await tx.insert(salesInvoiceLines).values(this.lineRows(id, tenantId, merged, totals));
+      await tx
         .update(salesInvoices)
         .set({
-          partyId: input.partyId,
-          salesmanId: input.salesmanId,
-          // R9 — مركز الرأس يُعدَّل مع بقية رأس الفاتورة (المسودّة وحدها؛ والمرحَّل لا يُعدَّل).
-          costCenterId: input.costCenterId,
-          warehouseId: input.warehouseId,
-          cashCustomerName: input.cashCustomerName,
-          cashCustomerMobile: input.cashCustomerMobile,
+          ...header,
+          priceIncludesVat: merged.priceIncludesVat ?? false,
+          invoiceDiscount: totals.discount,
+          extraTax: totals.extraTax,
+          withholding: totals.withholding,
+          subtotal: totals.subtotal,
+          taxTotal: totals.tax,
+          total: totals.total,
           updatedAt: new Date(),
         })
-        .where(and(eq(salesInvoices.tenantId, tenantId), eq(salesInvoices.id, id))),
-    );
+        .where(and(eq(salesInvoices.tenantId, tenantId), eq(salesInvoices.id, id)));
+    });
     return this.get(tenantId, id);
   }
 

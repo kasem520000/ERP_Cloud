@@ -4,11 +4,19 @@ import Link from 'next/link';
 import { useEffect, useState, type ReactNode } from 'react';
 
 import { apiData } from '../lib/api';
+import { useLang } from '../lib/i18n';
+import { useSession } from '../lib/session';
+
+import { ImpersonationBanner } from './impersonation-banner';
 
 type Notice = { id: string; title: string; body: string };
 
 export function EmployeeShell({ children }: { children: ReactNode }) {
   const [notice, setNotice] = useState<Notice>();
+  // AUD-13 — لافتة الدخول المؤقّت تظهر في **كل** قشرة، لا في لوحة الإدارة وحدها:
+  // الموظف المستعار لا يجوز أن يعمل بلا أن يرى أن الشاشة ليست شاشته.
+  const { me } = useSession();
+  const { lang } = useLang();
 
   useEffect(() => {
     let stop = false;
@@ -46,6 +54,7 @@ export function EmployeeShell({ children }: { children: ReactNode }) {
           <Link href="/m/profile">حسابي</Link>
         </nav>
       </header>
+      <ImpersonationBanner impersonation={me?.impersonation} lang={lang} />
       {notice ? <p className="alert warn">{notice.title}: {notice.body}</p> : null}
       <main>{children}</main>
     </div>

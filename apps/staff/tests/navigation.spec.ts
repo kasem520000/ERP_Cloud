@@ -31,6 +31,19 @@ function pageFileFor(href: string): string {
 }
 
 describe('staff navigation tree', () => {
+  it('AUD-12: الكنسي والقديم يفتحان الشاشة نفسها — بلا خريطة محلية', () => {
+    const hrefs = (permissions: string[]) =>
+      visibleModules(permissions, false)
+        .flatMap((module) => module.groups.flatMap((group) => group.items))
+        .map((item) => item.href)
+        .sort();
+
+    const canonical = hrefs(['tenant.view']);
+    const legacy = hrefs(['platform.tenant.view']);
+    expect(legacy, 'the legacy spelling must reveal exactly the same screens').toEqual(canonical);
+    expect(hrefs(['sales.view']).length, 'a granted code must reveal more than nothing').toBeGreaterThan(hrefs([]).length);
+  });
+
   it('mirrors the desktop product modules', () => {
     // Phase 06 gave the treasury its own module: the voucher documents, the safes and
     // the banks are one product area in `Desktop_ERP` (`frmSandQ`, `frmTreasury`,

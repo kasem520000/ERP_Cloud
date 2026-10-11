@@ -4,10 +4,14 @@ import type { Request } from 'express';
 import { env } from '@erp/config';
 import {
   changePasswordRequestSchema,
+  handoffCreateResponseSchema,
+  handoffRedeemSchema,
   loginRequestSchema,
   logoutRequestSchema,
   refreshRequestSchema,
   type ChangePasswordRequest,
+  type HandoffRedeemRequest,
+  type HandoffResponse,
   type LoginRequest,
   type LoginResponse,
   type RefreshRequest,
@@ -61,6 +65,47 @@ export class AuthController {
     @Req() request: Request,
   ): Promise<{ data: LoginResponse }> {
     const data = await this.auth.refresh(body, {
+      ip: request.ip,
+      userAgent: request.headers['user-agent'],
+    });
+    return { data };
+  }
+
+  /**
+   * AUD-08 — إصدار رمز تسليم لمرة واحدة. الواجهة المصدر (التسويق) تصدره بعد الدخول،
+   * ثم توجّه المتصفح إلى الواجهة الهدف بـ`?handoff=<code>` بدل `?token=&refresh=`.
+   */
+  @Post('handoff')
+  @HttpCode(201)
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Mint a single-use login handoff code for another surface' })
+  @ApiResponse({ status: 201, description: 'Handoff code (valid ~60s, single use)' })
+  @ApiResponse({ status: 401, description: 'User, tenant or membership is not active' })
+  async handoff(@Req() request: Request): Promise<{ data: HandoffResponse }> {
+    const data: HandoffResponse = handoffCreateResponseSchema.parse(await this.auth.createHandoff(getAuthContext(), {
+      ip: request.ip,
+      userAgent: request.headers['user-agent'],
+    }));
+    return { data };
+  }
+
+  /**
+   * AUD-08 — استبدال رمز التسليم بجلسة. عامّ بلا رمزٍ مسبق (الواجهة الهدف لم تسجّل
+   * الدخول بعد)، ومحدَّد المعدّل، والخطأ واحد لكل الحالات (مجهول/منتهٍ/مستعمل).
+   */
+  @Public()
+  @Post('handoff/redeem')
+  @HttpCode(200)
+  @RateLimit({ name: 'auth', limit: env.RATE_LIMIT_DEFAULT_PER_MINUTE, windowMs: 60_000 })
+  @zodApiBody(handoffRedeemSchema)
+  @ApiOperation({ summary: 'Redeem a handoff code for a fresh session' })
+  @ApiResponse({ status: 200, description: 'Fresh access/refresh pair' })
+  @ApiResponse({ status: 401, description: 'Invalid, expired or already-redeemed code (HANDOFF_CODE_INVALID)' })
+  async redeemHandoff(
+    @Body(new ZodValidationPipe(handoffRedeemSchema)) body: HandoffRedeemRequest,
+    @Req() request: Request,
+  ): Promise<{ data: LoginResponse }> {
+    const data = await this.auth.redeemHandoff(body.code, {
       ip: request.ip,
       userAgent: request.headers['user-agent'],
     });

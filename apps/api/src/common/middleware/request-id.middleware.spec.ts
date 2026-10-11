@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 
 import { getTraceId, requestContextStorage } from '../../request-context/request-context.js';
 
-import { RequestIdMiddleware } from './request-id.middleware.js';
+import { RequestIdMiddleware, extractW3cTraceId } from './request-id.middleware.js';
 
 function runMiddleware(headers: Record<string, string>): {
   headerValue: string;
@@ -41,7 +41,7 @@ describe('RequestIdMiddleware', () => {
   });
 
   it('replaces a hostile X-Request-Id instead of echoing it into logs', () => {
-    const result = runMiddleware({ 'x-request-id': 'bad id\\nX-Injected: 1' });
+    const result = runMiddleware({ 'x-request-id': 'bad id\nX-Injected: 1' });
     expect(result.headerValue).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-/);
     expect(result.headerValue).not.toContain('X-Injected');
     expect(result.responseHeader).toBe(result.headerValue);
@@ -52,5 +52,25 @@ describe('RequestIdMiddleware', () => {
     expect(result.headerValue).toBe('trace-from-gateway');
     expect(result.traceId).toBe('trace-from-gateway');
     expect(result.responseHeader).toBe('trace-from-gateway');
+  });
+
+  it('O-04: adopts the 32-hex trace-id from a valid W3C traceparent when X-Request-Id is absent', () => {
+    const traceparent = '00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01';
+    const result = runMiddleware({ traceparent });
+    expect(result.traceId).toBe('4bf92f3577b34da6a3ce929d0e0e4736');
+    expect(result.headerValue).toBe('4bf92f3577b34da6a3ce929d0e0e4736');
+    expect(result.responseHeader).toBe('4bf92f3577b34da6a3ce929d0e0e4736');
+  });
+
+  it('O-04: rejects malformed, version-ff, or all-zero W3C traceparent headers', () => {
+    expect(extractW3cTraceId('ff-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01')).toBe('');
+    expect(extractW3cTraceId('00-00000000000000000000000000000000-00f067aa0ba902b7-01')).toBe('');
+    expect(extractW3cTraceId('00-4bf92f3577b34da6a3ce929d0e0e4736-0000000000000000-01')).toBe('');
+    expect(extractW3cTraceId('not-a-traceparent')).toBe('');
+
+    const fallback = runMiddleware({
+      traceparent: '00-00000000000000000000000000000000-00f067aa0ba902b7-01',
+    });
+    expect(fallback.traceId).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-7[0-9a-f]{3}-/);
   });
 });

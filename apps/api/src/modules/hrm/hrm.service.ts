@@ -373,10 +373,21 @@ export class HrmService implements OnModuleInit {
     if (movingId && parent.id === movingId) throw new DomainError('DEPARTMENT_CYCLE', 'لا يمكن أن يكون القسم تابعاً لنفسه', 422);
     return parent;
   }
-  async listJobs(tenantId: string) { await this.ensureEnabled(tenantId); return withTenantTx(this.database.db, tenantId, (tx) => tx.select().from(jobs).where(eq(jobs.tenantId, tenantId)).orderBy(jobs.code)); }
+  /**
+   * AUD-15 — الوظيفة المحذوفة لا تظهر: الحذف هنا **ناعم** (`deletedAt`، كما يفعل
+   * `deleteDepartment` فوقه ونمط `baseSoftDeleteColumns`)، فالقائمة كانت تسرّب المحذوف.
+   */
+  async listJobs(tenantId: string) { await this.ensureEnabled(tenantId); return withTenantTx(this.database.db, tenantId, (tx) => tx.select().from(jobs).where(and(eq(jobs.tenantId, tenantId), isNull(jobs.deletedAt))).orderBy(jobs.code)); }
   async createJob(tenantId: string, input: JobInput) { await this.ensureEnabled(tenantId); const [row] = await withTenantTx(this.database.db, tenantId, (tx) => tx.insert(jobs).values({ id: newId(), tenantId, code: input.code, name: input.name }).returning()); return row; }
-  async updateJob(tenantId: string, id: string, patch: JobPatch) { await this.ensureEnabled(tenantId); const [row] = await withTenantTx(this.database.db, tenantId, (tx) => tx.update(jobs).set({ ...(patch.code === undefined ? {} : { code: patch.code }), ...(patch.name === undefined ? {} : { name: patch.name }), updatedAt: new Date() }).where(and(eq(jobs.tenantId, tenantId), eq(jobs.id, id))).returning()); if (!row) throw new DomainError('NOT_FOUND', 'Job not found', 404); return row; }
-  async deleteJob(tenantId: string, id: string) { await this.ensureEnabled(tenantId); return withTenantTx(this.database.db, tenantId, async (tx) => { const used = await tx.execute(sql`SELECT EXISTS (SELECT 1 FROM employees WHERE tenant_id = ${tenantId} AND job_id = ${id} AND deleted_at IS NULL) AS used`); if ((rowsOf(used)[0] as { used: boolean }).used) throw new DomainError('JOB_IN_USE', 'Employees are still assigned to this job title', 409); const result = await tx.delete(jobs).where(and(eq(jobs.tenantId, tenantId), eq(jobs.id, id))); if (!result.rowCount) throw new DomainError('NOT_FOUND', 'Job not found', 404); return { id, deleted: true }; }); }
+  /** AUD-15 — تعديل محذوفٍ ليس تعديلاً: الشرط `deleted_at IS NULL` يجعله 404 كغيره. */
+  async updateJob(tenantId: string, id: string, patch: JobPatch) { await this.ensureEnabled(tenantId); const [row] = await withTenantTx(this.database.db, tenantId, (tx) => tx.update(jobs).set({ ...(patch.code === undefined ? {} : { code: patch.code }), ...(patch.name === undefined ? {} : { name: patch.name }), updatedAt: new Date() }).where(and(eq(jobs.tenantId, tenantId), eq(jobs.id, id), isNull(jobs.deletedAt))).returning()); if (!row) throw new DomainError('NOT_FOUND', 'Job not found', 404); return row; }
+  /**
+   * AUD-15 — الحذف ناعم لا صلب: `delete` كان يمحو الصف ويفقد أثره (من حذف ومتى) رغم أن
+   * الجدول يحمل `deleted_at`/`deleted_by` وفهرساً فريداً جزئياً على `deleted_at IS NULL`
+   * يقصد به السماح بإعادة استعمال الرمز لاحقاً. والوظيفة المستخدمة تبقى مرفوضة (409).
+   * والحذف الثاني يعيد 404 لأن الشرط نفسه يمنع «حذف» صفٍّ محذوف.
+   */
+  async deleteJob(tenantId: string, id: string) { await this.ensureEnabled(tenantId); return withTenantTx(this.database.db, tenantId, async (tx) => { const used = await tx.execute(sql`SELECT EXISTS (SELECT 1 FROM employees WHERE tenant_id = ${tenantId} AND job_id = ${id} AND deleted_at IS NULL) AS used`); if ((rowsOf(used)[0] as { used: boolean }).used) throw new DomainError('JOB_IN_USE', 'Employees are still assigned to this job title', 409); const result = await tx.update(jobs).set({ deletedAt: new Date(), updatedAt: new Date() }).where(and(eq(jobs.tenantId, tenantId), eq(jobs.id, id), isNull(jobs.deletedAt))); if (!result.rowCount) throw new DomainError('NOT_FOUND', 'Job not found', 404); return { id, deleted: true }; }); }
 
   /**
    * 👤 قائمة الموظفين — `frmEmployees.xaml` «قائمة الموظفين» prints
@@ -1415,8 +1426,131 @@ export class HrmService implements OnModuleInit {
   async createRun(tenantId: string, input: RunInput) { const preview = await this.preview(tenantId, input); const id = newId(); await withTenantTx(this.database.db, tenantId, async (tx) => { await tx.insert(payrollRuns).values({ id, tenantId, yearMonth: input.yearMonth, periodId: input.periodId, currency: input.currency ?? 'SAR', summary: { preview: preview.data } }); if (preview.data.lines.length) await tx.insert(payrollRunLines).values(preview.data.lines.map((line, index) => ({ runId: id, lineNo: index + 1, tenantId, employeeId: line.employeeId, components: line.components, additions: line.additions, deductions: line.deductions, gross: line.gross, net: line.net, status: 'draft', payslipHtml: payslipHtml(input.yearMonth, line.employeeName, line.net) }))); }); return this.readRun(tenantId, id); }
   async readRun(tenantId: string, id: string) { await this.ensureEnabled(tenantId); const [run] = await withTenantTx(this.database.db, tenantId, (tx) => tx.select().from(payrollRuns).where(and(eq(payrollRuns.tenantId, tenantId), eq(payrollRuns.id, id))).limit(1)); if (!run) throw new DomainError('NOT_FOUND', 'Payroll run not found', 404); const lines = await withTenantTx(this.database.db, tenantId, (tx) => tx.select().from(payrollRunLines).where(and(eq(payrollRunLines.tenantId, tenantId), eq(payrollRunLines.runId, id))).orderBy(payrollRunLines.lineNo)); return { data: { ...run, lines } }; }
   async listRuns(tenantId: string) { await this.ensureEnabled(tenantId); return { data: await withTenantTx(this.database.db, tenantId, (tx) => tx.select().from(payrollRuns).where(eq(payrollRuns.tenantId, tenantId)).orderBy(payrollRuns.yearMonth)) }; }
-  async postRun(tenantId: string, id: string, input: PostRunInput = {}) { await this.ensureEnabled(tenantId); const current = await this.readRun(tenantId, id); if (current.data.status !== 'draft') throw new DomainError('PAYROLL_RUN_IMMUTABLE', 'Only draft payroll runs can be posted', 409); let journalEntryId = input.journalEntryId; if (!journalEntryId && input.journalLines?.length && input.branchId && (input.fiscalPeriodId ?? current.data.periodId)) { const journal = await this.accounting.postJournal(tenantId, { branchId: input.branchId, fiscalPeriodId: input.fiscalPeriodId ?? current.data.periodId!, date: new Date().toISOString().slice(0, 10), description: `Payroll ${current.data.yearMonth}`, lines: input.journalLines }); if (!journal) throw new DomainError('INTERNAL', 'Payroll journal was not created', 500); journalEntryId = journal.id; } await withTenantTx(this.database.db, tenantId, (tx) => tx.update(payrollRuns).set({ status: 'posted', journalEntryId, postedAt: new Date(), updatedAt: new Date() }).where(and(eq(payrollRuns.tenantId, tenantId), eq(payrollRuns.id, id)))); return this.readRun(tenantId, id); }
-  async payRun(tenantId: string, id: string, input: PayRunInput) { await this.ensureEnabled(tenantId); const current = await this.readRun(tenantId, id); if (current.data.status !== 'posted') throw new DomainError('PAYROLL_RUN_NOT_POSTED', 'Only posted payroll runs can be paid', 409); const payValue = sumLines(current.data.lines.map((line) => line.net)); const voucher = await this.treasury.createVoucher(tenantId, { branchId: input.branchId, kind: 'payment', subtype: 'salary', date: new Date().toISOString().slice(0, 10), cashLocationId: input.cashLocationId, method: input.method ?? 'cash', amount: payValue, netAmount: payValue, idempotencyKey: `payroll:${id}` }); const posted = voucher?.id ? await this.treasury.postVoucher(tenantId, voucher.id, { fiscalPeriodId: input.fiscalPeriodId }) : undefined; await withTenantTx(this.database.db, tenantId, (tx) => tx.update(payrollRuns).set({ status: 'paid', voucherId: posted?.id, paidAt: new Date(), updatedAt: new Date() }).where(and(eq(payrollRuns.tenantId, tenantId), eq(payrollRuns.id, id)))); return this.readRun(tenantId, id); }
+  /**
+   * AUD-10 — ترحيل المسيّر: القيد وحالة المسيّر في **معاملة واحدة**.
+   *
+   * كان المسار يقرأ المسيّر ثم يرحّل القيد بـ`accounting.postJournal` (معاملة مستقلّة)
+   * ثم يحدّث الحالة (معاملة ثانية)، فانقطاعٌ بينهما يترك قيداً بلا مسيّر مرحّل أو العكس.
+   * الآن:
+   *
+   *   • `SELECT … FOR UPDATE` على صفّ المسيّر — طلبان متزامنان يتسلسلان، والثاني يقرأ
+   *     الحالة بعد الأول؛
+   *   • القيد يُكتب بـ`postJournalInTx` داخل المعاملة نفسها؛
+   *   • التحديث النهائي مشروط بـ`status = 'draft'`، فإن كان صفٌّ قد سُبق فالمعاملة تُلغى
+   *     كاملة (بما فيها القيد) ويُعاد 409 — لا أثر جزئي إطلاقاً؛
+   *   • `idempotencyKey` على القيد (`payroll-journal:<id>`) يبقى شبكة أمانٍ إضافية على
+   *     الفهرس الفريد، فلا يتكرّر قيد المسيّر نفسه أبداً.
+   */
+  async postRun(tenantId: string, id: string, input: PostRunInput = {}) {
+    await this.ensureEnabled(tenantId);
+    await withTenantTx(this.database.db, tenantId, async (tx) => {
+      const [run] = await tx
+        .select()
+        .from(payrollRuns)
+        .where(and(eq(payrollRuns.tenantId, tenantId), eq(payrollRuns.id, id)))
+        .limit(1)
+        .for('update');
+      if (!run) throw new DomainError('NOT_FOUND', 'Payroll run not found', 404);
+      if (run.status !== 'draft')
+        throw new DomainError('PAYROLL_RUN_IMMUTABLE', 'Only draft payroll runs can be posted', 409);
+
+      let journalEntryId = input.journalEntryId;
+      if (
+        !journalEntryId &&
+        input.journalLines?.length &&
+        input.branchId &&
+        (input.fiscalPeriodId ?? run.periodId)
+      ) {
+        const journal = await this.accounting.postJournalInTx(tx, tenantId, {
+          branchId: input.branchId,
+          fiscalPeriodId: input.fiscalPeriodId ?? run.periodId!,
+          date: new Date().toISOString().slice(0, 10),
+          description: `Payroll ${run.yearMonth}`,
+          lines: input.journalLines,
+          sourceType: 'payroll_run',
+          sourceId: id,
+          idempotencyKey: `payroll-journal:${id}`,
+        });
+        if (!journal) throw new DomainError('INTERNAL', 'Payroll journal was not created', 500);
+        journalEntryId = journal.id;
+      }
+
+      const claimed = await tx
+        .update(payrollRuns)
+        .set({ status: 'posted', journalEntryId, postedAt: new Date(), updatedAt: new Date() })
+        .where(and(eq(payrollRuns.tenantId, tenantId), eq(payrollRuns.id, id), eq(payrollRuns.status, 'draft')))
+        .returning({ id: payrollRuns.id });
+      if (claimed.length === 0)
+        throw new DomainError('PAYROLL_RUN_IMMUTABLE', 'Only draft payroll runs can be posted', 409);
+    });
+    return this.readRun(tenantId, id);
+  }
+
+  /**
+   * AUD-10 — صرف المسيّر: إنشاء سند الخزينة + ترحيله + حالة المسيّر في **معاملة واحدة**.
+   *
+   * كانت المراحل الثلاث معاملات منفصلة؛ وفشلٌ بينها يترك سنداً مرحّلاً بلا مسيّر «مدفوع»،
+   * وإعادة المحاولة قد تنشئ سنداً ثانياً. الآن القفل صفّ المسيّر (`FOR UPDATE`) والبحث عن
+   * سندٍ سابق بالمفتاح `payroll:<id>` داخل المعاملة: إعادة المحاولة تربط **نفس** السند
+   * ولا تنشئ أثراً ثانياً، وأي فشل يُلغي المعاملة كاملة.
+   */
+  async payRun(tenantId: string, id: string, input: PayRunInput) {
+    await this.ensureEnabled(tenantId);
+    await withTenantTx(this.database.db, tenantId, async (tx) => {
+      const [run] = await tx
+        .select()
+        .from(payrollRuns)
+        .where(and(eq(payrollRuns.tenantId, tenantId), eq(payrollRuns.id, id)))
+        .limit(1)
+        .for('update');
+      if (!run) throw new DomainError('NOT_FOUND', 'Payroll run not found', 404);
+      if (run.status !== 'posted')
+        throw new DomainError('PAYROLL_RUN_NOT_POSTED', 'Only posted payroll runs can be paid', 409);
+
+      const lines = await tx
+        .select()
+        .from(payrollRunLines)
+        .where(and(eq(payrollRunLines.tenantId, tenantId), eq(payrollRunLines.runId, id)));
+      const payValue = sumLines(lines.map((line) => line.net));
+      const idempotencyKey = `payroll:${id}`;
+
+      const [existingVoucher] = await tx
+        .select()
+        .from(vouchers)
+        .where(and(eq(vouchers.tenantId, tenantId), eq(vouchers.idempotencyKey, idempotencyKey)))
+        .limit(1);
+
+      const voucher =
+        existingVoucher ??
+        (await this.treasury.createVoucherInTx(tx, tenantId, {
+          branchId: input.branchId,
+          kind: 'payment',
+          subtype: 'salary',
+          date: new Date().toISOString().slice(0, 10),
+          cashLocationId: input.cashLocationId,
+          method: input.method ?? 'cash',
+          amount: payValue,
+          netAmount: payValue,
+          idempotencyKey,
+        }));
+      if (!voucher) throw new DomainError('INTERNAL', 'Payroll voucher was not created', 500);
+
+      const posted =
+        voucher.status === 'posted'
+          ? voucher
+          : await this.treasury.postVoucherInTx(tx, tenantId, voucher.id, { fiscalPeriodId: input.fiscalPeriodId });
+
+      const claimed = await tx
+        .update(payrollRuns)
+        .set({ status: 'paid', voucherId: posted.id, paidAt: new Date(), updatedAt: new Date() })
+        .where(and(eq(payrollRuns.tenantId, tenantId), eq(payrollRuns.id, id), eq(payrollRuns.status, 'posted')))
+        .returning({ id: payrollRuns.id });
+      if (claimed.length === 0)
+        throw new DomainError('PAYROLL_RUN_NOT_POSTED', 'Only posted payroll runs can be paid', 409);
+    });
+    return this.readRun(tenantId, id);
+  }
+
   async reverseRun(tenantId: string, id: string, reason: string) { await this.ensureEnabled(tenantId); if (!reason.trim()) throw new DomainError('VALIDATION_FAILED', 'Reversal reason is required', 422); const current = await this.readRun(tenantId, id); if (current.data.status !== 'posted' && current.data.status !== 'paid') throw new DomainError('PAYROLL_REVERSAL_INVALID', 'Only posted or paid runs can be reversed', 409); await withTenantTx(this.database.db, tenantId, (tx) => tx.update(payrollRuns).set({ status: 'reversed', reversedAt: new Date(), reversalReason: reason, updatedAt: new Date() }).where(and(eq(payrollRuns.tenantId, tenantId), eq(payrollRuns.id, id)))); return this.readRun(tenantId, id); }
 
   /**

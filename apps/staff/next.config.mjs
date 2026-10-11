@@ -52,8 +52,21 @@ const nextConfig = {
         headers: [
           {
             key: 'Content-Security-Policy',
-            value:
-              "default-src 'self'; connect-src 'self' http: https:; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-eval' 'unsafe-inline'; frame-ancestors *",
+            // SH-01: restrict frame-ancestors to self + Arena/e2b preview hosts (or CSP_FRAME_ANCESTORS)
+            // instead of `*`, and drop 'unsafe-eval' in production builds while keeping dev HMR working.
+            value: [
+              "default-src 'self'",
+              "base-uri 'self'",
+              "object-src 'none'",
+              "form-action 'self'",
+              "connect-src 'self' http: https:",
+              "img-src 'self' data: blob:",
+              "style-src 'self' 'unsafe-inline'",
+              process.env.NODE_ENV === 'production'
+                ? "script-src 'self' 'unsafe-inline'"
+                : "script-src 'self' 'unsafe-eval' 'unsafe-inline'",
+              `frame-ancestors ${process.env.CSP_FRAME_ANCESTORS ?? "'self' https://*.e2b.app https://*.e2b.dev https://*.arena.ai"}`,
+            ].join('; '),
           },
           { key: 'X-Content-Type-Options', value: 'nosniff' },
           { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },

@@ -3,7 +3,7 @@ import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
 import { Inject, Injectable } from '@nestjs/common';
 import { and, desc, eq, gt, or, sql } from 'drizzle-orm';
 import { DomainError, newId } from '@erp/contracts';
-import { accounts, branches, compatDevices, inventoryTransactions, items, journalEntries, parties, salesInvoices, taxGroups, vouchers, warehouses, withTenantTx, type CompatDevice, type DatabaseHandle } from '@erp/database';
+import { accounts, branches, compatDevices, compatSessions, inventoryTransactions, items, journalEntries, parties, salesInvoices, taxGroups, vouchers, warehouses, withTenantTx, type CompatDevice, type DatabaseHandle } from '@erp/database';
 
 import { DATABASE_HANDLE } from '../../database/database.module.js';
 import { SalesService } from '../sales/sales.service.js';
@@ -15,8 +15,32 @@ type Cursor = { updatedAt: string; id: string };
 type DeviceInput = { name: string; branchId: string; enumMaps?: Record<string, Record<string, string>> };
 type DeviceSession = { device: CompatDevice; token: string };
 
-const sessions = new Map<string, { tenantId: string; deviceId: string; expiresAt: number }>();
-const compatPepper = () => process.env.COMPAT_KEY_PEPPER ?? 'dev-compat-pepper-change-me';
+/** جلسة التوافق تعيش 15 دقيقة — ولم تعد حالةً في ذاكرة العملية (AUD-09). */
+const SESSION_TTL_MS = 15 * 60_000;
+/** سقف طلبات الجهاز الواحد في الدقيقة — عدّادٌ في صفّ الجهاز نفسه. */
+const RATE_LIMIT_PER_MINUTE = 120;
+
+/** مفتاح اختبارٍ معزول بالاسم — لا يُستعمل خارج `NODE_ENV=test`. */
+export const TEST_COMPAT_KEY_PEPPER = 'erp-test-only-compat-pepper';
+
+/**
+ * AUD-09 — فلفل بصمة مفتاح الجهاز.
+ *
+ * كان الافتراضي `'dev-compat-pepper-change-me'` في أي بيئة غير مضبوطة، أي أن أي عملية
+ * تحمل مفاتيح أجهزة حقيقية كانت تبصمها بسرٍّ منشور في المستودع. الآن: القيمة المضبوطة،
+ * وإلا **مفتاح اختبارٍ فقط** داخل `NODE_ENV=test`، وإلا فشلٌ صريح بدل سرٍّ معروف.
+ * والمفاتيح نفسها عالية العشوائية (`randomBytes(24)` = 192 بت)، فـSHA-256 كافٍ لها؛
+ * الإبطاء المتعمَّد (Argon2 وما شابه) مقصودٌ لكلمات مرور البشر لا لمفاتيح الجهاز.
+ */
+function compatPepper(): string {
+  const configured = process.env.COMPAT_KEY_PEPPER?.trim();
+  if (configured) return configured;
+  if (process.env.NODE_ENV === 'test') return TEST_COMPAT_KEY_PEPPER;
+  throw new Error(
+    'COMPAT_KEY_PEPPER is required to hash compatibility device keys outside tests (AUD-09). ' +
+      'Run `pnpm env:setup` at the repository root or set COMPAT_KEY_PEPPER in the environment.',
+  );
+}
 
 @Injectable()
 export class CompatService {
@@ -33,7 +57,14 @@ export class CompatService {
   }
 
   async listDevices(tenantId: string) { return { data: await withTenantTx(this.database.db, tenantId, (tx) => tx.select().from(compatDevices).where(eq(compatDevices.tenantId, tenantId))) }; }
-  async revokeDevice(tenantId: string, id: string) { await withTenantTx(this.database.db, tenantId, (tx) => tx.update(compatDevices).set({ status: 'revoked', updatedAt: new Date() }).where(and(eq(compatDevices.tenantId, tenantId), eq(compatDevices.id, id)))); return { data: { id, status: 'revoked' } }; }
+  /** إبطال الجهاز يُبطل **كل** جلساته: الحالة تُقرأ من الصفّ، والجلسات تُحذف. */
+  async revokeDevice(tenantId: string, id: string) {
+    await withTenantTx(this.database.db, tenantId, async (tx) => {
+      await tx.update(compatDevices).set({ status: 'revoked', updatedAt: new Date() }).where(and(eq(compatDevices.tenantId, tenantId), eq(compatDevices.id, id)));
+      await tx.delete(compatSessions).where(and(eq(compatSessions.tenantId, tenantId), eq(compatSessions.deviceId, id)));
+    });
+    return { data: { id, status: 'revoked' } };
+  }
 
   /**
    * Operator-facing view of the sync plane: which devices talk to us, how far each has
@@ -90,7 +121,15 @@ export class CompatService {
     });
     if (!device || device.status !== 'active' || !safeEqual(hash, device.apiKeyHash)) throw new DomainError('UNAUTHENTICATED', 'Device key is invalid or revoked', 401);
     const token = `compat_${randomBytes(32).toString('base64url')}`;
-    sessions.set(token, { tenantId, deviceId: device.id, expiresAt: Date.now() + 15 * 60_000 });
+    await withTenantTx(this.database.db, tenantId, (tx) =>
+      tx.insert(compatSessions).values({
+        id: newId(),
+        tenantId,
+        deviceId: device.id,
+        tokenHash: hashToken(token),
+        expiresAt: new Date(Date.now() + SESSION_TTL_MS),
+      }),
+    );
     await this.touchDevice(tenantId, device.id);
     return { data: { accessToken: token, deviceId: device.id, branchId: device.branchId, expiresIn: 900 } };
   }
@@ -153,9 +192,27 @@ export class CompatService {
     });
   }
 
+  /**
+   * AUD-09 — الجلسة تُقرأ من `compat_sessions` (محميّة بسياسة العزل نفسها)، فلا تضيع
+   * بإعادة تشغيل ولا تختلف بين replicas. ونظرة الجهاز تبقى شرطاً: إبطال الجهاز يُبطل
+   * كل جلساته حتى لو بقي صفّ الجلسة.
+   */
   private async requireSession(tenantId: string, token: string): Promise<DeviceSession> {
-    const session = sessions.get(token);
-    if (!session || session.tenantId !== tenantId || session.expiresAt < Date.now()) throw new DomainError('UNAUTHENTICATED', 'Compat token is invalid or expired', 401);
+    if (!token?.startsWith('compat_')) throw new DomainError('UNAUTHENTICATED', 'Compat token is invalid or expired', 401);
+    const hash = hashToken(token);
+    const session = await withTenantTx(this.database.db, tenantId, async (tx) => {
+      const rows = await tx
+        .select()
+        .from(compatSessions)
+        .where(and(eq(compatSessions.tenantId, tenantId), eq(compatSessions.tokenHash, hash)))
+        .limit(1);
+      const row = rows[0];
+      if (row && safeEqual(hash, row.tokenHash)) {
+        await tx.update(compatSessions).set({ lastSeenAt: new Date() }).where(and(eq(compatSessions.tenantId, tenantId), eq(compatSessions.id, row.id)));
+      }
+      return row;
+    });
+    if (!session || session.expiresAt.getTime() <= Date.now()) throw new DomainError('UNAUTHENTICATED', 'Compat token is invalid or expired', 401);
     const device = await withTenantTx(this.database.db, tenantId, async (tx) => (await tx.select().from(compatDevices).where(and(eq(compatDevices.tenantId, tenantId), eq(compatDevices.id, session.deviceId))).limit(1))[0]);
     if (!device || device.status !== 'active') throw new DomainError('UNAUTHENTICATED', 'Device is revoked', 401);
     await this.touchDevice(tenantId, device.id);
@@ -163,7 +220,39 @@ export class CompatService {
   }
 
   private async touchDevice(tenantId: string, id: string) { await withTenantTx(this.database.db, tenantId, (tx) => tx.update(compatDevices).set({ lastSeenAt: new Date() }).where(and(eq(compatDevices.tenantId, tenantId), eq(compatDevices.id, id)))); }
-  private async rateLimit(_tenantId: string, _id: string) { return true; }
+  /**
+   * AUD-09 — حدّ معدّل فعلي على هوية (المستأجر، الجهاز) بدل `return true` الدائم.
+   *
+   * العدّاد في صفّ الجهاز نفسه (`rate_window_*`, migration 0014): جملة `UPDATE` واحدة
+   * تقرأ وتزيد في أقفال الصفّ، فتتسلسل الطلبات المتزامنة، ويعمل الحدّ عبر replicas،
+   * ويستمر بعد إعادة التشغيل — بخلاف عدّادٍ في ذاكرة العملية.
+   */
+  private async rateLimit(tenantId: string, deviceId: string): Promise<void> {
+    const result = await withTenantTx(this.database.db, tenantId, (tx) =>
+      tx.execute(sql`
+        UPDATE compat_devices
+           SET rate_window_count = CASE
+                 WHEN rate_window_started_at IS NULL OR rate_window_started_at <= now() - interval '1 minute' THEN '1'
+                 ELSE (rate_window_count::int + 1)::text
+               END,
+               rate_window_started_at = CASE
+                 WHEN rate_window_started_at IS NULL OR rate_window_started_at <= now() - interval '1 minute' THEN now()
+                 ELSE rate_window_started_at
+               END
+         WHERE tenant_id = ${tenantId}::uuid AND id = ${deviceId}::uuid
+         RETURNING rate_window_count::int AS count, rate_window_started_at AS started_at
+      `),
+    );
+    const row = rowsOf<{ count: number; started_at: string | Date }>(result)[0];
+    if (row && row.count > RATE_LIMIT_PER_MINUTE) {
+      const started = new Date(row.started_at).getTime();
+      const retryAfterSeconds = Math.max(1, Math.ceil((60_000 - (Date.now() - started)) / 1000));
+      throw new DomainError('RATE_LIMITED', 'Too many requests', 429, {
+        limitPerMinute: RATE_LIMIT_PER_MINUTE,
+        retryAfterSeconds,
+      });
+    }
+  }
 }
 
 function cursorPredicate(entity: string, cursor?: Cursor) {
@@ -171,6 +260,11 @@ function cursorPredicate(entity: string, cursor?: Cursor) {
   if (!cursor) return sql`true`;
   const instant = new Date(cursor.updatedAt);
   return or(gt(table.updatedAt, instant), and(eq(table.updatedAt, instant), gt(table.id, cursor.id))) ?? sql`true`;
+}
+/** SHA-256 للرمز: الرمز نفسه لا يُخزَّن ولا يُسجَّل — وهو عالي العشوائية (256 بت). */
+function hashToken(token: string): string { return createHash('sha256').update(token).digest('hex'); }
+function rowsOf<T>(result: unknown): T[] {
+  return Array.isArray(result) ? (result as T[]) : ((result as { rows?: T[] }).rows ?? []);
 }
 function parseCursor(value?: string): Cursor | undefined { if (!value) return undefined; try { return JSON.parse(Buffer.from(value, 'base64url').toString('utf8')) as Cursor; } catch { throw new DomainError('VALIDATION_FAILED', 'Invalid cursor', 422); } }
 function encodeCursor(cursor: Cursor): string { return Buffer.from(JSON.stringify(cursor)).toString('base64url'); }

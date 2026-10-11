@@ -34,6 +34,7 @@
     "migrate:down": "tsx src/cli/migrate-down.ts",
     "roles": "tsx src/cli/roles.ts",
     "studio": "drizzle-kit studio",
-    "seed:coa": "tsx src/cli/seed-coa.ts"
+    "seed:coa": "tsx src/cli/seed-coa.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
   }
 }

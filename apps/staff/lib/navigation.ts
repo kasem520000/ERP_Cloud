@@ -1,3 +1,5 @@
+import { canonicalizePermissionCode } from '@erp/contracts';
+
 /**
  * Navigation tree — a 1:1 mirror of the desktop product's menu (المحاسبة، المستودعات،
  * المشتريات، المبيعات، الموظفين والرواتب، المراسي، المشاريع، الإعدادات، الدعم الفني)
@@ -2296,8 +2298,12 @@ export function visibleModules(
   isPlatformAdmin: boolean,
   appGate?: { gatedHrefs: readonly string[]; enabledHrefs: readonly string[] } | null,
 ): ModuleNode[] {
+  // AUD-12 — نفس مُحلّل العقود المستعمل في `can()`: صلاحيةٌ قديمة الاسم تفتح الشاشة
+  // نفسها التي تفتحها الكنسية، ولا يعتمد الظهور على إملاءٍ واحد.
+  const canonical = (code: string) => canonicalizePermissionCode(code);
+  const granted = new Set(permissions.map(canonical));
   const allows = (permission?: string) =>
-    !permission || permissions.includes('*') || permissions.includes(permission);
+    !permission || granted.has('*') || granted.has(canonical(permission));
   const gated = new Set(appGate?.gatedHrefs ?? []);
   const enabled = new Set(appGate?.enabledHrefs ?? []);
   const screenVisible = (item: ScreenItem) => {

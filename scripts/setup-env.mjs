@@ -40,6 +40,7 @@ const { privateKey, publicKey } = generateKeyPairSync('rsa', {
 const escape = (pem) => pem.trim().replace(/\r?\n/g, '\\n');
 const dataEncKey = randomBytes(32).toString('base64');
 const fileSigningSecret = randomBytes(32).toString('base64');
+const compatPepper = randomBytes(32).toString('base64');
 
 /**
  * A password that satisfies the platform policy by construction: 20 characters, four
@@ -81,6 +82,7 @@ const replacements = {
   JWT_PUBLIC_KEY: `"${escape(publicKey)}"`,
   DATA_ENC_KEY: dataEncKey,
   FILE_URL_SIGNING_SECRET: fileSigningSecret,
+  COMPAT_KEY_PEPPER: compatPepper,
   ...seedPasswords,
 };
 
@@ -98,7 +100,7 @@ const readEnv = (key) => {
 
 console.log(`Wrote ${target}`);
 console.log('  • generated a fresh RS256 key pair (JWT_PRIVATE_KEY / JWT_PUBLIC_KEY)');
-console.log('  • generated DATA_ENC_KEY and FILE_URL_SIGNING_SECRET (32 random bytes each)');
+console.log('  • generated DATA_ENC_KEY, FILE_URL_SIGNING_SECRET and COMPAT_KEY_PEPPER (32 random bytes each)');
 console.log('  • generated the four seed passwords listed below');
 console.log('');
 console.log('Accounts `pnpm db:seed` will create (also stored in .env):');

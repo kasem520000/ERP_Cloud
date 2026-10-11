@@ -135,6 +135,7 @@ export class RolesService {
       await tx.update(roles).set(updates).where(eq(roles.id, roleId));
 
       if (input.permissionCodes) {
+        this.assertPermissionsMutable(existing);
         await this.replacePermissionRows(
           tx,
           roleId,
@@ -154,7 +155,7 @@ export class RolesService {
   ): Promise<RoleDetailDto> {
     const codes = await this.assertPermissionsExist(permissionCodes);
     return withTenantTx(this.database.db, tenantId, async (tx) => {
-      await this.mustFind(tx, tenantId, roleId);
+      this.assertPermissionsMutable(await this.mustFind(tx, tenantId, roleId));
       await this.replacePermissionRows(tx, roleId, codes);
       await tx
         .update(roles)
@@ -215,6 +216,24 @@ export class RolesService {
     await tx.delete(rolePermissions).where(eq(rolePermissions.roleId, roleId));
     for (const code of codes) {
       await tx.insert(rolePermissions).values({ roleId, permissionCode: code });
+    }
+  }
+
+  /**
+   * AUD-02 — صفوف صلاحيات الأدوار النظامية (`owner` · `accountant` · `cashier`) لا
+   * تُستبدل من `PUT /roles/{id}` ولا من `POST /roles/{id}/permissions`. الاسم كان محمياً
+   * وحده، فأمكن لحامل `tenant.role.manage` أن يفرّغ صلاحيات «المالك» أو يمنح «الكاشير»
+   * صلاحيات إدارية — أي أن يغيّر معنى الأدوار النظامية التي تقارن بها الواجهة والعقود.
+   * الأدوار المخصّصة تبقى قابلة للتعديل بالكامل.
+   */
+  private assertPermissionsMutable(role: { name: string; isSystem: boolean }): void {
+    if (role.isSystem) {
+      throw new DomainError(
+        errorCodes.SYSTEM_ROLE_PERMISSIONS_IMMUTABLE,
+        `Permissions of the system role '${role.name}' cannot be changed`,
+        422,
+        { field: 'permissionCodes' },
+      );
     }
   }
 

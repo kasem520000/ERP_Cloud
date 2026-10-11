@@ -7,6 +7,7 @@ import {
   requestContextStorage,
   type AuthContextValue,
 } from '../../../request-context/request-context.js';
+import type { AuditService } from '../../platform-services/audit/audit.service.js';
 import { IS_PUBLIC_KEY } from '../decorators/public.decorator.js';
 import { REQUIRED_PLATFORM_PERMISSION_KEY } from '../decorators/requires-platform-role.decorator.js';
 import type { PlatformRolePermissionsService } from '../identity/platform-role-permissions.service.js';
@@ -26,15 +27,16 @@ function rolePermissionsFor(overrides: Record<string, string[]> = {}): PlatformR
 function guardWith(
   metadata: Record<string, unknown>,
   overrides: Record<string, string[]> = {},
+  audit?: AuditService,
 ): PlatformAdminGuard {
-  return new PlatformAdminGuard(reflectorFor(metadata), rolePermissionsFor(overrides));
+  return new PlatformAdminGuard(reflectorFor(metadata), rolePermissionsFor(overrides), audit);
 }
 
-function contextWith(): ExecutionContext {
+function contextWith(request: Record<string, unknown> = {}): ExecutionContext {
   return {
     getHandler: () => ({}),
     getClass: () => ({}),
-    switchToHttp: () => ({ getRequest: () => ({}) }),
+    switchToHttp: () => ({ getRequest: () => request }),
   } as unknown as ExecutionContext;
 }
 
@@ -117,5 +119,58 @@ describe('PlatformAdminGuard', () => {
   it('skips public routes', async () => {
     const guard = guardWith({ [IS_PUBLIC_KEY]: true });
     expect(await guard.canActivate(context)).toBe(true);
+  });
+
+  it('SH-07: records break-glass audit (actor, reason, targetTenantId) without secrets and never on 403', async () => {
+    const record = vi.fn(async () => 'audit-1');
+    const audit = { record } as unknown as AuditService;
+    const metadata = { [REQUIRED_PLATFORM_PERMISSION_KEY]: 'console.tenants.view' };
+    const guard = guardWith(metadata, {}, audit);
+    const targetTenantId = '11111111-1111-4111-8111-111111111111';
+
+    await withAuth({ isPlatformAdmin: false, platformRoles: [] }, async () => {
+      await expect(
+        guard.canActivate(
+          contextWith({
+            method: 'GET',
+            url: `/api/v1/platform/tenants/${targetTenantId}`,
+            headers: { 'x-break-glass-reason': 'INC-402customer outage' },
+          }),
+        ),
+      ).rejects.toBeInstanceOf(DomainError);
+    });
+    expect(record).not.toHaveBeenCalled();
+
+    await withAuth({ userId: 'ops-1', isPlatformAdmin: true, platformRoles: ['platform_owner'] }, async () => {
+      const ok = await guard.canActivate(
+        contextWith({
+          method: 'GET',
+          url: `/api/v1/platform/tenants/${targetTenantId}`,
+          headers: {
+            authorization: 'Bearer secret-jwt-never-log',
+            'x-break-glass-reason': 'INC-402 investigate billing lock',
+          },
+        }),
+      );
+      expect(ok).toBe(true);
+    });
+
+    expect(record).toHaveBeenCalledTimes(1);
+    expect(record).toHaveBeenCalledWith(
+      expect.objectContaining({
+        tenantId: null,
+        actorUserId: 'ops-1',
+        action: 'platform.break_glass.access',
+        entity: 'platform_admin_plane',
+        entityId: targetTenantId,
+        meta: expect.objectContaining({
+          reason: 'INC-402 investigate billing lock',
+          targetTenantId,
+          requiredPermission: 'console.tenants.view',
+        }),
+      }),
+    );
+    const logged = JSON.stringify(record.mock.calls[0]);
+    expect(logged).not.toContain('secret-jwt-never-log');
   });
 });

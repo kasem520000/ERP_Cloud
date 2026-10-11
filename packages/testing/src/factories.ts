@@ -213,6 +213,17 @@ export async function setTenantStatusFixture(
   });
 }
 
+/** AUD-01 — account lifecycle state (`users.status`) for login/refresh acceptance tests. */
+export async function setUserStatusFixture(
+  ownerUrl: string,
+  userId: string,
+  status: 'active' | 'invited' | 'suspended',
+): Promise<void> {
+  await withOwnerClient(ownerUrl, async (client) => {
+    await client.query(`UPDATE users SET status = $2 WHERE id = $1`, [userId, status]);
+  });
+}
+
 export async function setMembershipStatusFixture(
   ownerUrl: string,
   membershipId: string,

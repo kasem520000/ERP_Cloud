@@ -34,6 +34,27 @@ export const refreshRequestSchema = z
 
 export type RefreshRequest = z.infer<typeof refreshRequestSchema>;
 
+/**
+ * AUD-08 — جسر تسليم الجلسة بين الواجهات: بدل تمرير `access`/`refresh` في استعلام URL
+ * (يُسجَّل في الوكلاء وسجلات الدخول ويبقى في المحفوظات)، تُنشئ الواجهة المصدر **رمز
+ * تسليم لمرة واحدة قصير العمر**، وتستبدله الواجهة الهدف بجلسةٍ جديدة عبر POST.
+ */
+export const handoffRedeemSchema = z
+  .object({
+    code: z.string().trim().min(20).max(200),
+  })
+  .strict();
+
+export type HandoffRedeemRequest = z.infer<typeof handoffRedeemSchema>;
+
+export const handoffCreateResponseSchema = z.object({
+  /** رمز التسليم نفسه — لا يحمل أي صلاحية بذاته: يُستبدل مرة واحدة ثم يُستنفد. */
+  code: z.string(),
+  expiresIn: z.number().int().positive(),
+});
+
+export type HandoffResponse = z.infer<typeof handoffCreateResponseSchema>;
+
 export const logoutRequestSchema = z.object({}).strict();
 
 export type LogoutRequest = z.infer<typeof logoutRequestSchema>;

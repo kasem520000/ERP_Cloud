@@ -83,6 +83,39 @@ export const permissions = pgTable('permissions', {
   description: text('description').notNull().default(''),
 });
 
+/**
+ * AUD-08 — رمز تسليم جلسة لمرة واحدة بين واجهات المنصة.
+ *
+ * بديل تمرير `access`/`refresh` في query string: الواجهة المصدر تُصدر الرمز، والواجهة
+ * الهدف تستبدله بجلسةٍ جديدة عبر `POST /auth/handoff/redeem`. يُخزَّن **الهاش** فقط،
+ * ويُستهلك ذرّياً (`redeemed_at IS NULL`) فلا يصلح استبدالان متزامنان لرمزٍ واحد.
+ */
+export const sessionHandoffCodes = pgTable(
+  'session_handoff_codes',
+  {
+    id: uuid('id').primaryKey(),
+    codeHash: text('code_hash').notNull(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    /** العضوية التي ستُبنى لها الجلسة الجديدة — تُختار وقت الإصدار لا وقت الاستبدال. */
+    membershipId: uuid('membership_id').notNull(),
+    /** كود المنشأة، ليحفظه العميل مع الجلسة كما يفعل عند الدخول العادي. */
+    tenantCode: text('tenant_code').notNull(),
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+    redeemedAt: timestamp('redeemed_at', { withTimezone: true }),
+    ip: inet('ip'),
+    userAgent: text('user_agent'),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({
+    sessionHandoffCodesCodeKey: uniqueIndex('session_handoff_codes_code_key').on(table.codeHash),
+    sessionHandoffCodesExpiryIdx: index('session_handoff_codes_expiry_idx').on(table.expiresAt),
+  }),
+);
+
+export type SessionHandoffCode = typeof sessionHandoffCodes.$inferSelect;
+
 export const refreshTokens = pgTable(
   'refresh_tokens',
   {

@@ -20,8 +20,11 @@ const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || '/api/v1';
  *
  * Detection is behavioural, not guesswork: a token that can read `/me` with a
  * staff membership routes to staff, a token that can read `/portal/me` routes to
- * the portal. The access token is handed over via a short-lived `?token=` bridge
- * the target app consumes and strips from the address bar.
+ * the portal.
+ *
+ * AUD-08 — handover is a single-use `?handoff=<code>` bridge, not the session tokens:
+ * the code lives ~60 seconds, carries no authority of its own, and the target surface
+ * redeems it over POST for a fresh session. Session tokens never appear in a URL.
  */
 export function SmartLogin() {
   const [error, setError] = useState('');
@@ -60,8 +63,20 @@ export function SmartLogin() {
       });
       storeToken(session.accessToken);
       const target = await detect(session.accessToken);
-      const tenantCode = String(form.get('tenantCode')).trim();
-      const bridge = `token=${encodeURIComponent(session.accessToken)}&refresh=${encodeURIComponent(session.refreshToken)}&tenant=${encodeURIComponent(tenantCode)}`;
+
+      // AUD-08 — لا رموز جلسة في العنوان. نُصدر رمز تسليمٍ لمرة واحدة (عمره ~60 ثانية،
+      // ولا يحمل صلاحية بنفسه) ثم نمرّره وحده؛ والواجهة الهدف تستبدله بجلسةٍ جديدة.
+      const minted = await fetch(`${baseUrl}/auth/handoff`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', authorization: `Bearer ${session.accessToken}` },
+        body: JSON.stringify({}),
+      });
+      if (!minted.ok) {
+        setError('تعذر تجهيز الجلسة. أعد المحاولة.');
+        return;
+      }
+      const code = ((await minted.json()) as { data: { code: string } }).data.code;
+      const bridge = `handoff=${encodeURIComponent(code)}`;
       if (target.kind === 'staff') {
         const path = target.mustChangePassword ? '/settings/change-password' : '/';
         globalThis.location.assign(`${surfaceHref('staff', path)}?${bridge}`);

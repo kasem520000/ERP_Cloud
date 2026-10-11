@@ -4,6 +4,7 @@ import { Suspense } from 'react';
 import { usePathname } from 'next/navigation';
 
 import { useSession } from '../lib/session';
+import { isEmployeeSurface, isPublicSurface } from '../lib/surface-routing';
 
 import { AppShell } from './app-shell';
 import { EmployeeShell } from './employee-shell';
@@ -16,8 +17,8 @@ import { LoginScreen } from './login-screen';
 export function AuthGate({ children }: { children: React.ReactNode }) {
   const { status, error } = useSession();
   const pathname = usePathname() ?? '';
-  // The supplier portal and the public signature page authenticate themselves.
-  if (pathname.startsWith('/supplier-portal') || pathname.startsWith('/esign')) return children;
+  // AUD-13 — حدّ مقطعٍ كامل (`/esign` وحدها، وليس `/esign-evil`)، والبوابة كذلك.
+  if (isPublicSurface(pathname)) return children;
 
   if (status === 'loading') {
     return (
@@ -37,6 +38,7 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
       </Suspense>
     );
 
-  if (pathname.startsWith('/m')) return <EmployeeShell>{children}</EmployeeShell>;
+  // AUD-13 — `/m` و`/m/…` فقط: `/marina` و`/migration` ليستا تطبيق الموظف.
+  if (isEmployeeSurface(pathname)) return <EmployeeShell>{children}</EmployeeShell>;
   return <AppShell>{children}</AppShell>;
 }

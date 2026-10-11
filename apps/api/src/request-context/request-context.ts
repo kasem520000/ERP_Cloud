@@ -89,6 +89,12 @@ export type RequestContextValue = {
   startTime: number;
   auth?: AuthContextValue;
   tenant?: TenantContextValue;
+  /**
+   * AUD-14 — مستأجرٌ استخرجه مسارٌ **عامّ** (webhook) من سرّه/توقيعه بعد أن بدأ الطلب
+   * بلا سياق: يُنسب به سجل التدقيق الذي يكتبه `AuditInterceptor`، ولا يُستعمل سياقَ
+   * مصادقة (لا صلاحيات ولا عضوية مُختلقة).
+   */
+  auditTenantId?: string;
   /** مضبوطٌ في المهامّ الخلفية وحدها — انظر `SystemContextValue`. */
   system?: SystemContextValue;
   /** Validated `X-Branch-Id` request scope. */
@@ -155,6 +161,19 @@ export function setAuthContext(value: AuthContextValue): void {
 export function setTenantContextValue(value: TenantContextValue): void {
   const store = requestContextStorage.getStore();
   if (store) store.tenant = value;
+}
+
+/**
+ * AUD-14 — يُعلن المستأجر الذي استخرجه webhook عامّ من توقيعه، فيُنسب إليه سجلّ
+ * التدقيق. لا يمنح صلاحية ولا يُنشئ عضوية: `context.tenant` يبقى كما هو.
+ */
+export function setAuditTenantId(tenantId: string): void {
+  const store = requestContextStorage.getStore();
+  if (store) store.auditTenantId = tenantId;
+}
+
+export function getAuditTenantId(): string | undefined {
+  return requestContextStorage.getStore()?.auditTenantId;
 }
 
 export function setBranchId(branchId: string): void {

@@ -1,5 +1,7 @@
+import { createHash, randomBytes } from 'node:crypto';
+
 import { Inject, Injectable } from '@nestjs/common';
-import { and, eq, isNull, sql } from 'drizzle-orm';
+import { and, eq, gt, isNull, sql } from 'drizzle-orm';
 import { env } from '@erp/config';
 import {
   DomainError,
@@ -14,6 +16,7 @@ import {
 import {
   memberships,
   refreshTokens,
+  sessionHandoffCodes,
   tenants,
   users,
   withTenantTx,
@@ -45,6 +48,17 @@ import { TokenService } from './token.service.js';
  */
 
 export type RequestMeta = { ip?: string; userAgent?: string };
+
+/**
+ * AUD-08 — عمر رمز التسليم: دقيقة واحدة. أقصر ما يمكن عملياً (تحويل + تحميل الصفحة
+ * الهدف) وأطول من نافذة اعتراض عملية في عنوان URL.
+ */
+const HANDOFF_TTL_MS = 60_000;
+
+/** SHA-256 hex — الرمز عشوائي 256-bit، فالإبطاء المتعمَّد غير مطلوب له. */
+function sha256(value: string): string {
+  return createHash('sha256').update(value).digest('hex');
+}
 
 const USER_COLUMNS = {
   id: users.id,
@@ -107,6 +121,20 @@ export class AuthService {
     });
 
     if (!user) {
+      throw new DomainError(errorCodes.UNAUTHENTICATED, 'Invalid e-mail, tenant or password', 401);
+    }
+
+    // AUD-01 — قرار حالةٍ واحد قبل إصدار أي جلسة: `login` كان يفحص العضوية والمستأجر
+    // والقفل، ولا يفحص `users.status`؛ فمستخدمٌ `suspended`/`deactivated` بعضويةٍ نشطة
+    // كان يحصل على جلسة كاملة، بينما `refresh` يرفضه. الحالة الآن شرطٌ واحد في المسارين:
+    //
+    //   • `suspended`/`deactivated`/`invited` لا تصدر لها جلسة (401 بنفس رسالة بيانات
+    //     الاعتماد الخاطئة، فلا يتحول المسار إلى أداة سرد لحالات الحسابات).
+    //   • الجلسات القائمة: رمز الوصول عديم الحالة ويعيش 15 دقيقة (PROJECT_CONTRACT §9)،
+    //     فينتهي بانتهاء صلاحيته؛ ويُرفض التجديد فوراً لأن `refresh` يقرأ `users.status`
+    //     من قاعدة البيانات في كل مرة. لا يوجد مسار API يعلّق مستخدماً اليوم (الوضع يُدار
+    //     خارج المسار)؛ وأي مسار مستقبلي يجب أن يلغي `refresh_tokens` مع تغيير الحالة.
+    if (user.status !== 'active') {
       throw new DomainError(errorCodes.UNAUTHENTICATED, 'Invalid e-mail, tenant or password', 401);
     }
 
@@ -220,15 +248,20 @@ export class AuthService {
       throw new DomainError(errorCodes.UNAUTHENTICATED, 'Membership is no longer active', 401);
     }
 
-    // Rotation: the presented token is marked revoked and points at its replacement, so a
-    // later replay of the same value is detectable.
-    const rotatedRefreshToken = await withTx(this.database.db, async (tx) => {
+    // AUD-07 — التدوير compare-and-swap ذرّي. القراءة أعلاه تفحص `revokedAt`، لكن الفحص
+    // وحده لا يمنع طلبين متزامنين من اجتيازه معاً ثم إنشاء بديلين صالحين لرمزٍ واحد.
+    // الشرط `revoked_at IS NULL` في `UPDATE ... RETURNING` يمنح حقّ التدوير لطلبٍ **واحد**
+    // فقط؛ ومن لا يحصل على الصف لم يدوّر شيئاً، فتُطبَّق سياسة reuse القائمة: إلغاء العائلة
+    // كاملةً (وهي السياسة المعلنة لهذا النظام، وتُوثَّق كسلوكٍ مقصود لا كخطأ).
+    const rotated = await withTx(this.database.db, async (tx) => {
       const newTokenId = newId();
       const plaintext = this.tokens.generateRefreshToken();
-      await tx
+      const claimed = await tx
         .update(refreshTokens)
         .set({ revokedAt: new Date(), replacedBy: newTokenId })
-        .where(eq(refreshTokens.id, stored.id));
+        .where(and(eq(refreshTokens.id, stored.id), isNull(refreshTokens.revokedAt)))
+        .returning({ id: refreshTokens.id });
+      if (claimed.length === 0) return undefined;
       await tx.insert(refreshTokens).values({
         id: newTokenId,
         userId: user.id,
@@ -241,6 +274,12 @@ export class AuthService {
       });
       return plaintext;
     });
+
+    if (rotated === undefined) {
+      await this.revokeFamily(stored.family);
+      throw new DomainError(errorCodes.UNAUTHENTICATED, 'Refresh token reuse detected', 401);
+    }
+    const rotatedRefreshToken = rotated;
 
     const platform = await resolvePlatformAccess(this.database, user.id, user.isPlatformAdmin);
     const accessToken = await this.tokens.signAccessToken({
@@ -260,6 +299,108 @@ export class AuthService {
       user: toUserDto({ ...user, isPlatformAdmin: platform.isPlatformAdmin, platformRoles: platform.platformRoles }),
       memberships: [await this.toMembershipDto(membership)],
     };
+  }
+
+  /**
+   * AUD-08 — إصدار رمز تسليم جلسة لمرة واحدة للواجهة الهدف.
+   *
+   * لماذا رمز تسليم بدل تمرير الرموز نفسها في العنوان:
+   *   • العنوان يُسجَّل (وسيط/مضيف/سجل دخول) ويُرسَل في `Referer` — والرمز المكشوف هناك
+   *     صالحٌ كجلسة كاملة، أما رمز التسليم فلا يحمل صلاحية بنفسه: يُستبدل مرة واحدة
+   *     ثم يُستهلك، وعمره دقيقة واحدة.
+   *   • التسليم لا يوسّع الائتمان: الجلسة الجديدة تُبنى من حالة المستخدم والعضوية في
+   *     اللحظة نفسها (لا من نسخةٍ قديمة عند الإصدار).
+   *
+   * `requireActiveIdentity` هو نفس الفحص المستعمل في `refresh`: مستخدم موقوف أو عضوية
+   * غير نشطة لا يُسلَّم لها شيء.
+   */
+  async createHandoff(auth: AuthContextValue, meta: RequestMeta = {}): Promise<{ code: string; expiresIn: number }> {
+    const context = await this.requireActiveIdentity(auth.userId, auth.claimedTenantId, auth.membershipId);
+    const code = `hop_${randomBytes(32).toString('base64url')}`;
+
+    await withTx(this.database.db, async (tx) => {
+      await tx.insert(sessionHandoffCodes).values({
+        id: newId(),
+        codeHash: sha256(code),
+        userId: context.user.id,
+        membershipId: context.membership.id,
+        tenantCode: context.membership.tenantCode,
+        expiresAt: new Date(Date.now() + HANDOFF_TTL_MS),
+        ip: meta.ip ?? null,
+        userAgent: meta.userAgent ?? null,
+      });
+    });
+
+    return { code, expiresIn: Math.floor(HANDOFF_TTL_MS / 1000) };
+  }
+
+  /**
+   * AUD-08 — استبدال رمز التسليم بجلسةٍ كاملة.
+   *
+   * الاستهلاك ذرّي: `UPDATE … WHERE code_hash = … AND redeemed_at IS NULL AND
+   * expires_at > now() RETURNING …` يمنح الاستبدال لطلبٍ واحد؛ ومن لا يحصل على صف
+   * يحصل على نفس الخطأ العام (مجهول/منتهٍ/مستعمل — بلا تفريق، فلا يتحول المسار إلى
+   * أداة استكشاف). ثم يُعاد فحص حالة المستخدم/العضوية/المنشأة قبل الإصدار.
+   */
+  async redeemHandoff(code: string, meta: RequestMeta = {}): Promise<LoginResponse> {
+    const codeHash = sha256(code);
+    const claimed = await withTx(this.database.db, async (tx) => {
+      const rows = await tx
+        .update(sessionHandoffCodes)
+        .set({ redeemedAt: new Date() })
+        .where(
+          and(
+            eq(sessionHandoffCodes.codeHash, codeHash),
+            isNull(sessionHandoffCodes.redeemedAt),
+            gt(sessionHandoffCodes.expiresAt, new Date()),
+          ),
+        )
+        .returning({ userId: sessionHandoffCodes.userId, membershipId: sessionHandoffCodes.membershipId, tenantCode: sessionHandoffCodes.tenantCode });
+      return rows[0];
+    });
+    if (!claimed) {
+      throw new DomainError(errorCodes.HANDOFF_CODE_INVALID, 'The handoff code is invalid, expired or already used', 401);
+    }
+
+    const tenant = await withTx(this.database.db, async (tx) => {
+      const rows = await tx.select({ id: tenants.id }).from(tenants).where(eq(tenants.code, claimed.tenantCode)).limit(1);
+      return rows[0];
+    });
+    if (!tenant) {
+      throw new DomainError(errorCodes.HANDOFF_CODE_INVALID, 'The handoff code is invalid, expired or already used', 401);
+    }
+
+    const context = await this.requireActiveIdentity(claimed.userId, tenant.id, claimed.membershipId);
+    return this.issueSession(context.user, context.membership, meta);
+  }
+
+  /**
+   * حالة الهوية عند لحظة الإصدار: المستخدم نشط، والمنشأة نشطة، والعضوية نشطة وتخصّ
+   * المنشأة والرمزين المذكورين. تُستعمل في الإصدار وفي الاستبدال معاً — فلا تُبنى جلسة
+   * على لقطةٍ قديمة من وقت الإصدار.
+   */
+  private async requireActiveIdentity(userId: string, tenantId: string, membershipId: string): Promise<{ user: UserRow; membership: MembershipRow }> {
+    const user = await withTx(this.database.db, async (tx) => {
+      const rows = await tx.select(USER_COLUMNS).from(users).where(eq(users.id, userId)).limit(1);
+      return rows[0];
+    });
+    if (!user || user.status !== 'active') {
+      throw new DomainError(errorCodes.HANDOFF_CODE_INVALID, 'The handoff code is invalid, expired or already used', 401);
+    }
+
+    const tenant = await withTx(this.database.db, async (tx) => {
+      const rows = await tx.select({ id: tenants.id, status: tenants.status }).from(tenants).where(eq(tenants.id, tenantId)).limit(1);
+      return rows[0];
+    });
+    if (!tenant || tenant.status !== 'active') {
+      throw new DomainError(errorCodes.HANDOFF_CODE_INVALID, 'The handoff code is invalid, expired or already used', 401);
+    }
+
+    const membership = await this.findActiveMembership(tenantId, user.id);
+    if (!membership || membership.id !== membershipId) {
+      throw new DomainError(errorCodes.HANDOFF_CODE_INVALID, 'The handoff code is invalid, expired or already used', 401);
+    }
+    return { user, membership };
   }
 
   /** Revokes every still-valid refresh token of the user (API_CONTRACT §1 logout). */

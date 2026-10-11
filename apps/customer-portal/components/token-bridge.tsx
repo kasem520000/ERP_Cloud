@@ -1,26 +1,47 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 
 import { storeToken } from '../lib/api';
 
 /**
- * Consumes a `?token=` session bridge handed over by the marketing smart login.
+ * AUD-08 — يستقبل جسر الدخول من الواجهة التسويقية في بوابة العميل.
  *
- * The marketing site authenticates the buyer against the same API and redirects
- * here with the fresh access token. This component stores it in the portal cookie
- * and reloads onto the stripped URL so the token never lingers in history —
- * the visitor lands authenticated, without typing twice.
+ * كان `?token=<access>&refresh=…` يمرّ في العنوان ثم يُحذف بعد التحميل — والعنوان يكون
+ * قد وصل إلى السجلّات. الآن `?handoff=<code>` لمرة واحدة يُستبدل عبر POST، ويُنظَّف
+ * العنوان قبل الاستبدال، ورمز الاستبدال لا يُقبل مرتين.
  */
 export function TokenBridge() {
+  const inFlight = useRef(false);
+
   useEffect(() => {
+    if (inFlight.current) return;
     const url = new URL(globalThis.location.href);
-    const token = url.searchParams.get('token');
-    if (!token) return;
-    storeToken(token);
-    url.searchParams.delete('token');
-    url.searchParams.delete('refresh');
-    globalThis.location.assign(url.toString());
+    const code = url.searchParams.get('handoff');
+    if (!code) return;
+    inFlight.current = true;
+
+    url.searchParams.delete('handoff');
+    globalThis.history.replaceState(null, '', url.toString());
+
+    void (async () => {
+      try {
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL || '/api/v1'}/auth/handoff/redeem`, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ code }),
+        });
+        if (!response.ok) {
+          globalThis.location.assign('/login?handoff=failed');
+          return;
+        }
+        const payload = (await response.json()) as { data: { accessToken: string } };
+        storeToken(payload.data.accessToken);
+        globalThis.location.assign(url.pathname === '/' ? '/portal' : `${url.pathname}${url.search}`);
+      } catch {
+        globalThis.location.assign('/login?handoff=failed');
+      }
+    })();
   }, []);
 
   return null;

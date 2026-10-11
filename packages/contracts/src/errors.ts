@@ -5,6 +5,8 @@
  */
 export const errorCodes = {
   UNAUTHENTICATED: 'UNAUTHENTICATED',
+  /** AUD-08 — رمز تسليم الجلسة بين الواجهات: مجهول، منتهٍ، أو مُستعمل سابقاً. */
+  HANDOFF_CODE_INVALID: 'HANDOFF_CODE_INVALID',
   FORBIDDEN: 'FORBIDDEN',
   TENANT_SUSPENDED: 'TENANT_SUSPENDED',
   TENANT_CONTEXT_MISSING: 'TENANT_CONTEXT_MISSING',
@@ -203,6 +205,16 @@ export const errorCodes = {
   VOUCHER_NOT_FOUND: 'VOUCHER_NOT_FOUND',
   VOUCHER_TIME_INVALID: 'VOUCHER_TIME_INVALID',
   VOUCHER_VOID_REASON_REQUIRED: 'VOUCHER_VOID_REASON_REQUIRED',
+  // AUD-02 — دور نظامي (`is_system`) لا تُعدَّل صفوف صلاحياته من إدارة الأدوار العادية:
+  // مجموعة صلاحياته هي **العقد** الذي تُقارَن به الأدوار المخصّصة، وتعديلها من شاشة
+  // الأدوار يغيّر معنى «المالك» و«المحاسب» و«الكاشير» بصمت. 422 لأن الطلب سليم والمنع
+  // قاعدةُ عقد، لا خطأ خادم.
+  SYSTEM_ROLE_PERMISSIONS_IMMUTABLE: 'SYSTEM_ROLE_PERMISSIONS_IMMUTABLE',
+  // AUD-02 — دور المالك لا يُمنح من مسارات إدارة العضويّات: منحُه يمنح `*` كاملاً، أي
+  // تجاوزاً كاملاً على المنشأة. نقل الملكية عملية مستقلة مصرّح بها ومدقّقة في لوحة
+  // المنصّة (`POST /platform/tenants/:id/owner/transfer`). 422 لا 403: مدير العضويّات
+  // يملك فعل إدارة العضويّات، والمرفوض هو **الدور** المطلوب.
+  OWNER_ROLE_NOT_ASSIGNABLE: 'OWNER_ROLE_NOT_ASSIGNABLE',
 } as const;
 
 export type ErrorCode = (typeof errorCodes)[keyof typeof errorCodes];
@@ -214,6 +226,7 @@ export function isErrorCode(value: string): value is ErrorCode {
 /** HTTP status each stable code maps to. RFC 9457 `status` member. */
 export const errorStatus: Record<ErrorCode, number> = {
   UNAUTHENTICATED: 401,
+  HANDOFF_CODE_INVALID: 401,
   FORBIDDEN: 403,
   TENANT_SUSPENDED: 423,
   TENANT_CONTEXT_MISSING: 400,
@@ -308,11 +321,14 @@ export const errorStatus: Record<ErrorCode, number> = {
   VOUCHER_NOT_FOUND: 404,
   VOUCHER_TIME_INVALID: 422,
   VOUCHER_VOID_REASON_REQUIRED: 422,
+  SYSTEM_ROLE_PERMISSIONS_IMMUTABLE: 422,
+  OWNER_ROLE_NOT_ASSIGNABLE: 422,
 };
 
 /** RFC 9457 `title` member for each stable code. */
 export const errorTitle: Record<ErrorCode, string> = {
   UNAUTHENTICATED: 'Unauthenticated',
+  HANDOFF_CODE_INVALID: 'The handoff code is invalid, expired or already used',
   FORBIDDEN: 'Forbidden',
   TENANT_SUSPENDED: 'Tenant suspended',
   TENANT_CONTEXT_MISSING: 'Tenant context missing',
@@ -407,6 +423,8 @@ export const errorTitle: Record<ErrorCode, string> = {
   VOUCHER_NOT_FOUND: 'Voucher not found',
   VOUCHER_TIME_INVALID: 'Voucher time is invalid',
   VOUCHER_VOID_REASON_REQUIRED: 'Void reason is required',
+  SYSTEM_ROLE_PERMISSIONS_IMMUTABLE: 'System role permissions cannot be changed',
+  OWNER_ROLE_NOT_ASSIGNABLE: 'The owner role cannot be assigned here',
 };
 
 export function statusForCode(code: string): number {

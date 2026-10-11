@@ -20,6 +20,7 @@
     "build": "next build",
     "lint": "eslint app components lib tests next.config.mjs --config ../../eslint.config.mjs",
     "test": "vitest run",
-    "start": "node ../../scripts/next-run.mjs customer-portal start"
+    "start": "node ../../scripts/next-run.mjs customer-portal start",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
   }
 }

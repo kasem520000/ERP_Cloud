@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { TEST_DATA_ENC_KEY, decideDataEncryptionKey } from '@erp/config';
 
 import { openSecret, sealSecret } from './secret-box.js';
 
@@ -17,6 +18,33 @@ describe('secret-box', () => {
   it('refuses a wrong key', () => {
     const sealed = sealSecret('payload', KEY);
     expect(() => openSecret(sealed, 'another-key')).toThrow();
+  });
+
+  /**
+   * AUD-16 — التدوير: مظروفٌ مختوم بالمفتاح القديم لا يُفتح بالمفتاح الجديد (GCM يرفض)،
+   * فالانتقال يعني إعادة الختم لكل صفّ. الاختبار يثبّت الدورة الكاملة حتى لا يُظنّ أن
+   * تغيير `DATA_ENC_KEY` وحده كافٍ.
+   */
+  it('AUD-16 rotation: the old envelope fails under the new key and must be re-sealed', () => {
+    const oldKey = 'rotation-old-key-0123456789';
+    const newKey = 'rotation-new-key-0123456789';
+
+    const sealed = sealSecret('totp-secret', oldKey);
+    expect(() => openSecret(sealed, newKey)).toThrow();
+
+    const migrated = sealSecret(openSecret(sealed, oldKey).toString('utf8'), newKey);
+    expect(openSecret(migrated, newKey).toString('utf8')).toBe('totp-secret');
+    expect(() => openSecret(migrated, oldKey)).toThrow();
+  });
+
+  it('AUD-16: لا مفتاح افتراضي معروف — والاختبار يستعمل مفتاحاً معزولاً', () => {
+    expect(TEST_DATA_ENC_KEY).not.toBe('local-development-data-key');
+    expect(() => decideDataEncryptionKey(undefined, 'production')).toThrow(/DATA_ENC_KEY/);
+
+    // بلا أي مفتاح مضبوط، وختمٌ بالمفتاح الافتراضي: داخل الاختبارات يعمل بالمفتاح المعزول
+    // (fail-closed everywhere else — يغطّيه spec الإعداد).
+    const sealed = sealSecret('default-path');
+    expect(openSecret(sealed).toString('utf8')).toBe('default-path');
   });
 
   it('refuses tampered ciphertext and malformed envelopes', () => {

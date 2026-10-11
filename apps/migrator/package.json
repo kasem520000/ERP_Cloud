@@ -10,6 +10,7 @@
     "dev": "pnpm run build && node --enable-source-maps dist/cli.js --help",
     "build": "tsc -p tsconfig.json",
     "lint": "eslint src --config ../../eslint.config.mjs",
-    "test": "vitest run"
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
   }
 }

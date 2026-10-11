@@ -9,6 +9,7 @@ import {
   setMembershipStatusFixture,
   setTenantStatusFixture,
   setTenantSettingFixture,
+  setUserStatusFixture,
 } from '@erp/testing';
 
 import { PasswordService, TokenService } from '../src/modules/platform/index.js';
@@ -181,4 +182,5 @@ export {
   setMembershipStatusFixture,
   setTenantSettingFixture,
   setTenantStatusFixture,
+  setUserStatusFixture,
 };

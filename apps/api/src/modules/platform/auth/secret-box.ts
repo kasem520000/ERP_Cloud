@@ -1,6 +1,6 @@
 import { createCipheriv, createDecipheriv, createHash, randomBytes } from 'node:crypto';
 
-import { env } from '@erp/config';
+import { dataEncryptionKey, env } from '@erp/config';
 import { DomainError, errorCodes } from '@erp/contracts';
 
 /**
@@ -14,10 +14,13 @@ import { DomainError, errorCodes } from '@erp/contracts';
  * that asked for it.
  */
 
-const FALLBACK_KEY = 'local-development-data-key';
-
+/**
+ * AUD-16 — لا مفتاح افتراضي معروف: المفتاح يُحلّ من `@erp/config` (fail-closed خارج
+ * الاختبارات، ومفتاح اختبار معزول داخلها). تمرير `secret` صراحةً يبقى مدعوماً لاختبارات
+ * التدوير.
+ */
 function keyBytes(secret?: string): Buffer {
-  return createHash('sha256').update(secret ?? FALLBACK_KEY).digest();
+  return createHash('sha256').update(secret ?? dataEncryptionKey()).digest();
 }
 
 /** AES-256-GCM seal. A fresh 12-byte IV per call; the auth tag is part of the envelope. */
