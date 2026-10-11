@@ -1,7 +1,7 @@
 /* eslint-disable no-restricted-syntax */
 import { Inject, Injectable } from '@nestjs/common';
 import { Decimal } from 'decimal.js';
-import { and, desc, eq, inArray } from 'drizzle-orm';
+import { and, desc, eq, inArray, isNull, sql } from 'drizzle-orm';
 import { allocateLandedCost, calculateInvoiceTotals, DomainError, errorCodes, newId } from '@erp/contracts';
 import {
   accounts,
@@ -157,9 +157,40 @@ export class PurchasesService {
         input.costCenterId,
         ...input.lines.map((line) => line.costCenterId),
       ]);
-      const [supplier] = await tx.select().from(parties).where(and(eq(parties.tenantId, tenantId), eq(parties.id, input.partyId)));
+      let resolvedPartyId = input.partyId?.trim() || '';
+      if (!resolvedPartyId) {
+        const [existingDefault] = await tx
+          .select({ id: parties.id })
+          .from(parties)
+          .where(
+            and(
+              eq(parties.tenantId, tenantId),
+              isNull(parties.deletedAt),
+              sql`(${parties.code} = 'SUPP-GEN' OR ${parties.name} = 'مورد عام')`,
+            ),
+          )
+          .limit(1);
+        if (existingDefault) {
+          resolvedPartyId = existingDefault.id;
+        } else {
+          resolvedPartyId = newId();
+          await tx
+            .insert(parties)
+            .values({
+              id: resolvedPartyId,
+              tenantId,
+              code: 'SUPP-GEN',
+              kind: 'supplier',
+              name: 'مورد عام',
+              legalName: 'مورد عام',
+              creditLimit: '0',
+            })
+            .onConflictDoNothing();
+        }
+      }
+      const [supplier] = await tx.select().from(parties).where(and(eq(parties.tenantId, tenantId), eq(parties.id, resolvedPartyId)));
       if (!supplier || !['supplier', 'both'].includes(supplier.kind)) throw new DomainError('PURCHASE_SUPPLIER_REQUIRED', 'Purchase invoices require a supplier party', 422);
-      await tx.insert(purchaseInvoices).values({ id, tenantId, createdBy: tryGetAuthContext()?.userId, branchId: input.branchId, warehouseId: input.warehouseId, partyId: input.partyId, costCenterId: input.costCenterId ?? null, referenceInvoiceId: input.referenceInvoiceId, kind: input.kind ?? 'purchase', supplierReferenceNo: input.supplierReferenceNo, supplierReferenceDate: input.supplierReferenceDate, currency: input.currency ?? 'SAR', priceIncludesVat: input.priceIncludesVat ?? false, landedCostAlloc: input.landedCostAlloc ?? 'value', invoiceDiscount: totals.discount, extraTax: totals.extraTax, withholding: totals.withholding, subtotal: totals.subtotal, taxTotal: totals.tax, total: totals.total, status: 'draft' });
+      await tx.insert(purchaseInvoices).values({ id, tenantId, createdBy: tryGetAuthContext()?.userId, branchId: input.branchId, warehouseId: input.warehouseId, partyId: resolvedPartyId, costCenterId: input.costCenterId ?? null, referenceInvoiceId: input.referenceInvoiceId, kind: input.kind ?? 'purchase', supplierReferenceNo: input.supplierReferenceNo, supplierReferenceDate: input.supplierReferenceDate, currency: input.currency ?? 'SAR', priceIncludesVat: input.priceIncludesVat ?? false, landedCostAlloc: input.landedCostAlloc ?? 'value', invoiceDiscount: totals.discount, extraTax: totals.extraTax, withholding: totals.withholding, subtotal: totals.subtotal, taxTotal: totals.tax, total: totals.total, status: 'draft' });
       if (input.lines.length > 0) {
         await tx.insert(purchaseInvoiceLines).values(
           input.lines.map((line, index) => {

@@ -458,7 +458,7 @@ export class MarketplaceService {
     const found = rows(await tx.execute(sql`
       SELECT DISTINCT provider
       FROM ecommerce_stores
-      WHERE tenant_id = ${tenantId}::uuid AND deleted_at IS NULL AND status = 'active'
+      WHERE tenant_id = ${tenantId}::uuid AND status = 'active'
     `));
     return new Set(found.map((row) => str(row.provider)));
   }

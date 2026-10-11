@@ -221,7 +221,21 @@ export default function SalesInvoiceDetailPage() {
   const invoiceCenter = (costCenters.data ?? []).find((row) => row.id === doc.costCenterId);
   const costCenterLabel = invoiceCenter ? `${invoiceCenter.code} — ${arabicName(invoiceCenter)}` : '';
   const party = (parties.data ?? []).find((row) => row.id === doc.partyId);
-  const partyName = party ? partyLabel(party) : (doc.cashCustomerName ?? '—');
+  const partyName = party
+    ? partyLabel(party)
+    : ((doc as { partyName?: string | null }).partyName ?? doc.cashCustomerName ?? 'عميل عام');
+  const partyTaxNo = String(
+    party?.taxNo ?? party?.tax_no ?? (doc as { partyTaxNo?: string | null }).partyTaxNo ?? '',
+  ).trim();
+  const isStandardTaxInvoice = Boolean(
+    partyTaxNo &&
+      party?.name !== 'عميل عام' &&
+      party?.code !== 'CUST-GEN' &&
+      (doc as { partyName?: string | null }).partyName !== 'عميل عام',
+  );
+  const taxInvoiceTypeLabel =
+    (doc as { taxInvoiceTypeLabelAr?: string }).taxInvoiceTypeLabelAr ??
+    (isStandardTaxInvoice ? 'فاتورة ضريبية' : 'فاتورة ضريبية مبسطة');
   const referenceNumber = (doc as { customerReference?: string | null }).customerReference ?? null;
   const invoiceDiscountValue = Number(doc.invoiceDiscount ?? 0) || 0;
   const grossTotal = Number(doc.subtotal) + invoiceDiscountValue;
@@ -317,7 +331,7 @@ export default function SalesInvoiceDetailPage() {
                     {doc.number ?? 'مسودة'}
                   </h1>
                   <Badge tone={doc.kind === 'quotation' ? 'purple' : 'blue'} dot>
-                    {doc.kind === 'quotation' ? 'عرض أسعار' : 'فاتورة مبيعات'}
+                    {doc.kind === 'quotation' ? 'عرض أسعار' : taxInvoiceTypeLabel}
                   </Badge>
                   <Badge tone={doc.status === 'posted' ? 'green' : doc.status === 'voided' ? 'red' : 'amber'} dot>
                     {doc.status === 'posted' ? 'مرحّلة' : doc.status === 'voided' ? 'ملغاة' : 'مسودة'}

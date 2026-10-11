@@ -50,7 +50,7 @@ export default function NewSalesInvoicePage() {
   const [branchId, setBranchId] = useState('');
   const [warehouseId, setWarehouseId] = useState('');
   const [partyId, setPartyId] = useState('');
-  const [cashName, setCashName] = useState('');
+  const [cashName, setCashName] = useState('عميل عام');
   const [cashMobile, setCashMobile] = useState('');
   const [salesmanId, setSalesmanId] = useState('');
   const [costCenterId, setCostCenterId] = useState('');
@@ -65,6 +65,14 @@ export default function NewSalesInvoicePage() {
   const warehouseRows = warehouses.data ?? [];
   const effectiveBranch = branchId || defaultOf(branchRows)?.id || '';
   const effectiveWarehouse = warehouseId || defaultOf(warehouseRows.filter((row) => !effectiveBranch || row.branchId === effectiveBranch))?.id || '';
+  const selectedParty = (parties.data ?? []).find((row) => row.id === partyId);
+  const selectedPartyTaxNo = String(selectedParty?.taxNo ?? selectedParty?.tax_no ?? '').trim();
+  const isGeneralCustomer =
+    !partyId ||
+    selectedParty?.code === 'CUST-GEN' ||
+    selectedParty?.name === 'عميل عام';
+  const isStandardTaxInvoice = Boolean(!isGeneralCustomer && selectedPartyTaxNo.length > 0);
+  const taxInvoiceTypeLabel = isStandardTaxInvoice ? 'فاتورة ضريبية' : 'فاتورة ضريبية مبسطة';
   const totals = computeTotals(lines, { priceIncludesVat: includesVat, invoiceDiscount: invoiceDiscountText });
   /**
    * حدّ الخصم على العضوية (R1، بديل `OperMaxDiscount`). عرضٌ لا فرض: الفرض في
@@ -139,14 +147,14 @@ export default function NewSalesInvoicePage() {
     setNotice(undefined);
     try {
       if (filledLines(lines).length === 0) throw new ApiError(422, 'VALIDATION_FAILED', 'أضف سطراً واحداً على الأقل.');
-      if (!partyId && !cashName.trim()) throw new ApiError(422, 'VALIDATION_FAILED', 'اختر عميلاً أو اكتب اسم العميل النقدي.');
+      const resolvedCashName = cashName.trim() || 'عميل عام';
       const invoice = await apiPost<{ id: string }>('/sales/invoices', {
         branchId: effectiveBranch,
         warehouseId: effectiveWarehouse || undefined,
         partyId: partyId || undefined,
         salesmanId: salesmanId || undefined,
         costCenterId: costCenterId || undefined,
-        cashCustomerName: partyId ? undefined : cashName.trim(),
+        cashCustomerName: partyId ? undefined : resolvedCashName,
         cashCustomerMobile: partyId ? undefined : cashMobile.trim() || undefined,
         kind: 'sale',
         priceIncludesVat: includesVat,
@@ -208,19 +216,47 @@ export default function NewSalesInvoicePage() {
           <label className="field">
             <span>👤 العميل</span>
             <select className="input" value={partyId} onChange={(event) => setPartyId(event.target.value)}>
-              <option value="">— عميل نقدي —</option>
+              <option value="">— عميل عام (فاتورة ضريبية مبسطة) —</option>
               {(parties.data ?? []).map((row) => (
                 <option key={row.id} value={row.id}>
                   {partyLabel(row)}
+                  {(row.taxNo ?? row.tax_no ?? '').trim() && row.name !== 'عميل عام' && row.code !== 'CUST-GEN'
+                    ? ` — رقم ضريبي: ${row.taxNo ?? row.tax_no}`
+                    : ' — فاتورة ضريبية مبسطة'}
                 </option>
               ))}
             </select>
           </label>
+          <div className="field">
+            <span>🧾 تصنيف الفاتورة الضريبية</span>
+            <div
+              className="input"
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: 8,
+                background: 'var(--surface-2)',
+              }}
+            >
+              <span className={`badge ${isStandardTaxInvoice ? 'active' : 'neutral'}`}>
+                {taxInvoiceTypeLabel}
+              </span>
+              <small className="muted" dir="ltr">
+                {isStandardTaxInvoice ? `الرقم الضريبي: ${selectedPartyTaxNo}` : 'عميل عام / بدون رقم ضريبي'}
+              </small>
+            </div>
+          </div>
           {!partyId && (
             <>
               <label className="field">
-                <span>💵 عميل نقدي *</span>
-                <input className="input" value={cashName} onChange={(event) => setCashName(event.target.value)} required />
+                <span>💵 اسم العميل (الافتراضي: عميل عام)</span>
+                <input
+                  className="input"
+                  value={cashName}
+                  placeholder="عميل عام"
+                  onChange={(event) => setCashName(event.target.value)}
+                />
               </label>
               <label className="field">
                 <span>📱 الجوال</span>

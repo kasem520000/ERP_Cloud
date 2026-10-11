@@ -18,8 +18,8 @@ export function NotificationBell({ label }: { label: string }) {
 
   const refresh = useCallback(async () => {
     try {
-      const page = await apiData<{ meta: { unread: number } }>('/notifications?limit=1');
-      setUnread(page.meta.unread);
+      const page = await apiData<{ meta?: { unread?: number } }>('/notifications?limit=1');
+      setUnread(page?.meta?.unread ?? 0);
     } catch {
       setUnread(null); // صامتٌ عن قصد: الجرس زينةٌ لا وظيفة.
     }
@@ -75,7 +75,8 @@ export function NotificationInbox({ locale }: { locale: 'ar' | 'en' }) {
     setBusyId('all');
     setNotice(undefined);
     try {
-      const unread = (inbox.data?.data ?? []).filter((item) => !item.readAt);
+      const items = Array.isArray(inbox.data) ? inbox.data : (inbox.data?.data ?? []);
+      const unread = items.filter((item) => !item.readAt);
       for (const item of unread) {
         await apiData(`/notifications/${item.id}/read`, { method: 'POST' });
       }
@@ -88,11 +89,14 @@ export function NotificationInbox({ locale }: { locale: 'ar' | 'en' }) {
     }
   }
 
+  const rows = Array.isArray(inbox.data) ? inbox.data : (inbox.data?.data ?? []);
+  const unreadCount = inbox.data?.meta?.unread ?? rows.filter((item) => !item.readAt).length;
+
   return (
     <div className="grid">
       <div className="toolbar">
         <span className="chip">
-          {locale === 'ar' ? 'غير مقروء' : 'Unread'}: {inbox.data?.meta.unread ?? 0}
+          {locale === 'ar' ? 'غير مقروء' : 'Unread'}: {unreadCount}
         </span>
         <label className="row" style={{ gap: 6, alignItems: 'center' }}>
           <input
@@ -113,12 +117,12 @@ export function NotificationInbox({ locale }: { locale: 'ar' | 'en' }) {
       {notice && <p className="notice">{notice}</p>}
       {inbox.status === 'loading' && <p className="muted">…</p>}
       {inbox.status === 'error' && <p className="error">{inbox.error}</p>}
-      {inbox.status === 'success' && (inbox.data?.data.length ?? 0) === 0 && (
+      {inbox.status === 'success' && rows.length === 0 && (
         <p className="muted">{locale === 'ar' ? 'لا جديد.' : 'Nothing new.'}</p>
       )}
 
       <ul className="inbox">
-        {(inbox.data?.data ?? []).map((item) => {
+        {rows.map((item) => {
           const text = notificationText(item, locale);
           return (
             <li key={item.id} className={item.readAt ? 'read' : 'unread'}>

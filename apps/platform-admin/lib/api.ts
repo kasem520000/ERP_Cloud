@@ -195,8 +195,35 @@ export async function apiFetch<T>(path: string, options: ApiOptions = {}): Promi
  * one client instead of each page knowing which convention its endpoint follows.
  */
 function unwrap<T>(payload: unknown): T {
-  if (payload !== null && typeof payload === 'object' && !Array.isArray(payload) && 'data' in (payload as Record<string, unknown>)) {
-    return (payload as { data: T }).data;
+  if (
+    payload !== null &&
+    typeof payload === 'object' &&
+    !Array.isArray(payload) &&
+    'data' in (payload as Record<string, unknown>)
+  ) {
+    const record = payload as Record<string, unknown>;
+    const inner = record.data;
+    if (inner !== null && typeof inner === 'object') {
+      const target = inner as Record<string, unknown>;
+      if (!('data' in target)) {
+        Object.defineProperty(target, 'data', {
+          value: inner,
+          enumerable: false,
+          configurable: true,
+          writable: true,
+        });
+      }
+      for (const [key, value] of Object.entries(record)) {
+        if (key === 'data' || key in target) continue;
+        Object.defineProperty(target, key, {
+          value,
+          enumerable: false,
+          configurable: true,
+          writable: true,
+        });
+      }
+    }
+    return inner as T;
   }
   return payload as T;
 }

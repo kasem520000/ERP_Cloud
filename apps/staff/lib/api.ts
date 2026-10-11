@@ -289,7 +289,29 @@ function unwrap<T>(payload: unknown): T {
     !Array.isArray(payload) &&
     'data' in (payload as Record<string, unknown>)
   ) {
-    return (payload as { data: T }).data;
+    const record = payload as Record<string, unknown>;
+    const inner = record.data;
+    if (inner !== null && typeof inner === 'object') {
+      const target = inner as Record<string, unknown>;
+      if (!('data' in target)) {
+        Object.defineProperty(target, 'data', {
+          value: inner,
+          enumerable: false,
+          configurable: true,
+          writable: true,
+        });
+      }
+      for (const [key, value] of Object.entries(record)) {
+        if (key === 'data' || key in target) continue;
+        Object.defineProperty(target, key, {
+          value,
+          enumerable: false,
+          configurable: true,
+          writable: true,
+        });
+      }
+    }
+    return inner as T;
   }
   return payload as T;
 }

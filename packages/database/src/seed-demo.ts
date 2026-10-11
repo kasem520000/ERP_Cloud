@@ -540,6 +540,30 @@ async function seedOrganisation(
       ),
   );
 
+  await upsertById(
+    client,
+    `SELECT id FROM parties WHERE tenant_id = $1 AND (code = 'CUST-GEN' OR name = 'عميل عام') AND deleted_at IS NULL`,
+    [tenantId],
+    (id) =>
+      client.query(
+        `INSERT INTO parties (id, tenant_id, code, kind, name, legal_name, credit_limit)
+         VALUES ($1, $2, 'CUST-GEN', 'customer', 'عميل عام', 'عميل عام', 0)`,
+        [id, tenantId],
+      ),
+  );
+
+  await upsertById(
+    client,
+    `SELECT id FROM parties WHERE tenant_id = $1 AND (code = 'SUPP-GEN' OR name = 'مورد عام') AND deleted_at IS NULL`,
+    [tenantId],
+    (id) =>
+      client.query(
+        `INSERT INTO parties (id, tenant_id, code, kind, name, legal_name, credit_limit)
+         VALUES ($1, $2, 'SUPP-GEN', 'supplier', 'مورد عام', 'مورد عام', 0)`,
+        [id, tenantId],
+      ),
+  );
+
   return { branchId: branch, branchCode: 'MAIN', warehouseId: warehouse, safeId: safe, bankId: bank };
 }
 

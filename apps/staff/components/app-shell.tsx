@@ -17,21 +17,16 @@ import { NotificationBell } from './notification-bell';
 const label = (lang: Lang, item: { labelAr: string; labelEn: string }): string =>
   lang === 'ar' ? item.labelAr : item.labelEn;
 
-function statusDot(status: string, lang: Lang) {
-  const title =
-    status === 'ready'
-      ? lang === 'ar'
-        ? 'جاهز'
-        : 'Ready'
-      : status === 'api'
-        ? lang === 'ar'
-          ? 'الواجهة البرمجية جاهزة'
-          : 'API ready'
-        : lang === 'ar'
-          ? 'قيد التطوير'
-          : 'Planned';
-  return <span className={`dot ${status}`} title={title} aria-label={title} />;
-}
+/**
+ * Desktop-only or local-SQL-Server legacy keys that do not belong in a Cloud SaaS ERP sidebar.
+ * Kept in `lib/navigation.ts` for AI help snapshot compatibility, filtered in the cloud shell.
+ */
+const CLOUD_HIDDEN_KEYS = new Set([
+  'settings.database',
+  'settings.devices',
+  'support.migration',
+  'support.RemoteSupport',
+]);
 
 function ModuleBlock({
   module,
@@ -45,14 +40,17 @@ function ModuleBlock({
   lang: Lang;
 }) {
   const matches = (text: string) => text.toLowerCase().includes(filter.toLowerCase());
-  const groups = filter
-    ? module.groups
-        .map((group) => ({
-          ...group,
-          items: group.items.filter((item) => matches(item.labelAr) || matches(item.labelEn)),
-        }))
-        .filter((group) => group.items.length > 0)
-    : module.groups;
+  const groups = module.groups
+    .map((group) => ({
+      ...group,
+      items: group.items.filter(
+        (item) =>
+          item.status === 'ready' &&
+          !CLOUD_HIDDEN_KEYS.has(item.key) &&
+          (!filter || matches(item.labelAr) || matches(item.labelEn)),
+      ),
+    }))
+    .filter((group) => group.items.length > 0);
 
   const active = groups.some((group) => group.items.some((item) => pathname === item.href.split('?')[0]));
   const [open, setOpen] = useState(active || Boolean(filter));
@@ -84,28 +82,15 @@ function ModuleBlock({
           {groups.map((group) => (
             <div className="nav-group" key={group.key}>
               <p className="nav-group-title">{label(lang, group)}</p>
-              {group.items.map((item: ScreenItem) =>
-                item.status === 'ready' ? (
-                  <Link
-                    key={item.key}
-                    href={item.href}
-                    className={pathname === item.href.split('?')[0] ? 'nav-link active' : 'nav-link'}
-                  >
-                    {statusDot(item.status, lang)}
-                    <span>{label(lang, item)}</span>
-                  </Link>
-                ) : (
-                  <span
-                    key={item.key}
-                    className="nav-link disabled"
-                    title={item.endpoint ?? (lang === 'ar' ? 'قيد التطوير' : 'Planned')}
-                    aria-disabled="true"
-                  >
-                    {statusDot(item.status, lang)}
-                    <span>{label(lang, item)}</span>
-                  </span>
-                ),
-              )}
+              {group.items.map((item: ScreenItem) => (
+                <Link
+                  key={item.key}
+                  href={item.href}
+                  className={pathname === item.href.split('?')[0] ? 'nav-link active' : 'nav-link'}
+                >
+                  <span>{label(lang, item)}</span>
+                </Link>
+              ))}
             </div>
           ))}
         </div>
@@ -200,21 +185,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <ModuleBlock key={module.key} module={module} pathname={pathname} filter={filter} lang={lang} />
           ))}
         </nav>
-
-        {/* Design v3 §6.1 — بطاقة «تغطية الشاشات»: الشجرة تقول بنفسها كم شاشة
-            جاهزة وكم منها ما زالت واجهةً برمجية أو خطة، فلا يدّعي أحد أن كل شيء يعمل. */}
-        <CoverageCard tree={tree} />
-        <div className="nav-legend">
-          <span>
-            <span className="dot ready" /> {t('nav.status.ready')}
-          </span>
-          <span>
-            <span className="dot api" /> API
-          </span>
-          <span>
-            <span className="dot planned" /> {t('nav.status.planned')}
-          </span>
-        </div>
       </aside>
 
       <main className="main">
@@ -289,60 +259,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         {children}
       </main>
       <AssistantLauncher />
-    </div>
-  );
-}
-
-/**
- * بطاقة «تغطية الشاشات» — عدّاد صريح لحالة كل شاشة في الشجرة المرئية.
- *
- * ليست زخرفة: هي ما يمنع لوحةَ تحكّمٍ من الإيحاء بأن كل شيء يعمل. الشاشة التي
- * حالتها `api` أو `planned` تُعرض في الشجرة بشارتها، وهذه البطاقة تجمع العدد
- * حتى يرى المالك أين يقف المنتج فعلاً (Design v3 §6.1).
- */
-function CoverageCard({ tree }: { tree: ModuleNode[] }) {
-  const { t } = useLang();
-  // `count`/`screenTotal`, not `total`: the money guard in the root eslint
-  // config matches the identifier `total` (PROJECT_CONTRACT §3), and these are
-  // screen counts, not riyals.
-  const counts = { ready: 0, api: 0, planned: 0 };
-  for (const module of tree) {
-    for (const group of module.groups) {
-      for (const item of group.items) {
-        if (item.status === 'ready') counts.ready += 1;
-        else if (item.status === 'api') counts.api += 1;
-        else counts.planned += 1;
-      }
-    }
-  }
-  const screenTotal = counts.ready + counts.api + counts.planned;
-  if (screenTotal === 0) return null;
-  const pct = Math.round((counts.ready / screenTotal) * 100);
-  return (
-    <div className="coverage-card" aria-label={t('nav.coverage')}>
-      <div className="coverage-head">
-        <strong>{t('nav.coverage')}</strong>
-        <span className="num" dir="ltr">
-          {counts.ready}/{screenTotal}
-        </span>
-      </div>
-      <div className="coverage-bar" role="img" aria-label={`${pct}%`}>
-        <span className="ready" style={{ width: `${pct}%` }} />
-      </div>
-      <p className="coverage-hint">{t('nav.coverage.hint')}</p>
-      <ul className="coverage-legend">
-        <li>
-          <span className="dot ready" aria-hidden /> {t('nav.coverage.ready')}{' '}
-          <b className="num">{counts.ready}</b>
-        </li>
-        <li>
-          <span className="dot api" aria-hidden /> {t('nav.coverage.api')} <b className="num">{counts.api}</b>
-        </li>
-        <li>
-          <span className="dot planned" aria-hidden /> {t('nav.coverage.planned')}{' '}
-          <b className="num">{counts.planned}</b>
-        </li>
-      </ul>
     </div>
   );
 }

@@ -4,17 +4,21 @@ import type { Request } from 'express';
 import { env } from '@erp/config';
 import {
   changePasswordRequestSchema,
+  forgotPasswordRequestSchema,
   handoffCreateResponseSchema,
   handoffRedeemSchema,
   loginRequestSchema,
   logoutRequestSchema,
   refreshRequestSchema,
+  resetPasswordRequestSchema,
   type ChangePasswordRequest,
+  type ForgotPasswordRequest,
   type HandoffRedeemRequest,
   type HandoffResponse,
   type LoginRequest,
   type LoginResponse,
   type RefreshRequest,
+  type ResetPasswordRequest,
 } from '@erp/contracts';
 
 import { ZodValidationPipe } from '../../../common/pipes/zod-validation.pipe.js';
@@ -136,5 +140,34 @@ export class AuthController {
     @Body(new ZodValidationPipe(changePasswordRequestSchema)) body: ChangePasswordRequest,
   ): Promise<void> {
     await this.auth.changePassword(getAuthContext(), body);
+  }
+
+  @Public()
+  @Post('forgot-password')
+  @HttpCode(200)
+  @RateLimit({ name: 'login', limit: env.RATE_LIMIT_LOGIN_PER_MINUTE, windowMs: 60_000 })
+  @zodApiBody(forgotPasswordRequestSchema)
+  @ApiOperation({ summary: 'Request a one-time password reset token and email link' })
+  @ApiResponse({ status: 200, description: 'Reset email queued if the account exists' })
+  async forgotPassword(
+    @Body(new ZodValidationPipe(forgotPasswordRequestSchema)) body: ForgotPasswordRequest,
+  ): Promise<{ data: { ok: true; message: string } }> {
+    const data = await this.auth.forgotPassword(body);
+    return { data };
+  }
+
+  @Public()
+  @Post('reset-password')
+  @HttpCode(200)
+  @RateLimit({ name: 'login', limit: env.RATE_LIMIT_LOGIN_PER_MINUTE, windowMs: 60_000 })
+  @zodApiBody(resetPasswordRequestSchema)
+  @ApiOperation({ summary: 'Reset a user password using a valid one-time reset token' })
+  @ApiResponse({ status: 200, description: 'Password reset succeeded' })
+  @ApiResponse({ status: 400, description: 'Invalid/expired token or password policy failure' })
+  async resetPassword(
+    @Body(new ZodValidationPipe(resetPasswordRequestSchema)) body: ResetPasswordRequest,
+  ): Promise<{ data: { ok: true; message: string } }> {
+    const data = await this.auth.resetPassword(body);
+    return { data };
   }
 }

@@ -356,7 +356,7 @@ export default function PosPage() {
       if (method === 'credit' && customerMode !== 'account')
         throw new ApiError(422, 'VALIDATION_FAILED', 'البيع الآجل يحتاج حساب عميل.');
 
-      const response = await apiPost<{ data: Receipt }>('/pos/checkout', {
+      const response = await apiPost<Receipt & { data?: Receipt }>('/pos/checkout', {
         branchId,
         warehouseId: effectiveWarehouse,
         priceIncludesVat,
@@ -364,7 +364,7 @@ export default function PosPage() {
         orderType: 'pos',
         shiftId: shift.data?.id,
         partyId: customerMode === 'account' ? partyId || undefined : undefined,
-        cashCustomerName: customerMode === 'walkin' ? customerName.trim() || 'عميل نقدي' : undefined,
+        cashCustomerName: customerMode === 'walkin' ? customerName.trim() || 'عميل عام' : undefined,
         cashCustomerMobile: customerMode === 'walkin' ? customerMobile.trim() || undefined : undefined,
         lines: ticket.map((entry) => ({
           itemId: entry.item.id,
@@ -392,10 +392,11 @@ export default function PosPage() {
             : undefined,
       });
 
-      setReceipt(response.data);
+      const receiptData = (response.data ?? response) as Receipt;
+      setReceipt(receiptData);
       setNotice({
         kind: 'ok',
-        text: `تم البيع — الفاتورة ${response.data.number ?? ''} بمبلغ ${money(response.data.total)}.`,
+        text: `تم البيع — الفاتورة ${receiptData.number ?? ''} بمبلغ ${money(receiptData.total)}.`,
       });
       setTicket([]);
       setTendered('');
@@ -728,8 +729,8 @@ export default function PosPage() {
                 value={customerMode}
                 onChange={(event) => setCustomerMode(event.target.value as 'walkin' | 'account')}
               >
-                <option value="walkin">عميل نقدي</option>
-                <option value="account">حساب عميل</option>
+                <option value="walkin">عميل عام (فاتورة ضريبية مبسطة)</option>
+                <option value="account">حساب عميل مسجل</option>
               </select>
             </label>
             {customerMode === 'walkin' ? (
@@ -739,12 +740,12 @@ export default function PosPage() {
                   <div className="row" style={{ flexWrap: 'nowrap' }}>
                     <input
                       className="input"
-                      placeholder="عميل نقدي"
+                      placeholder="عميل عام"
                       value={customerName}
                       onChange={(event) => setCustomerName(event.target.value)}
                     />
                     <button type="button" className="btn" onClick={() => setPickingCustomer(true)}>
-                      👤 عميل نقدي
+                      👤 بحث
                     </button>
                   </div>
                 </label>

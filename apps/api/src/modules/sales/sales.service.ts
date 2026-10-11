@@ -12,6 +12,7 @@ import {
   journalEntries,
   journalEntryLines,
   offers,
+  parties,
   salesAdjustmentNotes,
   salesInvoiceLines,
   salesInvoices,
@@ -251,7 +252,33 @@ export class SalesService {
       .select()
       .from(invoicePayments)
       .where(and(eq(invoicePayments.tenantId, tenantId), eq(invoicePayments.invoiceId, id)));
-    return { ...invoice, lines, payments };
+    let partyName: string | null = null;
+    let partyTaxNo: string | null = null;
+    let partyCode: string | null = null;
+    if (invoice.partyId) {
+      const [party] = await tx
+        .select({ name: parties.name, taxNo: parties.taxNo, code: parties.code })
+        .from(parties)
+        .where(and(eq(parties.tenantId, tenantId), eq(parties.id, invoice.partyId)));
+      partyName = party?.name ?? null;
+      partyTaxNo = party?.taxNo ?? null;
+      partyCode = party?.code ?? null;
+    }
+    const isStandardTaxInvoice = Boolean(
+      partyTaxNo &&
+        partyTaxNo.trim().length > 0 &&
+        partyName !== 'عميل عام' &&
+        partyCode !== 'CUST-GEN',
+    );
+    return {
+      ...invoice,
+      partyName,
+      partyTaxNo,
+      taxInvoiceType: isStandardTaxInvoice ? 'standard' : 'simplified',
+      taxInvoiceTypeLabelAr: isStandardTaxInvoice ? 'فاتورة ضريبية' : 'فاتورة ضريبية مبسطة',
+      lines,
+      payments,
+    };
   }
 
   async get(tenantId: string, id: string) {

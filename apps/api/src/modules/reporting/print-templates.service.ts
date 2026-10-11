@@ -90,24 +90,39 @@ export class PrintTemplatesService {
       );
 
       const kindTitle = SALES_KIND_TITLES[str(invoice.kind)] ?? 'فاتورة مبيعات';
-      const title = `${kindTitle}${str(invoice.tax_total) !== '0.0000' || company.taxNo ? ' ضريبية' : ''}`;
+      const hasCustomerTaxNo = Boolean(
+        str(invoice.party_tax_no).trim() &&
+          str(invoice.party_name) !== 'عميل عام' &&
+          str(invoice.party_code) !== 'CUST-GEN',
+      );
+      const taxClassificationLabel = hasCustomerTaxNo ? 'فاتورة ضريبية' : 'فاتورة ضريبية مبسطة';
+      const title =
+        str(invoice.kind) === 'sale'
+          ? `${taxClassificationLabel} — ${kindTitle}`
+          : `${kindTitle}${str(invoice.tax_total) !== '0.0000' || company.taxNo ? ' ضريبية' : ''}`;
       return this.documentPage(print, company, {
         title: `${kindTitle} ${str(invoice.number) || ''}`.trim(),
         body: `
           ${this.header(company, {
             docTitle: title,
-            docTitleEn: SALES_KIND_TITLES_EN[str(invoice.kind)] ?? 'Sales Invoice',
+            docTitleEn:
+              str(invoice.kind) === 'sale'
+                ? hasCustomerTaxNo
+                  ? 'Tax Invoice'
+                  : 'Simplified Tax Invoice'
+                : SALES_KIND_TITLES_EN[str(invoice.kind)] ?? 'Sales Invoice',
             number: str(invoice.number) || '—',
             date: dateText(invoice.posted_at ?? invoice.created_at),
             status: STATUS_LABELS[str(invoice.status)] ?? str(invoice.status),
             extra: [
+              ['نوع الفاتورة', taxClassificationLabel],
               ['الفرع', str(invoice.branch_name)],
               ['المستودع', str(invoice.warehouse_name)],
               ['المندوب', str(invoice.salesman_name)],
             ],
           }, print.printHeader)}
           ${this.partyBlock('بيانات العميل', {
-            name: str(invoice.party_name) || str(invoice.cash_customer_name) || 'عميل نقدي',
+            name: str(invoice.party_name) || str(invoice.cash_customer_name) || 'عميل عام',
             code: str(invoice.party_code),
             taxNo: str(invoice.party_tax_no),
             phone: str(invoice.party_phone) || str(invoice.cash_customer_mobile),

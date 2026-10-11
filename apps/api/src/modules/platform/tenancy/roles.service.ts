@@ -10,6 +10,7 @@ import {
   isConsolePermissionCode,
   parseFilters,
   parseSort,
+  permissionRegistry,
   type ListEnvelope,
   type PaginationQuery,
   type RoleCreate,
@@ -27,6 +28,7 @@ import {
   type DrizzleTx,
 } from '@erp/database';
 
+import { getTenantContext } from '../context/tenant-context.js';
 import { DATABASE_HANDLE } from '../../../database/database.module.js';
 
 export type RoleListQuery = PaginationQuery & {
@@ -189,14 +191,30 @@ export class RolesService {
     // database converges on the canonical namespace (reads accept both spellings).
     const canonical = [...new Set(codes.map((code) => canonicalizePermissionCode(code)))];
     if (canonical.length === 0) return [];
-    const found = await withTx(this.database.db, async (tx) =>
-      tx
+    const registryMap = new Map(permissionRegistry.map((entry) => [entry.code, entry]));
+    const found = await withTx(this.database.db, async (tx) => {
+      const existing = await tx
         .select({ code: permissions.code })
         .from(permissions)
-        .where(inArray(permissions.code, [...canonical])),
-    );
+        .where(inArray(permissions.code, [...canonical]));
+      const existingSet = new Set(existing.map((row) => row.code));
+      const missingFromDb = canonical.filter((code) => !existingSet.has(code) && registryMap.has(code));
+      for (const code of missingFromDb) {
+        const spec = registryMap.get(code)!;
+        await tx
+          .insert(permissions)
+          .values({
+            code: spec.code,
+            module: spec.module,
+            description: spec.description,
+          })
+          .onConflictDoNothing();
+        existingSet.add(code);
+      }
+      return [...existingSet];
+    });
     if (found.length !== canonical.length) {
-      const known = new Set(found.map((row) => row.code));
+      const known = new Set(found);
       const unknown = canonical.filter((code) => !known.has(code));
       throw new DomainError(
         errorCodes.VALIDATION_FAILED,
@@ -220,14 +238,15 @@ export class RolesService {
   }
 
   /**
-   * AUD-02 — صفوف صلاحيات الأدوار النظامية (`owner` · `accountant` · `cashier`) لا
-   * تُستبدل من `PUT /roles/{id}` ولا من `POST /roles/{id}/permissions`. الاسم كان محمياً
-   * وحده، فأمكن لحامل `tenant.role.manage` أن يفرّغ صلاحيات «المالك» أو يمنح «الكاشير»
-   * صلاحيات إدارية — أي أن يغيّر معنى الأدوار النظامية التي تقارن بها الواجهة والعقود.
-   * الأدوار المخصّصة تبقى قابلة للتعديل بالكامل.
+   * AUD-02 — صفوف صلاحيات دور «المالك» (`Owner`) محمية دائماً، وكذلك سائر الأدوار
+   * النظامية (`Accountant` · `Cashier`) لغير مالك الحساب (`!getTenantContext().isOwner`)،
+   * حتى لا يستغلّ حامل `tenant.role.manage` غير المالك صلاحيته لترقية دور نظامي. أمّا
+   * مالك الحساب نفسه فيستطيع ضبط صلاحيات المحاسب والكاشير والأدوار المخصّصة من شاشة
+   * الأدوار والصلاحيات.
    */
   private assertPermissionsMutable(role: { name: string; isSystem: boolean }): void {
-    if (role.isSystem) {
+    const isOwnerRole = role.name.trim().toLowerCase() === 'owner';
+    if (isOwnerRole || (role.isSystem && !getTenantContext().isOwner)) {
       throw new DomainError(
         errorCodes.SYSTEM_ROLE_PERMISSIONS_IMMUTABLE,
         `Permissions of the system role '${role.name}' cannot be changed`,

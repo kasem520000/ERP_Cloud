@@ -166,6 +166,29 @@ export const mfaRecoveryCodes = pgTable(
 export type MfaRecoveryCode = typeof mfaRecoveryCodes.$inferSelect;
 export type NewMfaRecoveryCode = typeof mfaRecoveryCodes.$inferInsert;
 
+export const passwordResetTokens = pgTable(
+  'password_reset_tokens',
+  {
+    id: uuid('id').primaryKey(),
+    tokenHash: text('token_hash').notNull(),
+    userId: uuid('user_id')
+      .notNull()
+      .references(() => users.id, { onDelete: 'cascade' }),
+    tenantCode: text('tenant_code'),
+    expiresAt: timestamp('expires_at', { withTimezone: true }).notNull(),
+    usedAt: timestamp('used_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => ({
+    passwordResetTokensHashKey: uniqueIndex('password_reset_tokens_token_hash_key').on(table.tokenHash),
+    passwordResetTokensUserIdx: index('password_reset_tokens_user_idx').on(table.userId, table.createdAt),
+    passwordResetTokensExpiryIdx: index('password_reset_tokens_expiry_idx').on(table.expiresAt),
+  }),
+);
+
+export type PasswordResetToken = typeof passwordResetTokens.$inferSelect;
+export type NewPasswordResetToken = typeof passwordResetTokens.$inferInsert;
+
 /**
  * Platform roles — 2026-09 architecture/RBAC reorganisation (migration 0032).
  *

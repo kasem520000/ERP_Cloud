@@ -18,16 +18,13 @@ const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || '/api/v1';
  * routes the visitor to the surface their account belongs to — tenant staff go to
  * the staff app, supplier-issued buyer accounts go to the customer portal.
  *
- * Detection is behavioural, not guesswork: a token that can read `/me` with a
- * staff membership routes to staff, a token that can read `/portal/me` routes to
- * the portal.
- *
- * AUD-08 — handover is a single-use `?handoff=<code>` bridge, not the session tokens:
- * the code lives ~60 seconds, carries no authority of its own, and the target surface
- * redeems it over POST for a fresh session. Session tokens never appear in a URL.
+ * Includes a self-service Forgot Password / Reset Password flow (`POST /auth/forgot-password`
+ * and `POST /auth/reset-password`).
  */
 export function SmartLogin() {
+  const [mode, setMode] = useState<'login' | 'forgot' | 'reset'>('login');
   const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
   const [loading, setLoading] = useState(false);
 
   async function detect(token: string): Promise<WhoAmI> {
@@ -53,9 +50,46 @@ export function SmartLogin() {
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError('');
+    setNotice('');
     setLoading(true);
     const form = new FormData(event.currentTarget);
     try {
+      if (mode === 'forgot') {
+        const res = await fetch(`${baseUrl}/auth/forgot-password`, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({
+            email: String(form.get('email') ?? '').trim(),
+            tenantCode: String(form.get('tenantCode') ?? '').trim() || undefined,
+          }),
+        });
+        const payload = await res.json().catch(() => null);
+        if (!res.ok) {
+          throw new Error(payload?.detail || payload?.message || 'تعذر إرسال رمز الاستعادة');
+        }
+        setNotice(payload?.data?.message || 'تم إرسال رمز ورابط استعادة كلمة المرور إلى بريدك الإلكتروني.');
+        setMode('reset');
+        return;
+      }
+
+      if (mode === 'reset') {
+        const res = await fetch(`${baseUrl}/auth/reset-password`, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({
+            token: String(form.get('token') ?? '').trim(),
+            newPassword: String(form.get('newPassword') ?? ''),
+          }),
+        });
+        const payload = await res.json().catch(() => null);
+        if (!res.ok) {
+          throw new Error(payload?.detail || payload?.message || 'تعذر إعادة تعيين كلمة المرور');
+        }
+        setNotice(payload?.data?.message || 'تم إعادة تعيين كلمة المرور بنجاح. يمكنك الآن تسجيل الدخول.');
+        setMode('login');
+        return;
+      }
+
       const session = await login({
         tenantCode: String(form.get('tenantCode')).trim(),
         email: String(form.get('email')).trim(),
@@ -64,8 +98,6 @@ export function SmartLogin() {
       storeToken(session.accessToken);
       const target = await detect(session.accessToken);
 
-      // AUD-08 — لا رموز جلسة في العنوان. نُصدر رمز تسليمٍ لمرة واحدة (عمره ~60 ثانية،
-      // ولا يحمل صلاحية بنفسه) ثم نمرّره وحده؛ والواجهة الهدف تستبدله بجلسةٍ جديدة.
       const minted = await fetch(`${baseUrl}/auth/handoff`, {
         method: 'POST',
         headers: { 'content-type': 'application/json', authorization: `Bearer ${session.accessToken}` },
@@ -99,9 +131,41 @@ export function SmartLogin() {
 
   return (
     <form className="form" onSubmit={submit} noValidate>
-      <input className="input" name="tenantCode" placeholder="رمز المنشأة" aria-label="tenant" required />
-      <input className="input" name="email" type="email" placeholder="البريد الإلكتروني" aria-label="email" required />
-      <input className="input" name="password" type="password" placeholder="كلمة المرور" aria-label="password" required />
+      {notice ? (
+        <p role="status" className="muted">
+          {notice}
+        </p>
+      ) : null}
+
+      {mode === 'login' && (
+        <>
+          <input className="input" name="tenantCode" placeholder="رمز المنشأة" aria-label="tenant" required />
+          <input className="input" name="email" type="email" placeholder="البريد الإلكتروني" aria-label="email" required />
+          <input className="input" name="password" type="password" placeholder="كلمة المرور" aria-label="password" required />
+        </>
+      )}
+
+      {mode === 'forgot' && (
+        <>
+          <input className="input" name="tenantCode" placeholder="رمز المنشأة (اختياري)" aria-label="tenant" />
+          <input className="input" name="email" type="email" placeholder="البريد الإلكتروني المسجّل" aria-label="email" required />
+        </>
+      )}
+
+      {mode === 'reset' && (
+        <>
+          <input className="input" name="token" placeholder="رمز الاستعادة (rst_...)" aria-label="token" required />
+          <input
+            className="input"
+            name="newPassword"
+            type="password"
+            placeholder="كلمة المرور الجديدة (12 حرفاً على الأقل)"
+            aria-label="newPassword"
+            required
+          />
+        </>
+      )}
+
       {error === 'MFA_REQUIRED' ? (
         <p role="alert" className="muted">
           حسابك محمي بالتحقق بخطوتين — أكمل الدخول من <a href={surfaceHref('staff', '/')}>لوحة الإدارة</a>.
@@ -111,9 +175,41 @@ export function SmartLogin() {
           {error}
         </p>
       ) : null}
+
       <button className="btn primary" type="submit" disabled={loading}>
-        {loading ? 'جارٍ التحقق...' : 'تسجيل الدخول'}
+        {loading
+          ? 'جارٍ التحقق...'
+          : mode === 'forgot'
+            ? 'إرسال رمز الاستعادة'
+            : mode === 'reset'
+              ? 'حفظ كلمة المرور الجديدة'
+              : 'تسجيل الدخول'}
       </button>
+
+      {mode === 'login' ? (
+        <button
+          type="button"
+          className="btn"
+          onClick={() => {
+            setError('');
+            setNotice('');
+            setMode('forgot');
+          }}
+        >
+          نسيت كلمة السر؟
+        </button>
+      ) : (
+        <button
+          type="button"
+          className="btn"
+          onClick={() => {
+            setError('');
+            setMode('login');
+          }}
+        >
+          العودة لتسجيل الدخول
+        </button>
+      )}
     </form>
   );
 }

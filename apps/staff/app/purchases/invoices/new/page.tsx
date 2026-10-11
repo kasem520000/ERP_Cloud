@@ -64,6 +64,10 @@ export default function NewPurchaseInvoicePage() {
 
   const branchRows = branches.data ?? [];
   const warehouseRows = warehouses.data ?? [];
+  const supplierRows = suppliers.data ?? [];
+  const defaultSupplier =
+    supplierRows.find((row) => row.code === 'SUPP-GEN' || row.name === 'مورد عام') ?? supplierRows[0];
+  const effectivePartyId = partyId || defaultSupplier?.id || '';
   const effectiveBranch = branchId || defaultOf(branchRows)?.id || '';
   const effectiveWarehouse = warehouseId || defaultOf(warehouseRows.filter((row) => !effectiveBranch || row.branchId === effectiveBranch))?.id || '';
   const totals = computeTotals(lines, { priceIncludesVat: includesVat, invoiceDiscount: invoiceDiscountText });
@@ -125,7 +129,7 @@ export default function NewPurchaseInvoicePage() {
       const invoice = await apiPost<{ id: string }>('/purchase-invoices', {
         branchId: effectiveBranch,
         warehouseId: effectiveWarehouse || undefined,
-        partyId,
+        partyId: effectivePartyId,
         kind,
         supplierReferenceNo: supplierRef.trim() || undefined,
         supplierReferenceDate: supplierRefDate || undefined,
@@ -189,9 +193,9 @@ export default function NewPurchaseInvoicePage() {
           </label>
           <label className="field">
             <span>👤 اسم المورد *</span>
-            <select className="input" value={partyId} onChange={(event) => setPartyId(event.target.value)} required>
-              <option value="">— اختر —</option>
-              {(suppliers.data ?? []).map((row) => (
+            <select className="input" value={effectivePartyId} onChange={(event) => setPartyId(event.target.value)}>
+              {supplierRows.length === 0 && <option value="">مورد عام (الافتراضي)</option>}
+              {supplierRows.map((row) => (
                 <option key={row.id} value={row.id}>
                   {partyLabel(row)}
                 </option>

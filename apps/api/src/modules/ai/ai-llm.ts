@@ -25,15 +25,25 @@ async function readJson(response: Response): Promise<Record<string, unknown>> {
 }
 
 async function completeOpenAi(config: LlmConfig, input: LlmRequest): Promise<RemoteUsage> {
-  const base = (config.baseUrl || 'https://api.openai.com').replace(/\/+$/, '');
-  const response = await fetch(`${base}/v1/chat/completions`, {
+  const defaultBase =
+    config.provider === 'gemini'
+      ? 'https://generativelanguage.googleapis.com/v1beta/openai'
+      : 'https://api.openai.com';
+  const rawBase = (config.baseUrl || defaultBase).replace(/\/+$/, '');
+  const endpoint = rawBase.endsWith('/chat/completions')
+    ? rawBase
+    : rawBase.endsWith('/v1') || rawBase.endsWith('/openai')
+      ? `${rawBase}/chat/completions`
+      : `${rawBase}/v1/chat/completions`;
+  const defaultModel = config.provider === 'gemini' ? 'gemini-2.0-flash' : 'gpt-4o-mini';
+  const response = await fetch(endpoint, {
     method: 'POST',
     headers: {
       authorization: `Bearer ${config.apiKey ?? ''}`,
       'content-type': 'application/json',
     },
     body: JSON.stringify({
-      model: config.model || 'gpt-4o-mini',
+      model: config.model || defaultModel,
       temperature: 0.2,
       messages: [
         { role: 'system', content: input.system },

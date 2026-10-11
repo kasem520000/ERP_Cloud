@@ -139,7 +139,8 @@ export class EmailService {
     if (row.status !== 'queued') return row;
 
     const settings = await this.settings.effective(row.tenantId);
-    const mailer = this.mailerFactory(settings.provider);
+    const credentials = await this.settings.credentialsFor(row.tenantId);
+    const mailer = this.mailerFactory(settings.provider, credentials);
     const attempt = row.attempts + 1;
 
     try {
@@ -448,29 +449,32 @@ export class EmailService {
   }
 
   /** اختبار الإعدادات: رسالة واحدة بنصٍّ ثابت — المُختبَر هو المُرسِل لا القالب. */
-  async testSettings(input: { to: string; locale: EmailLocale }): Promise<EmailTestResult> {
-    const settings = await this.settings.effective(null);
-    const subject = 'اختبار إعدادات البريد من لوحة المنصة';
+  async testSettings(input: { to: string; locale: EmailLocale; tenantId?: string | null }): Promise<EmailTestResult> {
+    const targetTenantId = input.tenantId ?? null;
+    const settings = await this.settings.effective(targetTenantId);
+    const subject = targetTenantId
+      ? 'اختبار إعدادات البريد من لوحة المنشأة'
+      : 'اختبار إعدادات البريد من لوحة المنصة';
     const body = [
-      'هذه رسالة اختبار من لوحة تحكم المنصة.',
+      'هذه رسالة اختبار لإعدادات خدمة البريد الإلكتروني.',
       '',
       `المزوّد: ${settings.provider}`,
       `المُرسِل: ${settings.fromName} <${settings.fromEmail}>`,
       `النطاق: ${settings.sendingDomain ?? 'غير محدَّد'}`,
       `الوقت: ${new Date().toISOString()}`,
       '',
-      'إن وصلتك هذه الرسالة فإعدادات الإرسال تعمل.',
+      'إن وصلتك هذه الرسالة فإعدادات الإرسال تعمل بنجاح.',
     ].join('\n');
 
     return this.sendTestMessage({
-      tenantId: null,
+      tenantId: targetTenantId,
       event: 'announcement',
       locale: input.locale,
       to: input.to,
       subject,
       body,
       templateId: null,
-      templateSource: 'platform',
+      templateSource: targetTenantId ? 'tenant' : 'platform',
     });
   }
 
@@ -831,8 +835,9 @@ export class EmailService {
     return String(id);
   }
 
-  private asProvider(value: string): 'console' | 'smtp' {
-    return value === 'smtp' ? 'smtp' : 'console';
+  private asProvider(value: string): 'console' | 'smtp' | 'resend' | 'http' {
+    if (value === 'smtp' || value === 'resend' || value === 'http') return value;
+    return 'console';
   }
 
   /** صفٌّ داخليّ: حقول العقد نفسها، مضافاً إليها ما يخصّ المحاولة والحصّة (لا يُصدَّر). */

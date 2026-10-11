@@ -30,6 +30,8 @@ export const aiSettings = pgTable('ai_settings', {
   platformSuspended: boolean('platform_suspended').notNull().default(false),
   provider: text('provider'),
   model: text('model'),
+  apiKeyEnc: text('api_key_enc'),
+  baseUrl: text('base_url').notNull().default(''),
   monthlyTokenLimit: integer('monthly_token_limit'),
   monthlyCostLimit: numeric('monthly_cost_limit', { precision: 12, scale: 4, mode: 'string' }),
   updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),

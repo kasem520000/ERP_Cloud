@@ -1,6 +1,6 @@
 import { createHash, randomBytes } from 'node:crypto';
 
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Optional } from '@nestjs/common';
 import { and, eq, gt, isNull, sql } from 'drizzle-orm';
 import { env } from '@erp/config';
 import {
@@ -8,13 +8,16 @@ import {
   errorCodes,
   newId,
   type ChangePasswordRequest,
+  type ForgotPasswordRequest,
   type LoginRequest,
   type LoginResponse,
   type MembershipDto,
   type RefreshRequest,
+  type ResetPasswordRequest,
 } from '@erp/contracts';
 import {
   memberships,
+  passwordResetTokens,
   refreshTokens,
   sessionHandoffCodes,
   tenants,
@@ -26,6 +29,7 @@ import {
 
 import type { AuthContextValue } from '../../../request-context/request-context.js';
 import { DATABASE_HANDLE } from '../../../database/database.module.js';
+import { EmailService } from '../../email/email.service.js';
 import { toMembershipDto, toUserDto, type MembershipRow, type UserRow } from '../mappers.js';
 
 import { MfaService } from './mfa.service.js';
@@ -95,6 +99,7 @@ export class AuthService {
     private readonly tokens: TokenService,
     private readonly passwords: PasswordService,
     private readonly mfa: MfaService,
+    @Optional() private readonly email?: EmailService,
   ) {}
 
   async login(input: LoginRequest, meta: RequestMeta = {}): Promise<LoginResponse> {
@@ -456,6 +461,176 @@ export class AuthService {
         .set({ revokedAt: new Date() })
         .where(and(eq(refreshTokens.userId, user.id), isNull(refreshTokens.revokedAt)));
     });
+  }
+
+  /**
+   * طلب استعادة كلمة المرور («نسيت كلمة السر»).
+   *
+   * يعيد نفس الرسالة دائماً سواء وُجد البريد أم لم يوجد لمنع كشف الحسابات، ويُصدر رمز
+   * استعادة لمرة واحدة صالحاً لمدة 60 دقيقة ويُرسله عبر خدمة البريد (`password.reset`).
+   */
+  async forgotPassword(input: ForgotPasswordRequest): Promise<{ ok: true; message: string }> {
+    const email = input.email.trim().toLowerCase();
+    const tenantCode = input.tenantCode?.trim() || null;
+
+    const user = await withTx(this.database.db, async (tx) => {
+      const rows = await tx.select(USER_COLUMNS).from(users).where(eq(users.email, email)).limit(1);
+      return rows[0];
+    });
+
+    if (user && user.status !== 'suspended') {
+      let resolvedTenantId: string | null = null;
+      if (tenantCode) {
+        const tenantRow = await withTx(this.database.db, async (tx) => {
+          const rows = await tx
+            .select({ id: tenants.id })
+            .from(tenants)
+            .where(sql`lower(${tenants.code}) = lower(${tenantCode})`)
+            .limit(1);
+          return rows[0];
+        });
+        resolvedTenantId = tenantRow?.id ?? null;
+      }
+
+      const rawToken = `rst_${randomBytes(24).toString('base64url')}`;
+      const tokenHash = sha256(rawToken);
+      const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
+
+      await withTx(this.database.db, async (tx) => {
+        await tx.insert(passwordResetTokens).values({
+          id: newId(),
+          tokenHash,
+          userId: user.id,
+          tenantCode,
+          expiresAt,
+        });
+      });
+
+      if (this.email) {
+        const appUrl = process.env.STAFF_PUBLIC_URL ?? 'http://localhost:3001';
+        const resetLink = `${appUrl.replace(/\/$/, '')}/?resetToken=${encodeURIComponent(rawToken)}`;
+        try {
+          await this.email.send({
+            tenantId: resolvedTenantId,
+            event: 'password.reset',
+            locale: 'ar',
+            to: user.email,
+            toName: user.fullName,
+            variables: {
+              name: user.fullName,
+              link: `${resetLink} (رمز الاستعادة: ${rawToken})`,
+              expires: '60 دقيقة',
+            },
+            isTest: true,
+          });
+        } catch {
+          // Do not fail or leak whether email delivery succeeded
+        }
+      }
+    }
+
+    return {
+      ok: true,
+      message: 'إذا كان البريد الإلكتروني مسجلاً لدينا، فقد تم إرسال رمز ورابط استعادة كلمة المرور.',
+    };
+  }
+
+  /**
+   * تعيين كلمة مرور جديدة باستخدام رمز الاستعادة (`POST /auth/reset-password`).
+   */
+  async resetPassword(input: ResetPasswordRequest): Promise<{ ok: true; message: string }> {
+    const tokenHash = sha256(input.token.trim());
+
+    const stored = await withTx(this.database.db, async (tx) => {
+      const rows = await tx
+        .select({
+          id: passwordResetTokens.id,
+          userId: passwordResetTokens.userId,
+          expiresAt: passwordResetTokens.expiresAt,
+          usedAt: passwordResetTokens.usedAt,
+        })
+        .from(passwordResetTokens)
+        .where(eq(passwordResetTokens.tokenHash, tokenHash))
+        .limit(1);
+      return rows[0];
+    });
+
+    if (!stored || stored.usedAt || stored.expiresAt.getTime() <= Date.now()) {
+      throw new DomainError(
+        errorCodes.VALIDATION_FAILED,
+        'رمز استعادة كلمة المرور غير صالح أو منتهي الصلاحية.',
+        400,
+        { field: 'token' },
+      );
+    }
+
+    const user = await withTx(this.database.db, async (tx) => {
+      const rows = await tx.select(USER_COLUMNS).from(users).where(eq(users.id, stored.userId)).limit(1);
+      return rows[0];
+    });
+
+    if (!user || user.status === 'suspended') {
+      throw new DomainError(
+        errorCodes.VALIDATION_FAILED,
+        'رمز استعادة كلمة المرور غير صالح أو الحساب موقوف.',
+        400,
+        { field: 'token' },
+      );
+    }
+
+    this.passwords.assertPolicy(input.newPassword, { email: user.email, fullName: user.fullName });
+    const passwordHash = await this.passwords.hash(input.newPassword);
+
+    const updated = await withTx(this.database.db, async (tx) => {
+      const claimed = await tx
+        .update(passwordResetTokens)
+        .set({ usedAt: new Date() })
+        .where(
+          and(
+            eq(passwordResetTokens.id, stored.id),
+            isNull(passwordResetTokens.usedAt),
+            gt(passwordResetTokens.expiresAt, new Date()),
+          ),
+        )
+        .returning({ id: passwordResetTokens.id });
+      if (claimed.length === 0) return false;
+
+      await tx
+        .update(users)
+        .set({
+          passwordHash,
+          status: user.status === 'invited' ? 'active' : user.status,
+          mustChangePassword: false,
+          passwordChangedAt: new Date(),
+          failedLoginAttempts: 0,
+          lockedUntil: null,
+          updatedAt: new Date(),
+          updatedBy: user.id,
+          version: sql`${users.version} + 1`,
+        })
+        .where(eq(users.id, user.id));
+
+      await tx
+        .update(refreshTokens)
+        .set({ revokedAt: new Date() })
+        .where(and(eq(refreshTokens.userId, user.id), isNull(refreshTokens.revokedAt)));
+
+      return true;
+    });
+
+    if (!updated) {
+      throw new DomainError(
+        errorCodes.VALIDATION_FAILED,
+        'رمز استعادة كلمة المرور غير صالح أو تم استخدامه مسبقاً.',
+        400,
+        { field: 'token' },
+      );
+    }
+
+    return {
+      ok: true,
+      message: 'تم إعادة تعيين كلمة المرور بنجاح. يمكنك الآن تسجيل الدخول بكلمة المرور الجديدة.',
+    };
   }
 
   // --- internals ---------------------------------------------------------------

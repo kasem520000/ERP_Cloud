@@ -68,6 +68,24 @@ export const changePasswordRequestSchema = z
 
 export type ChangePasswordRequest = z.infer<typeof changePasswordRequestSchema>;
 
+export const forgotPasswordRequestSchema = z
+  .object({
+    email: z.string().trim().email().max(320),
+    tenantCode: z.string().trim().min(1).max(64).optional(),
+  })
+  .strict();
+
+export type ForgotPasswordRequest = z.infer<typeof forgotPasswordRequestSchema>;
+
+export const resetPasswordRequestSchema = z
+  .object({
+    token: z.string().trim().min(16).max(256),
+    newPassword: z.string().min(MIN_PASSWORD_LENGTH).max(MAX_PASSWORD_LENGTH),
+  })
+  .strict();
+
+export type ResetPasswordRequest = z.infer<typeof resetPasswordRequestSchema>;
+
 export const userStatusSchema = z.enum(['active', 'invited', 'suspended']);
 export type UserStatus = z.infer<typeof userStatusSchema>;
 
