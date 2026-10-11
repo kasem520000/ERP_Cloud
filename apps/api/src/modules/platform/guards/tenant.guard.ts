@@ -10,6 +10,7 @@ import {
   rolePermissions,
   roles,
   tenants,
+  users,
   withTenantTx,
   withTx,
   type DatabaseHandle,
@@ -78,6 +79,7 @@ export class TenantGuard implements CanActivate {
           id: memberships.id,
           tenantId: memberships.tenantId,
           userId: memberships.userId,
+          userStatus: users.status,
           status: memberships.status,
           branchScope: memberships.branchScope,
           isOwner: memberships.isOwner,
@@ -86,6 +88,7 @@ export class TenantGuard implements CanActivate {
           maxDiscountAmount: memberships.maxDiscountAmount,
         })
         .from(memberships)
+        .innerJoin(users, eq(users.id, memberships.userId))
         .where(
           and(
             eq(memberships.id, auth.membershipId),
@@ -102,6 +105,13 @@ export class TenantGuard implements CanActivate {
         errorCodes.FORBIDDEN,
         'No membership for this user in the tenant referenced by the token',
         403,
+      );
+    }
+    if (membership.userStatus !== 'active') {
+      throw new DomainError(
+        errorCodes.UNAUTHENTICATED,
+        `User account is ${membership.userStatus}`,
+        401,
       );
     }
     if (membership.status !== 'active') {

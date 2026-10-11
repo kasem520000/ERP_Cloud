@@ -80,25 +80,79 @@ describe('AUD-01 / AUD-07 — حالة الحساب وتدوير refresh (API_CO
     expect(response.body.code).toBe('UNAUTHENTICATED');
   });
 
-  it('تعليق الحساب: التجديد يُرفض فوراً، ورمز الوصول القائم ينتهي بصلاحيته (سياسة معلنة)', async () => {
-    const actor = await actorWithPassword('audit-suspend-refresh', 'owner@audit-suspend-refresh.test');
+  it('AUD-01: تعليق الحساب يبطل فوراً التجديد وكل الطلبات المصادق عليها عبر المسار المركزي (AuthGuard)', async () => {
+    const actor = await createActor(ctx, {
+      tenantCode: 'audit-suspend-immediate',
+      email: 'owner@audit-suspend-immediate.test',
+      password: PASSWORD,
+      isPlatformAdmin: true,
+      platformRoles: ['platform_owner'],
+    });
 
-    const session = await login('audit-suspend-refresh', 'owner@audit-suspend-refresh.test');
+    const session = await login('audit-suspend-immediate', 'owner@audit-suspend-immediate.test');
+    expect(session.status).toBe(200);
     const { accessToken, refreshToken } = session.body.data as {
       accessToken: string;
       refreshToken: string;
     };
 
+    // قبل التعليق: المسارات تعمل بشكل طبيعي (الهوية، MFA، ولوحة المنصة).
+    expect((await api(ctx.server, 'get', '/api/v1/me', { token: accessToken })).status).toBe(200);
+    expect((await api(ctx.server, 'get', '/api/v1/auth/mfa', { token: accessToken })).status).toBe(200);
+    expect((await api(ctx.server, 'get', '/api/v1/platform/roles', { token: accessToken })).status).toBe(200);
+
+    // تعليق سجل المستخدم نفسه مع بقاء المنشأة والعضوية نشطتين:
     await setUserStatusFixture(ctx.db.ownerUrl, actor.userId, 'suspended');
 
+    // 1) رفض تجديد الجلسة فوراً:
     const rotated = await refresh(refreshToken);
     expect(rotated.status).toBe(401);
     expect(rotated.body.code).toBe('UNAUTHENTICATED');
 
-    // رمز الوصول عديم الحالة (JWT): يبقى صالحاً حتى انتهاء صلاحيته (15 دقيقة،
-    // PROJECT_CONTRACT §9). يُوثَّق هذا صراحةً هنا بدل ادعاء إبطال فوري غير موجود.
-    const me = await api(ctx.server, 'get', '/api/v1/me', { token: accessToken });
-    expect(me.status, 'access tokens are stateless; they expire within 15 minutes').toBe(200);
+    // 2) رفض فوري لرمز الوصول القائم على مسار الهوية `/me`:
+    const meAfterSuspend = await api(ctx.server, 'get', '/api/v1/me', { token: accessToken });
+    expect(meAfterSuspend.status).toBe(401);
+    expect(meAfterSuspend.body.code).toBe('UNAUTHENTICATED');
+
+    // 3) رفض فوري على مسارات المصادقة الشخصية التي لا تعتمد على صلاحيات المستأجر (`/auth/mfa`, `/auth/handoff`, `/auth/logout`, `/auth/change-password`):
+    const mfaAfterSuspend = await api(ctx.server, 'get', '/api/v1/auth/mfa', { token: accessToken });
+    expect(mfaAfterSuspend.status).toBe(401);
+    expect(mfaAfterSuspend.body.code).toBe('UNAUTHENTICATED');
+
+    const handoffAfterSuspend = await api(ctx.server, 'post', '/api/v1/auth/handoff', {
+      token: accessToken,
+      body: {},
+    });
+    expect(handoffAfterSuspend.status).toBe(401);
+    expect(handoffAfterSuspend.body.code).toBe('UNAUTHENTICATED');
+
+    const logoutAfterSuspend = await api(ctx.server, 'post', '/api/v1/auth/logout', {
+      token: accessToken,
+      body: {},
+    });
+    expect(logoutAfterSuspend.status).toBe(401);
+    expect(logoutAfterSuspend.body.code).toBe('UNAUTHENTICATED');
+
+    const changePwdAfterSuspend = await api(ctx.server, 'post', '/api/v1/auth/change-password', {
+      token: accessToken,
+      body: { current: PASSWORD, new: 'N3w-Suspended!Pass9' },
+    });
+    expect(changePwdAfterSuspend.status).toBe(401);
+    expect(changePwdAfterSuspend.body.code).toBe('UNAUTHENTICATED');
+
+    // 4) رفض فوري على مسارات لوحة المنصة (`PlatformAdminGuard`) التي لا تعتمد على سياق المستأجر:
+    const platformAfterSuspend = await api(ctx.server, 'get', '/api/v1/platform/roles', {
+      token: accessToken,
+    });
+    expect(platformAfterSuspend.status).toBe(401);
+    expect(platformAfterSuspend.body.code).toBe('UNAUTHENTICATED');
+
+    // 5) رفض فوري على مسارات موارد المنشأة (`/warehouses`):
+    const warehousesAfterSuspend = await api(ctx.server, 'get', '/api/v1/warehouses', {
+      token: accessToken,
+    });
+    expect(warehousesAfterSuspend.status).toBe(401);
+    expect(warehousesAfterSuspend.body.code).toBe('UNAUTHENTICATED');
   });
 
   it('AUD-07: طلبا تجديد متزامنان بالرمز نفسه لا ينتجان بديلين صالحين', async () => {

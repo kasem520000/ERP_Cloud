@@ -14,10 +14,11 @@ function scope(roleId: string, scopeType: RoleScopeValue['scopeType'], scopeId: 
 }
 
 describe('scope policy', () => {
-  it('leaves access unrestricted when NO held role has rows for the scopeType', () => {
-    expect(scopeAuthorises([], ['r1'], 'warehouse', W1)).toBe(true);
-    expect(scopeAuthorises([scope('r1', 'branch', W1)], ['r1'], 'warehouse', W1)).toBe(true);
-    expect(allowedScopeIds([], ['r1'], 'warehouse')).toBeUndefined();
+  it('AUD-03: denies implicit tenant-wide access when NO held role has rows for the scopeType', () => {
+    expect(scopeAuthorises([], ['r1'], 'warehouse', W1)).toBe(false);
+    expect(scopeAuthorises([scope('r1', 'branch', W1)], ['r1'], 'warehouse', W1)).toBe(false);
+    expect(allowedScopeIds([], ['r1'], 'warehouse')).toEqual([]);
+    expect(allowedScopeIds([], [], 'warehouse')).toEqual([]);
   });
 
   it('restricts a scoped grant to its listed scopes', () => {
@@ -43,15 +44,20 @@ describe('scope policy', () => {
     expect(allowedScopeIds(scopes, ['r1', 'r2'], 'warehouse')).toEqual([W1, W2]);
   });
 
-  it('AUD-03: grants tenant-wide access only when a role is explicitly configured with TENANT_WIDE_SCOPE_ID', () => {
-    const scopes = [
+  it('AUD-03: grants tenant-wide access ONLY when a role is explicitly configured with TENANT_WIDE_SCOPE_ID', () => {
+    const singleWide = [scope('r1', 'warehouse', TENANT_WIDE_SCOPE_ID)];
+    expect(scopeAuthorises(singleWide, ['r1'], 'warehouse', W1)).toBe(true);
+    expect(scopeAuthorises(singleWide, ['r1'], 'warehouse', W2)).toBe(true);
+    expect(allowedScopeIds(singleWide, ['r1'], 'warehouse')).toBeUndefined();
+
+    const multiWithWide = [
       scope('r1', 'warehouse', W1),
       scope('r2', 'warehouse', TENANT_WIDE_SCOPE_ID),
     ];
-    expect(scopeAuthorises(scopes, ['r1', 'r2'], 'warehouse', W1)).toBe(true);
-    expect(scopeAuthorises(scopes, ['r1', 'r2'], 'warehouse', W2)).toBe(true);
-    expect(scopeAuthorises(scopes, ['r1', 'r2'], 'warehouse', W3)).toBe(true);
-    expect(allowedScopeIds(scopes, ['r1', 'r2'], 'warehouse')).toBeUndefined();
+    expect(scopeAuthorises(multiWithWide, ['r1', 'r2'], 'warehouse', W1)).toBe(true);
+    expect(scopeAuthorises(multiWithWide, ['r1', 'r2'], 'warehouse', W2)).toBe(true);
+    expect(scopeAuthorises(multiWithWide, ['r1', 'r2'], 'warehouse', W3)).toBe(true);
+    expect(allowedScopeIds(multiWithWide, ['r1', 'r2'], 'warehouse')).toBeUndefined();
   });
 
   it('throws FORBIDDEN naming the uncovered scope', () => {

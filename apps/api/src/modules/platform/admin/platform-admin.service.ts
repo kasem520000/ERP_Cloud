@@ -316,6 +316,13 @@ export class PlatformAdminService {
             INSERT INTO membership_roles (membership_id, role_id) VALUES (${membershipId}, ${roleId})
             ON CONFLICT DO NOTHING
           `);
+          for (const scopeType of ['branch', 'warehouse', 'cash_location'] as const) {
+            await tx.execute(sql`
+              INSERT INTO membership_role_scopes (membership_id, role_id, scope_type, scope_id)
+              VALUES (${membershipId}, ${roleId}, ${scopeType}, '00000000-0000-0000-0000-000000000000'::uuid)
+              ON CONFLICT DO NOTHING
+            `);
+          }
         }
       }
 

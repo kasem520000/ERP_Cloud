@@ -194,12 +194,23 @@ export async function assignRoleFixture(
   ownerUrl: string,
   membershipId: string,
   roleId: string,
+  options?: { tenantWideScopes?: boolean },
 ): Promise<void> {
   await withOwnerClient(ownerUrl, async (client) => {
     await client.query(
       `INSERT INTO membership_roles (membership_id, role_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
       [membershipId, roleId],
     );
+    if (options?.tenantWideScopes) {
+      for (const scopeType of ['branch', 'warehouse', 'cash_location'] as const) {
+        await client.query(
+          `INSERT INTO membership_role_scopes (membership_id, role_id, scope_type, scope_id)
+           VALUES ($1, $2, $3, '00000000-0000-0000-0000-000000000000'::uuid)
+           ON CONFLICT DO NOTHING`,
+          [membershipId, roleId, scopeType],
+        );
+      }
+    }
   });
 }
 

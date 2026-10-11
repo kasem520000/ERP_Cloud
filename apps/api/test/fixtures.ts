@@ -63,7 +63,14 @@ export type ActorOptions = {
   kind?: 'staff' | 'portal';
   tenantStatus?: 'active' | 'suspended' | 'archived';
   membershipStatus?: 'active' | 'invited' | 'suspended';
+  userStatus?: 'active' | 'invited' | 'suspended';
   branchScope?: string[] | null;
+  /**
+   * AUD-03 — when `true`, skips seeding `TENANT_WIDE_SCOPE_ID` on the actor's role grants
+   * so tests can verify that a newly created/assigned role with no `membership_role_scopes`
+   * rows does NOT receive implicit tenant-wide access.
+   */
+  unconfiguredScopes?: boolean;
   /** R1 — حدّ الخصم على العضوية (`null`/غائب = بلا حدّ). */
   maxDiscountPct?: string | null;
   maxDiscountAmount?: string | null;
@@ -119,7 +126,7 @@ export async function createActor(ctx: TestApp, options: ActorOptions): Promise<
     email: options.email,
     fullName: options.fullName ?? options.email.split('@')[0],
     passwordHash,
-    status: options.password ? 'active' : 'invited',
+    status: options.userStatus ?? 'active',
     isPlatformAdmin: options.isPlatformAdmin,
   });
 
@@ -136,7 +143,9 @@ export async function createActor(ctx: TestApp, options: ActorOptions): Promise<
   });
 
   for (const roleId of roleIds) {
-    await assignRoleFixture(ctx.db.ownerUrl, membership.id, roleId);
+    await assignRoleFixture(ctx.db.ownerUrl, membership.id, roleId, {
+      tenantWideScopes: !options.unconfiguredScopes,
+    });
   }
 
   // Mirrors login semantics: explicit platform roles are granted, and a legacy-flag

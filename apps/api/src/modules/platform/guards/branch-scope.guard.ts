@@ -53,7 +53,6 @@ export class BranchScopeGuard implements CanActivate {
       tenant &&
       !tenant.isOwner &&
       Array.isArray(tenant.roleIds) &&
-      tenant.roleIds.length > 0 &&
       !scopeAuthorises(tenant.scopes, tenant.roleIds, 'branch', branchId)
     ) {
       throw new DomainError(

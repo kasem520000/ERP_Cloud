@@ -912,6 +912,14 @@ async function seedUsers(
         `INSERT INTO membership_roles (membership_id, role_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
         [membershipId, roleId],
       );
+      for (const scopeType of ['branch', 'warehouse', 'cash_location'] as const) {
+        await client.query(
+          `INSERT INTO membership_role_scopes (membership_id, role_id, scope_type, scope_id)
+           VALUES ($1, $2, $3, '00000000-0000-0000-0000-000000000000'::uuid)
+           ON CONFLICT DO NOTHING`,
+          [membershipId, roleId, scopeType],
+        );
+      }
     }
 
     created.push({ email, role: roleId ? spec.roleName : `${spec.roleName} (missing)`, status });

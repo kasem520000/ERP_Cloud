@@ -307,8 +307,38 @@ describe('AUD-02 — حماية دور المالك والأدوار النظا�
       permissions: ALL_ORGANIZATION_PERMISSIONS,
       roleNames: ['Scoped Role A'],
       isOwner: false,
+      unconfiguredScopes: true,
     });
     const roleAId = scopedUser.roleIds[0]!;
+
+    // 0) حالة عدم وجود إعدادات نطاق بالكلية (دور جديد غير مهيأ — 0 صفوف في membership_role_scopes):
+    // لا يُمنح وصول شامل ضمني؛ القوائم تعود فارغة، والقراءة المباشرة 404، وترويسة X-Branch-Id تُرفض بـ403:
+    const meUnconfigured = await call('get', '/me', { token: scopedUser.token });
+    expect(meUnconfigured.status).toBe(200);
+    expect((data(meUnconfigured).membership as { scopes: unknown[] }).scopes).toEqual([]);
+
+    const unconfiguredBranches = await call('get', '/branches?limit=50', { token: scopedUser.token });
+    expect(unconfiguredBranches.status).toBe(200);
+    expect(unconfiguredBranches.body.data).toEqual([]);
+    expect((await call('get', `/branches/${branch1Id}`, { token: scopedUser.token })).status).toBe(404);
+    expect(
+      (
+        await call('get', '/branches', {
+          token: scopedUser.token,
+          headers: { 'x-branch-id': branch1Id },
+        })
+      ).status,
+    ).toBe(403);
+
+    const unconfiguredWarehouses = await call('get', '/warehouses?limit=50', { token: scopedUser.token });
+    expect(unconfiguredWarehouses.status).toBe(200);
+    expect(unconfiguredWarehouses.body.data).toEqual([]);
+    expect((await call('get', `/warehouses/${warehouse1Id}`, { token: scopedUser.token })).status).toBe(404);
+
+    const unconfiguredCash = await call('get', '/cash-locations?limit=50', { token: scopedUser.token });
+    expect(unconfiguredCash.status).toBe(200);
+    expect(unconfiguredCash.body.data).toEqual([]);
+    expect((await call('get', `/cash-locations/${cash1Id}`, { token: scopedUser.token })).status).toBe(404);
 
     // تقييد الدور A على الفرع 1 والمستودع 1 والبنك 1 فقط:
     const putScopes = await call('post', `/memberships/${scopedUser.membershipId}/scopes`, {
