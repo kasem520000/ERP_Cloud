@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { TEST_DATA_ENC_KEY, decideDataEncryptionKey } from '@erp/config';
 
-import { openSecret, sealSecret } from './secret-box.js';
+import { openSecret, resealSecret, sealSecret } from './secret-box.js';
 
 const KEY = 'unit-test-data-encryption-key';
 
@@ -26,15 +26,24 @@ describe('secret-box', () => {
    * تغيير `DATA_ENC_KEY` وحده كافٍ.
    */
   it('AUD-16 rotation: the old envelope fails under the new key and must be re-sealed', () => {
-    const oldKey = 'rotation-old-key-0123456789';
-    const newKey = 'rotation-new-key-0123456789';
+    const oldKey = 'rotation-old-key-0123456789abcdef';
+    const newKey = 'rotation-new-key-0123456789abcdef';
 
     const sealed = sealSecret('totp-secret', oldKey);
     expect(() => openSecret(sealed, newKey)).toThrow();
 
-    const migrated = sealSecret(openSecret(sealed, oldKey).toString('utf8'), newKey);
-    expect(openSecret(migrated, newKey).toString('utf8')).toBe('totp-secret');
-    expect(() => openSecret(migrated, oldKey)).toThrow();
+    const firstPass = resealSecret(sealed, oldKey, newKey);
+    expect(firstPass.status).toBe('rotated');
+    expect(openSecret(firstPass.payload, newKey).toString('utf8')).toBe('totp-secret');
+    expect(() => openSecret(firstPass.payload, oldKey)).toThrow();
+
+    // Idempotent second pass on an already-rotated envelope:
+    const secondPass = resealSecret(firstPass.payload, oldKey, newKey);
+    expect(secondPass.status).toBe('already_current');
+    expect(secondPass.payload).toBe(firstPass.payload);
+
+    // Fails closed if neither key matches:
+    expect(() => resealSecret(sealed, 'wrong-old-key-0123456789abcdef0000', newKey)).toThrow();
   });
 
   it('AUD-16: لا مفتاح افتراضي معروف — والاختبار يستعمل مفتاحاً معزولاً', () => {

@@ -37,7 +37,8 @@ export class BranchScopeGuard implements CanActivate {
       });
     }
 
-    const scope = getRequestContext().tenant?.branchScope;
+    const tenant = getRequestContext().tenant;
+    const scope = tenant?.branchScope;
     if (Array.isArray(scope) && !scope.includes(branchId)) {
       throw new DomainError(
         errorCodes.FORBIDDEN,
@@ -45,6 +46,27 @@ export class BranchScopeGuard implements CanActivate {
         403,
         { field: BRANCH_ID_HEADER },
       );
+    }
+
+    if (
+      tenant &&
+      !tenant.isOwner &&
+      Array.isArray(tenant.roleIds) &&
+      tenant.roleIds.length > 0 &&
+      tenant.scopes.some((s) => s.scopeType === 'branch')
+    ) {
+      const coversBranch = tenant.roleIds.some((roleId) => {
+        const rows = tenant.scopes.filter((s) => s.roleId === roleId && s.scopeType === 'branch');
+        return rows.length === 0 || rows.some((s) => s.scopeId === branchId);
+      });
+      if (!coversBranch) {
+        throw new DomainError(
+          errorCodes.FORBIDDEN,
+          'Role branch scope does not include the requested branch',
+          403,
+          { field: BRANCH_ID_HEADER },
+        );
+      }
     }
 
     request.branchId = branchId;

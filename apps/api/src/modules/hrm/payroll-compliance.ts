@@ -339,8 +339,16 @@ export function daysBetween(from: string, to: string): number {
   return Math.round((end - start) / 86_400_000);
 }
 
+export function todayInTimezone(timeZone = 'Asia/Riyadh', now = new Date()): string {
+  try {
+    return new Intl.DateTimeFormat('en-CA', { timeZone }).format(now);
+  } catch {
+    return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Riyadh' }).format(now);
+  }
+}
+
 export function todayInRiyadh(now = new Date()): string {
-  return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Riyadh' }).format(now);
+  return todayInTimezone('Asia/Riyadh', now);
 }
 
 /** Active employees whose iqama or insurance expires within `withinDays`, plus already overdue dates. */

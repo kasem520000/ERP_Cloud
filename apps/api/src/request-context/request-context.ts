@@ -50,6 +50,8 @@ export type TenantContextValue = {
   tenantStatus: string;
   membershipId: string;
   userId: string;
+  /** Active role ids held by the membership (optional in unit test stubs). */
+  roleIds?: string[];
   /** Effective permission set = UNION(roles) (DATABASE_DESIGN §2). `*` = owner. */
   permissions: string[];
   /** NULL = all branches (MULTI_TENANCY §2). */

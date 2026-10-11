@@ -108,6 +108,14 @@ export class TenantGuard implements CanActivate {
       throw new DomainError(errorCodes.FORBIDDEN, `Membership is ${membership.status}`, 403);
     }
 
+    const roleGrantRows = await withTenantTx(this.database.db, tenant.id, async (tx) => {
+      return tx
+        .selectDistinct({ roleId: membershipRoles.roleId })
+        .from(membershipRoles)
+        .innerJoin(roles, eq(roles.id, membershipRoles.roleId))
+        .where(and(eq(membershipRoles.membershipId, membership.id), isNull(roles.deletedAt)));
+    });
+
     const permissionRows = await withTenantTx(this.database.db, tenant.id, async (tx) => {
       return tx
         .selectDistinct({ code: rolePermissions.permissionCode })
@@ -134,6 +142,7 @@ export class TenantGuard implements CanActivate {
       tenantStatus: tenant.status,
       membershipId: membership.id,
       userId: membership.userId,
+      roleIds: roleGrantRows.map((row) => row.roleId),
       permissions: permissionRows.map((row) => row.code),
       branchScope: (membership.branchScope as string[] | null) ?? null,
       isOwner: membership.isOwner,

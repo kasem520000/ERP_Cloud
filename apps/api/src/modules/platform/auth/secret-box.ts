@@ -49,3 +49,49 @@ export function openSecret(payload: string, key = env.DATA_ENC_KEY): Buffer {
     throw new DomainError(errorCodes.UNAUTHENTICATED, 'MFA secret could not be decrypted', 401);
   }
 }
+
+export type ResealOutcome = {
+  /** Re-encrypted (or unchanged) `v1:` envelope. */
+  payload: string;
+  /**
+   * - `rotated`: decrypted with `oldKey` and re-sealed with a fresh IV under `newKey`.
+   * - `already_current`: already decryptable with `newKey` (idempotent re-run).
+   */
+  status: 'rotated' | 'already_current';
+};
+
+/**
+ * AUD-16 — Safe key rotation helper for `v1:<iv>:<tag>:<ciphertext>` envelopes.
+ *
+ * - Never logs or returns plaintext.
+ * - Idempotent: if `payload` already opens under `newKey`, returns `already_current`
+ *   without mutating the envelope, so interrupted batch migrations can be safely retried.
+ * - Fails closed (`DomainError`) if neither `newKey` nor `oldKey` can authenticate the GCM tag.
+ */
+export function resealSecret(payload: string, oldKey: string, newKey = dataEncryptionKey()): ResealOutcome {
+  if (!oldKey || oldKey.length < 32) {
+    throw new DomainError(errorCodes.VALIDATION_FAILED, 'oldKey must be at least 32 characters', 422);
+  }
+  if (!newKey || newKey.length < 32) {
+    throw new DomainError(errorCodes.VALIDATION_FAILED, 'newKey must be at least 32 characters', 422);
+  }
+
+  if (oldKey !== newKey) {
+    try {
+      openSecret(payload, newKey);
+      return { payload, status: 'already_current' };
+    } catch {
+      // Not sealed with newKey yet — fall through to open with oldKey.
+    }
+  }
+
+  const plain = openSecret(payload, oldKey);
+  try {
+    return {
+      payload: sealSecret(plain, newKey),
+      status: 'rotated',
+    };
+  } finally {
+    plain.fill(0);
+  }
+}

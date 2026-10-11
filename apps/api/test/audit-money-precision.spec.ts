@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import { GENESIS_PIH, buildInvoiceXml, type ZatcaInvoiceInput, type ZatcaLine } from '../src/modules/einvoicing/zatca/ubl.js';
+import { todayInRiyadh, todayInTimezone } from '../src/modules/hrm/payroll-compliance.js';
 
 /**
  * AUD-17 — دقّة الأموال في مستند ZATCA.
@@ -128,5 +129,17 @@ describe('AUD-17 — دقّة التقريب المالي في مستند ZATCA'
     });
     expect(tag(document, 'TaxInclusiveAmount')).toBe('0.00');
     expect(tag(document, 'TaxAmount')).toBe('0.00');
+  });
+
+  it('AUD-17: تاريخ الأعمال بعد منتصف الليل يعتمد المنطقة الزمنية للمنشأة لا UTC', () => {
+    // 2026-10-10T22:30:00Z = 01:30 صباح 2026-10-11 في الرياض (UTC+3)، و 02:30 في دبي (UTC+4).
+    const instant = new Date('2026-10-10T22:30:00.000Z');
+    expect(instant.toISOString().slice(0, 10)).toBe('2026-10-10'); // UTC ما زال أمس
+    expect(todayInRiyadh(instant)).toBe('2026-10-11');
+    expect(todayInTimezone('Asia/Riyadh', instant)).toBe('2026-10-11');
+    expect(todayInTimezone('Asia/Dubai', instant)).toBe('2026-10-11');
+    expect(todayInTimezone('America/New_York', instant)).toBe('2026-10-10');
+    // منطقة غير صالحة ترتدّ بأمان إلى Asia/Riyadh بدلاً من رمي استثناء:
+    expect(todayInTimezone('Invalid/Zone', instant)).toBe('2026-10-11');
   });
 });

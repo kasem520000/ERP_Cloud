@@ -24,6 +24,7 @@ import {
   salaryPayments,
   vouchers,
   tenantSettings,
+  tenants,
   withTenantTx,
   type DatabaseHandle,
   type DrizzleTx,
@@ -1046,6 +1047,37 @@ export class HrmService implements OnModuleInit {
    * runs **per line**, so an invoice with three lines counts its total three times. The
    * footer here adds each invoice once, sales positive and returns negative.
    */
+  /**
+   * AUD-17 — تاريخ الأعمال لليوم في المنطقة الزمنية المحددة للمنشأة
+   * (`tenant_settings['locale.timezone']` ← `tenants.timezone` ← `'Asia/Riyadh'`).
+   * يمنع انزلاق التاريخ حول منتصف الليل بين UTC والتوقيت المحلي للمنشأة.
+   */
+  private async resolveBusinessTodayInTx(
+    tx: DrizzleTx,
+    tenantId: string,
+    now = new Date(),
+  ): Promise<string> {
+    const [setting] = await tx
+      .select({ value: tenantSettings.value })
+      .from(tenantSettings)
+      .where(and(eq(tenantSettings.tenantId, tenantId), eq(tenantSettings.key, 'locale.timezone')))
+      .limit(1);
+    const [tenant] = await tx
+      .select({ timezone: tenants.timezone })
+      .from(tenants)
+      .where(eq(tenants.id, tenantId))
+      .limit(1);
+    const tz =
+      typeof setting?.value === 'string' && setting.value.trim()
+        ? setting.value.trim()
+        : (tenant?.timezone?.trim() || 'Asia/Riyadh');
+    try {
+      return new Intl.DateTimeFormat('en-CA', { timeZone: tz }).format(now);
+    } catch {
+      return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Riyadh' }).format(now);
+    }
+  }
+
   async employeeMovements(tenantId: string, query: EmployeeMovementsQuery = {}) {
     await this.ensureEnabled(tenantId);
     const employeeId = query.employeeId;
@@ -1058,7 +1090,9 @@ export class HrmService implements OnModuleInit {
     }
 
     // «من تاريخ»/«إلى تاريخ» open on today (`FrmEmpInvs_Loaded` L72) and «إلى» is inside.
-    const today = new Date().toISOString().slice(0, 10);
+    const today = await withTenantTx(this.database.db, tenantId, (tx) =>
+      this.resolveBusinessTodayInTx(tx, tenantId),
+    );
     const from = query.from ?? today;
     const to = query.to ?? today;
     const movementType = query.movementType ?? 'all';
@@ -1461,10 +1495,11 @@ export class HrmService implements OnModuleInit {
         input.branchId &&
         (input.fiscalPeriodId ?? run.periodId)
       ) {
+        const businessToday = await this.resolveBusinessTodayInTx(tx, tenantId);
         const journal = await this.accounting.postJournalInTx(tx, tenantId, {
           branchId: input.branchId,
           fiscalPeriodId: input.fiscalPeriodId ?? run.periodId!,
-          date: new Date().toISOString().slice(0, 10),
+          date: businessToday,
           description: `Payroll ${run.yearMonth}`,
           lines: input.journalLines,
           sourceType: 'payroll_run',
@@ -1520,13 +1555,14 @@ export class HrmService implements OnModuleInit {
         .where(and(eq(vouchers.tenantId, tenantId), eq(vouchers.idempotencyKey, idempotencyKey)))
         .limit(1);
 
+      const businessToday = await this.resolveBusinessTodayInTx(tx, tenantId);
       const voucher =
         existingVoucher ??
         (await this.treasury.createVoucherInTx(tx, tenantId, {
           branchId: input.branchId,
           kind: 'payment',
           subtype: 'salary',
-          date: new Date().toISOString().slice(0, 10),
+          date: businessToday,
           cashLocationId: input.cashLocationId,
           method: input.method ?? 'cash',
           amount: payValue,

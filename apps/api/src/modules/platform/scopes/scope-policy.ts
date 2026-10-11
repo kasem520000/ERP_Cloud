@@ -50,3 +50,29 @@ export function assertScope(
     );
   }
 }
+
+/**
+ * AUD-03 — Allowed resource IDs for `scopeType` across the caller's held roles.
+ *
+ * Returns `undefined` when at least one held role has NO restriction rows for `scopeType`
+ * (or when no roles/scopes are present), meaning access is tenant-wide for `scopeType`.
+ * Otherwise returns the deduplicated union of `scopeId` values across all held roles.
+ */
+export function allowedScopeIds(
+  scopes: readonly RoleScopeValue[],
+  roleIds: readonly string[],
+  scopeType: ScopeType,
+): string[] | undefined {
+  const held = Array.from(new Set(roleIds));
+  if (held.length === 0) return undefined;
+
+  const union = new Set<string>();
+  for (const roleId of held) {
+    const restrictions = scopes.filter(
+      (scope) => scope.roleId === roleId && scope.scopeType === scopeType,
+    );
+    if (restrictions.length === 0) return undefined;
+    for (const row of restrictions) union.add(row.scopeId);
+  }
+  return Array.from(union);
+}

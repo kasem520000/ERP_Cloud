@@ -25,8 +25,8 @@ ALTER TABLE compat_sessions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE compat_sessions FORCE ROW LEVEL SECURITY;
 DROP POLICY IF EXISTS compat_sessions_tenant_isolation ON compat_sessions;
 CREATE POLICY compat_sessions_tenant_isolation ON compat_sessions
-  USING (tenant_id = current_setting('app.tenant_id', true)::uuid)
-  WITH CHECK (tenant_id = current_setting('app.tenant_id', true)::uuid);
+  USING (tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid)
+  WITH CHECK (tenant_id = nullif(current_setting('app.tenant_id', true), '')::uuid);
 
 GRANT SELECT, INSERT, UPDATE, DELETE ON compat_sessions TO erp_api;
 GRANT ALL PRIVILEGES ON compat_sessions TO erp_migrator;

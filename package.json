@@ -20,6 +20,7 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "typegen": "node ./scripts/typegen.mjs",
+    "typegen:check": "node ./scripts/typegen.mjs --check",
     "openapi:export": "pnpm --filter \"@erp/api...\" run build && node apps/api/dist/openapi/export-openapi-cli.js",
     "db:generate": "pnpm --dir packages/database run generate",
     "db:migrate": "pnpm --dir packages/database run migrate",
@@ -31,7 +32,8 @@
     "db:local": "node ./scripts/local-db.mjs",
     "start:erp:local": "bash scripts/local-start.sh",
     "db:seed:coa": "pnpm --dir packages/database run seed:coa",
-    "typecheck": "pnpm --filter \"./packages/*\" run build && pnpm -r run typecheck"
+    "typecheck": "pnpm --filter \"./packages/*\" run build && pnpm -r run typecheck",
+    "secrets:rotate": "node ./scripts/rotate-data-encryption-key.mjs"
   },
   "devDependencies": {
     "@commitlint/cli": "^19.1.0",

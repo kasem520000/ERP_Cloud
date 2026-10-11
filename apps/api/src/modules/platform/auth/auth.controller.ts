@@ -114,6 +114,7 @@ export class AuthController {
 
   @Post('logout')
   @HttpCode(204)
+  @RateLimit({ name: 'auth', limit: env.RATE_LIMIT_DEFAULT_PER_MINUTE, windowMs: 60_000 })
   @zodApiBody(logoutRequestSchema)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Revoke every active refresh token of the current user' })
@@ -124,11 +125,13 @@ export class AuthController {
 
   @Post('change-password')
   @HttpCode(204)
+  @RateLimit({ name: 'change-password', limit: env.RATE_LIMIT_LOGIN_PER_MINUTE, windowMs: 60_000 })
   @zodApiBody(changePasswordRequestSchema)
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Change the caller password and revoke all sessions' })
   @ApiResponse({ status: 204, description: 'Password changed' })
   @ApiResponse({ status: 400, description: 'Wrong current password or policy rejection' })
+  @ApiResponse({ status: 429, description: 'Rate limit exceeded (RATE_LIMITED)' })
   async changePassword(
     @Body(new ZodValidationPipe(changePasswordRequestSchema)) body: ChangePasswordRequest,
   ): Promise<void> {

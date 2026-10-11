@@ -3,6 +3,12 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { newId, withPlatformAdminTx, withTenantTx } from '@erp/database';
 import { withOwnerClient } from '@erp/testing';
 
+import {
+  openEnvelope,
+  rotateDatabaseSecrets,
+  sealEnvelope,
+} from '../../../scripts/rotate-data-encryption-key.mjs';
+
 import { createActor } from './fixtures.js';
 import { api } from './http.js';
 import { createTestApp, type TestApp } from './test-app.js';
@@ -138,5 +144,104 @@ describe('Phase 2 — O-02 / O-04 / SH-07 (Observability & Platform Break-Glass 
     expect(meta.reason).toBe('INC-900 verify tenant subscription state');
     expect(meta.targetTenantId).toBe(tenantId);
     expect(JSON.stringify(latest)).not.toContain(platformAdminToken);
+  });
+
+  it('AUD-16: rotateDatabaseSecrets supports dry-run, atomic apply, and idempotent re-run across users & salla_connections', async () => {
+    const legacyKey = 'local-development-data-key';
+    const rotatedKey = 'rotated-production-key-0123456789abcdef';
+
+    const mfaPlain = 'JBSWY3DPEHPK3PXP';
+    const sallaAccessPlain = 'salla-live-access-token-secret';
+    const sallaHookPlain = 'salla-live-webhook-secret';
+    const sallaRowId = newId();
+
+    await withOwnerClient(ctx.db.ownerUrl, async (client) => {
+      await client.query(`UPDATE users SET mfa_secret_enc = $1 WHERE id = $2`, [
+        Buffer.from(sealEnvelope(Buffer.from(mfaPlain, 'utf8'), legacyKey), 'utf8'),
+        platformAdminUserId,
+      ]);
+      await client.query(
+        `INSERT INTO salla_connections (id, tenant_id, store_id, access_token_enc, webhook_secret_enc, status)
+         VALUES ($1, $2, $3, $4, $5, 'active')`,
+        [
+          sallaRowId,
+          tenantId,
+          'store-rot-1',
+          sealEnvelope(Buffer.from(sallaAccessPlain, 'utf8'), legacyKey),
+          sealEnvelope(Buffer.from(sallaHookPlain, 'utf8'), legacyKey),
+        ],
+      );
+    });
+
+    // 1) Dry-run reports counts without mutating stored envelopes:
+    const dryRun = await rotateDatabaseSecrets({
+      connectionString: ctx.db.ownerUrl,
+      oldKey: legacyKey,
+      newKey: rotatedKey,
+      apply: false,
+    });
+    expect(dryRun.mode).toBe('dry-run');
+    const dryUsers = dryRun.tables.find((t: { table: string }) => t.table === 'users');
+    const drySalla = dryRun.tables.find((t: { table: string }) => t.table === 'salla_connections');
+    expect(dryUsers?.rotatedColumns).toBeGreaterThanOrEqual(1);
+    expect(drySalla?.rotatedColumns).toBeGreaterThanOrEqual(2);
+
+    // 2) Apply re-seals all rows under rotatedKey:
+    const applied = await rotateDatabaseSecrets({
+      connectionString: ctx.db.ownerUrl,
+      oldKey: legacyKey,
+      newKey: rotatedKey,
+      apply: true,
+    });
+    expect(applied.mode).toBe('apply');
+
+    await withOwnerClient(ctx.db.ownerUrl, async (client) => {
+      const uRes = await client.query(`SELECT mfa_secret_enc FROM users WHERE id = $1`, [
+        platformAdminUserId,
+      ]);
+      const mfaEnc = Buffer.from(uRes.rows[0].mfa_secret_enc).toString('utf8');
+      expect(openEnvelope(mfaEnc, rotatedKey).toString('utf8')).toBe(mfaPlain);
+      expect(() => openEnvelope(mfaEnc, legacyKey)).toThrow();
+
+      const sRes = await client.query(
+        `SELECT access_token_enc, webhook_secret_enc FROM salla_connections WHERE id = $1`,
+        [sallaRowId],
+      );
+      expect(openEnvelope(sRes.rows[0].access_token_enc, rotatedKey).toString('utf8')).toBe(
+        sallaAccessPlain,
+      );
+      expect(openEnvelope(sRes.rows[0].webhook_secret_enc, rotatedKey).toString('utf8')).toBe(
+        sallaHookPlain,
+      );
+    });
+
+    // 3) Re-running apply is idempotent (0 rotated, >=1 already_current):
+    const secondRun = await rotateDatabaseSecrets({
+      connectionString: ctx.db.ownerUrl,
+      oldKey: legacyKey,
+      newKey: rotatedKey,
+      apply: true,
+    });
+    const secondUsers = secondRun.tables.find((t: { table: string }) => t.table === 'users');
+    const secondSalla = secondRun.tables.find(
+      (t: { table: string }) => t.table === 'salla_connections',
+    );
+    expect(secondUsers?.rotatedColumns).toBe(0);
+    expect(secondUsers?.alreadyCurrentColumns).toBeGreaterThanOrEqual(1);
+    expect(secondSalla?.rotatedColumns).toBe(0);
+    expect(secondSalla?.alreadyCurrentColumns).toBeGreaterThanOrEqual(2);
+  });
+
+  it('SH-06: POST /auth/change-password and POST /esign/:token/sign enforce narrow rate limits', async () => {
+    const chgRes = await api(ctx.server, 'post', '/api/v1/auth/change-password', {
+      token: memberToken,
+      body: { currentPassword: 'WrongPassword1!', newPassword: 'AnotherPassword2@' },
+    });
+    expect(chgRes.headers['x-ratelimit-limit']).toBe('10');
+
+    const esignRes = await api(ctx.server, 'post', '/api/v1/esign/nonexistent-token/sign', {
+      body: { signatureData: 'data:image/png;base64,AA==', otp: '000000' },
+    });
+    expect(esignRes.headers['x-ratelimit-limit']).toBe('10');
   });
 });

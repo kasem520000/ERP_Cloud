@@ -10,7 +10,12 @@ import {
   createUserFixture,
   type Actor,
 } from './fixtures.js';
-import { ALL_TENANT_PERMISSIONS, createActor, hashPassword } from './fixtures.js';
+import {
+  ALL_ORGANIZATION_PERMISSIONS,
+  ALL_TENANT_PERMISSIONS,
+  createActor,
+  hashPassword,
+} from './fixtures.js';
 import { api } from './http.js';
 import { createTestApp, type TestApp } from './test-app.js';
 
@@ -44,7 +49,7 @@ describe('AUD-02 — حماية دور المالك والأدوار النظا�
   const call = (
     method: 'get' | 'post' | 'patch' | 'put' | 'delete',
     path: string,
-    options: { token: string; body?: unknown },
+    options: { token: string; body?: unknown; headers?: Record<string, string> },
   ) => api(ctx.server, method, `/api/v1${path}`, options);
 
   const data = (response: { body: Record<string, unknown> }) =>
@@ -230,5 +235,158 @@ describe('AUD-02 — حماية دور المالك والأدوار النظا�
 
     const newOwner = await call('get', `/memberships/${member.membershipId}`, { token: manager.token });
     expect(data(newOwner).isOwner).toBe(true);
+  });
+
+  it('AUD-03: إنفاذ membership_role_scopes على الفروع والمستودعات ومواقع النقد مع دلالة UNION', async () => {
+    const orgAdmin = await createActor(ctx, {
+      tenantId,
+      tenantCode: 'audit-rbac',
+      email: 'org-admin@audit-rbac.test',
+      permissions: [...ALL_ORGANIZATION_PERMISSIONS, 'tenant.membership.manage', 'tenant.role.manage'],
+      roleNames: ['Org Admin'],
+      isOwner: false,
+    });
+
+    const b1Res = await call('post', '/branches', {
+      token: orgAdmin.token,
+      body: { code: 'BR-SC1', nameAr: 'فرع النطاق 1' },
+    });
+    expect(b1Res.status).toBe(201);
+    const branch1Id = String(data(b1Res).id);
+
+    const b2Res = await call('post', '/branches', {
+      token: orgAdmin.token,
+      body: { code: 'BR-SC2', nameAr: 'فرع النطاق 2' },
+    });
+    expect(b2Res.status).toBe(201);
+    const branch2Id = String(data(b2Res).id);
+
+    const w1Res = await call('post', '/warehouses', {
+      token: orgAdmin.token,
+      body: { branchId: branch1Id, code: 'WH-SC1', name: 'مستودع 1' },
+    });
+    expect(w1Res.status).toBe(201);
+    const warehouse1Id = String(data(w1Res).id);
+
+    const w2Res = await call('post', '/warehouses', {
+      token: orgAdmin.token,
+      body: { branchId: branch1Id, code: 'WH-SC2', name: 'مستودع 2' },
+    });
+    expect(w2Res.status).toBe(201);
+    const warehouse2Id = String(data(w2Res).id);
+
+    const c1Res = await call('post', '/cash-locations', {
+      token: orgAdmin.token,
+      body: {
+        branchId: branch1Id,
+        kind: 'bank',
+        name: 'بنك النطاق 1',
+        bank: { bankName: 'Al Rajhi', iban: 'SA0380000000608010167519' },
+      },
+    });
+    expect(c1Res.status).toBe(201);
+    const cash1Id = String(data(c1Res).id);
+
+    const c2Res = await call('post', '/cash-locations', {
+      token: orgAdmin.token,
+      body: {
+        branchId: branch1Id,
+        kind: 'bank',
+        name: 'بنك النطاق 2',
+        bank: { bankName: 'SNB', iban: 'SA4420000001234567891234' },
+      },
+    });
+    expect(c2Res.status).toBe(201);
+    const cash2Id = String(data(c2Res).id);
+
+    const scopedUser = await createActor(ctx, {
+      tenantId,
+      tenantCode: 'audit-rbac',
+      email: 'scoped-operator@audit-rbac.test',
+      permissions: ALL_ORGANIZATION_PERMISSIONS,
+      roleNames: ['Scoped Role A'],
+      isOwner: false,
+    });
+    const roleAId = scopedUser.roleIds[0]!;
+
+    // تقييد الدور A على الفرع 1 والمستودع 1 والبنك 1 فقط:
+    const putScopes = await call('post', `/memberships/${scopedUser.membershipId}/scopes`, {
+      token: orgAdmin.token,
+      body: {
+        scopes: [
+          { roleId: roleAId, scopeType: 'branch', scopeId: branch1Id },
+          { roleId: roleAId, scopeType: 'warehouse', scopeId: warehouse1Id },
+          { roleId: roleAId, scopeType: 'cash_location', scopeId: cash1Id },
+        ],
+      },
+    });
+    expect(putScopes.status).toBe(201);
+
+    // 1) الفروع: يرى branch1 فقط، وbranch2 يرجع 404 عند القراءة المباشرة و403 في ترويسة X-Branch-Id:
+    const branchList = await call('get', '/branches?limit=50', { token: scopedUser.token });
+    expect(branchList.status).toBe(200);
+    expect((branchList.body.data as Array<{ id: string }>).map((b) => b.id)).toEqual([branch1Id]);
+
+    const readB1 = await call('get', `/branches/${branch1Id}`, { token: scopedUser.token });
+    expect(readB1.status).toBe(200);
+    const readB2 = await call('get', `/branches/${branch2Id}`, { token: scopedUser.token });
+    expect(readB2.status).toBe(404);
+
+    const headerAllowed = await call('get', '/branches', {
+      token: scopedUser.token,
+      headers: { 'x-branch-id': branch1Id },
+    });
+    expect(headerAllowed.status).toBe(200);
+    const headerDenied = await call('get', '/branches', {
+      token: scopedUser.token,
+      headers: { 'x-branch-id': branch2Id },
+    });
+    expect(headerDenied.status).toBe(403);
+
+    // 2) المستودعات (كلاهما في الفرع 1 المسموح): يرى warehouse1 فقط ويرفض warehouse2 (404 قراءة وتعديلاً):
+    const whList = await call('get', '/warehouses?limit=50', { token: scopedUser.token });
+    expect(whList.status).toBe(200);
+    expect((whList.body.data as Array<{ id: string }>).map((w) => w.id)).toEqual([warehouse1Id]);
+
+    expect((await call('get', `/warehouses/${warehouse1Id}`, { token: scopedUser.token })).status).toBe(200);
+    expect((await call('get', `/warehouses/${warehouse2Id}`, { token: scopedUser.token })).status).toBe(404);
+    expect(
+      (
+        await call('patch', `/warehouses/${warehouse2Id}`, {
+          token: scopedUser.token,
+          body: { name: 'Hijacked WH' },
+        })
+      ).status,
+    ).toBe(404);
+
+    // 3) مواقع النقد (كلاهما في الفرع 1 المسموح): يرى cash1 فقط ويرفض cash2 (404 قراءة وتعديلاً):
+    const cashList = await call('get', '/cash-locations?limit=50', { token: scopedUser.token });
+    expect(cashList.status).toBe(200);
+    expect((cashList.body.data as Array<{ id: string }>).map((c) => c.id)).toEqual([cash1Id]);
+
+    expect((await call('get', `/cash-locations/${cash1Id}`, { token: scopedUser.token })).status).toBe(200);
+    expect((await call('get', `/cash-locations/${cash2Id}`, { token: scopedUser.token })).status).toBe(404);
+    expect(
+      (
+        await call('patch', `/cash-locations/${cash2Id}`, {
+          token: scopedUser.token,
+          body: { name: 'Hijacked Bank' },
+        })
+      ).status,
+    ).toBe(404);
+
+    // 4) دلالة UNION: منح المستخدم دوراً ثانياً غير مقيَّد بالمستودعات يفتح المستودعين معاً:
+    const unrestrictedWhRole = await createRoleFixture(ctx.db.ownerUrl, {
+      tenantId,
+      name: 'Unrestricted WH Role',
+      permissionCodes: ['organization.warehouse.view'],
+    });
+    await assignRoleFixture(ctx.db.ownerUrl, scopedUser.membershipId, unrestrictedWhRole.id);
+
+    const whListAfterUnion = await call('get', '/warehouses?limit=50', { token: scopedUser.token });
+    expect(whListAfterUnion.status).toBe(200);
+    const visibleWhIds = (whListAfterUnion.body.data as Array<{ id: string }>).map((w) => w.id);
+    expect(visibleWhIds).toContain(warehouse1Id);
+    expect(visibleWhIds).toContain(warehouse2Id);
   });
 });
