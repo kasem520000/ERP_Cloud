@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { TENANT_WIDE_SCOPE_ID } from '@erp/contracts';
 
 import {
   assignRoleFixture,
@@ -375,18 +376,71 @@ describe('AUD-02 — حماية دور المالك والأدوار النظا�
       ).status,
     ).toBe(404);
 
-    // 4) دلالة UNION: منح المستخدم دوراً ثانياً غير مقيَّد بالمستودعات يفتح المستودعين معاً:
-    const unrestrictedWhRole = await createRoleFixture(ctx.db.ownerUrl, {
+    // 4) دور ثانٍ غير مهيأ (بلا صفوف نطاق) لا يلغي تقييد الدور الأول ولا يوسّع الوصول إلى warehouse2:
+    const secondRole = await createRoleFixture(ctx.db.ownerUrl, {
       tenantId,
-      name: 'Unrestricted WH Role',
+      name: 'Unconfigured WH Role',
       permissionCodes: ['organization.warehouse.view'],
     });
-    await assignRoleFixture(ctx.db.ownerUrl, scopedUser.membershipId, unrestrictedWhRole.id);
+    await assignRoleFixture(ctx.db.ownerUrl, scopedUser.membershipId, secondRole.id);
 
-    const whListAfterUnion = await call('get', '/warehouses?limit=50', { token: scopedUser.token });
-    expect(whListAfterUnion.status).toBe(200);
-    const visibleWhIds = (whListAfterUnion.body.data as Array<{ id: string }>).map((w) => w.id);
-    expect(visibleWhIds).toContain(warehouse1Id);
-    expect(visibleWhIds).toContain(warehouse2Id);
+    const whListWithUnconfiguredRole = await call('get', '/warehouses?limit=50', {
+      token: scopedUser.token,
+    });
+    expect(whListWithUnconfiguredRole.status).toBe(200);
+    expect((whListWithUnconfiguredRole.body.data as Array<{ id: string }>).map((w) => w.id)).toEqual([
+      warehouse1Id,
+    ]);
+    expect((await call('get', `/warehouses/${warehouse2Id}`, { token: scopedUser.token })).status).toBe(404);
+
+    // 5) دلالة UNION للنطاقات المحددة صراحةً: منح الدور الثاني نطاق warehouse2 صراحةً يفتح (W1 ∪ W2):
+    const putSpecificUnion = await call('post', `/memberships/${scopedUser.membershipId}/scopes`, {
+      token: orgAdmin.token,
+      body: {
+        scopes: [
+          { roleId: roleAId, scopeType: 'branch', scopeId: branch1Id },
+          { roleId: roleAId, scopeType: 'warehouse', scopeId: warehouse1Id },
+          { roleId: secondRole.id, scopeType: 'warehouse', scopeId: warehouse2Id },
+          { roleId: roleAId, scopeType: 'cash_location', scopeId: cash1Id },
+        ],
+      },
+    });
+    expect(putSpecificUnion.status).toBe(201);
+
+    const whListSpecificUnion = await call('get', '/warehouses?limit=50', { token: scopedUser.token });
+    expect(whListSpecificUnion.status).toBe(200);
+    expect(
+      (whListSpecificUnion.body.data as Array<{ id: string }>).map((w) => w.id).sort(),
+    ).toEqual([warehouse1Id, warehouse2Id].sort());
+    expect((await call('get', `/warehouses/${warehouse2Id}`, { token: scopedUser.token })).status).toBe(200);
+
+    // 6) الوصول الشامل الصريح (TENANT_WIDE_SCOPE_ID): منح الدور الثاني وصولاً شاملاً صريحاً للفروع والمستودعات يفتح كل الفروع والمستودعات:
+    const putExplicitTenantWide = await call('post', `/memberships/${scopedUser.membershipId}/scopes`, {
+      token: orgAdmin.token,
+      body: {
+        scopes: [
+          { roleId: roleAId, scopeType: 'branch', scopeId: branch1Id },
+          { roleId: secondRole.id, scopeType: 'branch', scopeId: TENANT_WIDE_SCOPE_ID },
+          { roleId: roleAId, scopeType: 'warehouse', scopeId: warehouse1Id },
+          { roleId: secondRole.id, scopeType: 'warehouse', scopeId: TENANT_WIDE_SCOPE_ID },
+          { roleId: roleAId, scopeType: 'cash_location', scopeId: cash1Id },
+        ],
+      },
+    });
+    expect(putExplicitTenantWide.status).toBe(201);
+
+    const branchListAfterExplicitWide = await call('get', '/branches?limit=50', { token: scopedUser.token });
+    expect(branchListAfterExplicitWide.status).toBe(200);
+    const allVisibleBranches = (branchListAfterExplicitWide.body.data as Array<{ id: string }>).map(
+      (b) => b.id,
+    );
+    expect(allVisibleBranches).toContain(branch1Id);
+    expect(allVisibleBranches).toContain(branch2Id);
+
+    const whListAfterExplicitWide = await call('get', '/warehouses?limit=50', { token: scopedUser.token });
+    expect(whListAfterExplicitWide.status).toBe(200);
+    const allVisibleWh = (whListAfterExplicitWide.body.data as Array<{ id: string }>).map((w) => w.id);
+    expect(allVisibleWh).toContain(warehouse1Id);
+    expect(allVisibleWh).toContain(warehouse2Id);
   });
 });

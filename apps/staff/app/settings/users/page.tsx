@@ -41,6 +41,8 @@ const SCOPE_TYPES = [
   { value: 'cash_location', label: 'صندوق / بنك' },
 ] as const;
 
+const TENANT_WIDE_SCOPE_ID = '00000000-0000-0000-0000-000000000000';
+
 const scopeTypeLabel = (scopeType: Scope['scopeType']): string =>
   SCOPE_TYPES.find((item) => item.value === scopeType)?.label ??
   (scopeType === 'pos_terminal' ? 'طرفية نقاط البيع' : scopeType);
@@ -54,6 +56,9 @@ function scopeLabel(
 ): string {
   const role = roles.find((item) => item.id === scope.roleId)?.name ?? scope.roleId;
   const type = scopeTypeLabel(scope.scopeType);
+  if (scope.scopeId === TENANT_WIDE_SCOPE_ID) {
+    return `${role} ← ${type}: كل المنشأة (وصول شامل صريح)`;
+  }
   const target =
     scope.scopeType === 'branch'
       ? (branchOptions(branches).find((item) => item.id === scope.scopeId)?.label ?? scope.scopeId)
@@ -406,6 +411,7 @@ export default function TenantUsersPage() {
                 </select>
                 <select value={scopeTarget} onChange={(event) => setScopeTarget(event.target.value)}>
                   <option value="">— اختر —</option>
+                  <option value={TENANT_WIDE_SCOPE_ID}>🌐 كل المنشأة (وصول شامل صريح)</option>
                   {scopeTargets.map((option) => (
                     <option key={option.id} value={option.id}>
                       {option.label}
