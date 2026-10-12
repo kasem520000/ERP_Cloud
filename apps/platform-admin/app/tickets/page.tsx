@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import {
   ticketOpenStatuses,
@@ -116,6 +116,16 @@ function InboxTab() {
     if (onlyUnassigned) params.set('filter[assignedTo]', 'none');
     return apiData<SupportTicket[]>(`/platform/tickets?${params.toString()}`);
   }, [status, priority, onlyUnassigned]);
+
+  useEffect(() => {
+    const timer = setInterval(() => tickets.reload(), 20_000);
+    const onFocus = () => tickets.reload();
+    window.addEventListener('focus', onFocus);
+    return () => {
+      clearInterval(timer);
+      window.removeEventListener('focus', onFocus);
+    };
+  }, [tickets.reload]);
 
   return (
     <>

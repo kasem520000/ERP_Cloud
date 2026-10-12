@@ -220,9 +220,11 @@ export async function seedPlatform(
     log(`seed  roles: ${roleNames.join(', ')}`);
 
     // 6. default tenant settings — inserted only when absent so a re-run never
-    //    overwrites an operator change.
+    //    overwrites an operator change. Skip `feature.*` keys so core services
+    //    (POS, HRM, etc.) are not explicitly written as `false` in `tenant_settings`.
     let settingsInserted = 0;
     for (const definition of tenantSettingsRegistry) {
+      if (definition.key.startsWith('feature.')) continue;
       const inserted = await client.query(
         `INSERT INTO tenant_settings (tenant_id, key, value)
          VALUES ($1, $2, $3::jsonb)
@@ -231,6 +233,13 @@ export async function seedPlatform(
       );
       settingsInserted += inserted.rowCount ?? 0;
     }
+    await client.query(
+      `DELETE FROM tenant_settings
+       WHERE tenant_id = $1
+         AND key IN ('feature.pos', 'feature.hrm', 'feature.projects', 'feature.niche')
+         AND value = 'false'::jsonb`,
+      [tenantId],
+    );
     log(`seed  tenant_settings: ${settingsInserted} new`);
 
     // 7. platform operator — the control-plane account. Optional on purpose: a deployment

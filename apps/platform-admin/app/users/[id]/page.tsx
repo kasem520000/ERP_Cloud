@@ -33,6 +33,21 @@ import { useQuery } from '../../../lib/use-query';
 
 type RoleOption = Pick<PlatformRoleMatrixEntry, 'code' | 'nameAr'>;
 
+const USER_STATUS_AR: Record<string, string> = {
+  active: 'نشط',
+  invited: 'مدعو',
+  suspended: 'موقوف',
+  archived: 'مؤرشف',
+};
+
+const PLATFORM_ROLE_AR: Record<string, string> = {
+  platform_owner: 'مالك المنصة',
+  platform_operations: 'تشغيل المنصة',
+  platform_billing: 'فوترة المنصة',
+  platform_support: 'دعم المنصة',
+  platform_auditor: 'مدقّق المنصة',
+};
+
 export default function PlatformUserCardPage() {
   const params = useParams<{ id: string }>();
   const id = params?.id ?? '';
@@ -98,7 +113,7 @@ export default function PlatformUserCardPage() {
               <div>
                 <div className="muted">الحالة</div>
                 <div>
-                  <span className={`badge ${data.user.status}`}>{data.user.status}</span>
+                  <span className={`badge ${data.user.status}`}>{USER_STATUS_AR[data.user.status] ?? data.user.status}</span>
                   {data.user.mustChangePassword && <span className="badge pending" style={{ marginInlineStart: 4 }}>تغيير كلمة المرور</span>}
                 </div>
               </div>
@@ -134,7 +149,7 @@ export default function PlatformUserCardPage() {
               {activeRoles.length === 0 && <span className="muted">لا دور فعّال</span>}
               {activeRoles.map((code) => (
                 <span key={code} className="badge active" style={{ marginInlineEnd: 6 }}>
-                  <span dir="ltr">{code}</span>
+                  <span>{PLATFORM_ROLE_AR[code] ?? code}</span>
                   {canManage && (
                     <button
                       className="btn sm"
@@ -154,7 +169,7 @@ export default function PlatformUserCardPage() {
               ))}
               {revokedRoles.map((code) => (
                 <span key={`revoked:${code}`} className="badge" style={{ marginInlineEnd: 6, opacity: 0.55 }}>
-                  <span dir="ltr">{code}</span>
+                  <span>{PLATFORM_ROLE_AR[code] ?? code}</span>
                 </span>
               ))}
             </div>
@@ -210,10 +225,10 @@ export default function PlatformUserCardPage() {
                         <td dir="ltr">{member.tenantCode}</td>
                         <td>{member.displayName}</td>
                         <td>
-                          <span className={`badge ${member.status}`}>{member.status}</span>
+                          <span className={`badge ${member.status}`}>{USER_STATUS_AR[member.status] ?? member.status}</span>
                         </td>
                         <td>
-                          <span className={`badge ${member.tenantStatus}`}>{member.tenantStatus}</span>
+                          <span className={`badge ${member.tenantStatus}`}>{USER_STATUS_AR[member.tenantStatus] ?? member.tenantStatus}</span>
                         </td>
                         <td dir="ltr">{new Date(member.createdAt).toLocaleString('ar-SA')}</td>
                       </tr>

@@ -570,6 +570,16 @@ export class SupportService {
         isInternal: false,
         body,
       });
+      await this.audit.recordInTx(tx, {
+        tenantId,
+        actorUserId: userId,
+        actorLabel: await platformActorLabel(tx, userId),
+        action: supportAuditActions.ticketCreate,
+        entity: 'support_ticket',
+        entityId: id,
+        after: { subject, priority, category, slaHours },
+        meta: { reason: 'طلب مساعدة جديد من لوحة العميل' },
+      });
     });
     return this.getForTenant(tenantId, id);
   }
@@ -608,6 +618,16 @@ export class SupportService {
         SET status = 'open', resolved_at = NULL, updated_at = now()
         WHERE tenant_id = ${tenantId}::uuid AND id = ${id}::uuid
       `);
+      await this.audit.recordInTx(tx, {
+        tenantId,
+        actorUserId: userId,
+        actorLabel: await platformActorLabel(tx, userId),
+        action: supportAuditActions.ticketReply,
+        entity: 'support_ticket',
+        entityId: id,
+        after: { status: 'open', authorKind: 'customer' },
+        meta: { reason: 'رد من العميل على تذكرة الدعم' },
+      });
     });
     return this.getForTenant(tenantId, id);
   }

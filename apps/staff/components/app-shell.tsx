@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { ThemeToggle } from '@erp/ui/theme';
 
 import { ApiError, apiData, apiPatch } from '../lib/api';
@@ -190,12 +190,14 @@ function ModuleBlock({
   filter,
   lang,
   enabledAddonCodes,
+  onNavigate,
 }: {
   module: ModuleNode;
   pathname: string;
   filter: string;
   lang: Lang;
   enabledAddonCodes: Set<string>;
+  onNavigate?: () => void;
 }) {
   const matches = (text: string) => text.toLowerCase().includes(filter.toLowerCase());
   const normalizedGroups = useMemo(() => normalizeModuleGroups(module), [module]);
@@ -248,6 +250,7 @@ function ModuleBlock({
                 <Link
                   key={item.key}
                   href={item.href}
+                  onClick={onNavigate}
                   className={pathname === item.href.split('?')[0] ? 'nav-link active' : 'nav-link'}
                 >
                   <span>{label(lang, item)}</span>
@@ -284,10 +287,41 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const [fullNameDraft, setFullNameDraft] = useState('');
   const [profileBusy, setProfileBusy] = useState(false);
   const [profileNotice, setProfileNotice] = useState('');
+  const profileMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setFullNameDraft(me?.user.fullName ?? '');
   }, [me?.user.fullName]);
+
+  // Close mobile sidebar and profile dropdown whenever route changes
+  useEffect(() => {
+    setMobileOpen(false);
+    setProfileMenuOpen(false);
+  }, [pathname]);
+
+  // Close profile dropdown and mobile sidebar on outside click or Escape key
+  useEffect(() => {
+    function handleOutside(event: MouseEvent | TouchEvent) {
+      if (profileMenuRef.current && !profileMenuRef.current.contains(event.target as Node)) {
+        setProfileMenuOpen(false);
+      }
+    }
+    function handleKey(event: KeyboardEvent) {
+      if (event.key === 'Escape') {
+        setProfileMenuOpen(false);
+        setMobileOpen(false);
+        setProfileModalOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleOutside);
+    document.addEventListener('touchstart', handleOutside);
+    document.addEventListener('keydown', handleKey);
+    return () => {
+      document.removeEventListener('mousedown', handleOutside);
+      document.removeEventListener('touchstart', handleOutside);
+      document.removeEventListener('keydown', handleKey);
+    };
+  }, []);
 
   useEffect(() => {
     if (!me) return;
@@ -346,9 +380,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     // Inject Van Sales & Bakery Distribution module when enabled via Marketplace
     const vanSalesModule: ModuleNode = {
       key: 'van-sales',
-      icon: '🚚',
-      labelAr: 'توزيع المناديب والمخابز',
-      labelEn: 'Van Sales & Bakery',
+      icon: '🏭',
+      labelAr: 'نظام المصنع والمخابز ومناديب التوزيع',
+      labelEn: 'Factory, Bakery & Van Sales',
       href: '/van-sales',
       groups: [
         {
@@ -358,8 +392,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           items: [
             {
               key: 'van-customer-tiers',
-              labelAr: 'شرائح أسعار العملاء (6 / 6.5 / 7 ريال)',
-              labelEn: 'Customer price tiers',
+              labelAr: 'ضبط وتثبيت أسعار العملاء والائتمان والبونص',
+              labelEn: 'Customer prices & credit policy',
               href: '/van-sales?tab=prices',
               status: 'ready',
             },
@@ -371,17 +405,24 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           labelEn: 'Operations',
           items: [
             {
-              key: 'van-invoicing',
-              labelAr: 'فواتير التوزيع (ضريبية ZATCA / عادية)',
-              labelEn: 'Van invoicing',
-              href: '/van-sales',
+              key: 'van-production',
+              labelAr: 'الإنتاج اليومي للمصنع والمستودع الرئيسي',
+              labelEn: 'Daily factory production & warehouse',
+              href: '/van-sales?tab=production',
               status: 'ready',
             },
             {
               key: 'van-loads',
-              labelAr: 'أوامر تحميل السيارات وتصفية العهد',
-              labelEn: 'Van load orders',
+              labelAr: 'عهد المناديب وإغلاق الوردية واعتماد المحاسب',
+              labelEn: 'Van custody & shift closing approval',
               href: '/van-sales?tab=loads',
+              status: 'ready',
+            },
+            {
+              key: 'van-invoicing',
+              labelAr: 'فواتير التوزيع (ضريبية ZATCA / عادية) والتحصيل',
+              labelEn: 'Van invoicing & debt collection',
+              href: '/van-sales?tab=invoice',
               status: 'ready',
             },
           ],
@@ -392,9 +433,16 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           labelEn: 'Reports',
           items: [
             {
+              key: 'van-owner-dashboard',
+              labelAr: 'لوحة تحكم صاحب المصنع وتقارير الربحية',
+              labelEn: 'Factory owner dashboard',
+              href: '/van-sales?tab=owner',
+              status: 'ready',
+            },
+            {
               key: 'van-audit-radar',
-              labelAr: 'رادار البونص ومنع الخلط الخارجي',
-              labelEn: 'Anti-fraud & bonus radar',
+              labelAr: 'رادار البونص وسجل حركة البضاعة والصلاحيات',
+              labelEn: 'Bonus radar & movement audit',
               href: '/van-sales?tab=audit',
               status: 'ready',
             },
@@ -436,25 +484,46 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="shell">
+      {mobileOpen && (
+        <div
+          className="side-backdrop"
+          onClick={() => setMobileOpen(false)}
+          aria-hidden="true"
+        />
+      )}
       <aside className={`side ${mobileOpen ? 'open' : ''}`}>
-        <div className="brand">
-          {brand?.logoUrl ? (
-            <img
-              className="logo"
-              src={brand.logoUrl}
-              alt="شعار المنشأة"
-              style={{ background: 'var(--surface)', objectFit: 'contain', padding: 2 }}
-            />
-          ) : (
-            <span className="logo">ERP</span>
-          )}
-          <span style={brandColor ? { color: brandColor } : undefined}>
-            {brand?.nameAr || 'Cloud SaaS ERP'}
-            <small>{me?.membership.tenantName ?? '—'}</small>
-          </span>
+        <div className="brand" style={{ justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, minWidth: 0 }}>
+            {brand?.logoUrl ? (
+              <img
+                className="logo"
+                src={brand.logoUrl}
+                alt="شعار المنشأة"
+                style={{ background: 'var(--surface)', objectFit: 'contain', padding: 2 }}
+              />
+            ) : (
+              <span className="logo">ERP</span>
+            )}
+            <span style={brandColor ? { color: brandColor } : undefined}>
+              {brand?.nameAr || 'Cloud SaaS ERP'}
+              <small>{me?.membership.tenantName ?? '—'}</small>
+            </span>
+          </div>
+          <button
+            type="button"
+            className="btn sm only-mobile"
+            onClick={() => setMobileOpen(false)}
+            aria-label={lang === 'ar' ? 'إغلاق القائمة الجانبية' : 'Close sidebar'}
+          >
+            ✕
+          </button>
         </div>
 
-        <Link href="/" className={pathname === '/' ? 'nav-link home active' : 'nav-link home'}>
+        <Link
+          href="/"
+          onClick={() => setMobileOpen(false)}
+          className={pathname === '/' ? 'nav-link home active' : 'nav-link home'}
+        >
           🏠 <span>{t('nav.home')}</span>
         </Link>
 
@@ -475,6 +544,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               filter={filter}
               lang={lang}
               enabledAddonCodes={enabledAddonCodes}
+              onNavigate={() => setMobileOpen(false)}
             />
           ))}
 
@@ -482,12 +552,14 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px solid var(--line)', display: 'grid', gap: 6 }}>
             <Link
               href="/settings/marketplace"
+              onClick={() => setMobileOpen(false)}
               className={pathname.startsWith('/settings/marketplace') ? 'nav-link home active' : 'nav-link home'}
             >
               🛒 <span>{lang === 'ar' ? 'سوق الإضافات والباقات' : 'Add-ons Marketplace'}</span>
             </Link>
             <Link
               href="/support/help"
+              onClick={() => setMobileOpen(false)}
               className={pathname.startsWith('/support/help') ? 'nav-link home active' : 'nav-link home'}
             >
               🛟 <span>{lang === 'ar' ? 'طلب المساعدة والدعم' : 'Help & Support'}</span>
@@ -548,7 +620,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <NotificationBell label={lang === 'ar' ? 'الإشعارات' : 'Notifications'} />
 
             {/* User Profile Button & Dropdown Menu */}
-            <div style={{ position: 'relative' }}>
+            <div ref={profileMenuRef} style={{ position: 'relative' }}>
               <button
                 type="button"
                 className="btn"

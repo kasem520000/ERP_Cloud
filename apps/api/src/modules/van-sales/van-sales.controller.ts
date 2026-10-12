@@ -19,6 +19,24 @@ export class VanSalesController {
     return { data: await this.vanSales.dashboard(tenantId) };
   }
 
+  @Post('production-batches')
+  @RequiresPermission('sales.invoice.create')
+  async createProductionBatch(
+    @Body()
+    body: {
+      batchNo?: string;
+      itemId?: string | null;
+      itemName?: string;
+      producedQty?: string;
+      unitCost?: string;
+      supervisorName?: string;
+      notes?: string;
+    },
+  ) {
+    const { tenantId, userId } = getTenantContext();
+    return { data: await this.vanSales.createProductionBatch(tenantId, userId, body ?? {}) };
+  }
+
   @Post('customer-prices')
   @RequiresPermission('sales.invoice.create')
   async upsertCustomerPrice(
@@ -31,6 +49,10 @@ export class VanSalesController {
       maxBonusPct?: string;
       maxBonusKgPerInvoice?: string;
       preferredInvoiceMode?: 'zatca_tax' | 'internal_delivery';
+      creditLimit?: string;
+      paymentTermsDays?: number;
+      lockPrice?: boolean;
+      maxDiscountPct?: string;
       notes?: string;
     },
   ) {
@@ -72,7 +94,11 @@ export class VanSalesController {
       paymentMethod?: 'cash' | 'card' | 'credit';
       soldQty?: string;
       bonusQty?: string;
+      bonusReason?: string;
       unitPrice?: string;
+      discountAmount?: string;
+      discountReason?: string;
+      allowPriceDiscountOverride?: boolean;
       customerBonusConfirmed?: boolean;
       customerConfirmationCode?: string;
       allowBonusOverride?: boolean;
@@ -83,13 +109,62 @@ export class VanSalesController {
     return { data: await this.vanSales.createDocument(tenantId, userId, body ?? {}) };
   }
 
+  @Post('load-orders/:id/submit-closing')
+  @RequiresPermission('sales.invoice.create')
+  async submitClosing(
+    @Param('id') id: string,
+    @Body()
+    body: {
+      returnedQty?: string;
+      damagedQty?: string;
+      damageReason?: string;
+      collectedCash?: string;
+      closingNotes?: string;
+    },
+  ) {
+    const { tenantId, userId } = getTenantContext();
+    return { data: await this.vanSales.submitClosing(tenantId, userId, id, body ?? {}) };
+  }
+
+  @Post('load-orders/:id/approve-closing')
+  @RequiresPermission('sales.invoice.create')
+  async approveClosing(
+    @Param('id') id: string,
+    @Body()
+    body: {
+      returnedQty?: string;
+      damagedQty?: string;
+      collectedCash?: string;
+      damageInspected?: boolean;
+      salaryDeductionApproved?: boolean;
+      notes?: string;
+    },
+  ) {
+    const { tenantId, userId } = getTenantContext();
+    return { data: await this.vanSales.approveClosing(tenantId, userId, id, body ?? {}) };
+  }
+
   @Post('load-orders/:id/settle')
   @RequiresPermission('sales.invoice.create')
   async settleLoadOrder(
     @Param('id') id: string,
-    @Body() body: { returnedQty?: string; collectedCash?: string; notes?: string },
+    @Body() body: { returnedQty?: string; damagedQty?: string; collectedCash?: string; notes?: string },
   ) {
-    const { tenantId } = getTenantContext();
-    return { data: await this.vanSales.settleLoadOrder(tenantId, id, body ?? {}) };
+    const { tenantId, userId } = getTenantContext();
+    return { data: await this.vanSales.settleLoadOrder(tenantId, id, body ?? {}, userId) };
+  }
+
+  @Post('collections')
+  @RequiresPermission('sales.invoice.create')
+  async collectCustomerDebt(
+    @Body()
+    body: {
+      documentId?: string;
+      collectedAmount?: string;
+      notes?: string;
+    },
+  ) {
+    const { tenantId, userId } = getTenantContext();
+    return { data: await this.vanSales.collectCustomerDebt(tenantId, userId, body ?? {}) };
   }
 }

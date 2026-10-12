@@ -35,10 +35,25 @@ type InviteState = {
 
 const EMPTY_INVITE: InviteState = { email: '', fullName: '', roleCode: 'platform_operations', temporaryPassword: '', reason: '' };
 
+const USER_STATUS_AR: Record<string, string> = {
+  active: 'نشط',
+  invited: 'مدعو',
+  suspended: 'موقوف',
+};
+
+const PLATFORM_ROLE_AR: Record<string, string> = {
+  platform_owner: 'مالك المنصة',
+  platform_operations: 'تشغيل المنصة',
+  platform_billing: 'فوترة المنصة',
+  platform_support: 'دعم المنصة',
+  platform_auditor: 'مدقّق المنصة',
+};
+
 export default function PlatformUsersPage() {
   const session = useSession();
   const [search, setSearch] = useState('');
   const [applied, setApplied] = useState('');
+  const [scopeFilter, setScopeFilter] = useState<'customers' | 'operators' | 'all'>('customers');
   const users = useQuery<PlatformDirectoryUser[]>(
     () => apiData<PlatformDirectoryUser[]>(`/platform/users${applied ? `?search=${encodeURIComponent(applied)}` : ''}`),
     [applied],
@@ -79,16 +94,25 @@ export default function PlatformUsersPage() {
     }
   }
 
-  const rows = users.data ?? [];
+  const allRows = users.data ?? [];
+  const rows = allRows.filter((row) => {
+    const customerTenants = row.tenants.filter(
+      (t) => !['platform', 'platform-ops'].includes(t.code.toLowerCase()),
+    );
+    const isOperator = row.platformRoles.length > 0 || row.isPlatformAdmin;
+    if (scopeFilter === 'customers') return customerTenants.length > 0;
+    if (scopeFilter === 'operators') return isOperator;
+    return true;
+  });
 
   return (
-    <Screen title="مستخدمو المنصة" subtitle="كل الحسابات عبر جميع المنشآت — ومن يدير المنصة نفسها." crumbs={['المنصة', 'التشغيل']}>
+    <Screen title="مستخدمو المنصة والعملاء" subtitle="افصل بين مستخدمي منشآت العملاء وبين مشغّلي المنصة الداخليين، مع إدارة الدعوات والأدوار." crumbs={['المنصة', 'التشغيل']}>
       <div className="card tight no-print">
-        <div className="row" style={{ justifyContent: 'space-between', alignItems: 'flex-end' }}>
-          <div className="row">
+        <div className="row" style={{ justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: 8 }}>
+          <div className="row" style={{ flexWrap: 'wrap', gap: 8 }}>
             <input
               className="input"
-              style={{ maxWidth: 280 }}
+              style={{ maxWidth: 260 }}
               placeholder="بحث بالبريد أو الاسم"
               value={search}
               onChange={(event) => setSearch(event.target.value)}
@@ -96,10 +120,31 @@ export default function PlatformUsersPage() {
             <button className="btn primary" type="button" onClick={() => setApplied(search)}>
               بحث
             </button>
+            <button
+              className={`btn ${scopeFilter === 'customers' ? 'primary' : ''}`}
+              type="button"
+              onClick={() => setScopeFilter('customers')}
+            >
+              مستخدمو العملاء
+            </button>
+            <button
+              className={`btn ${scopeFilter === 'operators' ? 'primary' : ''}`}
+              type="button"
+              onClick={() => setScopeFilter('operators')}
+            >
+              مشغّلو المنصة
+            </button>
+            <button
+              className={`btn ${scopeFilter === 'all' ? 'primary' : ''}`}
+              type="button"
+              onClick={() => setScopeFilter('all')}
+            >
+              الكل ({allRows.length})
+            </button>
           </div>
           {canManage && (
             <button className="btn" type="button" onClick={() => setInviteOpen((open) => !open)}>
-              دعوة مشغّل
+              دعوة مشغّل منصة
             </button>
           )}
         </div>
@@ -201,19 +246,23 @@ export default function PlatformUsersPage() {
                     </td>
                     <td dir="ltr">{row.email}</td>
                     <td>
-                      {row.tenants.length === 0 ? (
-                        <span className="muted">— منصة</span>
-                      ) : (
-                        row.tenants.map((tenant) => (
+                      {(() => {
+                        const customerTenants = row.tenants.filter(
+                          (t) => !['platform', 'platform-ops'].includes(t.code.toLowerCase()),
+                        );
+                        if (customerTenants.length === 0) {
+                          return <span className="tag platform">مشغّل منصة داخلي</span>;
+                        }
+                        return customerTenants.map((tenant) => (
                           <span key={tenant.id} style={{ marginInlineEnd: 6 }}>
                             {tenant.name}
                             {tenant.isOwner && <span className="tag tenant" style={{ marginInlineStart: 4 }}>مالك</span>}
                           </span>
-                        ))
-                      )}
+                        ));
+                      })()}
                     </td>
                     <td>
-                      <span className={`badge ${row.status}`}>{row.status}</span>
+                      <span className={`badge ${row.status}`}>{USER_STATUS_AR[row.status] ?? row.status}</span>
                       {row.mustChangePassword && (
                         <span className="badge pending" style={{ marginInlineStart: 4 }}>تغيير كلمة المرور</span>
                       )}
@@ -230,12 +279,12 @@ export default function PlatformUsersPage() {
                     <td>
                       {row.platformRoles.length > 0 ? (
                         row.platformRoles.map((code) => (
-                          <span key={code} className="badge active" style={{ marginInlineEnd: 4 }} dir="ltr">
-                            {code}
+                          <span key={code} className="badge active" style={{ marginInlineEnd: 4 }}>
+                            {PLATFORM_ROLE_AR[code] ?? code}
                           </span>
                         ))
                       ) : row.isPlatformAdmin ? (
-                        <span className="badge pending">صلاحية قديمة</span>
+                        <span className="badge active">مالك المنصة</span>
                       ) : (
                         '—'
                       )}

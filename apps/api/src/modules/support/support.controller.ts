@@ -29,47 +29,10 @@ import {
 } from '@erp/contracts';
 
 import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe.js';
-import { getTenantContext } from '../platform/context/tenant-context.js';
-import { RequiresPermission } from '../platform/decorators/requires-permission.decorator.js';
 import { RequiresPlatformRole } from '../platform/decorators/requires-platform-role.decorator.js';
 import { PlatformAdminGuard } from '../platform/guards/platform-admin.guard.js';
 
 import { SupportService } from './support.service.js';
-
-@ApiTags('support')
-@ApiBearerAuth()
-@Controller('support/tickets')
-export class TenantSupportController {
-  constructor(private readonly support: SupportService) {}
-
-  @Get()
-  @RequiresPermission('tenant.view')
-  async list() {
-    const { tenantId } = getTenantContext();
-    return { data: await this.support.listForTenant(tenantId) };
-  }
-
-  @Get(':id')
-  @RequiresPermission('tenant.view')
-  async get(@Param('id') id: string) {
-    const { tenantId } = getTenantContext();
-    return { data: await this.support.getForTenant(tenantId, id) };
-  }
-
-  @Post()
-  @RequiresPermission('tenant.view')
-  async create(@Body() body: { subject?: string; body?: string; priority?: string; category?: string }) {
-    const { tenantId, userId } = getTenantContext();
-    return { data: await this.support.createFromTenant(tenantId, userId, body ?? {}) };
-  }
-
-  @Post(':id/reply')
-  @RequiresPermission('tenant.view')
-  async reply(@Param('id') id: string, @Body() body: { body?: string }) {
-    const { tenantId, userId } = getTenantContext();
-    return { data: await this.support.replyFromTenant(tenantId, userId, id, body?.body) };
-  }
-}
 
 /**
  * P-C8 — سطح الدعم للمشغّل (`docs/roadmap/PLATFORM_CONSOLE_PLAN.md` §4).

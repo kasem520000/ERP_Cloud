@@ -1617,11 +1617,17 @@ tr.opening td {
   .shell {
     grid-template-columns: 1fr;
   }
+  .side-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.5);
+    z-index: 45;
+  }
   .side {
     position: fixed;
-    inset-inline: 0 0 auto;
-    inset-block-start: 0;
+    inset-block: 0;
     inset-inline-start: -320px;
+    inset-inline-end: auto;
     width: 288px;
     z-index: 50;
     transition: inset-inline-start 200ms var(--ease-out);

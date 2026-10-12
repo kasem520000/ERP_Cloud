@@ -61,6 +61,29 @@ type TenantRow = {
 
 type Heartbeat = { running: boolean; enabled: boolean; oldestPendingAgeSeconds: number | null };
 type JobMeta = { data: unknown[]; meta: { total: number } };
+type OpenTicketRow = {
+  id: string;
+  tenantName: string | null;
+  tenantCode: string | null;
+  subject: string;
+  priority: string;
+  category: string | null;
+  createdAt: string;
+};
+type PendingAddonRow = {
+  id: string;
+  tenantName: string;
+  tenantCode: string;
+  appNameAr: string;
+  createdAt: string;
+};
+
+const TICKET_PRIORITY_AR: Record<string, string> = {
+  urgent: 'عاجلة',
+  high: 'عالية',
+  normal: 'عادية',
+  low: 'منخفضة',
+};
 
 const money = (value: number, currency = 'SAR') =>
   `${value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ${currency}`;
@@ -74,9 +97,17 @@ const monthLabel = (iso: string) => {
 export default function PlatformOverviewPage() {
   const overview = useQuery<Overview>(() => apiData<Overview>('/platform/overview'), []);
   const analytics = useQuery<AnalyticsOverview>(() => apiData<AnalyticsOverview>('/platform/analytics/overview?months=6'), []);
-  const tenants = useQuery<TenantRow[]>(() => apiData<TenantRow[]>('/platform/tenants?limit=5&sort=createdAt:desc'), []);
+  const tenants = useQuery<TenantRow[]>(() => apiData<TenantRow[]>('/platform/tenants?limit=10&sort=createdAt:desc'), []);
   const jobs = useQuery<JobMeta>(() => apiData<JobMeta>('/platform/jobs?limit=1'), []);
   const heartbeat = useQuery<Heartbeat>(() => apiData<Heartbeat>('/platform/jobs/heartbeat'), []);
+  const openTickets = useQuery<OpenTicketRow[]>(
+    () => apiData<OpenTicketRow[]>('/platform/tickets?filter[status]=open&limit=6'),
+    [],
+  );
+  const addonRequests = useQuery<PendingAddonRow[]>(
+    () => apiData<PendingAddonRow[]>('/marketplace/platform/requests?status=pending'),
+    [],
+  );
   const [refreshing, setRefreshing] = useState(false);
 
   function reloadAll() {
@@ -86,6 +117,8 @@ export default function PlatformOverviewPage() {
     tenants.reload();
     jobs.reload();
     heartbeat.reload();
+    openTickets.reload();
+    addonRequests.reload();
     setTimeout(() => setRefreshing(false), 800);
   }
 
@@ -107,7 +140,11 @@ export default function PlatformOverviewPage() {
   const pendingJobs = jobs.data?.meta?.total ?? 0;
   const runnerLive = heartbeat.data?.running ?? false;
 
-  const lastCustomers = (tenants.data ?? []).slice(0, 5);
+  const lastCustomers = (tenants.data ?? [])
+    .filter((t) => !['platform', 'platform-ops'].includes(t.code.toLowerCase()))
+    .slice(0, 5);
+  const ticketRows = Array.isArray(openTickets.data) ? openTickets.data : [];
+  const addonRows = Array.isArray(addonRequests.data) ? addonRequests.data : [];
 
   return (
     <Screen
@@ -181,6 +218,89 @@ export default function PlatformOverviewPage() {
           hint={runnerLive ? 'المنفّذ يعمل الآن' : 'المنفّذ متوقف'}
           delay={0.25}
         />
+      </div>
+
+      {/* Live Customer Support Tickets & Add-on Activation Requests */}
+      <div className="grid gap-4 xl:grid-cols-2">
+        <section className="rounded-[10px] border border-line bg-surface p-4 shadow-1">
+          <div className="mb-3 flex items-center justify-between">
+            <div>
+              <h3 className="m-0 text-[15px] font-bold text-ink">
+                🛟 طلبات المساعدة والدعم المفتوحة ({ticketRows.length})
+              </h3>
+              <p className="m-0 mt-0.5 text-[12px] text-muted">
+                الرسائل والتذاكر الواردة من لوحة العملاء بانتظار رد إدارة المنصة
+              </p>
+            </div>
+            <Link href="/tickets">
+              <Button variant="secondary" size="sm">صندوق الدعم ←</Button>
+            </Link>
+          </div>
+          {ticketRows.length === 0 ? (
+            <p className="m-0 text-[13px] text-muted">لا توجد طلبات مساعدة مفتوحة حالياً.</p>
+          ) : (
+            <div className="grid gap-2">
+              {ticketRows.map((t) => (
+                <Link
+                  key={t.id}
+                  href={`/tickets/${t.id}`}
+                  className="flex items-center justify-between gap-3 rounded-lg border border-line bg-surface-2 px-3 py-2.5 transition-colors hover:bg-brand-soft"
+                >
+                  <div className="min-w-0">
+                    <div className="truncate text-[13.5px] font-bold text-ink">{t.subject}</div>
+                    <div className="text-[11.5px] text-muted">
+                      العميل: {t.tenantName ?? t.tenantCode ?? 'منشأة'} · {t.category ?? 'عام'} ·{' '}
+                      {new Date(t.createdAt).toLocaleString('ar-SA')}
+                    </div>
+                  </div>
+                  <Badge tone={t.priority === 'urgent' || t.priority === 'high' ? 'red' : 'amber'}>
+                    {TICKET_PRIORITY_AR[t.priority] ?? t.priority}
+                  </Badge>
+                </Link>
+              ))}
+            </div>
+          )}
+        </section>
+
+        <section className="rounded-[10px] border border-line bg-surface p-4 shadow-1">
+          <div className="mb-3 flex items-center justify-between">
+            <div>
+              <h3 className="m-0 text-[15px] font-bold text-ink">
+                🛒 طلبات تفعيل الباقات والإضافات القطاعية ({addonRows.length})
+              </h3>
+              <p className="m-0 mt-0.5 text-[12px] text-muted">
+                طلبات العملاء لتفعيل الأنظمة القطاعية (المخابز والمناديب، التصنيع، تطبيق الموظف…)
+              </p>
+            </div>
+            <Link href="/marketplace">
+              <Button variant="secondary" size="sm">إدارة الباقات ←</Button>
+            </Link>
+          </div>
+          {addonRows.length === 0 ? (
+            <p className="m-0 text-[13px] text-muted">لا توجد طلبات تفعيل باقات معلقة حالياً.</p>
+          ) : (
+            <div className="grid gap-2">
+              {addonRows.map((req) => (
+                <Link
+                  key={req.id}
+                  href="/marketplace"
+                  className="flex items-center justify-between gap-3 rounded-lg border border-line bg-surface-2 px-3 py-2.5 transition-colors hover:bg-brand-soft"
+                >
+                  <div className="min-w-0">
+                    <div className="truncate text-[13.5px] font-bold text-ink">
+                      طلب تفعيل: {req.appNameAr}
+                    </div>
+                    <div className="text-[11.5px] text-muted">
+                      المنشأة: {req.tenantName} ({req.tenantCode}) ·{' '}
+                      {new Date(req.createdAt).toLocaleString('ar-SA')}
+                    </div>
+                  </div>
+                  <Badge tone="amber">بانتظار الموافقة</Badge>
+                </Link>
+              ))}
+            </div>
+          )}
+        </section>
       </div>
 
       {/* charts */}
