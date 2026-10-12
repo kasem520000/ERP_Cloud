@@ -339,6 +339,17 @@ export const permissionRegistry: readonly PermissionDefinition[] = [
   // Future enhancement 04 — sequential approval workflows.
   perm('approval.manage', 'Create and maintain tenant approval workflows.'),
   perm('approval.approve', 'Review, approve and reject assigned approval requests.'),
+
+  // Factory, Bakery & Van Sales Distribution (PHASE_E)
+  perm('van_sales.view', 'Read factory production batches, van load orders, sales documents and reports.'),
+  perm('van_sales.production.manage', 'Record daily factory and bakery production batches.'),
+  perm('van_sales.pricing.manage', 'Configure customer special price tiers, bonus caps and credit limits.'),
+  perm('van_sales.load.manage', 'Create van load orders and transfer stock to sales rep custody.'),
+  perm('van_sales.invoice.create', 'Issue van sales invoices and free bonus quantities.'),
+  perm('van_sales.collection.create', 'Record customer debt collections and receipt allocations.'),
+  perm('van_sales.closing.submit', 'Submit end-of-day rep custody shift closing for inspection.'),
+  perm('van_sales.closing.approve', 'Inspect damaged goods, approve shortage settlement and close rep custody.'),
+  perm('van_sales.override.approve', 'Override locked customer prices, discount ceilings and bonus caps.'),
 ] as const;
 
 /**
@@ -496,6 +507,17 @@ export function permissionGrants(granted: readonly string[], required: string): 
   if (legacySpelling && grantedSet.has(legacySpelling)) return true;
   for (const code of grantedSet) {
     if (canonicalizePermissionCode(code) === requiredCanonical) return true;
+  }
+  if (requiredCanonical === 'van_sales.view' && grantedSet.has('sales.view')) {
+    return true;
+  }
+  if (
+    requiredCanonical.startsWith('van_sales.') &&
+    requiredCanonical !== 'van_sales.view' &&
+    !granted.some((c) => c.startsWith('van_sales.') && c !== 'van_sales.view') &&
+    grantedSet.has('sales.invoice.create')
+  ) {
+    return true;
   }
   return false;
 }

@@ -98,6 +98,7 @@ export type SalesLineInput = {
    * ويسبق مركز الرأس عند وسم القيد؛ ومن لم يذكر مركزاً يأخذ مركز الفاتورة إن وُجد.
    */
   costCenterId?: string;
+  metadata?: Record<string, unknown>;
 };
 export type SalesInvoiceInput = {
   branchId: string;
@@ -387,11 +388,12 @@ export class SalesService {
         productionDate: line.productionDate?.trim() || null,
         expiryDate: line.expiryDate?.trim() || null,
         costCenterId: line.costCenterId ?? null,
+        metadata: line.metadata ?? {},
       };
     });
   }
 
-  private async createInTx(tx: DrizzleTx, tenantId: string, input: SalesInvoiceInput): Promise<string> {
+  async createInTx(tx: DrizzleTx, tenantId: string, input: SalesInvoiceInput): Promise<string> {
     const totals = this.prepareLines(tx, tenantId, input);
     // R9 — كل مركزٍ مُسمّى (رأساً أو على سطر) يُفحَص قبل أي كتابة: مركزُ مستأجرٍ آخر ليس
     // مركزاً عندنا، والرسالة تسمّي الحقل. الفحص هنا في مسار الإنشاء الوحيد فيمرّ منه كل
@@ -766,7 +768,7 @@ export class SalesService {
    * journal and settlement. Returns `undefined` only when a concurrent caller
    * already posted the invoice, so `post()` re-reads the committed row.
    */
-  private async postInTx(tx: DrizzleTx, tenantId: string, id: string, posting: PostingInput = {}) {
+  async postInTx(tx: DrizzleTx, tenantId: string, id: string, posting: PostingInput = {}) {
     const invoice = await this.getInTx(tx, tenantId, id);
     if (invoice.status === 'posted') return invoice;
     if (invoice.status !== 'draft')

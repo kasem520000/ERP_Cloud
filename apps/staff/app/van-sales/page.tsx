@@ -149,9 +149,45 @@ type StockMovement = {
   createdAt: string;
 };
 
+type CustomerPriceHistoryItem = {
+  id: string;
+  customerPriceId: string;
+  partyId: string;
+  itemId: string | null;
+  previousUnitPrice: string | null;
+  newUnitPrice: string;
+  maxBonusPct: string;
+  maxBonusKgPerInvoice: string;
+  maxDiscountPct: string;
+  lockPrice: boolean;
+  effectiveFrom: string;
+  effectiveTo: string | null;
+  changeReason: string;
+  changedBy: string | null;
+  changedAt: string;
+};
+
+type LegacyReconciliationPreview = {
+  mode: 'dry_run' | 'execute';
+  inspectedAt: string;
+  batches: { total: number; linkedToCore: number; unlinkedLegacy: number };
+  loadOrders: { total: number; linkedToTransfer: number; unlinkedLegacy: number };
+  documents: { total: number; linkedToSalesInvoice: number; unlinkedLegacy: number; conflicts: string[] };
+  reconciledCount: number;
+};
+
 type DashboardData = {
+  policy?: {
+    internalDeliveryEnabled: boolean;
+    internalDeliveryTaxMode: string;
+    shortageValuationBasis: string;
+    productionCostBasis: string;
+    bonusAccountingMode: string;
+    defaultVatRatePct: string;
+  };
   summary: {
     totalProducedKg: string;
+    totalScrapKg?: string;
     mainWarehouseBalanceKg: string;
     totalProductionCostSar: string;
     totalLoadedKg: string;
@@ -175,6 +211,7 @@ type DashboardData = {
   repPerformance: RepPerformance[];
   loadOrders: LoadOrder[];
   customerPrices: CustomerPrice[];
+  customerPriceHistory?: CustomerPriceHistoryItem[];
   documents: VanDocument[];
   movements: StockMovement[];
 };
@@ -222,8 +259,10 @@ export default function VanSalesPage() {
   const [prodItemName, setProdItemName] = useState('رقائق سمبوسة بلدي طازجة (كجم)');
   const [prodItemId, setProdItemId] = useState('');
   const [prodQty, setProdQty] = useState('500');
+  const [prodScrapQty, setProdScrapQty] = useState('0');
   const [prodUnitCost, setProdUnitCost] = useState('3.80');
   const [prodSupervisor, setProdSupervisor] = useState('مشرف خط الإنتاج');
+  const [reconciliationPreview, setReconciliationPreview] = useState<LegacyReconciliationPreview | null>(null);
 
   // Pillar 2: Load order form state (default 150 kg per client proposal example)
   const [loadSalesmanId, setLoadSalesmanId] = useState('');
@@ -255,6 +294,7 @@ export default function VanSalesPage() {
   const [tierLockPrice, setTierLockPrice] = useState(true);
   const [tierMaxDiscountPct, setTierMaxDiscountPct] = useState('0');
   const [tierPreferredMode, setTierPreferredMode] = useState<'zatca_tax' | 'internal_delivery'>('zatca_tax');
+  const [tierChangeReason, setTierChangeReason] = useState('اعتماد وتحديث شريحة سعر العميل');
 
   // Pillar 3, 4, 8: Van invoice / delivery form state
   const [docLoadOrderId, setDocLoadOrderId] = useState('');
@@ -274,12 +314,15 @@ export default function VanSalesPage() {
   const [selectedDoc, setSelectedDoc] = useState<VanDocument | null>(null);
 
   async function reload() {
-    const [dash, sm, cust, it] = await Promise.all([
-      apiData<DashboardData>('/van-sales/dashboard'),
-      listSalesmen().catch(() => []),
-      listParties('customer').catch(() => []),
-      listItems().catch(() => []),
+    const dash = await apiData<DashboardData>('/van-sales/dashboard');
+    const [smRes, custRes, itRes] = await Promise.allSettled([
+      listSalesmen(),
+      listParties('customer'),
+      listItems(),
     ]);
+    const sm = smRes.status === 'fulfilled' ? smRes.value : [];
+    const cust = custRes.status === 'fulfilled' ? custRes.value : [];
+    const it = itRes.status === 'fulfilled' ? itRes.value : [];
     setData(dash);
     setSalesmen(sm);
     setCustomers(cust);
@@ -322,6 +365,7 @@ export default function VanSalesPage() {
         itemId: prodItemId || undefined,
         itemName: prodItemName,
         producedQty: prodQty,
+        scrapQty: prodScrapQty || '0',
         unitCost: prodUnitCost,
         supervisorName: prodSupervisor,
       });
@@ -383,14 +427,37 @@ export default function VanSalesPage() {
         lockPrice: tierLockPrice,
         maxDiscountPct: tierMaxDiscountPct,
         preferredInvoiceMode: tierPreferredMode,
+        changeReason: tierChangeReason,
       });
       setData(next);
       setNotice({
         kind: 'ok',
-        text: 'تم حفظ سعر العميل المخصص، تثبيت السعر، سقف الائتمان، وسياسة الكميات المجانية.',
+        text: 'تم حفظ سعر العميل المخصص، تثبيت السعر، سقف الائتمان، وسياسة الكميات المجانية مع توثيق التعديل في سجل الأسعار.',
       });
     } catch (error) {
       setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : 'تعذر حفظ شريحة السعر' });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleRunLegacyPreview() {
+    setBusy(true);
+    setNotice(undefined);
+    try {
+      const preview = await apiPost<LegacyReconciliationPreview>('/van-sales/legacy-reconciliation', {
+        mode: 'dry_run',
+      });
+      setReconciliationPreview(preview);
+      setNotice({
+        kind: 'ok',
+        text: 'تم تنفيذ فحص توافق البيانات السابقة (Dry-Run) بنجاح دون أي تعديل على البيانات.',
+      });
+    } catch (error) {
+      setNotice({
+        kind: 'danger',
+        text: error instanceof ApiError ? error.message : 'تعذر تنفيذ فحص توافق البيانات السابقة',
+      });
     } finally {
       setBusy(false);
     }
@@ -517,10 +584,11 @@ export default function VanSalesPage() {
 
   const activeLoadOrder = data?.loadOrders.find((l) => l.id === docLoadOrderId);
   const selectedCustomerRule = data?.customerPrices.find((cp) => cp.partyId === docPartyId);
+  const configuredVatFactor = Number(data?.policy?.defaultVatRatePct ?? 15) / 100;
   const previewGross = Number(docSoldQty || 0) * Number(docUnitPrice || 0);
   const previewDiscount = Number(docDiscountAmount || 0);
   const previewSubtotal = Math.max(0, previewGross - previewDiscount);
-  const previewVat = docMode === 'zatca_tax' ? previewSubtotal * 0.15 : 0;
+  const previewVat = docMode === 'zatca_tax' ? previewSubtotal * configuredVatFactor : 0;
   const previewTotal = previewSubtotal + previewVat;
 
   // Live calculation inside the Shift Closing Modal (e.g. 150 loaded - 100 sold - 20 bonus - 0 returned - 25 damaged = 5 kg shortage)
@@ -530,7 +598,11 @@ export default function VanSalesPage() {
   const modalReturned = Number(closingReturnedQty || 0);
   const modalDamaged = Number(closingDamagedQty || 0);
   const modalShortageKg = Math.max(0, modalLoaded - (modalSold + modalBonus + modalReturned + modalDamaged));
-  const modalShortageSar = modalShortageKg * 6.5;
+  const targetShortageUnitRate =
+    closingTarget && Number(closingTarget.shortageQty) > 0
+      ? Number(closingTarget.shortageValue) / Number(closingTarget.shortageQty)
+      : Number(data?.customerPrices?.[0]?.unitPrice ?? docUnitPrice ?? 0);
+  const modalShortageSar = modalShortageKg * targetShortageUnitRate;
 
   return (
     <Screen
@@ -783,6 +855,17 @@ export default function VanSalesPage() {
                   dir="ltr"
                   value={prodQty}
                   onChange={(e) => setProdQty(e.target.value)}
+                />
+              </label>
+              <label className="field">
+                <span>فاقد التصنيع / الهالك (كجم)</span>
+                <input
+                  className="input"
+                  type="number"
+                  step="0.01"
+                  dir="ltr"
+                  value={prodScrapQty}
+                  onChange={(e) => setProdScrapQty(e.target.value)}
                 />
               </label>
               <label className="field">
@@ -1694,6 +1777,14 @@ export default function VanSalesPage() {
                   <option value="internal_delivery">فاتورة توزيع عادية (بدون ضريبية ورقية)</option>
                 </select>
               </label>
+              <label className="field">
+                <span>سبب اعتماد / تعديل السعر (لسجل التدقيق)</span>
+                <input
+                  className="input"
+                  value={tierChangeReason}
+                  onChange={(e) => setTierChangeReason(e.target.value)}
+                />
+              </label>
             </div>
             <label className="row" style={{ gap: 8, alignItems: 'center' }}>
               <input
@@ -1743,12 +1834,73 @@ export default function VanSalesPage() {
               </table>
             </div>
           </div>
+
+          <div className="card">
+            <h2 style={{ marginTop: 0 }}>📜 سجل تدقيق وتاريخ تعديلات أسعار العملاء</h2>
+            <div className="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>السعر السابق</th>
+                    <th>السعر الجديد</th>
+                    <th>بداية السريان</th>
+                    <th>تثبيت السعر</th>
+                    <th>سبب التعديل</th>
+                    <th>تاريخ التسجيل</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(data?.customerPriceHistory ?? []).map((h) => (
+                    <tr key={h.id}>
+                      <td dir="ltr">{h.previousUnitPrice ? `${h.previousUnitPrice} SAR` : '—'}</td>
+                      <td dir="ltr"><strong>{h.newUnitPrice} SAR</strong></td>
+                      <td dir="ltr">{h.effectiveFrom}</td>
+                      <td>{h.lockPrice ? '🔒 مثبّت' : 'مرن'}</td>
+                      <td>{h.changeReason || '—'}</td>
+                      <td dir="ltr">{new Date(h.changedAt).toLocaleString('ar-SA')}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
       )}
 
       {/* TAB 6: BONUS RADAR & ROLE PERMISSIONS MATRIX (Pillar 3 & 10) */}
       {tab === 'audit' && (
         <div style={{ display: 'grid', gap: 16 }}>
+          <div className="card">
+            <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+              <h2 style={{ margin: 0 }}>🔍 فحص توافق البيانات السابقة وربطها بالنواة (Dry-Run)</h2>
+              <button
+                type="button"
+                className="btn primary"
+                disabled={busy}
+                onClick={() => void handleRunLegacyPreview()}
+              >
+                تشغيل فحص التوافق الآمن (Dry-Run)
+              </button>
+            </div>
+            {reconciliationPreview ? (
+              <div className="form-grid">
+                <div>
+                  <strong>دفعات الإنتاج:</strong> الإجمالي {reconciliationPreview.batches.total} (مرتبط بالنواة: {reconciliationPreview.batches.linkedToCore} | غير مرتبط: {reconciliationPreview.batches.unlinkedLegacy})
+                </div>
+                <div>
+                  <strong>أوامر التحميل:</strong> الإجمالي {reconciliationPreview.loadOrders.total} (مرتبط بتحويل مخزني: {reconciliationPreview.loadOrders.linkedToTransfer} | غير مرتبط: {reconciliationPreview.loadOrders.unlinkedLegacy})
+                </div>
+                <div>
+                  <strong>فواتير المناديب:</strong> الإجمالي {reconciliationPreview.documents.total} (مرتبط بـ sales_invoices: {reconciliationPreview.documents.linkedToSalesInvoice} | غير مرتبط: {reconciliationPreview.documents.unlinkedLegacy})
+                </div>
+              </div>
+            ) : (
+              <p className="muted" style={{ margin: 0 }}>
+                يعرض هذا الفحص حالة ربط السجلات السابقة بجداول النواة الرسمية (`sales_invoices`, `stock_transfers`, `inventory_transactions`) في وضع المعاينة الآمنة دون أي تعديل على قاعدة البيانات.
+              </p>
+            )}
+          </div>
+
           <div className="card">
             <h2 style={{ marginTop: 0 }}>🛡️ رادار الرقابة على الكميات المجانية (البونص) والعينات والخصومات</h2>
             <div className="table-wrap">
