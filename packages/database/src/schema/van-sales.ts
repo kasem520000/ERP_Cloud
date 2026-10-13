@@ -11,6 +11,7 @@ import {
   timestamp,
   uniqueIndex,
   uuid,
+  type AnyPgColumn,
 } from 'drizzle-orm/pg-core';
 
 import { approvalRequests } from './approvals.js';
@@ -19,10 +20,12 @@ import {
   inventoryTransactions,
   itemLots,
   productionOrders,
+  stockAdjustments,
   stockDeliveries,
   stockTransfers,
   stockVouchers,
 } from './inventory.js';
+import { journalEntries } from './accounting.js';
 import { branches, warehouses } from './organization.js';
 import { parties } from './parties.js';
 import { tenants, users } from './platform.js';
@@ -166,6 +169,8 @@ export const factoryProductionBatches = pgTable(
       .references(() => tenants.id, { onDelete: 'cascade' }),
     batchNo: text('batch_no').notNull(),
     productionDate: date('production_date').notNull().default(sql`CURRENT_DATE`),
+    /** 🏭 الفرع الذي أنتج الدفعة — يُستخدم في تحديد ملف الترحيل الرسمي للفرع (`0123`). */
+    branchId: uuid('branch_id').references(() => branches.id, { onDelete: 'set null' }),
     itemId: uuid('item_id').references(() => items.id, { onDelete: 'set null' }),
     itemName: text('item_name').notNull().default('رقائق سمبوسة وفطائر طازجة'),
     warehouseId: uuid('warehouse_id').references(() => warehouses.id, { onDelete: 'set null' }),
@@ -228,6 +233,12 @@ export const vanLoadOrders = pgTable(
     returnTransferId: uuid('return_transfer_id').references(() => stockTransfers.id, {
       onDelete: 'set null',
     }),
+    inventoryTxId: uuid('inventory_tx_id').references(() => inventoryTransactions.id, {
+      onDelete: 'set null',
+    }),
+    returnInventoryTxId: uuid('return_inventory_tx_id').references(() => inventoryTransactions.id, {
+      onDelete: 'set null',
+    }),
     damageVoucherId: uuid('damage_voucher_id').references(() => stockVouchers.id, {
       onDelete: 'set null',
     }),
@@ -244,6 +255,35 @@ export const vanLoadOrders = pgTable(
     batchCode: text('batch_code').default('BATCH-DEFAULT'),
     productionBatchNo: text('production_batch_no').notNull().default('BATCH-DEFAULT'),
     loadedQty: numeric('loaded_qty', { precision: 20, scale: 4 }).notNull().default('0'),
+    receivedQty: numeric('received_qty', { precision: 18, scale: 4 }).notNull().default('0'),
+    discrepancyQty: numeric('discrepancy_qty', { precision: 18, scale: 4 }).notNull().default('0'),
+    discrepancyNotes: text('discrepancy_notes'),
+    receivedAt: timestamp('received_at', { withTimezone: true }),
+    receivedBy: uuid('received_by').references(() => users.id, { onDelete: 'set null' }),
+    actualRemainingQty: numeric('actual_remaining_qty', { precision: 18, scale: 4 }).notNull().default('0'),
+    /**
+     * 🧾 تسوية المخزون (`0124`) — the official stocktake document that reconciles the van
+     * balance with the rep's physical count. Quantity settlement lives here; the financial
+     * responsibility for a shortage stays pending (`shortagePolicyStatus`).
+     */
+    stockAdjustmentId: uuid('stock_adjustment_id').references(() => stockAdjustments.id, {
+      onDelete: 'set null',
+    }),
+    /** `return_to_main` · `carry_over` — what happened to the counted remainder. */
+    remainingAction: text('remaining_action'),
+    remainingInventoryTxId: uuid('remaining_inventory_tx_id').references(
+      () => inventoryTransactions.id,
+      { onDelete: 'set null' },
+    ),
+    /**
+     * `not_required` · `pending_transit_decision` · `pending_count_decision` ·
+     * `blocked_missing_accounts` · `settled_officially`.
+     */
+    stockSettlementStatus: text('stock_settlement_status').notNull().default('not_required'),
+    stockSettlementNote: text('stock_settlement_note'),
+    damageJournalEntryId: uuid('damage_journal_entry_id').references(() => journalEntries.id, {
+      onDelete: 'set null',
+    }),
     loadedTotalValue: numeric('loaded_total_value', { precision: 18, scale: 4 })
       .notNull()
       .default('0'),
@@ -318,6 +358,13 @@ export const vanSalesDocuments = pgTable(
     customerName: text('customer_name'),
     customerMobile: text('customer_mobile'),
     customerTaxNo: text('customer_tax_no'),
+    /** نوع المستند: `sale` فاتورة بيع، أو `return` مرتجع عميل referencing the source sale (`0123`). */
+    documentKind: text('document_kind').notNull().default('sale'),
+    /** المستند الأصلي عندما يكون هذا المستند مرتجع عميل (`0123`). */
+    referenceDocumentId: uuid('reference_document_id').references(
+      (): AnyPgColumn => vanSalesDocuments.id,
+      { onDelete: 'set null' },
+    ),
     docMode: text('doc_mode').notNull().default('zatca_tax'),
     invoiceMode: text('invoice_mode').notNull().default('zatca_tax'),
     taxPolicyStatus: text('tax_policy_status').notNull().default('standard_vat'),
@@ -358,6 +405,9 @@ export const vanSalesDocuments = pgTable(
       onDelete: 'set null',
     }),
     stockDeliveryId: uuid('stock_delivery_id').references(() => stockDeliveries.id, {
+      onDelete: 'set null',
+    }),
+    inventoryTxId: uuid('inventory_tx_id').references(() => inventoryTransactions.id, {
       onDelete: 'set null',
     }),
     anomalyFlags: jsonb('anomaly_flags').$type<string[]>().notNull().default([]),

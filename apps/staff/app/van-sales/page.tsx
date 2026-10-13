@@ -4,9 +4,80 @@ import { useEffect, useState } from 'react';
 
 import { Notice } from '../../components/data-view';
 import { Screen } from '../../components/screen';
-import { ZatcaQrSvg, buildZatcaTlvBase64, printThermalReceipt80mm } from '../../components/zatca-qr-svg';
+import { ZatcaQrSvg, printThermalReceipt80mm } from '../../components/zatca-qr-svg';
 import { ApiError, apiData, apiPost } from '../../lib/api';
-import { listItems, listParties, listSalesmen, type Item, type Party, type Salesman } from '../../lib/lookups';
+import {
+  defaultOf,
+  itemLabel,
+  listCashLocations,
+  listItems,
+  listParties,
+  listSalesmen,
+  listWarehouses,
+  today,
+  type CashLocation,
+  type Item,
+  type Party,
+  type Salesman,
+  type Warehouse,
+} from '../../lib/lookups';
+
+/**
+ * صف من الرصيد الرسمي — one row of `stock_balances`, the ledger the item card and the
+ * stock report read. The factory tab shows these instead of a number derived from the
+ * add-on tables, so the two screens can never disagree about what the warehouse holds.
+ */
+type OfficialStockRow = {
+  itemId: string;
+  itemName: string;
+  sku: string;
+  warehouseId: string;
+  warehouseName: string;
+  warehouseCode: string;
+  branchId: string | null;
+  quantity: string;
+  value: string;
+  averageCost: string;
+};
+
+/** 🧑‍💼 مندوب التوزيع — the official `salesmen` card with its employee, login and custody. */
+type VanSalesman = {
+  id: string;
+  name: string;
+  active: boolean;
+  employeeId: string | null;
+  employeeNo: string | null;
+  employeeName: string | null;
+  employeeStatus: string | null;
+  membershipId: string | null;
+  membershipStatus: string | null;
+  userEmail: string | null;
+  userStatus: string | null;
+  roleCount: number;
+  permissions: string[];
+  warehouseId: string | null;
+  warehouseName: string | null;
+  warehouseCode: string | null;
+  vehiclePlate: string | null;
+  tel: string | null;
+  mobile: string | null;
+  email: string | null;
+  custody: {
+    openLoadOrders: number;
+    pendingReceipts: number;
+    pendingClosings: number;
+    custodyQty: string;
+    outstandingCash: string;
+    items: Array<{ itemId: string; itemName: string; warehouseName: string; quantity: string; value: string }>;
+  };
+  readiness: {
+    hasEmployee: boolean;
+    hasLoginAccount: boolean;
+    loginActive: boolean;
+    hasVanWarehouse: boolean;
+    hasVanSalesPermissions: boolean;
+  };
+};
 
 type ProductionBatch = {
   id: string;
@@ -21,6 +92,12 @@ type ProductionBatch = {
   availableWarehouseQty: string;
   unitCost: string;
   totalCost: string;
+  /** 💵 أساس التكلفة: أمر تصنيع رسمي، أم إدخال يدوي/تكلفة البطاقة. */
+  costBasis?: string;
+  /** 🗑️ قيمة الفاقد، وهل حُمِّلت على تكلفة المنتج الجيد. */
+  scrapQty?: string;
+  scrapValue?: string;
+  scrapCostLoaded?: boolean;
   status: string;
   supervisorName: string;
   notes: string;
@@ -56,6 +133,15 @@ type LoadOrder = {
   itemId: string | null;
   itemName: string;
   loadedQty: string;
+  /** ما أكّد المندوب استلامه فعلًا — أساس العهدة بعد خطوة الاستلام. */
+  receivedQty?: string;
+  discrepancyQty?: string;
+  discrepancyNotes?: string;
+  receivedAt?: string | null;
+  awaitingReceipt?: boolean;
+  warehouseId?: string | null;
+  vanWarehouseId?: string | null;
+  stockTransferId?: string | null;
   soldQty: string;
   bonusQty: string;
   returnedQty: string;
@@ -63,6 +149,29 @@ type LoadOrder = {
   shortageQty: string;
   shortageValue: string;
   remainingQty: string;
+  /** ما أعلنته الوردية فعلياً عند الجرد. */
+  actualRemainingQty?: string;
+  /** ما تقول المستندات إنه يجب أن يبقى في السيارة. */
+  expectedRemainingQty?: string;
+  /** موجب = عجز عن الجرد، سالب = فائض. */
+  countVarianceQty?: string;
+  /** 💵 قيمة فرق الجرد على أساس التكلفة — قيمة تسوية مخزنية، لا دين على المندوب. */
+  countVarianceCostValue?: string;
+  /** ما كتبه مستند الجرد الرسمي نفسه بعد ترحيله. */
+  countDocumentVarianceValue?: string | null;
+  countDocumentExpectedQty?: string | null;
+  /**
+   * 🧾 تسوية المخزون الرسمية — مستند الجرد الرسمي، مصير المتبقي الفعلي، وحالة التسوية.
+   * العهدة لا تُغلق (`settled`) ورصيد السيارة الرسمي يختلف عن الجرد الفعلي.
+   */
+  stockAdjustmentId?: string | null;
+  remainingAction?: 'return_to_main' | 'carry_over' | null;
+  remainingInventoryTxId?: string | null;
+  stockSettlementStatus?: string;
+  stockSettlementNote?: string;
+  damageJournalEntryId?: string | null;
+  awaitingStockSettlement?: boolean;
+  awaitingTransitDecision?: boolean;
   maxBonusQty: string;
   maxBonusPct: string;
   expectedCash: string;
@@ -104,6 +213,11 @@ type VanDocument = {
   docDate: string;
   invoiceMode: 'zatca_tax' | 'internal_delivery';
   paymentMethod: string;
+  documentKind?: string;
+  referenceDocumentId?: string | null;
+  /** رقم وحالة الفاتورة الرسمية في `sales_invoices`. */
+  invoiceNumber?: string | null;
+  invoiceStatus?: string | null;
   productionBatchNo: string;
   loadOrderId: string | null;
   salesmanId: string | null;
@@ -130,6 +244,8 @@ type VanDocument = {
   customerConfirmationCode: string;
   bonusAnomaly: boolean;
   anomalyReason: string;
+  /** رمز ZATCA (TLV) المبني على الخادم من ملف المنشأة الرسمي. */
+  qrPayload?: string;
   notes: string;
   createdAt: string;
 };
@@ -185,10 +301,28 @@ type DashboardData = {
     bonusAccountingMode: string;
     defaultVatRatePct: string;
   };
+  /** الأرصدة الرسمية من `stock_balances` — نفس ما تقرأه شاشة المخزون وبطاقة الصنف. */
+  officialStock?: OfficialStockRow[];
+  mainWarehouseId?: string | null;
+  postingReadiness?: {
+    branchId: string | null;
+    salesInvoice: boolean;
+    stockTransfer: boolean;
+    receiptVoucher: boolean;
+    message: string | null;
+  };
   summary: {
     totalProducedKg: string;
     totalScrapKg?: string;
     mainWarehouseBalanceKg: string;
+    vanWarehousesBalanceKg?: string;
+    /** 🚚 بضاعة خرجت ولم يؤكّد المندوب استلامها: ليست في السيارة ولا في المستودع. */
+    inTransitKg?: string;
+    inTransitValueSar?: string;
+    inTransitTransfersCount?: number;
+    derivedMainWarehouseBalanceKg?: string;
+    stockLedgerAgrees?: boolean;
+    pendingReceiptsCount?: number;
     totalProductionCostSar: string;
     totalLoadedKg: string;
     totalSoldKg: string;
@@ -206,6 +340,10 @@ type DashboardData = {
     totalNetProfitSar: string;
     anomalyCount: number;
     pendingClosingsCount: number;
+    /** عهد اعتُمدت كمياتها ولم تُسوَّ مخزنياً بعد — لا تُغلق قبل تسويتها. */
+    pendingStockSettlementsCount?: number;
+    /** فروق استلام بلا قرار (return / shortage). */
+    pendingTransitDecisionsCount?: number;
   };
   productionBatches: ProductionBatch[];
   repPerformance: RepPerformance[];
@@ -215,6 +353,245 @@ type DashboardData = {
   documents: VanDocument[];
   movements: StockMovement[];
 };
+
+/** 🖨️ نسخة الطباعة — what `/van-sales/documents/:id/print-view` returns. */
+type PrintCopy = {
+  copyIndex: number;
+  kind: 'customer' | 'rep';
+  copyLabel: string;
+  requiresCustomerSignature: boolean;
+  signatureBlock: {
+    customerSignatureLabel: string;
+    repSignatureLabel: string;
+    accountantNote: string;
+  } | null;
+};
+
+type PrintView = {
+  documentId: string;
+  documentNumber: string;
+  invoiceNumber: string | null;
+  invoiceStatus: string | null;
+  saleDate: string;
+  companyName: string;
+  companyNameEn: string;
+  companyTaxNo: string;
+  companyCrNo: string;
+  companyEmail: string;
+  companyPhones: string[];
+  companyAddress: Record<string, unknown> | null;
+  customerName: string;
+  customerTaxNo: string;
+  customerPhone: string;
+  customerMobile: string;
+  salesmanName: string;
+  salesmanMobile: string;
+  vanWarehouseName: string;
+  loadOrderNumber: string;
+  productionBatchNo: string;
+  invoiceMode: string;
+  taxPolicyStatus: string;
+  paymentMethod: string;
+  lines: Array<{
+    kind: string;
+    itemName: string;
+    sku: string;
+    quantity: string;
+    unitPrice: string;
+    discount: string;
+    lineTotal: string;
+    reason?: string;
+  }>;
+  subtotal: string;
+  discountTotal: string;
+  vatRate: string;
+  vatTotal: string;
+  grandTotal: string;
+  paidAmount: string;
+  outstandingAmount: string;
+  bonusQtyTotal: string;
+  qrPayload: string;
+  notes: string;
+  printedAt: string;
+  copies: PrintCopy[];
+  copiesCount: number;
+};
+
+const escapeHtml = (value: string): string =>
+  value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+
+const formatPrintedAt = (value: string): string => {
+  const at = new Date(value);
+  if (Number.isNaN(at.getTime())) return value;
+  return `${at.toLocaleDateString('ar-SA-u-ca-gregory')} ${at.toLocaleTimeString('ar-SA-u-ca-gregory')}`;
+};
+
+/**
+ * 🖨️ نسختان من مستند بيع واحد — one official document, printed twice: the customer's copy
+ * and the rep's copy that comes back signed. Opening a print window (the same pattern the
+ * thermal receipt uses) keeps the browser's own dialog in charge of the printer, and no
+ * second invoice is ever created here.
+ */
+function openPrintWindow(view: PrintView): void {
+  const address = view.companyAddress
+    ? [
+        view.companyAddress.street ? String(view.companyAddress.street) : '',
+        view.companyAddress.district ? String(view.companyAddress.district) : '',
+        view.companyAddress.city ? String(view.companyAddress.city) : '',
+      ]
+        .filter(Boolean)
+        .join(' — ')
+    : '';
+
+  const renderCopy = (copy: PrintCopy): string => `
+  <section class="copy">
+    <header>
+      <div class="company">
+        <h1>${escapeHtml(view.companyName || 'المنشأة')}</h1>
+        ${view.companyNameEn ? `<div class="en">${escapeHtml(view.companyNameEn)}</div>` : ''}
+        <div class="meta">
+          ${view.companyTaxNo ? `<span>الرقم الضريبي: <b dir="ltr">${escapeHtml(view.companyTaxNo)}</b></span>` : ''}
+          ${view.companyCrNo ? `<span>السجل التجاري: <b dir="ltr">${escapeHtml(view.companyCrNo)}</b></span>` : ''}
+          ${view.companyPhones.length ? `<span>هاتف: <b dir="ltr">${escapeHtml(view.companyPhones.join(' ، '))}</b></span>` : ''}
+          ${view.companyEmail ? `<span>بريد: <b dir="ltr">${escapeHtml(view.companyEmail)}</b></span>` : ''}
+          ${address ? `<span>العنوان: ${escapeHtml(address)}</span>` : ''}
+        </div>
+      </div>
+      <div class="doc">
+        <div class="copy-label">${escapeHtml(copy.copyLabel)}</div>
+        <h2>${view.invoiceMode === 'zatca_tax' ? 'فاتورة ضريبية إلكترونية (مبيعات توزيع)' : 'إشعار تسليم / فاتورة توزيع داخلية'}</h2>
+        <table class="kv">
+          <tr><td>رقم المستند</td><th dir="ltr">${escapeHtml(view.documentNumber)}</th></tr>
+          ${view.invoiceNumber ? `<tr><td>رقم الفاتورة الرسمية</td><th dir="ltr">${escapeHtml(view.invoiceNumber)}</th></tr>` : ''}
+          <tr><td>تاريخ البيع</td><th dir="ltr">${escapeHtml(view.saleDate)}</th></tr>
+          <tr><td>تاريخ ووقت الطباعة</td><th dir="ltr">${escapeHtml(formatPrintedAt(view.printedAt))}</th></tr>
+          <tr><td>طريقة الدفع</td><th>${escapeHtml(view.paymentMethod === 'cash' ? 'نقدًا' : view.paymentMethod === 'card' ? 'شبكة' : 'آجل')}</th></tr>
+        </table>
+      </div>
+    </header>
+
+    <div class="parties">
+      <div>
+        <h3>بيانات العميل</h3>
+        <div><b>${escapeHtml(view.customerName || 'عميل نقدي')}</b></div>
+        ${view.customerTaxNo ? `<div>الرقم الضريبي: <b dir="ltr">${escapeHtml(view.customerTaxNo)}</b></div>` : ''}
+        ${view.customerPhone || view.customerMobile ? `<div>جوال: <b dir="ltr">${escapeHtml(view.customerMobile || view.customerPhone)}</b></div>` : ''}
+      </div>
+      <div>
+        <h3>المندوب وسيارة التوزيع</h3>
+        <div><b>${escapeHtml(view.salesmanName)}</b></div>
+        ${view.salesmanMobile ? `<div>جوال: <b dir="ltr">${escapeHtml(view.salesmanMobile)}</b></div>` : ''}
+        <div>العهدة: ${escapeHtml(view.vanWarehouseName)}</div>
+        ${view.loadOrderNumber ? `<div>أمر التحميل: <b dir="ltr">${escapeHtml(view.loadOrderNumber)}</b></div>` : ''}
+        ${view.productionBatchNo ? `<div>دفعة الإنتاج: <b dir="ltr">${escapeHtml(view.productionBatchNo)}</b></div>` : ''}
+      </div>
+    </div>
+
+    <table class="lines">
+      <thead>
+        <tr><th>#</th><th>الصنف</th><th>الكمية</th><th>سعر الوحدة</th><th>الخصم</th><th>الإجمالي</th></tr>
+      </thead>
+      <tbody>
+        ${view.lines
+          .map(
+            (line, index) => `<tr class="${line.kind === 'bonus' ? 'bonus' : ''}">
+              <td>${index + 1}</td>
+              <td>${escapeHtml(line.itemName)}${line.reason ? ` <span class="muted">(${escapeHtml(line.reason)})</span>` : ''}</td>
+              <td dir="ltr">${escapeHtml(line.quantity)}</td>
+              <td dir="ltr">${escapeHtml(line.unitPrice)}</td>
+              <td dir="ltr">${escapeHtml(line.discount)}</td>
+              <td dir="ltr">${escapeHtml(line.lineTotal)}</td>
+            </tr>`,
+          )
+          .join('')}
+      </tbody>
+    </table>
+
+    ${Number(view.bonusQtyTotal) > 0 ? `<div class="bonus-note">🎁 الكميات المجانية (البونص): <b dir="ltr">${escapeHtml(view.bonusQtyTotal)}</b> — مُسلَّمة بلا قيمة وبلا ضريبة، وتُخصم من المخزون بالتكلفة.</div>` : ''}
+
+    <table class="totals">
+      <tr><td>الإجمالي قبل الضريبة</td><th dir="ltr">${escapeHtml(view.subtotal)}</th></tr>
+      ${Number(view.discountTotal) > 0 ? `<tr><td>الخصم</td><th dir="ltr">${escapeHtml(view.discountTotal)}</th></tr>` : ''}
+      <tr><td>ضريبة القيمة المضافة (${escapeHtml(view.vatRate)}%)</td><th dir="ltr">${escapeHtml(view.vatTotal)}</th></tr>
+      <tr class="grand"><td>الإجمالي المستحق</td><th dir="ltr">${escapeHtml(view.grandTotal)}</th></tr>
+      <tr><td>المدفوع</td><th dir="ltr">${escapeHtml(view.paidAmount)}</th></tr>
+      <tr><td>المتبقي</td><th dir="ltr">${escapeHtml(view.outstandingAmount)}</th></tr>
+    </table>
+
+    ${view.qrPayload ? `<div class="qr"><img alt="ZATCA QR" src="data:image/png;base64,${''}" data-qr="${escapeHtml(view.qrPayload)}" /><div class="muted small">رمز الاستجابة السريعة (TLV): <span dir="ltr">${escapeHtml(view.qrPayload)}</span></div></div>` : ''}
+
+    ${
+      copy.requiresCustomerSignature && copy.signatureBlock
+        ? `<div class="sign">
+            <div class="sign-box"><span>${escapeHtml(copy.signatureBlock.customerSignatureLabel)}</span></div>
+            <div class="sign-box"><span>${escapeHtml(copy.signatureBlock.repSignatureLabel)}</span></div>
+            <div class="muted small">${escapeHtml(copy.signatureBlock.accountantNote)}</div>
+          </div>`
+        : ''
+    }
+    ${view.notes ? `<div class="notes">ملاحظات: ${escapeHtml(view.notes)}</div>` : ''}
+    <footer class="muted small">
+      ${view.invoiceMode === 'zatca_tax' ? 'مستند ضريبي إلكتروني — الحالة: ' + escapeHtml(view.invoiceStatus || '—') : 'حالة السياسة الضريبية: ' + escapeHtml(view.taxPolicyStatus)}
+    </footer>
+  </section>`;
+
+  const html = `<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8" />
+<title>${escapeHtml(view.documentNumber)} — نسختا الطباعة</title>
+<style>
+  :root { color-scheme: light; }
+  body { font-family: "Segoe UI", Tahoma, Arial, sans-serif; margin: 0; padding: 16px; background: #fff; color: #111; }
+  .no-print { text-align: center; margin-bottom: 12px; }
+  .copy { border: 1px solid #999; border-radius: 6px; padding: 14px; margin: 0 auto 18px; max-width: 780px; page-break-after: always; }
+  .copy:last-child { page-break-after: auto; }
+  header { display: flex; justify-content: space-between; gap: 14px; border-bottom: 2px solid #111; padding-bottom: 8px; }
+  h1 { font-size: 19px; margin: 0 0 2px; }
+  h2 { font-size: 15px; margin: 0 0 6px; }
+  h3 { font-size: 13px; margin: 0 0 4px; }
+  .en { font-size: 12px; color: #444; }
+  .meta { font-size: 11px; color: #333; display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+  .copy-label { display: inline-block; background: #111; color: #fff; font-size: 11px; padding: 2px 8px; border-radius: 10px; margin-bottom: 6px; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .kv td, .kv th { text-align: right; padding: 1px 4px; font-weight: 400; }
+  .kv th { font-weight: 700; }
+  .parties { display: flex; gap: 24px; margin: 10px 0; }
+  .lines th, .lines td { border: 1px solid #bbb; padding: 4px 6px; text-align: right; }
+  .lines thead th { background: #f2f2f2; }
+  .lines tr.bonus td { background: #fffbe8; }
+  .bonus-note { margin: 8px 0; font-size: 12px; background: #fffbe8; border: 1px dashed #c9a227; padding: 6px 8px; border-radius: 4px; }
+  .totals { width: 320px; margin: 10px 0 10px auto; }
+  .totals td, .totals th { border-bottom: 1px solid #ddd; padding: 3px 6px; text-align: right; }
+  .totals tr.grand td, .totals tr.grand th { border-top: 2px solid #111; font-size: 14px; }
+  .sign { display: flex; gap: 18px; margin-top: 18px; }
+  .sign-box { flex: 1; border: 1px solid #999; border-radius: 4px; height: 62px; display: flex; align-items: flex-end; padding: 6px; font-size: 11px; color: #555; }
+  .notes { margin-top: 10px; font-size: 12px; }
+  .muted { color: #555; }
+  .small { font-size: 11px; }
+  footer { margin-top: 10px; border-top: 1px solid #ddd; padding-top: 6px; }
+  @media print { .no-print { display: none !important; } body { padding: 0; } .copy { border: none; } }
+</style>
+</head>
+<body>
+  <div class="no-print">
+    <button onclick="window.print()" style="padding:8px 16px;font-weight:700;cursor:pointer;">🖨️ طباعة النسختين</button>
+    <span class="muted small"> نسخة للعميل ونسخة للمندوب تُعاد موقّعة إلى المحاسب — مستند بيع رسمي واحد بنسختين مطبوعتين</span>
+  </div>
+  ${view.copies.map(renderCopy).join('')}
+</body>
+</html>`;
+
+  const win = window.open('', '_blank', 'width=900,height=1000');
+  if (!win) return;
+  win.document.open();
+  win.document.write(html);
+  win.document.close();
+}
 
 const MOVEMENT_TYPE_AR: Record<string, string> = {
   production_in: '🏭 إنتاج يومي للمستودع الرئيسي',
@@ -230,11 +607,26 @@ const MOVEMENT_TYPE_AR: Record<string, string> = {
 
 const LOAD_STATUS_AR: Record<string, string> = {
   draft: 'مسودة',
-  loaded: 'محمّل في السيارة',
+  /** صُرفت البضاعة من المستودع الرئيسي وهي رسميًّا «تحت التحويل» — لم تدخل عهدة المندوب بعد. */
+  pending_receipt: '🚚 مصروف وبانتظار تأكيد استلام المندوب',
+  loaded: 'محمّل في السيارة (بعد تأكيد الاستلام)',
   in_route: 'قيد التوزيع اليومي',
   pending_closing: '⏳ معلق بانتظار فحص التالف واعتماد المحاسب',
-  settled: '✅ معتمد ومُصفّى (رصيد العهدة = 0)',
-  canceled: 'ملغى',
+  /** الكميات اعتُمدت، لكن رصيد السيارة الرسمي ما زال يختلف عن الجرد الفعلي. */
+  pending_stock_settlement: '🧾 بانتظار تسوية المخزون الرسمية (العهدة لم تُغلق)',
+  settled: '✅ معتمد ومُصفّى ومُسوّى مخزنياً',
+  reconciled: '✅ مُطابَق',
+  rejected: '❌ مرفوض من المندوب (أُعيدت الكمية رسمياً)',
+  canceled: '🗑️ ملغى (أُلغيت المناقلة الرسمية)',
+};
+
+/** حالة تسوية المخزون الرسمية كما يراها المحاسب. */
+const SETTLEMENT_STATUS_AR: Record<string, string> = {
+  not_required: 'لا يلزم تسوية',
+  pending_transit_decision: '🚦 فرق استلام بلا قرار',
+  pending_count_decision: '🧾 جرد بلا تسوية مُرحّلة',
+  settled_officially: '✅ سُوّي رسمياً',
+  blocked_missing_accounts: '⛔ حسابات ملف الترحيل ناقصة',
 };
 
 const BONUS_REASONS = [
@@ -244,7 +636,7 @@ const BONUS_REASONS = [
   'عرض كميات خاص بالموسم / رمضان',
 ];
 
-type TabKey = 'owner' | 'production' | 'loads' | 'invoice' | 'prices' | 'audit';
+type TabKey = 'owner' | 'production' | 'reps' | 'loads' | 'invoice' | 'prices' | 'audit';
 
 export default function VanSalesPage() {
   const [tab, setTab] = useState<TabKey>('owner');
@@ -252,21 +644,38 @@ export default function VanSalesPage() {
   const [salesmen, setSalesmen] = useState<Salesman[]>([]);
   const [customers, setCustomers] = useState<Party[]>([]);
   const [items, setItems] = useState<Item[]>([]);
+  const [warehouses, setWarehouses] = useState<Warehouse[]>([]);
+  const [cashLocations, setCashLocations] = useState<CashLocation[]>([]);
+  /** 🧑‍💼 مندوبو التوزيع ببطاقاتهم الرسمية وعهدهم الحيّة — من `/van-sales/salesmen`. */
+  const [vanSalesmen, setVanSalesmen] = useState<VanSalesman[]>([]);
   const [notice, setNotice] = useState<{ kind: 'ok' | 'danger' | 'warn'; text: string }>();
   const [busy, setBusy] = useState(false);
 
   // Pillar 1: Production batch form state
-  const [prodItemName, setProdItemName] = useState('رقائق سمبوسة بلدي طازجة (كجم)');
+  const [prodItemName, setProdItemName] = useState('');
   const [prodItemId, setProdItemId] = useState('');
+  /** المستودع الرئيسي الذي يدخله الإنتاج — يُقرأ من المستودعات الرسمية لا يُخترَع. */
+  const [prodWarehouseId, setProdWarehouseId] = useState('');
+  const [prodDate, setProdDate] = useState(today());
   const [prodQty, setProdQty] = useState('500');
   const [prodScrapQty, setProdScrapQty] = useState('0');
-  const [prodUnitCost, setProdUnitCost] = useState('3.80');
+  /** سبب الفاقد — إلزامي مع أي كمية فاقد: الخادم يرفض فاقدًا بلا سبب. */
+  const [prodScrapReason, setProdScrapReason] = useState('');
+  const [prodUnitCost, setProdUnitCost] = useState('');
   const [prodSupervisor, setProdSupervisor] = useState('مشرف خط الإنتاج');
   const [reconciliationPreview, setReconciliationPreview] = useState<LegacyReconciliationPreview | null>(null);
+
+  // 🧑‍💼 شاشة المندوبين: ربط الموظف وحساب الدخول ومستودع السيارة
+  const [repTarget, setRepTarget] = useState<VanSalesman | null>(null);
+  const [repEmail, setRepEmail] = useState('');
+  const [repFullName, setRepFullName] = useState('');
+  const [repScopeToVan, setRepScopeToVan] = useState(true);
 
   // Pillar 2: Load order form state (default 150 kg per client proposal example)
   const [loadSalesmanId, setLoadSalesmanId] = useState('');
   const [loadItemId, setLoadItemId] = useState('');
+  const [loadWarehouseId, setLoadWarehouseId] = useState('');
+  const [loadVanWarehouseId, setLoadVanWarehouseId] = useState('');
   const [vehiclePlate, setVehiclePlate] = useState('أ ب ج 4521');
   const [productionBatchNo, setProductionBatchNo] = useState('');
   const [loadedQty, setLoadedQty] = useState('150');
@@ -276,12 +685,22 @@ export default function VanSalesPage() {
   // Pillar 2: Shift Closing & Accountant Approval Modal State
   const [closingTarget, setClosingTarget] = useState<LoadOrder | null>(null);
   const [closingReturnedQty, setClosingReturnedQty] = useState('0');
-  const [closingDamagedQty, setClosingDamagedQty] = useState('25');
-  const [closingDamageReason, setClosingDamageReason] = useState('تلف أثناء النقل والحرارة — جاهز للفحص الفعلي');
+  const [closingDamagedQty, setClosingDamagedQty] = useState('0');
+  const [closingDamageReason, setClosingDamageReason] = useState('');
   const [closingCollectedCash, setClosingCollectedCash] = useState('0');
+  /** 🧮 المتبقي الفعلي بالجرد — يُعبّأ بما أعلنته الوردية ولا يُفتَرَض صفرًا ولا رقمًا من الكود. */
+  const [closingActualRemaining, setClosingActualRemaining] = useState('0');
   const [closingNotes, setClosingNotes] = useState('');
-  const [closingDamageInspected, setClosingDamageInspected] = useState(true);
-  const [closingSalaryDeduction, setClosingSalaryDeduction] = useState(true);
+  const [closingDamageInspected, setClosingDamageInspected] = useState(false);
+  const [closingSalaryDeduction, setClosingSalaryDeduction] = useState(false);
+  /** مصير المتبقي الفعلي — قرار صريح، و'' تعني أن المحاسب لم يختر بعد. */
+  const [closingRemainingAction, setClosingRemainingAction] = useState<
+    'return_to_main' | 'carry_over' | ''
+  >('');
+  /** 🖋️ تفويض ترحيل مستند الجرد الرسمي — بدونه يبقى المستند مسودة وتبقى العهدة معلّقة. */
+  const [closingSettleStock, setClosingSettleStock] = useState(false);
+  /** ⚖️ إقرار صريح بأن الجرد الفعلي أكبر من العهدة (فائض). */
+  const [closingSurplusAck, setClosingSurplusAck] = useState(false);
 
   // Pillar 4 & 5: Customer price tier & credit limit form state
   const [tierPartyId, setTierPartyId] = useState('');
@@ -302,6 +721,8 @@ export default function VanSalesPage() {
   const [docWalkinName, setDocWalkinName] = useState('');
   const [docMode, setDocMode] = useState<'zatca_tax' | 'internal_delivery'>('zatca_tax');
   const [docPayment, setDocPayment] = useState<'cash' | 'card' | 'credit'>('cash');
+  /** 💵 الصندوق الذي يستقر فيه نقد المندوب — يُمرَّر إلى تسوية الفاتورة الرسمية. */
+  const [docCashLocationId, setDocCashLocationId] = useState('');
   const [docSoldQty, setDocSoldQty] = useState('100');
   const [docBonusQty, setDocBonusQty] = useState('20');
   const [docBonusReason, setDocBonusReason] = useState(BONUS_REASONS[0] ?? 'بونص ترويجي متفق عليه مع العميل');
@@ -315,19 +736,41 @@ export default function VanSalesPage() {
 
   async function reload() {
     const dash = await apiData<DashboardData>('/van-sales/dashboard');
-    const [smRes, custRes, itRes] = await Promise.allSettled([
+    const [smRes, custRes, itRes, whRes, cashRes, vanSmRes] = await Promise.allSettled([
       listSalesmen(),
       listParties('customer'),
       listItems(),
+      listWarehouses(),
+      listCashLocations(),
+      apiData<VanSalesman[]>('/van-sales/salesmen'),
     ]);
     const sm = smRes.status === 'fulfilled' ? smRes.value : [];
     const cust = custRes.status === 'fulfilled' ? custRes.value : [];
     const it = itRes.status === 'fulfilled' ? itRes.value : [];
+    const wh = whRes.status === 'fulfilled' ? whRes.value : [];
+    const cash = cashRes.status === 'fulfilled' ? cashRes.value : [];
+    const vanSm = vanSmRes.status === 'fulfilled' ? vanSmRes.value : [];
     setData(dash);
     setSalesmen(sm);
     setCustomers(cust);
     setItems(it);
+    setWarehouses(wh);
+    setCashLocations(cash);
+    setVanSalesmen(vanSm);
     if (!loadSalesmanId && sm[0]?.id) setLoadSalesmanId(sm[0].id);
+    /**
+     * المستودع الرئيسي الافتراضي — pre-selected so production always lands somewhere real;
+     * the server resolves the same default when the field is left empty.
+     */
+    if (!prodWarehouseId) {
+      const mainWarehouse = defaultOf(wh) ?? wh[0];
+      if (mainWarehouse?.id) setProdWarehouseId(mainWarehouse.id);
+    }
+    if (!prodItemId && it[0]?.id) setProdItemId(it[0].id);
+    if (!loadWarehouseId) {
+      const mainWarehouse = defaultOf(wh) ?? wh[0];
+      if (mainWarehouse?.id) setLoadWarehouseId(mainWarehouse.id);
+    }
     if (!productionBatchNo && dash.productionBatches?.[0]?.batchNo) {
       setProductionBatchNo(dash.productionBatches[0].batchNo);
     }
@@ -339,7 +782,10 @@ export default function VanSalesPage() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const initialTab = params.get('tab') as TabKey | null;
-    if (initialTab && ['owner', 'production', 'loads', 'invoice', 'prices', 'audit'].includes(initialTab)) {
+    if (
+      initialTab &&
+      ['owner', 'production', 'reps', 'loads', 'invoice', 'prices', 'audit'].includes(initialTab)
+    ) {
       setTab(initialTab);
     }
     void reload().catch((error: unknown) =>
@@ -362,22 +808,180 @@ export default function VanSalesPage() {
     setNotice(undefined);
     try {
       const next = await apiPost<DashboardData>('/van-sales/production-batches', {
-        itemId: prodItemId || undefined,
-        itemName: prodItemName,
+        /**
+         * الصنف والمستودع — both mandatory now. Without them the batch row was written and
+         * **no official stock movement happened**, so the main warehouse balance never grew:
+         * the exact defect reported from the floor.
+         */
+        itemId: prodItemId,
+        warehouseId: prodWarehouseId || undefined,
+        productionDate: prodDate || undefined,
+        itemName: prodItemName || undefined,
         producedQty: prodQty,
         scrapQty: prodScrapQty || '0',
-        unitCost: prodUnitCost,
+        scrapReason: prodScrapReason.trim() || undefined,
+        unitCost: prodUnitCost || undefined,
         supervisorName: prodSupervisor,
       });
       setData(next);
       const newestBatch = next.productionBatches[0];
       if (newestBatch) setProductionBatchNo(newestBatch.batchNo);
+      const warehouseName =
+        warehouses.find((row) => row.id === (newestBatch as { warehouseId?: string | null }).warehouseId)?.name ??
+        'المستودع الرئيسي';
       setNotice({
         kind: 'ok',
-        text: `تم تسجيل دفعة الإنتاج اليومية (${newestBatch?.batchNo ?? ''}) بكمية ${prodQty} كجم وتوريدها للمستودع الرئيسي.`,
+        text: `تم تسجيل دفعة الإنتاج (${newestBatch?.batchNo ?? ''}) بكمية ${prodQty} كجم، ودخلت الرصيد الرسمي في ${warehouseName} — الرصيد الرسمي الآن ${next.summary.mainWarehouseBalanceKg} كجم.`,
       });
     } catch (error) {
       setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : 'تعذر تسجيل دفعة الإنتاج' });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  /** ✅ تأكيد استلام التوريد — what turns "sent" into custody on the official balance. */
+  async function confirmLoadReceipt(loadOrderId: string, receivedQty: string) {
+    setBusy(true);
+    setNotice(undefined);
+    try {
+      const next = await apiPost<DashboardData>(
+        `/van-sales/load-orders/${loadOrderId}/confirm-receipt`,
+        { receivedQty },
+      );
+      setData(next);
+      setNotice({
+        kind: 'ok',
+        text: `تم تأكيد استلام ${receivedQty} كجم ودخولها الرصيد الرسمي لمستودع سيارة المندوب.`,
+      });
+    } catch (error) {
+      setNotice({
+        kind: 'danger',
+        text: error instanceof ApiError ? error.message : 'تعذر تأكيد استلام التوريد',
+      });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  /** 🔗 ربط المندوب بحساب دخول رسمي (مستخدم + عضوية + دور + نطاق مستودع السيارة). */
+  async function linkRepAccount(event: React.FormEvent) {
+    event.preventDefault();
+    if (!repTarget) return;
+    setBusy(true);
+    setNotice(undefined);
+    try {
+      const result = await apiPost<{
+        membershipId: string;
+        email: string;
+        status: string;
+        roleName: string;
+        activationRequired: boolean;
+        scopedToVanWarehouse: boolean;
+      }>(`/van-sales/salesmen/${repTarget.id}/account`, {
+        email: repEmail,
+        fullName: repFullName || undefined,
+        restrictToVanWarehouse: repScopeToVan,
+      });
+      setNotice({
+        kind: 'ok',
+        text: `تم ربط المندوب (${repTarget.name}) بحساب الدخول ${result.email} على دور «${result.roleName}»${
+          result.scopedToVanWarehouse ? ' مع قصر صلاحيته على مستودع سيارته' : ''
+        }${result.activationRequired ? ' — الحساب بانتظار تفعيل كلمة المرور من رابط الدعوة الرسمي' : ''}.`,
+      });
+      setRepTarget(null);
+      await reload();
+    } catch (error) {
+      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : 'تعذر ربط حساب المندوب' });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  /**
+   * 🖨️ طباعة نسختين — customer copy + rep copy (with a signature box) of the *same*
+   * official document. Rendered from `/van-sales/documents/:id/print-view`, so the numbers
+   * on paper are the numbers in the ledger.
+   */
+  async function printDocumentCopies(documentId: string) {
+    setBusy(true);
+    setNotice(undefined);
+    try {
+      const view = await apiData<PrintView>(`/van-sales/documents/${documentId}/print-view?copies=2`);
+      openPrintWindow(view);
+    } catch (error) {
+      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : 'تعذر تجهيز نسخة الطباعة' });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  /**
+   * 🧾 الإيصال الحراري — built from the same official print view, so the company name and
+   * tax number come from the company profile instead of a string in the code.
+   */
+  async function printThermalFromView(documentId: string) {
+    setBusy(true);
+    setNotice(undefined);
+    try {
+      const view = await apiData<PrintView>(`/van-sales/documents/${documentId}/print-view?copies=1`);
+      printThermalReceipt80mm({
+        companyName: view.companyName,
+        taxNo: view.companyTaxNo,
+        branchName: `دفعة إنتاج: ${view.productionBatchNo}`,
+        invoiceNumber: view.invoiceNumber ?? view.documentNumber,
+        invoiceTypeLabel:
+          view.invoiceMode === 'zatca_tax'
+            ? 'فاتورة ضريبية مبسطة (ZATCA)'
+            : 'إيصال تسليم بضاعة (توزيع)',
+        issuedAt: view.saleDate,
+        customerName: view.customerName,
+        cashierName: view.salesmanName,
+        paymentMethodLabel:
+          view.paymentMethod === 'cash'
+            ? 'نقدي (Cash)'
+            : view.paymentMethod === 'card'
+              ? 'شبكة مدى'
+              : 'آجل (Credit)',
+        lines: view.lines.map((line) => ({
+          name: line.itemName,
+          quantity: line.quantity,
+          unitPrice: line.unitPrice,
+          total: line.lineTotal,
+        })),
+        subtotal: view.subtotal,
+        discount: view.discountTotal,
+        taxTotal: view.vatTotal,
+        total: view.grandTotal,
+        paidAmount: view.paidAmount,
+        qrPayload: view.qrPayload,
+      });
+    } catch (error) {
+      setNotice({
+        kind: 'danger',
+        text: error instanceof ApiError ? error.message : 'تعذر تجهيز الإيصال الحراري',
+      });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  /** ↩️ مرتجع العميل — official `sale_return` against the original document. */
+  async function submitReturn(documentId: string, returnedQty: string, reason: string) {
+    setBusy(true);
+    setNotice(undefined);
+    try {
+      const next = await apiPost<DashboardData>(`/van-sales/documents/${documentId}/returns`, {
+        returnedQty,
+        reason,
+      });
+      setData(next);
+      setNotice({
+        kind: 'ok',
+        text: `تم تسجيل مرتجع العميل (${returnedQty} كجم) وإصدار فاتورة مرتجع رسمية وإرجاع الكمية إلى عهدة المندوب.`,
+      });
+    } catch (error) {
+      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : 'تعذر تسجيل المرتجع' });
     } finally {
       setBusy(false);
     }
@@ -391,6 +995,8 @@ export default function VanSalesPage() {
       const next = await apiPost<DashboardData>('/van-sales/load-orders', {
         salesmanId: loadSalesmanId,
         itemId: loadItemId || undefined,
+        warehouseId: loadWarehouseId || undefined,
+        vanWarehouseId: loadVanWarehouseId || undefined,
         vehiclePlate,
         productionBatchNo: productionBatchNo || undefined,
         loadedQty,
@@ -402,7 +1008,7 @@ export default function VanSalesPage() {
       if (newestLoad) setDocLoadOrderId(newestLoad.id);
       setNotice({
         kind: 'ok',
-        text: `تم صرف وتحميل عهدة المندوب رقم ${newestLoad?.number ?? ''} من دفعة الإنتاج (${newestLoad?.productionBatchNo ?? ''}) بكمية ${loadedQty} كجم.`,
+        text: `تم إنشاء مناولة مخزنية رسمية وصرف ${loadedQty} كجم من المستودع الرئيسي لأمر التحميل ${newestLoad?.number ?? ''} — الحالة الآن «بانتظار تأكيد استلام المندوب»، ولن تدخل عهدة المندوب قبل تأكيده.`,
       });
     } catch (error) {
       setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : 'تعذر إنشاء أمر التحميل' });
@@ -474,6 +1080,7 @@ export default function VanSalesPage() {
         customerName: docPartyId ? undefined : docWalkinName.trim() || 'محل تجزئة نقدي',
         invoiceMode: docMode,
         paymentMethod: docPayment,
+        cashLocationId: docCashLocationId || undefined,
         soldQty: docSoldQty,
         bonusQty: docBonusQty || '0',
         bonusReason: Number(docBonusQty || 0) > 0 ? docBonusReason : undefined,
@@ -501,12 +1108,27 @@ export default function VanSalesPage() {
   function openClosingModal(load: LoadOrder) {
     setClosingTarget(load);
     setClosingReturnedQty(load.returnedQty && Number(load.returnedQty) > 0 ? load.returnedQty : '0');
-    setClosingDamagedQty(load.damagedQty && Number(load.damagedQty) > 0 ? load.damagedQty : '25');
-    setClosingDamageReason(load.damageReason || 'تلف أثناء النقل والحرارة — جاهز للفحص الفعلي');
+    setClosingDamagedQty(load.damagedQty && Number(load.damagedQty) > 0 ? load.damagedQty : '0');
+    setClosingDamageReason(load.damageReason || '');
     setClosingCollectedCash(Number(load.collectedCash) > 0 ? load.collectedCash : load.expectedCash);
+    // ما سجّله المندوب فعلياً إن وُجد، وإلا المتبقي المتوقع حتى يعدّله المحاسب بعد الجرد.
+    setClosingActualRemaining(
+      Number(load.actualRemainingQty ?? 0) > 0
+        ? String(load.actualRemainingQty)
+        : String(load.expectedRemainingQty ?? load.remainingQty ?? '0'),
+    );
     setClosingNotes(load.closingNotes || '');
-    setClosingDamageInspected(true);
-    setClosingSalaryDeduction(true);
+    // لا يُفتَرَض الفحص ولا الخصم: إقراران صريحان من المحاسب في كل مرة.
+    setClosingDamageInspected(load.damageInspected === true);
+    setClosingSalaryDeduction(load.salaryDeductionApproved === true);
+    // قرار مصير المتبقي لا يُفتَرَض: يُقرأ إن سبق تسجيله، وإلا يبقى بلا اختيار.
+    setClosingRemainingAction(
+      load.remainingAction === 'return_to_main' || load.remainingAction === 'carry_over'
+        ? load.remainingAction
+        : '',
+    );
+    setClosingSettleStock(false);
+    setClosingSurplusAck(false);
   }
 
   async function handleSubmitPendingClosing() {
@@ -519,6 +1141,7 @@ export default function VanSalesPage() {
         damagedQty: closingDamagedQty,
         damageReason: closingDamageReason,
         collectedCash: closingCollectedCash,
+        actualRemainingQty: closingActualRemaining,
         closingNotes,
       });
       setData(next);
@@ -530,6 +1153,89 @@ export default function VanSalesPage() {
       });
     } catch (error) {
       setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : 'تعذر تقديم إغلاق الوردية' });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  /**
+   * ♻️ استكمال تسوية المخزون — the recovery path for a custody whose quantities were approved
+   * but whose official count settlement did not complete. Same official mechanism, safe to repeat.
+   */
+  async function handleSettleLoadOrderStock(load: LoadOrder, settleStockAdjustment: boolean) {
+    setBusy(true);
+    setNotice(undefined);
+    try {
+      const next = await apiPost<DashboardData>(`/van-sales/load-orders/${load.id}/settle-stock`, {
+        settleStockAdjustment,
+        ...(load.remainingAction ? { remainingAction: load.remainingAction } : {}),
+      });
+      setData(next);
+      const updated = next.loadOrders.find((l) => l.id === load.id) ?? null;
+      setNotice({
+        kind: updated?.status === 'settled' ? 'ok' : 'warn',
+        text:
+          updated?.status === 'settled'
+            ? `✅ سُوّي رصيد السيارة الرسمي مع الجرد الفعلي (${load.number}) وأُغلقت العهدة. مسؤولية أي عجز ما زالت معلّقة بانتظار السياسة.`
+            : `⏳ ${updated?.stockSettlementNote ?? 'لم تكتمل تسوية المخزون بعد'} (${load.number}).`,
+      });
+    } catch (error) {
+      setNotice({
+        kind: 'danger',
+        text: error instanceof ApiError ? error.message : 'تعذّر استكمال تسوية المخزون',
+      });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  /** 🚦 قرار فرق الاستلام — financial decision taken explicitly, never assumed by the system. */
+  async function handleCloseTransitDifference(load: LoadOrder, mode: 'return' | 'shortage') {
+    setBusy(true);
+    setNotice(undefined);
+    try {
+      const next = await apiPost<DashboardData>(
+        `/van-sales/load-orders/${load.id}/close-transit-difference`,
+        { mode, reason: mode === 'return' ? 'إرجاع الفرق إلى المستودع المصدر' : 'اعتبار الفرق عجز تحويل' },
+      );
+      setData(next);
+      setNotice({
+        kind: 'ok',
+        text:
+          mode === 'return'
+            ? `↩️ أُعيد فرق الاستلام (${load.discrepancyQty ?? '0'} كجم) رسمياً إلى المستودع المصدر بقيد من ملف الترحيل (${load.number}).`
+            : `⚠️ اعتُبر فرق الاستلام (${load.discrepancyQty ?? '0'} كجم) عجز تحويل ورُحّل رسمياً (Dr تسوية المخزون / Cr بضاعة تحت التحويل) (${load.number}).`,
+      });
+    } catch (error) {
+      setNotice({
+        kind: 'danger',
+        text: error instanceof ApiError ? error.message : 'تعذّر إقفال فرق الاستلام',
+      });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  /** 🗑️ إلغاء توريد لم يُستلَم — عبر الإلغاء الرسمي للمناقلة (يعيد الكميات ويعكس القيد). */
+  async function handleCancelLoadOrder(load: LoadOrder) {
+    const reason = window.prompt(
+      `سبب إلغاء أمر التحميل (${load.number}) — ستُعاد الكميات رسمياً إلى المستودع المصدر ويُلغى قيد الإرسال:`,
+      '',
+    );
+    if (reason === null) return;
+    setBusy(true);
+    setNotice(undefined);
+    try {
+      const next = await apiPost<DashboardData>(`/van-sales/load-orders/${load.id}/cancel`, {
+        reason: reason.trim() || undefined,
+      });
+      setData(next);
+      setNotice({ kind: 'ok', text: `🗑️ أُلغي أمر التحميل (${load.number}) وأُلغيت المناقلة الرسمية وأعادت الكميات وقيد الإرسال.` });
+    } catch (error) {
+      setNotice({
+        kind: 'danger',
+        text: error instanceof ApiError ? error.message : 'تعذّر إلغاء أمر التحميل',
+      });
     } finally {
       setBusy(false);
     }
@@ -547,12 +1253,33 @@ export default function VanSalesPage() {
         damageInspected: closingDamageInspected,
         salaryDeductionApproved: closingSalaryDeduction,
         notes: closingNotes,
+        // 🧮 الجرد الفعلي كما يقرّره المحاسب، ومصير المتبقي، وتفويض ترحيل مستند الجرد.
+        actualRemainingQty: closingActualRemaining,
+        ...(closingRemainingAction ? { remainingAction: closingRemainingAction } : {}),
+        settleStockAdjustment: closingSettleStock,
+        ...(modalSurplusKg > 0 ? { surplusAcknowledged: closingSurplusAck } : {}),
       });
       setData(next);
+      const updated = next.loadOrders.find((l) => l.id === closingTarget.id) ?? null;
       setClosingTarget(null);
+      const stillOpen = updated?.status === 'pending_stock_settlement';
       setNotice({
-        kind: 'ok',
-        text: `✅ تم اعتماد المحاسب النهائي لإغلاق الوردية (${closingTarget.number})، تأكيد فحص التالف، تصفير عهدة المندوب (0.00 كجم)، وقيد العجز خصماً على راتب المندوب.`,
+        kind: stillOpen ? 'warn' : 'ok',
+        text: stillOpen
+          ? `⏳ اعتُمدت كميات الوردية (${closingTarget.number}) لكن **العهدة لم تُغلق**: ${
+              updated?.stockSettlementNote ?? 'رصيد السيارة الرسمي ما زال يختلف عن الجرد الفعلي'
+            } — استخدم «♻️ استكمال تسوية المخزون» بعد تفويض ترحيل مستند الجرد الرسمي.`
+          : `✅ اعتُمدت الوردية (${closingTarget.number}) وسُوّي رصيد السيارة الرسمي مع الجرد الفعلي${
+              closingRemainingAction === 'return_to_main'
+                ? ' وأُعيد المتبقي رسمياً إلى المستودع الرئيسي'
+                : closingRemainingAction === 'carry_over'
+                  ? ' وبقي المتبقي عهدة الوردية التالية'
+                  : ''
+            }.${
+              modalShortageKg > 0
+                ? ` العجز (${modalShortageKg.toFixed(2)} كجم ≈ ${modalShortageSar.toFixed(2)} ريال) مسجّل وقيمته مثبتة في مستند الجرد الرسمي، ومسؤوليته المالية ما زالت معلّقة — لا قيد على راتب المندوب أو ذمته قبل اعتماد السياسة.`
+                : ''
+            }`,
       });
     } catch (error) {
       setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : 'تعذر اعتماد إغلاق الوردية' });
@@ -591,13 +1318,21 @@ export default function VanSalesPage() {
   const previewVat = docMode === 'zatca_tax' ? previewSubtotal * configuredVatFactor : 0;
   const previewTotal = previewSubtotal + previewVat;
 
-  // Live calculation inside the Shift Closing Modal (e.g. 150 loaded - 100 sold - 20 bonus - 0 returned - 25 damaged = 5 kg shortage)
-  const modalLoaded = Number(closingTarget?.loadedQty ?? 0);
+  /**
+   * 🧮 حساب مباشر داخل نافذة الإغلاق على **أساس العهدة الحقيقي**: ما أكّد المندوب استلامه
+   * (`receivedQty`) لا ما خرج من المستودع الرئيسي، مطروحاً منه المباع والبونص والمرتجع
+   * والتالف = المتبقي المتوقع، والفرق بينه وبين الجرد الفعلي هو العجز.
+   */
+  const modalReceived = Number(closingTarget?.receivedQty ?? 0);
+  const modalLoaded = modalReceived > 0 ? modalReceived : Number(closingTarget?.loadedQty ?? 0);
   const modalSold = Number(closingTarget?.soldQty ?? 0);
   const modalBonus = Number(closingTarget?.bonusQty ?? 0);
   const modalReturned = Number(closingReturnedQty || 0);
   const modalDamaged = Number(closingDamagedQty || 0);
-  const modalShortageKg = Math.max(0, modalLoaded - (modalSold + modalBonus + modalReturned + modalDamaged));
+  const modalActualRemaining = Number(closingActualRemaining || 0);
+  const modalExpectedRemaining = modalLoaded - (modalSold + modalBonus + modalReturned + modalDamaged);
+  const modalShortageKg = Math.max(0, modalExpectedRemaining - modalActualRemaining);
+  const modalSurplusKg = Math.max(0, modalActualRemaining - modalExpectedRemaining);
   const targetShortageUnitRate =
     closingTarget && Number(closingTarget.shortageQty) > 0
       ? Number(closingTarget.shortageValue) / Number(closingTarget.shortageQty)
@@ -630,10 +1365,21 @@ export default function VanSalesPage() {
         </button>
         <button
           type="button"
+          className={tab === 'reps' ? 'btn primary' : 'btn'}
+          onClick={() => setTab('reps')}
+        >
+          🧑‍💼 3. مندوبو التوزيع وحساباتهم ومستودعات سياراتهم ({vanSalesmen.length})
+        </button>
+        <button
+          type="button"
           className={tab === 'loads' ? 'btn primary' : 'btn'}
           onClick={() => setTab('loads')}
         >
-          🚚 3. عهد المناديب وإغلاق الوردية واعتماد المحاسب ({data?.loadOrders.length ?? 0})
+          🚚 4. توريد المنتجات وعهد المناديب وإغلاق الوردية ({data?.loadOrders.length ?? 0})
+          {(data?.summary.pendingReceiptsCount ?? 0) > 0 ? ` · ⏳ ${data?.summary.pendingReceiptsCount} بانتظار الاستلام` : ''}
+          {(data?.summary.pendingStockSettlementsCount ?? 0) > 0
+            ? ` · 🧾 ${data?.summary.pendingStockSettlementsCount} بلا تسوية مخزون`
+            : ''}
         </button>
         <button
           type="button"
@@ -683,6 +1429,121 @@ export default function VanSalesPage() {
           <button type="button" className="btn primary" onClick={() => setTab('loads')}>
             مراجعة واعتماد إغلاقات الورديات الآن ←
           </button>
+        </div>
+      )}
+
+      {/* 🧾 عهد لم تُغلق: الرصيد الرسمي ما زال يختلف عن الجرد الفعلي */}
+      {((data?.summary.pendingStockSettlementsCount ?? 0) > 0 ||
+        (data?.summary.pendingTransitDecisionsCount ?? 0) > 0) && (
+        <div className="card" style={{ border: '2px solid var(--danger)' }}>
+          <strong>
+            🧾 يوجد ({data?.summary.pendingStockSettlementsCount ?? 0}) وردية اعتُمدت كمياتها ولم تُسوَّ
+            مخزنياً
+            {(data?.summary.pendingTransitDecisionsCount ?? 0) > 0
+              ? ` و(${data?.summary.pendingTransitDecisionsCount}) فرق استلام بلا قرار`
+              : ''}
+          </strong>
+          <div className="muted small">
+            العهدة <b>لم تُغلق</b>: رصيد السيارة الرسمي في دفتر المخزون ما زال يختلف عن الجرد الفعلي. لا تُغلق
+            أي عهدة مع بقاء فرق بلا تسوية في دفتر المخزون — استخدم «♻️ استكمال تسوية المخزون» على الأمر المعنيّ
+            بعد تفويض ترحيل مستند الجرد الرسمي. المسؤولية المالية عن أي عجز تبقى معلّقة حتى تعتمد السياسة.
+          </div>
+          <button type="button" className="btn primary" onClick={() => setTab('loads')}>
+            عرض الورديات المعلّقة وتسويتها الآن ←
+          </button>
+        </div>
+      )}
+
+      {/* Pending supply receipts — goods officially in transit, not yet in the rep's custody */}
+      {(data?.summary.pendingReceiptsCount ?? 0) > 0 && (
+        <div className="card" style={{ border: '2px solid var(--info, #2f6fed)' }}>
+          <strong>🚚 يوجد ({data?.summary.pendingReceiptsCount}) توريد بانتظار تأكيد استلام المندوب</strong>
+          <div className="muted small">
+            البضاعة خرجت من المستودع الرئيسي وهي رسميًّا «تحت التحويل» — لا تدخل عهدة المندوب ولا يظهر لها رصيد في
+            سيارته إلا بعد أن يؤكّد الاستلام من تطبيق المندوب (أو يؤكده المحاسب نيابةً عنه).
+          </div>
+          <button type="button" className="btn" onClick={() => setTab('loads')}>
+            عرض التوريدات المنتظرة ←
+          </button>
+        </div>
+      )}
+
+      {/* جاهزية الترحيل المحاسبي — named per operation so the message is actionable */}
+      {data?.postingReadiness && !data.postingReadiness.salesInvoice && (
+        <div className="card" style={{ border: '2px solid var(--warn)' }}>
+          <strong>⚠️ ملف الترحيل المحاسبي غير مكتمل</strong>
+          <div className="muted small">{data.postingReadiness.message}</div>
+          <div className="muted small">
+            الحالة الآن: فاتورة المبيعات الرسمية {data.postingReadiness.salesInvoice ? '✅' : '❌'} · المناولات
+            المخزنية {data.postingReadiness.stockTransfer ? '✅' : '❌'} · سندات القبض{' '}
+            {data.postingReadiness.receiptVoucher ? '✅' : '❌'} — تسجيل الإنتاج وحركة الأرصدة يعملان بدونها.
+          </div>
+        </div>
+      )}
+
+      {/* الأرصدة الرسمية — the same rows the inventory screens read */}
+      <div className="card">
+        <h2 style={{ marginTop: 0 }}>📦 الأرصدة الرسمية في المستودعات (من دفتر المخزون الموحّد)</h2>
+        <div className="muted small" style={{ marginBottom: 8 }}>
+          هذه هي الأرصدة نفسها التي تراها في شاشة أرصدة المخزون وبطاقة الصنف والتقارير الرسمية — تُقرأ من
+          <code> stock_balances</code> ولا تُحتسب من جداول الإضافة.
+          {data?.summary.stockLedgerAgrees === false ? (
+            <b style={{ color: 'var(--danger)' }}>
+              {' '}⚠️ يوجد اختلاف بين الرصيد الرسمي والرصيد المشتق من سجلات التوزيع — راجع الحركات.
+            </b>
+          ) : null}
+        </div>
+        <div className="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>المستودع</th>
+                <th>الصنف</th>
+                <th>البطاقة</th>
+                <th align="left">الرصيد الرسمي</th>
+                <th align="left">متوسط التكلفة</th>
+                <th align="left">قيمة الرصيد</th>
+              </tr>
+            </thead>
+            <tbody>
+              {(data?.officialStock ?? []).map((row) => (
+                <tr key={`${row.warehouseId}-${row.itemId}`}>
+                  <td>
+                    {row.warehouseName}
+                    {row.warehouseId === data?.mainWarehouseId ? ' 🏭 (رئيسي)' : ''}
+                  </td>
+                  <td>{row.itemName}</td>
+                  <td dir="ltr">{row.sku}</td>
+                  <td align="left" dir="ltr">{row.quantity}</td>
+                  <td align="left" dir="ltr">{row.averageCost}</td>
+                  <td align="left" dir="ltr">{row.value}</td>
+                </tr>
+              ))}
+              {(data?.officialStock ?? []).length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="muted">
+                    لا توجد أرصدة رسمية بعد — سجّل دفعة إنتاج وستظهر هنا وفي شاشة المخزون معًا.
+                  </td>
+                </tr>
+              ) : null}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* 🚚 بضاعة تحت التحويل — الكمية التي لا هي في المستودع ولا في السيارة */}
+      {Number(data?.summary.inTransitKg ?? 0) > 0 && (
+        <div className="card" style={{ border: '2px solid var(--info, #2f6fed)' }}>
+          <strong>
+            🚚 بضاعة تحت التحويل: {data?.summary.inTransitKg} كجم بقيمة{' '}
+            {data?.summary.inTransitValueSar} ريال ({data?.summary.inTransitTransfersCount ?? 0} مناولة)
+          </strong>
+          <div className="muted small">
+            خرجت من المستودع الرسمي ولم يؤكّد المندوب استلامها بعد: ليست في رصيد السيارة ولا في رصيد
+            المستودع، وقيمتها واقفة في حساب «بضاعة تحت التحويل» بقيد (Dr بضاعة تحت التحويل / Cr
+            المخزون). أي فرق عند الاستلام يبقى معلّقاً حتى يُتخذ فيه قرار صريح (إرجاع إلى المصدر أو
+            اعتباره عجز تحويل) — لا يُرحَّل تلقائياً.
+          </div>
         </div>
       )}
 
@@ -824,29 +1685,69 @@ export default function VanSalesPage() {
           <form className="card" onSubmit={submitProductionBatch} style={{ display: 'grid', gap: 12 }}>
             <h2 style={{ margin: 0 }}>🏭 تسجيل دفعة إنتاج يومي للمصنع والمخبز وتوريدها للمستودع الرئيسي</h2>
             <p className="muted small" style={{ margin: 0 }}>
-              تُقيَّد الكمية المنتجة في المستودع الرئيسي برقم دفعة فريد، ولا يستطيع أي مندوب بيع كمية إلا بعد صرفها رسمياً من هذه الدفعات.
+              تُقيَّد الكمية المنتجة في <b>الرصيد الرسمي للمستودع</b> برقم دفعة فريد (نفس الأرصدة التي تظهر في شاشة
+              المخزون وبطاقة الصنف)، ولا يستطيع أي مندوب بيع كمية إلا بعد صرفها رسمياً من هذه الدفعات.
             </p>
             <div className="form-grid">
               <label className="field">
-                <span>الصنف المنتج (سمبوسة / فطائر / عجين / خبز)</span>
-                <input
+                <span>الصنف المنتج من الأصناف المسجلة *</span>
+                <select
                   className="input"
                   required
-                  value={prodItemName}
-                  onChange={(e) => setProdItemName(e.target.value)}
+                  value={prodItemId}
+                  onChange={(e) => {
+                    const nextId = e.target.value;
+                    setProdItemId(nextId);
+                    const picked = items.find((it) => it.id === nextId);
+                    if (picked) {
+                      setProdItemName(itemLabel(picked));
+                      /** تكلفة الصنف من بطاقته — لا رقم مخترع في الكود. */
+                      const purchasePrice = (picked as { purchasePrice?: string | null }).purchasePrice;
+                      if (!prodUnitCost && purchasePrice) setProdUnitCost(purchasePrice);
+                    }
+                  }}
+                >
+                  <option value="">— اختر الصنف —</option>
+                  {items.map((it) => (
+                    <option key={it.id} value={it.id}>
+                      {itemLabel(it)}
+                    </option>
+                  ))}
+                </select>
+                <span className="muted small">
+                  لا يمكن تسجيل إنتاج لصنف غير مسجل: الرصيد الرسمي يُحتسب بالصنف والمستودع.
+                </span>
+              </label>
+              <label className="field">
+                <span>المستودع الرئيسي المُورَّد إليه *</span>
+                <select
+                  className="input"
+                  value={prodWarehouseId}
+                  onChange={(e) => setProdWarehouseId(e.target.value)}
+                >
+                  {warehouses.map((wh) => (
+                    <option key={wh.id} value={wh.id}>
+                      {wh.name ?? wh.nameAr ?? wh.code}
+                      {wh.isDefault ? ' (افتراضي)' : ''}
+                    </option>
+                  ))}
+                </select>
+                <span className="muted small">
+                  يُختار المستودع الافتراضي تلقائيًا إن تُرك فارغًا — ولن تُسجَّل الدفعة بلا مستودع.
+                </span>
+              </label>
+              <label className="field">
+                <span>تاريخ الإنتاج</span>
+                <input
+                  className="input"
+                  type="date"
+                  dir="ltr"
+                  value={prodDate}
+                  onChange={(e) => setProdDate(e.target.value)}
                 />
               </label>
               <label className="field">
-                <span>ربط ببطاقة صنف في المخزون (اختياري)</span>
-                <select className="input" value={prodItemId} onChange={(e) => setProdItemId(e.target.value)}>
-                  <option value="">— تلقائي —</option>
-                  {items.map((it) => (
-                    <option key={it.id} value={it.id}>{it.nameAr}</option>
-                  ))}
-                </select>
-              </label>
-              <label className="field">
-                <span>الكمية المنتجة اليوم (كجم) *</span>
+                <span>الكمية المنتجة الصالحة (كجم) *</span>
                 <input
                   className="input"
                   type="number"
@@ -856,6 +1757,7 @@ export default function VanSalesPage() {
                   value={prodQty}
                   onChange={(e) => setProdQty(e.target.value)}
                 />
+                <span className="muted small">هذه الكمية هي التي تدخل الرصيد الرسمي وتُتاح للبيع.</span>
               </label>
               <label className="field">
                 <span>فاقد التصنيع / الهالك (كجم)</span>
@@ -863,22 +1765,42 @@ export default function VanSalesPage() {
                   className="input"
                   type="number"
                   step="0.01"
+                  min="0"
                   dir="ltr"
                   value={prodScrapQty}
                   onChange={(e) => setProdScrapQty(e.target.value)}
                 />
+                <span className="muted small">
+                  يُسجَّل في حركة مستقلة ولا يدخل الرصيد الصالح للبيع، وتُحسب قيمته منفصلة عن
+                  تكلفة المنتج الجيد.
+                </span>
               </label>
               <label className="field">
-                <span>تكلفة إنتاج الكيلو (ريال) *</span>
+                <span>سبب الفاقد {Number(prodScrapQty) > 0 ? '*' : ''}</span>
+                <input
+                  className="input"
+                  required={Number(prodScrapQty) > 0}
+                  value={prodScrapReason}
+                  onChange={(e) => setProdScrapReason(e.target.value)}
+                  placeholder="مثال: عجين لم يختمر / قطع محترقة في الفرن الثاني"
+                />
+                <span className="muted small">
+                  لا يُرحَّل فاقد بلا سبب: الكمية والسبب والدفعة تُسجَّل معاً حتى يمكن مراجعته.
+                </span>
+              </label>
+              <label className="field">
+                <span>تكلفة إنتاج الكيلو (ريال)</span>
                 <input
                   className="input"
                   type="number"
                   step="0.01"
-                  required
                   dir="ltr"
                   value={prodUnitCost}
                   onChange={(e) => setProdUnitCost(e.target.value)}
                 />
+                <span className="muted small">
+                  تُقرأ من بطاقة الصنف (سعر الشراء) أو من أمر التصنيع إن وُجد — اتركها فارغة لاستخدام تكلفة الصنف.
+                </span>
               </label>
               <label className="field">
                 <span>مشرف الإنتاج / أمين المستودع</span>
@@ -927,7 +1849,25 @@ export default function VanSalesPage() {
                       <td dir="ltr">
                         <span className="badge ok">{b.availableWarehouseQty} kg</span>
                       </td>
-                      <td dir="ltr">{b.unitCost} SAR</td>
+                      <td dir="ltr">
+                        {b.unitCost} SAR
+                        <div className="muted small">
+                          {b.costBasis === 'manufacturing_order'
+                            ? '✅ تكلفة فعلية من أمر تصنيع رسمي'
+                            : '⚠️ تكلفة مدخلة أو من بطاقة الصنف — ليست تكلفة أمر تصنيع'}
+                        </div>
+                        {Number(b.scrapQty ?? 0) > 0 ? (
+                          <div
+                            className="muted small"
+                            style={{ color: b.scrapCostLoaded ? undefined : 'var(--warn)' }}
+                          >
+                            🗑️ فاقد {b.scrapQty} كجم بقيمة {b.scrapValue} SAR —{' '}
+                            {b.scrapCostLoaded
+                              ? 'محمّلة على تكلفة المنتج الجيد'
+                              : 'غير محمّلة على المنتج الجيد (لا يدعمها محرك التصنيع الرسمي)'}
+                          </div>
+                        ) : null}
+                      </td>
                       <td dir="ltr"><strong>{b.totalCost} SAR</strong></td>
                     </tr>
                   ))}
@@ -983,13 +1923,194 @@ export default function VanSalesPage() {
         </div>
       )}
 
-      {/* TAB 3: VAN LOAD ORDERS & END-OF-DAY SHIFT CLOSING WORKFLOW (Pillar 2 & 7) */}
+      {/* TAB 3: DISTRIBUTION REPS — the official `salesmen` card, its employee, its login, its van */}
+      {tab === 'reps' && (
+        <div style={{ display: 'grid', gap: 16 }}>
+          <div className="card">
+            <h2 style={{ marginTop: 0 }}>🧑‍💼 مندوبو التوزيع — البطاقة والموظف وحساب الدخول ومستودع السيارة</h2>
+            <p className="muted small" style={{ margin: 0 }}>
+              لا يوجد جدول مندوبين منفصل: هذه هي بطاقة المندوب الرسمية نفسها (<code>salesmen</code>) مربوطة ببطاقة
+              الموظف (<code>employees</code>) وحساب الدخول (<code>memberships</code> ← <code>users</code>) ومستودع سيارة
+              التوزيع. إنشاء المندوب نفسه وتعديل عمولاته من شاشة{' '}
+              <a href="/sales/salesmen">المبيعات ← المندوبين</a>، وهنا يُستكمل ربط التوزيع.
+            </p>
+            <div className="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>المندوب</th>
+                    <th>الموظف المرتبط</th>
+                    <th>حساب الدخول</th>
+                    <th>مستودع السيارة / اللوحة</th>
+                    <th align="left">العهدة الحالية</th>
+                    <th align="left">نقد مستحق</th>
+                    <th>الحالة والجهوزية</th>
+                    <th>إجراءات</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {vanSalesmen.map((rep) => (
+                    <tr key={rep.id}>
+                      <td>
+                        <b>{rep.name}</b>
+                        {!rep.active ? <span className="muted small"> (موقوف)</span> : null}
+                        {rep.mobile ? <div className="muted small" dir="ltr">{rep.mobile}</div> : null}
+                      </td>
+                      <td>
+                        {rep.employeeName ? (
+                          <>
+                            {rep.employeeName}
+                            <div className="muted small" dir="ltr">{rep.employeeNo}</div>
+                          </>
+                        ) : (
+                          <span className="muted small">❌ بلا بطاقة موظف</span>
+                        )}
+                      </td>
+                      <td>
+                        {rep.userEmail ? (
+                          <>
+                            <span dir="ltr">{rep.userEmail}</span>
+                            <div className="muted small">
+                              {rep.membershipStatus === 'active' ? '✅ فعّال' : `⏳ ${rep.membershipStatus ?? 'مدعو'}`}
+                              {rep.roleCount ? ` · ${rep.roleCount} دور` : ''}
+                            </div>
+                          </>
+                        ) : (
+                          <span className="muted small">❌ بلا حساب دخول</span>
+                        )}
+                      </td>
+                      <td>
+                        {rep.warehouseName ? (
+                          <>
+                            {rep.warehouseName}
+                            <div className="muted small" dir="ltr">{rep.warehouseCode}</div>
+                            {rep.vehiclePlate ? <div className="muted small">🚐 {rep.vehiclePlate}</div> : null}
+                          </>
+                        ) : (
+                          <span className="muted small">❌ بلا مستودع سيارة</span>
+                        )}
+                      </td>
+                      <td align="left" dir="ltr">
+                        {rep.custody.custodyQty} kg
+                        <div className="muted small">
+                          {rep.custody.openLoadOrders} أمر · {rep.custody.pendingReceipts} بانتظار الاستلام
+                        </div>
+                      </td>
+                      <td align="left" dir="ltr">{rep.custody.outstandingCash}</td>
+                      <td>
+                        <div className="muted small">
+                          {rep.readiness.hasEmployee ? '✅' : '❌'} موظف ·{' '}
+                          {rep.readiness.hasLoginAccount ? '✅' : '❌'} حساب دخول ·{' '}
+                          {rep.readiness.hasVanWarehouse ? '✅' : '❌'} مستودع ·{' '}
+                          {rep.readiness.hasVanSalesPermissions ? '✅' : '❌'} صلاحيات توزيع
+                        </div>
+                        {rep.custody.items.length ? (
+                          <div className="muted small">
+                            {rep.custody.items
+                              .map((row) => `${row.itemName}: ${row.quantity}`)
+                              .join(' · ')}
+                          </div>
+                        ) : null}
+                      </td>
+                      <td>
+                        <div className="row" style={{ gap: 6, flexWrap: 'wrap' }}>
+                          <button
+                            type="button"
+                            className="btn sm"
+                            onClick={() => {
+                              setRepTarget(rep);
+                              setRepEmail(rep.userEmail ?? rep.email ?? '');
+                              setRepFullName(rep.employeeName ?? rep.name);
+                            }}
+                          >
+                            🔗 {rep.membershipId ? 'إعادة ربط الحساب' : 'ربط حساب دخول'}
+                          </button>
+                          <a className="btn sm" href="/sales/salesmen">
+                            🧑‍💼 بطاقة المندوب
+                          </a>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                  {vanSalesmen.length === 0 ? (
+                    <tr>
+                      <td colSpan={8} className="muted">
+                        لا يوجد مندوبون — أنشئ بطاقة المندوب من شاشة المبيعات ← المندوبين ثم اربطها هنا.
+                      </td>
+                    </tr>
+                  ) : null}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {repTarget ? (
+            <form className="card" onSubmit={linkRepAccount} style={{ display: 'grid', gap: 12 }}>
+              <h2 style={{ margin: 0 }}>🔗 ربط المندوب ({repTarget.name}) بحساب دخول رسمي</h2>
+              <p className="muted small" style={{ margin: 0 }}>
+                يُنشئ النظام مستخدمًا وعضوية عبر مسار الدعوة الرسمي نفسه المستعمل لبقية الموظفين، ويضعها على دور
+                «مندوب توزيع» بصلاحيات: رؤية عهدته، إصدار فواتيره، تسجيل تحصيلاته، وتقديم إغلاق ورديته. كلمة المرور لا
+                تُخترَع هنا — يصل المندوب رابط التفعيل الرسمي.
+              </p>
+              <div className="form-grid">
+                <label className="field">
+                  <span>البريد الإلكتروني لحساب المندوب *</span>
+                  <input
+                    className="input"
+                    type="email"
+                    required
+                    dir="ltr"
+                    value={repEmail}
+                    onChange={(e) => setRepEmail(e.target.value)}
+                  />
+                </label>
+                <label className="field">
+                  <span>الاسم الظاهر</span>
+                  <input
+                    className="input"
+                    value={repFullName}
+                    onChange={(e) => setRepFullName(e.target.value)}
+                  />
+                </label>
+              </div>
+              <label className="row" style={{ gap: 8, alignItems: 'center' }}>
+                <input
+                  type="checkbox"
+                  checked={repScopeToVan}
+                  onChange={(e) => setRepScopeToVan(e.target.checked)}
+                />
+                <span>
+                  🔒 قصر صلاحية الحساب على مستودع سيارة هذا المندوب فقط (يمنعه من قراءة عهدة مندوب آخر)
+                </span>
+              </label>
+              {!repTarget.readiness.hasEmployee ? (
+                <div className="muted small" style={{ color: 'var(--warn)' }}>
+                  ⚠️ هذه البطاقة غير مربوطة ببطاقة موظف — اربطها أولًا من شاشة المبيعات ← المندوبين حتى تُنسب سندات
+                  القبض والإغلاقات إلى الموظف نفسه.
+                </div>
+              ) : null}
+              <div className="row" style={{ gap: 8 }}>
+                <button type="submit" className="btn primary" disabled={busy}>
+                  {busy ? 'جارٍ الربط…' : '🔗 إنشاء / ربط حساب الدخول'}
+                </button>
+                <button type="button" className="btn" onClick={() => setRepTarget(null)}>
+                  إلغاء
+                </button>
+              </div>
+            </form>
+          ) : null}
+        </div>
+      )}
+
+      {/* TAB 4: SUPPLY TO VANS, CUSTODY & END-OF-DAY SHIFT CLOSING (Pillar 2 & 7) */}
       {tab === 'loads' && (
         <div style={{ display: 'grid', gap: 16 }}>
           <form className="card" onSubmit={submitLoadOrder} style={{ display: 'grid', gap: 12 }}>
-            <h2 style={{ margin: 0 }}>🚚 صرف أمر تحميل جديد لعهدة مندوب (من المستودع الرئيسي)</h2>
+            <h2 style={{ margin: 0 }}>🚚 توريد المنتجات من المستودع الرئيسي إلى سيارة المندوب</h2>
             <p className="muted small" style={{ margin: 0 }}>
-              مثال عملي مطابق لآلية المصنع: استلام المندوب <strong>150 كجم</strong> كعهدة صباحية، وفي نهاية اليوم يقدم إغلاق الوردية للمحاسب (مباع + بونص + تالف للفحص + عجز يُخصم من الراتب).
+              يُنشئ النظام <b>مناولة مخزنية رسمية</b> (تحويل بين مستودعين) فتخرج الكمية من رصيد المستودع الرئيسي إلى
+              «بضاعة تحت التحويل»، وتبقى هناك حتى <b>يؤكّد المندوب الاستلام</b> — عندها فقط تدخل رصيد سيارة المندوب
+              وتصبح عهدة قابلة للبيع. لا تُخصم الكمية مرتين ولا تظهر في العهدة قبل الاستلام.
             </p>
             <div className="form-grid">
               <label className="field">
@@ -1005,6 +2126,41 @@ export default function VanSalesPage() {
                     <option key={s.id} value={s.id}>{s.name}</option>
                   ))}
                 </select>
+              </label>
+              <label className="field">
+                <span>المستودع الرئيسي (مصدر التوريد) *</span>
+                <select
+                  className="input"
+                  value={loadWarehouseId}
+                  onChange={(e) => setLoadWarehouseId(e.target.value)}
+                >
+                  {warehouses.map((wh) => (
+                    <option key={wh.id} value={wh.id}>
+                      {wh.name ?? wh.nameAr ?? wh.code}
+                      {wh.isDefault ? ' (افتراضي)' : ''}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="field">
+                <span>مستودع سيارة المندوب (الوجهة) *</span>
+                <select
+                  className="input"
+                  value={loadVanWarehouseId}
+                  onChange={(e) => setLoadVanWarehouseId(e.target.value)}
+                >
+                  <option value="">— مستودع المندوب المُسند في بطاقته —</option>
+                  {warehouses
+                    .filter((wh) => wh.id !== loadWarehouseId)
+                    .map((wh) => (
+                      <option key={wh.id} value={wh.id}>
+                        {wh.name ?? wh.nameAr ?? wh.code}
+                      </option>
+                    ))}
+                </select>
+                <span className="muted small">
+                  يُستخدم مستودع السيارة المُسند للمندوب في بطاقته إن تُرك فارغًا — ويجب أن يختلف عن مستودع المصدر.
+                </span>
               </label>
               <label className="field">
                 <span>رقم دفعة الإنتاج (Batch No)</span>
@@ -1073,13 +2229,14 @@ export default function VanSalesPage() {
                     <th>رقم الأمر</th>
                     <th>المندوب</th>
                     <th>دفعة الإنتاج</th>
-                    <th>المستلم</th>
+                    <th>المصروف من المستودع</th>
+                    <th>أكّد المندوب استلامه</th>
                     <th>المباع</th>
                     <th>البونص</th>
                     <th>مرتجع سليم</th>
                     <th>تالف للفحص</th>
                     <th>العجز على المندوب</th>
-                    <th>المتبقي بالعهدة</th>
+                    <th>المتبقي (متوقع / جرد فعلي)</th>
                     <th>النقد المتوقع / المسلم</th>
                     <th>الحالة</th>
                     <th>إجراء الإغلاق والاعتماد</th>
@@ -1092,6 +2249,30 @@ export default function VanSalesPage() {
                       <td><strong>{l.salesmanName}</strong></td>
                       <td dir="ltr">{l.productionBatchNo}</td>
                       <td dir="ltr"><strong>{l.loadedQty} kg</strong></td>
+                      <td dir="ltr">
+                        {l.awaitingReceipt ? (
+                          <div className="row" style={{ gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+                            <span className="badge warn">⏳ {l.loadedQty} kg</span>
+                            <button
+                              type="button"
+                              className="btn sm primary"
+                              disabled={busy}
+                              onClick={() => void confirmLoadReceipt(l.id, l.loadedQty)}
+                            >
+                              ✅ تأكيد الاستلام نيابةً عن المندوب
+                            </button>
+                          </div>
+                        ) : (
+                          <>
+                            <strong>{l.receivedQty ?? '0.00'} kg</strong>
+                            {Number(l.discrepancyQty ?? 0) > 0 ? (
+                              <div className="muted small" style={{ color: 'var(--danger)' }}>
+                                فرق {l.discrepancyQty} kg{l.discrepancyNotes ? ` — ${l.discrepancyNotes}` : ''}
+                              </div>
+                            ) : null}
+                          </>
+                        )}
+                      </td>
                       <td dir="ltr" style={{ color: 'var(--ok)', fontWeight: 700 }}>{l.soldQty} kg</td>
                       <td dir="ltr" style={{ color: 'var(--warn)' }}>{l.bonusQty} kg</td>
                       <td dir="ltr">{l.returnedQty} kg</td>
@@ -1103,37 +2284,140 @@ export default function VanSalesPage() {
                         {l.shortageQty} kg
                         {Number(l.shortageValue) > 0 ? ` (${l.shortageValue} SAR)` : ''}
                       </td>
-                      <td dir="ltr"><strong>{l.remainingQty} kg</strong></td>
+                      <td dir="ltr">
+                        <strong>{l.remainingQty} kg</strong>
+                        <div className="muted small">
+                          متوقع {l.expectedRemainingQty ?? '0.00'} / جرد {l.actualRemainingQty ?? '0.00'}
+                        </div>
+                        {Number(l.countVarianceQty ?? 0) !== 0 ? (
+                          <div
+                            className="muted small"
+                            style={{ color: Number(l.countVarianceQty ?? 0) > 0 ? 'var(--danger)' : 'var(--ok)' }}
+                          >
+                            {Number(l.countVarianceQty ?? 0) > 0
+                              ? `عجز جرد ${l.countVarianceQty} kg`
+                              : `فائض جرد ${Math.abs(Number(l.countVarianceQty ?? 0)).toFixed(2)} kg`}
+                            {l.countVarianceCostValue
+                              ? ` ≈ ${l.countVarianceCostValue} ريال على أساس التكلفة`
+                              : ''}
+                            {l.countDocumentVarianceValue
+                              ? ` (مستند الجرد الرسمي: ${l.countDocumentVarianceValue} ريال)`
+                              : ' (مستند الجرد لم يُرحَّل بعد)'}
+                            <br />
+                            قيمة تسوية مخزنية — <b>ليست ديناً على المندوب</b>: المسؤولية المالية تبقى
+                            معلّقة حتى تعتمد السياسة.
+                          </div>
+                        ) : null}
+                      </td>
                       <td dir="ltr">{l.expectedCash} / {l.collectedCash} SAR</td>
                       <td>
                         <span
                           className={`badge ${
-                            l.status === 'settled'
+                            l.status === 'settled' || l.status === 'reconciled'
                               ? 'ok'
-                              : l.status === 'pending_closing'
+                              : l.status === 'pending_closing' || l.status === 'pending_stock_settlement'
                                 ? 'warn'
-                                : 'neutral'
+                                : l.status === 'rejected' || l.status === 'canceled'
+                                  ? 'neutral'
+                                  : 'neutral'
                           }`}
                         >
                           {LOAD_STATUS_AR[l.status] ?? l.status}
                         </span>
+                        {l.stockSettlementStatus && l.stockSettlementStatus !== 'not_required' ? (
+                          <div
+                            className="muted small"
+                            style={{
+                              color:
+                                l.awaitingStockSettlement || l.awaitingTransitDecision
+                                  ? 'var(--danger)'
+                                  : undefined,
+                            }}
+                          >
+                            {SETTLEMENT_STATUS_AR[l.stockSettlementStatus] ?? l.stockSettlementStatus}
+                            {l.remainingAction
+                              ? ` · المتبقي: ${
+                                  l.remainingAction === 'return_to_main'
+                                    ? 'إرجاع للمستودع الرئيسي'
+                                    : 'عهدة الوردية التالية'
+                                }`
+                              : ''}
+                            {l.stockSettlementNote ? ` — ${l.stockSettlementNote}` : ''}
+                          </div>
+                        ) : null}
                       </td>
                       <td>
-                        {l.status !== 'settled' ? (
-                          <button
-                            type="button"
-                            className={`btn sm ${l.status === 'pending_closing' ? 'primary' : ''}`}
-                            onClick={() => openClosingModal(l)}
-                          >
-                            {l.status === 'pending_closing'
-                              ? '🔍 مراجعة واعتماد المحاسب'
-                              : '🔒 إغلاق الوردية وتصفية العهدة'}
-                          </button>
-                        ) : (
-                          <span className="muted small">
-                            معتمد {l.approvedByLabel ? `بواسطة ${l.approvedByLabel}` : ''}
-                          </span>
-                        )}
+                        <div className="row" style={{ gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+                          {l.awaitingStockSettlement ? (
+                            <>
+                              <button
+                                type="button"
+                                className="btn sm primary"
+                                disabled={busy}
+                                onClick={() => void handleSettleLoadOrderStock(l, true)}
+                              >
+                                ♻️ استكمال تسوية المخزون وترحيل مستند الجرد
+                              </button>
+                              <button
+                                type="button"
+                                className="btn sm"
+                                disabled={busy}
+                                onClick={() => openClosingModal(l)}
+                              >
+                                🔍 مراجعة الأرقام
+                              </button>
+                            </>
+                          ) : l.status !== 'settled' && l.status !== 'reconciled' ? (
+                            <button
+                              type="button"
+                              className={`btn sm ${l.status === 'pending_closing' ? 'primary' : ''}`}
+                              disabled={l.status === 'rejected' || l.status === 'canceled'}
+                              onClick={() => openClosingModal(l)}
+                            >
+                              {l.status === 'pending_closing'
+                                ? '🔍 مراجعة واعتماد المحاسب'
+                                : '🔒 إغلاق الوردية وتصفية العهدة'}
+                            </button>
+                          ) : (
+                            <span className="muted small">
+                              معتمد ومسوّى {l.approvedByLabel ? `بواسطة ${l.approvedByLabel}` : ''}
+                            </span>
+                          )}
+
+                          {/* 🚦 فرق استلام بلا قرار — the quantity is still officially in transit */}
+                          {l.awaitingTransitDecision ? (
+                            <>
+                              <button
+                                type="button"
+                                className="btn sm"
+                                disabled={busy}
+                                onClick={() => void handleCloseTransitDifference(l, 'return')}
+                              >
+                                ↩️ إرجاع الفرق إلى المصدر
+                              </button>
+                              <button
+                                type="button"
+                                className="btn sm"
+                                disabled={busy}
+                                onClick={() => void handleCloseTransitDifference(l, 'shortage')}
+                              >
+                                ⚠️ اعتباره عجز تحويل
+                              </button>
+                            </>
+                          ) : null}
+
+                          {/* 🗑️ إلغاء توريد لم يُستلَم بعد */}
+                          {l.status === 'pending_receipt' ? (
+                            <button
+                              type="button"
+                              className="btn sm"
+                              disabled={busy}
+                              onClick={() => void handleCancelLoadOrder(l)}
+                            >
+                              🗑️ إلغاء التوريد
+                            </button>
+                          ) : null}
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -1198,7 +2482,15 @@ export default function VanSalesPage() {
                     <strong style={{ color: 'var(--warn)' }} dir="ltr">{modalDamaged.toFixed(2)} kg</strong>
                   </div>
                   <div>
-                    <div className="muted small">6. العجز على المندوب</div>
+                    <div className="muted small">6. المتبقي المتوقع</div>
+                    <strong dir="ltr">{modalExpectedRemaining.toFixed(2)} kg</strong>
+                  </div>
+                  <div>
+                    <div className="muted small">7. المتبقي الفعلي بالجرد</div>
+                    <strong dir="ltr">{modalActualRemaining.toFixed(2)} kg</strong>
+                  </div>
+                  <div>
+                    <div className="muted small">8. العجز على المندوب</div>
                     <strong style={{ color: 'var(--danger)', fontSize: 16 }} dir="ltr">
                       {modalShortageKg.toFixed(2)} kg ({modalShortageSar.toFixed(2)} SAR)
                     </strong>
@@ -1227,6 +2519,25 @@ export default function VanSalesPage() {
                       value={closingDamagedQty}
                       onChange={(e) => setClosingDamagedQty(e.target.value)}
                     />
+                  </label>
+                  <label className="field">
+                    <span>المتبقي الفعلي بالجرد في السيارة (كجم)</span>
+                    <input
+                      className="input"
+                      type="number"
+                      step="0.01"
+                      dir="ltr"
+                      value={closingActualRemaining}
+                      onChange={(e) => setClosingActualRemaining(e.target.value)}
+                    />
+                    <span className="muted small">
+                      المتوقع {modalExpectedRemaining.toFixed(2)} كجم —
+                      {modalSurplusKg > 0
+                        ? ` يوجد فائض ${modalSurplusKg.toFixed(2)} كجم عن المستندات يجب تفسيره.`
+                        : modalShortageKg > 0
+                          ? ` الفرق ${modalShortageKg.toFixed(2)} كجم عجز يُحال للمحاسب.`
+                          : ' لا فرق بين الجرد والمستندات.'}
+                    </span>
                   </label>
                   <label className="field">
                     <span>النقد المسلم فعلياً للصندوق (ريال)</span>
@@ -1277,7 +2588,93 @@ export default function VanSalesPage() {
                       onChange={(e) => setClosingSalaryDeduction(e.target.checked)}
                     />
                     <span>
-                      اعتماد قيد العجز ({modalShortageKg.toFixed(2)} كجم = {modalShortageSar.toFixed(2)} ريال) على حساب المندوب وخصمه من راتبه، وتصفير رصيد عهدته إلى (0.00 كجم).
+                      إقرار بمراجعة العجز ({modalShortageKg.toFixed(2)} كجم ≈ {modalShortageSar.toFixed(2)} ريال) وسببه، وتصفير رصيد عهدة المندوب إلى (0.00 كجم).
+                      <br />
+                      <span className="muted small">
+                        ⚠️ لا يُنشئ هذا الإقرار أي قيد على راتب المندوب أو ذمته: المعالجة المالية للعجز
+                        (أساس التقييم والحساب المقابل) معلّقة حتى تعتمد السياسة من الإعدادات، ويُكتفى
+                        بتسجيل الحالة «بانتظار اعتماد السياسة».
+                      </span>
+                    </span>
+                  </label>
+                </div>
+
+                <div
+                  style={{
+                    padding: 10,
+                    borderRadius: 10,
+                    border: '1px solid var(--line)',
+                    background: 'var(--surface)',
+                    display: 'grid',
+                    gap: 8,
+                  }}
+                >
+                  <strong>🧾 تسوية المخزون الرسمية (بدونها لا تُغلق العهدة):</strong>
+
+                  {modalActualRemaining > 0 ? (
+                    <div style={{ display: 'grid', gap: 6 }}>
+                      <span className="muted small">
+                        مصير المتبقي الفعلي ({modalActualRemaining.toFixed(2)} كجم) — قرار صريح، لا يُفتَرَض:
+                      </span>
+                      <label className="row" style={{ gap: 8, alignItems: 'center' }}>
+                        <input
+                          type="radio"
+                          name="closing-remaining-action"
+                          checked={closingRemainingAction === 'return_to_main'}
+                          onChange={() => setClosingRemainingAction('return_to_main')}
+                        />
+                        <span>
+                          ↩️ إرجاعه رسمياً إلى المستودع الرئيسي (حركة مخزنية رسمية وقيد من ملف الترحيل، ورصيد
+                          السيارة يصبح صفراً)
+                        </span>
+                      </label>
+                      <label className="row" style={{ gap: 8, alignItems: 'center' }}>
+                        <input
+                          type="radio"
+                          name="closing-remaining-action"
+                          checked={closingRemainingAction === 'carry_over'}
+                          onChange={() => setClosingRemainingAction('carry_over')}
+                        />
+                        <span>
+                          🔄 إبقاؤه عهدة المندوب للوردية التالية (يبقى في رصيد السيارة الرسمي بنفس الكمية
+                          المجرودة)
+                        </span>
+                      </label>
+                    </div>
+                  ) : (
+                    <div className="muted small">الجرد الفعلي صفر — لا متبقي يحتاج قراراً.</div>
+                  )}
+
+                  {modalSurplusKg > 0 ? (
+                    <label className="row" style={{ gap: 8, alignItems: 'center' }}>
+                      <input
+                        type="checkbox"
+                        checked={closingSurplusAck}
+                        onChange={(e) => setClosingSurplusAck(e.target.checked)}
+                      />
+                      <span>
+                        ⚖️ أقرّ بأن الجرد الفعلي أكبر من العهدة بفائض {modalSurplusKg.toFixed(2)} كجم، ويُسجَّل
+                        في مستند الجرد الرسمي (Dr المخزون / Cr تسوية الجرد) — لا إيراداً ولا هديةً ولا تعديلاً
+                        على المستندات.
+                      </span>
+                    </label>
+                  ) : null}
+
+                  <label className="row" style={{ gap: 8, alignItems: 'center' }}>
+                    <input
+                      type="checkbox"
+                      checked={closingSettleStock}
+                      onChange={(e) => setClosingSettleStock(e.target.checked)}
+                    />
+                    <span>
+                      🖋️ فوّضني بترحيل مستند الجرد الرسمي الآن، فيصبح رصيد السيارة الرسمي مساوياً للجرد الفعلي
+                      ({modalActualRemaining.toFixed(2)} كجم).
+                      <br />
+                      <span className="muted small">
+                        ⚠️ بدون هذا التفويض يُنشأ مستند الجرد <b>مسودةً</b> وتبقى الوردية «بانتظار تسوية
+                        المخزون» ولا تُغلق العهدة — وهذا هو المقصود: لا تُغلق عهدة مع بقاء فرق في دفتر المخزون.
+                        المسؤولية المالية عن العجز تبقى معلّقة في الحالتين.
+                      </span>
                     </span>
                   </label>
                 </div>
@@ -1298,10 +2695,16 @@ export default function VanSalesPage() {
                     <button
                       type="button"
                       className="btn primary"
-                      disabled={busy}
+                      disabled={
+                        busy ||
+                        (modalActualRemaining > 0 && !closingRemainingAction) ||
+                        (modalSurplusKg > 0 && !closingSurplusAck)
+                      }
                       onClick={() => void handleAccountantApproveClosing()}
                     >
-                      ✅ 2. اعتماد المحاسب النهائي وتصفير العهدة
+                      {closingSettleStock
+                        ? '✅ 2. اعتماد المحاسب وتسوية المخزون رسمياً'
+                        : '✅ 2. اعتماد الكميات (العهدة تبقى بانتظار تسوية المخزون)'}
                     </button>
                   </div>
                 </div>
@@ -1386,6 +2789,28 @@ export default function VanSalesPage() {
                   <option value="credit">آجل على ذمة العميل (Credit)</option>
                 </select>
               </label>
+
+              {docPayment !== 'credit' ? (
+                <label className="field">
+                  <span>الصندوق / موقع النقد *</span>
+                  <select
+                    className="input"
+                    value={docCashLocationId}
+                    onChange={(e) => setDocCashLocationId(e.target.value)}
+                  >
+                    <option value="">— الصندوق الافتراضي للفرع —</option>
+                    {cashLocations.map((location) => (
+                      <option key={location.id} value={location.id}>
+                        {location.name}
+                        {location.isDefault ? ' (افتراضي)' : ''}
+                      </option>
+                    ))}
+                  </select>
+                  <span className="muted small">
+                    البيع النقدي يُرحَّل إلى حساب هذا الصندوق في الفاتورة الرسمية — لا يُخترَع حساب في الكود.
+                  </span>
+                </label>
+              ) : null}
 
               <label className="field">
                 <span>الكمية المباعة (كجم) *</span>
@@ -1515,70 +2940,54 @@ export default function VanSalesPage() {
             </div>
           </form>
 
-          {/* 80mm Thermal Receipt Preview with Visual ZATCA QR */}
+          {/* 🖨️ Printing: one official document, two copies (customer + rep) and an 80mm receipt */}
           <div className="card" style={{ display: 'grid', gap: 12, alignContent: 'start' }}>
-            <div className="row" style={{ justifyContent: 'space-between' }}>
-              <h3 style={{ margin: 0 }}>🖨️ معاينة إيصال 80mm الحراري والباركود</h3>
+            <div className="row" style={{ justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
+              <h3 style={{ margin: 0 }}>🖨️ طباعة مستند البيع — نسختان من فاتورة رسمية واحدة</h3>
               {selectedDoc && (
-                <button
-                  type="button"
-                  className="btn sm primary"
-                  onClick={() =>
-                    printThermalReceipt80mm({
-                      companyName: 'مصنع ومخابز رقائق السمبوسة والفطائر',
-                      taxNo: '300000000000003',
-                      branchName: `دفعة إنتاج: ${selectedDoc.productionBatchNo}`,
-                      invoiceNumber: selectedDoc.number,
-                      invoiceTypeLabel:
-                        selectedDoc.invoiceMode === 'zatca_tax'
-                          ? 'فاتورة ضريبية مبسطة (ZATCA)'
-                          : 'إيصال تسليم بضاعة (توزيع)',
-                      issuedAt: selectedDoc.createdAt || new Date().toISOString(),
-                      customerName: selectedDoc.customerName,
-                      cashierName: selectedDoc.salesmanName,
-                      paymentMethodLabel:
-                        selectedDoc.paymentMethod === 'cash'
-                          ? 'نقدي (Cash)'
-                          : selectedDoc.paymentMethod === 'card'
-                            ? 'شبكة مدى'
-                            : 'آجل (Credit)',
-                      lines: [
-                        {
-                          name: `${selectedDoc.itemName} (مباع)`,
-                          quantity: selectedDoc.soldQty,
-                          unitPrice: selectedDoc.unitPrice,
-                          total: selectedDoc.total,
-                        },
-                        ...(Number(selectedDoc.bonusQty) > 0
-                          ? [
-                              {
-                                name: `🎁 بونص مجاني (${selectedDoc.bonusReason || 'ترويجي'})`,
-                                quantity: selectedDoc.bonusQty,
-                                unitPrice: '0.00',
-                                total: '0.00',
-                              },
-                            ]
-                          : []),
-                      ],
-                      subtotal: selectedDoc.subtotal,
-                      discount: selectedDoc.discountAmount || '0.00',
-                      taxTotal: selectedDoc.taxTotal,
-                      total: selectedDoc.total,
-                      paidAmount: selectedDoc.paidAmount,
-                      qrPayload: buildZatcaTlvBase64({
-                        sellerName: 'مصنع ومخابز رقائق السمبوسة والفطائر',
-                        vatNo: '300000000000003',
-                        timestampIso: selectedDoc.createdAt || new Date().toISOString(),
-                        total: selectedDoc.total,
-                        tax: selectedDoc.taxTotal,
-                      }),
-                    })
-                  }
-                >
-                  🖨️ طباعة حرارية 80mm
-                </button>
+                <div className="row" style={{ gap: 6, flexWrap: 'wrap' }}>
+                  <button
+                    type="button"
+                    className="btn sm primary"
+                    disabled={busy}
+                    onClick={() => void printDocumentCopies(selectedDoc.id)}
+                  >
+                    🖨️ طباعة نسختين (عميل + مندوب موقّعة)
+                  </button>
+                  <button
+                    type="button"
+                    className="btn sm"
+                    disabled={busy}
+                    onClick={() => void printThermalFromView(selectedDoc.id)}
+                  >
+                    🧾 إيصال حراري 80mm
+                  </button>
+                  {selectedDoc.documentKind !== 'return' ? (
+                    <button
+                      type="button"
+                      className="btn sm"
+                      disabled={busy}
+                      onClick={() => {
+                        const qty = window.prompt(
+                          `كمية المرتجع من المستند ${selectedDoc.number} (المباع ${selectedDoc.soldQty} + البونص ${selectedDoc.bonusQty})`,
+                          selectedDoc.soldQty,
+                        );
+                        if (!qty) return;
+                        const reason = window.prompt('سبب المرتجع (يُطبع على المستند ويُسجَّل في التدقيق)') ?? '';
+                        void submitReturn(selectedDoc.id, qty, reason);
+                      }}
+                    >
+                      ↩️ مرتجع عميل
+                    </button>
+                  ) : null}
+                </div>
               )}
             </div>
+            <p className="muted small" style={{ margin: 0 }}>
+              النسخة الأولى للعميل، والثانية للمندوب يعيدها موقّعة من العميل إلى المحاسب. النسختان تُقرأان من الفاتورة
+              الرسمية نفسها (بيانات المنشأة من ملف المنشأة، ورقم الفاتورة الرسمية، وتاريخ ووقت الطباعة مستقل عن تاريخ
+              البيع) — ولا يُنشأ مستند محاسبي ثانٍ.
+            </p>
 
             {selectedDoc ? (
               <div
@@ -1613,16 +3022,7 @@ export default function VanSalesPage() {
                   <span>صافي ربح الفاتورة: <strong dir="ltr" style={{ color: 'var(--ok)' }}>{selectedDoc.netProfit} SAR</strong></span>
                 </div>
                 <div style={{ display: 'grid', placeItems: 'center', marginTop: 6 }}>
-                  <ZatcaQrSvg
-                    size={128}
-                    payload={buildZatcaTlvBase64({
-                      sellerName: 'مصنع ومخابز رقائق السمبوسة والفطائر',
-                      vatNo: '300000000000003',
-                      timestampIso: selectedDoc.createdAt || new Date().toISOString(),
-                      total: selectedDoc.total,
-                      tax: selectedDoc.taxTotal,
-                    })}
-                  />
+                  <ZatcaQrSvg size={128} payload={selectedDoc.qrPayload ?? ''} />
                 </div>
               </div>
             ) : (

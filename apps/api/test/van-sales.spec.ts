@@ -2,6 +2,8 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { newId, withTenantTx } from '@erp/database';
 import { sql } from 'drizzle-orm';
 
+import { OrgProvisioningService } from '../src/modules/organization/provisioning/org-provisioning.service.js';
+
 import { ALL_TENANT_PERMISSIONS, createActor, type Actor } from './fixtures.js';
 import { api } from './http.js';
 import { createTestApp, type TestApp } from './test-app.js';
@@ -13,6 +15,7 @@ describe('Factory, Bakery & Van Sales 10-pillar workflow & 6-Phase Core Integrat
   let accountantActor: Actor;
   let tenantBActor: Actor;
   let salesmanId: string;
+  let repEmployeeId: string;
   let partyId: string;
   let branchId: string;
   let mainWarehouseId: string;
@@ -25,7 +28,12 @@ describe('Factory, Bakery & Van Sales 10-pillar workflow & 6-Phase Core Integrat
       tenantCode: 'bakery-a',
       tenantName: 'مصنع ومخابز الأصالة',
       email: 'owner@bakery-a.test',
-      permissions: [...ALL_TENANT_PERMISSIONS, 'sales.view', 'sales.invoice.create'],
+      permissions: [
+        ...ALL_TENANT_PERMISSIONS,
+        'sales.view',
+        'sales.invoice.create',
+        'accounting.period.close',
+      ],
       roleNames: ['Admin'],
       isOwner: true,
     });
@@ -67,24 +75,36 @@ describe('Factory, Bakery & Van Sales 10-pillar workflow & 6-Phase Core Integrat
       isOwner: true,
     });
 
+    /**
+     * منشأة مُهيّأة رسميًا — the same provisioning seam every real tenant goes through:
+     * chart of accounts, tenant-wide posting profile, main branch, main warehouse, main safe.
+     * Distribution now posts through the official sales/transfer/voucher engines, and those
+     * need a posting profile to resolve — an unprovisioned tenant is refused with a clear
+     * `ACCOUNT_PROFILE_MISSING` rather than half-working.
+     */
+    const defaults = await ctx.app.get(OrgProvisioningService).provisionOrgDefaults(owner.tenantId);
+    branchId = defaults.branchId;
+    mainWarehouseId = defaults.warehouseId;
+
+    const year = new Date().getUTCFullYear();
+    const fiscal = await api(ctx.server, 'post', '/api/v1/fiscal-years', {
+      token: owner.token,
+      body: { name: `FY${year}`, startDate: `${year}-01-01`, endDate: `${year}-12-31` },
+    });
+    expect(fiscal.status, JSON.stringify(fiscal.body)).toBe(201);
+
     salesmanId = newId();
     partyId = newId();
-    branchId = newId();
-    mainWarehouseId = newId();
     vanWarehouseId = newId();
     itemId = newId();
+    repEmployeeId = newId();
     const baseUnitId = newId();
     const categoryId = newId();
 
     await withTenantTx(ctx.handle.db, owner.tenantId, async (tx) => {
       await tx.execute(sql`
-        INSERT INTO branches (id, tenant_id, code, name_ar, is_default, is_active)
-        VALUES (${branchId}::uuid, ${owner.tenantId}::uuid, 'BR-MAIN', 'الفرع الرئيسي للمصنع', true, true)
-      `);
-      await tx.execute(sql`
         INSERT INTO warehouses (id, tenant_id, branch_id, code, name, is_default, is_active)
         VALUES
-          (${mainWarehouseId}::uuid, ${owner.tenantId}::uuid, ${branchId}::uuid, 'WH-MAIN', 'مستودع المصنع الرئيسي', true, true),
           (${vanWarehouseId}::uuid, ${owner.tenantId}::uuid, ${branchId}::uuid, 'WH-VAN-01', 'مستودع سيارة المندوب 1', false, true)
       `);
       await tx.execute(sql`
@@ -106,8 +126,14 @@ describe('Factory, Bakery & Van Sales 10-pillar workflow & 6-Phase Core Integrat
         )
       `);
       await tx.execute(sql`
-        INSERT INTO salesmen (id, tenant_id, name, active)
-        VALUES (${salesmanId}::uuid, ${owner.tenantId}::uuid, 'مندوب التوزيع الأول', true)
+        INSERT INTO employees (id, tenant_id, employee_no, name, branch_id, membership_id, status)
+        VALUES (${repEmployeeId}::uuid, ${owner.tenantId}::uuid, 'EMP-VAN-1', 'مندوب التوزيع الأول',
+                ${branchId}::uuid, ${repActor.membershipId}::uuid, 'active')
+      `);
+      await tx.execute(sql`
+        INSERT INTO salesmen (id, tenant_id, name, active, employee_id, warehouse_id, vehicle_plate)
+        VALUES (${salesmanId}::uuid, ${owner.tenantId}::uuid, 'مندوب التوزيع الأول', true,
+                ${repEmployeeId}::uuid, ${vanWarehouseId}::uuid, 'أ ب ج 4521')
       `);
       await tx.execute(sql`
         INSERT INTO parties (id, tenant_id, code, kind, name, tax_no, credit_limit)
@@ -136,6 +162,7 @@ describe('Factory, Bakery & Van Sales 10-pillar workflow & 6-Phase Core Integrat
         itemName: 'رقائق سمبوسة بلدي طازجة',
         producedQty: '500',
         scrapQty: '5',
+        scrapReason: 'فاقد خبز يومي — قطع محترقة',
         unitCost: '3.80',
         supervisorName: 'مشرف الإنتاج',
         idempotencyKey: 'prod-batch-day1-001',
@@ -219,20 +246,29 @@ describe('Factory, Bakery & Van Sales 10-pillar workflow & 6-Phase Core Integrat
     });
     expect(loadRes.status, JSON.stringify(loadRes.body)).toBe(201);
     const loadData = loadRes.body.data as {
-      summary: { mainWarehouseBalanceKg: string; totalLoadedKg: string };
+      summary: { mainWarehouseBalanceKg: string; totalLoadedKg: string; pendingReceiptsCount: number };
       loadOrders: Array<{
         id: string;
         status: string;
         remainingQty: string;
+        receivedQty: string;
+        awaitingReceipt: boolean;
         stockTransferId: string | null;
       }>;
     };
+    /**
+     * الرصيد الرسمي بعد الصرف — the main warehouse really lost the 150 kg (they are in
+     * transit on the official transfer), and the van has **nothing yet**: custody only
+     * appears when the rep confirms receipt.
+     */
     expect(loadData.summary.mainWarehouseBalanceKg).toBe('350.00');
     expect(loadData.summary.totalLoadedKg).toBe('150.00');
+    expect(loadData.summary.pendingReceiptsCount).toBe(1);
     const loadOrderId = loadData.loadOrders[0]!.id;
+    expect(loadData.loadOrders[0]!.status).toBe('pending_receipt');
+    expect(loadData.loadOrders[0]!.awaitingReceipt).toBe(true);
     expect(loadData.loadOrders[0]!.stockTransferId).toBeTruthy();
 
-    // Verify official stock_balances in main warehouse (350 kg) and van warehouse (150 kg)
     await withTenantTx(ctx.handle.db, owner.tenantId, async (tx) => {
       const balances = (
         await tx.execute(sql`
@@ -244,8 +280,72 @@ describe('Factory, Bakery & Van Sales 10-pillar workflow & 6-Phase Core Integrat
       const mainBal = balances.find((b) => b.warehouse_id === mainWarehouseId);
       const vanBal = balances.find((b) => b.warehouse_id === vanWarehouseId);
       expect(Number(mainBal?.qty)).toBe(350);
-      expect(Number(vanBal?.qty)).toBe(150);
+      expect(Number(vanBal?.qty ?? 0)).toBe(0);
+      const transfer = (
+        await tx.execute(sql`
+          SELECT status FROM stock_transfers
+          WHERE tenant_id = ${owner.tenantId}::uuid
+            AND id = ${loadData.loadOrders[0]!.stockTransferId}::uuid
+        `)
+      ).rows as Array<{ status: string }>;
+      expect(transfer[0]!.status).toBe('in_transit');
     });
+
+    // 4b. The rep sees the pending supply in his own workspace and confirms the 150 kg
+    const repMeBefore = await api(ctx.server, 'get', '/api/v1/van-sales/me', {
+      token: repActor.token,
+    });
+    expect(repMeBefore.status, JSON.stringify(repMeBefore.body)).toBe(200);
+    expect(repMeBefore.body.data.isRep).toBe(true);
+    expect(repMeBefore.body.data.salesmanId).toBe(salesmanId);
+    expect((repMeBefore.body.data.pendingReceipts as unknown[]).length).toBe(1);
+
+    const confirmRes = await api(
+      ctx.server,
+      'post',
+      `/api/v1/van-sales/load-orders/${loadOrderId}/confirm-receipt`,
+      { token: repActor.token, body: { receivedQty: '150', notes: 'تم الاستلام كاملًا' } },
+    );
+    expect(confirmRes.status, JSON.stringify(confirmRes.body)).toBe(201);
+    const confirmedOrder = (
+      confirmRes.body.data as {
+        loadOrders: Array<{ id: string; status: string; receivedQty: string; remainingQty: string }>;
+      }
+    ).loadOrders.find((l) => l.id === loadOrderId)!;
+    expect(confirmedOrder.status).toBe('loaded');
+    expect(Number(confirmedOrder.receivedQty)).toBe(150);
+    expect(Number(confirmedOrder.remainingQty)).toBe(150);
+
+    // The confirmed quantity is now in the van's official balance, and the transfer closed
+    await withTenantTx(ctx.handle.db, owner.tenantId, async (tx) => {
+      const balances = (
+        await tx.execute(sql`
+          SELECT warehouse_id::text, quantity::numeric::text AS qty
+          FROM stock_balances
+          WHERE tenant_id = ${owner.tenantId}::uuid AND item_id = ${itemId}::uuid
+        `)
+      ).rows as Array<{ warehouse_id: string; qty: string }>;
+      expect(Number(balances.find((b) => b.warehouse_id === mainWarehouseId)?.qty)).toBe(350);
+      expect(Number(balances.find((b) => b.warehouse_id === vanWarehouseId)?.qty)).toBe(150);
+      const transfer = (
+        await tx.execute(sql`
+          SELECT status FROM stock_transfers
+          WHERE tenant_id = ${owner.tenantId}::uuid
+            AND id = ${loadData.loadOrders[0]!.stockTransferId}::uuid
+        `)
+      ).rows as Array<{ status: string }>;
+      expect(transfer[0]!.status).toBe('received');
+    });
+
+    // Confirming twice is refused and moves nothing
+    const confirmTwice = await api(
+      ctx.server,
+      'post',
+      `/api/v1/van-sales/load-orders/${loadOrderId}/confirm-receipt`,
+      { token: repActor.token, body: { receivedQty: '150' } },
+    );
+    expect(confirmTwice.status).toBe(409);
+    expect(confirmTwice.body.code).toBe('VAN_LOAD_ORDER_NOT_AWAITING_RECEIPT');
 
     // 5. Phase 5 Guard: internal_delivery mode is rejected by default when tax policy is not enabled
     const internalBlockedRes = await api(ctx.server, 'post', '/api/v1/van-sales/documents', {
@@ -396,21 +496,44 @@ describe('Factory, Bakery & Van Sales 10-pillar workflow & 6-Phase Core Integrat
       },
     );
     expect(approveClosingRes.status, JSON.stringify(approveClosingRes.body)).toBe(201);
+    type LoadOrderShape = {
+      id: string;
+      status: string;
+      remainingQty: string;
+      damageInspected: boolean;
+      salaryDeductionApproved: boolean;
+      stockSettlementStatus: string;
+      stockAdjustmentId: string | null;
+    };
+    const approvedOrder = (
+      approveClosingRes.body.data as { loadOrders: LoadOrderShape[] }
+    ).loadOrders.find((l) => l.id === loadOrderId)!;
+    /**
+     * 🧮 الاعتماد لم يعد يُغلق العهدة وحده — the quantities are approved, but 5 kg the documents
+     * expect and the count cannot show are still on the official van balance, so the custody
+     * stays open until the count document settles it. This is the reconciliation guarantee.
+     */
+    expect(approvedOrder.status).toBe('pending_stock_settlement');
+    expect(approvedOrder.stockSettlementStatus).toBe('pending_count_decision');
+    expect(approvedOrder.stockAdjustmentId).toBeTruthy(); // official count document, still a draft
+    expect(Number(approvedOrder.remainingQty)).toBe(0);
+    expect(approvedOrder.damageInspected).toBe(true);
+    expect(approvedOrder.salaryDeductionApproved).toBe(true);
+
+    // 11b. The authorised approver settles the count: the official van balance becomes the count.
+    const settleStockRes = await api(
+      ctx.server,
+      'post',
+      `/api/v1/van-sales/load-orders/${loadOrderId}/settle-stock`,
+      { token: accountantActor.token, body: { settleStockAdjustment: true } },
+    );
+    expect(settleStockRes.status, JSON.stringify(settleStockRes.body)).toBe(201);
     const settledOrder = (
-      approveClosingRes.body.data as {
-        loadOrders: Array<{
-          id: string;
-          status: string;
-          remainingQty: string;
-          damageInspected: boolean;
-          salaryDeductionApproved: boolean;
-        }>;
-      }
+      settleStockRes.body.data as { loadOrders: LoadOrderShape[] }
     ).loadOrders.find((l) => l.id === loadOrderId)!;
     expect(settledOrder.status).toBe('settled');
-    expect(Number(settledOrder.remainingQty)).toBe(0);
-    expect(settledOrder.damageInspected).toBe(true);
-    expect(settledOrder.salaryDeductionApproved).toBe(true);
+    expect(settledOrder.stockSettlementStatus).toBe('settled_officially');
+    expect(settledOrder.stockAdjustmentId).toBe(approvedOrder.stockAdjustmentId);
 
     // 12. Phase 3 Idempotency Guard: Re-approving an already settled load order returns 409 Conflict
     const duplicateApproveRes = await api(

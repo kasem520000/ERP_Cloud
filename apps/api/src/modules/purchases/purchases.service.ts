@@ -8,7 +8,6 @@ import {
   inventoryTransactions,
   items,
   journalEntries,
-  journalEntryLines,
   parties,
   paymentAllocations,
   purchaseAdjustmentNotes,
@@ -21,6 +20,7 @@ import {
 } from '@erp/database';
 
 import { DATABASE_HANDLE } from '../../database/database.module.js';
+import { getRequestContext } from '../../request-context/request-context.js';
 import { CustomFieldsService } from '../custom-fields/custom-fields.service.js';
 import { tryGetAuthContext } from '../platform/context/tenant-context.js';
 import { AccountingService, type JournalLineInput } from '../accounting/accounting.service.js';
@@ -716,51 +716,21 @@ export class PurchasesService {
         .from(journalEntries)
         .where(and(eq(journalEntries.tenantId, tenantId), eq(journalEntries.sourceType, docType), eq(journalEntries.sourceId, id)));
       if (entry) {
-        const [existing] = await tx.select({ id: journalEntries.id }).from(journalEntries).where(eq(journalEntries.reversalOf, entry.id));
-        if (!existing) {
-          const fiscalPeriodId = await this.accounting.openPeriodForDateInTx(tx, tenantId, today);
-          const entryLines = await tx.select().from(journalEntryLines).where(eq(journalEntryLines.entryId, entry.id));
-          const reversalId = newId();
-          await tx.insert(journalEntries).values({
-            id: reversalId,
-            tenantId,
-            branchId: invoice.branchId,
-            fiscalPeriodId,
-            date: today,
-            kind: 'reversal',
-            status: 'posted',
-            description: `Void ${invoice.number ?? id}: ${reason}`,
-            reversalOf: entry.id,
-            sourceType: docType,
-            sourceId: id,
-            postedAt: new Date(),
-          });
-          /**
-           * R9 — المرآة تحمل الأبعاد كلها كما في مسار البيع (والعيب كان واحداً في المسارين):
-           * إسقاط `costCenterId` و`salesmanId` و`branchId` والعملة كان يُبقي مال الفاتورة
-           * الملغاة في 🌳 شجرة مراكز التكلفة وفي تقارير المندوبين — وهو ما أُصلح في
-           * `reverseJournal` بالترحيل `0047` وبقي هنا.
-           */
-          await tx.insert(journalEntryLines).values(
-            entryLines.map((line) => ({
-              entryId: reversalId,
-              lineNo: line.lineNo,
-              tenantId,
-              accountId: line.accountId,
-              debit: line.credit,
-              credit: line.debit,
-              partyId: line.partyId,
-              costCenterId: line.costCenterId,
-              salesmanId: line.salesmanId,
-              branchId: line.branchId,
-              currencyCode: line.currencyCode,
-              currencyAmount: line.currencyAmount,
-              fxRate: line.fxRate,
-              description: line.description,
-            })),
-          );
-          await tx.update(journalEntries).set({ status: 'void', updatedAt: new Date() }).where(eq(journalEntries.id, entry.id));
-        }
+        /**
+         * 🔁 العكس الرسمي الموحَّد — كما في مسار البيع تماماً (والعيب كان واحداً في
+         * المسارين): المرآة وحدها والأصل يبقى `posted`، لأن إبطال الأصل مع ترحيل المرآة
+         * يُنحرف ميزان المراجعة ورصيد الحساب بمقدار الفاتورة الملغاة. الأبعاد كلها
+         * (الطرف، مركز التكلفة، المندوب، الفرع، العملة) تنقلها الآلية الموحَّدة.
+         */
+        await this.accounting.reverseJournalInTx(tx, tenantId, entry.id, {
+          reason: `إبطال ${invoice.kind === 'purchase_return' ? 'مرتجع الشراء' : 'فاتورة الشراء'} ${invoice.number ?? id}: ${reason}`,
+          date: today,
+          branchId: invoice.branchId,
+          sourceType: docType,
+          sourceId: id,
+          actorId: getRequestContext().tenant?.userId ?? null,
+          ifAlreadyReversed: 'reuse',
+        });
       }
       const movements = await tx
         .select()

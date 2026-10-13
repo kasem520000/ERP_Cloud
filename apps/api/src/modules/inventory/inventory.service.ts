@@ -7,7 +7,6 @@ import {
   accounts,
   inventoryTransactions,
   journalEntries,
-  journalEntryLines,
   itemLots,
   itemSerials,
   stockDocumentSerials,
@@ -1073,11 +1072,24 @@ export class InventoryService {
     });
   }
 
-  private async loadTransfer(tx: DrizzleTx, tenantId: string, transferId: string) {
-    const [transfer] = await tx
+  /**
+   * 🔒 قراءة المناقلة — `forUpdate` لأربع عمليات الانتقال وحدها (إرسال، استلام، إقفال، إلغاء).
+   * بلا قفل كان طلبان متزامنان على المناقلة نفسها يقرآن `in_transit` معاً فيعكس كلٌّ منهما
+   * الكمية والقيد: بضاعة تعود مرتين ومرآتان لقيد واحد. القفل على صف المستند يجعل الثاني
+   * ينتظر، ثم يقرأ الحالة المُودَعة فيرفضها (`TRANSFER_INVALID_STATE`) أو يعيد استخدام
+   * العكس القائم. والقراءة العابرة (`getTransfer`) تبقى بلا قفل.
+   */
+  private async loadTransfer(
+    tx: DrizzleTx,
+    tenantId: string,
+    transferId: string,
+    options: { forUpdate?: boolean } = {},
+  ) {
+    const query = tx
       .select()
       .from(stockTransfers)
       .where(and(eq(stockTransfers.tenantId, tenantId), eq(stockTransfers.id, transferId)));
+    const [transfer] = options.forUpdate ? await query.for('update') : await query;
     if (!transfer) throw new DomainError('TRANSFER_NOT_FOUND', 'Transfer was not found', 404);
     const lines = await tx
       .select()
@@ -1098,7 +1110,7 @@ export class InventoryService {
     options: { fiscalPeriodId?: string; allowNegative?: boolean } = {},
   ) {
     return withTenantTx(this.database.db, tenantId, async (tx) => {
-      const transfer = await this.loadTransfer(tx, tenantId, transferId);
+      const transfer = await this.loadTransfer(tx, tenantId, transferId, { forUpdate: true });
       if (transfer.status !== 'draft')
         throw new DomainError('TRANSFER_INVALID_STATE', 'Only draft transfers can be sent', 409);
       if (!transfer.lines.length)
@@ -1338,7 +1350,7 @@ export class InventoryService {
     options: { fiscalPeriodId?: string } = {},
   ) {
     return withTenantTx(this.database.db, tenantId, async (tx) => {
-      const transfer = await this.loadTransfer(tx, tenantId, transferId);
+      const transfer = await this.loadTransfer(tx, tenantId, transferId, { forUpdate: true });
       if (!['in_transit', 'partially_received'].includes(transfer.status))
         throw new DomainError('TRANSFER_INVALID_STATE', 'Transfer is not awaiting receipt', 409);
       const byLine = new Map(transfer.lines.map((line) => [line.lineNo, line]));
@@ -1603,7 +1615,7 @@ export class InventoryService {
         },
       );
     return withTenantTx(this.database.db, tenantId, async (tx) => {
-      const transfer = await this.loadTransfer(tx, tenantId, transferId);
+      const transfer = await this.loadTransfer(tx, tenantId, transferId, { forUpdate: true });
       if (transfer.status === 'closed')
         throw new DomainError('TRANSFER_ALREADY_CLOSED', 'This transfer is already closed', 409);
       if (!['in_transit', 'partially_received'].includes(transfer.status))
@@ -1794,7 +1806,7 @@ export class InventoryService {
    */
   async cancelTransfer(tenantId: string, transferId: string, reason?: string) {
     return withTenantTx(this.database.db, tenantId, async (tx) => {
-      const transfer = await this.loadTransfer(tx, tenantId, transferId);
+      const transfer = await this.loadTransfer(tx, tenantId, transferId, { forUpdate: true });
       if (['received', 'cancelled'].includes(transfer.status))
         throw new DomainError('TRANSFER_INVALID_STATE', 'Transfer cannot be cancelled', 409);
       if (transfer.status === 'in_transit') {
@@ -2163,39 +2175,30 @@ export class InventoryService {
     reason: string,
   ): Promise<string | undefined> {
     const [entry] = await tx
-      .select()
+      .select({ status: journalEntries.status })
       .from(journalEntries)
       .where(and(eq(journalEntries.tenantId, tenantId), eq(journalEntries.id, entryId)));
-    if (!entry || entry.status === 'void') return undefined;
-    const lines = await tx
-      .select()
-      .from(journalEntryLines)
-      .where(and(eq(journalEntryLines.tenantId, tenantId), eq(journalEntryLines.entryId, entryId)));
-    const fiscalPeriodId = await this.accounting.openPeriodForDateInTx(
-      tx,
-      tenantId,
-      new Date().toISOString().slice(0, 10),
-    );
-    const created = await this.accounting.postJournalInTx(tx, tenantId, {
-      branchId: entry.branchId,
-      fiscalPeriodId,
-      date: new Date().toISOString().slice(0, 10),
-      description: `عكس قيد: ${reason}`,
-      lines: lines.map((line) => ({
-        accountId: line.accountId,
-        debit: line.credit,
-        credit: line.debit,
-        description: line.description ?? undefined,
-      })),
-      sourceType: entry.sourceType ?? 'reversal',
-      sourceId: entry.sourceId ?? entryId,
-      idempotencyKey: `reversal:${entryId}`,
+    /**
+     * لا يُعكس ما لم يُرحَّل — مسودةٌ تُلغى بلا عكس، وقيدٌ أُبطل قديماً (بيانات سابقة لهذا
+     * الاصطلاح) لا يُلمس. `undefined` تعني «لا عكس لازماً»، لا «فشل صامت».
+     */
+    if (!entry || entry.status !== 'posted') return undefined;
+    /**
+     * 🔁 الآلية الموحَّدة — `AccountingService.reverseJournalInTx` هي العكس الرسمي الوحيد في
+     * النظام. ما كان هنا نسخة ثانية منه، وكانت **تبطل الأصل وترحّل المرآة معاً**: وكل
+     * الأرصدة والتقارير تجمع `status = 'posted'`، فيسقط الأصل من الميزان وتبقى مرآته ⇒
+     * ينحرف رصيد الحساب بمقدار العملية الملغاة بعد كل `cancelTransfer` أو إلغاء سند.
+     * الاصطلاح المعتمد (منذ الترحيل `0047` وتقرأه `report-catalog.ts ← entryStateScope`):
+     * الأصل يبقى `posted`، والمرآة تحمل `reversalOf` وأبعاد السطر كلها، و«لاغي» = قيدٌ
+     * يشير إليه عكس. والمرآة وحدها تكفي لأن الأصل وعكسه معاً صفر.
+     */
+    const reversed = await this.accounting.reverseJournalInTx(tx, tenantId, entryId, {
+      reason,
+      actorId: getRequestContext().tenant?.userId ?? null,
+      // داخل ساغا الإلغاء: إعادة المحاولة ترجع العكس القائم ولا تنشئ ثانياً.
+      ifAlreadyReversed: 'reuse',
     });
-    await tx
-      .update(journalEntries)
-      .set({ status: 'void', updatedAt: new Date() })
-      .where(eq(journalEntries.id, entryId));
-    return created?.id;
+    return reversed.id;
   }
 
   // ── الرقم التسلسلي على سطر المستند ──────────────────────────────────────────
