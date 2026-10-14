@@ -33,6 +33,24 @@ describe('Factory, Bakery & Van Sales 10-pillar workflow & 6-Phase Core Integrat
         'sales.view',
         'sales.invoice.create',
         'accounting.period.close',
+        /**
+         * 🚐 صلاحيات التوزيع صريحةً — since the `permissionGrants` narrowing (§5), a sales
+         * permission no longer implies the approval/management codes of the distribution module
+         * (`van_sales.production.manage`, `pricing.manage`, `load.manage`, `closing.approve`,
+         * `override.approve`), and declaring any explicit `van_sales.*` code also switches the
+         * operational inference off — so the owner of this fixture is granted the distribution
+         * codes outright, exactly what migration `0126` writes for real roles and what a manager
+         * sees and can revoke in the roles screen.
+         */
+        'van_sales.view',
+        'van_sales.production.manage',
+        'van_sales.pricing.manage',
+        'van_sales.load.manage',
+        'van_sales.invoice.create',
+        'van_sales.collection.create',
+        'van_sales.closing.submit',
+        'van_sales.closing.approve',
+        'van_sales.override.approve',
       ],
       roleNames: ['Admin'],
       isOwner: true,

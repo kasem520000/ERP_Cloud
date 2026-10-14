@@ -489,6 +489,44 @@ export function findPermission(code: string): PermissionDefinition | undefined {
 }
 
 /**
+ * 🚐 نطاق الاستنتاج بين المبيعات والتوزيع (§5 — «لا توسّع `sales.view`/`sales.invoice.create`
+ * لتعني حقوق اعتماد»).
+ *
+ * القاعدة القديمة كانت: من يملك `sales.invoice.create` ولا يملك أي كود `van_sales.*`
+ * إداري ⇒ يُمنح **كل** أكواد `van_sales.*` ضمناً، ومنها `van_sales.closing.approve`
+ * (اعتماد إغلاق العهدة وتسوية العجز) و`van_sales.override.approve` (تجاوز الأسعار
+ * المثبّتة وسقوف البونص). أي أن كاتب فاتورة يصبح — بلا قرار من المدير وبلا أثر في
+ * شاشة الأدوار — معتمِداً للتسويات. وهذا ما ترفضه سياسة الصلاحيات في المشروع.
+ *
+ * الحدّ الجديد:
+ *   • **القراءة** تبقى مستنتَجة: `sales.view` ⇒ `van_sales.view` (سطح توزيع للقراءة فقط).
+ *   • **التشغيل** يبقى مستنتَجاً حتى لا يتوقّف يوم العمل: كاتب الفواتير يصدر فاتورة
+ *     توزيع، ويحصّل مديونياته، ويقدّم إغلاق ورديته للتفتيش.
+ *   • **الاعتماد والإدارة لا تُستنتَج أبداً**: اعتماد الإغلاق/التسوية، تجاوز الأسعار
+ *     والبونص، إدارة أوامر التحميل، تسعير العملاء، وتسجيل الإنتاج — كلها تتطلّب
+ *     منحاً صريحاً من المدير في شاشة الأدوار، فتظهر في `role_permissions` وتُرى وتُسحب.
+ *
+ * الاستنتاج كله مشروطٌ بألّا يكون للدور أي كود `van_sales.*` إداري صريح: متى ضبط
+ * المدير التوزيع صراحةً، انتهت كل استنتاجات المبيعات (الإعداد الصريح هو الحاكم).
+ * الأدوار القائمة قبل هذا الضبط تُصلحها الهجرة `0126` بمنح صريح يكافئ ما كانت تملكه
+ * فعلياً، فلا يُحرم مستخدم من صلاحية كان يستعملها، وتصبح الصلاحية مرئية وقابلة للسحب.
+ */
+export const VAN_SALES_CODES_IMPLIED_BY_SALES_INVOICE: readonly string[] = [
+  'van_sales.invoice.create',
+  'van_sales.collection.create',
+  'van_sales.closing.submit',
+] as const;
+
+/** أكواد التوزيع التي لا تمنحها صلاحيات المبيعات أبداً — تُمنح صراحةً فقط. */
+export const VAN_SALES_CODES_NEVER_IMPLIED_BY_SALES: readonly string[] = [
+  'van_sales.production.manage',
+  'van_sales.pricing.manage',
+  'van_sales.load.manage',
+  'van_sales.closing.approve',
+  'van_sales.override.approve',
+] as const;
+
+/**
  * Alias-aware authorisation check shared by `PermissionsGuard` and unit tests.
  *
  * A granted code satisfies the required code when it is identical, when it is the
@@ -512,8 +550,7 @@ export function permissionGrants(granted: readonly string[], required: string): 
     return true;
   }
   if (
-    requiredCanonical.startsWith('van_sales.') &&
-    requiredCanonical !== 'van_sales.view' &&
+    VAN_SALES_CODES_IMPLIED_BY_SALES_INVOICE.includes(requiredCanonical) &&
     !granted.some((c) => c.startsWith('van_sales.') && c !== 'van_sales.view') &&
     grantedSet.has('sales.invoice.create')
   ) {

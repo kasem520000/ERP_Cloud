@@ -33,6 +33,8 @@ export type { RequestId } from './request-id.js';
 
 export {
   ALL_PERMISSIONS,
+  VAN_SALES_CODES_IMPLIED_BY_SALES_INVOICE,
+  VAN_SALES_CODES_NEVER_IMPLIED_BY_SALES,
   canonicalPermissionCodes,
   canonicalToLegacy,
   canonicalizePermissionCode,
