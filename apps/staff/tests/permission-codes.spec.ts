@@ -15,14 +15,22 @@ import { canonicalizePermissionCode, isKnownPermissionCode, permissionAliases } 
  */
 
 const ROOT = new URL('..', import.meta.url);
+/**
+ * القشرة المشتركة — `session.tsx` وعميل API وأخواتهما انتقلا إلى `@erp/web-core` (المرحلة 0)،
+ * فالحارس يقرأهما **حيث هما الآن**: لو بقي يقرأ جسر إعادة التصدير في `lib/` لنجح الاختبار
+ * وهو لا يفحص شيئاً، ولو ضاق المسح إلى `apps/staff` وحدها لنقصت التغطية صامتةً.
+ */
+const WEB_CORE = new URL('../../../packages/web-core/', import.meta.url);
 
-async function collectSources(dir: string): Promise<string[]> {
-  const entries = await readdir(new URL(dir, ROOT), { withFileTypes: true });
-  const files: string[] = [];
+async function collectSources(root: URL, dir: string): Promise<URL[]> {
+  const entries = await readdir(new URL(dir, root), { withFileTypes: true });
+  const files: URL[] = [];
   for (const entry of entries) {
     const relative = `${dir}${entry.name}`;
-    if (entry.isDirectory()) files.push(...(await collectSources(`${relative}/`)));
-    else if (/\.tsx?$/.test(entry.name) && !entry.name.endsWith('.spec.ts')) files.push(relative);
+    if (entry.isDirectory()) files.push(...(await collectSources(root, `${relative}/`)));
+    else if (/\.tsx?$/.test(entry.name) && !entry.name.endsWith('.spec.ts')) {
+      files.push(new URL(relative, root));
+    }
   }
   return files;
 }
@@ -31,26 +39,31 @@ const known = (code: string) => isKnownPermissionCode(code) || code in permissio
 
 describe('AUD-12 — رموز الصلاحيات في الواجهة', () => {
   it('لا جدول aliases محلياً — التحقق يمرّ بـcanonicalizePermissionCode', async () => {
-    const source = await readFile(new URL('lib/session.tsx', ROOT), 'utf8');
+    const source = await readFile(new URL('src/session.tsx', WEB_CORE), 'utf8');
     expect(source).not.toContain('PERMISSION_ALIASES');
     expect(source).toContain('canonicalizePermissionCode');
   });
 
   it('كل رمز يُفحص في الواجهة موجودٌ في السجلّ', async () => {
-    const files = [...(await collectSources('app/')), ...(await collectSources('lib/')), ...(await collectSources('components/'))];
+    const files = [
+      ...(await collectSources(ROOT, 'app/')),
+      ...(await collectSources(ROOT, 'lib/')),
+      ...(await collectSources(ROOT, 'components/')),
+      ...(await collectSources(WEB_CORE, 'src/')),
+    ];
     const offenders: Array<{ file: string; code: string }> = [];
     // رموز الصلاحيات وحدها: نقطة تفصل النطاق عن الإجراء، وبلا مسافات — كي لا يخلط
     // الفحص حقولاً محلية سمّاها الكود `permission` لمعنى آخر (زرّ `preview` مثلاً).
     const looksLikePermissionCode = (code: string) => /^[a-z][a-z0-9_]*(\.[a-z0-9_*]+)+$/.test(code);
     for (const file of files) {
-      const text = await readFile(new URL(file, ROOT), 'utf8');
+      const text = await readFile(file, 'utf8');
       for (const match of text.matchAll(/can\(\s*'([^']+)'/g)) {
         const code = match[1]!;
-        if (looksLikePermissionCode(code) && !known(code)) offenders.push({ file, code });
+        if (looksLikePermissionCode(code) && !known(code)) offenders.push({ file: file.pathname, code });
       }
       for (const match of text.matchAll(/permission:\s*'([^']+)'/g)) {
         const code = match[1]!;
-        if (looksLikePermissionCode(code) && !known(code)) offenders.push({ file, code });
+        if (looksLikePermissionCode(code) && !known(code)) offenders.push({ file: file.pathname, code });
       }
     }
     expect(offenders).toEqual([]);

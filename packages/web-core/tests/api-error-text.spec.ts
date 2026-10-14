@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { ApiError, apiErrorText } from './api';
+import { ApiError, apiErrorText } from '../src/api.js';
 
 /**
  * 📣 نصّ الرفض كما يُقال للمستخدم.

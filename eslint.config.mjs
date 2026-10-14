@@ -44,9 +44,9 @@ export default [
       },
     },
     settings: {
-      // `packages/ui` is the shared design system (Design v3, ADR-030). It is a
-      // `lib` element like every other package, and its sources run in the
-      // browser, so they need the DOM globals the three apps already get.
+      // `packages/ui` (the design system, ADR-030) and `packages/web-core` (the shared web
+      // shell) ship browser sources as TypeScript, so every package `.tsx` is a `lib`
+      // element like the other package sources and gets the DOM globals the apps get.
       'boundaries/elements': [
         { type: 'app', pattern: ['apps/**/*.ts', 'apps/**/*.js', 'apps/**/*.mjs'] },
         {
@@ -55,7 +55,7 @@ export default [
             'packages/**/*.ts',
             'packages/**/*.js',
             'packages/**/*.mjs',
-            'packages/ui/**/*.tsx',
+            'packages/**/*.tsx',
           ],
         },
       ],
@@ -114,6 +114,8 @@ export default [
       '**/apps/customer-portal/**/*.{ts,tsx}',
       '**/packages/ui/**/*.{ts,tsx}',
       'packages/ui/**/*.{ts,tsx}',
+      '**/packages/web-core/**/*.{ts,tsx}',
+      'packages/web-core/**/*.{ts,tsx}',
       'src/**/*.{ts,tsx}',
       'app/**/*.{ts,tsx}',
       'components/**/*.{ts,tsx}',

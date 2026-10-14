@@ -20,6 +20,12 @@ export function LoginScreen({ initialError }: { initialError?: string }) {
   const { t } = useLang();
   const params = useSearchParams();
   const urlResetToken = params.get('resetToken') ?? '';
+  /**
+   * AUD-08 — رابط دخول مُسلَّم (handoff) منتهٍ أو مُستعمل سابقاً: الجسر يعيدنا إلى المسار
+   * نفسه بلا جلسة، والوسم في العنوان. وكان قبل ذلك يرمي إلى `/login` — مسارٍ غير موجود
+   * (404) — فلا يعرف المستخدم لماذا وقف أمام شاشة الدخول.
+   */
+  const handoffFailed = params.get('handoff') === 'failed';
   const [step, setStep] = useState<AuthStep>(urlResetToken ? 'reset' : 'credentials');
   const [tenantCode, setTenantCode] = useState(params.get('tenant') ?? '');
   const [email, setEmail] = useState(params.get('email') ?? '');
@@ -29,7 +35,12 @@ export function LoginScreen({ initialError }: { initialError?: string }) {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | undefined>(initialError);
+  const [error, setError] = useState<string | undefined>(
+    initialError ??
+      (handoffFailed
+        ? 'رابط الدخول المسلَّم منتهٍ أو مُستعمل سابقاً — سجّل الدخول مباشرةً'
+        : undefined),
+  );
   const [notice, setNotice] = useState<string | undefined>();
   const justJoined = params.get('joined') === '1';
 

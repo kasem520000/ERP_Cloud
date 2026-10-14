@@ -2,8 +2,8 @@
 
 import { useEffect, useRef } from 'react';
 
-import { writeSession } from '../lib/api';
-import { useSession } from '../lib/session';
+import { writeSession } from './api';
+import { useSession } from './session';
 
 /**
  * AUD-08 — يستقبل جسر الدخول من الواجهة التسويقية.
@@ -16,8 +16,14 @@ import { useSession } from '../lib/session';
  *
  * الفشل مغلق: رمز منتهٍ أو مُستبدل سابقاً يُلقي المستخدم على شاشة الدخول، لا على جلسة
  * جزئية. ولا يوجد مسار قراءة `token` من الاستعلام بعد اليوم.
+ *
+ * **وأين هي شاشة الدخول؟** `/?handoff=failed` لا `/login?handoff=failed`: لا مسار `/login`
+ * في `apps/staff` (قُيس: `GET /login` ⇒ 404)، فالقشرة (`AuthGate`) هي التي ترسم شاشة الدخول
+ * على أي مسارٍ محميّ حين تكون الجلسة مجهولة — وإعادة التوجيه إلى مسارٍ غير موجود كانت
+ * تترك المستخدم أمام صفحة 404 بلا سبب. والوسم `handoff=failed` يبقى في العنوان لتقرأه
+ * شاشة الدخول وتقول «الرابط منتهٍ أو مُستعمل سابقاً» بدل الصمت.
  */
-export function TokenBridge() {
+export function TokenBridge({ failedRedirect = '/?handoff=failed' }: { failedRedirect?: string } = {}) {
   const { status, reload } = useSession();
   const inFlight = useRef(false);
 
@@ -40,7 +46,7 @@ export function TokenBridge() {
           body: JSON.stringify({ code }),
         });
         if (!response.ok) {
-          globalThis.location.assign('/login?handoff=failed');
+          globalThis.location.assign(failedRedirect);
           return;
         }
         const payload = (await response.json()) as {
@@ -54,7 +60,7 @@ export function TokenBridge() {
         });
         void reload();
       } catch {
-        globalThis.location.assign('/login?handoff=failed');
+        globalThis.location.assign(failedRedirect);
       }
     })();
   }, [status, reload]);

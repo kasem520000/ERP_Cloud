@@ -128,7 +128,7 @@ async function main() {
   }
 
   const [db, sw, manifest, page, queue] = await Promise.all([
-    readFile(new URL('../apps/staff/lib/offline-db.ts', import.meta.url), 'utf8'),
+    readFile(new URL('../packages/web-core/src/offline-db.ts', import.meta.url), 'utf8'),
     readFile(new URL('../apps/staff/public/sw.js', import.meta.url), 'utf8'),
     readFile(new URL('../apps/staff/public/manifest.webmanifest', import.meta.url), 'utf8'),
     readFile(new URL('../apps/staff/app/pos/offline/page.tsx', import.meta.url), 'utf8'),
