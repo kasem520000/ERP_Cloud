@@ -85,10 +85,11 @@ describe('خريطة وحدات واجهة المخابز', () => {
     expect(moduleForPath('/')?.key).toBe('overview');
     expect(moduleForPath('/production')?.key).toBe('production');
     expect(moduleForPath('/production/9')?.key).toBe('production'); // ‏حدّ المقطع لا البادئة
+    expect(moduleForPath('/distribution')?.key).toBe('distribution');
     expect(moduleForPath('/production-x')).toBeUndefined();
+    expect(moduleForPath('/distribution-x')).toBeUndefined();
     // ‏ما لم يُبنَ بعد: لا وحدةَ تطابقه (فلا قشرةَ تدّعي مساراً ولا مسارَ يدّعي قشرة).
     expect(moduleForPath('/rep')).toBeUndefined();
-    expect(moduleForPath('/distribution')).toBeUndefined();
     expect(moduleForPath('/custody')).toBeUndefined();
   });
 
@@ -107,7 +108,11 @@ describe('خريطة وحدات واجهة المخابز', () => {
       }
     }
 
-    expect(readyModules().map((module) => module.key).sort()).toEqual(['overview', 'production']);
+    expect(readyModules().map((module) => module.key).sort()).toEqual([
+      'distribution',
+      'overview',
+      'production',
+    ]);
     // ‏واجهة المندوب ما زالت المرحلة 4 ولا مسار لها بعد.
     expect(BAKERY_MODULES.find((module) => module.key === 'rep-app')?.phaseAr).toBe('المرحلة 4');
     expect(BAKERY_MODULES.filter((module) => module.phaseAr === 'المرحلة 4').map((m) => m.key)).toEqual(['rep-app']);

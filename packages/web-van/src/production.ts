@@ -79,8 +79,13 @@ export const PRODUCTION_MESSAGES = {
   scrapReasonRequired: 'لا يُرحَّل فاقد بلا سبب: اكتب سبب الفاقد مع أي كمية فاقد أكبر من صفر',
 } as const;
 
-/** رقمٌ آمن: نصٌّ فارغ أو تالف يُقرأ صفراً بدل أن يرمي `Decimal` استثناءً في وجه المستخدم. */
-function num(value: string | number | null | undefined): Decimal {
+/**
+ * رقمٌ آمن: نصٌّ فارغ أو تالف يُقرأ صفراً بدل أن يرمي `Decimal` استثناءً في وجه المستخدم.
+ * مُصدَّرة لأنّ عقد التوزيع يستعمل نفس الدلالة — ونسختان من محلّلٍ واحد تعني حقلاً يُرفض
+ * في شاشة ويقبل رقماً تالفاً في الأخرى. **انتبه**: «تالف ⇒ صفر» آمنةٌ حيث الصفر مرفوض
+ * (كمية إنتاج)، وغير آمنة حيث الصفر مقبول (كمية مستلمة) — فهناك يُفحص شكل الرقم نصّاً أولاً.
+ */
+export function num(value: string | number | null | undefined): Decimal {
   try {
     const parsed = new Decimal(value === null || value === undefined || value === '' ? 0 : value);
     return parsed.isFinite() ? parsed : new Decimal(0);

@@ -52,6 +52,15 @@ describe('Van Sales end-to-end acceptance on official stock & accounting ledgers
     });
   }
 
+  /** عدد أوامر التحميل في اللوحة — لقياس «صفر أثر» لطلباتٍ مرفوضة. */
+  async function loadOrderCount(): Promise<number> {
+    const dashboard = await api(ctx.server, 'get', '/api/v1/van-sales/dashboard', {
+      token: accountant.token,
+    });
+    expect(dashboard.status, JSON.stringify(dashboard.body).slice(0, 200)).toBe(200);
+    return (dashboard.body.data.loadOrders ?? []).length;
+  }
+
   /**
    * حركات الإدخال الرسمية للصنف المنتج في مستودع — «كم مرة دخلت الكمية إلى الدفتر فعلاً».
    * الدفعة لم تعد تسجّل الحركة بنفسها حين يستلمها أمر إنتاج رسمي، فالعدد يُقاس قبل وبعد
@@ -367,6 +376,23 @@ describe('Van Sales end-to-end acceptance on official stock & accounting ledgers
     expect(meBefore.body.data.salesmanId).toBe(salesmanId);
     expect(meBefore.body.data.pendingReceipts).toHaveLength(1);
     expect(Number(meBefore.body.data.custodyKg)).toBe(0);
+
+    /**
+     * 🔒 تثبيت نصّ الرفض **في طرف الخادم**: واجهة المخابز تقول الجملة نفسها قبل الإرسال
+     * (‏`RECEIPT_MESSAGES.exceedsLoaded` في `packages/web-van/src/distribution.ts`)، فلو تغيّرت
+     * هنا سقط هذا الحكم وسقط سبيك الحزمة معه — ولا يبقى النصّان متطابقين بالنيّة.
+     * والرفض لا يمسّ الحالة: رصيد السيارة يُقاس صفراً بعده كما كان قبله.
+     */
+    const overReceipt = await api(
+      ctx.server,
+      'post',
+      `/api/v1/van-sales/load-orders/${loadOrderId}/confirm-receipt`,
+      { token: rep.token, body: { receivedQty: '25' } },
+    );
+    expect(overReceipt.status, JSON.stringify(overReceipt.body)).toBe(422);
+    // ‏الرسالة العربية في `detail` من غلاف RFC-9457 (`all-exceptions.filter.ts`) — لا `message`.
+    expect(overReceipt.body.detail).toBe('الكمية المستلمة (25.00) تتجاوز الكمية المصروفة (20.00)');
+    expect(await officialBalance(vanWarehouseId)).toBe(0);
 
     const confirm = await api(
       ctx.server,
@@ -1082,5 +1108,83 @@ describe('Van Sales end-to-end acceptance on official stock & accounting ledgers
       (row) => Number(row.credit) > 0 && Number(row.credit) < 12 && Number(row.credit) > 11,
     );
     expect(vatLegs.length).toBeGreaterThan(0);
+  });
+
+  /**
+   * 🔒 نصوص رفض **إنشاء** أمر التحميل كما يقولها الخادم — مثبّتةٌ هنا لأنّ شاشة التوزيع في
+   * واجهة المخابز تعرضها للمشرف **قبل** الإرسال (`LOAD_ORDER_MESSAGES`) وتدّعي أنّها النصّ
+   * نفسه حرفاً. الثلاثة رفضٌ قبل أيّ حركة مخزون، فالحالة تُقاس قبلها وبعدها (صفر أثر).
+   *
+   * وأمّا «بلا صنفٍ وبلا دفعة» فليست رفضاً عند الخادم — انظر الحالة التالية.
+   */
+  it('refuses a load order with the exact messages the bakery distribution screen mirrors', async () => {
+    /** نصّ الرفض من الغلاف: `detail` (‏`all-exceptions.filter.ts`) — وهو ما تعرضه الشاشة. */
+    function messageOf(body: unknown): string {
+      const record = (body ?? {}) as { detail?: unknown };
+      return typeof record.detail === 'string' ? record.detail : '';
+    }
+
+    const balanceBefore = await officialBalance(mainWarehouseId);
+    const countBefore = await loadOrderCount();
+
+    const noSalesman = await api(ctx.server, 'post', '/api/v1/van-sales/load-orders', {
+      token: accountant.token,
+      body: {},
+    });
+    expect(noSalesman.status, JSON.stringify(noSalesman.body).slice(0, 400)).toBe(422);
+    expect(messageOf(noSalesman.body)).toBe('اختر المندوب لأمر التحميل');
+
+    const noQty = await api(ctx.server, 'post', '/api/v1/van-sales/load-orders', {
+      token: accountant.token,
+      body: { salesmanId, itemId, loadedQty: '0' },
+    });
+    expect(noQty.status, JSON.stringify(noQty.body).slice(0, 400)).toBe(422);
+    expect(messageOf(noQty.body)).toBe('الكمية المحمّلة للمندوب يجب أن تكون أكبر من صفر');
+
+    const sameWarehouse = await api(ctx.server, 'post', '/api/v1/van-sales/load-orders', {
+      token: accountant.token,
+      body: {
+        salesmanId,
+        itemId,
+        loadedQty: '5',
+        warehouseId: mainWarehouseId,
+        vanWarehouseId: mainWarehouseId,
+      },
+    });
+    expect(sameWarehouse.status, JSON.stringify(sameWarehouse.body).slice(0, 400)).toBe(422);
+    expect(messageOf(sameWarehouse.body)).toBe(
+      'مستودع الصرف ومستودع سيارة المندوب واحد — حدد مستودعين مختلفين حتى تُسجَّل مناولة مخزنية رسمية',
+    );
+
+    // ‏صفر أثر: لا رصيد تغيّر ولا أمرَ تحميلٍ أُنشئ من طلبٍ مرفوض.
+    expect(await officialBalance(mainWarehouseId)).toBe(balanceBefore);
+    expect(await loadOrderCount()).toBe(countBefore);
+  });
+
+  /**
+   * ⚠️ سلوكٌ مقاسٌ لا رأي: طلبٌ **بلا صنف** مربوطٌ بدفعة إنتاج يشتقّ الصنف من الدفعة — وهذا
+   * معقول. لكنّ الخادم أيضاً **يفترض** رقم دفعةٍ افتراضياً (`PROD-<اليوم>-0001` في
+   * `createLoadOrder`) حين لا يُكتب رقم، فيشتقّ الصنف من دفعةٍ لم يذكرها أحد. لذا شاشة
+   * التوزيع **أشدّ من الخادم هنا عمداً**: ترفض «بلا صنفٍ وبلا دفعة» قبل الإرسال
+   * (‏`LOAD_ORDER_MESSAGES.sourceRequired`)، لأنّ حمولةً تُنسب لصنفٍ لم يختره المشرف عهدةٌ
+   * بلا قصد. وتثبيت الاشتقاق من دفعةٍ مكتوبة أدناه يبيّن أنّ الرفض ليس لعجزٍ في الخادم.
+   */
+  it('derives the loaded item from the linked production batch (and so the screen demands an explicit source)', async () => {
+    const dashboard = await api(ctx.server, 'get', '/api/v1/van-sales/dashboard', {
+      token: accountant.token,
+    });
+    expect(dashboard.status, JSON.stringify(dashboard.body).slice(0, 200)).toBe(200);
+    const batchNo: string = dashboard.body.data.productionBatches[0].batchNo;
+
+    const derived = await api(ctx.server, 'post', '/api/v1/van-sales/load-orders', {
+      token: accountant.token,
+      body: { salesmanId, loadedQty: '1', productionBatchNo: batchNo, idempotencyKey: 'pin-derived-item' },
+    });
+    expect(derived.status, JSON.stringify(derived.body).slice(0, 400)).toBe(201);
+    const created = derived.body.data.loadOrders[0];
+    expect(created.productionBatchNo).toBe(batchNo);
+    expect(created.itemId).toBe(itemId); // ‏اشتُقّ من الدفعة لا من الطلب
+    expect(created.loadedQty).toBe('1.00');
+    expect(created.status).toBe('pending_receipt');
   });
 });

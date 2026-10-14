@@ -36,9 +36,25 @@ describe('AUD-16 — مفتاح تشفير ساكن بلا افتراضي معر
     expect(TEST_DATA_ENC_KEY).not.toBe(LEGACY_DEV_DEFAULT);
   });
 
-  it('resolveDataEncryptionKey يقرأ المرشَّح الصريح ثم البيئة', () => {
+  /**
+   * أولوية الحلّ: المرشَّح الصريح ← البيئة ← ملف `.env` ← (في الاختبارات فقط) المفتاح المعزول.
+   *
+   * كان هنا `expect(resolveDataEncryptionKey(undefined, 'test')).toBe(TEST_DATA_ENC_KEY)` — وهو
+   * قياسٌ للجهاز لا للدالة: `resolveDataEncryptionKey` تقرأ `process.env.DATA_ENC_KEY` **و`parsed
+   * .value.DATA_ENC_KEY` من ملف `.env`** معاً (وهذا مقصودها؛ ورسالة الخطأ نفسها تقول «Run
+   * `pnpm env:setup`»). فأيّ مطبّعٍ نفّذ الخطوة الموثّقة الأولى صار مفتاحٌ حقيقيّ في `.env` عنده،
+   * ويسقط هذا الحكم مع أنّ السلوك صحيح. وفرع «الغياب ⇒ مفتاح الاختبار» مقاسٌ حيث يجب: على
+   * `decideDataEncryptionKey` مباشرةً في الحكم أعلاه (وهي لا تقرأ `.env`).
+   */
+  it('resolveDataEncryptionKey: المرشَّح الصريح يسبق البيئة وملف .env', () => {
     expect(resolveDataEncryptionKey({ DATA_ENC_KEY: 'explicit-key-123456' }, 'production')).toBe('explicit-key-123456');
-    expect(resolveDataEncryptionKey(undefined, 'test')).toBe(TEST_DATA_ENC_KEY);
+    // ‏والأولوية نفسها في بيئة الاختبار — لا يعود المفتاح المعزول وفي `.env` مفتاحٌ حقيقي:
+    expect(resolveDataEncryptionKey({ DATA_ENC_KEY: 'explicit-key-123456' }, 'test')).toBe('explicit-key-123456');
+    // ‏وبلا مرشَّح تحلّ من البيئة/الملف، ومهما كان المصدر فالمهمّ ألّا يكون الافتراضي القديم:
+    expect(resolveDataEncryptionKey(undefined, 'test')).not.toBe(LEGACY_DEV_DEFAULT);
+    expect(resolveDataEncryptionKey(undefined, 'test').length).toBeGreaterThanOrEqual(16);
+    // ‏وفرع الغياب نفسه (بلا بيئةٍ ولا ملف) يبقى معزولاً بالاسم:
+    expect(decideDataEncryptionKey(undefined, 'test')).toBe(TEST_DATA_ENC_KEY);
   });
 
   it('بيئة الاختبار المحمّلة (`env`) تحمل مفتاحاً غير معروف للنشر', () => {
