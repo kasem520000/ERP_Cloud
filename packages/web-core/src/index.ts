@@ -16,6 +16,8 @@ export * from './api';
 export * from './i18n';
 export * from './offline-db';
 export * from './session';
+export * from './session-gate';
+export * from './surface-policy';
 export * from './sync-engine';
 export * from './sync';
 export * from './token-bridge';

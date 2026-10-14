@@ -41,12 +41,33 @@ describe('AUD-13 — حدود مسار القشرة', () => {
     expect(matchesPrefix('/esigning', '/esign')).toBe(false);
   });
 
-  it('AuthGate نفسه لا يعود إلى startsWith الخام', async () => {
+  /**
+   * البوابة صارت مشتركة (`@erp/web-core/session-gate`) والسياسة هنا — فالحكم يُقاس على
+   * الاثنين: لا مطابقة خاماً في أيٍّ منهما، وبوابة staff تمرّر سياسة هذه الواجهة فعلاً
+   * (ولو نسيت `policy` لصارت كل المسارات محميّة ولانفتحت بوابة المورد وصفحة التوقيع).
+   */
+  it('AuthGate يمرّر سياسة الأسطح، ولا يعود هو ولا البوابة المشتركة إلى startsWith الخام', async () => {
     const gate = await readFile(new URL('../components/auth-gate.tsx', import.meta.url), 'utf8');
-    expect(gate).not.toMatch(/startsWith\('\/m'\)/);
-    expect(gate).not.toMatch(/startsWith\('\/esign'\)/);
-    expect(gate).not.toMatch(/startsWith\('\/supplier-portal'\)/);
-    expect(gate).toContain('isEmployeeSurface');
+    const sharedGate = await readFile(
+      new URL('../../../packages/web-core/src/session-gate.tsx', import.meta.url),
+      'utf8',
+    );
+    const policy = await readFile(
+      new URL('../../../packages/web-core/src/surface-policy.ts', import.meta.url),
+      'utf8',
+    );
+
+    expect(gate).toContain('policy={SURFACE_POLICY}');
+    expect(gate).toContain('SessionGate');
+    for (const source of [gate, sharedGate]) {
+      expect(source).not.toMatch(/startsWith\('\/m'\)/);
+      expect(source).not.toMatch(/startsWith\('\/esign'\)/);
+      expect(source).not.toMatch(/startsWith\('\/supplier-portal'\)/);
+    }
+    expect(sharedGate).toContain('policy?.isPublicSurface(pathname)');
+    expect(sharedGate).toContain('policy?.isEmployeeSurface(pathname)');
+    /** المطابقة الوحيدة المسموح بها هي بحدّ مقطع: `=== prefix` أو `/` بعدها. */
+    expect(policy).toContain("pathname === prefix || pathname.startsWith(`${prefix}/`)");
   });
 
   it('قشرة الموظف تعرض لافتة الدخول المؤقّت مثل قشرة الإدارة', async () => {

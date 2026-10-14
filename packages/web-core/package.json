@@ -8,6 +8,8 @@
     ".": "./src/index.ts",
     "./api": "./src/api.ts",
     "./session": "./src/session.tsx",
+    "./session-gate": "./src/session-gate.tsx",
+    "./surface-policy": "./src/surface-policy.ts",
     "./i18n": "./src/i18n.tsx",
     "./use-query": "./src/use-query.ts",
     "./offline-db": "./src/offline-db.ts",
