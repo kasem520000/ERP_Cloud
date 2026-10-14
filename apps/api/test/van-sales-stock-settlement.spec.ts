@@ -37,6 +37,8 @@ describe('Van Sales — stock & custody settlement against the official ledger',
   const vanWarehouseIds: Record<string, string> = {};
   let otherVanWarehouseId: string;
   let itemId: string;
+  /** 🌾 مكوّن الإنتاج — (ب) تشترط مصدراً للمواد: لا دفعة إنتاج بلا مكوّنات ولا BOM. */
+  let componentItemId: string;
   let partyId: string;
   let salesmanId: string;
   let otherSalesmanId: string;
@@ -154,6 +156,8 @@ describe('Van Sales — stock & custody settlement against the official ledger',
         itemId,
         warehouseId: mainWarehouseId,
         producedQty: produced,
+        // مصدر المواد رسمي: مكوّن يصرف 1:1 بمتوسط 4.00 ⇒ تكلفة الوحدة 4.00 من أمر الإنتاج.
+        components: [{ itemId: componentItemId, qty: produced }],
         unitCost: '4.00',
         idempotencyKey: `${key}-prod`,
       },
@@ -282,6 +286,7 @@ describe('Van Sales — stock & custody settlement against the official ledger',
     vanWarehouseId = newId();
     otherVanWarehouseId = newId();
     itemId = newId();
+    componentItemId = newId();
     partyId = newId();
     salesmanId = newId();
     otherSalesmanId = newId();
@@ -323,6 +328,17 @@ describe('Van Sales — stock & custody settlement against the official ledger',
       await tx.execute(sql`
         INSERT INTO items (id, tenant_id, sku, name_ar, category_id, base_unit_id, kind, purchase_price, sale_price, track_lot)
         VALUES (${itemId}::uuid, ${owner.tenantId}::uuid, 'SKU-S', 'سمبوسة بلدي', ${categoryId}::uuid, ${baseUnitId}::uuid, 'stock', 4.0000, 6.5000, false)
+      `);
+      // 🌾 المكوّن ورصيده الرسمي — every production batch here consumes 1:1 from a real shelf at a
+      // moving average of exactly 4.00, so the output still enters at 4.00 and every number this
+      // suite asserts (قيم العجز، التسوية، العهدة) stays what it was.
+      await tx.execute(sql`
+        INSERT INTO items (id, tenant_id, sku, name_ar, category_id, base_unit_id, kind, purchase_price, sale_price, track_lot)
+        VALUES (${componentItemId}::uuid, ${owner.tenantId}::uuid, 'SKU-S-FLOUR', 'دقيق أبيض', ${categoryId}::uuid, ${baseUnitId}::uuid, 'stock', 4.0000, 4.0000, false)
+      `);
+      await tx.execute(sql`
+        INSERT INTO stock_balances (tenant_id, item_id, warehouse_id, quantity, value, average_cost, version)
+        VALUES (${owner.tenantId}::uuid, ${componentItemId}::uuid, ${mainWarehouseId}::uuid, 1000000, 4000000, 4.0000, 1)
       `);
       await tx.execute(sql`
         INSERT INTO parties (id, tenant_id, code, kind, name, tax_no, credit_limit)

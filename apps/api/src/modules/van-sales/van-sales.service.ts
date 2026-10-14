@@ -352,7 +352,7 @@ export class VanSalesService {
                  b.lot_id::text, b.inventory_transaction_id::text,
                  COALESCE(i.name_ar, b.item_name, 'رقائق سمبوسة وفطائر طازجة') AS item_name,
                  b.produced_qty::text, b.scrap_qty::text, b.issued_qty::text, b.returned_good_qty::text,
-                 b.damaged_qty::text, b.unit_cost::text, b.total_cost::text,
+                 b.damaged_qty::text, b.unit_cost::text, b.total_cost::text, b.cost_basis,
                  b.status, b.supervisor_name, b.notes, b.created_at
           FROM factory_production_batches b
           LEFT JOIN items i ON i.id = b.item_id
@@ -644,8 +644,20 @@ export class VanSalesService {
        */
       const officialStock = await this.officialStockBalancesInTx(tx, tenantId);
       const mainWarehouseId = await this.resolveMainWarehouseIdInTx(tx, tenantId, null, null);
+      /**
+       * 🌾 المواد الخام ليست إنتاجاً — this headline and its derived twin count the **produced**
+       * items only. A production batch must have a real source of materials (BOM أو مكوّنات), so
+       * the main warehouse legitimately holds flour beside bread: summing every balance row would
+       * report the flour as «إنتاج المستودع» and would keep `stockLedgerAgrees` permanently false
+       * against a number derived from batches. Like for like, then — the official rows of the items
+       * the batches actually produced. The materials stay visible in `officialStock` (the same rows
+       * the stock screen reads) and in the inventory valuation; they are simply not production.
+       */
+      const producedItemIds = new Set(
+        productionBatches.map((row) => (row.item_id ? str(row.item_id) : '')).filter(Boolean),
+      );
       const officialMainWarehouseKg = officialStock
-        .filter((row) => row.warehouseId === mainWarehouseId)
+        .filter((row) => row.warehouseId === mainWarehouseId && producedItemIds.has(row.itemId))
         .reduce((sum, row) => sum.plus(dec(row.quantity)), new Decimal(0));
       const vanWarehouseIds = new Set(
         loadOrders
@@ -765,6 +777,22 @@ export class VanSalesService {
           const retGood = dec(b.returned_good_qty);
           const dmg = dec(b.damaged_qty);
           const avail = Decimal.max(0, produced.minus(issued).plus(retGood).minus(dmg));
+          /**
+           * 💵 أساس التكلفة كما **كُتب ساعة الإنشاء** (`cost_basis`، ترحيل 0127). الاستنتاج
+           * القديم («هل ارتبطت الدفعة بأمر رسمي؟») كان صادقاً حين كان الربط اختيارياً، وصار
+           * كذباً حين صار إلزامياً: دفعةٌ موادها صفرية القيمة يُسعّرها المحاسب أو بطاقة الصنف
+           * ولو قرأناها من الربط لقيل إنها تكلفة فعلية من أمر تصنيع — ومعها أن الفاقد محمّل
+           * على المنتج الجيد وهو ليس كذلك. ولدفعةٍ سابقة لهذا العمود (NULL) يبقى الاستنتاج
+           * القديم لأنه كل ما يمكن قوله عنها بأمانة.
+           */
+          const basis: 'manufacturing_order' | 'manual_input_or_item_cost' =
+            b.cost_basis === 'manual_input' || b.cost_basis === 'item_cost'
+              ? 'manual_input_or_item_cost'
+              : b.cost_basis === 'manufacturing_order'
+                ? 'manufacturing_order'
+                : b.manufacturing_order_id || b.production_order_id
+                  ? 'manufacturing_order'
+                  : 'manual_input_or_item_cost';
           return {
             id: str(b.id),
             batchNo: str(b.batch_no),
@@ -790,10 +818,7 @@ export class VanSalesService {
              * 💵 أساس التكلفة — هل الرقم تكلفة فعلية من أمر تصنيع رسمي، أم إدخال يدوي،
              * أم تكلفة بطاقة الصنف؟ المحاسب لا يقبل «تكلفة إنتاج» دون أن يعرف مصدرها.
              */
-            costBasis:
-              b.manufacturing_order_id || b.production_order_id
-                ? 'manufacturing_order'
-                : 'manual_input_or_item_cost',
+            costBasis: basis,
             /**
              * 🗑️ قيمة الفاقد، وهل حُمِّلت على تكلفة المنتج الجيد. محرك التصنيع الرسمي
              * يحمّل فاقد **المكوّنات** (`scrapPercent` على سطر BOM) ولا يحمّل فاقد المخبز
@@ -801,7 +826,15 @@ export class VanSalesService {
              * **غير شاملة للفاقد** — وتُعرض كذلك بدل أن تُقرأ تكلفةً فعلية مكتملة.
              */
             scrapValue: scrap.mul(dec(b.unit_cost)).toFixed(2),
-            scrapCostLoaded: Boolean(b.manufacturing_order_id || b.production_order_id),
+            /**
+             * 🗑️ هل حُمِّلت تكلفة فاقد **هذه الدفعة** على المنتج الجيد؟ لا — وربطُ الدفعة بأمر
+             * رسمي لا يغيّر ذلك: الأمر يُنتج الكمية الصالحة وحدها (`outputQty = produced_qty`)
+             * فلا تُصرف مواد للفاقد، و`scrapPercent` على سطر قائمة المواد يحمّل فاقد
+             * **المكوّنات** داخل تكلفة الأمر وهو كمية أخرى غير فاقد المخبز المسجّل هنا.
+             * وتحميل فاقد المخبز على المنتج قرار سياسة لم يُتخذ (التقرير §10) — والشاشة تقول
+             * الحقيقة حتى يُتخذ بدل أن تقرأ «تكلفة فعلية مكتملة».
+             */
+            scrapCostLoaded: false,
             status: str(b.status),
             supervisorName: str(b.supervisor_name),
             notes: str(b.notes),
@@ -1109,8 +1142,83 @@ export class VanSalesService {
   }
 
   /**
+   * 🔎 فحص ما قبل التفويض — «هل لمواد هذه الدفعة قيمة؟».
+   *
+   * التكلفة الرسمية للإنتاج هي ما يخرج من الرفّ فعلاً. فإن كانت مواد الدفعة كلها بلا قيمة
+   * (رصيد افتتاحي بلا تسعير، أو مادة لم تُقيَّم) فإن الأمر الرسمي سيُدخل الناتج إلى الدفتر
+   * بصفر، ورقمٌ يُكتب في هذه الشاشة لا يغيّر ما سجّله المستودع — فتصير للكمية الواحدة
+   * تقييمان. لذا يُرفض الإنتاج **قبل أن تُصرف مادة**، لأن الأمر الرسمي يُرحَّل في معاملةٍ
+   * مستقلة تُثبَّت فوراً ولا رجعة فيها.
+   *
+   * سؤالٌ واحد للقراءة فقط («هل لأي مادةٍ قيمة موجبة في هذا المستودع؟») يكفي: لا حاجة إلى
+   * تكرار حساب الكميات ونسب الفاقد الذي يقوم به المحرك، ولا إلى مخالفة حساباته مستقبلاً.
+   */
+  private async assertMaterialsAreValued(
+    tenantId: string,
+    input: {
+      warehouseId: string;
+      bomId: string | null;
+      componentItemIds: string[];
+      itemId: string | null;
+    },
+  ): Promise<void> {
+    const materialItemIds = input.bomId
+      ? (
+          await withTenantTx(this.database.db, tenantId, async (tx) =>
+            rows(
+              await tx.execute(sql`
+                SELECT component_item_id::text
+                FROM bom_lines
+                WHERE tenant_id = ${tenantId}::uuid AND bom_id = ${input.bomId}::uuid
+              `),
+            ).map((row) => str(row.component_item_id)),
+          )
+        ).filter(Boolean)
+      : input.componentItemIds.filter(Boolean);
+
+    const materialsHaveValue =
+      materialItemIds.length > 0 &&
+      Boolean(
+        await withTenantTx(this.database.db, tenantId, async (tx) =>
+          first(
+            await tx.execute(sql`
+              SELECT 1 AS ok
+              FROM stock_balances
+              WHERE tenant_id = ${tenantId}::uuid
+                AND warehouse_id = ${input.warehouseId}::uuid
+                AND item_id IN (${sql.join(
+                  materialItemIds.map((id) => sql`${id}::uuid`),
+                  sql`, `,
+                )})
+                AND COALESCE(quantity, 0) > 0
+                AND COALESCE(value, 0) > 0
+              LIMIT 1
+            `),
+          ),
+        ),
+      );
+
+    if (!materialsHaveValue) {
+      throw new DomainError(
+        'VAN_PRODUCTION_COST_REQUIRED',
+        'مواد هذه الدفعة لا قيمة لها في رصيد المستودع (رصيد افتتاحي بلا تسعير أو مادة لم تُقيَّم)، ' +
+          'وتكلفة الإنتاج الرسمية هي ما يخرج من الرفّ فعلاً — فلا يمكن لرقمٍ يُكتب في هذه الشاشة ' +
+          'أن يقيّم ناتجاً يدخل المستودع بقيمة صفر، وإلا صار للكمية الواحدة تقييمان. ' +
+          'قيّم مواد الإنتاج رسمياً (إذن إدخال مخزني أو رصيد افتتاحي بقيمة) ثم أعد تسجيل الدفعة. ' +
+          'لم تُصرف أي مادة ولم تُسجَّل أي دفعة.',
+        422,
+        { field: 'unitCost', itemId: input.itemId },
+      );
+    }
+  }
+
+  /**
    * Pillar 1 (Phase 2 & 3): Record daily factory/bakery production batch (`إنتاج يومي للمصنع والمخبز`),
-   * linking to official `ProductionOrdersService`, `WmsBomService`, or `InventoryService.recordInTx` + `item_lots`.
+   * linking to official `WmsBomService` (BOM) or `ProductionOrdersService` (مكوّنات مدخلة).
+   *
+   * **مصدر المواد إلزامي**: قائمة مواد أو مكوّنات، وإلا 422 `VAN_PRODUCTION_INPUT_REQUIRED`.
+   * `InventoryService.recordInTx` + `item_lots` تبقى مسجِّل الحركة الرسمية للدفعة نفسها
+   * (وللدفعات التي لم يُنشأ لها أمر رسمي) — لا باباً لإدخال مخزون بلا مصدر.
    */
   async createProductionBatch(
     tenantId: string,
@@ -1250,6 +1358,58 @@ export class VanSalesService {
       );
     }
 
+    /**
+     * 🧾 (ب) دفعةُ إنتاجٍ بلا قائمة مواد (BOM) وبلا مكوّنات = **رفضٌ صريح**، لا ترحيلٌ صامت.
+     *
+     * لماذا: دفعةٌ كهذه تُدخل كميةً إلى المخزون بلا مصدرٍ لها — لا مواد صُرفت ولا تكلفة
+     * محسوبة، أي «مخزون من العدم» يُقابلها ربحٌ مصطنع عند أول بيع وتسوية جرد بلا أساس.
+     * والبديل النظامي موجود ولا يحتاج هذا الباب: الوارد من خارج المنشأة يُسجَّل بإذن إدخال
+     * مخزني رسمي (أو بتسوية جرد معتمدة) فيمرّ على نفس قيود المخزون والصلاحيات والتدقيق.
+     *
+     * موضع الرفض **بعد** حسم المستودع و**قبل** أي تفويض: مفتاح عدم التكرار (idempotency)
+     * يُحسم قبله، فإعادة نفس الطلب تُعيد نفس النتيجة بدل تنفيذٍ ثانٍ.
+     */
+    const componentLines = (body.components ?? []).filter(
+      (line) => str(line?.itemId ?? '').trim() !== '',
+    );
+    if (!bomId && componentLines.length === 0) {
+      throw new DomainError(
+        'VAN_PRODUCTION_INPUT_REQUIRED',
+        'دفعة الإنتاج تحتاج مصدراً للمواد: اربطها بقائمة مواد (BOM) أو أدخل المكوّنات المصروفة ' +
+          '(الصنف والكمية). لا تُسجَّل دفعة إنتاج بلا مواد لأنها تُدخل مخزوناً بلا مصدر ولا تكلفة، ' +
+          'والوارد من خارج المنشأة موضعه إذن إدخال مخزني رسمي أو تسوية جرد معتمدة.',
+        422,
+        { field: 'components', itemId },
+      );
+    }
+
+    /**
+     * 💵 التكلفة المدخلة تُفحص **قبل** أي تفويض: أمر الإنتاج/التصنيع الرسمي يُرحَّل في
+     * معاملةٍ مستقلة تُثبَّت فوراً، فرفضٌ بعدها يعني أن المواد صُرفت والناتج دخل رسمياً ثم
+     * قيل للمستخدم «طلبك مرفوض» — وأقرب إعادة إرسال تستهلك المواد مرة ثانية. كل فحصٍ لا
+     * يحتاج نتيجة الأمر يُحسم قبله.
+     */
+    const typedUnitCost =
+      body.unitCost !== undefined && String(body.unitCost).trim() !== ''
+        ? dec(body.unitCost)
+        : null;
+    if (typedUnitCost !== null && (!typedUnitCost.isFinite() || typedUnitCost.lte(0))) {
+      throw new DomainError(
+        errorCodes.VALIDATION_FAILED,
+        'تكلفة الوحدة المدخلة يجب أن تكون رقماً موجباً محدوداً — لا صفر ولا سالب ولا نص',
+        422,
+        { field: 'unitCost' },
+      );
+    }
+    const itemCardCost = itemRow?.cost_price ? dec(itemRow.cost_price) : new Decimal(0);
+
+    await this.assertMaterialsAreValued(tenantId, {
+      warehouseId,
+      bomId,
+      componentItemIds: componentLines.map((line) => str(line.itemId)).filter(Boolean),
+      itemId,
+    });
+
     let linkedProductionOrderId: string | null = null;
     let linkedManufacturingOrderId: string | null = null;
     let resolvedUnitCostFromOrder: Decimal | null = null;
@@ -1264,6 +1424,9 @@ export class VanSalesService {
       if (mfgOrder?.id) {
         const producedOrder = await this.wmsBom.produce(tenantId, mfgOrder.id, {
           qty: producedQty.toFixed(4),
+          // 🏷️ دفعة المخبز هي دفعة الناتج (اللوت): صنفٌ يُتتبَّع بالدفعات لا يستلمه المخزون
+          // بلا `lot_id`، والأمر الرسمي هو من يسجّل الحركة هنا.
+          outputLot: { lotNo: String(body.batchNo ?? '').trim() || null, productionDate },
         });
         if (producedOrder) {
           linkedManufacturingOrderId = producedOrder.id;
@@ -1272,15 +1435,17 @@ export class VanSalesService {
           }
         }
       }
-    } else if (warehouseId && itemId && body.components && body.components.length > 0) {
+    } else if (warehouseId && itemId && componentLines.length > 0) {
       const prodOrder = await this.productionOrders.create(tenantId, {
         warehouseId,
         outputItemId: itemId,
         outputQty: producedQty.toFixed(4),
-        components: body.components,
+        components: componentLines,
         notes: body.notes,
       });
-      const completedOrder = await this.productionOrders.complete(tenantId, prodOrder.id);
+      const completedOrder = await this.productionOrders.complete(tenantId, prodOrder.id, {
+        outputLot: { lotNo: String(body.batchNo ?? '').trim() || null, productionDate },
+      });
       linkedProductionOrderId = completedOrder.id;
       if (completedOrder.unitCost) {
         resolvedUnitCostFromOrder = dec(completedOrder.unitCost);
@@ -1300,19 +1465,6 @@ export class VanSalesService {
      * وأساس التكلفة يُحفظ ويُعرض (`costBasis`) حتى يعرف المحاسب هل الرقم تكلفة فعلية من
      * أمر تصنيع أم إدخالاً يدوياً أم تكلفة البطاقة.
      */
-    const typedUnitCost =
-      body.unitCost !== undefined && String(body.unitCost).trim() !== ''
-        ? dec(body.unitCost)
-        : null;
-    if (typedUnitCost !== null && (!typedUnitCost.isFinite() || typedUnitCost.lte(0))) {
-      throw new DomainError(
-        errorCodes.VALIDATION_FAILED,
-        'تكلفة الوحدة المدخلة يجب أن تكون رقماً موجباً محدوداً — لا صفر ولا سالب ولا نص',
-        422,
-        { field: 'unitCost' },
-      );
-    }
-    const itemCardCost = itemRow?.cost_price ? dec(itemRow.cost_price) : new Decimal(0);
     const resolvedUnitCost =
       resolvedUnitCostFromOrder ?? typedUnitCost ?? (itemCardCost.gt(0) ? itemCardCost : null);
     if (resolvedUnitCost === null || !resolvedUnitCost.isFinite() || resolvedUnitCost.lte(0)) {
@@ -1363,7 +1515,9 @@ export class VanSalesService {
       let linkedLotId: string | null = null;
       let linkedInventoryTxId: string | null = null;
 
-      if (itemRow?.track_lot === true) {
+      // حين يستلم الأمرُ الرسمي الناتجَ فهو من يحسم الدفعة (اللوت) ويكتبها على الحركة،
+      // والدفعة هنا تقرأها من الحركة نفسها — إنشاءُ دفعةٍ ثانية يعني رقمين لكميةٍ واحدة.
+      if (!linkedProductionOrderId && !linkedManufacturingOrderId && itemRow?.track_lot === true) {
         const existingLot = first(
           await tx.execute(sql`
             SELECT id::text FROM item_lots
@@ -1410,12 +1564,40 @@ export class VanSalesService {
         linkedInventoryTxId = rec.transactionIds[0] ?? null;
       }
 
+      /**
+       * 🔗 الحركة الرسمية للدفعة — حين يستلم الأمرُ الرسمي (تصنيع أو إنتاج) الناتجَ في نفس
+       * المستودع، لا تسجّل الدفعة حركةً ثانية (تسجيلها مرتين يضاعف الرصيد)، لكنها **تشير إلى
+       * حركة الأمر نفسها**: بلا هذا الربط تبقى الدفعة وحركة المندوب (`van_stock_movements`)
+       * وتقرير العهدة برقم حركةٍ فارغ لكميةٍ موجودة رسمياً في المخزون — أي أثرٌ مقطوع.
+       */
+      if (!linkedInventoryTxId && (linkedProductionOrderId || linkedManufacturingOrderId)) {
+        const officialDocType = linkedProductionOrderId ? 'production_order' : 'manufacturing_order';
+        const officialDocId = linkedProductionOrderId ?? str(linkedManufacturingOrderId);
+        const officialRow = first(
+          await tx.execute(sql`
+            SELECT id::text, lot_id::text FROM inventory_transactions
+            WHERE tenant_id = ${tenantId}::uuid
+              AND doc_type = ${officialDocType}
+              AND doc_id = ${officialDocId}::uuid
+              AND item_id = ${itemId}::uuid
+              AND direction = 'in'
+            ORDER BY occurred_at DESC
+            LIMIT 1
+          `),
+        );
+        linkedInventoryTxId = officialRow?.id ? str(officialRow.id) : null;
+        // الدفعة (اللوت) التي كتبها الأمر على الحركة الرسمية — نفسها التي يقرؤها تقرير
+        // الصلاحية والجرد، فلا رقمين لكميةٍ واحدة.
+        linkedLotId = officialRow?.lot_id ? str(officialRow.lot_id) : null;
+      }
+
       await tx.execute(sql`
         INSERT INTO factory_production_batches (
           id, tenant_id, branch_id, batch_no, production_date, item_id, item_name, warehouse_id,
           production_order_id, manufacturing_order_id, lot_id, inventory_transaction_id,
           produced_qty, scrap_qty, issued_qty, returned_good_qty, damaged_qty,
-          unit_cost, total_cost, status, supervisor_name, notes, idempotency_key, created_by
+          unit_cost, total_cost, status, supervisor_name, notes, idempotency_key, created_by,
+          cost_basis
         ) VALUES (
           ${batchId}::uuid, ${tenantId}::uuid, ${branchId}::uuid, ${allocatedBatchNo}, ${productionDate}::date,
           ${itemId}::uuid, ${itemName}, ${warehouseId}::uuid,
@@ -1424,7 +1606,8 @@ export class VanSalesService {
           ${producedQty.toFixed(4)}::numeric, ${scrapQty.toFixed(4)}::numeric, 0, 0, 0,
           ${unitCost.toFixed(4)}::numeric, ${totalCost.toFixed(4)}::numeric,
           'active', ${body.supervisorName?.trim() || 'مشرف الإنتاج'},
-          ${body.notes?.trim() || null}, ${idempotencyKey}, ${userId}::uuid
+          ${body.notes?.trim() || null}, ${idempotencyKey}, ${userId}::uuid,
+          ${costBasis}
         )
       `);
 
@@ -1449,6 +1632,17 @@ export class VanSalesService {
        * actually entered the official balance).
        */
       if (scrapQty.gt(0)) {
+        /**
+         * 🗑️ نص سبب حركة الفاقد — يقول الحقيقة في المسارين (BOM أو مكوّنات): الأمر الرسمي
+         * يُنتج الكمية الصالحة وحدها (`outputQty = produced_qty`) فلا تُصرف مواد للفاقد،
+         * وتكلفته مسجّلة هنا للمتابعة لا محمّلة على المنتج الجيد. وتحميل فاقد المخبز على
+         * تكلفة المنتج قرار سياسة لم يُتخذ بعد (التقرير §10) — والشاشة لا تدّعيه.
+         */
+        const scrapReasonText =
+          `فاقد تصنيع أثناء إنتاج الدفعة ${allocatedBatchNo}: ${scrapReason} — غير صالح للبيع ` +
+          `ولم يُورَّد للمستودع (تكلفته ${scrapQty.mul(unitCost).toFixed(2)} ريال مسجّلة هنا ` +
+          'للمتابعة، وغير محمّلة على تكلفة المنتج الجيد: الأمر الرسمي يُنتج الكمية الصالحة وحدها ' +
+          'فلا تُصرف مواد للفاقد، وتحميل فاقد المخبز على المنتج قرار سياسة لم يُتخذ)';
         await tx.execute(sql`
           INSERT INTO van_stock_movements (
             id, tenant_id, movement_type, batch_no, item_id,
@@ -1458,11 +1652,7 @@ export class VanSalesService {
             ${itemId}::uuid,
             ${scrapQty.toFixed(4)}::numeric, ${unitCost.toFixed(4)}::numeric,
             ${scrapQty.mul(unitCost).toFixed(4)}::numeric,
-            ${`فاقد تصنيع أثناء إنتاج الدفعة ${allocatedBatchNo}: ${scrapReason} — غير صالح للبيع ولم يُورَّد للمستودع${
-              costBasis === 'manufacturing_order'
-                ? ' (تكلفة الفاقد محمّلة على المنتج الجيد بأمر التصنيع الرسمي)'
-                : ` (تكلفته ${scrapQty.mul(unitCost).toFixed(2)} ريال مسجّلة هنا للمتابعة، وغير محمّلة على تكلفة المنتج الجيد — محرك التصنيع الرسمي لا يحمّل فاقد المخبز)`
-            }`},
+            ${scrapReasonText},
             ${idempotencyKey ? `prod-scrap:${idempotencyKey}` : null},
             ${userId}::uuid
           )

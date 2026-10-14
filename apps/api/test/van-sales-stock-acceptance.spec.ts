@@ -28,6 +28,8 @@ describe('Van Sales end-to-end acceptance on official stock & accounting ledgers
   let vanWarehouseId: string;
   let otherVanWarehouseId: string;
   let itemId: string;
+  /** 🌾 مكوّن الإنتاج — (ب): لا دفعة إنتاج بلا مصدر مواد (BOM أو مكوّنات). */
+  let componentItemId: string;
   let partyId: string;
   let cashLocationId: string;
   let repEmployeeId: string;
@@ -47,6 +49,25 @@ describe('Van Sales end-to-end acceptance on official stock & accounting ledgers
       `);
       const row = (rows as { rows: Array<{ qty: string }> }).rows[0];
       return row ? Number(row.qty) : 0;
+    });
+  }
+
+  /**
+   * حركات الإدخال الرسمية للصنف المنتج في مستودع — «كم مرة دخلت الكمية إلى الدفتر فعلاً».
+   * الدفعة لم تعد تسجّل الحركة بنفسها حين يستلمها أمر إنتاج رسمي، فالعدد يُقاس قبل وبعد
+   * (لا مطلقاً) لأن مستودعات هذا الملف مشتركة بين حالاته.
+   */
+  async function officialInMovements(warehouseId: string): Promise<number> {
+    return withTenantTx(ctx.handle.db, owner.tenantId, async (tx) => {
+      const rows = await tx.execute(sql`
+        SELECT COUNT(*)::int AS cnt
+        FROM inventory_transactions
+        WHERE tenant_id = ${owner.tenantId}::uuid
+          AND item_id = ${itemId}::uuid
+          AND warehouse_id = ${warehouseId}::uuid
+          AND direction = 'in'
+      `);
+      return (rows as { rows: Array<{ cnt: number }> }).rows[0]?.cnt ?? 0;
     });
   }
 
@@ -155,6 +176,7 @@ describe('Van Sales end-to-end acceptance on official stock & accounting ledgers
     vanWarehouseId = newId();
     otherVanWarehouseId = newId();
     itemId = newId();
+    componentItemId = newId();
     partyId = newId();
     repEmployeeId = newId();
     otherRepEmployeeId = newId();
@@ -186,6 +208,16 @@ describe('Van Sales end-to-end acceptance on official stock & accounting ledgers
       await tx.execute(sql`
         INSERT INTO items (id, tenant_id, sku, name_ar, category_id, base_unit_id, kind, purchase_price, sale_price, track_lot)
         VALUES (${itemId}::uuid, ${owner.tenantId}::uuid, 'SKU-SAMBOSA', 'سمبوسة بلدي', ${categoryId}::uuid, ${baseUnitId}::uuid, 'stock', 3.8000, 6.5000, false)
+      `);
+      // 🌾 مكوّن الإنتاج ورصيده الرسمي بمتوسط 3.80 — every batch here consumes 1:1, so the
+      // official order charges exactly the cost this suite always asserted.
+      await tx.execute(sql`
+        INSERT INTO items (id, tenant_id, sku, name_ar, category_id, base_unit_id, kind, purchase_price, sale_price, track_lot)
+        VALUES (${componentItemId}::uuid, ${owner.tenantId}::uuid, 'SKU-FLOUR', 'دقيق أبيض', ${categoryId}::uuid, ${baseUnitId}::uuid, 'stock', 3.8000, 3.8000, false)
+      `);
+      await tx.execute(sql`
+        INSERT INTO stock_balances (tenant_id, item_id, warehouse_id, quantity, value, average_cost, version)
+        VALUES (${owner.tenantId}::uuid, ${componentItemId}::uuid, ${mainWarehouseId}::uuid, 1000000, 3800000, 3.8000, 1)
       `);
       await tx.execute(sql`
         INSERT INTO parties (id, tenant_id, code, kind, name, tax_no, credit_limit)
@@ -222,6 +254,7 @@ describe('Van Sales end-to-end acceptance on official stock & accounting ledgers
     // ── Step 1: produce 50 kg of saleable product ───────────────────────────
     // The UI sends only what the operator typed; the service must still land the
     // quantity in the official main-warehouse balance (acceptance criterion).
+    const inBefore = await officialInMovements(mainWarehouseId);
     const production = await api(ctx.server, 'post', '/api/v1/van-sales/production-batches', {
       token: accountant.token,
       body: {
@@ -231,6 +264,8 @@ describe('Van Sales end-to-end acceptance on official stock & accounting ledgers
         scrapQty: '2',
         // 🗑️ الفاقد لا يُرحَّل بلا سبب: كميته وسببه ودفعته تُسجَّل معاً.
         scrapReason: 'عجين زائد احترق في الفرن الأول',
+        // 🌾 مصدر المواد رسمي: أمر إنتاج يستهلك 50 كجم دقيقاً بمتوسط 3.80.
+        components: [{ itemId: componentItemId, qty: '50' }],
         unitCost: '3.80',
         supervisorName: 'مشرف الإنتاج',
         notes: 'دفعة القبول',
@@ -241,7 +276,10 @@ describe('Van Sales end-to-end acceptance on official stock & accounting ledgers
 
     const mainAfterProduction = await officialBalance(mainWarehouseId);
     expect(mainAfterProduction).toBe(50);
-    expect(await officialTxCount('factory_production_batch')).toBe(1);
+    // الحركة الرسمية واحدة وسجّلها أمر الإنتاج، والدفعة تشير إليها ولا تكررها.
+    expect(await officialInMovements(mainWarehouseId) - inBefore).toBe(1);
+    expect(await officialTxCount('factory_production_batch')).toBe(0);
+    expect(production.body.data.productionBatches[0].inventoryTransactionId).toBeTruthy();
 
     // ── Step 2: replaying the same production must not double-count ─────────
     const replay = await api(ctx.server, 'post', '/api/v1/van-sales/production-batches', {
@@ -252,13 +290,16 @@ describe('Van Sales end-to-end acceptance on official stock & accounting ledgers
         producedQty: '50',
         scrapQty: '2',
         scrapReason: 'عجين زائد احترق في الفرن الأول',
+        components: [{ itemId: componentItemId, qty: '50' }],
         unitCost: '3.80',
         idempotencyKey: 'acc-prod-1',
       },
     });
     expect(replay.status, JSON.stringify(replay.body)).toBe(201);
     expect(await officialBalance(mainWarehouseId)).toBe(50);
-    expect(await officialTxCount('factory_production_batch')).toBe(1);
+    // الإعادة لم تُدخل الكمية مرة ثانية.
+    expect(await officialInMovements(mainWarehouseId) - inBefore).toBe(1);
+    expect(await officialTxCount('factory_production_batch')).toBe(0);
 
     // ── Step 3: supply 20 kg to the rep's van warehouse ─────────────────────
     const loadOrder = await api(ctx.server, 'post', '/api/v1/van-sales/load-orders', {
@@ -773,8 +814,20 @@ describe('Van Sales end-to-end acceptance on official stock & accounting ledgers
       `);
       return (rows as { rows: Array<Record<string, string>> }).rows;
     });
-    const produced = ledger.find((row) => row.doc_type === 'factory_production_batch');
+    /**
+     * الإنتاج صار له مصدر مواد رسمي: الدفعة تمرّ عبر أمر إنتاج رسمي يصرف المكوّن ويستلم
+     * الناتج، فالحركتان في الدفتر باسم `production_order` — والدفعة الإضافية لا تسجّل
+     * حركةً ثانية لنفس الكمية (تسجيلها مرتين يضاعف الرصيد).
+     */
+    const produced = ledger.find(
+      (row) => row.doc_type === 'production_order' && row.direction === 'in',
+    );
     expect(produced?.qty).toBe('50.0000');
+    const materials = ledger.find(
+      (row) => row.doc_type === 'production_order' && row.direction === 'out',
+    );
+    expect(materials?.qty).toBe('50.0000');
+    expect(ledger.find((row) => row.doc_type === 'factory_production_batch')).toBeUndefined();
     const consumed = ledger
       .filter((row) => row.doc_type === 'sales_invoice')
       .reduce((sum, row) => sum + Number(row.qty), 0);
@@ -797,6 +850,7 @@ describe('Van Sales end-to-end acceptance on official stock & accounting ledgers
         producedQty: '30',
         scrapQty: '1.5',
         scrapReason: 'قطع مكسورة أثناء التشكيل',
+        components: [{ itemId: componentItemId, qty: '30' }],
         supervisorName: 'مشرف الإنتاج',
         idempotencyKey: 'acc-prod-no-warehouse',
       },

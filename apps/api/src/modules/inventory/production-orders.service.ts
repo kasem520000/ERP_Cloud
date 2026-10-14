@@ -15,11 +15,15 @@ import {
 } from '@erp/database';
 
 import { DATABASE_HANDLE } from '../../database/database.module.js';
+import { AccountingService } from '../accounting/accounting.service.js';
 import { tryGetAuthContext } from '../platform/context/tenant-context.js';
 import { SequencesService } from '../platform-services/index.js';
 import { CatalogService } from '../organization/catalog/catalog.service.js';
+import { PostingProfilesService } from '../organization/posting-profiles/posting-profiles.service.js';
 
 import { InventoryService } from './inventory.service.js';
+import { postProductionJournalInTx } from './production-posting.js';
+import { resolveOutputLotInTx, type OutputLotInput } from './production-output-lot.js';
 
 export type ProductionOrderInput = {
   branchId?: string;
@@ -47,9 +51,14 @@ const today = () => new Date().toISOString().slice(0, 10);
 /**
  * أمر الإنتاج — turn components into a finished item.
  *
- * The order is ledger-neutral on purpose: whatever value leaves the warehouse as
- * components re-enters it as the produced item, so the balance sheet does not move and no
- * journal entry is required. What *does* have to be right is the cost handed to the
+ * The order is ledger-neutral **by default**: whatever value leaves the warehouse as
+ * components re-enters it as the produced item, so with one inventory control account the
+ * balance sheet does not move and no journal entry is owed. A tenant that keeps materials and
+ * finished goods in different accounts says so in «الإعدادات ← الربط المحاسبي»
+ * (`manufacturing_order`/`production_order` + `rawMaterialsAccountId`/`finishedGoodsAccountId`)
+ * and `production-posting.ts` then posts «م. منتج تام ← م. مواد خام» for exactly that value;
+ * mapping one side only is refused rather than half-posted. What *does* have to be right either
+ * way is the cost handed to the
  * output. Components leave at the moving average the inventory service computes, and the
  * output is valued at exactly the total that left, divided by the produced quantity —
  * anything else silently invents or destroys inventory value, and the first place it
@@ -62,6 +71,9 @@ export class ProductionOrdersService {
     private readonly sequences: SequencesService,
     private readonly inventory: InventoryService,
     private readonly catalog: CatalogService,
+    // 🏭 ترحيل الإنتاج الاختياري (PHASE_E) — يُستعملان معاً في `production-posting.ts` وحده.
+    private readonly accounting: AccountingService,
+    private readonly profiles: PostingProfilesService,
   ) {}
 
   async list(tenantId: string, filters: { status?: string; warehouseId?: string } = {}) {
@@ -152,8 +164,14 @@ export class ProductionOrdersService {
     });
   }
 
-  /** Consume the components, produce the output, and record what the output actually cost. */
-  async complete(tenantId: string, id: string) {
+  /**
+   * Consume the components, produce the output, and record what the output actually cost.
+   *
+   * `outputLot` names the batch the produced quantity belongs to (a lot-tracked item cannot be
+   * received without one — see `production-output-lot.ts`); left out, the order's own number is
+   * the lot.
+   */
+  async complete(tenantId: string, id: string, options: { outputLot?: OutputLotInput } = {}) {
     return withTenantTx(this.database.db, tenantId, async (tx) => {
       const order = await this.load(tx, tenantId, id);
       if (order.status !== 'draft') throw new DomainError('PRODUCTION_ORDER_INVALID_STATUS', 'Only a draft production order can be completed', 409);
@@ -178,12 +196,21 @@ export class ProductionOrdersService {
       const componentCost = consumed.reduce((sum, row) => sum.plus(dec(row.totalCost)), new Decimal(0));
       const unitCost = componentCost.div(dec(order.outputQty));
 
+      // 🏷️ الناتج صنفٌ يُتتبَّع بالدفعات؟ الدفعة تُحسم هنا (رقمُ المستدعي أو رقم الأمر) —
+      // بلا `lot_id` ترفض الحركةَ خدمةُ المخزون نفسها.
+      const outputLotId = await resolveOutputLotInTx(tx, tenantId, {
+        itemId: order.outputItemId,
+        lot: options.outputLot,
+        orderNumber: order.number,
+      });
+
       await this.inventory.recordInTx(tx, tenantId, [{
         itemId: order.outputItemId,
         warehouseId: order.warehouseId,
         qty: order.outputQty,
         unitId: order.unitId ?? undefined,
         unitCost: unitCost.toFixed(4),
+        lotId: outputLotId ?? undefined,
         direction: 'in' as const,
         docType: 'production_order',
         docId: id,
@@ -200,7 +227,29 @@ export class ProductionOrdersService {
       await tx.update(productionOrders)
         .set({ status: 'completed', completedAt: new Date(), componentCost: componentCost.toFixed(4), unitCost: unitCost.toFixed(4), updatedAt: new Date(), updatedBy: tryGetAuthContext()?.userId })
         .where(and(eq(productionOrders.tenantId, tenantId), eq(productionOrders.id, id)));
-      return this.load(tx, tenantId, id);
+
+      /**
+       * 🏭 قيد الإنتاج — اختياري ومحايد افتراضياً (انظر `production-posting.ts`).
+       *
+       * `componentCost` هو ما خرج من الرفّ فعلاً بالتكلفة المتوسطة، وهو نفسه ما قُوّم به
+       * الناتج (`unitCost = componentCost / outputQty`)، فالقيد — إن رُبط حساباه — ينقل القيمة
+       * نفسها من المواد الخام إلى المنتج التام بلا رقمٍ مُخترع. والأمر يُكمل مرة واحدة
+       * (الحالة `draft` وحدها تُكمل) فالمفتاح ثابت.
+       */
+      const [warehouseRow] = await tx.select({ branchId: warehouses.branchId }).from(warehouses).where(and(eq(warehouses.tenantId, tenantId), eq(warehouses.id, order.warehouseId)));
+      const posting = await postProductionJournalInTx(tx, tenantId, {
+        accounting: this.accounting,
+        profiles: this.profiles,
+      }, {
+        docType: 'production_order',
+        orderId: id,
+        orderNumber: order.number,
+        branchId: order.branchId ?? warehouseRow?.branchId ?? null,
+        consumedValue: componentCost,
+        stepKey: 'complete',
+      });
+
+      return { ...(await this.load(tx, tenantId, id)), ...posting };
     });
   }
 

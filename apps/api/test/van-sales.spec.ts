@@ -21,6 +21,8 @@ describe('Factory, Bakery & Van Sales 10-pillar workflow & 6-Phase Core Integrat
   let mainWarehouseId: string;
   let vanWarehouseId: string;
   let itemId: string;
+  /** 🌾 مكوّن الإنتاج — دفعة الإنتاج تحتاج مصدراً للمواد (BOM أو مكوّنات). */
+  let componentItemId: string;
 
   beforeAll(async () => {
     ctx = await createTestApp('van-sales-factory');
@@ -115,6 +117,7 @@ describe('Factory, Bakery & Van Sales 10-pillar workflow & 6-Phase Core Integrat
     partyId = newId();
     vanWarehouseId = newId();
     itemId = newId();
+    componentItemId = newId();
     repEmployeeId = newId();
     const baseUnitId = newId();
     const categoryId = newId();
@@ -142,6 +145,21 @@ describe('Factory, Bakery & Van Sales 10-pillar workflow & 6-Phase Core Integrat
           'رقائق سمبوسة بلدي طازجة', ${categoryId}::uuid, ${baseUnitId}::uuid, 'stock',
           3.8000, 6.5000, true
         )
+      `);
+      // 🌾 المكوّن ورصيده الرسمي بمتوسط 3.80 ⇒ أمر الإنتاج يكلّف الوحدة 3.80 نفسها.
+      await tx.execute(sql`
+        INSERT INTO items (
+          id, tenant_id, sku, name_ar, category_id, base_unit_id, kind,
+          purchase_price, sale_price, track_lot
+        ) VALUES (
+          ${componentItemId}::uuid, ${owner.tenantId}::uuid, 'SKU-FLOUR-01',
+          'دقيق أبيض', ${categoryId}::uuid, ${baseUnitId}::uuid, 'stock',
+          3.8000, 3.8000, false
+        )
+      `);
+      await tx.execute(sql`
+        INSERT INTO stock_balances (tenant_id, item_id, warehouse_id, quantity, value, average_cost, version)
+        VALUES (${owner.tenantId}::uuid, ${componentItemId}::uuid, ${mainWarehouseId}::uuid, 100000, 380000, 3.8000, 1)
       `);
       await tx.execute(sql`
         INSERT INTO employees (id, tenant_id, employee_no, name, branch_id, membership_id, status)
@@ -181,6 +199,9 @@ describe('Factory, Bakery & Van Sales 10-pillar workflow & 6-Phase Core Integrat
         producedQty: '500',
         scrapQty: '5',
         scrapReason: 'فاقد خبز يومي — قطع محترقة',
+        // 🌾 المصدر الرسمي للمواد: أمر إنتاج يصرف 500 كجم دقيقاً بمتوسط 3.80 ويستلم الناتج
+        // في الدفعة (اللوت) نفسها — والصنف يُتتبَّع بالدفعات.
+        components: [{ itemId: componentItemId, qty: '500' }],
         unitCost: '3.80',
         supervisorName: 'مشرف الإنتاج',
         idempotencyKey: 'prod-batch-day1-001',
@@ -211,6 +232,7 @@ describe('Factory, Bakery & Van Sales 10-pillar workflow & 6-Phase Core Integrat
         itemId,
         warehouseId: mainWarehouseId,
         producedQty: '500',
+        components: [{ itemId: componentItemId, qty: '500' }],
         unitCost: '3.80',
         idempotencyKey: 'prod-batch-day1-001',
       },
