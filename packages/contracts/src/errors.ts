@@ -43,6 +43,12 @@ export const errorCodes = {
    * ضبطًا للوصول: الخادم يرفض التثبيت المباشر ويحيل على طلب التفعيل.
    */
   ADDON_REQUIRES_PLATFORM_APPROVAL: 'ADDON_REQUIRES_PLATFORM_APPROVAL',
+  /**
+   * 🏪 الاستعمال بلا ترخيص — المنشأة تحمل أكواد الصلاحيات لكن لا تملك أيّاً من الباقات
+   * القطاعية التي تفتح هذا السطح (`tenant_apps`). الصلاحيات وحدها ليست ترخيصاً: الترحيل
+   * 0126 منح أكواد `van_sales.*` لأدوارٍ قائمة، فبقيت الباقة تُستعمل بلا تفعيل.
+   */
+  ADDON_NOT_LICENSED: 'ADDON_NOT_LICENSED',
   // PHASE_05 §7 — no posting profile answers a (branch, doc_type) lookup.
   ACCOUNT_PROFILE_MISSING: 'ACCOUNT_PROFILE_MISSING',
   // Round 11 — credentials were valid but the user has TOTP enabled and sent no code.
@@ -266,6 +272,7 @@ export const errorStatus: Record<ErrorCode, number> = {
   INTERNAL: 500,
   APPROVAL_REQUIRED: 202,
   ADDON_REQUIRES_PLATFORM_APPROVAL: 403,
+  ADDON_NOT_LICENSED: 403,
   ACCOUNT_PROFILE_MISSING: 422,
   MFA_REQUIRED: 401,
   USAGE_LIMIT_REACHED: 409,
@@ -372,6 +379,7 @@ export const errorTitle: Record<ErrorCode, string> = {
   INTERNAL: 'Internal error',
   APPROVAL_REQUIRED: 'Approval required',
   ADDON_REQUIRES_PLATFORM_APPROVAL: 'This add-on is licensed by the platform — request activation',
+  ADDON_NOT_LICENSED: 'This surface belongs to a sector add-on that is not licensed for your tenant',
   ACCOUNT_PROFILE_MISSING: 'Posting profile missing',
   MFA_REQUIRED: 'Verification code required',
   USAGE_LIMIT_REACHED: 'Usage limit reached',

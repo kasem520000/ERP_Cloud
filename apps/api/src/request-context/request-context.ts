@@ -65,6 +65,13 @@ export type TenantContextValue = {
   /** Per-role scope restrictions from `membership_role_scopes` (empty = tenant-wide). */
   scopes: RoleScopeValue[];
   /**
+   * 🏪 الباقات القطاعية المفعَّلة للمنشأة (`tenant_apps` حيث `is_enabled`) — تُحمَّل مع
+   * العضوية في `TenantGuard` مرةً واحدة لكل طلب (كما `maxDiscountPct`) فيقرأها
+   * `SectorLicenceGuard` بلا استعلامٍ إضافي. قائمةٌ فارغة = لا ترخيص قطاعياً، ولا `undefined`:
+   * «لا أعرف» و«لا أملك» يجب ألّا يتشابها في ضبط الوصول.
+   */
+  enabledApps: string[];
+  /**
    * R1 — حدّ الخصم على العضوية (بديل `OperMaxDiscount` في الديسكتوب). `null` = بلا حدّ.
    * يُحمَّل مع العضوية في `TenantGuard` فلا يُقرأ من القاعدة عند كل فاتورة، ويُفحص في
    * `assertDiscountWithinLimit` عند كتابة أي خصم.

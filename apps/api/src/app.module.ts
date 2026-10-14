@@ -17,6 +17,7 @@ import {
   PermissionsGuard,
   PlatformModule,
   RateLimitGuard,
+  SectorLicenceGuard,
   TenantGuard,
 } from './modules/platform/index.js';
 import { PlatformBackupsModule } from './modules/backups/platform-backups.module.js';
@@ -76,7 +77,8 @@ import { OpsModule } from './ops/ops.module.js';
 
 /**
  * Guard order is frozen by API_ARCHITECTURE §2:
- * `rate limit → AuthGuard → TenantGuard (+RLS GUC) → BranchScopeGuard → PermissionsGuard`.
+ * `rate limit → AuthGuard → TenantGuard (+RLS GUC) → BranchScopeGuard → PermissionsGuard →
+ * SectorLicenceGuard`.
  * `APP_GUARD` providers are applied in declaration order, so the array below *is* the
  * pipeline; reordering it is a contract change, not a refactor.
  *
@@ -179,6 +181,8 @@ import { OpsModule } from './ops/ops.module.js';
     { provide: APP_GUARD, useClass: TenantGuard },
     { provide: APP_GUARD, useClass: BranchScopeGuard },
     { provide: APP_GUARD, useClass: PermissionsGuard },
+    // 🏪 الترخيص القطاعي بعد الصلاحيات: «هل يجوز لهذا المستخدم» قبل «هل اشترت منشأته السطح».
+    { provide: APP_GUARD, useClass: SectorLicenceGuard },
   ],
 })
 export class AppModule {}

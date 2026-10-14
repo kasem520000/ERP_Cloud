@@ -3,12 +3,22 @@ import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { DomainError, errorCodes, permissionGrants } from '@erp/contracts';
 
 import { getTenantContext } from '../platform/context/tenant-context.js';
-import { RequiresPermission } from '../platform/decorators/requires-permission.decorator.js';
+import { RequiresPermission, RequiresSectorApp } from '../platform/index.js';
 
 import { VanSalesService } from './van-sales.service.js';
 
 @ApiTags('van-sales')
 @ApiBearerAuth()
+/**
+ * 🏪 سطح المخابز والتوزيع القطاعي: تكفي `van_sales` **أو** `bakery_distribution` — فتطبيق
+ * المخابز (`apps/bakery`) يستعمل نفس نقاط النهاية ولا محرّك ثانياً له.
+ *
+ * الوضع `observe` لا `enforce` لأنّ `van_sales` لم يُفرض على الخادم يوماً والترحيل `0126`
+ * منح أكواده لأدوارٍ قائمة، فالمنع الفوري يقطع منشآتٍ تعمل الآن. كل **كتابة** من منشأةٍ بلا
+ * ترخيص تترك سطراً `sector_licence.unlicensed_use` في `audit_log` — قياسٌ حقيقيّ يُتّخذ على
+ * أساسه قرار الفرض (ومعه خيار ترحيلٍ يرث الاستعمال القائم)، لا قرارٌ بالظن.
+ */
+@RequiresSectorApp({ apps: ['van_sales', 'bakery_distribution'], mode: 'observe' })
 @Controller('van-sales')
 export class VanSalesController {
   constructor(private readonly vanSales: VanSalesService) {}

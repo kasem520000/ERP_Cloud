@@ -18,7 +18,7 @@ const BRANCH_OUT_OF_SCOPE = '22222222-2222-7222-8222-222222222222';
 function run(
   headers: Record<string, string>,
   branchScope: string[] | null,
-  options?: { roleIds?: string[]; scopes?: RoleScopeValue[]; isOwner?: boolean },
+  options?: { roleIds?: string[]; scopes?: RoleScopeValue[]; isOwner?: boolean; enabledApps?: string[] },
 ): void {
   const reflector = { getAllAndOverride: vi.fn(() => undefined) } as unknown as Reflector;
   const guard = new BranchScopeGuard(reflector);
@@ -43,6 +43,7 @@ function run(
     maxDiscountPct: null,
     maxDiscountAmount: null,
     scopes: options?.scopes ?? [],
+    enabledApps: options?.enabledApps ?? [],
   };
 
   requestContextStorage.run({ traceId: 'trace', startTime: 0, tenant }, () => {

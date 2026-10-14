@@ -8,6 +8,7 @@ import {
   membershipRoles,
   memberships,
   rolePermissions,
+  tenantApps,
   roles,
   tenants,
   users,
@@ -135,6 +136,15 @@ export class TenantGuard implements CanActivate {
         .where(and(eq(membershipRoles.membershipId, membership.id), isNull(roles.deletedAt)));
     });
 
+    // 🏪 الترخيص القطاعي يُحمَّل هنا لا في `SectorLicenceGuard`: استعلامٌ واحد لكل طلب بدل
+    // استعلامٍ لكل نقطة نهاية، والجدول معزولٌ بسياسة المنشأة فنقرأه داخل سياقها.
+    const appRows = await withTenantTx(this.database.db, tenant.id, async (tx) => {
+      return tx
+        .select({ appCode: tenantApps.appCode })
+        .from(tenantApps)
+        .where(and(eq(tenantApps.tenantId, tenant.id), eq(tenantApps.isEnabled, true)));
+    });
+
     const scopeRows = await withTenantTx(this.database.db, tenant.id, async (tx) => {
       return tx
         .select({
@@ -157,6 +167,7 @@ export class TenantGuard implements CanActivate {
       branchScope: (membership.branchScope as string[] | null) ?? null,
       isOwner: membership.isOwner,
       kind: membership.kind === 'portal' ? 'portal' : 'staff',
+      enabledApps: appRows.map((row) => row.appCode),
       maxDiscountPct: membership.maxDiscountPct,
       maxDiscountAmount: membership.maxDiscountAmount,
       scopes: scopeRows.map((row) => ({
