@@ -23,6 +23,13 @@ export const errorCodes = {
   DOCUMENT_NOT_DRAFT: 'DOCUMENT_NOT_DRAFT',
   PARTY_CREDIT_LIMIT_EXCEEDED: 'PARTY_CREDIT_LIMIT_EXCEEDED',
   STOCK_INSUFFICIENT: 'STOCK_INSUFFICIENT',
+  /**
+   * 🏭 رموز الإنتاج — كانت تُرمى بنصوصها بلا تسجيل، فيعود `titleForCode` بالعنوان العامّ
+   * «Request failed» وتضيع سبب الرفض الحقيقي عن أي شاشة تقرأ `title` وحده.
+   */
+  VAN_PRODUCTION_INPUT_REQUIRED: 'VAN_PRODUCTION_INPUT_REQUIRED',
+  VAN_PRODUCTION_COST_REQUIRED: 'VAN_PRODUCTION_COST_REQUIRED',
+  PRODUCTION_ACCOUNTS_INCOMPLETE: 'PRODUCTION_ACCOUNTS_INCOMPLETE',
   SEQUENCE_EXHAUSTED: 'SEQUENCE_EXHAUSTED',
   EINVOICE_REJECTED: 'EINVOICE_REJECTED',
   MIGRATION_CONFLICT: 'MIGRATION_CONFLICT',
@@ -243,6 +250,9 @@ export const errorStatus: Record<ErrorCode, number> = {
   DOCUMENT_NOT_DRAFT: 409,
   PARTY_CREDIT_LIMIT_EXCEEDED: 422,
   STOCK_INSUFFICIENT: 422,
+  VAN_PRODUCTION_INPUT_REQUIRED: 422,
+  VAN_PRODUCTION_COST_REQUIRED: 422,
+  PRODUCTION_ACCOUNTS_INCOMPLETE: 422,
   SEQUENCE_EXHAUSTED: 422,
   EINVOICE_REJECTED: 422,
   MIGRATION_CONFLICT: 409,
@@ -345,6 +355,9 @@ export const errorTitle: Record<ErrorCode, string> = {
   DOCUMENT_NOT_DRAFT: 'Document not draft',
   PARTY_CREDIT_LIMIT_EXCEEDED: 'Party credit limit exceeded',
   STOCK_INSUFFICIENT: 'Insufficient stock',
+  VAN_PRODUCTION_INPUT_REQUIRED: 'Production batch needs a material source',
+  VAN_PRODUCTION_COST_REQUIRED: 'Production materials carry no value',
+  PRODUCTION_ACCOUNTS_INCOMPLETE: 'Production accounts are half mapped',
   SEQUENCE_EXHAUSTED: 'Sequence exhausted',
   EINVOICE_REJECTED: 'E-invoice rejected',
   MIGRATION_CONFLICT: 'Migration conflict',

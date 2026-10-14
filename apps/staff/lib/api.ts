@@ -39,6 +39,23 @@ export class ApiError extends Error {
   }
 }
 
+/**
+ * 📣 نصّ الرفض كما يُقال للمستخدم.
+ *
+ * `ApiError.message` هو `title` من `application/problem+json`، وعنوانٌ عامّ («Request failed»)
+ * لكل رمزٍ غير مسجَّل في `errorTitle` — أي أن السبب الحقيقي كان يضيع من الشاشة. والسبب نفسه
+ * (بالعربية، ومع البديل النظامي حين يوجد) في `detail`، لذلك يُعرض متى وُجد، وهو اصطلاحٌ قائم
+ * في `settings/files` و`settings/marketplace`.
+ *
+ * ويُستثنى من ذلك أخطاء الخادم (5xx): تفصيلها قد يحمل رسالة داخلية لا شأن للمستخدم بها،
+ * فيكفي العنوان العامّ.
+ */
+export function apiErrorText(error: unknown, fallback = 'تعذر إكمال الطلب'): string {
+  if (!(error instanceof ApiError)) return fallback;
+  const detail = error.status < 500 ? (error.detail ?? '').trim() : '';
+  return detail || error.message || fallback;
+}
+
 // --------------------------------------------------------------------------- session
 
 const ACCESS_KEY = 'erp.admin.access';

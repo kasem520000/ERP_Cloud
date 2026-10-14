@@ -5,7 +5,12 @@ import { useEffect, useState } from 'react';
 import { Notice } from '../../components/data-view';
 import { Screen } from '../../components/screen';
 import { ZatcaQrSvg, printThermalReceipt80mm } from '../../components/zatca-qr-svg';
-import { ApiError, apiData, apiPost } from '../../lib/api';
+import { apiData, apiErrorText, apiPost } from '../../lib/api';
+import {
+  buildProductionBatchPayload,
+  estimateComponentCost,
+  type ProductionBatchPayload,
+} from '../../lib/van-production';
 import {
   defaultOf,
   itemLabel,
@@ -98,6 +103,12 @@ type ProductionBatch = {
   scrapQty?: string;
   scrapValue?: string;
   scrapCostLoaded?: boolean;
+  /** 🔗 الربط الرسمي للدفعة: أمر الإنتاج/التصنيع، الحركة المخزنية، ودفعة الناتج (اللوت). */
+  warehouseId?: string | null;
+  productionOrderId?: string | null;
+  manufacturingOrderId?: string | null;
+  inventoryTransactionId?: string | null;
+  lotId?: string | null;
   status: string;
   supervisorName: string;
   notes: string;
@@ -661,7 +672,21 @@ export default function VanSalesPage() {
   const [prodScrapQty, setProdScrapQty] = useState('0');
   /** سبب الفاقد — إلزامي مع أي كمية فاقد: الخادم يرفض فاقدًا بلا سبب. */
   const [prodScrapReason, setProdScrapReason] = useState('');
-  const [prodUnitCost, setProdUnitCost] = useState('');
+  /**
+   * 🏷️ رقم الدفعة — يكتبه المشرف عندما يريد أن يتطابق رقم الدفعة مع رقم دفعة الناتج (اللوت) في
+   * الرصيد الرسمي. **فارغ = رقم تسلسلي رسمي**، والتعبئة المسبقة من المتصفح كانت ستصطدم بقيد
+   * التفرد على (المستأجر + رقم الدفعة) عند فتح الشاشتين معاً، لذلك تُترك للمشرف.
+   */
+  const [prodBatchNo, setProdBatchNo] = useState('');
+  /**
+   * 🌾 مكوّنات الدفعة — مصدر المواد الإلزامي. كل دفعة إنتاج تُصرف موادها رسمياً من مستودع
+   * المنشأة، وبلا مكوّنات (أو قائمة مواد) تُرفض الدفعة؛ أما الوارد من خارج المنشأة فموضعه إذن
+   * إدخال مخزني رسمي أو تسوية جرد معتمدة.
+   */
+  const [prodComponents, setProdComponents] = useState<Array<{ itemId: string; qty: string }>>([
+    /** سطرٌ فارغ جاهز للكتابة — والسطر الذي لم يُلمس لا يُرسل ولا يُحتسب. */
+    { itemId: '', qty: '' },
+  ]);
   const [prodSupervisor, setProdSupervisor] = useState('مشرف خط الإنتاج');
   const [reconciliationPreview, setReconciliationPreview] = useState<LegacyReconciliationPreview | null>(null);
 
@@ -789,7 +814,7 @@ export default function VanSalesPage() {
       setTab(initialTab);
     }
     void reload().catch((error: unknown) =>
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : 'تعذر تحميل بيانات المصنع والتوزيع' }),
+      setNotice({ kind: 'danger', text: apiErrorText(error, 'تعذر تحميل بيانات المصنع والتوزيع') }),
     );
   }, []);
 
@@ -807,34 +832,49 @@ export default function VanSalesPage() {
     setBusy(true);
     setNotice(undefined);
     try {
-      const next = await apiPost<DashboardData>('/van-sales/production-batches', {
-        /**
-         * الصنف والمستودع — both mandatory now. Without them the batch row was written and
-         * **no official stock movement happened**, so the main warehouse balance never grew:
-         * the exact defect reported from the floor.
-         */
+      /**
+       * 📜 الحمولة تُبنى في `lib/van-production.ts` — عقد الشبكة (الحقل `qty`، وأسباب
+       * الرفض التي سيقولها الخادم) مُختبَر هناك كدوالّ نقية بدل أن يُترك في JSX. والفحص
+       * هنا راحةٌ للمشرف لا رقابة: الحكم الفعلي في الخادم.
+       */
+      const verdict = buildProductionBatchPayload({
         itemId: prodItemId,
-        warehouseId: prodWarehouseId || undefined,
-        productionDate: prodDate || undefined,
-        itemName: prodItemName || undefined,
+        warehouseId: prodWarehouseId,
+        productionDate: prodDate,
+        itemName: prodItemName,
         producedQty: prodQty,
-        scrapQty: prodScrapQty || '0',
-        scrapReason: prodScrapReason.trim() || undefined,
-        unitCost: prodUnitCost || undefined,
+        scrapQty: prodScrapQty,
+        scrapReason: prodScrapReason,
+        batchNo: prodBatchNo,
         supervisorName: prodSupervisor,
+        components: prodComponents,
       });
+      if (!verdict.ok) {
+        setNotice({ kind: 'danger', text: verdict.message });
+        setBusy(false);
+        return;
+      }
+      const next = await apiPost<DashboardData>(
+        '/van-sales/production-batches',
+        verdict.payload satisfies ProductionBatchPayload,
+      );
       setData(next);
       const newestBatch = next.productionBatches[0];
       if (newestBatch) setProductionBatchNo(newestBatch.batchNo);
       const warehouseName =
-        warehouses.find((row) => row.id === (newestBatch as { warehouseId?: string | null }).warehouseId)?.name ??
-        'المستودع الرئيسي';
+        warehouses.find((row) => row.id === newestBatch?.warehouseId)?.name ?? 'المستودع الرئيسي';
       setNotice({
         kind: 'ok',
-        text: `تم تسجيل دفعة الإنتاج (${newestBatch?.batchNo ?? ''}) بكمية ${prodQty} كجم، ودخلت الرصيد الرسمي في ${warehouseName} — الرصيد الرسمي الآن ${next.summary.mainWarehouseBalanceKg} كجم.`,
+        text: `تم تسجيل دفعة الإنتاج (${newestBatch?.batchNo ?? ''}) بكمية ${prodQty} كجم، ودخلت الرصيد الرسمي في ${warehouseName} — الرصيد الرسمي الآن ${next.summary.mainWarehouseBalanceKg} كجم. التكلفة الفعلية ${newestBatch?.unitCost ?? '0'} ريال/كجم ${
+          newestBatch?.costBasis === 'manufacturing_order'
+            ? 'محسوبة مما صُرف من المكوّنات عبر أمر الإنتاج الرسمي'
+            : 'غير محسوبة من أمر رسمي — راجع أساس التكلفة في الجدول'
+        }${newestBatch?.lotId ? '، ورقم دفعة الناتج (اللوت) مطابق لرقم الدفعة' : ''}.`,
       });
+      setProdComponents([{ itemId: '', qty: '' }]);
+      setProdBatchNo('');
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : 'تعذر تسجيل دفعة الإنتاج' });
+      setNotice({ kind: 'danger', text: apiErrorText(error, 'تعذر تسجيل دفعة الإنتاج') });
     } finally {
       setBusy(false);
     }
@@ -857,7 +897,7 @@ export default function VanSalesPage() {
     } catch (error) {
       setNotice({
         kind: 'danger',
-        text: error instanceof ApiError ? error.message : 'تعذر تأكيد استلام التوريد',
+        text: apiErrorText(error, 'تعذر تأكيد استلام التوريد'),
       });
     } finally {
       setBusy(false);
@@ -892,7 +932,7 @@ export default function VanSalesPage() {
       setRepTarget(null);
       await reload();
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : 'تعذر ربط حساب المندوب' });
+      setNotice({ kind: 'danger', text: apiErrorText(error, 'تعذر ربط حساب المندوب') });
     } finally {
       setBusy(false);
     }
@@ -910,7 +950,7 @@ export default function VanSalesPage() {
       const view = await apiData<PrintView>(`/van-sales/documents/${documentId}/print-view?copies=2`);
       openPrintWindow(view);
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : 'تعذر تجهيز نسخة الطباعة' });
+      setNotice({ kind: 'danger', text: apiErrorText(error, 'تعذر تجهيز نسخة الطباعة') });
     } finally {
       setBusy(false);
     }
@@ -959,7 +999,7 @@ export default function VanSalesPage() {
     } catch (error) {
       setNotice({
         kind: 'danger',
-        text: error instanceof ApiError ? error.message : 'تعذر تجهيز الإيصال الحراري',
+        text: apiErrorText(error, 'تعذر تجهيز الإيصال الحراري'),
       });
     } finally {
       setBusy(false);
@@ -981,7 +1021,7 @@ export default function VanSalesPage() {
         text: `تم تسجيل مرتجع العميل (${returnedQty} كجم) وإصدار فاتورة مرتجع رسمية وإرجاع الكمية إلى عهدة المندوب.`,
       });
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : 'تعذر تسجيل المرتجع' });
+      setNotice({ kind: 'danger', text: apiErrorText(error, 'تعذر تسجيل المرتجع') });
     } finally {
       setBusy(false);
     }
@@ -1011,7 +1051,7 @@ export default function VanSalesPage() {
         text: `تم إنشاء مناولة مخزنية رسمية وصرف ${loadedQty} كجم من المستودع الرئيسي لأمر التحميل ${newestLoad?.number ?? ''} — الحالة الآن «بانتظار تأكيد استلام المندوب»، ولن تدخل عهدة المندوب قبل تأكيده.`,
       });
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : 'تعذر إنشاء أمر التحميل' });
+      setNotice({ kind: 'danger', text: apiErrorText(error, 'تعذر إنشاء أمر التحميل') });
     } finally {
       setBusy(false);
     }
@@ -1041,7 +1081,7 @@ export default function VanSalesPage() {
         text: 'تم حفظ سعر العميل المخصص، تثبيت السعر، سقف الائتمان، وسياسة الكميات المجانية مع توثيق التعديل في سجل الأسعار.',
       });
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : 'تعذر حفظ شريحة السعر' });
+      setNotice({ kind: 'danger', text: apiErrorText(error, 'تعذر حفظ شريحة السعر') });
     } finally {
       setBusy(false);
     }
@@ -1062,7 +1102,7 @@ export default function VanSalesPage() {
     } catch (error) {
       setNotice({
         kind: 'danger',
-        text: error instanceof ApiError ? error.message : 'تعذر تنفيذ فحص توافق البيانات السابقة',
+        text: apiErrorText(error, 'تعذر تنفيذ فحص توافق البيانات السابقة'),
       });
     } finally {
       setBusy(false);
@@ -1099,7 +1139,7 @@ export default function VanSalesPage() {
         text: `تم إصدار ${newestDoc?.invoiceMode === 'zatca_tax' ? 'فاتورة ضريبية إلكترونية (ZATCA)' : 'فاتورة توزيع عادية محفوظة محاسبياً'} رقم ${newestDoc?.number ?? ''} وخصم الكمية من عهدة المندوب.`,
       });
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : 'تعذر إصدار المستند' });
+      setNotice({ kind: 'danger', text: apiErrorText(error, 'تعذر إصدار المستند') });
     } finally {
       setBusy(false);
     }
@@ -1152,7 +1192,7 @@ export default function VanSalesPage() {
         text: `⏳ تم تقديم طلب إغلاق الوردية (${closingTarget.number}) وحساب العجز تلقائياً، وباتت الحالة «معلق بانتظار فحص التالف واعتماد المحاسب».`,
       });
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : 'تعذر تقديم إغلاق الوردية' });
+      setNotice({ kind: 'danger', text: apiErrorText(error, 'تعذر تقديم إغلاق الوردية') });
     } finally {
       setBusy(false);
     }
@@ -1182,7 +1222,7 @@ export default function VanSalesPage() {
     } catch (error) {
       setNotice({
         kind: 'danger',
-        text: error instanceof ApiError ? error.message : 'تعذّر استكمال تسوية المخزون',
+        text: apiErrorText(error, 'تعذّر استكمال تسوية المخزون'),
       });
     } finally {
       setBusy(false);
@@ -1209,7 +1249,7 @@ export default function VanSalesPage() {
     } catch (error) {
       setNotice({
         kind: 'danger',
-        text: error instanceof ApiError ? error.message : 'تعذّر إقفال فرق الاستلام',
+        text: apiErrorText(error, 'تعذّر إقفال فرق الاستلام'),
       });
     } finally {
       setBusy(false);
@@ -1234,7 +1274,7 @@ export default function VanSalesPage() {
     } catch (error) {
       setNotice({
         kind: 'danger',
-        text: error instanceof ApiError ? error.message : 'تعذّر إلغاء أمر التحميل',
+        text: apiErrorText(error, 'تعذّر إلغاء أمر التحميل'),
       });
     } finally {
       setBusy(false);
@@ -1282,7 +1322,7 @@ export default function VanSalesPage() {
             }`,
       });
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : 'تعذر اعتماد إغلاق الوردية' });
+      setNotice({ kind: 'danger', text: apiErrorText(error, 'تعذر اعتماد إغلاق الوردية') });
     } finally {
       setBusy(false);
     }
@@ -1303,7 +1343,7 @@ export default function VanSalesPage() {
       setData(next);
       setNotice({ kind: 'ok', text: `تم تسجيل سند قبض بمبلغ ${input} ريال للفاتورة ${doc.number}.` });
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : 'تعذر تسجيل التحصيل' });
+      setNotice({ kind: 'danger', text: apiErrorText(error, 'تعذر تسجيل التحصيل') });
     } finally {
       setBusy(false);
     }
@@ -1701,9 +1741,6 @@ export default function VanSalesPage() {
                     const picked = items.find((it) => it.id === nextId);
                     if (picked) {
                       setProdItemName(itemLabel(picked));
-                      /** تكلفة الصنف من بطاقته — لا رقم مخترع في الكود. */
-                      const purchasePrice = (picked as { purchasePrice?: string | null }).purchasePrice;
-                      if (!prodUnitCost && purchasePrice) setProdUnitCost(purchasePrice);
                     }
                   }}
                 >
@@ -1789,19 +1826,109 @@ export default function VanSalesPage() {
                 </span>
               </label>
               <label className="field">
-                <span>تكلفة إنتاج الكيلو (ريال)</span>
+                <span>🏷️ رقم دفعة الإنتاج (اختياري)</span>
                 <input
                   className="input"
-                  type="number"
-                  step="0.01"
                   dir="ltr"
-                  value={prodUnitCost}
-                  onChange={(e) => setProdUnitCost(e.target.value)}
+                  value={prodBatchNo}
+                  onChange={(e) => setProdBatchNo(e.target.value)}
+                  placeholder="مثال: BR-2026-0001"
                 />
                 <span className="muted small">
-                  تُقرأ من بطاقة الصنف (سعر الشراء) أو من أمر التصنيع إن وُجد — اتركها فارغة لاستخدام تكلفة الصنف.
+                  اتركه فارغاً ليُخصَّص رقم تسلسلي رسمي؛ وإن كتبته صار <b>رقم دفعة الناتج (اللوت)</b> في
+                  الرصيد الرسمي مطابقاً له — فيُقرأ الرقم نفسه على الشحنة والرفّ والجرد.
                 </span>
               </label>
+              <div className="field" style={{ gridColumn: '1 / -1' }}>
+                <span>🌾 مكوّنات الدفعة — مصدر المواد *</span>
+                <span className="muted small">
+                  كل مكوّن يُصرف رسمياً من مستودع المنشأة بالمتوسط المرجّح، وقيمته هي تكلفة الدفعة.
+                  بلا مكوّنات (أو قائمة مواد مرتبطة بالصنف) تُرفض الدفعة؛ والوارد من خارج المنشأة
+                  موضعه إذن إدخال مخزني رسمي أو تسوية جرد معتمدة لا دفعة إنتاج.
+                </span>
+                {prodComponents.map((line, index) => (
+                  <div
+                    key={`component-${index}`}
+                    style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 160px auto', gap: 8 }}
+                  >
+                    <select
+                      className="input"
+                      value={line.itemId}
+                      onChange={(e) =>
+                        setProdComponents((rows) =>
+                          rows.map((row, rowIndex) =>
+                            rowIndex === index ? { ...row, itemId: e.target.value } : row,
+                          ),
+                        )
+                      }
+                    >
+                      <option value="">— اختر المكوّن —</option>
+                      {items.map((it) => (
+                        <option key={it.id} value={it.id}>
+                          {itemLabel(it)}
+                        </option>
+                      ))}
+                    </select>
+                    <input
+                      className="input"
+                      type="number"
+                      step="0.01"
+                      min="0"
+                      dir="ltr"
+                      placeholder="الكمية"
+                      value={line.qty}
+                      onChange={(e) =>
+                        setProdComponents((rows) =>
+                          rows.map((row, rowIndex) =>
+                            rowIndex === index ? { ...row, qty: e.target.value } : row,
+                          ),
+                        )
+                      }
+                    />
+                    <button
+                      type="button"
+                      className="btn"
+                      onClick={() =>
+                        setProdComponents((rows) => rows.filter((_row, rowIndex) => rowIndex !== index))
+                      }
+                    >
+                      حذف
+                    </button>
+                  </div>
+                ))}
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+                  <button
+                    type="button"
+                    className="btn"
+                    onClick={() => setProdComponents((rows) => [...rows, { itemId: '', qty: '' }])}
+                  >
+                    ➕ إضافة مكوّن
+                  </button>
+                  {(() => {
+                    const filled = prodComponents.filter(
+                      (line) => line.itemId.trim().length > 0 && Number(line.qty) > 0,
+                    );
+                    if (filled.length === 0) return null;
+                    const estimate = estimateComponentCost({
+                      lines: filled,
+                      producedQty: prodQty,
+                      stockRows: data?.officialStock ?? [],
+                      warehouseId: prodWarehouseId,
+                    });
+                    return estimate.unvalued > 0 ? (
+                      <span className="small" style={{ color: 'var(--warn)' }}>
+                        ⚠️ {estimate.unvalued} من المكوّنات ليس له قيمة أو رصيد في هذا المستودع —
+                        ستُرفض الدفعة حتى تُقيَّم المواد (إذن إدخال رسمي أو تسوية جرد معتمدة).
+                      </span>
+                    ) : (
+                      <span className="muted small">
+                        💵 تقدير التكلفة من المتوسط الرسمي: {estimate.totalValue} ريال ⇒{' '}
+                        {estimate.perKg} ريال/كجم — والرقم الفعلي هو قيمة ما يخرج من الرفّ.
+                      </span>
+                    );
+                  })()}
+                </div>
+              </div>
               <label className="field">
                 <span>مشرف الإنتاج / أمين المستودع</span>
                 <input
@@ -1833,6 +1960,7 @@ export default function VanSalesPage() {
                     <th>التالف المعتمد</th>
                     <th>الرصيد المتاح بالمستودع</th>
                     <th>تكلفة الكيلو</th>
+                    <th>الربط الرسمي</th>
                     <th>إجمالي تكلفة الدفعة</th>
                   </tr>
                 </thead>
@@ -1864,16 +1992,29 @@ export default function VanSalesPage() {
                             🗑️ فاقد {b.scrapQty} كجم بقيمة {b.scrapValue} SAR —{' '}
                             {b.scrapCostLoaded
                               ? 'محمّلة على تكلفة المنتج الجيد'
-                              : 'غير محمّلة على المنتج الجيد (لا يدعمها محرك التصنيع الرسمي)'}
+                              : 'غير محمّلة على المنتج الجيد — أمر الإنتاج يُنتج الكمية الصالحة وحدها فلا تُصرف مواد للفاقد (تحميله قرار تسعير تكلفة لم يُعتمد بعد)'}
                           </div>
                         ) : null}
+                      </td>
+                      <td>
+                        {b.productionOrderId ? (
+                          <span className="badge ok">أمر إنتاج رسمي</span>
+                        ) : b.manufacturingOrderId ? (
+                          <span className="badge ok">أمر تصنيع رسمي</span>
+                        ) : (
+                          <span className="badge warn">دفعة قديمة بلا أمر رسمي</span>
+                        )}
+                        <div className="muted small">
+                          {b.inventoryTransactionId ? 'حركة مخزون رسمية ✓' : 'بلا حركة رسمية مربوطة'}
+                          {b.lotId ? ' · دفعة ناتج (لوت) ✓' : ''}
+                        </div>
                       </td>
                       <td dir="ltr"><strong>{b.totalCost} SAR</strong></td>
                     </tr>
                   ))}
                   {(data?.productionBatches ?? []).length === 0 && (
                     <tr>
-                      <td colSpan={10} className="muted" style={{ textAlign: 'center', padding: 16 }}>
+                      <td colSpan={11} className="muted" style={{ textAlign: 'center', padding: 16 }}>
                         لم يتم تسجيل دفعة إنتاج بعد.
                       </td>
                     </tr>
