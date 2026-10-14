@@ -42,6 +42,30 @@ export const SECTOR_ADDON_APPS = [
     screens: ['/van-sales'] as const,
   },
   {
+    /**
+     * 🥖 باقة المخابز: الإنتاج والتوزيع والمناديب — تطبيقٌ مستقلّ (`apps/bakery` على
+     * `bakery.erp.example`) فوق الـ API نفسه وعقود الصلاحيات نفسها، لا محرك محاسبةٍ ولا
+     * مخازن ثانيًا. ليست `van_sales` ولا `manufacturing` باسمٍ آخر: الترخيص قرارٌ مستقلّ
+     * للمنصة لكلّ منشأة، والشاشات التفصيلية (محاسبة/مشتريات/مخازن) تُفتح بتسليم جلسةٍ
+     * إلى `staff` فلا تُعاد كتابتها هنا.
+     *
+     * `screens` فارغة عن قصد: هذه الباقة لا تحجب شاشةً في `staff` (لا مسار لها فيه)،
+     * وترخيصها يُقاس بوجود الكود في `enabledCodes` من `GET /marketplace/apps` — وهو ما
+     * تقرأه واجهة المخابز نفسها قبل أن تفتح أيّ مسارٍ من مساراتها.
+     */
+    code: 'bakery_distribution',
+    nameAr: 'المخابز: الإنتاج والتوزيع',
+    nameEn: 'Bakery Production & Distribution',
+    descriptionAr:
+      'تطبيق المخابز المستقلّ: دفعات الإنتاج اليومية بموادها الحقيقية ورفض الدفعة بلا مصدر مواد، جولات التوزيع وسياراته والعهدات، المناديب (مستخدمٌ وموظفٌ وصلاحياتٌ يمنحها المدير)، التحصيل والخزينة وإغلاق اليومية — على المحاسبة والمخازن نفسها.',
+    icon: '🥖',
+    version: '1.0.0',
+    monthlyPrice: '149.0000',
+    isCore: false,
+    category: 'sector' as const,
+    screens: [] as readonly string[],
+  },
+  {
     code: 'manufacturing',
     nameAr: 'التصنيع والإنتاج',
     nameEn: 'Manufacturing',
@@ -285,6 +309,21 @@ export class MarketplaceService {
 
   async install(tenantId: string, userId: string, code: string): Promise<AppView> {
     const app = this.reviewed(code);
+    /**
+     * الباقة القطاعية تُرخَّص بقرار المنصة، لا بصلاحية المستأجر. الشاشة تُخفي زرّ
+     * التثبيت أصلًا (`requiresApproval`) وتعرض «طلب تفعيل» — لكن إخفاء الزرّ ليس ضبطًا
+     * للوصول، فأيّ حامل `tenant.apps.manage` كان يستطيع تفعيل باقةٍ مدفوعة بطلبٍ واحد.
+     * المسار الصحيح: `POST /marketplace/apps/:code/request` ثمّ قرار مالك المنصة في
+     * `POST /platform/marketplace/requests/:id/decide` (أو تفعيل المنصة المباشر في
+     * `PUT /platform/marketplace/tenants/:tenantId/apps/:code`)، وكلاهما يكتب `tenant_apps`.
+     */
+    if ('category' in app && app.category === 'sector') {
+      throw new DomainError(
+        errorCodes.ADDON_REQUIRES_PLATFORM_APPROVAL,
+        `باقة «${app.nameAr}» تُرخَّص من المنصة: أرسل طلب تفعيلٍ ويُقرَّر من هناك.`,
+        403,
+      );
+    }
     await this.ensureCatalog();
     return withTenantTx(this.database.db, tenantId, async (tx) => {
       const stored = first(await tx.execute(sql`

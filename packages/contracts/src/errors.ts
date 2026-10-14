@@ -37,6 +37,12 @@ export const errorCodes = {
   INTERNAL: 'INTERNAL',
   // PHASE_04 — a draft was accepted but must wait for the configured approval chain.
   APPROVAL_REQUIRED: 'APPROVAL_REQUIRED',
+  /**
+   * 🏪 ترخيص الباقات القطاعية — `tenant.apps.manage` وحدها لا تُفعِّل باقةً تُباع بقرار
+   * المنصة (`category: 'sector'` ⇒ `requiresApproval`). إخفاء زرّ التثبيت في الشاشة ليس
+   * ضبطًا للوصول: الخادم يرفض التثبيت المباشر ويحيل على طلب التفعيل.
+   */
+  ADDON_REQUIRES_PLATFORM_APPROVAL: 'ADDON_REQUIRES_PLATFORM_APPROVAL',
   // PHASE_05 §7 — no posting profile answers a (branch, doc_type) lookup.
   ACCOUNT_PROFILE_MISSING: 'ACCOUNT_PROFILE_MISSING',
   // Round 11 — credentials were valid but the user has TOTP enabled and sent no code.
@@ -259,6 +265,7 @@ export const errorStatus: Record<ErrorCode, number> = {
   RATE_LIMITED: 429,
   INTERNAL: 500,
   APPROVAL_REQUIRED: 202,
+  ADDON_REQUIRES_PLATFORM_APPROVAL: 403,
   ACCOUNT_PROFILE_MISSING: 422,
   MFA_REQUIRED: 401,
   USAGE_LIMIT_REACHED: 409,
@@ -364,6 +371,7 @@ export const errorTitle: Record<ErrorCode, string> = {
   RATE_LIMITED: 'Rate limited',
   INTERNAL: 'Internal error',
   APPROVAL_REQUIRED: 'Approval required',
+  ADDON_REQUIRES_PLATFORM_APPROVAL: 'This add-on is licensed by the platform — request activation',
   ACCOUNT_PROFILE_MISSING: 'Posting profile missing',
   MFA_REQUIRED: 'Verification code required',
   USAGE_LIMIT_REACHED: 'Usage limit reached',
