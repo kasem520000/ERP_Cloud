@@ -139,16 +139,10 @@ export class PrintTemplatesService {
             total: str(invoice.total),
             paid: str(invoice.paid_total),
             payments: payments.map((row) => ({ method: PAYMENT_METHODS[str(row.method)] ?? str(row.method), amount: str(row.amount), reference: str(row.reference) })),
-            qr:
-              str(invoice.qr_code) ||
-              str(invoice.zatca_qr) ||
-              buildFallbackZatcaQr({
-                sellerName: company.nameAr || 'منشأة سحابية',
-                vatNo: company.taxNo || '300000000000003',
-                timestampIso: dateIso(invoice.posted_at ?? invoice.issued_at ?? invoice.created_at),
-                total: str(invoice.total),
-                tax: str(invoice.tax_total),
-              }),
+            // الحمولة التي كتبتها وحدة الفوترة الإلكترونية فعلًا (`einvoicing.service`) —
+            // ولا تُختَرَع حمولةٌ عند غيابها: المربّع المرسوم من TLV بلا توقيع يفشل أيَّ
+            // ماسح، ووجوده على وثيقة رسمية ادّعاءٌ بأنّ الفاتورة أُصدرت وهي لم تُصدر.
+            qr: str(invoice.zatca_qr),
             zatcaStatus: str(invoice.zatca_status),
           })}
           ${this.signatures(['المستلم', 'المحاسب', 'الختم'])}
@@ -742,13 +736,14 @@ export class PrintTemplatesService {
    * instead of a decorative square that would fail any scan.
    */
   private qrBlock(payload?: string, status?: string) {
+    const label = ZATCA_STATUS_LABELS[status ?? ''];
     if (!payload) {
-      return '<div class="qr-empty">لم تُصدر بعد بيانات الفاتورة الإلكترونية (QR) لهذا المستند.</div>';
+      return `<div class="qr-empty">لم تُصدر بعد بيانات الفاتورة الإلكترونية (QR) لهذا المستند.${label ? ` الحالة: ${escapeHtml(label)}.` : ''}</div>`;
     }
     const qr = qrcode(0, 'M');
     qr.addData(payload);
     qr.make();
-    return `<div class="qr">${qr.createSvgTag({ cellSize: 3, margin: 0, scalable: true })}<span>${escapeHtml(ZATCA_STATUS_LABELS[status ?? ''] ?? 'رمز الاستجابة السريعة')}</span></div>`;
+    return `<div class="qr">${qr.createSvgTag({ cellSize: 3, margin: 0, scalable: true })}<span>${escapeHtml(label ?? 'رمز الاستجابة السريعة')}</span></div>`;
   }
 
   private signatures(labels: string[]) {
@@ -983,33 +978,6 @@ function dateTimeText(value: unknown): string {
   if (!value) return '—';
   const date = value instanceof Date ? value : new Date(String(value));
   return Number.isNaN(date.getTime()) ? String(value) : date.toISOString().slice(0, 16).replace('T', ' ');
-}
-function dateIso(value: unknown): string {
-  if (!value) return new Date().toISOString();
-  const date = value instanceof Date ? value : new Date(String(value));
-  return Number.isNaN(date.getTime()) ? new Date().toISOString() : date.toISOString();
-}
-function buildFallbackZatcaQr(params: {
-  sellerName: string;
-  vatNo: string;
-  timestampIso: string;
-  total: string;
-  tax: string;
-}): string {
-  const fields: Array<[number, string]> = [
-    [1, params.sellerName || 'منشأة سحابية'],
-    [2, params.vatNo || '300000000000003'],
-    [3, params.timestampIso],
-    [4, Number(params.total || 0).toFixed(2)],
-    [5, Number(params.tax || 0).toFixed(2)],
-  ];
-  const chunks: Buffer[] = [];
-  for (const [tag, val] of fields) {
-    const buf = Buffer.from(val, 'utf8');
-    const len = Math.min(buf.length, 255);
-    chunks.push(Buffer.from([tag, len]), buf.subarray(0, len));
-  }
-  return Buffer.concat(chunks).toString('base64');
 }
 function shortId(value: string): string {
   return value ? value.slice(0, 8).toUpperCase() : '—';

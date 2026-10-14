@@ -51,29 +51,6 @@ function cleanSerialNos(values?: string[]): string[] {
   return [...new Set(values.map((value) => String(value).trim()).filter(Boolean))];
 }
 
-function buildZatcaPhase1TlvBase64(params: {
-  sellerName: string;
-  vatRegistrationNumber: string;
-  timestampIso: string;
-  invoiceTotal: string;
-  vatTotal: string;
-}): string {
-  const fields: Array<[number, string]> = [
-    [1, params.sellerName || 'منشأة سحابية'],
-    [2, params.vatRegistrationNumber || '300000000000003'],
-    [3, params.timestampIso],
-    [4, Number(params.invoiceTotal || 0).toFixed(2)],
-    [5, Number(params.vatTotal || 0).toFixed(2)],
-  ];
-  const chunks: Buffer[] = [];
-  for (const [tag, value] of fields) {
-    const valBuf = Buffer.from(value, 'utf8');
-    const len = Math.min(valBuf.length, 255);
-    chunks.push(Buffer.from([tag, len]), valBuf.subarray(0, len));
-  }
-  return Buffer.concat(chunks).toString('base64');
-}
-
 export type SalesLineInput = {
   itemId?: string;
   description?: string;
@@ -308,15 +285,11 @@ export class SalesService {
         partyName !== 'عميل عام' &&
         partyCode !== 'CUST-GEN',
     );
-    const qrCode =
-      invoice.zatcaQr ||
-      buildZatcaPhase1TlvBase64({
-        sellerName: 'ERP Cloud KSA',
-        vatRegistrationNumber: '300000000000003',
-        timestampIso: (invoice.postedAt ?? invoice.createdAt ?? new Date()).toISOString(),
-        invoiceTotal: String(invoice.total ?? '0'),
-        vatTotal: String(invoice.taxTotal ?? '0'),
-      });
+    // 🧾 الرمز يُعاد كما أصدرته وحدة الفوترة الإلكترونية (`zatca_qr`) فقط: حمولة TLV
+    // تُبنى محليًّا بلا توقيع ولا مفتاح عام ليست فاتورةً إلكترونية، وكانت هنا تحمل اسم
+    // بائع ورقم ضريبي ثابتين لا يخصّان المستأجر — فالأصدق أن يعود `null` وتقول الشاشة
+    // «لم تُصدر بعد» بدل رمزٍ يفشل أيُّ ماسح.
+    const qrCode = invoice.zatcaQr || null;
     return {
       ...invoice,
       qrCode,

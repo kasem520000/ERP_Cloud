@@ -2,11 +2,14 @@
 
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
+import type { CompanyProfileDto } from '@erp/contracts';
 
 import { Notice } from '../../../components/data-view';
 import { Screen } from '../../../components/screen';
 import { computeTotals, emptyLine, type LineDraft } from '../../../components/invoice-editor';
 import { ApiError, apiData, apiList, apiPost } from '../../../lib/api';
+import { readCompanyProfile, receiptIdentity } from '../../../lib/company-profile';
+import { issuedQrPayload } from '../../../lib/invoice-qr';
 import {
   arabicName,
   cashLocationLabel,
@@ -31,7 +34,7 @@ import {
 } from '../../../lib/lookups';
 import { BankChooser } from '../../../components/bank-chooser';
 import { CashCustomerPicker } from '../../../components/cash-customer-picker';
-import { ZatcaQrSvg, buildZatcaTlvBase64, printThermalReceipt80mm } from '../../../components/zatca-qr-svg';
+import { ZatcaQrSvg, printThermalReceipt80mm } from '../../../components/zatca-qr-svg';
 import { useSession } from '../../../lib/session';
 import { useQuery } from '../../../lib/use-query';
 
@@ -193,6 +196,13 @@ export default function PosPage() {
    * إعدادات المستأجر) لأنّ الكاشير يحتاجها ليعمل، والكتابة تبقى في شاشة الإعدادات.
    */
   const settings = useQuery<PosSettings>(() => apiData<PosSettings>('/pos/settings'), []);
+  // 🏢 اسم المنشأة ورقمها الضريبي كما هما في ملفّها — لا ثوابت تُطبع لكلّ مستأجر.
+  const company = useQuery<CompanyProfileDto | null>(() => readCompanyProfile(), []);
+  /**
+   * 🧾 رمز الفاتورة الإلكترونية إن كان صدر لهذه الفاتورة فعلًا؛ وما لم يصدر لا يُرسم
+   * رمزٌ ولا يُختَرع — الإيصال والشاشة يقولان «لم تُصدر بعد».
+   */
+  const receiptQr = useQuery<string | null>(() => issuedQrPayload(receipt?.invoiceId), [receipt?.invoiceId ?? '']);
   const casher = {
     barcodeAuto: settings.data?.['pos.barcodeAuto'] ?? true,
     touchScreen: settings.data?.['pos.touchScreen'] ?? false,
@@ -414,16 +424,12 @@ export default function PosPage() {
         text: `تم البيع — الفاتورة ${receiptData.number ?? ''} بمبلغ ${money(receiptData.total)}.`,
       });
       if (autoPrintThermal) {
-        const qrPayload = buildZatcaTlvBase64({
-          sellerName: branchRow ? arabicName(branchRow) : 'ERP Cloud KSA',
-          vatNo: '300000000000003',
-          timestampIso: new Date().toISOString(),
-          total: receiptData.total,
-          tax: receiptData.taxTotal,
-        });
+        // الحمولة الصادرة لهذه الفاتورة (لا شيء بعد البيع عادةً) — والغياب يُطبع غيابًا.
+        const qrPayload = await issuedQrPayload(receiptData.invoiceId);
+        const identity = receiptIdentity(company.data ?? null, branchRow ? arabicName(branchRow) : 'المنشأة');
         printThermalReceipt80mm({
-          companyName: branchRow ? arabicName(branchRow) : 'منشأة سحابية',
-          taxNo: '300000000000003',
+          companyName: identity.companyName,
+          taxNo: identity.taxNo,
           branchName: branchRow ? arabicName(branchRow) : undefined,
           invoiceNumber: receiptData.number ?? receiptData.invoiceId.slice(0, 8),
           invoiceTypeLabel: 'فاتورة ضريبية مبسطة — إيصال كاشير',
@@ -1100,16 +1106,10 @@ export default function PosPage() {
                 className="btn primary sm"
                 type="button"
                 onClick={() => {
-                  const qrPayload = buildZatcaTlvBase64({
-                    sellerName: branchRow ? arabicName(branchRow) : 'ERP Cloud KSA',
-                    vatNo: '300000000000003',
-                    timestampIso: new Date().toISOString(),
-                    total: receipt.total,
-                    tax: receipt.taxTotal,
-                  });
+                  const identity = receiptIdentity(company.data ?? null, branchRow ? arabicName(branchRow) : 'المنشأة');
                   printThermalReceipt80mm({
-                    companyName: branchRow ? arabicName(branchRow) : 'منشأة سحابية',
-                    taxNo: '300000000000003',
+                    companyName: identity.companyName,
+                    taxNo: identity.taxNo,
                     branchName: branchRow ? arabicName(branchRow) : undefined,
                     invoiceNumber: receipt.number ?? receipt.invoiceId.slice(0, 8),
                     invoiceTypeLabel: 'فاتورة ضريبية مبسطة — إيصال كاشير',
@@ -1125,7 +1125,7 @@ export default function PosPage() {
                     total: receipt.total,
                     paidAmount: receipt.tendered ?? receipt.paidTotal,
                     changeAmount: receipt.change,
-                    qrPayload,
+                    qrPayload: receiptQr.data ?? null,
                   });
                 }}
               >
@@ -1187,13 +1187,8 @@ export default function PosPage() {
               )}
             </dl>
             <ZatcaQrSvg
-              payload={buildZatcaTlvBase64({
-                sellerName: branchRow ? arabicName(branchRow) : 'ERP Cloud KSA',
-                vatNo: '300000000000003',
-                timestampIso: new Date().toISOString(),
-                total: receipt.total,
-                tax: receipt.taxTotal,
-              })}
+              payload={receiptQr.data ?? null}
+              missingText="لم تُصدر بعد بيانات الفاتورة الإلكترونية (QR) — الإصدار من شاشة الفاتورة (الفوترة الإلكترونية)."
               size={132}
               label="باركود الفاتورة الضريبية المبسطة (QR)"
             />

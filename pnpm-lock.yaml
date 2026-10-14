@@ -348,6 +348,9 @@ importers:
       next:
         specifier: ^15.5.4
         version: 15.5.25(@types/node@22.20.1)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+      qrcode-generator:
+        specifier: ^2.0.4
+        version: 2.0.4
       react:
         specifier: ^19.1.1
         version: 19.2.8

@@ -15,9 +15,10 @@ import {
   Wallet,
 } from 'lucide-react';
 import { useState } from 'react';
+import type { CompanyProfileDto } from '@erp/contracts';
 
 import { CommentsPanel } from '../../../../components/comments-panel';
-import { ZatcaQrSvg, buildZatcaTlvBase64, printThermalReceipt80mm } from '../../../../components/zatca-qr-svg';
+import { ZatcaQrSvg, printThermalReceipt80mm } from '../../../../components/zatca-qr-svg';
 import { Badge } from '../../../../components/ui/badge';
 import { Button } from '../../../../components/ui/button';
 import { DonutCardChart } from '../../../../components/ui/chart';
@@ -28,6 +29,7 @@ import { Modal } from '../../../../components/ui/modal';
 import { SkeletonCard } from '../../../../components/ui/skeleton';
 import { Table } from '../../../../components/ui/table';
 import { ApiError, apiData, apiList, apiPatch, apiPost } from '../../../../lib/api';
+import { readCompanyProfile, receiptIdentity } from '../../../../lib/company-profile';
 import {
   arabicName,
   cashLocationLabel,
@@ -157,6 +159,8 @@ export default function SalesInvoiceDetailPage() {
   const cashLocations = useQuery<CashLocation[]>(() => listCashLocations(), []);
   const units = useQuery<Unit[]>(() => listUnits(), []);
   const costCenters = useQuery<CostCenter[]>(() => listCostCenters(), []);
+  // هويّة المنشأة الحقيقية للإيصال — `null` إن لم يملك المستخدم الصلاحية أو لم يُسجَّل ملفّ.
+  const company = useQuery<CompanyProfileDto | null>(() => readCompanyProfile(), []);
 
   const [settlement, setSettlement] = useState<'credit' | 'cash' | 'bank'>('credit');
   const [settleLocationId, setSettleLocationId] = useState('');
@@ -523,15 +527,11 @@ export default function SalesInvoiceDetailPage() {
 
               <div className="mt-4 pt-3 border-t border-line flex flex-col items-center gap-2">
                 <ZatcaQrSvg
-                  payload={
-                    doc.qrCode ||
-                    buildZatcaTlvBase64({
-                      sellerName: 'ERP Cloud KSA',
-                      vatNo: '300000000000003',
-                      timestampIso: doc.postedAt ?? doc.createdAt,
-                      total: doc.total,
-                      tax: doc.taxTotal,
-                    })
+                  payload={doc.qrCode ?? null}
+                  missingText={
+                    doc.qrCode
+                      ? undefined
+                      : 'لم تُصدر بعد بيانات الفاتورة الإلكترونية (QR) — أرسل الفاتورة لوحدة الفوترة الإلكترونية ليظهر الرمز الصادق.'
                   }
                   size={136}
                   label={doc.taxInvoiceTypeLabelAr ? `باركود ${doc.taxInvoiceTypeLabelAr} (ZATCA QR)` : 'باركود الفاتورة الضريبية (ZATCA QR)'}
@@ -540,18 +540,10 @@ export default function SalesInvoiceDetailPage() {
                   type="button"
                   className="btn sm"
                   onClick={() => {
-                    const qrPayload =
-                      doc.qrCode ||
-                      buildZatcaTlvBase64({
-                        sellerName: 'ERP Cloud KSA',
-                        vatNo: '300000000000003',
-                        timestampIso: doc.postedAt ?? doc.createdAt,
-                        total: doc.total,
-                        tax: doc.taxTotal,
-                      });
+                    const identity = receiptIdentity(company.data ?? null, 'المنشأة');
                     printThermalReceipt80mm({
-                      companyName: 'ERP Cloud KSA',
-                      taxNo: '300000000000003',
+                      companyName: identity.companyName,
+                      taxNo: identity.taxNo,
                       invoiceNumber: doc.number ?? doc.id.slice(0, 8),
                       invoiceTypeLabel: doc.taxInvoiceTypeLabelAr || 'فاتورة ضريبية مبسطة',
                       issuedAt: dateTime(doc.postedAt ?? doc.createdAt),
@@ -571,7 +563,8 @@ export default function SalesInvoiceDetailPage() {
                       taxTotal: doc.taxTotal,
                       total: doc.total,
                       paidAmount: doc.paidTotal,
-                      qrPayload,
+                      // الحمولة الصادرة فعلًا أو لا شيء — الإيصال يقول «لم تُصدر بعد» بدل رمزٍ زائف.
+                      qrPayload: doc.qrCode ?? null,
                     });
                   }}
                 >

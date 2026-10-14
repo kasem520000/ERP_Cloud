@@ -1,6 +1,7 @@
 'use client';
 
 import { Decimal } from 'decimal.js';
+import qrcode from 'qrcode-generator';
 import React from 'react';
 
 function fmt2(val: string | undefined | null): string {
@@ -11,99 +12,37 @@ function fmt2(val: string | undefined | null): string {
   }
 }
 
-export function buildZatcaTlvBase64(params: {
-  sellerName: string;
-  vatNo: string;
-  timestampIso: string;
-  total: string;
-  tax: string;
-}): string {
-  const encoder = new TextEncoder();
-  const fields: Array<[number, string]> = [
-    [1, params.sellerName || 'منشأة سحابية'],
-    [2, params.vatNo || '300000000000003'],
-    [3, params.timestampIso || new Date().toISOString()],
-    [4, fmt2(params.total)],
-    [5, fmt2(params.tax)],
-  ];
-  const bytes: number[] = [];
-  for (const [tag, value] of fields) {
-    const encoded = encoder.encode(value);
-    const len = Math.min(encoded.length, 255);
-    bytes.push(tag, len);
-    for (let i = 0; i < len; i += 1) {
-      bytes.push(encoded[i] ?? 0);
-    }
-  }
-  let binary = '';
-  for (const b of bytes) {
-    binary += String.fromCharCode(b);
-  }
-  return typeof btoa === 'function' ? btoa(binary) : '';
-}
+/**
+ * 🧾 ما يقوله المستند حين لا تكون للفاتورة حمولة فوترة إلكترونية صادرة فعلًا. النصّ
+ * نفسه الذي تكتبه وثيقة الطباعة على الخادم (`print-templates.service.qrBlock`)، فلا
+ * يختلف الورق عن الشاشة.
+ */
+export const ZATCA_QR_MISSING_TEXT = 'لم تُصدر بعد بيانات الفاتورة الإلكترونية (QR) لهذا المستند.';
 
+/**
+ * الرمز يُرسم بمُرمِّز QR حقيقي — `qrcode-generator`، المكتبة نفسها التي ترسمه في وثيقة
+ * الطباعة على الخادم. ما كان هنا قبل ذلك مصفوفة 29×29 للزينة: أنماط تحديدٍ وتوقيت ثمّ
+ * بتّات الحمولة تحت قناعٍ مختلَق، بلا تصحيح أخطاءٍ ولا معلومات إصدار ولا ترميز بيانات
+ * صحيح — أي شكلٌ يشبه الرمز ولا يقرأه أيّ ماسح. ورقٌ يحمل رمزًا لا يُقرأ أسوأ من سطرٍ
+ * يقول الحقيقة، لأنّه يوحي بأنّ الفاتورة صدرت إلكترونيًّا وهي لم تصدر.
+ */
 function buildQrMatrix(payload: string): boolean[][] {
-  const size = 29;
-  const grid: Array<Array<boolean | null>> = Array.from({ length: size }, () =>
-    Array.from({ length: size }, () => null),
+  const qr = qrcode(0, 'M');
+  qr.addData(payload);
+  qr.make();
+  const count = qr.getModuleCount();
+  return Array.from({ length: count }, (_, row) =>
+    Array.from({ length: count }, (_, col) => qr.isDark(row, col)),
   );
-
-  const placeFinder = (r0: number, c0: number) => {
-    for (let dr = -1; dr <= 7; dr += 1) {
-      for (let dc = -1; dc <= 7; dc += 1) {
-        const r = r0 + dr;
-        const c = c0 + dc;
-        if (r < 0 || r >= size || c < 0 || c >= size) continue;
-        const border = dr === -1 || dr === 7 || dc === -1 || dc === 7;
-        const outer = dr === 0 || dr === 6 || dc === 0 || dc === 6;
-        const inner = dr >= 2 && dr <= 4 && dc >= 2 && dc <= 4;
-        grid[r]![c] = !border && (outer || inner);
-      }
-    }
-  };
-
-  placeFinder(0, 0);
-  placeFinder(0, size - 7);
-  placeFinder(size - 7, 0);
-
-  for (let i = 8; i < size - 8; i += 1) {
-    grid[6]![i] = i % 2 === 0;
-    grid[i]![6] = i % 2 === 0;
-  }
-
-  for (let dr = -2; dr <= 2; dr += 1) {
-    for (let dc = -2; dc <= 2; dc += 1) {
-      const r = 20 + dr;
-      const c = 20 + dc;
-      grid[r]![c] = Math.abs(dr) === 2 || Math.abs(dc) === 2 || (dr === 0 && dc === 0);
-    }
-  }
-
-  const text = payload || 'ZATCA-QR';
-  const bits: number[] = [];
-  for (let i = 0; i < text.length; i += 1) {
-    const code = text.charCodeAt(i);
-    for (let b = 7; b >= 0; b -= 1) {
-      bits.push((code >> b) & 1);
-    }
-  }
-  if (bits.length === 0) bits.push(1, 0, 1, 1, 0, 0, 1, 0);
-
-  let idx = 0;
-  for (let r = 0; r < size; r += 1) {
-    for (let c = 0; c < size; c += 1) {
-      if (grid[r]![c] !== null) continue;
-      const bit = bits[idx % bits.length] ?? 0;
-      const mask = (r * 3 + c * 5 + idx) % 3 === 0 ? 1 : 0;
-      grid[r]![c] = Boolean(bit ^ mask);
-      idx += 1;
-    }
-  }
-
-  return grid.map((row) => row.map((cell) => Boolean(cell)));
 }
 
-export function renderQrSvgMarkup(payload: string, px = 136): string {
+/**
+ * حمولةٌ فارغة = لا رمز: تُرجع نصًّا فارغًا ليقول المستند «لم تُصدر بعد» بدل مربّعٍ
+ * زائف. لا تُبنى حمولة TLV محليًّا هنا ولا في أيّ شاشة — الحمولة الصادقة هي التي
+ * كتبتها وحدة الفوترة الإلكترونية على الفاتورة (`zatca_qr`).
+ */
+export function renderQrSvgMarkup(payload: string | null | undefined, px = 136): string {
+  if (!payload) return '';
   const matrix = buildQrMatrix(payload);
   const n = matrix.length;
   const quiet = 2;
@@ -119,33 +58,45 @@ export function renderQrSvgMarkup(payload: string, px = 136): string {
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${gridDim} ${gridDim}" width="${px}" height="${px}" shape-rendering="crispEdges"><rect width="${gridDim}" height="${gridDim}" fill="#fff"/>${rects.join('')}</svg>`;
 }
 
+const QR_BOX_STYLE: React.CSSProperties = {
+  display: 'inline-grid',
+  justifyItems: 'center',
+  gap: 6,
+  padding: 10,
+  borderRadius: 12,
+  border: '1px solid var(--line)',
+  background: '#ffffff',
+  color: '#0f172a',
+};
+
 export function ZatcaQrSvg({
   payload,
   size = 140,
   label = 'باركود الفاتورة الضريبية (ZATCA QR)',
+  missingText = ZATCA_QR_MISSING_TEXT,
 }: {
-  payload: string;
+  payload?: string | null;
   size?: number;
   label?: string;
+  missingText?: string;
 }) {
+  if (!payload) {
+    return (
+      <div style={{ ...QR_BOX_STYLE, borderStyle: 'dashed', maxWidth: size + 40 }}>
+        <span style={{ fontSize: 11, fontWeight: 700, color: '#64748b', textAlign: 'center', lineHeight: 1.6 }}>
+          {missingText}
+        </span>
+      </div>
+    );
+  }
+
   const matrix = buildQrMatrix(payload);
   const n = matrix.length;
   const quiet = 2;
   const gridDim = n + quiet * 2;
 
   return (
-    <div
-      style={{
-        display: 'inline-grid',
-        justifyItems: 'center',
-        gap: 6,
-        padding: 10,
-        borderRadius: 12,
-        border: '1px solid var(--line)',
-        background: '#ffffff',
-        color: '#0f172a',
-      }}
-    >
+    <div style={QR_BOX_STYLE}>
       <svg
         viewBox={`0 0 ${gridDim} ${gridDim}`}
         width={size}
@@ -171,7 +122,11 @@ export function ZatcaQrSvg({
 
 export type ThermalReceiptData = {
   companyName: string;
-  taxNo?: string;
+  /**
+   * الرقم الضريبي للمنشأة كما هو في ملفّها (`company_profiles.tax_no`). لا يُخترَع رقمٌ
+   * عند غيابه: السطر يُحذف من الإيصال، فرقمٌ ثابت لمنشأةٍ أخرى ادّعاءٌ لا زينة.
+   */
+  taxNo?: string | null;
   branchName?: string;
   invoiceNumber: string;
   invoiceTypeLabel?: string;
@@ -191,7 +146,8 @@ export type ThermalReceiptData = {
   total: string;
   paidAmount?: string;
   changeAmount?: string;
-  qrPayload: string;
+  /** الحمولة الصادرة من وحدة الفوترة الإلكترونية، أو لا شيء — انظر `renderQrSvgMarkup`. */
+  qrPayload?: string | null;
 };
 
 export function printThermalReceipt80mm(receipt: ThermalReceiptData) {
@@ -279,8 +235,12 @@ export function printThermalReceipt80mm(receipt: ThermalReceiptData) {
   ${receipt.paidAmount !== undefined ? `<div class="tot-row"><span>المدفوع:</span><span dir="ltr">${fmt2(receipt.paidAmount)} SAR</span></div>` : ''}
   ${hasChange ? `<div class="tot-row"><span>الباقي للعميل:</span><span dir="ltr">${fmt2(receipt.changeAmount)} SAR</span></div>` : ''}
   <div class="qr-box">
-    ${qrSvg}
-    <div class="sub" style="margin-top:4px;">رمز الفاتورة الضريبية المبسطة (ZATCA QR)</div>
+    ${
+      qrSvg
+        ? `${qrSvg}
+    <div class="sub" style="margin-top:4px;">رمز الفاتورة الضريبية المبسطة (ZATCA QR)</div>`
+        : `<div class="sub">${escapeHtml(ZATCA_QR_MISSING_TEXT)}</div>`
+    }
     <div class="sub">شكراً لزيارتكم</div>
   </div>
   <script>setTimeout(function(){ try { window.print(); } catch(e) {} }, 180);</script>
