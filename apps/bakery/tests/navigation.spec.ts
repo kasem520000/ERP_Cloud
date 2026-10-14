@@ -83,20 +83,33 @@ describe('خريطة وحدات واجهة المخابز', () => {
 
   it('مطابقة المسار بحدّ المقطع، ولا وحدةَ لمسارٍ لم يُبنَ', () => {
     expect(moduleForPath('/')?.key).toBe('overview');
-    expect(moduleForPath('/production')).toBeUndefined();
+    expect(moduleForPath('/production')?.key).toBe('production');
+    expect(moduleForPath('/production/9')?.key).toBe('production'); // ‏حدّ المقطع لا البادئة
+    expect(moduleForPath('/production-x')).toBeUndefined();
+    // ‏ما لم يُبنَ بعد: لا وحدةَ تطابقه (فلا قشرةَ تدّعي مساراً ولا مسارَ يدّعي قشرة).
     expect(moduleForPath('/rep')).toBeUndefined();
-    expect(moduleForPath('/overview-x')).toBeUndefined();
+    expect(moduleForPath('/distribution')).toBeUndefined();
+    expect(moduleForPath('/custody')).toBeUndefined();
   });
 
-  it('المراحل معلنة: أعمالٌ في 3 وواجهة المندوب في 4 — ولا وحدةَ تدّعي غير مرحلتها', () => {
-    const phases = new Map<string, string[]>();
+  /**
+   * المرحلة المعلنة ليست زينة: «مبنيّة» تعني `status: 'ready'` (وله صفحة — مقاسٌ أعلاه)،
+   * وما عداها مخطَّط. فلو كُتبت «مبنيّة» على وحدةٍ مخطَّطة لسقط هذا الحكم.
+   */
+  it('المراحل معلنة ومتّسقة مع الحالة — ولا وحدةَ تدّعي بناءً لم يحدث', () => {
+    const allowed = ['المرحلة 2 — مبنيّة', 'المرحلة 3 — مبنيّة', 'المرحلة 3', 'المرحلة 4'];
     for (const module of BAKERY_MODULES) {
-      const list = phases.get(module.phaseAr) ?? [];
-      list.push(module.key);
-      phases.set(module.phaseAr, list);
+      expect(allowed, `${module.key}: مرحلة غير معلنة`).toContain(module.phaseAr);
+      if (module.phaseAr.includes('مبنيّة')) {
+        expect(module.status, `${module.key}: «مبنيّة» وليست ready`).toBe('ready');
+      } else {
+        expect(module.status, `${module.key}: «${module.phaseAr}» وليست planned`).toBe('planned');
+      }
     }
-    expect([...phases.keys()].sort()).toEqual(['المرحلة 2 — مبنيّة', 'المرحلة 3', 'المرحلة 4']);
-    expect(phases.get('المرحلة 2 — مبنيّة')).toEqual(['overview']);
-    expect(phases.get('المرحلة 4')).toEqual(['rep-app']);
+
+    expect(readyModules().map((module) => module.key).sort()).toEqual(['overview', 'production']);
+    // ‏واجهة المندوب ما زالت المرحلة 4 ولا مسار لها بعد.
+    expect(BAKERY_MODULES.find((module) => module.key === 'rep-app')?.phaseAr).toBe('المرحلة 4');
+    expect(BAKERY_MODULES.filter((module) => module.phaseAr === 'المرحلة 4').map((m) => m.key)).toEqual(['rep-app']);
   });
 });

@@ -938,7 +938,7 @@ function FlagsTab({
     [tenantId],
   );
   const addons = useQuery<{ apps: TenantAddonRow[] }>(
-    () => apiData<{ apps: TenantAddonRow[] }>(`/marketplace/platform/tenants/${tenantId}/apps`),
+    () => apiData<{ apps: TenantAddonRow[] }>(`/platform/marketplace/tenants/${tenantId}/apps`),
     [tenantId],
   );
   const [busy, setBusy] = useState(false);
@@ -961,7 +961,7 @@ function FlagsTab({
     setBusy(true);
     onNotice(undefined);
     try {
-      await apiPost(`/marketplace/platform/tenants/${tenantId}/apps`, { code, enabled });
+      await apiPut(`/platform/marketplace/tenants/${tenantId}/apps/${code}`, { enabled });
       onNotice({
         kind: 'ok',
         text: enabled ? 'تم تفعيل الباقة القطاعية للعميل فوراً.' : 'تم إيقاف الباقة القطاعية عن العميل.',

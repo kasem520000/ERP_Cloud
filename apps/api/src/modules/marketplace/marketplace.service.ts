@@ -579,6 +579,57 @@ export class MarketplaceService {
     });
   }
 
+  /**
+   * باقات منشأةٍ بعينها كما تراها المنصة: المُثبَّت في `tenant_apps` مطعَّماً بكتالوج القطاع
+   * وأسعاره المُراجَعة. شاشة تفاصيل العميل في لوحة المنصة كانت تقرأ مساراً غير موجود إطلاقاً،
+   * وهذا هو مصدر البيانات الصحيح لها (قراءة على مستوى المنصة، لا على مستوى المنشأة).
+   */
+  async platformTenantApps(tenantId: string) {
+    this.uuid(tenantId);
+    await this.ensureCatalog();
+    // الأسعار كتالوجٌ عام على مستوى المنصة…
+    const prices = rows(
+      await withPlatformAdminTx(this.database.db, async (tx) =>
+        tx.execute(sql`SELECT code, price_monthly::text AS monthly_price FROM marketplace_apps`),
+      ),
+    );
+    // …أمّا `tenant_apps` فسياسة عزلها `USING (tenant_id = current_setting('app.tenant_id'))` بلا
+    // استثناءٍ للمنصة، فلا تُرى صفوفه إلا داخل سياق المنشأة نفسها — وهذا هو النمط المستعمل في
+    // بقية هذا الملف عند كتابة `tenant_apps` من مستوى المنصة (الصلاحية يحسمها حارس الكونسول).
+    const scope = await withTenantTx(this.database.db, tenantId, async (tx) => {
+      const tenant = first(
+        await tx.execute(sql`SELECT id::text, code, name FROM tenants WHERE id = ${tenantId}::uuid LIMIT 1`),
+      );
+      if (!tenant) throw new DomainError(errorCodes.NOT_FOUND, 'المنشأة غير موجودة', 404);
+      const granted = rows(
+        await tx.execute(sql`
+          SELECT app_code, is_enabled, installed_at
+          FROM tenant_apps WHERE tenant_id = ${tenantId}::uuid ORDER BY app_code
+        `),
+      );
+      return { tenant, granted };
+    });
+    const priceMap = new Map(prices.map((row) => [str(row.code), str(row.monthly_price)]));
+    const grantedMap = new Map(scope.granted.map((row) => [str(row.app_code), row]));
+    return {
+      tenantId,
+      tenantCode: str(scope.tenant.code),
+      tenantName: str(scope.tenant.name),
+      apps: SECTOR_ADDON_APPS.map((app) => {
+        const row = grantedMap.get(app.code);
+        return {
+          code: app.code,
+          nameAr: app.nameAr,
+          icon: app.icon,
+          monthlyPrice: moneyText(priceMap.get(app.code) ?? app.monthlyPrice ?? '0'),
+          requiresApproval: true,
+          enabled: row ? flag(row.is_enabled) : false,
+          installedAt: row ? iso(row.installed_at) : null,
+        };
+      }),
+    };
+  }
+
   async platformDecideRequest(
     requestId: string,
     actorUserId: string | undefined,

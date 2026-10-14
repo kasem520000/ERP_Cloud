@@ -105,7 +105,7 @@ export default function PlatformOverviewPage() {
     [],
   );
   const addonRequests = useQuery<PendingAddonRow[]>(
-    () => apiData<PendingAddonRow[]>('/marketplace/platform/requests?status=pending'),
+    () => apiData<PendingAddonRow[]>('/platform/marketplace/requests?status=pending'),
     [],
   );
   const [refreshing, setRefreshing] = useState(false);

@@ -197,7 +197,7 @@ export function PlatformGuard({ children }: { children: React.ReactNode }) {
 /**
  * مركز إشعارات المنصة الحي (`Bell`) — يستطلع:
  * 1) تذاكر المساعدة والدعم المفتوحة من العملاء (`GET /platform/tickets?filter[status]=open`)
- * 2) طلبات تفعيل الباقات والإضافات المعلقة (`GET /marketplace/platform/requests?status=pending`)
+ * 2) طلبات تفعيل الباقات والإضافات المعلقة (`GET /platform/marketplace/requests?status=pending`)
  * 3) طلبات تفعيل المنشآت والتراخيص المتأخرة والعملاء الموقوفين
  */
 function Bell({
@@ -219,7 +219,7 @@ function Bell({
   const loadNotifications = useCallback(async () => {
     const [ticketsRes, addonsRes] = await Promise.all([
       apiData<SupportTicket[]>('/platform/tickets?filter[status]=open&limit=10').catch(() => [] as SupportTicket[]),
-      apiData<AddonPendingRequest[]>('/marketplace/platform/requests?status=pending').catch(
+      apiData<AddonPendingRequest[]>('/platform/marketplace/requests?status=pending').catch(
         () => [] as AddonPendingRequest[],
       ),
     ]);

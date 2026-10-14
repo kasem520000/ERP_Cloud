@@ -3,7 +3,7 @@
  *
  * الباقة `bakery_distribution` **قطاعية** (`category: 'sector'`) في كتالوج السوق، وتبعاً لذلك:
  *   • تفعيلها قرارُ منصّةٍ لا قرارُ مستأجر — `POST /marketplace/apps/:code/request` ثمّ
- *     `POST /marketplace/platform/requests/:id/decide` (أو تمكينٌ مباشر من لوحة المنصة)،
+ *     `POST /platform/marketplace/requests/:id/decide` (أو تمكينٌ مباشر من لوحة المنصة)،
  *   • و`POST /marketplace/apps/:code/install` عليها يُرفض **403**
  *     ‏`ADDON_REQUIRES_PLATFORM_APPROVAL` (قُيس في `apps/api/test/marketplace-sector-licensing.spec.ts`).
  *

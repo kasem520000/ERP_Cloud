@@ -430,7 +430,11 @@ describe('platform content (P-M5)', () => {
     expect(invertedOnUpdate.status).toBe(422);
     const detail = JSON.stringify(invertedOnUpdate.body);
     expect(detail).toContain('نهاية اللافتة');
-    expect(detail).not.toContain('500');
+    // كان هنا `expect(detail).not.toContain('500')` — assertion هشّ: الـ `traceId` ست عشرية
+    // عشوائية وقد تحتوي «500» صدفةً (وفعلت، فسقط الاختبار خطأً). المقصود «ليس عطل 500»،
+    // وهذا يُقال من حقول الاستجابة نفسها لا من البحث في نصّها.
+    expect(invertedOnUpdate.body.status).toBe(422);
+    expect(invertedOnUpdate.body.code).toBe('VALIDATION_FAILED');
   });
 
   // ═══════════════════════════════════════════════ 5. القراءة والترشيح

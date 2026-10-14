@@ -402,4 +402,93 @@ describe('marketplace licensing of the bakery vertical (bakery_distribution)', (
     expect(accepted.status).toBe(201);
     expect((accepted.body.data as { status: string }).status).toBe('pending');
   });
+  // --------------------------------------- 8. قراءة المنصة لباقات منشأة (شاشة تفاصيل العميل)
+
+  /**
+   * شاشة تفاصيل العميل في لوحة المنصة كانت تقرأ `GET /marketplace/platform/tenants/:id/apps`
+   * — مسارٌ غير موجود (404) — وتكتب التفعيل بـ `POST` على مسارٍ غير موجود أيضاً. المسار الصحيح
+   * `GET|PUT /platform/marketplace/tenants/:tenantId/apps[/:code]`، والقراءة نفسها لم تكن موجودة
+   * في الـ API فأُضيفت. هذه الحالات تثبت أنّ ما تراه المنصة هو ما في `tenant_apps` فعلاً:
+   * سياسة العزل على الجدول لا تعرف مستوى المنصة، فقراءته من هناك تُعيد صفراً من الصفوف
+   * (وهذا ما حدث في أول تنفيذ، فظهرت الباقة «غير مفعَّلة» وهي مفعَّلة).
+   */
+  describe('platform read of a tenant\u2019s sector add-ons', () => {
+    type TenantAppsView = {
+      tenantId: string;
+      tenantCode: string;
+      tenantName: string;
+      apps: Array<{
+        code: string;
+        nameAr: string;
+        icon: string;
+        monthlyPrice: string;
+        requiresApproval: boolean;
+        enabled: boolean;
+        installedAt: string | null;
+      }>;
+    };
+
+    async function readTenantApps(actor: Actor, tenantId: string) {
+      return api(ctx.server, 'get', `/api/v1/platform/marketplace/tenants/${tenantId}/apps`, {
+        token: actor.token,
+      });
+    }
+
+    it('shows the console exactly what tenant_apps holds, before and after enabling', async () => {
+      const before = await readTenantApps(platformOwner, tenantA.tenantId);
+      expect(before.status, JSON.stringify(before.body).slice(0, 300)).toBe(200);
+      const view = before.body.data as TenantAppsView;
+      expect(view.tenantId).toBe(tenantA.tenantId);
+      expect(view.tenantCode).toBe('bakery-a');
+      expect(view.tenantName).toContain('مخابز');
+      const codes = view.apps.map((app) => app.code);
+      expect(codes).toContain(BAKERY);
+      expect(codes).toContain('van_sales');
+      for (const app of view.apps) {
+        expect(app.nameAr.length, app.code).toBeGreaterThan(0);
+        expect(app.icon.length, app.code).toBeGreaterThan(0);
+        expect(app.monthlyPrice, app.code).toMatch(/^\d+\.\d{4}$/);
+        // الباقات القطاعية كلها بقرار المنصة، بلا استثناء.
+        expect(app.requiresApproval, app.code).toBe(true);
+      }
+      // الاتفاق الجوهري: ما تقوله المنصة = ما في الجدول (لا ما تقول الذاكرة المؤقتة).
+      const rowBefore = await licenceRow(tenantA.tenantId);
+      expect(view.apps.find((app) => app.code === BAKERY)?.enabled).toBe(rowBefore?.isEnabled ?? false);
+
+      const enabled = await api(ctx.server, 'put', `/api/v1/platform/marketplace/tenants/${tenantA.tenantId}/apps/${BAKERY}`, {
+        token: platformOwner.token,
+        body: { enabled: true },
+      });
+      expect(enabled.status).toBe(200);
+
+      const after = await readTenantApps(platformOwner, tenantA.tenantId);
+      expect(after.status).toBe(200);
+      const bakery = (after.body.data as TenantAppsView).apps.find((app) => app.code === BAKERY);
+      expect(bakery?.enabled).toBe(true);
+      expect(bakery?.installedAt).not.toBeNull();
+      expect(await licenceRow(tenantA.tenantId)).toEqual({ appCode: BAKERY, isEnabled: true });
+    });
+
+    it('is a platform-only read: a tenant owner and a console role without the permission are refused', async () => {
+      const owner = await readTenantApps(tenantA, tenantA.tenantId);
+      expect(owner.status).toBe(403);
+
+      const operations = await readTenantApps(platformOperations, tenantA.tenantId);
+      expect(operations.status).toBe(403);
+      expect(operations.body.code).toBe(errorCodes.FORBIDDEN);
+    });
+
+    it('answers 404 for an unknown tenant and 400 for a malformed id, with no data either way', async () => {
+      const unknown = await readTenantApps(platformOwner, '01a13c12-8093-760f-90ab-5c3c641cd6ff');
+      expect(unknown.status).toBe(404);
+      expect(unknown.body.code).toBe(errorCodes.NOT_FOUND);
+
+      // المعرّف المشوَّه ترفضه المدقّقة العامة قبل الخدمة ⇒ 400 (لا 404 كما تفعل
+      // `MarketplaceService.uuid()`). المهم في الحالتين: لا بيانات، فلا تعداد لمعرّفات المنشآت.
+      const malformed = await readTenantApps(platformOwner, 'not-a-uuid');
+      expect(malformed.status).toBe(400);
+      expect(malformed.body.data).toBeUndefined();
+      expect(unknown.body.data).toBeUndefined();
+    });
+  });
 });

@@ -23,6 +23,6 @@ export default defineConfig({
     include: ['lib/**/*.spec.ts', 'tests/**/*.spec.ts', 'tests/**/*.spec.tsx'],
     // ‏الحزمتان المشتركتان تُشحنان مصدراً (`.ts`/`.tsx`) عبر `exports`، وNode لا يحمّل
     // ذلك من `node_modules` — فتُحوَّلان هنا كما يحوّلهما Next (`transpilePackages`).
-    server: { deps: { inline: ['@erp/web-core', '@erp/ui'] } },
+    server: { deps: { inline: ['@erp/web-core', '@erp/web-van', '@erp/ui'] } },
   },
 });

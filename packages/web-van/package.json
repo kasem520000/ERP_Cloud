@@ -1,0 +1,26 @@
+{
+  "name": "@erp/web-van",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "عقود العميل لوحدات الإنتاج والتوزيع (دفعة الإنتاج، الأحمال، التحصيل، إقفال العهدة): بناء الحمولة كما يقرأها الخادم حرفاً، وأحكام الرفض السابقة للإرسال بالعربية، وتقدير التكلفة من المتوسط الرسمي. مشتركة بين لوحة staff وواجهة المخابز لأنّ العقد واحد والخادم واحد — فنسختان منه تعني دفعةً تُرفض في إحدهما وتُرحَّل في الأخرى. تُشحن مصدراً TypeScript (ADR-030) فليس لها خطوة بناء.",
+  "exports": {
+    ".": "./src/index.ts",
+    "./production": "./src/production.ts",
+    "./package.json": "./package.json"
+  },
+  "dependencies": {
+    "decimal.js": "^10.6.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.9"
+  },
+  "scripts": {
+    "lint": "eslint src tests --config ../../eslint.config.mjs",
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "sideEffects": false
+}

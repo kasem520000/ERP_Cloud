@@ -30,7 +30,7 @@ const nextConfig = {
   // Design System v3 — the shared kit ships as TypeScript source and is
   // compiled by this app's own toolchain, so there is no build step to keep
   // in sync between the three surfaces (ADR-030).
-  transpilePackages: ['@erp/ui', '@erp/web-core'],
+  transpilePackages: ['@erp/ui', '@erp/web-core', '@erp/web-van'],
   poweredByHeader: false,
   allowedDevOrigins,
   env: {

@@ -46,6 +46,12 @@ export class MarketplacePlatformController {
     };
   }
 
+  @Get('tenants/:tenantId/apps')
+  @RequiresPlatformRole('console.marketplace.manage')
+  async tenantApps(@Param('tenantId') tenantId: string) {
+    return { data: await this.marketplace.platformTenantApps(tenantId) };
+  }
+
   @Put('tenants/:tenantId/apps/:code')
   @RequiresPlatformRole('console.marketplace.manage')
   async toggleTenantApp(

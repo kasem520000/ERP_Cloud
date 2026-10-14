@@ -47,12 +47,13 @@ export const BAKERY_MODULES: readonly BakeryModule[] = [
     key: 'production',
     labelAr: 'الإنتاج',
     icon: '🏭',
-    status: 'planned',
-    phaseAr: 'المرحلة 3',
+    status: 'ready',
+    href: '/production',
+    phaseAr: 'المرحلة 3 — مبنيّة',
     permission: 'van_sales.production.manage',
     planAr:
-      'دفعة إنتاج: منتجٌ تامّ ومكوّناته (BOM أو سطور مكوّنات)، واستهلاك المخزون بتكلفة المتوسط. وبلا مكوّنات يرفض الخادم 422 (VAN_PRODUCTION_INPUT_REQUIRED) والبديل الرسميّ سند مخزون/جردٍ باعتماد.',
-    endpoints: ['POST /van-sales/production-batches', 'GET /van-sales/dashboard'],
+      'دفعة إنتاج بمكوّناتها: تقديرٌ إرشادي من المتوسط الرسمي قبل الاعتماد، ورفضٌ سابق للإرسال بالنصّ الذي سيقوله الخادم، وجدولُ الدفعات كما يعيده الخادم (بلا تلخيصٍ محلي). وبلا مكوّنات يرفض الخادم 422 (VAN_PRODUCTION_INPUT_REQUIRED)، والفاقد بلا سبب مرفوض، ولا تُرسل الشاشة unitCost.',
+    endpoints: ['POST /van-sales/production-batches', 'GET /van-sales/dashboard', 'GET /organization/catalog/items', 'GET /warehouses'],
   },
   {
     key: 'distribution',

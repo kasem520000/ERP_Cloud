@@ -28,7 +28,7 @@ const nextConfig = {
   output: 'standalone',
   // ‏ADR-030: الحزمة المشتركة تُشحن مصدراً TypeScript فيُصرّفها التطبيق نفسه،
   // فلا خطوة بناءٍ تُزامَن بين الواجهات.
-  transpilePackages: ['@erp/ui', '@erp/web-core'],
+  transpilePackages: ['@erp/ui', '@erp/web-core', '@erp/web-van'],
   poweredByHeader: false,
   allowedDevOrigins,
   env: {
