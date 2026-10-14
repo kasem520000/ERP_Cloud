@@ -5,6 +5,15 @@ import { useEffect, useRef } from 'react';
 import { storeToken } from '../lib/api';
 
 /**
+ * هدف الفشل: `/auth/login` لأنّ **لا مسار `/login` في هذه البوابة** (مسارات الدخول تحت
+ * `app/auth/*`، ورابط الدخول في ترويسة `app/layout.tsx` نفسه يشير إلى `/auth/login`).
+ * كان التحويل يذهب إلى `/login?handoff=failed` فيسقط المستخدم في 404 — أي أنّ أسوأ لحظة
+ * (رابط تسليمٍ منتهٍ أو مُستعمل) كانت تُكافأ بصفحةٍ لا وجود لها. والسبيك يتحقّق من أنّ
+ * لكلّ هدف تحويلٍ صفحةً فعلًا.
+ */
+export const FAILED_LOGIN = '/auth/login?handoff=failed';
+
+/**
  * AUD-08 — يستقبل جسر الدخول من الواجهة التسويقية في بوابة العميل.
  *
  * كان `?token=<access>&refresh=…` يمرّ في العنوان ثم يُحذف بعد التحميل — والعنوان يكون
@@ -32,14 +41,14 @@ export function TokenBridge() {
           body: JSON.stringify({ code }),
         });
         if (!response.ok) {
-          globalThis.location.assign('/login?handoff=failed');
+          globalThis.location.assign(FAILED_LOGIN);
           return;
         }
         const payload = (await response.json()) as { data: { accessToken: string } };
         storeToken(payload.data.accessToken);
         globalThis.location.assign(url.pathname === '/' ? '/portal' : `${url.pathname}${url.search}`);
       } catch {
-        globalThis.location.assign('/login?handoff=failed');
+        globalThis.location.assign(FAILED_LOGIN);
       }
     })();
   }, []);

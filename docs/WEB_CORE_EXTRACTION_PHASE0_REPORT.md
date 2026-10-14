@@ -126,9 +126,17 @@ $ curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:3001/login
 سجّل الدخول مباشرةً». وحُكمان جديدان في `packages/web-core/tests/session-handoff.spec.ts`
 يثبّتان أن الجسر لا يستهدف `/login` وأن الافتراض هو الوسم المقروء.
 
-**ولم يُصلح في النسخة الثالثة:** `apps/customer-portal/components/token-bridge.tsx:35,42` ما زال
-يرمي إلى `/login?handoff=failed`، ومسارات البوابة `app/auth/*` لا `app/login` — أي أن العطل نفسه
-قائم هناك. **لم يُمسّ** لأنه تطبيقٌ آخر خارج حدود هذه المرحلة، ويُذكر هنا حتى لا يُنسى.
+**وأُصلحت النسخة الثالثة بعدها (2026-10-14):** `apps/customer-portal/components/token-bridge.tsx`
+صار يحوّل إلى `/auth/login?handoff=failed` عبر ثابتٍ مُصدَّر (`FAILED_LOGIN`) بدل المسار الميّت،
+وصفحة الدخول (`app/auth/login/page.tsx`) صارت تقول صراحةً «رابط الدخول المسلَّم منتهٍ أو مُستعمل
+سابقاً — سجّل الدخول مباشرةً» بدل شاشة دخولٍ صامتة. والقياس على خادمٍ مبنيّ فعلًا
+(`next build` ثمّ `next start` على المنفذ 3004): `/login?handoff=failed` ⇒ **404** (الهدف القديم)،
+و`/auth/login?handoff=failed` ⇒ **200** وفيه التنبيه، و`/auth/login` ⇒ **200** بلا تنبيه.
+وسبيكان جديدان في `apps/customer-portal/tests/session-handoff.spec.ts` (المجموعة **10/10** بدل
+8/8): هدف التحويل وراءه صفحةٌ حقيقية — ويُقرأ من الثابت وقت التشغيل لا من نصّ المصدر — والصفحة
+**تُرسم** فعلًا بحالتَيها بـ `renderToStaticMarkup`، ولهذا صار `vitest.config.ts` للبوابة
+`esbuild: { jsx: 'automatic' }` (صفحة البوابة لا تستورد `React`، و`tsconfig` التطبيق على
+`preserve` لـ Next).
 
 ### 5.2 حارسٌ كان سينجح وهو لا يفحص شيئاً
 
