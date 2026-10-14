@@ -4,6 +4,7 @@
   "version": "0.1.0",
   "type": "module",
   "dependencies": {
+    "@erp/web-core": "workspace:*",
     "decimal.js": "^10.6.0",
     "next": "^15.5.4",
     "react": "^19.1.1",

@@ -442,6 +442,11 @@ export type MePayload = {
   };
   permissions: string[];
   branchScope: string[] | null;
+  /**
+   * 🏪 الباقات المفعَّلة للمنشأة (`tenant_apps`) — منها تعرف الواجهة هل باقتها القطاعية
+   * مرخَّصة، بلا حاجةٍ إلى `tenant.view` ولا إلى نداء كتالوج السوق.
+   */
+  enabledApps?: string[];
   /** P-C8 — يُملأ حين يكون الرمز رمزَ دخولٍ مؤقّت: من دخل، ولماذا، وإلى متى. */
   impersonation?: {
     sessionId: string;

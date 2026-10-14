@@ -1,5 +1,8 @@
 # ---------------------------------------------------------------------------
-# الواجهات الثلاث (Next.js standalone) — النشر والخدمة والفحوصات.
+# الواجهات (Next.js standalone) — النشر والخدمة والفحوصات.
+#
+# ملاحظة أمانة: `customer-portal` غير معلن هنا منذ أُضيف إلى المستودع (فجوة سابقة لهذه
+# المرحلة، مسجّلة في تقرير المرحلة 2)، و`bakery` أُضيف لأنه الواجهة القطاعية الجديدة.
 # متغيّر `API_PROXY_TARGET` مُخبوزٌ في البناء (rewrites) — لذلك يُضبط كـbuild-arg في
 # `deploy/Dockerfile.web`، ويُكرَّر هنا للاطّلاع في وقت التشغيل.
 # ---------------------------------------------------------------------------
@@ -120,3 +123,45 @@ metadata:
 spec:
   selector: { app: platform-admin }
   ports: [{ port: 3003, targetPort: 3003, name: http }]
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: bakery
+  namespace: erp
+spec:
+  selector:
+    matchLabels: { app: bakery }
+  template:
+    metadata:
+      labels: { app: bakery, app.kubernetes.io/part-of: erp }
+    spec:
+      securityContext: { runAsNonRoot: true, runAsUser: 10001 }
+      containers:
+        - name: bakery
+          image: erp-bakery:latest
+          ports: [{ containerPort: 3005, name: http }]
+          env:
+            - { name: NODE_ENV, value: production }
+            - { name: PORT, value: '3005' }
+            - { name: HOSTNAME, value: '0.0.0.0' }
+          readinessProbe:
+            httpGet: { path: /, port: http }
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: /, port: http }
+            initialDelaySeconds: 20
+            periodSeconds: 20
+          resources:
+            requests: { cpu: 100m, memory: 256Mi }
+            limits: { cpu: 500m, memory: 512Mi }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: erp-bakery
+  namespace: erp
+spec:
+  selector: { app: bakery }
+  ports: [{ port: 3005, targetPort: 3005, name: http }]

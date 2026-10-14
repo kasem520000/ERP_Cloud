@@ -23,15 +23,43 @@ import { useSession } from './session';
  * تترك المستخدم أمام صفحة 404 بلا سبب. والوسم `handoff=failed` يبقى في العنوان لتقرأه
  * شاشة الدخول وتقول «الرابط منتهٍ أو مُستعمل سابقاً» بدل الصمت.
  */
-export function TokenBridge({ failedRedirect = '/?handoff=failed' }: { failedRedirect?: string } = {}) {
+/**
+ * 🚦 قرار العنوان عند الإقلاع — دالّة صافية، والجسران (هنا وفي بوابة العميل) ينفّذانها.
+ *
+ * `?handoff=<code>` رمزُ تسليمٍ يُستبدل بجلسة. و`?handoff=failed` **ليس رمزاً**: هو الوسم
+ * الذي يكتبه الجسر نفسه حين يفشل الاستبدال، لتقرأه شاشة الدخول وتقول «الرابط منتهٍ أو
+ * مُستعمل سابقاً» بدل الصمت. ومعاملته رمزاً كانت تُنتج حلقة: استبدال `failed` يفشل ←
+ * تحويل إلى العنوان نفسه ← استبدال `failed` … بلا نهاية، وبنداءٍ خاسر للخادم في كلّ دورة.
+ * والشاشة ترسم الوسم ولا تحاول استبداله، فلا فرقَ بصريّاً — والفرق كلّهُ في الشبكة.
+ */
+export const HANDOFF_FAILED_MARKER = 'failed';
+
+export type HandoffAction =
+  | { kind: 'redeem'; code: string }
+  | { kind: 'failed' }
+  | { kind: 'none' };
+
+export function handoffAction(search: string): HandoffAction {
+  const value = new URLSearchParams(search).get('handoff');
+  if (!value) return { kind: 'none' };
+  if (value === HANDOFF_FAILED_MARKER) return { kind: 'failed' };
+  return { kind: 'redeem', code: value };
+}
+
+/** هدف التحويل الافتراضي عند الفشل — وسمٌ لا رمز، بحكم `handoffAction` أعلاه. */
+export const DEFAULT_FAILED_REDIRECT = `/?handoff=${HANDOFF_FAILED_MARKER}`;
+
+export function TokenBridge({ failedRedirect = DEFAULT_FAILED_REDIRECT }: { failedRedirect?: string } = {}) {
   const { status, reload } = useSession();
   const inFlight = useRef(false);
 
   useEffect(() => {
     if (status !== 'anonymous' || inFlight.current) return;
     const url = new URL(globalThis.location.href);
-    const code = url.searchParams.get('handoff');
-    if (!code) return;
+    const action = handoffAction(url.search);
+    // ‏`failed` وسمُ فشلنا نحن: لا يُستبدل (استبداله حلقة)، ولا يُخفي شيئاً عن الشاشة.
+    if (action.kind !== 'redeem') return;
+    const code = action.code;
     inFlight.current = true;
 
     // التنظيف فوراً: لا يبقى الرمز في العنوان/المحفوظات حتى لو فشل الاستبدال.

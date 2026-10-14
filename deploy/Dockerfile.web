@@ -1,10 +1,11 @@
 # ---------------------------------------------------------------------------
-# الواجهات الأربع (Next.js 15) — صورةٌ واحدة تُبنى بـ`--build-arg APP=<الاسم>`:
+# الواجهات الخمس (Next.js 15) — صورةٌ واحدة تُبنى بـ`--build-arg APP=<الاسم>`:
 #
 #   docker build -f deploy/Dockerfile.web --build-arg APP=marketing       -t erp-marketing       .
 #   docker build -f deploy/Dockerfile.web --build-arg APP=staff           -t erp-staff           .
 #   docker build -f deploy/Dockerfile.web --build-arg APP=platform-admin  -t erp-platform-admin  .
 #   docker build -f deploy/Dockerfile.web --build-arg APP=customer-portal -t erp-customer-portal .
+#   docker build -f deploy/Dockerfile.web --build-arg APP=bakery          -t erp-bakery          .
 #
 # التطبيقات تُبنى بـ`output: 'standalone'` (انظر `apps/*/next.config.mjs`)، فصورة التشغيل
 # تحمل الخادم المُصغَّر فقط + `.next/static` + `public` — لا مساحة عمل ولا اعتماديات تطوير.
@@ -30,9 +31,10 @@ RUN corepack enable && corepack prepare pnpm@9.15.0 --activate
 WORKDIR /repo
 
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.base.json ./
-RUN mkdir -p apps/api apps/customer-portal apps/marketing apps/migrator apps/platform-admin apps/staff \
-  packages/config packages/contracts packages/database packages/testing packages/ui
+RUN mkdir -p apps/api apps/bakery apps/customer-portal apps/marketing apps/migrator apps/platform-admin apps/staff \
+  packages/config packages/contracts packages/database packages/testing packages/ui packages/web-core
 COPY apps/api/package.json apps/api/package.json
+COPY apps/bakery/package.json apps/bakery/package.json
 COPY apps/customer-portal/package.json apps/customer-portal/package.json
 COPY apps/marketing/package.json apps/marketing/package.json
 COPY apps/migrator/package.json apps/migrator/package.json
@@ -43,6 +45,9 @@ COPY packages/contracts/package.json packages/contracts/package.json
 COPY packages/database/package.json packages/database/package.json
 COPY packages/testing/package.json packages/testing/package.json
 COPY packages/ui/package.json packages/ui/package.json
+# ‏`@erp/web-core` اعتماديةُ كلّ واجهة (الجلسة والجسر والقشرة المشتركة): بلا بيانها في
+# سياق التثبيت يفشل `pnpm install --frozen-lockfile` على `workspace:*`.
+COPY packages/web-core/package.json packages/web-core/package.json
 
 RUN --mount=type=cache,id=erpcloud-pnpm-store,target=/pnpm/store,sharing=locked \
     pnpm install --store-dir=/pnpm/store --frozen-lockfile --prefer-offline \

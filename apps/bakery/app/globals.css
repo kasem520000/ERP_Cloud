@@ -1,0 +1,107 @@
+/* --------------------------------------------------------------------------
+ * Cloud ERP — واجهة المخابز (الإنتاج والتوزيع)، Design System v3.
+ *
+ * الرموز والعقد الدلالي وقلبُ الوضع الداكن كلّها في `@erp/ui/tokens.css` ولا تُنسخ هنا.
+ * وهذا الملف طبقةُ التطبيق وحدها: هيكل القشرة (شريطٌ جانبيّ + علويّ)، وشارات الترخيص،
+ * ونقاط حالة الوحدة (جاهزة/مخطَّطة)، وقواعد الطباعة. لا نظامَ ألوانٍ ثانٍ ولا آليةً ثانية
+ * (ADR-030) — وما يُقال بـ Tailwind يُقال بـ Tailwind.
+ * ------------------------------------------------------------------------ */
+
+/* الترتيب مهمّ: Tailwind أوّلًا ثم الرموز المشتركة. */
+@import '@fontsource/tajawal/400.css';
+@import '@fontsource/tajawal/500.css';
+@import '@fontsource/tajawal/700.css';
+@import '@fontsource-variable/inter/index.css';
+@import '@fontsource/jetbrains-mono/400.css';
+@import '@fontsource/jetbrains-mono/600.css';
+@import 'tailwindcss';
+@import '@erp/ui/tokens.css';
+
+/* ------------------------------------------------------------------ shell */
+.bak-shell { display: grid; grid-template-columns: 264px 1fr; min-height: 100vh; }
+.bak-side {
+  background: linear-gradient(180deg, var(--bg) 0%, var(--inset) 100%);
+  color: var(--text);
+  padding: 18px 12px 14px;
+  position: sticky; top: 0; height: 100vh; overflow: auto;
+  display: flex; flex-direction: column; gap: 12px;
+  border-inline-end: 1px solid var(--line);
+}
+.bak-brand { display: flex; gap: 10px; align-items: center; font-weight: 800; font-size: 15px; padding: 0 6px; }
+.bak-brand small { display: block; font-weight: 400; font-size: 11px; color: var(--muted); }
+.bak-logo {
+  width: 36px; height: 36px; border-radius: 10px; flex: none;
+  background: linear-gradient(135deg, var(--color-brand-600), var(--color-brand-400));
+  display: grid; place-items: center; font-size: 17px; color: var(--brand-ink);
+}
+.bak-nav { display: flex; flex-direction: column; gap: 3px; flex: 1; }
+.bak-nav-title {
+  margin: 10px 8px 4px; font-size: 10px; letter-spacing: .08em;
+  color: var(--muted); text-transform: uppercase; font-weight: 700;
+}
+.bak-nav-link, .bak-nav-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 7px 10px; border-radius: 8px; font-size: 12.5px;
+  color: var(--ink-2, var(--muted-2)); text-decoration: none;
+  border-inline-start: 2px solid transparent;
+}
+.bak-nav-link:hover { background: var(--surface-3); color: var(--text); }
+.bak-nav-link.active {
+  background: linear-gradient(90deg, rgb(37 99 235 / 0.18), transparent);
+  color: var(--brand-ink); border-inline-start-color: var(--brand-2); font-weight: 700;
+}
+/* المخطَّط ليس رابطاً: لا href لشاشةٍ لم تُبنَ (الرابط الميت كذب). */
+.bak-nav-item { cursor: default; opacity: .82; }
+.bak-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--line-raised); flex: none; }
+.bak-dot.ready { background: var(--color-chart-3); }
+.bak-dot.planned { background: var(--muted); }
+.bak-legend {
+  display: flex; gap: 10px; flex-wrap: wrap; font-size: 10.5px; color: var(--muted);
+  padding: 8px 6px 0; border-top: 1px solid var(--line);
+}
+.bak-legend span { display: inline-flex; align-items: center; gap: 4px; }
+
+.bak-main { padding: 20px 24px 44px; min-width: 0; }
+.bak-topbar {
+  background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--radius); padding: 10px 14px; margin-bottom: 16px;
+  display: flex; justify-content: space-between; gap: 12px; align-items: center; flex-wrap: wrap;
+}
+.bak-crumbs { font-size: 12px; color: var(--muted); display: flex; align-items: center; gap: 6px; }
+.bak-only-mobile { display: none; }
+
+/* --------------------------------------------------------------- statuses */
+.bak-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  border-radius: 999px; padding: 3px 10px; font-size: 11.5px; font-weight: 700;
+  border: 1px solid var(--line); background: var(--surface-2); color: var(--muted-2);
+}
+.bak-badge.ok { border-color: var(--success-line, var(--line)); background: var(--success-soft, var(--surface-2)); color: var(--success-ink, var(--text)); }
+.bak-badge.bad { border-color: var(--danger-line, var(--line)); background: var(--danger-soft, var(--surface-2)); color: var(--danger-ink, var(--text)); }
+.bak-badge.warn { border-color: var(--warn-line, var(--line)); background: var(--warn-soft, var(--surface-2)); color: var(--warn-ink, var(--text)); }
+
+.bak-wall { min-height: 100vh; display: grid; place-items: center; padding: 24px; }
+.bak-endpoints { display: flex; flex-wrap: wrap; gap: 6px; }
+.bak-endpoint {
+  font-family: var(--font-mono); font-size: 11px; direction: ltr;
+  border: 1px solid var(--line); border-radius: 6px; padding: 2px 6px;
+  background: var(--inset); color: var(--muted-2);
+}
+
+@media (max-width: 900px) {
+  .bak-shell { grid-template-columns: 1fr; }
+  .bak-side {
+    position: fixed; inset-block: 0; inset-inline-start: 0; width: min(84vw, 300px);
+    z-index: 50; transform: translateX(100%); transition: transform var(--dur-fast) var(--ease-out);
+  }
+  .bak-side.open { transform: translateX(0); }
+  .bak-only-mobile { display: inline-flex; }
+  .bak-main { padding: 14px 12px 32px; }
+}
+
+/* الطباعة: سندٌ واحد بنسختين — لا تُطبع القشرة ولا يُطبع شريطٌ علويّ. */
+@media print {
+  .bak-side, .bak-topbar, .bak-legend { display: none !important; }
+  .bak-shell { grid-template-columns: 1fr; }
+  .bak-main { padding: 0; }
+}

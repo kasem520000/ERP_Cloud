@@ -202,6 +202,16 @@ export const meResponseSchema = z.object({
     .nullable()
     .default(null),
   branchScope: z.array(uuidSchema).nullable(),
+  /**
+   * 🏪 الباقات المفعَّلة للمنشأة — أكواد `tenant_apps` التي `is_enabled = true`.
+   *
+   * في `/me` لا في `GET /marketplace/apps` لأنّ الأخير يحتاج `tenant.view`: مندوبُ توزيعٍ
+   * يفتح تطبيق المخابز لا يملك قراءة كتالوج السوق، ومع ذلك يجب أن يعرف تطبيقه هل المنشأة
+   * مرخَّصة أم لا — وإلّا صار الترخيص إمّا أن يُفتح بلا فحص (فشلٌ مفتوح) أو أن يُقفل في
+   * وجه من لا يملك صلاحيةً لا علاقة لها بالترخيص. والحقل إضافةٌ بلا كسر: `default([])`
+   * فلا يتغيّر عقدُ من لا يقرؤه.
+   */
+  enabledApps: z.array(z.string()).default([]),
 });
 
 export type MeResponse = z.infer<typeof meResponseSchema>;

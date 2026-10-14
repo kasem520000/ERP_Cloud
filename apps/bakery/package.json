@@ -1,0 +1,34 @@
+{
+  "name": "@erp/bakery",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "واجهة المخابز: الإنتاج والتوزيع والمناديب والتحصيل. سطحٌ رفيع فوق apps/api نفسها (لا محرّك محاسبيّ ثانٍ ولا جداول جديدة)، مرخَّص بالباقة القطاعية bakery_distribution.",
+  "dependencies": {
+    "@erp/contracts": "workspace:*",
+    "@erp/ui": "workspace:*",
+    "@erp/web-core": "workspace:*",
+    "@fontsource-variable/inter": "^5",
+    "@fontsource/jetbrains-mono": "^5",
+    "@fontsource/tajawal": "^5",
+    "next": "^15.5.4",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.1.0",
+    "@types/react": "^19.1.13",
+    "@types/react-dom": "^19.1.9",
+    "eslint-config-next": "^15.5.4",
+    "tailwindcss": "^4.1.0",
+    "vitest": "^2.1.9"
+  },
+  "scripts": {
+    "dev": "node ../../scripts/next-run.mjs bakery dev",
+    "build": "next build",
+    "lint": "eslint app components lib tests next.config.mjs --config ../../eslint.config.mjs",
+    "test": "vitest run",
+    "start": "node ../../scripts/next-run.mjs bakery start",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  }
+}

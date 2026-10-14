@@ -82,6 +82,16 @@ describe('marketplace licensing of the bakery vertical (bakery_distribution)', (
     return list.apps.find((app) => app.code === code);
   }
 
+/**
+   * ما يعرفه **أيّ عضوٍ مُصادَق** عن تراخيص منشأته من `/me` — وهذه هي القناة التي تقرأها
+   * واجهة المخابز، لأنّ `GET /marketplace/apps` يحتاج `tenant.view` ولا يملكه مندوب.
+   */
+  async function enabledAppsOf(actor: Actor): Promise<string[]> {
+    const response = await api(ctx.server, 'get', '/api/v1/me', { token: actor.token });
+    expect(response.status).toBe(200);
+    return (response.body.data as { enabledApps?: string[] }).enabledApps ?? [];
+  }
+
   /** صفّ الترخيص كما هو في القاعدة — `tenant_apps` هو مصدر الحقيقة لا ما تقوله الشاشة. */
   async function licenceRow(tenantId: string): Promise<{ appCode: string; isEnabled: boolean } | null> {
     return withTenantTx(ctx.handle.db, tenantId, async (tx) => {
@@ -209,6 +219,8 @@ describe('marketplace licensing of the bakery vertical (bakery_distribution)', (
     expect(await licenceRow(tenantA.tenantId)).toBeNull();
     const list = await catalog(tenantA);
     expect(appOf(list, BAKERY)?.enabled).toBe(false);
+    // ‏`/me` يقول الحقيقة نفسها لكلّ عضوٍ مُصادَق، لا لحامل `tenant.view` وحده.
+    expect(await enabledAppsOf(tenantA)).not.toContain(BAKERY);
   });
 
   it('still lets the same tenant install an integration add-on', async () => {
@@ -296,6 +308,8 @@ describe('marketplace licensing of the bakery vertical (bakery_distribution)', (
     expect(await pendingRequests(tenantA.tenantId)).toBe(0);
     expect(await notificationCount(tenantA.tenantId)).toBeGreaterThan(before);
 
+    expect(await enabledAppsOf(tenantA)).toContain(BAKERY);
+
     const after = await catalog(tenantA);
     expect(appOf(after, BAKERY)?.enabled).toBe(true);
     expect(appOf(after, BAKERY)?.requestStatus).toBe('approved');
@@ -335,6 +349,7 @@ describe('marketplace licensing of the bakery vertical (bakery_distribution)', (
     });
     expect(on.status).toBe(200);
     expect(await licenceRow(tenantB.tenantId)).toEqual({ appCode: BAKERY, isEnabled: true });
+    expect(await enabledAppsOf(tenantB)).toContain(BAKERY);
     expect((await catalog(tenantB)).enabledCodes ?? []).toContain(BAKERY);
 
     const off = await api(ctx.server, 'put', `/api/v1/platform/marketplace/tenants/${tenantB.tenantId}/apps/${BAKERY}`, {
@@ -344,6 +359,7 @@ describe('marketplace licensing of the bakery vertical (bakery_distribution)', (
     expect(off.status).toBe(200);
     // الإيقاف علمٌ على الصفّ: الترخيص يبقى مسجَّلًا ولا يُمحى.
     expect(await licenceRow(tenantB.tenantId)).toEqual({ appCode: BAKERY, isEnabled: false });
+    expect(await enabledAppsOf(tenantB)).not.toContain(BAKERY);
     expect((await catalog(tenantB)).enabledCodes ?? []).not.toContain(BAKERY);
   });
 

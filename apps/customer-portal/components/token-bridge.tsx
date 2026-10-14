@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
+import { HANDOFF_FAILED_MARKER, handoffAction } from '@erp/web-core/token-bridge';
 
 import { storeToken } from '../lib/api';
 
@@ -11,7 +12,7 @@ import { storeToken } from '../lib/api';
  * (رابط تسليمٍ منتهٍ أو مُستعمل) كانت تُكافأ بصفحةٍ لا وجود لها. والسبيك يتحقّق من أنّ
  * لكلّ هدف تحويلٍ صفحةً فعلًا.
  */
-export const FAILED_LOGIN = '/auth/login?handoff=failed';
+export const FAILED_LOGIN = `/auth/login?handoff=${HANDOFF_FAILED_MARKER}`;
 
 /**
  * AUD-08 — يستقبل جسر الدخول من الواجهة التسويقية في بوابة العميل.
@@ -26,8 +27,11 @@ export function TokenBridge() {
   useEffect(() => {
     if (inFlight.current) return;
     const url = new URL(globalThis.location.href);
-    const code = url.searchParams.get('handoff');
-    if (!code) return;
+    // القرار من الحزمة المشتركة لا نسخةً محلية: `?handoff=failed` وسمٌ تكتبه هذه الوحدة
+    // نفسها، واستبداله رمزاً كان يُعيد التحويل إلى العنوان نفسه ⇒ حلقة إعادة تحميل.
+    const action = handoffAction(url.search);
+    if (action.kind !== 'redeem') return;
+    const code = action.code;
     inFlight.current = true;
 
     url.searchParams.delete('handoff');

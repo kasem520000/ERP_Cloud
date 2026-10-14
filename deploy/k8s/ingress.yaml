@@ -14,7 +14,7 @@ metadata:
 spec:
   ingressClassName: nginx
   tls:
-    - hosts: [erp.example, app.erp.example, platform.erp.example]
+    - hosts: [erp.example, app.erp.example, platform.erp.example, bakery.erp.example]
       secretName: erp-tls
   rules:
     - host: erp.example
@@ -29,6 +29,11 @@ spec:
       http:
         paths:
           - { path: /, pathType: Prefix, backend: { service: { name: erp-platform-admin, port: { number: 3003 } } } }
+    # ‏واجهة المخابز على نطاقها القطاعي (الباقة `bakery_distribution`).
+    - host: bakery.erp.example
+      http:
+        paths:
+          - { path: /, pathType: Prefix, backend: { service: { name: erp-bakery, port: { number: 3005 } } } }
 ---
 # واجهة الـAPI على نطاقها الخاص (للعملاء الخارجيين والتكاملات).
 apiVersion: networking.k8s.io/v1

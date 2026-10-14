@@ -7,6 +7,9 @@ const apiTarget = (process.env.API_PROXY_TARGET ?? `http://127.0.0.1:${process.e
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   output: 'standalone',
+  // ‏`@erp/web-core` تُشحن مصدراً TypeScript (ADR-030) فيُصرّفها التطبيق نفسه؛ والبوابة
+  // تستهلك منها قرارَ عنوان التسليم (`handoffAction`) بدل نسخةٍ محلية ثانية من القاعدة.
+  transpilePackages: ['@erp/web-core'],
   poweredByHeader: false,
   env: {
     NEXT_PUBLIC_API_BASE_URL: process.env.NEXT_PUBLIC_API_BASE_URL ?? '',

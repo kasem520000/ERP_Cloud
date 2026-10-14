@@ -112,6 +112,7 @@ export default [
       '**/apps/marketing/**/*.{ts,tsx}',
       '**/apps/platform-admin/**/*.{ts,tsx}',
       '**/apps/customer-portal/**/*.{ts,tsx}',
+      '**/apps/bakery/**/*.{ts,tsx}',
       '**/packages/ui/**/*.{ts,tsx}',
       'packages/ui/**/*.{ts,tsx}',
       '**/packages/web-core/**/*.{ts,tsx}',

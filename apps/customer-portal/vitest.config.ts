@@ -8,5 +8,11 @@ import { defineConfig } from 'vitest/config';
  */
 export default defineConfig({
   esbuild: { jsx: 'automatic' },
-  test: { environment: 'node', include: ['lib/**/*.spec.ts', 'tests/**/*.spec.ts'] },
+  test: {
+    environment: 'node',
+    include: ['lib/**/*.spec.ts', 'tests/**/*.spec.ts'],
+    // ‏`@erp/web-core` تُصدَّر ملفات `.tsx` مصدرية عبر `exports`، وNode لا يحمّلها من
+    // ‏`node_modules` — فتُحوَّل هنا كما يحوّلها Next في البناء (`transpilePackages`).
+    server: { deps: { inline: ['@erp/web-core'] } },
+  },
 });
