@@ -95,6 +95,58 @@ export type VanSalesTenantPolicy = {
   defaultCreditLimit?: string;
 };
 
+/**
+ * 📅 مدى تقرير الفترة. و`null` يعني «بلا حدٍّ» — لا صفرًا ولا «اليوم» — فالفرق بين
+ * «كلّ الفترات» و«لا فترة» هو الفرق بين تقريرٍ كامل وتقريرٍ فارغ.
+ */
+export type VanReportRange = {
+  salesmanId: string | null;
+  fromDate: string | null;
+  toDate: string | null;
+};
+
+/** لوحةُ الأرقام تجمع كلّ شيء: مدىً فارغٌ صريحٌ بدل `undefined` المتروك للافتراض. */
+export const EMPTY_REPORT_RANGE: VanReportRange = {
+  salesmanId: null,
+  fromDate: null,
+  toDate: null,
+};
+
+/**
+ * سقفُ صفوفٍ لكلّ قائمةٍ في التقرير: `LIMIT (السقف + 1)` في الاستعلام — فالزائدُ الواحد هو ما
+ * يُثبت أنّ القائمة قُصّت (`truncated`) بلا عدّ الجدول مرّةً أخرى. والمجاميعُ والعدادات من
+ * استعلاماتِ جمعٍ منفصلة على المدى نفسه، فالسقفُ يُنقص المعروضَ ولا يُنقص المحسوب.
+ */
+export const REPORT_ROW_CAP = 2000;
+
+/** مجاميعُ مدى — الأرقام نفسها التي تعرضها اللوحة، محسوبةً بالطريقة نفسها. */
+type VanPeriodTotals = {
+  production: { producedKg: Decimal; scrapKg: Decimal; costSar: Decimal; rows: number };
+  loadOrders: {
+    loadedKg: Decimal;
+    soldKg: Decimal;
+    bonusKg: Decimal;
+    returnedKg: Decimal;
+    damagedKg: Decimal;
+    shortageKg: Decimal;
+    shortageSar: Decimal;
+    pendingClosings: number;
+    pendingReceipts: number;
+    pendingStockSettlements: number;
+    pendingTransitDecisions: number;
+    rows: number;
+  };
+  documents: {
+    zatcaSar: Decimal;
+    internalSar: Decimal;
+    collectedSar: Decimal;
+    receivablesSar: Decimal;
+    profitSar: Decimal;
+    anomalies: number;
+    rows: number;
+  };
+};
+
 @Injectable()
 export class VanSalesService {
   constructor(
@@ -591,6 +643,394 @@ export class VanSalesService {
     }));
   }
 
+  /**
+   * 🏭 صفُّ دفعة الإنتاج كما يُعرض — **مُصيِّرٌ واحد** تستعمله اللوحة (أحدث ٥٠ دفعة) ويستعمله
+   * تقريرُ الفترة (دفعاتُ المدى كلّه). فلو كان لكلٍّ منهما نسخه لاختلفا في يومٍ يُصلح فيه
+   * أحدهما، وتقريرٌ يعرض «أساس التكلفة» بخلاف ما تعرضه اللوحة يُفقد الرقمَ معناه.
+   */
+  /**
+   * 📅 مدى التقرير — `null` يعني «بلا حدٍّ» لا «صفر» ولا «اليوم». والتواريخ تُقرأ أو تُرفض:
+   * فتاريخٌ غير مقروء كان يُتجاهل فيصير التقرير «كلّ شيء» ويسكت، ومدًى مقلوبٌ كان يُرجع
+   * تقريرًا فارغًا يُقرأ «لا نشاط» — وكلاهما قولٌ غير ما قصد السائل.
+   */
+  private parseReportRange(filters: {
+    salesmanId?: string;
+    fromDate?: string;
+    toDate?: string;
+  }): VanReportRange {
+    const salesmanId = (filters.salesmanId ?? '').trim();
+    const fromDate = this.reportDateOrThrow(filters.fromDate, 'fromDate');
+    const toDate = this.reportDateOrThrow(filters.toDate, 'toDate');
+    if (fromDate && toDate && fromDate > toDate) {
+      throw new DomainError(
+        'VAN_REPORT_RANGE_INVERTED',
+        `بدايةُ الفترة (${fromDate}) بعد نهايتها (${toDate}) — فلا صفوف في هذا المدى، والتصحيحُ في التاريخ لا في التقرير`,
+        422,
+        { field: 'toDate', fromDate, toDate },
+      );
+    }
+    return {
+      salesmanId: salesmanId.length > 0 ? salesmanId : null,
+      fromDate,
+      toDate,
+    };
+  }
+
+  /** تاريخٌ واحد: `YYYY-MM-DD` موجودٌ فعلًا، أو رفضٌ يقول لماذا. */
+  private reportDateOrThrow(value: string | undefined, field: 'fromDate' | 'toDate'): string | null {
+    const text = (value ?? '').trim();
+    if (text.length === 0) return null;
+    const label = field === 'fromDate' ? 'بدايةُ الفترة' : 'نهايةُ الفترة';
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(text)) {
+      throw new DomainError(
+        'VAN_REPORT_DATE_INVALID',
+        `${label} غير مقروءة: «${text}» — المطلوب سنة-شهر-يوم (YYYY-MM-DD)`,
+        422,
+        { field },
+      );
+    }
+    const parsed = new Date(`${text}T00:00:00Z`);
+    if (Number.isNaN(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== text) {
+      throw new DomainError(
+        'VAN_REPORT_DATE_INVALID',
+        `${label} تاريخٌ غير موجود: «${text}»`,
+        422,
+        { field },
+      );
+    }
+    return text;
+  }
+
+  /**
+   * 🧮 مجاميعُ المدى — الطريقة نفسها للوحة (بلا مدًى) وللتقرير (بمدًى)، فلا يختلف الرقم إلا
+   * بما فُرض عليه. ومنطقُ الجمع هو منطقُ الحلقات القديمة حرفًا: `invoice_mode = 'zatca_tax'`
+   * ضريبيةٌ وما عداها (ومنها `NULL`) داخلية، والدين `GREATEST(0, total − paid_amount)` لكلّ
+   * مستند، وشذوذُ البونص `bonus_anomaly = true`، وعدّاداتُ الحالات بـ`FILTER`.
+   *
+   * والتواريخ أعمدةُ **تاريخٍ** لا طوابعُ زمنية (`load_date`, `doc_date`, `production_date`)،
+   * فالمقارنة عليها لا على `created_at`: تاريخُ العمل هو ما يسأل عنه المحاسب، وتحويلُ
+   * التواريخ إلى منطقة المنشأة الزمنية قرارٌ معلّق (التقرير §6 — «تأريخ المستندات UTC أم
+   * منطقة المستأجر») ولا يُحسم هنا بصمت.
+   */
+  private async periodTotalsInTx(
+    tx: DrizzleTx,
+    tenantId: string,
+    range: VanReportRange,
+  ): Promise<VanPeriodTotals> {
+    const batchFrom = range.fromDate ? sql`AND b.production_date >= ${range.fromDate}::date` : sql``;
+    const batchTo = range.toDate ? sql`AND b.production_date <= ${range.toDate}::date` : sql``;
+    const loadSalesman = range.salesmanId
+      ? sql`AND l.salesman_id = ${range.salesmanId}::uuid`
+      : sql``;
+    const loadFrom = range.fromDate ? sql`AND l.load_date >= ${range.fromDate}::date` : sql``;
+    const loadTo = range.toDate ? sql`AND l.load_date <= ${range.toDate}::date` : sql``;
+    const docSalesman = range.salesmanId
+      ? sql`AND d.salesman_id = ${range.salesmanId}::uuid`
+      : sql``;
+    const docFrom = range.fromDate ? sql`AND d.doc_date >= ${range.fromDate}::date` : sql``;
+    const docTo = range.toDate ? sql`AND d.doc_date <= ${range.toDate}::date` : sql``;
+
+    const production = first(
+      await tx.execute(sql`
+        SELECT COALESCE(SUM(b.produced_qty), 0)::text AS produced_kg,
+               COALESCE(SUM(b.scrap_qty), 0)::text AS scrap_kg,
+               COALESCE(SUM(b.total_cost), 0)::text AS cost_sar,
+               COUNT(*)::int AS batches
+        FROM factory_production_batches b
+        WHERE b.tenant_id = ${tenantId}::uuid AND b.deleted_at IS NULL
+          ${batchFrom} ${batchTo}
+      `),
+    );
+    const loadOrders = first(
+      await tx.execute(sql`
+        SELECT COALESCE(SUM(l.loaded_qty), 0)::text AS loaded_kg,
+               COALESCE(SUM(l.sold_qty), 0)::text AS sold_kg,
+               COALESCE(SUM(l.bonus_qty), 0)::text AS bonus_kg,
+               COALESCE(SUM(l.returned_qty), 0)::text AS returned_kg,
+               COALESCE(SUM(l.damaged_qty), 0)::text AS damaged_kg,
+               COALESCE(SUM(l.shortage_qty), 0)::text AS shortage_kg,
+               COALESCE(SUM(l.shortage_value), 0)::text AS shortage_sar,
+               COUNT(*) FILTER (WHERE l.status = 'pending_closing')::int AS pending_closings,
+               COUNT(*) FILTER (WHERE l.status = 'pending_receipt')::int AS pending_receipts,
+               COUNT(*) FILTER (WHERE l.status = 'pending_stock_settlement')::int
+                 AS pending_stock_settlements,
+               COUNT(*) FILTER (WHERE l.stock_settlement_status = 'pending_transit_decision')::int
+                 AS pending_transit_decisions,
+               COUNT(*)::int AS load_orders
+        FROM van_load_orders l
+        WHERE l.tenant_id = ${tenantId}::uuid AND l.deleted_at IS NULL
+          ${loadSalesman} ${loadFrom} ${loadTo}
+      `),
+    );
+    const documents = first(
+      await tx.execute(sql`
+        SELECT COALESCE(SUM(d.total) FILTER (WHERE d.invoice_mode = 'zatca_tax'), 0)::text AS zatca_sar,
+               COALESCE(SUM(d.total) FILTER (WHERE d.invoice_mode IS DISTINCT FROM 'zatca_tax'), 0)::text
+                 AS internal_sar,
+               COALESCE(SUM(d.paid_amount), 0)::text AS collected_sar,
+               COALESCE(SUM(GREATEST(0, COALESCE(d.total, 0) - COALESCE(d.paid_amount, 0))), 0)::text
+                 AS receivables_sar,
+               COALESCE(SUM(d.net_profit), 0)::text AS profit_sar,
+               COUNT(*) FILTER (WHERE d.bonus_anomaly = true)::int AS anomalies,
+               COUNT(*)::int AS documents
+        FROM van_sales_documents d
+        WHERE d.tenant_id = ${tenantId}::uuid AND d.deleted_at IS NULL
+          ${docSalesman} ${docFrom} ${docTo}
+      `),
+    );
+
+    return {
+      production: {
+        producedKg: dec(production?.produced_kg),
+        scrapKg: dec(production?.scrap_kg),
+        costSar: dec(production?.cost_sar),
+        rows: Number(production?.batches ?? 0),
+      },
+      loadOrders: {
+        loadedKg: dec(loadOrders?.loaded_kg),
+        soldKg: dec(loadOrders?.sold_kg),
+        bonusKg: dec(loadOrders?.bonus_kg),
+        returnedKg: dec(loadOrders?.returned_kg),
+        damagedKg: dec(loadOrders?.damaged_kg),
+        shortageKg: dec(loadOrders?.shortage_kg),
+        shortageSar: dec(loadOrders?.shortage_sar),
+        pendingClosings: Number(loadOrders?.pending_closings ?? 0),
+        pendingReceipts: Number(loadOrders?.pending_receipts ?? 0),
+        pendingStockSettlements: Number(loadOrders?.pending_stock_settlements ?? 0),
+        pendingTransitDecisions: Number(loadOrders?.pending_transit_decisions ?? 0),
+        rows: Number(loadOrders?.load_orders ?? 0),
+      },
+      documents: {
+        zatcaSar: dec(documents?.zatca_sar),
+        internalSar: dec(documents?.internal_sar),
+        collectedSar: dec(documents?.collected_sar),
+        receivablesSar: dec(documents?.receivables_sar),
+        profitSar: dec(documents?.profit_sar),
+        anomalies: Number(documents?.anomalies ?? 0),
+        rows: Number(documents?.documents ?? 0),
+      },
+    };
+  }
+
+  /**
+   * 🧑‍💼 أداءُ كلّ مندوب في المدى — جمعٌ على الجدولين مجموعةً بمندوبها، لا على نوافذ اللوحة.
+   *
+   * والعهدُة المتبقية لكلّ أمرٍ على حدة (لا للمجموع): على أساس ما **استلمه** المندوب فعلًا
+   * (`received_qty > 0 ? received : loaded`) ناقصًا المبيع والمجانيّ والمرتجع والتالف والناقص،
+   * ولأوامره غير المُصفّاة وغير المنتظرة للاستلام، و`GREATEST(0, …)` لكلّ أمر.
+   *
+   * ومندوبٌ له مستنداتُ بيعٍ وأمرُ تحميله محذوفٌ حذفًا ناعمًا **يظهر** بإيراده — ففي خريطةٍ
+   * تُملأ من أوامر التحميل أولًا كان يسقط. والترتيبُ بالاسم فلا يتغيّر بين قراءتين.
+   */
+  private async repTotalsInTx(
+    tx: DrizzleTx,
+    tenantId: string,
+    range: VanReportRange,
+  ): Promise<Array<Record<string, string | number>>> {
+    const loadSalesman = range.salesmanId
+      ? sql`AND l.salesman_id = ${range.salesmanId}::uuid`
+      : sql``;
+    const loadFrom = range.fromDate ? sql`AND l.load_date >= ${range.fromDate}::date` : sql``;
+    const loadTo = range.toDate ? sql`AND l.load_date <= ${range.toDate}::date` : sql``;
+    const docSalesman = range.salesmanId
+      ? sql`AND d.salesman_id = ${range.salesmanId}::uuid`
+      : sql``;
+    const docFrom = range.fromDate ? sql`AND d.doc_date >= ${range.fromDate}::date` : sql``;
+    const docTo = range.toDate ? sql`AND d.doc_date <= ${range.toDate}::date` : sql``;
+
+    const repLoadTotals = rows(
+      await tx.execute(sql`
+        SELECT l.salesman_id::text,
+               COALESCE(MAX(s.name), 'مندوب توزيع') AS salesman_name,
+               COALESCE(SUM(l.loaded_qty), 0)::text AS loaded_kg,
+               COALESCE(SUM(l.sold_qty), 0)::text AS sold_kg,
+               COALESCE(SUM(l.bonus_qty), 0)::text AS bonus_kg,
+               COALESCE(SUM(l.returned_qty), 0)::text AS returned_kg,
+               COALESCE(SUM(l.damaged_qty), 0)::text AS damaged_kg,
+               COALESCE(SUM(l.shortage_qty), 0)::text AS shortage_kg,
+               COALESCE(SUM(l.shortage_value), 0)::text AS shortage_sar,
+               COALESCE(SUM(
+                 GREATEST(
+                   0,
+                   (CASE
+                      WHEN COALESCE(l.received_qty, 0) > 0 THEN l.received_qty
+                      ELSE COALESCE(l.loaded_qty, 0)
+                    END)
+                   - COALESCE(l.sold_qty, 0) - COALESCE(l.bonus_qty, 0)
+                   - COALESCE(l.returned_qty, 0) - COALESCE(l.damaged_qty, 0)
+                   - COALESCE(l.shortage_qty, 0)
+                 )
+               ) FILTER (WHERE l.status NOT IN ('settled', 'pending_receipt')), 0)::text
+                 AS custody_remaining_kg,
+               COUNT(*) FILTER (WHERE l.status = 'pending_closing')::int AS pending_closings
+        FROM van_load_orders l
+        LEFT JOIN salesmen s ON s.id = l.salesman_id
+        WHERE l.tenant_id = ${tenantId}::uuid AND l.deleted_at IS NULL
+          ${loadSalesman} ${loadFrom} ${loadTo}
+        GROUP BY l.salesman_id
+        ORDER BY salesman_name ASC, l.salesman_id ASC
+      `),
+    );
+    const repDocumentTotals = rows(
+      await tx.execute(sql`
+        SELECT d.salesman_id::text,
+               COALESCE(MAX(s.name), 'مندوب') AS salesman_name,
+               COALESCE(SUM(d.total), 0)::text AS revenue_sar,
+               COALESCE(SUM(d.paid_amount), 0)::text AS collected_sar,
+               COALESCE(SUM(GREATEST(0, COALESCE(d.total, 0) - COALESCE(d.paid_amount, 0))), 0)::text
+                 AS credit_debt_sar,
+               COALESCE(SUM(d.net_profit), 0)::text AS profit_sar
+        FROM van_sales_documents d
+        LEFT JOIN salesmen s ON s.id = d.salesman_id
+        WHERE d.tenant_id = ${tenantId}::uuid AND d.deleted_at IS NULL
+          ${docSalesman} ${docFrom} ${docTo}
+        GROUP BY d.salesman_id
+        ORDER BY salesman_name ASC, d.salesman_id ASC
+      `),
+    );
+
+    const repMap = new Map<string, Record<string, string | number>>();
+    const empty = (salesmanId: string, salesmanName: string): Record<string, string | number> => ({
+      salesmanId,
+      salesmanName,
+      loadedKg: '0.00',
+      soldKg: '0.00',
+      bonusKg: '0.00',
+      returnedKg: '0.00',
+      damagedKg: '0.00',
+      shortageKg: '0.00',
+      shortageSar: '0.00',
+      custodyRemainingKg: '0.00',
+      revenueSar: '0.00',
+      collectedSar: '0.00',
+      creditDebtSar: '0.00',
+      netProfitSar: '0.00',
+      pendingClosings: 0,
+    });
+    for (const row of repLoadTotals) {
+      const sid = str(row.salesman_id);
+      repMap.set(sid, {
+        ...empty(sid, str(row.salesman_name)),
+        loadedKg: dec(row.loaded_kg).toFixed(2),
+        soldKg: dec(row.sold_kg).toFixed(2),
+        bonusKg: dec(row.bonus_kg).toFixed(2),
+        returnedKg: dec(row.returned_kg).toFixed(2),
+        damagedKg: dec(row.damaged_kg).toFixed(2),
+        shortageKg: dec(row.shortage_kg).toFixed(2),
+        shortageSar: dec(row.shortage_sar).toFixed(2),
+        custodyRemainingKg: dec(row.custody_remaining_kg).toFixed(2),
+        pendingClosings: Number(row.pending_closings ?? 0),
+      });
+    }
+    for (const row of repDocumentTotals) {
+      const sid = str(row.salesman_id);
+      const entry = repMap.get(sid) ?? empty(sid, str(row.salesman_name));
+      if (!entry.salesmanName || entry.salesmanName === 'مندوب توزيع') {
+        entry.salesmanName = str(row.salesman_name) || String(entry.salesmanName);
+      }
+      entry.revenueSar = dec(row.revenue_sar).toFixed(2);
+      entry.collectedSar = dec(row.collected_sar).toFixed(2);
+      entry.creditDebtSar = dec(row.credit_debt_sar).toFixed(2);
+      entry.netProfitSar = dec(row.profit_sar).toFixed(2);
+      repMap.set(sid, entry);
+    }
+    return [...repMap.values()];
+  }
+
+  private mapProductionBatchRow(b: Record<string, unknown>) {
+    const produced = dec(b.produced_qty);
+    const scrap = dec(b.scrap_qty);
+    const issued = dec(b.issued_qty);
+    const retGood = dec(b.returned_good_qty);
+    const dmg = dec(b.damaged_qty);
+    const avail = Decimal.max(0, produced.minus(issued).plus(retGood).minus(dmg));
+    /**
+     * 💵 أساس التكلفة كما **كُتب ساعة الإنشاء** (`cost_basis`، ترحيل 0127). الاستنتاج
+     * القديم («هل ارتبطت الدفعة بأمر رسمي؟») كان صادقاً حين كان الربط اختيارياً، وصار
+     * كذباً حين صار إلزامياً: دفعةٌ موادها صفرية القيمة يُسعّرها المحاسب أو بطاقة الصنف
+     * ولو قرأناها من الربط لقيل إنها تكلفة فعلية من أمر تصنيع — ومعها أن الفاقد محمّل
+     * على المنتج الجيد وهو ليس كذلك. ولدفعةٍ سابقة لهذا العمود (NULL) يبقى الاستنتاج
+     * القديم لأنه كل ما يمكن قوله عنها بأمانة.
+     */
+    const basis: 'manufacturing_order' | 'manual_input_or_item_cost' =
+      b.cost_basis === 'manual_input' || b.cost_basis === 'item_cost'
+        ? 'manual_input_or_item_cost'
+        : b.cost_basis === 'manufacturing_order'
+          ? 'manufacturing_order'
+          : b.manufacturing_order_id || b.production_order_id
+            ? 'manufacturing_order'
+            : 'manual_input_or_item_cost';
+    return {
+      id: str(b.id),
+      batchNo: str(b.batch_no),
+      productionDate: str(b.production_date),
+      itemId: b.item_id ? str(b.item_id) : null,
+      warehouseId: b.warehouse_id ? str(b.warehouse_id) : null,
+      productionOrderId: b.production_order_id ? str(b.production_order_id) : null,
+      manufacturingOrderId: b.manufacturing_order_id ? str(b.manufacturing_order_id) : null,
+      lotId: b.lot_id ? str(b.lot_id) : null,
+      inventoryTransactionId: b.inventory_transaction_id
+        ? str(b.inventory_transaction_id)
+        : null,
+      itemName: str(b.item_name),
+      producedQty: produced.toFixed(2),
+      scrapQty: scrap.toFixed(2),
+      issuedQty: issued.toFixed(2),
+      returnedGoodQty: retGood.toFixed(2),
+      damagedQty: dmg.toFixed(2),
+      availableWarehouseQty: avail.toFixed(2),
+      unitCost: dec(b.unit_cost).toFixed(2),
+      totalCost: dec(b.total_cost).toFixed(2),
+      /**
+       * 💵 أساس التكلفة — هل الرقم تكلفة فعلية من أمر تصنيع رسمي، أم إدخال يدوي،
+       * أم تكلفة بطاقة الصنف؟ المحاسب لا يقبل «تكلفة إنتاج» دون أن يعرف مصدرها.
+       */
+      costBasis: basis,
+      /**
+       * 🗑️ قيمة الفاقد، وهل حُمِّلت على تكلفة المنتج الجيد. محرك التصنيع الرسمي
+       * يحمّل فاقد **المكوّنات** (`scrapPercent` على سطر BOM) ولا يحمّل فاقد المخبز
+       * من المنتج التام، فحين لا يكون هناك أمر تصنيع رسمي تكون التكلفة المسجّلة
+       * **غير شاملة للفاقد** — وتُعرض كذلك بدل أن تُقرأ تكلفةً فعلية مكتملة.
+       */
+      scrapValue: scrap.mul(dec(b.unit_cost)).toFixed(2),
+      /**
+       * 🗑️ هل حُمِّلت تكلفة فاقد **هذه الدفعة** على المنتج الجيد؟ لا — وربطُ الدفعة بأمر
+       * رسمي لا يغيّر ذلك: الأمر يُنتج الكمية الصالحة وحدها (`outputQty = produced_qty`)
+       * فلا تُصرف مواد للفاقد، و`scrapPercent` على سطر قائمة المواد يحمّل فاقد
+       * **المكوّنات** داخل تكلفة الأمر وهو كمية أخرى غير فاقد المخبز المسجّل هنا.
+       * وتحميل فاقد المخبز على المنتج قرار سياسة لم يُتخذ (التقرير §10) — والشاشة تقول
+       * الحقيقة حتى يُتخذ بدل أن تقرأ «تكلفة فعلية مكتملة».
+       */
+      scrapCostLoaded: false,
+      status: str(b.status),
+      supervisorName: str(b.supervisor_name),
+      notes: str(b.notes),
+    };
+  }
+
+  /** 📜 صفُّ سجلّ تسعير العملاء كما يُعرض — مُصيِّرٌ واحد للوحة ولتقرير الفترة. */
+  private mapPriceHistoryRow(h: Record<string, unknown>) {
+    return {
+      id: str(h.id),
+      customerPriceId: str(h.customer_price_id),
+      partyId: str(h.party_id),
+      partyName: str(h.party_name),
+      itemId: h.item_id ? str(h.item_id) : null,
+      itemName: str(h.item_name),
+      previousUnitPrice: h.previous_unit_price ? dec(h.previous_unit_price).toFixed(2) : null,
+      newUnitPrice: dec(h.new_unit_price).toFixed(2),
+      maxBonusPct: dec(h.max_bonus_pct).toFixed(2),
+      maxBonusKgPerInvoice: dec(h.max_bonus_kg_per_invoice).toFixed(2),
+      maxDiscountPct: dec(h.max_discount_pct).toFixed(2),
+      lockPrice: Boolean(h.lock_price),
+      effectiveFrom: str(h.effective_from),
+      effectiveTo: h.effective_to ? str(h.effective_to) : null,
+      changeReason: str(h.change_reason),
+      changedByLabel: str(h.changed_by_label),
+      createdAt: iso(h.created_at),
+    };
+  }
+
   async dashboard(tenantId: string) {
     return withTenantTx(this.database.db, tenantId, async (tx) => {
       const policy = await this.loadTenantPolicyInTx(tx, tenantId);
@@ -808,61 +1248,11 @@ export class VanSalesService {
       /**
        * 📊 المجاميع الكاملة — القوائمُ في هذه الاستجابة **نوافذُ قراءة** (٥٠ دفعة إنتاج،
        * ٦٠ أمر تحميل، ١٢٠ مستندًا، ٨٠ حركة، ٥٠ سجل تسعير)، وأمّا الأرقام فلا يجوز أن تكون
-       * نوافذ.
-       *
-       * والعيبُ الذي أُصلح هنا مقاسٌ لا مظنون: كانت المجاميع تُجمع في حلقاتٍ على الصفوف
-       * **المرجعة** فحسب، فمنشأةٌ فيها ١٢١ مستندًا كانت `totalCreditReceivablesSar` عندها ذممَ
-       * أحدثِ ١٢٠ — رقمٌ ناقصٌ يُعرض بعنوان «الإجمالي»، ونقصٌ في المال أخطرُ من نقصٍ في
-       * قائمة. فصارت المجاميعُ استعلاماتِ جمعٍ على الجداول نفسها بلا `LIMIT`، وبمنطق الحلقات
-       * حرفًا: `invoice_mode = 'zatca_tax'` ضريبية وما عداها (ومنها `NULL`) داخلية، والدين
-       * `GREATEST(0, total - paid_amount)` لكلّ مستندٍ على حدة، وشذوذُ البونص
-       * `bonus_anomaly = true`.
+       * نوافذ: فهي جمعُ الجدول كلّه (بلا `LIMIT`) في `periodTotalsInTx`، وهي الطريقة نفسها
+       * التي يجمع بها تقريرُ الفترة — بمدًى أو بغير مدًى — فلا يختلف رقمُ اللوحة عن رقم
+       * التقرير إلا بما فُرض عليه من مدى.
        */
-      const productionTotals = first(
-        await tx.execute(sql`
-          SELECT COALESCE(SUM(produced_qty), 0)::text AS produced_kg,
-                 COALESCE(SUM(scrap_qty), 0)::text AS scrap_kg,
-                 COALESCE(SUM(total_cost), 0)::text AS cost_sar,
-                 COUNT(*)::int AS batches
-          FROM factory_production_batches
-          WHERE tenant_id = ${tenantId}::uuid AND deleted_at IS NULL
-        `),
-      );
-      const loadOrderTotals = first(
-        await tx.execute(sql`
-          SELECT COALESCE(SUM(loaded_qty), 0)::text AS loaded_kg,
-                 COALESCE(SUM(sold_qty), 0)::text AS sold_kg,
-                 COALESCE(SUM(bonus_qty), 0)::text AS bonus_kg,
-                 COALESCE(SUM(returned_qty), 0)::text AS returned_kg,
-                 COALESCE(SUM(damaged_qty), 0)::text AS damaged_kg,
-                 COALESCE(SUM(shortage_qty), 0)::text AS shortage_kg,
-                 COALESCE(SUM(shortage_value), 0)::text AS shortage_sar,
-                 COUNT(*) FILTER (WHERE status = 'pending_closing')::int AS pending_closings,
-                 COUNT(*) FILTER (WHERE status = 'pending_receipt')::int AS pending_receipts,
-                 COUNT(*) FILTER (WHERE status = 'pending_stock_settlement')::int
-                   AS pending_stock_settlements,
-                 COUNT(*) FILTER (WHERE stock_settlement_status = 'pending_transit_decision')::int
-                   AS pending_transit_decisions,
-                 COUNT(*)::int AS load_orders
-          FROM van_load_orders
-          WHERE tenant_id = ${tenantId}::uuid AND deleted_at IS NULL
-        `),
-      );
-      const documentTotals = first(
-        await tx.execute(sql`
-          SELECT COALESCE(SUM(total) FILTER (WHERE invoice_mode = 'zatca_tax'), 0)::text AS zatca_sar,
-                 COALESCE(SUM(total) FILTER (WHERE invoice_mode IS DISTINCT FROM 'zatca_tax'), 0)::text
-                   AS internal_sar,
-                 COALESCE(SUM(paid_amount), 0)::text AS collected_sar,
-                 COALESCE(SUM(GREATEST(0, COALESCE(total, 0) - COALESCE(paid_amount, 0))), 0)::text
-                   AS receivables_sar,
-                 COALESCE(SUM(net_profit), 0)::text AS profit_sar,
-                 COUNT(*) FILTER (WHERE bonus_anomaly = true)::int AS anomalies,
-                 COUNT(*)::int AS documents
-          FROM van_sales_documents
-          WHERE tenant_id = ${tenantId}::uuid AND deleted_at IS NULL
-        `),
-      );
+      const totals = await this.periodTotalsInTx(tx, tenantId, EMPTY_REPORT_RANGE);
       /** عدّا النافذتين الأخريين — كي يُقال «٨٠ من ٣٤٠ حركة» بدل عددٍ ثابت في كلّ شاشة. */
       const movementTotals = first(
         await tx.execute(sql`
@@ -879,150 +1269,31 @@ export class VanSalesService {
         `),
       );
 
-      const totalProducedKg = dec(productionTotals?.produced_kg);
-      const totalScrapKg = dec(productionTotals?.scrap_kg);
-      const totalProductionCostSar = dec(productionTotals?.cost_sar);
+      const totalProducedKg = totals.production.producedKg;
+      const totalScrapKg = totals.production.scrapKg;
+      const totalProductionCostSar = totals.production.costSar;
 
-      const totalLoadedKg = dec(loadOrderTotals?.loaded_kg);
-      const totalSoldKg = dec(loadOrderTotals?.sold_kg);
-      const totalBonusKg = dec(loadOrderTotals?.bonus_kg);
-      const totalReturnedKg = dec(loadOrderTotals?.returned_kg);
-      const totalDamagedKg = dec(loadOrderTotals?.damaged_kg);
-      const totalShortageKg = dec(loadOrderTotals?.shortage_kg);
-      const totalShortageSar = dec(loadOrderTotals?.shortage_sar);
-      const pendingClosingsCount = Number(loadOrderTotals?.pending_closings ?? 0);
-      const pendingReceiptsCount = Number(loadOrderTotals?.pending_receipts ?? 0);
-      const pendingStockSettlementsCount = Number(loadOrderTotals?.pending_stock_settlements ?? 0);
-      const pendingTransitDecisionsCount = Number(loadOrderTotals?.pending_transit_decisions ?? 0);
+      const totalLoadedKg = totals.loadOrders.loadedKg;
+      const totalSoldKg = totals.loadOrders.soldKg;
+      const totalBonusKg = totals.loadOrders.bonusKg;
+      const totalReturnedKg = totals.loadOrders.returnedKg;
+      const totalDamagedKg = totals.loadOrders.damagedKg;
+      const totalShortageKg = totals.loadOrders.shortageKg;
+      const totalShortageSar = totals.loadOrders.shortageSar;
+      const pendingClosingsCount = totals.loadOrders.pendingClosings;
+      const pendingReceiptsCount = totals.loadOrders.pendingReceipts;
+      const pendingStockSettlementsCount = totals.loadOrders.pendingStockSettlements;
+      const pendingTransitDecisionsCount = totals.loadOrders.pendingTransitDecisions;
 
-      const totalZatcaSalesSar = dec(documentTotals?.zatca_sar);
-      const totalInternalSalesSar = dec(documentTotals?.internal_sar);
-      const totalCollectedCashSar = dec(documentTotals?.collected_sar);
-      const totalCreditReceivablesSar = dec(documentTotals?.receivables_sar);
-      const totalNetProfitSar = dec(documentTotals?.profit_sar);
-      const anomalyCount = Number(documentTotals?.anomalies ?? 0);
+      const totalZatcaSalesSar = totals.documents.zatcaSar;
+      const totalInternalSalesSar = totals.documents.internalSar;
+      const totalCollectedCashSar = totals.documents.collectedSar;
+      const totalCreditReceivablesSar = totals.documents.receivablesSar;
+      const totalNetProfitSar = totals.documents.profitSar;
+      const anomalyCount = totals.documents.anomalies;
 
-      /**
-       * 🧑‍💼 أداءُ كلّ مندوب — جمعٌ على الجدولين **مجموعةً بمندوبها** لا على نافذتيهما. ومنطقُ
-       * الحلقتين السابقتين بقي كما هو: العهدةُ المتبقية على أساس ما **استلمه** المندوب فعلًا
-       * (أو ما حُمِّل له إن لم يُسجَّل استلام)، وتُحسب لأوامره غير المُصفّاة وغير المنتظرة
-       * للاستلام، و`GREATEST(0, …)` لكلّ أمرٍ على حدة لا للمجموع.
-       *
-       * والذي تغيّر مع الاتساع: مندوبٌ له مستنداتُ بيعٍ بلا أمر تحميل صار يظهر بإيراده — وكان
-       * يسقط من التقرير لأنّ خريطةً واحدة كانت تُملأ من أوامر التحميل أولًا ثمّ لا تقبل مستندًا
-       * لمندوبٍ غائب عنها. والترتيبُ صار بالاسم (لا بـ«أحدث أمر تحميل») فلا يتغيّر بين قراءتين.
-       */
-      const repLoadTotals = rows(
-        await tx.execute(sql`
-          SELECT l.salesman_id::text,
-                 COALESCE(MAX(s.name), 'مندوب توزيع') AS salesman_name,
-                 COALESCE(SUM(l.loaded_qty), 0)::text AS loaded_kg,
-                 COALESCE(SUM(l.sold_qty), 0)::text AS sold_kg,
-                 COALESCE(SUM(l.bonus_qty), 0)::text AS bonus_kg,
-                 COALESCE(SUM(l.returned_qty), 0)::text AS returned_kg,
-                 COALESCE(SUM(l.damaged_qty), 0)::text AS damaged_kg,
-                 COALESCE(SUM(l.shortage_qty), 0)::text AS shortage_kg,
-                 COALESCE(SUM(l.shortage_value), 0)::text AS shortage_sar,
-                 COALESCE(SUM(
-                   GREATEST(
-                     0,
-                     (CASE
-                        WHEN COALESCE(l.received_qty, 0) > 0 THEN l.received_qty
-                        ELSE COALESCE(l.loaded_qty, 0)
-                      END)
-                     - COALESCE(l.sold_qty, 0) - COALESCE(l.bonus_qty, 0)
-                     - COALESCE(l.returned_qty, 0) - COALESCE(l.damaged_qty, 0)
-                     - COALESCE(l.shortage_qty, 0)
-                   )
-                 ) FILTER (WHERE l.status NOT IN ('settled', 'pending_receipt')), 0)::text
-                   AS custody_remaining_kg,
-                 COUNT(*) FILTER (WHERE l.status = 'pending_closing')::int AS pending_closings
-          FROM van_load_orders l
-          LEFT JOIN salesmen s ON s.id = l.salesman_id
-          WHERE l.tenant_id = ${tenantId}::uuid AND l.deleted_at IS NULL
-          GROUP BY l.salesman_id
-          ORDER BY salesman_name ASC, l.salesman_id ASC
-        `),
-      );
-      const repDocumentTotals = rows(
-        await tx.execute(sql`
-          SELECT d.salesman_id::text,
-                 COALESCE(MAX(s.name), 'مندوب') AS salesman_name,
-                 COALESCE(SUM(d.total), 0)::text AS revenue_sar,
-                 COALESCE(SUM(d.paid_amount), 0)::text AS collected_sar,
-                 COALESCE(SUM(GREATEST(0, COALESCE(d.total, 0) - COALESCE(d.paid_amount, 0))), 0)::text
-                   AS credit_debt_sar,
-                 COALESCE(SUM(d.net_profit), 0)::text AS profit_sar
-          FROM van_sales_documents d
-          LEFT JOIN salesmen s ON s.id = d.salesman_id
-          WHERE d.tenant_id = ${tenantId}::uuid AND d.deleted_at IS NULL
-          GROUP BY d.salesman_id
-          ORDER BY salesman_name ASC, d.salesman_id ASC
-        `),
-      );
-
-      type RepTotals = {
-        salesmanId: string;
-        salesmanName: string;
-        loadedKg: Decimal;
-        soldKg: Decimal;
-        bonusKg: Decimal;
-        returnedKg: Decimal;
-        damagedKg: Decimal;
-        shortageKg: Decimal;
-        shortageSar: Decimal;
-        custodyRemainingKg: Decimal;
-        revenueSar: Decimal;
-        collectedSar: Decimal;
-        creditDebtSar: Decimal;
-        netProfitSar: Decimal;
-        pendingClosings: number;
-      };
-      const emptyRepTotals = (salesmanId: string, salesmanName: string): RepTotals => ({
-        salesmanId,
-        salesmanName,
-        loadedKg: new Decimal(0),
-        soldKg: new Decimal(0),
-        bonusKg: new Decimal(0),
-        returnedKg: new Decimal(0),
-        damagedKg: new Decimal(0),
-        shortageKg: new Decimal(0),
-        shortageSar: new Decimal(0),
-        custodyRemainingKg: new Decimal(0),
-        revenueSar: new Decimal(0),
-        collectedSar: new Decimal(0),
-        creditDebtSar: new Decimal(0),
-        netProfitSar: new Decimal(0),
-        pendingClosings: 0,
-      });
-      const repMap = new Map<string, RepTotals>();
-      for (const row of repLoadTotals) {
-        const sid = str(row.salesman_id);
-        repMap.set(sid, {
-          ...emptyRepTotals(sid, str(row.salesman_name)),
-          loadedKg: dec(row.loaded_kg),
-          soldKg: dec(row.sold_kg),
-          bonusKg: dec(row.bonus_kg),
-          returnedKg: dec(row.returned_kg),
-          damagedKg: dec(row.damaged_kg),
-          shortageKg: dec(row.shortage_kg),
-          shortageSar: dec(row.shortage_sar),
-          custodyRemainingKg: dec(row.custody_remaining_kg),
-          pendingClosings: Number(row.pending_closings ?? 0),
-        });
-      }
-      for (const row of repDocumentTotals) {
-        const sid = str(row.salesman_id);
-        const entry = repMap.get(sid) ?? emptyRepTotals(sid, str(row.salesman_name));
-        if (!entry.salesmanName || entry.salesmanName === 'مندوب توزيع') {
-          entry.salesmanName = str(row.salesman_name) || entry.salesmanName;
-        }
-        entry.revenueSar = dec(row.revenue_sar);
-        entry.collectedSar = dec(row.collected_sar);
-        entry.creditDebtSar = dec(row.credit_debt_sar);
-        entry.netProfitSar = dec(row.profit_sar);
-        repMap.set(sid, entry);
-      }
+      /** أداءُ كلّ مندوب — جمعٌ على الجدولين مجموعةً بمندوبها (انظر `repTotalsInTx`). */
+      const repPerformance = await this.repTotalsInTx(tx, tenantId, EMPTY_REPORT_RANGE);
 
       /**
        * الأرصدة الرسمية — read from `stock_balances`, the ledger the item card, the stock
@@ -1155,17 +1426,17 @@ export class VanSalesService {
         windows: {
           productionBatches: {
             returned: productionBatches.length,
-            total: Number(productionTotals?.batches ?? 0),
+            total: totals.production.rows,
             limit: 50,
           },
           loadOrders: {
             returned: loadOrders.length,
-            total: Number(loadOrderTotals?.load_orders ?? 0),
+            total: totals.loadOrders.rows,
             limit: 60,
           },
           documents: {
             returned: documents.length,
-            total: Number(documentTotals?.documents ?? 0),
+            total: totals.documents.rows,
             limit: 120,
           },
           movements: {
@@ -1214,93 +1485,8 @@ export class VanSalesService {
           pendingStockSettlementsCount,
           pendingTransitDecisionsCount,
         },
-        productionBatches: productionBatches.map((b) => {
-          const produced = dec(b.produced_qty);
-          const scrap = dec(b.scrap_qty);
-          const issued = dec(b.issued_qty);
-          const retGood = dec(b.returned_good_qty);
-          const dmg = dec(b.damaged_qty);
-          const avail = Decimal.max(0, produced.minus(issued).plus(retGood).minus(dmg));
-          /**
-           * 💵 أساس التكلفة كما **كُتب ساعة الإنشاء** (`cost_basis`، ترحيل 0127). الاستنتاج
-           * القديم («هل ارتبطت الدفعة بأمر رسمي؟») كان صادقاً حين كان الربط اختيارياً، وصار
-           * كذباً حين صار إلزامياً: دفعةٌ موادها صفرية القيمة يُسعّرها المحاسب أو بطاقة الصنف
-           * ولو قرأناها من الربط لقيل إنها تكلفة فعلية من أمر تصنيع — ومعها أن الفاقد محمّل
-           * على المنتج الجيد وهو ليس كذلك. ولدفعةٍ سابقة لهذا العمود (NULL) يبقى الاستنتاج
-           * القديم لأنه كل ما يمكن قوله عنها بأمانة.
-           */
-          const basis: 'manufacturing_order' | 'manual_input_or_item_cost' =
-            b.cost_basis === 'manual_input' || b.cost_basis === 'item_cost'
-              ? 'manual_input_or_item_cost'
-              : b.cost_basis === 'manufacturing_order'
-                ? 'manufacturing_order'
-                : b.manufacturing_order_id || b.production_order_id
-                  ? 'manufacturing_order'
-                  : 'manual_input_or_item_cost';
-          return {
-            id: str(b.id),
-            batchNo: str(b.batch_no),
-            productionDate: str(b.production_date),
-            itemId: b.item_id ? str(b.item_id) : null,
-            warehouseId: b.warehouse_id ? str(b.warehouse_id) : null,
-            productionOrderId: b.production_order_id ? str(b.production_order_id) : null,
-            manufacturingOrderId: b.manufacturing_order_id ? str(b.manufacturing_order_id) : null,
-            lotId: b.lot_id ? str(b.lot_id) : null,
-            inventoryTransactionId: b.inventory_transaction_id
-              ? str(b.inventory_transaction_id)
-              : null,
-            itemName: str(b.item_name),
-            producedQty: produced.toFixed(2),
-            scrapQty: scrap.toFixed(2),
-            issuedQty: issued.toFixed(2),
-            returnedGoodQty: retGood.toFixed(2),
-            damagedQty: dmg.toFixed(2),
-            availableWarehouseQty: avail.toFixed(2),
-            unitCost: dec(b.unit_cost).toFixed(2),
-            totalCost: dec(b.total_cost).toFixed(2),
-            /**
-             * 💵 أساس التكلفة — هل الرقم تكلفة فعلية من أمر تصنيع رسمي، أم إدخال يدوي،
-             * أم تكلفة بطاقة الصنف؟ المحاسب لا يقبل «تكلفة إنتاج» دون أن يعرف مصدرها.
-             */
-            costBasis: basis,
-            /**
-             * 🗑️ قيمة الفاقد، وهل حُمِّلت على تكلفة المنتج الجيد. محرك التصنيع الرسمي
-             * يحمّل فاقد **المكوّنات** (`scrapPercent` على سطر BOM) ولا يحمّل فاقد المخبز
-             * من المنتج التام، فحين لا يكون هناك أمر تصنيع رسمي تكون التكلفة المسجّلة
-             * **غير شاملة للفاقد** — وتُعرض كذلك بدل أن تُقرأ تكلفةً فعلية مكتملة.
-             */
-            scrapValue: scrap.mul(dec(b.unit_cost)).toFixed(2),
-            /**
-             * 🗑️ هل حُمِّلت تكلفة فاقد **هذه الدفعة** على المنتج الجيد؟ لا — وربطُ الدفعة بأمر
-             * رسمي لا يغيّر ذلك: الأمر يُنتج الكمية الصالحة وحدها (`outputQty = produced_qty`)
-             * فلا تُصرف مواد للفاقد، و`scrapPercent` على سطر قائمة المواد يحمّل فاقد
-             * **المكوّنات** داخل تكلفة الأمر وهو كمية أخرى غير فاقد المخبز المسجّل هنا.
-             * وتحميل فاقد المخبز على المنتج قرار سياسة لم يُتخذ (التقرير §10) — والشاشة تقول
-             * الحقيقة حتى يُتخذ بدل أن تقرأ «تكلفة فعلية مكتملة».
-             */
-            scrapCostLoaded: false,
-            status: str(b.status),
-            supervisorName: str(b.supervisor_name),
-            notes: str(b.notes),
-          };
-        }),
-        repPerformance: [...repMap.values()].map((r) => ({
-          salesmanId: r.salesmanId,
-          salesmanName: r.salesmanName,
-          loadedKg: r.loadedKg.toFixed(2),
-          soldKg: r.soldKg.toFixed(2),
-          bonusKg: r.bonusKg.toFixed(2),
-          returnedKg: r.returnedKg.toFixed(2),
-          damagedKg: r.damagedKg.toFixed(2),
-          shortageKg: r.shortageKg.toFixed(2),
-          shortageSar: r.shortageSar.toFixed(2),
-          custodyRemainingKg: r.custodyRemainingKg.toFixed(2),
-          revenueSar: r.revenueSar.toFixed(2),
-          collectedSar: r.collectedSar.toFixed(2),
-          creditDebtSar: r.creditDebtSar.toFixed(2),
-          netProfitSar: r.netProfitSar.toFixed(2),
-          pendingClosings: r.pendingClosings,
-        })),
+        productionBatches: productionBatches.map((b) => this.mapProductionBatchRow(b)),
+        repPerformance,
         loadOrders: loadOrders.map((row) => {
           /**
            * هل مستند الجرد الرسمي **مُرحَّل**؟ المحرك يكتب `expected_qty` و`variance_value`
@@ -1489,25 +1675,7 @@ export class VanSalesService {
           changeReason: str(row.change_reason),
           notes: str(row.notes),
         })),
-        customerPriceHistory: customerPriceHistory.map((h) => ({
-          id: str(h.id),
-          customerPriceId: str(h.customer_price_id),
-          partyId: str(h.party_id),
-          partyName: str(h.party_name),
-          itemId: h.item_id ? str(h.item_id) : null,
-          itemName: str(h.item_name),
-          previousUnitPrice: h.previous_unit_price ? dec(h.previous_unit_price).toFixed(2) : null,
-          newUnitPrice: dec(h.new_unit_price).toFixed(2),
-          maxBonusPct: dec(h.max_bonus_pct).toFixed(2),
-          maxBonusKgPerInvoice: dec(h.max_bonus_kg_per_invoice).toFixed(2),
-          maxDiscountPct: dec(h.max_discount_pct).toFixed(2),
-          lockPrice: Boolean(h.lock_price),
-          effectiveFrom: str(h.effective_from),
-          effectiveTo: h.effective_to ? str(h.effective_to) : null,
-          changeReason: str(h.change_reason),
-          changedByLabel: str(h.changed_by_label),
-          createdAt: iso(h.created_at),
-        })),
+        customerPriceHistory: customerPriceHistory.map((h) => this.mapPriceHistoryRow(h)),
         documents: documents.map((row) => ({
           id: str(row.id),
           number: str(row.number),
@@ -1577,65 +1745,265 @@ export class VanSalesService {
   }
 
   /**
-   * Phase 5: Comprehensive Analytical Reports for Reps, Custody, Transfers, Collections & Production.
+   * 📈 تقريرُ الفترة — `GET /van-sales/reports`.
+   *
+   * **ما كان**: يقبل `salesmanId` و`fromDate` و`toDate`، ويستعمل **الأول وحده** — فالتاريخان
+   * يُقصّان في المتحكّم ثمّ يُهملان، و«تقريرُ الفترة» يرجع كلّ شيء. وكانت صفوفُه من نوافذ
+   * اللوحة (أحدث ٦٠ أمر تحميل و١٢٠ مستندًا و٥٠ دفعة إنتاج و٥٠ سجل تسعير)، فتقريرُ شهرٍ في
+   * منشأةٍ نشطة ينقص بلا قول، ومجاميعُه (`summary`) أرقامُ المنشأة كلّها معروضةً بجانب صفوفٍ
+   * منتقاة — وخلطُ «إجماليّ الفترة» بـ«إجماليّ العمر» هو ما تُبنى عليه التقارير الخاطئة.
+   *
+   * **ما صار**: الصفوفُ من استعلاماتٍ على المدى نفسه، والمجاميعُ من `periodTotalsInTx` على
+   * المدى نفسه، و`periodTotals` **غير** `summary`: فالأول مجموعُ الفترة، والثاني أرقامُ
+   * المنشأة الكاملة وأرصدتُها في لحظتها (والأرصدةُ ليست مجاميعَ فترةٍ فلا تُحسب كذلك).
+   * وسقفُ صفوفٍ مُعلن (`rowCap`) في `LIMIT` نفسه مع `truncated` لكلّ قائمة: فمصفوفةٌ بلا سقف
+   * على منشأةٍ كبيرة خطرٌ على الخادم، وقصٌّ بلا قول كذبٌ على المحاسب — فيُقال الاثنان، ولا
+   * يُنقص السقفُ عددًا لأنّ العدادات من `COUNT(*)` في استعلامات الجمع لا من طول المصفوفة.
+   *
+   * والتواريخ على أعمدة **تاريخ العمل** (`load_date`, `doc_date`, `production_date`) لا على
+   * `created_at`؛ وأمّا سجلُّ التسعير فلا يحمل تاريخَ عملٍ فيُصفّى بتاريخ الإنشاء ويُقال ذلك
+   * في `filterNotes`. ومرشِّحُ المندوب لا يُطبَّق على الإنتاج ولا على التسعير فليسا منسوبَين
+   * إلى مندوب — ويُقال ذلك أيضًا، فلا يقرأ أحدٌ «إنتاج المندوب» في تقريرٍ صفّاه بمندوب.
    */
   async getReports(
     tenantId: string,
     filters: { salesmanId?: string; fromDate?: string; toDate?: string } = {},
   ) {
+    const range = this.parseReportRange(filters);
     const dash = await this.dashboard(tenantId);
-    const filteredLoadOrders = filters.salesmanId
-      ? dash.loadOrders.filter((l) => l.salesmanId === filters.salesmanId)
-      : dash.loadOrders;
-    const filteredDocs = filters.salesmanId
-      ? dash.documents.filter((d) => d.salesmanId === filters.salesmanId)
-      : dash.documents;
 
-    return {
-      generatedAt: new Date().toISOString(),
-      policy: dash.policy,
-      summary: dash.summary,
-      repCustodyReport: dash.repPerformance.filter(
-        (r) => !filters.salesmanId || r.salesmanId === filters.salesmanId,
-      ),
-      transfersReport: filteredLoadOrders.map((l) => ({
-        loadOrderId: l.id,
-        loadOrderNumber: l.number,
-        loadDate: l.loadDate,
-        salesmanId: l.salesmanId,
-        salesmanName: l.salesmanName,
-        productionBatchNo: l.productionBatchNo,
-        warehouseId: l.warehouseId,
-        vanWarehouseId: l.vanWarehouseId,
-        stockTransferId: l.stockTransferId,
-        returnTransferId: l.returnTransferId,
-        loadedQty: l.loadedQty,
-        soldQty: l.soldQty,
-        bonusQty: l.bonusQty,
-        returnedQty: l.returnedQty,
-        damagedQty: l.damagedQty,
-        shortageQty: l.shortageQty,
-        shortageValue: l.shortageValue,
-        shortagePolicyStatus: l.shortagePolicyStatus,
-        remainingQty: l.remainingQty,
-        status: l.status,
-      })),
-      collectionsReport: filteredDocs.map((d) => ({
-        documentId: d.id,
-        documentNumber: d.number,
-        salesInvoiceId: d.salesInvoiceId,
-        receiptVoucherId: d.receiptVoucherId,
-        docDate: d.docDate,
-        salesmanName: d.salesmanName,
-        customerName: d.customerName,
-        paymentMethod: d.paymentMethod,
-        grandTotal: d.total,
-        paidAmount: d.paidAmount,
-        outstandingBalance: Decimal.max(0, dec(d.total).minus(dec(d.paidAmount))).toFixed(2),
-      })),
-      productionReport: dash.productionBatches,
-      customerPriceAuditReport: dash.customerPriceHistory,
-    };
+    return withTenantTx(this.database.db, tenantId, async (tx) => {
+      if (range.salesmanId) {
+        const salesman = first(
+          await tx.execute(sql`
+            SELECT s.id::text FROM salesmen s
+            WHERE s.id = ${range.salesmanId}::uuid AND s.tenant_id = ${tenantId}::uuid
+            LIMIT 1
+          `),
+        );
+        if (!salesman) {
+          throw new DomainError(errorCodes.NOT_FOUND, 'المندوب غير موجود', 404, {
+            field: 'salesmanId',
+          });
+        }
+      }
+
+      const loadSalesman = range.salesmanId
+        ? sql`AND l.salesman_id = ${range.salesmanId}::uuid`
+        : sql``;
+      const loadFrom = range.fromDate ? sql`AND l.load_date >= ${range.fromDate}::date` : sql``;
+      const loadTo = range.toDate ? sql`AND l.load_date <= ${range.toDate}::date` : sql``;
+      const docSalesman = range.salesmanId
+        ? sql`AND d.salesman_id = ${range.salesmanId}::uuid`
+        : sql``;
+      const docFrom = range.fromDate ? sql`AND d.doc_date >= ${range.fromDate}::date` : sql``;
+      const docTo = range.toDate ? sql`AND d.doc_date <= ${range.toDate}::date` : sql``;
+      const batchFrom = range.fromDate
+        ? sql`AND b.production_date >= ${range.fromDate}::date`
+        : sql``;
+      const batchTo = range.toDate ? sql`AND b.production_date <= ${range.toDate}::date` : sql``;
+      const historyFrom = range.fromDate
+        ? sql`AND h.created_at >= ${range.fromDate}::date`
+        : sql``;
+      const historyTo = range.toDate
+        ? sql`AND h.created_at < (${range.toDate}::date + INTERVAL '1 day')`
+        : sql``;
+
+      const loadOrderRows = rows(
+        await tx.execute(sql`
+          SELECT l.id::text, l.number, l.load_date::text,
+                 l.salesman_id::text, COALESCE(s.name, 'مندوب توزيع') AS salesman_name,
+                 l.production_batch_no, l.warehouse_id::text, l.van_warehouse_id::text,
+                 l.stock_transfer_id::text, l.return_transfer_id::text,
+                 l.loaded_qty::text, l.received_qty::text, l.sold_qty::text, l.bonus_qty::text,
+                 l.returned_qty::text, l.damaged_qty::text, l.shortage_qty::text,
+                 l.shortage_value::text, l.shortage_policy_status, l.status,
+                 (CASE
+                    WHEN l.status = 'settled' THEN 0
+                    ELSE GREATEST(
+                      0,
+                      (CASE
+                         WHEN COALESCE(l.received_qty, 0) > 0 THEN l.received_qty
+                         ELSE COALESCE(l.loaded_qty, 0)
+                       END)
+                      - COALESCE(l.sold_qty, 0) - COALESCE(l.bonus_qty, 0)
+                      - COALESCE(l.returned_qty, 0) - COALESCE(l.damaged_qty, 0)
+                      - COALESCE(l.shortage_qty, 0))
+                  END)::text AS remaining_qty
+          FROM van_load_orders l
+          LEFT JOIN salesmen s ON s.id = l.salesman_id
+          WHERE l.tenant_id = ${tenantId}::uuid AND l.deleted_at IS NULL
+            ${loadSalesman} ${loadFrom} ${loadTo}
+          ORDER BY l.load_date DESC, l.created_at DESC
+          LIMIT ${sql.raw(String(REPORT_ROW_CAP + 1))}
+        `),
+      );
+      const documentRows = rows(
+        await tx.execute(sql`
+          SELECT d.id::text, d.number, d.doc_date::text, d.payment_method,
+                 d.sales_invoice_id::text, d.receipt_voucher_id::text,
+                 d.total::text, d.paid_amount::text,
+                 COALESCE(s.name, 'مندوب') AS salesman_name,
+                 COALESCE(p.name, d.customer_name, 'عميل توزيع') AS customer_name
+          FROM van_sales_documents d
+          LEFT JOIN salesmen s ON s.id = d.salesman_id
+          LEFT JOIN parties p ON p.id = d.party_id
+          WHERE d.tenant_id = ${tenantId}::uuid AND d.deleted_at IS NULL
+            ${docSalesman} ${docFrom} ${docTo}
+          ORDER BY d.doc_date DESC, d.created_at DESC
+          LIMIT ${sql.raw(String(REPORT_ROW_CAP + 1))}
+        `),
+      );
+      const batchRows = rows(
+        await tx.execute(sql`
+          SELECT b.id::text, b.batch_no, b.production_date::text, b.item_id::text,
+                 b.warehouse_id::text, b.production_order_id::text, b.manufacturing_order_id::text,
+                 b.lot_id::text, b.inventory_transaction_id::text,
+                 COALESCE(i.name_ar, b.item_name, 'رقائق سمبوسة وفطائر طازجة') AS item_name,
+                 b.produced_qty::text, b.scrap_qty::text, b.issued_qty::text,
+                 b.returned_good_qty::text, b.damaged_qty::text, b.unit_cost::text,
+                 b.total_cost::text, b.cost_basis, b.status, b.supervisor_name, b.notes,
+                 b.created_at
+          FROM factory_production_batches b
+          LEFT JOIN items i ON i.id = b.item_id
+          WHERE b.tenant_id = ${tenantId}::uuid AND b.deleted_at IS NULL
+            ${batchFrom} ${batchTo}
+          ORDER BY b.production_date DESC, b.created_at DESC
+          LIMIT ${sql.raw(String(REPORT_ROW_CAP + 1))}
+        `),
+      );
+      const priceRows = rows(
+        await tx.execute(sql`
+          SELECT h.id::text, h.customer_price_id::text, h.party_id::text, p.name AS party_name,
+                 h.item_id::text, COALESCE(i.name_ar, 'جميع أصناف المخبز') AS item_name,
+                 h.previous_unit_price::text, h.new_unit_price::text,
+                 h.max_bonus_pct::text, h.max_bonus_kg_per_invoice::text,
+                 h.max_discount_pct::text, h.lock_price,
+                 h.effective_from::text, h.effective_to::text, h.change_reason,
+                 COALESCE(u.full_name, u.email, 'النظام') AS changed_by_label,
+                 h.created_at
+          FROM van_sales_customer_price_history h
+          JOIN parties p ON p.id = h.party_id
+          LEFT JOIN items i ON i.id = h.item_id
+          LEFT JOIN users u ON u.id = h.changed_by
+          WHERE h.tenant_id = ${tenantId}::uuid
+            ${historyFrom} ${historyTo}
+          ORDER BY h.created_at DESC
+          LIMIT ${sql.raw(String(REPORT_ROW_CAP + 1))}
+        `),
+      );
+
+      const periodTotals = await this.periodTotalsInTx(tx, tenantId, range);
+      const repCustodyReport = await this.repTotalsInTx(tx, tenantId, range);
+
+      const cap = <T>(list: T[]): T[] => list.slice(0, REPORT_ROW_CAP);
+      const filterNotes: string[] = [];
+      if (range.salesmanId) {
+        filterNotes.push(
+          'مرشِّحُ المندوب يُطبَّق على أوامر التحميل ومستندات البيع وأداء المندوبين؛ ولا يُطبَّق على دفعات الإنتاج ولا على سجلّ التسعير، فليسا منسوبَين إلى مندوب.',
+        );
+      }
+      if (range.fromDate || range.toDate) {
+        filterNotes.push(
+          'سجلُّ تسعير العملاء يُصفّى بتاريخ الإنشاء (created_at) لأنه لا يحمل تاريخَ عملٍ آخر؛ وأمّا الأوامر والمستندات والدفعات فتُصفّى بتواريخ عملها (load_date, doc_date, production_date).',
+        );
+      }
+      if (!range.fromDate && !range.toDate) {
+        filterNotes.push(
+          'بلا مدىً زمنيّ: التقرير كلّ السجلّ لا «اليوم» — فحدّد fromDate/toDate إن أردت فترة.',
+        );
+      }
+
+      return {
+        generatedAt: new Date().toISOString(),
+        /** ما طُبِّق فعلًا — لا ما أُرسل فحسب: فالتاريخ الفاسد يُرفض ولا يُهمل. */
+        filters: {
+          salesmanId: range.salesmanId,
+          fromDate: range.fromDate,
+          toDate: range.toDate,
+        },
+        filterNotes,
+        rowCap: REPORT_ROW_CAP,
+        /** أيّ قائمةٍ بلغت السقف فقُصّت — ولا قصَّ بلا قول. */
+        truncated: {
+          transfersReport: loadOrderRows.length > REPORT_ROW_CAP,
+          collectionsReport: documentRows.length > REPORT_ROW_CAP,
+          productionReport: batchRows.length > REPORT_ROW_CAP,
+          customerPriceAuditReport: priceRows.length > REPORT_ROW_CAP,
+        },
+        policy: dash.policy,
+        /**
+         * أرقامُ المنشأة **الكاملة** وأرصدتُها في لحظتها — ليست مجموع الفترة. وتُعرض بجانب
+         * `periodTotals` لا بدلها، فالرصيد (ما في المستودع الآن) ليس تدفّقًا (ما بِيع في الفترة).
+         */
+        summary: dash.summary,
+        /** مجموعُ الفترة نفسها التي صُفّيت بها الصفوف — ومن الاستعلامات نفسها. */
+        periodTotals: {
+          producedKg: periodTotals.production.producedKg.toFixed(2),
+          scrapKg: periodTotals.production.scrapKg.toFixed(2),
+          productionCostSar: periodTotals.production.costSar.toFixed(2),
+          loadedKg: periodTotals.loadOrders.loadedKg.toFixed(2),
+          soldKg: periodTotals.loadOrders.soldKg.toFixed(2),
+          bonusKg: periodTotals.loadOrders.bonusKg.toFixed(2),
+          returnedKg: periodTotals.loadOrders.returnedKg.toFixed(2),
+          damagedKg: periodTotals.loadOrders.damagedKg.toFixed(2),
+          shortageKg: periodTotals.loadOrders.shortageKg.toFixed(2),
+          shortageSar: periodTotals.loadOrders.shortageSar.toFixed(2),
+          zatcaSalesSar: periodTotals.documents.zatcaSar.toFixed(2),
+          internalSalesSar: periodTotals.documents.internalSar.toFixed(2),
+          revenueSar: periodTotals.documents.zatcaSar
+            .plus(periodTotals.documents.internalSar)
+            .toFixed(2),
+          collectedCashSar: periodTotals.documents.collectedSar.toFixed(2),
+          creditReceivablesSar: periodTotals.documents.receivablesSar.toFixed(2),
+          netProfitSar: periodTotals.documents.profitSar.toFixed(2),
+          anomalyCount: periodTotals.documents.anomalies,
+          /** العدادات من استعلامات الجمع (`COUNT(*)`) لا من طول المصفوفة — فالسقفُ لا يُنقص عددًا. */
+          loadOrderCount: periodTotals.loadOrders.rows,
+          documentCount: periodTotals.documents.rows,
+          productionBatchCount: periodTotals.production.rows,
+        },
+        repCustodyReport,
+        transfersReport: cap(loadOrderRows).map((l) => ({
+          loadOrderId: str(l.id),
+          loadOrderNumber: str(l.number),
+          loadDate: str(l.load_date),
+          salesmanId: str(l.salesman_id),
+          salesmanName: str(l.salesman_name),
+          productionBatchNo: str(l.production_batch_no),
+          warehouseId: l.warehouse_id ? str(l.warehouse_id) : null,
+          vanWarehouseId: l.van_warehouse_id ? str(l.van_warehouse_id) : null,
+          stockTransferId: l.stock_transfer_id ? str(l.stock_transfer_id) : null,
+          returnTransferId: l.return_transfer_id ? str(l.return_transfer_id) : null,
+          loadedQty: dec(l.loaded_qty).toFixed(2),
+          soldQty: dec(l.sold_qty).toFixed(2),
+          bonusQty: dec(l.bonus_qty).toFixed(2),
+          returnedQty: dec(l.returned_qty).toFixed(2),
+          damagedQty: dec(l.damaged_qty).toFixed(2),
+          shortageQty: dec(l.shortage_qty).toFixed(2),
+          shortageValue: dec(l.shortage_value).toFixed(2),
+          shortagePolicyStatus: str(l.shortage_policy_status || 'pending_policy_approval'),
+          /** المتبقي في العهدة — الأساس نفسه: ما استُلم فعلًا، وصفرٌ بعد التصفية. */
+          remainingQty: dec(l.remaining_qty).toFixed(2),
+          status: str(l.status),
+        })),
+        collectionsReport: cap(documentRows).map((d) => ({
+          documentId: str(d.id),
+          documentNumber: str(d.number),
+          salesInvoiceId: d.sales_invoice_id ? str(d.sales_invoice_id) : null,
+          receiptVoucherId: d.receipt_voucher_id ? str(d.receipt_voucher_id) : null,
+          docDate: str(d.doc_date),
+          salesmanName: str(d.salesman_name),
+          customerName: str(d.customer_name),
+          paymentMethod: str(d.payment_method),
+          grandTotal: dec(d.total).toFixed(2),
+          paidAmount: dec(d.paid_amount).toFixed(2),
+          outstandingBalance: Decimal.max(0, dec(d.total).minus(dec(d.paid_amount))).toFixed(2),
+        })),
+        productionReport: cap(batchRows).map((b) => this.mapProductionBatchRow(b)),
+        customerPriceAuditReport: cap(priceRows).map((h) => this.mapPriceHistoryRow(h)),
+      };
+    });
   }
 
   /**

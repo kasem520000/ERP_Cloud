@@ -115,6 +115,9 @@ describe('خريطة وحدات واجهة المخابز', () => {
     expect(moduleForPath('/reps')?.key).toBe('reps');
     expect(moduleForPath('/reps/9')?.key).toBe('reps');
     expect(moduleForPath('/reps-x')).toBeUndefined();
+    // ‏شريحة ١٢ب: تقريرُ الفترة — مسارٌ حقيقيّ وحدُّ المقطع يمنع «reports-x».
+    expect(moduleForPath('/reports')?.key).toBe('reports');
+    expect(moduleForPath('/reports-x')).toBeUndefined();
     // ‏المسار الرسميّ لبطاقات المندوب في staff ليس مسارًا في هذه الواجهة.
     expect(moduleForPath('/sales/salesmen')?.key).toBe('sales');
   });
@@ -140,6 +143,7 @@ describe('خريطة وحدات واجهة المخابز', () => {
       'distribution',
       'overview',
       'production',
+      'reports',
       'reps',
       'sales',
     ]);
