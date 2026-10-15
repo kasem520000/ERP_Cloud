@@ -6971,50 +6971,78 @@ export class VanSalesService {
         `),
       );
 
-      const totals = documents.reduce<{
-        revenue: Decimal;
-        collected: Decimal;
-        outstanding: Decimal;
-        cashSales: Decimal;
-        creditSales: Decimal;
-      }>(
-        (acc, doc) => {
-          const docTotal = dec(doc.total);
-          const docPaid = dec(doc.paid_amount);
-          acc.revenue = acc.revenue.plus(docTotal);
-          acc.collected = acc.collected.plus(docPaid);
-          acc.outstanding = acc.outstanding.plus(Decimal.max(0, docTotal.minus(docPaid)));
-          if (str(doc.payment_method) === 'cash') acc.cashSales = acc.cashSales.plus(docTotal);
-          else acc.creditSales = acc.creditSales.plus(docTotal);
-          return acc;
-        },
-        {
-          revenue: new Decimal(0),
-          collected: new Decimal(0),
-          outstanding: new Decimal(0),
-          cashSales: new Decimal(0),
-          creditSales: new Decimal(0),
-        },
+      /**
+       * 💰 مجاميعُ المندوب من **جدوله كلّه** لا من نافذة القراءة — والعيبُ هو نفسه الذي أُصلح
+       * في لوحة الخطّ (الشريحة ١٢أ): الحلقتان اللتان كانتا هنا تجمعان `documents` (أحدث ١٠٠)
+       * و`loadOrders` (أحدث ٥٠)، وأرقامُ المندوب تُعرض عناوينَ في
+       * `apps/staff/app/van-sales/rep/page.tsx` («إيراد»، «محصّل»، «متبقٍ»، «عهدة») — فمندوبٌ
+       * له ١٠١ مستند كان يرى إيرادَ آخر مئةٍ بعنوان إيرادِه، وقائمةٌ ناقصة بجانبه لا تُظهر
+       * النقص. وأمّا الآن فالجمعُ في القاعدة على صفوف المندوب كلّها، والقوائمُ تبقى نوافذَ
+       * يُعلن عددُها في `windows`.
+       *
+       * والمنطقُ منقولٌ حرفًا لا مُعادًا اختراعه: النقديُّ `payment_method = 'cash'` وما عداه
+       * آجلٌ (ومنه `card` وNULL — فالحلقةُ القديمة كانت تُسقط كلّ ما ليس «cash» في الآجل)،
+       * والذممُ `GREATEST(0, total − paid_amount)` لكلّ مستند، والعهدةُ المتوقَّعة على أساس
+       * **ما استُلم فعلًا** وإلا المحمَّل، وتُستثنى منها الأوامرُ المصفّاةُ والملغاةُ
+       * والمرفوضة، و`pendingClosings` عدٌّ داخل المستثناةِ منها نفسها.
+       */
+      const documentTotals = first(
+        await tx.execute(sql`
+          SELECT COALESCE(SUM(d.total), 0)::text AS revenue,
+                 COALESCE(SUM(d.total) FILTER (WHERE d.payment_method = 'cash'), 0)::text
+                   AS cash_sales,
+                 COALESCE(SUM(d.total) FILTER (WHERE d.payment_method IS DISTINCT FROM 'cash'), 0)::text
+                   AS credit_sales,
+                 COALESCE(SUM(d.paid_amount), 0)::text AS collected,
+                 COALESCE(SUM(GREATEST(0, COALESCE(d.total, 0) - COALESCE(d.paid_amount, 0))), 0)::text
+                   AS outstanding,
+                 COUNT(*)::int AS documents
+          FROM van_sales_documents d
+          WHERE d.tenant_id = ${tenantId}::uuid AND d.deleted_at IS NULL
+            AND d.salesman_id = ${rep.salesmanId}::uuid
+        `),
       );
-
-      const openCustody = loadOrders
-        .filter((order) => !['settled', 'canceled', 'rejected'].includes(str(order.status)))
-        .reduce<{ expectedKg: Decimal; pendingClosings: number }>(
-          (acc, order) => {
-            const received = dec(order.received_qty).gt(0) ? dec(order.received_qty) : dec(order.loaded_qty);
-            const left = received
-              .minus(dec(order.sold_qty))
-              .minus(dec(order.bonus_qty))
-              .minus(dec(order.returned_qty))
-              .minus(dec(order.damaged_qty))
-              .minus(dec(order.shortage_qty));
-            return {
-              expectedKg: acc.expectedKg.plus(Decimal.max(0, left)),
-              pendingClosings: acc.pendingClosings + (str(order.status) === 'pending_closing' ? 1 : 0),
-            };
-          },
-          { expectedKg: new Decimal(0), pendingClosings: 0 },
-        );
+      const custodyTotals = first(
+        await tx.execute(sql`
+          SELECT COALESCE(SUM(
+                   GREATEST(
+                     0,
+                     (CASE
+                        WHEN COALESCE(l.received_qty, 0) > 0 THEN l.received_qty
+                        ELSE COALESCE(l.loaded_qty, 0)
+                      END)
+                     - COALESCE(l.sold_qty, 0) - COALESCE(l.bonus_qty, 0)
+                     - COALESCE(l.returned_qty, 0) - COALESCE(l.damaged_qty, 0)
+                     - COALESCE(l.shortage_qty, 0)
+                   )
+                 ), 0)::text AS expected_kg,
+                 COUNT(*) FILTER (WHERE l.status = 'pending_closing')::int AS pending_closings
+          FROM van_load_orders l
+          WHERE l.tenant_id = ${tenantId}::uuid AND l.deleted_at IS NULL
+            AND l.salesman_id = ${rep.salesmanId}::uuid
+            AND l.status NOT IN ('settled', 'canceled', 'rejected')
+        `),
+      );
+      /**
+       * عدّاداتُ النوافذ — كي تقول الشاشة «١٠٠ من ٣٤٠ مستندًا» من رقمِ الخادم لا من ثابتٍ
+       * محفوظٍ في كلّ عميل. وعدّاداتُ القوائم من الجدول نفسه الذي جاءت منه القائمة
+       * (بالمرشِّحات نفسها: ‏`deleted_at IS NULL` للأوامر والمستندات، و`collection_receipt`
+       * للحركات، وعضويةُ المندوب نفسه للإشعارات).
+       */
+      const listTotals = first(
+        await tx.execute(sql`
+          SELECT (SELECT COUNT(*)::int FROM van_load_orders lo
+                   WHERE lo.tenant_id = ${tenantId}::uuid AND lo.deleted_at IS NULL
+                     AND lo.salesman_id = ${rep.salesmanId}::uuid) AS load_orders,
+                 (SELECT COUNT(*)::int FROM van_stock_movements m
+                   WHERE m.tenant_id = ${tenantId}::uuid
+                     AND m.movement_type = 'collection_receipt'
+                     AND m.salesman_id = ${rep.salesmanId}::uuid) AS collections,
+                 (SELECT COUNT(*)::int FROM notifications n
+                   WHERE n.tenant_id = ${tenantId}::uuid
+                     AND n.membership_id = ${membershipId}::uuid) AS notifications
+        `),
+      );
 
       return {
         isRep: true,
@@ -7110,18 +7138,46 @@ export class VanSalesService {
           voucherStatus: row.voucher_status ? str(row.voucher_status) : null,
         })),
         totals: {
-          revenue: totals.revenue.toFixed(2),
-          cashSales: totals.cashSales.toFixed(2),
-          creditSales: totals.creditSales.toFixed(2),
-          collected: totals.collected.toFixed(2),
-          outstanding: totals.outstanding.toFixed(2),
+          revenue: dec(documentTotals?.revenue).toFixed(2),
+          cashSales: dec(documentTotals?.cash_sales).toFixed(2),
+          creditSales: dec(documentTotals?.credit_sales).toFixed(2),
+          collected: dec(documentTotals?.collected).toFixed(2),
+          outstanding: dec(documentTotals?.outstanding).toFixed(2),
         },
         custody: {
-          expectedKg: openCustody.expectedKg.toFixed(4),
+          expectedKg: dec(custodyTotals?.expected_kg).toFixed(4),
+          /** الرصيدُ الرسميّ من `stock_balances` — وهو كاملٌ أصلًا (بلا LIMIT) فلا نافذة له. */
           officialKg: balances
             .reduce((sum, row) => sum.plus(dec(row.quantity)), new Decimal(0))
             .toFixed(4),
-          pendingClosings: openCustody.pendingClosings,
+          pendingClosings: Number(custodyTotals?.pending_closings ?? 0),
+        },
+        /**
+         * نوافذُ القراءة: ما رجع / ما في جدول المندوب / الحدّ. وأمّا `balances` و
+         * `pendingReceipts` فكاملان (بلا LIMIT في استعلاميهما) فلا نافذةَ لهما ولا رقمَ ناقصًا
+         * فيهما — والمجاميعُ أعلاه من الجدول كلّه في الحالتين.
+         */
+        windows: {
+          loadOrders: {
+            returned: loadOrders.length,
+            total: Number(listTotals?.load_orders ?? 0),
+            limit: 50,
+          },
+          documents: {
+            returned: documents.length,
+            total: Number(documentTotals?.documents ?? 0),
+            limit: 100,
+          },
+          collections: {
+            returned: collections.length,
+            total: Number(listTotals?.collections ?? 0),
+            limit: 50,
+          },
+          notifications: {
+            returned: notifications.length,
+            total: Number(listTotals?.notifications ?? 0),
+            limit: 20,
+          },
         },
         notifications: notifications.map((row) => ({
           id: str(row.id),
