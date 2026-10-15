@@ -65,6 +65,15 @@ export type CustodyRow = ChargeRow &
     countDocumentExpectedQty?: string | number | null;
     countDocumentVarianceQty?: string | number | null;
     countDocumentVarianceValue?: string | number | null;
+    /**
+     * 🚐 تغطية الرصيد الرسمي للعهدة — للأوامر المفتوحة وحدها (`loaded` / `in_route` /
+     * `pending_closing` / `pending_stock_settlement`)، و`null` لمن سُوّي أو لم يُحسب له.
+     * `vanOfficialQty` رصيد السيارة الرسمي للصنف، `otherCustodyInVanQty` ما فيها لأوامر أخرى،
+     * و`vanStockShortOfCustodyQty` ما نقص في الرصيد عن عهدة هذا الأمر.
+     */
+    vanOfficialQty?: string | number | null;
+    otherCustodyInVanQty?: string | number | null;
+    vanStockShortOfCustodyQty?: string | number | null;
     remainingAction?: string | null;
     stockSettlementStatus?: string | null;
     stockSettlementNote?: string | null;
@@ -309,4 +318,78 @@ export function countSettlementAudit(row: CustodyRow): {
     approvedVarianceText: numberText(row.countVarianceQty ?? null),
     noteText: note ? note : null,
   };
+}
+
+/**
+ * 🚐 تغطية الرصيد الرسمي للعهدة — ما **في** السيارة مقابل ما **يجب** أن يكون فيها لهذا الأمر.
+ *
+ * السبب مقاسٌ لا مقدَّر: مستند الجرد مطلقٌ (يضبط رصيد السيارة على العدد المُعلن)، ففي منشأة
+ * العرض امتصّ إقفالُ أمرٍ 18.00 كجم هي عهدةَ أمرٍ **مفتوح** آخر (`VLO-0001`، ما تزال تنتظر قرار
+ * فرق العبور)، فصار رصيدها الرسمي 4.50 كجم لعهدةٍ مفتوحة مقدارها 18.00 — ونقصُ 13.50 كجم لا
+ * يظهر في أيّ عهدة ولا يُحاسب عليه أحد. وهذه الدالة تُظهر الرقمين كما جاءا من الخادم:
+ *
+ *   · `otherCustodyInVanQty > 0` ⇒ السيارة تحمل عهدةَ أوامرَ أخرى؛ العددُ المُعلن لهذا الأمر
+ *     يجب ألّا يشملها (وإلا شطبها مستند الجرد).
+ *   · `vanStockShortOfCustodyQty > 0` ⇒ الرصيد الرسمي أقلّ من عهدة هذا الأمر المفتوح؛ أي أنّ
+ *     تسويةَ أمرٍ آخر شطبت بعضها — تُقال ولا تُخفى، ولا يُقفل الأمر كأنّ شيئاً لم يكن.
+ *
+ * وكلاهما `null` للأوامر المُسوّاة: بعد الترحيل صار الرصيد هو العدد المُعلن نفسه فالمقارنة عبث.
+ */
+export function vanCustodyCoverage(row: CustodyRow): {
+  open: boolean;
+  officialText: string;
+  otherCustodyText: string;
+  shortOfCustodyText: string;
+  warning: string | null;
+  /** `danger` لنقصٍ في الرصيد عن العهدة، `warn` لعهدةٍ أخرى في السيارة، و`null` لتغطيةٍ سليمة. */
+  tone: 'danger' | 'warn' | null;
+} {
+  const official = row.vanOfficialQty ?? null;
+  const open = official !== null;
+  const other = num(row.otherCustodyInVanQty ?? null);
+  const missing = num(row.vanStockShortOfCustodyQty ?? null);
+  let warning: string | null = null;
+  let tone: 'danger' | 'warn' | null = null;
+  if (missing.gt(0)) {
+    warning = `الرصيد الرسمي للسيارة (${numberText(official)}) أقلّ من عهدة هذا الأمر (${numberText(
+      row.expectedRemainingQty ?? null,
+    )}) بمقدار ${missing.toFixed(2)} كجم — نقصٌ وقع في تسويات أوامرَ أخرى (مستند الجرد يضبط الرصيد كله على العدد المُعلن)، فلا تُقفل هذه العهدة قبل بيان مصير الفرق.`;
+    tone = 'danger';
+  } else if (other.gt(0)) {
+    warning = `السيارة تحمل ${other.toFixed(
+      2,
+    )} كجم عهدةً لأوامرَ أخرى إضافةً إلى هذه العهدة (الرصيد الرسمي ${numberText(
+      official,
+    )}) — ومستند الجرد يضبط الرصيد كله، فالعدد المُعلن هنا لهذه العهدة وحدها ولا تُدخل فيه ما لغيرها.`;
+    tone = 'warn';
+  }
+  return {
+    open,
+    officialText: numberText(official),
+    otherCustodyText: numberText(row.otherCustodyInVanQty ?? null),
+    shortOfCustodyText: numberText(row.vanStockShortOfCustodyQty ?? null),
+    warning,
+    tone,
+  };
+}
+
+/**
+ * 🚐 خلاصةُ الغطاء الرسمي للعهدة المفتوحة على مستوى السيارة: كم عهدةً مفتوحةً لا يغطّيها رصيدُ
+ * السيارة الرسمي، ومجموعُ النقص. تُرفع للواجهة كرقمٍ واحد (لا حسابَ في المكوّنات) لأنّ النقص هنا
+ * ليس فرقَ أمرٍ واحد بل أثرُ مستندات جردٍ أُصدرت لأوامرَ أخرى على رصيدٍ واحد.
+ */
+export function uncoveredCustodySummary(rows: readonly CustodyRow[]): {
+  count: number;
+  shortfallText: string;
+} {
+  let shortfall = num(0);
+  let count = 0;
+  for (const row of rows) {
+    if (row.vanOfficialQty == null) continue;
+    const missing = num(row.vanStockShortOfCustodyQty ?? null);
+    if (!missing.gt(0)) continue;
+    count += 1;
+    shortfall = shortfall.add(missing);
+  }
+  return { count, shortfallText: numberText(shortfall.toFixed(2)) };
 }

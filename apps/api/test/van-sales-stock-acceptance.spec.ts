@@ -1774,6 +1774,38 @@ describe('Van Sales end-to-end acceptance on official stock & accounting ledgers
     expect(documentVariance).toBeCloseTo(Math.abs(documentExpected - counted), 2);
     expect(documentVariance).toBeGreaterThanOrEqual(Math.abs(Number(chargedRow.shortage_qty)));
 
+    // 🚐 تغطيةُ الرصيد الرسمي للعهدة المفتوحة (§7 من `BAKERY_APP_PHASE3_SLICE4_DESIGN.md`):
+    // أمرٌ مُسوّى ⇒ لا قياس أصلًا (‏null)، لأنّ الرصيد بعد الترحيل هو العدد المُعلن نفسه.
+    // وأمرٌ مفتوح ⇒ `الرصيد الرسمي = عهدةُ هذا الأمر + عهدةٌ أخرى في السيارة − نقصٌ في الرصيد
+    // عنها`، والطرفان غيرُ سالبين ولا يجتمعان (إمّا في السيارة ما لغيره وإمّا ينقصها ما له).
+    // يُثبَّت على **كلّ** صفوف اللوحة لا على صفٍّ واحد، فالحالة الخطرة (عهدةٌ مفتوحة شطبتها
+    // تسويةُ أمرٍ آخر) قد تقع في أيّ صفّ.
+    expect(shown?.vanOfficialQty, 'a settled order is not measured against the van balance').toBeNull();
+    expect(shown?.otherCustodyInVanQty).toBeNull();
+    expect(shown?.vanStockShortOfCustodyQty).toBeNull();
+    for (const order of dashboard.body.data.loadOrders as Array<Record<string, unknown>>) {
+      const official = order.vanOfficialQty;
+      if (official === null || official === undefined) {
+        expect(order.otherCustodyInVanQty, `${String(order.number)}: settled ⇒ no measurement`).toBeNull();
+        expect(order.vanStockShortOfCustodyQty, `${String(order.number)}: settled ⇒ no measurement`).toBeNull();
+        continue;
+      }
+      const expected = Number(String(order.expectedRemainingQty ?? '0'));
+      const other = Number(String(order.otherCustodyInVanQty ?? ''));
+      const missing = Number(String(order.vanStockShortOfCustodyQty ?? ''));
+      expect(
+        Number.isFinite(other) && Number.isFinite(missing),
+        `${String(order.number)}: an open custody must expose both coverage numbers`,
+      ).toBe(true);
+      expect(other, `${String(order.number)}: other custody is never negative`).toBeGreaterThanOrEqual(0);
+      expect(missing, `${String(order.number)}: a shortfall is never negative`).toBeGreaterThanOrEqual(0);
+      expect(
+        Number(String(official)),
+        `${String(order.number)}: official balance = this custody + other custody − shortfall`,
+      ).toBeCloseTo(expected + other - missing, 2);
+      expect(other * missing, `${String(order.number)}: coverage and shortfall are exclusive`).toBe(0);
+    }
+
     // ── الخطوة 12: حمولةٌ بلا دفعة إنتاج ⇒ «بالتكلفة» لا تنقلب سعرَ بيع ───────────────
     // `van_load_orders.unit_cost` مصدرها دفعة الإنتاج وحدها، فأمرٌ بلا دفعة يحمل 0. والتشغيل
     // الحيّ (‏2026-10-15، منشأة العرض) كشف أنّ السلسلة كانت تكمل إلى متوسط مستندات الأمر ثمّ

@@ -11,6 +11,8 @@ import {
   mapCustodyRows,
   openCustodies,
   policySummary,
+  uncoveredCustodySummary,
+  vanCustodyCoverage,
   type CustodyRow,
   type ShortagePolicyRow,
 } from '../lib/custody-screen';
@@ -342,5 +344,87 @@ describe('countSettlementAudit — ما امتصّه مستند الجرد خا�
     expect(audit.documentVarianceQtyText).toBe('—');
     expect(audit.documentVarianceValueText).toBe('—');
     expect(audit.noteText).toBeNull();
+  });
+});
+
+describe('vanCustodyCoverage — تغطية الرصيد الرسمي للعهدة (أرقام منشأة العرض مقاسةً)', () => {
+  it('الرصيد أقلّ من عهدةٍ مفتوحة ⇒ نقصٌ بخطورةٍ يُقال قبل الإقفال', () => {
+    // VLO-0001 مقاساً: عهدةٌ مفتوحة 18.00 كجم ورصيد السيارة الرسمي 4.50 — امتصّت تسوياتُ أوامرَ
+    // أخرى 13.50 كجم من عهدةٍ لم تُقفل بعد (مستند الجرد مطلقٌ يضبط الرصيد كله).
+    const coverage = vanCustodyCoverage(
+      row({
+        status: 'loaded',
+        stockSettlementStatus: 'pending_transit_decision',
+        expectedRemainingQty: '18.00',
+        vanOfficialQty: '4.50',
+        otherCustodyInVanQty: '0.00',
+        vanStockShortOfCustodyQty: '13.50',
+      }),
+    );
+    expect(coverage.open).toBe(true);
+    expect(coverage.tone).toBe('danger');
+    expect(coverage.officialText).toBe('4.50');
+    expect(coverage.shortOfCustodyText).toBe('13.50');
+    expect(coverage.warning).toContain('13.50');
+    expect(coverage.warning).toContain('4.50');
+    expect(coverage.warning).toContain('18.00');
+  });
+
+  it('في السيارة عهدةٌ أخرى ⇒ تحذيرٌ أنّ العدد المُعلن لهذا الأمر وحده', () => {
+    // VLO-0005 عند إقفاله: رصيد 28.00 = عهدة هذا الأمر 10.00 + عهدة VLO-0004 المفتوحة 18.00.
+    const coverage = vanCustodyCoverage(
+      row({
+        expectedRemainingQty: '10.00',
+        vanOfficialQty: '28.00',
+        otherCustodyInVanQty: '18.00',
+        vanStockShortOfCustodyQty: '0.00',
+      }),
+    );
+    expect(coverage.open).toBe(true);
+    expect(coverage.tone).toBe('warn');
+    expect(coverage.otherCustodyText).toBe('18.00');
+    expect(coverage.warning).toContain('18.00');
+  });
+
+  it('تغطيةٌ سليمة ⇒ لا تحذير ولا ادّعاء', () => {
+    const coverage = vanCustodyCoverage(
+      row({
+        expectedRemainingQty: '10.00',
+        vanOfficialQty: '10.00',
+        otherCustodyInVanQty: '0.00',
+        vanStockShortOfCustodyQty: '0.00',
+      }),
+    );
+    expect(coverage.open).toBe(true);
+    expect(coverage.tone).toBeNull();
+    expect(coverage.warning).toBeNull();
+  });
+
+  it('أمرٌ مُسوّى ⇒ الحقول null من الخادم فلا تقيس الشاشة شيئاً', () => {
+    const coverage = vanCustodyCoverage(
+      row({ status: 'settled', stockSettlementStatus: 'settled_officially' }),
+    );
+    expect(coverage.open).toBe(false);
+    expect(coverage.officialText).toBe('—');
+    expect(coverage.tone).toBeNull();
+    expect(coverage.warning).toBeNull();
+  });
+});
+
+describe('uncoveredCustodySummary — العهدة المفتوحة بلا غطاءٍ رسمي', () => {
+  it('يجمع المفتوحة الناقصة ويهمل المُسوّاة والمغطّاة', () => {
+    const summary = uncoveredCustodySummary([
+      row({ vanOfficialQty: '4.50', vanStockShortOfCustodyQty: '13.50' }),
+      row({ vanOfficialQty: '4.50', vanStockShortOfCustodyQty: '2.25' }),
+      row({ vanOfficialQty: null, vanStockShortOfCustodyQty: '99.00' }),
+      row({ vanOfficialQty: '10.00', vanStockShortOfCustodyQty: '0.00' }),
+    ]);
+    expect(summary.count).toBe(2);
+    expect(summary.shortfallText).toBe('15.75');
+  });
+
+  it('لا صفوف ⇒ صفرٌ لا تحذير', () => {
+    expect(uncoveredCustodySummary([]).count).toBe(0);
+    expect(uncoveredCustodySummary([]).shortfallText).toBe('0.00');
   });
 });

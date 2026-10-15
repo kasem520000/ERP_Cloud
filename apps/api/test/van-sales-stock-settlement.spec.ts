@@ -305,7 +305,7 @@ describe('Van Sales — stock & custody settlement against the official ledger',
 
     // Every case gets its own van warehouse, so "the official van balance equals the count"
     // can be asserted as an absolute number without another test's leftovers.
-    for (const key of ['s1','s2','s3','s4','s5','s6','s7','s8','s9','s10']) {
+    for (const key of ['s1','s2','s3','s4','s5','s6','s7','s8','s9','s10','cov']) {
       vanWarehouseIds[key] = newId();
     }
     await withTenantTx(ctx.handle.db, owner.tenantId, async (tx) => {
@@ -1139,5 +1139,117 @@ describe('Van Sales — stock & custody settlement against the official ledger',
     });
     expect(released.status, JSON.stringify(released.body)).toBe(201);
     expect(await officialQty(mainWarehouseId)).toBe(mainBefore - 6);
+  });
+
+  // ── 🚐 العهدة المتراكمة في سيارةٍ واحدة (§7 من `BAKERY_APP_PHASE3_SLICE4_DESIGN.md`) ──────
+  it('a count document wipes another open custody in the same van — and the dashboard says so', async () => {
+    // سيارةٌ واحدة تحمل عهدتين: الأولى 20 كجم تبقى مفتوحة (لم يُبع منها شيء)، والثانية 10 كجم
+    // تُقفل بعددٍ صادقٍ لأمرها وحده (‏6 بعد بيع 4). ومستند الجرد **مطلق**: يضبط رصيد السيارة كله
+    // على العدد المُعلن، فيشطب 20 كجم لا تقع في عهدة أحد. وليست فرضية: قِيست في منشأة العرض
+    // (‏VLO-0004 امتصّ 18.00 كجم هي عهدةُ VLO-0001 المفتوحة، وVLO-0005 امتصّ 8.00 بعدها).
+    vanWarehouseIds['cov-2'] = vanFor('cov'); // ‏أمران في سيارةٍ واحدة — لا سيارة لكلّ أمر
+    const first = await newCustody('cov', '50', '20', '20');
+    const second = await newCustody('cov-2', '50', '10', '10');
+    const van = vanFor('cov');
+    expect(await officialQty(van)).toBe(30);
+
+    const coverageOf = async (loadOrderId: string): Promise<Record<string, unknown>> => {
+      const read = await api(ctx.server, 'get', '/api/v1/van-sales/dashboard', {
+        token: accountant.token,
+      });
+      expect(read.status, JSON.stringify(read.body)).toBe(200);
+      const shown = (read.body.data as { loadOrders: Array<Record<string, unknown>> }).loadOrders.find(
+        (order) => order.id === loadOrderId,
+      );
+      expect(shown, `order ${loadOrderId} must be readable from the dashboard`).toBeTruthy();
+      return shown!;
+    };
+
+    // قبل الإقفال: الرصيد 30 = عهدةُ كلٍّ منهما + عهدةُ الأخرى، ولا نقص في الرصيد عن أيٍّ منهما.
+    const openCases: Array<[string, string, string]> = [
+      [first.loadOrderId, '20.00', '10.00'],
+      [second.loadOrderId, '10.00', '20.00'],
+    ];
+    for (const [loadOrderId, own, other] of openCases) {
+      const shown = await coverageOf(loadOrderId);
+      expect(shown.expectedRemainingQty).toBe(own);
+      expect(shown.vanOfficialQty).toBe('30.00');
+      expect(shown.otherCustodyInVanQty).toBe(other);
+      expect(shown.vanStockShortOfCustodyQty).toBe('0.00');
+    }
+
+    await sell(second.loadOrderId, 'cov-sale', '4', '0');
+    expect(await officialQty(van)).toBe(26); // ‏30 − 4 مبيع
+
+    const submit = await api(
+      ctx.server,
+      'post',
+      `/api/v1/van-sales/load-orders/${second.loadOrderId}/submit-closing`,
+      {
+        token: rep.token,
+        body: {
+          returnedQty: '0',
+          damagedQty: '0',
+          collectedCash: '0',
+          // عددٌ صادق **لهذا الأمر** (‏0.5 عجز) — وهو ما يفعله المندوب اليوم. وبلا فرقٍ في
+          // أمره لا يُنشأ مستند جردٍ أصلًا، فشرط الكارثة فرقٌ صغير في أمرٍ وسيارةٌ فيها عهدةٌ أخرى.
+          actualRemainingQty: '5.5',
+        },
+      },
+    );
+    expect(submit.status, JSON.stringify(submit.body)).toBe(201);
+    const approve = await api(
+      ctx.server,
+      'post',
+      `/api/v1/van-sales/load-orders/${second.loadOrderId}/approve-closing`,
+      {
+        token: accountant.token,
+        body: {
+          returnedQty: '0',
+          damagedQty: '0',
+          actualRemainingQty: '5.5',
+          remainingAction: 'carry_over',
+        },
+      },
+    );
+    expect(approve.status, JSON.stringify(approve.body)).toBe(201);
+    // مع فرقٍ في أمره يُنشأ مستند الجرد مسودةً ويبقى الأمر `pending_stock_settlement` حتى
+    // التفويض — والمقصود قياسُ **النتيجة**: مستند جردٍ مُرحَّل ضبط رصيد السيارة كله.
+    const afterApprove = await loadOrderRow(second.loadOrderId);
+    if (afterApprove.stock_settlement_status !== 'settled_officially') {
+      const settle = await api(
+        ctx.server,
+        'post',
+        `/api/v1/van-sales/load-orders/${second.loadOrderId}/settle-stock`,
+        {
+          token: accountant.token,
+          body: { settleStockAdjustment: true, remainingAction: 'carry_over' },
+        },
+      );
+      expect(settle.status, JSON.stringify(settle.body)).toBe(201);
+    }
+    expect((await loadOrderRow(second.loadOrderId)).stock_settlement_status).toBe(
+      'settled_officially',
+    );
+
+    // الكارثة بالأرقام الرسمية: رصيد السيارة صار 5.50 (عددُ الأمر المُقفل وحده) بينما عهدةُ
+    // الأمر الأول 20.00 ما تزال مفتوحة ⇒ نقص 14.50 لا يغطّيه المخزون ولا يقع في عهدة أحد ولا
+    // يُحاسب عليه أحد — ومستند الجرد سجّل فرقاً 20.50 (‏26 − 5.5) مقابل فرق اعتمادٍ 0.50.
+    expect(await officialQty(van)).toBe(5.5);
+    const wiped = await coverageOf(first.loadOrderId);
+    expect(wiped.vanOfficialQty).toBe('5.50');
+    expect(wiped.otherCustodyInVanQty).toBe('0.00');
+    expect(wiped.vanStockShortOfCustodyQty).toBe('14.50');
+    expect(wiped.stockSettlementStatus, 'the first custody is still open').not.toBe(
+      'settled_officially',
+    );
+
+    // والأمر المُقفل لا يُقاس: بعد الترحيل صار الرصيد هو العدد المُعلن نفسه فالمقارنة عبث.
+    const closed = await coverageOf(second.loadOrderId);
+    expect(closed.vanOfficialQty).toBeNull();
+    expect(closed.otherCustodyInVanQty).toBeNull();
+    expect(closed.vanStockShortOfCustodyQty).toBeNull();
+    // الامتصاص ليس صامتاً في الخادم (§6.5): يكتب تحذيراً في ملاحظة التسوية نفسها.
+    expect(String(closed.stockSettlementNote ?? '')).toContain('⚠️');
   });
 });

@@ -665,6 +665,58 @@ export class VanSalesService {
         `),
       );
 
+      /**
+       * 🚐 الرصيد الرسمي للسيارة لكلّ (صنف، سيارة) في **الأوامر المفتوحة** — ليُقرأ معه رقمان
+       * كانا غائبين عن اللوح: ما تحمله السيارة من عهدةِ أوامرَ أخرى، وما نقص في رصيدها الرسمي
+       * عن عهدة هذا الأمر.
+       *
+       * والسبب مقاسٌ لا مقدَّر (§6.4–6.5 من `BAKERY_APP_PHASE3_SLICE4_DESIGN.md`): مستند الجرد
+       * مطلقٌ — يضبط رصيد السيارة على العدد المُعلن — ففي منشأة العرض امتصّ إقفالُ `VLO-0004`
+       * ‏18.00 كجم هي **عهدةُ `VLO-0001` المفتوحة** (التي ما تزال تنتظر قرار فرق العبور)، ثمّ
+       * امتصّ `VLO-0005` ‏8.00 كجم هي متبقّي `VLO-0004` المُرحَّل. والرصيد الرسمي وحده يقول كم
+       * **في** السيارة، وعهدةُ الأمر تقول كم **يجب** أن يكون فيها لهذا الأمر — والفرق إمّا
+       * عهدةٌ لأمرٍ آخر (لا يُسأل عنها هذا الأمر) أو نقصٌ في الرصيد عن عهدةٍ قائمة (يُقال
+       * ولا يُخفى). ولا تُحسب للأوامر المُسوّاة: بعد الترحيل صار الرصيد هو العدد المُعلن نفسه.
+       */
+      const OPEN_CUSTODY_STATUSES = [
+        'loaded',
+        'in_route',
+        'pending_closing',
+        'pending_stock_settlement',
+      ];
+      /**
+       * الأزواج (صنف، سيارة) بلا تكرار — والقائمة تُبنى `VALUES` صريحةً لا مصفوفةَ معاملات:
+       * السائق هنا (drizzle + node-postgres) يفرد المصفوفةَ إلى معاملاتٍ مفردة، فـ`ANY($2)`
+       * يستقبل uuid واحداً لا مصفوفةً ويرفضه Postgres — وقِيست النتيجة: ‏500 على اللوح كله.
+       */
+      const openCustodyPairs = [
+        ...new Map(
+          loadOrders
+            .filter((orderRow) => OPEN_CUSTODY_STATUSES.includes(str(orderRow.status)))
+            .map((orderRow) => ({ item: str(orderRow.item_id), van: str(orderRow.van_warehouse_id) }))
+            .filter((pair) => pair.item && pair.van)
+            .map((pair) => [`${pair.item}|${pair.van}`, pair] as const),
+        ).values(),
+      ];
+      const vanBalanceMap = new Map<string, string>();
+      if (openCustodyPairs.length > 0) {
+        const pairList = sql.join(
+          openCustodyPairs.map((pair) => sql`(${pair.item}::uuid, ${pair.van}::uuid)`),
+          sql`, `,
+        );
+        const vanBalanceRows = rows(
+          await tx.execute(sql`
+            SELECT item_id::text, warehouse_id::text, COALESCE(quantity, 0)::text AS qty
+            FROM stock_balances
+            WHERE tenant_id = ${tenantId}::uuid
+              AND (item_id, warehouse_id) IN (VALUES ${pairList})
+          `),
+        );
+        for (const balanceRow of vanBalanceRows) {
+          vanBalanceMap.set(`${str(balanceRow.item_id)}|${str(balanceRow.warehouse_id)}`, str(balanceRow.qty));
+        }
+      }
+
       const customerPrices = rows(
         await tx.execute(sql`
           SELECT cp.id::text, cp.party_id::text, p.name AS party_name, p.code AS party_code, p.tax_no AS party_tax_no,
@@ -1156,6 +1208,24 @@ export class VanSalesService {
           const actualRemaining = dec(row.actual_remaining_qty);
           const expectedRemaining = custodyBasis.minus(sold).minus(bonus).minus(returned).minus(damaged);
           const countVariance = expectedRemaining.minus(actualRemaining);
+          /**
+           * 🚐 تغطية الرصيد الرسمي للعهدة — للأوامر المفتوحة وحدها، ومن رقمين رسميين فقط:
+           * رصيد السيارة للصنف، ومتوقَّع البقاء لهذا الأمر. فما زاد في الرصيد عهدةُ أمرٍ آخر،
+           * وما نقص نقصٌ في الرصيد عن عهدةٍ قائمة (كارثةُ أن يشطب إقفالُ أمرٍ عهدةَ أمرٍ آخر).
+           */
+          const isOpenCustody = OPEN_CUSTODY_STATUSES.includes(str(row.status));
+          const vanBalanceText = isOpenCustody
+            ? vanBalanceMap.get(`${str(row.item_id)}|${str(row.van_warehouse_id)}`)
+            : undefined;
+          // أمرٌ مفتوحٌ بلا صفّ رصيدٍ رسمي ⇒ الرصيد صفرٌ فعلاً، فيُقال النقص كلّه ولا يُخفى
+          // (إخفاؤه هنا يعني عهدةً قائمةً لا يغطّيها المخزون ولا يراها أحد).
+          const vanOfficialQty = isOpenCustody ? dec(vanBalanceText ?? '0') : null;
+          const otherCustodyInVanQty = vanOfficialQty
+            ? Decimal.max(0, vanOfficialQty.minus(expectedRemaining)).toFixed(2)
+            : null;
+          const vanStockShortOfCustodyQty = vanOfficialQty
+            ? Decimal.max(0, expectedRemaining.minus(vanOfficialQty)).toFixed(2)
+            : null;
           return {
             id: str(row.id),
             number: str(row.number),
@@ -1217,6 +1287,12 @@ export class VanSalesService {
             countDocumentVarianceQty: countDocumentPosted
               ? dec(row.count_document_variance_qty).abs().toFixed(2)
               : null,
+            /** رصيد السيارة الرسمي للصنف — للأوامر المفتوحة، و`null` لمن سُوّي أو بلا رصيد. */
+            vanOfficialQty: vanOfficialQty ? vanOfficialQty.toFixed(2) : null,
+            /** ما في السيارة من عهدةِ أوامرَ أخرى (لا يُسأل عنها هذا الأمر). */
+            otherCustodyInVanQty,
+            /** ما نقص في الرصيد الرسمي عن عهدة هذا الأمر المفتوح — يُقال ولا يُخفى. */
+            vanStockShortOfCustodyQty,
             countDocumentExpectedQty: countDocumentPosted
               ? dec(row.count_document_expected_qty).toFixed(2)
               : null,

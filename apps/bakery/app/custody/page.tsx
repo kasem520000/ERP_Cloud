@@ -35,9 +35,11 @@ import {
   mapCustodyRows,
   openCustodies,
   policySummary,
+  uncoveredCustodySummary,
   type CustodyDashboard,
   type CustodyRow,
   type ShortagePolicyRow,
+  vanCustodyCoverage,
 } from '../../lib/custody-screen';
 import { numberText } from '../../lib/lookups';
 
@@ -317,6 +319,13 @@ export default function CustodyPage() {
         .filter((entry) => entry.audit.absorbed),
     [rows],
   );
+  /**
+   * 🚐 تغطيةُ الرصيد الرسمي للعهدة المختارة — تُقال **قبل** إدخال العدد، لأنّ مستند الجرد يضبط
+   * رصيد السيارة كله: إن كانت فيها عهدةٌ لأمرٍ آخر فالعدد المُعلن هنا يجب ألّا يشملها.
+   */
+  const coverage = selected ? vanCustodyCoverage(selected) : null;
+  /** عهدةٌ مفتوحة لا يغطّيها رصيد السيارة الرسمي — أثرُ مستندات جردٍ صدرت لأوامرَ أخرى. */
+  const uncovered = useMemo(() => uncoveredCustodySummary(rows), [rows]);
 
   return (
     <section className="grid gap-4">
@@ -331,7 +340,13 @@ export default function CustodyPage() {
             علمٍ صريح لا يُرحَّل قيد، ومع العلم يُقال أثره هنا قبل الضغط.
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          {uncovered.count > 0 ? (
+            <span className="rounded-[8px] border border-danger-line bg-danger-soft px-2 py-1 text-[12px] font-semibold text-danger-ink">
+              🚐 الرصيد الرسمي لا يغطي {uncovered.count} عهدة مفتوحة — نقص{' '}
+              <span dir="ltr">{uncovered.shortfallText}</span> كجم
+            </span>
+          ) : null}
           <span className="bak-badge">POST …/submit-closing · …/approve-closing</span>
           <Button disabled={loading || !canView} onClick={() => void load()} size="sm">
             تحديث
@@ -738,6 +753,22 @@ export default function CustodyPage() {
                       خارج هذا الأمر — رصيد السيارة عند الترحيل{' '}
                       <span dir="ltr">{selectedAudit.documentExpectedText}</span> مقابل فرقٍ معتمد{' '}
                       <span dir="ltr">{selectedAudit.approvedVarianceText}</span>
+                    </span>
+                  ) : null}
+                  {coverage?.warning ? (
+                    <span
+                      className={
+                        coverage.tone === 'danger'
+                          ? 'rounded-[8px] border border-danger-line bg-danger-soft px-2 py-1 font-semibold text-danger-ink'
+                          : 'rounded-[8px] border border-warn-line bg-warn-soft px-2 py-1 font-semibold text-warn-ink'
+                      }
+                    >
+                      🚐 {coverage.warning}
+                    </span>
+                  ) : coverage?.open ? (
+                    <span className="text-muted">
+                      🚐 الرصيد الرسمي للسيارة <span dir="ltr">{coverage.officialText}</span> كجم —
+                      يغطي عهدة هذا الأمر، ولا عهدةَ أخرى في السيارة.
                     </span>
                   ) : null}
                 </div>
