@@ -384,3 +384,80 @@ A = max(0, V − O)   نصيبُ هذا الأمر من عدد المركبة V 
 | قراءة `VLO-0001` من `van_load_orders` مباشرة | ‏`production_batch_no = ''` · `loaded_qty = 10.0000` · **`loaded_total_value = 50.0000`** (= 10 × التكلفة 5.00؛ ولو كان سعر البيع لكان 90.0000) · `unit_cost = 0.0000` (لا تُدّعى تكلفة دفعةٍ لم تُسمَّ) |
 | قراءة `van_stock_movements` | حركة `van_load` بـ`batch_no = ''` و`unit_price 5.0000` و`amount 50.0000` — دفترُ الحركات لا ينسب الحمولة إلى دفعة |
 | ‏`SELECT COUNT(*) FROM factory_production_batches` | ‏**0** — وهي الحالة نفسها التي قيس فيها قبل الإصلاح `VLO-0001` حاملاً `PROD-20261014-0001` مع صفر دفعاتٍ في المستأجر |
+
+## الشريحة 7 — سطحُ النشر: كلّ واجهةٍ تُنشر من طرفٍ إلى طرف، أو يسقط الاختبار
+
+**سببُ الترتيب**: التطبيق السابع غير قابلٍ للتشغيل مع بقيّة التطبيقات اليوم — `scripts/local-start.sh`
+يقلع خمسة أسطحٍ من سبعة، و`deploy/k8s` ينشر `bakery` بصورةٍ لا معيدَ تسميةٍ لها. نقصُ نشرٍ لا
+نقصُ منطق، وهو ما يجعل كلّ ما بُني قبله غير قابلٍ للتسليم.
+
+### 1. ما قيس مكسوراً (لا ما ظُنّ)
+
+التحقّقُ بنيويّ: لا Docker ولا `kubectl` ولا `kustomize` في بيئة التحقّق، فقُرئت الملفات
+وطوبقت الأسماءُ والمنافذ بينها. الفجوات كما قبضها الاختبار الجديد قبل إصلاحها:
+
+| الفجوة | الرسالة |
+| --- | --- |
+| ‏`customer-portal` بلا Deployment/Service في `deploy/k8s` | ‏`deploy/k8s must declare a Deployment named "customer-portal": expected undefined to be truthy` |
+| ‏`erp-bakery` (و`erp-customer-portal`) بلا مدخلٍ في `images:` | ‏`kustomization.yaml images: must pin "erp-bakery": expected false to be true` — أي أنّ `kubectl apply -k` كان سينشر الاسم الخام `erp-bakery:latest` فيسحبه من Docker Hub (`ImagePullBackOff`) |
+| ‏`customer-portal` و`bakery` بلا `replicas:` | ‏`kustomization replicas for "customer-portal": expected 0 to be greater than or equal to 2` |
+| ‏`portal.erp.example` بلا قاعدةٍ في المدخل وبلا شهادة | ‏`ingress must route a host to "erp-customer-portal"` · `CUSTOMER_PUBLIC_URL=https://portal.erp.example must be routed by an ingress host` |
+| ‏`scripts/local-start.sh` يُقلع خمسة أسطحٍ من سبعة | ‏`local-start SERVICES must include "customer-portal"` |
+
+والأولى فجوةٌ معلَنةٌ منذ المرحلة الثانية ولم تُغلق، والثانية **أدخلتُها أنا** في شريحةٍ سابقة:
+أضفتُ Deployment وService للمخابز بلا `images:` ولا `replicas:`، فلم يكن النشر الذي ظننتُه مسلّماً.
+
+### 2. ما نُفِّذ
+
+| الملفّ | التغيير |
+| --- | --- |
+| ‏`deploy/k8s/web.yaml` | Deployment + Service لبوابة العميل (‏3004) بمثل ما لجيرانها: `runAsNonRoot`، فحصا جهوزيةٍ وحيوية، طلباتٌ وحدود موارد، و`HOSTNAME=0.0.0.0` (بلا Next standalone لا يستمع) |
+| ‏`deploy/k8s/kustomization.yaml` | ‏`images:` += ‏`erp-customer-portal` و`erp-bakery` (‏GHCR) · `replicas:` += ‏`customer-portal` و`bakery` (‏2) · وتصحيحُ تعليقٍ كان يَعِد بـ`.github/workflows/release.yml` **وهو غير موجود** (في المستودع `verify.yml` وحده) فاستُبدل بأمرَي `docker build` الحقيقيّين وبيان أنّ بناء الصور يدويٌّ اليوم |
+| ‏`deploy/k8s/ingress.yaml` | قاعدة `portal.erp.example` → `erp-customer-portal:3004` وإضافةُ النطاق إلى `tls.hosts` (‏cert-manager لا يُصدر لنطاقٍ غير مُعلن) |
+| ‏`scripts/local-start.sh` | المنفذان `PORTAL_PORT`/`BAKERY_PORT` من متغيّري `next-run.mjs` نفسيهما، والمصفوفات الأربع (`SERVICES`/`PORTS`/`PROBES`/`LABELS`)، وشبكة أمان الإيقاف، وحلقتا البناء والإقلاع، وجدول الروابط — وقِيست بـ`bash -n` ثمّ بـ`--status` فعلًا: سبعة أسطرٍ، والـAPI على 3000 والمخابز على 3005 ‏`HTTP 200` |
+| ‏`deploy/k8s/config.yaml` | تعليقٌ يقيس ولا يظن: لماذا `portal.` و`bakery.` **ليستا** في `CORS_ALLOWED_ORIGINS` — فالأسطح الخمسة تمرّر `/api/v1/*` عبر `API_PROXY_TARGET` في `apps/*/next.config.mjs` (قِيست الخمسة)، فطلباتُ المتصفح نفسُ الأصل؛ وتوسيعُ القائمة توسيعٌ لسطح القبول بلا حاجة |
+| ‏`packages/config` | ‏`yaml` اعتماديةُ تطوير (موجودةٌ في المخزن أصلاً) + سبيكُ سطح النشر |
+
+### 3. السبيك الجديد — `packages/config/src/deployment-surface.spec.ts` (‏9 أحكام)
+
+مصدرُ الحقيقة `APP_META` في `scripts/next-run.mjs`: فسطحٌ سادسٌ يُضاف هناك يدخل في كل حكمٍ
+هنا بلا تعديلٍ في السبيك. وما يقيسه: خدمةٌ في `docker-compose.yml` بصورتها ومعاملات بنائها
+ومنفذها و`API_PROXY_TARGET` · Deployment وService في `deploy/k8s` بالمنفذ نفسه والتشديد نفسه ·
+مدخلٌ في `images:` لكل صورة `erp-*` مرجعيّة في **أيّ** ملفّ k8s (لا للواجهات وحدها) · نسختان
+لكل سطح · قاعدةٌ في المدخل وشهادةٌ لنطاقها · كلّ `*_PUBLIC_URL` في `config.yaml` نطاقُه
+موجَّهٌ فعلاً · إقلاعُ كلّ سطح من `local-start.sh` بمتغيّر المنفذ الذي يقرؤه `next-run.mjs` ·
+وتساوي أطوال مصفوفاته الأربع (مع `set -u`، مصفوفةٌ أقصر = فشلٌ في `status()` لا نقصٌ تجميلي) ·
+ولا مرجعَ معلّق: كلّ خلفٍ في المدخل خدمةٌ معلنة بمنفذها، وكلّ واصف خدمةٍ يحمله حملُ عملٍ فعلاً،
+وكلّ موردٍ في `kustomization` ملفٌّ موجود.
+
+**وخللٌ في سبيكي نفسه أُصلح وقُبض**: عدّادُ عناصر bash كان يُسقط العنصر الفارغ المكتوب
+صراحةً (`PORTS=( "$API_PORT" "" …)` — العامل الخلفي بلا منفذ)، فعدّ `PORTS` ‏4 و`SERVICES` ‏5
+ووافق الحكمُ خللاً غير موجود؛ وصار `""` يُعدّ عنصراً. وكذلك حلقةُ الإقلاع موزّعةٌ على سطرين
+بشرطةٍ مائلة، فقراءةُ السطر الأوّل وحده كانت تُسقط سطحين من الحكم — والجمعُ الآن للجملة
+لا للسطر.
+
+### 4. الأوامر ونتائجها الفعلية
+
+| الأمر | النتيجة |
+| --- | --- |
+| ‏`pnpm install --frozen-lockfile` | ‏`EXIT=0` — القفل متّسقٌ مع إضافة `yaml` (وهو ما يشغّله CI و`deploy/Dockerfile.web`) |
+| ‏`pnpm --filter @erp/config run test` | ‏**4 ملفات / 25 اختباراً** (‏9 جديدة) — وتسقط **6 من 9** قبل إصلاح الملفات |
+| ‏`pnpm --filter @erp/customer-portal run build` | ‏`EXIT=0` — فخطوةُ بنائه الجديدة في `local-start.sh` تُبنى فعلاً لا تُوعَد |
+| ‏`bash -n scripts/local-start.sh` · `--status` | صياغةٌ سليمة · سبعةُ أسطرٍ بالمنافذ والحالة (‏API ‏200، المخابز 200، والبقيّة لم تُقلع) |
+| ‏`pnpm --filter @erp/api run test` | ‏**203 ملفات / 1717 اختباراً**، ‏`EXIT=0`، ‏499 ثانية — لم يتغيّر (شيفرةُ الـAPI لم تُمسّ) |
+| ‏`pnpm -r --filter '!@erp/api' run test` | ‏**86 ملفاً / 747 ناجحاً / 1 متخطًّى / 0 فاشل**، ‏`EXIT=0` |
+| ‏`pnpm -r run typecheck` · `pnpm -r run lint` | ‏`EXIT=0` · `EXIT=0` (بعد فصل مجموعة استيراد `node:` في السبيك الجديد) |
+
+### 5. حدودٌ تُقال
+
+1. **التحقّق بنيويٌّ لا نشرٌ فعليّ**: لا Docker ولا `kubectl`/`kustomize` في البيئة، فلم تُبنَ
+   صورةٌ ولم يُطبَّق مُجمَّع. والمُثبت أنّ الملفات تُحلَّل YAML صحيحاً (فالتحليل نفسه يرفض
+   الفاسد) وأنّ الأسماء والمنافذ متطابقةٌ بينها — لا أنّ العنقود يقبلها.
+2. **لا workflow إصدارٍ في المستودع**: كان التعليق يَعِد بـ`.github/workflows/release.yml` وهو
+   غير موجود. صُحِّح التعليق إلى ما هو كائن (بناءٌ يدويّ بالأمرين المكتوبين) **ولم يُنشأ
+   الـworkflow**: دفعُ صورٍ إلى GHCR يحتاج أسرار مستودعٍ وقرارَ وسمٍ وإصدار — قرارُ مالكٍ لا
+   خطوةٌ في شريحة نشر.
+3. **لا `BAKERY_PUBLIC_URL`**: المخطّط في `packages/config/src/env.ts` يحمل روابطَ أربعة أسطحٍ
+   ولا مستهلكَ لخامس، فلم يُخترع متغيّرٌ بلا قارئ (روابطُ إشعارات المخابز نسبيّةٌ تُرسم داخل
+   السطح الذي يفتحها المستخدم).
+4. ‏**`CORS_ALLOWED_ORIGINS` لم تُوسَّع** عمداً (§2) — وهي سياسةُ أمان، فتُغيَّر بقرارٍ لا بضمانٍ.

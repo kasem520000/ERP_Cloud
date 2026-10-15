@@ -1,8 +1,14 @@
 # ---------------------------------------------------------------------------
 # الواجهات (Next.js standalone) — النشر والخدمة والفحوصات.
 #
-# ملاحظة أمانة: `customer-portal` غير معلن هنا منذ أُضيف إلى المستودع (فجوة سابقة لهذه
-# المرحلة، مسجّلة في تقرير المرحلة 2)، و`bakery` أُضيف لأنه الواجهة القطاعية الجديدة.
+# الأسطح الخمسة معلَنةٌ هنا: ‏marketing (3002) · staff (3001) · platform-admin (3003) ·
+# customer-portal (3004) · bakery (3005). وكانت `customer-portal` فجوةً معلَنة منذ أُضيفت إلى
+# المستودع (تقرير المرحلة 2) فأُغلقت، و`bakery` أُضيفت مع الواجهة القطاعية. ولا يبقى الاتّساق
+# بالنيّة: `packages/config/src/deployment-surface.spec.ts` يقيس أنّ كلّ سطحٍ في
+# `scripts/next-run.mjs` له Deployment وService و`images:` و`replicas:` ومدخلٌ في `ingress.yaml`
+# وخدمةٌ في `docker-compose.yml` وسطرٌ في `scripts/local-start.sh` — فسطحٌ جديد بلا نشرٍ يسقط
+# في الاختبار ولا يمرّ صامتاً.
+#
 # متغيّر `API_PROXY_TARGET` مُخبوزٌ في البناء (rewrites) — لذلك يُضبط كـbuild-arg في
 # `deploy/Dockerfile.web`، ويُكرَّر هنا للاطّلاع في وقت التشغيل.
 # ---------------------------------------------------------------------------
@@ -123,6 +129,50 @@ metadata:
 spec:
   selector: { app: platform-admin }
   ports: [{ port: 3003, targetPort: 3003, name: http }]
+---
+# بوابة العميل — المنفذ 3004، ونطاقها `portal.erp.example` كما في `config.yaml`
+# (‏`CUSTOMER_PUBLIC_URL`) وفي `deploy/docker-compose.yml`.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: customer-portal
+  namespace: erp
+spec:
+  selector:
+    matchLabels: { app: customer-portal }
+  template:
+    metadata:
+      labels: { app: customer-portal, app.kubernetes.io/part-of: erp }
+    spec:
+      securityContext: { runAsNonRoot: true, runAsUser: 10001 }
+      containers:
+        - name: customer-portal
+          image: erp-customer-portal:latest
+          ports: [{ containerPort: 3004, name: http }]
+          env:
+            - { name: NODE_ENV, value: production }
+            - { name: PORT, value: '3004' }
+            - { name: HOSTNAME, value: '0.0.0.0' }
+          readinessProbe:
+            httpGet: { path: /, port: http }
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: /, port: http }
+            initialDelaySeconds: 20
+            periodSeconds: 20
+          resources:
+            requests: { cpu: 100m, memory: 256Mi }
+            limits: { cpu: 500m, memory: 512Mi }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: erp-customer-portal
+  namespace: erp
+spec:
+  selector: { app: customer-portal }
+  ports: [{ port: 3004, targetPort: 3004, name: http }]
 ---
 apiVersion: apps/v1
 kind: Deployment

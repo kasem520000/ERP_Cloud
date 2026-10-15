@@ -453,6 +453,9 @@ importers:
       vitest:
         specifier: ^2.1.9
         version: 2.1.9(@types/node@22.20.1)(lightningcss@1.33.0)
+      yaml:
+        specifier: ^2.9.0
+        version: 2.9.0
 
   packages/contracts:
     dependencies:

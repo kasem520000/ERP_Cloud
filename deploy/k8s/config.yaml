@@ -17,6 +17,12 @@ data:
   MAIL_FROM: 'ERP <no-reply@erp.example>'
   WORKER: '1'
   JOBS_ENABLED: '1'
+  # ‏CORS: الأسطح الخمسة تخاطب الـAPI **من أصلٍ واحد** — خادم Next يمرّر `/api/v1/*` إلى
+  # ‏`API_PROXY_TARGET` (‏`rewrites` في `apps/*/next.config.mjs`، وكلّها تحملها) — فلا متصفحَ
+  # يطلب `api.erp.example` عبرياً من `portal.` أو `bakery.`، ولا تُضافان هنا: توسيعُ القائمة
+  # توسيعٌ لسطح القبول بلا حاجةٍ تدفعه. وتُضافان متى ضُبط `NEXT_PUBLIC_API_BASE_URL` لسطحٍ
+  # ما (عندها يصير طلبه عبريّ الأصل فعلاً) — والقائمة تُقرأ في `apps/api/src/bootstrap.ts`
+  # (‏`applyHttpConfiguration`) ومخطّطها في `packages/config/src/env.ts`.
   CORS_ALLOWED_ORIGINS: https://erp.example,https://app.erp.example,https://platform.erp.example
   PUBLIC_APP_URL: https://app.erp.example
   STAFF_PUBLIC_URL: https://app.erp.example
