@@ -111,6 +111,12 @@ describe('خريطة وحدات واجهة المخابز', () => {
     expect(moduleForPath('/sales-x')).toBeUndefined();
     expect(moduleForPath('/collection')?.key).toBe('collection');
     expect(moduleForPath('/collection-x')).toBeUndefined();
+    // ‏شريحة ١١: بطاقة المندوب الرسمية — مسارٌ حقيقيّ وحدُّ المقطع يمنع «reps-x».
+    expect(moduleForPath('/reps')?.key).toBe('reps');
+    expect(moduleForPath('/reps/9')?.key).toBe('reps');
+    expect(moduleForPath('/reps-x')).toBeUndefined();
+    // ‏المسار الرسميّ لبطاقات المندوب في staff ليس مسارًا في هذه الواجهة.
+    expect(moduleForPath('/sales/salesmen')?.key).toBe('sales');
   });
 
   /**
@@ -134,6 +140,7 @@ describe('خريطة وحدات واجهة المخابز', () => {
       'distribution',
       'overview',
       'production',
+      'reps',
       'sales',
     ]);
     // ‏واجهة المندوب ما زالت المرحلة 4 ولا مسار لها بعد.
