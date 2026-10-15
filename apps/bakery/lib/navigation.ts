@@ -28,6 +28,12 @@ export type BakeryModule = {
   readonly phaseAr: string;
   readonly planAr: string;
   readonly permission?: string;
+  /**
+   * شاشةٌ لدورين: تُعرض لمن يملك **أيّاً** من هذه الرموز. فإقفال العهدة يقدمه المندوب
+   * (`van_sales.closing.submit`) ويعتمده المحاسب (`van_sales.closing.approve`) — وإعلان رمزٍ
+   * واحد يحجب الشاشة عن أحدهما وهو يملك إجراءها فعلاً في الخادم.
+   */
+  readonly anyPermissions?: readonly string[];
   readonly endpoints: readonly string[];
 };
 
@@ -64,7 +70,7 @@ export const BAKERY_MODULES: readonly BakeryModule[] = [
     phaseAr: 'المرحلة 3 — مبنيّة',
     permission: 'van_sales.load.manage',
     planAr:
-      'أمر تحميلٍ لصنفٍ واحد من مستودع المصدر إلى عهدة المندوب (بمناقلة رسمية)، وتأكيد الاستلام أو رفضه، وإلغاء الأمر في draft/pending_receipt. ورفضٌ سابق للإرسال بالنصّ الذي سيقوله الخادم (المندوب ثمّ الكمية ثمّ مصدر الصنف)، وجدولُ الأحمال كما يعيده الخادم، والحالة غير المعروفة تُعرض خاماً. وإقفال العهدة واعتماده وتسوية فرق المخزون وإغلاق فرق العبور **ليست هنا** — وحدة «إقفال العهدة» وشاشاتها في staff، لأنّها تحمل قرارات السياسة المعلّقة.',
+      'أمر تحميلٍ لصنفٍ واحد من مستودع المصدر إلى عهدة المندوب (بمناقلة رسمية)، وتأكيد الاستلام أو رفضه، وإلغاء الأمر في draft/pending_receipt. ورفضٌ سابق للإرسال بالنصّ الذي سيقوله الخادم (المندوب ثمّ الكمية ثمّ مصدر الصنف)، وجدولُ الأحمال كما يعيده الخادم، والحالة غير المعروفة تُعرض خاماً. وإقفال العهدة واعتماده وتسوية فرق المخزون وإغلاق فرق العبور **ليست هنا** — وحدة «إقفال العهدة» (/custody) تبنيها، والأستاذ وتفصيل القيود في staff.',
     endpoints: [
       'POST /van-sales/load-orders',
       'POST /van-sales/load-orders/:id/confirm-receipt',
@@ -117,16 +123,20 @@ export const BAKERY_MODULES: readonly BakeryModule[] = [
     key: 'custody',
     labelAr: 'إقفال العهدة',
     icon: '📋',
-    status: 'planned',
-    phaseAr: 'المرحلة 3',
-    permission: 'van_sales.closing.submit',
+    status: 'ready',
+    href: '/custody',
+    phaseAr: 'المرحلة 3 — مبنيّة',
+    anyPermissions: ['van_sales.closing.submit', 'van_sales.closing.approve'],
     planAr:
-      'إقفال الحمولة: جردٌ فعليّ، قرارُ فرق العبور، ثمّ التسوية الرسمية. ولا تُغلق عهدةٌ بفرق مخزونٍ غير مُسوّى، ولا يُعتمد نقصٌ بلا فصلٍ رباعيّ (كمية/قيمة/مسؤولية/سبب).',
+      'إقفال الحمولة: جردٌ فعليّ، فصلٌ رباعيّ لا يُدمج (مرتجع سليم/تالف/عجز/متبقٍ)، قرارُ فرق العبور، ثمّ التسوية الرسمية بمستند الجرد. وسياسة تقييم العجز تُقرأ وتُكتب هنا (PUT /van-sales/policy بصلاحية van_sales.override.approve)، وتحميل العجز على المندوب قرارٌ **لكلّ حالة**: بلا علمٍ صريح لا يُرحَّل قيد، ومع العلم تُعرض الكمية والقيمة والأساس والطرفان ومانعُ الاعتماد قبل الضغط — فالخادم يرحّل مديونية موظف (مدينٌ حسابُه في الدليل) ويرفض 422 إن نقص حسابٌ، ولا تُغلق عهدةٌ بفرق مخزونٍ غير مُسوّى. والأستاذ وتفصيل القيود في staff.',
     endpoints: [
       'POST /van-sales/load-orders/:id/submit-closing',
       'POST /van-sales/load-orders/:id/approve-closing',
       'POST /van-sales/load-orders/:id/settle-stock',
       'POST /van-sales/load-orders/:id/close-transit-difference',
+      'GET /van-sales/policy',
+      'PUT /van-sales/policy',
+      'GET /van-sales/dashboard',
     ],
   },
   {
@@ -190,7 +200,11 @@ export function visibleModules(
   can: (permission?: string) => boolean,
   modules: readonly BakeryModule[] = BAKERY_MODULES,
 ): readonly BakeryModule[] {
-  return modules.filter((module) => (module.permission ? can(module.permission) : true));
+  return modules.filter((module) => {
+    if (module.permission) return can(module.permission);
+    if (module.anyPermissions?.length) return module.anyPermissions.some((code) => can(code));
+    return true;
+  });
 }
 
 /** مطابقة بحدّ المقطع (`/production` و`/production/9` نعم، و`/production-x` لا). */
@@ -212,7 +226,7 @@ export function moduleForPath(
  */
 export function unknownPermissionCodes(modules: readonly BakeryModule[] = BAKERY_MODULES): string[] {
   return modules
-    .map((module) => module.permission)
+    .flatMap((module) => [module.permission ?? null, ...(module.anyPermissions ?? [])])
     .filter((permission): permission is string => typeof permission === 'string')
     .filter((permission) => !isKnownPermissionCode(permission));
 }

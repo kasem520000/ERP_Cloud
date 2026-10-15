@@ -74,11 +74,23 @@ describe('خريطة وحدات واجهة المخابز', () => {
 
     const nothing = visibleModules(() => false);
     expect(nothing.length).toBeLessThan(all.length);
-    expect(nothing.every((module) => module.permission === undefined)).toBe(true);
+    expect(
+      nothing.every((module) => module.permission === undefined && !module.anyPermissions?.length),
+      'وحدةٌ بلا رمز صلاحية تُعرض للجميع — فإن خلت القائمة وكلٌّ بلا رمز فالتصفية لا تعمل',
+    ).toBe(true);
 
     const productionOnly = visibleModules((permission) => permission === 'van_sales.production.manage');
     expect(productionOnly.some((module) => module.key === 'production')).toBe(true);
     expect(productionOnly.some((module) => module.key === 'custody')).toBe(false);
+
+    // ‏شاشةٌ لدورين: يراها المندوب (يقدّم الإقفال) والمحاسب (يعتمده)، ولا يراها من لا يملك
+    // أياً من الرمزين وإن ملك القراءة.
+    const repOnly = visibleModules((permission) => permission === 'van_sales.closing.submit');
+    expect(repOnly.some((module) => module.key === 'custody')).toBe(true);
+    const accountantOnly = visibleModules((permission) => permission === 'van_sales.closing.approve');
+    expect(accountantOnly.some((module) => module.key === 'custody')).toBe(true);
+    const viewerOnly = visibleModules((permission) => permission === 'van_sales.view');
+    expect(viewerOnly.some((module) => module.key === 'custody')).toBe(false);
   });
 
   it('مطابقة المسار بحدّ المقطع، ولا وحدةَ لمسارٍ لم يُبنَ', () => {
@@ -90,7 +102,9 @@ describe('خريطة وحدات واجهة المخابز', () => {
     expect(moduleForPath('/distribution-x')).toBeUndefined();
     // ‏ما لم يُبنَ بعد: لا وحدةَ تطابقه (فلا قشرةَ تدّعي مساراً ولا مسارَ يدّعي قشرة).
     expect(moduleForPath('/rep')).toBeUndefined();
-    expect(moduleForPath('/custody')).toBeUndefined();
+    expect(moduleForPath('/custody')?.key).toBe('custody');
+    expect(moduleForPath('/custody/9')?.key).toBe('custody');
+    expect(moduleForPath('/custody-x')).toBeUndefined();
   });
 
   /**
@@ -109,6 +123,7 @@ describe('خريطة وحدات واجهة المخابز', () => {
     }
 
     expect(readyModules().map((module) => module.key).sort()).toEqual([
+      'custody',
       'distribution',
       'overview',
       'production',

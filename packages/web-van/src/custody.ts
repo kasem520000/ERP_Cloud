@@ -116,18 +116,24 @@ const FIELD_LABELS: Record<string, string> = {
  * والفراغ **ليس صفراً مكتوباً**: ما لم تملأه الشاشة لا يُرسل (`undefined`) فيأخذ الخادم
  * افتراضه هو، ولا يُخترع رقمٌ في المتصفح.
  */
-export function buildClosingPayload(
+/**
+ * تحقّق الأرقام — مشتركٌ بين التقديم والاعتماد لأنّ الخادم يقرأ النصّ التالف صفراً فيهما.
+ * وأمّا **سقف العهدة** فليس مشتركاً: تقديم المندوب يرفض الفائض (فثمّة يقع خطأ الإدخال)،
+ * واعتماد المحاسب يقبله **بإقرارٍ صريح** (`VAN_CLOSING_SURPLUS_ACK_REQUIRED`) لأنّ كيلوات
+ * موجودةً فعلاً في السيارة يجب أن تُسجَّل لا أن تُخفى — فوراثة الرفض هنا تمنع المحاسب من
+ * تسجيل حقيقة.
+ */
+function numericTextFailure(
   draft: ClosingDraft,
-  q: CustodyQuantities,
-): ClosingVerdict {
-  const numericFields: Array<[keyof ClosingDraft, string]> = [
-    ['returnedQty', 'returnedQty'],
-    ['damagedQty', 'damagedQty'],
-    ['collectedCash', 'collectedCash'],
-    ['actualRemainingQty', 'actualRemainingQty'],
+): { ok: false; message: string; field: string } | null {
+  const numericFields: Array<keyof ClosingDraft> = [
+    'returnedQty',
+    'damagedQty',
+    'collectedCash',
+    'actualRemainingQty',
   ];
-  for (const [key, field] of numericFields) {
-    const text = draft[key].trim();
+  for (const field of numericFields) {
+    const text = draft[field].trim();
     if (!text) continue;
     if (!NUMERIC_TEXT.test(text) || num(text).lt(0)) {
       return {
@@ -137,6 +143,15 @@ export function buildClosingPayload(
       };
     }
   }
+  return null;
+}
+
+export function buildClosingPayload(
+  draft: ClosingDraft,
+  q: CustodyQuantities,
+): ClosingVerdict {
+  const numericFailure = numericTextFailure(draft);
+  if (numericFailure) return numericFailure;
 
   const returnedQty = num(draft.returnedQty);
   const damagedQty = num(draft.damagedQty);
@@ -253,8 +268,8 @@ export function buildApprovalPayload(
   draft: ApprovalDraft,
   q: CustodyQuantities,
 ): ApprovalVerdict {
-  const closing = buildClosingPayload(draft, q);
-  if (!closing.ok) return closing;
+  const numericFailure = numericTextFailure(draft);
+  if (numericFailure) return numericFailure;
 
   const returnedQty = num(draft.returnedQty);
   const damagedQty = num(draft.damagedQty);
@@ -301,8 +316,10 @@ export function buildApprovalPayload(
     payload: {
       returnedQty: returnedQty.toFixed(4),
       damagedQty: damagedQty.toFixed(4),
-      collectedCash: closing.payload.collectedCash,
-      actualRemainingQty: closing.payload.actualRemainingQty,
+      collectedCash: draft.collectedCash.trim() ? num(draft.collectedCash).toFixed(4) : undefined,
+      actualRemainingQty: draft.actualRemainingQty.trim()
+        ? actualRemainingQty.toFixed(4)
+        : undefined,
       damageInspected: draft.damageInspected,
       salaryDeductionApproved: draft.salaryDeductionApproved,
       selfApprovalOverride: draft.selfApprovalOverride || undefined,
@@ -436,6 +453,18 @@ export function valuationBasisLabel(basis: string | null | undefined): string {
 }
 
 /**
+ * تسمية `valuationSource` من `GET /van-sales/policy` — وهو إمّا أساسُ السياسة
+ * (‏`unit_cost`/`selling_price`/`unconfigured`) أو `explicit_policy_price` حين يتقدّم سعرٌ
+ * مكتوب على الأساس. فالقاموسان يُستشاران بالترتيب، وقيمةٌ غير معروفة تُعرض خاماً.
+ */
+export function valuationSourceLabel(source: string | null | undefined): string {
+  if (!source) return '—';
+  const policyLabels: Record<string, string> = VALUATION_BASIS_LABELS;
+  const chargeLabels: Record<string, string> = CHARGE_BASIS_LABELS;
+  return policyLabels[source] ?? chargeLabels[source] ?? source;
+}
+
+/**
  * ⚖️ أثر القرار **قبل** الضغط — الأمانة التي طلبها المالك: لا يُعتمد تحميلٌ ماليّ على
  * موظفٍ دون أن يُقال كم، وعلى أيّ حساب، وبأيّ أساس، وهل سيُرفض.
  *
@@ -486,15 +515,15 @@ export function chargePreview(
   const shortageQty = num(row.shortageQty);
   const posted = Boolean(row.shortageJournalEntryId);
   const willPost = !posted && deductionApproved && shortageQty.gt(0);
-  const amount = num(row.shortageChargeAmount ?? row.shortageValue);
-  const hasAmount = amount.gt(0);
+  const chargeValue = num(row.shortageChargeAmount ?? row.shortageValue);
+  const hasChargeValue = chargeValue.gt(0);
   const employeeAccount = readiness?.employeeAccountName ?? null;
   const creditAccount = readiness?.creditAccountName ?? null;
 
   return {
     willPost,
     posted,
-    amountText: hasAmount ? amount.toFixed(2) : '—',
+    amountText: hasChargeValue ? chargeValue.toFixed(2) : '—',
     costValueText: num(row.countVarianceCostValue).gt(0)
       ? num(row.countVarianceCostValue).toFixed(2)
       : '—',
