@@ -70,3 +70,72 @@ export function pickDefaultWarehouse(
   }
   return warehouses[0];
 }
+
+export type PartyOption = {
+  id: string;
+  code?: string | null;
+  name?: string | null;
+  nameAr?: string | null;
+  name_ar?: string | null;
+  kind?: string | null;
+  phone?: string | null;
+  taxNo?: string | null;
+  tax_no?: string | null;
+};
+
+export type CashLocationOption = {
+  id: string;
+  name?: string | null;
+  nameAr?: string | null;
+  name_ar?: string | null;
+  kind?: string | null;
+  /**
+   * 💵 حسابُ الصندوق — وهو الذي يجعل سند القبض يُرحَّل. صندوقٌ بلا حسابٍ يُقبل في القائمة
+   * ويُقال ذلك في اسمه: فاختياره يعني سندًا قد يبقى مسودةً، والمال قُبض فعلًا.
+   */
+  accountId?: string | null;
+  account_id?: string | null;
+  isDefault?: boolean | null;
+  is_default?: boolean | null;
+  branchId?: string | null;
+};
+
+export type AccountOption = {
+  id: string;
+  code?: string | null;
+  nameAr?: string | null;
+  name_ar?: string | null;
+  nameEn?: string | null;
+  type?: string | null;
+  isPostable?: boolean | null;
+  is_postable?: boolean | null;
+};
+
+export function partyLabel(row: PartyOption): string {
+  const name = row.nameAr ?? row.name_ar ?? row.name ?? null;
+  const code = row.code ?? null;
+  if (name && code) return `${name} (${code})`;
+  return name ?? code ?? row.id;
+}
+
+/** رقمُ العميل الضريبي كما كُتب في بطاقته — ولا يُخترع رقم. */
+export function partyTaxNo(row: PartyOption): string | null {
+  return row.taxNo ?? row.tax_no ?? null;
+}
+
+export function cashLocationLabel(row: CashLocationOption): string {
+  const name = row.nameAr ?? row.name_ar ?? row.name ?? row.id;
+  const hasAccount = (row.accountId ?? row.account_id ?? null) !== null;
+  const flagged = row.isDefault === true || row.is_default === true;
+  const suffix = [flagged ? 'افتراضيّ' : null, hasAccount ? null : 'بلا حسابٍ محاسبيّ']
+    .filter((part): part is string => part !== null)
+    .join(' · ');
+  return suffix.length > 0 ? `${name} — ${suffix}` : name;
+}
+
+export function accountLabel(row: AccountOption): string {
+  const name = row.nameAr ?? row.name_ar ?? row.nameEn ?? null;
+  const code = row.code ?? null;
+  if (name && code) return `${code} — ${name}`;
+  return name ?? code ?? row.id;
+}

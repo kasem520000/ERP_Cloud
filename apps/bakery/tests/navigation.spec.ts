@@ -105,6 +105,12 @@ describe('خريطة وحدات واجهة المخابز', () => {
     expect(moduleForPath('/custody')?.key).toBe('custody');
     expect(moduleForPath('/custody/9')?.key).toBe('custody');
     expect(moduleForPath('/custody-x')).toBeUndefined();
+    // ‏الشريحتان الجديدتان: مسارٌ حقيقيّ لكلٍّ منهما، وحدُّ المقطع يمنع «sales-x».
+    expect(moduleForPath('/sales')?.key).toBe('sales');
+    expect(moduleForPath('/sales/9')?.key).toBe('sales');
+    expect(moduleForPath('/sales-x')).toBeUndefined();
+    expect(moduleForPath('/collection')?.key).toBe('collection');
+    expect(moduleForPath('/collection-x')).toBeUndefined();
   });
 
   /**
@@ -123,10 +129,12 @@ describe('خريطة وحدات واجهة المخابز', () => {
     }
 
     expect(readyModules().map((module) => module.key).sort()).toEqual([
+      'collection',
       'custody',
       'distribution',
       'overview',
       'production',
+      'sales',
     ]);
     // ‏واجهة المندوب ما زالت المرحلة 4 ولا مسار لها بعد.
     expect(BAKERY_MODULES.find((module) => module.key === 'rep-app')?.phaseAr).toBe('المرحلة 4');

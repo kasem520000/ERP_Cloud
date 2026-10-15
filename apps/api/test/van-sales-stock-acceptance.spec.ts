@@ -503,6 +503,105 @@ describe('Van Sales end-to-end acceptance on official stock & accounting ledgers
     expect(printView.body.data.printedAt).toBeTruthy();
     expect(printView.body.data.companyName).toBe('مخابز القبول');
 
+    // 🖨️ عقدُ نسخة الطباعة — المفاتيح كما يقرؤها عميلان: `apps/staff/app/van-sales/page.tsx`
+    // و`packages/web-van/src/document-print.ts` (المُصيِّر المشترك بين لوحة staff وواجهة
+    // المخابز، رُفع في الشريحة ١٠). فلو أُعيد تسميةُ حقلٍ هنا لسقط هذا القياس وسمّى العميلين،
+    // بدل ورقةٍ رسمية تطبع «—» في خانة رقمٍ ضريبيٍّ موجود، أو رمزٍ لا يُرسم لأنّ مفتاحه تغيّر.
+    const printViewKeys = [
+      'documentId',
+      'documentNumber',
+      'invoiceNumber',
+      'invoiceStatus',
+      'saleDate',
+      'companyName',
+      'companyNameEn',
+      'companyTaxNo',
+      'companyCrNo',
+      'companyEmail',
+      'companyPhones',
+      'companyAddress',
+      'customerName',
+      'customerTaxNo',
+      'customerPhone',
+      'customerMobile',
+      'salesmanName',
+      'salesmanMobile',
+      'vanWarehouseName',
+      'loadOrderNumber',
+      'productionBatchNo',
+      'invoiceMode',
+      'taxPolicyStatus',
+      'paymentMethod',
+      'lines',
+      'subtotal',
+      'discountTotal',
+      'vatRate',
+      'vatTotal',
+      'grandTotal',
+      'paidAmount',
+      'outstandingAmount',
+      'bonusQtyTotal',
+      'qrPayload',
+      'notes',
+      'printedAt',
+      'copies',
+      'copiesCount',
+    ].sort();
+    const printCopyKeys = [
+      'documentId',
+      'documentNumber',
+      'invoiceNumber',
+      'invoiceStatus',
+      'saleDate',
+      'companyName',
+      'companyNameEn',
+      'companyTaxNo',
+      'companyCrNo',
+      'companyEmail',
+      'companyPhones',
+      'companyAddress',
+      'customerName',
+      'customerTaxNo',
+      'customerPhone',
+      'customerMobile',
+      'salesmanName',
+      'salesmanMobile',
+      'vanWarehouseName',
+      'loadOrderNumber',
+      'productionBatchNo',
+      'invoiceMode',
+      'taxPolicyStatus',
+      'paymentMethod',
+      'lines',
+      'subtotal',
+      'discountTotal',
+      'vatRate',
+      'vatTotal',
+      'grandTotal',
+      'paidAmount',
+      'outstandingAmount',
+      'bonusQtyTotal',
+      'qrPayload',
+      'notes',
+      'printedAt',
+      'copyIndex',
+      'kind',
+      'copyLabel',
+      'requiresCustomerSignature',
+      'signatureBlock',
+    ].sort();
+    expect(Object.keys(printView.body.data).sort()).toEqual(printViewKeys);
+    expect(Object.keys(printView.body.data.copies[0]).sort()).toEqual(printCopyKeys);
+    expect(Object.keys(printView.body.data.copies[1]).sort()).toEqual(printCopyKeys);
+    expect(Object.keys(printView.body.data.lines[0]).sort()).toEqual(
+      ['discount', 'itemName', 'kind', 'lineTotal', 'quantity', 'sku', 'unitPrice'].sort(),
+    );
+    expect(printView.body.data.copiesCount).toBe(2);
+    // ‏والقيم المالية نصوصٌ كما يكتبها الخادم (لا أرقام JS): فالورقة تطبعها كما هي.
+    for (const field of ['subtotal', 'vatTotal', 'grandTotal', 'paidAmount', 'outstandingAmount']) {
+      expect(typeof printView.body.data[field], field).toBe('string');
+    }
+
     // ── Step 7: collect part of the debt through an official receipt voucher ─
     const collection = await api(ctx.server, 'post', '/api/v1/van-sales/collections', {
       token: rep.token,
