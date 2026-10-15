@@ -1,8 +1,20 @@
 'use client';
 
 import { Decimal } from 'decimal.js';
-import qrcode from 'qrcode-generator';
 import React from 'react';
+import {
+  ZATCA_QR_MISSING_TEXT,
+  buildQrMatrix,
+  renderQrSvgMarkup,
+} from '@erp/web-van/qr';
+
+/**
+ * ‏`@erp/web-van/qr` هو المُرمِّز الواحد للرمز على الورق الرسميّ (لوحة staff وواجهة
+ * المخابز معًا)، ويُعاد تصديره هنا كما هو: فالشاشات والسبيك القائم يستوردانه من هذا
+ * المسار، ولا نسخةَ ثانية من الترميز في هذا الملفّ. والقائمة المُصدَّرة مقصودةٌ بضيقها —
+ * `tests/zatca-qr.spec.ts` يقيسها بأسمائها كي لا يرجع مُنشئ حمولة TLV محليّ يومًا.
+ */
+export { ZATCA_QR_MISSING_TEXT, renderQrSvgMarkup };
 
 function fmt2(val: string | undefined | null): string {
   try {
@@ -10,52 +22,6 @@ function fmt2(val: string | undefined | null): string {
   } catch {
     return '0.00';
   }
-}
-
-/**
- * 🧾 ما يقوله المستند حين لا تكون للفاتورة حمولة فوترة إلكترونية صادرة فعلًا. النصّ
- * نفسه الذي تكتبه وثيقة الطباعة على الخادم (`print-templates.service.qrBlock`)، فلا
- * يختلف الورق عن الشاشة.
- */
-export const ZATCA_QR_MISSING_TEXT = 'لم تُصدر بعد بيانات الفاتورة الإلكترونية (QR) لهذا المستند.';
-
-/**
- * الرمز يُرسم بمُرمِّز QR حقيقي — `qrcode-generator`، المكتبة نفسها التي ترسمه في وثيقة
- * الطباعة على الخادم. ما كان هنا قبل ذلك مصفوفة 29×29 للزينة: أنماط تحديدٍ وتوقيت ثمّ
- * بتّات الحمولة تحت قناعٍ مختلَق، بلا تصحيح أخطاءٍ ولا معلومات إصدار ولا ترميز بيانات
- * صحيح — أي شكلٌ يشبه الرمز ولا يقرأه أيّ ماسح. ورقٌ يحمل رمزًا لا يُقرأ أسوأ من سطرٍ
- * يقول الحقيقة، لأنّه يوحي بأنّ الفاتورة صدرت إلكترونيًّا وهي لم تصدر.
- */
-function buildQrMatrix(payload: string): boolean[][] {
-  const qr = qrcode(0, 'M');
-  qr.addData(payload);
-  qr.make();
-  const count = qr.getModuleCount();
-  return Array.from({ length: count }, (_, row) =>
-    Array.from({ length: count }, (_, col) => qr.isDark(row, col)),
-  );
-}
-
-/**
- * حمولةٌ فارغة = لا رمز: تُرجع نصًّا فارغًا ليقول المستند «لم تُصدر بعد» بدل مربّعٍ
- * زائف. لا تُبنى حمولة TLV محليًّا هنا ولا في أيّ شاشة — الحمولة الصادقة هي التي
- * كتبتها وحدة الفوترة الإلكترونية على الفاتورة (`zatca_qr`).
- */
-export function renderQrSvgMarkup(payload: string | null | undefined, px = 136): string {
-  if (!payload) return '';
-  const matrix = buildQrMatrix(payload);
-  const n = matrix.length;
-  const quiet = 2;
-  const gridDim = n + quiet * 2;
-  const rects: string[] = [];
-  for (let r = 0; r < n; r += 1) {
-    for (let c = 0; c < n; c += 1) {
-      if (matrix[r]?.[c]) {
-        rects.push(`<rect x="${c + quiet}" y="${r + quiet}" width="1" height="1" fill="#000"/>`);
-      }
-    }
-  }
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${gridDim} ${gridDim}" width="${px}" height="${px}" shape-rendering="crispEdges"><rect width="${gridDim}" height="${gridDim}" fill="#fff"/>${rects.join('')}</svg>`;
 }
 
 const QR_BOX_STYLE: React.CSSProperties = {
