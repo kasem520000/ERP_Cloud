@@ -8994,7 +8994,10 @@
                           "progress_bill",
                           "rent_invoice",
                           "installment_contract",
-                          "opening_balance"
+                          "opening_balance",
+                          "manufacturing_order",
+                          "production_order",
+                          "van_shortage_charge"
                         ]
                       },
                       {
@@ -9079,6 +9082,11 @@
                         "format": "uuid",
                         "nullable": true
                       },
+                      "shortageChargeAccountId": {
+                        "type": "string",
+                        "format": "uuid",
+                        "nullable": true
+                      },
                       "stockInTransitAccountId": {
                         "type": "string",
                         "format": "uuid",
@@ -9120,6 +9128,16 @@
                         "nullable": true
                       },
                       "cashInTransitAccountId": {
+                        "type": "string",
+                        "format": "uuid",
+                        "nullable": true
+                      },
+                      "rawMaterialsAccountId": {
+                        "type": "string",
+                        "format": "uuid",
+                        "nullable": true
+                      },
+                      "finishedGoodsAccountId": {
                         "type": "string",
                         "format": "uuid",
                         "nullable": true
@@ -18193,6 +18211,52 @@
         ]
       }
     },
+    "/api/v1/platform/marketplace/unlicensed-usage": {
+      "get": {
+        "operationId": "MarketplacePlatformController_unlicensedUsage",
+        "parameters": [
+          {
+            "name": "days",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "MarketplacePlatform"
+        ]
+      }
+    },
+    "/api/v1/platform/marketplace/tenants/{tenantId}/apps": {
+      "get": {
+        "operationId": "MarketplacePlatformController_tenantApps",
+        "parameters": [
+          {
+            "name": "tenantId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "MarketplacePlatform"
+        ]
+      }
+    },
     "/api/v1/platform/marketplace/tenants/{tenantId}/apps/{code}": {
       "put": {
         "operationId": "MarketplacePlatformController_toggleTenantApp",
@@ -26020,6 +26084,135 @@
         ]
       }
     },
+    "/api/v1/van-sales/reports": {
+      "get": {
+        "operationId": "VanSalesController_reports",
+        "parameters": [
+          {
+            "name": "salesmanId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "fromDate",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "toDate",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "van-sales"
+        ]
+      }
+    },
+    "/api/v1/van-sales/me": {
+      "get": {
+        "operationId": "VanSalesController_me",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "van-sales"
+        ]
+      }
+    },
+    "/api/v1/van-sales/salesmen": {
+      "get": {
+        "operationId": "VanSalesController_salesmen",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "van-sales"
+        ]
+      }
+    },
+    "/api/v1/van-sales/salesmen/{id}/account": {
+      "post": {
+        "operationId": "VanSalesController_linkSalesmanAccount",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "van-sales"
+        ]
+      }
+    },
+    "/api/v1/van-sales/production-batches": {
+      "post": {
+        "operationId": "VanSalesController_createProductionBatch",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "van-sales"
+        ]
+      }
+    },
     "/api/v1/van-sales/customer-prices": {
       "post": {
         "operationId": "VanSalesController_upsertCustomerPrice",
@@ -26058,10 +26251,315 @@
         ]
       }
     },
+    "/api/v1/van-sales/load-orders/{id}/confirm-receipt": {
+      "post": {
+        "operationId": "VanSalesController_confirmReceipt",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "van-sales"
+        ]
+      }
+    },
+    "/api/v1/van-sales/documents/{id}/returns": {
+      "post": {
+        "operationId": "VanSalesController_createReturn",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "van-sales"
+        ]
+      }
+    },
+    "/api/v1/van-sales/documents/{id}/print-view": {
+      "get": {
+        "operationId": "VanSalesController_printView",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "copies",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "van-sales"
+        ]
+      }
+    },
     "/api/v1/van-sales/documents": {
       "post": {
         "operationId": "VanSalesController_createDocument",
         "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "van-sales"
+        ]
+      }
+    },
+    "/api/v1/van-sales/policy": {
+      "get": {
+        "operationId": "VanSalesController_policy",
+        "parameters": [
+          {
+            "name": "salesmanId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "van-sales"
+        ]
+      },
+      "put": {
+        "operationId": "VanSalesController_updatePolicy",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "van-sales"
+        ]
+      }
+    },
+    "/api/v1/van-sales/load-orders/{id}/submit-closing": {
+      "post": {
+        "operationId": "VanSalesController_submitClosing",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "van-sales"
+        ]
+      }
+    },
+    "/api/v1/van-sales/load-orders/{id}/approve-closing": {
+      "post": {
+        "operationId": "VanSalesController_approveClosing",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "van-sales"
+        ]
+      }
+    },
+    "/api/v1/van-sales/load-orders/{id}/settle-stock": {
+      "post": {
+        "operationId": "VanSalesController_settleLoadOrderStock",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "van-sales"
+        ]
+      }
+    },
+    "/api/v1/van-sales/load-orders/{id}/reject-receipt": {
+      "post": {
+        "operationId": "VanSalesController_rejectReceipt",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "van-sales"
+        ]
+      }
+    },
+    "/api/v1/van-sales/load-orders/{id}/close-transit-difference": {
+      "post": {
+        "operationId": "VanSalesController_closeTransitDifference",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "van-sales"
+        ]
+      }
+    },
+    "/api/v1/van-sales/load-orders/{id}/cancel": {
+      "post": {
+        "operationId": "VanSalesController_cancelLoadOrder",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "201": {
             "description": ""
@@ -26090,6 +26588,44 @@
             }
           }
         ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "van-sales"
+        ]
+      }
+    },
+    "/api/v1/van-sales/collections": {
+      "post": {
+        "operationId": "VanSalesController_collectCustomerDebt",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "van-sales"
+        ]
+      }
+    },
+    "/api/v1/van-sales/legacy-reconciliation": {
+      "post": {
+        "operationId": "VanSalesController_reconcileLegacyData",
+        "parameters": [],
         "responses": {
           "201": {
             "description": ""

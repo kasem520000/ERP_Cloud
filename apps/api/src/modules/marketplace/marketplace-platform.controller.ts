@@ -46,6 +46,17 @@ export class MarketplacePlatformController {
     };
   }
 
+  /**
+   * 📊 قياسُ الاستعمال غير المرخّص للباقات القطاعية — القراءة التي يُتّخذ عليها قرارُ قلب
+   * ‏`observe` إلى `enforce`: أيّ المنشآت تكتب على سطحٍ بلا باقة، كم مرّةً، ومنذ متى، وكم عملاً
+   * حقيقياً في جداول التوزيع سيقف لو فُرض الترخيص غدًا. قراءةٌ فقط، فلا تُغيّر وضع الحارس.
+   */
+  @Get('unlicensed-usage')
+  @RequiresPlatformRole('console.marketplace.manage')
+  async unlicensedUsage(@Query('days') days?: string) {
+    return { data: await this.marketplace.platformUnlicensedUsage({ days }) };
+  }
+
   @Get('tenants/:tenantId/apps')
   @RequiresPlatformRole('console.marketplace.manage')
   async tenantApps(@Param('tenantId') tenantId: string) {

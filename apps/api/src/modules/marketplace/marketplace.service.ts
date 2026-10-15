@@ -27,6 +27,24 @@ import { signedContentUrl } from '../platform-services/files/download-token.js';
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const HEX_COLOR = /^#[0-9a-fA-F]{6}$/;
 
+/**
+ * 🏪 قياسُ الاستعمال غير المرخّص: الفعلُ الذي يكتبه `SectorLicenceGuard` في وضع `observe`
+ * لكلّ **كتابةٍ** من منشأةٍ بلا باقة (ولا يكتب للقراءات). الاسم نفسه في
+ * `apps/api/src/modules/platform/guards/sector-licence.guard.ts` وفي أحكام
+ * `apps/api/test/sector-licence-enforcement.spec.ts` — فلو تغيّر هناك تغيّر القياس هنا.
+ */
+const SECTOR_LICENCE_ACTION = 'sector_licence.unlicensed_use';
+/** منشآتٌ تُفصَّل في الاستجابة (الأحدثُ قياساً أولاً)، وما زاد يُعدّ في الملخّص ويُعلن `truncated`. */
+const UNLICENSED_USAGE_TENANT_LIMIT = 50;
+/** مجموعاتُ (منشأة، فعل، مسار) في تفصيل المسارات — لا صفوفٌ خام. */
+const UNLICENSED_USAGE_PATH_LIMIT = 400;
+/** مساراتٌ تُعرض لكلّ منشأة. */
+const UNLICENSED_USAGE_TOP_PATHS = 5;
+/** طلباتُ تفعيلٍ تُقرأ لمطابقتها بالمنشآت المقاسة (الأحدثُ أولاً). */
+const UNLICENSED_USAGE_REQUEST_LIMIT = 200;
+const UNLICENSED_USAGE_DEFAULT_DAYS = 90;
+const UNLICENSED_USAGE_MAX_DAYS = 3650;
+
 export const SECTOR_ADDON_APPS = [
   {
     code: 'van_sales',
@@ -205,6 +223,83 @@ export type AddonRequestView = {
   requesterLabel: string;
   createdAt: string;
   decidedAt: string | null;
+};
+
+/** مسارٌ قِيست عليه كتاباتٌ غير مرخّصة (‏`meta.method` و`meta.path` من سطر التدقيق). */
+export type UnlicensedUsagePathView = {
+  method: string;
+  path: string;
+  writes: number;
+};
+
+export type UnlicensedUsageTenantView = {
+  tenantId: string;
+  tenantCode: string;
+  tenantName: string;
+  tenantStatus: string;
+  /** «أيٌّ من» كما أعلنها المزيّنُ وكتبها الحارس: يكفي واحدةٌ منها لفتح السطح. */
+  requiredApps: string[];
+  /** عددُ الكتابات المقاسة في الفترة، وعددُ المستخدمين المتمايزين الذين قاموا بها. */
+  writes: number;
+  actors: number;
+  firstAt: string | null;
+  lastAt: string | null;
+  topPaths: UnlicensedUsagePathView[];
+  /**
+   * حالةُ الترخيص **الآن** لا لحظة القياس: `licensed` تعني أنّ صفوف التدقيق تاريخٌ وقد حُسم
+   * الأمر (فُعّلت الباقة بعدها)، و`disabled` أنّ صفاً موجودٌ لكنه مُطفأ — وهي حالةٌ تختلف
+   * تجارياً عن «لم يطلبها أصلاً» لأنّ قراراً اتُّخذ ثمّ أُوقف.
+   */
+  licence: {
+    state: 'unlicensed' | 'disabled' | 'licensed';
+    enabledApps: string[];
+    installedAt: string | null;
+  };
+  /** أحدثُ طلب تفعيلٍ لإحدى الباقات المطلوبة — فـ«طلبٌ معلّق منذ أسبوع» هو الإجراءُ المطلوب. */
+  pendingRequest: { appCode: string; status: string; createdAt: string } | null;
+  /**
+   * حجمُ العمل الحقيقي في جداول التوزيع: الطلباتُ تقول «كم مرّةً حاولوا»، وهذه تقول «كم عملاً
+   * سيقف لو فُرض الترخيص غداً» — والقرارُ التجاري يحتاج الثانية.
+   *
+   * وهذه الأعداد **بلا نافذة** (كلُّ ما في جداول المنشأة) بينما `writes` مقيّدةٌ بـ`observedDays`:
+   * فالتعرّضُ الذي يُقاس عليه قرارُ الفرض مجموعُه لا آخرُ تسعين يوماً منه، وأمّا الطلبات فنافذتها
+   * تُظهر إن كان الاستعمال جارياً أم منتهيًا.
+   */
+  footprint: {
+    loadOrders: number;
+    documents: number;
+    productionBatches: number;
+    stockMovements: number;
+    lastActivityAt: string | null;
+  };
+};
+
+export type UnlicensedUsageView = {
+  observedDays: number;
+  generatedAt: string;
+  windowStartsAt: string;
+  /** الأوضاعُ التي كُتبت بها الصفوف في الفترة — ‏`observe` اليوم، و`enforce` تعني أنّ سطراً رُفض. */
+  modes: string[];
+  summary: {
+    /** منشآتٌ قِيست في الفترة كلّها (قبل حدّ التفصيل). */
+    measuredTenants: number;
+    /** منشآتٌ فُصّلت أدناه. */
+    listedTenants: number;
+    /** منها بلا باقةٍ مفعّلة الآن — هي محلّ القرار. */
+    stillUnlicensed: number;
+    /** منها فعّلت الباقة بعد القياس — تاريخٌ لا إجراء. */
+    licensedSince: number;
+    /** كتاباتُ الفترة كلّها. */
+    writes: number;
+    /** كتاباتُ المنشآت المفصّلة وحدها — والاثنان يختلفان حين `truncated`. */
+    listedWrites: number;
+    actors: number;
+    oldestAt: string | null;
+    newestAt: string | null;
+  };
+  /** هل فُصّلت كلّ المنشآت المقاسة أم أنّ القائمة مقطوعة عند الحدّ. */
+  truncated: boolean;
+  tenants: UnlicensedUsageTenantView[];
 };
 
 type DomainView = {
@@ -630,6 +725,197 @@ export class MarketplaceService {
     };
   }
 
+  /**
+   * 📊 الاستعمالُ غير المرخّص للباقات القطاعية — القياسُ الذي يُتّخذ عليه قرارُ الفرض.
+   *
+   * المصدرُ `audit_log` وحده: الحارسُ يكتب سطراً لكلّ كتابةٍ من منشأةٍ بلا باقة، فهو سجلٌّ بما
+   * وقع فعلاً لا تقديرٌ من وجود شاشاتٍ في الواجهة. ومنه تُعرف المنشآت (قراءةٌ على مستوى المنصّة
+   * تجيزها سياسة `platform_admin_plane`)، ثمّ تُسأل كلّ منشأةٍ **في سياقها** عمّا لا يُقرأ من
+   * المنصّة: ‏`tenant_apps` (سياسةُ عزله `USING (tenant_id = current_setting('app.tenant_id'))`
+   * بلا استثناءٍ للمنصّة، كالنمط المستعمل في `platformTenantApps` أعلاه) وحجمُ العمل في جداول
+   * التوزيع. والاستعلامُ لكلّ منشأةٍ على حدة لأنّ بديلَه الوحيد كشفُ `tenant_apps` للمنصّة،
+   * وهو توسيعُ عزلٍ لا يُفعل لأجل شاشة.
+   *
+   * والفهرسُ الجزئيّ `audit_log_sector_licence_use_idx` (الهجرة `0130`) هو ما يجعل هذا التجميع
+   * عبر المنشآت متناسباً مع صفوف القياس لا مع حجم السجلّ كله.
+   */
+  async platformUnlicensedUsage(input: { days?: unknown } = {}): Promise<UnlicensedUsageView> {
+    const days = usageWindowDays(input.days);
+    const since = new Date(Date.now() - days * 86_400_000);
+
+    const measured = await withPlatformAdminTx(this.database.db, async (tx) => {
+      const totals = first(
+        await tx.execute(sql`
+          SELECT count(*)::int AS writes,
+                 count(DISTINCT tenant_id)::int AS tenants,
+                 count(DISTINCT actor_user_id)::int AS actors,
+                 min(created_at) AS oldest_at,
+                 max(created_at) AS newest_at
+          FROM audit_log
+          WHERE action = ${SECTOR_LICENCE_ACTION} AND created_at >= ${since}
+        `),
+      );
+      const modes = rows(
+        await tx.execute(sql`
+          SELECT DISTINCT meta->>'mode' AS mode
+          FROM audit_log
+          WHERE action = ${SECTOR_LICENCE_ACTION} AND created_at >= ${since}
+          ORDER BY 1
+        `),
+      );
+      const grouped = rows(
+        await tx.execute(sql`
+          SELECT a.tenant_id::text, t.code AS tenant_code, t.name AS tenant_name, t.status AS tenant_status,
+                 a.entity_id AS required_apps,
+                 count(*)::int AS writes,
+                 count(DISTINCT a.actor_user_id)::int AS actors,
+                 min(a.created_at) AS first_at,
+                 max(a.created_at) AS last_at
+          FROM audit_log a
+          JOIN tenants t ON t.id = a.tenant_id
+          WHERE a.action = ${SECTOR_LICENCE_ACTION} AND a.created_at >= ${since}
+          GROUP BY a.tenant_id, t.code, t.name, t.status, a.entity_id
+          ORDER BY max(a.created_at) DESC, a.tenant_id
+          LIMIT ${UNLICENSED_USAGE_TENANT_LIMIT + 1}
+        `),
+      );
+      const paths = rows(
+        await tx.execute(sql`
+          SELECT tenant_id::text, meta->>'method' AS method, meta->>'path' AS path, count(*)::int AS writes
+          FROM audit_log
+          WHERE action = ${SECTOR_LICENCE_ACTION} AND created_at >= ${since}
+          GROUP BY tenant_id, meta->>'method', meta->>'path'
+          ORDER BY count(*) DESC, tenant_id
+          LIMIT ${UNLICENSED_USAGE_PATH_LIMIT}
+        `),
+      );
+      const requests = rows(
+        await tx.execute(sql`
+          SELECT r.tenant_id::text, r.app_code, r.status, r.created_at
+          FROM marketplace_addon_requests r
+          ORDER BY r.created_at DESC
+          LIMIT ${UNLICENSED_USAGE_REQUEST_LIMIT}
+        `),
+      );
+      return { totals, modes, grouped, paths, requests };
+    });
+
+    const listed = measured.grouped.slice(0, UNLICENSED_USAGE_TENANT_LIMIT);
+    const truncated = measured.grouped.length > UNLICENSED_USAGE_TENANT_LIMIT;
+
+    const pathsByTenant = new Map<string, UnlicensedUsagePathView[]>();
+    for (const row of measured.paths) {
+      const tenantId = str(row.tenant_id);
+      const bucket = pathsByTenant.get(tenantId) ?? [];
+      bucket.push({ method: str(row.method), path: str(row.path), writes: Number(row.writes ?? 0) });
+      pathsByTenant.set(tenantId, bucket);
+    }
+
+    const tenants: UnlicensedUsageTenantView[] = [];
+    for (const row of listed) {
+      const tenantId = str(row.tenant_id);
+      const requiredApps = str(row.required_apps)
+        .split('|')
+        .map((code) => code.trim())
+        .filter((code) => code.length > 0);
+
+      const scope = await withTenantTx(this.database.db, tenantId, async (tx) => {
+        const granted = rows(
+          await tx.execute(sql`
+            SELECT app_code, is_enabled, installed_at FROM tenant_apps ORDER BY app_code
+          `),
+        );
+        const footprint = first(
+          await tx.execute(sql`
+            SELECT (SELECT count(*)::int FROM van_load_orders) AS load_orders,
+                   (SELECT count(*)::int FROM van_sales_documents) AS documents,
+                   (SELECT count(*)::int FROM factory_production_batches) AS production_batches,
+                   (SELECT count(*)::int FROM van_stock_movements) AS stock_movements,
+                   (SELECT max(created_at) FROM van_load_orders) AS last_load_at,
+                   (SELECT max(created_at) FROM van_sales_documents) AS last_document_at,
+                   (SELECT max(created_at) FROM factory_production_batches) AS last_batch_at
+          `),
+        );
+        return { granted, footprint };
+      });
+
+      const enabledApps = scope.granted.filter((item) => flag(item.is_enabled)).map((item) => str(item.app_code));
+      const requiredRows = scope.granted.filter((item) => requiredApps.includes(str(item.app_code)));
+      const state = requiredApps.some((code) => enabledApps.includes(code))
+        ? 'licensed'
+        : requiredRows.length > 0
+          ? 'disabled'
+          : 'unlicensed';
+      const installedAt =
+        requiredRows
+          .map((item) => (item.installed_at ? iso(item.installed_at) : ''))
+          .filter((text) => text.length > 0)
+          .sort()
+          .pop() ?? null;
+      const request = measured.requests.find(
+        (item) => str(item.tenant_id) === tenantId && requiredApps.includes(str(item.app_code)),
+      );
+      const lastActivityAt =
+        [scope.footprint?.last_load_at, scope.footprint?.last_document_at, scope.footprint?.last_batch_at]
+          .map((value) => (value ? iso(value) : ''))
+          .filter((text) => text.length > 0)
+          .sort()
+          .pop() ?? null;
+
+      tenants.push({
+        tenantId,
+        tenantCode: str(row.tenant_code),
+        tenantName: str(row.tenant_name),
+        tenantStatus: str(row.tenant_status),
+        requiredApps,
+        writes: Number(row.writes ?? 0),
+        actors: Number(row.actors ?? 0),
+        firstAt: row.first_at ? iso(row.first_at) : null,
+        lastAt: row.last_at ? iso(row.last_at) : null,
+        topPaths: (pathsByTenant.get(tenantId) ?? []).slice(0, UNLICENSED_USAGE_TOP_PATHS),
+        licence: {
+          state,
+          enabledApps: enabledApps.filter((code) => requiredApps.includes(code)),
+          installedAt,
+        },
+        pendingRequest: request
+          ? {
+              appCode: str(request.app_code),
+              status: str(request.status) || 'pending',
+              createdAt: request.created_at ? iso(request.created_at) : '',
+            }
+          : null,
+        footprint: {
+          loadOrders: Number(scope.footprint?.load_orders ?? 0),
+          documents: Number(scope.footprint?.documents ?? 0),
+          productionBatches: Number(scope.footprint?.production_batches ?? 0),
+          stockMovements: Number(scope.footprint?.stock_movements ?? 0),
+          lastActivityAt,
+        },
+      });
+    }
+
+    return {
+      observedDays: days,
+      generatedAt: new Date().toISOString(),
+      windowStartsAt: since.toISOString(),
+      modes: measured.modes.map((row) => str(row.mode)).filter((mode) => mode.length > 0),
+      summary: {
+        measuredTenants: Number(measured.totals?.tenants ?? 0),
+        listedTenants: tenants.length,
+        stillUnlicensed: tenants.filter((tenant) => tenant.licence.state !== 'licensed').length,
+        licensedSince: tenants.filter((tenant) => tenant.licence.state === 'licensed').length,
+        writes: Number(measured.totals?.writes ?? 0),
+        listedWrites: tenants.reduce((sum, tenant) => sum + tenant.writes, 0),
+        actors: Number(measured.totals?.actors ?? 0),
+        oldestAt: measured.totals?.oldest_at ? iso(measured.totals.oldest_at) : null,
+        newestAt: measured.totals?.newest_at ? iso(measured.totals.newest_at) : null,
+      },
+      truncated,
+      tenants,
+    };
+  }
+
   async platformDecideRequest(
     requestId: string,
     actorUserId: string | undefined,
@@ -977,6 +1263,33 @@ function decimalText(value: unknown): string {
   }
   const [whole, fraction = ''] = text.split('.');
   return `${whole}.${fraction.padEnd(4, '0')}`;
+}
+
+/**
+ * نافذةُ القياس بالأيام. الخاطئُ يُرفض 400 ولا يُقرَّب صامتاً: نافذةٌ لم يطلبها أحد تعني
+ * أرقاماً لا يعرف القارئُ حدودها، وهذا أسوأ من خطأٍ معلَن.
+ */
+function usageWindowDays(value: unknown): number {
+  const text = value === null || value === undefined ? '' : String(value).trim();
+  if (text === '') return UNLICENSED_USAGE_DEFAULT_DAYS;
+  if (!/^[0-9]{1,4}$/.test(text)) {
+    throw new DomainError(
+      errorCodes.VALIDATION_FAILED,
+      `نافذة القياس أيامٌ صحيحة بين 1 و${UNLICENSED_USAGE_MAX_DAYS} — والمُرسل «${text.slice(0, 20)}»`,
+      400,
+      { field: 'days', message: 'عدد أيامٍ صحيح بين 1 و3650' },
+    );
+  }
+  const days = Number(text);
+  if (days < 1 || days > UNLICENSED_USAGE_MAX_DAYS) {
+    throw new DomainError(
+      errorCodes.VALIDATION_FAILED,
+      `نافذة القياس بين يومٍ و${UNLICENSED_USAGE_MAX_DAYS} يوماً — والمُرسل ${days}`,
+      400,
+      { field: 'days', message: 'عدد أيامٍ صحيح بين 1 و3650' },
+    );
+  }
+  return days;
 }
 
 function moneyText(value: unknown): string {

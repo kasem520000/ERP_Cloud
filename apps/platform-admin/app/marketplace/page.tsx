@@ -42,10 +42,64 @@ type TenantRow = {
   name: string;
 };
 
+/**
+ * 📊 قياسُ الاستعمال غير المرخّص كما يرجعه `GET /platform/marketplace/unlicensed-usage`.
+ * الشكل مرآةُ `UnlicensedUsageView` في `apps/api/src/modules/marketplace/marketplace.service.ts`
+ * — فلو تغيّر عقدُ الخادم ظهر الفرق هنا في أول قراءة (‏`undefined` لا جدولٌ فارغ يوهم أنّ أحداً
+ * لا يستعمل السطح).
+ */
+type UnlicensedUsagePath = { method: string; path: string; writes: number };
+
+type UnlicensedUsageRow = {
+  tenantId: string;
+  tenantCode: string;
+  tenantName: string;
+  tenantStatus: string;
+  requiredApps: string[];
+  writes: number;
+  actors: number;
+  firstAt: string | null;
+  lastAt: string | null;
+  topPaths: UnlicensedUsagePath[];
+  licence: { state: 'unlicensed' | 'disabled' | 'licensed'; enabledApps: string[]; installedAt: string | null };
+  pendingRequest: { appCode: string; status: string; createdAt: string } | null;
+  /** أعدادٌ بلا نافذة (كلُّ ما في جداول المنشأة) — بخلاف `writes` المقيّدة بـ`observedDays`. */
+  footprint: {
+    loadOrders: number;
+    documents: number;
+    productionBatches: number;
+    stockMovements: number;
+    lastActivityAt: string | null;
+  };
+};
+
+type UnlicensedUsage = {
+  observedDays: number;
+  generatedAt: string;
+  windowStartsAt: string;
+  modes: string[];
+  summary: {
+    measuredTenants: number;
+    listedTenants: number;
+    stillUnlicensed: number;
+    licensedSince: number;
+    writes: number;
+    listedWrites: number;
+    actors: number;
+    oldestAt: string | null;
+    newestAt: string | null;
+  };
+  truncated: boolean;
+  tenants: UnlicensedUsageRow[];
+};
+
+/** نوافذُ القياس المعروضة — والافتراضي ما يطلبه الخادم بلا معامل (‏90 يوماً). */
+const USAGE_WINDOWS = [30, 90, 365] as const;
+
 export default function PlatformMarketplacePage() {
   const { canConsole } = useSession();
   const canWrite = canConsole('console.marketplace.manage');
-  const [tab, setTab] = useState<'requests' | 'tenant_direct' | 'catalog'>('requests');
+  const [tab, setTab] = useState<'requests' | 'tenant_direct' | 'catalog' | 'usage'>('requests');
   const [apps, setApps] = useState<CatalogApp[]>([]);
   const [requests, setRequests] = useState<AddonRequestRow[]>([]);
   const [tenants, setTenants] = useState<TenantRow[]>([]);
@@ -54,6 +108,9 @@ export default function PlatformMarketplacePage() {
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [message, setMessage] = useState('');
   const [busy, setBusy] = useState('');
+  const [usage, setUsage] = useState<UnlicensedUsage | null>(null);
+  const [usageDays, setUsageDays] = useState<number>(90);
+  const [usageError, setUsageError] = useState('');
 
   async function reload() {
     const [nextApps, nextReqs, nextTenants] = await Promise.all([
@@ -71,8 +128,27 @@ export default function PlatformMarketplacePage() {
     setDrafts(Object.fromEntries((nextApps ?? []).map((app) => [app.code, app.monthlyPrice])));
   }
 
+  /**
+   * قراءةُ القياس. الخطأ **لا يُبتلع** (‏`.catch(() => [])` كما في الجدولين أعلاه): قياسٌ فشل
+   * وقائمةٌ فارغة تُظهران الشيء نفسه لصاحب القرار — «لا أحد يستعمل السطح» — والفرقُ بينهما
+   * قرارٌ تجاريّ يُتّخذ على وهم.
+   */
+  async function loadUsage(days: number) {
+    setUsageError('');
+    try {
+      const view = await apiData<UnlicensedUsage>(`/platform/marketplace/unlicensed-usage?days=${days}`);
+      setUsage(view ?? null);
+    } catch (error) {
+      setUsage(null);
+      setUsageError(messageOf(error));
+    }
+  }
+
   useEffect(() => {
     reload().catch((error: unknown) => setMessage(messageOf(error)));
+    // القراءة الأولى مع أول رسمٍ فقط (النافذة الابتدائية 90)؛ وتغييرُ النافذة يقرأ صراحةً
+    // في مُعالج الزرّ لا في أثرٍ يتتبّعها، فلا قراءةَ مزدوجة عند كل رسم.
+    void loadUsage(usageDays);
   }, []);
 
   async function decide(req: AddonRequestRow, decision: 'approved' | 'rejected') {
@@ -158,6 +234,16 @@ export default function PlatformMarketplacePage() {
           onClick={() => setTab('catalog')}
         >
           💰 كتالوج وأسعار الباقات ({apps.length})
+        </button>
+        <button
+          type="button"
+          className={tab === 'usage' ? 'btn primary' : 'btn'}
+          onClick={() => {
+            setTab('usage');
+            if (!usage) void loadUsage(usageDays);
+          }}
+        >
+          📊 الاستعمال بلا ترخيص ({usage?.summary.stillUnlicensed ?? '…'})
         </button>
       </div>
 
@@ -299,6 +385,165 @@ export default function PlatformMarketplacePage() {
         </section>
       )}
 
+      {tab === 'usage' && (
+        <section className="card" style={{ display: 'grid', gap: 12 }}>
+          <h2 style={{ marginTop: 0 }}>📊 مَنْ يستعمل سطحاً قطاعياً بلا باقة — القياس قبل قرار الفرض</h2>
+          <p className="muted" style={{ margin: 0 }}>
+            المصدر <code dir="ltr">audit_log</code>: حارسُ الترخيص يكتب سطراً لكلّ <strong>كتابةٍ</strong> من
+            منشأةٍ بلا باقة (ولا يكتب للقراءات، فلوحةٌ تُستطلع كل ثلاثين ثانية ليست استعمالاً جديداً).
+            والجدول يجمع لكلّ منشأة: كم مرّةً كتبت، ومَن كتب، ومتى، وأيَّ مساراتٍ بلغت — ثمّ يسأل
+            المنشأة في سياقها عن حجم العمل الحقيقي في جداول التوزيع، لأنّ «كم عملاً سيقف لو فُرض
+            الترخيص غداً» هو الرقم التجاري، لا عدد الطلبات.
+          </p>
+
+          <div className="row" style={{ gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+            <span className="muted">نافذة القياس:</span>
+            {USAGE_WINDOWS.map((days) => (
+              <button
+                key={days}
+                type="button"
+                className={usageDays === days ? 'btn primary sm' : 'btn sm'}
+                onClick={() => {
+                  setUsageDays(days);
+                  void loadUsage(days);
+                }}
+              >
+                {days} يوماً
+              </button>
+            ))}
+            <button type="button" className="btn sm" onClick={() => void loadUsage(usageDays)}>
+              🔄 إعادة القراءة
+            </button>
+          </div>
+
+          {usageError ? <p className="alert danger">تعذّر قراءة القياس: {usageError}</p> : null}
+
+          {!usage && !usageError ? (
+            <p className="muted">جارٍ قراءة القياس…</p>
+          ) : null}
+
+          {usage ? (
+            <>
+              <div className="row" style={{ gap: 16, flexWrap: 'wrap' }}>
+                <span>
+                  الوضع المقيس:{' '}
+                  <strong dir="ltr">{usage.modes.length > 0 ? usage.modes.join(', ') : '—'}</strong>
+                </span>
+                <span>
+                  منشآتٌ قِيست: <strong>{usage.summary.measuredTenants}</strong>
+                </span>
+                <span>
+                  منها <strong>بلا باقة الآن</strong>: {usage.summary.stillUnlicensed}
+                </span>
+                <span>
+                  فعّلت بعدها: {usage.summary.licensedSince}
+                </span>
+                <span>
+                  كتاباتٌ مقاسة: <strong>{usage.summary.writes}</strong> من{' '}
+                  {usage.summary.actors} مستخدماً
+                </span>
+                <span>
+                  أقدم قياس: {whenText(usage.summary.oldestAt)} · أحدثه: {whenText(usage.summary.newestAt)}
+                </span>
+              </div>
+
+              {usage.truncated ? (
+                <p className="alert warn">
+                  القائمة مفصّلةٌ لأحدث {usage.summary.listedTenants} منشأةً مقاسة، والملخّص أعلاه
+                  يعدّ الكلّ ({usage.summary.measuredTenants}) — فاقرأ «كتاباتٌ مقاسة» من الملخّص لا من
+                  مجموع الصفوف.
+                </p>
+              ) : null}
+
+              {usage.tenants.length === 0 ? (
+                <p className="muted">
+                  لا استعمالَ غير مرخّص في هذه النافذة — إمّا أنّ كلّ المنشآت المستعملة مرخّصة، أو أنّ
+                  أحداً لم يكتب على السطح منذ {usage.observedDays} يوماً.
+                </p>
+              ) : (
+                <div className="table-wrap">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>المنشأة</th>
+                        <th>الترخيص الآن</th>
+                        <th>كتاباتٌ مقاسة</th>
+                        <th>مستخدمون</th>
+                        <th>أول / آخر قياس</th>
+                        <th>حجم العمل الحقيقي (كلّ الوقت)</th>
+                        <th>المسارات</th>
+                        <th>طلب تفعيل</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {usage.tenants.map((row) => (
+                        <tr key={`${row.tenantId}:${row.requiredApps.join('|')}`}>
+                          <td>
+                            <strong>{row.tenantName}</strong>
+                            <div className="muted" style={{ fontSize: 12 }} dir="ltr">
+                              {row.tenantCode} · {row.tenantStatus}
+                            </div>
+                            <div className="muted" style={{ fontSize: 12 }} dir="ltr">
+                              {row.requiredApps.join(' | ')}
+                            </div>
+                          </td>
+                          <td>{licenceLabel(row.licence.state, row.licence.enabledApps)}</td>
+                          <td>
+                            <strong>{row.writes}</strong>
+                          </td>
+                          <td>{row.actors}</td>
+                          <td style={{ fontSize: 12 }}>
+                            {whenText(row.firstAt)}
+                            <div className="muted">{whenText(row.lastAt)}</div>
+                          </td>
+                          <td style={{ fontSize: 12 }}>
+                            أوامر تحميل {row.footprint.loadOrders} · مستندات {row.footprint.documents} ·
+                            دفعات إنتاج {row.footprint.productionBatches}
+                            <div className="muted">
+                              حركات سيارة {row.footprint.stockMovements} · آخر نشاط{' '}
+                              {whenText(row.footprint.lastActivityAt)}
+                            </div>
+                          </td>
+                          <td style={{ fontSize: 12 }} dir="ltr">
+                            {row.topPaths.map((pathRow) => (
+                              <div key={`${pathRow.method} ${pathRow.path}`}>
+                                {pathRow.method} {pathRow.path.replace('/api/v1', '')} ×{pathRow.writes}
+                              </div>
+                            ))}
+                          </td>
+                          <td style={{ fontSize: 12 }}>
+                            {row.pendingRequest ? (
+                              <>
+                                <span dir="ltr">{row.pendingRequest.appCode}</span>
+                                <div className="muted">
+                                  {row.pendingRequest.status === 'pending'
+                                    ? `معلّق منذ ${whenText(row.pendingRequest.createdAt)}`
+                                    : `${row.pendingRequest.status} · ${whenText(row.pendingRequest.createdAt)}`}
+                                </div>
+                              </>
+                            ) : (
+                              <span className="muted">لم تطلب</span>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              <p className="muted small" style={{ margin: 0 }}>
+                هذه الشاشة <strong>قياسٌ لا قرار</strong>: لا تُغيّر وضع الحارس. القلبُ من{' '}
+                <code dir="ltr">observe</code> إلى <code dir="ltr">enforce</code> تعديلٌ في
+                الزخرفة <code dir="ltr">@RequiresSectorApp</code> على وحدة <code dir="ltr">van-sales</code>{' '}
+                في الـ API، وهو قرارُ مالكٍ يحتاج تحصينَ المنشآت القائمة (أو لا يحتاج) — وأمّا الترخيص
+                لمنشأةٍ بعينها فزرُّه في تبويب «تفعيل/إيقاف مباشر لمنشأة» أعلاه.
+              </p>
+            </>
+          ) : null}
+        </section>
+      )}
+
       {tab === 'catalog' && (
         <div className="grid" style={{ gap: 12 }}>
           {apps.map((app) => (
@@ -344,6 +589,23 @@ export default function PlatformMarketplacePage() {
       )}
     </Screen>
   );
+}
+
+/** تاريخٌ مقروءٌ بلا ادّعاء منطقةٍ زمنية: `ar-SA` كما في بقية لوحة المنصّة. */
+function whenText(value: string | null): string {
+  if (!value) return '—';
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? value : date.toLocaleString('ar-SA');
+}
+
+/**
+ * حالةُ الترخيص **الآن** لا لحظة القياس — فالفرق تجاري: «فعّلت بعدها» تعني أنّ الصفّ تاريخٌ
+ * محض، و«باقةٌ مُطفأة» تعني أنّ قراراً اتُّخذ ثمّ أُوقف، و«لم تطلب» تعني أنّ أحداً لم يطرق الباب.
+ */
+function licenceLabel(state: UnlicensedUsageRow['licence']['state'], enabledApps: string[]): string {
+  if (state === 'licensed') return `✅ مُرخّصة الآن (${enabledApps.join(', ')}) — القياس تاريخ`;
+  if (state === 'disabled') return '⏸️ باقةٌ مثبّتة لكنها مُطفأة';
+  return '⛔ بلا باقة مفعّلة';
 }
 
 function messageOf(error: unknown): string {
