@@ -38,6 +38,7 @@ import { TreasuryService } from '../treasury/treasury.service.js';
 import { FileAttachmentRegistry } from '../platform-services/files/file-attachments.js';
 
 import { calculatePayrollLine } from './payroll-calculator.js';
+import { todayInTimezone } from './payroll-compliance.js';
 
 export type DepartmentInput = { code: string; name: string; branchId?: string; parentId?: string | null };
 export type JobInput = { code: string; name: string };
@@ -1052,11 +1053,13 @@ export class HrmService implements OnModuleInit {
    * (`tenant_settings['locale.timezone']` ← `tenants.timezone` ← `'Asia/Riyadh'`).
    * يمنع انزلاق التاريخ حول منتصف الليل بين UTC والتوقيت المحلي للمنشأة.
    */
-  private async resolveBusinessTodayInTx(
-    tx: DrizzleTx,
-    tenantId: string,
-    now = new Date(),
-  ): Promise<string> {
+  /**
+   * منطقةُ المنشأة الزمنية، مُتحقَّقًا منها: `tenant_settings['locale.timezone']` ←
+   * `tenants.timezone` ← `'Asia/Riyadh'`. والاسم يُرجع **منطقةً صالحة** (لا نصًّا من إعدادٍ
+   * مكتوبٍ بخطأ) لأنّ المنطقة تُستعمل في `AT TIME ZONE` داخل SQL أيضًا، ومنطقةٌ مجهولة هناك
+   * خطأُ قاعدة بيانات (‏22023) لا يومٌ ناقص.
+   */
+  private async resolveBusinessTimeZoneInTx(tx: DrizzleTx, tenantId: string): Promise<string> {
     const [setting] = await tx
       .select({ value: tenantSettings.value })
       .from(tenantSettings)
@@ -1072,10 +1075,19 @@ export class HrmService implements OnModuleInit {
         ? setting.value.trim()
         : (tenant?.timezone?.trim() || 'Asia/Riyadh');
     try {
-      return new Intl.DateTimeFormat('en-CA', { timeZone: tz }).format(now);
+      new Intl.DateTimeFormat('en-CA', { timeZone: tz }).format(new Date());
+      return tz;
     } catch {
-      return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Riyadh' }).format(now);
+      return 'Asia/Riyadh';
     }
+  }
+
+  private async resolveBusinessTodayInTx(
+    tx: DrizzleTx,
+    tenantId: string,
+    now = new Date(),
+  ): Promise<string> {
+    return todayInTimezone(await this.resolveBusinessTimeZoneInTx(tx, tenantId), now);
   }
 
   async employeeMovements(tenantId: string, query: EmployeeMovementsQuery = {}) {
@@ -1090,12 +1102,29 @@ export class HrmService implements OnModuleInit {
     }
 
     // «من تاريخ»/«إلى تاريخ» open on today (`FrmEmpInvs_Loaded` L72) and «إلى» is inside.
-    const today = await withTenantTx(this.database.db, tenantId, (tx) =>
-      this.resolveBusinessTodayInTx(tx, tenantId),
+    const timeZone = await withTenantTx(this.database.db, tenantId, (tx) =>
+      this.resolveBusinessTimeZoneInTx(tx, tenantId),
     );
+    const today = todayInTimezone(timeZone);
     const from = query.from ?? today;
     const to = query.to ?? today;
     const movementType = query.movementType ?? 'all';
+    /**
+     * 📅 تاريخُ الحركة **بتقويم المنشأة**، وحدّا المدى كذلك.
+     *
+     * ما كان: المدى الافتراضيّ يومُ أعمال المنشأة (‏`resolveBusinessTodayInTx`)، أمّا الصفوف
+     * فتُؤرَّخ بـ`posted_at::date` — أي بتقويم **جلسة قاعدة البيانات (UTC)**. وبين ٢١:٠٠ و٢٤:٠٠
+     * بتوقيت غرينتش (‏٠٠:٠٠–٠٣:٠٠ في الرياض) يختلف اليومان، فنافذةُ «حركات الموظف» تُفتح على
+     * غدٍ ليس فيه صفوف: فاتورةٌ مُرحَّلة الساعة ٠٠:١٥ بتوقيت المنشأة لا تظهر في كشف اليوم نفسه
+     * حتى الثالثة صباحًا. وقِيس هذا فعلًا: ‏٨ أحكامٍ في `employee-movements.spec.ts` سقطت في
+     * ٢٠٢٦-١٠-١٥ ٢١:٤٣ UTC لأنّ الخادم أرجع `2026-10-16` والصفوفُ مؤرَّخة `2026-10-15`.
+     *
+     * والحدّان `>= from 00:00` و`< to+1 00:00` بتوقيت المنشأة (لا `::date <= to`) فيبقيان
+     * الفهرسَ صالحًا للاستعمال، و«إلى» داخلَ المدى كما كانت.
+     */
+    const movementDay = sql<string>`to_char((${salesInvoices.postedAt} AT TIME ZONE ${timeZone}), 'YYYY-MM-DD')`;
+    const fromBoundary = sql`(${from}::date)::timestamp AT TIME ZONE ${timeZone}`;
+    const toBoundary = sql`((${to}::date + INTERVAL '1 day'))::timestamp AT TIME ZONE ${timeZone}`;
 
     const rows = await withTenantTx(this.database.db, tenantId, (tx) =>
       tx
@@ -1103,7 +1132,7 @@ export class HrmService implements OnModuleInit {
           invoiceId: salesInvoices.id,
           number: salesInvoices.number,
           kind: salesInvoices.kind,
-          date: sql<string>`${salesInvoices.postedAt}::date`,
+          date: movementDay,
           total: salesInvoices.total,
           isPos: sql<boolean>`(${salesInvoices.orderType} IS NOT NULL OR ${salesInvoices.shiftId} IS NOT NULL)`,
           orderType: salesInvoices.orderType,
@@ -1131,13 +1160,13 @@ export class HrmService implements OnModuleInit {
               : movementType === 'returns'
                 ? eq(salesInvoices.kind, 'sale_return')
                 : inArray(salesInvoices.kind, ['sale', 'sale_return']),
-            gte(sql`${salesInvoices.postedAt}::date`, from),
-            lte(sql`${salesInvoices.postedAt}::date`, to),
+            gte(salesInvoices.postedAt, fromBoundary),
+            lt(salesInvoices.postedAt, toBoundary),
             employeeId ? eq(salesInvoices.salesmanId, employeeId) : isNotNull(salesInvoices.salesmanId),
             query.branchId ? eq(salesInvoices.branchId, query.branchId) : undefined,
           ),
         )
-        .orderBy(asc(sql`${salesInvoices.postedAt}::date`), asc(salesInvoices.number), asc(salesInvoiceLines.lineNo)));
+        .orderBy(asc(movementDay), asc(salesInvoices.number), asc(salesInvoiceLines.lineNo)));
 
     const movements: EmployeeMovementRow[] = [];
     const seen = new Set<string>();
