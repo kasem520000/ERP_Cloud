@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import { useSubmissionKey } from '@erp/web-core/use-submission-key';
 
 import { Notice } from '../../../components/data-view';
 import { Screen } from '../../../components/screen';
@@ -212,19 +213,39 @@ export default function VanSalesRepPage() {
   }, [load]);
 
   /**
-   * معرّف فريد لكل إرسال — the same key on a retry returns the same result instead of a
-   * second document, which is what makes a flaky mobile connection safe.
+   * 🔁 مفتاحٌ واحدٌ للنيّة الواحدة لا للنقرة الواحدة.
+   *
+   * كان هنا مولّدٌ يعطي مفتاحاً جديداً **لكلّ نداء** (`Date.now()` + `Math.random()`) تحت تعليقٍ
+   * يعد بأنّ إعادة المحاولة ترجع بالنتيجة نفسها — وعدٌ لا يحققه: المفتاح يختلف بين المحاولتين،
+   * فعلى شبكة المندوب المتقطّعة تُنشئ إعادةُ الإرسال فاتورةً ثانية وخصماً ثانياً من رصيد سيارته
+   * الرسمي وسند قبضٍ ثانياً، ولا يخبره شيءٌ بأنّ الأولى وصلت. والمفتاح الآن بصمةُ المسودة مع رقم
+   * محاولةٍ يتغيّر حين تتغيّر الحقول أو حين يُرصد نجاح — فيرجع الخادم بالمستند الأول (فهرسٌ فريد
+   * على `van_sales_documents.idempotency_key`). التفصيل والقياس في `@erp/web-core/idempotency`.
    */
-  const idempotencyKey = (prefix: string) =>
-    `${prefix}:${data?.salesmanId ?? 'rep'}:${Date.now()}:${Math.random().toString(36).slice(2, 8)}`;
+  const saleKey = useSubmissionKey('rep-sale', {
+    loadOrderId: saleLoadOrderId,
+    partyId: salePartyId,
+    walkInName: saleWalkIn,
+    soldQty: saleQty,
+    bonusQty: saleBonusQty,
+    bonusReason: saleBonusReason,
+    unitPriceText: saleUnitPrice,
+    paymentMethod: salePayment,
+  });
+  const collectKey = useSubmissionKey('rep-collect', {
+    documentId: collectDocId,
+    collectedText: collectAmount,
+  });
 
-  async function run(action: () => Promise<unknown>, okText: (result: unknown) => string) {
+  async function run(action: () => Promise<unknown>, okText: (result: unknown) => string, onDone?: () => void) {
     setBusy(true);
     setNotice(undefined);
     try {
       const result = await action();
       await load();
       setNotice({ kind: 'ok', text: okText(result) });
+      // نجاحٌ رُصد: الإرسال التالي نيّةٌ جديدة ولو تطابق محتواها (بيعان متماثلان لعميل واحد).
+      onDone?.();
     } catch (error) {
       setNotice({
         kind: 'danger',
@@ -425,9 +446,10 @@ export default function VanSalesRepPage() {
                     bonusReason: saleBonusReason || undefined,
                     unitPrice: saleUnitPrice || undefined,
                     invoiceMode: 'zatca_tax',
-                    idempotencyKey: idempotencyKey('rep-sale'),
+                    idempotencyKey: saleKey.key(),
                   }),
                 () => `تم إصدار فاتورة البيع وخصم الكمية من رصيد سيارتك الرسمي.`,
+                saleKey.reset,
               );
             }}
           >
@@ -854,9 +876,10 @@ export default function VanSalesRepPage() {
                       apiPost('/van-sales/collections', {
                         documentId: collectDocId,
                         collectedAmount: collectAmount,
-                        idempotencyKey: idempotencyKey('rep-collect'),
+                        idempotencyKey: collectKey.key(),
                       }),
                     () => `تم تسجيل تحصيل ${collectAmount} ريال وإصدار سند القبض الرسمي.`,
+                    collectKey.reset,
                   ).then(() => setCollectDocId(''))
                 }
               >

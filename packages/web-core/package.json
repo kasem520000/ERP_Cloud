@@ -12,6 +12,8 @@
     "./surface-policy": "./src/surface-policy.ts",
     "./i18n": "./src/i18n.tsx",
     "./use-query": "./src/use-query.ts",
+    "./idempotency": "./src/idempotency.ts",
+    "./use-submission-key": "./src/use-submission-key.ts",
     "./offline-db": "./src/offline-db.ts",
     "./sync-engine": "./src/sync-engine.ts",
     "./sync": "./src/sync.ts",

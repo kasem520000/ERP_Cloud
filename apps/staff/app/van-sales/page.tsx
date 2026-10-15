@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useSubmissionKey } from '@erp/web-core/use-submission-key';
 
 import { Notice } from '../../components/data-view';
 import { Screen } from '../../components/screen';
@@ -662,6 +663,20 @@ export default function VanSalesPage() {
   const [notice, setNotice] = useState<{ kind: 'ok' | 'danger' | 'warn'; text: string }>();
   const [busy, setBusy] = useState(false);
 
+  /**
+   * 🔁 مفاتيح عدم التكرار لمسارات الإنشاء الخمسة التي تقبلها الخدمة وتفردُها بفهرسٍ فريد
+   * (‏`0122_van_sales_core_integration_and_idempotency.sql`): دفعة الإنتاج، أمر التحميل، المستند،
+   * المرتجع، التحصيل. تُبنى الأجسام داخل المعالجات فالمفتاح يُشتقّ من الجسم المُرسل نفسه
+   * (`key(body)`)، ويُدوَّر بعد نجاحٍ رُصد (`reset()`) حتى يبقى البيعان المتطابقان المقصودان
+   * مستندين. وأمّا مسارات الانتقال (تأكيد الاستلام، الرفض، الإلغاء، الإغلاق، التسوية) فلا
+   * معاملَ مفتاحٍ فيها ولا حاجة: كلّها تقفل صفّ الأمر `FOR UPDATE OF l` فالثانية تصطدم بالحالة.
+   */
+  const productionKey = useSubmissionKey('van-production-batch');
+  const loadOrderKey = useSubmissionKey('van-load-order');
+  const vanDocumentKey = useSubmissionKey('van-document');
+  const returnKey = useSubmissionKey('van-return');
+  const collectKey = useSubmissionKey('van-collection');
+
   // Pillar 1: Production batch form state
   const [prodItemName, setProdItemName] = useState('');
   const [prodItemId, setProdItemId] = useState('');
@@ -854,11 +869,13 @@ export default function VanSalesPage() {
         setBusy(false);
         return;
       }
-      const next = await apiPost<DashboardData>(
-        '/van-sales/production-batches',
-        verdict.payload satisfies ProductionBatchPayload,
-      );
+      const batchBody = verdict.payload satisfies ProductionBatchPayload;
+      const next = await apiPost<DashboardData>('/van-sales/production-batches', {
+        ...batchBody,
+        idempotencyKey: productionKey.key(batchBody),
+      });
       setData(next);
+      productionKey.reset();
       const newestBatch = next.productionBatches[0];
       if (newestBatch) setProductionBatchNo(newestBatch.batchNo);
       const warehouseName =
@@ -1011,11 +1028,13 @@ export default function VanSalesPage() {
     setBusy(true);
     setNotice(undefined);
     try {
+      const returnBody = { returnedQty, reason };
       const next = await apiPost<DashboardData>(`/van-sales/documents/${documentId}/returns`, {
-        returnedQty,
-        reason,
+        ...returnBody,
+        idempotencyKey: returnKey.key({ documentId, ...returnBody }),
       });
       setData(next);
+      returnKey.reset();
       setNotice({
         kind: 'ok',
         text: `تم تسجيل مرتجع العميل (${returnedQty} كجم) وإصدار فاتورة مرتجع رسمية وإرجاع الكمية إلى عهدة المندوب.`,
@@ -1032,7 +1051,7 @@ export default function VanSalesPage() {
     setBusy(true);
     setNotice(undefined);
     try {
-      const next = await apiPost<DashboardData>('/van-sales/load-orders', {
+      const loadBody = {
         salesmanId: loadSalesmanId,
         itemId: loadItemId || undefined,
         warehouseId: loadWarehouseId || undefined,
@@ -1042,8 +1061,13 @@ export default function VanSalesPage() {
         loadedQty,
         maxBonusQty,
         maxBonusPct,
+      };
+      const next = await apiPost<DashboardData>('/van-sales/load-orders', {
+        ...loadBody,
+        idempotencyKey: loadOrderKey.key(loadBody),
       });
       setData(next);
+      loadOrderKey.reset();
       const newestLoad = next.loadOrders[0];
       if (newestLoad) setDocLoadOrderId(newestLoad.id);
       setNotice({
@@ -1114,7 +1138,7 @@ export default function VanSalesPage() {
     setBusy(true);
     setNotice(undefined);
     try {
-      const next = await apiPost<DashboardData>('/van-sales/documents', {
+      const documentBody = {
         loadOrderId: docLoadOrderId,
         partyId: docPartyId || undefined,
         customerName: docPartyId ? undefined : docWalkinName.trim() || 'محل تجزئة نقدي',
@@ -1130,8 +1154,13 @@ export default function VanSalesPage() {
         allowPriceDiscountOverride: docAllowOverride,
         customerBonusConfirmed: docBonusConfirmed,
         customerConfirmationCode: docConfirmCode.trim() || undefined,
+      };
+      const next = await apiPost<DashboardData>('/van-sales/documents', {
+        ...documentBody,
+        idempotencyKey: vanDocumentKey.key(documentBody),
       });
       setData(next);
+      vanDocumentKey.reset();
       const newestDoc = next.documents[0] ?? null;
       setSelectedDoc(newestDoc);
       setNotice({
@@ -1335,12 +1364,17 @@ export default function VanSalesPage() {
     setBusy(true);
     setNotice(undefined);
     try {
-      const next = await apiPost<DashboardData>('/van-sales/collections', {
+      const collectBody = {
         documentId: doc.id,
         collectedAmount: input,
         notes: 'تحصيل مديونية عميل توزيع',
+      };
+      const next = await apiPost<DashboardData>('/van-sales/collections', {
+        ...collectBody,
+        idempotencyKey: collectKey.key(collectBody),
       });
       setData(next);
+      collectKey.reset();
       setNotice({ kind: 'ok', text: `تم تسجيل سند قبض بمبلغ ${input} ريال للفاتورة ${doc.number}.` });
     } catch (error) {
       setNotice({ kind: 'danger', text: apiErrorText(error, 'تعذر تسجيل التحصيل') });

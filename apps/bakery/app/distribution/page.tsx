@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Button, Card, CardBody, CardHeader, Input } from '@erp/ui';
 import { apiData, apiErrorText, apiList, apiPost } from '@erp/web-core/api';
 import { useSession } from '@erp/web-core/session';
+import { useSubmissionKey } from '@erp/web-core/use-submission-key';
 import {
   buildLoadOrderPayload,
   buildReceiptPayload,
@@ -181,6 +182,9 @@ export default function DistributionPage() {
     [salesmanId, itemId, pickedItem, productionBatchNo, loadedQty, warehouseId, vanWarehouseId, vehiclePlate, notes],
   );
   const verdict = useMemo(() => buildLoadOrderPayload(draft), [draft]);
+  // 🔁 مفتاحٌ واحد للنيّة الواحدة: إعادة الإرسال بعد انقطاع الشبكة ترجع بأمر التحميل الأول
+  // (فالخادم يفرد `van_load_orders.idempotency_key`) بدل توريدٍ ثانٍ وخصمٍ ثانٍ من المستودع.
+  const loadOrderKey = useSubmissionKey('van-load-order', draft);
   const loadOrders = useMemo(() => mapLoadOrders(dashboard), [dashboard]);
   const pendingReceipt = useMemo(() => awaitingReceiptRows(loadOrders), [loadOrders]);
   const batches = dashboard?.productionBatches ?? [];
@@ -239,7 +243,10 @@ export default function DistributionPage() {
     }
     setBusy(true);
     try {
-      const fresh = await apiPost<DistributionDashboard>('/van-sales/load-orders', verdict.payload);
+      const fresh = await apiPost<DistributionDashboard>('/van-sales/load-orders', {
+        ...verdict.payload,
+        idempotencyKey: loadOrderKey.key(),
+      });
       setDashboard(fresh);
       // ‏الاستجابة هي اللوحة كاملة، فأحدث أمرٍ أولُ صفوفها — لا رقمَ مُختلَع من المتصفح.
       setCreated(mapLoadOrders(fresh)[0]);
@@ -247,6 +254,8 @@ export default function DistributionPage() {
       setNotes('');
       setBatchKey('');
       setProductionBatchNo('');
+      // نجاحٌ رُصد: التوريد التالي نيّةٌ جديدة ولو تطابق محتواها (توريدان متماثلان في يوم).
+      loadOrderKey.reset();
     } catch (caught) {
       setSubmitError(apiErrorText(caught, 'تعذّر إنشاء أمر التحميل'));
     } finally {

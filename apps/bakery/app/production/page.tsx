@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Button, Card, CardBody, CardHeader, Input } from '@erp/ui';
 import { apiData, apiErrorText, apiList, apiPost } from '@erp/web-core/api';
 import { useSession } from '@erp/web-core/session';
+import { useSubmissionKey } from '@erp/web-core/use-submission-key';
 import { buildProductionBatchPayload, estimateComponentCost } from '@erp/web-van/production';
 
 import {
@@ -153,6 +154,9 @@ export default function ProductionPage() {
   );
 
   const verdict = useMemo(() => buildProductionBatchPayload(draft), [draft]);
+  // 🔁 الدفعة حركاتٌ مخزنية وقيود تكلفة، فإعادة الإرسال يجب ألا تُنشئ ثانيةً: المفتاح يثبت
+  // ما دامت المسودة كما هي (فردُه `factory_production_batches.idempotency_key` في الخادم).
+  const batchKey = useSubmissionKey('van-production-batch', draft);
   const stockRows = useMemo(() => mapOfficialStock(dashboard?.officialStock), [dashboard]);
   const estimate = useMemo(
     () =>
@@ -187,7 +191,10 @@ export default function ProductionPage() {
     }
     setBusy(true);
     try {
-      const fresh = await apiPost<DashboardPayload>('/van-sales/production-batches', verdict.payload);
+      const fresh = await apiPost<DashboardPayload>('/van-sales/production-batches', {
+        ...verdict.payload,
+        idempotencyKey: batchKey.key(),
+      });
       setDashboard(fresh);
       // ‏الاستجابة هي اللوحة كاملة، فأحدث دفعة أولُ صفوفها — لا رقمَ مُختلَع من المتصفح.
       setCreated(fresh.productionBatches?.[0]);
@@ -197,6 +204,8 @@ export default function ProductionPage() {
       setScrapReason('');
       setProducedQty('');
       setNotes('');
+      // نجاحٌ رُصد: الدفعة التالية الجديدة بمحتوىً مطابق دفعةٌ مقصودة لا صدىً للأولى.
+      batchKey.reset();
     } catch (caught) {
       setSubmitError(apiErrorText(caught, 'تعذّر تسجيل دفعة الإنتاج'));
     } finally {

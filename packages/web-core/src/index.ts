@@ -13,6 +13,7 @@
  * مصدراً فلا خطوة بناء تُزامَن بين الواجهات).
  */
 export * from './api';
+export * from './idempotency';
 export * from './i18n';
 export * from './offline-db';
 export * from './session';
@@ -22,3 +23,4 @@ export * from './sync-engine';
 export * from './sync';
 export * from './token-bridge';
 export * from './use-query';
+export * from './use-submission-key';
