@@ -13,6 +13,7 @@ import {
   type AccountOption,
   type CashLocationOption,
 } from '../../lib/lookups';
+import { windowNote } from '../../lib/dashboard-windows';
 import {
   ageDays,
   buildCollectionPayload,
@@ -310,7 +311,10 @@ export default function CollectionPage() {
 
       {dashboard ? (
         <Card>
-          <CardHeader subtitle={COLLECTIONS_WINDOW_NOTE} title="الذمم بأرقام الخادم" />
+          <CardHeader
+            subtitle={windowNote(dashboard.windows, 'documents', COLLECTIONS_WINDOW_NOTE)}
+            title="الذمم بأرقام الخادم"
+          />
           <CardBody>
             <dl className="m-0 grid gap-3 sm:grid-cols-3">
               <div className="rounded-[10px] border border-line bg-surface p-3">

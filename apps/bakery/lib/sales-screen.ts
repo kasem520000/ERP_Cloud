@@ -1,5 +1,7 @@
 import { Decimal } from 'decimal.js';
 
+import type { DashboardWindows } from './dashboard-windows';
+
 /**
  * 🧾 منطق شاشة «فواتير الخطّ» النقيّ — لا React هنا ولا شبكة، فكلّ حكمٍ يُقاس.
  *
@@ -150,6 +152,12 @@ export type SalesDashboard = {
   documents: DocumentRow[];
   loadOrders: SaleLoadOrderRow[];
   customerPrices: CustomerPriceRow[];
+  /**
+   * 🪟 ما رجعته كلّ قائمةٍ وما في جدولها — يُعرض بدل عددٍ ثابت محفوظ في الشاشة، فحين يصير
+   * في الجدول ٣٤٧ مستندًا تُقال «120 من 347» لا «أحدث ١٢٠». واختياريٌّ لأنّ شاشةً أقدم من
+   * الخادم لا تُكذَّب: تُعرض الجملة الاحتياطية ولا يُخترع رقم.
+   */
+  windows?: DashboardWindows | null;
 };
 
 /**

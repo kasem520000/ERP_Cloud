@@ -18,6 +18,7 @@ import {
   type CashLocationOption,
   type PartyOption,
 } from '../../lib/lookups';
+import { windowNote } from '../../lib/dashboard-windows';
 import {
   anomalyNote,
   buildDocumentPayload,
@@ -365,7 +366,10 @@ export default function SalesPage() {
 
       {dashboard ? (
         <Card>
-          <CardHeader subtitle={DASHBOARD_WINDOW_NOTE} title="اليوم بأرقام الخادم" />
+          <CardHeader
+            subtitle={windowNote(dashboard.windows, 'documents', DASHBOARD_WINDOW_NOTE)}
+            title="اليوم بأرقام الخادم"
+          />
           <CardBody>
             <dl className="m-0 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
               <div className="rounded-[10px] border border-line bg-surface p-3">

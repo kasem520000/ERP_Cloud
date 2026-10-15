@@ -1,5 +1,6 @@
 import { Decimal } from 'decimal.js';
 
+import type { DashboardWindows } from './dashboard-windows';
 import {
   decimalOrNull,
   documentRemaining,
@@ -47,6 +48,8 @@ export type CollectionDashboard = {
   summary: { totalCollectedCashSar: string; totalCreditReceivablesSar: string };
   documents: DocumentRow[];
   movements: MovementRow[];
+  /** نوافذُ الخادم المعلنة — انظر `SalesDashboard.windows`. */
+  windows?: DashboardWindows | null;
 };
 
 /** نصوصُ الخادم في `collectCustomerDebt` — حرفاً، ومنها تُبنى جملةُ التجاوز بالأرقام. */

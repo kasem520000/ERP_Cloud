@@ -805,147 +805,223 @@ export class VanSalesService {
         `),
       );
 
-      let totalProducedKg = new Decimal(0);
-      let totalScrapKg = new Decimal(0);
-      let totalProductionCostSar = new Decimal(0);
-      for (const b of productionBatches) {
-        totalProducedKg = totalProducedKg.plus(dec(b.produced_qty));
-        totalScrapKg = totalScrapKg.plus(dec(b.scrap_qty));
-        totalProductionCostSar = totalProductionCostSar.plus(dec(b.total_cost));
+      /**
+       * 📊 المجاميع الكاملة — القوائمُ في هذه الاستجابة **نوافذُ قراءة** (٥٠ دفعة إنتاج،
+       * ٦٠ أمر تحميل، ١٢٠ مستندًا، ٨٠ حركة، ٥٠ سجل تسعير)، وأمّا الأرقام فلا يجوز أن تكون
+       * نوافذ.
+       *
+       * والعيبُ الذي أُصلح هنا مقاسٌ لا مظنون: كانت المجاميع تُجمع في حلقاتٍ على الصفوف
+       * **المرجعة** فحسب، فمنشأةٌ فيها ١٢١ مستندًا كانت `totalCreditReceivablesSar` عندها ذممَ
+       * أحدثِ ١٢٠ — رقمٌ ناقصٌ يُعرض بعنوان «الإجمالي»، ونقصٌ في المال أخطرُ من نقصٍ في
+       * قائمة. فصارت المجاميعُ استعلاماتِ جمعٍ على الجداول نفسها بلا `LIMIT`، وبمنطق الحلقات
+       * حرفًا: `invoice_mode = 'zatca_tax'` ضريبية وما عداها (ومنها `NULL`) داخلية، والدين
+       * `GREATEST(0, total - paid_amount)` لكلّ مستندٍ على حدة، وشذوذُ البونص
+       * `bonus_anomaly = true`.
+       */
+      const productionTotals = first(
+        await tx.execute(sql`
+          SELECT COALESCE(SUM(produced_qty), 0)::text AS produced_kg,
+                 COALESCE(SUM(scrap_qty), 0)::text AS scrap_kg,
+                 COALESCE(SUM(total_cost), 0)::text AS cost_sar,
+                 COUNT(*)::int AS batches
+          FROM factory_production_batches
+          WHERE tenant_id = ${tenantId}::uuid AND deleted_at IS NULL
+        `),
+      );
+      const loadOrderTotals = first(
+        await tx.execute(sql`
+          SELECT COALESCE(SUM(loaded_qty), 0)::text AS loaded_kg,
+                 COALESCE(SUM(sold_qty), 0)::text AS sold_kg,
+                 COALESCE(SUM(bonus_qty), 0)::text AS bonus_kg,
+                 COALESCE(SUM(returned_qty), 0)::text AS returned_kg,
+                 COALESCE(SUM(damaged_qty), 0)::text AS damaged_kg,
+                 COALESCE(SUM(shortage_qty), 0)::text AS shortage_kg,
+                 COALESCE(SUM(shortage_value), 0)::text AS shortage_sar,
+                 COUNT(*) FILTER (WHERE status = 'pending_closing')::int AS pending_closings,
+                 COUNT(*) FILTER (WHERE status = 'pending_receipt')::int AS pending_receipts,
+                 COUNT(*) FILTER (WHERE status = 'pending_stock_settlement')::int
+                   AS pending_stock_settlements,
+                 COUNT(*) FILTER (WHERE stock_settlement_status = 'pending_transit_decision')::int
+                   AS pending_transit_decisions,
+                 COUNT(*)::int AS load_orders
+          FROM van_load_orders
+          WHERE tenant_id = ${tenantId}::uuid AND deleted_at IS NULL
+        `),
+      );
+      const documentTotals = first(
+        await tx.execute(sql`
+          SELECT COALESCE(SUM(total) FILTER (WHERE invoice_mode = 'zatca_tax'), 0)::text AS zatca_sar,
+                 COALESCE(SUM(total) FILTER (WHERE invoice_mode IS DISTINCT FROM 'zatca_tax'), 0)::text
+                   AS internal_sar,
+                 COALESCE(SUM(paid_amount), 0)::text AS collected_sar,
+                 COALESCE(SUM(GREATEST(0, COALESCE(total, 0) - COALESCE(paid_amount, 0))), 0)::text
+                   AS receivables_sar,
+                 COALESCE(SUM(net_profit), 0)::text AS profit_sar,
+                 COUNT(*) FILTER (WHERE bonus_anomaly = true)::int AS anomalies,
+                 COUNT(*)::int AS documents
+          FROM van_sales_documents
+          WHERE tenant_id = ${tenantId}::uuid AND deleted_at IS NULL
+        `),
+      );
+      /** عدّا النافذتين الأخريين — كي يُقال «٨٠ من ٣٤٠ حركة» بدل عددٍ ثابت في كلّ شاشة. */
+      const movementTotals = first(
+        await tx.execute(sql`
+          SELECT COUNT(*)::int AS movements
+          FROM van_stock_movements
+          WHERE tenant_id = ${tenantId}::uuid
+        `),
+      );
+      const priceHistoryTotals = first(
+        await tx.execute(sql`
+          SELECT COUNT(*)::int AS history
+          FROM van_sales_customer_price_history
+          WHERE tenant_id = ${tenantId}::uuid
+        `),
+      );
+
+      const totalProducedKg = dec(productionTotals?.produced_kg);
+      const totalScrapKg = dec(productionTotals?.scrap_kg);
+      const totalProductionCostSar = dec(productionTotals?.cost_sar);
+
+      const totalLoadedKg = dec(loadOrderTotals?.loaded_kg);
+      const totalSoldKg = dec(loadOrderTotals?.sold_kg);
+      const totalBonusKg = dec(loadOrderTotals?.bonus_kg);
+      const totalReturnedKg = dec(loadOrderTotals?.returned_kg);
+      const totalDamagedKg = dec(loadOrderTotals?.damaged_kg);
+      const totalShortageKg = dec(loadOrderTotals?.shortage_kg);
+      const totalShortageSar = dec(loadOrderTotals?.shortage_sar);
+      const pendingClosingsCount = Number(loadOrderTotals?.pending_closings ?? 0);
+      const pendingReceiptsCount = Number(loadOrderTotals?.pending_receipts ?? 0);
+      const pendingStockSettlementsCount = Number(loadOrderTotals?.pending_stock_settlements ?? 0);
+      const pendingTransitDecisionsCount = Number(loadOrderTotals?.pending_transit_decisions ?? 0);
+
+      const totalZatcaSalesSar = dec(documentTotals?.zatca_sar);
+      const totalInternalSalesSar = dec(documentTotals?.internal_sar);
+      const totalCollectedCashSar = dec(documentTotals?.collected_sar);
+      const totalCreditReceivablesSar = dec(documentTotals?.receivables_sar);
+      const totalNetProfitSar = dec(documentTotals?.profit_sar);
+      const anomalyCount = Number(documentTotals?.anomalies ?? 0);
+
+      /**
+       * 🧑‍💼 أداءُ كلّ مندوب — جمعٌ على الجدولين **مجموعةً بمندوبها** لا على نافذتيهما. ومنطقُ
+       * الحلقتين السابقتين بقي كما هو: العهدةُ المتبقية على أساس ما **استلمه** المندوب فعلًا
+       * (أو ما حُمِّل له إن لم يُسجَّل استلام)، وتُحسب لأوامره غير المُصفّاة وغير المنتظرة
+       * للاستلام، و`GREATEST(0, …)` لكلّ أمرٍ على حدة لا للمجموع.
+       *
+       * والذي تغيّر مع الاتساع: مندوبٌ له مستنداتُ بيعٍ بلا أمر تحميل صار يظهر بإيراده — وكان
+       * يسقط من التقرير لأنّ خريطةً واحدة كانت تُملأ من أوامر التحميل أولًا ثمّ لا تقبل مستندًا
+       * لمندوبٍ غائب عنها. والترتيبُ صار بالاسم (لا بـ«أحدث أمر تحميل») فلا يتغيّر بين قراءتين.
+       */
+      const repLoadTotals = rows(
+        await tx.execute(sql`
+          SELECT l.salesman_id::text,
+                 COALESCE(MAX(s.name), 'مندوب توزيع') AS salesman_name,
+                 COALESCE(SUM(l.loaded_qty), 0)::text AS loaded_kg,
+                 COALESCE(SUM(l.sold_qty), 0)::text AS sold_kg,
+                 COALESCE(SUM(l.bonus_qty), 0)::text AS bonus_kg,
+                 COALESCE(SUM(l.returned_qty), 0)::text AS returned_kg,
+                 COALESCE(SUM(l.damaged_qty), 0)::text AS damaged_kg,
+                 COALESCE(SUM(l.shortage_qty), 0)::text AS shortage_kg,
+                 COALESCE(SUM(l.shortage_value), 0)::text AS shortage_sar,
+                 COALESCE(SUM(
+                   GREATEST(
+                     0,
+                     (CASE
+                        WHEN COALESCE(l.received_qty, 0) > 0 THEN l.received_qty
+                        ELSE COALESCE(l.loaded_qty, 0)
+                      END)
+                     - COALESCE(l.sold_qty, 0) - COALESCE(l.bonus_qty, 0)
+                     - COALESCE(l.returned_qty, 0) - COALESCE(l.damaged_qty, 0)
+                     - COALESCE(l.shortage_qty, 0)
+                   )
+                 ) FILTER (WHERE l.status NOT IN ('settled', 'pending_receipt')), 0)::text
+                   AS custody_remaining_kg,
+                 COUNT(*) FILTER (WHERE l.status = 'pending_closing')::int AS pending_closings
+          FROM van_load_orders l
+          LEFT JOIN salesmen s ON s.id = l.salesman_id
+          WHERE l.tenant_id = ${tenantId}::uuid AND l.deleted_at IS NULL
+          GROUP BY l.salesman_id
+          ORDER BY salesman_name ASC, l.salesman_id ASC
+        `),
+      );
+      const repDocumentTotals = rows(
+        await tx.execute(sql`
+          SELECT d.salesman_id::text,
+                 COALESCE(MAX(s.name), 'مندوب') AS salesman_name,
+                 COALESCE(SUM(d.total), 0)::text AS revenue_sar,
+                 COALESCE(SUM(d.paid_amount), 0)::text AS collected_sar,
+                 COALESCE(SUM(GREATEST(0, COALESCE(d.total, 0) - COALESCE(d.paid_amount, 0))), 0)::text
+                   AS credit_debt_sar,
+                 COALESCE(SUM(d.net_profit), 0)::text AS profit_sar
+          FROM van_sales_documents d
+          LEFT JOIN salesmen s ON s.id = d.salesman_id
+          WHERE d.tenant_id = ${tenantId}::uuid AND d.deleted_at IS NULL
+          GROUP BY d.salesman_id
+          ORDER BY salesman_name ASC, d.salesman_id ASC
+        `),
+      );
+
+      type RepTotals = {
+        salesmanId: string;
+        salesmanName: string;
+        loadedKg: Decimal;
+        soldKg: Decimal;
+        bonusKg: Decimal;
+        returnedKg: Decimal;
+        damagedKg: Decimal;
+        shortageKg: Decimal;
+        shortageSar: Decimal;
+        custodyRemainingKg: Decimal;
+        revenueSar: Decimal;
+        collectedSar: Decimal;
+        creditDebtSar: Decimal;
+        netProfitSar: Decimal;
+        pendingClosings: number;
+      };
+      const emptyRepTotals = (salesmanId: string, salesmanName: string): RepTotals => ({
+        salesmanId,
+        salesmanName,
+        loadedKg: new Decimal(0),
+        soldKg: new Decimal(0),
+        bonusKg: new Decimal(0),
+        returnedKg: new Decimal(0),
+        damagedKg: new Decimal(0),
+        shortageKg: new Decimal(0),
+        shortageSar: new Decimal(0),
+        custodyRemainingKg: new Decimal(0),
+        revenueSar: new Decimal(0),
+        collectedSar: new Decimal(0),
+        creditDebtSar: new Decimal(0),
+        netProfitSar: new Decimal(0),
+        pendingClosings: 0,
+      });
+      const repMap = new Map<string, RepTotals>();
+      for (const row of repLoadTotals) {
+        const sid = str(row.salesman_id);
+        repMap.set(sid, {
+          ...emptyRepTotals(sid, str(row.salesman_name)),
+          loadedKg: dec(row.loaded_kg),
+          soldKg: dec(row.sold_kg),
+          bonusKg: dec(row.bonus_kg),
+          returnedKg: dec(row.returned_kg),
+          damagedKg: dec(row.damaged_kg),
+          shortageKg: dec(row.shortage_kg),
+          shortageSar: dec(row.shortage_sar),
+          custodyRemainingKg: dec(row.custody_remaining_kg),
+          pendingClosings: Number(row.pending_closings ?? 0),
+        });
       }
-
-      let totalLoadedKg = new Decimal(0);
-      let totalSoldKg = new Decimal(0);
-      let totalBonusKg = new Decimal(0);
-      let totalReturnedKg = new Decimal(0);
-      let totalDamagedKg = new Decimal(0);
-      let totalShortageKg = new Decimal(0);
-      let totalShortageSar = new Decimal(0);
-      let totalZatcaSalesSar = new Decimal(0);
-      let totalInternalSalesSar = new Decimal(0);
-      let totalCollectedCashSar = new Decimal(0);
-      let totalCreditReceivablesSar = new Decimal(0);
-      let totalNetProfitSar = new Decimal(0);
-      let anomalyCount = 0;
-      let pendingClosingsCount = 0;
-      let pendingReceiptsCount = 0;
-      /** عهد اعتُمدت كمياتها ولم تُسوَّ مخزنياً بعد + فروق استلام بلا قرار. */
-      let pendingStockSettlementsCount = 0;
-      let pendingTransitDecisionsCount = 0;
-
-      const repMap = new Map<
-        string,
-        {
-          salesmanId: string;
-          salesmanName: string;
-          loadedKg: Decimal;
-          soldKg: Decimal;
-          bonusKg: Decimal;
-          returnedKg: Decimal;
-          damagedKg: Decimal;
-          shortageKg: Decimal;
-          shortageSar: Decimal;
-          custodyRemainingKg: Decimal;
-          revenueSar: Decimal;
-          collectedSar: Decimal;
-          creditDebtSar: Decimal;
-          netProfitSar: Decimal;
-          pendingClosings: number;
+      for (const row of repDocumentTotals) {
+        const sid = str(row.salesman_id);
+        const entry = repMap.get(sid) ?? emptyRepTotals(sid, str(row.salesman_name));
+        if (!entry.salesmanName || entry.salesmanName === 'مندوب توزيع') {
+          entry.salesmanName = str(row.salesman_name) || entry.salesmanName;
         }
-      >();
-
-      for (const l of loadOrders) {
-        const loaded = dec(l.loaded_qty);
-        const received = dec(l.received_qty);
-        const sold = dec(l.sold_qty);
-        const bonus = dec(l.bonus_qty);
-        const returned = dec(l.returned_qty);
-        const damaged = dec(l.damaged_qty);
-        const shortage = dec(l.shortage_qty);
-        const shortageVal = dec(l.shortage_value);
-        const isSettled = str(l.status) === 'settled';
-        const isPending = str(l.status) === 'pending_closing';
-        const isAwaitingReceipt = str(l.status) === 'pending_receipt';
-        if (isPending) pendingClosingsCount += 1;
-        if (isAwaitingReceipt) pendingReceiptsCount += 1;
-        if (str(l.status) === 'pending_stock_settlement') pendingStockSettlementsCount += 1;
-        if (str(l.stock_settlement_status) === 'pending_transit_decision') {
-          pendingTransitDecisionsCount += 1;
-        }
-
-        totalLoadedKg = totalLoadedKg.plus(loaded);
-        totalSoldKg = totalSoldKg.plus(sold);
-        totalBonusKg = totalBonusKg.plus(bonus);
-        totalReturnedKg = totalReturnedKg.plus(returned);
-        totalDamagedKg = totalDamagedKg.plus(damaged);
-        totalShortageKg = totalShortageKg.plus(shortage);
-        totalShortageSar = totalShortageSar.plus(shortageVal);
-
-        const sid = str(l.salesman_id);
-        const sname = str(l.salesman_name);
-        const entry = repMap.get(sid) ?? {
-          salesmanId: sid,
-          salesmanName: sname,
-          loadedKg: new Decimal(0),
-          soldKg: new Decimal(0),
-          bonusKg: new Decimal(0),
-          returnedKg: new Decimal(0),
-          damagedKg: new Decimal(0),
-          shortageKg: new Decimal(0),
-          shortageSar: new Decimal(0),
-          custodyRemainingKg: new Decimal(0),
-          revenueSar: new Decimal(0),
-          collectedSar: new Decimal(0),
-          creditDebtSar: new Decimal(0),
-          netProfitSar: new Decimal(0),
-          pendingClosings: 0,
-        };
-        entry.loadedKg = entry.loadedKg.plus(loaded);
-        entry.soldKg = entry.soldKg.plus(sold);
-        entry.bonusKg = entry.bonusKg.plus(bonus);
-        entry.returnedKg = entry.returnedKg.plus(returned);
-        entry.damagedKg = entry.damagedKg.plus(damaged);
-        entry.shortageKg = entry.shortageKg.plus(shortage);
-        entry.shortageSar = entry.shortageSar.plus(shortageVal);
-        if (!isSettled && !isAwaitingReceipt) {
-          /** العهدة المتبقية — على أساس ما استلمه المندوب فعلًا لا على أساس ما صُرف له. */
-          const custodyBasis = received.gt(0) ? received : loaded;
-          const rem = custodyBasis
-            .minus(sold)
-            .minus(bonus)
-            .minus(returned)
-            .minus(damaged)
-            .minus(shortage);
-          entry.custodyRemainingKg = entry.custodyRemainingKg.plus(Decimal.max(0, rem));
-        }
-        if (isPending) entry.pendingClosings += 1;
+        entry.revenueSar = dec(row.revenue_sar);
+        entry.collectedSar = dec(row.collected_sar);
+        entry.creditDebtSar = dec(row.credit_debt_sar);
+        entry.netProfitSar = dec(row.profit_sar);
         repMap.set(sid, entry);
-      }
-
-      for (const d of documents) {
-        const docTotal = dec(d.total);
-        const docPaid = dec(d.paid_amount);
-        const docDebt = Decimal.max(0, docTotal.minus(docPaid));
-        const docProfit = dec(d.net_profit);
-
-        if (str(d.invoice_mode) === 'zatca_tax') {
-          totalZatcaSalesSar = totalZatcaSalesSar.plus(docTotal);
-        } else {
-          totalInternalSalesSar = totalInternalSalesSar.plus(docTotal);
-        }
-        totalCollectedCashSar = totalCollectedCashSar.plus(docPaid);
-        totalCreditReceivablesSar = totalCreditReceivablesSar.plus(docDebt);
-        totalNetProfitSar = totalNetProfitSar.plus(docProfit);
-        if (d.bonus_anomaly === true) anomalyCount += 1;
-
-        const sid = str(d.salesman_id);
-        const entry = repMap.get(sid);
-        if (entry) {
-          entry.revenueSar = entry.revenueSar.plus(docTotal);
-          entry.collectedSar = entry.collectedSar.plus(docPaid);
-          entry.creditDebtSar = entry.creditDebtSar.plus(docDebt);
-          entry.netProfitSar = entry.netProfitSar.plus(docProfit);
-        }
       }
 
       /**
@@ -969,15 +1045,35 @@ export class VanSalesService {
        * the batches actually produced. The materials stay visible in `officialStock` (the same rows
        * the stock screen reads) and in the inventory valuation; they are simply not production.
        */
+      /**
+       * الأصنافُ المُنتَجة وسياراتُ التوزيع — من الجدولين كاملين. وكانا يُشتقّان من نافذتي
+       * الدفعات وأوامر التحميل، فدفعةٌ أقدمُ من أحدثِ خمسين كانت تُخرج صنفها من «رصيد
+       * المستودع الرئيسي»، وأمرٌ أقدمُ من أحدثِ ستين كان يُخرج سيارته من «رصيد سيارات
+       * التوزيع» — أي أنّ الرصيدين الرسميّين كانا يتغيّران مع حجم التاريخ لا مع المخزون.
+       */
       const producedItemIds = new Set(
-        productionBatches.map((row) => (row.item_id ? str(row.item_id) : '')).filter(Boolean),
+        rows(
+          await tx.execute(sql`
+            SELECT DISTINCT item_id::text
+            FROM factory_production_batches
+            WHERE tenant_id = ${tenantId}::uuid AND deleted_at IS NULL AND item_id IS NOT NULL
+          `),
+        )
+          .map((row) => str(row.item_id))
+          .filter(Boolean),
       );
       const officialMainWarehouseKg = officialStock
         .filter((row) => row.warehouseId === mainWarehouseId && producedItemIds.has(row.itemId))
         .reduce((sum, row) => sum.plus(dec(row.quantity)), new Decimal(0));
       const vanWarehouseIds = new Set(
-        loadOrders
-          .map((row) => (row.van_warehouse_id ? str(row.van_warehouse_id) : ''))
+        rows(
+          await tx.execute(sql`
+            SELECT DISTINCT van_warehouse_id::text
+            FROM van_load_orders
+            WHERE tenant_id = ${tenantId}::uuid AND deleted_at IS NULL AND van_warehouse_id IS NOT NULL
+          `),
+        )
+          .map((row) => str(row.van_warehouse_id))
           .filter(Boolean),
       );
       const officialVanKg = officialStock
@@ -1050,6 +1146,38 @@ export class VanSalesService {
           message: salesProfile && transferProfile
             ? null
             : 'ملف الترحيل المحاسبي للفرع غير مكتمل — من الإعدادات ← ملفات الترحيل، حدّد حسابات المبيعات والمخزون وبضاعة تحت التحويل حتى تُرحَّل المستندات الرسمية تلقائيًا',
+        },
+        /**
+         * 🪟 النوافذ — ما رجعته كلّ قائمة وما في جدولها. والأرقام في `summary` **ليست**
+         * نافذة: هي جمعُ الجدول كلّه. ويُقال العددان معًا كي لا تظنّ شاشةٌ أنّ القائمة كلّ
+         * شيء، وكي لا يُعرض رقمٌ كاملٌ بجانب قائمةٍ ناقصةٍ بلا قول.
+         */
+        windows: {
+          productionBatches: {
+            returned: productionBatches.length,
+            total: Number(productionTotals?.batches ?? 0),
+            limit: 50,
+          },
+          loadOrders: {
+            returned: loadOrders.length,
+            total: Number(loadOrderTotals?.load_orders ?? 0),
+            limit: 60,
+          },
+          documents: {
+            returned: documents.length,
+            total: Number(documentTotals?.documents ?? 0),
+            limit: 120,
+          },
+          movements: {
+            returned: movements.length,
+            total: Number(movementTotals?.movements ?? 0),
+            limit: 80,
+          },
+          customerPriceHistory: {
+            returned: customerPriceHistory.length,
+            total: Number(priceHistoryTotals?.history ?? 0),
+            limit: 50,
+          },
         },
         summary: {
           totalProducedKg: totalProducedKg.toFixed(2),
