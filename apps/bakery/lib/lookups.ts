@@ -17,6 +17,11 @@ export type ItemOption = {
   name_ar?: string | null;
   nameEn?: string | null;
   name?: string | null;
+  /**
+   * 🏷️ ‏`items.track_lot` كما يعود من `GET /organization/catalog/items` (صفوف drizzle ⇒
+   * ‏camelCase). صنفٌ يُتتبَّع بالدفعات لا يجوز تحميل عهدته بلا دفعةٍ مُسمّاة (§5.1).
+   */
+  trackLot?: boolean | null;
 };
 
 export type WarehouseOption = {

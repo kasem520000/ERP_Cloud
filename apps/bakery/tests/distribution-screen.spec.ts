@@ -2,8 +2,10 @@ import { describe, expect, it } from 'vitest';
 
 import {
   awaitingReceiptRows,
+  batchCellText,
   batchItemOption,
   batchOptionLabel,
+  itemRequiresBatch,
   mapLoadOrders,
   mapSalesmen,
   salesmanAdvisories,
@@ -137,5 +139,33 @@ describe('batchOptionLabel / batchItemOption — ربط الإنتاج بالت�
   it('الصنف يُقرأ من `itemId` في الدفعة، وبلا `itemId` لا صنف', () => {
     expect(batchItemOption({ id: 'b1', itemId: 'item-1', itemName: 'خبز' })).toEqual({ id: 'item-1', nameAr: 'خبز' });
     expect(batchItemOption({ id: 'b1', itemId: null, itemName: 'خبز' })).toBeNull();
+  });
+});
+
+describe('batchCellText / itemRequiresBatch — عمود الدفعة وحكم §5.1 قبل الإرسال', () => {
+  it('أمرٌ بلا دفعةٍ مُسمّاة يُقال «بلا دفعة» — لا بياضاً ولا صفراً ولا رقماً مُختلَعاً', () => {
+    expect(batchCellText({ productionBatchNo: '' })).toBe('بلا دفعة');
+    expect(batchCellText({ productionBatchNo: '   ' })).toBe('بلا دفعة');
+    expect(batchCellText({ productionBatchNo: null })).toBe('بلا دفعة');
+    expect(batchCellText({})).toBe('بلا دفعة');
+  });
+
+  it('الدفعة المُسمّاة تُعرض كما هي، بأرقامها لا بترجمةٍ لها', () => {
+    expect(batchCellText({ productionBatchNo: 'PROD-20261015-0001' })).toBe('PROD-20261015-0001');
+  });
+
+  it('يتطلّب دفعةً حين يكون الصنف مُتتبَّعاً بالدفعات ولا دفعةَ مُسمّاة', () => {
+    const items = [
+      { id: 'lot-1', nameAr: 'كرواسون', trackLot: true },
+      { id: 'plain-1', nameAr: 'خبز عربي', trackLot: false },
+    ];
+    expect(itemRequiresBatch(items, 'lot-1', '')).toBe(true);
+    expect(itemRequiresBatch(items, 'lot-1', '  ')).toBe(true);
+    expect(itemRequiresBatch(items, 'lot-1', 'PB-1')).toBe(false);
+    expect(itemRequiresBatch(items, 'plain-1', '')).toBe(false);
+    expect(itemRequiresBatch(items, '', '')).toBe(false);
+    expect(itemRequiresBatch(items, 'unknown-item', '')).toBe(false);
+    // ‏وبطاقةٌ لم تحمل `trackLot` لا يُحكم عليها هنا — الحكم في الخادم من بطاقته.
+    expect(itemRequiresBatch([{ id: 'x' }], 'x', '')).toBe(false);
   });
 });

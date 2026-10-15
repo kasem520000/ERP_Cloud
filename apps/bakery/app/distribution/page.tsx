@@ -15,8 +15,10 @@ import {
 
 import {
   awaitingReceiptRows,
+  batchCellText,
   batchItemOption,
   batchOptionLabel,
+  itemRequiresBatch,
   mapLoadOrders,
   mapSalesmen,
   salesmanAdvisories,
@@ -56,9 +58,11 @@ const ACTION_ROUTES: Record<ActionKind, (id: string) => string> = {
  *   1. **العقد من الحزمة المشتركة**: `buildLoadOrderPayload` و`buildReceiptPayload` من
  *      `@erp/web-van/distribution` — لا نسخة ثانية هنا. والترتيب ترتيب الخادم: المندوب، ثمّ
  *      الكمية، ثمّ مصدر الصنف. ونصوص الرفض نصوصُ الخادم حرفاً (يقيسها
- *      `apps/api/test/van-sales-stock-acceptance.spec.ts` من طرفه)، ما عدا «بلا صنفٍ وبلا
- *      دفعة» فالشاشة أشدّ من الخادم عمداً: هو يفترض `PROD-<اليوم>-0001` ويشتقّ الصنف منها،
- *      وهي ترفض أن تُنسب حمولةٌ إلى صنفٍ لم يختره المشرف.
+ *      `apps/api/test/van-sales-stock-acceptance.spec.ts` و`…-load-order-basis.spec.ts` من
+ *      طرفه). ومنها §5.1: صنفٌ يُتتبَّع بالدفعات لا تُحمَّل عهدته بلا دفعةٍ مُسمّاة
+ *      (‏`VAN_LOAD_ORDER_BATCH_REQUIRED`) — فالخادم لم يعد يختلق `PROD-<اليوم>-0001` عند
+ *      غيابها. والشاشة ترفض «بلا صنفٍ وبلا دفعة» و«صنفٌ بالدفعات بلا دفعة» **قبل الإرسال**،
+ *      لأنّ حمولةً تُنسب إلى صنفٍ لم يختره المشرف، أو إلى دفعةٍ لم تُسمَّ، عهدةٌ بلا قصد.
  *   2. **لا أرقام مختلَعة**: الجدول صفوف `loadOrders` من `GET /van-sales/dashboard` كما هي
  *      (‏`ORDER BY l.created_at DESC LIMIT 60`)، والغائب `—` لا صفر، والحالة غير المعروفة
  *      تُعرض خاماً. والاستجابة من `POST /van-sales/load-orders` هي **اللوحة كاملة**
@@ -155,10 +159,18 @@ export default function DistributionPage() {
   }, [canView, load]);
 
   const pickedSalesman = salesmen.find((row) => row.id === salesmanId);
+  /**
+   * 🏷️ بطاقةُ الصنف المختار من `GET /organization/catalog/items` — منها `trackLot` لتقول
+   * الشاشة حكم الخادم قبل الإرسال، واسمُه لتقول جملته نفسها. ولا يُرسلان في الحمولة:
+   * الخادم يقرأ بطاقته بنفسه.
+   */
+  const pickedItem = itemId ? (items.find((row) => row.id === itemId) ?? null) : null;
   const draft = useMemo(
     () => ({
       salesmanId,
       itemId,
+      itemTrackLot: pickedItem?.trackLot === true,
+      itemName: pickedItem ? itemLabel(pickedItem) : '',
       productionBatchNo,
       loadedQty,
       warehouseId,
@@ -166,7 +178,7 @@ export default function DistributionPage() {
       vehiclePlate,
       notes,
     }),
-    [salesmanId, itemId, productionBatchNo, loadedQty, warehouseId, vanWarehouseId, vehiclePlate, notes],
+    [salesmanId, itemId, pickedItem, productionBatchNo, loadedQty, warehouseId, vanWarehouseId, vehiclePlate, notes],
   );
   const verdict = useMemo(() => buildLoadOrderPayload(draft), [draft]);
   const loadOrders = useMemo(() => mapLoadOrders(dashboard), [dashboard]);
@@ -349,7 +361,7 @@ export default function DistributionPage() {
       {canManage ? (
         <Card>
           <CardHeader
-            subtitle="الحقول كما يقرأها الخادم. ونصوص الرفض نصوصُه حرفاً (مثبّتةٌ في الطرفين) — ما عدا «بلا صنفٍ وبلا دفعة» فهي مرفوضةٌ هنا عمداً قبل الخادم، لأنه يفترض رقم دفعةٍ ويشتقّ الصنف منها."
+            subtitle="الحقول كما يقرأها الخادم. ونصوص الرفض نصوصُه حرفاً (مثبّتةٌ في الطرفين): «بلا صنفٍ وبلا دفعة» مرفوضةٌ هنا وقبل الإرسال، وصنفٌ يُتتبَّع بالدفعات بلا دفعةٍ مُسمّاة مرفوضٌ هنا وفي الخادم (422 VAN_LOAD_ORDER_BATCH_REQUIRED) — فلم يعد الخادم يفترض رقم دفعةٍ من تاريخ اليوم."
             title="أمر تحميل جديد"
           />
           <CardBody>
@@ -416,7 +428,7 @@ export default function DistributionPage() {
                     <option value="">— اختر الصنف —</option>
                     {items.map((row) => (
                       <option key={row.id} value={row.id}>
-                        {itemLabel(row)}
+                        {row.trackLot === true ? `${itemLabel(row)} — يتطلّب دفعة إنتاج` : itemLabel(row)}
                       </option>
                     ))}
                   </select>
@@ -434,6 +446,14 @@ export default function DistributionPage() {
                   </select>
                 </label>
               </div>
+
+              {itemRequiresBatch(items, itemId, productionBatchNo) ? (
+                <p className="m-0 rounded-[10px] border border-warn-line bg-warn-soft px-4 py-2.5 text-[12.5px] font-semibold text-warn-ink">
+                  🏷️ هذا الصنف يُتتبَّع بالدفعات: اربطه بدفعة إنتاج من القائمة، وإلا رفضه الخادم
+                  (‏422 <span dir="ltr">VAN_LOAD_ORDER_BATCH_REQUIRED</span>) — ولا يُفترض رقمُ دفعةٍ
+                  من تاريخ اليوم، لأنه يلتقي برقم أوّل دفعةٍ تُنشأ اليوم نفسها.
+                </p>
+              ) : null}
 
               <div className="grid gap-3 md:grid-cols-2">
                 <label className="grid gap-1 text-[12.5px] font-bold text-ink">
@@ -650,7 +670,7 @@ export default function DistributionPage() {
                       <td className="border-b border-line p-2">{row.salesmanName ?? '—'}</td>
                       <td className="border-b border-line p-2">{row.itemName ?? '—'}</td>
                       <td className="border-b border-line p-2" dir="ltr">
-                        {row.productionBatchNo ?? '—'}
+                        {batchCellText(row)}
                       </td>
                       <td className="border-b border-line p-2 num" dir="ltr">
                         {numberText(row.loadedQty)}
@@ -729,12 +749,15 @@ export default function DistributionPage() {
               والشاشة لا ترسله ولا تعدّله.
             </li>
             <li>
-              <strong>تنبيه رقمٍ مُختلَع:</strong> الخادم يكتب على الأمر رقم دفعةٍ افتراضياً{' '}
-              <code dir="ltr">{'PROD-<اليوم>-0001'}</code> حين لا تُذكر دفعة — قِيس حيّاً: `VLO-0001` يحمل
-              `PROD-20261014-0001` مع أنّ في المستأجر <strong>صفراً</strong> من دفعات الإنتاج. فالرقم في
-              العمود قد لا يُشير إلى دفعةٍ موجودة، وربطُ الحمولة بدفعةٍ من القائمة أعلاه هو ما
-              يجعله صحيحاً. وإصلاحه في الخادم قرارٌ معلَن في تقرير الشريحة (§5.1) — ولم تُغيَّر
-              قاعدةٌ بسببه هنا.
+              <strong>لا رقمَ دفعةٍ مُختلَعاً (§5.1 منفَّذ):</strong> كان الخادم يكتب على الأمر{' '}
+              <code dir="ltr">{'PROD-<اليوم>-0001'}</code> حين لا تُذكر دفعة — وقِيس حيّاً أنّ `VLO-0001`
+              حمل `PROD-20261014-0001` مع أنّ في المستأجر <strong>صفراً</strong> من دفعات الإنتاج. ولم
+              يكن الرقم «مرجعاً بريئاً»: بادئةُ مولّد دفعات الإنتاج هي نفسها، فأوّلُ دفعةٍ تُنشأ في
+              اليوم تحمل ذلك الرقم — ورفضُ الاستلام ينقص `issued_qty` من دفعةٍ لم تصرف شيئاً،
+              والبيع يأخذ `unit_cost` دفعةٍ أخرى، ونسبُ اللوت في المناقلة والفاتورة يشير إلى دفعةٍ
+              لم تُحمَّل. الآن: إمّا دفعةٌ مُسمّاة وإمّا «بلا دفعة» في العمود، وصنفٌ يُتتبَّع بالدفعات
+              يُرفض تحميله بلا دفعة (‏422). وأوامرٌ كُتبت قبل الإصلاح قد تحمل رقماً لا يشير إلى
+              دفعةٍ موجودة — تُقرأ كما هي، ولا يُعاد تأريخُ ما سُمّي خطأً.
             </li>
             <li>
               إن كان للمندوب حساب دخول أُرسل إليه إشعار `van_sales_supply_pending_receipt`

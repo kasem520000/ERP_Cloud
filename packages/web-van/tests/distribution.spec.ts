@@ -197,3 +197,50 @@ describe('تسميات الحالات — لا اختراع لما لا تعرف
     }
   });
 });
+
+
+describe('buildLoadOrderPayload — صنفٌ يُتتبَّع بالدفعات (§5.1)', () => {
+  it('يرفض حمولة صنفٍ بالدفعات بلا دفعةٍ مُسمّاة، بجملة الخادم ومعها اسم الصنف', () => {
+    const verdict = buildLoadOrderPayload(
+      draft({ itemTrackLot: true, itemName: 'كرواسون بالدفعات', productionBatchNo: '   ' }),
+    );
+    expect(verdict.ok).toBe(false);
+    if (!verdict.ok) {
+      expect(verdict.message).toBe(LOAD_ORDER_MESSAGES.batchRequired('كرواسون بالدفعات'));
+      expect(verdict.message).toContain('يُتتبَّع بالدفعات');
+      expect(verdict.message).toContain('ولا يُفترض رقمٌ من تاريخ اليوم');
+    }
+  });
+
+  it('بلا اسمٍ معروف للصنف تبقى الجملة نفسها دون اسم — ولا يُخترع اسم', () => {
+    const verdict = buildLoadOrderPayload(draft({ itemTrackLot: true }));
+    expect(verdict.ok).toBe(false);
+    if (!verdict.ok) expect(verdict.message).toBe(LOAD_ORDER_MESSAGES.batchRequired());
+  });
+
+  it('الدفعة المُسمّاة ترفع الرفض، وصنفٌ لا يُتتبَّع بالدفعات يُحمَّل بلا دفعة', () => {
+    expect(buildLoadOrderPayload(draft({ itemTrackLot: true, productionBatchNo: 'PB-9' })).ok).toBe(true);
+    expect(buildLoadOrderPayload(draft({ itemTrackLot: false, productionBatchNo: '' })).ok).toBe(true);
+    // ‏وما لم تقرأه الشاشة من البطاقة لا يُرفض هنا: الحكم عند الخادم وحده، والضابط هناك.
+    expect(buildLoadOrderPayload(draft({ productionBatchNo: '' })).ok).toBe(true);
+  });
+
+  it('‏itemTrackLot واسم الصنف حكمان محليّان: لا يُرسلان في الحمولة إلى الخادم', () => {
+    const verdict = buildLoadOrderPayload(
+      draft({ itemTrackLot: true, itemName: 'كرواسون بالدفعات', productionBatchNo: 'PB-9' }),
+    );
+    expect(verdict.ok).toBe(true);
+    if (verdict.ok) {
+      expect(verdict.payload).toEqual({
+        salesmanId: 'salesman-1',
+        loadedQty: '50.0000',
+        itemId: 'item-flour',
+        productionBatchNo: 'PB-9',
+        warehouseId: undefined,
+        vanWarehouseId: undefined,
+        vehiclePlate: undefined,
+        notes: undefined,
+      });
+    }
+  });
+});

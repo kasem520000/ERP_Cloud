@@ -145,3 +145,30 @@ export function batchItemOption(row: ProductionBatchRow): ItemOption | null {
   if (!id) return null;
   return { id, nameAr: row.itemName ?? null };
 }
+
+/**
+ * 🏷️ عمود «الدفعة» كما هو حقّاً: أمرٌ **بلا دفعةٍ مُسمّاة** يُعرض «بلا دفعة» — لا بياضاً ولا
+ * صفراً ولا رقماً مُختلَعاً. والخادم كان يكتب `PROD-<اليوم>-0001` حين لا تُذكر دفعة، فأُزيل
+ * الاختلاق (§5.1) وصارت السلسلة الفارغة حالةً نظاميةً لصنفٍ لا يُتتبَّع بالدفعات — ولزاماً أن
+ * تُقال كما هي، فالبياض في العمود يظنّه القارئ نقصاً في العرض لا حقيقةً في الأمر.
+ */
+export function batchCellText(row: LoadOrderRow): string {
+  const text = (row.productionBatchNo ?? '').trim();
+  return text === '' ? 'بلا دفعة' : text;
+}
+
+/**
+ * ‏هل هذا الأمر مرفوضٌ عند الخادم قبل أن يُرسل؟ صنفٌ يُتتبَّع بالدفعات (`items.track_lot`) بلا
+ * دفعةٍ مُسمّاة ⇒ ‏422 `VAN_LOAD_ORDER_BATCH_REQUIRED`. وتُقرأ البطاقة من قائمة الأصناف
+ * (‏`GET /organization/catalog/items`) لا من صفّ الأمر: فالصفّ لا يحمل `track_lot`.
+ */
+export function itemRequiresBatch(
+  items: ItemOption[],
+  itemId: string,
+  productionBatchNo: string,
+): boolean {
+  if (productionBatchNo.trim() !== '') return false;
+  const wanted = itemId.trim();
+  if (wanted === '') return false;
+  return items.find((row) => row.id === wanted)?.trackLot === true;
+}

@@ -1167,12 +1167,12 @@ describe('Van Sales end-to-end acceptance on official stock & accounting ledgers
   });
 
   /**
-   * ⚠️ سلوكٌ مقاسٌ لا رأي: طلبٌ **بلا صنف** مربوطٌ بدفعة إنتاج يشتقّ الصنف من الدفعة — وهذا
-   * معقول. لكنّ الخادم أيضاً **يفترض** رقم دفعةٍ افتراضياً (`PROD-<اليوم>-0001` في
-   * `createLoadOrder`) حين لا يُكتب رقم، فيشتقّ الصنف من دفعةٍ لم يذكرها أحد. لذا شاشة
-   * التوزيع **أشدّ من الخادم هنا عمداً**: ترفض «بلا صنفٍ وبلا دفعة» قبل الإرسال
-   * (‏`LOAD_ORDER_MESSAGES.sourceRequired`)، لأنّ حمولةً تُنسب لصنفٍ لم يختره المشرف عهدةٌ
-   * بلا قصد. وتثبيت الاشتقاق من دفعةٍ مكتوبة أدناه يبيّن أنّ الرفض ليس لعجزٍ في الخادم.
+   * ⚠️ سلوكٌ مقاسٌ لا رأي: طلبٌ **بلا صنف** مربوطٌ بدفعة إنتاج **مكتوبة** يشتقّ الصنف من الدفعة
+   * — وهذا معقول ومثبَّت أدناه. وأمّا «بلا صنفٍ وبلا دفعة» فيرفضه الخادم (‏422 «اختر الصنف
+   * المورَّد…»): كان يختلق رقم دفعةٍ (`PROD-<اليوم>-0001`) فيشتقّ الصنف من دفعةٍ لم يذكرها أحد
+   * إن وُجدت في المستأجر بهذا الرقم، وأُزيل الاختلاق (§5.1) فصار الخادم والشاشة يرفضان معاً،
+   * وتبقى الشاشة ترفض **قبل الإرسال** (‏`LOAD_ORDER_MESSAGES.sourceRequired`) لأنّ حمولةً تُنسب
+   * لصنفٍ لم يختره المشرف عهدةٌ بلا قصد.
    */
   it('derives the loaded item from the linked production batch (and so the screen demands an explicit source)', async () => {
     const dashboard = await api(ctx.server, 'get', '/api/v1/van-sales/dashboard', {
@@ -1450,8 +1450,8 @@ describe('Van Sales end-to-end acceptance on official stock & accounting ledgers
     /**
      * 🌾 دفعة إنتاج للصنف بتكلفةٍ **معلومة** (4.00): أمر التحميل يأخذ تكلفته من الدفعة
      * (`unit_cost = plan.batchUnitCost` — صفرٌ بلا دفعة)، و«التكلفة» قرارٌ لا يُقاس على صفر.
-     * وبلا رقم دفعةٍ صريح يصطنع الخادم `PROD-<اليوم>-0001` فيلتقط دفعة حالةٍ أخرى (العيب
-     * المعلّق §5.1) — فالدفعة هنا صريحةٌ لتبقى الأرقام من هذه الحالة وحدها.
+     * والخادم لم يعد يصطنع رقم دفعةٍ عند غيابها (§5.1 أُغلق) — فالدفعة هنا صريحةٌ لأنّ أساس
+     * الشحن يحتاج تكلفةً معلومة، لا خوفاً من أن يستعير الأمر دفعة حالةٍ أخرى.
      */
     const chargeProduction = await api(ctx.server, 'post', '/api/v1/van-sales/production-batches', {
       token: accountant.token,
@@ -1836,8 +1836,9 @@ describe('Van Sales end-to-end acceptance on official stock & accounting ledgers
       return (rows as { rows: Array<Record<string, string | null>> }).rows[0];
     });
     expect(batchlessFacts, 'the batch-less order must exist').toBeTruthy();
-    // لم تلتقط دفعة حالةٍ أخرى: `createLoadOrder` يفبرك `PROD-<اليوم>-0001` عند غياب الدفعة،
-    // وفي مستأجرٍ مشترك قد تطابق دفعةً سابقة فتقلب الصنف والتكلفة معاً.
+    // الأمر **بلا دفعة** صراحةً: لا رقمَ مُختلَعاً يلتقط دفعة حالةٍ أخرى في مستأجرٍ مشترك
+    // (كان `createLoadOrder` يفبرك `PROD-<اليوم>-0001` فيقلب الصنف والتكلفة معاً — §5.1).
+    expect(batchlessFacts.production_batch_no).toBe('');
     expect(batchlessFacts.item_id).toBe(chargeItemId);
     expect(Number(batchlessFacts.unit_cost)).toBe(0);
 

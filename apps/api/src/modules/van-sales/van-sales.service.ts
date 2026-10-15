@@ -2280,17 +2280,22 @@ export class VanSalesService {
         );
       }
 
-      const datePart = new Date().toISOString().slice(0, 10).replace(/-/g, '');
       const suppliedBatchNo = String(body.productionBatchNo ?? '').trim();
       /**
-       * ⚠️ الرقم المفبرك `PROD-<اليوم>-0001` **مرجعٌ مكتوب على الأمر فقط**، لا مفتاح بحث: البحث به
-       * كان يلتقط أول دفعةٍ صودف رقمها كذلك في المستأجر المشترك — ولو لصنفٍ آخر. والقياس أظهره
-       * (‏2026-10-15): أمرٌ لصنف `SKU-CHARGE` (تكلفته 4.00) بلا دفعةٍ مُسمّاة حمل `unit_cost`
-       * ‏3.80 من دفعة `SKU-SAMBOSA`، فتُقيَّم المناقلة وعجزُ العهدة بتكلفة صنفٍ غيره. فدفعةُ الأمر
-       * تُقرأ فقط حين يسمّيها الطالب؛ وإلا فالأمر بلا دفعة: `unit_cost` صفر، والتكلفة تُطلب من
-       * الرصيد الرسمي في `resolveShortageUnitPriceInTx`.
+       * ⚠️ لا رقمَ دفعةٍ مُختلَع (§5.1 من تقرير الشريحة 3) — دفعةُ الأمر تُقرأ فقط حين يسمّيها
+       * الطالب، وإلا فالأمر **بلا دفعة**: سلسلةٌ فارغة تُخزَّن، و`unit_cost` صفر، والتكلفة تُطلب
+       * من الرصيد الرسمي في `resolveShortageUnitPriceInTx`.
+       *
+       * والسبب أنّ الرقم المفبرك ليس «مرجعاً بريئاً على الأمر»: مولّدُ أرقام دفعات الإنتاج في هذه
+       * الوحدة نفسها يستعمل البادئة `PROD-<اليوم>-` بأربعة أرقام (‎:1872)، فأوّلُ دفعةٍ تُنشأ في
+       * اليوم **هي** `PROD-<اليوم>-0001` — أي أنّ الرقم المفبرك يلتقي برقم دفعةٍ حقيقية. وعندها
+       * يصير دليلُ الكذب أصلاً: رفضُ الاستلام وإلغاءُ الأمر ينقصان `issued_qty` من دفعةٍ لم تصرف شيئاً، والبيع
+       * يأخذ `unit_cost` دفعةٍ أخرى، ونسبُ اللوت عند الإقفال يشير إلى دفعةٍ لم تُحمَّل. والقياس
+       * الحيّ أظهر الشقّ الأول منه (‏2026-10-15): أمرٌ لصنف `SKU-CHARGE` (تكلفته 4.00) بلا دفعةٍ
+       * مُسمّاة حمل `unit_cost` ‏3.80 من دفعة `SKU-SAMBOSA`. وقِيس في منشأة العرض `VLO-0001`
+       * يحمل `PROD-20261014-0001` مع أنّ في المستأجر **صفراً** من دفعات الإنتاج.
        */
-      const batchNo = suppliedBatchNo || `PROD-${datePart}-0001`;
+      const batchNo = suppliedBatchNo;
       const batchRow = suppliedBatchNo
         ? first(
             await tx.execute(sql`
@@ -2328,6 +2333,20 @@ export class VanSalesService {
           'الصنف المحدد غير موجود في هذه المنشأة',
           422,
           { field: 'itemId' },
+        );
+      }
+      /**
+       * 🏷️ صنفٌ يُتتبَّع بالدفعات ⇒ لا عهدةَ منه بلا دفعةٍ مُسمّاة. فالرقم هو ما تُنسب إليه
+       * اللوتات عند البيع وعند جرد الإقفال (`resolveCountLotInTx`)، وتحميلُه بلا دفعة يعني أنّ
+       * كيلواتٍ ذات تاريخ صلاحيةٍ معيّن تجول في سيارةٍ بلا أثرٍ إليها — والتركُ هنا أفضل من
+       * الفبركة، والفبركةُ أسوأ من الرفض. وأمّا صنفٌ لا يُتتبَّع بالدفعات فتُترك سلسلته فارغة.
+       */
+      if (!suppliedBatchNo && itemRow.track_lot === true) {
+        throw new DomainError(
+          'VAN_LOAD_ORDER_BATCH_REQUIRED',
+          `الصنف «${str(itemRow.name_ar)}» يُتتبَّع بالدفعات ولا يجوز تحميل عهدته بلا دفعة إنتاج مُسمّاة: رقمُ الدفعة هو ما تُنسب إليه اللوتات عند البيع وعند جرد الإقفال. سمِّ الدفعة (productionBatchNo)، أو سجّل دفعة إنتاجٍ لها أوّلاً — ولا يُفترض رقمٌ من تاريخ اليوم لأنه يلتقي برقم أوّل دفعةٍ تُنشأ اليوم نفسها.`,
+          422,
+          { field: 'productionBatchNo' },
         );
       }
 
@@ -2405,11 +2424,29 @@ export class VanSalesService {
         );
       }
 
+      /**
+       * 💰 «قيمة الحمولة المقدّرة» **تكلفةٌ لا هامش** (§6.3) — سلسلةُ احتياطٍ كما تقول بنيتها:
+       * تكلفة الدفعة ← تكلفة البطاقة (`items.purchase_price`) ← سعر البيع ملاذاً أخيراً.
+       *
+       * وما كان قبلها: `if (itemRow.sale_price > 0)` **بلا حارس** `referenceUnitPrice.lte(0)` الذي
+       * تحمله الجملة التالية، فبنية الجملة تقول «سلسلة احتياط» وتنفيذها يقول «سعر البيع دائماً إن
+       * وُجد» — فتُلغى تكلفة الدفعة، وتُحمل العهدة بهامشٍ لم يُتحقّق. وهذا ليس ذوقاً: المخزون
+       * يُقاس بالتكلفة (أو بصافي القيمة البيعية أيّهما أقلّ) ولا يُعترف بهامشٍ قبل البيع،
+       * و«قيمةُ عهدةٍ» في دفترٍ محاسبيّ تكلفةُ ما في يد الموظف لا ما يأمل بيعه به.
+       *
+       * والأثر أوسع من العرض: `loaded_total_value` هو الملاذ الأخير في سلسلة تقييم عجز العهدة
+       * (الأساس `loaded_average` ‎:4079) — فسعرُ البيع هناك كان يعني أنّ مندوباً يُحاسب بسعر
+       * التجزئة بينما قرار المالك (‏2026-10-15) أنّ العجز يُقيَّم **بالتكلفة**. ولا يصل الرقم إلى
+       * المناقلة نفسها: المحرّك يُقيّم الحركة (`createTransfer(unitCost: plan.batchUnitCost)`،
+       * و`sentValue` يُقرأ راجعاً من `sendTransfer`) — وهو ما قِيس حيّاً: متوسطا المستودع
+       * الرئيسي والسيارة بقيا 1.0000 وسعر البيع 1.5000.
+       */
       let referenceUnitPrice = batchRow?.unit_cost ? dec(batchRow.unit_cost) : new Decimal(0);
-      if (itemRow.sale_price && dec(itemRow.sale_price).gt(0)) {
-        referenceUnitPrice = dec(itemRow.sale_price);
-      } else if (referenceUnitPrice.lte(0) && itemRow.cost_price) {
+      if (referenceUnitPrice.lte(0) && itemRow.cost_price && dec(itemRow.cost_price).gt(0)) {
         referenceUnitPrice = dec(itemRow.cost_price);
+      }
+      if (referenceUnitPrice.lte(0) && itemRow.sale_price && dec(itemRow.sale_price).gt(0)) {
+        referenceUnitPrice = dec(itemRow.sale_price);
       }
       const batchUnitCost = batchRow?.unit_cost ? dec(batchRow.unit_cost) : new Decimal(0);
 
@@ -3723,11 +3760,38 @@ export class VanSalesService {
           LIMIT 1
         `),
       );
-      const unitCost = batchRow
+      /**
+       * 💰 سلسلةُ تكلفة المبيعات على مستند التوزيع — ولا تنتهي بصفرٍ مكتوم.
+       *
+       * ما كان: دفعةُ الأمر ← `unit_cost` الأمر ← **صفر**. وأمرٌ بلا دفعةٍ مُسمّاة يحمل
+       * `unit_cost = 0` (مصدرُه الدفعة وحدها)، فكلُّ بيعٍ منه يُكتب بربحٍ صافٍ = الإيراد كلّه في
+       * `van_sales_documents.net_profit`، ومنه يتجمّع `netProfitSar` في تقرير المبيعات المتنقّلة
+       * — هامشٌ بلا تكلفة يُعرض على المالك. وكان الرقم المفبرك (§5.1) يملأ هذه الفجوة أحياناً
+       * **بتكلفة دفعةٍ أخرى**، فأُزيلت الفبركة وبقيت الفجوة: صفرٌ مؤكَّد بدل رقمٍ خاطئ محتمل،
+       * وكلاهما باطل.
+       *
+       * فالتكلفة تُطلب من المصدر الرسمي نفسه الذي تطلب منه مديونية العجز
+       * (‏`resolveStockCostFallbackInTx`: متوسط تكلفة الرصيد في مستودع المصدر ثمّ السيارة، ثمّ
+       * ‏`items.purchase_price`)، ثمّ من متوسط قيمة الحمولة المقدّرة — وهي **تكلفة** منذ إصلاح
+       * §6.3. ولا يمسّ هذا القيدَ الرسمي: تكلفة المبيعات في دفتر الأستاذ يكتبها محرّك المبيعات
+       * (‏`SalesService.postInTx`) من حركة المخزون نفسها، فالمُصلَح هنا مستندُ التوزيع وتقريرُه.
+       */
+      let unitCost = batchRow
         ? dec(batchRow.unit_cost)
         : dec(loadOrder.unit_cost).gt(0)
           ? dec(loadOrder.unit_cost)
           : new Decimal('0');
+      if (unitCost.lte(0)) {
+        const stockCost = await this.resolveStockCostFallbackInTx(tx, tenantId, loadOrder);
+        if (stockCost) unitCost = stockCost.price;
+      }
+      if (unitCost.lte(0)) {
+        const loadedQtyOnOrder = dec(loadOrder.loaded_qty);
+        const loadedValueOnOrder = dec(loadOrder.loaded_total_value);
+        if (loadedQtyOnOrder.gt(0) && loadedValueOnOrder.gt(0)) {
+          unitCost = loadedValueOnOrder.div(loadedQtyOnOrder);
+        }
+      }
       const totalCogs = soldQty.plus(bonusQty).mul(unitCost);
       const netProfit = subtotal.minus(totalCogs);
 
@@ -4040,10 +4104,10 @@ export class VanSalesService {
       // السلسلة القديمة تكمل: متوسط أسعار مستندات الأمر ثمّ `items.sale_price`. والقياس الحيّ
       // (‏2026-10-15، منشأة العرض) أظهره: سياسة `unit_cost` وأمرٌ بلا دفعة ⇒ أساس
       // `item_sale_price` ومبلغ 3.00 على عجز 2 كجم، أي 1.50 وهو سعر البيع لا التكلفة.
-      // فالتكلفة تُقرأ من الرصيد الرسمي للمخزون (متوسط تكلفة مستودع **المصدر** أولاً، لأن
-      // قيمة المناقلة إلى السيارة تُسعَّر بـ`referenceUnitPrice` الذي هو سعر البيع عند غياب
-      // الدفعة — فرصيد السيارة يرث ذلك التسعير)، ثمّ من تكلفة الصنف في بطاقته. وما بعدها
-      // (أسعار المستندات والبيع) يبقى ملاذاً أخيراً كي لا يُرحَّل قيدٌ بصفر.
+      // فالتكلفة تُقرأ من الرصيد الرسمي للمخزون (متوسط تكلفة مستودع **المصدر** أولاً: فهو
+      // الذي خرجت منه البضاعة، ومتوسطُ السيارة خليطُ أحمالٍ وبقايا عهدٍ سابقة)، ثمّ من تكلفة
+      // الصنف في بطاقته. وما بعدها (أسعار المستندات والبيع) يبقى ملاذاً أخيراً كي لا يُرحَّل
+      // قيدٌ بصفر.
       const stockCost = await this.resolveStockCostFallbackInTx(tx, tenantId, loadOrder);
       if (stockCost) return stockCost;
     }
@@ -4087,10 +4151,11 @@ export class VanSalesService {
    * 💰 تكلفة الصنف من **الرصيد الرسمي** حين لا تحمل الحمولة دفعة إنتاج.
    *
    * الترتيب مقصود: مستودع المصدر (`warehouse_id`) ثمّ مستودع السيارة (`van_warehouse_id`) ثمّ
-   * تكلفة الصنف في بطاقته (`items.purchase_price`). والمصدر أولاً لأنّ المناقلة إلى السيارة
-   * تُقيَّم بـ`referenceUnitPrice`، وهو سعر البيع حين لا دفعة — فرصيد السيارة قد يحمل سعراً لا
-   * تكلفة. ويُرجع `null` حين لا تكلفة إيجابية في أيٍّ منها، فتكمل السلسلة القديمة (لا يُخترع
-   * رقم، ولا يُرحَّل صفرٌ بلا دليل).
+   * تكلفة الصنف في بطاقته (`items.purchase_price`). والمصدر أولاً لأنه المستودع الذي خرجت منه
+   * البضاعة، فمتوسطُه تكلفةُ ما صُرف فعلاً؛ ومتوسطُ السيارة خليطُ أحمالٍ وبقايا عهدٍ سابقة
+   * (ومناقلةُ العهدة يُقيّمها محرّك المخزون بنفسه: `createTransfer(unitCost: plan.batchUnitCost)`
+   * و`sentValue` يُقرأ راجعاً من `sendTransfer`). ويُرجع `null` حين لا تكلفة إيجابية في أيٍّ
+   * منها، فتكمل السلسلة القديمة (لا يُخترع رقم، ولا يُرحَّل صفرٌ بلا دليل).
    */
   private async resolveStockCostFallbackInTx(
     tx: DrizzleTx,
