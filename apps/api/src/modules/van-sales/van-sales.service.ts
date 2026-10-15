@@ -137,14 +137,128 @@ type VanPeriodTotals = {
     rows: number;
   };
   documents: {
-    zatcaSar: Decimal;
-    internalSar: Decimal;
+    /** الأوعيةُ صافيةً من المرتجعات — فاسمُها يقول «صافي» كي لا يُقرأ الإجماليُّ منها. */
+    zatcaNetSar: Decimal;
+    internalNetSar: Decimal;
+    salesGrossSar: Decimal;
+    revenueNetSar: Decimal;
+    returnsSar: Decimal;
+    returnsVatSar: Decimal;
     collectedSar: Decimal;
     receivablesSar: Decimal;
     profitSar: Decimal;
+    returnsProfitEffectSar: Decimal;
+    returnsWithoutCostCount: number;
+    returnCount: number;
     anomalies: number;
     rows: number;
   };
+};
+
+/**
+ * 💰 جمعُ المال على `van_sales_documents` — **تنفيذٌ واحد** تستعمله المواضعُ الأربعة التي
+ * تجمع: ‏`periodTotalsInTx` (لوحةُ الخطّ وتقريرُ الفترة)، و`repTotalsInTx` (أداءُ المندوبين)،
+ * وفحصُ الحدّ الائتمانيّ في `createDocument`، و`repWorkspace` (مساحةُ عمل المندوب). والسببُ
+ * أنّ أربعَ نسخٍ من الجمع نفسه هي التي أخرجت العيبَ الذي يُصلَح هنا.
+ *
+ * **العيب:** صفُّ المرتجع (‏`document_kind = 'return'`) يُكتب بإجماليٍّ **موجب**
+ * (‏`returnedQty × unit_price`، بلا ضريبة) و`paid_amount = 0` و`net_profit = 0`، وكلُّ نسخةٍ من
+ * الجمع كانت تجمع الصفوف **بلا مرشِّحٍ للنوع** — فالمرتجعُ كان **يزيد** الإيرادَ ووعاءَ
+ * الضريبة وذمّةَ العميل و«الآجل»، ولا يُنقص الربحَ أبدًا. وقِيس ذلك في مسارٍ حقيقيّ: بيعٌ
+ * نقديٌّ ٤٤.٨٥ ومرتجعٌ ١٣.٠٠ ⇒ إيرادٌ معروضٌ ٥٧.٨٥ وذمّةُ عميلٍ ٦٢.٧٠ بدل ٣٤.٧٥.
+ *
+ * **والمرجعُ في المعالجة ليس الرأي بل القيدُ الرسميّ**، وقد قِيس طرفًا إلى طرف
+ * (‏`van-sales-stock-acceptance.spec.ts`: بيعُ ٦ كجم @ ٦.٥٠ بضريبة ١٥٪ ثمّ مرتجعُ ٢ كجم):
+ *
+ * | ما في صفّ المرآة | المقاس | رجلُ القيد في فاتورة `SR-…` الرسمية |
+ * |---|---|---|
+ * | `total` | ‏١٣.٠٠٠٠ | Dr «مردودات المبيعات» ‏١٣.٠٠ |
+ * | `tax_total` | ‏١.٩٥٠٠ | Dr «ضريبة القيمة المضافة» ‏١.٩٥ |
+ * | `total + tax_total` | ‏١٤.٩٥٠٠ | Cr «عميل عام» (ذمّةُ العميل) ‏١٤.٩٥ |
+ * | ‏`sales_invoice_lines.cost_total` على `sales_invoice_id` | ‏٧.٦٠٠٠ | Dr مخزون / Cr «تكلفة المبيعات» ‏٧.٦٠ |
+ *
+ * فالمعالجةُ قراءةُ الأعمدة نفسها كما يرحّلها القيد: الإيرادُ الصافي = إجماليُّ المبيعات −
+ * (‏`total` المرتجع + `tax_total`ه)، وذمّةُ العميل تُخصم بقيمة الإشعار الدائن الكاملة، وأثرُ
+ * المرتجع في الربح = قيمتُه بلا ضريبة − تكلفتُه الرسمية.
+ *
+ * **ولماذا لا تُقرأ التكلفة من `van_sales_documents.unit_cost`:** لأنّ مسارَ المرتجع لا يكتب
+ * ذلك العمودَ إطلاقًا، وقيمتُه الافتراضية الحيّة في القاعدة **٣.٨٠** — رقمُ تجربةٍ مكتوبٌ في
+ * الهجرة (‏`0120:51` و`0121:151`: ‏`ADD COLUMN IF NOT EXISTS unit_cost numeric(18,4) NOT NULL
+ * DEFAULT 3.80`)، وقِيست حيّةً في `information_schema.columns` (ومثلُها
+ * `factory_production_batches.unit_cost DEFAULT 3.80`). فكلُّ مرتجعٍ يحمل تكلفةً مفبركةً ٣.٨٠
+ * لا علاقةَ لها بصنفه — وفي تثبيت القبول صادف أنّ التكلفةَ الحقيقية ٣.٨٠ فبدا الرقمُ صحيحًا.
+ * والتكلفةُ الرسمية تُطلب من الإشعار الدائن (`cost_total`)؛ وإن لم يُرحَّل الإشعارُ (حالٌ
+ * يتحمّلها مسارُ المرتجع صراحةً فيبقيه مسودةً) **لا يُخترع أثرٌ في الربح**: يُعدّ الصفُّ في
+ * `returns_without_cost` ويُقال في التقرير بدل رقمٍ مفبرك.
+ */
+/** شرطُ صفّ المرتجع — و`IS DISTINCT FROM` يجعل صفًّا بلا نوعٍ (إن وُجد) بيعًا، كما كان. */
+const RETURN_ROW_SQL = sql`d.document_kind = 'return'`;
+const SALE_ROW_SQL = sql`d.document_kind IS DISTINCT FROM 'return'`;
+/** قيمةُ الإشعار الدائن الكاملة — ما يُخصم من ذمّة العميل (= رجل Cr «عميل عام»). */
+const RETURN_CREDIT_SQL = sql`(COALESCE(d.total, 0) + COALESCE(d.tax_total, 0))`;
+/** تكلفةُ المرتجع من فاتورته الرسمية — انظر التحذيرَ أعلاه عن `unit_cost` المفبركة. */
+const RETURN_OFFICIAL_COST_SQL = sql`COALESCE((
+  SELECT SUM(li.cost_total)
+  FROM sales_invoice_lines li
+  WHERE li.tenant_id = d.tenant_id AND li.invoice_id = d.sales_invoice_id
+), 0)`;
+
+/**
+ * تعابيرُ الجمع المشتركة — كلّ تعبيرٍ عمودٌ واحدٌ، واسمَ العمود يختاره الموضعُ المستعمل،
+ * فالتنفيذُ واحدٌ والأسماءُ عند المستعمل. وكلُّ تعبيرٍ يُرجع `::text` لأنّ قاعدةَ المال في
+ * هذا المستودع `Decimal` لا `number`.
+ */
+const VAN_MONEY_SQL = {
+  /** إجماليُّ المبيعات (شاملُ الضريبة كما في `total`) — صفوفُ البيع وحدها. */
+  salesGross: sql`COALESCE(SUM(d.total) FILTER (WHERE ${SALE_ROW_SQL}), 0)::text`,
+  /** «مردودات المبيعات» — قيمةُ المرتجعات بلا ضريبة (= رجل Dr في القيد). */
+  returnsNet: sql`COALESCE(SUM(d.total) FILTER (WHERE ${RETURN_ROW_SQL}), 0)::text`,
+  /** ضريبةُ المرتجعات المعكوسة (= رجل Dr «ضريبة القيمة المضافة»). */
+  returnsVat: sql`COALESCE(SUM(d.tax_total) FILTER (WHERE ${RETURN_ROW_SQL}), 0)::text`,
+  /** الإيرادُ الصافي شاملَ الضريبة = ‏`salesGross − returnsNet − returnsVat`. */
+  revenueNet: sql`COALESCE(SUM(CASE
+      WHEN ${RETURN_ROW_SQL} THEN -${RETURN_CREDIT_SQL}
+      ELSE COALESCE(d.total, 0) END), 0)::text`,
+  /** وعاءُ زاتكا صافيًا — وكلُّ صفٍّ في وعائه هو، فلا يختلط الوضعان. */
+  zatcaNet: sql`COALESCE(SUM(CASE
+      WHEN d.invoice_mode IS DISTINCT FROM 'zatca_tax' THEN 0
+      WHEN ${RETURN_ROW_SQL} THEN -${RETURN_CREDIT_SQL}
+      ELSE COALESCE(d.total, 0) END), 0)::text`,
+  /** وعاءُ التسليم الداخليّ صافيًا (`invoice_mode` غير `zatca_tax`، وNULL داخليٌّ كما كان). */
+  internalNet: sql`COALESCE(SUM(CASE
+      WHEN d.invoice_mode = 'zatca_tax' THEN 0
+      WHEN ${RETURN_ROW_SQL} THEN -${RETURN_CREDIT_SQL}
+      ELSE COALESCE(d.total, 0) END), 0)::text`,
+  /** المحصَّلُ نقدًا — صفوفُ البيع وحدها (وصفُّ المرتجع `paid_amount = 0` أصلًا). */
+  collected: sql`COALESCE(SUM(d.paid_amount) FILTER (WHERE ${SALE_ROW_SQL}), 0)::text`,
+  /** الذمم: لكلّ مستندٍ `GREATEST(0, total − paid)` ناقصًا قيمةَ كلّ إشعارٍ دائن. */
+  receivables: sql`GREATEST(0, COALESCE(SUM(CASE
+      WHEN ${RETURN_ROW_SQL} THEN -${RETURN_CREDIT_SQL}
+      ELSE GREATEST(0, COALESCE(d.total, 0) - COALESCE(d.paid_amount, 0)) END), 0))::text`,
+  /**
+   * دينُ العميل لفحص الحدّ الائتمانيّ — كالذمم لكن **بلا `GREATEST(0, …)` لكلّ صفّ**، فهذه
+   * هي صيغةُ الفحص القائمة (`SUM(total − paid_amount)`) ولا يُغيَّر منها هنا إلا إشارةُ
+   * المرتجع. والحدُّ الأدنى صفرٌ للمجموع: فرصيدٌ دائنٌ للعميل لا يُوسّع سقفَه الائتمانيّ.
+   */
+  partyDebt: sql`GREATEST(0, COALESCE(SUM(CASE
+      WHEN ${RETURN_ROW_SQL} THEN -${RETURN_CREDIT_SQL}
+      ELSE COALESCE(d.total, 0) - COALESCE(d.paid_amount, 0) END), 0))::text`,
+  /** الربحُ كما يكتبه مستندُ البيع (`net_profit`) — وصفُّ المرتجع يحمل صفرًا. */
+  profitGross: sql`COALESCE(SUM(d.net_profit), 0)::text`,
+  /** أثرُ المرتجعات في الربح: قيمتُها بلا ضريبة − تكلفتُها الرسمية، ويُطرح من الربح. */
+  returnsProfitEffect: sql`COALESCE(SUM(CASE
+      WHEN ${RETURN_ROW_SQL} AND ${RETURN_OFFICIAL_COST_SQL} > 0
+      THEN GREATEST(0, COALESCE(d.total, 0) - ${RETURN_OFFICIAL_COST_SQL})
+      ELSE 0 END), 0)::text`,
+  /** مرتجعاتٌ بلا تكلفةٍ رسمية (إشعارُها الدائن لم يُرحَّل) — فلا أثرَ لها في الربح. */
+  returnsWithoutCost: sql`COUNT(*) FILTER (
+      WHERE ${RETURN_ROW_SQL} AND ${RETURN_OFFICIAL_COST_SQL} <= 0)::int`,
+  returnCount: sql`COUNT(*) FILTER (WHERE ${RETURN_ROW_SQL})::int`,
+  /** نقديٌّ/آجلٌ على صفوف البيع وحدها — فالمرتجعُ ليس بيعًا آجلًا ولو كُتب `credit`. */
+  cashGross: sql`COALESCE(SUM(d.total) FILTER (
+      WHERE d.payment_method = 'cash' AND ${SALE_ROW_SQL}), 0)::text`,
+  creditGross: sql`COALESCE(SUM(d.total) FILTER (
+      WHERE d.payment_method IS DISTINCT FROM 'cash' AND ${SALE_ROW_SQL}), 0)::text`,
 };
 
 @Injectable()
@@ -764,13 +878,18 @@ export class VanSalesService {
     );
     const documents = first(
       await tx.execute(sql`
-        SELECT COALESCE(SUM(d.total) FILTER (WHERE d.invoice_mode = 'zatca_tax'), 0)::text AS zatca_sar,
-               COALESCE(SUM(d.total) FILTER (WHERE d.invoice_mode IS DISTINCT FROM 'zatca_tax'), 0)::text
-                 AS internal_sar,
-               COALESCE(SUM(d.paid_amount), 0)::text AS collected_sar,
-               COALESCE(SUM(GREATEST(0, COALESCE(d.total, 0) - COALESCE(d.paid_amount, 0))), 0)::text
-                 AS receivables_sar,
-               COALESCE(SUM(d.net_profit), 0)::text AS profit_sar,
+        SELECT ${VAN_MONEY_SQL.zatcaNet} AS zatca_net_sar,
+               ${VAN_MONEY_SQL.internalNet} AS internal_net_sar,
+               ${VAN_MONEY_SQL.salesGross} AS sales_gross_sar,
+               ${VAN_MONEY_SQL.revenueNet} AS revenue_net_sar,
+               ${VAN_MONEY_SQL.returnsNet} AS returns_sar,
+               ${VAN_MONEY_SQL.returnsVat} AS returns_vat_sar,
+               ${VAN_MONEY_SQL.collected} AS collected_sar,
+               ${VAN_MONEY_SQL.receivables} AS receivables_sar,
+               ${VAN_MONEY_SQL.profitGross} AS profit_sar,
+               ${VAN_MONEY_SQL.returnsProfitEffect} AS returns_profit_effect_sar,
+               ${VAN_MONEY_SQL.returnsWithoutCost} AS returns_without_cost,
+               ${VAN_MONEY_SQL.returnCount} AS return_documents,
                COUNT(*) FILTER (WHERE d.bonus_anomaly = true)::int AS anomalies,
                COUNT(*)::int AS documents
         FROM van_sales_documents d
@@ -801,11 +920,18 @@ export class VanSalesService {
         rows: Number(loadOrders?.load_orders ?? 0),
       },
       documents: {
-        zatcaSar: dec(documents?.zatca_sar),
-        internalSar: dec(documents?.internal_sar),
+        zatcaNetSar: dec(documents?.zatca_net_sar),
+        internalNetSar: dec(documents?.internal_net_sar),
+        salesGrossSar: dec(documents?.sales_gross_sar),
+        revenueNetSar: dec(documents?.revenue_net_sar),
+        returnsSar: dec(documents?.returns_sar),
+        returnsVatSar: dec(documents?.returns_vat_sar),
         collectedSar: dec(documents?.collected_sar),
         receivablesSar: dec(documents?.receivables_sar),
         profitSar: dec(documents?.profit_sar),
+        returnsProfitEffectSar: dec(documents?.returns_profit_effect_sar),
+        returnsWithoutCostCount: Number(documents?.returns_without_cost ?? 0),
+        returnCount: Number(documents?.return_documents ?? 0),
         anomalies: Number(documents?.anomalies ?? 0),
         rows: Number(documents?.documents ?? 0),
       },
@@ -875,11 +1001,14 @@ export class VanSalesService {
       await tx.execute(sql`
         SELECT d.salesman_id::text,
                COALESCE(MAX(s.name), 'مندوب') AS salesman_name,
-               COALESCE(SUM(d.total), 0)::text AS revenue_sar,
-               COALESCE(SUM(d.paid_amount), 0)::text AS collected_sar,
-               COALESCE(SUM(GREATEST(0, COALESCE(d.total, 0) - COALESCE(d.paid_amount, 0))), 0)::text
-                 AS credit_debt_sar,
-               COALESCE(SUM(d.net_profit), 0)::text AS profit_sar
+               ${VAN_MONEY_SQL.revenueNet} AS revenue_sar,
+               ${VAN_MONEY_SQL.salesGross} AS sales_gross_sar,
+               ${VAN_MONEY_SQL.returnsNet} AS returns_sar,
+               ${VAN_MONEY_SQL.returnsVat} AS returns_vat_sar,
+               ${VAN_MONEY_SQL.collected} AS collected_sar,
+               ${VAN_MONEY_SQL.receivables} AS credit_debt_sar,
+               ${VAN_MONEY_SQL.profitGross} AS profit_sar,
+               ${VAN_MONEY_SQL.returnsProfitEffect} AS returns_profit_effect_sar
         FROM van_sales_documents d
         LEFT JOIN salesmen s ON s.id = d.salesman_id
         WHERE d.tenant_id = ${tenantId}::uuid AND d.deleted_at IS NULL
@@ -902,6 +1031,9 @@ export class VanSalesService {
       shortageSar: '0.00',
       custodyRemainingKg: '0.00',
       revenueSar: '0.00',
+      salesGrossSar: '0.00',
+      returnsSar: '0.00',
+      returnsVatSar: '0.00',
       collectedSar: '0.00',
       creditDebtSar: '0.00',
       netProfitSar: '0.00',
@@ -929,9 +1061,20 @@ export class VanSalesService {
         entry.salesmanName = str(row.salesman_name) || String(entry.salesmanName);
       }
       entry.revenueSar = dec(row.revenue_sar).toFixed(2);
+      entry.salesGrossSar = dec(row.sales_gross_sar).toFixed(2);
+      entry.returnsSar = dec(row.returns_sar).toFixed(2);
+      entry.returnsVatSar = dec(row.returns_vat_sar).toFixed(2);
       entry.collectedSar = dec(row.collected_sar).toFixed(2);
       entry.creditDebtSar = dec(row.credit_debt_sar).toFixed(2);
-      entry.netProfitSar = dec(row.profit_sar).toFixed(2);
+      /**
+       * الربحُ صافيًا من أثر المرتجعات — والتكلفةُ من الإشعار الدائن الرسميّ لا من عمود
+       * `unit_cost` الذي يحمل قيمةً افتراضيةً مفبركة (‏٣.٨٠). ومرتجعٌ بلا تكلفةٍ رسمية لا
+       * يُخترع له أثر: فربحُه يبقى كما هو ويُعدّ في `returnsWithoutCostCount` على مستوى
+       * المنشأة (انظر `VAN_MONEY_SQL`).
+       */
+      entry.netProfitSar = dec(row.profit_sar)
+        .minus(dec(row.returns_profit_effect_sar))
+        .toFixed(2);
       repMap.set(sid, entry);
     }
     return [...repMap.values()];
@@ -1285,11 +1428,18 @@ export class VanSalesService {
       const pendingStockSettlementsCount = totals.loadOrders.pendingStockSettlements;
       const pendingTransitDecisionsCount = totals.loadOrders.pendingTransitDecisions;
 
-      const totalZatcaSalesSar = totals.documents.zatcaSar;
-      const totalInternalSalesSar = totals.documents.internalSar;
+      /**
+       * الأوعيةُ والإيراد والذمم **صافيةً من المرتجعات** — والمعالجةُ وأدلّتُها في
+       * `VAN_MONEY_SQL` (قيودُ المرتجع الرسمية المقاسة)، والربحُ يُخصم منه أثرُ المرتجعات
+       * بتكلفتها من إشعاراتها الدائنة.
+       */
+      const totalZatcaSalesSar = totals.documents.zatcaNetSar;
+      const totalInternalSalesSar = totals.documents.internalNetSar;
       const totalCollectedCashSar = totals.documents.collectedSar;
       const totalCreditReceivablesSar = totals.documents.receivablesSar;
-      const totalNetProfitSar = totals.documents.profitSar;
+      const totalNetProfitSar = totals.documents.profitSar.minus(
+        totals.documents.returnsProfitEffectSar,
+      );
       const anomalyCount = totals.documents.anomalies;
 
       /** أداءُ كلّ مندوب — جمعٌ على الجدولين مجموعةً بمندوبها (انظر `repTotalsInTx`). */
@@ -1476,6 +1626,15 @@ export class VanSalesService {
           totalZatcaSalesSar: totalZatcaSalesSar.toFixed(2),
           totalInternalSalesSar: totalInternalSalesSar.toFixed(2),
           totalRevenueSar: totalZatcaSalesSar.plus(totalInternalSalesSar).toFixed(2),
+          /**
+           * أطرافُ معادلة الإيراد ظاهرةٌ كلها، فلا يُعرض رقمٌ صافٍ ابتلع مرتجعاتٍ بلا أثر:
+           * ‏`totalRevenueSar = totalSalesGrossSar − totalReturnsSar − totalReturnsVatSar`.
+           */
+          totalSalesGrossSar: totals.documents.salesGrossSar.toFixed(2),
+          totalReturnsSar: totals.documents.returnsSar.toFixed(2),
+          totalReturnsVatSar: totals.documents.returnsVatSar.toFixed(2),
+          returnDocumentCount: totals.documents.returnCount,
+          returnsWithoutCostCount: totals.documents.returnsWithoutCostCount,
           totalCollectedCashSar: totalCollectedCashSar.toFixed(2),
           totalCreditReceivablesSar: totalCreditReceivablesSar.toFixed(2),
           totalNetProfitSar: totalNetProfitSar.toFixed(2),
@@ -1913,6 +2072,20 @@ export class VanSalesService {
           'بلا مدىً زمنيّ: التقرير كلّ السجلّ لا «اليوم» — فحدّد fromDate/toDate إن أردت فترة.',
         );
       }
+      /**
+       * وفي المدى مرتجعاتٌ؟ فالقارئُ يرى طرفَي الرقم الصافي لا الرقمَ وحده — ومن الخادم،
+       * فلا تحتاج كلّ شاشةٍ أن تعرف القاعدةَ لتشرحها.
+       */
+      if (periodTotals.documents.returnCount > 0) {
+        const doc = periodTotals.documents;
+        const unknownCost =
+          doc.returnsWithoutCostCount > 0
+            ? `؛ و${doc.returnsWithoutCostCount} مرتجعًا إشعارُها الدائن غير مُرحَّل فتكلفتُها مجهولةٌ ولم يُخصم لها أثرٌ في الربح`
+            : '';
+        filterNotes.push(
+          `الإيراد والوعاء والذمم صافيةٌ من المرتجعات: إجماليّ المبيعات ${doc.salesGrossSar.toFixed(2)} − مرتجعات ${doc.returnsSar.toFixed(2)} وضريبتُها ${doc.returnsVatSar.toFixed(2)} = ${doc.revenueNetSar.toFixed(2)}. ومخصومٌ من الربح أثرُ المرتجعات ${doc.returnsProfitEffectSar.toFixed(2)} بتكلفتها من إشعاراتها الدائنة الرسمية${unknownCost}.`,
+        );
+      }
 
       return {
         generatedAt: new Date().toISOString(),
@@ -1949,14 +2122,26 @@ export class VanSalesService {
           damagedKg: periodTotals.loadOrders.damagedKg.toFixed(2),
           shortageKg: periodTotals.loadOrders.shortageKg.toFixed(2),
           shortageSar: periodTotals.loadOrders.shortageSar.toFixed(2),
-          zatcaSalesSar: periodTotals.documents.zatcaSar.toFixed(2),
-          internalSalesSar: periodTotals.documents.internalSar.toFixed(2),
-          revenueSar: periodTotals.documents.zatcaSar
-            .plus(periodTotals.documents.internalSar)
-            .toFixed(2),
+          /**
+           * الأوعيةُ والإيراد والذمم صافيةً من المرتجعات، وأطرافُ المعادلة معروضةٌ بجانبها:
+           * ‏`revenueSar = salesGrossSar − returnsSar − returnsVatSar`، و
+           * ‏`revenueSar = zatcaSalesSar + internalSalesSar`. والربحُ يُخصم منه أثرُ
+           * المرتجعات بتكلفتها الرسمية (‏`returnsProfitEffectSar` معروضٌ هو الآخر).
+           */
+          zatcaSalesSar: periodTotals.documents.zatcaNetSar.toFixed(2),
+          internalSalesSar: periodTotals.documents.internalNetSar.toFixed(2),
+          salesGrossSar: periodTotals.documents.salesGrossSar.toFixed(2),
+          returnsSar: periodTotals.documents.returnsSar.toFixed(2),
+          returnsVatSar: periodTotals.documents.returnsVatSar.toFixed(2),
+          revenueSar: periodTotals.documents.revenueNetSar.toFixed(2),
           collectedCashSar: periodTotals.documents.collectedSar.toFixed(2),
           creditReceivablesSar: periodTotals.documents.receivablesSar.toFixed(2),
-          netProfitSar: periodTotals.documents.profitSar.toFixed(2),
+          netProfitSar: periodTotals.documents.profitSar
+            .minus(periodTotals.documents.returnsProfitEffectSar)
+            .toFixed(2),
+          returnsProfitEffectSar: periodTotals.documents.returnsProfitEffectSar.toFixed(2),
+          returnsWithoutCostCount: periodTotals.documents.returnsWithoutCostCount,
+          returnDocumentCount: periodTotals.documents.returnCount,
           anomalyCount: periodTotals.documents.anomalies,
           /** العدادات من استعلامات الجمع (`COUNT(*)`) لا من طول المصفوفة — فالسقفُ لا يُنقص عددًا. */
           loadOrderCount: periodTotals.loadOrders.rows,
@@ -4224,11 +4409,22 @@ export class VanSalesService {
             ? dec(partyRow.credit_limit)
             : null;
         if (creditLimit && creditLimit.gt(0)) {
+          /**
+           * دينُ العميل قبل هذه الفاتورة — بالصيغة نفسها التي كان الفحصُ يستعملها
+           * (مجموعُ `total − paid_amount` لكلّ صفّ بلا حدٍّ أدنى) إلا أنّ صفَّ المرتجع صار
+           * **يُخصم** بقيمة إشعاره الدائن الكاملة (‏`total + tax_total`) كما يخصمها القيدُ
+           * الرسميّ من «عميل عام». وما كان: المرتجعُ **يزيد** الدينَ المحسوب (قِيس ٦٢.٧٠
+           * بدل ٣٤.٧٥) فيُرفض بيعٌ جديدٌ لعميلٍ أرجع بضاعة — والرفضُ هنا قرارٌ ماليٌّ سببُه
+           * خطأُ جمع، لا سياسةُ ائتمان.
+           *
+           * ‏(والتعليقُ خارج قالب SQL: فداخلَه تُنهي الشرطةُ المائلةُ المعكوسة القالب.)
+           */
           const unpaidRow = first(
             await tx.execute(sql`
-              SELECT COALESCE(SUM(total - paid_amount), 0)::text AS unpaid
-              FROM van_sales_documents
-              WHERE tenant_id = ${tenantId}::uuid AND party_id = ${partyId}::uuid AND deleted_at IS NULL
+              SELECT ${VAN_MONEY_SQL.partyDebt} AS unpaid
+              FROM van_sales_documents d
+              WHERE d.tenant_id = ${tenantId}::uuid AND d.party_id = ${partyId}::uuid
+                AND d.deleted_at IS NULL
             `),
           );
           const currentDebt = dec(unpaidRow?.unpaid);
@@ -6988,14 +7184,16 @@ export class VanSalesService {
        */
       const documentTotals = first(
         await tx.execute(sql`
-          SELECT COALESCE(SUM(d.total), 0)::text AS revenue,
-                 COALESCE(SUM(d.total) FILTER (WHERE d.payment_method = 'cash'), 0)::text
-                   AS cash_sales,
-                 COALESCE(SUM(d.total) FILTER (WHERE d.payment_method IS DISTINCT FROM 'cash'), 0)::text
-                   AS credit_sales,
-                 COALESCE(SUM(d.paid_amount), 0)::text AS collected,
-                 COALESCE(SUM(GREATEST(0, COALESCE(d.total, 0) - COALESCE(d.paid_amount, 0))), 0)::text
-                   AS outstanding,
+          SELECT ${VAN_MONEY_SQL.revenueNet} AS revenue,
+                 ${VAN_MONEY_SQL.salesGross} AS sales_gross,
+                 ${VAN_MONEY_SQL.cashGross} AS cash_sales,
+                 ${VAN_MONEY_SQL.creditGross} AS credit_sales,
+                 ${VAN_MONEY_SQL.returnsNet} AS returns_sar,
+                 ${VAN_MONEY_SQL.returnsVat} AS returns_vat_sar,
+                 ${VAN_MONEY_SQL.collected} AS collected,
+                 ${VAN_MONEY_SQL.receivables} AS outstanding,
+                 ${VAN_MONEY_SQL.returnCount} AS return_documents,
+                 ${VAN_MONEY_SQL.returnsWithoutCost} AS returns_without_cost,
                  COUNT(*)::int AS documents
           FROM van_sales_documents d
           WHERE d.tenant_id = ${tenantId}::uuid AND d.deleted_at IS NULL
@@ -7138,11 +7336,23 @@ export class VanSalesService {
           voucherStatus: row.voucher_status ? str(row.voucher_status) : null,
         })),
         totals: {
+          /**
+           * الإيرادُ **صافي المرتجعات** (شاملُ الضريبة كأساس `total` في صفّ البيع):
+           * ‏`revenue = salesGross − returns − returnsVat`. والمعادلةُ معروضةٌ بأطرافها كلها
+           * كي لا يختفي مرتجعٌ داخل رقمٍ صافٍ.
+           */
           revenue: dec(documentTotals?.revenue).toFixed(2),
+          salesGross: dec(documentTotals?.sales_gross).toFixed(2),
           cashSales: dec(documentTotals?.cash_sales).toFixed(2),
           creditSales: dec(documentTotals?.credit_sales).toFixed(2),
           collected: dec(documentTotals?.collected).toFixed(2),
+          /** ما على عملائه — ناقصًا قيمةَ إشعاراته الدائنة (فالمرتجعُ دائنٌ للعميل). */
           outstanding: dec(documentTotals?.outstanding).toFixed(2),
+          returns: dec(documentTotals?.returns_sar).toFixed(2),
+          returnsVat: dec(documentTotals?.returns_vat_sar).toFixed(2),
+          returnCount: Number(documentTotals?.return_documents ?? 0),
+          /** مرتجعاتٌ لم يُرحَّل إشعارُها الدائن فتكلفتُها مجهولة — تُقال ولا تُفبرك. */
+          returnsWithoutCostCount: Number(documentTotals?.returns_without_cost ?? 0),
         },
         custody: {
           expectedKg: dec(custodyTotals?.expected_kg).toFixed(4),

@@ -209,10 +209,16 @@ function periodPayload(overrides: Partial<ReportsPayload> = {}): ReportsPayload 
       shortageSar: '0.00',
       zatcaSalesSar: '200.00',
       internalSalesSar: '400.00',
+      salesGrossSar: '600.00',
+      returnsSar: '0.00',
+      returnsVatSar: '0.00',
       revenueSar: '600.00',
       collectedCashSar: '240.00',
       creditReceivablesSar: '360.00',
       netProfitSar: '75.00',
+      returnsProfitEffectSar: '0.00',
+      returnDocumentCount: 0,
+      returnsWithoutCostCount: 0,
       anomalyCount: 1,
       loadOrderCount: 6,
       documentCount: 6,
@@ -345,6 +351,58 @@ describe('منطق شاشة تقارير الخطّ', () => {
         expect(cardValue(payload, card.key), `${group.key}/${card.key}`).not.toBe('—');
       }
     }
+
+    /**
+     * وفترةٌ فيها مرتجعات — والأرقامُ هي المقاسةُ من الخادم في
+     * `apps/api/test/van-sales-returns-in-reports.spec.ts` (بيعٌ ١١٥.٠٠ ومرتجعان ٢٠.٠٠ + ٣.٠٠
+     * و٥.٠٠ + ٠.٧٥ ضريبتهما، وأثرُ المرتجع في الربح ١٢.٠٠ بتكلفة إشعاره الدائن ٨.٠٠):
+     * فالشاشةُ تعرض الأطرافَ لا رقمًا صافيًا ابتلعها.
+     */
+    const withReturns = periodPayload({
+      periodTotals: {
+        salesGrossSar: '115.00',
+        returnsSar: '25.00',
+        returnsVatSar: '3.75',
+        revenueSar: '86.25',
+        zatcaSalesSar: '86.25',
+        internalSalesSar: '0.00',
+        collectedCashSar: '0.00',
+        creditReceivablesSar: '86.25',
+        netProfitSar: '48.00',
+        returnsProfitEffectSar: '12.00',
+        returnDocumentCount: 2,
+        returnsWithoutCostCount: 1,
+        documentCount: 3,
+      },
+    });
+    expect(cardValue(withReturns, 'salesGrossSar')).toBe('115.00');
+    expect(cardValue(withReturns, 'returnsSar')).toBe('25.00');
+    expect(cardValue(withReturns, 'returnsVatSar')).toBe('3.75');
+    expect(cardValue(withReturns, 'revenueSar')).toBe('86.25');
+    expect(cardValue(withReturns, 'returnsProfitEffectSar')).toBe('12.00');
+    expect(cardValue(withReturns, 'netProfitSar')).toBe('48.00');
+    expect(cardValue(withReturns, 'returnDocumentCount')).toBe('2');
+    expect(cardValue(withReturns, 'returnsWithoutCostCount')).toBe('1');
+    // ‏والمعادلةُ تُغلق على أرقام الخادم نفسه: إجماليٌّ − مرتجعاتٌ − ضريبتُها = صافٍ.
+    const gross = Number(cardValue(withReturns, 'salesGrossSar'));
+    const returns = Number(cardValue(withReturns, 'returnsSar'));
+    const returnsVat = Number(cardValue(withReturns, 'returnsVatSar'));
+    expect((gross - returns - returnsVat).toFixed(2)).toBe(cardValue(withReturns, 'revenueSar'));
+
+    /**
+     * ‏**وفي الاتّجاه المعاكس:** كلّ رقمٍ يرجعه الخادم في `periodTotals` له بطاقة. فالحلقةُ
+     * أعلاه تمنع بطاقةً تعرض «—»، وهذه تمنع الخادمَ أن يزيد رقمًا (كـ`returnsSar` يوم أُضيف)
+     * فتبتلعه الشاشةُ بالصمت — وهو الوجه الآخر لقاعدة «لا يختفي شيء». والمثبّتُ هنا على
+     * شكل حمولة الخادم الكاملة (٢٦ مفتاحًا)، فلو أُضيف مفتاحٌ في الردّ وسُكِت عنه في
+     * البطاقات لسقط هذا الحكم.
+     */
+    const declared = new Set(
+      PERIOD_CARD_GROUPS.flatMap((group) => group.cards.map((card) => card.key)),
+    );
+    const undeclared = Object.keys(payload.periodTotals ?? {}).filter(
+      (key) => !declared.has(key),
+    );
+    expect(undeclared, `أرقامٌ من الخادم بلا بطاقة: ${undeclared.join(', ')}`).toEqual([]);
     // ‏بطاقاتُ summary كذلك، وبمفاتيح اللوحة لا مفاتيح الفترة.
     expect(summaryValue(payload, 'totalRevenueSar')).toBe('1600.00');
     expect(summaryValue(payload, 'mainWarehouseBalanceKg')).toBe('0.00');

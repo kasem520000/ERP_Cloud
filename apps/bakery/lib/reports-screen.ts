@@ -257,6 +257,12 @@ export type PeriodCardGroup = {
 /**
  * بطاقاتُ `periodTotals` بمفاتيح الخادم. والمجموعةُ الثالثة عدّاداتٌ (‏`COUNT(*)`) لا مال —
  * ومنها `anomalyCount` الذي يعدّ مستنداتٍ عَلَمُ شذوذِ البونص فيها مرفوع.
+ *
+ * ‏**والإيرادُ صافٍ من المرتجعات** (‏`revenueSar = salesGrossSar − returnsSar − returnsVatSar`)،
+ * والذممُ والوعاءُ والربحُ كذلك — فالمعالجةُ في الخادم (`VAN_MONEY_SQL` في
+ * `van-sales.service.ts`) ومرجعُها قيودُ المرتجع الرسمية. وأمّا الشاشةُ فلا تحسب ولا تشرح من
+ * عندِها: تعرض الأطرافَ الثلاثة بطاقاتٍ، وتعرض شرحَ الخادم كما جاء في `filterNotes`
+ * (وسطرٌ منه يقول بالأرقام كيف صُنع الصافي، وكم مرتجعًا بلا تكلفةٍ مُرحّلة).
  */
 export const PERIOD_CARD_GROUPS: readonly PeriodCardGroup[] = [
   {
@@ -264,12 +270,16 @@ export const PERIOD_CARD_GROUPS: readonly PeriodCardGroup[] = [
     labelAr: 'مالُ الفترة',
     noteAr: 'مجموعُ المستندات المصفّاة بالمدى — من SUM على الجدول، لا من جمع الصفوف المعروضة.',
     cards: [
-      { key: 'revenueSar', labelAr: 'إيرادُ الفترة' },
-      { key: 'zatcaSalesSar', labelAr: 'فواتير ضريبية (ZATCA)' },
-      { key: 'internalSalesSar', labelAr: 'إشعارات تسليم داخلية' },
+      { key: 'revenueSar', labelAr: 'إيرادُ الفترة (صافي المرتجعات)' },
+      { key: 'salesGrossSar', labelAr: 'إجماليُّ المبيعات قبل المرتجعات' },
+      { key: 'returnsSar', labelAr: 'مردودات المبيعات' },
+      { key: 'returnsVatSar', labelAr: 'ضريبةُ المرتجعات المعكوسة' },
+      { key: 'zatcaSalesSar', labelAr: 'فواتير ضريبية (ZATCA) — صافية' },
+      { key: 'internalSalesSar', labelAr: 'إشعارات تسليم داخلية — صافية' },
       { key: 'collectedCashSar', labelAr: 'المحصَّل' },
-      { key: 'creditReceivablesSar', labelAr: 'الذممُ غير المحصّلة' },
+      { key: 'creditReceivablesSar', labelAr: 'الذممُ غير المحصّلة (بعد الإشعارات الدائنة)' },
       { key: 'netProfitSar', labelAr: 'صافي الربح' },
+      { key: 'returnsProfitEffectSar', labelAr: 'أثرُ المرتجعات في الربح' },
       { key: 'shortageSar', labelAr: 'قيمةُ النقص المُحمّل' },
       { key: 'productionCostSar', labelAr: 'تكلفةُ الإنتاج' },
     ],
@@ -296,6 +306,8 @@ export const PERIOD_CARD_GROUPS: readonly PeriodCardGroup[] = [
     cards: [
       { key: 'loadOrderCount', labelAr: 'أوامر التحميل' },
       { key: 'documentCount', labelAr: 'مستندات البيع' },
+      { key: 'returnDocumentCount', labelAr: 'مستندات المرتجع' },
+      { key: 'returnsWithoutCostCount', labelAr: 'مرتجعاتٌ بلا تكلفةٍ مُرحّلة' },
       { key: 'productionBatchCount', labelAr: 'دفعات الإنتاج' },
       { key: 'anomalyCount', labelAr: 'شذوذُ البونص' },
     ],
