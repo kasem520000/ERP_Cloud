@@ -8,6 +8,7 @@ import {
   canCloseTransitDifference,
   canSettleStock,
   canSubmitClosing,
+  CHARGE_BASES,
   CHARGE_BASIS_LABELS,
   chargeBasisLabel,
   chargePreview,
@@ -280,6 +281,11 @@ describe('التسميات — قيمةٌ غير معروفة تُعرض خام�
     expect(chargeBasisLabel('unit_cost')).toBe(CHARGE_BASIS_LABELS.unit_cost);
     expect(chargeBasisLabel('unit_cost')).toBe('التكلفة (قرار السياسة)');
     expect(chargeBasisLabel('average_document_price')).toContain('متوسط سعر البيع');
+    // حمولةٌ بلا دفعة إنتاج: `unit_cost` على الأمر صفر، فـ«بالتكلفة» تُقرأ من الرصيد الرسمي
+    // (متوسط تكلفة مستودع المصدر) لا من سعر البيع — والقياس الحيّ هو ما فرض هذا الأساس.
+    expect(CHARGE_BASES).toContain('stock_average_cost');
+    expect(chargeBasisLabel('stock_average_cost')).toContain('متوسط تكلفة الرصيد الرسمي');
+    expect(chargeBasisLabel('stock_average_cost')).not.toContain('سعر بيع');
     expect(chargeBasisLabel('made_up')).toBe('made_up');
     expect(chargeBasisLabel(undefined)).toBe('—');
   });

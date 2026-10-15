@@ -596,7 +596,11 @@ describe('Van Sales end-to-end acceptance on official stock & accounting ledgers
     expect(pending.actualRemainingQty).toBe('0.50');
     expect(pending.countVarianceQty).toBe('0.50');
     expect(pending.shortageQty).toBe('0.50');
-    // The financial treatment of a shortage is an undecided policy: it is recorded, never posted.
+    // The financial treatment of a shortage is decided **per case**, never by default: it is
+    // recorded here (`pending_policy_approval`) and posted only when the accountant explicitly
+    // raises `salaryDeductionApproved` at approval, which debits the salesman's own employee
+    // account and credits the mapped shortage-charge account (the dedicated case below).
+    // No flag ⇒ no entry, and a flag without an employee/account ⇒ 422, not a half-posting.
     expect(pending.shortagePolicyStatus).toBe('pending_policy_approval');
 
     // ── Step 9: the accountant cannot approve without damage inspection ─────
@@ -1473,9 +1477,12 @@ describe('Van Sales end-to-end acceptance on official stock & accounting ledgers
       loadedQty: string;
       actualRemainingQty: string;
       key: string;
-      productionBatchNo: string;
+      /** ‏بلا دفعةٍ ⇒ `unit_cost` على الأمر 0، فتُقرأ التكلفة من الرصيد الرسمي (الخطوة 12). */
+      productionBatchNo?: string;
       approveToken: string;
       approveBody: Record<string, unknown>;
+      /** ‏لقطة `stock_balances.average_cost` لمستودع المصدر قبل الاعتماد لحظةً واحدة. */
+      captureSourceCost?: boolean;
     }) {
       const created = await api(ctx.server, 'post', '/api/v1/van-sales/load-orders', {
         token: accountant.token,
@@ -1485,7 +1492,7 @@ describe('Van Sales end-to-end acceptance on official stock & accounting ledgers
           warehouseId: mainWarehouseId,
           vanWarehouseId: args.vanWarehouseId,
           itemId: chargeItemId,
-          productionBatchNo: args.productionBatchNo,
+          ...(args.productionBatchNo ? { productionBatchNo: args.productionBatchNo } : {}),
           loadedQty: args.loadedQty,
           notes: 'عهدة حالة العجز',
           idempotencyKey: args.key,
@@ -1516,13 +1523,26 @@ describe('Van Sales end-to-end acceptance on official stock & accounting ledgers
         },
       );
       expect(submit.status, JSON.stringify(submit.body).slice(0, 400)).toBe(201);
+      let sourceAverageCost: string | null = null;
+      if (args.captureSourceCost) {
+        sourceAverageCost = await withTenantTx(ctx.handle.db, owner.tenantId, async (tx) => {
+          const rows = await tx.execute(sql`
+            SELECT average_cost::text AS valuation FROM stock_balances
+            WHERE tenant_id = ${owner.tenantId}::uuid
+              AND item_id = ${chargeItemId}::uuid
+              AND warehouse_id = ${mainWarehouseId}::uuid
+            LIMIT 1
+          `);
+          return (rows as { rows: Array<{ valuation: string | null }> }).rows[0]?.valuation ?? null;
+        });
+      }
       const approve = await api(
         ctx.server,
         'post',
         `/api/v1/van-sales/load-orders/${id}/approve-closing`,
         { token: args.approveToken, body: args.approveBody },
       );
-      return { id, approve };
+      return { id, approve, sourceAverageCost };
     }
 
     const noFlag = await runClosing({
@@ -1739,6 +1759,61 @@ describe('Van Sales end-to-end acceptance on official stock & accounting ledgers
     expect(shown?.shortageChargeBasis).toBe('unit_cost');
     expect(shown?.shortageChargeAmount).toBe(expectedAmount);
     expect(shown?.shortagePolicyStatus).toBe('charged_to_employee');
+
+    // ── الخطوة 12: حمولةٌ بلا دفعة إنتاج ⇒ «بالتكلفة» لا تنقلب سعرَ بيع ───────────────
+    // `van_load_orders.unit_cost` مصدرها دفعة الإنتاج وحدها، فأمرٌ بلا دفعة يحمل 0. والتشغيل
+    // الحيّ (‏2026-10-15، منشأة العرض) كشف أنّ السلسلة كانت تكمل إلى متوسط مستندات الأمر ثمّ
+    // `items.sale_price` — أي أنّ قرار المالك «التقييم بالتكلفة» كان يُحاسب الموظف بسعر البيع
+    // (‏6.50 هنا) ويكتب أساساً صادقاً يخالف السياسة. الآن تُقرأ التكلفة من الرصيد الرسمي.
+    const batchless = await runClosing({
+      salesmanId: chargeSalesmanId,
+      vanWarehouseId: chargeVanWarehouseId,
+      loadedQty: '10',
+      actualRemainingQty: '8',
+      key: 'charge-without-batch',
+      captureSourceCost: true,
+      approveToken: accountant.token,
+      approveBody: {
+        damageInspected: true,
+        salaryDeductionApproved: true,
+        remainingAction: 'carry_over',
+        settleStockAdjustment: true,
+      },
+    });
+    expect(batchless.approve.status, JSON.stringify(batchless.approve.body).slice(0, 500)).toBe(201);
+    const batchlessFacts = await withTenantTx(ctx.handle.db, owner.tenantId, async (tx) => {
+      const rows = await tx.execute(sql`
+        SELECT item_id::text AS item_id, production_batch_no, unit_cost::text AS unit_cost
+        FROM van_load_orders
+        WHERE id = ${batchless.id}::uuid AND tenant_id = ${owner.tenantId}::uuid
+      `);
+      return (rows as { rows: Array<Record<string, string | null>> }).rows[0];
+    });
+    expect(batchlessFacts, 'the batch-less order must exist').toBeTruthy();
+    // لم تلتقط دفعة حالةٍ أخرى: `createLoadOrder` يفبرك `PROD-<اليوم>-0001` عند غياب الدفعة،
+    // وفي مستأجرٍ مشترك قد تطابق دفعةً سابقة فتقلب الصنف والتكلفة معاً.
+    expect(batchlessFacts.item_id).toBe(chargeItemId);
+    expect(Number(batchlessFacts.unit_cost)).toBe(0);
+
+    const batchlessRow = await readChargeRow(batchless.id);
+    expect(batchlessRow.basis).toBe('stock_average_cost');
+    expect(batchlessRow.shortage_policy_status).toBe('charged_to_employee');
+    expect(batchless.sourceAverageCost, 'a source balance must exist').toBeTruthy();
+    // العلاقة لا رقمٌ مكتوب: عجز × متوسط تكلفة الرصيد الرسمي لمستودع المصدر كما كان لحظة الاعتماد.
+    const costExpected = (
+      Number(batchlessRow.shortage_qty) * Number(batchless.sourceAverageCost)
+    ).toFixed(4);
+    expect(batchlessRow.amount).toBe(costExpected);
+    expect(batchlessRow.shortage_value).toBe(costExpected);
+    // وجوهر القرار: ليس سعر البيع (6.50)، ولا قيمة الحمولة المقدّرة التي تُسعَّر بسعر البيع.
+    expect(Number(batchlessRow.amount)).not.toBeCloseTo(Number(batchlessRow.shortage_qty) * 6.5, 2);
+
+    const batchlessLines = await chargeLines(String(batchlessRow.entry_id));
+    expect(batchlessLines).toHaveLength(2);
+    expect(batchlessLines[0].account_code).toBe('2241901'); // ‏مدين: حساب الموظف
+    expect(batchlessLines[0].debit).toBe(costExpected);
+    expect(batchlessLines[1].credit).toBe(costExpected);
+    expect(await chargeEntryCount(batchless.id)).toBe(1);
   });
 
 });

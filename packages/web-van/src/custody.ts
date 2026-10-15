@@ -407,11 +407,14 @@ export function shortagePolicyStatusLabel(status: string | null | undefined): st
 /**
  * الأساس الذي قُيِّم به العجز **فعلاً** (`van_load_orders.shortage_charge_basis`) — سلسلة
  * `resolveShortageUnitPriceInTx` بترتيبها: سعرٌ صريح في السياسة، ثمّ التكلفة إن كانت السياسة
- * `unit_cost`، ثمّ متوسط أسعار مستندات الأمر، ثمّ سعر الصنف، ثمّ متوسط الحمولة.
+ * `unit_cost` (من دفعة الإنتاج، وإلا فمتوسط تكلفة الرصيد الرسمي لمستودع المصدر ثمّ للسيارة ثمّ
+ * تكلفة الصنف في بطاقته — كي لا ينقلب قرار «بالتكلفة» سعرَ بيعٍ لحمولةٍ بلا دفعة)، ثمّ متوسط
+ * أسعار مستندات الأمر، ثمّ سعر الصنف، ثمّ متوسط الحمولة.
  */
 export const CHARGE_BASES = [
   'explicit_policy_price',
   'unit_cost',
+  'stock_average_cost',
   'average_document_price',
   'item_sale_price',
   'item_purchase_price',
@@ -423,6 +426,7 @@ export type ChargeBasis = (typeof CHARGE_BASES)[number];
 export const CHARGE_BASIS_LABELS: Record<ChargeBasis, string> = {
   explicit_policy_price: 'سعرٌ صريح في السياسة',
   unit_cost: 'التكلفة (قرار السياسة)',
+  stock_average_cost: 'متوسط تكلفة الرصيد الرسمي (حمولةٌ بلا دفعة إنتاج)',
   average_document_price: 'متوسط سعر البيع في مستندات الأمر',
   item_sale_price: 'سعر بيع الصنف',
   item_purchase_price: 'سعر شراء الصنف',

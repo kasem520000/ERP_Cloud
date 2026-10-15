@@ -78,6 +78,7 @@ function buildZatcaTlvBase64(params: {
 export type ShortageChargeBasis =
   | 'explicit_policy_price'
   | 'unit_cost'
+  | 'stock_average_cost'
   | 'average_document_price'
   | 'item_sale_price'
   | 'item_purchase_price'
@@ -2175,17 +2176,28 @@ export class VanSalesService {
       }
 
       const datePart = new Date().toISOString().slice(0, 10).replace(/-/g, '');
-      const batchNo = String(body.productionBatchNo ?? '').trim() || `PROD-${datePart}-0001`;
-      const batchRow = first(
-        await tx.execute(sql`
-          SELECT item_id::text, warehouse_id::text, unit_cost::text, lot_id::text,
-                 produced_qty::text, issued_qty::text, returned_good_qty::text, damaged_qty::text
-          FROM factory_production_batches
-          WHERE tenant_id = ${tenantId}::uuid AND batch_no = ${batchNo} AND deleted_at IS NULL
-          ORDER BY created_at DESC
-          LIMIT 1
-        `),
-      );
+      const suppliedBatchNo = String(body.productionBatchNo ?? '').trim();
+      /**
+       * ⚠️ الرقم المفبرك `PROD-<اليوم>-0001` **مرجعٌ مكتوب على الأمر فقط**، لا مفتاح بحث: البحث به
+       * كان يلتقط أول دفعةٍ صودف رقمها كذلك في المستأجر المشترك — ولو لصنفٍ آخر. والقياس أظهره
+       * (‏2026-10-15): أمرٌ لصنف `SKU-CHARGE` (تكلفته 4.00) بلا دفعةٍ مُسمّاة حمل `unit_cost`
+       * ‏3.80 من دفعة `SKU-SAMBOSA`، فتُقيَّم المناقلة وعجزُ العهدة بتكلفة صنفٍ غيره. فدفعةُ الأمر
+       * تُقرأ فقط حين يسمّيها الطالب؛ وإلا فالأمر بلا دفعة: `unit_cost` صفر، والتكلفة تُطلب من
+       * الرصيد الرسمي في `resolveShortageUnitPriceInTx`.
+       */
+      const batchNo = suppliedBatchNo || `PROD-${datePart}-0001`;
+      const batchRow = suppliedBatchNo
+        ? first(
+            await tx.execute(sql`
+              SELECT item_id::text, warehouse_id::text, unit_cost::text, lot_id::text,
+                     produced_qty::text, issued_qty::text, returned_good_qty::text, damaged_qty::text
+              FROM factory_production_batches
+              WHERE tenant_id = ${tenantId}::uuid AND batch_no = ${batchNo} AND deleted_at IS NULL
+              ORDER BY created_at DESC
+              LIMIT 1
+            `),
+          )
+        : undefined;
 
       const effectiveItemId = body.itemId?.trim() || (batchRow?.item_id ? str(batchRow.item_id) : '');
       if (!effectiveItemId) {
@@ -3914,8 +3926,21 @@ export class VanSalesService {
     if (policy.shortageUnitPrice && dec(policy.shortageUnitPrice).gt(0)) {
       return { price: dec(policy.shortageUnitPrice), basis: 'explicit_policy_price' };
     }
-    if (policy.shortageValuationBasis === 'unit_cost' && dec(loadOrder.unit_cost).gt(0)) {
-      return { price: dec(loadOrder.unit_cost), basis: 'unit_cost' };
+    if (policy.shortageValuationBasis === 'unit_cost') {
+      if (dec(loadOrder.unit_cost).gt(0)) {
+        return { price: dec(loadOrder.unit_cost), basis: 'unit_cost' };
+      }
+      // ⚠️ أمرٌ بلا دفعة إنتاج لا يحمل تكلفةً: `van_load_orders.unit_cost` مصدرها الدفعة وحدها
+      // (`plan.batchUnitCost`)، فقرار المالك «التقييم بالتكلفة» كان سينقلب **سعرَ بيع** لو تُركت
+      // السلسلة القديمة تكمل: متوسط أسعار مستندات الأمر ثمّ `items.sale_price`. والقياس الحيّ
+      // (‏2026-10-15، منشأة العرض) أظهره: سياسة `unit_cost` وأمرٌ بلا دفعة ⇒ أساس
+      // `item_sale_price` ومبلغ 3.00 على عجز 2 كجم، أي 1.50 وهو سعر البيع لا التكلفة.
+      // فالتكلفة تُقرأ من الرصيد الرسمي للمخزون (متوسط تكلفة مستودع **المصدر** أولاً، لأن
+      // قيمة المناقلة إلى السيارة تُسعَّر بـ`referenceUnitPrice` الذي هو سعر البيع عند غياب
+      // الدفعة — فرصيد السيارة يرث ذلك التسعير)، ثمّ من تكلفة الصنف في بطاقته. وما بعدها
+      // (أسعار المستندات والبيع) يبقى ملاذاً أخيراً كي لا يُرحَّل قيدٌ بصفر.
+      const stockCost = await this.resolveStockCostFallbackInTx(tx, tenantId, loadOrder);
+      if (stockCost) return stockCost;
     }
     const avgDocRow = first(
       await tx.execute(sql`
@@ -3951,6 +3976,51 @@ export class VanSalesService {
       return { price: loadedVal.div(loadedQty), basis: 'loaded_average' };
     }
     return { price: dec(loadOrder.unit_cost), basis: 'load_order_unit_cost' };
+  }
+
+  /**
+   * 💰 تكلفة الصنف من **الرصيد الرسمي** حين لا تحمل الحمولة دفعة إنتاج.
+   *
+   * الترتيب مقصود: مستودع المصدر (`warehouse_id`) ثمّ مستودع السيارة (`van_warehouse_id`) ثمّ
+   * تكلفة الصنف في بطاقته (`items.purchase_price`). والمصدر أولاً لأنّ المناقلة إلى السيارة
+   * تُقيَّم بـ`referenceUnitPrice`، وهو سعر البيع حين لا دفعة — فرصيد السيارة قد يحمل سعراً لا
+   * تكلفة. ويُرجع `null` حين لا تكلفة إيجابية في أيٍّ منها، فتكمل السلسلة القديمة (لا يُخترع
+   * رقم، ولا يُرحَّل صفرٌ بلا دليل).
+   */
+  private async resolveStockCostFallbackInTx(
+    tx: DrizzleTx,
+    tenantId: string,
+    loadOrder: Record<string, unknown>,
+  ): Promise<{ price: Decimal; basis: ShortageChargeBasis } | null> {
+    const itemId = str(loadOrder.item_id);
+    if (!itemId) return null;
+    for (const warehouseId of [str(loadOrder.warehouse_id), str(loadOrder.van_warehouse_id)]) {
+      if (!warehouseId) continue;
+      const row = first(
+        await tx.execute(sql`
+          SELECT average_cost::text AS valuation
+          FROM stock_balances
+          WHERE tenant_id = ${tenantId}::uuid
+            AND item_id = ${itemId}::uuid
+            AND warehouse_id = ${warehouseId}::uuid
+          LIMIT 1
+        `),
+      );
+      if (row?.valuation && dec(row.valuation).gt(0)) {
+        return { price: dec(row.valuation), basis: 'stock_average_cost' };
+      }
+    }
+    const itemRow = first(
+      await tx.execute(sql`
+        SELECT purchase_price::text AS valuation FROM items
+        WHERE id = ${itemId}::uuid AND tenant_id = ${tenantId}::uuid AND deleted_at IS NULL
+        LIMIT 1
+      `),
+    );
+    if (itemRow?.valuation && dec(itemRow.valuation).gt(0)) {
+      return { price: dec(itemRow.valuation), basis: 'item_purchase_price' };
+    }
+    return null;
   }
 
   /**
