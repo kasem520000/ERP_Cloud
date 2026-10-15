@@ -20,6 +20,7 @@ import {
   shortagePolicyStatusLabel,
   unsettledStockReason,
   VALUATION_BASIS_LABELS,
+  vehicleCountShare,
   valuationBasisLabel,
   type ApprovalDraft,
   type ClosingDraft,
@@ -426,5 +427,116 @@ describe('unsettledStockReason — لا تُغلق عهدةٌ بفرق مخزو�
         stockSettlementNote: 'فرق الجرد 0.50 كجم (المتوقع 1.00 / الفعلي 0.50)',
       }),
     ).toBe('فرق الجرد 0.50 كجم (المتوقع 1.00 / الفعلي 0.50)');
+  });
+});
+
+describe('🚐 عددُ المركبة كلها — الاشتقاق والرفض (قرار المالك 2026-10-15)', () => {
+  it('الاشتقاق: نصيبُ العهدة = max(0, عددُ السيارة − عهدةُ الغير)', () => {
+    expect(
+      vehicleCountShare(
+        closing({ vehicleCountQty: '25.5', otherCustodyInVanQty: '20' }),
+      ).share.toFixed(2),
+    ).toBe('5.50');
+    expect(
+      vehicleCountShare(closing({ vehicleCountQty: '5', otherCustodyInVanQty: '20' })).share.toFixed(2),
+    ).toBe('0.00');
+    expect(
+      vehicleCountShare(closing({ vehicleCountQty: '5', otherCustodyInVanQty: '20' }))
+        .belowOtherCustody,
+    ).toBe(true);
+    expect(vehicleCountShare(closing()).declared).toBe(false);
+    // بلا رقمٍ من اللوحة ⇒ عهدةُ الغير صفرٌ والنصيب هو العدد كله.
+    expect(vehicleCountShare(closing({ vehicleCountQty: '25.5' })).share.toFixed(2)).toBe('25.50');
+  });
+
+  it('يُرسل عددُ المركبة وحده — والنصيب يشتقّه الخادم فلا يُرسل بجانبه', () => {
+    const verdict = buildClosingPayload(
+      closing({ actualRemainingQty: '', vehicleCountQty: '26', otherCustodyInVanQty: '20' }),
+      quantities(),
+    );
+    expect(verdict.ok).toBe(true);
+    if (!verdict.ok) return;
+    expect(verdict.payload.vehicleCountQty).toBe('26.0000');
+    expect(verdict.payload.actualRemainingQty).toBeUndefined();
+  });
+
+  it('سقفُ العهدة يُقاس بالنصيب المشتقّ لا بعدد السيارة كلها', () => {
+    // العهدة 20 والمحسوب 14 ⇒ المتوقع 6. وعددُ السيارة 26 منه 20 لغيره ⇒ النصيب 6 ⇒ لا تجاوز،
+    // بينما قياسُ السقف بعدد السيارة (‏26 > 20) كان سيرفض عدّاً صحيحاً.
+    const within = buildClosingPayload(
+      closing({ actualRemainingQty: '', vehicleCountQty: '26', otherCustodyInVanQty: '20' }),
+      quantities(),
+    );
+    expect(within.ok).toBe(true);
+    // أمّا ما تجاوز نصيبُه العهدة فيُرفض كما يُرفض اليوم (فائضُ المندوب يُسجَّل عند الاعتماد).
+    const over = buildClosingPayload(
+      closing({ actualRemainingQty: '', vehicleCountQty: '30', otherCustodyInVanQty: '20' }),
+      quantities(),
+    );
+    expect(over.ok).toBe(false);
+    if (over.ok) return;
+    expect(over.message).toContain('يتجاوز العهدة المستلمة');
+    expect(over.field).toBe('actualRemainingQty');
+  });
+
+  it('عددٌ دون عهدة الغير ⇒ رفضٌ قبل الإرسال (لا يُشطب ما لا يملكه الأمر)', () => {
+    const verdict = buildClosingPayload(
+      closing({ actualRemainingQty: '', vehicleCountQty: '5', otherCustodyInVanQty: '20' }),
+      quantities(),
+    );
+    expect(verdict.ok).toBe(false);
+    if (verdict.ok) return;
+    expect(verdict.message).toContain('أقلّ من عهدة أوامرَ أخرى');
+    expect(verdict.field).toBe('vehicleCountQty');
+  });
+
+  it('نصٌّ غير رقمي في عدد المركبة ⇒ رفض، لا صفرٌ يشطب رصيد السيارة', () => {
+    const verdict = buildClosingPayload(
+      closing({ actualRemainingQty: '', vehicleCountQty: 'عشرون', otherCustodyInVanQty: '20' }),
+      quantities(),
+    );
+    expect(verdict.ok).toBe(false);
+    if (verdict.ok) return;
+    expect(verdict.field).toBe('vehicleCountQty');
+    expect(verdict.message).toContain('عددُ الصنف في السيارة كلها');
+  });
+
+  it('الاعتماد يسلك المسلك نفسه، ومصيرُ المتبقي يُقاس بالنصيب المشتقّ', () => {
+    const verdict = buildApprovalPayload(
+      approval({ actualRemainingQty: '', vehicleCountQty: '26', otherCustodyInVanQty: '20' }),
+      quantities(),
+    );
+    expect(verdict.ok).toBe(true);
+    if (!verdict.ok) return;
+    expect(verdict.payload.vehicleCountQty).toBe('26.0000');
+    expect(verdict.payload.actualRemainingQty).toBeUndefined();
+
+    const noDestination = buildApprovalPayload(
+      approval({
+        actualRemainingQty: '',
+        vehicleCountQty: '26',
+        otherCustodyInVanQty: '20',
+        remainingAction: '',
+      }),
+      quantities(),
+    );
+    expect(noDestination.ok).toBe(false);
+    if (noDestination.ok) return;
+    expect(noDestination.message).toBe(APPROVAL_MESSAGES.remainingActionRequired('6.00'));
+
+    const refused = buildApprovalPayload(
+      approval({ actualRemainingQty: '', vehicleCountQty: '5', otherCustodyInVanQty: '20' }),
+      quantities(),
+    );
+    expect(refused.ok).toBe(false);
+  });
+
+  it('بلا عدد مركبة ⇒ حمولةُ اليوم حرفياً (فلا يتغيّر شيءٌ على `apps/staff`)', () => {
+    const verdict = buildClosingPayload(closing(), quantities());
+    expect(verdict.ok).toBe(true);
+    if (!verdict.ok) return;
+    expect(verdict.payload.actualRemainingQty).toBe('6.0000');
+    expect(verdict.payload.vehicleCountQty).toBeUndefined();
+    expect(CLOSING_MESSAGES.qtyNotNumeric('عددُ الصنف في السيارة كلها')).toContain('رقمًا موجبًا');
   });
 });

@@ -320,6 +320,11 @@ export class VanSalesController {
       collectedCash?: string;
       /** 🧮 المتبقي الفعلي بالجرد في السيارة عند إغلاق الوردية. */
       actualRemainingQty?: string;
+      /**
+       * 🚐 عددُ المركبة **كلها** — بديلٌ عن `actualRemainingQty` لا رفيقٌ له: يشتقّ الخادم منه
+       * نصيبَ هذا الأمر بعد طرح عهدة الأوامر الأخرى في السيارة نفسها (`0129`).
+       */
+      vehicleCountQty?: string;
       closingNotes?: string;
     },
   ) {
@@ -342,6 +347,11 @@ export class VanSalesController {
       notes?: string;
       /** 🧮 تصحيح المحاسب للجرد الفعلي (اختياري). */
       actualRemainingQty?: string;
+      /**
+       * 🚐 عددُ المركبة **كلها** كما عدّه المحاسب — يُرسل مستند الجرد به، ويُشتقّ منه نصيبُ
+       * الأمر. وإعلانُ `actualRemainingQty` وحده يُسقط دليل عدد المركبة (سلوكٌ سابقٌ حرفي).
+       */
+      vehicleCountQty?: string;
       /** `return_to_main` · `carry_over` — إلزامي عند وجود متبقٍ فعلي بالجرد. */
       remainingAction?: string;
       /** 🖋️ تفويض صريح بترحيل مستند الجرد الرسمي؛ بدونه يبقى مسودة وتبقى العهدة معلّقة. */

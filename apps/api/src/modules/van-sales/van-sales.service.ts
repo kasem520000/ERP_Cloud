@@ -631,6 +631,7 @@ export class VanSalesService {
                  l.loaded_qty::text, l.loaded_total_value::text,
                  l.received_qty::text, l.discrepancy_qty::text, l.discrepancy_notes,
                  l.received_at, l.received_by::text, l.actual_remaining_qty::text,
+                 l.vehicle_count_qty::text, l.other_custody_qty::text,
                  l.stock_adjustment_id::text, l.remaining_action, l.stock_settlement_status,
                  l.stock_settlement_note, l.damage_journal_entry_id::text,
                  l.shortage_journal_entry_id::text, l.shortage_charge_basis,
@@ -1259,6 +1260,19 @@ export class VanSalesService {
             shortageValue: dec(row.shortage_value).toFixed(2),
             remainingQty: remaining.toFixed(2),
             actualRemainingQty: actualRemaining.toFixed(2),
+            /**
+             * 🚐 دليلُ عدد المركبة (`0129`) — ما أُعلن للعدّ (عددُ السيارة كلها) وما طرحه الخادم
+             * منه لأنه عهدةُ أوامرَ أخرى، كما قِيلا لحظة الإقفال: لا يُعاد حسابهما للعرض فلا
+             * يتغيّر المعروض بعد تغيّر الأرصدة. و`null` = إقفالٌ بعددٍ لكلّ أمر (السلوك السابق).
+             */
+            vehicleCountQty:
+              row.vehicle_count_qty === null || row.vehicle_count_qty === undefined
+                ? null
+                : dec(row.vehicle_count_qty).toFixed(2),
+            otherCustodyQty:
+              row.other_custody_qty === null || row.other_custody_qty === undefined
+                ? null
+                : dec(row.other_custody_qty).toFixed(2),
             expectedRemainingQty: expectedRemaining.toFixed(2),
             /** موجب = عجز عن الجرد، سالب = فائض يظهر للمحاسب للمراجعة. */
             countVarianceQty: countVariance.toFixed(2),
@@ -4132,6 +4146,13 @@ export class VanSalesService {
        * is the shortage carried into the accountant's review.
        */
       actualRemainingQty?: string;
+      /**
+       * 🚐 عددُ المركبة **كلها** كما عُدّت فعلاً (قرار المالك 2026-10-15) — بديلٌ عن
+       * `actualRemainingQty` لا رفيقٌ له: منه يشتقّ الخادم نصيبَ هذا الأمر بعد طرح عهدة الأوامر
+       * الأخرى الجالسة في السيارة نفسها، ويُرسل مستند الجرد بالعدد كله فلا يُشطب ما لا يملكه
+       * هذا الأمر. وغيابُه ⇒ سلوكُ اليوم حرفياً (عددٌ لكلّ أمر).
+       */
+      vehicleCountQty?: string;
       closingNotes?: string;
     },
   ) {
@@ -4176,7 +4197,7 @@ export class VanSalesService {
        * before. Declaring a count is what turns part of that remainder into stock still in the
        * van, and the accountant sees both numbers side by side.
        */
-      const actualRemainingQty =
+      let actualRemainingQty =
         body.actualRemainingQty === undefined || body.actualRemainingQty === null
           ? new Decimal('0')
           : Decimal.max(0, dec(body.actualRemainingQty));
@@ -4191,6 +4212,32 @@ export class VanSalesService {
       }
 
       const accountedQty = sold.plus(bonus).plus(returnedQty).plus(damagedQty);
+      /** المتوقع مقابل الفعلي — what the documents say must still be in the van. يُحسب قبل فحص
+       * التجاوز لأنّ عددَ المركبة يحتاجه ليشتقّ منه نصيبَ هذا الأمر. */
+      const expectedRemaining = loaded.minus(accountedQty);
+
+      /**
+       * 🚐 عددُ المركبة كلها — إن أُعلن، فنصيبُ هذا الأمر مشتقٌّ منه لا مُعلنٌ بجانبه
+       * (‏`resolveVehicleCountInTx`): `A = max(0, V − O)` حيث `O = max(0, B − E)`. ويُخزَّن
+       * الرقمان دليلًا كما قِيلا لحظة الإقفال، فيُرسل مستند الجرد بـ`V` لا بـ`A`.
+       */
+      let vehicleCountQty: Decimal | null = null;
+      let otherCustodyQty: Decimal | null = null;
+      const declaredVehicleCount =
+        body.vehicleCountQty !== undefined && String(body.vehicleCountQty).trim() !== '';
+      if (declaredVehicleCount) {
+        const resolvedCount = await this.resolveVehicleCountInTx(tx, tenantId, {
+          loadOrder,
+          vehicleCountQty: String(body.vehicleCountQty),
+          expectedRemaining,
+          conflictingOrderCount:
+            body.actualRemainingQty !== undefined && String(body.actualRemainingQty).trim() !== '',
+        });
+        vehicleCountQty = resolvedCount.vehicleCount;
+        otherCustodyQty = resolvedCount.otherCustody;
+        actualRemainingQty = resolvedCount.orderCount;
+      }
+
       if (accountedQty.plus(actualRemainingQty).gt(loaded)) {
         throw new DomainError(
           errorCodes.VALIDATION_FAILED,
@@ -4200,9 +4247,7 @@ export class VanSalesService {
         );
       }
 
-      /** المتوقع مقابل الفعلي — the expected remainder is what the documents say must still be
-       * in the van; the shortage is only what the physical count cannot show. */
-      const expectedRemaining = loaded.minus(accountedQty);
+      /** العجز = ما لا يُظهره العدّ الفعلي من المتوقّع حسب المستندات. */
       const shortageQty = Decimal.max(0, expectedRemaining.minus(actualRemainingQty));
       const { price: unitChargePrice } = await this.resolveShortageUnitPriceInTx(
         tx,
@@ -4222,6 +4267,8 @@ export class VanSalesService {
             returned_qty = ${returnedQty.toFixed(4)}::numeric,
             damaged_qty = ${damagedQty.toFixed(4)}::numeric,
             actual_remaining_qty = ${actualRemainingQty.toFixed(4)}::numeric,
+            vehicle_count_qty = ${vehicleCountQty ? vehicleCountQty.toFixed(4) : null}::numeric,
+            other_custody_qty = ${otherCustodyQty ? otherCustodyQty.toFixed(4) : null}::numeric,
             shortage_qty = ${shortageQty.toFixed(4)}::numeric,
             shortage_value = ${shortageValue.toFixed(4)}::numeric,
             shortage_policy_status = ${shortagePolicyStatus},
@@ -4276,6 +4323,13 @@ export class VanSalesService {
       notes?: string;
       /** 🧮 تصحيح المحاسب للجرد الفعلي بعد العدّ بنفسه (اختياري — وإلا يؤخذ جرد المندوب). */
       actualRemainingQty?: string;
+      /**
+       * 🚐 عددُ المركبة **كلها** كما عدّه المحاسب (أو كما أعلنه المندوب وأُعيد هنا) — يشتقّ
+       * الخادم منه نصيبَ هذا الأمر بعد طرح عهدة الأوامر الأخرى في السيارة نفسها، ويُرسل مستند
+       * الجرد بالعدد كله. وإعلانُ `actualRemainingQty` وحده يُسقط دليل عدد المركبة ويعيد سلوك
+       * «عددٍ لكلّ أمر» حرفياً — فتصحيحُ المحاسب قرارٌ صريح لا التباس.
+       */
+      vehicleCountQty?: string;
       /**
        * ما يُفعل بالكمية التي عادت مع المندوب: `return_to_main` إرجاع رسمي للمستودع الرئيسي،
        * أو `carry_over` بقاءها عهدةً للوردية التالية. **إلزامي** عند وجود متبقٍ فعلي.
@@ -4358,10 +4412,11 @@ export class VanSalesService {
       const bonus = dec(loadOrder.bonus_qty);
       /** 🧮 المتبقي الفعلي الذي أعلنه المندوب عند الجرد — stored by `submitClosing`, and the
        * accountant may replace it with his own count (he is the one authorising the settlement). */
-      const actualRemainingQty =
-        body.actualRemainingQty !== undefined && String(body.actualRemainingQty).trim() !== ''
-          ? Decimal.max(0, dec(body.actualRemainingQty))
-          : Decimal.max(0, dec(loadOrder.actual_remaining_qty));
+      const declaredOrderCount =
+        body.actualRemainingQty !== undefined && String(body.actualRemainingQty).trim() !== '';
+      let actualRemainingQty = declaredOrderCount
+        ? Decimal.max(0, dec(body.actualRemainingQty))
+        : Decimal.max(0, dec(loadOrder.actual_remaining_qty));
       const returnedQty =
         body.returnedQty !== undefined
           ? Decimal.max(0, dec(body.returnedQty))
@@ -4386,6 +4441,42 @@ export class VanSalesService {
       }
 
       const accountedQty = sold.plus(bonus).plus(returnedQty).plus(damagedQty);
+      /** المتوقع مقابل الفعلي — the same arithmetic the rep saw when he submitted. */
+      const expectedRemaining = loaded.minus(accountedQty);
+
+      /**
+       * 🚐 عددُ المركبة كلها عند الاعتماد — يُشتقّ **من جديد** من الرصيد الرسمي الحيّ ومن
+       * متوقّع البقاء لحظة الاعتماد (لا من دليل الإرسال وحده)، لأنّ الاعتماد هو لحظة التفويض
+       * التي يُنشأ بعدها مستند الجرد. والأولوية: عددُ المركبة في الطلب ← عددُ المركبة المُخزَّن
+       * من الإرسال ← عددٌ صريحٌ لكلّ أمر من المحاسب (يُسقط الدليل ويعيد سلوك اليوم).
+       */
+      let vehicleCountQty: Decimal | null = null;
+      let otherCustodyQty: Decimal | null = null;
+      let vanOfficialQty = new Decimal(0);
+      const declaredVehicleCount =
+        body.vehicleCountQty !== undefined && String(body.vehicleCountQty).trim() !== '';
+      const storedVehicleCountText =
+        loadOrder.vehicle_count_qty === null || loadOrder.vehicle_count_qty === undefined
+          ? ''
+          : String(loadOrder.vehicle_count_qty).trim();
+      const vehicleCountText = declaredVehicleCount
+        ? String(body.vehicleCountQty)
+        : declaredOrderCount
+          ? ''
+          : storedVehicleCountText;
+      if (vehicleCountText) {
+        const resolvedCount = await this.resolveVehicleCountInTx(tx, tenantId, {
+          loadOrder,
+          vehicleCountQty: vehicleCountText,
+          expectedRemaining,
+          conflictingOrderCount: declaredVehicleCount && declaredOrderCount,
+        });
+        vehicleCountQty = resolvedCount.vehicleCount;
+        otherCustodyQty = resolvedCount.otherCustody;
+        vanOfficialQty = resolvedCount.vanBalance;
+        actualRemainingQty = resolvedCount.orderCount;
+      }
+
       /**
        * ⚖️ الفائض عن العهدة — a physical count larger than the custody is a **fact** the
        * accountant has to be able to record: refusing it leaves kilograms that exist nowhere in
@@ -4412,8 +4503,6 @@ export class VanSalesService {
         }
       }
 
-      /** المتوقع مقابل الفعلي — the same arithmetic the rep saw when he submitted. */
-      const expectedRemaining = loaded.minus(accountedQty);
       const shortageQty = Decimal.max(0, expectedRemaining.minus(actualRemainingQty));
       const surplusQty = Decimal.max(0, actualRemainingQty.minus(expectedRemaining));
       /** موجب = عجز، سالب = فائض — the signed difference between book and physical count. */
@@ -4450,7 +4539,15 @@ export class VanSalesService {
        * balance still disagrees with the count, or while counted kilograms have no destination.
        * Both are settled through the official inventory engine in the second phase.
        */
-      const needsCountSettlement = !countVariance.isZero();
+      /**
+       * 🔒 مع عدد المركبة يُقاس الاحتياجُ بالفرق **الحقيقي للسيارة كلها** (`V ≠ B`) لا بفرق
+       * الأمر: فقد يكون نصيبُ الأمر مطابقاً لعهدته بينما رصيدُ السيارة الرسمي لا يطابق ما فيها
+       * فعلاً (عهدةٌ مفتوحة شطبتها تسويةٌ سابقة) — وتلك حالةٌ يلزمها مستند جردٍ أيضاً. وبلا عدد
+       * مركبة يبقى شرطُ اليوم حرفياً.
+       */
+      const needsCountSettlement = vehicleCountQty
+        ? !vehicleCountQty.minus(vanOfficialQty).isZero()
+        : !countVariance.isZero();
       const needsRemainingMove = actualRemainingQty.gt(0) && remainingAction === 'return_to_main';
       const requiresStockSettlement = needsCountSettlement || needsRemainingMove;
 
@@ -4772,6 +4869,8 @@ export class VanSalesService {
             returned_qty = ${returnedQty.toFixed(4)}::numeric,
             damaged_qty = ${damagedQty.toFixed(4)}::numeric,
             actual_remaining_qty = ${actualRemainingQty.toFixed(4)}::numeric,
+            vehicle_count_qty = ${vehicleCountQty ? vehicleCountQty.toFixed(4) : null}::numeric,
+            other_custody_qty = ${otherCustodyQty ? otherCustodyQty.toFixed(4) : null}::numeric,
             return_inventory_tx_id = COALESCE(${returnInventoryTxId}::uuid, return_inventory_tx_id),
             shortage_qty = ${shortageQty.toFixed(4)}::numeric,
             shortage_value = ${shortageValue.toFixed(4)}::numeric,
@@ -4942,6 +5041,8 @@ export class VanSalesService {
         vanWarehouseId,
         productionBatchNo: str(loadOrder.production_batch_no),
         countedRemaining: actualRemainingQty,
+        vehicleCountQty,
+        vanOfficialQty,
         expectedRemaining,
         countVariance,
         remainingAction,
@@ -5081,6 +5182,125 @@ export class VanSalesService {
     return { tracked: true, lotId: inVan?.lot_id ? str(inVan.lot_id) : null };
   }
 
+  /**
+   * 🚐 رصيد السيارة الرسمي للصنف — the same `stock_balances` row the stock screen reads and the
+   * same number `createAdjustment` compares the count against when it posts. Read **inside** the
+   * transaction so the share derived from a whole-vehicle count cannot drift from the balance it
+   * was derived from.
+   *
+   * غياب الصفّ ⇒ صفرٌ لا «مجهول»: عهدةٌ قائمة بلا رصيدٍ رسمي هي الإنذار نفسه الذي ترفعه لوحة
+   * القيادة (§7.2)، واعتبارُه مجهولاً يُخفي نقصاً بدل أن يقوله.
+   */
+  private async vanOfficialBalanceInTx(
+    tx: DrizzleTx,
+    tenantId: string,
+    input: { itemId: string | null; vanWarehouseId: string | null },
+  ): Promise<Decimal> {
+    if (!input.itemId || !input.vanWarehouseId) return new Decimal(0);
+    const balanceRow = first(
+      await tx.execute(sql`
+        SELECT COALESCE(quantity, 0)::text AS qty
+        FROM stock_balances
+        WHERE tenant_id = ${tenantId}::uuid
+          AND item_id = ${input.itemId}::uuid
+          AND warehouse_id = ${input.vanWarehouseId}::uuid
+        LIMIT 1
+      `),
+    );
+    return balanceRow ? dec(balanceRow.qty) : new Decimal(0);
+  }
+
+  /**
+   * 🚐 اشتقاق نصيب الأمر من **عدد المركبة كلها** — قرار المالك (2026-10-15) وتنفيذ §7.5 من
+   * `docs/BAKERY_APP_PHASE3_SLICE4_DESIGN.md`.
+   *
+   * السبب مقاسٌ لا مقدَّر: مستند الجرد الرسمي مطلق (`createAdjustment` يقارن العدد برصيد السيارة
+   * كله للصنف لحظة الترحيل)، والعددُ المُعلن كان نصيبَ هذا الأمر وحده — فإقفالُ أمرٍ واحد شطب
+   * عهدةَ الأوامر الأخرى الجالسة في السيارة نفسها (‏`VLO-0004` امتصّ 18.00 كجم هي عهدةُ
+   * `VLO-0001` المفتوحة). والمتطابقة التي صَحّت عند الإقفالين الممتصّين (‏28−10=18، 14−6=8):
+   *
+   *     عهدةُ الأوامر الأخرى O = max(0, رصيد السيارة B − متوقّعُ البقاء لهذا الأمر E)
+   *     نصيبُ هذا الأمر A     = max(0, عددُ المركبة V − O)
+   *
+   * ومنها: إذا B ≥ E فإنّ E − A = B − V، أي أنّ فرق اعتماد الأمر يساوي بالضبط فرقَ مستند الجرد
+   * (الذي يُرسل بـ`counted_qty = V`) ⇒ **الامتصاص صفر**: ما يُشطب من المخزون هو ما يُحاسب عليه
+   * صاحبه، لا حركةٌ إضافية لا يملكها أحد.
+   *
+   * وإذا V < O فالنقصُ الزائد يخصّ عهدةً أخرى ⇒ **يُرفض** الإقفال: لا يُحمَّل على هذا الأمر ولا
+   * يُشطب بصمت (لا إغلاق لعهدةٍ بفرق مخزون غير مُسوّى).
+   */
+  private async resolveVehicleCountInTx(
+    tx: DrizzleTx,
+    tenantId: string,
+    input: {
+      loadOrder: Record<string, unknown>;
+      vehicleCountQty: string;
+      expectedRemaining: Decimal;
+      /** أُعلن عددٌ لكلّ أمر مع عدد المركبة في الطلب نفسه — تعارضٌ يُرفض، لا يُرجَّح أحدهما. */
+      conflictingOrderCount?: boolean;
+    },
+  ): Promise<{
+    vehicleCount: Decimal;
+    otherCustody: Decimal;
+    orderCount: Decimal;
+    vanBalance: Decimal;
+  }> {
+    if (input.conflictingOrderCount) {
+      throw new DomainError(
+        'VAN_VEHICLE_COUNT_CONFLICTS_WITH_ORDER_COUNT',
+        'أُعلن عددُ المركبة كلها (vehicleCountQty) وعددٌ لهذا الأمر وحده (actualRemainingQty) في الطلب نفسه — أرسل أحدهما فقط: فمن عدد المركبة يشتقّ الخادم نصيبَ الأمر بعد طرح عهدة الغير، ولا يُجمعان',
+        422,
+        { field: 'vehicleCountQty' },
+      );
+    }
+    const declaredText = input.vehicleCountQty.trim();
+    /**
+     * ⚠️ لا `dec()` هنا: هي تبتلع النصّ غير الرقمي صفرًا، وصفرٌ في هذا الحقل يشطب رصيد السيارة
+     * كله بلا عدّ. فرقمٌ صريحٌ صحيحٌ أو رفضٌ صريح.
+     */
+    if (!/^\d{1,14}(\.\d{1,6})?$/.test(declaredText)) {
+      throw new DomainError(
+        'VAN_VEHICLE_COUNT_INVALID',
+        `عددُ المركبة كلها يجب أن يكون رقماً موجباً صريحاً — وصل «${declaredText || '(فارغ)'}». لا يُؤخذ نصٌّ غير رقمي صفراً فيُضبط رصيد السيارة على صفرٍ بلا عدّ`,
+        422,
+        { field: 'vehicleCountQty' },
+      );
+    }
+    const vehicleCount = new Decimal(declaredText);
+    const vanBalance = await this.vanOfficialBalanceInTx(tx, tenantId, {
+      itemId: input.loadOrder.item_id ? str(input.loadOrder.item_id) : null,
+      vanWarehouseId: input.loadOrder.van_warehouse_id ? str(input.loadOrder.van_warehouse_id) : null,
+    });
+    const otherCustody = Decimal.max(0, vanBalance.minus(input.expectedRemaining));
+    if (vehicleCount.lt(otherCustody)) {
+      throw new DomainError(
+        'VAN_VEHICLE_COUNT_BELOW_OTHER_CUSTODY',
+        `عددُ المركبة المُعلن (${vehicleCount.toFixed(
+          2,
+        )} كجم) أقلّ من عهدة أوامرَ أخرى في السيارة نفسها (${otherCustody.toFixed(
+          2,
+        )} كجم): رصيدُ السيارة الرسمي ${vanBalance.toFixed(
+          2,
+        )} كجم وعهدةُ هذا الأمر ${input.expectedRemaining.toFixed(
+          2,
+        )} كجم. فالنقصُ الزائد يخصّ عهدةً أخرى — لا يُحمَّل على هذا الأمر ولا يُشطب بصمت: صحّح العدد، أو أَقفِل أمرَ العهدة الأخرى أوّلاً، أو قرّر فرقها صراحةً فيها.`,
+        422,
+        {
+          field: 'vehicleCountQty',
+          otherCustodyQty: otherCustody.toFixed(4),
+          vanOfficialQty: vanBalance.toFixed(4),
+          expectedRemainingQty: input.expectedRemaining.toFixed(4),
+        },
+      );
+    }
+    return {
+      vehicleCount,
+      otherCustody,
+      orderCount: Decimal.max(0, vehicleCount.minus(otherCustody)),
+      vanBalance,
+    };
+  }
+
   private async runStockSettlement(
     tenantId: string,
     userId: string,
@@ -5094,6 +5314,13 @@ export class VanSalesService {
       vanWarehouseId: string | null;
       productionBatchNo: string;
       countedRemaining: Decimal;
+      /**
+       * 🚐 عددُ المركبة كلها إن أُعلن (`0129`) — وإلا `null` فيبقى السلوكُ حرفياً كما كان:
+       * المستند يُرسل بنصيب هذا الأمر وحده.
+       */
+      vehicleCountQty?: Decimal | null;
+      /** رصيد السيارة الرسمي للصنف كما قِيس لحظة الاعتماد — أصلُ اشتقاق نصيب الأمر. */
+      vanOfficialQty?: Decimal | null;
       expectedRemaining: Decimal;
       countVariance: Decimal;
       remainingAction: string | null;
@@ -5123,6 +5350,17 @@ export class VanSalesService {
         { field: 'vanWarehouseId' },
       );
     }
+
+    /**
+     * 🚐 ما يُرسل إلى مستند الجرد الرسمي: عددُ المركبة كلها إن أُعلن، وإلا نصيبُ هذا الأمر
+     * (سلوكُ اليوم حرفياً). والمستند مطلقٌ في الحالتين — والفرق أنّه بعدد المركبة يصير فرقُه
+     * مساوياً لفرق اعتماد الأمر، فلا يُشطب من المخزون ما لا يملكه هذا الأمر (§7.5).
+     */
+    const documentCountedQty = plan.vehicleCountQty ?? plan.countedRemaining;
+    /** موجب = عجزٌ في السيارة، سالب = فائض — الفرق الذي سيسجّله المستند. */
+    const documentVariance = plan.vehicleCountQty
+      ? (plan.vanOfficialQty ?? new Decimal(0)).minus(documentCountedQty)
+      : plan.countVariance;
 
     // 1) مستند الجرد الرسمي — created once, reused by every resume (never a second count).
     let adjustmentId = plan.stockAdjustmentId;
@@ -5174,15 +5412,23 @@ export class VanSalesService {
       const created = await this.inventory.createAdjustment(tenantId, {
         branchId: plan.branchId,
         warehouseId: plan.vanWarehouseId,
-        reason: `جرد إغلاق وردية المندوب (${plan.salesmanName}) ${plan.number} — المتوقع ${plan.expectedRemaining.toFixed(2)} مقابل الفعلي ${plan.countedRemaining.toFixed(2)} كجم`,
+        reason: plan.vehicleCountQty
+          ? `جرد إغلاق وردية المندوب (${plan.salesmanName}) ${plan.number} — عددُ المركبة كلها ${documentCountedQty.toFixed(
+              2,
+            )} كجم مقابل رصيد السيارة الرسمي ${(plan.vanOfficialQty ?? new Decimal(0)).toFixed(
+              2,
+            )}، ونصيبُ هذا الأمر ${plan.countedRemaining.toFixed(2)} من متوقّع ${plan.expectedRemaining.toFixed(
+              2,
+            )} كجم`
+          : `جرد إغلاق وردية المندوب (${plan.salesmanName}) ${plan.number} — المتوقع ${plan.expectedRemaining.toFixed(2)} مقابل الفعلي ${plan.countedRemaining.toFixed(2)} كجم`,
         lines: [
           {
             itemId: plan.itemId,
-            countedQty: plan.countedRemaining.toFixed(4),
+            countedQty: documentCountedQty.toFixed(4),
             lotId: countLot.lotId ?? undefined,
-            note: plan.countVariance.gt(0)
-              ? `عجز جرد ${plan.countVariance.toFixed(2)} كجم عن رصيد السيارة الرسمي`
-              : `فائض جرد ${plan.countVariance.abs().toFixed(2)} كجم عن رصيد السيارة الرسمي`,
+            note: documentVariance.gt(0)
+              ? `عجز جرد ${documentVariance.toFixed(2)} كجم عن رصيد السيارة الرسمي`
+              : `فائض جرد ${documentVariance.abs().toFixed(2)} كجم عن رصيد السيارة الرسمي`,
           },
         ],
       });
@@ -5313,16 +5559,24 @@ export class VanSalesService {
             stock_settlement_status = ${closed ? 'settled_officially' : 'pending_count_decision'},
             stock_settlement_note = ${
               closed
-                ? `سُوِّي رصيد السيارة رسمياً مع الجرد الفعلي (${plan.countedRemaining.toFixed(2)} كجم)${
+                ? `سُوِّي رصيد السيارة رسمياً مع ${
+                    plan.vehicleCountQty
+                      ? `عدد المركبة كلها (${documentCountedQty.toFixed(2)} كجم) — نصيبُ هذا الأمر منه ${plan.countedRemaining.toFixed(2)} كجم`
+                      : `الجرد الفعلي (${plan.countedRemaining.toFixed(2)} كجم)`
+                  }${
                     plan.needsCountSettlement
-                      ? ` بفارق ${plan.countVariance.toFixed(2)} كجم عبر مستند الجرد الرسمي`
+                      ? ` بفارق ${documentVariance.toFixed(2)} كجم عبر مستند الجرد الرسمي`
                       : ''
                   }${plan.needsRemainingMove ? '، وأُعيد المتبقي إلى المستودع الرئيسي' : ''}${
                     absorbedVariance.isZero()
                       ? ''
-                      : ` — ⚠️ امتصّ مستند الجرد حركةً إضافية بمقدار ${absorbedVariance
-                          .abs()
-                          .toFixed(2)} كجم لم تكن ضمن الاعتماد: راجع حركات السيارة في فترة التسوية`
+                      : absorbedVariance.lt(0)
+                        ? ` — ⚠️ امتصّ مستند الجرد حركةً إضافية بمقدار ${absorbedVariance
+                            .abs()
+                            .toFixed(2)} كجم لم تكن ضمن الاعتماد: راجع حركات السيارة في فترة التسوية`
+                        : ` — ⚠️ فرقُ مستند الجرد أقلّ بمقدار ${absorbedVariance
+                            .abs()
+                            .toFixed(2)} كجم من فرق اعتماد هذا الأمر: رصيدُ السيارة الرسمي كان لا يطابق ما فيها (عهدةٌ مفتوحة أو تسويةٌ سابقة) — راجع حركات السيارة في فترة التسوية`
                   }`
                 : `بانتظار تسوية المخزون: ${
                     plan.needsCountSettlement && !adjustmentPosted
@@ -5342,8 +5596,14 @@ export class VanSalesService {
           ) VALUES (
             ${newId()}::uuid, ${tenantId}::uuid, 'van_count_settlement', ${plan.productionBatchNo},
             ${loadOrderId}::uuid, ${plan.itemId}::uuid,
-            ${plan.countVariance.abs().toFixed(4)}::numeric, 0, 0,
-            ${`تسوية جرد إغلاق الوردية ${plan.number}: المتوقع ${plan.expectedRemaining.toFixed(2)} / الفعلي ${plan.countedRemaining.toFixed(2)} كجم — ${
+            ${documentVariance.abs().toFixed(4)}::numeric, 0, 0,
+            ${`تسوية جرد إغلاق الوردية ${plan.number}: ${
+              plan.vehicleCountQty
+                ? `عددُ المركبة ${documentCountedQty.toFixed(2)} / رصيدُها الرسمي ${(
+                    plan.vanOfficialQty ?? new Decimal(0)
+                  ).toFixed(2)} / نصيبُ الأمر ${plan.countedRemaining.toFixed(2)} من متوقّع ${plan.expectedRemaining.toFixed(2)}`
+                : `المتوقع ${plan.expectedRemaining.toFixed(2)} / الفعلي ${plan.countedRemaining.toFixed(2)}`
+            } كجم — ${
               adjustmentPosted ? 'مستند الجرد الرسمي مُرحَّل' : 'مستند الجرد الرسمي مسودة بانتظار التفويض'
             }`},
             ${`count-settlement:${loadOrderId}`},
@@ -5364,10 +5624,14 @@ export class VanSalesService {
           ? `✅ سُوِّيت وردية (${plan.salesmanName}) ${plan.number} مخزنياً وأُغلقت العهدة`
           : `⏳ وردية (${plan.salesmanName}) ${plan.number} بانتظار تسوية المخزون`,
         body: closed
-          ? `رصيد السيارة الرسمي صار مطابقاً للجرد الفعلي (${plan.countedRemaining.toFixed(2)} كجم)${
+          ? `رصيد السيارة الرسمي صار مطابقاً ل${
+              plan.vehicleCountQty
+                ? `عدد المركبة كلها (${documentCountedQty.toFixed(2)} كجم، نصيبُ هذا الأمر ${plan.countedRemaining.toFixed(2)})`
+                : `لجرد الفعلي (${plan.countedRemaining.toFixed(2)} كجم)`
+            }${
               plan.needsRemainingMove ? ' وأُعيد المتبقي إلى المستودع الرئيسي' : ''
             }. مسؤولية العجز المالية ما زالت معلّقة (حالة ${plan.countVariance.gt(0) ? 'بانتظار اعتماد السياسة' : 'لا عجز'}).`
-          : `فرق الجرد ${plan.countVariance.toFixed(2)} كجم — ${
+          : `فرق الجرد ${documentVariance.toFixed(2)} كجم — ${
               plan.needsCountSettlement && !adjustmentPosted
                 ? 'مستند الجرد الرسمي مسودة، ويلزم تفويض حامل صلاحية الاعتماد بترحيله'
                 : 'يلزم إرجاع المتبقي الفعلي إلى المستودع الرئيسي'
@@ -5417,6 +5681,21 @@ export class VanSalesService {
       const countedRemaining = Decimal.max(0, dec(loadOrder.actual_remaining_qty));
       const expectedRemaining = loaded.minus(accounted);
       const countVariance = expectedRemaining.minus(countedRemaining);
+      /**
+       * 🚐 دليلُ عدد المركبة المُخزَّن عند الإقفال — مسار الاستئناف **لا يشتقّ من جديد** ولا
+       * يقبل عدداً جديداً: الكميات اعتُمدت، وإعادة اشتقاقها هنا ستغيّر معتمَداً بعد اعتماده.
+       * ويُقرأ الرصيد الرسمي الحيّ وحده ليُقرَّر هل ما يزال مستند الجرد لازماً.
+       */
+      const vehicleCountQty =
+        loadOrder.vehicle_count_qty === null || loadOrder.vehicle_count_qty === undefined
+          ? null
+          : dec(loadOrder.vehicle_count_qty);
+      const vanOfficialQty = vehicleCountQty
+        ? await this.vanOfficialBalanceInTx(tx, tenantId, {
+            itemId: loadOrder.item_id ? str(loadOrder.item_id) : null,
+            vanWarehouseId: loadOrder.van_warehouse_id ? str(loadOrder.van_warehouse_id) : null,
+          })
+        : null;
       const remainingAction =
         body.remainingAction !== undefined && String(body.remainingAction).trim() !== ''
           ? String(body.remainingAction).trim()
@@ -5435,7 +5714,9 @@ export class VanSalesService {
           { field: 'remainingAction' },
         );
       }
-      const needsCountSettlement = !countVariance.isZero();
+      const needsCountSettlement = vehicleCountQty
+        ? !vehicleCountQty.minus(vanOfficialQty ?? new Decimal(0)).isZero()
+        : !countVariance.isZero();
       const needsRemainingMove = countedRemaining.gt(0) && remainingAction === 'return_to_main';
       await tx.execute(sql`
         UPDATE van_load_orders
@@ -5456,6 +5737,8 @@ export class VanSalesService {
         vanWarehouseId: loadOrder.van_warehouse_id ? str(loadOrder.van_warehouse_id) : null,
         productionBatchNo: str(loadOrder.production_batch_no),
         countedRemaining,
+        vehicleCountQty,
+        vanOfficialQty,
         expectedRemaining,
         countVariance,
         remainingAction,

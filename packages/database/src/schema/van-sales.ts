@@ -262,6 +262,19 @@ export const vanLoadOrders = pgTable(
     receivedBy: uuid('received_by').references(() => users.id, { onDelete: 'set null' }),
     actualRemainingQty: numeric('actual_remaining_qty', { precision: 18, scale: 4 }).notNull().default('0'),
     /**
+     * 🚐 عددُ المركبة كلها (`0129`) — decision of the product owner (2026-10-15): the physical
+     * count is the **whole vehicle**, and the server subtracts the custody of other open load
+     * orders sitting in the same van before computing this order's variance. `NULL` means the
+     * closing was declared per order (the previous behaviour, kept verbatim for history).
+     */
+    vehicleCountQty: numeric('vehicle_count_qty', { precision: 18, scale: 4 }),
+    /**
+     * 🚐 ما طرحه الخادم من عدد المركبة لأنه عهدةُ أوامرَ أخرى في السيارة نفسها —
+     * `max(0, رصيد السيارة الرسمي − متوقّع البقاء لهذا الأمر)`, stored as evidence at closing
+     * time so the displayed numbers never drift when balances move later.
+     */
+    otherCustodyQty: numeric('other_custody_qty', { precision: 18, scale: 4 }),
+    /**
      * 🧾 تسوية المخزون (`0124`) — the official stocktake document that reconciles the van
      * balance with the rep's physical count. Quantity settlement lives here; the financial
      * responsibility for a shortage stays pending (`shortagePolicyStatus`).
@@ -300,6 +313,16 @@ export const vanLoadOrders = pgTable(
     shortagePolicyStatus: text('shortage_policy_status')
       .notNull()
       .default('pending_policy_approval'),
+    /**
+     * 🧾 دليل تحميل العجز على المندوب (`0128`) — the posted entry, the basis it was valued at,
+     * and the amount as posted. `NULL` means nothing was charged: either the explicit
+     * `salaryDeductionApproved` flag was never given, or the approval predates the migration.
+     */
+    shortageJournalEntryId: uuid('shortage_journal_entry_id').references(() => journalEntries.id, {
+      onDelete: 'set null',
+    }),
+    shortageChargeBasis: text('shortage_charge_basis'),
+    shortageChargeAmount: numeric('shortage_charge_amount', { precision: 18, scale: 4 }),
     maxBonusQty: numeric('max_bonus_qty', { precision: 20, scale: 4 }).notNull().default('5'),
     maxBonusPct: numeric('max_bonus_pct', { precision: 5, scale: 2 }).notNull().default('5.00'),
     unitCost: numeric('unit_cost', { precision: 20, scale: 4 }).notNull().default('0'),

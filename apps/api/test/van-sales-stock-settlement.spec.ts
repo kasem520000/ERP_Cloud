@@ -99,7 +99,8 @@ describe('Van Sales — stock & custody settlement against the official ledger',
                stock_adjustment_id::text, shortage_qty::text, shortage_value::text,
                shortage_policy_status, actual_remaining_qty::text, received_qty::text,
                returned_qty::text, damaged_qty::text, damage_journal_entry_id::text,
-               remaining_inventory_tx_id::text, settled_at
+               remaining_inventory_tx_id::text, settled_at,
+               vehicle_count_qty::text, other_custody_qty::text
         FROM van_load_orders
         WHERE id = ${loadOrderId}::uuid AND tenant_id = ${owner.tenantId}::uuid
       `);
@@ -305,7 +306,7 @@ describe('Van Sales — stock & custody settlement against the official ledger',
 
     // Every case gets its own van warehouse, so "the official van balance equals the count"
     // can be asserted as an absolute number without another test's leftovers.
-    for (const key of ['s1','s2','s3','s4','s5','s6','s7','s8','s9','s10','cov']) {
+    for (const key of ['s1','s2','s3','s4','s5','s6','s7','s8','s9','s10','cov','veh','veh-r','veh-c']) {
       vanWarehouseIds[key] = newId();
     }
     await withTenantTx(ctx.handle.db, owner.tenantId, async (tx) => {
@@ -1251,5 +1252,160 @@ describe('Van Sales — stock & custody settlement against the official ledger',
     expect(closed.vanStockShortOfCustodyQty).toBeNull();
     // الامتصاص ليس صامتاً في الخادم (§6.5): يكتب تحذيراً في ملاحظة التسوية نفسها.
     expect(String(closed.stockSettlementNote ?? '')).toContain('⚠️');
+  });
+
+  // ── 🚐 عددُ المركبة كلها (§7.5 — تنفيذ قرار المالك رقم 9) ─────────────────────────────
+  it('a whole-vehicle count charges exactly its own loss and leaves the other custody intact', async () => {
+    // السيناريو نفسه حرفياً الذي شطب 14.50 كجم في الحالة السابقة — والفرق أنّ العدد المُعلن
+    // هنا هو **عدد السيارة كلها** (‏25.50) لا نصيب الأمر (‏5.50). فيطرح الخادم عهدة الأمر
+    // الآخر (‏20.00) ويشتقّ نصيب هذا الأمر، ويُرسل مستند الجرد بعدد السيارة.
+    vanWarehouseIds['veh-2'] = vanFor('veh');
+    const first = await newCustody('veh', '50', '20', '20');
+    const second = await newCustody('veh-2', '50', '10', '10');
+    const van = vanFor('veh');
+    await sell(second.loadOrderId, 'veh-sale', '4', '0');
+    expect(await officialQty(van)).toBe(26); // ‏20 + 10 − 4
+
+    const submit = await api(
+      ctx.server,
+      'post',
+      `/api/v1/van-sales/load-orders/${second.loadOrderId}/submit-closing`,
+      {
+        token: rep.token,
+        body: {
+          returnedQty: '0',
+          damagedQty: '0',
+          collectedCash: '0',
+          vehicleCountQty: '25.5', // عددُ السيارة كلها — نصيبُ الأمر يُشتقّ منه
+        },
+      },
+    );
+    expect(submit.status, JSON.stringify(submit.body)).toBe(201);
+
+    // الاشتقاق: O = max(0, 26 − 6) = 20 ⇒ A = 25.5 − 20 = 5.5 ⇒ عجزُ هذا الأمر 0.5 وحده.
+    const submitted = await loadOrderRow(second.loadOrderId);
+    expect(submitted.vehicle_count_qty).toBe('25.5000');
+    expect(submitted.other_custody_qty).toBe('20.0000');
+    expect(submitted.actual_remaining_qty).toBe('5.5000');
+    expect(submitted.shortage_qty).toBe('0.5000');
+
+    // الاعتماد بلا عددٍ جديد: الدليل المُخزَّن يُحترم، ويُعاد اشتقاقه من الرصيد الحيّ.
+    const approve = await api(
+      ctx.server,
+      'post',
+      `/api/v1/van-sales/load-orders/${second.loadOrderId}/approve-closing`,
+      {
+        token: accountant.token,
+        body: {
+          returnedQty: '0',
+          damagedQty: '0',
+          remainingAction: 'carry_over',
+          settleStockAdjustment: true,
+        },
+      },
+    );
+    expect(approve.status, JSON.stringify(approve.body)).toBe(201);
+
+    const settledRow = await loadOrderRow(second.loadOrderId);
+    expect(settledRow.stock_settlement_status).toBe('settled_officially');
+    expect(settledRow.vehicle_count_qty).toBe('25.5000');
+    expect(settledRow.other_custody_qty).toBe('20.0000');
+
+    // الرصيد الرسمي صار **عدد السيارة** لا نصيب الأمر ⇒ عهدةُ الأمر المفتوح سالمة.
+    expect(await officialQty(van)).toBe(25.5);
+    const document = await adjustmentRow(settledRow.stock_adjustment_id!);
+    expect(document.status).toBe('posted');
+    expect(Number(document.counted_qty)).toBeCloseTo(25.5, 4); // ‏عدد المركبة هو المُرسَل
+    expect(Number(document.expected_qty)).toBeCloseTo(26, 4); // ‏رصيد السيارة لحظة الترحيل
+    expect(Number(document.variance_qty)).toBeCloseTo(-0.5, 4); // = عجزُ هذا الأمر بالضبط
+    expect(String(settledRow.stock_settlement_note ?? '')).toContain('عدد المركبة كلها');
+    // الامتصاص صفر ⇒ لا تحذير: ما شُطب من المخزون هو ما وقع في عهدة هذا الأمر.
+    expect(String(settledRow.stock_settlement_note ?? '')).not.toContain('⚠️');
+
+    // والأمر المفتوح يرى في اللوحة عهدةَ غيره سالمةً ولا نقصَ في رصيده.
+    const dashboard = await api(ctx.server, 'get', '/api/v1/van-sales/dashboard', {
+      token: accountant.token,
+    });
+    expect(dashboard.status).toBe(200);
+    const shown = (dashboard.body.data as { loadOrders: Array<Record<string, unknown>> }).loadOrders;
+    const openOrder = shown.find((order) => order.id === first.loadOrderId)!;
+    expect(openOrder.vanOfficialQty).toBe('25.50');
+    expect(openOrder.otherCustodyInVanQty).toBe('5.50'); // ‏ما بقي للوردية التالية
+    expect(openOrder.vanStockShortOfCustodyQty).toBe('0.00');
+    expect(openOrder.vehicleCountQty).toBeNull(); // ‏لم يُقفل بعد فلا دليل له
+    const closedOrder = shown.find((order) => order.id === second.loadOrderId)!;
+    expect(closedOrder.vehicleCountQty).toBe('25.50');
+    expect(closedOrder.otherCustodyQty).toBe('20.00');
+  });
+
+  it('refuses a vehicle count below the custody of other orders in the same van', async () => {
+    vanWarehouseIds['veh-r2'] = vanFor('veh-r'); // ‏سيارةٌ واحدة وأمران
+    const first = await newCustody('veh-r', '50', '20', '20');
+    const second = await newCustody('veh-r2', '50', '10', '10');
+    const van = vanFor('veh-r');
+    await sell(second.loadOrderId, 'veh-r-sale', '4', '0');
+    // رصيد السيارة 26 = 20 + 10 − 4، وعهدةُ هذا الأمر 6 ⇒ عهدةُ الغير 20. والعدد المُعلن (‏1)
+    // أقلّ منها ⇒ يُرفض بدل أن يُشطب ما لا يملكه هذا الأمر.
+    const balanceBefore = await officialQty(van);
+    expect(balanceBefore).toBe(26);
+    const refused = await api(
+      ctx.server,
+      'post',
+      `/api/v1/van-sales/load-orders/${second.loadOrderId}/submit-closing`,
+      {
+        token: rep.token,
+        body: { returnedQty: '0', damagedQty: '0', collectedCash: '0', vehicleCountQty: '1' },
+      },
+    );
+    expect(refused.status, JSON.stringify(refused.body)).toBe(422);
+    expect(refused.body.code).toBe('VAN_VEHICLE_COUNT_BELOW_OTHER_CUSTODY');
+    expect(String(refused.body.detail)).toContain('عهدة أوامرَ أخرى');
+    // لم يُكتب شيء: لا عددُ مركبة، ولا نصيبُ أمر، والرصيد كما كان.
+    const row = await loadOrderRow(second.loadOrderId);
+    expect(row.vehicle_count_qty).toBeNull();
+    expect(row.status).not.toBe('pending_closing');
+    expect(await officialQty(van)).toBe(balanceBefore);
+    expect(first.loadOrderId).toBeTruthy();
+  });
+
+  it('refuses to declare a vehicle count and a per-order count together, and refuses a non-numeric count', async () => {
+    vanWarehouseIds['veh-c2'] = vanFor('veh-c'); // ‏سيارةٌ واحدة وأمران
+    await newCustody('veh-c', '50', '10', '10');
+    const second = await newCustody('veh-c2', '50', '10', '10');
+
+    const conflict = await api(
+      ctx.server,
+      'post',
+      `/api/v1/van-sales/load-orders/${second.loadOrderId}/submit-closing`,
+      {
+        token: rep.token,
+        body: {
+          returnedQty: '0',
+          damagedQty: '0',
+          collectedCash: '0',
+          vehicleCountQty: '15',
+          actualRemainingQty: '5',
+        },
+      },
+    );
+    expect(conflict.status, JSON.stringify(conflict.body)).toBe(422);
+    expect(conflict.body.code).toBe('VAN_VEHICLE_COUNT_CONFLICTS_WITH_ORDER_COUNT');
+
+    // ‏`dec()` تبتلع النصّ غير الرقمي صفرًا — وصفرٌ هنا يشطب رصيد السيارة كله، فيُرفض صراحةً.
+    const garbage = await api(
+      ctx.server,
+      'post',
+      `/api/v1/van-sales/load-orders/${second.loadOrderId}/submit-closing`,
+      {
+        token: rep.token,
+        body: { returnedQty: '0', damagedQty: '0', collectedCash: '0', vehicleCountQty: 'عشرة' },
+      },
+    );
+    expect(garbage.status, JSON.stringify(garbage.body)).toBe(422);
+    expect(garbage.body.code).toBe('VAN_VEHICLE_COUNT_INVALID');
+
+    const row = await loadOrderRow(second.loadOrderId);
+    expect(row.vehicle_count_qty).toBeNull();
+    expect(row.actual_remaining_qty).toBe('0.0000');
   });
 });

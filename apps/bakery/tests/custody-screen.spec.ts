@@ -13,6 +13,7 @@ import {
   policySummary,
   uncoveredCustodySummary,
   vanCustodyCoverage,
+  vehicleCountPreview,
   type CustodyRow,
   type ShortagePolicyRow,
 } from '../lib/custody-screen';
@@ -92,6 +93,9 @@ describe('مسودتا الإقفال — لا رقمَ ولا قراراً مُ
       damageReason: '',
       collectedCash: '',
       actualRemainingQty: '',
+      // 🚐 حقلا عدد المركبة فارغان: لا يُفتراض عددٌ ولا عهدةُ غير (والعهدة تُملأ من الصفّ).
+      vehicleCountQty: '',
+      otherCustodyInVanQty: '',
       closingNotes: '',
     });
   });
@@ -120,10 +124,29 @@ describe('مسودتا الإقفال — لا رقمَ ولا قراراً مُ
     expect(draft.notes).toBe('');
   });
 
+  it('مسودة الاعتماد تحمل دليل عدد المركبة وعهدةَ الغير من الصفّ', () => {
+    const draft = approvalDraftFromRow(
+      row({ vehicleCountQty: '25.50', otherCustodyQty: '20.00', otherCustodyInVanQty: '20.00' }),
+    );
+    // يُعاد إرسالُ عدد المركبة فيُعيد الخادم اشتقاق النصيب من الرصيد الحيّ لحظة الاعتماد.
+    expect(draft.vehicleCountQty).toBe('25.50');
+    expect(draft.otherCustodyInVanQty).toBe('20.00');
+  });
+
   it('غائبُ الصفّ خانةٌ فارغة لا صفرٌ مكتوب', () => {
     const draft = approvalDraftFromRow(
-      row({ returnedQty: null, damagedQty: null, actualRemainingQty: null, collectedCash: null, remainingAction: null }),
+      row({
+        returnedQty: null,
+        damagedQty: null,
+        actualRemainingQty: null,
+        collectedCash: null,
+        remainingAction: null,
+        vehicleCountQty: null,
+        otherCustodyInVanQty: null,
+      }),
     );
+    expect(draft.vehicleCountQty).toBe('');
+    expect(draft.otherCustodyInVanQty).toBe('');
     expect(draft.returnedQty).toBe('');
     expect(draft.damagedQty).toBe('');
     expect(draft.actualRemainingQty).toBe('');
@@ -426,5 +449,64 @@ describe('uncoveredCustodySummary — العهدة المفتوحة بلا غط�
   it('لا صفوف ⇒ صفرٌ لا تحذير', () => {
     expect(uncoveredCustodySummary([]).count).toBe(0);
     expect(uncoveredCustodySummary([]).shortfallText).toBe('0.00');
+  });
+});
+
+describe('vehicleCountPreview — معاينةُ اشتقاق نصيب العهدة قبل الإرسال', () => {
+  const draft = {
+    returnedQty: '0',
+    damagedQty: '0',
+    damageReason: '',
+    collectedCash: '0',
+    actualRemainingQty: '',
+    closingNotes: '',
+  };
+
+  it('أرقام حالة `veh` المقاسة: 25.5 − 20 = 5.5 مقابل متوقّع 6 ⇒ عجز 0.5', () => {
+    const preview = vehicleCountPreview(
+      row({ expectedRemainingQty: '6.00', otherCustodyInVanQty: '20.00', vanOfficialQty: '26.00' }),
+      { ...draft, vehicleCountQty: '25.5', otherCustodyInVanQty: '20.00' },
+    );
+    expect(preview.declared).toBe(true);
+    expect(preview.belowOtherCustody).toBe(false);
+    expect(preview.vehicleCountText).toBe('25.50');
+    expect(preview.otherCustodyText).toBe('20.00');
+    expect(preview.shareText).toBe('5.50');
+    expect(preview.expectedText).toBe('6.00');
+    expect(preview.varianceText).toBe('0.50');
+    expect(preview.varianceKind).toBe('shortage');
+    expect(preview.note).toContain('5.50');
+    expect(preview.note).toContain('20.00');
+  });
+
+  it('فائضٌ مشتقّ يُسمّى فائضاً لا عجزاً', () => {
+    const preview = vehicleCountPreview(
+      row({ expectedRemainingQty: '6.00' }),
+      { ...draft, vehicleCountQty: '27', otherCustodyInVanQty: '20' },
+    );
+    expect(preview.shareText).toBe('7.00');
+    expect(preview.varianceText).toBe('-1.00');
+    expect(preview.varianceKind).toBe('surplus');
+  });
+
+  it('عددٌ دون عهدة الغير ⇒ يُقال الرفض قبل الإرسال', () => {
+    const preview = vehicleCountPreview(
+      row({ expectedRemainingQty: '6.00' }),
+      { ...draft, vehicleCountQty: '5', otherCustodyInVanQty: '20' },
+    );
+    expect(preview.belowOtherCustody).toBe(true);
+    expect(preview.shareText).toBe('0.00');
+    expect(preview.note).toContain('أقلّ من عهدة أوامرَ أخرى');
+  });
+
+  it('بلا عدد مركبة ⇒ لا معاينة ولا ادّعاء (سلوكُ اليوم)', () => {
+    const preview = vehicleCountPreview(row({ expectedRemainingQty: '6.00' }), {
+      ...draft,
+      actualRemainingQty: '5.5',
+    });
+    expect(preview.declared).toBe(false);
+    expect(preview.note).toBeNull();
+    expect(preview.shareText).toBe('—');
+    expect(preview.varianceText).toBe('—');
   });
 });

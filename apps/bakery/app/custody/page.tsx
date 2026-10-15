@@ -40,8 +40,12 @@ import {
   type CustodyRow,
   type ShortagePolicyRow,
   vanCustodyCoverage,
+  vehicleCountPreview,
 } from '../../lib/custody-screen';
 import { numberText } from '../../lib/lookups';
+
+/** أسماء اتجاهات فرق الجرد — كلمةٌ لا رقمٌ يُخمَّن معناه. */
+const VARIANCE_KIND_LABELS = { shortage: 'عجز', surplus: 'فائض', exact: 'مطابق' } as const;
 
 /** الصلاحيات كما يفرضها الخادم على كلّ مسارٍ تستعمله هذه الشاشة (`@RequiresPermission`). */
 const VIEW_PERMISSION = 'van_sales.view';
@@ -194,7 +198,15 @@ export default function CustodyPage() {
       selfApprovalOverride: false,
     });
     if (kind === 'submit') {
-      setClosing(emptyClosingDraft());
+      setClosing({
+        ...emptyClosingDraft(),
+        // 🚐 عهدةُ الأوامر الأخرى من اللوحة — بها يشتقّ المتصفّح نصيبَ هذه العهدة ويعاينه،
+        // وبها يرفض عدداً دونها قبل الإرسال (والخادم يعيد الاشتقاق من الرصيد الحيّ).
+        otherCustodyInVanQty:
+          row.otherCustodyInVanQty === null || row.otherCustodyInVanQty === undefined
+            ? ''
+            : String(row.otherCustodyInVanQty),
+      });
       setRemainingAction('');
     } else {
       const draft = approvalDraftFromRow(row);
@@ -204,6 +216,8 @@ export default function CustodyPage() {
         damageReason: draft.damageReason,
         collectedCash: draft.collectedCash,
         actualRemainingQty: draft.actualRemainingQty,
+        vehicleCountQty: draft.vehicleCountQty,
+        otherCustodyInVanQty: draft.otherCustodyInVanQty,
         closingNotes: '',
       });
       setRemainingAction(draft.remainingAction);
@@ -324,6 +338,8 @@ export default function CustodyPage() {
    * رصيد السيارة كله: إن كانت فيها عهدةٌ لأمرٍ آخر فالعدد المُعلن هنا يجب ألّا يشملها.
    */
   const coverage = selected ? vanCustodyCoverage(selected) : null;
+  /** 🚐 معاينةُ اشتقاق نصيب هذه العهدة من عدد السيارة كلها — قبل الإرسال لا بعده. */
+  const countPreview = selected ? vehicleCountPreview(selected, closing) : null;
   /** عهدةٌ مفتوحة لا يغطّيها رصيد السيارة الرسمي — أثرُ مستندات جردٍ صدرت لأوامرَ أخرى. */
   const uncovered = useMemo(() => uncoveredCustodySummary(rows), [rows]);
 
@@ -755,6 +771,14 @@ export default function CustodyPage() {
                       <span dir="ltr">{selectedAudit.approvedVarianceText}</span>
                     </span>
                   ) : null}
+                  {selected.vehicleCountQty === null || selected.vehicleCountQty === undefined ? null : (
+                    <span className="text-muted">
+                      🚐 عُدّت السيارة كلها: <span dir="ltr">{numberText(selected.vehicleCountQty)}</span>{' '}
+                      كجم، منها <span dir="ltr">{numberText(selected.otherCustodyQty)}</span> كجم
+                      عهدةُ أوامرَ أخرى ⇒ نصيبُ هذه العهدة{' '}
+                      <span dir="ltr">{numberText(selected.actualRemainingQty)}</span> كجم.
+                    </span>
+                  )}
                   {coverage?.warning ? (
                     <span
                       className={
@@ -832,13 +856,39 @@ export default function CustodyPage() {
                   />
                   <Input
                     dir="ltr"
-                    hint="الرقم الذي يُقاس به العجز/الفائض. فارغ ⇒ لا جردَ مكتوباً (ولا يُفترض صفر)."
+                    hint="قرار المالك: العددُ للسيارة كلها. يطرح الخادم عهدةَ الأوامر الأخرى ويشتقّ نصيبَ هذه العهدة، ويُرسل مستند الجرد بالعدد كله — فلا يُشطب ما لا تملكه هذه العهدة. فارغ ⇒ عددٌ لهذا الأمر وحده (السلوك السابق)."
+                    label="عددُ الصنف في السيارة كلها (كجم)"
+                    onChange={(event) =>
+                      setClosing({ ...closing, vehicleCountQty: event.target.value })
+                    }
+                    value={closing.vehicleCountQty ?? ''}
+                  />
+                  <Input
+                    dir="ltr"
+                    hint={
+                      countPreview?.declared
+                        ? 'يُشتقّ منه نصيبُ هذه العهدة — لا يُرسل للخادم مع عدد السيارة (جمعهما يُرفض 422).'
+                        : 'الرقم الذي يُقاس به العجز/الفائض. فارغ ⇒ لا جردَ مكتوباً (ولا يُفترض صفر).'
+                    }
                     label="المتبقي الفعلي بالجرد (كجم)"
                     onChange={(event) =>
                       setClosing({ ...closing, actualRemainingQty: event.target.value })
                     }
                     value={closing.actualRemainingQty}
                   />
+                  {countPreview?.declared ? (
+                    <p
+                      className={
+                        countPreview.belowOtherCustody
+                          ? 'm-0 rounded-[8px] border border-danger-line bg-danger-soft px-2 py-1 text-[12.5px] font-semibold leading-relaxed text-danger-ink md:col-span-2'
+                          : 'm-0 rounded-[8px] border border-line bg-surface px-2 py-1 text-[12.5px] leading-relaxed text-muted md:col-span-2'
+                      }
+                    >
+                      🚐 {countPreview.note} وفرقُها{' '}
+                      <span dir="ltr">{countPreview.varianceText}</span> كجم (
+                      {VARIANCE_KIND_LABELS[countPreview.varianceKind]}).
+                    </p>
+                  ) : null}
                   {actionKind === 'submit' ? (
                     <Input
                       label="ملاحظات الإقفال"

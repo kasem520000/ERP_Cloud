@@ -1,4 +1,5 @@
 import {
+  CLOSING_MESSAGES,
   canApproveClosing,
   canCloseTransitDifference,
   canSettleStock,
@@ -7,6 +8,7 @@ import {
   chargePreview,
   unsettledStockReason,
   valuationBasisLabel,
+  vehicleCountShare,
   valuationSourceLabel,
   type ApprovalDraft,
   type ChargeReadiness,
@@ -74,6 +76,13 @@ export type CustodyRow = ChargeRow &
     vanOfficialQty?: string | number | null;
     otherCustodyInVanQty?: string | number | null;
     vanStockShortOfCustodyQty?: string | number | null;
+    /**
+     * 🚐 دليلُ عدد المركبة (`0129`) — ما أُعلن للعدّ (عددُ الصنف في السيارة كلها) وما طرحه
+     * الخادم منه لأنه عهدةُ أوامرَ أخرى، كما قِيلا لحظة الإقفال. و`null` = إقفالٌ بعددٍ لكلّ
+     * أمر (السلوك السابق حرفياً).
+     */
+    vehicleCountQty?: string | number | null;
+    otherCustodyQty?: string | number | null;
     remainingAction?: string | null;
     stockSettlementStatus?: string | null;
     stockSettlementNote?: string | null;
@@ -159,6 +168,8 @@ export function emptyClosingDraft(): ClosingDraft {
     damageReason: '',
     collectedCash: '',
     actualRemainingQty: '',
+    vehicleCountQty: '',
+    otherCustodyInVanQty: '',
     closingNotes: '',
   };
 }
@@ -180,6 +191,14 @@ export function approvalDraftFromRow(row: CustodyRow): ApprovalDraft {
       row.actualRemainingQty === null || row.actualRemainingQty === undefined
         ? ''
         : String(row.actualRemainingQty),
+    vehicleCountQty:
+      row.vehicleCountQty === null || row.vehicleCountQty === undefined
+        ? ''
+        : String(row.vehicleCountQty),
+    otherCustodyInVanQty:
+      row.otherCustodyInVanQty === null || row.otherCustodyInVanQty === undefined
+        ? ''
+        : String(row.otherCustodyInVanQty),
     closingNotes: '',
     damageInspected: false,
     salaryDeductionApproved: false,
@@ -392,4 +411,64 @@ export function uncoveredCustodySummary(rows: readonly CustodyRow[]): {
     shortfall = shortfall.add(missing);
   }
   return { count, shortfallText: numberText(shortfall.toFixed(2)) };
+}
+
+/**
+ * 🚐 معاينةُ عدد المركبة — ما سيشتقّه الخادم، معروضاً **قبل** الإرسال.
+ *
+ * القاعدة واحدة في الطرفين (`vehicleCountShare` هنا و`resolveVehicleCountInTx` في الخادم):
+ * `A = max(0, V − O)` حيث `O` عهدةُ الأوامر الأخرى من اللوحة. والخادم يبقى المرجع: يعيد
+ * الاشتقاق من الرصيد الرسمي الحيّ لحظة الإقفال، ويرفض `V < O` صراحةً.
+ *
+ * والفائدة عملية لا شكلية: بلا هذه المعاينة يكتب المشرف عدداً للسيارة كلها فيُفاجأ بأنّ العجز
+ * المحسوب على المندوب أقلّ ممّا ظنّ — أو بأنّ العدد رفضه الخادم لأنه دون عهدة غيره.
+ */
+export function vehicleCountPreview(
+  row: CustodyRow,
+  draft: ClosingDraft,
+): {
+  declared: boolean;
+  vehicleCountText: string;
+  otherCustodyText: string;
+  shareText: string;
+  expectedText: string;
+  varianceText: string;
+  varianceKind: 'shortage' | 'surplus' | 'exact';
+  belowOtherCustody: boolean;
+  note: string | null;
+} {
+  const share = vehicleCountShare(draft);
+  const expected = num(row.expectedRemainingQty ?? null);
+  const variance = expected.minus(share.share);
+  const varianceKind: 'shortage' | 'surplus' | 'exact' = variance.gt(0)
+    ? 'shortage'
+    : variance.lt(0)
+      ? 'surplus'
+      : 'exact';
+  let note: string | null = null;
+  if (share.belowOtherCustody) {
+    note = CLOSING_MESSAGES.vehicleCountBelowOtherCustody({
+      count: share.vehicleCount.toFixed(2),
+      other: share.otherCustody.toFixed(2),
+    });
+  } else if (share.declared) {
+    note = `من عدد السيارة ${share.vehicleCount.toFixed(
+      2,
+    )} كجم تُطرح عهدةُ الأوامر الأخرى ${share.otherCustody.toFixed(
+      2,
+    )} كجم فيبقى لهذه العهدة ${share.share.toFixed(2)} كجم — ومتوقّعُها حسب المستندات ${expected.toFixed(
+      2,
+    )} كجم. ومستند الجرد الرسمي يُرسل بعدد السيارة كله، فيصير فرقُه هو فرقَ هذه العهدة ولا يُشطب ما لا تملكه.`;
+  }
+  return {
+    declared: share.declared,
+    vehicleCountText: share.declared ? share.vehicleCount.toFixed(2) : '—',
+    otherCustodyText: share.otherCustody.toFixed(2),
+    shareText: share.declared ? share.share.toFixed(2) : '—',
+    expectedText: expected.toFixed(2),
+    varianceText: share.declared ? variance.toFixed(2) : '—',
+    varianceKind,
+    belowOtherCustody: share.belowOtherCustody,
+    note,
+  };
 }

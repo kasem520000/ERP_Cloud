@@ -1,3 +1,5 @@
+import { Decimal } from 'decimal.js';
+
 import { num } from './production';
 
 /**
@@ -62,6 +64,18 @@ export type ClosingDraft = {
   collectedCash: string;
   /** 🧮 الجرد الفعلي في السيارة — الرقم الذي يُقاس به العجز/الفائض. */
   actualRemainingQty: string;
+  /**
+   * 🚐 عددُ الصنف في السيارة **كلها** كما يُعدّ فعلاً (قرار المالك 2026-10-15). بديلٌ عن
+   * `actualRemainingQty` لا رفيقٌ له: الخادم يطرح منه عهدةَ الأوامر الأخرى الجالسة في السيارة
+   * نفسها ويشتقّ نصيبَ هذه العهدة، ويُرسل مستند الجرد بالعدد كله. والفراغ ⇒ سلوك «عددٍ لكلّ
+   * أمر» حرفياً (فلا يتغيّر شيءٌ على `apps/staff`).
+   */
+  vehicleCountQty?: string;
+  /**
+   * ما في السيارة عهدةً لأوامر أخرى — من اللوحة (`otherCustodyInVanQty`)، لأجل المعاينة والرفض
+   * قبل الإرسال. والخادم يبقى المرجع: يعيد الاشتقاق من الرصيد الرسمي الحيّ لحظة الإقفال.
+   */
+  otherCustodyInVanQty?: string;
   closingNotes: string;
 };
 
@@ -71,6 +85,8 @@ export type ClosingPayload = {
   damageReason?: string;
   collectedCash?: string;
   actualRemainingQty?: string;
+  /** 🚐 يُرسل وحده بلا `actualRemainingQty` — جمعهما في طلبٍ واحد يرفضه الخادم 422. */
+  vehicleCountQty?: string;
   closingNotes?: string;
 };
 
@@ -98,6 +114,12 @@ export const CLOSING_MESSAGES = {
     loaded: string;
   }): string =>
     `مجموع الكميات (المباع ${p.sold} + البونص ${p.bonus} + المرتجع السليم ${p.returned} + التالف ${p.damaged} + المتبقي الفعلي ${p.actual} = ${p.total} كجم) يتجاوز العهدة المستلمة أصلاً (${p.loaded} كجم). إن كانت الكمية الزائدة موجودة فعلاً في السيارة فأبلغ المحاسب: تسجيل الفائض يتم عند الاعتماد بإقرار صريح، لا من حساب المندوب.`,
+  /**
+   * 🚐 نصّ رفض الخادم `VAN_VEHICLE_COUNT_BELOW_OTHER_CUSTODY` بمعناه: النقصُ الزائد يخصّ
+   * عهدةً أخرى، فلا يُحمَّل على هذا الأمر ولا يُشطب بصمت.
+   */
+  vehicleCountBelowOtherCustody: (p: { count: string; other: string }): string =>
+    `عددُ السيارة المُعلن (${p.count} كجم) أقلّ من عهدة أوامرَ أخرى فيها (${p.other} كجم) — فالنقصُ الزائد يخصّ عهدةً أخرى: صحّح العدد، أو أَقفِل أمرَ العهدة الأخرى أوّلاً، أو قرّر فرقها صراحةً فيها. لا يُحمَّل على هذا الأمر ولا يُشطب بصمت.`,
   /** ‏أشدّ من الخادم عمداً: هو يقرأ النصّ التالف صفراً بصمت، والشاشة ترفضه. */
   qtyNotNumeric: (field: string): string =>
     `${field} يجب أن تكون رقمًا موجبًا أو صفرًا — الخادم يقرأ غير الرقمي صفرًا، فتُغلق العهدة على رقمٍ لم تكتبه.`,
@@ -108,7 +130,39 @@ const FIELD_LABELS: Record<string, string> = {
   damagedQty: 'الكمية التالفة',
   collectedCash: 'النقد المحصَّل',
   actualRemainingQty: 'المتبقي الفعلي بالجرد',
+  vehicleCountQty: 'عددُ الصنف في السيارة كلها',
 };
+
+/**
+ * 🚐 نصيبُ هذه العهدة من عدد المركبة كلها — معاينةٌ في المتصفح لقاعدة الخادم نفسها
+ * (`resolveVehicleCountInTx` في `van-sales.service.ts`):
+ *
+ *     O = otherCustodyInVanQty (من اللوحة، وهي max(0, رصيد السيارة − متوقّع البقاء لهذا الأمر))
+ *     A = max(0, V − O)
+ *
+ * والخادم يبقى المرجع الوحيد: يعيد الاشتقاق من الرصيد الرسمي الحيّ لحظة الإقفال، ويرفض 422 إن
+ * كان V < O أو إن جُمع عددُ المركبة مع عددٍ لكلّ أمر في طلبٍ واحد.
+ */
+export function vehicleCountShare(draft: ClosingDraft): {
+  declared: boolean;
+  vehicleCount: Decimal;
+  otherCustody: Decimal;
+  /** نصيبُ هذه العهدة = ما يُقاس به العجز/الفائض وسقفُ العهدة ومصيرُ المتبقي. */
+  share: Decimal;
+  belowOtherCustody: boolean;
+} {
+  const text = (draft.vehicleCountQty ?? '').trim();
+  const declared = text !== '';
+  const vehicleCount = num(text);
+  const otherCustody = Decimal.max(0, num(draft.otherCustodyInVanQty ?? '0'));
+  return {
+    declared,
+    vehicleCount,
+    otherCustody,
+    share: Decimal.max(0, vehicleCount.minus(otherCustody)),
+    belowOtherCustody: declared && vehicleCount.lt(otherCustody),
+  };
+}
 
 /**
  * بناء حمولة تقديم الإقفال وحكمها — بترتيب الخادم: الأرقام، ثمّ سبب التلف، ثمّ سقف العهدة.
@@ -131,9 +185,12 @@ function numericTextFailure(
     'damagedQty',
     'collectedCash',
     'actualRemainingQty',
+    'vehicleCountQty',
+    'otherCustodyInVanQty',
   ];
   for (const field of numericFields) {
-    const text = draft[field].trim();
+    const raw = draft[field];
+    const text = (typeof raw === 'string' ? raw : '').trim();
     if (!text) continue;
     if (!NUMERIC_TEXT.test(text) || num(text).lt(0)) {
       return {
@@ -155,7 +212,21 @@ export function buildClosingPayload(
 
   const returnedQty = num(draft.returnedQty);
   const damagedQty = num(draft.damagedQty);
-  const actualRemainingQty = num(draft.actualRemainingQty);
+  const vehicleShare = vehicleCountShare(draft);
+  if (vehicleShare.belowOtherCustody) {
+    return {
+      ok: false,
+      message: CLOSING_MESSAGES.vehicleCountBelowOtherCustody({
+        count: vehicleShare.vehicleCount.toFixed(2),
+        other: vehicleShare.otherCustody.toFixed(2),
+      }),
+      field: 'vehicleCountQty',
+    };
+  }
+  // مع عدد المركبة: نصيبُ هذه العهدة مشتقٌّ منه، وهو ما يُقاس به سقفُ العهدة.
+  const actualRemainingQty = vehicleShare.declared
+    ? vehicleShare.share
+    : num(draft.actualRemainingQty);
 
   if (damagedQty.gt(0) && !draft.damageReason.trim()) {
     return { ok: false, message: CLOSING_MESSAGES.damageReasonRequired, field: 'damageReason' };
@@ -188,8 +259,14 @@ export function buildClosingPayload(
       damagedQty: damagedQty.toFixed(4),
       damageReason: orUndefined(draft.damageReason),
       collectedCash: draft.collectedCash.trim() ? num(draft.collectedCash).toFixed(4) : undefined,
-      actualRemainingQty: draft.actualRemainingQty.trim()
-        ? actualRemainingQty.toFixed(4)
+      // ‏لا يُجمعان: عددُ المركبة وحده (والخادم يشتقّ النصيب) أو عددٌ لكلّ أمر وحده.
+      actualRemainingQty: vehicleShare.declared
+        ? undefined
+        : draft.actualRemainingQty.trim()
+          ? actualRemainingQty.toFixed(4)
+          : undefined,
+      vehicleCountQty: vehicleShare.declared
+        ? vehicleShare.vehicleCount.toFixed(4)
         : undefined,
       closingNotes: orUndefined(draft.closingNotes),
     },
@@ -228,6 +305,8 @@ export type ApprovalPayload = {
   returnedQty?: string;
   damagedQty?: string;
   collectedCash?: string;
+  /** 🚐 عددُ الصنف في السيارة كلها — بديلٌ عن `actualRemainingQty` لا رفيقٌ له. */
+  vehicleCountQty?: string;
   damageInspected?: boolean;
   salaryDeductionApproved?: boolean;
   selfApprovalOverride?: boolean;
@@ -273,7 +352,20 @@ export function buildApprovalPayload(
 
   const returnedQty = num(draft.returnedQty);
   const damagedQty = num(draft.damagedQty);
-  const actualRemainingQty = num(draft.actualRemainingQty);
+  const vehicleShare = vehicleCountShare(draft);
+  if (vehicleShare.belowOtherCustody) {
+    return {
+      ok: false,
+      message: CLOSING_MESSAGES.vehicleCountBelowOtherCustody({
+        count: vehicleShare.vehicleCount.toFixed(2),
+        other: vehicleShare.otherCustody.toFixed(2),
+      }),
+      field: 'vehicleCountQty',
+    };
+  }
+  const actualRemainingQty = vehicleShare.declared
+    ? vehicleShare.share
+    : num(draft.actualRemainingQty);
 
   if (damagedQty.gt(0) && !draft.damageInspected) {
     return {
@@ -317,8 +409,13 @@ export function buildApprovalPayload(
       returnedQty: returnedQty.toFixed(4),
       damagedQty: damagedQty.toFixed(4),
       collectedCash: draft.collectedCash.trim() ? num(draft.collectedCash).toFixed(4) : undefined,
-      actualRemainingQty: draft.actualRemainingQty.trim()
-        ? actualRemainingQty.toFixed(4)
+      actualRemainingQty: vehicleShare.declared
+        ? undefined
+        : draft.actualRemainingQty.trim()
+          ? actualRemainingQty.toFixed(4)
+          : undefined,
+      vehicleCountQty: vehicleShare.declared
+        ? vehicleShare.vehicleCount.toFixed(4)
         : undefined,
       damageInspected: draft.damageInspected,
       salaryDeductionApproved: draft.salaryDeductionApproved,
