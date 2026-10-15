@@ -8,6 +8,7 @@
     ".": "./src/index.ts",
     "./production": "./src/production.ts",
     "./distribution": "./src/distribution.ts",
+    "./custody": "./src/custody.ts",
     "./package.json": "./package.json"
   },
   "dependencies": {

@@ -104,6 +104,7 @@ describe('Van Sales end-to-end acceptance on official stock & accounting ledgers
         'sales.salesman.manage',
         'accounting.period.close',
         'accounting.reports.view',
+        'accounting.account.manage',
         'van_sales.view',
         'van_sales.production.manage',
         'van_sales.pricing.manage',
@@ -1187,4 +1188,557 @@ describe('Van Sales end-to-end acceptance on official stock & accounting ledgers
     expect(created.loadedQty).toBe('1.00');
     expect(created.status).toBe('pending_receipt');
   });
+
+  /**
+   * 🧾 عجز العهدة المحمَّل على المندوب — الشريحة 4.
+   *
+   * قرار المالك: العجز يقع **مديونيةً على الموظف**، يُقيَّم **بالتكلفة**، وزنادُه **اعتمادٌ
+   * صريح لكلّ حالة**. وما كان قبل التنفيذ: `salaryDeductionApproved` يُحسب ويُخزَّن ولا
+   * يستهلكه شيء — قرارٌ موثّق وقيمةٌ محسوبة بلا أثرٍ مالي (الترحيل 0124 أجّله صراحةً:
+   * «who bears the value → NOT here»).
+   *
+   * والقياس هنا من الدفتر الرسمي (`journal_entries` + `journal_entry_lines` + صفّ أمر التحميل
+   * نفسه) لا من استجابة الشاشة:
+   *   1. السياسة تُكتب أخيراً (`PUT /van-sales/policy`) — أوّل كاتبٍ لـ`tenant_settings` في
+   *      الخادم: دمجٌ لا استبدال، سطر تدقيق قبل/بعد، ورفضٌ صريح لما ليس من اختصاصها.
+   *   2. بلا علمٍ صريح ⇒ **صفر قيود** (لا عجز تلقائيّ — الوقوف عند الحدود الآمنة).
+   *   3. بالعلم الصريح ⇒ قيدٌ واحد: مدينٌ حسابُ الموظف نفسه (تحت `2241`)، دائنٌ الحساب
+   *      المربوط، والمبلغ = العجز × **التكلفة** لا سعر البيع.
+   *   4. وناقصُ الطرفين (لا حساب للموظف، أو لا حساب دائن مربوط) ⇒ **422 ولا يمرّ الاعتماد** —
+   *      الأمر يبقى كما كان بلا نصف كتابة، ويُستكمل بعد إصلاح الربط.
+   */
+  it('charges an approved custody shortage to the employee account of the salesman', async () => {
+    type ChargeRow = Record<string, string | boolean | null>;
+
+    /** صفّ أمر التحميل كما هو في الجدول — لا كما تصفه الاستجابة. */
+    async function readChargeRow(loadOrderId: string): Promise<ChargeRow> {
+      const row = await withTenantTx(ctx.handle.db, owner.tenantId, async (tx) => {
+        const rows = await tx.execute(sql`
+          SELECT status, shortage_policy_status, salary_deduction_approved,
+                 shortage_qty::text AS shortage_qty, shortage_value::text AS shortage_value,
+                 unit_cost::text AS unit_cost,
+                 shortage_journal_entry_id::text AS entry_id,
+                 shortage_charge_basis AS basis,
+                 shortage_charge_amount::text AS amount
+          FROM van_load_orders
+          WHERE id = ${loadOrderId}::uuid AND tenant_id = ${owner.tenantId}::uuid
+        `);
+        return (rows as { rows: ChargeRow[] }).rows[0];
+      });
+      if (!row) throw new Error('load order vanished');
+      return row;
+    }
+
+    /** عدد قيود العجز لأمرٍ واحد — مقياس «لا قيد ثانياً» عند الاستئناف أو التكرار. */
+    async function chargeEntryCount(loadOrderId: string): Promise<number> {
+      return withTenantTx(ctx.handle.db, owner.tenantId, async (tx) => {
+        const rows = await tx.execute(sql`
+          SELECT COUNT(*)::int AS cnt FROM journal_entries
+          WHERE tenant_id = ${owner.tenantId}::uuid
+            AND source_type = 'van_shortage_charge'
+            AND source_id = ${loadOrderId}::uuid
+        `);
+        return (rows as { rows: Array<{ cnt: number }> }).rows[0]?.cnt ?? 0;
+      });
+    }
+
+    async function chargeLines(entryId: string) {
+      return withTenantTx(ctx.handle.db, owner.tenantId, async (tx) => {
+        const rows = await tx.execute(sql`
+          SELECT l.account_id::text AS account_id, l.debit::text AS debit, l.credit::text AS credit,
+                 a.code AS account_code, a.name_ar AS account_name
+          FROM journal_entry_lines l JOIN accounts a ON a.id = l.account_id
+          WHERE l.entry_id = ${entryId}::uuid AND l.tenant_id = ${owner.tenantId}::uuid
+          ORDER BY l.debit DESC
+        `);
+        return (rows as { rows: Array<Record<string, string>> }).rows;
+      });
+    }
+
+    // ── حالة الحالة: صنفٌ يُباع بـ6.50 وتكلفته من دفعته أقلّ، ومندوبٌ بموظفٍ له حساب ────
+    const chargeItemId = newId();
+    const chargeEmployeeId = newId();
+    const chargeSalesmanId = newId();
+    const chargeVanWarehouseId = newId();
+    const unitAndCategory = await withTenantTx(ctx.handle.db, owner.tenantId, async (tx) => {
+      const rows = await tx.execute(sql`
+        SELECT (SELECT id::text FROM units_of_measure WHERE tenant_id = ${owner.tenantId}::uuid LIMIT 1) AS unit_id,
+               (SELECT id::text FROM item_categories WHERE tenant_id = ${owner.tenantId}::uuid LIMIT 1) AS category_id,
+               (SELECT id::text FROM accounts WHERE tenant_id = ${owner.tenantId}::uuid AND code = '2241' LIMIT 1) AS root_id,
+               (SELECT type FROM accounts WHERE tenant_id = ${owner.tenantId}::uuid AND code = '2241' LIMIT 1) AS root_type,
+               (SELECT normal_balance FROM accounts WHERE tenant_id = ${owner.tenantId}::uuid AND code = '2241' LIMIT 1) AS root_balance
+      `);
+      return (rows as { rows: Array<Record<string, string | null>> }).rows[0];
+    });
+    // دليل الحسابات المزروع يحمل جذر ذمم الموظفين `2241` — بدونه لا تنشئ HRM حساباً ولا ذمّة.
+    expect(unitAndCategory.root_id, JSON.stringify(unitAndCategory)).toBeTruthy();
+
+    await withTenantTx(ctx.handle.db, owner.tenantId, async (tx) => {
+      await tx.execute(sql`
+        INSERT INTO warehouses (id, tenant_id, branch_id, code, name, is_default, is_active)
+        VALUES (${chargeVanWarehouseId}::uuid, ${owner.tenantId}::uuid, ${branchId}::uuid,
+                'WH-VAN-9', 'سيارة مندوب العجز', false, true)
+      `);
+      await tx.execute(sql`
+        INSERT INTO items (id, tenant_id, sku, name_ar, category_id, base_unit_id, kind,
+                           purchase_price, sale_price, track_lot)
+        VALUES (${chargeItemId}::uuid, ${owner.tenantId}::uuid, 'SKU-CHARGE', 'خبز بلدي (حالة العجز)',
+                ${unitAndCategory.category_id}::uuid, ${unitAndCategory.unit_id}::uuid, 'stock',
+                4.0000, 6.5000, false)
+      `);
+      await tx.execute(sql`
+        INSERT INTO stock_balances (tenant_id, item_id, warehouse_id, quantity, value, average_cost, version)
+        VALUES (${owner.tenantId}::uuid, ${chargeItemId}::uuid, ${mainWarehouseId}::uuid, 100, 400, 4.0000, 1)
+      `);
+    });
+
+    // ── الخطوة 1: السياسة لا تُكتب إلا لمن يملك قرارها ────────────────────────────────
+    const policyAsRep = await api(ctx.server, 'put', '/api/v1/van-sales/policy', {
+      token: rep.token,
+      body: { shortageValuationBasis: 'unit_cost' },
+    });
+    expect(policyAsRep.status, JSON.stringify(policyAsRep.body)).toBe(403);
+
+    // ── الخطوة 2: أساسٌ مجهول، سعرٌ غير رقمي، مفتاحٌ مجهول، وما ليس من اختصاص السياسة ──
+    const badBasis = await api(ctx.server, 'put', '/api/v1/van-sales/policy', {
+      token: accountant.token,
+      body: { shortageValuationBasis: 'cost' },
+    });
+    expect(badBasis.status).toBe(422);
+    expect(badBasis.body.code).toBe('VAN_SHORTAGE_BASIS_UNKNOWN');
+
+    const badPrice = await api(ctx.server, 'put', '/api/v1/van-sales/policy', {
+      token: accountant.token,
+      body: { shortageUnitPrice: 'abc' },
+    });
+    expect(badPrice.status).toBe(422);
+    expect(badPrice.body.code).toBe('VAN_SHORTAGE_PRICE_INVALID');
+
+    const unknownKey = await api(ctx.server, 'put', '/api/v1/van-sales/policy', {
+      token: accountant.token,
+      body: { shortageBasis: 'unit_cost' },
+    });
+    expect(unknownKey.status).toBe(422);
+    expect(unknownKey.body.code).toBe('VAN_POLICY_KEY_UNKNOWN');
+
+    // الإعفاء من ضريبة التسليم الداخلي قرارٌ ضريبيّ في موضعٍ آخر — لا يُهرَّب من هذا الباب.
+    const outOfScope = await api(ctx.server, 'put', '/api/v1/van-sales/policy', {
+      token: accountant.token,
+      body: { shortageValuationBasis: 'unit_cost', allowInternalDeliveryWithoutTax: true },
+    });
+    expect(outOfScope.status).toBe(422);
+    expect(outOfScope.body.code).toBe('VAN_POLICY_KEY_OUT_OF_SCOPE');
+
+    const stillUnconfigured = await api(ctx.server, 'get', '/api/v1/van-sales/policy', {
+      token: accountant.token,
+    });
+    expect(stillUnconfigured.status).toBe(200);
+    expect(stillUnconfigured.body.data.shortageValuationBasis).toBe('unconfigured');
+    expect(stillUnconfigured.body.data.configured).toBe(false);
+
+    // ── الخطوة 3: المسبار قبل الاعتماد — مندوبٌ بلا بطاقة موظف (المندوب الأول) ─────────
+    const probeBefore = await api(
+      ctx.server,
+      'get',
+      `/api/v1/van-sales/policy?salesmanId=${salesmanId}`,
+      { token: accountant.token },
+    );
+    expect(probeBefore.status, JSON.stringify(probeBefore.body)).toBe(200);
+    const readinessBefore = probeBefore.body.data.chargeReadiness as Record<string, unknown>;
+    expect(readinessBefore.employeeLinked).toBe(true);
+    expect(readinessBefore.employeeAccountReady).toBe(false);
+    expect(readinessBefore.ready).toBe(false);
+    expect(String(readinessBefore.blockingReason)).toContain('دليل الحسابات');
+    // الحساب الدائن يُحلّ من ملف الترحيل العام `*` (تسويات المخزون `3121004`) بلا ربطٍ جديد.
+    expect(readinessBefore.creditAccountMapped).toBe(true);
+
+    // ── الخطوة 4: الكتابة الحقيقية — دمجٌ لا استبدال ──────────────────────────────────
+    const writePolicy = await api(ctx.server, 'put', '/api/v1/van-sales/policy', {
+      token: accountant.token,
+      body: { shortageValuationBasis: 'unit_cost', preventSelfApproval: true },
+    });
+    expect(writePolicy.status, JSON.stringify(writePolicy.body)).toBe(200);
+    expect(writePolicy.body.data.shortageValuationBasis).toBe('unit_cost');
+    expect(writePolicy.body.data.valuationSource).toBe('unit_cost');
+    expect(writePolicy.body.data.preventSelfApproval).toBe(true);
+
+    const storedPolicy = await withTenantTx(ctx.handle.db, owner.tenantId, async (tx) => {
+      const rows = await tx.execute(sql`
+        SELECT value::text AS value FROM tenant_settings
+        WHERE tenant_id = ${owner.tenantId}::uuid AND key = 'van_sales.policy'
+      `);
+      return (rows as { rows: Array<{ value: string }> }).rows[0];
+    });
+    expect(storedPolicy, 'the policy row must exist after the first write').toBeTruthy();
+    const stored = JSON.parse(storedPolicy.value) as Record<string, unknown>;
+    expect(stored.shortageValuationBasis).toBe('unit_cost');
+    expect(stored.preventSelfApproval).toBe(true);
+
+    const auditRows = await withTenantTx(ctx.handle.db, owner.tenantId, async (tx) => {
+      const rows = await tx.execute(sql`
+        SELECT action, entity, entity_id, before::text AS before_value, after::text AS after_value
+        FROM audit_log
+        WHERE tenant_id = ${owner.tenantId}::uuid AND action = 'van_sales.policy.update'
+        ORDER BY created_at ASC
+      `);
+      return (rows as { rows: Array<Record<string, string | null>> }).rows;
+    });
+    expect(auditRows).toHaveLength(1);
+    expect(auditRows[0].entity).toBe('tenant_setting');
+    expect(auditRows[0].entity_id).toBe('van_sales.policy');
+    expect(String(auditRows[0].after_value)).toContain('unit_cost');
+
+    // سعرٌ صريحٌ مكتوب يتقدّم على الأساس — فـ`valuationSource` هو الحقيقة لا الأساس وحده.
+    const explicitPrice = await api(ctx.server, 'put', '/api/v1/van-sales/policy', {
+      token: accountant.token,
+      body: { shortageUnitPrice: '5.25' },
+    });
+    expect(explicitPrice.status).toBe(200);
+    expect(explicitPrice.body.data.valuationSource).toBe('explicit_policy_price');
+    expect(explicitPrice.body.data.shortageValuationBasis).toBe('unit_cost'); // ‏لم يُمحَ بالدمج
+    const clearPrice = await api(ctx.server, 'put', '/api/v1/van-sales/policy', {
+      token: accountant.token,
+      body: { shortageUnitPrice: null },
+    });
+    expect(clearPrice.status).toBe(200);
+    expect(clearPrice.body.data.valuationSource).toBe('unit_cost');
+
+    // ── الخطوة 5: موظفٌ له حساب في الدليل (يُنشأ عبر واجهة المحاسبة الرسمية) ──────────
+    const employeeAccount = await api(ctx.server, 'post', '/api/v1/accounts', {
+      token: owner.token,
+      body: {
+        code: '2241901',
+        nameAr: 'المندوب الثالث — ذمم عهدة',
+        type: unitAndCategory.root_type ?? 'liability',
+        normalBalance: unitAndCategory.root_balance ?? 'credit',
+        parentId: unitAndCategory.root_id,
+        isPostable: true,
+      },
+    });
+    expect(employeeAccount.status, JSON.stringify(employeeAccount.body).slice(0, 400)).toBe(201);
+    const employeeAccountId = (employeeAccount.body.data as { id: string }).id;
+    await withTenantTx(ctx.handle.db, owner.tenantId, async (tx) => {
+      // الربط نفسه الذي تكتبه HRM (`hrm.service.ts:593`) — لا جدول جديداً ولا طرف جديداً.
+      await tx.execute(sql`
+        INSERT INTO employees (id, tenant_id, employee_no, name, branch_id, status, employee_account_id)
+        VALUES (${chargeEmployeeId}::uuid, ${owner.tenantId}::uuid, 'EMP-CHARGE', 'المندوب الثالث',
+                ${branchId}::uuid, 'active', ${employeeAccountId}::uuid)
+      `);
+      await tx.execute(sql`
+        INSERT INTO salesmen (id, tenant_id, name, active, employee_id, warehouse_id, vehicle_plate)
+        VALUES (${chargeSalesmanId}::uuid, ${owner.tenantId}::uuid, 'المندوب الثالث', true,
+                ${chargeEmployeeId}::uuid, ${chargeVanWarehouseId}::uuid, 'هـ و ز 7890')
+      `);
+    });
+
+    const probeAfter = await api(
+      ctx.server,
+      'get',
+      `/api/v1/van-sales/policy?salesmanId=${chargeSalesmanId}`,
+      { token: accountant.token },
+    );
+    const readinessAfter = probeAfter.body.data.chargeReadiness as Record<string, unknown>;
+    expect(readinessAfter.employeeLinked).toBe(true);
+    expect(readinessAfter.employeeAccountReady).toBe(true);
+    expect(readinessAfter.ready).toBe(true);
+    expect(readinessAfter.blockingReason).toBeNull();
+
+    /**
+     * 🌾 دفعة إنتاج للصنف بتكلفةٍ **معلومة** (4.00): أمر التحميل يأخذ تكلفته من الدفعة
+     * (`unit_cost = plan.batchUnitCost` — صفرٌ بلا دفعة)، و«التكلفة» قرارٌ لا يُقاس على صفر.
+     * وبلا رقم دفعةٍ صريح يصطنع الخادم `PROD-<اليوم>-0001` فيلتقط دفعة حالةٍ أخرى (العيب
+     * المعلّق §5.1) — فالدفعة هنا صريحةٌ لتبقى الأرقام من هذه الحالة وحدها.
+     */
+    const chargeProduction = await api(ctx.server, 'post', '/api/v1/van-sales/production-batches', {
+      token: accountant.token,
+      body: {
+        itemId: chargeItemId,
+        warehouseId: mainWarehouseId,
+        producedQty: '30',
+        components: [{ itemId: componentItemId, qty: '30' }],
+        unitCost: '4.00',
+        idempotencyKey: 'charge-prod-1',
+      },
+    });
+    expect(chargeProduction.status, JSON.stringify(chargeProduction.body).slice(0, 400)).toBe(201);
+    const chargeBatchNo = (
+      chargeProduction.body.data.productionBatches[0] as { batchNo: string }
+    ).batchNo;
+
+    // ── الخطوة 6: دورةٌ كاملة بلا علمٍ صريح ⇒ صفر قيود ────────────────────────────────
+    /** تحميل ← استلام ← تقديم إغلاق ← اعتماد، بأمرٍ جديد لكلّ حالة. */
+    async function runClosing(args: {
+      salesmanId: string;
+      vanWarehouseId: string;
+      loadedQty: string;
+      actualRemainingQty: string;
+      key: string;
+      productionBatchNo: string;
+      approveToken: string;
+      approveBody: Record<string, unknown>;
+    }) {
+      const created = await api(ctx.server, 'post', '/api/v1/van-sales/load-orders', {
+        token: accountant.token,
+        body: {
+          salesmanId: args.salesmanId,
+          branchId,
+          warehouseId: mainWarehouseId,
+          vanWarehouseId: args.vanWarehouseId,
+          itemId: chargeItemId,
+          productionBatchNo: args.productionBatchNo,
+          loadedQty: args.loadedQty,
+          notes: 'عهدة حالة العجز',
+          idempotencyKey: args.key,
+        },
+      });
+      expect(created.status, JSON.stringify(created.body).slice(0, 400)).toBe(201);
+      const id = (created.body.data.loadOrders[0] as { id: string }).id;
+      const receipt = await api(
+        ctx.server,
+        'post',
+        `/api/v1/van-sales/load-orders/${id}/confirm-receipt`,
+        { token: owner.token, body: { receivedQty: args.loadedQty } },
+      );
+      expect(receipt.status, JSON.stringify(receipt.body).slice(0, 400)).toBe(201);
+      const submit = await api(
+        ctx.server,
+        'post',
+        `/api/v1/van-sales/load-orders/${id}/submit-closing`,
+        {
+          token: owner.token,
+          body: {
+            returnedQty: '0',
+            damagedQty: '0',
+            collectedCash: '0',
+            actualRemainingQty: args.actualRemainingQty,
+            closingNotes: 'جرد نهاية الوردية',
+          },
+        },
+      );
+      expect(submit.status, JSON.stringify(submit.body).slice(0, 400)).toBe(201);
+      const approve = await api(
+        ctx.server,
+        'post',
+        `/api/v1/van-sales/load-orders/${id}/approve-closing`,
+        { token: args.approveToken, body: args.approveBody },
+      );
+      return { id, approve };
+    }
+
+    const noFlag = await runClosing({
+      salesmanId: chargeSalesmanId,
+      vanWarehouseId: chargeVanWarehouseId,
+      loadedQty: '10',
+      actualRemainingQty: '8',
+      key: 'charge-no-flag',
+      productionBatchNo: chargeBatchNo,
+      approveToken: accountant.token,
+      approveBody: {
+        damageInspected: true,
+        salaryDeductionApproved: false,
+        remainingAction: 'carry_over',
+        settleStockAdjustment: true,
+      },
+    });
+    // المندوب لهذه الحالة لا موظف له بعد — والاعتماد **بلا** علم التحميل يمرّ لأنه لا يرحّل شيئاً.
+    expect(noFlag.approve.status, JSON.stringify(noFlag.approve.body).slice(0, 400)).toBe(201);
+    const noFlagRow = await readChargeRow(noFlag.id);
+    expect(noFlagRow.shortage_qty).toBe('2.0000');
+    expect(noFlagRow.salary_deduction_approved).toBe(false);
+    expect(noFlagRow.entry_id).toBeNull();
+    expect(noFlagRow.basis).toBeNull();
+    expect(noFlagRow.amount).toBeNull();
+    expect(noFlagRow.shortage_policy_status).toBe('policy_configured');
+    expect(await chargeEntryCount(noFlag.id)).toBe(0);
+
+    // ── الخطوة 7: علمٌ صريح وموظفٌ بلا حساب ⇒ 422 ولا يمرّ الاعتماد ───────────────────
+    const noAccount = await runClosing({
+      salesmanId, // ‏المندوب الأول: بطاقته قائمة وحسابه في الدليل غير موجود
+      vanWarehouseId,
+      loadedQty: '10',
+      actualRemainingQty: '8',
+      key: 'charge-no-employee-account',
+      productionBatchNo: chargeBatchNo,
+      approveToken: accountant.token,
+      approveBody: {
+        damageInspected: true,
+        salaryDeductionApproved: true,
+        remainingAction: 'carry_over',
+        settleStockAdjustment: true,
+      },
+    });
+    expect(noAccount.approve.status, JSON.stringify(noAccount.approve.body).slice(0, 400)).toBe(422);
+    expect(noAccount.approve.body.code).toBe('VAN_SHORTAGE_EMPLOYEE_ACCOUNT_REQUIRED');
+    const refusedRow = await readChargeRow(noAccount.id);
+    expect(refusedRow.status).toBe('pending_closing'); // ‏لم تُكتب نصف حالة
+    expect(refusedRow.entry_id).toBeNull();
+    expect(await chargeEntryCount(noAccount.id)).toBe(0);
+    // والرفض ليس طريقاً مسدوداً: بلا علم التحميل يُعتمد الأمر نفسه ويُسوَّى مخزونه.
+    const recovered = await api(
+      ctx.server,
+      'post',
+      `/api/v1/van-sales/load-orders/${noAccount.id}/approve-closing`,
+      {
+        token: accountant.token,
+        body: {
+          damageInspected: true,
+          salaryDeductionApproved: false,
+          remainingAction: 'carry_over',
+          settleStockAdjustment: true,
+        },
+      },
+    );
+    expect(recovered.status, JSON.stringify(recovered.body).slice(0, 400)).toBe(201);
+    expect((await readChargeRow(noAccount.id)).entry_id).toBeNull();
+
+    // ── الخطوة 8: الحساب الدائن غير مربوط على مستوى الفرع ⇒ 422 (بلا قيد) ─────────────
+    const incompleteProfileId = newId();
+    const salesAccountId = await withTenantTx(ctx.handle.db, owner.tenantId, async (tx) => {
+      const rows = await tx.execute(sql`
+        SELECT id::text FROM accounts
+        WHERE tenant_id = ${owner.tenantId}::uuid AND code = '4100001' LIMIT 1
+      `);
+      return (rows as { rows: Array<{ id: string }> }).rows[0]?.id ?? '';
+    });
+    await withTenantTx(ctx.handle.db, owner.tenantId, async (tx) => {
+      // ملف فرعٍ لهذا النوع وحده، بمفتاحٍ واحد: يتقدّم على العام `*` فيحجب الحساب الدائن.
+      await tx.execute(sql`
+        INSERT INTO branch_posting_profiles (id, tenant_id, branch_id, doc_type, mapping)
+        VALUES (${incompleteProfileId}::uuid, ${owner.tenantId}::uuid, ${branchId}::uuid,
+                'van_shortage_charge',
+                ${JSON.stringify({ version: 1, salesAccountId })}::jsonb)
+      `);
+    });
+
+    const unmapped = await runClosing({
+      salesmanId: chargeSalesmanId,
+      vanWarehouseId: chargeVanWarehouseId,
+      loadedQty: '10',
+      actualRemainingQty: '8',
+      key: 'charge-unmapped-credit',
+      productionBatchNo: chargeBatchNo,
+      approveToken: accountant.token,
+      approveBody: {
+        damageInspected: true,
+        salaryDeductionApproved: true,
+        remainingAction: 'carry_over',
+        settleStockAdjustment: true,
+      },
+    });
+    expect(unmapped.approve.status, JSON.stringify(unmapped.approve.body).slice(0, 400)).toBe(422);
+    expect(unmapped.approve.body.code).toBe('VAN_SHORTAGE_ACCOUNTS_INCOMPLETE');
+    expect((await readChargeRow(unmapped.id)).status).toBe('pending_closing');
+    expect(await chargeEntryCount(unmapped.id)).toBe(0);
+
+    // ── الخطوة 9: إكمال الربط بالمفتاح المخصّص ⇒ الاعتماد يمرّ ويُرحَّل قيدٌ واحد ──────
+    const dedicatedAccountId = await withTenantTx(ctx.handle.db, owner.tenantId, async (tx) => {
+      const rows = await tx.execute(sql`
+        SELECT id::text FROM accounts
+        WHERE tenant_id = ${owner.tenantId}::uuid AND code = '3121004' LIMIT 1
+      `);
+      return (rows as { rows: Array<{ id: string }> }).rows[0]?.id ?? '';
+    });
+    expect(dedicatedAccountId, 'the seeded inventory-adjustment account must exist').toBeTruthy();
+    await withTenantTx(ctx.handle.db, owner.tenantId, async (tx) => {
+      await tx.execute(sql`
+        UPDATE branch_posting_profiles
+        SET mapping = mapping || ${JSON.stringify({ shortageChargeAccountId: dedicatedAccountId })}::jsonb
+        WHERE id = ${incompleteProfileId}::uuid
+      `);
+    });
+
+    const charged = await api(
+      ctx.server,
+      'post',
+      `/api/v1/van-sales/load-orders/${unmapped.id}/approve-closing`,
+      {
+        token: accountant.token,
+        body: {
+          damageInspected: true,
+          salaryDeductionApproved: true,
+          remainingAction: 'carry_over',
+          settleStockAdjustment: true,
+        },
+      },
+    );
+    expect(charged.status, JSON.stringify(charged.body).slice(0, 500)).toBe(201);
+
+    const chargedRow = await readChargeRow(unmapped.id);
+    expect(chargedRow.salary_deduction_approved).toBe(true);
+    expect(chargedRow.shortage_qty).toBe('2.0000');
+    // التكلفة الفعلية من دفعة الإنتاج نفسها (لا رقمٌ ثابت في الاختبار): أمر التحميل يأخذ
+    // `unit_cost` من دفعته، والدفعة تأخذه من مكوّناتها.
+    const batchCost = await withTenantTx(ctx.handle.db, owner.tenantId, async (tx) => {
+      const rows = await tx.execute(sql`
+        SELECT unit_cost::text AS unit_cost, item_id::text AS item_id, cost_basis
+        FROM factory_production_batches
+        WHERE tenant_id = ${owner.tenantId}::uuid AND batch_no = ${chargeBatchNo}
+        LIMIT 1
+      `);
+      return (rows as { rows: Array<Record<string, string | null>> }).rows[0];
+    });
+    expect(batchCost, 'the explicit batch must exist').toBeTruthy();
+    expect(batchCost.item_id).toBe(chargeItemId); // ‏لم يلتقط دفعة حالةٍ أخرى
+    expect(chargedRow.unit_cost).toBe(batchCost.unit_cost);
+    expect(Number(chargedRow.unit_cost)).toBeGreaterThan(0);
+
+    const expectedAmount = (
+      Number(chargedRow.shortage_qty) * Number(chargedRow.unit_cost)
+    ).toFixed(4);
+    // بالتكلفة لا بسعر البيع (6.50) — القرار مُقاسٌ بالعلاقة لا برقمٍ مكتوب في الاختبار.
+    expect(chargedRow.basis).toBe('unit_cost');
+    expect(chargedRow.shortage_value).toBe(expectedAmount);
+    expect(chargedRow.amount).toBe(expectedAmount);
+    expect(Number(expectedAmount)).toBeLessThan(Number(chargedRow.shortage_qty) * 6.5);
+    expect(chargedRow.shortage_policy_status).toBe('charged_to_employee');
+    expect(chargedRow.entry_id).toBeTruthy();
+
+    const lines = await chargeLines(String(chargedRow.entry_id));
+    expect(lines).toHaveLength(2);
+    expect(lines[0].account_id).toBe(employeeAccountId); // ‏مدين: حساب الموظف نفسه
+    expect(lines[0].account_code).toBe('2241901');
+    expect(lines[0].debit).toBe(expectedAmount);
+    expect(lines[0].credit).toBe('0.0000');
+    expect(lines[1].account_id).toBe(dedicatedAccountId); // ‏دائن: الحساب المربوط
+    expect(lines[1].credit).toBe(expectedAmount);
+    expect(lines[1].debit).toBe('0.0000');
+    expect(Number(lines[0].debit) - Number(lines[1].credit)).toBe(0);
+
+    expect(await chargeEntryCount(unmapped.id)).toBe(1);
+
+    // ── الخطوة 10: التكرار والاستئناف لا يرحّلان قيداً ثانياً ─────────────────────────
+    const approveAgain = await api(
+      ctx.server,
+      'post',
+      `/api/v1/van-sales/load-orders/${unmapped.id}/approve-closing`,
+      { token: accountant.token, body: { damageInspected: true, salaryDeductionApproved: true } },
+    );
+    expect(approveAgain.status).toBe(409);
+    const settleAgain = await api(
+      ctx.server,
+      'post',
+      `/api/v1/van-sales/load-orders/${unmapped.id}/settle-stock`,
+      { token: accountant.token, body: { settleStockAdjustment: true, remainingAction: 'carry_over' } },
+    );
+    expect([200, 201, 409]).toContain(settleAgain.status);
+    expect(await chargeEntryCount(unmapped.id)).toBe(1);
+    const afterReplay = await readChargeRow(unmapped.id);
+    expect(afterReplay.entry_id).toBe(chargedRow.entry_id);
+    expect(afterReplay.amount).toBe(expectedAmount);
+
+    // ── الخطوة 11: ما يُعرض على الشاشة هو ما رُحِّل فعلاً ─────────────────────────────
+    const dashboard = await api(ctx.server, 'get', '/api/v1/van-sales/dashboard', {
+      token: accountant.token,
+    });
+    expect(dashboard.status).toBe(200);
+    const shown = (dashboard.body.data.loadOrders as Array<Record<string, unknown>>).find(
+      (order) => order.id === unmapped.id,
+    );
+    expect(shown, 'the charged order must be readable from the dashboard').toBeTruthy();
+    expect(shown?.shortageJournalEntryId).toBe(chargedRow.entry_id);
+    expect(shown?.shortageChargeBasis).toBe('unit_cost');
+    expect(shown?.shortageChargeAmount).toBe(expectedAmount);
+    expect(shown?.shortagePolicyStatus).toBe('charged_to_employee');
+  });
+
 });

@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, Put, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { DomainError, errorCodes, permissionGrants } from '@erp/contracts';
 
@@ -270,6 +270,42 @@ export class VanSalesController {
       }
     }
     return { data: await this.vanSales.createDocument(tenantId, userId, body ?? {}) };
+  }
+
+  /**
+   * ⚖️ سياسة عجز العهدة — قراءة.
+   *
+   * تُعيد السياسة **وما ستفعله فعلاً**: سعراً صريحاً مكتوباً يتقدّم على الأساس، فـ`valuationSource`
+   * هو الحقيقة لا `shortageValuationBasis` وحده. و`salesmanId` اختياريّ لمسبار جاهزية التحميل
+   * قبل الضغط على الاعتماد (بطاقة الموظف، حسابه في الدليل، والحساب الدائن المربوط).
+   */
+  @Get('policy')
+  @RequiresPermission('van_sales.view')
+  async policy(@Query('salesmanId') salesmanId?: string) {
+    const { tenantId } = getTenantContext();
+    return { data: await this.vanSales.readShortagePolicy(tenantId, salesmanId?.trim() || undefined) };
+  }
+
+  /**
+   * ⚖️ سياسة عجز العهدة — كتابة (دمجٌ لا استبدال، وسطر تدقيق قبل/بعد).
+   *
+   * `van_sales.override.approve` لا `view`: أساسُ تقييم العجز قرارٌ ماليّ (بالتكلفة أم بسعر
+   * البيع) يغيّر مبلغ ذمّة الموظف، فلا يكون لمن يقرأ. و`allowInternalDeliveryWithoutTax`
+   * مرفوضٌ هنا صراحةً — قرارٌ ضريبيّ في موضعٍ آخر.
+   */
+  @Put('policy')
+  @RequiresPermission('van_sales.override.approve')
+  async updatePolicy(
+    @Body()
+    body: {
+      shortageValuationBasis?: 'unconfigured' | 'unit_cost' | 'selling_price' | null;
+      shortageUnitPrice?: string | null;
+      preventSelfApproval?: boolean | null;
+      allowInternalDeliveryWithoutTax?: unknown;
+    },
+  ) {
+    const { tenantId, userId } = getTenantContext();
+    return { data: await this.vanSales.updateShortagePolicy(tenantId, userId, body ?? {}) };
   }
 
   @Post('load-orders/:id/submit-closing')

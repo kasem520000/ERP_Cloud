@@ -12,7 +12,11 @@ import { WmsBomService } from '../inventory/wms-bom.service.js';
 import { PostingProfilesService } from '../organization/index.js';
 import { MembershipsService } from '../platform/tenancy/memberships.service.js';
 import { RolesService } from '../platform/tenancy/roles.service.js';
-import { NotificationsService, SequencesService } from '../platform-services/index.js';
+import {
+  AuditService,
+  NotificationsService,
+  SequencesService,
+} from '../platform-services/index.js';
 import { SalesService, type SalesLineInput } from '../sales/sales.service.js';
 import { TreasuryService } from '../treasury/treasury.service.js';
 
@@ -66,6 +70,20 @@ function buildZatcaTlvBase64(params: {
   return Buffer.concat(chunks).toString('base64');
 }
 
+/**
+ * الأساس الذي قُيِّم به العجز **فعلاً** لحظة الاعتماد. يُكتب مع القيد
+ * (`van_load_orders.shortage_charge_basis`) لأن «بكم حُوسب المندوب» دليلٌ لا استنتاجٌ لاحق:
+ * السياسة قد تتغيّر بعد الاعتماد، والمعروض يجب أن يبقى ما رُحِّل به.
+ */
+export type ShortageChargeBasis =
+  | 'explicit_policy_price'
+  | 'unit_cost'
+  | 'average_document_price'
+  | 'item_sale_price'
+  | 'item_purchase_price'
+  | 'loaded_average'
+  | 'load_order_unit_cost';
+
 export type VanSalesTenantPolicy = {
   allowInternalDeliveryWithoutTax?: boolean;
   preventSelfApproval?: boolean;
@@ -91,6 +109,7 @@ export class VanSalesService {
     private readonly postingProfiles: PostingProfilesService,
     private readonly memberships: MembershipsService,
     private readonly roles: RolesService,
+    private readonly audit: AuditService,
   ) {}
 
   private async loadTenantPolicyInTx(
@@ -108,6 +127,236 @@ export class VanSalesService {
       return {};
     }
     return row.value as VanSalesTenantPolicy;
+  }
+
+  /**
+   * ⚖️ سياسة عجز العهدة — **القراءة** (الشريحة 4).
+   *
+   * السياسة كانت تُقرأ ولا تُكتب: `tenant_settings.van_sales.policy` بلا أيّ كاتب في
+   * `apps/api/src` كلّه، فـ«أساس تقييم العجز» لا يُضبط إلا بـSQL يدوي — وهذا هو السبب الذي
+   * جعل كلّ إغلاق في منشأة العرض يقف على `pending_policy_approval`. القراءة هنا تُعيد السياسة
+   * كما هي **وما ستفعله فعلاً** (`valuationSource`) — لأن سعراً صريحاً مكتوباً يتقدّم على
+   * الأساس في `resolveShortageUnitPriceInTx`، فقول «الأساس: التكلفة» وحده قد يكون كذباً.
+   *
+   * و`salesmanId` اختياريّ لمسبار جاهزية التحميل **قبل** الاعتماد: هل للمندوب بطاقة موظف؟
+   * هل للموظف حساب في الدليل؟ هل رُبط الحساب الدائن؟ فالرفض 422 عند الاعتماد صحيح، لكن
+   * إخفاء سببه حتى لحظة الضغط ليس أمانةً مع المحاسب.
+   */
+  async readShortagePolicy(tenantId: string, salesmanId?: string) {
+    return withTenantTx(this.database.db, tenantId, async (tx) => {
+      const policy = await this.loadTenantPolicyInTx(tx, tenantId);
+      const explicitPrice =
+        policy.shortageUnitPrice && dec(policy.shortageUnitPrice).gt(0)
+          ? dec(policy.shortageUnitPrice).toFixed(4)
+          : null;
+      const basis = policy.shortageValuationBasis ?? 'unconfigured';
+      const branchId = await this.resolveDefaultBranchIdInTx(tx, tenantId, null, null);
+      const profile = await this.resolvePostingProfileOrNullInTx(
+        tx,
+        tenantId,
+        branchId,
+        'van_shortage_charge',
+      );
+      const creditAccountId =
+        profile?.shortageChargeAccountId ?? profile?.inventoryAdjustmentAccountId ?? null;
+      const creditAccount = creditAccountId
+        ? first(
+            await tx.execute(sql`
+              SELECT name_ar, code FROM accounts
+              WHERE id = ${creditAccountId}::uuid AND tenant_id = ${tenantId}::uuid
+              LIMIT 1
+            `),
+          )
+        : undefined;
+
+      let chargeReadiness: {
+        salesmanId: string;
+        employeeLinked: boolean;
+        employeeAccountReady: boolean;
+        employeeAccountId: string | null;
+        employeeAccountName: string | null;
+        creditAccountMapped: boolean;
+        creditAccountName: string | null;
+        ready: boolean;
+        blockingReason: string | null;
+      } | null = null;
+      if (salesmanId) {
+        const employee = first(
+          await tx.execute(sql`
+            SELECT e.id::text, e.name, e.employee_account_id::text, a.name_ar AS account_name
+            FROM salesmen s
+              JOIN employees e ON e.id = s.employee_id AND e.deleted_at IS NULL
+              LEFT JOIN accounts a ON a.id = e.employee_account_id
+            WHERE s.id = ${salesmanId}::uuid AND s.tenant_id = ${tenantId}::uuid
+            LIMIT 1
+          `),
+        );
+        const employeeLinked = Boolean(employee);
+        const employeeAccountReady = Boolean(employee?.employee_account_id);
+        const creditAccountMapped = Boolean(creditAccountId);
+        chargeReadiness = {
+          salesmanId,
+          employeeLinked,
+          employeeAccountReady,
+          employeeAccountId: employee?.employee_account_id ? str(employee.employee_account_id) : null,
+          employeeAccountName: employee?.account_name ? str(employee.account_name) : null,
+          creditAccountMapped,
+          creditAccountName: creditAccount?.name_ar ? str(creditAccount.name_ar) : null,
+          ready: employeeLinked && employeeAccountReady && creditAccountMapped,
+          blockingReason: !employeeLinked
+            ? 'لا بطاقة موظف مرتبطة بهذا المندوب — الذمّة تحتاج موظفاً حقيقياً'
+            : !employeeAccountReady
+              ? 'لا حساب لهذا الموظف في دليل الحسابات'
+              : !creditAccountMapped
+                ? 'لم يُربط الحساب الدائن لنوع المستند «van_shortage_charge»'
+                : null,
+        };
+      }
+
+      return {
+        shortageValuationBasis: basis,
+        shortageUnitPrice: explicitPrice,
+        preventSelfApproval: policy.preventSelfApproval ?? false,
+        allowInternalDeliveryWithoutTax: policy.allowInternalDeliveryWithoutTax ?? false,
+        /** ما سيحدث فعلاً عند الاعتماد — لا ما تقوله السياسة وحدها. */
+        valuationSource: explicitPrice ? 'explicit_policy_price' : basis,
+        configured: basis !== 'unconfigured' || Boolean(explicitPrice),
+        /** المفاتيح التي تكتبها `PUT /van-sales/policy` — وما عداها قراره في مكانٍ آخر. */
+        writableKeys: ['shortageValuationBasis', 'shortageUnitPrice', 'preventSelfApproval'],
+        chargeCreditAccount: creditAccount
+          ? {
+              id: creditAccountId,
+              name: str(creditAccount.name_ar),
+              code: str(creditAccount.code ?? ''),
+            }
+          : null,
+        chargeReadiness,
+      };
+    });
+  }
+
+  /**
+   * ⚖️ سياسة عجز العهدة — **الكتابة** (الشريحة 4).
+   *
+   * أوّل كاتبٍ لـ`tenant_settings` في الخادم، ومقصودٌ أن يكون ضيّقاً:
+   *   • **دمجٌ لا استبدال** — بقية المفاتيح (`defaultMaxBonusPct` …) لا تُمحى بكتابة أساس التقييم.
+   *   • **مفاتيح معلنة فقط** — مفتاحٌ مجهول أو إملاءٌ خاطئ ⇒ 422، لا صمتٌ يوحي بأن شيئاً تغيّر.
+   *   • **`allowInternalDeliveryWithoutTax` مرفوضٌ هنا صراحةً** — قراره ضريبيّ وليس من سياسة
+   *     العجز، وكتابته من هذا الباب تهرّبٌ من موضعه (خارج نطاق الشريحة، معلّقٌ في §5).
+   *   • **سطر تدقيق** قبل/بعد — فسياسةٌ مالية تغيَّر بلا أثرٍ كسياسةٍ لم تُغيَّر.
+   */
+  async updateShortagePolicy(
+    tenantId: string,
+    userId: string,
+    body: {
+      shortageValuationBasis?: VanSalesTenantPolicy['shortageValuationBasis'] | null;
+      shortageUnitPrice?: string | null;
+      preventSelfApproval?: boolean | null;
+      allowInternalDeliveryWithoutTax?: unknown;
+    },
+  ) {
+    const WRITABLE = ['shortageValuationBasis', 'shortageUnitPrice', 'preventSelfApproval'] as const;
+    const given = Object.keys(body ?? {});
+    if (given.includes('allowInternalDeliveryWithoutTax')) {
+      throw new DomainError(
+        'VAN_POLICY_KEY_OUT_OF_SCOPE',
+        'الإعفاء من ضريبة التسليم الداخلي قرارٌ ضريبيّ يُضبط في موضع الضرائب لا في سياسة عجز العهدة — لم يُكتب شيء.',
+        422,
+        { field: 'allowInternalDeliveryWithoutTax' },
+      );
+    }
+    const unknown = given.filter((key) => !(WRITABLE as readonly string[]).includes(key));
+    if (unknown.length > 0) {
+      throw new DomainError(
+        'VAN_POLICY_KEY_UNKNOWN',
+        `مفاتيح غير معروفة في سياسة العجز: ${unknown.join('، ')} — المفاتيح المقبولة: ${WRITABLE.join('، ')}. لم يُكتب شيء.`,
+        422,
+        { field: unknown[0] ?? 'policy' },
+      );
+    }
+    if (given.length === 0) {
+      throw new DomainError(
+        'VAN_POLICY_NOTHING_TO_WRITE',
+        'لا شيء للكتابة: أرسل مفتاحاً واحداً على الأقل من سياسة العجز.',
+        422,
+        { field: 'policy' },
+      );
+    }
+    if (
+      body.shortageValuationBasis !== undefined &&
+      body.shortageValuationBasis !== null &&
+      !['unconfigured', 'unit_cost', 'selling_price'].includes(body.shortageValuationBasis)
+    ) {
+      throw new DomainError(
+        'VAN_SHORTAGE_BASIS_UNKNOWN',
+        `أساس تقييم العجز «${String(
+          body.shortageValuationBasis,
+        )}» غير معروف — المقبول: unconfigured (بلا سياسة) · unit_cost (التكلفة) · selling_price (سعر البيع).`,
+        422,
+        { field: 'shortageValuationBasis' },
+      );
+    }
+    if (
+      typeof body.shortageUnitPrice === 'string' &&
+      body.shortageUnitPrice.trim() !== '' &&
+      !/^\d{1,14}(\.\d{1,6})?$/.test(body.shortageUnitPrice.trim())
+    ) {
+      throw new DomainError(
+        'VAN_SHORTAGE_PRICE_INVALID',
+        `سعر العجز الصريح «${body.shortageUnitPrice}» ليس رقمًا موجبًا — اكتب رقمًا (أو أرسل null لمسحه).`,
+        422,
+        { field: 'shortageUnitPrice' },
+      );
+    }
+
+    return withTenantTx(this.database.db, tenantId, async (tx) => {
+      const before = await this.loadTenantPolicyInTx(tx, tenantId);
+      const next: Record<string, unknown> = { ...before };
+      if (body.shortageValuationBasis !== undefined) {
+        if (body.shortageValuationBasis === null) delete next.shortageValuationBasis;
+        else next.shortageValuationBasis = body.shortageValuationBasis;
+      }
+      if (body.shortageUnitPrice !== undefined) {
+        const priceText =
+          typeof body.shortageUnitPrice === 'string' ? body.shortageUnitPrice.trim() : '';
+        if (body.shortageUnitPrice === null || priceText === '') delete next.shortageUnitPrice;
+        else next.shortageUnitPrice = dec(priceText).toFixed(4);
+      }
+      if (body.preventSelfApproval !== undefined) {
+        if (body.preventSelfApproval === null) delete next.preventSelfApproval;
+        else next.preventSelfApproval = body.preventSelfApproval;
+      }
+
+      await tx.execute(sql`
+        INSERT INTO tenant_settings (tenant_id, key, value, updated_at)
+        VALUES (${tenantId}::uuid, 'van_sales.policy', ${JSON.stringify(next)}::jsonb, now())
+        ON CONFLICT (tenant_id, key)
+        DO UPDATE SET value = EXCLUDED.value, updated_at = now()
+      `);
+      await this.audit.recordInTx(tx, {
+        tenantId,
+        actorUserId: userId,
+        action: 'van_sales.policy.update',
+        entity: 'tenant_setting',
+        entityId: 'van_sales.policy',
+        before,
+        after: next,
+        meta: { changedKeys: given },
+      });
+      const explicitPrice =
+        typeof next.shortageUnitPrice === 'string' && dec(next.shortageUnitPrice).gt(0)
+          ? dec(next.shortageUnitPrice).toFixed(4)
+          : null;
+      const basis =
+        typeof next.shortageValuationBasis === 'string' ? next.shortageValuationBasis : 'unconfigured';
+      return {
+        shortageValuationBasis: basis,
+        shortageUnitPrice: explicitPrice,
+        preventSelfApproval: next.preventSelfApproval === true,
+        valuationSource: explicitPrice ? 'explicit_policy_price' : basis,
+        configured: basis !== 'unconfigured' || Boolean(explicitPrice),
+      };
+    });
   }
 
   private async resolveDefaultBranchIdInTx(
@@ -375,6 +624,8 @@ export class VanSalesService {
                  l.received_at, l.received_by::text, l.actual_remaining_qty::text,
                  l.stock_adjustment_id::text, l.remaining_action, l.stock_settlement_status,
                  l.stock_settlement_note, l.damage_journal_entry_id::text,
+                 l.shortage_journal_entry_id::text, l.shortage_charge_basis,
+                 l.shortage_charge_amount::text,
                  l.return_inventory_tx_id::text,
                  l.sold_qty::text, l.bonus_qty::text,
                  l.returned_qty::text, l.damaged_qty::text,
@@ -935,8 +1186,13 @@ export class VanSalesService {
             remainingInventoryTxId: row.return_inventory_tx_id ? str(row.return_inventory_tx_id) : null,
             /**
              * 💵 قيمة فرق الجرد **على أساس التكلفة** — وهي قيمة التسوية المخزنية التي
-             * يرحّلها مستند الجرد الرسمي، لا ديناً على المندوب. الرقم المرجعي بسعر البيع
-             * (`shortageValue`) يبقى معروضاً بوصفه تقديراً للمراجعة فقط.
+             * يرحّلها مستند الجرد الرسمي.
+             *
+             * وأمّا `shortageValue` فلم تعد «تقديراً للمراجعة فقط» منذ الشريحة 4: حين يعتمد
+             * المحاسب تحميل العجز على المندوب (`salaryDeductionApproved`) تُرحَّل قيمتها نفسها
+             * ديناً على حساب الموظف (`shortageChargeAmount` = `shortageValue`)، فأساس تقييمها
+             * سياسةٌ مكتوبة (`van_sales.policy`) لا رقمٌ مرجعي — ويُكتب الأساس مع القيد في
+             * `shortageChargeBasis` لأنّ «بكم حُوسب» جزءٌ من الدليل.
              */
             countVarianceCostValue: (countDocumentPosted
               ? dec(row.count_document_variance_value)
@@ -951,6 +1207,13 @@ export class VanSalesService {
             stockSettlementStatus: str(row.stock_settlement_status || 'not_required'),
             stockSettlementNote: str(row.stock_settlement_note),
             damageJournalEntryId: row.damage_journal_entry_id ? str(row.damage_journal_entry_id) : null,
+            shortageJournalEntryId: row.shortage_journal_entry_id
+              ? str(row.shortage_journal_entry_id)
+              : null,
+            shortageChargeBasis: row.shortage_charge_basis ? str(row.shortage_charge_basis) : null,
+            shortageChargeAmount: row.shortage_charge_amount
+              ? dec(row.shortage_charge_amount).toFixed(4)
+              : null,
             awaitingStockSettlement: str(row.status) === 'pending_stock_settlement',
             awaitingTransitDecision: str(row.stock_settlement_status) === 'pending_transit_decision',
             maxBonusQty: dec(row.max_bonus_qty).toFixed(2),
@@ -3647,12 +3910,12 @@ export class VanSalesService {
     tenantId: string,
     loadOrder: Record<string, unknown>,
     policy: VanSalesTenantPolicy,
-  ): Promise<Decimal> {
+  ): Promise<{ price: Decimal; basis: ShortageChargeBasis }> {
     if (policy.shortageUnitPrice && dec(policy.shortageUnitPrice).gt(0)) {
-      return dec(policy.shortageUnitPrice);
+      return { price: dec(policy.shortageUnitPrice), basis: 'explicit_policy_price' };
     }
     if (policy.shortageValuationBasis === 'unit_cost' && dec(loadOrder.unit_cost).gt(0)) {
-      return dec(loadOrder.unit_cost);
+      return { price: dec(loadOrder.unit_cost), basis: 'unit_cost' };
     }
     const avgDocRow = first(
       await tx.execute(sql`
@@ -3665,7 +3928,7 @@ export class VanSalesService {
       `),
     );
     if (avgDocRow?.avg_price && dec(avgDocRow.avg_price).gt(0)) {
-      return dec(avgDocRow.avg_price);
+      return { price: dec(avgDocRow.avg_price), basis: 'average_document_price' };
     }
     if (loadOrder.item_id) {
       const itemRow = first(
@@ -3676,18 +3939,18 @@ export class VanSalesService {
         `),
       );
       if (itemRow?.sale_price && dec(itemRow.sale_price).gt(0)) {
-        return dec(itemRow.sale_price);
+        return { price: dec(itemRow.sale_price), basis: 'item_sale_price' };
       }
       if (itemRow?.cost_price && dec(itemRow.cost_price).gt(0)) {
-        return dec(itemRow.cost_price);
+        return { price: dec(itemRow.cost_price), basis: 'item_purchase_price' };
       }
     }
     const loadedQty = dec(loadOrder.loaded_qty);
     const loadedVal = dec(loadOrder.loaded_total_value);
     if (loadedQty.gt(0) && loadedVal.gt(0)) {
-      return loadedVal.div(loadedQty);
+      return { price: loadedVal.div(loadedQty), basis: 'loaded_average' };
     }
-    return dec(loadOrder.unit_cost);
+    return { price: dec(loadOrder.unit_cost), basis: 'load_order_unit_cost' };
   }
 
   /**
@@ -3780,7 +4043,7 @@ export class VanSalesService {
        * in the van; the shortage is only what the physical count cannot show. */
       const expectedRemaining = loaded.minus(accountedQty);
       const shortageQty = Decimal.max(0, expectedRemaining.minus(actualRemainingQty));
-      const unitChargePrice = await this.resolveShortageUnitPriceInTx(
+      const { price: unitChargePrice } = await this.resolveShortageUnitPriceInTx(
         tx,
         tenantId,
         loadOrder,
@@ -4030,18 +4293,14 @@ export class VanSalesService {
       const needsRemainingMove = actualRemainingQty.gt(0) && remainingAction === 'return_to_main';
       const requiresStockSettlement = needsCountSettlement || needsRemainingMove;
 
-      const unitChargePrice = await this.resolveShortageUnitPriceInTx(
-        tx,
-        tenantId,
-        loadOrder,
-        policy,
-      );
+      const { price: unitChargePrice, basis: unitChargeBasis } =
+        await this.resolveShortageUnitPriceInTx(tx, tenantId, loadOrder, policy);
       const shortageValue = shortageQty.mul(unitChargePrice);
       const damageInspected = damagedQty.gt(0) ? body.damageInspected === true : false;
       // Phase 4: Never assume salary deduction is approved unless explicitly passed as true
       const salaryDeductionApproved =
         shortageQty.gt(0) ? body.salaryDeductionApproved === true : false;
-      const shortagePolicyStatus =
+      let shortagePolicyStatus =
         policy.shortageValuationBasis && policy.shortageValuationBasis !== 'unconfigured'
           ? 'policy_configured'
           : 'pending_policy_approval';
@@ -4224,6 +4483,128 @@ export class VanSalesService {
         }
       }
 
+      /**
+       * 🧾 عجز العهدة المحمَّل على المندوب — الشريحة 4.
+       *
+       * قرار المالك: العجز يقع **مديونيةً على الموظف**، يُقيَّم **بالتكلفة**، وزنادُه
+       * **اعتمادٌ صريح لكلّ حالة** (`salaryDeductionApproved`) — وبلا هذا العلم لا يُرحَّل شيء
+       * إطلاقاً (لا قيود عجز تلقائية). وما كان قبل هذا القيد: العلم يُخزَّن ولا يستهلكه شيء،
+       * فـ«العجز على المندوب» كان قراراً موثّقاً وقيمةً محسوبة بلا تنفيذٍ مالي.
+       *
+       * المدين حسابُ الموظف نفسه في الدليل (`employees.employee_account_id`، يُنشئه HRM تحت
+       * الجذر `2241`) — وعاءٌ قائم لا جدولٌ جديد ولا طرفٌ جديد، واتجاهه مطابقٌ لما تكتبه
+       * سلفة/خصم في `hrm.service.ts:806`: «debits the employee's own account … the employee now
+       * owes». والدائن من ملف الترحيل بنوع المستند `van_shortage_charge`
+       * (`shortageChargeAccountId` ثم `inventoryAdjustmentAccountId` الذي امتصّ الفقد أولاً) —
+       * وناقصُ الطرفين ⇒ **422 ولا يمرّ الاعتماد**: قرارٌ ماليّ صريح لا يُتجاهل بصمت كما يُتجاهل
+       * قيد التلف غير المربوط، ولا يُختلَع حسابٌ داخل معاملة إغلاق.
+       */
+      let shortageJournalEntryId: string | null = loadOrder.shortage_journal_entry_id
+        ? str(loadOrder.shortage_journal_entry_id)
+        : null;
+      let shortageChargeBasis: string | null = loadOrder.shortage_charge_basis
+        ? str(loadOrder.shortage_charge_basis)
+        : null;
+      let shortageChargeAmount: string | null = loadOrder.shortage_charge_amount
+        ? dec(loadOrder.shortage_charge_amount).toFixed(4)
+        : null;
+      if (!shortageJournalEntryId && salaryDeductionApproved && shortageValue.gt(0)) {
+        const chargeBranchId = await this.resolveDefaultBranchIdInTx(
+          tx,
+          tenantId,
+          loadOrder.branch_id ? str(loadOrder.branch_id) : null,
+          warehouseId,
+        );
+        const chargeEmployee = first(
+          await tx.execute(sql`
+            SELECT e.id::text, e.name, e.employee_no, e.employee_account_id::text
+            FROM salesmen s
+              JOIN employees e ON e.id = s.employee_id
+            WHERE s.id = ${str(loadOrder.salesman_id)}::uuid
+              AND s.tenant_id = ${tenantId}::uuid
+              AND e.deleted_at IS NULL
+            LIMIT 1
+          `),
+        );
+        if (!chargeEmployee) {
+          throw new DomainError(
+            'VAN_SHORTAGE_EMPLOYEE_REQUIRED',
+            `اعتمدتَ تحميل العجز على المندوب «${str(
+              loadOrder.salesman_name || 'غير محدد',
+            )}» ولا بطاقة موظف مرتبطة به — لا تُنشأ ذمّةٌ على اسمٍ بلا موظف. اربط المندوب ببطاقة موظف (بطاقات المندوبين → تعديل) ثم أعد الاعتماد.`,
+            422,
+            { field: 'salaryDeductionApproved' },
+          );
+        }
+        if (!chargeEmployee.employee_account_id) {
+          throw new DomainError(
+            'VAN_SHORTAGE_EMPLOYEE_ACCOUNT_REQUIRED',
+            `لا يوجد حساب في دليل الحسابات للموظف «${str(
+              chargeEmployee.name,
+            )}» — الذمّة تحتاج حساباً باسمه (ينشئه HRM تلقائياً تحت «موظفين الفرع الرئيسي» عند أول حركة راتب). أنشئ الحساب ثم أعد الاعتماد.`,
+            422,
+            { field: 'salaryDeductionApproved' },
+          );
+        }
+        const chargeProfile = chargeBranchId
+          ? await this.resolvePostingProfileOrNullInTx(
+              tx,
+              tenantId,
+              chargeBranchId,
+              'van_shortage_charge',
+            )
+          : null;
+        const chargeCreditAccountId =
+          chargeProfile?.shortageChargeAccountId ?? chargeProfile?.inventoryAdjustmentAccountId ?? null;
+        if (!chargeBranchId || !chargeCreditAccountId) {
+          throw new DomainError(
+            'VAN_SHORTAGE_ACCOUNTS_INCOMPLETE',
+            `اعتمدتَ تحميل العجز على المندوب ولم يُربط الحساب الدائن: اربط «shortageChargeAccountId» (أو «inventoryAdjustmentAccountId») لنوع المستند «van_shortage_charge» في ملف ترحيل الفرع — فلا قيدٌ بلا طرفين، ولا يُختلَع حساب.`,
+            422,
+            { field: 'shortageChargeAccountId' },
+          );
+        }
+        const chargeDate = new Date().toISOString().slice(0, 10);
+        const chargePeriodId = await this.accounting.openPeriodForDateInTx(tx, tenantId, chargeDate);
+        const chargeAmount = shortageValue.toFixed(4);
+        const chargeEntry = await this.accounting.postJournalInTx(tx, tenantId, {
+          branchId: chargeBranchId,
+          fiscalPeriodId: chargePeriodId,
+          date: chargeDate,
+          description: `تحميل عجز عهدة على ذمّة المندوب — ${str(loadOrder.number)}`,
+          lines: [
+            {
+              accountId: str(chargeEmployee.employee_account_id),
+              debit: chargeAmount,
+              description: `عجز عهدة معتمد على الموظف ${str(chargeEmployee.name)}${
+                chargeEmployee.employee_no ? ` (${str(chargeEmployee.employee_no)})` : ''
+              } — أساس التقييم: ${unitChargeBasis}`,
+            },
+            {
+              accountId: chargeCreditAccountId,
+              credit: chargeAmount,
+              description: `نقل عجز ${shortageQty.toFixed(2)} من مصروف الفقد إلى ذمّة الموظف — ${str(
+                loadOrder.number,
+              )}`,
+            },
+          ],
+          sourceType: 'van_shortage_charge',
+          sourceId: loadOrderId,
+          idempotencyKey: `van-shortage-charge:${loadOrderId}`,
+        });
+        if (!chargeEntry?.id) {
+          throw new DomainError(
+            'VAN_SHORTAGE_ENTRY_NOT_POSTED',
+            'لم يُرحَّل قيد تحميل العجز على المندوب — أعِد المحاولة، وإن تكرّر فالخطأ في محرك القيود لا في الاعتماد',
+            500,
+          );
+        }
+        shortageJournalEntryId = str(chargeEntry.id);
+        shortageChargeBasis = unitChargeBasis;
+        shortageChargeAmount = chargeAmount;
+        shortagePolicyStatus = 'charged_to_employee';
+      }
+
       await tx.execute(sql`
         UPDATE van_load_orders
         SET status = ${requiresStockSettlement ? 'pending_stock_settlement' : 'settled'},
@@ -4238,6 +4619,15 @@ export class VanSalesService {
             damage_inspected = ${damageInspected},
             damage_inspected_by = ${damageInspected ? userId : null}::uuid,
             damage_journal_entry_id = COALESCE(${damageJournalEntryId}::uuid, damage_journal_entry_id),
+            shortage_journal_entry_id = COALESCE(
+              ${shortageJournalEntryId}::uuid,
+              shortage_journal_entry_id
+            ),
+            shortage_charge_basis = COALESCE(${shortageChargeBasis}::text, shortage_charge_basis),
+            shortage_charge_amount = COALESCE(
+              ${shortageChargeAmount}::numeric(18,4),
+              shortage_charge_amount
+            ),
             salary_deduction_approved = ${salaryDeductionApproved},
             remaining_action = COALESCE(${remainingAction}::text, remaining_action),
             stock_settlement_status = ${

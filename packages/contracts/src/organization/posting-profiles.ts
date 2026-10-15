@@ -49,6 +49,22 @@ export const docTypeSchema = z.enum([
    */
   'manufacturing_order',
   'production_order',
+  /**
+   * **الشريحة 4 (مخابز وتوزيع)** — عجز العهدة المحمَّل على المندوب.
+   *
+   * العجز كان **قيمةً محسوبة وعلماً مسجّلاً بلا تنفيذ**: `approveClosing` يحسب
+   * `salaryDeductionApproved` (ولا يفترضه أبداً) ويخزّنه، ولا يستهلكه شيء — فلا ذمم ولا قيد.
+   * وقرار المنشأة صار صريحاً: العجز المعتمد يقع **مديونيةً على الموظف** بقيمة **التكلفة**،
+   * وزنادُه اعتمادُ كلّ حالة. والمدين حسابُ الموظف نفسه في الدليل (`employees.employee_account_id`
+   * تحت الجذر `2241`) — وهو وعاءٌ قائم، فالاتجاه مطابقٌ لما يكتبه تعديل الراتب من نوع خصم/سلفة
+   * في `hrm.service.ts`: «debits the employee's own account … the employee now owes».
+   *
+   * والدائن من هذا الملف (`shortageChargeAccountId`، أو `inventoryAdjustmentAccountId` الذي
+   * امتصّ الفقد أولاً) — وناقصهما ⇒ 422 ولا يمرّ الاعتماد: قرارٌ ماليّ صريح لا يُتجاهل بصمت،
+   * ولا يُختلَع حساب. إضافةٌ صرفة: لا تغيّر ملفاً قائماً، وبلا علمٍ صريح لا يُرحَّل شيء إطلاقاً
+   * (لا قيود عجز تلقائية).
+   */
+  'van_shortage_charge',
 ]);
 
 export type DocType = z.infer<typeof docTypeSchema>;
@@ -86,6 +102,13 @@ export const POST_PROFILE_ACCOUNT_KEYS = [
    */
   'openingBalanceAccountId',
   'inventoryAdjustmentAccountId',
+  /**
+   * **الشريحة 4** — الدائن في قيد عجز العهدة المحمَّل على المندوب: الحساب الذي امتصّ الفقد
+   * (مصروف عجز/فقد مخزني) فينتقل منه إلى ذمّة الموظف. وإن لم يُربط يُستعمل
+   * `inventoryAdjustmentAccountId` القائم — فهو عادةً الحساب نفسه في ملفّ `*` — ولا يُختلَع
+   * حسابٌ إن غاب الاثنان (422 `VAN_SHORTAGE_ACCOUNTS_INCOMPLETE`).
+   */
+  'shortageChargeAccountId',
   'stockInTransitAccountId',
   'cashAccountId',
   'bankAccountId',

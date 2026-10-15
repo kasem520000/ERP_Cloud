@@ -35,6 +35,8 @@ describe('Factory, Bakery & Van Sales 10-pillar workflow & 6-Phase Core Integrat
         'sales.view',
         'sales.invoice.create',
         'accounting.period.close',
+        // 🧾 الشريحة 4: التجهيز ينشئ حساب ذمّة الموظف عبر واجهة المحاسبة الرسمية.
+        'accounting.account.manage',
         /**
          * 🚐 صلاحيات التوزيع صريحةً — since the `permissionGrants` narrowing (§5), a sales
          * permission no longer implies the approval/management codes of the distribution module
@@ -174,6 +176,48 @@ describe('Factory, Bakery & Van Sales 10-pillar workflow & 6-Phase Core Integrat
       await tx.execute(sql`
         INSERT INTO parties (id, tenant_id, code, kind, name, tax_no, credit_limit)
         VALUES (${partyId}::uuid, ${owner.tenantId}::uuid, 'CUST-01', 'customer', 'تموينات النور', '300000000000003', 5000)
+      `);
+    });
+
+    /**
+     * 🧾 حساب الموظف في الدليل — **الشريحة 4 غيّرت هذه الحالة عمداً**.
+     *
+     * كان `salaryDeductionApproved` علماً يُخزَّن ولا يستهلكه شيء، فاعتمادُ التحميل يمرّ ولو لم
+     * يكن للموظف حساب. وصار الاعتماد الصريح **يُرحِّل قيداً**: مدينٌ حسابُ الموظف نفسه
+     * (`employees.employee_account_id`)، ودائنُه الحساب المربوط لنوع المستند
+     * `van_shortage_charge` (أو `inventoryAdjustmentAccountId` من الملف العام) — وناقصُهما ⇒
+     * 422 ولا يمرّ الاعتماد، فقرارٌ ماليّ صريح لا يُتجاهل بصمت ولا يُختلَع له حساب.
+     *
+     * فتهيّئ الحالة ما تهيّؤه المنشأة الحقيقية: حساباً تحت جذر ذمم الموظفين `2241` مربوطاً
+     * ببطاقة الموظف (الربط نفسه الذي تكتبه `hrm.service.ts:593`).
+     */
+    const employeeRoot = await withTenantTx(ctx.handle.db, owner.tenantId, async (tx) => {
+      const rows = await tx.execute(sql`
+        SELECT id::text, type, normal_balance FROM accounts
+        WHERE tenant_id = ${owner.tenantId}::uuid AND code = '2241' AND deleted_at IS NULL
+        LIMIT 1
+      `);
+      return (rows as { rows: Array<Record<string, string>> }).rows[0];
+    });
+    expect(employeeRoot, 'the seeded chart must carry the employee-debt root 2241').toBeTruthy();
+    const repAccount = await api(ctx.server, 'post', '/api/v1/accounts', {
+      token: owner.token,
+      body: {
+        code: '2241901',
+        nameAr: 'مندوب التوزيع الأول — ذمم عهدة',
+        type: employeeRoot.type,
+        normalBalance: employeeRoot.normal_balance,
+        parentId: employeeRoot.id,
+        isPostable: true,
+      },
+    });
+    expect(repAccount.status, JSON.stringify(repAccount.body).slice(0, 300)).toBe(201);
+    await withTenantTx(ctx.handle.db, owner.tenantId, async (tx) => {
+      await tx.execute(sql`
+        UPDATE employees SET employee_account_id = ${
+          (repAccount.body.data as { id: string }).id
+        }::uuid
+        WHERE id = ${repEmployeeId}::uuid AND tenant_id = ${owner.tenantId}::uuid
       `);
     });
   });
@@ -558,6 +602,28 @@ describe('Factory, Bakery & Van Sales 10-pillar workflow & 6-Phase Core Integrat
     expect(approvedOrder.stockAdjustmentId).toBeTruthy(); // official count document, still a draft
     expect(Number(approvedOrder.remainingQty)).toBe(0);
     expect(approvedOrder.damageInspected).toBe(true);
+    /**
+     * 🧾 الشريحة 4: العلم صار دليلاً — الاعتماد الصريح للتحميل على المندوب رُحِّل قيداً
+     * (مدينٌ حسابُ الموظف)، والحالة `charged_to_employee` لا `pending_policy_approval`.
+     * والأساس مكتوبٌ معه لأن السياسة هنا غير مضبوطة (`unconfigured`) فالتقييم سقط إلى
+     * سلسلة الاحتياط — و«بكم حُوسب» جزءٌ من الدليل لا استنتاجٌ لاحق.
+     */
+    const chargeEvidence = await withTenantTx(ctx.handle.db, owner.tenantId, async (tx) => {
+      const rows = await tx.execute(sql`
+        SELECT shortage_policy_status, shortage_charge_basis,
+               shortage_charge_amount::text AS charge_amount,
+               shortage_journal_entry_id::text AS charge_entry_id
+        FROM van_load_orders
+        WHERE id = ${loadOrderId}::uuid AND tenant_id = ${owner.tenantId}::uuid
+      `);
+      const row = (rows as { rows: Array<Record<string, string | null>> }).rows[0];
+      if (!row) throw new Error('load order vanished');
+      return row;
+    });
+    expect(chargeEvidence.shortage_policy_status).toBe('charged_to_employee');
+    expect(chargeEvidence.charge_entry_id).toBeTruthy();
+    expect(chargeEvidence.shortage_charge_basis).toBeTruthy();
+    expect(Number(chargeEvidence.charge_amount)).toBeGreaterThan(0);
     expect(approvedOrder.salaryDeductionApproved).toBe(true);
 
     // 11b. The authorised approver settles the count: the official van balance becomes the count.
