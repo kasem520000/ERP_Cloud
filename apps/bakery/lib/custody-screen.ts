@@ -14,6 +14,7 @@ import {
   type ClosingDraft,
   type CustodyQuantities,
 } from '@erp/web-van/custody';
+import { num } from '@erp/web-van/production';
 
 import { numberText } from './lookups';
 
@@ -57,6 +58,13 @@ export type CustodyRow = ChargeRow &
     countVarianceQty?: string | number | null;
     countVarianceCostValue?: string | number | null;
     stockAdjustmentId?: string | null;
+    /**
+     * مستند الجرد الرسمي كما رحّله المحرّك: الرصيد المتوقع لحظة الترحيل، وفرقه **كميةً وقيمةً**.
+     * ‏`null` حين لم يُرحَّل (المسودة تحمل أصفاراً فلا تُعرض كأنّها مُرحَّلة).
+     */
+    countDocumentExpectedQty?: string | number | null;
+    countDocumentVarianceQty?: string | number | null;
+    countDocumentVarianceValue?: string | number | null;
     remainingAction?: string | null;
     stockSettlementStatus?: string | null;
     stockSettlementNote?: string | null;
@@ -256,4 +264,49 @@ export function custodyLabel(row: CustodyRow): string {
   if (row.itemName) parts.push(row.itemName);
   if (parts.length === 0) return row.id ?? '—';
   return parts.join(' · ');
+}
+
+/**
+ * 🧾 تدقيق مستند الجرد — ما امتصّه المستند خارج اعتماد هذا الأمر.
+ *
+ * مستند الجرد **مطلق**: `createAdjustment` يُنشأ بـ`countedQty = actual_remaining_qty`، فيضبط
+ * رصيد السيارة على العدد المُعلن، وفرقُه يُحسب من الرصيد الرسمي لحظة الترحيل
+ * (‏`countDocumentExpectedQty`) — بينما فرقُ الاعتماد (`countVarianceQty`) محسوبٌ من عهدة هذا
+ * الأمر وحده (`loaded − sold − bonus − returned − damaged − actual`). وحين تحمل السيارة عهدةً
+ * أخرى (‏`carry_over` من ورديةٍ سابقة، أو بضاعةَ مندوبٍ آخر في سيارةٍ مشتركة) يقع الفرق بين
+ * الرقمين في مستند الجرد — في حساب تسويات المخزون — ولا يقع في عهدة أحد.
+ *
+ * الخادم يعرفها ويكتبها: `absorbedVariance` في `runStockSettlement` تُضاف تحذيراً إلى
+ * `stock_settlement_note`. وهذه الدالة تُظهر الرقمين معاً كما جاءا، **بلا استنتاجٍ من الشاشة**:
+ * الامتصاص = |كمية فرق المستند| − |فرق الاعتماد|، وكلاهما من صفّ الخادم، والناقص «—».
+ */
+export function countSettlementAudit(row: CustodyRow): {
+  posted: boolean;
+  absorbed: boolean;
+  absorbedQtyText: string;
+  documentExpectedText: string;
+  documentVarianceQtyText: string;
+  documentVarianceValueText: string;
+  approvedVarianceText: string;
+  noteText: string | null;
+} {
+  const expected = row.countDocumentExpectedQty ?? null;
+  const documentVariance = row.countDocumentVarianceQty ?? null;
+  const posted = expected !== null && documentVariance !== null;
+  // الاصطلاحان مختلفان إشارةً: محرّك المخزون يكتب `counted − expected` (سالبٌ عند العجز)،
+  // والعهدة تكتب `expected − counted` (موجبٌ عند العجز) — فالمقارنة بين المقدارين، لا بين
+  // الرقمين بإشارتيهما، وإلا صار الفائض امتصاصاً مُختلَعاً.
+  const absorbedQty = num(documentVariance).abs().minus(num(row.countVarianceQty ?? null).abs());
+  const absorbed = posted && absorbedQty.gt(0);
+  const note = row.stockSettlementNote?.trim();
+  return {
+    posted,
+    absorbed,
+    absorbedQtyText: absorbed ? absorbedQty.toFixed(2) : '—',
+    documentExpectedText: numberText(expected),
+    documentVarianceQtyText: numberText(documentVariance),
+    documentVarianceValueText: numberText(row.countDocumentVarianceValue ?? null),
+    approvedVarianceText: numberText(row.countVarianceQty ?? null),
+    noteText: note ? note : null,
+  };
 }

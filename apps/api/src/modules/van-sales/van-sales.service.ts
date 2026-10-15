@@ -612,6 +612,14 @@ export class VanSalesService {
         `),
       );
 
+      /**
+       * 🧾 ومن مستند الجرد الرسمي تُقرأ **كميةُ** فرقه (`variance_qty`) لا قيمتها وحدها: المستند
+       * مطلقٌ — يضبط رصيد السيارة على العدد المُعلن، وفرقُه من الرصيد الرسمي لحظة الترحيل
+       * (`expected_qty`) — بينما فرقُ الاعتماد (`countVarianceQty`) من عهدة هذا الأمر وحده. فما
+       * زاد بين الرقمين خرج من المخزون إلى حساب التسويات ولم يقع في عهدة أحد، والخادم يعرفها
+       * (`absorbedVariance` في `runStockSettlement` تكتب تحذيراً في `stock_settlement_note`) —
+       * وهنا تُعرض رقمين كي تراها الشاشة، لا نصّاً وحده.
+       */
       const loadOrders = rows(
         await tx.execute(sql`
           SELECT l.id::text, l.number, l.load_date::text, l.production_batch_no,
@@ -634,6 +642,9 @@ export class VanSalesService {
                  (SELECT sal.variance_value::text FROM stock_adjustment_lines sal
                    WHERE sal.adjustment_id = l.stock_adjustment_id
                    ORDER BY sal.line_no ASC LIMIT 1) AS count_document_variance_value,
+                 (SELECT sal.variance_qty::text FROM stock_adjustment_lines sal
+                   WHERE sal.adjustment_id = l.stock_adjustment_id
+                   ORDER BY sal.line_no ASC LIMIT 1) AS count_document_variance_qty,
                  (SELECT sal.expected_qty::text FROM stock_adjustment_lines sal
                    WHERE sal.adjustment_id = l.stock_adjustment_id
                    ORDER BY sal.line_no ASC LIMIT 1) AS count_document_expected_qty,
@@ -1201,6 +1212,10 @@ export class VanSalesService {
             ).toFixed(2),
             countDocumentVarianceValue: countDocumentPosted
               ? dec(row.count_document_variance_value).toFixed(2)
+              : null,
+            /** الكمية لا القيمة — تُعرض جنباً إلى جنب مع فرق الاعتماد لكشف ما امتصّه المستند. */
+            countDocumentVarianceQty: countDocumentPosted
+              ? dec(row.count_document_variance_qty).abs().toFixed(2)
               : null,
             countDocumentExpectedQty: countDocumentPosted
               ? dec(row.count_document_expected_qty).toFixed(2)

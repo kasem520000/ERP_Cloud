@@ -29,6 +29,7 @@ import {
   approvalDraftFromRow,
   cashPosition,
   chargeEvidence,
+  countSettlementAudit,
   custodyLabel,
   emptyClosingDraft,
   mapCustodyRows,
@@ -303,6 +304,19 @@ export default function CustodyPage() {
   const evidence = selected ? chargeEvidence(selected) : null;
   const cash = selected ? cashPosition(selected) : null;
   const unsettled = selected ? unsettledStockReason(selected) : null;
+  const selectedAudit = selected ? countSettlementAudit(selected) : null;
+  /**
+   * 🧾 ما امتصّه مستند الجرد خارج الاعتماد — من **كلّ** الصفوف لا المعلّقة وحدها: المستند
+   * يُرحَّل عند الإقفال، فصفُّه `settled` ولم يعد في «عهدات تنتظر قراراً». والأرقام من الخادم
+   * (‏`countDocumentExpectedQty` / `countDocumentVarianceQty` مقابل `countVarianceQty`).
+   */
+  const absorbedAudits = useMemo(
+    () =>
+      rows
+        .map((row) => ({ row, audit: countSettlementAudit(row) }))
+        .filter((entry) => entry.audit.absorbed),
+    [rows],
+  );
 
   return (
     <section className="grid gap-4">
@@ -615,6 +629,62 @@ export default function CustodyPage() {
         </CardBody>
       </Card>
 
+      <Card>
+        <CardHeader
+          subtitle="مستند الجرد الرسمي مطلق: يضبط رصيد السيارة على العدد المُعلن، وفرقه يُحسب من الرصيد الرسمي لحظة الترحيل — بينما فرق الاعتماد محسوبٌ من عهدة هذا الأمر وحده. فما زاد خرج من المخزون إلى حساب التسويات ولم يقع في عهدة أحد، والخادم نفسه يكتبه تحذيراً في stock_settlement_note. والأرقام هنا أرقامه، لا تقدير الشاشة."
+          title={`تدقيق مستندات الجرد: ما امتصّه المستند خارج أمره (${absorbedAudits.length})`}
+        />
+        <CardBody>
+          {absorbedAudits.length === 0 ? (
+            <p className="m-0 text-[13px] leading-relaxed text-muted">
+              لا مستند جردٍ مُرحَّل امتصّ حركةً خارج أمره. وما لم يُرحَّل بعد لا يُعرض هنا كأنّه
+              مُرحَّل: غياب أرقام المستند عن الصفّ يعني مسودةً أو أمراً لم يُسوَّ مخزونياً.
+            </p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse text-[12.5px]">
+                <thead>
+                  <tr className="text-muted">
+                    <th className="border-b border-line p-2 text-right font-bold">الأمر</th>
+                    <th className="border-b border-line p-2 text-right font-bold">
+                      رصيد السيارة عند الترحيل
+                    </th>
+                    <th className="border-b border-line p-2 text-right font-bold">فرق المستند (كمية)</th>
+                    <th className="border-b border-line p-2 text-right font-bold">قيمته</th>
+                    <th className="border-b border-line p-2 text-right font-bold">فرق الاعتماد</th>
+                    <th className="border-b border-line p-2 text-right font-bold">الممتصّ خارج الأمر</th>
+                    <th className="border-b border-line p-2 text-right font-bold">ملاحظة الخادم</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {absorbedAudits.map(({ row, audit }) => (
+                    <tr key={row.id}>
+                      <td className="border-b border-line p-2">{custodyLabel(row)}</td>
+                      <td className="border-b border-line p-2 num" dir="ltr">
+                        {audit.documentExpectedText}
+                      </td>
+                      <td className="border-b border-line p-2 num" dir="ltr">
+                        {audit.documentVarianceQtyText}
+                      </td>
+                      <td className="border-b border-line p-2 num" dir="ltr">
+                        {audit.documentVarianceValueText}
+                      </td>
+                      <td className="border-b border-line p-2 num" dir="ltr">
+                        {audit.approvedVarianceText}
+                      </td>
+                      <td className="border-b border-line p-2 num font-extrabold text-warn-ink" dir="ltr">
+                        {audit.absorbedQtyText}
+                      </td>
+                      <td className="border-b border-line p-2 text-muted">{audit.noteText ?? '—'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </CardBody>
+      </Card>
+
       {/* ✍️ لوحة الإجراء — الأثر قبل الضغط */}
       {selected && actionKind ? (
         <Card>
@@ -660,6 +730,14 @@ export default function CustodyPage() {
                   {unsettled ? (
                     <span className="rounded-[8px] border border-warn-line bg-warn-soft px-2 py-1 font-semibold text-warn-ink">
                       ⚠️ {unsettled}
+                    </span>
+                  ) : null}
+                  {selectedAudit?.absorbed ? (
+                    <span className="rounded-[8px] border border-warn-line bg-warn-soft px-2 py-1 font-semibold text-warn-ink">
+                      ⚠️ مستند الجرد امتصّ <span dir="ltr">{selectedAudit.absorbedQtyText}</span> كجم
+                      خارج هذا الأمر — رصيد السيارة عند الترحيل{' '}
+                      <span dir="ltr">{selectedAudit.documentExpectedText}</span> مقابل فرقٍ معتمد{' '}
+                      <span dir="ltr">{selectedAudit.approvedVarianceText}</span>
                     </span>
                   ) : null}
                 </div>

@@ -1760,6 +1760,20 @@ describe('Van Sales end-to-end acceptance on official stock & accounting ledgers
     expect(shown?.shortageChargeAmount).toBe(expectedAmount);
     expect(shown?.shortagePolicyStatus).toBe('charged_to_employee');
 
+    // 🧾 مستند الجرد **مطلق**: كميتُه من الرصيد الرسمي للسيارة لحظة الترحيل، بينما فرقُ
+    // الاعتماد من عهدة هذا الأمر وحده — فالفرق بين الرقمين ما امتصّه المستند خارج الأمر
+    // (‏§6.4–6.5 من `BAKERY_APP_PHASE3_SLICE4_DESIGN.md`). يُثبَّت هنا بالعلاقة بين أرقام
+    // الخادم نفسه، لا برقمٍ مكتوب: المتوقَّع − المعدود = فرق المستند، وهو ≥ فرق الاعتماد.
+    const documentExpected = Number(String(shown?.countDocumentExpectedQty ?? ''));
+    const documentVariance = Number(String(shown?.countDocumentVarianceQty ?? ''));
+    const counted = Number(String(shown?.actualRemainingQty ?? ''));
+    expect(
+      Number.isFinite(documentExpected) && Number.isFinite(documentVariance),
+      'a posted count document must expose both its expected balance and its variance quantity',
+    ).toBe(true);
+    expect(documentVariance).toBeCloseTo(Math.abs(documentExpected - counted), 2);
+    expect(documentVariance).toBeGreaterThanOrEqual(Math.abs(Number(chargedRow.shortage_qty)));
+
     // ── الخطوة 12: حمولةٌ بلا دفعة إنتاج ⇒ «بالتكلفة» لا تنقلب سعرَ بيع ───────────────
     // `van_load_orders.unit_cost` مصدرها دفعة الإنتاج وحدها، فأمرٌ بلا دفعة يحمل 0. والتشغيل
     // الحيّ (‏2026-10-15، منشأة العرض) كشف أنّ السلسلة كانت تكمل إلى متوسط مستندات الأمر ثمّ

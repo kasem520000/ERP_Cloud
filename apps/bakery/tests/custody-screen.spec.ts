@@ -5,6 +5,7 @@ import {
   approvalDraftFromRow,
   cashPosition,
   chargeEvidence,
+  countSettlementAudit,
   custodyLabel,
   emptyClosingDraft,
   mapCustodyRows,
@@ -276,5 +277,70 @@ describe('custodyLabel — تسميةٌ من حقول الخادم', () => {
     expect(custodyLabel(row())).toBe('VLO-0007 · المندوب الأول · خبز بلدي');
     expect(custodyLabel(row({ number: null, salesmanName: null, itemName: null }))).toBe('lo-1');
     expect(custodyLabel({} as CustodyRow)).toBe('—');
+  });
+});
+
+describe('countSettlementAudit — ما امتصّه مستند الجرد خارج الاعتماد', () => {
+  // أرقام القياس الحيّ نفسه (‏`VLO-0005`، 2026-10-15): رصيد السيارة الرسمي 14.00 كجم، والجرد
+  // المُعلن 4.50، وفرقُ اعتماد هذا الأمر 1.50 — فمستند الجرد المطلق شطب 9.50، أي أنّ 8.00 كجم
+  // (عهدةً مُرحَّلة من `VLO-0004`) خرجت من المخزون ولم تقع في عهدة أحد.
+  const settled = row({
+    status: 'settled',
+    stockSettlementStatus: 'settled_officially',
+    actualRemainingQty: '4.50',
+    expectedRemainingQty: '6.00',
+    countVarianceQty: '1.50',
+    countDocumentExpectedQty: '14.00',
+    countDocumentVarianceQty: '9.50',
+    countDocumentVarianceValue: '9.50',
+    stockSettlementNote:
+      'سُوِّي رصيد السيارة رسمياً مع الجرد الفعلي (4.50 كجم) بفارق 1.50 كجم عبر مستند الجرد الرسمي — ⚠️ امتصّ مستند الجرد حركةً إضافية بمقدار 8.00 كجم لم تكن ضمن الاعتماد: راجع حركات السيارة في فترة التسوية',
+  });
+
+  it('الامتصاص من رقمَي الخادم، لا من تقدير الشاشة', () => {
+    const audit = countSettlementAudit(settled);
+    expect(audit.posted).toBe(true);
+    expect(audit.absorbed).toBe(true);
+    expect(audit.absorbedQtyText).toBe('8.00');
+    expect(audit.documentExpectedText).toBe('14.00');
+    expect(audit.documentVarianceQtyText).toBe('9.50');
+    expect(audit.documentVarianceValueText).toBe('9.50');
+    expect(audit.approvedVarianceText).toBe('1.50');
+    expect(audit.noteText).toContain('امتصّ مستند الجرد حركةً إضافية بمقدار 8.00 كجم');
+  });
+
+  it('تطابقُ الفرقين ⇒ لا امتصاص ولا تحذيرَ مُختلَع', () => {
+    const audit = countSettlementAudit(
+      row({
+        countVarianceQty: '2.00',
+        countDocumentExpectedQty: '10.00',
+        countDocumentVarianceQty: '2.00',
+      }),
+    );
+    expect(audit.posted).toBe(true);
+    expect(audit.absorbed).toBe(false);
+    expect(audit.absorbedQtyText).toBe('—');
+  });
+
+  it('الفائض لا ينقلب امتصاصاً — المقارنة بين المقدارين لا بين الإشارتين', () => {
+    const surplus = countSettlementAudit(
+      row({
+        countVarianceQty: '-2.00',
+        countDocumentExpectedQty: '10.00',
+        countDocumentVarianceQty: '2.00',
+      }),
+    );
+    expect(surplus.absorbed).toBe(false);
+    expect(surplus.absorbedQtyText).toBe('—');
+  });
+
+  it('مستندٌ لم يُرحَّل ⇒ لا أرقام ولا ادّعاء', () => {
+    const audit = countSettlementAudit(row({ stockSettlementStatus: 'pending_count_decision' }));
+    expect(audit.posted).toBe(false);
+    expect(audit.absorbed).toBe(false);
+    expect(audit.documentExpectedText).toBe('—');
+    expect(audit.documentVarianceQtyText).toBe('—');
+    expect(audit.documentVarianceValueText).toBe('—');
+    expect(audit.noteText).toBeNull();
   });
 });
