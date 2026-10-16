@@ -186,17 +186,29 @@ export const BAKERY_MODULES: readonly BakeryModule[] = [
   },
   {
     key: 'rep-app',
-    labelAr: 'واجهة المندوب المحمولة',
+    labelAr: 'تطبيق المندوب',
     icon: '📱',
-    status: 'planned',
-    phaseAr: 'المرحلة 4',
+    status: 'ready',
+    href: '/rep',
+    phaseAr: 'المرحلة 4 — مبنيّة',
     permission: 'van_sales.view',
+    /**
+     * ما بُني وما بقي — بلا ادّعاءِ ما لم يُنفَّذ: فالشاشةُ تعمل متّصلةً ومنقطعةً بطابورٍ
+     * في `vanQueue` (مخزنٌ في قاعدة `erpcloud-pos-offline` نفسها وبهويّة جهازٍ واحدة)،
+     * ومفاتيحُ عدم التكرار تُخزَّن مع النيّات فتُعاد بلا مستندٍ مكرَّر. وأمّا **الإقفالُ
+     * وتأكيدُ الاستلام فلا يُحفظان منقطعَين** (مساراهما بلا مفتاحٍ في الجسم — مقاس)
+     * فيُحظران بسببٍ معروض. والمتبقّي من المرحلة: ‏`manifest` و`service worker` (تثبيتُ
+     * التطبيق على الهاتف والعملُ بلا شبكةٍ من أوّل فتح) — والشريحةُ ١٤ج.
+     */
     planAr:
-      '‏/rep تطبيق PWA للهاتف: عملٌ بلا اتصال بطابورٍ ومفاتيح idempotency، ومزامنةٌ عند العودة، وربطُ الجهاز — على القشرة المشتركة نفسها (offline-db/sync-engine في @erp/web-core).',
+      '‏/rep للمندوب على هاتفه: مساحةُ عمله من GET /van-sales/me بأرقام جدولِه كلّه ونوافذِ قوائمه معلَنة، وبيعٌ ومرتجعٌ وتحصيلٌ تُحفظ منقطعةً في طابورٍ بمفاتيح عدم تكرارٍ وتُعاد نيّةً نيّةً إلى مسارها الرسميّ، وإغلاقُ الوردية وتأكيدُ الاستلام متصلَين فقط (فلا مفتاحَ في جسميهما وإعادةٌ عمياء تعيد كتابةَ إعلان الجرد). والمتبقّي: ‏manifest وservice worker.',
     endpoints: [
+      'GET /van-sales/me',
       'POST /van-sales/documents',
+      'POST /van-sales/documents/:id/returns',
       'POST /van-sales/collections',
       'POST /van-sales/load-orders/:id/submit-closing',
+      'POST /van-sales/load-orders/:id/confirm-receipt',
     ],
   },
 ];

@@ -12,7 +12,8 @@
     "./package.json": "./package.json",
     "./qr": "./src/qr.ts",
     "./document-print": "./src/document-print.ts",
-    "./windows": "./src/windows.ts"
+    "./windows": "./src/windows.ts",
+    "./rep-workspace": "./src/rep-workspace.ts"
   },
   "dependencies": {
     "decimal.js": "^10.6.0",

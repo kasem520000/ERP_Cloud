@@ -16,3 +16,4 @@ export * from './custody';
 export * from './qr';
 export * from './document-print';
 export * from './windows';
+export * from './rep-workspace';

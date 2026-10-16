@@ -101,7 +101,10 @@ describe('خريطة وحدات واجهة المخابز', () => {
     expect(moduleForPath('/production-x')).toBeUndefined();
     expect(moduleForPath('/distribution-x')).toBeUndefined();
     // ‏ما لم يُبنَ بعد: لا وحدةَ تطابقه (فلا قشرةَ تدّعي مساراً ولا مسارَ يدّعي قشرة).
-    expect(moduleForPath('/rep')).toBeUndefined();
+    // ‏الشريحة ١٤ب: تطبيقُ المندوب — مسارٌ حقيقيّ، وحدُّ المقطع يمنع «rep-x».
+    expect(moduleForPath('/rep')?.key).toBe('rep-app');
+    expect(moduleForPath('/rep/9')?.key).toBe('rep-app');
+    expect(moduleForPath('/rep-x')).toBeUndefined();
     expect(moduleForPath('/custody')?.key).toBe('custody');
     expect(moduleForPath('/custody/9')?.key).toBe('custody');
     expect(moduleForPath('/custody-x')).toBeUndefined();
@@ -127,7 +130,13 @@ describe('خريطة وحدات واجهة المخابز', () => {
    * وما عداها مخطَّط. فلو كُتبت «مبنيّة» على وحدةٍ مخطَّطة لسقط هذا الحكم.
    */
   it('المراحل معلنة ومتّسقة مع الحالة — ولا وحدةَ تدّعي بناءً لم يحدث', () => {
-    const allowed = ['المرحلة 2 — مبنيّة', 'المرحلة 3 — مبنيّة', 'المرحلة 3', 'المرحلة 4'];
+    const allowed = [
+      'المرحلة 2 — مبنيّة',
+      'المرحلة 3 — مبنيّة',
+      'المرحلة 3',
+      'المرحلة 4 — مبنيّة',
+      'المرحلة 4',
+    ];
     for (const module of BAKERY_MODULES) {
       expect(allowed, `${module.key}: مرحلة غير معلنة`).toContain(module.phaseAr);
       if (module.phaseAr.includes('مبنيّة')) {
@@ -143,12 +152,23 @@ describe('خريطة وحدات واجهة المخابز', () => {
       'distribution',
       'overview',
       'production',
+      // ‏الترتيبُ codepoint لا أبجديّ: ‏'rep-app' (شرطةٌ 0x2D) قبل 'reports' (‏o) قبل 'reps' (‏s).
+      'rep-app',
       'reports',
       'reps',
       'sales',
     ]);
-    // ‏واجهة المندوب ما زالت المرحلة 4 ولا مسار لها بعد.
-    expect(BAKERY_MODULES.find((module) => module.key === 'rep-app')?.phaseAr).toBe('المرحلة 4');
-    expect(BAKERY_MODULES.filter((module) => module.phaseAr === 'المرحلة 4').map((m) => m.key)).toEqual(['rep-app']);
+    /**
+     * ‏واجهةُ المندوب بُنيت (الشريحة ١٤ب) فصار مسارُها `/rep` ومرحلتُها «مبنيّة» — وحكمُ
+     * «مبنيّة ⇔ صفحةٌ فعلًا» أعلاه هو ما يثبت أنّ الإعلانَ ليس قشرة: فلو حُذفت
+     * ‏`app/rep/page.tsx` لسقط هذا الحكمُ معه.
+     */
+    const repApp = BAKERY_MODULES.find((module) => module.key === 'rep-app');
+    expect(repApp?.phaseAr).toBe('المرحلة 4 — مبنيّة');
+    expect(repApp?.status).toBe('ready');
+    expect(repApp?.href).toBe('/rep');
+    expect(
+      BAKERY_MODULES.filter((module) => module.phaseAr.startsWith('المرحلة 4')).map((m) => m.key),
+    ).toEqual(['rep-app']);
   });
 });
