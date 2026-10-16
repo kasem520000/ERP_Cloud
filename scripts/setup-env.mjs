@@ -8,7 +8,8 @@
  *
  *   • the RS256 JWT key pair, the AES-256-GCM data-encryption key and the file-URL
  *     signing secret;
- *   • the four seed passwords (platform operator, demo owner, accountant, cashier), so
+ *   • the five seed passwords (platform operator, demo owner, accountant, cashier, van-sales
+ *     rep), so
  *     `pnpm db:seed` produces accounts that can actually sign in without the operator
  *     inventing anything. They are written in clear text into `.env` (mode 0600, and
  *     git-ignored) and printed once below — this is a development convenience, a
@@ -72,6 +73,7 @@ const seedPasswords = {
   DEMO_OWNER_PASSWORD: strongPassword(),
   DEMO_ACCOUNTANT_PASSWORD: strongPassword(),
   DEMO_CASHIER_PASSWORD: strongPassword(),
+  DEMO_REP_PASSWORD: strongPassword(),
 };
 
 const templatePath = join(root, '.env.example');
@@ -101,7 +103,7 @@ const readEnv = (key) => {
 console.log(`Wrote ${target}`);
 console.log('  • generated a fresh RS256 key pair (JWT_PRIVATE_KEY / JWT_PUBLIC_KEY)');
 console.log('  • generated DATA_ENC_KEY, FILE_URL_SIGNING_SECRET and COMPAT_KEY_PEPPER (32 random bytes each)');
-console.log('  • generated the four seed passwords listed below');
+console.log('  • generated the five seed passwords listed below');
 console.log('');
 console.log('Accounts `pnpm db:seed` will create (also stored in .env):');
 console.log('');
@@ -116,9 +118,14 @@ console.log('');
 console.log(`  accountant        ${readEnv('DEMO_ACCOUNTANT_EMAIL')}  /  ${seedPasswords.DEMO_ACCOUNTANT_PASSWORD}`);
 console.log(`  cashier           ${readEnv('DEMO_CASHIER_EMAIL')}  /  ${seedPasswords.DEMO_CASHIER_PASSWORD}`);
 console.log('');
+console.log('The rep signs into the bakery app, not the staff panel:');
+console.log(`  rep (van sales)   ${readEnv('DEMO_REP_EMAIL')}  /  ${seedPasswords.DEMO_REP_PASSWORD}`);
+console.log(`    tenant code     ${readEnv('DEMO_TENANT_CODE') || 'demo'}`);
+console.log(`    opens           http://localhost:${readEnv('BAKERY_PORT') || '3005'}/rep`);
+console.log('');
 console.log('Next steps:');
 console.log('  1. pnpm db:up            # postgres + redis + minio via docker compose');
 console.log('  2. pnpm db:roles         # create the erp_api / erp_migrator roles');
 console.log('  3. pnpm db:migrate       # apply the SQL migrations');
 console.log('  4. pnpm db:seed          # reads the passwords above from .env');
-console.log('  5. pnpm dev              # api :3000, admin :3001, customer :3002');
+console.log('  5. pnpm dev              # api :3000, admin :3001, customer :3002, bakery :3005');

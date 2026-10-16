@@ -1,4 +1,4 @@
-import { isKnownPermissionCode } from '@erp/contracts';
+import { hasVanSalesCompanyScope, isKnownPermissionCode } from '@erp/contracts';
 
 /**
  * خريطة وحدات واجهة المخابز — والكتالوج **حالةٌ مقاسة** لا زينة.
@@ -34,6 +34,15 @@ export type BakeryModule = {
    * واحد يحجب الشاشة عن أحدهما وهو يملك إجراءها فعلاً في الخادم.
    */
   readonly anyPermissions?: readonly string[];
+  /**
+   * شاشةٌ تقرأ الخطَّ على مستوى المنشأة — أي تنادي `GET /van-sales/dashboard` أو
+   * `GET /van-sales/reports` أو `GET /van-sales/salesmen`. وهذه تُرفض ٤٠٣
+   * (‏`VAN_SALES_COMPANY_SCOPE_REQUIRED`) على **مندوبٍ محصور**: من له بطاقةُ `salesmen`
+   * مربوطةٌ بعضويته وليس معه إذنُ إدارةِ الخطّ (قِيس على خادمٍ قائم: المندوبُ ٤٠٣ في
+   * الثلاثة، والمالكُ ومديرُ الخطّ ٢٠٠). والعلمُ هنا كي لا تُعرض للمندوب ثمانيةُ روابطَ
+   * تُرفض — والحجبُ راحةٌ لا ضابط، فالضابطُ الخادم.
+   */
+  readonly companyScope?: boolean;
   readonly endpoints: readonly string[];
 };
 
@@ -59,6 +68,7 @@ export const BAKERY_MODULES: readonly BakeryModule[] = [
     permission: 'van_sales.production.manage',
     planAr:
       'دفعة إنتاج بمكوّناتها: تقديرٌ إرشادي من المتوسط الرسمي قبل الاعتماد، ورفضٌ سابق للإرسال بالنصّ الذي سيقوله الخادم، وجدولُ الدفعات كما يعيده الخادم (بلا تلخيصٍ محلي). وبلا مكوّنات يرفض الخادم 422 (VAN_PRODUCTION_INPUT_REQUIRED)، والفاقد بلا سبب مرفوض، ولا تُرسل الشاشة unitCost.',
+    companyScope: true,
     endpoints: ['POST /van-sales/production-batches', 'GET /van-sales/dashboard', 'GET /organization/catalog/items', 'GET /warehouses'],
   },
   {
@@ -71,6 +81,7 @@ export const BAKERY_MODULES: readonly BakeryModule[] = [
     permission: 'van_sales.load.manage',
     planAr:
       'أمر تحميلٍ لصنفٍ واحد من مستودع المصدر إلى عهدة المندوب (بمناقلة رسمية)، وتأكيد الاستلام أو رفضه، وإلغاء الأمر في draft/pending_receipt. ورفضٌ سابق للإرسال بالنصّ الذي سيقوله الخادم (المندوب ثمّ الكمية ثمّ مصدر الصنف)، وجدولُ الأحمال كما يعيده الخادم، والحالة غير المعروفة تُعرض خاماً. وإقفال العهدة واعتماده وتسوية فرق المخزون وإغلاق فرق العبور **ليست هنا** — وحدة «إقفال العهدة» (/custody) تبنيها، والأستاذ وتفصيل القيود في staff.',
+    companyScope: true,
     endpoints: [
       'POST /van-sales/load-orders',
       'POST /van-sales/load-orders/:id/confirm-receipt',
@@ -92,6 +103,7 @@ export const BAKERY_MODULES: readonly BakeryModule[] = [
     permission: 'sales.salesman.manage',
     planAr:
       'المناديب كما يرجعهم الخادم: البطاقة الرسمية مع بطاقة موظفها وحساب دخولها ومستودع سيارتها ونِسَبها وعهدتها الحيّة (stock_balances مستودع السيارة وأوامر التحميل المفتوحة)، وreadiness الذي حسبه الخادم معروضًا بأثر كلّ نقص لا بأيقونة: بلا موظف ⇒ تحميل النقص على مديونيته مرفوض ٤٢٢، وبلا عضوية ⇒ لا مساحة عمل له (GET /van-sales/me تُشتقّ من عضويّته هو)، وبلا مستودع سيارة ⇒ لا عهدة تُقاس ولا نطاق يحصر دخوله، وبلا van_sales.* ⇒ يرفضه الحارس ٤٠٣. والقائمة كلّ بطاقات المنشأة (استعلام الخادم بلا LIMIT) فمجاميعُها مجاميعُ الكلّ لا تقديرَ نافذة. والكتابة الوحيدة ربطُ حساب الدخول (POST /van-sales/salesmen/:id/account بصلاحية sales.salesman.manage): يمرّ بكتّاب المنصّة (العضويات والأدوار) فلا تُخترع كلمةُ مرور (الحساب الجديد invited ويصله رابطُ التفعيل الرسميّ) ولا حسابٌ ثانٍ للشخص الواحد (العضوية القائمة تُعاد استعمالها ويُقال إنّ البريد الفعليّ قد يختلف عن المطلوب) ولا دورٌ موازٍ («مندوب توزيع» يُبحث باسمه ويُنشأ مرّة)، والنطاقُ على مستودع السيارة افتراضيُّ الخادم وإلغاؤه يُقال توسيعَ وصولٍ مقصودًا. والمسار لا يقبل مفتاحَ عدم تكرار فلا يُرسل إليه مفتاحٌ مخترع. وما ليس هنا: إنشاءُ البطاقة أو تعديلُها ونِسبُ العمولة وربطُ الموظف يدويًّا (POST/PATCH /sales/salesmen في staff)، ونطاقُ الفروع على العضوية (يُطبّقه الخادم عند الإنشاء فقط ويتجاهله عند إعادة الاستعمال)، والأدوارُ وكلماتُ المرور وربطُ الأجهزة (شاشة الأدوار ومنصّة الهويّة، والأجهزة في المرحلة ٤)، وحسابُ مبالغ العمولة (الرواتب في staff).',
+    companyScope: true,
     endpoints: ['GET /van-sales/salesmen', 'POST /van-sales/salesmen/:id/account'],
   },
   {
@@ -104,6 +116,7 @@ export const BAKERY_MODULES: readonly BakeryModule[] = [
     permission: 'van_sales.invoice.create',
     planAr:
       'إصدار مستند بيعٍ من عهدة مندوب (POST /van-sales/documents بمفتاح عدم تكرار)، ومرتجعه (سقفُه المبيع + المجانيّ، ولا يُرجع مرتجع)، وطباعة نسختيه من /print-view بمُصيِّرٍ واحدٍ مشترك مع staff (@erp/web-van/document-print): سندٌ واحد بنسختين لا فاتورتان، والأرقام أرقامُ الخادم، ورمز ZATCA من الحمولة الصادرة على الفاتورة وحدها — فإن لم تصدر يُطبع قولٌ صريح بدل رمزٍ زائف. ونصوصُ الرفض قبل الضغط نصوصُ الخادم حرفًا، وما لا يستطيع المتصفح حسابه كحسابه (المتبقي في العهدة بعد كل المستندات المعلّقة، وسقف الائتمان) يُقال تحذيرًا لا حظرًا والحكم النهائي للخادم. ومجاميع اليوم من summary الذي حسبه الخادم، والجدول أحدث ١٢٠ مستندًا كما يحدّدها الخادم — ويُقال ذلك. والتجاوز (سعر/خصم/بونص) يحتاج van_sales.override.approve أو sales.discount.override ويفرضه الخادم 403. وما ليس هنا: الإيصال الحراريّ ٨٠مم والأستاذ وتفصيل القيود وتسعير العملاء (في staff)، وتحميل العهدة (/distribution) وإقفالها (/custody).',
+    companyScope: true,
     endpoints: [
       'GET /van-sales/dashboard',
       'POST /van-sales/documents',
@@ -123,6 +136,7 @@ export const BAKERY_MODULES: readonly BakeryModule[] = [
     permission: 'van_sales.collection.create',
     planAr:
       'قبضُ مديونية عملاء الخطّ بسند قبضٍ رسمي (POST /van-sales/collections بمفتاح عدم تكرار)، وذممُهم مرتّبةً بعمر الدين من نافذة اللوحة (أحدث ١٢٠ مستندًا) بينما ذممُ المنشأة من summary الذي حسبه الخادم — ورقمان لا يُخلطان. والمتبقي (الإجمالي − المدفوع) محسوبٌ هنا بـdecimal.js ويُتحقّق منه الخادم عند السند، وجملةُ «مبلغ التحصيل يتجاوز الرصيد المتبقي» تُبنى بأرقامه نفسها. وبعد كلّ سندٍ تقرأ الشاشة سبب حركة collection_receipt **كما كتبه الخادم** وتقول حالته من كلماته (مُرحَّل / غير مُرحَّل / بدون سند خزينة) — فتحصيلٌ بقي سندُه مسودةً لأنّ حساب ذمم العملاء لم ينحلّ ليس مالًا في الدفاتر، ويُقال ذلك بدل «تمّ التحصيل». وأداةُ مطابقة البيانات القديمة معاينةٌ (dry_run) ما لم يُطلب التنفيذ صراحةً، ومحميّةٌ بـvan_sales.override.approve على الوضعين، ولا تحذف سجلًّا: ما لا يُستكمل بأمان يُتخطّى ويُقال سببُه، والتنفيذ يُستأنف من nextResumeCursor. وما ليس هنا: سندات الخزينة الأخرى وتحويلات الصندوق وأرصدته والأستاذ وتفصيل القيود (في staff)، وإصدار الفواتير (/sales) وإقفال العهدة (/custody).',
+    companyScope: true,
     endpoints: [
       'GET /van-sales/dashboard',
       'POST /van-sales/collections',
@@ -141,6 +155,7 @@ export const BAKERY_MODULES: readonly BakeryModule[] = [
     anyPermissions: ['van_sales.closing.submit', 'van_sales.closing.approve'],
     planAr:
       'إقفال الحمولة: جردٌ فعليّ، فصلٌ رباعيّ لا يُدمج (مرتجع سليم/تالف/عجز/متبقٍ)، قرارُ فرق العبور، ثمّ التسوية الرسمية بمستند الجرد. وسياسة تقييم العجز تُقرأ وتُكتب هنا (PUT /van-sales/policy بصلاحية van_sales.override.approve)، وتحميل العجز على المندوب قرارٌ **لكلّ حالة**: بلا علمٍ صريح لا يُرحَّل قيد، ومع العلم تُعرض الكمية والقيمة والأساس والطرفان ومانعُ الاعتماد قبل الضغط — فالخادم يرحّل مديونية موظف (مدينٌ حسابُه في الدليل) ويرفض 422 إن نقص حسابٌ، ولا تُغلق عهدةٌ بفرق مخزونٍ غير مُسوّى. والأستاذ وتفصيل القيود في staff.',
+    companyScope: true,
     endpoints: [
       'POST /van-sales/load-orders/:id/submit-closing',
       'POST /van-sales/load-orders/:id/approve-closing',
@@ -172,6 +187,7 @@ export const BAKERY_MODULES: readonly BakeryModule[] = [
     permission: 'van_sales.view',
     planAr:
       'تقريرُ الفترة من محرّك التقارير نفسه (GET /van-sales/reports): المدى (fromDate/toDate) يُطبَّق على القوائم الأربع وعلى مجاميع periodTotals وعلى أداء المندوبين repCustodyReport معًا، بتواريخ العمل (load_date للأوامر، doc_date للمستندات، production_date للدفعات) لا بتاريخ الإنشاء — وسجلُّ تسعير العملاء وحده لا يحمل تاريخَ عملٍ في الجدول فيُصفّى بـcreated_at، ويقول الخادم ذلك في filterNotes كما يقول إنّ مرشِّح المندوب لا يُطبَّق على الإنتاج ولا على التسعير فليسا منسوبَين إلى مندوب؛ والشاشة تعرض نصَّ الخادم لا صياغةً ألطف. والفحصُ المسبق للمدى مرآةُ قاعدة الخادم (‏YYYY-MM-DD، ووجودُ التاريخ فـ2026-02-30 يُرفض، والبدايةُ لا تتأخّر عن النهاية) فيُقال قبل الإرسال، والخادم يبقى الحكم (ومندوبُ منشأةٍ أخرى ٤٠٤ «المندوب غير موجود»). وperiodTotals (تدفّقُ الفترة) في بطاقاتٍ منفصلة عن summary (أرقامُ المنشأة كلّها وأرصدةُ اللحظة: رصيدُ المستودع الرئيسي ورصيدُ سيارات التوزيع) ومعها جملةٌ صريحةٌ حين يختلفان — فالرصيدُ ليس تدفّقًا ولا يُجمع معه. ولكلّ قائمةٍ سقفٌ من الخادم (rowCap، وLIMIT السقف+١ في الاستعلام نفسه) وtruncated يُقال، وبجانبه مجموعُ الصفوف المعروضة مقابل مجموع الفترة، والعداداتُ من COUNT(*) على الجدول فلا يُنقصها السقف. والقراءةُ فقط: لا قيدَ يُنشأ ولا نقصَ يُحمَّل على أحد (تحميلُ النقص على مديونية موظف يحتاج اعتمادَ الحالة salaryDeductionApproved وحسابَ مقابلٍ مضبوطًا في مساره لا هنا) ولا تحصيلَ يُسجَّل (في /collection بسندٍ رسمي). وما ليس هنا: الأستاذُ وتفصيلُ القيود والتقاريرُ المحاسبية الرسمية وحسابُ مبالغ العمولة (في apps/staff وتُفتح بتسليم جلسة)، وإصدارُ المستندات ومرتجعاتُها (/sales)، وتحميلُ العهدة (/distribution) وإقفالُها (/custody)، وقائمةُ المناديب للمرشِّح تُقرأ من GET /van-sales/salesmen ولا تُخترع في المتصفح.',
+    companyScope: true,
     endpoints: ['GET /van-sales/reports', 'GET /van-sales/salesmen'],
   },
   {
@@ -221,11 +237,25 @@ export function readyModules(modules: readonly BakeryModule[] = BAKERY_MODULES):
  * ما يُعرض لهذا المستخدم: كلّ وحدةٍ تعلن صلاحيةً تُعرض فقط لمن يملكها (فلا تُعرض شاشةٌ
  * سيرفضها الخادم)، وما لا يعلن صلاحيةً (النظرة العامة، وخطة العمل) يُعرض للجميع.
  */
+/**
+ * هل هذا المتّصلُ مندوبًا محصورًا؟ — بطاقةُ مندوبٍ **بلا** إذنِ إدارةِ الخطّ.
+ *
+ * والطرفان من الخادم لا من التخمين: فـ`isRep` من `GET /van-sales/me` (الذي يقرأ السلسلة
+ * `memberships → employees → salesmen`) والأذوناتُ من `GET /me`. ولا يُكتفى بالأذونات
+ * وحدها لأنّ مستخدمًا بلا بطاقة (كاتبُ مكتبٍ يملك `van_sales.view` وحدها) **لا يُحجب**
+ * في الخادم، فحجبُه هنا سيكون كذبًا في الجهة الأخرى: شاشةٌ تعمل ولا تُعرض.
+ */
+export function isRepScoped(isRep: boolean, granted: readonly string[]): boolean {
+  return isRep && !hasVanSalesCompanyScope(granted);
+}
+
 export function visibleModules(
   can: (permission?: string) => boolean,
   modules: readonly BakeryModule[] = BAKERY_MODULES,
+  options: { repScoped?: boolean } = {},
 ): readonly BakeryModule[] {
   return modules.filter((module) => {
+    if (options.repScoped && module.companyScope) return false;
     if (module.permission) return can(module.permission);
     if (module.anyPermissions?.length) return module.anyPermissions.some((code) => can(code));
     return true;

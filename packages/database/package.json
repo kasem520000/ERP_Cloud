@@ -33,6 +33,7 @@
     "migrate": "tsx src/cli/migrate.ts",
     "migrate:down": "tsx src/cli/migrate-down.ts",
     "roles": "tsx src/cli/roles.ts",
+    "demo-audit": "tsx src/cli/demo-audit.ts",
     "studio": "drizzle-kit studio",
     "seed:coa": "tsx src/cli/seed-coa.ts",
     "typecheck": "tsc -p tsconfig.json --noEmit"

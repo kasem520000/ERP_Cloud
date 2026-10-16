@@ -27,6 +27,7 @@
     "db:migrate:down": "pnpm --dir packages/database run migrate:down",
     "db:seed": "pnpm --dir apps/api run seed",
     "db:roles": "pnpm --dir packages/database run roles",
+    "db:demo-audit": "pnpm --dir packages/database run demo-audit",
     "db:up": "docker compose -f infrastructure/docker-compose.yml up -d postgres redis",
     "verify": "pnpm run typegen && pnpm run typecheck && pnpm -r run lint && pnpm run build && pnpm --dir apps/api run test:smoke && pnpm -r run test && pnpm run openapi:export",
     "db:local": "node ./scripts/local-db.mjs",

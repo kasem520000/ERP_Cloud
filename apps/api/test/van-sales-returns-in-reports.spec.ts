@@ -596,8 +596,17 @@ describe('van-sales returns are netted in every money aggregate, at the official
      * المبذور)، وتقريرٌ مُصفّى بمايو لا يراها — وهو سلوكٌ معلنٌ في `filterNotes` («بلا مدىً
      * زمنيّ: التقرير كلّ السجلّ»). فالقراءةُ هنا للسجلّ كلّه.
      */
+    /**
+     * ‏التقريرُ سطحٌ على مستوى المنشأة، ومن الشريحة ١٩ يُرفض ٤٠٣
+     * (‏`VAN_SALES_COMPANY_SCOPE_REQUIRED`) على حاملِ بطاقةِ مندوبٍ بلا إذنِ إدارةِ الخطّ —
+     * و`repB` هنا مندوبٌ فعلًا (بطاقةٌ مربوطةٌ بعضويته)، فـ`ALL_TENANT_PERMISSIONS` لا
+     * تشمل `van_sales.load.manage` وأخواتها. والحكمُ في هذه المثبّتة عن **حساب المرتجع**
+     * لا عن صلاحيات القراءة، فيقرؤه من يملك نطاقَ المنشأة (`ownerB`) — ولو أُعطيت
+     * `repB` إذنَ إدارةٍ لصار التمثيلُ مديرًا لا مندوبًا وفقدت بقيّةُ الأحكام معناها.
+     * وأمّا أرقامُ المندوب نفسه فتُقاس أدناه من `GET /van-sales/me` كما كانت.
+     */
     const reports = await api(ctx.server, 'get', '/api/v1/van-sales/reports', {
-      token: repB.token,
+      token: ownerB.token,
     });
     expect(reports.status, JSON.stringify(reports.body).slice(0, 300)).toBe(200);
     const period = (reports.body.data as { periodTotals: Record<string, string> }).periodTotals;

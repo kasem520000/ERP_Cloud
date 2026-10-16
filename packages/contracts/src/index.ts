@@ -51,6 +51,12 @@ export {
   seedablePermissionCodes,
 } from './permissions.js';
 export type { PermissionDefinition } from './permissions.js';
+export {
+  VAN_SALES_COMPANY_SCOPE_PERMISSIONS,
+  VAN_SALES_REP_PROXY_PERMISSIONS,
+  VAN_SALES_REP_ROLE,
+  hasVanSalesCompanyScope,
+} from './permissions.js';
 
 export {
   erpFunctionalRoleCatalog,

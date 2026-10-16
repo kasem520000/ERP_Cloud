@@ -295,8 +295,15 @@ describe('a ZATCA van document carries the tenant’s real seller identity, or i
     expect(seller.refusalDetail).toBe(detail);
 
     // ‏واللوحةُ تحمل الشيءَ نفسه، لأنّ شاشة المبيعات في المخابز تقرأ `dashboard.policy`.
+    /**
+     * وتُقرأ هنا برمزية المالك لا المندوب: فاللوحةُ من الشريحة ١٩ سطحٌ على مستوى المنشأة
+     * يُرفض ٤٠٣ على حاملِ بطاقةِ مندوبٍ بلا إذنِ إدارةِ الخطّ، و`rep` في هذه المثبّتة
+     * مندوبٌ فعلًا. والحكمُ عن **وحدة الجملة** بين السياسة واللوحة والرفض — والجملةُ
+     * واحدةٌ للمنشأة كلّها فلا يغيّر القارئُ معناها، وأمّا قراءةُ المندوب فتُرفض وهو
+     * مقاسٌ في `van-sales-rep-scope.spec.ts`.
+     */
     const dashboard = await api(ctx.server, 'get', '/api/v1/van-sales/dashboard', {
-      token: rep.token,
+      token: owner.token,
     });
     expect(dashboard.status, JSON.stringify(dashboard.body).slice(0, 300)).toBe(200);
     const dashboardSeller = (dashboard.body.data as {

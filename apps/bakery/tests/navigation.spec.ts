@@ -1,4 +1,4 @@
-import { existsSync, readdirSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -6,10 +6,12 @@ import { describe, expect, it } from 'vitest';
 
 import {
   BAKERY_MODULES,
+  isRepScoped,
   moduleForPath,
   readyModules,
   unknownPermissionCodes,
   visibleModules,
+  type BakeryModule,
 } from '../lib/navigation';
 
 const appDir = fileURLToPath(new URL('../app', import.meta.url));
@@ -170,5 +172,80 @@ describe('خريطة وحدات واجهة المخابز', () => {
     expect(
       BAKERY_MODULES.filter((module) => module.phaseAr.startsWith('المرحلة 4')).map((m) => m.key),
     ).toEqual(['rep-app']);
+  });
+});
+
+/**
+ * 🚐 تحجيمُ الخطّ في القائمة — العلمُ `companyScope` ليس زينةً ولا ادّعاء.
+ *
+ * الخادمُ يرفض ٤٠٣ `VAN_SALES_COMPANY_SCOPE_REQUIRED` على `GET /van-sales/dashboard`
+ * و`/reports` و`/salesmen` لمن له بطاقةُ مندوبٍ بلا إذنِ إدارةِ الخطّ (الشريحة ١٩، وقِيس
+ * على خادمٍ قائم). وهذه المثبّتةُ تربط العلمَ بالواقع من طرفين: فكلُّ وحدةٍ تعلنه يجب أن
+ * تكون صفحتُها تنادي أحدَ المسارات الثلاثة فعلًا، وكلُّ صفحةٍ مبنيّةٍ تنادي أحدها يجب أن
+ * تُعلنه — وإلّا رأى المندوبُ رابطًا يُرفض، أو حُجب عنه رابطٌ يعمل.
+ */
+describe('تحجيمُ الخطّ في خريطة الوحدات', () => {
+  const GATED = ['/van-sales/dashboard', '/van-sales/reports', '/van-sales/salesmen'];
+
+  /** المصدرُ من `appDir` نفسه الذي تستعمله المثبّتةُ أعلاه — فـ`__dirname` لا وجود له في ESM. */
+  const pageOf = (module: BakeryModule): string | null => {
+    const href = module.href;
+    if (!href) return null;
+    const path = join(appDir, href === '/' ? 'page.tsx' : `${href.slice(1)}/page.tsx`);
+    return existsSync(path) ? readFileSync(path, 'utf8') : null;
+  };
+
+  it('كلُّ وحدةٍ تعلن `companyScope` تنادي صفحتُها مسارًا محجوبًا فعلًا', () => {
+    const declared = BAKERY_MODULES.filter((module) => module.companyScope);
+    expect(declared.length, 'لا وحدةَ تعلن العلم — فالتصفيةُ تصير ميتة').toBeGreaterThan(0);
+    for (const module of declared) {
+      const source = pageOf(module);
+      expect(source, `صفحةُ ${module.key} غير موجودة`).not.toBeNull();
+      const called = GATED.filter((path) => (source ?? '').includes(path));
+      expect(called.length, `${module.key} يعلن companyScope ولا ينادي أيًّا من ${GATED.join('، ')}`).toBeGreaterThan(0);
+    }
+  });
+
+  it(' وكلُّ شاشةٍ مبنيّةٍ تنادي مسارًا محجوبًا تُعلنه — فلا رابطَ يُرفض للمندوب', () => {
+    for (const module of BAKERY_MODULES) {
+      if (module.status !== 'ready' || module.key === 'overview') continue; // النظرة لها وضعُ مندوب
+      const source = pageOf(module);
+      if (!source) continue;
+      const callsGated = GATED.some((path) => source.includes(path));
+      if (callsGated) {
+        expect(module.companyScope, `${module.key} ينادي مسارًا محجوبًا ولا يعلن companyScope`).toBe(true);
+      }
+    }
+  });
+
+  it('«محصور» = بطاقةُ مندوبٍ **بلا** إذنِ إدارة، ولا يُخمَّن من الأذونات وحدها', () => {
+    const repOnly = ['van_sales.view', 'van_sales.invoice.create', 'van_sales.collection.create', 'van_sales.closing.submit'];
+    // مندوبٌ ببطاقة: محصور.
+    expect(isRepScoped(true, repOnly)).toBe(true);
+    // كاتبُ مكتبٍ بالأذونات نفسها **بلا بطاقة**: الخادمُ يفتح له اللوحة، فحجبُه كذب.
+    expect(isRepScoped(false, repOnly)).toBe(false);
+    // مشرفٌ له بطاقةٌ وإذنُ اعتمادِ الإقفال: يقرأ الخطّ كلّه في الخادم.
+    expect(isRepScoped(true, [...repOnly, 'van_sales.closing.approve'])).toBe(false);
+    // مديرُ تحميلٍ ببطاقة.
+    expect(isRepScoped(true, ['van_sales.view', 'van_sales.load.manage'])).toBe(false);
+    // مالكٌ (`*`) ببطاقة.
+    expect(isRepScoped(true, ['*'])).toBe(false);
+    // بلا أذوناتٍ أصلًا: لا يُحجب شيءٌ هنا — فالخادمُ هو الرافض.
+    expect(isRepScoped(false, [])).toBe(false);
+  });
+
+  it('القائمةُ تُصفّى للمندوب المحصور: يختفي المحجوبُ ويبقى ما يعمل', () => {
+    const repOnly = ['van_sales.view', 'van_sales.invoice.create', 'van_sales.collection.create', 'van_sales.closing.submit'];
+    const can = (code?: string) => Boolean(code && repOnly.includes(code));
+
+    const asRep = visibleModules(can, BAKERY_MODULES, { repScoped: true });
+    const asClerk = visibleModules(can, BAKERY_MODULES, { repScoped: false });
+
+    expect(asRep.some((module) => module.companyScope)).toBe(false);
+    expect(asRep.some((module) => module.key === 'rep-app'), 'تطبيقُ المندوب يجب أن يبقى له').toBe(true);
+    expect(asRep.some((module) => module.key === 'overview'), 'النظرةُ بوضع المندوب تبقى').toBe(true);
+    // وبلا حصرٍ (كاتبُ المكتب نفسه) تُعرض الشاشاتُ التي يفتحها الخادم له.
+    expect(asClerk.filter((module) => module.companyScope).length).toBeGreaterThan(0);
+    expect(asClerk.length).toBeGreaterThan(asRep.length);
   });
 });

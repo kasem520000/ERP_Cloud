@@ -2,12 +2,13 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Button, ThemeToggle } from '@erp/ui';
+import { apiData } from '@erp/web-core/api';
 import { useSession } from '@erp/web-core/session';
 
 import { BAKERY_APP_CODE, licenceVerdict } from '../lib/licence';
-import { moduleForPath, visibleModules } from '../lib/navigation';
+import { BAKERY_MODULES, isRepScoped, moduleForPath, visibleModules } from '../lib/navigation';
 
 import { LicenceWall } from './licence-wall';
 
@@ -29,6 +30,35 @@ export function BakeryGuard({ children }: { children: React.ReactNode }) {
   const { can, me, reload, signOut, status } = useSession();
   const pathname = usePathname() ?? '';
   const [drawerOpen, setDrawerOpen] = useState(false);
+  /**
+   * هل صاحبُ الجلسة مندوبٌ محصور؟ — يُسأل الخادمُ (`GET /van-sales/me`) ولا يُخمَّن من
+   * الأذونات: فالحجبُ في الخادم يقع على **حاملِ بطاقةِ `salesmen`** بلا إذنِ إدارة،
+   * وكاتبُ المكتب الذي يملك `van_sales.view` وحدها ولا بطاقةَ له يُفتح له كلّ شيء. فلو
+   * خمّنّا من الأذونات لحجبنا عنه شاشاتٍ تعمل — وكذبٌ في هذه الجهة كالكذب في الأخرى.
+   * وعند تعذّر السؤال لا يُحجب شيء: فالخادمُ يبقى هو الرافض، والقائمةُ لا تمنح.
+   */
+  const [repFacts, setRepFacts] = useState<{ isRep: boolean; salesmanName: string | null } | null>(null);
+  const canVan = can('van_sales.view');
+
+  useEffect(() => {
+    if (status !== 'authenticated' || !canVan) {
+      setRepFacts(null);
+      return;
+    }
+    let cancelled = false;
+    apiData<{ isRep?: boolean; salesmanName?: string | null }>('/van-sales/me')
+      .then((data) => {
+        if (!cancelled) {
+          setRepFacts({ isRep: data.isRep === true, salesmanName: data.salesmanName ?? null });
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setRepFacts({ isRep: false, salesmanName: null });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [status, canVan]);
 
   const verdict = licenceVerdict({
     authenticated: status === 'authenticated',
@@ -47,7 +77,8 @@ export function BakeryGuard({ children }: { children: React.ReactNode }) {
     return <LicenceWall onRetry={() => void reload()} verdict={verdict} />;
   }
 
-  const modules = visibleModules(can);
+  const repScoped = isRepScoped(repFacts?.isRep === true, me?.permissions ?? []);
+  const modules = visibleModules(can, BAKERY_MODULES, { repScoped });
   const active = moduleForPath(pathname);
   const tenantName = me?.membership.tenantName ?? me?.membership.displayName ?? 'الإنتاج والتوزيع';
 

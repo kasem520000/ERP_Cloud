@@ -26,8 +26,8 @@ export class VanSalesController {
   @Get('dashboard')
   @RequiresPermission('van_sales.view')
   async dashboard() {
-    const { tenantId } = getTenantContext();
-    return { data: await this.vanSales.dashboard(tenantId) };
+    const { tenantId, membershipId } = getTenantContext();
+    return { data: await this.vanSales.dashboard(tenantId, membershipId ?? null) };
   }
 
   @Get('reports')
@@ -37,13 +37,17 @@ export class VanSalesController {
     @Query('fromDate') fromDate?: string,
     @Query('toDate') toDate?: string,
   ) {
-    const { tenantId } = getTenantContext();
+    const { tenantId, membershipId } = getTenantContext();
     return {
-      data: await this.vanSales.getReports(tenantId, {
-        salesmanId: salesmanId?.trim() || undefined,
-        fromDate: fromDate?.trim() || undefined,
-        toDate: toDate?.trim() || undefined,
-      }),
+      data: await this.vanSales.getReports(
+        tenantId,
+        {
+          salesmanId: salesmanId?.trim() || undefined,
+          fromDate: fromDate?.trim() || undefined,
+          toDate: toDate?.trim() || undefined,
+        },
+        membershipId ?? null,
+      ),
     };
   }
 
@@ -67,8 +71,8 @@ export class VanSalesController {
   @Get('salesmen')
   @RequiresPermission('van_sales.view')
   async salesmen() {
-    const { tenantId } = getTenantContext();
-    return { data: await this.vanSales.listSalesmenWithCustody(tenantId) };
+    const { tenantId, membershipId } = getTenantContext();
+    return { data: await this.vanSales.listSalesmenWithCustody(tenantId, membershipId ?? null) };
   }
 
   /**
@@ -204,12 +208,17 @@ export class VanSalesController {
       idempotencyKey?: string;
     },
   ) {
-    const { tenantId, userId } = getTenantContext();
+    const { tenantId, userId, membershipId } = getTenantContext();
     return {
-      data: await this.vanSales.createReturnDocument(tenantId, userId, {
-        ...(body ?? {}),
-        documentId: id,
-      }),
+      data: await this.vanSales.createReturnDocument(
+        tenantId,
+        userId,
+        {
+          ...(body ?? {}),
+          documentId: id,
+        },
+        membershipId ?? null,
+      ),
     };
   }
 
@@ -221,11 +230,14 @@ export class VanSalesController {
   @Get('documents/:id/print-view')
   @RequiresPermission('van_sales.view')
   async printView(@Param('id') id: string, @Query('copies') copies?: string) {
-    const { tenantId } = getTenantContext();
+    const { tenantId, membershipId } = getTenantContext();
     return {
-      data: await this.vanSales.documentPrintView(tenantId, id, {
-        copies: copies ? Number(copies) : 2,
-      }),
+      data: await this.vanSales.documentPrintView(
+        tenantId,
+        id,
+        { copies: copies ? Number(copies) : 2 },
+        membershipId ?? null,
+      ),
     };
   }
 
@@ -255,7 +267,7 @@ export class VanSalesController {
       idempotencyKey?: string;
     },
   ) {
-    const { tenantId, userId, permissions } = getTenantContext();
+    const { tenantId, userId, membershipId, permissions } = getTenantContext();
     if (body?.allowPriceDiscountOverride || body?.allowBonusOverride) {
       const canOverride =
         permissionGrants(permissions, 'van_sales.override.approve') ||
@@ -269,7 +281,9 @@ export class VanSalesController {
         );
       }
     }
-    return { data: await this.vanSales.createDocument(tenantId, userId, body ?? {}) };
+    return {
+      data: await this.vanSales.createDocument(tenantId, userId, body ?? {}, membershipId ?? null),
+    };
   }
 
   /**
@@ -328,8 +342,16 @@ export class VanSalesController {
       closingNotes?: string;
     },
   ) {
-    const { tenantId, userId } = getTenantContext();
-    return { data: await this.vanSales.submitClosing(tenantId, userId, id, body ?? {}) };
+    const { tenantId, userId, membershipId } = getTenantContext();
+    return {
+      data: await this.vanSales.submitClosing(
+        tenantId,
+        userId,
+        id,
+        body ?? {},
+        membershipId ?? null,
+      ),
+    };
   }
 
   @Post('load-orders/:id/approve-closing')
@@ -445,8 +467,15 @@ export class VanSalesController {
       idempotencyKey?: string;
     },
   ) {
-    const { tenantId, userId } = getTenantContext();
-    return { data: await this.vanSales.collectCustomerDebt(tenantId, userId, body ?? {}) };
+    const { tenantId, userId, membershipId } = getTenantContext();
+    return {
+      data: await this.vanSales.collectCustomerDebt(
+        tenantId,
+        userId,
+        body ?? {},
+        membershipId ?? null,
+      ),
+    };
   }
 
   @Post('legacy-reconciliation')

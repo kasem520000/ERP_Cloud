@@ -21,6 +21,7 @@
  * them (Argon2id lives in the API app) and a user without a hash is created as `invited`.
  */
 import { Client } from 'pg';
+import { VAN_SALES_REP_ROLE } from '@erp/contracts';
 
 import { DESKTOP_DEFAULT_COA } from './desktop-coa.js';
 import { newId } from './ids.js';
@@ -34,6 +35,40 @@ export type DemoUserSpec = {
   passwordHash?: string;
 };
 
+/**
+ * 🚐 مندوبُ الحساب التجريبي — a rep login so `/rep` can actually be tried.
+ *
+ * ولا يُخترع هنا رقمٌ ولا واقعة: فلا لوحةَ سيارةٍ افتراضية، ولا عمولة، ولا تاريخَ تعيين،
+ * ولا رصيدَ عهدة. فالمندوبُ يفتح التطبيقَ فيرى مساحتَه **فارغةً وصادقة** (لا حمولةَ
+ * بعد)، وأوّلُ حمولةٍ يُنشئها المحاسبُ من شاشة التوزيع تصير بياناته هو. وإن تُرك
+ * `passwordHash` فارغًا أُنشئ الحساب `invited` (كقاعدة البذرة: لا كلمةَ مرور تُخترع).
+ */
+export type DemoRepSpec = {
+  email: string;
+  fullName: string;
+  /** Argon2id PHC string. Omit ⇒ the account is created `invited`. */
+  passwordHash?: string;
+  /** رقمُ الموظف — required by the schema's unique `(tenant_id, employee_no)`. */
+  employeeNo?: string;
+  /** اسمُ بطاقة المندوب — required unique per tenant. Defaults to the person's name. */
+  salesmanName?: string;
+  /** لوحةُ السيارة — تُكتب فقط إن أُعطيت: فاللوحاتُ لا تُخترع. */
+  vehiclePlate?: string;
+  warehouseCode?: string;
+  warehouseName?: string;
+};
+
+/** باقةٌ قطاعية تُفعَّل للمنشأة التجريبية (قرارُ منصّةٍ في الإنتاج، وهنا بذرةٌ صريحة). */
+export type DemoSectorAppSpec = {
+  code: string;
+  nameAr: string;
+  nameEn: string;
+  descriptionAr: string;
+  icon: string;
+  version: string;
+  monthlyPrice: string;
+};
+
 export type DemoSeedOptions = {
   /** Tenant that receives the data. Defaults to `demo`. */
   tenantCode?: string;
@@ -43,6 +78,14 @@ export type DemoSeedOptions = {
   planCode?: string;
   subscriptionMonths?: number;
   users?: DemoUserSpec[];
+  /** مندوبٌ واحد بحساب دخولٍ مربوطٍ ببطاقة موظفٍ وبطاقة مندوبٍ ومستودع سيارة. */
+  rep?: DemoRepSpec;
+  /**
+   * باقاتٌ قطاعية تُفعَّل للمنشأة (‏`marketplace_apps` ثم `tenant_apps`). وبلا تفعيلٍ
+   * ترسم واجهةُ المخابز `LicenceWall` (فـ`licenceVerdict` يقرأ `enabledApps` من `GET /me`)
+   * ولا يُفتح `/rep` أصلًا — فالتفعيلُ جزءٌ من بذرةٍ تُجرَّب لا ترف.
+   */
+  sectorApps?: readonly DemoSectorAppSpec[];
   /** Post the opening entry (capital → cash / bank / fixed assets). Default true. */
   withOpeningEntry?: boolean;
   log?: (message: string) => void;
@@ -65,6 +108,16 @@ export type DemoSeedReport = {
   fiscalYearId: string;
   periods: number;
   openingEntryNumber?: string;
+  rep?: {
+    email: string;
+    status: string;
+    salesmanName: string;
+    employeeNo: string;
+    warehouseCode: string;
+    vehiclePlate: string | null;
+    membershipId: string;
+  };
+  sectorApps: string[];
   users: Array<{ email: string; role: string; status: string }>;
 };
 
@@ -330,6 +383,17 @@ export async function seedDemoData(
     const users = await seedUsers(client, tenantId, options.users ?? []);
     for (const user of users) log(`seed  user: ${user.email} (${user.role}, ${user.status})`);
 
+    const sectorApps = await seedSectorApps(client, tenantId, options.sectorApps ?? []);
+    for (const code of sectorApps) log(`seed  sector app enabled: ${code}`);
+
+    const rep = options.rep ? await seedRep(client, tenantId, org.branchId, options.rep) : undefined;
+    if (rep) {
+      log(
+        `seed  rep: ${rep.email} (${rep.status}) → مندوب «${rep.salesmanName}»، موظف ${rep.employeeNo}، ` +
+          `مستودع ${rep.warehouseCode}${rep.vehiclePlate ? `، لوحة ${rep.vehiclePlate}` : ''}`,
+      );
+    }
+
     return {
       tenantId,
       tenantCode,
@@ -347,6 +411,8 @@ export async function seedDemoData(
       periods: calendar.periods,
       openingEntryNumber,
       users,
+      rep,
+      sectorApps,
     };
   } finally {
     await client.end();
@@ -950,6 +1016,206 @@ async function seedUsers(
   }
 
   return created;
+}
+
+/**
+ * 🚐 مندوبُ العرض — السلسلةُ نفسها التي يبنيها `POST /van-sales/salesmen/:id/account`
+ * (‏`linkSalesmanAccount` في `van-sales.service.ts`): مستخدم ← عضوية ← دور «مندوب توزيع»
+ * بالأذونات الأربعة ← حصرُ النطاق في مستودع السيارة ← بطاقةُ موظفٍ مربوطةٌ بالعضوية ←
+ * بطاقةُ مندوبٍ مربوطةٌ بالموظف. والخادمُ يقرأ المندوبَ من هذه السلسلة بالضبط
+ * (‏`salesmen.employee_id → employees.membership_id` في `resolveSalesmanForMembershipInTx`)،
+ * فسلسلةٌ ناقصةٌ تعني «حسابك غير مرتبط ببطاقة مندوب توزيع» ولا يُفتح `/rep`.
+ *
+ * والبذرةُ تكتب الصفوفَ مباشرةً لأنها في `packages/database` ولا تستطيع استدعاء خدمةِ
+ * Nest، لكنّها **لا تنسخ تعريفَ الدور**: الاسمُ والأذوناتُ من `VAN_SALES_REP_ROLE` في
+ * `@erp/contracts` وهي القراءةُ نفسها التي يستعملها المسارُ الرسميّ — فلو اختلفا لانكسر
+ * «حسابٌ واحد للشخص الواحد» وصار في المنشأة دوران للمندوب.
+ *
+ * والحصرُ في مستودع السيارة وحده (بلا نطاقٍ عامّ `00000000-…` كالمحاسب وأمين الصندوق)
+ * مقصود: فالمندوبُ يقرأ رصيدَ سيارته لا أرصدةَ المنشأة، وهذا هو `replaceScopes` نفسه
+ * الذي يستدعيه المسارُ الرسميّ.
+ */
+async function seedRep(
+  client: Client,
+  tenantId: string,
+  branchId: string,
+  spec: DemoRepSpec,
+): Promise<{
+  email: string;
+  status: string;
+  salesmanName: string;
+  employeeNo: string;
+  warehouseCode: string;
+  vehiclePlate: string | null;
+  membershipId: string;
+}> {
+  const email = spec.email.trim().toLowerCase();
+  const employeeNo = (spec.employeeNo ?? 'EMP-REP-1').trim();
+  const salesmanName = (spec.salesmanName ?? spec.fullName).trim();
+  const warehouseCode = (spec.warehouseCode ?? 'VAN-1').trim();
+  const warehouseName = (spec.warehouseName ?? 'مستودع سيارة التوزيع').trim();
+  const vehiclePlate = spec.vehiclePlate?.trim() || null;
+
+  // ١. مستودعُ السيارة — وجهةُ العهدة في أمر التحميل، ومن دونه لا حمولةَ تُصرف.
+  const vanWarehouseId = await upsertById(
+    client,
+    `SELECT id FROM warehouses WHERE tenant_id = $1 AND code = $2 AND deleted_at IS NULL`,
+    [tenantId, warehouseCode],
+    (id) =>
+      client.query(
+        `INSERT INTO warehouses (id, tenant_id, branch_id, code, name, is_default, is_active)
+         VALUES ($1, $2, $3, $4, $5, false, true)`,
+        [id, tenantId, branchId, warehouseCode, warehouseName],
+      ),
+  );
+
+  // ٢. الدور — الاسمُ والأذونات من العقود (لا نسخةَ ثانيةَ هنا).
+  const roleRow = await client.query<{ id: string }>(
+    `INSERT INTO roles (id, tenant_id, name, is_system, description)
+     VALUES ($1, $2, $3, false, $4)
+     ON CONFLICT (tenant_id, name) WHERE deleted_at IS NULL
+       DO UPDATE SET description = EXCLUDED.description
+     RETURNING id`,
+    [newId(), tenantId, VAN_SALES_REP_ROLE.name, VAN_SALES_REP_ROLE.descriptionAr],
+  );
+  const roleId = roleRow.rows[0]?.id as string;
+  await client.query(`DELETE FROM role_permissions WHERE role_id = $1`, [roleId]);
+  for (const code of VAN_SALES_REP_ROLE.permissions) {
+    await client.query(
+      `INSERT INTO role_permissions (role_id, permission_code) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
+      [roleId, code],
+    );
+  }
+
+  // ٣. المستخدم والعضوية — نمطُ `seedUsers` نفسه: بلا كلمةِ مرورٍ يُنشأ `invited`.
+  const status = spec.passwordHash ? 'active' : 'invited';
+  const userRow = await client.query<{ id: string }>(
+    `INSERT INTO users (id, email, full_name, status, password_hash, must_change_password, password_changed_at)
+     VALUES ($1, $2, $3, $4, $5, $6, CASE WHEN $5::text IS NULL THEN NULL ELSE now() END)
+     ON CONFLICT (email) DO UPDATE SET full_name = EXCLUDED.full_name
+     RETURNING id`,
+    [newId(), email, spec.fullName, status, spec.passwordHash ?? null, !spec.passwordHash],
+  );
+  const userId = userRow.rows[0]?.id as string;
+
+  const membershipRow = await client.query<{ id: string }>(
+    `INSERT INTO memberships (id, tenant_id, user_id, display_name, status, is_owner)
+     VALUES ($1, $2, $3, $4, 'active', false)
+     ON CONFLICT (tenant_id, user_id) WHERE deleted_at IS NULL
+       DO UPDATE SET status = 'active', display_name = EXCLUDED.display_name
+     RETURNING id`,
+    [newId(), tenantId, userId, spec.fullName],
+  );
+  const membershipId = membershipRow.rows[0]?.id as string;
+
+  await client.query(
+    `INSERT INTO membership_roles (membership_id, role_id) VALUES ($1, $2) ON CONFLICT DO NOTHING`,
+    [membershipId, roleId],
+  );
+  // ٤. النطاق: مستودعُ سيارته وحده — لا `00000000-0000-0000-0000-000000000000` (الكلّ).
+  await client.query(
+    `DELETE FROM membership_role_scopes WHERE membership_id = $1 AND role_id = $2`,
+    [membershipId, roleId],
+  );
+  await client.query(
+    `INSERT INTO membership_role_scopes (membership_id, role_id, scope_type, scope_id)
+     VALUES ($1, $2, 'warehouse', $3)
+     ON CONFLICT DO NOTHING`,
+    [membershipId, roleId, vanWarehouseId],
+  );
+
+  // ٥. بطاقةُ الموظف — مطلوبةٌ لأنّ الخادمَ يصل المندوبَ بالعضوية عبرها.
+  //    وبلا تاريخ تعيينٍ ولا مكوّنات راتبٍ ولا حسابِ موظّف: فلا رقمَ يُخترع لشخصٍ حقيقيّ
+  //    في السجلّ (ومديونيةُ الموظّف قرارُ مالكٍ لا بذرة).
+  const employeeId = await upsertById(
+    client,
+    `SELECT id FROM employees WHERE tenant_id = $1 AND employee_no = $2 AND deleted_at IS NULL`,
+    [tenantId, employeeNo],
+    (id) =>
+      client.query(
+        `INSERT INTO employees (id, tenant_id, employee_no, name, branch_id, membership_id, status)
+         VALUES ($1, $2, $3, $4, $5, $6, 'active')`,
+        [id, tenantId, employeeNo, spec.fullName, branchId, membershipId],
+      ),
+  );
+  await client.query(
+    `UPDATE employees SET membership_id = $1, updated_at = now()
+     WHERE id = $2::uuid AND tenant_id = $3::uuid AND (membership_id IS DISTINCT FROM $1::uuid)`,
+    [membershipId, employeeId, tenantId],
+  );
+
+  // ٦. بطاقةُ المندوب — فريدةٌ بالاسم وبالموظف، فلا تُضاعفها إعادةُ البذرة.
+  const salesmanId = await upsertById(
+    client,
+    // بلا `deleted_at`: فجدولُ `salesmen` في القاعدة الحقيقية لا يحمل هذا العمود (قِيس على
+    // ‏`information_schema` بعد `db:migrate` — و`users` كذلك)، واستعلامُ الخدمة نفسه
+    // (‏`resolveSalesmanForMembershipInTx`) يصفّي `deleted_at` على `employees` وحده.
+    // ومرآةُ drizzle ليست مصدرَ الحقيقة هنا: الهجراتُ هي.
+    `SELECT id FROM salesmen WHERE tenant_id = $1 AND name = $2`,
+    [tenantId, salesmanName],
+    (id) =>
+      client.query(
+        `INSERT INTO salesmen (id, tenant_id, name, employee_id, warehouse_id, vehicle_plate, active)
+         VALUES ($1, $2, $3, $4, $5, $6, true)`,
+        [id, tenantId, salesmanName, employeeId, vanWarehouseId, vehiclePlate],
+      ),
+  );
+  await client.query(
+    `UPDATE salesmen
+     SET employee_id = $1, warehouse_id = $2, vehicle_plate = $3, active = true, updated_at = now()
+     WHERE id = $4::uuid AND tenant_id = $5::uuid`,
+    [employeeId, vanWarehouseId, vehiclePlate, salesmanId, tenantId],
+  );
+
+  return { email, status, salesmanName, employeeNo, warehouseCode, vehiclePlate, membershipId };
+}
+
+/**
+ * 🥖 تفعيلُ باقةٍ قطاعية للمنشأة التجريبية.
+ *
+ * صفّا `marketplace_apps` ثم `tenant_apps`: فالثاني يحمل مفتاحًا أجنبيًّا إلى `code`
+ * الأول، ولا تُقرأ `enabledApps` في `GET /me` (ومنها `licenceVerdict` في واجهة المخابز)
+ * إلا من الثاني. وفي الإنتاج هذا **قرارُ منصّة** لا يملكه مديرُ المنشأة
+ * (‏`ADDON_REQUIRES_PLATFORM_APPROVAL`) — وأمّا هنا فالبذرةُ تصرّح به صراحةً باسم
+ * `SEED_DEMO_DATA`، وتسجّله في التقرير كي لا يظنّ أحدٌ أنّه تفعيلٌ ذاتيّ.
+ */
+async function seedSectorApps(
+  client: Client,
+  tenantId: string,
+  apps: readonly DemoSectorAppSpec[],
+): Promise<string[]> {
+  if (apps.length === 0) return [];
+  const enabled: string[] = [];
+  // كتالوجُ السوق جدولٌ عامّ (بلا `tenant_id`) وسياسةُ الكتابة عليه تطلب منصّةً —
+  // والبذرةُ مشغّلُ منصّةٍ كما في `seedPlans` أعلاه، فتُعلن نفسها للجلسة نفسها.
+  await client.query(`SELECT set_config('app.is_platform_admin', 'on', false)`);
+  try {
+    for (const app of apps) {
+      await client.query(
+        `INSERT INTO marketplace_apps
+           (id, code, name_ar, name_en, description_ar, icon, version, price_monthly, is_core, is_active, screens)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8::numeric, false, true, '[]'::jsonb)
+         ON CONFLICT (code) DO UPDATE SET
+           name_ar = EXCLUDED.name_ar, name_en = EXCLUDED.name_en,
+           description_ar = EXCLUDED.description_ar, icon = EXCLUDED.icon,
+           version = EXCLUDED.version, price_monthly = EXCLUDED.price_monthly,
+           is_active = true`,
+        [newId(), app.code, app.nameAr, app.nameEn, app.descriptionAr, app.icon, app.version, app.monthlyPrice],
+      );
+    }
+  } finally {
+    await client.query(`SELECT set_config('app.is_platform_admin', 'off', false)`);
+  }
+  for (const app of apps) {
+    await client.query(
+      `INSERT INTO tenant_apps (id, tenant_id, app_code, is_enabled, settings)
+       VALUES ($1, $2, $3, true, '{}'::jsonb)
+       ON CONFLICT (tenant_id, app_code) DO UPDATE SET is_enabled = true, updated_at = now()`,
+      [newId(), tenantId, app.code],
+    );
+    enabled.push(app.code);
+  }
+  return enabled;
 }
 
 // --------------------------------------------------------------------------- helpers

@@ -1,7 +1,15 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { Decimal } from 'decimal.js';
 import { sql } from 'drizzle-orm';
-import { DomainError, errorCodes, newId } from '@erp/contracts';
+import {
+  ALL_PERMISSIONS,
+  DomainError,
+  errorCodes,
+  newId,
+  VAN_SALES_COMPANY_SCOPE_PERMISSIONS,
+  VAN_SALES_REP_PROXY_PERMISSIONS,
+  VAN_SALES_REP_ROLE,
+} from '@erp/contracts';
 import { withTenantTx, type DatabaseHandle, type DrizzleTx } from '@erp/database';
 
 import { DATABASE_HANDLE } from '../../database/database.module.js';
@@ -749,6 +757,125 @@ export class VanSalesService {
   }
 
   /**
+   * 🚐 موقعُ المتّصل من الخطّ — مندوبٌ محصور أم من يدير الخطّ؟
+   *
+   * ثلاثةُ أسئلة تُجاب من **القاعدة** لا من ادّعاءات الرمزية: هل عضويتُه مربوطةٌ ببطاقة
+   * `salesmen` (عبر `employees.membership_id`)، وهل يحمل إذنَ قراءةِ الخطّ كلّه
+   * (‏`VAN_SALES_COMPANY_SCOPE_PERMISSIONS`)، وهل يحمل وكالةَ المكتب الخلفي
+   * (‏`VAN_SALES_REP_PROXY_PERMISSIONS`). والقائمتان من `@erp/contracts` فلا تنسخهما
+   * الجملةُ ولا تنحرفان — والمصدرُ نفسه الذي كانت تقرأ منه `confirmReceipt` و
+   * `assertReceiptActorInTx` قائمتَهما حرفيًّا (وكانتا نسختين من الجملة نفسها).
+   *
+   * **وبلا عضويةٍ لا تحجيم**: فالمتّصلُ بلا `membershipId` ليس شخصًا مربوطةً عضويتُه
+   * ببطاقة مندوب (مفتاحُ API أو بذرةٌ أو مثبّتةٌ تنادي الخدمةَ مباشرةً)، وسلوكُه يبقى
+   * كما كان. والتحجيمُ معنىً لشخصٍ بعينه: فلو حُجب عن مستدعٍ آليٍّ لانكسر مسارٌ لا
+   * علاقةَ له بالمناديب، ولو حُسب مندوبًا بلا بطاقةٍ لحُجبت اللوحةُ عن المالك.
+   */
+  private async callerLineScopeInTx(
+    tx: DrizzleTx,
+    tenantId: string,
+    membershipId: string | null,
+  ): Promise<{ isRep: boolean; salesmanId: string | null; companyScope: boolean; repProxy: boolean }> {
+    if (!membershipId) {
+      return { isRep: false, salesmanId: null, companyScope: true, repProxy: true };
+    }
+    const rep = await this.resolveSalesmanForMembershipInTx(tx, tenantId, membershipId);
+    /** `*` تُضمّ إلى القائمتين: فدورٌ يحملها يمنحها الحارسُ أصلًا، ورفضُها هنا تناقضٌ بين بابين. */
+    const codeList = (codes: readonly string[]) =>
+      sql.join([...codes, ALL_PERMISSIONS].map((code) => sql`${code}`), sql`, `);
+    const flags = first(
+      await tx.execute(sql`
+        SELECT bool_or(rp.permission_code IN (${codeList(VAN_SALES_COMPANY_SCOPE_PERMISSIONS)})) AS company_scope,
+               bool_or(rp.permission_code IN (${codeList(VAN_SALES_REP_PROXY_PERMISSIONS)})) AS rep_proxy
+        FROM memberships m
+        JOIN membership_roles mr ON mr.membership_id = m.id
+        JOIN role_permissions rp ON rp.role_id = mr.role_id
+        WHERE m.tenant_id = ${tenantId}::uuid
+          AND m.id = ${membershipId}::uuid
+          AND m.deleted_at IS NULL
+      `),
+    );
+    return {
+      isRep: Boolean(rep),
+      salesmanId: rep ? rep.salesmanId : null,
+      companyScope: flags?.company_scope === true,
+      repProxy: flags?.rep_proxy === true,
+    };
+  }
+
+  /**
+   * قراءةُ الخطّ على مستوى المنشأة تُرفض على المندوب — **لا تُصفّى ولا تُعرض ناقصة**.
+   *
+   * والرفضُ لا التصفيةَ اختيارٌ مقصود: فمجاميعُ اللوحة تُحسب في SQL فوق `WHERE` واحدة
+   * (درسُ ١٢أ/١٣أ: مجموعُ نافذةٍ محدودةٍ ليس مجموعًا)، وإدخالُ مرشّحِ المندوب في ثماني
+   * قوائمَ وثلاثةِ مجاميعَ تتشاركها `getReports` و`repWorkspace` يعني رقمين مختلفين
+   * لاسمٍ واحد. وللمندوب أرقامُه الكاملةُ في `GET /van-sales/me` (مجاميعُ جدوله هو، من
+   * ١٣أ) فلا يخسر شيئًا، ولا تختلط لوحةُ المنشأة بلوحةِ المندوب.
+   */
+  private async assertCompanyScopeInTx(
+    tx: DrizzleTx,
+    tenantId: string,
+    membershipId: string | null,
+    surfaceAr: string,
+  ): Promise<void> {
+    const scope = await this.callerLineScopeInTx(tx, tenantId, membershipId);
+    if (!scope.isRep || scope.companyScope) return;
+    throw new DomainError(
+      'VAN_SALES_COMPANY_SCOPE_REQUIRED',
+      `${surfaceAr} على مستوى المنشأة تتطلّب إذنَ إدارةِ الخطّ (مثل van_sales.load.manage) — وحسابُك مندوبٌ يقرأ خطَّه هو في GET /van-sales/me`,
+      403,
+      { field: 'permission', salesmanId: scope.salesmanId },
+    );
+  }
+
+  /**
+   * ملكيةُ الحمل — المندوبُ يُصدر ويُقفل على حِمله هو، ومن يحمل وكالةَ المكتب الخلفي
+   * يتصرّف نيابةً عنه (القاعدةُ نفسها التي يحكم بها `assertReceiptActorInTx` الاستلام).
+   */
+  private async assertOwnsLoadInTx(
+    tx: DrizzleTx,
+    tenantId: string,
+    membershipId: string | null,
+    load: { salesman_id?: unknown },
+    field: string,
+  ): Promise<void> {
+    const scope = await this.callerLineScopeInTx(tx, tenantId, membershipId);
+    if (!scope.isRep || scope.repProxy) return;
+    /**
+     * ‏`van_load_orders.salesman_id` غيرُ قابلٍ للفراغ (قِيس على `information_schema` بعد
+     * `db:migrate`) فلا حالةَ «حملٍ بلا مندوب»، وإن صارت يومًا فالرفضُ هو الجهةُ الآمنة:
+     * ملكيةٌ مجهولةٌ لا تُبيح التصرف.
+     */
+    if (str(load.salesman_id ?? '') === scope.salesmanId) return;
+    throw new DomainError(
+      'VAN_SALES_NOT_YOUR_LOAD',
+      'أمرُ التحميل هذا مسندٌ إلى مندوبٍ آخر: لا تُصدر عليه مستندًا ولا تُقدّم إقفاله',
+      403,
+      { field, salesmanId: scope.salesmanId },
+    );
+  }
+
+  /** ملكيةُ المستند — المرتجعُ والتحصيلُ والطباعة على مستند المندوب نفسه. */
+  private async assertOwnsDocumentInTx(
+    tx: DrizzleTx,
+    tenantId: string,
+    membershipId: string | null,
+    doc: { salesman_id?: unknown },
+    field: string,
+  ): Promise<void> {
+    const scope = await this.callerLineScopeInTx(tx, tenantId, membershipId);
+    if (!scope.isRep || scope.repProxy) return;
+    // ‏`van_sales_documents.salesman_id` غيرُ قابلٍ للفراغ كذلك (قِيس)، والرفضُ عند الجهل.
+    if (str(doc.salesman_id ?? '') === scope.salesmanId) return;
+    throw new DomainError(
+      'VAN_SALES_NOT_YOUR_DOCUMENT',
+      'مستندُ البيع هذا لمندوبٍ آخر: لا تُرجعه ولا تُحصّله ولا تطبعه',
+      403,
+      { field, salesmanId: scope.salesmanId },
+    );
+  }
+
+  /**
    * الأرصدة الرسمية — `stock_balances`, the same ledger the item card, the stock report
    * and the accounting valuation read.
    *
@@ -1222,8 +1349,9 @@ export class VanSalesService {
     };
   }
 
-  async dashboard(tenantId: string) {
+  async dashboard(tenantId: string, membershipId: string | null = null) {
     return withTenantTx(this.database.db, tenantId, async (tx) => {
+      await this.assertCompanyScopeInTx(tx, tenantId, membershipId, 'لوحةُ الخطّ');
       const policy = await this.loadTenantPolicyInTx(tx, tenantId);
 
       const productionBatches = rows(
@@ -1988,9 +2116,12 @@ export class VanSalesService {
   async getReports(
     tenantId: string,
     filters: { salesmanId?: string; fromDate?: string; toDate?: string } = {},
+    membershipId: string | null = null,
   ) {
     const range = this.parseReportRange(filters);
-    const dash = await this.dashboard(tenantId);
+    // ‏`getReports` تقرأ اللوحةَ نفسها (بندُ ب٦) فبوابتُها بوّابةُ اللوحة — ولا تُفتح
+    // للتقارير ثغرةٌ أُغلقت في اللوحة.
+    const dash = await this.dashboard(tenantId, membershipId);
 
     return withTenantTx(this.database.db, tenantId, async (tx) => {
       if (range.salesmanId) {
@@ -3562,7 +3693,10 @@ export class VanSalesService {
             WHERE m.tenant_id = ${tenantId}::uuid
               AND m.id = ${membershipId ?? ''}::uuid
               AND m.deleted_at IS NULL
-              AND rp.permission_code IN ('van_sales.load.manage', 'van_sales.closing.approve')
+              AND rp.permission_code IN (${sql.join(
+            [...VAN_SALES_REP_PROXY_PERMISSIONS, ALL_PERMISSIONS].map((code) => sql`${code}`),
+            sql`, `,
+          )})
             LIMIT 1
           `),
         );
@@ -3741,7 +3875,10 @@ export class VanSalesService {
         WHERE m.tenant_id = ${tenantId}::uuid
           AND m.id = ${membershipId ?? ''}::uuid
           AND m.deleted_at IS NULL
-          AND rp.permission_code IN ('van_sales.load.manage', 'van_sales.closing.approve')
+          AND rp.permission_code IN (${sql.join(
+            [...VAN_SALES_REP_PROXY_PERMISSIONS, ALL_PERMISSIONS].map((code) => sql`${code}`),
+            sql`, `,
+          )})
         LIMIT 1
       `),
     );
@@ -4101,6 +4238,7 @@ export class VanSalesService {
       notes?: string;
       idempotencyKey?: string;
     },
+    membershipId: string | null = null,
   ) {
     const loadOrderId = str(body.loadOrderId).trim();
     if (!loadOrderId) {
@@ -4150,6 +4288,7 @@ export class VanSalesService {
       if (!loadOrder) {
         throw new DomainError(errorCodes.NOT_FOUND, 'أمر التحميل غير موجود', 404);
       }
+      await this.assertOwnsLoadInTx(tx, tenantId, membershipId, loadOrder, 'loadOrderId');
       if (str(loadOrder.status) === 'settled') {
         throw new DomainError(
           errorCodes.VALIDATION_FAILED,
@@ -5065,6 +5204,7 @@ export class VanSalesService {
       vehicleCountQty?: string;
       closingNotes?: string;
     },
+    membershipId: string | null = null,
   ) {
     await withTenantTx(this.database.db, tenantId, async (tx) => {
       const policy = await this.loadTenantPolicyInTx(tx, tenantId);
@@ -5080,6 +5220,9 @@ export class VanSalesService {
       if (!loadOrder) {
         throw new DomainError(errorCodes.NOT_FOUND, 'أمر التحميل غير موجود', 404);
       }
+      // مندوبٌ يُقدّم إقفالَ ورديةِ زميله = إعلانُ نقصٍ أو فائضٍ على عهدةِ غيره، ويُكتب
+      // `closing_submitted_by` باسمه هو فيصير السجلُّ كاذبًا. فالملكيةُ تُفحص قبل الأرقام.
+      await this.assertOwnsLoadInTx(tx, tenantId, membershipId, loadOrder, 'loadOrderId');
       if (str(loadOrder.status) === 'settled') {
         throw new DomainError(
           'VAN_LOAD_ORDER_ALREADY_SETTLED',
@@ -6743,6 +6886,7 @@ export class VanSalesService {
       notes?: string;
       idempotencyKey?: string;
     },
+    membershipId: string | null = null,
   ) {
     const documentId = str(body.documentId).trim();
     const collectedAmount = dec(body.collectedAmount);
@@ -6777,6 +6921,9 @@ export class VanSalesService {
         `),
       );
       if (!doc) throw new DomainError(errorCodes.NOT_FOUND, 'الفاتورة غير موجودة', 404);
+      // تحصيلُ دينٍ على مستندِ زميلٍ يُسجَّل في عهدةِ المندوب الآخر ويُبطِل مطابقةَ نقده،
+      // فالمِلكيةُ تُفحص قبل أيّ رقم.
+      await this.assertOwnsDocumentInTx(tx, tenantId, membershipId, doc, 'documentId');
 
       const docTotal = dec(doc.total);
       const currentPaid = dec(doc.paid_amount);
@@ -6962,7 +7109,12 @@ export class VanSalesService {
    * There is deliberately no second salesman table: `POST/PATCH /sales/salesmen` writes the
    * official card (now carrying `warehouse_id` / `vehicle_plate`), and this reads it.
    */
-  async listSalesmenWithCustody(tenantId: string) {
+  async listSalesmenWithCustody(tenantId: string, membershipId: string | null = null) {
+    // المندوبُ لا يُعدّد زملاءه ولا عهداتهم: فبطاقاتُ المناديب كشفُ منشأة (أسماءٌ
+    // وهواتفُ ولوحاتُ سياراتٍ وأرصدةُ عهدة) ولا حاجةَ له منها في `/me`.
+    await withTenantTx(this.database.db, tenantId, async (tx) => {
+      await this.assertCompanyScopeInTx(tx, tenantId, membershipId, 'بطاقاتُ المناديب');
+    });
     const salesmen = await this.sales.listSalesmenWithCustody(tenantId);
     const custody = await withTenantTx(this.database.db, tenantId, async (tx) => {
       const balances = rows(
@@ -7115,19 +7267,16 @@ export class VanSalesService {
     }
 
     /** دور المندوب — found by name, created once with the rep's own permissions. */
+    // الاسمُ والقائمةُ من `@erp/contracts` (‏`VAN_SALES_REP_ROLE`): فبذرةُ الحساب
+    // التجريبيّ تنشئ الدورَ نفسه، ونسختان من اسمٍ أو قائمةٍ تنحرفان («تنفيذٌ واحد»).
     const existingRoles = await this.roles.list(tenantId, { limit: 200, offset: 0 });
-    const repRoleName = 'مندوب توزيع';
+    const repRoleName = VAN_SALES_REP_ROLE.name;
     let role = (existingRoles.data ?? []).find((row) => row.name === repRoleName);
     if (!role) {
       role = await this.roles.create(tenantId, actorUserId, {
         name: repRoleName,
-        description: 'دور مندوب التوزيع: رؤية عهدته، إصدار فواتيره، تحصيل مديونياته، وتقديم إغلاق ورديته',
-        permissionCodes: [
-          'van_sales.view',
-          'van_sales.invoice.create',
-          'van_sales.collection.create',
-          'van_sales.closing.submit',
-        ],
+        description: VAN_SALES_REP_ROLE.descriptionAr,
+        permissionCodes: [...VAN_SALES_REP_ROLE.permissions],
       });
     }
 
@@ -7572,6 +7721,7 @@ export class VanSalesService {
     tenantId: string,
     documentId: string,
     options: { copies?: number } = {},
+    membershipId: string | null = null,
   ) {
     const requestedCopies = Math.max(1, Math.min(6, Number(options.copies ?? 2)));
     return withTenantTx(this.database.db, tenantId, async (tx) => {
@@ -7598,6 +7748,8 @@ export class VanSalesService {
         `),
       );
       if (!doc) throw new DomainError(errorCodes.NOT_FOUND, 'مستند البيع غير موجود', 404);
+      // نسختا الطباعة تحملان اسمَ المندوب وتوقيعه — فلا يطبع مندوبٌ مستندَ زميله.
+      await this.assertOwnsDocumentInTx(tx, tenantId, membershipId, doc, 'documentId');
 
       const company = first(
         await tx.execute(sql`
@@ -7736,6 +7888,7 @@ export class VanSalesService {
       notes?: string;
       idempotencyKey?: string;
     },
+    membershipId: string | null = null,
   ) {
     const documentId = str(body.documentId).trim();
     const returnedQty = dec(body.returnedQty);
@@ -7788,6 +7941,7 @@ export class VanSalesService {
         `),
       );
       if (!doc) throw new DomainError(errorCodes.NOT_FOUND, 'مستند البيع غير موجود', 404);
+      await this.assertOwnsDocumentInTx(tx, tenantId, membershipId, doc, 'documentId');
       if (str(doc.document_kind) === 'return') {
         throw new DomainError(
           errorCodes.VALIDATION_FAILED,

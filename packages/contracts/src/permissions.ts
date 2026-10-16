@@ -566,3 +566,83 @@ export function permissionsForModule(moduleName: string): PermissionDefinition[]
 export const permissionModules: readonly string[] = [
   ...new Set(permissionRegistry.map((entry) => entry.module)),
 ];
+
+/**
+ * 🚐 مَنْ يقرأ الخطَّ كلَّه، ومَنْ يقرأ خطَّه هو.
+ *
+ * القياسُ الذي فرض هذه القائمة: ‏`GET /van-sales/dashboard` و`/reports` و`/salesmen`
+ * كانت تتطلب `van_sales.view` وحدها، و`dashboard(tenantId)` **لا يأخذ عضويةً ولا
+ * مندوبًا** — فأيّ حاملٍ لـ`van_sales.view` يقرأ إنتاجَ المنشأة ومبيعاتها ونقدها
+ * وربحها وبطاقاتِ مناديبها. والمندوبُ مضطرٌّ إلى `van_sales.view` لأنّ `GET /van-sales/me`
+ * (مساحتَه هو) تتطلبها. فصار لزامًا فصلُ المستويين:
+ *
+ *   • `van_sales.view` + أذوناتُ المندوب الأربعة ⇒ **خطُّه هو** (‏`/me` ومستنداته
+ *     وأحماله وتحصيله وإقفاله، وملكيةُ كلّ صفٍّ تُفحص عند الكتابة).
+ *   • واحدٌ من أذونات الإدارة أدناه ⇒ **خطُّ المنشأة** (اللوحاتُ والتقاريرُ وبطاقاتُ
+ *     المناديب). وهي أذوناتُ من يُدير الخطّ فعلًا: من يُحمّل ويُنتج ويسعّر ويعتمد
+ *     الإقفال ويتجاوز السياسة.
+ *
+ * ولم يُخترع إذنٌ جديد (`van_sales.reports.view` مثلًا) عن قصد: فأيّ دورٍ مخصّصٍ بُني
+ * اليوم على `van_sales.view` وحدها كان سيخسر اللوحةَ فجأةً عند الترقية، بينما هذه
+ * القاعدةُ لا تكسر أحدًا — المالكُ (`*`) وكلُّ دورٍ إداريّ يقرآن كما كانا، والمندوبُ
+ * وحده يُحجَّم. والقائمةُ هنا في العقود لا في الخادم ولا في الواجهة كي لا تنحرف
+ * نسختان (قاعدةُ «تنفيذٌ واحد»).
+ */
+export const VAN_SALES_COMPANY_SCOPE_PERMISSIONS = [
+  'van_sales.load.manage',
+  'van_sales.production.manage',
+  'van_sales.pricing.manage',
+  'van_sales.closing.approve',
+  'van_sales.override.approve',
+] as const;
+
+/**
+ * 🚐 دورُ المندوب — تعريفٌ واحد يستورده الخادمُ والبذرة.
+ *
+ * كان الاسمُ وقائمةُ الأذونات مكتوبين حرفيًّا داخل `linkSalesmanAccount` في
+ * `van-sales.service.ts`، وبذرةُ الحساب التجريبيّ تحتاج الدورَ نفسه لتنشئ مندوبًا
+ * يُجرَّب عليه تطبيقُ `/rep`. ونسخُ الاسم والقائمة في البذرة يعني نسختين تنحرفان
+ * (وقاعدةُ البيت: تنفيذٌ واحد) — فإذا تغيّرت أذوناتُ الدور في الخادم وبقيت البذرةُ
+ * على القديمة، صار في المنشأة دوران باسمين أو دورٌ بصلاحياتٍ مختلفة عمّا يفرضه
+ * المسارُ الرسميّ. فالتعريفُ هنا، والخادمُ والبذرةُ يقرآنه.
+ *
+ * والأذوناتُ الأربعة هي **بالضبط** ما تتطلبه مساراتُ المندوب (قِيس على المتحكّم):
+ *   • `van_sales.view` — ‏`GET /me` و`/documents/:id/print-view` و`confirm-receipt` و`reject-receipt`
+ *   • `van_sales.invoice.create` — ‏`POST /documents` و`POST /documents/:id/returns`
+ *   • `van_sales.collection.create` — ‏`POST /collections`
+ *   • `van_sales.closing.submit` — ‏`POST /load-orders/:id/submit-closing`
+ * ولا إذنَ إدارةٍ فيها عن قصد: فأذوناتُ الإدارة هي نفسها مفتاحُ قراءةِ الخطّ كلّه
+ * (‏`VAN_SALES_COMPANY_SCOPE_PERMISSIONS`)، ومنحُها للمندوب يمنحه أرقامَ المنشأة.
+ */
+export const VAN_SALES_REP_ROLE = {
+  name: 'مندوب توزيع',
+  descriptionAr:
+    'دور مندوب التوزيع: رؤية عهدته، إصدار فواتيره، تحصيل مديونياته، وتقديم إغلاق ورديته',
+  permissions: [
+    'van_sales.view',
+    'van_sales.invoice.create',
+    'van_sales.collection.create',
+    'van_sales.closing.submit',
+  ],
+} as const;
+
+/**
+ * 🧾 وكالةُ المكتب الخلفي — مَنْ يتصرّف في عهدةِ مندوبٍ نيابةً عنه.
+ *
+ * هذان الإذنان هما القائمةُ نفسها التي كان `assertReceiptActorInTx` يحملها حرفيًّا داخل
+ * استعلامه في `van-sales.service.ts` (من يُؤكّد استلامَ حملِ مندوبٍ غيره: المحاسبُ
+ * المشرفُ على الأحمال أو من يعتمد الإقفالات). ونُقلت إلى العقود لسببين: (١) فحوصُ
+ * الملكية الجديدة (مستندٌ وإقفالٌ ومرتجعٌ وتحصيلٌ وطباعة) تحتاج القاعدةَ نفسها، ونسخُها
+ * ثلاثَ مراتٍ يعني انحرافًا حين تُعدَّل مرّةً واحدة؛ (٢) فالقائمةُ هنا **لا توسّع**
+ * القاعدةَ القائمة — الإذنان نفسهما، ولا تُضفى أذوناتُ الإدارة الأخرى (إنتاج/تسعير/
+ * تجاوز) على حقّ التصرف في عهدةِ الغير.
+ */
+export const VAN_SALES_REP_PROXY_PERMISSIONS = [
+  'van_sales.load.manage',
+  'van_sales.closing.approve',
+] as const;
+
+/** هل يملك المتّصلُ قراءةَ الخطّ على مستوى المنشأة (لا خطَّه هو)؟ */
+export function hasVanSalesCompanyScope(granted: readonly string[]): boolean {
+  return VAN_SALES_COMPANY_SCOPE_PERMISSIONS.some((code) => permissionGrants(granted, code));
+}
