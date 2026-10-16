@@ -4558,6 +4558,15 @@ export class VanSalesService {
        * ‏`items.purchase_price`)، ثمّ من متوسط قيمة الحمولة المقدّرة — وهي **تكلفة** منذ إصلاح
        * §6.3. ولا يمسّ هذا القيدَ الرسمي: تكلفة المبيعات في دفتر الأستاذ يكتبها محرّك المبيعات
        * (‏`SalesService.postInTx`) من حركة المخزون نفسها، فالمُصلَح هنا مستندُ التوزيع وتقريرُه.
+       *
+       * 🔢 **والسلسلةُ تطلب صنفَ المستند لا صنفَ الأمر وحده** (`effectiveItemId` = صنفُ الطلب
+       * وإلا صنفُ الأمر): فأمرُ تحميلٍ بلا صنفٍ — وعمودُه nullable وبـ`ON DELETE SET NULL`،
+       * فيصير كذلك عند حذف الصنف أو حين تُنشأ الدفعةُ بلا صنف — كان يُسقط الملاذّين معًا
+       * (الرصيد و`purchase_price` keyed على `loadOrder.item_id`) ويترك البيعَ بـ`unit_cost = 0`
+       * وربحٍ = الإيراد كلّه. وفحصُ الرصيد المجاور (`effectiveItemIdForBalanceCheck`) كان
+       * يستعمل صنفَ المستند أصلًا، فالمُصلَحُ هنا يجعل سلسلةَ التكلفة على القاعدة نفسها.
+       * وبقيت حالٌ واحدةٌ لا تكلفةَ فيها (صنفٌ بلا رصيدٍ في المستودعين وبلا `purchase_price`
+       * وأمرٌ بلا قيمة حمولة) وهي مذكورةٌ في تقرير الشريحة بندًا مفتوحًا لا رقمًا مُصلَحًا.
        */
       let unitCost = batchRow
         ? dec(batchRow.unit_cost)
@@ -4565,7 +4574,12 @@ export class VanSalesService {
           ? dec(loadOrder.unit_cost)
           : new Decimal('0');
       if (unitCost.lte(0)) {
-        const stockCost = await this.resolveStockCostFallbackInTx(tx, tenantId, loadOrder);
+        const stockCost = await this.resolveStockCostFallbackInTx(
+          tx,
+          tenantId,
+          loadOrder,
+          effectiveItemId,
+        );
         if (stockCost) unitCost = stockCost.price;
       }
       if (unitCost.lte(0)) {
@@ -4945,8 +4959,19 @@ export class VanSalesService {
     tx: DrizzleTx,
     tenantId: string,
     loadOrder: Record<string, unknown>,
+    /**
+     * 🔢 صنفُ **المستند** حين يعرفه النداء — فـ`van_load_orders.item_id` عمودٌ nullable
+     * (‏`ON DELETE SET NULL` من `items`) وأمرُ تحميلٍ بلا صنفٍ كان يُرجع `null` من هذه
+     * الدالة فورًا، بينما المستندُ المُنشأ يعرف صنفَه من الطلب (`effectiveItemId`). وبلا هذا
+     * المعامل كان البيعُ من أمرٍ بلا صنفٍ يُكتب بـ`unit_cost = 0` أي بـ`net_profit =`
+     * **الإيراد كلّه** — هامشٌ بلا تكلفة يُعرض على المالك، وهي فصيلةُ §5.1 نفسها.
+     *
+     * وأمّا نداءُ `submitClosing` فلا يمرّر شيئًا: فالعجزُ هناك عن بضاعةِ الأمر نفسه، وصنفُ
+     * الأمر هو موضوعُه لا صنفُ مستندٍ آخر.
+     */
+    itemIdOverride?: string | null,
   ): Promise<{ price: Decimal; basis: ShortageChargeBasis } | null> {
-    const itemId = str(loadOrder.item_id);
+    const itemId = str(itemIdOverride ?? '').trim() || str(loadOrder.item_id);
     if (!itemId) return null;
     for (const warehouseId of [str(loadOrder.warehouse_id), str(loadOrder.van_warehouse_id)]) {
       if (!warehouseId) continue;

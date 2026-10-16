@@ -12,6 +12,7 @@
  * `fallback` المكتوب في الشاشة بدل عددٍ مخمَّن.
  */
 import {
+  DASHBOARD_TOTALS_CLAUSE as SHARED_DASHBOARD_TOTALS_CLAUSE,
   windowIsComplete as sharedWindowIsComplete,
   windowNote as sharedWindowNote,
   type DashboardWindow,
@@ -24,8 +25,11 @@ export type { DashboardWindow, DashboardWindowKey, DashboardWindows };
 
 export const WINDOW_LABELS = SHARED_WINDOW_LABELS;
 
-/** ذيلُ الجملة في هذا الوجه: فالمجاميعُ هنا اسمُها `summary` في حمولة اللوحة. */
-export const DASHBOARD_TOTALS_CLAUSE = 'أرقامُ summary جمعُ الجدول كلّه لا جمعُ هذه الصفوف';
+/**
+ * ذيلُ الجملة في هذا الوجه — **من الحزمة المشتركة** لا منسوخًا هنا: فالمفردةَ نفسها تقولها
+ * شاشةُ التوزيع في الطاقم، ونسختان من نصٍّ واحد تتباعدان.
+ */
+export const DASHBOARD_TOTALS_CLAUSE = SHARED_DASHBOARD_TOTALS_CLAUSE;
 
 export function windowIsComplete(entry: DashboardWindow | null | undefined): boolean {
   return sharedWindowIsComplete(entry);

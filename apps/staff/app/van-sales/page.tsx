@@ -6,6 +6,11 @@ import {
   openVanDocumentPrintWindow,
   type VanDocumentPrintView,
 } from '@erp/web-van/document-print';
+import {
+  DASHBOARD_TOTALS_CLAUSE,
+  windowNote,
+  type DashboardWindows,
+} from '@erp/web-van/windows';
 
 import { Notice } from '../../components/data-view';
 import { Screen } from '../../components/screen';
@@ -308,15 +313,45 @@ type LegacyReconciliationPreview = {
   reconciledCount: number;
 };
 
+/**
+ * 🪟 جملُ النوافذ الاحتياطية — تُعرض حين لا يقول الخادم كم في الجدول (فلا يُخترع رقم)،
+ * والحدودُ من استعلامات `dashboard()` نفسها: ‏٥٠ دفعة، ٦٠ أمرًا، ١٢٠ مستندًا، ٨٠ حركة،
+ * ٥٠ سجل تسعير.
+ */
+const PRODUCTION_WINDOW_FALLBACK = 'أحدث ٥٠ دفعة إنتاج (حدُّ نافذة الخادم)';
+const LOAD_ORDERS_WINDOW_FALLBACK = 'أحدث ٦٠ أمر تحميل (حدُّ نافذة الخادم)';
+const DOCUMENTS_WINDOW_FALLBACK = 'أحدث ١٢٠ مستند بيع (حدُّ نافذة الخادم)';
+const MOVEMENTS_WINDOW_FALLBACK = 'أحدث ٨٠ حركة (حدُّ نافذة الخادم)';
+const PRICE_HISTORY_WINDOW_FALLBACK = 'أحدث ٥٠ سجل تسعير (حدُّ نافذة الخادم)';
+
+/** نسبةٌ لمعاينة الضريبة فقط — انظر `configuredVatFactor` تحت. */
+const PREVIEW_VAT_RATE_PCT = 15;
+
 type DashboardData = {
+  /**
+   * ⚖️ سياسةُ المنشأة **كما يرجعها الخادم فعلًا** (`dashboard()` — `policy`): ثلاثةُ
+   * مفاتيح وهويّةُ البائع الضريبية. وكان النوعُ هنا يعلن ستّةً (`internalDeliveryEnabled`،
+   * ‏`internalDeliveryTaxMode`، `productionCostBasis`، `bonusAccountingMode`،
+   * ‏`defaultVatRatePct`) لا يرسل الخادمُ واحدةً منها، ولا استعمالَ لها في الصفحة — أي
+   * توثيقٌ مكتوبٌ لحمولةٍ غير موجودة. وصُحِّح لأنّ الإنذارَ أدناه يقرأ `zatcaSeller` منها.
+   */
   policy?: {
-    internalDeliveryEnabled: boolean;
-    internalDeliveryTaxMode: string;
+    allowInternalDeliveryWithoutTax: boolean;
+    preventSelfApproval: boolean;
     shortageValuationBasis: string;
-    productionCostBasis: string;
-    bonusAccountingMode: string;
-    defaultVatRatePct: string;
+    /** هويّةُ البائع وجملةُ رفض الخادم حرفًا (`resolveZatcaSellerInTx`). */
+    zatcaSeller?: {
+      ready: boolean;
+      missingFields: string[];
+      refusalDetail: string | null;
+    } | null;
   };
+  /**
+   * 🪟 نوافذُ القراءة كما يعلنها الخادم: القوائمُ الخمس محدودةٌ بـ`LIMIT` وأمّا `summary`
+   * فجمعُ الجدول كلّه — والجملةُ من `@erp/web-van/windows` (تنفيذٌ واحدٌ مع المخابز وشاشة
+   * المندوب). وغيابُ المفتاح يعني «لا أعرف» فتُعرض الجملةُ الاحتياطية.
+   */
+  windows?: DashboardWindows | null;
   /** الأرصدة الرسمية من `stock_balances` — نفس ما تقرأه شاشة المخزون وبطاقة الصنف. */
   officialStock?: OfficialStockRow[];
   mainWarehouseId?: string | null;
@@ -1121,7 +1156,9 @@ export default function VanSalesPage() {
       setNotice({
         kind: stillOpen ? 'warn' : 'ok',
         text: stillOpen
-          ? `⏳ اعتُمدت كميات الوردية (${closingTarget.number}) لكن **العهدة لم تُغلق**: ${
+          // ‏بلا `**…**`: فنصُّ التنبيه يُطبع كما هو، وعلاماتُ التنصيص لا تُصرَف في JSX —
+          // ‏وكانت النجمتان تظهران للمستخدم حرفيًّا.
+          ? `⏳ اعتُمدت كميات الوردية (${closingTarget.number}) لكن العهدة لم تُغلق: ${
               updated?.stockSettlementNote ?? 'رصيد السيارة الرسمي ما زال يختلف عن الجرد الفعلي'
             } — استخدم «♻️ استكمال تسوية المخزون» بعد تفويض ترحيل مستند الجرد الرسمي.`
           : `✅ اعتُمدت الوردية (${closingTarget.number}) وسُوّي رصيد السيارة الرسمي مع الجرد الفعلي${
@@ -1171,7 +1208,15 @@ export default function VanSalesPage() {
 
   const activeLoadOrder = data?.loadOrders.find((l) => l.id === docLoadOrderId);
   const selectedCustomerRule = data?.customerPrices.find((cp) => cp.partyId === docPartyId);
-  const configuredVatFactor = Number(data?.policy?.defaultVatRatePct ?? 15) / 100;
+  /**
+   * ⚠️ معاينةُ الضريبة **تقديرٌ** بنسبة ١٥٪: فحمولةُ اللوحة لا تحمل نسبةً ضريبية — والنوعُ
+   * كان يعلن `policy.defaultVatRatePct` الذي لا يرسله الخادمُ أصلًا، فكان هذا الرقمُ يسقط
+   * إلى ١٥ في كلّ مرّة (وهو ما كان يخفيه `?? 15`). والخادمُ يحسم النسبةَ الفعلية عند
+   * الإصدار من المجموعة الضريبية للصنف، وإلا المجموعةِ الافتراضية الأعلى في المنشأة، وإلا
+   * ١٥٪ (‏`createDocument`). فالتقديرُ يبقى — لأنّ بديلَه صفرٌ أو رقمٌ من حمولةٍ لا تحمله —
+   * لكنّه يُعرض **وهو معلنٌ أنّه تقدير** في السطر تحته.
+   */
+  const configuredVatFactor = PREVIEW_VAT_RATE_PCT / 100;
   const previewGross = Number(docSoldQty || 0) * Number(docUnitPrice || 0);
   const previewDiscount = Number(docDiscountAmount || 0);
   const previewSubtotal = Math.max(0, previewGross - previewDiscount);
@@ -1790,6 +1835,7 @@ export default function VanSalesPage() {
 
           <div className="card">
             <h2 style={{ marginTop: 0 }}>📦 دفعات الإنتاج وأرصدة المستودع الرئيسي</h2>
+              <div className="muted small">{windowNote(data?.windows, 'productionBatches', PRODUCTION_WINDOW_FALLBACK, { totalsClause: DASHBOARD_TOTALS_CLAUSE })}</div>
             <div className="table-wrap">
               <table>
                 <thead>
@@ -1869,6 +1915,7 @@ export default function VanSalesPage() {
 
           <div className="card">
             <h2 style={{ marginTop: 0 }}>🔍 سجل الرقابة على حركة البضاعة والتدقيق (من نفذ العملية ومن اعتمدها)</h2>
+              <div className="muted small">{windowNote(data?.windows, 'movements', MOVEMENTS_WINDOW_FALLBACK, { totalsClause: DASHBOARD_TOTALS_CLAUSE })}</div>
             <div className="table-wrap">
               <table>
                 <thead>
@@ -2206,6 +2253,7 @@ export default function VanSalesPage() {
 
           <div className="card">
             <h2 style={{ marginTop: 0 }}>📋 سجل عهد المناديب وإغلاق الورديات واعتماد المحاسب</h2>
+              <div className="muted small">{windowNote(data?.windows, 'loadOrders', LOAD_ORDERS_WINDOW_FALLBACK, { totalsClause: DASHBOARD_TOTALS_CLAUSE })}</div>
             <div className="table-wrap">
               <table>
                 <thead>
@@ -2706,6 +2754,18 @@ export default function VanSalesPage() {
             <p className="muted small" style={{ margin: 0 }}>
               السعر يُجلب ويُثبّت تلقائياً حسب العميل، وتُخصم الكمية مباشرة من عهدة المندوب، مع دعم الفاتورة الضريبية (15% VAT + QR) أو فاتورة تسليم عادية للمحلات التي لا تطلب فاتورة ضريبية ورقية.
             </p>
+            {/**
+              * 🧾 إنذارُ هويّة البائع **بجملة الخادم نفسها** (`policy.zatcaSeller.refusalDetail`):
+              * فالخادمُ يرفض الفاتورة الضريبية ٤٢٢ (`VAN_ZATCA_SELLER_IDENTITY_REQUIRED`)
+              * حين ينقص اسمُ المنشأة أو رقمُها الضريبيّ، لأنّ رقمَ ضريبةٍ ليس للمنشأة في
+              * رمزٍ على فاتورة عميلٍ خطأُ امتثالٍ لا خطأُ عرض. والمحاسبُ أولى بأن يعرف قبل أن
+              * يُصدر، لا بعد أن يُرفض — والجملةُ من الحمولة فلا نسخةَ ثانيةَ منها هنا.
+              */}
+            {data?.policy?.zatcaSeller && data.policy.zatcaSeller.ready === false ? (
+              <p className="muted small" style={{ margin: 0, color: 'var(--danger)' }}>
+                🧾 {data.policy.zatcaSeller.refusalDetail}
+              </p>
+            ) : null}
 
             <div className="form-grid">
               <label className="field">
@@ -2917,6 +2977,11 @@ export default function VanSalesPage() {
                 <span>الضريبة: <strong dir="ltr">{previewVat.toFixed(2)} SAR</strong></span>
                 {' · '}
                 <span>الإجمالي: <strong dir="ltr" style={{ color: 'var(--brand)' }}>{previewTotal.toFixed(2)} SAR</strong></span>
+                <div className="muted small">
+                  الضريبةُ والإجماليُّ أعلاه تقديرٌ بنسبة {PREVIEW_VAT_RATE_PCT}٪ — والنسبةُ
+                  الفعلية تُحسم عند الإصدار من المجموعة الضريبية للصنف، وإلا المجموعةِ
+                  الافتراضية للمنشأة، وإلا ١٥٪. والمستندُ الصادرُ هو الرقمُ المعتمد.
+                </div>
               </div>
               <button type="submit" className="btn primary" disabled={busy || !activeLoadOrder}>
                 {busy ? 'جارٍ الإصدار…' : '🚀 اعتماد الفاتورة وخصم العهدة'}
@@ -3013,6 +3078,17 @@ export default function VanSalesPage() {
               <p className="muted">اختر فاتورة أو أصدر فاتورة جديدة لمعاينتها وطباعتها.</p>
             )}
 
+            {/**
+              * قصّان اثنان يُعلان معًا: هذه القائمةُ تعرض **أول ١٢** صفًّا (`slice(0, 12)`)
+              * من نافذة الخادم (أحدث ١٢٠ مستندًا) — فالجملةُ تقول العددَين معًا كي لا يُقرأ
+              * الاثنا عشرَ كأنّها مستنداتُ المنشأة.
+              */}
+            <div className="muted small">
+              يُعرض هنا أول ١٢ مستندًا للاختيار — و
+              {windowNote(data?.windows, 'documents', DOCUMENTS_WINDOW_FALLBACK, {
+                totalsClause: DASHBOARD_TOTALS_CLAUSE,
+              })}
+            </div>
             <div className="table-wrap">
               <table>
                 <thead>
@@ -3221,6 +3297,7 @@ export default function VanSalesPage() {
 
           <div className="card">
             <h2 style={{ marginTop: 0 }}>📜 سجل تدقيق وتاريخ تعديلات أسعار العملاء</h2>
+              <div className="muted small">{windowNote(data?.windows, 'customerPriceHistory', PRICE_HISTORY_WINDOW_FALLBACK, { totalsClause: DASHBOARD_TOTALS_CLAUSE })}</div>
             <div className="table-wrap">
               <table>
                 <thead>

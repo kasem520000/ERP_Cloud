@@ -23,13 +23,26 @@ describe('AUD-14 — إسناد تدقيق الويبهوك', () => {
   let actor: Actor;
   const token = 'wh-token-audit14-0123456789abcdef';
 
-  const auditRows = () =>
+  /**
+   * سجلّاتُ التدقيق **لمستأجرَي هذه المثبّتة فقط** — لا لمستأجري القاعدة كلّهم.
+   *
+   * وما كان: القراءةُ باتصال المالك بلا مرشِّح مستأجر (`WHERE (meta->>'path') LIKE
+   * 'crm/webhooks%' ORDER BY created_at DESC`)، فأيُّ مثبّتةٍ أخرى تُسلّم ويبهوك CRM في
+   * التشغيل الكامل (‏٢١١ ملفًّا على قاعدةٍ واحدة) تكتب سجلًّا بالمسار نفسه وتختطف `rows[0]`
+   * أو تُفسد العدّ. وقِيس ذلك: ‏`AUD-14` سقط في تشغيل الحزمة الكاملة (‏٢٠٢٦-١٠-١٦
+   * ‏٠٤:١٠ UTC) بـ`expected '01a142e7-13ab-…' to be '01a142e7-1425-…'` — أي أنّ أحدثَ
+   * سجلٍّ كان لمستأجرٍ آخر — ثمّ نجحت المثبّتةُ ٤/٤ ثلاثَ مرّاتٍ حين شُغِّلت وحدها. فالعيبُ
+   * في **عزل المثبّتة** لا في المنتج، وإصلاحُه تضييقُ القراءة إلى من تملكهم.
+   */
+  const auditRows = (tenantIds: string[]) =>
     withOwnerClient(ctx.db.ownerUrl, async (client) => {
       const result = await client.query(
         `SELECT id, tenant_id, actor_user_id, action, entity, after, meta
            FROM audit_log
           WHERE (meta->>'path') LIKE 'crm/webhooks%'
+            AND tenant_id = ANY($1::uuid[])
           ORDER BY created_at DESC`,
+        [tenantIds],
       );
       return result.rows as Array<{
         id: string;
@@ -70,7 +83,7 @@ describe('AUD-14 — إسناد تدقيق الويبهوك', () => {
     const response = await deliver({ from: '+966500000000', text: 'مرحباً' });
     expect([200, 201]).toContain(response.status);
 
-    const rows = await auditRows();
+    const rows = await auditRows([actor.tenantId]);
     expect(rows).toHaveLength(1);
     expect(rows[0]!.tenant_id, 'the audit row must belong to the tenant the secret resolved').toBe(actor.tenantId);
     expect(rows[0]!.actor_user_id, 'no user is behind a provider webhook').toBeNull();
@@ -83,18 +96,18 @@ describe('AUD-14 — إسناد تدقيق الويبهوك', () => {
   });
 
   it('رمز خاطئ: 401 ولا سجل تدقيق — الرفض لا يُنسب إلى أحد', async () => {
-    const before = (await auditRows()).length;
+    const before = (await auditRows([actor.tenantId])).length;
     const response = await deliver({ from: '+966500000001', text: 'x' }, 'wrong-token');
     expect(response.status).toBe(401);
-    expect((await auditRows()).length).toBe(before);
+    expect((await auditRows([actor.tenantId])).length).toBe(before);
   });
 
   it('تسليم مكرَّر: يبقى منسوباً (سجلّان اثنان، لا null)', async () => {
-    const before = (await auditRows()).length;
+    const before = (await auditRows([actor.tenantId])).length;
     await deliver({ from: '+966500000002', text: 'أول' });
     await deliver({ from: '+966500000002', text: 'ثانٍ' });
 
-    const rows = await auditRows();
+    const rows = await auditRows([actor.tenantId]);
     expect(rows.length).toBe(before + 2);
     expect(rows.slice(0, 2).every((row) => row.tenant_id === actor.tenantId)).toBe(true);
   });
@@ -115,8 +128,37 @@ describe('AUD-14 — إسناد تدقيق الويبهوك', () => {
     });
 
     expect([200, 201]).toContain((await deliver({ from: '+966500000003', text: 'ب' }, otherToken)).status);
-    const rows = await auditRows();
+    /**
+     * والقراءةُ للمستأجرَين معًا: فالحكمُ أنّ أحدثَ سجلٍّ **منهما** منسوبٌ إلى المستأجر ب
+     * (ورمزُ أ يبقى كاتبًا سجلَّ أ) — لا أنّ أحدثَ سجلٍّ في القاعدة كلّها له، وهو ما كان
+     * يجعل الحكمَ رهينةَ ما تكتبه الملفات الأخرى بالتوازي.
+     */
+    /**
+     * وإثباتٌ أنّ **التضييقَ هو ما يحمي الحكم** لا حظٌّ في الترتيب: سجلٌّ طُعم لمستأجرٍ
+     * ثالث بالمسار نفسه (`crm/webhooks/whatsapp`) ووقتٍ أحدث من كلّ ما كُتب. فلو بقيت
+     * القراءةُ لكلّ المستأجرين كما كانت لاختطف هذا السجلُ `rows[0]` وسقط الحكم — وهو تمامًا
+     * ما فعلته مثبّتةٌ أخرى في التشغيل الكامل. وأمّا الآن فهو خارج النطاق فيبقى الحكمُ على
+     * ما تملكه هذه المثبّتة.
+     */
+    const decoy = await createActor(ctx, {
+      tenantCode: 'audit-webhook-audit-decoy',
+      email: 'owner@audit-webhook-audit-decoy.test',
+      permissions: [...ALL_PLATFORM_PERMISSIONS, 'crm.deals.manage'],
+    });
+    await withOwnerClient(ctx.db.ownerUrl, async (client) => {
+      await client.query(
+        `INSERT INTO audit_log (id, tenant_id, actor_user_id, action, entity, after, meta, created_at)
+         VALUES (gen_random_uuid(), $1::uuid, NULL, 'crm.webhook.delivery', 'crm', '{}'::jsonb,
+                 '{"path":"crm/webhooks/whatsapp"}'::jsonb, now() + INTERVAL '1 minute')`,
+        [decoy.tenantId],
+      );
+    });
+
+    const rows = await auditRows([actor.tenantId, other.tenantId]);
     expect(rows[0]!.tenant_id).toBe(other.tenantId);
     expect(rows.some((row) => row.tenant_id === actor.tenantId)).toBe(true);
+    // ‏والطُعمُ مكتوبٌ فعلًا (فالمثبّتةُ لا تنجو لأنّ السجلّ فشل) — لكنّه خارجُ نطاق القراءة.
+    const decoyRows = await auditRows([decoy.tenantId]);
+    expect(decoyRows.length).toBeGreaterThan(0);
   });
 });

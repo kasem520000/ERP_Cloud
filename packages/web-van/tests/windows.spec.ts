@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  DASHBOARD_TOTALS_CLAUSE,
   DEFAULT_TOTALS_CLAUSE,
   WINDOW_LABELS,
   windowIsComplete,
   windowNote,
+  REP_TOTALS_CLAUSE,
   type DashboardWindows,
 } from '../src/windows';
 
@@ -48,17 +50,20 @@ describe('نوافذُ القراءة كما يعلنها الخادم — تن�
       'مستندات البيع: 100 من 120 (نافذةُ الخادم LIMIT 100) — 20 صفًّا خارج هذه القائمة، ' +
         `و${DEFAULT_TOTALS_CLAUSE}.`,
     );
-    // ‏والذيلُ الافتراضيّ عامٌّ لأنّ المجاميعَ اسمُها يختلف بين وجهٍ ووجه.
+    // ‏والذيلُ الافتراضيّ عامٌّ لأنّ المجاميعَ اسمُها يختلف بين وجهٍ ووجه — وأمّا
+    // ‏المفردتان المعلنتان فنصٌّ واحدٌ تشترك فيه الشاشاتُ الأربع ولا تكتبه كلّ واحدة.
     expect(DEFAULT_TOTALS_CLAUSE).toBe('المجاميعُ جمعُ الجدول كلّه لا جمعُ هذه الصفوف');
+    expect(DASHBOARD_TOTALS_CLAUSE).toBe('أرقامُ summary جمعُ الجدول كلّه لا جمعُ هذه الصفوف');
+    expect(REP_TOTALS_CLAUSE).toBe('أرقامُ المندوب جمعُ جدوله كلّه لا جمعُ هذه الصفوف');
   });
 
   it('ذيلُ الجملة تختاره الشاشة: ‏`summary` في اللوحة و`totals` عند المندوب — والبناءُ واحد', () => {
     const windows: DashboardWindows = { documents: { returned: 100, total: 120, limit: 100 } };
     const dashboardNote = windowNote(windows, 'documents', FALLBACK, {
-      totalsClause: 'أرقامُ summary جمعُ الجدول كلّه لا جمعُ هذه الصفوف',
+      totalsClause: DASHBOARD_TOTALS_CLAUSE,
     });
     const repNote = windowNote(windows, 'documents', FALLBACK, {
-      totalsClause: 'أرقامُ المندوب جمعُ جدوله كلّه لا جمعُ هذه الصفوف',
+      totalsClause: REP_TOTALS_CLAUSE,
     });
     expect(dashboardNote).toContain('أرقامُ summary جمعُ الجدول كلّه');
     expect(repNote).toContain('أرقامُ المندوب جمعُ جدوله كلّه');

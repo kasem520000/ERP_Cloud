@@ -57,6 +57,16 @@ export const WINDOW_LABELS: Record<DashboardWindowKey, string> = {
 /** الذيلُ الافتراضيّ: فأيًّا كان الوجه، المجاميعُ ليست جمعَ الصفوف المعروضة. */
 export const DEFAULT_TOTALS_CLAUSE = 'المجاميعُ جمعُ الجدول كلّه لا جمعُ هذه الصفوف';
 
+/**
+ * ذيلُ أوجه **لوحة الخطّ** (`GET /van-sales/dashboard`): فالمجاميعُ هناك اسمُها `summary`
+ * في الحمولة، وتقولها شاشةُ المبيعات والتحصيل والتقارير في المخابز وشاشةُ التوزيع في
+ * الطاقم — نصٌّ واحدٌ هنا كي لا تكتبه أربعُ شاشاتٍ بأربع صيغ.
+ */
+export const DASHBOARD_TOTALS_CLAUSE = 'أرقامُ summary جمعُ الجدول كلّه لا جمعُ هذه الصفوف';
+
+/** ذيلُ أوجه **المندوب** (`GET /van-sales/me`): فالمجاميعُ هناك `totals` و`custody`. */
+export const REP_TOTALS_CLAUSE = 'أرقامُ المندوب جمعُ جدوله كلّه لا جمعُ هذه الصفوف';
+
 function isWindow(entry: unknown): entry is DashboardWindow {
   if (entry === null || typeof entry !== 'object') return false;
   const candidate = entry as Record<string, unknown>;

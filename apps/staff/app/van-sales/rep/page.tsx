@@ -2,7 +2,11 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { useSubmissionKey } from '@erp/web-core/use-submission-key';
-import { windowNote, type DashboardWindows } from '@erp/web-van/windows';
+import {
+  REP_TOTALS_CLAUSE,
+  windowNote,
+  type DashboardWindows,
+} from '@erp/web-van/windows';
 
 import { Notice } from '../../../components/data-view';
 import { Screen } from '../../../components/screen';
@@ -18,8 +22,8 @@ import { useSession } from '../../../lib/session';
  * `stock_balances` of his van warehouse. No id is taken from the URL or the body, so one rep
  * cannot open another's custody — and the server enforces the same thing, not just the UI.
  */
-/** ذيلُ جملة النافذة هنا: فالمجاميعُ في هذا الوجه `totals` و`custody` لا `summary`. */
-const REP_TOTALS_CLAUSE = 'أرقامُ المندوب جمعُ جدوله كلّه لا جمعُ هذه الصفوف';
+// ‏ذيلُ جملة النافذة (`REP_TOTALS_CLAUSE`) من `@erp/web-van/windows`: فالمجاميعُ في هذا
+// ‏الوجه `totals` و`custody` لا `summary`، والمفردةُ نصٌّ واحدٌ في الحزمة المشتركة. 
 const DOCUMENTS_WINDOW_FALLBACK = 'أحدث ١٠٠ مستند (حدُّ نافذة الخادم) — والأرقامُ أعلاه من جدولك كلّه';
 const LOAD_ORDERS_WINDOW_FALLBACK = 'أحدث ٥٠ أمر تحميل (حدُّ نافذة الخادم) — والعهدةُ من أوامرك كلّها';
 const COLLECTIONS_WINDOW_FALLBACK = 'أحدث ٥٠ حركة تحصيل (حدُّ نافذة الخادم)';
