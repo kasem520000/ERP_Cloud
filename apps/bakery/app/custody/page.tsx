@@ -501,8 +501,8 @@ export default function CustodyPage() {
               لا عهدة معلّقة الآن — {loading ? '(جارٍ القراءة…)' : 'اقرأ اللوحة بالتحديث إن تغيّر شيء.'}
             </p>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full border-collapse text-[12.5px]">
+            <div className="bak-table-wrap">
+              <table className="bak-table">
                 <thead>
                   <tr className="text-muted">
                     <th className="border-b border-line p-2 text-start font-bold">الأمر</th>
@@ -605,8 +605,8 @@ export default function CustodyPage() {
           title="عيون العهدة: ما اعتُمد وما رُحِّل"
         />
         <CardBody>
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse text-[12.5px]">
+          <div className="bak-table-wrap">
+            <table className="bak-table">
               <thead>
                 <tr className="text-muted">
                   <th className="border-b border-line p-2 text-start font-bold">الأمر</th>
@@ -672,8 +672,8 @@ export default function CustodyPage() {
               مُرحَّل: غياب أرقام المستند عن الصفّ يعني مسودةً أو أمراً لم يُسوَّ مخزونياً.
             </p>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full border-collapse text-[12.5px]">
+            <div className="bak-table-wrap">
+              <table className="bak-table">
                 <thead>
                   <tr className="text-muted">
                     <th className="border-b border-line p-2 text-right font-bold">الأمر</th>

@@ -583,8 +583,8 @@ export default function CollectionPage() {
               (وذممُ المنشأة كما يقولها الخادم معروضةٌ أعلاه.)
             </p>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full border-collapse text-[12.5px]">
+            <div className="bak-table-wrap">
+              <table className="bak-table">
                 <thead>
                   <tr className="text-muted">
                     <th className="border-b border-line p-2 text-start font-bold">الفاتورة</th>
@@ -777,11 +777,13 @@ export default function CollectionPage() {
                   ) : null}
 
                   {reconResult.plan.length > 0 ? (
-                    <div className="overflow-x-auto">
-                      <p className="m-0 text-[12.5px] font-bold text-ink">
+                    /** العنوانُ داخل البطاقة مع جدولها — فالغلافُ `.bak-table-wrap` هو حدودُ
+                      * الجدول وظلّه وتمريره، وتشريحُه مطابقٌ لـ`DataTable` (انظر `globals.css`). */
+                    <div className="bak-table-wrap">
+                      <p className="m-0 p-3 pb-0 text-[12.5px] font-bold text-ink">
                         خطةُ الأداة ({reconResult.plan.length} بندًا):
                       </p>
-                      <table className="w-full border-collapse text-[12px]">
+                      <table className="bak-table bak-table--dense">
                         <thead>
                           <tr className="text-muted">
                             <th className="border-b border-line p-2 text-start font-bold">الكيان</th>
@@ -838,8 +840,8 @@ export default function CollectionPage() {
             title="حركات الخطّ الأخيرة"
           />
           <CardBody>
-            <div className="overflow-x-auto">
-              <table className="w-full border-collapse text-[12px]">
+            <div className="bak-table-wrap">
+              <table className="bak-table">
                 <thead>
                   <tr className="text-muted">
                     <th className="border-b border-line p-2 text-start font-bold">النوع</th>

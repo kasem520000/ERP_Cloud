@@ -347,8 +347,8 @@ export default function RepsPage() {
             ) : null}
 
             {visible.length > 0 ? (
-              <div className="overflow-x-auto">
-                <table className="w-full border-collapse text-[12.5px]">
+              <div className="bak-table-wrap">
+                <table className="bak-table">
                   <thead>
                     <tr className="text-muted">
                       <th className="border-b border-line p-2 text-start font-bold">المندوب</th>
@@ -468,8 +468,8 @@ export default function RepsPage() {
                                   أصنافُ عهدته من <span dir="ltr">stock_balances</span> مستودع سيارته
                                   (كميةٌ وقيمةٌ كما خزّنهما الخادم):
                                 </p>
-                                <div className="mt-2 overflow-x-auto">
-                                  <table className="w-full border-collapse text-[12px]">
+                                <div className="mt-2 bak-table-wrap">
+                                  <table className="bak-table bak-table--dense">
                                     <thead>
                                       <tr className="text-muted">
                                         <th className="border-b border-line p-2 text-start font-bold">الصنف</th>

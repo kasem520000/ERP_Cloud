@@ -390,6 +390,76 @@ button.rep-pill:disabled { opacity: .55; cursor: not-allowed; }
   .bak-main .p-5 { padding: 12px; }
 }
 
+/* --------------------------------------------------------------------------
+ * 🧾 تشريحُ الجدول — **مطابقٌ لـ`DataTable` في `@erp/ui` حرفًا**، للجداول التي لا تسعها.
+ *
+ * الأصلُ أن تُرحَّل القوائمُ إلى `DataTable` (كما فُعِل في `/reports`): فهي تعطي رأسًا
+ * لاصقًا وفرزًا ومُختارَ أعمدةٍ محفوظًا وترقيمَ صفحاتٍ وأربعَ حالاتٍ صادقة. لكنّ بعض
+ * جداول هذه الواجهة **أغنى من مكوّن الجدول**: صفُّ المندوب في `/reps` مركّبٌ (اسمٌ ومعرّفٌ
+ * ولوحةٌ وشارة) وقابلٌ للتوسعة بجدولٍ متداخلٍ لأصناف عهدته، و`DataTable` لا تملك صفًّا
+ * قابلًا للتوسعة — وترحيلُه قسرًا كان يُسقط التوسعة (وهي وظيفةٌ لا زينة).
+ *
+ * فلهذه الجداول طبقةٌ تطابق تشريحَ المكوّن قياسًا لا تقليدًا (الأرقامُ من
+ * `packages/ui/src/components/data-table.tsx`):
+ *   • الغلاف: ‏`overflow-auto rounded-lg border border-line bg-surface shadow-1`
+ *   • الجدول: ‏`w-full border-collapse text-[13px]`
+ *   • الرأس: ‏`sticky top-0 z-10 bg-surface-2 font-bold text-[11px] tracking-wide
+ *     text-muted whitespace-nowrap` وحشو `px-3 py-2.5`
+ *   • الصفوف: ‏`transition-colors duration-150` وتظليلٌ `bg-surface-2` على `index % 2 === 1`
+ *     (أي الزوجية بترقيم CSS) — وبلا `hover` لأنّ المكوّن لا يضعه، فالمطابقةُ أولى من الإضافة
+ *   • الحشو الكثيف: ‏`px-2.5 py-1.5` (‏`dense` في المكوّن)
+ *
+ * والقواعدُ هنا **بلا طبقة Tailwind** عمدًا: فـ`@import 'tailwindcss'` يضع المرافقَ في
+ * ‏`@layer utilities`، وغيرُ المُطبَّق يفوز على المُطبَّق في الشلال — لذا تُطابق هذه
+ * الطبقةُ المكوّنَ ولو بقيت في الخلايا مرافقُ قديمة (`p-2`, `text-[12.5px]`) من البناء
+ * اليدويّ، ولا يلزم تحريرُ كلّ خليةٍ في ستّ شاشات.
+ * ------------------------------------------------------------------------ */
+.bak-table-wrap {
+  width: 100%;
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-1);
+}
+.bak-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.bak-table thead th {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: var(--surface-2);
+  font-weight: 700;
+  font-size: 11px;
+  letter-spacing: 0.02em;
+  color: var(--muted);
+  white-space: nowrap;
+  text-align: start;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--line);
+}
+.bak-table tbody td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--line);
+  vertical-align: top;
+}
+.bak-table tbody tr { transition: background-color var(--dur-fast) var(--ease-out); }
+.bak-table tbody tr:nth-child(even) { background: var(--surface-2); }
+.bak-table tbody tr:last-child td { border-bottom: 0; }
+/** الأرقامُ حيث وُضعت `dir="ltr"` في الخلية: منازلُ ثابتةٌ وعزلُ اتّجاه، بلا تحرير الخلايا. */
+.bak-table td[dir='ltr'],
+.bak-table .num {
+  font-variant-numeric: tabular-nums;
+  unicode-bidi: isolate;
+  font-weight: 600;
+}
+.bak-table--dense thead th,
+.bak-table--dense tbody td { padding: 6px 10px; }
+@media (max-width: 640px) {
+  .bak-table { font-size: 12.5px; }
+  .bak-table thead th,
+  .bak-table tbody td { padding: 8px 10px; }
+}
+
 /* الطباعة: سندٌ واحد بنسختين — لا تُطبع القشرة ولا يُطبع شريطٌ علويّ. */
 @media print {
   .bak-side, .bak-topbar, .bak-legend { display: none !important; }

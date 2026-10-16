@@ -776,8 +776,8 @@ export default function SalesPage() {
               تجريبيّ.
             </p>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full border-collapse text-[12.5px]">
+            <div className="bak-table-wrap">
+              <table className="bak-table">
                 <thead>
                   <tr className="text-muted">
                     <th className="border-b border-line p-2 text-start font-bold">المستند</th>
