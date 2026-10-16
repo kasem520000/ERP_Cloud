@@ -517,6 +517,8 @@ export const CHARGE_BASES = [
   'item_purchase_price',
   'loaded_average',
   'load_order_unit_cost',
+  /** تكلفةُ مستندات الأمر — ملاذُ سياسة «التكلفة» لأمرٍ بلا صنف (ولا سعرَ بيعٍ عندها). */
+  'document_unit_cost',
 ] as const;
 export type ChargeBasis = (typeof CHARGE_BASES)[number];
 
@@ -529,6 +531,7 @@ export const CHARGE_BASIS_LABELS: Record<ChargeBasis, string> = {
   item_purchase_price: 'سعر شراء الصنف',
   loaded_average: 'متوسط قيمة الحمولة',
   load_order_unit_cost: 'تكلفة أمر التحميل',
+  document_unit_cost: 'تكلفةُ مستندات الأمر (أمرٌ بلا صنفٍ في بطاقته)',
 };
 
 export function chargeBasisLabel(basis: string | null | undefined): string {

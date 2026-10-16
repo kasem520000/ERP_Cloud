@@ -79,7 +79,17 @@ describe('van document cost chain resolves the document’s item when the load o
       tenantCode: 'cost-chain-bakery',
       tenantName: 'مخابز سلسلة التكلفة',
       email: 'owner@cost-chain.test',
-      permissions: [...ALL_TENANT_PERMISSIONS, 'accounting.period.close', 'van_sales.view'],
+      /**
+       * ‏`van_sales.override.approve` ليست في `ALL_TENANT_PERMISSIONS` (فهي من رموز التوزيع
+       * الصريحة التي تُضاف يدويًّا كما في تثبيت القبول) — و`PUT /van-sales/policy` يطلبها
+       * لأنّ أساسَ تقييم العجز قرارٌ ماليّ لا يُكتب لمن يقرأ فحسب.
+       */
+      permissions: [
+        ...ALL_TENANT_PERMISSIONS,
+        'accounting.period.close',
+        'van_sales.view',
+        'van_sales.override.approve',
+      ],
       roleNames: ['Admin'],
       isOwner: true,
     });
@@ -279,5 +289,63 @@ describe('van document cost chain resolves the document’s item when the load o
     const summary = (dashboard.body.data as { summary: Record<string, string> }).summary;
     expect(summary.totalNetProfitSar).toBe('44.00');
     expect(summary.totalRevenueSar).toBe('69.00');
+  });
+
+  it('عجزُ أمرٍ بلا صنفٍ يُقيَّم بالتكلفة لا بسعر البيع حين تقول السياسة «التكلفة»', async () => {
+    /**
+     * السياسةُ تُكتب من المسار الرسميّ (`PUT /van-sales/policy`) لا بـSQL: فـ
+     * `shortageValuationBasis` من المفاتيح التي يكتبها ذلك المسار (`writableKeys`)، وقرارُ
+     * المالك (ج) أنّ التقييم **بالتكلفة**.
+     */
+    const policy = await api(ctx.server, 'put', '/api/v1/van-sales/policy', {
+      token: owner.token,
+      body: { shortageValuationBasis: 'unit_cost' },
+    });
+    expect(policy.status, JSON.stringify(policy.body).slice(0, 400)).toBe(200);
+    expect((policy.body.data as { shortageValuationBasis: string }).shortageValuationBasis).toBe(
+      'unit_cost',
+    );
+
+    /**
+     * والأمرُ `VLO-COST-NOITEM` **بلا صنف** (`item_id = NULL`) وعليه مستندٌ واحدٌ من الحكم
+     * الأول: ‏٢ كجم بسعر ١٠ وتكلفة ٤. ومستلَمٌ ١٠ ومبيعٌ ٢ ⇒ المتوقَّعُ أن يبقى ٨، وعدٌّ
+     * فعليٌّ ٦ ⇒ عجزُ ٢ كجم.
+     *
+     * ‏**فقبل الإصلاح**: ‏`resolveStockCostFallbackInTx` ترجع `null` (لا صنفَ للأمر) فتكمل
+     * السلسلةُ إلى `AVG(unit_price)` لمستندات الأمر = **١٠.٠٠** (سعرُ البيع) ⇒
+     * ‏`shortage_value = ٢٠.٠٠٠٠`، أي أنّ مديونيةَ الموظّف تُحمَّل بسعر بيعٍ وسياسةُ المالك
+     * تقول «بالتكلفة» — وهو العيبُ نفسه الذي قِيس وأُصلح للحالة المجاورة (حمولةٌ بلا دفعة
+     * إنتاج ⇒ كان الأساسُ `item_sale_price`) وبقي في هذه الحالة.
+     *
+     * ‏**وبعده**: تكلفةُ مستندات الأمر (`unit_cost = ٤`) هي آخرُ مصدرِ تكلفةٍ قبل أسعار
+     * البيع ⇒ `shortage_value = ٨.٠٠٠٠` بأساس `document_unit_cost`.
+     */
+    const submitted = await api(
+      ctx.server,
+      'post',
+      `/api/v1/van-sales/load-orders/${orderWithoutItemId}/submit-closing`,
+      {
+        token: rep.token,
+        body: { returnedQty: '0', damagedQty: '0', actualRemainingQty: '6' },
+      },
+    );
+    expect(submitted.status, JSON.stringify(submitted.body).slice(0, 600)).toBe(201);
+
+    const row = await withTenantTx(ctx.handle.db, owner.tenantId, async (tx) => {
+      const result = await tx.execute(sql`
+        SELECT status, received_qty::text, sold_qty::text, shortage_qty::text,
+               shortage_value::text, shortage_policy_status
+        FROM van_load_orders
+        WHERE tenant_id = ${owner.tenantId}::uuid AND id = ${orderWithoutItemId}::uuid
+      `);
+      return (result as { rows: Array<Record<string, string>> }).rows[0]!;
+    });
+    expect(row.status).toBe('pending_closing');
+    expect(row.shortage_qty).toBe('2.0000');
+    // ‏٢ كجم × تكلفة ٤ = ٨.٠٠٠٠ — لا ٢٠.٠٠٠٠ (‏٢ × سعر البيع ١٠).
+    expect(row.shortage_value).toBe('8.0000');
+    expect(row.shortage_value).not.toBe('20.0000');
+    // ‏والسياسةُ مضبوطةٌ فالوضعُ «مُهيّأ» لا «بانتظار اعتماد السياسة».
+    expect(row.shortage_policy_status).toBe('policy_configured');
   });
 });

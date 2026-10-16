@@ -66,6 +66,13 @@ export type ShortageChargeBasis =
   | 'explicit_policy_price'
   | 'unit_cost'
   | 'stock_average_cost'
+  /**
+   * تكلفةُ مستندات الأمر نفسه — ملاذٌ حين لا صنفَ للأمر (أو لا رصيدَ لصنفه ولا سعرَ شراء)،
+   * فكلُّ مستندٍ يحمل `unit_cost` محسومةً من سلسلتها الخاصّة (ومنذ ١٣و تُحلّ من صنف
+   * **المستند** لا صنف الأمر). والعمودُ `shortage_charge_basis` نصٌّ بلا قيدٍ في القاعدة
+   * (‏`0128:34`) فإضافةُ أساسٍ لا تحتاج هجرة.
+   */
+  | 'document_unit_cost'
   | 'average_document_price'
   | 'item_sale_price'
   | 'item_purchase_price'
@@ -4908,6 +4915,35 @@ export class VanSalesService {
       // قيدٌ بصفر.
       const stockCost = await this.resolveStockCostFallbackInTx(tx, tenantId, loadOrder);
       if (stockCost) return stockCost;
+      /**
+       * 🔢 **ومصدرُ تكلفةٍ أخير قبل أسعار البيع: مستنداتُ الأمر نفسه.**
+       *
+       * فأمرُ تحميلٍ بلا صنف (`item_id` nullable وبـ`ON DELETE SET NULL`) — أو صنفٌ بلا رصيدٍ
+       * مُقيَّم وبلا `purchase_price` — كان يُسقط الملاذّين أعلاه فتكمل السلسلةُ إلى
+       * ‏`AVG(unit_price)` لمستندات الأمر، أي **سعر البيع**، فتُحمَّل مديونيةُ الموظّف بسعرِ
+       * بيعٍ وسياسةُ المالك تقول «التقييم بالتكلفة» (قرارُ ج). وهو العيبُ نفسه الذي قِيس
+       * وأُصلح للحالة المجاورة (حمولةٌ بلا دفعة إنتاج ⇒ كان الأساسُ `item_sale_price`) وبقي
+       * في هذه الحالة.
+       *
+       * والتكلفةُ من المستندات صحيحةُ النسب: فكلُّ مستندٍ على هذا الأمر يحمل `unit_cost`
+       * محسومةً من سلسلتها (دفعةٌ ← أمرٌ ← رصيدٌ رسميٌّ ← سعرُ شراء ← قيمةُ الحمولة)، ومنذ
+       * ١٣و تُحلّ من صنف **المستند** (`effectiveItemId`) لا من صنف الأمر — فالأمرُ الذي لا
+       * صنفَ له له مستنداتٌ تعرف أصنافَها. والمتوسطُ غيرُ مرجَّح بالكمية، وهو تقديرٌ يُقال
+       * أساسُه في الشاشة (`CHARGE_BASIS_LABELS`) لا رقمٌ يُدّعى أنّه الحقيقة.
+       */
+      const documentCostRow = first(
+        await tx.execute(sql`
+          SELECT AVG(d.unit_cost)::text AS valuation
+          FROM van_sales_documents d
+          WHERE d.tenant_id = ${tenantId}::uuid
+            AND d.load_order_id = ${str(loadOrder.id)}::uuid
+            AND d.deleted_at IS NULL
+            AND d.unit_cost > 0
+        `),
+      );
+      if (documentCostRow?.valuation && dec(documentCostRow.valuation).gt(0)) {
+        return { price: dec(documentCostRow.valuation), basis: 'document_unit_cost' };
+      }
     }
     const avgDocRow = first(
       await tx.execute(sql`

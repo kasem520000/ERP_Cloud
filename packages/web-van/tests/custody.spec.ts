@@ -286,6 +286,19 @@ describe('التسميات — قيمةٌ غير معروفة تُعرض خام�
     // (متوسط تكلفة مستودع المصدر) لا من سعر البيع — والقياس الحيّ هو ما فرض هذا الأساس.
     expect(CHARGE_BASES).toContain('stock_average_cost');
     expect(chargeBasisLabel('stock_average_cost')).toContain('متوسط تكلفة الرصيد الرسمي');
+    /**
+     * ‏والأساسُ الجديد (‏`document_unit_cost` — تكلفةُ مستندات الأمر حين لا صنفَ للأمر) له
+     * لقبٌ عربيٌّ يقول إنّه **تكلفة** لا سعرُ بيع: فعمودُ الأساس يُعرض على المحاسب ليعرف
+     * بم حوسب الموظّف، وأساسٌ بلا لقبٍ يُعرض خامًّا (`chargeBasisLabel` يرجع النصّ نفسه)
+     * فيصير على المحاسب أن يعرف أسماءَ الأعمدة.
+     */
+    expect(CHARGE_BASES).toContain('document_unit_cost');
+    expect(chargeBasisLabel('document_unit_cost')).toBe(
+      CHARGE_BASIS_LABELS.document_unit_cost,
+    );
+    expect(chargeBasisLabel('document_unit_cost')).toContain('تكلفةُ مستندات الأمر');
+    // ‏والأمانةُ في اللقب: فلا يُقال «التكلفة» مطلقةً بل يُقال إنّها من مستندات الأمر.
+    expect(chargeBasisLabel('document_unit_cost')).not.toBe(chargeBasisLabel('unit_cost'));
     expect(chargeBasisLabel('stock_average_cost')).not.toContain('سعر بيع');
     expect(chargeBasisLabel('made_up')).toBe('made_up');
     expect(chargeBasisLabel(undefined)).toBe('—');
