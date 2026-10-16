@@ -396,6 +396,23 @@ export default function SalesPage() {
                   {numberText(dashboard.summary.totalCreditReceivablesSar)}
                 </dd>
               </div>
+              {/**
+                * ↩️ طرفا المرتجعات ظاهران بجانب الأرقام الصافية: فالأرقامُ الأربعة أعلاه
+                * صافيةٌ من المرتجعات (معالجةُ الخادم في `VAN_MONEY_SQL`، ومرجعُها قيودُ
+                * المرتجع الرسمية)، ورقمٌ صافٍ بلا طرفَيه يُقرأ كأنّ المرتجع لم يحدث.
+                */}
+              <div className="rounded-[10px] border border-line bg-surface p-3">
+                <dt className="m-0 text-[11.5px] font-bold text-muted">مردودات المبيعات</dt>
+                <dd className="m-0 mt-1 text-[17px] font-extrabold text-ink" dir="ltr">
+                  {numberText(dashboard.summary.totalReturnsSar)}
+                </dd>
+              </div>
+              <div className="rounded-[10px] border border-line bg-surface p-3">
+                <dt className="m-0 text-[11.5px] font-bold text-muted">ضريبةُ المرتجعات المعكوسة</dt>
+                <dd className="m-0 mt-1 text-[17px] font-extrabold text-ink" dir="ltr">
+                  {numberText(dashboard.summary.totalReturnsVatSar)}
+                </dd>
+              </div>
             </dl>
             <p className="m-0 mt-3 text-[12.5px] text-muted">
               مبيع {numberText(dashboard.summary.totalSoldKg)} كجم · مجانيّ{' '}
@@ -404,6 +421,20 @@ export default function SalesPage() {
               الرقابة {numberText(dashboard.summary.anomalyCount)} — وكلّها من{' '}
               <span dir="ltr">summary</span> الذي حسبه الخادم، لا من جمع صفوف الجدول أدناه.
             </p>
+            {dashboard.summary.returnDocumentCount > 0 ? (
+              <p className="m-0 mt-2 text-[12.5px] text-muted">
+                ↩️ الأرقامُ أعلاه صافيةٌ من المرتجعات: إجماليُّ المبيعات{' '}
+                <span dir="ltr">{numberText(dashboard.summary.totalSalesGrossSar)}</span> −
+                مرتجعات <span dir="ltr">{numberText(dashboard.summary.totalReturnsSar)}</span>{' '}
+                وضريبتُها{' '}
+                <span dir="ltr">{numberText(dashboard.summary.totalReturnsVatSar)}</span> ·{' '}
+                {numberText(dashboard.summary.returnDocumentCount)} مستند مرتجع
+                {dashboard.summary.returnsWithoutCostCount > 0
+                  ? `، منها ${numberText(dashboard.summary.returnsWithoutCostCount)} إشعارُه الدائن غير مُرحَّل فتكلفتُه مجهولةٌ ولم يُخصم له أثرٌ في الربح`
+                  : ''}
+                .
+              </p>
+            ) : null}
             {dashboard.postingReadiness.message ? (
               <p className={`m-0 mt-3 rounded-[10px] border px-4 py-2.5 text-[12.5px] font-semibold ${NOTICE_CLASSES.warn}`}>
                 ⚠️ {dashboard.postingReadiness.message}

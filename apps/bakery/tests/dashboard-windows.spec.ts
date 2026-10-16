@@ -45,14 +45,19 @@ describe('نوافذ اللوحة كما يعلنها الخادم', () => {
     expect(windowIsComplete({ returned: 0, total: 0 } as never)).toBe(false);
   });
 
-  it('كلّ قائمةٍ لها اسمٌ عربيّ، والمفاتيح الخمسة هي ما يعلنه الخادم', () => {
-    expect(Object.keys(WINDOW_LABELS).sort()).toEqual([
-      'customerPriceHistory',
-      'documents',
-      'loadOrders',
-      'movements',
-      'productionBatches',
-    ]);
+  it('كلّ قائمةٍ في اللوحة لها اسمُها العربيّ — واتّحادُ المفاتيح مثبَّتٌ في الحزمة المشتركة', () => {
+    /**
+     * ‏والخمسةُ هنا ما تُعلنه لوحةُ الخطّ (`dashboard()`)، وأسماءُها تُقاس واحدًا واحدًا.
+     * وأمّا **شمولُ الاتّحاد** — ومعه مفتاحا المندوب `collections` و`notifications` من
+     * `repWorkspace` — فمثبَّتٌ في `packages/web-van/tests/windows.spec.ts`: فالاتّحادُ ملكُ
+     * الحزمة المشتركة لا هذا الوجه، وتثبيتُ حجمه هنا كان يسقط كلّما استعمل وجهٌ جديدٌ
+     * التنفيذَ نفسه، وكان سيُغري بحذف مفتاحٍ من المشترك لإرضاء اختبارٍ محليّ.
+     */
+    expect(WINDOW_LABELS.productionBatches).toBe('دفعات الإنتاج');
+    expect(WINDOW_LABELS.loadOrders).toBe('أوامر التحميل');
+    expect(WINDOW_LABELS.documents).toBe('مستندات البيع');
+    expect(WINDOW_LABELS.movements).toBe('حركات الخطّ');
+    expect(WINDOW_LABELS.customerPriceHistory).toBe('سجلُّ تسعير العملاء');
     for (const label of Object.values(WINDOW_LABELS)) {
       expect(label.trim().length).toBeGreaterThan(2);
     }

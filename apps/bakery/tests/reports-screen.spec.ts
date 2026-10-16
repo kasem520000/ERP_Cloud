@@ -191,6 +191,10 @@ function periodPayload(overrides: Partial<ReportsPayload> = {}): ReportsPayload 
     policy: { shortageValuationBasis: 'unit_cost' },
     summary: {
       totalRevenueSar: '1600.00',
+      /** ‏١٧٠٠ − ٩٠ − ١٠ = ١٦٠٠: فأطرافُ المعادلة في المثبّتة كما يرجعها الخادم. */
+      totalSalesGrossSar: '1700.00',
+      totalReturnsSar: '90.00',
+      totalReturnsVatSar: '10.00',
       totalCreditReceivablesSar: '960.00',
       totalCollectedCashSar: '640.00',
       mainWarehouseBalanceKg: '0.00',

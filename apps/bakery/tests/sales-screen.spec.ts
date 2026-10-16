@@ -106,6 +106,12 @@ function dashboard(overrides: Partial<SalesDashboard> = {}): SalesDashboard {
       totalZatcaSalesSar: '1000.00',
       totalInternalSalesSar: '200.00',
       totalRevenueSar: '1200.00',
+      /** ‏١٢٦٠ − ٥٠ − ١٠ = ١٢٠٠: فالمثبّتةُ تحمل مرتجعاتٍ وتحفظ معادلةَ الخادم. */
+      totalSalesGrossSar: '1260.00',
+      totalReturnsSar: '50.00',
+      totalReturnsVatSar: '10.00',
+      returnDocumentCount: 2,
+      returnsWithoutCostCount: 1,
       totalSoldKg: '800.00',
       totalBonusKg: '20.00',
       totalCollectedCashSar: '700.00',

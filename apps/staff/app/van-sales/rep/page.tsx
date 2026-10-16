@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { useSubmissionKey } from '@erp/web-core/use-submission-key';
+import { windowNote, type DashboardWindows } from '@erp/web-van/windows';
 
 import { Notice } from '../../../components/data-view';
 import { Screen } from '../../../components/screen';
@@ -17,6 +18,13 @@ import { useSession } from '../../../lib/session';
  * `stock_balances` of his van warehouse. No id is taken from the URL or the body, so one rep
  * cannot open another's custody — and the server enforces the same thing, not just the UI.
  */
+/** ذيلُ جملة النافذة هنا: فالمجاميعُ في هذا الوجه `totals` و`custody` لا `summary`. */
+const REP_TOTALS_CLAUSE = 'أرقامُ المندوب جمعُ جدوله كلّه لا جمعُ هذه الصفوف';
+const DOCUMENTS_WINDOW_FALLBACK = 'أحدث ١٠٠ مستند (حدُّ نافذة الخادم) — والأرقامُ أعلاه من جدولك كلّه';
+const LOAD_ORDERS_WINDOW_FALLBACK = 'أحدث ٥٠ أمر تحميل (حدُّ نافذة الخادم) — والعهدةُ من أوامرك كلّها';
+const COLLECTIONS_WINDOW_FALLBACK = 'أحدث ٥٠ حركة تحصيل (حدُّ نافذة الخادم)';
+const NOTIFICATIONS_WINDOW_FALLBACK = 'أحدث ٢٠ إشعارًا (حدُّ نافذة الخادم)';
+
 type StockRow = {
   itemId: string;
   itemName: string;
@@ -118,14 +126,32 @@ type RepWorkspace = {
   loadOrders: LoadOrder[];
   documents: RepDocument[];
   collections: CollectionRow[];
+  /**
+   * ‏**وكلُّ أرقام المال هنا صافيةٌ من المرتجعات** (‏`revenue = salesGross − returns −
+   * returnsVat`، والذممُ بعد الإشعارات الدائنة)، وأطرافُ المعادلة معروضةٌ معها كي لا يُقرأ
+   * رقمٌ صافٍ كأنّ المرتجع لم يحدث. والمعالجةُ في الخادم (`VAN_MONEY_SQL`) ومرجعُها قيودُ
+   * المرتجع الرسمية.
+   */
   totals: {
     revenue: string;
+    salesGross: string;
     cashSales: string;
     creditSales: string;
     collected: string;
     outstanding: string;
+    returns: string;
+    returnsVat: string;
+    returnCount: number;
+    returnsWithoutCostCount: number;
   };
   custody: { expectedKg: string; officialKg: string; pendingClosings: number } | null;
+  /**
+   * 🪟 نوافذُ القراءة كما يعلنها الخادم: القوائمُ الأربع محدودةٌ بـ`LIMIT` (‏٥٠ أمرًا، ١٠٠
+   * مستند، ٥٠ تحصيلًا، ٢٠ إشعارًا) وأمّا الأرقامُ فجمعُ جدول المندوب كلّه. وغيابُ المفتاح
+   * يعني «لا أعرف» فتُعرض الجملةُ الاحتياطية — ولا رقمَ مخمَّن. (`balances` و
+   * `pendingReceipts` كاملتان في استعلاميهما فلا نافذةَ لهما.)
+   */
+  windows?: DashboardWindows | null;
   notifications: Array<{
     id: string;
     type: string;
@@ -297,10 +323,19 @@ export default function VanSalesRepPage() {
               <div className="muted small" dir="ltr">قيمة: {data.custodyValue} SAR</div>
             </div>
             <div className="card">
-              <div className="muted small">مبيعات اليوم (إجمالي)</div>
+              {/**
+                * العنوانُ كان «مبيعات اليوم (إجمالي)» وكلا الوصفين غيرُ صحيح: فالرقمُ ليس
+                * لليوم (إنّما هو جدولُ المندوب كلّه) وليس إجماليًّا (إنّما صافٍ من
+                * المرتجعات منذ إصلاح المجاميع). فصار العنوانُ يقول ما هو الرقم، والسطرُ
+                * تحتَه يعرض أطرافَ المعادلة: نقديّ + آجل − مرتجعات − ضريبتُها = الصافي.
+                */}
+              <div className="muted small">مبيعاتك — صافي المرتجعات</div>
               <strong style={{ fontSize: 21, color: 'var(--ok)' }} dir="ltr">{data.totals.revenue}</strong>
               <div className="muted small" dir="ltr">
                 نقدي {data.totals.cashSales} · آجل {data.totals.creditSales}
+                {data.totals.returnCount > 0
+                  ? ` − مرتجعات ${data.totals.returns} وضريبتُها ${data.totals.returnsVat}`
+                  : ''}
               </div>
             </div>
             <div className="card">
@@ -309,6 +344,14 @@ export default function VanSalesRepPage() {
               <div className="muted small" dir="ltr" style={{ color: 'var(--warn)' }}>
                 متبقٍ: {data.totals.outstanding}
               </div>
+              {data.totals.returnCount > 0 ? (
+                <div className="muted small">
+                  ↩️ بعد خصم {data.totals.returnCount} إشعارٍ دائن لمرتجعاتك
+                  {data.totals.returnsWithoutCostCount > 0
+                    ? ` (ومنها ${data.totals.returnsWithoutCostCount} بلا تكلفةٍ مُرحّلة)`
+                    : ''}
+                </div>
+              ) : null}
             </div>
             <div className="card">
               <div className="muted small">حالة العهدة</div>
@@ -325,6 +368,11 @@ export default function VanSalesRepPage() {
           {data.notifications.length ? (
             <div className="card">
               <h2 style={{ marginTop: 0 }}>🔔 إشعارات</h2>
+              <div className="muted small">
+                {windowNote(data.windows, 'notifications', NOTIFICATIONS_WINDOW_FALLBACK, {
+                  totalsClause: REP_TOTALS_CLAUSE,
+                })}
+              </div>
               <ul className="muted small" style={{ margin: 0, paddingInlineStart: 18 }}>
                 {data.notifications.slice(0, 6).map((row) => (
                   <li key={row.id}>
@@ -569,6 +617,11 @@ export default function VanSalesRepPage() {
           {/* 🧾 سجل الفواتير والتحصيل */}
           <div className="card">
             <h2 style={{ marginTop: 0 }}>🧾 فواتيرك ومستنداتك</h2>
+            <div className="muted small">
+              {windowNote(data.windows, 'documents', DOCUMENTS_WINDOW_FALLBACK, {
+                totalsClause: REP_TOTALS_CLAUSE,
+              })}
+            </div>
             <div className="table-wrap">
               <table>
                 <thead>
@@ -634,7 +687,17 @@ export default function VanSalesRepPage() {
 
           {/* 💵 التحصيلات */}
           <div className="card">
-            <h2 style={{ marginTop: 0 }}>💵 ما حصّلته اليوم</h2>
+            {/**
+              * ‏«اليوم» حُذفت من العنوان: فالقائمةُ أحدثُ ٥٠ حركة تحصيل لا حركاتِ اليوم،
+              * والجملةُ تحت العنوان تقول العددَين من الخادم. وعنوانٌ يعدُ بما لا تُظهره
+              * القائمةُ كذبٌ ولو كان الرقمُ صحيحًا.
+              */}
+            <h2 style={{ marginTop: 0 }}>💵 ما حصّلته</h2>
+            <div className="muted small">
+              {windowNote(data.windows, 'collections', COLLECTIONS_WINDOW_FALLBACK, {
+                totalsClause: REP_TOTALS_CLAUSE,
+              })}
+            </div>
             <div className="table-wrap">
               <table>
                 <thead>
@@ -670,6 +733,11 @@ export default function VanSalesRepPage() {
           {/* 🔒 إغلاق الوردية */}
           <div className="card">
             <h2 style={{ marginTop: 0 }}>🔒 إغلاق الوردية وتصفية العهدة</h2>
+            <div className="muted small">
+              {windowNote(data.windows, 'loadOrders', LOAD_ORDERS_WINDOW_FALLBACK, {
+                totalsClause: REP_TOTALS_CLAUSE,
+              })}
+            </div>
             <div className="table-wrap">
               <table>
                 <thead>

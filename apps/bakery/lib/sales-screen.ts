@@ -54,11 +54,25 @@ export type PostingReadiness = {
   message: string | null;
 };
 
-/** مجاميع اليوم كما حسبها الخادم (لا من جمع صفوف النافذة). */
+/**
+ * مجاميع اليوم كما حسبها الخادم (لا من جمع صفوف النافذة).
+ *
+ * ‏**وكلُّ أرقام المال فيها صافيةٌ من المرتجعات**: ‏`totalZatcaSalesSar` و
+ * `totalInternalSalesSar` و`totalRevenueSar` و`totalCreditReceivablesSar` و
+ * `totalNetProfitSar` — وأطرافُ المعادلة معروضةٌ بجانبها (`totalSalesGrossSar` و
+ * `totalReturnsSar` و`totalReturnsVatSar`) فلا يُعرض رقمٌ صافٍ ابتلع مرتجعاتٍ بلا أثر.
+ * والمعالجةُ في الخادم (`VAN_MONEY_SQL`) ومرجعُها قيودُ المرتجع الرسمية.
+ */
 export type SalesSummary = {
   totalZatcaSalesSar: string;
   totalInternalSalesSar: string;
   totalRevenueSar: string;
+  totalSalesGrossSar: string;
+  totalReturnsSar: string;
+  totalReturnsVatSar: string;
+  returnDocumentCount: number;
+  /** مرتجعاتٌ إشعارُها الدائن غير مُرحَّل فتكلفتُها مجهولة ⇒ لم يُخصم لها أثرٌ في الربح. */
+  returnsWithoutCostCount: number;
   totalSoldKg: string;
   totalBonusKg: string;
   totalCollectedCashSar: string;

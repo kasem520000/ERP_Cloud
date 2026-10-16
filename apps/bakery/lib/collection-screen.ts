@@ -45,7 +45,20 @@ export type MovementRow = {
 
 export type CollectionDashboard = {
   postingReadiness: PostingReadiness;
-  summary: { totalCollectedCashSar: string; totalCreditReceivablesSar: string };
+  /**
+   * ‏وذممُ المنشأة **صافيةٌ من المرتجعات**: فالإشعارُ الدائن يُخصم من ذمّة العميل كما
+   * يخصمها القيدُ الرسميّ (Cr «عميل عام»). وأطرافُ المرتجعات معروضةٌ بجانبها فلا يُقرأ
+   * رقمٌ صافٍ كأنّ مرتجعًا لم يحدث.
+   */
+  summary: {
+    totalCollectedCashSar: string;
+    totalCreditReceivablesSar: string;
+    totalSalesGrossSar: string;
+    totalReturnsSar: string;
+    totalReturnsVatSar: string;
+    returnDocumentCount: number;
+    returnsWithoutCostCount: number;
+  };
   documents: DocumentRow[];
   movements: MovementRow[];
   /** نوافذُ الخادم المعلنة — انظر `SalesDashboard.windows`. */

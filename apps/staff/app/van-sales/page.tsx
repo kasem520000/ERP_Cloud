@@ -348,9 +348,20 @@ type DashboardData = {
     totalShortageKg: string;
     totalShortageSar: string;
     remainingInVansKg: string;
+    /**
+     * ‏**أرقامُ المال كلها صافيةٌ من المرتجعات** (منذ إصلاح مجاميع التوزيع): الإيرادُ
+     * والوعاءان والذممُ وصافي الربح. وأطرافُ المعادلة اختياريةٌ هنا لأنّ حمولةً من خادمٍ
+     * أقدم لا تحملها، وعندها تُعرض الأرقامُ الصافية بلا شرح — ولا يُخترع رقم.
+     */
     totalZatcaSalesSar: string;
     totalInternalSalesSar: string;
     totalRevenueSar: string;
+    totalSalesGrossSar?: string;
+    totalReturnsSar?: string;
+    totalReturnsVatSar?: string;
+    returnDocumentCount?: number;
+    /** مرتجعاتٌ إشعارُها الدائن غير مُرحَّل فتكلفتُها مجهولة ⇒ لم يُخصم لها أثرٌ في الربح. */
+    returnsWithoutCostCount?: number;
     totalCollectedCashSar: string;
     totalCreditReceivablesSar: string;
     totalNetProfitSar: string;
@@ -1429,13 +1440,30 @@ export default function VanSalesPage() {
               </div>
             </div>
             <div className="card">
-              <div className="muted small">إجمالي المبيعات (ZATCA + عادية)</div>
+              {/**
+                * العنوانُ كان «إجمالي المبيعات» والرقمُ صار **صافيًا** من المرتجعات — فبقي
+                * العنوانُ كما هو يعني كذبًا. والسطرُ الثاني يعرض أطرافَ المعادلة حين تكون في
+                * السجلّ مرتجعات: إجماليٌّ − مرتجعاتٌ − ضريبتُها = الصافي المعروض.
+                */}
+              <div className="muted small">صافي المبيعات (ZATCA + عادية − مرتجعات)</div>
               <strong style={{ fontSize: 21, color: 'var(--brand)' }} dir="ltr">
                 {data?.summary.totalRevenueSar ?? '0.00'} SAR
               </strong>
               <div className="muted small">
                 ضريبية: {data?.summary.totalZatcaSalesSar ?? '0.00'} · عادية: {data?.summary.totalInternalSalesSar ?? '0.00'}
               </div>
+              {(data?.summary.returnDocumentCount ?? 0) > 0 ? (
+                <div className="muted small" dir="ltr">
+                  ↩️ gross {data?.summary.totalSalesGrossSar ?? '0.00'} − returns{' '}
+                  {data?.summary.totalReturnsSar ?? '0.00'} − vat{' '}
+                  {data?.summary.totalReturnsVatSar ?? '0.00'} = {data?.summary.totalRevenueSar ?? '0.00'} (
+                  {data?.summary.returnDocumentCount} docs
+                  {(data?.summary.returnsWithoutCostCount ?? 0) > 0
+                    ? `, ${data?.summary.returnsWithoutCostCount} without posted cost`
+                    : ''}
+                  )
+                </div>
+              ) : null}
             </div>
             <div className="card">
               <div className="muted small">التحصيل والمديونيات وصافي الربح</div>
@@ -1445,6 +1473,12 @@ export default function VanSalesPage() {
               <div className="muted small">
                 محصّل: {data?.summary.totalCollectedCashSar ?? '0.00'} · آجل: {data?.summary.totalCreditReceivablesSar ?? '0.00'}
               </div>
+              {(data?.summary.returnDocumentCount ?? 0) > 0 ? (
+                <div className="muted small">
+                  الآجلُ بعد خصم إشعارات المرتجعات الدائنة، والربحُ بعد أثرها (بتكلفتها من
+                  إشعاراتها الرسمية).
+                </div>
+              ) : null}
             </div>
           </div>
 

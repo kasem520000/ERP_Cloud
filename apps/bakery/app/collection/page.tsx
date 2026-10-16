@@ -318,7 +318,9 @@ export default function CollectionPage() {
           <CardBody>
             <dl className="m-0 grid gap-3 sm:grid-cols-3">
               <div className="rounded-[10px] border border-line bg-surface p-3">
-                <dt className="m-0 text-[11.5px] font-bold text-muted">ذمم المنشأة (الخادم)</dt>
+                <dt className="m-0 text-[11.5px] font-bold text-muted">
+                  ذمم المنشأة (بعد إشعارات المرتجعات)
+                </dt>
                 <dd className="m-0 mt-1 text-[18px] font-extrabold text-ink" dir="ltr">
                   {numberText(dashboard.summary.totalCreditReceivablesSar)}
                 </dd>
@@ -339,6 +341,21 @@ export default function CollectionPage() {
                 <dd className="m-0 text-[11px] text-muted">{receivables.length} فاتورة آجلة</dd>
               </div>
             </dl>
+            {dashboard.summary.returnDocumentCount > 0 ? (
+              <p className="m-0 mt-3 text-[12.5px] text-muted">
+                ↩️ ذممُ الخادم صافيةٌ من المرتجعات: إجماليُّ المبيعات{' '}
+                <span dir="ltr">{numberText(dashboard.summary.totalSalesGrossSar)}</span> −
+                مرتجعات <span dir="ltr">{numberText(dashboard.summary.totalReturnsSar)}</span>{' '}
+                وضريبتُها{' '}
+                <span dir="ltr">{numberText(dashboard.summary.totalReturnsVatSar)}</span> ·{' '}
+                {numberText(dashboard.summary.returnDocumentCount)} مستند مرتجع
+                {dashboard.summary.returnsWithoutCostCount > 0
+                  ? `، منها ${numberText(dashboard.summary.returnsWithoutCostCount)} إشعارُه الدائن غير مُرحَّل فتكلفتُه مجهولة`
+                  : ''}
+                . وأمّا «مجموع هذه القائمة» فجمعُ الفواتير الآجلة المعروضة أدناه وحدها — ورقمان
+                لا يُخلطان.
+              </p>
+            ) : null}
             {dashboard.postingReadiness.receiptVoucher ? null : (
               <p className={`m-0 mt-3 rounded-[10px] border px-4 py-2.5 text-[12.5px] font-semibold ${NOTICE_CLASSES.warn}`}>
                 ⚠️ ملفُّ ترحيل الفرع لا يغطّي سند القبض: قد يُقبض المال ويبقى السند مسودةً غير

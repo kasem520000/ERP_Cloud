@@ -348,7 +348,22 @@ export const BALANCE_CARDS: readonly PeriodCard[] = [
   {
     key: 'totalCreditReceivablesSar',
     labelAr: 'ذممُ المنشأة (كلّ السجلّ)',
-    hintAr: 'من summary: كلّ المستندات لا المصفّاة.',
+    hintAr: 'من summary: كلّ المستندات لا المصفّاة، وبعد خصم الإشعارات الدائنة.',
+  },
+  {
+    key: 'totalSalesGrossSar',
+    labelAr: 'إجماليُّ المبيعات (كلّ السجلّ)',
+    hintAr: 'من summary: قبل المرتجعات — والإيرادُ المعروض أعلاه صافٍ منها.',
+  },
+  {
+    key: 'totalReturnsSar',
+    labelAr: 'مردودات المبيعات (كلّ السجلّ)',
+    hintAr: 'من summary: تُخصم من الإيراد والوعاء، وتُخصم قيمتُها الكاملة من ذمّة العميل.',
+  },
+  {
+    key: 'totalReturnsVatSar',
+    labelAr: 'ضريبةُ المرتجعات المعكوسة',
+    hintAr: 'من summary: ما يُخصم من وعاء الضريبة مع المرتجعات (رجلُ Dr «ض.ق.م» في القيد).',
   },
 ];
 
