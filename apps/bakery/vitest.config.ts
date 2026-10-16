@@ -5,7 +5,7 @@ import { defineConfig } from 'vitest/config';
 /**
  * ‏`jsx: 'automatic'` لأنّ سبيك جدار الترخيص **يرسم** المكوّن فعلًا (`renderToStaticMarkup`)
  * بدل أن يقرأ نصّه، وملفات التطبيق تُكتب JSX بلا استيراد `React` — و`tsconfig` التطبيق على
- * `preserve` لـ Next فلا يصلح للقياس. و`@erp/contracts` يُ指向 إلى المصدر لا إلى `dist`
+ * `preserve` لـ Next فلا يصلح للقياس. و`@erp/contracts` يُوجَّه إلى المصدر لا إلى `dist`
  * كي لا يقيس السبيك نسخةً مترجمةً متأخرة.
  */
 export default defineConfig({

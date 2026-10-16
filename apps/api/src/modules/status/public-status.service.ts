@@ -70,7 +70,7 @@ export class PublicStatusService {
         : 'up';
 
     const levels: Record<(typeof publicComponentKeys)[number], PublicStatusLevel> = {
-      // المنصّة回答了 الطلب فعلاً — فهي قائمة. ولا تُقاس على المجسّات الأخرى: قاعدةٌ متعطّلة
+      // المنصّةُ أجابت عن الطلب فعلاً — فهي قائمة. ولا تُقاس على المجسّات الأخرى: قاعدةٌ متعطّلة
       // لا تعني أن الواجهة توقّفت، وقولُ العكس يخيف بلا سبب.
       platform: platformLevel,
       database: probeStatus('database'),
