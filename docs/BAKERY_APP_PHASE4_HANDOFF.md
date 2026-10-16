@@ -304,6 +304,47 @@ text-[13px] text-ink'`؛ الجداولُ `overflow-x-auto w-full border-collaps
   قائمةٌ — والتطبيقُ يستعملها كما تستعملها بقيّةُ شاشات المخابز (‏`useSession`) ولا يبني
   مصادقةً خاصة.
 
+### وصفةُ ترحيل شاشةٍ إلى نظام التصميم (ميكانيكية، ومُجرَّبة على `/reports`)
+
+المرجعان القائمَان: ‏`apps/bakery/app/reports/page.tsx` (شاشةُ قراءة: خمسةُ جداولَ على
+`DataTable` وبطاقاتٌ على `Kpi`) و`apps/bakery/lib/ui-kit.ts` (المحوّلاتُ الثلاثة)، وطبقةُ
+`.bak-table` في `app/globals.css` للجداول التي لا تسعها `DataTable` (صفٌّ مركّبٌ قابلٌ
+للتوسعة). ولكلّ شاشة:
+
+1. **أعلن الأعمدةَ في منطق الشاشة** (`lib/<name>-screen.ts`) على شكل
+   `readonly ScreenColumn[]` = ‏`{key, labelAr, numeric?, ltr?, defaultHidden?}` — فاليوم
+   أعمدةُ ستّ شاشاتٍ مكتوبةٌ `<th>` في JSX ولا إعلانَ لها (بخلاف `reports-screen.ts`).
+   وأضف حكمًا في مثبّتة الشاشة أنّ **كلّ مفتاحٍ معلنٍ هو حقلٌ فعلًا في صفّ الخادم**
+   (النمطُ القائم في `tests/reports-screen.spec.ts`: «كلّ عمودٍ معلنٍ خاصيةٌ في صفٍّ بشكل
+   الخادم»).
+2. **اقرأ الخليةَ بدالةٍ واحدة**: إن كانت نصًّا فـ`cellText(row, column)` (نمطُ
+   `reports-screen`)؛ وإن كانت غنيةً (زرٌّ أو شارة) فمُصيِّرٌ محليٌّ في الصفحة يأخذ
+   ‏`(row, column)` — و`tableColumns` يقبل `ReactNode` في `readCell` (وُسِّع لهذا).
+3. **استبدل الجدولَ** بـ`<DataTable columns={tableColumns(COLS, reader)} rows={…}
+   rowKey={rowKeyFrom(['id', …])} state={listState({loading, error, forbidden})} sortable
+   sort={sort} onSortChange={setSort} storageKey="bakery-<screen>-<table>" pageSize={25}
+   dense empty={<EmptyState icon={…} title={…} description={…} />} />`. ومفتاحُ الحفظ
+   **فريدٌ لكلّ جدول** (وإلا تشاركت جدولا شاشةٍ إخفاءَ الأعمدة).
+4. **الحالاتُ الأربع**: ‏`loading` و`error` و`forbidden` من حالة الطلب، ولا تُترك القائمةُ
+   فارغةً بلا قول. والبطاقاتُ ⇒ ‏`Kpi` (‏`title`/`value`/`hint`/`tone`/`delta`)، والفراغُ
+   ⇒ ‏`EmptyState` (و`icon` **مطلوب**، و`lucide-react` ليست من اعتمادات المخابز فاستعمل
+   رمزًا تعبيريًّا ولا تُضف اعتمادًا).
+5. **لا تُرحِّل قسرًا ما لا يسعه المكوّن**: صفٌّ قابلٌ للتوسعة (‏`/reps`) أو جدولُ قراراتٍ
+   متداخلٌ (‏`/custody`) يبقى يدويًّا **على طبقة `.bak-table`** — ومثبّتةُ
+   `tests/table-anatomy.spec.ts` تفرض أنّ كلّ `<table>` في المخابز إمّا على الطبقة وإمّا
+   داخل المكوّن، فلا شكلَ ثالث.
+6. **البوابات**: ‏`pnpm --filter @erp/bakery run typecheck` ثم `run lint` ثم
+   `exec vitest run` ثم `run build` (وراقب حجمَ أوّل تحميل: ‏`DataTable` تضيف ~٤٠ kB،
+   فاستعملها حيث تُفيد فعلًا — القوائمُ الطويلة — لا لكلّ جدولٍ من ثلاثة صفوف).
+
+والبنودُ الباقية في التصميم (لم تُنفَّذ): ‏`Skeleton`/`SkeletonRows` لحالات التحميل بدل
+نصّ «يُحمَّل…»؛ و`Toast` بدل فقرات التنبيه المنسوخة في تسع صفحات (`type Notice` +
+`NOTICE_CLASSES` معرَّفان في كلّ صفحة)؛ و`Select`/`MoneyField`/`DateRangePicker`/`Combobox`
+بدل `<select className={selectClass}>` (و`selectClass` منسوخٌ ثلاثَ مرّات)؛ و`FilterBar`
+لأشرطة التصفية؛ و`Badge`/`statusTone` لنُبَذِ الحالة بدل `bak-badge` اليدوية؛ و`Modal`/
+`ConfirmDialog` لحوارات التأكيد (كاعتماد الإقفال). وكلُّ بندٍ منها يُقاس قبله: ما الذي
+تفعله الشاشةُ اليوم، وما الذي يضيفه المكوّن.
+
 ### ما بعد المرحلة الرابعة
 
 - الطور ٥: تقريرُ التنفيذ الفعليّ (موجودٌ نمطُه في التقرير الحالي).
