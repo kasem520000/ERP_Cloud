@@ -275,15 +275,22 @@ describe('van-sales returns are netted in every money aggregate, at the official
         INSERT INTO salesmen (id, tenant_id, name, active, employee_id, warehouse_id, vehicle_plate)
         VALUES (${salesmanB}::uuid, ${tenantB}::uuid, 'مندوب الائتمان', true, ${employeeB}::uuid, ${vanB}::uuid, 'د هـ و ٢')
       `);
+      /**
+       * أمرُ تحميلٍ كأمرٍ حقيقيّ: فالمسارُ الرسميّ (`createLoadOrder`) يكتب `item_id` من
+       * الدفعة و`unit_cost` من تكلفتها و`loaded_total_value` من قيمتها المقدّرة — وسلسلةُ
+       * تكلفة المبيعات في `createDocument` تقرأ هذه الثلاثة أولًا. وأمرٌ مبذورٌ بلا صنفٍ
+       * وبلا تكلفة يجعل البيعَ منه يُكتب بـ`unit_cost = 0` أي بربحٍ = الإيراد كلّه، وهو
+       * تثبيتٌ لا يشبه الإنتاج (ويُذكر في التقرير كأثرٍ على من يُنشئ أمرًا بلا صنف).
+       */
       await tx.execute(sql`
         INSERT INTO van_load_orders
-          (id, tenant_id, number, salesman_id, warehouse_id, van_warehouse_id, load_date, status,
-           loaded_qty, received_qty, sold_qty, bonus_qty, returned_qty, stock_settlement_status,
-           created_at)
+          (id, tenant_id, number, salesman_id, warehouse_id, van_warehouse_id, item_id, load_date,
+           status, loaded_qty, received_qty, sold_qty, bonus_qty, returned_qty, unit_cost,
+           loaded_total_value, stock_settlement_status, created_at)
         VALUES
           (${loadOrderBId}::uuid, ${tenantB}::uuid, 'VLO-CR-1', ${salesmanB}::uuid,
-           ${defaultsB.warehouseId}::uuid, ${vanB}::uuid, DATE '2026-05-10', 'loaded',
-           10, 10, 5, 0, 0.5, 'not_required', now())
+           ${defaultsB.warehouseId}::uuid, ${vanB}::uuid, ${itemBId}::uuid, DATE '2026-05-10',
+           'loaded', 10, 10, 5, 0, 0.5, 4, 40, 'not_required', now())
       `);
       /**
        * بيعٌ آجلٌ بزاتكا: ‏٥ كجم @ ١٦ ⇒ subtotal ٨٠، ضريبة ١٢، ‏total ٩٢، مدفوع ٠.
@@ -425,8 +432,13 @@ describe('van-sales returns are netted in every money aggregate, at the official
     ).toBe(Number(totals.revenue));
   });
 
-  it('تكلفةُ المرتجع من إشعاره الدائن، لا من `unit_cost` المفبركة ٣.٨٠', async () => {
-    // ‏أولًا: التأكيدُ أنّ العمودَ المفبرك موجودٌ فعلًا في صفّ المرتجع (فالـINSERT لا يكتبه).
+  it('تكلفةُ المرتجع من إشعاره الدائن — وعمودُ المستند لا يُصدَّق ولو كان صفرًا', async () => {
+    /**
+     * ‏أولًا: صفّا المرتجع هنا **لا يُسمّيان** `unit_cost` (كما كان مسارُ المرتجع قبل ٠١٣١)،
+     * فيأخذان القيمةَ الافتراضية الحيّة. وقبل `0131` كانت ٣.٨٠ المفبركة؛ وبعدها صفرٌ صادق
+     * (‏`packages/database/migrations/0131_van_sales_honest_defaults.sql`). وفي الحالتين
+     * العمودُ ليس تكلفةَ المرتجع: فقبل ٠١٣١ رقمٌ مخترعٌ يبدو حقيقيًّا، وبعده «لا أعرف».
+     */
     const fabricated = await withTenantTx(ctx.handle.db, owner.tenantId, async (tx) => {
       const rows = await tx.execute(sql`
         SELECT number, document_kind, unit_cost::text, net_profit::text
@@ -438,13 +450,16 @@ describe('van-sales returns are netted in every money aggregate, at the official
     });
     expect(fabricated).toHaveLength(2);
     for (const row of fabricated) {
-      expect(row.unit_cost, `${row.number} يحمل التكلفةَ الافتراضية المفبركة`).toBe('3.8000');
+      expect(row.unit_cost, `${row.number} يأخذ الافتراضيّ الحيّ (صفرٌ صادق منذ ٠١٣١)`).toBe('0.0000');
       expect(row.net_profit, `${row.number} لا يحمل ربحًا`).toBe('0.0000');
     }
 
-    // ‏ثانيًا: لو استُعملت تلك التكلفةُ لصار أثرُ المرتجع ٢٠ − (‏٢ × ٣.٨٠) = ١٢.٤٠
-    // ‏والربح ٤٧.٦٠. وأمّا التكلفةُ الرسمية (‏٨.٠٠٠٠ في إشعار `SR-RET-1`) فتجعله ١٢.٠٠
-    // ‏والربح ٤٨.٠٠ — والفرقُ ٠.٤٠ هو ما يثبّت أنّ المصدر هو الإشعار الدائن.
+    /**
+     * ‏ثانيًا: لو استُعمل عمودُ المستند لصار أثرُ المرتجع — بعد ٠١٣١ — ‏٢٠ − ٠ = **٢٠.٠٠**
+     * والربح **٤٠.٠٠**، وقبل ٠١٣١ كان ٢٠ − (‏٢ × ٣.٨٠) = ١٢.٤٠ والربح ٤٧.٦٠. وأمّا التكلفةُ
+     * الرسمية (‏٨.٠٠٠٠ في إشعار `SR-RET-1`) فتجعله **١٢.٠٠** والربح **٤٨.٠٠** — فالحكمُ
+     * يستثني القراءتين الخاطئتين معًا.
+     */
     const response = await api(
       ctx.server,
       'get',
@@ -453,9 +468,11 @@ describe('van-sales returns are netted in every money aggregate, at the official
     );
     const period = (response.body.data as { periodTotals: Record<string, string> }).periodTotals;
     expect(period.returnsProfitEffectSar).toBe('12.00');
-    expect(period.returnsProfitEffectSar).not.toBe('12.40');
+    expect(period.returnsProfitEffectSar).not.toBe('12.40'); // ‏التكلفةُ المفبركة ٣.٨٠ (قبل ٠١٣١)
+    expect(period.returnsProfitEffectSar).not.toBe('20.00'); // ‏العمودُ صفرٌ (بعد ٠١٣١)
     expect(period.netProfitSar).toBe('48.00');
     expect(period.netProfitSar).not.toBe('47.60');
+    expect(period.netProfitSar).not.toBe('40.00');
   });
 
   it('مرتجعُ العميل يُوسّع سقفَه الائتمانيّ بدل أن يضيّقه — عبر مسار البيع الحقيقيّ', async () => {
@@ -491,5 +508,98 @@ describe('van-sales returns are netted in every money aggregate, at the official
     expect(totals.returns).toBe('8.00');
     expect(totals.returnsVat).toBe('1.20');
     expect(totals.revenue).toBe('94.30');
+  });
+
+  it('مرتجعٌ من المسار الحقيقيّ يكتب تكلفتَه الرسمية في صفّه، وتدخل المجاميعَ كما هي', async () => {
+    /**
+     * ‏المستندُ الذي أنشأه الحكمُ السابق (١ كجم @ ١٠ آجلٌ بزاتكا) هو مصدرُ هذا المرتجع.
+     * والتكلفةُ الرسمية المتوقَّعة **٤.٠٠٠٠ للكيلو**: فرصيدُ السيارة المبذور
+     * `average_cost = 4` ⇒ فاتورةُ البيع الرسمية `cost_total = 4.0000` ⇒ والإشعارُ الدائن
+     * يأخذ تكلفةَ الفاتورة المرجعية (`sales.service.ts`: ‏`sourceCost` من `cost_total/quantity`
+     * للمرجع، وإلا متوسطُ الرصيد) ⇒ ‏`cost_total = 4.0000` للمرتجع.
+     *
+     * وقبل ٠١٣١ كان صفُّ المرتجع يخرج بـ`unit_cost = 3.8000` المفبركة؛ وصار المسارُ يكتب
+     * التكلفةَ الرسمية (‏`createReturnDocument`).
+     */
+    const me = await api(ctx.server, 'get', '/api/v1/van-sales/me', { token: repB.token });
+    expect(me.status, JSON.stringify(me.body).slice(0, 300)).toBe(200);
+    const created = (me.body.data as { documents: Array<Record<string, string>> }).documents.find(
+      (row) => row.documentKind === 'sale' && row.total === '11.50',
+    );
+    expect(created, JSON.stringify((me.body.data as { documents: unknown[] }).documents)).toBeTruthy();
+
+    const returned = await api(
+      ctx.server,
+      'post',
+      `/api/v1/van-sales/documents/${created?.id}/returns`,
+      {
+        token: repB.token,
+        body: {
+          returnedQty: '1',
+          reason: 'قياسُ تكلفة المرتجع الرسمية',
+          idempotencyKey: 'returns-official-cost',
+        },
+      },
+    );
+    expect(returned.status, JSON.stringify(returned.body).slice(0, 600)).toBe(201);
+
+    const rows = await withTenantTx(ctx.handle.db, ownerB.tenantId, async (tx) => {
+      const result = await tx.execute(sql`
+        SELECT d.number, d.unit_cost::text, d.net_profit::text, d.total::text, d.tax_total::text,
+               d.sales_invoice_id::text,
+               (SELECT COALESCE(SUM(li.cost_total), 0)::text FROM sales_invoice_lines li
+                 WHERE li.invoice_id = d.sales_invoice_id) AS official_cost
+        FROM van_sales_documents d
+        WHERE d.tenant_id = ${ownerB.tenantId}::uuid AND d.document_kind = 'return'
+          AND d.number LIKE 'VRT-%'
+        ORDER BY d.created_at DESC
+        LIMIT 1
+      `);
+      return (result as { rows: Array<Record<string, string>> }).rows;
+    });
+    expect(rows).toHaveLength(1);
+    const row = rows[0]!;
+    // ‏التكلفةُ الرسمية في صفّ المرآة — لا ٣.٨٠ المفبركة ولا صفرُ «لا أعرف».
+    expect(row.unit_cost).toBe('4.0000');
+    expect(row.unit_cost).not.toBe('3.8000');
+    // ‏ومطابقةٌ للإشعار الدائن نفسه (‏١ كجم × ٤).
+    expect(row.official_cost).toBe('4.0000');
+    expect(row.total).toBe('10.0000');
+    expect(row.tax_total).toBe('1.5000');
+    // ‏والربحُ لا يُكتب في صفّ المرآة (قرارُ ١٣ب: يُحسب عند القراءة من الإشعار).
+    expect(row.net_profit).toBe('0.0000');
+
+    // ‏وتدخل المجاميعُ كما هي: مبيعات ٩٢ + ١١.٥٠، ومرتجعات ٨ + ١٠ وضريبتاها ١.٢٠ + ١.٥٠.
+    const after = await api(ctx.server, 'get', '/api/v1/van-sales/me', { token: repB.token });
+    const totals = (after.body.data as { totals: Record<string, string | number> }).totals;
+    expect(totals.salesGross).toBe('103.50');
+    expect(totals.returns).toBe('18.00');
+    expect(totals.returnsVat).toBe('2.70');
+    expect(totals.revenue).toBe('82.80');
+    expect(totals.outstanding).toBe('82.80');
+    expect(totals.returnCount).toBe(2);
+    /** المرتجعُ المبذور بلا إشعارٍ دائن يبقى مجهولَ التكلفة، والجديدُ لا. */
+    expect(totals.returnsWithoutCostCount).toBe(1);
+
+    /**
+     * ‏بلا مدى: فمستنداتُ المسار الحقيقيّ تحمل `doc_date = CURRENT_DATE` (لا تاريخَ مايو
+     * المبذور)، وتقريرٌ مُصفّى بمايو لا يراها — وهو سلوكٌ معلنٌ في `filterNotes` («بلا مدىً
+     * زمنيّ: التقرير كلّ السجلّ»). فالقراءةُ هنا للسجلّ كلّه.
+     */
+    const reports = await api(ctx.server, 'get', '/api/v1/van-sales/reports', {
+      token: repB.token,
+    });
+    expect(reports.status, JSON.stringify(reports.body).slice(0, 300)).toBe(200);
+    const period = (reports.body.data as { periodTotals: Record<string, string> }).periodTotals;
+    // ‏ربحُ البيعَين: ‏(‏٨٠ − ٥×٤) + (‏١٠ − ١×٤) = ٦٠ + ٦ = ٦٦، وأثرُ المرتجع الجديد
+    // ‏١٠ − ٤ = ٦ (والقديمُ بلا تكلفةٍ رسمية فلا أثرَ له) ⇒ ٦٠.٠٠.
+    expect(period.salesGrossSar).toBe('103.50');
+    expect(period.returnsSar).toBe('18.00');
+    expect(period.returnsVatSar).toBe('2.70');
+    expect(period.revenueSar).toBe('82.80');
+    expect(period.returnsProfitEffectSar).toBe('6.00');
+    expect(period.netProfitSar).toBe('60.00');
+    expect(period.returnDocumentCount).toBe(2);
+    expect(period.returnsWithoutCostCount).toBe(1);
   });
 });

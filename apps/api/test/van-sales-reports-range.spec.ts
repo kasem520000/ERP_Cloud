@@ -149,10 +149,10 @@ describe('van-sales reports honour fromDate/toDate and salesmanId', () => {
        */
       await tx.execute(sql`
         INSERT INTO factory_production_batches
-          (id, tenant_id, batch_no, item_id, warehouse_id, production_date,
+          (id, tenant_id, batch_no, item_id, item_name, warehouse_id, production_date,
            produced_qty, scrap_qty, unit_cost, total_cost, created_at)
         SELECT gen_random_uuid(), ${tenantId}::uuid, 'BATCH-' || lpad(g::text, 4, '0'),
-               ${itemId}::uuid, ${mainWarehouseId}::uuid,
+               ${itemId}::uuid, 'رقائق سمبوسة', ${mainWarehouseId}::uuid,
                DATE '2026-05-01' + (g || ' days')::interval,
                10, 1, 3.8, 38,
                now() - (g || ' minutes')::interval

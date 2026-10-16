@@ -135,9 +135,10 @@ describe('van-sales dashboard totals are table-wide, not window-wide', () => {
        */
       await tx.execute(sql`
         INSERT INTO factory_production_batches
-          (id, tenant_id, batch_no, item_id, warehouse_id, production_date, produced_qty, scrap_qty, total_cost, created_at)
+          (id, tenant_id, batch_no, item_id, item_name, warehouse_id, production_date, produced_qty, scrap_qty, total_cost, created_at)
         SELECT gen_random_uuid(), ${tenantId}::uuid, 'BATCH-' || lpad(g::text, 4, '0'),
                CASE WHEN g <= 5 THEN ${itemOldId}::uuid ELSE ${itemNewId}::uuid END,
+               CASE WHEN g <= 5 THEN 'صنفُ اللوحة القديم' ELSE 'صنفُ اللوحة الجديد' END,
                ${mainWarehouseId}::uuid,
                DATE '2026-01-01' + (g || ' days')::interval,
                10, 1, 38,

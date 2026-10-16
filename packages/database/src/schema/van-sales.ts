@@ -172,7 +172,11 @@ export const factoryProductionBatches = pgTable(
     /** 🏭 الفرع الذي أنتج الدفعة — يُستخدم في تحديد ملف الترحيل الرسمي للفرع (`0123`). */
     branchId: uuid('branch_id').references(() => branches.id, { onDelete: 'set null' }),
     itemId: uuid('item_id').references(() => items.id, { onDelete: 'set null' }),
-    itemName: text('item_name').notNull().default('رقائق سمبوسة وفطائر طازجة'),
+    /**
+     * ‏بلا قيمةٍ افتراضية منذ `0131`: فاسمُ الصنف حقيقةٌ تُكتب أو يُرفض الإدراج — ولا يُخترع
+     * «رقائق سمبوسة وفطائر طازجة» لمنشأةٍ لا تبيعها.
+     */
+    itemName: text('item_name').notNull(),
     warehouseId: uuid('warehouse_id').references(() => warehouses.id, { onDelete: 'set null' }),
     productionOrderId: uuid('production_order_id').references(() => productionOrders.id, {
       onDelete: 'set null',
@@ -192,7 +196,8 @@ export const factoryProductionBatches = pgTable(
       .notNull()
       .default('0'),
     damagedQty: numeric('damaged_qty', { precision: 18, scale: 4 }).notNull().default('0'),
-    unitCost: numeric('unit_cost', { precision: 18, scale: 4 }).notNull().default('3.80'),
+    /** ‏صفرٌ صادقٌ منذ `0131` بدل ٣.٨٠ المفبركة — فالتكلفةُ تُكتب أو تُقال مجهولة. */
+    unitCost: numeric('unit_cost', { precision: 18, scale: 4 }).notNull().default('0'),
     totalCost: numeric('total_cost', { precision: 18, scale: 4 }).notNull().default('0'),
     status: text('status').notNull().default('active'),
     supervisorName: text('supervisor_name'),
@@ -252,7 +257,8 @@ export const vanLoadOrders = pgTable(
     number: text('number').notNull(),
     vehiclePlate: text('vehicle_plate'),
     loadDate: date('load_date').notNull().default(sql`CURRENT_DATE`),
-    batchCode: text('batch_code').default('BATCH-DEFAULT'),
+    /** ‏بلا افتراضيّ منذ `0131`: عمودٌ لا يقرؤه أحد، فـ`NULL` أصدق من 'BATCH-DEFAULT'. */
+    batchCode: text('batch_code'),
     productionBatchNo: text('production_batch_no').notNull().default('BATCH-DEFAULT'),
     loadedQty: numeric('loaded_qty', { precision: 20, scale: 4 }).notNull().default('0'),
     receivedQty: numeric('received_qty', { precision: 18, scale: 4 }).notNull().default('0'),
@@ -395,7 +401,8 @@ export const vanSalesDocuments = pgTable(
     docDate: date('doc_date').notNull().default(sql`CURRENT_DATE`),
     number: text('number').notNull(),
     itemId: uuid('item_id').references(() => items.id, { onDelete: 'set null' }),
-    batchCode: text('batch_code').default('BATCH-DEFAULT'),
+    /** ‏بلا افتراضيّ منذ `0131`: عمودٌ لا يقرؤه أحد، فـ`NULL` أصدق من 'BATCH-DEFAULT'. */
+    batchCode: text('batch_code'),
     productionBatchNo: text('production_batch_no').notNull().default('BATCH-DEFAULT'),
     soldQty: numeric('sold_qty', { precision: 20, scale: 4 }).notNull().default('0'),
     bonusQty: numeric('bonus_qty', { precision: 20, scale: 4 }).notNull().default('0'),
@@ -417,7 +424,8 @@ export const vanSalesDocuments = pgTable(
     taxTotal: numeric('tax_total', { precision: 20, scale: 4 }).notNull().default('0'),
     total: numeric('total', { precision: 20, scale: 4 }).notNull().default('0'),
     paidAmount: numeric('paid_amount', { precision: 18, scale: 4 }).notNull().default('0'),
-    unitCost: numeric('unit_cost', { precision: 18, scale: 4 }).notNull().default('3.80'),
+    /** ‏صفرٌ صادقٌ منذ `0131` بدل ٣.٨٠ المفبركة — فالتكلفةُ تُكتب أو تُقال مجهولة. */
+    unitCost: numeric('unit_cost', { precision: 18, scale: 4 }).notNull().default('0'),
     netProfit: numeric('net_profit', { precision: 18, scale: 4 }).notNull().default('0'),
     qrPayload: text('qr_payload').default(''),
     zatcaQrTlv: text('zatca_qr_tlv'),

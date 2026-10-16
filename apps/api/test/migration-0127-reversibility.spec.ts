@@ -198,8 +198,10 @@ describe('migration 0127 — production batch cost basis', () => {
     expect((nullable.rows[0] as { is_nullable: string }).is_nullable).toBe('YES');
     await expect(
       pool.query(
-        `INSERT INTO factory_production_batches (id, tenant_id, batch_no, cost_basis)
-         VALUES ($1, $2, 'BAD-BASIS', 'invented')`,
+        // ‏`item_name` يُسمّى صراحةً: فمنذ `0131` لا افتراضيّ له، والفشلُ المطلوب هنا هو
+        // قيدُ `cost_basis` لا انتهاكُ `NOT NULL` لعمودٍ لم يُذكر.
+        `INSERT INTO factory_production_batches (id, tenant_id, batch_no, item_name, cost_basis)
+         VALUES ($1, $2, 'BAD-BASIS', 'دفعةُ الفحص', 'invented')`,
         [newId(), actor.tenantId],
       ),
     ).rejects.toThrow(/cost_basis/i);
@@ -226,10 +228,10 @@ describe('migration 0127 — production batch cost basis', () => {
      */
     await pool.query(
       `INSERT INTO factory_production_batches
-         (id, tenant_id, branch_id, batch_no, item_id, warehouse_id, produced_qty,
+         (id, tenant_id, branch_id, batch_no, item_id, item_name, warehouse_id, produced_qty,
           production_order_id, cost_basis)
-       VALUES ($1, $2, $3, 'LEGACY-LINKED', $4, $5, 5, $6, NULL),
-              ($7, $2, $3, 'LEGACY-PLAIN', $4, $5, 5, NULL, NULL)`,
+       VALUES ($1, $2, $3, 'LEGACY-LINKED', $4, 'دفعةٌ قديمة مرتبطة', $5, 5, $6, NULL),
+              ($7, $2, $3, 'LEGACY-PLAIN', $4, 'دفعةٌ قديمة سادة', $5, 5, NULL, NULL)`,
       [newId(), actor.tenantId, branchId, itemId, warehouseId, legacyOrderId, newId()],
     );
     expect(await basisOf('LEGACY-LINKED')).toMatchObject({ costBasis: 'manufacturing_order' });

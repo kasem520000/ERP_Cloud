@@ -1183,7 +1183,7 @@ export class VanSalesService {
           SELECT b.id::text, b.batch_no, b.production_date::text, b.item_id::text,
                  b.warehouse_id::text, b.production_order_id::text, b.manufacturing_order_id::text,
                  b.lot_id::text, b.inventory_transaction_id::text,
-                 COALESCE(i.name_ar, b.item_name, 'رقائق سمبوسة وفطائر طازجة') AS item_name,
+                 COALESCE(i.name_ar, b.item_name, i.sku, 'صنف') AS item_name,
                  b.produced_qty::text, b.scrap_qty::text, b.issued_qty::text, b.returned_good_qty::text,
                  b.damaged_qty::text, b.unit_cost::text, b.total_cost::text, b.cost_basis,
                  b.status, b.supervisor_name, b.notes, b.created_at
@@ -1237,7 +1237,7 @@ export class VanSalesService {
                  l.damage_reason, l.damage_inspected, l.salary_deduction_approved,
                  l.closing_notes, l.closing_submitted_at, l.approved_at, l.settled_at, l.notes,
                  l.salesman_id::text, COALESCE(s.name, 'مندوب توزيع') AS salesman_name,
-                 l.item_id::text, COALESCE(i.name_ar, 'رقائق سمبوسة وفطائر') AS item_name,
+                 l.item_id::text, COALESCE(i.name_ar, i.sku, 'صنف') AS item_name,
                  COALESCE(u_app.full_name, u_app.email) AS approved_by_label
           FROM van_load_orders l
           LEFT JOIN salesmen s ON s.id = l.salesman_id
@@ -1356,7 +1356,7 @@ export class VanSalesService {
                  d.salesman_id::text, COALESCE(s.name, 'مندوب') AS salesman_name,
                  d.party_id::text, COALESCE(p.name, d.customer_name, 'عميل توزيع') AS customer_name,
                  p.tax_no AS customer_tax_no,
-                 d.item_id::text, COALESCE(i.name_ar, 'رقائق سمبوسة وفطائر') AS item_name
+                 d.item_id::text, COALESCE(i.name_ar, i.sku, 'صنف') AS item_name
           FROM van_sales_documents d
           LEFT JOIN salesmen s ON s.id = d.salesman_id
           LEFT JOIN parties p ON p.id = d.party_id
@@ -2018,7 +2018,7 @@ export class VanSalesService {
           SELECT b.id::text, b.batch_no, b.production_date::text, b.item_id::text,
                  b.warehouse_id::text, b.production_order_id::text, b.manufacturing_order_id::text,
                  b.lot_id::text, b.inventory_transaction_id::text,
-                 COALESCE(i.name_ar, b.item_name, 'رقائق سمبوسة وفطائر طازجة') AS item_name,
+                 COALESCE(i.name_ar, b.item_name, i.sku, 'صنف') AS item_name,
                  b.produced_qty::text, b.scrap_qty::text, b.issued_qty::text,
                  b.returned_good_qty::text, b.damaged_qty::text, b.unit_cost::text,
                  b.total_cost::text, b.cost_basis, b.status, b.supervisor_name, b.notes,
@@ -2655,7 +2655,12 @@ export class VanSalesService {
           ${linkedLotId}::uuid, ${linkedInventoryTxId}::uuid,
           ${producedQty.toFixed(4)}::numeric, ${scrapQty.toFixed(4)}::numeric, 0, 0, 0,
           ${unitCost.toFixed(4)}::numeric, ${totalCost.toFixed(4)}::numeric,
-          'active', ${body.supervisorName?.trim() || 'مشرف الإنتاج'},
+          /**
+           * ‏واسمُ المشرف يُكتب كما قيل أو **لا يُكتب**: فعمودٌ nullable يحمل «مشرف الإنتاج»
+           * المُختلعة يُقرأ في تقرير الإنتاج كأنّه مسؤولٌ مُسمّى، ولا سبيلَ عندها للتفريق
+           * بين «لم يُذكر» و«ذُكر». (وكان قبل ٠١٣١ يُملأ بالاسم العام.)
+           */
+          'active', ${body.supervisorName?.trim() || null},
           ${body.notes?.trim() || null}, ${idempotencyKey}, ${userId}::uuid,
           ${costBasis}
         )
@@ -7752,13 +7757,41 @@ export class VanSalesService {
       const unitPrice = dec(source.unit_price);
       const returnTotal = returnedQty.mul(unitPrice);
 
+      /**
+       * 🔢 تكلفةُ المرتجع تُكتب في صفّ المرآة من **إشعاره الدائن الرسميّ**. وقبل `0131`
+       * كان العمودُ يُترك للافتراضيّ المفبرك ٣.٨٠ (‏`0120:51`) فكلُّ مرتجعٍ في القاعدة يحمل
+       * تكلفةً لا علاقةَ لها بصنفه — وفي تثبيت القبول صادف أنّ التكلفةَ الحقيقية ٣.٨٠ فبدا
+       * الرقمُ صحيحًا. والمصدرُ هنا `sales_invoice_lines.cost_total` على `returnInvoiceId`
+       * (وهي رجلُ Dr مخزون / Cr «تكلفة المبيعات» نفسها، قِيست ٧.٦٠٠٠ لمرتجع ٢ كجم من بيع
+       * ٦ كجم)، مقسومةً على الكمية. وإن لم يُرحَّل الإشعارُ (حالٌ يتحمّلها هذا المسار
+       * صراحةً فيُبقيه مسودةً) فالتكلفةُ **مجهولة** ويُكتب صفرٌ صادق، لا رقمٌ مخترع.
+       *
+       * ومجاميعُ الربح لا تقرأ هذا العمود أصلًا — فـ`VAN_MONEY_SQL` يطلب التكلفةَ من الإشعار
+       * نفسه — فالكتابةُ هنا للعرض والمطابقة (بطاقةُ المستند ونسخةُ الطباعة)، وإلّا لبقي في
+       * كلّ صفّ مرتجعٍ رقمٌ لا يُصدَّق ولا يُكذَّب.
+       */
+      let returnUnitCost = new Decimal(0);
+      if (returnInvoiceId) {
+        const returnCostRow = first(
+          await tx.execute(sql`
+            SELECT COALESCE(SUM(li.cost_total), 0)::text AS valuation,
+                   COALESCE(SUM(li.quantity), 0)::text AS qty
+            FROM sales_invoice_lines li
+            WHERE li.tenant_id = ${tenantId}::uuid
+              AND li.invoice_id = ${returnInvoiceId}::uuid
+          `),
+        );
+        const returnCostQty = dec(returnCostRow?.qty);
+        if (returnCostQty.gt(0)) returnUnitCost = dec(returnCostRow?.valuation).div(returnCostQty);
+      }
+
       await tx.execute(sql`
         INSERT INTO van_sales_documents (
           id, tenant_id, branch_id, number, document_kind, reference_document_id,
           load_order_id, salesman_id, party_id, customer_name, item_id,
           doc_mode, invoice_mode, tax_policy_status, payment_method, doc_date,
           batch_code, production_batch_no, sold_qty, bonus_qty, unit_price,
-          subtotal, tax_rate, tax_total, total, paid_amount, sales_invoice_id,
+          subtotal, tax_rate, tax_total, total, paid_amount, unit_cost, sales_invoice_id,
           notes, idempotency_key, created_by
         ) VALUES (
           ${returnDocId}::uuid, ${tenantId}::uuid, ${branchId}::uuid, ${allocated.display},
@@ -7776,7 +7809,8 @@ export class VanSalesService {
           ${str(source.invoice_mode) === 'zatca_tax'
             ? returnTotal.mul(dec(source.tax_rate).div(100)).toFixed(4)
             : '0'}::numeric,
-          ${returnTotal.toFixed(4)}::numeric, 0, ${returnInvoiceId}::uuid,
+          ${returnTotal.toFixed(4)}::numeric, 0, ${returnUnitCost.toFixed(4)}::numeric,
+          ${returnInvoiceId}::uuid,
           ${[body.reason?.trim(), body.notes?.trim()].filter(Boolean).join(' — ') || null},
           ${idempotencyKey}, ${userId}::uuid
         )
