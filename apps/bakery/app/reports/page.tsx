@@ -1,7 +1,18 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Button, Card, CardBody, CardHeader, Input } from '@erp/ui';
+import {
+  Button,
+  Card,
+  CardBody,
+  CardHeader,
+  DataTable,
+  EmptyState,
+  Input,
+  Kpi,
+  type SortState,
+  type TableState,
+} from '@erp/ui';
 import { apiData, apiErrorText, apiList } from '@erp/web-core/api';
 import { useSession } from '@erp/web-core/session';
 
@@ -39,6 +50,7 @@ import {
   type Verdict,
 } from '../../lib/reports-screen';
 import { STAFF_SALESMEN_PATH, type SalesmanCard } from '../../lib/reps-screen';
+import { listState, rowKeyFrom, tableColumns } from '../../lib/ui-kit';
 
 type Notice = { kind: 'ok' | 'danger' | 'warn'; text: string };
 
@@ -51,55 +63,55 @@ const NOTICE_CLASSES: Record<Notice['kind'], string> = {
 const selectClass =
   'w-full rounded-[8px] border border-line bg-surface px-3 py-2 text-[13px] text-ink';
 
-/** جدولٌ واحد من جداول التقرير: الأعمدةُ والصفوفُ من الخادم، ولا خليةَ تُحسب هنا. */
+/**
+ * جدولٌ واحد من جداول التقرير — على `DataTable` من نظام التصميم لا على `<table>` يدويّ.
+ *
+ * والأعمدةُ والصفوفُ من الخادم ولا خليةَ تُحسب هنا (`cellText` في `reports-screen` هو
+ * القارئُ الوحيد)، وأمّا الرسمُ فللنظام: رأسٌ لاصقٌ في الجدول الطويل، وفرزٌ لكلّ عمود،
+ * ومُختارُ أعمدةٍ محفوظٌ في `localStorage` بمفتاحٍ لكلّ جدول (فإخفاءُ عمودٍ في تقرير
+ * التحويلات لا يُخفيه في تقرير التحصيل)، وترقيمُ صفحاتٍ «n من m»، و**أربعُ حالاتٍ
+ * صادقة** (فارغ/تحميل/خطأ/ممنوع) فلا منطقةَ فارغةً بلا قول.
+ *
+ * وما كان قبلها: ‏`<table className="w-full border-collapse text-[12.5px]">` برأسٍ غير
+ * لاصقٍ وبلا فرزٍ ولا إخفاءَ ولا ترقيم، و`rows.length === 0` ⇒ فقرةٌ رمادية — أي أنّ
+ * «يُحمَّل التقرير…» و«لا صلاحية» و«لا صفوف» كانت تُعرض بالشيء نفسه تقريبًا.
+ */
 function ReportTable({
   columns,
   rows,
   emptyAr,
+  state,
+  storageKey,
 }: {
   columns: readonly ReportColumn[];
   rows: readonly (ReportRow | RepCustodyRow)[];
   emptyAr: string;
+  state: TableState;
+  storageKey: string;
 }) {
-  if (rows.length === 0) {
-    return <p className="m-0 text-[12.5px] text-muted">{emptyAr}</p>;
-  }
+  const [sort, setSort] = useState<SortState>(null);
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full border-collapse text-[12.5px]">
-        <thead>
-          <tr>
-            {columns.map((column) => (
-              <th
-                className="border-b border-line bg-surface-soft px-2 py-1.5 text-right font-bold text-muted"
-                key={column.key}
-              >
-                {column.labelAr}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((row, index) => (
-            // الصفوفُ لا تحمل مفتاحًا فريدًا مضمونًا في كلّ القوائم، فالفهرسُ مع مُعرّف الصف
-            // حين يوجد — والقائمةُ لا يُعاد ترتيبُها في المتصفح أبدًا.
-            <tr key={String((row as ReportRow).id ?? (row as ReportRow).documentId ?? index)}>
-              {columns.map((column) => (
-                <td
-                  className={`border-b border-line px-2 py-1.5 ${
-                    column.numeric ? 'text-left font-semibold tabular-nums' : 'text-ink'
-                  }`}
-                  dir={column.ltr ? 'ltr' : undefined}
-                  key={column.key}
-                >
-                  {cellText(row, column)}
-                </td>
-              ))}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+    <DataTable<ReportRow>
+      columns={tableColumns<ReportRow>(columns, cellText)}
+      dense
+      empty={
+        /** ‏`icon` مطلوبٌ في `EmptyState`، و`lucide-react` ليست من اعتمادات هذه الواجهة —
+          * فالرمزُ التعبيريّ لغةُ التطبيق القائمة ولا يُضاف اعتمادٌ لأجل أيقونة. */
+        <EmptyState
+          description={emptyAr}
+          icon={<span aria-hidden>📄</span>}
+          title="لا صفوف في هذا الجدول"
+        />
+      }
+      onSortChange={setSort}
+      pageSize={25}
+      rowKey={rowKeyFrom(['id', 'documentId', 'salesmanId', 'number'])}
+      rows={rows as ReportRow[]}
+      sort={sort}
+      sortable
+      state={state}
+      storageKey={`bakery-reports-${storageKey}`}
+    />
   );
 }
 
@@ -131,6 +143,16 @@ export default function ReportsPage() {
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState<string | undefined>();
   const [notice, setNotice] = useState<Notice | undefined>();
+  /**
+   * حالةُ الجداول كلّها من حالة الطلب: فـ`DataTable` تعرض «يُحمَّل» و«فشل» و«لا صلاحية»
+   * بدل منطقةٍ فارغة. والترتيبُ داخل `listState` (ممنوع ← تحميل ← خطأ) مقصودٌ وموثّقٌ هناك.
+   */
+  const tableState = listState({
+    loading,
+    error: loadError,
+    forbidden: !canView,
+    forbiddenMessage: REPORTS_PERMISSION,
+  });
   const [salesmen, setSalesmen] = useState<SalesmanCard[]>([]);
   const [salesmenError, setSalesmenError] = useState<string | undefined>();
   const [asked, setAsked] = useState(false);
@@ -427,25 +449,16 @@ export default function ReportsPage() {
               <CardHeader subtitle={group.noteAr} title={group.labelAr} />
               <CardBody>
                 {hasPeriodTotals(payload) ? (
-                  <dl className="m-0 grid gap-3 sm:grid-cols-3 lg:grid-cols-4">
+                  <div className="m-0 grid gap-3 sm:grid-cols-3 lg:grid-cols-4">
                     {group.cards.map((card) => (
-                      <div
-                        className="rounded-[10px] border border-line bg-surface p-3"
+                      <Kpi
+                        hint={card.hintAr}
                         key={card.key}
-                      >
-                        <dt className="m-0 text-[11.5px] font-bold text-muted">{card.labelAr}</dt>
-                        <dd
-                          className="m-0 mt-1 text-[17px] font-extrabold text-ink"
-                          dir="ltr"
-                        >
-                          {cardValue(payload, card.key)}
-                        </dd>
-                        {card.hintAr ? (
-                          <p className="m-0 mt-1 text-[11px] text-muted">{card.hintAr}</p>
-                        ) : null}
-                      </div>
+                        title={card.labelAr}
+                        value={cardValue(payload, card.key)}
+                      />
                     ))}
-                  </dl>
+                  </div>
                 ) : (
                   <p className="m-0 text-[12.5px] text-muted">
                     لم يرجع الخادم <span dir="ltr">periodTotals</span> في هذه الحمولة — ولا تُحسب
@@ -462,19 +475,16 @@ export default function ReportsPage() {
               title="أرصدةُ اللحظة وكلُّ السجلّ"
             />
             <CardBody>
-              <dl className="m-0 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              <div className="m-0 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                 {BALANCE_CARDS.map((card) => (
-                  <div className="rounded-[10px] border border-line bg-surface p-3" key={card.key}>
-                    <dt className="m-0 text-[11.5px] font-bold text-muted">{card.labelAr}</dt>
-                    <dd className="m-0 mt-1 text-[17px] font-extrabold text-ink" dir="ltr">
-                      {summaryValue(payload, card.key)}
-                    </dd>
-                    {card.hintAr ? (
-                      <p className="m-0 mt-1 text-[11px] text-muted">{card.hintAr}</p>
-                    ) : null}
-                  </div>
+                  <Kpi
+                    hint={card.hintAr}
+                    key={card.key}
+                    title={card.labelAr}
+                    value={summaryValue(payload, card.key)}
+                  />
                 ))}
-              </dl>
+              </div>
             </CardBody>
           </Card>
 
@@ -486,6 +496,8 @@ export default function ReportsPage() {
             <CardBody>
               <ReportTable
                 columns={REP_COLUMNS}
+                state={tableState}
+                storageKey="reps"
                 emptyAr="لا مندوبَ له حركةٌ في هذه الفترة."
                 rows={payload.repCustodyReport ?? []}
               />
@@ -500,6 +512,8 @@ export default function ReportsPage() {
             <CardBody>
               <ReportTable
                 columns={TRANSFER_COLUMNS}
+                state={tableState}
+                storageKey="transfers"
                 emptyAr="لا أمرَ تحميل في هذه الفترة."
                 rows={payload.transfersReport ?? []}
               />
@@ -514,6 +528,8 @@ export default function ReportsPage() {
             <CardBody>
               <ReportTable
                 columns={COLLECTION_COLUMNS}
+                state={tableState}
+                storageKey="collections"
                 emptyAr="لا مستندَ بيعٍ في هذه الفترة."
                 rows={payload.collectionsReport ?? []}
               />
@@ -528,6 +544,8 @@ export default function ReportsPage() {
             <CardBody>
               <ReportTable
                 columns={PRODUCTION_COLUMNS}
+                state={tableState}
+                storageKey="production"
                 emptyAr="لا دفعةَ إنتاج في هذه الفترة."
                 rows={payload.productionReport ?? []}
               />
@@ -542,6 +560,8 @@ export default function ReportsPage() {
             <CardBody>
               <ReportTable
                 columns={PRICE_COLUMNS}
+                state={tableState}
+                storageKey="prices"
                 emptyAr="لا تغييرَ تسعير في هذه الفترة."
                 rows={payload.customerPriceAuditReport ?? []}
               />
