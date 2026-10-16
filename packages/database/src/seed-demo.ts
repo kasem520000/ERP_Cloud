@@ -58,6 +58,35 @@ export type DemoRepSpec = {
   warehouseName?: string;
 };
 
+/**
+ * 🧾 هويةُ المنشأة — وهي ما **يُطبع في الفاتورة وفي مستند ZATCA**، فلا تُترك أرقامُها
+ * مكتوبةً في البذرة. والقيمُ الافتراضية أدناه هي قيمُ العرض القديمة نفسها (فلا يتغيّر
+ * سلوكُ تثبيتٍ قائم)، لكنّها تُعلن للمُشغِّل بوصفها ما يجب استبداله — وبلا استبدالٍ
+ * تُطبع فاتورةٌ برقمٍ ضريبيٍّ `300000000000003` ليس لأحد.
+ *
+ * والحقلُ `null`/الفارغ يعني «لا تُدخل قيمة» — والخيارُ الثاني (أن تُترك الهويةُ ناقصةً
+ * فيرفض الخادمُ إصدارَ فاتورةٍ ضريبية بـ`VAN_ZATCA_SELLER_IDENTITY_REQUIRED`) قرارُ
+ * صاحبِ العمل لا البذرة، ولذلك تُعلن البذرةُ ما تركته ولا تخمّن بدله.
+ */
+export type DemoCompanySpec = {
+  nameAr?: string;
+  nameEn?: string;
+  taxNo?: string;
+  crNo?: string;
+  phones?: readonly string[];
+  email?: string;
+  countryCode?: string;
+};
+
+/** قيمُ العرض التي تُطبع في المستند إن لم تُستبدل — تُقاس وتُعلن، ولا تُخفى. */
+export const DEMO_COMPANY_PLACEHOLDERS = {
+  nameEn: 'Demo Trading Co.',
+  taxNo: '300000000000003',
+  crNo: '1010000000',
+  phone: '+966500000000',
+  email: 'info@demo.test',
+} as const;
+
 /** باقةٌ قطاعية تُفعَّل للمنشأة التجريبية (قرارُ منصّةٍ في الإنتاج، وهنا بذرةٌ صريحة). */
 export type DemoSectorAppSpec = {
   code: string;
@@ -86,6 +115,8 @@ export type DemoSeedOptions = {
    * ولا يُفتح `/rep` أصلًا — فالتفعيلُ جزءٌ من بذرةٍ تُجرَّب لا ترف.
    */
   sectorApps?: readonly DemoSectorAppSpec[];
+  /** هويةُ المنشأة المطبوعة في الفاتورة — تُقرأ من `DEMO_COMPANY_*` (انظر `seedOrganisation`). */
+  company?: DemoCompanySpec;
   /** Post the opening entry (capital → cash / bank / fixed assets). Default true. */
   withOpeningEntry?: boolean;
   log?: (message: string) => void;
@@ -118,6 +149,7 @@ export type DemoSeedReport = {
     membershipId: string;
   };
   sectorApps: string[];
+  company: { written: boolean; placeholders: string[] };
   users: Array<{ email: string; role: string; status: string }>;
 };
 
@@ -344,8 +376,14 @@ export async function seedDemoData(
     const subscription = await ensureSubscription(client, tenantId, planCode, months);
     log(`seed  subscription: ${subscription}`);
 
-    const org = await seedOrganisation(client, tenantId, currencyCode);
+    const org = await seedOrganisation(client, tenantId, currencyCode, options.company);
     log(`seed  organisation: branch ${org.branchCode}, warehouse, safe + bank`);
+    if (org.companyPlaceholders.length > 0) {
+      log(
+        `seed  ⚠ company identity still holds demo values: ${org.companyPlaceholders.join(', ')} — ` +
+          'these print on every invoice and ZATCA document; set DEMO_COMPANY_* and re-seed a fresh tenant',
+      );
+    }
 
     const chart = await seedDefaultChartOfAccounts(client, tenantId);
     log(`seed  chart of accounts: ${chart.inserted} new (${chart.total} total)`);
@@ -413,6 +451,7 @@ export async function seedDemoData(
       users,
       rep,
       sectorApps,
+      company: { written: org.companyWritten, placeholders: org.companyPlaceholders },
     };
   } finally {
     await client.end();
@@ -501,7 +540,16 @@ async function seedOrganisation(
   client: Client,
   tenantId: string,
   currencyCode: string,
-): Promise<{ branchId: string; branchCode: string; warehouseId: string; safeId: string; bankId: string }> {
+  company?: DemoCompanySpec,
+): Promise<{
+  branchId: string;
+  branchCode: string;
+  warehouseId: string;
+  safeId: string;
+  bankId: string;
+  companyWritten: boolean;
+  companyPlaceholders: string[];
+}> {
   await client.query(
     `INSERT INTO currencies (tenant_id, code, name_ar, name_en, minor_units, is_base, is_active)
      VALUES ($1, $2::char(3), $2::text, $2::text, $3, true, true)
@@ -512,21 +560,43 @@ async function seedOrganisation(
   const companyName = await client.query<{ name: string }>(`SELECT name FROM tenants WHERE id = $1`, [
     tenantId,
   ]);
-  await client.query(
+  const identity = {
+    nameAr: company?.nameAr?.trim() || (companyName.rows[0]?.name ?? 'شركة تجريبية'),
+    nameEn: company?.nameEn?.trim() || DEMO_COMPANY_PLACEHOLDERS.nameEn,
+    taxNo: company?.taxNo?.trim() || DEMO_COMPANY_PLACEHOLDERS.taxNo,
+    crNo: company?.crNo?.trim() || DEMO_COMPANY_PLACEHOLDERS.crNo,
+    phones: (company?.phones ?? []).map((phone) => phone.trim()).filter(Boolean),
+    email: company?.email?.trim() || DEMO_COMPANY_PLACEHOLDERS.email,
+    countryCode: company?.countryCode?.trim() || 'SA',
+  };
+  const phoneList = identity.phones.length > 0 ? identity.phones : [DEMO_COMPANY_PLACEHOLDERS.phone];
+  // ‏`DO NOTHING` لا `DO UPDATE`: فملفُ المنشأة قد يكون عدّله المُشغِّل بعد البذر (رقمُه
+  // الحقيقيّ وعنوانُه)، والبذرةُ لا تمحو ما كتبه إنسانٌ بحجّة أنّها «أحدث كاتب».
+  const profile = await client.query(
     `INSERT INTO company_profiles (tenant_id, name_ar, name_en, tax_no, cr_no, phones, email, country_code)
      VALUES ($1, $2, $3, $4, $5, $6::jsonb, $7, $8)
-     ON CONFLICT (tenant_id) DO NOTHING`,
+     ON CONFLICT (tenant_id) DO NOTHING
+     RETURNING tenant_id`,
     [
       tenantId,
-      companyName.rows[0]?.name ?? 'شركة تجريبية',
-      'Demo Trading Co.',
-      '300000000000003',
-      '1010000000',
-      JSON.stringify(['+966500000000']),
-      'info@demo.test',
-      'SA',
+      identity.nameAr,
+      identity.nameEn,
+      identity.taxNo,
+      identity.crNo,
+      JSON.stringify(phoneList),
+      identity.email,
+      identity.countryCode,
     ],
   );
+  const companyWritten = (profile.rowCount ?? 0) > 0;
+  /** ما بقي من قيمِ العرض — يُقاس على ما **كُتب أو سيُقرأ** لا على ما طُلب. */
+  const companyPlaceholders = [
+    identity.nameEn === DEMO_COMPANY_PLACEHOLDERS.nameEn ? 'name_en' : '',
+    identity.taxNo === DEMO_COMPANY_PLACEHOLDERS.taxNo ? 'tax_no' : '',
+    identity.crNo === DEMO_COMPANY_PLACEHOLDERS.crNo ? 'cr_no' : '',
+    phoneList.includes(DEMO_COMPANY_PLACEHOLDERS.phone) ? 'phones' : '',
+    identity.email === DEMO_COMPANY_PLACEHOLDERS.email ? 'email' : '',
+  ].filter(Boolean);
 
   const branch = await upsertById(
     client,
@@ -630,7 +700,15 @@ async function seedOrganisation(
       ),
   );
 
-  return { branchId: branch, branchCode: 'MAIN', warehouseId: warehouse, safeId: safe, bankId: bank };
+  return {
+    branchId: branch,
+    branchCode: 'MAIN',
+    warehouseId: warehouse,
+    safeId: safe,
+    bankId: bank,
+    companyWritten,
+    companyPlaceholders,
+  };
 }
 
 // ------------------------------------------------------------------------ accounting

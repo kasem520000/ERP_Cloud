@@ -34,6 +34,7 @@
  */
 import { env } from '@erp/config';
 import {
+  type DemoCompanySpec,
   type DemoRepSpec,
   type DemoSectorAppSpec,
   type DemoUserSpec,
@@ -184,8 +185,27 @@ async function main(): Promise<void> {
     },
   ];
 
+  /**
+   * 🧾 هويةُ المنشأة — ما يُطبع في الفاتورة وفي مستند ZATCA. وتُقرأ من `.env` لا من
+   * البذرة، وقيمُ العرض القديمة تبقى الافتراضَ كي لا يتغيّر سلوكُ تثبيتٍ قائم — لكنها
+   * تُعلن أدناه بصراحةٍ ما لم تُستبدل.
+   */
+  const company: DemoCompanySpec = {
+    nameAr: process.env.DEMO_COMPANY_NAME_AR?.trim() || undefined,
+    nameEn: process.env.DEMO_COMPANY_NAME_EN?.trim() || undefined,
+    taxNo: process.env.DEMO_COMPANY_TAX_NO?.trim() || undefined,
+    crNo: process.env.DEMO_COMPANY_CR_NO?.trim() || undefined,
+    phones: (process.env.DEMO_COMPANY_PHONES ?? '')
+      .split(',')
+      .map((phone) => phone.trim())
+      .filter(Boolean),
+    email: process.env.DEMO_COMPANY_EMAIL?.trim() || undefined,
+    countryCode: process.env.DEMO_COMPANY_COUNTRY?.trim() || undefined,
+  };
+
   const demo = await seedDemoData(connectionString, {
     tenantCode,
+    company,
     rep,
     sectorApps: sectorAppsFromEnv(),
     fiscalYear: positiveInt('DEMO_FISCAL_YEAR'),
@@ -203,6 +223,18 @@ async function main(): Promise<void> {
       (demo.sectorApps.length ? `, sector apps [${demo.sectorApps.join(', ')}]` : '') +
       (demo.rep ? `, rep ${demo.rep.email} → ${demo.rep.salesmanName}` : ''),
   );
+
+  if (demo.company.placeholders.length > 0) {
+    console.log('');
+    console.log(
+      `⚠ company identity: ${demo.company.placeholders.join(', ')} still hold demo values ` +
+        `(set DEMO_COMPANY_* in .env). ${
+          demo.company.written
+            ? 'They were written now and will print on every invoice and ZATCA document.'
+            : 'The existing profile was left untouched — edit it in staff → الإعدادات.'
+        }`,
+    );
+  }
 
   printCredentials({
     tenantCode,
