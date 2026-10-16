@@ -1090,6 +1090,38 @@ export class HrmService implements OnModuleInit {
     return todayInTimezone(await this.resolveBusinessTimeZoneInTx(tx, tenantId), now);
   }
 
+  /**
+   * 📅 تاريخُ «من/إلى» في حركات الموظف — يُتحقَّق منه **قبل** أن يصل إلى SQL.
+   *
+   * ما كان: النصُّ كما جاء يُرمى إلى `(${from}::date)::timestamp AT TIME ZONE …` (‏:١١٢٦)،
+   * فـ«أمس» أو `2026-2-5` أو نصٌّ فيه مسافة ⇒ خطأُ قاعدةٍ `22P02 invalid input syntax for
+   * type date` ⇒ **٥٠٠** بلا جملةٍ مقروءة — وهو خطأُ إدخالٍ يُقال ٤٢٢. وأمّا التاريخُ
+   * المستحيل (‏`2026-02-30`) فتقبله القاعدةُ بقلبه إلى مارس، أي أنّ الرقمَ يُقرأ ولا
+   * يُرفض؛ ولهذا يُقارن النصُّ بما تُنتجه `Date` من نفسها. والفراغُ يعني «اليوم» كما كان
+   * (‏`FrmEmpInvs_Loaded` L72) — فالتحقّقُ على ما كُتب لا على ما تُرك.
+   */
+  private movementDate(value: string | undefined, field: 'from' | 'to', fallback: string): string {
+    const text = (value ?? '').trim();
+    if (!text) return fallback;
+    const label = field === 'from' ? '«من تاريخ»' : '«إلى تاريخ»';
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(text))
+      throw new DomainError(
+        'HRM_MOVEMENTS_DATE_INVALID',
+        `${label} غير صالح: «${text}» — المطلوبُ صيغةُ YYYY-MM-DD مثل 2026-10-16.`,
+        422,
+        { field },
+      );
+    const parsed = new Date(`${text}T00:00:00Z`);
+    if (Number.isNaN(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== text)
+      throw new DomainError(
+        'HRM_MOVEMENTS_DATE_INVALID',
+        `${label} ليس تاريخًا حقيقيًّا: «${text}» — فالتقويمُ لا يحمله.`,
+        422,
+        { field },
+      );
+    return text;
+  }
+
   async employeeMovements(tenantId: string, query: EmployeeMovementsQuery = {}) {
     await this.ensureEnabled(tenantId);
     const employeeId = query.employeeId;
@@ -1106,8 +1138,20 @@ export class HrmService implements OnModuleInit {
       this.resolveBusinessTimeZoneInTx(tx, tenantId),
     );
     const today = todayInTimezone(timeZone);
-    const from = query.from ?? today;
-    const to = query.to ?? today;
+    const from = this.movementDate(query.from, 'from', today);
+    const to = this.movementDate(query.to, 'to', today);
+    /**
+     * مدىً مقلوبٌ **يُرفض** ولا يُقرأ فارغًا: فـ«من ٢٠٢٦‑١٠‑٢٠ إلى ٢٠٢٦‑١٠‑١٠» ليس يومًا
+     * بلا حركات بل خطأُ إدخال، و«لا نتائج» جوابٌ يُخفيه — وهو الحكمُ نفسه في تقارير
+     * التوزيع (`VAN_REPORT_RANGE_INVERTED`). وتاريخا ISO يُقارنان نصيًّا فيصحّ الترتيب.
+     */
+    if (from > to)
+      throw new DomainError(
+        'HRM_MOVEMENTS_RANGE_INVERTED',
+        `مدى حركات الموظف مقلوب: «من» ${from} بعد «إلى» ${to}.`,
+        422,
+        { field: 'from' },
+      );
     const movementType = query.movementType ?? 'all';
     /**
      * 📅 تاريخُ الحركة **بتقويم المنشأة**، وحدّا المدى كذلك.

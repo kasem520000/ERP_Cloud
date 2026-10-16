@@ -365,6 +365,55 @@ describe('حركات الموظف — frmEmpInvs', () => {
     expect(utcDay.some((row) => row.invoiceId === sold.id)).toBe(false);
   });
 
+  /**
+   * 📅 إدخالٌ فاسدٌ يُرفض ٤٢٢ بجملةٍ مقروءة — لا ٥٠٠ من قاعدة البيانات، ولا تصفيةٌ صامتة.
+   *
+   * ما كان: ‏`from`/`to` يُرميان كما جاءا إلى `(${from}::date)::timestamp AT TIME ZONE …` في
+   * الخدمة، فنصٌّ مثل «أمس» أو `2026-2-5` ⇒ خطأُ قاعدةٍ `22P02 invalid input syntax for type
+   * date` ⇒ **٥٠٠** (بندُ ب٥ في سجلّ البنود المفتوحة). وتاريخٌ مستحيلٌ كـ`2026-02-30`
+   * تقبله القاعدةُ بقلبه إلى مارس — أي يُقرأ ولا يُرفض. و`movement_type` كان يُطبَّع في
+   * المتحكّم بصمتٍ إلى «الكلّ»، فـ`movement_type=sale` (بلا s) يُعيد الفواتيرَ **والمرتجعات**
+   * معًا والقارئُ يظنّ أنّه صفّى.
+   */
+  it('إدخالٌ فاسدٌ في المدى أو النوع يُرفض ٤٢٢ — لا ٥٠٠ ولا تصفيةٌ صامتة', async () => {
+    const badFrom = await movements(`employee_id=${employeeId}&from=${encodeURIComponent('أمس')}`);
+    expect(badFrom.status, JSON.stringify(badFrom.body).slice(0, 300)).toBe(422);
+    expect(badFrom.body.code).toBe('HRM_MOVEMENTS_DATE_INVALID');
+    expect(badFrom.body.errors?.[0]?.field).toBe('from');
+    expect(badFrom.body.detail).toContain('YYYY-MM-DD');
+
+    const badTo = await movements(`employee_id=${employeeId}&to=2026-2-5`);
+    expect(badTo.status, JSON.stringify(badTo.body).slice(0, 300)).toBe(422);
+    expect(badTo.body.code).toBe('HRM_MOVEMENTS_DATE_INVALID');
+    expect(badTo.body.errors?.[0]?.field).toBe('to');
+
+    // ‏وتاريخٌ مستحيلٌ تقبله القاعدةُ بقلبه إلى مارس — فيُرفض قبلها.
+    const impossible = await movements(`employee_id=${employeeId}&from=2026-02-30`);
+    expect(impossible.status, JSON.stringify(impossible.body).slice(0, 300)).toBe(422);
+    expect(impossible.body.detail).toContain('ليس تاريخًا حقيقيًّا');
+
+    // ‏ومدىً مقلوبٌ خطأُ إدخالٍ لا «فترةٌ بلا حركات».
+    const inverted = await movements(`employee_id=${employeeId}&from=${dayBefore(0)}&to=${dayBefore(2)}`);
+    expect(inverted.status, JSON.stringify(inverted.body).slice(0, 300)).toBe(422);
+    expect(inverted.body.code).toBe('HRM_MOVEMENTS_RANGE_INVERTED');
+
+    // ‏ونوعُ حركةٍ مجهولٌ كان يُطبَّع بصمتٍ إلى «الكلّ» فيعود أكثرُ ممّا طُلب.
+    const unknownType = await movements(`employee_id=${employeeId}&movement_type=sale`);
+    expect(unknownType.status, JSON.stringify(unknownType.body).slice(0, 300)).toBe(422);
+    expect(unknownType.body.code).toBe('HRM_MOVEMENTS_TYPE_UNKNOWN');
+    expect(unknownType.body.errors?.[0]?.field).toBe('movement_type');
+    expect(unknownType.body.detail).toContain('returns');
+
+    // ‏وما صَحّ يبقى يعمل: فالتشديدُ على الفاسد لا على السليم.
+    const valid = await movements(`employee_id=${employeeId}&from=${dayBefore(2)}&to=${dayBefore(0)}`);
+    expect(valid.status, JSON.stringify(valid.body).slice(0, 300)).toBe(200);
+    for (const type of ['sales', 'returns', 'all', ''])
+      expect(
+        (await movements(`employee_id=${employeeId}&movement_type=${type}`)).status,
+        `movement_type=${type || '(فارغ)'}`,
+      ).toBe(200);
+  });
+
   it('مستأجر آخر لا يرى حركات الموظف', async () => {
     const foreign = await api(ctx.server, 'get', `/api/v1/hrm/employee-movements?employee_id=${employeeId}`, { token: stranger.token });
     expect(foreign.status).toBe(422);
