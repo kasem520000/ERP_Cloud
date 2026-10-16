@@ -28,6 +28,7 @@ import {
   type StockBalance,
 } from '@erp/database';
 
+import { FROM_TO_LABELS_AR, validateDayFilters } from '../../common/date-param.js';
 import { DATABASE_HANDLE } from '../../database/database.module.js';
 import { tryGetAuthContext } from '../platform/context/tenant-context.js';
 import { AccountingService } from '../accounting/accounting.service.js';
@@ -147,6 +148,9 @@ export class InventoryService {
     status?: string,
     filters: { number?: string; from?: string; to?: string } = {},
   ) {
+    /** 📅 مرشّحا التاريخ يُتحقَّق منهما قبل SQL — فقبل هذا كان نصٌّ فاسدٌ يرجع ٥٠٠ «خطأً داخليًّا» (قِيس ٢٠٢٦-١٠-١٦). */
+    validateDayFilters(filters as Record<string, unknown>, FROM_TO_LABELS_AR, 'INVENTORY_DATE_INVALID');
+
     return withTenantTx(this.database.db, tenantId, async (tx) => {
       const rows = await tx
         .select()
@@ -384,6 +388,9 @@ export class InventoryService {
     tenantId: string,
     filters: { itemId?: string; warehouseId?: string; from?: string; to?: string; limit?: number } = {},
   ) {
+    /** 📅 مرشّحا التاريخ يُتحقَّق منهما قبل SQL — فقبل هذا كان نصٌّ فاسدٌ يرجع ٥٠٠ «خطأً داخليًّا» (قِيس ٢٠٢٦-١٠-١٦). */
+    validateDayFilters(filters as Record<string, unknown>, FROM_TO_LABELS_AR, 'INVENTORY_DATE_INVALID');
+
     return withTenantTx(this.database.db, tenantId, (tx) =>
       tx
         .select({

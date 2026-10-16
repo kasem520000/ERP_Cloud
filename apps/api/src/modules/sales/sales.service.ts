@@ -25,6 +25,7 @@ import {
   type DrizzleTx,
 } from '@erp/database';
 
+import { FROM_TO_LABELS_AR, validateDayFilters } from '../../common/date-param.js';
 import { assertDiscountWithinLimit, sumDiscount, sumLineGross } from '../../common/discount-limit.js';
 import { DATABASE_HANDLE } from '../../database/database.module.js';
 import { getRequestContext } from '../../request-context/request-context.js';
@@ -2333,6 +2334,9 @@ export class SalesService {
    * that grows when the goods come back would pay commission on a refund.
    */
   async salesmanCommissions(tenantId: string, query: SalesmanCommissionQuery = {}) {
+    /** 📅 مرشّحا التاريخ يُتحقَّق منهما قبل SQL — فقبل هذا كان نصٌّ فاسدٌ يرجع ٥٠٠ «خطأً داخليًّا» (قِيس ٢٠٢٦-١٠-١٦). */
+    validateDayFilters(query as Record<string, unknown>, FROM_TO_LABELS_AR, 'SALES_DATE_INVALID');
+
     // «🌐 الكل» and «كل الفترة» are both checked in the XAML (L262/L287), and the two
     // date pickers open on today (`FrmInvBySalesMen_Loaded` L58).
     /**

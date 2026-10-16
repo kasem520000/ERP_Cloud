@@ -21,7 +21,12 @@ import {
   type DrizzleTx,
 } from '@erp/database';
 
-import { parseClockParam, parseDayParam } from '../../common/date-param.js';
+import {
+  FROM_TO_LABELS_AR,
+  parseClockParam,
+  parseDayParam,
+  validateDayFilters,
+} from '../../common/date-param.js';
 import { DATABASE_HANDLE } from '../../database/database.module.js';
 import { SequencesService } from '../platform-services/index.js';
 
@@ -1285,6 +1290,8 @@ export class AccountingService {
    * Only posted entries count (`Entry.state = 1`), as everywhere else in this module.
    */
   async trialBalance(tenantId: string, query: TrialBalanceQuery = {}): Promise<{ rows: TrialBalanceRow[]; totals: TrialBalanceTotals }> {
+    /** 📅 مرشّحا التاريخ يُتحقَّق منهما قبل SQL — فقبل هذا كان نصٌّ فاسدٌ يرجع ٥٠٠ «خطأً داخليًّا» (قِيس ٢٠٢٦-١٠-١٦). */
+    validateDayFilters(query as Record<string, unknown>, FROM_TO_LABELS_AR, 'ACCOUNTING_DATE_INVALID');
     return withTenantTx(this.database.db, tenantId, async (tx) => {
       /** No `from` means there is nothing before the period; no `to` means it never ends. */
       const from = query.from ?? '0001-01-01';
@@ -1453,6 +1460,8 @@ export class AccountingService {
    * the profit is the plug that makes the two columns meet.
    */
   async incomeStatement(tenantId: string, query: IncomeStatementQuery = {}): Promise<{ rows: IncomeStatementRow[]; totals: IncomeStatementTotals }> {
+    /** 📅 مرشّحا التاريخ يُتحقَّق منهما قبل SQL — فقبل هذا كان نصٌّ فاسدٌ يرجع ٥٠٠ «خطأً داخليًّا» (قِيس ٢٠٢٦-١٠-١٦). */
+    validateDayFilters(query as Record<string, unknown>, FROM_TO_LABELS_AR, 'ACCOUNTING_DATE_INVALID');
     const summary = query.summary !== false;
     const withStock = query.withStock !== false;
 

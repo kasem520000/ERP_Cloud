@@ -31,7 +31,7 @@ import {
   type Employee,
 } from '@erp/database';
 
-import { parseDayParam } from '../../common/date-param.js';
+import { FROM_TO_LABELS_AR, parseDayParam, validateDayFilters } from '../../common/date-param.js';
 import { DATABASE_HANDLE } from '../../database/database.module.js';
 import { CustomFieldsService } from '../custom-fields/custom-fields.service.js';
 import { AccountingService, defaultNormalBalance, type AccountType, type JournalLineInput } from '../accounting/accounting.service.js';
@@ -624,7 +624,23 @@ export class HrmService implements OnModuleInit {
 
   async importAttendanceCsv(tenantId: string, csv: string) { await this.ensureEnabled(tenantId); const rows = parseAttendance(csv); let inserted = 0; let skipped = 0; await withTenantTx(this.database.db, tenantId, async (tx) => { for (const row of rows) { const fingerprint = attendanceFingerprint(row); const result = await tx.execute(sql`INSERT INTO attendance_logs (id, tenant_id, machine, enroll, punch_at, direction, fingerprint, payload) VALUES (${newId()}, ${tenantId}, ${row.machine}, ${row.enroll}, ${new Date(row.datetime)}, ${row.inout}, ${fingerprint}, ${JSON.stringify(row)}::jsonb) ON CONFLICT (tenant_id, fingerprint) DO NOTHING RETURNING id`); if (rowsOf(result).length) inserted += 1; else skipped += 1; } }); return { data: { inserted, skipped, parsed: rows.length } }; }
 
-  async attendanceSummary(tenantId: string, enroll: string, from: string, to: string) { await this.ensureEnabled(tenantId); const rows = await withTenantTx(this.database.db, tenantId, (tx) => tx.select().from(attendanceLogs).where(and(eq(attendanceLogs.tenantId, tenantId), eq(attendanceLogs.enroll, enroll), gte(attendanceLogs.punchAt, new Date(from)), lte(attendanceLogs.punchAt, new Date(to)))).orderBy(attendanceLogs.punchAt)); let minutes = new Decimal(0); let open: Date | undefined; for (const row of rows) { if (row.direction === 'in') open = row.punchAt; else if (row.direction === 'out' && open) { minutes = minutes.plus(new Decimal(row.punchAt.getTime() - open.getTime()).div(60_000)); open = undefined; } } return { data: { enroll, punches: rows.length, workingHours: minutes.div(60).toFixed(2), method: 'naive in/out pairing; no RC-10 evaluation engine' } }; }
+  async attendanceSummary(tenantId: string, enroll: string, from: string, to: string) {
+    await this.ensureEnabled(tenantId);
+    /**
+     * 📅 ‏`from`/`to` معاملان موضعيّان **مطلوبان** هنا (`new Date(from)` في الاستعلام): فنصٌّ
+     * فاسدٌ أو فارغٌ كان يصير `Invalid Date` ⇒ ٥٠٠. وقِيس ٢٠٢٦-١٠-١٦: ‏`GET
+     * ‏/api/v1/hrm/attendance/summary?from=أمس` ⇒ `INTERNAL`.
+     */
+    const fromDay = parseDayParam(from, { field: 'from', labelAr: '«من تاريخ»', code: 'HRM_DATE_INVALID' });
+    const toDay = parseDayParam(to, { field: 'to', labelAr: '«إلى تاريخ»', code: 'HRM_DATE_INVALID' });
+    if (!fromDay || !toDay)
+      throw new DomainError(
+        'HRM_DATE_REQUIRED',
+        '«من تاريخ» و«إلى تاريخ» مطلوبان لحساب ملخّص الحضور — وبلاهما لا فترةَ تُحسب.',
+        422,
+        { field: 'from' },
+      );
+    const rows = await withTenantTx(this.database.db, tenantId, (tx) => tx.select().from(attendanceLogs).where(and(eq(attendanceLogs.tenantId, tenantId), eq(attendanceLogs.enroll, enroll), gte(attendanceLogs.punchAt, new Date(fromDay)), lte(attendanceLogs.punchAt, new Date(toDay)))).orderBy(attendanceLogs.punchAt)); let minutes = new Decimal(0); let open: Date | undefined; for (const row of rows) { if (row.direction === 'in') open = row.punchAt; else if (row.direction === 'out' && open) { minutes = minutes.plus(new Decimal(row.punchAt.getTime() - open.getTime()).div(60_000)); open = undefined; } } return { data: { enroll, punches: rows.length, workingHours: minutes.div(60).toFixed(2), method: 'naive in/out pairing; no RC-10 evaluation engine' } }; }
 
   // ---------------------------------------------------------------------------
   // 🎁 الحوافز والجزاءات — `Form_WPF/frmEmpSalaryAddSub.xaml`
@@ -678,6 +694,9 @@ export class HrmService implements OnModuleInit {
    * that, and no name on any row.
    */
   async listAdjustments(tenantId: string, query: AdjustmentQuery = {}) {
+    /** 📅 مرشّحا التاريخ يُتحقَّق منهما قبل SQL — فقبل هذا كان نصٌّ فاسدٌ يرجع ٥٠٠ «خطأً داخليًّا» (قِيس ٢٠٢٦-١٠-١٦). */
+    validateDayFilters(query as Record<string, unknown>, FROM_TO_LABELS_AR, 'HRM_DATE_INVALID');
+
     await this.ensureEnabled(tenantId);
     const rows = await withTenantTx(this.database.db, tenantId, (tx) =>
       tx
@@ -885,6 +904,9 @@ export class HrmService implements OnModuleInit {
    * `من تاريخ`/`إلى تاريخ` unless «كل الفترة» (`chkall`) is on.
    */
   async listSalaryPayments(tenantId: string, query: SalaryPaymentQuery = {}) {
+    /** 📅 مرشّحا التاريخ يُتحقَّق منهما قبل SQL — فقبل هذا كان نصٌّ فاسدٌ يرجع ٥٠٠ «خطأً داخليًّا» (قِيس ٢٠٢٦-١٠-١٦). */
+    validateDayFilters(query as Record<string, unknown>, FROM_TO_LABELS_AR, 'HRM_DATE_INVALID');
+
     await this.ensureEnabled(tenantId);
     const responsible = alias(employees, 'responsible');
     const rows = await withTenantTx(this.database.db, tenantId, (tx) =>

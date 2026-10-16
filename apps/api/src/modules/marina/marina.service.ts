@@ -5,6 +5,7 @@ import { and, asc, desc, eq, gte, ilike, inArray, isNull, lte, or } from 'drizzl
 import { DomainError, newId } from '@erp/contracts';
 import { marinaBookingAdditions, marinaBookings, marinaDayClosings, marinaOperationPlanLines, marinaOperationPlans, marinaPreparations, marinaViolations, parties, rentalInvoices, tenantSettings, vesselGroupPricing, vesselGroups, vesselOwners, vessels, withTenantTx, type DatabaseHandle } from '@erp/database';
 
+import { FROM_TO_LABELS_AR, parseDayParam, validateDayFilters } from '../../common/date-param.js';
 import { DATABASE_HANDLE } from '../../database/database.module.js';
 import { tryGetAuthContext } from '../platform/context/tenant-context.js';
 import { SalesService } from '../sales/sales.service.js';
@@ -67,6 +68,8 @@ export class MarinaService {
    * impossible: you could file a rota and never see it again.
    */
   async listPlans(tenantId: string, planDate?: string) {
+    /** 📅 التاريخُ يُتحقَّق منه قبل SQL — فنصٌّ فاسدٌ كان يرجع ٥٠٠ «خطأً داخليًّا» (قِيس ٢٠٢٦-١٠-١٦). */
+    parseDayParam(planDate, { field: 'date', labelAr: '«تاريخُ الخطة»', code: 'MARINA_DATE_INVALID' });
     await this.ensureEnabled(tenantId);
     return withTenantTx(this.database.db, tenantId, async (tx) => {
       const plans = await tx
@@ -87,6 +90,8 @@ export class MarinaService {
 
   /** تحضير المراكب — the pre-departure checklist, one per booking. */
   async listPreparations(tenantId: string, filters: { date?: string; status?: string } = {}) {
+    /** 📅 التاريخُ يُتحقَّق منه قبل SQL — فنصٌّ فاسدٌ كان يرجع ٥٠٠ «خطأً داخليًّا» (قِيس ٢٠٢٦-١٠-١٦). */
+    validateDayFilters(filters as Record<string, unknown>, { date: '«التاريخ»' }, 'MARINA_DATE_INVALID');
     await this.ensureEnabled(tenantId);
     return withTenantTx(this.database.db, tenantId, (tx) =>
       tx
@@ -162,6 +167,13 @@ export class MarinaService {
    * cashier — both are left out rather than offered and ignored.
    */
   async listRentalInvoices(tenantId: string, filters: RentalInvoiceFilters = {}) {
+    /**
+     * 📅 التاريخُ يُتحقَّق منه قبل SQL: فالنمطُ القائم `isISODate(query.from) ? … : undefined`
+     * كان **يُسقط المرشّح بصمت** — فيرجع كلّ السجلّ ٢٠٠ والقارئُ يظنّ أنّه مصفًّى (قِيس
+     * ٢٠٢٦-١٠-١٦: ‏`?from=أمس` ⇒ ٢٠٠ بكلّ الصفوف). والحرسُ القديمُ يبقى (فبعد التحقّق
+     * لا يمرّ إلا تاريخٌ صحيح) لكنّ الفاسدَ صار يُرفض ٤٢٢ باسم الحقلّ.
+     */
+    validateDayFilters(filters as Record<string, unknown>, FROM_TO_LABELS_AR, 'MARINA_DATE_INVALID');
     await this.ensureEnabled(tenantId);
     const rows = await withTenantTx(this.database.db, tenantId, (tx) =>
       tx

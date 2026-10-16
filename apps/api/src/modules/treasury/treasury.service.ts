@@ -28,6 +28,7 @@ import {
   type DrizzleTx,
 } from '@erp/database';
 
+import { FROM_TO_LABELS_AR, validateDayFilters } from '../../common/date-param.js';
 import { DATABASE_HANDLE } from '../../database/database.module.js';
 import { tryGetAuthContext } from '../../request-context/request-context.js';
 import { AccountingService, type JournalLineInput } from '../accounting/accounting.service.js';
@@ -200,6 +201,9 @@ export class TreasuryService implements OnModuleInit {
    * 🔢 الرقم or رقم المرجع (`ReceiptOper.LoadReceipts`, `Class/ReceiptOper.cs:496`).
    */
   vouchers(tenantId: string, filters: { from?: string; to?: string; q?: string } = {}) {
+    /** 📅 مرشّحا التاريخ يُتحقَّق منهما قبل SQL — فقبل هذا كان نصٌّ فاسدٌ يرجع ٥٠٠ «خطأً داخليًّا» (قِيس ٢٠٢٦-١٠-١٦). */
+    validateDayFilters(filters as Record<string, unknown>, FROM_TO_LABELS_AR, 'TREASURY_DATE_INVALID');
+
     const q = filters.q?.trim();
     return withTenantTx(this.database.db, tenantId, async (tx) => {
       const rows = await tx
@@ -977,6 +981,9 @@ export class TreasuryService implements OnModuleInit {
     tenantId: string,
     filters: { status?: string; number?: string; from?: string; to?: string } = {},
   ) {
+    /** 📅 مرشّحا التاريخ يُتحقَّق منهما قبل SQL — فقبل هذا كان نصٌّ فاسدٌ يرجع ٥٠٠ «خطأً داخليًّا» (قِيس ٢٠٢٦-١٠-١٦). */
+    validateDayFilters(filters as Record<string, unknown>, FROM_TO_LABELS_AR, 'TREASURY_DATE_INVALID');
+
     const fromSide = alias(cashLocations, 'from_side');
     const toSide = alias(cashLocations, 'to_side');
     return withTenantTx(this.database.db, tenantId, (tx) =>
@@ -1525,6 +1532,9 @@ export class TreasuryService implements OnModuleInit {
     tenantId: string,
     filters: { from?: string; to?: string; userId?: string; membershipId?: string; branchId?: string } = {},
   ) {
+    /** 📅 مرشّحا التاريخ يُتحقَّق منهما قبل SQL — فقبل هذا كان نصٌّ فاسدٌ يرجع ٥٠٠ «خطأً داخليًّا» (قِيس ٢٠٢٦-١٠-١٦). */
+    validateDayFilters(filters as Record<string, unknown>, FROM_TO_LABELS_AR, 'TREASURY_DATE_INVALID');
+
     // نفس سبب `currentShift`: معرّفٌ ليس معرّفاً يعني «لا صفوف»، لا استعلاماً ينفجر.
     if (filters.branchId && !isUuid(filters.branchId)) return [];
     return withTenantTx(this.database.db, tenantId, async (tx) => {

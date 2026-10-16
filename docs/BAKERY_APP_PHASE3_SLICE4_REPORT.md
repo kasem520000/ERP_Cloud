@@ -3130,3 +3130,111 @@ invalid input syntax for type date`؛ والتقاريرُ تتحقّق بـ`zod
    query.from)` التي وُجدت في `journalScope` بالصدفة لأنّها كانت سببَ الـ٥٠٠ المقاس). فمسحٌ
    كاملٌ لكلّ مقارنةِ عمودِ تاريخٍ بمعاملٍ من الطلب أوسعُ من هذا المسح، وهو بندٌ يُضاف إلى
    ب١٣.
+
+---
+
+## الشريحة 16ج — مسحُ مرشّحات التاريخ في الـAPI كلّه: **١٥ مسارًا كانت تُخرج ٥٠٠، و٤ تُجيب بلا مرشّح**
+
+### 1. المسحُ من العقد المكتوب لا من التخمين
+
+بديلُ عدّ المواضع في المصدر: قُرئ **`packages/contracts/openapi.json`** (المُصدَّر والمحدَّث)
+وحُصرت كلّ المسارات التي لها معاملُ تاريخٍ في الاستعلام ⇒ **٣٨ مسارًا**، ثمّ ضُرب كلّ واحدٍ
+بنصٍّ فاسد (`from=أمس`، ‏`date=أمس`، ‏`month=13-2026`، ‏`fromTime=99:99`) **وبقيمةٍ صحيحة**
+(فالفحصُ الثاني هو ما يثبت أنّ الإصلاحَ لا يرفض السليم). والحصيلةُ قبل الإصلاح:
+
+| الجواب | العدد | المسارات |
+|---|---|---|
+| ‏**٥٠٠ `INTERNAL`** «An unexpected error occurred» | ‏١٥ | ‏`/statements/trial-balance`، ‏`/statements/income-statement`، ‏`/vouchers`، ‏`/cash-transfers`، ‏`/shift-closes/day-closes`، ‏`/hrm/adjustments`، ‏`/hrm/attendance/summary`، ‏`/hrm/salary-payments`، ‏`/inventory/movements`، ‏`/inventory/transfers`، ‏`/marina/operation-plans`، ‏`/marina/preparations`، ‏`/tailoring/orders`، ‏`/tailoring/invoices` (+‏`/journal-entries` قبل ١٦ب) |
+| ‏**٢٠٠ بمرشّحٍ مُسقطٍ بصمت** | ‏٤ | ‏`/marina/bookings`، ‏`/marina/rental-invoices`، ‏`/marina/violations` — نمطُ `isISODate(query.from) ? gte(…) : undefined` **يحذف المرشّح** بدل أن يرفض النصّ، فيرجع **كلّ السجلّ** والقارئُ يظنّه مصفًّى؛ و`/hrm/reports/salary?month=13-2026` |
+| ‏٤٢٢ محميٌّ أصلًا | ‏٦ | ‏`/journal-entries` (١٦ب)، ‏`/van-sales/reports` (‏`VAN_REPORT_DATE_INVALID`)، ‏`/cash-locations/:id/movements` (‏`MOVEMENT_DATE_INVALID`/‏`MOVEMENT_TIME_INVALID` — أي أنّ الخزينةَ كانت تملك النمطَ الصحيح أصلًا)، وثلاثةٌ تطلب معاملًا آخر أولًا |
+| ‏٤٠٣/٤٠٤/٤٠١ قبل بلوغ التاريخ | ‏٨ | ‏`/portal/*` (‏`PORTAL_ACCESS_REQUIRED`)، ‏`/einvoice/filings`، ‏`/fx-rates/resolve`، ‏`/compat/master/items` (‏`UNAUTHENTICATED`)، ومساراتُ المعرّفات |
+
+**والفئةُ الثانية أخطرُ من الأولى**: فـ٥٠٠ يُعلن نفسه، وأمّا ٢٠٠ بمرشّحٍ محذوف فيُخرج
+أرقامًا (في مارينا: حجوزاتٌ وفواتيرُ ومخالفات) على أنّها جوابُ السؤال المصفّى وهي كلّ
+السجلّ. وهي فصيلةُ «الرقمُ الذي لا يقول ما هو» نفسها التي عولجت في المجاميع والنوافذ.
+
+### 2. ما نُفِّذ
+
+مساعدٌ دفعةٌ واحدة في المسطرة المشتركة (`common/date-param.ts`):
+
+```ts
+export const FROM_TO_LABELS_AR = { from: '«من تاريخ»', to: '«إلى تاريخ»' };
+export function validateDayFilters(query, labels = FROM_TO_LABELS_AR, code = 'DATE_PARAM_INVALID'): void
+```
+
+وسطرٌ واحدٌ عند باب كلّ دالة في **ثمانية ملفات / خمس عشرة دالة**:
+
+| الوحدة | الدوال | الرمز |
+|---|---|---|
+| ‏`accounting` | ‏`trialBalance`, `incomeStatement` | ‏`ACCOUNTING_DATE_INVALID` |
+| ‏`treasury` | ‏`vouchers`, `transfers`, `dayCloses` | ‏`TREASURY_DATE_INVALID` |
+| ‏`hrm` | ‏`listAdjustments`, `listSalaryPayments`, و`attendanceSummary` (معاملان موضعيّان **مطلوبان** ⇒ ‏`HRM_DATE_INVALID` و`HRM_DATE_REQUIRED` حين يفرغان، لأنّ `new Date('')` كان يصير `Invalid Date` في الاستعلام) | ‏`HRM_DATE_INVALID` |
+| ‏`inventory` | ‏`listTransfers`, `movements` | ‏`INVENTORY_DATE_INVALID` |
+| ‏`sales` | ‏`salesmanCommissions` (عمولاتُ المندوبين — مالٌ يُقرأ بمرشّحٍ كان يُحذف بصمتًا لو تُرك) | ‏`SALES_DATE_INVALID` |
+| ‏`marina` | ‏`listPlans`, `listPreparations`, `listBookings`, `listViolations`, `listRentalInvoices` | ‏`MARINA_DATE_INVALID` |
+| ‏`tailoring` | ‏`listOrders`, `listInvoices` | ‏`TAILORING_DATE_INVALID` |
+
+**ولماذا عند باب كلّ دالة لا في معترضٍ عامّ**: فالمساراتُ التي تتحقّق بنفسها تقول رسائلَ أخصّ
+برموزها (`ACCOUNTING_DATE_INVALID` في `/journal-entries`، ‏`VAN_REPORT_DATE_INVALID` في
+`/van-sales/reports`، ‏`MOVEMENT_DATE_INVALID` في حركات الصندوق، و`HRM_MOVEMENTS_DATE_INVALID`
+في حركات الموظف) — ومعترضٌ عامٌّ كان يسبقها كلّها فيُبطِل تلك الرسائلَ وأحكامَها المثبّتة في
+‏١٥ج و١٦ب. فالتحقّقُ يبقى حيث يُعرف اسمُ الحقلّ ومعناه، والمسطرةُ (‏`parseDayParam`) واحدة.
+
+**وفي مارينا بقي الحرسُ القديم** (`isISODate(…) ? … : undefined`) في مكانه وأُضيف الرفضُ
+قبله: فبعد التحقّق لا يمرّ إلا تاريخٌ صحيح، والحرسُ يصير زائدًا لكنّه غيرُ ضارّ، ولا تُعاد
+كتابةُ منطقِ الاستعلام في وحدةٍ لم تُدرس — وهذا هو أقلُّ تغييرٍ يحقق المطلوب.
+
+### 3. الأحكام، وتكذيبُها
+
+‏`apps/api/test/date-filters-422.spec.ts` — **٥ أحكامٍ على ١٨ مسارًا** (ومقدّمتُها جدولُ
+المسحِ نفسه بأرقامه):
+
+1. نصٌّ فاسدٌ في كلّ مسار ⇒ ٤٢٢ **برمز الوحدة** و`errors[0].field` = اسمُ المعامل وجملةٌ
+   فيها `YYYY-MM-DD`.
+2. ويومٌ شكلُه سليمٌ والتقويمُ لا يحمله (`2026-02-30`) ⇒ ٤٢٢ بـ«ليس تاريخًا حقيقيًّا» في
+   كلّ مسار (فالشكلُ وحده لا يكفي).
+3. **وتاريخٌ صحيحٌ لا يُرفض بسبب التاريخ**: لكلّ مسارٍ يُحكم أنّ الجواب ليس ٥٠٠ وأنّ رمزَه
+   ليس رمزَ التاريخ — وقد يكون ٤٠٣/٤٠٤/٤٢٢ لسببٍ آخر (معرّفٌ مفقود، موردٌ غير موجود)،
+   فالممنوعُ هو الرفضُ بسبب التاريخ الصحيح. وهذا هو الحكمُ الذي يمنع «الإصلاحَ» من أن
+   يصير بابًا مغلقًا.
+4. والمساراتُ الثلاثة التي كانت تُسقط المرشّح بصمتٍ صارت ترفضه — **وتغييرُ السلوك يُقال**
+   في اسم الحكم لا في تعليقٍ مدفون.
+5. **وبندٌ مفتوحٌ مثبَّتٌ باسمه**: ‏`/hrm/reports/salary?month=13-2026` ما زال يرجع **٢٠٠**
+   لأنّ معاملَه شهرٌ (`YYYY-MM`) لا يومٌ والمسطرةُ تفحص الأيام — فإصلاحُه يحتاج
+   `parseMonthParam` وهو عملٌ قائمٌ بذاته، والحكمُ يقول إنّ من يُصلحه سيُحدِّثه وهو يعرف.
+
+| التخريب | النتيجة |
+|---|---|
+| إرجاعُ `marina.service.ts` و`booking-documents.service.ts` إلى ما قبل الإصلاح | ‏**٣ من ٥ فشلت** بالأنماط الثلاثة كلّها: ‏`/marina/operation-plans?date=أمس` ⇒ `expected 500 to be 422`، و`?date=2026-02-30` ⇒ `expected 500 to be 422`، و`/marina/bookings?from=أمس` ⇒ **`expected 200 to be 422`** (أي أنّ المرشّحَ عاد يُحذف بصمت) |
+| الاستعادة | ‏md5 `aeeb0d56158ac08d2940e9cb4deee7b3` و`c19561e250d6835d179dca3dd113eb95` للطرفين |
+
+### 4. الأوامر ونتائجها الفعلية
+
+| الأمر | النتيجة |
+|---|---|
+| الحزمةُ الكاملة `apps/api`، ١٧:١٢ UTC | ‏**`Test Files 213 passed (213)` / ‏`Tests 1776 passed (1776)`**، ‏٠ فشلت (‏٥٧٦ ثانية) — فلا مثبّتةٌ قائمةٌ في marina أو tailoring أو treasury أو hrm أو inventory أو sales كانت تمرّر تاريخًا فاسدًا فتعتمد على التساهل |
+| ‏`date-filters-422.spec.ts` | ‏`Tests 5 passed (5)` |
+| ‏`pnpm run typecheck` / ‏`pnpm -r run lint` | ‏٠ / ‏٠ |
+| ‏`pnpm run openapi:export` | ‏٠ **بلا فرق** (فلا مسارَ جديد ولا تغيّرَ في أشكال المسارات — التحقّقُ داخل الدوال) |
+
+### 5. حدودٌ تُقال ولا تُخفى
+
+1. **بندٌ مفتوحٌ واحدٌ مقاس**: ‏`/hrm/reports/salary?month=13-2026` ⇒ ٢٠٠ (شهرٌ مستحيلٌ
+   يُقبل). ومثبَّتٌ باسمه في الحكم الخامس. وإصلاحُه `parseMonthParam` (شكلُ `YYYY-MM` ثمّ
+   شهرٌ ٠١–١٢).
+2. **مسارا كتابةٍ لم يُصلَحا ولم يُقاسا** (بندُ ب١٣): ‏`content.service.ts:1272`
+   (‏`${input.endsAt ?? null}::timestamptz` في إنشاء لافتة) و
+   `platform-billing.service.ts:975,1475` (‏`input.receivedAt::timestamptz` و
+   `input.periodStart/periodEnd::date` في فاتورة المنصّة) — **مقروءٌ في المصدر لا مقاس**،
+   وكلاهما يحتاج تثبيتًا أثقل (مالكُ منصّةٍ ولافتةٌ بجمهور).
+3. **والمسحُ كان على المعاملات المُعلَنة في `openapi.json`** (‏٣٨ مسارًا): فمسارٌ يستقبل
+   تاريخًا في جسم POST (لا في الاستعلام) أو معاملًا غيرَ مُعلنٍ في العقد لم يدخل المسح —
+   ومسحُ الأجسام أوسعُ ويحتاج جردَ مخطّطات الطلب.
+4. **وتغييرُ سلوك مارينا من التساهل إلى الرفض قرارٌ هندسيٌّ لا ماليّ**، اتُّخذ لاتّساق
+   الـAPI (كلُّ الوحدات الأخرى ترفض) ولأنّ مرشّحًا يُحذف بصمتًا يُخرج أرقامًا على أنّها
+   جوابُ السؤال. ومن يرى أنّ مارينا يجب أن تبقى متساهلةً فليقل: فالحكمُ الرابع مثبَّتٌ
+   باسمه ويسقط فورًا عند العودة.
+5. **ورموزُ الخطاء السبعة الجديدة نصوصٌ غيرُ مسجّلةٍ في `@erp/contracts`** — وبندُ تسجيل
+   الرموز في عقدٍ مركزيٍّ اتّسع بها (صار ١٠ رموزٍ منذ ١٥ج: ‏`HRM_MOVEMENTS_*` و
+   `ACCOUNTING_*` و`DATE_PARAM_INVALID`/‏`TIME_PARAM_INVALID` والآن `TREASURY_`, `HRM_`,
+   `INVENTORY_`, `SALES_`, `MARINA_`, `TAILORING_DATE_INVALID`).

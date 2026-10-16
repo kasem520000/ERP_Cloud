@@ -91,3 +91,33 @@ export function parseClockParam(
     );
   return text;
 }
+
+/** تسمياتُ «من/إلى» العربية — تُستعمل حيث لا تسميةَ خاصةً بالمسار. */
+export const FROM_TO_LABELS_AR: Readonly<Record<string, string>> = {
+  from: '«من تاريخ»',
+  to: '«إلى تاريخ»',
+};
+
+/**
+ * 📅 تحقّقٌ دفعةً واحدةً عند باب الدالة: لكلّ مفتاحٍ في `labels` موجودٍ في `query` كنصّ،
+ * تُطبَّق المسطرةُ نفسها (`parseDayParam`) — فيُرفض الفاسدُ ٤٢٢ باسم الحقلّ وتسميته
+ * العربية، ويُترك الغائبُ للمستدعي (فلا افتراضيَّ يُفرض من هنا).
+ *
+ * ولماذا عند باب الدالة لا في معترضٍ عامّ: فالمساراتُ التي تتحقّق بنفسها (‏`journal-entries`
+ * و`reports/:key` و`employee-movements` و`cash-locations/:id/movements`) تقول رسائلَ أخصّ
+ * برموزها (`ACCOUNTING_DATE_INVALID`، ‏`VAN_REPORT_DATE_INVALID`، ‏`MOVEMENT_DATE_INVALID`…)،
+ * ومعترضٌ عامٌّ كان يسبقها فيُبطِل تلك الرسائلَ وأحكامَها المثبّتة. فالتحقّقُ يبقى حيث
+ * يُعرف اسمُ الحقلّ ومعناه، والمسطرةُ واحدة.
+ */
+export function validateDayFilters(
+  query: Record<string, unknown> | undefined | null,
+  labels: Readonly<Record<string, string>> = FROM_TO_LABELS_AR,
+  code = 'DATE_PARAM_INVALID',
+): void {
+  if (!query) return;
+  for (const [name, labelAr] of Object.entries(labels)) {
+    const value = query[name];
+    if (typeof value !== 'string') continue;
+    parseDayParam(value, { field: name, labelAr, code });
+  }
+}
