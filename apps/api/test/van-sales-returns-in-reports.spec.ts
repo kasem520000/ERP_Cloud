@@ -241,6 +241,16 @@ describe('van-sales returns are netted in every money aggregate, at the official
     const saleB = newId();
 
     await withTenantTx(ctx.handle.db, tenantB, async (tx) => {
+      /**
+       * 🧾 هويّةُ البائع: فمنذ حارس `VAN_ZATCA_SELLER_IDENTITY_REQUIRED` (قرارُ مالك
+       * المنتج بالرفض ٤٢٢) لا تُصدر فاتورةٌ ضريبيةٌ لمنشأةٍ بلا رقمٍ ضريبيّ —
+       * والتثبيتُ منشأةٌ مكتملةُ البيانات، وهذا إدراجُ بياناتٍ لا تعديلُ حكم.
+       */
+      await tx.execute(sql`
+        INSERT INTO company_profiles (tenant_id, name_ar, tax_no)
+        VALUES (${tenantB}::uuid, 'مخابز التثبيت', '310000000000002')
+        ON CONFLICT (tenant_id) DO UPDATE SET name_ar = EXCLUDED.name_ar, tax_no = EXCLUDED.tax_no
+      `);
       await tx.execute(sql`
         INSERT INTO warehouses (id, tenant_id, branch_id, code, name, is_default, is_active)
         VALUES (${vanB}::uuid, ${tenantB}::uuid, ${defaultsB.branchId}::uuid, 'WH-CR', 'سيارة الائتمان', false, true)

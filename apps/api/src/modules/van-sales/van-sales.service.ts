@@ -6,6 +6,7 @@ import { withTenantTx, type DatabaseHandle, type DrizzleTx } from '@erp/database
 
 import { DATABASE_HANDLE } from '../../database/database.module.js';
 import { AccountingService } from '../accounting/accounting.service.js';
+import { buildQrPayload } from '../einvoicing/zatca/qr.js';
 import { InventoryService } from '../inventory/inventory.service.js';
 import { ProductionOrdersService } from '../inventory/production-orders.service.js';
 import { WmsBomService } from '../inventory/wms-bom.service.js';
@@ -47,28 +48,14 @@ function iso(value: unknown): string {
   return String(value ?? '');
 }
 
-function buildZatcaTlvBase64(params: {
-  sellerName: string;
-  vatNumber: string;
-  timestampIso: string;
-  invoiceTotal: string;
-  vatTotal: string;
-}): string {
-  const fields: Array<[number, string]> = [
-    [1, params.sellerName || 'مصنع ومخابز التوزيع'],
-    [2, params.vatNumber || '300000000000003'],
-    [3, params.timestampIso],
-    [4, Number(params.invoiceTotal || 0).toFixed(2)],
-    [5, Number(params.vatTotal || 0).toFixed(2)],
-  ];
-  const chunks: Buffer[] = [];
-  for (const [tag, val] of fields) {
-    const valBuf = Buffer.from(val, 'utf8');
-    const len = Math.min(valBuf.length, 255);
-    chunks.push(Buffer.from([tag, len]), valBuf.subarray(0, len));
-  }
-  return Buffer.concat(chunks).toString('base64');
-}
+/**
+ * 🧾 حمولةُ QR تُبنى بالمشفِّر الرسميّ `buildQrPayload` في `einvoicing/zatca/qr.ts` — وكان هنا
+ * مشفِّرٌ خاصٌّ بهذا الملفّ (`buildZatcaTlvBase64`) يحمل **داخله** بديلَين مفبركَين
+ * (‏`|| 'مصنع ومخابز التوزيع'` و`|| '300000000000003'`) ويمرّر المال في
+ * `Number(…).toFixed(2)`. حُذف: فلا نسخةَ ثانيةُ من ترميزٍ ضريبيٍّ مُلزم (ومستوردُه الرسميّ
+ * يُستعمل أصلًا في `einvoicing.service.ts` و`platform-billing.service.ts`)، ولا اختراعَ في
+ * أيّ طرف، والمالُ يبقى نصًّا من `Decimal` بلا مرورٍ في `Number`.
+ */
 
 /**
  * الأساس الذي قُيِّم به العجز **فعلاً** لحظة الاعتماد. يُكتب مع القيد
@@ -309,9 +296,53 @@ export class VanSalesService {
    * هل للموظف حساب في الدليل؟ هل رُبط الحساب الدائن؟ فالرفض 422 عند الاعتماد صحيح، لكن
    * إخفاء سببه حتى لحظة الضغط ليس أمانةً مع المحاسب.
    */
+  /**
+   * 🧾 هويّةُ البائع للفاتورة الضريبية، وجملةُ الرفض إن نقصت — **تُبنى مرّةً واحدةً هنا**
+   * ويستعملها الحارسُ في `createDocument` ولوحةُ السياسة في `readShortagePolicy` (ومنها
+   * لوحةُ الخطّ وشاشاتُ المخابز). فلا تتباعد نسختان من الجملة نفسها: الشاشةُ تقول ما
+   * سيقوله الخادم حرفًا لأنّ الخادمَ هو الذي أملاها عليها، والحكمُ يبقى في الخادم وحده
+   * (فإخفاءُ الزرّ ليس ضبطًا).
+   *
+   * والتحقّقُ من **وجود** الاسم والرقم لا من صحّة صيغة الرقم (١٥ رقمًا وما تشترطه الهيئة) —
+   * فصحّةُ الصيغة قرارٌ ضريبيٌّ يُرفع لصاحب العمل، وأمّا الفراغُ فليس قرارًا.
+   */
+  private async resolveZatcaSellerInTx(
+    tx: DrizzleTx,
+    tenantId: string,
+  ): Promise<{
+    sellerName: string;
+    vatNumber: string;
+    missingFields: string[];
+    refusalAr: string | null;
+  }> {
+    const profile = first(
+      await tx.execute(sql`
+        SELECT name_ar, tax_no FROM company_profiles
+        WHERE tenant_id = ${tenantId}::uuid
+        LIMIT 1
+      `),
+    );
+    const sellerName = str(profile?.name_ar ?? '').trim();
+    const vatNumber = str(profile?.tax_no ?? '').trim();
+    const missingFields = [
+      ...(sellerName ? [] : ['اسم المنشأة']),
+      ...(vatNumber ? [] : ['الرقم الضريبي']),
+    ];
+    return {
+      sellerName,
+      vatNumber,
+      missingFields,
+      refusalAr:
+        missingFields.length > 0
+          ? `لا يمكن إصدار فاتورة ضريبية (ZATCA) وهويّةُ البائع ناقصة: ${missingFields.join(' و')} غير مُدخلٍ في بيانات المنشأة. فأدخله هناك أولًا، أو أصدر المستند بوضع إشعار التسليم الداخلي إن كانت سياستُه معتمدة. ولا يُستعاض عنه باسمٍ أو رقمٍ بديل: فرقمُ ضريبةٍ ليس للمنشأة في رمزٍ على فاتورة عميلٍ خطأُ امتثالٍ لا خطأُ عرض.`
+          : null,
+    };
+  }
+
   async readShortagePolicy(tenantId: string, salesmanId?: string) {
     return withTenantTx(this.database.db, tenantId, async (tx) => {
       const policy = await this.loadTenantPolicyInTx(tx, tenantId);
+      const seller = await this.resolveZatcaSellerInTx(tx, tenantId);
       const explicitPrice =
         policy.shortageUnitPrice && dec(policy.shortageUnitPrice).gt(0)
           ? dec(policy.shortageUnitPrice).toFixed(4)
@@ -385,6 +416,16 @@ export class VanSalesService {
         shortageUnitPrice: explicitPrice,
         preventSelfApproval: policy.preventSelfApproval ?? false,
         allowInternalDeliveryWithoutTax: policy.allowInternalDeliveryWithoutTax ?? false,
+        /**
+         * 🧾 جاهزيةُ هويّة البائع للفاتورة الضريبية، وجملةُ الرفض كما سيقولها الخادمُ
+         * حرفًا — فتقولها الشاشةُ قبل الإرسال بلا نسخةٍ ثانيةٍ منها، ويبقى الحكمُ في
+         * `createDocument` (‏`VAN_ZATCA_SELLER_IDENTITY_REQUIRED`, ‏٤٢٢).
+         */
+        zatcaSeller: {
+          ready: seller.refusalAr === null,
+          missingFields: seller.missingFields,
+          refusalDetail: seller.refusalAr,
+        },
         /** ما سيحدث فعلاً عند الاعتماد — لا ما تقوله السياسة وحدها. */
         valuationSource: explicitPrice ? 'explicit_policy_price' : basis,
         configured: basis !== 'unconfigured' || Boolean(explicitPrice),
@@ -1547,11 +1588,24 @@ export class VanSalesService {
         this.resolvePostingProfileOrNullInTx(tx, tenantId, readinessBranchId, 'receipt_voucher'),
       ]);
 
+      /**
+       * 🧾 هويّةُ البائع الضريبية في لوحة الخطّ أيضًا، لا في `GET /van-sales/policy` وحده:
+       * فشاشةُ المبيعات في المخابز تقرأ `dashboard.policy` (كما تقرأ منها
+       * `allowInternalDeliveryWithoutTax`)، والجملةُ واحدةٌ من `resolveZatcaSellerInTx` — فلا
+       * نسخةَ ثانيةُ منها في عميلٍ تتباعد عن الخادم.
+       */
+      const dashboardSeller = await this.resolveZatcaSellerInTx(tx, tenantId);
+
       return {
         policy: {
           allowInternalDeliveryWithoutTax: Boolean(policy.allowInternalDeliveryWithoutTax),
           preventSelfApproval: Boolean(policy.preventSelfApproval),
           shortageValuationBasis: policy.shortageValuationBasis ?? 'unconfigured',
+          zatcaSeller: {
+            ready: dashboardSeller.refusalAr === null,
+            missingFields: dashboardSeller.missingFields,
+            refusalDetail: dashboardSeller.refusalAr,
+          },
         },
         /**
          * الأرصدة الرسمية لكل مستودع — the same rows the stock screen shows, so the factory
@@ -4359,6 +4413,38 @@ export class VanSalesService {
           ? 'internal_delivery'
           : 'zatca_tax');
 
+      /**
+       * 🧾 هويّةُ البائع تُقرأ **مرّةً واحدةً هنا** (قبل أيّ كتابةٍ في المستند) ويستعملُها
+       * الحارسُ وحمولةُ QR معًا — فلا تُقرأ مرّتين، ولا يُختراع بديلٌ لحظةَ البناء.
+       */
+      const zatcaSeller = await this.resolveZatcaSellerInTx(tx, tenantId);
+      const sellerName = zatcaSeller.sellerName;
+      const sellerVatNumber = zatcaSeller.vatNumber;
+
+      /**
+       * 🧾 حارسُ هويّة البائع في الفاتورة الضريبية — **نظيرُ حارس السياسة** الذي تحته: فكما
+       * لا يُفترض إعفاءٌ ضريبيٌّ بلا سياسةٍ معتمدة، لا تُصدر فاتورةٌ ضريبيةٌ بهويّةٍ ناقصة.
+       *
+       * وما كان: تُبنى الحمولةُ بأيّ اسمٍ ورقمٍ توفّر، وإلا فـ«مصنع ومخابز التوزيع» و
+       * «٣٠٠٠٠٠٠٠٠٠٠٠٠٠٣» — وقِيس ذلك على مستندٍ حقيقيّ لمنشأةٍ صفرُ صفوف
+       * `company_profiles` فيها: ‏`|$مصنع ومخابز التوزيع||300000000000003||…||11.50||1.50`.
+       * أي رقمُ ضريبةٍ لجهةٍ أخرى في رمزٍ على فاتورة عميل — وهو خطأُ امتثالٍ لا خطأُ عرض،
+       * فالرفضُ أولى من الطباعة (قرارُ مالك المنتج، 2026-10-16).
+       *
+       * والرفضُ **قبل أيّ كتابة**: فلا مستندَ ولا فاتورةَ رسميةً ولا حركةَ مخزون ولا قيدَ
+       * وراءه، والحرسُ هنا في موضع حارس السياسة نفسه للسبب نفسه.
+       *
+       * والتحقّقُ من **وجود** الرقم لا من صحّة صيغته (١٥ رقمًا وما تشترطه الهيئة) — فصحّةُ
+       * الصيغة قرارٌ ضريبيٌّ آخر يُرفع لصاحب العمل، وأمّا الرقمُ الفارغ فليس قرارًا.
+       */
+      if (invoiceMode === 'zatca_tax' && zatcaSeller.refusalAr)
+        throw new DomainError(
+          'VAN_ZATCA_SELLER_IDENTITY_REQUIRED',
+          zatcaSeller.refusalAr,
+          422,
+          { field: 'taxNo' },
+        );
+
       if (invoiceMode === 'internal_delivery' && !policy.allowInternalDeliveryWithoutTax) {
         throw new DomainError(
           'VAN_SALES_INTERNAL_DELIVERY_POLICY_REQUIRED',
@@ -4649,20 +4735,21 @@ export class VanSalesService {
         }
       }
 
-      const companyProfile = first(
-        await tx.execute(sql`
-          SELECT name_ar, tax_no FROM company_profiles
-          WHERE tenant_id = ${tenantId}::uuid
-          LIMIT 1
-        `),
-      );
-      const qrTlv = buildZatcaTlvBase64({
-        sellerName: str(companyProfile?.name_ar) || 'مصنع ومخابز التوزيع',
-        vatNumber: str(companyProfile?.tax_no) || '300000000000003',
-        timestampIso: new Date().toISOString(),
-        invoiceTotal: grandTotal.toFixed(2),
-        vatTotal: taxTotal.toFixed(2),
-      });
+      /**
+       * 🧾 الحمولةُ بالمشفِّر الرسميّ وبهويّةِ البائع التي تحقّق منها الحارسُ أعلاه:
+       * فمستندٌ ضريبيٌّ لا يبلغ هنا إلا ورقمُ المنشأة موجود، ومستندُ تسليمٍ داخليّ يحمل
+       * حمولةً **بهويّة المنشأة الحقيقية إن وُجدت** و`NULL` إن لم توجد — فهو ليس فاتورةً
+       * ضريبية، ولا يُكتب فيه رقمُ ضريبةٍ لجهةٍ أخرى كما كان.
+       */
+      const qrTlv = sellerVatNumber
+        ? buildQrPayload({
+            sellerName,
+            vatNo: sellerVatNumber,
+            timestamp: new Date().toISOString(),
+            grandTotal: grandTotal.toFixed(2),
+            vatTotal: taxTotal.toFixed(2),
+          })
+        : null;
 
       await tx.execute(sql`
         INSERT INTO van_sales_documents (

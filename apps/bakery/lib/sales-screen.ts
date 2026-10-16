@@ -32,6 +32,17 @@ export type SalesPolicy = {
   allowInternalDeliveryWithoutTax: boolean;
   preventSelfApproval: boolean;
   shortageValuationBasis: string;
+  /**
+   * 🧾 هويّةُ البائع للفاتورة الضريبية كما يقولها الخادم — و`refusalDetail` هي **جملتُه
+   * حرفًا** (‏`resolveZatcaSellerInTx` في `van-sales.service.ts`) فلا تُبنى هنا نسخةٌ ثانيةٌ
+   * منها تتباعد مع أوّل تعديل. واختياريٌّ لأنّ حمولةً من خادمٍ أقدم لا تحمله، وعندها يبقى
+   * الحكمُ للخادم وحده (فإخفاءُ الزرّ ليس ضبطًا).
+   */
+  zatcaSeller?: {
+    ready: boolean;
+    missingFields: readonly string[];
+    refusalDetail: string | null;
+  } | null;
 };
 
 /** جاهزية ملف الترحيل للفرع — منها يعرف المحاسب هل تُرحَّل المستندات تلقائيًّا. */
@@ -434,6 +445,14 @@ export function documentVerdict(draft: DocumentDraft, context: DocumentVerdictCo
   if (draft.invoiceMode === 'internal_delivery' && !dashboard?.policy.allowInternalDeliveryWithoutTax) {
     blocked.push(SALES_MESSAGES.internalDeliveryPolicyRequired);
   }
+  /**
+   * 🧾 فاتورةٌ ضريبيةٌ وهويّةُ البائع ناقصة: الخادمُ يرفضها ٤٢٢
+   * (‏`VAN_ZATCA_SELLER_IDENTITY_REQUIRED`) لأنّ رقمَ ضريبةٍ ليس للمنشأة في رمزٍ على فاتورة
+   * عميلٍ خطأُ امتثالٍ لا خطأُ عرض — والشاشةُ تقول جملتَه **قبل** الإرسال كي لا يضغط
+   * المندوب على إرسالٍ مصيره الرفض. والجملةُ من الحمولة لا من هنا.
+   */
+  const zatcaRefusal = dashboard?.policy.zatcaSeller?.refusalDetail ?? null;
+  if (draft.invoiceMode === 'zatca_tax' && zatcaRefusal) blocked.push(zatcaRefusal);
   const asksOverride = draft.allowPriceDiscountOverride || draft.allowBonusOverride;
   if (asksOverride && !context.canOverride) {
     blocked.push(

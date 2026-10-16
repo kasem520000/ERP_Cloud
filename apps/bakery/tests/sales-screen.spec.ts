@@ -28,6 +28,7 @@ import {
   type CustomerPriceRow,
   type SaleLoadOrderRow,
   type SalesDashboard,
+  type SalesPolicy,
 } from '../lib/sales-screen';
 
 import { doc } from './fixtures/van-documents';
@@ -323,6 +324,52 @@ describe('حكم ما قبل الإرسال: حظرٌ لما يطابق الخا
     // ‏وبلا لوحةٍ تُقرأ السياسة: المنع هو الأصل (لا سياسة = لا إشعار داخليّ).
     expect(documentVerdict(draft, { canOverride: false }).blocked).toContain(
       SALES_MESSAGES.internalDeliveryPolicyRequired,
+    );
+  });
+
+  it('فاتورةٌ ضريبيةٌ وهويّةُ البائع ناقصة: حظرٌ بجملة الخادم، لا بنسخةٍ منها في العميل', () => {
+    /**
+     * 🧾 الجملةُ هنا للاختبار فحسب — فالحكمُ أنّ الشاشةَ تعرض **ما في الحمولة** أيًّا كان
+     * نصّه (`policy.zatcaSeller.refusalDetail`)، والنصُّ نفسه مثبَّتٌ من طرف الخادم في
+     * `apps/api/test/van-sales-zatca-seller.spec.ts` حيث `refusalDetail === detail` للرفض
+     * ٤٢٢ حرفًا في `GET /van-sales/policy` و`GET /van-sales/dashboard` معًا. فلو غيّر الخادمُ
+     * جملتَه تغيّرت هنا الحمولةُ وحدها وبقيت الشاشةُ صادقة — وهذا سببُ ألّا تُكتب الجملةُ
+     * في `SALES_MESSAGES`.
+     */
+    const refusal =
+      'لا يمكن إصدار فاتورة ضريبية (ZATCA) وهويّةُ البائع ناقصة: الرقم الضريبي غير مُدخلٍ في بيانات المنشأة.';
+    const withSeller = (seller: NonNullable<SalesPolicy['zatcaSeller']>) =>
+      dashboard({
+        policy: {
+          allowInternalDeliveryWithoutTax: true,
+          preventSelfApproval: true,
+          shortageValuationBasis: 'unit_cost',
+          zatcaSeller: seller,
+        },
+      });
+    const missing = withSeller({
+      ready: false,
+      missingFields: ['الرقم الضريبي'],
+      refusalDetail: refusal,
+    });
+    const ready = withSeller({ ready: true, missingFields: [], refusalDetail: null });
+
+    // ‏وضعٌ ضريبيٌّ وهويّةٌ ناقصة ⇒ حظرٌ بجملة الخادم نفسها.
+    expect(documentVerdict(base, { dashboard: missing, canOverride: false }).blocked).toContain(
+      refusal,
+    );
+    // ‏وهويّةٌ كاملة ⇒ لا حظر.
+    expect(documentVerdict(base, { dashboard: ready, canOverride: false }).blocked).toEqual([]);
+    // ‏والتسليمُ الداخليّ لا يُحظر بهويّة البائع الضريبية — فله حارسُه الخاصّ أعلاه.
+    const internal = { ...base, invoiceMode: 'internal_delivery' as const };
+    expect(
+      documentVerdict(internal, { dashboard: missing, canOverride: false }).blocked,
+    ).not.toContain(refusal);
+    // ‏وبلا حمولة سياسة (خادمٌ أقدم لا يحمل `zatcaSeller`): لا نختراع حظرًا من عندنا،
+    // ‏ويبقى الحكمُ للخادم وحده — فإخفاءُ الزرّ ليس ضبطًا.
+    expect(documentVerdict(base, { canOverride: false }).blocked).not.toContain(refusal);
+    expect(documentVerdict(base, { dashboard: dashboard(), canOverride: false }).blocked).toEqual(
+      [],
     );
   });
 
