@@ -21,6 +21,7 @@ import {
   type DrizzleTx,
 } from '@erp/database';
 
+import { parseClockParam, parseDayParam } from '../../common/date-param.js';
 import { DATABASE_HANDLE } from '../../database/database.module.js';
 import { SequencesService } from '../platform-services/index.js';
 
@@ -1645,12 +1646,38 @@ export class AccountingService {
        * `journal_entries.entry_time`), so they are glued back together here.
        */
       const at = sql`(${journalEntries.date} + coalesce(${journalEntries.entryTime}, '00:00'::time))`;
-      const startAt = sql`(${query.from ?? null}::date + coalesce(${query.fromTime ?? null}::time, '00:00'::time))`;
-      const endAt = sql`(${query.to ?? null}::date + coalesce(${query.toTime ?? null}::time, '23:59'::time))`;
+      /**
+       * 📅 الحدودُ تُتحقَّق **قبل** SQL (‏`common/date-param.ts`): فـ`?from=أمس` كان يرجع
+       * ‏٥٠٠ `INTERNAL` (قِيس ٢٠٢٦-١٠-١٦) لأنّ النصَّ يُرمى إلى `::date` كما جاء، و
+       * ‏`?fromTime=99:99` كذلك إلى `::time`. وخطأُ إدخالٍ في صندوق تاريخٍ يستحقّ ٤٢٢
+       * بجملةٍ مقروءة، لا «خطأً داخليًّا».
+       */
+      const fromDay = parseDayParam(query.from, {
+        field: 'from',
+        labelAr: '«من تاريخ»',
+        code: 'ACCOUNTING_DATE_INVALID',
+      });
+      const toDay = parseDayParam(query.to, {
+        field: 'to',
+        labelAr: '«إلى تاريخ»',
+        code: 'ACCOUNTING_DATE_INVALID',
+      });
+      const fromClock = parseClockParam(query.fromTime, {
+        field: 'fromTime',
+        labelAr: '«من وقت»',
+        code: 'ACCOUNTING_TIME_INVALID',
+      });
+      const toClock = parseClockParam(query.toTime, {
+        field: 'toTime',
+        labelAr: '«إلى وقت»',
+        code: 'ACCOUNTING_TIME_INVALID',
+      });
+      const startAt = sql`(${fromDay}::date + coalesce(${fromClock}::time, '00:00'::time))`;
+      const endAt = sql`(${toDay}::date + coalesce(${toClock}::time, '23:59'::time))`;
       const kindScope = statementKindScope(query.kind);
       const period = query.fullPeriod
         ? []
-        : [query.from ? sql`${at} >= ${startAt}` : undefined, query.to ? sql`${at} <= ${endAt}` : undefined].filter(
+        : [fromDay ? sql`${at} >= ${startAt}` : undefined, toDay ? sql`${at} <= ${endAt}` : undefined].filter(
             (clause) => clause !== undefined,
           );
       const where = and(
@@ -2217,11 +2244,37 @@ export class AccountingService {
        * والسحابة تحتفظ بهما منفصلين (`date` + `entry_time`).
        */
       const at = sql`(${journalEntries.date} + coalesce(${journalEntries.entryTime}, '00:00'::time))`;
-      const startAt = sql`(${query.from ?? null}::date + coalesce(${query.fromTime ?? null}::time, '00:00'::time))`;
-      const endAt = sql`(${query.to ?? null}::date + coalesce(${query.toTime ?? null}::time, '23:59'::time))`;
+      /**
+       * 📅 الحدودُ تُتحقَّق **قبل** SQL (‏`common/date-param.ts`): فـ`?from=أمس` كان يرجع
+       * ‏٥٠٠ `INTERNAL` (قِيس ٢٠٢٦-١٠-١٦) لأنّ النصَّ يُرمى إلى `::date` كما جاء، و
+       * ‏`?fromTime=99:99` كذلك إلى `::time`. وخطأُ إدخالٍ في صندوق تاريخٍ يستحقّ ٤٢٢
+       * بجملةٍ مقروءة، لا «خطأً داخليًّا».
+       */
+      const fromDay = parseDayParam(query.from, {
+        field: 'from',
+        labelAr: '«من تاريخ»',
+        code: 'ACCOUNTING_DATE_INVALID',
+      });
+      const toDay = parseDayParam(query.to, {
+        field: 'to',
+        labelAr: '«إلى تاريخ»',
+        code: 'ACCOUNTING_DATE_INVALID',
+      });
+      const fromClock = parseClockParam(query.fromTime, {
+        field: 'fromTime',
+        labelAr: '«من وقت»',
+        code: 'ACCOUNTING_TIME_INVALID',
+      });
+      const toClock = parseClockParam(query.toTime, {
+        field: 'toTime',
+        labelAr: '«إلى وقت»',
+        code: 'ACCOUNTING_TIME_INVALID',
+      });
+      const startAt = sql`(${fromDay}::date + coalesce(${fromClock}::time, '00:00'::time))`;
+      const endAt = sql`(${toDay}::date + coalesce(${toClock}::time, '23:59'::time))`;
       const period = query.fullPeriod
         ? []
-        : [query.from ? sql`${at} >= ${startAt}` : undefined, query.to ? sql`${at} <= ${endAt}` : undefined].filter(
+        : [fromDay ? sql`${at} >= ${startAt}` : undefined, toDay ? sql`${at} <= ${endAt}` : undefined].filter(
             (clause) => clause !== undefined,
           );
       const kindScope = statementKindScope(query.kind);
@@ -2530,8 +2583,25 @@ export class AccountingService {
    */
   private journalScope(tenantId: string, query: JournalQuery) {
     const filters = [eq(journalEntries.tenantId, tenantId)];
-    if (query.from) filters.push(gte(journalEntries.date, query.from));
-    if (query.to) filters.push(lte(journalEntries.date, query.to));
+    /**
+     * 📅 الحدودُ تُتحقَّق **قبل** أن تُرمى إلى عمود `date`: فـ`gte(journalEntries.date, 'أمس')`
+     * يمرّر النصَّ معاملًا إلى عمودٍ من نوع `date` فتجيب القاعدةُ `22P02 invalid input syntax
+     * for type date` ⇒ **٥٠٠ `INTERNAL`** (قِيس ٢٠٢٦-١٠-١٦ على
+     * ‏`GET /api/v1/journal-entries?from=أمس` و`?from=2026-02-30`). وهذه الدالةُ مشتركةٌ بين
+     * مسجّل القيود وجيرانه (`:2615` و`:2648`)، فالتحقّقُ هنا يغطّي الاثنين.
+     */
+    const fromDay = parseDayParam(query.from, {
+      field: 'from',
+      labelAr: '«من تاريخ»',
+      code: 'ACCOUNTING_DATE_INVALID',
+    });
+    const toDay = parseDayParam(query.to, {
+      field: 'to',
+      labelAr: '«إلى تاريخ»',
+      code: 'ACCOUNTING_DATE_INVALID',
+    });
+    if (fromDay) filters.push(gte(journalEntries.date, fromDay));
+    if (toDay) filters.push(lte(journalEntries.date, toDay));
     if (query.branchId) filters.push(eq(journalEntries.branchId, query.branchId));
     if (query.fiscalPeriodId) filters.push(eq(journalEntries.fiscalPeriodId, query.fiscalPeriodId));
     if (query.status) filters.push(eq(journalEntries.status, query.status));

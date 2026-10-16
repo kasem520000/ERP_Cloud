@@ -31,6 +31,7 @@ import {
   type Employee,
 } from '@erp/database';
 
+import { parseDayParam } from '../../common/date-param.js';
 import { DATABASE_HANDLE } from '../../database/database.module.js';
 import { CustomFieldsService } from '../custom-fields/custom-fields.service.js';
 import { AccountingService, defaultNormalBalance, type AccountType, type JournalLineInput } from '../accounting/accounting.service.js';
@@ -1101,25 +1102,16 @@ export class HrmService implements OnModuleInit {
    * (‏`FrmEmpInvs_Loaded` L72) — فالتحقّقُ على ما كُتب لا على ما تُرك.
    */
   private movementDate(value: string | undefined, field: 'from' | 'to', fallback: string): string {
-    const text = (value ?? '').trim();
-    if (!text) return fallback;
     const label = field === 'from' ? '«من تاريخ»' : '«إلى تاريخ»';
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(text))
-      throw new DomainError(
-        'HRM_MOVEMENTS_DATE_INVALID',
-        `${label} غير صالح: «${text}» — المطلوبُ صيغةُ YYYY-MM-DD مثل 2026-10-16.`,
-        422,
-        { field },
-      );
-    const parsed = new Date(`${text}T00:00:00Z`);
-    if (Number.isNaN(parsed.getTime()) || parsed.toISOString().slice(0, 10) !== text)
-      throw new DomainError(
-        'HRM_MOVEMENTS_DATE_INVALID',
-        `${label} ليس تاريخًا حقيقيًّا: «${text}» — فالتقويمُ لا يحمله.`,
-        422,
-        { field },
-      );
-    return text;
+    /**
+     * والفحصُ من المسطرة المشتركة (`common/date-param.ts`) لا مكتوبٌ هنا مرّتين — وأمّا
+     * الرمزُ (`HRM_MOVEMENTS_DATE_INVALID`) والتسميةُ فخاصّان بهذا المسار كي تبقى رسائلُه
+     * وأحكامُه (‏`employee-movements.spec.ts`) كما هي.
+     */
+    return (
+      parseDayParam(value, { field, labelAr: label, code: 'HRM_MOVEMENTS_DATE_INVALID' }) ??
+      fallback
+    );
   }
 
   async employeeMovements(tenantId: string, query: EmployeeMovementsQuery = {}) {
