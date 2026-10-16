@@ -99,6 +99,247 @@
   .bak-main { padding: 14px 12px 32px; }
 }
 
+/* --------------------------------------------------------------------------
+ * 📱 تطبيقُ المندوب (`/rep`) — طبقةُ تصميمٍ للجوال أولًا.
+ *
+ * لماذا طبقةٌ ولا «أصنافُ Tailwind في الصفحة»: لأنّ قراراتِ الجوال هنا **أرقامٌ مقاسةٌ لا
+ * ذوق**، وكلُّ رقمٍ منها سببٌ يُقال:
+ *   • هدفُ اللمس ٤٨px — لا ٣٢ ولا ٤٠: فإرشاداتُ المنصّتين (‏Apple HIG وMaterial) تجعل
+ *     ما دون ٤٤ هدفًا يُخطئه الإبهام، والمندوبُ يمسك الهاتفَ بيدٍ واحدة وفي سيارةٍ تهتزّ.
+ *   • خطُّ الإدخال **١٦px** بالضبط: فأدنى من ذلك يجعل iOS يُكبّر الصفحة تلقائيًّا عند
+ *     التركيز، فينكسِر التخطيطُ ولا يعود كما كان — وهذا عيبٌ يُرى في كلّ نموذجٍ ولا
+ *     يُشخَّص غالبًا.
+ *   • `env(safe-area-inset-*)`: فبلا مناطقَ آمنة يختفي آخرُ زرٍّ خلف شريط iPhone السفليّ،
+ *     وتحتاج `viewport-fit=cover` في الجذر (وهو مضبوطٌ هناك).
+ *   • `font-variant-numeric: tabular-nums` مع `direction: ltr` و`unicode-bidi: isolate`
+ *     للأرقام: فأرقامُ المال في واجهةٍ عربيةٍ تُقرأ يسارًا‑يمينًا، وبلا `tabular-nums`
+ *     تتراقص المنازلُ بين سطرين فيصعب على المندوب مقارنتُها.
+ *   • ولا `<table>` في هذه الشاشة: فجدولٌ بستّة أعمدة على عرض ٣٦٠px يعني تمريرًا أفقيًّا
+ *     يُخفي العمودَ الذي يُقرأ — والبطاقةُ الصفّية تُظهر الرقمَ والمفتاحَ معًا بلا تمرير.
+ *     (ومع ذلك بقيت الجداولُ في شاشات المكتب حيث الشاشةُ عريضة.)
+ * ------------------------------------------------------------------------ */
+.rep-page {
+  display: grid;
+  gap: 12px;
+  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 16px);
+}
+
+/* شريطُ الحالة: ما يحتاج المندوبُ رؤيتَه بلا تمرير — الشبكةُ والطابورُ ومن هو. */
+.rep-statusbar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  margin: -14px -12px 0;
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--line);
+}
+.rep-statusbar-id { min-width: 0; }
+.rep-statusbar-id strong { display: block; font-size: 15px; font-weight: 800; color: var(--text); }
+.rep-statusbar-id small { display: block; font-size: 11.5px; color: var(--muted); }
+
+.rep-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 32px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--inset);
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--text);
+  white-space: nowrap;
+}
+button.rep-pill { cursor: pointer; font: inherit; }
+button.rep-pill:disabled { opacity: .55; cursor: not-allowed; }
+.rep-pill[data-tone='ok'] { border-color: var(--ok-line); background: var(--ok-soft); color: var(--ok-ink); }
+.rep-pill[data-tone='warn'] { border-color: var(--warn-line); background: var(--warn-soft); color: var(--warn-ink); }
+.rep-pill[data-tone='danger'] { border-color: var(--danger-line); background: var(--danger-soft); color: var(--danger-ink); }
+
+/* البطاقاتُ والأرقام */
+.rep-card {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-xl);
+  background: var(--surface);
+  box-shadow: var(--shadow-1);
+  padding: 14px;
+  display: grid;
+  gap: 10px;
+}
+.rep-card-title { margin: 0; font-size: 15.5px; font-weight: 800; color: var(--text); }
+.rep-card-sub { margin: 0; font-size: 12px; line-height: 1.7; color: var(--muted); }
+
+.rep-tiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+@media (min-width: 768px) {
+  .rep-tiles { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+.rep-tile {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--inset);
+  padding: 12px;
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+.rep-tile-label { font-size: 11.5px; font-weight: 700; color: var(--muted); }
+.rep-tile-value {
+  font-family: var(--font-num);
+  font-size: 24px;
+  font-weight: 800;
+  line-height: 1.15;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+  direction: ltr;
+  unicode-bidi: isolate;
+  overflow-wrap: anywhere;
+}
+@media (min-width: 768px) {
+  .rep-tile-value { font-size: 27px; }
+}
+.rep-tile-hint { font-size: 11.5px; line-height: 1.6; color: var(--muted); }
+
+/* أرقامُ المال أينما وقعت */
+.rep-num {
+  font-family: var(--font-num);
+  font-variant-numeric: tabular-nums;
+  direction: ltr;
+  unicode-bidi: isolate;
+  font-weight: 700;
+}
+
+/* صفوفٌ بطاقيةٌ بدل الجدول */
+.rep-rows { display: grid; gap: 8px; }
+@media (min-width: 900px) {
+  .rep-rows { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+.rep-row {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  padding: 12px;
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+.rep-row-main {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: baseline;
+  justify-content: space-between;
+  font-size: 14.5px;
+  font-weight: 700;
+  color: var(--text);
+}
+.rep-row-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--muted);
+}
+.rep-row-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+
+/* النماذج: هدفُ لمسٍ وخطٌّ لا يُكبّر iOS */
+.rep-fields { display: grid; gap: 10px; }
+@media (min-width: 768px) {
+  .rep-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+.rep-field { display: grid; gap: 4px; min-width: 0; }
+.rep-field > span { font-size: 12.5px; font-weight: 700; color: var(--muted); }
+/**
+ * ارتفاعُ الحقل `max(--control-h, 46px)`: فارتفاعُ النظام ٣٦px وهو صحيحٌ لفأرة، والمطلوبُ
+ * هنا هدفُ إبهام — والـ`max()` تقول «رفعتُ ارتفاعَ النظام» بدل أن تُنشئ رقمًا موازيًا له.
+ * و`font-size: 16px` حدٌّ أدنى إجباريٌّ لا ذوق: فأدنى منه يُكبّر iOS الصفحةَ عند التركيز.
+ */
+.rep-field input,
+.rep-field select,
+.rep-field textarea {
+  min-height: max(var(--control-h), 46px);
+  font-size: 16px;
+  line-height: 1.35;
+  padding: 10px 12px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--line);
+  background: var(--bg);
+  color: var(--text);
+  width: 100%;
+}
+.rep-field input:focus-visible,
+.rep-field select:focus-visible,
+.rep-btn:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+  border-color: var(--brand-line);
+}
+
+/* الأزرار: ٤٨px وعرضٌ كاملٌ على الهاتف */
+.rep-btn {
+  min-height: max(var(--control-h), 48px); /* ‏هدفُ الإبهام: إرشادُ المنصّتين ٤٤ فأكثر */
+  padding: 12px 16px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--line);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 15px;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  cursor: pointer;
+  transition: transform var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out);
+}
+.rep-btn:active:not(:disabled) { transform: scale(.985); }
+@media (min-width: 768px) {
+  .rep-btn { width: auto; }
+}
+.rep-btn:disabled { opacity: .55; cursor: not-allowed; }
+.rep-btn[data-variant='primary'] {
+  background: linear-gradient(135deg, var(--color-brand-600), var(--color-brand-400));
+  border-color: transparent;
+  color: var(--brand-ink);
+}
+.rep-btn[data-variant='danger'] { background: var(--danger-soft); border-color: var(--danger-line); color: var(--danger-ink); }
+.rep-actions { display: grid; gap: 8px; }
+@media (min-width: 768px) {
+  .rep-actions { grid-auto-flow: column; grid-auto-columns: max-content; justify-content: start; }
+}
+
+/* أسطرُ الأحكام والتحذيرات — مقروءةٌ في الشمس */
+.rep-note {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--line);
+  background: var(--inset);
+  font-size: 13px;
+  line-height: 1.75;
+  color: var(--text);
+}
+.rep-note[data-tone='ok'] { border-color: var(--ok-line); background: var(--ok-soft); color: var(--ok-ink); }
+.rep-note[data-tone='warn'] { border-color: var(--warn-line); background: var(--warn-soft); color: var(--warn-ink); }
+.rep-note[data-tone='danger'] { border-color: var(--danger-line); background: var(--danger-soft); color: var(--danger-ink); }
+
+.rep-empty { margin: 0; font-size: 13px; color: var(--muted); }
+
+/* الطباعة: تطبيقُ المندوب لا يُطبع — فالسندُ يُطبع من شاشة المستندات بنسختيه. */
+@media print {
+  .rep-statusbar, .rep-actions, .rep-btn { display: none !important; }
+  .rep-page { padding-bottom: 0; }
+}
+
 /* الطباعة: سندٌ واحد بنسختين — لا تُطبع القشرة ولا يُطبع شريطٌ علويّ. */
 @media print {
   .bak-side, .bak-topbar, .bak-legend { display: none !important; }

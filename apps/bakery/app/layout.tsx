@@ -21,7 +21,21 @@ export const metadata: Metadata = {
   manifest: '/manifest.webmanifest',
 };
 
-export const viewport: Viewport = { width: 'device-width', initialScale: 1 };
+/**
+ * 📱 ‏`viewportFit: 'cover'` لتطبيق المندوب المثبَّت على الهاتف: فبلا «cover» لا تصل الصفحةُ
+ * إلى حافّة الشاشة ولا تُقرأ `env(safe-area-inset-*)` فتختفي الأزرارُ السفلية خلف شريط
+ * النظام. و`themeColor` هو لونُ الـmanifest نفسه (`#b45309`) — والمثبّتةُ تحكم بتطابقهما،
+ * فلا لونَ شريطٍ في النظام ولونَ ترويسةٍ في التطبيق.
+ *
+ * ‏**ولا `maximumScale`**: فمنعُ التكبير قرارُ وصوليةٍ يُتّخذ ضدّ المستخدم، وتكبيرُ الخطّ
+ * حقٌّ لا يُسحب لأجل لقطةِ شاشةٍ أنظف.
+ */
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  viewportFit: 'cover',
+  themeColor: '#b45309',
+};
 
 /**
  * الجذر: لا مزوّدَ محليّاً ولا جسرَ إعادة تصدير — الجلسة والجسر من `@erp/web-core` مباشرةً

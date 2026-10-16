@@ -1,7 +1,6 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Button, Card, CardBody, CardHeader, Input } from '@erp/ui';
 import { ApiError, apiData, apiErrorText, apiList, apiPost } from '@erp/web-core/api';
 import {
   clearSyncedVanQueue,
@@ -60,14 +59,11 @@ import {
 
 type Notice = { kind: 'ok' | 'danger' | 'warn'; text: string };
 
-const NOTICE_CLASSES: Record<Notice['kind'], string> = {
-  ok: 'border-ok-line bg-ok-soft text-ok-ink',
-  danger: 'border-danger-line bg-danger-soft text-danger-ink',
-  warn: 'border-warn-line bg-warn-soft text-warn-ink',
-};
-
-const selectClass =
-  'w-full rounded-[8px] border border-line bg-surface px-3 py-2 text-[13px] text-ink';
+/**
+ * الألوانُ والحجومُ في `globals.css` (طبقةُ `.rep-*`) لا في أصنافٍ مكتوبةٍ هنا: فـ`data-tone`
+ * يحمل المعنى (‏ok/warn/danger) والـCSS يقرّر كيف يبدو — ولو كُتبت الأصنافُ في الصفحة لصار
+ * لكلّ شاشةٍ ذوقٌ ولضاع الحدُّ الأدنى لهدف اللمس وخطُّ الإدخال ١٦px بينها.
+ */
 
 /** عنوانُ كلّ إجراء كما يُقرأ في قائمة الطابور — لا رقمٌ داخليّ. */
 const OPERATION_LABELS: Record<RepOperation, string> = {
@@ -371,21 +367,6 @@ export default function RepAppPage() {
     setNotice({ kind: 'ok', text: 'مُسح التخزينُ المحلّي (وبقيت هويّةُ الجهاز إن وُجدت).' });
   }, []);
 
-  if (!canView) {
-    return (
-      <section className="grid gap-4">
-        <Card>
-          <CardHeader title="📱 تطبيق المندوب" subtitle="لا صلاحيةَ لقراءة مساحة عمل المندوب." />
-          <CardBody>
-            <p className={`m-0 rounded-[10px] border px-4 py-2.5 text-[13px] font-semibold ${NOTICE_CLASSES.danger}`}>
-              {REP_QUEUE_MESSAGES.permissionRequired([REP_WORKSPACE_PERMISSION])}
-            </p>
-          </CardBody>
-        </Card>
-      </section>
-    );
-  }
-
   const salePayload = buildDocumentPayload(saleDraft);
   const saleVerdict = documentVerdict(saleDraft, { canOverride: false });
   const saleQueueVerdict = queueVerdict({ online, operation: 'document', can, targetId: saleDraft.loadOrderId });
@@ -435,284 +416,317 @@ export default function RepAppPage() {
     targetId: receiptTarget?.id ?? null,
   });
 
-  return (
-    <section className="grid gap-4">
-      <header className="flex flex-wrap items-end justify-between gap-3">
-        <div className="min-w-0">
-          <h1 className="m-0 text-[22px] font-extrabold leading-tight tracking-tight text-ink">
-            📱 تطبيقُ المندوب
-          </h1>
-          <p className="m-0 mt-1 text-[13px] text-muted">
-            عهدتُك وأرصدةُ سيارتك الرسمية، توريداتُك بانتظار التأكيد، فواتيرُك وتحصيلاتُك
-            وإغلاقُ ورديتك — كلّها من حسابك أنت (فالخادمُ يشتقّ المندوبَ من عضويتك، ولا يفتح
-            مندوبٌ عهدةَ غيره). والأرقامُ من جدولك كلّه لا من القائمة المعروضة.
+  if (!canView) {
+    return (
+      <section className="rep-page">
+        <div className="rep-card">
+          <h1 className="rep-card-title">📱 تطبيقُ المندوب</h1>
+          <p className="rep-card-sub">لا صلاحيةَ لقراءة مساحة عمل المندوب في هذا الحساب.</p>
+          <p className="rep-note" data-tone="danger">
+            {REP_QUEUE_MESSAGES.permissionRequired([REP_WORKSPACE_PERMISSION])}
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="bak-badge" dir="ltr">
-            {online ? 'online' : 'offline'} · GET /van-sales/me
-          </span>
-          <Button disabled={loading} onClick={() => void load()} size="sm">
-            تحديث
-          </Button>
+      </section>
+    );
+  }
+
+  return (
+    <section className="rep-page">
+      {/**
+        * شريطُ الحالة اللاصق: ما يحتاج المندوبُ رؤيتَه **بلا تمرير** — من هو، وهل الشبكة
+        * قائمة، وكم نيّةً في الطابور. فحالةُ الشبكة هي التي تقرّر ما يحدث عند الضغط (إرسالٌ أم حفظ)،
+        * وإخفاؤُها يعني أن يضغط وهو لا يدري أنّ بيعه سيُحفظ محليًّا.
+        */}
+      <div className="rep-statusbar">
+        <div className="rep-statusbar-id">
+          <strong>{data?.isRep ? (data.salesmanName ?? 'المندوب') : '📱 تطبيقُ المندوب'}</strong>
+          <small>
+            {data?.isRep && data.vehiclePlate ? `🚐 ${data.vehiclePlate} · ` : ''}
+            رصيدُ السيارة <span className="rep-num">{data?.custodyKg ?? '—'}</span> كجم · قيمة{' '}
+            <span className="rep-num">{data?.custodyValue ?? '—'}</span>
+          </small>
         </div>
-      </header>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+          <span className="rep-pill" data-tone={online ? 'ok' : 'warn'}>
+            {online ? '🟢 متصل' : '📴 دون اتصال'}
+          </span>
+          <span
+            className="rep-pill"
+            data-tone={counts.refused > 0 ? 'danger' : counts.pending > 0 ? 'warn' : 'ok'}
+          >
+            📥 <span className="rep-num">{counts.pending}</span> معلّق
+            {counts.refused > 0 ? (
+              <>
+                {' '}
+                · <span className="rep-num">{counts.refused}</span> مرفوض
+              </>
+            ) : null}
+          </span>
+          <button type="button" className="rep-pill" onClick={() => void load()} disabled={loading}>
+            {loading ? '⟳ …' : '⟳ تحديث'}
+          </button>
+        </div>
+      </div>
 
       {!online ? (
-        <p className={`m-0 rounded-[10px] border px-4 py-2.5 text-[13px] font-semibold ${NOTICE_CLASSES.warn}`}>
-          📴 لا شبكة: ما يُحفظ هو المستنداتُ والمرتجعاتُ والتحصيلات (بمفاتيح عدم تكرارٍ
-          تُخزَّن معها). وأمّا إغلاقُ الوردية وتأكيدُ الاستلام فلا يُحفظان — والسببُ مع كلّ
-          زرٍّ منهما.
+        <p className="rep-note" data-tone="warn">
+          📴 لا شبكة: ما يُحفظ هو المستنداتُ والمرتجعاتُ والتحصيلات (بمفاتيح عدم تكرارٍ تُخزَّن
+          معها فتُعاد بلا مستندٍ مكرَّر). وأمّا إغلاقُ الوردية وتأكيدُ الاستلام فلا يُحفظان —
+          والسببُ معروضٌ عند كلّ زرٍّ منهما.
         </p>
       ) : null}
       {storageError ? (
-        <p className={`m-0 rounded-[10px] border px-4 py-2.5 text-[13px] font-semibold ${NOTICE_CLASSES.danger}`}>
+        <p className="rep-note" data-tone="danger">
           ⚠️ {storageError} — فلا تُحفظ نيّاتٌ دون اتصال في هذا المتصفّح.
         </p>
       ) : null}
       {loadError ? (
-        <p className={`m-0 rounded-[10px] border px-4 py-2.5 text-[13px] font-semibold ${NOTICE_CLASSES.danger}`}>
-          {loadError}
-        </p>
+        <p className="rep-note" data-tone="danger">{loadError}</p>
       ) : null}
       {notice ? (
-        <p className={`m-0 rounded-[10px] border px-4 py-2.5 text-[13px] font-semibold ${NOTICE_CLASSES[notice.kind]}`}>
-          {notice.text}
-        </p>
+        <p className="rep-note" data-tone={notice.kind}>{notice.text}</p>
       ) : null}
 
       {data && !data.isRep ? (
-        <Card>
-          <CardHeader title="⚠️ حسابك غير مرتبط ببطاقة مندوب" />
-          <CardBody>
-            <p className="m-0 text-[13px] text-muted">
-              {data.message ??
-                'حسابك غير مرتبط ببطاقة مندوب توزيع — اطلب من المحاسب ربطك من شاشة المندوبين.'}
-            </p>
-          </CardBody>
-        </Card>
+        <div className="rep-card">
+          <h2 className="rep-card-title">⚠️ حسابك غير مرتبط ببطاقة مندوب</h2>
+          <p className="rep-note" data-tone="warn">
+            {data.message ??
+              'حسابك غير مرتبط ببطاقة مندوب توزيع — اطلب من المحاسب ربطك من شاشة المندوبين.'}
+          </p>
+        </div>
       ) : null}
 
       {data?.isRep ? (
         <>
-          <Card>
-            <CardHeader
-              title={`${data.salesmanName ?? 'المندوب'}${data.vehiclePlate ? ` — 🚐 ${data.vehiclePlate}` : ''}`}
-              subtitle={notes.documents}
-            />
-            <CardBody>
-              {reconcileNote ? (
-                <p className={`m-0 mb-3 rounded-[10px] border px-4 py-2.5 text-[12.5px] font-semibold ${NOTICE_CLASSES.danger}`}>
-                  🔎 {reconcileNote}
-                </p>
-              ) : null}
-              <div className="m-0 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                {cards.map((card) => (
-                  <div key={card.key} className="rounded-[10px] border border-line bg-surface p-3">
-                    <div className="m-0 text-[11.5px] font-bold text-muted">{card.labelAr}</div>
-                    <div className="m-0 mt-1 text-[18px] font-extrabold text-ink" dir="ltr">
-                      {card.valueText}
+          {/* 🔢 البطاقاتُ الأربع + فحصُ المعادلتين */}
+          <div className="rep-card">
+            <div>
+              <h2 className="rep-card-title">يومُك بأرقام الخادم</h2>
+              <p className="rep-card-sub">{notes.documents}</p>
+            </div>
+            {reconcileNote ? (
+              <p className="rep-note" data-tone="danger">🔎 {reconcileNote}</p>
+            ) : null}
+            <div className="rep-tiles">
+              {cards.map((card) => (
+                <div key={card.key} className="rep-tile">
+                  <span className="rep-tile-label">{card.labelAr}</span>
+                  <span className="rep-tile-value">{card.valueText}</span>
+                  <span className="rep-tile-hint">{card.hintAr}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* 📴 الطابور */}
+          <div className="rep-card">
+            <div>
+              <h2 className="rep-card-title">📴 نيّاتُك المحفوظة دون اتصال</h2>
+              <p className="rep-card-sub">
+                {queueSummaryLine(counts)} · {REP_QUEUE_MESSAGES.deviceLine(deviceId)}
+              </p>
+            </div>
+            <div className="rep-actions">
+              <button
+                type="button"
+                className="rep-btn"
+                data-variant="primary"
+                disabled={busy || counts.pending === 0}
+                onClick={() => void replayQueue()}
+              >
+                ♻️ أعد إرسال المعلّق (<span className="rep-num">{counts.pending}</span>)
+              </button>
+              <button
+                type="button"
+                className="rep-btn"
+                disabled={busy || counts.synced === 0}
+                onClick={() => void dropSynced()}
+              >
+                🧹 احذف ما وصل (<span className="rep-num">{counts.synced}</span>)
+              </button>
+              <button
+                type="button"
+                className="rep-btn"
+                data-variant="danger"
+                disabled={busy}
+                onClick={() => void clearStorage()}
+              >
+                مسحُ التخزين المحلّي
+              </button>
+            </div>
+            {queue.length > 0 ? (
+              <div className="rep-rows">
+                {queue.map((record) => (
+                  <div key={record.offlineId} className="rep-row">
+                    <div className="rep-row-main">
+                      <span>
+                        {OPERATION_LABELS[record.operation]}
+                        {record.label ? ` — ${record.label}` : ''}
+                      </span>
+                      <span
+                        className="rep-pill"
+                        data-tone={
+                          record.status === 'synced' ? 'ok' : record.status === 'refused' ? 'danger' : 'warn'
+                        }
+                      >
+                        {record.status === 'pending' ? '⏳ معلّقة' : record.status === 'synced' ? '✅ وصلت' : '⛔ مرفوضة'}
+                      </span>
                     </div>
-                    <div className="m-0 mt-1 text-[11.5px] text-muted">{card.hintAr}</div>
+                    <div className="rep-row-meta">
+                      <span>
+                        محاولات <span className="rep-num">{record.attempts}</span>
+                      </span>
+                      <span className="rep-num">{record.endpoint}</span>
+                    </div>
+                    <div className="rep-row-meta">
+                      <span className="rep-num" title="مفتاحُ عدم التكرار — يُخزَّن مع النيّة فتُعاد بلا تكرار">
+                        🔑 {record.idempotencyKey}
+                      </span>
+                    </div>
+                    {record.lastMessage ? (
+                      <p
+                        className="rep-note"
+                        data-tone={record.status === 'refused' ? 'danger' : undefined}
+                      >
+                        {record.lastMessage}
+                      </p>
+                    ) : null}
                   </div>
                 ))}
               </div>
-            </CardBody>
-          </Card>
-
-          {/* 📴 الطابور */}
-          <Card>
-            <CardHeader
-              title="📴 نيّاتُك المحفوظة دون اتصال"
-              subtitle={`${queueSummaryLine(counts)} · ${REP_QUEUE_MESSAGES.deviceLine(deviceId)}`}
-            />
-            <CardBody>
-              <div className="flex flex-wrap gap-2">
-                <Button disabled={busy || counts.pending === 0} onClick={() => void replayQueue()} size="sm">
-                  ♻️ أعد إرسال المعلّق ({counts.pending})
-                </Button>
-                <Button disabled={busy || counts.synced === 0} onClick={() => void dropSynced()} size="sm" variant="secondary">
-                  🧹 احذف ما وصل ({counts.synced})
-                </Button>
-                <Button disabled={busy} onClick={() => void clearStorage()} size="sm" variant="ghost">
-                  مسحُ التخزين المحلّي
-                </Button>
-              </div>
-              {queue.length > 0 ? (
-                <div className="mt-3 overflow-x-auto">
-                  <table className="w-full border-collapse text-[12.5px]">
-                    <thead>
-                      <tr className="text-muted">
-                        <th className="border-b border-line px-2 py-1.5 text-start">النيّة</th>
-                        <th className="border-b border-line px-2 py-1.5 text-start">الحالة</th>
-                        <th className="border-b border-line px-2 py-1.5 text-start">المسار</th>
-                        <th className="border-b border-line px-2 py-1.5 text-start">المفتاح</th>
-                        <th className="border-b border-line px-2 py-1.5 text-start">قولُ الخادم</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {queue.map((record) => (
-                        <tr key={record.offlineId}>
-                          <td className="border-b border-line px-2 py-1.5">
-                            {OPERATION_LABELS[record.operation]}
-                            {record.label ? ` — ${record.label}` : ''}
-                          </td>
-                          <td className="border-b border-line px-2 py-1.5">
-                            {record.status === 'pending'
-                              ? '⏳ معلّقة'
-                              : record.status === 'synced'
-                                ? '✅ وصلت'
-                                : '⛔ مرفوضة'}
-                            <span className="text-muted"> · محاولات {record.attempts}</span>
-                          </td>
-                          <td className="border-b border-line px-2 py-1.5" dir="ltr">
-                            {record.endpoint}
-                          </td>
-                          <td className="border-b border-line px-2 py-1.5 text-muted" dir="ltr">
-                            {record.idempotencyKey}
-                          </td>
-                          <td className="border-b border-line px-2 py-1.5 text-muted">
-                            {record.lastMessage ?? '—'}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              ) : (
-                <p className="m-0 mt-3 text-[12.5px] text-muted">{REP_QUEUE_MESSAGES.nothingQueued}</p>
-              )}
-            </CardBody>
-          </Card>
+            ) : (
+              <p className="rep-empty">{REP_QUEUE_MESSAGES.nothingQueued}</p>
+            )}
+          </div>
 
           {/* 🚚 توريداتٌ بانتظار الاستلام */}
-          <Card>
-            <CardHeader
-              title={`🚚 توريداتٌ بانتظار تأكيد استلامك (${data.pendingReceipts.length})`}
-              subtitle="قائمةٌ كاملةٌ بلا نافذة (استعلامُها بلا LIMIT) — فكلُّ توريدٍ لك معروض."
-            />
-            <CardBody>
-              {data.pendingReceipts.length === 0 ? (
-                <p className="m-0 text-[12.5px] text-muted">لا توريدَ بانتظارك.</p>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full border-collapse text-[12.5px]">
-                    <thead>
-                      <tr className="text-muted">
-                        <th className="border-b border-line px-2 py-1.5 text-start">الأمر</th>
-                        <th className="border-b border-line px-2 py-1.5 text-start">التاريخ</th>
-                        <th className="border-b border-line px-2 py-1.5 text-start">المحمَّل</th>
-                        <th className="border-b border-line px-2 py-1.5 text-start">من</th>
-                        <th className="border-b border-line px-2 py-1.5 text-start">إجراء</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {data.pendingReceipts.map((row) => (
-                        <tr key={row.id}>
-                          <td className="border-b border-line px-2 py-1.5" dir="ltr">
-                            {row.number}
-                          </td>
-                          <td className="border-b border-line px-2 py-1.5">{row.loadDate}</td>
-                          <td className="border-b border-line px-2 py-1.5" dir="ltr">
-                            {numberText(row.loadedQty)} كجم
-                          </td>
-                          <td className="border-b border-line px-2 py-1.5">
-                            {row.itemName} ← {row.fromWarehouseName}
-                          </td>
-                          <td className="border-b border-line px-2 py-1.5">
-                            <Button
-                              size="sm"
-                              variant="secondary"
-                              onClick={() => {
-                                setReceiptTarget(row);
-                                setReceiptDraft({ receivedQty: row.loadedQty, notes: '', loadedQty: row.loadedQty });
-                              }}
-                            >
-                              تأكيدُ الاستلام
-                            </Button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-              {receiptTarget ? (
-                <div className="mt-3 grid gap-3 rounded-[10px] border border-line bg-surface p-3">
-                  <div className="text-[13px] font-bold text-ink">
-                    ✅ تأكيد استلام {receiptTarget.number} (المحمَّل {numberText(receiptTarget.loadedQty)} كجم)
+          <div className="rep-card">
+            <div>
+              <h2 className="rep-card-title">
+                🚚 توريداتٌ بانتظار تأكيد استلامك (<span className="rep-num">{data.pendingReceipts.length}</span>)
+              </h2>
+              <p className="rep-card-sub">
+                قائمةٌ كاملةٌ بلا نافذة (استعلامُها بلا LIMIT) — فكلُّ توريدٍ لك معروض.
+              </p>
+            </div>
+            {data.pendingReceipts.length === 0 ? (
+              <p className="rep-empty">لا توريدَ بانتظارك.</p>
+            ) : (
+              <div className="rep-rows">
+                {data.pendingReceipts.map((row) => (
+                  <div key={row.id} className="rep-row">
+                    <div className="rep-row-main">
+                      <span className="rep-num">{row.number}</span>
+                      <span className="rep-pill" data-tone="warn">
+                        محمَّل <span className="rep-num">{numberText(row.loadedQty)}</span> كجم
+                      </span>
+                    </div>
+                    <div className="rep-row-meta">
+                      <span>{row.loadDate}</span>
+                      <span>
+                        {row.itemName} ← {row.fromWarehouseName}
+                      </span>
+                    </div>
+                    <div className="rep-row-actions">
+                      <button
+                        type="button"
+                        className="rep-btn"
+                        onClick={() => {
+                          setReceiptTarget(row);
+                          setReceiptDraft({ receivedQty: row.loadedQty, notes: '', loadedQty: row.loadedQty });
+                        }}
+                      >
+                        ✅ تأكيدُ الاستلام
+                      </button>
+                    </div>
                   </div>
-                  {receiptQueueVerdict.blocked.map((line) => (
-                    <p key={line} className={`m-0 rounded-[10px] border px-3 py-2 text-[12.5px] font-semibold ${NOTICE_CLASSES.danger}`}>
-                      {line}
-                    </p>
-                  ))}
-                  <Input
-                    label="المستلَم فعليًّا (كجم)"
-                    value={receiptDraft.receivedQty}
-                    onChange={(event) => setReceiptDraft({ ...receiptDraft, receivedQty: event.target.value })}
-                  />
-                  <Input
-                    label="ملاحظات"
-                    value={receiptDraft.notes}
-                    onChange={(event) => setReceiptDraft({ ...receiptDraft, notes: event.target.value })}
-                  />
-                  {receiptVerdict.ok ? null : (
-                    <p className={`m-0 rounded-[10px] border px-3 py-2 text-[12.5px] font-semibold ${NOTICE_CLASSES.danger}`}>
-                      {receiptVerdict.message}
-                    </p>
-                  )}
-                  {receiptVerdict.ok && receiptVerdict.usesLoadedQty ? (
-                    <p className={`m-0 rounded-[10px] border px-3 py-2 text-[12.5px] font-semibold ${NOTICE_CLASSES.warn}`}>
-                      ستُستعمل الكميةُ المحمَّلة كما هي.
-                    </p>
-                  ) : null}
-                  <div className="flex gap-2">
-                    <Button
-                      disabled={busy || !receiptVerdict.ok || receiptQueueVerdict.blocked.length > 0}
-                      onClick={() =>
-                        void submit({
-                          operation: 'receipt',
-                          body: receiptVerdict.ok ? (receiptVerdict.payload as Record<string, unknown>) : {},
-                          targetId: receiptTarget.id,
-                          labelAr: receiptTarget.number,
-                          successAr: `تم تأكيد استلام ${receiptDraft.receivedQty} كجم ودخولها رصيدَ سيارتك الرسميّ.`,
-                          after: () => {
-                            setReceiptTarget(null);
-                            setReceiptDraft({ receivedQty: '', notes: '', loadedQty: '0' });
-                          },
-                        })
-                      }
-                      size="sm"
-                    >
-                      تأكيدُ الاستلام
-                    </Button>
-                    <Button variant="ghost" size="sm" onClick={() => setReceiptTarget(null)}>
-                      إلغاء
-                    </Button>
-                  </div>
+                ))}
+              </div>
+            )}
+
+            {receiptTarget ? (
+              <div className="rep-card" style={{ background: 'var(--inset)' }}>
+                <h3 className="rep-card-title">
+                  ✅ تأكيدُ استلام {receiptTarget.number} (المحمَّل{' '}
+                  <span className="rep-num">{numberText(receiptTarget.loadedQty)}</span> كجم)
+                </h3>
+                {receiptQueueVerdict.blocked.map((line) => (
+                  <p key={line} className="rep-note" data-tone="danger">{line}</p>
+                ))}
+                <div className="rep-fields">
+                  <label className="rep-field">
+                    <span>المستلَم فعليًّا (كجم)</span>
+                    <input
+                      inputMode="decimal"
+                      className="rep-num"
+                      value={receiptDraft.receivedQty}
+                      onChange={(event) => setReceiptDraft({ ...receiptDraft, receivedQty: event.target.value })}
+                    />
+                  </label>
+                  <label className="rep-field">
+                    <span>ملاحظات</span>
+                    <input
+                      value={receiptDraft.notes}
+                      onChange={(event) => setReceiptDraft({ ...receiptDraft, notes: event.target.value })}
+                    />
+                  </label>
                 </div>
-              ) : null}
-            </CardBody>
-          </Card>
+                {receiptVerdict.ok ? null : (
+                  <p className="rep-note" data-tone="danger">{receiptVerdict.message}</p>
+                )}
+                {receiptVerdict.ok && receiptVerdict.usesLoadedQty ? (
+                  <p className="rep-note" data-tone="warn">ستُستعمل الكميةُ المحمَّلة كما هي.</p>
+                ) : null}
+                <div className="rep-actions">
+                  <button
+                    type="button"
+                    className="rep-btn"
+                    data-variant="primary"
+                    disabled={busy || !receiptVerdict.ok || receiptQueueVerdict.blocked.length > 0}
+                    onClick={() =>
+                      void submit({
+                        operation: 'receipt',
+                        body: receiptVerdict.ok ? (receiptVerdict.payload as Record<string, unknown>) : {},
+                        targetId: receiptTarget.id,
+                        labelAr: receiptTarget.number,
+                        successAr: `تم تأكيد استلام ${receiptDraft.receivedQty} كجم ودخولها رصيدَ سيارتك الرسميّ.`,
+                        after: () => {
+                          setReceiptTarget(null);
+                          setReceiptDraft({ receivedQty: '', notes: '', loadedQty: '0' });
+                        },
+                      })
+                    }
+                  >
+                    تأكيدُ الاستلام
+                  </button>
+                  <button type="button" className="rep-btn" onClick={() => setReceiptTarget(null)}>
+                    إلغاء
+                  </button>
+                </div>
+              </div>
+            ) : null}
+          </div>
 
           {/* 🧾 بيع */}
-          <Card>
-            <CardHeader
-              title="🧾 تسجيل بيعٍ وإصدار فاتورة"
-              subtitle="الحكمُ الماليّ من `documentVerdict` نفسه (لا نسخةَ منه هنا)، وحكمُ الطابور من `queueVerdict` — والخادمُ هو المُصدر."
-            />
-            <CardBody>
-              {!canInvoice ? (
-                <p className={`m-0 rounded-[10px] border px-3 py-2 text-[12.5px] font-semibold ${NOTICE_CLASSES.danger}`}>
-                  {REP_QUEUE_MESSAGES.permissionRequired([REP_PERMISSIONS.invoice])}
-                </p>
-              ) : (
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <label className="grid gap-1 text-[12.5px] text-muted">
-                    أمرُ التحميل / عهدتك
+          <div className="rep-card">
+            <div>
+              <h2 className="rep-card-title">🧾 تسجيل بيعٍ وإصدار فاتورة</h2>
+              <p className="rep-card-sub">
+                الحكمُ الماليّ من `documentVerdict` نفسه وحكمُ الطابور من `queueVerdict` — والخادمُ
+                هو المُصدر، فالمنعُ هنا قولٌ لا ضبط.
+              </p>
+            </div>
+            {!canInvoice ? (
+              <p className="rep-note" data-tone="danger">
+                {REP_QUEUE_MESSAGES.permissionRequired([REP_PERMISSIONS.invoice])}
+              </p>
+            ) : (
+              <>
+                <div className="rep-fields">
+                  <label className="rep-field">
+                    <span>أمرُ التحميل / عهدتك</span>
                     <select
-                      className={selectClass}
                       value={saleDraft.loadOrderId}
                       onChange={(event) => setSaleDraft({ ...saleDraft, loadOrderId: event.target.value })}
                     >
@@ -724,10 +738,9 @@ export default function RepAppPage() {
                       ))}
                     </select>
                   </label>
-                  <label className="grid gap-1 text-[12.5px] text-muted">
-                    العميل (بطاقة) — أو اتركه للعميل النقدي
+                  <label className="rep-field">
+                    <span>العميل (بطاقة) — أو اتركه للعميل النقدي</span>
                     <select
-                      className={selectClass}
                       value={saleDraft.partyId}
                       onChange={(event) => setSaleDraft({ ...saleDraft, partyId: event.target.value })}
                     >
@@ -739,44 +752,56 @@ export default function RepAppPage() {
                       ))}
                     </select>
                   </label>
-                  {partiesError ? <p className="m-0 text-[12px] text-muted">{partiesError}</p> : null}
+                  {partiesError ? <p className="rep-note" data-tone="warn">{partiesError}</p> : null}
                   {!saleDraft.partyId ? (
-                    <Input
-                      label="اسم العميل النقدي"
-                      value={saleDraft.customerName}
-                      onChange={(event) => setSaleDraft({ ...saleDraft, customerName: event.target.value })}
-                    />
+                    <label className="rep-field">
+                      <span>اسم العميل النقدي</span>
+                      <input
+                        value={saleDraft.customerName}
+                        onChange={(event) => setSaleDraft({ ...saleDraft, customerName: event.target.value })}
+                      />
+                    </label>
                   ) : null}
-                  <Input
-                    label="الكمية المباعة (كجم)"
-                    value={saleDraft.soldQty}
-                    onChange={(event) => setSaleDraft({ ...saleDraft, soldQty: event.target.value })}
-                  />
-                  <Input
-                    label="سعر البيع للكيلو (اختياريّ — وإلا فسعرُ العميل المثبّت)"
-                    value={saleDraft.unitPrice}
-                    onChange={(event) => setSaleDraft({ ...saleDraft, unitPrice: event.target.value })}
-                  />
-                  <Input
-                    label="كميةٌ مجانية (بونص)"
-                    value={saleDraft.bonusQty}
-                    onChange={(event) => setSaleDraft({ ...saleDraft, bonusQty: event.target.value })}
-                  />
-                  <Input
-                    label="سببُ البونص (مطلوبٌ إن وُجد)"
-                    value={saleDraft.bonusReason}
-                    onChange={(event) => setSaleDraft({ ...saleDraft, bonusReason: event.target.value })}
-                  />
-                  <label className="grid gap-1 text-[12.5px] text-muted">
-                    طريقةُ الدفع
+                  <label className="rep-field">
+                    <span>الكمية المباعة (كجم)</span>
+                    <input
+                      inputMode="decimal"
+                      className="rep-num"
+                      value={saleDraft.soldQty}
+                      onChange={(event) => setSaleDraft({ ...saleDraft, soldQty: event.target.value })}
+                    />
+                  </label>
+                  <label className="rep-field">
+                    <span>سعرُ البيع للكيلو (اختياريّ — وإلا فسعرُ العميل المثبّت)</span>
+                    <input
+                      inputMode="decimal"
+                      className="rep-num"
+                      value={saleDraft.unitPrice}
+                      onChange={(event) => setSaleDraft({ ...saleDraft, unitPrice: event.target.value })}
+                    />
+                  </label>
+                  <label className="rep-field">
+                    <span>كميةٌ مجانية (بونص)</span>
+                    <input
+                      inputMode="decimal"
+                      className="rep-num"
+                      value={saleDraft.bonusQty}
+                      onChange={(event) => setSaleDraft({ ...saleDraft, bonusQty: event.target.value })}
+                    />
+                  </label>
+                  <label className="rep-field">
+                    <span>سببُ البونص (مطلوبٌ إن وُجد)</span>
+                    <input
+                      value={saleDraft.bonusReason}
+                      onChange={(event) => setSaleDraft({ ...saleDraft, bonusReason: event.target.value })}
+                    />
+                  </label>
+                  <label className="rep-field">
+                    <span>طريقةُ الدفع</span>
                     <select
-                      className={selectClass}
                       value={saleDraft.paymentMethod}
                       onChange={(event) =>
-                        setSaleDraft({
-                          ...saleDraft,
-                          paymentMethod: event.target.value as DocumentDraft['paymentMethod'],
-                        })
+                        setSaleDraft({ ...saleDraft, paymentMethod: event.target.value as DocumentDraft['paymentMethod'] })
                       }
                     >
                       <option value="cash">نقدي</option>
@@ -784,329 +809,329 @@ export default function RepAppPage() {
                       <option value="credit">آجل</option>
                     </select>
                   </label>
-                  <label className="grid gap-1 text-[12.5px] text-muted">
-                    وضعُ المستند
+                  <label className="rep-field">
+                    <span>وضعُ المستند</span>
                     <select
-                      className={selectClass}
                       value={saleDraft.invoiceMode}
                       onChange={(event) =>
-                        setSaleDraft({
-                          ...saleDraft,
-                          invoiceMode: event.target.value as DocumentDraft['invoiceMode'],
-                        })
+                        setSaleDraft({ ...saleDraft, invoiceMode: event.target.value as DocumentDraft['invoiceMode'] })
                       }
                     >
                       <option value="zatca_tax">فاتورة ضريبية (ZATCA)</option>
                       <option value="internal_delivery">إشعار تسليم داخلي</option>
                     </select>
                   </label>
-
-                  <div className="sm:col-span-2 grid gap-2">
-                    {[...saleVerdict.blocked, ...saleQueueVerdict.blocked].map((line) => (
-                      <p key={line} className={`m-0 rounded-[10px] border px-3 py-2 text-[12.5px] font-semibold ${NOTICE_CLASSES.danger}`}>
-                        {line}
-                      </p>
-                    ))}
-                    {[...saleVerdict.warnings, ...saleQueueVerdict.warnings].map((line) => (
-                      <p key={line} className={`m-0 rounded-[10px] border px-3 py-2 text-[12.5px] font-semibold ${NOTICE_CLASSES.warn}`}>
-                        {line}
-                      </p>
-                    ))}
-                    <div>
-                      <Button
-                        disabled={
-                          busy ||
-                          saleVerdict.blocked.length > 0 ||
-                          saleQueueVerdict.blocked.length > 0
-                        }
-                        onClick={() => {
-                          const key = saleKey.key(salePayload);
-                          void submit({
-                            operation: 'document',
-                            body: bodyWithIdempotencyKey('document', salePayload as Record<string, unknown>, key),
-                            labelAr: `${saleDraft.soldQty} كجم`,
-                            successAr: 'صدر مستندُ البيع وخُصمت الكميةُ من رصيد سيارتك الرسميّ.',
-                            after: () => {
-                              setSaleDraft(emptyDocumentDraft());
-                              saleKey.reset();
-                            },
-                          });
-                        }}
-                        size="sm"
-                      >
-                        {busy ? 'جارٍ الإرسال…' : online ? '🧾 إصدار المستند' : '💾 حفظُ النيّة في الطابور'}
-                      </Button>
-                    </div>
-                  </div>
                 </div>
-              )}
-            </CardBody>
-          </Card>
+
+                {[...saleVerdict.blocked, ...saleQueueVerdict.blocked].map((line) => (
+                  <p key={line} className="rep-note" data-tone="danger">{line}</p>
+                ))}
+                {[...saleVerdict.warnings, ...saleQueueVerdict.warnings].map((line) => (
+                  <p key={line} className="rep-note" data-tone="warn">{line}</p>
+                ))}
+                <div className="rep-actions">
+                  <button
+                    type="button"
+                    className="rep-btn"
+                    data-variant="primary"
+                    disabled={busy || saleVerdict.blocked.length > 0 || saleQueueVerdict.blocked.length > 0}
+                    onClick={() => {
+                      const key = saleKey.key(salePayload);
+                      void submit({
+                        operation: 'document',
+                        body: bodyWithIdempotencyKey('document', salePayload as Record<string, unknown>, key),
+                        labelAr: `${saleDraft.soldQty} كجم`,
+                        successAr: 'صدر مستندُ البيع وخُصمت الكميةُ من رصيد سيارتك الرسميّ.',
+                        after: () => {
+                          setSaleDraft(emptyDocumentDraft());
+                          saleKey.reset();
+                        },
+                      });
+                    }}
+                  >
+                    {busy ? 'جارٍ الإرسال…' : online ? '🧾 إصدار المستند' : '💾 حفظُ النيّة في الطابور'}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
 
           {/* 📄 مستنداتك */}
-          <Card>
-            <CardHeader title="📄 فواتيرُك ومستنداتُك" subtitle={notes.documents} />
-            <CardBody>
-              {data.documents.length === 0 ? (
-                <p className="m-0 text-[12.5px] text-muted">لا مستنداتَ لك في هذه النافذة.</p>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full border-collapse text-[12.5px]">
-                    <thead>
-                      <tr className="text-muted">
-                        <th className="border-b border-line px-2 py-1.5 text-start">الرقم</th>
-                        <th className="border-b border-line px-2 py-1.5 text-start">النوع</th>
-                        <th className="border-b border-line px-2 py-1.5 text-start">العميل</th>
-                        <th className="border-b border-line px-2 py-1.5 text-start">الإجمالي</th>
-                        <th className="border-b border-line px-2 py-1.5 text-start">المتبقّي</th>
-                        <th className="border-b border-line px-2 py-1.5 text-start">إجراء</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {data.documents.map((row) => (
-                        <tr key={row.id}>
-                          <td className="border-b border-line px-2 py-1.5" dir="ltr">
-                            {row.number}
-                          </td>
-                          <td className="border-b border-line px-2 py-1.5">
-                            {row.documentKind === 'return' ? '↩️ مرتجع' : row.invoiceMode === 'zatca_tax' ? '🧾 ضريبية' : '📃 تسليم داخلي'}
-                          </td>
-                          <td className="border-b border-line px-2 py-1.5">{row.customerName || '—'}</td>
-                          <td className="border-b border-line px-2 py-1.5" dir="ltr">
-                            {numberText(row.total)}
-                          </td>
-                          <td className="border-b border-line px-2 py-1.5" dir="ltr">
-                            {numberText(row.outstanding)}
-                          </td>
-                          <td className="border-b border-line px-2 py-1.5">
-                            <div className="flex gap-1">
-                              {row.documentKind === 'sale' && canInvoice ? (
-                                <Button
-                                  size="sm"
-                                  variant="secondary"
-                                  onClick={() => setReturnDraft({ documentId: row.id, returnedQty: '', reason: '', notes: '' })}
-                                >
-                                  ↩️ مرتجع
-                                </Button>
-                              ) : null}
-                              {Number(row.outstanding) > 0 && canCollect ? (
-                                <Button
-                                  size="sm"
-                                  variant="secondary"
-                                  onClick={() =>
-                                    setCollectionDraft({
-                                      ...emptyCollectionDraft(),
-                                      documentId: row.id,
-                                      collectedAmount: row.outstanding,
-                                    })
-                                  }
-                                >
-                                  💵 تحصيل
-                                </Button>
-                              ) : null}
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
+          <div className="rep-card">
+            <div>
+              <h2 className="rep-card-title">📄 فواتيرُك ومستنداتُك</h2>
+              <p className="rep-card-sub">{notes.documents}</p>
+            </div>
+            {data.documents.length === 0 ? (
+              <p className="rep-empty">لا مستنداتَ لك في هذه النافذة.</p>
+            ) : (
+              <div className="rep-rows">
+                {data.documents.map((row) => (
+                  <div key={row.id} className="rep-row">
+                    <div className="rep-row-main">
+                      <span className="rep-num">{row.number}</span>
+                      <span
+                        className="rep-pill"
+                        data-tone={row.documentKind === 'return' ? 'warn' : Number(row.outstanding) > 0 ? 'danger' : 'ok'}
+                      >
+                        {row.documentKind === 'return'
+                          ? '↩️ مرتجع'
+                          : row.invoiceMode === 'zatca_tax'
+                            ? '🧾 ضريبية'
+                            : '📃 تسليم داخلي'}
+                      </span>
+                    </div>
+                    <div className="rep-row-meta">
+                      <span>{row.customerName || 'بلا اسم'}</span>
+                      <span>{row.docDate}</span>
+                      <span>
+                        الإجمالي <span className="rep-num">{numberText(row.total)}</span>
+                      </span>
+                      <span>
+                        المتبقّي <span className="rep-num">{numberText(row.outstanding)}</span>
+                      </span>
+                    </div>
+                    <div className="rep-row-actions">
+                      {row.documentKind === 'sale' && canInvoice ? (
+                        <button
+                          type="button"
+                          className="rep-btn"
+                          onClick={() => setReturnDraft({ documentId: row.id, returnedQty: '', reason: '', notes: '' })}
+                        >
+                          ↩️ مرتجع
+                        </button>
+                      ) : null}
+                      {Number(row.outstanding) > 0 && canCollect ? (
+                        <button
+                          type="button"
+                          className="rep-btn"
+                          onClick={() =>
+                            setCollectionDraft({
+                              ...emptyCollectionDraft(),
+                              documentId: row.id,
+                              collectedAmount: row.outstanding,
+                            })
+                          }
+                        >
+                          💵 تحصيل
+                        </button>
+                      ) : null}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
 
-              {returnDraft.documentId ? (
-                <div className="mt-3 grid gap-3 rounded-[10px] border border-line bg-surface p-3">
-                  <div className="text-[13px] font-bold text-ink">
-                    ↩️ مرتجعٌ على {returnable.find((row) => row.id === returnDraft.documentId)?.number ?? returnDraft.documentId}
-                  </div>
-                  <p className="m-0 text-[12px] text-muted">
-                    {returnCeilingText(
-                      returnable.find((row) => row.id === returnDraft.documentId) ??
-                        returnableDocuments(data.documents)[0] ??
-                        ({} as never),
-                    )}
-                  </p>
-                  {returnQueueVerdict.blocked.map((line) => (
-                    <p key={line} className={`m-0 rounded-[10px] border px-3 py-2 text-[12.5px] font-semibold ${NOTICE_CLASSES.danger}`}>
-                      {line}
-                    </p>
-                  ))}
-                  {returnQueueVerdict.warnings.map((line) => (
-                    <p key={line} className={`m-0 rounded-[10px] border px-3 py-2 text-[12.5px] font-semibold ${NOTICE_CLASSES.warn}`}>
-                      {line}
-                    </p>
-                  ))}
-                  <Input
-                    label="الكمية المرتجعة (كجم)"
-                    value={returnDraft.returnedQty}
-                    onChange={(event) => setReturnDraft({ ...returnDraft, returnedQty: event.target.value })}
-                  />
-                  <Input
-                    label="السبب"
-                    value={returnDraft.reason}
-                    onChange={(event) => setReturnDraft({ ...returnDraft, reason: event.target.value })}
-                  />
-                  <div>
-                    <Button
-                      size="sm"
-                      disabled={busy || returnQueueVerdict.blocked.length > 0 || !returnDraft.returnedQty}
-                      onClick={() => {
-                        const key = returnKey.key(returnPayload);
-                        void submit({
-                          operation: 'return',
-                          body: bodyWithIdempotencyKey('return', returnPayload as Record<string, unknown>, key),
-                          targetId: returnDraft.documentId,
-                          labelAr: `${returnDraft.returnedQty} كجم`,
-                          successAr: 'سُجِّل المرتجعُ وعادت البضاعةُ إلى رصيد سيارتك الرسميّ بإشعارٍ دائن.',
-                          after: () => {
-                            setReturnDraft({ documentId: '', returnedQty: '', reason: '', notes: '' });
-                            returnKey.reset();
-                          },
-                        });
-                      }}
-                    >
-                      تسجيلُ المرتجع
-                    </Button>
-                  </div>
+            {returnDraft.documentId ? (
+              <div className="rep-card" style={{ background: 'var(--inset)' }}>
+                <h3 className="rep-card-title">
+                  ↩️ مرتجعٌ على{' '}
+                  {returnable.find((row) => row.id === returnDraft.documentId)?.number ?? returnDraft.documentId}
+                </h3>
+                <p className="rep-card-sub">
+                  {returnCeilingText(
+                    returnable.find((row) => row.id === returnDraft.documentId) ??
+                      returnableDocuments(data.documents)[0] ??
+                      ({} as never),
+                  )}
+                </p>
+                {returnQueueVerdict.blocked.map((line) => (
+                  <p key={line} className="rep-note" data-tone="danger">{line}</p>
+                ))}
+                {returnQueueVerdict.warnings.map((line) => (
+                  <p key={line} className="rep-note" data-tone="warn">{line}</p>
+                ))}
+                <div className="rep-fields">
+                  <label className="rep-field">
+                    <span>الكمية المرتجعة (كجم)</span>
+                    <input
+                      inputMode="decimal"
+                      className="rep-num"
+                      value={returnDraft.returnedQty}
+                      onChange={(event) => setReturnDraft({ ...returnDraft, returnedQty: event.target.value })}
+                    />
+                  </label>
+                  <label className="rep-field">
+                    <span>السبب</span>
+                    <input
+                      value={returnDraft.reason}
+                      onChange={(event) => setReturnDraft({ ...returnDraft, reason: event.target.value })}
+                    />
+                  </label>
                 </div>
-              ) : null}
+                <div className="rep-actions">
+                  <button
+                    type="button"
+                    className="rep-btn"
+                    data-variant="primary"
+                    disabled={busy || returnQueueVerdict.blocked.length > 0 || !returnDraft.returnedQty}
+                    onClick={() => {
+                      const key = returnKey.key(returnPayload);
+                      void submit({
+                        operation: 'return',
+                        body: bodyWithIdempotencyKey('return', returnPayload as Record<string, unknown>, key),
+                        targetId: returnDraft.documentId,
+                        labelAr: `${returnDraft.returnedQty} كجم`,
+                        successAr: 'سُجِّل المرتجعُ وعادت البضاعةُ إلى رصيد سيارتك الرسميّ بإشعارٍ دائن.',
+                        after: () => {
+                          setReturnDraft({ documentId: '', returnedQty: '', reason: '', notes: '' });
+                          returnKey.reset();
+                        },
+                      });
+                    }}
+                  >
+                    {online ? 'تسجيلُ المرتجع' : '💾 حفظُ المرتجع في الطابور'}
+                  </button>
+                  <button
+                    type="button"
+                    className="rep-btn"
+                    onClick={() => setReturnDraft({ documentId: '', returnedQty: '', reason: '', notes: '' })}
+                  >
+                    إلغاء
+                  </button>
+                </div>
+              </div>
+            ) : null}
 
-              {collectionDraft.documentId ? (
-                <div className="mt-3 grid gap-3 rounded-[10px] border border-line bg-surface p-3">
-                  <div className="text-[13px] font-bold text-ink">💵 تحصيلُ مديونية</div>
-                  {collectionQueueVerdict.blocked.map((line) => (
-                    <p key={line} className={`m-0 rounded-[10px] border px-3 py-2 text-[12.5px] font-semibold ${NOTICE_CLASSES.danger}`}>
-                      {line}
-                    </p>
-                  ))}
-                  {collectionQueueVerdict.warnings.map((line) => (
-                    <p key={line} className={`m-0 rounded-[10px] border px-3 py-2 text-[12.5px] font-semibold ${NOTICE_CLASSES.warn}`}>
-                      {line}
-                    </p>
-                  ))}
-                  <Input
-                    label="المبلغ المحصَّل"
-                    value={collectionDraft.collectedAmount}
-                    onChange={(event) => setCollectionDraft({ ...collectionDraft, collectedAmount: event.target.value })}
-                  />
-                  <div>
-                    <Button
-                      size="sm"
-                      disabled={busy || collectionQueueVerdict.blocked.length > 0 || !collectionDraft.collectedAmount}
-                      onClick={() => {
-                        const key = collectionKey.key(collectionPayload);
-                        void submit({
-                          operation: 'collection',
-                          body: bodyWithIdempotencyKey('collection', collectionPayload as Record<string, unknown>, key),
-                          labelAr: `${collectionDraft.collectedAmount} ريال`,
-                          successAr: 'سُجِّل التحصيلُ وأُصدر سندُ القبض الرسميّ.',
-                          after: () => {
-                            setCollectionDraft(emptyCollectionDraft());
-                            collectionKey.reset();
-                          },
-                        });
-                      }}
-                    >
-                      تأكيدُ التحصيل
-                    </Button>
-                  </div>
+            {collectionDraft.documentId ? (
+              <div className="rep-card" style={{ background: 'var(--inset)' }}>
+                <h3 className="rep-card-title">💵 تحصيلُ مديونية</h3>
+                {collectionQueueVerdict.blocked.map((line) => (
+                  <p key={line} className="rep-note" data-tone="danger">{line}</p>
+                ))}
+                {collectionQueueVerdict.warnings.map((line) => (
+                  <p key={line} className="rep-note" data-tone="warn">{line}</p>
+                ))}
+                <div className="rep-fields">
+                  <label className="rep-field">
+                    <span>المبلغ المحصَّل</span>
+                    <input
+                      inputMode="decimal"
+                      className="rep-num"
+                      value={collectionDraft.collectedAmount}
+                      onChange={(event) => setCollectionDraft({ ...collectionDraft, collectedAmount: event.target.value })}
+                    />
+                  </label>
                 </div>
-              ) : null}
-            </CardBody>
-          </Card>
+                <div className="rep-actions">
+                  <button
+                    type="button"
+                    className="rep-btn"
+                    data-variant="primary"
+                    disabled={busy || collectionQueueVerdict.blocked.length > 0 || !collectionDraft.collectedAmount}
+                    onClick={() => {
+                      const key = collectionKey.key(collectionPayload);
+                      void submit({
+                        operation: 'collection',
+                        body: bodyWithIdempotencyKey('collection', collectionPayload as Record<string, unknown>, key),
+                        labelAr: `${collectionDraft.collectedAmount} ريال`,
+                        successAr: 'سُجِّل التحصيلُ وأُصدر سندُ القبض الرسميّ.',
+                        after: () => {
+                          setCollectionDraft(emptyCollectionDraft());
+                          collectionKey.reset();
+                        },
+                      });
+                    }}
+                  >
+                    {online ? 'تأكيدُ التحصيل' : '💾 حفظُ التحصيل في الطابور'}
+                  </button>
+                  <button type="button" className="rep-btn" onClick={() => setCollectionDraft(emptyCollectionDraft())}>
+                    إلغاء
+                  </button>
+                </div>
+              </div>
+            ) : null}
+          </div>
 
           {/* 🔒 إغلاق الوردية */}
-          <Card>
-            <CardHeader title="🔒 إغلاقُ الوردية وتصفيةُ العهدة" subtitle={notes.loadOrders} />
-            <CardBody>
-              {data.loadOrders.length === 0 ? (
-                <p className="m-0 text-[12.5px] text-muted">لا أوامرَ لك في هذه النافذة.</p>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full border-collapse text-[12.5px]">
-                    <thead>
-                      <tr className="text-muted">
-                        <th className="border-b border-line px-2 py-1.5 text-start">الأمر</th>
-                        <th className="border-b border-line px-2 py-1.5 text-start">الحالة</th>
-                        <th className="border-b border-line px-2 py-1.5 text-start">المتوقَّع أن يبقى</th>
-                        <th className="border-b border-line px-2 py-1.5 text-start">نقدٌ متبقٍّ</th>
-                        <th className="border-b border-line px-2 py-1.5 text-start">ملاحظات الخادم</th>
-                        <th className="border-b border-line px-2 py-1.5 text-start">إجراء</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {data.loadOrders.map((row) => (
-                        <tr key={row.id}>
-                          <td className="border-b border-line px-2 py-1.5" dir="ltr">
-                            {row.number}
-                          </td>
-                          <td className="border-b border-line px-2 py-1.5" dir="ltr">
-                            {row.status}
-                          </td>
-                          <td className="border-b border-line px-2 py-1.5" dir="ltr">
-                            {numberText(row.expectedRemainingQty)} كجم
-                          </td>
-                          <td className="border-b border-line px-2 py-1.5" dir="ltr">
-                            {numberText(row.outstandingCash)}
-                          </td>
-                          <td className="border-b border-line px-2 py-1.5 text-muted">
-                            {[receiptShortfallText(row), closingShortageText(row), row.stockSettlementNote]
-                              .filter((line): line is string => Boolean(line))
-                              .join(' · ') || '—'}
-                          </td>
-                          <td className="border-b border-line px-2 py-1.5">
-                            {canClose && row.status === 'loaded' ? (
-                              <Button
-                                size="sm"
-                                variant="secondary"
-                                onClick={() => {
-                                  setClosingTarget(row);
-                                  setClosingDraft({
-                                    returnedQty: row.returnedQty,
-                                    damagedQty: row.damagedQty,
-                                    damageReason: '',
-                                    collectedCash: row.collectedCash,
-                                    actualRemainingQty: '',
-                                    vehicleCountQty: '',
-                                    otherCustodyInVanQty: '',
-                                    closingNotes: '',
-                                  });
-                                }}
-                              >
-                                تقديمُ الإغلاق
-                              </Button>
-                            ) : (
-                              <span className="text-muted" dir="ltr">
-                                {row.status}
-                              </span>
-                            )}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
+          <div className="rep-card">
+            <div>
+              <h2 className="rep-card-title">🔒 إغلاقُ الوردية وتصفيةُ العهدة</h2>
+              <p className="rep-card-sub">{notes.loadOrders}</p>
+            </div>
+            {data.loadOrders.length === 0 ? (
+              <p className="rep-empty">لا أوامرَ لك في هذه النافذة.</p>
+            ) : (
+              <div className="rep-rows">
+                {data.loadOrders.map((row) => {
+                  const serverNotes = [receiptShortfallText(row), closingShortageText(row), row.stockSettlementNote]
+                    .filter((line): line is string => Boolean(line));
+                  return (
+                    <div key={row.id} className="rep-row">
+                      <div className="rep-row-main">
+                        <span className="rep-num">{row.number}</span>
+                        <span
+                          className="rep-pill"
+                          data-tone={
+                            row.status === 'settled'
+                              ? 'ok'
+                              : row.status === 'pending_closing'
+                                ? 'warn'
+                                : row.status === 'loaded'
+                                  ? undefined
+                                  : 'danger'
+                          }
+                        >
+                          {row.status}
+                        </span>
+                      </div>
+                      <div className="rep-row-meta">
+                        <span>{row.itemName}</span>
+                        <span>
+                          المتوقَّع أن يبقى <span className="rep-num">{numberText(row.expectedRemainingQty)}</span> كجم
+                        </span>
+                        <span>
+                          نقدٌ متبقٍّ <span className="rep-num">{numberText(row.outstandingCash)}</span>
+                        </span>
+                      </div>
+                      {serverNotes.length > 0 ? (
+                        <p className="rep-note" data-tone="warn">{serverNotes.join(' · ')}</p>
+                      ) : null}
+                      <div className="rep-row-actions">
+                        {canClose && row.status === 'loaded' ? (
+                          <button
+                            type="button"
+                            className="rep-btn"
+                            onClick={() => {
+                              setClosingTarget(row);
+                              setClosingDraft({
+                                returnedQty: row.returnedQty,
+                                damagedQty: row.damagedQty,
+                                damageReason: '',
+                                collectedCash: row.collectedCash,
+                                actualRemainingQty: '',
+                                vehicleCountQty: '',
+                                otherCustodyInVanQty: '',
+                                closingNotes: '',
+                              });
+                            }}
+                          >
+                            🔒 تقديمُ الإغلاق
+                          </button>
+                        ) : null}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
 
-              {closingTarget ? (
-                <div className="mt-3 grid gap-3 rounded-[10px] border border-line bg-surface p-3">
-                  <div className="text-[13px] font-bold text-ink">
-                    🔒 تقديمُ إغلاق {closingTarget.number} — المتوقَّع أن يبقى{' '}
-                    <span dir="ltr">{numberText(closingTarget.expectedRemainingQty)}</span> كجم
-                  </div>
-                  {closingQueueVerdict.blocked.map((line) => (
-                    <p key={line} className={`m-0 rounded-[10px] border px-3 py-2 text-[12.5px] font-semibold ${NOTICE_CLASSES.danger}`}>
-                      {line}
-                    </p>
-                  ))}
-                  {!online ? (
-                    <p className={`m-0 rounded-[10px] border px-3 py-2 text-[12.5px] font-semibold ${NOTICE_CLASSES.warn}`}>
-                      {NOT_QUEUEABLE_OPERATIONS.closing.reasonAr}
-                    </p>
-                  ) : null}
-                  <label className="grid gap-1 text-[12.5px] text-muted">
-                    دلالةُ العدّ (قرارُ المالك: العددُ للمركبة كلّها)
+            {closingTarget ? (
+              <div className="rep-card" style={{ background: 'var(--inset)' }}>
+                <h3 className="rep-card-title">
+                  🔒 تقديمُ إغلاق {closingTarget.number} — المتوقَّع أن يبقى{' '}
+                  <span className="rep-num">{numberText(closingTarget.expectedRemainingQty)}</span> كجم
+                </h3>
+                {closingQueueVerdict.blocked.map((line) => (
+                  <p key={line} className="rep-note" data-tone="danger">{line}</p>
+                ))}
+                {!online ? (
+                  <p className="rep-note" data-tone="warn">{NOT_QUEUEABLE_OPERATIONS.closing.reasonAr}</p>
+                ) : null}
+                <div className="rep-fields">
+                  <label className="rep-field">
+                    <span>دلالةُ العدّ (قرارُ المالك: العددُ للمركبة كلّها)</span>
                     <select
-                      className={selectClass}
                       value={countMode}
                       onChange={(event) => setCountMode(event.target.value as 'whole-vehicle' | 'per-order')}
                     >
@@ -1114,185 +1139,195 @@ export default function RepAppPage() {
                       <option value="per-order">نصيبُ هذا الأمر وحده</option>
                     </select>
                   </label>
-                  <Input
-                    label={countMode === 'whole-vehicle' ? 'عددُ المركبة كلّها (كجم)' : 'المتبقّي الفعليّ لهذا الأمر (كجم)'}
-                    value={countMode === 'whole-vehicle' ? closingDraft.vehicleCountQty : closingDraft.actualRemainingQty}
-                    onChange={(event) =>
-                      setClosingDraft(
-                        countMode === 'whole-vehicle'
-                          ? { ...closingDraft, vehicleCountQty: event.target.value }
-                          : { ...closingDraft, actualRemainingQty: event.target.value },
-                      )
-                    }
-                  />
-                  {countMode === 'whole-vehicle' ? (
-                    <p className="m-0 text-[12px] text-muted">
-                      يخصم الخادمُ من عددِ المركبة عهدةَ الأوامر الأخرى الجالسة في السيارة
-                      نفسها — وحِمولةُ المندوب لا تحمل تلك العهدة، فالحكمُ للخادم لا لهذه
-                      الشاشة.
-                    </p>
-                  ) : null}
-                  <Input
-                    label="مرتجعٌ سليم (كجم)"
-                    value={closingDraft.returnedQty}
-                    onChange={(event) => setClosingDraft({ ...closingDraft, returnedQty: event.target.value })}
-                  />
-                  <Input
-                    label="تالف (كجم)"
-                    value={closingDraft.damagedQty}
-                    onChange={(event) => setClosingDraft({ ...closingDraft, damagedQty: event.target.value })}
-                  />
-                  <Input
-                    label="سببُ التلف (مطلوبٌ إن كان التالفُ أكثرَ من صفر)"
-                    value={closingDraft.damageReason}
-                    onChange={(event) => setClosingDraft({ ...closingDraft, damageReason: event.target.value })}
-                  />
-                  <Input
-                    label="نقدٌ محصَّل للوردية"
-                    value={closingDraft.collectedCash}
-                    onChange={(event) => setClosingDraft({ ...closingDraft, collectedCash: event.target.value })}
-                  />
-                  <Input
-                    label="ملاحظاتُ الإغلاق"
-                    value={closingDraft.closingNotes}
-                    onChange={(event) => setClosingDraft({ ...closingDraft, closingNotes: event.target.value })}
-                  />
-                  {closingVerdict.ok ? null : (
-                    <p className={`m-0 rounded-[10px] border px-3 py-2 text-[12.5px] font-semibold ${NOTICE_CLASSES.danger}`}>
-                      {closingVerdict.message}
-                    </p>
-                  )}
-                  <div className="flex gap-2">
-                    <Button
-                      size="sm"
-                      disabled={
-                        busy || !closingVerdict.ok || closingQueueVerdict.blocked.length > 0 || !canClose
+                  <label className="rep-field">
+                    <span>
+                      {countMode === 'whole-vehicle' ? 'عددُ المركبة كلّها (كجم)' : 'المتبقّي الفعليّ لهذا الأمر (كجم)'}
+                    </span>
+                    <input
+                      inputMode="decimal"
+                      className="rep-num"
+                      value={countMode === 'whole-vehicle' ? closingDraft.vehicleCountQty : closingDraft.actualRemainingQty}
+                      onChange={(event) =>
+                        setClosingDraft(
+                          countMode === 'whole-vehicle'
+                            ? { ...closingDraft, vehicleCountQty: event.target.value }
+                            : { ...closingDraft, actualRemainingQty: event.target.value },
+                        )
                       }
-                      onClick={() =>
-                        void submit({
-                          operation: 'closing',
-                          body: closingVerdict.ok ? (closingVerdict.payload as Record<string, unknown>) : {},
-                          targetId: closingTarget.id,
-                          labelAr: closingTarget.number,
-                          successAr: 'قُدِّم إعلانُ الإغلاق إلى المحاسب — ولا يُشطب فرقٌ بلا اعتماده.',
-                          after: () => setClosingTarget(null),
-                        })
-                      }
-                    >
-                      تقديمُ الإغلاق
-                    </Button>
-                    <Button variant="ghost" size="sm" onClick={() => setClosingTarget(null)}>
-                      إلغاء
-                    </Button>
-                  </div>
+                    />
+                  </label>
+                  <label className="rep-field">
+                    <span>مرتجعٌ سليم (كجم)</span>
+                    <input
+                      inputMode="decimal"
+                      className="rep-num"
+                      value={closingDraft.returnedQty}
+                      onChange={(event) => setClosingDraft({ ...closingDraft, returnedQty: event.target.value })}
+                    />
+                  </label>
+                  <label className="rep-field">
+                    <span>تالف (كجم)</span>
+                    <input
+                      inputMode="decimal"
+                      className="rep-num"
+                      value={closingDraft.damagedQty}
+                      onChange={(event) => setClosingDraft({ ...closingDraft, damagedQty: event.target.value })}
+                    />
+                  </label>
+                  <label className="rep-field">
+                    <span>سببُ التلف (مطلوبٌ إن كان التالفُ أكثرَ من صفر)</span>
+                    <input
+                      value={closingDraft.damageReason}
+                      onChange={(event) => setClosingDraft({ ...closingDraft, damageReason: event.target.value })}
+                    />
+                  </label>
+                  <label className="rep-field">
+                    <span>نقدٌ محصَّل للوردية</span>
+                    <input
+                      inputMode="decimal"
+                      className="rep-num"
+                      value={closingDraft.collectedCash}
+                      onChange={(event) => setClosingDraft({ ...closingDraft, collectedCash: event.target.value })}
+                    />
+                  </label>
+                  <label className="rep-field">
+                    <span>ملاحظاتُ الإغلاق</span>
+                    <input
+                      value={closingDraft.closingNotes}
+                      onChange={(event) => setClosingDraft({ ...closingDraft, closingNotes: event.target.value })}
+                    />
+                  </label>
                 </div>
-              ) : null}
-            </CardBody>
-          </Card>
+                {countMode === 'whole-vehicle' ? (
+                  <p className="rep-note" data-tone="warn">
+                    يخصم الخادمُ من عددِ المركبة عهدةَ الأوامر الأخرى الجالسة في السيارة نفسها —
+                    وحمولةُ المندوب لا تحمل تلك العهدة، فالحكمُ له لا لهذه الشاشة.
+                  </p>
+                ) : null}
+                {closingVerdict.ok ? null : (
+                  <p className="rep-note" data-tone="danger">{closingVerdict.message}</p>
+                )}
+                <div className="rep-actions">
+                  <button
+                    type="button"
+                    className="rep-btn"
+                    data-variant="primary"
+                    disabled={busy || !closingVerdict.ok || closingQueueVerdict.blocked.length > 0 || !canClose}
+                    onClick={() =>
+                      void submit({
+                        operation: 'closing',
+                        body: closingVerdict.ok ? (closingVerdict.payload as Record<string, unknown>) : {},
+                        targetId: closingTarget.id,
+                        labelAr: closingTarget.number,
+                        successAr: 'قُدِّم إعلانُ الإغلاق إلى المحاسب — ولا يُشطب فرقٌ بلا اعتماده.',
+                        after: () => setClosingTarget(null),
+                      })
+                    }
+                  >
+                    تقديمُ الإغلاق
+                  </button>
+                  <button type="button" className="rep-btn" onClick={() => setClosingTarget(null)}>
+                    إلغاء
+                  </button>
+                </div>
+              </div>
+            ) : null}
+          </div>
 
           {/* 📦 أرصدة السيارة */}
-          <Card>
-            <CardHeader
-              title="📦 أرصدةُ أصناف سيارتك (من دفتر المخزون الرسمي)"
-              subtitle="كاملةٌ بلا نافذة: فاستعلامُ الأرصدة بلا LIMIT — ولهذا لا مفتاحَ لها في `windows`."
-            />
-            <CardBody>
-              {data.balances.length === 0 ? (
-                <p className="m-0 text-[12.5px] text-muted">لا رصيدَ في سيارتك الآن.</p>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full border-collapse text-[12.5px]">
-                    <thead>
-                      <tr className="text-muted">
-                        <th className="border-b border-line px-2 py-1.5 text-start">الصنف</th>
-                        <th className="border-b border-line px-2 py-1.5 text-start">الكمية</th>
-                        <th className="border-b border-line px-2 py-1.5 text-start">القيمة</th>
-                        <th className="border-b border-line px-2 py-1.5 text-start">متوسطُ التكلفة</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {data.balances.map((row) => (
-                        <tr key={`${row.warehouseId}:${row.itemId}`}>
-                          <td className="border-b border-line px-2 py-1.5">
-                            {row.itemName} <span className="text-muted" dir="ltr">({row.sku})</span>
-                          </td>
-                          <td className="border-b border-line px-2 py-1.5" dir="ltr">
-                            {row.quantity}
-                          </td>
-                          <td className="border-b border-line px-2 py-1.5" dir="ltr">
-                            {row.value}
-                          </td>
-                          <td className="border-b border-line px-2 py-1.5" dir="ltr">
-                            {row.averageCost}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </CardBody>
-          </Card>
+          <div className="rep-card">
+            <div>
+              <h2 className="rep-card-title">📦 أرصدةُ أصناف سيارتك (من دفتر المخزون الرسمي)</h2>
+              <p className="rep-card-sub">
+                كاملةٌ بلا نافذة: فاستعلامُ الأرصدة بلا LIMIT — ولهذا لا مفتاحَ لها في `windows`.
+              </p>
+            </div>
+            {data.balances.length === 0 ? (
+              <p className="rep-empty">لا رصيدَ في سيارتك الآن.</p>
+            ) : (
+              <div className="rep-rows">
+                {data.balances.map((row) => (
+                  <div key={`${row.warehouseId}:${row.itemId}`} className="rep-row">
+                    <div className="rep-row-main">
+                      <span>{row.itemName}</span>
+                      <span className="rep-pill">
+                        <span className="rep-num">{row.quantity}</span> كجم
+                      </span>
+                    </div>
+                    <div className="rep-row-meta">
+                      <span className="rep-num">{row.sku}</span>
+                      <span>
+                        القيمة <span className="rep-num">{row.value}</span>
+                      </span>
+                      <span>
+                        متوسطُ التكلفة <span className="rep-num">{row.averageCost}</span>
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
 
           {/* 💵 التحصيلات */}
-          <Card>
-            <CardHeader title="💵 ما حصّلته" subtitle={notes.collections} />
-            <CardBody>
-              {data.collections.length === 0 ? (
-                <p className="m-0 text-[12.5px] text-muted">لا تحصيلَ في هذه النافذة.</p>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full border-collapse text-[12.5px]">
-                    <thead>
-                      <tr className="text-muted">
-                        <th className="border-b border-line px-2 py-1.5 text-start">الوقت</th>
-                        <th className="border-b border-line px-2 py-1.5 text-start">المبلغ</th>
-                        <th className="border-b border-line px-2 py-1.5 text-start">السند</th>
-                        <th className="border-b border-line px-2 py-1.5 text-start">السبب</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {data.collections.map((row) => (
-                        <tr key={row.id}>
-                          <td className="border-b border-line px-2 py-1.5">{row.collectedAt}</td>
-                          <td className="border-b border-line px-2 py-1.5" dir="ltr">
-                            {numberText(row.amount)}
-                          </td>
-                          <td className="border-b border-line px-2 py-1.5" dir="ltr">
-                            {row.voucherNumber ?? '—'}{' '}
-                            <span className="text-muted">{row.voucherStatus ?? ''}</span>
-                          </td>
-                          <td className="border-b border-line px-2 py-1.5 text-muted">{row.reason || '—'}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </CardBody>
-          </Card>
+          <div className="rep-card">
+            <div>
+              <h2 className="rep-card-title">💵 ما حصّلته</h2>
+              <p className="rep-card-sub">{notes.collections}</p>
+            </div>
+            {data.collections.length === 0 ? (
+              <p className="rep-empty">لا تحصيلَ في هذه النافذة.</p>
+            ) : (
+              <div className="rep-rows">
+                {data.collections.map((row) => (
+                  <div key={row.id} className="rep-row">
+                    <div className="rep-row-main">
+                      <span className="rep-num">{numberText(row.amount)}</span>
+                      <span className="rep-pill" data-tone={row.voucherStatus === 'posted' ? 'ok' : 'warn'}>
+                        {row.voucherNumber ?? 'بلا سند'} {row.voucherStatus ?? ''}
+                      </span>
+                    </div>
+                    <div className="rep-row-meta">
+                      <span>{row.collectedAt}</span>
+                      <span>{row.reason || '—'}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
 
           {/* 🔔 إشعارات */}
           {data.notifications.length > 0 ? (
-            <Card>
-              <CardHeader title="🔔 إشعارات" subtitle={notes.notifications} />
-              <CardBody>
-                <ul className="m-0 grid gap-1 text-[12.5px] text-muted" style={{ paddingInlineStart: 18 }}>
-                  {data.notifications.map((row) => (
-                    <li key={row.id}>
-                      <strong>{String(row.payload.title ?? row.type)}</strong>
-                      {row.payload.body ? ` — ${String(row.payload.body)}` : ''}
-                    </li>
-                  ))}
-                </ul>
-              </CardBody>
-            </Card>
+            <div className="rep-card">
+              <div>
+                <h2 className="rep-card-title">🔔 إشعارات</h2>
+                <p className="rep-card-sub">{notes.notifications}</p>
+              </div>
+              <div className="rep-rows">
+                {data.notifications.map((row) => (
+                  <div key={row.id} className="rep-row">
+                    <div className="rep-row-main">
+                      <span>{String(row.payload.title ?? row.type)}</span>
+                      <span className="rep-pill" data-tone={row.read ? undefined : 'warn'}>
+                        {row.read ? 'مقروء' : 'جديد'}
+                      </span>
+                    </div>
+                    {row.payload.body ? (
+                      <div className="rep-row-meta">
+                        <span>{String(row.payload.body)}</span>
+                      </div>
+                    ) : null}
+                  </div>
+                ))}
+              </div>
+            </div>
           ) : null}
 
-          <p className="m-0 text-[12px] text-muted">
-            قوائمُ هذه الشاشة نوافذُ الخادم: {notes.loadOrders} · {notes.collections} · وأمّا
-            الأرصدةُ والتوريداتُ المعلّقة فكاملةٌ (بلا LIMIT في استعلاميهما). وفواتيرُ آجلةٌ
-            بلا تحصيلٍ بعد: {unpaidDocuments.length} في هذه النافذة.
+          <p className="rep-card-sub">
+            قوائمُ هذه الشاشة نوافذُ الخادم: {notes.loadOrders} · وأمّا الأرصدةُ والتوريداتُ
+            المعلّقة فكاملةٌ (بلا LIMIT في استعلاميهما). وفواتيرُ آجلةٌ بلا تحصيلٍ بعد:{' '}
+            <span className="rep-num">{unpaidDocuments.length}</span> في هذه النافذة.
           </p>
         </>
       ) : null}
