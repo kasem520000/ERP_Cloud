@@ -247,7 +247,7 @@ text-[13px] text-ink'`؛ الجداولُ `overflow-x-auto w-full border-collaps
 
 ### ١٤ج — وضعُ دون اتصال + ‏PWA
 
-- واجهةُ الطابور: القائمةُ (بـ`queueSummaryLine` و`classifyReplay`)، وإعادةُ الإرسال niّةٌ
+- واجهةُ الطابور: القائمةُ (بـ`queueSummaryLine` و`classifyReplay`)، وإعادةُ الإرسال نيّةً
   نيّةً بـ`syncPlan`، وحذفُ الواصل، وعرضُ المرفوض برسالة الخادم كما هي، وزرُّ «مسح
   التخزين» الذي **يجب أن يقرأ `cleared`** ويقول لماذا لم يُمسح إن كان في الطابور ما لم يصل.
 - ربطُ الجهاز: عرضُ `deviceId` مع `REP_QUEUE_MESSAGES.deviceLine` (يقول إنّه **وسمُ تتبّعٍ لا
@@ -255,7 +255,7 @@ text-[13px] text-ink'`؛ الجداولُ `overflow-x-auto w-full border-collaps
 - ‏PWA: ‏`app/manifest.ts` (أو `public/manifest.webmanifest`) + `service worker`. **وانظر
   أولًا ما فعله `apps/staff`**: ففيه مثبّتةٌ لفحص الـmanifest والـservice worker
   (‏`apps/staff/tests/offline-pos.spec.ts` بحسب تعليق `packages/web-core/tests/offline-store.spec.ts`)
-  ⇒ انسخ النمطَ نفسه ولا تخترع ثانٍيًا.
+  ⇒ انسخ النمطَ نفسه ولا تخترع ثانيًا.
 - الدخولُ بالتسليم (handoff login): ‏`@erp/web-core/session` و`session-gate` و`token-bridge`
   قائمةٌ — والتطبيقُ يستعملها كما تستعملها بقيّةُ شاشات المخابز (‏`useSession`) ولا يبني
   مصادقةً خاصة.
@@ -315,7 +315,7 @@ text-[13px] text-ink'`؛ الجداولُ `overflow-x-auto w-full border-collaps
 - ‏`@erp/*` **خارجية** عند الـlint: لا سطرَ فارغًا داخل مجموعة الاستيراد، والسطرُ الفارغ
   يكون **قبل أوّل استيرادٍ نسبيّ** (أخطأ ملفّي الجديد في ١٤أ فأمسكه الـlint).
 - ‏`node:` مدمجةٌ وتحتاج سطرًا فارغًا قبل الخارجيات.
-- **لا تعليقً بداخل قالب `sql\`** فيه شرطاتٌ مائلةٌ معكوسة: تُنهي القالبَ (‏TS1005/TS1127) —
+- **لا تعليقَ بداخل قالب `sql\`** فيه شرطاتٌ مائلةٌ معكوسة: تُنهي القالبَ (‏TS1005/TS1127) —
   ضعه فوق `const x = first(await tx.execute(sql\`…\`))`.
 - الأنواعُ على مستوى الوحدة تُدرج **فوق `@Injectable()`** (لا بين المزخرف والصنف ⇒ TS1206).
 - في python-الرقع: ‏`assert s.count(anchor) == n` لكلّ مرساة، ولا تُعد استعمالَ نصٍّ
