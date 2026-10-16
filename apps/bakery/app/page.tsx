@@ -1,21 +1,63 @@
 'use client';
 
-import { Button, Card, CardBody, CardHeader } from '@erp/ui';
+import { useCallback, useEffect, useState } from 'react';
+import { Badge, Button, Card, CardBody, CardHeader, EmptyState, Kpi, SkeletonCard } from '@erp/ui';
+import { apiData, apiErrorText } from '@erp/web-core/api';
 import { useSession } from '@erp/web-core/session';
 
 import { BAKERY_APP_CODE } from '../lib/licence';
 import { BAKERY_MODULES, readyModules, visibleModules } from '../lib/navigation';
+import { numberText } from '../lib/lookups';
+
+/** ملخّصُ لوحة الخطّ كما يرجعه الخادم — ولا رقمَ يُحسب هنا. */
+type VanSummary = Record<string, string | number>;
 
 /**
- * نظرة اليوم — الصفحة الوحيدة المبنيّة في المرحلة 2، وهي **حقيقية** لا واجهة عرض:
- * تقرأ الجلسة والترخيص من `/me` وتعرض خريطة الوحدات كما هي في `lib/navigation.ts`،
- * وتقول صراحةً ما الذي لم يُبنَ بعد (وبأيّ نقاط خادم سيُبنى). لا أرقام مُختلَقة، ولا
- * بلاطة فارغة تدّعي بيانات، ولا رابط لمسارٍ غير موجود.
+ * نظرة اليوم — لوحةُ عملياتٍ حقيقية، لا صفحةُ طورٍ ثانٍ.
+ *
+ * ما كانت: بطاقةٌ تقول «ما يعمل الآن» وأخرى تقول «ما لا يعمل بعد: لا دفعة إنتاج ولا حمولة
+ * ولا فاتورة ولا تحصيل ولا إقفال» — وهي جملةٌ **كذبت منذ المرحلة الثالثة**، إذ بُنيت تلك
+ * الشاشات كلّها. فكان أوّلُ ما يراه المالكُ صفحةً تعلن أنّ تطبيقه لا يعمل.
+ *
+ * وما هي الآن: صفُّ `Kpi` من `GET /van-sales/dashboard` (صافي المبيعات والمحصَّل والذمم وما
+ * في السيارات والإقفالاتُ المعلّقة وشذوذُ البونص — وكلُّها من الخادم ولا رقمَ يُحسب هنا)،
+ * وخريطةُ الوحدات بشاراتِ حالةٍ من `statusTone` وروابطِ الجاهز منها، وبطاقةُ الضوابط.
+ * والحالاتُ صادقة: هيكلٌ عظميّ أثناء التحميل، وفراغٌ مُعلَّل لمن لا يملك `van_sales.view`،
+ * وخطأٌ بزرّ إعادة — ولا منطقةَ فارغة بلا قول.
  */
 export default function BakeryOverviewPage() {
   const { can, me, reload } = useSession();
   const modules = visibleModules(can);
   const built = readyModules(modules);
+  const canVan = can('van_sales.view');
+
+  const [summary, setSummary] = useState<VanSummary | null>(null);
+  const [state, setState] = useState<'loading' | 'ready' | 'error'>('loading');
+  const [error, setError] = useState<string | undefined>();
+
+  const load = useCallback(async () => {
+    if (!canVan) {
+      setState('ready');
+      return;
+    }
+    setState('loading');
+    setError(undefined);
+    try {
+      const payload = await apiData<{ summary: VanSummary }>('/van-sales/dashboard');
+      setSummary(payload.summary ?? null);
+      setState('ready');
+    } catch (caught) {
+      setError(apiErrorText(caught, 'تعذّر تحميل لوحة الخطّ'));
+      setState('error');
+    }
+  }, [canVan]);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  const value = (key: string): string =>
+    summary ? String(summary[key] ?? '—') : '—';
 
   return (
     <section className="grid gap-4">
@@ -25,14 +67,18 @@ export default function BakeryOverviewPage() {
             المخابز: الإنتاج والتوزيع
           </h1>
           <p className="m-0 mt-1 text-[13px] text-muted">
-            {me?.membership.tenantName} · {me?.membership.tenantCode} — سطحٌ فوق `apps/api` نفسها،
-            بلا جداول جديدة وبلا محرّك محاسبيّ ثانٍ.
+            {me?.membership.tenantName ?? me?.membership.displayName ?? 'المنشأة'} ·{' '}
+            <span dir="ltr">{me?.membership.tenantCode}</span> — سطحٌ
+            فوق <span dir="ltr">apps/api</span> نفسها، بلا جداول جديدة وبلا محرّك محاسبيّ ثانٍ.
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="bak-badge ok" title={`enabledApps من GET /me يحتوي ${BAKERY_APP_CODE}`}>
-            🔓 مرخَّصة: {BAKERY_APP_CODE}
-          </span>
+        <div className="flex flex-wrap items-center gap-2">
+          <Badge dot status="active" title={`enabledApps من GET /me يحتوي ${BAKERY_APP_CODE}`}>
+            مرخَّصة: <span dir="ltr">{BAKERY_APP_CODE}</span>
+          </Badge>
+          <Badge status={built.length === BAKERY_MODULES.length ? 'active' : 'pending'}>
+            {built.length} من {BAKERY_MODULES.length} وحدة مبنيّة
+          </Badge>
           <Button onClick={() => void reload()} size="sm">
             تحديث الترخيص
           </Button>
@@ -41,59 +87,114 @@ export default function BakeryOverviewPage() {
 
       <Card>
         <CardHeader
-          action={<span className="bak-badge">المرحلة 2</span>}
-          subtitle="بلا مبالغة: ما يعمل فعلاً في هذه النسخة، وما لا يعمل."
-          title="ما يعمل الآن"
+          action={
+            state === 'ready' ? (
+              <Button onClick={() => void load()} size="sm" variant="ghost">
+                تحديث الأرقام
+              </Button>
+            ) : null
+          }
+          subtitle="من GET /van-sales/dashboard — كلّ السجلّ لا اليوم، والأرصدةُ لحظتُها. ولا رقمَ يُحسب في المتصفح."
+          title="أرقامُ الخطّ"
         />
         <CardBody>
-          <ul className="m-0 grid gap-2 text-[13px] leading-relaxed text-ink">
-            <li>
-              <strong>الدخول والجلسة</strong> — الجلسة المشتركة (`@erp/web-core`) وتسليم الدخول
-              (‏{'`?handoff=<code>`'} رمزٌ لمرة واحدة) وشاشة الدخول برمز المنشأة والبريد وكلمة
-              المرور (والتحقّق الثنائي حين يطلبه الخادم).
-            </li>
-            <li>
-              <strong>بوابة الترخيص</strong> — لا تُرسم أيّ شاشة قبل أن تقول `/me` إنّ
-              {' '}`{BAKERY_APP_CODE}` مفعَّلة؛ وعند غياب الباقة رفضٌ مُعلَّل بطريق الطلب، وعند
-              غياب الحقل «تعذّر التأكّد» (لا فتحَ بلا فحص).
-            </li>
-            <li>
-              <strong>القشرة والتنقّل</strong> — شريط وحدات يُصفّى بالصلاحيات الممنوحة، ونقطةُ حالةٍ
-              لكلّ وحدة (مبنيّة/مخطَّطة)، ووضعٌ فاتح/داكن من الرموز المشتركة.
-            </li>
-            <li>
-              <strong>خريطة العمل</strong> — {BAKERY_MODULES.length} وحدة معلنة، بُني منها{' '}
-              {built.length} في هذه المرحلة.
-            </li>
-          </ul>
-          <p className="m-0 mt-3 rounded-[10px] border border-warn-line bg-warn-soft px-4 py-2.5 text-[13px] font-semibold text-warn-ink">
-            ما لا يعمل بعد: لا دفعة إنتاج ولا حمولة ولا فاتورة ولا تحصيل ولا إقفال في هذه النسخة —
-            شاشاتُ الأعمال هي المرحلة 3، وواجهة المندوب المحمولة (`/rep`) هي المرحلة 4. ولا تُعرض
-            هذه الوحدات روابط، بل نصّاً بمرحلتها ونقاط الخادم التي ستستعملها.
-          </p>
+          {!canVan ? (
+            <EmptyState
+              description="لا تملك صلاحية van_sales.view، فلا تُعرض أرقامُ الخطّ — ولا تُعرض أصفارٌ مكانها."
+              icon={<span aria-hidden>🔒</span>}
+              title="بلا صلاحيةٍ لقراءة الخطّ"
+            />
+          ) : state === 'loading' ? (
+            <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-6">
+              {Array.from({ length: 6 }).map((_, index) => (
+                <SkeletonCard key={index} lines={2} />
+              ))}
+            </div>
+          ) : state === 'error' ? (
+            <EmptyState
+              action={
+                <Button onClick={() => void load()} size="sm">
+                  إعادة المحاولة
+                </Button>
+              }
+              description={error}
+              icon={<span aria-hidden>⚠️</span>}
+              title="تعذّر تحميل الأرقام"
+              tone="danger"
+            />
+          ) : (
+            <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-6">
+              <Kpi
+                hint={`صافي المرتجعات؛ الإجماليُّ قبلها ${value('totalSalesGrossSar')}`}
+                title="صافي المبيعات"
+                tone="brand"
+                value={value('totalRevenueSar')}
+              />
+              <Kpi
+                hint="مرتجعاتٌ وضريبتُها مخصومتان من الإجمالي"
+                title="المرتجعات"
+                tone={Number(value('returnsSar')) > 0 ? 'warn' : 'neutral'}
+                value={value('returnsSar')}
+              />
+              <Kpi hint="سنداتُ قبضٍ مُرحّلة" title="المحصَّل نقدًا" tone="ok" value={value('totalCollectedCashSar')} />
+              <Kpi
+                hint="بعد خصم الإشعارات الدائنة"
+                title="ذممٌ غير محصّلة"
+                tone={Number(value('totalCreditReceivablesSar')) > 0 ? 'warn' : 'ok'}
+                value={value('totalCreditReceivablesSar')}
+              />
+              <Kpi
+                hint="عهدةٌ مفتوحة في سيارات التوزيع"
+                title="في السيارات الآن"
+                tone="neutral"
+                value={`${value('remainingInVansKg')} كجم`}
+              />
+              <Kpi
+                hint={
+                  Number(value('pendingClosingsCount')) > 0
+                    ? 'إقفالاتٌ بانتظار اعتماد المحاسب'
+                    : 'لا إقفالَ معلّق'
+                }
+                title="إقفالاتٌ معلّقة"
+                tone={Number(value('pendingClosingsCount')) > 0 ? 'warn' : 'ok'}
+                value={value('pendingClosingsCount')}
+              />
+            </div>
+          )}
         </CardBody>
       </Card>
 
       <Card>
         <CardHeader
-          subtitle="الجاهزة روابط، والمخطَّطة نصّ — ولا رابط لمسارٍ غير موجود."
+          subtitle="الجاهزة روابطُ بشارةٍ خضراء، والمخطَّطة نصٌّ بمرحلتها — ولا رابط لمسارٍ غير موجود."
           title="خريطة الوحدات"
         />
         <CardBody>
-          <div className="grid gap-3">
+          <div className="grid gap-3 md:grid-cols-2">
             {modules.map((module) => (
               <article
-                className="grid gap-2 rounded-[10px] border border-line bg-surface p-4 shadow-1"
+                className="grid gap-2 rounded-lg border border-line bg-surface p-4 shadow-1"
                 key={module.key}
               >
                 <div className="flex flex-wrap items-center gap-2">
-                  <span aria-hidden="true" className={`bak-dot ${module.status}`} />
                   <span aria-hidden="true">{module.icon}</span>
                   <h2 className="m-0 text-[15px] font-extrabold text-ink">
-                    {module.href ? <a className="text-ink" href={module.href}>{module.labelAr}</a> : module.labelAr}
+                    {module.href ? (
+                      <a className="text-ink underline-offset-4 hover:underline" href={module.href}>
+                        {module.labelAr}
+                      </a>
+                    ) : (
+                      module.labelAr
+                    )}
                   </h2>
-                  <span className="bak-badge">{module.phaseAr}</span>
-                  {module.permission ? <span className="bak-badge">{module.permission}</span> : null}
+                  <Badge dot status={module.status === 'ready' ? 'active' : 'pending'}>
+                    {module.status === 'ready' ? 'مبنيّة' : module.phaseAr}
+                  </Badge>
+                  {module.permission ? (
+                    <Badge tone="neutral">
+                      <span dir="ltr">{module.permission}</span>
+                    </Badge>
+                  ) : null}
                 </div>
                 <p className="m-0 text-[13px] leading-relaxed text-muted">{module.planAr}</p>
                 <div className="bak-endpoints">
@@ -114,17 +215,27 @@ export default function BakeryOverviewPage() {
         <CardBody>
           <ul className="m-0 grid gap-2 text-[13px] leading-relaxed text-ink">
             <li>
-              الباقة قطاعية: تفعيلها طلبٌ من سوق الإضافات يقرّه مالك المنصة، و`POST
-              /marketplace/apps/{BAKERY_APP_CODE}/install` يُرفض 403
-              {' '}`ADDON_REQUIRES_PLATFORM_APPROVAL` — فلا تفعيلَ ذاتيّ.
+              <strong>الباقة قطاعية</strong>: تفعيلها طلبٌ من سوق الإضافات يقرّه مالك المنصة، و
+              <span dir="ltr">POST /marketplace/apps/{BAKERY_APP_CODE}/install</span> يُرفض ٤٠٣
+              ‏<span dir="ltr">ADDON_REQUIRES_PLATFORM_APPROVAL</span> — فلا تفعيلَ ذاتيّ.
             </li>
             <li>
-              الترخيص يُقرأ من `enabledApps` في `GET /me` (لا من كتالوج السوق) لأنّ الكتالوج يحتاج
-              `tenant.view` ولا يملكه مندوب — والترخيص يجب أن يعرفه كلّ عضو.
+              <strong>الترخيص يُقرأ من `enabledApps` في `GET /me`</strong> (لا من كتالوج السوق)
+              لأنّ الكتالوج يحتاج <span dir="ltr">tenant.view</span> ولا يملكه مندوب — والترخيص
+              يجب أن يعرفه كلّ عضو.
             </li>
             <li>
-              الصلاحيات يفرضها الخادم على كلّ نداء؛ وهذه الواجهة لا تمنح ولا ترفع صلاحية، ولا
-              تُنشئ حساباً.
+              <strong>الصلاحيات يفرضها الخادم على كلّ نداء</strong>؛ وهذه الواجهة لا تمنح ولا
+              ترفع صلاحية، ولا تُنشئ حساباً. والدخولُ هو الدخولُ نفسه في لوحة التحكم (رمزٌ
+              لمرةٍ واحدة <span dir="ltr">?handoff=&lt;code&gt;</span> أو بريدٌ وكلمةُ مرور
+              وتحقّقٌ ثنائيّ حين يطلبه الخادم).
+            </li>
+            <li>
+              <strong>أرقامُ هذه الصفحة كلّها من الخادم</strong>: صافي المبيعات{' '}
+              {numberText(value('totalRevenueSar'))} ريال، والمحصَّل{' '}
+              {numberText(value('totalCollectedCashSar'))}، وفي السيارات{' '}
+              {numberText(value('remainingInVansKg'))} كجم — وكلُّ بلاطةٍ تُعرض من حمولةٍ
+              وصلت، وبلا بلاطةٍ فارغةَ تدّعي بيانات.
             </li>
           </ul>
         </CardBody>

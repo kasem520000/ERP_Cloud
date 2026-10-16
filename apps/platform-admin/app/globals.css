@@ -25,6 +25,23 @@
 @import '@erp/ui/tokens.css';
 
 
+
+/* توجيهُ مسحِ المصادر إلى مكتبة الواجهة.
+ *
+ * السببُ مقاسٌ لا مُتوقَّع: Tailwind v4 يكشف المصادر تلقائيًّا ويتجاهل `node_modules`، ولا
+ * خيار `content` في `postcss.config.mjs` ولا `@source` في المستودع — فكان كلّ صنفٍ مكتوبٍ
+ * داخل مكوّنات `@erp/ui` وحدها لا يُولَّد مرافقُه. والقياسُ بالمسبار (‏`postcss` +
+ * `@tailwindcss/postcss` على `app/globals.css` من جذر التطبيق) قبلَ هذا السطر:
+ *   staff ١٠٣٦٣٤ بايت · مفقود ١٠/١٠ · platform-admin ٩٤٨٢٥ · مفقود ١٠/١٠ · marketing ٥٣٦٤٩ · مفقود ١٠/١٠
+ *   والمفقودُ منها: `bg-slate-950/45` و`backdrop-blur-[2px]` و`z-[60]` (خلفيةُ Modal
+ *   شفافةٌ بلا ضبابية، وToast عند الطبقة الخطأ) و`focus:ring-4` و`focus:ring-brand/20`
+ *   (حلقةُ التركيز غائبة) و`hover:text-danger-ink` و`size-3.5` و`mb-[2px]` و`mb-[10px]`
+ *   و`hover:opacity-100`.
+ * وما نجا في هذه التطبيقات نجا بالصدفة: لأنّ الصنفَ مكتوبٌ أيضًا في أحد ملفاتها (فـ`bg-brand`
+ * في ١٧ ملفًّا من `apps/staff` وصفرٍ من `apps/bakery`). والاعتمادُ على الصدفة ليس تصميمًا.
+ * والمسارُ إلى `packages/ui/src` لا إلى `node_modules/@erp/ui` فالتجاهلُ بالاسم.
+ */
+@source '../../../packages/ui/src';
 /* ------------------------------------------------------------------ shell */
 .shell { display: grid; grid-template-columns: 288px 1fr; min-height: 100vh; }
 .side {

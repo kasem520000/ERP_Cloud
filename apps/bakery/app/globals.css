@@ -17,6 +17,25 @@
 @import 'tailwindcss';
 @import '@erp/ui/tokens.css';
 
+/* --------------------------------------------------------------------------
+ * توجيهُ مسحِ المصادر إلى مكتبة الواجهة — وهو سببُ «الاستايل شبه معدوم» لا ذوقُ أحد.
+ *
+ * القياسُ الذي أثبته: Tailwind v4 يكشف المصادر تلقائيًّا ويتجاهل `node_modules`، و
+ * `apps/bakery/postcss.config.mjs` لا يحمل خيار `content`، ولا `@source` في المستودع
+ * كلّه. فالصنفُ المستعملُ **داخل مكوّنات `@erp/ui` وحدها** لا يُولَّد مرافقُه:
+ *   قبلَ التصحيح، في `.next/static/css/*.css` المبنية (٤١٤٤٥ بايت):
+ *     `.bg-brand` ٠ · `.text-brand-ink` ٠ · `.shadow-2` ٠     ← زرُّ الدخول أبيضُ بلا لون
+ *     `.bg-surface-2` ١ · `.text-muted` ١ · `.border-line` ١  ← نجت لأنها مكتوبةٌ في
+ *                                                               ملفاتِ المخابز نفسها
+ *   والسببُ أنّ `bg-brand` مكتوبةٌ في ٨ ملفاتٍ من `packages/ui/src` وفي **صفر** ملفاتٍ
+ *   من `apps/bakery`. ولوحةُ التحكم تنجو بالصدفة وحدها: فهي تكتب `bg-brand` في ١٧
+ *   ملفًّا من ملفاتها. والاعتمادُ على الصدفة ليس تصميمًا.
+ *
+ * والمسارُ هنا إلى `packages/ui/src` لا إلى `node_modules/@erp/ui` (وإن كان الرابطُ
+ * يشير إليه): فالتجاهلُ التلقائيّ يخصّ `node_modules` بالاسم.
+ */
+@source '../../../packages/ui/src';
+
 /* ------------------------------------------------------------------ shell */
 .bak-shell { display: grid; grid-template-columns: 264px 1fr; min-height: 100vh; }
 .bak-side {
@@ -80,7 +99,35 @@
 .bak-badge.bad { border-color: var(--danger-line, var(--line)); background: var(--danger-soft, var(--surface-2)); color: var(--danger-ink, var(--text)); }
 .bak-badge.warn { border-color: var(--warn-line, var(--line)); background: var(--warn-soft, var(--surface-2)); color: var(--warn-ink, var(--text)); }
 
-.bak-wall { min-height: 100vh; display: grid; place-items: center; padding: 24px; }
+.bak-wall {
+  min-height: 100vh; display: grid; place-items: center; padding: 24px;
+  /* غسلةُ علامةٍ خلف بطاقة الدخول: تدرّجٌ من رمزٍ موجود، لا صورةٌ ولا مكتبةُ أيقونات.
+     ولماذا CSS صريحٌ لا `bg-gradient-to-b`: فاسمُ المرافق تغيّر بين إصدارات Tailwind
+     (‏`bg-linear-to-b` في v4)، والقاعدةُ هنا لا يجوز أن تسكت إن تغيّر الاسم. */
+  background:
+    radial-gradient(1100px 400px at 50% -150px, var(--brand-soft), transparent 72%),
+    var(--bg);
+}
+/* علامةُ الدخول: `.bak-logo` نفسها بحجمٍ أكبر. والتعديلُ صنفٌ لا مرفقُ Tailwind،
+   لأنّ قواعد هذا الملف بلا طبقةٍ فتغلب المرافقَ (وهذا مقصودٌ وموثّقٌ أدناه). */
+.bak-logo-lg { width: 56px; height: 56px; border-radius: 16px; font-size: 26px; box-shadow: var(--shadow-3); }
+
+/* ------------------------------------------------------------------ autofill
+ * ملءُ المتصفح التلقائيّ: ‏Chrome وSafari يصبغان الحقلَ أصفرَ/أزرقَ ويُجبران لونَ
+ * الخطّ، فتظهر شاشةُ الدخول بحقلين ليس لونهما من نظام التصميم — وهذا بالضبط ما كان
+ * في لقطة المالك. ولا حيلةَ أمام `!important` المتصفح إلّا ظلٌّ داخليٌّ بلون السطح
+ * مع `-webkit-text-fill-color`، واللونان من الرموز فينقلبان في الوضع الداكن وحدهما. */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active,
+textarea:-webkit-autofill,
+select:-webkit-autofill {
+  -webkit-text-fill-color: var(--text);
+  caret-color: var(--text);
+  box-shadow: 0 0 0 1000px var(--surface) inset;
+  transition: background-color 9999s ease-in-out 0s;
+}
 .bak-endpoints { display: flex; flex-wrap: wrap; gap: 6px; }
 .bak-endpoint {
   font-family: var(--font-mono); font-size: 11px; direction: ltr;
