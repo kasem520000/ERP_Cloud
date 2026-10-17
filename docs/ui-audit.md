@@ -1,6 +1,6 @@
 # UI audit — ERP Cloud “Executive Finance” v4
 
-**Date:** 2026-10-18 · **Branch:** `arena/87daa84c-erp-cloud` · **Base commit:** `084fafd` + working-tree UI fixes (batch 2: content, typography, portal grid, hydration)
+**Date:** 2026-10-18 · **Branch:** `arena/87daa84c-erp-cloud` · **Commit:** `861b9de` (pushed) on top of `084fafd` — batch 2: content, typography, portal grid, RTL tables, hydration, labels
 **Method:** every opened screen was rendered in Chromium (Playwright/Puppeteer) against the local API + seeded PostgreSQL demo tenant. Nothing below is inferred from JSX alone. No mock data was injected into the apps, and no posting, cancellation, payment or deletion was executed.
 
 Legend — **Opened:** `yes` rendered with data · `no` no fixture · `login` auth screen only.
@@ -454,3 +454,24 @@ Also confirmed from the earlier batch: table pagination/frame in the staff panel
 - **Shared fixes:** 36 marketing routes (tokens/header/nav/content typography) · 11 portal routes (tokens/KPI/tables) · 201 staff routes (`.grid` layers, type floor) · 38 PA + 11 bakery routes (type floor).
 - **Builds green:** **5/5**. **Typecheck:** 0 errors. **Lint:** 0 errors.
 - **Console/HTTP errors in the final marketing sweep:** 0 (after the hydration fix and content seeding).
+
+---
+
+## 8. How to run what was audited
+
+```bash
+git fetch origin && git checkout arena/87daa84c-erp-cloud
+pnpm install
+pnpm start:erp:local --with-db     # builds, migrates, seeds, then starts all seven services
+```
+
+| Surface | URL | Account |
+| --- | --- | --- |
+| Staff ERP | http://localhost:3001 | `DEMO_*` in `.env` (tenant `demo`) |
+| Marketing site | http://localhost:3002 | public |
+| Platform admin | http://localhost:3003 | `PLATFORM_ADMIN_*` in `.env` |
+| Customer portal | http://localhost:3004 | `portal@demo.test` / `Secure#2026AaZ` |
+| Bakery (van sales) | http://localhost:3005 | `rep@demo.test` |
+
+`--no-seed` skips migrations/seed; `--stop` stops everything the script started; `--status` prints a health table.
+The content pages come from the CMS: re-run `node scripts/seed-content.mjs` to restore the eight published pages (idempotent).
