@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { Bell } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import { apiData } from '../lib/api';
@@ -155,13 +156,13 @@ export function NotificationBell({ label }: { label: string }) {
           if (next) void refresh();
         }}
       >
-        🔔
+        <Bell size={17} strokeWidth={1.8} aria-hidden />
         {unread > 0 && <span className="bell-count">{unread}</span>}
       </button>
 
       {open && (
         <div
-          className="card"
+          className="card menu-pop"
           style={{
             position: 'absolute',
             insetInlineEnd: 0,
@@ -178,7 +179,7 @@ export function NotificationBell({ label }: { label: string }) {
           }}
         >
           <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
-            <strong>🔔 الإشعارات والتنبيهات ({unread} غير مقروء)</strong>
+            <strong>الإشعارات والتنبيهات ({unread} غير مقروء)</strong>
             <div className="row" style={{ gap: 6 }}>
               {unread > 0 && (
                 <button

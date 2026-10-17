@@ -153,6 +153,7 @@ export function LoginScreen({ initialError }: { initialError?: string }) {
   return (
     <div className="auth-page">
       <div className="auth-brand">
+        <span className="exec-eyebrow">Enterprise Finance Suite</span>
         <span className="logo big">ERP</span>
         <h1>{t('app.name')}</h1>
         <p>{t('app.tagline')}</p>
@@ -161,6 +162,9 @@ export function LoginScreen({ initialError }: { initialError?: string }) {
           <li>{t('app.feature.permissions')}</li>
           <li>{t('app.feature.audit')}</li>
         </ul>
+        <p className="m-0 mt-4 text-[10.5px] font-semibold uppercase tracking-[0.16em] text-white/35">
+          تخطيط محاسبي · امتثال ضريبي · رقابة مؤسسية
+        </p>
       </div>
 
       <form className="auth-card" onSubmit={submit}>
@@ -221,7 +225,7 @@ export function LoginScreen({ initialError }: { initialError?: string }) {
                   style={{
                     background: 'none',
                     border: 'none',
-                    color: 'var(--color-primary-600, #2563eb)',
+                    color: 'var(--color-primary-600, var(--brand))',
                     fontSize: '0.82rem',
                     fontWeight: 600,
                     cursor: 'pointer',
@@ -341,7 +345,8 @@ export function LoginScreen({ initialError }: { initialError?: string }) {
           </p>
         )}
 
-        <button className="btn primary block" type="submit" disabled={busy}>
+        <button className="btn primary block" type="submit" disabled={busy} aria-busy={busy || undefined}>
+          {busy ? <span className="btn-spinner" aria-hidden /> : null}
           {busy
             ? step === 'mfa'
               ? t('mfa.verifying')

@@ -23,21 +23,22 @@ export function Screen({
     <div className="grid gap-4">
       <section className="flex flex-wrap items-end justify-between gap-3">
         <div className="min-w-0">
-          {crumbs && crumbs.length > 0 ? (
-            <nav className="flex flex-wrap items-center gap-1.5 text-[11.5px] font-bold text-muted" aria-label="المسار">
-              {crumbs.map((crumb, i) => (
-                <span key={`${crumb}-${i}`} className="flex items-center gap-1.5">
-                  {i > 0 ? <span aria-hidden>‹</span> : null}
-                  <span className={i === crumbs.length - 1 ? 'text-ink-2' : undefined}>{crumb}</span>
-                </span>
-              ))}
-            </nav>
-          ) : null}
-          <h1 className="m-0 mt-1 text-[24px] font-extrabold tracking-tight text-ink leading-tight">{title}</h1>
-          {subtitle ? <p className="m-0 mt-1 text-[13px] text-muted">{subtitle}</p> : null}
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="exec-eyebrow">{crumbs && crumbs.length > 0 ? crumbs[0] : 'Executive'}</span>
+            {crumbs && crumbs.length > 1 ? (
+              <span className="text-[11px] font-semibold text-muted">
+                / {crumbs.slice(1).join(' / ')}
+              </span>
+            ) : null}
+          </div>
+          <h1 className="m-0 mt-2 text-[25px] font-extrabold leading-tight tracking-[-0.03em] text-ink">
+            {title}
+          </h1>
+          {subtitle ? <p className="m-0 mt-1 max-w-2xl text-[12.5px] leading-relaxed text-muted">{subtitle}</p> : null}
         </div>
         {actions ? <div className="flex flex-wrap items-center gap-2 no-print">{actions}</div> : null}
       </section>
+      <div className="page-rule" aria-hidden />
       {children}
     </div>
   );

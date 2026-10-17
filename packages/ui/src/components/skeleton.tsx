@@ -14,7 +14,7 @@ import { cn } from '../lib/cn';
  */
 export function Skeleton({ className = '', ...rest }: HTMLAttributes<HTMLDivElement>) {
   return (
-    <div className={cn('animate-pulse rounded-sm bg-surface-3', className)} aria-hidden {...rest} />
+    <div className={cn('exec-shimmer rounded-sm bg-surface-3', className)} aria-hidden {...rest} />
   );
 }
 
@@ -35,7 +35,7 @@ export function SkeletonRows({ rows = 4 }: { rows?: number }) {
 export function SkeletonCard({ lines = 3 }: { lines?: number }) {
   return (
     <div
-      className="grid gap-3 rounded-lg border border-line bg-surface p-4 shadow-1"
+      className="grid gap-3 rounded-xl border border-line bg-surface p-4 shadow-1"
       aria-busy="true"
       aria-live="polite"
     >

@@ -428,7 +428,7 @@ export function HelpArticleView({ locale, article }: { locale: Locale; article: 
       ) : null}
       <p className="back-link">
         <Link className="text-link" href={base}>
-          ← {t(locale, 'help.title')}
+          <span className="arrow-back" aria-hidden>←</span> {t(locale, 'help.title')}
         </Link>
       </p>
     </article>
@@ -476,7 +476,7 @@ export function ChangelogView({ locale, entries }: { locale: Locale; entries: Co
       )}
       <p className="back-link">
         <Link className="text-link" href={base}>
-          ← {t(locale, 'changelog.title')}
+          <span className="arrow-back" aria-hidden>←</span> {t(locale, 'changelog.title')}
         </Link>
       </p>
     </>
@@ -598,7 +598,7 @@ export function ArticleView({
       <ContentBlocks blocks={page.blocks} locale={locale} />
       <p className="back-link">
         <Link className="text-link" href={basePath}>
-          ← {baseLabel}
+          <span className="arrow-back" aria-hidden>←</span> {baseLabel}
         </Link>
       </p>
     </article>

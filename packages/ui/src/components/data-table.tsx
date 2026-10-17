@@ -238,11 +238,11 @@ export function DataTable<T>({
     [onSortChange, sort],
   );
 
-  const headerCell = `sticky top-0 z-10 bg-surface-2 font-bold text-[11px] tracking-wide text-muted whitespace-nowrap ${cellPad}`;
+  const headerCell = `sticky top-0 z-10 border-b border-line bg-surface-2 font-bold text-[10.5px] uppercase tracking-[0.055em] text-muted whitespace-nowrap ${cellPad}`;
 
   return (
     <div className={cn('grid gap-2', className)}>
-      <div className="w-full overflow-auto rounded-lg border border-line bg-surface shadow-1">
+      <div className="w-full overflow-auto rounded-xl border border-line bg-surface shadow-1">
         <table className="w-full border-collapse text-[13px]">
           <thead>
             <tr>

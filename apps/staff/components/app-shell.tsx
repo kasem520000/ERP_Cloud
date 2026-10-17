@@ -3,16 +3,76 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import {
+  Anchor,
+  BarChart3,
+  Boxes,
+  ChevronDown,
+  Factory,
+  Glasses,
+  HardHat,
+  Headset,
+  Home,
+  Landmark,
+  KeyRound,
+  LayoutDashboard,
+  LogOut,
+  Menu,
+  Pencil,
+  Scissors,
+  Search,
+  Settings,
+  ShoppingCart,
+  Smartphone,
+  ReceiptText,
+  Users,
+  Wallet,
+  X,
+  type LucideIcon,
+} from 'lucide-react';
 import { ThemeToggle } from '@erp/ui/theme';
 
 import { ApiError, apiData, apiPatch } from '../lib/api';
 import { useLang, type Lang } from '../lib/i18n';
 import { useSession } from '../lib/session';
-import { visibleModules, type ModuleNode, type ScreenGroup, type ScreenItem } from '../lib/navigation';
+import {
+  findScreenByHref,
+  visibleModules,
+  type ModuleNode,
+  type ScreenGroup,
+  type ScreenItem,
+} from '../lib/navigation';
 
 import { AssistantLauncher } from './assistant-launcher';
+import { Modal } from './ui/modal';
 import { ImpersonationBanner } from './impersonation-banner';
 import { NotificationBell } from './notification-bell';
+import { PageTransition } from './page-transition';
+
+/** Module identity is an icon, not an emoji — one weight, one size, both themes. */
+const MODULE_ICONS: Record<string, LucideIcon> = {
+  accounting: BarChart3,
+  inventory: Boxes,
+  purchases: ShoppingCart,
+  sales: ReceiptText,
+  tailoring: Scissors,
+  optics: Glasses,
+  hrm: Users,
+  marina: Anchor,
+  projects: HardHat,
+  settings: Settings,
+  support: Headset,
+  treasury: Landmark,
+  'employee-app': Smartphone,
+  manufacturing: Factory,
+  dashboards: LayoutDashboard,
+  'van-sales': Factory,
+};
+
+function ModuleIcon({ moduleKey }: { moduleKey: string }) {
+  const Icon = MODULE_ICONS[moduleKey] ?? LayoutDashboard;
+  return <Icon size={15} strokeWidth={1.8} aria-hidden />;
+}
 
 const label = (lang: Lang, item: { labelAr: string; labelEn: string }): string =>
   lang === 'ar' ? item.labelAr : item.labelEn;
@@ -231,14 +291,14 @@ function ModuleBlock({
         aria-expanded={expanded}
       >
         <span className="nav-icon" aria-hidden>
-          {module.icon}
+          <ModuleIcon moduleKey={module.key} />
         </span>
         <span className="nav-module-label">
           {label(lang, module)}
           <small>{lang === 'ar' ? module.labelEn : module.labelAr}</small>
         </span>
-        <span className="chev" aria-hidden>
-          {expanded ? '▾' : '◂'}
+        <span className={`chev ${expanded ? 'open' : ''}`} aria-hidden>
+          <ChevronDown size={13} strokeWidth={2} />
         </span>
       </button>
       {expanded && (
@@ -276,6 +336,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const { me, isPlatformAdmin, signOut, reload } = useSession();
   const { lang, t, setLang } = useLang();
   const pathname = usePathname() ?? '/';
+  const screenLabel = findScreenByHref(pathname)?.[lang === 'ar' ? 'labelAr' : 'labelEn'] ?? null;
   const [filter, setFilter] = useState('');
   const [mobileOpen, setMobileOpen] = useState(false);
   const [appGate, setAppGate] = useState<AppGate | null>(null);
@@ -515,7 +576,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             onClick={() => setMobileOpen(false)}
             aria-label={lang === 'ar' ? 'إغلاق القائمة الجانبية' : 'Close sidebar'}
           >
-            ✕
+            <X size={14} />
           </button>
         </div>
 
@@ -524,16 +585,24 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           onClick={() => setMobileOpen(false)}
           className={pathname === '/' ? 'nav-link home active' : 'nav-link home'}
         >
-          🏠 <span>{t('nav.home')}</span>
+          <Home size={16} strokeWidth={1.8} aria-hidden /> <span>{t('nav.home')}</span>
         </Link>
 
-        <input
-          className="nav-search"
-          value={filter}
-          onChange={(event) => setFilter(event.target.value)}
-          placeholder={t('nav.searchPlaceholder')}
-          aria-label={t('nav.searchPlaceholder')}
-        />
+        <label className="relative block">
+          <Search
+            size={14}
+            aria-hidden
+            className="pointer-events-none absolute inset-inline-start-3 top-1/2 -translate-y-1/2 opacity-70"
+            style={{ insetInlineStart: 12, top: 15 }}
+          />
+          <input
+            className="nav-search"
+            value={filter}
+            onChange={(event) => setFilter(event.target.value)}
+            placeholder={t('nav.searchPlaceholder')}
+            aria-label={t('nav.searchPlaceholder')}
+          />
+        </label>
 
         <nav className="nav" aria-label={t('nav.searchPlaceholder')}>
           {tree.map((module) => (
@@ -555,42 +624,58 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               onClick={() => setMobileOpen(false)}
               className={pathname.startsWith('/settings/marketplace') ? 'nav-link home active' : 'nav-link home'}
             >
-              🛒 <span>{lang === 'ar' ? 'سوق الإضافات والباقات' : 'Add-ons Marketplace'}</span>
+              <ShoppingCart size={16} strokeWidth={1.8} aria-hidden />{' '}
+              <span>{lang === 'ar' ? 'سوق الإضافات والباقات' : 'Add-ons Marketplace'}</span>
             </Link>
             <Link
               href="/support/help"
               onClick={() => setMobileOpen(false)}
               className={pathname.startsWith('/support/help') ? 'nav-link home active' : 'nav-link home'}
             >
-              🛟 <span>{lang === 'ar' ? 'طلب المساعدة والدعم' : 'Help & Support'}</span>
+              <Headset size={16} strokeWidth={1.8} aria-hidden />{' '}
+              <span>{lang === 'ar' ? 'طلب المساعدة والدعم' : 'Help & Support'}</span>
             </Link>
           </div>
         </nav>
+
+        <div className="side-workspace">
+          <span className="side-workspace-eyebrow">{lang === 'ar' ? 'مساحة العمل' : 'Workspace'}</span>
+          <strong>{me?.membership.tenantName ?? '—'}</strong>
+          <span className="side-workspace-meta" dir="ltr">
+            {me?.membership.tenantCode ?? '—'}
+            {me?.membership.isOwner ? (lang === 'ar' ? ' · مالك' : ' · Owner') : ''}
+          </span>
+          <div className="side-workspace-links">
+            <Link href="/settings/general" onClick={() => setMobileOpen(false)}>
+              <Settings size={13} aria-hidden /> {lang === 'ar' ? 'الإعدادات' : 'Settings'}
+            </Link>
+            <button type="button" onClick={() => void signOut()}>
+              <LogOut size={13} aria-hidden /> {t('nav.logout')}
+            </button>
+          </div>
+        </div>
       </aside>
 
       <main className="main">
         <ImpersonationBanner impersonation={me?.impersonation} lang={lang} />
         <header className="topbar">
-          <div className="row" style={{ alignItems: 'center' }}>
+          <div className="row" style={{ alignItems: 'center', gap: 10 }}>
             <button
               className="btn only-mobile"
               type="button"
               onClick={() => setMobileOpen(!mobileOpen)}
               aria-label={t('nav.searchPlaceholder')}
             >
-              ☰
+              <Menu size={17} />
             </button>
-            <div>
-              <strong>{me?.membership.tenantName ?? '—'}</strong>
-              <p className="muted" style={{ margin: 0 }}>
-                {me?.membership.tenantCode
-                  ? lang === 'ar'
-                    ? `رمز المنشأة: ${me.membership.tenantCode}`
-                    : `Tenant code: ${me.membership.tenantCode}`
-                  : '—'}
-                {me?.membership.isOwner ? (lang === 'ar' ? ' · مالك' : ' · Owner') : ''}
-                {isPlatformAdmin ? (lang === 'ar' ? ' · مدير منصة' : ' · Platform admin') : ''}
+            <div className="topbar-context">
+              <p className="topbar-eyebrow">
+                <span>{me?.membership.tenantName ?? '—'}</span>
+                <span aria-hidden>·</span>
+                <span dir="ltr">{me?.membership.tenantCode ?? '—'}</span>
+                {isPlatformAdmin ? <span className="badge planned">{lang === 'ar' ? 'مدير منصة' : 'Platform admin'}</span> : null}
               </p>
+              <strong>{screenLabel ?? t('nav.home')}</strong>
             </div>
           </div>
 
@@ -623,19 +708,23 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             <div ref={profileMenuRef} style={{ position: 'relative' }}>
               <button
                 type="button"
-                className="btn"
+                className="btn profile-trigger"
                 onClick={() => setProfileMenuOpen(!profileMenuOpen)}
                 aria-expanded={profileMenuOpen}
-                style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                aria-haspopup="menu"
               >
-                <span>👤</span>
-                <span>{me?.user.fullName || me?.user.email || 'حسابي'}</span>
-                <span aria-hidden>▾</span>
+                <span className="profile-avatar" aria-hidden>
+                  {(me?.user.fullName || me?.user.email || '؟').trim().slice(0, 1).toUpperCase()}
+                </span>
+                <span className="profile-name">{me?.user.fullName || me?.user.email || 'حسابي'}</span>
+                <ChevronDown size={13} aria-hidden />
               </button>
 
               {profileMenuOpen && (
                 <div
-                  className="card"
+                  className="card menu-pop"
+                  role="menu"
+                  aria-label="قائمة الحساب"
                   style={{
                     position: 'absolute',
                     insetInlineEnd: 0,
@@ -662,28 +751,28 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                       setProfileModalOpen(true);
                     }}
                   >
-                    ✏️ تعديل البيانات الشخصية والاسم
+                    <Pencil size={13} aria-hidden /> تعديل البيانات الشخصية والاسم
                   </button>
                   <Link
                     className="btn sm"
                     href="/settings/change-password"
                     onClick={() => setProfileMenuOpen(false)}
                   >
-                    🔑 تغيير كلمة المرور
+                    <Wallet size={13} aria-hidden /> تغيير كلمة المرور
                   </Link>
                   <Link
                     className="btn sm"
                     href="/settings/two-factor"
                     onClick={() => setProfileMenuOpen(false)}
                   >
-                    🔐 التحقق بخطوتين (2FA)
+                    <Settings size={13} aria-hidden /> التحقق بخطوتين (2FA)
                   </Link>
                   <Link
                     className="btn sm"
                     href="/settings/general"
                     onClick={() => setProfileMenuOpen(false)}
                   >
-                    ⚙️ الإعدادات العامة
+                    <Settings size={13} aria-hidden /> الإعدادات العامة
                   </Link>
                   <button
                     className="btn danger sm"
@@ -693,7 +782,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                       void signOut();
                     }}
                   >
-                    🚪 {t('nav.logout')}
+                    <LogOut size={13} aria-hidden /> {t('nav.logout')}
                   </button>
                 </div>
               )}
@@ -701,76 +790,62 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         </header>
 
-        {profileModalOpen && (
-          <div
-            role="dialog"
-            aria-modal="true"
-            style={{
-              position: 'fixed',
-              inset: 0,
-              background: 'rgba(15, 23, 42, 0.55)',
-              display: 'grid',
-              placeItems: 'center',
-              zIndex: 80,
-              padding: 16,
-            }}
-          >
-            <form
-              className="card"
-              onSubmit={saveProfileName}
-              style={{ width: '100%', maxWidth: 440, display: 'grid', gap: 12 }}
-            >
-              <div className="row" style={{ justifyContent: 'space-between' }}>
-                <h2 style={{ margin: 0 }}>👤 الملف الشخصي وإعدادات الحساب</h2>
-                <button type="button" className="btn sm" onClick={() => setProfileModalOpen(false)}>
-                  ✕
-                </button>
-              </div>
-              {profileNotice ? <p className="alert ok">{profileNotice}</p> : null}
-              <label className="field">
-                <span>الاسم الكامل</span>
-                <input
-                  className="input"
-                  required
-                  minLength={2}
-                  value={fullNameDraft}
-                  onChange={(e) => setFullNameDraft(e.target.value)}
-                />
-              </label>
-              <label className="field">
-                <span>البريد الإلكتروني</span>
-                <input className="input" dir="ltr" disabled value={me?.user.email ?? ''} />
-              </label>
-              <label className="field">
-                <span>المنشأة الحالية</span>
-                <input
-                  className="input"
-                  disabled
-                  value={`${me?.membership.tenantName ?? ''} (${me?.membership.tenantCode ?? ''})`}
-                />
-              </label>
-              <div className="row" style={{ justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
-                <Link
-                  className="btn sm"
-                  href="/settings/change-password"
-                  onClick={() => setProfileModalOpen(false)}
-                >
-                  🔑 تغيير كلمة المرور
-                </Link>
-                <div className="row" style={{ gap: 8 }}>
-                  <button type="button" className="btn" onClick={() => setProfileModalOpen(false)}>
-                    إغلاق
-                  </button>
-                  <button type="submit" className="btn primary" disabled={profileBusy}>
-                    {profileBusy ? 'جارٍ الحفظ…' : 'حفظ التعديلات'}
-                  </button>
-                </div>
-              </div>
-            </form>
-          </div>
-        )}
+        <Modal
+          open={profileModalOpen}
+          onClose={() => setProfileModalOpen(false)}
+          title="الملف الشخصي وإعدادات الحساب"
+          description="بيانات حسابك الحالية؛ يُسجَّل كل تغيير في سجل التدقيق."
+          size="md"
+          footer={
+            <>
+              <Link className="btn sm" href="/settings/change-password" onClick={() => setProfileModalOpen(false)}>
+                <KeyRound size={13} aria-hidden /> تغيير كلمة المرور
+              </Link>
+              <span className="flex-1" />
+              <button type="button" className="btn" onClick={() => setProfileModalOpen(false)}>
+                إغلاق
+              </button>
+              <button type="submit" form="profile-form" className="btn primary" disabled={profileBusy}>
+                {profileBusy ? 'جارٍ الحفظ…' : 'حفظ التعديلات'}
+              </button>
+            </>
+          }
+        >
+          <form id="profile-form" className="grid gap-3" onSubmit={saveProfileName}>
+            {profileNotice ? (
+              <p className={`alert ${profileNotice.includes('بنجاح') ? 'ok' : 'danger'}`} role="status">
+                {profileNotice}
+              </p>
+            ) : null}
+            <label className="field">
+              <span>الاسم الكامل</span>
+              <input
+                className="input"
+                required
+                minLength={2}
+                value={fullNameDraft}
+                onChange={(event) => setFullNameDraft(event.target.value)}
+              />
+            </label>
+            <label className="field">
+              <span>البريد الإلكتروني</span>
+              <input className="input" dir="ltr" disabled value={me?.user.email ?? ''} />
+            </label>
+            <label className="field">
+              <span>المنشأة الحالية</span>
+              <input
+                className="input"
+                disabled
+                value={`${me?.membership.tenantName ?? ''} (${me?.membership.tenantCode ?? ''})`}
+              />
+            </label>
+            <p className="m-0 text-[11.5px] leading-relaxed text-muted">
+              الاسم يظهر لزملاء المنشأة في سجل التدقيق وتعليقات الموافقات. لا يمكن تعديل البريد أو المنشأة من هنا.
+            </p>
+          </form>
+        </Modal>
 
-        {children}
+        <PageTransition>{children}</PageTransition>
       </main>
       <AssistantLauncher />
     </div>

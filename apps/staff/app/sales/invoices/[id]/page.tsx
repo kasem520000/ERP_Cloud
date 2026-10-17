@@ -326,7 +326,7 @@ export default function SalesInvoiceDetailPage() {
             className="absolute inset-0 pointer-events-none opacity-60"
             style={{
               backgroundImage:
-                'radial-gradient(90rem 26rem at 110% -30%, rgb(37 99 235 / 0.08), transparent 55%), radial-gradient(circle, var(--line-strong) 1px, transparent 1px)',
+                'radial-gradient(90rem 26rem at 110% -30%, rgb(11 122 99 / 0.08), transparent 55%), radial-gradient(circle, var(--line-strong) 1px, transparent 1px)',
               backgroundSize: 'auto, 16px 16px',
             }}
           />

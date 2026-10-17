@@ -499,7 +499,7 @@ function heatColor(retention: number | null): string {
   if (retention === null) return 'transparent';
   const t = Math.max(0, Math.min(1, retention / 100));
   const alpha = (0.04 + t * 0.4).toFixed(2);
-  return `rgb(124 58 237 / ${alpha})`;
+  return `rgb(201 162 39 / ${alpha})`;
 }
 
 function NoticeBox({ kind, text, className = '' }: { kind: 'ok' | 'danger'; text: string; className?: string }) {
@@ -618,7 +618,7 @@ function FunnelSection({
                       <motion.span
                         className="absolute inset-y-0 start-0 rounded-lg"
                         style={{
-                          background: 'linear-gradient(90deg, var(--color-chart-2) 0%, var(--color-violet-400) 100%)',
+                          background: 'linear-gradient(90deg, var(--color-chart-2) 0%, var(--color-gold-400) 100%)',
                           width: `${width}%`,
                         }}
                         initial={{ width: 0 }}

@@ -8,11 +8,11 @@ import { CountUp } from './count-up';
 export type MetricTone = 'violet' | 'green' | 'amber' | 'red' | 'sky' | 'slate';
 
 const TONES: Record<MetricTone, { accent: string; text: string }> = {
-  violet: { accent: 'var(--color-chart-2)', text: 'text-brand' },
-  green: { accent: 'var(--color-chart-3)', text: 'text-ok' },
-  amber: { accent: 'var(--color-chart-4)', text: 'text-warn' },
-  red: { accent: 'var(--color-chart-5)', text: 'text-danger' },
-  sky: { accent: 'var(--color-chart-6)', text: 'text-info' },
+  violet: { accent: 'var(--gold)', text: 'text-gold-ink' },
+  green: { accent: 'var(--brand)', text: 'text-brand' },
+  amber: { accent: 'var(--warn)', text: 'text-warn' },
+  red: { accent: 'var(--danger)', text: 'text-danger' },
+  sky: { accent: 'var(--info)', text: 'text-info' },
   slate: { accent: 'var(--muted)', text: 'text-muted' },
 };
 
@@ -61,12 +61,16 @@ export function MetricCard({
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: '-40px' }}
       transition={{ duration: 0.4, delay, ease: [0.16, 1, 0.3, 1] }}
-      className="relative overflow-hidden rounded-[10px] border border-line bg-surface p-4 shadow-1 transition-all duration-150 ease-out hover:-translate-y-0.5 hover:shadow-3"
+      className="exec-card relative overflow-hidden p-4"
     >
-      <span aria-hidden className="absolute inset-x-0 top-0 h-[2px]" style={{ background: `linear-gradient(90deg, ${toneDef.accent}, transparent 70%)` }} />
+      <span
+        aria-hidden
+        className="absolute inset-x-4 top-0 h-px"
+        style={{ background: `linear-gradient(90deg, transparent, ${toneDef.accent}, transparent)`, opacity: 0.6 }}
+      />
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="m-0 flex items-center gap-2 text-[11.5px] font-bold tracking-wide text-muted">
+          <p className="m-0 flex items-center gap-2 text-[10.5px] font-bold uppercase tracking-[0.09em] text-muted">
             {label}
             {live ? (
               <span className="relative inline-flex size-2 rounded-full bg-ok">
@@ -75,8 +79,8 @@ export function MetricCard({
             ) : null}
           </p>
           <p
-            className="m-0 mt-2 text-[26px] font-bold leading-none tracking-tight text-ink"
-            style={{ fontFamily: 'var(--font-mono)', fontVariantNumeric: 'tabular-nums' }}
+            className="m-0 mt-2 text-[27px] font-extrabold leading-none tracking-[-0.025em] text-ink"
+            style={{ fontFamily: 'var(--font-num)', fontVariantNumeric: 'tabular-nums' }}
             dir="ltr"
           >
             <CountUp value={value} />
@@ -84,7 +88,7 @@ export function MetricCard({
           </p>
         </div>
         {icon ? (
-          <span className={`grid size-9 flex-none place-items-center rounded-lg border border-line bg-surface-2 ${toneDef.text}`}>
+          <span className={`grid size-9 flex-none place-items-center rounded-[10px] border border-line/70 bg-surface-2 ${toneDef.text}`}>
             {icon}
           </span>
         ) : null}

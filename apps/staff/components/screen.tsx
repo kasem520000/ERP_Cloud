@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { FolderOpen, LockKeyhole } from 'lucide-react';
 import type { ReactNode } from 'react';
 
 import { findScreenByHref } from '../lib/navigation';
@@ -26,21 +27,22 @@ export function Screen({
     <div className="grid gap-4">
       <section className="flex flex-wrap items-end justify-between gap-3">
         <div className="min-w-0">
-          {crumbs && crumbs.length > 0 ? (
-            <nav className="flex flex-wrap items-center gap-1.5 text-[12px] font-bold text-muted" aria-label="المسار">
-              {crumbs.map((crumb, i) => (
-                <span key={`${crumb}-${i}`} className="flex items-center gap-1.5">
-                  {i > 0 ? <span aria-hidden>‹</span> : null}
-                  <span className={i === crumbs.length - 1 ? 'text-ink-2' : undefined}>{crumb}</span>
-                </span>
-              ))}
-            </nav>
-          ) : null}
-          <h1 className="m-0 mt-1 text-[24px] font-bold text-ink tracking-tight leading-tight">{title}</h1>
-          {subtitle ? <p className="m-0 mt-1 text-[13px] text-muted">{subtitle}</p> : null}
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="exec-eyebrow">{crumbs && crumbs.length > 0 ? crumbs[0] : 'Executive'}</span>
+            {crumbs && crumbs.length > 1 ? (
+              <span className="text-[11px] font-semibold text-muted">
+                / {crumbs.slice(1).join(' / ')}
+              </span>
+            ) : null}
+          </div>
+          <h1 className="m-0 mt-2 text-[25px] font-extrabold leading-tight tracking-[-0.03em] text-ink">
+            {title}
+          </h1>
+          {subtitle ? <p className="m-0 mt-1 max-w-2xl text-[12.5px] leading-relaxed text-muted">{subtitle}</p> : null}
         </div>
         {actions ? <div className="flex flex-wrap items-center gap-2 no-print">{actions}</div> : null}
       </section>
+      <div className="page-rule" aria-hidden />
       {children}
     </div>
   );
@@ -86,7 +88,9 @@ export function ErrorBox({ message, onRetry }: { message?: string; onRetry?: () 
 export function Forbidden() {
   return (
     <div className="rounded-xl border border-line bg-surface p-8 shadow-1 grid place-items-center text-center gap-2">
-      <span className="grid place-items-center size-12 rounded-2xl bg-warn-soft text-warn">🔒</span>
+      <span className="grid place-items-center size-12 rounded-2xl bg-warn-soft text-warn">
+        <LockKeyhole size={22} strokeWidth={1.7} aria-hidden />
+      </span>
       <p className="m-0 text-[15px] font-bold text-ink">لا تملك صلاحية الوصول</p>
       <p className="m-0 text-[13px] text-muted max-w-md">
         اطلب من مالك الحساب منحك الصلاحية المطلوبة من «صلاحيات المستخدمين».
@@ -98,7 +102,9 @@ export function Forbidden() {
 export function Empty({ title, detail }: { title: string; detail?: string }) {
   return (
     <div className="rounded-xl border border-line bg-surface p-8 shadow-1 grid place-items-center text-center gap-2">
-      <span className="grid place-items-center size-12 rounded-2xl bg-surface-3 text-muted">🗂️</span>
+      <span className="grid place-items-center size-12 rounded-2xl bg-surface-3 text-muted">
+        <FolderOpen size={22} strokeWidth={1.7} aria-hidden />
+      </span>
       <p className="m-0 text-[15px] font-bold text-ink">{title}</p>
       {detail ? <p className="m-0 text-[13px] text-muted max-w-md">{detail}</p> : null}
     </div>

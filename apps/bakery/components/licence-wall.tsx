@@ -1,5 +1,7 @@
 import { LICENCE_COPY } from '../lib/licence';
 
+import { BakeryLogoMark } from './module-icon';
+
 /**
  * جدار الترخيص — الرفضُ الصريح بدل نصف عمل.
  *
@@ -31,8 +33,8 @@ export function LicenceWall({
         role="alert"
         className={`grid w-full max-w-2xl gap-3 rounded-[12px] border p-6 shadow-1 ${tone}`}
       >
-        <span aria-hidden="true" className="text-[28px] leading-none">
-          🥖
+        <span aria-hidden="true" className="bak-wall-mark">
+          <BakeryLogoMark size={26} />
         </span>
         <h1 className="m-0 text-[19px] font-extrabold tracking-tight">{copy.title}</h1>
         <p className="m-0 text-[13.5px] leading-relaxed">{copy.body}</p>

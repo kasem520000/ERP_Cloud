@@ -134,29 +134,33 @@ export function Kpi({
       viewport={{ once: true, margin: '-40px' }}
       transition={{ duration: 0.3, delay, ease: [0.16, 1, 0.3, 1] }}
       className={cn(
-        'relative overflow-hidden rounded-lg border border-line bg-surface p-4 shadow-1',
-        'transition-[transform,box-shadow,border-color] duration-200 ease-out hover:-translate-y-0.5 hover:border-line-strong hover:shadow-3',
+        'exec-card relative overflow-hidden p-4',
         className,
       )}
     >
+      <span
+        aria-hidden
+        className="absolute inset-x-4 top-0 h-px"
+        style={{ background: `linear-gradient(90deg, transparent, ${TONE_SPARK[tone]}, transparent)`, opacity: 0.5 }}
+      />
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="m-0 flex items-center gap-1.5 text-[12.5px] font-bold text-muted">{title}</p>
-          <p className="num m-0 mt-1.5 text-[30px] leading-none font-bold tracking-tight text-ink">
+          <p className="m-0 flex items-center gap-1.5 text-[10.5px] font-bold uppercase tracking-[0.09em] text-muted">{title}</p>
+          <p className="num m-0 mt-2 text-[30px] leading-none font-extrabold tracking-[-0.025em] text-ink">
             {value}
           </p>
         </div>
         {icon ? (
-          <span className={cn('grid size-10 flex-none place-items-center rounded-lg', TONE_BOX[tone])}>
+          <span className={cn('grid size-10 flex-none place-items-center rounded-[11px] border border-line/70', TONE_BOX[tone])}>
             {icon}
           </span>
         ) : null}
       </div>
 
-      <div className="mt-3 flex items-end justify-between gap-2">
+      <div className="mt-3.5 flex items-end justify-between gap-2">
         <div className="min-w-0">
           {delta !== null && delta !== undefined ? (
-            <p className={cn('m-0 flex items-center gap-1 text-[12px] font-bold', arrowColor)}>
+            <p className={cn('m-0 flex items-center gap-1 text-[11.5px] font-bold', arrowColor)}>
               {direction > 0 ? (
                 <ArrowUpRight size={14} aria-hidden />
               ) : direction < 0 ? (
@@ -170,7 +174,7 @@ export function Kpi({
               ) : null}
             </p>
           ) : hint ? (
-            <p className="m-0 truncate text-[12px] font-medium text-muted">{hint}</p>
+            <p className="m-0 truncate text-[11.5px] font-medium text-muted">{hint}</p>
           ) : null}
         </div>
         {spark && spark.length > 1 ? (

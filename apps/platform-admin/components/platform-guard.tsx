@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { BellRing, LogOut, Menu, Search, X } from 'lucide-react';
 import { ThemeToggle } from '@erp/ui/theme';
 import type { SupportTicket } from '@erp/contracts';
 
@@ -11,6 +12,7 @@ import { groupForPath, visibleConsoleGroups, type ConsoleItem } from '../lib/nav
 import { useSession } from '../lib/session';
 import { useQuery } from '../lib/use-query';
 
+import { PageTransition } from './page-transition';
 import { Forbidden } from './screen';
 
 type AddonPendingRequest = {
@@ -105,7 +107,7 @@ export function PlatformGuard({ children }: { children: React.ReactNode }) {
               onClick={() => setDrawerOpen(false)}
               aria-label="إغلاق القائمة"
             >
-              ✕
+              <X size={14} />
             </button>
           )}
         </div>
@@ -153,7 +155,7 @@ export function PlatformGuard({ children }: { children: React.ReactNode }) {
               onClick={() => setDrawerOpen((open) => !open)}
               aria-label="إظهار القائمة"
             >
-              ☰
+              <Menu size={16} />
             </button>
             <nav className="crumbs" aria-label="موقعك في اللوحة">
               <Link href="/">المنصة</Link>
@@ -164,7 +166,7 @@ export function PlatformGuard({ children }: { children: React.ReactNode }) {
           <div className="row" style={{ alignItems: 'center' }}>
             <ThemeToggle compact />
             <button className="btn sm" type="button" onClick={() => setPaletteOpen(true)}>
-              🔍 بحث شامل <span className="muted small">Ctrl+K</span>
+              <Search size={14} aria-hidden /> بحث شامل <span className="muted small">Ctrl+K</span>
             </button>
             <Bell
               pendingActivations={overview.data?.pendingActivations ?? 0}
@@ -181,14 +183,14 @@ export function PlatformGuard({ children }: { children: React.ReactNode }) {
               {me?.user.fullName} · {me?.user.email}
             </span>
             <button className="btn sm" type="button" onClick={() => void signOut()}>
-              تسجيل الخروج
+              <LogOut size={14} aria-hidden /> تسجيل الخروج
             </button>
           </div>
         </header>
 
         {paletteOpen && <Omnibox onClose={() => setPaletteOpen(false)} />}
 
-        {children}
+        <PageTransition>{children}</PageTransition>
       </div>
     </div>
   );
@@ -280,11 +282,11 @@ function Bell({
           if (next) void loadNotifications();
         }}
       >
-        🔔 الإشعارات {totalCount > 0 ? `(${totalCount})` : '(0)'}
+        <BellRing size={14} aria-hidden /> الإشعارات {totalCount > 0 ? `(${totalCount})` : '(0)'}
       </button>
       {open && (
         <div
-          className="card"
+          className="card menu-pop"
           style={{
             position: 'absolute',
             insetInlineEnd: 0,

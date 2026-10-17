@@ -29,7 +29,7 @@ export function Card({
   return (
     <div
       className={cn(
-        'rounded-lg border border-line bg-surface text-ink',
+        'ui-panel rounded-xl border border-line bg-surface text-ink',
         variant === 'raised' ? 'shadow-3' : 'shadow-1',
         padded && 'p-4',
         hover &&
@@ -57,7 +57,10 @@ export function CardHeader({
   return (
     <div className={cn('mb-3 flex items-start justify-between gap-3', className)}>
       <div className="min-w-0">
-        <h3 className="m-0 truncate text-[15px] leading-snug font-bold text-ink">{title}</h3>
+        <h3 className="m-0 flex items-center gap-2 truncate text-[15px] leading-snug font-bold tracking-[-0.01em] text-ink">
+          <span aria-hidden className="size-1.5 flex-none rounded-full bg-gold" />
+          {title}
+        </h3>
         {subtitle ? <p className="m-0 mt-0.5 text-xs text-muted">{subtitle}</p> : null}
       </div>
       {action ? <div className="flex flex-none items-center gap-2">{action}</div> : null}

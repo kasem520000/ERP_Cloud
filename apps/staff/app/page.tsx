@@ -2,11 +2,14 @@
 
 import Link from 'next/link';
 import {
+  ArrowRight,
+  CalendarClock,
   CalendarDays,
   FilePlus2,
   LayoutDashboard,
   PackageSearch,
   ReceiptText,
+  ShieldAlert,
   ShoppingCart,
   TrendingDown,
   TrendingUp,
@@ -69,6 +72,51 @@ function dateLine(now = new Date()): { greg: string; hijri: string } {
 
 const SAR = (value: number) => money(value);
 
+/** A quiet count + link inside the action centre. No chart, no invented metric. */
+function ActionTile({
+  href,
+  icon,
+  label,
+  value,
+  hint,
+  tone,
+}: {
+  href: string;
+  icon: React.ReactNode;
+  label: string;
+  value: number;
+  hint: string;
+  tone: 'ok' | 'warn' | 'danger';
+}) {
+  const toneStyle =
+    tone === 'danger'
+      ? { color: 'var(--danger-ink)', background: 'var(--danger-soft)', borderColor: 'var(--danger-line)' }
+      : tone === 'warn'
+        ? { color: 'var(--warn-ink)', background: 'var(--warn-soft)', borderColor: 'var(--warn-line)' }
+        : { color: 'var(--ok-ink)', background: 'var(--ok-soft)', borderColor: 'var(--ok-line)' };
+
+  return (
+    <Link href={href} className="exec-press group flex items-center gap-3.5 px-5 py-4 hover:bg-surface-2">
+      <span
+        aria-hidden
+        className="grid size-10 flex-none place-items-center rounded-[11px] border"
+        style={toneStyle}
+      >
+        {icon}
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block text-[11px] font-bold uppercase tracking-[0.07em] text-muted">{label}</span>
+        <span className="mt-1 flex items-baseline gap-2">
+          <b className="num text-[21px] leading-none font-extrabold text-ink">{value}</b>
+          <span className="truncate text-[11px] font-medium text-muted">{hint}</span>
+        </span>
+      </span>
+      <ArrowRight size={14} className="arrow-forward flex-none text-muted" aria-hidden />
+    </Link>
+  );
+}
+
+
 export default function DashboardPage() {
   const { me, can } = useSession();
   const data = useDashboardData();
@@ -99,62 +147,53 @@ export default function DashboardPage() {
     <div className="grid gap-5">
       {/* ---------------------------------------------------- greeting */}
       <Reveal>
-        <section className="relative overflow-hidden rounded-2xl border border-line bg-surface p-5 shadow-1">
-          {/* dotted grid + gradient wash */}
-          <div
-            aria-hidden
-            className="absolute inset-0 pointer-events-none opacity-70"
-            style={{
-              backgroundImage:
-                'radial-gradient(110rem 34rem at 115% -20%, rgb(37 99 235 / 0.10), transparent 55%), radial-gradient(circle, var(--line-strong) 1px, transparent 1px)',
-              backgroundSize: 'auto, 18px 18px',
-            }}
-          />
-          <div className="relative flex flex-wrap items-center justify-between gap-4">
-            <div>
-              <h1 className="m-0 text-[26px] font-bold text-ink tracking-tight">
-                {greetingWord}، {firstName} <span aria-hidden>👋</span>
+        <section className="exec-hero p-6 sm:p-7">
+          <div className="exec-grain" aria-hidden />
+          <div className="relative flex flex-wrap items-start justify-between gap-6">
+            <div className="min-w-0">
+              <span className="exec-eyebrow">
+                {can('accounting.reports.view') ? 'الملخص التنفيذي' : 'لوحة المتابعة'}
+              </span>
+              <h1 className="m-0 mt-2 text-[27px] font-extrabold leading-tight tracking-[-0.03em] text-white sm:text-[32px]">
+                {greetingWord}، {firstName}
               </h1>
-              <p className="m-0 mt-1 text-[13px] text-muted flex flex-wrap items-center gap-x-3 gap-y-1">
+              <p className="m-0 mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12.5px] text-white/70">
                 <span className="inline-flex items-center gap-1.5">
-                  <CalendarDays size={14} className="text-brand-600" />
+                  <CalendarDays size={14} className="text-[#d2ad45]" aria-hidden />
                   {dates.greg}
                 </span>
-                {dates.hijri ? <span dir="rtl" className="text-muted">· {dates.hijri} هـ</span> : null}
+                {dates.hijri ? (
+                  <span className="inline-flex items-center gap-1.5 text-white/55">
+                    <span className="size-1 rounded-full bg-white/30" aria-hidden /> {dates.hijri} هـ
+                  </span>
+                ) : null}
+              </p>
+              <p className="m-0 mt-4 max-w-xl text-[12.5px] leading-relaxed text-white/60">
+                {data.status === 'success'
+                  ? 'نظرة موحّدة على المبيعات والتحصيل والمخزون، محدَّثة من قيودك المرحّلة.'
+                  : 'جارٍ تجهيز أرقامك من قيود الفترة الحالية…'}
               </p>
             </div>
-            <div className="flex flex-wrap gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               {can('sales.invoice.create') ? (
-                <Link
-                  href="/sales/invoices/new"
-                  className="inline-flex items-center gap-2 h-10 px-4 rounded-[10px] bg-brand-600 border border-brand-600 text-on-accent text-[13.5px] font-semibold shadow-2 hover:bg-brand-700 transition-all duration-150"
-                >
-                  <FilePlus2 size={16} />
+                <Link href="/sales/invoices/new" className="hero-btn hero-btn-primary">
+                  <FilePlus2 size={16} aria-hidden />
                   فاتورة جديدة
                 </Link>
               ) : null}
               {can('sales.view') ? (
-                <Link
-                  href="/sales/invoices"
-                  className="inline-flex items-center gap-2 h-10 px-4 rounded-[10px] bg-surface border border-line-strong text-ink-2 text-[13.5px] font-semibold shadow-1 hover:bg-surface-2 transition-all duration-150"
-                >
-                  <ReceiptText size={16} />
+                <Link href="/sales/invoices" className="hero-btn">
+                  <ReceiptText size={16} aria-hidden />
                   كل الفواتير
                 </Link>
               ) : null}
-              <Link
-                href="/reports/sales"
-                className="inline-flex items-center gap-2 h-10 px-4 rounded-[10px] bg-surface border border-line-strong text-ink-2 text-[13.5px] font-semibold shadow-1 hover:bg-surface-2 transition-all duration-150"
-              >
-                <TrendingUp size={16} />
+              <Link href="/reports/sales" className="hero-btn">
+                <TrendingUp size={16} aria-hidden />
                 تقارير المبيعات
               </Link>
               {can('dashboards.view') ? (
-                <Link
-                  href="/dashboards"
-                  className="inline-flex items-center gap-2 h-10 px-4 rounded-[10px] bg-surface border border-line-strong text-ink-2 text-[13.5px] font-semibold shadow-1 hover:bg-surface-2 transition-all duration-150"
-                >
-                  <LayoutDashboard size={16} />
+                <Link href="/dashboards" className="hero-btn hero-btn-ghost">
+                  <LayoutDashboard size={16} aria-hidden />
                   لوحاتي
                 </Link>
               ) : null}
@@ -166,6 +205,15 @@ export default function DashboardPage() {
       <UserDashboard />
 
       {/* -------------------------------------------------------- KPIs */}
+      <div className="flex items-end justify-between gap-3">
+        <div>
+          <span className="exec-eyebrow">المؤشرات الرئيسية</span>
+          <h2 className="m-0 mt-1 text-[18px] font-bold tracking-[-0.02em] text-ink">نبض المنشأة اليوم</h2>
+        </div>
+        <span className="hidden text-[11.5px] text-muted sm:inline">
+          {data.status === 'success' ? 'مقارنة بالفترة السابقة' : 'جارٍ التحديث…'}
+        </span>
+      </div>
       {data.status === 'loading' ? (
         <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 xl:grid-cols-4">
           {Array.from({ length: 4 }).map((_, i) => (
@@ -213,13 +261,62 @@ export default function DashboardPage() {
         </div>
       ) : null}
 
+      {/* ------------------------------------------------- action centre */}
+      {stats ? (
+        <Reveal delay={0.1}>
+          <section className="exec-card overflow-hidden">
+            <div className="grid grid-cols-1 divide-y divide-line sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+              <ActionTile
+                href="/sales/invoices"
+                icon={<ReceiptText size={17} />}
+                label="فواتير بانتظار التحصيل"
+                value={stats.unpaidInvoices}
+                hint={`${money(stats.receivable)} مستحقة`}
+                tone="warn"
+              />
+              <ActionTile
+                href="/inventory/below-minimum"
+                icon={<ShieldAlert size={17} />}
+                label="أصناف تحت الحد الأدنى"
+                value={stats.lowStockCount}
+                hint="تحتاج إعادة طلب"
+                tone={stats.lowStockCount > 0 ? 'danger' : 'ok'}
+              />
+              <ActionTile
+                href="/inventory/expiry"
+                icon={<CalendarClock size={17} />}
+                label="أصناف قريبة من الانتهاء"
+                value={stats.nearExpiryCount}
+                hint="خلال نافذة الصلاحية"
+                tone={stats.nearExpiryCount > 0 ? 'warn' : 'ok'}
+              />
+            </div>
+            <div className="flex flex-wrap items-center justify-between gap-2 border-t border-line bg-surface-2/60 px-5 py-3">
+              <span className="text-[11.5px] font-semibold text-muted">مركز الإجراءات — بنود تحتاج نظراً منك اليوم</span>
+              <div className="flex flex-wrap items-center gap-3 text-[11.5px] font-bold">
+                <Link className="inline-flex items-center gap-1 text-brand hover:underline" href="/approvals/inbox">
+                  صندوق الموافقات <ArrowRight size={12} className="arrow-forward" aria-hidden />
+                </Link>
+                <Link className="inline-flex items-center gap-1 text-muted hover:text-ink" href="/accounting/income-statement">
+                  قائمة الدخل <ArrowRight size={12} className="arrow-forward" aria-hidden />
+                </Link>
+                <Link className="inline-flex items-center gap-1 text-muted hover:text-ink" href="/accounting/trial-balance">
+                  ميزان المراجعة <ArrowRight size={12} className="arrow-forward" aria-hidden />
+                </Link>
+              </div>
+            </div>
+          </section>
+        </Reveal>
+      ) : null}
+
       {/* ------------------------------------------------------ charts */}
       <div className="grid gap-4 grid-cols-1 xl:grid-cols-5">
         <Reveal delay={0.15} className="xl:col-span-3">
-          <section className="rounded-xl border border-line bg-surface p-4 shadow-1 h-full">
+          <section className="exec-card h-full p-5">
             <header className="flex items-start justify-between gap-3 mb-2">
               <div>
-                <h3 className="m-0 text-[15px] font-bold text-ink">مبيعات آخر 7 أيام</h3>
+                <span className="exec-eyebrow">الأداء الزمني</span>
+                <h3 className="m-0 mt-1 text-[15.5px] font-bold tracking-tight text-ink">مبيعات آخر 7 أيام</h3>
                 <p className="m-0 mt-0.5 text-xs text-muted">إجمالي الفواتير المرحّلة (بالريال السعودي)</p>
               </div>
               <Badge tone="blue" dot>
@@ -235,10 +332,11 @@ export default function DashboardPage() {
         </Reveal>
 
         <Reveal delay={0.25} className="xl:col-span-2">
-          <section className="rounded-xl border border-line bg-surface p-4 shadow-1 h-full">
+          <section className="exec-card h-full p-5">
             <header className="flex items-start justify-between gap-3 mb-2">
               <div>
-                <h3 className="m-0 text-[15px] font-bold text-ink">المبيعات حسب الفرع</h3>
+                <span className="exec-eyebrow">التوزيع</span>
+                <h3 className="m-0 mt-1 text-[15.5px] font-bold tracking-tight text-ink">المبيعات حسب الفرع</h3>
                 <p className="m-0 mt-0.5 text-xs text-muted">توزيع الإيراد على الفروع</p>
               </div>
             </header>
@@ -267,11 +365,13 @@ export default function DashboardPage() {
       {/* ------------------------------------------------ mini tables */}
       <div className="grid gap-4 grid-cols-1 xl:grid-cols-2">
         <Reveal delay={0.3}>
-          <section className="rounded-xl border border-line bg-surface shadow-1">
+          <section className="exec-card overflow-hidden">
             <header className="flex items-center justify-between gap-3 px-4 pt-4 pb-2">
-              <h3 className="m-0 text-[15px] font-bold text-ink">أحدث الفواتير</h3>
-              <Link href="/sales/invoices" className="text-[12.5px] font-bold text-brand-600 hover:text-brand-700">
-                عرض الكل ←
+              <h3 className="m-0 flex items-center gap-2 text-[15.5px] font-bold tracking-tight text-ink">
+                <span className="size-1.5 rounded-full bg-[var(--gold)]" aria-hidden /> أحدث الفواتير
+              </h3>
+              <Link href="/sales/invoices" className="inline-flex items-center gap-1 text-[12.5px] font-bold text-brand-600 hover:text-brand-700">
+                عرض الكل <ArrowRight size={12} className="arrow-forward" aria-hidden />
               </Link>
             </header>
             {data.status === 'loading' ? (
@@ -321,11 +421,13 @@ export default function DashboardPage() {
         </Reveal>
 
         <Reveal delay={0.4}>
-          <section className="rounded-xl border border-line bg-surface shadow-1">
+          <section className="exec-card overflow-hidden">
             <header className="flex items-center justify-between gap-3 px-4 pt-4 pb-2">
-              <h3 className="m-0 text-[15px] font-bold text-ink">أصناف تحت الحد الأدنى</h3>
-              <Link href="/inventory/below-minimum" className="text-[12.5px] font-bold text-brand-600 hover:text-brand-700">
-                عرض الكل ←
+              <h3 className="m-0 flex items-center gap-2 text-[15.5px] font-bold tracking-tight text-ink">
+                <span className="size-1.5 rounded-full bg-[var(--danger)]" aria-hidden /> أصناف تحت الحد الأدنى
+              </h3>
+              <Link href="/inventory/below-minimum" className="inline-flex items-center gap-1 text-[12.5px] font-bold text-brand-600 hover:text-brand-700">
+                عرض الكل <ArrowRight size={12} className="arrow-forward" aria-hidden />
               </Link>
             </header>
             {data.status === 'loading' ? (

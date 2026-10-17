@@ -54,23 +54,30 @@ export function PortalShell({ children }: { children: ReactNode }) {
     <ProfileContext.Provider value={state}>
       <div className="portal">
         <aside className="card side">
-          <strong>{party?.name ?? 'بوابة العملاء'}</strong>
-          <p className="muted" style={{ margin: '4px 0 12px' }}>
-            <small>{company.nameAr || 'المورد'}</small>
-          </p>
-          {portalRoutes.map((route) => (
-            <Link href={route.href} key={route.key} style={pathname === route.href ? { background: '#eff6ff', color: 'var(--brand)' } : undefined}>
-              {route.labelAr}
-              <br />
-              <small>{route.labelEn}</small>
-            </Link>
-          ))}
-          <hr style={{ border: 0, borderTop: '1px solid var(--line)', margin: '12px 0' }} />
-          <p className="muted">
+          <div className="portal-identity">
+            <span className="portal-avatar" aria-hidden>
+              {(party?.name ?? 'ع').trim().slice(0, 1)}
+            </span>
+            <div>
+              <strong>{party?.name ?? 'بوابة العملاء'}</strong>
+              <small>{company.nameAr || 'المورد'}</small>
+            </div>
+          </div>
+          <nav className="portal-nav" aria-label="أقسام البوابة">
+            {portalRoutes.map((route) => (
+              <Link href={route.href} key={route.key} className={pathname === route.href ? 'active' : undefined}>
+                <span>
+                  {route.labelAr}
+                  <small>{route.labelEn}</small>
+                </span>
+              </Link>
+            ))}
+          </nav>
+          <div className="portal-balance">
             <small>الرصيد المستحق</small>
-          </p>
-          <div className="kpi" style={{ fontSize: 20 }}>
-            {moneyText(dueBalance)}
+            <div className="kpi" style={{ fontSize: 22 }}>
+              {moneyText(dueBalance)}
+            </div>
           </div>
           <button className="btn" type="button" onClick={logout} style={{ marginTop: 12, width: '100%' }}>
             تسجيل الخروج

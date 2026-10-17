@@ -9,6 +9,7 @@ import { useSession } from '@erp/web-core/session';
 
 import { BAKERY_APP_CODE } from '../lib/licence';
 import { BAKERY_MODULES, readyModules, visibleModules } from '../lib/navigation';
+import { BakeryModuleIcon } from '../components/module-icon';
 import { numberText } from '../lib/lookups';
 
 /** ملخّصُ لوحة الخطّ كما يرجعه الخادم — ولا رقمَ يُحسب هنا. */
@@ -277,7 +278,9 @@ export default function BakeryOverviewPage() {
             {modules.map((module) => (
               <article className="grid gap-2 rounded-lg border border-line bg-surface p-4 shadow-1" key={module.key}>
                 <div className="flex flex-wrap items-center gap-2">
-                  <span aria-hidden="true">{module.icon}</span>
+                  <span aria-hidden="true" className="bak-module-icon">
+                    <BakeryModuleIcon moduleKey={module.key} size={17} />
+                  </span>
                   <h2 className="m-0 text-[15px] font-extrabold text-ink">
                     {module.href ? (
                       <a className="text-ink underline-offset-4 hover:underline" href={module.href}>

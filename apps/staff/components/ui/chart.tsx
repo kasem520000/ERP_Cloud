@@ -128,7 +128,7 @@ export function BarCardChart({
         <CartesianGrid stroke={GRID} strokeDasharray="4 4" vertical={false} />
         <XAxis dataKey={xKey} tick={AXIS_TICK} tickLine={false} axisLine={false} tickMargin={8} />
         <YAxis tick={AXIS_TICK} tickLine={false} axisLine={false} width={44} tickFormatter={(v) => compact(Number(v))} />
-        <Tooltip content={<WhiteTooltip formatter={formatter} />} cursor={{ fill: 'rgb(37 99 235 / 0.06)' }} />
+        <Tooltip content={<WhiteTooltip formatter={formatter} />} cursor={{ fill: 'rgb(11 122 99 / 0.06)' }} />
         <Bar dataKey={dataKey} name={name ?? dataKey} fill={color} radius={[6, 6, 0, 0]} maxBarSize={38} animationDuration={DRAW_MS * 1000} />
       </BarChart>
     </ResponsiveContainer>

@@ -17,10 +17,10 @@ const system = (name: string) => new URL(`../../../packages/ui/src/components/${
  * | في المكوّن | في الطبقة |
  * |---|---|
  * | ‏`<table className="w-full border-collapse text-[13px]">` | ‏`.bak-table { font-size: 13px }` |
- * | ‏`headerCell = 'sticky top-0 z-10 bg-surface-2 font-bold text-[11px] tracking-wide text-muted whitespace-nowrap'` | ‏`.bak-table thead th { position: sticky; top: 0; z-index: 10; background: var(--surface-2); font-weight: 700; font-size: 11px; … }` |
+ * | ‏`headerCell = 'sticky top-0 z-10 border-b border-line bg-surface-2 font-bold text-[10.5px] uppercase tracking-[0.055em] text-muted whitespace-nowrap'` | ‏`.bak-table thead th { position: sticky; top: 0; z-index: 10; background: var(--surface-2); font-weight: 700; font-size: 10.5px; letter-spacing: 0.055em; text-transform: uppercase; … }` |
  * | ‏`cellPad = 'px-3 py-2.5'` (و`dense` ⇒ `'px-2.5 py-1.5'`) | ‏`padding: 10px 12px` (و`.bak-table--dense` ⇒ `6px 10px`) |
  * | ‏`zebra && index % 2 === 1 && 'bg-surface-2'` | ‏`tbody tr:nth-child(even) { background: var(--surface-2) }` |
- * | ‏غلافٌ `overflow-auto rounded-lg border border-line bg-surface shadow-1` | ‏`.bak-table-wrap` بالقيم نفسها من الرموز |
+ * | ‏غلافٌ `overflow-auto rounded-xl border border-line bg-surface shadow-1` | ‏`.bak-table-wrap` بالقيم نفسها من الرموز |
  *
  * ‏**ولا `hover` على الصفوف**: فالمكوّن يضع `transition-colors duration-150` على الصفّ بلا
  * ‏`hover:bg-*`، والطبقةُ تطابقه — فإضافةُ تأثيرٍ «أجمل» هنا تعني أنّ جدولين في التطبيق
@@ -47,7 +47,7 @@ describe('تشريحُ الجدول اليدويّ يطابق `DataTable` — و
 
     // ‏الرأسُ اللاصق ولونُه وحجمُه ووزنُه
     expect(component).toContain(
-      "const headerCell = `sticky top-0 z-10 bg-surface-2 font-bold text-[11px] tracking-wide text-muted whitespace-nowrap",
+      "const headerCell = `sticky top-0 z-10 border-b border-line bg-surface-2 font-bold text-[10.5px] uppercase tracking-[0.055em] text-muted whitespace-nowrap",
     );
     const th = layer.slice(layer.indexOf('.bak-table thead th'));
     const thBody = th.slice(0, th.indexOf('}'));
@@ -56,7 +56,9 @@ describe('تشريحُ الجدول اليدويّ يطابق `DataTable` — و
     expect(thBody).toContain('z-index: 10');
     expect(thBody).toContain('background: var(--surface-2)');
     expect(thBody).toContain('font-weight: 700');
-    expect(thBody).toContain('font-size: 11px');
+    expect(thBody).toContain('font-size: 10.5px');
+    expect(thBody).toContain('letter-spacing: 0.055em');
+    expect(thBody).toContain('text-transform: uppercase');
     expect(thBody).toContain('white-space: nowrap');
     expect(thBody).toContain('text-align: start'); // ‏RTL: «بدايةُ السطر» لا «اليسار»
 
@@ -94,7 +96,7 @@ describe('تشريحُ الجدول اليدويّ يطابق `DataTable` — و
   it('الغلافُ كغلاف المكوّن: تمريرٌ وحدودٌ ونصفُ قطرٍ وظلٌّ من الرموز', async () => {
     const { component, layer } = await read();
     expect(component).toContain(
-      'className="w-full overflow-auto rounded-lg border border-line bg-surface shadow-1"',
+      'className="w-full overflow-auto rounded-xl border border-line bg-surface shadow-1"',
     );
     const wrap = layer.slice(layer.indexOf('.bak-table-wrap'));
     const body = wrap.slice(0, wrap.indexOf('}'));
@@ -102,8 +104,8 @@ describe('تشريحُ الجدول اليدويّ يطابق `DataTable` — و
     expect(body).toContain('border: 1px solid var(--line)');
     expect(body).toContain('background: var(--surface)');
     expect(body).toContain('box-shadow: var(--shadow-1)');
-    // ‏و`rounded-lg` في النظام = ‏`--radius-lg` (قِيس في `tokens.css`) فلا رقمَ جديد.
-    expect(body).toContain('border-radius: var(--radius-lg)');
+    // ‏و`rounded-xl` في النظام = ‏`--radius-xl` (قِيس في `tokens.css`) فلا رقمَ جديد.
+    expect(body).toContain('border-radius: var(--radius-xl)');
     // ‏والطبقةُ كلّها من رموز النظام: لا لونَ ستّ عشريّ فيها (‏ADR-030).
     expect(layer).not.toMatch(/#[0-9a-fA-F]{3,8}\b/);
   });

@@ -29,8 +29,8 @@ import { toWesternDigits } from '../lib/format';
  */
 
 const FIELD_BASE =
-  'h-9 w-full rounded-md border border-line-strong bg-surface px-3 text-[13.5px] text-ink ' +
-  'transition-[border-color,box-shadow] duration-150 ease-out placeholder:text-muted ' +
+  'h-9 w-full rounded-[9px] border border-line-strong bg-surface px-3 text-[13.5px] text-ink ' +
+  'transition-[border-color,box-shadow,background-color] duration-150 ease-out placeholder:text-muted ' +
   'hover:border-line-raised focus:border-brand focus:ring-4 focus:ring-brand/20 focus:outline-none ' +
   'disabled:cursor-not-allowed disabled:border-line disabled:bg-surface-3 disabled:text-muted ' +
   'aria-[invalid=true]:border-danger aria-[invalid=true]:ring-danger/20';

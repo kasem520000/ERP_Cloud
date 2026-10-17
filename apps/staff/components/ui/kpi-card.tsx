@@ -78,28 +78,39 @@ export function KpiCard({ title, value, icon, tone = 'blue', delta, deltaLabel, 
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: '-40px' }}
       transition={{ duration: 0.4, delay, ease: [0.16, 1, 0.3, 1] }}
-      className="relative overflow-hidden rounded-xl border border-line bg-surface p-4 shadow-1 transition-all duration-150 ease-out hover:-translate-y-1 hover:shadow-4"
+      className="exec-card kpi-exec relative overflow-hidden p-4"
     >
+      <span
+        aria-hidden
+        className="absolute inset-x-4 top-0 h-px"
+        style={{ background: `linear-gradient(90deg, transparent, ${TONE_SPARK[tone]}, transparent)`, opacity: 0.5 }}
+      />
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="m-0 text-[12.5px] font-bold text-muted flex items-center gap-1.5">{title}</p>
-          <p className="m-0 mt-1.5 text-[32px] font-bold text-ink leading-none tracking-tight" style={{ fontVariantNumeric: 'tabular-nums' }}>
+          <p className="m-0 flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.08em] text-muted">{title}</p>
+          <p className="m-0 mt-2 text-[31px] font-extrabold leading-none tracking-[-0.02em] text-ink" style={{ fontVariantNumeric: 'tabular-nums' }}>
             {value}
           </p>
         </div>
-        <span className={`grid place-items-center size-11 rounded-xl flex-none ${TONE_BOX[tone]}`}>{icon}</span>
+        <span className={`grid size-10 flex-none place-items-center rounded-[11px] border border-line/70 ${TONE_BOX[tone]}`}>{icon}</span>
       </div>
 
-      <div className="mt-3 flex items-end justify-between gap-2">
+      <div className="mt-3.5 flex items-end justify-between gap-2">
         <div className="min-w-0">
           {delta !== null && delta !== undefined ? (
-            <p className="m-0 text-[12px] font-bold flex items-center gap-1" style={{ color: positive ? 'var(--ok)' : 'var(--danger)' }}>
-              {positive ? <ArrowUpRight size={14} /> : delta < 0 ? <ArrowDownRight size={14} /> : <Minus size={14} />}
+            <p
+              className="m-0 inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[11.5px] font-bold"
+              style={{
+                color: positive ? 'var(--ok-ink)' : 'var(--danger-ink)',
+                background: positive ? 'var(--ok-soft)' : 'var(--danger-soft)',
+              }}
+            >
+              {positive ? <ArrowUpRight size={13} /> : delta < 0 ? <ArrowDownRight size={13} /> : <Minus size={13} />}
               <span dir="ltr">{Math.abs(delta).toFixed(1)}%</span>
-              {deltaLabel ? <span className="text-muted font-medium">{deltaLabel}</span> : null}
+              {deltaLabel ? <span className="font-medium text-muted">{deltaLabel}</span> : null}
             </p>
           ) : hint ? (
-            <p className="m-0 text-[12px] text-muted font-medium truncate">{hint}</p>
+            <p className="m-0 truncate text-[11.5px] font-medium text-muted">{hint}</p>
           ) : null}
         </div>
         {spark && spark.length > 1 ? (
