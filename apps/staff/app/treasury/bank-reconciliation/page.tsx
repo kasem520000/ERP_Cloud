@@ -110,40 +110,40 @@ export default function BankReconciliationPage() {
   }
 
   return (
-    <Screen
+ <Screen
       title="⚖️ التسوية البنكية"
       subtitle="كشف البنك في اليسار، وما تم ربطه من دفترنا في اليمين. المطابقة association فقط ولا ترحّل قيداً جديداً."
       crumbs={['الخزينة', 'التغذية البنكية']}
       actions={<><Link className="btn sm" href="/treasury/bank-statements">كشوف الحساب</Link><button className="btn sm" type="button" onClick={() => window.print()}>🖨️ طباعة / PDF</button></>}
     >
-      <Notice notice={notice} />
-      <div className="card mb-4">
-        <FilterBar actions={<button className="btn primary" disabled={!manage || !effectiveStatementId || busy} type="button" onClick={() => void run(() => apiPost(`/treasury/bank-statements/${effectiveStatementId}/auto-match`, {}), 'اكتملت المطابقة التلقائية.')}>تشغيل المطابقة التلقائية</button>}>
-          <label className="field"><span>الحساب البنكي</span><select value={bankAccountId} onChange={(event) => chooseAccount(event.target.value)}><option value="">اختر الحساب</option>{(accounts.data ?? []).map((account) => <option key={account.id} value={account.id}>{account.bankName} — {account.accountNo ?? account.iban ?? account.id.slice(0, 8)}</option>)}</select></label>
-          <label className="field"><span>الكشف</span><select value={effectiveStatementId} onChange={(event) => setStatementId(event.target.value)}><option value="">اختر الكشف</option>{(statements.data ?? []).map((statement) => <option key={statement.id} value={statement.id}>{statement.periodFrom} — {statement.periodTo} ({statement.rowCount} حركة)</option>)}</select></label>
-          <label className="field"><span>من تاريخ، اختياري</span><input type="date" value={from} onChange={(event) => setFrom(event.target.value)} /></label>
-          <label className="field"><span>إلى تاريخ، اختياري</span><input type="date" value={to} onChange={(event) => setTo(event.target.value)} /></label>
-        </FilterBar>
-      </div>
+ <Notice notice={notice} />
+ <div className="card mb-4">
+ <FilterBar actions={<button className="btn primary" disabled={!manage || !effectiveStatementId || busy} type="button" onClick={() => void run(() => apiPost(`/treasury/bank-statements/${effectiveStatementId}/auto-match`, {}), 'اكتملت المطابقة التلقائية.')}>تشغيل المطابقة التلقائية</button>}>
+ <label className="field"><span>الحساب البنكي</span><select value={bankAccountId} onChange={(event) => chooseAccount(event.target.value)}><option value="">اختر الحساب</option>{(accounts.data ?? []).map((account) => <option key={account.id} value={account.id}>{account.bankName} — {account.accountNo ?? account.iban ?? account.id.slice(0, 8)}</option>)}</select></label>
+ <label className="field"><span>الكشف</span><select value={effectiveStatementId} onChange={(event) => setStatementId(event.target.value)}><option value="">اختر الكشف</option>{(statements.data ?? []).map((statement) => <option key={statement.id} value={statement.id}>{statement.periodFrom} — {statement.periodTo} ({statement.rowCount} حركة)</option>)}</select></label>
+ <label className="field"><span>من تاريخ، اختياري</span><input type="date" value={from} onChange={(event) => setFrom(event.target.value)} /></label>
+ <label className="field"><span>إلى تاريخ، اختياري</span><input type="date" value={to} onChange={(event) => setTo(event.target.value)} /></label>
+ </FilterBar>
+ </div>
 
-      <StatTiles>
-        <StatTile label="رصيد البنك" value={summary.data?.bankBalance ?? '—'} hint={summary.data?.currency ?? 'SAR'} />
-        <StatTile label="رصيد الدفاتر" value={summary.data?.ledgerBalance ?? '—'} hint={summary.data?.ledgerSource ?? '—'} />
-        <StatTile label="الفرق" value={summary.data?.difference ?? '—'} tone={summary.data?.difference === '0.0000' ? 'ok' : 'warn'} hint="البنك − الدفاتر" />
-        <StatTile label="حركات معلّقة" value={summary.data?.pendingLines ?? pending.length} tone={pending.length > 0 ? 'warn' : 'ok'} />
-      </StatTiles>
+ <StatTiles>
+ <StatTile label="رصيد البنك" value={summary.data?.bankBalance ?? '—'} hint={summary.data?.currency ?? 'SAR'} />
+ <StatTile label="رصيد الدفاتر" value={summary.data?.ledgerBalance ?? '—'} hint={summary.data?.ledgerSource ?? '—'} />
+ <StatTile label="الفرق" value={summary.data?.difference ?? '—'} tone={summary.data?.difference === '0.0000' ? 'ok' : 'warn'} hint="البنك − الدفاتر" />
+ <StatTile label="حركات معلّقة" value={summary.data?.pendingLines ?? pending.length} tone={pending.length > 0 ? 'warn' : 'ok'} />
+ </StatTiles>
 
-      <DocHead>
-        <DocField label="البنك">{summary.data?.bankName ?? '—'}</DocField>
-        <DocField label="الفترة"><span dir="ltr">{summary.data?.periodFrom ?? today()} — {summary.data?.periodTo ?? today()}</span></DocField>
-        <DocField label="إجمالي الحركات">{summary.data?.lineCount ?? lines.data?.length ?? 0}</DocField>
-        <DocField label="المطابقة">{summary.data?.matchedLines ?? matched.length}</DocField>
-      </DocHead>
+ <DocHead>
+ <DocField label="البنك">{summary.data?.bankName ?? '—'}</DocField>
+ <DocField label="الفترة"><span dir="ltr">{summary.data?.periodFrom ?? today()} — {summary.data?.periodTo ?? today()}</span></DocField>
+ <DocField label="إجمالي الحركات">{summary.data?.lineCount ?? lines.data?.length ?? 0}</DocField>
+ <DocField label="المطابقة">{summary.data?.matchedLines ?? matched.length}</DocField>
+ </DocHead>
 
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 mt-4">
-        <section className="card">
-          <div className="flex items-center justify-between gap-3 mb-3"><div><h2 className="m-0 text-[16px] font-bold">حركات كشف البنك</h2><p className="m-0 mt-1 text-[12px] text-muted">راجع السطر ثم طابقه أو تجاهله.</p></div><span className="status draft">{pending.length} معلّق</span></div>
-          <QueryView query={lines} empty="لا توجد حركات في هذا الكشف">
+ <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 mt-4">
+ <section className="card">
+ <div className="flex items-center justify-between gap-3 mb-3"><div><h2 className="m-0 text-[16px] font-bold">حركات كشف البنك</h2><p className="m-0 mt-1 text-[12px] text-muted">راجع السطر ثم طابقه أو تجاهله.</p></div><span className="status draft">{pending.length} معلّق</span></div>
+ <QueryView query={lines} empty="لا توجد حركات في هذا الكشف">
             {(rows) => <DataTable rows={rows.filter((line) => line.status !== 'matched')} rowKey={(row) => row.id} columns={[
               { key: 'date', header: 'التاريخ', cell: (row) => <span dir="ltr">{row.txnDate}</span> },
               { key: 'description', header: 'البيان', cell: (row) => <span title={row.reference ?? undefined}>{row.description || '—'}</span> },
@@ -151,12 +151,12 @@ export default function BankReconciliationPage() {
               { key: 'status', header: 'الحالة', cell: (row) => <span className={`status ${row.status === 'ignored' ? 'voided' : 'draft'}`}>{statusLabel(row.status)}</span> },
               { key: 'action', header: 'إجراء', cell: (row) => manage && row.status === 'pending' ? <div className="flex gap-1"><button className="btn sm" type="button" onClick={() => manualMatch(row)}>مطابقة</button><button className="btn sm" type="button" onClick={() => void run(() => apiPost(`/treasury/bank-statements/${effectiveStatementId}/lines/${row.id}/ignore`, {}), 'تم تجاهل الحركة.')}>تجاهل</button></div> : null },
             ]} />}
-          </QueryView>
-        </section>
+ </QueryView>
+ </section>
 
-        <section className="card">
-          <div className="flex items-center justify-between gap-3 mb-3"><div><h2 className="m-0 text-[16px] font-bold">ما تمت مطابقته في الدفاتر</h2><p className="m-0 mt-1 text-[12px] text-muted">الفواتير والسندات المرتبطة بالحركات البنكية.</p></div><span className="status posted">{matched.length} مطابق</span></div>
-          <DataTable rows={matched} rowKey={(row) => row.id} columns={[
+ <section className="card">
+ <div className="flex items-center justify-between gap-3 mb-3"><div><h2 className="m-0 text-[16px] font-bold">ما تمت مطابقته في الدفاتر</h2><p className="m-0 mt-1 text-[12px] text-muted">الفواتير والسندات المرتبطة بالحركات البنكية.</p></div><span className="status posted">{matched.length} مطابق</span></div>
+ <DataTable rows={matched} rowKey={(row) => row.id} columns={[
             { key: 'date', header: 'التاريخ', cell: (row) => <span dir="ltr">{row.txnDate}</span> },
             { key: 'description', header: 'البيان', cell: (row) => row.description || '—' },
             { key: 'amount', header: 'المبلغ', align: 'num', cell: (row) => row.amount },
@@ -164,8 +164,8 @@ export default function BankReconciliationPage() {
             { key: 'confidence', header: 'الثقة', cell: (row) => row.matchConfidence ? `${Math.round(Number(row.matchConfidence) * 100)}%` : 'يدوي' },
             { key: 'action', header: 'إجراء', cell: (row) => manage ? <button className="btn sm" type="button" onClick={() => void run(() => apiDelete(`/treasury/bank-statements/${effectiveStatementId}/lines/${row.id}/match`), 'أعيدت الحركة إلى المعلّق.')}>إلغاء المطابقة</button> : null },
           ]} />
-        </section>
-      </div>
-    </Screen>
+ </section>
+ </div>
+ </Screen>
   );
 }

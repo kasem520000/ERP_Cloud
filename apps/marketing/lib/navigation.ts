@@ -84,9 +84,16 @@ export function headerRoutes(): SiteRoute[] {
   return siteRoutes.filter((route) => route.nav);
 }
 
-/** مسارٌ في لغته: العربي بلا بادئة، والإنجليزي بـ`/en`. */
+/**
+ * مسارٌ في لغته: العربي بلا بادئة، والإنجليزي بـ`/en`.
+ *
+ * `bilingual: false` تعني «لا نظير إنجليزي لهذا المسار بعد» — فقائمة `/en` كانت تشير إلى
+ * `/en/pricing` و`/en/contact` و`/en/demo` وهي مسارات غير موجودة: الرابط يظهر سليماً في
+ * الترويسة ثم يفتح 404. المسار غير المترجَم يبقى على شكله العربي، وهو ما تفعله `article()`
+ * في التذييل أصلاً.
+ */
 export function routeHref(route: SiteRoute, locale: Locale): string {
-  if (locale === 'ar') return route.href;
+  if (locale === 'ar' || !route.bilingual) return route.href;
   return route.href === '/' ? '/en' : `/en${route.href}`;
 }
 

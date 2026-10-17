@@ -14,7 +14,7 @@ import {
 } from '../../../lib/whatsapp';
 
 /**
- * 📱 إعدادات واتساب — everything `Class/WhatsAppSender.cs` (267) kept inside itself.
+ * إعدادات واتساب — everything `Class/WhatsAppSender.cs` (267) kept inside itself.
  *
  * The desktop had no settings window for this at all: `Class/Session.cs` (L12-L31)
  * opened a Chrome profile on the cashier's machine and `WhatsAppSender.cs` drove it with
@@ -26,13 +26,13 @@ import {
  * A tenant on a server cannot scan a QR code, so the same questions are asked here, in
  * the desktop's own words wherever the desktop had words:
  *
- *   تفعيل — the gateway is off until someone switches it on.
- *   عنوان الواتساب — Meta's phone-number-id; what the QR scan used to supply.
- *   الرمز — the access token, written once and never shown again (masked as `****…`).
- *   رمز الدولة — «966» by default, for the tenant whose customers are elsewhere.
- *   📎 إرفاق الفاتورة — the desktop always did; here a tenant may want words only.
- *   🧪 محاكاة — so a demo tenant can press 💬 without a live WhatsApp number.
- *   🧪 اختبار + Logging — the desktop's answer was a message box that closed; here the
+ * تفعيل — the gateway is off until someone switches it on.
+ * عنوان الواتساب — Meta's phone-number-id; what the QR scan used to supply.
+ * الرمز — the access token, written once and never shown again (masked as `****…`).
+ * رمز الدولة — «966» by default, for the tenant whose customers are elsewhere.
+ * إرفاق الفاتورة — the desktop always did; here a tenant may want words only.
+ * محاكاة — so a demo tenant can press  without a live WhatsApp number.
+ * اختبار + Logging — the desktop's answer was a message box that closed; here the
  *     answer is kept on the row and printed under the buttons.
  */
 const blank: WhatsappSettingsView = {
@@ -104,66 +104,66 @@ export default function WhatsappSettingsPage() {
   };
 
   return (
-    <Screen
+ <Screen
       title="📱 إعدادات واتساب"
       subtitle="من أي رقم تخرج الرسائل، وبأي رمز، وإلى أي بلد يُضاف رقم العميل الناقص. 💬 «واتساب» على نافذة الفاتورة يقرأ هذه الإعدادات، ولا يُرسل منها إلا ما كان مفعّلاً."
       crumbs={['الإعدادات', 'واتساب']}
-      actions={<span className="chip">{saved.active ? 'مفعّل' : 'موقوف'}{saved.simulation ? ' · 🧪 محاكاة' : ''}</span>}
+      actions={<span className="chip">{saved.active ? 'مفعّل' : 'موقوف'}{saved.simulation ? ' · محاكاة' : ''}</span>}
     >
-      <Notice notice={notice} />
+ <Notice notice={notice} />
       {loading && (
-        <div className="card grid" aria-busy="true">
-          <p className="muted">جارٍ التحميل…</p>
-        </div>
+ <div className="card grid" aria-busy="true">
+ <p className="muted">جارٍ التحميل…</p>
+ </div>
       )}
 
-      <div className="card">
-        <h3>⚙️ الإعدادات</h3>
-        <div className="form-grid">
-          <div className="field">
-            <span>التفعيل</span>
-            <label className="check">
-              <input type="checkbox" checked={form.active} onChange={(event) => setField('active', event.target.checked)} />
-              <span>تفعيل إرسال الفواتير عبر واتساب</span>
-            </label>
-            <label className="check">
-              <input type="checkbox" checked={form.attachDocument} onChange={(event) => setField('attachDocument', event.target.checked)} />
-              <span>📎 إرفاق الفاتورة مع الرسالة</span>
-            </label>
-            <label className="check">
-              <input type="checkbox" checked={form.simulation} onChange={(event) => setField('simulation', event.target.checked)} />
-              <span>🧪 محاكاة (لا تُرسل رسالة حقيقية)</span>
-            </label>
-          </div>
-          <label className="field wide">
-            <span>عنوان الواتساب (Phone Number ID)</span>
-            <input dir="ltr" value={form.phoneNumberId} onChange={(event) => setField('phoneNumberId', event.target.value)} placeholder="109357128475620" />
-            <small className="muted">يأتي من لوحة Meta · وهو ما كان يعطيه مسح رمز QR في النسخة المكتبية.</small>
-          </label>
-          <label className="field">
-            <span>الرمز (Access Token)</span>
-            <input
+ <div className="card">
+ <h3>⚙️ الإعدادات</h3>
+ <div className="form-grid">
+ <div className="field">
+ <span>التفعيل</span>
+ <label className="check">
+ <input type="checkbox" checked={form.active} onChange={(event) => setField('active', event.target.checked)} />
+ <span>تفعيل إرسال الفواتير عبر واتساب</span>
+ </label>
+ <label className="check">
+ <input type="checkbox" checked={form.attachDocument} onChange={(event) => setField('attachDocument', event.target.checked)} />
+ <span>📎 إرفاق الفاتورة مع الرسالة</span>
+ </label>
+ <label className="check">
+ <input type="checkbox" checked={form.simulation} onChange={(event) => setField('simulation', event.target.checked)} />
+ <span>🧪 محاكاة (لا تُرسل رسالة حقيقية)</span>
+ </label>
+ </div>
+ <label className="field wide">
+ <span>عنوان الواتساب (Phone Number ID)</span>
+ <input dir="ltr" value={form.phoneNumberId} onChange={(event) => setField('phoneNumberId', event.target.value)} placeholder="109357128475620" />
+ <small className="muted">يأتي من لوحة Meta · وهو ما كان يعطيه مسح رمز QR في النسخة المكتبية.</small>
+ </label>
+ <label className="field">
+ <span>الرمز (Access Token)</span>
+ <input
               dir="ltr"
               type="password"
               value={token}
               placeholder={form.hasToken ? `محفوظ (${form.tokenMasked ?? '****'})` : 'يُكتب مرة واحدة ولا يُعرض'}
               onChange={(event) => setToken(event.target.value)}
             />
-          </label>
-          <label className="field">
-            <span>رمز الدولة</span>
-            <input dir="ltr" value={form.defaultCountryCode} onChange={(event) => setField('defaultCountryCode', event.target.value)} placeholder="966" />
-            <small className="muted">يُضاف إلى رقم العميل بعد حذف أصفاره الأولى — كان «966» ثابتاً في النسخة المكتبية.</small>
-          </label>
-          <label className="field wide">
-            <span>عنوان الخدمة</span>
-            <input dir="ltr" value={form.baseUrl} readOnly />
-            <small className="muted">WhatsApp Cloud API · لا يحتاج إلى متصفّح ولا إلى جهاز الكاشير.</small>
-          </label>
-        </div>
+ </label>
+ <label className="field">
+ <span>رمز الدولة</span>
+ <input dir="ltr" value={form.defaultCountryCode} onChange={(event) => setField('defaultCountryCode', event.target.value)} placeholder="966" />
+ <small className="muted">يُضاف إلى رقم العميل بعد حذف أصفاره الأولى — كان «966» ثابتاً في النسخة المكتبية.</small>
+ </label>
+ <label className="field wide">
+ <span>عنوان الخدمة</span>
+ <input dir="ltr" value={form.baseUrl} readOnly />
+ <small className="muted">WhatsApp Cloud API · لا يحتاج إلى متصفّح ولا إلى جهاز الكاشير.</small>
+ </label>
+ </div>
 
-        <div className="toolbar">
-          <button
+ <div className="toolbar">
+ <button
             type="button"
             className="btn primary"
             disabled={busy !== ''}
@@ -175,9 +175,9 @@ export default function WhatsappSettingsPage() {
               })
             }
           >
-            💾 حفظ
-          </button>
-          <button
+ 💾حفظ
+ </button>
+ <button
             type="button"
             className="btn"
             disabled={busy !== ''}
@@ -191,16 +191,16 @@ export default function WhatsappSettingsPage() {
               })
             }
           >
-            🧪 اختبار
-          </button>
+ 🧪اختبار
+ </button>
           {busy !== '' ? <span className="chip">…</span> : null}
-        </div>
+ </div>
 
-        <h4>Logging</h4>
-        <pre className="log" dir="ltr">
+ <h4>Logging</h4>
+ <pre className="log" dir="ltr">
           {(saved.lastTest?.lines ?? []).join('\n') || (saved.lastTest ? JSON.stringify(saved.lastTest, null, 2) : '— لم يُجرَ اختبار بعد —')}
-        </pre>
-      </div>
-    </Screen>
+ </pre>
+ </div>
+ </Screen>
   );
 }

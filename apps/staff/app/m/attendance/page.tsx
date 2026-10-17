@@ -89,61 +89,61 @@ export default function AttendancePage() {
   }
 
   return (
-    <section className="employee-card">
-      <h1>⏱️ تسجيل الحضور والانصراف</h1>
-      <p className="muted" style={{ margin: 0 }}>
-        اضغط على «حضور» عند بدء الدوام وعلى «انصراف» عند المغادرة. يتم التحقق تلقائياً من النطاق الجغرافي للفرع.
-      </p>
-      <div className="employee-actions" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}>
-        <button className="btn primary punch" type="button" disabled={busy} onClick={() => void punch('check_in')}>
-          ✅ تسجيل حضور
-        </button>
-        <button className="btn punch" type="button" disabled={busy} onClick={() => void punch('check_out')}>
-          🚪 تسجيل انصراف
-        </button>
-      </div>
+ <section className="employee-card">
+ <h1>⏱ تسجيل الحضور والانصراف</h1>
+ <p className="muted" style={{ margin: 0 }}>
+ اضغط على «حضور» عند بدء الدوام وعلى «انصراف» عند المغادرة. يتم التحقق تلقائياً من النطاق الجغرافي للفرع.
+ </p>
+ <div className="employee-actions" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}>
+ <button className="btn primary punch" type="button" disabled={busy} onClick={() => void punch('check_in')}>
+ ✅تسجيل حضور
+ </button>
+ <button className="btn punch" type="button" disabled={busy} onClick={() => void punch('check_out')}>
+ 🚪تسجيل انصراف
+ </button>
+ </div>
       {queued > 0 ? (
-        <button className="btn" type="button" disabled={busy} onClick={() => void sync()}>
-          🔄 مزامنة {queued} بصمة غير مرسلة
-        </button>
+ <button className="btn" type="button" disabled={busy} onClick={() => void sync()}>
+ 🔄مزامنة {queued} بصمة غير مرسلة
+ </button>
       ) : null}
       {message ? <p className="alert info">{message}</p> : null}
 
-      <div style={{ marginTop: 8 }}>
-        <h2 style={{ fontSize: 15, marginBottom: 8 }}>سجل حركات اليوم ({today.length})</h2>
+ <div style={{ marginTop: 8 }}>
+ <h2 style={{ fontSize: 15, marginBottom: 8 }}>سجل حركات اليوم ({today.length})</h2>
         {today.length === 0 ? (
-          <p className="muted">لم تُسجَّل أي حركة حضور أو انصراف اليوم بعد.</p>
+ <p className="muted">لم تُسجَّل أي حركة حضور أو انصراف اليوم بعد.</p>
         ) : (
-          <div className="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>الحركة</th>
-                  <th>الوقت</th>
-                  <th>النطاق الجغرافي</th>
-                </tr>
-              </thead>
-              <tbody>
+ <div className="table-wrap">
+ <table>
+ <thead>
+ <tr>
+ <th>الحركة</th>
+ <th>الوقت</th>
+ <th>النطاق الجغرافي</th>
+ </tr>
+ </thead>
+ <tbody>
                 {today.map((row) => (
-                  <tr key={row.id}>
-                    <td>
-                      <span className={`badge ${row.type === 'check_in' ? 'ok' : 'neutral'}`}>
+ <tr key={row.id}>
+ <td>
+ <span className={`badge ${row.type === 'check_in' ? 'ok' : 'neutral'}`}>
                         {row.type === 'check_in' ? 'حضور' : 'انصراف'}
-                      </span>
-                    </td>
-                    <td dir="ltr">{row.at ? new Date(row.at).toLocaleTimeString('ar-SA') : '—'}</td>
-                    <td>
-                      <span className={`badge ${row.status === 'valid' ? 'ok' : 'warn'}`}>
+ </span>
+ </td>
+ <td dir="ltr">{row.at ? new Date(row.at).toLocaleTimeString('ar-SA') : '—'}</td>
+ <td>
+ <span className={`badge ${row.status === 'valid' ? 'ok' : 'warn'}`}>
                         {row.status === 'valid' ? 'داخل النطاق' : 'خارج النطاق'}
-                      </span>
-                    </td>
-                  </tr>
+ </span>
+ </td>
+ </tr>
                 ))}
-              </tbody>
-            </table>
-          </div>
+ </tbody>
+ </table>
+ </div>
         )}
-      </div>
-    </section>
+ </div>
+ </section>
   );
 }

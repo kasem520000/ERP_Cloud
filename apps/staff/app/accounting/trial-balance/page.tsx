@@ -6,11 +6,11 @@ import { Empty, ErrorBox, Forbidden, Loading, Screen } from '../../../components
 import { StatTile, StatTiles } from '../../../components/ui';
 import { apiFetch } from '../../../lib/api';
 import { downloadCsv, type Account } from '../../../lib/accounts';
-import { money } from '../../../lib/lookups';
+import { money, statusLabel } from '../../../lib/lookups';
 import { useQuery } from '../../../lib/use-query';
 
 /**
- * ⚖️ ميزان المراجعة — `Form_WPF/frmRptBalances.xaml` («أرصدة الحسابات»).
+ * ميزان المراجعة — `Form_WPF/frmRptBalances.xaml` («أرصدة الحسابات»).
  *
  * The window is a filter panel beside a grid. The panel is
  * `الفروع — كل الفروع` · `الحساب الرئيسي` · `المندوب` ·
@@ -120,16 +120,16 @@ export default function TrialBalancePage() {
   const mains = (accounts.data ?? []).filter((account) => !(account.isPostable ?? true) || account.parentId == null);
 
   return (
-    <Screen
+ <Screen
       title="أرصدة الحسابات"
       subtitle="⚖️ ميزان المراجعة — افتتاحي · خلال الفترة المحددة · ختامي، من القيود المرحّلة فقط."
       crumbs={['المحاسبة', 'تقارير محاسبية']}
       actions={
-        <>
-          <button className="btn" type="button" onClick={() => window.print()} disabled={rows.length === 0}>
-            🖨️ طباعة
-          </button>
-          <button
+ <>
+ <button className="btn" type="button" onClick={() => window.print()} disabled={rows.length === 0}>
+ 🖨️طباعة
+ </button>
+ <button
             className="btn"
             type="button"
             disabled={rows.length === 0}
@@ -152,168 +152,168 @@ export default function TrialBalancePage() {
               )
             }
           >
-            📊 تصدير Excel
-          </button>
-          <button className="btn" type="button" onClick={trial.reload}>
-            🔄 تحديث
-          </button>
-        </>
+ 📊تصدير Excel
+ </button>
+ <button className="btn" type="button" onClick={trial.reload}>
+ 🔄تحديث
+ </button>
+ </>
       }
     >
-      <div className="card tight no-print">
-        <div className="row" style={{ flexWrap: 'wrap', alignItems: 'flex-end' }}>
-          <label className="field" style={{ margin: 0, minWidth: 220, flex: 1 }}>
-            <span>الحساب الرئيسي</span>
-            <select className="input" value={parentId} onChange={(event) => setParentId(event.target.value)}>
-              <option value="">كل الحسابات</option>
+ <div className="card tight no-print">
+ <div className="row" style={{ flexWrap: 'wrap', alignItems: 'flex-end' }}>
+ <label className="field" style={{ margin: 0, minWidth: 220, flex: 1 }}>
+ <span>الحساب الرئيسي</span>
+ <select className="input" value={parentId} onChange={(event) => setParentId(event.target.value)}>
+ <option value="">كل الحسابات</option>
               {mains.map((account) => (
-                <option key={account.id} value={account.id}>
+ <option key={account.id} value={account.id}>
                   {account.code} — {account.nameAr ?? ''}
-                </option>
+ </option>
               ))}
-            </select>
-          </label>
-          <label className="field" style={{ margin: 0, minWidth: 180 }}>
-            <span>الفرع</span>
-            <select className="input" value={branchId} onChange={(event) => setBranchId(event.target.value)} disabled={false}>
-              <option value="">كل الفروع</option>
+ </select>
+ </label>
+ <label className="field" style={{ margin: 0, minWidth: 180 }}>
+ <span>الفرع</span>
+ <select className="input" value={branchId} onChange={(event) => setBranchId(event.target.value)} disabled={false}>
+ <option value="">كل الفروع</option>
               {(branches.data ?? []).map((branch) => (
-                <option key={branch.id} value={branch.id}>
+ <option key={branch.id} value={branch.id}>
                   {branch.nameAr ?? branch.name ?? branch.id}
-                </option>
+ </option>
               ))}
-            </select>
-          </label>
-          <label className="field" style={{ margin: 0, minWidth: 180 }}>
-            <span>المندوب</span>
-            <select className="input" value={salesmanId} onChange={(event) => setSalesmanId(event.target.value)}>
-              <option value="">كل المندوبين</option>
+ </select>
+ </label>
+ <label className="field" style={{ margin: 0, minWidth: 180 }}>
+ <span>المندوب</span>
+ <select className="input" value={salesmanId} onChange={(event) => setSalesmanId(event.target.value)}>
+ <option value="">كل المندوبين</option>
               {(salesmen.data ?? []).map((salesman) => (
-                <option key={salesman.id} value={salesman.id}>
+ <option key={salesman.id} value={salesman.id}>
                   {salesman.name ?? salesman.fullName ?? salesman.id}
-                </option>
+ </option>
               ))}
-            </select>
-          </label>
-          <label className="field" style={{ margin: 0, width: 160 }}>
-            <span>من</span>
-            <input className="input" type="date" value={from} onChange={(event) => setFrom(event.target.value)} disabled={allPeriod} />
-          </label>
-          <label className="field" style={{ margin: 0, width: 160 }}>
-            <span>إلى</span>
-            <input className="input" type="date" value={to} onChange={(event) => setTo(event.target.value)} disabled={allPeriod} />
-          </label>
-          <button
+ </select>
+ </label>
+ <label className="field" style={{ margin: 0, width: 160 }}>
+ <span>من</span>
+ <input className="input" type="date" value={from} onChange={(event) => setFrom(event.target.value)} disabled={allPeriod} />
+ </label>
+ <label className="field" style={{ margin: 0, width: 160 }}>
+ <span>إلى</span>
+ <input className="input" type="date" value={to} onChange={(event) => setTo(event.target.value)} disabled={allPeriod} />
+ </label>
+ <button
             className="btn primary"
             type="button"
             onClick={() => setApplied({ parentId, branchId, salesmanId, from: allPeriod ? '' : from, to: allPeriod ? '' : to })}
           >
-            عرض
-          </button>
-        </div>
-        <div className="row" style={{ flexWrap: 'wrap', marginTop: 8 }}>
-          <label className="check">
-            <input type="checkbox" checked={allPeriod} onChange={(event) => setAllPeriod(event.target.checked)} />
-            كل الفترة
-          </label>
-        </div>
-      </div>
+ عرض
+ </button>
+ </div>
+ <div className="row" style={{ flexWrap: 'wrap', marginTop: 8 }}>
+ <label className="check">
+ <input type="checkbox" checked={allPeriod} onChange={(event) => setAllPeriod(event.target.checked)} />
+ كل الفترة
+ </label>
+ </div>
+ </div>
 
       {trial.status === 'loading' && <Loading />}
       {trial.status === 'forbidden' && <Forbidden />}
       {trial.status === 'error' && <ErrorBox message={trial.error} onRetry={trial.reload} />}
       {trial.status === 'success' && (
-        <>
-          <StatTiles>
-            <StatTile label="حركة مدين" value={money(totals.debit)} tone="ok" />
-            <StatTile label="حركة دائن" value={money(totals.credit)} tone="brand" />
-            <StatTile label="رصيد ختامي مدين" value={money(totals.closingDebit)} />
-            <StatTile label="رصيد ختامي دائن" value={money(totals.closingCredit)} />
-            <StatTile
+ <>
+ <StatTiles>
+ <StatTile label="حركة مدين" value={money(totals.debit)} tone="ok" />
+ <StatTile label="حركة دائن" value={money(totals.credit)} tone="brand" />
+ <StatTile label="رصيد ختامي مدين" value={money(totals.closingDebit)} />
+ <StatTile label="رصيد ختامي دائن" value={money(totals.closingCredit)} />
+ <StatTile
               label="الرصيد"
               value={money(totals.balance)}
               hint={totals.status || undefined}
               tone={totals.balanced ? 'ok' : 'warn'}
             />
-          </StatTiles>
+ </StatTiles>
 
           {rows.length === 0 ? (
-            <Empty title="لا توجد حركة مرحّلة" detail="سجّل قيداً واحداً على الأقل ليظهر ميزان المراجعة." />
+ <Empty title="لا توجد حركة مرحّلة" detail="سجّل قيداً واحداً على الأقل ليظهر ميزان المراجعة." />
           ) : (
-            <div className="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th rowSpan={2}>الحساب</th>
-                    <th rowSpan={2}>اسم الحساب</th>
-                    <th colSpan={2} className="num">
-                      افتتاحي
-                    </th>
-                    <th colSpan={2} className="num">
-                      خلال الفترة المحددة
-                    </th>
-                    <th colSpan={2} className="num">
-                      الرصيد
-                    </th>
-                    <th colSpan={2} className="num">
-                      ختامي
-                    </th>
-                    <th rowSpan={2}>الحالة</th>
-                    <th rowSpan={2} className="no-print" />
-                  </tr>
-                  <tr>
-                    <th className="num">مدين</th>
-                    <th className="num">دائن</th>
-                    <th className="num">مدين</th>
-                    <th className="num">دائن</th>
-                    <th className="num">مدين</th>
-                    <th className="num">دائن</th>
-                    <th className="num">مدين</th>
-                    <th className="num">دائن</th>
-                  </tr>
-                </thead>
-                <tbody>
+ <div className="table-wrap">
+ <table>
+ <thead>
+ <tr>
+ <th rowSpan={2}>الحساب</th>
+ <th rowSpan={2}>اسم الحساب</th>
+ <th colSpan={2} className="num">
+ افتتاحي
+ </th>
+ <th colSpan={2} className="num">
+ خلال الفترة المحددة
+ </th>
+ <th colSpan={2} className="num">
+ الرصيد
+ </th>
+ <th colSpan={2} className="num">
+ ختامي
+ </th>
+ <th rowSpan={2}>الحالة</th>
+ <th rowSpan={2} className="no-print" />
+ </tr>
+ <tr>
+ <th className="num">مدين</th>
+ <th className="num">دائن</th>
+ <th className="num">مدين</th>
+ <th className="num">دائن</th>
+ <th className="num">مدين</th>
+ <th className="num">دائن</th>
+ <th className="num">مدين</th>
+ <th className="num">دائن</th>
+ </tr>
+ </thead>
+ <tbody>
                   {rows.map((row) => (
-                    <tr key={row.accountId}>
-                      <td dir="ltr">{row.code}</td>
-                      <td>{row.name}</td>
-                      <td className="num">{money(row.openingDebit)}</td>
-                      <td className="num">{money(row.openingCredit)}</td>
-                      <td className="num">{money(row.debit)}</td>
-                      <td className="num">{money(row.credit)}</td>
-                      <td className="num">{money(row.balanceDebit)}</td>
-                      <td className="num">{money(row.balanceCredit)}</td>
-                      <td className="num">{money(row.closingDebit)}</td>
-                      <td className="num">{money(row.closingCredit)}</td>
-                      <td>{row.status}</td>
-                      <td className="no-print">
-                        <a className="btn sm" href={`/accounting/ledger?account=${row.accountId}`}>
-                          تفاصيل
-                        </a>
-                      </td>
-                    </tr>
+ <tr key={row.accountId}>
+ <td dir="ltr">{row.code}</td>
+ <td>{row.name}</td>
+ <td className="num">{money(row.openingDebit)}</td>
+ <td className="num">{money(row.openingCredit)}</td>
+ <td className="num">{money(row.debit)}</td>
+ <td className="num">{money(row.credit)}</td>
+ <td className="num">{money(row.balanceDebit)}</td>
+ <td className="num">{money(row.balanceCredit)}</td>
+ <td className="num">{money(row.closingDebit)}</td>
+ <td className="num">{money(row.closingCredit)}</td>
+ <td>{statusLabel(row.status)}</td>
+ <td className="no-print">
+ <a className="btn sm" href={`/accounting/ledger?account=${row.accountId}`}>
+ تفاصيل
+ </a>
+ </td>
+ </tr>
                   ))}
-                </tbody>
-                <tfoot>
-                  <tr>
-                    <th colSpan={2}>المجموع</th>
-                    <th className="num">{money(totals.openingDebit)}</th>
-                    <th className="num">{money(totals.openingCredit)}</th>
-                    <th className="num">{money(totals.debit)}</th>
-                    <th className="num">{money(totals.credit)}</th>
-                    <th className="num">{money(totals.balanceDebit)}</th>
-                    <th className="num">{money(totals.balanceCredit)}</th>
-                    <th className="num">{money(totals.closingDebit)}</th>
-                    <th className="num">{money(totals.closingCredit)}</th>
-                    <th>{totals.status || '—'}</th>
-                    <th className="no-print" />
-                  </tr>
-                </tfoot>
-              </table>
-            </div>
+ </tbody>
+ <tfoot>
+ <tr>
+ <th colSpan={2}>المجموع</th>
+ <th className="num">{money(totals.openingDebit)}</th>
+ <th className="num">{money(totals.openingCredit)}</th>
+ <th className="num">{money(totals.debit)}</th>
+ <th className="num">{money(totals.credit)}</th>
+ <th className="num">{money(totals.balanceDebit)}</th>
+ <th className="num">{money(totals.balanceCredit)}</th>
+ <th className="num">{money(totals.closingDebit)}</th>
+ <th className="num">{money(totals.closingCredit)}</th>
+ <th>{totals.status || '—'}</th>
+ <th className="no-print" />
+ </tr>
+ </tfoot>
+ </table>
+ </div>
           )}
-        </>
+ </>
       )}
-    </Screen>
+ </Screen>
   );
 }

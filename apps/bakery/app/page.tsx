@@ -116,51 +116,51 @@ export default function BakeryOverviewPage() {
   const pendingClosings = rep?.custody?.pendingClosings ?? 0;
 
   return (
-    <section className="grid gap-4">
-      <header className="flex flex-wrap items-end justify-between gap-3">
-        <div className="min-w-0">
-          <h1 className="m-0 text-[24px] font-extrabold leading-tight tracking-tight text-ink">
-            المخابز: الإنتاج والتوزيع
-          </h1>
-          <p className="m-0 mt-1 text-[13px] text-muted">
+ <section className="grid gap-4">
+ <header className="flex flex-wrap items-end justify-between gap-3">
+ <div className="min-w-0">
+ <h1 className="m-0 text-[24px] font-extrabold leading-tight tracking-tight text-ink">
+ المخابز: الإنتاج والتوزيع
+ </h1>
+ <p className="m-0 mt-1 text-[13px] text-muted">
             {me?.membership.tenantName ?? me?.membership.displayName ?? 'المنشأة'} ·{' '}
-            <span dir="ltr">{me?.membership.tenantCode}</span> — واجهةُ قطاع المخابز والتوزيع{' '}
-            على النظام نفسه: بلا سجلّاتٍ موازية ولا دفاترَ ثانية.
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <Badge dot status="active" title="الباقةُ القطاعية مفعَّلةٌ لمنشأتك — وتُقرأ من جلسة دخولك">
-            مرخَّصة: <span dir="ltr">{BAKERY_APP_CODE}</span>
-          </Badge>
+ <span dir="ltr">{me?.membership.tenantCode}</span> — واجهةُ قطاع المخابز والتوزيع{' '}
+ على النظام نفسه: بلا سجلّاتٍ موازية ولا دفاترَ ثانية.
+ </p>
+ </div>
+ <div className="flex flex-wrap items-center gap-2">
+ <Badge dot status="active" title="الباقةُ القطاعية مفعَّلةٌ لمنشأتك — وتُقرأ من جلسة دخولك">
+ مرخَّصة: <span dir="ltr">{BAKERY_APP_CODE}</span>
+ </Badge>
           {repScoped ? (
-            <Badge dot status="pending" title="بطاقةُ مندوبٍ مربوطةٌ بالعضوية وبلا إذنِ إدارةِ الخطّ">
-              حسابُ مندوب{rep?.salesmanName ? `: ${rep.salesmanName}` : ''}
-            </Badge>
+ <Badge dot status="pending" title="بطاقةُ مندوبٍ مربوطةٌ بالعضوية وبلا إذنِ إدارةِ الخطّ">
+ حسابُ مندوب{rep?.salesmanName ? `: ${rep.salesmanName}` : ''}
+ </Badge>
           ) : (
-            <Badge status={built.length === modules.length ? 'active' : 'pending'}>
+ <Badge status={built.length === modules.length ? 'active' : 'pending'}>
               {built.length} من {modules.length} وحدة مبنيّة
-            </Badge>
+ </Badge>
           )}
-          <Button onClick={() => void reload()} size="sm">
-            تحديث الترخيص
-          </Button>
-        </div>
-      </header>
+ <Button onClick={() => void reload()} size="sm">
+ تحديث الترخيص
+ </Button>
+ </div>
+ </header>
 
-      <Card>
-        <CardHeader
+ <Card>
+ <CardHeader
           action={
             state === 'ready' ? (
-              <div className="flex items-center gap-2">
+ <div className="flex items-center gap-2">
                 {repScoped ? (
-                  <Link className="bak-badge ok" href="/rep">
-                    فتح تطبيق المندوب
-                  </Link>
+ <Link className="bak-badge ok" href="/rep">
+ فتح تطبيق المندوب
+ </Link>
                 ) : null}
-                <Button onClick={() => void load()} size="sm" variant="ghost">
-                  تحديث الأرقام
-                </Button>
-              </div>
+ <Button onClick={() => void load()} size="sm" variant="ghost">
+ تحديث الأرقام
+ </Button>
+ </div>
             ) : null
           }
           subtitle={
@@ -170,84 +170,84 @@ export default function BakeryOverviewPage() {
           }
           title={repScoped ? 'أرقامُك أنت' : 'أرقامُ الخطّ'}
         />
-        <CardBody>
+ <CardBody>
           {!canVan ? (
-            <EmptyState
+ <EmptyState
               description="لا تملك صلاحيةَ قراءة أرقام الخطّ، فلا تُعرض — ولا تُعرض أصفارٌ مكانها."
-              icon={<span aria-hidden>🔒</span>}
+              icon={<BakeryModuleIcon moduleKey="overview" size={22} />}
               title="بلا صلاحيةٍ لقراءة الخطّ"
             />
           ) : state === 'loading' ? (
-            <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-6">
+ <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-6">
               {Array.from({ length: 6 }).map((_, index) => (
-                <SkeletonCard key={index} lines={2} />
+ <SkeletonCard key={index} lines={2} />
               ))}
-            </div>
+ </div>
           ) : state === 'error' ? (
-            <EmptyState
+ <EmptyState
               action={
-                <Button onClick={() => void load()} size="sm">
-                  إعادة المحاولة
-                </Button>
+ <Button onClick={() => void load()} size="sm">
+ إعادة المحاولة
+ </Button>
               }
               description={error}
-              icon={<span aria-hidden>⚠️</span>}
+              icon={<BakeryModuleIcon moduleKey="production" size={22} />}
               title="تعذّر تحميل الأرقام"
               tone="danger"
             />
           ) : repScoped ? (
-            <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-5">
-              <Kpi hint="مستنداتُك كلّها، والمرتجعُ مخصوم" title="إيرادُك" tone="brand" value={repValue('revenue')} />
-              <Kpi hint="طريقةُ الدفع نقدًا" title="نقديّ" tone="ok" value={repValue('cashSales')} />
-              <Kpi
+ <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-5">
+ <Kpi hint="مستنداتُك كلّها، والمرتجعُ مخصوم" title="إيرادُك" tone="brand" value={repValue('revenue')} />
+ <Kpi hint="طريقةُ الدفع نقدًا" title="نقديّ" tone="ok" value={repValue('cashSales')} />
+ <Kpi
                 hint="ما ليس نقدًا — ومنه البطاقة"
                 title="آجل"
                 tone={Number(repValue('creditSales')) > 0 ? 'warn' : 'neutral'}
                 value={repValue('creditSales')}
               />
-              <Kpi hint="سنداتُ قبضٍ مُرحّلة" title="محصَّل" tone="ok" value={repValue('collected')} />
-              <Kpi
+ <Kpi hint="سنداتُ قبضٍ مُرحّلة" title="محصَّل" tone="ok" value={repValue('collected')} />
+ <Kpi
                 hint="بعد خصم الإشعارات الدائنة"
                 title="ذممٌ عليك تحصيلُها"
                 tone={Number(repValue('outstanding')) > 0 ? 'warn' : 'ok'}
                 value={repValue('outstanding')}
               />
-              <Kpi hint="على أساس ما استُلم فعلًا" title="عهدتُك (كجم)" tone="neutral" value={custodyKg} />
-              <Kpi
+ <Kpi hint="على أساس ما استُلم فعلًا" title="عهدتُك (كجم)" tone="neutral" value={custodyKg} />
+ <Kpi
                 hint={pendingClosings > 0 ? 'بانتظار اعتماد المحاسب' : 'لا إقفالَ معلّق'}
                 title="إقفالاتٌ معلّقة"
                 tone={pendingClosings > 0 ? 'warn' : 'ok'}
                 value={String(pendingClosings)}
               />
-            </div>
+ </div>
           ) : (
-            <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-6">
-              <Kpi
+ <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-6">
+ <Kpi
                 hint={`صافي المرتجعات؛ الإجماليُّ قبلها ${value('totalSalesGrossSar')}`}
                 title="صافي المبيعات"
                 tone="brand"
                 value={value('totalRevenueSar')}
               />
-              <Kpi
+ <Kpi
                 hint="مرتجعاتٌ وضريبتُها مخصومتان من الإجمالي"
                 title="المرتجعات"
                 tone={Number(value('totalReturnsSar')) > 0 ? 'warn' : 'neutral'}
                 value={value('totalReturnsSar')}
               />
-              <Kpi hint="سنداتُ قبضٍ مُرحّلة" title="المحصَّل نقدًا" tone="ok" value={value('totalCollectedCashSar')} />
-              <Kpi
+ <Kpi hint="سنداتُ قبضٍ مُرحّلة" title="المحصَّل نقدًا" tone="ok" value={value('totalCollectedCashSar')} />
+ <Kpi
                 hint="بعد خصم الإشعارات الدائنة"
                 title="ذممٌ غير محصّلة"
                 tone={Number(value('totalCreditReceivablesSar')) > 0 ? 'warn' : 'ok'}
                 value={value('totalCreditReceivablesSar')}
               />
-              <Kpi
+ <Kpi
                 hint="عهدةٌ مفتوحة في سيارات التوزيع"
                 title="في السيارات الآن"
                 tone="neutral"
                 value={`${value('remainingInVansKg')} كجم`}
               />
-              <Kpi
+ <Kpi
                 hint={
                   Number(value('pendingClosingsCount')) > 0
                     ? 'إقفالاتٌ بانتظار اعتماد المحاسب'
@@ -257,13 +257,13 @@ export default function BakeryOverviewPage() {
                 tone={Number(value('pendingClosingsCount')) > 0 ? 'warn' : 'ok'}
                 value={value('pendingClosingsCount')}
               />
-            </div>
+ </div>
           )}
-        </CardBody>
-      </Card>
+ </CardBody>
+ </Card>
 
-      <Card>
-        <CardHeader
+ <Card>
+ <CardHeader
           subtitle={
             repScoped
               ? 'القائمةُ مصفّاةٌ عمّا سيرفضه الخادمُ على حسابك — وشاشتُك هي تطبيق المندوب.'
@@ -273,74 +273,74 @@ export default function BakeryOverviewPage() {
           }
           title="خريطة الوحدات"
         />
-        <CardBody>
-          <div className="grid gap-3 md:grid-cols-2">
+ <CardBody>
+ <div className="grid gap-3 md:grid-cols-2">
             {modules.map((module) => (
-              <article className="grid gap-2 rounded-lg border border-line bg-surface p-4 shadow-1" key={module.key}>
-                <div className="flex flex-wrap items-center gap-2">
-                  <span aria-hidden="true" className="bak-module-icon">
-                    <BakeryModuleIcon moduleKey={module.key} size={17} />
-                  </span>
-                  <h2 className="m-0 text-[15px] font-extrabold text-ink">
+ <article className="grid gap-2 rounded-lg border border-line bg-surface p-4 shadow-1" key={module.key}>
+ <div className="flex flex-wrap items-center gap-2">
+ <span aria-hidden="true" className="bak-module-icon">
+ <BakeryModuleIcon moduleKey={module.key} size={17} />
+ </span>
+ <h2 className="m-0 text-[15px] font-extrabold text-ink">
                     {module.href ? (
-                      <a className="text-ink underline-offset-4 hover:underline" href={module.href}>
+ <a className="text-ink underline-offset-4 hover:underline" href={module.href}>
                         {module.labelAr}
-                      </a>
+ </a>
                     ) : (
                       module.labelAr
                     )}
-                  </h2>
-                  <Badge dot status={module.status === 'ready' ? 'active' : 'pending'}>
+ </h2>
+ <Badge dot status={module.status === 'ready' ? 'active' : 'pending'}>
                     {module.status === 'ready' ? 'مبنيّة' : module.phaseAr}
-                  </Badge>
+ </Badge>
                   {module.permission ? (
-                    <Badge tone="neutral">
-                      <span dir="ltr">{module.permission}</span>
-                    </Badge>
+ <Badge tone="neutral">
+ <span dir="ltr">{module.permission}</span>
+ </Badge>
                   ) : null}
-                </div>
+ </div>
                 {/* سطرٌ للعميل. وأمّا السجلُّ الهندسيّ (‏`planAr`) ومساراتُ API فتُعرض مطويّةً
-                    تحت «التفاصيل التقنية»: ففيها أسماءُ ملفاتٍ وأرقامُ شرائحَ وملاحظاتُ قياسٍ
-                    لا تعني عميلًا، وعرضُها افتراضيًّا كان يجعل الصفحةَ جدارَ نصٍّ (قِيس من
-                    لصقةِ صاحبِ العمل) — وهذا بندُه «بياناتٌ تظهر في الشاشات لا تصلح للإنتاج». */}
-                <p className="m-0 text-[13px] leading-relaxed text-muted">{module.summaryAr}</p>
-                <details className="bak-tech">
-                  <summary>التفاصيل التقنية</summary>
-                  <p className="m-0 text-[12.5px] leading-relaxed text-muted">{module.planAr}</p>
-                  <div className="bak-endpoints">
+ تحت «التفاصيل التقنية»: ففيها أسماءُ ملفاتٍ وأرقامُ شرائحَ وملاحظاتُ قياسٍ
+ لا تعني عميلًا، وعرضُها افتراضيًّا كان يجعل الصفحةَ جدارَ نصٍّ (قِيس من
+ لصقةِ صاحبِ العمل) — وهذا بندُه «بياناتٌ تظهر في الشاشات لا تصلح للإنتاج». */}
+ <p className="m-0 text-[13px] leading-relaxed text-muted">{module.summaryAr}</p>
+ <details className="bak-tech">
+ <summary>التفاصيل التقنية</summary>
+ <p className="m-0 text-[12.5px] leading-relaxed text-muted">{module.planAr}</p>
+ <div className="bak-endpoints">
                     {module.endpoints.map((endpoint) => (
-                      <code className="bak-endpoint" key={endpoint}>
+ <code className="bak-endpoint" key={endpoint}>
                         {endpoint}
-                      </code>
+ </code>
                     ))}
-                  </div>
-                </details>
-              </article>
+ </div>
+ </details>
+ </article>
             ))}
-          </div>
-        </CardBody>
-      </Card>
+ </div>
+ </CardBody>
+ </Card>
 
-      <Card>
-        <CardHeader subtitle="من أين يأتي القرار، ومن يملكه." title="الترخيص والضوابط" />
-        <CardBody>
-          <ul className="m-0 grid gap-2 text-[13px] leading-relaxed text-ink">
-            <li>
-              <strong>الباقة قطاعية</strong>: تفعيلُها طلبٌ من سوق الإضافات يقرّه مالكُ المنصّة
+ <Card>
+ <CardHeader subtitle="من أين يأتي القرار، ومن يملكه." title="الترخيص والضوابط" />
+ <CardBody>
+ <ul className="m-0 grid gap-2 text-[13px] leading-relaxed text-ink">
+ <li>
+ <strong>الباقة قطاعية</strong>: تفعيلُها طلبٌ من سوق الإضافات يقرّه مالكُ المنصّة
               — فلا تفعيلَ ذاتيّ من داخل المنشأة.
-            </li>
-            <li>
-              <strong>الترخيصُ يُقرأ من جلسة دخولك</strong>: فكلُّ عضوٍ في المنشأة يعرف هل
-              باقتُه مفعَّلة، بلا صلاحيةٍ إضافية ولا طلبٍ ثانٍ.
-            </li>
-            <li>
-              <strong>الصلاحياتُ يفرضها النظام على كلّ طلب</strong>: وهذه الواجهة لا تمنح ولا
-              ترفع صلاحيةً ولا تُنشئ حسابًا. والمندوبُ يقرأ خطَّه هو ويكتب على أحماله
-              ومستنداته هو، ولا تُفتح له لوحةُ المنشأة — والقائمةُ هنا تُصفّى راحةً للعين
-              لا ضابطًا.
-            </li>
-            <li>
-              <strong>أرقامُ هذه الصفحة كلّها من الخادم</strong>:{' '}
+ </li>
+ <li>
+ <strong>الترخيصُ يُقرأ من جلسة دخولك</strong>: فكلُّ عضوٍ في المنشأة يعرف هل
+ باقتُه مفعَّلة، بلا صلاحيةٍ إضافية ولا طلبٍ ثانٍ.
+ </li>
+ <li>
+ <strong>الصلاحياتُ يفرضها النظام على كلّ طلب</strong>: وهذه الواجهة لا تمنح ولا
+ ترفع صلاحيةً ولا تُنشئ حسابًا. والمندوبُ يقرأ خطَّه هو ويكتب على أحماله
+ ومستنداته هو، ولا تُفتح له لوحةُ المنشأة — والقائمةُ هنا تُصفّى راحةً للعين
+ لا ضابطًا.
+ </li>
+ <li>
+ <strong>أرقامُ هذه الصفحة كلّها من الخادم</strong>:{' '}
               {repScoped
                 ? `إيرادُك ${numberText(repValue('revenue'))} ريال ومحصَّلُك ${numberText(
                     repValue('collected'),
@@ -349,36 +349,36 @@ export default function BakeryOverviewPage() {
                     value('totalCollectedCashSar'),
                   )}، وفي السيارات ${numberText(value('remainingInVansKg'))} كجم`}{' '}
               — وكلُّ بلاطةٍ تُعرض من حمولةٍ وصلت، وبلا بلاطةٍ فارغةَ تدّعي بيانات.
-            </li>
-          </ul>
+ </li>
+ </ul>
           {/* ما فوقَ هذا بلغةُ العميل. وأمّا المساراتُ والرموزُ فمطويّةٌ هنا: فهي دليلُ
-              مهندسٍ لا نصُّ شاشة، وحذفُها خسارةٌ للصدق وعرضُها مفتوحةً جدارُ نصّ. */}
-          <details className="bak-tech">
-            <summary>التفاصيل التقنية</summary>
-            <ul className="m-0 grid gap-2 text-[12.5px] leading-relaxed text-muted">
-              <li>
+ مهندسٍ لا نصُّ شاشة، وحذفُها خسارةٌ للصدق وعرضُها مفتوحةً جدارُ نصّ. */}
+ <details className="bak-tech">
+ <summary>التفاصيل التقنية</summary>
+ <ul className="m-0 grid gap-2 text-[12.5px] leading-relaxed text-muted">
+ <li>
                 ‏<span dir="ltr">POST /marketplace/apps/{BAKERY_APP_CODE}/install</span> يُرفض ٤٠٣{' '}
-                <span dir="ltr">ADDON_REQUIRES_PLATFORM_APPROVAL</span> — فلا تفعيلَ ذاتيّ.
-              </li>
-              <li>
-                الترخيصُ من <span dir="ltr">enabledApps</span> في ‏<span dir="ltr">GET /me</span> لا
-                من كتالوج السوق: فالكتالوج يحتاج <span dir="ltr">tenant.view</span> ولا يملكه مندوب،
-                والترخيصُ يجب أن يعرفه كلّ عضو.
-              </li>
-              <li>
-                لوحةُ المنشأة تُرفض على المندوب ٤٠٣ ‏
-                <span dir="ltr">VAN_SALES_COMPANY_SCOPE_REQUIRED</span> (تحجيمُ الشريحة ١٩ على
-                مستوى الصفّ، وبطاقةُ المندوب وأذوناتُه تُقرأ من القاعدة لا من الرمزية).
-              </li>
-              <li>
-                أرقامُ البطاقات من <span dir="ltr">GET /van-sales/dashboard</span> (وللمندوب{' '}
-                <span dir="ltr">GET /van-sales/me</span>) — ولا مجموعَ يُشتقّ في المتصفح من نافذةٍ
-                مقطوعة.
-              </li>
-            </ul>
-          </details>
-        </CardBody>
-      </Card>
-    </section>
+ <span dir="ltr">ADDON_REQUIRES_PLATFORM_APPROVAL</span> — فلا تفعيلَ ذاتيّ.
+ </li>
+ <li>
+ الترخيصُ من <span dir="ltr">enabledApps</span> في ‏<span dir="ltr">GET /me</span> لا
+ من كتالوج السوق: فالكتالوج يحتاج <span dir="ltr">tenant.view</span> ولا يملكه مندوب،
+ والترخيصُ يجب أن يعرفه كلّ عضو.
+ </li>
+ <li>
+ لوحةُ المنشأة تُرفض على المندوب ٤٠٣ ‏
+ <span dir="ltr">VAN_SALES_COMPANY_SCOPE_REQUIRED</span> (تحجيمُ الشريحة ١٩ على
+ مستوى الصفّ، وبطاقةُ المندوب وأذوناتُه تُقرأ من القاعدة لا من الرمزية).
+ </li>
+ <li>
+ أرقامُ البطاقات من <span dir="ltr">GET /van-sales/dashboard</span> (وللمندوب{' '}
+ <span dir="ltr">GET /van-sales/me</span>) — ولا مجموعَ يُشتقّ في المتصفح من نافذةٍ
+ مقطوعة.
+ </li>
+ </ul>
+ </details>
+ </CardBody>
+ </Card>
+ </section>
   );
 }

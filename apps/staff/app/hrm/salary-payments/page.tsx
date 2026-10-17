@@ -95,7 +95,7 @@ export default function SalaryPaymentsPage() {
   const paidSum = (list: SalaryPayment[]) => list.reduce((sum, row) => sum + Number(row.net || 0), 0).toFixed(2);
 
   return (
-    <Directory<SalaryPayment>
+ <Directory<SalaryPayment>
       title="دفع الرواتب"
       subtitle="إذن صرف راتب لكل موظف عن كل شهر — «لقد تم دفع راتب الموظف سابقاً» يحرس التكرار، والمبلغ هو صافي مسيّر الشهر."
       crumbs={['الموظفين والرواتب', 'العمليات']}
@@ -201,43 +201,43 @@ export default function SalaryPaymentsPage() {
         { label: 'إجمالي المصروف', value: money(paidSum(rows)), tone: 'ok' as const },
       ]}
       toolbar={
-        <div className="row wrap">
-          <label className="field inline">
-            <span>رقم الإذن</span>
-            <input className="input sm" dir="ltr" value={filterNumber} onChange={(event) => setFilterNumber(event.target.value)} />
-          </label>
-          <label className="field inline">
-            <span>الموظف</span>
-            <select value={filterEmployee} onChange={(event) => setFilterEmployee(event.target.value)}>
-              <option value="">كل الموظفين</option>
+ <div className="row wrap">
+ <label className="field inline">
+ <span>رقم الإذن</span>
+ <input className="input sm" dir="ltr" value={filterNumber} onChange={(event) => setFilterNumber(event.target.value)} />
+ </label>
+ <label className="field inline">
+ <span>الموظف</span>
+ <select value={filterEmployee} onChange={(event) => setFilterEmployee(event.target.value)}>
+ <option value="">كل الموظفين</option>
               {employeeRows.map((row) => (
-                <option key={row.id} value={row.id}>
+ <option key={row.id} value={row.id}>
                   {row.employeeNo} — {row.name}
-                </option>
+ </option>
               ))}
-            </select>
-          </label>
-          <label className="field inline">
-            <span>الشهر</span>
-            <input className="input sm" dir="ltr" placeholder={currentMonth()} value={filterMonth} onChange={(event) => setFilterMonth(event.target.value)} />
-          </label>
-          <label className="field inline">
-            <span>طريقة الدفع</span>
-            <select value={filterMethod} onChange={(event) => setFilterMethod(event.target.value)}>
-              <option value="">الكل</option>
-              <option value="cash">نقدي</option>
-              <option value="bank_transfer">تحويل بنكي</option>
-            </select>
-          </label>
-          <label className="field inline">
-            <span>من تاريخ</span>
-            <input type="date" value={filterFrom} onChange={(event) => setFilterFrom(event.target.value)} dir="ltr" />
-          </label>
-          <label className="field inline">
-            <span>إلى تاريخ</span>
-            <input type="date" value={filterTo} onChange={(event) => setFilterTo(event.target.value)} dir="ltr" />
-          </label>
-          <button
+ </select>
+ </label>
+ <label className="field inline">
+ <span>الشهر</span>
+ <input className="input sm" dir="ltr" placeholder={currentMonth()} value={filterMonth} onChange={(event) => setFilterMonth(event.target.value)} />
+ </label>
+ <label className="field inline">
+ <span>طريقة الدفع</span>
+ <select value={filterMethod} onChange={(event) => setFilterMethod(event.target.value)}>
+ <option value="">الكل</option>
+ <option value="cash">نقدي</option>
+ <option value="bank_transfer">تحويل بنكي</option>
+ </select>
+ </label>
+ <label className="field inline">
+ <span>من تاريخ</span>
+ <input type="date" value={filterFrom} onChange={(event) => setFilterFrom(event.target.value)} dir="ltr" />
+ </label>
+ <label className="field inline">
+ <span>إلى تاريخ</span>
+ <input type="date" value={filterTo} onChange={(event) => setFilterTo(event.target.value)} dir="ltr" />
+ </label>
+ <button
             className="btn"
             type="button"
             onClick={() => {
@@ -249,9 +249,9 @@ export default function SalaryPaymentsPage() {
               setFilterTo('');
             }}
           >
-            كل الفترة
-          </button>
-        </div>
+ كل الفترة
+ </button>
+ </div>
       }
       columns={[
         { key: 'number', header: 'رقم الإذن', align: 'ltr', cell: (row) => row.number },
@@ -282,9 +282,9 @@ export default function SalaryPaymentsPage() {
         },
       ]}
       footer={(list) => [
-        <strong key="count">{list.length} إذن</strong>,
-        <span key="label">إجمالي المصروف</span>,
-        <strong key="sum">{money(paidSum(list))}</strong>,
+ <strong key="count">{list.length} إذن</strong>,
+ <span key="label">إجمالي المصروف</span>,
+ <strong key="sum">{money(paidSum(list))}</strong>,
       ]}
     />
   );

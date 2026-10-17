@@ -234,7 +234,7 @@ export default function TenantsPage() {
                       <Badge tone={SUB_TONE[row.subscriptionStatus] ?? 'neutral'} dot>
                         {SUB_LABEL[row.subscriptionStatus] ?? row.subscriptionStatus}
                       </Badge>
-                      <span className="text-[11px] text-muted font-semibold">{row.planName}</span>
+                      <span className="text-xs text-muted font-semibold">{row.planName}</span>
                     </span>
                   ) : (
                     <Badge tone="neutral">بدون ترخيص</Badge>

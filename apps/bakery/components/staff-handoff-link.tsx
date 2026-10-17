@@ -14,7 +14,7 @@ import { handoffPlan, staffBaseUrl, type StaffDestination } from '../lib/staff-h
 type HandoffCode = { code?: string; expiresIn?: number };
 
 /**
- * 🔗 زرُّ التسليم إلى لوحة staff — ويصنع الرمزَ **عند النقر** لا عند التحميل.
+ * زرُّ التسليم إلى لوحة staff — ويصنع الرمزَ **عند النقر** لا عند التحميل.
  *
  * والسببُ مقاسٌ في `packages/web-core/src/token-bridge.tsx`: الرمزُ لمرةٍ واحدة وعمرُه
  * ‏~٦٠ ثانية (‏`expiresIn` يرجعه الخادم)، فرمزٌ مُعدٌّ عند تحميل الشاشة ينتهي قبل أن
@@ -74,15 +74,15 @@ export function StaffHandoffLink({
   };
 
   return (
-    <span className="inline-flex flex-col gap-1">
-      <Button disabled={busy} loading={busy} onClick={() => void open()} size={size} variant={variant}>
+ <span className="inline-flex flex-col gap-1">
+ <Button disabled={busy} loading={busy} onClick={() => void open()} size={size} variant={variant}>
         {busy ? 'يُجهَّز الرمز…' : labelAr}
-      </Button>
+ </Button>
       {problem ? (
-        <p className="text-[12px] leading-5 text-danger-ink" role="alert">
+ <p className="text-[12px] leading-5 text-danger-ink" role="alert">
           {problem}
-        </p>
+ </p>
       ) : null}
-    </span>
+ </span>
   );
 }

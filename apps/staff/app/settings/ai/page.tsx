@@ -147,7 +147,7 @@ export default function AiSettingsPage() {
         </div>
         <div className="kpi">
           <span>استهلاك الشهر ({settings?.usage.period ?? '—'})</span>
-          <strong>{(settings?.usage.tokens ?? 0).toLocaleString('ar-SA')} توكن</strong>
+          <strong>{(settings?.usage.tokens ?? 0).toLocaleString('en-US')} توكن</strong>
         </div>
       </div>
 

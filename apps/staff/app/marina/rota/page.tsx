@@ -30,7 +30,7 @@ export default function MarinaRotaPage() {
   const [lines, setLines] = useState<Array<{ vesselId: string; periodLabel: string }>>([{ vesselId: '', periodLabel: PERIODS[0] ?? '' }]);
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<{ kind: 'ok' | 'danger' | 'info'; text: string } | undefined>();
-  // 📋 تحضير المراكب — `frmAttendM` شبكته `رقم الدور · المركب · حضور/غياب · إعادة احتساب الرحلات`
+  // تحضير المراكب — `frmAttendM` شبكته `رقم الدور · المركب · حضور/غياب · إعادة احتساب الرحلات`
   const [attendance, setAttendance] = useState<Record<string, boolean>>({});
   const [tripCount, setTripCount] = useState<number | null>(null);
 
@@ -76,109 +76,109 @@ export default function MarinaRotaPage() {
   };
 
   return (
-    <Screen
+ <Screen
       title="خطة الدور — تحضير المراكب"
       subtitle="ترتيب دور المراكب على فترات اليوم — `frmAttendM` «تحضير المراكب»: رقم الدور · المركب · حضور/غياب · إعادة احتساب الرحلات. الخطة تنظيمية ولا تنشئ حجزاً ولا فاتورة."
       crumbs={['إدارة المراسي', 'العمليات']}
     >
       {can('marina.manage') && (
-        <form className="card" onSubmit={createPlan}>
-          <h2>خطة دور جديدة</h2>
-          <div className="form-grid">
-            <label className="field">
-              <span>اسم الخطة *</span>
-              <input className="input" value={name} onChange={(event) => setName(event.target.value)} required placeholder="دور يوم الخميس" />
-            </label>
-            <label className="field">
-              <span>التاريخ *</span>
-              <input className="input" dir="ltr" type="date" value={planDate} onChange={(event) => setPlanDate(event.target.value)} required />
-            </label>
-            <label className="field">
-              <span>المجموعة</span>
-              <select className="input" value={groupId} onChange={(event) => setGroupId(event.target.value)}>
-                <option value="">— كل المجموعات —</option>
+ <form className="card" onSubmit={createPlan}>
+ <h2>خطة دور جديدة</h2>
+ <div className="form-grid">
+ <label className="field">
+ <span>اسم الخطة *</span>
+ <input className="input" value={name} onChange={(event) => setName(event.target.value)} required placeholder="دور يوم الخميس" />
+ </label>
+ <label className="field">
+ <span>التاريخ *</span>
+ <input className="input" dir="ltr" type="date" value={planDate} onChange={(event) => setPlanDate(event.target.value)} required />
+ </label>
+ <label className="field">
+ <span>المجموعة</span>
+ <select className="input" value={groupId} onChange={(event) => setGroupId(event.target.value)}>
+ <option value="">— كل المجموعات —</option>
                 {groups.map((row) => (
-                  <option key={row.id} value={row.id}>
+ <option key={row.id} value={row.id}>
                     {row.name}
-                  </option>
+ </option>
                 ))}
-              </select>
-            </label>
-          </div>
+ </select>
+ </label>
+ </div>
 
-          <h3>ترتيب الدور</h3>
-          <div className="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>#</th>
-                  <th>المركب</th>
-                  <th>الفترة</th>
-                  <th />
-                </tr>
-              </thead>
-              <tbody>
+ <h3>ترتيب الدور</h3>
+ <div className="table-wrap">
+ <table>
+ <thead>
+ <tr>
+ <th>#</th>
+ <th>المركب</th>
+ <th>الفترة</th>
+ <th />
+ </tr>
+ </thead>
+ <tbody>
                 {lines.map((line, index) => (
-                  <tr key={index}>
-                    <td className="num">{index + 1}</td>
-                    <td>
-                      <select className="input" value={line.vesselId} onChange={(event) => updateLine(index, { vesselId: event.target.value })}>
-                        <option value="">— اختر —</option>
+ <tr key={index}>
+ <td className="num">{index + 1}</td>
+ <td>
+ <select className="input" value={line.vesselId} onChange={(event) => updateLine(index, { vesselId: event.target.value })}>
+ <option value="">— اختر —</option>
                         {vessels.map((row) => (
-                          <option key={row.id} value={row.id}>
+ <option key={row.id} value={row.id}>
                             {`${row.code} — ${row.name}`}
-                          </option>
+ </option>
                         ))}
-                      </select>
-                    </td>
-                    <td>
-                      <select className="input" value={line.periodLabel} onChange={(event) => updateLine(index, { periodLabel: event.target.value })}>
+ </select>
+ </td>
+ <td>
+ <select className="input" value={line.periodLabel} onChange={(event) => updateLine(index, { periodLabel: event.target.value })}>
                         {PERIODS.map((period) => (
-                          <option key={period} value={period}>
+ <option key={period} value={period}>
                             {period}
-                          </option>
+ </option>
                         ))}
-                      </select>
-                    </td>
-                    <td>
-                      <button className="btn sm" type="button" onClick={() => setLines((current) => current.filter((_, position) => position !== index))}>
-                        حذف
-                      </button>
-                    </td>
-                  </tr>
+ </select>
+ </td>
+ <td>
+ <button className="btn sm" type="button" onClick={() => setLines((current) => current.filter((_, position) => position !== index))}>
+ حذف
+ </button>
+ </td>
+ </tr>
                 ))}
-              </tbody>
-            </table>
-          </div>
-          <button className="btn sm" type="button" onClick={() => setLines((current) => [...current, { vesselId: '', periodLabel: PERIODS[0] ?? '' }])}>
+ </tbody>
+ </table>
+ </div>
+ <button className="btn sm" type="button" onClick={() => setLines((current) => [...current, { vesselId: '', periodLabel: PERIODS[0] ?? '' }])}>
             + مركب
-          </button>
+ </button>
 
-          <Notice notice={notice} />
-          <button className="btn primary" type="submit" disabled={busy}>
+ <Notice notice={notice} />
+ <button className="btn primary" type="submit" disabled={busy}>
             {busy ? 'جارٍ الحفظ…' : 'حفظ الخطة'}
-          </button>
-        </form>
+ </button>
+ </form>
       )}
 
-      <div className="toolbar">
-        <label className="field">
-          <span>تصفية بالتاريخ</span>
-          <input className="input" dir="ltr" type="date" value={day} onChange={(event) => setDay(event.target.value)} />
-        </label>
+ <div className="toolbar">
+ <label className="field">
+ <span>تصفية بالتاريخ</span>
+ <input className="input" dir="ltr" type="date" value={day} onChange={(event) => setDay(event.target.value)} />
+ </label>
         {day && (
-          <button className="btn sm" type="button" onClick={() => setDay('')}>
-            كل التواريخ
-          </button>
+ <button className="btn sm" type="button" onClick={() => setDay('')}>
+ كل التواريخ
+ </button>
         )}
-      </div>
+ </div>
 
       {!can('marina.manage') && <Notice notice={notice} />}
 
-      <QueryView query={plans} empty="لا توجد خطط دور" emptyDetail="أنشئ خطة لترتيب دور المراكب على فترات اليوم.">
+ <QueryView query={plans} empty="لا توجد خطط دور" emptyDetail="أنشئ خطة لترتيب دور المراكب على فترات اليوم.">
         {(rows) => (
-          <>
-            <DataTable
+ <>
+ <DataTable
               rows={rows}
               rowKey={(row) => row.id}
               columns={[
@@ -189,56 +189,56 @@ export default function MarinaRotaPage() {
               ]}
             />
             {rows.map((plan) => (
-              <div className="card" key={plan.id}>
-                <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
-                  <h3>
+ <div className="card" key={plan.id}>
+ <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+ <h3>
                     {plan.name} — {shortDate(plan.planDate)} — {groupName(plan.groupId)}
-                  </h3>
-                  <button className="btn sm" type="button" onClick={() => recalcTrips(plan)}>
-                    🔄 إعادة احتساب الرحلات
-                  </button>
-                </div>
-                <div className="table-wrap">
-                  <table>
-                    <thead>
-                      <tr>
-                        <th>رقم الدور</th>
-                        <th>المركب</th>
-                        <th>الفترة</th>
-                        <th>حضور/غياب</th>
-                      </tr>
-                    </thead>
-                    <tbody>
+ </h3>
+ <button className="btn sm" type="button" onClick={() => recalcTrips(plan)}>
+ 🔄إعادة احتساب الرحلات
+ </button>
+ </div>
+ <div className="table-wrap">
+ <table>
+ <thead>
+ <tr>
+ <th>رقم الدور</th>
+ <th>المركب</th>
+ <th>الفترة</th>
+ <th>حضور/غياب</th>
+ </tr>
+ </thead>
+ <tbody>
                       {plan.lines.map((line) => {
                         const key = `${plan.id}:${line.lineNo}`;
                         const present = attendance[key] !== false;
                         return (
-                          <tr key={line.lineNo}>
-                            <td className="num">{line.lineNo}</td>
-                            <td>{vesselName(line.vesselId)}</td>
-                            <td>{line.periodLabel ?? '—'}</td>
-                            <td>
-                              <label className="check">
-                                <input
+ <tr key={line.lineNo}>
+ <td className="num">{line.lineNo}</td>
+ <td>{vesselName(line.vesselId)}</td>
+ <td>{line.periodLabel ?? '—'}</td>
+ <td>
+ <label className="check">
+ <input
                                   type="checkbox"
                                   checked={present}
                                   onChange={(e) => setAttendance((prev) => ({ ...prev, [key]: e.target.checked }))}
                                 />
-                                <span>{present ? '✅ حضور' : '❌ غياب'}</span>
-                              </label>
-                            </td>
-                          </tr>
+ <span>{present ? '✅ حضور' : '❌ غياب'}</span>
+ </label>
+ </td>
+ </tr>
                         );
                       })}
-                    </tbody>
-                  </table>
-                </div>
+ </tbody>
+ </table>
+ </div>
                 {tripCount !== null && <p className="hint">إجمالي الرحلات المحتسبة: {tripCount}</p>}
-              </div>
+ </div>
             ))}
-          </>
+ </>
         )}
-      </QueryView>
-    </Screen>
+ </QueryView>
+ </Screen>
   );
 }

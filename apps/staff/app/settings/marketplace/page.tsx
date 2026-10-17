@@ -93,54 +93,54 @@ export default function MarketplacePage() {
   });
 
   return (
-    <Screen
+ <Screen
       title="🛒 سوق الإضافات والباقات القطاعية"
       subtitle="اطلب تفعيل الباقات القطاعية المتخصصة (التصنيع، التفصيل، النظارات، المراسي، المشاريع، تطبيق الموظف، وتوزيع المناديب والمخابز). الباقات غير المفعّلة تختفي شاشاتها وإعداداتها لتبسيط النظام."
       crumbs={['سوق الإضافات']}
     >
       {notice ? <Notice notice={notice} /> : null}
 
-      <div className="row" style={{ gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
-        <button
+ <div className="row" style={{ gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
+ <button
           type="button"
           className={filter === 'all' ? 'btn primary sm' : 'btn sm'}
           onClick={() => setFilter('all')}
         >
-          الكل ({apps.length})
-        </button>
-        <button
+ الكل ({apps.length})
+ </button>
+ <button
           type="button"
           className={filter === 'sector' ? 'btn primary sm' : 'btn sm'}
           onClick={() => setFilter('sector')}
         >
-          🏢 الباقات والأنظمة القطاعية ({apps.filter((a) => a.category === 'sector').length})
-        </button>
-        <button
+ 🏢الباقات والأنظمة القطاعية ({apps.filter((a) => a.category === 'sector').length})
+ </button>
+ <button
           type="button"
           className={filter === 'integration' ? 'btn primary sm' : 'btn sm'}
           onClick={() => setFilter('integration')}
         >
-          🔗 تكاملات المتاجر والدفع ({apps.filter((a) => (a.category ?? (a.isCore ? 'core' : 'integration')) === 'integration').length})
-        </button>
-        <button
+ 🔗تكاملات المتاجر والدفع ({apps.filter((a) => (a.category ?? (a.isCore ? 'core' : 'integration')) === 'integration').length})
+ </button>
+ <button
           type="button"
           className={filter === 'core' ? 'btn primary sm' : 'btn sm'}
           onClick={() => setFilter('core')}
         >
-          ⚙️ خدمات مدمجة ({apps.filter((a) => a.isCore).length})
-        </button>
-      </div>
+ ⚙️خدمات مدمجة ({apps.filter((a) => a.isCore).length})
+ </button>
+ </div>
 
-      <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 14 }}>
+ <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 14 }}>
         {visibleApps.map((app) => {
           const isPending = !app.enabled && app.requestStatus === 'pending';
           return (
-            <article key={app.code} className="card" style={{ display: 'grid', gap: 10 }}>
-              <div className="row" style={{ justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <strong style={{ fontSize: 16 }}>
+ <article key={app.code} className="card" style={{ display: 'grid', gap: 10 }}>
+ <div className="row" style={{ justifyContent: 'space-between', alignItems: 'flex-start' }}>
+ <strong style={{ fontSize: 16 }}>
                   {app.icon} {app.nameAr}
-                </strong>
-                <span
+ </strong>
+ <span
                   className={`badge ${
                     app.isCore || app.enabled
                       ? 'ok'
@@ -160,26 +160,26 @@ export default function MarketplacePage() {
                         : app.requestStatus === 'rejected'
                           ? 'مرفوضة'
                           : 'غير مفعّلة'}
-                </span>
-              </div>
+ </span>
+ </div>
 
-              <p className="muted" style={{ margin: 0, lineHeight: 1.6 }}>
+ <p className="muted" style={{ margin: 0, lineHeight: 1.6 }}>
                 {app.descriptionAr}
-              </p>
+ </p>
 
-              <p className="muted" style={{ margin: 0, fontSize: 12 }} dir="ltr">
+ <p className="muted" style={{ margin: 0, fontSize: 12 }} dir="ltr">
                 v{app.version} · {Number(app.monthlyPrice) === 0 ? 'مجاناً ضمن الباقة' : `${Number(app.monthlyPrice).toFixed(2)} SAR / شهر`}
                 {!app.isActive ? ' · متوقفة من المنصة' : ''}
-              </p>
+ </p>
 
               {app.decisionNote ? (
-                <p className="alert info" style={{ margin: 0, fontSize: 12 }}>
-                  ملاحظة إدارة المنصة: {app.decisionNote}
-                </p>
+ <p className="alert info" style={{ margin: 0, fontSize: 12 }}>
+ ملاحظة إدارة المنصة: {app.decisionNote}
+ </p>
               ) : null}
 
               {!app.isCore && !app.enabled && app.requiresApproval ? (
-                <input
+ <input
                   className="input"
                   placeholder="ملاحظة لمدير المنصة عند طلب التفعيل (اختياري)…"
                   value={notes[app.code] ?? app.requestNote ?? ''}
@@ -187,27 +187,27 @@ export default function MarketplacePage() {
                 />
               ) : null}
 
-              <div className="row" style={{ gap: 8, flexWrap: 'wrap', marginTop: 'auto' }}>
+ <div className="row" style={{ gap: 8, flexWrap: 'wrap', marginTop: 'auto' }}>
                 {app.isCore ? (
-                  <span className="muted small">مفعّلة تلقائياً ضمن النظام الأساسي</span>
+ <span className="muted small">مفعّلة تلقائياً ضمن النظام الأساسي</span>
                 ) : app.enabled ? (
-                  <>
+ <>
                     {app.screens[0] ? (
-                      <Link className="btn primary sm" href={app.screens[0]}>
-                        فتح الباقة ⬅
-                      </Link>
+ <Link className="btn primary sm" href={app.screens[0]}>
+ فتح الباقة⬅
+ </Link>
                     ) : null}
-                    <button
+ <button
                       className="btn sm"
                       type="button"
                       disabled={busy === app.code}
                       onClick={() => void toggle(app)}
                     >
-                      إيقاف وإخفاء
-                    </button>
-                  </>
+ إيقاف وإخفاء
+ </button>
+ </>
                 ) : (
-                  <button
+ <button
                     className={isPending ? 'btn sm' : 'btn primary sm'}
                     type="button"
                     disabled={busy === app.code || !app.isActive}
@@ -220,14 +220,14 @@ export default function MarketplacePage() {
                         : app.requiresApproval
                           ? '📩 طلب تفعيل الباقة'
                           : '⚡ تفعيل الإضافة'}
-                  </button>
+ </button>
                 )}
-              </div>
-            </article>
+ </div>
+ </article>
           );
         })}
-      </div>
-    </Screen>
+ </div>
+ </Screen>
   );
 }
 

@@ -22,6 +22,14 @@
 @import 'tailwindcss';
 @import '@erp/ui/tokens.css';
 
+/* Tailwind v4 scans the app folder and ignores `node_modules`; the shared
+ * components in `packages/ui` were therefore shipped without their utilities
+ * (`size-9`, `bg-surface`, `border-line`, focus rings…). The same probe that
+ * added this line to staff/bakery/platform-admin measured marketing at 53 649
+ * bytes with 10/10 sampled classes missing — including the 36px theme switch,
+ * which rendered as a 17px icon with no border. */
+@source '../../../packages/ui/src';
+
 /* Marketing layer.
    The shared contract (`--bg --surface --text --muted --line --brand …`) comes
    from `@erp/ui/tokens.css`. This block only adds what a landing page needs
@@ -78,7 +86,7 @@ html {
 body {
   margin: 0;
   background: var(--bg);
-  color: var(--ink);
+  color: var(--text);
   font-family: var(--font-ar);
   line-height: 1.75;
   font-size: 17px;
@@ -786,7 +794,7 @@ p {
   bottom: -22px;
   inset-inline-start: -18px;
   background: var(--surface);
-  color: var(--ink);
+  color: var(--text);
   border-radius: 14px;
   box-shadow: 0 24px 50px -18px rgb(11 18 32 / 45%);
   padding: 12px 16px;
@@ -1133,6 +1141,10 @@ p {
   gap: 11px;
   font-weight: 900;
   font-size: 18px;
+  /* The wordmark is one token: never let the flex line shrink it into
+     "Cloud SaaS" + "ERP" on two rows (it did, at 1440px). */
+  flex: none;
+  white-space: nowrap;
 }
 
 .logo {
@@ -1157,16 +1169,21 @@ p {
 
 .site-nav {
   display: flex;
-  gap: 4px;
-  margin-inline-start: auto;
-  flex-wrap: wrap;
+  gap: 2px;
+  /* Sit next to the wordmark; the auto margin falls between the nav and the
+     action cluster, not between the brand and the nav. */
+  margin-inline-end: auto;
+  flex-wrap: nowrap;
+  justify-content: flex-end;
+  min-width: 0;
 }
 
 .site-nav a {
-  padding: 8px 13px;
+  padding: 8px 10px;
   border-radius: 10px;
   font-weight: 700;
-  font-size: 14.5px;
+  font-size: 14px;
+  white-space: nowrap;
   color: var(--ink-soft);
   transition: background 0.15s ease, color 0.15s ease;
 }
@@ -1176,10 +1193,190 @@ p {
   color: var(--violet);
 }
 
+.nav-more {
+  position: relative;
+}
+
+.nav-more-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 8px 10px;
+  border: 0;
+  border-radius: 10px;
+  background: none;
+  font: inherit;
+  font-weight: 700;
+  font-size: 14px;
+  color: var(--ink-soft);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.nav-more-btn:hover,
+.nav-more-btn[aria-expanded='true'] {
+  background: var(--grad-soft);
+  color: var(--violet);
+}
+
+.nav-more-btn svg {
+  transition: transform var(--dur-fast) var(--ease-out);
+}
+
+.nav-more-btn[aria-expanded='true'] svg {
+  transform: rotate(180deg);
+}
+
+.nav-more-panel {
+  position: absolute;
+  /* Align the panel's inline-start edge with the button's: in RTL that is the
+     right edge, so the panel opens inward over the nav, not across the brand. */
+  inset-inline-start: 0;
+  top: calc(100% + 10px);
+  z-index: 60;
+  display: grid;
+  gap: 2px;
+  min-width: 230px;
+  padding: 7px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  box-shadow: 0 24px 50px -24px rgb(6 20 34 / 0.45);
+}
+
+.nav-more-panel[hidden] {
+  display: none;
+}
+
+.nav-more-panel a {
+  padding: 10px 12px;
+  border-radius: 9px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+.nav-more-panel a:hover {
+  background: var(--surface-2);
+  color: var(--ink);
+}
+
 .header-actions {
   display: flex;
   align-items: center;
   gap: 10px;
+  /* Actions keep their intrinsic width; the nav gives way first. */
+  flex: none;
+}
+.header-actions .btn,
+.lang-switch {
+  white-space: nowrap;
+}
+/* The theme switch uses `size-9` (36px); as a shrinkable flex child it was
+   compressed to 17px — a 17px tap target next to the language switch. */
+.header-actions > * {
+  flex: none;
+}
+
+/* ------------------------------------------------------------- mobile nav -- */
+.mobile-nav-btn {
+  display: none;
+  width: 38px;
+  height: 38px;
+  place-items: center;
+  border: 1px solid var(--line-strong);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--ink);
+}
+
+.mobile-nav-icon {
+  display: grid;
+  gap: 4px;
+  width: 16px;
+}
+
+.mobile-nav-icon span {
+  display: block;
+  height: 2px;
+  border-radius: 2px;
+  background: currentColor;
+  transition: transform var(--dur-fast) var(--ease-out), opacity var(--dur-fast) var(--ease-out);
+}
+
+.mobile-nav-icon.is-open span:nth-child(1) {
+  transform: translateY(6px) rotate(45deg);
+}
+
+.mobile-nav-icon.is-open span:nth-child(2) {
+  opacity: 0;
+}
+
+.mobile-nav-icon.is-open span:nth-child(3) {
+  transform: translateY(-6px) rotate(-45deg);
+}
+
+.mobile-nav {
+  display: none;
+}
+
+/* The desktop strip needs 1 089px of header content (brand 114 + nav 631 +
+   actions ~300 + gaps). Below that it is replaced by the panel, never wrapped
+   into a second, half-empty row. */
+@media (max-width: 1180px) {
+  .mobile-nav-btn {
+    display: grid;
+  }
+  .site-nav {
+    display: none;
+  }
+  /* Direct children only: the same classes live inside the mobile panel,
+     where they are the primary way to sign in / subscribe. */
+  /* Direct children only: the same classes live inside the mobile panel,
+     where they are the primary way to sign in / subscribe. */
+  .header-actions > .btn.ghost,
+  .header-actions > .btn.primary {
+    display: none;
+  }
+  .mobile-nav {
+    position: absolute;
+    inset-inline: 0;
+    top: 100%;
+    display: grid;
+    gap: 2px;
+    padding: 10px 18px 18px;
+    background: var(--surface);
+    border-block-end: 1px solid var(--line);
+    box-shadow: 0 24px 40px -30px rgb(6 20 34 / 0.55);
+  }
+  .mobile-nav[hidden] {
+    display: none;
+  }
+  .mobile-nav a {
+    padding: 11px 10px;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 15px;
+    color: var(--ink-soft);
+  }
+  .mobile-nav a:hover,
+  .mobile-nav a:focus-visible {
+    background: var(--surface-2);
+    color: var(--ink);
+  }
+  .mobile-nav-actions {
+    display: flex;
+    gap: 8px;
+    padding-top: 10px;
+    margin-top: 6px;
+    border-top: 1px solid var(--line);
+  }
+  .mobile-nav-actions .btn {
+    flex: 1;
+    justify-content: center;
+    padding: 10px 12px;
+    font-size: 13.5px;
+  }
 }
 
 .header-actions .btn {
@@ -1260,6 +1457,31 @@ p {
   grid-template-columns: 1.4fr repeat(3, 1fr) 1.2fr;
   gap: 34px;
   padding-block: 58px 40px;
+}
+
+/* The legal menu used to be a sixth grid cell, which auto-placed it alone on
+   a second row and left ~180px of empty navy beside it. It now spans the full
+   width as a compact legal strip, the way an enterprise footer reads. */
+.footer-group-legal {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px 22px;
+  border-top: 1px solid var(--dark-line);
+  padding-top: 20px;
+  margin-top: 2px;
+}
+
+.footer-group-legal h2 {
+  margin: 0;
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  opacity: 0.72;
+}
+
+.footer-group-legal a {
+  font-size: 13px;
 }
 
 .footer-brand .logo {
@@ -1403,7 +1625,7 @@ p {
   border-radius: 12px;
   border: 1.5px solid var(--line-strong);
   background: var(--surface);
-  color: var(--ink);
+  color: var(--text);
   font-size: 15.5px;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
@@ -1465,12 +1687,24 @@ p {
   color: var(--ok);
 }
 
+/*
+ * Honeypot. `left: -9999px` used to leave a 9 848 px scrollable strip on RTL pages —
+ * the input was off-canvas, but the document still counted it as overflow. Visually
+ * hiding it in place keeps it untouchable for people and invisible to the layout.
+ */
 .hp-field {
   position: absolute;
-  left: -9999px;
-  width: 1px;
-  height: 1px;
+  inset-block-start: 0;
+  inset-inline-start: 0;
+  inline-size: 1px;
+  block-size: 1px;
+  margin: -1px;
+  padding: 0;
+  border: 0;
   overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 
 /* ================================================================ جداول المقارنة */
@@ -1481,6 +1715,16 @@ p {
   border-radius: var(--radius);
   background: var(--surface);
   box-shadow: var(--shadow);
+  /* The 640px comparison table must scroll inside this frame — not stretch
+     the page. A grid item's automatic minimum is its min-content size, so the
+     640px table used to widen the whole /pricing column to 642px on a 390px
+     phone (scrollWidth 662). */
+  min-width: 0;
+  max-width: 100%;
+}
+
+.site-main > .grid > * {
+  min-width: 0;
 }
 
 .compare {
@@ -1593,6 +1837,56 @@ p {
 
 /* ================================================================ FAQ */
 
+/* ------------------------------------------------------------ CMS blocks --
+ * Tailwind's preflight strips list markers and paragraph margins; the editorial
+ * blocks that come from the content system (`/legal`, `/blog`, `/help`, `/cases`)
+ * were therefore rendering as one flat column of paragraphs. The measure and the
+ * rhythm belong here — one place, every content page. */
+.content-blocks {
+  display: grid;
+  gap: 20px;
+  max-width: 74ch;
+}
+.content-blocks > .prose p {
+  margin: 0;
+}
+.content-blocks .prose-list {
+  margin: 0;
+  padding-inline-start: 1.35em;
+  /* Not `display:grid`: a grid container stops laying its children out as list
+     items, so markers detach to the far edge (visible in RTL). */
+}
+.content-blocks .prose-list li + li {
+  margin-top: 8px;
+}
+/* Preflight sets `list-style: none`; a rendered list still needs its marker. */
+.content-blocks ul.prose-list {
+  list-style: disc;
+}
+.content-blocks ol.prose-list {
+  list-style: decimal;
+}
+.content-blocks .prose-list li::marker {
+  color: var(--brand);
+  font-weight: 700;
+}
+.content-blocks .quote {
+  margin: 0;
+  padding-inline-start: 20px;
+  border-inline-start: 3px solid var(--brand);
+}
+.content-blocks .quote p {
+  margin: 0 0 8px;
+  font-size: 21px;
+  line-height: 1.7;
+  font-weight: 600;
+  color: var(--text);
+}
+.content-blocks .quote footer {
+  color: var(--muted);
+  font-size: 14px;
+}
+
 .faq-list {
   display: grid;
   gap: 12px;
@@ -1621,7 +1915,7 @@ p {
   align-items: center;
   justify-content: space-between;
   gap: 14px;
-  color: var(--ink);
+  color: var(--text);
 }
 
 .faq-list summary::-webkit-details-marker {
@@ -1970,7 +2264,7 @@ p {
     font-size: 30px;
   }
 
-  .header-actions .btn.ghost {
+  .header-actions > .btn.ghost {
     display: none;
   }
 }
@@ -1999,6 +2293,14 @@ body {
     radial-gradient(80rem 44rem at 100% -10%, rgb(11 122 99 / 0.045), transparent 55%),
     radial-gradient(60rem 36rem at -8% 108%, rgb(201 162 39 / 0.04), transparent 52%),
     var(--bg);
+}
+
+.dark .brand-name {
+  /* The wordmark is gradient-clipped; its navy stop vanished on the navy
+     dark header. Lift the ramp in dark mode only. */
+  background: linear-gradient(135deg, var(--color-brand-200) 0%, #ffffff 58%, var(--color-gold-200) 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
 }
 
 /* --------------------------------------------------------------- header -- */
@@ -2138,7 +2440,7 @@ body {
   text-wrap: balance;
 }
 .hero .pill {
-  color: var(--gold-300);
+  color: var(--color-gold-300);
   background: rgb(255 255 255 / 0.06);
   border: 1px solid rgb(210 173 69 / 0.3);
   -webkit-backdrop-filter: blur(8px);
@@ -2363,7 +2665,7 @@ body {
 }
 .step-number {
   background: var(--navy) !important;
-  color: var(--gold-300) !important;
+  color: var(--color-gold-300) !important;
   border: 1px solid rgb(255 255 255 / 0.12);
   box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.15);
 }
@@ -2435,4 +2737,13 @@ body {
 }
 [dir='rtl'] .arrow-back {
   transform: scaleX(-1);
+}
+
+/* Scroll-triggered reveals must never hide content from print. */
+@media print {
+  .reveal,
+  [data-reveal] {
+    opacity: 1 !important;
+    transform: none !important;
+  }
 }

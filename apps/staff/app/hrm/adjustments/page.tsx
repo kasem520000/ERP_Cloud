@@ -87,7 +87,7 @@ export default function AdjustmentsPage() {
   }
 
   return (
-    <Directory<Adjustment>
+ <Directory<Adjustment>
       title="الحوافز والجزاءات"
       subtitle="إدخال الحوافز والخصومات للموظفين — ما يُصرف الآن يُقيَّد على الصندوق، وما يخصم من الراتب ينتظر مسير الرواتب."
       crumbs={['الموظفين والرواتب', 'العمليات']}
@@ -186,39 +186,39 @@ export default function AdjustmentsPage() {
         { label: 'إجمالي الخصومات', value: money(String(totals.deductions)), tone: 'danger' as const },
       ]}
       toolbar={
-        <div className="row wrap">
+ <div className="row wrap">
           {error ? <span className="alert danger">{error}</span> : null}
-          <label className="field inline">
-            <span>الموظف</span>
-            <select value={filterEmployee} onChange={(event) => setFilterEmployee(event.target.value)}>
-              <option value="">كل الموظفين</option>
+ <label className="field inline">
+ <span>الموظف</span>
+ <select value={filterEmployee} onChange={(event) => setFilterEmployee(event.target.value)}>
+ <option value="">كل الموظفين</option>
               {(employees.data ?? []).map((row) => (
-                <option key={row.id} value={row.id}>
+ <option key={row.id} value={row.id}>
                   {row.employeeNo} — {row.name}
-                </option>
+ </option>
               ))}
-            </select>
-          </label>
-          <label className="field inline">
-            <span>النوع</span>
-            <select value={filterType} onChange={(event) => setFilterType(event.target.value)}>
-              <option value="">كل الأنواع</option>
+ </select>
+ </label>
+ <label className="field inline">
+ <span>النوع</span>
+ <select value={filterType} onChange={(event) => setFilterType(event.target.value)}>
+ <option value="">كل الأنواع</option>
               {typeRows.map((row) => (
-                <option key={row.id} value={row.code}>
+ <option key={row.id} value={row.code}>
                   {row.name}
-                </option>
+ </option>
               ))}
-            </select>
-          </label>
-          <label className="field inline">
-            <span>من</span>
-            <input type="date" value={filterFrom} onChange={(event) => setFilterFrom(event.target.value)} dir="ltr" />
-          </label>
-          <label className="field inline">
-            <span>إلى</span>
-            <input type="date" value={filterTo} onChange={(event) => setFilterTo(event.target.value)} dir="ltr" />
-          </label>
-          <button
+ </select>
+ </label>
+ <label className="field inline">
+ <span>من</span>
+ <input type="date" value={filterFrom} onChange={(event) => setFilterFrom(event.target.value)} dir="ltr" />
+ </label>
+ <label className="field inline">
+ <span>إلى</span>
+ <input type="date" value={filterTo} onChange={(event) => setFilterTo(event.target.value)} dir="ltr" />
+ </label>
+ <button
             className="btn"
             type="button"
             onClick={() => {
@@ -228,9 +228,9 @@ export default function AdjustmentsPage() {
               setFilterTo('');
             }}
           >
-            عرض الكل
-          </button>
-        </div>
+ عرض الكل
+ </button>
+ </div>
       }
       columns={[
         { key: 'number', header: 'رقم السند', align: 'ltr', cell: (row) => row.number ?? '—' },
@@ -267,14 +267,14 @@ export default function AdjustmentsPage() {
           key: 'actions',
           header: '',
           cell: (row) => (
-            <span className="row">
+ <span className="row">
               {row.status === 'draft' && can('hrm.adjust.approve') ? (
-                <button className="btn sm primary" type="button" onClick={() => approve(row.id)}>
-                  اعتماد
-                </button>
+ <button className="btn sm primary" type="button" onClick={() => approve(row.id)}>
+ اعتماد
+ </button>
               ) : null}
               {row.journalEntryId ? <span className="muted small">له قيد</span> : null}
-            </span>
+ </span>
           ),
         },
       ]}

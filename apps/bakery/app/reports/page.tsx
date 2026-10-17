@@ -16,6 +16,7 @@ import {
 import { apiData, apiErrorText, apiList } from '@erp/web-core/api';
 import { useSession } from '@erp/web-core/session';
 
+import { BakeryModuleIcon } from '../../components/module-icon';
 import {
   BALANCE_CARDS,
   cardValue,
@@ -91,15 +92,15 @@ function ReportTable({
 }) {
   const [sort, setSort] = useState<SortState>(null);
   return (
-    <DataTable<ReportRow>
+ <DataTable<ReportRow>
       columns={tableColumns<ReportRow>(columns, cellText)}
       dense
       empty={
         /** ‏`icon` مطلوبٌ في `EmptyState`، و`lucide-react` ليست من اعتمادات هذه الواجهة —
           * فالرمزُ التعبيريّ لغةُ التطبيق القائمة ولا يُضاف اعتمادٌ لأجل أيقونة. */
-        <EmptyState
+ <EmptyState
           description={emptyAr}
-          icon={<span aria-hidden>📄</span>}
+          icon={<BakeryModuleIcon moduleKey="reports" size={22} />}
           title="لا صفوف في هذا الجدول"
         />
       }
@@ -116,7 +117,7 @@ function ReportTable({
 }
 
 /**
- * 📈 شاشة «تقارير الخطّ» — فترةٌ يختارها المحاسب، وأرقامٌ من محرّك التقارير نفسه.
+ * شاشة «تقارير الخطّ» — فترةٌ يختارها المحاسب، وأرقامٌ من محرّك التقارير نفسه.
  *
  * السلسلةُ التي تُقاس هنا: **المدى يُطبَّق على الصفوف والمجاميع معًا**، بتواريخ العمل
  * (`load_date`, `doc_date`, `production_date`)، ويقول الخادم ما لا يُطبَّق عليه المرشِّح
@@ -214,120 +215,120 @@ export default function ReportsPage() {
   }
 
   return (
-    <section className="grid gap-4">
-      <header className="flex flex-wrap items-end justify-between gap-3">
-        <div className="min-w-0">
-          <h1 className="m-0 text-[22px] font-extrabold leading-tight tracking-tight text-ink">
-            تقارير الخطّ
-          </h1>
-          <p className="m-0 mt-1 text-[13px] text-muted">
-            مبيعاتُ المندوب ومرتجعُه وهالكُه وتحصيلُه في فترةٍ تختارها — من محرّك التقارير نفسه
+ <section className="grid gap-4">
+ <header className="flex flex-wrap items-end justify-between gap-3">
+ <div className="min-w-0">
+ <h1 className="m-0 text-[22px] font-extrabold leading-tight tracking-tight text-ink">
+ تقارير الخطّ
+ </h1>
+ <p className="m-0 mt-1 text-[13px] text-muted">
+ مبيعاتُ المندوب ومرتجعُه وهالكُه وتحصيلُه في فترةٍ تختارها — من محرّك التقارير نفسه
             (<span dir="ltr">GET /van-sales/reports</span>) لا من حسابٍ موازٍ في المتصفح.
-            والتواريخُ تواريخُ العمل: <span dir="ltr">load_date</span> و
-            <span dir="ltr"> doc_date</span> و<span dir="ltr"> production_date</span>.
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="bak-badge">GET /van-sales/reports</span>
-          <span className="bak-badge">GET /van-sales/dashboard</span>
-        </div>
-      </header>
+ والتواريخُ تواريخُ العمل: <span dir="ltr">load_date</span> و
+ <span dir="ltr"> doc_date</span> و<span dir="ltr"> production_date</span>.
+ </p>
+ </div>
+ <div className="flex flex-wrap items-center gap-2">
+ <span className="bak-badge">GET /van-sales/reports</span>
+ <span className="bak-badge">GET /van-sales/dashboard</span>
+ </div>
+ </header>
 
       {!canView ? (
-        <Card>
-          <CardBody>
-            <p
+ <Card>
+ <CardBody>
+ <p
               className={`m-0 rounded-[10px] border px-4 py-2.5 text-[13px] font-semibold ${NOTICE_CLASSES.warn}`}
             >
-              🔒 لا تملك <span dir="ltr">{REPORTS_PERMISSION}</span> — والخادم يرفض قراءة التقرير
+ 🔒لا تملك <span dir="ltr">{REPORTS_PERMISSION}</span> — والخادم يرفض قراءة التقرير
               (الحارسُ يفرض الرموز قبل أيّ منطق). ولم يُرسل هذا التطبيق طلبًا سيُرفض حتمًا، ولا
-              عرض أرقامًا من المتصفح بدلها.
-            </p>
-          </CardBody>
-        </Card>
+ عرض أرقامًا من المتصفح بدلها.
+ </p>
+ </CardBody>
+ </Card>
       ) : null}
 
       {canView ? (
-        <Card>
-          <CardHeader
+ <Card>
+ <CardHeader
             subtitle="المدى يُطبَّق على الصفوف وعلى المجاميع معًا. والفحصُ المسبق هنا مرآةُ قاعدة الخادم (الصيغة، ووجودُ التاريخ، والترتيب) — والحكمُ النهائيّ للخادم."
             title="الفترة والمرشِّحات"
           />
-          <CardBody>
-            <div className="grid gap-3 sm:grid-cols-3">
-              <label className="m-0 grid gap-1.5">
-                <span className="text-[12px] font-bold text-muted">{FROM_LABEL}</span>
-                <Input
+ <CardBody>
+ <div className="grid gap-3 sm:grid-cols-3">
+ <label className="m-0 grid gap-1.5">
+ <span className="text-[12px] font-bold text-muted">{FROM_LABEL}</span>
+ <Input
                   onChange={(event) =>
                     setDraft((current) => ({ ...current, fromDate: event.target.value }))
                   }
                   type="date"
                   value={draft.fromDate}
                 />
-              </label>
-              <label className="m-0 grid gap-1.5">
-                <span className="text-[12px] font-bold text-muted">{TO_LABEL}</span>
-                <Input
+ </label>
+ <label className="m-0 grid gap-1.5">
+ <span className="text-[12px] font-bold text-muted">{TO_LABEL}</span>
+ <Input
                   onChange={(event) =>
                     setDraft((current) => ({ ...current, toDate: event.target.value }))
                   }
                   type="date"
                   value={draft.toDate}
                 />
-              </label>
-              <label className="m-0 grid gap-1.5">
-                <span className="text-[12px] font-bold text-muted">المندوب</span>
-                <select
+ </label>
+ <label className="m-0 grid gap-1.5">
+ <span className="text-[12px] font-bold text-muted">المندوب</span>
+ <select
                   className={selectClass}
                   onChange={(event) =>
                     setDraft((current) => ({ ...current, salesmanId: event.target.value }))
                   }
                   value={draft.salesmanId}
                 >
-                  <option value="">كلّ المناديب</option>
+ <option value="">كلّ المناديب</option>
                   {salesmen.map((row) => (
-                    <option key={row.id} value={row.id}>
+ <option key={row.id} value={row.id}>
                       {row.name}
-                    </option>
+ </option>
                   ))}
-                </select>
-              </label>
-            </div>
+ </select>
+ </label>
+ </div>
 
             {salesmenError ? (
-              <p
+ <p
                 className={`m-0 mt-3 rounded-[10px] border px-4 py-2.5 text-[12.5px] font-semibold ${NOTICE_CLASSES.warn}`}
               >
-                قائمةُ المناديب لم تُحمَّل ({salesmenError}) — فيبقى المرشِّح «كلّ المناديب»،
-                والتقريرُ نفسه يعمل بلا مرشِّح مندوب.
-              </p>
+ قائمةُ المناديب لم تُحمَّل ({salesmenError}) — فيبقى المرشِّح «كلّ المناديب»،
+ والتقريرُ نفسه يعمل بلا مرشِّح مندوب.
+ </p>
             ) : null}
 
-            <div className="mt-3 flex flex-wrap items-center gap-2">
-              <Button
+ <div className="mt-3 flex flex-wrap items-center gap-2">
+ <Button
                 disabled={loading || verdict.blocked.length > 0}
                 onClick={() => void runReport(draft)}
                 size="sm"
               >
                 {loading ? 'يُحمَّل التقرير…' : 'اعرض التقرير'}
-              </Button>
-              <Button
+ </Button>
+ <Button
                 disabled={loading}
                 onClick={() => apply(currentMonthDraft())}
                 size="sm"
                 variant="secondary"
               >
-                هذا الشهر
-              </Button>
-              <Button
+ هذا الشهر
+ </Button>
+ <Button
                 disabled={loading}
                 onClick={() => apply(emptyRangeDraft())}
                 size="sm"
                 variant="secondary"
               >
-                كلّ السجلّ
-              </Button>
-              <Button
+ كلّ السجلّ
+ </Button>
+ <Button
                 disabled={loading}
                 onClick={() => {
                   setDraft(emptyRangeDraft());
@@ -339,84 +340,84 @@ export default function ReportsPage() {
                 size="sm"
                 variant="ghost"
               >
-                امسح
-              </Button>
-            </div>
+ امسح
+ </Button>
+ </div>
 
             {verdict.blocked.length > 0 ? (
-              <ul className="m-0 mt-3 grid gap-1.5">
+ <ul className="m-0 mt-3 grid gap-1.5">
                 {verdict.blocked.map((line) => (
-                  <li
+ <li
                     className={`rounded-[10px] border px-4 py-2 text-[12.5px] font-semibold ${NOTICE_CLASSES.danger}`}
                     key={line}
                   >
-                    ⛔ {line}
-                  </li>
+                     ⛔{line}
+ </li>
                 ))}
-              </ul>
+ </ul>
             ) : null}
             {verdict.warnings.length > 0 ? (
-              <ul className="m-0 mt-3 grid gap-1.5">
+ <ul className="m-0 mt-3 grid gap-1.5">
                 {verdict.warnings.map((line) => (
-                  <li
+ <li
                     className={`rounded-[10px] border px-4 py-2 text-[12.5px] ${NOTICE_CLASSES.warn}`}
                     key={line}
                   >
-                    ⚠️ {line}
-                  </li>
+                     ⚠️{line}
+ </li>
                 ))}
-              </ul>
+ </ul>
             ) : null}
-          </CardBody>
-        </Card>
+ </CardBody>
+ </Card>
       ) : null}
 
       {loadError ? (
-        <Card>
-          <CardBody>
-            <p
+ <Card>
+ <CardBody>
+ <p
               className={`m-0 rounded-[10px] border px-4 py-2.5 text-[13px] font-semibold ${NOTICE_CLASSES.danger}`}
               role="alert"
             >
-              تعذّر تحميل التقرير: {loadError}
-            </p>
-            <p className="m-0 mt-2 text-[12.5px] text-muted">
-              الأسبابُ المعتادة: مدىً رفضه الخادم (٤٢٢ بنصّه أعلاه)، أو مندوبٌ ليس من هذه
-              المنشأة (٤٠٤ «المندوب غير موجود»)، أو لا تملك{' '}
-              <span dir="ltr">{REPORTS_PERMISSION}</span> (٤٠٣). ولا تُعرض أرقامٌ بديلة من
-              المتصفح.
-            </p>
-          </CardBody>
-        </Card>
+ تعذّر تحميل التقرير: {loadError}
+ </p>
+ <p className="m-0 mt-2 text-[12.5px] text-muted">
+ الأسبابُ المعتادة: مدىً رفضه الخادم (٤٢٢ بنصّه أعلاه)، أو مندوبٌ ليس من هذه
+ المنشأة (٤٠٤ «المندوب غير موجود»)، أو لا تملك{' '}
+ <span dir="ltr">{REPORTS_PERMISSION}</span> (٤٠٣). ولا تُعرض أرقامٌ بديلة من
+ المتصفح.
+ </p>
+ </CardBody>
+ </Card>
       ) : null}
 
       {notice ? (
-        <p
+ <p
           className={`m-0 rounded-[10px] border px-4 py-2.5 text-[13px] font-semibold ${NOTICE_CLASSES[notice.kind]}`}
           role={notice.kind === 'danger' ? 'alert' : 'status'}
         >
           {notice.text}
-        </p>
+ </p>
       ) : null}
 
       {canView && !asked && !loading ? (
-        <Card>
-          <CardBody>
-            <p className="m-0 text-[13px] text-muted">{REPORTS_MESSAGES.pickPeriod}</p>
-            <p className="m-0 mt-2 text-[12.5px] text-muted">
+ <Card>
+ <CardBody>
+ <p className="m-0 text-[13px] text-muted">{REPORTS_MESSAGES.pickPeriod}</p>
+ <p className="m-0 mt-2 text-[12.5px] text-muted">
               «هذا الشهر» يملأ أولَ الشهر الجاري وآخرَه بتقويم المتصفح ثمّ يطلب التقرير؛ و«كلّ
-              السجلّ» يرسل بلا مدىً — وقد يبلغ سقفَ الصفوف في منشأةٍ كبيرة، والقصُّ يُقال ولا
-              يُخفى. والأستاذُ والتقاريرُ المحاسبية الرسمية في لوحة الموظفين (
-              <span dir="ltr">apps/staff</span>) وتُفتح بتسليم جلسة.
-            </p>
-          </CardBody>
-        </Card>
+ السجلّ» يرسل بلا مدىً — وقد يبلغ سقفَ الصفوف في منشأةٍ كبيرة، والقصُّ يُقال ولا
+ يُخفى. والأستاذُ والتقاريرُ المحاسبية الرسمية في لوحة الموظفين (
+ <span dir="ltr">apps/staff</span>) وتُفتح بتسليم جلسة.
+ </p>
+ </CardBody>
+ </Card>
       ) : null}
 
       {canView && payload ? (
-        <>
-          <Card>
-            <CardHeader
+ <>
+ <Card>
+ <CardHeader
               subtitle={
                 stamped
                   ? `المطبَّق: ${filterHeadline(payload)} — وُلِّد في ${stamped}`
@@ -424,156 +425,156 @@ export default function ReportsPage() {
               }
               title="الفترة كما طبّقها الخادم"
             />
-            <CardBody>
-              <p className="m-0 text-[12.5px] text-muted">
-                هذه حقولُ <span dir="ltr">filters</span> التي أرجعها الخادم، لا ما كُتب في الحقول
-                أعلاه فحسب: فتاريخٌ مرفوضٌ يُرفض (٤٢٢) ولا يُهمل بصمت.
-              </p>
+ <CardBody>
+ <p className="m-0 text-[12.5px] text-muted">
+ هذه حقولُ <span dir="ltr">filters</span> التي أرجعها الخادم، لا ما كُتب في الحقول
+ أعلاه فحسب: فتاريخٌ مرفوضٌ يُرفض (٤٢٢) ولا يُهمل بصمت.
+ </p>
               {screenVerdict.warnings.length > 0 ? (
-                <ul className="m-0 mt-3 grid gap-1.5">
+ <ul className="m-0 mt-3 grid gap-1.5">
                   {screenVerdict.warnings.map((line) => (
-                    <li
+ <li
                       className={`rounded-[10px] border px-4 py-2 text-[12.5px] ${NOTICE_CLASSES.warn}`}
                       key={line}
                     >
-                      ⚠️ {line}
-                    </li>
+                       ⚠️{line}
+ </li>
                   ))}
-                </ul>
+ </ul>
               ) : null}
-            </CardBody>
-          </Card>
+ </CardBody>
+ </Card>
 
           {PERIOD_CARD_GROUPS.map((group) => (
-            <Card key={group.key}>
-              <CardHeader subtitle={group.noteAr} title={group.labelAr} />
-              <CardBody>
+ <Card key={group.key}>
+ <CardHeader subtitle={group.noteAr} title={group.labelAr} />
+ <CardBody>
                 {hasPeriodTotals(payload) ? (
-                  <div className="m-0 grid gap-3 sm:grid-cols-3 lg:grid-cols-4">
+ <div className="m-0 grid gap-3 sm:grid-cols-3 lg:grid-cols-4">
                     {group.cards.map((card) => (
-                      <Kpi
+ <Kpi
                         hint={card.hintAr}
                         key={card.key}
                         title={card.labelAr}
                         value={cardValue(payload, card.key)}
                       />
                     ))}
-                  </div>
+ </div>
                 ) : (
-                  <p className="m-0 text-[12.5px] text-muted">
-                    لم يرجع الخادم <span dir="ltr">periodTotals</span> في هذه الحمولة — ولا تُحسب
-                    مجاميعُ بديلة في المتصفح.
-                  </p>
+ <p className="m-0 text-[12.5px] text-muted">
+ لم يرجع الخادم <span dir="ltr">periodTotals</span> في هذه الحمولة — ولا تُحسب
+ مجاميعُ بديلة في المتصفح.
+ </p>
                 )}
-              </CardBody>
-            </Card>
+ </CardBody>
+ </Card>
           ))}
 
-          <Card>
-            <CardHeader
+ <Card>
+ <CardHeader
               subtitle="من summary (لوحة الخطّ): أرقامُ المنشأة كلّها وأرصدتُها في لحظتها — ليست مجاميعَ الفترة أعلاه."
               title="أرصدةُ اللحظة وكلُّ السجلّ"
             />
-            <CardBody>
-              <div className="m-0 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+ <CardBody>
+ <div className="m-0 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                 {BALANCE_CARDS.map((card) => (
-                  <Kpi
+ <Kpi
                     hint={card.hintAr}
                     key={card.key}
                     title={card.labelAr}
                     value={summaryValue(payload, card.key)}
                   />
                 ))}
-              </div>
-            </CardBody>
-          </Card>
+ </div>
+ </CardBody>
+ </Card>
 
-          <Card>
-            <CardHeader
+ <Card>
+ <CardHeader
               subtitle="‏repCustodyReport من الخادم على المدى نفسه — لا من نافذة اللوحة ولا بجمعٍ في المتصفح."
               title={`أداءُ المندوبين (${(payload.repCustodyReport ?? []).length})`}
             />
-            <CardBody>
-              <ReportTable
+ <CardBody>
+ <ReportTable
                 columns={REP_COLUMNS}
                 state={tableState}
                 storageKey="reps"
                 emptyAr="لا مندوبَ له حركةٌ في هذه الفترة."
                 rows={payload.repCustodyReport ?? []}
               />
-            </CardBody>
-          </Card>
+ </CardBody>
+ </Card>
 
-          <Card>
-            <CardHeader
+ <Card>
+ <CardHeader
               subtitle={`مجموعُ الصفوف المعروضة: مُحمَّل ${sums.transfersLoadedKg} كجم · متبقٍّ في العهدة ${sums.transfersRemainingKg} كجم — ومجاميعُ الفترة في البطاقات أعلاه هي الحكم.`}
               title={`${REPORT_LIST_LABELS.transfersReport} (${(payload.transfersReport ?? []).length})`}
             />
-            <CardBody>
-              <ReportTable
+ <CardBody>
+ <ReportTable
                 columns={TRANSFER_COLUMNS}
                 state={tableState}
                 storageKey="transfers"
                 emptyAr="لا أمرَ تحميل في هذه الفترة."
                 rows={payload.transfersReport ?? []}
               />
-            </CardBody>
-          </Card>
+ </CardBody>
+ </Card>
 
-          <Card>
-            <CardHeader
+ <Card>
+ <CardHeader
               subtitle={`مجموعُ الصفوف المعروضة: إجماليّ ${sums.collectionsGrandSar} ريال · متبقٍّ ${sums.collectionsOutstandingSar} ريال — وذممُ الفترة في البطاقات أعلاه.`}
               title={`${REPORT_LIST_LABELS.collectionsReport} (${(payload.collectionsReport ?? []).length})`}
             />
-            <CardBody>
-              <ReportTable
+ <CardBody>
+ <ReportTable
                 columns={COLLECTION_COLUMNS}
                 state={tableState}
                 storageKey="collections"
                 emptyAr="لا مستندَ بيعٍ في هذه الفترة."
                 rows={payload.collectionsReport ?? []}
               />
-            </CardBody>
-          </Card>
+ </CardBody>
+ </Card>
 
-          <Card>
-            <CardHeader
+ <Card>
+ <CardHeader
               subtitle={`مجموعُ الصفوف المعروضة: مُنتَج ${sums.productionProducedKg} كجم — والإنتاجُ لا يُنسب إلى مندوب فلا يقصّه مرشِّحُ المندوب (ويقول الخادم ذلك في filterNotes).`}
               title={`${REPORT_LIST_LABELS.productionReport} (${(payload.productionReport ?? []).length})`}
             />
-            <CardBody>
-              <ReportTable
+ <CardBody>
+ <ReportTable
                 columns={PRODUCTION_COLUMNS}
                 state={tableState}
                 storageKey="production"
                 emptyAr="لا دفعةَ إنتاج في هذه الفترة."
                 rows={payload.productionReport ?? []}
               />
-            </CardBody>
-          </Card>
+ </CardBody>
+ </Card>
 
-          <Card>
-            <CardHeader
+ <Card>
+ <CardHeader
               subtitle="سجلُّ تغيير أسعار العملاء — بلا تاريخِ عملٍ في الجدول فيُصفّى بتاريخ الإنشاء، ويُقال ذلك في filterNotes."
               title={`${REPORT_LIST_LABELS.customerPriceAuditReport} (${(payload.customerPriceAuditReport ?? []).length})`}
             />
-            <CardBody>
-              <ReportTable
+ <CardBody>
+ <ReportTable
                 columns={PRICE_COLUMNS}
                 state={tableState}
                 storageKey="prices"
                 emptyAr="لا تغييرَ تسعير في هذه الفترة."
                 rows={payload.customerPriceAuditReport ?? []}
               />
-              <p className="m-0 mt-3 text-[12px] text-muted">
-                بطاقةُ المندوب الرسمية في لوحة الموظفين: <span dir="ltr">{STAFF_SALESMEN_PATH}</span>{' '}
+ <p className="m-0 mt-3 text-[12px] text-muted">
+ بطاقةُ المندوب الرسمية في لوحة الموظفين: <span dir="ltr">{STAFF_SALESMEN_PATH}</span>{' '}
                 (تُفتح بتسليم جلسة). والتقريرُ قراءةٌ فقط: لا يُنشئ قيدًا ولا يُحمِّل نقصًا على
-                أحد.
-              </p>
-            </CardBody>
-          </Card>
-        </>
+ أحد.
+ </p>
+ </CardBody>
+ </Card>
+ </>
       ) : null}
-    </section>
+ </section>
   );
 }

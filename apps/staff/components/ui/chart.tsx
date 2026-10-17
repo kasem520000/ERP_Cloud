@@ -33,7 +33,7 @@ function WhiteTooltip({ active, payload, label, formatter }: TooltipProps) {
   return (
     <div className="rounded-xl border border-line bg-surface backdrop-blur px-3 py-2 shadow-4 min-w-32">
       {label !== undefined && label !== '' ? (
-        <p className="m-0 text-[11px] font-bold text-muted mb-1">{label}</p>
+        <p className="m-0 text-xs font-bold text-muted mb-1">{label}</p>
       ) : null}
       {payload.map((entry, i) => (
         <p key={i} className="m-0 flex items-center gap-2 text-[12.5px] font-semibold text-ink">
@@ -218,7 +218,7 @@ export function DonutCardChart({
         <div className="absolute inset-0 grid place-items-center pointer-events-none">
           <div className="text-center">
             {centerValue ? <p className="m-0 text-[26px] font-bold text-ink leading-tight" style={{ fontVariantNumeric: 'tabular-nums' }}>{centerValue}</p> : null}
-            {centerLabel ? <p className="m-0 text-[11px] font-semibold text-muted mt-0.5">{centerLabel}</p> : null}
+            {centerLabel ? <p className="m-0 text-xs font-semibold text-muted mt-0.5">{centerLabel}</p> : null}
           </div>
         </div>
       )}

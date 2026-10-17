@@ -219,6 +219,165 @@
   --color-on-accent: var(--on-accent);
 }
 
+/* --------------------------------------------------------------------------
+ * Runtime mirror of the `@theme` block above.
+ *
+ * `@theme` is a Tailwind at-rule. Apps that compile through
+ * `@tailwindcss/postcss` (staff, bakery, platform-admin, marketing) get these
+ * primitives emitted into `:root` by the compiler. A CSS-only surface — the
+ * customer portal has no Tailwind dependency — receives the same file as plain
+ * CSS, where browsers drop the unknown at-rule: every `--color-*` and every
+ * `--gradient-*` then resolves to the guaranteed-invalid value, which is how
+ * the portal's logo, primary buttons and hero plate became invisible.
+ *
+ * Same values, same file, no second palette. Change a primitive above and
+ * mirror it here.
+ * ------------------------------------------------------------------------ */
+:root {
+  --font-sans: 'Tajawal', 'Inter Variable', ui-sans-serif, system-ui, 'Segoe UI', sans-serif;
+  --font-display: 'Tajawal', 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
+  --font-num: 'Inter Variable', 'Tajawal', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+  --color-brand-50: #ecfdf5;
+  --color-brand-100: #d1fae5;
+  --color-brand-200: #a7f3d0;
+  --color-brand-300: #6ee7b7;
+  --color-brand-400: #34d399;
+  --color-brand-500: #10b981;
+  --color-brand-600: #0b7a63;
+  --color-brand-700: #0a6553;
+  --color-brand-800: #08503f;
+  --color-brand-900: #063d31;
+  --color-brand-950: #03261f;
+  --color-navy-50: #eef3f8;
+  --color-navy-100: #dbe5ef;
+  --color-navy-200: #b9cbdc;
+  --color-navy-300: #8aa7c1;
+  --color-navy-400: #5b7f9e;
+  --color-navy-500: #3a5f80;
+  --color-navy-600: #274a68;
+  --color-navy-700: #1b3a54;
+  --color-navy-800: #122b40;
+  --color-navy-900: #0b1f33;
+  --color-navy-950: #061422;
+  --color-gold-50: #fbf7ea;
+  --color-gold-100: #f5eccd;
+  --color-gold-200: #ebd99b;
+  --color-gold-300: #dfc268;
+  --color-gold-400: #d2ad45;
+  --color-gold-500: #c9a227;
+  --color-gold-600: #a9841d;
+  --color-gold-700: #866616;
+  --color-gold-800: #634b10;
+  --color-gold-900: #43330b;
+  --color-gold-950: #261d06;
+  --color-slate-50: #f8fafc;
+  --color-slate-100: #f1f5f9;
+  --color-slate-200: #e2e8f0;
+  --color-slate-300: #cbd5e1;
+  --color-slate-400: #94a3b8;
+  --color-slate-500: #64748b;
+  --color-slate-600: #475569;
+  --color-slate-700: #334155;
+  --color-slate-800: #1e293b;
+  --color-slate-900: #0f172a;
+  --color-slate-950: #020617;
+  --color-chart-1: #0b7a63;
+  --color-chart-2: #0e7490;
+  --color-chart-3: #c9a227;
+  --color-chart-4: #3b82f6;
+  --color-chart-5: #c2703d;
+  --color-chart-6: #7c6bc4;
+  --color-chart-grid: #e4e9ef;
+  --color-chart-axis: #5c6c7e;
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 9px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-2xl: 22px;
+  --radius-3xl: 28px;
+  --shadow-1: 0 1px 2px rgb(11 31 51 / 0.04), 0 1px 1px rgb(11 31 51 / 0.03);
+  --shadow-2: 0 1px 3px rgb(11 31 51 / 0.06), 0 1px 2px rgb(11 31 51 / 0.04);
+  --shadow-3: 0 6px 16px -6px rgb(11 31 51 / 0.10), 0 2px 6px -2px rgb(11 31 51 / 0.05);
+  --shadow-4: 0 18px 34px -14px rgb(11 31 51 / 0.16), 0 6px 12px -6px rgb(11 31 51 / 0.06);
+  --shadow-5: 0 34px 64px -24px rgb(6 20 34 / 0.28), 0 12px 24px -12px rgb(6 20 34 / 0.12);
+  --shadow-glow: 0 0 0 1px rgb(11 122 99 / 0.22), 0 12px 32px -10px rgb(11 122 99 / 0.42);
+  --shadow-gold: 0 0 0 1px rgb(201 162 39 / 0.28), 0 10px 30px -12px rgb(201 162 39 / 0.35);
+  --dur-instant: 90ms;
+  --dur-fast: 150ms;
+  --dur: 220ms;
+  --dur-slow: 320ms;
+  --dur-slower: 480ms;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-7: 32px;
+  --space-8: 40px;
+  --space-9: 48px;
+  --space-10: 64px;
+  --control-h: 38px;
+  --leading: 1.62;
+  --gradient-executive: linear-gradient(135deg, #071422 0%, #0b2036 52%, #0a3a34 100%);
+  --gradient-brand: linear-gradient(135deg, #0b7a63 0%, #0f8f74 100%);
+  --gradient-gold: linear-gradient(120deg, #f5eccd 0%, #d2ad45 48%, #a9841d 100%);
+  --gradient-surface: linear-gradient(180deg, rgb(255 255 255 / 0.9) 0%, rgb(248 250 252 / 0.65) 100%);
+  --gradient-hairline: linear-gradient(90deg, transparent, rgb(201 162 39 / 0.55), transparent);
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-inset: var(--inset);
+  --color-raised: var(--raised);
+  --color-ink: var(--text);
+  --color-ink-2: var(--muted-2);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-line-raised: var(--line-raised);
+  --color-brand: var(--brand);
+  --color-brand-2: var(--brand-2);
+  --color-brand-ink: var(--brand-ink);
+  --color-brand-soft: var(--brand-soft);
+  --color-brand-line: var(--brand-line);
+  --color-gold: var(--gold);
+  --color-gold-soft: var(--gold-soft);
+  --color-gold-ink: var(--gold-ink);
+  --color-gold-line: var(--gold-line);
+  --color-navy: var(--navy);
+  --color-navy-soft: var(--navy-soft);
+  --color-navy-ink: var(--navy-ink);
+  --color-navy-line: var(--navy-line);
+  --color-ok: var(--ok);
+  --color-ok-soft: var(--ok-soft);
+  --color-ok-ink: var(--ok-ink);
+  --color-ok-line: var(--ok-line);
+  --color-warn: var(--warn);
+  --color-warn-soft: var(--warn-soft);
+  --color-warn-ink: var(--warn-ink);
+  --color-warn-line: var(--warn-line);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-danger-ink: var(--danger-ink);
+  --color-danger-line: var(--danger-line);
+  --color-info: var(--info);
+  --color-info-soft: var(--info-soft);
+  --color-info-ink: var(--info-ink);
+  --color-info-line: var(--info-line);
+  --color-inverse: var(--inverse);
+  --color-inverse-ink: var(--inverse-ink);
+  --color-inverse-muted: var(--inverse-muted);
+  --color-inverse-line: var(--inverse-line);
+  --color-on-accent: var(--on-accent);
+}
+
+
 /* ==========================================================================
  * 2. Semantic contract — light.
  * ======================================================================== */

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { Plus } from 'lucide-react';
 
 import { Empty, ErrorBox, Forbidden, Loading, Screen } from '../../../components/screen';
 import { ApiError, apiDelete, apiFetch, apiList, apiPatch, apiPost, apiPut } from '../../../lib/api';
@@ -8,19 +9,19 @@ import { useSession } from '../../../lib/session';
 import { useQuery } from '../../../lib/use-query';
 
 /**
- * 📋 بطاقة فئة — `Form_WPF/frmGroupM.xaml` («📋 بطاقة فئة») و`Form_WPF/frmAddPeriod.xaml`
+ * بطاقة فئة — `Form_WPF/frmGroupM.xaml` (« بطاقة فئة») و`Form_WPF/frmAddPeriod.xaml`
  * («⏰ إدارة فترات التأجير»).
  *
- * The card: 🖼️ صورة الفئة (📂 اختر / 🗑️ حذف) · 🔢 رقم الفئة · رمز الفئة · اسم الفئة (عربي) ·
+ * The card: صورة الفئة ( اختر / حذف) · رقم الفئة · رمز الفئة · اسم الفئة (عربي) ·
  * اسم الفئة (EN) · قيمة الساعة · عرض الساعة (دقيقة) · قيمة النصف ساعة · عرض النصف ساعة
- * (دقيقة) — و«➕ إضافة مدة» يفتح «⏰ إدارة فترات التأجير»: «⏰ المدة · 💵 السعر · 🎁 العرض ·
+ * (دقيقة) — و« إضافة مدة» يفتح «⏰ إدارة فترات التأجير»: «⏰ المدة · السعر · العرض ·
  * 🗑️». و«📋 قائمة الفئات» تحته: `رقم الفئة · رمز الفئة · اسم الفئة · قيمة الساعة · قيمة
- * النصف ساعة`، وأسفله ⏮ ◀ ▶ ⏭ · 🖨️ · 🗑️ حذف · 💾 حفظ · ➕ جديد.
+ * النصف ساعة`، وأسفله ⏮ ◀ ▶ ⏭ ·  · حذف · حفظ · جديد.
  *
  * ورفوضها بلسان النافذة: «ادخل الفئة» · «الفئة تم ادخالها مسبقا» · «يجب إستكمال البيانات
  * ⚠️» · «هذه الفئة لها ارتباطات فرعية لايمكن حذفها» · «اختر الفئة ليتم حذفها».
  *
- * 🖼️ صورة الفئة رابطٌ لا ملف: الديسكتوب يخزّن بايتات الصورة في `GroupMarine.image`، ولا
+ * صورة الفئة رابطٌ لا ملف: الديسكتوب يخزّن بايتات الصورة في `GroupMarine.image`، ولا
  * مخزن ملفّاتٍ هنا بعد. و«🖨️ طباعة» مؤجَّلة مع ملفّات `Reports/*.repx`.
  */
 type RentPeriod = { id: number; name: string; minutes: number };
@@ -66,7 +67,7 @@ type Card = {
 
 type PeriodDraft = { periodId: string; price: string; offerMinutes: string };
 
-/** ⏰ المدة · 💵 السعر · 🎁 العرض — صفٌّ من شبكة `frmAddPeriod`. */
+/** ⏰ المدة · السعر · العرض — صفٌّ من شبكة `frmAddPeriod`. */
 const emptyPeriod = (): PeriodDraft => ({ periodId: '2', price: '', offerMinutes: '0' });
 
 const emptyCard = (): Card => ({
@@ -220,21 +221,21 @@ export default function MarinaGroupCardsPage() {
   }
 
   return (
-    <Screen
+ <Screen
       title="📋 بطاقة فئة"
       subtitle="فئة المركب وتسعيرها: قيمة الساعة وقيمة النصف ساعة وعرضاهما بالدقائق، ثم «➕ إضافة مدة» لِما زاد من الفترات — و«📋 قائمة الفئات» تحتها."
       crumbs={['إدارة المراسي', 'التعاريف']}
       actions={
-        <div className="row" style={{ gap: 6 }}>
-          <a className="btn" href="/marina/vessels">
-            ⚓ المراكب
-          </a>
+ <div className="row" style={{ gap: 6 }}>
+ <a className="btn" href="/marina/vessels">
+ ⚓المراكب
+ </a>
           {canManage && (
-            <button className="btn primary" type="button" onClick={() => { setError(''); setNotice(''); setCard(emptyCard()); }}>
-              ➕ جديد
-            </button>
+ <button className="btn primary" type="button" onClick={() => { setError(''); setNotice(''); setCard(emptyCard()); }}>
+ ➕جديد
+ </button>
           )}
-        </div>
+ </div>
       }
     >
       {error && <p className="alert danger">{error}</p>}
@@ -245,128 +246,128 @@ export default function MarinaGroupCardsPage() {
       {groups.status === 'error' && <ErrorBox message={groups.error} onRetry={groups.reload} />}
 
       {groups.status === 'success' && (
-        <>
-          <div className="row" style={{ justifyContent: 'space-between', alignItems: 'baseline' }}>
-            <span className="group-label" style={{ margin: 0 }}>📋 قائمة الفئات</span>
-            <span className="muted">عدد السجلات: {rows.length}</span>
-          </div>
+ <>
+ <div className="row" style={{ justifyContent: 'space-between', alignItems: 'baseline' }}>
+ <span className="group-label" style={{ margin: 0 }}>📋 قائمة الفئات</span>
+ <span className="muted">عدد السجلات: {rows.length}</span>
+ </div>
           {rows.length === 0 ? (
-            <Empty title="لا توجد فئات" detail="ابدأ بـ «➕ جديد»: رمز الفئة واسمها، ثم قيمة الساعة وقيمة النصف ساعة." />
+ <Empty title="لا توجد فئات" detail="ابدأ بـ «➕ جديد»: رمز الفئة واسمها، ثم قيمة الساعة وقيمة النصف ساعة." />
           ) : (
-            <div className="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>🔢 رقم الفئة</th>
-                    <th>رمز الفئة</th>
-                    <th>اسم الفئة</th>
-                    <th>اسم الفئة (EN)</th>
-                    <th className="num">قيمة الساعة</th>
-                    <th className="num">قيمة النصف ساعة</th>
-                    <th className="num">⏰ الفترات</th>
-                    <th className="num">⛵ المراكب</th>
+ <div className="table-wrap">
+ <table>
+ <thead>
+ <tr>
+ <th>🔢 رقم الفئة</th>
+ <th>رمز الفئة</th>
+ <th>اسم الفئة</th>
+ <th>اسم الفئة (EN)</th>
+ <th className="num">قيمة الساعة</th>
+ <th className="num">قيمة النصف ساعة</th>
+ <th className="num">⏰ الفترات</th>
+ <th className="num">⛵ المراكب</th>
                     {canManage && <th>إجراءات</th>}
-                  </tr>
-                </thead>
-                <tbody>
+ </tr>
+ </thead>
+ <tbody>
                   {rows.map((row) => (
-                    <tr key={row.id} onDoubleClick={() => canManage && setCard(cardOf(row))}>
-                      <td dir="ltr">{row.number ?? '—'}</td>
-                      <td dir="ltr">{row.code || '—'}</td>
-                      <td>{row.name}</td>
-                      <td dir="ltr">{row.nameEn || '—'}</td>
-                      <td className="num" dir="ltr">{fmt(row.hourPrice)}</td>
-                      <td className="num" dir="ltr">{fmt(row.halfHourPrice)}</td>
-                      <td className="num" dir="ltr">{row.periods.length}</td>
-                      <td className="num" dir="ltr">{row.vesselCount}</td>
+ <tr key={row.id} onDoubleClick={() => canManage && setCard(cardOf(row))}>
+ <td dir="ltr">{row.number ?? '—'}</td>
+ <td dir="ltr">{row.code || '—'}</td>
+ <td>{row.name}</td>
+ <td dir="ltr">{row.nameEn || '—'}</td>
+ <td className="num" dir="ltr">{fmt(row.hourPrice)}</td>
+ <td className="num" dir="ltr">{fmt(row.halfHourPrice)}</td>
+ <td className="num" dir="ltr">{row.periods.length}</td>
+ <td className="num" dir="ltr">{row.vesselCount}</td>
                       {canManage && (
-                        <td>
-                          <div className="row" style={{ gap: 4 }}>
-                            <button className="btn sm" type="button" onClick={() => setCard(cardOf(row))}>
-                              ✏️ تعديل
-                            </button>
-                            <button
+ <td>
+ <div className="row" style={{ gap: 4 }}>
+ <button className="btn sm" type="button" onClick={() => setCard(cardOf(row))}>
+ ✏️تعديل
+ </button>
+ <button
                               className="btn sm"
                               type="button"
                               onClick={() => setEditingPeriods({ id: row.id, code: row.code, rows: periodsOf(row) })}
                             >
                               ⏰ الفترات
-                            </button>
-                            <button className="btn sm danger" type="button" onClick={() => remove(row)}>
-                              🗑️ حذف
-                            </button>
-                          </div>
-                        </td>
+ </button>
+ <button className="btn sm danger" type="button" onClick={() => remove(row)}>
+ 🗑️حذف
+ </button>
+ </div>
+ </td>
                       )}
-                    </tr>
+ </tr>
                   ))}
-                </tbody>
-              </table>
-            </div>
+ </tbody>
+ </table>
+ </div>
           )}
-        </>
+ </>
       )}
 
-      {/* «📋 بطاقة فئة» — الحقول كما في `frmGroupM`، و⏮ ◀ ▶ ⏭ أسفلها. */}
+      {/* « بطاقة فئة» — الحقول كما في `frmGroupM`، و⏮ ◀ ▶ ⏭ أسفلها. */}
       {card && (
-        <div className="modal-backdrop" role="dialog" aria-modal="true">
-          <div className="modal-card" style={{ maxWidth: 760 }}>
-            <div className="modal-head">
-              <span className="modal-title">{card.id ? '✏️ تعديل الفئة' : '📋 بطاقة فئة'}</span>
-              <button className="btn sm" type="button" onClick={() => setCard(null)}>
-                ✖ خروج
-              </button>
-            </div>
-            <div style={{ padding: 16, display: 'grid', gap: 12, maxHeight: '70vh', overflow: 'auto' }}>
-              <div className="form-grid">
-                <label className="field">
-                  <span>🔢 رقم الفئة</span>
-                  <input className="input" value={card.id ? String(rows.find((row) => row.id === card.id)?.number ?? '') : 'يُصدر عند الحفظ'} disabled />
-                </label>
-                <label className="field">
-                  <span>رمز الفئة *</span>
-                  <input className="input" dir="ltr" value={card.code} onChange={(event) => setField({ code: event.target.value })} />
-                </label>
-                <label className="field">
-                  <span>اسم الفئة (عربي)</span>
-                  <input className="input" value={card.name} onChange={(event) => setField({ name: event.target.value })} />
-                </label>
-                <label className="field">
-                  <span>اسم الفئة (EN)</span>
-                  <input className="input" dir="ltr" value={card.nameEn} onChange={(event) => setField({ nameEn: event.target.value })} />
-                </label>
-                <label className="field">
-                  <span>قيمة الساعة</span>
-                  <input className="input" dir="ltr" inputMode="decimal" value={card.hourPrice} onChange={(event) => setField({ hourPrice: event.target.value })} />
-                </label>
-                <label className="field">
-                  <span>عرض الساعة (دقيقة)</span>
-                  <input className="input" dir="ltr" inputMode="numeric" value={card.hourOfferMinutes} onChange={(event) => setField({ hourOfferMinutes: event.target.value })} />
-                </label>
-                <label className="field">
-                  <span>قيمة النصف ساعة</span>
-                  <input className="input" dir="ltr" inputMode="decimal" value={card.halfHourPrice} onChange={(event) => setField({ halfHourPrice: event.target.value })} />
-                </label>
-                <label className="field">
-                  <span>عرض النصف ساعة (دقيقة)</span>
-                  <input className="input" dir="ltr" inputMode="numeric" value={card.halfHourOfferMinutes} onChange={(event) => setField({ halfHourOfferMinutes: event.target.value })} />
-                </label>
-                <label className="field" style={{ gridColumn: '1 / -1' }}>
-                  <span>🖼️ صورة الفئة — رابط الصورة</span>
-                  <input className="input" dir="ltr" placeholder="https://…" value={card.imageUrl} onChange={(event) => setField({ imageUrl: event.target.value })} />
-                </label>
-              </div>
+ <div className="modal-backdrop" role="dialog" aria-modal="true">
+ <div className="modal-card" style={{ maxWidth: 760 }}>
+ <div className="modal-head">
+ <span className="modal-title">{card.id ? '✏️ تعديل الفئة' : '📋 بطاقة فئة'}</span>
+ <button className="btn sm" type="button" onClick={() => setCard(null)}>
+ ✖خروج
+ </button>
+ </div>
+ <div style={{ padding: 16, display: 'grid', gap: 12, maxHeight: '70vh', overflow: 'auto' }}>
+ <div className="form-grid">
+ <label className="field">
+ <span>🔢 رقم الفئة</span>
+ <input className="input" value={card.id ? String(rows.find((row) => row.id === card.id)?.number ?? '') : 'يُصدر عند الحفظ'} disabled />
+ </label>
+ <label className="field">
+ <span>رمز الفئة *</span>
+ <input className="input" dir="ltr" value={card.code} onChange={(event) => setField({ code: event.target.value })} />
+ </label>
+ <label className="field">
+ <span>اسم الفئة (عربي)</span>
+ <input className="input" value={card.name} onChange={(event) => setField({ name: event.target.value })} />
+ </label>
+ <label className="field">
+ <span>اسم الفئة (EN)</span>
+ <input className="input" dir="ltr" value={card.nameEn} onChange={(event) => setField({ nameEn: event.target.value })} />
+ </label>
+ <label className="field">
+ <span>قيمة الساعة</span>
+ <input className="input" dir="ltr" inputMode="decimal" value={card.hourPrice} onChange={(event) => setField({ hourPrice: event.target.value })} />
+ </label>
+ <label className="field">
+ <span>عرض الساعة (دقيقة)</span>
+ <input className="input" dir="ltr" inputMode="numeric" value={card.hourOfferMinutes} onChange={(event) => setField({ hourOfferMinutes: event.target.value })} />
+ </label>
+ <label className="field">
+ <span>قيمة النصف ساعة</span>
+ <input className="input" dir="ltr" inputMode="decimal" value={card.halfHourPrice} onChange={(event) => setField({ halfHourPrice: event.target.value })} />
+ </label>
+ <label className="field">
+ <span>عرض النصف ساعة (دقيقة)</span>
+ <input className="input" dir="ltr" inputMode="numeric" value={card.halfHourOfferMinutes} onChange={(event) => setField({ halfHourOfferMinutes: event.target.value })} />
+ </label>
+ <label className="field" style={{ gridColumn: '1 / -1' }}>
+ <span>🖼️ صورة الفئة — رابط الصورة</span>
+ <input className="input" dir="ltr" placeholder="https://…" value={card.imageUrl} onChange={(event) => setField({ imageUrl: event.target.value })} />
+ </label>
+ </div>
 
               {card.imageUrl && /^(https?:\/\/|data:image\/)/i.test(card.imageUrl) && (
-                <img src={card.imageUrl} alt="🖼️ صورة الفئة" style={{ maxHeight: 120, alignSelf: 'flex-start', borderRadius: 8 }} />
+ <img src={card.imageUrl} alt="🖼️ صورة الفئة" style={{ maxHeight: 120, alignSelf: 'flex-start', borderRadius: 8 }} />
               )}
 
-              <div className="row" style={{ gap: 6, flexWrap: 'wrap' }}>
-                <button className="btn primary" type="button" disabled={busy || !card.code.trim()} onClick={save}>
-                  💾 حفظ
-                </button>
+ <div className="row" style={{ gap: 6, flexWrap: 'wrap' }}>
+ <button className="btn primary" type="button" disabled={busy || !card.code.trim()} onClick={save}>
+ 💾حفظ
+ </button>
                 {card.id && (
-                  <button
+ <button
                     className="btn"
                     type="button"
                     onClick={() =>
@@ -377,52 +378,52 @@ export default function MarinaGroupCardsPage() {
                       })
                     }
                   >
-                    ➕ إضافة مدة
-                  </button>
+ ➕إضافة مدة
+ </button>
                 )}
                 {card.imageUrl && (
-                  <button className="btn" type="button" onClick={() => setField({ imageUrl: '' })}>
-                    🗑️ حذف الصورة
-                  </button>
+ <button className="btn" type="button" onClick={() => setField({ imageUrl: '' })}>
+ 🗑️حذف الصورة
+ </button>
                 )}
-                <span style={{ flex: 1 }} />
-                <button className="btn sm" type="button" disabled={busy} onClick={() => walk('first')} title="الأول">⏮</button>
-                <button className="btn sm" type="button" disabled={busy} onClick={() => walk('previous')} title="السابق">◀</button>
-                <button className="btn sm" type="button" disabled={busy} onClick={() => walk('next')} title="التالي">▶</button>
-                <button className="btn sm" type="button" disabled={busy} onClick={() => walk('last')} title="الأخير">⏭</button>
-              </div>
+ <span style={{ flex: 1 }} />
+ <button className="btn sm" type="button" disabled={busy} onClick={() => walk('first')} title="الأول">⏮</button>
+ <button className="btn sm" type="button" disabled={busy} onClick={() => walk('previous')} title="السابق">◀</button>
+ <button className="btn sm" type="button" disabled={busy} onClick={() => walk('next')} title="التالي">▶</button>
+ <button className="btn sm" type="button" disabled={busy} onClick={() => walk('last')} title="الأخير">⏭</button>
+ </div>
               {!card.id && <p className="muted">⏰ فترتا «ساعة» و«نصف ساعة» تُكتبان من هذين الصندوقين عند الحفظ، كما يكتبها `frmGroupM`.</p>}
-            </div>
-          </div>
-        </div>
+ </div>
+ </div>
+ </div>
       )}
 
       {/* «⏰ إدارة فترات التأجير» — `frmAddPeriod`. */}
       {editingPeriods && (
-        <div className="modal-backdrop" role="dialog" aria-modal="true">
-          <div className="modal-card" style={{ maxWidth: 660 }}>
-            <div className="modal-head">
-              <span className="modal-title">⏰ إدارة فترات التأجير — {editingPeriods.code}</span>
-              <button className="btn sm" type="button" onClick={() => setEditingPeriods(null)}>
-                ✖ إغلاق
-              </button>
-            </div>
-            <div style={{ padding: 16, display: 'grid', gap: 12, maxHeight: '70vh', overflow: 'auto' }}>
-              <div className="table-wrap">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>⏰ المدة</th>
-                      <th className="num">💵 السعر</th>
-                      <th className="num">🎁 العرض</th>
-                      <th>🗑️</th>
-                    </tr>
-                  </thead>
-                  <tbody>
+ <div className="modal-backdrop" role="dialog" aria-modal="true">
+ <div className="modal-card" style={{ maxWidth: 660 }}>
+ <div className="modal-head">
+ <span className="modal-title">⏰ إدارة فترات التأجير — {editingPeriods.code}</span>
+ <button className="btn sm" type="button" onClick={() => setEditingPeriods(null)}>
+ ✖إغلاق
+ </button>
+ </div>
+ <div style={{ padding: 16, display: 'grid', gap: 12, maxHeight: '70vh', overflow: 'auto' }}>
+ <div className="table-wrap">
+ <table>
+ <thead>
+ <tr>
+ <th>⏰ المدة</th>
+ <th className="num">💵 السعر</th>
+ <th className="num">🎁 العرض</th>
+ <th><span className="sr-only">إجراءات</span></th>
+ </tr>
+ </thead>
+ <tbody>
                     {editingPeriods.rows.map((row, index) => (
-                      <tr key={index}>
-                        <td>
-                          <select
+ <tr key={index}>
+ <td>
+ <select
                             className="input"
                             value={row.periodId}
                             onChange={(event) =>
@@ -435,14 +436,14 @@ export default function MarinaGroupCardsPage() {
                           >
                             {durations.length === 0 && <option value={row.periodId}>{row.periodId}</option>}
                             {durations.map((duration) => (
-                              <option key={duration.id} value={String(duration.id)}>
+ <option key={duration.id} value={String(duration.id)}>
                                 {duration.name}
-                              </option>
+ </option>
                             ))}
-                          </select>
-                        </td>
-                        <td>
-                          <input
+ </select>
+ </td>
+ <td>
+ <input
                             className="input"
                             dir="ltr"
                             inputMode="decimal"
@@ -455,9 +456,9 @@ export default function MarinaGroupCardsPage() {
                               )
                             }
                           />
-                        </td>
-                        <td>
-                          <input
+ </td>
+ <td>
+ <input
                             className="input"
                             dir="ltr"
                             inputMode="numeric"
@@ -470,42 +471,44 @@ export default function MarinaGroupCardsPage() {
                               )
                             }
                           />
-                        </td>
-                        <td>
-                          <button
+ </td>
+ <td>
+ <button
                             className="btn sm danger"
                             type="button"
                             onClick={() =>
                               setEditingPeriods((current) => (current ? { ...current, rows: current.rows.filter((_, at) => at !== index) } : current))
                             }
                           >
-                            🗑️ حذف
-                          </button>
-                        </td>
-                      </tr>
+ 🗑️حذف
+ </button>
+ </td>
+ </tr>
                     ))}
-                  </tbody>
-                </table>
-              </div>
+ </tbody>
+ </table>
+ </div>
 
-              <div className="row" style={{ gap: 6 }}>
-                <button
+ <div className="row" style={{ gap: 6 }}>
+ <button
                   className="btn"
                   type="button"
                   onClick={() => setEditingPeriods((current) => (current ? { ...current, rows: [...current.rows, emptyPeriod()] } : current))}
                 >
-                  ➕
-                </button>
-                <span style={{ flex: 1 }} />
-                <button className="btn primary" type="button" disabled={busy || editingPeriods.rows.length === 0} onClick={savePeriods}>
-                  💾 حفظ
-                </button>
-              </div>
-              <p className="muted">🎁 العرض بالدقائق، كما في `RentPeriodSub.offer`.</p>
-            </div>
-          </div>
-        </div>
+                  <Plus size={14} />
+
+
+ </button>
+ <span style={{ flex: 1 }} />
+ <button className="btn primary" type="button" disabled={busy || editingPeriods.rows.length === 0} onClick={savePeriods}>
+ 💾حفظ
+ </button>
+ </div>
+ <p className="muted">🎁 العرض بالدقائق، كما في `RentPeriodSub.offer`.</p>
+ </div>
+ </div>
+ </div>
       )}
-    </Screen>
+ </Screen>
   );
 }

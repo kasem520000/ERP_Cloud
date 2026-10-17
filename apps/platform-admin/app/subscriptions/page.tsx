@@ -218,7 +218,7 @@ export default function SubscriptionsPage() {
                   cell: (row) => (
                     <span className="block">
                       <span className="block text-[13px] font-bold text-ink">{row.tenantName}</span>
-                      <span className="block font-mono text-[11px] text-muted" dir="ltr">{row.tenantCode}</span>
+                      <span className="block font-mono text-xs text-muted" dir="ltr">{row.tenantCode}</span>
                     </span>
                   ),
                 },
@@ -228,7 +228,7 @@ export default function SubscriptionsPage() {
                   cell: (row) => (
                     <span className="block">
                       <span className="block text-[12.5px] font-semibold text-ink-2">{row.planName}</span>
-                      <span className="block font-mono text-[11px] text-muted" dir="ltr">{row.planCode}</span>
+                      <span className="block font-mono text-xs text-muted" dir="ltr">{row.planCode}</span>
                     </span>
                   ),
                 },
@@ -242,7 +242,7 @@ export default function SubscriptionsPage() {
                       <span className="block font-mono text-[12px] font-bold">
                         {Number(row.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })} {row.currency}
                       </span>
-                      <span className="block text-[11px] text-muted">
+                      <span className="block text-xs text-muted">
                         {row.interval === 'year' ? 'سنوي' : 'شهري'} · {row.monthlyAmount} شهرياً
                       </span>
                     </span>
@@ -264,12 +264,12 @@ export default function SubscriptionsPage() {
                   cell: (row) => (
                     <span className="block">
                       <Badge tone={SUB_STATUS_TONE[row.status]} dot>{STATUS_LABEL[row.status]}</Badge>
-                      {row.cancelAtPeriodEnd && <span className="mt-0.5 block text-[11px] font-semibold text-warn">يُنتهي بانتهاء المدة</span>}
+                      {row.cancelAtPeriodEnd && <span className="mt-0.5 block text-xs font-semibold text-warn">يُنتهي بانتهاء المدة</span>}
                       {row.status === 'trialing' && row.trialEndsAt && (
-                        <span className="mt-0.5 block text-[11px] text-muted">تنتهي التجربة {dateText(row.trialEndsAt)}</span>
+                        <span className="mt-0.5 block text-xs text-muted">تنتهي التجربة {dateText(row.trialEndsAt)}</span>
                       )}
                       {row.status === 'paused' && row.pausedAt && (
-                        <span className="mt-0.5 block text-[11px] text-muted">موقوف منذ {dateText(row.pausedAt)}</span>
+                        <span className="mt-0.5 block text-xs text-muted">موقوف منذ {dateText(row.pausedAt)}</span>
                       )}
                     </span>
                   ),
@@ -293,7 +293,7 @@ export default function SubscriptionsPage() {
                         <Button variant="danger" size="sm" onClick={() => setActionTarget({ subscription: row, kind: 'cancel' })}>إلغاء</Button>
                       </span>
                     ) : row.status === 'canceled' && row.canceledReason ? (
-                      <span className="block max-w-[220px] truncate text-left text-[11px] text-muted" title={row.canceledReason}>{row.canceledReason}</span>
+                      <span className="block max-w-[220px] truncate text-left text-xs text-muted" title={row.canceledReason}>{row.canceledReason}</span>
                     ) : null,
                 },
               ]}

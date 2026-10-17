@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { Trash2 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import type { CompanyProfileDto } from '@erp/contracts';
 
@@ -42,10 +43,10 @@ type Ticket = { line: LineDraft; item: Item };
 
 type Method = 'cash' | 'card' | 'bank' | 'credit' | 'split';
 
-/** 💳 صفُّ طريقةٍ في الدفع المتعدّد — «🔀 متعدد» في `frmPOSPay.xaml` L286. */
+/** صفُّ طريقةٍ في الدفع المتعدّد — « متعدد» في `frmPOSPay.xaml` L286. */
 type Tender = { key: number; method: 'cash' | 'card' | 'bank'; amountText: string; drawerId: string };
 
-/** 🅿️ الفاتورة المعلّقة كما ترجع من الخادم — سلةٌ لا مستند. */
+/** الفاتورة المعلّقة كما ترجع من الخادم — سلةٌ لا مستند. */
 type Hold = {
   id: string;
   slot: number;
@@ -67,7 +68,7 @@ type Hold = {
   };
 };
 
-/** ⚙️ إعدادات الكاشير — `frmCasherSetting.xaml`. */
+/** إعدادات الكاشير — `frmCasherSetting.xaml`. */
 type PosSettings = {
   'pos.barcodeAuto': boolean;
   'pos.touchScreen': boolean;
@@ -101,7 +102,7 @@ type Receipt = {
   shiftId: string | null;
   change: string;
   tendered: string | null;
-  /** 🔀 ما قبضته الفاتورة طريقةً طريقة، وكم بقي على ذمة العميل. */
+  /** ما قبضته الفاتورة طريقةً طريقة، وكم بقي على ذمة العميل. */
   tenders?: Array<{ method: string; amount: string }> | null;
   onAccount?: string | null;
   cashierId?: string | null;
@@ -174,7 +175,7 @@ export default function PosPage() {
   const [customerMobile, setCustomerMobile] = useState('');
   const [partyId, setPartyId] = useState('');
   /**
-   * 🏦 اختر البنك / 👤 عميل نقدي — `frmPayBank` و`frmCashCustomer` are windows opened
+   * اختر البنك / عميل نقدي — `frmPayBank` و`frmCashCustomer` are windows opened
    * *from* the sale, and each returns one answer to it: which bank the transfer went to,
    * and which walk-in the invoice is written for.
    */
@@ -192,14 +193,14 @@ export default function PosPage() {
   >([]);
   const [autoPrintThermal, setAutoPrintThermal] = useState(true);
   /**
-   * ⚙️ إعدادات الكاشير — تُقرأ من `GET /pos/settings` بصلاحية `pos.view` (لا صلاحية
+   * إعدادات الكاشير — تُقرأ من `GET /pos/settings` بصلاحية `pos.view` (لا صلاحية
    * إعدادات المستأجر) لأنّ الكاشير يحتاجها ليعمل، والكتابة تبقى في شاشة الإعدادات.
    */
   const settings = useQuery<PosSettings>(() => apiData<PosSettings>('/pos/settings'), []);
-  // 🏢 اسم المنشأة ورقمها الضريبي كما هما في ملفّها — لا ثوابت تُطبع لكلّ مستأجر.
+  // اسم المنشأة ورقمها الضريبي كما هما في ملفّها — لا ثوابت تُطبع لكلّ مستأجر.
   const company = useQuery<CompanyProfileDto | null>(() => readCompanyProfile(), []);
   /**
-   * 🧾 رمز الفاتورة الإلكترونية إن كان صدر لهذه الفاتورة فعلًا؛ وما لم يصدر لا يُرسم
+   * رمز الفاتورة الإلكترونية إن كان صدر لهذه الفاتورة فعلًا؛ وما لم يصدر لا يُرسم
    * رمزٌ ولا يُختَرع — الإيصال والشاشة يقولان «لم تُصدر بعد».
    */
   const receiptQr = useQuery<string | null>(() => issuedQrPayload(receipt?.invoiceId), [receipt?.invoiceId ?? '']);
@@ -209,7 +210,7 @@ export default function PosPage() {
     showGroups: settings.data?.['pos.showGroups'] ?? true,
     requireShift: settings.data?.['pos.requireShift'] ?? false,
   };
-  /** 🔀 الدفع المتعدّد: صفوف الطرق، ومفتاحها لعنصر React لا لتسلسلٍ يُعاد ترتيبه. */
+  /** الدفع المتعدّد: صفوف الطرق، ومفتاحها لعنصر React لا لتسلسلٍ يُعاد ترتيبه. */
   const [tenders, setTenders] = useState<Tender[]>([]);
   const tenderSeq = useMemo(() => ({ next: 1 }), []);
   const newTender = (method: 'cash' | 'card' | 'bank', amountText = ''): Tender => ({
@@ -221,7 +222,7 @@ export default function PosPage() {
 
   const [notice, setNotice] = useState<{ kind: 'ok' | 'danger' | 'info'; text: string } | undefined>();
   /**
-   * ✋ تعديل السعر — `frmPOS.xaml` L387: زرّ التعديل `IsEnabled = User.EditPrice`، ومن
+   * تعديل السعر — `frmPOS.xaml` L387: زرّ التعديل `IsEnabled = User.EditPrice`، ومن
    * ضغطه بلا الحقّ سمع «لا يمكن تعديل السعر» (`frmPOS.xaml.cs` L1377، والحارس `User.EditPrice`
    * من `Class/User.cs` L24 · OperNo 13). والسحابة تُعطّل الحقل وتُظهر السبب، والمحرّك يرفض
    * على أي حال بـ`POS_PRICE_OVERRIDE_FORBIDDEN` — فالإخفاء ليس هو الفرض.
@@ -261,7 +262,7 @@ export default function PosPage() {
   })();
   const tenderedValue = Number(tendered || 0);
   const saleValue = Number(totals.total);
-  /** 🔀 مجموع الطرق وفرقها عن الصافي — «⚖️ F6 مطابقة». */
+  /** مجموع الطرق وفرقها عن الصافي — « F6 مطابقة». */
   const tenderTotal = tenders.reduce((sum, row) => sum + Number(row.amountText || 0), 0);
   const tenderDiff = tenderTotal - saleValue;
   const change = tenderedValue > 0 ? tenderedValue - saleValue : 0;
@@ -396,7 +397,7 @@ export default function PosPage() {
                 cashLocationId: method === 'credit' ? undefined : effectiveDrawer,
                 tendered: method === 'cash' && tendered ? tendered : undefined,
               },
-        /** 🔀 الطرق كما كُتبت — والرمز `split` يبقى في الشاشة لا في الطلب. */
+        /** الطرق كما كُتبت — والرمز `split` يبقى في الشاشة لا في الطلب. */
         payments:
           method === 'split'
             ? tenders.map((row) => ({
@@ -466,7 +467,7 @@ export default function PosPage() {
   );
 
   /**
-   * ⏸️ تعليق الأوردر — `frmPOS.xaml.cs` L1871–L1962.
+   * ⏸ تعليق الأوردر — `frmPOS.xaml.cs` L1871–L1962.
    *
    * الديسكتوب يكتب رقم الفاتورة في `HoldList[9]` (L179) ويلوّن الزرّ أخضر (L1907)، ويقول
    * عند امتلاء الخانات «لقد وصلت للحد الاقصي من عمليات الايقاف المؤقت» (L1935) — والرمز
@@ -538,7 +539,7 @@ export default function PosPage() {
     }
   }
 
-  // F7 — اختصار التعليق كما في الديسكتوب («⏸️ تعليق  F7»), ويُتجاهل داخل حقول الكتابة.
+  // F7 — اختصار التعليق كما في الديسكتوب («⏸ تعليق F7»), ويُتجاهل داخل حقول الكتابة.
   useEffect(() => {
     function onKey(event: KeyboardEvent) {
       if (event.key !== 'F7') return;
@@ -553,43 +554,43 @@ export default function PosPage() {
 
   if (!can('pos.operate')) {
     return (
-      <Screen title="نقطة البيع" crumbs={['المبيعات']}>
-        <div className="card state">
-          <strong>لا تملك صلاحية تشغيل نقطة البيع</strong>
-          <span>تحتاج صلاحية pos.operate.</span>
-        </div>
-      </Screen>
+ <Screen title="نقطة البيع" crumbs={['المبيعات']}>
+ <div className="card state">
+ <strong>لا تملك صلاحية تشغيل نقطة البيع</strong>
+ <span>تحتاج صلاحية pos.operate.</span>
+ </div>
+ </Screen>
     );
   }
 
   return (
-    <Screen
+ <Screen
       title="نقطة البيع"
       subtitle={`${branchRow ? arabicName(branchRow) : 'بدون فرع'} — ${warehouseRows.find((row) => row.id === effectiveWarehouse) ? arabicName(warehouseRows.find((row) => row.id === effectiveWarehouse)!) : 'بدون مستودع'} · ${priceIncludesVat ? 'الأسعار شاملة الضريبة' : 'الأسعار قبل الضريبة'}`}
       crumbs={['المبيعات', 'العمليات']}
       actions={
-        <>
-          <span className={`badge ${shift.data ? 'posted' : 'draft'}`}>
+ <>
+ <span className={`badge ${shift.data ? 'posted' : 'draft'}`}>
             {shift.data
               ? `وردية مفتوحة منذ ${new Date(shift.data.openedAt).toLocaleTimeString('ar')}`
               : 'لا توجد وردية مفتوحة'}
-          </span>
+ </span>
           {!shift.data && branchId && (
-            <button className="btn sm" type="button" disabled={busy} onClick={openShift}>
-              فتح وردية
-            </button>
+ <button className="btn sm" type="button" disabled={busy} onClick={openShift}>
+ فتح وردية
+ </button>
           )}
-          <Link className="btn sm" href="/sales/shifts">
-            إغلاق اليومية
-          </Link>
-        </>
+ <Link className="btn sm" href="/sales/shifts">
+ إغلاق اليومية
+ </Link>
+ </>
       }
     >
-      <div className="grid cols-2">
-        <div className="card">
-          <h2>الأصناف</h2>
-          <div className="toolbar" style={{ marginBottom: 8 }}>
-            <input
+ <div className="grid cols-2">
+ <div className="card">
+ <h2>الأصناف</h2>
+ <div className="toolbar" style={{ marginBottom: 8 }}>
+ <input
               className="input"
               placeholder="بحث بالاسم أو الباركود…"
               value={search}
@@ -612,90 +613,90 @@ export default function PosPage() {
                 setSearch('');
               }}
             />
-            <label className="row" style={{ alignItems: 'center', gap: 6, fontSize: 12 }}>
-              <input
+ <label className="row" style={{ alignItems: 'center', gap: 6, fontSize: 12 }}>
+ <input
                 type="checkbox"
                 checked={priceIncludesVat}
                 onChange={(event) => setPriceIncludesVat(event.target.checked)}
               />
-              الأسعار شاملة الضريبة
-            </label>
-          </div>
+ الأسعار شاملة الضريبة
+ </label>
+ </div>
           {/* «عرض المجموعات والأصناف» (`frmCasherSetting.xaml` L265). */}
-          <div className="chips" style={{ marginBottom: 10, display: casher.showGroups ? undefined : 'none' }}>
-            <button
+ <div className="chips" style={{ marginBottom: 10, display: casher.showGroups ? undefined : 'none' }}>
+ <button
               className={`chip ${categoryId === '' ? 'on' : ''}`}
               type="button"
               onClick={() => setCategoryId('')}
             >
-              الكل
-            </button>
+ الكل
+ </button>
             {(categories.data ?? []).map((row) => (
-              <button
+ <button
                 key={row.id}
                 className={`chip ${categoryId === row.id ? 'on' : ''}`}
                 type="button"
                 onClick={() => setCategoryId(row.id)}
               >
                 {arabicName(row)}
-              </button>
+ </button>
             ))}
-          </div>
-          <div className="pos-tiles">
+ </div>
+ <div className="pos-tiles">
             {visible.slice(0, 60).map((item) => (
-              <button
+ <button
                 className="pos-tile"
                 type="button"
                 key={item.id}
                 onClick={() => add(item)}
                 /* 🖐️ «تاتش سكرين» (`frmCasherSetting.xaml` L252): بلاطاتٌ أكبر لإصبعٍ
-                   لا لمؤشّر — الإعداد يغيّر المقاس لا المحتوى. */
+ لا لمؤشّر — الإعداد يغيّر المقاس لا المحتوى. */
                 style={casher.touchScreen ? { minHeight: 104, fontSize: 15 } : undefined}
               >
-                <strong>{arabicName(item)}</strong>
-                <span>{money(item.salePrice ?? item.sale_price)}</span>
-              </button>
+ <strong>{arabicName(item)}</strong>
+ <span>{money(item.salePrice ?? item.sale_price)}</span>
+ </button>
             ))}
-          </div>
+ </div>
           {visible.length === 0 && (
-            <p className="muted">لا توجد أصناف مطابقة. أضف المواد من «المستودعات ← دليل المواد».</p>
+ <p className="muted">لا توجد أصناف مطابقة. أضف المواد من «المستودعات ← دليل المواد».</p>
           )}
-        </div>
+ </div>
 
-        <div className="card">
-          <h2>الفاتورة الحالية</h2>
+ <div className="card">
+ <h2>الفاتورة الحالية</h2>
           {ticket.length === 0 ? (
-            <p className="muted">اضغط على صنف لإضافته.</p>
+ <p className="muted">اضغط على صنف لإضافته.</p>
           ) : (
-            <div className="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>الصنف</th>
-                    <th>الكمية</th>
-                    <th>السعر</th>
-                    <th>خصم %</th>
-                    <th>الإجمالي</th>
-                    <th />
-                  </tr>
-                </thead>
-                <tbody>
+ <div className="table-wrap">
+ <table>
+ <thead>
+ <tr>
+ <th>الصنف</th>
+ <th>الكمية</th>
+ <th>السعر</th>
+ <th>خصم %</th>
+ <th>الإجمالي</th>
+ <th />
+ </tr>
+ </thead>
+ <tbody>
                   {ticket.map((entry) => {
                     const line = computeTotals([entry.line], { priceIncludesVat }).lines[0];
                     return (
-                      <tr key={entry.item.id}>
-                        <td>{arabicName(entry.item)}</td>
-                        <td>
-                          <input
+ <tr key={entry.item.id}>
+ <td>{arabicName(entry.item)}</td>
+ <td>
+ <input
                             className="input"
                             dir="ltr"
                             inputMode="decimal"
                             value={entry.line.quantityText}
                             onChange={(event) => patch(entry.item.id, { quantityText: event.target.value })}
                           />
-                        </td>
-                        <td>
-                          <input
+ </td>
+ <td>
+ <input
                             className="input"
                             dir="ltr"
                             inputMode="decimal"
@@ -704,9 +705,9 @@ export default function PosPage() {
                             title={canOverridePrice ? undefined : 'لا يمكن تعديل السعر'}
                             onChange={(event) => patch(entry.item.id, { unitPriceText: event.target.value })}
                           />
-                        </td>
-                        <td>
-                          <input
+ </td>
+ <td>
+ <input
                             className="input"
                             dir="ltr"
                             inputMode="decimal"
@@ -715,54 +716,54 @@ export default function PosPage() {
                               patch(entry.item.id, { discountRateText: event.target.value })
                             }
                           />
-                        </td>
-                        <td>{money(line?.total ?? '0')}</td>
-                        <td>
-                          <button
+ </td>
+ <td>{money(line?.total ?? '0')}</td>
+ <td>
+ <button
                             className="btn sm"
                             type="button"
                             onClick={() =>
                               setTicket((current) => current.filter((row) => row.item.id !== entry.item.id))
                             }
                           >
-                            حذف
-                          </button>
-                        </td>
-                      </tr>
+ حذف
+ </button>
+ </td>
+ </tr>
                     );
                   })}
-                </tbody>
-              </table>
-            </div>
+ </tbody>
+ </table>
+ </div>
           )}
 
-          <dl className="kv" style={{ marginTop: 10 }}>
-            <dt>قبل الضريبة</dt>
-            <dd>{money(totals.subtotal)}</dd>
-            <dt>الضريبة</dt>
-            <dd>{money(totals.tax)}</dd>
-            <dt>المطلوب</dt>
-            <dd className="pos-total">{money(totals.total)}</dd>
-          </dl>
+ <dl className="kv" style={{ marginTop: 10 }}>
+ <dt>قبل الضريبة</dt>
+ <dd>{money(totals.subtotal)}</dd>
+ <dt>الضريبة</dt>
+ <dd>{money(totals.tax)}</dd>
+ <dt>المطلوب</dt>
+ <dd className="pos-total">{money(totals.total)}</dd>
+ </dl>
 
-          <div className="form-grid">
-            <label className="field">
-              <span>المستودع</span>
-              <select
+ <div className="form-grid">
+ <label className="field">
+ <span>المستودع</span>
+ <select
                 className="input"
                 value={effectiveWarehouse}
                 onChange={(event) => setWarehouseId(event.target.value)}
               >
                 {warehouseRows.map((row) => (
-                  <option key={row.id} value={row.id}>
+ <option key={row.id} value={row.id}>
                     {arabicName(row)}
-                  </option>
+ </option>
                 ))}
-              </select>
-            </label>
-            <label className="field">
-              <span>خصم على الفاتورة</span>
-              <input
+ </select>
+ </label>
+ <label className="field">
+ <span>خصم على الفاتورة</span>
+ <input
                 className="input"
                 dir="ltr"
                 inputMode="decimal"
@@ -771,68 +772,68 @@ export default function PosPage() {
               />
               {/* R1 — الحدّ يُعرض هنا ويُفحص في الخادم: الشاشة تُعلن السقف، والخدمة تفرضه. */}
               {discountLimitText && <span className="muted">{discountLimitText}</span>}
-            </label>
-            <label className="field">
-              <span>العميل</span>
-              <select
+ </label>
+ <label className="field">
+ <span>العميل</span>
+ <select
                 className="input"
                 value={customerMode}
                 onChange={(event) => setCustomerMode(event.target.value as 'walkin' | 'account')}
               >
-                <option value="walkin">عميل عام (فاتورة ضريبية مبسطة)</option>
-                <option value="account">حساب عميل مسجل</option>
-              </select>
-            </label>
+ <option value="walkin">عميل عام (فاتورة ضريبية مبسطة)</option>
+ <option value="account">حساب عميل مسجل</option>
+ </select>
+ </label>
             {customerMode === 'walkin' ? (
-              <>
-                <label className="field">
-                  <span>🏷️ الاسم:</span>
-                  <div className="row" style={{ flexWrap: 'nowrap' }}>
-                    <input
+ <>
+ <label className="field">
+ <span>🏷️ الاسم:</span>
+ <div className="row" style={{ flexWrap: 'nowrap' }}>
+ <input
                       className="input"
                       placeholder="عميل عام"
                       value={customerName}
                       onChange={(event) => setCustomerName(event.target.value)}
                     />
-                    <button type="button" className="btn" onClick={() => setPickingCustomer(true)}>
-                      👤 بحث
-                    </button>
-                  </div>
-                </label>
-                <label className="field">
-                  <span>📱 رقم الجوال:</span>
-                  <input
+ <button type="button" className="btn" onClick={() => setPickingCustomer(true)}>
+ 👤بحث
+ </button>
+ </div>
+ </label>
+ <label className="field">
+ <span>📱 رقم الجوال:</span>
+ <input
                     className="input"
                     dir="ltr"
                     inputMode="tel"
                     value={customerMobile}
                     onChange={(event) => setCustomerMobile(event.target.value)}
                   />
-                </label>
-              </>
+ </label>
+ </>
             ) : (
-              <label className="field">
-                <span>حساب العميل</span>
-                <select
+ <label className="field">
+ <span>حساب العميل</span>
+ <select
                   className="input"
                   value={partyId}
                   onChange={(event) => setPartyId(event.target.value)}
                 >
-                  <option value="">— اختر —</option>
+ <option value="">— اختر —</option>
                   {(customers.data ?? []).map((row) => (
-                    <option key={row.id} value={row.id}>
+ <option key={row.id} value={row.id}>
                       {partyLabel(row)}
-                    </option>
+ </option>
                   ))}
-                </select>
-              </label>
+ </select>
+ </label>
             )}
-          </div>
+ </div>
 
-          <h2 style={{ marginTop: 6 }}>الدفع</h2>
-          <div className="chips">
+ <h2 style={{ marginTop: 6 }}>الدفع</h2>
+ <div className="chips">
             {METHODS.map((row) => (
-              <button
+ <button
                 key={row.id}
                 className={`chip ${method === row.id ? 'on' : ''}`}
                 type="button"
@@ -840,24 +841,24 @@ export default function PosPage() {
                 title={row.hint}
               >
                 {row.label}
-              </button>
+ </button>
             ))}
-          </div>
-          <p className="muted small">{METHODS.find((row) => row.id === method)?.hint}</p>
+ </div>
+ <p className="muted small">{METHODS.find((row) => row.id === method)?.hint}</p>
 
           {/**
-           * 🔀 دفع الفاتورة بأكثر من طريقة — `frmPOSPay.xaml` L286 (زرّ «🔀 متعدد») وL548
+           * دفع الفاتورة بأكثر من طريقة — `frmPOSPay.xaml` L286 (زرّ « متعدد») وL548
            * («⚖️ F6 مطابقة»). صفٌّ لكل طريقة: بماذا، وكم، ومن أيّ صندوقٍ أو بنك. والمطابقة
            * سطرٌ ظاهر لا حسابٌ في الرأس: الكاشير يرى الفرق قبل أن يضغط «✔ دفع».
            */}
           {method === 'split' && (
-            <div className="card tight" style={{ marginTop: 8 }}>
-              <div className="card-head">🔀 طرق الدفع</div>
+ <div className="card tight" style={{ marginTop: 8 }}>
+ <div className="card-head">🔀 طرق الدفع</div>
               {tenders.map((row) => (
-                <div key={row.key} className="row" style={{ alignItems: 'flex-end', gap: 6, marginBottom: 6 }}>
-                  <label className="field" style={{ flex: '0 0 110px' }}>
-                    <span>الطريقة</span>
-                    <select
+ <div key={row.key} className="row" style={{ alignItems: 'flex-end', gap: 6, marginBottom: 6 }}>
+ <label className="field" style={{ flex: '0 0 110px' }}>
+ <span>الطريقة</span>
+ <select
                       className="input"
                       value={row.method}
                       onChange={(event) =>
@@ -870,14 +871,14 @@ export default function PosPage() {
                         )
                       }
                     >
-                      <option value="cash">💵 كاش</option>
-                      <option value="card">🖧 شبكة</option>
-                      <option value="bank">💳 تحويل</option>
-                    </select>
-                  </label>
-                  <label className="field" style={{ flex: '0 0 110px' }}>
-                    <span>المبلغ</span>
-                    <input
+ <option value="cash">💵 كاش</option>
+ <option value="card">🖧 شبكة</option>
+ <option value="bank">💳 تحويل</option>
+ </select>
+ </label>
+ <label className="field" style={{ flex: '0 0 110px' }}>
+ <span>المبلغ</span>
+ <input
                       className="input"
                       dir="ltr"
                       inputMode="decimal"
@@ -890,10 +891,10 @@ export default function PosPage() {
                         )
                       }
                     />
-                  </label>
-                  <label className="field" style={{ flex: 1 }}>
-                    <span>{row.method === 'cash' ? 'الصندوق' : 'البنك'}</span>
-                    <select
+ </label>
+ <label className="field" style={{ flex: 1 }}>
+ <span>{row.method === 'cash' ? 'الصندوق' : 'البنك'}</span>
+ <select
                       className="input"
                       value={row.drawerId}
                       onChange={(event) =>
@@ -904,153 +905,154 @@ export default function PosPage() {
                         )
                       }
                     >
-                      <option value="">— اختر —</option>
+ <option value="">— اختر —</option>
                       {drawersFor(row.method).map((drawer) => (
-                        <option key={drawer.id} value={drawer.id}>
+ <option key={drawer.id} value={drawer.id}>
                           {cashLocationLabel(drawer)}
-                        </option>
+ </option>
                       ))}
-                    </select>
-                  </label>
-                  <button
+ </select>
+ </label>
+ <button
                     className="btn sm"
                     type="button"
                     onClick={() => setTenders((current) => current.filter((entry) => entry.key !== row.key))}
+                    aria-label="حذف طريقة الدفع"
                   >
-                    ✖
-                  </button>
-                </div>
+                    <Trash2 size={13} />
+ </button>
+ </div>
               ))}
-              <div className="toolbar">
-                <button
+ <div className="toolbar">
+ <button
                   className="btn sm"
                   type="button"
                   onClick={() => setTenders((current) => [...current, newTender('cash')])}
                 >
-                  + 💵 كاش
-                </button>
-                <button
+                  + كاش
+ </button>
+ <button
                   className="btn sm"
                   type="button"
                   onClick={() => setTenders((current) => [...current, newTender('card')])}
                 >
-                  + 🖧 شبكة
-                </button>
-                <button
+                  + شبكة
+ </button>
+ <button
                   className="btn sm"
                   type="button"
                   onClick={() => setTenders((current) => [...current, newTender('bank')])}
                 >
-                  + 💳 تحويل
-                </button>
-              </div>
-              <dl className="kv" style={{ marginTop: 8 }}>
-                <dt>⚖️ مطابقة</dt>
-                <dd className={tenderDiff === 0 ? 'pos-change' : 'pos-change-due'}>
+                  + تحويل
+ </button>
+ </div>
+ <dl className="kv" style={{ marginTop: 8 }}>
+ <dt>⚖️ مطابقة</dt>
+ <dd className={tenderDiff === 0 ? 'pos-change' : 'pos-change-due'}>
                   {tenderDiff === 0
                     ? `مطابق — ${money(tenderTotal)}`
                     : tenderDiff > 0
                       ? `زيادة ${money(tenderDiff)}`
                       : `ناقص ${money(-tenderDiff)}`}
-                </dd>
+ </dd>
                 {tenderDiff < 0 && <dt>والباقي على حساب العميل</dt>}
                 {tenderDiff < 0 && <dd>{money(-tenderDiff)}</dd>}
-              </dl>
-            </div>
+ </dl>
+ </div>
           )}
 
           {method === 'bank' ? (
             /**
-             * 🏦 تحويل بنكي — `frmPayBank.xaml`: a tile per bank, `✔ موافق` / `✖ خروج`,
+             * تحويل بنكي — `frmPayBank.xaml`: a tile per bank, ` موافق` / ` خروج`,
              * and no sale without a named bank. `EntryOper.cs` L493/L620 then debits
              * *that* bank's account instead of the generic شبكة account, so the choice
              * cannot be a dropdown default the cashier never looked at.
              */
-            <div className="card tight" style={{ marginTop: 8 }}>
-              <div className="card-head">🏦 البنوك المتاحة</div>
-              <div className="row" style={{ alignItems: 'center', justifyContent: 'space-between' }}>
-                <span>{effectiveDrawer ? cashLocationLabel(drawers.find((row) => row.id === effectiveDrawer) ?? ({} as CashLocation)) : 'لم يُختر بنك'}</span>
-                <button type="button" className="btn primary" onClick={() => setPickingBank(true)}>
-                  🏦 اختر البنك
-                </button>
-              </div>
-            </div>
+ <div className="card tight" style={{ marginTop: 8 }}>
+ <div className="card-head">🏦 البنوك المتاحة</div>
+ <div className="row" style={{ alignItems: 'center', justifyContent: 'space-between' }}>
+ <span>{effectiveDrawer ? cashLocationLabel(drawers.find((row) => row.id === effectiveDrawer) ?? ({} as CashLocation)) : 'لم يُختر بنك'}</span>
+ <button type="button" className="btn primary" onClick={() => setPickingBank(true)}>
+ 🏦اختر البنك
+ </button>
+ </div>
+ </div>
           ) : null}
 
           {method !== 'credit' && method !== 'bank' && method !== 'split' && (
-            <label className="field" style={{ marginTop: 8 }}>
-              <span>{method === 'cash' ? 'الصندوق' : 'حساب التحصيل'}</span>
-              <select
+ <label className="field" style={{ marginTop: 8 }}>
+ <span>{method === 'cash' ? 'الصندوق' : 'حساب التحصيل'}</span>
+ <select
                 className="input"
                 value={effectiveDrawer}
                 onChange={(event) => setCashLocationId(event.target.value)}
               >
-                <option value="">— اختر —</option>
+ <option value="">— اختر —</option>
                 {drawers.map((row) => (
-                  <option key={row.id} value={row.id}>
+ <option key={row.id} value={row.id}>
                     {cashLocationLabel(row)}
-                  </option>
+ </option>
                 ))}
-              </select>
-            </label>
+ </select>
+ </label>
           )}
 
           {method === 'cash' && (
-            <>
-              <label className="field">
-                <span>المبلغ المستلم</span>
-                <input
+ <>
+ <label className="field">
+ <span>المبلغ المستلم</span>
+ <input
                   className="input"
                   dir="ltr"
                   inputMode="decimal"
                   value={tendered}
                   onChange={(event) => setTendered(event.target.value)}
                 />
-              </label>
-              <div className="chips">
+ </label>
+ <div className="chips">
                 {QUICK_CASH.map((value) => (
-                  <button className="chip" type="button" key={value} onClick={() => setTendered(value)}>
+ <button className="chip" type="button" key={value} onClick={() => setTendered(value)}>
                     {value}
-                  </button>
+ </button>
                 ))}
-                <button className="chip" type="button" onClick={() => setTendered(totals.total)}>
-                  المبلغ بالضبط
-                </button>
-              </div>
-              <dl className="kv" style={{ marginTop: 8 }}>
-                <dt>الباقي</dt>
-                <dd className={change < 0 ? 'pos-change-due' : 'pos-change'}>{money(change)}</dd>
-              </dl>
-            </>
+ <button className="chip" type="button" onClick={() => setTendered(totals.total)}>
+ المبلغ بالضبط
+ </button>
+ </div>
+ <dl className="kv" style={{ marginTop: 8 }}>
+ <dt>الباقي</dt>
+ <dd className={change < 0 ? 'pos-change-due' : 'pos-change'}>{money(change)}</dd>
+ </dl>
+ </>
           )}
 
-          <Notice notice={notice} />
-          <button
+ <Notice notice={notice} />
+ <button
             className="btn primary block"
             type="button"
             disabled={busy || ticket.length === 0}
             onClick={checkout}
           >
             {busy ? 'جارٍ إتمام البيع…' : `إتمام البيع — ${money(totals.total)}`}
-          </button>
+ </button>
           {!shift.data && (
-            <p className="muted small">لا توجد وردية مفتوحة: لن تُنسب هذه المبيعة إلى جرد اليومية.</p>
+ <p className="muted small">لا توجد وردية مفتوحة: لن تُنسب هذه المبيعة إلى جرد اليومية.</p>
           )}
-        </div>
-      </div>
+ </div>
+ </div>
 
       {/**
-       * ⏸️ أزرار التعليق — الصفّ الثالث في `frmPOS.xaml` (L1120–L1180): تسعة أزرار
-       * عنوانها «1»…«9» و`HoldList[9]` (L179)، وزرّ «⏸️ تعليق  F7» تحتها. والمشغول أخضر
+       * ⏸ أزرار التعليق — الصفّ الثالث في `frmPOS.xaml` (L1120–L1180): تسعة أزرار
+       * عنوانها «1»…«9» و`HoldList[9]` (L179)، وزرّ «⏸ تعليق F7» تحتها. والمشغول أخضر
        * (`Colors.Green`) والفارغ معطّل — نفس ما تراه العين هنا. والديسكتوب يُخفي 6–9
        * (`Visibility="Collapsed"`) حتى تُشترى الخانات… والسحابة تُظهرها كلها وتترك
        * الحدّ للمحرّك: خانةٌ فارغة ليست عيباً، والمخفيُّ لا يُخبَر به الكاشير.
        */}
-      <div className="card">
-        <div className="card-head">⏸️ الفواتير المعلّقة — ٩ خانات</div>
-        <div className="row" style={{ flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
+ <div className="card">
+ <div className="card-head">⏸ الفواتير المعلّقة — ٩ خانات</div>
+ <div className="row" style={{ flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
           {(holds.data ?? []).map((hold) => (
-            <button
+ <button
               className="chip on"
               type="button"
               key={hold.id}
@@ -1063,46 +1065,46 @@ export default function PosPage() {
               }}
             >
               {hold.slot + 1}
-            </button>
+ </button>
           ))}
           {Array.from({ length: 9 })
             .map((_, slot) => slot)
             .filter((slot) => !(holds.data ?? []).some((hold) => hold.slot === slot))
             .map((slot) => (
-              <button className="chip" type="button" key={`free-${slot}`} disabled title="خانة فارغة">
+ <button className="chip" type="button" key={`free-${slot}`} disabled title="خانة فارغة">
                 {slot + 1}
-              </button>
+ </button>
             ))}
-          <button
+ <button
             className="btn sm primary"
             type="button"
             disabled={busy || ticket.length === 0}
             onClick={holdTicket}
             title="F7"
           >
-            ⏸️ تعليق  F7
-          </button>
-        </div>
-        <p className="muted small">
-          الضغط على خانةٍ مشغولة يسترجع سلها، والضغط الطويل (زرّ الفأرة الأيمن) يُفرغها. و«يوجد أصناف في الجدول»
-          تمنع دهس سلةٍ لم تُتمّ.
-        </p>
-      </div>
+            ⏸ تعليق F7
+ </button>
+ </div>
+ <p className="muted small">
+ الضغط على خانةٍ مشغولة يسترجع سلها، والضغط الطويل (زرّ الفأرة الأيمن) يُفرغها. و«يوجد أصناف في الجدول»
+ تمنع دهس سلةٍ لم تُتمّ.
+ </p>
+ </div>
 
       {receipt && (
-        <div className="card receipt">
-          <div className="toolbar no-print" style={{ justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
-            <h2>🧾 آخر إيصال كاشير (80mm)</h2>
-            <div className="toolbar" style={{ gap: 8, flexWrap: 'wrap' }}>
-              <label className="row" style={{ fontSize: 12, gap: 6 }}>
-                <input
+ <div className="card receipt">
+ <div className="toolbar no-print" style={{ justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
+ <h2>🧾 آخر إيصال كاشير (80mm)</h2>
+ <div className="toolbar" style={{ gap: 8, flexWrap: 'wrap' }}>
+ <label className="row" style={{ fontSize: 12, gap: 6 }}>
+ <input
                   type="checkbox"
                   checked={autoPrintThermal}
                   onChange={(e) => setAutoPrintThermal(e.target.checked)}
                 />
-                <span>طباعة حرارية فورية بعد البيع</span>
-              </label>
-              <button
+ <span>طباعة حرارية فورية بعد البيع</span>
+ </label>
+ <button
                 className="btn primary sm"
                 type="button"
                 onClick={() => {
@@ -1129,116 +1131,116 @@ export default function PosPage() {
                   });
                 }}
               >
-                🖨️ طباعة إيصال كاشير حراري (80mm)
-              </button>
-              <Link className="btn sm" href={`/sales/invoices/${receipt.invoiceId}`}>
-                تفاصيل الفاتورة
-              </Link>
-            </div>
-          </div>
-          <div className="row" style={{ gap: 18, alignItems: 'flex-start', flexWrap: 'wrap' }}>
-            <dl className="kv" style={{ flex: 1, minWidth: 220 }}>
-              <dt>الرقم</dt>
-              <dd>{receipt.number ?? '—'}</dd>
-              <dt>الإجمالي</dt>
-              <dd>{money(receipt.total)}</dd>
-              <dt>الضريبة</dt>
-              <dd>{money(receipt.taxTotal)}</dd>
-              <dt>طريقة الدفع</dt>
-              <dd>{METHODS.find((row) => row.id === receipt.method)?.label ?? receipt.method}</dd>
-              {/* 🔀 متعدد: الإيصال يفصّل ما قُبض طريقةً طريقة، والباقي على الحساب إن بقي. */}
+ 🖨️طباعة إيصال كاشير حراري (80mm)
+ </button>
+ <Link className="btn sm" href={`/sales/invoices/${receipt.invoiceId}`}>
+ تفاصيل الفاتورة
+ </Link>
+ </div>
+ </div>
+ <div className="row" style={{ gap: 18, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+ <dl className="kv" style={{ flex: 1, minWidth: 220 }}>
+ <dt>الرقم</dt>
+ <dd>{receipt.number ?? '—'}</dd>
+ <dt>الإجمالي</dt>
+ <dd>{money(receipt.total)}</dd>
+ <dt>الضريبة</dt>
+ <dd>{money(receipt.taxTotal)}</dd>
+ <dt>طريقة الدفع</dt>
+ <dd>{METHODS.find((row) => row.id === receipt.method)?.label ?? receipt.method}</dd>
+              {/* متعدد: الإيصال يفصّل ما قُبض طريقةً طريقة، والباقي على الحساب إن بقي. */}
               {receipt.tenders?.map((row) => (
-                <>
-                  <dt key={`${row.method}-dt`}>
+ <>
+ <dt key={`${row.method}-dt`}>
                     {row.method === 'cash' ? '💵 كاش' : row.method === 'card' ? '🖧 شبكة' : '💳 تحويل'}
-                  </dt>
-                  <dd key={`${row.method}-dd`}>{money(row.amount)}</dd>
-                </>
+ </dt>
+ <dd key={`${row.method}-dd`}>{money(row.amount)}</dd>
+ </>
               ))}
               {receipt.onAccount && Number(receipt.onAccount) > 0 && (
-                <>
-                  <dt>على حساب العميل</dt>
-                  <dd className="pos-change-due">{money(receipt.onAccount)}</dd>
-                </>
+ <>
+ <dt>على حساب العميل</dt>
+ <dd className="pos-change-due">{money(receipt.onAccount)}</dd>
+ </>
               )}
               {receipt.cashierId && (
-                <>
-                  <dt>الكاشير</dt>
-                  <dd dir="ltr">{receipt.cashierId.slice(0, 8)}</dd>
-                </>
+ <>
+ <dt>الكاشير</dt>
+ <dd dir="ltr">{receipt.cashierId.slice(0, 8)}</dd>
+ </>
               )}
               {receipt.method === 'cash' && (
-                <>
-                  <dt>المستلم</dt>
-                  <dd>{receipt.tendered ? money(receipt.tendered) : '—'}</dd>
-                  <dt>الباقي</dt>
-                  <dd>{money(receipt.change)}</dd>
-                </>
+ <>
+ <dt>المستلم</dt>
+ <dd>{receipt.tendered ? money(receipt.tendered) : '—'}</dd>
+ <dt>الباقي</dt>
+ <dd>{money(receipt.change)}</dd>
+ </>
               )}
-              <dt>الحالة</dt>
-              <dd>{receipt.paymentStatus === 'paid' ? 'مدفوعة' : 'آجلة'}</dd>
+ <dt>الحالة</dt>
+ <dd>{receipt.paymentStatus === 'paid' ? 'مدفوعة' : 'آجلة'}</dd>
               {receipt.shiftId && (
-                <>
-                  <dt>الوردية</dt>
-                  <dd>
-                    <Link href="/sales/shifts">مربوطة بوردية مفتوحة</Link>
-                  </dd>
-                </>
+ <>
+ <dt>الوردية</dt>
+ <dd>
+ <Link href="/sales/shifts">مربوطة بوردية مفتوحة</Link>
+ </dd>
+ </>
               )}
-            </dl>
-            <ZatcaQrSvg
+ </dl>
+ <ZatcaQrSvg
               payload={receiptQr.data ?? null}
               missingText="لم تُصدر بعد بيانات الفاتورة الإلكترونية (QR) — الإصدار من شاشة الفاتورة (الفوترة الإلكترونية)."
               size={132}
               label="باركود الفاتورة الضريبية المبسطة (QR)"
             />
-          </div>
-        </div>
+ </div>
+ </div>
       )}
 
-      <div className="card">
-        <h2>آخر مبيعات نقطة البيع</h2>
-        <div className="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>الرقم</th>
-                <th>الإجمالي</th>
-                <th>الحالة</th>
-                <th />
-              </tr>
-            </thead>
-            <tbody>
+ <div className="card">
+ <h2>آخر مبيعات نقطة البيع</h2>
+ <div className="table-wrap">
+ <table>
+ <thead>
+ <tr>
+ <th>الرقم</th>
+ <th>الإجمالي</th>
+ <th>الحالة</th>
+ <th />
+ </tr>
+ </thead>
+ <tbody>
               {(recent.data ?? [])
                 .filter((row) => row.orderType === 'pos')
                 .slice(0, 8)
                 .map((row) => (
-                  <tr key={row.id}>
-                    <td>{row.number ?? '—'}</td>
-                    <td>{money(row.total)}</td>
-                    <td>
-                      <span className={`badge ${row.status === 'posted' ? 'posted' : row.status}`}>
+ <tr key={row.id}>
+ <td>{row.number ?? '—'}</td>
+ <td>{money(row.total)}</td>
+ <td>
+ <span className={`badge ${row.status === 'posted' ? 'posted' : row.status}`}>
                         {row.status}
-                      </span>
-                    </td>
-                    <td>
-                      <Link className="btn sm" href={`/sales/invoices/${row.id}`}>
-                        فتح
-                      </Link>
-                    </td>
-                  </tr>
+ </span>
+ </td>
+ <td>
+ <Link className="btn sm" href={`/sales/invoices/${row.id}`}>
+ فتح
+ </Link>
+ </td>
+ </tr>
                 ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
+ </tbody>
+ </table>
+ </div>
+ </div>
 
       {/**
        * 🏦 `frmPayBank` — the bank is chosen at the moment of payment, or the sale is
        * not made: `SelectedBankId == 0` is the desktop's "يرجى اختر بنك أولًا".
        */}
       {pickingBank ? (
-        <BankChooser
+ <BankChooser
           banks={drawers}
           selectedId={effectiveDrawer}
           loading={cashLocations.status === 'loading'}
@@ -1252,7 +1254,7 @@ export default function PosPage() {
 
       {/** 👤 `frmCashCustomer` — a walk-in is a name and a mobile, not a ledger account. */}
       {pickingCustomer ? (
-        <CashCustomerPicker
+ <CashCustomerPicker
           value={{ name: customerName, mobile: customerMobile }}
           onPick={(customer) => {
             setCustomerName(customer.name);
@@ -1262,6 +1264,6 @@ export default function PosPage() {
           onClose={() => setPickingCustomer(false)}
         />
       ) : null}
-    </Screen>
+ </Screen>
   );
 }

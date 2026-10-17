@@ -25,7 +25,7 @@ import { KpiCard } from '../components/ui/kpi-card';
 import { SkeletonCard } from '../components/ui/skeleton';
 import { Badge } from '../components/ui/badge';
 import { useSession } from '../lib/session';
-import { money, shortDate } from '../lib/lookups';
+import { money, quantity, shortDate } from '../lib/lookups';
 import { computeStats, fetchDashboardData, partyName, type DashboardData } from '../lib/dashboard';
 
 function useDashboardData() {
@@ -105,10 +105,10 @@ function ActionTile({
         {icon}
       </span>
       <span className="min-w-0 flex-1">
-        <span className="block text-[11px] font-bold uppercase tracking-[0.07em] text-muted">{label}</span>
+        <span className="block text-xs font-bold uppercase tracking-[0.07em] text-muted">{label}</span>
         <span className="mt-1 flex items-baseline gap-2">
           <b className="num text-[21px] leading-none font-extrabold text-ink">{value}</b>
-          <span className="truncate text-[11px] font-medium text-muted">{hint}</span>
+          <span className="truncate text-xs font-medium text-muted">{hint}</span>
         </span>
       </span>
       <ArrowRight size={14} className="arrow-forward flex-none text-muted" aria-hidden />
@@ -448,7 +448,7 @@ export default function DashboardPage() {
                       </span>
                     </span>
                     <span className="text-[12px] text-muted font-semibold">
-                      المتاح <b className="text-danger">{row.quantity}</b> / الحد {row.minQty}
+                      المتاح <b className="text-danger">{quantity(row.quantity)}</b> / الحد {quantity(row.minQty)}
                     </span>
                     <Badge tone="red" dot>
                       ناقص {row.shortage}

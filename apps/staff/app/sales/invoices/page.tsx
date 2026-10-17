@@ -232,7 +232,7 @@ function InvoicesInner() {
               }`}
             >
               {c.label}
-              <span className={`text-[11px] font-bold ${chip === c.key ? 'text-on-accent' : 'text-muted'}`}>
+              <span className={`text-xs font-bold ${chip === c.key ? 'text-on-accent' : 'text-muted'}`}>
                 {c.key === 'all'
                   ? (invoices.data ?? []).length
                   : (invoices.data ?? []).filter(c.test).length}
@@ -288,6 +288,7 @@ function InvoicesInner() {
           rowKey={(row) => row.id}
           activeKey={highlightedId ?? undefined}
           selectable
+          pageSize={20}
           selectedKeys={selected}
           onSelectionChange={setSelected}
           sortable
@@ -341,7 +342,7 @@ function InvoicesInner() {
               cell: (row) => (
                 <span title={shortDate(row.postedAt ?? row.createdAt)}>
                   <span className="font-semibold text-ink-2">{relativeTime(row.postedAt ?? row.createdAt)}</span>
-                  <span className="block text-[11px] text-muted">{shortDate(row.postedAt ?? row.createdAt)}</span>
+                  <span className="block text-xs text-muted">{shortDate(row.postedAt ?? row.createdAt)}</span>
                 </span>
               ),
             },

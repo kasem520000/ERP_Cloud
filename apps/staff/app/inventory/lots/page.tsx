@@ -42,7 +42,7 @@ export default function LotsPage() {
   }
 
   return (
-    <Directory<Lot>
+ <Directory<Lot>
       title="صلاحية المواد (الدفعات)"
       subtitle="دفعات الإنتاج وتواريخ انتهاء الصلاحية المرتبطة بالمواد."
       crumbs={['المستودعات', 'تقارير مستودعية']}
@@ -96,32 +96,32 @@ export default function LotsPage() {
       ]}
       empty="لا توجد دفعات"
       children={
-        <>
+ <>
           {notice ? <Notice notice={notice} /> : null}
-          <FilterBar>
-          <label className="field">
-            <span>المادة</span>
-            <select className="input" value={itemId} onChange={(event) => setItemId(event.target.value)}>
-              <option value="">كل المواد</option>
+ <FilterBar>
+ <label className="field">
+ <span>المادة</span>
+ <select className="input" value={itemId} onChange={(event) => setItemId(event.target.value)}>
+ <option value="">كل المواد</option>
               {itemRows.map((row) => (
-                <option key={row.id} value={row.id}>
+ <option key={row.id} value={row.id}>
                   {itemLabel(row)}
-                </option>
+ </option>
               ))}
-            </select>
-          </label>
-          <label className="field">
-            <span>بحث برقم الدفعة</span>
-            <input
+ </select>
+ </label>
+ <label className="field">
+ <span>بحث برقم الدفعة</span>
+ <input
               className="input"
               dir="ltr"
               placeholder="LOT-1"
               value={search}
               onChange={(event) => setSearch(event.target.value)}
             />
-          </label>
-          </FilterBar>
-        </>
+ </label>
+ </FilterBar>
+ </>
       }
       columns={[
         {
@@ -142,9 +142,9 @@ export default function LotsPage() {
                 key: 'actions',
                 header: '',
                 cell: (row: Lot) => (
-                  <button className="btn sm danger" type="button" disabled={busy} onClick={() => void drop(row)}>
-                    حذف
-                  </button>
+ <button className="btn sm danger" type="button" disabled={busy} onClick={() => void drop(row)}>
+ حذف
+ </button>
                 ),
               },
             ]

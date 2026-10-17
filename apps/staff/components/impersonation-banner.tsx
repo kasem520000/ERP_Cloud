@@ -37,21 +37,21 @@ export function ImpersonationBanner({
   const who = impersonation.operatorLabel ?? impersonation.operatorUserId;
 
   return (
-    <section className="imp-banner" role="alert" aria-live="polite">
-      <div>
-        <strong>{lang === 'ar' ? '🔴 جلسة دخول مؤقّت' : '🔴 Temporary access session'}</strong>
-        <p style={{ margin: '2px 0 0' }}>
+ <section className="imp-banner" role="alert" aria-live="polite">
+ <div>
+ <strong>{lang === 'ar' ? '🔴 جلسة دخول مؤقّت' : '🔴 Temporary access session'}</strong>
+ <p style={{ margin: '2px 0 0' }}>
           {lang === 'ar'
             ? `أنت داخل منشأة عميل باسم «${who}» — السبب: ${impersonation.reason}`
             : `You are inside a customer tenant as “${who}” — reason: ${impersonation.reason}`}
-        </p>
-        <p style={{ margin: '2px 0 0', fontSize: 12 }}>
+ </p>
+ <p style={{ margin: '2px 0 0', fontSize: 12 }}>
           {lang === 'ar'
             ? `تنتهي خلال ${minutes} دقيقة · لا حذف، ولا تغيير كلمة مرور، ولا رمز جديد خلال الجلسة.`
             : `Ends in ${minutes} min · no deletes, no password changes and no new tokens during the session.`}
-        </p>
-      </div>
-      <button
+ </p>
+ </div>
+ <button
         className="btn danger"
         type="button"
         onClick={() => {
@@ -61,7 +61,7 @@ export function ImpersonationBanner({
         }}
       >
         {lang === 'ar' ? 'الخروج من الجلسة' : 'Leave session'}
-      </button>
-    </section>
+ </button>
+ </section>
   );
 }

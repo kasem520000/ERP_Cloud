@@ -87,7 +87,7 @@ export function KpiCard({ title, value, icon, tone = 'blue', delta, deltaLabel, 
       />
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <p className="m-0 flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.08em] text-muted">{title}</p>
+          <p className="m-0 flex items-center gap-1.5 text-xs font-bold uppercase tracking-[0.08em] text-muted">{title}</p>
           <p className="m-0 mt-2 text-[31px] font-extrabold leading-none tracking-[-0.02em] text-ink" style={{ fontVariantNumeric: 'tabular-nums' }}>
             {value}
           </p>

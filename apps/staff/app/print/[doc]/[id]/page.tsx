@@ -64,19 +64,19 @@ export default function PrintPage({ params }: { params: Promise<{ doc: string; i
 
   if (!spec) {
     return (
-      <Screen title="طباعة" crumbs={['التقارير']}>
-        <ErrorBox message={`نوع المستند «${doc}» غير معروف.`} />
-      </Screen>
+ <Screen title="طباعة" crumbs={['التقارير']}>
+ <ErrorBox message={`نوع المستند «${doc}» غير معروف.`} />
+ </Screen>
     );
   }
 
   return (
-    <Screen
+ <Screen
       title={spec.title}
       crumbs={['التقارير', 'الطباعة']}
       actions={
-        <>
-          <button
+ <>
+ <button
             className="btn primary"
             type="button"
             disabled={!html}
@@ -86,9 +86,9 @@ export default function PrintPage({ params }: { params: Promise<{ doc: string; i
               view?.print();
             }}
           >
-            طباعة
-          </button>
-          <button
+ طباعة
+ </button>
+ <button
             className="btn"
             type="button"
             disabled={!html}
@@ -104,21 +104,21 @@ export default function PrintPage({ params }: { params: Promise<{ doc: string; i
               URL.revokeObjectURL(url);
             }}
           >
-            حفظ نسخة
-          </button>
-          <Link className="btn" href={spec.back}>
+ حفظ نسخة
+ </button>
+ <Link className="btn" href={spec.back}>
             {spec.backLabel}
-          </Link>
-        </>
+ </Link>
+ </>
       }
     >
       {error && <ErrorBox message={error} />}
       {!html && !error && <Loading />}
       {html && (
-        <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-          <iframe ref={frame} title={spec.title} srcDoc={html} sandbox="allow-same-origin allow-modals" style={{ width: '100%', height: '80vh', border: 0, background: 'var(--surface)' }} />
-        </div>
+ <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+ <iframe ref={frame} title={spec.title} srcDoc={html} sandbox="allow-same-origin allow-modals" style={{ width: '100%', height: '80vh', border: 0, background: 'var(--surface)' }} />
+ </div>
       )}
-    </Screen>
+ </Screen>
   );
 }

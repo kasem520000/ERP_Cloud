@@ -1,6 +1,6 @@
 'use client';
 
-import { Check, ChevronDown, Search } from 'lucide-react';
+import { Check, ChevronDown, Search, X } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { Avatar } from './avatar';
@@ -95,19 +95,19 @@ export function SelectSearch({
   }
 
   return (
-    <div ref={rootRef} className={`relative min-w-0 ${className}`}>
-      <button
+ <div ref={rootRef} className={`relative min-w-0 ${className}`}>
+ <button
         type="button"
         onClick={() => setOpen((v) => !v)}
         className="flex items-center gap-2 w-full h-10 ps-3 pe-2.5 rounded-[10px] border border-line-strong bg-surface text-[13.5px] text-ink-2 hover:border-line-strong transition-colors duration-150"
         aria-expanded={open}
       >
         {selected?.avatarName ? <Avatar name={selected.avatarName} src={selected.avatarSrc} size="sm" /> : null}
-        <span className={`flex-1 text-start truncate ${selected ? 'font-semibold' : 'text-muted'}`}>
+ <span className={`flex-1 text-start truncate ${selected ? 'font-semibold' : 'text-muted'}`}>
           {selected ? selected.label : placeholder}
-        </span>
+ </span>
         {clearable && selected ? (
-          <span
+ <span
             role="button"
             tabIndex={-1}
             onClick={(event) => {
@@ -117,17 +117,19 @@ export function SelectSearch({
             className="text-muted hover:text-muted"
             aria-label="مسح"
           >
-            ✕
-          </span>
+            <X size={13} />
+
+
+ </span>
         ) : null}
-        <ChevronDown size={15} className={`text-muted transition-transform duration-150 flex-none ${open ? 'rotate-180' : ''}`} />
-      </button>
+ <ChevronDown size={15} className={`text-muted transition-transform duration-150 flex-none ${open ? 'rotate-180' : ''}`} />
+ </button>
 
       {open ? (
-        <div className="absolute z-40 top-full inset-x-0 mt-1.5 rounded-xl border border-line bg-surface shadow-4 overflow-hidden">
-          <div className="flex items-center gap-2 px-3 py-2 border-b border-line">
-            <Search size={14} className="text-muted flex-none" />
-            <input
+ <div className="absolute z-40 top-full inset-x-0 mt-1.5 rounded-xl border border-line bg-surface shadow-4 overflow-hidden">
+ <div className="flex items-center gap-2 px-3 py-2 border-b border-line">
+ <Search size={14} className="text-muted flex-none" />
+ <input
               ref={inputRef}
               value={query}
               onChange={(event) => {
@@ -138,14 +140,14 @@ export function SelectSearch({
               placeholder="اكتب للبحث…"
               className="w-full bg-transparent text-[13px] outline-none placeholder:text-muted"
             />
-          </div>
-          <ul className="max-h-64 overflow-y-auto py-1 m-0 list-none">
+ </div>
+ <ul className="max-h-64 overflow-y-auto py-1 m-0 list-none">
             {filtered.length === 0 ? (
-              <li className="px-3 py-4 text-center text-[12.5px] text-muted">{emptyText}</li>
+ <li className="px-3 py-4 text-center text-[12.5px] text-muted">{emptyText}</li>
             ) : (
               filtered.map((option, index) => (
-                <li key={option.value}>
-                  <button
+ <li key={option.value}>
+ <button
                     type="button"
                     onClick={() => commit(index)}
                     onMouseEnter={() => setActive(index)}
@@ -154,22 +156,22 @@ export function SelectSearch({
                     }`}
                   >
                     {option.avatarName ? (
-                      <Avatar name={option.avatarName} src={option.avatarSrc} size="sm" />
+ <Avatar name={option.avatarName} src={option.avatarSrc} size="sm" />
                     ) : null}
-                    <span className="flex-1 min-w-0">
-                      <span className="block text-[13px] font-semibold text-ink truncate">{option.label}</span>
+ <span className="flex-1 min-w-0">
+ <span className="block text-[13px] font-semibold text-ink truncate">{option.label}</span>
                       {option.sublabel ? (
-                        <span className="block text-[11px] text-muted truncate">{option.sublabel}</span>
+ <span className="block text-xs text-muted truncate">{option.sublabel}</span>
                       ) : null}
-                    </span>
+ </span>
                     {option.value === value ? <Check size={15} className="text-brand-600 flex-none" /> : null}
-                  </button>
-                </li>
+ </button>
+ </li>
               ))
             )}
-          </ul>
-        </div>
+ </ul>
+ </div>
       ) : null}
-    </div>
+ </div>
   );
 }

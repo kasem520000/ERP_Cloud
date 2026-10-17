@@ -2272,6 +2272,36 @@ export function findScreenByHref(href: string) {
   return allScreens.find((item) => item.href.split('?')[0] === normalised);
 }
 
+/**
+ * `findScreenForPath` — the label for a *detail* route.
+ *
+ * `findScreenByHref` is an exact match and must stay that way (the scanner and the
+ * scaffold rely on it). The top bar, however, sits on `/sales/invoices/<id>` too:
+ * it asks for the closest registered screen so the header reads «فواتير المبيعات»
+ * instead of falling back to «الرئيسية». Longest prefix wins, on a path boundary.
+ */
+const TRAILING_SLASHES = new RegExp('/+$');
+
+export function findScreenForPath(href: string) {
+  const raw = href.split('?')[0] ?? '/';
+  const path = raw.length > 1 ? raw.replace(TRAILING_SLASHES, '') : raw;
+  const exact = findScreenByHref(path);
+  if (exact) return exact;
+  let best: (typeof allScreens)[number] | undefined;
+  let bestLength = -1;
+  for (const item of allScreens) {
+    const base = (item.href.split('?')[0] ?? '').replace(TRAILING_SLASHES, '');
+    if (base === '' || base === '/') continue;
+    if (path === base || path.startsWith(`${base}/`)) {
+      if (base.length > bestLength) {
+        best = item;
+        bestLength = base.length;
+      }
+    }
+  }
+  return best;
+}
+
 export function screenCounts() {
   return allScreens.reduce(
     (accumulator, item) => {

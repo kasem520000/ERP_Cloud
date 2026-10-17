@@ -285,7 +285,7 @@ export default function InvoicesPage() {
                     cell: (row) => (
                       <span className="block">
                         <span className="block text-[13px] font-bold text-ink">{row.tenantName}</span>
-                        <span className="block font-mono text-[11px] text-muted" dir="ltr">{row.tenantCode}</span>
+                        <span className="block font-mono text-xs text-muted" dir="ltr">{row.tenantCode}</span>
                       </span>
                     ),
                   },
@@ -297,7 +297,7 @@ export default function InvoicesPage() {
                       <span className="block">
                         <Badge tone={INVOICE_STATUS_TONE[row.status]} dot>{STATUS_LABEL[row.status]}</Badge>
                         {row.daysOverdue > 0 && row.status === 'issued' && (
-                          <span className="mt-0.5 block text-[11px] font-semibold text-danger">متأخّرة {row.daysOverdue} يوماً</span>
+                          <span className="mt-0.5 block text-xs font-semibold text-danger">متأخّرة {row.daysOverdue} يوماً</span>
                         )}
                       </span>
                     ),

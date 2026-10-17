@@ -9,14 +9,14 @@ import { useSession } from '../../../lib/session';
 import { useQuery } from '../../../lib/use-query';
 
 /**
- * 🧑‍💼 شاشة المندوبين — `Form_WPF/frmSalesMen.xaml` («شاشة المندوبين»).
+ * شاشة المندوبين — `Form_WPF/frmSalesMen.xaml` («شاشة المندوبين»).
  *
  * Two tabs in the desktop, and this screen keeps both: the card («🧑‍💼 بيانات
  * المندوبين») is the form below, and the search («🔍 البحث») is the grid.
  * `btnSave_Click` L155 writes
  * `salesmen(name, comm, tel, mobile, email, notes, IS_Deleted, Profit_Comm, Colle_Comm)`,
- * and the grid's columns are `الرقم · 🧑‍💼 اسم المندوب · عمولة المبيعات ·
- * 📧 البريد الإلكتروني · 📞 الهاتف · 📱 الجوال` — with the three rates added, because a
+ * and the grid's columns are `الرقم · اسم المندوب · عمولة المبيعات ·
+ * البريد الإلكتروني · الهاتف · الجوال` — with the three rates added, because a
  * مندوب you cannot see the commission of is a مندوب you cannot pay.
  *
  * «📋 طباعة فواتير مندوب وعمولاتهم» (L272 `Button1_Click`) opens `frmInvBySalesMen`;
@@ -59,7 +59,7 @@ export default function SalesmenPage() {
   }));
 
   return (
-    <Directory<Salesman>
+ <Directory<Salesman>
       title="شاشة المندوبين"
       subtitle="بطاقة المندوب: العمولات الثلاث التي تُحسب على فواتيره، وبيانات التواصل، وربطه ببطاقة الموظف حتى تُنسَب سندات القبض إليه."
       crumbs={['المبيعات', 'التعاريف']}
@@ -136,9 +136,9 @@ export default function SalesmenPage() {
       rowKey={(row) => row.id}
       empty="لا يوجد مندوبون"
       toolbar={
-        <Link className="btn sm" href="/sales/salesman-commissions">
-          📋 طباعة فواتير مندوب وعمولاتهم
-        </Link>
+ <Link className="btn sm" href="/sales/salesman-commissions">
+ 📋طباعة فواتير مندوب وعمولاتهم
+ </Link>
       }
       columns={[
         { key: 'name', header: '🧑‍💼 اسم المندوب', cell: (row) => row.name },

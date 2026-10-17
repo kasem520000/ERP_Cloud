@@ -30,7 +30,7 @@ export function Screen({
           <div className="flex flex-wrap items-center gap-2">
             <span className="exec-eyebrow">{crumbs && crumbs.length > 0 ? crumbs[0] : 'Executive'}</span>
             {crumbs && crumbs.length > 1 ? (
-              <span className="text-[11px] font-semibold text-muted">
+              <span className="text-xs font-semibold text-muted">
                 / {crumbs.slice(1).join(' / ')}
               </span>
             ) : null}

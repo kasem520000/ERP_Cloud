@@ -7,12 +7,12 @@
  *
  *   1. **الصوت يُقال قبل أن يُرسَل**: الزرّان لا يظهران لمن صوّت من قبل (الصوت محفوظٌ في
  *      `localStorage`)، فلا تُعدّ نقرةٌ مزدوجة صوتاً ثانياً من الشاشة أصلاً — والفهرس الفريد
- *      في القاعدة هو الحرس الثاني.
+ * في القاعدة هو الحرس الثاني.
  *   2. **لا هوية**: `visitor` معرّفٌ عشوائي يولّده المتصفّح، وقيمته الوحيدة **منع عدّ الصوت
- *      مرّتين** — لا كوكي تتبّع، ولا عنوان IP (والمسار مستثنى من صفّ التدقيق الذي يحمل
- *      العنوان والوسيط).
+ * مرّتين** — لا كوكي تتبّع، ولا عنوان IP (والمسار مستثنى من صفّ التدقيق الذي يحمل
+ * العنوان والوسيط).
  *   3. **الفشل يُقال**: إن لم يستجب الخادم يظهر نصُّ الفشل ولا يُعلَن التصويت ناجحاً — «شكراً»
- *      كاذبة أسوأ من رسالة خطأ.
+ * كاذبة أسوأ من رسالة خطأ.
  */
 
 import { useEffect, useState } from 'react';
@@ -88,45 +88,45 @@ export function HelpfulVote({
   const votes = counts.yes + counts.no;
 
   return (
-    <section className="helpful" aria-label={t(locale, 'help.helpful')}>
-      <p className="helpful-question">{t(locale, 'help.helpful')}</p>
+ <section className="helpful" aria-label={t(locale, 'help.helpful')}>
+ <p className="helpful-question">{t(locale, 'help.helpful')}</p>
       {vote === null ? (
-        <div className="helpful-actions">
-          <button
+ <div className="helpful-actions">
+ <button
             className="btn sm"
             type="button"
             disabled={phase === PHASE.sending}
             onClick={() => void send(true)}
           >
-            👍 {t(locale, 'help.helpfulYes')}
-          </button>
-          <button
+             👍{t(locale, 'help.helpfulYes')}
+ </button>
+ <button
             className="btn sm"
             type="button"
             disabled={phase === PHASE.sending}
             onClick={() => void send(false)}
           >
-            👎 {t(locale, 'help.helpfulNo')}
-          </button>
+             👎{t(locale, 'help.helpfulNo')}
+ </button>
           {phase === PHASE.sending ? <span className="small muted">{t(locale, 'help.helpfulSending')}</span> : null}
-        </div>
+ </div>
       ) : (
-        <p className="small muted">
+ <p className="small muted">
           {vote ? '👍' : '👎'} {message ?? voteMessageAr(false)}
-        </p>
+ </p>
       )}
       {phase === PHASE.failed && message ? (
-        <p className="form-error" role="alert">
+ <p className="form-error" role="alert">
           {message}
-        </p>
+ </p>
       ) : null}
       {votes > 0 ? (
-        <p className="small muted">
+ <p className="small muted">
           {locale === 'en'
             ? `${counts.yes} of ${votes} readers found this helpful.`
             : `أفاد ${counts.yes} من ${votes} قارئاً.`}
-        </p>
+ </p>
       ) : null}
-    </section>
+ </section>
   );
 }

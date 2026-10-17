@@ -25,7 +25,7 @@ import {
 } from '../../../lib/sync-engine';
 
 const formatMoney = (raw: Decimal.Value) =>
-  new Decimal(raw).toDecimalPlaces(2).toNumber().toLocaleString('ar-SA', {
+  new Decimal(raw).toDecimalPlaces(2).toNumber().toLocaleString('en-US', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
@@ -373,64 +373,64 @@ export default function OfflinePosPage() {
   }
 
   return (
-    <Screen
+ <Screen
       title="POS أوفلاين"
       subtitle="نقد فقط · IndexedDB · يتزامن عند عودة الاتصال"
       crumbs={['المبيعات', 'نقطة البيع']}
       actions={
-        <>
-          <span
+ <>
+ <span
             className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[12px] font-bold ${online ? 'bg-ok-soft text-ok-ink' : 'bg-danger-soft text-danger-ink'}`}
           >
             {online ? '🟢 متصل' : '🔴 أوفلاين'}
-          </span>
-          <Link className="btn sm" href="/sales/pos">
+ </span>
+ <Link className="btn sm" href="/sales/pos">
             POS الرئيسي
-          </Link>
-          <Link className="btn sm" href="/pos/offline-queue">
-            الطابور ({pending + conflicts})
-          </Link>
-          <button className="btn sm" type="button" disabled={busy || !online} onClick={downloadCatalog}>
-            تحديث البيانات
-          </button>
-          <button className="btn sm primary" type="button" disabled={busy || !online} onClick={syncNow}>
-            مزامنة الآن
-          </button>
-        </>
+ </Link>
+ <Link className="btn sm" href="/pos/offline-queue">
+ الطابور ({pending + conflicts})
+ </Link>
+ <button className="btn sm" type="button" disabled={busy || !online} onClick={downloadCatalog}>
+ تحديث البيانات
+ </button>
+ <button className="btn sm primary" type="button" disabled={busy || !online} onClick={syncNow}>
+ مزامنة الآن
+ </button>
+ </>
       }
     >
       {notice ? <Notice notice={notice} /> : null}
       {loading ? <div className="card state">جارٍ فتح التخزين المحلي…</div> : null}
       {!catalog && !loading ? (
-        <div className="card state">
-          <strong>لا توجد حزمة بيانات على هذا الجهاز</strong>
-          <span>اتصل بالشبكة واضغط «تحديث البيانات» قبل مغادرة الفرع.</span>
-          <button className="btn primary" type="button" onClick={downloadCatalog} disabled={busy || !online}>
-            تحميل حزمة الأوفلاين
-          </button>
-        </div>
+ <div className="card state">
+ <strong>لا توجد حزمة بيانات على هذا الجهاز</strong>
+ <span>اتصل بالشبكة واضغط «تحديث البيانات» قبل مغادرة الفرع.</span>
+ <button className="btn primary" type="button" onClick={downloadCatalog} disabled={busy || !online}>
+ تحميل حزمة الأوفلاين
+ </button>
+ </div>
       ) : null}
 
       {catalog ? (
-        <div className="grid cols-2">
-          <section className="card">
-            <div className="card-head">
-              <div>
-                <h2>الأصناف المحلية</h2>
-                <p className="muted small">
-                  آخر تحديث: {catalog.generatedAt ? new Date(catalog.generatedAt).toLocaleString('ar') : '—'}
-                </p>
-              </div>
-              <span className="badge draft">{catalog.items.length} صنف</span>
-            </div>
-            <div className="toolbar" style={{ marginBottom: 8 }}>
-              <input
+ <div className="grid cols-2">
+ <section className="card">
+ <div className="card-head">
+ <div>
+ <h2>الأصناف المحلية</h2>
+ <p className="muted small">
+ آخر تحديث: {catalog.generatedAt ? new Date(catalog.generatedAt).toLocaleString('ar') : '—'}
+ </p>
+ </div>
+ <span className="badge draft">{catalog.items.length} صنف</span>
+ </div>
+ <div className="toolbar" style={{ marginBottom: 8 }}>
+ <input
                 className="input"
                 placeholder="بحث بالاسم أو SKU…"
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
               />
-              <input
+ <input
                 className="input"
                 dir="ltr"
                 placeholder="باركود"
@@ -440,15 +440,15 @@ export default function OfflinePosPage() {
                   if (event.key === 'Enter') addByBarcode(barcode);
                 }}
               />
-              <button className="btn" type="button" onClick={() => addByBarcode(barcode)}>
-                إضافة
-              </button>
-              <button className="btn" type="button" onClick={() => setScannerOpen((open) => !open)}>
+ <button className="btn" type="button" onClick={() => addByBarcode(barcode)}>
+ إضافة
+ </button>
+ <button className="btn" type="button" onClick={() => setScannerOpen((open) => !open)}>
                 {scannerOpen ? 'إغلاق الكاميرا' : '📷 مسح'}
-              </button>
-            </div>
+ </button>
+ </div>
             {scannerOpen ? (
-              <video
+ <video
                 ref={videoRef}
                 className="offline-scanner"
                 muted
@@ -457,63 +457,63 @@ export default function OfflinePosPage() {
               />
             ) : null}
             {categories.length > 0 ? (
-              <div className="chips" style={{ marginBottom: 10 }}>
-                <button
+ <div className="chips" style={{ marginBottom: 10 }}>
+ <button
                   className={`chip ${!categoryId ? 'on' : ''}`}
                   type="button"
                   onClick={() => setCategoryId('')}
                 >
-                  الكل
-                </button>
+ الكل
+ </button>
                 {categories.map((category) => (
-                  <button
+ <button
                     className={`chip ${categoryId === category.id ? 'on' : ''}`}
                     type="button"
                     key={category.id}
                     onClick={() => setCategoryId(category.id)}
                   >
                     {category.nameAr ?? category.nameEn ?? category.code}
-                  </button>
+ </button>
                 ))}
-              </div>
+ </div>
             ) : null}
-            <div className="pos-tiles">
+ <div className="pos-tiles">
               {visibleItems.slice(0, 100).map((item) => (
-                <button className="pos-tile" type="button" key={item.id} onClick={() => add(item)}>
-                  <strong>{item.nameAr ?? item.nameEn ?? item.sku}</strong>
-                  <span>{formatMoney(defaultPrice(catalog, item))}</span>
-                  <small>{barcodeForItem(catalog, item) ?? item.sku}</small>
-                </button>
+ <button className="pos-tile" type="button" key={item.id} onClick={() => add(item)}>
+ <strong>{item.nameAr ?? item.nameEn ?? item.sku}</strong>
+ <span>{formatMoney(defaultPrice(catalog, item))}</span>
+ <small>{barcodeForItem(catalog, item) ?? item.sku}</small>
+ </button>
               ))}
-            </div>
+ </div>
             {!visibleItems.length ? <p className="muted">لا توجد أصناف مطابقة.</p> : null}
-          </section>
+ </section>
 
-          <section className="card">
-            <div className="card-head">
-              <h2>سلة نقدية أوفلاين</h2>
-              <span className="badge posted">{cart.length} أصناف</span>
-            </div>
+ <section className="card">
+ <div className="card-head">
+ <h2>سلة نقدية أوفلاين</h2>
+ <span className="badge posted">{cart.length} أصناف</span>
+ </div>
             {!cart.length ? (
-              <p className="muted">اضغط على صنف لإضافته إلى الفاتورة المؤقتة.</p>
+ <p className="muted">اضغط على صنف لإضافته إلى الفاتورة المؤقتة.</p>
             ) : (
-              <div className="table-wrap">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>الصنف</th>
-                      <th>الكمية</th>
-                      <th>السعر</th>
-                      <th>الإجمالي</th>
-                      <th />
-                    </tr>
-                  </thead>
-                  <tbody>
+ <div className="table-wrap">
+ <table>
+ <thead>
+ <tr>
+ <th>الصنف</th>
+ <th>الكمية</th>
+ <th>السعر</th>
+ <th>الإجمالي</th>
+ <th />
+ </tr>
+ </thead>
+ <tbody>
                     {cart.map((line) => (
-                      <tr key={line.item.id}>
-                        <td>{line.item.nameAr ?? line.item.sku}</td>
-                        <td>
-                          <input
+ <tr key={line.item.id}>
+ <td>{line.item.nameAr ?? line.item.sku}</td>
+ <td>
+ <input
                             className="input"
                             dir="ltr"
                             inputMode="decimal"
@@ -534,63 +534,63 @@ export default function OfflinePosPage() {
                               )
                             }
                           />
-                        </td>
-                        <td>{formatMoney(defaultPrice(catalog, line.item))}</td>
-                        <td>
+ </td>
+ <td>{formatMoney(defaultPrice(catalog, line.item))}</td>
+ <td>
                           {formatMoney(new Decimal(defaultPrice(catalog, line.item)).times(line.quantity))}
-                        </td>
-                        <td>
-                          <button
+ </td>
+ <td>
+ <button
                             className="btn sm"
                             type="button"
                             onClick={() =>
                               setCart((current) => current.filter((row) => row.item.id !== line.item.id))
                             }
                           >
-                            حذف
-                          </button>
-                        </td>
-                      </tr>
+ حذف
+ </button>
+ </td>
+ </tr>
                     ))}
-                  </tbody>
-                </table>
-              </div>
+ </tbody>
+ </table>
+ </div>
             )}
-            <dl className="kv" style={{ marginTop: 12 }}>
-              <dt>الإجمالي</dt>
-              <dd className="pos-total">{formatMoney(subtotal)}</dd>
-              <dt>التغيير</dt>
-              <dd className="pos-change">{formatMoney(changeDue)}</dd>
-            </dl>
-            <div className="form-grid">
-              <label className="field">
-                <span>العميل</span>
-                <select
+ <dl className="kv" style={{ marginTop: 12 }}>
+ <dt>الإجمالي</dt>
+ <dd className="pos-total">{formatMoney(subtotal)}</dd>
+ <dt>التغيير</dt>
+ <dd className="pos-change">{formatMoney(changeDue)}</dd>
+ </dl>
+ <div className="form-grid">
+ <label className="field">
+ <span>العميل</span>
+ <select
                   className="input"
                   value={customerId}
                   onChange={(event) => setCustomerId(event.target.value)}
                 >
-                  <option value="">عميل نقدي</option>
+ <option value="">عميل نقدي</option>
                   {(catalog.customers ?? []).map((customer) => (
-                    <option key={String(customer.id)} value={String(customer.id)}>
+ <option key={String(customer.id)} value={String(customer.id)}>
                       {String(customer.name ?? customer.code ?? customer.id)}
-                    </option>
+ </option>
                   ))}
-                </select>
-              </label>
+ </select>
+ </label>
               {!customerId ? (
-                <label className="field">
-                  <span>اسم العميل النقدي</span>
-                  <input
+ <label className="field">
+ <span>اسم العميل النقدي</span>
+ <input
                     className="input"
                     value={cashCustomerName}
                     onChange={(event) => setCashCustomerName(event.target.value)}
                   />
-                </label>
+ </label>
               ) : null}
-              <label className="field">
-                <span>المبلغ المستلم</span>
-                <input
+ <label className="field">
+ <span>المبلغ المستلم</span>
+ <input
                   className="input"
                   dir="ltr"
                   inputMode="decimal"
@@ -598,51 +598,51 @@ export default function OfflinePosPage() {
                   onChange={(event) => setTendered(event.target.value)}
                   placeholder={subtotal.toFixed(2)}
                 />
-              </label>
-            </div>
-            <div className="toolbar" style={{ marginTop: 12 }}>
-              <button
+ </label>
+ </div>
+ <div className="toolbar" style={{ marginTop: 12 }}>
+ <button
                 className="btn primary"
                 type="button"
                 disabled={busy || !cart.length}
                 onClick={enqueueInvoice}
               >
-                حفظ فاتورة نقدية أوفلاين
-              </button>
-              <button className="btn" type="button" disabled={!lastReceipt} onClick={printReceipt}>
-                🖨️ إيصال 80mm
-              </button>
-              <button
+ حفظ فاتورة نقدية أوفلاين
+ </button>
+ <button className="btn" type="button" disabled={!lastReceipt} onClick={printReceipt}>
+ 🖨️إيصال 80mm
+ </button>
+ <button
                 className="btn"
                 type="button"
                 disabled={!cart.length || busy}
                 onClick={() => setCart([])}
               >
-                تفريغ
-              </button>
-            </div>
-            <p className="muted small" style={{ marginTop: 10 }}>
-              الأوفلاين لا يقبل الشبكة أو التحويل أو الآجل. رقم الفاتورة يبدأ بـ OFFLINE- ثم يأخذ رقماً
-              حقيقياً عند المزامنة.
-            </p>
-          </section>
-        </div>
+ تفريغ
+ </button>
+ </div>
+ <p className="muted small" style={{ marginTop: 10 }}>
+ الأوفلاين لا يقبل الشبكة أو التحويل أو الآجل. رقم الفاتورة يبدأ بـ OFFLINE- ثم يأخذ رقماً
+ حقيقياً عند المزامنة.
+ </p>
+ </section>
+ </div>
       ) : null}
 
-      <div className="offline-receipt" aria-hidden="true">
-        <h1>ERPCloud</h1>
-        <p>إيصال بيع نقدي</p>
-        <p>{lastReceipt?.number ?? lastReceipt?.offlineId ?? '—'}</p>
-        <p>{lastReceipt ? new Date(lastReceipt.createdAt).toLocaleString('ar') : ''}</p>
+ <div className="offline-receipt" aria-hidden="true">
+ <h1>ERPCloud</h1>
+ <p>إيصال بيع نقدي</p>
+ <p>{lastReceipt?.number ?? lastReceipt?.offlineId ?? '—'}</p>
+ <p>{lastReceipt ? new Date(lastReceipt.createdAt).toLocaleString('ar') : ''}</p>
         {lastReceipt?.lines.map((line) => (
-          <p key={line.item.id}>
+ <p key={line.item.id}>
             {line.item.nameAr ?? line.item.sku} × {line.quantity} —{' '}
             {formatMoney(new Decimal(defaultPrice(catalog, line.item)).times(line.quantity))}
-          </p>
+ </p>
         ))}
-        <hr />
-        <strong>الإجمالي: {lastReceipt ? formatMoney(lastReceipt.totalText) : '—'}</strong>
-      </div>
-    </Screen>
+ <hr />
+ <strong>الإجمالي: {lastReceipt ? formatMoney(lastReceipt.totalText) : '—'}</strong>
+ </div>
+ </Screen>
   );
 }

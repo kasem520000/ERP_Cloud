@@ -70,7 +70,8 @@ function InvoiceDetail({ id }: { id: string }) {
       </section>
 
       <section className="card" style={{ overflowX: 'auto' }}>
-        <table>
+        <div className="table-wrap">
+          <table>
           <thead>
             <tr>
               <th>#</th>
@@ -101,13 +102,15 @@ function InvoiceDetail({ id }: { id: string }) {
               </tr>
             ))}
           </tbody>
-        </table>
+          </table>
+        </div>
       </section>
 
       <div className="grid cols">
         <section className="card">
           <h2>الإجماليات</h2>
-          <table>
+          <div className="table-wrap">
+            <table>
             <tbody>
               <tr>
                 <td>الصافي قبل الضريبة</td>
@@ -130,7 +133,8 @@ function InvoiceDetail({ id }: { id: string }) {
                 <td>{moneyText(invoice.paid_total)}</td>
               </tr>
             </tbody>
-          </table>
+            </table>
+          </div>
         </section>
 
         <section className="card">
@@ -138,7 +142,8 @@ function InvoiceDetail({ id }: { id: string }) {
           {payments.length === 0 ? (
             <p className="muted">لم تُسجَّل دفعات على هذه الفاتورة.</p>
           ) : (
-            <table>
+            <div className="table-wrap">
+              <table>
               <thead>
                 <tr>
                   <th>التاريخ</th>
@@ -157,7 +162,8 @@ function InvoiceDetail({ id }: { id: string }) {
                   </tr>
                 ))}
               </tbody>
-            </table>
+              </table>
+            </div>
           )}
         </section>
       </div>

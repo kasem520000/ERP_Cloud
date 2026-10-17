@@ -17,11 +17,11 @@ import { useQuery } from '../../lib/use-query';
  *
  * وثلاث حقائق تُقال هنا:
  *   * **السرّ يظهر مرّة واحدة** عند الإنشاء، والقاعدة تحفظه **مشفَّراً** لأن التوقيع يحتاج
- *     قراءته — بخلاف مفتاح الـAPI الذي يُقارَن ولا يُقرأ.
+ * قراءته — بخلاف مفتاح الـAPI الذي يُقارَن ولا يُقرأ.
  *   * **الاختبار يمرّ من مسار الإرسال نفسه**: توقيع، ثم POST، ثم قياس — لا زرٌّ يوهم بالسلامة.
  *   * **الإيقاف يمنع التلقائي لا اليدوي**: الأحداث الحقيقية لا يُنشأ لها صفّ تسليمٍ أبداً
- *     للعنوان الموقوف، ويبقى زرّ «اختبار» متاحاً — فمن أصلح مستقبِلَه للتوّ يقيسه قبل أن
- *     يُعيد التشغيل. والحدث الحقيقي هو ما يُقاس عليه الإيقاف، لا زرٌّ ضغطه إنسان.
+ * للعنوان الموقوف، ويبقى زرّ «اختبار» متاحاً — فمن أصلح مستقبِلَه للتوّ يقيسه قبل أن
+ * يُعيد التشغيل. والحدث الحقيقي هو ما يُقاس عليه الإيقاف، لا زرٌّ ضغطه إنسان.
  */
 
 type Tenant = { id: string; code: string; name: string; status: string };
@@ -208,81 +208,81 @@ export default function WebhooksPage() {
 
   if (!allowed) {
     return (
-      <Screen title="الويب هوك" subtitle="أحداثٌ تخرج إلى أنظمة العميل بتوقيعٍ يُتحقَّق منه">
-        <Forbidden />
-      </Screen>
+ <Screen title="الويب هوك" subtitle="أحداثٌ تخرج إلى أنظمة العميل بتوقيعٍ يُتحقَّق منه">
+ <Forbidden />
+ </Screen>
     );
   }
 
   const opened = rows.find((row) => row.id === openId);
 
   return (
-    <Screen
+ <Screen
       title="الويب هوك"
       subtitle="الأحداث، والعنوان، وسرّ التوقيع، وسجلّ تسليمٍ بأكواد استجابةٍ حقيقية"
       actions={
-        <button className="btn" onClick={() => endpoints.reload()} disabled={!tenantId}>
-          تحديث
-        </button>
+ <button className="btn" onClick={() => endpoints.reload()} disabled={!tenantId}>
+ تحديث
+ </button>
       }
     >
       {notice && <p className={`alert ${notice.kind}`}>{notice.text}</p>}
 
       {secret && (
-        <div className="card">
-          <strong>سرّ التوقيع يظهر مرّة واحدة</strong>
-          <p className="muted">
-            يُخزَّن مشفَّراً لأن الإرسال يحتاج قراءته لحظة التوقيع. الصيغة:{' '}
-            <code>{catalogue.data?.signature.header ?? 'x-erp-signature'}</code> —
+ <div className="card">
+ <strong>سرّ التوقيع يظهر مرّة واحدة</strong>
+ <p className="muted">
+ يُخزَّن مشفَّراً لأن الإرسال يحتاج قراءته لحظة التوقيع. الصيغة:{' '}
+ <code>{catalogue.data?.signature.header ?? 'x-erp-signature'}</code> —
             HMAC-SHA256 على <code>&quot;&lt;الطابع&gt;.&lt;الجسم&gt;&quot;</code>، ونافذة القبول{' '}
             {catalogue.data?.signature.toleranceSeconds ?? 300} ثانية.
-          </p>
-          <pre className="code">{secret.value}</pre>
-          <p className="muted">
+ </p>
+ <pre className="code">{secret.value}</pre>
+ <p className="muted">
             {secret.label} · البادئة <code>{secret.value.slice(0, 14)}</code>
-          </p>
-          <button className="btn" onClick={() => setSecret(undefined)}>
-            أخفِ السرّ
-          </button>
-        </div>
+ </p>
+ <button className="btn" onClick={() => setSecret(undefined)}>
+ أخفِ السرّ
+ </button>
+ </div>
       )}
 
-      <div className="card grid cols-2">
-        <label>
-          المنشأة
-          <select value={tenantId} onChange={(event) => setTenantId(event.target.value)}>
-            <option value="">— اختر منشأة —</option>
+ <div className="card grid cols-2">
+ <label>
+ المنشأة
+ <select value={tenantId} onChange={(event) => setTenantId(event.target.value)}>
+ <option value="">— اختر منشأة —</option>
             {(tenants.data ?? []).map((entry) => (
-              <option key={entry.id} value={entry.id}>
+ <option key={entry.id} value={entry.id}>
                 {entry.name} ({entry.code})
-              </option>
+ </option>
             ))}
-          </select>
-        </label>
-        <div className="muted">
-          العنوان يجب أن يكون <code>https</code>، ويُقبل <code>http</code> على <code>localhost</code> وحده —
-          فالسرّ يمنع التزوير لا التنصّت.
-        </div>
-      </div>
+ </select>
+ </label>
+ <div className="muted">
+ العنوان يجب أن يكون <code>https</code>، ويُقبل <code>http</code> على <code>localhost</code> وحده —
+ فالسرّ يمنع التزوير لا التنصّت.
+ </div>
+ </div>
 
       {tenantId && (
-        <div className="card">
-          <strong>عنوان جديد</strong>
-          <div className="form-grid">
-            <label>
-              العنوان
-              <input value={url} onChange={(event) => setUrl(event.target.value)} placeholder="https://example.com/hooks/erp" />
-            </label>
-            <label>
-              وصف (اختياري)
-              <input value={description} onChange={(event) => setDescription(event.target.value)} placeholder="بوت المحاسبة" />
-            </label>
-          </div>
-          <div className="form-grid">
-            <strong>الأحداث المشترَك بها</strong>
+ <div className="card">
+ <strong>عنوان جديد</strong>
+ <div className="form-grid">
+ <label>
+ العنوان
+ <input value={url} onChange={(event) => setUrl(event.target.value)} placeholder="https://example.com/hooks/erp" />
+ </label>
+ <label>
+ وصف (اختياري)
+ <input value={description} onChange={(event) => setDescription(event.target.value)} placeholder="بوت المحاسبة" />
+ </label>
+ </div>
+ <div className="form-grid">
+ <strong>الأحداث المشترَك بها</strong>
             {(catalogue.data?.events ?? []).map((event) => (
-              <label key={event}>
-                <input
+ <label key={event}>
+ <input
                   type="checkbox"
                   checked={events.includes(event)}
                   onChange={(change) =>
@@ -291,155 +291,155 @@ export default function WebhooksPage() {
                     )
                   }
                 />
-                <code>{event}</code>
-              </label>
+ <code>{event}</code>
+ </label>
             ))}
-          </div>
-          <button className="btn primary" onClick={create} disabled={busy === 'create'}>
+ </div>
+ <button className="btn primary" onClick={create} disabled={busy === 'create'}>
             {busy === 'create' ? 'جارٍ الإضافة…' : 'أضف العنوان'}
-          </button>
-        </div>
+ </button>
+ </div>
       )}
 
       {tenantId && endpoints.status === 'loading' && <Loading />}
       {tenantId && endpoints.status === 'error' && <ErrorBox message={endpoints.error} onRetry={() => endpoints.reload()} />}
       {tenantId && endpoints.status === 'success' && rows.length === 0 && (
-        <Empty title="لا عناوين لهذه المنشأة" detail="أضف عنواناً واشترك بحدثٍ واحد على الأقل." />
+ <Empty title="لا عناوين لهذه المنشأة" detail="أضف عنواناً واشترك بحدثٍ واحد على الأقل." />
       )}
 
       {rows.length > 0 && (
-        <div className="card">
-          <div className="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>العنوان</th>
-                  <th>الأحداث</th>
-                  <th>الحالة</th>
-                  <th>التسليمات</th>
-                  <th>آخر ردّ</th>
-                  <th>الإجراء</th>
-                </tr>
-              </thead>
-              <tbody>
+ <div className="card">
+ <div className="table-wrap">
+ <table>
+ <thead>
+ <tr>
+ <th>العنوان</th>
+ <th>الأحداث</th>
+ <th>الحالة</th>
+ <th>التسليمات</th>
+ <th>آخر ردّ</th>
+ <th>الإجراء</th>
+ </tr>
+ </thead>
+ <tbody>
                 {rows.map((row) => (
-                  <tr key={row.id}>
-                    <td>
-                      <strong>{row.url}</strong>
-                      <div className="muted">
-                        <code>{row.secretPrefix}</code> · {row.description ?? 'بلا وصف'}
-                      </div>
-                    </td>
-                    <td>
-                      <span className="chips">
+ <tr key={row.id}>
+ <td>
+ <strong>{row.url}</strong>
+ <div className="muted">
+ <code>{row.secretPrefix}</code> · {row.description ?? 'بلا وصف'}
+ </div>
+ </td>
+ <td>
+ <span className="chips">
                         {row.events.map((event) => (
-                          <code key={event} className="chip">
+ <code key={event} className="chip">
                             {event}
-                          </code>
+ </code>
                         ))}
-                      </span>
-                    </td>
-                    <td>
+ </span>
+ </td>
+ <td>
                       {row.status === 'active' ? 'يعمل' : 'موقوف'}
                       {row.status !== 'active' && <div className="muted">الأحداث التلقائية متوقّفة</div>}
-                    </td>
-                    <td>
+ </td>
+ <td>
                       {row.stats.delivered} ✔ / {row.stats.failed} ✖ / {row.stats.pending} …
                       {row.stats.lastError && <div className="muted">{row.stats.lastError}</div>}
-                    </td>
-                    <td>
+ </td>
+ <td>
                       {row.stats.lastResponseCode ?? '—'}
                       {row.stats.lastDeliveryAt && (
-                        <div className="muted">{row.stats.lastDeliveryAt.slice(0, 19).replace('T', ' ')}</div>
+ <div className="muted">{row.stats.lastDeliveryAt.slice(0, 19).replace('T', ' ')}</div>
                       )}
-                    </td>
-                    <td>
-                      <div className="row">
-                        <button className="btn sm" onClick={() => test(row)} disabled={busy === row.id}>
-                          اختبار
-                        </button>
-                        <button className="btn sm" onClick={() => setOpenId(row.id === openId ? '' : row.id)}>
+ </td>
+ <td>
+ <div className="row">
+ <button className="btn sm" onClick={() => test(row)} disabled={busy === row.id}>
+ اختبار
+ </button>
+ <button className="btn sm" onClick={() => setOpenId(row.id === openId ? '' : row.id)}>
                           {row.id === openId ? 'إخفاء السجلّ' : 'السجلّ'}
-                        </button>
-                        <button className="btn sm" onClick={() => toggleStatus(row)} disabled={busy === row.id}>
+ </button>
+ <button className="btn sm" onClick={() => toggleStatus(row)} disabled={busy === row.id}>
                           {row.status === 'active' ? 'إيقاف' : 'تشغيل'}
-                        </button>
-                        <button className="btn sm danger" onClick={() => remove(row)} disabled={busy === row.id}>
-                          حذف
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
+ </button>
+ <button className="btn sm danger" onClick={() => remove(row)} disabled={busy === row.id}>
+ حذف
+ </button>
+ </div>
+ </td>
+ </tr>
                 ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
+ </tbody>
+ </table>
+ </div>
+ </div>
       )}
 
       {opened && (
-        <div className="card">
-          <strong>سجلّ التسليم — {opened.url}</strong>
-          <p className="muted">
-            الحمولة تُعرض بمفاتيحها لا بقيمها: بيانات العميل تُقرأ عنده، وهذا السجلّ يجيب «هل وصل»
-            لا «ماذا كان».
-          </p>
+ <div className="card">
+ <strong>سجلّ التسليم — {opened.url}</strong>
+ <p className="muted">
+ الحمولة تُعرض بمفاتيحها لا بقيمها: بيانات العميل تُقرأ عنده، وهذا السجلّ يجيب «هل وصل»
+ لا «ماذا كان».
+ </p>
           {deliveries.status === 'loading' && <Loading rows={3} />}
           {deliveries.status === 'error' && <ErrorBox message={deliveries.error} onRetry={() => deliveries.reload()} />}
           {deliveries.status === 'success' && (deliveries.data ?? []).length === 0 && (
-            <Empty title="لا تسليمات بعد" detail="جرّب «اختبار» — أو انتظر حدثاً حقيقياً من المنشأة." />
+ <Empty title="لا تسليمات بعد" detail="جرّب «اختبار» — أو انتظر حدثاً حقيقياً من المنشأة." />
           )}
           {deliveries.status === 'success' && (deliveries.data ?? []).length > 0 && (
-            <div className="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>الحدث</th>
-                    <th>الحالة</th>
-                    <th>المحاولات</th>
-                    <th>رمز الاستجابة</th>
-                    <th>الزمن</th>
-                    <th>الحمولة</th>
-                    <th>الخطأ</th>
-                    <th>الإجراء</th>
-                  </tr>
-                </thead>
-                <tbody>
+ <div className="table-wrap">
+ <table>
+ <thead>
+ <tr>
+ <th>الحدث</th>
+ <th>الحالة</th>
+ <th>المحاولات</th>
+ <th>رمز الاستجابة</th>
+ <th>الزمن</th>
+ <th>الحمولة</th>
+ <th>الخطأ</th>
+ <th>الإجراء</th>
+ </tr>
+ </thead>
+ <tbody>
                   {(deliveries.data ?? []).map((row) => (
-                    <tr key={row.id}>
-                      <td>
-                        <code>{row.event}</code>
-                        <div className="muted">{row.createdAt.slice(0, 19).replace('T', ' ')}</div>
-                      </td>
-                      <td>{row.status === 'delivered' ? 'وصل' : row.status === 'failed' ? 'فشل' : 'منتظر'}</td>
-                      <td>
+ <tr key={row.id}>
+ <td>
+ <code>{row.event}</code>
+ <div className="muted">{row.createdAt.slice(0, 19).replace('T', ' ')}</div>
+ </td>
+ <td>{row.status === 'delivered' ? 'وصل' : row.status === 'failed' ? 'فشل' : 'منتظر'}</td>
+ <td>
                         {row.attempts}/{row.maxAttempts}
-                      </td>
-                      <td>{row.responseCode ?? '—'}</td>
-                      <td>{row.durationMs === null ? '—' : `${row.durationMs} ms`}</td>
-                      <td>
-                        <code>{row.payloadKeys.join(', ')}</code>
-                        <div className="muted">{row.payloadBytes} بايت</div>
-                      </td>
-                      <td className="small">{row.error ?? '—'}</td>
-                      <td>
+ </td>
+ <td>{row.responseCode ?? '—'}</td>
+ <td>{row.durationMs === null ? '—' : `${row.durationMs} ms`}</td>
+ <td>
+ <code>{row.payloadKeys.join(', ')}</code>
+ <div className="muted">{row.payloadBytes} بايت</div>
+ </td>
+ <td className="small">{row.error ?? '—'}</td>
+ <td>
                         {row.status === 'failed' ? (
-                          <button className="btn sm" onClick={() => retry(opened, row)} disabled={busy === row.id}>
-                            إعادة الإرسال
-                          </button>
+ <button className="btn sm" onClick={() => retry(opened, row)} disabled={busy === row.id}>
+ إعادة الإرسال
+ </button>
                         ) : (
-                          <span className="muted">—</span>
+ <span className="muted">—</span>
                         )}
-                      </td>
-                    </tr>
+ </td>
+ </tr>
                   ))}
-                </tbody>
-              </table>
-            </div>
+ </tbody>
+ </table>
+ </div>
           )}
-        </div>
+ </div>
       )}
-    </Screen>
+ </Screen>
   );
 }
 

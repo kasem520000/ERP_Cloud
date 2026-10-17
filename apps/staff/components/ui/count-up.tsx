@@ -81,13 +81,24 @@ export function Reveal({
   y?: number;
   className?: string;
 }) {
+  const reduce = useReducedMotion();
+  /**
+   * A `whileInView` reveal leaves content at `opacity: 0` until it is scrolled to —
+   * which means the browser prints a blank section and a page opened with a focus
+   * anchor shows nothing below it. Reduced motion and print therefore render the
+   * content plainly; `.reveal` is the hook the print rule in globals.css uses.
+   */
+  if (reduce) {
+    return <div className={className}>{children}</div>;
+  }
   return (
     <motion.div
       initial={{ opacity: 0, y }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: '-40px' }}
       transition={{ duration: 0.45, delay, ease: [0.16, 1, 0.3, 1] }}
-      className={className}
+      className={`reveal ${className}`.trim()}
+      data-reveal=""
     >
       {children}
     </motion.div>

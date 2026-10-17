@@ -93,6 +93,17 @@ function Bars({ series }: { series: { label: string; value: string }[] }) {
   );
 }
 
+/**
+ * The BI layer sends every cell as a raw string, so quantities arrive as `0.0000` while the
+ * rest of the interface shows `0`. Strip the noise decimals here — presentational only, the
+ * number itself is untouched.
+ */
+function formatCell(cell: string): string {
+  if (!/^-?\d+\.\d{3,}$/.test(cell)) return cell;
+  const value = Number(cell);
+  return Number.isFinite(value) ? value.toLocaleString('en-US', { maximumFractionDigits: 2 }) : cell;
+}
+
 function Rows({ columns, rows }: { columns: string[]; rows: string[][] }) {
   if (rows.length === 0) return <p className="m-0 text-[13px] text-muted">لا توجد بيانات</p>;
   return (
@@ -108,7 +119,7 @@ function Rows({ columns, rows }: { columns: string[]; rows: string[][] }) {
         {rows.map((row, index) => (
           <tr key={index} className="border-t border-line text-ink-2">
             {row.map((cell, cellIndex) => (
-              <td key={cellIndex} className="py-1 pe-2">{cell}</td>
+              <td key={cellIndex} className="py-1 pe-2">{formatCell(cell)}</td>
             ))}
           </tr>
         ))}

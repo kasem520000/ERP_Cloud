@@ -3,7 +3,7 @@
 import { useEffect } from 'react';
 
 /**
- * 📱 تسجيلُ عاملِ خدمة تطبيق المندوب — على نمط `apps/staff/components/service-worker-register.tsx`
+ * تسجيلُ عاملِ خدمة تطبيق المندوب — على نمط `apps/staff/components/service-worker-register.tsx`
  * (نسخةٌ لا استيراد: فالتطبيقان حزمَتا Next منفصلتان ولا حزمةَ مشتركةً لمكوّنات React،
  * والتسجيلُ ثلاثةُ أسطر). والفشلُ **لا يُعطل الشاشة**: فمن لا يدعم المتصفّحُ فيه
  * `serviceWorker` (أو رفض التسجيل) يبقى يعمل متصلًا ومنقطعًا بطابور IndexedDB — فالعاملُ

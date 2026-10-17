@@ -14,7 +14,7 @@ export const metadata: Metadata = {
   description:
     'واجهة المخابز: دفعة الإنتاج، حمولة التوزيع، المناديب، التحصيل وإقفال العهدة. تعمل على apps/api نفسها وبصلاحياتها، ومرخَّصة بباقة bakery_distribution.',
   /**
-   * 📱 قابليةُ التثبيت على الهاتف (تطبيقُ المندوب `/rep`): ‏`start_url` في الملفّ `/rep`
+   * قابليةُ التثبيت على الهاتف (تطبيقُ المندوب `/rep`): ‏`start_url` في الملفّ `/rep`
    * و`display: standalone`. ويُقال صريحًا ما لا يفعله هذا: فالعاملُ يُخزِّن **القشرة** لا
    * المال (`/api/` لا تُمسّ في `public/sw.js`)، والعملُ منقطعًا من طابور IndexedDB.
    */
@@ -45,19 +45,19 @@ export const viewport: Viewport = {
  */
 export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
   return (
-    <html lang="ar" dir="rtl" suppressHydrationWarning>
-      <head>
-        <ThemeScript defaultChoice="system" />
-      </head>
-      <body>
-        <ThemeProvider defaultChoice="system">
-          <SessionProvider>
-            <TokenBridge />
-            <ServiceWorkerRegister />
-            <AuthGate>{children}</AuthGate>
-          </SessionProvider>
-        </ThemeProvider>
-      </body>
-    </html>
+ <html lang="ar" dir="rtl" suppressHydrationWarning>
+ <head>
+ <ThemeScript defaultChoice="system" />
+ </head>
+ <body>
+ <ThemeProvider defaultChoice="system">
+ <SessionProvider>
+ <TokenBridge />
+ <ServiceWorkerRegister />
+ <AuthGate>{children}</AuthGate>
+ </SessionProvider>
+ </ThemeProvider>
+ </body>
+ </html>
   );
 }

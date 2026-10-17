@@ -136,7 +136,12 @@ export default function DashboardBuilderPage() {
             ))}
           </ul>
         </aside>
-        <div className="grid gap-3 xl:hidden">
+        {/* Both widget layouts were direct grid children, so the 12-column
+            desktop board auto-placed into the 16rem catalogue column while the
+            mobile stack filled the wide one. One wrapper keeps them in the
+            content column and lets `xl:hidden` switch cleanly. */}
+        <div className="min-w-0">
+          <div className="grid gap-3 xl:hidden">
           {widgets.map((widget) => (
             <WidgetCard
               key={widget.id}
@@ -147,8 +152,8 @@ export default function DashboardBuilderPage() {
               onRemove={manage ? (widgetId) => void remove(widgetId) : undefined}
             />
           ))}
-        </div>
-        <div className="hidden gap-3 xl:grid xl:grid-cols-12" style={{ gridAutoRows: '92px' }}>
+          </div>
+          <div className="hidden gap-3 xl:grid xl:grid-cols-12" style={{ gridAutoRows: '92px' }}>
           {widgets.map((widget) => (
             <div
               key={widget.id}
@@ -166,6 +171,7 @@ export default function DashboardBuilderPage() {
               />
             </div>
           ))}
+          </div>
         </div>
       </div>
     </div>

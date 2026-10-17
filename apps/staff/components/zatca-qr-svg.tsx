@@ -48,11 +48,11 @@ export function ZatcaQrSvg({
 }) {
   if (!payload) {
     return (
-      <div style={{ ...QR_BOX_STYLE, borderStyle: 'dashed', maxWidth: size + 40 }}>
-        <span style={{ fontSize: 11, fontWeight: 700, color: '#64748b', textAlign: 'center', lineHeight: 1.6 }}>
+ <div style={{ ...QR_BOX_STYLE, borderStyle: 'dashed', maxWidth: size + 40 }}>
+ <span style={{ fontSize: 11, fontWeight: 700, color: '#64748b', textAlign: 'center', lineHeight: 1.6 }}>
           {missingText}
-        </span>
-      </div>
+ </span>
+ </div>
     );
   }
 
@@ -62,27 +62,27 @@ export function ZatcaQrSvg({
   const gridDim = n + quiet * 2;
 
   return (
-    <div style={QR_BOX_STYLE}>
-      <svg
+ <div style={QR_BOX_STYLE}>
+ <svg
         viewBox={`0 0 ${gridDim} ${gridDim}`}
         width={size}
         height={size}
         shapeRendering="crispEdges"
         aria-label={label}
       >
-        <rect width={gridDim} height={gridDim} fill="#ffffff" />
+ <rect width={gridDim} height={gridDim} fill="#ffffff" />
         {matrix.map((row, r) =>
           row.map((cell, c) =>
             cell ? (
-              <rect key={`${r}-${c}`} x={c + quiet} y={r + quiet} width={1} height={1} fill="#000000" />
+ <rect key={`${r}-${c}`} x={c + quiet} y={r + quiet} width={1} height={1} fill="#000000" />
             ) : null,
           ),
         )}
-      </svg>
+ </svg>
       {label ? (
-        <span style={{ fontSize: 11, fontWeight: 700, color: '#334155', textAlign: 'center' }}>{label}</span>
+ <span style={{ fontSize: 11, fontWeight: 700, color: '#334155', textAlign: 'center' }}>{label}</span>
       ) : null}
-    </div>
+ </div>
   );
 }
 
@@ -122,12 +122,12 @@ export function printThermalReceipt80mm(receipt: ThermalReceiptData) {
   const rowsHtml = receipt.lines
     .map(
       (line) => `
-      <tr>
-        <td style="text-align:right;padding:3px 0;border-bottom:1px dashed #cbd5e1;">${escapeHtml(line.name)}</td>
-        <td style="text-align:center;padding:3px 2px;border-bottom:1px dashed #cbd5e1;" dir="ltr">${fmt2(line.quantity)}</td>
-        <td style="text-align:center;padding:3px 2px;border-bottom:1px dashed #cbd5e1;" dir="ltr">${fmt2(line.unitPrice)}</td>
-        <td style="text-align:left;padding:3px 0;border-bottom:1px dashed #cbd5e1;font-weight:700;" dir="ltr">${fmt2(line.total)}</td>
-      </tr>`,
+ <tr>
+ <td style="text-align:right;padding:3px 0;border-bottom:1px dashed #cbd5e1;">${escapeHtml(line.name)}</td>
+ <td style="text-align:center;padding:3px 2px;border-bottom:1px dashed #cbd5e1;" dir="ltr">${fmt2(line.quantity)}</td>
+ <td style="text-align:center;padding:3px 2px;border-bottom:1px dashed #cbd5e1;" dir="ltr">${fmt2(line.unitPrice)}</td>
+ <td style="text-align:left;padding:3px 0;border-bottom:1px dashed #cbd5e1;font-weight:700;" dir="ltr">${fmt2(line.total)}</td>
+ </tr>`,
     )
     .join('');
 
@@ -137,9 +137,9 @@ export function printThermalReceipt80mm(receipt: ThermalReceiptData) {
   const html = `<!doctype html>
 <html lang="ar" dir="rtl">
 <head>
-  <meta charset="utf-8" />
-  <title>إيصال كاشير ${escapeHtml(receipt.invoiceNumber)}</title>
-  <style>
+ <meta charset="utf-8" />
+ <title>إيصال كاشير ${escapeHtml(receipt.invoiceNumber)}</title>
+ <style>
     @page { size: 80mm auto; margin: 0; }
     * { box-sizing: border-box; }
     body {
@@ -164,52 +164,52 @@ export function printThermalReceipt80mm(receipt: ThermalReceiptData) {
     .qr-box { text-align: center; margin-top: 8px; }
     .no-print { text-align: center; margin-bottom: 8px; }
     @media print { .no-print { display: none !important; } }
-  </style>
+ </style>
 </head>
 <body>
-  <div class="no-print">
-    <button onclick="window.print()" style="padding:6px 14px;font-weight:700;cursor:pointer;">🖨️ طباعة الإيصال الحراري (80mm)</button>
-  </div>
-  <div class="center">
-    <div class="title">${escapeHtml(receipt.companyName)}</div>
-    <div class="sub">${escapeHtml(receipt.invoiceTypeLabel || 'فاتورة ضريبية مبسطة')}</div>
+ <div class="no-print">
+ <button onclick="window.print()" style="padding:6px 14px;font-weight:700;cursor:pointer;">🖨️ طباعة الإيصال الحراري (80mm)</button>
+ </div>
+ <div class="center">
+ <div class="title">${escapeHtml(receipt.companyName)}</div>
+ <div class="sub">${escapeHtml(receipt.invoiceTypeLabel || 'فاتورة ضريبية مبسطة')}</div>
     ${receipt.taxNo ? `<div class="sub">الرقم الضريبي: <span dir="ltr">${escapeHtml(receipt.taxNo)}</span></div>` : ''}
     ${receipt.branchName ? `<div class="sub">الفرع: ${escapeHtml(receipt.branchName)}</div>` : ''}
-  </div>
-  <div class="divider"></div>
-  <div class="meta-row"><span>رقم الفاتورة:</span><strong dir="ltr">${escapeHtml(receipt.invoiceNumber)}</strong></div>
-  <div class="meta-row"><span>التاريخ:</span><span dir="ltr">${escapeHtml(receipt.issuedAt)}</span></div>
-  <div class="meta-row"><span>العميل:</span><span>${escapeHtml(receipt.customerName || 'عميل عام')}</span></div>
-  <div class="meta-row"><span>طريقة الدفع:</span><span>${escapeHtml(receipt.paymentMethodLabel)}</span></div>
-  <div class="divider"></div>
-  <table>
-    <thead>
-      <tr>
-        <th style="text-align:right;">الصنف</th>
-        <th style="text-align:center;">الكمية</th>
-        <th style="text-align:center;">السعر</th>
-        <th style="text-align:left;">الإجمالي</th>
-      </tr>
-    </thead>
-    <tbody>${rowsHtml}</tbody>
-  </table>
-  <div class="divider"></div>
-  <div class="tot-row"><span>الإجمالي قبل الضريبة:</span><span dir="ltr">${fmt2(receipt.subtotal)} SAR</span></div>
+ </div>
+ <div class="divider"></div>
+ <div class="meta-row"><span>رقم الفاتورة:</span><strong dir="ltr">${escapeHtml(receipt.invoiceNumber)}</strong></div>
+ <div class="meta-row"><span>التاريخ:</span><span dir="ltr">${escapeHtml(receipt.issuedAt)}</span></div>
+ <div class="meta-row"><span>العميل:</span><span>${escapeHtml(receipt.customerName || 'عميل عام')}</span></div>
+ <div class="meta-row"><span>طريقة الدفع:</span><span>${escapeHtml(receipt.paymentMethodLabel)}</span></div>
+ <div class="divider"></div>
+ <table>
+ <thead>
+ <tr>
+ <th style="text-align:right;">الصنف</th>
+ <th style="text-align:center;">الكمية</th>
+ <th style="text-align:center;">السعر</th>
+ <th style="text-align:left;">الإجمالي</th>
+ </tr>
+ </thead>
+ <tbody>${rowsHtml}</tbody>
+ </table>
+ <div class="divider"></div>
+ <div class="tot-row"><span>الإجمالي قبل الضريبة:</span><span dir="ltr">${fmt2(receipt.subtotal)} SAR</span></div>
   ${hasDiscount ? `<div class="tot-row"><span>الخصم:</span><span dir="ltr">-${fmt2(receipt.discount)} SAR</span></div>` : ''}
-  <div class="tot-row"><span>ضريبة القيمة المضافة (15%):</span><span dir="ltr">${fmt2(receipt.taxTotal)} SAR</span></div>
-  <div class="tot-grand"><span>الصافي النهائي:</span><span dir="ltr">${fmt2(receipt.total)} SAR</span></div>
+ <div class="tot-row"><span>ضريبة القيمة المضافة (15%):</span><span dir="ltr">${fmt2(receipt.taxTotal)} SAR</span></div>
+ <div class="tot-grand"><span>الصافي النهائي:</span><span dir="ltr">${fmt2(receipt.total)} SAR</span></div>
   ${receipt.paidAmount !== undefined ? `<div class="tot-row"><span>المدفوع:</span><span dir="ltr">${fmt2(receipt.paidAmount)} SAR</span></div>` : ''}
   ${hasChange ? `<div class="tot-row"><span>الباقي للعميل:</span><span dir="ltr">${fmt2(receipt.changeAmount)} SAR</span></div>` : ''}
-  <div class="qr-box">
+ <div class="qr-box">
     ${
       qrSvg
         ? `${qrSvg}
-    <div class="sub" style="margin-top:4px;">رمز الفاتورة الضريبية المبسطة (ZATCA QR)</div>`
+ <div class="sub" style="margin-top:4px;">رمز الفاتورة الضريبية المبسطة (ZATCA QR)</div>`
         : `<div class="sub">${escapeHtml(ZATCA_QR_MISSING_TEXT)}</div>`
     }
-    <div class="sub">شكراً لزيارتكم</div>
-  </div>
-  <script>setTimeout(function(){ try { window.print(); } catch(e) {} }, 180);</script>
+ <div class="sub">شكراً لزيارتكم</div>
+ </div>
+ <script>setTimeout(function(){ try { window.print(); } catch(e) {} }, 180);</script>
 </body>
 </html>`;
 

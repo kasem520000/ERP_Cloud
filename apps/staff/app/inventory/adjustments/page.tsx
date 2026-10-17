@@ -50,11 +50,11 @@ type AdjustmentLine = {
   varianceQty?: string | null;
   varianceValue?: string | null;
   unitCost?: string | null;
-  /** 📁 رقم الدفعة وتواريخها على السطر (R5). */
+  /** رقم الدفعة وتواريخها على السطر (R5). */
   batchNo?: string | null;
   productionDate?: string | null;
   expiryDate?: string | null;
-  /** 🔢 الأرقام التسلسلية counted on the line. */
+  /** الأرقام التسلسلية counted on the line. */
   serialNos?: string[];
 };
 
@@ -100,7 +100,7 @@ export default function StockAdjustmentsPage() {
       countedText: string;
       unitId: string;
       costText: string;
-      /** 📁 رقم الدفعة على السطر — يُبحث أو يُنشأ عند الحفظ (R5). */
+      /** رقم الدفعة على السطر — يُبحث أو يُنشأ عند الحفظ (R5). */
       batchNo: string;
       productionDate: string;
       expiryDate: string;
@@ -294,92 +294,92 @@ export default function StockAdjustmentsPage() {
   );
 
   return (
-    <Screen
+ <Screen
       title="جرد وتسوية المخزون"
       subtitle="عدّ الأرفف، سجّل الفروقات، واعتمد التسوية — قيد واحد متزن بصافي الفرق، وحركة مخزون لكل سطر."
       crumbs={['المستودعات', 'العمليات']}
       actions={
         can('inventory.adjust') ? (
-          <button className="btn primary" type="button" onClick={() => setOpen(!open)}>
+ <button className="btn primary" type="button" onClick={() => setOpen(!open)}>
             {open ? 'إغلاق' : 'جرد جديد'}
-          </button>
+ </button>
         ) : null
       }
     >
       {open && (
-        <form className="card" onSubmit={create}>
-          <h2>جرد جديد</h2>
-          <div className="form-grid">
-            <label className="field">
-              <span>الفرع *</span>
-              <select
+ <form className="card" onSubmit={create}>
+ <h2>جرد جديد</h2>
+ <div className="form-grid">
+ <label className="field">
+ <span>الفرع *</span>
+ <select
                 className="input"
                 value={effectiveBranch}
                 onChange={(event) => setBranchId(event.target.value)}
                 required
               >
-                <option value="">— اختر —</option>
+ <option value="">— اختر —</option>
                 {branchRows.map((row) => (
-                  <option key={row.id} value={row.id}>
+ <option key={row.id} value={row.id}>
                     {row.code ? `${row.code} — ` : ''}
                     {arabicName(row)}
-                  </option>
+ </option>
                 ))}
-              </select>
-            </label>
-            <label className="field">
-              <span>المستودع *</span>
-              <select
+ </select>
+ </label>
+ <label className="field">
+ <span>المستودع *</span>
+ <select
                 className="input"
                 value={effectiveWarehouse}
                 onChange={(event) => setWarehouseId(event.target.value)}
                 required
               >
-                <option value="">— اختر —</option>
+ <option value="">— اختر —</option>
                 {warehouseRows.map((row) => (
-                  <option key={row.id} value={row.id}>
+ <option key={row.id} value={row.id}>
                     {arabicName(row)}
-                  </option>
+ </option>
                 ))}
-              </select>
-            </label>
-            <label className="field">
-              <span>السبب *</span>
-              <input
+ </select>
+ </label>
+ <label className="field">
+ <span>السبب *</span>
+ <input
                 className="input"
                 value={reason}
                 onChange={(event) => setReason(event.target.value)}
                 placeholder="جرد سنوي، جرد مفاجئ…"
                 required
               />
-            </label>
-          </div>
+ </label>
+ </div>
 
-          <h3>الأصناف المجرودة</h3>
-          <div className="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>المادة</th>
-                  <th>الرصيد الدفتري</th>
-                  <th>الكمية المجرودة</th>
-                  <th>الوحدة</th>
-                  <th>الفرق</th>
-                  <th>تكلفة الوحدة</th>
-                  <th>📁 رقم الدفعة</th>
-                  <th>📅 تاريخ الإنتاج</th>
-                  <th>⏳ تاريخ الانتهاء</th>
-                  <th>رقم تسلسلي</th>
-                  <th />
-                </tr>
-              </thead>
-              <tbody>
+ <h3>الأصناف المجرودة</h3>
+ <div className="table-wrap">
+ <table>
+ <thead>
+ <tr>
+ <th>المادة</th>
+ <th>الرصيد الدفتري</th>
+ <th>الكمية المجرودة</th>
+ <th>الوحدة</th>
+ <th>الفرق</th>
+ <th>تكلفة الوحدة</th>
+ <th>📁 رقم الدفعة</th>
+ <th>📅 تاريخ الإنتاج</th>
+ <th>⏳ تاريخ الانتهاء</th>
+ <th>رقم تسلسلي</th>
+ <th />
+ </tr>
+ </thead>
+ <tbody>
                 {lines.map((line, index) => {
                   const variance = varianceOf(line);
                   return (
-                    <tr key={index}>
-                      <td>
-                        <select
+ <tr key={index}>
+ <td>
+ <select
                           className="input"
                           value={line.itemId}
                           onChange={(event) =>
@@ -392,34 +392,34 @@ export default function StockAdjustmentsPage() {
                             })
                           }
                         >
-                          <option value="">— اختر —</option>
+ <option value="">— اختر —</option>
                           {itemRows.map((row) => (
-                            <option key={row.id} value={row.id}>
+ <option key={row.id} value={row.id}>
                               {itemLabel(row)}
-                            </option>
+ </option>
                           ))}
-                        </select>
-                      </td>
-                      <td dir="ltr">
+ </select>
+ </td>
+ <td dir="ltr">
                         {quantity(Number(levelOf(line.itemId)?.quantity ?? 0) / (factorOf(line) || 1))}
-                      </td>
-                      <td>
-                        <input
+ </td>
+ <td>
+ <input
                           className="input"
                           dir="ltr"
                           inputMode="decimal"
                           value={line.countedText}
                           onChange={(event) => updateLine(index, { countedText: event.target.value })}
                         />
-                      </td>
-                      <td>
-                        <select
+ </td>
+ <td>
+ <select
                           className="input"
                           value={line.unitId ?? ''}
                           onChange={(event) => updateLine(index, { unitId: event.target.value })}
                           disabled={!line.itemId}
                         >
-                          <option value="">الوحدة الأساسية</option>
+ <option value="">الوحدة الأساسية</option>
                           {unitsOf(line.itemId)
                             .filter(
                               (unit) =>
@@ -427,13 +427,13 @@ export default function StockAdjustmentsPage() {
                                 (itemOf(line.itemId)?.baseUnitId ?? itemOf(line.itemId)?.base_unit_id),
                             )
                             .map((unit) => (
-                              <option key={unit.unitId} value={unit.unitId}>
+ <option key={unit.unitId} value={unit.unitId}>
                                 {`${unit.unitNameAr ?? ''} (×${Number(unit.ratio).toLocaleString('ar-EG')})`}
-                              </option>
+ </option>
                             ))}
-                        </select>
-                      </td>
-                      <td
+ </select>
+ </td>
+ <td
                         dir="ltr"
                         style={{
                           color:
@@ -449,9 +449,9 @@ export default function StockAdjustmentsPage() {
                             ? `+${quantity(variance)}`
                             : quantity(variance)
                           : '—'}
-                      </td>
-                      <td>
-                        <input
+ </td>
+ <td>
+ <input
                           className="input"
                           dir="ltr"
                           inputMode="decimal"
@@ -459,10 +459,10 @@ export default function StockAdjustmentsPage() {
                           placeholder={levelOf(line.itemId)?.averageCost ?? ''}
                           onChange={(event) => updateLine(index, { costText: event.target.value })}
                         />
-                      </td>
-                      <td>
+ </td>
+ <td>
                         {/* الدفعة تُكتب على السطر كما على العبوة — والصنف الذي لا يُتتبَّع بها لا يقبلها */}
-                        <input
+ <input
                           className="input"
                           dir="ltr"
                           list={`adj-lots-${index}`}
@@ -471,18 +471,18 @@ export default function StockAdjustmentsPage() {
                           disabled={!itemOf(line.itemId)?.trackLot}
                           onChange={(event) => updateLine(index, { batchNo: event.target.value })}
                         />
-                        <datalist id={`adj-lots-${index}`}>
+ <datalist id={`adj-lots-${index}`}>
                           {(lots.data ?? [])
                             .filter((lot) => lot.itemId === line.itemId)
                             .map((lot) => (
-                              <option key={lot.id} value={lot.lotNo}>
+ <option key={lot.id} value={lot.lotNo}>
                                 {lot.expiryDate ? shortDate(lot.expiryDate) : ''}
-                              </option>
+ </option>
                             ))}
-                        </datalist>
-                      </td>
-                      <td>
-                        <input
+ </datalist>
+ </td>
+ <td>
+ <input
                           className="input"
                           type="date"
                           dir="ltr"
@@ -490,9 +490,9 @@ export default function StockAdjustmentsPage() {
                           disabled={!itemOf(line.itemId)?.trackLot}
                           onChange={(event) => updateLine(index, { productionDate: event.target.value })}
                         />
-                      </td>
-                      <td>
-                        <input
+ </td>
+ <td>
+ <input
                           className="input"
                           type="date"
                           dir="ltr"
@@ -500,10 +500,10 @@ export default function StockAdjustmentsPage() {
                           disabled={!itemOf(line.itemId)?.trackLot}
                           onChange={(event) => updateLine(index, { expiryDate: event.target.value })}
                         />
-                      </td>
-                      <td>
+ </td>
+ <td>
                         {itemOf(line.itemId)?.trackSerial ? (
-                          <textarea
+ <textarea
                             className="input"
                             rows={2}
                             dir="ltr"
@@ -512,28 +512,28 @@ export default function StockAdjustmentsPage() {
                             onChange={(event) => updateLine(index, { serialNos: event.target.value })}
                           />
                         ) : (
-                          <span className="muted">—</span>
+ <span className="muted">—</span>
                         )}
-                      </td>
-                      <td>
-                        <button
+ </td>
+ <td>
+ <button
                           className="btn sm"
                           type="button"
                           onClick={() =>
                             setLines((current) => current.filter((_, position) => position !== index))
                           }
                         >
-                          حذف
-                        </button>
-                      </td>
-                    </tr>
+ حذف
+ </button>
+ </td>
+ </tr>
                   );
                 })}
-              </tbody>
-            </table>
-          </div>
-          <div className="row" style={{ gap: 8 }}>
-            <button
+ </tbody>
+ </table>
+ </div>
+ <div className="row" style={{ gap: 8 }}>
+ <button
               className="btn sm"
               type="button"
               onClick={() =>
@@ -553,102 +553,102 @@ export default function StockAdjustmentsPage() {
               }
             >
               + سطر
-            </button>
-            <span className="muted">
-              صافي قيمة الفروقات:{' '}
-              <strong dir="ltr">{money(String(Math.round(netVariance * 10000) / 10000))}</strong>
-            </span>
-          </div>
+ </button>
+ <span className="muted">
+ صافي قيمة الفروقات:{' '}
+ <strong dir="ltr">{money(String(Math.round(netVariance * 10000) / 10000))}</strong>
+ </span>
+ </div>
 
-          <Notice notice={notice} />
-          <button className="btn primary" type="submit" disabled={busy}>
+ <Notice notice={notice} />
+ <button className="btn primary" type="submit" disabled={busy}>
             {busy ? 'جارٍ الحفظ…' : 'حفظ الجرد كمسودة'}
-          </button>
-        </form>
+ </button>
+ </form>
       )}
 
       {!open && <Notice notice={notice} />}
 
-      <StatTiles>
-        <StatTile
+ <StatTiles>
+ <StatTile
           label="جردات مسودة"
           value={rows.filter((row) => row.status === 'draft').length}
           hint="تنتظر الاعتماد والترحيل"
           tone={rows.some((row) => row.status === 'draft') ? 'warn' : 'ok'}
         />
-        <StatTile label="أصناف مجرودة" value={countedRows} hint="سطر جرد مسجّل" />
-        <StatTile
+ <StatTile label="أصناف مجرودة" value={countedRows} hint="سطر جرد مسجّل" />
+ <StatTile
           label="صافي الفرق"
           value={quantity(netVarianceQty)}
           hint={netVarianceQty < 0 ? 'عجز في المخزون' : netVarianceQty > 0 ? 'زيادة في المخزون' : 'مطابق'}
           tone={netVarianceQty < 0 ? 'danger' : netVarianceQty > 0 ? 'ok' : 'default'}
         />
-        <StatTile label="قيمة العجز" value={money(shortageValue)} hint="ما نقص عن الدفاتر" tone="danger" />
-        <StatTile label="قيمة الزيادة" value={money(surplusValue)} hint="ما زاد عن الدفاتر" tone="ok" />
-      </StatTiles>
+ <StatTile label="قيمة العجز" value={money(shortageValue)} hint="ما نقص عن الدفاتر" tone="danger" />
+ <StatTile label="قيمة الزيادة" value={money(surplusValue)} hint="ما زاد عن الدفاتر" tone="ok" />
+ </StatTiles>
 
-      <Tabs items={BUCKETS} value={bucket} onChange={setBucket} />
+ <Tabs items={BUCKETS} value={bucket} onChange={setBucket} />
 
-      <div className="split">
-        <div className="card tight split-list">
-          <QueryView query={adjustments} empty="لا توجد عمليات جرد" emptyDetail="أنشئ جرداً لمطابقة الأرصدة مع الرفوف.">
+ <div className="split">
+ <div className="card tight split-list">
+ <QueryView query={adjustments} empty="لا توجد عمليات جرد" emptyDetail="أنشئ جرداً لمطابقة الأرصدة مع الرفوف.">
             {() => (
-              <>
+ <>
                 {shown.length === 0 ? (
-                  <p className="muted" style={{ padding: 12 }}>لا جردات في هذا التبويب.</p>
+ <p className="muted" style={{ padding: 12 }}>لا جردات في هذا التبويب.</p>
                 ) : (
                   shown.map((row) => (
-                    <button
+ <button
                       key={row.id}
                       type="button"
                       className={`list-row${row.id === selected?.id ? ' active' : ''}`}
                       onClick={() => setSelected(row)}
                     >
-                      <span className="list-title" dir="ltr">{row.number}</span>
-                      <span className="list-sub">{row.reason}</span>
-                      <span className="row" style={{ justifyContent: 'space-between' }}>
-                        <span className={`badge ${row.status === 'posted' ? 'ok' : ''}`}>{statusLabel(row.status)}</span>
-                        <span className="list-sub" dir="ltr">{dateTime(row.createdAt)}</span>
-                      </span>
-                    </button>
+ <span className="list-title" dir="ltr">{row.number}</span>
+ <span className="list-sub">{row.reason}</span>
+ <span className="row" style={{ justifyContent: 'space-between' }}>
+ <span className={`badge ${row.status === 'posted' ? 'ok' : ''}`}>{statusLabel(row.status)}</span>
+ <span className="list-sub" dir="ltr">{dateTime(row.createdAt)}</span>
+ </span>
+ </button>
                   ))
                 )}
-              </>
+ </>
             )}
-          </QueryView>
-        </div>
+ </QueryView>
+ </div>
 
-        <div className="card">
+ <div className="card">
           {!selected ? (
-            <p className="muted">اختر جرداً من القائمة لعرض أسطره وفروقه.</p>
+ <p className="muted">اختر جرداً من القائمة لعرض أسطره وفروقه.</p>
           ) : (
-            <>
-              <div className="section-title">
-                <h2 dir="ltr">{selected.number}</h2>
-                <span className={`badge ${selected.status === 'posted' ? 'ok' : ''}`}>
+ <>
+ <div className="section-title">
+ <h2 dir="ltr">{selected.number}</h2>
+ <span className={`badge ${selected.status === 'posted' ? 'ok' : ''}`}>
                   {statusLabel(selected.status)}
-                </span>
-              </div>
+ </span>
+ </div>
 
-              <StatusTrack steps={STEPS} current={selected.status === 'posted' ? 2 : 0} />
+ <StatusTrack steps={STEPS} current={selected.status === 'posted' ? 2 : 0} />
 
-              <DocHead>
-                <DocField label="الرقم">
-                  <span dir="ltr">{selected.number}</span>
-                </DocField>
-                <DocField label="السبب">{selected.reason}</DocField>
-                <DocField label="المستودع">
+ <DocHead>
+ <DocField label="الرقم">
+ <span dir="ltr">{selected.number}</span>
+ </DocField>
+ <DocField label="السبب">{selected.reason}</DocField>
+ <DocField label="المستودع">
                   {arabicName(warehouseRows.find((warehouse) => warehouse.id === selected.warehouseId) ?? {})}
-                </DocField>
-                <DocField label="التاريخ">{dateTime(selected.createdAt)}</DocField>
-                <DocField label="القيد">{selected.journalEntryId ? 'له قيد تسوية' : 'لم يُرحَّل'}</DocField>
-              </DocHead>
+ </DocField>
+ <DocField label="التاريخ">{dateTime(selected.createdAt)}</DocField>
+ <DocField label="القيد">{selected.journalEntryId ? 'له قيد تسوية' : 'لم يُرحَّل'}</DocField>
+ </DocHead>
 
-              <DataTable
+ <DataTable
                 rows={selected.lines}
                 rowKey={(line) => String(line.lineNo)}
                 footer={[
-                  <>المجموع</>,
+ <>المجموع</>,
                   '',
                   quantity(selected.lines.reduce((sum, line) => sum + Number(line.expectedQty), 0)),
                   quantity(selected.lines.reduce((sum, line) => sum + Number(line.countedQty), 0)),
@@ -660,7 +660,7 @@ export default function StockAdjustmentsPage() {
                       0,
                     ),
                   ),
-                  '', // 📁 رقم الدفعة
+                  '', // رقم الدفعة
                 ]}
                 columns={[
                   { key: 'no', header: '#', align: 'num', cell: (line) => line.lineNo },
@@ -691,7 +691,7 @@ export default function StockAdjustmentsPage() {
                     cell: (line) => {
                       const variance = Number(line.varianceQty ?? 0);
                       return (
-                        <span
+ <span
                           dir="ltr"
                           style={{
                             color: variance === 0 ? 'var(--muted)' : variance > 0 ? 'var(--ok)' : 'var(--danger)',
@@ -699,7 +699,7 @@ export default function StockAdjustmentsPage() {
                           }}
                         >
                           {variance === 0 ? 'مطابق' : `${variance > 0 ? '+' : '−'}${quantity(Math.abs(variance))}`}
-                        </span>
+ </span>
                       );
                     },
                   },
@@ -709,11 +709,11 @@ export default function StockAdjustmentsPage() {
                     header: '📁 رقم الدفعة',
                     cell: (line) =>
                       line.batchNo ? (
-                        <span dir="ltr" className="small">
+ <span dir="ltr" className="small">
                           {line.batchNo}
                           {line.productionDate ? ` · 📅 ${shortDate(line.productionDate)}` : ''}
                           {line.expiryDate ? ` · ⏳ ${shortDate(line.expiryDate)}` : ''}
-                        </span>
+ </span>
                       ) : (
                         '—'
                       ),
@@ -721,7 +721,7 @@ export default function StockAdjustmentsPage() {
                 ]}
               />
 
-              <Totals
+ <Totals
                 items={[
                   {
                     label: 'إجمالي العجز',
@@ -755,9 +755,9 @@ export default function StockAdjustmentsPage() {
                 ]}
               />
 
-              <ActionBar>
+ <ActionBar>
                 {selected.status === 'draft' && can('inventory.adjust') && (
-                  <button
+ <button
                     className="btn primary"
                     type="button"
                     onClick={() => {
@@ -770,21 +770,21 @@ export default function StockAdjustmentsPage() {
                       }
                     }}
                   >
-                    اعتماد وترحيل
-                  </button>
+ اعتماد وترحيل
+ </button>
                 )}
-                <button className="btn" type="button" onClick={() => setSelected(undefined)}>
-                  إغلاق التفاصيل
-                </button>
-                <button className="btn" type="button" onClick={() => window.print()}>
-                  طباعة
-                </button>
-              </ActionBar>
-              <p className="muted small">آخر تحديث للسجل: {shortDate(new Date())}</p>
-            </>
+ <button className="btn" type="button" onClick={() => setSelected(undefined)}>
+ إغلاق التفاصيل
+ </button>
+ <button className="btn" type="button" onClick={() => window.print()}>
+ طباعة
+ </button>
+ </ActionBar>
+ <p className="muted small">آخر تحديث للسجل: {shortDate(new Date())}</p>
+ </>
           )}
-        </div>
-      </div>
-    </Screen>
+ </div>
+ </div>
+ </Screen>
   );
 }

@@ -83,78 +83,78 @@ export function HeroExperiment({
   }, [slug]);
 
   return (
-    <section className="hero">
-      <div className="wrap">
-        <div>
-          <p className="pill">{badge}</p>
-          <h1>{headline.title}</h1>
-          <p className="hero-lead">{lead}</p>
-          <div className="toolbar">
-            <Link className="btn primary" href={headline.ctaHref ?? ctaHref} data-goal="signup_start">
+ <section className="hero">
+ <div className="wrap">
+ <div>
+ <p className="pill">{badge}</p>
+ <h1>{headline.title}</h1>
+ <p className="hero-lead">{lead}</p>
+ <div className="toolbar">
+ <Link className="btn primary" href={headline.ctaHref ?? ctaHref} data-goal="signup_start">
               {headline.ctaLabel ?? ctaLabel}
-            </Link>
+ </Link>
             {actions.map((action) => (
-              <Link key={`${action.href}-${action.label}`} className={action.className} href={action.href}>
+ <Link key={`${action.href}-${action.label}`} className={action.className} href={action.href}>
                 {action.label}
-              </Link>
+ </Link>
             ))}
-          </div>
-          <div className="meta-chips">
+ </div>
+ <div className="meta-chips">
             {facts.map((fact) => (
-              <span key={fact}>
-                <span className="dot" aria-hidden="true" />
+ <span key={fact}>
+ <span className="dot" aria-hidden="true" />
                 {fact}
-              </span>
+ </span>
             ))}
-          </div>
-        </div>
+ </div>
+ </div>
 
         {/* لوحة القيادة المرسومة: شكلٌ لا رقم — الأعمدة بلا قيمة، والبطاقة تعبيرٌ عن «فاتورة ضريبية صادرة». */}
-        <div className="hero-visual" aria-hidden="true">
-          <div className="dash-mock">
-            <div className="dash-topbar">
-              <i />
-              <i />
-              <i />
-            </div>
-            <div className="dash-grid">
-              <div className="dash-kpi">
-                <b>٬٬</b>
-                <span>مبيعات اليوم</span>
-                <span className="up">▲</span>
-              </div>
-              <div className="dash-kpi">
-                <b>٬٬</b>
-                <span>فواتير صادرة</span>
-                <span className="up">▲</span>
-              </div>
-              <div className="dash-kpi">
-                <b>٬٬</b>
-                <span>متبقّي بالمخزون</span>
-              </div>
-              <div className="dash-chart">
-                <i style={{ height: '42%', animationDelay: '0.05s' }} />
-                <i style={{ height: '68%', animationDelay: '0.12s' }} />
-                <i style={{ height: '54%', animationDelay: '0.19s' }} />
-                <i style={{ height: '88%', animationDelay: '0.26s' }} />
-                <i style={{ height: '64%', animationDelay: '0.33s' }} />
-                <i style={{ height: '96%', animationDelay: '0.4s' }} />
-                <i style={{ height: '72%', animationDelay: '0.47s' }} />
-                <i style={{ height: '84%', animationDelay: '0.54s' }} />
-              </div>
-            </div>
-          </div>
-          <div className="dash-card-float">
-            <span className="ic" aria-hidden="true">
-              ✓
-            </span>
-            <span>
-              <b>فاتورة ضريبية — صادرة</b>
-              <span>مطابقةً لمعايير الزاتكا</span>
-            </span>
-          </div>
-        </div>
-      </div>
-    </section>
+ <div className="hero-visual" aria-hidden="true">
+ <div className="dash-mock">
+ <div className="dash-topbar">
+ <i />
+ <i />
+ <i />
+ </div>
+ <div className="dash-grid">
+ <div className="dash-kpi">
+ <b>٬٬</b>
+ <span>مبيعات اليوم</span>
+ <span className="up">▲</span>
+ </div>
+ <div className="dash-kpi">
+ <b>٬٬</b>
+ <span>فواتير صادرة</span>
+ <span className="up">▲</span>
+ </div>
+ <div className="dash-kpi">
+ <b>٬٬</b>
+ <span>متبقّي بالمخزون</span>
+ </div>
+ <div className="dash-chart">
+ <i style={{ height: '42%', animationDelay: '0.05s' }} />
+ <i style={{ height: '68%', animationDelay: '0.12s' }} />
+ <i style={{ height: '54%', animationDelay: '0.19s' }} />
+ <i style={{ height: '88%', animationDelay: '0.26s' }} />
+ <i style={{ height: '64%', animationDelay: '0.33s' }} />
+ <i style={{ height: '96%', animationDelay: '0.4s' }} />
+ <i style={{ height: '72%', animationDelay: '0.47s' }} />
+ <i style={{ height: '84%', animationDelay: '0.54s' }} />
+ </div>
+ </div>
+ </div>
+ <div className="dash-card-float">
+ <span className="ic" aria-hidden="true">
+
+ </span>
+ <span>
+ <b>فاتورة ضريبية — صادرة</b>
+ <span>مطابقةً لمعايير الزاتكا</span>
+ </span>
+ </div>
+ </div>
+ </div>
+ </section>
   );
 }

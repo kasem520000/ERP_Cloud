@@ -22,7 +22,7 @@ type RentalInvoice = {
   total: string;
   taxAmount: string;
   netAmount: string;
-  /** 🔢 الرقم — رقم الحجز, as `frmInvoiceRentSrch` shows it. */
+  /** الرقم — رقم الحجز, as `frmInvoiceRentSrch` shows it. */
   number: string | null;
   documentDate: string;
   customerName: string;
@@ -98,25 +98,25 @@ export default function MarinaLinkInvoicesPage() {
   }
 
   return (
-    <Screen
+ <Screen
       title="ربط الفواتير"
       subtitle="إصدار فاتورة التأجير للحجوزات التي لم تُفوتر بعد، وعرض ارتباط كل فاتورة تأجير بفاتورة المبيعات المقابلة."
       crumbs={['إدارة المراسي', 'العمليات']}
       actions={
         can('marina.invoice') ? (
-          <button className="btn primary" type="button" onClick={link} disabled={busy || chosen.length === 0}>
+ <button className="btn primary" type="button" onClick={link} disabled={busy || chosen.length === 0}>
             {busy ? 'جارٍ الربط…' : `ربط المحدد (${chosen.length})`}
-          </button>
+ </button>
         ) : null
       }
     >
-      <Notice notice={notice} />
+ <Notice notice={notice} />
 
-      <div className="card">
-        <h2>حجوزات بلا فاتورة تأجير</h2>
-        <QueryView query={uninvoiced} empty="كل الحجوزات مفوترة" emptyDetail="لا يوجد حجز بدون فاتورة تأجير.">
+ <div className="card">
+ <h2>حجوزات بلا فاتورة تأجير</h2>
+ <QueryView query={uninvoiced} empty="كل الحجوزات مفوترة" emptyDetail="لا يوجد حجز بدون فاتورة تأجير.">
           {(rows) => (
-            <DataTable
+ <DataTable
               rows={rows}
               rowKey={(row) => row.id}
               columns={[
@@ -124,7 +124,7 @@ export default function MarinaLinkInvoicesPage() {
                   key: 'pick',
                   header: '',
                   cell: (row) => (
-                    <input
+ <input
                       type="checkbox"
                       checked={Boolean(selected[row.id])}
                       onChange={(event) => setSelected((current) => ({ ...current, [row.id]: event.target.checked }))}
@@ -141,42 +141,42 @@ export default function MarinaLinkInvoicesPage() {
               ]}
             />
           )}
-        </QueryView>
-      </div>
+ </QueryView>
+ </div>
 
       {/* «🔍 خيارات البحث» — `Form_WPF/frmInvoiceRentSrch.xaml` («بحث الفواتير»). */}
-      <div className="card tight no-print">
-        <div className="row" style={{ flexWrap: 'wrap', alignItems: 'flex-end' }}>
-          <label className="field" style={{ margin: 0, minWidth: 200 }}>
-            <span>العميل</span>
-            <input
+ <div className="card tight no-print">
+ <div className="row" style={{ flexWrap: 'wrap', alignItems: 'flex-end' }}>
+ <label className="field" style={{ margin: 0, minWidth: 200 }}>
+ <span>العميل</span>
+ <input
               className="input"
               value={filters.customer}
               placeholder="🔍 الاسم أو الجوال..."
               onChange={(event) => setFilters({ ...filters, customer: event.target.value })}
             />
-          </label>
-          <label className="field" style={{ margin: 0, minWidth: 150 }}>
-            <span>التاريخ من</span>
-            <input className="input" type="date" value={filters.from} onChange={(event) => setFilters({ ...filters, from: event.target.value })} />
-          </label>
-          <label className="field" style={{ margin: 0, minWidth: 150 }}>
-            <span>إلى</span>
-            <input className="input" type="date" value={filters.to} onChange={(event) => setFilters({ ...filters, to: event.target.value })} />
-          </label>
-          <label className="field" style={{ margin: 0, minWidth: 120 }}>
-            <span>الصافي من</span>
-            <input className="input numeric" value={filters.minNet} onChange={(event) => setFilters({ ...filters, minNet: event.target.value })} />
-          </label>
-          <label className="field" style={{ margin: 0, minWidth: 120 }}>
-            <span>إلى</span>
-            <input className="input numeric" value={filters.maxNet} onChange={(event) => setFilters({ ...filters, maxNet: event.target.value })} />
-          </label>
-          <button className="btn primary" type="button" onClick={() => setApplied(filters)}>
-            🔍 بحث
-          </button>
+ </label>
+ <label className="field" style={{ margin: 0, minWidth: 150 }}>
+ <span>التاريخ من</span>
+ <input className="input" type="date" value={filters.from} onChange={(event) => setFilters({ ...filters, from: event.target.value })} />
+ </label>
+ <label className="field" style={{ margin: 0, minWidth: 150 }}>
+ <span>إلى</span>
+ <input className="input" type="date" value={filters.to} onChange={(event) => setFilters({ ...filters, to: event.target.value })} />
+ </label>
+ <label className="field" style={{ margin: 0, minWidth: 120 }}>
+ <span>الصافي من</span>
+ <input className="input numeric" value={filters.minNet} onChange={(event) => setFilters({ ...filters, minNet: event.target.value })} />
+ </label>
+ <label className="field" style={{ margin: 0, minWidth: 120 }}>
+ <span>إلى</span>
+ <input className="input numeric" value={filters.maxNet} onChange={(event) => setFilters({ ...filters, maxNet: event.target.value })} />
+ </label>
+ <button className="btn primary" type="button" onClick={() => setApplied(filters)}>
+ 🔍بحث
+ </button>
           {applied && (
-            <button
+ <button
               className="btn"
               type="button"
               onClick={() => {
@@ -184,17 +184,17 @@ export default function MarinaLinkInvoicesPage() {
                 setApplied(null);
               }}
             >
-              🗑️ تصفية الحقول
-            </button>
+ 🗑️تصفية الحقول
+ </button>
           )}
-        </div>
-      </div>
+ </div>
+ </div>
 
-      {/* «🧾 قائمة الفواتير» — الرقم · 📅 التاريخ · 👤 العميل · 💰 الصافي · 📱 الجوال.
+      {/* « قائمة الفواتير» — الرقم · التاريخ · العميل · الصافي · الجوال.
           `Form_WPF/frmInvoiceRentSrch.xaml` («بحث الفواتير»). */}
-      <QueryView query={rentals} empty="لا توجد فواتير تأجير" emptyDetail="أصدر فاتورة تأجير من الحجوزات أعلاه.">
+ <QueryView query={rentals} empty="لا توجد فواتير تأجير" emptyDetail="أصدر فاتورة تأجير من الحجوزات أعلاه.">
         {(rows) => (
-          <DataTable
+ <DataTable
             rows={rows}
             rowKey={(row) => row.id}
             columns={[
@@ -216,7 +216,7 @@ export default function MarinaLinkInvoicesPage() {
             ]}
           />
         )}
-      </QueryView>
-    </Screen>
+ </QueryView>
+ </Screen>
   );
 }

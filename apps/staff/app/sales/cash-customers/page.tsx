@@ -9,7 +9,7 @@ import { useSession } from '../../../lib/session';
 import { useQuery } from '../../../lib/use-query';
 
 /**
- * 👤 عميل نقدي — `Form_WPF/frmCashCustomer.xaml`.
+ * عميل نقدي — `Form_WPF/frmCashCustomer.xaml`.
  *
  * The till's walk-in, on its own page: the desktop window is opened *from* a sale, and
  * this page is the same panel standing alone so the names a shop has already served can
@@ -31,49 +31,49 @@ export default function CashCustomersPage() {
 
   if (!can('sales.view')) {
     return (
-      <Screen title="👤 عميل نقدي" crumbs={['المبيعات']}>
-        <div className="card state">
-          <strong>لا تملك صلاحية عرض العملاء</strong>
-          <span>تحتاج صلاحية sales.view.</span>
-        </div>
-      </Screen>
+ <Screen title="👤 عميل نقدي" crumbs={['المبيعات']}>
+ <div className="card state">
+ <strong>لا تملك صلاحية عرض العملاء</strong>
+ <span>تحتاج صلاحية sales.view.</span>
+ </div>
+ </Screen>
     );
   }
 
   return (
-    <Screen
+ <Screen
       title="👤 عميل نقدي"
       subtitle="إضافة أو اختيار عميل نقدي للفاتورة — الأسماء التي خدمها المتجر"
       crumbs={['المبيعات', 'العملاء']}
     >
-      <div className="grid cols">
-        <div className="card">
-          <div className="card-head">📋 ملخّص</div>
-          <dl className="kv">
-            <dt>أسماء محفوظة</dt>
-            <dd>{(recent.data ?? []).length}</dd>
-            <dt>فواتير كُتبت بأسماء نقدية</dt>
-            <dd>{served}</dd>
-          </dl>
-          <p className="muted small" style={{ marginTop: 8 }}>
-            الاسم النقدي يُحفظ على الفاتورة نفسها لا في سجل الأطراف؛ لذلك لا يُفتح له حساب
-            ذمم، ويكفي أن تعود باسمه لتجده هنا.
-          </p>
+ <div className="grid cols">
+ <div className="card">
+ <div className="card-head">📋 ملخّص</div>
+ <dl className="kv">
+ <dt>أسماء محفوظة</dt>
+ <dd>{(recent.data ?? []).length}</dd>
+ <dt>فواتير كُتبت بأسماء نقدية</dt>
+ <dd>{served}</dd>
+ </dl>
+ <p className="muted small" style={{ marginTop: 8 }}>
+ الاسم النقدي يُحفظ على الفاتورة نفسها لا في سجل الأطراف؛ لذلك لا يُفتح له حساب
+ ذمم، ويكفي أن تعود باسمه لتجده هنا.
+ </p>
           {notice ? (
-            <p className="alert ok" style={{ marginTop: 8 }}>
+ <p className="alert ok" style={{ marginTop: 8 }}>
               {notice}
-            </p>
+ </p>
           ) : null}
           {picked ? (
-            <p className="alert info" style={{ marginTop: 8 }}>
-              المختار الآن: {picked.name} — {picked.mobile ?? '—'}
-            </p>
+ <p className="alert info" style={{ marginTop: 8 }}>
+ المختار الآن: {picked.name} — {picked.mobile ?? '—'}
+ </p>
           ) : null}
-        </div>
+ </div>
 
-        <div className="card">
-          <div className="card-head">🏷️ إضافة أو اختيار</div>
-          <CashCustomerPicker
+ <div className="card">
+ <div className="card-head">🏷️ إضافة أو اختيار</div>
+ <CashCustomerPicker
             embedded
             value={{ name: picked?.name ?? '', mobile: picked?.mobile ?? '' }}
             onPick={(customer) => {
@@ -86,8 +86,8 @@ export default function CashCustomersPage() {
               setNotice('');
             }}
           />
-        </div>
-      </div>
-    </Screen>
+ </div>
+ </div>
+ </Screen>
   );
 }

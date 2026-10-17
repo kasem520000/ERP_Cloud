@@ -56,7 +56,7 @@ export default function ProjectCostPage() {
               <th>مخطط</th>
               <th>فعلي</th>
               <th>الفرق</th>
-              <th></th>
+              <th><span className="sr-only">إجراءات</span></th>
             </tr>
           </thead>
           <tbody>

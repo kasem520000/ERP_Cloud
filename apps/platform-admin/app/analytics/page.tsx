@@ -354,11 +354,11 @@ export default function AnalyticsPage() {
                     rowKey={(group) => group.planCode}
                     dense
                     columns={[
-                      { key: 'plan', header: 'الباقة', grow: true, cell: (group) => <span className="text-[12.5px] font-semibold text-ink-2">{group.planName} <span className="font-mono text-[11px] text-muted">({group.tenants})</span></span> },
+                      { key: 'plan', header: 'الباقة', grow: true, cell: (group) => <span className="text-[12.5px] font-semibold text-ink-2">{group.planName} <span className="font-mono text-xs text-muted">({group.tenants})</span></span> },
                       { key: 'metrics', header: 'المقاييس', numeric: true, cell: (group) => (
                         <span className="flex flex-wrap justify-end gap-x-4 gap-y-1">
                           {group.metrics.map((metric) => (
-                            <span key={metric.metric} className="block text-[11px] text-muted">
+                            <span key={metric.metric} className="block text-xs text-muted">
                               {metric.label}: <span className="font-mono text-ink-2">{metric.average.toLocaleString('en-US')}/{metric.limit === null ? '∞' : metric.limit.toLocaleString('en-US')}</span>
                               <span className={`font-mono font-bold ${utilizationTone(metric.utilization)}`}> {percent(metric.utilization)}</span>
                             </span>
@@ -549,7 +549,7 @@ function KvRow({
 function ReportItem({ label, value, ltr = false }: { label: string; value: string; ltr?: boolean }) {
   return (
     <div className="rounded-lg border border-line bg-surface-2 px-3 py-2">
-      <dt className="m-0 text-[11px] font-bold text-muted">{label}</dt>
+      <dt className="m-0 text-xs font-bold text-muted">{label}</dt>
       <dd className={`m-0 mt-0.5 text-[12px] text-ink-2 ${ltr ? 'font-mono' : ''}`} dir={ltr ? 'ltr' : undefined}>
         {value}
       </dd>

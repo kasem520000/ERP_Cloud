@@ -9,26 +9,26 @@ import { useSession } from '../../../../lib/session';
 import { useQuery } from '../../../../lib/use-query';
 
 /**
- * 📏 إدارة خصائص القياسات — `Form_WPF/frmMeasurementAttributes.xaml`
+ * إدارة خصائص القياسات — `Form_WPF/frmMeasurementAttributes.xaml`
  * («📏 إدارة خصائص القياسات»).
  *
  * The window is one grid and six buttons:
  *
- *   • the grid — `📝 اسم الخاصية · 🔢 الترتيب · ⚙️ الحالة` (الرقم hidden), where
- *     ⚙️ الحالة is `CASE WHEN IsActive = 1 THEN 'نشط' ELSE 'معطل' END`, ordered
+ *   • the grid — ` اسم الخاصية · الترتيب · الحالة` (الرقم hidden), where
+ * الحالة is `CASE WHEN IsActive = 1 THEN 'نشط' ELSE 'معطل' END`, ordered
  *     `ORDER BY DisplayOrder`.
  *   • `➕ إضافة` — an `InputDialog` titled «إضافة خاصية جديدة» asking «أدخل اسم
- *     الخاصية (مثل: الطول، العرض، الكم)»; the new row takes
+ * الخاصية (مثل: الطول، العرض، الكم)»; the new row takes
  *     `ISNULL(MAX(DisplayOrder), 0) + 1`.
  *   • `✏️ تعديل` — the same dialog titled «تعديل» with «تعديل اسم الخاصية:», and a blank
  *     or unchanged answer changes nothing.
  *   • `🔕 تعطيل` — `IsActive = 0` after «هل أنت متأكد من تعطيل هذه الخاصية؟\nسيتم
- *     إخفاؤها من القياسات الجديدة». It is never a delete: the row stays in the list,
+ * إخفاؤها من القياسات الجديدة». It is never a delete: the row stays in the list,
  *     marked «معطل», and stops appearing in «📐 قيم القياسات».
  *   • `▲ تحريك للأعلى` و`▼ تحريك للأسفل` — the tenant's الترتيب is what the قياس card
  *     builds its boxes from, so the order is theirs to change. At either end there is no
  *     neighbour and nothing moves.
- *   • `✖ إغلاق` — back to 📏 إدارة قياسات العملاء.
+ *   • ` إغلاق` — back to إدارة قياسات العملاء.
  *
  * The three rows a new tenant starts with (الطول · العرض · الكم) are the repository's
  * own example: the add prompt names them, and `MeasurementAttributes` rows are data —
@@ -117,17 +117,17 @@ function TailoringMeasurementAttributes() {
   }
 
   return (
-    <Screen
+ <Screen
       title="📏 إدارة خصائص القياسات"
       subtitle="ما يُقاس: الخاصية وترتيبها وحالتها. والترتيب هو ترتيب الصناديق في بطاقة القياس — و«معطل» تعني أنها تختفي من القياسات الجديدة، لا أنها تُمحى."
       crumbs={['التفصيل', 'القياسات', 'خصائص القياسات']}
       actions={
-        <div className="row" style={{ gap: 6 }}>
-          <Link className="btn" href="/tailoring/measurements">
-            📏 قياسات العملاء
-          </Link>
+ <div className="row" style={{ gap: 6 }}>
+ <Link className="btn" href="/tailoring/measurements">
+ 📏قياسات العملاء
+ </Link>
           {canManage && (
-            <button
+ <button
               className="btn primary"
               type="button"
               onClick={() =>
@@ -140,10 +140,10 @@ function TailoringMeasurementAttributes() {
                 })
               }
             >
-              ➕ إضافة
-            </button>
+ ➕إضافة
+ </button>
           )}
-        </div>
+ </div>
       }
     >
       {error && <p className="alert danger">{error}</p>}
@@ -153,36 +153,36 @@ function TailoringMeasurementAttributes() {
       {attributes.status === 'forbidden' && <Forbidden />}
       {attributes.status === 'error' && <ErrorBox message={attributes.error} onRetry={reload} />}
       {attributes.status === 'success' && (
-        <>
-          <div className="row" style={{ justifyContent: 'space-between', alignItems: 'baseline' }}>
-            <span className="group-label" style={{ margin: 0 }}>📏 خصائص القياسات</span>
-            <span className="muted">عدد السجلات: {rows.length}</span>
-          </div>
+ <>
+ <div className="row" style={{ justifyContent: 'space-between', alignItems: 'baseline' }}>
+ <span className="group-label" style={{ margin: 0 }}>📏 خصائص القياسات</span>
+ <span className="muted">عدد السجلات: {rows.length}</span>
+ </div>
           {rows.length === 0 ? (
-            <Empty title="لا توجد خصائص" detail="ابدأ بـ «➕ إضافة» — «الطول» مثالاً كما في الديسكتوب." />
+ <Empty title="لا توجد خصائص" detail="ابدأ بـ «➕ إضافة» — «الطول» مثالاً كما في الديسكتوب." />
           ) : (
-            <div className="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>📝 اسم الخاصية</th>
-                    <th className="num">🔢 الترتيب</th>
-                    <th>⚙️ الحالة</th>
+ <div className="table-wrap">
+ <table>
+ <thead>
+ <tr>
+ <th>📝 اسم الخاصية</th>
+ <th className="num">🔢 الترتيب</th>
+ <th>⚙️ الحالة</th>
                     {canManage && <th>إجراءات</th>}
-                  </tr>
-                </thead>
-                <tbody>
+ </tr>
+ </thead>
+ <tbody>
                   {rows.map((row) => (
-                    <tr key={row.id} style={row.active ? undefined : { opacity: 0.65 }}>
-                      <td>{row.nameAr}</td>
-                      <td className="num">{row.displayOrder}</td>
-                      <td>
-                        <span className={`badge${row.active ? '' : ' danger'}`}>{row.statusText}</span>
-                      </td>
+ <tr key={row.id} style={row.active ? undefined : { opacity: 0.65 }}>
+ <td>{row.nameAr}</td>
+ <td className="num">{row.displayOrder}</td>
+ <td>
+ <span className={`badge${row.active ? '' : ' danger'}`}>{row.statusText}</span>
+ </td>
                       {canManage && (
-                        <td>
-                          <div className="row" style={{ gap: 4 }}>
-                            <button
+ <td>
+ <div className="row" style={{ gap: 4 }}>
+ <button
                               className="btn sm"
                               type="button"
                               onClick={() =>
@@ -196,14 +196,14 @@ function TailoringMeasurementAttributes() {
                                 })
                               }
                             >
-                              ✏️ تعديل
-                            </button>
+ ✏️تعديل
+ </button>
                             {row.active && (
-                              <button className="btn sm" type="button" onClick={() => deactivate(row)}>
-                                🔕 تعطيل
-                              </button>
+ <button className="btn sm" type="button" onClick={() => deactivate(row)}>
+ 🔕تعطيل
+ </button>
                             )}
-                            <button
+ <button
                               className="btn sm"
                               type="button"
                               title="تحريك للأعلى"
@@ -211,8 +211,8 @@ function TailoringMeasurementAttributes() {
                               onClick={() => move(row, 'up')}
                             >
                               ▲
-                            </button>
-                            <button
+ </button>
+ <button
                               className="btn sm"
                               type="button"
                               title="تحريك للأسفل"
@@ -220,53 +220,53 @@ function TailoringMeasurementAttributes() {
                               onClick={() => move(row, 'down')}
                             >
                               ▼
-                            </button>
-                          </div>
-                        </td>
+ </button>
+ </div>
+ </td>
                       )}
-                    </tr>
+ </tr>
                   ))}
-                </tbody>
-              </table>
-            </div>
+ </tbody>
+ </table>
+ </div>
           )}
-        </>
+ </>
       )}
 
       {prompt && (
         // `InputDialog` — «✔ موافق» و«✖ إلغاء» around one box, as the desktop builds it.
-        <div className="modal-backdrop" role="dialog" aria-modal="true">
-          <div className="modal-card" style={{ maxWidth: 440 }}>
-            <div className="modal-head">
-              <span className="modal-title">{prompt.title}</span>
-            </div>
-            <div style={{ padding: 16, display: 'grid', gap: 10 }}>
-              <p style={{ margin: 0, fontWeight: 700 }}>{prompt.question}</p>
-              <input
+ <div className="modal-backdrop" role="dialog" aria-modal="true">
+ <div className="modal-card" style={{ maxWidth: 440 }}>
+ <div className="modal-head">
+ <span className="modal-title">{prompt.title}</span>
+ </div>
+ <div style={{ padding: 16, display: 'grid', gap: 10 }}>
+ <p style={{ margin: 0, fontWeight: 700 }}>{prompt.question}</p>
+ <input
                 className="input"
                 value={prompt.value}
                 onChange={(event) => setPrompt({ ...prompt, value: event.target.value })}
               />
-            </div>
-            <div className="modal-foot">
-              <button className="btn primary" type="button" onClick={submit} disabled={busy}>
-                ✔ موافق
-              </button>
-              <button className="btn danger" type="button" onClick={() => setPrompt(null)} disabled={busy}>
-                ✖ إلغاء
-              </button>
-            </div>
-          </div>
-        </div>
+ </div>
+ <div className="modal-foot">
+ <button className="btn primary" type="button" onClick={submit} disabled={busy}>
+ ✔موافق
+ </button>
+ <button className="btn danger" type="button" onClick={() => setPrompt(null)} disabled={busy}>
+ ✖إلغاء
+ </button>
+ </div>
+ </div>
+ </div>
       )}
-    </Screen>
+ </Screen>
   );
 }
 
 export default function Page() {
   return (
-    <Suspense fallback={<Loading rows={5} />}>
-      <TailoringMeasurementAttributes />
-    </Suspense>
+ <Suspense fallback={<Loading rows={5} />}>
+ <TailoringMeasurementAttributes />
+ </Suspense>
   );
 }

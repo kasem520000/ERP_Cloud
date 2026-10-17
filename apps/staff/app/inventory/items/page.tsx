@@ -292,13 +292,13 @@ export default function ItemsPage() {
   }
 
   return (
-    <Screen
+ <Screen
       title="دليل المواد"
       subtitle="بطاقات الأصناف: الرمز، المجموعة، وحدة القياس، الأسعار والضريبة."
       crumbs={['المستودعات', 'التعاريف']}
       actions={
         can('catalog.item.manage') ? (
-          <button
+ <button
             className="btn primary"
             type="button"
             onClick={() => {
@@ -307,97 +307,97 @@ export default function ItemsPage() {
             }}
           >
             {open ? 'إغلاق' : 'مادة جديدة'}
-          </button>
+ </button>
         ) : null
       }
     >
       {open && (
-        <form className="card" onSubmit={submit}>
-          <h2>{editing ? `تعديل بطاقة المادة ${editing.sku}` : 'بطاقة مادة جديدة'}</h2>
+ <form className="card" onSubmit={submit}>
+ <h2>{editing ? `تعديل بطاقة المادة ${editing.sku}` : 'بطاقة مادة جديدة'}</h2>
           {missingRefs && !editing && (
-            <p className="alert warn">
-              يلزم وجود مجموعة واحدة ووحدة قياس واحدة على الأقل. أنشئها من «بطاقة مجموعة» و«بطاقة وحدة».
-            </p>
+ <p className="alert warn">
+ يلزم وجود مجموعة واحدة ووحدة قياس واحدة على الأقل. أنشئها من «بطاقة مجموعة» و«بطاقة وحدة».
+ </p>
           )}
-          <div className="form-grid">
-            <label className="field">
-              <span>الرمز (SKU) *</span>
-              <input className="input" dir="ltr" value={form.sku} onChange={set('sku')} required />
-            </label>
-            <label className="field">
-              <span>الباركود</span>
-              <input
+ <div className="form-grid">
+ <label className="field">
+ <span>الرمز (SKU) *</span>
+ <input className="input" dir="ltr" value={form.sku} onChange={set('sku')} required />
+ </label>
+ <label className="field">
+ <span>الباركود</span>
+ <input
                 className="input"
                 dir="ltr"
                 value={form.barcode}
                 onChange={set('barcode')}
                 placeholder="يُستخدم الرمز (SKU) عند تركه فارغاً"
               />
-            </label>
-            <label className="field">
-              <span>الاسم العربي *</span>
-              <input className="input" value={form.nameAr} onChange={set('nameAr')} required />
-            </label>
-            <label className="field">
-              <span>الاسم الإنجليزي</span>
-              <input className="input" dir="ltr" value={form.nameEn} onChange={set('nameEn')} />
-            </label>
-            <label className="field">
-              <span>المجموعة *</span>
-              <select className="input" value={form.categoryId} onChange={set('categoryId')} required>
-                <option value="">— اختر —</option>
+ </label>
+ <label className="field">
+ <span>الاسم العربي *</span>
+ <input className="input" value={form.nameAr} onChange={set('nameAr')} required />
+ </label>
+ <label className="field">
+ <span>الاسم الإنجليزي</span>
+ <input className="input" dir="ltr" value={form.nameEn} onChange={set('nameEn')} />
+ </label>
+ <label className="field">
+ <span>المجموعة *</span>
+ <select className="input" value={form.categoryId} onChange={set('categoryId')} required>
+ <option value="">— اختر —</option>
                 {categoryRows.map((row) => (
-                  <option key={row.id} value={row.id}>{`${row.code} — ${arabicName(row)}`}</option>
+ <option key={row.id} value={row.id}>{`${row.code} — ${arabicName(row)}`}</option>
                 ))}
-              </select>
-            </label>
-            <label className="field">
-              <span>وحدة القياس *</span>
-              <select
+ </select>
+ </label>
+ <label className="field">
+ <span>وحدة القياس *</span>
+ <select
                 className="input"
                 value={form.baseUnitId}
                 onChange={set('baseUnitId')}
                 required
                 disabled={Boolean(editing)}
               >
-                <option value="">— اختر —</option>
+ <option value="">— اختر —</option>
                 {unitRows.map((row) => (
-                  <option key={row.id} value={row.id}>{`${row.code} — ${arabicName(row)}`}</option>
+ <option key={row.id} value={row.id}>{`${row.code} — ${arabicName(row)}`}</option>
                 ))}
-              </select>
+ </select>
               {editing && <span className="muted small">وحدة القياس الأساسية ثابتة بعد إنشاء المادة.</span>}
-            </label>
-            <label className="field">
-              <span>النوع</span>
-              <select className="input" value={form.kind} onChange={set('kind')}>
-                <option value="stock">مخزنية</option>
-                <option value="service">خدمة</option>
-                <option value="composite">مركبة</option>
-              </select>
-            </label>
-            <label className="field">
-              <span>سعر البيع</span>
-              <input
+ </label>
+ <label className="field">
+ <span>النوع</span>
+ <select className="input" value={form.kind} onChange={set('kind')}>
+ <option value="stock">مخزنية</option>
+ <option value="service">خدمة</option>
+ <option value="composite">مركبة</option>
+ </select>
+ </label>
+ <label className="field">
+ <span>سعر البيع</span>
+ <input
                 className="input"
                 dir="ltr"
                 inputMode="decimal"
                 value={form.salePrice}
                 onChange={set('salePrice')}
               />
-            </label>
-            <label className="field">
-              <span>سعر الشراء</span>
-              <input
+ </label>
+ <label className="field">
+ <span>سعر الشراء</span>
+ <input
                 className="input"
                 dir="ltr"
                 inputMode="decimal"
                 value={form.purchasePrice}
                 onChange={set('purchasePrice')}
               />
-            </label>
-            <label className="field">
-              <span>حد الطلب (أدنى رصيد)</span>
-              <input
+ </label>
+ <label className="field">
+ <span>حد الطلب (أدنى رصيد)</span>
+ <input
                 className="input"
                 dir="ltr"
                 inputMode="decimal"
@@ -405,10 +405,10 @@ export default function ItemsPage() {
                 onChange={set('minQty')}
                 placeholder="0"
               />
-            </label>
-            <label className="field">
-              <span>الحد الأقصى</span>
-              <input
+ </label>
+ <label className="field">
+ <span>الحد الأقصى</span>
+ <input
                 className="input"
                 dir="ltr"
                 inputMode="decimal"
@@ -416,91 +416,91 @@ export default function ItemsPage() {
                 onChange={set('maxQty')}
                 placeholder="—"
               />
-            </label>
-            <label className="field">
-              <span>تتبع بدفعات / تواريخ صلاحية</span>
-              <select
+ </label>
+ <label className="field">
+ <span>تتبع بدفعات / تواريخ صلاحية</span>
+ <select
                 className="input"
                 value={form.trackLot ? 'yes' : 'no'}
                 onChange={(event) =>
                   setForm((current) => ({ ...current, trackLot: event.target.value === 'yes' }))
                 }
               >
-                <option value="no">لا</option>
-                <option value="yes">نعم</option>
-              </select>
-            </label>
-            <label className="field">
-              <span>تتبع بأرقام تسلسلية</span>
-              <select
+ <option value="no">لا</option>
+ <option value="yes">نعم</option>
+ </select>
+ </label>
+ <label className="field">
+ <span>تتبع بأرقام تسلسلية</span>
+ <select
                 className="input"
                 value={form.trackSerial ? 'yes' : 'no'}
                 onChange={(event) =>
                   setForm((current) => ({ ...current, trackSerial: event.target.value === 'yes' }))
                 }
               >
-                <option value="no">لا</option>
-                <option value="yes">نعم</option>
-              </select>
-            </label>
-            <label className="field">
-              <span>المجموعة الضريبية</span>
-              <select className="input" value={form.taxGroupId} onChange={set('taxGroupId')}>
-                <option value="">— بدون —</option>
+ <option value="no">لا</option>
+ <option value="yes">نعم</option>
+ </select>
+ </label>
+ <label className="field">
+ <span>المجموعة الضريبية</span>
+ <select className="input" value={form.taxGroupId} onChange={set('taxGroupId')}>
+ <option value="">— بدون —</option>
                 {(taxGroups.data ?? []).map((row) => (
-                  <option key={row.id} value={row.id}>
+ <option key={row.id} value={row.id}>
                     {arabicName(row)}
-                  </option>
+ </option>
                 ))}
-              </select>
-            </label>
-          </div>
-          <Notice notice={notice} />
-          <div className="row">
-            <button className="btn primary" type="submit" disabled={busy || (missingRefs && !editing)}>
+ </select>
+ </label>
+ </div>
+ <Notice notice={notice} />
+ <div className="row">
+ <button className="btn primary" type="submit" disabled={busy || (missingRefs && !editing)}>
               {busy ? 'جارٍ الحفظ…' : editing ? 'حفظ التعديل' : 'حفظ المادة'}
-            </button>
+ </button>
             {editing && (
-              <button className="btn" type="button" onClick={cancelEdit} disabled={busy}>
-                إلغاء التعديل
-              </button>
+ <button className="btn" type="button" onClick={cancelEdit} disabled={busy}>
+ إلغاء التعديل
+ </button>
             )}
-          </div>
-        </form>
+ </div>
+ </form>
       )}
 
-      <StatTiles>
-        <StatTile label="عدد المواد" value={rows.length} hint="بطاقة صنف مسجّلة" tone="brand" />
-        <StatTile
+ <StatTiles>
+ <StatTile label="عدد المواد" value={rows.length} hint="بطاقة صنف مسجّلة" tone="brand" />
+ <StatTile
           label="مواد مخزنية"
           value={rows.filter((row) => (row.kind ?? 'stock') === 'stock').length}
           hint="تُدار أرصدتها"
         />
-        <StatTile
+ <StatTile
           label="خدمات"
           value={rows.filter((row) => row.kind === 'service').length}
           hint="بلا مخزون"
         />
-        <StatTile
+ <StatTile
           label="أصناف مركبة"
           value={rows.filter((row) => row.kind === 'composite').length}
           hint="لها مكونات"
           tone={rows.some((row) => row.kind === 'composite') ? 'warn' : 'default'}
         />
-        <StatTile
+ <StatTile
           label="بدون باركود"
           value={rows.filter((row) => !row.barcode).length}
           hint="لن تُقرأ بالقارئ"
           tone={rows.filter((row) => !row.barcode).length > 0 ? 'warn' : 'ok'}
         />
-      </StatTiles>
+ </StatTiles>
 
-      <FilterBar
+ <FilterBar
         actions={<span className="small muted">{applied ? `نتيجة البحث عن «${applied}»` : `${rows.length} مادة`}</span>}
       >
-        <label className="field">
-          <span>بحث</span>
-          <input
+ <label className="field">
+ <span>بحث</span>
+ <input
             className="input"
             placeholder="بحث بالاسم العربي…"
             value={search}
@@ -509,12 +509,12 @@ export default function ItemsPage() {
               if (event.key === 'Enter') setApplied(search.trim());
             }}
           />
-        </label>
-        <button className="btn" type="button" onClick={() => setApplied(search.trim())}>
-          بحث
-        </button>
+ </label>
+ <button className="btn" type="button" onClick={() => setApplied(search.trim())}>
+ بحث
+ </button>
         {applied && (
-          <button
+ <button
             className="btn"
             type="button"
             onClick={() => {
@@ -522,111 +522,111 @@ export default function ItemsPage() {
               setApplied('');
             }}
           >
-            إلغاء الفلتر
-          </button>
+ إلغاء الفلتر
+ </button>
         )}
-      </FilterBar>
+ </FilterBar>
 
       {!open && notice && <Notice notice={notice} />}
 
-      <div className="split">
-        <div className="card tight split-list">
-          <QueryView query={items} empty="لا توجد مواد" emptyDetail="ابدأ بإضافة بطاقة مادة جديدة.">
+ <div className="split">
+ <div className="card tight split-list">
+ <QueryView query={items} empty="لا توجد مواد" emptyDetail="ابدأ بإضافة بطاقة مادة جديدة.">
             {() => (
-              <>
+ <>
                 {rows.length === 0 ? (
-                  <p className="muted" style={{ padding: 12 }}>لا مواد مطابقة.</p>
+ <p className="muted" style={{ padding: 12 }}>لا مواد مطابقة.</p>
                 ) : (
                   rows.map((row) => (
-                    <button
+ <button
                       key={row.id}
                       type="button"
                       className={`list-row${row.id === selectedId ? ' active' : ''}`}
                       onClick={() => setSelectedId(row.id)}
                     >
-                      <span className="list-title">{arabicName(row)}</span>
-                      <span className="list-sub" dir="ltr">{`${row.sku}${row.barcode ? ` · ${row.barcode}` : ''}`}</span>
-                      <span className="row" style={{ justifyContent: 'space-between' }}>
-                        <span className="badge">
+ <span className="list-title">{arabicName(row)}</span>
+ <span className="list-sub" dir="ltr">{`${row.sku}${row.barcode ? ` · ${row.barcode}` : ''}`}</span>
+ <span className="row" style={{ justifyContent: 'space-between' }}>
+ <span className="badge">
                           {row.kind === 'service' ? 'خدمة' : row.kind === 'composite' ? 'مركبة' : 'مخزنية'}
-                        </span>
-                        <span className="list-sub" dir="ltr">{money(row.salePrice ?? row.sale_price)}</span>
-                      </span>
-                    </button>
+ </span>
+ <span className="list-sub" dir="ltr">{money(row.salePrice ?? row.sale_price)}</span>
+ </span>
+ </button>
                   ))
                 )}
-              </>
+ </>
             )}
-          </QueryView>
-        </div>
+ </QueryView>
+ </div>
 
-        <div className="card">
+ <div className="card">
           {!selected ? (
-            <p className="muted">اختر مادة من القائمة لعرض بطاقتها بتبويباتها.</p>
+ <p className="muted">اختر مادة من القائمة لعرض بطاقتها بتبويباتها.</p>
           ) : (
-            <>
-              <div className="section-title">
-                <h2>{arabicName(selected)}</h2>
-                <span className="badge">
+ <>
+ <div className="section-title">
+ <h2>{arabicName(selected)}</h2>
+ <span className="badge">
                   {selected.kind === 'service' ? 'خدمة' : selected.kind === 'composite' ? 'مركبة' : 'مخزنية'}
-                </span>
-              </div>
+ </span>
+ </div>
 
-              <Tabs items={CARD_TABS} value={tab} onChange={setTab} />
+ <Tabs items={CARD_TABS} value={tab} onChange={setTab} />
 
               {tab === 'general' && (
-                <>
-                  <DocHead>
-                    <DocField label="الرمز">
-                      <span dir="ltr">{selected.sku}</span>
-                    </DocField>
-                    <DocField label="الباركود">
-                      <span dir="ltr">{selected.barcode ?? '—'}</span>
-                    </DocField>
-                    <DocField label="الاسم">{arabicName(selected)}</DocField>
-                    <DocField label="الاسم الإنجليزي">{selected.nameEn ?? '—'}</DocField>
-                    <DocField label="المجموعة">
+ <>
+ <DocHead>
+ <DocField label="الرمز">
+ <span dir="ltr">{selected.sku}</span>
+ </DocField>
+ <DocField label="الباركود">
+ <span dir="ltr">{selected.barcode ?? '—'}</span>
+ </DocField>
+ <DocField label="الاسم">{arabicName(selected)}</DocField>
+ <DocField label="الاسم الإنجليزي">{selected.nameEn ?? '—'}</DocField>
+ <DocField label="المجموعة">
                       {arabicName(
                         categories.data?.find((row) => row.id === (selected.categoryId ?? selected.category_id)) ?? {},
                       )}
-                    </DocField>
-                    <DocField label="الوحدة الأساسية">
+ </DocField>
+ <DocField label="الوحدة الأساسية">
                       {arabicName(units.data?.find((row) => row.id === (selected.baseUnitId ?? selected.base_unit_id)) ?? {})}
-                    </DocField>
-                    <DocField label="سعر البيع">
-                      <span dir="ltr">{money(selected.salePrice ?? selected.sale_price)}</span>
-                    </DocField>
-                    <DocField label="سعر الشراء">
-                      <span dir="ltr">{money(selected.purchasePrice ?? selected.purchase_price)}</span>
-                    </DocField>
-                    <DocField label="حد الطلب">
-                      <span dir="ltr">{quantity(selected.minQty ?? selected.min_qty)}</span>
-                    </DocField>
-                    <DocField label="الحد الأعلى">
-                      <span dir="ltr">{quantity(selected.maxQty ?? selected.max_qty)}</span>
-                    </DocField>
-                    <DocField label="تتبع الدفعات">{selected.trackLot ?? selected.track_lot ? 'نعم' : 'لا'}</DocField>
-                    <DocField label="تتبع الأرقام التسلسلية">
+ </DocField>
+ <DocField label="سعر البيع">
+ <span dir="ltr">{money(selected.salePrice ?? selected.sale_price)}</span>
+ </DocField>
+ <DocField label="سعر الشراء">
+ <span dir="ltr">{money(selected.purchasePrice ?? selected.purchase_price)}</span>
+ </DocField>
+ <DocField label="حد الطلب">
+ <span dir="ltr">{quantity(selected.minQty ?? selected.min_qty)}</span>
+ </DocField>
+ <DocField label="الحد الأعلى">
+ <span dir="ltr">{quantity(selected.maxQty ?? selected.max_qty)}</span>
+ </DocField>
+ <DocField label="تتبع الدفعات">{selected.trackLot ?? selected.track_lot ? 'نعم' : 'لا'}</DocField>
+ <DocField label="تتبع الأرقام التسلسلية">
                       {selected.trackSerial ?? selected.track_serial ? 'نعم' : 'لا'}
-                    </DocField>
-                  </DocHead>
+ </DocField>
+ </DocHead>
 
                   {customValues.length > 0 && (
-                    <section className="card tight" style={{ marginTop: 16 }}>
-                      <div className="section-title"><h3>الحقول الإضافية</h3><span className="muted small">قيم typed خاصة بهذا الصنف</span></div>
-                      <div className="form-grid">
+ <section className="card tight" style={{ marginTop: 16 }}>
+ <div className="section-title"><h3>الحقول الإضافية</h3><span className="muted small">قيم typed خاصة بهذا الصنف</span></div>
+ <div className="form-grid">
                         {customValues.map((field) => (
-                          <label className="field" key={field.id}>
-                            <span>{field.label}{field.required ? ' *' : ''}</span>
+ <label className="field" key={field.id}>
+ <span>{field.label}{field.required ? ' *' : ''}</span>
                             {field.type === 'select' ? <select className="input" value={String(customDraft[field.key] ?? '')} onChange={(event) => setCustomDraft((current) => ({ ...current, [field.key]: event.target.value }))}><option value="">— اختر —</option>{field.options.map((option) => <option key={option} value={option}>{option}</option>)}</select> : field.type === 'boolean' ? <input type="checkbox" checked={Boolean(customDraft[field.key])} onChange={(event) => setCustomDraft((current) => ({ ...current, [field.key]: event.target.checked }))} /> : <input className="input" type={field.type === 'number' ? 'number' : field.type === 'date' ? 'date' : 'text'} value={String(customDraft[field.key] ?? '')} onChange={(event) => setCustomDraft((current) => ({ ...current, [field.key]: field.type === 'number' ? Number(event.target.value) : event.target.value }))} />}
-                          </label>
+ </label>
                         ))}
-                      </div>
+ </div>
                       {can('custom_fields.manage') ? <button className="btn primary no-print" type="button" disabled={customBusy} onClick={() => void saveCustomValues()}>{customBusy ? 'جارٍ الحفظ…' : 'حفظ الحقول الإضافية'}</button> : null}
-                    </section>
+ </section>
                   )}
 
-                  <Totals
+ <Totals
                     items={[
                       { label: 'الرصيد الحالي', value: quantity(stockQty) },
                       { label: 'قيمة الرصيد', value: money(stockValue) },
@@ -634,28 +634,28 @@ export default function ItemsPage() {
                     ]}
                   />
 
-                  <div className="toolbar no-print">
+ <div className="toolbar no-print">
                     {can('catalog.item.manage') && (
-                      <>
-                        <button className="btn" type="button" onClick={() => startEdit(selected)} disabled={busy}>
-                          تعديل البطاقة
-                        </button>
-                        <button className="btn danger" type="button" onClick={() => void remove(selected)} disabled={busy}>
-                          حذف
-                        </button>
-                      </>
+ <>
+ <button className="btn" type="button" onClick={() => startEdit(selected)} disabled={busy}>
+ تعديل البطاقة
+ </button>
+ <button className="btn danger" type="button" onClick={() => void remove(selected)} disabled={busy}>
+ حذف
+ </button>
+ </>
                     )}
-                    <button className="btn" type="button" onClick={() => window.print()}>
-                      طباعة
-                    </button>
-                  </div>
-                </>
+ <button className="btn" type="button" onClick={() => window.print()}>
+ طباعة
+ </button>
+ </div>
+ </>
               )}
 
               {tab === 'units' && (
-                <QueryView query={cardUnits} empty="لا وحدات لهذه المادة" emptyDetail="أضف وحداتها من شاشة وحدات الصنف.">
+ <QueryView query={cardUnits} empty="لا وحدات لهذه المادة" emptyDetail="أضف وحداتها من شاشة وحدات الصنف.">
                   {(unitRows) => (
-                    <DataTable
+ <DataTable
                       rows={unitRows}
                       rowKey={(row) => `${row.itemId}:${row.unitId}`}
                       footer={[<>{`المجموع (${unitRows.length})`}</>, '', '', '', '']}
@@ -666,19 +666,19 @@ export default function ItemsPage() {
                           header: 'معامل التحويل',
                           align: 'num',
                           cell: (row) => (
-                            <span dir="ltr">{`×${Number(row.ratio).toLocaleString('ar-EG')}`}</span>
+ <span dir="ltr">{`×${Number(row.ratio).toLocaleString('ar-EG')}`}</span>
                           ),
                         },
                         {
                           key: 'example',
                           header: 'مثال',
                           cell: (row) => (
-                            <span dir="ltr">
+ <span dir="ltr">
                               {`1 ${row.unitNameAr ?? row.unitCode ?? ''} = ${Number(row.ratio).toLocaleString('ar-EG')} ${
                                 arabicName(units.data?.find((unit) => unit.id === (selected.baseUnitId ?? selected.base_unit_id)) ?? {}) ||
                                 'وحدة أساسية'
                               }`}
-                            </span>
+ </span>
                           ),
                         },
                         { key: 'sale', header: 'سعر البيع', align: 'num', cell: (row) => money(row.salePrice) },
@@ -686,16 +686,16 @@ export default function ItemsPage() {
                       ]}
                     />
                   )}
-                </QueryView>
+ </QueryView>
               )}
 
               {tab === 'opening' && (
-                <>
-                  <p className="muted">
-                    بضاعة أول المدة هي رصيد الافتتاح الذي يُقيَّد في حساب بضاعة أول المدة عند الترحيل. الرصيد الحالي
-                    لهذه المادة مبيّن أدناه؛ سجّل الافتتاح بسند من نوع «بضاعة أول المدة».
-                  </p>
-                  <Totals
+ <>
+ <p className="muted">
+ بضاعة أول المدة هي رصيد الافتتاح الذي يُقيَّد في حساب بضاعة أول المدة عند الترحيل. الرصيد الحالي
+ لهذه المادة مبيّن أدناه؛ سجّل الافتتاح بسند من نوع «بضاعة أول المدة».
+ </p>
+ <Totals
                     items={[
                       { label: 'الرصيد الحالي', value: quantity(stockQty) },
                       { label: 'قيمة الرصيد', value: money(stockValue) },
@@ -705,25 +705,25 @@ export default function ItemsPage() {
                       },
                     ]}
                   />
-                  <div className="toolbar no-print">
-                    <a className="btn primary" href="/inventory/vouchers?kind=opening">
-                      سند بضاعة أول المدة
-                    </a>
-                    <a className="btn" href={`/inventory/item-card`}>
-                      بطاقة الصنف (الحركات)
-                    </a>
-                  </div>
-                </>
+ <div className="toolbar no-print">
+ <a className="btn primary" href="/inventory/vouchers?kind=opening">
+ سند بضاعة أول المدة
+ </a>
+ <a className="btn" href={`/inventory/item-card`}>
+ بطاقة الصنف (الحركات)
+ </a>
+ </div>
+ </>
               )}
 
               {tab === 'components' && (
-                <>
-                  <p className="muted">
-                    🔧 مكونات الصنف — ما يُصنع منه هذا الصنف، بالوحدة التي تُقاس بها كل كمية، والمستودع الذي
-                    يُصرف منه. أمر إنتاج بلا مكوّنات يُملأ تلقائياً من هذا الجدول، مضروباً في الكمية المنتجة.
-                  </p>
+ <>
+ <p className="muted">
+ 🔧مكونات الصنف — ما يُصنع منه هذا الصنف، بالوحدة التي تُقاس بها كل كمية، والمستودع الذي
+ يُصرف منه. أمر إنتاج بلا مكوّنات يُملأ تلقائياً من هذا الجدول، مضروباً في الكمية المنتجة.
+ </p>
 
-                  <QueryView
+ <QueryView
                     query={components}
                     empty="لا مكوّنات لهذا الصنف"
                     emptyDetail={
@@ -733,11 +733,11 @@ export default function ItemsPage() {
                     }
                   >
                     {() => (
-                      <DataTable
+ <DataTable
                         rows={componentRows}
                         rowKey={(row) => row.componentItemId}
                         footer={[
-                          <>المجموع ({componentRows.length})</>,
+ <>المجموع ({componentRows.length})</>,
                           '',
                           quantity(componentRows.reduce((sum, row) => sum + Number(row.qty), 0)),
                           '',
@@ -766,12 +766,12 @@ export default function ItemsPage() {
                             key: 'unit',
                             header: 'الوحدة',
                             cell: (row) => (
-                              <>
+ <>
                                 {row.unitNameAr ?? row.unitCode}
                                 {row.unitId !== row.baseUnitId && (
-                                  <span className="muted small"> (بوحدة تعبئة)</span>
+ <span className="muted small"> (بوحدة تعبئة)</span>
                                 )}
-                              </>
+ </>
                             ),
                           },
                           {
@@ -790,14 +790,14 @@ export default function ItemsPage() {
                                   key: 'actions',
                                   header: '',
                                   cell: (row: ItemComponent) => (
-                                    <button
+ <button
                                       className="btn sm danger"
                                       type="button"
                                       disabled={componentBusy}
                                       onClick={() => void dropComponent(row)}
                                     >
-                                      حذف
-                                    </button>
+ حذف
+ </button>
                                   ),
                                 },
                               ]
@@ -805,13 +805,13 @@ export default function ItemsPage() {
                         ]}
                       />
                     )}
-                  </QueryView>
+ </QueryView>
 
                   {manage && (
-                    <form className="form-grid" onSubmit={saveComponent}>
-                      <label className="field">
-                        <span>الصنف *</span>
-                        <select
+ <form className="form-grid" onSubmit={saveComponent}>
+ <label className="field">
+ <span>الصنف *</span>
+ <select
                           className="input"
                           value={componentDraft.componentItemId}
                           onChange={(event) =>
@@ -823,19 +823,19 @@ export default function ItemsPage() {
                           }
                           required
                         >
-                          <option value="">— اختر —</option>
+ <option value="">— اختر —</option>
                           {rows
                             .filter((row) => row.id !== selected?.id)
                             .map((row) => (
-                              <option key={row.id} value={row.id}>
+ <option key={row.id} value={row.id}>
                                 {`${row.sku} — ${arabicName(row)}`}
-                              </option>
+ </option>
                             ))}
-                        </select>
-                      </label>
-                      <label className="field">
-                        <span>الكمية *</span>
-                        <input
+ </select>
+ </label>
+ <label className="field">
+ <span>الكمية *</span>
+ <input
                           className="input"
                           inputMode="decimal"
                           dir="ltr"
@@ -843,67 +843,67 @@ export default function ItemsPage() {
                           onChange={(event) => setComponentDraft({ ...componentDraft, qty: event.target.value })}
                           required
                         />
-                      </label>
-                      <label className="field">
-                        <span>الوحدة</span>
-                        <select
+ </label>
+ <label className="field">
+ <span>الوحدة</span>
+ <select
                           className="input"
                           value={componentDraft.unitId}
                           onChange={(event) => setComponentDraft({ ...componentDraft, unitId: event.target.value })}
                         >
-                          <option value="">الوحدة الأساسية</option>
+ <option value="">الوحدة الأساسية</option>
                           {(componentUnits.data ?? []).map((row) => (
-                            <option key={row.unitId} value={row.unitId}>
+ <option key={row.unitId} value={row.unitId}>
                               {`${row.unitNameAr ?? row.unitCode} (×${Number(row.ratio).toLocaleString('ar-EG')})`}
-                            </option>
+ </option>
                           ))}
-                        </select>
-                      </label>
-                      <label className="field">
-                        <span>المستودع</span>
-                        <select
+ </select>
+ </label>
+ <label className="field">
+ <span>المستودع</span>
+ <select
                           className="input"
                           value={componentDraft.warehouseId}
                           onChange={(event) =>
                             setComponentDraft({ ...componentDraft, warehouseId: event.target.value })
                           }
                         >
-                          <option value="">— غير محدد —</option>
+ <option value="">— غير محدد —</option>
                           {(warehouseRows.data ?? []).map((row) => (
-                            <option key={row.id} value={row.id}>
+ <option key={row.id} value={row.id}>
                               {arabicName(row)}
-                            </option>
+ </option>
                           ))}
-                        </select>
-                      </label>
-                      <label className="field">
-                        <span>مادة مضافة</span>
-                        <select
+ </select>
+ </label>
+ <label className="field">
+ <span>مادة مضافة</span>
+ <select
                           className="input"
                           value={componentDraft.kind}
                           onChange={(event) => setComponentDraft({ ...componentDraft, kind: event.target.value })}
                         >
-                          <option value="component">لا</option>
-                          <option value="additive">نعم</option>
-                        </select>
-                      </label>
-                      <div className="row">
-                        <button
+ <option value="component">لا</option>
+ <option value="additive">نعم</option>
+ </select>
+ </label>
+ <div className="row">
+ <button
                           className="btn primary"
                           type="submit"
                           disabled={componentBusy || !componentDraft.componentItemId}
                         >
                           {componentBusy ? 'جارٍ الحفظ…' : 'حفظ المكوّن'}
-                        </button>
-                      </div>
-                    </form>
+ </button>
+ </div>
+ </form>
                   )}
-                </>
+ </>
               )}
-            </>
+ </>
           )}
-        </div>
-      </div>
-    </Screen>
+ </div>
+ </div>
+ </Screen>
   );
 }

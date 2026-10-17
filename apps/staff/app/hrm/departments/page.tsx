@@ -1,6 +1,10 @@
 'use client';
 
 import { useState } from 'react';
+import {
+  Pencil,
+  Trash2,
+} from 'lucide-react';
 
 import { Empty, ErrorBox, Forbidden, Loading, Screen } from '../../../components/screen';
 import { apiDelete, apiList, apiPatch, apiPost, ApiError } from '../../../lib/api';
@@ -9,7 +13,7 @@ import { useSession } from '../../../lib/session';
 import { useQuery } from '../../../lib/use-query';
 
 /**
- * 🏢 الإدارات والأقسام — `Form_WPF/frmManagement.xaml` («الإدارات») and
+ * الإدارات والأقسام — `Form_WPF/frmManagement.xaml` («الإدارات») and
  * `Form_WPF/frmDepartments.xaml` («إدخال بيانات الإدارات والأقسام»).
  *
  * The two windows are one parent/child pair: `Managements(id, name)` above
@@ -112,28 +116,28 @@ export default function DepartmentsPage() {
   };
 
   const branchField = (value: string, onChange: (next: string) => void) => (
-    <label className="field">
-      <span>الفرع</span>
-      <select className="input" value={value} onChange={(event) => onChange(event.target.value)}>
-        <option value="">كل الفروع</option>
+ <label className="field">
+ <span>الفرع</span>
+ <select className="input" value={value} onChange={(event) => onChange(event.target.value)}>
+ <option value="">كل الفروع</option>
         {branchOptions(branches.data ?? []).map((option) => (
-          <option key={option.id} value={option.id}>
+ <option key={option.id} value={option.id}>
             {option.label}
-          </option>
+ </option>
         ))}
-      </select>
-    </label>
+ </select>
+ </label>
   );
 
   return (
-    <Screen
+ <Screen
       title="الإدارات والأقسام"
       subtitle={`${managements.length} إدارة · ${sections.length} قسم`}
       crumbs={['الموظفين والرواتب', 'التعاريف']}
       actions={
-        <button className="btn" type="button" onClick={departments.reload} disabled={departments.status === 'loading'}>
-          🔄 تحديث
-        </button>
+ <button className="btn" type="button" onClick={departments.reload} disabled={departments.status === 'loading'}>
+ 🔄تحديث
+ </button>
       }
     >
       {message && <p className={`alert ${message.kind}`}>{message.text}</p>}
@@ -143,180 +147,186 @@ export default function DepartmentsPage() {
       {departments.status === 'error' && <ErrorBox message={departments.error} onRetry={departments.reload} />}
 
       {departments.status === 'success' && canManage && (
-        <section className="card">
-          <h2>الإدارات</h2>
-          <form className="form-grid" onSubmit={saveManagement}>
-            <label className="field">
-              <span>الرقم *</span>
-              <input className="input" dir="ltr" value={managementForm.code} onChange={(event) => setManagementForm({ ...managementForm, code: event.target.value })} required />
-            </label>
-            <label className="field">
-              <span>اسم الإدارة *</span>
-              <input className="input" value={managementForm.name} onChange={(event) => setManagementForm({ ...managementForm, name: event.target.value })} required />
-            </label>
+ <section className="card">
+ <h2>الإدارات</h2>
+ <form className="form-grid" onSubmit={saveManagement}>
+ <label className="field">
+ <span>الرقم *</span>
+ <input className="input" dir="ltr" value={managementForm.code} onChange={(event) => setManagementForm({ ...managementForm, code: event.target.value })} required />
+ </label>
+ <label className="field">
+ <span>اسم الإدارة *</span>
+ <input className="input" value={managementForm.name} onChange={(event) => setManagementForm({ ...managementForm, name: event.target.value })} required />
+ </label>
             {branchField(managementForm.branchId, (next) => setManagementForm({ ...managementForm, branchId: next }))}
-            <div className="toolbar">
-              <button className="btn primary" type="submit" disabled={busy}>
+ <div className="toolbar">
+ <button className="btn primary" type="submit" disabled={busy}>
                 {managementForm.id ? '✏️ تعديل' : '➕ إضافة إدارة جديدة'}
-              </button>
+ </button>
               {managementForm.id && (
-                <button className="btn" type="button" onClick={() => setManagementForm({ ...BLANK })}>
-                  🆕 جديد
-                </button>
+ <button className="btn" type="button" onClick={() => setManagementForm({ ...BLANK })}>
+ 🆕جديد
+ </button>
               )}
-            </div>
-          </form>
+ </div>
+ </form>
 
           {managements.length === 0 ? (
-            <Empty title="لا توجد إدارات" detail="الإدارة هي المستوى الأعلى الذي تُبنى عليه الأقسام." />
+ <Empty title="لا توجد إدارات" detail="الإدارة هي المستوى الأعلى الذي تُبنى عليه الأقسام." />
           ) : (
-            <div className="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>الرقم</th>
-                    <th>اسم الإدارة</th>
-                    <th>الأقسام</th>
-                    <th>الموظفون</th>
-                    <th />
-                  </tr>
-                </thead>
-                <tbody>
+ <div className="table-wrap">
+ <table>
+ <thead>
+ <tr>
+ <th>الرقم</th>
+ <th>اسم الإدارة</th>
+ <th>الأقسام</th>
+ <th>الموظفون</th>
+ <th />
+ </tr>
+ </thead>
+ <tbody>
                   {managements.map((row) => (
-                    <tr key={row.id}>
-                      <td dir="ltr">{row.code}</td>
-                      <td>{row.name}</td>
-                      <td dir="ltr">{row.sectionCount ?? 0}</td>
-                      <td dir="ltr">{row.employeeCount ?? 0}</td>
-                      <td>
-                        <button
+ <tr key={row.id}>
+ <td dir="ltr">{row.code}</td>
+ <td>{row.name}</td>
+ <td dir="ltr">{row.sectionCount ?? 0}</td>
+ <td dir="ltr">{row.employeeCount ?? 0}</td>
+ <td>
+ <button
                           className="btn small"
                           type="button"
                           onClick={() => setManagementForm({ id: row.id, code: row.code, name: row.name, branchId: row.branchId ?? '', parentId: '' })}
                         >
-                          ✏️
-                        </button>{' '}
-                        <button className="btn small danger" type="button" disabled={busy} onClick={() => void remove(row)}>
-                          🗑️
-                        </button>
-                      </td>
-                    </tr>
+                          <Pencil size={13} />
+
+
+ </button>{' '}
+ <button className="btn small danger" type="button" disabled={busy} onClick={() => void remove(row)}>
+                          <Trash2 size={13} />
+
+
+ </button>
+ </td>
+ </tr>
                   ))}
-                </tbody>
-              </table>
-            </div>
+ </tbody>
+ </table>
+ </div>
           )}
-        </section>
+ </section>
       )}
 
       {departments.status === 'success' && canManage && (
-        <section className="card">
-          <h2>الأقسام</h2>
-          <form className="form-grid" onSubmit={saveSection}>
-            <label className="field">
-              <span>الرقم *</span>
-              <input className="input" dir="ltr" value={sectionForm.code} onChange={(event) => setSectionForm({ ...sectionForm, code: event.target.value })} required />
-            </label>
-            <label className="field">
-              <span>اسم القسم *</span>
-              <input className="input" value={sectionForm.name} onChange={(event) => setSectionForm({ ...sectionForm, name: event.target.value })} required />
-            </label>
-            <label className="field">
-              <span>اسم الإدارة التابع لها *</span>
-              <select className="input" value={sectionForm.parentId} onChange={(event) => setSectionForm({ ...sectionForm, parentId: event.target.value })} required>
-                <option value="">اختر الإدارة...</option>
+ <section className="card">
+ <h2>الأقسام</h2>
+ <form className="form-grid" onSubmit={saveSection}>
+ <label className="field">
+ <span>الرقم *</span>
+ <input className="input" dir="ltr" value={sectionForm.code} onChange={(event) => setSectionForm({ ...sectionForm, code: event.target.value })} required />
+ </label>
+ <label className="field">
+ <span>اسم القسم *</span>
+ <input className="input" value={sectionForm.name} onChange={(event) => setSectionForm({ ...sectionForm, name: event.target.value })} required />
+ </label>
+ <label className="field">
+ <span>اسم الإدارة التابع لها *</span>
+ <select className="input" value={sectionForm.parentId} onChange={(event) => setSectionForm({ ...sectionForm, parentId: event.target.value })} required>
+ <option value="">اختر الإدارة...</option>
                 {managements.map((row) => (
-                  <option key={row.id} value={row.id}>
+ <option key={row.id} value={row.id}>
                     {row.name}
-                  </option>
+ </option>
                 ))}
-              </select>
-            </label>
+ </select>
+ </label>
             {branchField(sectionForm.branchId, (next) => setSectionForm({ ...sectionForm, branchId: next }))}
-            <div className="toolbar">
-              <button className="btn primary" type="submit" disabled={busy}>
+ <div className="toolbar">
+ <button className="btn primary" type="submit" disabled={busy}>
                 {sectionForm.id ? '✏️ تعديل' : '💾 حفظ'}
-              </button>
+ </button>
               {sectionForm.id && (
-                <button className="btn" type="button" onClick={() => setSectionForm({ ...BLANK })}>
-                  🆕 جديد
-                </button>
+ <button className="btn" type="button" onClick={() => setSectionForm({ ...BLANK })}>
+ 🆕جديد
+ </button>
               )}
-            </div>
-          </form>
+ </div>
+ </form>
 
           {sections.length === 0 ? (
-            <Empty title="لا توجد أقسام" detail="القسم يُضاف تحت إدارة قائمة." />
+ <Empty title="لا توجد أقسام" detail="القسم يُضاف تحت إدارة قائمة." />
           ) : (
-            <div className="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>الرقم</th>
-                    <th>اسم القسم</th>
-                    <th>اسم الإدارة التابع لها</th>
-                    <th>الموظفون</th>
-                    <th />
-                  </tr>
-                </thead>
-                <tbody>
+ <div className="table-wrap">
+ <table>
+ <thead>
+ <tr>
+ <th>الرقم</th>
+ <th>اسم القسم</th>
+ <th>اسم الإدارة التابع لها</th>
+ <th>الموظفون</th>
+ <th />
+ </tr>
+ </thead>
+ <tbody>
                   {sections.map((row) => (
-                    <tr key={row.id}>
-                      <td dir="ltr">{row.code}</td>
-                      <td>{row.name}</td>
-                      <td>{row.parentName ?? '—'}</td>
-                      <td dir="ltr">{row.employeeCount ?? 0}</td>
-                      <td>
-                        <button
+ <tr key={row.id}>
+ <td dir="ltr">{row.code}</td>
+ <td>{row.name}</td>
+ <td>{row.parentName ?? '—'}</td>
+ <td dir="ltr">{row.employeeCount ?? 0}</td>
+ <td>
+ <button
                           className="btn small"
                           type="button"
                           onClick={() => setSectionForm({ id: row.id, code: row.code, name: row.name, branchId: row.branchId ?? '', parentId: row.parentId ?? '' })}
                         >
-                          ✏️
-                        </button>{' '}
-                        <button className="btn small danger" type="button" disabled={busy} onClick={() => void remove(row)}>
-                          🗑️
-                        </button>
-                      </td>
-                    </tr>
+
+ </button>{' '}
+ <button className="btn small danger" type="button" disabled={busy} onClick={() => void remove(row)}>
+                          <Trash2 size={13} />
+
+
+ </button>
+ </td>
+ </tr>
                   ))}
-                </tbody>
-              </table>
-            </div>
+ </tbody>
+ </table>
+ </div>
           )}
-        </section>
+ </section>
       )}
 
       {departments.status === 'success' && !canManage && (
-        <section className="card">
+ <section className="card">
           {rows.length === 0 ? (
-            <Empty title="لا توجد إدارات أو أقسام" />
+ <Empty title="لا توجد إدارات أو أقسام" />
           ) : (
-            <div className="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>الرقم</th>
-                    <th>الاسم</th>
-                    <th>اسم الإدارة التابع لها</th>
-                    <th>الموظفون</th>
-                  </tr>
-                </thead>
-                <tbody>
+ <div className="table-wrap">
+ <table>
+ <thead>
+ <tr>
+ <th>الرقم</th>
+ <th>الاسم</th>
+ <th>اسم الإدارة التابع لها</th>
+ <th>الموظفون</th>
+ </tr>
+ </thead>
+ <tbody>
                   {rows.map((row) => (
-                    <tr key={row.id}>
-                      <td dir="ltr">{row.code}</td>
-                      <td>{row.name}</td>
-                      <td>{row.parentName ?? (row.kind === 'management' ? '— إدارة —' : '—')}</td>
-                      <td dir="ltr">{row.employeeCount ?? 0}</td>
-                    </tr>
+ <tr key={row.id}>
+ <td dir="ltr">{row.code}</td>
+ <td>{row.name}</td>
+ <td>{row.parentName ?? (row.kind === 'management' ? '— إدارة —' : '—')}</td>
+ <td dir="ltr">{row.employeeCount ?? 0}</td>
+ </tr>
                   ))}
-                </tbody>
-              </table>
-            </div>
+ </tbody>
+ </table>
+ </div>
           )}
-        </section>
+ </section>
       )}
-    </Screen>
+ </Screen>
   );
 }

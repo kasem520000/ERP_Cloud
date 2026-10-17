@@ -532,7 +532,7 @@ body {
   box-shadow: 0 0 0 3px rgb(52 211 153 / 0.12);
 }
 .side .dot.api {
-  background: var(--gold-300);
+  background: var(--color-gold-300);
 }
 .side .dot.planned {
   background: rgb(255 255 255 / 0.34);
@@ -800,5 +800,14 @@ tbody tr:hover {
 @media (prefers-reduced-motion: reduce) {
   .menu-pop {
     animation: none;
+  }
+}
+
+/* Scroll-triggered reveals must never hide content from print. */
+@media print {
+  .reveal,
+  [data-reveal] {
+    opacity: 1 !important;
+    transform: none !important;
   }
 }

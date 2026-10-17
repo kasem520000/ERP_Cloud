@@ -1,6 +1,14 @@
 import { Decimal } from 'decimal.js';
 
-export function moneyText(valueText: string, currency = 'SAR', locale = 'ar-SA'): string {
+/**
+ * One number script across the product.
+ *
+ * Half the accounting screens formatted money with `ar-SA`, which renders Arabic-Indic
+ * digits (٢٦٠٫٠٠), while every other screen (dashboard, invoices, tables, print) used Latin
+ * digits (`money()` / `en-US`). Two scripts in one ledger is a reading error waiting to
+ * happen. Latin digits stay the single convention; the surrounding text is still Arabic.
+ */
+export function moneyText(valueText: string, currency = 'SAR', locale = 'ar-SA-u-nu-latn'): string {
   const fixed = new Decimal(valueText || '0').toFixed(2);
   return new Intl.NumberFormat(locale, { style: 'currency', currency }).format(Number(fixed));
 }

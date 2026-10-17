@@ -31,31 +31,31 @@ export default function EcommerceOrdersPage() {
   }, [status]);
 
   return (
-    <Screen
+ <Screen
       title="🧾 طلبات المتجر الإلكتروني"
       subtitle="كل طلب من سلة أو زد أو Shopify يظهر هنا، مع حالة الاستيراد ورابط مسودة فاتورة المبيعات في ERP."
       crumbs={['المبيعات', 'طلبات المتجر الإلكتروني']}
       actions={
-        <button className="btn" type="button" disabled={busy} onClick={() => void reload()}>
-          🔄 تحديث
-        </button>
+ <button className="btn" type="button" disabled={busy} onClick={() => void reload()}>
+ 🔄تحديث
+ </button>
       }
     >
-      <Notice notice={notice} />
-      <div className="card">
-        <div className="toolbar">
-          <h3>📋 طلبات المتاجر</h3>
-          <label className="field inline">
-            <span>الحالة</span>
-            <select value={status} onChange={(event) => setStatus(event.target.value)}>
-              <option value="">الكل</option>
-              <option value="pending">قيد المعالجة</option>
-              <option value="imported">مستورد</option>
-              <option value="failed">فشل</option>
-            </select>
-          </label>
-        </div>
-        <DataTable
+ <Notice notice={notice} />
+ <div className="card">
+ <div className="toolbar">
+ <h3>📋 طلبات المتاجر</h3>
+ <label className="field inline">
+ <span>الحالة</span>
+ <select value={status} onChange={(event) => setStatus(event.target.value)}>
+ <option value="">الكل</option>
+ <option value="pending">قيد المعالجة</option>
+ <option value="imported">مستورد</option>
+ <option value="failed">فشل</option>
+ </select>
+ </label>
+ </div>
+ <DataTable
           columns={[
             {
               key: 'provider',
@@ -71,10 +71,10 @@ export default function EcommerceOrdersPage() {
               key: 'customer',
               header: 'العميل',
               cell: (row: EcommerceOrder) => (
-                <span>
+ <span>
                   {row.customerName ?? '—'}
-                  <small className="muted">{row.customerMobile ? ` · ${row.customerMobile}` : ''}</small>
-                </span>
+ <small className="muted">{row.customerMobile ? ` · ${row.customerMobile}` : ''}</small>
+ </span>
               ),
             },
             {
@@ -86,7 +86,7 @@ export default function EcommerceOrdersPage() {
               key: 'status',
               header: 'المزامنة',
               cell: (row: EcommerceOrder) => (
-                <span
+ <span
                   className={`chip ${row.status === 'imported' ? 'success' : row.status === 'failed' ? 'danger' : ''}`}
                 >
                   {row.status === 'imported'
@@ -94,7 +94,7 @@ export default function EcommerceOrdersPage() {
                     : row.status === 'failed'
                       ? 'فشل'
                       : 'قيد المعالجة'}
-                </span>
+ </span>
               ),
             },
             {
@@ -102,7 +102,7 @@ export default function EcommerceOrdersPage() {
               header: 'فاتورة ERP',
               cell: (row: EcommerceOrder) =>
                 row.erpInvoiceId ? (
-                  <a href={`/sales/invoices/${row.erpInvoiceId}`}>{row.erpInvoiceId.slice(0, 8)}…</a>
+ <a href={`/sales/invoices/${row.erpInvoiceId}`}>{row.erpInvoiceId.slice(0, 8)}…</a>
                 ) : (
                   '—'
                 ),
@@ -112,19 +112,19 @@ export default function EcommerceOrdersPage() {
           rowKey={(row) => row.id}
         />
         {orders.length === 0 ? <p className="muted">لا توجد طلبات متجر بعد.</p> : null}
-      </div>
+ </div>
       {orders.some((row) => row.error) ? (
-        <div className="card">
-          <h3>⚠️ أخطاء الاستيراد</h3>
+ <div className="card">
+ <h3>⚠️ أخطاء الاستيراد</h3>
           {orders
             .filter((row) => row.error)
             .map((row) => (
-              <p key={row.id} className="notice danger">
+ <p key={row.id} className="notice danger">
                 {row.remoteOrderNo ?? row.remoteId}: {row.error}
-              </p>
+ </p>
             ))}
-        </div>
+ </div>
       ) : null}
-    </Screen>
+ </Screen>
   );
 }

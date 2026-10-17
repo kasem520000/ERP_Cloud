@@ -40,7 +40,7 @@ type Shift = {
   live?: Takings;
   /** Frozen at closing; carries the same shape as `live` plus the count. */
   summary?: Takings & { countedCash: string; diff: string };
-  /** 🔗 قيد الإغلاق — `EntryOper.BindCloseShiftToEntry` (L402): الإغلاق يُربط بقيده. */
+  /** قيد الإغلاق — `EntryOper.BindCloseShiftToEntry` (L402): الإغلاق يُربط بقيده. */
   number?: string | null;
   journalEntryId?: string | null;
   postedAt?: string | null;
@@ -94,58 +94,58 @@ export default function ShiftsPage() {
   const openShift = current.data;
 
   return (
-    <Screen
+ <Screen
       title="إغلاق اليومية"
       subtitle="فتح وردية الكاشير، ثم جرد النقد وإغلاقها بمقارنة المتوقع بالمعدود — نقداً وشبكة وآجل."
       crumbs={['المبيعات', 'العمليات']}
     >
-      <div className="card toolbar">
-        <label className="field">
-          <span>الفرع</span>
-          <select
+ <div className="card toolbar">
+ <label className="field">
+ <span>الفرع</span>
+ <select
             className="input"
             value={effectiveBranch}
             onChange={(event) => setBranchId(event.target.value)}
           >
             {branchOptions(branchRows).map((option) => (
-              <option key={option.id} value={option.id}>
+ <option key={option.id} value={option.id}>
                 {option.label}
-              </option>
+ </option>
             ))}
-          </select>
-        </label>
-      </div>
+ </select>
+ </label>
+ </div>
 
-      <div className="card">
-        <h2>الوردية الحالية</h2>
-        <Notice notice={notice} />
+ <div className="card">
+ <h2>الوردية الحالية</h2>
+ <Notice notice={notice} />
         {openShift ? (
-          <>
-            <dl className="kv">
-              <dt>فُتحت</dt>
-              <dd>{dateTime(openShift.openedAt)}</dd>
-              <dt>مبيعات نقدية</dt>
-              <dd>{money(openShift.live?.sales.cash ?? '0')}</dd>
-              <dt>شبكة</dt>
-              <dd>{money(openShift.live?.sales.card ?? '0')}</dd>
-              <dt>تحويل بنكي</dt>
-              <dd>{money(openShift.live?.sales.bank ?? '0')}</dd>
-              <dt>مبيعات آجلة</dt>
-              <dd>{money(openShift.live?.sales.credit ?? '0')}</dd>
-              <dt>سندات قبض نقدية</dt>
-              <dd>{money(openShift.live?.vouchersCash ?? '0')}</dd>
-              <dt>النقد المتوقع الآن</dt>
-              <dd>
-                <strong>{money(openShift.live?.expectedCash ?? '0')}</strong>
-              </dd>
-            </dl>
+ <>
+ <dl className="kv">
+ <dt>فُتحت</dt>
+ <dd>{dateTime(openShift.openedAt)}</dd>
+ <dt>مبيعات نقدية</dt>
+ <dd>{money(openShift.live?.sales.cash ?? '0')}</dd>
+ <dt>شبكة</dt>
+ <dd>{money(openShift.live?.sales.card ?? '0')}</dd>
+ <dt>تحويل بنكي</dt>
+ <dd>{money(openShift.live?.sales.bank ?? '0')}</dd>
+ <dt>مبيعات آجلة</dt>
+ <dd>{money(openShift.live?.sales.credit ?? '0')}</dd>
+ <dt>سندات قبض نقدية</dt>
+ <dd>{money(openShift.live?.vouchersCash ?? '0')}</dd>
+ <dt>النقد المتوقع الآن</dt>
+ <dd>
+ <strong>{money(openShift.live?.expectedCash ?? '0')}</strong>
+ </dd>
+ </dl>
 
-            <h3>جرد النقد</h3>
-            <div className="form-grid">
+ <h3>جرد النقد</h3>
+ <div className="form-grid">
               {DENOMINATIONS.map((denomination) => (
-                <label className="field" key={denomination}>
-                  <span>فئة {denomination}</span>
-                  <input
+ <label className="field" key={denomination}>
+ <span>فئة {denomination}</span>
+ <input
                     className="input"
                     dir="ltr"
                     inputMode="numeric"
@@ -154,18 +154,18 @@ export default function ShiftsPage() {
                       setCounts((data) => ({ ...data, [denomination]: event.target.value }))
                     }
                   />
-                </label>
+ </label>
               ))}
-            </div>
-            <dl className="kv">
-              <dt>إجمالي المعدود</dt>
-              <dd>
-                <strong>{money(countedValue)}</strong>
-              </dd>
-            </dl>
+ </div>
+ <dl className="kv">
+ <dt>إجمالي المعدود</dt>
+ <dd>
+ <strong>{money(countedValue)}</strong>
+ </dd>
+ </dl>
 
             {can('treasury.shift.close') && (
-              <button
+ <button
                 className="btn primary"
                 type="button"
                 disabled={busy}
@@ -184,15 +184,15 @@ export default function ShiftsPage() {
                   )
                 }
               >
-                إغلاق الوردية
-              </button>
+ إغلاق الوردية
+ </button>
             )}
-          </>
+ </>
         ) : (
-          <>
-            <p className="muted">لا توجد وردية مفتوحة لهذا الفرع.</p>
+ <>
+ <p className="muted">لا توجد وردية مفتوحة لهذا الفرع.</p>
             {can('treasury.shift.close') && (
-              <button
+ <button
                 className="btn primary"
                 type="button"
                 disabled={busy || !effectiveBranch}
@@ -200,16 +200,16 @@ export default function ShiftsPage() {
                   run(() => apiPost('/shift-closes/open', { branchId: effectiveBranch }), 'تم فتح الوردية.')
                 }
               >
-                فتح وردية
-              </button>
+ فتح وردية
+ </button>
             )}
-          </>
+ </>
         )}
-      </div>
+ </div>
 
-      <QueryView query={shifts} empty="لا توجد إغلاقات" emptyDetail="ستظهر الورديات المغلقة هنا.">
+ <QueryView query={shifts} empty="لا توجد إغلاقات" emptyDetail="ستظهر الورديات المغلقة هنا.">
         {(rows) => (
-          <DataTable
+ <DataTable
             rows={rows}
             rowKey={(row) => row.id}
             columns={[
@@ -250,7 +250,7 @@ export default function ShiftsPage() {
                 key: 'entry',
                 header: 'قيد الإغلاق',
                 /**
-                 * 🔗 قيد الإغلاق — `EntryOper.BindCloseShiftToEntry` (س402): الديسكتوب
+                 * قيد الإغلاق — `EntryOper.BindCloseShiftToEntry` (س402): الديسكتوب
                  * يشترط أن يكون الإغلاق مربوطاً بقيده («قيد الإغلاق غير مربوط بالإغلاق»،
                  * `frmCloseShift.xaml.cs` س1822) ويكتب فيه فروق اليومية. والسحابة تُرحّل
                  * قيد الفرق عند سماح المعدود… فإن طابق الصندوق رفض المحرّك بـ`SHIFT_BALANCED`
@@ -258,9 +258,9 @@ export default function ShiftsPage() {
                  */
                 cell: (row) =>
                   row.journalEntryId ? (
-                    <span className="badge posted">مربوط</span>
+ <span className="badge posted">مربوط</span>
                   ) : row.status === 'closed' ? (
-                    <button
+ <button
                       className="btn sm"
                       type="button"
                       disabled={busy}
@@ -272,8 +272,8 @@ export default function ShiftsPage() {
                         )
                       }
                     >
-                      🔗 ربط
-                    </button>
+ 🔗ربط
+ </button>
                   ) : (
                     '—'
                   ),
@@ -282,15 +282,15 @@ export default function ShiftsPage() {
                 key: 'print',
                 header: '',
                 cell: (row) => (
-                  <Link className="btn sm" href={`/print/shift/${row.id}`}>
-                    طباعة
-                  </Link>
+ <Link className="btn sm" href={`/print/shift/${row.id}`}>
+ طباعة
+ </Link>
                 ),
               },
             ]}
           />
         )}
-      </QueryView>
-    </Screen>
+ </QueryView>
+ </Screen>
   );
 }

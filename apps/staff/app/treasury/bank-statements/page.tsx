@@ -101,32 +101,32 @@ export default function BankStatementsPage() {
   }
 
   return (
-    <Screen
+ <Screen
       title="📥 كشوف الحساب البنكي"
       subtitle="رفع CSV، مراجعة الحركات ثم تشغيل المطابقة التلقائية. لا يُنشئ الاستيراد قيداً محاسبياً من تلقاء نفسه."
       crumbs={['الخزينة', 'التغذية البنكية']}
       actions={<Link className="btn sm" href="/treasury/bank-reconciliation">فتح شاشة التسوية</Link>}
     >
-      <Notice notice={notice} />
+ <Notice notice={notice} />
       {manage ? (
-        <form className="card grid gap-3 mb-4" onSubmit={importStatement}>
-          <div>
-            <h2 className="m-0 text-[16px] font-bold text-ink">معالج استيراد كشف الحساب</h2>
-            <p className="m-0 mt-1 text-[12px] text-muted">الخطوة 1 رفع الملف · الخطوة 2 تأكيد الحساب · الخطوة 3 مراجعة الحركات.</p>
-          </div>
-          <FilterBar>
-            <label className="field"><span>الحساب البنكي</span><select required value={bankAccountId} onChange={(event) => setBankAccountId(event.target.value)}><option value="">اختر الحساب</option>{(accounts.data ?? []).map((account) => <option key={account.id} value={account.id}>{account.bankName} — {account.accountNo ?? account.iban ?? account.id.slice(0, 8)}</option>)}</select></label>
-            <label className="field"><span>ملف CSV</span><input type="file" accept=".csv,text/csv,text/plain" onChange={chooseFile} /></label>
-            <label className="field"><span>رصيد بداية الكشف، اختياري</span><input dir="ltr" inputMode="decimal" value={openingBalance} onChange={(event) => setOpeningBalance(event.target.value)} placeholder="0.00" /></label>
-          </FilterBar>
-          <label className="field"><span>المحتوى — للمعاينة أو اللصق اليدوي</span><textarea dir="ltr" rows={5} value={csv} onChange={(event) => setCsv(event.target.value)} placeholder="Date,Description,Amount,Balance" /></label>
-          <div className="flex items-center justify-between gap-3"><span className="text-[12px] text-muted">{csv ? `${csv.split(/\r?\n/).filter(Boolean).length - 1} سطر تقريباً` : 'لم يُرفع ملف بعد'}</span><button className="btn primary" disabled={busy} type="submit">{busy ? 'جارٍ الاستيراد…' : 'رفع ومراجعة الكشف'}</button></div>
-        </form>
+ <form className="card grid gap-3 mb-4" onSubmit={importStatement}>
+ <div>
+ <h2 className="m-0 text-[16px] font-bold text-ink">معالج استيراد كشف الحساب</h2>
+ <p className="m-0 mt-1 text-[12px] text-muted">الخطوة 1 رفع الملف · الخطوة 2 تأكيد الحساب · الخطوة 3 مراجعة الحركات.</p>
+ </div>
+ <FilterBar>
+ <label className="field"><span>الحساب البنكي</span><select required value={bankAccountId} onChange={(event) => setBankAccountId(event.target.value)}><option value="">اختر الحساب</option>{(accounts.data ?? []).map((account) => <option key={account.id} value={account.id}>{account.bankName} — {account.accountNo ?? account.iban ?? account.id.slice(0, 8)}</option>)}</select></label>
+ <label className="field"><span>ملف CSV</span><input type="file" accept=".csv,text/csv,text/plain" onChange={chooseFile} /></label>
+ <label className="field"><span>رصيد بداية الكشف، اختياري</span><input dir="ltr" inputMode="decimal" value={openingBalance} onChange={(event) => setOpeningBalance(event.target.value)} placeholder="0.00" /></label>
+ </FilterBar>
+ <label className="field"><span>المحتوى — للمعاينة أو اللصق اليدوي</span><textarea dir="ltr" rows={5} value={csv} onChange={(event) => setCsv(event.target.value)} placeholder="Date,Description,Amount,Balance" /></label>
+ <div className="flex items-center justify-between gap-3"><span className="text-[12px] text-muted">{csv ? `${csv.split(/\r?\n/).filter(Boolean).length - 1} سطر تقريباً` : 'لم يُرفع ملف بعد'}</span><button className="btn primary" disabled={busy} type="submit">{busy ? 'جارٍ الاستيراد…' : 'رفع ومراجعة الكشف'}</button></div>
+ </form>
       ) : null}
 
-      <QueryView query={statements} empty="لا توجد كشوف مستوردة" emptyDetail="ارفع CSV من المعالج أعلاه لتظهر حركات البنك هنا.">
+ <QueryView query={statements} empty="لا توجد كشوف مستوردة" emptyDetail="ارفع CSV من المعالج أعلاه لتظهر حركات البنك هنا.">
         {(rows) => (
-          <DataTable
+ <DataTable
             rows={rows}
             rowKey={(row) => row.id}
             columns={[
@@ -139,7 +139,7 @@ export default function BankStatementsPage() {
             ]}
           />
         )}
-      </QueryView>
-    </Screen>
+ </QueryView>
+ </Screen>
   );
 }

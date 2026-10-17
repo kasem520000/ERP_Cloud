@@ -38,7 +38,8 @@ function Payments() {
         ) : rows.length === 0 ? (
           <p className="muted">لم تُسجَّل أي سندات على حسابك بعد.</p>
         ) : (
-          <table>
+          <div className="table-wrap">
+            <table>
             <thead>
               <tr>
                 <th>الرقم</th>
@@ -63,7 +64,8 @@ function Payments() {
                 </tr>
               ))}
             </tbody>
-          </table>
+            </table>
+          </div>
         )}
       </section>
     </>

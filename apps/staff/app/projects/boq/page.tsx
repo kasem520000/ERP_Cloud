@@ -1,6 +1,10 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import {
+  Pencil,
+  Trash2,
+} from 'lucide-react';
 
 import { DataTable, Notice, QueryView } from '../../../components/data-view';
 import { Screen } from '../../../components/screen';
@@ -10,7 +14,7 @@ import { STAGE_REFUSALS, boqLineValue, boqSum, missingBoqField } from '../../../
 import { useQuery } from '../../../lib/use-query';
 
 /**
- * 📋 بطاقة بند — `Form_WPF/frmTermsPM.xaml` (‏`Home.xaml:580` ⇒ `Home.xaml.cs:3731`).
+ * بطاقة بند — `Form_WPF/frmTermsPM.xaml` (‏`Home.xaml:580` ⇒ `Home.xaml.cs:3731`).
  * العنوان في النافذة «بنـــد»، وشجرة البنود في يمينها (`PM_Terms` بحقل `ParentCode`)،
  * وحقولها: «📑 نوع البند» (رئيسي/فرعي) · «🔢 الرقم» · «📝 الاسم» · الكمية والسعر والمدة ·
  * «معفي من الضريبة»، وأزرارها `➕` · `✏️` · `🗑️ حذف` · `💾 حفظ`.
@@ -137,17 +141,17 @@ export default function BoqPage() {
   };
 
   return (
-    <Screen
+ <Screen
       title="بطاقة بند"
       subtitle="بنود جدول الكميات للمشروع: الرقم والاسم والكمية وسعر البيع والمدة، ومنها تُبنى قيم المستخلصات. والبند الفرعي يُنسَب إلى بنده الرئيسي."
       crumbs={['إدارة المشاريع', 'التعريفات']}
     >
-      <div className="card">
-        <h3>المشروع</h3>
-        <div className="toolbar">
-          <label className="field wide">
-            <span>المشروع</span>
-            <select
+ <div className="card">
+ <h3>المشروع</h3>
+ <div className="toolbar">
+ <label className="field wide">
+ <span>المشروع</span>
+ <select
               className="input"
               value={projectId}
               onChange={(event) => {
@@ -157,133 +161,133 @@ export default function BoqPage() {
                 setNotice(undefined);
               }}
             >
-              <option value="">— اختر مشروعاً —</option>
+ <option value="">— اختر مشروعاً —</option>
               {(projects.data ?? []).map((row) => (
-                <option key={row.id} value={row.id}>
+ <option key={row.id} value={row.id}>
                   {`${row.code} — ${row.name}`}
-                </option>
+ </option>
               ))}
-            </select>
-          </label>
-        </div>
-      </div>
+ </select>
+ </label>
+ </div>
+ </div>
 
       {notice && <Notice notice={notice} />}
       {!projectId && <Notice notice={{ kind: 'info', text: 'اختر مشروعاً لعرض بنوده.' }} />}
 
       {project && (
-        <QueryView query={detail} empty="لا توجد بيانات">
+ <QueryView query={detail} empty="لا توجد بيانات">
           {() => (
-            <>
-              <div className="card">
-                <h3>{editingId ? `✏️ تعديل البند` : '➕ بند جديد'}</h3>
-                <div className="form-grid">
-                  <label className="field">
-                    <span>🔢 الرقم</span>
-                    <input
+ <>
+ <div className="card">
+ <h3>{editingId ? `✏️ تعديل البند` : '➕ بند جديد'}</h3>
+ <div className="form-grid">
+ <label className="field">
+ <span>🔢 الرقم</span>
+ <input
                       className="input ltr"
                       dir="ltr"
                       value={draft.code}
                       onChange={(event) => setDraft({ ...draft, code: event.target.value })}
                     />
-                  </label>
-                  <label className="field wide">
-                    <span>📝 الاسم</span>
-                    <input className="input" value={draft.description} onChange={(event) => setDraft({ ...draft, description: event.target.value })} />
-                  </label>
-                  <label className="field">
-                    <span>الكمية</span>
-                    <input
+ </label>
+ <label className="field wide">
+ <span>📝 الاسم</span>
+ <input className="input" value={draft.description} onChange={(event) => setDraft({ ...draft, description: event.target.value })} />
+ </label>
+ <label className="field">
+ <span>الكمية</span>
+ <input
                       className="input ltr"
                       dir="ltr"
                       value={draft.qty}
                       onChange={(event) => setDraft({ ...draft, qty: event.target.value })}
                     />
-                  </label>
-                  <label className="field">
-                    <span>سعر البيع</span>
-                    <input
+ </label>
+ <label className="field">
+ <span>سعر البيع</span>
+ <input
                       className="input ltr"
                       dir="ltr"
                       value={draft.unitValue}
                       onChange={(event) => setDraft({ ...draft, unitValue: event.target.value })}
                     />
-                  </label>
-                  <label className="field">
-                    <span>التكلفة التقديرية</span>
-                    <input
+ </label>
+ <label className="field">
+ <span>التكلفة التقديرية</span>
+ <input
                       className="input ltr"
                       dir="ltr"
                       value={draft.estimatedCost}
                       onChange={(event) => setDraft({ ...draft, estimatedCost: event.target.value })}
                     />
-                  </label>
-                  <label className="field">
-                    <span>مدة التنفيذ</span>
-                    <input
+ </label>
+ <label className="field">
+ <span>مدة التنفيذ</span>
+ <input
                       className="input"
                       value={draft.executionPeriod}
                       onChange={(event) => setDraft({ ...draft, executionPeriod: event.target.value })}
                     />
-                  </label>
-                  <div className="field">
-                    <span>قيمة البند</span>
-                    <strong className="ltr" dir="ltr">
+ </label>
+ <div className="field">
+ <span>قيمة البند</span>
+ <strong className="ltr" dir="ltr">
                       {money(boqLineValue(draft.qty, draft.unitValue))}
-                    </strong>
-                  </div>
-                </div>
-                <div className="toolbar">
-                  <button className="btn primary" type="button" onClick={() => void save()} disabled={busy}>
+ </strong>
+ </div>
+ </div>
+ <div className="toolbar">
+ <button className="btn primary" type="button" onClick={() => void save()} disabled={busy}>
                     💾 حفظ
-                  </button>
-                  <button className="btn" type="button" onClick={resetDraft} disabled={busy}>
+ </button>
+ <button className="btn" type="button" onClick={resetDraft} disabled={busy}>
                     {editingId ? '✖ إلغاء التعديل' : '✖ تفريغ'}
-                  </button>
+ </button>
                   {!editingId && (
-                    <button className="btn" type="button" onClick={() => setDraft({ ...draft, code: suggestedCode })} disabled={busy}>
+ <button className="btn" type="button" onClick={() => setDraft({ ...draft, code: suggestedCode })} disabled={busy}>
                       {`اقترح الرقم ${suggestedCode}`}
-                    </button>
+ </button>
                   )}
-                </div>
-              </div>
+ </div>
+ </div>
 
-              <div className="toolbar">
-                <button className="btn" type="button" onClick={() => focus(0)} disabled={terms.length === 0}>
+ <div className="toolbar">
+ <button className="btn" type="button" onClick={() => focus(0)} disabled={terms.length === 0}>
                   ⏮
-                </button>
-                <button className="btn" type="button" onClick={() => focus(terms.findIndex((row) => row.id === selectedId) - 1)} disabled={!selected || terms[0]?.id === selectedId}>
+ </button>
+ <button className="btn" type="button" onClick={() => focus(terms.findIndex((row) => row.id === selectedId) - 1)} disabled={!selected || terms[0]?.id === selectedId}>
                   ◀
-                </button>
-                <button className="btn" type="button" onClick={() => focus(terms.findIndex((row) => row.id === selectedId) + 1)} disabled={!selected || terms[terms.length - 1]?.id === selectedId}>
+ </button>
+ <button className="btn" type="button" onClick={() => focus(terms.findIndex((row) => row.id === selectedId) + 1)} disabled={!selected || terms[terms.length - 1]?.id === selectedId}>
                   ▶
-                </button>
-                <button className="btn" type="button" onClick={() => focus(terms.length - 1)} disabled={terms.length === 0}>
+ </button>
+ <button className="btn" type="button" onClick={() => focus(terms.length - 1)} disabled={terms.length === 0}>
                   ⏭
-                </button>
-                <button className="btn" type="button" onClick={() => window.print()} disabled={terms.length === 0}>
+ </button>
+ <button className="btn" type="button" onClick={() => window.print()} disabled={terms.length === 0}>
                   🖨️ طباعة
-                </button>
-                <button className="btn danger" type="button" onClick={() => void remove(selected as BoqTerm)} disabled={busy || !selected}>
+ </button>
+ <button className="btn danger" type="button" onClick={() => void remove(selected as BoqTerm)} disabled={busy || !selected}>
                   🗑️ حذف
-                </button>
+ </button>
                 {editingId && selected && (
-                  <button className="btn" type="button" onClick={() => startEdit(selected)} disabled={busy}>
+ <button className="btn" type="button" onClick={() => startEdit(selected)} disabled={busy}>
                     ✏️ تعديل البند المحدَّد
-                  </button>
+ </button>
                 )}
-              </div>
+ </div>
 
-              <div className="card">
-                <div className="chips">
-                  <span className="chip">{`${project.code} — ${project.name}`}</span>
-                  <span className="chip">{`عدد البنود: ${terms.length}`}</span>
-                  <span className="chip">{`إجمالي البنود: ${money(boqValue)}`}</span>
-                  <span className="chip">{`المفوتر منها: ${money(boqSum(terms.map((term) => ({ qty: '1', unitValue: term.previouslyBilled }))))}`}</span>
-                </div>
+ <div className="card">
+ <div className="chips">
+ <span className="chip">{`${project.code} — ${project.name}`}</span>
+ <span className="chip">{`عدد البنود: ${terms.length}`}</span>
+ <span className="chip">{`إجمالي البنود: ${money(boqValue)}`}</span>
+ <span className="chip">{`المفوتر منها: ${money(boqSum(terms.map((term) => ({ qty: '1', unitValue: term.previouslyBilled }))))}`}</span>
+ </div>
                 {terms.length === 0 && <Notice notice={{ kind: 'info', text: 'لا توجد بنود لهذا المشروع بعد — أضف البند الأول من الأعلى.' }} />}
 
-                <DataTable<BoqTerm>
+ <DataTable<BoqTerm>
                   rows={terms}
                   rowKey={(row) => row.id}
                   onRowClick={(row) => setSelectedId(row.id)}
@@ -301,14 +305,14 @@ export default function BoqPage() {
                       key: '__actions',
                       header: '',
                       cell: (row) => (
-                        <span className="row">
-                          <button className="btn sm" type="button" onClick={() => startEdit(row)} disabled={busy}>
-                            ✏️
-                          </button>
-                          <button className="btn sm danger" type="button" onClick={() => void remove(row)} disabled={busy}>
-                            🗑️
-                          </button>
-                        </span>
+ <span className="row">
+ <button className="btn sm" type="button" onClick={() => startEdit(row)} disabled={busy} aria-label="تعديل">
+                        <Pencil size={13} />
+                      </button>
+ <button className="btn sm danger" type="button" onClick={() => void remove(row)} disabled={busy} aria-label="حذف">
+                        <Trash2 size={13} />
+                      </button>
+ </span>
                       ),
                     },
                   ]}
@@ -324,16 +328,16 @@ export default function BoqPage() {
                     '',
                   ]}
                 />
-              </div>
+ </div>
 
-              <p className="muted">
+ <p className="muted">
                 «المفوتر سابقاً» يُكتب من المستخلصات المرحَّلة، ولا يُحرَّر من هذه الشاشة — كما في النافذة: البند يُعرَّف هنا ويُستهلك في المستخلص.
-                و{STAGE_REFUSALS.boqCode} و{STAGE_REFUSALS.boqName} رفضٌ من الشاشة قبل الطلب.
-              </p>
-            </>
+ و{STAGE_REFUSALS.boqCode} و{STAGE_REFUSALS.boqName} رفضٌ من الشاشة قبل الطلب.
+ </p>
+ </>
           )}
-        </QueryView>
+ </QueryView>
       )}
-    </Screen>
+ </Screen>
   );
 }

@@ -270,7 +270,7 @@ export default function JobsPage() {
                   header: 'آخر خطأ',
                   cell: (row) =>
                     row.lastError ? (
-                      <span className="block max-w-[260px] truncate font-mono text-[11px] text-danger" dir="ltr" title={row.lastError}>
+                      <span className="block max-w-[260px] truncate font-mono text-xs text-danger" dir="ltr" title={row.lastError}>
                         {row.lastError}
                       </span>
                     ) : (

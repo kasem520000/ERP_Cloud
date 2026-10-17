@@ -10,11 +10,11 @@ import { useSession } from '../../../lib/session';
 import { useQuery } from '../../../lib/use-query';
 
 /**
- * ⛵ الحجوزات — `Form_WPF/frmBookingM.xaml` («الحجوزات»).
+ * الحجوزات — `Form_WPF/frmBookingM.xaml` («الحجوزات»).
  *
- * «📋 بيانات الحجوزات» is the card: 🔢 الرقم · 📅 التاريخ · 📋 الفئة · 🔖 حالة الحجز
- * («مؤكد»/«غير مؤكد») · 🚢 نوع الحجز («حجز عادي»/«بحر مفتوح») · 📅 تاريخ الحجز و🕐 وقته ·
- * 👤 العميل · ⚓ المركب · 💰 القيمة · ⏱️ المدة ساعة/دقيقة · 🎁 الإضافات (الكمية · السعر ·
+ * « بيانات الحجوزات» is the card: الرقم · التاريخ · الفئة · حالة الحجز
+ * («مؤكد»/«غير مؤكد») · نوع الحجز («حجز عادي»/«بحر مفتوح») · تاريخ الحجز و وقته ·
+ * العميل · المركب · القيمة · ⏱ المدة ساعة/دقيقة · الإضافات (الكمية · السعر ·
  * الإجمالي) — ثم مجاميع `CalcuAll`: «إجمالي الإضافات» · «الإجمالي» · «ضريبة 15%» ·
  * «الصافي». «🔍 البحث» is the second tab: رقم الحجز · اسم العميل · رقم الجوال · من
  * تاريخ/إلى تاريخ، و«📋 نتائج البحث» تحته.
@@ -24,14 +24,14 @@ import { useQuery } from '../../../lib/use-query';
  * «📝 ملاحظات» مكتوبة في الشاشة عند الديسكتوب ولا تُحفظ (`txtNotes` تُمحى ولا تُقرأ)،
  * فلم تُنقل. و«🖨️ طباعة» مؤجَّلة مع ملفّات `Reports/*.repx`.
  *
- * 🎁 الإضافات تُقرأ من تعريفاتها (`Additions` — `Form_WPF/frmAdditions.xaml`): اختيارٌ
+ * الإضافات تُقرأ من تعريفاتها (`Additions` — `Form_WPF/frmAdditions.xaml`): اختيارٌ
  * منها يكتب «السعر» من `SalePrice` كما يفعل `cmbAdditions_SelectionChanged`، و«➕» بجوارها
  * يفتح شاشة «📋 إضافات». و«— بلا تعريف —» لصفٍّ يُكتب وصفه باليد، وهو تسميةٌ مخترَعة:
  * النافذة عند الديسكتوب لا تقبل إلا ما في القائمة.
  */
 type Addition = { id: string; additionId: string | null; description: string; quantity: string; unitPrice: string; amount: string };
 type Draft = { id?: string; additionId?: string; description: string; quantity: string; unitPrice: string };
-/** ➕ الإضافة — تعريفها من `Additions` (`Form_WPF/frmAdditions.xaml`): 🔢 الرقم · 📝 الاسم · 💰 القيمة. */
+/** الإضافة — تعريفها من `Additions` (`Form_WPF/frmAdditions.xaml`): الرقم · الاسم · القيمة. */
 type AdditionDefinition = { id: string; number: number; name: string; salePrice: string; usageCount: number; version: number };
 
 type Booking = {
@@ -264,242 +264,242 @@ function MarinaBookings() {
   };
 
   return (
-    <Screen
+ <Screen
       title="⛵ الحجوزات"
       subtitle="حجز مركب لعميل: قيمته ومدته وإضافاته، ثم مجاميعه — «إجمالي الإضافات · الإجمالي · ضريبة 15% · الصافي» كما يحسبها الديسكتوب، ومنه فاتورة التأجير."
       crumbs={['إدارة المراسي', 'الحجوزات']}
       actions={
-        <div className="row" style={{ gap: 6 }}>
-          <Link className="btn" href="/marina/violations">
-            ⚠️ المخالفات
-          </Link>
+ <div className="row" style={{ gap: 6 }}>
+ <Link className="btn" href="/marina/violations">
+ ⚠️المخالفات
+ </Link>
           {/* «➕» بجوار «🎁 الإضافات» — `btnAddObj_Click` يفتح `frmAdditions`. */}
-          <Link className="btn" href="/marina/additions">
-            📋 إضافات
-          </Link>
+ <Link className="btn" href="/marina/additions">
+ 📋إضافات
+ </Link>
           {canManage && (
-            <button className="btn primary" type="button" onClick={openNew}>
-              ➕ حجز جديد
-            </button>
+ <button className="btn primary" type="button" onClick={openNew}>
+ ➕حجز جديد
+ </button>
           )}
-        </div>
+ </div>
       }
     >
       {error && <p className="alert danger">{error}</p>}
       {notice && <p className="alert ok">{notice}</p>}
 
       {/* «🔍 البحث» — رقم الحجز · اسم العميل أو جواله · من تاريخ وإلى تاريخ. */}
-      <div className="card tight no-print">
-        <div className="row" style={{ flexWrap: 'wrap', alignItems: 'flex-end' }}>
-          <label className="field" style={{ margin: 0, minWidth: 130 }}>
-            <span>رقم الحجز</span>
-            <input className="input" value={filters.number} placeholder="BK-000001" onChange={(event) => setFilters({ ...filters, number: event.target.value })} />
-          </label>
-          <label className="field" style={{ margin: 0, minWidth: 200 }}>
-            <span>اسم العميل / رقم الجوال</span>
-            <input className="input" value={filters.customer} placeholder="🔍 الجوال أو الاسم..." onChange={(event) => setFilters({ ...filters, customer: event.target.value })} />
-          </label>
-          <label className="field" style={{ margin: 0, minWidth: 150 }}>
-            <span>من تاريخ</span>
-            <input className="input" type="date" value={filters.from} onChange={(event) => setFilters({ ...filters, from: event.target.value })} />
-          </label>
-          <label className="field" style={{ margin: 0, minWidth: 150 }}>
-            <span>إلى تاريخ</span>
-            <input className="input" type="date" value={filters.to} onChange={(event) => setFilters({ ...filters, to: event.target.value })} />
-          </label>
-          <button className="btn primary" type="button" onClick={() => setApplied(filters)}>
-            🔍 بحث
-          </button>
+ <div className="card tight no-print">
+ <div className="row" style={{ flexWrap: 'wrap', alignItems: 'flex-end' }}>
+ <label className="field" style={{ margin: 0, minWidth: 130 }}>
+ <span>رقم الحجز</span>
+ <input className="input" value={filters.number} placeholder="BK-000001" onChange={(event) => setFilters({ ...filters, number: event.target.value })} />
+ </label>
+ <label className="field" style={{ margin: 0, minWidth: 200 }}>
+ <span>اسم العميل / رقم الجوال</span>
+ <input className="input" value={filters.customer} placeholder="🔍 الجوال أو الاسم..." onChange={(event) => setFilters({ ...filters, customer: event.target.value })} />
+ </label>
+ <label className="field" style={{ margin: 0, minWidth: 150 }}>
+ <span>من تاريخ</span>
+ <input className="input" type="date" value={filters.from} onChange={(event) => setFilters({ ...filters, from: event.target.value })} />
+ </label>
+ <label className="field" style={{ margin: 0, minWidth: 150 }}>
+ <span>إلى تاريخ</span>
+ <input className="input" type="date" value={filters.to} onChange={(event) => setFilters({ ...filters, to: event.target.value })} />
+ </label>
+ <button className="btn primary" type="button" onClick={() => setApplied(filters)}>
+ 🔍بحث
+ </button>
           {applied && (
-            <button className="btn" type="button" onClick={() => { setFilters({ number: '', customer: '', from: '', to: '' }); setApplied(null); }}>
-              🗑️ تصفية الحقول
-            </button>
+ <button className="btn" type="button" onClick={() => { setFilters({ number: '', customer: '', from: '', to: '' }); setApplied(null); }}>
+ 🗑️تصفية الحقول
+ </button>
           )}
-        </div>
-      </div>
+ </div>
+ </div>
 
       {bookings.status === 'loading' && <Loading rows={6} />}
       {bookings.status === 'forbidden' && <Forbidden />}
       {bookings.status === 'error' && <ErrorBox message={bookings.error} onRetry={bookings.reload} />}
       {bookings.status === 'success' && (
-        <>
-          <div className="row" style={{ justifyContent: 'space-between', alignItems: 'baseline' }}>
-            <span className="group-label" style={{ margin: 0 }}>📋 بيانات الحجوزات</span>
-            <span className="muted">عدد السجلات: {rows.length}</span>
-          </div>
+ <>
+ <div className="row" style={{ justifyContent: 'space-between', alignItems: 'baseline' }}>
+ <span className="group-label" style={{ margin: 0 }}>📋 بيانات الحجوزات</span>
+ <span className="muted">عدد السجلات: {rows.length}</span>
+ </div>
           {rows.length === 0 ? (
-            <Empty title="لا توجد حجوزات" detail="ابدأ بـ «➕ حجز جديد»: مركب وعميل وقيمة ومدة — والمدة شرط الحفظ." />
+ <Empty title="لا توجد حجوزات" detail="ابدأ بـ «➕ حجز جديد»: مركب وعميل وقيمة ومدة — والمدة شرط الحفظ." />
           ) : (
-            <div className="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>🔢 الرقم</th>
-                    <th>📅 التاريخ</th>
-                    <th>👤 العميل</th>
-                    <th>⚓ المركب</th>
-                    <th>🚢 نوع الحجز</th>
-                    <th className="num">⏱️ المدة</th>
-                    <th className="num">💰 القيمة</th>
-                    <th className="num">🎁 الإضافات</th>
-                    <th className="num">الإجمالي</th>
-                    <th className="num">الصافي</th>
-                    <th>🔖 حالة الحجز</th>
+ <div className="table-wrap">
+ <table>
+ <thead>
+ <tr>
+ <th>🔢 الرقم</th>
+ <th>📅 التاريخ</th>
+ <th>👤 العميل</th>
+ <th>⚓ المركب</th>
+ <th>🚢 نوع الحجز</th>
+ <th className="num">⏱ المدة</th>
+ <th className="num">💰 القيمة</th>
+ <th className="num">🎁 الإضافات</th>
+ <th className="num">الإجمالي</th>
+ <th className="num">الصافي</th>
+ <th>🔖 حالة الحجز</th>
                     {(canManage || canInvoice) && <th>إجراءات</th>}
-                  </tr>
-                </thead>
-                <tbody>
+ </tr>
+ </thead>
+ <tbody>
                   {rows.map((row) => (
-                    <tr key={row.id} onDoubleClick={() => canManage && setCard(cardOf(row))}>
-                      <td dir="ltr">{row.number ?? '—'}</td>
-                      <td dir="ltr">{row.documentDate}</td>
-                      <td>{row.customerName}</td>
-                      <td>
+ <tr key={row.id} onDoubleClick={() => canManage && setCard(cardOf(row))}>
+ <td dir="ltr">{row.number ?? '—'}</td>
+ <td dir="ltr">{row.documentDate}</td>
+ <td>{row.customerName}</td>
+ <td>
                         {row.vesselCode} — {row.vesselName}
-                      </td>
-                      <td>{row.bookingType}</td>
-                      <td className="num" dir="ltr">
+ </td>
+ <td>{row.bookingType}</td>
+ <td className="num" dir="ltr">
                         {row.periodHours}س {row.periodMinutes}د
-                      </td>
-                      <td className="num" dir="ltr">{fmt(Number(row.rentalAmount))}</td>
-                      <td className="num" dir="ltr">{fmt(Number(row.additionsTotal))}</td>
-                      <td className="num" dir="ltr">{fmt(Number(row.total))}</td>
-                      <td className="num" dir="ltr">{fmt(Number(row.netAmount))}</td>
-                      <td>
-                        <span className={`badge${row.statusText === 'مؤكد' ? '' : ' danger'}`}>{row.statusText}</span>
-                      </td>
+ </td>
+ <td className="num" dir="ltr">{fmt(Number(row.rentalAmount))}</td>
+ <td className="num" dir="ltr">{fmt(Number(row.additionsTotal))}</td>
+ <td className="num" dir="ltr">{fmt(Number(row.total))}</td>
+ <td className="num" dir="ltr">{fmt(Number(row.netAmount))}</td>
+ <td>
+ <span className={`badge${row.statusText === 'مؤكد' ? '' : ' danger'}`}>{row.statusText}</span>
+ </td>
                       {(canManage || canInvoice) && (
-                        <td>
-                          <div className="row" style={{ gap: 4 }}>
+ <td>
+ <div className="row" style={{ gap: 4 }}>
                             {canManage && (
-                              <button className="btn sm" type="button" onClick={() => setCard(cardOf(row))}>
-                                ✏️ تعديل
-                              </button>
+ <button className="btn sm" type="button" onClick={() => setCard(cardOf(row))}>
+ ✏️تعديل
+ </button>
                             )}
                             {canInvoice && (
-                              <button className="btn sm" type="button" onClick={() => invoice(row)}>
-                                🧾 فاتورة
-                              </button>
+ <button className="btn sm" type="button" onClick={() => invoice(row)}>
+ 🧾فاتورة
+ </button>
                             )}
                             {canManage && (
-                              <button className="btn sm danger" type="button" onClick={() => remove(row)}>
-                                🗑️ حذف
-                              </button>
+ <button className="btn sm danger" type="button" onClick={() => remove(row)}>
+ 🗑️حذف
+ </button>
                             )}
-                          </div>
-                        </td>
+ </div>
+ </td>
                       )}
-                    </tr>
+ </tr>
                   ))}
-                </tbody>
-              </table>
-            </div>
+ </tbody>
+ </table>
+ </div>
           )}
-        </>
+ </>
       )}
 
       {card && (
-        <div className="modal-backdrop" role="dialog" aria-modal="true">
-          <div className="modal-card" style={{ maxWidth: 860 }}>
-            <div className="modal-head">
-              <span className="modal-title">{card.id ? '✏️ تعديل الحجز' : '📋 بيانات الحجوزات'}</span>
-              <button className="btn sm" type="button" onClick={() => setCard(null)}>
-                ✖ خروج
-              </button>
-            </div>
-            <div style={{ padding: 16, display: 'grid', gap: 12, maxHeight: '70vh', overflow: 'auto' }}>
-              <div className="form-grid">
-                <label className="field">
-                  <span>🔢 الرقم</span>
-                  <input className="input" value={card.id ? 'يُصدر عند الحفظ' : 'يُصدر عند الحفظ'} disabled />
-                </label>
-                <label className="field">
-                  <span>📅 التاريخ</span>
-                  <input className="input" type="date" value={card.documentDate} onChange={(event) => setField({ documentDate: event.target.value })} />
-                </label>
-                <label className="field">
-                  <span>🏢 الفرع</span>
-                  <select className="input" value={card.branchId} onChange={(event) => setField({ branchId: event.target.value })}>
-                    <option value="">— اختر فرعاً —</option>
+ <div className="modal-backdrop" role="dialog" aria-modal="true">
+ <div className="modal-card" style={{ maxWidth: 860 }}>
+ <div className="modal-head">
+ <span className="modal-title">{card.id ? '✏️ تعديل الحجز' : '📋 بيانات الحجوزات'}</span>
+ <button className="btn sm" type="button" onClick={() => setCard(null)}>
+ ✖خروج
+ </button>
+ </div>
+ <div style={{ padding: 16, display: 'grid', gap: 12, maxHeight: '70vh', overflow: 'auto' }}>
+ <div className="form-grid">
+ <label className="field">
+ <span>🔢 الرقم</span>
+ <input className="input" value={card.id ? 'يُصدر عند الحفظ' : 'يُصدر عند الحفظ'} disabled />
+ </label>
+ <label className="field">
+ <span>📅 التاريخ</span>
+ <input className="input" type="date" value={card.documentDate} onChange={(event) => setField({ documentDate: event.target.value })} />
+ </label>
+ <label className="field">
+ <span>🏢 الفرع</span>
+ <select className="input" value={card.branchId} onChange={(event) => setField({ branchId: event.target.value })}>
+ <option value="">— اختر فرعاً —</option>
                     {(branches.data ?? []).map((branch) => (
-                      <option key={branch.id} value={branch.id}>{branch.nameAr ?? branch.code ?? branch.id}</option>
+ <option key={branch.id} value={branch.id}>{branch.nameAr ?? branch.code ?? branch.id}</option>
                     ))}
-                  </select>
-                </label>
-                <label className="field">
-                  <span>👤 العميل *</span>
-                  <select className="input" value={card.partyId} onChange={(event) => setField({ partyId: event.target.value })}>
-                    <option value="">— اختر عميلاً —</option>
+ </select>
+ </label>
+ <label className="field">
+ <span>👤 العميل *</span>
+ <select className="input" value={card.partyId} onChange={(event) => setField({ partyId: event.target.value })}>
+ <option value="">— اختر عميلاً —</option>
                     {(parties.data ?? []).map((party) => (
-                      <option key={party.id} value={party.id}>{party.name}{party.phone ? ` · ${party.phone}` : ''}</option>
+ <option key={party.id} value={party.id}>{party.name}{party.phone ? ` · ${party.phone}` : ''}</option>
                     ))}
-                  </select>
-                </label>
-                <label className="field">
-                  <span>⚓ المركب *</span>
-                  <select className="input" value={card.vesselId} onChange={(event) => setField({ vesselId: event.target.value })}>
-                    <option value="">— اختر مركباً —</option>
+ </select>
+ </label>
+ <label className="field">
+ <span>⚓ المركب *</span>
+ <select className="input" value={card.vesselId} onChange={(event) => setField({ vesselId: event.target.value })}>
+ <option value="">— اختر مركباً —</option>
                     {vessels.map((vessel) => (
-                      <option key={vessel.id} value={vessel.id}>{vessel.code} — {vessel.name}</option>
+ <option key={vessel.id} value={vessel.id}>{vessel.code} — {vessel.name}</option>
                     ))}
-                  </select>
-                </label>
-                <label className="field">
-                  <span>🔖 حالة الحجز</span>
-                  <select className="input" value={card.status} onChange={(event) => setField({ status: event.target.value })}>
-                    <option value="مؤكد">مؤكد</option>
-                    <option value="غير مؤكد">غير مؤكد</option>
-                  </select>
-                </label>
-                <label className="field">
-                  <span>📅 تاريخ الحجز</span>
-                  <input className="input" type="datetime-local" value={card.startsAt} onChange={(event) => setField({ startsAt: event.target.value })} />
-                </label>
-                <label className="field">
-                  <span>🕐 حتى</span>
-                  <input className="input" type="datetime-local" value={card.endsAt} onChange={(event) => setField({ endsAt: event.target.value })} />
-                </label>
-                <label className="field">
-                  <span>💰 القيمة</span>
-                  <input className="input numeric" value={card.rentalAmount} onChange={(event) => setField({ rentalAmount: event.target.value })} />
-                </label>
-                <label className="field">
-                  <span>⏱️ المدة ساعة</span>
-                  <input className="input numeric" value={card.periodHours} onChange={(event) => setField({ periodHours: event.target.value })} />
-                </label>
-                <label className="field">
-                  <span>دقيقة</span>
-                  <input className="input numeric" value={card.periodMinutes} onChange={(event) => setField({ periodMinutes: event.target.value })} />
-                </label>
-                <label className="field">
-                  <span>🛡️ التأمين</span>
-                  <input className="input numeric" value={card.insuranceAmount} onChange={(event) => setField({ insuranceAmount: event.target.value })} />
-                </label>
-                <label className="field">
-                  <span>👥 المرافقون</span>
-                  <input className="input numeric" value={card.companions} onChange={(event) => setField({ companions: event.target.value })} />
-                </label>
-              </div>
+ </select>
+ </label>
+ <label className="field">
+ <span>🔖 حالة الحجز</span>
+ <select className="input" value={card.status} onChange={(event) => setField({ status: event.target.value })}>
+ <option value="مؤكد">مؤكد</option>
+ <option value="غير مؤكد">غير مؤكد</option>
+ </select>
+ </label>
+ <label className="field">
+ <span>📅 تاريخ الحجز</span>
+ <input className="input" type="datetime-local" value={card.startsAt} onChange={(event) => setField({ startsAt: event.target.value })} />
+ </label>
+ <label className="field">
+ <span>🕐 حتى</span>
+ <input className="input" type="datetime-local" value={card.endsAt} onChange={(event) => setField({ endsAt: event.target.value })} />
+ </label>
+ <label className="field">
+ <span>💰 القيمة</span>
+ <input className="input numeric" value={card.rentalAmount} onChange={(event) => setField({ rentalAmount: event.target.value })} />
+ </label>
+ <label className="field">
+ <span>⏱ المدة ساعة</span>
+ <input className="input numeric" value={card.periodHours} onChange={(event) => setField({ periodHours: event.target.value })} />
+ </label>
+ <label className="field">
+ <span>دقيقة</span>
+ <input className="input numeric" value={card.periodMinutes} onChange={(event) => setField({ periodMinutes: event.target.value })} />
+ </label>
+ <label className="field">
+ <span>🛡️ التأمين</span>
+ <input className="input numeric" value={card.insuranceAmount} onChange={(event) => setField({ insuranceAmount: event.target.value })} />
+ </label>
+ <label className="field">
+ <span>👥 المرافقون</span>
+ <input className="input numeric" value={card.companions} onChange={(event) => setField({ companions: event.target.value })} />
+ </label>
+ </div>
 
-              <fieldset className="card tight" style={{ margin: 0 }}>
-                <legend className="group-label" style={{ margin: 0 }}>🚢 نوع الحجز</legend>
-                <div className="row" style={{ gap: 12 }}>
+ <fieldset className="card tight" style={{ margin: 0 }}>
+ <legend className="group-label" style={{ margin: 0 }}>🚢 نوع الحجز</legend>
+ <div className="row" style={{ gap: 12 }}>
                   {['حجز عادي', 'بحر مفتوح'].map((type) => (
-                    <label key={type} className="row" style={{ gap: 6 }}>
-                      <input type="radio" name="bookingType" checked={card.bookingType === type} onChange={() => setField({ bookingType: type })} />
-                      <span>{type}</span>
-                    </label>
+ <label key={type} className="row" style={{ gap: 6 }}>
+ <input type="radio" name="bookingType" checked={card.bookingType === type} onChange={() => setField({ bookingType: type })} />
+ <span>{type}</span>
+ </label>
                   ))}
-                </div>
-              </fieldset>
+ </div>
+ </fieldset>
 
-              {/* 🎁 الإضافات — الوصف · العدد · السعر · الإجمالي · 🗑️ حذف */}
-              <fieldset className="card tight" style={{ margin: 0 }}>
-                <legend className="group-label" style={{ margin: 0 }}>🎁 الإضافات</legend>
-                <div className="row" style={{ gap: 6, flexWrap: 'wrap', alignItems: 'flex-end' }}>
-                  <label className="field" style={{ margin: 0, flex: 1, minWidth: 180 }}>
-                    <span>🎁 الإضافات</span>
-                    <select
+              {/* الإضافات — الوصف · العدد · السعر · الإجمالي · حذف */}
+ <fieldset className="card tight" style={{ margin: 0 }}>
+ <legend className="group-label" style={{ margin: 0 }}>🎁 الإضافات</legend>
+ <div className="row" style={{ gap: 6, flexWrap: 'wrap', alignItems: 'flex-end' }}>
+ <label className="field" style={{ margin: 0, flex: 1, minWidth: 180 }}>
+ <span>🎁 الإضافات</span>
+ <select
                       className="input"
                       value={line.additionId ?? ''}
                       onChange={(event) => {
@@ -512,27 +512,27 @@ function MarinaBookings() {
                         );
                       }}
                     >
-                      <option value="">— بلا تعريف —</option>
+ <option value="">— بلا تعريف —</option>
                       {(definitions.data ?? []).map((row) => (
-                        <option key={row.id} value={row.id}>
+ <option key={row.id} value={row.id}>
                           {row.number} · {row.name}
-                        </option>
+ </option>
                       ))}
-                    </select>
-                  </label>
-                  <label className="field" style={{ margin: 0, flex: 1, minWidth: 160 }}>
-                    <span>الوصف</span>
-                    <input className="input" value={line.description} onChange={(event) => setLine({ ...line, description: event.target.value })} />
-                  </label>
-                  <label className="field" style={{ margin: 0, width: 90 }}>
-                    <span>الكمية</span>
-                    <input className="input numeric" value={line.quantity} onChange={(event) => setLine({ ...line, quantity: event.target.value })} />
-                  </label>
-                  <label className="field" style={{ margin: 0, width: 110 }}>
-                    <span>السعر</span>
-                    <input className="input numeric" value={line.unitPrice} onChange={(event) => setLine({ ...line, unitPrice: event.target.value })} />
-                  </label>
-                  <button
+ </select>
+ </label>
+ <label className="field" style={{ margin: 0, flex: 1, minWidth: 160 }}>
+ <span>الوصف</span>
+ <input className="input" value={line.description} onChange={(event) => setLine({ ...line, description: event.target.value })} />
+ </label>
+ <label className="field" style={{ margin: 0, width: 90 }}>
+ <span>الكمية</span>
+ <input className="input numeric" value={line.quantity} onChange={(event) => setLine({ ...line, quantity: event.target.value })} />
+ </label>
+ <label className="field" style={{ margin: 0, width: 110 }}>
+ <span>السعر</span>
+ <input className="input numeric" value={line.unitPrice} onChange={(event) => setLine({ ...line, unitPrice: event.target.value })} />
+ </label>
+ <button
                     className="btn primary"
                     type="button"
                     title="إضافة"
@@ -550,82 +550,82 @@ function MarinaBookings() {
                       setLine({ description: '', quantity: '1', unitPrice: '0' });
                     }}
                   >
-                    ✔
-                  </button>
-                </div>
+
+ </button>
+ </div>
                 {card.additions.length > 0 && (
-                  <div className="table-wrap" style={{ marginTop: 8 }}>
-                    <table>
-                      <thead>
-                        <tr>
-                          <th>🎁 الإضافة</th>
-                          <th>الوصف</th>
-                          <th className="num">العدد</th>
-                          <th className="num">السعر</th>
-                          <th className="num">الإجمالي</th>
-                          <th />
-                        </tr>
-                      </thead>
-                      <tbody>
+ <div className="table-wrap" style={{ marginTop: 8 }}>
+ <table>
+ <thead>
+ <tr>
+ <th>🎁 الإضافة</th>
+ <th>الوصف</th>
+ <th className="num">العدد</th>
+ <th className="num">السعر</th>
+ <th className="num">الإجمالي</th>
+ <th />
+ </tr>
+ </thead>
+ <tbody>
                         {card.additions.map((row, index) => (
-                          <tr key={`${row.description}-${index}`}>
-                            <td dir="ltr">{(definitions.data ?? []).find((item) => item.id === row.additionId)?.number ?? '—'}</td>
-                            <td>{row.description}</td>
-                            <td className="num" dir="ltr">{row.quantity}</td>
-                            <td className="num" dir="ltr">{row.unitPrice}</td>
-                            <td className="num" dir="ltr">{fmt(num(row.quantity) * num(row.unitPrice))}</td>
-                            <td>
-                              <button
+ <tr key={`${row.description}-${index}`}>
+ <td dir="ltr">{(definitions.data ?? []).find((item) => item.id === row.additionId)?.number ?? '—'}</td>
+ <td>{row.description}</td>
+ <td className="num" dir="ltr">{row.quantity}</td>
+ <td className="num" dir="ltr">{row.unitPrice}</td>
+ <td className="num" dir="ltr">{fmt(num(row.quantity) * num(row.unitPrice))}</td>
+ <td>
+ <button
                                 className="btn sm danger"
                                 type="button"
                                 onClick={() => setCard({ ...card, additions: card.additions.filter((_, i) => i !== index) })}
                               >
-                                🗑️ حذف
-                              </button>
-                            </td>
-                          </tr>
+ 🗑️حذف
+ </button>
+ </td>
+ </tr>
                         ))}
-                      </tbody>
-                    </table>
-                  </div>
+ </tbody>
+ </table>
+ </div>
                 )}
-              </fieldset>
+ </fieldset>
 
               {totals && (
-                <div className="row" style={{ gap: 16, flexWrap: 'wrap', fontWeight: 700 }}>
-                  <span>إجمالي الإضافات: <span dir="ltr">{fmt(totals.additionsTotal)}</span></span>
-                  <span>الإجمالي: <span dir="ltr">{fmt(totals.total)}</span></span>
-                  <span>ضريبة {vatRate}%: <span dir="ltr">{fmt(totals.taxAmount)}</span></span>
-                  <span>الصافي: <span dir="ltr">{fmt(totals.netAmount)}</span></span>
-                </div>
+ <div className="row" style={{ gap: 16, flexWrap: 'wrap', fontWeight: 700 }}>
+ <span>إجمالي الإضافات: <span dir="ltr">{fmt(totals.additionsTotal)}</span></span>
+ <span>الإجمالي: <span dir="ltr">{fmt(totals.total)}</span></span>
+ <span>ضريبة {vatRate}%: <span dir="ltr">{fmt(totals.taxAmount)}</span></span>
+ <span>الصافي: <span dir="ltr">{fmt(totals.netAmount)}</span></span>
+ </div>
               )}
-              <p className="muted" style={{ margin: 0 }}>
+ <p className="muted" style={{ margin: 0 }}>
                 «يجب تحديد مدة الحجز» — الساعة والدقيقة لا يقفان معاً على صفر.
-              </p>
-            </div>
-            <div className="modal-foot">
-              <button className="btn primary" type="button" onClick={() => void save()} disabled={busy}>
-                💾 حفظ
-              </button>
+ </p>
+ </div>
+ <div className="modal-foot">
+ <button className="btn primary" type="button" onClick={() => void save()} disabled={busy}>
+ 💾حفظ
+ </button>
               {/* «🔄 جديد» = `CLR` — كل الصناديق تعود فارغة. */}
-              <button className="btn" type="button" disabled={busy} onClick={() => setCard(emptyCard(card.branchId, card.partyId, card.vesselId))}>
-                🔄 جديد
-              </button>
-              <button className="btn danger" type="button" onClick={() => setCard(null)} disabled={busy}>
-                ✖ خروج
-              </button>
-            </div>
-          </div>
-        </div>
+ <button className="btn" type="button" disabled={busy} onClick={() => setCard(emptyCard(card.branchId, card.partyId, card.vesselId))}>
+ 🔄جديد
+ </button>
+ <button className="btn danger" type="button" onClick={() => setCard(null)} disabled={busy}>
+ ✖خروج
+ </button>
+ </div>
+ </div>
+ </div>
       )}
-    </Screen>
+ </Screen>
   );
 }
 
 export default function Page() {
   return (
-    <Suspense fallback={<Loading rows={6} />}>
-      <MarinaBookings />
-    </Suspense>
+ <Suspense fallback={<Loading rows={6} />}>
+ <MarinaBookings />
+ </Suspense>
   );
 }

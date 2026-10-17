@@ -28,7 +28,7 @@ function Dashboard() {
         <p className="muted">ملخص تعاملك مع {profile?.company.nameAr || 'المورد'} — الفواتير الصادرة لك والمبالغ المسددة.</p>
       </section>
 
-      <div className="grid cols">
+      <div className="grid cols kpis">
         <Kpi label="الرصيد المستحق" value={moneyText(profile?.balance ?? '0')} hint="حسب دفاتر المورد" />
         <Kpi label="غير المسدد من الفواتير" value={moneyText(outstanding.toFixed(2))} hint={`${overdueCount} فاتورة مفتوحة`} />
         <Kpi label="عدد الفواتير" value={String(rows.length)} hint="الفواتير المرحّلة الصادرة لك" />
@@ -51,7 +51,8 @@ function Dashboard() {
         ) : rows.length === 0 ? (
           <p className="muted">لم تصدر لك فواتير بعد.</p>
         ) : (
-          <table>
+          <div className="table-wrap">
+            <table>
             <thead>
               <tr>
                 <th>الرقم</th>
@@ -76,7 +77,8 @@ function Dashboard() {
                 </tr>
               ))}
             </tbody>
-          </table>
+            </table>
+          </div>
         )}
       </section>
     </>

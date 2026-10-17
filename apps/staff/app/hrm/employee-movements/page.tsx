@@ -12,12 +12,12 @@ import { money } from '../../../lib/lookups';
 import { useQuery } from '../../../lib/use-query';
 
 /**
- * 📈 حركات الموظف — `Form_WPF/frmEmpInvs.xaml` («مبيعات ومشتريات موظف خلال الفترة»).
+ * حركات الموظف — `Form_WPF/frmEmpInvs.xaml` («مبيعات ومشتريات موظف خلال الفترة»).
  *
  * The window's filters are `👤 الموظف` («اختر الموظف...», with `الكل` beside it) ·
  * `🔄 نوع الحركة` (`مبيعات` · `مرتجع`, with `الكل` checked) · `📅 من تاريخ` ·
- * `📅 إلى تاريخ` · `🔍 عرض`, its grid is «📋 بيانات الحركات» — `نوع الحركة · 📅 التاريخ ·
- * رقم الفاتورة · 📦 الصنف · الكمية · 💵 السعر · إضافات · 💰 الإجمالي` — and its footer is
+ * ` إلى تاريخ` · ` عرض`, its grid is « بيانات الحركات» — `نوع الحركة · التاريخ ·
+ * رقم الفاتورة · الصنف · الكمية · السعر · إضافات · الإجمالي` — and its footer is
  * `💰 الإجمالي` (`txtSum`). `ShowResult` (L226) reads `Inv ⋈ Inv_Sub` on
  * `Inv.sales_emp` — the employee who made the sale — one row per line.
  *
@@ -109,16 +109,16 @@ function EmployeeMovements() {
   const totals = movements.data?.summary ?? EMPTY;
 
   return (
-    <Screen
+ <Screen
       title="حركات الموظف"
       subtitle="📈 مبيعات ومشتريات موظف خلال الفترة — ما باعه الموظف، سطراً بسطر، من الفواتير المرحَّلة وحدها."
       crumbs={['الموظفين والرواتب', 'التقارير']}
       actions={
-        <>
-          <button className="btn" type="button" onClick={() => window.print()} disabled={rows.length === 0}>
-            🖨️ طباعة
-          </button>
-          <button
+ <>
+ <button className="btn" type="button" onClick={() => window.print()} disabled={rows.length === 0}>
+ 🖨️طباعة
+ </button>
+ <button
             className="btn"
             type="button"
             disabled={rows.length === 0}
@@ -141,154 +141,154 @@ function EmployeeMovements() {
               )
             }
           >
-            📊 تصدير CSV
-          </button>
-        </>
+ 📊تصدير CSV
+ </button>
+ </>
       }
     >
-      <div className="card tight no-print">
-        <div className="row" style={{ flexWrap: 'wrap', alignItems: 'flex-end' }}>
-          <label className="field" style={{ margin: 0, minWidth: 240, flex: 1 }}>
-            <span>👤 الموظف</span>
-            <select
+ <div className="card tight no-print">
+ <div className="row" style={{ flexWrap: 'wrap', alignItems: 'flex-end' }}>
+ <label className="field" style={{ margin: 0, minWidth: 240, flex: 1 }}>
+ <span>👤 الموظف</span>
+ <select
               className="input"
               value={employeeId}
               onChange={(event) => setEmployeeId(event.target.value)}
               disabled={allEmployees}
             >
-              <option value="">اختر الموظف...</option>
+ <option value="">اختر الموظف...</option>
               {(employees.data ?? []).map((row) => (
-                <option key={row.id} value={row.id}>
+ <option key={row.id} value={row.id}>
                   {row.employeeNo} — {row.name}
-                </option>
+ </option>
               ))}
-            </select>
-          </label>
-          <label className="check" style={{ margin: 0 }}>
-            <input type="checkbox" checked={allEmployees} onChange={(event) => setAllEmployees(event.target.checked)} />
-            الكل
-          </label>
-          <label className="field" style={{ margin: 0, minWidth: 200 }}>
-            <span>🏢 الفرع</span>
-            <select className="input" value={branchId} onChange={(event) => setBranchId(event.target.value)}>
-              <option value="">كل الفروع</option>
+ </select>
+ </label>
+ <label className="check" style={{ margin: 0 }}>
+ <input type="checkbox" checked={allEmployees} onChange={(event) => setAllEmployees(event.target.checked)} />
+ الكل
+ </label>
+ <label className="field" style={{ margin: 0, minWidth: 200 }}>
+ <span>🏢 الفرع</span>
+ <select className="input" value={branchId} onChange={(event) => setBranchId(event.target.value)}>
+ <option value="">كل الفروع</option>
               {(branches.data ?? []).map((branch) => (
-                <option key={branch.id} value={branch.id}>
+ <option key={branch.id} value={branch.id}>
                   {branch.nameAr ?? branch.name ?? branch.id}
-                </option>
+ </option>
               ))}
-            </select>
-          </label>
-          <label className="field" style={{ margin: 0, width: 160 }}>
-            <span>📅 من تاريخ</span>
-            <input className="input" type="date" value={from} onChange={(event) => setFrom(event.target.value)} />
-          </label>
-          <label className="field" style={{ margin: 0, width: 160 }}>
-            <span>📅 إلى تاريخ</span>
-            <input className="input" type="date" value={to} onChange={(event) => setTo(event.target.value)} />
-          </label>
-          <button
+ </select>
+ </label>
+ <label className="field" style={{ margin: 0, width: 160 }}>
+ <span>📅 من تاريخ</span>
+ <input className="input" type="date" value={from} onChange={(event) => setFrom(event.target.value)} />
+ </label>
+ <label className="field" style={{ margin: 0, width: 160 }}>
+ <span>📅 إلى تاريخ</span>
+ <input className="input" type="date" value={to} onChange={(event) => setTo(event.target.value)} />
+ </label>
+ <button
             className="btn primary"
             type="button"
             disabled={!employeeId && !allEmployees}
             onClick={() => setApplied({ employeeId, allEmployees, branchId, from, to, movementType })}
           >
-            🔍 عرض
-          </button>
-        </div>
-        <div className="row" style={{ flexWrap: 'wrap', marginTop: 8 }}>
-          <span className="group-label">🔄 نوع الحركة</span>
-          <button type="button" className={`btn sm${movementType === 'all' ? ' primary' : ''}`} onClick={() => setMovementType('all')}>
-            الكل
-          </button>
-          <button type="button" className={`btn sm${movementType === 'sales' ? ' primary' : ''}`} onClick={() => setMovementType('sales')}>
-            مبيعات
-          </button>
-          <button type="button" className={`btn sm${movementType === 'returns' ? ' primary' : ''}`} onClick={() => setMovementType('returns')}>
-            مرتجع
-          </button>
-        </div>
-      </div>
+ 🔍عرض
+ </button>
+ </div>
+ <div className="row" style={{ flexWrap: 'wrap', marginTop: 8 }}>
+ <span className="group-label">🔄 نوع الحركة</span>
+ <button type="button" className={`btn sm${movementType === 'all' ? ' primary' : ''}`} onClick={() => setMovementType('all')}>
+ الكل
+ </button>
+ <button type="button" className={`btn sm${movementType === 'sales' ? ' primary' : ''}`} onClick={() => setMovementType('sales')}>
+ مبيعات
+ </button>
+ <button type="button" className={`btn sm${movementType === 'returns' ? ' primary' : ''}`} onClick={() => setMovementType('returns')}>
+ مرتجع
+ </button>
+ </div>
+ </div>
 
       {!applied.employeeId && !applied.allEmployees && (
-        <Empty title="اختر موظف" detail="«الكل» يعرض حركات كل موظف له مبيعات في الفترة." />
+ <Empty title="اختر موظف" detail="«الكل» يعرض حركات كل موظف له مبيعات في الفترة." />
       )}
       {(applied.employeeId || applied.allEmployees) && movements.status === 'loading' && <Loading />}
       {(applied.employeeId || applied.allEmployees) && movements.status === 'forbidden' && <Forbidden />}
       {(applied.employeeId || applied.allEmployees) && movements.status === 'error' && (
-        <ErrorBox message={movements.error} onRetry={movements.reload} />
+ <ErrorBox message={movements.error} onRetry={movements.reload} />
       )}
       {(applied.employeeId || applied.allEmployees) && movements.status === 'success' && (
-        <>
-          <StatTiles>
-            <StatTile label="💰 الإجمالي" value={money(totals.total)} tone="ok" hint="المبيعات − المرتجع" />
-            <StatTile label="مبيعات" value={money(totals.salesTotal)} tone="brand" />
-            <StatTile label="مرتجع" value={money(totals.returnsTotal)} />
-            <StatTile label="عدد الفواتير" value={String(totals.invoices)} />
-            <StatTile label="عدد الأسطر" value={String(totals.lines)} />
-          </StatTiles>
+ <>
+ <StatTiles>
+ <StatTile label="💰 الإجمالي" value={money(totals.total)} tone="ok" hint="المبيعات − المرتجع" />
+ <StatTile label="مبيعات" value={money(totals.salesTotal)} tone="brand" />
+ <StatTile label="مرتجع" value={money(totals.returnsTotal)} />
+ <StatTile label="عدد الفواتير" value={String(totals.invoices)} />
+ <StatTile label="عدد الأسطر" value={String(totals.lines)} />
+ </StatTiles>
 
           {rows.length === 0 ? (
-            <Empty title="لا توجد حركات في هذه الفترة" detail="تأكد من التاريخين، أو أن فواتير الموظف مرحَّلة." />
+ <Empty title="لا توجد حركات في هذه الفترة" detail="تأكد من التاريخين، أو أن فواتير الموظف مرحَّلة." />
           ) : (
-            <div className="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>م</th>
-                    <th>نوع الحركة</th>
-                    <th>التاريخ</th>
-                    <th>رقم الفاتورة</th>
-                    <th>الفرع</th>
-                    <th>الصنف</th>
-                    <th className="num">الكمية</th>
-                    <th className="num">السعر</th>
-                    <th className="num">إضافات</th>
-                    <th className="num">الإجمالي</th>
-                    <th>👁️ عرض</th>
-                  </tr>
-                </thead>
-                <tbody>
+ <div className="table-wrap">
+ <table>
+ <thead>
+ <tr>
+ <th>م</th>
+ <th>نوع الحركة</th>
+ <th>التاريخ</th>
+ <th>رقم الفاتورة</th>
+ <th>الفرع</th>
+ <th>الصنف</th>
+ <th className="num">الكمية</th>
+ <th className="num">السعر</th>
+ <th className="num">إضافات</th>
+ <th className="num">الإجمالي</th>
+ <th>👁️ عرض</th>
+ </tr>
+ </thead>
+ <tbody>
                   {rows.map((row) => (
-                    <tr key={`${row.invoiceId}-${row.seq}`}>
-                      <td dir="ltr">{row.seq}</td>
-                      <td>{row.movementType}</td>
-                      <td dir="ltr">{row.date}</td>
-                      <td dir="ltr">{row.number ?? '—'}</td>
-                      <td>{row.branchName ?? '—'}</td>
-                      <td>{row.itemName}</td>
-                      <td className="num">{money(row.quantity)}</td>
-                      <td className="num">{money(row.unitPrice)}</td>
-                      <td className="num">{money(row.additions)}</td>
-                      <td className="num">{money(row.lineTotal)}</td>
-                      <td>
-                        <Link className="btn sm" href={`/sales/invoices/${row.invoiceId}`}>
-                          👁️ عرض
-                        </Link>
-                      </td>
-                    </tr>
+ <tr key={`${row.invoiceId}-${row.seq}`}>
+ <td dir="ltr">{row.seq}</td>
+ <td>{row.movementType}</td>
+ <td dir="ltr">{row.date}</td>
+ <td dir="ltr">{row.number ?? '—'}</td>
+ <td>{row.branchName ?? '—'}</td>
+ <td>{row.itemName}</td>
+ <td className="num">{money(row.quantity)}</td>
+ <td className="num">{money(row.unitPrice)}</td>
+ <td className="num">{money(row.additions)}</td>
+ <td className="num">{money(row.lineTotal)}</td>
+ <td>
+ <Link className="btn sm" href={`/sales/invoices/${row.invoiceId}`}>
+ 👁️عرض
+ </Link>
+ </td>
+ </tr>
                   ))}
-                </tbody>
-                <tfoot>
-                  <tr>
-                    <th colSpan={9}>💰 الإجمالي</th>
-                    <th className="num">{money(totals.total)}</th>
-                    <th></th>
-                  </tr>
-                </tfoot>
-              </table>
-            </div>
+ </tbody>
+ <tfoot>
+ <tr>
+ <th colSpan={9}>💰 الإجمالي</th>
+ <th className="num">{money(totals.total)}</th>
+ <th><span className="sr-only">إجراءات</span></th>
+ </tr>
+ </tfoot>
+ </table>
+ </div>
           )}
-        </>
+ </>
       )}
-    </Screen>
+ </Screen>
   );
 }
 
 export default function Page() {
   return (
-    <Suspense fallback={<Loading rows={6} />}>
-      <EmployeeMovements />
-    </Suspense>
+ <Suspense fallback={<Loading rows={6} />}>
+ <EmployeeMovements />
+ </Suspense>
   );
 }

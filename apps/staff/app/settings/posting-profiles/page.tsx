@@ -24,7 +24,7 @@ const DOC_TYPES: Array<{ id: string; label: string }> = [
   { id: 'payroll_run', label: 'مسيّر رواتب' },
   { id: 'progress_bill', label: 'مستخلص مشروع' },
   { id: 'rent_invoice', label: 'فاتورة تأجير' },
-  // 🏭 الإنتاج (PHASE_E) — نوعا المستند الرسميان اللذان يربط عليهما المخبز/المصنع حسابَي المواد الخام والمنتج التام.
+  // الإنتاج (PHASE_E) — نوعا المستند الرسميان اللذان يربط عليهما المخبز/المصنع حسابَي المواد الخام والمنتج التام.
   { id: 'manufacturing_order', label: 'أمر تصنيع (BOM)' },
   { id: 'production_order', label: 'أمر إنتاج (مكوّنات)' },
 ];
@@ -74,15 +74,15 @@ export default function PostingProfilesPage() {
   }
 
   return (
-    <Screen
+ <Screen
       title="الربط المحاسبي"
       subtitle="أي حساب يستقبل كل نوع مستند. الفرع يتقدّم على الافتراضي العام، والمستند المحدد يتقدّم على «الافتراضي لكل المستندات»."
       crumbs={['الإعدادات', 'المحاسبة']}
     >
-      <div className="card toolbar">
-        <label className="field">
-          <span>النطاق</span>
-          <select
+ <div className="card toolbar">
+ <label className="field">
+ <span>النطاق</span>
+ <select
             className="input"
             value={branchId}
             onChange={(event) => {
@@ -90,17 +90,17 @@ export default function PostingProfilesPage() {
               setTouched(false);
             }}
           >
-            <option value="">افتراضي المنشأة (كل الفروع)</option>
+ <option value="">افتراضي المنشأة (كل الفروع)</option>
             {branchOptions(branches.data ?? []).map((option) => (
-              <option key={option.id} value={option.id}>
+ <option key={option.id} value={option.id}>
                 {option.label}
-              </option>
+ </option>
             ))}
-          </select>
-        </label>
-        <label className="field">
-          <span>نوع المستند</span>
-          <select
+ </select>
+ </label>
+ <label className="field">
+ <span>نوع المستند</span>
+ <select
             className="input"
             value={docType}
             onChange={(event) => {
@@ -109,21 +109,21 @@ export default function PostingProfilesPage() {
             }}
           >
             {DOC_TYPES.map((entry) => (
-              <option key={entry.id} value={entry.id}>
+ <option key={entry.id} value={entry.id}>
                 {entry.label}
-              </option>
+ </option>
             ))}
-          </select>
-        </label>
-      </div>
+ </select>
+ </label>
+ </div>
 
-      <div className="card">
-        <h2>{existing ? 'تعديل الربط' : 'ربط جديد'}</h2>
-        <div className="form-grid">
+ <div className="card">
+ <h2>{existing ? 'تعديل الربط' : 'ربط جديد'}</h2>
+ <div className="form-grid">
           {KEYS.map((key) => (
-            <label className="field" key={key}>
-              <span>{POSTING_ACCOUNT_LABELS[key]}</span>
-              <select
+ <label className="field" key={key}>
+ <span>{POSTING_ACCOUNT_LABELS[key]}</span>
+ <select
                 className="input"
                 value={current[key] ?? ''}
                 disabled={!can('organization.postingprofile.manage')}
@@ -132,26 +132,26 @@ export default function PostingProfilesPage() {
                   setDraft({ ...current, [key]: event.target.value });
                 }}
               >
-                <option value="">— بدون —</option>
+ <option value="">— بدون —</option>
                 {postable.map((account) => (
-                  <option key={account.id} value={account.id}>
+ <option key={account.id} value={account.id}>
                     {accountLabel(account)}
-                  </option>
+ </option>
                 ))}
-              </select>
-            </label>
+ </select>
+ </label>
           ))}
-        </div>
+ </div>
 
-        <Notice notice={notice} />
+ <Notice notice={notice} />
         {can('organization.postingprofile.manage') ? (
-          <button className="btn primary" type="button" disabled={busy} onClick={save}>
+ <button className="btn primary" type="button" disabled={busy} onClick={save}>
             {busy ? 'جارٍ الحفظ…' : 'حفظ الربط'}
-          </button>
+ </button>
         ) : (
-          <p className="muted">لا تملك صلاحية تعديل الربط المحاسبي.</p>
+ <p className="muted">لا تملك صلاحية تعديل الربط المحاسبي.</p>
         )}
-      </div>
-    </Screen>
+ </div>
+ </Screen>
   );
 }

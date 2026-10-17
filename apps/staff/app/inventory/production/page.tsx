@@ -177,209 +177,209 @@ export default function ProductionOrdersPage() {
   const componentsCost = orderRows.reduce((sum, row) => sum + Number(row.componentCost), 0);
 
   return (
-    <Screen
+ <Screen
       title="أوامر الإنتاج"
       subtitle="تحويل مكونات إلى منتج: تخرج المكونات من المستودع بمتوسط تكلفتها ويدخل المنتج بمجموع ما خرج مقسوماً على الكمية المنتجة. الأمر محايد محاسبياً فلا ينشأ عنه قيد."
       crumbs={['المستودعات', 'تقارير مستودعية']}
       actions={
-        <a className="btn" href="/reports/production-orders">
-          تقرير أوامر الإنتاج
-        </a>
+ <a className="btn" href="/reports/production-orders">
+ تقرير أوامر الإنتاج
+ </a>
       }
     >
       {notice && <Notice notice={notice} />}
 
-      <StatTiles>
-        <StatTile label="أوامر الإنتاج" value={orderRows.length} hint="مسودة ومكتملة" tone="brand" />
-        <StatTile label="مسودات" value={drafts.length} hint="تنتظر التنفيذ" tone={drafts.length > 0 ? 'warn' : 'ok'} />
-        <StatTile label="أوامر مكتملة" value={completed.length} hint="نُفّذت وحرّكت المخزون" tone="ok" />
-        <StatTile label="الكمية المنتجة" value={quantity(producedQty)} hint="من الأوامر المكتملة" />
-        <StatTile label="تكلفة المكونات" value={money(componentsCost)} hint="ما خرج من المستودع" />
-      </StatTiles>
+ <StatTiles>
+ <StatTile label="أوامر الإنتاج" value={orderRows.length} hint="مسودة ومكتملة" tone="brand" />
+ <StatTile label="مسودات" value={drafts.length} hint="تنتظر التنفيذ" tone={drafts.length > 0 ? 'warn' : 'ok'} />
+ <StatTile label="أوامر مكتملة" value={completed.length} hint="نُفّذت وحرّكت المخزون" tone="ok" />
+ <StatTile label="الكمية المنتجة" value={quantity(producedQty)} hint="من الأوامر المكتملة" />
+ <StatTile label="تكلفة المكونات" value={money(componentsCost)} hint="ما خرج من المستودع" />
+ </StatTiles>
 
       {can('inventory.production.manage') && (
-        <div className="card">
-          <h3>أمر إنتاج جديد</h3>
-          <div className="form-grid">
-            <label className="field">
-              <span>مستودع الإنتاج</span>
-              <select className="input" value={warehouseId} onChange={(event) => setWarehouseId(event.target.value)}>
-                <option value="">— اختر —</option>
+ <div className="card">
+ <h3>أمر إنتاج جديد</h3>
+ <div className="form-grid">
+ <label className="field">
+ <span>مستودع الإنتاج</span>
+ <select className="input" value={warehouseId} onChange={(event) => setWarehouseId(event.target.value)}>
+ <option value="">— اختر —</option>
                 {(warehouses.data ?? []).map((row) => (
-                  <option key={row.id} value={row.id}>{arabicName(row)}</option>
+ <option key={row.id} value={row.id}>{arabicName(row)}</option>
                 ))}
-              </select>
-            </label>
-            <label className="field">
-              <span>التاريخ</span>
-              <input className="input" type="date" value={orderDate} onChange={(event) => setOrderDate(event.target.value)} />
-            </label>
-            <label className="field wide">
-              <span>المنتج</span>
-              <select className="input" value={outputItemId} onChange={(event) => setOutputItemId(event.target.value)}>
-                <option value="">— اختر —</option>
+ </select>
+ </label>
+ <label className="field">
+ <span>التاريخ</span>
+ <input className="input" type="date" value={orderDate} onChange={(event) => setOrderDate(event.target.value)} />
+ </label>
+ <label className="field wide">
+ <span>المنتج</span>
+ <select className="input" value={outputItemId} onChange={(event) => setOutputItemId(event.target.value)}>
+ <option value="">— اختر —</option>
                 {(items.data ?? []).map((row) => (
-                  <option key={row.id} value={row.id}>{itemLabel(row)}</option>
+ <option key={row.id} value={row.id}>{itemLabel(row)}</option>
                 ))}
-              </select>
-            </label>
-            <label className="field">
-              <span>الكمية المنتجة</span>
-              <input className="input" value={outputQty} onChange={(event) => setOutputQty(event.target.value)} inputMode="decimal" />
-            </label>
-            <label className="field">
-              <span>📐 الوحدة</span>
-              <select
+ </select>
+ </label>
+ <label className="field">
+ <span>الكمية المنتجة</span>
+ <input className="input" value={outputQty} onChange={(event) => setOutputQty(event.target.value)} inputMode="decimal" />
+ </label>
+ <label className="field">
+ <span>📐 الوحدة</span>
+ <select
                 className="input"
                 value={unitId}
                 onChange={(event) => setUnitId(event.target.value)}
                 disabled={!outputItemId}
               >
-                <option value="">الوحدة الأساسية</option>
+ <option value="">الوحدة الأساسية</option>
                 {(outputUnits.data ?? []).map((row) => (
-                  <option key={row.unitId} value={row.unitId}>
+ <option key={row.unitId} value={row.unitId}>
                     {`${row.unitNameAr ?? row.unitCode} (×${Number(row.ratio).toLocaleString('ar-EG')})`}
-                  </option>
+ </option>
                 ))}
-              </select>
-            </label>
-            <label className="field">
-              <span>📊 الكمية المتوفرة</span>
-              <input className="input" dir="ltr" readOnly value={outputItemId ? quantity(onHand(outputItemId)) : '—'} />
-            </label>
-            <label className="field">
-              <span>📄 رقم المرجع</span>
-              <input className="input" dir="ltr" value={referenceNo} onChange={(event) => setReferenceNo(event.target.value)} />
-            </label>
-            <label className="field">
-              <span>📅 تاريخ المرجع</span>
-              <input className="input" type="date" value={referenceDate} onChange={(event) => setReferenceDate(event.target.value)} />
-            </label>
-            <label className="field wide">
-              <span>البيان</span>
-              <input className="input" value={notes} onChange={(event) => setNotes(event.target.value)} />
-            </label>
-          </div>
+ </select>
+ </label>
+ <label className="field">
+ <span>📊 الكمية المتوفرة</span>
+ <input className="input" dir="ltr" readOnly value={outputItemId ? quantity(onHand(outputItemId)) : '—'} />
+ </label>
+ <label className="field">
+ <span>📄 رقم المرجع</span>
+ <input className="input" dir="ltr" value={referenceNo} onChange={(event) => setReferenceNo(event.target.value)} />
+ </label>
+ <label className="field">
+ <span>📅 تاريخ المرجع</span>
+ <input className="input" type="date" value={referenceDate} onChange={(event) => setReferenceDate(event.target.value)} />
+ </label>
+ <label className="field wide">
+ <span>البيان</span>
+ <input className="input" value={notes} onChange={(event) => setNotes(event.target.value)} />
+ </label>
+ </div>
 
-          <div className="section-title">
-            <h4>مكونات الإنتاج</h4>
-            <label className="row" style={{ gap: 6 }}>
-              <input type="checkbox" checked={fromCard} onChange={(event) => setFromCard(event.target.checked)} />
-              <span className="small">تعبئة تلقائية من بطاقة الصنف</span>
-            </label>
-          </div>
+ <div className="section-title">
+ <h4>مكونات الإنتاج</h4>
+ <label className="row" style={{ gap: 6 }}>
+ <input type="checkbox" checked={fromCard} onChange={(event) => setFromCard(event.target.checked)} />
+ <span className="small">تعبئة تلقائية من بطاقة الصنف</span>
+ </label>
+ </div>
 
           {fromCard ? (
             cardRows.length === 0 ? (
-              <p className="alert warn">
-                بطاقة هذا الصنف لا تحمل مكوّنات بعد. أضفها من تبويب «المكونات» في دليل المواد، أو ألغِ التعبئة
-                التلقائية وأدخل المكوّنات يدوياً.
-              </p>
+ <p className="alert warn">
+ بطاقة هذا الصنف لا تحمل مكوّنات بعد. أضفها من تبويب «المكونات» في دليل المواد، أو ألغِ التعبئة
+ التلقائية وأدخل المكوّنات يدوياً.
+ </p>
             ) : (
-              <>
-                <p className="muted small">
+ <>
+ <p className="muted small">
                   {`المكوّنات تُقرأ من بطاقة الصنف وتُضرب في الكمية المنتجة (${builtQty}) عند الحفظ.`}
-                </p>
-                <div className="table-wrap">
-                  <table className="zebra">
-                    <thead>
-                      <tr>
-                        <th>رمز الصنف</th>
-                        <th>الصنف</th>
-                        <th>الكمية الأساسية</th>
-                        <th>الوحدة</th>
-                        <th>الكمية</th>
-                        <th>المتوفرة</th>
-                        <th>المستودع</th>
-                      </tr>
-                    </thead>
-                    <tbody>
+ </p>
+ <div className="table-wrap">
+ <table className="zebra">
+ <thead>
+ <tr>
+ <th>رمز الصنف</th>
+ <th>الصنف</th>
+ <th>الكمية الأساسية</th>
+ <th>الوحدة</th>
+ <th>الكمية</th>
+ <th>المتوفرة</th>
+ <th>المستودع</th>
+ </tr>
+ </thead>
+ <tbody>
                       {cardRows.map((row) => (
-                        <tr key={row.componentItemId}>
-                          <td dir="ltr">{row.sku}</td>
-                          <td>{row.nameAr ?? '—'}</td>
-                          <td dir="ltr" className="num">{quantity(row.qty)}</td>
-                          <td>{row.unitNameAr ?? row.unitCode}</td>
-                          <td dir="ltr" className="num">
-                            <strong>{quantity(Number(row.qty) * builtQty)}</strong>
-                          </td>
-                          <td dir="ltr" className="num">{quantity(onHand(row.componentItemId))}</td>
-                          <td>{row.warehouseName ?? '—'}</td>
-                        </tr>
+ <tr key={row.componentItemId}>
+ <td dir="ltr">{row.sku}</td>
+ <td>{row.nameAr ?? '—'}</td>
+ <td dir="ltr" className="num">{quantity(row.qty)}</td>
+ <td>{row.unitNameAr ?? row.unitCode}</td>
+ <td dir="ltr" className="num">
+ <strong>{quantity(Number(row.qty) * builtQty)}</strong>
+ </td>
+ <td dir="ltr" className="num">{quantity(onHand(row.componentItemId))}</td>
+ <td>{row.warehouseName ?? '—'}</td>
+ </tr>
                       ))}
-                    </tbody>
-                  </table>
-                </div>
-              </>
+ </tbody>
+ </table>
+ </div>
+ </>
             )
           ) : (
-            <div className="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>الصنف</th>
-                    <th>الكمية المستهلكة</th>
-                  </tr>
-                </thead>
-                <tbody>
+ <div className="table-wrap">
+ <table>
+ <thead>
+ <tr>
+ <th>الصنف</th>
+ <th>الكمية المستهلكة</th>
+ </tr>
+ </thead>
+ <tbody>
                   {components.map((component, index) => (
-                    <tr key={index}>
-                      <td>
-                        <select className="input" value={component.itemId} onChange={(event) => setComponent(index, { itemId: event.target.value })}>
-                          <option value="">— اختر —</option>
+ <tr key={index}>
+ <td>
+ <select className="input" value={component.itemId} onChange={(event) => setComponent(index, { itemId: event.target.value })}>
+ <option value="">— اختر —</option>
                           {(items.data ?? []).map((row) => (
-                            <option key={row.id} value={row.id}>{itemLabel(row)}</option>
+ <option key={row.id} value={row.id}>{itemLabel(row)}</option>
                           ))}
-                        </select>
-                      </td>
-                      <td>
-                        <input className="input" value={component.qty} onChange={(event) => setComponent(index, { qty: event.target.value })} inputMode="decimal" />
-                      </td>
-                    </tr>
+ </select>
+ </td>
+ <td>
+ <input className="input" value={component.qty} onChange={(event) => setComponent(index, { qty: event.target.value })} inputMode="decimal" />
+ </td>
+ </tr>
                   ))}
-                </tbody>
-              </table>
-            </div>
+ </tbody>
+ </table>
+ </div>
           )}
-          <div className="toolbar">
+ <div className="toolbar">
             {!fromCard && (
-              <button className="btn sm" type="button" onClick={() => setComponents((current) => [...current, emptyComponent()])}>
-                إضافة مكوّن
-              </button>
+ <button className="btn sm" type="button" onClick={() => setComponents((current) => [...current, emptyComponent()])}>
+ إضافة مكوّن
+ </button>
             )}
-            <span className="chip">
+ <span className="chip">
               {fromCard ? `مكوّنات البطاقة: ${cardRows.length}` : `عدد المكونات: ${filled.length}`}
-            </span>
-            <button className="btn primary" type="button" onClick={create} disabled={busy}>
+ </span>
+ <button className="btn primary" type="button" onClick={create} disabled={busy}>
               {busy ? 'جارٍ الحفظ…' : 'حفظ الأمر'}
-            </button>
-          </div>
-          <p className="muted">التكلفة تُحسب لحظة التنفيذ من أرصدة المستودع، ولا تُدخَل يدوياً.</p>
-        </div>
+ </button>
+ </div>
+ <p className="muted">التكلفة تُحسب لحظة التنفيذ من أرصدة المستودع، ولا تُدخَل يدوياً.</p>
+ </div>
       )}
 
-      <div className="card">
-        <div className="toolbar">
-          <label className="field">
-            <span>الحالة</span>
-            <select className="input" value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>
-              <option value="">الكل</option>
-              <option value="draft">مسودة</option>
-              <option value="completed">منفَّذ</option>
-              <option value="cancelled">ملغي</option>
-            </select>
-          </label>
-          <span className="chip">{`أوامر منفَّذة: ${completed.length}`}</span>
-          <span className="chip">{`تكلفة الإنتاج: ${money(producedCost)}`}</span>
-        </div>
-        <QueryView query={orders} empty="لا توجد أوامر إنتاج" emptyDetail="أنشئ أمراً من النموذج أعلاه.">
+ <div className="card">
+ <div className="toolbar">
+ <label className="field">
+ <span>الحالة</span>
+ <select className="input" value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>
+ <option value="">الكل</option>
+ <option value="draft">مسودة</option>
+ <option value="completed">منفَّذ</option>
+ <option value="cancelled">ملغي</option>
+ </select>
+ </label>
+ <span className="chip">{`أوامر منفَّذة: ${completed.length}`}</span>
+ <span className="chip">{`تكلفة الإنتاج: ${money(producedCost)}`}</span>
+ </div>
+ <QueryView query={orders} empty="لا توجد أوامر إنتاج" emptyDetail="أنشئ أمراً من النموذج أعلاه.">
           {(rows) => (
-            <DataTable
+ <DataTable
               rows={rows}
               rowKey={(row) => row.id}
               columns={[
                 { key: 'number', header: 'الرقم', align: 'ltr', cell: (row) => (
-                  <button className="btn sm" type="button" onClick={() => setExpanded(row.id === expanded ? '' : row.id)}>{row.number}</button>
+ <button className="btn sm" type="button" onClick={() => setExpanded(row.id === expanded ? '' : row.id)}>{row.number}</button>
                 ) },
                 { key: 'date', header: 'التاريخ', align: 'ltr', cell: (row) => shortDate(row.orderDate) },
                 { key: 'output', header: 'المنتج', cell: (row) => itemName(row.outputItemId) },
@@ -392,60 +392,60 @@ export default function ProductionOrdersPage() {
                   key: 'actions',
                   header: '',
                   cell: (row) => (
-                    <div className="row">
+ <div className="row">
                       {row.status === 'draft' && can('inventory.production.complete') && (
-                        <button className="btn sm primary" type="button" disabled={busy} onClick={() => act(row, 'complete')}>
-                          تنفيذ
-                        </button>
+ <button className="btn sm primary" type="button" disabled={busy} onClick={() => act(row, 'complete')}>
+ تنفيذ
+ </button>
                       )}
                       {row.status === 'draft' && can('inventory.production.manage') && (
-                        <button className="btn sm danger" type="button" disabled={busy} onClick={() => act(row, 'cancel')}>
-                          إلغاء
-                        </button>
+ <button className="btn sm danger" type="button" disabled={busy} onClick={() => act(row, 'cancel')}>
+ إلغاء
+ </button>
                       )}
-                    </div>
+ </div>
                   ),
                 },
               ]}
             />
           )}
-        </QueryView>
-      </div>
+ </QueryView>
+ </div>
 
       {open && (
-        <div className="card">
-          <div className="section-title">
-            <h3 dir="ltr">{open.number}</h3>
-            <span className="badge">{STATUS_LABELS[open.status] ?? statusLabel(open.status)}</span>
-          </div>
+ <div className="card">
+ <div className="section-title">
+ <h3 dir="ltr">{open.number}</h3>
+ <span className="badge">{STATUS_LABELS[open.status] ?? statusLabel(open.status)}</span>
+ </div>
 
-          <StatusTrack
+ <StatusTrack
             steps={['مسودة', 'مُنفَّذ', 'مُلغى']}
             current={open.status === 'draft' ? 0 : open.status === 'completed' ? 1 : 2}
             cancelled={open.status === 'cancelled'}
           />
 
-          <DocHead>
-            <DocField label="الرقم">
-              <span dir="ltr">{open.number}</span>
-            </DocField>
-            <DocField label="التاريخ">{shortDate(open.orderDate)}</DocField>
-            <DocField label="المنتج">{itemName(open.outputItemId)}</DocField>
-            <DocField label="الكمية المنتجة">
-              <span dir="ltr">{quantity(open.outputQty)}</span>
-            </DocField>
-            <DocField label="المستودع">{warehouseName(open.warehouseId)}</DocField>
-            <DocField label="تكلفة الوحدة">
-              <span dir="ltr">{money(open.unitCost)}</span>
-            </DocField>
-            <DocField label="البيان">{open.notes ?? '—'}</DocField>
-          </DocHead>
+ <DocHead>
+ <DocField label="الرقم">
+ <span dir="ltr">{open.number}</span>
+ </DocField>
+ <DocField label="التاريخ">{shortDate(open.orderDate)}</DocField>
+ <DocField label="المنتج">{itemName(open.outputItemId)}</DocField>
+ <DocField label="الكمية المنتجة">
+ <span dir="ltr">{quantity(open.outputQty)}</span>
+ </DocField>
+ <DocField label="المستودع">{warehouseName(open.warehouseId)}</DocField>
+ <DocField label="تكلفة الوحدة">
+ <span dir="ltr">{money(open.unitCost)}</span>
+ </DocField>
+ <DocField label="البيان">{open.notes ?? '—'}</DocField>
+ </DocHead>
 
-          <DataTable
+ <DataTable
             rows={open.components}
             rowKey={(row) => String(row.lineNo)}
             footer={[
-              <>المجموع</>,
+ <>المجموع</>,
               '',
               '',
               quantity(open.components.reduce((sum, row) => sum + Number(row.qty), 0)),
@@ -472,7 +472,7 @@ export default function ProductionOrdersPage() {
             ]}
           />
 
-          <Totals
+ <Totals
             items={[
               {
                 label: 'إجمالي كمية المكونات',
@@ -487,8 +487,8 @@ export default function ProductionOrdersPage() {
           />
 
           {open.status === 'draft' && <p className="muted">التكاليف تظهر أصفاراً حتى يُنفَّذ الأمر.</p>}
-        </div>
+ </div>
       )}
-    </Screen>
+ </Screen>
   );
 }

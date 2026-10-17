@@ -60,7 +60,8 @@ function Invoices() {
         ) : rows.length === 0 ? (
           <p className="muted">لا توجد فواتير مطابقة.</p>
         ) : (
-          <table>
+          <div className="table-wrap">
+            <table>
             <thead>
               <tr>
                 <th>الرقم</th>
@@ -97,7 +98,8 @@ function Invoices() {
                 </tr>
               ))}
             </tbody>
-          </table>
+            </table>
+          </div>
         )}
       </section>
     </>
