@@ -6564,8 +6564,8 @@ export class VanSalesService {
       plan.warehouseId !== plan.vanWarehouseId &&
       (!plan.needsCountSettlement || adjustmentPosted)
     ) {
-      const moves = await withTenantTx(this.database.db, tenantId, (tx) =>
-        this.inventory.recordInTx(
+      const moves = await withTenantTx(this.database.db, tenantId, async (tx) => {
+        const outMoves = await this.inventory.recordInTx(
           tx,
           tenantId,
           [
@@ -6580,6 +6580,40 @@ export class VanSalesService {
               lotId: plan.countLotId ?? undefined,
               costing: 'outAtAvg',
             },
+          ],
+          { allowNegative: false },
+        );
+
+        /**
+         * ⚖️ **تكلفةُ ما يرجع = ما صُرف من السيارة فعلًا** — وتُقرأ من الحركة الرسمية التي
+         * كُتبت الآن (`inventory_transactions.unit_cost`) ولا تُخترع ولا تُترك فارغة.
+         *
+         * والسببُ مقاسٌ لا نظريّ: رجلُ الدخول `costing:'inWithCost'` تُقيَّم بـ
+         * ‏`new Decimal(line.unitCost ?? '0')` (‏`inventory.service.ts:293-296`)، فبلا `unitCost`
+         * ترجع الكيلواتُ **بصفر قيمة**: تخرج من السيارة بمتوسطها (‏`outAtAvg`) وتدخل المستودعَ
+         * الرئيسيّ بلا قيمة، فيضيع الفرقُ من رصيد المخزون وينزل متوسطُ التكلفة هناك — وتكلفةُ
+         * المبيعات التالية تُحسب بأقلّ من حقيقتها فيظهر ربحٌ أكبر من الواقع. وقِيس طرفاه:
+         * في المثبّتة (‏`van-sales-stock-settlement.spec.ts`) ٦ كجم بتكلفة ٤٫٠٠ ⇒ **٢٤ ريالًا**
+         * ضاعت (‏١٠٤ ← ٨٠)، وعلى منشأة عرضٍ حيّة ١٠٠ كجم بتكلفة ٢٫٨٠٠٠ ⇒ **٢٨٠ ريالًا** ونزل
+         * المتوسط من ٢٫٨٠٠٠ إلى ٢٫١٠٠٠. وأمّا `carry_over` فلا يمرّ هنا فتبقى القيمة محفوظة.
+         */
+        const outTxId = outMoves.transactionIds[0] ?? null;
+        const returnedCostRow = outTxId
+          ? first(
+              await tx.execute(sql`
+                SELECT unit_cost::text AS "unitCost"
+                FROM inventory_transactions
+                WHERE id = ${outTxId}::uuid AND tenant_id = ${tenantId}::uuid
+                LIMIT 1
+              `),
+            )
+          : undefined;
+        const returnedCost = returnedCostRow?.unitCost == null ? '' : str(returnedCostRow.unitCost);
+
+        const inMoves = await this.inventory.recordInTx(
+          tx,
+          tenantId,
+          [
             {
               itemId: plan.itemId as string,
               warehouseId: plan.warehouseId as string,
@@ -6589,12 +6623,15 @@ export class VanSalesService {
               docId: loadOrderId,
               lineId: newId(),
               lotId: plan.countLotId ?? undefined,
+              unitCost: returnedCost.length > 0 ? returnedCost : undefined,
               costing: 'inWithCost',
             },
           ],
           { allowNegative: false },
-        ),
-      );
+        );
+
+        return { transactionIds: [...outMoves.transactionIds, ...inMoves.transactionIds] };
+      });
       remainingTxId = moves.transactionIds[1] ?? moves.transactionIds[0] ?? null;
     }
 

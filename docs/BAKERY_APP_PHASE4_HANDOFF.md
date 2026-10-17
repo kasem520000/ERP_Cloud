@@ -88,7 +88,8 @@ corepack pnpm run env:setup                            # يُعيد توليد .
 | **١٤ب** | **شاشةُ `/rep`**: عقدُ الحمولة في `@erp/web-van/rep-workspace`، ومنطقُ الشاشة في `apps/bakery/lib/rep-screen.ts` (٧ أحكام)، والصفحةُ `apps/bakery/app/rep/page.tsx` (~٧٠٠ سطر)، و`rep-app` صار `ready` بـ`href: '/rep'` | `76f97df` |
 | **١٤ج** | **‏PWA**: ‏`apps/bakery/public/{manifest.webmanifest,sw.js,icon.svg}` + `components/service-worker-register.tsx` + إعلانُ الـmanifest وتركيبُه في `app/layout.tsx` + ٤ أحكام. والقاعدة: **القشرةُ تُخزَّن والمالُ لا يُخزَّن** (‏`/api/` خروجٌ مبكرٌ **قبل** أوّل `respondWith`) | `7a71cc9` |
 | **١٥أ** | **تصميمُ `/rep` للجوال**: طبقةُ `.rep-*` في `app/globals.css` (هدفُ لمسٍ `max(--control-h,48px)`، خطُّ إدخالٍ ١٦px، مناطقُ آمنة، أرقامٌ `tabular-nums` بـ`--font-num`، صفوفٌ بطاقيةٌ **بلا `<table>`**، ‏`data-tone` للمعنى، رموزُ النظام فقط بلا لونٍ ستّ عشريّ) + ‏`viewportFit:'cover'` و`themeColor` = ‏`theme_color` الـmanifest + ١٠ أحكام. والمنطقُ لم يتغيّر بايتًا (استُبدل الـJSX وحده) | `5538260` |
-| **١٥ب** | **تمريرُ الجوال على الشاشات كلّها**: سببٌ مقاسٌ في `@erp/ui` (`FIELD_BASE = h-9 text-[13.5px]` ⇒ iOS يُكبّر عند التركيز؛ ‏`SIZES.sm = h-8` = ‏٣٢px دون هدف الإبهام) و`@media (max-width:640px)` يرفعهما بـ`min-height: 44px` و`font-size: 16px` مقيّدًا بـ`.bak-main` — و٣ أحكامٍ مزدوجةِ الطرف تقرأ مصدرَ النظام فتسقط إن كفّ السبب | **(هذا الالتزام)** |
+| **١٥ب** | **تمريرُ الجوال على الشاشات كلّها**: سببٌ مقاسٌ في `@erp/ui` (`FIELD_BASE = h-9 text-[13.5px]` ⇒ iOS يُكبّر عند التركيز؛ ‏`SIZES.sm = h-8` = ‏٣٢px دون هدف الإبهام) و`@media (max-width:640px)` يرفعهما بـ`min-height: 44px` و`font-size: 16px` مقيّدًا بـ`.bak-main` — و٣ أحكامٍ مزدوجةِ الطرف تقرأ مصدرَ النظام فتسقط إن كفّ السبب | `ece8ded` + `d20ec97` + `a49a451` |
+| **٢١** | **بياناتُ العرض الحقيقية + عيبان ماليّان**: ‏`pnpm demo:line` (‏`apps/api/scripts/demo-line.mjs`) يومُ خطٍّ كامل **عبر API** لا SQL (إنتاج ← تحميل ← استلام ← بيع ← تحصيل ⇒ سندُ قبضٍ مُرحَّل ← إقفال ← اعتماد) بتكرارٍ آمنٍ مقاس؛ وإصلاحُ **نسبة الضريبة في البذرة** (`0.1500` لمجموعةٍ اسمها «15%» ⇒ فاتورةُ ٦٠٠ بضريبة ٠٫٩٠) + ٣ أحكامٍ تثبّتها (والتخريبُ ⇒ `expected 0.15 to be 15`)؛ وإصلاحُ **ضياع قيمة المخزون في `return_to_main`** (الرجلُ الداخلة `inWithCost` بلا `unitCost` ⇒ ترجع الكيلواتُ بصفر قيمة: ٢٨٠ ريالًا ضاعت ومتوسطٌ نزل ٢٫٨٠٠٠←٢٫١٠٠٠) بقراءة تكلفة الحركة الخارجة من `inventory_transactions` + ٣ تأكيداتٍ على القيمة تسقط بلا إصلاح (‏`expected 80 to be close to 104`)؛ و`docs/ANDROID_REP_APP_BRIEF.md` (مطالبةُ تطبيق أندرويد) و`docs/BAKERY_PRODUCTION_READINESS.md` (الجاهزيةُ بما قِيس) | **(هذا الالتزام)** |
 | **١٥ج** | **بندُ ب٥ يُقفل**: `hrm.service.ts` — ‏`movementDate()` يتحقّق من الصيغة وأنّ التقويمَ يحمل التاريخ قبل `::date` (فـ`from=أمس` كان **٥٠٠**، قِيس)، ومدىً مقلوبٌ يُرفض؛ و`hrm.controller.ts` — ‏`movement_type` مجهولٌ يُرفض ٤٢٢ بدل تطبيعٍ صامتٍ إلى «الكلّ». وحكمٌ واحدٌ يقيس الطرفين (‏١٣ في `employee-movements.spec.ts`) | **(هذا الالتزام)** |
 | **١٦أ** | **بندُ ب١ يُقفل**: `resolveShortageUnitPriceInTx` — تحت سياسة `unit_cost` وأمرٍ بلا صنف (أو صنفٍ بلا رصيدٍ ولا سعر شراء) كان العجزُ يُقيَّم بمتوسط **أسعار البيع** فتُحمَّل مديونيةُ الموظّف بسعر بيعٍ وقرارُ المالك يقول «بالتكلفة». أُضيف مصدرُ تكلفةٍ أخير: متوسطُ `unit_cost` لمستندات الأمر (أساسٌ `document_unit_cost` + لقبُه في `@erp/web-van/custody`، وبلا هجرة). وقِيس: عجزُ ٢ كجم ⇒ ٨.٠٠٠٠ لا ٢٠.٠٠٠٠ | **(هذا الالتزام)** |
 | **١٦ب** | **مسطرةُ تواريخ الطلبات** `apps/api/src/common/date-param.ts`: ‏`isRealCalendarDay` (شكلٌ **ثمّ** تقويم) و`parseDayParam`/`parseClockParam` بـ٤٢٢ و`field` — استعملتها `accounting.service.ts` (‏`journalScope` المشتركة + `accountStatement` + `costCenterStatement` بالتواريخ والأوقات) و`reporting.service.ts` (‏`dayish` اكتسبت `.refine`؛ و`timeish` كانت صارمةً أصلًا) و`hrm.service.ts` (‏`movementDate` تفوّض إليها وتحتفظ برمزها). وقِيس قبل: ‏`journal-entries?from=أمس` ⇒ **٥٠٠ INTERNAL** و`reports/sales-invoices?from=2026-02-30` ⇒ **٥٠٠** | **(هذا الالتزام)** |
@@ -166,6 +167,8 @@ corepack pnpm -r run lint
 corepack pnpm --filter @erp/bakery run build
 corepack pnpm --filter @erp/staff run build
 corepack pnpm run openapi:export && git status --short             # يجب ألّا يظهر فرقٌ في openapi.json
+corepack pnpm run demo:line                                         # يومُ خطٍّ كامل عبر API (يلزم خادمٌ قائم)
+corepack pnpm run demo:line -- --report-only                        # بلا كتابة
 corepack pnpm run db:demo-repair                                    # قياسٌ فقط (افتراضيًّا)
 corepack pnpm run db:demo-repair -- --apply --tenant demo           # الكتابةُ بعد نسخةٍ احتياطية
 cd apps/api && corepack pnpm exec vitest run test/demo-repair.spec.ts test/report-invoices.spec.ts
@@ -531,7 +534,35 @@ text-[13px] text-ink'`؛ الجداولُ `overflow-x-auto w-full border-collaps
     ثانية**. و`next build` مع `next dev` قائمٍ يُفسد `.next` ⇒ يُوقف الخادمُ قبله ويُعاد بعده.
     وخادمُ الـAPI يُعاد بسرعةٍ من `dist` (‏`pnpm --filter @erp/api run start` = ‏`node
     dist/main.js`، ٤ ثوانٍ) إن كان `dist` مبنيًّا — فلا حاجة إلى `dev` لأجل معاينة.
-11. **أدواتُ القياس تكذب أيضًا**: ‏`grep -o 'text-\[12\.5px\]'` يُنتج «صنفٌ ناقص» زائفًا
+### البذرةُ والمخزون والضريبة (‏٢١ — أربعةُ أمورَ أُصيبت فعلًا)
+
+1. **البذرةُ تقرأ `dist` لا المصدر**: ‏`apps/api/scripts/seed.ts` يعمل بـ`tsx` لكنه يستورد
+   ‏`@erp/database` ⇒ يُحلّ إلى `packages/database/dist`. فأُصلحت نسبةُ الضريبة في المصدر
+   وبُذرت منشأةٌ **بعد الإصلاح** فخرجت بالقيمة القديمة من `dist` المبنيّ قبله. والقاعدة:
+   ‏`pnpm --filter @erp/database run build` **قبل** أيّ ادّعاءٍ عن البذرة، والدليلُ
+   ‏`grep rate packages/database/dist/seed-demo.js` + قراءةُ الصف من القاعدة.
+2. **`tax_groups.rate` نسبةٌ مئوية لا كسر**: المحرّك `subtotal.mul(taxRate.div(100))`
+   (‏`van-sales.service.ts:4627` و`:8112`) ومثبّتةُ المنتج تُنشئ ١٥٪ بـ`rate:'15'`
+   (‏`report-accounting.spec.ts:175`). والبذرةُ كانت `0.1500` بتعليقٍ يقول «كسر» ⇒
+   **التعليقُ كاذبٌ والرقمُ معه**، وفاتورةُ ٦٠٠ خرجت بضريبة ٠٫٩٠. والنسبةُ **تُقفل بعد أوّل
+   استعمال**: ‏`PATCH …/tax-groups/:id` ⇒ ٤٠٩ `TAX_GROUP_RATE_LOCKED` متى أشارت
+   ‏`sales_invoice_lines.tax_group_id` إليها (‏`catalog.service.ts:879-905`) — فمنشأةٌ بِيع
+   فيها فاتورةٌ واحدة لا تُصحَّح من المنتج (بندُ ب٢٢).
+3. **رجلُ المخزون الداخلة تحتاج `unitCost` صراحةً**: ‏`inventory.service.ts:293-296` تُقيّم
+   الداخلة بـ`new Decimal(line.unitCost ?? '0')` — فأيّ حركةٍ بين مستودعين تُرسل رجلَها
+   الداخلة بـ`costing:'inWithCost'` **بلا تكلفة** تُدخل الكميةَ بصفر قيمة (وتُخفض المتوسط).
+   وأُصيب هذا في `return_to_main` (‏`van-sales.service.ts:6558+`) فأُصلح بقراءة
+   ‏`inventory_transactions.unit_cost` للحركة الخارجة وتمريرها للداخلة **في المعاملة نفسها**
+   — فالتماثلُ بحسب البناء لا بحسابٍ عندنا. والقاعدةُ الأعمّ: **أيُّ حكمٍ على تسويةٍ مخزنية
+   يجب أن يقيس القيمةَ لا الكميةَ وحدها** (ومثبّتةُ `van-sales-stock-settlement.spec.ts` كان
+   فيها `balanceValue` جاهزًا ومع ذلك كان الحكمُ يقيس `officialQty` فقط).
+4. **كلُّ كتابةٍ في `van-sales` تُرجع مساحةَ العمل لا السجلّ**: ‏`POST /load-orders`
+   و`/documents` و`/collections` و`confirm-receipt` تُرجع `{policy, officialStock,
+   postingReadiness, windows,…}` ⇒ فمن قرأ `id` من الردّ قرأ `undefined` وأرسله في الخطوة
+   التالية ⇒ ٤٢٢ «يجب اختيار أمر التحميل». والسجلّاتُ من `GET /van-sales/me` (مندوب) أو
+   ‏`/dashboard` (نطاقُ منشأة). و**الجردُ `countedQty` عدٌّ لا إضافة**: فإعادةُ إرسال
+   «١٠٠٠ كجم» بعد صرف ٣٥٠ تصنع فائضًا مفبركًا وقيدًا مُرحَّلًا (أُصيب فعلًا).
+5. **أدواتُ القياس تكذب أيضًا**: ‏`grep -o 'text-\[12\.5px\]'` يُنتج «صنفٌ ناقص» زائفًا
    (فـ`grep -F` للقيم الاعتباطية)، و`cmd | tail` يُخفي رمزَ الخروج (فـ`cmd > /tmp/x.log
    2>&1; echo exit=$?; grep -c 'error TS' /tmp/x.log`)، و`grep -c` بلا مطابقةٍ يخرج بـ١.
 
@@ -652,7 +683,12 @@ text-[13px] text-ink'`؛ الجداولُ `overflow-x-auto w-full border-collaps
 | ‏`apps/bakery/lib/staff-handoff.ts` + `components/staff-handoff-link.tsx` + `app/accounting/page.tsx` | سبعةَ عشرَ وجهةً في لوحة staff (`ACCOUNTING_DESTINATIONS`, `TREASURY_DESTINATIONS`, `TREASURY_NOT_LISTED`)، و`staffBaseUrl()`/‏`handoffHref()`، والرابطُ الذي يصنع الرمزَ عند النقر |
 | ‏`packages/database/src/cli/demo-repair.ts` + `apps/api/test/demo-repair.spec.ts` | أداةُ الإصلاح المقياس (٢٠ب) ومثبّتتُها (١٣ حكمًا)؛ وشقيقتُها `demo-audit.ts` (قراءةٌ فقط، ١٩)؛ والأمران `pnpm db:demo-repair` و`pnpm db:demo-audit` |
 | ‏`apps/api/src/modules/treasury/{treasury.controller,bank-feeds.controller,treasury.service}.ts` | المساراتُ الحقيقية: ‏`@Controller()` **فارغةٌ** (فالسنداتُ والتحويلاتُ والإغلاقاتُ ومواضعُ النقد في الجذر)، و`bank-feeds` وحدها تحت `/treasury`؛ و`vouchers()` :٢٠٣ (بـ`.limit(500)` :٢٧٢)، و`createVoucherInTx` :٣٤٠، و`postVoucherInTx` :٧٤١ |
-| ‏`packages/web-core/src/token-bridge.tsx` | ‏`TokenBridge` و`handoffAction` و`HANDOFF_FAILED_MARKER='failed'` — آليّةُ التسليم التي تستعملها `/accounting` (‏AUD-08) |
+| ‏`packages/web-core/src/token-bridge.tsx` |
+| ‏`apps/api/scripts/demo-line.mjs` (أمرُ الجذر `pnpm demo:line`) | يومُ خطٍّ كامل عبر API (٢١أ): حمولاتٌ مقاسة، وتكرارٌ آمن بمفاتيحَ مشتقة من `--tag`، وحارسُ نسبة الضريبة، وقراءةُ السجلّات من `/van-sales/me` لا من ردود الكتابة، و`--report-only` و`--remaining-action` و`--no-settle-stock` و`--allow-mismatched-vat` |
+| ‏`packages/database/src/seed-demo.ts:205-220` (`DEMO_TAX_GROUPS`) | نسبةُ الضريبة **مئوية** (`15.0000`) ومصدَّرةٌ ليثبّتها `seed-demo.spec.ts` (٣ أحكام) — والبذرةُ تُقرأ من `dist` فلا بدّ من بناء الحزمة |
+| ‏`apps/api/src/modules/inventory/inventory.service.ts:283-300` | صيغةُ التقييم: الداخلةُ `line.unitCost ?? '0'` والخارجةُ `average` (أو `outAtOriginalCost` بـ`unitCost`) — فمن يُرسل رجلًا داخلةً بلا تكلفة يُدخل صفرَ قيمة |
+| ‏`deploy/k8s/web.yaml:177-217` + `ingress.yaml:39-42` + `kustomization.yaml:55-56` + `deploy/docker-compose.yml:225-235` + `Dockerfile.web` | مرافقُ نشر المخابز كاملةٌ ساكنةً (‏Deployment/Service/Ingress/صورة/compose) — وبلا `backup` ولا مراقبة في `deploy/` و`infrastructure/` (ب٢٤) |
+| ‏`docs/BAKERY_PRODUCTION_READINESS.md` + `docs/ANDROID_REP_APP_BRIEF.md` | الجاهزيةُ للإنتاج بما قِيس (وما لم يُقَس مُعلَن) · مطالبةُ تطبيق أندرويد للمندوبين بعقدٍ مقاس | ‏`TokenBridge` و`handoffAction` و`HANDOFF_FAILED_MARKER='failed'` — آليّةُ التسليم التي تستعملها `/accounting` (‏AUD-08) |
 | ‏`packages/database/migrations/0131_van_sales_honest_defaults.sql` (+‏`down/`) | آخرُ هجرة؛ والقادمةُ ٠١٣٢ |
 | ‏`docs/BAKERY_APP_PHASE3_SLICE4_REPORT.md` | سجلُّ الشرائح (آخرُها §٢٠) + §«سجلُّ البنود المفتوحة والقرارات المطلوبة» (٦ قراراتٍ + ١٢ بندَ عمل) — **وهذا السجلُّ لم يعد آخرَ الملفّ** منذ أُضيفت §٢٠ بعده، فالمؤشّرُ الحيّ هو §٧ من هذه الوثيقة |
 
@@ -724,7 +760,7 @@ text-[13px] text-ink'`؛ الجداولُ `overflow-x-auto w-full border-collaps
   و`/auth/handoff` بمنشأةٍ حقيقية). فالخطوةُ المطلوبة: تشغيلُ `apps/api` و`apps/bakery`
   والدخولُ بحساب المالك على `http://localhost:3005/treasury` ثمّ `/accounting` والنقرُ على
   وجهةٍ واحدة للتأكد أنّ التسليمَ يصل (ويحتاج `NEXT_PUBLIC_STAFF_URL` و`apps/staff`
-  قائمةً على ٣٠٠١). **وقِيس حيًّا في ٢٠ح ما يُقاس بلا عين**: الصفحاتُ ٢٠٠، وأذوناتُ المالك
+  قائمةً على ٣٠٠١). **وفي ٢١ صارت البياناتُ الحقيقية جاهزةً في منشأة `wahda`** (يومُ خطٍّ كامل بـ`pnpm demo:line`: صندوقٌ بـ٤٦٠٫٠٠٠٠ **مُطابَق**، وبنكٌ **بلا مطابقة**، وسندُ خطٍّ مُرحَّل `RV-000001` بـ٤٦٠٫٠٠، وإيراد ١١٥٠، وعهدة ١٠٠ كجم، وإقفالٌ `settled` بلا عجز) — فالشاشاتُ تُرى مملوءةً لا فارغة، والدخولُ `owner@wahda.test`/`rep@wahda.test` بكلمتَي سرّ `.env`. **وقِيس حيًّا في ٢٠ح ما يُقاس بلا عين**: الصفحاتُ ٢٠٠، وأذوناتُ المالك
   تُظهر الوحدتين (١١ من ١١)، ومواضعُ النقد وأرصدتُها تصل، والسنداتُ ٠ صفوف (فالبذرةُ لا
   تُنشئ سندات)، و`POST /auth/handoff` ⇒ ٢٠١ ثمّ `redeem` على أصل staff ⇒ **٢٠٠ بجلسةٍ
   كاملة** ثمّ **٤٠١** على الاستبدال الثاني، وثلاثُ وجهاتٍ في اللوحة ٢٠٠. **فالباقِي هو
@@ -734,7 +770,54 @@ text-[13px] text-ink'`؛ الجداولُ `overflow-x-auto w-full border-collaps
   عنوانَ جهازه هو (والقيمةُ عُدِّلت في `.env` المحلّيّ وحده — وهو في `.gitignore` — ونسخةُ
   الأصل في `/tmp/env.backup`). وبندُ ب١٥ (عينُ المالك على staff ومنصّة الإدارة بعد
   ‏`@source`) ما زال قائمًا ويُضمّ إلى هذه الجولة.
-- **ب٢٠ (جديدٌ بعد ٢٠ — قرارٌ للمالك إن أريد)**: شاشةُ الخزينة **بلا مسارِ كتابة على
+- **ب٢٠ — أُقفل في ٢١ بقرار المالك**: الخزينةُ في المخابز **قراءةٌ + تسليمٌ** إلى لوحة staff،
+  ولا مسارَ كتابةٍ فيها (وحكمٌ في `treasury-screen.spec.ts` يمنع إضافةَ `apiPost('/vouchers'…)`
+  و`/post` و`/void` و`/cash-transfers`). وإن أُريد غدًا «توريدُ نقدية الخطّ» كعملٍ فطريقُه
+  ‏`POST /cash-transfers` بين موضعَي نقد (صندوقُ السيارة ← الخزينة) باعتمادٍ من أمين الخزينة
+  (‏`send`/`receive`) — **لا سندٌ ثانٍ** على النقد نفسه (فسندُ القبض يكتبه ويُرَحِّله
+  ‏`collectCustomerDebt` أصلًا).
+- **ب٢٢ (جديدٌ بعد ٢١ — قرارٌ للمالك: نسبةُ ضريبةٍ مقفولة على قيمةٍ خاطئة)**: بذرةُ العرض
+  كانت تكتب مجموعةَ «ضريبة القيمة المضافة 15%» بـ`rate:'0.1500'` والمحرّك يحسب `rate/100`
+  ⇒ **٠٫١٥٪** (قِيس: فاتورةُ ٦٠٠٫٠٠ بضريبة ٠٫٩٠). أُصلحت البذرةُ (`15.0000`) وثبّتتها
+  ثلاثةُ أحكام (والتخريبُ ⇒ `expected 0.15 to be 15`)، وصُحّحت `bakeryco` و`bakery` عبر
+  ‏`PATCH …/tax-groups/:id` (٢٠٠)، وبُذرت `wahda` بعد البناء ⇒ ١٥٫٠٠٠٠ من البذرة نفسها
+  وفاتورتُها ٦٩٠٫٠٠ منها ضريبة ٩٠٫٠٠. **وبقيت `demo` مقفولة**: ‏`PATCH` ⇒ ٤٠٩
+  ‏`TAX_GROUP_RATE_LOCKED` لأنّ فاتورتَي القياس أشارتا إليها (‏`catalog.service.ts:879-905`)
+  ⇒ والقرارُ للمالك: (أ) مجموعةٌ جديدة بـ١٥٪ وإعادةُ ربط الأصناف بها + تسميةُ القديمة بما
+  لا يكذب («٠٫١٥٪ — تاريخية»)، أو (ب) اعتبارُ `demo` ساحةَ تطويرٍ داخلية والعرضُ من `wahda`.
+  **ولا يُعدَّل تاريخُ فاتورةٍ مُصدَرة** في الخيارين.
+- **ب٢٣ — أُقفل في ٢١ (عيبٌ ماليٌّ كان سيصل إلى العملاء)**: إرجاعُ متبقّي السيارة إلى
+  المستودع الرئيسيّ (`remainingAction:'return_to_main'`) كان يُعيد **الكميةَ بلا قيمة**: الرجلُ
+  الخارجة `outAtAvg` والداخلةُ `inWithCost` **بلا `unitCost`** والمحرّك يُقيّمها بـ`?? '0'`
+  (‏`inventory.service.ts:293-296`). وقِيس طرفاه: على منشأةٍ حيّة ١٠٠ كجم بتكلفة ٢٫٨٠٠٠ ⇒
+  قيمةُ الخبز ٨٤٠ لـ٤٠٠ كجم بمتوسط **٢٫١٠٠٠** بدل ١١٢٠ بمتوسط ٢٫٨٠٠٠ (‏**٢٨٠ ريالًا ضاعت**
+  ولا قيدَ في الأستاذ للعودة)، وعلى مثبّتة التسوية ٦ كجم × ٤٫٠٠ ⇒ **٢٤ ريالًا** (‏`expected
+  80 to be close to 104`). والأثرُ المستمرّ: متوسطُ تكلفةٍ منخفضٌ ⇒ **كلفةُ مبيعاتٍ أقلّ من
+  الحقيقة ⇒ ربحٌ أكبر من الواقع**. فأُصلح بقراءة `unit_cost` الحركةِ الخارجة من
+  ‏`inventory_transactions` وتمريره للداخلة في المعاملة نفسها، وأُضيفت ثلاثةُ تأكيداتٍ على
+  القيمة في الحكم القائم (‏`van-sales-stock-settlement.spec.ts:584+`، وكان يقيس الكميةَ وحدها
+  ومع ذلك فمساعدُ `balanceValue` موجودٌ في الملفّ وتعليقُه «a quantity can come back while
+  its value does not») ⇒ **١٤/١٤**، والتخريبُ يعيد السقوطَ حرفًا، والاستعادةُ بالبصمة
+  ‏`603f00d02a00db3aeb104729045f6f19`. **وبقي أثرُ البيانات**: منشأةُ `bakeryco` تحمل
+  متوسطًا مُخفَّضًا (٢٫١٠٠٠) و٢٨٠ ريالًا ناقصة، وإعادةُ التقييم تحتاج قرارًا محاسبيًّا
+  (بأيّ تاريخ وبأيّ قيد) فلا تُنفَّذ تلقائيًّا — وتُترك دليلًا مقاسًا.
+- **ب٢٤ (جديدٌ بعد ٢١ — الدرجةُ الأولى للإنتاج)**: **لا نسخَ احتياطيًّا ولا مراقبة** في
+  ‏`deploy/` ولا `infrastructure/` (قِيس: ‏`grep -rliE "backup|pg_dump|prometheus|
+  alertmanager|grafana"` ⇒ **لا شيء**)، وقاعدةُ البيانات Statefulset بـPVC واحدة ⇒ فقدُها
+  فقدُ بيانات العملاء. والموجودُ قابلٌ للبناء عليه: ‏`/health/live` و`/health/ready`
+  (‏٢٠٠ مقاس)، وسجلاتٌ JSON فيها `traceId`، وتحديدُ معدل (`x-ratelimit-limit: 10` على
+  ‏`/auth/login` و٦٠٠ على سواه)، وترويساتُ أمانٍ كاملة (‏CSP/HSTS/nosniff/referrer-policy/
+  ‏SAMEORIGIN)، و`authorization: [redacted]` في السجلّ.
+- **ب٢٥ (جديدٌ بعد ٢١ — تحقّقُ النشر مؤجَّلٌ لأدواتٍ غير متوفّرة)**: مرافقُ نشر المخابز
+  **موجودةٌ وكاملة** (‏`deploy/k8s/web.yaml:177-217` بـDeployment+Service و`runAsNonRoot`
+  وreadiness/liveness وrequests/limits، و`ingress.yaml:39-42` بمضيف `bakery.erp.example`
+  وشهادة TLS، و`kustomization.yaml:55-56` بصورة `ghcr.io/albaraaq/cloud-saas-erp-bakery`
+  و`replicas`، و`docker-compose.yml:225-235`، و`Dockerfile.web --build-arg APP=bakery`) —
+  لكنّ **التحقّق ساكنٌ** لأنّ `docker`/`kubectl`/`kustomize` غير متوفّرة في بيئة العمل
+  (قِيس بـ`which`). فالمطلوبُ على آلةٍ فيها Docker: بناءُ الصورة، ‏`compose up`، ‏
+  `kustomize build | kubectl apply --dry-run=server`، والتحققُ من `/api/health/live` عبر
+  Ingress.
+- **ب٢٠ (كان قرارًا للمالك — أُقفل أعلاه)**: شاشةُ الخزينة **بلا مسارِ كتابة على
   قصد** (وحكمٌ في المثبّتة يمنع إضافةَ `apiPost('/vouchers'…)` و`/post` و`/void`
   و`/cash-transfers`). فإن أراد المالكُ «توريدَ نقدية الخطّ إلى الخزينة» **كعمل** فطريقُه
   ‏`POST /cash-transfers` (تحويلٌ بين موضعَي نقد: صندوقُ السيارة ← الخزينة) لا سندٌ ثانٍ،

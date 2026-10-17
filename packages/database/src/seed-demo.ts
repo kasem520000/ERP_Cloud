@@ -202,9 +202,22 @@ const DEMO_CATEGORIES = [
   { code: 'SRV', nameAr: 'خدمات', nameEn: 'Services' },
 ];
 
-/** Rate is stored as a fraction (0.1500 = 15%), matching `tax_groups.rate`. */
-const DEMO_TAX_GROUPS = [
-  { nameAr: 'ضريبة القيمة المضافة 15%', nameEn: 'VAT 15%', rate: '0.1500', vatAccountCode: '2222001' },
+/**
+ * ‏`tax_groups.rate` **نسبةٌ مئوية لا كسر** — والمحورُ مقاسٌ لا منقول:
+ *
+ *   - المحرّك: ‏`subtotal.mul(taxRate.div(100))` (‏`apps/api/src/modules/van-sales/
+ *     van-sales.service.ts:4627`)، والمسارُ نفسه في المرتجعات (`:8112`).
+ *   - ومثبّتةُ المنتج تنشئ مجموعةَ الـ١٥٪ بـ`rate: '15'` (‏`apps/api/test/
+ *     report-accounting.spec.ts:175`).
+ *
+ * وكان هنا `0.1500` بتعليقٍ يقول «كسر» — فقِيس على منشأة العرض: فاتورةُ ٦٠٠٫٠٠ خرجت
+ * بـ`taxTotal = 0.90` و`total = 600.90` أي **٠٫١٥٪** لا ١٥٪. والتعليقُ كان كاذبًا والرقمُ
+ * معه، والنسبةُ تُقفل بعد أوّل استعمال (`TAX_GROUP_RATE_LOCKED` حين تشير
+ * ‏`sales_invoice_lines.tax_group_id` إليها) — فمنشأةُ العرض التي بِيع فيها فاتورتان لم يعد
+ * بالإمكان تصحيحُها من المنتج، وأمّا الجديدةُ فتُصحَّح ببذرةٍ صحيحة (بندُ ب٢٢).
+ */
+export const DEMO_TAX_GROUPS = [
+  { nameAr: 'ضريبة القيمة المضافة 15%', nameEn: 'VAT 15%', rate: '15.0000', vatAccountCode: '2222001' },
   { nameAr: 'معفاة من الضريبة', nameEn: 'Exempt', rate: '0.0000', vatAccountCode: undefined },
 ];
 

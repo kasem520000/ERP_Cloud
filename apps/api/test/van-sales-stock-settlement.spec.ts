@@ -603,8 +603,14 @@ describe('Van Sales — stock & custody settlement against the official ledger',
         (noDecision.body as { error?: { code?: string } }).error?.code,
     ).toBe('VAN_CLOSING_REMAINING_ACTION_REQUIRED');
 
-    const before = { main: await officialQty(mainWarehouseId), van: await officialQty(vanFor('s3')) };
+    const before = {
+      main: await officialQty(mainWarehouseId),
+      van: await officialQty(vanFor('s3')),
+      mainValue: await balanceValue(mainWarehouseId),
+      vanValue: await balanceValue(vanFor('s3')),
+    };
     expect(before.van).toBe(6);
+    expect(before.vanValue, 'وللسيارة قيمةٌ قبل الإرجاع (وإلا فالمقارنةُ بلا معنى)').toBeGreaterThan(0);
 
     const approve = await api(
       ctx.server,
@@ -628,6 +634,26 @@ describe('Van Sales — stock & custody settlement against the official ledger',
     // السيارة صفر: لا عهدة معلّقة ولا رصيد بلا مالك.
     expect(await officialQty(vanFor('s3'))).toBe(0);
     expect(await officialQty(mainWarehouseId)).toBe(before.main + 6);
+
+    /**
+     * ‏⚖️ **والقيمةُ ترجع مع الكمية** — وهذا هو الطرفُ الذي كان ساقطًا من التغطية.
+     *
+     * رجلُ الخروج من السيارة تُقيَّم بمتوسط السيارة (‏`costing:'outAtAvg'`)، وأمّا رجلُ
+     * الدخول إلى المستودع الرئيسيّ فـ`costing:'inWithCost'` **بلا `unitCost`** — والمحرّك
+     * يُقيّم الداخل بـ`line.unitCost ?? '0'` (‏`inventory.service.ts:293-296`)، فالكيلواتُ
+     * ترجع **بصفر قيمة**: يضيع فرقُها من رصيد المخزون وينزل متوسطُ التكلفة في المستودع
+     * الرئيسيّ (فقِيس على منشأة عرضٍ حيّة: ١٠٠ كجم بتكلفة ٢٫٨٠٠٠ رجعت فصارت القيمةُ ٨٤٠
+     * لـ٤٠٠ كجم بمتوسط ٢٫١٠٠٠ بدل ١١٢٠ بمتوسط ٢٫٨٠٠٠ — أي ٢٨٠ ريالًا لم ترجع، وتكلفةُ
+     * المبيعات التالية تُحسب بأقلّ من حقيقتها فيظهر ربحٌ أكبر من الواقع).
+     */
+    const valueBefore = before.mainValue + before.vanValue;
+    const valueAfter = (await balanceValue(mainWarehouseId)) + (await balanceValue(vanFor('s3')));
+    expect(valueAfter, 'قيمةُ المخزون (رئيسيّ + سيارة) يجب أن تُحفظ عبر الإرجاع').toBeCloseTo(valueBefore, 2);
+    expect(await balanceValue(vanFor('s3')), 'السيارةُ صفر كميةً وصفر قيمةً').toBe(0);
+    expect(
+      await balanceValue(mainWarehouseId),
+      'الرئيسيُّ اكتسب قيمةَ الستّة كيلو لا كميتَها وحدها',
+    ).toBeCloseTo(before.mainValue + before.vanValue, 2);
   });
 
   it('settles a surplus count through the same official document, in the other direction', async () => {
