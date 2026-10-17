@@ -135,6 +135,30 @@ select:-webkit-autofill {
   background: var(--inset); color: var(--muted-2);
 }
 
+/*
+ * «التفاصيل التقنية» — السجلُّ الهندسيّ مطويًّا.
+ *
+ * السطرُ الظاهرُ للعميل `summaryAr` (جملةٌ بلغة العمل)، وما تحته (`planAr` ومساراتُ API
+ * وأسماءُ الملفات) لمهندسٍ يقرأ لا لعميلٍ يستعمل. وعرضُها مفتوحةً افتراضيًّا كان يجعل
+ * خريطةَ الوحدات جدارَ نصٍّ — قِيس من لصقة صاحبِ العمل (٢٠٢٦-١٠-١٧) حيث طغى النصُّ
+ * الهندسيّ على الصفحة كلّها. وبلا رموزِ لونٍ ستّ عشرية: رموزُ النظام فقط (قاعدةُ ١٨).
+ */
+.bak-tech { border-top: 1px dashed var(--line); padding-top: 8px; }
+.bak-tech > summary {
+  cursor: pointer; list-style: none; user-select: none;
+  display: inline-flex; align-items: center; gap: 6px; min-height: 28px;
+  font-size: 12px; font-weight: 700; color: var(--muted-2);
+}
+.bak-tech > summary::-webkit-details-marker { display: none; }
+.bak-tech > summary::before { content: '▸'; font-size: 10px; transition: transform 120ms ease; }
+.bak-tech[open] > summary::before { transform: rotate(90deg); }
+.bak-tech > summary:hover, .bak-tech > summary:focus-visible { color: var(--text); }
+.bak-tech[open] { display: grid; gap: 8px; }
+.bak-tech .bak-endpoints { padding-bottom: 2px; }
+
+/* وسيلةُ «مخطَّط» تُستبدل بقولٍ صريحٍ حين لا يكون ثمّة مخطَّط (فلا تناقضَ مع «١١ من ١١»). */
+.bak-legend-note { font-size: 11.5px; color: var(--muted-2); }
+
 @media (max-width: 900px) {
   .bak-shell { grid-template-columns: 1fr; }
   .bak-side {

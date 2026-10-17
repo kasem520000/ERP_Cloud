@@ -257,3 +257,96 @@ describe('تحجيمُ الخطّ في خريطة الوحدات', () => {
     expect(asClerk.length).toBeGreaterThan(asRep.length);
   });
 });
+
+/**
+ * نصُّ العميل لا نصُّ المهندس — تنفيذُ بند «بياناتٌ تظهر في الشاشات لا تصلح للإنتاج».
+ *
+ * الدليلُ كان لصقةُ صاحبِ العمل (‏2026-10-17): خريطةُ الوحدات عرضت `planAr` كاملًا لكلّ
+ * وحدة، وفيه مساراتُ API وأسماءُ ملفاتٍ ومكتبات (‏`decimal.js`، `tests/staff-handoff.spec.ts`)
+ * وأرقامُ شرائح («خطأُ الشريحة ١٣أ») ورموزُ أخطاء — فصارت الصفحةُ جدارَ نصٍّ هندسيٍّ يُعرض
+ * على عميل. والفصلُ الآن: ‏`summaryAr` جملةٌ بلغة العمل (ظاهرة)، و`planAr` مع المسارات
+ * دليلُ مهندسٍ داخل «التفاصيل التقنية» المطويّة — فلا ضاع الصدقُ ولا فُرض على العميل.
+ */
+describe('نصُّ العميل — لا مساراتٌ ولا أسماءُ ملفاتٍ في واجهة العميل', () => {
+  const pageSource = readFileSync(join(appDir, 'page.tsx'), 'utf8');
+  const guardSource = readFileSync(
+    fileURLToPath(new URL('../components/bakery-guard.tsx', import.meta.url)),
+    'utf8',
+  );
+
+  /** ما لا يجوز أن يقرأه عميل: مسارٌ أو ملفٌّ أو مكتبةٌ أو رقمُ شريحةٍ أو رمزُ خطأ. */
+  const INTERNAL_TOKENS = [
+    'apps/', 'packages/', '.ts', '.tsx', 'spec', 'tests/', '@erp/', 'decimal.js',
+    'GET /', 'POST /', 'PUT /', 'PATCH /', 'DELETE /',
+    'الشريحة', 'قِيس', 'بندُ', 'staff', 'web-van', 'AUD-', 'VAN_', 'ADDON_',
+    'idempotencyKey', 'TreasuryService', 'enabledApps', 'LIMIT', 'meta.total',
+    'periodTotals', 'page.tsx', 'service.ts', 'ZATCA',
+  ] as const;
+
+  it('لكلّ وحدةٍ `summaryAr` جملةٌ بلغة العمل — لا شعارٌ قصير ولا فقرة', () => {
+    for (const module of BAKERY_MODULES) {
+      const text = module.summaryAr.trim();
+      expect(text.length, `${module.key}: بلا وصفٍ للعميل`).toBeGreaterThanOrEqual(40);
+      expect(text.length, `${module.key}: ${text.length} حرفًا — أطول من سطرَين على الجوال`).toBeLessThanOrEqual(160);
+      expect(text.endsWith('.'), `${module.key}: جملةٌ تنتهي بنقطة`).toBe(true);
+    }
+  });
+
+  it('لا مصطلحَ هندسيًّا في `summaryAr` — والكلمةُ تُسقط الحكمَ باسم الوحدة', () => {
+    for (const module of BAKERY_MODULES) {
+      for (const token of INTERNAL_TOKENS) {
+        expect(module.summaryAr.includes(token), `${module.key}: «${token}» مصطلحٌ داخليّ في نصّ العميل`).toBe(false);
+      }
+    }
+  });
+
+  it('السجلُّ الهندسيّ يبقى — لكن داخل مطويّة «التفاصيل التقنية»', () => {
+    const detailsAt = pageSource.indexOf('<details className="bak-tech">');
+    const detailsEnd = pageSource.indexOf('</details>', detailsAt);
+    const summaryAt = pageSource.indexOf('{module.summaryAr}');
+    const planAt = pageSource.indexOf('{module.planAr}');
+    expect(summaryAt, 'الصفحةُ لا تعرض وصفَ العميل').toBeGreaterThan(-1);
+    expect(detailsAt, 'لا مطويّةَ «التفاصيل التقنية» في الصفحة').toBeGreaterThan(-1);
+    expect(planAt, 'السجلُّ الهندسيّ يجب أن يبقى معروضًا — مطويًّا').toBeGreaterThan(detailsAt);
+    expect(planAt, 'السجلُّ الهندسيّ خرج من المطويّة').toBeLessThan(detailsEnd);
+    expect(pageSource.indexOf('module.endpoints.map'), 'مساراتُ API خارج المطويّة').toBeGreaterThan(detailsAt);
+  });
+
+  it('الشريطُ الجانبيّ يقول `summaryAr` ولا يهمس بالسجلّ الهندسيّ في التلميح', () => {
+    expect(guardSource.includes('module.planAr'), 'التلميحُ كان يعرض فقرةً هندسية كاملة').toBe(false);
+    expect(guardSource.includes('module.summaryAr'), 'التلميحُ لا يقول شيئًا للعميل').toBe(true);
+  });
+
+  it('وسيلةُ «مخطَّط» مشروطة — فلا تُعرض والكلُّ مبنيّ (تناقضٌ مع «١١ من ١١»)', () => {
+    expect(guardSource.includes('hasPlanned ?'), 'الوسيلةُ غير مشروطة').toBe(true);
+    if (BAKERY_MODULES.every((module) => module.status === 'ready')) {
+      expect(guardSource.includes('bak-legend-note'), 'بلا مخطَّط يجب قولُ ذلك صراحة').toBe(true);
+    }
+  });
+
+  it('ادّعاءُ «المتبقّي» في تطبيق المندوب لا يعود — فـPWA سلّمتها ١٤ج', () => {
+    const repApp = BAKERY_MODULES.find((module) => module.key === 'rep-app');
+    expect(repApp?.planAr.includes('والمتبقّي'), 'ادّعاءٌ قديمٌ بأنّ manifest/service worker لم تُبنَ').toBe(false);
+    expect(repApp?.planAr.includes('manifest.webmanifest'), 'والصحيحُ أن يُقال ما بُني فعلًا').toBe(true);
+  });
+
+  it('لا مسارَ API ولا رمزَ خطأ في نصّ الصفحة الظاهر — إلا داخل مطويّةٍ أو تعليق', () => {
+    const jargon = /(GET|POST|PUT|PATCH|DELETE) \/|ADDON_[A-Z_]+|enabledApps|apps\/api|van_sales\.[a-z]+/;
+    let depth = 0;
+    const leaks: string[] = [];
+    for (const raw of pageSource.split('\n')) {
+      const line = raw.trim();
+      if (line.includes('<details className="bak-tech">')) depth += 1;
+      if (line.includes('</details>')) depth = Math.max(0, depth - 1);
+      const isComment = line.startsWith('*') || line.startsWith('//') || line.startsWith('/*') || line.startsWith('{/*');
+      // ‏**نصٌّ معروض** لا سطرُ منطق: فـ`const canVan = can('van_sales.view')` كودٌ لا يقرأه
+      // عميل، وأمّا جملةٌ عربية فيها مسارٌ أو رمزٌ فهي ما يُطبع على الشاشة. (والتمييزُ
+      // بالعربية + استبعاد أوامر الكود — وقِيس: بلا هذا الاستبدال سقط الحكمُ على سطرِ منطق.)
+      const isCode = /^(const|let|import|if|return|export|function|await|type|}\s*else)/.test(line);
+      const hasArabic = /[\u0600-\u06FF]/.test(line);
+      if (isComment || isCode || depth > 0 || !hasArabic || !jargon.test(line)) continue;
+      leaks.push(line.slice(0, 100));
+    }
+    expect(leaks, `مصطلحاتٌ هندسية في نصّ العميل: ${leaks.join(' | ')}`).toEqual([]);
+  });
+});

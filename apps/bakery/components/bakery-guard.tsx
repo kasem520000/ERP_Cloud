@@ -79,6 +79,7 @@ export function BakeryGuard({ children }: { children: React.ReactNode }) {
 
   const repScoped = isRepScoped(repFacts?.isRep === true, me?.permissions ?? []);
   const modules = visibleModules(can, BAKERY_MODULES, { repScoped });
+  const hasPlanned = modules.some((module) => module.status !== 'ready');
   const active = moduleForPath(pathname);
   const tenantName = me?.membership.tenantName ?? me?.membership.displayName ?? 'الإنتاج والتوزيع';
 
@@ -110,7 +111,7 @@ export function BakeryGuard({ children }: { children: React.ReactNode }) {
             const href = module.href;
             if (!href) {
               return (
-                <span className="bak-nav-item" key={module.key} title={`${module.phaseAr} — ${module.planAr}`}>
+                <span className="bak-nav-item" key={module.key} title={`${module.phaseAr} — ${module.summaryAr}`}>
                   <span aria-hidden="true" className={`bak-dot ${module.status}`} />
                   <span aria-hidden="true">{module.icon}</span>
                   {module.labelAr}
@@ -124,7 +125,7 @@ export function BakeryGuard({ children }: { children: React.ReactNode }) {
                 href={href}
                 key={module.key}
                 onClick={() => setDrawerOpen(false)}
-                title={module.planAr}
+                title={module.summaryAr}
               >
                 <span aria-hidden="true" className={`bak-dot ${module.status}`} />
                 <span aria-hidden="true">{module.icon}</span>
@@ -134,13 +135,20 @@ export function BakeryGuard({ children }: { children: React.ReactNode }) {
           })}
         </nav>
 
+        {/* الوسيلةُ تُقال فقط إن كان لها معنى: فبعد ٢٠ج صارت الوحداتُ كلّها مبنيّة، وبقاءُ
+            «مخطَّط» بجانب «١١ من ١١ وحدة مبنيّة» تناقضٌ يُقرأ ولا يُفسَّر (ولصقةُ صاحبِ
+            العمل أظهرتهما معًا). */}
         <div className="bak-legend">
           <span>
             <span className="bak-dot ready" /> مبنيّ
           </span>
-          <span>
-            <span className="bak-dot planned" /> مخطَّط
-          </span>
+          {hasPlanned ? (
+            <span>
+              <span className="bak-dot planned" /> مخطَّط
+            </span>
+          ) : (
+            <span className="bak-legend-note">لا وحدةَ مخطَّطة — الكلُّ يعمل</span>
+          )}
         </div>
       </aside>
 
@@ -164,7 +172,7 @@ export function BakeryGuard({ children }: { children: React.ReactNode }) {
           <div className="flex flex-wrap items-center gap-2">
             <span
               className="bak-badge ok"
-              title={`الباقة القطاعية ${BAKERY_APP_CODE} مفعَّلة لهذه المنشأة (من GET /me)`}
+              title={`الباقة القطاعية ${BAKERY_APP_CODE} مفعَّلة لهذه المنشأة (تُقرأ من جلسة دخولك)`}
             >
               🔓 الباقة مرخَّصة
             </span>

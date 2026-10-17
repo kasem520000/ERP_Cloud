@@ -34,6 +34,11 @@ resources:
   - api.yaml
   - web.yaml
   - ingress.yaml
+  # النسخُ الاحتياطيّ والفحصُ الدوريّ (بندُ ب٢٤) — وأمّا قواعدُ Prometheus فطبقةٌ
+  # اختيارية في `overlays/monitoring/` لأنها CRD من kube-prometheus-stack ولا يجوز أن
+  # يُفشل غيابُه تطبيقَ الأساس.
+  - backup.yaml
+  - monitoring.yaml
 
 # وسمٌ واحد لكل الصور: `kubectl apply -k deploy/k8s` بعد بناء الإصدار.
 images:

@@ -1,0 +1,166 @@
+# ---------------------------------------------------------------------------
+# النسخُ الاحتياطيّ والاستعادة — بندُ ب٢٤ (كان: **لا نسخةَ ولا مراقبة** في `deploy/`
+# ولا `infrastructure/`، وقِيس ذلك بـ`grep -rliE "backup|pg_dump|prometheus"` ⇒ لا شيء،
+# وقاعدةُ البيانات StatefulSet بـPVC واحدة ⇒ فقدُها فقدُ بيانات العملاء).
+#
+# ثلاثُ قواعدَ لا تُكسر هنا:
+#   1. **نسخةٌ لم تُختبر استعادتها ليست نسخة** — فالخطوة الثالثة في الأمر `pg_restore --list`
+#      على الملفّ الذي كُتب الآن: أرشيفٌ لا يُقرأ فهرسُه ليس نسخةً بل وهمٌ، ويُفشل المهمّة.
+#   2. **الاستعادةُ معلّقة (`suspend: true`)** — فتطبيقُ المجلّد لا يُشغّل محوَ قاعدةٍ أبدًا؛
+#      ومن أراد استعادةً يُسمّي الملفّ ويُلغي التعليقَ (أو `kubectl create job --from=…`) وهو
+#      يعرف أنّ الهدفَ سيُمحى. ولا استعادةَ بلا نسخةٍ من الحالة القائمة أولًا.
+#   3. **الاحتفاظُ بالعدد لا بالأيام** (`KEEP=14`): فالحذفُ يطال النسخَ القديمة وحدها،
+#      ولا يلمس بياناتٍ حيّة.
+#
+# والأداةُ المحليّة المكافئة `pnpm db:backup` / `db:restore` / **`db:drill`** (اختبارُ
+# استعادةٍ كامل: نسخة ← قاعدةٌ مؤقّتة ← ترحيل ← استعادة ← مقارنةُ العدّ ← حذف المؤقّتة)،
+# وقِيس `db:drill` أخضر: ‏٢٨٩ جداول / ٣٠٦٥ صفوفًا والعدُّ مطابقٌ في كلّ جدول.
+# ---------------------------------------------------------------------------
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: erp-backups
+  namespace: erp
+  labels: { app.kubernetes.io/component: backup, app.kubernetes.io/part-of: erp }
+spec:
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests: { storage: 20Gi }
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: erp-db-backup
+  namespace: erp
+  labels: { app.kubernetes.io/component: backup, app.kubernetes.io/part-of: erp }
+spec:
+  # ‏٠٢:١٥ UTC يوميًّا — بعد نافذةِ انخفاض الاستعمال، وقبل بداية العمل المحلّيّ.
+  schedule: '15 2 * * *'
+  concurrencyPolicy: Forbid          # نسختان معًا على القاعدة نفسها تُنتجان ملفًّا مشطورًا
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 7          # يُبقى الفشلُ مرئيًّا أسبوعًا لا يُنسى
+  startingDeadlineSeconds: 3600      # إن فاتت النافذةُ (عنقودٌ مقفل) تُنفَّذ متأخّرةً لا أن تُترك
+  jobTemplate:
+    spec:
+      activeDeadlineSeconds: 3600
+      backoffLimit: 2
+      template:
+        metadata:
+          labels: { app: erp-db-backup, app.kubernetes.io/part-of: erp }
+        spec:
+          restartPolicy: OnFailure
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 70            # مستخدم postgres في صورة alpine
+            runAsGroup: 70
+            fsGroup: 70              # فيُكتب على الـPVC بلا رفض أذونات
+          containers:
+            - name: backup
+              # ‏وسمٌ مثبّت لا `latest`: فنسخةُ `pg_dump` يجب أن تكون ≥ نسخة الخادم
+              # (‏postgres:16 في `data.yaml`) وإلا رفضت الأرشفة.
+              image: postgres:16-alpine
+              command: ['/bin/sh', '-eu', '-c']
+              args:
+                - |
+                  STAMP=$(date -u +%Y%m%dT%H%M%SZ)
+                  FILE="/backups/${POSTGRES_DB}-${STAMP}.dump"
+                  echo "↻ pg_dump -Fc → ${FILE}"
+                  pg_dump -Fc --no-owner \
+                    -h erp-postgres -p 5432 -U "$POSTGRES_USER" -d "$POSTGRES_DB" \
+                    -f "$FILE"
+                  SIZE=$(wc -c < "$FILE")
+                  test "$SIZE" -gt 0 || { echo "✗ نسخةٌ فارغة"; exit 1; }
+
+                  # (١) **التحقّق**: فهرسُ الأرشيف يُقرأ وعددُ عناصره معقول — فنسخةٌ
+                  # لا يُقرأ فهرسُها ليست نسخة، ويُسجَّل عددُ الجداول في السطر نفسه.
+                  echo "↻ التحقّقُ بالأرشيف (‏pg_restore --list)"
+                  pg_restore --list "$FILE" > /tmp/toc.txt
+                  ENTRIES=$(grep -Ec '^[0-9]+; ' /tmp/toc.txt || true)
+                  test "$ENTRIES" -gt 100 || { echo "✗ فهرسٌ أصغرُ من المتوقع: ${ENTRIES} عنصرًا"; exit 1; }
+                  TABLES=$(grep -Ec 'TABLE DATA ' /tmp/toc.txt || true)
+                  echo "✓ نسخةٌ صالحة: ${SIZE} بايت · ${ENTRIES} عنصرًا · ${TABLES} جدولَ بيانات"
+
+                  # (٢) **الاحتفاظ**: آخر KEEP نسخة تُبقى والأقدمُ تُحذف (الملفّاتُ لا البيانات).
+                  ls -1t /backups/*.dump | tail -n +$(( KEEP + 1 )) | while read -r OLD; do
+                    rm -f -- "$OLD"
+                    echo "  🧹 حُذفت النسخةُ القديمة $(basename "$OLD")"
+                  done
+
+                  # (٣) **الإعلان**: سطرٌ واحدٌ تقرأه المراقبةُ (‏monitoring.yaml) أو جامِعُ
+                  # السجلات، وفيه اسمُ الملفّ وحجمُه — فسجلٌّ بلا اسمٍ لا يُستعاد منه.
+                  DUMPS=$(ls -1 /backups/*.dump | wc -l)
+                  echo "✓ backup ok file=$(basename "$FILE") bytes=${SIZE} tables=${TABLES} dumps=${DUMPS}/${KEEP}"
+              env:
+                - { name: POSTGRES_DB, value: app }
+                - { name: POSTGRES_USER, value: postgres }
+                - { name: KEEP, value: '14' }
+                - name: PGPASSWORD
+                  valueFrom: { secretKeyRef: { name: erp-secrets, key: POSTGRES_PASSWORD } }
+              volumeMounts:
+                - { name: backups, mountPath: /backups }
+              resources:
+                requests: { cpu: 100m, memory: 128Mi }
+                limits: { cpu: 1000m, memory: 1Gi }
+          volumes:
+            - name: backups
+              persistentVolumeClaim: { claimName: erp-backups }
+---
+# ---------------------------------------------------------------------------
+# مهمّةُ الاستعادة — **معلّقة**. تُشغَّل يدويًّا عند الحاجة:
+#
+#   kubectl -n erp create job erp-db-restore-manual --from=job/erp-db-restore-template \
+#     -- /bin/sh -c '…'        # أو: عدّل RESTORE_FILE ثمّ `suspend: false` وطبّق
+#
+# وقبلها **انسخ الحالةَ القائمة** (`kubectl -n erp exec …` أو شغّل المهمّةَ `erp-db-backup`
+# يدويًّا): فالاستعادةُ `--clean --if-exists` تمحو ما في القاعدة الهدف، ومن يستعيد بلا نسخةٍ
+# من الحاضر يخسر الاثنين معًا. وأمّا `RESTORE_FILE` فيُرفض فارغًا (لا استعادةُ «أحدث ملفّ»
+# ضمنيًّا — فالاسمُ قرارٌ يُتّخذ صراحةً).
+# ---------------------------------------------------------------------------
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: erp-db-restore-template
+  namespace: erp
+  labels: { app.kubernetes.io/component: restore, app.kubernetes.io/part-of: erp }
+spec:
+  suspend: true                      # ← فلا يُشغَّل بالتطبيق، بل بقرار
+  backoffLimit: 0                    # الاستعادةُ لا تُعاد تلقائيًّا: نصفُ استعادةٍ أسوأ من لا شيء
+  template:
+    metadata:
+      labels: { app: erp-db-restore, app.kubernetes.io/part-of: erp }
+    spec:
+      restartPolicy: Never
+      securityContext: { runAsNonRoot: true, runAsUser: 70, runAsGroup: 70, fsGroup: 70 }
+      containers:
+        - name: restore
+          image: postgres:16-alpine
+          command: ['/bin/sh', '-eu', '-c']
+          args:
+            - |
+              test -n "${RESTORE_FILE:-}" || { echo "✗ RESTORE_FILE فارغ — فاسمُ النسخة قرارٌ صريح"; exit 2; }
+              FILE="/backups/${RESTORE_FILE}"
+              test -f "$FILE" || { echo "✗ لا ملفّ ${FILE} — والموجود:"; ls -1 /backups || true; exit 2; }
+              echo "⚠ استعادةُ ${FILE} إلى ${POSTGRES_DB} — سيمحو ما فيها"
+              pg_restore --list "$FILE" > /dev/null   # يُقرأ فهرسُها قبل المحو
+              pg_restore --clean --if-exists --no-owner --no-privileges \
+                -h erp-postgres -p 5432 -U "$POSTGRES_USER" -d "$POSTGRES_DB" "$FILE"
+              echo "↻ التحقّقُ بالعدّ بعد الاستعادة"
+              psql -h erp-postgres -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Atc \
+                "SELECT 'tenants=' || count(*) FROM tenants"
+              psql -h erp-postgres -U "$POSTGRES_USER" -d "$POSTGRES_DB" -Atc \
+                "SELECT 'migrations=' || count(*) FROM erp_migrations"
+              echo "✓ استُعيدت ${RESTORE_FILE}"
+          env:
+            - { name: POSTGRES_DB, value: app }
+            - { name: POSTGRES_USER, value: postgres }
+            - { name: RESTORE_FILE, value: '' }       # ← يُملأ يدويًّا باسم النسخة
+            - name: PGPASSWORD
+              valueFrom: { secretKeyRef: { name: erp-secrets, key: POSTGRES_PASSWORD } }
+          volumeMounts:
+            - { name: backups, mountPath: /backups }
+          resources:
+            requests: { cpu: 100m, memory: 128Mi }
+            limits: { cpu: 1000m, memory: 1Gi }
+      volumes:
+        - name: backups
+          persistentVolumeClaim: { claimName: erp-backups }

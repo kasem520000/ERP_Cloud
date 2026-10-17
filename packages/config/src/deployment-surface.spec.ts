@@ -344,3 +344,169 @@ describe('deployment surface — every Next surface is deployable end to end', (
     }
   });
 });
+
+/**
+ * سطحُ النسخ الاحتياطيّ والمراقبة — بندُ ب٢٤.
+ *
+ * القياسُ الذي أوجب هذه الأحكام: ‏`grep -rliE "backup|pg_dump|prometheus|alertmanager|grafana"`
+ * على `deploy/` و`infrastructure/` أرجع **لا شيء** (٢٠٢٦-١٠-١٧)، وقاعدةُ البيانات
+ * ‏StatefulSet بـPVC واحدة ⇒ فقدُ تلك القرص فقدُ بيانات العملاء كلّهم، وبلا فحصٍ دوريّ لا
+ * يعرف أحدٌ أنّ الـAPI سقط إلا من شكوى عميل.
+ *
+ * والأحكامُ **بنيوية** (فلا `kubectl` ولا `kustomize` ولا Docker في بيئة التحقّق — قِيس
+ * بـ`which`)، وهي تقيس ما يُفسد النسخةَ أو التنبيهَ لو غاب، لا ما يُزيّن الملفّ:
+ * التحقّقُ من الأرشيف بعد الكتابة، والاحتفاظُ بالعدد، ومنعُ التزامن، والاستعادةُ المعلّقة
+ * التي لا تُشغَّل بالتطبيق، ومسارُ الفحص هو المقاسُ ٢٠٠، وعزلُ CRD‑ات المراقبة في طبقةٍ
+ * اختيارية حتى لا يفشل تطبيقُ الأساس على عنقودٍ بلا المشغّل.
+ */
+describe('backup & monitoring surface', () => {
+  type PodSpecDoc = {
+    restartPolicy?: string;
+    securityContext?: { runAsNonRoot?: boolean; runAsUser?: number; runAsGroup?: number; fsGroup?: number };
+    containers?: Array<{
+      name?: string;
+      image?: string;
+      command?: string[];
+      args?: string[];
+      env?: Array<{
+        name?: string;
+        value?: string;
+        valueFrom?: { secretKeyRef?: { name?: string; key?: string; optional?: boolean } };
+      }>;
+      volumeMounts?: Array<{ name?: string; mountPath?: string }>;
+      resources?: { requests?: Record<string, string>; limits?: Record<string, string> };
+    }>;
+    volumes?: Array<{ name?: string; persistentVolumeClaim?: { claimName?: string } }>;
+  };
+  type CronJobDoc = {
+    kind?: string;
+    metadata?: { name?: string; namespace?: string };
+    spec?: {
+      schedule?: string;
+      concurrencyPolicy?: string;
+      startingDeadlineSeconds?: number;
+      successfulJobsHistoryLimit?: number;
+      failedJobsHistoryLimit?: number;
+      jobTemplate?: { spec?: { backoffLimit?: number; activeDeadlineSeconds?: number; template?: { spec?: PodSpecDoc } } };
+    };
+  };
+  type JobDoc = { kind?: string; metadata?: { name?: string }; spec?: { suspend?: boolean; backoffLimit?: number; template?: { spec?: PodSpecDoc } } };
+  type PvcDoc = { kind?: string; metadata?: { name?: string }; spec?: { accessModes?: string[]; resources?: { requests?: { storage?: string } } } };
+
+  const docsOf = (file: string): unknown[] =>
+    parseAllDocuments(read(`deploy/k8s/${file}`), { merge: true })
+      .map((doc) => doc.toJS())
+      .filter((value) => value && typeof value === 'object');
+
+  const backupDocs = docsOf('backup.yaml');
+  const monitoringDocs = docsOf('monitoring.yaml');
+  const backupCron = backupDocs.find((doc) => (doc as CronJobDoc).kind === 'CronJob') as CronJobDoc | undefined;
+  const restoreJob = backupDocs.find((doc) => (doc as JobDoc).kind === 'Job') as JobDoc | undefined;
+  const backupsPvc = backupDocs.find((doc) => (doc as PvcDoc).kind === 'PersistentVolumeClaim') as PvcDoc | undefined;
+  const healthCron = monitoringDocs.find((doc) => (doc as CronJobDoc).kind === 'CronJob') as CronJobDoc | undefined;
+
+  /** نصُّ الأمر كاملًا من كلّ الحاويات — فالأحكامُ على ما يُنفَّذ لا على ما يُعلن. */
+  const scriptOf = (cron: CronJobDoc | undefined): string =>
+    (cron?.spec?.jobTemplate?.spec?.template?.spec?.containers ?? [])
+      .flatMap((container) => [...(container.command ?? []), ...(container.args ?? [])])
+      .join('\n');
+
+  it('is part of the base kustomization, so `apply -k deploy/k8s` ships it', () => {
+    const resources = kustomization().resources ?? [];
+    expect(resources, 'backup.yaml خارج الأساس').toContain('backup.yaml');
+    expect(resources, 'monitoring.yaml خارج الأساس').toContain('monitoring.yaml');
+  });
+
+  it('backs up daily, alone, with a pinned tool image and a real volume', () => {
+    expect(backupCron, 'لا CronJob للنسخ').toBeTruthy();
+    expect(backupCron?.spec?.schedule, 'بلا جدول').toBeTruthy();
+    expect(backupCron?.spec?.concurrencyPolicy, 'نسختان معًا تُنتجان أرشيفًا مشطورًا').toBe('Forbid');
+    expect(backupCron?.spec?.startingDeadlineSeconds, 'إن فاتت النافذةُ تُنفَّذ متأخّرةً لا أن تُترك').toBeTruthy();
+    expect(backupCron?.spec?.failedJobsHistoryLimit, 'الفشلُ يجب أن يبقى مرئيًّا').toBeGreaterThan(0);
+    const container = backupCron?.spec?.jobTemplate?.spec?.template?.spec?.containers?.[0];
+    expect(container?.image, 'بلا صورة').toBeTruthy();
+    expect(container?.image, 'وسمُ `latest` لأداة نسخٍ يعني نسخةً بسلوكٍ غير معلوم').not.toContain('latest');
+    expect(container?.resources?.limits, 'بلا حدودٍ فمهمّةُ النسخ قد تأكل العقدة').toBeTruthy();
+    expect(backupsPvc?.metadata?.name, 'لا PVC للنسخ').toBe('erp-backups');
+    expect(backupsPvc?.spec?.resources?.requests?.storage, 'بلا سعةٍ معلنة').toBeTruthy();
+    expect(
+      backupCron?.spec?.jobTemplate?.spec?.template?.spec?.volumes?.some(
+        (volume) => volume.persistentVolumeClaim?.claimName === 'erp-backups',
+      ),
+      'المهمّةُ لا تكتب على قرصٍ دائم — فنسخةٌ في حاويةٍ تزول معها',
+    ).toBe(true);
+  });
+
+  it('verifies the archive it just wrote — a dump nobody can list is not a backup', () => {
+    const script = scriptOf(backupCron);
+    /**
+     * ‏**أوامرُ مُنفَّذة لا ذكرٌ في نصّ**: ‏`toContain('pg_restore --list')` أشبعه سطرُ
+     * ‏`echo "↻ التحقّقُ بالأرشيف (‏pg_restore --list)"` فمرّ التخريبُ (حذفُ الأمر نفسه)
+     * بلا فشل — وقِيس هذا فعلًا. فالتوكيدُ على بداية سطرٍ بأمر، وهو الفرقُ بين «يقول إنّه
+     * يتحقّق» و«يتحقّق» (فخُّ «الادّعاءاتُ النصّية تصطاد التعليقات» من قواعد البيت).
+     */
+    expect(script, 'بلا أمرِ pg_dump مُنفَّذ').toMatch(/^\s*pg_dump\s+-Fc/m);
+    expect(script, 'بلا تحقّقٍ مُنفَّذٍ من الأرشيف بعد الكتابة').toMatch(/^\s*pg_restore\s+--list\s+"?\$FILE/m);
+    expect(script, 'التحقّقُ يجب أن يحكم (‏test) لا أن يُطبع فقط').toMatch(/^\s*test "\$ENTRIES" -gt/m);
+    expect(script, 'بلا احتفاظٍ فالقرص يمتلئ ويتوقّف النسخ').toMatch(/KEEP/);
+    expect(script, 'الحذفُ يجب أن يطال النسخَ القديمة وحدها').toMatch(/^\s*ls -1t \/backups\/\*\.dump/m);
+    expect(script, 'فشلُ التفريغ يجب أن يُخرج المهمّةَ بغير صفر').toMatch(/set -eu|exit 1/);
+  });
+
+  it('keeps restore suspended and named — applying the folder must never wipe a database', () => {
+    expect(restoreJob, 'لا مهمّةَ استعادة').toBeTruthy();
+    expect(restoreJob?.spec?.suspend, 'استعادةٌ تُشغَّل بالتطبيق كارثة').toBe(true);
+    expect(restoreJob?.spec?.backoffLimit, 'استعادةٌ تُعاد تلقائيًّا تُكمل نصفَ محو').toBe(0);
+    const script = scriptOf(undefined as unknown as CronJobDoc) === ''
+      ? (restoreJob?.spec?.template?.spec?.containers ?? []).flatMap((c) => [...(c.command ?? []), ...(c.args ?? [])]).join('\n')
+      : '';
+    expect(script, 'اسمُ النسخة قرارٌ صريح لا «أحدث ملفّ» ضمنيّ').toContain('RESTORE_FILE');
+    expect(script, 'يرفض اسمًا فارغًا').toMatch(/test -n "\$\{RESTORE_FILE/);
+    expect(script, 'الاستعادةُ تنظّف ما قبلها وإلا فشلت على كائنٍ قائم').toMatch(/pg_restore\s+--clean\s+--if-exists/);
+    expect(script, 'وتتحقّق من فهرس النسخة قبل المحو — أمرٌ مُنفَّذ لا ذكر').toMatch(/^\s*pg_restore\s+--list\s+"?\$FILE/m);
+  });
+
+  it('probes the readiness path that was measured 200, on the API service that api.yaml declares', () => {
+    expect(healthCron, 'لا فحصَ دوريًّا').toBeTruthy();
+    expect(healthCron?.spec?.schedule, 'بلا جدول').toBe('*/5 * * * *');
+    expect(healthCron?.spec?.concurrencyPolicy).toBe('Forbid');
+    const script = scriptOf(healthCron);
+    expect(script, 'الجاهزيةُ هي المهمّة (قاعدةٌ واتّصالات) لا مجرّدُ عمليةٍ حيّة').toContain('/health/ready');
+    expect(script, 'ومسارُ الحيّ معًا').toContain('/health/live');
+    const apiService = services().find(({ manifest }) => manifest.metadata?.name === 'erp-api');
+    expect(apiService, 'خدمةُ الـAPI غير معلَنة في api.yaml').toBeTruthy();
+    expect(script, 'الفحصُ يجب أن يضرب الخدمةَ المعلَنة نفسها').toContain('erp-api:3000');
+    expect(script, 'ورقمُ الحالة يُقاس لا أن يُفترض').toContain('%{http_code}');
+    // وإن فشل الفحصُ يجب أن تفشل المهمّة — وإلا صار «نجاحًا» دائمًا بلا معنى.
+    expect(script, 'الفشلُ يجب أن يُخرج بغير صفر').toMatch(/test "\$FAIL" = "0" \|\| exit 1/);
+    const env = healthCron?.spec?.jobTemplate?.spec?.template?.spec?.containers?.[0]?.env ?? [];
+    const deadMan = env.find((entry) => entry.name === 'HEALTHCHECKS_URL');
+    expect(deadMan?.valueFrom?.secretKeyRef?.optional, 'مفتاحُ التنبيه الخارجيّ اختياريّ فلا يُفشل التطبيقَ غيابه').toBe(true);
+  });
+
+  it('keeps the monitoring CRDs in an opt-in overlay, so the base applies without the operator', () => {
+    const base = [...backupDocs, ...monitoringDocs, ...docsOf('api.yaml'), ...docsOf('data.yaml')];
+    for (const doc of base as Array<{ apiVersion?: string }>) {
+      expect(String(doc?.apiVersion ?? ''), '‏CRD من kube-prometheus-stack في الأساس يُفشل apply -k بلا المشغّل')
+        .not.toContain('monitoring.coreos.com');
+    }
+    const overlay = parseAllDocuments(read('deploy/k8s/overlays/monitoring/kustomization.yaml'), { merge: true })[0]?.toJS() as {
+      resources?: string[];
+    };
+    expect(overlay?.resources, 'الطبقةُ يجب أن تشمل الأساس').toContain('../../');
+    for (const file of ['prometheus-rule.yaml', 'probe.yaml']) {
+      expect(overlay?.resources, `${file} خارج الطبقة`).toContain(file);
+      const docs = parseAllDocuments(read(`deploy/k8s/overlays/monitoring/${file}`), { merge: true })
+        .map((doc) => doc.toJS() as { apiVersion?: string; kind?: string })
+        .filter((value) => value && typeof value === 'object');
+      expect(docs.length, `${file} لا يُقرأ كـYAML صالح`).toBeGreaterThan(0);
+      expect(docs.every((doc) => String(doc.apiVersion).startsWith('monitoring.coreos.com')), `${file} ليس CRD مراقبة`).toBe(true);
+    }
+    // والمسارُ الذي تُنبِّه عليه القواعدُ هو نفسه الذي يفحصه الأساس — فلا تنبيهَ على وهم.
+    const probe = parseAllDocuments(read('deploy/k8s/overlays/monitoring/probe.yaml'), { merge: true })
+      .map((doc) => doc.toJS() as { spec?: { targets?: { staticConfig?: { static?: string[] } } } })
+      .find((value) => value && typeof value === 'object');
+    const targets = probe?.spec?.targets?.staticConfig?.static ?? [];
+    expect(targets.some((target) => target.includes('/health/ready')), 'الفحصُ الخارجيّ لا يقيس الجاهزية').toBe(true);
+  });
+});
