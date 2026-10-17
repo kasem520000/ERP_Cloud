@@ -60,6 +60,12 @@ images:
   - name: erp-bakery
     newName: ghcr.io/albaraaq/cloud-saas-erp-bakery
     newTag: latest
+  # ولا مدخلَ هنا لأداة رفع النسخ (`minio/mc`): فبوابةُ `images:` في
+  # `deployment-surface.spec.ts` تشترط أن يكون `newName` من سجلّ المشروع
+  # (‏`ghcr.io/albaraaq/…`) — وهي صحيحة: فهذه القائمة لصور **المستودع** المبنيّة، وأمّا
+  # صورُ الطرف الثالث فتُكتب في الملفّ نفسه بوسمٍ مثبّت كما `postgres:16` و`redis:7`
+  # (‏`data.yaml`) و`postgres:16-alpine` و`curlimages/curl:8.10.1` (`backup.yaml`
+  # و`monitoring.yaml`) و`minio/mc` هناك أيضًا.
 
 # في الإنتاج: ثلاث نسخ للـAPI على الأقلّ، ونسختان لكل واجهة — ولكلّ سطحٍ في
 # `scripts/next-run.mjs` مدخله هنا (بوابة العميل والمخابز كانتا ناقصتين).

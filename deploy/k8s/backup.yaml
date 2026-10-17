@@ -90,6 +90,11 @@ spec:
                   # السجلات، وفيه اسمُ الملفّ وحجمُه — فسجلٌّ بلا اسمٍ لا يُستعاد منه.
                   DUMPS=$(ls -1 /backups/*.dump | wc -l)
                   echo "✓ backup ok file=$(basename "$FILE") bytes=${SIZE} tables=${TABLES} dumps=${DUMPS}/${KEEP}"
+
+                  # (٤) علامةُ «جاهزٌ للرفع»: الحاويتان في Podٍ واحدٍ ولا ترتيبَ بينهما،
+                  # فحاويةُ الرفع تنتظر هذه العلامةَ (لا أن تفترض أنّ التفريغَ تمّ) — وتُكتب
+                  # **بعد** التحقّق من الأرشيف، فلا يُرفع ملفٌّ لم يُقرأ فهرسُه.
+                  echo "$(basename "$FILE")" > /backups/.ready
               env:
                 - { name: POSTGRES_DB, value: app }
                 - { name: POSTGRES_USER, value: postgres }
@@ -101,6 +106,82 @@ spec:
               resources:
                 requests: { cpu: 100m, memory: 128Mi }
                 limits: { cpu: 1000m, memory: 1Gi }
+            # ── الرفعُ إلى تخزينٍ خارج العنقود ────────────────────────────────
+            # لماذا: ‏PVC داخل العنقود **ليست نسخةً احتياطية** — فإن ضاعت أقراصُ العقدة أو
+            # حُذف حجمُها ضاعت النسخُ معها، وهذا بندُ ب٢٤/٣ وقرارُ صاحبِ العمل (‏S3‑متوافق).
+            #
+            # السرُّ `erp-backup-s3` منفصلٌ عن `erp-secrets` ومفاتيحُه **اختيارية** في التعريف
+            # حتى لا يفشل `apply -k` بغيابه — لكنّ غيابَه يُفشل المهمّةَ صراحةً (‏REQUIRE_OFFCLUSTER=1):
+            # فنسخةٌ بقيت داخل العنقود وحده يجب أن تُرى فشلًا لا نجاحًا صامتًا. وأنشِئ السرَّ بـ:
+            #   kubectl -n erp create secret generic erp-backup-s3 \
+            #     --from-literal=S3_ENDPOINT=https://s3.example.com \
+            #     --from-literal=S3_BUCKET=erp-backups --from-literal=S3_REGION=us-east-1 \
+            #     --from-literal=S3_ACCESS_KEY=… --from-literal=S3_SECRET_KEY=… \
+            #     --from-literal=S3_PATH_STYLE=false
+            #
+            # والصورةُ من طرفٍ ثالث فتُكتب هنا بوسمٍ مثبّت (كعرف `postgres:16` في `data.yaml`)
+            # ولا تدخل `kustomization.yaml`: فقائمةُ `images:` هناك لصور المستودع المبنيّة
+            # وبوابتُها تشترط `ghcr.io/albaraaq/…`. ⚠️ ووسمُ `mc` **لم يُتحقّق من وجوده في
+            # بيئة الكتابة** (لا Docker ولا وصولَ إلى سجلّ الصور) — فثبّت وسمًا موجودًا عندك
+            # أو اعكسه إلى مرآتك، ولا تستعمل `latest` لأداةٍ تحمل نسخَك.
+            - name: upload
+              image: minio/mc:RELEASE.2024-10-08T09-37-26Z
+              command: ['/bin/sh', '-eu', '-c']
+              args:
+                - |
+                  # (١) انتظر علامةَ الجاهز (٣٠ دقيقة كحدٍّ أقصى، ثمّ فشلٌ لا انتظارٌ أبديّ)
+                  i=0
+                  while [ ! -s /backups/.ready ]; do
+                    i=$((i + 1))
+                    [ "$i" -gt 360 ] && { echo "✗ لم تظهر علامةُ الجاهز خلال ٣٠ دقيقة"; exit 1; }
+                    sleep 5
+                  done
+                  FILE="/backups/$(cat /backups/.ready)"
+                  test -f "$FILE" || { echo "✗ العلامةُ تشير إلى ملفٍّ غير موجود: $FILE"; exit 1; }
+                  echo "↻ رفعُ $(basename "$FILE") إلى ${S3_BUCKET:-<غير مضبوط>}"
+
+                  # (٢) بلا إعدادٍ خارجيّ: فشلٌ صريح لا نجاحٌ صامت (قرارُ صاحبِ العمل)
+                  if [ -z "${S3_BUCKET:-}" ] || [ -z "${S3_ACCESS_KEY:-}" ] || [ -z "${S3_SECRET_KEY:-}" ]; then
+                    echo "✗ S3_BUCKET/S3_ACCESS_KEY/S3_SECRET_KEY غير مضبوطة (السرّ erp-backup-s3)"
+                    echo "  والنسخةُ داخل العنقود وحده ليست نسخةً احتياطية — فأنشئ السرَّ أو أَزل"
+                    echo "  هذه الحاوية وأنت تعرف أنّك بلا نسخةٍ خارجيّة."
+                    [ "${REQUIRE_OFFCLUSTER:-1}" = "1" ] && exit 1
+                    echo "⚠ REQUIRE_OFFCLUSTER=0 — فيُتخطّى الرفعُ ويُترك الخطرُ معلَنًا"
+                    rm -f /backups/.ready
+                    exit 0
+                  fi
+
+                  # (٣) الرفعُ والتحقّقُ منه والاحتفاظُ على الطرف الآخر
+                  mc alias set offcluster "$S3_ENDPOINT" "$S3_ACCESS_KEY" "$S3_SECRET_KEY" \
+                    ${S3_REGION:+--region "$S3_REGION"} \
+                    $([ "${S3_PATH_STYLE:-false}" = "true" ] && echo --api S3v4 || true)
+                  mc cp "$FILE" "offcluster/${S3_BUCKET}/$(basename "$FILE")"
+                  mc stat "offcluster/${S3_BUCKET}/$(basename "$FILE")" > /dev/null \
+                    || { echo "✗ الرفعُ لم يُتحقّق منه على الطرف الآخر"; exit 1; }
+                  echo "✓ رُفعت وتحُقّق منها"
+                  mc rm --older-than "${KEEP_DAYS:-14}"d "offcluster/${S3_BUCKET}/" || true
+                  rm -f /backups/.ready
+                  echo "✓ upload ok bucket=${S3_BUCKET} file=$(basename "$FILE")"
+              env:
+                - { name: REQUIRE_OFFCLUSTER, value: '1' }
+                - { name: KEEP_DAYS, value: '30' }
+                - name: S3_ENDPOINT
+                  valueFrom: { secretKeyRef: { name: erp-backup-s3, key: S3_ENDPOINT, optional: true } }
+                - name: S3_BUCKET
+                  valueFrom: { secretKeyRef: { name: erp-backup-s3, key: S3_BUCKET, optional: true } }
+                - name: S3_REGION
+                  valueFrom: { secretKeyRef: { name: erp-backup-s3, key: S3_REGION, optional: true } }
+                - name: S3_ACCESS_KEY
+                  valueFrom: { secretKeyRef: { name: erp-backup-s3, key: S3_ACCESS_KEY, optional: true } }
+                - name: S3_SECRET_KEY
+                  valueFrom: { secretKeyRef: { name: erp-backup-s3, key: S3_SECRET_KEY, optional: true } }
+                - name: S3_PATH_STYLE
+                  valueFrom: { secretKeyRef: { name: erp-backup-s3, key: S3_PATH_STYLE, optional: true } }
+              volumeMounts:
+                - { name: backups, mountPath: /backups }
+              resources:
+                requests: { cpu: 50m, memory: 64Mi }
+                limits: { cpu: 500m, memory: 256Mi }
           volumes:
             - name: backups
               persistentVolumeClaim: { claimName: erp-backups }

@@ -453,6 +453,51 @@ describe('backup & monitoring surface', () => {
     expect(script, 'فشلُ التفريغ يجب أن يُخرج المهمّةَ بغير صفر').toMatch(/set -eu|exit 1/);
   });
 
+  it('copies the archive off-cluster, verified, with retention — and fails loudly without S3', () => {
+    /**
+     * ‏PVC داخل العنقود **ليست نسخةً احتياطية**: فإن ضاعت أقراصُ العقدة أو حُذف الحجمُ ضاعت
+     * النسخُ معها (بندُ ب٢٤/٣، وقرارُ صاحبِ العمل: ‏S3‑متوافق). والأحكامُ على ما يُنفَّذ:
+     * رفعٌ بـ`mc cp`، وتحقّقٌ من وجود الملفّ على الطرف الآخر، واحتفاظٌ هناك أيضًا، وانتظارُ
+     * علامةِ الجاهز (فالحاويتان في Podٍ واحدٍ ولا ترتيبَ بينهما)، وفشلٌ **صريح** بلا إعداد.
+     */
+    const pod = backupCron?.spec?.jobTemplate?.spec?.template?.spec;
+    const uploader = pod?.containers?.find((container) => container.name === 'upload');
+    const backupContainer = pod?.containers?.find((container) => container.name === 'backup');
+    const script = (container?: { command?: string[]; args?: string[] }): string =>
+      [...(container?.command ?? []), ...(container?.args ?? [])].join('\n');
+
+    expect(uploader, 'لا حاويةَ رفعٍ خارج العنقود').toBeTruthy();
+    // صورةُ طرفٍ ثالث بوسمٍ مثبّت في الملفّ نفسه (كعرف `postgres:16` في `data.yaml`) — ولا
+    // تدخل `kustomization.yaml` لأنّ بوابتَها تشترط سجلَّ المشروع لصوره المبنيّة.
+    expect(uploader?.image, 'بلا صورةِ رفع').toBeTruthy();
+    expect(uploader?.image, 'صورةُ طرفٍ ثالث لا من صور المستودع').toMatch(/^minio\/mc:/);
+    expect(uploader?.image, 'ولا `latest` لأداةٍ تحمل النسخ').not.toContain(':latest');
+    const upload = script(uploader);
+    expect(upload, 'رفعٌ بـmc cp مُنفَّذ').toMatch(/^\s*mc cp /m);
+    expect(upload, 'وتحقّقٌ من الملفّ على الطرف الآخر').toMatch(/^\s*mc stat /m);
+    expect(upload, 'واحتفاظٌ على الطرف الآخر أيضًا').toMatch(/^\s*mc rm --older-than/m);
+    expect(upload, 'ينتظر علامةَ الجاهز ولا يفترض ترتيبَ الحاويات').toContain('/backups/.ready');
+    expect(upload, 'وبلا إعدادٍ خارجيّ يفشل صراحةً لا صمتًا').toMatch(/REQUIRE_OFFCLUSTER/);
+    expect(upload, 'وإن لم تظهر العلامةُ يفشل ولا ينتظر أبدًا').toMatch(/exit 1/);
+
+    for (const key of ['S3_ENDPOINT', 'S3_BUCKET', 'S3_REGION', 'S3_ACCESS_KEY', 'S3_SECRET_KEY', 'S3_PATH_STYLE']) {
+      const entry = (uploader?.env ?? []).find((candidate) => candidate.name === key);
+      expect(entry?.valueFrom?.secretKeyRef?.name, `${key} من سرٍّ منفصل عن أسرار التطبيق`).toBe('erp-backup-s3');
+      expect(entry?.valueFrom?.secretKeyRef?.optional, `${key} اختياريّ حتى لا يفشل apply -k بغياب السرّ`).toBe(true);
+    }
+
+    // العلامةُ تُكتب **بعد** التحقّق من الأرشيف — فلا يُرفع ملفٌّ لم يُقرأ فهرسُه.
+    const backupScript = script(backupContainer);
+    expect(backupScript.indexOf('/backups/.ready'), 'علامةُ الجاهز تُكتب بعد التحقّق')
+      .toBeGreaterThan(backupScript.indexOf('pg_restore --list'));
+
+    // وأمّا صورُ المستودع في هذا الملفّ فلا شيءَ منها — فـ`images:` تبقى لصوره المبنيّة،
+    // ومدخلُ `erp-bakery` يجب أن يبقى سليمًا (وقد انكسر فعلًا حين أُدخلت أداةُ الرفع وسطه).
+    const bakery = (kustomization().images ?? []).find((entry) => entry.name === 'erp-bakery');
+    expect(bakery?.newName, 'تثبيتُ صورة المخابز انكسر بإدخال أداة الرفع وسطه').toBe('ghcr.io/albaraaq/cloud-saas-erp-bakery');
+    expect(bakery?.newTag, 'وبلا newTag يسحب `apply -k` الاسمَ الخام').toBeTruthy();
+  });
+
   it('keeps restore suspended and named — applying the folder must never wipe a database', () => {
     expect(restoreJob, 'لا مهمّةَ استعادة').toBeTruthy();
     expect(restoreJob?.spec?.suspend, 'استعادةٌ تُشغَّل بالتطبيق كارثة').toBe(true);
