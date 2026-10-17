@@ -4,6 +4,7 @@ import { useMemo } from 'react';
 import { Badge, Card, CardBody, CardHeader } from '@erp/ui';
 import { useSession } from '@erp/web-core/session';
 
+import { Screen } from '../../components/screen';
 import { StaffHandoffLink } from '../../components/staff-handoff-link';
 import {
   HANDOFF_NOTES_AR,
@@ -41,18 +42,9 @@ export default function AccountingHandoffPage() {
   const grantedAny = ACCOUNTING_PERMISSIONS.some((code) => can(code));
 
   return (
-    <section className="grid gap-4">
-      <header className="flex flex-wrap items-end justify-between gap-3">
-        <div className="min-w-0">
-          <h1 className="m-0 text-[24px] font-extrabold leading-tight tracking-tight text-ink">
-            المحاسبة التفصيلية — في لوحة staff
-          </h1>
-          <p className="m-0 mt-1 text-[13px] text-muted">
-            {me?.membership.tenantName ?? 'المنشأة'} · لا أستاذَ ولا قيدَ في هذه الواجهة: ما هنا
-            روابطُ تعمل بتسليم جلسة إلى المحرّك المحاسبيّ نفسه.
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
+    <Screen
+      actions={
+        <>
           <Badge dot status={base ? 'active' : 'pending'} title={`${STAFF_URL_ENV} من .env`}>
             {base ? (
               <>
@@ -67,9 +59,12 @@ export default function AccountingHandoffPage() {
           <Badge dot status={grantedAny ? 'active' : 'pending'}>
             {grantedAny ? 'معك صلاحيةُ قراءةٍ محاسبية' : 'بلا صلاحيةِ محاسبةٍ في جلستك'}
           </Badge>
-        </div>
-      </header>
-
+        </>
+      }
+      crumbs={['المخابز']}
+      subtitle={`${me?.membership.tenantName ?? 'المنشأة'} · لا أستاذَ ولا قيدَ في هذه الواجهة: ما هنا روابطُ تعمل بتسليم جلسة إلى المحرّك المحاسبيّ نفسه.`}
+      title="المحاسبة التفصيلية — في لوحة staff"
+    >
       {!base ? (
         <Card>
           <CardHeader subtitle="ولا يُخترع عنوانٌ بديل" title="الرابطُ غير مُهيَّأ" />
@@ -153,6 +148,6 @@ export default function AccountingHandoffPage() {
           </ul>
         </CardBody>
       </Card>
-    </section>
+    </Screen>
   );
 }

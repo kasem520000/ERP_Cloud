@@ -1,10 +1,12 @@
 'use client';
 
-import { Fragment, useCallback, useEffect, useMemo, useState } from 'react';
-import { Button, Card, CardBody, CardHeader, Input } from '@erp/ui';
+import { Fragment, useMemo, useState } from 'react';
+import { Button, Card, CardBody, CardHeader, Input, Select } from '@erp/ui';
 import { apiErrorText, apiList, apiPost } from '@erp/web-core/api';
 import { useSession } from '@erp/web-core/session';
 
+import { Notice } from '../../components/data-view';
+import { Screen } from '../../components/screen';
 import { numberText } from '../../lib/lookups';
 import {
   buildLinkPayload,
@@ -28,22 +30,16 @@ import {
   type NoteTone,
   type SalesmanCard,
 } from '../../lib/reps-screen';
+import { useQuery } from '../../lib/use-query';
 
-type Notice = { kind: 'ok' | 'danger' | 'warn'; text: string };
-
-const NOTICE_CLASSES: Record<Notice['kind'], string> = {
-  ok: 'border-ok-line bg-ok-soft text-ok-ink',
-  danger: 'border-danger-line bg-danger-soft text-danger-ink',
-  warn: 'border-warn-line bg-warn-soft text-warn-ink',
-};
-
+/** نبرةُ الملاحظة المضمنة في الخلية — لا تزال محليّة (شارةٌ لا إعلان شاشة). */
 const TONE_CLASSES: Record<NoteTone, string> = {
   ok: 'border-ok-line bg-ok-soft text-ok-ink',
   danger: 'border-danger-line bg-danger-soft text-danger-ink',
   warn: 'border-warn-line bg-warn-soft text-warn-ink',
 };
 
-const selectClass = 'w-full rounded-[8px] border border-line bg-surface px-3 py-2 text-[13px] text-ink';
+type LinkNotice = { kind: 'ok' | 'danger' | 'warn'; text: string };
 
 type FilterKey = 'all' | 'incomplete' | 'ready' | 'custody';
 
@@ -85,37 +81,25 @@ export default function RepsPage() {
   const canView = can(REPS_VIEW_PERMISSION);
   const canLink = can(LINK_ACCOUNT_PERMISSION);
 
-  const [reps, setReps] = useState<SalesmanCard[]>([]);
-  const [loadError, setLoadError] = useState<string | undefined>();
-  const [loading, setLoading] = useState(true);
+  /**
+   * القائمة بطلبٍ واحد — ولا يُرسل بلا صلاحيةٍ (٤٠٣ محتوم): فالخادمُ
+   * هو الضابط، وهذه الواجهة لا تستطلع رأيه بلا وجه. وحين يُمنح الحسابُ
+   * الصلاحيةَ لاحقًا يُعيد `useQuery` الطلبَ بعينه (`canView` في الاعتماديات).
+   */
+  const repsQuery = useQuery<SalesmanCard[]>(
+    () => (canView ? apiList<SalesmanCard>('/van-sales/salesmen') : Promise.resolve([])),
+    [canView],
+  );
+  const reps = repsQuery.data ?? [];
+  const loading = repsQuery.status === 'loading';
+  const loadError = repsQuery.status === 'error' ? repsQuery.error : undefined;
   const [filter, setFilter] = useState<FilterKey>('all');
   const [expandedId, setExpandedId] = useState<string | undefined>();
 
   const [draft, setDraft] = useState<LinkAccountDraft>(emptyLinkDraft);
   const [busy, setBusy] = useState(false);
-  const [notice, setNotice] = useState<Notice | undefined>();
+  const [notice, setNotice] = useState<LinkNotice | undefined>();
   const [receipt, setReceipt] = useState<LinkAccountReceipt | null>(null);
-
-  const load = useCallback(async (): Promise<void> => {
-    setLoading(true);
-    setLoadError(undefined);
-    try {
-      const rows = await apiList<SalesmanCard>('/van-sales/salesmen');
-      setReps(rows);
-    } catch (caught) {
-      setLoadError(apiErrorText(caught, 'تعذّر تحميل بطاقات المندوبين'));
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (!canView) {
-      setLoading(false);
-      return;
-    }
-    void load();
-  }, [canView, load]);
 
   const summary = useMemo(() => repsSummary(reps), [reps]);
   const picked = reps.find((row) => row.id === draft.salesmanId) ?? null;
@@ -164,7 +148,7 @@ export default function RepsPage() {
           : 'رجع الخادم بإيصالٍ بلا حقولٍ مقروءة: حدِّث القائمة واقرأ حالة الحساب فعلًا.',
       });
       setDraft(emptyLinkDraft());
-      await load();
+      void repsQuery.reload();
     } catch (error) {
       setNotice({ kind: 'danger', text: apiErrorText(error, 'تعذّر ربط حساب الدخول') });
     } finally {
@@ -173,32 +157,28 @@ export default function RepsPage() {
   }
 
   return (
-    <section className="grid gap-4">
-      <header className="flex flex-wrap items-end justify-between gap-3">
-        <div className="min-w-0">
-          <h1 className="m-0 text-[22px] font-extrabold leading-tight tracking-tight text-ink">
-            المناديب
-          </h1>
-          <p className="m-0 mt-1 text-[13px] text-muted">
-            بطاقةُ المندوب الرسمية بما ينقصها قبل أن يعمل: موظفٌ وحسابُ دخولٍ نشط ومستودعُ
-            سيارة وصلاحياتُ الخطّ. والكتابةُ الوحيدة هنا ربطُ حساب الدخول عبر كتّاب المنصّة —
-            أمّا البطاقة نفسها فتُنشأ وتُعدَّل في <span dir="ltr">apps/staff</span> على{' '}
-            <span dir="ltr">{STAFF_SALESMEN_PATH}</span>.
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
+    <Screen
+      actions={
+        <>
           <span className="bak-badge">GET /van-sales/salesmen</span>
           <span className="bak-badge">POST /van-sales/salesmen/:id/account</span>
-          <Button disabled={loading || !canView} onClick={() => void load()} size="sm">
+          <Button
+            disabled={repsQuery.status === 'loading' || !canView}
+            onClick={() => void repsQuery.reload()}
+            size="sm"
+          >
             تحديث
           </Button>
-        </div>
-      </header>
+        </>
+      }
+      subtitle={`بطاقةُ المندوب الرسمية بما ينقصها قبل أن يعمل: موظفٌ وحسابُ دخولٍ نشط ومستودعُ سيارة وصلاحياتُ الخطّ. والكتابةُ الوحيدة هنا ربطُ حساب الدخول عبر كتّاب المنصّة — أمّا البطاقة نفسها فتُنشأ وتُعدَّل في apps/staff على ${STAFF_SALESMEN_PATH}.`}
+      title="المناديب"
+    >
 
       {!canView ? (
         <Card>
           <CardBody>
-            <p className={`m-0 rounded-[10px] border px-4 py-2.5 text-[13px] font-semibold ${NOTICE_CLASSES.warn}`}>
+            <p className="m-0 rounded-[10px] border border-warn-line bg-warn-soft px-4 py-2.5 text-[13px] font-semibold text-warn-ink">
               🔒 لا تملك <span dir="ltr">{REPS_VIEW_PERMISSION}</span> — والخادم يرفض قراءة
               البطاقات (<span dir="ltr">{REPS_MESSAGES.viewForbidden}</span>). ولم يُرسل هذا
               التطبيق طلبًا سيُرفض حتمًا، ولا عرض بطاقاتٍ من المتصفّح بدلها.
@@ -211,7 +191,7 @@ export default function RepsPage() {
         <Card>
           <CardBody>
             <p
-              className={`m-0 rounded-[10px] border px-4 py-2.5 text-[13px] font-semibold ${NOTICE_CLASSES.danger}`}
+              className="m-0 rounded-[10px] border border-danger-line bg-danger-soft px-4 py-2.5 text-[13px] font-semibold text-danger-ink"
               role="alert"
             >
               تعذّر تحميل بطاقات المندوبين: {loadError}
@@ -220,21 +200,14 @@ export default function RepsPage() {
               السبب المعتاد: لا تملك <span dir="ltr">{REPS_VIEW_PERMISSION}</span>، أو أنّ الـAPI
               غير متاح من هذه الواجهة. ولا تُعرض بطاقاتٌ بديلة من المتصفّح.
             </p>
-            <Button className="mt-3" onClick={() => void load()} size="sm">
+            <Button className="mt-3" onClick={() => void repsQuery.reload()} size="sm">
               إعادة المحاولة
             </Button>
           </CardBody>
         </Card>
       ) : null}
 
-      {notice ? (
-        <p
-          className={`m-0 rounded-[10px] border px-4 py-2.5 text-[13px] font-semibold ${NOTICE_CLASSES[notice.kind]}`}
-          role={notice.kind === 'danger' ? 'alert' : 'status'}
-        >
-          {notice.text}
-        </p>
-      ) : null}
+      <Notice notice={notice} />
 
       {canView ? (
         <Card>
@@ -520,11 +493,12 @@ export default function RepsPage() {
           />
           <CardBody>
             {!canLink ? (
-              <p className={`m-0 mb-3 rounded-[10px] border px-4 py-2.5 text-[13px] font-semibold ${NOTICE_CLASSES.warn}`}>
-                🔒 لا تملك <span dir="ltr">{LINK_ACCOUNT_PERMISSION}</span> — والخادم يرفض بـ
-                <span dir="ltr">{REPS_MESSAGES.linkForbidden}</span>. وربطُ الحسابات عملُ مكتبٍ
-                خلفيّ لا يملكه المندوب.
-              </p>
+              <Notice
+                notice={{
+                  kind: 'warn',
+                  text: `🔒 لا تملك ${LINK_ACCOUNT_PERMISSION} — والخادم يرفض بـ${REPS_MESSAGES.linkForbidden}. وربطُ الحسابات عملُ مكتبٍ خلفيّ لا يملكه المندوب.`,
+                }}
+              />
             ) : null}
 
             <form
@@ -534,31 +508,27 @@ export default function RepsPage() {
                 void submitLink();
               }}
             >
-              <label className="grid gap-1 text-[12.5px] font-bold text-ink">
-                المندوب
-                <select
-                  className={selectClass}
+              <div className="grid gap-1">
+                <Select
                   disabled={busy || !canLink}
+                  label="المندوب"
                   onChange={(event) => {
                     const next = reps.find((row) => row.id === event.target.value) ?? null;
                     if (next) pickRep(next);
                     else setDraft((current) => ({ ...current, salesmanId: '' }));
                   }}
+                  options={reps.map((row) => ({
+                    label: `${salesmanLabel(row)}${row.membershipId ? ' (له حساب قائم)' : ''}`,
+                    value: row.id,
+                  }))}
+                  placeholder="— اختر بطاقة مندوب —"
                   value={draft.salesmanId}
-                >
-                  <option value="">— اختر بطاقة مندوب —</option>
-                  {reps.map((row) => (
-                    <option key={row.id} value={row.id}>
-                      {salesmanLabel(row)}
-                      {row.membershipId ? ' (له حساب قائم)' : ''}
-                    </option>
-                  ))}
-                </select>
+                />
                 <span className="text-[11.5px] font-normal text-muted">
                   البطاقة نفسها تُنشأ وتُعدَّل في <span dir="ltr">apps/staff</span> — لا نسخةَ كتابةٍ
                   ثانية هنا.
                 </span>
-              </label>
+              </div>
 
               {picked ? (
                 <p className={`m-0 rounded-[10px] border px-4 py-2.5 text-[12.5px] font-semibold ${TONE_CLASSES[isReadyToWork(picked) ? 'ok' : 'warn']}`}>
@@ -604,31 +574,13 @@ export default function RepsPage() {
                 </span>
               </label>
 
-              {verdict.blocked.length > 0 ? (
-                <ul className="m-0 grid list-none gap-1 p-0">
-                  {verdict.blocked.map((text) => (
-                    <li
-                      className={`rounded-[8px] border px-3 py-2 text-[12.5px] font-semibold ${NOTICE_CLASSES.danger}`}
-                      key={text}
-                    >
-                      ⛔ {text}
-                    </li>
-                  ))}
-                </ul>
-              ) : null}
+              {verdict.blocked.map((text) => (
+                <Notice key={text} notice={{ kind: 'danger', text: `⛔ ${text}` }} />
+              ))}
 
-              {verdict.warnings.length > 0 ? (
-                <ul className="m-0 grid list-none gap-1 p-0">
-                  {verdict.warnings.map((text) => (
-                    <li
-                      className={`rounded-[8px] border px-3 py-2 text-[12.5px] font-semibold ${NOTICE_CLASSES.warn}`}
-                      key={text}
-                    >
-                      ⚠️ {text}
-                    </li>
-                  ))}
-                </ul>
-              ) : null}
+              {verdict.warnings.map((text) => (
+                <Notice key={text} notice={{ kind: 'warn', text: `⚠️ ${text}` }} />
+              ))}
 
               <div className="flex flex-wrap items-center gap-2">
                 <Button disabled={busy || !canLink} loading={busy} type="submit">
@@ -651,9 +603,7 @@ export default function RepsPage() {
             title="نتيجةُ الربط"
           />
           <CardBody>
-            <p className={`m-0 rounded-[10px] border px-4 py-2.5 text-[13px] font-bold ${NOTICE_CLASSES[outcome.tone]}`}>
-              {outcome.headline}
-            </p>
+            <Notice notice={{ kind: outcome.tone, text: outcome.headline }} />
             <ul className="m-0 mt-3 grid list-none gap-2 p-0">
               {outcome.notes.map((text) => (
                 <li className="rounded-[8px] border border-line bg-surface px-3 py-2 text-[12.5px]" key={text}>
@@ -702,6 +652,6 @@ export default function RepsPage() {
           </CardBody>
         </Card>
       ) : null}
-    </section>
+    </Screen>
   );
 }

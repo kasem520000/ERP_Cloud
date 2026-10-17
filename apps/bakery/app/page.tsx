@@ -7,6 +7,7 @@ import { hasVanSalesCompanyScope } from '@erp/contracts';
 import { apiData, apiErrorText } from '@erp/web-core/api';
 import { useSession } from '@erp/web-core/session';
 
+import { Screen } from '../components/screen';
 import { BAKERY_APP_CODE } from '../lib/licence';
 import { BAKERY_MODULES, readyModules, visibleModules } from '../lib/navigation';
 import { numberText } from '../lib/lookups';
@@ -115,19 +116,9 @@ export default function BakeryOverviewPage() {
   const pendingClosings = rep?.custody?.pendingClosings ?? 0;
 
   return (
-    <section className="grid gap-4">
-      <header className="flex flex-wrap items-end justify-between gap-3">
-        <div className="min-w-0">
-          <h1 className="m-0 text-[24px] font-extrabold leading-tight tracking-tight text-ink">
-            المخابز: الإنتاج والتوزيع
-          </h1>
-          <p className="m-0 mt-1 text-[13px] text-muted">
-            {me?.membership.tenantName ?? me?.membership.displayName ?? 'المنشأة'} ·{' '}
-            <span dir="ltr">{me?.membership.tenantCode}</span> — واجهةُ قطاع المخابز والتوزيع{' '}
-            على النظام نفسه: بلا سجلّاتٍ موازية ولا دفاترَ ثانية.
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
+    <Screen
+      actions={
+        <>
           <Badge dot status="active" title="الباقةُ القطاعية مفعَّلةٌ لمنشأتك — وتُقرأ من جلسة دخولك">
             مرخَّصة: <span dir="ltr">{BAKERY_APP_CODE}</span>
           </Badge>
@@ -143,8 +134,11 @@ export default function BakeryOverviewPage() {
           <Button onClick={() => void reload()} size="sm">
             تحديث الترخيص
           </Button>
-        </div>
-      </header>
+        </>
+      }
+      subtitle={`${me?.membership.tenantName ?? me?.membership.displayName ?? 'المنشأة'} · ${me?.membership.tenantCode} — واجهةُ قطاع المخابز والتوزيع على النظام نفسه: بلا سجلّاتٍ موازية ولا دفاترَ ثانية.`}
+      title="المخابز: الإنتاج والتوزيع"
+    >
 
       <Card>
         <CardHeader
@@ -376,6 +370,6 @@ export default function BakeryOverviewPage() {
           </details>
         </CardBody>
       </Card>
-    </section>
+    </Screen>
   );
 }

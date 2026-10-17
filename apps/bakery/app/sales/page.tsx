@@ -1,7 +1,7 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Button, Card, CardBody, CardHeader, Input } from '@erp/ui';
+import { useMemo, useState } from 'react';
+import { Button, Card, CardBody, CardHeader, Input, Select, type SortState } from '@erp/ui';
 import { apiData, apiErrorText, apiList, apiPost } from '@erp/web-core/api';
 import { useSession } from '@erp/web-core/session';
 import { useSubmissionKey } from '@erp/web-core/use-submission-key';
@@ -10,6 +10,8 @@ import {
   type VanDocumentPrintView,
 } from '@erp/web-van/document-print';
 
+import { DataTable, Notice } from '../../components/data-view';
+import { Screen } from '../../components/screen';
 import {
   cashLocationLabel,
   numberText,
@@ -20,12 +22,14 @@ import {
 } from '../../lib/lookups';
 import { windowNote } from '../../lib/dashboard-windows';
 import {
-  anomalyNote,
   buildDocumentPayload,
   buildReturnPayload,
   DASHBOARD_WINDOW_NOTE,
+  DOCUMENT_COLUMNS,
+  documentCellText,
   documentKindLabel,
   documentRemainingText,
+  documentViewRows,
   documentVerdict,
   emptyDocumentDraft,
   invoiceModeLabel,
@@ -42,24 +46,20 @@ import {
   saleableLoadOrders,
   type DocumentDraft,
   type DocumentRow,
+  type DocumentViewRow,
   type ReturnDraft,
   type SalesDashboard,
 } from '../../lib/sales-screen';
+import { useQuery } from '../../lib/use-query';
+import { listState, rowKeyFrom, tableColumns } from '../../lib/ui-kit';
 
 /** الصلاحيات كما يفرضها الخادم على كلّ مسارٍ تستعمله هذه الشاشة (`@RequiresPermission`). */
 const VIEW_PERMISSION = 'van_sales.view';
 const CREATE_PERMISSION = 'van_sales.invoice.create';
 
-const selectClass = 'w-full rounded-[8px] border border-line bg-surface px-3 py-2 text-[13px] text-ink';
 const checkClass = 'flex items-start gap-2 text-[12.5px] font-semibold text-ink';
 
-type Notice = { kind: 'ok' | 'danger' | 'warn'; text: string };
-
-const NOTICE_CLASSES: Record<Notice['kind'], string> = {
-  ok: 'border-ok-line bg-ok-soft text-ok-ink',
-  danger: 'border-danger-line bg-danger-soft text-danger-ink',
-  warn: 'border-warn-line bg-warn-soft text-warn-ink',
-};
+type MutationNotice = { kind: 'ok' | 'danger' | 'warn'; text: string };
 
 function emptyReturnDraft(): ReturnDraft {
   return { documentId: '', returnedQty: '', reason: '', notes: '' };
@@ -90,6 +90,10 @@ function emptyReturnDraft(): ReturnDraft {
  * وما **ليس** هنا: الإيصال الحراريّ ٨٠مم (بقي في `apps/staff`)، والأستاذ وتفصيل القيود
  * وأرصدة الصناديق وتسعير العملاء (في `apps/staff`)، وإقفال العهدة (وحدة `/custody`)،
  * وتحميل العهدة (وحدة `/distribution`).
+ *
+ * والتنظيم كما في `apps/staff`: غلافُ الشاشة من `Screen`، والطلب من `useQuery`
+ * (لا يُرسل طلبٌ بلا صلاحية — والسبب موثّقٌ أدناه)، والتغذيةُ الراجعة من `Notice`،
+ * والجدول من `DataTable` عبر `lib/ui-kit.ts`، والقوائم من `Select`.
  */
 export default function SalesPage() {
   const { can } = useSession();
@@ -97,19 +101,38 @@ export default function SalesPage() {
   const canCreate = can(CREATE_PERMISSION);
   const canOverride = OVERRIDE_PERMISSIONS.some((code) => can(code));
 
-  const [dashboard, setDashboard] = useState<SalesDashboard | undefined>();
-  const [parties, setParties] = useState<PartyOption[]>([]);
-  const [cashLocations, setCashLocations] = useState<CashLocationOption[]>([]);
-  const [lookupWarning, setLookupWarning] = useState<string | undefined>();
-  const [loadError, setLoadError] = useState<string | undefined>();
-  const [loading, setLoading] = useState(true);
+  /**
+   * اللوحةُ بطلبٍ واحد — ولا يُرسل الطلبُ بلا صلاحيةٍ (٤٠٣ محتوم): فالخادمُ
+   * هو الضابط، وهذه الواجهة لا تستطلع رأيه بلا وجه. وحين يُمنح الحسابُ
+   * الصلاحيةَ لاحقًا يُعيد `useQuery` الطلبَ بعينه (`canView` في الاعتماديات).
+   */
+  const board = useQuery<SalesDashboard | undefined>(
+    () => (canView ? apiData<SalesDashboard>('/van-sales/dashboard') : Promise.resolve(undefined)),
+    [canView],
+  );
+  /** القائمتان auxiliary: فشلُ كلٍّ منهما يُقال في `lookupWarning` ولا يُسقط الشاشة. */
+  const partiesQuery = useQuery<PartyOption[]>(
+    () => (canView ? apiList<PartyOption>('/parties?kind=customer') : Promise.resolve([])),
+    [canView],
+  );
+  const cashLocationsQuery = useQuery<CashLocationOption[]>(
+    () => (canView ? apiList<CashLocationOption>('/cash-locations') : Promise.resolve([])),
+    [canView],
+  );
+  const parties = useMemo(() => partiesQuery.data ?? [], [partiesQuery.data]);
+  const cashLocations = useMemo(
+    () => cashLocationsQuery.data ?? [],
+    [cashLocationsQuery.data],
+  );
 
   const [draft, setDraft] = useState<DocumentDraft>(emptyDocumentDraft);
   const [busy, setBusy] = useState(false);
-  const [notice, setNotice] = useState<Notice | undefined>();
+  const [notice, setNotice] = useState<MutationNotice | undefined>();
   const [selectedId, setSelectedId] = useState<string | undefined>();
   const [returnDraft, setReturnDraft] = useState<ReturnDraft>(emptyReturnDraft);
   const [returnOpen, setReturnOpen] = useState(false);
+  /** فرزُ جدول المستندات — حالةٌ يملكها العميل لا الخادم (ترتيبُ الخادم هو الافتراضي). */
+  const [documentSort, setDocumentSort] = useState<SortState>(null);
 
   // 🔁 مفتاحٌ لكلّ نيّة: إعادة الإرسال بعد انقطاع الشبكة ترجع بالمستند نفسه (الخادم يفرد
   // ‏`van_sales_documents.idempotency_key`) بدل فاتورةٍ ثانية وخصمٍ ثانٍ من العهدة.
@@ -117,46 +140,7 @@ export default function SalesPage() {
   const documentKey = useSubmissionKey('van-document');
   const returnKey = useSubmissionKey('van-return');
 
-  const load = useCallback(async (): Promise<SalesDashboard | undefined> => {
-    setLoading(true);
-    setLoadError(undefined);
-    try {
-      const board = await apiData<SalesDashboard>('/van-sales/dashboard');
-      setDashboard(board);
-
-      // ‏القوائم المساندة: فشلها لا يُسقط الشاشة، بل يُقال صراحةً ماذا ينقص.
-      const [partiesResult, cashResult] = await Promise.allSettled([
-        apiList<PartyOption>('/parties?kind=customer'),
-        apiList<CashLocationOption>('/cash-locations'),
-      ]);
-      const missing: string[] = [];
-      if (partiesResult.status === 'fulfilled') setParties(partiesResult.value);
-      else missing.push('العملاء');
-      if (cashResult.status === 'fulfilled') setCashLocations(cashResult.value);
-      else missing.push('الصناديق النقدية');
-      setLookupWarning(
-        missing.length > 0
-          ? `تعذّر جلب ${missing.join(' و')} — تحتاج صلاحية القراءة أو أنّ الخادم رفض. الشاشة تعرض ما وصلها فقط: فيبقى البيع النقديّ بلا اسم عميلٍ مُسجَّل، ويبقى الصندوق غير مُسمًّى فيأخذ الخادم صندوق الفرع الافتراضيّ.`
-          : undefined,
-      );
-      return board;
-    } catch (caught) {
-      setLoadError(apiErrorText(caught, 'تعذّر تحميل بيانات المبيعات'));
-      return undefined;
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  // ‏بلا `van_sales.view` لا يُرسل طلبٌ سيُرفض حتمًا (403): يُقال للمستخدم سببُ الفراغ.
-  useEffect(() => {
-    if (!canView) {
-      setLoading(false);
-      return;
-    }
-    void load();
-  }, [canView, load]);
-
+  const dashboard = board.data;
   const documents = dashboard?.documents ?? [];
   const loadOrders = dashboard?.loadOrders ?? [];
   const saleable = useMemo(() => saleableLoadOrders(loadOrders), [loadOrders]);
@@ -182,6 +166,16 @@ export default function SalesPage() {
   );
   const selected = documents.find((row) => row.id === selectedId) ?? null;
   const returnJudgement = useMemo(() => returnVerdict(returnDraft, documents), [returnDraft, documents]);
+  const documentRows = useMemo(() => documentViewRows(documents), [documents]);
+
+  const lookupWarning = useMemo(() => {
+    const missing: string[] = [];
+    if (partiesQuery.status === 'error') missing.push('العملاء');
+    if (cashLocationsQuery.status === 'error') missing.push('الصناديق النقدية');
+    return missing.length > 0
+      ? `تعذّر جلب ${missing.join(' و')} — تحتاج صلاحية القراءة أو أنّ الخادم رفض. الشاشة تعرض ما وصلها فقط: فيبقى البيع النقديّ بلا اسم عميلٍ مُسجَّل، ويبقى الصندوق غير مُسمًّى فيأخذ الخادم صندوق الفرع الافتراضيّ.`
+      : undefined;
+  }, [partiesQuery.status, cashLocationsQuery.status]);
 
   function patchDraft(next: Partial<DocumentDraft>) {
     setDraft((current) => ({ ...current, ...next }));
@@ -212,10 +206,10 @@ export default function SalesPage() {
         ...payload,
         idempotencyKey: documentKey.key(payload),
       });
-      setDashboard(next);
       documentKey.reset();
       // ‏الاستجابة هي اللوحة كاملة، وأحدثُ مستندٍ هو `documents[0]` منها (ترتيب الخادم
-      // ‏`created_at DESC`) — ولا يُخترع رقمُ مستندٍ في المتصفّح أبدًا.
+      // ‏`created_at DESC`) — ولا يُخترع رقمُ مستندٍ في المتصفّح أبدًا. تُقرأ هنا
+      // لبطاقةِ النجاح، واللوحةُ تُعاد قراءتُها من الخادم كما يفعل staff.
       const newest = next.documents[0] ?? null;
       setSelectedId(newest?.id);
       setDraft(emptyDocumentDraft());
@@ -225,6 +219,7 @@ export default function SalesPage() {
           ? `أُصدر المستند ${newest.number} — ${invoiceModeLabel(newest.invoiceMode)}، ${paymentMethodLabel(newest.paymentMethod)}، الإجمالي ${newest.total} والمدفوع ${newest.paidAmount}. الفاتورة الرسمية: ${newest.invoiceNumber ?? '—'} (${invoiceStatusLabel(newest.invoiceStatus)}). وطباعة النسختين من صفّه أدناه.`
           : 'رجعت اللوحة من الخادم بلا مستندٍ جديد في أوّل صفوفها — حدِّث واقرأ ما أُصدر فعلًا.',
       });
+      void board.reload();
     } catch (error) {
       setNotice({ kind: 'danger', text: apiErrorText(error, 'تعذّر إصدار مستند البيع') });
     } finally {
@@ -248,7 +243,7 @@ export default function SalesPage() {
       }
       setNotice({
         kind: 'ok',
-        text: `فُتحت نافذة الطباعة: ${view.copiesCount} نسخةً من المستند ${view.documentNumber} — مستندٌ واحد بنسختين (للعميل، وللمندوب تعود موقّعة إلى المحاسب)، لا فاتورتان. والأرقام من الخادم.`,
+        text: `فُتحت نافذة الطباعة: ${view.copiesCount} نسخةً من المستند ${view.documentNumber} — مستندٌ واحد بنسختين (للعميل، وللمندوب تعود موقّعة إلى المحاسب)، لا فاتورتان. والأرقام من الخادم.`
       });
     } catch (error) {
       setNotice({ kind: 'danger', text: apiErrorText(error, 'تعذّر تجهيز نسخة الطباعة') });
@@ -276,8 +271,8 @@ export default function SalesPage() {
         `/van-sales/documents/${returnDraft.documentId}/returns`,
         { ...payload, idempotencyKey: returnKey.key({ documentId: returnDraft.documentId, ...payload }) },
       );
-      setDashboard(next);
       returnKey.reset();
+      // ‏كما في الإصدار: أحدثُ مستندٍ من استجابة اللوحة، والجدول يُعاد تحميله.
       const newest = next.documents[0] ?? null;
       setSelectedId(newest?.id);
       setReturnDraft(emptyReturnDraft());
@@ -288,6 +283,7 @@ export default function SalesPage() {
           ? `سُجِّل مستند المرتجع ${newest.number} (${newest.soldQty} كجم). وأثرُه في العهدة والأستاذ يُقرأ من حركات اللوحة، وتفصيلُ القيود في staff.`
           : 'رجعت اللوحة من الخادم بلا مرتجعٍ في أوّل صفوفها — حدِّث واقرأ ما سُجِّل فعلًا.',
       });
+      void board.reload();
     } catch (error) {
       setNotice({ kind: 'danger', text: apiErrorText(error, 'تعذّر تسجيل المرتجع') });
     } finally {
@@ -296,31 +292,26 @@ export default function SalesPage() {
   }
 
   return (
-    <section className="grid gap-4">
-      <header className="flex flex-wrap items-end justify-between gap-3">
-        <div className="min-w-0">
-          <h1 className="m-0 text-[22px] font-extrabold leading-tight tracking-tight text-ink">
-            فواتير الخطّ
-          </h1>
-          <p className="m-0 mt-1 text-[13px] text-muted">
-            مستند بيعٍ من عهدة مندوب: <strong>سندٌ واحد بنسختين مطبوعتين</strong> — نسخة للعميل
-            ونسخة للمندوب تعود موقّعة إلى المحاسب — لا فاتورتان. ورمز ZATCA يُرسم من الحمولة
-            الصادرة على الفاتورة، فإن لم تصدر يُطبع قولٌ صريح بدل رمزٍ زائف. والأستاذ وتفصيل
-            القيود في <span dir="ltr">staff</span>.
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
+    <Screen
+      actions={
+        <>
           <span className="bak-badge">POST /van-sales/documents</span>
-          <Button disabled={loading || !canView} onClick={() => void load()} size="sm">
+          <Button
+            disabled={board.status === 'loading' || !canView}
+            onClick={() => void board.reload()}
+            size="sm"
+          >
             تحديث
           </Button>
-        </div>
-      </header>
-
+        </>
+      }
+      subtitle="مستند بيعٍ من عهدة مندوب: سندٌ واحد بنسختين مطبوعتين — نسخة للعميل ونسخة للمندوب تعود موقّعة إلى المحاسب — لا فاتورتان. ورمز ZATCA يُرسم من الحمولة الصادرة على الفاتورة، فإن لم تصدر يُطبع قولٌ صريح بدل رمزٍ زائف. والأستاذ وتفصيل القيود في staff."
+      title="فواتير الخطّ"
+    >
       {!canView ? (
         <Card>
           <CardBody>
-            <p className={`m-0 rounded-[10px] border px-4 py-2.5 text-[13px] font-semibold ${NOTICE_CLASSES.warn}`}>
+            <p className="m-0 rounded-[10px] border border-warn-line bg-warn-soft px-4 py-2.5 text-[13px] font-semibold text-warn-ink">
               🔒 لا تملك <span dir="ltr">{VIEW_PERMISSION}</span> — والخادم يرفض قراءة لوحة
               المبيعات وطباعة أيّ مستند. ولم يُرسل هذا التطبيق طلبًا سيُرفض حتمًا، ولا عرض
               أرقامًا من المتصفّح بدلها.
@@ -329,40 +320,29 @@ export default function SalesPage() {
         </Card>
       ) : null}
 
-      {loadError ? (
+      {board.status === 'error' ? (
         <Card>
           <CardBody>
             <p
-              className={`m-0 rounded-[10px] border px-4 py-2.5 text-[13px] font-semibold ${NOTICE_CLASSES.danger}`}
+              className="m-0 rounded-[10px] border border-danger-line bg-danger-soft px-4 py-2.5 text-[13px] font-semibold text-danger-ink"
               role="alert"
             >
-              تعذّر تحميل بيانات المبيعات: {loadError}
+              تعذّر تحميل بيانات المبيعات: {board.error}
             </p>
             <p className="m-0 mt-2 text-[12.5px] text-muted">
               السبب المعتاد: لا تملك <span dir="ltr">{VIEW_PERMISSION}</span>، أو أنّ الـAPI غير
               متاح من هذه الواجهة. ولا تُعرض مستنداتٌ بديلة من المتصفّح.
             </p>
-            <Button className="mt-3" onClick={() => void load()} size="sm">
+            <Button className="mt-3" onClick={() => void board.reload()} size="sm">
               إعادة المحاولة
             </Button>
           </CardBody>
         </Card>
       ) : null}
 
-      {lookupWarning ? (
-        <p className={`m-0 rounded-[10px] border px-4 py-2.5 text-[13px] font-semibold ${NOTICE_CLASSES.warn}`}>
-          {lookupWarning}
-        </p>
-      ) : null}
+      <Notice notice={lookupWarning ? { kind: 'warn', text: lookupWarning } : undefined} />
 
-      {notice ? (
-        <p
-          className={`m-0 rounded-[10px] border px-4 py-2.5 text-[13px] font-semibold ${NOTICE_CLASSES[notice.kind]}`}
-          role={notice.kind === 'danger' ? 'alert' : 'status'}
-        >
-          {notice.text}
-        </p>
-      ) : null}
+      <Notice notice={notice} />
 
       {dashboard ? (
         <Card>
@@ -436,9 +416,7 @@ export default function SalesPage() {
               </p>
             ) : null}
             {dashboard.postingReadiness.message ? (
-              <p className={`m-0 mt-3 rounded-[10px] border px-4 py-2.5 text-[12.5px] font-semibold ${NOTICE_CLASSES.warn}`}>
-                ⚠️ {dashboard.postingReadiness.message}
-              </p>
+              <Notice notice={{ kind: 'warn', text: `⚠️ ${dashboard.postingReadiness.message}` }} />
             ) : null}
           </CardBody>
         </Card>
@@ -447,7 +425,7 @@ export default function SalesPage() {
       {canView && !canCreate ? (
         <Card>
           <CardBody>
-            <p className={`m-0 rounded-[10px] border px-4 py-2.5 text-[13px] font-semibold ${NOTICE_CLASSES.warn}`}>
+            <p className="m-0 rounded-[10px] border border-warn-line bg-warn-soft px-4 py-2.5 text-[13px] font-semibold text-warn-ink">
               🔒 تملك القراءة (<span dir="ltr">{VIEW_PERMISSION}</span>) لا الإصدار (
               <span dir="ltr">{CREATE_PERMISSION}</span>) — فتُعرض المستندات وتُطبع نسختاها، ولا
               يُرسل إصدارٌ سيُرفض 403.
@@ -471,38 +449,27 @@ export default function SalesPage() {
               }}
             >
               <div className="grid gap-3 md:grid-cols-2">
-                <label className="grid gap-1 text-[12.5px] font-bold text-ink">
-                  عهدة المندوب (أمر التحميل / الدفعة)
-                  <select
-                    className={selectClass}
-                    onChange={(event) => pickLoadOrder(event.target.value)}
-                    value={draft.loadOrderId}
-                  >
-                    <option value="">— اختر أمر التحميل —</option>
-                    {saleable.map((row) => (
-                      <option key={row.id} value={row.id}>
-                        {row.number} — {row.salesmanName} · {row.itemName} · متبقٍّ{' '}
-                        {loadOrderRemaining(row).toFixed(2)} كجم · {row.productionBatchNo}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+                <Select
+                  label="عهدة المندوب (أمر التحميل / الدفعة)"
+                  onChange={(event) => pickLoadOrder(event.target.value)}
+                  options={saleable.map((row) => ({
+                    label: `${row.number} — ${row.salesmanName} · ${row.itemName} · متبقٍّ ${loadOrderRemaining(row).toFixed(2)} كجم · ${row.productionBatchNo}`,
+                    value: row.id ?? '',
+                  }))}
+                  placeholder="— اختر أمر التحميل —"
+                  value={draft.loadOrderId}
+                />
 
-                <label className="grid gap-1 text-[12.5px] font-bold text-ink">
-                  العميل (أو بيعٌ نقديّ بلا بطاقة)
-                  <select
-                    className={selectClass}
-                    onChange={(event) => patchDraft({ partyId: event.target.value })}
-                    value={draft.partyId}
-                  >
-                    <option value="">— عميل نقديّ (بلا بطاقة) —</option>
-                    {parties.map((row) => (
-                      <option key={row.id} value={row.id}>
-                        {partyLabel(row)}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+                <Select
+                  label="العميل (أو بيعٌ نقديّ بلا بطاقة)"
+                  onChange={(event) => patchDraft({ partyId: event.target.value })}
+                  options={parties.map((row) => ({
+                    label: partyLabel(row),
+                    value: row.id,
+                  }))}
+                  placeholder="— عميل نقديّ (بلا بطاقة) —"
+                  value={draft.partyId}
+                />
               </div>
 
               {blockedLoadOrders.length > 0 ? (
@@ -568,51 +535,42 @@ export default function SalesPage() {
                   placeholder="0.00"
                   value={draft.unitPrice}
                 />
-                <label className="grid gap-1 text-[12.5px] font-bold text-ink">
-                  طريقة الدفع
-                  <select
-                    className={selectClass}
-                    onChange={(event) =>
-                      patchDraft({ paymentMethod: event.target.value as DocumentDraft['paymentMethod'] })
-                    }
-                    value={draft.paymentMethod}
-                  >
-                    <option value="cash">نقدًا — يُسجَّل مدفوعًا بالكامل</option>
-                    <option value="card">شبكة — يُسجَّل مدفوعًا بالكامل</option>
-                    <option value="credit">آجل — يبقى دينًا على العميل</option>
-                  </select>
-                </label>
+                <Select
+                  label="طريقة الدفع"
+                  onChange={(event) =>
+                    patchDraft({ paymentMethod: event.target.value as DocumentDraft['paymentMethod'] })
+                  }
+                  options={[
+                    { label: 'نقدًا — يُسجَّل مدفوعًا بالكامل', value: 'cash' },
+                    { label: 'شبكة — يُسجَّل مدفوعًا بالكامل', value: 'card' },
+                    { label: 'آجل — يبقى دينًا على العميل', value: 'credit' },
+                  ]}
+                  value={draft.paymentMethod}
+                />
               </div>
 
               <div className="grid gap-3 md:grid-cols-3">
-                <label className="grid gap-1 text-[12.5px] font-bold text-ink">
-                  نوع المستند
-                  <select
-                    className={selectClass}
-                    onChange={(event) =>
-                      patchDraft({ invoiceMode: event.target.value as DocumentDraft['invoiceMode'] })
-                    }
-                    value={draft.invoiceMode}
-                  >
-                    <option value="zatca_tax">فاتورة ضريبية إلكترونية (ZATCA)</option>
-                    <option value="internal_delivery">إشعار تسليم / توزيع داخلي</option>
-                  </select>
-                </label>
-                <label className="grid gap-1 text-[12.5px] font-bold text-ink">
-                  الصندوق النقديّ (للنقد والشبكة)
-                  <select
-                    className={selectClass}
-                    onChange={(event) => patchDraft({ cashLocationId: event.target.value })}
-                    value={draft.cashLocationId}
-                  >
-                    <option value="">— صندوق الفرع الافتراضيّ —</option>
-                    {cashLocations.map((row) => (
-                      <option key={row.id} value={row.id}>
-                        {cashLocationLabel(row)}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+                <Select
+                  label="نوع المستند"
+                  onChange={(event) =>
+                    patchDraft({ invoiceMode: event.target.value as DocumentDraft['invoiceMode'] })
+                  }
+                  options={[
+                    { label: 'فاتورة ضريبية إلكترونية (ZATCA)', value: 'zatca_tax' },
+                    { label: 'إشعار تسليم / توزيع داخلي', value: 'internal_delivery' },
+                  ]}
+                  value={draft.invoiceMode}
+                />
+                <Select
+                  label="الصندوق النقديّ (للنقد والشبكة)"
+                  onChange={(event) => patchDraft({ cashLocationId: event.target.value })}
+                  options={cashLocations.map((row) => ({
+                    label: cashLocationLabel(row),
+                    value: row.id,
+                  }))}
+                  placeholder="— صندوق الفرع الافتراضيّ —"
+                  value={draft.cashLocationId}
+                />
                 <Input
                   label="اسم العميل النقديّ"
                   hint="يُستعمل فقط حين لا تُختار بطاقة عميل؛ والفراغ يعني نصّ الخادم «محل تجزئة نقدي»."
@@ -709,25 +667,12 @@ export default function SalesPage() {
                 value={draft.notes}
               />
 
-              {verdict.blocked.length > 0 ? (
-                <div className="grid gap-1.5">
-                  {verdict.blocked.map((line) => (
-                    <p key={line} className={`m-0 rounded-[10px] border px-3 py-2 text-[12.5px] font-semibold ${NOTICE_CLASSES.danger}`}>
-                      ⛔ {line}
-                    </p>
-                  ))}
-                </div>
-              ) : null}
-
-              {verdict.warnings.length > 0 ? (
-                <div className="grid gap-1.5">
-                  {verdict.warnings.map((line) => (
-                    <p key={line} className={`m-0 rounded-[10px] border px-3 py-2 text-[12.5px] font-semibold ${NOTICE_CLASSES.warn}`}>
-                      ⚠️ {line}
-                    </p>
-                  ))}
-                </div>
-              ) : null}
+              {verdict.blocked.map((line) => (
+                <Notice key={line} notice={{ kind: 'danger', text: `⛔ ${line}` }} />
+              ))}
+              {verdict.warnings.map((line) => (
+                <Notice key={line} notice={{ kind: 'warn', text: `⚠️ ${line}` }} />
+              ))}
 
               <div className="flex flex-wrap items-center gap-2">
                 <Button
@@ -752,7 +697,7 @@ export default function SalesPage() {
                 </Button>
                 <span className="text-[12px] text-muted">
                   مفتاحُ عدم التكرار يُحسب من الحمولة لحظة الإرسال — فالضغط مرّتين أو إعادة
-                  الإرسال بعد انقطاع الشبكة لا تُصدر مستندًا ثانيًا.
+                  الإرسال بعد انقطاع الشبكة لا يُصدر مستندًا ثانيًا.
                 </span>
               </div>
             </form>
@@ -766,110 +711,34 @@ export default function SalesPage() {
           title={`مستندات الخطّ (${documents.length})`}
         />
         <CardBody>
-          {loading ? (
-            <p aria-busy="true" className="m-0 text-[13px] text-muted">
-              جارٍ تحميل المستندات…
-            </p>
-          ) : documents.length === 0 ? (
-            <p className="m-0 text-[13px] text-muted">
-              لا مستند بيع بعد{canCreate ? ' — أصدر الأوّل أعلاه' : ''}. ولا يُعرض هنا رقمٌ
-              تجريبيّ.
-            </p>
-          ) : (
-            <div className="bak-table-wrap">
-              <table className="bak-table">
-                <thead>
-                  <tr className="text-muted">
-                    <th className="border-b border-line p-2 text-start font-bold">المستند</th>
-                    <th className="border-b border-line p-2 text-start font-bold">النوع</th>
-                    <th className="border-b border-line p-2 text-start font-bold">العميل</th>
-                    <th className="border-b border-line p-2 text-start font-bold">المندوب</th>
-                    <th className="border-b border-line p-2 text-start font-bold">الصنف</th>
-                    <th className="border-b border-line p-2 text-start font-bold">مبيع</th>
-                    <th className="border-b border-line p-2 text-start font-bold">مجانيّ</th>
-                    <th className="border-b border-line p-2 text-start font-bold">السعر</th>
-                    <th className="border-b border-line p-2 text-start font-bold">الإجمالي</th>
-                    <th className="border-b border-line p-2 text-start font-bold">المدفوع</th>
-                    <th className="border-b border-line p-2 text-start font-bold">المتبقي</th>
-                    <th className="border-b border-line p-2 text-start font-bold">الدفع</th>
-                    <th className="border-b border-line p-2 text-start font-bold">الفاتورة الرسمية</th>
-                    <th className="border-b border-line p-2 text-start font-bold">إجراء</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {documents.map((row) => (
-                    <tr key={row.id}>
-                      <td className="border-b border-line p-2">
-                        <button
-                          className="m-0 border-0 bg-transparent p-0 text-[12.5px] font-bold text-ink underline decoration-dotted"
-                          onClick={() => setSelectedId(row.id)}
-                          type="button"
-                        >
-                          {row.number}
-                        </button>
-                        <div className="text-[11px] text-muted" dir="ltr">
-                          {row.docDate}
-                        </div>
-                      </td>
-                      <td className="border-b border-line p-2">{documentKindLabel(row.documentKind)}</td>
-                      <td className="border-b border-line p-2">{numberText(row.customerName)}</td>
-                      <td className="border-b border-line p-2">{numberText(row.salesmanName)}</td>
-                      <td className="border-b border-line p-2">{numberText(row.itemName)}</td>
-                      <td className="border-b border-line p-2 num" dir="ltr">
-                        {numberText(row.soldQty)}
-                      </td>
-                      <td className="border-b border-line p-2 num" dir="ltr">
-                        {numberText(row.bonusQty)}
-                      </td>
-                      <td className="border-b border-line p-2 num" dir="ltr">
-                        {numberText(row.unitPrice)}
-                      </td>
-                      <td className="border-b border-line p-2 num" dir="ltr">
-                        {numberText(row.total)}
-                      </td>
-                      <td className="border-b border-line p-2 num" dir="ltr">
-                        {numberText(row.paidAmount)}
-                      </td>
-                      <td className="border-b border-line p-2 num" dir="ltr">
-                        {documentRemainingText(row)}
-                      </td>
-                      <td className="border-b border-line p-2">{paymentMethodLabel(row.paymentMethod)}</td>
-                      <td className="border-b border-line p-2">
-                        <span dir="ltr">{numberText(row.invoiceNumber)}</span>
-                        <div className="text-[11px] text-muted">{invoiceStatusLabel(row.invoiceStatus)}</div>
-                      </td>
-                      <td className="border-b border-line p-2">
-                        <div className="flex flex-wrap gap-1">
-                          <Button onClick={() => setSelectedId(row.id)} size="sm" type="button" variant="ghost">
-                            تفاصيل
-                          </Button>
-                          <Button
-                            disabled={busy}
-                            onClick={() => void printCopies(row.id)}
-                            size="sm"
-                            type="button"
-                            variant="secondary"
-                          >
-                            🖨️ نسختان
-                          </Button>
-                          {row.documentKind === 'sale' && canCreate ? (
-                            <Button onClick={() => openReturn(row)} size="sm" type="button" variant="secondary">
-                              ↩️ مرتجع
-                            </Button>
-                          ) : null}
-                        </div>
-                        {anomalyNote(row) ? (
-                          <p className={`m-0 mt-1 rounded-[8px] border px-2 py-1 text-[11.5px] font-semibold ${NOTICE_CLASSES.warn}`}>
-                            ⚠️ {anomalyNote(row)}
-                          </p>
-                        ) : null}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+          <DataTable<DocumentViewRow>
+            actions={(row) => [
+              { label: 'تفاصيل', onClick: () => setSelectedId(row.id) },
+              { label: '🖨️ نسختان', onClick: () => void printCopies(row.id) },
+              ...(row.documentKind === 'sale' && canCreate
+                ? [{ label: '↩️ مرتجع', onClick: () => openReturn(row) }]
+                : []),
+            ]}
+            columns={tableColumns<DocumentViewRow>(DOCUMENT_COLUMNS, documentCellText)}
+            dense
+            empty={
+              <span className="m-0 text-[13px] text-muted">
+                لا مستند بيع بعد{canCreate ? ' — أصدر الأوّل أعلاه' : ''}. ولا يُعرض هنا رقمٌ
+                تجريبيّ.
+              </span>
+            }
+            onSortChange={setDocumentSort}
+            pageSize={25}
+            rowKey={rowKeyFrom(['id', 'number'])}
+            rows={documentRows}
+            sort={documentSort}
+            sortable
+            state={listState({
+              loading: board.status === 'loading',
+              error: board.status === 'error' ? board.error : undefined,
+            })}
+            storageKey="bakery-sales-documents"
+          />
         </CardBody>
       </Card>
 
@@ -1002,14 +871,10 @@ export default function SalesPage() {
                 </div>
 
                 {returnJudgement.blocked.map((line) => (
-                  <p key={line} className={`m-0 rounded-[10px] border px-3 py-2 text-[12.5px] font-semibold ${NOTICE_CLASSES.danger}`}>
-                    ⛔ {line}
-                  </p>
+                  <Notice key={line} notice={{ kind: 'danger', text: `⛔ ${line}` }} />
                 ))}
                 {returnJudgement.warnings.map((line) => (
-                  <p key={line} className={`m-0 rounded-[10px] border px-3 py-2 text-[12.5px] font-semibold ${NOTICE_CLASSES.warn}`}>
-                    ⚠️ {line}
-                  </p>
+                  <Notice key={line} notice={{ kind: 'warn', text: `⚠️ ${line}` }} />
                 ))}
 
                 <div className="flex flex-wrap items-center gap-2">
@@ -1042,6 +907,6 @@ export default function SalesPage() {
           </CardBody>
         </Card>
       ) : null}
-    </section>
+    </Screen>
   );
 }

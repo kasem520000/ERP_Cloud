@@ -1,7 +1,15 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Button, Card, CardBody, CardHeader, Input } from '@erp/ui';
+import { useMemo, useState } from 'react';
+import {
+  Button,
+  Card,
+  CardBody,
+  CardHeader,
+  Input,
+  Select,
+  type SortState,
+} from '@erp/ui';
 import { apiData, apiErrorText, apiList, apiPost } from '@erp/web-core/api';
 import { useSession } from '@erp/web-core/session';
 import { useSubmissionKey } from '@erp/web-core/use-submission-key';
@@ -11,15 +19,18 @@ import {
   canCancelLoadOrder,
   canConfirmReceipt,
   loadOrderStatusLabel,
-  stockSettlementStatusLabel,
 } from '@erp/web-van/distribution';
 
+import { DataTable, Notice } from '../../components/data-view';
+import { Screen } from '../../components/screen';
 import {
   awaitingReceiptRows,
-  batchCellText,
-  batchItemOption,
   batchOptionLabel,
+  batchItemOption,
   itemRequiresBatch,
+  LOAD_ORDER_COLUMNS,
+  loadOrderCellText,
+  loadOrderViewRows,
   mapLoadOrders,
   mapSalesmen,
   salesmanAdvisories,
@@ -27,16 +38,23 @@ import {
   salesmanLabel,
   type DistributionDashboard,
   type LoadOrderRow,
+  type LoadOrderViewRow,
   type SalesmanRow,
 } from '../../lib/distribution-screen';
-import { itemLabel, numberText, warehouseLabel, type ItemOption, type WarehouseOption } from '../../lib/lookups';
+import {
+  itemLabel,
+  numberText,
+  warehouseLabel,
+  type ItemOption,
+  type WarehouseOption,
+} from '../../lib/lookups';
+import { useQuery } from '../../lib/use-query';
+import { listState, rowKeyFrom, tableColumns } from '../../lib/ui-kit';
 
 /** الصلاحية التي يفرضها الخادم على `POST /van-sales/load-orders` وعلى `…/cancel`. */
 const LOAD_PERMISSION = 'van_sales.load.manage';
 /** وقراءة اللوحة والمندوبين، ومسار تأكيد الاستلام/رفضه. */
 const VIEW_PERMISSION = 'van_sales.view';
-
-const selectClass = 'w-full rounded-[8px] border border-line bg-surface px-3 py-2 text-[13px] text-ink';
 
 type ActionKind = 'confirm' | 'reject' | 'cancel';
 
@@ -77,19 +95,41 @@ const ACTION_ROUTES: Record<ActionKind, (id: string) => string> = {
  * وما **ليس** هنا: إقفال العهدة واعتماده وتسوية فرق المخزون — وحدةٌ مستقلة في التنقل
  * (‏`custody`) مبنيّة في هذه اللوحة على `/custody` — قرار السياسة اتُّخذ ونُفِّذ؛ والأستاذ
  * وتفصيل القيود وتسوية الرواتب في `apps/staff`، لا هنا.
+ *
+ * والتنظيم كما في `apps/staff`: غلافُ الشاشة من `Screen`، والطلب من `useQuery`
+ * (لا يُرسل طلبٌ بلا صلاحية — والسبب موثّقٌ أدناه)، والتغذيةُ الراجعة من `Notice`،
+ * والجدول من `DataTable` عبر `lib/ui-kit.ts`، والقوائم من `Select`.
  */
 export default function DistributionPage() {
   const { can } = useSession();
   const canManage = can(LOAD_PERMISSION);
   const canView = can(VIEW_PERMISSION);
 
-  const [dashboard, setDashboard] = useState<DistributionDashboard | undefined>();
-  const [salesmen, setSalesmen] = useState<SalesmanRow[]>([]);
-  const [items, setItems] = useState<ItemOption[]>([]);
-  const [warehouses, setWarehouses] = useState<WarehouseOption[]>([]);
-  const [lookupWarning, setLookupWarning] = useState<string | undefined>();
-  const [loadError, setLoadError] = useState<string | undefined>();
-  const [loading, setLoading] = useState(true);
+  /**
+   * اللوحةُ بطلبٍ واحد — ولا يُرسل الطلبُ بلا صلاحيةٍ (٤٠٣ محتوم): فالخادمُ
+   * هو الضابط، وهذه الواجهة لا تستطلع رأيه بلا وجه. وحين يُمنح الحسابُ
+   * الصلاحيةَ لاحقًا يُعيد `useQuery` الطلبَ بعينه (`canView` في الاعتماديات).
+   */
+  const dashboard = useQuery<DistributionDashboard | undefined>(
+    () => (canView ? apiData<DistributionDashboard>('/van-sales/dashboard') : Promise.resolve(undefined)),
+    [canView],
+  );
+  /** القوائم auxiliary: فشلُ كلٍّ منها يُقال في `lookupWarning` ولا يُسقط الشاشة. */
+  const salesmenQuery = useQuery<SalesmanRow[]>(
+    () => (canView ? apiList<SalesmanRow>('/van-sales/salesmen') : Promise.resolve([])),
+    [canView],
+  );
+  const itemsQuery = useQuery<ItemOption[]>(
+    () => (canView ? apiList<ItemOption>('/organization/catalog/items') : Promise.resolve([])),
+    [canView],
+  );
+  const warehousesQuery = useQuery<WarehouseOption[]>(
+    () => (canView ? apiList<WarehouseOption>('/warehouses') : Promise.resolve([])),
+    [canView],
+  );
+  const salesmen = useMemo(() => mapSalesmen(salesmenQuery.data), [salesmenQuery.data]);
+  const items = useMemo(() => itemsQuery.data ?? [], [itemsQuery.data]);
+  const warehouses = useMemo(() => warehousesQuery.data ?? [], [warehousesQuery.data]);
 
   // ‏أمر التحميل الجديد
   const [salesmanId, setSalesmanId] = useState('');
@@ -115,49 +155,8 @@ export default function DistributionPage() {
   const [actionBusy, setActionBusy] = useState(false);
   const [actionError, setActionError] = useState<string | undefined>();
   const [actionDone, setActionDone] = useState<string | undefined>();
-
-  const load = useCallback(async (): Promise<DistributionDashboard | undefined> => {
-    setLoading(true);
-    setLoadError(undefined);
-    try {
-      const dash = await apiData<DistributionDashboard>('/van-sales/dashboard');
-      setDashboard(dash);
-
-      // ‏القوائم auxiliary: فشلها لا يُسقط الشاشة، بل يُقال صراحةً ماذا ينقص.
-      const [salesmenResult, itemsResult, warehousesResult] = await Promise.allSettled([
-        apiList<SalesmanRow>('/van-sales/salesmen'),
-        apiList<ItemOption>('/organization/catalog/items'),
-        apiList<WarehouseOption>('/warehouses'),
-      ]);
-      const missing: string[] = [];
-      if (salesmenResult.status === 'fulfilled') setSalesmen(mapSalesmen(salesmenResult.value));
-      else missing.push('المندوبين');
-      if (itemsResult.status === 'fulfilled') setItems(itemsResult.value);
-      else missing.push('الأصناف');
-      if (warehousesResult.status === 'fulfilled') setWarehouses(warehousesResult.value);
-      else missing.push('المستودعات');
-      setLookupWarning(
-        missing.length > 0
-          ? `تعذّر جلب ${missing.join(' و')} — تحتاج صلاحية القراءة أو أنّ الخادم رفض. الشاشة تعرض ما وصلها فقط، ولا أمرَ تحميل بلا مندوب.`
-          : undefined,
-      );
-      return dash;
-    } catch (caught) {
-      setLoadError(apiErrorText(caught, 'تعذّر تحميل بيانات التوزيع'));
-      return undefined;
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  // ‏بلا `van_sales.view` لا يُرسل طلبٌ سيُرفض حتماً (403): يُقال للمستخدم سببُ الفراغ.
-  useEffect(() => {
-    if (!canView) {
-      setLoading(false);
-      return;
-    }
-    void load();
-  }, [canView, load]);
+  /** فرزُ جدول الأحمال — حالةٌ يملكها العميل لا الخادم (ترتيبُ الخادم هو الافتراضي). */
+  const [loadSort, setLoadSort] = useState<SortState>(null);
 
   const pickedSalesman = salesmen.find((row) => row.id === salesmanId);
   /**
@@ -185,9 +184,12 @@ export default function DistributionPage() {
   // 🔁 مفتاحٌ واحد للنيّة الواحدة: إعادة الإرسال بعد انقطاع الشبكة ترجع بأمر التحميل الأول
   // (فالخادم يفرد `van_load_orders.idempotency_key`) بدل توريدٍ ثانٍ وخصمٍ ثانٍ من المستودع.
   const loadOrderKey = useSubmissionKey('van-load-order', draft);
-  const loadOrders = useMemo(() => mapLoadOrders(dashboard), [dashboard]);
+  const loadOrders = useMemo(
+    () => loadOrderViewRows(mapLoadOrders(dashboard.data)),
+    [dashboard.data],
+  );
   const pendingReceipt = useMemo(() => awaitingReceiptRows(loadOrders), [loadOrders]);
-  const batches = dashboard?.productionBatches ?? [];
+  const batches = dashboard.data?.productionBatches ?? [];
 
   function pickSalesman(id: string) {
     setSalesmanId(id);
@@ -247,8 +249,9 @@ export default function DistributionPage() {
         ...verdict.payload,
         idempotencyKey: loadOrderKey.key(),
       });
-      setDashboard(fresh);
-      // ‏الاستجابة هي اللوحة كاملة، فأحدث أمرٍ أولُ صفوفها — لا رقمَ مُختلَع من المتصفح.
+      // ‏الاستجابة هي اللوحة كاملة، فأحدث أمرٍ أولُ صفوفها — لا رقمَ مُختلَع
+      // من المتصفح — وتُقرأ هنا لبطاقةِ النجاح، والجدولُ يُعاد قراءتُه من
+      // الخادم كما يفعل staff بعد كلّ كتابة.
       setCreated(mapLoadOrders(fresh)[0]);
       setLoadedQty('');
       setNotes('');
@@ -256,6 +259,7 @@ export default function DistributionPage() {
       setProductionBatchNo('');
       // نجاحٌ رُصد: التوريد التالي نيّةٌ جديدة ولو تطابق محتواها (توريدان متماثلان في يوم).
       loadOrderKey.reset();
+      void dashboard.reload();
     } catch (caught) {
       setSubmitError(apiErrorText(caught, 'تعذّر إنشاء أمر التحميل'));
     } finally {
@@ -293,7 +297,7 @@ export default function DistributionPage() {
         `${ACTION_LABELS[actionKind]} — أمر التحميل ${actionRow.number ?? id}: نُفِّذ في الخادم، والجدول أدناه من اللوحة المحدَّثة.`,
       );
       closeAction();
-      await load();
+      await dashboard.reload();
     } catch (caught) {
       setActionError(apiErrorText(caught, `تعذّر ${ACTION_LABELS[actionKind]}`));
     } finally {
@@ -304,26 +308,33 @@ export default function DistributionPage() {
   const blocking = pickedSalesman ? salesmanBlockingWarning(pickedSalesman) : null;
   const advisories = pickedSalesman ? salesmanAdvisories(pickedSalesman) : [];
 
+  const lookupWarning = useMemo(() => {
+    const missing: string[] = [];
+    if (salesmenQuery.status === 'error') missing.push('المندوبين');
+    if (itemsQuery.status === 'error') missing.push('الأصناف');
+    if (warehousesQuery.status === 'error') missing.push('المستودعات');
+    return missing.length > 0
+      ? `تعذّر جلب ${missing.join(' و')} — تحتاج صلاحية القراءة أو أنّ الخادم رفض. الشاشة تعرض ما وصلها فقط، ولا أمرَ تحميل بلا مندوب.`
+      : undefined;
+  }, [salesmenQuery.status, itemsQuery.status, warehousesQuery.status]);
+
   return (
-    <section className="grid gap-4">
-      <header className="flex flex-wrap items-end justify-between gap-3">
-        <div className="min-w-0">
-          <h1 className="m-0 text-[22px] font-extrabold leading-tight tracking-tight text-ink">
-            التوزيع والأحمال
-          </h1>
-          <p className="m-0 mt-1 text-[13px] text-muted">
-            أمر تحميلٍ لمندوب: يُصرف من المستودع بمناقلة رسمية وتصير البضاعة عهدةً <strong>عند تأكيد
-            الاستلام</strong>. والإقفال والاعتماد وتسوية الفرق وحدةٌ أخرى (في `staff`).
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
+    <Screen
+      actions={
+        <>
           <span className="bak-badge">POST /van-sales/load-orders</span>
-          <Button disabled={loading || !canView} onClick={() => void load()} size="sm">
+          <Button
+            disabled={dashboard.status === 'loading' || !canView}
+            onClick={() => void dashboard.reload()}
+            size="sm"
+          >
             تحديث
           </Button>
-        </div>
-      </header>
-
+        </>
+      }
+      subtitle="أمر تحميلٍ لمندوب: يُصرف من المستودع بمناقلة رسمية وتصير البضاعة عهدةً عند تأكيد الاستلام. والإقفال والاعتماد وتسوية الفرق وحدةٌ أخرى (في `staff`)."
+      title="التوزيع والأحمال"
+    >
       {!canView ? (
         <Card>
           <CardBody>
@@ -335,36 +346,41 @@ export default function DistributionPage() {
         </Card>
       ) : null}
 
-      {loadError ? (
+      {dashboard.status === 'error' ? (
         <Card>
           <CardBody>
             <p
               className="m-0 rounded-[10px] border border-danger-line bg-danger-soft px-4 py-2.5 text-[13px] font-semibold text-danger-ink"
               role="alert"
             >
-              تعذّر تحميل بيانات التوزيع: {loadError}
+              تعذّر تحميل بيانات التوزيع: {dashboard.error}
             </p>
             <p className="m-0 mt-2 text-[12.5px] text-muted">
               السبب المعتاد: لا تملك `{VIEW_PERMISSION}` أو أنّ الـAPI غير متاح من هذه الواجهة.
               ولا تُعرض أحمالٌ بديلة من المتصفح.
             </p>
-            <Button className="mt-3" onClick={() => void load()} size="sm">
+            <Button className="mt-3" onClick={() => void dashboard.reload()} size="sm">
               إعادة المحاولة
             </Button>
           </CardBody>
         </Card>
       ) : null}
 
-      {lookupWarning ? (
-        <p className="m-0 rounded-[10px] border border-warn-line bg-warn-soft px-4 py-2.5 text-[13px] font-semibold text-warn-ink">
-          {lookupWarning}
-        </p>
-      ) : null}
+      <Notice
+        notice={lookupWarning ? { kind: 'warn', text: lookupWarning } : undefined}
+      />
 
-      {actionDone ? (
-        <p className="m-0 rounded-[10px] border border-ok-line bg-ok-soft px-4 py-2.5 text-[13px] font-semibold text-ok-ink">
-          ✅ {actionDone}
-        </p>
+      <Notice notice={actionDone ? { kind: 'ok', text: actionDone } : undefined} />
+
+      {created ? (
+        <Notice
+          notice={{
+            kind: 'ok',
+            text: `✅ أُنشئ أمر التحميل ${created.number ?? '—'} — الحالة: ${loadOrderStatusLabel(
+              created.status ?? '',
+            )} — المصروف: ${numberText(created.loadedQty)} — بانتظار تأكيد المندوب للاستلام.`,
+          }}
+        />
       ) : null}
 
       {canManage ? (
@@ -382,22 +398,16 @@ export default function DistributionPage() {
               }}
             >
               <div className="grid gap-3 md:grid-cols-2">
-                <label className="grid gap-1 text-[12.5px] font-bold text-ink">
-                  المندوب (صاحب العهدة)
-                  <select
-                    className={selectClass}
-                    onChange={(event) => pickSalesman(event.target.value)}
-                    value={salesmanId}
-                  >
-                    <option value="">— اختر المندوب —</option>
-                    {salesmen.map((row) => (
-                      <option key={row.id} value={row.id ?? ''}>
-                        {salesmanLabel(row)}
-                        {row.warehouseName ? ` — ${row.warehouseName}` : ' — بلا مستودع سيارة'}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+                <Select
+                  label="المندوب (صاحب العهدة)"
+                  onChange={(event) => pickSalesman(event.target.value)}
+                  options={salesmen.map((row) => ({
+                    label: `${salesmanLabel(row)}${row.warehouseName ? ` — ${row.warehouseName}` : ' — بلا مستودع سيارة'}`,
+                    value: row.id ?? '',
+                  }))}
+                  placeholder="— اختر المندوب —"
+                  value={salesmanId}
+                />
 
                 <Input
                   dir="ltr"
@@ -413,12 +423,10 @@ export default function DistributionPage() {
               {pickedSalesman ? (
                 <div className="grid gap-1.5">
                   {blocking ? (
-                    <p className="m-0 rounded-[10px] border border-warn-line bg-warn-soft px-3 py-2 text-[12.5px] font-semibold text-warn-ink">
-                      ⚠️ {blocking}
-                    </p>
+                    <Notice notice={{ kind: 'warn', text: blocking }} />
                   ) : null}
                   {advisories.map((note) => (
-                    <p key={note} className="m-0 text-[12.5px] text-muted">
+                    <p className="m-0 text-[12.5px] text-muted" key={note}>
                       · {note}
                     </p>
                   ))}
@@ -431,71 +439,60 @@ export default function DistributionPage() {
               ) : null}
 
               <div className="grid gap-3 md:grid-cols-2">
-                <label className="grid gap-1 text-[12.5px] font-bold text-ink">
-                  الصنف المحمَّل
-                  <select className={selectClass} onChange={(event) => setItemId(event.target.value)} value={itemId}>
-                    <option value="">— اختر الصنف —</option>
-                    {items.map((row) => (
-                      <option key={row.id} value={row.id}>
-                        {row.trackLot === true ? `${itemLabel(row)} — يتطلّب دفعة إنتاج` : itemLabel(row)}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+                <Select
+                  label="الصنف المحمَّل"
+                  onChange={(event) => setItemId(event.target.value)}
+                  options={items.map((row) => ({
+                    label: row.trackLot === true ? `${itemLabel(row)} — يتطلّب دفعة إنتاج` : itemLabel(row),
+                    value: row.id,
+                  }))}
+                  placeholder="— اختر الصنف —"
+                  value={itemId}
+                />
 
-                <label className="grid gap-1 text-[12.5px] font-bold text-ink">
-                  أو اربطه بدفعة إنتاج (يُشتقّ الصنف واللوت منها)
-                  <select className={selectClass} onChange={(event) => pickBatch(event.target.value)} value={batchKey}>
-                    <option value="">— بلا ربط بدفعة —</option>
-                    {batches.map((row) => (
-                      <option key={row.id ?? row.batchNo ?? ''} value={row.id ?? ''}>
-                        {batchOptionLabel(row)}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+                <Select
+                  label="أو اربطه بدفعة إنتاج (يُشتقّ الصنف واللوت منها)"
+                  onChange={(event) => pickBatch(event.target.value)}
+                  options={batches.map((row) => ({
+                    label: batchOptionLabel(row),
+                    value: row.id ?? row.batchNo ?? '',
+                  }))}
+                  placeholder="— بلا ربط بدفعة —"
+                  value={batchKey}
+                />
               </div>
 
               {itemRequiresBatch(items, itemId, productionBatchNo) ? (
-                <p className="m-0 rounded-[10px] border border-warn-line bg-warn-soft px-4 py-2.5 text-[12.5px] font-semibold text-warn-ink">
-                  🏷️ هذا الصنف يُتتبَّع بالدفعات: اربطه بدفعة إنتاج من القائمة، وإلا رفضه الخادم
-                  (‏422 <span dir="ltr">VAN_LOAD_ORDER_BATCH_REQUIRED</span>) — ولا يُفترض رقمُ دفعةٍ
-                  من تاريخ اليوم، لأنه يلتقي برقم أوّل دفعةٍ تُنشأ اليوم نفسها.
-                </p>
+                <Notice
+                  notice={{
+                    kind: 'warn',
+                    text: '🏷️ هذا الصنف يُتتبَّع بالدفعات: اربطه بدفعة إنتاج من القائمة، وإلا رفضه الخادم (‏422 VAN_LOAD_ORDER_BATCH_REQUIRED) — ولا يُفترض رقمُ دفعةٍ من تاريخ اليوم، لأنه يلتقي برقم أوّل دفعةٍ تُنشأ اليوم نفسها.',
+                  }}
+                />
               ) : null}
 
               <div className="grid gap-3 md:grid-cols-2">
-                <label className="grid gap-1 text-[12.5px] font-bold text-ink">
-                  مستودع المصدر (المصروف منه)
-                  <select
-                    className={selectClass}
-                    onChange={(event) => setWarehouseId(event.target.value)}
-                    value={warehouseId}
-                  >
-                    <option value="">— يحدده الخادم —</option>
-                    {warehouses.map((row) => (
-                      <option key={row.id} value={row.id}>
-                        {warehouseLabel(row)}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+                <Select
+                  label="مستودع المصدر (المصروف منه)"
+                  onChange={(event) => setWarehouseId(event.target.value)}
+                  options={warehouses.map((row) => ({
+                    label: warehouseLabel(row),
+                    value: row.id,
+                  }))}
+                  placeholder="— يحدده الخادم —"
+                  value={warehouseId}
+                />
 
-                <label className="grid gap-1 text-[12.5px] font-bold text-ink">
-                  مستودع السيارة (وجهة العهدة)
-                  <select
-                    className={selectClass}
-                    onChange={(event) => setVanWarehouseId(event.target.value)}
-                    value={vanWarehouseId}
-                  >
-                    <option value="">— يشتقّه الخادم من بطاقة المندوب —</option>
-                    {warehouses.map((row) => (
-                      <option key={row.id} value={row.id}>
-                        {warehouseLabel(row)}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+                <Select
+                  label="مستودع السيارة (وجهة العهدة)"
+                  onChange={(event) => setVanWarehouseId(event.target.value)}
+                  options={warehouses.map((row) => ({
+                    label: warehouseLabel(row),
+                    value: row.id,
+                  }))}
+                  placeholder="— يشتقّه الخادم من بطاقة المندوب —"
+                  value={vanWarehouseId}
+                />
               </div>
 
               <div className="grid gap-3 md:grid-cols-2">
@@ -516,29 +513,9 @@ export default function DistributionPage() {
                 </p>
               ) : null}
 
-              {!verdict.ok ? (
-                <p className="m-0 rounded-[10px] border border-warn-line bg-warn-soft px-4 py-2.5 text-[13px] font-semibold text-warn-ink">
-                  {verdict.message}
-                </p>
-              ) : null}
+              {!verdict.ok ? <Notice notice={{ kind: 'warn', text: verdict.message }} /> : null}
 
-              {submitError ? (
-                <p
-                  className="m-0 rounded-[10px] border border-danger-line bg-danger-soft px-4 py-2.5 text-[13px] font-semibold text-danger-ink"
-                  role="alert"
-                >
-                  رفض الخادم: {submitError}
-                </p>
-              ) : null}
-
-              {created ? (
-                <p className="m-0 rounded-[10px] border border-ok-line bg-ok-soft px-4 py-2.5 text-[13px] font-semibold text-ok-ink">
-                  ✅ أُنشئ أمر التحميل <span dir="ltr">{created.number ?? '—'}</span> — الحالة:{' '}
-                  {loadOrderStatusLabel(created.status ?? '')} — المصروف:{' '}
-                  <span dir="ltr">{numberText(created.loadedQty)}</span> — بانتظار تأكيد المندوب
-                  للاستلام.
-                </p>
-              ) : null}
+              {submitError ? <Notice notice={{ kind: 'danger', text: `رفض الخادم: ${submitError}` }} /> : null}
 
               <div className="flex flex-wrap items-center gap-2">
                 <Button disabled={busy || !verdict.ok} size="sm" type="submit">
@@ -586,9 +563,7 @@ export default function DistributionPage() {
                     </p>
                   ) : null}
                   {receiptVerdict && !receiptVerdict.ok ? (
-                    <p className="m-0 rounded-[10px] border border-warn-line bg-warn-soft px-3 py-2 text-[12.5px] font-semibold text-warn-ink">
-                      {receiptVerdict.message}
-                    </p>
+                    <Notice notice={{ kind: 'warn', text: receiptVerdict.message }} />
                   ) : null}
                 </>
               ) : (
@@ -600,14 +575,7 @@ export default function DistributionPage() {
                 />
               )}
 
-              {actionError ? (
-                <p
-                  className="m-0 rounded-[10px] border border-danger-line bg-danger-soft px-4 py-2.5 text-[13px] font-semibold text-danger-ink"
-                  role="alert"
-                >
-                  رفض الخادم: {actionError}
-                </p>
-              ) : null}
+              {actionError ? <Notice notice={{ kind: 'danger', text: `رفض الخادم: ${actionError}` }} /> : null}
 
               <div className="flex flex-wrap items-center gap-2">
                 <Button
@@ -639,90 +607,39 @@ export default function DistributionPage() {
           title="الأحمال"
         />
         <CardBody>
-          {loading ? (
-            <p aria-busy="true" className="m-0 text-[13px] text-muted">
-              جارٍ تحميل الأحمال…
-            </p>
-          ) : loadOrders.length === 0 ? (
-            <p className="m-0 text-[13px] text-muted">
-              لا أمر تحميل بعد{canManage ? ' — أنشئ الأول أعلاه' : ''}. ولا يُعرض هنا رقمٌ
-              تجريبيّ.
-            </p>
-          ) : (
-            <div className="bak-table-wrap">
-              <table className="bak-table">
-                <thead>
-                  <tr className="text-muted">
-                    <th className="border-b border-line p-2 text-start font-bold">رقم الأمر</th>
-                    <th className="border-b border-line p-2 text-start font-bold">التاريخ</th>
-                    <th className="border-b border-line p-2 text-start font-bold">المندوب</th>
-                    <th className="border-b border-line p-2 text-start font-bold">الصنف</th>
-                    <th className="border-b border-line p-2 text-start font-bold">الدفعة</th>
-                    <th className="border-b border-line p-2 text-start font-bold">مصروف</th>
-                    <th className="border-b border-line p-2 text-start font-bold">مستلم</th>
-                    <th className="border-b border-line p-2 text-start font-bold">الفرق</th>
-                    <th className="border-b border-line p-2 text-start font-bold">المتبقي</th>
-                    <th className="border-b border-line p-2 text-start font-bold">الحالة</th>
-                    <th className="border-b border-line p-2 text-start font-bold">تسوية المخزون</th>
-                    <th className="border-b border-line p-2 text-start font-bold">إجراء</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {loadOrders.map((row) => (
-                    <tr key={row.id ?? `${row.number ?? 'load'}-${row.loadDate ?? ''}`}>
-                      <td className="border-b border-line p-2" dir="ltr">
-                        {row.number ?? '—'}
-                      </td>
-                      <td className="border-b border-line p-2" dir="ltr">
-                        {row.loadDate ?? '—'}
-                      </td>
-                      <td className="border-b border-line p-2">{row.salesmanName ?? '—'}</td>
-                      <td className="border-b border-line p-2">{row.itemName ?? '—'}</td>
-                      <td className="border-b border-line p-2" dir="ltr">
-                        {batchCellText(row)}
-                      </td>
-                      <td className="border-b border-line p-2 num" dir="ltr">
-                        {numberText(row.loadedQty)}
-                      </td>
-                      <td className="border-b border-line p-2 num" dir="ltr">
-                        {numberText(row.receivedQty)}
-                      </td>
-                      <td className="border-b border-line p-2 num" dir="ltr">
-                        {numberText(row.discrepancyQty)}
-                      </td>
-                      <td className="border-b border-line p-2 num" dir="ltr">
-                        {numberText(row.remainingQty)}
-                      </td>
-                      <td className="border-b border-line p-2">
-                        <span className="bak-badge">{loadOrderStatusLabel(row.status ?? '')}</span>
-                      </td>
-                      <td className="border-b border-line p-2">{stockSettlementStatusLabel(row.stockSettlementStatus ?? '')}</td>
-                      <td className="border-b border-line p-2">
-                        <div className="flex flex-wrap gap-1">
-                          {canConfirmReceipt(row) ? (
-                            <Button onClick={() => openAction(row, 'confirm')} size="sm" variant="ghost">
-                              استلام
-                            </Button>
-                          ) : null}
-                          {canCancelLoadOrder(row) && canManage ? (
-                            <Button onClick={() => openAction(row, 'cancel')} size="sm" variant="ghost">
-                              إلغاء
-                            </Button>
-                          ) : null}
-                          {canConfirmReceipt(row) ? (
-                            <Button onClick={() => openAction(row, 'reject')} size="sm" variant="ghost">
-                              رفض
-                            </Button>
-                          ) : null}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-          {!loading && pendingReceipt.length > 0 ? (
+          <DataTable<LoadOrderViewRow>
+            actions={(row) => [
+              ...(canConfirmReceipt(row)
+                ? [{ label: 'تأكيد الاستلام', onClick: () => openAction(row, 'confirm') }]
+                : []),
+              ...(canCancelLoadOrder(row) && canManage
+                ? [{ label: 'إلغاء أمر التحميل', onClick: () => openAction(row, 'cancel') }]
+                : []),
+              ...(canConfirmReceipt(row)
+                ? [{ label: 'رفض الاستلام', danger: true, onClick: () => openAction(row, 'reject') }]
+                : []),
+            ]}
+            columns={tableColumns<LoadOrderViewRow>(LOAD_ORDER_COLUMNS, loadOrderCellText)}
+            dense
+            empty={
+              <span className="m-0 text-[13px] text-muted">
+                لا أمر تحميل بعد{canManage ? ' — أنشئ الأول أعلاه' : ''}. ولا يُعرض هنا رقمٌ
+                تجريبيّ.
+              </span>
+            }
+            onSortChange={setLoadSort}
+            pageSize={25}
+            rowKey={rowKeyFrom(['id', 'number'])}
+            rows={loadOrders}
+            sort={loadSort}
+            sortable
+            state={listState({
+              loading: dashboard.status === 'loading',
+              error: dashboard.status === 'error' ? dashboard.error : undefined,
+            })}
+            storageKey="bakery-distribution-load-orders"
+          />
+          {dashboard.status !== 'loading' && pendingReceipt.length > 0 ? (
             <p className="m-0 mt-3 text-[12.5px] text-muted">
               {pendingReceipt.length} أمرٍ بانتظار استلام المندوب — البضاعة لا تدخل عهدةً رسمية
               قبله.
@@ -758,7 +675,7 @@ export default function DistributionPage() {
               والشاشة لا ترسله ولا تعدّله.
             </li>
             <li>
-              <strong>لا رقمَ دفعةٍ مُختلَعاً (§5.1 منفَّذ):</strong> كان الخادم يكتب على الأمر{' '}
+              <strong>لا رقمَ دفعةٍ مُختلَعة (§5.1 منفَّذ):</strong> كان الخادم يكتب على الأمر{' '}
               <code dir="ltr">{'PROD-<اليوم>-0001'}</code> حين لا تُذكر دفعة — وقِيس حيّاً أنّ `VLO-0001`
               حمل `PROD-20261014-0001` مع أنّ في المستأجر <strong>صفراً</strong> من دفعات الإنتاج. ولم
               يكن الرقم «مرجعاً بريئاً»: بادئةُ مولّد دفعات الإنتاج هي نفسها، فأوّلُ دفعةٍ تُنشأ في
@@ -810,6 +727,6 @@ export default function DistributionPage() {
           </ul>
         </CardBody>
       </Card>
-    </section>
+    </Screen>
   );
 }

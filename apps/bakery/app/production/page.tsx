@@ -1,14 +1,18 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Button, Card, CardBody, CardHeader, Input } from '@erp/ui';
+import { useEffect, useMemo, useState } from 'react';
+import { Button, Card, CardBody, CardHeader, Input, Select, type SortState } from '@erp/ui';
 import { apiData, apiErrorText, apiList, apiPost } from '@erp/web-core/api';
 import { useSession } from '@erp/web-core/session';
 import { useSubmissionKey } from '@erp/web-core/use-submission-key';
 import { buildProductionBatchPayload, estimateComponentCost } from '@erp/web-van/production';
 
+import { DataTable, Notice } from '../../components/data-view';
+import { Screen } from '../../components/screen';
 import {
-  batchStatusLabel,
+  BATCH_COLUMNS,
+  batchCellText,
+  batchViewRows,
   costBasisLabel,
   emptyComponentRows,
   itemLabel,
@@ -20,16 +24,16 @@ import {
   type DashboardPayload,
   type ItemOption,
   type ProductionBatchRow,
+  type ProductionBatchViewRow,
   type WarehouseOption,
 } from '../../lib/production-screen';
+import { useQuery } from '../../lib/use-query';
+import { listState, rowKeyFrom, tableColumns } from '../../lib/ui-kit';
 
 /** الصلاحية التي يفرضها الخادم على `POST /van-sales/production-batches`. */
 const PRODUCTION_PERMISSION = 'van_sales.production.manage';
 /** وقراءة اللوحة (الدفعات والأرصدة الرسمية) تحتاج هذه. */
 const VIEW_PERMISSION = 'van_sales.view';
-
-const selectClass =
-  'w-full rounded-[8px] border border-line bg-surface px-3 py-2 text-[13px] text-ink';
 
 /**
  * 🏭 شاشة الإنتاج — أول شاشة أعمال في واجهة المخابز (المرحلة 3).
@@ -47,18 +51,41 @@ const selectClass =
  * والاستجابة من `POST /van-sales/production-batches` هي **اللوحة كاملة** (`return
  * this.dashboard(tenantId)` في `van-sales.service.ts`)، فأحدث دفعة هي `productionBatches[0]`
  * منها — ولا يُخترع رقمُ دفعةٍ في المتصفح أبداً.
+ *
+ * والتنظيم كما في `apps/staff`: غلافُ الشاشة من `Screen`، والطلب من `useQuery`
+ * (لا يُرسل طلبٌ بلا صلاحية — والسبب موثّقٌ أدناه)، والتغذيةُ الراجعة من `Notice`،
+ * والجداول من `DataTable` عبر `lib/ui-kit.ts`، والقوائم من `Select` — ولا صنفَ
+ * `selectClass` ولا نسخةَ تنبيهٍ تُنسخ في كلّ صفحة.
  */
 export default function ProductionPage() {
   const { can } = useSession();
   const canManage = can(PRODUCTION_PERMISSION);
   const canView = can(VIEW_PERMISSION);
 
-  const [dashboard, setDashboard] = useState<DashboardPayload | undefined>();
-  const [items, setItems] = useState<ItemOption[]>([]);
-  const [warehouses, setWarehouses] = useState<WarehouseOption[]>([]);
-  const [lookupWarning, setLookupWarning] = useState<string | undefined>();
-  const [loadError, setLoadError] = useState<string | undefined>();
-  const [loading, setLoading] = useState(true);
+  /**
+   * اللوحةُ بطلبٍ واحد — ولا يُرسل الطلبُ بلا صلاحيةٍ (٤٠٣ محتوم): فالخادمُ
+   * هو الضابط، وهذه الواجهة لا تستطلع رأيه بلا وجه. وحين يُمنح الحسابُ
+   * الصلاحيةَ لاحقًا يُعيد `useQuery` الطلبَ بعينه (`canView` في الاعتماديات).
+   */
+  const dashboard = useQuery<DashboardPayload | undefined>(
+    () => (canView ? apiData<DashboardPayload>('/van-sales/dashboard') : Promise.resolve(undefined)),
+    [canView],
+  );
+  /**
+   * القائمتان auxiliary: فشلهما لا يُسقط الشاشة، بل يُقال صراحةً ماذا ينقص
+   * (`lookupWarning` أدناه) — ولذلك كلٌّ منهما كَيْنَها الخاص بلا مشاركةٍ في
+   * حالةٍ واحدة.
+   */
+  const itemsQuery = useQuery<ItemOption[]>(
+    () => (canView ? apiList<ItemOption>('/organization/catalog/items') : Promise.resolve([])),
+    [canView],
+  );
+  const warehousesQuery = useQuery<WarehouseOption[]>(
+    () => (canView ? apiList<WarehouseOption>('/warehouses') : Promise.resolve([])),
+    [canView],
+  );
+  const items = useMemo(() => itemsQuery.data ?? [], [itemsQuery.data]);
+  const warehouses = useMemo(() => warehousesQuery.data ?? [], [warehousesQuery.data]);
 
   const [itemId, setItemId] = useState('');
   const [warehouseId, setWarehouseId] = useState('');
@@ -74,54 +101,20 @@ export default function ProductionPage() {
   const [busy, setBusy] = useState(false);
   const [submitError, setSubmitError] = useState<string | undefined>();
   const [created, setCreated] = useState<ProductionBatchRow | undefined>();
+  /** فرزُ جدول الدفعات — حالةٌ يملكها العميل لا الخادم (ترتيبُ الخادم هو الافتراضي). */
+  const [batchSort, setBatchSort] = useState<SortState>(null);
 
-  const load = useCallback(async (): Promise<DashboardPayload | undefined> => {
-    setLoading(true);
-    setLoadError(undefined);
-    try {
-      const dash = await apiData<DashboardPayload>('/van-sales/dashboard');
-      setDashboard(dash);
-
-      // ‏القائمتان auxiliary: فشلهما لا يُسقط الشاشة، بل يُقال صراحةً ماذا ينقص.
-      const [itemsResult, warehousesResult] = await Promise.allSettled([
-        apiList<ItemOption>('/organization/catalog/items'),
-        apiList<WarehouseOption>('/warehouses'),
-      ]);
-      const missing: string[] = [];
-      if (itemsResult.status === 'fulfilled') setItems(itemsResult.value);
-      else missing.push('الأصناف');
-      if (warehousesResult.status === 'fulfilled') setWarehouses(warehousesResult.value);
-      else missing.push('المستودعات');
-      setLookupWarning(
-        missing.length > 0
-          ? `تعذّر جلب ${missing.join(' و')} — تحتاج صلاحية القراءة أو أنّ الخادم رفض. الشاشة تعرض ما وصلها فقط.`
-          : undefined,
-      );
-
-      setItemId((current) => current || (itemsResult.status === 'fulfilled' ? itemsResult.value[0]?.id ?? '' : ''));
-      setWarehouseId((current) => {
-        if (current) return current;
-        const list = warehousesResult.status === 'fulfilled' ? warehousesResult.value : [];
-        return pickDefaultWarehouse(list, dash.mainWarehouseId)?.id ?? '';
-      });
-
-      return dash;
-    } catch (caught) {
-      setLoadError(apiErrorText(caught, 'تعذّر تحميل بيانات الإنتاج'));
-      return undefined;
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  // ‏بلا `van_sales.view` لا يُرسل طلبٌ سيُرفض حتماً (403): يُقال للمستخدم سببُ الفراغ.
+  // ‏الافتراضاتُ تُملأ من الخادم ولا تُكتَب فوق اختيارٍ سبق للمستخدم — كما كان
+  // في `load()` اليدويّة: الأصناف تقترح الأول، والمستودع الافتراضيّ ثمّ الرئيسيّ.
   useEffect(() => {
-    if (!canView) {
-      setLoading(false);
-      return;
-    }
-    void load();
-  }, [canView, load]);
+    setItemId((current) => current || items[0]?.id || '');
+  }, [items]);
+  useEffect(() => {
+    setWarehouseId((current) => {
+      if (current) return current;
+      return pickDefaultWarehouse(warehouses, dashboard.data?.mainWarehouseId)?.id ?? '';
+    });
+  }, [warehouses, dashboard.data]);
 
   const pickedItem = items.find((row) => row.id === itemId);
   const draft = useMemo(
@@ -157,7 +150,10 @@ export default function ProductionPage() {
   // 🔁 الدفعة حركاتٌ مخزنية وقيود تكلفة، فإعادة الإرسال يجب ألا تُنشئ ثانيةً: المفتاح يثبت
   // ما دامت المسودة كما هي (فردُه `factory_production_batches.idempotency_key` في الخادم).
   const batchKey = useSubmissionKey('van-production-batch', draft);
-  const stockRows = useMemo(() => mapOfficialStock(dashboard?.officialStock), [dashboard]);
+  const stockRows = useMemo(
+    () => mapOfficialStock(dashboard.data?.officialStock),
+    [dashboard.data],
+  );
   const estimate = useMemo(
     () =>
       verdict.ok
@@ -171,12 +167,7 @@ export default function ProductionPage() {
     [verdict, stockRows, warehouseId],
   );
 
-  const batches = dashboard?.productionBatches ?? [];
-  const warehouseName = (id?: string | null) => {
-    if (!id) return '—';
-    const row = warehouses.find((candidate) => candidate.id === id);
-    return row ? warehouseLabel(row) : id;
-  };
+  const batches = batchViewRows(dashboard.data?.productionBatches, warehouses);
 
   function setComponentRow(index: number, patch: Partial<{ itemId: string; qty: string }>) {
     setComponents((rows) => rows.map((row, i) => (i === index ? { ...row, ...patch } : row)));
@@ -195,7 +186,6 @@ export default function ProductionPage() {
         ...verdict.payload,
         idempotencyKey: batchKey.key(),
       });
-      setDashboard(fresh);
       // ‏الاستجابة هي اللوحة كاملة، فأحدث دفعة أولُ صفوفها — لا رقمَ مُختلَع من المتصفح.
       setCreated(fresh.productionBatches?.[0]);
       setComponents(emptyComponentRows(2));
@@ -204,6 +194,10 @@ export default function ProductionPage() {
       setScrapReason('');
       setProducedQty('');
       setNotes('');
+      // ‏والجدولُ يُعاد قراءتُه من الخادم (كما يفعل staff بعد كلّ كتابة): فالبطاقةُ
+      // أعلاه من الاستجابة، والجدولُ من طلبٍ مستقلّ — فلا ذاكرةَ متصفحيةً تُقدَّم
+      // كحقيقةِ خادم.
+      void dashboard.reload();
       // نجاحٌ رُصد: الدفعة التالية الجديدة بمحتوىً مطابق دفعةٌ مقصودة لا صدىً للأولى.
       batchKey.reset();
     } catch (caught) {
@@ -213,24 +207,32 @@ export default function ProductionPage() {
     }
   }
 
+  const lookupWarning = useMemo(() => {
+    const missing: string[] = [];
+    if (itemsQuery.status === 'error') missing.push('الأصناف');
+    if (warehousesQuery.status === 'error') missing.push('المستودعات');
+    return missing.length > 0
+      ? `تعذّر جلب ${missing.join(' و')} — تحتاج صلاحية القراءة أو أنّ الخادم رفض. الشاشة تعرض ما وصلها فقط.`
+      : undefined;
+  }, [itemsQuery.status, warehousesQuery.status]);
+
   return (
-    <section className="grid gap-4">
-      <header className="flex flex-wrap items-end justify-between gap-3">
-        <div className="min-w-0">
-          <h1 className="m-0 text-[22px] font-extrabold leading-tight tracking-tight text-ink">الإنتاج</h1>
-          <p className="m-0 mt-1 text-[13px] text-muted">
-            دفعة إنتاج بمكوّناتها: تُصرف المواد رسمياً من المستودع ويدخل الناتج الرصيد الرسمي.
-            والتكلفة الفعلية من أمر الإنتاج الرسمي لا من رقمٍ يُكتب هنا.
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
+    <Screen
+      actions={
+        <>
           <span className="bak-badge">POST /van-sales/production-batches</span>
-          <Button disabled={loading || !canView} onClick={() => void load()} size="sm">
+          <Button
+            disabled={dashboard.status === 'loading' || !canView}
+            onClick={() => void dashboard.reload()}
+            size="sm"
+          >
             تحديث
           </Button>
-        </div>
-      </header>
-
+        </>
+      }
+      subtitle="دفعة إنتاج بمكوّناتها: تُصرف المواد رسمياً من المستودع ويدخل الناتج الرصيد الرسمي. والتكلفة الفعلية من أمر الإنتاج الرسمي لا من رقمٍ يُكتب هنا."
+      title="الإنتاج"
+    >
       {!canView ? (
         <Card>
           <CardBody>
@@ -243,31 +245,33 @@ export default function ProductionPage() {
         </Card>
       ) : null}
 
-      {loadError ? (
+      {dashboard.status === 'error' ? (
         <Card>
           <CardBody>
             <p
               className="m-0 rounded-[10px] border border-danger-line bg-danger-soft px-4 py-2.5 text-[13px] font-semibold text-danger-ink"
               role="alert"
             >
-              تعذّر تحميل بيانات الإنتاج: {loadError}
+              تعذّر تحميل بيانات الإنتاج: {dashboard.error}
             </p>
             <p className="m-0 mt-2 text-[12.5px] text-muted">
               السبب المعتاد: لا تملك `{VIEW_PERMISSION}` (قراءة اللوحة) أو أنّ الـAPI غير متاح من
               هذه الواجهة. ولا تُعرض أرقامٌ بديلة من المتصفح.
             </p>
-            <Button className="mt-3" onClick={() => void load()} size="sm">
+            <Button className="mt-3" onClick={() => void dashboard.reload()} size="sm">
               إعادة المحاولة
             </Button>
           </CardBody>
         </Card>
       ) : null}
 
-      {lookupWarning ? (
-        <p className="m-0 rounded-[10px] border border-warn-line bg-warn-soft px-4 py-2.5 text-[13px] font-semibold text-warn-ink">
-          {lookupWarning}
-        </p>
-      ) : null}
+      <Notice
+        notice={
+          lookupWarning
+            ? { kind: 'warn', text: lookupWarning }
+            : undefined
+        }
+      />
 
       {canManage ? (
         <Card>
@@ -284,33 +288,25 @@ export default function ProductionPage() {
               }}
             >
               <div className="grid gap-3 md:grid-cols-2">
-                <label className="grid gap-1 text-[12.5px] font-bold text-ink">
-                  الصنف المنتج
-                  <select className={selectClass} onChange={(event) => setItemId(event.target.value)} value={itemId}>
-                    <option value="">— اختر الصنف —</option>
-                    {items.map((row) => (
-                      <option key={row.id} value={row.id}>
-                        {itemLabel(row)}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+                <Select
+                  label="الصنف المنتج"
+                  onChange={(event) => setItemId(event.target.value)}
+                  options={items.map((row) => ({ label: itemLabel(row), value: row.id }))}
+                  placeholder="— اختر الصنف —"
+                  value={itemId}
+                />
 
-                <label className="grid gap-1 text-[12.5px] font-bold text-ink">
-                  المستودع المُنتَج إليه
-                  <select
-                    className={selectClass}
-                    onChange={(event) => setWarehouseId(event.target.value)}
-                    value={warehouseId}
-                  >
-                    <option value="">— يحدده الخادم (المستودع الرئيسي) —</option>
-                    {warehouses.map((row) => (
-                      <option key={row.id} value={row.id}>
-                        {warehouseLabel(row)}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+                <Select
+                  hint="يحدده الخادم (المستودع الرئيسي) حين تُترك فارغة"
+                  label="المستودع المُنتَج إليه"
+                  onChange={(event) => setWarehouseId(event.target.value)}
+                  options={warehouses.map((row) => ({
+                    label: warehouseLabel(row),
+                    value: row.id,
+                  }))}
+                  placeholder="— يحدده الخادم (المستودع الرئيسي) —"
+                  value={warehouseId}
+                />
 
                 <Input
                   dir="ltr"
@@ -367,22 +363,18 @@ export default function ProductionPage() {
                 </div>
                 {components.map((row, index) => (
                   <div className="grid gap-2 md:grid-cols-[1fr_160px_auto]" key={index}>
-                    <select
+                    <Select
                       aria-label={`صنف المكوّن ${index + 1}`}
-                      className={selectClass}
                       onChange={(event) => setComponentRow(index, { itemId: event.target.value })}
+                      options={items.map((option) => ({
+                        label: itemLabel(option),
+                        value: option.id,
+                      }))}
+                      placeholder="— اختر صنف المكوّن —"
                       value={row.itemId}
-                    >
-                      <option value="">— اختر صنف المكوّن —</option>
-                      {items.map((option) => (
-                        <option key={option.id} value={option.id}>
-                          {itemLabel(option)}
-                        </option>
-                      ))}
-                    </select>
-                    <input
+                    />
+                    <Input
                       aria-label={`كمية المكوّن ${index + 1}`}
-                      className={selectClass}
                       dir="ltr"
                       inputMode="decimal"
                       onChange={(event) => setComponentRow(index, { qty: event.target.value })}
@@ -438,26 +430,22 @@ export default function ProductionPage() {
               ) : null}
 
               {!verdict.ok ? (
-                <p className="m-0 rounded-[10px] border border-warn-line bg-warn-soft px-4 py-2.5 text-[13px] font-semibold text-warn-ink">
-                  {verdict.message}
-                </p>
+                <Notice notice={{ kind: 'warn', text: verdict.message }} />
               ) : null}
 
-              {submitError ? (
-                <p
-                  className="m-0 rounded-[10px] border border-danger-line bg-danger-soft px-4 py-2.5 text-[13px] font-semibold text-danger-ink"
-                  role="alert"
-                >
-                  {submitError}
-                </p>
-              ) : null}
+              {submitError ? <Notice notice={{ kind: 'danger', text: submitError }} /> : null}
 
               {created ? (
-                <p className="m-0 rounded-[10px] border border-success-line bg-success-soft px-4 py-2.5 text-[13px] font-semibold text-success-ink">
-                  ✅ سُجّلت الدفعة {created.batchNo ?? ''} — المنتج {numberText(created.producedQty)}،
-                  وتكلفة الوحدة {numberText(created.unitCost)} ({costBasisLabel(created.costBasis).text})،
-                  وإجمالي التكلفة {numberText(created.totalCost)}. وهي أول صفٍّ في الجدول أدناه.
-                </p>
+                <Notice
+                  notice={{
+                    kind: 'ok',
+                    text: `✅ سُجّلت الدفعة ${created.batchNo ?? ''} — المنتج ${numberText(
+                      created.producedQty,
+                    )}، وتكلفة الوحدة ${numberText(created.unitCost)} (${costBasisLabel(
+                      created.costBasis,
+                    ).text})، وإجمالي التكلفة ${numberText(created.totalCost)}. وهي أول صفٍّ في الجدول أدناه.`,
+                  }}
+                />
               ) : null}
 
               <div>
@@ -487,64 +475,27 @@ export default function ProductionPage() {
           title="الدفعات المسجّلة"
         />
         <CardBody>
-          {loading ? (
-            <p aria-busy="true" className="m-0 text-[13px] text-muted">
-              جارٍ تحميل الدفعات…
-            </p>
-          ) : batches.length === 0 ? (
-            <p className="m-0 text-[13px] text-muted">
-              لا دفعة إنتاج بعد{canManage ? ' — سجّل الأولى أعلاه' : ''}. ولا يُعرض هنا رقمٌ
-              تجريبيّ.
-            </p>
-          ) : (
-            <div className="bak-table-wrap">
-              <table className="bak-table">
-                <thead>
-                  <tr className="text-muted">
-                    <th className="border-b border-line p-2 text-start font-bold">رقم الدفعة</th>
-                    <th className="border-b border-line p-2 text-start font-bold">التاريخ</th>
-                    <th className="border-b border-line p-2 text-start font-bold">الصنف</th>
-                    <th className="border-b border-line p-2 text-start font-bold">المستودع</th>
-                    <th className="border-b border-line p-2 text-start font-bold">المنتج</th>
-                    <th className="border-b border-line p-2 text-start font-bold">الفاقد</th>
-                    <th className="border-b border-line p-2 text-start font-bold">تكلفة الوحدة</th>
-                    <th className="border-b border-line p-2 text-start font-bold">أساس التكلفة</th>
-                    <th className="border-b border-line p-2 text-start font-bold">الحالة</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {batches.map((row, index) => {
-                    const basis = costBasisLabel(row.costBasis);
-                    return (
-                      <tr key={row.id ?? `${row.batchNo ?? 'batch'}-${index}`}>
-                        <td className="border-b border-line p-2" dir="ltr">
-                          {row.batchNo ?? '—'}
-                        </td>
-                        <td className="border-b border-line p-2" dir="ltr">
-                          {row.productionDate ?? '—'}
-                        </td>
-                        <td className="border-b border-line p-2">{row.itemName ?? '—'}</td>
-                        <td className="border-b border-line p-2">{warehouseName(row.warehouseId)}</td>
-                        <td className="border-b border-line p-2 num" dir="ltr">
-                          {numberText(row.producedQty)}
-                        </td>
-                        <td className="border-b border-line p-2 num" dir="ltr">
-                          {numberText(row.scrapQty)}
-                        </td>
-                        <td className="border-b border-line p-2 num" dir="ltr">
-                          {numberText(row.unitCost)}
-                        </td>
-                        <td className="border-b border-line p-2">
-                          <span className={`bak-badge ${basis.tone === 'ok' ? 'ok' : 'warn'}`}>{basis.text}</span>
-                        </td>
-                        <td className="border-b border-line p-2">{batchStatusLabel(row.status)}</td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          )}
+          <DataTable<ProductionBatchViewRow>
+            columns={tableColumns<ProductionBatchViewRow>(BATCH_COLUMNS, batchCellText)}
+            dense
+            empty={
+              <span className="m-0 text-[13px] text-muted">
+                لا دفعة إنتاج بعد{canManage ? ' — سجّل الأولى أعلاه' : ''}. ولا يُعرض هنا رقمٌ
+                تجريبيّ.
+              </span>
+            }
+            onSortChange={setBatchSort}
+            pageSize={25}
+            rowKey={rowKeyFrom(['id', 'batchNo'])}
+            rows={batches}
+            sort={batchSort}
+            sortable
+            state={listState({
+              loading: dashboard.status === 'loading',
+              error: dashboard.status === 'error' ? dashboard.error : undefined,
+            })}
+            storageKey="bakery-production-batches"
+          />
         </CardBody>
       </Card>
 
@@ -578,6 +529,6 @@ export default function ProductionPage() {
           </ul>
         </CardBody>
       </Card>
-    </section>
+    </Screen>
   );
 }

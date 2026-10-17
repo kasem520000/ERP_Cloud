@@ -1,7 +1,12 @@
-import { canConfirmReceipt } from '@erp/web-van/distribution';
+import {
+  canConfirmReceipt,
+  loadOrderStatusLabel,
+  stockSettlementStatusLabel,
+} from '@erp/web-van/distribution';
 
 import { numberText, type ItemOption } from './lookups';
 import type { ProductionBatchRow } from './production-screen';
+import type { ScreenColumn } from './ui-kit';
 
 /**
  * 🚚 glue شاشة التوزيع — **دوالّ صافية وحدها** (تُقاس في `tests/distribution-screen.spec.ts`)،
@@ -171,4 +176,63 @@ export function itemRequiresBatch(
   const wanted = itemId.trim();
   if (wanted === '') return false;
   return items.find((row) => row.id === wanted)?.trackLot === true;
+}
+
+/* --------------------------------------------------------------------------
+ * جدولُ الأحمال على `DataTable` — الشاشةُ تُعلن الأعمدةَ والحالة، والنظام يرسم.
+ *
+ * والأعمدةُ هي ذاتُ أعمدة الجدول اليدويّ الذي كانت ترسمه الصفحة، مع
+ * تسمياتِ الحالات المحسوبة مرةً واحدةً في صفوف العرض (لا في كلّ خلية).
+ * ------------------------------------------------------------------------ */
+
+/** أعمدةُ جدول الأحمال — إعلانٌ في منطق الشاشة النقيّ (يثبّته الاختبار). */
+export const LOAD_ORDER_COLUMNS: readonly ScreenColumn[] = [
+  { key: 'number', labelAr: 'رقم الأمر', ltr: true },
+  { key: 'loadDate', labelAr: 'التاريخ', ltr: true },
+  { key: 'salesmanName', labelAr: 'المندوب' },
+  { key: 'itemName', labelAr: 'الصنف' },
+  { key: 'batchText', labelAr: 'الدفعة', ltr: true },
+  { key: 'loadedQty', labelAr: 'مصروف', numeric: true },
+  { key: 'receivedQty', labelAr: 'مستلم', numeric: true },
+  { key: 'discrepancyQty', labelAr: 'الفرق', numeric: true },
+  { key: 'remainingQty', labelAr: 'المتبقي', numeric: true },
+  { key: 'statusText', labelAr: 'الحالة' },
+  { key: 'settlementText', labelAr: 'تسوية المخزون' },
+];
+
+/** صفُّ أمر التحميل كما يُعرض — التسمياتُ العربية تُحسب هنا مرةً واحدة. */
+export type LoadOrderViewRow = LoadOrderRow & {
+  batchText: string;
+  statusText: string;
+  settlementText: string;
+};
+
+/**
+ * صفوفُ العرض من صفوف الخادم: «الدفعة» كما يُقال لها (بلا دفعةٍ ≠ بياض)،
+ * والحالة وتسوية المخزون بتسميات العقد المشترك — وغير المعروف يُعرض
+ * خاماً كما يُصرّح بهما، لا اسمٌ مُختلَع.
+ */
+export function loadOrderViewRows(rows: readonly LoadOrderRow[]): LoadOrderViewRow[] {
+  return rows.map((row) => ({
+    ...row,
+    batchText: batchCellText(row),
+    statusText: loadOrderStatusLabel(row.status ?? ''),
+    settlementText: stockSettlementStatusLabel(row.stockSettlementStatus ?? ''),
+  }));
+}
+
+/**
+ * قارئُ الخلية — القواعدُ الأربع نفسها التي في `reports-screen.cellText`
+ * (نصٌّ/رقمٌ/منطقيّ وما عداها «—»): فالغائبُ «—» لا صفرٌ مُختلَع.
+ */
+export function loadOrderCellText(
+  row: LoadOrderViewRow | null,
+  column: ScreenColumn,
+): string {
+  const value = row ? (row as Record<string, unknown>)[column.key] : null;
+  if (value === null || value === undefined || value === '') return '—';
+  if (typeof value === 'boolean') return value ? 'نعم' : 'لا';
+  if (typeof value === 'number') return column.numeric ? numberText(value) : String(value);
+  if (typeof value === 'string') return column.numeric ? numberText(value) : value;
+  return '—';
 }

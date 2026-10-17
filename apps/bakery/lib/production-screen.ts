@@ -1,5 +1,8 @@
 import type { OfficialStockRowForEstimate } from '@erp/web-van/production';
 
+import type { ScreenColumn } from './ui-kit';
+import { numberText, warehouseLabel, type WarehouseOption } from './lookups';
+
 /**
  * 🏭 glue شاشة الإنتاج — **دوالّ صافية وحدها** (تُقاس في `tests/production-screen.spec.ts`)،
  * والطلب والشاشة في `app/production/page.tsx`.
@@ -117,4 +120,74 @@ export function emptyComponentRows(count = 2): Array<{ itemId: string; qty: stri
 /** تاريخ اليوم بحساب UTC — والخادم هو من يفصل في التأريخ النهائي (قرارٌ معلّق في §10). */
 export function todayIsoDate(now: Date = new Date()): string {
   return now.toISOString().slice(0, 10);
+}
+
+/* --------------------------------------------------------------------------
+ * جدولُ الدفعات على `DataTable` — الشاشةُ تُعلن الأعمدةَ والحالة، والنظام يرسم.
+ *
+ * والأعمدةُ هي ذاتُ أعمدة الجدول اليدويّ الذي كانت ترسمه الصفحة (رقم الدفعة،
+ * التاريخ، الصنف، المستودع، المنتَج، الفاقد، تكلفة الوحدة، أساس التكلفة، الحالة)
+ * — فالترحيلُ لا يغيّر ما يُقرأ، بل كيف يُرسم: فرزٌ وإخفاءُ أعمدةٍ محفوظٌ
+ * ورأسٌ لاصقٌ بدل جدولٍ ثابت.
+ * ------------------------------------------------------------------------ */
+
+/** أعمدةُ جدول الدفعات — إعلانٌ في منطق الشاشة النقيّ (يثبّته الاختبار). */
+export const BATCH_COLUMNS: readonly ScreenColumn[] = [
+  { key: 'batchNo', labelAr: 'رقم الدفعة', ltr: true },
+  { key: 'productionDate', labelAr: 'التاريخ', ltr: true },
+  { key: 'itemName', labelAr: 'الصنف' },
+  { key: 'warehouseName', labelAr: 'المستودع' },
+  { key: 'producedQty', labelAr: 'المنتَج', numeric: true },
+  { key: 'scrapQty', labelAr: 'الفاقد', numeric: true },
+  { key: 'unitCost', labelAr: 'تكلفة الوحدة', numeric: true },
+  { key: 'costBasisText', labelAr: 'أساس التكلفة' },
+  { key: 'statusText', labelAr: 'الحالة' },
+];
+
+/** صفُّ الدفعة كما يُعرض — الحقولُ المشتقة تُحسب مرةً واحدةً هنا لا في كلّ خلية. */
+export type ProductionBatchViewRow = ProductionBatchRow & {
+  warehouseName: string;
+  costBasisText: string;
+  statusText: string;
+};
+
+/**
+ * صفوفُ العرض من صفوف الخادم: اسمُ المستودع من بطاقته (لا معرّفًا خامًا)،
+ * وأساسُ التكلفة والحالة بتسمياتهما العربية — غير المعروف يُعرض خامًا
+ * كما يفعل `costBasisLabel` و`batchStatusLabel` ولا يُترجم إلى اسمٍ مُختلَع.
+ */
+export function batchViewRows(
+  batches: readonly ProductionBatchRow[] | null | undefined,
+  warehouses: readonly WarehouseOption[],
+): ProductionBatchViewRow[] {
+  return (batches ?? []).map((row) => {
+    const warehouseId = row.warehouseId;
+    const found =
+      typeof warehouseId === 'string' && warehouseId.length > 0
+        ? warehouses.find((candidate) => candidate.id === warehouseId)
+        : undefined;
+    return {
+      ...row,
+      warehouseName: !warehouseId ? '—' : found ? warehouseLabel(found) : warehouseId,
+      costBasisText: costBasisLabel(row.costBasis).text,
+      statusText: batchStatusLabel(row.status),
+    };
+  });
+}
+
+/**
+ * قارئُ الخلية — القواعدُ الأربع نفسها التي في `reports-screen.cellText`
+ * (نصٌّ/رقمٌ/منطقيّ وما عداها «—»): فالغائبُ «—» لا صفرٌ مُختلَع، والرقمُ
+ * الذي يُحاذى بعمودٍ رقميٍّ يُنسَّق كما يُنسَّق في كلّ جدولٍ مهاجر.
+ */
+export function batchCellText(
+  row: ProductionBatchViewRow | null,
+  column: ScreenColumn,
+): string {
+  const value = row ? (row as Record<string, unknown>)[column.key] : null;
+  if (value === null || value === undefined || value === '') return '—';
+  if (typeof value === 'boolean') return value ? 'نعم' : 'لا';
+  if (typeof value === 'number') return column.numeric ? numberText(value) : String(value);
+  if (typeof value === 'string') return column.numeric ? numberText(value) : value;
+  return '—';
 }

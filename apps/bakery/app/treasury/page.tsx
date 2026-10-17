@@ -18,6 +18,7 @@ import { ApiError, apiErrorText, apiFetch, apiList } from '@erp/web-core/api';
 import { useSession } from '@erp/web-core/session';
 
 import { StaffHandoffLink } from '../../components/staff-handoff-link';
+import { Screen } from '../../components/screen';
 import { numberText } from '../../lib/lookups';
 import { rangeVerdict, type ReportRangeDraft } from '../../lib/reports-screen';
 import { destinationsOf } from '../../lib/staff-handoff';
@@ -249,9 +250,12 @@ export default function TreasuryPage() {
 
   if (!canView && !canReadLocations) {
     return (
-      <section className="grid gap-4">
+      <Screen
+        crumbs={['المخابز']}
+        subtitle="ولا يُرسل طلبٌ سيُرفض حتمًا."
+        title="لا صلاحيةَ لخزينة على جلستك"
+      >
         <Card>
-          <CardHeader subtitle="ولا يُرسل طلبٌ سيُرفض حتمًا." title="لا صلاحيةَ لخزينة على جلستك" />
           <CardBody>
             <p className="m-0 text-[13px] leading-relaxed text-ink">
               تحتاج <span dir="ltr">{TREASURY_VIEW_PERMISSION}</span> لقراءة السندات و
@@ -261,21 +265,14 @@ export default function TreasuryPage() {
             </p>
           </CardBody>
         </Card>
-      </section>
+      </Screen>
     );
   }
 
   return (
-    <section className="grid gap-4">
-      <header className="flex flex-wrap items-end justify-between gap-3">
-        <div className="min-w-0">
-          <h1 className="m-0 text-[24px] font-extrabold leading-tight tracking-tight text-ink">الخزينة</h1>
-          <p className="m-0 mt-1 text-[13px] text-muted">
-            نقدُ الخطّ كما دخل الخزينةَ فعلًا: سنداتُ القبض التي كتبها مسارُ التحصيل الرسميّ،
-            ومواضعُ النقد وأرصدتُها. ولا سندَ يُنشأ من هنا — فسندٌ ثانٍ على النقد نفسه قبضٌ مزدوج.
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
+    <Screen
+      actions={
+        <>
           <Badge dot status={canView ? 'active' : 'pending'}>
             <span dir="ltr">{TREASURY_VIEW_PERMISSION}</span>
           </Badge>
@@ -285,9 +282,12 @@ export default function TreasuryPage() {
           <Button disabled={loading} onClick={() => void load()} size="sm">
             {loading ? 'يُحمَّل…' : 'تحديث'}
           </Button>
-        </div>
-      </header>
-
+        </>
+      }
+      crumbs={['المخابز']}
+      subtitle="نقدُ الخطّ كما دخل الخزينةَ فعلًا: سنداتُ القبض التي كتبها مسارُ التحصيل الرسميّ، ومواضعُ النقد وأرصدتُها. ولا سندَ يُنشأ من هنا — فسندٌ ثانٍ على النقد نفسه قبضٌ مزدوج."
+      title="الخزينة"
+    >
       <Card>
         <CardHeader
           subtitle="‏`GET /vouchers?from&to&q` — والخادمُ يتحقّق من التاريخين قبل SQL (‏TREASURY_DATE_INVALID)."
@@ -460,7 +460,7 @@ export default function TreasuryPage() {
           </div>
         </CardBody>
       </Card>
-    </section>
+    </Screen>
   );
 }
 

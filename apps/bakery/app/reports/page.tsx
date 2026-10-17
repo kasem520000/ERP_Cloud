@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import {
   Button,
   Card,
@@ -10,12 +10,15 @@ import {
   EmptyState,
   Input,
   Kpi,
+  Select,
   type SortState,
   type TableState,
 } from '@erp/ui';
 import { apiData, apiErrorText, apiList } from '@erp/web-core/api';
 import { useSession } from '@erp/web-core/session';
 
+import { Notice } from '../../components/data-view';
+import { Screen } from '../../components/screen';
 import {
   BALANCE_CARDS,
   cardValue,
@@ -50,18 +53,10 @@ import {
   type Verdict,
 } from '../../lib/reports-screen';
 import { STAFF_SALESMEN_PATH, type SalesmanCard } from '../../lib/reps-screen';
+import { useQuery } from '../../lib/use-query';
 import { listState, rowKeyFrom, tableColumns } from '../../lib/ui-kit';
 
-type Notice = { kind: 'ok' | 'danger' | 'warn'; text: string };
-
-const NOTICE_CLASSES: Record<Notice['kind'], string> = {
-  ok: 'border-ok-line bg-ok-soft text-ok-ink',
-  danger: 'border-danger-line bg-danger-soft text-danger-ink',
-  warn: 'border-warn-line bg-warn-soft text-warn-ink',
-};
-
-const selectClass =
-  'w-full rounded-[8px] border border-line bg-surface px-3 py-2 text-[13px] text-ink';
+type MutationNotice = { kind: 'ok' | 'danger' | 'warn'; text: string };
 
 /**
  * جدولٌ واحد من جداول التقرير — على `DataTable` من نظام التصميم لا على `<table>` يدويّ.
@@ -133,6 +128,9 @@ function ReportTable({
  * وما **ليس** هنا: إصدارُ مستندٍ أو تحصيلٌ أو إقفالُ عهدة (‏`/sales` و`/collection` و
  * `/custody`)، والأستاذُ وتفصيلُ القيود (لوحة الموظفين، وتُفتح بتسليم جلسة)، وحسابُ العمولة
  * (الرواتب في staff). ولا رقمَ في هذه الشاشة إلا من حمولة الخادم.
+ *
+ * والتنظيم كما في `apps/staff`: غلافُ الشاشة من `Screen`، وقائمةُ المناديب من
+ * `useQuery` (لا تُرسل بلا صلاحية)، والتغذيةُ الراجعة من `Notice`، والقائمة من `Select`.
  */
 export default function ReportsPage() {
   const { can } = useSession();
@@ -142,7 +140,7 @@ export default function ReportsPage() {
   const [payload, setPayload] = useState<ReportsPayload | null>(null);
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState<string | undefined>();
-  const [notice, setNotice] = useState<Notice | undefined>();
+  const [notice, setNotice] = useState<MutationNotice | undefined>();
   /**
    * حالةُ الجداول كلّها من حالة الطلب: فـ`DataTable` تعرض «يُحمَّل» و«فشل» و«لا صلاحية»
    * بدل منطقةٍ فارغة. والترتيبُ داخل `listState` (ممنوع ← تحميل ← خطأ) مقصودٌ وموثّقٌ هناك.
@@ -153,32 +151,25 @@ export default function ReportsPage() {
     forbidden: !canView,
     forbiddenMessage: REPORTS_PERMISSION,
   });
-  const [salesmen, setSalesmen] = useState<SalesmanCard[]>([]);
-  const [salesmenError, setSalesmenError] = useState<string | undefined>();
+  /**
+   * مرشِّحُ المندوب: طلبٌ مستقلٌّ عن التقرير — ولا يُرسل بلا صلاحيةٍ (٤٠٣ محتوم)،
+   * وفشله يُقال في تحذيرٍ ولا يُسقط الشاشة (فيبقى «كلّ المناديب»).
+   */
+  const salesmenQuery = useQuery<SalesmanCard[]>(
+    () => (canView ? apiList<SalesmanCard>('/van-sales/salesmen') : Promise.resolve([])),
+    [canView],
+  );
+  const salesmen = salesmenQuery.data ?? [];
+  const salesmenError =
+    salesmenQuery.status === 'error'
+      ? (salesmenQuery.error ?? 'تعذّر تحميل قائمة المناديب للمرشِّح')
+      : undefined;
   const [asked, setAsked] = useState(false);
 
   const verdict: Verdict = useMemo(() => rangeVerdict(draft), [draft]);
   const screenVerdict: Verdict = useMemo(() => reportVerdicts(payload), [payload]);
   const sums = useMemo(() => listedSums(payload), [payload]);
   const stamped = generatedAtText(payload);
-
-  useEffect(() => {
-    if (!canView) return;
-    let cancelled = false;
-    void (async () => {
-      try {
-        const rows = await apiList<SalesmanCard>('/van-sales/salesmen');
-        if (!cancelled) setSalesmen(rows);
-      } catch (caught) {
-        if (!cancelled) {
-          setSalesmenError(apiErrorText(caught, 'تعذّر تحميل قائمة المناديب للمرشِّح'));
-        }
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, [canView]);
 
   const runReport = useCallback(
     async (next: ReportRangeDraft): Promise<void> => {
@@ -214,31 +205,20 @@ export default function ReportsPage() {
   }
 
   return (
-    <section className="grid gap-4">
-      <header className="flex flex-wrap items-end justify-between gap-3">
-        <div className="min-w-0">
-          <h1 className="m-0 text-[22px] font-extrabold leading-tight tracking-tight text-ink">
-            تقارير الخطّ
-          </h1>
-          <p className="m-0 mt-1 text-[13px] text-muted">
-            مبيعاتُ المندوب ومرتجعُه وهالكُه وتحصيلُه في فترةٍ تختارها — من محرّك التقارير نفسه
-            (<span dir="ltr">GET /van-sales/reports</span>) لا من حسابٍ موازٍ في المتصفح.
-            والتواريخُ تواريخُ العمل: <span dir="ltr">load_date</span> و
-            <span dir="ltr"> doc_date</span> و<span dir="ltr"> production_date</span>.
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
+    <Screen
+      actions={
+        <>
           <span className="bak-badge">GET /van-sales/reports</span>
           <span className="bak-badge">GET /van-sales/dashboard</span>
-        </div>
-      </header>
-
+        </>
+      }
+      subtitle="مبيعاتُ المندوب ومرتجعُه وهالكُه وتحصيلُه في فترةٍ تختارها — من محرّك التقارير نفسه (GET /van-sales/reports) لا من حسابٍ موازٍ في المتصفح. والتواريخُ تواريخُ العمل: load_date وdoc_date وproduction_date."
+      title="تقارير الخطّ"
+    >
       {!canView ? (
         <Card>
           <CardBody>
-            <p
-              className={`m-0 rounded-[10px] border px-4 py-2.5 text-[13px] font-semibold ${NOTICE_CLASSES.warn}`}
-            >
+            <p className="m-0 rounded-[10px] border border-warn-line bg-warn-soft px-4 py-2.5 text-[13px] font-semibold text-warn-ink">
               🔒 لا تملك <span dir="ltr">{REPORTS_PERMISSION}</span> — والخادم يرفض قراءة التقرير
               (الحارسُ يفرض الرموز قبل أيّ منطق). ولم يُرسل هذا التطبيق طلبًا سيُرفض حتمًا، ولا
               عرض أرقامًا من المتصفح بدلها.
@@ -255,53 +235,46 @@ export default function ReportsPage() {
           />
           <CardBody>
             <div className="grid gap-3 sm:grid-cols-3">
-              <label className="m-0 grid gap-1.5">
-                <span className="text-[12px] font-bold text-muted">{FROM_LABEL}</span>
-                <Input
-                  onChange={(event) =>
-                    setDraft((current) => ({ ...current, fromDate: event.target.value }))
-                  }
-                  type="date"
-                  value={draft.fromDate}
-                />
-              </label>
-              <label className="m-0 grid gap-1.5">
-                <span className="text-[12px] font-bold text-muted">{TO_LABEL}</span>
-                <Input
-                  onChange={(event) =>
-                    setDraft((current) => ({ ...current, toDate: event.target.value }))
-                  }
-                  type="date"
-                  value={draft.toDate}
-                />
-              </label>
-              <label className="m-0 grid gap-1.5">
-                <span className="text-[12px] font-bold text-muted">المندوب</span>
-                <select
-                  className={selectClass}
-                  onChange={(event) =>
-                    setDraft((current) => ({ ...current, salesmanId: event.target.value }))
-                  }
-                  value={draft.salesmanId}
-                >
-                  <option value="">كلّ المناديب</option>
-                  {salesmen.map((row) => (
-                    <option key={row.id} value={row.id}>
-                      {row.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
+              <Input
+                label={FROM_LABEL}
+                onChange={(event) =>
+                  setDraft((current) => ({ ...current, fromDate: event.target.value }))
+                }
+                type="date"
+                value={draft.fromDate}
+              />
+              <Input
+                label={TO_LABEL}
+                onChange={(event) =>
+                  setDraft((current) => ({ ...current, toDate: event.target.value }))
+                }
+                type="date"
+                value={draft.toDate}
+              />
+              <Select
+                label="المندوب"
+                onChange={(event) =>
+                  setDraft((current) => ({ ...current, salesmanId: event.target.value }))
+                }
+                options={salesmen.map((row) => ({
+                  label: row.name ?? row.id ?? '—',
+                  value: row.id ?? '',
+                }))}
+                placeholder="كلّ المناديب"
+                value={draft.salesmanId}
+              />
             </div>
 
-            {salesmenError ? (
-              <p
-                className={`m-0 mt-3 rounded-[10px] border px-4 py-2.5 text-[12.5px] font-semibold ${NOTICE_CLASSES.warn}`}
-              >
-                قائمةُ المناديب لم تُحمَّل ({salesmenError}) — فيبقى المرشِّح «كلّ المناديب»،
-                والتقريرُ نفسه يعمل بلا مرشِّح مندوب.
-              </p>
-            ) : null}
+            <Notice
+              notice={
+                salesmenError
+                  ? {
+                      kind: 'warn',
+                      text: `قائمةُ المناديب لم تُحمَّل (${salesmenError}) — فيبقى المرشِّح «كلّ المناديب»، والتقريرُ نفسه يعمل بلا مرشِّح مندوب.`,
+                    }
+                  : undefined
+              }
+            />
 
             <div className="mt-3 flex flex-wrap items-center gap-2">
               <Button
@@ -343,30 +316,12 @@ export default function ReportsPage() {
               </Button>
             </div>
 
-            {verdict.blocked.length > 0 ? (
-              <ul className="m-0 mt-3 grid gap-1.5">
-                {verdict.blocked.map((line) => (
-                  <li
-                    className={`rounded-[10px] border px-4 py-2 text-[12.5px] font-semibold ${NOTICE_CLASSES.danger}`}
-                    key={line}
-                  >
-                    ⛔ {line}
-                  </li>
-                ))}
-              </ul>
-            ) : null}
-            {verdict.warnings.length > 0 ? (
-              <ul className="m-0 mt-3 grid gap-1.5">
-                {verdict.warnings.map((line) => (
-                  <li
-                    className={`rounded-[10px] border px-4 py-2 text-[12.5px] ${NOTICE_CLASSES.warn}`}
-                    key={line}
-                  >
-                    ⚠️ {line}
-                  </li>
-                ))}
-              </ul>
-            ) : null}
+            {verdict.blocked.map((line) => (
+              <Notice key={line} notice={{ kind: 'danger', text: `⛔ ${line}` }} />
+            ))}
+            {verdict.warnings.map((line) => (
+              <Notice key={line} notice={{ kind: 'warn', text: `⚠️ ${line}` }} />
+            ))}
           </CardBody>
         </Card>
       ) : null}
@@ -375,7 +330,7 @@ export default function ReportsPage() {
         <Card>
           <CardBody>
             <p
-              className={`m-0 rounded-[10px] border px-4 py-2.5 text-[13px] font-semibold ${NOTICE_CLASSES.danger}`}
+              className="m-0 rounded-[10px] border border-danger-line bg-danger-soft px-4 py-2.5 text-[13px] font-semibold text-danger-ink"
               role="alert"
             >
               تعذّر تحميل التقرير: {loadError}
@@ -390,14 +345,7 @@ export default function ReportsPage() {
         </Card>
       ) : null}
 
-      {notice ? (
-        <p
-          className={`m-0 rounded-[10px] border px-4 py-2.5 text-[13px] font-semibold ${NOTICE_CLASSES[notice.kind]}`}
-          role={notice.kind === 'danger' ? 'alert' : 'status'}
-        >
-          {notice.text}
-        </p>
-      ) : null}
+      <Notice notice={notice} />
 
       {canView && !asked && !loading ? (
         <Card>
@@ -429,18 +377,9 @@ export default function ReportsPage() {
                 هذه حقولُ <span dir="ltr">filters</span> التي أرجعها الخادم، لا ما كُتب في الحقول
                 أعلاه فحسب: فتاريخٌ مرفوضٌ يُرفض (٤٢٢) ولا يُهمل بصمت.
               </p>
-              {screenVerdict.warnings.length > 0 ? (
-                <ul className="m-0 mt-3 grid gap-1.5">
-                  {screenVerdict.warnings.map((line) => (
-                    <li
-                      className={`rounded-[10px] border px-4 py-2 text-[12.5px] ${NOTICE_CLASSES.warn}`}
-                      key={line}
-                    >
-                      ⚠️ {line}
-                    </li>
-                  ))}
-                </ul>
-              ) : null}
+              {screenVerdict.warnings.map((line) => (
+                <Notice key={line} notice={{ kind: 'warn', text: `⚠️ ${line}` }} />
+              ))}
             </CardBody>
           </Card>
 
@@ -567,13 +506,13 @@ export default function ReportsPage() {
               />
               <p className="m-0 mt-3 text-[12px] text-muted">
                 بطاقةُ المندوب الرسمية في لوحة الموظفين: <span dir="ltr">{STAFF_SALESMEN_PATH}</span>{' '}
-                (تُفتح بتسليم جلسة). والتقريرُ قراءةٌ فقط: لا يُنشئ قيدًا ولا يُحمِّل نقصًا على
+                (تُفتح بتسليم جلسة). والتقرير قراءةٌ فقط: لا يُنشئ قيدًا ولا يُحمِّل نقصًا على
                 أحد.
               </p>
             </CardBody>
           </Card>
         </>
       ) : null}
-    </section>
+    </Screen>
   );
 }

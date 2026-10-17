@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Button, Card, CardBody, CardHeader, Input } from '@erp/ui';
+import { Button, Card, CardBody, CardHeader, Input, Select } from '@erp/ui';
 import { apiData, apiErrorText, apiPost, apiPut } from '@erp/web-core/api';
 import { useSession } from '@erp/web-core/session';
 import { stockSettlementStatusLabel } from '@erp/web-van/distribution';
@@ -24,6 +24,8 @@ import {
   type ClosingDraft,
 } from '@erp/web-van/custody';
 
+import { Notice } from '../../components/data-view';
+import { Screen } from '../../components/screen';
 import {
   approvalBlockers,
   approvalDraftFromRow,
@@ -54,7 +56,6 @@ const APPROVE_PERMISSION = 'van_sales.closing.approve';
 const OVERRIDE_PERMISSION = 'van_sales.override.approve';
 const LOAD_PERMISSION = 'van_sales.load.manage';
 
-const selectClass = 'w-full rounded-[8px] border border-line bg-surface px-3 py-2 text-[13px] text-ink';
 const checkClass = 'flex items-start gap-2 text-[12.5px] font-semibold text-ink';
 
 type ActionKind = 'submit' | 'approve' | 'settle' | 'transit';
@@ -344,19 +345,9 @@ export default function CustodyPage() {
   const uncovered = useMemo(() => uncoveredCustodySummary(rows), [rows]);
 
   return (
-    <section className="grid gap-4">
-      <header className="flex flex-wrap items-end justify-between gap-3">
-        <div className="min-w-0">
-          <h1 className="m-0 text-[22px] font-extrabold leading-tight tracking-tight text-ink">
-            إقفال العهدة
-          </h1>
-          <p className="m-0 mt-1 text-[13px] text-muted">
-            جردٌ فعليّ في السيارة، ثمّ فصلٌ رباعيّ لا يُدمج (مرتجع سليم · تالف · عجز · متبقٍ)، ثمّ
-            تسويةٌ رسمية للمخزون. وتحميل العجز على المندوب <strong>قرارٌ لكلّ حالة</strong>: بلا
-            علمٍ صريح لا يُرحَّل قيد، ومع العلم يُقال أثره هنا قبل الضغط.
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
+    <Screen
+      actions={
+        <>
           {uncovered.count > 0 ? (
             <span className="rounded-[8px] border border-danger-line bg-danger-soft px-2 py-1 text-[12px] font-semibold text-danger-ink">
               🚐 الرصيد الرسمي لا يغطي {uncovered.count} عهدة مفتوحة — نقص{' '}
@@ -367,8 +358,11 @@ export default function CustodyPage() {
           <Button disabled={loading || !canView} onClick={() => void load()} size="sm">
             تحديث
           </Button>
-        </div>
-      </header>
+        </>
+      }
+      subtitle="جردٌ فعليّ في السيارة، ثمّ فصلٌ رباعيّ لا يُدمج (مرتجع سليم · تالف · عجز · متبقٍ)، ثمّ تسويةٌ رسمية للمخزون. وتحميل العجز على المندوب قرارٌ لكلّ حالة: بلا علمٍ صريح لا يُرحَّل قيد، ومع العلم يُقال أثره هنا قبل الضغط."
+      title="إقفال العهدة"
+    >
 
       {!canView ? (
         <Card>
@@ -397,17 +391,9 @@ export default function CustodyPage() {
         </Card>
       ) : null}
 
-      {policyDone ? (
-        <p className="m-0 rounded-[10px] border border-ok-line bg-ok-soft px-4 py-2.5 text-[13px] font-semibold text-ok-ink">
-          ✅ {policyDone}
-        </p>
-      ) : null}
+      <Notice notice={policyDone ? { kind: 'ok', text: `✅ ${policyDone}` } : undefined} />
 
-      {actionDone ? (
-        <p className="m-0 rounded-[10px] border border-ok-line bg-ok-soft px-4 py-2.5 text-[13px] font-semibold text-ok-ink">
-          ✅ {actionDone}
-        </p>
-      ) : null}
+      <Notice notice={actionDone ? { kind: 'ok', text: `✅ ${actionDone}` } : undefined} />
 
       {/* ⚖️ سياسة تقييم العجز — القرار الماليّ الذي يُقاس به كلّ عجز لاحق. */}
       <Card>
@@ -434,21 +420,16 @@ export default function CustodyPage() {
 
             {canOverride ? (
               <div className="grid gap-3">
-                <label className="grid gap-1 text-[12.5px] font-bold text-ink">
-                  أساس التقييم
-                  <select
-                    className={selectClass}
-                    onChange={(event) => setBasisValue(event.target.value)}
-                    value={basisValue}
-                  >
-                    <option value="">— لا تغيير —</option>
-                    {VALUATION_BASES.map((basis) => (
-                      <option key={basis} value={basis}>
-                        {valuationBasisLabel(basis)} ({basis})
-                      </option>
-                    ))}
-                  </select>
-                </label>
+                <Select
+                  label="أساس التقييم"
+                  onChange={(event) => setBasisValue(event.target.value)}
+                  options={VALUATION_BASES.map((basis) => ({
+                    label: `${valuationBasisLabel(basis)} (${basis})`,
+                    value: basis,
+                  }))}
+                  placeholder="— لا تغيير —"
+                  value={basisValue}
+                />
                 <Input
                   dir="ltr"
                   hint="يُكتب لمسح السعر أن يُترك فارغاً ويُختار أساسٌ — والمسح الصريح بـnull من API."
@@ -478,14 +459,9 @@ export default function CustodyPage() {
               </p>
             )}
           </div>
-          {policyError ? (
-            <p
-              className="m-0 mt-3 rounded-[10px] border border-danger-line bg-danger-soft px-3 py-2 text-[12.5px] font-semibold text-danger-ink"
-              role="alert"
-            >
-              {policyError}
-            </p>
-          ) : null}
+          <Notice
+            notice={policyError ? { kind: 'danger', text: policyError } : undefined}
+          />
         </CardBody>
       </Card>
 
@@ -800,17 +776,15 @@ export default function CustodyPage() {
 
               {actionKind === 'transit' ? (
                 <div className="grid gap-3 md:grid-cols-2">
-                  <label className="grid gap-1 text-[12.5px] font-bold text-ink">
-                    قرار فرق العبور
-                    <select
-                      className={selectClass}
-                      onChange={(event) => setTransitMode(event.target.value)}
-                      value={transitMode}
-                    >
-                      <option value="return">return — إرجاع الباقي إلى المصدر</option>
-                      <option value="shortage">shortage — عجز تحويل رسمي</option>
-                    </select>
-                  </label>
+                  <Select
+                    label="قرار فرق العبور"
+                    onChange={(event) => setTransitMode(event.target.value)}
+                    options={[
+                      { label: 'return — إرجاع الباقي إلى المصدر', value: 'return' },
+                      { label: 'shortage — عجز تحويل رسمي', value: 'shortage' },
+                    ]}
+                    value={transitMode}
+                  />
                   <Input
                     hint="قرارٌ ماليّ صريح ينفّذه محرّك المخزون بقيوده وحساباته من ملف الترحيل."
                     label="سبب القرار"
@@ -896,21 +870,16 @@ export default function CustodyPage() {
                       value={closing.closingNotes}
                     />
                   ) : (
-                    <label className="grid gap-1 text-[12.5px] font-bold text-ink">
-                      مصير المتبقي الفعلي (إلزامي إن وُجد)
-                      <select
-                        className={selectClass}
-                        onChange={(event) => setRemainingAction(event.target.value)}
-                        value={remainingAction}
-                      >
-                        <option value="">— لم يُحدَّد —</option>
-                        {REMAINING_ACTIONS.map((action) => (
-                          <option key={action} value={action}>
-                            {remainingActionLabel(action)} ({action})
-                          </option>
-                        ))}
-                      </select>
-                    </label>
+                    <Select
+                      label="مصير المتبقي الفعلي (إلزامي إن وُجد)"
+                      onChange={(event) => setRemainingAction(event.target.value)}
+                      options={REMAINING_ACTIONS.map((action) => ({
+                        label: `${remainingActionLabel(action)} (${action})`,
+                        value: action,
+                      }))}
+                      placeholder="— لم يُحدَّد —"
+                      value={remainingAction}
+                    />
                   )}
                 </div>
               )}
@@ -1017,14 +986,9 @@ export default function CustodyPage() {
                 </div>
               ) : null}
 
-              {actionError ? (
-                <p
-                  className="m-0 rounded-[10px] border border-danger-line bg-danger-soft px-3 py-2 text-[12.5px] font-semibold text-danger-ink"
-                  role="alert"
-                >
-                  {actionError}
-                </p>
-              ) : null}
+              <Notice
+                notice={actionError ? { kind: 'danger', text: actionError } : undefined}
+              />
 
               <div className="flex flex-wrap items-center gap-2">
                 <Button disabled={busy} onClick={() => void runAction()} size="sm">
@@ -1046,6 +1010,6 @@ export default function CustodyPage() {
           </CardBody>
         </Card>
       ) : null}
-    </section>
+    </Screen>
   );
 }

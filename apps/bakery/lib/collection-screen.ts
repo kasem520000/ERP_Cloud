@@ -1,14 +1,17 @@
 import { Decimal } from 'decimal.js';
 
 import type { DashboardWindows } from './dashboard-windows';
+import { numberText } from './lookups';
 import {
   decimalOrNull,
   documentRemaining,
   hasOpenDebt,
+  invoiceStatusLabel,
   type DocumentRow,
   type PostingReadiness,
   type Verdict,
 } from './sales-screen';
+import type { ScreenColumn } from './ui-kit';
 
 /**
  * 💵 منطق شاشة «التحصيل» النقيّ — ما يُحصَّل، ممّن، و**هل وصل السند إلى الأستاذ**.
@@ -382,4 +385,86 @@ export function movementTypeLabel(kind: string): string {
     production_in: '🏭 إنتاج يومي للمستودع الرئيسي',
   };
   return labels[kind] ?? kind; // ‏النوع غير المعروف يُعرض خاماً.
+}
+
+/* --------------------------------------------------------------------------
+ * جداولُ الشاشة الثلاثة على `DataTable` — الشاشةُ تُعلن الأعمدةَ والحالة،
+ * والنظام يرسم. والحقولُ المشتقة (عمر الدين، المتبقي، تسميةُ الحركة)
+ * تُحسب هنا مرةً واحدةً في صفوف العرض لا في كلّ خلية.
+ * ------------------------------------------------------------------------ */
+
+/**
+ * صفُّ ذمةٍ كما تُعرض في الجدول اليدويّ (زرّ «تحصيل» لكلّ صفٍّ لا يصلح
+ * قائمةَ إجراءات `DataTable`) — عمرُ الدين والمتبقي محسوبان ومُسمّاة
+ * حسابهما، فلا تُعاد حسابهما في كلّ خلية.
+ */
+export type ReceivableViewRow = DocumentRow & {
+  ageText: string;
+  remainingText: string;
+  invoiceStatusText: string;
+};
+
+export function receivableViewRows(rows: DocumentRow[]): ReceivableViewRow[] {
+  return rows.map((row) => ({
+    ...row,
+    ageText: ageDays(row) === null ? '—' : `${ageDays(row)} يومًا`,
+    remainingText: remainingText(row),
+    invoiceStatusText: invoiceStatusLabel(row.invoiceStatus),
+  }));
+}
+
+/** أعمدةُ جدول حركات الخطّ — أحدث ٨٠ حركة كما يعلنها `windows.movements`. */
+export const MOVEMENT_COLUMNS: readonly ScreenColumn[] = [
+  { key: 'movementType', labelAr: 'النوع' },
+  { key: 'customerName', labelAr: 'العميل' },
+  { key: 'salesmanName', labelAr: 'المندوب' },
+  { key: 'qty', labelAr: 'كمية', numeric: true },
+  { key: 'amount', labelAr: 'قيمة', numeric: true },
+  { key: 'reason', labelAr: 'السبب كما كتبه الخادم' },
+  { key: 'voucherId', labelAr: 'سند', ltr: true },
+  { key: 'createdAt', labelAr: 'متى', ltr: true },
+];
+
+/** صفُّ حركةٍ كما يُعرض — تسميةُ النوع مرةً واحدة، والغائب «—». */
+export type MovementViewRow = MovementRow & { movementType: string };
+
+export function movementViewRows(rows: MovementRow[]): MovementViewRow[] {
+  return rows.map((row) => ({ ...row, movementType: movementTypeLabel(row.movementType) }));
+}
+
+/** أعمدةُ جدول خطة الأداة — الكيان والرقم والإجراء والأمان والمانع. */
+export const RECON_PLAN_COLUMNS: readonly ScreenColumn[] = [
+  { key: 'entityType', labelAr: 'الكيان' },
+  { key: 'number', labelAr: 'الرقم', ltr: true },
+  { key: 'action', labelAr: 'الإجراء', ltr: true },
+  { key: 'canBackfillText', labelAr: 'يُستكمل بأمان؟' },
+  { key: 'blockingReason', labelAr: 'مانع', ltr: true },
+];
+
+/** صفُّ بندٍ من الخطة كما يُعرض — «لا — يُتخطّى» حالةٌ لا مجرّد نفي. */
+export type ReconPlanViewRow = ReconciliationPlanItem & { canBackfillText: string };
+
+export function reconPlanViewRows(items: ReconciliationPlanItem[]): ReconPlanViewRow[] {
+  return items.map((item) => ({
+    ...item,
+    canBackfillText: item.canBackfillSafely ? 'نعم' : 'لا — يُتخطّى',
+  }));
+}
+
+/**
+ * قارئُ الخلية الموحّد للجداول الثلاثة — القواعدُ الأربع نفسها التي في
+ * `reports-screen.cellText` (نصٌّ/رقمٌ/منطقيّ وما عداها «—»): فالغائبُ «—»
+ * لا صفرٌ مُختلَع، والرقمُ في عمودٍ رقميٍّ يُنسَّق كما يُنسَّق في كلّ
+ * جدولٍ مهاجر.
+ */
+export function collectionCellText(
+  row: Record<string, unknown> | null,
+  column: ScreenColumn,
+): string {
+  const value = row ? row[column.key] : null;
+  if (value === null || value === undefined || value === '') return '—';
+  if (typeof value === 'boolean') return value ? 'نعم' : 'لا';
+  if (typeof value === 'number') return column.numeric ? numberText(value) : String(value);
+  if (typeof value === 'string') return column.numeric ? numberText(value) : value;
+  return '—';
 }

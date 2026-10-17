@@ -2,7 +2,7 @@ import './globals.css';
 
 import type { Metadata, Viewport } from 'next';
 import type { ReactNode } from 'react';
-import { ThemeProvider, ThemeScript } from '@erp/ui';
+import { ThemeProvider, ThemeScript, ToastProvider } from '@erp/ui';
 import { SessionProvider } from '@erp/web-core/session';
 import { TokenBridge } from '@erp/web-core/token-bridge';
 
@@ -42,6 +42,10 @@ export const viewport: Viewport = {
  * (المرحلة 2 من plan المخابز: الواجهة تستهلك الحزمة المشتركة بلا طبقة وسيطة). و`TokenBridge`
  * بلا `failedRedirect` لأنّ هدف الفشل الافتراضي `/?handoff=failed` صحيحٌ هنا: لا مسار
  * `/login` في هذه الواجهة، فشاشة الدخول ترسمها القشرة على أيّ مسارٍ محميّ.
+ *
+ * ومزوّدُ التنبيهات `ToastProvider` كما في `apps/staff` — طبقةُ التصميم
+ * المشتركة بلا سلوكٍ جديد: هذه الشاشة كلُّها عربيّةٌ أوّلاً فلا مزوّدُ لغةٍ
+ * (`LanguageProvider` في staff لتبديل واجهةِ الموظفين ثنائية اللغة).
  */
 export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
   return (
@@ -54,7 +58,9 @@ export default function RootLayout({ children }: Readonly<{ children: ReactNode 
           <SessionProvider>
             <TokenBridge />
             <ServiceWorkerRegister />
-            <AuthGate>{children}</AuthGate>
+            <ToastProvider>
+              <AuthGate>{children}</AuthGate>
+            </ToastProvider>
           </SessionProvider>
         </ThemeProvider>
       </body>

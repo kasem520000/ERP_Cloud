@@ -1,6 +1,8 @@
 import { Decimal } from 'decimal.js';
 
 import type { DashboardWindows } from './dashboard-windows';
+import { numberText } from './lookups';
+import type { ScreenColumn } from './ui-kit';
 
 /**
  * 🧾 منطق شاشة «فواتير الخطّ» النقيّ — لا React هنا ولا شبكة، فكلّ حكمٍ يُقاس.
@@ -609,4 +611,67 @@ export function returnVerdict(draft: ReturnDraft, documents: DocumentRow[]): Ver
   }
 
   return { blocked, warnings };
+}
+
+/* --------------------------------------------------------------------------
+ * جدولُ مستندات الخطّ على `DataTable` — الشاشةُ تُعلن الأعمدةَ والحالة،
+ * والنظام يرسم. والتسمياتُ والأنملةُ المحسوبة (نوع المستند، الدفع،
+ * المتبقي، حالة الفاتورة، الرقابة) تُحسب هنا مرةً واحدةً في صفوف العرض
+ * لا في كلّ خلية.
+ * ------------------------------------------------------------------------ */
+
+/** أعمدةُ جدول المستندات — إعلانٌ في منطق الشاشة النقيّ (يثبّته الاختبار). */
+export const DOCUMENT_COLUMNS: readonly ScreenColumn[] = [
+  { key: 'number', labelAr: 'المستند', ltr: true },
+  { key: 'docDate', labelAr: 'التاريخ', ltr: true },
+  { key: 'kindText', labelAr: 'النوع' },
+  { key: 'customerName', labelAr: 'العميل' },
+  { key: 'salesmanName', labelAr: 'المندوب' },
+  { key: 'itemName', labelAr: 'الصنف' },
+  { key: 'soldQty', labelAr: 'مبيع', numeric: true },
+  { key: 'bonusQty', labelAr: 'مجانيّ', numeric: true },
+  { key: 'unitPrice', labelAr: 'السعر', numeric: true },
+  { key: 'total', labelAr: 'الإجمالي', numeric: true },
+  { key: 'paidAmount', labelAr: 'المدفوع', numeric: true },
+  { key: 'remainingText', labelAr: 'المتبقي', numeric: true },
+  { key: 'paymentText', labelAr: 'الدفع' },
+  { key: 'invoiceNumber', labelAr: 'الفاتورة الرسمية', ltr: true },
+  { key: 'invoiceStatusText', labelAr: 'حالتها' },
+  { key: 'anomalyText', labelAr: 'رقابة' },
+];
+
+/** صفُّ مستندٍ كما يُعرض — التسمياتُ والمتبقيُ محسوبةٌ مرةً واحدة. */
+export type DocumentViewRow = DocumentRow & {
+  kindText: string;
+  paymentText: string;
+  remainingText: string;
+  invoiceStatusText: string;
+  anomalyText: string;
+};
+
+export function documentViewRows(rows: DocumentRow[]): DocumentViewRow[] {
+  return rows.map((row) => ({
+    ...row,
+    kindText: documentKindLabel(row.documentKind),
+    paymentText: paymentMethodLabel(row.paymentMethod),
+    remainingText: documentRemainingText(row),
+    invoiceStatusText: invoiceStatusLabel(row.invoiceStatus),
+    anomalyText: anomalyNote(row) ?? '—',
+  }));
+}
+
+/**
+ * قارئُ الخلية — القواعدُ الأربع نفسها التي في `reports-screen.cellText`
+ * (نصٌّ/رقمٌ/منطقيّ وما عداها «—»): فالغائبُ «—» لا صفرٌ مُختلَع.
+ */
+export function documentCellText(
+  row: DocumentViewRow | null,
+  column: ScreenColumn,
+): string {
+  const value = row ? (row as Record<string, unknown>)[column.key] : null;
+  if (value === null || value === undefined || value === '') return '—';
+  if (typeof value === 'boolean') return value ? 'نعم' : 'لا';
+  if (typeof value === 'number') return column.numeric ? numberText(value) : String(value);
+  if (typeof value === 'string') return column.numeric ? numberText(value) : value;
+  return '—';
 }
