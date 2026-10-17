@@ -230,6 +230,18 @@ describe('customer portal', () => {
     expect(String(printed.body.html)).toContain('خدمة صيانة');
   });
 
+  it('AUD-17: المتبقّي يُقرأ عشريًّا من نفس أعمدة الفاتورة (بلا انحدار في العرض)', async () => {
+    const link = await api(ctx.server, 'get', `/api/v1/portal/invoices/${buyerInvoiceId}/payment-link`, { token: portalToken });
+    expect(link.status).toBe(200);
+    const payload = body(link) as unknown as { invoice: { total: string; paidTotal: string; remaining: string } };
+    // 172.50 − 0 = 172.5000 بأربع خانات، والفرق محسوب بـDecimal لا بالعائم.
+    expect(payload.invoice.total).toBe('172.5000');
+    expect(payload.invoice.remaining).toBe('172.5000');
+    expect(payload.invoice.remaining).toBe(
+      (Number(payload.invoice.total) - Number(payload.invoice.paidTotal)).toFixed(4),
+    );
+  });
+
   it('cannot see another customer, and is told 404 rather than 403', async () => {
     const foreign = await api(ctx.server, 'get', `/api/v1/portal/invoices/${otherInvoiceId}`, { token: portalToken });
     expect(foreign.status).toBe(404);

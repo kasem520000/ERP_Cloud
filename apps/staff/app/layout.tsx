@@ -3,9 +3,9 @@ import './globals.css';
 import type { Metadata, Viewport } from 'next';
 import type { ReactNode } from 'react';
 import { ThemeProvider, ThemeScript, ToastProvider } from '@erp/ui';
+import { TokenBridge } from '@erp/web-core/token-bridge';
 
 import { AuthGate } from '../components/auth-gate';
-import { TokenBridge } from '../components/token-bridge';
 import { LanguageProvider } from '../lib/i18n';
 import { SessionProvider } from '../lib/session';
 import { ServiceWorkerRegister } from '../components/service-worker-register';

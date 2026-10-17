@@ -46,6 +46,7 @@ function withTenant(
     maxDiscountPct: null,
     maxDiscountAmount: null,
     scopes: [],
+    enabledApps: [],
   };
   requestContextStorage.run({ traceId: 'trace', startTime: 0, tenant }, run);
 }

@@ -171,6 +171,7 @@ export class EsignController {
 
   @Public()
   @Get('esign/:token')
+  @RateLimit({ name: 'esign-view', limit: env.RATE_LIMIT_DEFAULT_PER_MINUTE, windowMs: 60_000 })
   async view(@Param('token') token: string, @Req() request: Request) {
     return { data: await this.portal.viewEsign(token, clientIp(request)) };
   }
@@ -178,6 +179,7 @@ export class EsignController {
   @Public()
   @Post('esign/:token/sign')
   @HttpCode(200)
+  @RateLimit({ name: 'esign-sign', limit: env.RATE_LIMIT_LOGIN_PER_MINUTE, windowMs: 60_000 })
   async sign(
     @Param('token') token: string,
     @Body() body: { signatureData?: string; signature_data?: string; otp?: string },
@@ -194,6 +196,7 @@ export class EsignController {
 
   @Public()
   @Get('esign/:token/pdf')
+  @RateLimit({ name: 'esign-view', limit: env.RATE_LIMIT_DEFAULT_PER_MINUTE, windowMs: 60_000 })
   async pdf(@Param('token') token: string) {
     const bytes = await this.portal.signedPdfOf(token);
     return new StreamableFile(bytes, {

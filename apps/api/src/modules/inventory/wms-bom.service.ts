@@ -22,10 +22,14 @@ import {
 } from '@erp/database';
 
 import { DATABASE_HANDLE } from '../../database/database.module.js';
+import { AccountingService } from '../accounting/accounting.service.js';
+import { PostingProfilesService } from '../organization/posting-profiles/posting-profiles.service.js';
 import { tryGetAuthContext } from '../platform/context/tenant-context.js';
 import { SequencesService } from '../platform-services/index.js';
 
 import { InventoryService } from './inventory.service.js';
+import { postProductionJournalInTx } from './production-posting.js';
+import { resolveOutputLotInTx, type OutputLotInput } from './production-output-lot.js';
 import {
   WmsRuleError,
   advanceProduction,
@@ -93,6 +97,12 @@ export type ProduceInput = {
   qty: string;
   componentBinId?: string;
   outputBinId?: string;
+  /**
+   * 🏷️ دفعة الناتج — رقم الدفعة التي ينتمي إليها الإنتاج (وتاريخ إنتاجها اختياراً). صنفٌ
+   * يُتتبَّع بالدفعات لا يستلمه المخزون بلا `lot_id`، وبلا هذا الحقل كان إنتاجه بأمر تصنيع
+   * رسمي مستحيلاً (انظر `production-output-lot.ts`).
+   */
+  outputLot?: OutputLotInput;
 };
 
 type LockedBin = BinRef & { code: string };
@@ -166,6 +176,9 @@ export class WmsBomService {
     @Inject(DATABASE_HANDLE) private readonly database: DatabaseHandle,
     private readonly inventory: InventoryService,
     private readonly sequences: SequencesService,
+    // 🏭 ترحيل الإنتاج الاختياري (PHASE_E) — يُستعملان معاً في `production-posting.ts` وحده.
+    private readonly accounting: AccountingService,
+    private readonly profiles: PostingProfilesService,
   ) {}
 
   listBins(tenantId: string, warehouseId?: string) {
@@ -534,12 +547,20 @@ export class WmsBomService {
       const movedValue = charged.reduce((sum, row) => sum.plus(row.totalCost), new Decimal(0));
       const unitCostValue = movedValue.div(produceQty);
 
+      // 🏷️ دفعة الناتج: رقمُ المستدعي (دفعة المخبز) وإلا رقم الأمر نفسه.
+      const outputLotId = await resolveOutputLotInTx(tx, tenantId, {
+        itemId: order.productItemId,
+        lot: input.outputLot,
+        orderNumber: order.number,
+      });
+
       await this.inventory.recordInTx(tx, tenantId, [
         {
           itemId: order.productItemId,
           warehouseId: order.warehouseId,
           qty: produceQty.toFixed(4),
           unitCost: unitCostValue.toFixed(4),
+          lotId: outputLotId ?? undefined,
           direction: 'in',
           docType: 'manufacturing_order',
           docId: order.id,
@@ -591,7 +612,37 @@ export class WmsBomService {
           updatedBy: actorId(),
         })
         .where(and(eq(manufacturingOrders.tenantId, tenantId), eq(manufacturingOrders.id, order.id)));
-      return this.getOrderInTx(tx, tenantId, order.id);
+
+      /**
+       * 🏭 قيد الإنتاج — اختياري ومحايد افتراضياً.
+       *
+       * القيمة المُرحَّلة هي `movedValue` نفسها: ما خرج من الرفّ كمكوّنات بالتكلفة المتوسطة
+       * الفعلية، وهو بالضبط ما دخل به المنتج التام (`unitCostValue = movedValue / produceQty`).
+       * فإن ربطت المنشأة حسابَي المواد الخام والمنتج التام صار للفصل أثر في الدفتر، وإن لم
+       * تربط بقي الإنتاج محايداً كما كان. الطرف الواحد وحده مرفوض: لا قيد بنصف خريطة.
+       */
+      const [warehouseRow] = await tx
+        .select({ branchId: warehouses.branchId })
+        .from(warehouses)
+        .where(and(eq(warehouses.tenantId, tenantId), eq(warehouses.id, order.warehouseId)));
+      const posting = await postProductionJournalInTx(tx, tenantId, {
+        accounting: this.accounting,
+        profiles: this.profiles,
+      }, {
+        docType: 'manufacturing_order',
+        orderId: order.id,
+        orderNumber: order.number,
+        branchId: warehouseRow?.branchId ?? null,
+        consumedValue: movedValue,
+        // الإنتاج الجزئي المتكرر على الأمر نفسه ⇒ خطوةٌ مفتاحها ما قبل وما بعد.
+        stepKey: `${order.qtyProduced}_${step.qtyProduced}`,
+      });
+
+      const produced = await this.getOrderInTx(tx, tenantId, order.id);
+      if (!produced) {
+        throw new DomainError('MANUFACTURING_ORDER_NOT_FOUND', 'Manufacturing order was not found', 404);
+      }
+      return { ...produced, ...posting };
     });
   }
 
@@ -667,6 +718,7 @@ export class WmsBomService {
   private async lockOrder(tx: DrizzleTx, tenantId: string, orderId: string) {
     const rows = rowsOf<{
       id: string;
+      number: string;
       warehouseId: string;
       productItemId: string;
       qtyPlanned: string;
@@ -676,6 +728,7 @@ export class WmsBomService {
       recipe: unknown;
     }>(await tx.execute(sql`
       SELECT id,
+             number,
              warehouse_id AS "warehouseId",
              product_item_id AS "productItemId",
              qty_planned::text AS "qtyPlanned",

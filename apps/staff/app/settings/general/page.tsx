@@ -22,6 +22,12 @@ type Settings = Record<string, unknown>;
  */
 const CASHER_FIELDS: Array<{ key: string; label: string; kind: 'boolean' | 'number' | 'text'; hint?: string }> = [
   // النصوص حرفيةٌ من `frmCasherSetting.xaml` — بالأيقونة واللفظ الذي يراه المشرف هناك.
+  {
+    key: 'sales.saveAsDraft',
+    label: '📝 حفظ فاتورة المبيعات كمسودة قبل الترحيل',
+    kind: 'boolean',
+    hint: 'عند إيقاف هذا الخيار (الوضع الافتراضي السحابي)، يتم حفظ وترحيل فاتورة المبيعات فوراً وإصدار رقمها الضريبي وباركود QR مباشرة.',
+  },
   { key: 'pos.barcodeAuto', label: '📷 الباركود أوتوماتيك', kind: 'boolean', hint: 'يُسجَّل الباركود تلقائياً عند فتح شاشة البيع.' },
   { key: 'pos.touchScreen', label: '👆 الشاشة تدعم التاتش سكرين', kind: 'boolean', hint: 'تكبير أزرار شاشة اللمس وتبسيط التنقل.' },
   { key: 'pos.showGroups', label: '📦 عرض المجموعات والأصناف', kind: 'boolean', hint: 'عرض المجموعات كأزرار سريعة أعلى لوحة الأصناف.' },
@@ -41,7 +47,11 @@ export default function GeneralSettingsPage() {
     const next: Record<string, string> = {};
     for (const field of CASHER_FIELDS) {
       const value = settings.data?.[field.key];
-      next[field.key] = value === undefined || value === null ? '' : String(value);
+      if (field.key === 'sales.saveAsDraft') {
+        next[field.key] = value === true || value === 'true' ? 'true' : 'false';
+      } else {
+        next[field.key] = value === undefined || value === null ? '' : String(value);
+      }
     }
     setDraft(next);
   }, [settings.status, settings.data]);

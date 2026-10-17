@@ -5,6 +5,7 @@ import { PlatformServicesModule } from '../platform-services/platform-services.m
 
 import { SupportController } from './support.controller.js';
 import { SupportService } from './support.service.js';
+import { TenantSupportController } from './tenant-support.controller.js';
 
 /**
  * P-C8 — وحدة مكتب الدعم والدخول المؤقّت.
@@ -15,7 +16,7 @@ import { SupportService } from './support.service.js';
  */
 @Module({
   imports: [PlatformModule, PlatformServicesModule],
-  controllers: [SupportController],
+  controllers: [SupportController, TenantSupportController],
   providers: [SupportService],
   exports: [SupportService],
 })

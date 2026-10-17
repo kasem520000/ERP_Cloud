@@ -64,6 +64,12 @@ export class AiController {
     return { data: await this.ai.updateSettings(getTenantContext().tenantId, body ?? {}) };
   }
 
+  @Post('settings/test')
+  @RequiresPermission('ai.settings.manage')
+  async testSettings() {
+    return { data: await this.ai.testConnection(getTenantContext().tenantId) };
+  }
+
   @Post('chat')
   @RequiresPermission('ai.assistant.use')
   async chat(

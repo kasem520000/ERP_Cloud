@@ -21,6 +21,12 @@ import {
   type DrizzleTx,
 } from '@erp/database';
 
+import {
+  FROM_TO_LABELS_AR,
+  parseClockParam,
+  parseDayParam,
+  validateDayFilters,
+} from '../../common/date-param.js';
 import { DATABASE_HANDLE } from '../../database/database.module.js';
 import { SequencesService } from '../platform-services/index.js';
 
@@ -1068,33 +1074,140 @@ export class AccountingService {
     return id;
   }
 
-  async reverseJournal(tenantId: string, entryId: string, input: { branchId: string; fiscalPeriodId: string; date: string; reason: string }) {
-    if (!input.reason.trim()) throw new Error('Reversal reason is required');
-    return withTenantTx(this.database.db, tenantId, async (tx) => {
-      const [original] = await tx.select().from(journalEntries).where(and(eq(journalEntries.id, entryId), eq(journalEntries.tenantId, tenantId)));
-      if (!original || original.status !== 'posted') throw new Error('Only posted journals can be reversed');
-      const [existing] = await tx.select({ id: journalEntries.id }).from(journalEntries).where(eq(journalEntries.reversalOf, entryId));
-      if (existing) throw new Error('Journal was already reversed');
-      const [period] = await tx.select().from(fiscalPeriods).where(and(eq(fiscalPeriods.id, input.fiscalPeriodId), eq(fiscalPeriods.tenantId, tenantId)));
-      if (!period || period.status !== 'open') throw new Error('Reversal period is closed or unavailable');
-      await this.assertModuleUnlocked(tx, tenantId, input.fiscalPeriodId, 'accounting');
-      const lines = await tx.select().from(journalEntryLines).where(eq(journalEntryLines.entryId, entryId));
-      const reversalId = newId();
-      await tx.insert(journalEntries).values({ id: reversalId, tenantId, branchId: input.branchId, fiscalPeriodId: input.fiscalPeriodId, date: input.date, kind: 'reversal', status: 'posted', description: input.reason, reversalOf: entryId, postedAt: new Date() });
+  /**
+   * 🔁 العكس الرسمي الموحَّد — the **one** mechanism that undoes a posted journal, used by the
+   * journal API and by every module that cancels a document (المخزون، المبيعات، المشتريات).
+   *
+   * الاصطلاح — وهو اصطلاح المشروع نفسه منذ الترحيل `0047`، وتقرأه التقارير في
+   * `reporting/report-catalog.ts ← entryStateScope`:
+   *
+   *   1. **القيد الأصلي يبقى `posted`** ولا تُمسّ قيمه. كل الأرصدة في هذه الوحدة تجمع
+   *      `status = 'posted'`، والأصل ومرآته معاً صفر. أما إبطال الأصل *مع* ترحيل المرآة فهو
+   *      طرحٌ واحد مرتين: يُسقط الأصل من كل ميزان ويبقي المرآة، فينحرف ميزان المراجعة
+   *      والأستاذ ورصيد الحساب بمقدار العملية الملغاة (وهو ما كان يحدث بعد كل إلغاء مناقلة
+   *      أو إبطال فاتورة).
+   *   2. «لاغي» في التقارير = قيدٌ يشير إليه عكس (`reversal_of`)، لا `status = 'void'`.
+   *      فالأثر الظاهر للمستخدم واحد، والسجلّ المحاسبي يبقى كاملاً.
+   *   3. **المرآة تحمل أبعاد السطر كلها** — الطرف، مركز التكلفة، المندوب، الفرع، العملة
+   *      والمعدّل — لا المبالغ وحدها، وإلا بقي مال المستند الملغى في تقارير المراكز
+   *      والمندوبين.
+   *   4. **لا يُعكس قيد لم يُرحَّل**، و**لا يُعكس القيد مرتين**: القفل `FOR UPDATE` على الأصل
+   *      مع القيد الفريد `reversal_of`/`idempotency_key` يجعل طلبين متزامنين على القيد نفسه
+   *      ينتهيان بعكسٍ واحد.
+   *
+   * @returns `null` never — it throws. `reused: true` means a retry found the existing reversal.
+   */
+  async reverseJournalInTx(
+    tx: DrizzleTx,
+    tenantId: string,
+    entryId: string,
+    input: {
+      reason: string;
+      date?: string;
+      branchId?: string;
+      fiscalPeriodId?: string;
+      sourceType?: string;
+      sourceId?: string;
+      actorId?: string | null;
+      idempotencyKey?: string;
       /**
-       * The mirror of every line — amounts swapped *and every dimension carried*. A
-       * reversal that drops the cost centre, the branch or the salesman leaves those
-       * reports holding money the ledger no longer has: 🌳 شجرة مراكز التكلفة would keep
-       * spending that was reversed, which is exactly what it did until migration `0047`
-       * made the `void` below stick.
+       * `reuse` — داخل ساغا أو عند إعادة المحاولة: يُرجَع العكس القائم بدل الرفض، فلا يُنشأ
+       * عكس ثانٍ ولا يفشل استكمال العملية. `throw` (الافتراضي) — للطلب الصريح من المستخدم.
        */
-      await tx.insert(journalEntryLines).values(lines.map((line) => ({
+      ifAlreadyReversed?: 'throw' | 'reuse';
+    },
+  ): Promise<{ id: string; number: string | null; reversalOf: string; reused: boolean }> {
+    if (!input.reason.trim())
+      throw new DomainError('REVERSAL_REASON_REQUIRED', 'سبب العكس مطلوب — يُحفظ في السجلّ التدقيقي', 422, {
+        field: 'reason',
+      });
+
+    // القفل على الأصل: طلبان متزامنان لعكس القيد نفسه يُصبِحان طابوراً، فيرى الثاني العكس القائم.
+    const [original] = await tx
+      .select()
+      .from(journalEntries)
+      .where(and(eq(journalEntries.tenantId, tenantId), eq(journalEntries.id, entryId)))
+      .for('update');
+    if (!original)
+      throw new DomainError('JOURNAL_NOT_FOUND', 'القيد غير موجود في هذه المنشأة', 404, { field: 'entryId' });
+    if (original.status !== 'posted')
+      throw new DomainError(
+        'JOURNAL_NOT_POSTED',
+        `لا يُعكس قيد غير مُرحَّل (حالته ${original.status}) — المسودة تُلغى ولا تُعكس`,
+        409,
+        { field: 'status' },
+      );
+
+    const [existing] = await tx
+      .select({ id: journalEntries.id, number: journalEntries.number })
+      .from(journalEntries)
+      .where(and(eq(journalEntries.tenantId, tenantId), eq(journalEntries.reversalOf, entryId)))
+      .limit(1);
+    if (existing) {
+      if (input.ifAlreadyReversed === 'reuse')
+        return { id: existing.id, number: existing.number, reversalOf: entryId, reused: true };
+      throw new DomainError('JOURNAL_ALREADY_REVERSED', 'هذا القيد معكوس بالفعل — لا يُعكس مرتين', 409, {
+        field: 'entryId',
+        reversalId: existing.id,
+      });
+    }
+
+    const date = input.date?.trim() || new Date().toISOString().slice(0, 10);
+    const branchId = input.branchId ?? original.branchId;
+    const fiscalPeriodId =
+      input.fiscalPeriodId ?? (await this.openPeriodForDateInTx(tx, tenantId, date));
+    const [period] = await tx
+      .select()
+      .from(fiscalPeriods)
+      .where(and(eq(fiscalPeriods.id, fiscalPeriodId), eq(fiscalPeriods.tenantId, tenantId)));
+    if (!period || period.status !== 'open')
+      throw new DomainError('FISCAL_PERIOD_CLOSED', 'فترة العكس مغلقة أو غير متاحة', 409, {
+        field: 'fiscalPeriodId',
+      });
+    await this.assertModuleUnlocked(tx, tenantId, fiscalPeriodId, 'accounting');
+
+    const lines = await tx
+      .select()
+      .from(journalEntryLines)
+      .where(and(eq(journalEntryLines.tenantId, tenantId), eq(journalEntryLines.entryId, entryId)));
+    if (!lines.length)
+      throw new DomainError('JOURNAL_LINES_REQUIRED', 'القيد الأصلي بلا أسطر — لا مرآة له', 422);
+
+    const reversalId = newId();
+    const allocated = await this.sequences.next(
+      { tenantId, branchId, docType: 'journal_entry', fiscalYearId: period.fiscalYearId },
+      tx,
+      { prefix: 'JE-', padding: 6 },
+    );
+    await tx.insert(journalEntries).values({
+      id: reversalId,
+      tenantId,
+      branchId,
+      fiscalPeriodId,
+      date,
+      number: allocated.display,
+      kind: 'reversal',
+      status: 'posted',
+      description: `عكس القيد ${original.number ?? entryId}: ${input.reason.trim()}`,
+      reversalOf: entryId,
+      // المرجع يبقى للمستند نفسه، فيظهر الأصل وعكسه معاً عند سؤال أي مستند عن قيوده.
+      sourceType: input.sourceType ?? original.sourceType ?? 'journal_reversal',
+      sourceId: input.sourceId ?? original.sourceId ?? null,
+      idempotencyKey: input.idempotencyKey ?? `journal-reversal:${entryId}`,
+      postedAt: new Date(),
+      postedBy: input.actorId ?? null,
+      createdBy: input.actorId ?? null,
+    });
+    await tx.insert(journalEntryLines).values(
+      lines.map((line) => ({
         entryId: reversalId,
         lineNo: line.lineNo,
         tenantId,
         accountId: line.accountId,
+        // المرآة: المبلغان متبادلان …
         debit: line.credit,
         credit: line.debit,
+        // … والأبعاد كلها منقولة كما هي.
         partyId: line.partyId,
         costCenterId: line.costCenterId,
         salesmanId: line.salesmanId,
@@ -1103,21 +1216,54 @@ export class AccountingService {
         currencyAmount: line.currencyAmount,
         fxRate: line.fxRate,
         description: line.description,
-      })));
-      /**
-       * The original keeps its status, on purpose. The reversal is the mirror of its
-       * lines — debit for credit — so the two together already net to nothing; marking
-       * the original `void` as well would subtract the amount twice, since every balance
-       * in this module counts `status = 'posted'` only. What the reversal leaves behind
-       * is `reversalOf`, which is how the register knows an entry was undone.
-       *
-       * (Until migration `0047` this line ran and did nothing: the immutability trigger
-       * allowed the `void` and then returned `OLD`, discarding it. Which is the only
-       * reason a reversal ever balanced.)
-       */
-      return { id: reversalId, reversalOf: entryId };
+      })),
+    );
+
+    return { id: reversalId, number: allocated.display, reversalOf: entryId, reused: false };
+  }
+
+  async reverseJournal(tenantId: string, entryId: string, input: { branchId: string; fiscalPeriodId: string; date: string; reason: string }) {
+    /**
+     * أخطاء العكس أخطاءُ تحقّق لا أعطالٌ داخلية: `Error` عادية كانت تخرج 500 بلا كود، فلا
+     * تعرف الشاشة هل السبب مُغلق الفترة أم قيدٌ غير مُرحَّل. صارت `DomainError` بكود وحالة.
+     */
+    if (!input.reason.trim())
+      throw new DomainError('REVERSAL_REASON_REQUIRED', 'سبب العكس مطلوب — يُحفظ في السجلّ التدقيقي', 422, {
+        field: 'reason',
+      });
+    return withTenantTx(this.database.db, tenantId, async (tx) => {
+      // الفحوص نفسها بالترتيب نفسه، والتنفيذ بعد ذلك للآلية الموحَّدة `reverseJournalInTx`.
+      const [original] = await tx.select().from(journalEntries).where(and(eq(journalEntries.id, entryId), eq(journalEntries.tenantId, tenantId)));
+      if (!original)
+        throw new DomainError('JOURNAL_NOT_FOUND', 'القيد غير موجود في هذه المنشأة', 404, { field: 'entryId' });
+      if (original.status !== 'posted')
+        throw new DomainError(
+          'JOURNAL_NOT_POSTED',
+          `لا يُعكس إلا قيد مُرحَّل — حالة هذا القيد ${original.status}، والمسودة تُلغى ولا تُعكس`,
+          409,
+          { field: 'status' },
+        );
+      const [existing] = await tx.select({ id: journalEntries.id }).from(journalEntries).where(eq(journalEntries.reversalOf, entryId));
+      if (existing)
+        throw new DomainError('JOURNAL_ALREADY_REVERSED', 'هذا القيد معكوس بالفعل — لا يُعكس مرتين', 409, {
+          field: 'entryId',
+          reversalId: existing.id,
+        });
+      const [period] = await tx.select().from(fiscalPeriods).where(and(eq(fiscalPeriods.id, input.fiscalPeriodId), eq(fiscalPeriods.tenantId, tenantId)));
+      if (!period || period.status !== 'open')
+        throw new DomainError('FISCAL_PERIOD_CLOSED', 'فترة العكس مغلقة أو غير متاحة — اختر فترة مفتوحة', 409, {
+          field: 'fiscalPeriodId',
+        });
+      const reversed = await this.reverseJournalInTx(tx, tenantId, entryId, {
+        reason: input.reason,
+        date: input.date,
+        branchId: input.branchId,
+        fiscalPeriodId: input.fiscalPeriodId,
+      });
+      return { id: reversed.id, reversalOf: entryId };
     });
   }
+
 
   /**
    * ⚖️ ميزان المراجعة — `Form_WPF/frmRptBalances.xaml` («أرصدة الحسابات») printing
@@ -1144,6 +1290,8 @@ export class AccountingService {
    * Only posted entries count (`Entry.state = 1`), as everywhere else in this module.
    */
   async trialBalance(tenantId: string, query: TrialBalanceQuery = {}): Promise<{ rows: TrialBalanceRow[]; totals: TrialBalanceTotals }> {
+    /** 📅 مرشّحا التاريخ يُتحقَّق منهما قبل SQL — فقبل هذا كان نصٌّ فاسدٌ يرجع ٥٠٠ «خطأً داخليًّا» (قِيس ٢٠٢٦-١٠-١٦). */
+    validateDayFilters(query as Record<string, unknown>, FROM_TO_LABELS_AR, 'ACCOUNTING_DATE_INVALID');
     return withTenantTx(this.database.db, tenantId, async (tx) => {
       /** No `from` means there is nothing before the period; no `to` means it never ends. */
       const from = query.from ?? '0001-01-01';
@@ -1312,6 +1460,8 @@ export class AccountingService {
    * the profit is the plug that makes the two columns meet.
    */
   async incomeStatement(tenantId: string, query: IncomeStatementQuery = {}): Promise<{ rows: IncomeStatementRow[]; totals: IncomeStatementTotals }> {
+    /** 📅 مرشّحا التاريخ يُتحقَّق منهما قبل SQL — فقبل هذا كان نصٌّ فاسدٌ يرجع ٥٠٠ «خطأً داخليًّا» (قِيس ٢٠٢٦-١٠-١٦). */
+    validateDayFilters(query as Record<string, unknown>, FROM_TO_LABELS_AR, 'ACCOUNTING_DATE_INVALID');
     const summary = query.summary !== false;
     const withStock = query.withStock !== false;
 
@@ -1505,12 +1655,38 @@ export class AccountingService {
        * `journal_entries.entry_time`), so they are glued back together here.
        */
       const at = sql`(${journalEntries.date} + coalesce(${journalEntries.entryTime}, '00:00'::time))`;
-      const startAt = sql`(${query.from ?? null}::date + coalesce(${query.fromTime ?? null}::time, '00:00'::time))`;
-      const endAt = sql`(${query.to ?? null}::date + coalesce(${query.toTime ?? null}::time, '23:59'::time))`;
+      /**
+       * 📅 الحدودُ تُتحقَّق **قبل** SQL (‏`common/date-param.ts`): فـ`?from=أمس` كان يرجع
+       * ‏٥٠٠ `INTERNAL` (قِيس ٢٠٢٦-١٠-١٦) لأنّ النصَّ يُرمى إلى `::date` كما جاء، و
+       * ‏`?fromTime=99:99` كذلك إلى `::time`. وخطأُ إدخالٍ في صندوق تاريخٍ يستحقّ ٤٢٢
+       * بجملةٍ مقروءة، لا «خطأً داخليًّا».
+       */
+      const fromDay = parseDayParam(query.from, {
+        field: 'from',
+        labelAr: '«من تاريخ»',
+        code: 'ACCOUNTING_DATE_INVALID',
+      });
+      const toDay = parseDayParam(query.to, {
+        field: 'to',
+        labelAr: '«إلى تاريخ»',
+        code: 'ACCOUNTING_DATE_INVALID',
+      });
+      const fromClock = parseClockParam(query.fromTime, {
+        field: 'fromTime',
+        labelAr: '«من وقت»',
+        code: 'ACCOUNTING_TIME_INVALID',
+      });
+      const toClock = parseClockParam(query.toTime, {
+        field: 'toTime',
+        labelAr: '«إلى وقت»',
+        code: 'ACCOUNTING_TIME_INVALID',
+      });
+      const startAt = sql`(${fromDay}::date + coalesce(${fromClock}::time, '00:00'::time))`;
+      const endAt = sql`(${toDay}::date + coalesce(${toClock}::time, '23:59'::time))`;
       const kindScope = statementKindScope(query.kind);
       const period = query.fullPeriod
         ? []
-        : [query.from ? sql`${at} >= ${startAt}` : undefined, query.to ? sql`${at} <= ${endAt}` : undefined].filter(
+        : [fromDay ? sql`${at} >= ${startAt}` : undefined, toDay ? sql`${at} <= ${endAt}` : undefined].filter(
             (clause) => clause !== undefined,
           );
       const where = and(
@@ -2077,11 +2253,37 @@ export class AccountingService {
        * والسحابة تحتفظ بهما منفصلين (`date` + `entry_time`).
        */
       const at = sql`(${journalEntries.date} + coalesce(${journalEntries.entryTime}, '00:00'::time))`;
-      const startAt = sql`(${query.from ?? null}::date + coalesce(${query.fromTime ?? null}::time, '00:00'::time))`;
-      const endAt = sql`(${query.to ?? null}::date + coalesce(${query.toTime ?? null}::time, '23:59'::time))`;
+      /**
+       * 📅 الحدودُ تُتحقَّق **قبل** SQL (‏`common/date-param.ts`): فـ`?from=أمس` كان يرجع
+       * ‏٥٠٠ `INTERNAL` (قِيس ٢٠٢٦-١٠-١٦) لأنّ النصَّ يُرمى إلى `::date` كما جاء، و
+       * ‏`?fromTime=99:99` كذلك إلى `::time`. وخطأُ إدخالٍ في صندوق تاريخٍ يستحقّ ٤٢٢
+       * بجملةٍ مقروءة، لا «خطأً داخليًّا».
+       */
+      const fromDay = parseDayParam(query.from, {
+        field: 'from',
+        labelAr: '«من تاريخ»',
+        code: 'ACCOUNTING_DATE_INVALID',
+      });
+      const toDay = parseDayParam(query.to, {
+        field: 'to',
+        labelAr: '«إلى تاريخ»',
+        code: 'ACCOUNTING_DATE_INVALID',
+      });
+      const fromClock = parseClockParam(query.fromTime, {
+        field: 'fromTime',
+        labelAr: '«من وقت»',
+        code: 'ACCOUNTING_TIME_INVALID',
+      });
+      const toClock = parseClockParam(query.toTime, {
+        field: 'toTime',
+        labelAr: '«إلى وقت»',
+        code: 'ACCOUNTING_TIME_INVALID',
+      });
+      const startAt = sql`(${fromDay}::date + coalesce(${fromClock}::time, '00:00'::time))`;
+      const endAt = sql`(${toDay}::date + coalesce(${toClock}::time, '23:59'::time))`;
       const period = query.fullPeriod
         ? []
-        : [query.from ? sql`${at} >= ${startAt}` : undefined, query.to ? sql`${at} <= ${endAt}` : undefined].filter(
+        : [fromDay ? sql`${at} >= ${startAt}` : undefined, toDay ? sql`${at} <= ${endAt}` : undefined].filter(
             (clause) => clause !== undefined,
           );
       const kindScope = statementKindScope(query.kind);
@@ -2390,8 +2592,25 @@ export class AccountingService {
    */
   private journalScope(tenantId: string, query: JournalQuery) {
     const filters = [eq(journalEntries.tenantId, tenantId)];
-    if (query.from) filters.push(gte(journalEntries.date, query.from));
-    if (query.to) filters.push(lte(journalEntries.date, query.to));
+    /**
+     * 📅 الحدودُ تُتحقَّق **قبل** أن تُرمى إلى عمود `date`: فـ`gte(journalEntries.date, 'أمس')`
+     * يمرّر النصَّ معاملًا إلى عمودٍ من نوع `date` فتجيب القاعدةُ `22P02 invalid input syntax
+     * for type date` ⇒ **٥٠٠ `INTERNAL`** (قِيس ٢٠٢٦-١٠-١٦ على
+     * ‏`GET /api/v1/journal-entries?from=أمس` و`?from=2026-02-30`). وهذه الدالةُ مشتركةٌ بين
+     * مسجّل القيود وجيرانه (`:2615` و`:2648`)، فالتحقّقُ هنا يغطّي الاثنين.
+     */
+    const fromDay = parseDayParam(query.from, {
+      field: 'from',
+      labelAr: '«من تاريخ»',
+      code: 'ACCOUNTING_DATE_INVALID',
+    });
+    const toDay = parseDayParam(query.to, {
+      field: 'to',
+      labelAr: '«إلى تاريخ»',
+      code: 'ACCOUNTING_DATE_INVALID',
+    });
+    if (fromDay) filters.push(gte(journalEntries.date, fromDay));
+    if (toDay) filters.push(lte(journalEntries.date, toDay));
     if (query.branchId) filters.push(eq(journalEntries.branchId, query.branchId));
     if (query.fiscalPeriodId) filters.push(eq(journalEntries.fiscalPeriodId, query.fiscalPeriodId));
     if (query.status) filters.push(eq(journalEntries.status, query.status));

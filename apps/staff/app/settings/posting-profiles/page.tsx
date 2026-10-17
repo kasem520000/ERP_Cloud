@@ -24,6 +24,9 @@ const DOC_TYPES: Array<{ id: string; label: string }> = [
   { id: 'payroll_run', label: 'مسيّر رواتب' },
   { id: 'progress_bill', label: 'مستخلص مشروع' },
   { id: 'rent_invoice', label: 'فاتورة تأجير' },
+  // 🏭 الإنتاج (PHASE_E) — نوعا المستند الرسميان اللذان يربط عليهما المخبز/المصنع حسابَي المواد الخام والمنتج التام.
+  { id: 'manufacturing_order', label: 'أمر تصنيع (BOM)' },
+  { id: 'production_order', label: 'أمر إنتاج (مكوّنات)' },
 ];
 
 const KEYS = Object.keys(POSTING_ACCOUNT_LABELS);

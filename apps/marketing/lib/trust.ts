@@ -38,21 +38,21 @@ export const trustAxes: readonly TrustAxis[] = [
           'مفتاح التوقيع الإلكتروني وشهادة الربط الضريبي، ورمز ربط متجر سلة، وكلمة مرور بريد الإرسال، '
           + 'وسرّ التحقّق بخطوتين: تُشفَّر بـAES-256-GCM بمفتاحٍ من البيئة قبل أن تُكتب في القاعدة، '
           + 'ولا تُكتب في السجلات (تُحجب في المُسجِّل).',
-        source: 'docs/SECURITY_ARCHITECTURE.md §9',
+        source: 'apps/api/src/modules/platform/auth/secret-box.ts',
       },
       {
         titleAr: 'كلمات المرور بتجزئةٍ بطيئة لا بتشفير',
         bodyAr:
           'تُحفظ كلمة المرور بـArgon2id (`m=64 MiB, t=3, p=4`) لا نصّاً ولا تشفيراً قابلاً للفكّ، '
           + 'وسياسةٌ ١٢ حرفاً على الأقل مع فحص قوائم التسريب.',
-        source: 'docs/SECURITY_ARCHITECTURE.md §2',
+        source: 'apps/api/src/modules/platform/auth/password.service.ts · apps/api/src/modules/platform/auth/password-policy.ts',
       },
       {
         titleAr: 'جلسةٌ قصيرة تُبطَل ويُكشف إعادة استعمالها',
         bodyAr:
           'رمز الوصول RS256 عمره ١٥ دقيقة، ورمز التجديد عشوائيٌّ ٢٥٦ بت يُحفظ مُجزَّأً (SHA-256) '
           + 'ثلاثين يوماً، ويتبدّل عند كل استخدام؛ وإعادةُ استعمال رمزٍ قديم تُبطل العائلة كلها.',
-        source: 'docs/SECURITY_ARCHITECTURE.md §2',
+        source: 'apps/api/src/modules/platform/auth/auth.service.ts',
       },
       {
         titleAr: 'تحقّقٌ بخطوتين لكل من يريده',
@@ -67,7 +67,7 @@ export const trustAxes: readonly TrustAxis[] = [
           'الـAPI يعمل بـ`helmet` (وفيه HSTS)، وCORS بقائمةِ سماحٍ لا بنجمة، والواجهات تخاطبه بترويسة '
           + '`Bearer` لا بكوكي جلسة — فلا قناةَ CSRF. ولكل مسارٍ حسّاس دلوُه: دخولٌ ١٠/دقيقة، '
           + 'تسجيلٌ و«نسيت كلمة المرور» ٥/دقيقة، تصديرُ تقارير ١٠/دقيقة.',
-        source: 'docs/SECURITY_ARCHITECTURE.md §7 · §8',
+        source: 'apps/api/src/bootstrap.ts · apps/api/src/modules/platform/guards/rate-limit.guard.ts',
       },
     ],
   },
@@ -83,21 +83,21 @@ export const trustAxes: readonly TrustAxis[] = [
           'كل جدولٍ يخصّ منشأةً عليه `ROW LEVEL SECURITY` مفروضةٌ على الجميع (`FORCE`)، وحاكمٌ يقارن '
           + '`tenant_id` بسياق الطلب؛ ولو نسي استعلامٌ شرطَ المنشأة لم تُعَد صفوفُ منشأةٍ أخرى — '
           + 'والـAPI نفسه يعمل بدورٍ لا يملك تجاوز العزل (`NOBYPASSRLS`).',
-        source: 'docs/SECURITY_ARCHITECTURE.md §4 · packages/database/src/rls.ts:28',
+        source: 'packages/database/src/rls.ts#rlsProtectedTables · packages/database/migrations/0000_platform_identity.sql',
       },
       {
         titleAr: 'طبقتان مستقلّتان لا واحدة',
         bodyAr:
           'الصلاحية تُفحص في التطبيق (حارسٌ لكل مسار)، والعزل يُفحص في القاعدة. خطأٌ في إحداهما لا '
           + 'يفتح الباب، لأن الأخرى ما زالت واقفة.',
-        source: 'docs/SECURITY_ARCHITECTURE.md §4',
+        source: 'apps/api/src/modules/platform/guards/permissions.guard.ts · packages/database/src/rls.ts',
       },
       {
         titleAr: 'والعبور مقصورٌ على لوحة المنصّة وبأثر',
         bodyAr:
           'لوحة المنصّة وحدها تقرأ عبر المنشآت، في معاملةٍ موسومة (`app.is_platform_admin`) يزول '
           + 'وسمُها عند انتهاء المعاملة، وكل ما فيها يُسجَّل في سجلّ التدقيق بمن فعله ومتى.',
-        source: 'packages/database/src/client.ts · docs/SECURITY_ARCHITECTURE.md §10',
+        source: 'packages/database/src/client.ts · apps/api/src/modules/platform-services/audit/audit.service.ts',
       },
       {
         titleAr: 'ويُقاس في كل مرحلة لا مرّةً واحدة',
@@ -140,7 +140,7 @@ export const trustAxes: readonly TrustAxis[] = [
         bodyAr:
           'منحُ قاعدة البيانات على سجلّ التدقيق لا يشمل `UPDATE` ولا `DELETE`، وسياسةُ الاحتفاظ تعلن '
           + 'أن المحو النهائي لسجلّ التدقيق غير مسموح — فسؤال «من فعل ماذا» يبقى له جواب.',
-        source: 'docs/SECURITY_ARCHITECTURE.md §9 · §10',
+        source: 'packages/database/migrations/0001_platform_services.sql · packages/contracts/src/platform/backups.ts',
       },
       {
         titleAr: 'وحقُّ النسيان مُنفَّذٌ ويقول أثره',
@@ -186,7 +186,7 @@ export const trustAxes: readonly TrustAxis[] = [
           'بلا شهادة ربطٍ (CSID) لا إرسالَ فعليّ إلى منصة «فاتورة»؛ وحينها تُسجَّل الفاتورة «مُهيّأة» '
           + 'لا «مخلَّصة»، ولا يُستعمل لفظ «مخلَّصة» إلا لحالةٍ سُجِّلت فعلاً من الإرسال. والبنود '
           + 'المصرية (ETA) خارج النطاق بترميزٍ واحد فقط — مذكورةٌ في خريطة العمل لا مغطّاة.',
-        source: 'apps/api/src/modules/einvoicing/einvoicing.service.ts · docs/roadmap/README.md',
+        source: 'apps/api/src/modules/einvoicing/einvoicing.service.ts',
       },
     ],
   },

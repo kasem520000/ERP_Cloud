@@ -39,8 +39,17 @@ one, which is the loud failure we want — it can never silently widen a query.
 ## Guards
 
 ```
-RateLimitGuard → AuthGuard → TenantGuard → BranchScopeGuard → PermissionsGuard
+RateLimitGuard → AuthGuard → TenantGuard → BranchScopeGuard → PermissionsGuard → SectorLicenceGuard
 ```
+
+`SectorLicenceGuard` (🏪 sector add-on licensing) is appended, never inserted: it answers
+«did this tenant buy this surface» only after `PermissionsGuard` answered «may this user act»,
+and it reads `enabledApps` from the context `TenantGuard` published with the membership.
+A route declares its surface with `@RequiresSectorApp({ apps: [...], mode })`; `apps` is
+any-of and `mode` defaults to **`enforce`** (403 `ADDON_NOT_LICENSED`) so a new surface fails
+closed, while a surface that was never enforced declares `observe` explicitly — it passes, and
+every **write** leaves a `sector_licence.unlicensed_use` row in `audit_log` so the switch to
+`enforce` is decided from measurement, not from guesswork.
 
 `TenantGuard` is the isolation keystone:
 

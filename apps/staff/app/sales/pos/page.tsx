@@ -2,11 +2,14 @@
 
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
+import type { CompanyProfileDto } from '@erp/contracts';
 
 import { Notice } from '../../../components/data-view';
 import { Screen } from '../../../components/screen';
 import { computeTotals, emptyLine, type LineDraft } from '../../../components/invoice-editor';
 import { ApiError, apiData, apiList, apiPost } from '../../../lib/api';
+import { readCompanyProfile, receiptIdentity } from '../../../lib/company-profile';
+import { issuedQrPayload } from '../../../lib/invoice-qr';
 import {
   arabicName,
   cashLocationLabel,
@@ -31,6 +34,7 @@ import {
 } from '../../../lib/lookups';
 import { BankChooser } from '../../../components/bank-chooser';
 import { CashCustomerPicker } from '../../../components/cash-customer-picker';
+import { ZatcaQrSvg, printThermalReceipt80mm } from '../../../components/zatca-qr-svg';
 import { useSession } from '../../../lib/session';
 import { useQuery } from '../../../lib/use-query';
 
@@ -183,11 +187,22 @@ export default function PosPage() {
   const [priceIncludesVat, setPriceIncludesVat] = useState(true);
   const [busy, setBusy] = useState(false);
   const [receipt, setReceipt] = useState<Receipt | undefined>();
+  const [receiptLines, setReceiptLines] = useState<
+    Array<{ name: string; quantity: string; unitPrice: string; total: string }>
+  >([]);
+  const [autoPrintThermal, setAutoPrintThermal] = useState(true);
   /**
    * ⚙️ إعدادات الكاشير — تُقرأ من `GET /pos/settings` بصلاحية `pos.view` (لا صلاحية
    * إعدادات المستأجر) لأنّ الكاشير يحتاجها ليعمل، والكتابة تبقى في شاشة الإعدادات.
    */
   const settings = useQuery<PosSettings>(() => apiData<PosSettings>('/pos/settings'), []);
+  // 🏢 اسم المنشأة ورقمها الضريبي كما هما في ملفّها — لا ثوابت تُطبع لكلّ مستأجر.
+  const company = useQuery<CompanyProfileDto | null>(() => readCompanyProfile(), []);
+  /**
+   * 🧾 رمز الفاتورة الإلكترونية إن كان صدر لهذه الفاتورة فعلًا؛ وما لم يصدر لا يُرسم
+   * رمزٌ ولا يُختَرع — الإيصال والشاشة يقولان «لم تُصدر بعد».
+   */
+  const receiptQr = useQuery<string | null>(() => issuedQrPayload(receipt?.invoiceId), [receipt?.invoiceId ?? '']);
   const casher = {
     barcodeAuto: settings.data?.['pos.barcodeAuto'] ?? true,
     touchScreen: settings.data?.['pos.touchScreen'] ?? false,
@@ -356,7 +371,7 @@ export default function PosPage() {
       if (method === 'credit' && customerMode !== 'account')
         throw new ApiError(422, 'VALIDATION_FAILED', 'البيع الآجل يحتاج حساب عميل.');
 
-      const response = await apiPost<{ data: Receipt }>('/pos/checkout', {
+      const response = await apiPost<Receipt & { data?: Receipt }>('/pos/checkout', {
         branchId,
         warehouseId: effectiveWarehouse,
         priceIncludesVat,
@@ -364,7 +379,7 @@ export default function PosPage() {
         orderType: 'pos',
         shiftId: shift.data?.id,
         partyId: customerMode === 'account' ? partyId || undefined : undefined,
-        cashCustomerName: customerMode === 'walkin' ? customerName.trim() || 'عميل نقدي' : undefined,
+        cashCustomerName: customerMode === 'walkin' ? customerName.trim() || 'عميل عام' : undefined,
         cashCustomerMobile: customerMode === 'walkin' ? customerMobile.trim() || undefined : undefined,
         lines: ticket.map((entry) => ({
           itemId: entry.item.id,
@@ -392,11 +407,47 @@ export default function PosPage() {
             : undefined,
       });
 
-      setReceipt(response.data);
+      const receiptData = (response.data ?? response) as Receipt;
+      const soldLines = ticket.map((entry) => {
+        const lineTotals = computeTotals([entry.line], { priceIncludesVat });
+        return {
+          name: itemLabel(entry.item),
+          quantity: entry.line.quantityText || '1',
+          unitPrice: entry.line.unitPriceText || '0',
+          total: lineTotals.total,
+        };
+      });
+      setReceiptLines(soldLines);
+      setReceipt(receiptData);
       setNotice({
         kind: 'ok',
-        text: `تم البيع — الفاتورة ${response.data.number ?? ''} بمبلغ ${money(response.data.total)}.`,
+        text: `تم البيع — الفاتورة ${receiptData.number ?? ''} بمبلغ ${money(receiptData.total)}.`,
       });
+      if (autoPrintThermal) {
+        // الحمولة الصادرة لهذه الفاتورة (لا شيء بعد البيع عادةً) — والغياب يُطبع غيابًا.
+        const qrPayload = await issuedQrPayload(receiptData.invoiceId);
+        const identity = receiptIdentity(company.data ?? null, branchRow ? arabicName(branchRow) : 'المنشأة');
+        printThermalReceipt80mm({
+          companyName: identity.companyName,
+          taxNo: identity.taxNo,
+          branchName: branchRow ? arabicName(branchRow) : undefined,
+          invoiceNumber: receiptData.number ?? receiptData.invoiceId.slice(0, 8),
+          invoiceTypeLabel: 'فاتورة ضريبية مبسطة — إيصال كاشير',
+          issuedAt: new Date().toLocaleString('ar-SA'),
+          customerName:
+            customerMode === 'walkin'
+              ? customerName.trim() || 'عميل عام'
+              : (customers.data ?? []).find((c) => c.id === partyId)?.name || 'عميل عام',
+          paymentMethodLabel: METHODS.find((row) => row.id === receiptData.method)?.label ?? receiptData.method,
+          lines: soldLines,
+          subtotal: receiptData.subtotal,
+          taxTotal: receiptData.taxTotal,
+          total: receiptData.total,
+          paidAmount: receiptData.tendered ?? receiptData.paidTotal,
+          changeAmount: receiptData.change,
+          qrPayload,
+        });
+      }
       setTicket([]);
       setTendered('');
       setInvoiceDiscount('');
@@ -728,8 +779,8 @@ export default function PosPage() {
                 value={customerMode}
                 onChange={(event) => setCustomerMode(event.target.value as 'walkin' | 'account')}
               >
-                <option value="walkin">عميل نقدي</option>
-                <option value="account">حساب عميل</option>
+                <option value="walkin">عميل عام (فاتورة ضريبية مبسطة)</option>
+                <option value="account">حساب عميل مسجل</option>
               </select>
             </label>
             {customerMode === 'walkin' ? (
@@ -739,12 +790,12 @@ export default function PosPage() {
                   <div className="row" style={{ flexWrap: 'nowrap' }}>
                     <input
                       className="input"
-                      placeholder="عميل نقدي"
+                      placeholder="عميل عام"
                       value={customerName}
                       onChange={(event) => setCustomerName(event.target.value)}
                     />
                     <button type="button" className="btn" onClick={() => setPickingCustomer(true)}>
-                      👤 عميل نقدي
+                      👤 بحث
                     </button>
                   </div>
                 </label>
@@ -1040,66 +1091,108 @@ export default function PosPage() {
 
       {receipt && (
         <div className="card receipt">
-          <div className="toolbar no-print" style={{ justifyContent: 'space-between' }}>
-            <h2>آخر فاتورة</h2>
-            <div className="toolbar">
-              <button className="btn sm" type="button" onClick={() => window.print()}>
-                طباعة
+          <div className="toolbar no-print" style={{ justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
+            <h2>🧾 آخر إيصال كاشير (80mm)</h2>
+            <div className="toolbar" style={{ gap: 8, flexWrap: 'wrap' }}>
+              <label className="row" style={{ fontSize: 12, gap: 6 }}>
+                <input
+                  type="checkbox"
+                  checked={autoPrintThermal}
+                  onChange={(e) => setAutoPrintThermal(e.target.checked)}
+                />
+                <span>طباعة حرارية فورية بعد البيع</span>
+              </label>
+              <button
+                className="btn primary sm"
+                type="button"
+                onClick={() => {
+                  const identity = receiptIdentity(company.data ?? null, branchRow ? arabicName(branchRow) : 'المنشأة');
+                  printThermalReceipt80mm({
+                    companyName: identity.companyName,
+                    taxNo: identity.taxNo,
+                    branchName: branchRow ? arabicName(branchRow) : undefined,
+                    invoiceNumber: receipt.number ?? receipt.invoiceId.slice(0, 8),
+                    invoiceTypeLabel: 'فاتورة ضريبية مبسطة — إيصال كاشير',
+                    issuedAt: new Date().toLocaleString('ar-SA'),
+                    customerName: customerName.trim() || 'عميل عام',
+                    paymentMethodLabel: METHODS.find((row) => row.id === receipt.method)?.label ?? receipt.method,
+                    lines:
+                      receiptLines.length > 0
+                        ? receiptLines
+                        : [{ name: 'مبيعات نقطة بيع', quantity: '1', unitPrice: receipt.subtotal, total: receipt.total }],
+                    subtotal: receipt.subtotal,
+                    taxTotal: receipt.taxTotal,
+                    total: receipt.total,
+                    paidAmount: receipt.tendered ?? receipt.paidTotal,
+                    changeAmount: receipt.change,
+                    qrPayload: receiptQr.data ?? null,
+                  });
+                }}
+              >
+                🖨️ طباعة إيصال كاشير حراري (80mm)
               </button>
               <Link className="btn sm" href={`/sales/invoices/${receipt.invoiceId}`}>
                 تفاصيل الفاتورة
               </Link>
             </div>
           </div>
-          <dl className="kv">
-            <dt>الرقم</dt>
-            <dd>{receipt.number ?? '—'}</dd>
-            <dt>الإجمالي</dt>
-            <dd>{money(receipt.total)}</dd>
-            <dt>الضريبة</dt>
-            <dd>{money(receipt.taxTotal)}</dd>
-            <dt>طريقة الدفع</dt>
-            <dd>{METHODS.find((row) => row.id === receipt.method)?.label ?? receipt.method}</dd>
-            {/* 🔀 متعدد: الإيصال يفصّل ما قُبض طريقةً طريقة، والباقي على الحساب إن بقي. */}
-            {receipt.tenders?.map((row) => (
-              <>
-                <dt key={`${row.method}-dt`}>
-                  {row.method === 'cash' ? '💵 كاش' : row.method === 'card' ? '🖧 شبكة' : '💳 تحويل'}
-                </dt>
-                <dd key={`${row.method}-dd`}>{money(row.amount)}</dd>
-              </>
-            ))}
-            {receipt.onAccount && Number(receipt.onAccount) > 0 && (
-              <>
-                <dt>على حساب العميل</dt>
-                <dd className="pos-change-due">{money(receipt.onAccount)}</dd>
-              </>
-            )}
-            {receipt.cashierId && (
-              <>
-                <dt>الكاشير</dt>
-                <dd dir="ltr">{receipt.cashierId.slice(0, 8)}</dd>
-              </>
-            )}
-            {receipt.method === 'cash' && (
-              <>
-                <dt>المستلم</dt>
-                <dd>{receipt.tendered ? money(receipt.tendered) : '—'}</dd>
-                <dt>الباقي</dt>
-                <dd>{money(receipt.change)}</dd>
-              </>
-            )}
-            <dt>الحالة</dt>
-            <dd>{receipt.paymentStatus === 'paid' ? 'مدفوعة' : 'آجلة'}</dd>
-            {receipt.shiftId && (
-              <>
-                <dt>الوردية</dt>
-                <dd>
-                  <Link href="/sales/shifts">مربوطة بوردية مفتوحة</Link>
-                </dd>
-              </>
-            )}
-          </dl>
+          <div className="row" style={{ gap: 18, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+            <dl className="kv" style={{ flex: 1, minWidth: 220 }}>
+              <dt>الرقم</dt>
+              <dd>{receipt.number ?? '—'}</dd>
+              <dt>الإجمالي</dt>
+              <dd>{money(receipt.total)}</dd>
+              <dt>الضريبة</dt>
+              <dd>{money(receipt.taxTotal)}</dd>
+              <dt>طريقة الدفع</dt>
+              <dd>{METHODS.find((row) => row.id === receipt.method)?.label ?? receipt.method}</dd>
+              {/* 🔀 متعدد: الإيصال يفصّل ما قُبض طريقةً طريقة، والباقي على الحساب إن بقي. */}
+              {receipt.tenders?.map((row) => (
+                <>
+                  <dt key={`${row.method}-dt`}>
+                    {row.method === 'cash' ? '💵 كاش' : row.method === 'card' ? '🖧 شبكة' : '💳 تحويل'}
+                  </dt>
+                  <dd key={`${row.method}-dd`}>{money(row.amount)}</dd>
+                </>
+              ))}
+              {receipt.onAccount && Number(receipt.onAccount) > 0 && (
+                <>
+                  <dt>على حساب العميل</dt>
+                  <dd className="pos-change-due">{money(receipt.onAccount)}</dd>
+                </>
+              )}
+              {receipt.cashierId && (
+                <>
+                  <dt>الكاشير</dt>
+                  <dd dir="ltr">{receipt.cashierId.slice(0, 8)}</dd>
+                </>
+              )}
+              {receipt.method === 'cash' && (
+                <>
+                  <dt>المستلم</dt>
+                  <dd>{receipt.tendered ? money(receipt.tendered) : '—'}</dd>
+                  <dt>الباقي</dt>
+                  <dd>{money(receipt.change)}</dd>
+                </>
+              )}
+              <dt>الحالة</dt>
+              <dd>{receipt.paymentStatus === 'paid' ? 'مدفوعة' : 'آجلة'}</dd>
+              {receipt.shiftId && (
+                <>
+                  <dt>الوردية</dt>
+                  <dd>
+                    <Link href="/sales/shifts">مربوطة بوردية مفتوحة</Link>
+                  </dd>
+                </>
+              )}
+            </dl>
+            <ZatcaQrSvg
+              payload={receiptQr.data ?? null}
+              missingText="لم تُصدر بعد بيانات الفاتورة الإلكترونية (QR) — الإصدار من شاشة الفاتورة (الفوترة الإلكترونية)."
+              size={132}
+              label="باركود الفاتورة الضريبية المبسطة (QR)"
+            />
+          </div>
         </div>
       )}
 

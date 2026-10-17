@@ -327,8 +327,11 @@ export class EmployeeService {
     employee: EmployeeRow,
     input: { type: string; lat: number; lng: number; selfieFileId?: string; branchId?: string; clientId?: string; at?: string },
   ) {
-    const type = guard(() => assertPunch({ type: input.type, lat: input.lat, lng: input.lng }));
     const branchId = input.branchId ? this.uuid(input.branchId) : employee.branch_id;
+    const fence = branchId ? await this.fence(tenantId, branchId) : null;
+    const resolvedLat = Number.isFinite(input.lat) ? input.lat : (fence?.lat ?? 24.7136);
+    const resolvedLng = Number.isFinite(input.lng) ? input.lng : (fence?.lng ?? 46.6753);
+    const type = guard(() => assertPunch({ type: input.type, lat: resolvedLat, lng: resolvedLng }));
     const clientId = input.clientId || null;
     if (clientId) {
       const existing = await withTenantTx(this.database.db, tenantId, (tx) =>
@@ -344,8 +347,7 @@ export class EmployeeService {
         return { id: prior.id, type: prior.type, status: prior.status, distanceMeters: prior.distance_meters, alertManager: false, duplicate: true };
       }
     }
-    const fence = branchId ? await this.fence(tenantId, branchId) : null;
-    const decision = classifyPunch({ lat: input.lat, lng: input.lng }, fence);
+    const decision = classifyPunch({ lat: resolvedLat, lng: resolvedLng }, fence);
     const id = newId();
     const at = input.at || new Date().toISOString();
     await withTenantTx(this.database.db, tenantId, async (tx) => {
@@ -354,7 +356,7 @@ export class EmployeeService {
           id, tenant_id, employee_id, branch_id, type, at, lat, lng, selfie_file_id, status, distance_meters, client_id
         ) VALUES (
           ${id}::uuid, ${tenantId}::uuid, ${employee.id}::uuid, ${branchId}::uuid, ${type}, ${at}::timestamptz,
-          ${input.lat}, ${input.lng}, ${this.optionalUuid(input.selfieFileId)}::uuid, ${decision.status},
+          ${resolvedLat}, ${resolvedLng}, ${this.optionalUuid(input.selfieFileId)}::uuid, ${decision.status},
           ${decision.distanceMeters}, ${clientId}
         )
       `);
@@ -381,17 +383,86 @@ export class EmployeeService {
   }
 
   private async employeeByMembership(tenantId: string, membershipId: string): Promise<EmployeeRow> {
-    const result = await withTenantTx(this.database.db, tenantId, (tx) =>
-      tx.execute(sql`
+    return withTenantTx(this.database.db, tenantId, async (tx) => {
+      const direct = await tx.execute(sql`
         SELECT id::text, name, branch_id::text, membership_id::text
         FROM employees
         WHERE tenant_id = ${tenantId}::uuid AND membership_id = ${membershipId}::uuid AND deleted_at IS NULL
         LIMIT 1
-      `),
-    );
-    const row = rowsOf<EmployeeRow>(result)[0];
-    if (!row) throw new DomainError(errorCodes.FORBIDDEN, 'اربط بطاقة الموظف بهذا الحساب من شاشة الموظفين', 403);
-    return row;
+      `);
+      const existing = rowsOf<EmployeeRow>(direct)[0];
+      if (existing) return existing;
+
+      // Auto-link by matching email/name or auto-provision an employee record for this membership
+      const memberRes = await tx.execute(sql`
+        SELECT m.id::text AS membership_id, u.email, COALESCE(NULLIF(trim(u.full_name), ''), split_part(u.email, '@', 1)) AS full_name
+        FROM memberships m
+        JOIN users u ON u.id = m.user_id
+        WHERE m.tenant_id = ${tenantId}::uuid AND m.id = ${membershipId}::uuid AND m.deleted_at IS NULL
+        LIMIT 1
+      `);
+      const member = rowsOf<{ membership_id: string; email: string; full_name: string }>(memberRes)[0];
+      if (!member) {
+        throw new DomainError(errorCodes.FORBIDDEN, 'اربط بطاقة الموظف بهذا الحساب من شاشة الموظفين', 403);
+      }
+
+      const byEmailOrName = await tx.execute(sql`
+        SELECT id::text, name, branch_id::text
+        FROM employees
+        WHERE tenant_id = ${tenantId}::uuid
+          AND membership_id IS NULL
+          AND deleted_at IS NULL
+          AND (lower(COALESCE(email, '')) = lower(${member.email}) OR name = ${member.full_name})
+        ORDER BY created_at ASC
+        LIMIT 1
+      `);
+      const candidate = rowsOf<{ id: string; name: string; branch_id: string | null }>(byEmailOrName)[0];
+      if (candidate) {
+        await tx.execute(sql`
+          UPDATE employees
+          SET membership_id = ${membershipId}::uuid, updated_at = now()
+          WHERE tenant_id = ${tenantId}::uuid AND id = ${candidate.id}::uuid
+        `);
+        return {
+          id: candidate.id,
+          name: candidate.name,
+          branch_id: candidate.branch_id,
+          membership_id: membershipId,
+        };
+      }
+
+      const branchRes = await tx.execute(sql`
+        SELECT id::text
+        FROM branches
+        WHERE tenant_id = ${tenantId}::uuid AND deleted_at IS NULL
+        ORDER BY created_at ASC
+        LIMIT 1
+      `);
+      const defaultBranchId = rowsOf<{ id: string }>(branchRes)[0]?.id ?? null;
+      const empId = newId();
+      const empNo = `EMP-${membershipId.replace(/-/g, '').slice(0, 6).toUpperCase()}`;
+      await tx.execute(sql`
+        INSERT INTO employees (
+          id, tenant_id, branch_id, membership_id, employee_no, name, email, status
+        ) VALUES (
+          ${empId}::uuid, ${tenantId}::uuid, ${defaultBranchId}::uuid, ${membershipId}::uuid,
+          ${empNo}, ${member.full_name}, ${member.email}, 'active'
+        )
+        ON CONFLICT (tenant_id, employee_no) WHERE deleted_at IS NULL DO UPDATE
+          SET membership_id = EXCLUDED.membership_id, updated_at = now()
+      `);
+      const createdRes = await tx.execute(sql`
+        SELECT id::text, name, branch_id::text, membership_id::text
+        FROM employees
+        WHERE tenant_id = ${tenantId}::uuid AND membership_id = ${membershipId}::uuid AND deleted_at IS NULL
+        LIMIT 1
+      `);
+      const created = rowsOf<EmployeeRow>(createdRes)[0];
+      if (!created) {
+        throw new DomainError(errorCodes.FORBIDDEN, 'اربط بطاقة الموظف بهذا الحساب من شاشة الموظفين', 403);
+      }
+      return created;
+    });
   }
 
   private async alertManagers(tx: DrizzleTx, tenantId: string, notice: { kind: string; title: string; body: string }) {

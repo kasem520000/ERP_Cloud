@@ -180,7 +180,9 @@ export class AuditInterceptor implements NestInterceptor {
     if (authAction) {
       const identity = identityFromAuthResponse(body);
       await this.audit.record({
-        tenantId: context.tenant?.tenantId ?? identity.tenantId ?? null,
+        // AUD-14 — مسارٌ عامّ (webhook) يستخرج المستأجر من سرّه قبل الكتابة؛
+        // `auditTenantId` هو ما يُعلنه لذلك، فيُنسب السجلّ لصاحبه لا لـnull.
+        tenantId: context.tenant?.tenantId ?? context.auditTenantId ?? identity.tenantId ?? null,
         actorUserId: context.auth?.userId ?? identity.userId ?? null,
         actorLabel: identity.label ?? null,
         membershipId: context.auth?.membershipId ?? null,
@@ -197,7 +199,7 @@ export class AuditInterceptor implements NestInterceptor {
 
     const after = extractData(body);
     await this.audit.record({
-      tenantId: context.tenant?.tenantId ?? null,
+      tenantId: context.tenant?.tenantId ?? context.auditTenantId ?? null,
       actorUserId: context.auth?.userId ?? null,
       membershipId: context.auth?.membershipId ?? null,
       action: actionForMethod(method, route),

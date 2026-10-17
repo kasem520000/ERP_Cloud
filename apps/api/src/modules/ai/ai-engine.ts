@@ -12,7 +12,7 @@ import type { HelpArticle } from './ai-help.js';
  */
 
 export type Intent = 'how_to' | 'report' | 'anomaly' | 'general';
-export type AiProviderName = 'openai' | 'anthropic' | 'local';
+export type AiProviderName = 'openai' | 'anthropic' | 'gemini' | 'custom' | 'local';
 
 export type SalesBucket = {
   day: string;

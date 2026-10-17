@@ -20,15 +20,13 @@ describe('offline POS PWA surface', () => {
     expect(worker).toContain("'/pos/offline-queue'");
   });
 
-  it('keeps the queue, barcode fallback and ten-second reconnect loop in the client', async () => {
-    const db = await readFile(source('lib/offline-db.ts'), 'utf8');
-    const sync = await readFile(source('lib/sync-engine.ts'), 'utf8');
+  /**
+   * أحكام المكتبة (طابور IndexedDB وحلقة إعادة المحاولة كل عشر ثوانٍ) انتقلت مع كودها إلى
+   * `packages/web-core/tests/offline-store.spec.ts` — وبقيت هنا أحكام شاشة المخبز نفسها.
+   */
+  it('keeps the barcode fallback and the retry action in the offline screens', async () => {
     const pos = await readFile(source('app/pos/offline/page.tsx'), 'utf8');
     const queue = await readFile(source('app/pos/offline-queue/page.tsx'), 'utf8');
-    expect(db).toContain("createObjectStore('queue'");
-    expect(db).toContain('OFFLINE-');
-    expect(sync).toContain('10_000');
-    expect(sync).toContain("'/pos/offline-sync'");
     expect(pos).toContain('BarcodeDetector');
     expect(pos).toContain('إيصال 80mm');
     expect(queue).toContain('retryOfflineConflict');

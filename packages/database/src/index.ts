@@ -31,3 +31,12 @@ export { DESKTOP_DEFAULT_COA } from './desktop-coa.js';
 export type { DesktopSeedAccount } from './desktop-coa.js';
 export { DEMO_CHART_OF_ACCOUNTS, DEMO_PLANS, DEMO_POSTING_PROFILE, seedDefaultChartOfAccounts, seedDemoData } from './seed-demo.js';
 export type { DemoSeedOptions, DemoSeedReport, DemoUserSpec } from './seed-demo.js';
+export { DEMO_COMPANY_PLACEHOLDERS } from './seed-demo.js';
+export type { DemoCompanySpec, DemoRepSpec, DemoSectorAppSpec } from './seed-demo.js';
+/**
+ * أداةُ إصلاح الصفوف المفبركة (`pnpm db:demo-repair`). وتُصدَّر دوالُها لا تشغيلُها:
+ * فـ`main` محروسٌ بفحصِ التنفيذ المباشر، فيستورد الاختبارُ `planRepairs`/`applyRepairs`
+ * بلا أن تُفتح قاعدةٌ ولا أن تُكتب.
+ */
+export { FABRICATED, applyRepairs, planRepairs, writeBackup } from './cli/demo-repair.js';
+export type { Repair, RepairCategory, RepairClient, RepairPlan, ReportOnly } from './cli/demo-repair.js';

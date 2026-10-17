@@ -30,8 +30,23 @@ const formatMoney = (raw: Decimal.Value) =>
     maximumFractionDigits: 2,
   });
 const decimalValue = (raw: string | number | null | undefined) => {
-  const parsed = new Decimal(raw ?? 0);
-  return parsed.isFinite() ? parsed : new Decimal(0);
+  if (raw === null || raw === undefined) return new Decimal(0);
+  if (typeof raw === 'string') {
+    const trimmed = raw.trim();
+    if (!trimmed) return new Decimal(0);
+    try {
+      const parsed = new Decimal(trimmed);
+      return parsed.isFinite() ? parsed : new Decimal(0);
+    } catch {
+      return new Decimal(0);
+    }
+  }
+  try {
+    const parsed = new Decimal(raw);
+    return parsed.isFinite() ? parsed : new Decimal(0);
+  } catch {
+    return new Decimal(0);
+  }
 };
 
 type CartLine = { item: OfflineCatalogItem; quantity: string };

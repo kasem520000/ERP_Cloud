@@ -3,6 +3,7 @@ import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
 import { Logger } from 'nestjs-pino';
 import { assertRuntimeEnv, describeEnvSources, env, envIssues } from '@erp/config';
+import { runMigrations } from '@erp/database';
 
 import { AppModule } from './app.module.js';
 import { applyHttpConfiguration, buildOpenApiDocument, registerOpenApi } from './bootstrap.js';
@@ -46,6 +47,15 @@ async function bootstrap(): Promise<void> {
 
   // PHASE_02 §8: fail fast on a missing runtime variable instead of degrading silently.
   assertRuntimeEnv();
+
+  try {
+    const outcome = await runMigrations();
+    if (outcome.applied.length > 0) {
+      console.log(`erp-api auto-migrated ${outcome.applied.length} migration(s): ${outcome.applied.join(', ')}`);
+    }
+  } catch (err) {
+    console.warn(`erp-api auto-migrate skipped/warned: ${err instanceof Error ? err.message : String(err)}`);
+  }
 
   const app = await NestFactory.create(AppModule, { bufferLogs: true, rawBody: true });
 

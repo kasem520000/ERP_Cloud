@@ -20,6 +20,7 @@ import { NotificationsService } from '../platform-services/notifications/notific
 import { MAILER, type MailerPort } from '../platform-services/notifications/mailer.js';
 import { SalesService } from '../sales/sales.service.js';
 import { TreasuryService } from '../treasury/treasury.service.js';
+import { setAuditTenantId } from '../../request-context/request-context.js';
 
 import { decryptGatewaySecret, encryptGatewaySecret } from './payments.service.js';
 import {
@@ -263,6 +264,8 @@ export class PaymentLinksService {
     const tokenOk = verifySharedSecret(presented, secret);
     const hmacOk = verifyHmacHex(JSON.stringify(redactWebhook(body)), headerValue(headers, 'hashstring'), secret);
     if (!tokenOk && !hmacOk) throw new DomainError('WEBHOOK_SIGNATURE_INVALID', 'Webhook secret did not match', 401);
+    // AUD-14 — لا يُنسب الطلب إلا بعد أن أثبت السرّ أنه يخصّ هذا المستأجر.
+    setAuditTenantId(tenantId);
     return this.applyEvent(tenantId, providerValue, event, redactWebhook(body));
   }
 

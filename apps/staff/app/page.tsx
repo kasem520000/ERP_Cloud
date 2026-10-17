@@ -133,7 +133,7 @@ export default function DashboardPage() {
                   فاتورة جديدة
                 </Link>
               ) : null}
-              {can('sales.invoices.view') ? (
+              {can('sales.view') ? (
                 <Link
                   href="/sales/invoices"
                   className="inline-flex items-center gap-2 h-10 px-4 rounded-[10px] bg-surface border border-line-strong text-ink-2 text-[13.5px] font-semibold shadow-1 hover:bg-surface-2 transition-all duration-150"

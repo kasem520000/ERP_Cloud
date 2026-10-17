@@ -34,6 +34,27 @@ export const refreshRequestSchema = z
 
 export type RefreshRequest = z.infer<typeof refreshRequestSchema>;
 
+/**
+ * AUD-08 — جسر تسليم الجلسة بين الواجهات: بدل تمرير `access`/`refresh` في استعلام URL
+ * (يُسجَّل في الوكلاء وسجلات الدخول ويبقى في المحفوظات)، تُنشئ الواجهة المصدر **رمز
+ * تسليم لمرة واحدة قصير العمر**، وتستبدله الواجهة الهدف بجلسةٍ جديدة عبر POST.
+ */
+export const handoffRedeemSchema = z
+  .object({
+    code: z.string().trim().min(20).max(200),
+  })
+  .strict();
+
+export type HandoffRedeemRequest = z.infer<typeof handoffRedeemSchema>;
+
+export const handoffCreateResponseSchema = z.object({
+  /** رمز التسليم نفسه — لا يحمل أي صلاحية بذاته: يُستبدل مرة واحدة ثم يُستنفد. */
+  code: z.string(),
+  expiresIn: z.number().int().positive(),
+});
+
+export type HandoffResponse = z.infer<typeof handoffCreateResponseSchema>;
+
 export const logoutRequestSchema = z.object({}).strict();
 
 export type LogoutRequest = z.infer<typeof logoutRequestSchema>;
@@ -46,6 +67,24 @@ export const changePasswordRequestSchema = z
   .strict();
 
 export type ChangePasswordRequest = z.infer<typeof changePasswordRequestSchema>;
+
+export const forgotPasswordRequestSchema = z
+  .object({
+    email: z.string().trim().email().max(320),
+    tenantCode: z.string().trim().min(1).max(64).optional(),
+  })
+  .strict();
+
+export type ForgotPasswordRequest = z.infer<typeof forgotPasswordRequestSchema>;
+
+export const resetPasswordRequestSchema = z
+  .object({
+    token: z.string().trim().min(16).max(256),
+    newPassword: z.string().min(MIN_PASSWORD_LENGTH).max(MAX_PASSWORD_LENGTH),
+  })
+  .strict();
+
+export type ResetPasswordRequest = z.infer<typeof resetPasswordRequestSchema>;
 
 export const userStatusSchema = z.enum(['active', 'invited', 'suspended']);
 export type UserStatus = z.infer<typeof userStatusSchema>;
@@ -163,6 +202,16 @@ export const meResponseSchema = z.object({
     .nullable()
     .default(null),
   branchScope: z.array(uuidSchema).nullable(),
+  /**
+   * 🏪 الباقات المفعَّلة للمنشأة — أكواد `tenant_apps` التي `is_enabled = true`.
+   *
+   * في `/me` لا في `GET /marketplace/apps` لأنّ الأخير يحتاج `tenant.view`: مندوبُ توزيعٍ
+   * يفتح تطبيق المخابز لا يملك قراءة كتالوج السوق، ومع ذلك يجب أن يعرف تطبيقه هل المنشأة
+   * مرخَّصة أم لا — وإلّا صار الترخيص إمّا أن يُفتح بلا فحص (فشلٌ مفتوح) أو أن يُقفل في
+   * وجه من لا يملك صلاحيةً لا علاقة لها بالترخيص. والحقل إضافةٌ بلا كسر: `default([])`
+   * فلا يتغيّر عقدُ من لا يقرؤه.
+   */
+  enabledApps: z.array(z.string()).default([]),
 });
 
 export type MeResponse = z.infer<typeof meResponseSchema>;

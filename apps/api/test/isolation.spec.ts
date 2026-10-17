@@ -14,7 +14,7 @@ import { setTenantSettingFixture } from '@erp/testing';
 import { TokenService } from '../src/modules/platform/index.js';
 
 import { createIsolationHttp } from './http.js';
-import { createActor, createTenantFixture, createUserFixture, type Actor } from './fixtures.js';
+import { createActor, createRoleFixture, createTenantFixture, createUserFixture, type Actor } from './fixtures.js';
 import { createTestApp, type TestApp } from './test-app.js';
 
 /**
@@ -32,12 +32,20 @@ describe('tenant isolation (TESTING_STRATEGY §6)', () => {
   let ctx: TestApp;
   let alice: Actor;
   let bob: Actor;
+  let aliceStaffRoleId: string;
+  let bobStaffRoleId: string;
   let http: ReturnType<typeof createIsolationHttp>;
 
   beforeAll(async () => {
     ctx = await createTestApp('isolation');
     alice = await createActor(ctx, { tenantCode: 'alpha', email: 'owner@alpha.test' });
     bob = await createActor(ctx, { tenantCode: 'beta', email: 'owner@beta.test' });
+    aliceStaffRoleId = (
+      await createRoleFixture(ctx.db.ownerUrl, { tenantId: alice.tenantId, name: 'Staff' })
+    ).id;
+    bobStaffRoleId = (
+      await createRoleFixture(ctx.db.ownerUrl, { tenantId: bob.tenantId, name: 'Staff' })
+    ).id;
     http = createIsolationHttp(ctx.server);
 
     // tenant_settings is only populated by the settings API, so give both tenants a row
@@ -65,7 +73,7 @@ describe('tenant isolation (TESTING_STRATEGY §6)', () => {
         createRow: async (actor) => {
           const response = await http.post(actor, '/api/v1/memberships', {
             email: nextEmail(actor.label === 'alpha' ? 'alpha.test' : 'beta.test'),
-            roleIds: [actor.label === 'alpha' ? alice.roleIds[0] : bob.roleIds[0]],
+            roleIds: [actor.label === 'alpha' ? aliceStaffRoleId : bobStaffRoleId],
           });
           expect(response.status).toBe(201);
           return (response.body as { data: { id: string } }).data.id;
@@ -228,6 +236,27 @@ describe('tenant isolation (TESTING_STRATEGY §6)', () => {
       'bom_lines',
       'manufacturing_orders',
       'manufacturing_moves',
+      'supplier_portal_users',
+      'supplier_portal_sessions',
+      'supplier_rfqs',
+      'supplier_invoice_uploads',
+      'esign_requests',
+      'esign_events',
+      'dashboards',
+      'dashboard_widgets',
+      'tenant_apps',
+      'tenant_domains',
+      'tenant_branding',
+      'crm_pipelines',
+      'crm_deals',
+      'crm_activities',
+      'crm_whatsapp_templates',
+      'crm_settings',
+      'comments',
+      'comment_mentions',
+      'project_tasks',
+      'project_time_logs',
+      'project_dependencies',
     ]);
   });
 

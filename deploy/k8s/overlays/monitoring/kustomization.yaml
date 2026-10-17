@@ -1,0 +1,23 @@
+# ---------------------------------------------------------------------------
+# طبقةُ المراقبة الاختيارية — تُطبَّق فقط على عنقودٍ فيه kube-prometheus-stack:
+#
+#   kubectl apply -k deploy/k8s/overlays/monitoring
+#
+# ولماذا ليست في الأساس: ‏`PrometheusRule` و`Probe` نوعان مخصّصان (‏CRD) من المشغّل،
+# فلو أُدرجا في `deploy/k8s/kustomization.yaml` لفشل `kubectl apply -k deploy/k8s` على
+# عنقودٍ بلا المشغّل برسالة «no matches for kind» — وتطبيقُ الأساس يجب أن ينجح أينما كان.
+# وتقيس ذلك `packages/config/src/deployment-surface.spec.ts`.
+#
+# ⚠️ ولم يُتحقّق من هذه الطبقة على عنقودٍ حقيقيّ: فلا `kubectl` ولا `kustomize` في بيئة
+# العمل التي كُتبت فيها (قِيس بـ`which`) — فالتحقّقُ بنيويٌّ (‏YAML يُقرأ، وأسماءُ
+# المهمّات والخدمات مطابقةٌ للأساس، ومساراتُ الفحص هي المقاسة ٢٠٠).
+# ---------------------------------------------------------------------------
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: erp
+
+resources:
+  - ../../
+  - prometheus-rule.yaml
+  - probe.yaml

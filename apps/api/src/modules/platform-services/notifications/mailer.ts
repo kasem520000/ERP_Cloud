@@ -374,12 +374,168 @@ export function createMailer(): MailerPort {
   return new ConsoleMailer();
 }
 
+export type EmailProviderCredentials = {
+  apiKey?: string | null;
+  apiEndpoint?: string | null;
+  smtpHost?: string | null;
+  smtpPort?: number | null;
+  smtpUser?: string | null;
+  smtpPassword?: string | null;
+  smtpSecure?: boolean | null;
+};
+
 /**
- * P-C6 — المزوّد المختار من `email_settings` لحظة الإرسال، لا من البيئة وحدها: المشغّل يبدّل
- * `console` ↔ `smtp` من الشاشة بلا إعادة نشر (نصّ الخطة §7.2). واعتمادات SMTP تبقى في
- * البيئة ولا تُخزَّن في جدول. و`MAIL_TRANSPORT` يظلّ الافتراضيّ حين لا صفَّ إعدادات.
+ * Resend API mailer (`https://api.resend.com/emails`) or custom compatible endpoint.
+ * Falls back to logging when no API key is configured in local/test environments.
  */
-export function createMailerFor(provider: 'console' | 'smtp'): MailerPort {
-  if (provider === 'smtp') return new SmtpMailer(smtpOptionsFromEnv());
+export class ResendMailer implements MailerPort {
+  private readonly logger = new Logger(ResendMailer.name);
+  readonly transport = 'resend';
+
+  constructor(
+    private readonly options: {
+      apiKey?: string | null;
+      endpoint?: string | null;
+      defaultFrom: string;
+    },
+  ) {}
+
+  async send(message: MailMessage): Promise<void> {
+    const apiKey = this.options.apiKey || process.env.RESEND_API_KEY || '';
+    const endpoint = this.options.endpoint || process.env.RESEND_API_URL || 'https://api.resend.com/emails';
+    const fromAddress = message.from || this.options.defaultFrom;
+    const fromHeader = message.fromName ? `${message.fromName} <${fromAddress}>` : fromAddress;
+
+    if (!apiKey) {
+      this.logger.log(
+        {
+          transport: this.transport,
+          from: fromHeader,
+          to: message.to,
+          subject: message.subject,
+          tenantId: message.tenantId ?? null,
+          mode: 'simulated-no-api-key',
+        },
+        'outbound mail (resend transport without API key — logged)',
+      );
+      return;
+    }
+
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        from: fromHeader,
+        to: [message.to],
+        subject: message.subject,
+        text: message.text,
+        ...(message.html ? { html: message.html } : {}),
+        ...(message.replyTo ? { reply_to: message.replyTo } : {}),
+        ...(message.headers ? { headers: message.headers } : {}),
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => '');
+      throw new Error(`Resend API (${response.status}): ${errorText || response.statusText}`);
+    }
+  }
+}
+
+/**
+ * Generic HTTP/Webhook JSON email provider (Mailgun/Postmark/SendGrid-compatible webhook relay).
+ */
+export class HttpWebhookMailer implements MailerPort {
+  private readonly logger = new Logger(HttpWebhookMailer.name);
+  readonly transport = 'http';
+
+  constructor(
+    private readonly options: {
+      apiKey?: string | null;
+      endpoint?: string | null;
+      defaultFrom: string;
+    },
+  ) {}
+
+  async send(message: MailMessage): Promise<void> {
+    const endpoint = this.options.endpoint || process.env.EMAIL_HTTP_ENDPOINT || '';
+    const apiKey = this.options.apiKey || process.env.EMAIL_HTTP_API_KEY || '';
+    const fromAddress = message.from || this.options.defaultFrom;
+
+    if (!endpoint) {
+      this.logger.log(
+        {
+          transport: this.transport,
+          from: fromAddress,
+          to: message.to,
+          subject: message.subject,
+          tenantId: message.tenantId ?? null,
+          mode: 'simulated-no-endpoint',
+        },
+        'outbound mail (http transport without endpoint — logged)',
+      );
+      return;
+    }
+
+    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+    if (apiKey) headers.Authorization = `Bearer ${apiKey}`;
+
+    const response = await fetch(endpoint, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        from: fromAddress,
+        fromName: message.fromName ?? null,
+        replyTo: message.replyTo ?? null,
+        to: message.to,
+        subject: message.subject,
+        text: message.text,
+        html: message.html ?? null,
+        headers: message.headers ?? null,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => '');
+      throw new Error(`HTTP Email Provider (${response.status}): ${errorText || response.statusText}`);
+    }
+  }
+}
+
+/**
+ * P-C6 — المزوّد المختار من `email_settings` لحظة الإرسال، مع دعم `console` و`smtp` و`resend` و`http`.
+ */
+export function createMailerFor(
+  provider: 'console' | 'smtp' | 'resend' | 'http',
+  credentials?: EmailProviderCredentials,
+): MailerPort {
+  if (provider === 'resend') {
+    return new ResendMailer({
+      apiKey: credentials?.apiKey,
+      endpoint: credentials?.apiEndpoint,
+      defaultFrom: live('MAIL_FROM', env.MAIL_FROM),
+    });
+  }
+  if (provider === 'http') {
+    return new HttpWebhookMailer({
+      apiKey: credentials?.apiKey,
+      endpoint: credentials?.apiEndpoint,
+      defaultFrom: live('MAIL_FROM', env.MAIL_FROM),
+    });
+  }
+  if (provider === 'smtp') {
+    const base = smtpOptionsFromEnv();
+    return new SmtpMailer({
+      host: credentials?.smtpHost || base.host,
+      port: credentials?.smtpPort || base.port,
+      from: base.from,
+      username: credentials?.smtpUser || base.username,
+      password: credentials?.smtpPassword || base.password,
+      secure: credentials?.smtpSecure ?? base.secure,
+    });
+  }
   return new ConsoleMailer();
 }

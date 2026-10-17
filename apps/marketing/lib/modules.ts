@@ -35,7 +35,7 @@ export const siteModules: readonly SiteModule[] = [
     staffHref: '/accounting/accounts',
     blurbAr: 'دليل حسابات، قيودٌ مزدوجة، ميزان مراجعة، وإقفال فترات — الدفتر الذي يقرؤه المدقّق.',
     blurbEn: 'Chart of accounts, double-entry, trial balance and period close — the ledger an auditor reads.',
-    source: 'apps/staff/lib/navigation.ts:66',
+    source: 'apps/staff/lib/navigation.ts#accounting',
   },
   {
     key: 'treasury',
@@ -45,7 +45,7 @@ export const siteModules: readonly SiteModule[] = [
     staffHref: '/treasury/movements',
     blurbAr: 'مقبوضات ومدفوعات، تحويلات بين الصدوق والبنوك، وإقفال يومٍ بأرصدته.',
     blurbEn: 'Receipts, payments, transfers between tills and banks, and a day close with balances.',
-    source: 'apps/staff/lib/navigation.ts:1834',
+    source: 'apps/staff/lib/navigation.ts#treasury',
   },
   {
     key: 'inventory',
@@ -55,7 +55,7 @@ export const siteModules: readonly SiteModule[] = [
     staffHref: '/inventory/items',
     blurbAr: 'أصنافٌ ووحداتٌ وباركود، أرصدةٌ لكل مستودع، وتحويلاتٌ وأوامر إنتاج.',
     blurbEn: 'Items, units and barcodes, per-warehouse balances, transfers and production orders.',
-    source: 'apps/staff/lib/navigation.ts:292',
+    source: 'apps/staff/lib/navigation.ts#inventory',
   },
   {
     key: 'purchases',
@@ -65,7 +65,7 @@ export const siteModules: readonly SiteModule[] = [
     staffHref: '/purchases/orders',
     blurbAr: 'أوامر شراء، استلامات، فواتير موردين، ومرتجعات — مربوطةً بالمخزون والدفتر.',
     blurbEn: 'Purchase orders, receipts, supplier invoices and returns — tied to stock and ledger.',
-    source: 'apps/staff/lib/navigation.ts:537',
+    source: 'apps/staff/lib/navigation.ts#purchases',
   },
   {
     key: 'sales',
@@ -75,7 +75,7 @@ export const siteModules: readonly SiteModule[] = [
     staffHref: '/sales/invoices',
     blurbAr: 'عروض أسعار، فواتير نقدية وآجلة، مرتجعات، وبوابة عملاء لكشف الحساب.',
     blurbEn: 'Quotations, cash and credit invoices, returns, and a customer portal for statements.',
-    source: 'apps/staff/lib/navigation.ts:711',
+    source: 'apps/staff/lib/navigation.ts#sales',
   },
   {
     key: 'hrm',
@@ -85,7 +85,7 @@ export const siteModules: readonly SiteModule[] = [
     staffHref: '/hrm/employees',
     blurbAr: 'ملفّات الموظفين، حركاتٌ وظيفية، حضورٌ، مسيّرات رواتب، وسلفٌ وخصومات.',
     blurbEn: 'Employee files, movements, attendance, payroll runs, advances and deductions.',
-    source: 'apps/staff/lib/navigation.ts:1269',
+    source: 'apps/staff/lib/navigation.ts#hrm',
   },
   {
     key: 'marina',
@@ -95,7 +95,7 @@ export const siteModules: readonly SiteModule[] = [
     staffHref: '/marina/berths',
     blurbAr: 'مراسي وعقودُ إيجار دورية، فواتيرُ خدمة، ومتابعةُ إشغالٍ موسمية.',
     blurbEn: 'Berths, recurring contracts, service invoices and seasonal occupancy.',
-    source: 'apps/staff/lib/navigation.ts:1374',
+    source: 'apps/staff/lib/navigation.ts#marina',
   },
   {
     key: 'projects',
@@ -105,7 +105,7 @@ export const siteModules: readonly SiteModule[] = [
     staffHref: '/projects/list',
     blurbAr: 'مشاريع بميزانياتها، مستخلصاتٌ ومقاولون من الباطن، وربحٌ لكل مشروع.',
     blurbEn: 'Projects with budgets, progress claims, subcontractors and per-project margin.',
-    source: 'apps/staff/lib/navigation.ts:1475',
+    source: 'apps/staff/lib/navigation.ts#projects',
   },
 ];
 

@@ -5,6 +5,7 @@ import { z } from 'zod';
 import { DomainError, newId } from '@erp/contracts';
 import { withTenantTx, type DatabaseHandle } from '@erp/database';
 
+import { isRealCalendarDay } from '../../common/date-param.js';
 import { DATABASE_HANDLE } from '../../database/database.module.js';
 
 import { PrintSettingsService, reportScope } from './print-settings.service.js';
@@ -24,7 +25,18 @@ export const REPORT_KEYS = REPORT_DEFINITIONS.map((definition) => definition.key
 export type ReportKey = string;
 
 const uuidish = z.string().uuid().optional();
-const dayish = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Expected YYYY-MM-DD').optional();
+/**
+ * 📅 ‏`YYYY-MM-DD` **وأن يحمل التقويمُ اليوم**: فالتحقّقُ من الشكل وحده كان يُمرّر
+ * ‏`2026-02-30` إلى `::date` فيرجع ٥٠٠ (قِيس ٢٠٢٦-١٠-١٦: ‏`GET
+ * ‏/api/v1/reports/sales-invoices?from=2026-02-30` ⇒ `INTERNAL`) بينما `?from=أمس` كان
+ * يُرفض ٤٢٢ — أي أنّ الشكلَ مضبوطٌ والتقويمَ منسيّ. والفحصُ من المسطرة المشتركة
+ * (`common/date-param.ts`) فلا يُكتب منطقُ التقويم مرّتين.
+ */
+const dayish = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/, 'Expected YYYY-MM-DD')
+  .refine(isRealCalendarDay, { message: 'ليس تاريخًا حقيقيًّا — فالتقويمُ لا يحمله' })
+  .optional();
 // ⏰ الوقت (HH:mm:ss) — the time box beside each date box in `frmRptSalesInPeriod`.
 // Hours 00–23 and minutes/seconds 00–59: a looser regex lets `99:99` through to Postgres,
 // which answers with a 500 instead of the 422 a wrong filter deserves.

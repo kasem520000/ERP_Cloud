@@ -22,6 +22,7 @@ import {
 
 import { DATABASE_HANDLE } from '../../database/database.module.js';
 import { WhatsappService, normalizePhone } from '../integrations/whatsapp/whatsapp.service.js';
+import { setAuditTenantId } from '../../request-context/request-context.js';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const ACTIVITY = new Set(['call', 'meeting', 'whatsapp', 'email', 'note']);
@@ -293,6 +294,9 @@ export class CrmService {
       return str(row?.tenant_id);
     });
     if (!tenantId) throw new DomainError(errorCodes.UNAUTHENTICATED, 'رمز الويب هوك غير صحيح', 401);
+    // AUD-14 — الطلب عامّ فبدأ بلا سياق: نُعلن المستأجر المستخرج من الرمز كي يُنسب
+    // سجلّ التدقيق إليه (لا تمنح هذه الدالة صلاحيات ولا عضوية).
+    setAuditTenantId(tenantId);
     const phone = normalizePhone(parsed.phone);
     const activity = this.rules(() => whatsappActivity(parsed.text, 'in'));
     return withTenantTx(this.database.db, tenantId, async (tx) => {

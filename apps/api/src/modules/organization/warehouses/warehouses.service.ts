@@ -34,6 +34,7 @@ import {
   notFound,
   validationFailed,
   visibleBranchIds,
+  visibleRoleScopeIds,
 } from '../shared/org-support.js';
 
 /**
@@ -52,6 +53,7 @@ export class WarehousesService {
     const filters = parseFilters(query.filter, WAREHOUSE_FILTERS);
     const sort = parseSort(query.sort, WAREHOUSE_SORT_COLUMNS);
     const scoped = visibleBranchIds();
+    const scopedWarehouses = visibleRoleScopeIds('warehouse');
 
     return withTenantTx(this.database.db, tenantId, async (tx) => {
       const conditions: SQL[] = [eq(warehouses.tenantId, tenantId), isNull(warehouses.deletedAt)];
@@ -63,6 +65,11 @@ export class WarehousesService {
       if (filters.branchId) conditions.push(eq(warehouses.branchId, filters.branchId));
       if (scoped) {
         conditions.push(scoped.length > 0 ? inArray(warehouses.branchId, scoped) : sql`false`);
+      }
+      if (scopedWarehouses) {
+        conditions.push(
+          scopedWarehouses.length > 0 ? inArray(warehouses.id, scopedWarehouses) : sql`false`,
+        );
       }
       if (query.q) {
         const pattern = `%${query.q}%`;
@@ -220,6 +227,8 @@ export class WarehousesService {
 
     const scoped = visibleBranchIds();
     if (scoped && !scoped.includes(row.branchId)) throw notFound('Warehouse');
+    const scopedWarehouses = visibleRoleScopeIds('warehouse');
+    if (scopedWarehouses && !scopedWarehouses.includes(row.id)) throw notFound('Warehouse');
     return row;
   }
 

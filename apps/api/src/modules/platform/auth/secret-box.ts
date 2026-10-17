@@ -1,6 +1,6 @@
 import { createCipheriv, createDecipheriv, createHash, randomBytes } from 'node:crypto';
 
-import { env } from '@erp/config';
+import { dataEncryptionKey, env } from '@erp/config';
 import { DomainError, errorCodes } from '@erp/contracts';
 
 /**
@@ -14,10 +14,13 @@ import { DomainError, errorCodes } from '@erp/contracts';
  * that asked for it.
  */
 
-const FALLBACK_KEY = 'local-development-data-key';
-
+/**
+ * AUD-16 — لا مفتاح افتراضي معروف: المفتاح يُحلّ من `@erp/config` (fail-closed خارج
+ * الاختبارات، ومفتاح اختبار معزول داخلها). تمرير `secret` صراحةً يبقى مدعوماً لاختبارات
+ * التدوير.
+ */
 function keyBytes(secret?: string): Buffer {
-  return createHash('sha256').update(secret ?? FALLBACK_KEY).digest();
+  return createHash('sha256').update(secret ?? dataEncryptionKey()).digest();
 }
 
 /** AES-256-GCM seal. A fresh 12-byte IV per call; the auth tag is part of the envelope. */
@@ -44,5 +47,51 @@ export function openSecret(payload: string, key = env.DATA_ENC_KEY): Buffer {
     return Buffer.concat([decipher.update(Buffer.from(data64, 'base64')), decipher.final()]);
   } catch {
     throw new DomainError(errorCodes.UNAUTHENTICATED, 'MFA secret could not be decrypted', 401);
+  }
+}
+
+export type ResealOutcome = {
+  /** Re-encrypted (or unchanged) `v1:` envelope. */
+  payload: string;
+  /**
+   * - `rotated`: decrypted with `oldKey` and re-sealed with a fresh IV under `newKey`.
+   * - `already_current`: already decryptable with `newKey` (idempotent re-run).
+   */
+  status: 'rotated' | 'already_current';
+};
+
+/**
+ * AUD-16 — Safe key rotation helper for `v1:<iv>:<tag>:<ciphertext>` envelopes.
+ *
+ * - Never logs or returns plaintext.
+ * - Idempotent: if `payload` already opens under `newKey`, returns `already_current`
+ *   without mutating the envelope, so interrupted batch migrations can be safely retried.
+ * - Fails closed (`DomainError`) if neither `newKey` nor `oldKey` can authenticate the GCM tag.
+ */
+export function resealSecret(payload: string, oldKey: string, newKey = dataEncryptionKey()): ResealOutcome {
+  if (!oldKey || oldKey.length < 32) {
+    throw new DomainError(errorCodes.VALIDATION_FAILED, 'oldKey must be at least 32 characters', 422);
+  }
+  if (!newKey || newKey.length < 32) {
+    throw new DomainError(errorCodes.VALIDATION_FAILED, 'newKey must be at least 32 characters', 422);
+  }
+
+  if (oldKey !== newKey) {
+    try {
+      openSecret(payload, newKey);
+      return { payload, status: 'already_current' };
+    } catch {
+      // Not sealed with newKey yet — fall through to open with oldKey.
+    }
+  }
+
+  const plain = openSecret(payload, oldKey);
+  try {
+    return {
+      payload: sealSecret(plain, newKey),
+      status: 'rotated',
+    };
+  } finally {
+    plain.fill(0);
   }
 }

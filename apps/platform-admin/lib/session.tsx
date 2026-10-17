@@ -1,6 +1,7 @@
 'use client';
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { canonicalizePermissionCode } from '@erp/contracts';
 
 import { ApiError, fetchMe, login as apiLogin, logout as apiLogout, readSession, writeSession, type MePayload } from './api';
 
@@ -25,35 +26,6 @@ type SessionContextValue = SessionState & {
 };
 
 const SessionContext = createContext<SessionContextValue | undefined>(undefined);
-
-/**
- * Canonical ↔ legacy permission alias pairs, mirrored from
- * `@erp/contracts` (`permission-aliases.ts`). The API now emits canonical
- * `tenant.*` codes, but `can()` still honours the old `platform.*` spellings
- * (and vice versa) so web clients keep working across mixed-version deploys.
- */
-const PERMISSION_ALIASES: Record<string, string> = {
-  'platform.tenant.view': 'tenant.profile.view',
-  'platform.tenant.manage': 'tenant.profile.manage',
-  'platform.billing.view': 'tenant.billing.view',
-  'platform.billing.manage': 'tenant.subscription.manage',
-  'platform.users.view': 'tenant.users.view',
-  'platform.users.manage': 'tenant.users.manage',
-  'platform.roles.view': 'tenant.roles.view',
-  'platform.roles.manage': 'tenant.roles.manage',
-  'platform.devices.view': 'tenant.devices.view',
-  'platform.devices.manage': 'tenant.devices.manage',
-  'platform.audit.view': 'tenant.audit.view',
-};
-
-function resolveAlias(permission: string): string | undefined {
-  const direct = PERMISSION_ALIASES[permission];
-  if (direct) return direct;
-  for (const [legacy, canonical] of Object.entries(PERMISSION_ALIASES)) {
-    if (canonical === permission) return legacy;
-  }
-  return undefined;
-}
 
 export function SessionProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<SessionState>({ status: 'loading' });
@@ -105,11 +77,18 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     return {
       ...state,
       isPlatformAdmin: state.me?.user.isPlatformAdmin === true,
+      /**
+       * AUD-12 — التحقق يمرّ بمُحلّل العقود `canonicalizePermissionCode` وحده:
+       * خرائطٌ محلية كانت تُدخل أسماءً لا وجود لها في سجلّ الصلاحيات
+       * (`tenant.profile.view`، `tenant.users.view`…)، فيبدو العنصر مخفياً دائماً.
+       * الآن الرمزان — الممنوح والمطلوب — يُطبَّعان قبل المقارنة، فالكنسي والقديم
+       * يحلّان إلى الشيء نفسه، والمصدر واحد.
+       */
       can: (permission?: string) => {
         if (!permission) return true;
-        if (permissions.includes('*') || permissions.includes(permission)) return true;
-        const alias = resolveAlias(permission);
-        return alias !== undefined && permissions.includes(alias);
+        if (permissions.includes('*')) return true;
+        const wanted = canonicalizePermissionCode(permission);
+        return permissions.some((granted) => canonicalizePermissionCode(granted) === wanted);
       },
       canConsole: (permission?: string) => {
         if (!permission) return true;

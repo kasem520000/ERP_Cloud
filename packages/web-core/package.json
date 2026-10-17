@@ -1,0 +1,42 @@
+{
+  "name": "@erp/web-core",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "القشرة المشتركة لواجهات الويب المستأجرة: جلسة العميل وعميل API واللغة والاستعلام والتخزين بلا اتصال وجسر تسليم الجلسة. تُشحن مصدراً TypeScript (ADR-030) فليس لها خطوة بناء.",
+  "exports": {
+    ".": "./src/index.ts",
+    "./api": "./src/api.ts",
+    "./session": "./src/session.tsx",
+    "./session-gate": "./src/session-gate.tsx",
+    "./surface-policy": "./src/surface-policy.ts",
+    "./i18n": "./src/i18n.tsx",
+    "./use-query": "./src/use-query.ts",
+    "./idempotency": "./src/idempotency.ts",
+    "./use-submission-key": "./src/use-submission-key.ts",
+    "./offline-db": "./src/offline-db.ts",
+    "./sync-engine": "./src/sync-engine.ts",
+    "./sync": "./src/sync.ts",
+    "./token-bridge": "./src/token-bridge.tsx",
+    "./package.json": "./package.json"
+  },
+  "dependencies": {
+    "@erp/contracts": "workspace:*"
+  },
+  "peerDependencies": {
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1"
+  },
+  "devDependencies": {
+    "@types/react": "^19.1.13",
+    "@types/react-dom": "^19.1.9",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.9"
+  },
+  "scripts": {
+    "lint": "eslint src tests --config ../../eslint.config.mjs",
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "sideEffects": false
+}

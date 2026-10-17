@@ -295,8 +295,7 @@ export default function VouchersPage() {
     }
   }
 
-  async function createVoucher(event: React.FormEvent) {
-    event.preventDefault();
+  async function saveVoucher(postImmediately: boolean) {
     setBusy(true);
     setNotice(undefined);
     try {
@@ -311,7 +310,7 @@ export default function VouchersPage() {
         warehouseId: effectiveWarehouse,
         kind,
         voucherDate,
-        reason: reason || undefined,
+        reason: reason || (kind === 'opening' ? 'رصيد مخزون أول المدة' : undefined),
         counterAccountId: counterAccountId || undefined,
         lines: filled.map((line) => ({
           itemId: line.itemId,
@@ -326,10 +325,20 @@ export default function VouchersPage() {
           note: line.note || undefined,
         })),
       });
-      setNotice({
-        kind: 'ok',
-        text: `حُفظ السند ${created.number} كمسودة. رحّله ليحرّك المخزون ويُنشئ القيد.`,
-      });
+      if (postImmediately) {
+        const posted = await apiPost<Voucher>(`/inventory/vouchers/${created.id}/post`, {});
+        setSelected(posted);
+        setNotice({
+          kind: 'ok',
+          text: `تم حفظ وترحيل السند ${posted.number} فوراً، وتحديث أرصدة المخزون وإنشاء القيد المحاسبي.`,
+        });
+      } else {
+        setSelected(created);
+        setNotice({
+          kind: 'ok',
+          text: `حُفظ السند ${created.number} كمسودة. يمكنك ترحيله الآن ليحرّك المخزون ويُنشئ القيد.`,
+        });
+      }
       setLines([blankLine]);
       setReason('');
       setOpen(false);
@@ -339,6 +348,11 @@ export default function VouchersPage() {
     } finally {
       setBusy(false);
     }
+  }
+
+  async function createVoucher(event: React.FormEvent) {
+    event.preventDefault();
+    await saveVoucher(true);
   }
 
   async function act(action: () => Promise<unknown>, okText: string) {
@@ -485,12 +499,12 @@ export default function VouchersPage() {
                 <tr>
                   <th>المادة</th>
                   <th>الكمية</th>
+                  <th>الوحدة</th>
                   {!isIssue && <th>تكلفة الوحدة</th>}
                   <th>📁 رقم الدفعة</th>
                   <th>📅 تاريخ الإنتاج</th>
                   <th>⏳ تاريخ الانتهاء</th>
                   <th>رقم تسلسلي</th>
-                  <th>الوحدة</th>
                   <th>ملاحظة</th>
                   <th />
                 </tr>
@@ -504,15 +518,20 @@ export default function VouchersPage() {
                         <select
                           className="input"
                           value={line.itemId}
-                          onChange={(event) =>
+                          onChange={(event) => {
+                            const picked = itemOf(event.target.value);
+                            const defaultCost = String(
+                              picked?.purchasePrice ?? picked?.purchase_price ?? line.costText ?? '',
+                            );
                             updateLine(index, {
                               itemId: event.target.value,
+                              costText: line.costText || defaultCost,
                               batchNo: '',
                               productionDate: '',
                               expiryDate: '',
                               serialNos: '',
-                            })
-                          }
+                            });
+                          }}
                         >
                           <option value="">— اختر —</option>
                           {itemRows.map((row) => (
@@ -690,9 +709,19 @@ export default function VouchersPage() {
           </div>
 
           <Notice notice={notice} />
-          <button className="btn primary" type="submit" disabled={busy}>
-            {busy ? 'جارٍ الحفظ…' : 'حفظ كمسودة'}
-          </button>
+          <div className="row" style={{ gap: 8 }}>
+            <button className="btn primary" type="submit" disabled={busy}>
+              {busy ? 'جارٍ الحفظ والترحيل…' : '⚡ حفظ وترحيل فوري'}
+            </button>
+            <button
+              className="btn"
+              type="button"
+              disabled={busy}
+              onClick={() => void saveVoucher(false)}
+            >
+              💾 حفظ كمسودة
+            </button>
+          </div>
         </form>
       )}
 
@@ -738,7 +767,14 @@ export default function VouchersPage() {
                       key={row.id}
                       type="button"
                       className={`list-row${row.id === selected?.id ? ' active' : ''}`}
-                      onClick={() => setSelected(row)}
+                      onClick={() => {
+                        setSelected(row);
+                        if (!row.lines || row.lines.length === 0) {
+                          void apiData<Voucher>(`/inventory/vouchers/${row.id}`)
+                            .then((full) => setSelected(full))
+                            .catch(() => undefined);
+                        }
+                      }}
                     >
                       <span className="list-title" dir="ltr">{row.number}</span>
                       <span className="list-sub">{`${shortDate(row.voucherDate)} · ${arabicName(

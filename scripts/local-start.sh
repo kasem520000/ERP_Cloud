@@ -18,8 +18,10 @@
 #   2. يتحقّق من الأدوات والمنافذ (ويحترم قاعدة المستودع: لا `next build` مع خادم dev يعمل).
 #   3. يثبّت الاعتماديات إن لزم، ويبني الحزم المشتركة والـAPI والواجهات.
 #   4. يطبّق الترحيلات والبذرة (مرّةً واحدة، بـ`--no-seed` تُتخطّى).
-#   5. يقلع الخدمات الخمس: API (3000) · worker · staff (3001) · marketing (3002) ·
-#      platform-admin (3003)، ويُسجّل السجلّات في `logs/`.
+#   5. يقلع الخدمات السبع: API (3000) · worker · staff (3001) · marketing (3002) ·
+#      platform-admin (3003) · customer-portal (3004) · bakery (3005)، ويُسجّل السجلّات في `logs/`.
+#      والمنافذ من `scripts/next-run.mjs` (‏`APP_META`) نفسه — فلا قائمةَ ثانية تُنسى،
+#      و`packages/config/src/deployment-surface.spec.ts` يقيس أنّ كلّ سطحٍ هناك مقلوعٌ هنا.
 #   6. ينتظر الجهوزية ويطبع جدول الروابط وحالة كل خدمة.
 #
 # مثال: `pnpm start:erp:local --with-db` على جهازٍ جديد (يُقلع القاعدة ثم البقية).
@@ -63,6 +65,8 @@ API_PORT="${PORT:-3000}"
 STAFF_PORT="${STAFF_PORT:-3001}"
 MARKETING_PORT="${MARKETING_PORT:-3002}"
 ADMIN_PORT="${PLATFORM_ADMIN_PORT:-3003}"
+PORTAL_PORT="${CUSTOMER_PORTAL_PORT:-3004}"
+BAKERY_PORT="${BAKERY_PORT:-3005}"
 DB_PORT="$(node -e "try{const u=new URL(process.env.DATABASE_URL);console.log(u.port||5432)}catch(e){console.log(5432)}")"
 DB_HOST="$(node -e "try{const u=new URL(process.env.DATABASE_URL);console.log(u.hostname)}catch(e){console.log('localhost')}")"
 
@@ -87,10 +91,10 @@ http_code() { curl -s -o /dev/null -w '%{http_code}' --max-time 5 "http://127.0.
 pidfile() { echo "$LOGS/$1.pid"; }
 alive() { [[ -f "$(pidfile "$1")" ]] && kill -0 "$(cat "$(pidfile "$1")")" 2>/dev/null; }
 
-SERVICES=("api" "worker" "staff" "marketing" "platform-admin")
-PORTS=(   "$API_PORT" "" "$STAFF_PORT" "$MARKETING_PORT" "$ADMIN_PORT")
-PROBES=(  "/health/live" "" "/"          "/"           "/")
-LABELS=(  "واجهة الـAPI" "العامل الخلفي" "تطبيق الموظفين" "الموقع التسويقي" "لوحة المنصة")
+SERVICES=("api" "worker" "staff" "marketing" "platform-admin" "customer-portal" "bakery")
+PORTS=(   "$API_PORT" "" "$STAFF_PORT" "$MARKETING_PORT" "$ADMIN_PORT" "$PORTAL_PORT" "$BAKERY_PORT")
+PROBES=(  "/health/live" "" "/"          "/"           "/"            "/"               "/")
+LABELS=(  "واجهة الـAPI" "العامل الخلفي" "تطبيق الموظفين" "الموقع التسويقي" "لوحة المنصة" "بوابة العميل" "واجهة المخابز")
 
 status() {
   echo "──────────────────────────────────────────────────────────────────────────────"
@@ -126,7 +130,7 @@ stop_all() {
     fi
   done
   # شبكة أمان: عمليةٌ بلا ملفّ PID (أو ملفٌّ تالف) تُقتل بما يشغل منفذها.
-  for port in "$API_PORT" "$STAFF_PORT" "$MARKETING_PORT" "$ADMIN_PORT"; do
+  for port in "$API_PORT" "$STAFF_PORT" "$MARKETING_PORT" "$ADMIN_PORT" "$PORTAL_PORT" "$BAKERY_PORT"; do
     port_open "$port" && { kill_port "$port"; sleep 1; }
   done
   echo "   (السجلّات باقية في logs/ — قاعدتك لم تُمسّ)"
@@ -198,7 +202,7 @@ if [[ "$DO_BUILD" == "1" ]]; then
   NODE_ENV=production pnpm --filter @erp/api build >"$LOGS/build-api.log" 2>&1 \
     || { tail -20 "$LOGS/build-api.log"; exit 1; }
   if [[ "$MODE" == "prod" ]]; then
-    for app in staff marketing platform-admin; do
+    for app in staff marketing platform-admin customer-portal bakery; do
       echo "◆ بناء $app…"
       # `distDir` الافتراضي `.next` مطلوبٌ لـ`next start`، والبناء نقيّ في كل محاولة.
       built=0
@@ -251,7 +255,8 @@ echo "◆ إقلاع الخدمات…"
 RUN_ENV="production"; [[ "$MODE" == "dev" ]] && RUN_ENV="development"
 start_service api        .            env "NODE_ENV=$RUN_ENV" node apps/api/dist/main.js
 start_service worker     .            env "NODE_ENV=$RUN_ENV" WORKER=1 node apps/api/dist/main.js
-for pair in "staff:$STAFF_PORT" "marketing:$MARKETING_PORT" "platform-admin:$ADMIN_PORT"; do
+for pair in "staff:$STAFF_PORT" "marketing:$MARKETING_PORT" "platform-admin:$ADMIN_PORT" \
+            "customer-portal:$PORTAL_PORT" "bakery:$BAKERY_PORT"; do
   name="${pair%%:*}"; port="${pair##*:}"
   if [[ "$MODE" == "dev" ]]; then
     start_service "$name" . env "NODE_ENV=$RUN_ENV" "PORT=$port" node scripts/next-run.mjs "$name" dev
@@ -285,6 +290,8 @@ $(status)
   🌐 الموقع التسويقي ................. http://localhost:$MARKETING_PORT
   🧾 تطبيق الموظفين (المحاسبة) ....... http://localhost:$STAFF_PORT
   🛠️  لوحة المنصة .................... http://localhost:$ADMIN_PORT
+  🛒 بوابة العميل .................... http://localhost:$PORTAL_PORT
+  🥖 واجهة المخابز ................... http://localhost:$BAKERY_PORT  (تُفتح بالباقة القطاعية bakery_distribution)
   🔌 واجهة الـAPI ................... http://localhost:$API_PORT  (الحيوية: /health/live · الجهوزية: /health/ready)
   🗄️  قاعدة البيانات ................. postgres://$DB_HOST:$DB_PORT
 

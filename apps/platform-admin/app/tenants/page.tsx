@@ -78,15 +78,19 @@ export default function TenantsPage() {
 
   const plans = useQuery<Plan[]>(() => apiData<Plan[]>('/platform/plans'), []);
 
+  const customerRows = useMemo(
+    () => (tenants.data ?? []).filter((r) => !['platform', 'platform-ops'].includes(r.code.toLowerCase())),
+    [tenants.data],
+  );
+
   const counts = useMemo(() => {
-    const rows = tenants.data ?? [];
     return {
-      total: rows.length,
-      active: rows.filter((r) => r.status === 'active').length,
-      suspended: rows.filter((r) => r.status === 'suspended').length,
-      licensed: rows.filter((r) => r.subscriptionStatus).length,
+      total: customerRows.length,
+      active: customerRows.filter((r) => r.status === 'active').length,
+      suspended: customerRows.filter((r) => r.status === 'suspended').length,
+      licensed: customerRows.filter((r) => r.subscriptionStatus).length,
     };
-  }, [tenants.data]);
+  }, [customerRows]);
 
   async function changeStatus(tenant: Tenant, next: 'active' | 'suspended' | 'archived', reason: string) {
     setMessage(undefined);
@@ -176,7 +180,7 @@ export default function TenantsPage() {
           description={tenants.error}
           action={<Button variant="primary" onClick={tenants.reload}>إعادة المحاولة</Button>}
         />
-      ) : (tenants.data ?? []).length === 0 ? (
+      ) : customerRows.length === 0 ? (
         <EmptyState
           icon={<Building2 size={26} strokeWidth={1.5} />}
           title="لا يوجد عملاء"
@@ -185,7 +189,7 @@ export default function TenantsPage() {
       ) : (
         <div className="rounded-[10px] border border-line bg-surface shadow-1 overflow-hidden">
           <Table
-            rows={tenants.data ?? []}
+            rows={customerRows}
             rowKey={(row) => row.id}
             dense
             columns={[

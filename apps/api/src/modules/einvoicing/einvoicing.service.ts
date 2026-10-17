@@ -2,6 +2,7 @@ import { createCipheriv, createDecipheriv, createHash, randomBytes } from 'node:
 
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { and, asc, desc, eq, gte, lte, or, sql } from 'drizzle-orm';
+import { dataEncryptionKey } from '@erp/config';
 import { DomainError, newId } from '@erp/contracts';
 import { branches, einvoiceChain, einvoiceCredentials, einvoiceSettings, einvoiceSubmissions, parties, salesInvoiceLines, salesInvoices, users, withTenantTx, type DatabaseHandle, type DrizzleTx } from '@erp/database';
 
@@ -37,7 +38,7 @@ export const QR_TAG_LABELS: Record<number, string> = {
   9: 'توقيع الشهادة',
 };
 
-function keyBytes(secret = process.env.DATA_ENC_KEY ?? 'local-development-data-key'): Buffer {
+function keyBytes(secret = dataEncryptionKey()): Buffer {
   return createHash('sha256').update(secret).digest();
 }
 

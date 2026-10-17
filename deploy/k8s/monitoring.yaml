@@ -1,0 +1,87 @@
+# ---------------------------------------------------------------------------
+# المراقبةُ الحدّية — بندُ ب٢٤ (الجزءُ الثاني): لا Prometheus ولا Grafana ولا تنبيهَ في
+# المستودع، والموجودُ الوحيد `/health/live` و`/health/ready` (‏apps/api/src/health/
+# health.controller.ts — وقِيسا ٢٠٠) وسجلاتٌ JSON فيها `traceId`.
+#
+# فالتصميمُ هنا **لا يفترض مكوّنًا غير موجود**:
+#   • مهمّةُ فحصٍ كلّ ٥ دقائق تضرب `/health/ready` (الجاهزية: قاعدةٌ واتّصالات) ثمّ
+#     ‏`/health/live`، وتفشل فشلًا ظاهرًا في `kubectl get jobs` إن تعثّر أحدُهما.
+#   • وإن ضُبط `HEALTHCHECKS_URL` (مفتاحٌ **اختياريّ** في `erp-secrets`) يُنبَّه طرفٌ خارجيّ
+#     على مبدأ «الرجل الميت»: ‏/fail عند التعثّر، ونبضةٌ عند النجاح — فغيابُ النبضات نفسه
+#     إنذارٌ لدى المزوّد، وهذا ما لا يفعله فحصٌ داخليّ (فإن مات العنقودُ مات معه الفحص).
+#   • وأمّا قواعدُ Prometheus فـ**طبقةٌ اختيارية** في `deploy/k8s/overlays/monitoring/`
+#     (لا في الأساس) لأنّ `PrometheusRule` و`Probe` ‏CRD‑an من kube-prometheus-stack: فلو
+#     وُضعا في الأساس لفشل `kubectl apply -k deploy/k8s` على عنقودٍ بلا المشغّل — وهذه
+#     قاعدةُ المثبّتة `packages/config/src/deployment-surface.spec.ts`.
+#
+# ولا تدّعي هذه الملفّات قياسَ ما لم يُقَس: فما قِيس هنا أنّ المسارين يُجيبان ٢٠٠ على
+# خادمٍ قائم، وأنّ اسمَ الخدمة `erp-api:3000` هو المكتوب في `api.yaml`. وأمّا وصولُ
+# التنبيه إلى إنسانٍ فيحتاج `HEALTHCHECKS_URL` أو الطبقةَ الاختيارية، ولم يُجرَّب على
+# مزوّدٍ حقيقيّ.
+# ---------------------------------------------------------------------------
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: erp-healthcheck
+  namespace: erp
+  labels: { app.kubernetes.io/component: monitoring, app.kubernetes.io/part-of: erp }
+spec:
+  schedule: '*/5 * * * *'
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 12         # ساعةٌ من الفشل تبقى مرئية
+  startingDeadlineSeconds: 120
+  jobTemplate:
+    spec:
+      activeDeadlineSeconds: 120
+      backoffLimit: 1
+      template:
+        metadata:
+          labels: { app: erp-healthcheck, app.kubernetes.io/part-of: erp }
+        spec:
+          restartPolicy: Never
+          securityContext: { runAsNonRoot: true, runAsUser: 100, runAsGroup: 101 }
+          containers:
+            - name: probe
+              image: curlimages/curl:8.10.1
+              command: ['/bin/sh', '-eu', '-c']
+              args:
+                - |
+                  API="http://erp-api:3000"
+                  BODY=""
+                  FAIL=0
+                  for PATHNAME in /health/ready /health/live; do
+                    CODE=$(curl -s -o /tmp/body -w '%{http_code}' --max-time 10 "${API}${PATHNAME}" || echo "000")
+                    BODY=$(cat /tmp/body 2>/dev/null | head -c 300 || true)
+                    if [ "$CODE" = "200" ]; then
+                      echo "✓ ${PATHNAME} → 200 ${BODY}"
+                    else
+                      FAIL=1
+                      echo "✗ ${PATHNAME} → ${CODE} ${BODY}"
+                    fi
+                  done
+
+                  # «الرجل الميت»: النبضةُ عند النجاح و`/fail` عند التعثّر — وإن لم يُضبط
+                  # العنوانُ يُقال ذلك صراحةً بدل أن يُظنّ أنّ تنبيهًا أُرسل.
+                  if [ -n "${HEALTHCHECKS_URL:-}" ]; then
+                    if [ "$FAIL" = "0" ]; then
+                      curl -fsS --max-time 10 "$HEALTHCHECKS_URL" > /dev/null && echo "✓ نبضةٌ أُرسلت"
+                    else
+                      curl -fsS --max-time 10 -X POST --data "erp healthcheck failed" \
+                        "${HEALTHCHECKS_URL}/fail" > /dev/null && echo "⚠ إنذارُ فشلٍ أُرسل"
+                    fi
+                  else
+                    echo "⚠ HEALTHCHECKS_URL غير مضبوط — فالفشلُ ظاهرٌ في Jobs وحده ولا إنذارَ خارجيًّا"
+                  fi
+
+                  test "$FAIL" = "0" || exit 1
+              env:
+                - name: HEALTHCHECKS_URL
+                  valueFrom:
+                    secretKeyRef:
+                      name: erp-secrets
+                      key: HEALTHCHECKS_URL
+                      optional: true      # ← فالمفتاحُ اختياريّ ولا يُفشل التطبيقَ غيابه
+              resources:
+                requests: { cpu: 20m, memory: 32Mi }
+                limits: { cpu: 200m, memory: 64Mi }

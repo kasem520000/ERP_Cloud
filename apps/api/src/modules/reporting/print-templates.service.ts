@@ -90,24 +90,39 @@ export class PrintTemplatesService {
       );
 
       const kindTitle = SALES_KIND_TITLES[str(invoice.kind)] ?? 'فاتورة مبيعات';
-      const title = `${kindTitle}${str(invoice.tax_total) !== '0.0000' || company.taxNo ? ' ضريبية' : ''}`;
+      const hasCustomerTaxNo = Boolean(
+        str(invoice.party_tax_no).trim() &&
+          str(invoice.party_name) !== 'عميل عام' &&
+          str(invoice.party_code) !== 'CUST-GEN',
+      );
+      const taxClassificationLabel = hasCustomerTaxNo ? 'فاتورة ضريبية' : 'فاتورة ضريبية مبسطة';
+      const title =
+        str(invoice.kind) === 'sale'
+          ? `${taxClassificationLabel} — ${kindTitle}`
+          : `${kindTitle}${str(invoice.tax_total) !== '0.0000' || company.taxNo ? ' ضريبية' : ''}`;
       return this.documentPage(print, company, {
         title: `${kindTitle} ${str(invoice.number) || ''}`.trim(),
         body: `
           ${this.header(company, {
             docTitle: title,
-            docTitleEn: SALES_KIND_TITLES_EN[str(invoice.kind)] ?? 'Sales Invoice',
+            docTitleEn:
+              str(invoice.kind) === 'sale'
+                ? hasCustomerTaxNo
+                  ? 'Tax Invoice'
+                  : 'Simplified Tax Invoice'
+                : SALES_KIND_TITLES_EN[str(invoice.kind)] ?? 'Sales Invoice',
             number: str(invoice.number) || '—',
             date: dateText(invoice.posted_at ?? invoice.created_at),
             status: STATUS_LABELS[str(invoice.status)] ?? str(invoice.status),
             extra: [
+              ['نوع الفاتورة', taxClassificationLabel],
               ['الفرع', str(invoice.branch_name)],
               ['المستودع', str(invoice.warehouse_name)],
               ['المندوب', str(invoice.salesman_name)],
             ],
           }, print.printHeader)}
           ${this.partyBlock('بيانات العميل', {
-            name: str(invoice.party_name) || str(invoice.cash_customer_name) || 'عميل نقدي',
+            name: str(invoice.party_name) || str(invoice.cash_customer_name) || 'عميل عام',
             code: str(invoice.party_code),
             taxNo: str(invoice.party_tax_no),
             phone: str(invoice.party_phone) || str(invoice.cash_customer_mobile),
@@ -124,6 +139,9 @@ export class PrintTemplatesService {
             total: str(invoice.total),
             paid: str(invoice.paid_total),
             payments: payments.map((row) => ({ method: PAYMENT_METHODS[str(row.method)] ?? str(row.method), amount: str(row.amount), reference: str(row.reference) })),
+            // الحمولة التي كتبتها وحدة الفوترة الإلكترونية فعلًا (`einvoicing.service`) —
+            // ولا تُختَرَع حمولةٌ عند غيابها: المربّع المرسوم من TLV بلا توقيع يفشل أيَّ
+            // ماسح، ووجوده على وثيقة رسمية ادّعاءٌ بأنّ الفاتورة أُصدرت وهي لم تُصدر.
             qr: str(invoice.zatca_qr),
             zatcaStatus: str(invoice.zatca_status),
           })}
@@ -718,13 +736,14 @@ export class PrintTemplatesService {
    * instead of a decorative square that would fail any scan.
    */
   private qrBlock(payload?: string, status?: string) {
+    const label = ZATCA_STATUS_LABELS[status ?? ''];
     if (!payload) {
-      return '<div class="qr-empty">لم تُصدر بعد بيانات الفاتورة الإلكترونية (QR) لهذا المستند.</div>';
+      return `<div class="qr-empty">لم تُصدر بعد بيانات الفاتورة الإلكترونية (QR) لهذا المستند.${label ? ` الحالة: ${escapeHtml(label)}.` : ''}</div>`;
     }
     const qr = qrcode(0, 'M');
     qr.addData(payload);
     qr.make();
-    return `<div class="qr">${qr.createSvgTag({ cellSize: 3, margin: 0, scalable: true })}<span>${escapeHtml(ZATCA_STATUS_LABELS[status ?? ''] ?? 'رمز الاستجابة السريعة')}</span></div>`;
+    return `<div class="qr">${qr.createSvgTag({ cellSize: 3, margin: 0, scalable: true })}<span>${escapeHtml(label ?? 'رمز الاستجابة السريعة')}</span></div>`;
   }
 
   private signatures(labels: string[]) {

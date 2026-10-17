@@ -1,0 +1,64 @@
+-- 0131_van_sales_honest_defaults.sql
+--
+-- 🔢 **قيمٌ افتراضيةٌ مفبركة**: رقمُ تجربةٍ واسمُ تجربةٍ كانا يُكتبان في صفوفٍ حقيقية فتُقرأ
+--    بعد ذلك كأنّهما واقعة. والإصلاحُ هنا في المخطط وحده — **ولا سطرَ بياناتٍ واحدًا يُلمس**:
+--    فالقيمةُ الافتراضية لا تغيّر الصفوفَ القائمة، بل تكفّ عن اختراع صفوفٍ قادمة.
+--
+-- ما قِيس قبل الكتابة (لا ما ظُنّ):
+--
+--   • `information_schema.columns` على قاعدة الاختبار، 2026-10-15:
+--       ‏`van_sales_documents.unit_cost`        NOT NULL DEFAULT **3.80**
+--       ‏`factory_production_batches.unit_cost` NOT NULL DEFAULT **3.80**
+--       ‏`factory_production_batches.item_name` NOT NULL DEFAULT **'رقائق سمبوسة وفطائر طازجة'**
+--       ‏`van_load_orders.batch_code`           NULL     DEFAULT **'BATCH-DEFAULT'**
+--       ‏`van_sales_documents.batch_code`       NULL     DEFAULT **'BATCH-DEFAULT'**
+--     ومصدرُها `0120_factory_van_sales_complete.sql:51,62,68` و
+--     `0121_van_sales_schema_reconcile.sql:151` (‏`ADD COLUMN IF NOT EXISTS unit_cost
+--     numeric(18,4) NOT NULL DEFAULT 3.80`). وأمّا `0119` فلم يكن ينشئ `unit_cost` في
+--     `van_sales_documents` أصلًا، فالإضافةُ نفّذت وبقي الافتراضيّ حيًّا.
+--
+--   • **ومن يطلقها فعلًا**: `createReturnDocument` يُدرج صفّ المرتجع في `van_sales_documents`
+--     بلا `unit_cost` (قائمةُ أعمدته في `van-sales.service.ts` لا تذكره) ⇒ **كلُّ مرتجعٍ في
+--     القاعدة يحمل تكلفةً ٣.٨٠** لا علاقةَ لها بصنفه. وقِيس في تثبيت القبول
+--     (‏`van-sales-stock-acceptance.spec.ts`): صفُّ المرتجع `unit_cost = 3.8000` — وصادف أنّ
+--     التكلفةَ الحقيقية للصنف في ذلك التثبيت ٣.٨٠ (‏`items.purchase_price = 3.8000`) فبدا
+--     الرقمُ صحيحًا، وهو ما أخفى العيب. وأمّا التكلفةُ الرسمية للمرتجع فهي
+--     `sales_invoice_lines.cost_total` على إشعاره الدائن (قِيست ٧.٦٠٠٠ لمرتجع ٢ كجم،
+--     وهي رجلُ Dr مخزون / Cr «تكلفة المبيعات» نفسها).
+--
+--   • و`createLoadOrder` يُدرج أمرَ التحميل بلا `batch_code` ⇒ **كلُّ أمر تحميل يحمل
+--     `batch_code = 'BATCH-DEFAULT'`**. والعمودُ لا يقرؤه أحد (فحصُ المستودع: لا `SELECT`
+--     له في `apps/api/src` ولا في `apps/bakery` ولا في `apps/staff`)، فقيمته المفبركة لا
+--     تظهر اليوم على شاشة — لكنّها «حقيقةٌ» مكتوبةٌ في صفّ قد يقرأه غدًا تقريرٌ أو مطابقة.
+--
+--   • وأمّا `factory_production_batches` فمسارُها الرسميّ **يكتب** `item_name` و`unit_cost`
+--     و`total_cost` و`cost_basis` صراحةً (`van-sales.service.ts:2459-2478`، قِيس) ⇒
+--     افتراضيّاها لغمٌ لا تسريبٌ قائم: يطلقهما أيُّ مسارٍ آخر (بذرٌ أو استيرادٌ أو كتابةٌ
+--     جديدة) فيصير في تقرير الإنتاج صنفٌ اسمه «رقائق سمبوسة وفطائر طازجة» وتكلفةٌ ٣.٨٠
+--     لمنشأةٍ لا تبيع السمبوسة.
+--
+-- لماذا هذه الأربعة لا غيرها: فُحصت القيمُ الافتراضية كلّها في جداول التوزيع والإنتاج
+-- (‏٢٤ قيمةً غير صفرية/منطقية)، والباقية نوعان تُركا عمداً:
+--   1. **افتراضياتُ سياسة** (`van_sales_customer_prices.credit_limit = 5000`،
+--      `payment_terms_days = 15`، `van_load_orders.max_bonus_pct = 5.00`،
+--      `preferred_invoice_mode = 'zatca_tax'`…) — فهي قراراتُ عملٍ لا أكاذيب، وتغييرُها
+--      سياسةٌ تعود لصاحب المنتج لا لهجرة.
+--   2. **افتراضياتُ حالةٍ/نصٍّ إلزاميّ** (`van_load_orders.production_batch_no` و
+--      `van_sales_documents.production_batch_no` = 'BATCH-DEFAULT'، و`status`، و
+--      `document_kind = 'sale'`، و`payment_method = 'cash'`) — وكلا المسارَين الرسميَّين
+--      يكتبها صراحةً فلا تطلقها الكتابةُ الحيّة، وإسقاطُها يجعل العمودَ `NOT NULL` بلا
+--      افتراضيّ أي يُفشل كلّ إدراجٍ لم يُسمِّها (ومنها إدراجاتُ مثبّتات الاختبار القائمة).
+--      وهي قيمةٌ «واضحةُ الزيف» (`BATCH-DEFAULT`) لا رقمٌ يبدو حقيقيًّا كـ٣.٨٠، فضررُها
+--      أقلّ وخطرها عند التغيير أكبر — وتُذكر في التقرير بنداً معلّقاً.
+--
+-- ⚠️ ملاحظة تطبيقٍ على إنتاج: `SET DEFAULT` / `DROP DEFAULT` لا يعيد كتابة الجدول ولا يأخذ
+--    إلا قفلَ metadata لحظيًّا، فلا نافذةَ صيانةٍ ولا إعادةَ فهرسة. والصفوفُ القائمة تحتفظ
+--    بقيمها (ومنها صفوفُ المرتجع التي تحمل ٣.٨٠ وصفوفُ أوامر التحميل التي تحمل
+--    `BATCH-DEFAULT`) — فتنظيفُها إن رُغب قرارٌ منفصلٌ يحتاج معرفةَ التكلفة الحقيقية لكلّ
+--    صفّ، ولا يُفعل في هجرةٍ بلا قياس.
+
+ALTER TABLE van_sales_documents ALTER COLUMN unit_cost SET DEFAULT 0;
+ALTER TABLE factory_production_batches ALTER COLUMN unit_cost SET DEFAULT 0;
+ALTER TABLE factory_production_batches ALTER COLUMN item_name DROP DEFAULT;
+ALTER TABLE van_load_orders ALTER COLUMN batch_code DROP DEFAULT;
+ALTER TABLE van_sales_documents ALTER COLUMN batch_code DROP DEFAULT;

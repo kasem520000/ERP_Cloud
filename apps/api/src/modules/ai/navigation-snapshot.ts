@@ -1468,6 +1468,24 @@ export const NAVIGATION_SNAPSHOT: readonly HelpArticle[] = [
     "source": "navigation"
   },
   {
+    "id": "nav:supplier-portal-admin",
+    "title": "بوابة الموردين",
+    "href": "/purchases/supplier-portal",
+    "keywords": [
+      "بوابة",
+      "الموردين",
+      "Supplier",
+      "portal",
+      "purchases",
+      "supplier"
+    ],
+    "steps": [
+      "افتح «بوابة الموردين» من قائمة النظام.",
+      "أدخل البيانات ثم احفظ. أي ترحيل يتم من الشاشة بعد المراجعة، لا من المساعد."
+    ],
+    "source": "navigation"
+  },
+  {
     "id": "nav:purchase-credit-note",
     "title": "إشعار دائن",
     "href": "/purchases/notes/credit",
@@ -2981,6 +2999,58 @@ export const NAVIGATION_SNAPSHOT: readonly HelpArticle[] = [
     "source": "navigation"
   },
   {
+    "id": "nav:crm-pipelines",
+    "title": "مسار المبيعات",
+    "href": "/crm/pipelines",
+    "keywords": [
+      "مسار",
+      "المبيعات",
+      "CRM",
+      "pipeline",
+      "crm",
+      "pipelines"
+    ],
+    "steps": [
+      "افتح «مسار المبيعات» من قائمة النظام.",
+      "أدخل البيانات ثم احفظ. أي ترحيل يتم من الشاشة بعد المراجعة، لا من المساعد."
+    ],
+    "source": "navigation"
+  },
+  {
+    "id": "nav:crm-activities",
+    "title": "أنشطة المبيعات",
+    "href": "/crm/activities",
+    "keywords": [
+      "أنشطة",
+      "المبيعات",
+      "CRM",
+      "activities",
+      "crm"
+    ],
+    "steps": [
+      "افتح «أنشطة المبيعات» من قائمة النظام.",
+      "أدخل البيانات ثم احفظ. أي ترحيل يتم من الشاشة بعد المراجعة، لا من المساعد."
+    ],
+    "source": "navigation"
+  },
+  {
+    "id": "nav:crm-forecast",
+    "title": "تنبؤ المبيعات",
+    "href": "/crm/forecast",
+    "keywords": [
+      "تنبؤ",
+      "المبيعات",
+      "Sales",
+      "forecast",
+      "crm"
+    ],
+    "steps": [
+      "افتح «تنبؤ المبيعات» من قائمة النظام.",
+      "أدخل البيانات ثم احفظ. أي ترحيل يتم من الشاشة بعد المراجعة، لا من المساعد."
+    ],
+    "source": "navigation"
+  },
+  {
     "id": "nav:tailoring-order",
     "title": "إدارة طلبات التفصيل",
     "href": "/tailoring/orders",
@@ -3675,6 +3745,75 @@ export const NAVIGATION_SNAPSHOT: readonly HelpArticle[] = [
     "source": "navigation"
   },
   {
+    "id": "nav:project-board",
+    "title": "لوحة كانبان",
+    "href": "/projects/board",
+    "keywords": [
+      "لوحة",
+      "كانبان",
+      "Kanban",
+      "board",
+      "projects"
+    ],
+    "steps": [
+      "افتح «لوحة كانبان» من قائمة النظام.",
+      "أدخل البيانات ثم احفظ. أي ترحيل يتم من الشاشة بعد المراجعة، لا من المساعد."
+    ],
+    "source": "navigation"
+  },
+  {
+    "id": "nav:project-gantt",
+    "title": "مخطط جانت",
+    "href": "/projects/gantt",
+    "keywords": [
+      "مخطط",
+      "جانت",
+      "Gantt",
+      "projects",
+      "gantt"
+    ],
+    "steps": [
+      "افتح «مخطط جانت» من قائمة النظام.",
+      "أدخل البيانات ثم احفظ. أي ترحيل يتم من الشاشة بعد المراجعة، لا من المساعد."
+    ],
+    "source": "navigation"
+  },
+  {
+    "id": "nav:project-time",
+    "title": "تتبع الوقت",
+    "href": "/projects/time",
+    "keywords": [
+      "تتبع",
+      "الوقت",
+      "Time",
+      "tracking",
+      "projects",
+      "time"
+    ],
+    "steps": [
+      "افتح «تتبع الوقت» من قائمة النظام.",
+      "أدخل البيانات ثم احفظ. أي ترحيل يتم من الشاشة بعد المراجعة، لا من المساعد."
+    ],
+    "source": "navigation"
+  },
+  {
+    "id": "nav:project-cost",
+    "title": "تكلفة المشروع",
+    "href": "/projects/cost",
+    "keywords": [
+      "تكلفة",
+      "المشروع",
+      "Project",
+      "cost",
+      "projects"
+    ],
+    "steps": [
+      "افتح «تكلفة المشروع» من قائمة النظام.",
+      "أدخل البيانات ثم احفظ. أي ترحيل يتم من الشاشة بعد المراجعة، لا من المساعد."
+    ],
+    "source": "navigation"
+  },
+  {
     "id": "nav:project-offers",
     "title": "عروض",
     "href": "/projects/offers",
@@ -3919,6 +4058,41 @@ export const NAVIGATION_SNAPSHOT: readonly HelpArticle[] = [
     ],
     "steps": [
       "افتح «التجارة الإلكترونية — سلة · زد · Shopify» من قائمة النظام.",
+      "أدخل البيانات ثم احفظ. أي ترحيل يتم من الشاشة بعد المراجعة، لا من المساعد."
+    ],
+    "source": "navigation"
+  },
+  {
+    "id": "nav:marketplace",
+    "title": "سوق الإضافات",
+    "href": "/settings/marketplace",
+    "keywords": [
+      "سوق",
+      "الإضافات",
+      "Marketplace",
+      "settings",
+      "marketplace"
+    ],
+    "steps": [
+      "افتح «سوق الإضافات» من قائمة النظام.",
+      "أدخل البيانات ثم احفظ. أي ترحيل يتم من الشاشة بعد المراجعة، لا من المساعد."
+    ],
+    "source": "navigation"
+  },
+  {
+    "id": "nav:white-label",
+    "title": "الدومين والشعار",
+    "href": "/settings/white-label",
+    "keywords": [
+      "الدومين",
+      "والشعار",
+      "White",
+      "label",
+      "settings",
+      "white"
+    ],
+    "steps": [
+      "افتح «الدومين والشعار» من قائمة النظام.",
       "أدخل البيانات ثم احفظ. أي ترحيل يتم من الشاشة بعد المراجعة، لا من المساعد."
     ],
     "source": "navigation"
@@ -4238,6 +4412,23 @@ export const NAVIGATION_SNAPSHOT: readonly HelpArticle[] = [
     ],
     "steps": [
       "افتح «إعدادات عامة» من قائمة النظام.",
+      "أدخل البيانات ثم احفظ. أي ترحيل يتم من الشاشة بعد المراجعة، لا من المساعد."
+    ],
+    "source": "navigation"
+  },
+  {
+    "id": "nav:comment-mentions",
+    "title": "إشارات التعليقات",
+    "href": "/comments/mentions",
+    "keywords": [
+      "إشارات",
+      "التعليقات",
+      "Comment",
+      "mentions",
+      "comments"
+    ],
+    "steps": [
+      "افتح «إشارات التعليقات» من قائمة النظام.",
       "أدخل البيانات ثم احفظ. أي ترحيل يتم من الشاشة بعد المراجعة، لا من المساعد."
     ],
     "source": "navigation"
@@ -4934,6 +5125,22 @@ export const NAVIGATION_SNAPSHOT: readonly HelpArticle[] = [
     ],
     "steps": [
       "افتح «أوامر التصنيع» من قائمة النظام.",
+      "أدخل البيانات ثم احفظ. أي ترحيل يتم من الشاشة بعد المراجعة، لا من المساعد."
+    ],
+    "source": "navigation"
+  },
+  {
+    "id": "nav:bi-dashboards",
+    "title": "لوحات المؤشرات",
+    "href": "/dashboards",
+    "keywords": [
+      "لوحات",
+      "المؤشرات",
+      "Dashboards",
+      "dashboards"
+    ],
+    "steps": [
+      "افتح «لوحات المؤشرات» من قائمة النظام.",
       "أدخل البيانات ثم احفظ. أي ترحيل يتم من الشاشة بعد المراجعة، لا من المساعد."
     ],
     "source": "navigation"

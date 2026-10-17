@@ -4,7 +4,7 @@ import { Decimal } from 'decimal.js';
 import { and, desc, eq, isNull, sql } from 'drizzle-orm';
 
 import { DomainError, errorCodes, newId } from '@erp/contracts';
-import { journalEntries, journalEntryLines, parties, partyContacts, paymentAllocations, paymentMethods, withTenantTx, type DatabaseHandle } from '@erp/database';
+import { accounts, journalEntries, journalEntryLines, parties, partyContacts, paymentAllocations, paymentMethods, withTenantTx, type DatabaseHandle } from '@erp/database';
 
 import { DATABASE_HANDLE } from '../../database/database.module.js';
 import { CustomFieldsService } from '../custom-fields/custom-fields.service.js';
@@ -22,7 +22,63 @@ export class PartiesService {
     private readonly customFields: CustomFieldsService,
   ) {}
   async list(tenantId: string, kind?: string) {
-    const rows = await withTenantTx(this.database.db, tenantId, (tx) => tx.select().from(parties).where(and(eq(parties.tenantId, tenantId), isNull(parties.deletedAt), kind ? eq(parties.kind, kind) : undefined)).orderBy(desc(parties.createdAt)).limit(100));
+    const rows = await withTenantTx(this.database.db, tenantId, async (tx) => {
+      // Ensure provisioned tenants always have the default general customer (`عميل عام`)
+      // and general supplier (`مورد عام`).
+      const hasDefaultAccounts = await tx
+        .select({ id: accounts.id })
+        .from(accounts)
+        .where(and(eq(accounts.tenantId, tenantId), isNull(accounts.deletedAt), sql`${accounts.code} IN ('12310001', '22111001')`))
+        .limit(1);
+      if (hasDefaultAccounts.length > 0) {
+        const existingDefaults = await tx
+          .select({ code: parties.code, name: parties.name })
+          .from(parties)
+          .where(
+            and(
+              eq(parties.tenantId, tenantId),
+              isNull(parties.deletedAt),
+              sql`(${parties.code} IN ('CUST-GEN', 'SUPP-GEN') OR ${parties.name} IN ('عميل عام', 'مورد عام'))`,
+            ),
+          );
+        const hasCustomer = existingDefaults.some((p) => p.code === 'CUST-GEN' || p.name === 'عميل عام');
+        const hasSupplier = existingDefaults.some((p) => p.code === 'SUPP-GEN' || p.name === 'مورد عام');
+        if (!hasCustomer) {
+          await tx
+            .insert(parties)
+            .values({
+              id: newId(),
+              tenantId,
+              code: 'CUST-GEN',
+              kind: 'customer',
+              name: 'عميل عام',
+              legalName: 'عميل عام',
+              creditLimit: '0',
+            })
+            .onConflictDoNothing();
+        }
+        if (!hasSupplier) {
+          await tx
+            .insert(parties)
+            .values({
+              id: newId(),
+              tenantId,
+              code: 'SUPP-GEN',
+              kind: 'supplier',
+              name: 'مورد عام',
+              legalName: 'مورد عام',
+              creditLimit: '0',
+            })
+            .onConflictDoNothing();
+        }
+      }
+      return tx
+        .select()
+        .from(parties)
+        .where(and(eq(parties.tenantId, tenantId), isNull(parties.deletedAt), kind ? eq(parties.kind, kind) : undefined))
+        .orderBy(desc(parties.createdAt))
+        .limit(100);
+    });
     return this.customFields.decorate(tenantId, 'party', rows);
   }
   /**
