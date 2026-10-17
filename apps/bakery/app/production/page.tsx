@@ -233,17 +233,16 @@ export default function ProductionPage() {
       subtitle="دفعة إنتاج بمكوّناتها: تُصرف المواد رسمياً من المستودع ويدخل الناتج الرصيد الرسمي. والتكلفة الفعلية من أمر الإنتاج الرسمي لا من رقمٍ يُكتب هنا."
       title="الإنتاج"
     >
-      {!canView ? (
-        <Card>
-          <CardBody>
-            <p className="m-0 rounded-[10px] border border-warn-line bg-warn-soft px-4 py-2.5 text-[13px] font-semibold text-warn-ink">
-              🔒 لا تملك `{VIEW_PERMISSION}` — والخادم يرفض قراءة لوحة الخطّ (الدفعات والأرصدة
-              الرسمية). ولم يُرسل هذا التطبيق طلباً سيُرفض حتماً، ولا عرض أرقاماً من المتصفح
-              بدلها.
-            </p>
-          </CardBody>
-        </Card>
-      ) : null}
+      <Notice
+        notice={
+          !canView
+            ? {
+                kind: 'warn',
+                text: `🔒 لا تملك \`${VIEW_PERMISSION}\` — والخادم يرفض قراءة لوحة الخطّ (الدفعات والأرصدة الرسمية). ولم يُرسل هذا التطبيق طلباً سيُرفض حتماً، ولا عرض أرقاماً من المتصفح بدلها.`,
+              }
+            : undefined
+        }
+      />
 
       {dashboard.status === 'error' ? (
         <Card>

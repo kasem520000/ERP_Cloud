@@ -405,6 +405,23 @@ button.rep-pill:disabled { opacity: .55; cursor: not-allowed; }
 
 .rep-empty { margin: 0; font-size: 13px; color: var(--muted); }
 
+/* ------------------------------------------------------------------ boot
+ * بطاقةُ الإقلاع أثناء فحص الجلسة — ترسمها `SessionGate` من
+ * `@erp/web-core` (‏`BootCard`) قبل أن تعرف الجلسة حالتها، وهي النصّ
+ * نفسه الذي يراه مستخدِم staff. والقواعدُ هنا مثل staff حرفًا: بلاها
+ * تُرسم البطاقة بلا تنسيقٍ فتبدو الواجهة فارغةً حتى تصل الجلسة. */
+.boot {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+}
+.boot-card {
+  display: grid;
+  gap: 10px;
+  justify-items: center;
+  color: var(--muted);
+}
+
 /* الطباعة: تطبيقُ المندوب لا يُطبع — فالسندُ يُطبع من شاشة المستندات بنسختيه. */
 @media print {
   .rep-statusbar, .rep-actions, .rep-btn { display: none !important; }

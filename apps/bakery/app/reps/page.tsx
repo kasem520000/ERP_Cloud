@@ -175,17 +175,16 @@ export default function RepsPage() {
       title="المناديب"
     >
 
-      {!canView ? (
-        <Card>
-          <CardBody>
-            <p className="m-0 rounded-[10px] border border-warn-line bg-warn-soft px-4 py-2.5 text-[13px] font-semibold text-warn-ink">
-              🔒 لا تملك <span dir="ltr">{REPS_VIEW_PERMISSION}</span> — والخادم يرفض قراءة
-              البطاقات (<span dir="ltr">{REPS_MESSAGES.viewForbidden}</span>). ولم يُرسل هذا
-              التطبيق طلبًا سيُرفض حتمًا، ولا عرض بطاقاتٍ من المتصفّح بدلها.
-            </p>
-          </CardBody>
-        </Card>
-      ) : null}
+      <Notice
+        notice={
+          !canView
+            ? {
+                kind: 'warn',
+                text: `🔒 لا تملك \`${REPS_VIEW_PERMISSION}\` — والخادم يرفض قراءة البطاقات (${REPS_MESSAGES.viewForbidden}). ولم يُرسل هذا التطبيق طلبًا سيُرفض حتمًا، ولا عرض بطاقاتٍ من المتصفّح بدلها.`,
+              }
+            : undefined
+        }
+      />
 
       {loadError ? (
         <Card>

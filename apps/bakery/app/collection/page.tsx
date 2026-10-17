@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { Button, Card, CardBody, CardHeader, Input, Select, type SortState } from '@erp/ui';
+import { Button, Card, CardBody, CardHeader, Input, Kpi, Select, type SortState } from '@erp/ui';
 import { apiData, apiErrorText, apiList, apiPost } from '@erp/web-core/api';
 import { useSession } from '@erp/web-core/session';
 import { useSubmissionKey } from '@erp/web-core/use-submission-key';
@@ -261,17 +261,16 @@ export default function CollectionPage() {
       subtitle="قبضُ مديونية عملاء الخطّ بسند قبضٍ رسمي. والسؤال المحاسبيّ ليس «هل سُجِّل المبلغ؟» بل هل وصل السند إلى الأستاذ؟ — فالشاشة تقرأ جواب الخادم من سبب الحركة كما كتبه. وتفصيل القيود وأرصدة الصناديق في staff."
       title="التحصيل"
     >
-      {!canView ? (
-        <Card>
-          <CardBody>
-            <p className="m-0 rounded-[10px] border border-warn-line bg-warn-soft px-4 py-2.5 text-[13px] font-semibold text-warn-ink">
-              🔒 لا تملك `{VIEW_PERMISSION}` — والخادم يرفض قراءة الذمم
-              والحركات. ولم يُرسل هذا التطبيق طلبًا سيُرفض حتمًا، ولا عرض أرقامًا من المتصفّح
-              بدلها.
-            </p>
-          </CardBody>
-        </Card>
-      ) : null}
+      <Notice
+        notice={
+          !canView
+            ? {
+                kind: 'warn',
+                text: `🔒 لا تملك \`${VIEW_PERMISSION}\` — والخادم يرفض قراءة الذمم والحركات. ولم يُرسل هذا التطبيق طلبًا سيُرفض حتمًا، ولا عرض أرقامًا من المتصفّح بدلها.`,
+              }
+            : undefined
+        }
+      />
 
       {board.status === 'error' ? (
         <Card>
@@ -304,31 +303,31 @@ export default function CollectionPage() {
             title="الذمم بأرقام الخادم"
           />
           <CardBody>
-            <dl className="m-0 grid gap-3 sm:grid-cols-3">
-              <div className="rounded-[10px] border border-line bg-surface p-3">
-                <dt className="m-0 text-[11.5px] font-bold text-muted">
-                  ذمم المنشأة (بعد إشعارات المرتجعات)
-                </dt>
-                <dd className="m-0 mt-1 text-[18px] font-extrabold text-ink" dir="ltr">
-                  {numberText(board.data.summary.totalCreditReceivablesSar)}
-                </dd>
-              </div>
-              <div className="rounded-[10px] border border-line bg-surface p-3">
-                <dt className="m-0 text-[11.5px] font-bold text-muted">محصَّل نقدًا (الخادم)</dt>
-                <dd className="m-0 mt-1 text-[18px] font-extrabold text-ink" dir="ltr">
-                  {numberText(board.data.summary.totalCollectedCashSar)}
-                </dd>
-              </div>
-              <div className="rounded-[10px] border border-line bg-surface p-3">
-                <dt className="m-0 text-[11.5px] font-bold text-muted">
-                  مجموع هذه القائمة (محسوبٌ هنا)
-                </dt>
-                <dd className="m-0 mt-1 text-[18px] font-extrabold text-ink" dir="ltr">
-                  {listTotal.toFixed(2)}
-                </dd>
-                <dd className="m-0 text-[11px] text-muted">{receivables.length} فاتورة آجلة</dd>
-              </div>
-            </dl>
+            <div className="m-0 grid gap-3 sm:grid-cols-3">
+              <Kpi
+                hint="بعد خصم إشعارات المرتجعات — من summary الذي حسبه الخادم"
+                title="ذمم المنشأة"
+                tone="brand"
+                value={numberText(board.data.summary.totalCreditReceivablesSar)}
+              />
+              <Kpi
+                hint="سندات قبضٍ مُرحَّلة إلى الأستاذ"
+                title="محصَّل نقدًا"
+                tone="ok"
+                value={numberText(board.data.summary.totalCollectedCashSar)}
+              />
+              <Kpi
+                hint="محسوبٌ هنا من نافذة اللوحة — لا يُخلط مع ذمم المنشأة"
+                title="مجموع هذه القائمة"
+                tone="neutral"
+                value={listTotal.toFixed(2)}
+              />
+            </div>
+            <p className="m-0 mt-3 text-[12.5px] text-muted">
+              {receivables.length} فاتورة آجلة في القائمة أدناه — وأمّا «ذمم المنشأة»
+              فمن <span dir="ltr">summary</span> الخادم، ومجموعُ القائمة محسوبٌ هنا
+              ولا يُقال إنه ذممُ المنشأة.
+            </p>
             {board.data.summary.returnDocumentCount > 0 ? (
               <p className="m-0 mt-3 text-[12.5px] text-muted">
                 ↩️ ذممُ الخادم صافيةٌ من المرتجعات: إجماليُّ المبيعات{' '}

@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { Button, Card, CardBody, CardHeader, Input, Select, type SortState } from '@erp/ui';
+import { Button, Card, CardBody, CardHeader, Input, Kpi, Select, type SortState } from '@erp/ui';
 import { apiData, apiErrorText, apiList, apiPost } from '@erp/web-core/api';
 import { useSession } from '@erp/web-core/session';
 import { useSubmissionKey } from '@erp/web-core/use-submission-key';
@@ -308,17 +308,16 @@ export default function SalesPage() {
       subtitle="مستند بيعٍ من عهدة مندوب: سندٌ واحد بنسختين مطبوعتين — نسخة للعميل ونسخة للمندوب تعود موقّعة إلى المحاسب — لا فاتورتان. ورمز ZATCA يُرسم من الحمولة الصادرة على الفاتورة، فإن لم تصدر يُطبع قولٌ صريح بدل رمزٍ زائف. والأستاذ وتفصيل القيود في staff."
       title="فواتير الخطّ"
     >
-      {!canView ? (
-        <Card>
-          <CardBody>
-            <p className="m-0 rounded-[10px] border border-warn-line bg-warn-soft px-4 py-2.5 text-[13px] font-semibold text-warn-ink">
-              🔒 لا تملك <span dir="ltr">{VIEW_PERMISSION}</span> — والخادم يرفض قراءة لوحة
-              المبيعات وطباعة أيّ مستند. ولم يُرسل هذا التطبيق طلبًا سيُرفض حتمًا، ولا عرض
-              أرقامًا من المتصفّح بدلها.
-            </p>
-          </CardBody>
-        </Card>
-      ) : null}
+      <Notice
+        notice={
+          !canView
+            ? {
+                kind: 'warn',
+                text: `🔒 لا تملك \`${VIEW_PERMISSION}\` — والخادم يرفض قراءة لوحة المبيعات وطباعة أيّ مستند. ولم يُرسل هذا التطبيق طلبًا سيُرفض حتمًا، ولا عرض أرقامًا من المتصفّح بدلها.`,
+              }
+            : undefined
+        }
+      />
 
       {board.status === 'error' ? (
         <Card>
@@ -351,49 +350,44 @@ export default function SalesPage() {
             title="اليوم بأرقام الخادم"
           />
           <CardBody>
-            <dl className="m-0 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-              <div className="rounded-[10px] border border-line bg-surface p-3">
-                <dt className="m-0 text-[11.5px] font-bold text-muted">مبيعات ضريبية (ZATCA)</dt>
-                <dd className="m-0 mt-1 text-[17px] font-extrabold text-ink" dir="ltr">
-                  {numberText(dashboard.summary.totalZatcaSalesSar)}
-                </dd>
-              </div>
-              <div className="rounded-[10px] border border-line bg-surface p-3">
-                <dt className="m-0 text-[11.5px] font-bold text-muted">تسليم داخليّ</dt>
-                <dd className="m-0 mt-1 text-[17px] font-extrabold text-ink" dir="ltr">
-                  {numberText(dashboard.summary.totalInternalSalesSar)}
-                </dd>
-              </div>
-              <div className="rounded-[10px] border border-line bg-surface p-3">
-                <dt className="m-0 text-[11.5px] font-bold text-muted">محصَّل نقدًا</dt>
-                <dd className="m-0 mt-1 text-[17px] font-extrabold text-ink" dir="ltr">
-                  {numberText(dashboard.summary.totalCollectedCashSar)}
-                </dd>
-              </div>
-              <div className="rounded-[10px] border border-line bg-surface p-3">
-                <dt className="m-0 text-[11.5px] font-bold text-muted">ذمم العملاء الآجلة</dt>
-                <dd className="m-0 mt-1 text-[17px] font-extrabold text-ink" dir="ltr">
-                  {numberText(dashboard.summary.totalCreditReceivablesSar)}
-                </dd>
-              </div>
-              {/**
-                * ↩️ طرفا المرتجعات ظاهران بجانب الأرقام الصافية: فالأرقامُ الأربعة أعلاه
-                * صافيةٌ من المرتجعات (معالجةُ الخادم في `VAN_MONEY_SQL`، ومرجعُها قيودُ
-                * المرتجع الرسمية)، ورقمٌ صافٍ بلا طرفَيه يُقرأ كأنّ المرتجع لم يحدث.
-                */}
-              <div className="rounded-[10px] border border-line bg-surface p-3">
-                <dt className="m-0 text-[11.5px] font-bold text-muted">مردودات المبيعات</dt>
-                <dd className="m-0 mt-1 text-[17px] font-extrabold text-ink" dir="ltr">
-                  {numberText(dashboard.summary.totalReturnsSar)}
-                </dd>
-              </div>
-              <div className="rounded-[10px] border border-line bg-surface p-3">
-                <dt className="m-0 text-[11.5px] font-bold text-muted">ضريبةُ المرتجعات المعكوسة</dt>
-                <dd className="m-0 mt-1 text-[17px] font-extrabold text-ink" dir="ltr">
-                  {numberText(dashboard.summary.totalReturnsVatSar)}
-                </dd>
-              </div>
-            </dl>
+            <div className="m-0 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              <Kpi
+                hint="صافي المرتجعات — من summary الذي حسبه الخادم"
+                title="مبيعات ضريبية (ZATCA)"
+                tone="brand"
+                value={numberText(dashboard.summary.totalZatcaSalesSar)}
+              />
+              <Kpi
+                hint="تسليمٌ داخليّ بلا ضريبة"
+                title="تسليم داخليّ"
+                tone="neutral"
+                value={numberText(dashboard.summary.totalInternalSalesSar)}
+              />
+              <Kpi
+                hint="سندات قبضٍ مُرحَّلة إلى الأستاذ"
+                title="محصَّل نقدًا"
+                tone="ok"
+                value={numberText(dashboard.summary.totalCollectedCashSar)}
+              />
+              <Kpi
+                hint="بعد خصم المدفوع — يزيد الصندوق ولا يعرف الأستاذ إن لم يُرحَّل السند"
+                title="ذمم العملاء الآجلة"
+                tone={Number(dashboard.summary.totalCreditReceivablesSar) > 0 ? 'warn' : 'neutral'}
+                value={numberText(dashboard.summary.totalCreditReceivablesSar)}
+              />
+              <Kpi
+                hint="إشعارات دائنة — تُخصم من ذمّة العميل كما يخصمها القيد"
+                title="مردودات المبيعات"
+                tone="neutral"
+                value={numberText(dashboard.summary.totalReturnsSar)}
+              />
+              <Kpi
+                hint="ضريبةُ المرتجعات المعكوسة على الإجمالي"
+                title="ضريبة المرتجعات"
+                tone="neutral"
+                value={numberText(dashboard.summary.totalReturnsVatSar)}
+              />
+            </div>
             <p className="m-0 mt-3 text-[12.5px] text-muted">
               مبيع {numberText(dashboard.summary.totalSoldKg)} كجم · مجانيّ{' '}
               {numberText(dashboard.summary.totalBonusKg)} كجم · صافي الربح{' '}

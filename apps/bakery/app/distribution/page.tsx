@@ -335,16 +335,16 @@ export default function DistributionPage() {
       subtitle="أمر تحميلٍ لمندوب: يُصرف من المستودع بمناقلة رسمية وتصير البضاعة عهدةً عند تأكيد الاستلام. والإقفال والاعتماد وتسوية الفرق وحدةٌ أخرى (في `staff`)."
       title="التوزيع والأحمال"
     >
-      {!canView ? (
-        <Card>
-          <CardBody>
-            <p className="m-0 rounded-[10px] border border-warn-line bg-warn-soft px-4 py-2.5 text-[13px] font-semibold text-warn-ink">
-              🔒 لا تملك `{VIEW_PERMISSION}` — والخادم يرفض قراءة لوحة التوزيع وقائمة المندوبين.
-              ولم يُرسل هذا التطبيق طلباً سيُرفض حتماً، ولا عرض أرقاماً من المتصفح بدلها.
-            </p>
-          </CardBody>
-        </Card>
-      ) : null}
+      <Notice
+        notice={
+          !canView
+            ? {
+                kind: 'warn',
+                text: `🔒 لا تملك \`${VIEW_PERMISSION}\` — والخادم يرفض قراءة لوحة التوزيع وقائمة المندوبين. ولم يُرسل هذا التطبيق طلباً سيُرفض حتماً، ولا عرض أرقاماً من المتصفح بدلها.`,
+              }
+            : undefined
+        }
+      />
 
       {dashboard.status === 'error' ? (
         <Card>

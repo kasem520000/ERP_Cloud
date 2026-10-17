@@ -68,7 +68,12 @@ export function BakeryGuard({ children }: { children: React.ReactNode }) {
   if (verdict === 'loading') {
     return (
       <main aria-busy="true" className="bak-main">
-        <p className="m-0 text-[13px] text-muted">جارٍ التحقّق من الجلسة ومن ترخيص الباقة…</p>
+        <div className="boot">
+          <div className="boot-card">
+            <span className="logo">ERP</span>
+            <p>جارٍ التحقّق من الجلسة ومن ترخيص الباقة…</p>
+          </div>
+        </div>
       </main>
     );
   }
