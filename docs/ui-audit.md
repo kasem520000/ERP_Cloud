@@ -1,6 +1,6 @@
 # UI audit — ERP Cloud “Executive Finance” v4
 
-**Date:** 2026-10-18 · **Branch:** `arena/87daa84c-erp-cloud` · **Commit:** `5af33c0` (pushed) on top of `084fafd` — batch 2: content, typography, portal grid, RTL tables, hydration, labels
+**Date:** 2026-10-18 · **Branch:** `arena/87daa84c-erp-cloud` · **Commit:** `096f942` (pushed) on top of `084fafd` — batch 2: content, typography, portal grid, RTL tables, hydration, labels
 **Method:** every opened screen was rendered in Chromium (Playwright/Puppeteer) against the local API + seeded PostgreSQL demo tenant. Nothing below is inferred from JSX alone. No mock data was injected into the apps, and no posting, cancellation, payment or deletion was executed.
 
 Legend — **Opened:** `yes` rendered with data · `no` no fixture · `login` auth screen only.
