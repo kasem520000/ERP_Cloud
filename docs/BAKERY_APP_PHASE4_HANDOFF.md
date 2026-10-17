@@ -57,6 +57,13 @@ corepack pnpm --filter @erp/api run build              # dist للـAPI (فـ`ru
 - الاختباراتُ في `apps/api` **تُقلع قاعدتَها المدمجة نفسها** (`createTestApp`) ⇒ لا حاجة إلى
   `db:local` لتشغيلها. وتُحتاج `corepack pnpm run db:local` **لبوابة الهجرة فقط**
   (‏`db:migrate` / `migrate:down` / `db:seed` على `DATABASE_URL` من `.env`).
+- **⚠️ اتّصالُ القياس يجب أن يكون بـ`DATABASE_MIGRATOR_URL` لا بـ`DATABASE_URL`** (قِيس في ٢٣):
+  جداولُ المستأجر (`items`, `tax_groups`, `sales_invoices`, `vouchers`, `cash_locations`, …)
+  عليها **RLS مع `FORCE ROW LEVEL SECURITY`** وسياسةُ
+  ‏`tenant_id = current_setting('app.tenant_id')`، فاتّصالٌ خامّ بدور التطبيق `erp_api` يرى
+  **صفر صفوفٍ بلا خطأ** — فيبدو أنّ البذرَ فشل وهو لم يفشل. (ولبعض الجداول بلا RLS —
+  ‏`tenants`, `users`, `inventory_transactions`, `stock_balances` — تظهر صفوفُها، فيزداد
+  اللبس.) فإمّا دورُ المُرحِّل (`app`) وإمّا `SET app.tenant_id = '<uuid>'` أوّلَ الاتّصال.
 - **لا `psql`** في حزمة `@embedded-postgres` (فيها `initdb`/`pg_ctl`/`postgres` فقط) ⇒ للقياس
   على قاعدةٍ حيّة استعمل سائق `pg` من node:
   `node_modules/.pnpm/pg@8.23.0/node_modules/pg/lib/index.js` مع `DATABASE_MIGRATOR_URL` من
@@ -490,7 +497,7 @@ text-[13px] text-ink'`؛ الجداولُ `overflow-x-auto w-full border-collaps
    يرفع `ReferenceError` لا فشلَ مقارنة. و`readFileSync` تُستورد صراحةً (الملفُّ كان
    يستورد `existsSync, readdirSync` فقط).
 
-### الأدواتُ والمرافق (‏٢٣ — أربعةُ أمورَ أُصيبت فعلًا)
+### الأدواتُ والمرافق (‏٢٣ — خمسةُ أمورَ أُصيبت فعلًا)
 
 1. **ترتيبُ وسائطِ المساعد يُصيب مرتين**: ‏`req(method, path, token, body)` نُوديت
    ‏`req('POST','/auth/login',{…})` ⇒ الجسمُ صار الرمزيةَ والرمزيةُ صارت الجسم، فالخادمُ ردّ
@@ -505,7 +512,12 @@ text-[13px] text-ink'`؛ الجداولُ `overflow-x-auto w-full border-collaps
    للنسبة في الاسم «15%» ⇒ فرأت الأداةُ نفسها خاطئةً في التشغيل الثاني وكانت ستُعيد
    تسميتها. وأُصلحت بسمةٍ صريحة (`HISTORICAL_MARKER`) تُقرأ قبل المعالجة. والقاعدة: **شغّل
    أداتَكَ مرّتين** — فالثانيةُ امتحانُ العُدول (‏idempotency) والأولى لا تكفي.
-4. **‏`exports` في الحزم تمنع حلَّ مساراتٍ داخلية**: ‏`require.resolve('tsx/dist/cli.mjs')`
+4. **‏RLS يُخفي الصفوف صامتًا** (وهو الأخطرُ في هذه القائمة لأنّه يُشبه فشلًا وهميًّا):
+   ‏`select count(*) from items` بدور `erp_api` ⇒ **٠** بينما الحقيقة ٦، وبلا رسالةِ خطأ؛
+   فـ`FORCE ROW LEVEL SECURITY` + سياسةُ `current_setting('app.tenant_id')` تصفيان ما لا
+   يملك الاتّصالُ سياقَه. والقاعدة: القياسُ من القاعدة بدور المُرحِّل (أو بضبط
+   ‏`app.tenant_id`)، ولا يُحكَم على «بذرٍ فشل» من قراءةٍ واحدة.
+5. **‏`exports` في الحزم تمنع حلَّ مساراتٍ داخلية**: ‏`require.resolve('tsx/dist/cli.mjs')`
    ⇒ ‏`ERR_PACKAGE_PATH_NOT_EXPORTED` (وقِيس)، والحلُّ بناءُ المسار من
    ‏`require.resolve('tsx/package.json')`. و`pg` لا تُحلّ من `scripts/` في الجذر (pnpm صارمّ)
    ⇒ ‏`createRequire(packages/database/noop.js)` (والمستودعُ نفسه فيه `noop.js`).
