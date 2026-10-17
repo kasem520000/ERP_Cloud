@@ -13,14 +13,18 @@ import {
   VOUCHER_CAP_NOTE,
   VOUCHER_COLUMNS,
   VOUCHER_SERVER_LIMIT,
+  balanceRowsOf,
   balanceText,
   cashLocationViewRows,
   draftLineVouchers,
   isLineCollectionVoucher,
+  isReconciled,
   lineDocumentNumber,
   lineVouchers,
   locationNameOf,
+  momentText,
   postedLineVouchers,
+  reconciledAtText,
   shownSum,
   shownSumCaption,
   treasuryCellText,
@@ -122,17 +126,65 @@ describe('خزينةُ الخطّ — النسبةُ بالمفتاح، والم
     expect(pageSource, 'الشاشةُ تعرض المجموعَ المشروط').toContain('shownSum');
   });
 
-  it('الرصيدُ من صفوفه — وبلا صفٍّ «—» لا صفرٌ مُخترع', () => {
-    const balances: CashBalanceRow[] = [
-      { cashLocationId: 'safe-1', currencyCode: 'SAR', balance: '1500.5000', updatedAt: null },
-      { cashLocationId: 'safe-1', currencyCode: 'USD', balance: '20.0000', updatedAt: null },
+  it('الرصيدُ من صفوفه — وبلا صفٍّ «—»، وبصفٍّ لم يُطابَق «لم يُطابَق بعد» لا صفرٌ مزروع', () => {
+    /**
+     * وهذه ليست حالةً نظرية: قِيس على القاعدة المحليّة (‏`GET /cash-locations/:id/balances`
+     * بمنشأة `demo`) أنّ الموضعين — صندوقًا وبنكًا — يرجعان `balance: "0.0000"` مع
+     * ‏`updatedAt: null`. فالبذرةُ تزرع الصفّ صفرًا عند إنشاء الموضع ولا تكتب `updated_at`
+     * (‏`cash-locations.service.ts:198-202` وتعليقُه «Seeds the balance row at zero —
+     * PHASE_12 writes it, a report reconciles it»، والعمودُ nullable وبلا `created_at`).
+     * وعرضُ ذلك الصفر «0.0000 SAR» يقول إنّ الصندوقَ فارغٌ وهو **لم يُحسب بعد**.
+     */
+    const seeded: CashBalanceRow[] = [
+      { cashLocationId: 'safe-1', currencyCode: 'SAR', balance: '0.0000', updatedAt: null },
       { cashLocationId: 'bank-1', currencyCode: 'SAR', balance: '0.0000', updatedAt: null },
     ];
-    expect(balanceText(balances, 'safe-1')).toBe('1500.5000 SAR · 20.0000 USD');
-    // صفرٌ مكتوبٌ في صفٍّ يُعرض صفرًا — فهو واقعٌ مرصود، لا غيابَ صفّ.
+    expect(balanceText(seeded, 'safe-1')).toBe('لم يُطابَق بعد (SAR)');
+    expect(balanceText(seeded, 'bank-1')).toBe('لم يُطابَق بعد (SAR)');
+    expect(isReconciled(seeded[0] ?? null)).toBe(false);
+    expect(isReconciled(null)).toBe(false);
+    // وبلا عملةٍ كذلك — فلا يُخترع قوسٌ فارغ.
+    expect(balanceText([{ cashLocationId: 'x', currencyCode: null, balance: '0', updatedAt: null }], 'x')).toBe(
+      'لم يُطابَق بعد',
+    );
+
+    const balances: CashBalanceRow[] = [
+      { cashLocationId: 'safe-1', currencyCode: 'SAR', balance: '1500.5000', updatedAt: '2026-10-16T21:57:49.185+00' },
+      { cashLocationId: 'safe-1', currencyCode: 'USD', balance: '20.0000', updatedAt: null },
+      { cashLocationId: 'bank-1', currencyCode: 'SAR', balance: '0.0000', updatedAt: '2026-10-17T05:00:00.000+00' },
+    ];
+    // الموضعُ الواحد قد يحمل العملتين على حالين مختلفين — فتُقال كلّ حالةٍ في segmentها.
+    expect(balanceText(balances, 'safe-1')).toBe('1500.5000 SAR · لم يُطابَق بعد (USD)');
+    // صفرٌ **مُطابَق** يُعرض صفرًا: فهو واقعٌ مرصود، لا غيابَ صفٍّ ولا صفرٌ مزروع.
     expect(balanceText(balances, 'bank-1')).toBe('0.0000 SAR');
+    expect(isReconciled(balances[2] ?? null)).toBe(true);
     expect(balanceText(balances, 'safe-2')).toBe('—');
     expect(balanceText(balances, null)).toBe('—');
+    expect(balanceRowsOf(balances, null)).toEqual([]);
+    expect(balanceRowsOf(balances, 'safe-1')).toHaveLength(2);
+  });
+
+  it('«آخر مطابقة»: من `updatedAt` وحدها — وبلا مطابقةٍ «—» لا تاريخٌ مُخترع', () => {
+    const balances: CashBalanceRow[] = [
+      { cashLocationId: 'safe-1', currencyCode: 'SAR', balance: '10.0000', updatedAt: '2026-10-16T08:05:00.000+00' },
+      { cashLocationId: 'safe-1', currencyCode: 'USD', balance: '1.0000', updatedAt: '2026-10-17T09:30:12.400+00' },
+      { cashLocationId: 'bank-1', currencyCode: 'SAR', balance: '0.0000', updatedAt: null },
+    ];
+    expect(reconciledAtText(balances, 'safe-1')).toBe('2026-10-16 08:05 · 2026-10-17 09:30');
+    expect(reconciledAtText(balances, 'bank-1')).toBe('—');
+    expect(reconciledAtText(balances, 'nope')).toBe('—');
+    expect(reconciledAtText(balances, null)).toBe('—');
+    expect(momentText(null)).toBe('—');
+    expect(momentText('   ')).toBe('—');
+    expect(momentText('2026-10-16T21:57:49.185589+00')).toBe('2026-10-16 21:57');
+
+    // والعمودُ مُعلنٌ بجانب الرصيد مباشرة: فالمطابقةُ تُرى ولا تُستنتج من صفر.
+    const keys = CASH_LOCATION_COLUMNS.map((column) => column.key);
+    expect(keys).toContain('reconciledAt');
+    expect(keys.indexOf('reconciledAt')).toBe(keys.indexOf('balanceText') + 1);
+    expect(CASH_LOCATION_COLUMNS.find((column) => column.key === 'reconciledAt')?.labelAr).toBe('آخر مطابقة');
+    // والشاشةُ تقول القاعدةَ حيث تُعرض (فلا يقرأ أحدٌ «0.0000» على أنّه صندوقٌ فارغ).
+    expect(NO_WRITE_HERE_AR.join('\n')).toContain('لم يُطابَق بعد');
   });
 
   it('اسمُ الموضع من القائمة — ومعرّفٌ لا موضعَ له يُعرض مبتورًا لا مُخفيًّا', () => {
@@ -178,16 +230,28 @@ describe('خزينةُ الخطّ — النسبةُ بالمفتاح، والم
         { id: 'safe-1', name: 'الصندوق', kind: 'safe', isDefault: true, isActive: true, custodianIds: ['e1', 'e2'], currencyCode: 'SAR' },
         { id: 'bank-1', name: 'البنك', kind: 'bank', isDefault: false, isActive: false, custodianIds: [], currencyCode: null },
       ],
-      [{ cashLocationId: 'safe-1', currencyCode: 'SAR', balance: '10.0000', updatedAt: null }],
+      [
+        { cashLocationId: 'safe-1', currencyCode: 'SAR', balance: '10.0000', updatedAt: '2026-10-16T08:05:00.000+00' },
+        { cashLocationId: 'bank-2', currencyCode: 'SAR', balance: '0.0000', updatedAt: null },
+      ],
     );
     expect(rows[0]?.custodians).toBe(2);
     expect(rows[0]?.defaultLabel).toBe('نعم');
     expect(rows[0]?.activeLabel).toBe('نشط');
     expect(rows[0]?.balanceText).toBe('10.0000 SAR');
+    expect(rows[0]?.reconciledAt).toBe('2026-10-16 08:05');
     expect(rows[1]?.custodians).toBe(0);
     expect(rows[1]?.activeLabel).toBe('موقوف');
     expect(rows[1]?.currencyCode).toBe('—');
     expect(rows[1]?.balanceText).toBe('—');
+    expect(rows[1]?.reconciledAt).toBe('—');
+    // وموضعٌ رُصد صفُّه ولم يُطابَق: لا رقمَ ولا تاريخ.
+    const seededRows = cashLocationViewRows(
+      [{ id: 'bank-2', name: 'البنك', kind: 'bank', isDefault: false, isActive: true, custodianIds: [], currencyCode: 'SAR' }],
+      [{ cashLocationId: 'bank-2', currencyCode: 'SAR', balance: '0.0000', updatedAt: null }],
+    );
+    expect(seededRows[0]?.balanceText).toBe('لم يُطابَق بعد (SAR)');
+    expect(seededRows[0]?.reconciledAt).toBe('—');
   });
 
   it('قارئُ الخلية: نصٌّ ورقمٌ ومنطقيٌّ ومصفوفة — وما عداها «—» لا «[object Object]»', () => {

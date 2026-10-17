@@ -219,19 +219,63 @@ export function cashLocationLabel(row: CashLocationRow | null): string {
 }
 
 /**
- * رصيدُ الموضع من صفوف الأرصدة — ولكلّ عملةٍ صفٌّ، فتُعرض العملةُ مع الرقم. وبلا صفٍّ
- * يُقال «—» ولا يُخترع صفر: فغيابُ الصفّ يعني أنّ الموضعَ لم يُرصد بعد، لا أنّه فارغ.
+ * هل الصفُّ مُطابَق؟ — و`updatedAt` هي الدليلُ الوحيد، **وقِيس في القاعدة**: إنشاءُ الموضع
+ * يزرع صفَّ الرصيد صفرًا ولا يكتب `updated_at` (‏`cash-locations.service.ts:198-202` وتعليقُه
+ * «Seeds the balance row at zero — PHASE_12 writes it, a report reconciles it»، والعمودُ
+ * nullable وبلا `created_at`). فصفٌّ بـ`updated_at = NULL` **لم يُطابَق قطّ** وصفرُه مكانٌ
+ * محجوزٌ لا قياس — وعرضُه «0.0000» يقول إنّ الصندوقَ فارغٌ وهو لم يُحسب بعد. وهذا ما ظهرت
+ * به القاعدةُ المحليّة فعلًا: الموضعان (صندوقٌ وبنك) برصيد `0.0000` و`updated_at = NULL`.
+ */
+export function isReconciled(row: CashBalanceRow | null | undefined): boolean {
+  const at = String(row?.updatedAt ?? '').trim();
+  return at.length > 0 && at.toLowerCase() !== 'null';
+}
+
+/** لحظةٌ كما أرجعها الخادم، مقروءةً (‏`2026-10-16T21:57:49.185+00` ⇒ `2026-10-16 21:57`) — وبلا قيمةٍ «—». */
+export function momentText(value: string | null | undefined): string {
+  const text = String(value ?? '').trim();
+  if (text.length === 0 || text.toLowerCase() === 'null') return '—';
+  return text.replace('T', ' ').slice(0, 16);
+}
+
+/**
+ * رصيدُ الموضع من صفوف الأرصدة — ولكلّ عملةٍ صفٌّ، فتُعرض العملةُ مع الرقم **إن كان
+ * مُطابَقًا**. وبلا صفٍّ يُقال «—» ولا يُخترع صفر (فغيابُ الصفّ يعني أنّ الموضعَ لم يُرصد
+ * بعد)، وبصفٍّ لم يُطابَق يُقال ذلك بدل الرقم المزروع.
  */
 export function balanceText(
   balances: readonly CashBalanceRow[],
   locationId: string | null | undefined,
 ): string {
-  if (!locationId) return '—';
-  const rows = balances.filter((row) => String(row.cashLocationId ?? '') === locationId);
+  const rows = balanceRowsOf(balances, locationId);
   if (rows.length === 0) return '—';
   return rows
-    .map((row) => `${numberText(String(row.balance ?? '0'))} ${String(row.currencyCode ?? '')}`.trim())
+    .map((row) => {
+      const currency = String(row.currencyCode ?? '').trim();
+      if (!isReconciled(row)) return currency.length > 0 ? `لم يُطابَق بعد (${currency})` : 'لم يُطابَق بعد';
+      return `${numberText(String(row.balance ?? '0'))} ${currency}`.trim();
+    })
     .join(' · ');
+}
+
+/** صفوفُ الرصيد لموضعٍ بعينه (و`balanceText` و`reconciledAtText` تقرأانها بقاعدةٍ واحدة). */
+export function balanceRowsOf(
+  balances: readonly CashBalanceRow[],
+  locationId: string | null | undefined,
+): readonly CashBalanceRow[] {
+  if (!locationId) return [];
+  return balances.filter((row) => String(row.cashLocationId ?? '') === locationId);
+}
+
+/** آخرُ مطابقةٍ لكلّ عملة — وبلا واحدةٍ «—» (فلا تاريخٌ يُخترع لصفٍّ لم يُطابَق). */
+export function reconciledAtText(
+  balances: readonly CashBalanceRow[],
+  locationId: string | null | undefined,
+): string {
+  const rows = balanceRowsOf(balances, locationId);
+  if (rows.length === 0) return '—';
+  const moments = rows.map((row) => momentText(row.updatedAt)).filter((text) => text !== '—');
+  return moments.length > 0 ? moments.join(' · ') : '—';
 }
 
 /** اسمُ الموضع من معرّفه — فالسندُ يحمل المعرّفَ والجدولُ يقرأ الاسم. */
@@ -273,7 +317,8 @@ export const VOUCHER_COLUMNS: readonly ScreenColumn[] = [
 /** أعمدةُ جدول مواضع النقد وأرصدها. */
 export const CASH_LOCATION_COLUMNS: readonly ScreenColumn[] = [
   { key: 'locationName', labelAr: 'الموضع' },
-  { key: 'balanceText', labelAr: 'الرصيد (كاش مُطابَق)' },
+  { key: 'balanceText', labelAr: 'الرصيد (كاش)' },
+  { key: 'reconciledAt', labelAr: 'آخر مطابقة', ltr: true },
   { key: 'currencyCode', labelAr: 'العملة', ltr: true },
   { key: 'defaultLabel', labelAr: 'الافتراضي' },
   { key: 'activeLabel', labelAr: 'نشط' },
@@ -310,6 +355,7 @@ export function cashLocationViewRows(
     id: String(row.id ?? ''),
     locationName: cashLocationLabel(row),
     balanceText: balanceText(balances, row.id ?? null),
+    reconciledAt: reconciledAtText(balances, row.id ?? null),
     currencyCode: row.currencyCode ?? '—',
     defaultLabel: row.isDefault ? 'نعم' : 'لا',
     activeLabel: row.isActive === false ? 'موقوف' : 'نشط',
@@ -353,5 +399,5 @@ export const NO_WRITE_HERE_AR = [
   'لا يُنشأ سندٌ من هنا: فنقدُ الخطّ يدخل الخزينةَ في مسار التحصيل الرسميّ (POST /van-sales/collections) الذي يُنشئ سندَ القبض ويُرحِّله — وسندٌ ثانٍ هنا قبضٌ مزدوج.',
   'ولا يُرحَّل فرقٌ ولا يُحمَّل نقصٌ على أحد: فترحيلُ الفرق وإقفالُ الوردية وتحميلُ النقص على مديونية موظّف تحتاج اعتمادَ الحالة salaryDeductionApproved في مسارها (‏/custody) لا هنا.',
   'ولا قيدَ بلا مستند: فما في الجدول أسطرُ `vouchers` كما أرجعها الخادم، وعمودُ «القيد» هو معرّفُ القيد المرتبط بالسند (لا قيدَ يُنشأ من هذه الشاشة).',
-  'والرصيدُ المعروض كاشٌ مُطابَق (‏`cash_location_balances`) والحقيقةُ الأستاذ — وفي اللوحة `staff` حركةُ الصندوق من الأستاذ نفسه.',
+  'والرصيدُ المعروض كاشٌ (‏`cash_location_balances`) والحقيقةُ الأستاذ: فصفُّ الرصيد يُزرع صفرًا عند إنشاء الموضع ولا يُكتب `updated_at` إلا بمطابقة — وبلا مطابقةٍ يُقال «لم يُطابَق بعد» بدل صفرٍ مزروعٍ يوحي أنّ الصندوقَ فارغ. وفي اللوحة `staff` حركةُ الصندوق من الأستاذ نفسه.',
 ] as const;
