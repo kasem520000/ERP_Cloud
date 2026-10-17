@@ -95,7 +95,8 @@ corepack pnpm run env:setup                            # يُعيد توليد .
 | **١٦ج** | **مسحُ مرشّحات التاريخ في الـAPI كلّه**: من `packages/contracts/openapi.json` حُصرت **٣٨ مسارًا** بمعاملِ تاريخ، وضُرب كلّها بفاسدٍ وصحيح ⇒ ١٥ كانت **٥٠٠ INTERNAL** و٤ كانت **٢٠٠ بمرشّحٍ محذوفٍ بصمت** (نمطُ `isISODate(q.from) ? gte(…) : undefined` في مارينا) و٦ محميّةٌ أصلًا و٨ محجوبةٌ بصلاحية/مورد. أُصلحت الخمسةَ عشر والثلاثةُ الصامتة بمساعد `validateDayFilters` عند باب **١٥ دالةً في ٨ ملفات** (برمزٍ لكلّ وحدة)، وبقي `/hrm/reports/salary?month` مثبَّتًا بندًا مفتوحًا (شهرٌ لا يوم). و٥ أحكامٍ على ١٨ مسارًا منها حكمٌ يمنع رفضَ التاريخ **الصحيح** | **(هذا الالتزام)** |
 | **١٧** | **التصميمُ المهنيّ — الترحيلُ إلى `@erp/ui`**: جسرٌ بثلاثة محوّلات في `apps/bakery/lib/ui-kit.ts` (`tableColumns`, `listState` بترتيب ممنوع←تحميل←خطأ←جاهز، `rowKeyFrom`)، وشاشةُ التقارير على `DataTable` (٥ جداول بفرزٍ وترقيمٍ ومُختارِ أعمدةٍ محفوظٍ وأربعِ حالات) و`Kpi`، وطبقةُ `.bak-table` في `globals.css` **تطابق تشريحَ `DataTable` قياسًا** للجداول التي لا تسعها (صفُّ المندوب القابلُ للتوسعة) وطُبِّقت على ١٠ جداول في ٦ شاشات، ومثبّتتا `ui-kit` و`table-anatomy` (٨ أحكام) تقرأان ملفَّ المكوّن وتقارنان كلّ رقم | `332d126` + هذا |
 | **١٨** | **السببُ الجذريّ لـ«الاستايل شبه معدوم» — ليس ذوقًا بل مرافقُ Tailwind لا تُولَّد**: ‏`@source '../../../packages/ui/src'` في `globals.css` للمخابز والطاقم ومنصّة الإدارة (التفصيلُ والقياسُ في §٥ «فخُّ التصميم» وفي التقرير §١٨) + إعادةُ بناء «نظرة اليوم» لوحةَ عملياتٍ حقيقية (‏`Kpi`×٦ من `GET /van-sales/dashboard` بأربعِ حالاتٍ صادقة، وخريطةُ الوحدات بشاراتِ `statusTone`، وحذفُ الصندوق الذي كان يقول «لا تعمل دفعةُ إنتاجٍ ولا فاتورة» وهو كذبٌ منذ الطور الثالث) + شاشةُ الدخول (علامةُ النظام، غسلةُ خلفية، تنسيقُ `:-webkit-autofill` الذي كان يصبغ الحقلين أصفر) + حارسُ `design-source-coverage.spec.ts` (١٠ أحكام) | **(هذا الالتزام)** |
-| **١٩** | **تحجيمُ الخطّ + مندوبٌ تجريبيّ**: قاعدةٌ واحدة في `callerLineScopeInTx` (بطاقةُ المندوب وأذوناتُه من **القاعدة** لا من الرمزية) وثلاثةُ حراس (`assertCompanyScopeInTx`, `assertOwnsLoadInTx`, `assertOwnsDocumentInTx`) على ٨ مسارات، والقائمتان (`VAN_SALES_COMPANY_SCOPE_PERMISSIONS`, `VAN_SALES_REP_PROXY_PERMISSIONS`) وتعريفُ الدور (`VAN_SALES_REP_ROLE`) في `@erp/contracts` تنفيذًا واحدًا + بذرةُ المندوب (`seedRep` تحاكي `linkSalesmanAccount`) و`DEMO_REP_*` في `.env.example` وتوليدها في `env:setup` + تفعيلُ `bakery_distribution` في `tenant_apps` + أداةُ `pnpm db:demo-audit` (قراءةٌ فقط) + `companyScope` في كتالوج الوحدات ووضعُ المندوب في «نظرة اليوم» | **(هذا الالتزام)** |
+| **١٩** | **تحجيمُ الخطّ + مندوبٌ تجريبيّ**: قاعدةٌ واحدة في `callerLineScopeInTx` (بطاقةُ المندوب وأذوناتُه من **القاعدة** لا من الرمزية) وثلاثةُ حراس (`assertCompanyScopeInTx`, `assertOwnsLoadInTx`, `assertOwnsDocumentInTx`) على ٨ مسارات، والقائمتان (`VAN_SALES_COMPANY_SCOPE_PERMISSIONS`, `VAN_SALES_REP_PROXY_PERMISSIONS`) وتعريفُ الدور (`VAN_SALES_REP_ROLE`) في `@erp/contracts` تنفيذًا واحدًا + بذرةُ المندوب (`seedRep` تحاكي `linkSalesmanAccount`) و`DEMO_REP_*` في `.env.example` وتوليدها في `env:setup` + تفعيلُ `bakery_distribution` في `tenant_apps` + أداةُ `pnpm db:demo-audit` (قراءةٌ فقط) + `companyScope` في كتالوج الوحدات ووضعُ المندوب في «نظرة اليوم» | `2c81071` |
+| **٢٠** | **قرارا المالك (ب١٧ وب١٨) يُنفَّذان**: (أ) هويةُ المنشأة من `DEMO_COMPANY_*` مع `ON CONFLICT … DO NOTHING RETURNING tenant_id` فالتحذيرُ مقياسٌ على ما كُتب/سيُقرأ لا على ما طُلب، وملفٌّ قائمٌ **لا يُدهس** (يُقال ذلك في السطر)؛ (ب) ‏`pnpm db:demo-repair` — تخطيطٌ ثم كتابةٌ في معاملةٍ واحدة بعد نسخةٍ JSON في `.demo-repair/`، بحدٍّ مقروءٍ من `erp_migrations.applied_at` لـ`0131`، وحارسِ قيمةٍ مقاسةٍ في كلّ `UPDATE`، وأربعِ فئاتٍ وثلاثةِ «يُعدّ ولا يُصلَح»، ورفضٍ بلا `0131` (‏١٣ حكمًا على قاعدةٍ مُرحَّلة، والتخريبُ قِيس مرتين)؛ (ج) شاشةُ الخزينة **قراءةٌ** لأنّ `van-sales.service.ts:6953-7027` يُنشئ سندَ القبض **ويرحّله** أصلًا (فسندٌ ثانٍ على النقد نفسه قبضٌ مزدوج) + ‏`/accounting` بسبعةَ عشرَ مسارًا حقيقيًّا عبر `POST /auth/handoff` (رمزٌ لمرةٍ واحدة يُصنع عند النقر، ولا `token` في عنوان) ⇒ الشارةُ **١١ من ١١**؛ (د) قنبلةُ ساعةٍ في `report-invoices.spec.ts` أُصلحت بتثبيت `posted_at` وإعادتها في `finally` | **(هذا الالتزام)** |
 
 ---
 
@@ -165,6 +166,9 @@ corepack pnpm -r run lint
 corepack pnpm --filter @erp/bakery run build
 corepack pnpm --filter @erp/staff run build
 corepack pnpm run openapi:export && git status --short             # يجب ألّا يظهر فرقٌ في openapi.json
+corepack pnpm run db:demo-repair                                    # قياسٌ فقط (افتراضيًّا)
+corepack pnpm run db:demo-repair -- --apply --tenant demo           # الكتابةُ بعد نسخةٍ احتياطية
+cd apps/api && corepack pnpm exec vitest run test/demo-repair.spec.ts test/report-invoices.spec.ts
 corepack pnpm run db:local                                         # (خلفية) لبوابة الهجرة فقط
 corepack pnpm run db:migrate
 corepack pnpm --dir packages/database run migrate:down 1
@@ -190,6 +194,22 @@ corepack pnpm --dir packages/database run migrate:down 1
 | **CSS المبنية بعد `@source`** (‏`.next/static/css/*.css`، والتهريبُ مهمّ: ‏`.bg-slate-950\/45`) | المخابز **٦١٢٨٠** بايت · الطاقم **٩٠٤٩٢** · منصّةُ الإدارة **٨١٦١٥** — والمفقودُ من ١٠ أصنافٍ حرجة **٠** في الثلاثة (كان ١٠/١٠) |
 | ‏`openapi:export` | ‏٠ **بلا فرق** في `packages/contracts/openapi.json` |
 | بوابةُ الهجرة (١٣ج) | ‏`applied: 131, skipped: 0` ⇒ `migrate:down 1` ⇒ القيمُ المفبركة تعود والسجلُّ آخرُه `0130` ⇒ `applied: 1, skipped: 130` ⇒ القيمُ صادقة ⇒ `db:seed` خروجٌ ٠ |
+
+**تحديثُ ٢٠٢٦-١٠-١٧ (بعد الشريحة ٢٠)** — والجدولُ الذي فوقه يبقى سجلًّا لما قِيس في ١٩:
+
+| البوابة | النتيجة |
+|---|---|
+| ‏`apps/api` كاملة (‏٠٠:١٤ UTC) | **٢١٥ ملفًّا / ١٨٠٣ أحكام، ٠ فشلت** (‏٤٦٢٫٨٢ ثانية) + `Errors 1` (ب١٦) |
+| العدُّ السابق في الشريحة نفسها (‏٢٣:٥٩ UTC) | ‏٢١٥/١٨٠٣ **بفشلٍ واحد** = قنبلةُ الساعة في `report-invoices.spec.ts` (بندُ ب٨ — أُصلحت بالتثبيت والإعادة، وقِيس التخريبُ بإرجاع الساعة إلى ٢٣:٥٩:٣٠ ففشل الحكمُ **حرفًا** كما فشل أول مرة) |
+| ضجيجُ ب١٦ في التشغيلين | على `erp_test_platform_billing_41816_3` ثمّ على `erp_test_iso_org_45944_122` ⇒ **قاعدةٌ مختلفة في كلّ تشغيل**: تسابقُ teardown لا تسريبُ مثبّتةٍ بعينها (وقِيس أنّ `isolation-organization.spec.ts` يُنهي عملاءه في `finally`) |
+| مثبّتةُ الإصلاح الجديدة | ‏`test/demo-repair.spec.ts` — **١٣ حكمًا، ٠ فشلت**؛ والتخريبُ مرّتين (حذفُ شرط الحدّ ⇒ سقوط الأحكام؛ حذفُ حارسِ القيمة **مع الوسيط** ⇒ الحكمُ ١٢ وحده) ثمّ الاستعادةُ بـ`md5sum 2a0f37b5657b2d6af179a1c98045893d` |
+| مثبّتتا الشاشتين الجديدتين | ‏`treasury-screen.spec.ts` **١٥** + `staff-handoff.spec.ts` **٩** (ومنهما حكمٌ يقيس وجودَ `page.tsx` لكلّ وجهةٍ من **الطرفين**، وتخريبُ `/accounting/ledgerr` ⇒ حكمان سقطا، والاستعادةُ بـ`b64a5fa0d17fa87b28fb216a5891af07`) |
+| بقيّةُ الحزم | **١٣ حزمة / ١٠٦ ملفات / ٩٨٣ حكمًا + ١ تخطٍّ، ٠ فشلت** (كانت ١٠٤/٩٥٩) |
+| ‏`apps/bakery` | **٢١ ملفًّا / ٢٥١ حكمًا** (كانت ١٩/٢٢٧) |
+| الترجمةُ والـlint | ‏`pnpm run typecheck` خروجٌ ٠ وبلا `error TS` · `pnpm -r run lint` خروجٌ ٠ وبلا خطأ (وخطأٌ واحدٌ من صنعي أُصلح: ‏`selectClass` مستوردٌ بلا استعمال في `app/treasury/page.tsx`) |
+| بناءُ المخابز | ✓ — **١١ مسارًا** (‏`/accounting` ‏٦٫٨٦ kB و`/treasury` ‏٩٫٣٠ kB، وساكنان)، وCSS ‏٦١٥١٨ بايت وكلُّ الأصناف الجديدة فيها — **والفحصُ الأول قال إنّ `text-[12.5px]` ناقصٌ وكان الخطأ في تهريب `grep`** (فأُعيد بـ`grep -F`) |
+| بذرةٌ بهويةٍ من البيئة | منشأةٌ قائمة (`demo`) ⇒ ‏`⚠ name_en, tax_no, cr_no, phones, email` + «الملفُّ موجود — عدّله في staff» وبلا كتابة؛ ومنشأةٌ جديدة (`bakeryco`) ⇒ **بلا تحذير** و`company_profiles` يقرأ `300123456789013`/`1010999888`/`["+966501234567","+966112345678"]`/`info@bakeryco.sa`، وبطاقةُ المندوب **بلوحةٍ من البيئة** (`DEMO_REP_VEHICLE_PLATE='أ ب ج ٤٣٢١'` ⇒ `vehicle_plate` مقروءٌ من القاعدة) |
+| ‏`pnpm db:demo-repair` على القاعدة المحليّة | ‏`حدُّ الفبركة: … 2026-10-16 21:57:49.185589+00` ⇒ `✓ لا صفوفَ مُثبتةَ الفبركة` — صادقٌ لا فارغ: فالبذرةُ بعد ٠١٣١ لا تُنشئ مستنداتِ خطٍّ أصلًا |
 
 **وفلسفةُ الإثبات في كلّ شريحة** (لا تُترك): ‏(١) احفظ نسخةً من الملفّ **قبل** التخريب
 **ونسخةً مُصلَحة** (‏`cp file /tmp/x.fixed.ts` + ‏`md5sum`)؛ (٢) خرِّب (أو `git checkout HEAD --
@@ -449,6 +469,55 @@ text-[13px] text-ink'`؛ الجداولُ `overflow-x-auto w-full border-collaps
    يرفع `ReferenceError` لا فشلَ مقارنة. و`readFileSync` تُستورد صراحةً (الملفُّ كان
    يستورد `existsSync, readdirSync` فقط).
 
+### البذرُ والإصلاحُ والخزينة (‏٢٠ — تسعةُ أمورَ أُصيبت فعلًا)
+
+1. **‏`ON CONFLICT … DO NOTHING` يعني أنّ البذرةَ لا تُحدّث أبدًا.** ملفُّ منشأةٍ قائمٌ لا
+   يتغيّر ولو جُعلت قيمُه من البيئة. فمن يجعل قيمةً «قابلةً للضبط» في بذرةٍ عليه أن يقيس
+   ما في القاعدة (`… RETURNING` لمن كُتب، وقراءةٌ لمن لم يُكتب) ويعلن الفرق — وإلا ظنّ
+   المُشغِّل أنّ رقمَه الضريبيّ كُتب وهو لم يُكتب.
+2. **خمسةُ أسماءٍ مُخمَّنة لم توجد**: ‏`van_sales_return_documents` و`van_sales_load_orders`
+   و`inventory_lots` و`factory_production_orders` و`salesmen.salesman_name`. والحقيقةُ:
+   ‏`van_load_orders`، و`item_lots`، والمرتجعاتُ **صفوفٌ في `van_sales_documents`** بـ
+   ‏`document_kind='return'` + `reference_document_id`، وإشعارُ الدائن `sales_invoices.kind`
+   + `reference_invoice_id`. فـ`information_schema` أولًا، ومرآةُ drizzle ليست القاعدة.
+3. **‏`NOT NULL` هو ما يقرّر معنى «الصدق»**: ‏`van_sales_documents.unit_cost` ‏NOT NULL
+   default 0 ⇒ الصدقُ **صفرٌ مقاس** لا فراغ؛ و`batch_code` nullable ⇒ الفراغُ صادق؛ و
+   ‏`factory_production_batches.item_name` و`batch_no` ‏NOT NULL ⇒ **لا تُفرَّغان أبدًا**
+   (وتفريغُ `item_name` كذبٌ، واستبدالُه باسمٍ آخر اختراعٌ ثانٍ — فالمخرجُ `items.name_ar`
+   من الربط القائم، وبلا ربطٍ يُترك ويُعدّ). و`van_sales_documents` **بلا `updated_at` ولا
+   `version`** فلا يُكتبان.
+4. **أرقامُ وسائط SQL المكتوبة يدًا صنفُ عيبٍ كامل**: ‏`AND t.code = $3` في ثمانية
+   استعلامات عملت ما دام لكلٍّ وسيطان قبلها، فسقط `--tenant` بـ`could not determine data
+   type of parameter $2` (استعلامٌ له وسيطٌ واحد). والصوابُ حسابُ الرقم لكلّ استعلام.
+5. **التخريبُ يجب أن يزيل الحارسَ كلّه** (الشرطَ **والوسيط**): إزالةُ الشرط وحده تُنتج
+   خطأَ ربطٍ يُسقط أحكامًا أخرى ولا يثبت شيئًا. **وفراغُ التغطية لا يُرى إلا بتخريبِ كلّ
+   حارسٍ مكرّر على حدة** — فهكذا وُلد الحكمُ ١٢ (حارسُ الكتابة في فئة المرتجع كان بلا
+   اختبار لأنّ الحكمَ ١١ كان يُخرّب صفَّ دفعةِ إنتاج).
+6. **مَن يكتب سندَ القبض؟** ‏`POST /van-sales/collections` (`van-sales.service.ts:6953-7027`)
+   **يُنشئ السند ويرحّله**: ‏`kind:'receipt'`، ‏`subtype: party?'customer':'account'`،
+   ‏`method:'cash'`، ‏`referenceNo` = رقمُ مستند الخطّ، ‏`salesmanId` = ‏`employee_id`،
+   ‏`idempotencyKey` = ‏`van-collection-voucher:<documentId>:<key>`، و`postVoucherInTx`
+   (‏Dr الصندوق / Cr الذمم) — **ويبقى مسودةً** حين لا يُحلّ حسابٌ مقابل (ملفُّ الترحيل
+   ‏`receipt_voucher.receivableAccountId`) ويقول المسارُ ذلك. فأيةُ شاشةٍ جديدة **لا تُنشئ
+   سندًا ثانيًا على النقد نفسه** (قبضٌ مزدوج)، ومفتاحُ عدم التكرار هذا هو **كاشفُ سندِ
+   الخطّ** الموثوق — لا `referenceNo` (فسندٌ يدويٌّ قد يحمل رقمَ مستند) ولا البيان.
+   والمسودةُ تعني «قُبض ولم يدخل الخزينةَ ولا الدفتر» — وهي فجوةٌ تُقال لا تُغطّى.
+7. **‏`GET /vouchers` ترجع مصفوفةً عارية بـ`.limit(500)`** بلا `meta.total` ولا مجاميع ⇒
+   لا إجماليَّ يُشتقّ منها أبدًا (خطأُ ١٣أ: مجموعُ نافذةٍ مقطوعة بعنوان «الإجمالي»)؛ وعند
+   ملامسة السقف **لا يُعرض مجموع** ويُقال القصّ. وأمّا `GET /cash-locations` فبغلاف
+   ‏`{data, meta}`. و`cash_location_balances` **كاشٌ مُطابَق** («the truth is the ledger» في
+   عقد `@erp/contracts`) ⇒ يُقال ذلك في عنوان العمود، وبلا صفٍّ «—» لا صفرٌ مُخترع.
+8. **ساعةُ الحائط في المثبّتة عيبٌ لا مصادفة** (عائلةُ ب٨): مرشّحا `fromTime`/`toTime`
+   يقارنان `posted_at` (‏`report-catalog.ts:340-341,373`) والفواتيرُ تُرحَّل بـ`now()` ⇒
+   «من ٢٣:٥٩ ⇒ ٠ صفوف» كاذبٌ في الدقيقة الأخيرة من اليوم UTC فقط. والإصلاحُ تثبيتُ
+   الساعة **وإعادتها** في `finally` (وشدُّها إلى ١٠:٠٠ من اليوم نفسه حتى لا يتغيّر اليومُ
+   على الأحكام اللاحقة) + حكمٌ يميّز التثبيتَ عن الصدفة (`fromTime=10:01` ⇒ ٠ و`toTime=10:00`
+   ⇒ ٣). **وإعادةُ التشغيل خارج النافذة لا تثبت شيئًا** — فالإثباتُ شدُّ التثبيت إلى
+   الساعة التي أسقطت الحكمَ ورؤيةُ الفشل نفسه.
+9. **أدواتُ القياس تكذب أيضًا**: ‏`grep -o 'text-\[12\.5px\]'` يُنتج «صنفٌ ناقص» زائفًا
+   (فـ`grep -F` للقيم الاعتباطية)، و`cmd | tail` يُخفي رمزَ الخروج (فـ`cmd > /tmp/x.log
+   2>&1; echo exit=$?; grep -c 'error TS' /tmp/x.log`)، و`grep -c` بلا مطابقةٍ يخرج بـ١.
+
 ### الصلاحياتُ على مستوى الصفّ (‏١٩ — القاعدةُ التي لا تُنسى)
 
 `van_sales.view` **ليست** إذنَ قراءةِ المنشأة: فهي ما تتطلبه مساحةُ المندوب نفسه
@@ -558,12 +627,17 @@ text-[13px] text-ink'`؛ الجداولُ `overflow-x-auto w-full border-collaps
 | ‏`packages/web-core/src/idempotency.ts` | ‏`submissionIdempotencyKey`, `canonicalPayloadText`, `stableDigest`, `newSubmissionNonce`, `createSubmissionKeyTracker`, `SUBMISSION_KEY_MAX_LENGTH=120` |
 | ‏`packages/web-van/src/windows.ts` | ‏`windowNote`, `windowIsComplete`, `WINDOW_LABELS`, `DEFAULT_TOTALS_CLAUSE`, `DASHBOARD_TOTALS_CLAUSE`, `REP_TOTALS_CLAUSE` |
 | ‏`apps/bakery/lib/rep-queue.ts` | منطقُ الطابور النقيّ (١٤أ) |
-| ‏`apps/bakery/lib/navigation.ts` | ‏`BakeryModule`؛ ‏ready: ‏`collection, custody, distribution, overview, production, reports, reps, sales`؛ ‏planned: ‏`treasury, accounting, rep-app` |
+| ‏`apps/bakery/lib/navigation.ts` | ‏`BakeryModule`؛ ‏**١١ وحدةً كلّها `ready` منذ ٢٠** (`collection, custody, distribution, overview, production, reports, reps, sales, rep-app, treasury, accounting`) — **ولا `planned` بقيت**، ومثبّتةُ `navigation.spec.ts` تقيس الاتجاهين: ‏`ready` ⇔ `page.tsx` موجودة، و`planned` ⇒ بلا `href` |
 | ‏`apps/bakery/lib/{sales-screen,collection-screen,reports-screen,custody-screen,reps-screen,dashboard-windows,lookups}.ts` | منطقُ الشاشات النقيّ (والاستيراداتُ النسبيةُ بلا امتداد = هويةُ المخابز) |
 | ‏`apps/staff/app/van-sales/rep/page.tsx` | شاشةُ المندوب القائمة في الطاقم (‏١٠٥٠+ سطرًا) — مرجعٌ للشكل والحقول، ومستهلكُ `/van-sales/me` |
 | ‏`apps/api/test/van-sales-*.spec.ts` | ‏١٣ مثبّتةً للتوزيع (أسماءُها في §١ من التقرير لكلّ شريحة) |
+| ‏`apps/bakery/lib/treasury-screen.ts` + `app/treasury/page.tsx` | منطقُ شاشة الخزينة النقيّ (اشتقاقُ الأعمدة من الصفّ، وكاشفُ سندِ الخطّ بمفتاح عدم التكرار، و`windows` للقصّ عند ٥٠٠) وصفحتُها — **بلا مسارِ كتابة على قصد** (ب٢٠) |
+| ‏`apps/bakery/lib/staff-handoff.ts` + `components/staff-handoff-link.tsx` + `app/accounting/page.tsx` | سبعةَ عشرَ وجهةً في لوحة staff (`ACCOUNTING_DESTINATIONS`, `TREASURY_DESTINATIONS`, `TREASURY_NOT_LISTED`)، و`staffBaseUrl()`/‏`handoffHref()`، والرابطُ الذي يصنع الرمزَ عند النقر |
+| ‏`packages/database/src/cli/demo-repair.ts` + `apps/api/test/demo-repair.spec.ts` | أداةُ الإصلاح المقياس (٢٠ب) ومثبّتتُها (١٣ حكمًا)؛ وشقيقتُها `demo-audit.ts` (قراءةٌ فقط، ١٩)؛ والأمران `pnpm db:demo-repair` و`pnpm db:demo-audit` |
+| ‏`apps/api/src/modules/treasury/{treasury.controller,bank-feeds.controller,treasury.service}.ts` | المساراتُ الحقيقية: ‏`@Controller()` **فارغةٌ** (فالسنداتُ والتحويلاتُ والإغلاقاتُ ومواضعُ النقد في الجذر)، و`bank-feeds` وحدها تحت `/treasury`؛ و`vouchers()` :٢٠٣ (بـ`.limit(500)` :٢٧٢)، و`createVoucherInTx` :٣٤٠، و`postVoucherInTx` :٧٤١ |
+| ‏`packages/web-core/src/token-bridge.tsx` | ‏`TokenBridge` و`handoffAction` و`HANDOFF_FAILED_MARKER='failed'` — آليّةُ التسليم التي تستعملها `/accounting` (‏AUD-08) |
 | ‏`packages/database/migrations/0131_van_sales_honest_defaults.sql` (+‏`down/`) | آخرُ هجرة؛ والقادمةُ ٠١٣٢ |
-| ‏`docs/BAKERY_APP_PHASE3_SLICE4_REPORT.md` | سجلُّ الشرائح + §«سجلُّ البنود المفتوحة والقرارات المطلوبة» (٦ قراراتٍ + ١٢ بندَ عمل) |
+| ‏`docs/BAKERY_APP_PHASE3_SLICE4_REPORT.md` | سجلُّ الشرائح (آخرُها §٢٠) + §«سجلُّ البنود المفتوحة والقرارات المطلوبة» (٦ قراراتٍ + ١٢ بندَ عمل) — **وهذا السجلُّ لم يعد آخرَ الملفّ** منذ أُضيفت §٢٠ بعده، فالمؤشّرُ الحيّ هو §٧ من هذه الوثيقة |
 
 ---
 
@@ -587,35 +661,65 @@ text-[13px] text-ink'`؛ الجداولُ `overflow-x-auto w-full border-collaps
   ‏`movement_type` مجهولٌ يُرفض بدل تطبيعٍ صامت) وبقي منه: رموزُ الخطأ غيرُ مسجّلةٍ في
   ‏`@erp/contracts` ومسحُ مواضع `::date` الأخرى؛
   ب٦ `getReports` تستدعي `dashboard()`؛ ب٧ `truncated`
-  بلا ترقيم صفحات؛ ب٨ سبعُ مثبّتاتٍ بمساعد `today()` بـUTC؛ ب٩ سطحُ الخزينة لم يُقرأ؛
+  بلا ترقيم صفحات؛ ب٨ مثبّتاتٌ بمساعد `today()` بـUTC (وأُضيف إليها في ٢٠ عضوٌ مُصلَح: ⏰ `report-invoices.spec.ts` — ساعةُ الحائط تُثبَّت وتُعاد)؛ ب٩ سطحُ الخزينة لم يُقرأ؛
   ب١٠ دقّةُ معاينة الضريبة؛ ب١١ تنظيفُ الصفوف القديمة من ٣.٨٠؛ ب١٢ `total` في صفّ المرتجع
-- **ب١٧ (جديدٌ بعد ١٩ — قرارٌ للمالك: ما يُفعل بالبيانات غير الصالحة للإنتاج)**:
-  ‏`pnpm db:demo-audit` (قراءةٌ فقط، ولا يحذف ولا يُصلح) كشف على بذرةٍ جديدة **٥
-  سجلّات**: (١) هويةُ المنشأة من `seed-demo.ts:449-462` — ‏`tax_no='300000000000003'`
-  و`cr_no='1010000000'` و`phones=['+966500000000']` و`email='info@demo.test'` و
-  `name_en='Demo Trading Co.'`، **وتُطبع في الفاتورة وفي مستند ZATCA**؛ (٢) طرفان
-  عامّان «عميل عام»/«مورد عام»؛ (٣) قيدُ افتتاحٍ بـ٢٥٠٠٠٠ رأسِ مالٍ (أطرافُه ٥٠٠٠٠٠)؛
-  (٤) اشتراكٌ `pro-monthly` بـ`provider='manual'` حتى ٢٠٢٧. والقراراتُ المطلوبة، وكلُّ
-  واحدٍ منها يمسّ مالًا أو هويةً فلا يُتّخذ بلا صاحبِ العمل: (أ) هل تُجعل هويةُ المنشأة
-  من متغيّراتٍ (`DEMO_COMPANY_TAX_NO`…) بقيمها الحالية افتراضًا + سطرُ تحذيرٍ عند البذر،
-  أم تُترك فارغةً فلا تُطبع هويةٌ وهميةٌ أبدًا (ومعها يُرفض إصدارُ فاتورةٍ ضريبية
-  بـ`VAN_ZATCA_SELLER_IDENTITY_REQUIRED` حتى تُدخل المنشأةُ رقمَها — وهو الصدقُ لكنه
-  يُعطّل تجربةَ البيع الضريبيّ في العرض)؛ (ب) هل يبقى قيدُ الافتتاح في العرض
-  (‏`DEMO_OPENING_ENTRY=false` موجودٌ أصلًا)؛ (ج) **صفوفُ ما قبل ٠١٣١** (ب١١): من
-  يحمل `unit_cost=3.80` في المرتجعات هل يُعاد حسابُه من `sales_invoice_lines.cost_total`
-  (ممكنٌ حيث يوجد إشعارٌ دائن)، ومن لا يُعرف له تكلفةٌ هل يُترك صفرًا صادقًا أم يُعلَّم؛
-  و`batch_code='BATCH-DEFAULT'` هل يُمسح (العمودُ لا تقرأه شاشةٌ اليوم)؛ و`item_name`
-  المفبرك في دفعات الإنتاج هل يُفرَّغ (العمودُ صار بلا افتراضيّ بعد ٠١٣١). **ولا شيءَ
-  يُحذف قبل القرار**: فالحذفُ في الإنتاج محرّمٌ بقواعد البيت، والأداةُ كشفٌ لا مكنسة.
-- **ب١٨ (جديدٌ بعد ١٩ — قرارٌ للمالك: «٩ من ١١ وحدة مبنيّة»)**: الوحدتان
-  المخطَّطتان هما `treasury` (الخزينة — سطحُها لم يُقرأ بعد، بندُ ب٩) و`accounting`
-  («المحاسبة التفصيلية في اللوحة» — وهي تسليمُ جلسةٍ إلى `staff` لا شاشةٌ تُكتب هنا).
-  والعددُ المعروض صادقٌ (يُحسب من `readyModules(visibleModules(...))`) لكنّه يُقرأ
-  «التطبيقُ ناقص». والخيارات: (أ) بناءُ شاشةِ الخزينة (تحتاج قراءةَ وحدات الخزينة
-  وعقودها أولًا) وتحويلُ `accounting` إلى رابطٍ فعليّ فيصير العدد ١١/١١؛ (ب) إبقاءُ
-  الاثنين مخطَّطَين مع نصٍّ أوضح («وحدتان في الخطة» بدل العدد)؛ (ج) حذفُ المخطَّط من
-  القائمة وعرضُه في صفحةِ خطةٍ واحدة. والقرارُ تجاريّ (ماذا يُعرض على العميل) فلا
-  يُتّخذ وحده.
+- **ب١٧ — أُقفل في ٢٠** (قرارُ المالك: **الهويةُ من البيئة · التراثُ يُصلَح · ولا حذف**):
+  (أ) ‏`DEMO_COMPANY_{NAME_AR,NAME_EN,TAX_NO,CR_NO,PHONES,EMAIL,COUNTRY_CODE}` في
+  ‏`env:setup` و`.env.example` و`apps/api/scripts/seed.ts`، وافتراضيُّها قيمُ العرض القديمة
+  (`DEMO_COMPANY_PLACEHOLDERS`) حتى لا يتغيّر تثبيتٌ قائم — لكنها **تُقاس وتُعلن**: الإدراجُ
+  ‏`… DO NOTHING RETURNING tenant_id` فـ`companyWritten` من القاعدة، والتحذيرُ يُحسب على ما
+  كُتب أو سيُقرأ، وملفٌّ قائمٌ **لا يُدهس** (يُقال: «عدّله في staff → الإعدادات»). وقِيس
+  مرّتين: منشأةٌ قائمة ⇒ ‏`⚠` خمسةُ حقولٍ وبلا كتابة؛ ومنشأةٌ جديدة ⇒ بلا `⚠` والقيمُ
+  مقروءةٌ من `company_profiles` (ومعها `DEMO_REP_VEHICLE_PLATE` ⇒ `vehicle_plate` في بطاقة
+  المندوب، وكان فارغًا في ١٩ على قصد). (ب) ‏`pnpm db:demo-repair`
+  (`packages/database/src/cli/demo-repair.ts`) — قياسٌ افتراضيًّا، و`--apply` تكتب في معاملةٍ
+  واحدة بعد نسخةٍ JSON في `.demo-repair/` (في `.gitignore`)، بحدٍّ من
+  ‏`erp_migrations.applied_at` لـ`0131` ورفضٍ بلا تطبيقها، وأربعِ فئات (تكلفةُ المرتجع من
+  إشعاره الدائن وإلا صفرٌ صادق · ‏`batch_code` ⇒ ‏NULL · ‏`item_name` ⇒ ‏`items.name_ar` ·
+  وبـ`--fix-batch-cost` وحدها دفعةٌ تناقض نفسها)، وثلاثةِ «يُعدّ ولا يُصلَح» (صفُّ بيعٍ
+  بـ٣٫٨٠ قبل الحدّ · دفعاتُ إنتاجٍ بـ٣٫٨٠ · ‏`production_batch_no` تُركت عمدًا في `0131`)،
+  وحارسِ قيمةٍ مقاسةٍ في كلّ `UPDATE` (فصفٌّ تغيّر بين القياس والكتابة يلفّ المعاملةَ كلّها
+  ويُسمّى)، وعاديةٍ (تشغيلٌ ثانٍ يجد صفرًا). و`apps/api/test/demo-repair.spec.ts` **١٣/١٣**
+  على قاعدةٍ مُرحَّلة حقيقية تُحاكي التراث بإعادة `created_at` إلى ما قبل `applied_at`
+  المقروء، والتخريبُ قِيس مرتين والاستعادةُ بالبصمة. **ولا شيءَ يُحذف** — والأداةُ إصلاحٌ
+  مقياسٌ لا مكنسة. وبقي مفتوحًا منه: **لم تُجرَّب على قاعدةِ عميلٍ تراثية حقيقية** (فلا
+  واحدةَ هنا كُتبت قبل `0131`)، و`--fix-batch-cost` لم تُجرَّب إلا في المثبّتة وهي مقفلةٌ
+  افتراضيًّا وتبقى كذلك.
+- **ب١٨ — أُقفل في ٢٠** (قرارُ المالك: **الوحدتان تُبنيان**): ‏`treasury` صارت شاشةَ قراءة
+  في `app/treasury/page.tsx` + `lib/treasury-screen.ts` (أربعةُ `Kpi`، مواضعُ النقد
+  وأرصدتُها، سنداتُ الخطّ، كلّ سندات المدى، وبطاقةُ «ما لا تفعله هذه الشاشة») — **قراءةٌ
+  لأنّ مسارَ التحصيل يكتب السندَ ويرحّله أصلًا** (انظر §٥ «مَن يكتب سندَ القبض؟»)؛ و
+  ‏`accounting` صارت شاشةَ تسليمٍ في `app/accounting/page.tsx` + `lib/staff-handoff.ts` +
+  ‏`components/staff-handoff-link.tsx` بسبعةَ عشرَ مسارًا حقيقيًّا (١١ في
+  ‏`apps/staff/app/accounting` و٦ في `/treasury`) عبر `POST /auth/handoff`، وبلا عنوانٍ
+  مُخترع (حكمٌ يقيس وجودَ `page.tsx` لكلّ وجهةٍ **من الطرفين**، وما يُترك من `/treasury`
+  — الصفحاتُ المصرفيةُ الأربع — مُعلنٌ ومثبَّتٌ بقائمة). والنقاطُ المعلَنة في الكتالوج
+  أُصلحت إلى المسارات الحقيقية (`@Controller()` فارغةٌ ⇒ `/vouchers` لا `/treasury/vouchers`؛
+  وأمّا `bank-feeds` فهي تحت `/treasury`)، وصلاحيةُ الوحدة صارت
+  ‏`anyPermissions: ['treasury.view','organization.cashlocation.view']` (فالرمزُ القديم كان
+  يحجب الشاشةَ عمّن يقرأ ولا يُنشئ). والشارةُ في «نظرة اليوم» تُحسب من
+  ‏`readyModules(visibleModules(...))` ⇒ **١١ من ١١** للمالك (وللمندوب أقلّ: دورُه يحمل ٠ من
+  أذونات الخزينة والمحاسبة — قِيس في القاعدة). **وبقي: الشاشتان لم تُريا بالعين ولا قِيستا
+  على خادمٍ قائم ببياناتٍ حقيقية ⇒ بندُ ب١٩.**
+- **ب١٩ (جديدٌ بعد ٢٠ — عينُ المالك)**: ‏`/treasury` و`/accounting` مُترجَمتان ومبنيّتان
+  (‏١١ مسارًا في `next build`، وساكنان) ومختبرتان منطقًا (‏٢٤ حكمًا: ١٥ + ٩) لكنّ **مظهرَهما
+  لم يُرَ في متصفّح** ولم تُقَس استجابتُهما لخادمٍ قائم (‏`GET /vouchers` و`/cash-locations`
+  و`/auth/handoff` بمنشأةٍ حقيقية). فالخطوةُ المطلوبة: تشغيلُ `apps/api` و`apps/bakery`
+  والدخولُ بحساب المالك على `http://localhost:3005/treasury` ثمّ `/accounting` والنقرُ على
+  وجهةٍ واحدة للتأكد أنّ التسليمَ يصل (ويحتاج `NEXT_PUBLIC_STAFF_URL` و`apps/staff`
+  قائمةً على ٣٠٠١). وبندُ ب١٥ (عينُ المالك على staff ومنصّة الإدارة بعد `@source`) ما زال
+  قائمًا ويُضمّ إلى هذه الجولة.
+- **ب٢٠ (جديدٌ بعد ٢٠ — قرارٌ للمالك إن أريد)**: شاشةُ الخزينة **بلا مسارِ كتابة على
+  قصد** (وحكمٌ في المثبّتة يمنع إضافةَ `apiPost('/vouchers'…)` و`/post` و`/void`
+  و`/cash-transfers`). فإن أراد المالكُ «توريدَ نقدية الخطّ إلى الخزينة» **كعمل** فطريقُه
+  ‏`POST /cash-transfers` (تحويلٌ بين موضعَي نقد: صندوقُ السيارة ← الخزينة) لا سندٌ ثانٍ،
+  وهو يحتاج قرارًا في مَن يعتمد التحويلَ ومتى يُعدّ النقدُ «واصلًا» (وقبل القرار يبقى
+  التسليمُ إلى staff كافيًا وصادقًا). ولم يُعرض كذلك: إغلاقاتُ اليومية (`/shift-closes/
+  day-closes`) وتغذيةُ البنوك (`bank-*`) — فالأولى سطحُ صندوق الكاشير لا صندوقَ السيارة،
+  والثانية مسارُ عملٍ مصرفيّ، ووجهتاهما معلَّنتان في `/accounting` وفي قائمة «لا تُعرض».
+- **ب٢١ (جديدٌ بعد ٢٠ — بندُ أ٤ لم يُلمس)**: الشريحةُ جعلت هويةَ المنشأة من البيئة في
+  **البذرة**، وأمّا أيُّ حقولٍ تقرأها `einvoicing` فعلًا عند إصدار مستند ZATCA (وهل تقرأ
+  ‏`company_profiles` أم إعدادًا آخر) فبندُ أ٤ القائم — ولم يُقَس في هذه الشريحة.
 - **ب١٦ (جديدٌ بعد ١٨ — ضجيجٌ في العدّ الكامل، مقاسٌ لا مُخمَّن)**: ‏`vitest run` الكاملة
   في `apps/api` تُبلغ **`Errors 2`** مع نجاح كلّ الأحكام (‏٢١٣/١٧٧٦): ‏`FATAL 57P01`
   (‏admin_shutdown) على عميلٍ في مجمّع `erp_test_journal_reversal_15591_20`
@@ -630,6 +734,13 @@ text-[13px] text-ink'`؛ الجداولُ `overflow-x-auto w-full border-collaps
   ثانيًا (جُرِّب ورُفض ورُدّ الملفّ إلى أصله بـ`git checkout`) بل انتظارُ الانتهاء أو
   امتصاصُ خطأ العميل أثناء الـteardown — ويُترك لشريحةٍ تمسّ `apps/api` فتُعيد العدَّ
   الكامل، لأنّ إعادةَ ٦٠٣ ثانية لأجل ضجيجٍ لا يُسقط حكمًا ليست أولويةَ هذه الشريحة.
+  **وقيس مرّتين أخريين في ٢٠**: ‏`Errors 1` على `erp_test_platform_billing_41816_3` ثمّ على
+  `erp_test_iso_org_45944_122` ⇒ **القاعدةُ تختلف في كلّ تشغيل**، فليس تسريبَ مثبّتةٍ
+  بعينها (وقِيس أنّ `isolation-organization.spec.ts` يُنهي عملاءه في `finally`، وأنّ
+  ‏`journal-reversal-consistency.spec.ts` وحده نظيف) بل تسابقٌ بين إسقاطِ قاعدةٍ وانتهاءِ
+  آخر عميلٍ في مجمّعها. والأحكامُ كلّها تنجح في التشغيلين (‏٢١٥/١٨٠٣، ٠ فشلت)، فالبندُ
+  ضجيجٌ لا عيبٌ في السلوك — ويُصلَح بانتظار الانتهاء أو بامتصاص خطأ العميل أثناء
+  الـteardown، لا بإنهاءٍ ثانٍ (جُرِّب ورُفض).
 - **ب١٤ (جديدٌ بعد ١٨ — قرارٌ للمالك)**: ‏`apps/marketing` بلا `postcss.config.mjs`، فـ
   Tailwind لا يعمل هناك البتّةَ: صفحةُ `/design` (‏`DesignGalleryWithToasts` من `@erp/ui`)
   و`ThemeToggle` تُعرضان بلا تنسيق، و١٦ صنفًا في مصادره لا يُولَّد. والإصلاحُ سطرٌ واحد،
