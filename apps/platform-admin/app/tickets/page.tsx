@@ -12,6 +12,8 @@ import {
   type TicketPriority,
   type TicketStatus,
 } from '@erp/contracts';
+import { ContentPanel, WorkflowGuide } from '@erp/ui/page';
+import { arabicErrorText } from '@erp/web-core/error-language';
 
 import { Empty, ErrorBox, Forbidden, Loading, Screen } from '../../components/screen';
 import { Tabs } from '../../components/ui';
@@ -66,10 +68,10 @@ function slaText(minutes: number | null): string {
 
 function apiMessage(error: unknown): string {
   if (error instanceof ApiError) {
-    if (error.isForbidden) return 'تحتاج صلاحية «مكتب الدعم» (console.support.manage) لهذا الإجراء.';
+    if (error.isForbidden) return 'تحتاج صلاحية إدارة مكتب الدعم لهذا الإجراء.';
     return error.message;
   }
-  return error instanceof Error ? error.message : String(error);
+  return arabicErrorText(error, 'تعذّر إتمام الإجراء. تحقق من البيانات وأعد المحاولة.');
 }
 
 type TabId = 'inbox' | 'new';
@@ -80,7 +82,7 @@ export default function TicketsPage() {
   return (
     <Screen
       title="مكتب الدعم"
-      subtitle="صندوقٌ واحد لكل ما يقوله العملاء: حالةٌ وأولويةٌ ومهلةُ استجابة محسوبةٌ لحظة الفتح، وإسنادٌ لمشغّل، وردٌّ عام مقابل ملاحظةٍ داخلية لا تُرسل."
+      subtitle="ابدأ بما تجاوز مهلة الاستجابة، ثم راجع غير المسند وافتح البلاغات الجديدة دون خلط الردود العامة بالملاحظات الداخلية."
       crumbs={['الدعم']}
       actions={
         <button className="btn" type="button" onClick={() => setTab('new')}>
@@ -88,6 +90,11 @@ export default function TicketsPage() {
         </button>
       }
     >
+      <WorkflowGuide title="من البلاغ إلى الرد" steps={[
+        { title: 'حدد الأولوية', detail: 'راجع المهلة وما لم يُسند لمشغّل قبل فتح التفاصيل.' },
+        { title: 'سجّل البلاغ', detail: 'اكتب كلام العميل في الرسالة الأولى وسبب الفتح في الحقل الداخلي.' },
+        { title: 'تابع المحادثة', detail: 'الرد العام يصل للعميل؛ الملاحظات الداخلية تبقى للفريق.' },
+      ]} />
       <Tabs<TabId>
         value={tab}
         onChange={setTab}
@@ -129,6 +136,7 @@ function InboxTab() {
 
   return (
     <>
+      <ContentPanel title="تصفية الصندوق" description="المرشحات تغير عرض التذاكر فقط؛ لا تُعدّل حالتها أو إسنادها.">
       <div className="toolbar">
         <label>
           الحالة
@@ -163,12 +171,11 @@ function InboxTab() {
           />
           <span>بلا إسناد</span>
         </label>
-        <button className="btn" type="button" onClick={tickets.reload}>
-          تحديث
-        </button>
+        <button className="btn" type="button" onClick={tickets.reload}>تحديث القائمة</button>
       </div>
+      </ContentPanel>
 
-      <section className="card">
+      <ContentPanel title={`قائمة التذاكر (${tickets.status === 'success' ? tickets.data?.length ?? 0 : '—'})`} description="تُحسب المهلة وقت العرض؛ افتح التذكرة لمراجعة الرسائل والإسناد.">
         {tickets.status === 'loading' && <Loading rows={3} />}
         {tickets.status === 'forbidden' && <Forbidden />}
         {tickets.status === 'error' && <ErrorBox message={tickets.error} onRetry={tickets.reload} />}
@@ -249,7 +256,7 @@ function InboxTab() {
             </table>
           </div>
         )}
-      </section>
+      </ContentPanel>
     </>
   );
 }
@@ -303,14 +310,13 @@ function NewTicketTab({ onCreated }: { onCreated: () => void }) {
   }
 
   const ready =
-    tenantId.length > 0 && subject.trim().length >= 3 && body.trim().length >= 5 && reason.trim().length >= 3;
+    tenants.status === 'success' && tenantId.length > 0 && subject.trim().length >= 3 && body.trim().length >= 5 && reason.trim().length >= 3;
 
   return (
-    <section className="card grid">
-      <p className="muted" style={{ marginTop: 0 }}>
-        اكتب ما قاله العميل بنفسه في «الرسالة الأولى»، والسبب سطرٌ داخلي يُقيَّد في التدقيق ويشرح لماذا فُتحت
-        التذكرة.
-      </p>
+    <ContentPanel title="فتح بلاغ للعميل" description="تتبع التذكرة منشأة واحدة؛ اكتب كلام العميل كما ورد، وافصل عنه سبب فتح البلاغ للتدقيق." className="grid">
+      {tenants.status === 'loading' && <Loading rows={1} />}
+      {tenants.status === 'forbidden' && <Forbidden />}
+      {tenants.status === 'error' && <ErrorBox message={tenants.error} onRetry={tenants.reload} />}
       <div className="row">
         <label>
           العميل
@@ -350,6 +356,7 @@ function NewTicketTab({ onCreated }: { onCreated: () => void }) {
         الرسالة الأولى (ما قاله العميل)
         <textarea rows={4} value={body} onChange={(event) => setBody(event.target.value)} />
       </label>
+      <p className="muted small">الرسالة الأولى جزء من محادثة العميل؛ الحقل التالي ملاحظة تشغيلية داخلية لا تُرسل إليه.</p>
       <label>
         السبب الداخلي
         <input
@@ -378,6 +385,6 @@ function NewTicketTab({ onCreated }: { onCreated: () => void }) {
           {notice.text}
         </p>
       )}
-    </section>
+    </ContentPanel>
   );
 }

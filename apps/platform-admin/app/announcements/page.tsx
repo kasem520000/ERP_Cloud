@@ -12,6 +12,8 @@ import {
   type AnnouncementStatus,
   type AnnouncementTargetStatus,
 } from '@erp/contracts';
+import { ContentPanel, WorkflowGuide } from '@erp/ui/page';
+import { arabicErrorText } from '@erp/web-core/error-language';
 
 import { Empty, ErrorBox, Forbidden, Loading, Screen } from '../../components/screen';
 import { Tabs } from '../../components/ui';
@@ -68,10 +70,10 @@ function toIso(local: string): string | undefined {
 function apiMessage(error: unknown): string {
   if (error instanceof ApiError) {
     if (error.isForbidden)
-      return 'تحتاج صلاحية «إعلانات المنصة» (console.notifications.manage) لهذا الإجراء.';
+      return 'تحتاج صلاحية إدارة إعلانات المنصة لهذا الإجراء.';
     return error.message;
   }
-  return error instanceof Error ? error.message : String(error);
+  return arabicErrorText(error, 'تعذّر إتمام الإجراء. تحقق من البيانات وأعد المحاولة.');
 }
 
 type TabId = 'list' | 'compose';
@@ -83,7 +85,7 @@ export default function AnnouncementsPage() {
   return (
     <Screen
       title="الإعلانات والإشعارات"
-      subtitle="رسالة المنصة إلى عملائها: نصّان (عربي/إنجليزي)، استهدافٌ بالجميع أو بباقةٍ أو بحالة الاشتراك، وجدولة، ومعاينة، ثم قياس الوصول والقراءة. البريد يذهب إلى مالك المنشأة، والإشعار إلى كل عضوٍ نشط."
+      subtitle="اكتب الرسالة بالعربية والإنجليزية، حدد جمهورها وقنواتها، ثم راجع المعاينة قبل الجدولة أو النشر."
       crumbs={['المنصة', 'التشغيل']}
       actions={
         <button
@@ -98,6 +100,11 @@ export default function AnnouncementsPage() {
         </button>
       }
     >
+      <WorkflowGuide title="رحلة الإعلان" steps={[
+        { title: 'حرّر اللغتين', detail: 'تحقق من العنوان والنص بالعربية والإنجليزية قبل أي توزيع.' },
+        { title: 'حدد الجمهور والقنوات', detail: 'البريد يصل لمالك المنشأة، والإشعار داخل التطبيق للأعضاء النشطين.' },
+        { title: 'عاين ثم قرر', detail: 'المسودة لا تُنشر؛ الجدولة تؤجل النشر؛ النشر الآن يوزّع الرسالة.' },
+      ]} />
       <Tabs<TabId>
         value={tab}
         onChange={setTab}
@@ -167,6 +174,7 @@ function ListTab({ onEdit }: { onEdit: (item: Announcement) => void }) {
 
   return (
     <>
+      <ContentPanel title="تصفية الإعلانات" description="اعرض المسودات أو المجدولة أو المنشورة قبل الانتقال إلى أرقام الوصول.">
       <div className="toolbar">
         <label className="row" style={{ gap: 6, alignItems: 'center' }}>
           <span>الحالة</span>
@@ -196,10 +204,9 @@ function ListTab({ onEdit }: { onEdit: (item: Announcement) => void }) {
             ))}
           </select>
         </label>
-        <button className="btn" type="button" onClick={list.reload}>
-          تحديث
-        </button>
+        <button className="btn" type="button" onClick={list.reload}>تحديث القائمة</button>
       </div>
+      </ContentPanel>
 
       {notice && (
         <p className={`alert ${notice.kind === 'ok' ? 'ok' : 'danger'}`} style={{ margin: 0 }}>
@@ -207,12 +214,12 @@ function ListTab({ onEdit }: { onEdit: (item: Announcement) => void }) {
         </p>
       )}
 
-      <section className="card">
+      <ContentPanel title={`الإعلانات (${list.status === 'success' ? list.data?.length ?? 0 : '—'})`} description="إعلان منشور لا يُعدَّل؛ استخدم القراءات لمتابعة الوصول إلى الجمهور المستهدف.">
         {list.status === 'loading' && <Loading rows={3} />}
         {list.status === 'forbidden' && <Forbidden />}
         {list.status === 'error' && <ErrorBox message={list.error} onRetry={list.reload} />}
         {list.status === 'success' && (list.data?.length ?? 0) === 0 && (
-          <Empty title="لا إعلانات بعد" detail="ابدأ بـ«إعلان جديد» — النصّان (ar/en) إلزاميان قبل النشر." />
+          <Empty title="لا إعلانات بعد" detail="ابدأ بإعلان جديد؛ راجع النصين العربي والإنجليزي قبل النشر." />
         )}
         {list.status === 'success' && (list.data?.length ?? 0) > 0 && (
           <div className="table-wrap">
@@ -285,7 +292,7 @@ function ListTab({ onEdit }: { onEdit: (item: Announcement) => void }) {
             </table>
           </div>
         )}
-      </section>
+      </ContentPanel>
 
       {readsFor && <ReadsPanel announcement={readsFor} onClose={() => setReadsFor(null)} />}
     </>
@@ -390,6 +397,7 @@ function ComposeTab({ editing, onSaved }: { editing: Announcement | null; onSave
   };
 
   async function save(saveAs: 'draft' | 'scheduled') {
+    if (saveAs === 'scheduled' && !window.confirm(`جدولة الإعلان إلى ${AUDIENCE_LABEL[audience]} على ${dateTime(toIso(publishAt))}؟ قد يُوزّع آلياً في الموعد المحدد.`)) return;
     setBusy(true);
     setNotice(undefined);
     try {
@@ -419,6 +427,7 @@ function ComposeTab({ editing, onSaved }: { editing: Announcement | null; onSave
   }
 
   async function publishNow() {
+    if (!window.confirm(`نشر الإعلان الآن على ${AUDIENCE_LABEL[audience]} عبر ${channels.map((channel) => CHANNEL_LABEL[channel]).join(' و ') || 'بلا قناة'}؟ قد يتلقى العملاء الرسائل فوراً.`)) return;
     setBusy(true);
     setNotice(undefined);
     try {
@@ -453,15 +462,16 @@ function ComposeTab({ editing, onSaved }: { editing: Announcement | null; onSave
     );
 
   return (
-    <section className="card">
+    <ContentPanel title={editing ? 'تعديل إعلان غير منشور' : 'كتابة إعلان جديد'} description="احفظه مسودة للمراجعة، أو جدوله لوقت لاحق، أو انشره بعد المعاينة. النشر والجدولة قراران منفصلان.">
       <div className="grid cols-2">
         <div className="grid">
+          <h3>محتوى الرسالة بلغتين</h3>
           <label>
             العنوان (عربي)
             <input value={titleAr} onChange={(event) => setTitleAr(event.target.value)} maxLength={200} />
           </label>
           <label>
-            Title (English)
+            العنوان (إنجليزي)
             <input
               dir="ltr"
               value={titleEn}
@@ -479,7 +489,7 @@ function ComposeTab({ editing, onSaved }: { editing: Announcement | null; onSave
             />
           </label>
           <label>
-            Body (English)
+            النصّ (إنجليزي)
             <textarea
               dir="ltr"
               rows={5}
@@ -491,6 +501,8 @@ function ComposeTab({ editing, onSaved }: { editing: Announcement | null; onSave
         </div>
 
         <div className="grid">
+          <h3>الجمهور والموعد</h3>
+          <p className="muted small">اختيار الجمهور يحدد من يشمله الإعلان لحظة النشر؛ لا تُغيَّر الرسالة المنشورة بأثر رجعي.</p>
           <label>
             الجمهور
             <select
@@ -575,13 +587,14 @@ function ComposeTab({ editing, onSaved }: { editing: Announcement | null; onSave
         </div>
       </div>
 
+      <p className="muted small">المعاينة محلية قبل الإرسال؛ لا تحفظ التغييرات ولا تتصل بالمستلمين.</p>
       <div className="row" style={{ gap: 8, alignItems: 'center' }}>
         <Tabs<'ar' | 'en'>
           value={preview}
           onChange={setPreview}
           items={[
             { id: 'ar', label: 'معاينة عربية' },
-            { id: 'en', label: 'Preview English' },
+            { id: 'en', label: 'معاينة إنجليزية' },
           ]}
         />
       </div>
@@ -594,7 +607,7 @@ function ComposeTab({ editing, onSaved }: { editing: Announcement | null; onSave
         <p className="muted" style={{ margin: '8px 0 0', fontSize: 12 }}>
           {AUDIENCE_LABEL[audience]}
           {audience === 'plan' && planCode ? ` · ${planCode}` : ''}
-          {audience === 'status' ? ` · ${tenantStatus}` : ''} ·{' '}
+          {audience === 'status' ? ` · ${{ active: 'نشطة', suspended: 'معلّقة', archived: 'مؤرشفة' }[tenantStatus]}` : ''} ·{' '}
           {channels.map((channel) => CHANNEL_LABEL[channel]).join(' · ') || 'بلا قناة'}
         </p>
       </article>
@@ -624,6 +637,6 @@ function ComposeTab({ editing, onSaved }: { editing: Announcement | null; onSave
           إلغاء
         </button>
       </div>
-    </section>
+    </ContentPanel>
   );
 }

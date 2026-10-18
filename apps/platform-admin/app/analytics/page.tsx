@@ -19,6 +19,8 @@ import {
   type WeeklyReportPreview,
   type WeeklyReportRunResult,
 } from '@erp/contracts';
+import { WorkflowGuide } from '@erp/ui/page';
+import { arabicErrorText } from '@erp/web-core/error-language';
 
 import { Empty, ErrorBox, Loading, Screen } from '../../components/screen';
 import { Button } from '../../components/ui/button';
@@ -130,17 +132,15 @@ export default function AnalyticsPage() {
       await downloadFile(`/platform/analytics/export.csv?days=${Number(months) * 30}`, 'platform-analytics.csv');
       setExportNote({
         kind: 'ok',
-        text: 'نُزِّل البيان — الأعمدة هي المعرَّفة في العقد (`analyticsExportColumns`) نفسها، بترميز BOM وفواصل RFC 4180.',
+        text: 'نُزّل ملف التحليلات. راجع نطاق الأشهر المختار قبل استخدام البيانات خارج المنصة.',
       });
     } catch (error) {
       setExportNote({
         kind: 'danger',
         text:
           error instanceof ApiError && error.isForbidden
-            ? 'التصدير يحتاج صلاحية «قراءة التحليلات» (console.analytics.view).'
-            : error instanceof Error
-              ? error.message
-              : String(error),
+            ? 'التصدير يحتاج صلاحية قراءة التحليلات.'
+            : arabicErrorText(error, 'تعذّر إتمام الإجراء. أعد المحاولة لاحقاً.'),
       });
     } finally {
       setExporting(false);
@@ -148,6 +148,7 @@ export default function AnalyticsPage() {
   }
 
   async function sendReportNow() {
+    if (!window.confirm('إرسال التقرير الأسبوعي الآن إلى المستلمين المعروضين؟ قد تصل رسائل بريد فعلية؛ راجع القائمة والنافذة الزمنية أولاً.')) return;
     setSendingReport(true);
     setReportNote(undefined);
     try {
@@ -167,10 +168,8 @@ export default function AnalyticsPage() {
         kind: 'danger',
         text:
           error instanceof ApiError && error.isForbidden
-            ? 'الإرسال يحتاج صلاحية «إدارة البريد» (console.email.manage).'
-            : error instanceof Error
-              ? error.message
-              : String(error),
+            ? 'الإرسال يحتاج صلاحية إدارة البريد.'
+            : arabicErrorText(error, 'تعذّر إتمام الإجراء. أعد المحاولة لاحقاً.'),
       });
     } finally {
       setSendingReport(false);
@@ -180,7 +179,7 @@ export default function AnalyticsPage() {
   return (
     <Screen
       title="التحليلات"
-      subtitle="المنصة كما يراها عملاؤها: الإيراد، والتسرّب، وقمع التفعيل، والأفواج، وحدود الاستخدام."
+      subtitle="اقرأ الإيراد المتعاقد عليه بجانب التحصيل والنمو والتسرّب، ثم انتقل من التنبيه إلى موضع الإجراء."
       crumbs={['المنصة', 'النموّ']}
       actions={
         <>
@@ -201,35 +200,40 @@ export default function AnalyticsPage() {
         </>
       }
     >
+      <WorkflowGuide title="قراءة أداء المنصة" steps={[
+        { title: 'ابدأ بالنطاق', detail: 'غيّر عدد الأشهر لعرض الإيراد والنمو في الفترة المناسبة.' },
+        { title: 'افصل القيمة عن التحصيل', detail: 'الإيراد المتكرر قيمة عقود؛ المبالغ المقبوضة تظهر في التحصيل.' },
+        { title: 'انتقل إلى الإجراء', detail: 'التنبيهات تقود إلى العميل أو المتابعة؛ راجع التقرير قبل إرساله.' },
+      ]} />
       {exportNote && <NoticeBox kind={exportNote.kind} text={exportNote.text} />}
 
       {overview.status === 'loading' && <Loading rows={6} />}
       {overview.status === 'error' && <ErrorBox message={overview.error} onRetry={overview.reload} />}
       {overview.status === 'forbidden' && (
-        <Empty title="لا تملك صلاحية الوصول" detail="هذه الشاشة تحتاج console.analytics.view." />
+        <Empty title="لا تملك صلاحية الوصول" detail="اطلب صلاحية قراءة تحليلات المنصة من مسؤولها." />
       )}
 
       {overview.status === 'success' && data && (
         <>
           {/* top metrics */}
           <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
-            <MetricCard label="MRR — شهري متكرر" value={Number(data.mrr) || 0} suffix={data.currency} tone="violet" icon={<CircleDollarSign size={16} />} />
-            <MetricCard label="ARR — سنوي متكرر" value={Number(data.arr) || 0} suffix={data.currency} tone="sky" icon={<TrendingUp size={16} />} delay={0.05} />
-            <MetricCard label="ARPU — متوسط العميل" value={Number(data.arpu) || 0} suffix={data.currency} tone="green" icon={<Wallet size={16} />} delay={0.1} />
-            <MetricCard label="المتعاقدون في المتوسط" value={data.counts.active + data.counts.pastDue} tone="amber" icon={<Building2 size={16} />} delay={0.15} hint={`${data.counts.active} نشِط · ${data.counts.pastDue} متأخّر`} />
+            <MetricCard label="الإيراد الشهري المتكرر" value={Number(data.mrr) || 0} suffix={data.currency} tone="violet" icon={<CircleDollarSign size={16} />} />
+            <MetricCard label="الإيراد السنوي المتكرر" value={Number(data.arr) || 0} suffix={data.currency} tone="sky" icon={<TrendingUp size={16} />} delay={0.05} />
+            <MetricCard label="متوسط إيراد المنشأة" value={Number(data.arpu) || 0} suffix={data.currency} tone="green" icon={<Wallet size={16} />} delay={0.1} />
+            <MetricCard label="اشتراكات قائمة" value={data.counts.active + data.counts.pastDue} tone="amber" icon={<Building2 size={16} />} delay={0.15} hint={`${data.counts.active} نشِط · ${data.counts.pastDue} متأخّر`} />
           </div>
 
           {/* MRR curve */}
           <Reveal delay={0.1}>
             <section className="rounded-[10px] border border-line bg-surface p-4 shadow-1">
-              <h3 className="m-0 text-[15px] font-bold text-ink">منحنى الإيراد — MRR شهرياً</h3>
-              <p className="m-0 mt-0.5 mb-3 text-[12px] text-muted">{data.definitions.mrr}</p>
+              <h3 className="m-0 text-[15px] font-bold text-ink">اتجاه الإيراد الشهري المتكرر</h3>
+              <p className="m-0 mt-0.5 mb-3 text-[12px] text-muted">المكافئ الشهري للتراخيص السارية والمتأخرة؛ نفس تعريف شاشة الإيراد، وليس تحصيلاً نقدياً.</p>
               {data.mrrSeries.length > 0 ? (
                 <AreaCardChart
                   data={data.mrrSeries.map((point) => ({ month: monthText(point.month), mrr: Number(point.mrr) || 0 }))}
                   xKey="month"
                   dataKey="mrr"
-                  name="MRR"
+                  name="الإيراد الشهري"
                   height={280}
                   color="var(--color-chart-2)"
                   formatter={(v) => `${v.toLocaleString('en-US', { maximumFractionDigits: 0 })} ${data.currency}`}
@@ -282,7 +286,7 @@ export default function AnalyticsPage() {
                       </span>
                       <span className="min-w-0 flex-1">
                         <span className="block text-[13.5px] font-bold text-ink">{alert.title}</span>
-                        <span className="block text-[11.5px] text-muted" dir="ltr">{alert.kind}</span>
+                        <span className="block text-[11.5px] text-muted">{alert.severity === 'critical' ? 'يتطلب تدخلاً فورياً' : alert.severity === 'warning' ? 'يحتاج متابعة' : 'للمراجعة'}</span>
                       </span>
                       <ul className="m-0 p-0 list-none flex flex-wrap gap-x-4 gap-y-1 max-w-[46%]">
                         {alert.examples.slice(0, 3).map((example) => (
@@ -319,7 +323,7 @@ export default function AnalyticsPage() {
           <div className="mt-3 grid gap-3 xl:grid-cols-2 items-start">
             <section className="rounded-[10px] border border-line bg-surface shadow-1 overflow-hidden">
               <header className="px-4 pt-4 pb-2">
-                <h3 className="m-0 text-[15px] font-bold text-ink">التسرّب — بالشعارات وبالمال</h3>
+                <h3 className="m-0 text-[15px] font-bold text-ink">التسرّب — بالعملاء وبالإيراد</h3>
                 <p className="m-0 mt-0.5 mb-2 text-[11.5px] text-muted">{data.definitions.churn}</p>
               </header>
               <div className="px-1 pb-2">
@@ -331,8 +335,8 @@ export default function AnalyticsPage() {
                     { key: 'month', header: 'الشهر', grow: true, cell: (point) => <span className="text-[12.5px] font-semibold text-ink-2">{monthText(point.month)}</span> },
                     { key: 'base', header: 'المقام', numeric: true, ltr: true, cell: (point) => <span className="font-mono text-[12px]">{point.baseCount}<span className="text-muted"> ({money(point.baseValue)})</span></span> },
                     { key: 'churned', header: 'مُلغى', numeric: true, ltr: true, cell: (point) => <span className="font-mono text-[12px]">{point.churnedCount}<span className="text-muted"> ({money(point.churnedValue)})</span></span> },
-                    { key: 'logo', header: 'شعارات', numeric: true, ltr: true, cell: (point) => <span className={`font-mono text-[12px] font-bold ${percentTone(point.logoRate)}`}>{percent(point.logoRate)}</span> },
-                    { key: 'revenue', header: 'مال', numeric: true, ltr: true, cell: (point) => <span className={`font-mono text-[12px] font-bold ${percentTone(point.revenueRate)}`}>{percent(point.revenueRate)}</span> },
+                    { key: 'logo', header: 'عملاء', numeric: true, ltr: true, cell: (point) => <span className={`font-mono text-[12px] font-bold ${percentTone(point.logoRate)}`}>{percent(point.logoRate)}</span> },
+                    { key: 'revenue', header: 'إيراد', numeric: true, ltr: true, cell: (point) => <span className={`font-mono text-[12px] font-bold ${percentTone(point.revenueRate)}`}>{percent(point.revenueRate)}</span> },
                   ]}
                 />
               </div>
@@ -439,7 +443,7 @@ export default function AnalyticsPage() {
             <h3 className="m-0 mb-2 text-[15px] font-bold text-ink">التقرير الأسبوعي بالبريد</h3>
             {report.status === 'loading' && <SkeletonRows rows={2} />}
             {report.status === 'forbidden' && (
-              <Empty title="لا تملك صلاحية القراءة" detail="هذه البطاقة تحتاج console.analytics.view." />
+              <Empty title="لا تملك صلاحية القراءة" detail="اطلب صلاحية قراءة تحليلات المنصة." />
             )}
             {report.status === 'error' && <ErrorBox message={report.error} onRetry={report.reload} />}
             {report.status === 'success' && report.data && (
@@ -453,7 +457,7 @@ export default function AnalyticsPage() {
                   <ReportItem label="المستلمون" value={report.data.recipients.length > 0 ? report.data.recipients.join(', ') : 'لا أحد — لا تقرير'} ltr />
                   <ReportItem label="أُرسل لهذه النافذة" value={report.data.sentTo.length > 0 ? report.data.sentTo.join(', ') : '—'} ltr />
                   <ReportItem label="رابط التقرير" value={report.data.link} ltr />
-                  <ReportItem label="ما سيقوله" value={`${report.data.variables.tenants} منشأة · انضمّ ${report.data.variables.new_this_week} وغادر ${report.data.variables.churned_this_week} · MRR ${money(report.data.variables.mrr)}`} />
+                  <ReportItem label="ما سيقوله" value={`${report.data.variables.tenants} منشأة · انضمّ ${report.data.variables.new_this_week} وغادر ${report.data.variables.churned_this_week} · الإيراد الشهري ${money(report.data.variables.mrr)}`} />
                 </dl>
                 {reportNote && <NoticeBox kind={reportNote.kind} text={reportNote.text} className="mt-3" />}
                 {canSendReport ? (
@@ -461,7 +465,7 @@ export default function AnalyticsPage() {
                     أرسل التقرير الآن
                   </Button>
                 ) : (
-                  <p className="m-0 mt-3 text-[11.5px] text-muted">الإرسال يحتاج صلاحية «إدارة البريد» (console.email.manage).</p>
+                  <p className="m-0 mt-3 text-[11.5px] text-muted">الإرسال يحتاج صلاحية إدارة البريد.</p>
                 )}
               </>
             )}
@@ -597,7 +601,7 @@ function FunnelSection({
       </div>
 
       {status === 'loading' && <SkeletonRows rows={4} />}
-      {status === 'forbidden' && <Empty title="لا تملك صلاحية الوصول" detail="قمع التفعيل يحتاج console.analytics.view." />}
+      {status === 'forbidden' && <Empty title="لا تملك صلاحية الوصول" detail="اطلب صلاحية قراءة تحليلات المنصة." />}
       {status === 'error' && <ErrorBox message={error} onRetry={onRetry} />}
       {status === 'success' && (
         <>
@@ -608,7 +612,7 @@ function FunnelSection({
                 <div key={row.step} className="grid gap-2 md:grid-cols-[220px_1fr_220px] md:items-center">
                   <span className="text-start">
                     <span className="block text-[13px] font-bold text-ink">{row.title}</span>
-                    <span className="block font-mono text-[10.5px] text-muted" dir="ltr">{row.step}</span>
+
                   </span>
                   <span className="block">
                     <span

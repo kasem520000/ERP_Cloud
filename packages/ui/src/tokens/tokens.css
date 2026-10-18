@@ -213,6 +213,7 @@
   --brand-2: #3b82f6;
   --brand-ink: #ffffff;
   --brand-soft: #eff6ff;
+  --brand-soft-ink: #1e40af;
   --brand-line: #bfdbfe;
 
   /* status — `*-soft` is the sticker background, `*-ink` the label on it,
@@ -296,6 +297,7 @@
   --brand-2: #60a5fa;
   --brand-ink: #ffffff;
   --brand-soft: #172554;
+  --brand-soft-ink: #ffffff;
   --brand-line: #1e40af;
 
   /* status — deep stickers with light labels: never muted on slate-950 */
@@ -579,7 +581,7 @@ h6 {
 .erp-workflow h2 { margin: 0 0 var(--ui-space-3); font-size: 15px; }
 .erp-workflow ol { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--ui-space-3); margin: 0; padding: 0; list-style: none; }
 .erp-workflow li { display: flex; align-items: flex-start; gap: var(--ui-space-2); min-width: 0; }
-.erp-workflow-number { display: grid; flex: none; place-items: center; width: 25px; height: 25px; border-radius: var(--radius-sm); background: var(--brand-soft); color: var(--brand-ink); font-size: 12px; font-weight: 800; }
+.erp-workflow-number { display: grid; flex: none; place-items: center; width: 25px; height: 25px; border-radius: var(--radius-sm); background: var(--brand-soft); color: var(--brand-soft-ink); font-size: 12px; font-weight: 800; }
 .erp-workflow li strong { font-size: 12.5px; }
 .erp-workflow li p { margin: 3px 0 0; color: var(--muted); font-size: 11.5px; line-height: 1.5; }
 .erp-case-list { display: grid; gap: var(--ui-space-3); }

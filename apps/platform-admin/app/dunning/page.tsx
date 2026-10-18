@@ -1,9 +1,11 @@
 'use client';
 
 import { useState } from 'react';
+import { ContentPanel, WorkflowGuide } from '@erp/ui/page';
+import { arabicErrorText } from '@erp/web-core/error-language';
 
-import { Empty, ErrorBox, Loading, Screen } from '../../components/screen';
-import { ApiError, apiData, apiPost } from '../../lib/api';
+import { Empty, ErrorBox, Forbidden, Loading, Screen } from '../../components/screen';
+import { apiData, apiPost } from '../../lib/api';
 import { useQuery } from '../../lib/use-query';
 
 /**
@@ -75,6 +77,7 @@ type RunResult = {
 };
 
 const CHANNEL_LABEL: Record<Channel, string> = { email: 'بريد', sms: 'رسالة نصية', manual: 'اتصال يدوي' };
+const SUBSCRIPTION_LABEL: Record<string, string> = { active: 'سارية', past_due: 'متأخرة', paused: 'متوقفة', canceled: 'ملغاة' };
 const STATUS_LABEL: Record<AttemptStatus, string> = {
   scheduled: 'مجدولة',
   sent: 'أُرسلت',
@@ -93,6 +96,9 @@ export default function DunningPage() {
   const [busyFor, setBusyFor] = useState<string>();
 
   async function run(row: ScheduleRow) {
+    if (busyFor || !window.confirm(channel === 'manual'
+      ? `هل أجريت اتصالاً مع «${row.tenantName}» بشأن الفاتورة ${row.invoiceNumber ?? 'المحددة'}؟ تسجيل المتابعة اليدوية يعني أن الاتصال قد تم فعلاً.`
+      : `تسجيل متابعة «${row.tenantName}» بشأن الفاتورة ${row.invoiceNumber ?? 'المحددة'} عبر ${CHANNEL_LABEL[channel]}؟ قد تتغير حالة الاشتراك؛ إنشاء المحاولة لا يعني وصول رسالة.`)) return;
     setBusyFor(row.subscriptionId);
     setMessage(undefined);
     try {
@@ -106,11 +112,11 @@ export default function DunningPage() {
         text:
           result.created.length === 0
             ? 'لم تُنشأ محاولة: لا فاتورة متأخّرة في هذه اللحظة.'
-            : `أُجريت ${result.created.length} محاولة (${STATUS_LABEL[result.created[0]!.status]})، وحالة الترخيص الآن «${result.subscriptionStatus}».`,
+            : `أُجريت ${result.created.length} محاولة (${STATUS_LABEL[result.created[0]!.status]})، وحالة الترخيص الآن «${SUBSCRIPTION_LABEL[result.subscriptionStatus] ?? 'تحتاج مراجعة'}».`,
       });
       board.reload();
     } catch (error) {
-      setMessage({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) });
+      setMessage({ kind: 'danger', text: arabicErrorText(error, 'تعذّر تسجيل المتابعة. أعد الفحص قبل المحاولة مرة أخرى.') });
     } finally {
       setBusyFor(undefined);
     }
@@ -123,30 +129,31 @@ export default function DunningPage() {
   return (
     <Screen
       title="المتابعة والتحصيل"
-      subtitle="من تأخّر عن السداد، وما أُرسل له، وما سيُرسل غداً — الفواتير المتأخّرة لا تُترك للذاكرة."
+      subtitle="افصل بين الفواتير المتأخرة والمحاولات المسجلة، وتحقق من القناة قبل تسجيل أي متابعة."
       crumbs={['المنصة', 'العملاء والتراخيص']}
-      actions={
-        <>
-          <select className="input" style={{ maxWidth: 150 }} value={channel} onChange={(event) => setChannel(event.target.value as Channel)}>
-            {(Object.keys(CHANNEL_LABEL) as Channel[]).map((key) => (
-              <option key={key} value={key}>
-                {CHANNEL_LABEL[key]}
-              </option>
-            ))}
-          </select>
-          <button className="btn" type="button" onClick={board.reload}>
-            تحديث
-          </button>
-        </>
-      }
+      actions={<button className="btn" type="button" onClick={board.reload}>تحديث البيانات</button>}
     >
-      {message && <p className={`alert ${message.kind}`}>{message.text}</p>}
+      <WorkflowGuide title="مسار متابعة الاستحقاق" steps={[
+        { title: 'راجع الفاتورة', detail: 'تحقق من المتبقي وتاريخ الاستحقاق والمحاولات السابقة.' },
+        { title: 'اختر قناة المتابعة', detail: 'الاتصال اليدوي يُسجّل كمنفّذ؛ أما الإرسال الآلي فراجع حالته لاحقاً.' },
+        { title: 'تحقق من النتيجة', detail: 'إنشاء محاولة لا يثبت وصول رسالة؛ راجع سجل المحاولات.' },
+      ]} />
+      <ContentPanel title="قرار المتابعة" description="اختيار القناة لا يغير أي سجل حتى تؤكد متابعة فاتورة محددة.">
+        <label className="field"><span>قناة التواصل</span>
+          <select className="input" value={channel} onChange={(event) => setChannel(event.target.value as Channel)}>
+            {(Object.keys(CHANNEL_LABEL) as Channel[]).map((key) => <option key={key} value={key}>{CHANNEL_LABEL[key]}</option>)}
+          </select>
+        </label>
+        {channel === 'manual' && <p className="alert warn">سجّل الاتصال اليدوي فقط بعد إجرائه فعلاً؛ سيظهر في السجل بوصفه مُرسلاً.</p>}
+      </ContentPanel>
+      {message && <p className={`alert ${message.kind}`} role={message.kind === 'danger' ? 'alert' : 'status'}>{message.text}</p>}
       {board.status === 'loading' && <Loading />}
       {board.status === 'error' && <ErrorBox message={board.error} onRetry={board.reload} />}
+      {board.status === 'forbidden' && <Forbidden />}
 
       {board.status === 'success' && data && (
         <>
-          <div className="card">
+          <ContentPanel title="ملخص الاستحقاق" description="أرقام محدثة من جدول المتابعة، لا تمثل تأكيد تسليم الرسائل.">
             <dl className="kv">
               <dt>السلّم</dt>
               <dd dir="ltr">{data.ladderDays.join(' · ')} يوم بعد الاستحقاق</dd>
@@ -158,13 +165,13 @@ export default function DunningPage() {
               <dd>{attempts.length}</dd>
             </dl>
             <p className="muted small" style={{ marginBottom: 0 }}>
-              المحاولة تُسجَّل «مجدولة» عند إنشائها — لا خدمة بريد بعد (P-C6)، ولا ندّعي إرسالاً لم يقع.
-              واختيار «اتصال يدوي» يسجّلها «أُرسلت» لأن من أجراها مشغّل.
+              قد تُدرج الرسائل في طابور الإرسال؛ حالة «مجدولة» ليست دليلاً على وصولها. أما «اتصال يدوي» فيُسجّل
+              «أُرسلت» لأن المشغّل يؤكد أنه أجراه بنفسه.
             </p>
-          </div>
+          </ContentPanel>
 
-          <section className="card">
-            <h2>الجدول — ما سيُنفَّذ</h2>
+          <ContentPanel title={`الفواتير التي تحتاج متابعة (${schedule.length})`} description="اختر فاتورة بعد مراجعة التأخير والمتبقي ثم أكد قرار التسجيل.">
+            {schedule.length > 0 && <p className="muted small">على الهاتف، اسحب الجدول أفقياً لمراجعة بقية أعمدة الفاتورة.</p>}
             {schedule.length === 0 ? (
               <Empty title="لا فاتورة متأخّرة" detail="كل فاتورة صادرة إمّا مدفوعة أو لم يحن استحقاقها." />
             ) : (
@@ -216,7 +223,7 @@ export default function DunningPage() {
                           <button
                             className="btn sm"
                             type="button"
-                            disabled={busyFor === row.subscriptionId}
+                            disabled={Boolean(busyFor)}
                             onClick={() => void run(row)}
                           >
                             {busyFor === row.subscriptionId ? 'جارٍ…' : 'متابعة'}
@@ -228,10 +235,9 @@ export default function DunningPage() {
                 </table>
               </div>
             )}
-          </section>
+          </ContentPanel>
 
-          <section className="card">
-            <h2>المحاولات والرسائل</h2>
+          <ContentPanel title={`سجل المحاولات (${attempts.length})`} description="يفرق السجل بين جدولة رسالة وإرسالها أو تعذرها؛ الرسالة ليست إثبات تحصيل.">
             {attempts.length === 0 ? (
               <Empty title="لا محاولات بعد" detail="شغّل المتابعة من الجدول أعلاه." />
             ) : (
@@ -267,7 +273,7 @@ export default function DunningPage() {
                 </table>
               </div>
             )}
-          </section>
+          </ContentPanel>
         </>
       )}
     </Screen>
