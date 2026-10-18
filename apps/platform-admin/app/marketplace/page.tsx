@@ -1,6 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { ContentPanel, TableViewport, WorkflowGuide } from '@erp/ui/page';
+import { arabicErrorText } from '@erp/web-core/error-language';
 
 import { Screen } from '../../components/screen';
 import { ApiError, apiData, apiPost, apiPut } from '../../lib/api';
@@ -107,53 +109,67 @@ export default function PlatformMarketplacePage() {
   const [decisionNotes, setDecisionNotes] = useState<Record<string, string>>({});
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [message, setMessage] = useState('');
+  const [messageTone, setMessageTone] = useState<'ok' | 'danger'>('ok');
+  const [readErrors, setReadErrors] = useState<{ requests?: string; tenants?: string }>({});
+  const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState('');
   const [usage, setUsage] = useState<UnlicensedUsage | null>(null);
   const [usageDays, setUsageDays] = useState<number>(90);
   const [usageError, setUsageError] = useState('');
+  const usageRequest = useRef(0);
 
   async function reload() {
-    const [nextApps, nextReqs, nextTenants] = await Promise.all([
+    setLoading(true);
+    const [appResult, requestResult, tenantResult] = await Promise.allSettled([
       apiData<CatalogApp[]>('/platform/marketplace/apps'),
-      apiData<AddonRequestRow[]>('/platform/marketplace/requests').catch(() => []),
-      apiData<TenantRow[]>('/platform/tenants?limit=100').catch(() => []),
+      apiData<AddonRequestRow[]>('/platform/marketplace/requests'),
+      apiData<TenantRow[]>('/platform/tenants?limit=100'),
     ]);
-    setApps(nextApps ?? []);
-    setRequests(Array.isArray(nextReqs) ? nextReqs : []);
-    const tenantList = Array.isArray(nextTenants) ? nextTenants : [];
+    setReadErrors({
+      ...(requestResult.status === 'rejected' ? { requests: messageOf(requestResult.reason) } : {}),
+      ...(tenantResult.status === 'rejected' ? { tenants: messageOf(tenantResult.reason) } : {}),
+    });
+    setRequests(requestResult.status === 'fulfilled' && Array.isArray(requestResult.value) ? requestResult.value : []);
+    const tenantList = tenantResult.status === 'fulfilled' && Array.isArray(tenantResult.value) ? tenantResult.value : [];
     setTenants(tenantList);
-    if (!selectedTenantId && tenantList[0]?.id) {
-      setSelectedTenantId(tenantList[0].id);
+    setSelectedTenantId((current) => tenantList.some((item) => item.id === current) ? current : '');
+    setLoading(false);
+    if (appResult.status === 'rejected') {
+      setApps([]);
+      throw appResult.reason;
     }
-    setDrafts(Object.fromEntries((nextApps ?? []).map((app) => [app.code, app.monthlyPrice])));
+    const nextApps = appResult.value ?? [];
+    setApps(nextApps);
+    setDrafts(Object.fromEntries(nextApps.map((app) => [app.code, app.monthlyPrice])));
   }
 
-  /**
-   * قراءةُ القياس. الخطأ **لا يُبتلع** (‏`.catch(() => [])` كما في الجدولين أعلاه): قياسٌ فشل
-   * وقائمةٌ فارغة تُظهران الشيء نفسه لصاحب القرار — «لا أحد يستعمل السطح» — والفرقُ بينهما
-   * قرارٌ تجاريّ يُتّخذ على وهم.
-   */
+  /** القراءة المتأخرة لا تستبدل نافذة أحدث؛ خطأ القياس يظهر منفصلاً عن نتيجة صفر. */
   async function loadUsage(days: number) {
+    const request = ++usageRequest.current;
     setUsageError('');
+    setUsage(null);
     try {
       const view = await apiData<UnlicensedUsage>(`/platform/marketplace/unlicensed-usage?days=${days}`);
-      setUsage(view ?? null);
+      if (request === usageRequest.current) setUsage(view ?? null);
     } catch (error) {
-      setUsage(null);
-      setUsageError(messageOf(error));
+      if (request === usageRequest.current) setUsageError(messageOf(error));
     }
   }
 
   useEffect(() => {
-    reload().catch((error: unknown) => setMessage(messageOf(error)));
+    reload().catch((error: unknown) => { setMessageTone('danger'); setMessage(messageOf(error)); });
     // القراءة الأولى مع أول رسمٍ فقط (النافذة الابتدائية 90)؛ وتغييرُ النافذة يقرأ صراحةً
     // في مُعالج الزرّ لا في أثرٍ يتتبّعها، فلا قراءةَ مزدوجة عند كل رسم.
     void loadUsage(usageDays);
   }, []);
 
   async function decide(req: AddonRequestRow, decision: 'approved' | 'rejected') {
+    if (busy || !canWrite || req.status !== 'pending') return;
+    const note = decisionNotes[req.id]?.trim() || '';
+    if (!window.confirm(`${decision === 'approved' ? 'الموافقة وتفعيل' : 'رفض'} باقة «${req.appNameAr}» لمنشأة «${req.tenantName}»؟ ${note ? `الملاحظة: ${note}.` : 'لا ملاحظة مكتوبة.'} سيُسجَّل القرار وقد يُخطر العميل.`)) return;
     setBusy(req.id);
     setMessage('');
+    setMessageTone('ok');
     try {
       await apiPost(`/platform/marketplace/requests/${req.id}/decide`, {
         decision,
@@ -166,6 +182,7 @@ export default function PlatformMarketplacePage() {
       );
       await reload();
     } catch (error) {
+      setMessageTone('danger');
       setMessage(messageOf(error));
     } finally {
       setBusy('');
@@ -173,13 +190,16 @@ export default function PlatformMarketplacePage() {
   }
 
   async function toggleForTenant(code: string, enabled: boolean, nameAr: string) {
-    if (!selectedTenantId) return;
+    const tenant = tenants.find((item) => item.id === selectedTenantId);
+    if (busy || !canWrite || !tenant || !window.confirm(`${enabled ? 'تفعيل' : 'إيقاف'} باقة «${nameAr}» لمنشأة «${tenant.name}» مباشرة دون طلب سابق؟ راجع المنشأة قبل المتابعة.`)) return;
     setBusy(`${selectedTenantId}:${code}`);
     setMessage('');
+    setMessageTone('ok');
     try {
       await apiPut(`/platform/marketplace/tenants/${selectedTenantId}/apps/${code}`, { enabled });
       setMessage(`${enabled ? 'فُعّلت' : 'أُوقفت'} باقة «${nameAr}» للمنشأة المحددة.`);
     } catch (error) {
+      setMessageTone('danger');
       setMessage(messageOf(error));
     } finally {
       setBusy('');
@@ -187,8 +207,12 @@ export default function PlatformMarketplacePage() {
   }
 
   async function save(app: CatalogApp, isActive: boolean) {
+    const monthlyText = drafts[app.code] ?? app.monthlyPrice;
+    if (busy || !canWrite || !validPrice(monthlyText) ||
+      !window.confirm(`${isActive === app.isActive ? 'حفظ السعر' : isActive ? 'إعادة بيع الباقة' : 'إيقاف بيع الباقة'} «${app.nameAr}» بسعر ${monthlyText} ر.س شهرياً؟ قد يؤثر هذا القرار في العروض التالية.`)) return;
     setBusy(app.code);
     setMessage('');
+    setMessageTone('ok');
     try {
       await apiPut(`/platform/marketplace/apps/${app.code}`, {
         monthlyPrice: drafts[app.code] ?? app.monthlyPrice,
@@ -197,6 +221,7 @@ export default function PlatformMarketplacePage() {
       setMessage(`حُفظت ${app.nameAr}.`);
       await reload();
     } catch (error) {
+      setMessageTone('danger');
       setMessage(messageOf(error));
     } finally {
       setBusy('');
@@ -208,10 +233,15 @@ export default function PlatformMarketplacePage() {
   return (
     <Screen
       title="سوق الإضافات وطلبات التفعيل"
-      subtitle="مراجعة واعتماد طلبات تفعيل الباقات القطاعية للمنشآت، أو تفعيل/إيقاف أي باقة مباشرة لمنشأة، وتسعير الكتالوج."
+      subtitle="راجع طلب المنشأة أو قرّر التفعيل المباشر بعد اختيارها، ثم افصل تحديث السعر عن إتاحة الباقة. قياس الاستعمال للقراءة فقط."
       crumbs={['المنصة', 'سوق الإضافات']}
     >
-      {message ? <p className="alert ok">{message}</p> : null}
+      <WorkflowGuide title="مسار قرار الإضافات" steps={[
+        { title: 'تحقّق من النطاق', detail: 'اختر طلب المنشأة أو حدّد المنشأة صراحةً قبل تفعيل مباشر.' },
+        { title: 'راجع الأثر', detail: 'افصل سعر الباقة وإتاحتها عن قياس الاستعمال غير المرخّص.' },
+        { title: 'أكّد القرار', detail: 'الموافقة والتفعيل والإيقاف وتغيير السعر إجراءات مؤثرة تتطلب تأكيداً.' },
+      ]} />
+      {message ? <p role="status" className={`alert ${messageTone}`}>{message}</p> : null}
 
       <div className="row" style={{ gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
         <button
@@ -219,21 +249,21 @@ export default function PlatformMarketplacePage() {
           className={tab === 'requests' ? 'btn primary' : 'btn'}
           onClick={() => setTab('requests')}
         >
-          📩 طلبات التفعيل من المنشآت ({pendingCount} بانتظار الموافقة)
+          طلبات التفعيل من المنشآت ({loading ? 'جارٍ القراءة' : readErrors.requests ? 'تعذرت القراءة' : `${pendingCount} بانتظار الموافقة`})
         </button>
         <button
           type="button"
           className={tab === 'tenant_direct' ? 'btn primary' : 'btn'}
           onClick={() => setTab('tenant_direct')}
         >
-          🏢 تفعيل/إيقاف مباشر لمنشأة
+          تفعيل مباشر لمنشأة
         </button>
         <button
           type="button"
           className={tab === 'catalog' ? 'btn primary' : 'btn'}
           onClick={() => setTab('catalog')}
         >
-          💰 كتالوج وأسعار الباقات ({apps.length})
+          الكتالوج والأسعار ({apps.length})
         </button>
         <button
           type="button"
@@ -243,18 +273,20 @@ export default function PlatformMarketplacePage() {
             if (!usage) void loadUsage(usageDays);
           }}
         >
-          📊 الاستعمال بلا ترخيص ({usage?.summary.stillUnlicensed ?? '…'})
+          الاستعمال بلا ترخيص ({usage?.summary.stillUnlicensed ?? '…'})
         </button>
       </div>
 
       {tab === 'requests' && (
-        <section className="card">
-          <h2 style={{ marginTop: 0 }}>طلبات تفعيل الإضافات والباقات القطاعية</h2>
-          {requests.length === 0 ? (
+        <ContentPanel title="طلبات تفعيل الإضافات" description="راجع هوية المنشأة والباقة والملاحظة قبل قبول الطلب أو رفضه.">
+          {readErrors.requests && <p className="alert danger" role="alert">تعذّر قراءة الطلبات: {readErrors.requests}. لا تعني القائمة الفارغة غياب الطلبات.</p>}
+          {loading ? (
+            <p className="muted">جارٍ قراءة الطلبات…</p>
+          ) : !readErrors.requests && requests.length === 0 ? (
             <p className="muted">لا توجد طلبات تفعيل باقات حالياً.</p>
-          ) : (
-            <div className="table-wrap">
-              <table>
+          ) : readErrors.requests ? null : (
+            <TableViewport label="طلبات تفعيل الإضافات">
+              <table style={{ minWidth: 920 }}>
                 <thead>
                   <tr>
                     <th>المنشأة</th>
@@ -309,7 +341,7 @@ export default function PlatformMarketplacePage() {
                           <button
                             className="btn primary"
                             type="button"
-                            disabled={!canWrite || busy === req.id}
+                            disabled={!canWrite || Boolean(busy) || req.status !== 'pending'}
                             onClick={() => void decide(req, 'approved')}
                           >
                             موافقة وتفعيل
@@ -317,7 +349,7 @@ export default function PlatformMarketplacePage() {
                           <button
                             className="btn"
                             type="button"
-                            disabled={!canWrite || busy === req.id}
+                            disabled={!canWrite || Boolean(busy) || req.status !== 'pending'}
                             onClick={() => void decide(req, 'rejected')}
                           >
                             رفض
@@ -328,14 +360,15 @@ export default function PlatformMarketplacePage() {
                   ))}
                 </tbody>
               </table>
-            </div>
+            </TableViewport>
           )}
-        </section>
+        </ContentPanel>
       )}
 
       {tab === 'tenant_direct' && (
-        <section className="card" style={{ display: 'grid', gap: 12 }}>
-          <h2 style={{ marginTop: 0 }}>تفعيل أو إيقاف باقة مباشرة لأي منشأة</h2>
+        <ContentPanel title="تفعيل مباشر لمنشأة" description="اختَر المنشأة بنفسك؛ لا يحدد النظام أول منشأة تلقائياً. التفعيل أو الإيقاف هنا لا يحتاج طلباً سابقاً.">
+          {readErrors.tenants && <p className="alert danger" role="alert">تعذّر قراءة المنشآت: {readErrors.tenants}</p>}
+          {loading && <p className="muted">جارٍ قراءة المنشآت والباقات…</p>}
           <label className="field" style={{ maxWidth: 420 }}>
             <span>اختر المنشأة</span>
             <select
@@ -343,6 +376,7 @@ export default function PlatformMarketplacePage() {
               value={selectedTenantId}
               onChange={(event) => setSelectedTenantId(event.target.value)}
             >
+              <option value="">اختر المنشأة قبل أي إجراء</option>
               {tenants.map((tenant) => (
                 <option key={tenant.id} value={tenant.id}>
                   {tenant.name} ({tenant.code})
@@ -350,6 +384,7 @@ export default function PlatformMarketplacePage() {
               ))}
             </select>
           </label>
+          {selectedTenantId && <p className="alert warn">النطاق الحالي: {tenants.find((item) => item.id === selectedTenantId)?.name}. تغيّر المنشأة لا يغيّر باقة حتى تؤكّد إجراءها.</p>}
           <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 10 }}>
             {apps
               .filter((app) => !app.isCore)
@@ -365,7 +400,7 @@ export default function PlatformMarketplacePage() {
                     <button
                       className="btn primary"
                       type="button"
-                      disabled={!canWrite || !selectedTenantId || busy === `${selectedTenantId}:${app.code}`}
+                      disabled={!canWrite || !selectedTenantId || Boolean(busy)}
                       onClick={() => void toggleForTenant(app.code, true, app.nameAr)}
                     >
                       تفعيل للمنشأة
@@ -373,7 +408,7 @@ export default function PlatformMarketplacePage() {
                     <button
                       className="btn"
                       type="button"
-                      disabled={!canWrite || !selectedTenantId || busy === `${selectedTenantId}:${app.code}`}
+                      disabled={!canWrite || !selectedTenantId || Boolean(busy)}
                       onClick={() => void toggleForTenant(app.code, false, app.nameAr)}
                     >
                       إيقاف
@@ -382,19 +417,12 @@ export default function PlatformMarketplacePage() {
                 </article>
               ))}
           </div>
-        </section>
+        </ContentPanel>
       )}
 
       {tab === 'usage' && (
-        <section className="card" style={{ display: 'grid', gap: 12 }}>
-          <h2 style={{ marginTop: 0 }}>📊 مَنْ يستعمل سطحاً قطاعياً بلا باقة — القياس قبل قرار الفرض</h2>
-          <p className="muted" style={{ margin: 0 }}>
-            المصدر <code dir="ltr">audit_log</code>: حارسُ الترخيص يكتب سطراً لكلّ <strong>كتابةٍ</strong> من
-            منشأةٍ بلا باقة (ولا يكتب للقراءات، فلوحةٌ تُستطلع كل ثلاثين ثانية ليست استعمالاً جديداً).
-            والجدول يجمع لكلّ منشأة: كم مرّةً كتبت، ومَن كتب، ومتى، وأيَّ مساراتٍ بلغت — ثمّ يسأل
-            المنشأة في سياقها عن حجم العمل الحقيقي في جداول التوزيع، لأنّ «كم عملاً سيقف لو فُرض
-            الترخيص غداً» هو الرقم التجاري، لا عدد الطلبات.
-          </p>
+        <ContentPanel title="استعمال بلا ترخيص" description="قياس للقراءة قبل قرار سياسة الترخيص؛ لا يغيّر هذا التبويب الباقات أو الحارس.">
+          <p className="muted" style={{ margin: 0 }}>يرصد القياس عمليات الكتابة في الفترة المختارة، لا مجرد فتح الصفحات. حجم العمل في الجداول منفصل عن عدد الكتابات المقاسة.</p>
 
           <div className="row" style={{ gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
             <span className="muted">نافذة القياس:</span>
@@ -412,7 +440,7 @@ export default function PlatformMarketplacePage() {
               </button>
             ))}
             <button type="button" className="btn sm" onClick={() => void loadUsage(usageDays)}>
-              🔄 إعادة القراءة
+              إعادة القراءة
             </button>
           </div>
 
@@ -427,7 +455,7 @@ export default function PlatformMarketplacePage() {
               <div className="row" style={{ gap: 16, flexWrap: 'wrap' }}>
                 <span>
                   الوضع المقيس:{' '}
-                  <strong dir="ltr">{usage.modes.length > 0 ? usage.modes.join(', ') : '—'}</strong>
+                  <strong>{usage.modes.length > 0 ? usage.modes.map((mode) => mode === 'observe' ? 'مراقبة' : mode === 'enforce' ? 'تطبيق' : 'وضع غير معروف').join('، ') : '—'}</strong>
                 </span>
                 <span>
                   منشآتٌ قِيست: <strong>{usage.summary.measuredTenants}</strong>
@@ -461,8 +489,8 @@ export default function PlatformMarketplacePage() {
                   أحداً لم يكتب على السطح منذ {usage.observedDays} يوماً.
                 </p>
               ) : (
-                <div className="table-wrap">
-                  <table>
+                <TableViewport label="جدول استعمال الإضافات بلا ترخيص">
+                  <table style={{ minWidth: 960 }}>
                     <thead>
                       <tr>
                         <th>المنشأة</th>
@@ -481,13 +509,13 @@ export default function PlatformMarketplacePage() {
                           <td>
                             <strong>{row.tenantName}</strong>
                             <div className="muted" style={{ fontSize: 12 }} dir="ltr">
-                              {row.tenantCode} · {row.tenantStatus}
+                              {row.tenantCode} · {tenantStatusLabel(row.tenantStatus)}
                             </div>
                             <div className="muted" style={{ fontSize: 12 }} dir="ltr">
-                              {row.requiredApps.join(' | ')}
+                              {row.requiredApps.map((code) => appLabel(code, apps)).join('، ')}
                             </div>
                           </td>
-                          <td>{licenceLabel(row.licence.state, row.licence.enabledApps)}</td>
+                          <td>{licenceLabel(row.licence.state, row.licence.enabledApps.map((code) => appLabel(code, apps)))}</td>
                           <td>
                             <strong>{row.writes}</strong>
                           </td>
@@ -504,21 +532,24 @@ export default function PlatformMarketplacePage() {
                               {whenText(row.footprint.lastActivityAt)}
                             </div>
                           </td>
-                          <td style={{ fontSize: 12 }} dir="ltr">
-                            {row.topPaths.map((pathRow) => (
-                              <div key={`${pathRow.method} ${pathRow.path}`}>
-                                {pathRow.method} {pathRow.path.replace('/api/v1', '')} ×{pathRow.writes}
-                              </div>
-                            ))}
+                          <td style={{ fontSize: 12 }}>
+                            <details>
+                              <summary>{row.topPaths.length} مسارات مقاسة</summary>
+                              <div dir="ltr">{row.topPaths.map((pathRow) => (
+                                <div key={`${pathRow.method} ${pathRow.path}`}>
+                                  {pathRow.method} {pathRow.path.replace('/api/v1', '')} ×{pathRow.writes}
+                                </div>
+                              ))}</div>
+                            </details>
                           </td>
                           <td style={{ fontSize: 12 }}>
                             {row.pendingRequest ? (
                               <>
-                                <span dir="ltr">{row.pendingRequest.appCode}</span>
+                                <span>{appLabel(row.pendingRequest.appCode, apps)}</span>
                                 <div className="muted">
                                   {row.pendingRequest.status === 'pending'
                                     ? `معلّق منذ ${whenText(row.pendingRequest.createdAt)}`
-                                    : `${row.pendingRequest.status} · ${whenText(row.pendingRequest.createdAt)}`}
+                                    : `${row.pendingRequest.status === 'approved' ? 'مقبول' : row.pendingRequest.status === 'rejected' ? 'مرفوض' : 'قرار آخر'} · ${whenText(row.pendingRequest.createdAt)}`}
                                 </div>
                               </>
                             ) : (
@@ -529,23 +560,20 @@ export default function PlatformMarketplacePage() {
                       ))}
                     </tbody>
                   </table>
-                </div>
+                </TableViewport>
               )}
 
-              <p className="muted small" style={{ margin: 0 }}>
-                هذه الشاشة <strong>قياسٌ لا قرار</strong>: لا تُغيّر وضع الحارس. القلبُ من{' '}
-                <code dir="ltr">observe</code> إلى <code dir="ltr">enforce</code> تعديلٌ في
-                الزخرفة <code dir="ltr">@RequiresSectorApp</code> على وحدة <code dir="ltr">van-sales</code>{' '}
-                في الـ API، وهو قرارُ مالكٍ يحتاج تحصينَ المنشآت القائمة (أو لا يحتاج) — وأمّا الترخيص
-                لمنشأةٍ بعينها فزرُّه في تبويب «تفعيل/إيقاف مباشر لمنشأة» أعلاه.
-              </p>
+              <p className="muted small" style={{ margin: 0 }}>هذه الشاشة تقيس ولا تغيّر سياسة الترخيص؛ إذا احتجت قراراً لمنشأة محددة فارجع إلى «تفعيل مباشر لمنشأة».</p>
             </>
           ) : null}
-        </section>
+        </ContentPanel>
       )}
 
       {tab === 'catalog' && (
         <div className="grid" style={{ gap: 12 }}>
+          <ContentPanel title="الكتالوج والأسعار" description="حفظ السعر لا يغيّر إتاحة الباقة، وإيقاف البيع قرار منفصل. راجع السعر الشهري قبل التأكيد.">
+            {apps.length === 0 && <p className="muted">{loading ? 'جارٍ قراءة الباقات…' : 'لا باقات متاحة للعرض حالياً؛ تحقق من تنبيه القراءة أعلاه إن ظهر.'}</p>}
+          </ContentPanel>
           {apps.map((app) => (
             <article key={app.code} className="card" style={{ display: 'grid', gap: 8 }}>
               <strong>
@@ -561,15 +589,17 @@ export default function PlatformMarketplacePage() {
                   className="input"
                   dir="ltr"
                   value={drafts[app.code] ?? app.monthlyPrice}
+                  inputMode="decimal"
                   disabled={!canWrite}
                   onChange={(event) => setDrafts({ ...drafts, [app.code]: event.target.value })}
                 />
               </label>
+              {!validPrice(drafts[app.code] ?? app.monthlyPrice) && <p className="alert danger">أدخل سعراً شهرياً صالحاً قبل الحفظ (حتى ٤ منازل عشرية).</p>}
               <span>
                 <button
                   className="btn primary"
                   type="button"
-                  disabled={!canWrite || busy === app.code}
+                  disabled={!canWrite || Boolean(busy) || !validPrice(drafts[app.code] ?? app.monthlyPrice) || (drafts[app.code] ?? app.monthlyPrice) === app.monthlyPrice}
                   onClick={() => void save(app, app.isActive)}
                 >
                   حفظ السعر
@@ -577,7 +607,7 @@ export default function PlatformMarketplacePage() {
                 <button
                   className="btn"
                   type="button"
-                  disabled={!canWrite || busy === app.code}
+                  disabled={!canWrite || Boolean(busy) || !validPrice(drafts[app.code] ?? app.monthlyPrice)}
                   onClick={() => void save(app, !app.isActive)}
                 >
                   {app.isActive ? 'إيقاف البيع' : 'إعادة البيع'}
@@ -602,13 +632,25 @@ function whenText(value: string | null): string {
  * حالةُ الترخيص **الآن** لا لحظة القياس — فالفرق تجاري: «فعّلت بعدها» تعني أنّ الصفّ تاريخٌ
  * محض، و«باقةٌ مُطفأة» تعني أنّ قراراً اتُّخذ ثمّ أُوقف، و«لم تطلب» تعني أنّ أحداً لم يطرق الباب.
  */
+function appLabel(code: string, apps: CatalogApp[]): string {
+  return apps.find((app) => app.code === code)?.nameAr ?? 'باقة غير معرفة في الكتالوج';
+}
+
+function tenantStatusLabel(status: string): string {
+  return status === 'active' ? 'نشطة' : status === 'suspended' ? 'موقوفة' : status === 'archived' ? 'مؤرشفة' : 'حالة غير معروفة';
+}
+
 function licenceLabel(state: UnlicensedUsageRow['licence']['state'], enabledApps: string[]): string {
   if (state === 'licensed') return `✅ مُرخّصة الآن (${enabledApps.join(', ')}) — القياس تاريخ`;
   if (state === 'disabled') return '⏸️ باقةٌ مثبّتة لكنها مُطفأة';
   return '⛔ بلا باقة مفعّلة';
 }
 
+function validPrice(value: string): boolean {
+  return /^\d{1,8}(\.\d{1,4})?$/.test(value.trim());
+}
+
 function messageOf(error: unknown): string {
   if (error instanceof ApiError) return error.message;
-  return error instanceof Error ? error.message : 'تعذر إكمال الطلب';
+  return arabicErrorText(error);
 }
