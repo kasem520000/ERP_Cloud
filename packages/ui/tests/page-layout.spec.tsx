@@ -1,7 +1,7 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 
-import { ContentPanel, FormField, PageFrame, PageHeader, SummaryStat, TableViewport, ViewNotice } from '../src/components/page-layout';
+import { AccessOverview, ContentPanel, FormField, PageFrame, PageHeader, PermissionChoice, SummaryStat, TableViewport, ViewNotice } from '../src/components/page-layout';
 
 describe('operational page anatomy', () => {
   it('renders one semantic heading and keeps actions separate from content', () => {
@@ -15,6 +15,25 @@ describe('operational page anatomy', () => {
     expect(html).toContain('class="erp-page');
     expect(html).toContain('role="region" aria-label="حركات الحساب" tabindex="0"');
     expect(html).toContain('class="erp-page-actions no-print"');
+  });
+
+  it('renders a role review summary and native permission choice without owning access policy', () => {
+    const html = renderToStaticMarkup(
+      <>
+        <AccessOverview title="صلاحيات الوصول" description="راجع التغييرات قبل الحفظ" items={[
+          { label: 'الأدوار', value: 5, hint: 'أدوار المنصة' },
+          { label: 'التعديل', value: 'عرض فقط', hint: 'لا يمكن الحفظ' },
+        ]} />
+        <div className="erp-permission-grid">
+          <PermissionChoice title="عرض سجل التدقيق" checked disabled changed onChange={() => {}} />
+        </div>
+      </>,
+    );
+    expect(html).toContain('aria-label="صلاحيات الوصول"');
+    expect(html).toContain('عرض فقط');
+    expect(html).toMatch(/<input[^>]*type="checkbox"[^>]*disabled=""[^>]*checked=""/);
+    expect(html).toContain('data-changed="true"');
+    expect(html).toContain('تغيير غير محفوظ');
   });
 
   it('pairs a real label with a field and presents an error', () => {

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { AccessOverview, PermissionChoice, ViewNotice } from '@erp/ui/page';
 
 import { Notice, QueryView } from '../../../components/data-view';
 import { Forbidden, Screen } from '../../../components/screen';
@@ -542,6 +543,15 @@ export default function RolesPage() {
       crumbs={['الإعدادات', 'الأدوار والصلاحيات']}
     >
       <Notice notice={notice} />
+      <AccessOverview
+        title="من يحق له الوصول؟"
+        description="أنشئ دوراً للعمل، راجع صلاحياته قبل الحفظ، ثم امنحه للمستخدمين من بطاقاتهم. دور مالك الحساب لا تُقلّص صلاحياته."
+        items={[
+          { label: 'الأدوار في المنشأة', value: roles.data?.length ?? '—', hint: roles.status === 'success' ? 'النظامية والمخصصة' : 'بانتظار تحميل الأدوار' },
+          { label: 'الدور الجاري مراجعته', value: active ? systemRoleNameAr(active.name) : '—', hint: isOwnerRole ? 'صلاحيات المالك ثابتة' : 'راجع النطاق قبل الحفظ' },
+          { label: 'الصلاحيات المختارة', value: active ? checked.size : '—', hint: `${canonicalPermissions.length} صلاحية متاحة للمراجعة` },
+        ]}
+      />
 
       <div className="grid cols-2" style={{ alignItems: 'start' }}>
         <section className="card grid">
@@ -603,8 +613,7 @@ export default function RolesPage() {
                       return (
                         <tr
                           key={role.id}
-                          className={isActive ? 'row-active clickable' : 'clickable'}
-                          onClick={() => pickRole(role)}
+                          className={isActive ? 'row-active' : undefined}
                         >
                           <td>
                             <strong>{systemRoleNameAr(role.name)}</strong>
@@ -626,10 +635,8 @@ export default function RolesPage() {
                             <button
                               className={`btn sm ${isActive ? 'primary' : ''}`}
                               type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                pickRole(role);
-                              }}
+                              aria-pressed={isActive}
+                              onClick={() => pickRole(role)}
                             >
                               {isActive ? 'محدد حالياً' : 'تعديل الصلاحيات'}
                             </button>
@@ -754,6 +761,7 @@ export default function RolesPage() {
           <QueryView query={permissions} empty="لا توجد صلاحيات مسجلة.">
             {() => (
               <div className="grid" style={{ maxHeight: '62vh', overflowY: 'auto', paddingInlineEnd: 4 }}>
+                {grouped.length === 0 && <ViewNotice state="empty">لا توجد صلاحيات مطابقة للبحث. غيّر كلمات البحث لعرض الوحدات.</ViewNotice>}
                 {grouped.map(([mod, list]) => {
                   const moduleTitle = MODULE_LABELS_AR[mod] ?? 'صلاحيات أخرى';
                   const selectedInGroup = list.filter((p) => checked.has(p.code)).length;
@@ -788,41 +796,19 @@ export default function RolesPage() {
                         )}
                       </div>
 
-                      <div className="grid cols-2" style={{ gap: 8 }}>
+                      <div className="erp-permission-grid">
                         {list.map((permission) => {
                           const info = describePermissionAr(permission);
                           const isChecked = checked.has(permission.code);
                           return (
-                            <label
+                            <PermissionChoice
                               key={permission.code}
-                              style={{
-                                display: 'flex',
-                                gap: 10,
-                                alignItems: 'flex-start',
-                                padding: '8px 10px',
-                                borderRadius: 8,
-                                border: `1px solid ${isChecked ? 'var(--brand-line)' : 'var(--line)'}`,
-                                background: isChecked ? 'var(--brand-soft)' : 'var(--surface)',
-                                cursor: canEditActivePermissions ? 'pointer' : 'default',
-                                opacity: canEditActivePermissions || isChecked ? 1 : 0.75,
-                              }}
-                            >
-                              <input
-                                type="checkbox"
-                                checked={isChecked}
-                                disabled={!canEditActivePermissions}
-                                onChange={() => toggle(permission.code)}
-                                style={{ marginTop: 3, width: 16, height: 16, accentColor: 'var(--brand)' }}
-                              />
-                              <span style={{ display: 'grid', gap: 2, minWidth: 0 }}>
-                                <strong style={{ fontSize: 13 }}>{info.title}</strong>
-                                {info.detail ? (
-                                  <small className="muted" style={{ fontSize: 11.5, lineHeight: 1.4 }}>
-                                    {info.detail}
-                                  </small>
-                                ) : null}
-                              </span>
-                            </label>
+                              title={info.title}
+                              detail={info.detail}
+                              checked={isChecked}
+                              disabled={!canEditActivePermissions}
+                              onChange={() => toggle(permission.code)}
+                            />
                           );
                         })}
                       </div>

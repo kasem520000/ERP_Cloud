@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { AccessOverview } from '@erp/ui/page';
 
 import { DataTable, Notice, QueryView } from '../../../components/data-view';
 import { Forbidden, Screen } from '../../../components/screen';
@@ -39,6 +40,8 @@ type Membership = {
 };
 
 type NoticeState = { kind: 'ok' | 'danger' | 'info' | 'warn'; text: string };
+
+const STATUS_AR: Record<Membership['status'], string> = { active: 'نشط', invited: 'مدعو', suspended: 'موقوف' };
 
 const SCOPE_TYPES = [
   { value: 'branch', label: 'فرع' },
@@ -128,7 +131,7 @@ export default function TenantUsersPage() {
   if (!can('tenant.membership.manage')) {
     return (
       <Screen
-        title="بطاقة مستخدم"
+        title="مستخدمو المنشأة"
         subtitle="مستخدمو هذه المنشأة وأدوارهم."
         crumbs={['الإعدادات', 'إعدادات المستخدمين']}
       >
@@ -222,16 +225,28 @@ export default function TenantUsersPage() {
 
   return (
     <Screen
-      title="بطاقة مستخدم"
-      subtitle="مستخدمو هذه المنشأة وأدوارهم ونطاقات فروعهم."
+      title="مستخدمو المنشأة"
+      subtitle="راجع حالة الحساب والدور ونطاق الوصول قبل دعوة مستخدم أو تعديل عضويته."
       crumbs={['الإعدادات', 'إعدادات المستخدمين']}
     >
       <Notice notice={notice} />
+      <AccessOverview
+        title="فريق المنشأة وصلاحياته"
+        description="كل حساب يرتبط بدور ونطاق فروع. راجع الحدود والحالة قبل تعديل عضوية قائمة، ولا تُشارك الدعوات خارج المنشأة."
+        items={[
+          { label: 'المستخدمون', value: memberships.data?.length ?? '—', hint: 'حسابات المنشأة والبوابة' },
+          { label: 'الحسابات النشطة', value: memberships.data?.filter((row) => row.status === 'active').length ?? '—', hint: 'يمكنها تسجيل الدخول حسب صلاحياتها' },
+          { label: 'الدعوات المعلقة', value: memberships.data?.filter((row) => row.status === 'invited').length ?? '—', hint: 'بانتظار إتمام التفعيل' },
+        ]}
+      />
 
       <section className="card">
         <div className="row">
           {/* «📋 قائمة المستخدمين» — `frmAddUsers.xaml` س325. */}
-          <h2>📋 قائمة المستخدمين ({(memberships.data ?? []).length})</h2>
+          <div>
+            <h2>دليل المستخدمين ({memberships.data?.length ?? '—'})</h2>
+            <p className="muted small">افتح تعديل العضوية لضبط أدوارها وفروعها وحدود الخصم؛ الدعوة لا تمنح صلاحيات تلقائياً.</p>
+          </div>
           <button
             type="button"
             className="btn primary"
@@ -243,10 +258,11 @@ export default function TenantUsersPage() {
         </div>
 
         {showInvite && (
-          <div className="form-grid">
+          <div className="form-grid" role="region" aria-label="دعوة مستخدم جديد">
+            <p className="muted" style={{ gridColumn: '1 / -1' }}>أدخل بريد المستخدم وحدد دوراً واحداً على الأقل ونطاق الفروع قبل إرسال الدعوة.</p>
             {/* «🔑 اسم المستخدم» — `frmAddUsers.xaml` س243: في السحابة اسم الدخول هو البريد. */}
             <label>
-              🔑 اسم المستخدم (البريد الإلكتروني)
+              البريد الإلكتروني للمستخدم
               <input
                 type="email"
                 value={email}
@@ -255,9 +271,9 @@ export default function TenantUsersPage() {
                 dir="ltr"
               />
             </label>
-            {/* «👤 الموظف» — `frmAddUsers.xaml` س234: في الديسكتوب اختيارٌ من الموظفين، وهنا كتابةٌ للاسم. */}
+            {/* «اسم المستخدم» — `frmAddUsers.xaml` س234: في الديسكتوب اختيارٌ من الموظفين، وهنا كتابةٌ للاسم. */}
             <label>
-              👤 الموظف
+              اسم المستخدم
               <input
                 value={fullName}
                 onChange={(event) => setFullName(event.target.value)}
@@ -303,7 +319,7 @@ export default function TenantUsersPage() {
               )}
             </fieldset>
             <fieldset>
-              <legend>💰 حدود الخصم (فارغ = بلا حدّ)</legend>
+              <legend>حدود الخصم (اترك الحقل فارغاً لعدم وضع حدّ)</legend>
               <label>
                 أعلى نسبة للخصم %
                 <input
@@ -349,12 +365,13 @@ export default function TenantUsersPage() {
               rows={list}
               rowKey={(row) => row.id}
               columns={[
-                { key: 'name', header: '👤 الموظف', cell: (row) => row.displayName },
+                { key: 'name', header: 'اسم المستخدم', cell: (row) => row.displayName },
                 {
                   key: 'status',
                   header: 'الحالة',
-                  cell: (row) => <span className={`badge ${row.status}`}>{row.status}</span>,
+                  cell: (row) => <span className={`badge ${row.status}`}>{STATUS_AR[row.status]}</span>,
                 },
+                { key: 'kind', header: 'نوع الحساب', cell: (row) => row.kind === 'portal' ? 'بوابة العملاء' : 'موظف المنشأة' },
                 { key: 'owner', header: 'مالك', cell: (row) => (row.isOwner ? 'نعم' : '—') },
                 {
                   key: 'roles',
@@ -398,14 +415,15 @@ export default function TenantUsersPage() {
       {editing && (
         <section className="card">
           <div className="row">
-            <h2>تعديل: {editing.displayName}</h2>
+            <h2>تعديل عضوية: {editing.displayName}</h2>
             <button type="button" className="btn sm" onClick={() => setEditingId(null)}>
               إلغاء
             </button>
           </div>
+          <p className="muted small">تحقق من الدور والنطاق قبل الحفظ. قد يؤثر تغيير الحالة فوراً في قدرة المستخدم على الوصول.</p>
           <div className="form-grid">
             <label>
-              👤 الموظف
+              اسم المستخدم
               <input value={displayName} onChange={(event) => setDisplayName(event.target.value)} />
             </label>
             <label>
@@ -490,7 +508,7 @@ export default function TenantUsersPage() {
                 </select>
                 <select value={scopeTarget} onChange={(event) => setScopeTarget(event.target.value)}>
                   <option value="">— اختر —</option>
-                  <option value={TENANT_WIDE_SCOPE_ID}>🌐 كل المنشأة (وصول شامل صريح)</option>
+                  <option value={TENANT_WIDE_SCOPE_ID}>كل المنشأة (وصول شامل صريح)</option>
                   {scopeTargets.map((option) => (
                     <option key={option.id} value={option.id}>
                       {option.label}
@@ -511,7 +529,7 @@ export default function TenantUsersPage() {
               </div>
             </fieldset>
             <fieldset>
-              <legend>💰 حدود الخصم (فارغ = بلا حدّ)</legend>
+              <legend>حدود الخصم (اترك الحقل فارغاً لعدم وضع حدّ)</legend>
               <label>
                 أعلى نسبة للخصم %
                 <input

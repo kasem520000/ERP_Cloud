@@ -2,9 +2,10 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
+import { AccessOverview, ContentPanel, TableViewport } from '@erp/ui/page';
 import type { PlatformDirectoryUser } from '@erp/contracts';
 
-import { Empty, ErrorBox, Loading, Screen } from '../../components/screen';
+import { Empty, ErrorBox, Forbidden, Loading, Screen } from '../../components/screen';
 import { ApiError, apiData, apiPost } from '../../lib/api';
 import { useSession } from '../../lib/session';
 import { useQuery } from '../../lib/use-query';
@@ -107,13 +108,29 @@ export default function PlatformUsersPage() {
 
   return (
     <Screen title="مستخدمو المنصة والعملاء" subtitle="افصل بين مستخدمي منشآت العملاء وبين مشغّلي المنصة الداخليين، مع إدارة الدعوات والأدوار." crumbs={['المنصة', 'التشغيل']}>
-      <div className="card tight no-print">
+      <AccessOverview
+        title="دليل الهوية والوصول"
+        description="ميّز بين حسابات العملاء والمشغّلين الداخليين. راجع الحماية والأدوار من بطاقة المستخدم قبل أي تعديل."
+        items={[
+          { label: 'الحسابات في الدليل', value: users.data?.length ?? '—', hint: applied ? 'ضمن نتائج البحث الحالية' : 'المستخدمون المتاحون للعرض' },
+          { label: 'مشغّلو المنصة', value: users.data?.filter((row) => row.platformRoles.length > 0 || row.isPlatformAdmin).length ?? '—', hint: 'لهم أدوار تشغيل داخلية' },
+          { label: 'الحسابات المحمية', value: users.data?.filter((row) => row.mfaEnabled).length ?? '—', hint: 'التحقق الثنائي مفعل' },
+        ]}
+      />
+      <section className="erp-panel no-print" aria-label="البحث والدعوات">
+        <div className="erp-panel-header">
+          <div className="erp-panel-heading">
+            <h2>ابحث وصفِّ الحسابات</h2>
+            <p>اختر نوع الحساب أولاً، ثم ابحث بالبريد أو الاسم. الدعوات تخص مشغّلي المنصة فقط.</p>
+          </div>
+        </div>
         <div className="row" style={{ justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: 8 }}>
           <div className="row" style={{ flexWrap: 'wrap', gap: 8 }}>
             <input
               className="input"
               style={{ maxWidth: 260 }}
               placeholder="بحث بالبريد أو الاسم"
+              aria-label="البحث بالبريد أو الاسم"
               value={search}
               onChange={(event) => setSearch(event.target.value)}
             />
@@ -123,6 +140,7 @@ export default function PlatformUsersPage() {
             <button
               className={`btn ${scopeFilter === 'customers' ? 'primary' : ''}`}
               type="button"
+              aria-pressed={scopeFilter === 'customers'}
               onClick={() => setScopeFilter('customers')}
             >
               مستخدمو العملاء
@@ -130,6 +148,7 @@ export default function PlatformUsersPage() {
             <button
               className={`btn ${scopeFilter === 'operators' ? 'primary' : ''}`}
               type="button"
+              aria-pressed={scopeFilter === 'operators'}
               onClick={() => setScopeFilter('operators')}
             >
               مشغّلو المنصة
@@ -137,6 +156,7 @@ export default function PlatformUsersPage() {
             <button
               className={`btn ${scopeFilter === 'all' ? 'primary' : ''}`}
               type="button"
+              aria-pressed={scopeFilter === 'all'}
               onClick={() => setScopeFilter('all')}
             >
               الكل ({allRows.length})
@@ -193,6 +213,7 @@ export default function PlatformUsersPage() {
                   className="input"
                   dir="ltr"
                   autoComplete="new-password"
+                  type="password"
                   value={invite.temporaryPassword}
                   onChange={(event) => setInvite({ ...invite, temporaryPassword: event.target.value })}
                 />
@@ -210,21 +231,23 @@ export default function PlatformUsersPage() {
               </button>
             </div>
             <p className="muted" style={{ marginTop: 8 }}>
-              بلا كلمة مرور مؤقّتة يُنشأ الحساب <span dir="ltr">invited</span> ولا يستطيع الدخول حتى يصل رابط التفعيل.
+              من دون كلمة مرور مؤقتة يبقى الحساب «مدعوّاً» ولا يستطيع الدخول حتى يستخدم رابط التفعيل.
             </p>
           </form>
         )}
 
-        {inviteError && <p className="alert danger" style={{ marginTop: 8 }}>{inviteError}</p>}
-      </div>
+        {inviteError && <p className="alert danger" role="alert" style={{ marginTop: 8 }}>{inviteError}</p>}
+      </section>
 
-      {users.status === 'loading' && <Loading />}
-      {users.status === 'error' && <ErrorBox message={users.error} onRetry={users.reload} />}
-      {users.status === 'success' &&
+      <ContentPanel title={`نتائج الدليل (${users.status === 'success' ? rows.length : '—'})`} description="افتح اسم المستخدم لمراجعة حسابه وجلساته وتعييناته.">
+        {users.status === 'loading' && <Loading />}
+        {users.status === 'error' && <ErrorBox message={users.error} onRetry={users.reload} />}
+        {users.status === 'forbidden' && <Forbidden />}
+        {users.status === 'success' &&
         (rows.length === 0 ? (
           <Empty title="لا توجد نتائج" />
         ) : (
-          <div className="table-wrap">
+          <TableViewport label="دليل مستخدمي المنصة والعملاء">
             <table>
               <thead>
                 <tr>
@@ -232,7 +255,7 @@ export default function PlatformUsersPage() {
                   <th>البريد</th>
                   <th>المنشأة</th>
                   <th>الحالة</th>
-                  <th>2FA</th>
+                  <th>التحقق الثنائي</th>
                   <th>آخر دخول</th>
                   <th className="num">جلسات</th>
                   <th>أدوار المنصة</th>
@@ -293,8 +316,9 @@ export default function PlatformUsersPage() {
                 ))}
               </tbody>
             </table>
-          </div>
+          </TableViewport>
         ))}
+      </ContentPanel>
     </Screen>
   );
 }

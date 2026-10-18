@@ -2,9 +2,10 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
+import { AccessOverview, FormField, PermissionChoice, TableViewport, ViewNotice } from '@erp/ui/page';
 import type { PermissionDto, PlatformDirectoryUser, PlatformRoleMatrixEntry } from '@erp/contracts';
 
-import { Empty, ErrorBox, Loading, Screen } from '../../components/screen';
+import { Empty, ErrorBox, Forbidden, Loading, Screen } from '../../components/screen';
 import { ApiError, apiData, apiPut } from '../../lib/api';
 import { useSession } from '../../lib/session';
 import { useQuery } from '../../lib/use-query';
@@ -94,6 +95,8 @@ export default function PlatformRolesPage() {
   const [busy, setBusy] = useState<string | undefined>();
   const [error, setError] = useState<string | undefined>();
   const [notice, setNotice] = useState<string | undefined>();
+  const [filter, setFilter] = useState('');
+  const [expandedRole, setExpandedRole] = useState<string | null>(null);
 
   const catalogue = roles.data ?? [];
   const codes = (permissions.data ?? []).map((entry) => entry.code);
@@ -105,17 +108,17 @@ export default function PlatformRolesPage() {
     setDraft(Object.fromEntries(roles.data.map((role) => [role.code, [...role.permissions]])));
   }, [roles.data]);
 
-  function toggle(roleCode: string, code: string, on: boolean) {
+  function toggle(role: PlatformRoleMatrixEntry, code: string, on: boolean) {
     setDraft((current) => {
-      const set = new Set(current[roleCode] ?? []);
+      const set = new Set(current[role.code] ?? role.permissions);
       if (on) set.add(code);
       else set.delete(code);
-      return { ...current, [roleCode]: [...set].sort() };
+      return { ...current, [role.code]: [...set].sort() };
     });
   }
 
   function dirty(role: PlatformRoleMatrixEntry): boolean {
-    const current = [...(draft[role.code] ?? [])].sort();
+    const current = [...(draft[role.code] ?? role.permissions)].sort();
     return current.join('\u0000') !== [...role.permissions].sort().join('\u0000');
   }
 
@@ -125,7 +128,7 @@ export default function PlatformRolesPage() {
     setNotice(undefined);
     try {
       await apiPut(`/platform/roles/${role.code}/permissions`, {
-        permissions: draft[role.code] ?? [],
+        permissions: draft[role.code] ?? role.permissions,
         reason,
       });
       setNotice(`حُفظت صلاحيات «${role.nameAr}».`);
@@ -140,15 +143,33 @@ export default function PlatformRolesPage() {
   return (
     <Screen
       title="أدوار المنصة"
-      subtitle="مصفوفة الأدوار الخمسة × رموز اللوحة — ما ينصّ عليه الفهرس، وما صار فعّالًا."
+      subtitle="راجع صلاحيات تشغيل المنصة ومن يحمل كل دور. أي تعديل يتطلب سبباً ويُحفظ في سجل المراجعة."
       crumbs={['المنصة', 'التشغيل']}
     >
-      {error && <p className="alert danger">{error}</p>}
-      {notice && <p className="alert ok">{notice}</p>}
+      <AccessOverview
+        title="صلاحيات تشغيل المنصة"
+        description="اختر دوراً لمراجعة نطاقه. الصلاحيات المحددة هي الفعّالة؛ لا تُطبق تغييرات المسودة حتى تُكتب أسبابها وتُحفظ."
+        items={[
+          { label: 'الأدوار', value: roles.data?.length ?? '—', hint: roles.status === 'success' ? 'أدوار تشغيل المنصة' : 'بانتظار تحميل الأدوار' },
+          { label: 'الصلاحيات', value: permissions.data?.length ?? '—', hint: 'متاحة للمراجعة بحسب الفهرس' },
+          { label: 'التعديل', value: canManage ? 'مسموح' : 'عرض فقط', hint: canManage ? 'الحفظ يتطلب سبباً مكتوباً' : 'اطلب دوراً مناسباً من مالك المنصة' },
+        ]}
+      />
+      {error && <p className="alert danger" role="alert">{error}</p>}
+      {notice && <p className="alert ok" role="status">{notice}</p>}
       {roles.status === 'loading' && <Loading />}
       {roles.status === 'error' && <ErrorBox message={roles.error} onRetry={roles.reload} />}
+      {roles.status === 'forbidden' && <Forbidden />}
+      {permissions.status === 'error' && <ErrorBox message={permissions.error} onRetry={permissions.reload} />}
+      {permissions.status === 'forbidden' && <Forbidden />}
 
-      {roles.status === 'success' &&
+      {roles.status === 'success' && permissions.status === 'loading' && <Loading />}
+      {roles.status === 'success' && permissions.status === 'success' && (
+        <FormField label="ابحث في الصلاحيات" hint="يغيّر البحث ما يظهر للمراجعة فقط، ولا يعدّل الصلاحيات المحفوظة.">
+          <input className="input" type="search" value={filter} onChange={(event) => setFilter(event.target.value)} placeholder="اسم الصلاحية أو رمزها" />
+        </FormField>
+      )}
+      {roles.status === 'success' && permissions.status === 'success' &&
         (catalogue.length === 0 ? (
           <Empty title="لا توجد أدوار" />
         ) : (
@@ -157,11 +178,14 @@ export default function PlatformRolesPage() {
               key={role.code}
               role={role}
               codes={codes}
-              draft={draft[role.code] ?? []}
+              filter={filter}
+              expanded={expandedRole === null ? role.code === catalogue[0]?.code : expandedRole === role.code}
+              onExpand={() => setExpandedRole((current) => (current ?? catalogue[0]?.code) === role.code ? '' : role.code)}
+              draft={draft[role.code] ?? role.permissions}
               canManage={canManage}
               busy={busy === role.code}
               dirty={dirty(role)}
-              onToggle={(code, on) => toggle(role.code, code, on)}
+              onToggle={(code, on) => toggle(role, code, on)}
               onSave={(reason) => save(role, reason)}
             />
           ))
@@ -175,6 +199,9 @@ export default function PlatformRolesPage() {
 function RoleMatrix({
   role,
   codes,
+  filter,
+  expanded,
+  onExpand,
   draft,
   canManage,
   busy,
@@ -184,6 +211,9 @@ function RoleMatrix({
 }: {
   role: PlatformRoleMatrixEntry;
   codes: string[];
+  filter: string;
+  expanded: boolean;
+  onExpand: () => void;
   draft: string[];
   canManage: boolean;
   busy: boolean;
@@ -195,86 +225,73 @@ function RoleMatrix({
   const granted = new Set(draft);
   const catalogued = new Set(role.catalogPermissions);
 
+  const query = filter.trim().toLowerCase();
+  const visibleCodes = codes.filter((code) =>
+    !query || (CONSOLE_PERM_AR[code] ?? '').toLowerCase().includes(query) || code.toLowerCase().includes(query),
+  );
+
   return (
-    <div className="card">
-      <div className="row" style={{ justifyContent: 'space-between', alignItems: 'baseline' }}>
-        <h3 style={{ margin: 0 }}>
-          {role.nameAr}{' '}
-          <span className="muted" dir="ltr">
-            ({role.code})
-          </span>
-        </h3>
-        <span className="muted">
-          الحائزون: {role.holderCount} ·{' '}
-          {role.overridden ? (
-            <span className="tag tenant">تجاوز مسجَّل</span>
-          ) : (
-            <span className="tag default">كما في الفهرس</span>
-          )}
+    <section className="card erp-role-section" aria-label={`دور ${role.nameAr}`}>
+      <button
+        type="button"
+        className="erp-role-trigger"
+        aria-expanded={expanded}
+        aria-controls={`permissions-${role.code}`}
+        onClick={onExpand}
+      >
+        <span className="erp-role-heading">
+          <strong>{role.nameAr}</strong>
+          <small>{ROLE_DESC_AR[role.code] ?? role.description}</small>
         </span>
-      </div>
-      <p className="muted">{ROLE_DESC_AR[role.code] ?? role.description}</p>
-
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
-        {codes.map((code) => {
-          const on = granted.has(code);
-          const inCatalogue = catalogued.has(code);
-          return (
-            <label
-              key={code}
-              className="chip"
-              title={`${CONSOLE_PERM_AR[code] ?? 'صلاحية غير مصنّفة'} (${code})`}
-              style={{ opacity: on ? 1 : 0.6 }}
-            >
-              <input
-                type="checkbox"
-                checked={on}
-                disabled={!canManage || busy}
-                onChange={(event) => onToggle(code, event.target.checked)}
-              />
-              <span>{CONSOLE_PERM_AR[code] ?? 'صلاحية غير مصنّفة'}</span>
-              <span className="muted small" dir="ltr">
-                ({code.replace('console.', '')})
-              </span>
-              {inCatalogue !== on && <span className="muted">{inCatalogue ? '−' : '+'}</span>}
-            </label>
-          );
-        })}
-      </div>
-
-      {canManage && (
-        <div className="row" style={{ marginTop: 12 }}>
-          <input
-            className="input"
-            style={{ maxWidth: 280 }}
-            placeholder="سبب التغيير (٣ أحرف)"
-            value={reason}
-            onChange={(event) => setReason(event.target.value)}
-          />
-          <button
-            className="btn primary"
-            type="button"
-            disabled={!dirty || busy || reason.trim().length < 3}
-            onClick={() => onSave(reason.trim())}
-          >
-            {busy ? 'جارٍ الحفظ…' : 'حفظ مجموعة هذا الدور'}
-          </button>
-          <button
-            className="btn"
-            type="button"
-            disabled={busy}
-            onClick={() => {
-              // Restoring the catalogue is itself a write: it clears the override row.
-              for (const code of codes) onToggle(code, catalogued.has(code));
-              setReason('إرجاع إلى الفهرس');
-            }}
-          >
-            إرجاع إلى الفهرس
-          </button>
-          {!dirty && <span className="muted">لا تغييرات غير محفوظة</span>}
+        <span className="erp-role-facts">
+          <span>{granted.size} صلاحية</span>
+          <span>{role.holderCount} حائز</span>
+          <span>{dirty ? 'تغييرات غير محفوظة' : role.overridden ? 'مخصص عن الفهرس' : 'كما في الفهرس'}</span>
+          <span aria-hidden="true">{expanded ? '−' : '+'}</span>
+        </span>
+      </button>
+      {expanded && (
+        <div id={`permissions-${role.code}`} className="erp-role-content">
+          <p className="muted small">اختر الصلاحيات المناسبة لهذا الدور. تظهر التغييرات المقترحة قبل حفظها؛ لن تتبدل أذونات المشغلين حتى تؤكد السبب.</p>
+          {visibleCodes.length === 0 ? (
+            <ViewNotice state="empty">لا توجد صلاحيات مطابقة للبحث في هذا الدور.</ViewNotice>
+          ) : (
+            <div className="erp-permission-grid">
+              {visibleCodes.map((code) => (
+                <PermissionChoice
+                  key={code}
+                  title={CONSOLE_PERM_AR[code] ?? 'صلاحية إضافية'}
+                  checked={granted.has(code)}
+                  changed={role.permissions.includes(code) !== granted.has(code)}
+                  disabled={!canManage || busy}
+                  onChange={(on) => onToggle(code, on)}
+                />
+              ))}
+            </div>
+          )}
+          {canManage && (
+            <div className="erp-role-actions">
+              <FormField label="سبب تغيير صلاحيات الدور" hint="اكتب ثلاثة أحرف على الأقل؛ يسجل النظام السبب مع فروق الصلاحيات.">
+                <input className="input" value={reason} onChange={(event) => setReason(event.target.value)} minLength={3} placeholder="مثال: تحديث مهام فريق التشغيل" />
+              </FormField>
+              <div className="erp-page-actions">
+                <button className="btn primary" type="button" disabled={!dirty || busy || reason.trim().length < 3} onClick={() => onSave(reason.trim())}>
+                  {busy ? 'جارٍ الحفظ…' : 'حفظ صلاحيات الدور'}
+                </button>
+                <button className="btn" type="button" disabled={busy} onClick={() => {
+                  // Restoring the catalogue is itself a write: it clears the override row.
+                  for (const code of codes) onToggle(code, catalogued.has(code));
+                  setReason('إرجاع إلى الفهرس');
+                }}>
+                  إرجاع إلى الفهرس
+                </button>
+                {!dirty && <span className="muted small" role="status">لا تغييرات غير محفوظة</span>}
+              </div>
+            </div>
+          )}
         </div>
       )}
-    </div>
+    </section>
   );
 }
 
@@ -285,14 +302,16 @@ function UsersAndHolders() {
 
   return (
     <div className="card">
-      <h3 style={{ marginTop: 0 }}>الحائزون</h3>
+      <h2 style={{ marginTop: 0 }}>مَن يملك صلاحية التشغيل؟</h2>
+      <p className="muted small">المشغّلون المرتبطون بأدوار المنصة؛ افتح بطاقة المستخدم لمراجعة تعييناته.</p>
       {users.status === 'loading' && <Loading />}
       {users.status === 'error' && <ErrorBox message={users.error} onRetry={users.reload} />}
+      {users.status === 'forbidden' && <Forbidden />}
       {users.status === 'success' &&
         (rows.length === 0 ? (
           <Empty title="لا حائزين" />
         ) : (
-          <div className="table-wrap">
+          <TableViewport label="مشغلو المنصة وأدوارهم">
             <table>
               <thead>
                 <tr>
@@ -322,7 +341,7 @@ function UsersAndHolders() {
                 ))}
               </tbody>
             </table>
-          </div>
+          </TableViewport>
         ))}
     </div>
   );

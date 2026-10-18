@@ -542,6 +542,48 @@ h6 {
 .erp-stat-value { font: 700 clamp(20px, 2.4vw, 28px)/1.3 var(--font-num); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
 .erp-view-notice { padding: var(--ui-space-6); border: 1px dashed var(--line-strong); border-radius: var(--radius-md); color: var(--muted-2); text-align: center; background: var(--surface-2); }
 .erp-view-error { color: var(--danger-ink); background: var(--danger-soft); border-color: var(--danger-line); }
+/* Role and permission workflow: one reusable hierarchy across tenant and console. */
+.erp-access-overview { display: grid; grid-template-columns: minmax(200px, 1.15fr) minmax(0, 2fr); gap: var(--ui-space-4); padding: var(--ui-space-5); border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--surface); min-width: 0; }
+.erp-access-intro { min-width: 0; align-self: center; }
+.erp-access-kicker { color: var(--brand); font-size: var(--ui-type-caption); font-weight: 800; }
+.erp-access-intro h2 { margin: var(--ui-space-1) 0; font-size: 18px; }
+.erp-access-intro p { margin: 0; color: var(--muted); font-size: var(--ui-type-caption); line-height: 1.65; }
+.erp-access-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--ui-space-2); }
+.erp-access-stat { display: grid; align-content: center; min-width: 0; gap: var(--ui-space-1); padding: var(--ui-space-3); background: var(--surface-2); border-radius: var(--radius-md); }
+.erp-access-stat > span, .erp-access-stat > small { color: var(--muted); font-size: var(--ui-type-caption); }
+.erp-access-stat > strong { color: var(--text); font: 800 22px/1.2 var(--font-num); overflow-wrap: anywhere; }
+.erp-permission-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--ui-space-2); }
+.erp-permission-choice { display: flex; gap: var(--ui-space-2); align-items: flex-start; min-width: 0; padding: var(--ui-space-3); border: 1px solid var(--line); border-radius: var(--radius-md); background: var(--surface); cursor: pointer; }
+.erp-permission-choice[data-selected="true"] { border-color: var(--brand-line); background: var(--brand-soft); }
+.erp-permission-choice:has(input:disabled) { cursor: default; }
+.erp-permission-choice:focus-within { outline: 2px solid var(--brand); outline-offset: 2px; }
+.erp-permission-choice input { flex: none; margin-block-start: 3px; accent-color: var(--brand); }
+.erp-permission-copy { display: grid; min-width: 0; gap: 3px; line-height: 1.45; }
+.erp-permission-copy strong { font-size: 13px; overflow-wrap: anywhere; }
+.erp-permission-copy small { color: var(--muted); font-size: 11.5px; overflow-wrap: anywhere; }
+.erp-permission-change { margin-inline-start: auto; white-space: nowrap; color: var(--warn); font-size: 11px; font-weight: 700; }
+.erp-role-section { min-width: 0; }
+.erp-role-trigger { width: 100%; min-width: 0; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: var(--ui-space-3); padding: 0; border: 0; background: transparent; color: var(--text); text-align: start; cursor: pointer; }
+.erp-role-trigger:hover .erp-role-heading strong { color: var(--brand); }
+.erp-role-heading { display: grid; min-width: 180px; flex: 1; gap: 4px; }
+.erp-role-heading strong { font-size: 16px; }
+.erp-role-heading small { color: var(--muted); font-size: 12px; line-height: 1.5; }
+.erp-role-facts { display: flex; flex-wrap: wrap; align-items: center; gap: var(--ui-space-2); font-size: 12px; color: var(--muted); }
+.erp-role-facts > span { padding: 4px 8px; border-radius: var(--radius-sm); background: var(--surface-2); }
+.erp-role-content { display: grid; gap: var(--ui-space-4); margin-block-start: var(--ui-space-4); padding-block-start: var(--ui-space-4); border-block-start: 1px solid var(--line); }
+.erp-role-content > p { margin: 0; }
+.erp-role-actions { display: grid; gap: var(--ui-space-3); padding: var(--ui-space-4); border-radius: var(--radius-md); background: var(--surface-2); }
+.erp-role-actions .erp-field { max-width: 440px; }
+@media (max-width: 960px) { .erp-access-overview { grid-template-columns: 1fr; } }
+@media (max-width: 640px) {
+  .erp-access-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .erp-access-stat { padding: var(--ui-space-2); }
+  .erp-access-stat > strong { font-size: 16px; }
+  .erp-access-stat > small { display: none; }
+  .erp-permission-grid { grid-template-columns: 1fr; }
+  .erp-access-overview { padding: var(--ui-space-4); }
+  .erp-permission-change { white-space: normal; }
+}
 @media (max-width: 640px) {
   .erp-panel { padding: var(--ui-space-4); }
   .erp-page-header { align-items: start; }

@@ -150,3 +150,61 @@ export function ViewNotice({
     </div>
   );
 }
+
+/** Access-control overview is deliberately read-only; role writes remain in each app. */
+export function AccessOverview({
+  title,
+  description,
+  items,
+}: {
+  title: string;
+  description: string;
+  items: { label: string; value: ReactNode; hint: string }[];
+}) {
+  return (
+    <section className="erp-access-overview" aria-label={title}>
+      <div className="erp-access-intro">
+        <span className="erp-access-kicker">إدارة الوصول</span>
+        <h2>{title}</h2>
+        <p>{description}</p>
+      </div>
+      <div className="erp-access-stats">
+        {items.map((item) => (
+          <div className="erp-access-stat" key={item.label}>
+            <span>{item.label}</span>
+            <strong dir="auto">{item.value}</strong>
+            <small>{item.hint}</small>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+/** Native checkbox, readable detail and selected state; no permission decisions here. */
+export function PermissionChoice({
+  title,
+  detail,
+  checked,
+  disabled = false,
+  changed = false,
+  onChange,
+}: {
+  title: string;
+  detail?: string;
+  checked: boolean;
+  disabled?: boolean;
+  changed?: boolean;
+  onChange: (checked: boolean) => void;
+}) {
+  return (
+    <label className="erp-permission-choice" data-selected={checked} data-changed={changed}>
+      <input type="checkbox" checked={checked} disabled={disabled} onChange={(event) => onChange(event.target.checked)} />
+      <span className="erp-permission-copy">
+        <strong>{title}</strong>
+        {detail ? <small>{detail}</small> : null}
+      </span>
+      {changed ? <span className="erp-permission-change">تغيير غير محفوظ</span> : null}
+    </label>
+  );
+}

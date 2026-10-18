@@ -193,7 +193,7 @@ describe('platform console routes', () => {
     const roles = readFileSync(join(appDir, 'roles', 'page.tsx'), 'utf8');
     expect(roles).toContain('/platform/roles/${role.code}/permissions');
     expect(roles).toContain('/platform/permissions');
-    for (const label of ['الحائزون', 'إرجاع إلى الفهرس', 'تجاوز مسجَّل']) {
+    for (const label of ['حائز', 'إرجاع إلى الفهرس', 'مخصص عن الفهرس', 'سبب تغيير صلاحيات الدور']) {
       expect(roles, label).toContain(label);
     }
   });
