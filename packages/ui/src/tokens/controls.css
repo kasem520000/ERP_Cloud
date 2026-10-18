@@ -1324,6 +1324,7 @@ a.ui-kpi-cell:hover {
  * as the same object. Headings lower in the card stay section labels.
  */
 :where(.shell, .ui-page) .card > h2:first-child,
+:where(.shell, .ui-page) .card > h3:first-child,
 :where(.shell, .ui-page) .card > .section-title:first-child {
   display: flex;
   flex-wrap: wrap;
@@ -1338,6 +1339,7 @@ a.ui-kpi-cell:hover {
   letter-spacing: -0.01em;
 }
 :where(.shell, .ui-page) .card.tight > h2:first-child,
+:where(.shell, .ui-page) .card.tight > h3:first-child,
 :where(.shell, .ui-page) .card.tight > .section-title:first-child {
   margin: -10px -12px 10px;
   padding: 10px 12px;
@@ -1374,6 +1376,8 @@ a.ui-kpi-cell:hover {
 }
 :where(.shell, .ui-page) .card > h2:first-child > h2,
 :where(.shell, .ui-page) .card > h2:first-child > h3,
+:where(.shell, .ui-page) .card > h3:first-child > h2,
+:where(.shell, .ui-page) .card > h3:first-child > h3,
 :where(.shell, .ui-page) .card > .section-title:first-child > h2,
 :where(.shell, .ui-page) .card > .section-title:first-child > h3 {
   margin: 0;
@@ -1404,7 +1408,7 @@ a.ui-kpi-cell:hover {
   color: var(--muted);
   text-transform: none;
 }
-:where(.shell, .ui-page) .card > h3:first-child,
+/* أولُ عنوانٍ في جسم اللوحة لا يعلوه فراغ؛ أمّا أولُ عنوانٍ في بطاقة فهو شريطها. */
 :where(.shell, .ui-page) .ui-panel-body > h3:first-child {
   margin-block-start: 0;
 }
