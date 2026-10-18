@@ -1,6 +1,8 @@
 'use client';
 
 import { useCallback, useState } from 'react';
+import { ContentPanel, WorkflowGuide } from '@erp/ui/page';
+import { arabicErrorText } from '@erp/web-core/error-language';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import {
@@ -55,13 +57,13 @@ const CANNED_REPLIES: ReadonlyArray<{ id: string; label: string; body: string }>
   },
   {
     id: 'fixed',
-    label: 'أُصلح الأمر',
-    body: 'أُعيد ضبط الإعداد من جهتنا، والوضع الآن سليم. جرّب إعادة المحاولة وأخبرنا بالنتيجة.',
+    label: 'تحقق من الحل',
+    body: 'بعد التحقق من السبب والإجراء الذي اتخذناه، جرّب إعادة المحاولة وأخبرنا بالنتيجة. عدّل هذه الرسالة لتذكر ما تم فعلاً قبل إرسالها.',
   },
   {
     id: 'closing',
-    label: 'إغلاق مؤقّت',
-    body: 'لم نرَ ردّاً خلال المتابعة. سنغلق التذكرة مؤقتاً؛ يكفي أن تردّ في أي وقت لتُفتح من جديد.',
+    label: 'متابعة قبل الإغلاق',
+    body: 'لم نتلقّ رداً خلال المتابعة. إذا استمرت المشكلة فأخبرنا بالتفاصيل قبل إغلاق هذه التذكرة؛ ويمكنك فتح طلب جديد لاحقاً.',
   },
 ];
 
@@ -70,11 +72,8 @@ function dateTime(value: string | null | undefined): string {
 }
 
 function apiMessage(error: unknown): string {
-  if (error instanceof ApiError) {
-    if (error.isForbidden) return 'تحتاج صلاحية «مكتب الدعم» (console.support.manage) لهذا الإجراء.';
-    return error.message;
-  }
-  return error instanceof Error ? error.message : String(error);
+  if (error instanceof ApiError && error.isForbidden) return 'تحتاج صلاحية إدارة الدعم لهذا الإجراء.';
+  return arabicErrorText(error, 'تعذّر تحديث التذكرة. راجع البيانات ثم أعد المحاولة.');
 }
 
 export default function TicketDetailPage() {
@@ -85,7 +84,7 @@ export default function TicketDetailPage() {
   return (
     <Screen
       title={ticket.data?.subject ?? 'تذكرة'}
-      subtitle="الرسائل بترتيبها، والملاحظة الداخلية موسومة. الردّ العام يوقف عدّاد الاستجابة، والملاحظة لا توقفه."
+      subtitle="راجع محادثة العميل وملاحظات الفريق قبل إعداد رد أو تغيير حالة البلاغ."
       crumbs={['الدعم', 'التذاكر']}
       actions={
         <Link className="btn" href="/tickets">
@@ -109,6 +108,8 @@ function TicketBody({ ticket, onChanged }: { ticket: TicketDetail; onChanged: ()
   const [body, setBody] = useState('');
   const [internal, setInternal] = useState(false);
   const [reason, setReason] = useState('');
+  const [nextStatus, setNextStatus] = useState<TicketStatus | ''>('');
+  const [nextPriority, setNextPriority] = useState<TicketPriority | ''>('');
 
   const call = useCallback(
     async (path: string, method: 'POST' | 'PATCH', payload: unknown, okText: string) => {
@@ -130,6 +131,9 @@ function TicketBody({ ticket, onChanged }: { ticket: TicketDetail; onChanged: ()
   );
 
   async function sendReply() {
+    if (busy || body.trim().length < 2 || !window.confirm(internal
+      ? 'تقييد ملاحظة داخلية للفريق فقط؟ لا تُرسل للعميل ولا توقف عدّاد الاستجابة.'
+      : `إرسال رد عام إلى العميل على التذكرة «${ticket.subject}»؟ تأكد من نص الرسالة قبل الإرسال.`)) return;
     const sent = await call(
       `/platform/tickets/${ticket.id}/reply`,
       'POST',
@@ -142,9 +146,29 @@ function TicketBody({ ticket, onChanged }: { ticket: TicketDetail; onChanged: ()
     }
   }
 
+  async function changeStatus() {
+    if (!nextStatus || busy || ticket.status === 'closed' || !window.confirm(`تغيير حالة «${ticket.subject}» من ${STATUS_LABEL[ticket.status]} إلى ${STATUS_LABEL[nextStatus]}؟ راجع أثر الإغلاق أو الحل قبل التأكيد.`)) return;
+    if (await call(`/platform/tickets/${ticket.id}`, 'PATCH', { status: nextStatus, reason: 'تحديث حالة من مكتب الدعم' }, 'حُدّثت الحالة.')) setNextStatus('');
+  }
+
+  async function changePriority() {
+    if (!nextPriority || busy || ticket.status === 'closed' || !window.confirm(`تغيير أولوية «${ticket.subject}» إلى ${PRIORITY_LABEL[nextPriority]}؟ قد يُعاد حساب مهلة الاستجابة.`)) return;
+    if (await call(`/platform/tickets/${ticket.id}`, 'PATCH', { priority: nextPriority, reason: 'تغيير أولوية من مكتب الدعم' }, 'حُدّثت الأولوية وأُعيد حساب المهلة من الآن.')) setNextPriority('');
+  }
+
+  async function removeAssignment() {
+    if (busy || !window.confirm(`سحب إسناد «${ticket.subject}» من ${ticket.assignedToLabel ?? 'المشغّل الحالي'}؟ ستعود إلى الصندوق دون مكلّف.`)) return;
+    await call(`/platform/tickets/${ticket.id}`, 'PATCH', { assignedTo: null, reason: 'سحب الإسناد ليعود إلى الصندوق' }, 'سُحب الإسناد.');
+  }
+
   return (
     <div className="grid">
-      <section className="card tight">
+      <WorkflowGuide title="من قراءة البلاغ إلى تحديثه" steps={[
+        { title: 'راجع السياق', detail: 'تحقق من حالة البلاغ والمهلة والملاحظات الداخلية قبل الرد.' },
+        { title: 'اختر نوع الرسالة', detail: 'الرد العام يصل للعميل ويوقف مهلة الاستجابة؛ الملاحظة الداخلية تبقى للفريق.' },
+        { title: 'أكّد التغيير', detail: 'راجع الأثر قبل إرسال الرسالة أو تغيير الحالة أو الأولوية أو الإسناد.' },
+      ]} />
+      <ContentPanel title="ملخص التذكرة" description="البيانات والمهلة تأتيان من سجل الخدمة، وليستا توقعاً من الشاشة.">
         <div className="row" style={{ justifyContent: 'space-between', flexWrap: 'wrap' }}>
           <div>
             <p style={{ margin: 0 }}>
@@ -170,10 +194,10 @@ function TicketBody({ ticket, onChanged }: { ticket: TicketDetail; onChanged: ()
             <p style={{ margin: 0 }}>أُغلقت: {ticket.closedAt ? dateTime(ticket.closedAt) : '—'}</p>
           </div>
         </div>
-      </section>
+      </ContentPanel>
 
-      <section className="card">
-        <h2 style={{ marginTop: 0 }}>المحادثة</h2>
+      <ContentPanel title="تسلسل المحادثة" description="الملاحظات الداخلية موسومة ولا تُرسل إلى العميل. راجع الترتيب الزمني قبل إعداد الرد.">
+        {ticket.messages.length === 0 && <p className="muted">لا رسائل مسجلة لهذه التذكرة بعد.</p>}
         <ul className="thread">
           {ticket.messages.map((message) => (
             <li key={message.id} className={message.isInternal ? 'note' : message.authorKind}>
@@ -192,11 +216,10 @@ function TicketBody({ ticket, onChanged }: { ticket: TicketDetail; onChanged: ()
             </li>
           ))}
         </ul>
-      </section>
+      </ContentPanel>
 
       {ticket.status !== 'closed' && (
-        <section className="card grid">
-          <h2 style={{ marginTop: 0 }}>ردّ</h2>
+        <ContentPanel title="إعداد الرسالة" description="استخدم نصاً جاهزاً كنقطة بداية ثم خصّصه. تغيير النوع لا يرسل شيئاً حتى تؤكد.">
           <div className="row" style={{ flexWrap: 'wrap' }}>
             {CANNED_REPLIES.map((reply) => (
               <button key={reply.id} className="btn" type="button" onClick={() => setBody(reply.body)}>
@@ -204,10 +227,13 @@ function TicketBody({ ticket, onChanged }: { ticket: TicketDetail; onChanged: ()
               </button>
             ))}
           </div>
-          <label>
-            النصّ
-            <textarea rows={4} value={body} onChange={(event) => setBody(event.target.value)} />
+          <label className="field">
+            <span>نص الرسالة</span>
+            <textarea className="input" rows={4} value={body} onChange={(event) => setBody(event.target.value)} />
           </label>
+          <p className={`alert ${internal ? 'warn' : 'ok'}`} role="status">
+            {internal ? 'مسودة ملاحظة للفريق فقط؛ لا تصل إلى العميل ولا توقف مهلة الاستجابة.' : 'مسودة رد عام؛ قد يصل إلى العميل بعد التأكيد ويوقف مهلة الاستجابة.'}
+          </p>
           <div className="row">
             <label className="row" style={{ gap: 6, alignItems: 'center' }}>
               <input
@@ -217,9 +243,9 @@ function TicketBody({ ticket, onChanged }: { ticket: TicketDetail; onChanged: ()
               />
               <span>ملاحظة داخلية (لا تُرسل إلى العميل ولا توقف عدّاد الاستجابة)</span>
             </label>
-            <label>
-              السبب (اختياري)
-              <input value={reason} onChange={(event) => setReason(event.target.value)} />
+            <label className="field">
+              <span>سبب الإجراء (اختياري)</span>
+              <input className="input" value={reason} onChange={(event) => setReason(event.target.value)} />
             </label>
             <button
               className="btn"
@@ -230,25 +256,18 @@ function TicketBody({ ticket, onChanged }: { ticket: TicketDetail; onChanged: ()
               {internal ? 'قيّد الملاحظة' : 'أرسل الردّ'}
             </button>
           </div>
-        </section>
+        </ContentPanel>
       )}
+      {ticket.status === 'closed' && <ContentPanel title="التذكرة مغلقة" description="لا تُرسل ردوداً على تذكرة مغلقة؛ ارجع إلى صندوق الدعم لمراجعة بلاغ جديد." />}
 
-      <section className="card grid">
-        <h2 style={{ marginTop: 0 }}>إجراءات التذكرة</h2>
+      <ContentPanel title="تحديث حالة التذكرة" description="اختيار حالة أو أولوية لا يغيّرها وحده؛ راجع الخيار ثم أكد تطبيقه.">
         <div className="row" style={{ flexWrap: 'wrap' }}>
-          <label>
-            الحالة
-            <select
-              value=""
-              disabled={busy}
-              onChange={(event) =>
-                void call(
-                  `/platform/tickets/${ticket.id}`,
-                  'PATCH',
-                  { status: event.target.value as TicketStatus, reason: 'تحديث حالة من مكتب الدعم' },
-                  'حُدّثت الحالة.',
-                )
-              }
+          <label className="field">
+            <span>الحالة الجديدة</span>
+            <select className="input"
+              value={nextStatus}
+              disabled={busy || ticket.status === 'closed'}
+              onChange={(event) => setNextStatus(event.target.value as TicketStatus | '')}
             >
               <option value="">اختر…</option>
               {ticketStatuses
@@ -262,19 +281,13 @@ function TicketBody({ ticket, onChanged }: { ticket: TicketDetail; onChanged: ()
                 ))}
             </select>
           </label>
-          <label>
-            الأولوية
-            <select
-              value=""
-              disabled={busy}
-              onChange={(event) =>
-                void call(
-                  `/platform/tickets/${ticket.id}`,
-                  'PATCH',
-                  { priority: event.target.value as TicketPriority, reason: 'تغيير أولوية من مكتب الدعم' },
-                  'حُدّثت الأولوية وأُعيد حساب المهلة من الآن.',
-                )
-              }
+          <button className="btn" type="button" disabled={!nextStatus || busy || ticket.status === 'closed'} onClick={() => void changeStatus()}>طبّق الحالة</button>
+          <label className="field">
+            <span>الأولوية الجديدة</span>
+            <select className="input"
+              value={nextPriority}
+              disabled={busy || ticket.status === 'closed'}
+              onChange={(event) => setNextPriority(event.target.value as TicketPriority | '')}
             >
               <option value="">اختر…</option>
               {ticketPriorities
@@ -286,30 +299,24 @@ function TicketBody({ ticket, onChanged }: { ticket: TicketDetail; onChanged: ()
                 ))}
             </select>
           </label>
-          {ticket.assignedTo && (
+          <button className="btn" type="button" disabled={!nextPriority || busy || ticket.status === 'closed'} onClick={() => void changePriority()}>طبّق الأولوية</button>
+          {ticket.assignedTo && ticket.status !== 'closed' && (
             <button
               className="btn"
               type="button"
               disabled={busy}
-              onClick={() =>
-                void call(
-                  `/platform/tickets/${ticket.id}`,
-                  'PATCH',
-                  { assignedTo: null, reason: 'سحب الإسناد ليعود إلى الصندوق' },
-                  'سُحب الإسناد.',
-                )
-              }
+              onClick={() => void removeAssignment()}
             >
               اسحب الإسناد
             </button>
           )}
         </div>
         {notice && (
-          <p className={`alert ${notice.kind === 'ok' ? 'ok' : 'danger'}`} style={{ margin: 0 }}>
+          <p className={`alert ${notice.kind === 'ok' ? 'ok' : 'danger'}`} role={notice.kind === 'danger' ? 'alert' : 'status'} style={{ margin: 0 }}>
             {notice.text}
           </p>
         )}
-      </section>
+      </ContentPanel>
     </div>
   );
 }
