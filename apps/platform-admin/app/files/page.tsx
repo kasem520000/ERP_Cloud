@@ -2,6 +2,8 @@
 
 import { FileSearch, RefreshCw, ScanLine, ShieldAlert } from 'lucide-react';
 import { useState } from 'react';
+import { ContentPanel, WorkflowGuide } from '@erp/ui/page';
+import { arabicErrorText } from '@erp/web-core/error-language';
 
 import { Empty, ErrorBox, Forbidden, Screen } from '../../components/screen';
 import { Badge } from '../../components/ui/badge';
@@ -86,7 +88,7 @@ export default function FilesPage() {
   const [scan, setScan] = useState('');
   const [term, setTerm] = useState('');
   const [reason, setReason] = useState('');
-  const [notice, setNotice] = useState<{ kind: 'ok' | 'danger'; text: string } | undefined>(undefined);
+  const [notice, setNotice] = useState<{ kind: 'ok' | 'warn' | 'danger'; text: string } | undefined>(undefined);
   const [busyId, setBusyId] = useState<string | null>(null);
 
   const files = useQuery<FilePage>(() => {
@@ -102,6 +104,7 @@ export default function FilesPage() {
   const reasonReady = reason.trim().length >= 5;
 
   async function scanNow(row: FileRow) {
+    if (busyId || !window.confirm(`إعادة فحص «${row.name}» الآن؟ سيُسجَّل حكم فحص جديد؛ إذا كان الماسح غير مهيّأ فلن يصبح الملف نظيفاً بمجرد تشغيل الفحص.`)) return;
     setBusyId(row.id);
     setNotice(undefined);
     try {
@@ -110,8 +113,8 @@ export default function FilesPage() {
         body: JSON.stringify({}),
       });
       setNotice({
-        kind: result.verdict === 'infected' ? 'danger' : 'ok',
-        text: `الفحص الآن: ${SCAN_LABEL[result.verdict] ?? result.verdict} — الماسح «${result.scanner}».`,
+        kind: result.verdict === 'infected' ? 'danger' : result.verdict === 'clean' ? 'ok' : 'warn',
+        text: `نتيجة إعادة الفحص: ${SCAN_LABEL[result.verdict] ?? 'حكم غير معروف'}. راجع تفاصيل الحكم في صف الملف.`,
       });
       files.reload();
     } catch (error) {
@@ -122,7 +125,7 @@ export default function FilesPage() {
   }
 
   async function quarantine(row: FileRow) {
-    if (!window.confirm(`حجر الملف «${row.name}»؟ يمنع تنزيله وتبقى ميتاداته دليلاً.`)) return;
+    if (busyId || !reasonReady || !window.confirm(`حجر الملف «${row.name}»؟ يمنع تنزيله وتبقى ميتاداته دليلاً.`)) return;
     setBusyId(row.id);
     setNotice(undefined);
     try {
@@ -142,7 +145,7 @@ export default function FilesPage() {
   return (
     <Screen
       title="الملفات"
-      subtitle="مدير ملفات عبر كل العملاء: الحالة، والارتباط بكيان، وحكم آخر فحص — وحكم الفحص مقروءٌ من مسار التدقيق لا محسوبٌ في الشاشة."
+      subtitle="اعرف أي الملفات لم تُفحص أو تعذّر فحصها؛ تحقق من حكم الفحص قبل قرار الحجر أو إعادة المحاولة."
       crumbs={['المنصة', 'التشغيل']}
       actions={
         <Button variant="secondary" icon={<RefreshCw size={14} />} onClick={files.reload}>
@@ -150,9 +153,13 @@ export default function FilesPage() {
         </Button>
       }
     >
-      {/* filter bar */}
-      <div className="rounded-[10px] border border-line bg-surface p-3 shadow-1 no-print">
-        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+      <WorkflowGuide title="مراجعة أمان الملفات" steps={[
+        { title: 'حدّد ما يحتاج مراجعة', detail: 'افصل بين الملف الذي لم يُفحص وبين نتيجة «لم يُفحص فعلياً».' },
+        { title: 'راجع الارتباط والنتيجة', detail: 'اقرأ صاحب الملف وحالة الفحص؛ عدم العثور على تهديد ليس حكماً بالنظافة إذا لم يعمل الماسح.' },
+        { title: 'وثّق القرار', detail: 'إعادة الفحص والحجر عمليتان فعليتان؛ راجع الملف واكتب سبب الحجر قبل التأكيد.' },
+      ]} />
+      <ContentPanel title="الملفات التي تريد مراجعتها" description="البحث والمرشحات لا تغيّر الملفات؛ النتائج تُجلب من سجل المنصة." className="no-print">
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
           <Input label="بحث في الاسم" placeholder="كشف" value={term} onChange={(e) => setTerm(e.target.value)} />
           <Select label="حالة الملف" value={status} onChange={(e) => setStatus(e.target.value)}>
             <option value="">الكل</option>
@@ -167,48 +174,33 @@ export default function FilesPage() {
             <option value="skipped">لم يُفحص فعلياً</option>
             <option value="none">لم يُفحص بعد</option>
           </Select>
-          <Input
-            label="سبب الحجر (5 محارف على الأقل — يُسجَّل في التدقيق)"
-            placeholder="مثال: محتوى مشتبه به أبلغ عنه العميل"
-            value={reason}
-            onChange={(e) => setReason(e.target.value)}
-            error={canManage && reason.length > 0 && !reasonReady ? '5 محارف على الأقل' : undefined}
-          />
         </div>
-        <p className="m-0 mt-2 text-[11.5px] text-muted">
-          «لم يُفحص» و«لم يُفحص فعلياً» مختلفان: الأول ملفٌّ لم يمرّ على الماسح أصلاً (لا سطر تدقيق)، والثاني
-          مرّ عليه فقال الماسح إنه لا يفحص (الماسح المُهيّأ هنا لا يفعل).
+        <p className="muted small">
+          «لم يُفحص بعد» يعني غياب حكم فحص؛ «لم يُفحص فعلياً» يعني أن الفحص أُجري لكنه لم يختبر المحتوى.
+          لا تُعامل أياً منهما على أنه ملف نظيف.
         </p>
-      </div>
+      </ContentPanel>
+      {canManage && <ContentPanel title="قرار الفحص أو الحجر" description="لا يُطبَّق سبب الحجر إلا على الملف الذي تختار حجزه؛ أعد فحص صف محدد بعد التأكد من جاهزية الماسح." className="no-print">
+        <Input label="سبب الحجر (خمسة محارف على الأقل، يُسجَّل في التدقيق)"
+          placeholder="مثال: محتوى مشتبه به أبلغ عنه العميل" value={reason}
+          onChange={(event) => setReason(event.target.value)}
+          error={reason.length > 0 && !reasonReady ? 'اكتب خمسة محارف على الأقل' : undefined} />
+        <p className="muted small">لن يُمكَّن زر الحجر قبل كتابة السبب. إعادة الفحص لا تجعل الملف آمناً إذا كان الماسح غير مهيّأ.</p>
+      </ContentPanel>}
 
-      {notice ? (
-        <div
-          className={`mt-3 flex items-center gap-2 rounded-[10px] border px-4 py-2.5 text-[13px] font-semibold ${
-            notice.kind === 'ok' ? 'border-ok-line bg-ok-soft text-ok-ink' : 'border-danger-line bg-danger-soft text-danger-ink'
-          }`}
-        >
-          {notice.text}
-        </div>
-      ) : null}
+      {notice && <p className={`alert ${notice.kind}`} role={notice.kind === 'danger' ? 'alert' : 'status'}>{notice.text}</p>}
 
       {files.status === 'loading' ? (
-        <div className="mt-3 rounded-[10px] border border-line bg-surface p-4 shadow-1">
-          <SkeletonRows rows={6} />
-        </div>
+        <ContentPanel title="تحميل الملفات"><SkeletonRows rows={6} /></ContentPanel>
       ) : files.status === 'forbidden' ? (
         <Forbidden />
       ) : files.status === 'error' ? (
         <ErrorBox message={files.error} onRetry={files.reload} />
       ) : rows.length === 0 ? (
-        <div className="mt-3 rounded-[10px] border border-line bg-surface p-8 shadow-1">
-          <Empty title="لا ملفات بهذا المرشّح" detail="جرّب مرشّح «لم يُفحص بعد» — هو سؤال هذه الشاشة." />
-        </div>
+        <ContentPanel title="نتيجة البحث"><Empty title="لا ملفات بهذا المرشّح" detail="جرّب مرشّح «لم يُفحص بعد» لمراجعة الملفات التي لا حكم لها." /></ContentPanel>
       ) : (
-        <>
-          <p className="mt-3 mb-2 text-[12px] font-semibold text-muted">
-            {rows.length} من {files.data?.meta.total ?? rows.length} ملفاً
-          </p>
-          <div className="overflow-hidden rounded-[10px] border border-line bg-surface shadow-1">
+        <ContentPanel title={`ملفات تحتاج مراجعة (${files.data?.meta.total ?? rows.length})`}
+          description={`تظهر ${rows.length} ملفات من النتائج المتاحة. على الهاتف اسحب الجدول أفقياً لمراجعة بقية الأعمدة.`}>
             <Table
               rows={rows}
               rowKey={(row) => row.id}
@@ -225,9 +217,10 @@ export default function FilesPage() {
                       </span>
                       <span className="block min-w-0">
                         <span className="block truncate font-mono text-[12px] font-semibold text-ink" dir="ltr">{row.name}</span>
-                        <span className="block truncate font-mono text-[10.5px] text-muted" dir="ltr">
-                          {row.mime} · {row.uploadedByLabel ?? 'بلا رافع'}
+                        <span className="block truncate text-[11px] text-muted">
+                          {fileKind(row.mime)} · {row.uploadedByLabel ?? 'رافع غير معروف'}
                         </span>
+                        <details className="text-muted small"><summary>نوع الملف الفني</summary><code dir="ltr">{row.mime}</code></details>
                       </span>
                     </span>
                   ),
@@ -247,15 +240,15 @@ export default function FilesPage() {
                 {
                   key: 'status',
                   header: 'الحالة',
-                  cell: (row) => <Badge tone={STATUS_TONE[row.status] ?? 'neutral'} dot>{STATUS_LABEL[row.status] ?? row.status}</Badge>,
+                  cell: (row) => <Badge tone={STATUS_TONE[row.status] ?? 'neutral'} dot>{STATUS_LABEL[row.status] ?? 'حالة أخرى'}</Badge>,
                 },
                 {
                   key: 'entity',
                   header: 'مربوط بـ',
                   cell: (row) =>
                     row.entity ? (
-                      <span className="font-mono text-[11.5px] text-muted" dir="ltr">
-                        {row.entity}/{row.entityId?.slice(0, 8) ?? ''}
+                      <span className="text-muted">سجل مرتبط
+                        <details className="small"><summary>المرجع الفني</summary><code dir="ltr">{row.entity}/{row.entityId ?? ''}</code></details>
                       </span>
                     ) : (
                       <span className="text-muted">—</span>
@@ -268,11 +261,10 @@ export default function FilesPage() {
                     row.scan ? (
                       <span className="block">
                         <Badge tone={SCAN_TONE[row.scan.verdict] ?? 'neutral'} dot>
-                          <ScanLine size={11} /> {SCAN_LABEL[row.scan.verdict] ?? row.scan.verdict}
+                          <ScanLine size={11} /> {SCAN_LABEL[row.scan.verdict] ?? 'حكم غير معروف'}
                         </Badge>
-                        <span className="mt-0.5 block font-mono text-[10.5px] text-muted" dir="ltr">
-                          {row.scan.scanner} · {new Date(row.scan.recordedAt).toLocaleString('en-GB', { timeZone: 'UTC' })}
-                        </span>
+                        <span className="mt-0.5 block text-[11px] text-muted">{dateText(row.scan.recordedAt)}</span>
+                        <details className="muted small"><summary>الماسح ونوع الملف</summary><code dir="ltr">{row.scan.scanner} · {row.mime}</code></details>
                       </span>
                     ) : (
                       <Badge tone="neutral">لم يُفحص</Badge>
@@ -282,7 +274,7 @@ export default function FilesPage() {
                   key: 'created',
                   header: 'رُفع في',
                   ltr: true,
-                  cell: (row) => <span className="font-mono text-[11.5px] text-muted">{new Date(row.createdAt).toLocaleString('en-GB', { timeZone: 'UTC' })} UTC</span>,
+                  cell: (row) => <span className="text-muted small">{dateText(row.createdAt)}</span>,
                 },
                 ...(canManage
                   ? [
@@ -297,6 +289,7 @@ export default function FilesPage() {
                               size="sm"
                               icon={<ScanLine size={12} />}
                               loading={busyId === row.id}
+                              disabled={busyId !== null}
                               onClick={() => void scanNow(row)}
                             >
                               افحص الآن
@@ -305,7 +298,7 @@ export default function FilesPage() {
                               variant="danger"
                               size="sm"
                               icon={<ShieldAlert size={12} />}
-                              disabled={row.status === 'deleted' || !reasonReady}
+                              disabled={row.status === 'deleted' || !reasonReady || busyId !== null}
                               title={reasonReady ? 'حجر الملف' : 'اكتب السبب أولاً'}
                               onClick={() => void quarantine(row)}
                             >
@@ -318,8 +311,7 @@ export default function FilesPage() {
                   : []),
               ]}
             />
-          </div>
-        </>
+        </ContentPanel>
       )}
     </Screen>
   );
@@ -331,7 +323,18 @@ function formatBytes(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} م.ب`;
 }
 
+function fileKind(mime: string): string {
+  if (mime === 'application/pdf') return 'مستند PDF';
+  if (mime.startsWith('image/')) return 'صورة';
+  if (mime.startsWith('video/')) return 'فيديو';
+  if (mime.startsWith('text/')) return 'ملف نصي';
+  return 'ملف من نوع آخر';
+}
+
+function dateText(value: string): string {
+  return `${new Date(value).toLocaleString('ar-EG', { timeZone: 'UTC' })} (بتوقيت عالمي)`;
+}
+
 function apiMessage(error: unknown): string {
-  if (error instanceof Error && error.message.length > 0) return error.message;
-  return 'تعذّر تنفيذ الفعل.';
+  return arabicErrorText(error, 'تعذّر تحديث حالة الملف. أعد المحاولة بعد مراجعة السبب.');
 }
