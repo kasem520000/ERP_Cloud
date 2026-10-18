@@ -1,9 +1,12 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import { ContentPanel, WorkflowGuide } from '@erp/ui/page';
+import { arabicErrorText } from '@erp/web-core/error-language';
 
 import { Empty, ErrorBox, Forbidden, Loading, Screen } from '../../components/screen';
 import { apiData, apiList } from '../../lib/api';
+import { scopeLabel } from '../../lib/developer-language';
 import { useSession } from '../../lib/session';
 import { useQuery } from '../../lib/use-query';
 
@@ -68,9 +71,13 @@ export default function ApiKeysPage() {
   const tenants = useQuery(() => apiList<Tenant>('/platform/tenants?limit=200'), []);
   const catalogue = useQuery(() => apiData<Catalogue>('/platform/developer/catalogue'), []);
   const keys = useQuery(
-    () => (tenantId ? apiList<ApiKeyRow>(`/platform/tenants/${tenantId}/api-keys`) : Promise.resolve([])),
+    () => tenantId
+      ? apiList<ApiKeyRow>(`/platform/tenants/${tenantId}/api-keys`).then((rows) => ({ tenantId, rows }))
+      : Promise.resolve({ tenantId, rows: [] as ApiKeyRow[] }),
     [tenantId],
   );
+  // Do not display a previous tenant's rows during the next tenant's request.
+  const rows = keys.data?.tenantId === tenantId ? keys.data.rows : [];
 
   const tenant = useMemo(
     () => (tenants.data ?? []).find((entry) => entry.id === tenantId),
@@ -100,6 +107,7 @@ export default function ApiKeysPage() {
   }
 
   async function rotate(row: ApiKeyRow) {
+    if (!window.confirm(`تدوير مفتاح «${row.name}»؟ سيُبطل المفتاح السابق فوراً وقد تتوقف التطبيقات حتى تستلم البديل. لن يظهر النص الجديد إلا مرة واحدة.`)) return;
     setBusy(row.id);
     setNotice(undefined);
     try {
@@ -121,6 +129,7 @@ export default function ApiKeysPage() {
 
   async function revoke(row: ApiKeyRow) {
     const text = reason.trim().length >= 5 ? reason.trim() : 'إبطال من لوحة المنصة';
+    if (!window.confirm(`إبطال مفتاح «${row.name}» نهائياً؟ ستتوقف الطلبات التي تستخدمه. السبب: ${text}`)) return;
     setBusy(row.id);
     setNotice(undefined);
     try {
@@ -139,7 +148,7 @@ export default function ApiKeysPage() {
 
   if (!allowed) {
     return (
-      <Screen title="مفاتيح الـAPI" subtitle="تكاملٌ رسمي بدل الأبواب الخلفية">
+      <Screen title="مفاتيح التكامل" subtitle="إدارة وصول الأنظمة المتصلة بالمنشأة">
         <Forbidden />
       </Screen>
     );
@@ -147,41 +156,45 @@ export default function ApiKeysPage() {
 
   return (
     <Screen
-      title="مفاتيح الـAPI"
-      subtitle="لكل منشأة مفاتيحها: نطاقاتٌ محدّدة، وآخر استخدام، وإبطالٌ يبقى في السجلّ"
+      title="مفاتيح التكامل"
+      subtitle="اختر المنشأة، راجع نطاقات كل مفتاح واستعماله، ثم أصدر أو دوّر بعد التحقق من الجهة المستلمة."
       actions={
         <button className="btn" onClick={() => keys.reload()} disabled={!tenantId}>
           تحديث
         </button>
       }
     >
-      {notice && <p className={`alert ${notice.kind}`}>{notice.text}</p>}
+      <WorkflowGuide title="دورة حياة مفتاح التكامل" steps={[
+        { title: 'حدّد المنشأة', detail: 'الاختيار يعرض مفاتيح المنشأة فقط؛ تأكد من الاسم قبل إصدار أي مفتاح.' },
+        { title: 'اختر أقل الصلاحيات', detail: 'راجع النطاقات والانتهاء واسم التكامل؛ إصدار المفتاح عملية فعلية.' },
+        { title: 'سلّم وراقب', detail: 'احفظ النص الذي يظهر مرة واحدة، ثم راجع آخر استخدام قبل التدوير أو الإبطال.' },
+      ]} />
+      {notice && <p className={`alert ${notice.kind}`} role={notice.kind === 'danger' ? 'alert' : 'status'}>{notice.text}</p>}
 
       {secret && (
-        <div className="card">
-          <strong>النصّ الصريح يظهر مرّة واحدة</strong>
+        <ContentPanel title="مفتاح جديد: يظهر النص مرة واحدة" description="لا تغادر الشاشة قبل تسليم المفتاح بطريقة آمنة للجهة المخوّلة.">
           <p className="muted">
             انسخه الآن وسلّمه لحامله. القاعدة تحفظ البادئة والبصمة فقط — ومن ضاع منه المفتاح
             يُدوّره ولا ينتظر إعادة عرض.
           </p>
-          <pre className="code">{secret.value}</pre>
+          <pre className="code" dir="ltr" style={{ overflowX: 'auto' }}>{secret.value}</pre>
           <p className="muted">
             {secret.label} · البادئة <code>{secret.value.slice(0, 17)}</code>
           </p>
           <button className="btn" onClick={() => setSecret(undefined)}>
             أخفِ النصّ
           </button>
-        </div>
+        </ContentPanel>
       )}
 
-      <div className="card grid cols-2">
-        <label>
+      <ContentPanel title="المنشأة والوجهة" description="كل مفتاح يخص منشأة واحدة، ولا يمنح صلاحية إدارة المنصة.">
+        <div className="grid cols-2"><label>
           المنشأة
-          <select value={tenantId} onChange={(event) => setTenantId(event.target.value)}>
+          <select value={tenantId} onChange={(event) => { setSecret(undefined); setNotice(undefined); setTenantId(event.target.value); }}>
             <option value="">— اختر منشأة —</option>
             {(tenants.data ?? []).map((entry) => (
               <option key={entry.id} value={entry.id}>
-                {entry.name} ({entry.code}){entry.status !== 'active' ? ` — ${entry.status}` : ''}
+                {entry.name} ({entry.code}){entry.status !== 'active' ? ' — غير نشطة' : ''}
               </option>
             ))}
           </select>
@@ -189,18 +202,17 @@ export default function ApiKeysPage() {
         <div className="muted">
           {tenant ? (
             <>
-              المفاتيح تُصدرها المنصة بصفتها المشغّل، وتعمل على سطح التكامل{' '}
-              <code>/api/v1/integration/v1/*</code> بترويسة <code>Authorization: Bearer erp_live_…</code>.
+              تصدر المنصة مفتاحاً خاصاً بهذه المنشأة؛ لا ترسله في بريد أو تذكرة دعم. راجع اسمها ونطاقات المفتاح قبل مشاركته مع نظامها.
             </>
           ) : (
             'اختر منشأة لعرض مفاتيحها.'
           )}
         </div>
-      </div>
+        </div>
+      </ContentPanel>
 
       {tenantId && (
-        <div className="card">
-          <strong>مفتاح جديد</strong>
+        <ContentPanel title="إصدار مفتاح جديد" description="إصدار المفتاح يمنح وصولاً فعلياً. اختر النطاقات التي يحتاجها التكامل فقط.">
           <div className="form-grid">
             <label>
               الاسم (ما ستعرفه به لاحقاً)
@@ -218,7 +230,7 @@ export default function ApiKeysPage() {
           </div>
 
           <div className="form-grid">
-            <strong>النطاقات — السقف الذي يفتحه المفتاح</strong>
+            <strong>الصلاحيات الممنوحة للمفتاح</strong>
             {(catalogue.data?.scopes ?? []).map((scope) => (
               <label key={scope}>
                 <input
@@ -230,32 +242,32 @@ export default function ApiKeysPage() {
                     )
                   }
                 />
-                <code>{scope}</code>
+                <span title={scope}>{scopeLabel(scope)}</span>
               </label>
             ))}
           </div>
+          <details className="muted small"><summary>الرموز الفنية للصلاحيات</summary><p dir="ltr">{catalogue.data?.scopes.join(' · ')}</p></details>
 
-          {catalogue.data && (
-            <p className="muted">
-              التوقيع للنهايات المشتركة: <code>{catalogue.data.signature.header}</code> —{' '}
-              {catalogue.data.signature.algorithm}، ونافذة القبول {catalogue.data.signature.toleranceSeconds} ثانية.
-            </p>
-          )}
-
-          <button className="btn" onClick={create} disabled={busy === 'create'}>
+          <button className="btn" onClick={create} disabled={busy === 'create' || catalogue.status !== 'success'}>
             {busy === 'create' ? 'جارٍ الإصدار…' : 'أصدر المفتاح'}
           </button>
-        </div>
+        </ContentPanel>
       )}
 
+      {tenants.status === 'loading' && <Loading rows={2} />}
+      {tenants.status === 'error' && <ErrorBox message={tenants.error} onRetry={tenants.reload} />}
+      {tenants.status === 'forbidden' && <Forbidden />}
+      {catalogue.status === 'error' && <ErrorBox message={catalogue.error} onRetry={catalogue.reload} />}
+      {catalogue.status === 'forbidden' && <Forbidden />}
       {tenantId && keys.status === 'loading' && <Loading />}
       {tenantId && keys.status === 'error' && <ErrorBox message={keys.error} onRetry={() => keys.reload()} />}
-      {tenantId && keys.status === 'success' && (keys.data ?? []).length === 0 && (
+      {tenantId && keys.status === 'forbidden' && <Forbidden />}
+      {tenantId && keys.status === 'success' && rows.length === 0 && (
         <Empty title="لا مفاتيح لهذه المنشأة" detail="أصدر أول مفتاح من البطاقة أعلاه." />
       )}
 
-      {tenantId && (keys.data ?? []).length > 0 && (
-        <div className="card">
+      {tenantId && rows.length > 0 && (
+        <ContentPanel title={`مفاتيح المنشأة (${rows.length})`} description="تحقق من الحالة وآخر استخدام وعدد الطلبات قبل أي تغيير. على الهاتف اسحب الجدول لعرض جميع الأعمدة.">
           <div className="table-wrap">
           <table>
             <thead>
@@ -270,7 +282,7 @@ export default function ApiKeysPage() {
               </tr>
             </thead>
             <tbody>
-              {(keys.data ?? []).map((row) => (
+              {rows.map((row) => (
                 <tr key={row.id}>
                   <td>
                     <strong>{row.name}</strong>
@@ -281,9 +293,9 @@ export default function ApiKeysPage() {
                   </td>
                   <td>
                     {row.scopes.map((scope) => (
-                      <code key={scope} className="chip">
-                        {scope}
-                      </code>
+                      <span key={scope} className="chip" title={scope}>
+                        {scopeLabel(scope)}
+                      </span>
                     ))}
                   </td>
                   <td>
@@ -318,16 +330,12 @@ export default function ApiKeysPage() {
             سبب الإبطال/التدوير (٥ محارف على الأقل — يُكتب في التدقيق)
             <input value={reason} onChange={(event) => setReason(event.target.value)} />
           </label>
-        </div>
+        </ContentPanel>
       )}
     </Screen>
   );
 }
 
 function apiMessage(error: unknown): string {
-  if (typeof error === 'object' && error !== null && 'detail' in error) {
-    const detail = (error as { detail?: string }).detail;
-    if (detail) return detail;
-  }
-  return error instanceof Error ? error.message : String(error);
+  return arabicErrorText(error, 'تعذّر تحديث مفاتيح التكامل. أعد المحاولة بعد التحقق من البيانات.');
 }

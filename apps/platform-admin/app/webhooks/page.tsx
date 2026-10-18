@@ -1,9 +1,12 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import { ContentPanel, WorkflowGuide } from '@erp/ui/page';
+import { arabicErrorText } from '@erp/web-core/error-language';
 
 import { Empty, ErrorBox, Forbidden, Loading, Screen } from '../../components/screen';
 import { apiData, apiList } from '../../lib/api';
+import { eventLabel } from '../../lib/developer-language';
 import { useSession } from '../../lib/session';
 import { useQuery } from '../../lib/use-query';
 
@@ -95,7 +98,9 @@ export default function WebhooksPage() {
   const tenants = useQuery(() => apiList<Tenant>('/platform/tenants?limit=200'), []);
   const catalogue = useQuery(() => apiData<Catalogue>('/platform/developer/catalogue'), []);
   const endpoints = useQuery(
-    () => (tenantId ? apiList<EndpointRow>(`/platform/tenants/${tenantId}/webhooks`) : Promise.resolve([])),
+    () => tenantId
+      ? apiList<EndpointRow>(`/platform/tenants/${tenantId}/webhooks`).then((rows) => ({ tenantId, rows }))
+      : Promise.resolve({ tenantId, rows: [] as EndpointRow[] }),
     [tenantId],
   );
   const deliveries = useQuery(
@@ -103,7 +108,8 @@ export default function WebhooksPage() {
     [openId],
   );
 
-  const rows = useMemo(() => endpoints.data ?? [], [endpoints.data]);
+  // Never show a previous tenant's endpoints while the new list is loading.
+  const rows = useMemo(() => endpoints.data?.tenantId === tenantId ? endpoints.data.rows : [], [endpoints.data, tenantId]);
 
   async function create() {
     if (!tenantId || url.trim().length < 12 || events.length === 0) {
@@ -133,6 +139,9 @@ export default function WebhooksPage() {
   }
 
   async function toggleStatus(row: EndpointRow) {
+    if (!window.confirm(row.status === 'active'
+      ? `إيقاف إرسال الأحداث تلقائياً إلى «${row.url}»؟ تبقى اختبارات الاتصال اليدوية ممكنة.`
+      : `إعادة تشغيل إرسال الأحداث إلى «${row.url}»؟ تحقق من الوجهة قبل المتابعة.`)) return;
     setBusy(row.id);
     setNotice(undefined);
     try {
@@ -149,6 +158,7 @@ export default function WebhooksPage() {
   }
 
   async function test(row: EndpointRow) {
+    if (!window.confirm(`إرسال حدث اختبار فعلي إلى «${row.url}»؟ سيتلقى النظام المستقبِل طلباً موقعاً.`)) return;
     setBusy(row.id);
     setNotice(undefined);
     try {
@@ -158,7 +168,7 @@ export default function WebhooksPage() {
         text:
           attempt.status === 'delivered'
             ? `وصل حدث الاختبار: ${attempt.responseCode} خلال ${attempt.durationMs} مللي ثانية.`
-            : `فشل الإرسال: ${attempt.responseCode ?? 'لا استجابة'} — ${attempt.error ?? ''}`,
+            : `فشل الإرسال: ${attempt.responseCode ?? 'لا استجابة'} — ${attempt.error ? arabicErrorText(new Error(attempt.error), 'راجع سجل التسليم لمعرفة السبب.') : 'راجع سجل التسليم.'}`,
       });
       // فتح السجلّ على هذا العنوان هو ما يجلب تسليماته (اعتماد `useQuery` على `openId`).
       setOpenId(row.id);
@@ -171,6 +181,7 @@ export default function WebhooksPage() {
   }
 
   async function retry(row: EndpointRow, delivery: DeliveryRow) {
+    if (!window.confirm(`إعادة إرسال «${eventLabel(delivery.event)}» إلى «${row.url}»؟ قد يُعالج المستقبِل الحدث مرة أخرى.`)) return;
     setBusy(delivery.id);
     setNotice(undefined);
     try {
@@ -180,7 +191,7 @@ export default function WebhooksPage() {
       );
       setNotice({
         kind: attempt.status === 'delivered' ? 'ok' : 'danger',
-        text: `المحاولة ${attempt.attempts}: ${attempt.responseCode ?? 'لا استجابة'} — ${attempt.error ?? 'وصل'}`,
+        text: `المحاولة ${attempt.attempts}: ${attempt.responseCode ?? 'لا استجابة'} — ${attempt.error ? arabicErrorText(new Error(attempt.error), 'راجع سجل التسليم.') : 'وصل'}`,
       });
       endpoints.reload();
       deliveries.reload();
@@ -192,6 +203,7 @@ export default function WebhooksPage() {
   }
 
   async function remove(row: EndpointRow) {
+    if (!window.confirm(`حذف الوجهة «${row.url}» وسجل تسليماتها نهائياً؟ لا يمكن التراجع عن الحذف.`)) return;
     setBusy(row.id);
     setNotice(undefined);
     try {
@@ -208,7 +220,7 @@ export default function WebhooksPage() {
 
   if (!allowed) {
     return (
-      <Screen title="الويب هوك" subtitle="أحداثٌ تخرج إلى أنظمة العميل بتوقيعٍ يُتحقَّق منه">
+      <Screen title="وجهات الأحداث" subtitle="الأحداث المرسلة إلى أنظمة المنشأة">
         <Forbidden />
       </Screen>
     );
@@ -218,43 +230,47 @@ export default function WebhooksPage() {
 
   return (
     <Screen
-      title="الويب هوك"
-      subtitle="الأحداث، والعنوان، وسرّ التوقيع، وسجلّ تسليمٍ بأكواد استجابةٍ حقيقية"
+      title="وجهات الأحداث"
+      subtitle="حدّد المنشأة، راجع الوجهات ونتائج التسليم، ثم اختبر الاتصال أو غيّر الاشتراك بعد التأكيد."
       actions={
         <button className="btn" onClick={() => endpoints.reload()} disabled={!tenantId}>
           تحديث
         </button>
       }
     >
-      {notice && <p className={`alert ${notice.kind}`}>{notice.text}</p>}
+      <WorkflowGuide title="من الاشتراك إلى متابعة التسليم" steps={[
+        { title: 'اختر المنشأة والحدث', detail: 'كل عنوان يستقبل أحداث المنشأة المحددة فقط؛ تحقق من العنوان قبل إضافته.' },
+        { title: 'راجع حالة الوجهة', detail: 'الاختبار يرسل طلباً حقيقياً؛ والإيقاف يعطل الأحداث التلقائية لا الاختبارات اليدوية.' },
+        { title: 'افتح سجل التسليم', detail: 'راجع الاستجابة والمحاولات قبل إعادة إرسال حدث متعثر أو حذف الوجهة.' },
+      ]} />
+      {notice && <p className={`alert ${notice.kind}`} role={notice.kind === 'danger' ? 'alert' : 'status'}>{notice.text}</p>}
 
       {secret && (
-        <div className="card">
-          <strong>سرّ التوقيع يظهر مرّة واحدة</strong>
+        <ContentPanel title="سر التوقيع: يظهر مرة واحدة" description="لا تغادر الشاشة قبل حفظه بطريقة آمنة لدى الجهة المستقبلة.">
           <p className="muted">
             يُخزَّن مشفَّراً لأن الإرسال يحتاج قراءته لحظة التوقيع. الصيغة:{' '}
             <code>{catalogue.data?.signature.header ?? 'x-erp-signature'}</code> —
             HMAC-SHA256 على <code>&quot;&lt;الطابع&gt;.&lt;الجسم&gt;&quot;</code>، ونافذة القبول{' '}
             {catalogue.data?.signature.toleranceSeconds ?? 300} ثانية.
           </p>
-          <pre className="code">{secret.value}</pre>
+          <pre className="code" dir="ltr" style={{ overflowX: 'auto' }}>{secret.value}</pre>
           <p className="muted">
             {secret.label} · البادئة <code>{secret.value.slice(0, 14)}</code>
           </p>
           <button className="btn" onClick={() => setSecret(undefined)}>
             أخفِ السرّ
           </button>
-        </div>
+        </ContentPanel>
       )}
 
-      <div className="card grid cols-2">
-        <label>
+      <ContentPanel title="المنشأة وأمان النقل" description="تُنقل الأحداث إلى العنوان الذي تسجله هنا؛ لا يكفي توقيع الطلب دون اتصال آمن.">
+        <div className="grid cols-2"><label>
           المنشأة
-          <select value={tenantId} onChange={(event) => setTenantId(event.target.value)}>
+          <select value={tenantId} onChange={(event) => { setSecret(undefined); setNotice(undefined); setOpenId(''); setTenantId(event.target.value); }}>
             <option value="">— اختر منشأة —</option>
             {(tenants.data ?? []).map((entry) => (
               <option key={entry.id} value={entry.id}>
-                {entry.name} ({entry.code})
+                {entry.name} ({entry.code}){entry.status !== 'active' ? ' — غير نشطة' : ''}
               </option>
             ))}
           </select>
@@ -263,11 +279,11 @@ export default function WebhooksPage() {
           العنوان يجب أن يكون <code>https</code>، ويُقبل <code>http</code> على <code>localhost</code> وحده —
           فالسرّ يمنع التزوير لا التنصّت.
         </div>
-      </div>
+        </div>
+      </ContentPanel>
 
       {tenantId && (
-        <div className="card">
-          <strong>عنوان جديد</strong>
+        <ContentPanel title="إضافة وجهة" description="إضافة العنوان تنشئ اشتراكاً فعلياً؛ سر التوقيع الجديد يظهر مرة واحدة بعد الحفظ.">
           <div className="form-grid">
             <label>
               العنوان
@@ -279,7 +295,7 @@ export default function WebhooksPage() {
             </label>
           </div>
           <div className="form-grid">
-            <strong>الأحداث المشترَك بها</strong>
+            <strong>الأحداث التي ستصل إلى هذه الوجهة</strong>
             {(catalogue.data?.events ?? []).map((event) => (
               <label key={event}>
                 <input
@@ -291,24 +307,31 @@ export default function WebhooksPage() {
                     )
                   }
                 />
-                <code>{event}</code>
+                <span title={event}>{eventLabel(event)}</span>
               </label>
             ))}
           </div>
-          <button className="btn primary" onClick={create} disabled={busy === 'create'}>
+          <details className="muted small"><summary>الرموز الفنية للأحداث</summary><p dir="ltr">{catalogue.data?.events.join(' · ')}</p></details>
+          <button className="btn primary" onClick={create} disabled={busy === 'create' || catalogue.status !== 'success'}>
             {busy === 'create' ? 'جارٍ الإضافة…' : 'أضف العنوان'}
           </button>
-        </div>
+        </ContentPanel>
       )}
 
+      {tenants.status === 'loading' && <Loading rows={2} />}
+      {tenants.status === 'error' && <ErrorBox message={tenants.error} onRetry={tenants.reload} />}
+      {tenants.status === 'forbidden' && <Forbidden />}
+      {catalogue.status === 'error' && <ErrorBox message={catalogue.error} onRetry={catalogue.reload} />}
+      {catalogue.status === 'forbidden' && <Forbidden />}
       {tenantId && endpoints.status === 'loading' && <Loading />}
       {tenantId && endpoints.status === 'error' && <ErrorBox message={endpoints.error} onRetry={() => endpoints.reload()} />}
+      {tenantId && endpoints.status === 'forbidden' && <Forbidden />}
       {tenantId && endpoints.status === 'success' && rows.length === 0 && (
         <Empty title="لا عناوين لهذه المنشأة" detail="أضف عنواناً واشترك بحدثٍ واحد على الأقل." />
       )}
 
       {rows.length > 0 && (
-        <div className="card">
+        <ContentPanel title={`وجهات المنشأة (${rows.length})`} description="راجع نتيجة التسليم وآخر رد قبل إيقاف الاشتراك أو إعادة تشغيله. على الهاتف اسحب الجدول لعرض جميع الأعمدة.">
           <div className="table-wrap">
             <table>
               <thead>
@@ -333,9 +356,9 @@ export default function WebhooksPage() {
                     <td>
                       <span className="chips">
                         {row.events.map((event) => (
-                          <code key={event} className="chip">
-                            {event}
-                          </code>
+                          <span key={event} className="chip" title={event}>
+                            {eventLabel(event)}
+                          </span>
                         ))}
                       </span>
                     </td>
@@ -345,7 +368,7 @@ export default function WebhooksPage() {
                     </td>
                     <td>
                       {row.stats.delivered} ✔ / {row.stats.failed} ✖ / {row.stats.pending} …
-                      {row.stats.lastError && <div className="muted">{row.stats.lastError}</div>}
+                      {row.stats.lastError && <details className="muted small"><summary>تعذّر تسليم بعض الأحداث؛ تفاصيل الخطأ</summary><code dir="ltr">{row.stats.lastError}</code></details>}
                     </td>
                     <td>
                       {row.stats.lastResponseCode ?? '—'}
@@ -374,12 +397,11 @@ export default function WebhooksPage() {
               </tbody>
             </table>
           </div>
-        </div>
+        </ContentPanel>
       )}
 
       {opened && (
-        <div className="card">
-          <strong>سجلّ التسليم — {opened.url}</strong>
+        <ContentPanel title="سجل التسليم" description={opened.url}>
           <p className="muted">
             الحمولة تُعرض بمفاتيحها لا بقيمها: بيانات العميل تُقرأ عنده، وهذا السجلّ يجيب «هل وصل»
             لا «ماذا كان».
@@ -408,7 +430,7 @@ export default function WebhooksPage() {
                   {(deliveries.data ?? []).map((row) => (
                     <tr key={row.id}>
                       <td>
-                        <code>{row.event}</code>
+                        <strong>{eventLabel(row.event)}</strong>
                         <div className="muted">{row.createdAt.slice(0, 19).replace('T', ' ')}</div>
                       </td>
                       <td>{row.status === 'delivered' ? 'وصل' : row.status === 'failed' ? 'فشل' : 'منتظر'}</td>
@@ -416,12 +438,12 @@ export default function WebhooksPage() {
                         {row.attempts}/{row.maxAttempts}
                       </td>
                       <td>{row.responseCode ?? '—'}</td>
-                      <td>{row.durationMs === null ? '—' : `${row.durationMs} ms`}</td>
+                      <td>{row.durationMs === null ? '—' : `${row.durationMs} ملي ثانية`}</td>
                       <td>
-                        <code>{row.payloadKeys.join(', ')}</code>
+                        <details><summary>أسماء الحقول</summary><code dir="ltr">{row.payloadKeys.join(', ')}</code></details>
                         <div className="muted">{row.payloadBytes} بايت</div>
                       </td>
-                      <td className="small">{row.error ?? '—'}</td>
+                      <td className="small">{row.error ? <details><summary>تعذّرت المحاولة؛ تفاصيل الخطأ</summary><code dir="ltr">{row.error}</code></details> : '—'}</td>
                       <td>
                         {row.status === 'failed' ? (
                           <button className="btn sm" onClick={() => retry(opened, row)} disabled={busy === row.id}>
@@ -437,16 +459,12 @@ export default function WebhooksPage() {
               </table>
             </div>
           )}
-        </div>
+        </ContentPanel>
       )}
     </Screen>
   );
 }
 
 function apiMessage(error: unknown): string {
-  if (typeof error === 'object' && error !== null && 'detail' in error) {
-    const detail = (error as { detail?: string }).detail;
-    if (detail) return detail;
-  }
-  return error instanceof Error ? error.message : String(error);
+  return arabicErrorText(error, 'تعذّر تحديث وجهات الأحداث. تحقق من العنوان والاتصال ثم أعد المحاولة.');
 }
