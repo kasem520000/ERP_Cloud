@@ -1,6 +1,8 @@
 'use client';
 
 import { useState } from 'react';
+import { ContentPanel, TableViewport, WorkflowGuide } from '@erp/ui/page';
+import { arabicErrorText } from '@erp/web-core/error-language';
 
 import { Empty, ErrorBox, Forbidden, Loading, Screen } from '../../components/screen';
 import { apiData } from '../../lib/api';
@@ -103,7 +105,7 @@ const STATUS_LABEL: Record<string, string> = {
 const STATUS_CLASS: Record<string, string> = { running: 'pending', succeeded: 'active', failed: 'failed' };
 
 const STORE_LABEL: Record<string, string> = {
-  'object-storage': 'تخزين الكائنات (S3)',
+  'object-storage': 'التخزين الخارجي الآمن',
   filesystem: 'نظام ملفات الخادم',
 };
 
@@ -113,12 +115,12 @@ const VERDICT_LABEL: Record<string, string> = {
   unreadable: 'غير قابلة للقراءة',
 };
 
-const WINDOWS: Array<{ key: keyof RetentionPolicy; label: string; hint: string }> = [
-  { key: 'auditArchiveDays', label: 'أرشفة التدقيق (يوم)', hint: 'يُؤرشَف ولا يُمحى — 90..3650' },
-  { key: 'artifactRetentionDays', label: 'ملفات النسخ (يوم)', hint: 'ثم تُحذف البايتات ويبقى الصفّ' },
-  { key: 'idempotencyPurgeDays', label: 'مفاتيح idempotency (يوم)', hint: '7..365' },
-  { key: 'outboxPurgeDays', label: 'مهامّ الطابور المنتهية (يوم)', hint: '7..365' },
-  { key: 'fileOrphanPurgeDays', label: 'الملفات اليتيمة (يوم)', hint: '1..90' },
+const WINDOWS: Array<{ key: keyof RetentionPolicy; label: string; hint: string; min: number; max: number }> = [
+  { key: 'auditArchiveDays', label: 'أرشفة التدقيق (يوم)', hint: 'يُؤرشَف ولا يُمحى — من ٩٠ إلى ٣٦٥٠ يوماً', min: 90, max: 3650 },
+  { key: 'artifactRetentionDays', label: 'ملفات النسخ (يوم)', hint: 'ثم تُحذف الملفات ويبقى سجل النسخة — من يوم إلى ٣٦٥ يوماً', min: 1, max: 365 },
+  { key: 'idempotencyPurgeDays', label: 'مفاتيح منع تكرار الطلبات (يوم)', hint: 'من ٧ إلى ٣٦٥ يوماً', min: 7, max: 365 },
+  { key: 'outboxPurgeDays', label: 'مهامّ الطابور المنتهية (يوم)', hint: 'من ٧ إلى ٣٦٥ يوماً', min: 7, max: 365 },
+  { key: 'fileOrphanPurgeDays', label: 'الملفات اليتيمة (يوم)', hint: 'من يوم إلى ٩٠ يوماً', min: 1, max: 90 },
 ];
 
 export default function BackupsPage() {
@@ -131,16 +133,30 @@ export default function BackupsPage() {
   const [reason, setReason] = useState('');
   const [policy, setPolicy] = useState<Partial<RetentionPolicy>>({});
   const [verify, setVerify] = useState<VerifyResult | undefined>(undefined);
+  const [preview, setPreview] = useState<{ reason: string; policyUpdatedAt: string | null; touched: number } | null>(null);
   const [notice, setNotice] = useState<{ kind: 'ok' | 'danger'; text: string } | undefined>(undefined);
   const [busy, setBusy] = useState<string | null>(null);
 
   const runs = useQuery<BackupPage>(() => apiData<BackupPage>('/platform/backups?limit=50'), []);
   const retention = useQuery<Retention>(() => apiData<Retention>('/platform/retention'), []);
+  const tenants = useQuery<Array<{ id: string; code: string; name: string }>>(
+    () => apiData<Array<{ id: string; code: string; name: string }>>('/platform/tenants?limit=100'),
+    [],
+  );
   const rows = runs.data?.data ?? [];
   const effective = { ...(retention.data?.policy ?? ({} as RetentionPolicy)), ...policy } as RetentionPolicy;
   const reasonReady = reason.trim().length >= 5;
+  const policyChanged = Object.keys(policy).length > 0;
+  const policyValid = WINDOWS.every((field) =>
+    policy[field.key] === undefined || (Number.isInteger(policy[field.key]) &&
+      policy[field.key]! >= field.min && policy[field.key]! <= field.max));
+  const previewReady = Boolean(preview && preview.reason === reason.trim() && preview.policyUpdatedAt === retention.data?.updatedAt);
+  const selectedTenant = tenants.data?.find((item) => item.id === tenant);
 
   async function runBackup() {
+    if (busy || (scope === 'tenant' && !selectedTenant)) return;
+    const target = scope === 'platform' ? 'للمنصة كاملة' : `للمنشأة «${selectedTenant?.name}»`;
+    if (!window.confirm(`إنشاء نسخة ${target} الآن؟ ستُقرأ البيانات ويُنشأ ملف جديد في المخزن.`)) return;
     setBusy('run');
     setNotice(undefined);
     try {
@@ -169,6 +185,8 @@ export default function BackupsPage() {
   }
 
   async function verifyRun(row: BackupRow) {
+    if (busy || !window.confirm('فحص سلامة النسخة يعيد قراءة الملف ويُسجّل وقت التحقق؛ لا يستعيد البيانات. متابعة؟')) return;
+    setVerify(undefined);
     setBusy(row.id);
     setNotice(undefined);
     try {
@@ -192,6 +210,7 @@ export default function BackupsPage() {
   }
 
   async function download(row: BackupRow) {
+    if (busy || !window.confirm('سيُفتح رابط تنزيل نسخة تحتوي على بيانات حساسة في نافذة جديدة. تأكد من بيئة حفظ آمنة. متابعة؟')) return;
     setBusy(row.id);
     setNotice(undefined);
     try {
@@ -209,6 +228,10 @@ export default function BackupsPage() {
   }
 
   async function savePolicy() {
+    if (busy || !policyChanged || !policyValid) return;
+    const changes = WINDOWS.filter((field) => field.key in policy)
+      .map((field) => `${field.label}: ${policy[field.key]} يوم`).join('، ');
+    if (!window.confirm(`حفظ نوافذ الاحتفاظ المعدّلة (${changes})؟ يؤثر هذا في عمليات التنظيف اللاحقة، لكنه لا ينفّذ التنظيف الآن.`)) return;
     setBusy('policy');
     setNotice(undefined);
     try {
@@ -217,6 +240,7 @@ export default function BackupsPage() {
         body: JSON.stringify(policy),
       });
       setPolicy({});
+      setPreview(null);
       setNotice({
         kind: 'ok',
         text: `حُفظت السياسة: أرشفة التدقيق ${updated.policy.auditArchiveDays} يوماً.`,
@@ -230,12 +254,9 @@ export default function BackupsPage() {
   }
 
   async function apply(mode: 'dry_run' | 'apply') {
-    if (
-      mode === 'apply' &&
-      !window.confirm('تطبيق سياسة الاحتفاظ يحذف بايتات النسخ المنتهية وصفوفاً منتهية. المتابعة؟')
-    ) {
-      return;
-    }
+    if (busy || !reasonReady || policyChanged) return;
+    if (mode === 'apply' && (!previewReady ||
+      !window.confirm(`نتيجة القياس السابق: ${preview?.touched ?? 0} عنصر. التنفيذ الفعلي قد يختلف إن تغيّرت البيانات؛ سيحذف ملفات النسخ المنتهية وصفوفاً منتهية. السبب: ${reason.trim()}. متابعة؟`))) return;
     setBusy(mode);
     setNotice(undefined);
     try {
@@ -247,6 +268,8 @@ export default function BackupsPage() {
         body: JSON.stringify({ mode, reason: reason.trim() }),
       });
       const touched = result.results.reduce((count, entry) => count + entry.rows, 0);
+      if (mode === 'dry_run') setPreview({ reason: reason.trim(), policyUpdatedAt: retention.data?.updatedAt ?? null, touched });
+      else setPreview(null);
       setNotice({
         kind: 'ok',
         text:
@@ -266,10 +289,16 @@ export default function BackupsPage() {
   return (
     <Screen
       title="البيانات والاسترجاع"
-      subtitle="نسخةٌ تُغادر القاعدة إلى ملفٍّ مشفّر باسمه وحجمه وبصمته، وسياسة احتفاظٍ تُنفَّذ فعلاً، وتحلٍّ يعيد قراءة الملف لا يقرأ الاستجابة."
+      subtitle="أنشئ نسخة عند الحاجة، راجع سلامتها ومكان حفظها، ثم قِس أثر سياسة الاحتفاظ قبل تنفيذها. لا تعني قراءة الملف استعادة البيانات."
       crumbs={['المنصة', 'التشغيل']}
       actions={
-        <button className="btn" type="button" onClick={runs.reload}>
+        <button className="btn" type="button" onClick={() => {
+          setVerify(undefined);
+          setPreview(null);
+          runs.reload();
+          retention.reload();
+          tenants.reload();
+        }}>
           تحديث
         </button>
       }
@@ -278,29 +307,43 @@ export default function BackupsPage() {
         <Forbidden />
       ) : (
         <>
-          <div className="card tight no-print">
+          <WorkflowGuide title="مسار حماية البيانات" steps={[
+            { title: 'حدّد النطاق', detail: 'اختر المنصة كاملة أو منشأة بعينها قبل إنشاء ملف جديد.' },
+            { title: 'راجع سلامة النسخة', detail: 'اقرأ البصمة ونتيجة الفحص؛ الفحص لا يستعيد البيانات.' },
+            { title: 'قِس قبل التنظيف', detail: 'احفظ نوافذ الاحتفاظ، ثم اطّلع على القياس قبل التنفيذ الفعلي.' },
+          ]} />
+          <ContentPanel title="إنشاء نسخة" description="هذه العملية تنشئ ملفاً جديداً؛ اختيار النطاق وحده لا يبدأ النسخ." className="no-print">
             <div className="row" style={{ flexWrap: 'wrap', alignItems: 'flex-end' }}>
               <label className="field" style={{ minWidth: 180 }}>
                 <span>نطاق النسخة</span>
                 <select
                   className="input"
                   value={scope}
-                  onChange={(event) => setScope(event.target.value as 'platform' | 'tenant')}
+                  onChange={(event) => {
+                    setScope(event.target.value as 'platform' | 'tenant');
+                    setTenant('');
+                  }}
                 >
                   <option value="platform">المنصّة كاملة (كل مستأجر في سياقه)</option>
                   <option value="tenant">مستأجرٌ واحد</option>
                 </select>
               </label>
               {scope === 'tenant' && (
-                <label className="field" style={{ minWidth: 320, flex: 1 }}>
-                  <span>معرّف المستأجر (uuid)</span>
-                  <input
+                <label className="field" style={{ minWidth: 260, flex: 1 }}>
+                  <span>المنشأة المطلوب نسخها</span>
+                  <select
                     className="input"
-                    dir="ltr"
                     value={tenant}
                     onChange={(event) => setTenant(event.target.value)}
-                    placeholder="00000000-0000-0000-0000-000000000000"
-                  />
+                    disabled={tenants.status !== 'success'}
+                  >
+                    <option value="">{tenants.status === 'loading' ? 'تُحمَّل المنشآت…' : 'اختر المنشأة'}</option>
+                    {(tenants.data ?? []).map((item) => (
+                      <option key={item.id} value={item.id}>{item.name} ({item.code})</option>
+                    ))}
+                  </select>
+                  {tenants.status === 'error' && <span className="danger small">تعذّر تحميل المنشآت. حاول تحديث الصفحة.</span>}
+                  {tenants.status === 'forbidden' && <span className="danger small">ليست لديك صلاحية عرض المنشآت.</span>}
                 </label>
               )}
               <label className="field" style={{ minWidth: 240, flex: 1 }}>
@@ -309,40 +352,39 @@ export default function BackupsPage() {
                   className="input"
                   value={note}
                   onChange={(event) => setNote(event.target.value)}
-                  placeholder="مثال: نسخة قبل ترقية 0075"
+                  placeholder="مثال: نسخة قبل تحديث النظام"
                 />
               </label>
               <button
                 className="btn primary"
                 type="button"
-                disabled={busy === 'run'}
+                disabled={busy !== null || (scope === 'tenant' && !selectedTenant)}
                 onClick={() => void runBackup()}
               >
                 {busy === 'run' ? 'تقرأ الجداول…' : 'شغّل نسخة الآن'}
               </button>
             </div>
             <p className="muted small" style={{ margin: '6px 0 0' }}>
-              الجداول تُقرأ من كتالوج القاعدة لا من قائمةٍ في الكود: جداول المستأجرين داخل سياق كل مستأجر
-              (`app.tenant_id`)، وجداول المنصّة في سياق المنصّة. والملف NDJSON مشفّر بـAES-256-GCM ومكتوبٌ مع
-              ترويسته، والصفّ يسجّل حجمه وبصمته بعد قراءتهما من المخزن.
+              النسخة ملف مشفّر؛ يُسجّل النظام حجمه وبصمته ومكانه. تأكّد من النطاق قبل البدء، ولا تعتبر إنشاء الملف دليلاً على إمكان استعادته.
             </p>
-          </div>
+          </ContentPanel>
 
-          {notice && <div className={`alert ${notice.kind === 'ok' ? '' : 'danger'}`}>{notice.text}</div>}
+          {notice && <div role="status" className={`alert ${notice.kind}`}>{notice.text}</div>}
 
+          <ContentPanel title="النسخ المسجّلة" description="تحقّق من البصمة ونتيجة الفحص قبل أي اعتماد على نسخة محفوظة.">
           {runs.status === 'loading' && <Loading />}
           {runs.status === 'forbidden' && <Forbidden />}
           {runs.status === 'error' && <ErrorBox message={runs.error} onRetry={runs.reload} />}
           {runs.status === 'success' &&
             (rows.length === 0 ? (
-              <Empty title="لا نسخ بعد" detail="شغّل نسخةً الآن — ستظهر هنا بحجمها وبصمتها ومكانها." />
+              <Empty title="لا نسخ بعد" detail="بعد إنشاء نسخة بإذن مناسب ستظهر هنا مع الحجم والبصمة ومكان الحفظ." />
             ) : (
               <>
                 <p className="muted small">
                   {rows.length} من {runs.data?.meta.total ?? rows.length} نسخة
                 </p>
-                <div className="table-wrap">
-                  <table>
+                <TableViewport label="النسخ المسجّلة — مرّر أفقياً لعرض التفاصيل والإجراءات">
+                  <table style={{ minWidth: 860 }}>
                     <thead>
                       <tr>
                         <th>بدأت</th>
@@ -393,7 +435,7 @@ export default function BackupsPage() {
                               <button
                                 className="btn small"
                                 type="button"
-                                disabled={busy === row.id || !row.artifactId || Boolean(row.prunedAt)}
+                                disabled={busy !== null || !row.artifactId || Boolean(row.prunedAt)}
                                 onClick={() => void verifyRun(row)}
                               >
                                 تحقّق
@@ -401,7 +443,7 @@ export default function BackupsPage() {
                               <button
                                 className="btn small"
                                 type="button"
-                                disabled={busy === row.id || !row.artifactId || Boolean(row.prunedAt)}
+                                disabled={busy !== null || !row.artifactId || Boolean(row.prunedAt)}
                                 onClick={() => void download(row)}
                               >
                                 تنزيل
@@ -417,13 +459,13 @@ export default function BackupsPage() {
                       ))}
                     </tbody>
                   </table>
-                </div>
+                </TableViewport>
               </>
             ))}
+          </ContentPanel>
 
           {verify && (
-            <div className="card">
-              <h3 style={{ marginTop: 0 }}>نتيجة التحقّق — استعادة تجريبية</h3>
+            <ContentPanel title="نتيجة فحص سلامة النسخة" description="قراءة الملف ومقارنته بمعلوماته؛ لا تنشئ استعادة فعلية.">
               <p className={verify.verified ? '' : 'danger'}>
                 {verify.verified ? 'الملف مطابقٌ لبصمته، وعدّاداته مقروءة.' : verify.detail}
               </p>
@@ -457,12 +499,14 @@ export default function BackupsPage() {
                 الاستعادة التجريبية تقرأ وتطابق ولا تكتب: الكتابة فوق بياناتٍ حيّة تحتاج نافذة صيانة، وهي خارج
                 نطاق هذا الجزء. الظاهر هنا أقوى ما يمكن إثباته بلا كتابة.
               </p>
-            </div>
+            </ContentPanel>
           )}
 
+          {retention.status === 'loading' && <Loading />}
+          {retention.status === 'forbidden' && <Forbidden />}
+          {retention.status === 'error' && <ErrorBox message={retention.error} onRetry={retention.reload} />}
           {retention.status === 'success' && retention.data && (
-            <div className="card">
-              <h3 style={{ marginTop: 0 }}>سياسة الاحتفاظ</h3>
+            <ContentPanel title="سياسة الاحتفاظ" description="تحرير النوافذ، حفظ السياسة، قياس أثرها، ثم قرار التنفيذ: مراحل منفصلة.">
               <div className="row" style={{ flexWrap: 'wrap', alignItems: 'flex-end' }}>
                 {WINDOWS.map((window) => (
                   <label className="field" key={window.key} style={{ minWidth: 200 }}>
@@ -470,10 +514,18 @@ export default function BackupsPage() {
                     <input
                       className="input num"
                       type="number"
+                      min={window.min}
+                      max={window.max}
+                      step="1"
                       value={effective[window.key] ?? ''}
-                      onChange={(event) =>
-                        setPolicy((current) => ({ ...current, [window.key]: Number(event.target.value) }))
-                      }
+                      onChange={(event) => {
+                        setPolicy((current) => {
+                          const next = { ...current, [window.key]: Number(event.target.value) };
+                          if (next[window.key] === retention.data?.policy[window.key]) delete next[window.key];
+                          return next;
+                        });
+                        setPreview(null);
+                      }}
                     />
                     <span className="muted small">{window.hint}</span>
                   </label>
@@ -481,19 +533,20 @@ export default function BackupsPage() {
                 <button
                   className="btn primary"
                   type="button"
-                  disabled={busy === 'policy' || Object.keys(policy).length === 0}
+                  disabled={busy !== null || !policyChanged || !policyValid}
                   onClick={() => void savePolicy()}
                 >
                   احفظ النوافذ
                 </button>
               </div>
 
+              {policyChanged && <p className="alert warn" role="status">توجد تغييرات غير محفوظة. احفظ السياسة قبل القياس أو التنفيذ؛ النوافذ المعروضة ليست هي النوافذ النشطة بعد. {policyValid ? '' : 'صحّح القيم وفق الحدود المبيّنة قبل الحفظ.'}</p>}
               <div className="row" style={{ flexWrap: 'wrap', gap: 18, marginTop: 12 }}>
                 <span className="small">
                   ملفات نسخٍ منتهية: <span className="num">{retention.data.purges.artifactsExpired}</span>
                 </span>
                 <span className="small">
-                  مفاتيح idempotency منتهية:{' '}
+                  مفاتيح منع تكرار الطلبات منتهية:{' '}
                   <span className="num">{retention.data.purges.idempotencyExpired}</span>
                 </span>
                 <span className="small">
@@ -509,9 +562,7 @@ export default function BackupsPage() {
               </div>
 
               <p className="muted small">
-                سجلّ التدقيق <strong>لا يُمحى</strong> بقرارٍ من اللوحة: القاعدة تمنع UPDATE/DELETE عليه،
-                ونافذته تُستخدم للأرشفة وللعدّ فقط. النوافذ تُكتب في إعدادات المنصّة تحت المفتاح
-                `retention.policy` ولكل تعديلٍ صفُّ تدقيق.
+                سجلّ التدقيق <strong>لا يُمحى</strong> من هذه الشاشة؛ تُستخدم نافذته للأرشفة والعدّ فقط. تحفظ تغييرات السياسة في إعدادات المنصة ويُسجَّل تعديلها في التدقيق.
               </p>
 
               <div className="row" style={{ flexWrap: 'wrap', alignItems: 'flex-end' }}>
@@ -520,14 +571,14 @@ export default function BackupsPage() {
                   <input
                     className="input"
                     value={reason}
-                    onChange={(event) => setReason(event.target.value)}
+                    onChange={(event) => { setReason(event.target.value); setPreview(null); }}
                     placeholder="مثال: تنظيف ربع سنوي بعد أخذ نسخة"
                   />
                 </label>
                 <button
                   className="btn"
                   type="button"
-                  disabled={!reasonReady || busy !== null}
+                  disabled={!reasonReady || busy !== null || policyChanged}
                   onClick={() => void apply('dry_run')}
                 >
                   قِس بلا تنفيذ
@@ -535,14 +586,15 @@ export default function BackupsPage() {
                 <button
                   className="btn danger"
                   type="button"
-                  disabled={!reasonReady || busy !== null}
+                  disabled={!reasonReady || busy !== null || policyChanged || !previewReady}
                   title={reasonReady ? 'ينفّذ فعلاً' : 'اكتب السبب أولاً'}
                   onClick={() => void apply('apply')}
                 >
                   طبّق الآن
                 </button>
               </div>
-            </div>
+              {previewReady ? <p className="alert warn" role="status">آخر قياس بهذا السبب: {preview?.touched} عنصر. العدد تقديري حتى لحظة التنفيذ؛ افحصه قبل المتابعة.</p> : <p className="muted small">يتاح التنفيذ بعد قياس السياسة النشطة بهذا السبب؛ القياس لا يحذف شيئاً.</p>}
+            </ContentPanel>
           )}
         </>
       )}
@@ -557,6 +609,6 @@ function formatBytes(bytes: number): string {
 }
 
 function apiMessage(error: unknown): string {
-  if (error instanceof Error && error.message.length > 0) return error.message;
+  if (error instanceof Error && error.message.length > 0) return arabicErrorText(error.message);
   return 'تعذّر تنفيذ الفعل.';
 }
