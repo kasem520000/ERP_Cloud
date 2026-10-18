@@ -1,9 +1,30 @@
+import java.io.FileInputStream
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
 }
+
+// توقيعُ نسخة الإصدار: من ملف keystore.properties محليًّا، أو من متغيّرات البيئة في CI
+// (GitHub Actions يفكّ سرّ KEYSTORE_BASE64 ويضبطها). وإن لم يوجد أيٌّ منهما تُوقَّع
+// نسخةُ الإصدار بمفتاح التصحيح كي تبقى APK قابلةً للتثبيت مباشرةً.
+val keystorePropertiesFile = rootProject.file("keystore.properties")
+val keystoreProperties = Properties().apply {
+    if (keystorePropertiesFile.exists()) load(FileInputStream(keystorePropertiesFile))
+}
+val ciStoreFile = System.getenv("KEYSTORE_FILE")
+val ciStorePassword = System.getenv("KEYSTORE_PASSWORD")
+val ciKeyAlias = System.getenv("KEY_ALIAS")
+val ciKeyPassword = System.getenv("KEY_PASSWORD")
+val releaseKeystorePresent =
+    (
+        !ciStoreFile.isNullOrBlank() && !ciStorePassword.isNullOrBlank() &&
+            !ciKeyAlias.isNullOrBlank() && !ciKeyPassword.isNullOrBlank()
+        ) ||
+        (keystorePropertiesFile.exists() && !keystoreProperties.getProperty("storeFile").isNullOrBlank())
 
 android {
     namespace = "com.erpcloud.rep"
@@ -13,14 +34,30 @@ android {
         applicationId = "com.erpcloud.rep"
         minSdk = 24
         targetSdk = 35
-        versionCode = 1
-        versionName = "1.0.0"
+        versionCode = 2
+        versionName = "1.1.0"
         vectorDrawables { useSupportLibrary = true }
+    }
+
+    signingConfigs {
+        if (releaseKeystorePresent) {
+            create("release") {
+                storeFile = file(ciStoreFile ?: keystoreProperties.getProperty("storeFile"))
+                storePassword = ciStorePassword ?: keystoreProperties.getProperty("storePassword")
+                keyAlias = ciKeyAlias ?: keystoreProperties.getProperty("keyAlias")
+                keyPassword = ciKeyPassword ?: keystoreProperties.getProperty("keyPassword")
+            }
+        }
     }
 
     buildTypes {
         release {
             isMinifyEnabled = false
+            signingConfig = if (releaseKeystorePresent) {
+                signingConfigs.getByName("release")
+            } else {
+                signingConfigs.getByName("debug")
+            }
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -68,6 +105,8 @@ dependencies {
     implementation(libs.androidx.datastore.preferences)
     implementation(libs.androidx.print)
     implementation(libs.zxing.core)
+    implementation(libs.androidx.biometric)
+    implementation(libs.androidx.security.crypto)
 
     debugImplementation(libs.androidx.compose.ui.tooling)
 }

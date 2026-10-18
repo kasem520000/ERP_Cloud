@@ -121,6 +121,92 @@ fun StatusChip(text: String, tone: ChipTone = ChipTone.NEUTRAL) {
 
 enum class ChipTone { OK, WARN, DANGER, INFO, NEUTRAL }
 
+/**
+ * بطاقةُ إحصائيّةٍ للرأس — قيمةٌ كبيرة وخطٌّ ثانويّ ولونُ نغمة. الرقمُ دائمًا من
+ * الخادم (نصًّا) — البطاقةُ تعرضُه ولا تحسبُه.
+ */
+@Composable
+fun StatTile(
+    label: String,
+    value: String,
+    modifier: Modifier = Modifier,
+    sub: String? = null,
+    icon: ImageVector? = null,
+    tone: ChipTone = ChipTone.NEUTRAL,
+) {
+    val valueColor = when (tone) {
+        ChipTone.OK -> Color(0xFF14532D)
+        ChipTone.WARN -> Color(0xFF78350F)
+        ChipTone.DANGER -> Color(0xFF7F1D1D)
+        ChipTone.INFO -> Color(0xFF1E3A8A)
+        ChipTone.NEUTRAL -> MaterialTheme.colorScheme.onSurface
+    }
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(14.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+    ) {
+        Column(Modifier.padding(12.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (icon != null) {
+                    Icon(
+                        icon,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(18.dp),
+                    )
+                    Spacer(Modifier.width(6.dp))
+                }
+                Text(
+                    label,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Spacer(Modifier.height(6.dp))
+            Text(
+                value,
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.Bold,
+                color = valueColor,
+            )
+            if (!sub.isNullOrBlank()) {
+                Text(
+                    sub,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+    }
+}
+
+/** شارةُ عدّادٍ صغيرة (غيرُ المقروء من الإشعارات، عددُ نيّات الطابور…). */
+@Composable
+fun BadgeCount(count: Int, modifier: Modifier = Modifier) {
+    if (count <= 0) return
+    Surface(
+        color = MaterialTheme.colorScheme.error,
+        shape = RoundedCornerShape(10.dp),
+        modifier = modifier,
+    ) {
+        Text(
+            if (count > 99) "٩٩+" else formatArabicDigits(count),
+            color = MaterialTheme.colorScheme.onError,
+            style = MaterialTheme.typography.labelSmall,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(horizontal = 5.dp, vertical = 1.dp),
+        )
+    }
+}
+
+/** أرقامٌ عربيّة-هندية للعرض — كلمةُ العدّاد في واجهةٍ عربيّة. */
+private fun formatArabicDigits(value: Int): String =
+    value.toString().map { char ->
+        if (char in '0'..'9') ('٠' + (char - '0')) else char
+    }.joinToString("")
+
 /** حالةٌ فارغة. */
 @Composable
 fun EmptyState(text: String, modifier: Modifier = Modifier) {

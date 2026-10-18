@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- باصُ التوزيع — الطبقة الأماميّة للأيقونة التكيّفيّة (within 66dp safe zone). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- جسمُ الباص -->
+    <path
+        android:fillColor="#FFF7ED"
+        android:pathData="M32,40 h44 a6,6 0 0 1 6,6 v18 a6,6 0 0 1 -6,6 h-44 a6,6 0 0 1 -6,-6 v-18 a6,6 0 0 1 6,-6 z" />
+
+    <!-- الزجاجُ الأماميّ -->
+    <path
+        android:fillColor="#292017"
+        android:pathData="M32,44 h10 a2,2 0 0 1 2,2 v7 a2,2 0 0 1 -2,2 h-10 a2,2 0 0 1 -2,-2 v-7 a2,2 0 0 1 2,-2 z" />
+
+    <!-- نافذتا الركّاب -->
+    <path
+        android:fillColor="#292017"
+        android:pathData="M51,44 h10 a2,2 0 0 1 2,2 v7 a2,2 0 0 1 -2,2 h-10 a2,2 0 0 1 -2,-2 v-7 a2,2 0 0 1 2,-2 z" />
+    <path
+        android:fillColor="#292017"
+        android:pathData="M68,44 h10 a2,2 0 0 1 2,2 v7 a2,2 0 0 1 -2,2 h-10 a2,2 0 0 1 -2,-2 v-7 a2,2 0 0 1 2,-2 z" />
+
+    <!-- شريطُ الهويّة -->
+    <path
+        android:fillColor="#B45309"
+        android:pathData="M27,58 h54 v3.5 h-54 z" />
+
+    <!-- المصباحُ الأماميّ -->
+    <path
+        android:fillColor="#FBBF24"
+        android:pathData="M29,54.5 m-1.9,0 a1.9,1.9 0 1 1 3.8,0 a1.9,1.9 0 1 1 -3.8,0" />
+
+    <!-- العجلتان -->
+    <path
+        android:fillColor="#1C1917"
+        android:pathData="M38,69 m-7,0 a7,7 0 1 1 14,0 a7,7 0 1 1 -14,0" />
+    <path
+        android:fillColor="#1C1917"
+        android:pathData="M70,69 m-7,0 a7,7 0 1 1 14,0 a7,7 0 1 1 -14,0" />
+    <path
+        android:fillColor="#FED7AA"
+        android:pathData="M38,69 m-2.6,0 a2.6,2.6 0 1 1 5.2,0 a2.6,2.6 0 1 1 -5.2,0" />
+    <path
+        android:fillColor="#FED7AA"
+        android:pathData="M70,69 m-2.6,0 a2.6,2.6 0 1 1 5.2,0 a2.6,2.6 0 1 1 -5.2,0" />
+</vector>

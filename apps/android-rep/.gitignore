@@ -10,3 +10,8 @@
 local.properties
 app/build/
 .kotlin/
+
+# مفاتيحُ توقيع الإصدار — لا تُودَع أبدًا
+keystore.properties
+*.keystore
+*.jks

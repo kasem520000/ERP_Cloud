@@ -3,11 +3,13 @@ package com.erpcloud.rep.data
 import com.erpcloud.rep.data.api.ApiEnvelope
 import com.erpcloud.rep.data.api.ApiException
 import com.erpcloud.rep.data.api.AppJson
+import com.erpcloud.rep.data.api.ChangePasswordRequest
 import com.erpcloud.rep.data.api.ClosingRequest
 import com.erpcloud.rep.data.api.CollectionRequest
 import com.erpcloud.rep.data.api.LoginRequest
 import com.erpcloud.rep.data.api.LoginResponse
 import com.erpcloud.rep.data.api.MeResponse
+import com.erpcloud.rep.data.api.NotificationListResponse
 import com.erpcloud.rep.data.api.PartyDto
 import com.erpcloud.rep.data.api.PrintViewDto
 import com.erpcloud.rep.data.api.ProblemDto
@@ -98,6 +100,32 @@ class RepRepository(
         if (!response.isSuccessful) throw response.toApiException()
         response.body() ?: emptyList()
     }
+
+    /**
+     * صندوقُ الإشعارات — يتطلّب إذنَ tenant.notification.view؛ إن لم يملكه الحسابُ
+     * فخطأُ الخادم (403) يصل كما هو ليعرض لا ليُبتلع.
+     */
+    suspend fun notifications(unreadOnly: Boolean = false): NotificationListResponse =
+        withContext(Dispatchers.IO) {
+            val response = api.notifications(
+                limit = 50,
+                offset = 0,
+                filterRead = if (unreadOnly) "false" else null,
+            )
+            if (!response.isSuccessful) throw response.toApiException()
+            response.body() ?: NotificationListResponse()
+        }
+
+    /** تعليمُ إشعارٍ كمقروء — تكرارٌ آمن في الخادم (201/200 كلاهما نجاح). */
+    suspend fun markNotificationRead(id: String): ActionResult =
+        submitDirect("تعليم الإشعار كمقروء") { api.markNotificationRead(id) }
+
+    /**
+     * تغييرُ كلمة المرور — نجاحُه 204 **ويُبطل الخادمُ كلَّ الجلسات**؛ لذا يُستدعى
+     * بعده clearSession في الواجهة وتُحدَّث الكلمةُ المحفوظة إن كانت محفوظة.
+     */
+    suspend fun changePassword(current: String, new: String): ActionResult =
+        submitDirect("تغيير كلمة المرور") { api.changePassword(ChangePasswordRequest(current, new)) }
 
     suspend fun printView(documentId: String): PrintViewDto = withContext(Dispatchers.IO) {
         val response = api.printView(documentId, copies = 2)

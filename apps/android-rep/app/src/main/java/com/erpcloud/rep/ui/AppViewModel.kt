@@ -13,6 +13,7 @@ import com.erpcloud.rep.data.RepRepository
 import com.erpcloud.rep.data.api.ApiException
 import com.erpcloud.rep.data.api.ClosingRequest
 import com.erpcloud.rep.data.api.MeResponse
+import com.erpcloud.rep.data.api.NotificationDto
 import com.erpcloud.rep.data.api.PartyDto
 import com.erpcloud.rep.data.api.PrintViewDto
 import com.erpcloud.rep.data.api.ReceiptRequest
@@ -20,7 +21,11 @@ import com.erpcloud.rep.data.api.RepWorkspace
 import com.erpcloud.rep.data.offline.Idempotency
 import com.erpcloud.rep.data.offline.QueueOperation
 import com.erpcloud.rep.data.offline.QueueRecord
+import com.erpcloud.rep.data.offline.QueueStatus
+import com.erpcloud.rep.data.offline.SavedCredentials
 import com.erpcloud.rep.data.offline.SessionState
+import com.erpcloud.rep.platform.AppNotifier
+import com.erpcloud.rep.util.Dec
 import com.erpcloud.rep.ui.components.Notice
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -40,8 +45,15 @@ data class UiState(
     val loadingWorkspace: Boolean = false,
     val workspaceError: String? = null,
     val online: Boolean = true,
+    val notifications: NotificationsState = NotificationsState(),
 ) {
     fun can(permission: String): Boolean = me?.can(permission) == true
+
+    /** غيرُ المقروء من نافذة إشعارات المساحة (شارةُ الجرس) — الكتابةُ في صندوق الإشعارات. */
+    val workspaceUnread: Int get() = workspace?.notifications?.count { !it.read } ?: 0
+
+    /** هل يطلب الخادمُ من هذا الحساب تغييرَ كلمة مروره؟ (mustChangePassword) */
+    val mustChangePassword: Boolean get() = me?.user?.mustChangePassword == true
 
     companion object {
         /** أسبابُ منع حفظ الإجراءين غير القابلَين للطابور — كما قيست في شاشة الويب. */
@@ -55,6 +67,16 @@ data class UiState(
     }
 }
 
+/** حالةُ صندوق الإشعارات (شاشةُ الإشعارات). */
+data class NotificationsState(
+    val loading: Boolean = false,
+    val unreadOnly: Boolean = false,
+    val items: List<NotificationDto> = emptyList(),
+    val unread: Int = 0,
+    val total: Int = 0,
+    val error: String? = null,
+)
+
 /** نتيجةُ إرسال نيّةٍ + (المفتاح، بصمةُ الجسم) — النيّةُ الواحدةُ مفتاحٌ واحد ما لم تتغيّر المسودة. */
 data class SubmitOutcome(val result: ActionResult, val intent: Pair<String, String>?)
 
@@ -66,6 +88,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     private val container get() = (application as com.erpcloud.rep.RepApp).container
     private val repo: RepRepository get() = container.repository
+    private val appContext: Context get() = getApplication()
 
     private val _uiState = MutableStateFlow(UiState())
     val uiState: StateFlow<UiState> = _uiState
@@ -75,6 +98,10 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     private var lastLoggedIn: Boolean = false
     private var networkCallback: ConnectivityManager.NetworkCallback? = null
+
+    /** معرّفاتُ التوريدات التي أُعلن عنها في إشعار نظام — مرةً واحدةً لكلّ أمر. */
+    private val announcedReceiptIds = mutableSetOf<String>()
+    private var announcedOfflineQueue = false
 
     init {
         // الجلسة: أوّلُ قراءةٍ تُعلم أنّ التخزين جاهز (شاشةُ الانتظار)، ثم كلُّ تغيير.
@@ -111,7 +138,19 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         _uiState.update { it.copy(online = currentOnline()) }
         val callback = object : ConnectivityManager.NetworkCallback() {
             override fun onAvailable(network: Network) {
+                val wasOffline = !_uiState.value.online
                 _uiState.update { it.copy(online = currentOnline()) }
+                // عادت الشبكة وهناك نيّاتٌ معلّقة؟ ذكّر المندوبَ بالإرسال — مرةً واحدةً.
+                if (wasOffline) {
+                    val pending = _uiState.value.queue.count { it.queueStatus == QueueStatus.PENDING }
+                    if (pending > 0) {
+                        AppNotifier.notify(
+                            appContext, AppNotifier.CHANNEL_QUEUE, 1001,
+                            "عادت الشبكة — لديك $pending نيّةً تنتظر الإرسال",
+                            "افتح الطابور من مساحة العمل وأعد الإرسال بترتيب إدخاله.",
+                        )
+                    }
+                }
             }
 
             override fun onLost(network: Network) {
@@ -160,6 +199,117 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
+    // ------------------------------------------------------------ بيانات الدخول المحفوظة
+
+    /** بياناتُ الدخول المحفوظة (تذكّرني) — مشفَّرة في Keystore. */
+    val savedCredentials: SavedCredentials?
+        get() = container.credentialStore.credentials
+
+    /** هل فُعّل الدخولُ بالبصمة/النمط للحساب المحفوظ؟ */
+    var biometricEnabled: Boolean
+        get() = container.credentialStore.biometricEnabled
+        set(value) {
+            container.credentialStore.biometricEnabled = value
+        }
+
+    /** بعد دخولٍ ناجح: حفظُ البيانات (تذكّرني) أو نسيانُها نهائيًّا. */
+    fun rememberCredentials(email: String, tenantCode: String, password: String, remember: Boolean) {
+        if (remember) {
+            container.credentialStore.save(SavedCredentials(email, tenantCode, password))
+        } else {
+            container.credentialStore.clear()
+        }
+    }
+
+    /** الدخولُ بالبيانات المحفوظة (بعد نجاح البصمة/النمط أو «دخول سريع») — نصُّ الخطأ أو null. */
+    suspend fun loginSaved(): String? {
+        val saved = savedCredentials ?: return "لا بياناتِ دخولٍ محفوظة — سجّل الدخول يدويًّا مرّةً واحدة."
+        return login(
+            server = _uiState.value.session.serverUrl,
+            email = saved.email,
+            password = saved.password,
+            tenantCode = saved.tenantCode,
+            mfaCode = "",
+        )
+    }
+
+    /** نسيانُ الحساب المحفوظ (تغييرُ الحساب من شاشة الدخول). */
+    fun forgetSavedAccount() {
+        container.credentialStore.clear()
+    }
+
+    /**
+     * تغييرُ كلمة المرور — عند النجاح يُبطل الخادمُ كلَّ الجلسات، فنُنهي الجلسةَ محليًّا
+     * ونُحدِّث الكلمةَ المحفوظة (إن كانت محفوظة) كي يعمل الدخولُ السريع/البصمة بعدها.
+     */
+    fun changePassword(current: String, new: String, onDone: (ActionResult) -> Unit) {
+        viewModelScope.launch {
+            val result = repo.changePassword(current, new)
+            if (result is ActionResult.Synced) {
+                if (savedCredentials != null) container.credentialStore.updatePassword(new)
+                repo.logout()
+                _notice.value = Notice.ok("غُيّرت كلمةُ المرور وأُبطلت كلُّ الجلسات — سجّل الدخول بكلمتك الجديدة.")
+            }
+            onDone(result)
+        }
+    }
+
+    // ------------------------------------------------------------ الإشعارات
+
+    /** صندوقُ الإشعارات الرسميّ — يتطلّب tenant.notification.view وإلا وصل خطأُ الخادم. */
+    fun refreshNotifications(unreadOnly: Boolean) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(notifications = it.notifications.copy(loading = true, unreadOnly = unreadOnly, error = null)) }
+            try {
+                val page = repo.notifications(unreadOnly)
+                _uiState.update {
+                    it.copy(
+                        notifications = it.notifications.copy(
+                            loading = false,
+                            items = page.data,
+                            unread = page.meta.unread,
+                            total = page.meta.total,
+                        )
+                    )
+                }
+            } catch (error: Exception) {
+                _uiState.update {
+                    it.copy(
+                        notifications = it.notifications.copy(
+                            loading = false,
+                            error = friendly(error),
+                        )
+                    )
+                }
+            }
+        }
+    }
+
+    /** تعليمُ إشعارٍ كمقروء (تكرارٌ آمن في الخادم) وتحديثُ الحالة محليًّا. */
+    fun markNotificationRead(id: String) {
+        viewModelScope.launch {
+            // تفاؤلٌ محليٌّ أوّلًا: الشارةُ تختفي فورًا، والخادمُ يُؤكِّد لاحقًا.
+            _uiState.update {
+                it.copy(
+                    notifications = it.notifications.copy(
+                        items = it.notifications.items.map { n ->
+                            if (n.id == id) n.copy(readAt = n.readAt ?: "local") else n
+                        },
+                        unread = (it.notifications.unread - 1).coerceAtLeast(0),
+                    )
+                )
+            }
+            repo.markNotificationRead(id)
+        }
+    }
+
+    /** تعليمُ كلِّ المعروضِ غيرِ المقروء كمقروء — نداءٌ لكلِّ إشعار (لا تجميعَ في الخادم). */
+    fun markAllNotificationsRead() {
+        val unread = _uiState.value.notifications.items.filter { !it.isRead }
+        if (unread.isEmpty()) return
+        unread.forEach { markNotificationRead(it.id) }
+    }
+
     fun logout() {
         viewModelScope.launch {
             repo.logout()
@@ -196,10 +346,25 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             try {
                 val workspace = repo.workspace()
                 _uiState.update { it.copy(workspace = workspace, loadingWorkspace = false) }
+                announceNewReceipts(workspace)
             } catch (error: Exception) {
                 _uiState.update {
                     it.copy(loadingWorkspace = false, workspaceError = friendly(error))
                 }
+            }
+        }
+    }
+
+    /** إشعارُ نظامٍ لتوريدٍ جديدٍ بانتظار الاستلام — مرةً واحدةً لكلّ أمر. */
+    private fun announceNewReceipts(workspace: RepWorkspace) {
+        workspace.pendingReceipts.forEach { receipt ->
+            if (announcedReceiptIds.add(receipt.id)) {
+                AppNotifier.notify(
+                    appContext, AppNotifier.CHANNEL_RECEIPTS, receipt.id.hashCode(),
+                    "توريدٌ بانتظار تأكيد استلامك",
+                    "الأمرُ ${receipt.number} — ${receipt.itemName} (${Dec.kg(receipt.loadedQty)} كجم). " +
+                        "عهدتُك تبدأ بتأكيد استلامك.",
+                )
             }
         }
     }
@@ -297,6 +462,13 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             _notice.value = when {
                 sent > 0 -> Notice.ok("وصلت $sent نيّةً إلى الخادم.")
                 else -> Notice.warn("لم تصل نيّةٌ جديدة — راجع حالاتِ الطابور ورسائلِ الرفض.")
+            }
+            if (sent > 0) {
+                AppNotifier.notify(
+                    appContext, AppNotifier.CHANNEL_QUEUE, 1002,
+                    "وصلت $sent نيّةً إلى الخادم",
+                    "أُعيد إرسالُ نيّاتك المحفوظة إلى مساراتها الرسميّة بنجاح.",
+                )
             }
             refreshWorkspace()
         }

@@ -13,6 +13,8 @@ kotlinxCoroutines = "1.8.1"
 datastore = "1.1.1"
 androidPrint = "1.0.0"
 zxing = "3.5.3"
+biometric = "1.1.0"
+securityCrypto = "1.1.0-alpha06"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -37,6 +39,8 @@ kotlinx-coroutines-android = { group = "org.jetbrains.kotlinx", name = "kotlinx-
 androidx-datastore-preferences = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "datastore" }
 androidx-print = { group = "androidx.print", name = "print", version.ref = "androidPrint" }
 zxing-core = { group = "com.google.zxing", name = "core", version.ref = "zxing" }
+androidx-biometric = { group = "androidx.biometric", name = "biometric", version.ref = "biometric" }
+androidx-security-crypto = { group = "androidx.security", name = "security-crypto", version.ref = "securityCrypto" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

@@ -2,6 +2,11 @@
 
 package com.erpcloud.rep.ui.screens
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -10,37 +15,59 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Logout
+import androidx.compose.material.icons.automirrored.filled.Reply
+import androidx.compose.material.icons.filled.AccountBalanceWallet
+import androidx.compose.material.icons.filled.FactCheck
+import androidx.compose.material.icons.filled.LocalShipping
+import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.Password
+import androidx.compose.material.icons.filled.Payments
+import androidx.compose.material.icons.filled.PointOfSale
 import androidx.compose.material.icons.filled.Print
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.ReceiptLong
+import androidx.compose.material.icons.filled.TrendingUp
+import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.erpcloud.rep.data.offline.QueueStatus
+import com.erpcloud.rep.platform.AppNotifier
 import com.erpcloud.rep.ui.AppViewModel
-import com.erpcloud.rep.ui.components.ChipTone
+import com.erpcloud.rep.ui.components.BadgeCount
 import com.erpcloud.rep.ui.components.CenterLoading
+import com.erpcloud.rep.ui.components.ChipTone
 import com.erpcloud.rep.ui.components.EmptyState
 import com.erpcloud.rep.ui.components.KeyValue
 import com.erpcloud.rep.ui.components.SectionCard
+import com.erpcloud.rep.ui.components.StatTile
 import com.erpcloud.rep.ui.components.StatusChip
 import com.erpcloud.rep.util.Dec
 
-/** شاشةُ مساحةِ عمل المندوب — كلُّ شيءٍ من `GET /van-sales/me` ولا رقمَ يُحسب محليًّا. */
+/**
+ * شاشةُ مساحةِ عمل المندوب — كلُّ شيءٍ من `GET /van-sales/me` ولا رقمَ يُحسب محليًّا:
+ * ترويسةُ هويةٍ (المندوبُ والسيارةُ والمنشأة)، شبكةُ إحصاءات، ثمّ القوائمُ بالنوافذ.
+ */
 @Composable
 fun WorkspaceScreen(
     vm: AppViewModel,
@@ -50,18 +77,35 @@ fun WorkspaceScreen(
     onClosing: () -> Unit,
     onQueue: () -> Unit,
     onPrinters: () -> Unit,
+    onNotifications: () -> Unit,
+    onChangePassword: () -> Unit,
     onReceipt: (String) -> Unit,
     onPrint: (String) -> Unit,
 ) {
     val state by vm.uiState.collectAsStateWithLifecycle()
+    val context = LocalContext.current
     val workspace = state.workspace
+
+    // إذنُ الإشعارات على ١٣+ — يُطلب مرّةً من مساحة العمل (قناتا الطابور والتوريد).
+    val permissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { }
+    LaunchedEffect(Unit) {
+        AppNotifier.ensureChannels(context)
+        if (Build.VERSION.SDK_INT >= 33 &&
+            ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) !=
+            PackageManager.PERMISSION_GRANTED
+        ) {
+            permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
+    }
 
     Scaffold(
         topBar = {
             TopAppBar(
                 title = {
                     Column {
-                        Text("مساحةُ عمل المندوب")
+                        Text("مساحةُ عمل المندوب", fontWeight = FontWeight.Bold)
                         val sub = workspace?.salesmanName ?: state.me?.user?.fullName ?: ""
                         if (sub.isNotBlank()) {
                             Text(sub, style = MaterialTheme.typography.bodyMedium)
@@ -69,6 +113,13 @@ fun WorkspaceScreen(
                     }
                 },
                 actions = {
+                    IconButton(onClick = onNotifications) {
+                        BadgedBox(
+                            badge = { BadgeCount(state.workspaceUnread) }
+                        ) {
+                            Icon(Icons.Default.Notifications, contentDescription = "الإشعارات")
+                        }
+                    }
                     IconButton(onClick = { vm.refreshAll() }) {
                         Icon(Icons.Default.Refresh, contentDescription = "تحديث")
                     }
@@ -99,6 +150,7 @@ fun WorkspaceScreen(
                 onClosing = onClosing,
                 onQueue = onQueue,
                 onPrinters = onPrinters,
+                onChangePassword = onChangePassword,
                 onReceipt = onReceipt,
                 onPrint = onPrint,
             )
@@ -116,6 +168,7 @@ private fun WorkspaceBody(
     onClosing: () -> Unit,
     onQueue: () -> Unit,
     onPrinters: () -> Unit,
+    onChangePassword: () -> Unit,
     onReceipt: (String) -> Unit,
     onPrint: (String) -> Unit,
 ) {
@@ -132,11 +185,28 @@ private fun WorkspaceBody(
                 }
             }
         } else {
-            // شريطُ الاتصال والطابور
-            item { ConnectionStrip(state, onQueue) }
+            // ترويسةُ الهويّة
+            item { IdentityHeader(state, onQueue) }
 
-            // البطاقاتُ الأربع في الرأس
-            item { HeadlineCards(workspace) }
+            // الخادمُ يطلبُ تغييرَ كلمة المرور؟
+            if (state.mustChangePassword) {
+                item {
+                    SectionCard(title = "مطلوبٌ تغييرُ كلمة المرور") {
+                        Text(
+                            "علّم الخادمُ حسابَك mustChangePassword — غيّر كلمتك الآن لتأمين الحساب.",
+                            color = MaterialTheme.colorScheme.error,
+                        )
+                        OutlinedButton(onClick = onChangePassword, modifier = Modifier.fillMaxWidth().padding(top = 6.dp)) {
+                            Icon(Icons.Default.Password, contentDescription = null, Modifier.size(18.dp))
+                            Spacer(Modifier.size(6.dp))
+                            Text("تغييرُ كلمة المرور")
+                        }
+                    }
+                }
+            }
+
+            // شبكةُ الإحصاءات
+            item { StatsGrid(workspace) }
 
             // الإجراءاتُ
             item {
@@ -279,33 +349,26 @@ private fun WorkspaceBody(
                 }
             }
 
-            // الإشعارات
+            // الحسابُ والإعدادات
             item {
-                SectionCard(
-                    title = "الإشعارات (${workspace.notifications.size})",
-                    subtitle = windowNote(workspace.windows?.notifications?.returned, workspace.windows?.notifications?.total),
-                ) {
-                    if (workspace.notifications.isEmpty()) {
-                        EmptyState("لا إشعارات.")
-                    } else {
-                        workspace.notifications.forEach { n ->
-                            Column(Modifier.padding(vertical = 4.dp)) {
-                                Text(
-                                    n.payload?.get("title")?.toString()?.trim('"') ?: notificationTypeAr(n.type),
-                                    fontWeight = FontWeight.SemiBold,
-                                )
-                                val body = n.payload?.get("body")?.toString()?.trim('"').orEmpty()
-                                if (body.isNotBlank()) {
-                                    Text(body, style = MaterialTheme.typography.bodyMedium)
-                                }
-                                Text(
-                                    n.createdAt.take(19).replace('T', ' '),
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
-                            }
+                SectionCard(title = "الحساب") {
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        OutlinedButton(onClick = onChangePassword, modifier = Modifier.weight(1f)) {
+                            Icon(Icons.Default.Password, contentDescription = null, Modifier.size(18.dp))
+                            Spacer(Modifier.size(6.dp))
+                            Text("تغييرُ كلمة المرور")
+                        }
+                        OutlinedButton(onClick = onPrinters, modifier = Modifier.weight(1f)) {
+                            Icon(Icons.Default.Print, contentDescription = null, Modifier.size(18.dp))
+                            Spacer(Modifier.size(6.dp))
+                            Text("الطابعات")
                         }
                     }
+                    Text(
+                        "بياناتُ الدخول المحفوظة والبصمة مُدارة من شاشة الدخول (نسيانُ الحساب).",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 }
             }
 
@@ -314,77 +377,123 @@ private fun WorkspaceBody(
     }
 }
 
+/** ترويسةُ الهويّة — المندوبُ والسيارةُ والمنشأةُ وحالةُ الاتصال والطابور. */
 @Composable
-private fun ConnectionStrip(state: com.erpcloud.rep.ui.UiState, onQueue: () -> Unit) {
-    val pending = state.queue.count { it.queueStatus == QueueStatus.PENDING }
-    val refused = state.queue.count { it.queueStatus == QueueStatus.REFUSED }
-    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        if (!state.online) {
-            StatusChip("لا اتصال — البيعُ والمرتجعُ والتحصيلُ تُحفظ في الطابور", ChipTone.WARN)
-        } else {
-            StatusChip("متّصل", ChipTone.OK)
-        }
-        Spacer(Modifier.weight(1f))
-        if (pending > 0 || refused > 0) {
-            TextButton(onClick = onQueue) {
-                Text("الطابور: ${pending} بانتظار · ${refused} مرفوضة")
+private fun IdentityHeader(state: com.erpcloud.rep.ui.UiState, onQueue: () -> Unit) {
+    val workspace = state.workspace ?: return
+    val tenant = state.me?.membership?.tenantName ?: ""
+    Surface(
+        shape = MaterialTheme.shapes.extraLarge,
+        color = MaterialTheme.colorScheme.primaryContainer,
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Column(Modifier.padding(16.dp)) {
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        workspace.salesmanName ?: "مندوب التوزيع",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                    )
+                    if (tenant.isNotBlank()) {
+                        Text(
+                            tenant,
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
+                Icon(
+                    Icons.Default.LocalShipping,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(40.dp),
+                )
+            }
+            Spacer(Modifier.height(8.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (workspace.vehiclePlate?.isNotBlank() == true) {
+                    Surface(shape = MaterialTheme.shapes.small, color = MaterialTheme.colorScheme.surface) {
+                        Text(
+                            "السيارةُ ${workspace.vehiclePlate}",
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                        )
+                    }
+                }
+                if (!state.online) {
+                    StatusChip("لا اتصال — البيعُ والمرتجعُ والتحصيلُ تُحفظ في الطابور", ChipTone.WARN)
+                } else {
+                    StatusChip("متّصل", ChipTone.OK)
+                }
+                val pending = state.queue.count { it.queueStatus == QueueStatus.PENDING }
+                val refused = state.queue.count { it.queueStatus == QueueStatus.REFUSED }
+                if (pending > 0 || refused > 0) {
+                    TextButton(onClick = onQueue) {
+                        Text("الطابور: ${pending} بانتظار · ${refused} مرفوضة")
+                    }
+                }
             }
         }
     }
 }
 
+/** شبكةُ الإحصاءات ٢×٢ — العهدةُ والإيرادُ والمحصَّلُ والمتبقّي، كلُّها من الخادم. */
 @Composable
-private fun HeadlineCards(workspace: com.erpcloud.rep.data.api.RepWorkspace) {
+private fun StatsGrid(workspace: com.erpcloud.rep.data.api.RepWorkspace) {
     val totals = workspace.totals
     val custody = workspace.custody
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        SectionCard(title = "رصيدُ سيارتك الرسميّ") {
-            Text("${Dec.kg(workspace.custodyKg)} كجم", style = MaterialTheme.typography.headlineSmall)
-            Text(
-                "قيمته ${Dec.money(workspace.custodyValue)} ريال — من دفتر المخزون الرسميّ (كاملٌ بلا نافذة).",
-                style = MaterialTheme.typography.bodyMedium,
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            StatTile(
+                label = "رصيدُ سيارتك",
+                value = "${Dec.kg(workspace.custodyKg)} كجم",
+                sub = workspace.custodyValue?.let { "قيمتُه ${Dec.money(it)} ريال" },
+                icon = Icons.Default.LocalShipping,
+                modifier = Modifier.weight(1f),
+            )
+            StatTile(
+                label = "صافي مبيعاتك",
+                value = if (totals != null) "${Dec.money(totals.revenue)} ريال" else "—",
+                sub = totals?.let { "نقديّ ${Dec.money(it.cashSales)} · آجل ${Dec.money(it.creditSales)}" },
+                icon = Icons.Default.TrendingUp,
+                tone = ChipTone.INFO,
+                modifier = Modifier.weight(1f),
             )
         }
-        SectionCard(title = "مبيعاتك — صافي المرتجعات") {
-            if (totals == null) {
-                Text("لم يُرجع الخادمُ مجاميعَ المندوب.")
-            } else {
-                Text("${Dec.money(totals.revenue)} ريال", style = MaterialTheme.typography.headlineSmall)
-                Text(
-                    "نقديّ ${Dec.money(totals.cashSales)} · آجل ${Dec.money(totals.creditSales)}" +
-                        (if (totals.returnCount > 0)
-                            " − مرتجعات ${Dec.money(totals.returns)} وضريبتُها ${Dec.money(totals.returnsVat)}"
-                        else ""),
-                    style = MaterialTheme.typography.bodyMedium,
-                )
-            }
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            StatTile(
+                label = "المحصَّل",
+                value = if (totals != null) "${Dec.money(totals.collected)} ريال" else "—",
+                sub = totals?.let {
+                    if (it.returnCount > 0) "بعد ${it.returnCount} إشعارٍ دائنٍ لمرتجعاتك" else null
+                },
+                icon = Icons.Default.AccountBalanceWallet,
+                tone = ChipTone.OK,
+                modifier = Modifier.weight(1f),
+            )
+            StatTile(
+                label = "المتبقّي على العملاء",
+                value = if (totals != null) "${Dec.money(totals.outstanding)} ريال" else "—",
+                sub = custody?.let {
+                    if (it.pendingClosings > 0) "⏳ ${it.pendingClosings} إغلاقٌ بانتظار المحاسب" else null
+                },
+                icon = Icons.Default.ReceiptLong,
+                tone = if ((custody?.pendingClosings ?: 0) > 0) ChipTone.WARN else ChipTone.NEUTRAL,
+                modifier = Modifier.weight(1f),
+            )
         }
-        SectionCard(title = "المحصَّل / المتبقّي على العملاء") {
-            if (totals == null) {
-                Text("لم يُرجع الخادمُ مجاميعَ المندوب.")
-            } else {
-                Text("${Dec.money(totals.collected)} ريال", style = MaterialTheme.typography.headlineSmall)
-                Text(
-                    "متبقٍّ ${Dec.money(totals.outstanding)}" +
-                        (if (totals.returnCount > 0) " — بعد خصم ${totals.returnCount} إشعارٍ دائنٍ لمرتجعاتك" else ""),
-                    style = MaterialTheme.typography.bodyMedium,
-                )
-            }
-        }
-        SectionCard(title = "حالةُ العهدة") {
-            if (custody == null) {
-                Text("لا عهدةَ مفتوحة.")
-            } else {
-                Text("${Dec.kg(custody.expectedKg)} كجم", style = MaterialTheme.typography.headlineSmall)
-                Text(
-                    if (custody.pendingClosings > 0) {
-                        "⏳ ${custody.pendingClosings} إغلاقٌ بانتظار المحاسب — والرصيدُ الرسميّ ${Dec.kg(custody.officialKg)} كجم"
-                    } else {
-                        "✅ لا إغلاقَ معلّق — والرصيدُ الرسميّ ${Dec.kg(custody.officialKg)} كجم"
-                    },
-                    style = MaterialTheme.typography.bodyMedium,
-                )
-            }
+        if (totals != null && totals.returnCount > 0) {
+            Text(
+                "مرتجعاتُك ${Dec.money(totals.returns)} ريال وضريبتُها ${Dec.money(totals.returnsVat)} — " +
+                    "خُصمت من المجاميع أعلاه.",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }
@@ -402,15 +511,44 @@ private fun ActionGrid(
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            OutlinedButton(onClick = onSale, enabled = canInvoice, modifier = Modifier.weight(1f)) { Text("بيعٌ جديد") }
-            OutlinedButton(onClick = onReturn, enabled = canInvoice, modifier = Modifier.weight(1f)) { Text("مرتجعُ عميل") }
+            OutlinedButton(
+                onClick = onSale,
+                enabled = canInvoice,
+                modifier = Modifier.weight(1f),
+            ) {
+                Icon(Icons.Default.PointOfSale, contentDescription = null, Modifier.size(18.dp))
+                Spacer(Modifier.size(6.dp))
+                Text("بيعٌ جديد")
+            }
+            OutlinedButton(
+                onClick = onReturn,
+                enabled = canInvoice,
+                modifier = Modifier.weight(1f),
+            ) {
+                Icon(Icons.AutoMirrored.Filled.Reply, contentDescription = null, Modifier.size(18.dp))
+                Spacer(Modifier.size(6.dp))
+                Text("مرتجعُ عميل")
+            }
         }
         Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            OutlinedButton(onClick = onCollection, enabled = canCollect, modifier = Modifier.weight(1f)) { Text("تحصيلُ دين") }
-            OutlinedButton(onClick = onClosing, enabled = canClose, modifier = Modifier.weight(1f)) { Text("إغلاقُ الوردية") }
-        }
-        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            OutlinedButton(onClick = onPrinters, modifier = Modifier.weight(1f)) { Text("طابعاتُ البلوتوث") }
+            OutlinedButton(
+                onClick = onCollection,
+                enabled = canCollect,
+                modifier = Modifier.weight(1f),
+            ) {
+                Icon(Icons.Default.Payments, contentDescription = null, Modifier.size(18.dp))
+                Spacer(Modifier.size(6.dp))
+                Text("تحصيلُ دين")
+            }
+            OutlinedButton(
+                onClick = onClosing,
+                enabled = canClose,
+                modifier = Modifier.weight(1f),
+            ) {
+                Icon(Icons.Default.FactCheck, contentDescription = null, Modifier.size(18.dp))
+                Spacer(Modifier.size(6.dp))
+                Text("إغلاقُ الوردية")
+            }
         }
     }
 }
@@ -442,9 +580,3 @@ private fun statusTone(status: String): ChipTone = when (status) {
     else -> ChipTone.NEUTRAL
 }
 
-private fun notificationTypeAr(type: String): String = when (type) {
-    "van_sales_closing_request" -> "طلبُ اعتماد إغلاق وردية"
-    "van_sales_receipt_confirmed" -> "تأكيدُ استلام توريد"
-    "van_sales_receipt_discrepancy" -> "فرقٌ في استلام توريد"
-    else -> type
-}

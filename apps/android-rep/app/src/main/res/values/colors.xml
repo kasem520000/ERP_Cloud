@@ -2,4 +2,5 @@
 <resources>
     <color name="brand_dark">#7C3A0B</color>
     <color name="brand_primary">#B45309</color>
+    <color name="ic_launcher_background">#B45309</color>
 </resources>

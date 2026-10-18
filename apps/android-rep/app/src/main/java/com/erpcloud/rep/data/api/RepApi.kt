@@ -33,6 +33,10 @@ interface RepApi {
     @POST("auth/logout")
     suspend fun logout(): Response<Unit>
 
+    /** تغييرُ كلمة المرور — 204، ويُبطل الخادمُ كلَّ الجلسات بعده. */
+    @POST("auth/change-password")
+    suspend fun changePassword(@Body body: ChangePasswordRequest): Response<Unit>
+
     @GET("me")
     suspend fun me(): Response<ApiEnvelope<MeResponse>>
 
@@ -71,6 +75,21 @@ interface RepApi {
         @Path("id") documentId: String,
         @Query("copies") copies: Int = 2,
     ): Response<ApiEnvelope<PrintViewDto>>
+
+    /**
+     * صندوقُ إشعارات العضويّة — `{data, meta{total,limit,offset,unread}}` بلا غلافٍ
+     * إضافيّ. `filter[read]=false` ⇒ غيرُ المقروء فقط (Nest يفكّ filter[x] إلى كائن).
+     */
+    @GET("notifications")
+    suspend fun notifications(
+        @Query("limit") limit: Int = 50,
+        @Query("offset") offset: Int = 0,
+        @Query("filter[read]") filterRead: String? = null,
+    ): Response<NotificationListResponse>
+
+    /** تعليمُ إشعارٍ كمقروء — 201، تكرارٌ آمن. */
+    @POST("notifications/{id}/read")
+    suspend fun markNotificationRead(@Path("id") id: String): Response<JsonElement>
 
     /** إعادةُ نيّةٍ محفوظة إلى مسارها الرسميّ — المسارُ نسبيٌّ بلا شرطةٍ أماميةّة. */
     @POST
