@@ -981,6 +981,31 @@ table td {
   box-shadow: none;
   max-block-size: none;
 }
+/*
+ * A card whose only content is a table is a Panel without a head: drop the card's
+ * padding and the table's own border so the rows meet the card's edge — the same
+ * silhouette as `Panel flush`.
+ */
+:where(.shell, .ui-page) .card:has(> .table-wrap:only-child) {
+  padding: 0;
+  overflow: clip;
+}
+:where(.shell, .ui-page) .card > .table-wrap:only-child {
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  max-block-size: none;
+}
+
+/* The one row a table shows when the query succeeded with nothing in it. */
+.table-blank {
+  padding: 34px 16px;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
 /* A table that is the last thing in a panel shares the panel's radius, not its own. */
 .ui-panel-body-flush > .table-wrap table {
   border-collapse: separate;

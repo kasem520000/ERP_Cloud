@@ -62,6 +62,7 @@ export function DataTable<T>({
   activeKey,
   footer,
   expanded,
+  empty,
 }: {
   columns: Array<Column<T>>;
   rows: T[];
@@ -74,6 +75,8 @@ export function DataTable<T>({
   footer?: ReactNode[];
   /** Detail rendered under the row — lot, serial, the source document. */
   expanded?: (row: T) => ReactNode;
+  /** Shown in place of the body when the query returned nothing. */
+  empty?: string;
 }) {
   return (
     <div className="table-wrap">
@@ -88,6 +91,13 @@ export function DataTable<T>({
           </tr>
         </thead>
         <tbody>
+          {rows.length === 0 && empty ? (
+            <tr>
+              <td colSpan={columns.length} className="table-blank">
+                {empty}
+              </td>
+            </tr>
+          ) : null}
           {rows.map((row, index) => {
             const key = rowKey(row, index);
             const active = activeKey !== undefined && activeKey === key;

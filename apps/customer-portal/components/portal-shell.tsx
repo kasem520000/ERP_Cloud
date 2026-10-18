@@ -55,7 +55,8 @@ export function PortalShell({ children }: { children: ReactNode }) {
   return (
     <ProfileContext.Provider value={state}>
       <div className="portal">
-        <aside className="card side">
+        <aside className="ui-panel side">
+          <div className="ui-panel-body">
           <div className="portal-identity">
             <span className="portal-avatar" aria-hidden>
               {(party?.name ?? 'ع').trim().slice(0, 1)}
@@ -77,12 +78,13 @@ export function PortalShell({ children }: { children: ReactNode }) {
           </nav>
           <div className="portal-balance">
             <small>{credit ? 'رصيد دائن لكم' : 'الرصيد المستحق'}</small>
-            <div className="kpi" style={{ fontSize: 22 }}>
+            <div className="ui-kpi-value" style={{ fontSize: 22 }}>
               {moneyText(credit ? new Decimal(dueBalance).abs().toFixed(2) : dueBalance)}
             </div>
           </div>
+          </div>
         </aside>
-        <section className="grid">{children}</section>
+        <section className="grid portal-body">{children}</section>
       </div>
     </ProfileContext.Provider>
   );

@@ -32,6 +32,8 @@ export default function CrmActivitiesPage() {
           ]}
           rows={rows}
           rowKey={(row) => row.id}
+          empty="لا توجد أنشطة مسجّلة بعد — تُسجَّل تلقائياً من بطاقة الصفقة."
+
         />
       </Panel>
     </Screen>

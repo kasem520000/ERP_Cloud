@@ -274,6 +274,10 @@ body {
   position: sticky;
   top: 90px;
   height: max-content;
+  padding: 0;
+  overflow: clip;
+}
+.side > .ui-panel-body {
   padding: 16px;
 }
 
