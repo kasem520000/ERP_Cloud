@@ -141,7 +141,7 @@ export default function JournalEntryPage() {
 
   return (
  <Screen
-      title="القيد"
+      title={`قيد يومية ${doc.number ?? ''}`.trim()}
       subtitle={doc.description ?? '—'}
       crumbs={['المحاسبة', 'القيود اليومية', 'القيد']}
       actions={

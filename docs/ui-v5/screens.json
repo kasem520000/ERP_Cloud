@@ -17,9 +17,9 @@
     "file": "apps/staff/app/crm/deals/[id]/page.tsx",
     "title": "صفقة (تفاصيل)",
     "group": "إدارة العلاقات",
-    "done": false,
-    "rebuilt": false,
-    "note": "مسار ديناميكي — يُتحقق بسجل حقيقي"
+    "done": true,
+    "rebuilt": true,
+    "note": "تحقق بسجل حقيقي في المتصفح 1440"
    },
    {
     "app": "staff",
@@ -179,7 +179,7 @@
     "group": "الإعدادات",
     "done": true,
     "rebuilt": true,
-    "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+    "note": "تحقق بمتصفح — الأدوار والأعضاء والفروع كقوائم لا UUID"
    },
    {
     "app": "staff",
@@ -227,9 +227,9 @@
     "file": "apps/staff/app/settings/company/page.tsx",
     "title": "بطاقة المنشأة",
     "group": "الإعدادات",
-    "done": false,
-    "rebuilt": false,
-    "note": ""
+    "done": true,
+    "rebuilt": true,
+    "note": "اسم/رمز المنشأة التجريبية — بيانات لا نص واجهة"
    },
    {
     "app": "staff",
@@ -239,7 +239,7 @@
     "group": "الإعدادات",
     "done": true,
     "rebuilt": true,
-    "note": "تحقق في المتصفح 1440"
+    "note": "تحقق بمتصفح — حقول الطبقة المشتركة"
    },
    {
     "app": "staff",
@@ -299,7 +299,7 @@
     "group": "الإعدادات",
     "done": true,
     "rebuilt": true,
-    "note": "تحقق في المتصفح 1440"
+    "note": "تحقق بمتصفح — وحدة افتراضية كقائمة، ومفاتيح متقدمة داخل طيّ"
    },
    {
     "app": "staff",
@@ -367,9 +367,9 @@
     "file": "apps/staff/app/settings/payments/page.tsx",
     "title": "روابط الدفع — ميسر",
     "group": "الإعدادات",
-    "done": false,
-    "rebuilt": false,
-    "note": ""
+    "done": true,
+    "rebuilt": true,
+    "note": "عنوان الويب هوك يعرضه إعداد الدفع"
    },
    {
     "app": "staff",
@@ -437,9 +437,9 @@
     "file": "apps/staff/app/settings/sync/[entity]/page.tsx",
     "title": "مزامنة كيان",
     "group": "الإعدادات",
-    "done": false,
-    "rebuilt": false,
-    "note": "مسار ديناميكي — يُتحقق بسجل حقيقي"
+    "done": true,
+    "rebuilt": true,
+    "note": "تحقق بسجل حقيقي في المتصفح 1440"
    },
    {
     "app": "staff",
@@ -477,9 +477,9 @@
     "file": "apps/staff/app/settings/usage/page.tsx",
     "title": "الاستخدام والحصص",
     "group": "الإعدادات",
-    "done": false,
-    "rebuilt": false,
-    "note": ""
+    "done": true,
+    "rebuilt": true,
+    "note": "اسم المنشأة في ترويسة الاستخدام"
    },
    {
     "app": "staff",
@@ -657,9 +657,9 @@
     "file": "apps/staff/app/reports/[key]/page.tsx",
     "title": "تقرير",
     "group": "التقارير",
-    "done": false,
-    "rebuilt": false,
-    "note": "مسار ديناميكي — يُتحقق بسجل حقيقي"
+    "done": true,
+    "rebuilt": true,
+    "note": "تحقق بسجل حقيقي في المتصفح 1440"
    },
    {
     "app": "staff",
@@ -669,7 +669,7 @@
     "group": "التقارير",
     "done": true,
     "rebuilt": true,
-    "note": "تحقق في المتصفح 1440"
+    "note": "تحقق بمتصفح — حقول الطبقة المشتركة وأزرار موحدة"
    },
    {
     "app": "staff",
@@ -707,9 +707,9 @@
     "file": "apps/staff/app/integrations/salla/settings/page.tsx",
     "title": "إعدادات ربط سلة",
     "group": "التكاملات",
-    "done": false,
-    "rebuilt": false,
-    "note": ""
+    "done": true,
+    "rebuilt": true,
+    "note": "مسار الويب هوك المطلوب تسجيله في سلة"
    },
    {
     "app": "staff",
@@ -747,9 +747,9 @@
     "file": "apps/staff/app/esign/[token]/page.tsx",
     "title": "توقيع إلكتروني",
     "group": "التوقيع الإلكتروني",
-    "done": false,
-    "rebuilt": false,
-    "note": "مسار ديناميكي — يُتحقق بسجل حقيقي"
+    "done": true,
+    "rebuilt": true,
+    "note": "تحقق برابط توقيع حقيقي — صفحة عامة برأسها"
    },
    {
     "app": "staff",
@@ -757,9 +757,9 @@
     "file": "apps/staff/app/m/page.tsx",
     "title": "تطبيق الموظف",
     "group": "الجوال",
-    "done": false,
-    "rebuilt": false,
-    "note": ""
+    "done": true,
+    "rebuilt": true,
+    "note": "تطبيق الموظف المحمول برأسه الخاص"
    },
    {
     "app": "staff",
@@ -767,9 +767,9 @@
     "file": "apps/staff/app/m/approvals/page.tsx",
     "title": "موافقات الفريق",
     "group": "الجوال",
-    "done": false,
-    "rebuilt": false,
-    "note": ""
+    "done": true,
+    "rebuilt": true,
+    "note": "تطبيق الموظف المحمول برأسه الخاص"
    },
    {
     "app": "staff",
@@ -777,9 +777,9 @@
     "file": "apps/staff/app/m/attendance/page.tsx",
     "title": "حضور وانصراف",
     "group": "الجوال",
-    "done": false,
-    "rebuilt": false,
-    "note": ""
+    "done": true,
+    "rebuilt": true,
+    "note": "تطبيق الموظف المحمول برأسه الخاص"
    },
    {
     "app": "staff",
@@ -787,9 +787,9 @@
     "file": "apps/staff/app/m/profile/page.tsx",
     "title": "راتبي وإجازاتي",
     "group": "الجوال",
-    "done": false,
-    "rebuilt": false,
-    "note": ""
+    "done": true,
+    "rebuilt": true,
+    "note": "تطبيق الموظف المحمول برأسه الخاص"
    },
    {
     "app": "staff",
@@ -797,9 +797,9 @@
     "file": "apps/staff/app/m/requests/new/page.tsx",
     "title": "طلب جديد",
     "group": "الجوال",
-    "done": false,
-    "rebuilt": false,
-    "note": ""
+    "done": true,
+    "rebuilt": true,
+    "note": "تطبيق الموظف المحمول برأسه الخاص"
    },
    {
     "app": "staff",
@@ -907,9 +907,9 @@
     "file": "apps/staff/app/support/about/page.tsx",
     "title": "عن البرنامج",
     "group": "الدعم",
-    "done": false,
-    "rebuilt": false,
-    "note": ""
+    "done": true,
+    "rebuilt": true,
+    "note": "تحقق في المتصفح 1440 — أُزيلت معلومات الـendpoint"
    },
    {
     "app": "staff",
@@ -917,9 +917,9 @@
     "file": "apps/staff/app/support/help/page.tsx",
     "title": "🆘 إطلب المساعدة",
     "group": "الدعم",
-    "done": false,
-    "rebuilt": false,
-    "note": ""
+    "done": true,
+    "rebuilt": true,
+    "note": "اسم المنشأة وبريد المستخدم في نموذج الدعم"
    },
    {
     "app": "staff",
@@ -947,9 +947,9 @@
     "file": "apps/staff/app/s/[...slug]/page.tsx",
     "title": "شاشة مسجّلة",
     "group": "الشاشات المسجّلة",
-    "done": false,
-    "rebuilt": false,
-    "note": "مسار ديناميكي — يُتحقق بسجل حقيقي"
+    "done": true,
+    "rebuilt": true,
+    "note": "تحقق بسجل حقيقي في المتصفح 1440"
    },
    {
     "app": "staff",
@@ -957,9 +957,9 @@
     "file": "apps/staff/app/print/[doc]/[id]/page.tsx",
     "title": "طباعة مستند",
     "group": "الطباعة",
-    "done": false,
-    "rebuilt": false,
-    "note": "مسار ديناميكي — يُتحقق بسجل حقيقي"
+    "done": true,
+    "rebuilt": true,
+    "note": "تحقق بسجل حقيقي في المتصفح 1440"
    },
    {
     "app": "staff",
@@ -999,7 +999,7 @@
     "group": "المبيعات",
     "done": true,
     "rebuilt": true,
-    "note": "تحقق في المتصفح 1440 · رأس صفحة موحّد"
+    "note": "تحقق بمتصفح — رأس صفحة موحد"
    },
    {
     "app": "staff",
@@ -1007,9 +1007,9 @@
     "file": "apps/staff/app/sales/invoices/[id]/page.tsx",
     "title": "فاتورة مبيعات (تفاصيل)",
     "group": "المبيعات",
-    "done": false,
-    "rebuilt": false,
-    "note": "مسار ديناميكي — يُتحقق بسجل حقيقي"
+    "done": true,
+    "rebuilt": true,
+    "note": "تحقق بسجل حقيقي في المتصفح 1440"
    },
    {
     "app": "staff",
@@ -1027,9 +1027,9 @@
     "file": "apps/staff/app/sales/notes/[kind]/page.tsx",
     "title": "إشعار مبيعات",
     "group": "المبيعات",
-    "done": false,
-    "rebuilt": false,
-    "note": "مسار ديناميكي — يُتحقق بسجل حقيقي"
+    "done": true,
+    "rebuilt": true,
+    "note": "تحقق بسجل حقيقي في المتصفح 1440"
    },
    {
     "app": "staff",
@@ -1067,9 +1067,9 @@
     "file": "apps/staff/app/sales/quotations/[id]/page.tsx",
     "title": "عرض سعر (تفاصيل)",
     "group": "المبيعات",
-    "done": false,
-    "rebuilt": false,
-    "note": "مسار ديناميكي — يُتحقق بسجل حقيقي"
+    "done": true,
+    "rebuilt": true,
+    "note": "تحقق بسجل حقيقي في المتصفح 1440"
    },
    {
     "app": "staff",
@@ -1077,9 +1077,9 @@
     "file": "apps/staff/app/sales/quotations/[id]/esign/page.tsx",
     "title": "توقيع عرض السعر",
     "group": "المبيعات",
-    "done": false,
-    "rebuilt": false,
-    "note": "مسار ديناميكي — يُتحقق بسجل حقيقي"
+    "done": true,
+    "rebuilt": true,
+    "note": "تحقق بسجل حقيقي في المتصفح 1440"
    },
    {
     "app": "staff",
@@ -1217,9 +1217,9 @@
     "file": "apps/staff/app/accounting/journal-entries/[id]/page.tsx",
     "title": "قيد يومية",
     "group": "المحاسبة",
-    "done": false,
-    "rebuilt": false,
-    "note": "مسار ديناميكي — يُتحقق بسجل حقيقي"
+    "done": true,
+    "rebuilt": true,
+    "note": "تحقق بسجل حقيقي في المتصفح 1440"
    },
    {
     "app": "staff",
@@ -1527,9 +1527,9 @@
     "file": "apps/staff/app/projects/[id]/page.tsx",
     "title": "مشروع",
     "group": "المشاريع",
-    "done": false,
-    "rebuilt": false,
-    "note": "مسار ديناميكي — يُتحقق بسجل حقيقي"
+    "done": true,
+    "rebuilt": true,
+    "note": "تحقق بسجل حقيقي في المتصفح 1440"
    },
    {
     "app": "staff",
@@ -1537,9 +1537,9 @@
     "file": "apps/staff/app/projects/[id]/board/page.tsx",
     "title": "لوحة المشروع",
     "group": "المشاريع",
-    "done": false,
-    "rebuilt": false,
-    "note": "مسار ديناميكي — يُتحقق بسجل حقيقي"
+    "done": true,
+    "rebuilt": true,
+    "note": "تحقق بسجل حقيقي في المتصفح 1440"
    },
    {
     "app": "staff",
@@ -1547,9 +1547,9 @@
     "file": "apps/staff/app/projects/[id]/cost/page.tsx",
     "title": "تكلفة المشروع",
     "group": "المشاريع",
-    "done": false,
-    "rebuilt": false,
-    "note": "مسار ديناميكي — يُتحقق بسجل حقيقي"
+    "done": true,
+    "rebuilt": true,
+    "note": "تحقق بسجل حقيقي في المتصفح 1440"
    },
    {
     "app": "staff",
@@ -1557,9 +1557,9 @@
     "file": "apps/staff/app/projects/[id]/gantt/page.tsx",
     "title": "مخطط المشروع الزمني",
     "group": "المشاريع",
-    "done": false,
-    "rebuilt": false,
-    "note": "مسار ديناميكي — يُتحقق بسجل حقيقي"
+    "done": true,
+    "rebuilt": true,
+    "note": "تحقق بسجل حقيقي في المتصفح 1440"
    },
    {
     "app": "staff",
@@ -1567,9 +1567,9 @@
     "file": "apps/staff/app/projects/[id]/tasks/[taskId]/page.tsx",
     "title": "مهمة مشروع",
     "group": "المشاريع",
-    "done": false,
-    "rebuilt": false,
-    "note": "مسار ديناميكي — يُتحقق بسجل حقيقي"
+    "done": true,
+    "rebuilt": true,
+    "note": "تحقق بسجل حقيقي في المتصفح 1440"
    },
    {
     "app": "staff",
@@ -1577,9 +1577,9 @@
     "file": "apps/staff/app/projects/[id]/time/page.tsx",
     "title": "أوقات المشروع",
     "group": "المشاريع",
-    "done": false,
-    "rebuilt": false,
-    "note": "مسار ديناميكي — يُتحقق بسجل حقيقي"
+    "done": true,
+    "rebuilt": true,
+    "note": "تحقق بسجل حقيقي في المتصفح 1440"
    },
    {
     "app": "staff",
@@ -1687,9 +1687,9 @@
     "file": "apps/staff/app/projects/tasks/[taskId]/page.tsx",
     "title": "مهمة",
     "group": "المشاريع",
-    "done": false,
-    "rebuilt": false,
-    "note": "مسار ديناميكي — يُتحقق بسجل حقيقي"
+    "done": true,
+    "rebuilt": true,
+    "note": "تحقق بسجل حقيقي في المتصفح 1440"
    },
    {
     "app": "staff",
@@ -1727,9 +1727,9 @@
     "file": "apps/staff/app/purchases/invoices/[id]/page.tsx",
     "title": "فاتورة مشتريات (تفاصيل)",
     "group": "المشتريات",
-    "done": false,
-    "rebuilt": false,
-    "note": "مسار ديناميكي — يُتحقق بسجل حقيقي"
+    "done": true,
+    "rebuilt": true,
+    "note": "تحقق بسجل حقيقي — فاتورة مشتريات مسودة"
    },
    {
     "app": "staff",
@@ -1757,9 +1757,9 @@
     "file": "apps/staff/app/purchases/notes/[kind]/page.tsx",
     "title": "إشعار مشتريات",
     "group": "المشتريات",
-    "done": false,
-    "rebuilt": false,
-    "note": "مسار ديناميكي — يُتحقق بسجل حقيقي"
+    "done": true,
+    "rebuilt": true,
+    "note": "تحقق بسجل حقيقي في المتصفح 1440"
    },
    {
     "app": "staff",
@@ -1887,9 +1887,9 @@
     "file": "apps/staff/app/hrm/payroll/[id]/page.tsx",
     "title": "مسير رواتب",
     "group": "الموظفون والرواتب",
-    "done": false,
-    "rebuilt": false,
-    "note": "مسار ديناميكي — يُتحقق بسجل حقيقي"
+    "done": true,
+    "rebuilt": true,
+    "note": "تحقق بسجل حقيقي — مسيّر رواتب مسودة"
    },
    {
     "app": "staff",
@@ -1897,9 +1897,9 @@
     "file": "apps/staff/app/hrm/payroll/[id]/wps/page.tsx",
     "title": "ملف حماية الأجور",
     "group": "الموظفون والرواتب",
-    "done": false,
-    "rebuilt": false,
-    "note": "مسار ديناميكي — يُتحقق بسجل حقيقي"
+    "done": true,
+    "rebuilt": true,
+    "note": "تحقق بسجل حقيقي — ملف حماية الأجور"
    },
    {
     "app": "staff",
@@ -1947,9 +1947,9 @@
     "file": "apps/staff/app/supplier-portal/page.tsx",
     "title": "بوابة الموردين",
     "group": "بوابة الموردين",
-    "done": false,
-    "rebuilt": false,
-    "note": ""
+    "done": true,
+    "rebuilt": true,
+    "note": "سطح دخول مستقل للموردين"
    },
    {
     "app": "staff",
@@ -1957,9 +1957,9 @@
     "file": "apps/staff/app/page.tsx",
     "title": "لوحة التحكم",
     "group": "عام",
-    "done": false,
-    "rebuilt": false,
-    "note": ""
+    "done": true,
+    "rebuilt": true,
+    "note": "لوحة تنفيذية برأس hero خاص"
    },
    {
     "app": "staff",
@@ -1969,7 +1969,7 @@
     "group": "لوحات المؤشرات",
     "done": true,
     "rebuilt": true,
-    "note": "تحقق في المتصفح 1440 · رأس صفحة موحّد"
+    "note": "تحقق بمتصفح — رأس صفحة موحد"
    },
    {
     "app": "staff",
@@ -1977,9 +1977,9 @@
     "file": "apps/staff/app/dashboards/[id]/page.tsx",
     "title": "لوحة مؤشرات",
     "group": "لوحات المؤشرات",
-    "done": false,
-    "rebuilt": false,
-    "note": "مسار ديناميكي — يُتحقق بسجل حقيقي"
+    "done": true,
+    "rebuilt": true,
+    "note": "تحقق بسجل حقيقي في المتصفح 1440"
    },
    {
     "app": "staff",
@@ -1987,9 +1987,9 @@
     "file": "apps/staff/app/design/page.tsx",
     "title": "نظام التصميم (تطوير)",
     "group": "نظام التصميم",
-    "done": false,
-    "rebuilt": false,
-    "note": ""
+    "done": true,
+    "rebuilt": true,
+    "note": "صفحة مراجعة التصميم — لا تُبنى في الإنتاج"
    },
    {
     "app": "staff",
@@ -2219,9 +2219,9 @@
     "file": "apps/platform-admin/app/invoices/[id]/print/page.tsx",
     "title": "طباعة فاتورة المنصة",
     "group": "لوحة المنصة",
-    "done": false,
-    "rebuilt": false,
-    "note": "مسار ديناميكي — يُتحقق بسجل حقيقي"
+    "done": true,
+    "rebuilt": true,
+    "note": "تحقق بفاتورة منصة حقيقية (مسودة) — ورقة طباعة داخل إطار"
    },
    {
     "app": "platform-admin",
@@ -2319,9 +2319,9 @@
     "file": "apps/platform-admin/app/tenants/[id]/page.tsx",
     "title": "ملف المستأجر",
     "group": "لوحة المنصة",
-    "done": false,
-    "rebuilt": false,
-    "note": "مسار ديناميكي — يُتحقق بسجل حقيقي"
+    "done": true,
+    "rebuilt": true,
+    "note": "تحقق بسجل حقيقي في المتصفح 1440"
    },
    {
     "app": "platform-admin",
@@ -2349,9 +2349,9 @@
     "file": "apps/platform-admin/app/tickets/[id]/page.tsx",
     "title": "تذكرة دعم",
     "group": "لوحة المنصة",
-    "done": false,
-    "rebuilt": false,
-    "note": "مسار ديناميكي — يُتحقق بسجل حقيقي"
+    "done": true,
+    "rebuilt": true,
+    "note": "تحقق بتذكرة حقيقية"
    },
    {
     "app": "platform-admin",
@@ -2379,9 +2379,9 @@
     "file": "apps/platform-admin/app/users/[id]/page.tsx",
     "title": "ملف مستخدم",
     "group": "لوحة المنصة",
-    "done": false,
-    "rebuilt": false,
-    "note": "مسار ديناميكي — يُتحقق بسجل حقيقي"
+    "done": true,
+    "rebuilt": true,
+    "note": "تحقق بسجل حقيقي في المتصفح 1440"
    },
    {
     "app": "platform-admin",
@@ -2461,9 +2461,9 @@
     "file": "apps/customer-portal/app/portal/invoices/[id]/page.tsx",
     "title": "تفاصيل الفاتورة",
     "group": "بوابة العميل",
-    "done": false,
-    "rebuilt": false,
-    "note": "مسار ديناميكي — يُتحقق بسجل حقيقي"
+    "done": true,
+    "rebuilt": true,
+    "note": "تحقق بحساب بوابة حقيقي — فاتورة 030003"
    },
    {
     "app": "customer-portal",
@@ -2471,9 +2471,9 @@
     "file": "apps/customer-portal/app/portal/invoices/[id]/pay/page.tsx",
     "title": "سداد الفاتورة",
     "group": "بوابة العميل",
-    "done": false,
-    "rebuilt": false,
-    "note": "مسار ديناميكي — يُتحقق بسجل حقيقي"
+    "done": true,
+    "rebuilt": true,
+    "note": "تحقق بحساب بوابة حقيقي — صفحة الدفع"
    },
    {
     "app": "customer-portal",
@@ -2513,9 +2513,9 @@
     "file": "apps/marketing/app/en/page.tsx",
     "title": "الرئيسية (EN)",
     "group": "الإنجليزية",
-    "done": false,
-    "rebuilt": false,
-    "note": ""
+    "done": true,
+    "rebuilt": true,
+    "note": "الإنجليزية — تحقق في المتصفح 1440"
    },
    {
     "app": "marketing",
@@ -2523,9 +2523,9 @@
     "file": "apps/marketing/app/en/blog/page.tsx",
     "title": "المدوّنة (EN)",
     "group": "الإنجليزية",
-    "done": false,
-    "rebuilt": false,
-    "note": ""
+    "done": true,
+    "rebuilt": true,
+    "note": "الإنجليزية — تحقق في المتصفح 1440"
    },
    {
     "app": "marketing",
@@ -2533,9 +2533,9 @@
     "file": "apps/marketing/app/en/blog/[slug]/page.tsx",
     "title": "مقال (EN)",
     "group": "الإنجليزية",
-    "done": false,
-    "rebuilt": false,
-    "note": "مسار ديناميكي — يُتحقق بسجل حقيقي"
+    "done": true,
+    "rebuilt": true,
+    "note": "تحقق بسجل حقيقي في المتصفح 1440"
    },
    {
     "app": "marketing",
@@ -2543,9 +2543,9 @@
     "file": "apps/marketing/app/en/cases/page.tsx",
     "title": "دراسات الحالة (EN)",
     "group": "الإنجليزية",
-    "done": false,
-    "rebuilt": false,
-    "note": ""
+    "done": true,
+    "rebuilt": true,
+    "note": "الإنجليزية — تحقق في المتصفح 1440"
    },
    {
     "app": "marketing",
@@ -2553,9 +2553,9 @@
     "file": "apps/marketing/app/en/cases/[slug]/page.tsx",
     "title": "دراسة حالة (EN)",
     "group": "الإنجليزية",
-    "done": false,
-    "rebuilt": false,
-    "note": "مسار ديناميكي — يُتحقق بسجل حقيقي"
+    "done": true,
+    "rebuilt": true,
+    "note": "تحقق بسجل حقيقي في المتصفح 1440"
    },
    {
     "app": "marketing",
@@ -2563,9 +2563,9 @@
     "file": "apps/marketing/app/en/features/page.tsx",
     "title": "الوحدات (EN)",
     "group": "الإنجليزية",
-    "done": false,
-    "rebuilt": false,
-    "note": ""
+    "done": true,
+    "rebuilt": true,
+    "note": "الإنجليزية — تحقق في المتصفح 1440"
    },
    {
     "app": "marketing",
@@ -2573,9 +2573,9 @@
     "file": "apps/marketing/app/en/features/einvoicing/page.tsx",
     "title": "الفاتورة الإلكترونية (EN)",
     "group": "الإنجليزية",
-    "done": false,
-    "rebuilt": false,
-    "note": ""
+    "done": true,
+    "rebuilt": true,
+    "note": "الإنجليزية — تحقق في المتصفح 1440"
    },
    {
     "app": "marketing",
@@ -2583,9 +2583,9 @@
     "file": "apps/marketing/app/en/help/page.tsx",
     "title": "المساعدة (EN)",
     "group": "الإنجليزية",
-    "done": false,
-    "rebuilt": false,
-    "note": ""
+    "done": true,
+    "rebuilt": true,
+    "note": "الإنجليزية — تحقق في المتصفح 1440"
    },
    {
     "app": "marketing",
@@ -2593,9 +2593,9 @@
     "file": "apps/marketing/app/en/help/[slug]/page.tsx",
     "title": "مقال مساعدة (EN)",
     "group": "الإنجليزية",
-    "done": false,
-    "rebuilt": false,
-    "note": "مسار ديناميكي — يُتحقق بسجل حقيقي"
+    "done": true,
+    "rebuilt": true,
+    "note": "تحقق بسجل حقيقي في المتصفح 1440"
    },
    {
     "app": "marketing",
@@ -2603,9 +2603,9 @@
     "file": "apps/marketing/app/en/legal/[slug]/page.tsx",
     "title": "صفحة قانونية (EN)",
     "group": "الإنجليزية",
-    "done": false,
-    "rebuilt": false,
-    "note": "مسار ديناميكي — يُتحقق بسجل حقيقي"
+    "done": true,
+    "rebuilt": true,
+    "note": "تحقق بسجل حقيقي في المتصفح 1440"
    },
    {
     "app": "marketing",
@@ -2633,9 +2633,9 @@
     "file": "apps/marketing/app/blog/[slug]/page.tsx",
     "title": "مقال",
     "group": "الموقع التسويقي",
-    "done": false,
-    "rebuilt": false,
-    "note": "مسار ديناميكي — يُتحقق بسجل حقيقي"
+    "done": true,
+    "rebuilt": true,
+    "note": "تحقق بسجل حقيقي في المتصفح 1440"
    },
    {
     "app": "marketing",
@@ -2653,9 +2653,9 @@
     "file": "apps/marketing/app/cases/[slug]/page.tsx",
     "title": "دراسة حالة",
     "group": "الموقع التسويقي",
-    "done": false,
-    "rebuilt": false,
-    "note": "مسار ديناميكي — يُتحقق بسجل حقيقي"
+    "done": true,
+    "rebuilt": true,
+    "note": "تحقق بسجل حقيقي في المتصفح 1440"
    },
    {
     "app": "marketing",
@@ -2673,9 +2673,9 @@
     "file": "apps/marketing/app/changelog/[slug]/page.tsx",
     "title": "تحديث",
     "group": "الموقع التسويقي",
-    "done": false,
-    "rebuilt": false,
-    "note": "مسار ديناميكي — يُتحقق بسجل حقيقي"
+    "done": true,
+    "rebuilt": true,
+    "note": "تحقق بسجل حقيقي في المتصفح 1440"
    },
    {
     "app": "marketing",
@@ -2693,9 +2693,9 @@
     "file": "apps/marketing/app/demo/page.tsx",
     "title": "اطلب عرضاً",
     "group": "الموقع التسويقي",
-    "done": false,
-    "rebuilt": false,
-    "note": ""
+    "done": true,
+    "rebuilt": true,
+    "note": "تحقق بمتصفح — عنوان واحد للصفحة"
    },
    {
     "app": "marketing",
@@ -2715,7 +2715,7 @@
     "group": "الموقع التسويقي",
     "done": true,
     "rebuilt": true,
-    "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+    "note": "تحقق بمتصفح — أيقونات SVG بلا مسارات كود"
    },
    {
     "app": "marketing",
@@ -2743,9 +2743,9 @@
     "file": "apps/marketing/app/help/[slug]/page.tsx",
     "title": "مقال مساعدة",
     "group": "الموقع التسويقي",
-    "done": false,
-    "rebuilt": false,
-    "note": "مسار ديناميكي — يُتحقق بسجل حقيقي"
+    "done": true,
+    "rebuilt": true,
+    "note": "تحقق بسجل حقيقي في المتصفح 1440"
    },
    {
     "app": "marketing",
@@ -2755,7 +2755,7 @@
     "group": "الموقع التسويقي",
     "done": true,
     "rebuilt": true,
-    "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+    "note": "تحقق بمتصفح — بطاقات قطاعات بلا مسارات كود"
    },
    {
     "app": "marketing",
@@ -2763,9 +2763,9 @@
     "file": "apps/marketing/app/industries/[slug]/page.tsx",
     "title": "قطاع",
     "group": "الموقع التسويقي",
-    "done": false,
-    "rebuilt": false,
-    "note": "مسار ديناميكي — يُتحقق بسجل حقيقي"
+    "done": true,
+    "rebuilt": true,
+    "note": "تحقق بسجل حقيقي في المتصفح 1440"
    },
    {
     "app": "marketing",
@@ -2773,9 +2773,9 @@
     "file": "apps/marketing/app/legal/[slug]/page.tsx",
     "title": "صفحة قانونية",
     "group": "الموقع التسويقي",
-    "done": false,
-    "rebuilt": false,
-    "note": "مسار ديناميكي — يُتحقق بسجل حقيقي"
+    "done": true,
+    "rebuilt": true,
+    "note": "تحقق بسجل حقيقي في المتصفح 1440"
    },
    {
     "app": "marketing",
@@ -2803,9 +2803,9 @@
     "file": "apps/marketing/app/not-found-view/[locale]/page.tsx",
     "title": "صفحة 404",
     "group": "الموقع التسويقي",
-    "done": false,
-    "rebuilt": false,
-    "note": "مسار ديناميكي — يُتحقق بسجل حقيقي"
+    "done": true,
+    "rebuilt": true,
+    "note": "تحقق في المتصفح 1440 (ar/en)"
    },
    {
     "app": "marketing",
@@ -2825,7 +2825,7 @@
     "group": "الموقع التسويقي",
     "done": true,
     "rebuilt": true,
-    "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+    "note": "تحقق بمتصفح — بلا عنوان endpoint ظاهر"
    },
    {
     "app": "marketing",
@@ -2845,7 +2845,7 @@
     "group": "الموقع التسويقي",
     "done": true,
     "rebuilt": true,
-    "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+    "note": "تحقق بمتصفح — بلا ملفات مصدر ظاهرة"
    },
    {
     "app": "marketing",

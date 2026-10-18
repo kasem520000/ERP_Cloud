@@ -12,6 +12,7 @@ import { Labeled } from '../../../components/ui/input';
 import { Table } from '../../../components/ui/table';
 import { Toggle } from '../../../components/ui/toggle';
 import { ApiError, apiData, apiPut } from '../../../lib/api';
+import { listUnits, type Unit } from '../../../lib/lookups';
 import { useQuery } from '../../../lib/use-query';
 
 type Settings = Record<string, unknown>;
@@ -41,6 +42,7 @@ const CASHER_FIELDS: Array<{ key: string; label: string; kind: 'boolean' | 'numb
 
 export default function GeneralSettingsPage() {
   const settings = useQuery<Settings>(() => apiData<Settings>('/settings'), []);
+  const units = useQuery<Unit[]>(() => listUnits(), []);
   const [draft, setDraft] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<{ kind: 'ok' | 'danger'; text: string } | undefined>();
@@ -105,32 +107,42 @@ export default function GeneralSettingsPage() {
  <div className="grid gap-x-6 gap-y-4 px-4 py-4 sm:grid-cols-2 lg:grid-cols-3">
             {CASHER_FIELDS.map((field) =>
               field.kind === 'boolean' ? (
- <div key={field.key} className="grid gap-1 rounded-lg border border-line bg-surface-2 p-3">
- <Toggle
+                <div key={field.key} className="grid gap-1 rounded-lg border border-line bg-surface-2 p-3">
+                  <Toggle
                     label={field.label}
                     hint={field.hint}
                     checked={draft[field.key] !== 'false'}
                     onChange={(checked) => setDraft((current) => ({ ...current, [field.key]: String(checked) }))}
                   />
- <span className="text-[10.5px] font-semibold text-muted" dir="ltr">
-                    {field.key}
- </span>
- </div>
+                </div>
+              ) : field.key === 'pos.defaultUnitId' ? (
+                <div key={field.key} className="grid gap-1.5">
+                  <Labeled label={field.label}>
+                    <select
+                      className="input"
+                      value={draft[field.key] ?? ''}
+                      onChange={(event) => setDraft((current) => ({ ...current, [field.key]: event.target.value }))}
+                    >
+                      <option value="">بلا وحدة افتراضية</option>
+                      {(units.data ?? []).map((unit) => (
+                        <option key={unit.id} value={unit.id}>{unit.nameAr ?? unit.name_ar ?? unit.code}</option>
+                      ))}
+                    </select>
+                  </Labeled>
+                </div>
               ) : (
- <div key={field.key} className="grid gap-1.5">
- <Labeled label={field.label}>
- <input
+                <div key={field.key} className="grid gap-1.5">
+                  <Labeled label={field.label}>
+                    <input
                       dir={field.kind === 'number' ? 'ltr' : undefined}
                       inputMode={field.kind === 'number' ? 'decimal' : undefined}
                       value={draft[field.key] ?? ''}
+                      placeholder={field.kind === 'number' ? '0.00' : undefined}
                       onChange={(event) => setDraft((current) => ({ ...current, [field.key]: event.target.value }))}
-                      className="w-full h-10 px-3 rounded-[10px] border border-line-strong bg-surface text-[13.5px] text-ink focus:outline-none focus:border-brand-600 focus:shadow-[var(--ring-brand)] transition-all duration-150"
+                      className="input"
                     />
- </Labeled>
- <span className="text-[10.5px] font-semibold text-muted" dir="ltr">
-                    {field.key}
- </span>
- </div>
+                  </Labeled>
+                </div>
               ),
             )}
  </div>
@@ -152,11 +164,11 @@ export default function GeneralSettingsPage() {
       )}
 
       {settings.status === 'success' && (
- <section className="rounded-xl border border-line bg-surface shadow-1 overflow-hidden">
- <header className="px-4 pt-4 pb-1">
- <h3 className="m-0 text-[15px] font-bold text-ink">سجل المفاتيح ({entries.length})</h3>
- <p className="m-0 mt-0.5 text-[12.5px] text-muted">كل مفاتيح الإعدادات المخزنة لهذه المنشأة.</p>
- </header>
+        <details className="rounded-xl border border-line bg-surface shadow-1 overflow-hidden">
+          <summary className="cursor-pointer list-none px-4 py-3">
+            <span className="text-[14px] font-bold text-ink">كل المفاتيح المخزنة ({entries.length})</span>
+            <span className="block text-[12.5px] text-muted">مراجعة متقدمة للمفاتيح التي يقرؤها النظام — لا تُعدَّل من هنا.</span>
+          </summary>
  <div className="px-1 pb-2">
  <Table
               rows={entries}
@@ -184,7 +196,7 @@ export default function GeneralSettingsPage() {
               ]}
             />
  </div>
- </section>
+        </details>
       )}
  </Screen>
   );

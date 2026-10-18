@@ -452,6 +452,8 @@ export default function FilesPage() {
  <div className="toolbar">
  <input
             ref={input}
+            className="input"
+            style={{ blockSize: 'auto', paddingBlock: 6, maxWidth: 320 }}
             type="file"
             disabled={uploading}
             onChange={(event) => {

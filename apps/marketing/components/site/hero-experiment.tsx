@@ -21,6 +21,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { CheckCircle2 } from 'lucide-react';
 import type { PublicContentVariant } from '@erp/contracts';
 
 import { ensureVisitorId, experimentHeadline, experimentVariant } from '../../lib/analytics';
@@ -119,17 +120,17 @@ export function HeroExperiment({
  </div>
  <div className="dash-grid">
  <div className="dash-kpi">
- <b>٬٬</b>
+ <i className="kpi-line" />
  <span>مبيعات اليوم</span>
  <span className="up">▲</span>
  </div>
  <div className="dash-kpi">
- <b>٬٬</b>
+ <i className="kpi-line" />
  <span>فواتير صادرة</span>
  <span className="up">▲</span>
  </div>
  <div className="dash-kpi">
- <b>٬٬</b>
+ <i className="kpi-line" />
  <span>متبقّي بالمخزون</span>
  </div>
  <div className="dash-chart">
@@ -146,7 +147,7 @@ export function HeroExperiment({
  </div>
  <div className="dash-card-float">
  <span className="ic" aria-hidden="true">
-
+   <CheckCircle2 size={18} strokeWidth={2} />
  </span>
  <span>
  <b>فاتورة ضريبية — صادرة</b>

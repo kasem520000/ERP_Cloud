@@ -147,7 +147,7 @@ function VouchersScreen() {
   const [kind, setKind] = useState<'receipt' | 'payment'>(initialKind);
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
-  const [q, setQ] = useState(highlightedId ? '' : '');
+  const [q, setQ] = useState('');
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState(BLANK);
   const [busy, setBusy] = useState(false);

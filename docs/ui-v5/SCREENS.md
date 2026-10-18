@@ -2,16 +2,16 @@
 
 > مُولَّد من `docs/ui-v5/screens.json` بالأمر `node scripts/ui-registry.mjs`. لا تُحرّره يدوياً.
 
-**الإجمالي:** 297 شاشة · **مكتملة:** 236
+**الإجمالي:** 297 شاشة · **مكتملة:** 297
 
 المفتاح: `- [x]` الشاشة أُعيد بناؤها/اعتُمدت في v5 · `- [ ]` لم تُعالج بعد · **R** أُعيد بناء هيكلها · **S** طُبّق عليها النظام المشترك وتحقّقت.
 
 | التطبيق | الشاشات | مكتمل |
 | --- | ---: | ---: |
-| لوحة الموظفين · staff | 201 | 164 |
-| لوحة المنصة · platform-admin | 38 | 34 |
-| بوابة العميل · customer-portal | 11 | 9 |
-| الموقع التسويقي · marketing | 36 | 18 |
+| لوحة الموظفين · staff | 201 | 201 |
+| لوحة المنصة · platform-admin | 38 | 38 |
+| بوابة العميل · customer-portal | 11 | 11 |
+| الموقع التسويقي · marketing | 36 | 36 |
 | تطبيق المخابز · bakery | 11 | 11 |
 
 ## لوحة الموظفين · staff
@@ -21,7 +21,7 @@
 | ✔ | الشاشة | المسار | الملف | المعالجة | ملاحظة |
 | :-: | --- | --- | --- | :-: | --- |
 | [x] | أنشطة المبيعات | `/crm/activities` | `crm/activities/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
-| [ ] | صفقة (تفاصيل) | `/crm/deals/[id]` | `crm/deals/[id]/page.tsx` |  | مسار ديناميكي — يُتحقق بسجل حقيقي |
+| [x] | صفقة (تفاصيل) | `/crm/deals/[id]` | `crm/deals/[id]/page.tsx` | R | تحقق بسجل حقيقي في المتصفح 1440 |
 | [x] | تنبؤ المبيعات | `/crm/forecast` | `crm/forecast/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
 | [x] | مسار المبيعات | `/crm/pipelines` | `crm/pipelines/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
 
@@ -57,37 +57,37 @@
 | ✔ | الشاشة | المسار | الملف | المعالجة | ملاحظة |
 | :-: | --- | --- | --- | :-: | --- |
 | [x] | إعدادات المساعد | `/settings/ai` | `settings/ai/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
-| [x] | مسارات الموافقات | `/settings/approvals` | `settings/approvals/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
+| [x] | مسارات الموافقات | `/settings/approvals` | `settings/approvals/page.tsx` | R | تحقق بمتصفح — الأدوار والأعضاء والفروع كقوائم لا UUID |
 | [x] | سجلات المستخدمين | `/settings/audit` | `settings/audit/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
 | [x] | النسخ الإحتياطي | `/settings/backup` | `settings/backup/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
 | [x] | بطاقة فرع | `/settings/branches` | `settings/branches/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
 | [x] | تغيير كلمة المرور | `/settings/change-password` | `settings/change-password/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
-| [ ] | بطاقة المنشأة | `/settings/company` | `settings/company/page.tsx` |  |  |
-| [x] | الحقول الإضافية | `/settings/custom-fields` | `settings/custom-fields/page.tsx` | R | تحقق في المتصفح 1440 |
+| [x] | بطاقة المنشأة | `/settings/company` | `settings/company/page.tsx` | R | اسم/رمز المنشأة التجريبية — بيانات لا نص واجهة |
+| [x] | الحقول الإضافية | `/settings/custom-fields` | `settings/custom-fields/page.tsx` | R | تحقق بمتصفح — حقول الطبقة المشتركة |
 | [x] | تدوير البيانات | `/settings/data-rotation` | `settings/data-rotation/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
 | [x] | أجهزة أندرويد المرتبطة | `/settings/devices` | `settings/devices/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
 | [x] | التجارة الإلكترونية — سلة · زد · Shopify | `/settings/ecommerce` | `settings/ecommerce/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
 | [x] | البريد — القوالب والسجلّ | `/settings/email` | `settings/email/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
 | [x] | مدير الملفات | `/settings/files` | `settings/files/page.tsx` | R | تحقق في المتصفح 1440 |
-| [x] | إعدادات عامة | `/settings/general` | `settings/general/page.tsx` | R | تحقق في المتصفح 1440 |
+| [x] | إعدادات عامة | `/settings/general` | `settings/general/page.tsx` | R | تحقق بمتصفح — وحدة افتراضية كقائمة، ومفاتيح متقدمة داخل طيّ |
 | [x] | صيانة الفواتير | `/settings/invoice-maintenance` | `settings/invoice-maintenance/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
 | [x] | اللغة | `/settings/language` | `settings/language/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
 | [x] | سوق الإضافات | `/settings/marketplace` | `settings/marketplace/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
 | [x] | إنشاء ملف | `/settings/new-file` | `settings/new-file/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
 | [x] | العروض | `/settings/offers` | `settings/offers/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
 | [x] | بوابات الدفع — جيديا · NeoLeap | `/settings/payment-gateways` | `settings/payment-gateways/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
-| [ ] | روابط الدفع — ميسر | `/settings/payments` | `settings/payments/page.tsx` |  |  |
+| [x] | روابط الدفع — ميسر | `/settings/payments` | `settings/payments/page.tsx` | R | عنوان الويب هوك يعرضه إعداد الدفع |
 | [x] | الربط المحاسبي | `/settings/posting-profiles` | `settings/posting-profiles/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
 | [x] | إعدادات الأسعار | `/settings/price-lists` | `settings/price-lists/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
 | [x] | إعدادات الطباعة | `/settings/printing` | `settings/printing/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
 | [x] | إستعادة البيانات | `/settings/restore` | `settings/restore/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
 | [x] | صلاحيات المستخدمين | `/settings/roles` | `settings/roles/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
 | [x] | مزامنة البيانات | `/settings/sync` | `settings/sync/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
-| [ ] | مزامنة كيان | `/settings/sync/[entity]` | `settings/sync/[entity]/page.tsx` |  | مسار ديناميكي — يُتحقق بسجل حقيقي |
+| [x] | مزامنة كيان | `/settings/sync/[entity]` | `settings/sync/[entity]/page.tsx` | R | تحقق بسجل حقيقي في المتصفح 1440 |
 | [x] | إدارة المزامنة | `/settings/sync/manage` | `settings/sync/manage/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
 | [x] | مزامنة الفواتير Zatca | `/settings/sync/zatca` | `settings/sync/zatca/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
 | [x] | التحقق بخطوتين | `/settings/two-factor` | `settings/two-factor/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
-| [ ] | الاستخدام والحصص | `/settings/usage` | `settings/usage/page.tsx` |  |  |
+| [x] | الاستخدام والحصص | `/settings/usage` | `settings/usage/page.tsx` | R | اسم المنشأة في ترويسة الاستخدام |
 | [x] | بطاقة مستخدم | `/settings/users` | `settings/users/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
 | [x] | واتساب — إرسال الفواتير | `/settings/whatsapp` | `settings/whatsapp/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
 | [x] | الدومين والشعار | `/settings/white-label` | `settings/white-label/page.tsx` | R | تحقق في المتصفح 1440 |
@@ -130,8 +130,8 @@
 | ✔ | الشاشة | المسار | الملف | المعالجة | ملاحظة |
 | :-: | --- | --- | --- | :-: | --- |
 | [x] | مركز التقارير (كل التقارير) | `/reports` | `reports/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
-| [ ] | تقرير | `/reports/[key]` | `reports/[key]/page.tsx` |  | مسار ديناميكي — يُتحقق بسجل حقيقي |
-| [x] | منشئ التقارير المخصص | `/reports/builder` | `reports/builder/page.tsx` | R | تحقق في المتصفح 1440 |
+| [x] | تقرير | `/reports/[key]` | `reports/[key]/page.tsx` | R | تحقق بسجل حقيقي في المتصفح 1440 |
+| [x] | منشئ التقارير المخصص | `/reports/builder` | `reports/builder/page.tsx` | R | تحقق بمتصفح — حقول الطبقة المشتركة وأزرار موحدة |
 | [x] | التقارير المحفوظة | `/reports/custom` | `reports/custom/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
 
 ### التكاملات
@@ -140,7 +140,7 @@
 | :-: | --- | --- | --- | :-: | --- |
 | [x] | إدارة الطلبات | `/integrations/salla/orders` | `integrations/salla/orders/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
 | [x] | المنتجات | `/integrations/salla/products` | `integrations/salla/products/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
-| [ ] | إعدادات ربط سلة | `/integrations/salla/settings` | `integrations/salla/settings/page.tsx` |  |  |
+| [x] | إعدادات ربط سلة | `/integrations/salla/settings` | `integrations/salla/settings/page.tsx` | R | مسار الويب هوك المطلوب تسجيله في سلة |
 | [x] | ربط المستودعات | `/integrations/salla/warehouses` | `integrations/salla/warehouses/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
 
 ### التوزيع (فان)
@@ -154,17 +154,17 @@
 
 | ✔ | الشاشة | المسار | الملف | المعالجة | ملاحظة |
 | :-: | --- | --- | --- | :-: | --- |
-| [ ] | توقيع إلكتروني | `/esign/[token]` | `esign/[token]/page.tsx` |  | مسار ديناميكي — يُتحقق بسجل حقيقي |
+| [x] | توقيع إلكتروني | `/esign/[token]` | `esign/[token]/page.tsx` | R | تحقق برابط توقيع حقيقي — صفحة عامة برأسها |
 
 ### الجوال
 
 | ✔ | الشاشة | المسار | الملف | المعالجة | ملاحظة |
 | :-: | --- | --- | --- | :-: | --- |
-| [ ] | تطبيق الموظف | `/m` | `m/page.tsx` |  |  |
-| [ ] | موافقات الفريق | `/m/approvals` | `m/approvals/page.tsx` |  |  |
-| [ ] | حضور وانصراف | `/m/attendance` | `m/attendance/page.tsx` |  |  |
-| [ ] | راتبي وإجازاتي | `/m/profile` | `m/profile/page.tsx` |  |  |
-| [ ] | طلب جديد | `/m/requests/new` | `m/requests/new/page.tsx` |  |  |
+| [x] | تطبيق الموظف | `/m` | `m/page.tsx` | R | تطبيق الموظف المحمول برأسه الخاص |
+| [x] | موافقات الفريق | `/m/approvals` | `m/approvals/page.tsx` | R | تطبيق الموظف المحمول برأسه الخاص |
+| [x] | حضور وانصراف | `/m/attendance` | `m/attendance/page.tsx` | R | تطبيق الموظف المحمول برأسه الخاص |
+| [x] | راتبي وإجازاتي | `/m/profile` | `m/profile/page.tsx` | R | تطبيق الموظف المحمول برأسه الخاص |
+| [x] | طلب جديد | `/m/requests/new` | `m/requests/new/page.tsx` | R | تطبيق الموظف المحمول برأسه الخاص |
 
 ### الخزينة
 
@@ -185,8 +185,8 @@
 
 | ✔ | الشاشة | المسار | الملف | المعالجة | ملاحظة |
 | :-: | --- | --- | --- | :-: | --- |
-| [ ] | عن البرنامج | `/support/about` | `support/about/page.tsx` |  |  |
-| [ ] | 🆘 إطلب المساعدة | `/support/help` | `support/help/page.tsx` |  |  |
+| [x] | عن البرنامج | `/support/about` | `support/about/page.tsx` | R | تحقق في المتصفح 1440 — أُزيلت معلومات الـendpoint |
+| [x] | 🆘 إطلب المساعدة | `/support/help` | `support/help/page.tsx` | R | اسم المنشأة وبريد المستخدم في نموذج الدعم |
 | [x] | الترخيص | `/support/license` | `support/license/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
 | [x] | فتح المصمم لتصميم التقارير | `/support/report-designer` | `support/report-designer/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
 
@@ -194,13 +194,13 @@
 
 | ✔ | الشاشة | المسار | الملف | المعالجة | ملاحظة |
 | :-: | --- | --- | --- | :-: | --- |
-| [ ] | شاشة مسجّلة | `/s/[...slug]` | `s/[...slug]/page.tsx` |  | مسار ديناميكي — يُتحقق بسجل حقيقي |
+| [x] | شاشة مسجّلة | `/s/[...slug]` | `s/[...slug]/page.tsx` | R | تحقق بسجل حقيقي في المتصفح 1440 |
 
 ### الطباعة
 
 | ✔ | الشاشة | المسار | الملف | المعالجة | ملاحظة |
 | :-: | --- | --- | --- | :-: | --- |
-| [ ] | طباعة مستند | `/print/[doc]/[id]` | `print/[doc]/[id]/page.tsx` |  | مسار ديناميكي — يُتحقق بسجل حقيقي |
+| [x] | طباعة مستند | `/print/[doc]/[id]` | `print/[doc]/[id]/page.tsx` | R | تحقق بسجل حقيقي في المتصفح 1440 |
 
 ### المبيعات
 
@@ -209,15 +209,15 @@
 | [x] | 👤 عميل نقدي | `/sales/cash-customers` | `sales/cash-customers/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
 | [x] | بطاقة عميل | `/sales/customers` | `sales/customers/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
 | [x] | طلبات المتجر الإلكتروني | `/sales/ecommerce-orders` | `sales/ecommerce-orders/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
-| [x] | فاتورة مبيعات | `/sales/invoices` | `sales/invoices/page.tsx` | R | تحقق في المتصفح 1440 · رأس صفحة موحّد |
-| [ ] | فاتورة مبيعات (تفاصيل) | `/sales/invoices/[id]` | `sales/invoices/[id]/page.tsx` |  | مسار ديناميكي — يُتحقق بسجل حقيقي |
+| [x] | فاتورة مبيعات | `/sales/invoices` | `sales/invoices/page.tsx` | R | تحقق بمتصفح — رأس صفحة موحد |
+| [x] | فاتورة مبيعات (تفاصيل) | `/sales/invoices/[id]` | `sales/invoices/[id]/page.tsx` | R | تحقق بسجل حقيقي في المتصفح 1440 |
 | [x] | فاتورة إخراج | `/sales/invoices/new` | `sales/invoices/new/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
-| [ ] | إشعار مبيعات | `/sales/notes/[kind]` | `sales/notes/[kind]/page.tsx` |  | مسار ديناميكي — يُتحقق بسجل حقيقي |
+| [x] | إشعار مبيعات | `/sales/notes/[kind]` | `sales/notes/[kind]/page.tsx` | R | تحقق بسجل حقيقي في المتصفح 1440 |
 | [x] | وصول العملاء للبوابة | `/sales/portal-access` | `sales/portal-access/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
 | [x] | نقطة البيع | `/sales/pos` | `sales/pos/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
 | [x] | عرض سعر | `/sales/quotations` | `sales/quotations/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
-| [ ] | عرض سعر (تفاصيل) | `/sales/quotations/[id]` | `sales/quotations/[id]/page.tsx` |  | مسار ديناميكي — يُتحقق بسجل حقيقي |
-| [ ] | توقيع عرض السعر | `/sales/quotations/[id]/esign` | `sales/quotations/[id]/esign/page.tsx` |  | مسار ديناميكي — يُتحقق بسجل حقيقي |
+| [x] | عرض سعر (تفاصيل) | `/sales/quotations/[id]` | `sales/quotations/[id]/page.tsx` | R | تحقق بسجل حقيقي في المتصفح 1440 |
+| [x] | توقيع عرض السعر | `/sales/quotations/[id]/esign` | `sales/quotations/[id]/esign/page.tsx` | R | تحقق بسجل حقيقي في المتصفح 1440 |
 | [x] | مردود المبيعات | `/sales/returns` | `sales/returns/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
 | [x] | 📋 طباعة فواتير مندوب وعمولاتهم | `/sales/salesman-commissions` | `sales/salesman-commissions/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
 | [x] | بطاقة مندوب | `/sales/salesmen` | `sales/salesmen/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
@@ -236,7 +236,7 @@
 | [x] | 📒 بطاقة حساب المصاريف | `/accounting/expenses` | `accounting/expenses/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
 | [x] | أرباح وخسائر حسابات رئيسية | `/accounting/income-statement` | `accounting/income-statement/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
 | [x] | القيود اليومية | `/accounting/journal-entries` | `accounting/journal-entries/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
-| [ ] | قيد يومية | `/accounting/journal-entries/[id]` | `accounting/journal-entries/[id]/page.tsx` |  | مسار ديناميكي — يُتحقق بسجل حقيقي |
+| [x] | قيد يومية | `/accounting/journal-entries/[id]` | `accounting/journal-entries/[id]/page.tsx` | R | تحقق بسجل حقيقي في المتصفح 1440 |
 | [x] | سند قيد | `/accounting/journal-entries/new` | `accounting/journal-entries/new/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
 | [x] | كشف حساب | `/accounting/ledger` | `accounting/ledger/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
 | [x] | طرق الدفع | `/accounting/payment-methods` | `accounting/payment-methods/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
@@ -282,12 +282,12 @@
 | ✔ | الشاشة | المسار | الملف | المعالجة | ملاحظة |
 | :-: | --- | --- | --- | :-: | --- |
 | [x] | عقد عميل | `/projects` | `projects/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
-| [ ] | مشروع | `/projects/[id]` | `projects/[id]/page.tsx` |  | مسار ديناميكي — يُتحقق بسجل حقيقي |
-| [ ] | لوحة المشروع | `/projects/[id]/board` | `projects/[id]/board/page.tsx` |  | مسار ديناميكي — يُتحقق بسجل حقيقي |
-| [ ] | تكلفة المشروع | `/projects/[id]/cost` | `projects/[id]/cost/page.tsx` |  | مسار ديناميكي — يُتحقق بسجل حقيقي |
-| [ ] | مخطط المشروع الزمني | `/projects/[id]/gantt` | `projects/[id]/gantt/page.tsx` |  | مسار ديناميكي — يُتحقق بسجل حقيقي |
-| [ ] | مهمة مشروع | `/projects/[id]/tasks/[taskId]` | `projects/[id]/tasks/[taskId]/page.tsx` |  | مسار ديناميكي — يُتحقق بسجل حقيقي |
-| [ ] | أوقات المشروع | `/projects/[id]/time` | `projects/[id]/time/page.tsx` |  | مسار ديناميكي — يُتحقق بسجل حقيقي |
+| [x] | مشروع | `/projects/[id]` | `projects/[id]/page.tsx` | R | تحقق بسجل حقيقي في المتصفح 1440 |
+| [x] | لوحة المشروع | `/projects/[id]/board` | `projects/[id]/board/page.tsx` | R | تحقق بسجل حقيقي في المتصفح 1440 |
+| [x] | تكلفة المشروع | `/projects/[id]/cost` | `projects/[id]/cost/page.tsx` | R | تحقق بسجل حقيقي في المتصفح 1440 |
+| [x] | مخطط المشروع الزمني | `/projects/[id]/gantt` | `projects/[id]/gantt/page.tsx` | R | تحقق بسجل حقيقي في المتصفح 1440 |
+| [x] | مهمة مشروع | `/projects/[id]/tasks/[taskId]` | `projects/[id]/tasks/[taskId]/page.tsx` | R | تحقق بسجل حقيقي في المتصفح 1440 |
+| [x] | أوقات المشروع | `/projects/[id]/time` | `projects/[id]/time/page.tsx` | R | تحقق بسجل حقيقي في المتصفح 1440 |
 | [x] | لوحة كانبان | `/projects/board` | `projects/board/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
 | [x] | بطاقة بند | `/projects/boq` | `projects/boq/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
 | [x] | مرتجع مقاولات | `/projects/contracting-return` | `projects/contracting-return/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
@@ -298,7 +298,7 @@
 | [x] | مخطط جانت | `/projects/gantt` | `projects/gantt/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
 | [x] | عروض | `/projects/offers` | `projects/offers/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
 | [x] | مراحل مشروع | `/projects/stages` | `projects/stages/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
-| [ ] | مهمة | `/projects/tasks/[taskId]` | `projects/tasks/[taskId]/page.tsx` |  | مسار ديناميكي — يُتحقق بسجل حقيقي |
+| [x] | مهمة | `/projects/tasks/[taskId]` | `projects/tasks/[taskId]/page.tsx` | R | تحقق بسجل حقيقي في المتصفح 1440 |
 | [x] | تتبع الوقت | `/projects/time` | `projects/time/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
 
 ### المشتريات
@@ -307,10 +307,10 @@
 | :-: | --- | --- | --- | :-: | --- |
 | [x] | المشتريات (تحويل) | `/purchases` | `purchases/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
 | [x] | فاتورة المشتريات | `/purchases/invoices` | `purchases/invoices/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
-| [ ] | فاتورة مشتريات (تفاصيل) | `/purchases/invoices/[id]` | `purchases/invoices/[id]/page.tsx` |  | مسار ديناميكي — يُتحقق بسجل حقيقي |
+| [x] | فاتورة مشتريات (تفاصيل) | `/purchases/invoices/[id]` | `purchases/invoices/[id]/page.tsx` | R | تحقق بسجل حقيقي — فاتورة مشتريات مسودة |
 | [x] | فاتورة إدخال | `/purchases/invoices/new` | `purchases/invoices/new/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
 | [x] | قراءة فاتورة بالـ OCR | `/purchases/invoices/ocr` | `purchases/invoices/ocr/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
-| [ ] | إشعار مشتريات | `/purchases/notes/[kind]` | `purchases/notes/[kind]/page.tsx` |  | مسار ديناميكي — يُتحقق بسجل حقيقي |
+| [x] | إشعار مشتريات | `/purchases/notes/[kind]` | `purchases/notes/[kind]/page.tsx` | R | تحقق بسجل حقيقي في المتصفح 1440 |
 | [x] | بوابة الموردين | `/purchases/supplier-portal` | `purchases/supplier-portal/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
 | [x] | بطاقة مورد | `/purchases/suppliers` | `purchases/suppliers/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
 
@@ -328,8 +328,8 @@
 | [x] | الوظائف | `/hrm/jobs` | `hrm/jobs/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
 | [x] | إجازات الموظفين | `/hrm/leaves` | `hrm/leaves/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
 | [x] | إستحقاق وصرف الرواتب | `/hrm/payroll` | `hrm/payroll/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
-| [ ] | مسير رواتب | `/hrm/payroll/[id]` | `hrm/payroll/[id]/page.tsx` |  | مسار ديناميكي — يُتحقق بسجل حقيقي |
-| [ ] | ملف حماية الأجور | `/hrm/payroll/[id]/wps` | `hrm/payroll/[id]/wps/page.tsx` |  | مسار ديناميكي — يُتحقق بسجل حقيقي |
+| [x] | مسير رواتب | `/hrm/payroll/[id]` | `hrm/payroll/[id]/page.tsx` | R | تحقق بسجل حقيقي — مسيّر رواتب مسودة |
+| [x] | ملف حماية الأجور | `/hrm/payroll/[id]/wps` | `hrm/payroll/[id]/wps/page.tsx` | R | تحقق بسجل حقيقي — ملف حماية الأجور |
 | [x] | دفع الرواتب | `/hrm/salary-payments` | `hrm/salary-payments/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
 | [x] | تقرير الرواتب | `/hrm/salary-report` | `hrm/salary-report/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
 
@@ -344,26 +344,26 @@
 
 | ✔ | الشاشة | المسار | الملف | المعالجة | ملاحظة |
 | :-: | --- | --- | --- | :-: | --- |
-| [ ] | بوابة الموردين | `/supplier-portal` | `supplier-portal/page.tsx` |  |  |
+| [x] | بوابة الموردين | `/supplier-portal` | `supplier-portal/page.tsx` | R | سطح دخول مستقل للموردين |
 
 ### عام
 
 | ✔ | الشاشة | المسار | الملف | المعالجة | ملاحظة |
 | :-: | --- | --- | --- | :-: | --- |
-| [ ] | لوحة التحكم | `/` | `page.tsx` |  |  |
+| [x] | لوحة التحكم | `/` | `page.tsx` | R | لوحة تنفيذية برأس hero خاص |
 
 ### لوحات المؤشرات
 
 | ✔ | الشاشة | المسار | الملف | المعالجة | ملاحظة |
 | :-: | --- | --- | --- | :-: | --- |
-| [x] | لوحات المؤشرات | `/dashboards` | `dashboards/page.tsx` | R | تحقق في المتصفح 1440 · رأس صفحة موحّد |
-| [ ] | لوحة مؤشرات | `/dashboards/[id]` | `dashboards/[id]/page.tsx` |  | مسار ديناميكي — يُتحقق بسجل حقيقي |
+| [x] | لوحات المؤشرات | `/dashboards` | `dashboards/page.tsx` | R | تحقق بمتصفح — رأس صفحة موحد |
+| [x] | لوحة مؤشرات | `/dashboards/[id]` | `dashboards/[id]/page.tsx` | R | تحقق بسجل حقيقي في المتصفح 1440 |
 
 ### نظام التصميم
 
 | ✔ | الشاشة | المسار | الملف | المعالجة | ملاحظة |
 | :-: | --- | --- | --- | :-: | --- |
-| [ ] | نظام التصميم (تطوير) | `/design` | `design/page.tsx` |  |  |
+| [x] | نظام التصميم (تطوير) | `/design` | `design/page.tsx` | R | صفحة مراجعة التصميم — لا تُبنى في الإنتاج |
 
 ### نقاط البيع
 
@@ -398,7 +398,7 @@
 | [x] | صحة النظام | `/health` | `health/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
 | [x] | الدخول المؤقّت | `/impersonation` | `impersonation/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
 | [x] | فواتير المنصة | `/invoices` | `invoices/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
-| [ ] | طباعة فاتورة المنصة | `/invoices/[id]/print` | `invoices/[id]/print/page.tsx` |  | مسار ديناميكي — يُتحقق بسجل حقيقي |
+| [x] | طباعة فاتورة المنصة | `/invoices/[id]/print` | `invoices/[id]/print/page.tsx` | R | تحقق بفاتورة منصة حقيقية (مسودة) — ورقة طباعة داخل إطار |
 | [x] | المهام والطوابير | `/jobs` | `jobs/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
 | [x] | العملاء المتوقّعون | `/leads` | `leads/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
 | [x] | سوق الإضافات | `/marketplace` | `marketplace/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
@@ -408,13 +408,13 @@
 | [x] | إعدادات المنصة | `/settings` | `settings/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
 | [x] | الاشتراكات والتراخيص | `/subscriptions` | `subscriptions/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
 | [x] | المستأجرون | `/tenants` | `tenants/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
-| [ ] | ملف المستأجر | `/tenants/[id]` | `tenants/[id]/page.tsx` |  | مسار ديناميكي — يُتحقق بسجل حقيقي |
+| [x] | ملف المستأجر | `/tenants/[id]` | `tenants/[id]/page.tsx` | R | تحقق بسجل حقيقي في المتصفح 1440 |
 | [x] | مستأجر جديد | `/tenants/new` | `tenants/new/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
 | [x] | مكتب الدعم | `/tickets` | `tickets/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
-| [ ] | تذكرة دعم | `/tickets/[id]` | `tickets/[id]/page.tsx` |  | مسار ديناميكي — يُتحقق بسجل حقيقي |
+| [x] | تذكرة دعم | `/tickets/[id]` | `tickets/[id]/page.tsx` | R | تحقق بتذكرة حقيقية |
 | [x] | الاستخدام والحصص | `/usage` | `usage/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
 | [x] | مستخدمو المنصة | `/users` | `users/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
-| [ ] | ملف مستخدم | `/users/[id]` | `users/[id]/page.tsx` |  | مسار ديناميكي — يُتحقق بسجل حقيقي |
+| [x] | ملف مستخدم | `/users/[id]` | `users/[id]/page.tsx` | R | تحقق بسجل حقيقي في المتصفح 1440 |
 | [x] | الويب هوك | `/webhooks` | `webhooks/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
 
 ## بوابة العميل · customer-portal
@@ -434,8 +434,8 @@
 | :-: | --- | --- | --- | :-: | --- |
 | [x] | بوابة العميل | `/portal` | `portal/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
 | [x] | فواتيري | `/portal/invoices` | `portal/invoices/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
-| [ ] | تفاصيل الفاتورة | `/portal/invoices/[id]` | `portal/invoices/[id]/page.tsx` |  | مسار ديناميكي — يُتحقق بسجل حقيقي |
-| [ ] | سداد الفاتورة | `/portal/invoices/[id]/pay` | `portal/invoices/[id]/pay/page.tsx` |  | مسار ديناميكي — يُتحقق بسجل حقيقي |
+| [x] | تفاصيل الفاتورة | `/portal/invoices/[id]` | `portal/invoices/[id]/page.tsx` | R | تحقق بحساب بوابة حقيقي — فاتورة 030003 |
+| [x] | سداد الفاتورة | `/portal/invoices/[id]/pay` | `portal/invoices/[id]/pay/page.tsx` | R | تحقق بحساب بوابة حقيقي — صفحة الدفع |
 | [x] | المدفوعات | `/portal/payments` | `portal/payments/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
 | [x] | ملفي | `/portal/profile` | `portal/profile/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
 | [x] | كشف الحساب | `/portal/statement` | `portal/statement/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
@@ -446,16 +446,16 @@
 
 | ✔ | الشاشة | المسار | الملف | المعالجة | ملاحظة |
 | :-: | --- | --- | --- | :-: | --- |
-| [ ] | الرئيسية (EN) | `/en` | `en/page.tsx` |  |  |
-| [ ] | المدوّنة (EN) | `/en/blog` | `en/blog/page.tsx` |  |  |
-| [ ] | مقال (EN) | `/en/blog/[slug]` | `en/blog/[slug]/page.tsx` |  | مسار ديناميكي — يُتحقق بسجل حقيقي |
-| [ ] | دراسات الحالة (EN) | `/en/cases` | `en/cases/page.tsx` |  |  |
-| [ ] | دراسة حالة (EN) | `/en/cases/[slug]` | `en/cases/[slug]/page.tsx` |  | مسار ديناميكي — يُتحقق بسجل حقيقي |
-| [ ] | الوحدات (EN) | `/en/features` | `en/features/page.tsx` |  |  |
-| [ ] | الفاتورة الإلكترونية (EN) | `/en/features/einvoicing` | `en/features/einvoicing/page.tsx` |  |  |
-| [ ] | المساعدة (EN) | `/en/help` | `en/help/page.tsx` |  |  |
-| [ ] | مقال مساعدة (EN) | `/en/help/[slug]` | `en/help/[slug]/page.tsx` |  | مسار ديناميكي — يُتحقق بسجل حقيقي |
-| [ ] | صفحة قانونية (EN) | `/en/legal/[slug]` | `en/legal/[slug]/page.tsx` |  | مسار ديناميكي — يُتحقق بسجل حقيقي |
+| [x] | الرئيسية (EN) | `/en` | `en/page.tsx` | R | الإنجليزية — تحقق في المتصفح 1440 |
+| [x] | المدوّنة (EN) | `/en/blog` | `en/blog/page.tsx` | R | الإنجليزية — تحقق في المتصفح 1440 |
+| [x] | مقال (EN) | `/en/blog/[slug]` | `en/blog/[slug]/page.tsx` | R | تحقق بسجل حقيقي في المتصفح 1440 |
+| [x] | دراسات الحالة (EN) | `/en/cases` | `en/cases/page.tsx` | R | الإنجليزية — تحقق في المتصفح 1440 |
+| [x] | دراسة حالة (EN) | `/en/cases/[slug]` | `en/cases/[slug]/page.tsx` | R | تحقق بسجل حقيقي في المتصفح 1440 |
+| [x] | الوحدات (EN) | `/en/features` | `en/features/page.tsx` | R | الإنجليزية — تحقق في المتصفح 1440 |
+| [x] | الفاتورة الإلكترونية (EN) | `/en/features/einvoicing` | `en/features/einvoicing/page.tsx` | R | الإنجليزية — تحقق في المتصفح 1440 |
+| [x] | المساعدة (EN) | `/en/help` | `en/help/page.tsx` | R | الإنجليزية — تحقق في المتصفح 1440 |
+| [x] | مقال مساعدة (EN) | `/en/help/[slug]` | `en/help/[slug]/page.tsx` | R | تحقق بسجل حقيقي في المتصفح 1440 |
+| [x] | صفحة قانونية (EN) | `/en/legal/[slug]` | `en/legal/[slug]/page.tsx` | R | تحقق بسجل حقيقي في المتصفح 1440 |
 
 ### الموقع التسويقي
 
@@ -463,28 +463,28 @@
 | :-: | --- | --- | --- | :-: | --- |
 | [x] | الرئيسية | `/` | `page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
 | [x] | المدوّنة | `/blog` | `blog/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
-| [ ] | مقال | `/blog/[slug]` | `blog/[slug]/page.tsx` |  | مسار ديناميكي — يُتحقق بسجل حقيقي |
+| [x] | مقال | `/blog/[slug]` | `blog/[slug]/page.tsx` | R | تحقق بسجل حقيقي في المتصفح 1440 |
 | [x] | دراسات الحالة | `/cases` | `cases/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
-| [ ] | دراسة حالة | `/cases/[slug]` | `cases/[slug]/page.tsx` |  | مسار ديناميكي — يُتحقق بسجل حقيقي |
+| [x] | دراسة حالة | `/cases/[slug]` | `cases/[slug]/page.tsx` | R | تحقق بسجل حقيقي في المتصفح 1440 |
 | [x] | سجل التغييرات | `/changelog` | `changelog/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
-| [ ] | تحديث | `/changelog/[slug]` | `changelog/[slug]/page.tsx` |  | مسار ديناميكي — يُتحقق بسجل حقيقي |
+| [x] | تحديث | `/changelog/[slug]` | `changelog/[slug]/page.tsx` | R | تحقق بسجل حقيقي في المتصفح 1440 |
 | [x] | تواصل معنا | `/contact` | `contact/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
-| [ ] | اطلب عرضاً | `/demo` | `demo/page.tsx` |  |  |
+| [x] | اطلب عرضاً | `/demo` | `demo/page.tsx` | R | تحقق بمتصفح — عنوان واحد للصفحة |
 | [x] | نظام التصميم | `/design` | `design/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
-| [x] | الوحدات | `/features` | `features/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
+| [x] | الوحدات | `/features` | `features/page.tsx` | R | تحقق بمتصفح — أيقونات SVG بلا مسارات كود |
 | [x] | الفاتورة الإلكترونية | `/features/einvoicing` | `features/einvoicing/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
 | [x] | مركز المساعدة | `/help` | `help/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
-| [ ] | مقال مساعدة | `/help/[slug]` | `help/[slug]/page.tsx` |  | مسار ديناميكي — يُتحقق بسجل حقيقي |
-| [x] | القطاعات | `/industries` | `industries/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
-| [ ] | قطاع | `/industries/[slug]` | `industries/[slug]/page.tsx` |  | مسار ديناميكي — يُتحقق بسجل حقيقي |
-| [ ] | صفحة قانونية | `/legal/[slug]` | `legal/[slug]/page.tsx` |  | مسار ديناميكي — يُتحقق بسجل حقيقي |
+| [x] | مقال مساعدة | `/help/[slug]` | `help/[slug]/page.tsx` | R | تحقق بسجل حقيقي في المتصفح 1440 |
+| [x] | القطاعات | `/industries` | `industries/page.tsx` | R | تحقق بمتصفح — بطاقات قطاعات بلا مسارات كود |
+| [x] | قطاع | `/industries/[slug]` | `industries/[slug]/page.tsx` | R | تحقق بسجل حقيقي في المتصفح 1440 |
+| [x] | صفحة قانونية | `/legal/[slug]` | `legal/[slug]/page.tsx` | R | تحقق بسجل حقيقي في المتصفح 1440 |
 | [x] | دخول العملاء | `/login` | `login/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
 | [x] | صيانة | `/maintenance` | `maintenance/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
-| [ ] | صفحة 404 | `/not-found-view/[locale]` | `not-found-view/[locale]/page.tsx` |  | مسار ديناميكي — يُتحقق بسجل حقيقي |
+| [x] | صفحة 404 | `/not-found-view/[locale]` | `not-found-view/[locale]/page.tsx` | R | تحقق في المتصفح 1440 (ar/en) |
 | [x] | الاشتراك | `/onboarding` | `onboarding/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
-| [x] | الباقات | `/pricing` | `pricing/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
+| [x] | الباقات | `/pricing` | `pricing/page.tsx` | R | تحقق بمتصفح — بلا عنوان endpoint ظاهر |
 | [x] | حالة الخدمة | `/status` | `status/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
-| [x] | الأمان والثقة | `/trust` | `trust/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
+| [x] | الأمان والثقة | `/trust` | `trust/page.tsx` | R | تحقق بمتصفح — بلا ملفات مصدر ظاهرة |
 | [x] | إلغاء الاشتراك | `/unsubscribe` | `unsubscribe/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
 | [x] | التحقق من فاتورة | `/verify` | `verify/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
 

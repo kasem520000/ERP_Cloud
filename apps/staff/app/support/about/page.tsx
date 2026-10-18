@@ -1,7 +1,6 @@
 'use client';
 
 import { Screen } from '../../../components/screen';
-import { apiBaseUrl } from '../../../lib/api';
 
 export default function AboutPage() {
   return (
@@ -15,8 +14,6 @@ export default function AboutPage() {
           <dd>متوافق مع هيئة الزكاة والضريبة والجمارك (ZATCA — المرحلة الثانية للربط والتكامل)</dd>
           <dt>عزل البيانات والأمان</dt>
           <dd>عزل كامل متعدد المنشآت على مستوى الصفوف (PostgreSQL Row-Level Security) + تشفير AES-256-GCM</dd>
-          <dt>نقطة اتصال الخدمة</dt>
-          <dd dir="ltr">{apiBaseUrl}</dd>
         </dl>
       </section>
 

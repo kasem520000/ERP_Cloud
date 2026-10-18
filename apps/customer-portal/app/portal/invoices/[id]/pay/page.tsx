@@ -33,14 +33,16 @@ function PayPanel({ id }: { id: string }) {
   const mark = (companyName || 'م').trim().slice(0, 1);
   return (
     <section className="card" style={{ maxWidth: 560, marginInline: 'auto' }}>
+      <h1 style={{ marginBottom: 4 }}>دفع فاتورة {invoice.number ?? ''}</h1>
+      <p className="muted" style={{ marginTop: 0 }}>أكمل الدفع عبر الرابط الآمن الذي أصدرته المنشأة.</p>
       <div className="row" style={{ alignItems: 'center', marginBottom: 12 }}>
         <span className="logo" aria-hidden="true" style={{ width: 56, height: 56, fontSize: 24 }}>{mark}</span>
         <div>
           <p className="muted" style={{ margin: 0 }}>الدفع إلى</p>
-          <h1 style={{ margin: 0 }}>{companyName || 'المنشأة'}</h1>
+          <p style={{ margin: 0, fontWeight: 700 }}>{companyName || 'المنشأة'}</p>
         </div>
       </div>
-      <p>فاتورة {invoice.number ?? '—'} · المتبقي {moneyText(invoice.remaining)} {invoice.currency}</p>
+      <p>المتبقي {moneyText(invoice.remaining)} {invoice.currency}</p>
       {link ? (
         <>
           <p>

@@ -38,6 +38,16 @@ export default function PrintPage({ params }: { params: Promise<{ doc: string; i
   const auto = useSearchParams().get('auto') === '1';
   const printed = useRef(false);
 
+  /**
+   * الورقة تُعرض داخل `iframe` معزول (sandbox) فلا تنفّذ سكربتات. القالب يأتي من
+   * الخادم ومعمولٌ ليُفتح منفرداً أيضاً، وفيه زرّ «طباعة» بمعالجٍ سطري — يعمل
+   * منفرداً، ويُحجب هنا فيلوّث console بخطأ في كل فتح. نزيل شريط أدوات الورقة
+   * عند التضمين: الشاشة نفسها تحمل «طباعة» و«حفظ نسخة».
+   */
+  function embeddable(source: string): string {
+    return source.replace(/<div class="toolbar">[\s\S]*?<\/div>\s*(?=<div class="sheet)/, '');
+  }
+
   useEffect(() => {
     if (!spec) return;
     let alive = true;
@@ -45,7 +55,7 @@ export default function PrintPage({ params }: { params: Promise<{ doc: string; i
     setError(undefined);
     apiFetch<{ html: string }>(`/reports/print/${spec.path}/${id}`)
       .then((payload) => {
-        if (alive) setHtml(payload.html);
+        if (alive) setHtml(embeddable(payload.html));
       })
       .catch((cause: unknown) => {
         if (alive) setError(cause instanceof Error ? cause.message : String(cause));

@@ -165,6 +165,8 @@ export default function WhiteLabelPage() {
         <label className="field">
           <span>ملف الشعار (صورة)</span>
           <input
+            className="input"
+            style={{ blockSize: 'auto', paddingBlock: 6, maxWidth: 320 }}
             type="file"
             accept="image/*"
             onChange={(event) => {

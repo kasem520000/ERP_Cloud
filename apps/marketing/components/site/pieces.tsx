@@ -7,10 +7,13 @@
  */
 
 import Link from 'next/link';
+import type { ReactNode } from 'react';
 
 import { formatDate, summaryFor, titleFor, type ContentPageSummary } from '../../lib/content';
 import type { Locale } from '../../lib/i18n';
 import type { SiteModule } from '../../lib/modules';
+
+import { SiteIcon } from './icon';
 
 export function JsonLd({ data }: { data: Record<string, unknown> | null }) {
   if (!data) return null;
@@ -43,7 +46,7 @@ export function ModuleCard({ module, locale }: { module: SiteModule; locale: Loc
   return (
     <article className="card module-card">
       <span className="card-icon" aria-hidden="true">
-        {module.icon}
+        <SiteIcon glyph={module.icon} size={26} />
       </span>
       <h3>{locale === 'en' ? module.labelEn : module.labelAr}</h3>
       <p className="muted">{locale === 'en' ? module.blurbEn : module.blurbAr}</p>
@@ -99,15 +102,20 @@ export function SectionHeading({
   title,
   subtitle,
   action,
+  icon,
 }: {
   title: string;
   subtitle?: string;
   action?: { href: string; label: string };
+  icon?: ReactNode;
 }) {
   return (
     <div className="section-heading">
       <div>
-        <h2>{title}</h2>
+        <h2>
+          {icon ? <span className="section-heading-icon" aria-hidden>{icon}</span> : null}
+          {title}
+        </h2>
         {subtitle ? <p className="muted">{subtitle}</p> : null}
       </div>
       {action ? (

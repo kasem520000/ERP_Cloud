@@ -6,6 +6,8 @@
  */
 import type { Industry } from '../../lib/industries';
 
+import { SiteIcon } from './icon';
+
 export function Marquee({ items }: { items: ReadonlyArray<Pick<Industry, 'labelAr' | 'icon'>> }) {
   // نسختان من السلسلة في مسار واحد: الحركة -50% تعطي حلقةً لا انقطاع فيها.
   const loop: Array<Pick<Industry, 'labelAr' | 'icon'>> = [...items, ...items];
@@ -15,7 +17,7 @@ export function Marquee({ items }: { items: ReadonlyArray<Pick<Industry, 'labelA
         {loop.map((item, index) => (
           <span className="marquee-item" key={`${item.labelAr}-${index}`}>
             <span className="mark" aria-hidden="true">
-              {item.icon}
+              <SiteIcon glyph={item.icon} size={16} />
             </span>
             {item.labelAr}
           </span>

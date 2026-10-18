@@ -116,7 +116,7 @@ export default function BankStatementsPage() {
  </div>
  <FilterBar>
  <label className="field"><span>الحساب البنكي</span><select className="input" required value={bankAccountId} onChange={(event) => setBankAccountId(event.target.value)}><option value="">اختر الحساب</option>{(accounts.data ?? []).map((account) => <option key={account.id} value={account.id}>{account.bankName} — {account.accountNo ?? account.iban ?? account.id.slice(0, 8)}</option>)}</select></label>
- <label className="field"><span>ملف CSV</span><input type="file" accept=".csv,text/csv,text/plain" onChange={chooseFile} /></label>
+ <label className="field"><span>ملف CSV</span><input className="input" style={{ blockSize: 'auto', paddingBlock: 6, maxWidth: 320 }} type="file" accept=".csv,text/csv,text/plain" onChange={chooseFile} /></label>
  <label className="field"><span>رصيد بداية الكشف، اختياري</span><input className="input" dir="ltr" inputMode="decimal" value={openingBalance} onChange={(event) => setOpeningBalance(event.target.value)} placeholder="0.00" /></label>
  </FilterBar>
  <label className="field"><span>المحتوى — للمعاينة أو اللصق اليدوي</span><textarea className="input" dir="ltr" rows={5} value={csv} onChange={(event) => setCsv(event.target.value)} placeholder="Date,Description,Amount,Balance" /></label>

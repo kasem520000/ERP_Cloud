@@ -768,3 +768,16 @@ table td {
 .checklist-item.done svg {
   color: var(--color-brand-600, var(--brand));
 }
+
+/* Public signature page: the document needs a real page title, not just a
+   letterhead row. */
+.sign-title {
+  margin: var(--space-4) 0 var(--space-2);
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: -0.015em;
+}
+.sign-title .muted {
+  font-weight: 600;
+  font-size: 13px;
+}

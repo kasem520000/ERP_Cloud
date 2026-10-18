@@ -337,8 +337,11 @@ export default function SalesInvoiceDetailPage() {
  <ArrowRight size={13} /> كل الفواتير
  </Link>
  <div className="flex flex-wrap items-center gap-3 mt-1.5">
- <h1 className="m-0 text-[30px] font-bold text-ink tracking-tight leading-none" dir="ltr">
-                    {doc.number ?? 'مسودة'}
+ <h1 className="m-0 text-[30px] font-bold text-ink tracking-tight leading-none">
+                    <span className="me-2 align-middle text-[14px] font-bold text-muted">
+                      {doc.kind === 'quotation' ? 'عرض سعر' : 'فاتورة مبيعات'}
+                    </span>{' '}
+                    <span dir="ltr">{doc.number ?? 'مسودة'}</span>
  </h1>
  <Badge tone={doc.kind === 'quotation' ? 'purple' : 'blue'} dot>
                     {doc.kind === 'quotation' ? 'عرض أسعار' : taxInvoiceTypeLabel}

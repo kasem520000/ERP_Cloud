@@ -751,6 +751,17 @@ p {
   font-variant-numeric: tabular-nums;
 }
 
+/* كان الرقم في بطاقات البطل «٬٬» — علامةُ آلافٍ بلا رقم، تُقرأ كخطأ. صار شريطاً مجرّداً:
+   الشكل يقول «مؤشّر» بلا ادّعاء قيمة. */
+.dash-kpi .kpi-line {
+  display: block;
+  width: 44px;
+  height: 10px;
+  border-radius: 999px;
+  background: rgb(255 255 255 / 22%);
+  margin-bottom: 4px;
+}
+
 .dash-kpi span {
   font-size: 10.5px;
   color: var(--muted);
@@ -2746,4 +2757,26 @@ body {
     opacity: 1 !important;
     transform: none !important;
   }
+}
+
+/* Icon slots that used to hold an emoji: keep the box, now wrapping an SVG. */
+.card-icon svg {
+  inline-size: 24px;
+  block-size: 24px;
+}
+.section-heading-icon {
+  display: inline-grid;
+  place-items: center;
+  inline-size: 30px;
+  block-size: 30px;
+  margin-inline-end: 8px;
+  border-radius: 9px;
+  background: var(--brand-soft);
+  color: var(--brand);
+  vertical-align: -6px;
+}
+.head-icon {
+  color: var(--brand);
+  vertical-align: -3px;
+  margin-inline-end: 6px;
 }
