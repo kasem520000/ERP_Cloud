@@ -3,12 +3,15 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { describe, expect, it } from 'vitest';
+import { defaultPlatformSettingValue, validatePlatformSettingValue } from '@erp/contracts';
+import { SYSTEM_NAME_AR } from '@erp/ui/theme';
 
 import { dir, localeFromPath, localePath, LOCALES } from '../lib/i18n';
 import { siteFooterLinks, siteNavLinks, siteRoutes } from '../lib/navigation';
 import {
   articleJsonLd,
   breadcrumbJsonLd,
+  compactBrandName,
   buildMetadata,
   faqJsonLd,
   fallbackSite,
@@ -40,6 +43,25 @@ const pageFileFor = (href: string, locale: 'ar' | 'en'): string => {
   const relative = base === '/' ? 'page.tsx' : `${base.replace(/^\//, '')}/page.tsx`;
   return locale === 'en' ? join(appDir, 'en', relative) : join(appDir, relative);
 };
+
+describe('هوية الموقع الافتراضية وقابلية التخصيص', () => {
+  it('الاسم والاختصار من عقد المنصة يتطابقان مع احتياطي الموقع ومحرك التصميم', () => {
+    expect(defaultPlatformSettingValue('site.brand_name')).toBe(SYSTEM_NAME_AR);
+    expect(defaultPlatformSettingValue('site.brand_initials')).toBe('سم');
+    expect(defaultPlatformSettingValue('site.company_legal_name')).toBe('');
+    expect(organizationJsonLd(fallbackSite)).not.toHaveProperty('legalName');
+    expect(fallbackSite.brandName).toBe(SYSTEM_NAME_AR);
+    expect(fallbackSite.brandInitials).toBe('سم');
+  });
+
+  it('تغيير الافتراضي لا يمنع اسماً اختاره المشغل من المرور عبر العقد أو يظهر باسمنا المختصر على الهاتف', () => {
+    expect(validatePlatformSettingValue('site.brand_name', 'علامة العميل')).toEqual({ ok: true, value: 'علامة العميل' });
+    expect(compactBrandName('علامة العميل', 'ar')).toBe('علامة العميل');
+    expect(compactBrandName('Customer Brand', 'en')).toBe('Customer Brand');
+    expect(compactBrandName(SYSTEM_NAME_AR, 'ar')).toBe('سحاب المملكة');
+    expect(compactBrandName(SYSTEM_NAME_AR, 'en')).toBe('Kingdom Cloud');
+  });
+});
 
 describe('marketing site structure (P-M1)', () => {
   it('كل مسار مُعلَن له ملفّ صفحة — بالعربية والإنجليزية حين يُعلن أنه ثنائي اللغة', () => {

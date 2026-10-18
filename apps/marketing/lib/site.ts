@@ -37,7 +37,7 @@ export type SiteInfo = {
 /** احتياطيٌ يعمل بلا خادم: القشرة لا تسقط لأن الـAPI لم يُجِب. */
 export const fallbackSite: SiteInfo = {
   brandName: SYSTEM_NAME_AR,
-  brandInitials: 'ERP',
+  brandInitials: 'سم',
   taglineAr: 'نظام تخطيط موارد المؤسسات السحابي',
   taglineEn: 'Cloud ERP for growing businesses',
   supportEmail: '',
@@ -104,6 +104,12 @@ export function absoluteUrl(path: string, siteUrl = ''): string {
   const base = siteUrl.replace(/\/+$/, '');
   const suffix = path.startsWith('/') ? path : `/${path}`;
   return base ? `${base}${suffix}` : suffix;
+}
+
+/** الاسم المختصر للجوال: اختصر هوية المنتج الافتراضية فقط، ولا تستبدل اسم المشغّل المخصّص. */
+export function compactBrandName(brandName: string, locale: Locale): string {
+  if (brandName !== SYSTEM_NAME_AR) return brandName;
+  return locale === 'ar' ? 'سحاب المملكة' : 'Kingdom Cloud';
 }
 
 /** عنوان الصفحة الكامل: «العنوان · اسم العلامة» — لا تكرار إن كانا واحداً. */

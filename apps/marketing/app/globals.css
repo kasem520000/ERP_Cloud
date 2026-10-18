@@ -1169,7 +1169,7 @@ p {
   .site-header .header-actions .btn { padding: 7px 9px; font-size: 12px; }
   .site-header .lang-switch { padding: 6px 8px; font-size: 12px; }
   .brand-name-full { display: none; }
-  .brand-name-short { display: inline; white-space: nowrap; }
+  .brand-name-short { display: inline-block; max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; vertical-align: bottom; }
 }
 
 .site-nav {

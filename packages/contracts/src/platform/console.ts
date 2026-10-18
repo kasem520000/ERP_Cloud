@@ -376,7 +376,7 @@ export const platformSettingDefinitions: readonly PlatformSettingDefinition[] = 
     labelEn: 'Site brand name',
     kind: 'string',
     helpAr: 'الاسم الظاهر في رأس الصفحة وفي عنوان المتصفّح وفي بيانات المشاركة.',
-    defaultValue: 'Cloud SaaS ERP',
+    defaultValue: 'نظام سحاب المملكة للحلول المحاسبية',
     max: 60,
   },
   {
@@ -385,7 +385,7 @@ export const platformSettingDefinitions: readonly PlatformSettingDefinition[] = 
     labelEn: 'Brand initials',
     kind: 'string',
     helpAr: 'حرفان أو ثلاثة داخل المربّع الملوّن في الرأس (لا شعار صورةً بعد).',
-    defaultValue: 'ERP',
+    defaultValue: 'سم',
     max: 4,
   },
   {
@@ -429,8 +429,8 @@ export const platformSettingDefinitions: readonly PlatformSettingDefinition[] = 
     labelAr: 'الاسم النظامي للمنصة',
     labelEn: 'Company legal name',
     kind: 'string',
-    helpAr: 'يظهر في التذييل وفي بيانات الهوية المنظَّمة (JSON-LD) للصفحة الرئيسية.',
-    defaultValue: 'منصة ERP السحابية',
+    helpAr: 'الاسم القانوني الموثّق، إن وُجد. إن تُرك فارغاً يظهر اسم الموقع في التذييل، ولا يُعلَن اسم قانوني في بيانات الصفحة.',
+    defaultValue: '',
     max: 160,
   },
   {

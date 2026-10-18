@@ -132,7 +132,7 @@ export type SiteShell = {
 
 const emptyShell: SiteShell = {
   brandName: SYSTEM_NAME_AR,
-  brandInitials: 'ERP',
+  brandInitials: 'سم',
   taglineAr: 'نظام تخطيط موارد المؤسسات السحابي',
   taglineEn: 'Cloud ERP for growing businesses',
   supportEmail: '',

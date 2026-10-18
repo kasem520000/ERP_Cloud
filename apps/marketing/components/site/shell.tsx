@@ -12,6 +12,7 @@ import type { ReactNode } from 'react';
 import type { MenuItem, SiteShell } from '../../lib/content';
 import { dir, t, type Locale } from '../../lib/i18n';
 import { siteFooterLinks, siteNavLinks } from '../../lib/navigation';
+import { compactBrandName } from '../../lib/site';
 import { NewsletterForm } from '../newsletter-form';
 
 import { ConsentStatusLine } from './consent-banner';
@@ -49,7 +50,7 @@ export function SiteHeader({ shell, locale }: { shell: SiteShell; locale: Locale
           <span className="brand-name">
             <span className="brand-name-full">{shell.brandName}</span>
             <span className="brand-name-short" aria-hidden="true">
-              {locale === 'ar' ? 'سحاب المملكة' : 'Kingdom Cloud'}
+              {compactBrandName(shell.brandName, locale)}
             </span>
           </span>
         </Link>
