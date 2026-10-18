@@ -17,6 +17,7 @@ import {
   latencyLabel,
   newVisitorId,
   statusToneClass,
+  statusCheckedAt,
   storedHelpVote,
   uptimeLabel,
   voteMessageAr,
@@ -117,8 +118,8 @@ describe('P-M9 — سجلّ التغييرات', () => {
 describe('P-M9 — حالة الخدمة', () => {
   it('أصناف العرض من الحالات الأربع، والحالات تغطّي مفردات العقد', () => {
     expect(statusToneClass('ready')).toBe('badge ready');
-    expect(statusToneClass('pending')).toBe('badge pending');
-    expect(statusToneClass('failed')).toBe('badge failed');
+    expect(statusToneClass('pending')).toBe('badge warn');
+    expect(statusToneClass('failed')).toBe('badge danger');
     // «غير مُهيّأة» ليست فشلاً: بلا صنفٍ أحمر — وإلّا ظهرت بيئةُ تطويرٍ كأنها معطّلة.
     expect(statusToneClass('muted')).toBe('badge');
     expect([...publicStatusLevels]).toEqual(['up', 'degraded', 'down', 'not_configured']);
@@ -137,6 +138,9 @@ describe('P-M9 — حالة الخدمة', () => {
     expect(uptimeLabel(30, 'ar')).toContain('أقلّ من دقيقة');
     expect(uptimeLabel(3_600 * 5, 'ar')).toContain('5 ساعة');
     expect(uptimeLabel(86_400 * 2 + 3_600, 'ar')).toContain('2 يوم');
+    expect(statusCheckedAt('2026-10-18T18:12:00.000Z', 'ar')).toContain('2026');
+    expect(statusCheckedAt('2026-10-18T18:12:00.000Z', 'en')).toContain('18:12');
+    expect(statusCheckedAt('invalid', 'ar')).toBeNull();
   });
 
   it('صفحة الحالة تُبنى على مسارٍ حقيقي، والنداء بلا ذاكرة', () => {

@@ -1,9 +1,10 @@
 'use client';
 
 import { Monitor, Moon, Sun } from 'lucide-react';
+import { useEffect, useState } from 'react';
 
 import { useTheme } from './theme-provider';
-import { nextThemeChoice, type ThemeChoice } from './theme';
+import { nextThemeChoice, resolveTheme, type ThemeChoice } from './theme';
 
 /**
  * The one theme switch, shared by staff, platform-admin and marketing
@@ -48,12 +49,18 @@ export function ThemeToggle({
   className = '',
   lang = 'ar',
 }: ThemeToggleProps) {
-  const { choice, setChoice, resolved } = useTheme();
+  const { choice, initialChoice, setChoice, resolved } = useTheme();
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  // A streamed header can hydrate after the provider has read storage. Keep the
+  // first render identical to SSR, then show the actual preference after mount.
+  const visibleChoice = mounted ? choice : initialChoice;
+  const visibleResolved = mounted ? resolved : resolveTheme(initialChoice, false);
 
   if (variant === 'icon') {
-    const current = choice === 'system' ? 'system' : resolved;
+    const current = visibleChoice === 'system' ? 'system' : visibleResolved;
     const Icon = ICONS[current];
-    const text = label(choice, lang);
+    const text = label(visibleChoice, lang);
     return (
       <button
         type="button"
@@ -61,7 +68,7 @@ export function ThemeToggle({
         disabled={disabled}
         aria-label={text}
         title={text}
-        data-theme-choice={choice}
+        data-theme-choice={visibleChoice}
         className={`grid size-9 place-items-center rounded-[10px] border border-line bg-surface text-muted transition-colors duration-150 ease-out hover:bg-surface-3 hover:text-ink focus-visible:ring-4 focus-visible:ring-brand-600/20 disabled:cursor-not-allowed disabled:opacity-55 ${className}`}
       >
         <Icon size={17} strokeWidth={2} aria-hidden />
@@ -74,12 +81,12 @@ export function ThemeToggle({
     <div
       role="radiogroup"
       aria-label={lang === 'ar' ? 'مظهر الواجهة' : 'Appearance'}
-      data-theme-choice={choice}
+      data-theme-choice={visibleChoice}
       className={`inline-flex items-center gap-0.5 rounded-[10px] border border-line bg-surface-2 p-0.5 ${className}`}
     >
       {options.map((option) => {
         const Icon = ICONS[option];
-        const active = choice === option;
+        const active = visibleChoice === option;
         const text = label(option, lang);
         return (
           <button

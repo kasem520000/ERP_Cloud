@@ -125,9 +125,20 @@ export function helpfulSummaryAr(yes: number, no: number): string | null {
 /** صنف عرض حالة الخدمة — من `tone` في العقد إلى صنف الشارات المستعمل في الموقع. */
 export function statusToneClass(tone: 'ready' | 'pending' | 'failed' | 'muted'): string {
   if (tone === 'ready') return 'badge ready';
-  if (tone === 'pending') return 'badge pending';
-  if (tone === 'failed') return 'badge failed';
+  if (tone === 'pending') return 'badge warn';
+  if (tone === 'failed') return 'badge danger';
   return 'badge';
+}
+
+/** آخر قياس بوقت UTC صريح؛ لا تطبع تاريخاً خاماً أو غير صالح للزائر. */
+export function statusCheckedAt(value: string, locale: Locale): string | null {
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  return new Intl.DateTimeFormat(locale === 'ar' ? 'ar-SA-u-ca-gregory-nu-latn' : 'en-GB', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+    timeZone: 'UTC',
+  }).format(date);
 }
 
 /** زمن الاستجابة كما يُعرض: بلا كسورٍ زائدة، وبلا «null» في الشاشة. */

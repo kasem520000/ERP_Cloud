@@ -27,6 +27,7 @@ import {
   latencyLabel,
   readableDate,
   statusToneClass,
+  statusCheckedAt,
   uptimeLabel,
   type HelpCategory,
 } from '../../lib/help';
@@ -491,83 +492,115 @@ export function ChangelogView({ locale, entries }: { locale: Locale; entries: Co
  * تُطمئن زوراً.
  */
 export function StatusView({ locale, status }: { locale: Locale; status: SiteStatus | null }) {
+  const checkedAt = status ? statusCheckedAt(status.checkedAt, locale) : null;
+  // An empty or undated response cannot establish a trustworthy current state.
+  const current =
+    status && Array.isArray(status.components) && status.components.length > 0 && checkedAt ? status : null;
+  const refresh = (
+    <form className="status-refresh" action="/status" method="get">
+      <button className="btn ghost" type="submit">
+        {t(locale, 'status.back')}
+      </button>
+    </form>
+  );
+
   return (
-    <>
+    <div className="status-page">
       <header className="page-head">
         <h1>{t(locale, 'status.title')}</h1>
         <p className="muted">{t(locale, 'status.subtitle')}</p>
       </header>
-      {!status ? (
-        <div className="banner tone-warn" role="status">
-          {t(locale, 'status.unavailable')}
-        </div>
+      {!current ? (
+        <section className="status-unavailable" role="status">
+          <h2>{t(locale, 'status.unavailable.title')}</h2>
+          <p>{t(locale, 'status.unavailable')}</p>
+          {refresh}
+        </section>
       ) : (
         <>
-          <p className="status-line">
-            <span className={statusToneClass(status.statusTone)}>
-              {locale === 'en' ? status.statusLabelEn : status.statusLabelAr}
-            </span>
-            <span className="small muted">
-              {t(locale, 'status.checkedAt')}: {status.checkedAt.slice(0, 19).replace('T', ' ')} UTC ·{' '}
-              {t(locale, 'status.uptime')}: {uptimeLabel(status.uptimeSeconds, locale)}
-            </span>
-          </p>
-          {status.incident ? (
-            <div className="banner tone-warn" role="status">
-              <strong>{t(locale, 'status.incident')}:</strong>{' '}
-              {status.incident.message ?? t(locale, 'status.noIncident')}
+          <section className={`status-overview tone-${current.statusTone}`} aria-label={t(locale, 'status.summary')}>
+            <div className="status-overview-heading">
+              <div>
+                <p className="status-eyebrow">{t(locale, 'status.summary')}</p>
+                <h2>
+                  <span className={statusToneClass(current.statusTone)}>
+                    {locale === 'en' ? current.statusLabelEn : current.statusLabelAr}
+                  </span>
+                </h2>
+                <p className="muted">{t(locale, 'status.context')}</p>
+              </div>
+              {refresh}
             </div>
+            <dl className="status-facts">
+              <div>
+                <dt>{t(locale, 'status.checkedAt')}</dt>
+                <dd>
+                  <time dateTime={current.checkedAt}>{checkedAt}</time> <span dir="ltr">UTC</span>
+                </dd>
+              </div>
+              <div>
+                <dt>{t(locale, 'status.uptime')}</dt>
+                <dd>{uptimeLabel(current.uptimeSeconds, locale)}</dd>
+              </div>
+              <div>
+                <dt>{t(locale, 'status.components.count')}</dt>
+                <dd>
+                  {new Intl.NumberFormat(locale === 'en' ? 'en-GB' : 'ar-SA-u-nu-latn').format(current.components.length)}
+                </dd>
+              </div>
+            </dl>
+          </section>
+
+          {current.incident ? (
+            <section className="status-incident" role="status">
+              <h2>{t(locale, 'status.incident')}</h2>
+              <p>{current.incident.message || t(locale, 'status.incident.unknown')}</p>
+            </section>
           ) : (
-            <p className="small muted">{t(locale, 'status.noIncident')}</p>
+            <p className="status-no-incident">{t(locale, 'status.noIncident')}</p>
           )}
-          <div className="table-wrap">
-            <table className="table">
-              <caption className="sr-only">{t(locale, 'status.components')}</caption>
-              <thead>
-                <tr>
-                  <th scope="col">{t(locale, 'status.component')}</th>
-                  <th scope="col">{t(locale, 'status.state')}</th>
-                  <th scope="col">{t(locale, 'status.what')}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {status.components.map((component) => {
-                  const level = component.status;
-                  const label =
-                    level === 'up'
-                      ? { ar: 'تعمل', en: 'Operational' }
-                      : level === 'degraded'
-                        ? { ar: 'تعمل ببطء', en: 'Degraded' }
-                        : level === 'down'
-                          ? { ar: 'متوقّفة', en: 'Down' }
-                          : { ar: 'غير مُهيّأة', en: 'Not configured' };
-                  const tone =
-                    level === 'up' ? 'ready' : level === 'degraded' ? 'pending' : level === 'down' ? 'failed' : 'muted';
-                  const latency = latencyLabel(component.latencyMs, locale);
-                  return (
-                    <tr key={component.key}>
-                      <th scope="row">{locale === 'en' ? component.labelEn : component.labelAr}</th>
-                      <td>
-                        <span className={statusToneClass(tone as 'ready' | 'pending' | 'failed' | 'muted')}>
-                          {locale === 'en' ? label.en : label.ar}
-                        </span>
-                        {latency ? <span className="small muted"> · {latency}</span> : null}
-                      </td>
-                      <td className="muted">
-                        {locale === 'en' ? component.whatEn : component.whatAr}
-                        <br />
-                        <span className="small">{locale === 'en' ? component.noteEn : component.noteAr}</span>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-          <p className="small muted">{locale === 'en' ? status.noteEn : status.noteAr}</p>
+
+          <section className="status-components" aria-labelledby="status-components-title">
+            <h2 id="status-components-title">{t(locale, 'status.components.title')}</h2>
+            <ul className="status-component-grid">
+              {current.components.map((component) => {
+                const level = component.status;
+                const label =
+                  level === 'up'
+                    ? { ar: 'تعمل', en: 'Operational' }
+                    : level === 'degraded'
+                      ? { ar: 'تعمل ببطء', en: 'Degraded' }
+                      : level === 'down'
+                        ? { ar: 'متوقّفة', en: 'Down' }
+                        : { ar: 'غير مُهيّأة', en: 'Not configured' };
+                const tone =
+                  level === 'up' ? 'ready' : level === 'degraded' ? 'pending' : level === 'down' ? 'failed' : 'muted';
+                const latency = latencyLabel(component.latencyMs, locale);
+                return (
+                  <li className="status-component" key={component.key}>
+                    <div className="status-component-heading">
+                      <h3>{locale === 'en' ? component.labelEn : component.labelAr}</h3>
+                      <span className={statusToneClass(tone)}>{locale === 'en' ? label.en : label.ar}</span>
+                    </div>
+                    <p>{locale === 'en' ? component.whatEn : component.whatAr}</p>
+                    {level === 'up' ? null : (
+                      <p className="status-component-note">{locale === 'en' ? component.noteEn : component.noteAr}</p>
+                    )}
+                    {latency ? (
+                      <p className="status-latency">{t(locale, 'status.latency')}: {latency}</p>
+                    ) : null}
+                  </li>
+                );
+              })}
+            </ul>
+          </section>
+          <details className="status-method">
+            <summary>{t(locale, 'status.details')}</summary>
+            <p>{locale === 'en' ? current.noteEn : current.noteAr}</p>
+          </details>
         </>
       )}
-    </>
+    </div>
   );
 }
 

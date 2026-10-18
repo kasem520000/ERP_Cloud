@@ -24,6 +24,8 @@ import {
 } from './theme';
 
 type ThemeContextValue = {
+  /** Stable server rendering choice, also used by late-hydrating descendants. */
+  initialChoice: ThemeChoice;
   /** What the visitor asked for (`system` follows the OS). */
   choice: ThemeChoice;
   /** What is painted right now. */
@@ -53,8 +55,18 @@ export type ThemeProviderProps = {
  * change that matters while the choice is `system`.
  */
 export function ThemeProvider({ children, defaultChoice = 'system' }: ThemeProviderProps) {
-  const [choice, setChoiceState] = useState<ThemeChoice>(() => readThemeChoice(defaultChoice));
-  const [prefersDark, setPrefersDark] = useState<boolean>(() => systemPrefersDark());
+  // Hydration must start from the same values on the server and in the browser.
+  // The blocking ThemeScript already paints the stored choice before hydration;
+  // read storage/OS only after the client mounts, so the toggle's icon matches SSR.
+  const [choice, setChoiceState] = useState<ThemeChoice>(defaultChoice);
+  const [prefersDark, setPrefersDark] = useState(false);
+  const [hydrated, setHydrated] = useState(false);
+
+  useEffect(() => {
+    setChoiceState(readThemeChoice(defaultChoice));
+    setPrefersDark(systemPrefersDark());
+    setHydrated(true);
+  }, [defaultChoice]);
 
   // Keep the OS listener in sync; only meaningful while choice === 'system'.
   useEffect(() => {
@@ -68,8 +80,8 @@ export function ThemeProvider({ children, defaultChoice = 'system' }: ThemeProvi
   const resolved = resolveTheme(choice, prefersDark);
 
   useEffect(() => {
-    applyTheme(resolved);
-  }, [resolved]);
+    if (hydrated) applyTheme(resolved);
+  }, [hydrated, resolved]);
 
   // A second tab (or the pre-hydration script) may have changed the answer.
   useEffect(() => {
@@ -97,12 +109,13 @@ export function ThemeProvider({ children, defaultChoice = 'system' }: ThemeProvi
 
   const value = useMemo<ThemeContextValue>(
     () => ({
+      initialChoice: defaultChoice,
       choice,
       resolved,
       setChoice,
       toggle: () => setChoice(resolved === 'dark' ? 'light' : 'dark'),
     }),
-    [choice, resolved, setChoice],
+    [choice, defaultChoice, resolved, setChoice],
   );
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
