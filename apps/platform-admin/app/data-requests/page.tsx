@@ -1,6 +1,8 @@
 'use client';
 
 import { useState } from 'react';
+import { ContentPanel, WorkflowGuide } from '@erp/ui/page';
+import { arabicErrorText } from '@erp/web-core/error-language';
 
 import { Empty, ErrorBox, Forbidden, Loading, Screen } from '../../components/screen';
 import { apiData } from '../../lib/api';
@@ -103,11 +105,16 @@ export default function DataRequestsPage() {
   const [busy, setBusy] = useState<string | null>(null);
 
   const requests = useQuery<RequestPage>(() => apiData<RequestPage>('/platform/data-requests?limit=100'), []);
+  const tenants = useQuery<Array<{ id: string; code: string; name: string }>>(
+    () => apiData<Array<{ id: string; code: string; name: string }>>('/platform/tenants?limit=100'),
+    [],
+  );
   const rows = requests.data?.data ?? [];
   const reasonReady = reason.trim().length >= 5;
   const formReady = tenant.trim().length > 0 && email.trim().includes('@');
 
   async function open() {
+    if (busy || !formReady || !window.confirm(`فتح طلب ${KIND_LABEL[kind]} للعنوان «${email.trim()}»؟ تأكد من المنشأة وصاحب البيانات؛ سينشأ طلب قابل للمراجعة قبل التنفيذ.`)) return;
     setBusy('create');
     setNotice(undefined);
     try {
@@ -133,6 +140,7 @@ export default function DataRequestsPage() {
   }
 
   async function decide(row: DataRequestRow, decision: 'approve' | 'reject') {
+    if (busy || !reasonReady || !window.confirm(`${decision === 'approve' ? 'قبول' : 'رفض'} طلب ${KIND_LABEL[row.kind]} للعنوان «${row.subjectEmail}»؟ السبب المسجل: ${reason.trim()}`)) return;
     setBusy(row.id);
     setNotice(undefined);
     try {
@@ -153,15 +161,14 @@ export default function DataRequestsPage() {
   }
 
   async function execute(row: DataRequestRow) {
+    if (busy) return;
     if (row.kind === 'erase' && confirmEmail.trim().toLowerCase() !== row.subjectEmail.toLowerCase()) {
       setNotice({ kind: 'danger', text: 'المحو يحتاج كتابة بريد صاحب البيانات نفسه في حقل التأكيد.' });
       return;
     }
-    if (
-      row.kind === 'erase' &&
-      !window.confirm(`محو هوية ${row.subjectEmail} نهائياً؟ لا رجعة في هذا الفعل.`)
-    )
-      return;
+    if (!window.confirm(row.kind === 'erase'
+      ? `محو هوية «${row.subjectEmail}» نهائياً؟ لا رجعة في هذا الفعل؛ يبقى سجل التدقيق.`
+      : `تصدير بيانات «${row.subjectEmail}» الآن؟ سينشأ ملف قابل للتنزيل لمدة محدودة ويجب حفظه بأمان.`)) return;
 
     setBusy(row.id);
     setNotice(undefined);
@@ -200,8 +207,8 @@ export default function DataRequestsPage() {
   return (
     <Screen
       title="طلبات البيانات"
-      subtitle="طلبُ تصديرٍ لبيانات شخصٍ بعينه، وطلبُ محوٍ يُخفي الهوية فعلاً — بقرارٍ مكتوب، وتنفيذٍ مُقاس، وإيصالٍ يبقى."
-      crumbs={['المنصة', 'التشغيل']}
+      subtitle="افصل بين إنشاء طلب صاحب البيانات وقرار مراجعته وتنفيذه؛ المحو لا يُنفَّذ بمجرد فتح الطلب."
+      crumbs={['المنصة', 'الخصوصية']}
       actions={
         <button className="btn" type="button" onClick={requests.reload}>
           تحديث
@@ -212,7 +219,15 @@ export default function DataRequestsPage() {
         <Forbidden />
       ) : (
         <>
-          <div className="card tight no-print">
+          <WorkflowGuide title="من طلب البيانات إلى إيصال التنفيذ" steps={[
+            { title: 'تحقّق من الشخص والمنشأة', detail: 'حدد نوع الطلب وبريد صاحبه؛ فتح الطلب لا يعني محواً أو تصديراً.' },
+            { title: 'سجّل قراراً مسبباً', detail: 'راجع الطلب ثم اقبله أو ارفضه بسبب مكتوب يظهر في السجل.' },
+            { title: 'نفّذ عند الاستحقاق', detail: 'التصدير ينشئ ملفاً حساساً، والمحو لا رجعة فيه ويحتاج تطابق البريد وتأكيداً.' },
+          ]} />
+          <ContentPanel title="فتح طلب جديد" description="اختر المنشأة ونوع الطلب؛ سيظل الطلب بانتظار قرار منفصل قبل التنفيذ." className="no-print">
+            {tenants.status === 'loading' && <Loading rows={2} />}
+            {tenants.status === 'error' && <ErrorBox message={tenants.error} onRetry={tenants.reload} />}
+            {tenants.status === 'forbidden' && <Forbidden />}
             <div className="row" style={{ flexWrap: 'wrap', alignItems: 'flex-end' }}>
               <label className="field" style={{ minWidth: 160 }}>
                 <span>نوع الطلب</span>
@@ -225,14 +240,13 @@ export default function DataRequestsPage() {
                   <option value="erase">محو بيانات (إخفاء هوية)</option>
                 </select>
               </label>
-              <label className="field" style={{ minWidth: 320, flex: 1 }}>
-                <span>معرّف المستأجر (uuid)</span>
-                <input
-                  className="input"
-                  dir="ltr"
-                  value={tenant}
-                  onChange={(event) => setTenant(event.target.value)}
-                />
+              <label className="field" style={{ minWidth: 220, flex: 1 }}>
+                <span>المنشأة</span>
+                <select className="input" value={tenant} onChange={(event) => setTenant(event.target.value)}>
+                  <option value="">اختر منشأة…</option>
+                  {(tenants.data ?? []).map((item) => <option key={item.id} value={item.id}>{item.name} ({item.code})</option>)}
+                  {tenant && !(tenants.data ?? []).some((item) => item.id === tenant) && <option value={tenant}>منشأة أدخلت يدوياً</option>}
+                </select>
               </label>
               <label className="field" style={{ minWidth: 260, flex: 1 }}>
                 <span>بريد صاحب البيانات</span>
@@ -250,23 +264,25 @@ export default function DataRequestsPage() {
               <button
                 className="btn primary"
                 type="button"
-                disabled={!formReady || busy === 'create'}
+                disabled={!formReady || busy !== null}
                 onClick={() => void open()}
               >
                 افتح الطلب
               </button>
             </div>
-            <p className="muted small" style={{ margin: '6px 0 0' }}>
-              المحو يُخفي حقول الهوية في `users` ويسحب العضوية ويُبطل الجلسات — ولا يحذف المستندات ولا صفوف
-              التدقيق: الأولى دفاتر العميل تحتاج مرجع منشئها، والثانية هي الإيصال. والفرق يُعرض في عمود
-              النتيجة.
-            </p>
-          </div>
+            <details className="muted small"><summary>المنشأة غير ظاهرة؟ أدخل معرّفها يدوياً</summary>
+              <label className="field" style={{ maxWidth: 430, marginTop: 12 }}><span>معرّف المنشأة التقني</span>
+                <input className="input" dir="ltr" value={tenant} onChange={(event) => setTenant(event.target.value)} />
+              </label>
+            </details>
+            <p className="muted small">المحو يخفي حقول الهوية ويسحب العضويات ويبطل الجلسات؛ لا يحذف
+              المستندات أو صفوف التدقيق، فالأولى تحتاج مرجع المنشئ والثانية تثبت أثر التنفيذ.</p>
+          </ContentPanel>
 
-          <div className="card tight no-print">
+          <ContentPanel title="توثيق القرار وتنفيذ المحو" description="اكتب سبباً للمراجعة، ولا تستخدم تأكيد البريد إلا لطلب محو مقبول." className="no-print">
             <div className="row" style={{ flexWrap: 'wrap', alignItems: 'flex-end' }}>
-              <label className="field" style={{ minWidth: 380, flex: 1 }}>
-                <span>سبب القرار / سبب التنفيذ (5 محارف على الأقل)</span>
+              <label className="field" style={{ minWidth: 0, flex: '1 1 240px' }}>
+                <span>سبب القرار / سبب التنفيذ (٥ محارف على الأقل)</span>
                 <input
                   className="input"
                   value={reason}
@@ -274,36 +290,30 @@ export default function DataRequestsPage() {
                   placeholder="مثال: طلبٌ موثّق من صاحب البيانات بتاريخ …"
                 />
               </label>
-              <label className="field" style={{ minWidth: 300, flex: 1 }}>
-                <span>تأكيد المحو — اكتب البريد كما هو</span>
+              <label className="field" style={{ minWidth: 0, flex: '1 1 240px' }}>
+                <span>تأكيد المحو — اكتب بريد صاحب البيانات كما هو</span>
                 <input
                   className="input"
                   dir="ltr"
                   value={confirmEmail}
-                  onChange={(event) => setConfirmEmail(event.target.value)}
+                  onChange={(event) => { setConfirmEmail(event.target.value); if (notice?.kind === 'danger') setNotice(undefined); }}
                   placeholder="subject@example.test"
                 />
               </label>
             </div>
-          </div>
+          </ContentPanel>
 
-          {notice && <div className={`alert ${notice.kind === 'ok' ? '' : 'danger'}`}>{notice.text}</div>}
+          {notice && <p className={`alert ${notice.kind}`} role={notice.kind === 'danger' ? 'alert' : 'status'}>{notice.text}</p>}
 
           {requests.status === 'loading' && <Loading />}
           {requests.status === 'forbidden' && <Forbidden />}
           {requests.status === 'error' && <ErrorBox message={requests.error} onRetry={requests.reload} />}
-          {requests.status === 'success' &&
-            (rows.length === 0 ? (
-              <Empty
-                title="لا طلبات"
-                detail="افتح طلباً أعلاه — القرار ثم التنفيذ، ولكلٍّ منهما سببه المسجَّل."
-              />
+          {requests.status === 'success' && <ContentPanel title={`سجل الطلبات (${requests.data?.meta.total ?? rows.length})`}
+            description="افصل بين انتظار القرار، الموافقة، والتنفيذ؛ على الهاتف اسحب الجدول أفقياً لرؤية بقية الأعمدة والإجراءات.">
+            {rows.length === 0 ? (
+              <Empty title="لا طلبات" detail="لا طلبات بيانات في السجل بعد؛ فتح الطلب لا ينفّذه تلقائياً." />
             ) : (
-              <>
-                <p className="muted small">
-                  {rows.length} من {requests.data?.meta.total ?? rows.length} طلباً
-                </p>
-                <div className="table-wrap">
+              <div className="table-wrap">
                   <table>
                     <thead>
                       <tr>
@@ -319,29 +329,27 @@ export default function DataRequestsPage() {
                     <tbody>
                       {rows.map((row) => (
                         <tr key={row.id}>
-                          <td dir="ltr">{new Date(row.createdAt).toLocaleString('ar-SA')}</td>
+                          <td dir="ltr" className="whitespace-nowrap">{new Date(row.createdAt).toLocaleString('ar-SA')}</td>
                           <td>
                             <span className={`badge ${row.kind === 'erase' ? 'failed' : 'pending'}`}>
-                              {KIND_LABEL[row.kind] ?? row.kind}
+                              {KIND_LABEL[row.kind] ?? 'طلب آخر'}
                             </span>
                           </td>
                           <td dir="ltr">{row.tenantCode ?? row.tenantId.slice(0, 8)}</td>
                           <td dir="ltr">
                             {row.subjectEmail}
                             {row.result?.subjectRef && (
-                              <div className="muted small" dir="ltr">
-                                {row.result.subjectRef}
-                              </div>
+                              <details className="muted small"><summary>مرجع صاحب البيانات</summary><code dir="ltr">{row.result.subjectRef}</code></details>
                             )}
                           </td>
                           <td>
                             <span className={`badge ${STATUS_CLASS[row.status] ?? 'pending'}`}>
-                              {STATUS_LABEL[row.status] ?? row.status}
+                              {STATUS_LABEL[row.status] ?? 'حالة أخرى'}
                             </span>
                             {row.decisionNote && <div className="muted small">{row.decisionNote}</div>}
                           </td>
                           <td className="small">
-                            {row.result?.anonymisedUsers ? (
+                            {row.result?.anonymisedUsers !== null && row.result?.anonymisedUsers !== undefined ? (
                               <>
                                 أُخفي {row.result.anonymisedUsers} مستخدماً (
                                 {row.result.anonymisedFields?.length ?? 0} حقلاً)
@@ -351,13 +359,11 @@ export default function DataRequestsPage() {
                                   {row.result.retainedAuditRows ?? 0} صفّ تدقيق
                                 </div>
                               </>
-                            ) : row.result?.rows ? (
+                            ) : row.result?.rows !== null && row.result?.rows !== undefined ? (
                               <>
                                 {row.result.rows} صفاً في {row.result.tables ?? 0} جدولاً
-                                <div className="muted small" dir="ltr">
-                                  {row.result.bytes ? formatBytes(row.result.bytes) : ''} ·{' '}
-                                  {row.result.checksum?.slice(0, 12)}…
-                                </div>
+                                <div className="muted small">{row.result.bytes ? formatBytes(row.result.bytes) : 'حجم غير معروف'}</div>
+                                {row.result.checksum && <details className="muted small"><summary>بصمة الملف</summary><code dir="ltr">{row.result.checksum}</code></details>}
                               </>
                             ) : (
                               '—'
@@ -370,7 +376,7 @@ export default function DataRequestsPage() {
                                   <button
                                     className="btn small"
                                     type="button"
-                                    disabled={!reasonReady || busy === row.id}
+                                    disabled={!reasonReady || busy !== null}
                                     title={reasonReady ? 'قبول' : 'اكتب سبب القرار أولاً'}
                                     onClick={() => void decide(row, 'approve')}
                                   >
@@ -379,7 +385,7 @@ export default function DataRequestsPage() {
                                   <button
                                     className="btn small danger"
                                     type="button"
-                                    disabled={!reasonReady || busy === row.id}
+                                    disabled={!reasonReady || busy !== null}
                                     onClick={() => void decide(row, 'reject')}
                                   >
                                     ارفض
@@ -390,7 +396,7 @@ export default function DataRequestsPage() {
                                 <button
                                   className="btn small primary"
                                   type="button"
-                                  disabled={busy === row.id}
+                                  disabled={busy !== null}
                                   onClick={() => void execute(row)}
                                 >
                                   {row.kind === 'erase' ? 'نفّذ المحو' : 'نفّذ التصدير'}
@@ -403,8 +409,8 @@ export default function DataRequestsPage() {
                     </tbody>
                   </table>
                 </div>
-              </>
-            ))}
+            )}
+          </ContentPanel>}
         </>
       )}
     </Screen>
@@ -418,6 +424,5 @@ function formatBytes(bytes: number): string {
 }
 
 function apiMessage(error: unknown): string {
-  if (error instanceof Error && error.message.length > 0) return error.message;
-  return 'تعذّر تنفيذ الفعل.';
+  return arabicErrorText(error, 'تعذّر تنفيذ طلب البيانات. راجع المدخلات وأعد المحاولة.');
 }

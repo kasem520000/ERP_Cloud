@@ -1,6 +1,8 @@
 'use client';
 
 import { useState } from 'react';
+import { ContentPanel, WorkflowGuide } from '@erp/ui/page';
+import { arabicErrorText } from '@erp/web-core/error-language';
 import {
   IMPERSONATION_MAX_MINUTES,
   IMPERSONATION_MIN_MINUTES,
@@ -10,6 +12,7 @@ import {
 
 import { Empty, ErrorBox, Forbidden, Loading, Screen } from '../../components/screen';
 import { ApiError, apiData, apiDelete, apiPost } from '../../lib/api';
+import { supportHandoffBase } from '../../lib/support-handoff-url';
 import { useQuery } from '../../lib/use-query';
 
 /**
@@ -40,11 +43,8 @@ function dateTime(value: string | null | undefined): string {
 }
 
 function apiMessage(error: unknown): string {
-  if (error instanceof ApiError) {
-    if (error.isForbidden) return 'تحتاج صلاحية «مكتب الدعم» (console.support.manage) لهذا الدخول.';
-    return error.message;
-  }
-  return error instanceof Error ? error.message : String(error);
+  if (error instanceof ApiError && error.isForbidden) return 'تحتاج صلاحية إدارة الدعم لبدء الجلسة أو إنهائها.';
+  return arabicErrorText(error, 'تعذّر تنفيذ إجراء الجلسة المؤقتة. راجع البيانات وأعد المحاولة.');
 }
 
 /**
@@ -53,10 +53,9 @@ function apiMessage(error: unknown): string {
  * المفصول. لا `localhost` مكتوبٌ في الكود: المتصفّح ليس الخادم.
  */
 function staffUrl(): string {
-  const configured = (process.env.NEXT_PUBLIC_STAFF_URL ?? '').trim().replace(/\/+$/, '');
-  if (configured.length > 0) return configured;
-  if (typeof window === 'undefined') return '';
-  return `${window.location.protocol}//${window.location.hostname}:3001`;
+  const configured = process.env.NEXT_PUBLIC_STAFF_URL ?? '';
+  if (typeof window === 'undefined') return configured.trim().replace(/\/+$/, '');
+  return supportHandoffBase(window.location, configured);
 }
 
 export default function ImpersonationPage() {
@@ -79,6 +78,9 @@ export default function ImpersonationPage() {
   const active = (sessions.data ?? []).find((session) => session.status === 'active');
 
   async function start() {
+    if (busy || !tenantId || reason.trim().length < 10 || minutes < IMPERSONATION_MIN_MINUTES || minutes > IMPERSONATION_MAX_MINUTES) return;
+    const tenantName = (tenants.data ?? []).find((item) => item.id === tenantId)?.name ?? 'المنشأة المحددة';
+    if (!window.confirm(`فتح دخول مؤقت على «${tenantName}» لمدة ${minutes} دقيقة؟ سيظهر السبب للعميل ويُسجّل هذا الدخول في التدقيق.`)) return;
     setBusy(true);
     setNotice(undefined);
     setStarted(null);
@@ -119,29 +121,38 @@ export default function ImpersonationPage() {
     }
   }
 
-  const ready = tenantId.length > 0 && reason.trim().length >= 10;
+  const ready = tenantId.length > 0 && reason.trim().length >= 10 &&
+    minutes >= IMPERSONATION_MIN_MINUTES && minutes <= IMPERSONATION_MAX_MINUTES;
 
   return (
     <Screen
       title="الدخول المؤقّت"
-      subtitle={`نظرةٌ بعين العميل عند الحاجة: سببٌ مكتوب، ومدّةٌ من ${IMPERSONATION_MIN_MINUTES} إلى ${IMPERSONATION_MAX_MINUTES} دقيقة، ورمزٌ لا يعمل بعد الإنهاء — ولا حذفَ ولا مسّاً بالمصادقة خلاله.`}
-      crumbs={['الدعم']}
+      subtitle="دخول دعم محدود المدة وبسبب ظاهر للعميل؛ راجع الجلسات القائمة قبل إنشاء جلسة أخرى."
+      crumbs={['المنصة', 'الدعم']}
+      actions={<button className="btn" type="button" onClick={sessions.reload}>تحديث الجلسات</button>}
     >
+      <WorkflowGuide title="ضوابط الدخول المؤقت" steps={[
+        { title: 'تحقّق من الحاجة', detail: 'راجع المنشأة والجلسات النشطة وحدد سبباً محدداً يمكن للعميل الاطلاع عليه.' },
+        { title: 'حدّد المدة وأكّد', detail: 'يُنشأ رمز دعم محدود الصلاحية بعد تأكيدك؛ لا تشارك الرمز إلا مع المخوّل.' },
+        { title: 'أغلق الأثر', detail: 'انهِ الجلسة عند انتهاء الدعم؛ يبقى السجل للمراجعة بعد سقوط صلاحية الرمز.' },
+      ]} />
       {active && (
-        <section className="card tight">
+        <ContentPanel title="تنبيه: جلسة نشطة" description="تحقق من أن هذه الجلسة لا تزال مطلوبة قبل إنشاء جلسة أخرى.">
           <p className="alert danger" style={{ margin: 0 }}>
             جلسةٌ نشطة الآن على «{active.tenantName ?? active.tenantId}» ({active.operatorLabel ?? '—'}) —
             تنتهي {dateTime(active.expiresAt)}. أنهِها إن لم تكن قيد العمل.
           </p>
-        </section>
+        </ContentPanel>
       )}
 
-      <section className="card grid">
-        <h2 style={{ marginTop: 0 }}>جلسةٌ جديدة</h2>
+      <ContentPanel title="فتح جلسة دعم" description={`المدة من ${IMPERSONATION_MIN_MINUTES} إلى ${IMPERSONATION_MAX_MINUTES} دقيقة؛ السبب يُقرأ في سجل العميل.`}>
+        {tenants.status === 'loading' && <Loading rows={2} />}
+        {tenants.status === 'error' && <ErrorBox message={tenants.error} onRetry={tenants.reload} />}
+        {tenants.status === 'forbidden' && <Forbidden />}
         <div className="row" style={{ flexWrap: 'wrap' }}>
           <label>
             المنشأة
-            <select value={tenantId} onChange={(event) => setTenantId(event.target.value)}>
+            <select value={tenantId} onChange={(event) => { setTenantId(event.target.value); setStarted(null); setNotice(undefined); }}>
               <option value="">اختر منشأة…</option>
               {(tenants.data ?? []).map((tenant) => (
                 <option key={tenant.id} value={tenant.id}>
@@ -174,7 +185,7 @@ export default function ImpersonationPage() {
           </p>
         </div>
         {notice && (
-          <p className={`alert ${notice.kind === 'ok' ? 'ok' : 'danger'}`} style={{ margin: 0 }}>
+          <p className={`alert ${notice.kind === 'ok' ? 'ok' : 'danger'}`} role={notice.kind === 'danger' ? 'alert' : 'status'} style={{ margin: 0 }}>
             {notice.text}
           </p>
         )}
@@ -188,7 +199,7 @@ export default function ImpersonationPage() {
                 className="btn"
                 href={`${staffUrl()}/#support=${started.accessToken}`}
                 target="_blank"
-                rel="noreferrer"
+                rel="noopener noreferrer"
               >
                 افتح منشأة العميل
               </a>
@@ -199,14 +210,13 @@ export default function ImpersonationPage() {
               >
                 انسخ الرمز
               </button>
-              <span className="muted">الرمز يمرّ في جزء العنوان، ولا يُرسل إلى أي خادم.</span>
+              <span className="muted">الرمز لا يُرسل ضمن مسار الطلب؛ لا تنسخ الرابط أو تشاركه خارج فريق الدعم المخوّل.</span>
             </div>
           </div>
         )}
-      </section>
+      </ContentPanel>
 
-      <section className="card">
-        <h2 style={{ marginTop: 0 }}>سجلّ الجلسات</h2>
+      <ContentPanel title="سجل الجلسات" description="راجع مَن دخل وسبب الجلسة ووقتها. على الهاتف اسحب الجدول أفقياً لرؤية بقية الأعمدة؛ الإنهاء لا يحذف السجل.">
         {sessions.status === 'loading' && <Loading rows={3} />}
         {sessions.status === 'forbidden' && <Forbidden />}
         {sessions.status === 'error' && <ErrorBox message={sessions.error} onRetry={sessions.reload} />}
@@ -238,8 +248,8 @@ export default function ImpersonationPage() {
                     </td>
                     <td>{session.operatorLabel ?? session.operatorUserId}</td>
                     <td>{session.reason}</td>
-                    <td>{dateTime(session.startedAt)}</td>
-                    <td>{dateTime(session.endedAt ?? session.expiresAt)}</td>
+                    <td className="whitespace-nowrap">{dateTime(session.startedAt)}</td>
+                    <td className="whitespace-nowrap">{dateTime(session.endedAt ?? session.expiresAt)}</td>
                     <td>
                       <span className={`chip${session.status === 'active' ? ' on' : ''}`}>
                         {STATUS_LABEL[session.status]}
@@ -263,7 +273,7 @@ export default function ImpersonationPage() {
             </table>
           </div>
         )}
-      </section>
+      </ContentPanel>
     </Screen>
   );
 }
