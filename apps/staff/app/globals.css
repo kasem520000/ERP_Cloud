@@ -648,9 +648,9 @@ th.num {
   margin: 0;
   font-size: 13px;
   font-weight: 500;
-  display: flex;
-  gap: 8px;
-  align-items: center;
+  line-height: 1.7;
+  /* نصٌّ لا صفُّ أيقونات: كان `flex` يفرّق الكلمات على أعمدة فيقفز النص. */
+  display: block;
 }
 .alert.danger {
   background: var(--color-danger-soft);

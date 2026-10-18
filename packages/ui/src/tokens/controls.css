@@ -376,6 +376,22 @@ html[dir='rtl'] select.ui-input {
   padding: 12px 14px;
 }
 
+/* بطاقة تبدأ بعنوان: الرأس شريطٌ ممتد بعرض البطاقة، بنفس مقاس رأس اللوحة —
+   كي لا يبدو العنوان العتيق عائماً داخل الحشوة بينما اللوحات لها شريط. */
+.card > h2:first-child,
+.card > h3:first-child {
+  margin: -16px -18px 12px;
+  padding: 13px 16px;
+  border-block-end: 1px solid var(--line);
+  border-start-start-radius: var(--radius-lg);
+  border-start-end-radius: var(--radius-lg);
+  background: var(--surface);
+}
+.card.tight > h2:first-child,
+.card.tight > h3:first-child {
+  margin: -12px -14px 10px;
+}
+
 /* ---------------------------------------------------------------- tables */
 .table-wrap {
   overflow: auto;
