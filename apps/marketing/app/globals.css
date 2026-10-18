@@ -1463,10 +1463,6 @@ p {
   font-size: 14px;
 }
 
-.lead-form .form {
-  padding: 34px;
-}
-
 .lead-reference {
   background: var(--ok-soft);
   border: 1px solid rgb(4 120 87 / 25%);
@@ -1482,12 +1478,15 @@ p {
   color: var(--ok);
 }
 
+.lead-form { position: relative; }
+
 .hp-field {
   position: absolute;
-  left: -9999px;
-  width: 1px;
-  height: 1px;
+  inset-inline-start: 0;
+  inline-size: 1px;
+  block-size: 1px;
   overflow: hidden;
+  clip-path: inset(50%);
 }
 
 /* ================================================================ جداول المقارنة */
@@ -2039,3 +2038,76 @@ p {
 .pricing-page { grid-template-columns: minmax(0, 1fr); }
 .pricing-page > * { min-width: 0; }
 .pricing-page .source-line { font-family: inherit; font-size: 14px; }
+
+/* A single decision path for contact and demo requests, on the shared site tokens. */
+.lead-page {
+  display: grid;
+  gap: clamp(20px, 3vw, 34px);
+  min-width: 0;
+  padding-block: clamp(24px, 5vw, 58px) 70px;
+}
+.lead-hero {
+  padding: clamp(24px, 4vw, 46px);
+  border: 1px solid var(--line);
+  border-inline-start: 4px solid var(--brand);
+  border-radius: var(--radius-lg);
+  background: var(--grad-soft);
+}
+.lead-eyebrow {
+  color: var(--brand);
+  font-weight: 800;
+  font-size: 14px;
+  margin-block-end: 12px;
+}
+.lead-hero h1, .lead-success h1 { font-size: clamp(32px, 4vw, 46px); }
+.lead-hero .muted { max-width: 66ch; font-size: 18px; line-height: 1.9; }
+.lead-frame {
+  display: grid;
+  grid-template-columns: minmax(0, 1.7fr) minmax(250px, .8fr);
+  align-items: start;
+  gap: clamp(18px, 2.5vw, 32px);
+  min-width: 0;
+}
+.lead-panel, .lead-guide { min-width: 0; }
+.lead-panel h2, .lead-guide h2 { font-size: clamp(20px, 2.5vw, 26px); }
+.lead-panel > .muted { margin-block: 6px 0; }
+.lead-panel .lead-form { margin-block-start: 20px; }
+.lead-required { color: var(--danger); font-weight: 700; font-size: 12px; }
+.lead-guide {
+  padding: clamp(20px, 2.5vw, 30px);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  display: grid;
+  gap: 18px;
+}
+.lead-guide ol {
+  display: grid;
+  gap: 18px;
+  list-style: none;
+  counter-reset: lead-step;
+  margin: 0;
+  padding: 0;
+}
+.lead-guide li { display: flex; align-items: center; gap: 12px; font-weight: 700; }
+.lead-guide li::before {
+  counter-increment: lead-step;
+  content: counter(lead-step);
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  inline-size: 32px;
+  block-size: 32px;
+  border-radius: 50%;
+  background: var(--brand-soft);
+  color: var(--brand);
+}
+.lead-guide p { color: var(--muted); font-size: 14px; }
+.lead-guide .text-link { width: fit-content; }
+.lead-success { max-width: 760px; margin-inline: auto; text-align: center; }
+.lead-success .lead-reference { width: 100%; }
+@media (max-width: 760px) {
+  .lead-frame { grid-template-columns: minmax(0, 1fr); }
+  .lead-panel .lead-form { padding: 20px; }
+  .lead-hero .muted { font-size: 16px; }
+}

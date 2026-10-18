@@ -21,23 +21,49 @@ export { LEAD_HONEYPOT_FIELD, normalizeLeadEmail };
 
 export type LeadFormKind = 'form' | 'demo';
 
-export const leadFormConfig: Record<
-  LeadFormKind,
-  { source: 'form' | 'demo'; headingAr: string; introAr: string; messageLabelAr: string; messagePlaceholderAr: string }
-> = {
+type LeadFormCopy = {
+  source: LeadFormKind;
+  eyebrowAr: string;
+  headingAr: string;
+  introAr: string;
+  formTitleAr: string;
+  formHintAr: string;
+  messageLabelAr: string;
+  messagePlaceholderAr: string;
+  flowTitleAr: string;
+  flowStepsAr: readonly [string, string, string];
+  alternateHref: string;
+  alternateLabelAr: string;
+};
+
+export const leadFormConfig: Record<LeadFormKind, LeadFormCopy> = {
   form: {
     source: 'form',
+    eyebrowAr: 'سؤالك يبدأ من هنا',
     headingAr: 'تواصل معنا',
-    introAr: 'اكتب ما تحتاجه وسيتواصل معك فريقنا — لا نطلب بطاقة ولا نُنشئ حساباً بلا موافقتك.',
+    introAr: 'أخبرنا بما تحتاجه في عملك؛ نراجع رسالتك ونردّ عبر بيانات الاتصال التي تضعها هنا.',
+    formTitleAr: 'اكتب رسالتك',
+    formHintAr: 'الاسم والبريد والرسالة مطلوبة. بقية البيانات تساعدنا على فهم احتياجك.',
     messageLabelAr: 'كيف نساعدك؟',
     messagePlaceholderAr: 'مثال: عندنا ثلاثة فروع ونحتاج فواتير ضريبية وربطاً بالمخزون.',
+    flowTitleAr: 'ماذا يحدث بعد الإرسال؟',
+    flowStepsAr: ['تصل رسالتك إلى فريقنا', 'نراجع ما ذكرته عن نشاطك', 'نردّ عليك عبر بيانات الاتصال'],
+    alternateHref: '/help',
+    alternateLabelAr: 'تصفّح مركز المساعدة',
   },
   demo: {
     source: 'demo',
+    eyebrowAr: 'شاهد ما يلائم عملك',
     headingAr: 'اطلب عرضاً',
-    introAr: 'نعرض عليك النظام على بياناتك أو على بيانات تجريبية، ثم تُقرّر — بلا التزام.',
+    introAr: 'صف ما تود رؤيته، ثم ننسّق معك عرضاً على بيانات تجريبية أو على بيانات تقدّمها أنت.',
+    formTitleAr: 'جهّز طلب العرض',
+    formHintAr: 'حدّد المهمة أو المجال الذي تريد مشاهدته؛ لا يلزم إنشاء حساب لطلب العرض.',
     messageLabelAr: 'ما الذي تريد أن تراه في العرض؟',
     messagePlaceholderAr: 'مثال: دورة البيع والفواتير، وتقارير المخزون، وصلاحية المستخدمين.',
+    flowTitleAr: 'من الطلب إلى الجلسة',
+    flowStepsAr: ['حدّد ما يهمّك في النظام', 'نتواصل لتحديد نطاق العرض', 'تشاهد السيناريو التجريبي قبل قرارك'],
+    alternateHref: '/onboarding',
+    alternateLabelAr: 'تفضّل التجربة بنفسك؟ ابدأ من هنا',
   },
 };
 
@@ -89,7 +115,17 @@ export function leadVerdict(draft: LeadDraft): LeadVerdict {
   const issue = parsed.error.issues[0];
   const path = String(issue?.path?.[0] ?? 'form');
   const field = (isLeadField(path) ? path : 'form') as keyof LeadDraft | 'form';
-  return fail(field, issue?.message ?? 'راجع الحقول المطلوبة.');
+  // Zod's default length/number messages can be English. The public form never exposes them.
+  const messages: Partial<Record<keyof LeadDraft, string>> = {
+    fullName: 'اكتب اسماً من حرفين إلى ١٢٠ حرفاً.',
+    companyName: 'اكتب اسم شركة من حرفين إلى ١٦٠ حرفاً أو اتركه فارغاً.',
+    email: 'اكتب بريداً إلكترونياً صحيحاً لا يتجاوز ١٦٠ حرفاً.',
+    phone: 'اكتب رقم هاتف من ٦ إلى ٣٢ خانة أو اتركه فارغاً.',
+    branchCount: 'عدد الفروع يجب أن يكون رقماً بين ٠ و٩٩٩.',
+    planInterest: 'اختصر اسم الباقة إلى ٦٤ حرفاً أو أقل.',
+    message: 'اكتب رسالةً من ١٠ إلى ٢٠٠٠ حرف.',
+  };
+  return fail(field, field === 'form' ? 'راجع الحقول المطلوبة.' : messages[field] ?? 'راجع قيمة هذا الحقل.');
 }
 
 function isLeadField(value: string): value is keyof LeadDraft {
@@ -144,12 +180,12 @@ export function leadUtm(input: { search?: string; referrer?: string; pathname?: 
 }
 
 /** ترجمة ردود الـAPI إلى ما يُقال للزائر — والـ429 لها نصٌّ يقول «انتظر» لا «فشل». */
-export function leadProblemMessage(status: number, code?: string, detail?: string): string {
+export function leadProblemMessage(status: number, code?: string, _detail?: string): string {
   if (status === 429 || code === 'RATE_LIMITED') {
     return 'أرسلتَ طلباتٍ كثيرة في وقتٍ قصير. انتظر دقيقة ثم أعد المحاولة، أو راسلنا على بريد الدعم.';
   }
   if (status === 400 || code === 'VALIDATION_FAILED') {
-    return detail || 'راجع الحقول: الاسم والبريد والرسالة ثلاثة لا تُترك فارغة.';
+    return 'راجع الاسم والبريد والرسالة والحقول الاختيارية، ثم أعد المحاولة.';
   }
   if (status === 0) {
     return 'تعذّر الوصول إلى الخادم. تحقّق من الاتصال ثم أعد المحاولة.';
@@ -162,7 +198,7 @@ export function leadSuccessMessage(reference: string): { titleAr: string; bodyAr
   return {
     titleAr: 'وصلنا طلبك',
     bodyAr:
-      'سيتواصل معك فريقنا خلال يوم عمل. احتفظ بالرقم التالي — يُتابع به طلبك، ولا حاجة لتكرار الإرسال.',
+      'نراجع طلبك ثم نتواصل معك عبر بيانات الاتصال التي قدّمتها. احتفظ بالرقم التالي لمتابعة الطلب، ولا حاجة لتكرار الإرسال.',
     reference,
   };
 }

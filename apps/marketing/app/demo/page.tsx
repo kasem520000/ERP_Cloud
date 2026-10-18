@@ -1,5 +1,3 @@
-import Link from 'next/link';
-
 import { LeadForm } from '../../components/lead-form';
 
 /**
@@ -15,16 +13,5 @@ export const metadata = {
 };
 
 export default function DemoPage() {
-  return (
-    <>
-      <section className="card hero-card">
-        <h1>اطلب عرضاً</h1>
-        <p className="muted">
-          الجلسة نصف ساعة: نبني منشأتك أمامك، نُصدر فاتورةً ضريبية، ونُراجع المخزون والتقارير. وإن
-          أردت، تبدأ تجربةً بنفسك من <Link href="/onboarding">صفحة الاشتراك</Link> قبل العرض.
-        </p>
-      </section>
-      <LeadForm kind="demo" />
-    </>
-  );
+  return <LeadForm kind="demo" />;
 }

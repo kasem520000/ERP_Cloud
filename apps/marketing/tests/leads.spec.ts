@@ -45,6 +45,8 @@ describe('marketing lead forms (P-M6)', () => {
     expect(leadFormConfig.demo.headingAr).toBe('اطلب عرضاً');
     // والسؤال يختلف: طلب العرض يسأل عمّا يُراد رؤيته لا عمّا يُحتاج.
     expect(leadFormConfig.demo.messageLabelAr).not.toBe(leadFormConfig.form.messageLabelAr);
+    expect(leadFormConfig.demo.flowStepsAr).toHaveLength(3);
+    expect(leadFormConfig.form.alternateHref).toBe('/help');
   });
 
   it('الحمولة المبنية تُقبل بمخطّط الـAPI نفسه — البريد مُطبَّعاً والفراغ ساقطاً', () => {
@@ -79,6 +81,13 @@ describe('marketing lead forms (P-M6)', () => {
     const shortMessage = leadVerdict(filled({ message: 'قصيرة' }));
     expect(shortMessage.ok === false && shortMessage.field).toBe('message');
     expect(shortMessage.ok === false && shortMessage.message.length).toBeGreaterThan(4);
+
+    const shortCompany = leadVerdict(filled({ companyName: 'أ' }));
+    expect(shortCompany.ok === false && shortCompany.field).toBe('companyName');
+    expect(shortCompany.ok === false && /[؀-ۿ]/.test(shortCompany.message)).toBe(true);
+    const tooManyBranches = leadVerdict(filled({ branchCount: '1000' }));
+    expect(tooManyBranches.ok === false && tooManyBranches.field).toBe('branchCount');
+    expect(tooManyBranches.ok === false && /[؀-ۿ]/.test(tooManyBranches.message)).toBe(true);
   });
 
   it('حكم المصيدة لا يوقف الزائر: الحقل المخفيّ لا يُقيَّد على العميل', () => {
@@ -112,7 +121,8 @@ describe('marketing lead forms (P-M6)', () => {
   it('رسائل الأعطال: 429 تقول «انتظر» لا «فشل»، والتحقّق يشير إلى الحقول', () => {
     expect(leadProblemMessage(429)).toContain('انتظر');
     expect(leadProblemMessage(400, 'VALIDATION_FAILED')).toContain('راجع');
-    expect(leadProblemMessage(400, 'VALIDATION_FAILED', 'البريد غير صالح')).toContain('البريد');
+    expect(leadProblemMessage(400, 'VALIDATION_FAILED', 'email must be valid')).toContain('البريد');
+    expect(leadProblemMessage(400, 'VALIDATION_FAILED', 'email must be valid')).not.toContain('email');
     expect(leadProblemMessage(0)).toContain('الاتصال');
     expect(leadProblemMessage(500)).toContain('أعد المحاولة');
   });
@@ -121,7 +131,7 @@ describe('marketing lead forms (P-M6)', () => {
     const success = leadSuccessMessage('L-3F9A2C1D4E5F');
     expect(success.reference).toBe('L-3F9A2C1D4E5F');
     expect(success.titleAr).toContain('وصلنا');
-    expect(success.bodyAr).toContain('يوم عمل');
+    expect(success.bodyAr).toContain('نراجع طلبك');
   });
 
   it('عدد الفروع أرقامٌ فقط، والتطبيع يقبل ما يكتبه الناس فعلاً', () => {

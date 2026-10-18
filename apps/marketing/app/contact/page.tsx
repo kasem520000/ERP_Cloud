@@ -11,7 +11,7 @@ import { LeadForm } from '../../components/lead-form';
  */
 export const metadata = {
   title: 'تواصل معنا',
-  description: 'اكتب ما تحتاجه وسيتواصل معك فريق المنصة — عرضٌ على بياناتك أو بيانات تجريبية.',
+  description: 'اكتب ما تحتاجه، وسنراجع رسالتك ونردّ عليك عبر بيانات الاتصال التي تقدّمها.',
 };
 
 export default async function ContactPage({

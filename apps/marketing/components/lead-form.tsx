@@ -16,7 +16,8 @@
  *   * **الوسوم تُلتقط لحظة الإرسال** من `location` و`referrer`، لا لحظة تحميل الصفحة.
  */
 
-import { useCallback, useMemo, useState } from 'react';
+import Link from 'next/link';
+import { useCallback, useState } from 'react';
 import type { LeadAccepted } from '@erp/contracts';
 
 import { PortalError, portalFetch } from '../lib/api';
@@ -47,28 +48,26 @@ export function LeadForm({ kind, presetPlan }: { kind: LeadFormKind; presetPlan?
     setError(null);
   }, []);
 
-  const utm = useMemo(
-    () =>
-      leadUtm({
-        search: typeof globalThis.location === 'undefined' ? '' : globalThis.location.search,
-        referrer: typeof globalThis.document === 'undefined' ? '' : globalThis.document.referrer,
-        pathname: typeof globalThis.location === 'undefined' ? '' : globalThis.location.pathname,
-        host: typeof globalThis.location === 'undefined' ? '' : globalThis.location.host,
-      }),
-    [],
-  );
-
   const submit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     const verdict = leadVerdict(draft);
     if (!verdict.ok) {
       setError({ field: String(verdict.field), message: verdict.message });
+      const target = event.currentTarget.elements.namedItem(String(verdict.field));
+      if (target instanceof HTMLElement) target.focus();
       return;
     }
 
     setBusy(true);
     setError(null);
     try {
+      // Campaign context is captured when submitting, not frozen when the component mounts.
+      const utm = leadUtm({
+        search: globalThis.location.search,
+        referrer: globalThis.document.referrer,
+        pathname: globalThis.location.pathname,
+        host: globalThis.location.host,
+      });
       const payload = { ...leadPayload(draft, { utm }), source: config.source };
       const data = await portalFetch<LeadAccepted>('/public/leads', {
         method: 'POST',
@@ -90,158 +89,212 @@ export function LeadForm({ kind, presetPlan }: { kind: LeadFormKind; presetPlan?
   if (accepted) {
     const success = leadSuccessMessage(accepted.reference);
     return (
-      <section className="card lead-success">
-        <h2>{success.titleAr}</h2>
+      <section className="lead-page lead-success" role="status" aria-live="polite">
+        <p className="lead-eyebrow">{config.headingAr}</p>
+        <h1>{success.titleAr}</h1>
         <p className="muted">{success.bodyAr}</p>
         <p className="lead-reference">
-          <span className="muted">رقم الطلب</span>{' '}
-          <bdi className="reference">{success.reference}</bdi>
+          <span className="muted">رقم الطلب</span> <bdi className="reference">{success.reference}</bdi>
         </p>
+        <Link className="text-link" href={config.alternateHref}>
+          {config.alternateLabelAr}
+        </Link>
       </section>
     );
   }
 
-  const fieldError = (name: keyof LeadDraft) => (error?.field === name ? <span className="field-error">{error.message}</span> : null);
+  const fieldError = (name: keyof LeadDraft) =>
+    error?.field === name ? (
+      <span id={`lead-${kind}-${name}-error`} className="field-error" role="alert">
+        {error.message}
+      </span>
+    ) : null;
+  const fieldState = (name: keyof LeadDraft) => ({
+    'aria-invalid': error?.field === name ? true : undefined,
+    'aria-describedby': error?.field === name ? `lead-${kind}-${name}-error` : undefined,
+  });
 
   return (
-    <section className="card">
-      <h2>{config.headingAr}</h2>
-      <p className="muted">{config.introAr}</p>
+    <div className="lead-page">
+      <header className="lead-hero">
+        <p className="lead-eyebrow">{config.eyebrowAr}</p>
+        <h1>{config.headingAr}</h1>
+        <p className="muted">{config.introAr}</p>
+      </header>
 
-      <form className="form lead-form" onSubmit={submit} noValidate>
-        {error?.field === 'form' ? <p className="form-error" role="alert">{error.message}</p> : null}
+      <div className="lead-frame">
+        <section className="lead-panel" aria-label={config.formTitleAr}>
+          <h2>{config.formTitleAr}</h2>
+          <p className="muted">{config.formHintAr}</p>
+          <form className="form lead-form" method="post" onSubmit={submit} noValidate>
+            {error?.field === 'form' ? (
+              <p className="form-error" role="alert">
+                {error.message}
+              </p>
+            ) : null}
 
-        <div className="field-row">
-          <label className="field">
-            <span>الاسم</span>
-            <input
-              className="input"
-              name="fullName"
-              value={draft.fullName}
-              onChange={(event) => update('fullName', event.target.value)}
-              autoComplete="name"
-              required
-            />
-            {fieldError('fullName')}
-          </label>
+            <div className="field-row">
+              <label className="field">
+                <span>
+                  الاسم <span className="lead-required">مطلوب</span>
+                </span>
+                <input
+                  className="input"
+                  name="fullName"
+                  {...fieldState('fullName')}
+                  value={draft.fullName}
+                  onChange={(event) => update('fullName', event.target.value)}
+                  autoComplete="name"
+                  required
+                />
+                {fieldError('fullName')}
+              </label>
 
-          <label className="field">
-            <span>الشركة</span>
-            <input
-              className="input"
-              name="companyName"
-              value={draft.companyName}
-              onChange={(event) => update('companyName', event.target.value)}
-              autoComplete="organization"
-            />
-            {fieldError('companyName')}
-          </label>
-        </div>
+              <label className="field">
+                <span>الشركة</span>
+                <input
+                  className="input"
+                  name="companyName"
+                  {...fieldState('companyName')}
+                  value={draft.companyName}
+                  onChange={(event) => update('companyName', event.target.value)}
+                  autoComplete="organization"
+                />
+                {fieldError('companyName')}
+              </label>
+            </div>
 
-        <div className="field-row">
-          <label className="field">
-            <span>البريد الإلكتروني</span>
-            <input
-              className="input"
-              name="email"
-              type="email"
-              dir="ltr"
-              value={draft.email}
-              onChange={(event) => update('email', event.target.value)}
-              autoComplete="email"
-              required
-            />
-            {fieldError('email')}
-          </label>
+            <div className="field-row">
+              <label className="field">
+                <span>
+                  البريد الإلكتروني <span className="lead-required">مطلوب</span>
+                </span>
+                <input
+                  className="input"
+                  name="email"
+                  {...fieldState('email')}
+                  type="email"
+                  dir="ltr"
+                  value={draft.email}
+                  onChange={(event) => update('email', event.target.value)}
+                  autoComplete="email"
+                  required
+                />
+                {fieldError('email')}
+              </label>
 
-          <label className="field">
-            <span>الهاتف</span>
-            <input
-              className="input"
-              name="phone"
-              dir="ltr"
-              value={draft.phone}
-              onChange={(event) => update('phone', event.target.value)}
-              autoComplete="tel"
-            />
-            {fieldError('phone')}
-          </label>
-        </div>
+              <label className="field">
+                <span>الهاتف</span>
+                <input
+                  className="input"
+                  name="phone"
+                  {...fieldState('phone')}
+                  dir="ltr"
+                  value={draft.phone}
+                  onChange={(event) => update('phone', event.target.value)}
+                  autoComplete="tel"
+                />
+                {fieldError('phone')}
+              </label>
+            </div>
 
-        <div className="field-row">
-          <label className="field">
-            <span>عدد الفروع</span>
-            <input
-              className="input"
-              name="branchCount"
-              inputMode="numeric"
-              value={draft.branchCount}
-              onChange={(event) => update('branchCount', sanitizeBranchCount(event.target.value))}
-            />
-            {fieldError('branchCount')}
-          </label>
+            <div className="field-row">
+              <label className="field">
+                <span>عدد الفروع</span>
+                <input
+                  className="input"
+                  name="branchCount"
+                  {...fieldState('branchCount')}
+                  inputMode="numeric"
+                  value={draft.branchCount}
+                  onChange={(event) => update('branchCount', sanitizeBranchCount(event.target.value))}
+                />
+                {fieldError('branchCount')}
+              </label>
 
-          <label className="field">
-            <span>الباقة التي تهمّك (اختياري)</span>
-            <input
-              className="input"
-              name="planInterest"
-              value={draft.planInterest}
-              onChange={(event) => update('planInterest', event.target.value)}
-            />
-            {fieldError('planInterest')}
-          </label>
-        </div>
+              <label className="field">
+                <span>الباقة التي تهمّك (اختياري)</span>
+                <input
+                  className="input"
+                  name="planInterest"
+                  {...fieldState('planInterest')}
+                  value={draft.planInterest}
+                  onChange={(event) => update('planInterest', event.target.value)}
+                />
+                {fieldError('planInterest')}
+              </label>
+            </div>
 
-        <label className="field">
-          <span>{config.messageLabelAr}</span>
-          <textarea
-            className="input"
-            name="message"
-            rows={5}
-            value={draft.message}
-            onChange={(event) => update('message', event.target.value)}
-            placeholder={config.messagePlaceholderAr}
-            required
-          />
-          {fieldError('message')}
-        </label>
+            <label className="field">
+              <span>
+                {config.messageLabelAr} <span className="lead-required">مطلوب</span>
+              </span>
+              <textarea
+                className="input"
+                name="message"
+                {...fieldState('message')}
+                rows={5}
+                value={draft.message}
+                onChange={(event) => update('message', event.target.value)}
+                placeholder={config.messagePlaceholderAr}
+                required
+              />
+              {fieldError('message')}
+            </label>
 
-        <label className="check">
-          <input
-            type="checkbox"
-            checked={draft.acceptsMarketing}
-            onChange={(event) => update('acceptsMarketing', event.target.checked)}
-          />
-          <span>أوافق على أن ترسل لي المنصة رسائل عن المنتج والعروض (اختياري، ويمكن سحبها في أي وقت).</span>
-        </label>
+            <label className="check">
+              <input
+                type="checkbox"
+                checked={draft.acceptsMarketing}
+                onChange={(event) => update('acceptsMarketing', event.target.checked)}
+              />
+              <span>أوافق على استلام تحديثات المنتج والعروض (اختياري، ويمكن سحب الموافقة في أي وقت).</span>
+            </label>
 
-        {/*
-          المصيدة: مخفيّةٌ بـCSS لا بـ`hidden` — بعض الماسحات تتجاهل `display:none`، وملءُ
-          حقلٍ «مخفيٍّ» هو ما يكشفها. ولا `aria-hidden` عليها وحدها: هي مغلّفة بـ`display:none`
-          على الحاوية، فلا يصل إليها قارئ الشاشة ولا ترتيب التنقّل.
-        */}
-        <div className="hp-field" aria-hidden="true">
-          <label>
-            <span>موقعك</span>
-            <input
-              className="input"
-              tabIndex={-1}
-              autoComplete="off"
-              name={LEAD_HONEYPOT_FIELD}
-              value={draft[LEAD_HONEYPOT_FIELD]}
-              onChange={(event) => update(LEAD_HONEYPOT_FIELD, event.target.value)}
-            />
-          </label>
-        </div>
+            {/*
+              المصيدة: مخفيّةٌ بـCSS لا بـ`hidden` — بعض الماسحات تتجاهل `display:none`، وملءُ
+              حقلٍ «مخفيٍّ» هو ما يكشفها. الحاوية مقصوصة بصرياً وموسومة `aria-hidden`،
+              والإدخال خارج ترتيب التنقّل بـ`tabIndex=-1` دون إزاحة الصفحة أفقياً.
+            */}
+            <div className="hp-field" aria-hidden="true">
+              <label>
+                <span>موقعك</span>
+                <input
+                  className="input"
+                  tabIndex={-1}
+                  autoComplete="off"
+                  name={LEAD_HONEYPOT_FIELD}
+                  value={draft[LEAD_HONEYPOT_FIELD]}
+                  onChange={(event) => update(LEAD_HONEYPOT_FIELD, event.target.value)}
+                />
+              </label>
+            </div>
 
-        <div className="form-actions">
-          <button className="btn primary" type="submit" disabled={busy}>
-            {busy ? 'جارٍ الإرسال…' : kind === 'demo' ? 'اطلب العرض' : 'أرسل الرسالة'}
-          </button>
-          <span className="muted small">لا نشارك بريدك، ولا نُرسل شيئاً بلا موافقتك.</span>
-        </div>
-      </form>
-    </section>
+            <div className="form-actions">
+              <button className="btn primary" type="submit" disabled={busy}>
+                {busy ? 'جارٍ الإرسال…' : kind === 'demo' ? 'اطلب العرض' : 'أرسل الرسالة'}
+              </button>
+              <span className="muted small">تُستخدم بياناتك للرد على طلبك. تحديثات المنتج اختيارية.</span>
+            </div>
+          </form>
+        </section>
+
+        <aside className="lead-guide" aria-label={config.flowTitleAr}>
+          <h2>{config.flowTitleAr}</h2>
+          <ol>
+            {config.flowStepsAr.map((step) => (
+              <li key={step}>{step}</li>
+            ))}
+          </ol>
+          <p>طلبك لا ينشئ حساباً ولا يشغّل معاملة مالية.</p>
+          <Link className="text-link" href={config.alternateHref}>
+            {config.alternateLabelAr}
+          </Link>
+          <Link className="text-link" href="/legal/privacy">
+            اقرأ سياسة الخصوصية
+          </Link>
+        </aside>
+      </div>
+    </div>
   );
 }
