@@ -1051,6 +1051,75 @@ table td {
   max-block-size: none;
 }
 
+/* ------------------------------------------------------------- callouts */
+/*
+ * نطاقُ حالة (تحذير/خطر/معلومة): سطحٌ واحد بعنوانٍ وسطرِ شرحٍ وإجراء، بدل
+ * بطاقةٍ بحدٍّ سميكٍ مصرّفٍ في كل شاشة — كلّها هنا بحجمٍ واحد وألوان التوكن.
+ */
+.ui-callout {
+  display: grid;
+  gap: 4px;
+  padding: 12px 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  font-size: 13px;
+  color: var(--text);
+}
+.ui-callout-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+}
+.ui-callout-title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.ui-callout-text {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.65;
+  color: var(--muted);
+}
+.ui-callout.warn {
+  border-color: var(--warn-line);
+  background: var(--warn-soft);
+}
+.ui-callout.warn .ui-callout-title,
+.ui-callout.warn .ui-callout-text {
+  color: var(--warn-ink);
+}
+.ui-callout.danger {
+  border-color: var(--danger-line);
+  background: var(--danger-soft);
+}
+.ui-callout.danger .ui-callout-title,
+.ui-callout.danger .ui-callout-text {
+  color: var(--danger-ink);
+}
+.ui-callout.info {
+  border-color: var(--info-line);
+  background: var(--info-soft);
+}
+.ui-callout.info .ui-callout-title,
+.ui-callout.info .ui-callout-text {
+  color: var(--info-ink);
+}
+.ui-callout.ok {
+  border-color: var(--ok-line);
+  background: var(--ok-soft);
+}
+.ui-callout.ok .ui-callout-title,
+.ui-callout.ok .ui-callout-text {
+  color: var(--ok-ink);
+}
+
 /* --------------------------------------------------------------- totals */
 /*
  * جدولُ إجماليات المستند: كتلةٌ واحدة بعرضٍ مقروء في الطرف الذي تبدأ منه
@@ -1302,6 +1371,24 @@ a.ui-kpi-cell:hover {
   color: var(--muted);
   text-transform: none;
 }
+/*
+ * بطاقةٌ قديمة تنتهي بجدول: الجدولُ يأخذ عرض البطاقة ويشاركها نصفَ قطرها،
+ * كما في `Panel flush` — وإلا ظهر جدولٌ داخل بطاقة كأنّه بطاقةٌ ثانية.
+ */
+:where(.shell, .ui-page) .card > .table-wrap:last-child {
+  margin: 0 -16px -16px;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+:where(.shell, .ui-page) .card > .table-wrap:last-child table thead th:first-child,
+:where(.shell, .ui-page) .card > .table-wrap:last-child table tbody td:first-child {
+  padding-inline-start: 16px;
+}
+:where(.shell, .ui-page) .card > .table-wrap:last-child table thead th:last-child,
+:where(.shell, .ui-page) .card > .table-wrap:last-child table tbody td:last-child {
+  padding-inline-end: 16px;
+}
 /* شبكةُ النموذج تُعرَّف مرّةً واحدة في طبقة `ui-form-grid` أدناه. */
 :where(.shell, .ui-page) .filters {
   gap: 10px 16px;
@@ -1311,10 +1398,22 @@ a.ui-kpi-cell:hover {
 :where(.shell, .ui-page) .filters > .field {
   margin-block-end: 0;
 }
+/*
+ * `.split` القديم: قائمةٌ ضيّقة (340px) أوّلًا ثم تفصيلٌ واسع — ترتيب
+ * «السيد/التفصيل» الذي تستعمله شاشات المخزون. الشاشات التي تريد العكس
+ * تستعمل `Split` من الكيت (رئيسيٌّ ثم عمود سياق).
+ */
 :where(.shell, .ui-page) .split {
+  display: grid;
   grid-template-columns: 340px minmax(0, 1fr);
   gap: 16px;
+  align-items: start;
   min-width: 0;
+}
+@media (max-width: 1100px) {
+  :where(.shell, .ui-page) .split {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 :where(.shell, .ui-page) .split > * {
   min-width: 0;
@@ -1512,6 +1611,22 @@ a.ui-kpi-cell:hover {
   min-width: 0;
 }
 /*
+ * الحاويةُ لا النافذة: نموذجٌ داخل بطاقةٍ نصفِ العرض لا يحتمل أربعة أعمدة،
+ * والاستعلامُ على عرض الشاشة لا يرى ذلك. لذلك كلُّ سطحٍ يحمل حقولًا يصير
+ * حاويةَ عرض، والشبكةُ تُقاس عليه — تُقلَّص في البطاقة الضيّقة وتتّسع في
+ * الصفحة العريضة، بالقواعد نفسها.
+ */
+/*
+ * جسمُ اللوحة وحده يصير حاويةَ عرض. لا نضعها على `.card` القديمة: بعضُها
+ * `display: grid` بترتيب صفوفٍ صريح، و`container-type` يغيّر حساب ارتفاعها
+ * فيُخرج محتواها عن البطاقة.
+ */
+.ui-panel-body,
+.ui-panel-body-flush {
+  container-type: inline-size;
+}
+
+/*
  * شبكةُ الحقول: اسمٌ واحد للشبكة في التطبيقات كلّها. `.form-grid` (المستعملة في
  * السطوح القديمة) و`.ui-form-grid` (المستعملة في الكيت) تُعرَّفان هنا معًا —
  * نفسُ الفجوة ونفسُ الأعمدة، فلا يخرج نموذجان بتباعدين مختلفين.
@@ -1598,6 +1713,25 @@ a.ui-kpi-cell:hover {
   .ui-form-grid,
   .form-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+/* نفسُ التدرّج لكن على عرض الحاوية: بطاقةٌ بعرض 540px تحمل عمودين لا أربعة. */
+@container (max-width: 720px) {
+  .ui-form-grid,
+  .form-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@container (max-width: 460px) {
+  .ui-form-grid,
+  .ui-form-grid-2,
+  .ui-form-grid-3,
+  .ui-form-grid-4,
+  .form-grid,
+  .form-grid.cols-2,
+  .form-grid.cols-3,
+  .form-grid.cols-4 {
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 @media (max-width: 900px) {
