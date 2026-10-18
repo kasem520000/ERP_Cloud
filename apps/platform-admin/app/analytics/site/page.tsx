@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { ContentPanel, SummaryStat, WorkflowGuide } from '@erp/ui/page';
 import { type SiteAnalytics } from '@erp/contracts';
 
 import { Empty, ErrorBox, Loading, Screen } from '../../../components/screen';
@@ -34,6 +35,14 @@ function count(value: number | undefined): string {
   return value === undefined ? '—' : value.toLocaleString('ar-SA');
 }
 
+function readableDefinition(text: string): string {
+  return text.replaceAll('`page_view`', 'زيارة الصفحة')
+    .replaceAll('`referrer`', 'موقع الإحالة')
+    .replaceAll('`experiment_exposure`', 'مشاهدة نسخة التجربة')
+    .replaceAll(' (UUID)', '')
+    .replaceAll('UUID', 'معرّف عشوائي');
+}
+
 function dayText(value: string): string {
   return new Intl.DateTimeFormat('ar-SA', { day: 'numeric', month: 'short', timeZone: 'UTC' }).format(
     new Date(`${value}T00:00:00.000Z`),
@@ -52,9 +61,16 @@ export default function SiteAnalyticsPage() {
   return (
     <Screen
       title="تحليلات الموقع"
-      subtitle="ما يُقرأ في الموقع التسويقي، وما يُطلب منه — أحداثٌ مجهولة الهوية بعد موافقة الزائر."
+      subtitle="اقرأ الزيارات والأهداف مع تعريف كل رقم وحدود الخصوصية؛ لا تُحسب الأحداث قبل موافقة الزائر."
+      crumbs={['المنصة', 'التحليلات']}
+      actions={<button className="btn" type="button" onClick={query.reload}>تحديث القراءة</button>}
     >
-      <div className="card">
+      <WorkflowGuide title="قراءة تحليلات الموقع" steps={[
+        { title: 'حدّد الفترة', detail: 'قارن العدد في نافذة زمنية واحدة؛ تغيير المدة يطلب قراءة جديدة فقط.' },
+        { title: 'افهم المقام', detail: 'الزائر يختلف عن المشاهدة أو النقرة؛ غياب زوار لا يعني تحويلاً صفرياً.' },
+        { title: 'راجع حدود البيانات', detail: 'انظر إلى ما يُجمع، وما لا يُجمع، ومدة الاحتفاظ قبل تفسير النتائج.' },
+      ]} />
+      <ContentPanel title="فترة التحليل" description="تقرأ كل المؤشرات من استجابة واحدة حتى لا تختلف فترات عرضها.">
         <div className="row">
           <label className="field">
             <span>النافذة</span>
@@ -67,43 +83,78 @@ export default function SiteAnalyticsPage() {
             </select>
           </label>
         </div>
-      </div>
+      </ContentPanel>
 
       {query.status === 'loading' ? <Loading /> : null}
       {query.status === 'forbidden' ? (
-        <Empty title="لا صلاحية" detail="هذه الشاشة تحتاج «قراءة التحليلات» (console.analytics.view)." />
+        <Empty title="لا صلاحية" detail="اطلب صلاحية الاطلاع على تحليلات المنصة." />
       ) : null}
       {query.status === 'error' ? <ErrorBox message={query.error} onRetry={query.reload} /> : null}
 
       {data ? (
         <>
-          <section className="grid cols-2">
-            <article className="card">
-              <h2>الزوّار</h2>
-              <p className="kpi">{count(data.visitors.all)}</p>
-              <p className="small muted">
-                زائرٌ مميّزٌ في النافذة · اليوم: {count(data.visitors.today)}
-              </p>
-            </article>
-            <article className="card">
-              <h2>المشاهدات</h2>
-              <p className="kpi">{count(data.views.all)}</p>
-              <p className="small muted">صفحةٌ مقروءة · اليوم: {count(data.views.today)}</p>
-            </article>
-            <article className="card">
-              <h2>أعلى هدف</h2>
-              <p className="kpi">
-                {data.goals
-                  .filter((goal) => goal.visitors > 0)
-                  .sort((left, right) => right.visitors - left.visitors)[0]?.labelAr ?? '—'}
-              </p>
-              <p className="small muted">من يرتّب الأهداف بأعداد الزوّار لا بالنقرات</p>
-            </article>
-          </section>
+          <ContentPanel title="الخصوصية وحدود القياس" description="تعريف البيانات المجمّعة يأتي من الاستجابة نفسها، لا من افتراضات الشاشة.">
+            <p>{readableDefinition(data.privacy.noteAr)}</p>
+            <div className="grid cols">
+              <div>
+                <h3>يُخزَّن</h3>
+                <ul>
+                  {data.privacy.collected.map((line) => (
+                    <li key={line}>{readableDefinition(line)}</li>
+                  ))}
+                </ul>
+              </div>
+              <div>
+                <h3>لا يُخزَّن أبداً</h3>
+                <ul>
+                  {data.privacy.never.map((line) => (
+                    <li key={line}>{readableDefinition(line)}</li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+            <p className="small muted">
+              مدة الاحتفاظ: {count(data.privacy.retentionDays)} يوماً — الصفوف الأقدم تُحذف آلياً،
+              ولا صفّ خامٌ أبديّ.
+            </p>
+          </ContentPanel>
 
-          <section className="card">
-            <h2>القمع — الأهداف الأربعة</h2>
-            <table className="table">
+          <ContentPanel title="ماذا تعني الأرقام؟" description="اقرأ تعريف الخدمة قبل مقارنة الزائر بالمشاهدة أو الحدث.">
+            <div className="table-wrap"><table className="table">
+              <thead>
+                <tr>
+                  <th>الرقم</th>
+                  <th>ما يعنيه</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.definitions.map((definition) => (
+                  <tr key={definition.key}>
+                    <td>{definition.labelAr}</td>
+                    <td>{readableDefinition(definition.definitionAr)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table></div>
+            <p className="small muted">
+              آخر قراءة: {new Date(data.generatedAt).toLocaleString('ar-SA')} — والشاشة تقرأ ما
+              جمعه الخادم لحظة الطلب، بلا تخزينٍ وسيط.
+            </p>
+          </ContentPanel>
+
+          <ContentPanel title="ملخص الفترة" description="زائر واحد قد يقرأ عدة صفحات وينفذ الحدث نفسه أكثر من مرة.">
+            <div className="grid cols-2">
+              <SummaryStat label="الزوّار" value={count(data.visitors.all)} hint={`اليوم: ${count(data.visitors.today)} · زوّار مميّزون في الفترة`} />
+              <SummaryStat label="المشاهدات" value={count(data.views.all)} hint={`اليوم: ${count(data.views.today)} · صفحات مقروءة`} />
+              <SummaryStat label="أعلى هدف" value={data.goals
+                .filter((goal) => goal.visitors > 0)
+                .sort((left, right) => right.visitors - left.visitors)[0]?.labelAr ?? '—'}
+                hint="مرتب حسب عدد الزوار، لا عدد النقرات" />
+            </div>
+          </ContentPanel>
+
+          <ContentPanel title="خطوات التحويل" description="نسبة كل هدف من زوّار الفترة؛ علامة الشرطة تعني غياب مقام صالح.">
+            <div className="table-wrap"><table className="table">
               <thead>
                 <tr>
                   <th>الهدف</th>
@@ -122,16 +173,15 @@ export default function SiteAnalyticsPage() {
                   </tr>
                 ))}
               </tbody>
-            </table>
+            </table></div>
             <p className="small muted">
               الزوّار مميّزون: زائرٌ ينقر الزرّ ثلاث مرّات يُحسب واحداً — وفرقُ «أحداث − زوّار» هو
               عدد النقرات المتكرّرة.
             </p>
-          </section>
+          </ContentPanel>
 
-          <section className="card">
-            <h2>المنحنى اليومي</h2>
-            <table className="table">
+          <ContentPanel title="التغيّر اليومي" description="تابع اتجاه الزيارات والمشاهدات دون استنتاج تحويل من يوم بلا زوار.">
+            <div className="table-wrap"><table className="table">
               <thead>
                 <tr>
                   <th>اليوم</th>
@@ -148,8 +198,8 @@ export default function SiteAnalyticsPage() {
                   </tr>
                 ))}
               </tbody>
-            </table>
-          </section>
+            </table></div>
+          </ContentPanel>
 
           <section className="grid cols-2">
             <article className="card">
@@ -157,7 +207,7 @@ export default function SiteAnalyticsPage() {
               {data.sources.length === 0 ? (
                 <p className="muted">لا زياراتٍ في النافذة بعد.</p>
               ) : (
-                <table className="table">
+                <div className="table-wrap"><table className="table">
                   <thead>
                     <tr>
                       <th>المصدر</th>
@@ -172,7 +222,7 @@ export default function SiteAnalyticsPage() {
                       </tr>
                     ))}
                   </tbody>
-                </table>
+                </table></div>
               )}
             </article>
 
@@ -181,7 +231,7 @@ export default function SiteAnalyticsPage() {
               {data.paths.length === 0 ? (
                 <p className="muted">لا صفحاتٍ في النافذة بعد.</p>
               ) : (
-                <table className="table">
+                <div className="table-wrap"><table className="table">
                   <thead>
                     <tr>
                       <th>المسار</th>
@@ -198,20 +248,19 @@ export default function SiteAnalyticsPage() {
                       </tr>
                     ))}
                   </tbody>
-                </table>
+                </table></div>
               )}
             </article>
           </section>
 
-          <section className="card">
-            <h2>تجارب أ/ب</h2>
+          <ContentPanel title="نتائج تجارب الصفحات" description="لا تُستنتج فعالية نسخة من نسبة بلا تعرض كافٍ.">
             {data.experiments.length === 0 ? (
               <p className="muted">
-                لا تجربة جارية. تُنشأ من «المحتوى»: صفحةٌ أصلية، ثم صفحةٌ ثانية تُربط بها كنسخة
-                بحرف (a أو b) فتُعلَن للزوّار ويقيسها هذا الجدول.
+                لا تجربة جارية في الفترة. تُنشأ من قسم المحتوى بنسخة أصلية وأخرى بديلة؛
+                تُقارن مشاهدة كل نسخة ببدء الاشتراك بعدها.
               </p>
             ) : (
-              <table className="table">
+              <div className="table-wrap"><table className="table">
                 <thead>
                   <tr>
                     <th>التجربة</th>
@@ -234,60 +283,9 @@ export default function SiteAnalyticsPage() {
                     )),
                   )}
                 </tbody>
-              </table>
+              </table></div>
             )}
-          </section>
-
-          <section className="card">
-            <h2>ماذا يُقاس وماذا لا يُقاس</h2>
-            <p>{data.privacy.noteAr}</p>
-            <div className="grid cols">
-              <div>
-                <h3>يُخزَّن</h3>
-                <ul>
-                  {data.privacy.collected.map((line) => (
-                    <li key={line}>{line}</li>
-                  ))}
-                </ul>
-              </div>
-              <div>
-                <h3>لا يُخزَّن أبداً</h3>
-                <ul>
-                  {data.privacy.never.map((line) => (
-                    <li key={line}>{line}</li>
-                  ))}
-                </ul>
-              </div>
-            </div>
-            <p className="small muted">
-              مدة الاحتفاظ: {count(data.privacy.retentionDays)} يوماً — الصفوف الأقدم تُحذف آلياً،
-              ولا صفّ خامٌ أبديّ.
-            </p>
-          </section>
-
-          <section className="card">
-            <h2>تعريف كل رقم</h2>
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>الرقم</th>
-                  <th>ما يعنيه</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.definitions.map((definition) => (
-                  <tr key={definition.key}>
-                    <td>{definition.labelAr}</td>
-                    <td>{definition.definitionAr}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            <p className="small muted">
-              آخر قراءة: {new Date(data.generatedAt).toLocaleString('ar-SA')} — والشاشة تقرأ ما
-              جمعه الخادم لحظة الطلب، بلا تخزينٍ وسيط.
-            </p>
-          </section>
+          </ContentPanel>
         </>
       ) : null}
     </Screen>
