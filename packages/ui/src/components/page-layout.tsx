@@ -208,3 +208,29 @@ export function PermissionChoice({
     </label>
   );
 }
+
+/** A readable task sequence, not a progress indicator: the app supplies its actual steps. */
+export function WorkflowGuide({
+  title,
+  steps,
+}: {
+  title: string;
+  steps: { title: string; detail: string }[];
+}) {
+  return (
+    <section className="erp-workflow" aria-label={title}>
+      <h2>{title}</h2>
+      <ol>
+        {steps.map((step, index) => (
+          <li key={`${index}-${step.title}`}>
+            <span className="erp-workflow-number" aria-hidden="true">{index + 1}</span>
+            <div>
+              <strong>{step.title}</strong>
+              <p>{step.detail}</p>
+            </div>
+          </li>
+        ))}
+      </ol>
+    </section>
+  );
+}

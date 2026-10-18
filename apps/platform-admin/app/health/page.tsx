@@ -1,14 +1,16 @@
 'use client';
 
+import Link from 'next/link';
+import { ContentPanel, WorkflowGuide } from '@erp/ui/page';
 import { AlertTriangle, Database, Gauge, HardDrive, Mail, RefreshCw, Server, Timer } from 'lucide-react';
 
-import { Screen } from '../../components/screen';
+import { Forbidden, Screen } from '../../components/screen';
 import { Badge } from '../../components/ui/badge';
 import { Button } from '../../components/ui/button';
 import { EmptyState } from '../../components/ui/empty-state';
 import { MetricCard } from '../../components/ui/metric-card';
 import { SkeletonRows } from '../../components/ui/skeleton';
-import { apiBaseUrl, apiData } from '../../lib/api';
+import { apiData } from '../../lib/api';
 import { useQuery } from '../../lib/use-query';
 
 /**
@@ -41,7 +43,7 @@ type Health = {
 
 const PROBE_LABEL: Record<string, string> = {
   database: 'قاعدة البيانات',
-  redis: 'Redis',
+  redis: 'وسيط الرسائل',
   storage: 'مخزن الملفات',
   email: 'البريد',
   queue: 'الطابور',
@@ -77,7 +79,7 @@ export default function HealthPage() {
   return (
     <Screen
       title="صحة النظام"
-      subtitle="مجسّاتٌ تُقاس على الخادم لحظة الطلب، ومعها عدّادات الطلبات وحجم الطابور. «غير مهيّأ» ليس عطلاً — العطل أن يكون شيءٌ مهيّأً ومتوقّفاً."
+      subtitle="راقب الخدمات والطلبات والطابور لتفرّق بين خدمة غير مهيأة وحادثة تحتاج إجراءً."
       crumbs={['المنصة', 'التشغيل']}
       actions={
         <Button variant="secondary" icon={<RefreshCw size={14} />} onClick={health.reload}>
@@ -85,12 +87,20 @@ export default function HealthPage() {
         </Button>
       }
     >
+      <WorkflowGuide
+        title="كيف تقرأ مؤشرات الصحة؟"
+        steps={[
+          { title: 'ابدأ بالحالة العامة', detail: 'حادثة معلنة أو خدمة متوقفة تتطلب متابعة فورية.' },
+          { title: 'راجع كل خدمة', detail: 'غير مهيأة تختلف عن خدمة كانت تعمل ثم توقفت.' },
+          { title: 'افحص الطابور والأخطاء', detail: 'تراكم المهام مع توقف العامل يستدعي فحص التشغيل.' },
+        ]}
+      />
       {health.status === 'loading' ? (
         <div className="rounded-[10px] border border-line bg-surface p-4 shadow-1">
           <SkeletonRows rows={5} />
         </div>
       ) : health.status === 'forbidden' ? (
-        <div className="rounded-[10px] border border-line bg-surface p-4 shadow-1">لا تملك console.health.view.</div>
+        <Forbidden />
       ) : health.status === 'error' ? (
         <EmptyState tone="red" icon={<AlertTriangle size={26} strokeWidth={1.5} />} title="تعذّر الفحص" description={health.error} />
       ) : null}
@@ -108,7 +118,7 @@ export default function HealthPage() {
                   حادثة معلَنة: {data.incident.message ?? 'صيانة جارية'}
                 </p>
                 <p className="m-0 mt-1 text-[12px] text-danger">
-                  اللافتة من platform.maintenance* في إعدادات المنصة — لا نصٌّ في هذه الشاشة.
+                  يظهر إعلان الصيانة للعميل من إعدادات المنصة؛ راجع الرسالة المنشورة قبل تحديثها.
                 </p>
               </div>
             </div>
@@ -128,11 +138,11 @@ export default function HealthPage() {
               </span>
             </span>
             <span className="font-mono text-[12px] text-muted" dir="ltr">
-              uptime {formatDuration(data.uptimeSeconds)}
+              مدة التشغيل: {formatDuration(data.uptimeSeconds)}
             </span>
             <span className="text-[12px] text-muted">آخر فحص {new Date(data.checkedAt).toLocaleTimeString('ar-SA')}</span>
             <span className="ms-auto flex flex-wrap gap-2">
-              <Badge tone={data.backlog.dead > 0 ? 'red' : 'neutral'} dot>ميتة: {data.backlog.dead}</Badge>
+              <Badge tone={data.backlog.dead > 0 ? 'red' : 'neutral'} dot>متعذّرة: {data.backlog.dead}</Badge>
               <Badge tone={data.requests.errorRate > 0.01 ? 'amber' : 'green'} dot>
                 أخطاء {(data.requests.errorRate * 100).toFixed(2)}٪
               </Badge>
@@ -158,7 +168,7 @@ export default function HealthPage() {
                       {PROBE_ICON[probe.name] ?? <Gauge size={16} />}
                     </span>
                     <span className="min-w-0 flex-1">
-                      <span className="block truncate text-[13.5px] font-bold text-ink">{PROBE_LABEL[probe.name] ?? probe.name}</span>
+                      <span className="block truncate text-[13.5px] font-bold text-ink">{PROBE_LABEL[probe.name] ?? 'خدمة إضافية'}</span>
                       <span
                         className={`inline-flex items-center gap-1.5 text-[11.5px] font-bold ${
                           up ? 'text-ok' : down ? 'text-danger' : 'text-warn'
@@ -172,15 +182,15 @@ export default function HealthPage() {
                         ) : (
                           <span className="size-1.5 rounded-full bg-warn" />
                         )}
-                        {STATUS_LABEL[probe.status] ?? probe.status}
+                        {STATUS_LABEL[probe.status] ?? 'قيد الفحص'}
                       </span>
                     </span>
                     <span className="flex-none font-mono text-[12px] font-bold text-muted" dir="ltr">
-                      {probe.latencyMs === null ? '—' : `${probe.latencyMs}ms`}
+                      {probe.latencyMs === null ? '—' : `${probe.latencyMs} ملّي ثانية`}
                     </span>
                   </div>
-                  <p className="m-0 mt-2 truncate text-[11.5px] text-muted" title={probe.detail}>
-                    {probe.detail}
+                  <p className="m-0 mt-2 text-[11.5px] text-muted">
+                    {probe.status === 'up' ? 'تستجيب للفحص الحالي.' : probe.status === 'not_configured' ? 'لم تُفعّل لهذه البيئة.' : probe.status === 'degraded' ? 'تحتاج متابعة؛ بعض الوظائف قد تتأخر.' : 'تعذّر الوصول إليها في هذا الفحص.'}
                   </p>
                 </div>
               );
@@ -193,7 +203,7 @@ export default function HealthPage() {
               <h3 className="m-0 mb-3 text-[15px] font-bold text-ink">الطلبات</h3>
               <div className="grid grid-cols-2 gap-3">
                 <MetricCard label="العدد الكلي" value={data.requests.count} tone="violet" delay={0} />
-                <MetricCard label="أخطاء 5xx" value={data.requests.errors} tone={data.requests.errors > 0 ? 'red' : 'green'} delay={0.04} />
+                <MetricCard label="أخطاء الخادم" value={data.requests.errors} tone={data.requests.errors > 0 ? 'red' : 'green'} delay={0.04} />
                 <MetricCard
                   label="نسبة الخطأ"
                   value={Number((data.requests.errorRate * 100).toFixed(2))}
@@ -201,11 +211,10 @@ export default function HealthPage() {
                   tone={data.requests.errorRate > 0.01 ? 'amber' : 'green'}
                   delay={0.08}
                 />
-                <MetricCard label="p95" value={data.requests.p95Ms} suffix="ms" tone="sky" delay={0.12} />
+                <MetricCard label="زمن 95٪ من الطلبات" value={data.requests.p95Ms} suffix="ملّي ثانية" tone="sky" delay={0.12} />
               </div>
               <p className="m-0 mt-3 text-[11.5px] text-muted leading-relaxed">
-                الأرقام من عدّاد العملية ودلائها (تُجمع من كل مسار) — لا من تخزينٍ ثانٍ ولا من تقدير. p95 هي أقلّ
-                دلوٍّ يغطّي 95٪ من الطلبات.
+                هذه الأرقام تقيس الطلبات منذ بدء تشغيل الخدمة. زمن الاستجابة المعروض هو الحد الذي اكتمل خلاله 95٪ من الطلبات.
               </p>
             </section>
 
@@ -219,7 +228,7 @@ export default function HealthPage() {
                   delay={0.04}
                 />
                 <MetricCard label="نُشرت" value={data.backlog.published} tone="sky" delay={0.08} />
-                <MetricCard label="ميتة" value={data.backlog.dead} tone={data.backlog.dead > 0 ? 'red' : 'green'} delay={0.12} />
+                <MetricCard label="متعذّرة" value={data.backlog.dead} tone={data.backlog.dead > 0 ? 'red' : 'green'} delay={0.12} />
                 <div className="rounded-xl border border-line bg-surface-2 p-3">
                   <p className="m-0 text-[11.5px] font-bold text-muted">أقدم معلَّقة</p>
                   <p className="m-0 mt-1 font-mono text-[18px] font-bold text-ink-2" dir="ltr">
@@ -233,25 +242,13 @@ export default function HealthPage() {
             </section>
           </div>
 
-          {/* local API note */}
-          <section className="mt-3 rounded-[10px] border border-line bg-surface p-4 shadow-1">
-            <dl className="m-0 grid gap-2 md:grid-cols-2">
-              <div>
-                <dt className="text-[12px] font-bold text-muted m-0">عنوان الـ API المستخدم</dt>
-                <dd className="m-0 mt-0.5 font-mono text-[12.5px] text-ink-2" dir="ltr">{apiBaseUrl}</dd>
-              </div>
-              <div>
-                <dt className="text-[12px] font-bold text-muted m-0">وضع الاتصال</dt>
-                <dd className="m-0 mt-0.5 text-[12.5px] text-ink-2">
-                  {apiBaseUrl.startsWith('/') ? 'نفس المصدر عبر وسيط Next.js (موصى به)' : 'مصدر خارجي — يتطلب ضبط CORS'}
-                </dd>
-              </div>
-            </dl>
-            <p className="m-0 mt-3 text-[11.5px] text-muted">
-              هذه الصفحة تقرأ من الـAPI نفسه، فوصولها دليلٌ على أن الجلسة والوسيط سليمان — أما المجسّات أعلاه فهي
-              التي تُجيب «هل الخدمة بخير؟».
-            </p>
-          </section>
+          <ContentPanel title="الخطوة التالية" description="تحديد موضع العطل يسبق أي تعديل في الإعدادات أو إعادة تشغيل المهام.">
+            <div className="erp-page-actions">
+              <Link className="btn" href="/jobs">مراجعة المهام والطوابير</Link>
+              <Link className="btn" href="/tickets">فتح طلبات الدعم</Link>
+              <Link className="btn" href="/settings">مراجعة رسالة الصيانة</Link>
+            </div>
+          </ContentPanel>
         </>
       )}
     </Screen>

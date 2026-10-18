@@ -1,8 +1,9 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { ContentPanel, WorkflowGuide } from '@erp/ui/page';
 
-import { Empty, ErrorBox, Loading, Screen } from '../../components/screen';
+import { ErrorBox, Forbidden, Loading, Screen } from '../../components/screen';
 import { ApiError, apiData, apiPut } from '../../lib/api';
 import { useSession } from '../../lib/session';
 import { useQuery } from '../../lib/use-query';
@@ -74,6 +75,29 @@ function fromDraft(setting: SettingView, draft: string): unknown {
   }
 }
 
+const SETTING_GROUPS = [
+  { key: 'support', title: 'التواصل والدعم', detail: 'قنوات تواصل العملاء الظاهرة في واجهات المنصة.' },
+  { key: 'billing', title: 'الفوترة والاشتراكات', detail: 'هوية الفاتورة ومواعيد الاستحقاق والمتابعة.' },
+  { key: 'limits', title: 'حدود المنشآت', detail: 'قيم تبدأ بها المنشآت الجديدة ما لم تُخصَّص لها حدود أخرى.' },
+  { key: 'platform', title: 'تشغيل المنصة', detail: 'النطاقات العامة ورسالة الصيانة.' },
+  { key: 'site', title: 'هوية الموقع', detail: 'النصوص واللغة والنطاق الظاهر للزائر.' },
+  { key: 'branding', title: 'هوية المراسلات', detail: 'الشعار والاسم المستخدمان في التواصل مع العملاء.' },
+  { key: 'ocr', title: 'قراءة المستندات', detail: 'وجهة معالجة فواتير الشراء المرفوعة.' },
+  { key: 'report', title: 'التقرير الأسبوعي', detail: 'جدولة التقرير والمستلمون.' },
+  { key: 'other', title: 'إعدادات إضافية', detail: 'حقول أخرى أتاحها فهرس المنصة.' },
+] as const;
+const settingGroup = (key: string) => SETTING_GROUPS.some((group) => group.key === key.split('.')[0])
+  ? key.split('.')[0]
+  : 'other';
+const HELP_AR: Record<string, string> = {
+  'ocr.provider': 'اختر الخدمة التي تستخرج حقول فواتير الشراء. يُدار مفتاحها السري لدى مسؤول النظام.',
+  'ocr.endpoint': 'عنوان الخدمة التي تستقبل ملف الفاتورة وتعيد البيانات المستخرجة.',
+  'limits.max_api_calls_per_day': 'العدد اليومي للطلبات المسموح به لمنشأة جديدة قبل تطبيق الحد.',
+  'limits.max_emails_per_month': 'حد الرسائل الشهرية لمنشأة جديدة عند تفعيل خدمة البريد.',
+  'site.company_legal_name': 'الاسم القانوني الذي يظهر في تذييل الموقع وبيانات تعريفه.',
+  'report.weekly_hour': 'ساعة إرسال التقرير حسب توقيت الخادم، من صفر إلى 23.',
+};
+
 export default function PlatformSettingsPage() {
   const { canConsole } = useSession();
   const canWrite = canConsole('console.settings.manage');
@@ -81,11 +105,16 @@ export default function PlatformSettingsPage() {
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [message, setMessage] = useState<{ kind: 'ok' | 'danger'; text: string } | undefined>();
   const [busy, setBusy] = useState(false);
+  const [category, setCategory] = useState('all');
+  const settingRows = settings.data?.settings ?? [];
+  const dirtyCount = settingRows.filter((setting) =>
+    (drafts[setting.key] ?? toDraft(setting)) !== toDraft(setting),
+  ).length;
 
   useEffect(() => {
     if (!settings.data) return;
     setDrafts(
-      Object.fromEntries(settings.data.settings.map((setting) => [setting.key, toDraft(setting)])),
+      Object.fromEntries(settingRows.map((setting) => [setting.key, toDraft(setting)])),
     );
   }, [settings.data]);
 
@@ -95,7 +124,7 @@ export default function PlatformSettingsPage() {
     setMessage(undefined);
     try {
       const values = Object.fromEntries(
-        settings.data.settings.map((setting) => [setting.key, fromDraft(setting, drafts[setting.key] ?? '')]),
+        settingRows.map((setting) => [setting.key, fromDraft(setting, drafts[setting.key] ?? toDraft(setting))]),
       );
       await apiPut('/platform/settings', { values });
       setMessage({ kind: 'ok', text: 'حُفظت إعدادات المنصة، وسُجِّل التغيير في التدقيق.' });
@@ -113,28 +142,39 @@ export default function PlatformSettingsPage() {
   return (
     <Screen
       title="إعدادات المنصة"
-      subtitle="ما كان يُضبط بتحرير ملف البيئة على المضيف: جهات اتصال الدعم، نطاقات الخدمة، الحدود الافتراضية، مفتاح الصيانة، وبيانات الفاتورة الضريبية (P-C4)."
-      crumbs={['المنصة', 'المنصة', 'الإعدادات']}
+      subtitle="إدارة هوية المنصة وقنوات الدعم والفوترة والحدود التشغيلية من مكان واحد."
+      crumbs={['المنصة', 'الإعدادات']}
       actions={
         <>
-          <button className="btn" type="button" onClick={settings.reload}>
-            تحديث
+          <button className="btn" type="button" onClick={() => {
+            if (dirtyCount > 0 && !window.confirm('ستُفقد التعديلات غير المحفوظة. هل تريد تحديث الإعدادات؟')) return;
+            settings.reload();
+          }}>
+            تحديث البيانات
           </button>
-          <button className="btn primary" type="button" disabled={!canWrite || busy} onClick={() => void save()}>
-            {busy ? 'جارٍ الحفظ…' : 'حفظ'}
+          <button className="btn primary" type="button" disabled={!canWrite || busy || dirtyCount === 0} onClick={() => void save()}>
+            {busy ? 'جارٍ الحفظ…' : `حفظ التغييرات (${dirtyCount})`}
           </button>
         </>
       }
     >
+      <WorkflowGuide
+        title="قبل تعديل إعدادات المنصة"
+        steps={[
+          { title: 'اختر المجال', detail: 'تظهر الحقول وفق فهرس الإعدادات المعتمد لدى المنصة.' },
+          { title: 'راجع ما تغيّر', detail: 'قارن القيمة المخصصة بالافتراضية قبل تطبيقها على العملاء.' },
+          { title: 'احفظ التعديلات', detail: 'يسجّل النظام التغيير ويُطبّقه على مستوى المنصة.' },
+        ]}
+      />
       {settings.status === 'loading' && <Loading rows={5} />}
       {settings.status === 'error' && <ErrorBox message={settings.error} onRetry={settings.reload} />}
-      {settings.status === 'forbidden' && <Empty title="لا تملك صلاحية قراءة إعدادات المنصة" />}
+      {settings.status === 'forbidden' && <Forbidden />}
 
       {settings.data && (
         <>
           {!canWrite && (
             <p className="alert warn">
-              العرض للقراءة فقط: الكتابة تحتاج الرمز <code dir="ltr">console.settings.manage</code>.
+              هذه الصفحة للقراءة فقط. اطلب صلاحية إدارة إعدادات المنصة من مالكها إذا احتجت إلى التعديل.
             </p>
           )}
           {message && <p className={`alert ${message.kind === 'ok' ? 'ok' : 'danger'}`}>{message.text}</p>}
@@ -145,31 +185,39 @@ export default function PlatformSettingsPage() {
               <dd>
                 <span className={`badge ${settings.data.environment.name === 'production' ? 'failed' : 'pending'}`}>
                   {settings.data.environment.labelAr}
-                </span>{' '}
-                <span className="muted small" dir="ltr">
-                  {settings.data.environment.name}
                 </span>
               </dd>
               <dt>عدد الإعدادات</dt>
-              <dd>{settings.data.settings.length}</dd>
+              <dd>{settingRows.length}</dd>
               <dt>النطاق</dt>
               <dd>المنصة كلها (تُطبَّق على كل عميل ما لم يكن له تجاوز خاص)</dd>
             </dl>
           </div>
 
-          <div className="grid cols-2">
-            {settings.data.settings.map((setting) => (
+          <nav className="erp-settings-nav no-print" aria-label="مجالات إعدادات المنصة">
+            <button type="button" className={`btn sm ${category === 'all' ? 'primary' : ''}`} aria-pressed={category === 'all'} onClick={() => setCategory('all')}>كل المجالات</button>
+            {SETTING_GROUPS.filter((group) => settingRows.some((setting) => settingGroup(setting.key) === group.key)).map((group) => (
+              <button key={group.key} type="button" className={`btn sm ${category === group.key ? 'primary' : ''}`} aria-pressed={category === group.key} onClick={() => setCategory(group.key)}>{group.title}</button>
+            ))}
+          </nav>
+          {dirtyCount > 0 && <p className="alert info" role="status">لديك {dirtyCount} إعدادات معدّلة لم تُحفظ بعد. راجعها قبل مغادرة الصفحة.</p>}
+          {SETTING_GROUPS.filter((group) =>
+            (category === 'all' || category === group.key) && settingRows.some((setting) => settingGroup(setting.key) === group.key),
+          ).map((group) => (
+            <ContentPanel key={group.key} title={group.title} description={group.detail}>
+              <div className="grid cols-2">
+              {settingRows.filter((setting) => settingGroup(setting.key) === group.key).map((setting) => (
               <section className="card" key={setting.key}>
                 <div className="row" style={{ justifyContent: 'space-between', alignItems: 'baseline' }}>
                   <h2 style={{ marginBottom: 0 }}>{setting.labelAr}</h2>
                   <span className={`badge ${setting.isDefault ? 'planned' : 'ready'}`}>
-                    {setting.isDefault ? 'القيمة الافتراضية' : 'مكتوبة'}
+                    {setting.isDefault ? 'القيمة الافتراضية' : 'قيمة مخصصة'}
                   </span>
                 </div>
-                <p className="muted small">{setting.helpAr}</p>
+                <p className="muted small">{HELP_AR[setting.key] ?? setting.helpAr}</p>
 
                 <label className="field">
-                  <span dir="ltr">{setting.key}</span>
+                  <span className="sr-only">{setting.labelAr}</span>
                   {setting.kind === 'boolean' ? (
                     <select
                       className="input"
@@ -228,8 +276,10 @@ export default function PlatformSettingsPage() {
                     : 'لم تُكتب منذ إنشاء المنصة'}
                 </p>
               </section>
-            ))}
-          </div>
+              ))}
+              </div>
+            </ContentPanel>
+          ))}
         </>
       )}
     </Screen>

@@ -574,6 +574,26 @@ h6 {
 .erp-role-content > p { margin: 0; }
 .erp-role-actions { display: grid; gap: var(--ui-space-3); padding: var(--ui-space-4); border-radius: var(--radius-md); background: var(--surface-2); }
 .erp-role-actions .erp-field { max-width: 440px; }
+/* Contextual workflow steps and case summaries for operations screens. */
+.erp-workflow { min-width: 0; border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--surface); padding: var(--ui-space-4); }
+.erp-workflow h2 { margin: 0 0 var(--ui-space-3); font-size: 15px; }
+.erp-workflow ol { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--ui-space-3); margin: 0; padding: 0; list-style: none; }
+.erp-workflow li { display: flex; align-items: flex-start; gap: var(--ui-space-2); min-width: 0; }
+.erp-workflow-number { display: grid; flex: none; place-items: center; width: 25px; height: 25px; border-radius: var(--radius-sm); background: var(--brand-soft); color: var(--brand-ink); font-size: 12px; font-weight: 800; }
+.erp-workflow li strong { font-size: 12.5px; }
+.erp-workflow li p { margin: 3px 0 0; color: var(--muted); font-size: 11.5px; line-height: 1.5; }
+.erp-case-list { display: grid; gap: var(--ui-space-3); }
+.erp-case { display: grid; gap: var(--ui-space-3); padding: var(--ui-space-4); border: 1px solid var(--line); border-radius: var(--radius-md); background: var(--surface); min-width: 0; }
+.erp-case header { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--ui-space-2); align-items: start; }
+.erp-case header h3 { margin: 0; font-size: 15px; }
+.erp-case header p { margin: 3px 0 0; color: var(--muted); font-size: 12px; }
+.erp-case dl { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: var(--ui-space-2); margin: 0; }
+.erp-case dl > div { min-width: 0; padding: var(--ui-space-2); background: var(--surface-2); border-radius: var(--radius-sm); }
+.erp-case dt { color: var(--muted); font-size: 11px; }
+.erp-case dd { margin: 4px 0 0; font-size: 13px; font-weight: 700; overflow-wrap: anywhere; }
+.erp-case blockquote { margin: 0; padding-inline-start: var(--ui-space-3); border-inline-start: 3px solid var(--line-strong); color: var(--muted); font-size: 12px; }
+.erp-case footer { display: flex; flex-wrap: wrap; gap: var(--ui-space-2); align-items: center; border-block-start: 1px solid var(--line); padding-block-start: var(--ui-space-3); }
+@media (max-width: 640px) { .erp-workflow ol, .erp-case dl { grid-template-columns: 1fr; } }
 @media (max-width: 960px) { .erp-access-overview { grid-template-columns: 1fr; } }
 @media (max-width: 640px) {
   .erp-access-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); }

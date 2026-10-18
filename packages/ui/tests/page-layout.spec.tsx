@@ -1,7 +1,7 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 
-import { AccessOverview, ContentPanel, FormField, PageFrame, PageHeader, PermissionChoice, SummaryStat, TableViewport, ViewNotice } from '../src/components/page-layout';
+import { AccessOverview, ContentPanel, FormField, PageFrame, PageHeader, PermissionChoice, SummaryStat, TableViewport, ViewNotice, WorkflowGuide } from '../src/components/page-layout';
 
 describe('operational page anatomy', () => {
   it('renders one semantic heading and keeps actions separate from content', () => {
@@ -34,6 +34,17 @@ describe('operational page anatomy', () => {
     expect(html).toMatch(/<input[^>]*type="checkbox"[^>]*disabled=""[^>]*checked=""/);
     expect(html).toContain('data-changed="true"');
     expect(html).toContain('تغيير غير محفوظ');
+  });
+
+  it('presents a domain-owned workflow as ordered steps, not fabricated progress', () => {
+    const html = renderToStaticMarkup(<WorkflowGuide title="معالجة الطلب" steps={[
+      { title: 'مراجعة', detail: 'تحقق من المنشأة' },
+      { title: 'قرار', detail: 'سجّل القرار' },
+    ]} />);
+    expect(html).toContain('aria-label="معالجة الطلب"');
+    expect(html.match(/<li>/g)).toHaveLength(2);
+    expect(html).toContain('تحقق من المنشأة');
+    expect(html).not.toContain('aria-valuenow');
   });
 
   it('pairs a real label with a field and presents an error', () => {

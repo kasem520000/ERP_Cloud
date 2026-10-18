@@ -1,5 +1,6 @@
 'use client';
 
+import { WorkflowGuide } from '@erp/ui/page';
 import {
   AlertTriangle,
   BadgeDollarSign,
@@ -11,7 +12,7 @@ import {
   Wallet,
 } from 'lucide-react';
 
-import { Screen } from '../../components/screen';
+import { Forbidden, Screen } from '../../components/screen';
 import { Badge } from '../../components/ui/badge';
 import { Button } from '../../components/ui/button';
 import { AreaCardChart } from '../../components/ui/chart';
@@ -86,7 +87,7 @@ export default function RevenuePage() {
   return (
     <Screen
       title="الإيراد"
-      subtitle="الإيراد المتكرّر والمتأخّر: أرقام شهرية واحدة، بتعريف مكتوب."
+      subtitle="إيراد الاشتراكات والتحصيل والفواتير المتأخرة، مع التفريق بين قيمة العقود والمبالغ المقبوضة."
       crumbs={['المنصة', 'العملاء والتراخيص']}
       actions={
         <Button variant="secondary" icon={<RefreshCw size={14} />} onClick={() => { revenue.reload(); series.reload(); }}>
@@ -94,10 +95,20 @@ export default function RevenuePage() {
         </Button>
       }
     >
+      <WorkflowGuide
+        title="كيف تُقرأ الإيرادات؟"
+        steps={[
+          { title: 'قيمة العقود', detail: 'الشهري والسنوي مكافئ التراخيص السارية؛ ليسا نقداً محصلاً.' },
+          { title: 'المبالغ المتأخرة', detail: 'الفواتير التي تجاوزت تاريخ الاستحقاق ولم تُسدّد بالكامل.' },
+          { title: 'التحصيل الفعلي', detail: 'دفعات مسجلة في هذا الشهر، مستقلة عن قيمة العقود.' },
+        ]}
+      />
       {revenue.status === 'loading' ? (
         <div className="rounded-[10px] border border-line bg-surface p-4 shadow-1">
           <SkeletonRows rows={6} />
         </div>
+      ) : revenue.status === 'forbidden' ? (
+        <Forbidden />
       ) : revenue.status === 'error' ? (
         <EmptyState tone="red" icon={<Wallet size={26} strokeWidth={1.5} />} title="تعذر تحميل الإيراد" description={revenue.error} />
       ) : data ? (
@@ -105,7 +116,7 @@ export default function RevenuePage() {
           {/* top metrics */}
           <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
             <MetricCard
-              label="MRR — شهري متكرر"
+              label="الإيراد الشهري المتكرر"
               value={num(data.mrr)}
               suffix={currency}
               tone="violet"
@@ -113,12 +124,12 @@ export default function RevenuePage() {
               hint="الفعّال + المتأخّر (ما زال متعاقداً)"
             />
             <MetricCard
-              label="ARR — سنوي متكرر"
+              label="الإيراد السنوي المتكرر"
               value={num(data.arr)}
               suffix={currency}
               tone="sky"
               icon={<TrendingUp size={16} />}
-              hint="MRR × 12"
+              hint="الإيراد الشهري × 12"
               delay={0.05}
             />
             <MetricCard
@@ -146,7 +157,7 @@ export default function RevenuePage() {
             <section className="rounded-[10px] border border-line bg-surface p-4 shadow-1">
               <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
                 <div>
-                  <h3 className="m-0 text-[15px] font-bold text-ink">منحنى MRR — 12 شهراً</h3>
+                  <h3 className="m-0 text-[15px] font-bold text-ink">اتجاه الإيراد الشهري خلال 12 شهراً</h3>
                   <p className="m-0 mt-0.5 text-[12px] text-muted">الإيراد الشهري المتكرر كما حُسب في العقود (بلا رسومٍ بلا معنى).</p>
                 </div>
                 {data.mixedCurrency ? (
@@ -160,7 +171,7 @@ export default function RevenuePage() {
                   data={(series.data?.mrrSeries ?? []).map((p) => ({ month: monthLabel(p.month), mrr: num(p.mrr) }))}
                   xKey="month"
                   dataKey="mrr"
-                  name="MRR"
+                  name="الإيراد الشهري"
                   height={300}
                   color="var(--color-chart-2)"
                   formatter={(v) => `${fmt(v)} ${currency}`}

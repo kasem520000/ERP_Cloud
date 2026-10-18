@@ -1,6 +1,8 @@
 'use client';
 
 import { useState } from 'react';
+import { ContentPanel, WorkflowGuide } from '@erp/ui/page';
+import { arabicErrorText } from '@erp/web-core/error-language';
 import {
   Activity,
   Ban,
@@ -55,7 +57,7 @@ type Heartbeat = { running: boolean; enabled: boolean; oldestPendingAgeSeconds: 
 const STATUS_LABEL: Record<string, string> = {
   pending: 'بانتظار النشر',
   published: 'نُشرت',
-  dead: 'ميتة',
+  dead: 'متعذّرة',
 };
 
 export default function JobsPage() {
@@ -84,7 +86,7 @@ export default function JobsPage() {
 
   async function act(row: JobRow, action: 'retry' | 'cancel') {
     const verb = action === 'retry' ? 'إعادة' : 'إلغاء';
-    if (!window.confirm(`${verb} المهمّة «${row.type}» للعميل ${row.tenantCode ?? row.tenantId.slice(0, 8)}؟`)) {
+    if (!window.confirm(`${verb} المهمّة «${jobTypeText(row.type)}» للعميل ${row.tenantCode ?? row.tenantId.slice(0, 8)}؟`)) {
       return;
     }
     setBusyId(row.id);
@@ -98,8 +100,8 @@ export default function JobsPage() {
         kind: 'ok',
         text:
           action === 'retry'
-            ? `أُعيدت «${updated.type}» إلى الطابور بمحاولاتٍ مصفَّرة (${updated.status}).`
-            : `أُلغيت «${updated.type}» فصارت ${STATUS_LABEL[updated.status] ?? updated.status} بسببٍ مسجَّل.`,
+            ? `أُعيدت المهمة إلى الطابور بمحاولاتٍ مصفَّرة (${STATUS_LABEL[updated.status] ?? 'بانتظار النشر'}).`
+            : `أُلغيت المهمة فصارت ${STATUS_LABEL[updated.status] ?? 'مغلقة'} بسببٍ مسجَّل.`,
       });
       jobs.reload();
       heartbeat.reload();
@@ -117,7 +119,7 @@ export default function JobsPage() {
   return (
     <Screen
       title="المهام والطوابير"
-      subtitle="صندوق الأحداث الصادرة (outbox) عبر كل العملاء: ما بانتظار النشر، وما فشل، ومتى — مع إعادة المحاولة والإلغاء بسببٍ مكتوب."
+      subtitle="تابع مهام الإرسال لجميع العملاء، وراجع المتوقف منها قبل إعادة المحاولة أو الإلغاء بسبب مكتوب."
       crumbs={['المنصة', 'التشغيل']}
       actions={
         <>
@@ -126,6 +128,14 @@ export default function JobsPage() {
         </>
       }
     >
+      <WorkflowGuide
+        title="معالجة المهام دون تكرار التنفيذ"
+        steps={[
+          { title: 'اعزل ما يحتاج انتباهاً', detail: 'اختر الحالة أو المنشأة لعرض الصفوف ذات الصلة.' },
+          { title: 'راجع الاستحقاق والخطأ', detail: 'افحص وقت المهمة وما حال دون تنفيذها قبل اتخاذ إجراء.' },
+          { title: 'دوّن السبب وأكد', detail: 'إعادة المحاولة أو الإلغاء متاحة للصفوف غير المنشورة فقط وتسجل في المراجعة.' },
+        ]}
+      />
       {/* runner heartbeat */}
       {heartbeat.status === 'success' ? (
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-[10px] border border-line bg-surface px-4 py-3 shadow-1 no-print">
@@ -135,11 +145,11 @@ export default function JobsPage() {
               <span className={`relative inline-flex size-2.5 rounded-full ${running ? 'bg-ok' : 'bg-line-raised'}`} />
             </span>
             <span className={running ? 'text-ok-ink' : 'text-muted'}>
-              {running ? 'عاملٌ يعمل' : 'لا عامل يعمل (WORKER=0)'}
+              {running ? 'عاملٌ يعمل' : 'عامل التنفيذ متوقف'}
             </span>
           </span>
           <Badge tone={enabled ? 'green' : 'amber'} dot>
-            <Wifi size={11} /> {enabled ? 'الطابور موصول (Redis)' : 'الطابور في القاعدة فقط'}
+            <Wifi size={11} /> {enabled ? 'الطابور متصل' : 'الطابور في القاعدة فقط'}
           </Badge>
           <span className="font-mono text-[12px] text-muted" dir="ltr">
             {oldest === null ? 'لا صفوف معلَّقة الآن.' : `أقدم صفٍّ معلَّق قبل ${formatAge(oldest)}.`}
@@ -152,17 +162,17 @@ export default function JobsPage() {
       ) : null}
 
       {/* filter bar */}
-      <div className="mt-3 rounded-[10px] border border-line bg-surface p-3 shadow-1 no-print">
+      <ContentPanel title="تصفية المهام وإدارة الإجراء" description="غيّر المرشحات دون التأثير على الصفوف؛ لا يُرسل أي إجراء قبل التأكيد." className="no-print">
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
           <div style={{ minWidth: 160 }}>
             <Select label="الحالة" value={status} onChange={(e) => setStatus(e.target.value)}>
               <option value="">الكل</option>
               <option value="pending">بانتظار النشر</option>
               <option value="published">نُشرت</option>
-              <option value="dead">ميتة</option>
+              <option value="dead">متعذّرة</option>
             </Select>
           </div>
-          <Input label="معرّف العميل (اختياري)" dir="ltr" placeholder="uuid" value={onlyTenant} onChange={(e) => setOnlyTenant(e.target.value)} />
+          <Input label="معرّف المنشأة (اختياري)" dir="ltr" placeholder="معرّف المنشأة" value={onlyTenant} onChange={(e) => setOnlyTenant(e.target.value)} />
           <Input
             label={canManage ? 'سبب الفعل (يُسجَّل في التدقيق — 5 محارف على الأقل)' : 'ملاحظاتك'}
             placeholder="مثال: مزوّد البريد عاد للعمل بعد انقطاع"
@@ -174,15 +184,16 @@ export default function JobsPage() {
         <p className="m-0 mt-2 text-[11.5px] text-muted">
           {canManage
             ? 'الإجراءان يظهران على الصفوف المعلَّقة والميتة فقط. المهمّة التي نُفِّذت لا تُعاد: تنفيذُ ما نُفِّذ مرّتين قرارُ ناشره لا قرار لوحة المنصة.'
-            : 'صلاحيتك تسمح بالقراءة فقط (console.jobs.view): لا إعادة ولا إلغاء من هنا، ولا يظهران.'}
+            : 'هذه الصفحة للقراءة فقط لحسابك؛ لا تظهر إجراءات إعادة المحاولة أو الإلغاء.'}
         </p>
-      </div>
+      </ContentPanel>
 
       {notice ? (
         <div
           className={`mt-3 flex items-center gap-2 rounded-[10px] border px-4 py-2.5 text-[13px] font-semibold ${
             notice.kind === 'ok' ? 'border-ok-line bg-ok-soft text-ok-ink' : 'border-danger-line bg-danger-soft text-danger-ink'
           }`}
+          role={notice.kind === 'danger' ? 'alert' : 'status'}
         >
           {notice.text}
         </div>
@@ -222,8 +233,13 @@ export default function JobsPage() {
                   header: 'العميل',
                   cell: (row) => <span className="font-mono text-[12px] font-semibold text-ink-2" dir="ltr">{row.tenantCode ?? row.tenantId.slice(0, 8)}</span>,
                 },
-                { key: 'queue', header: 'الطابور', cell: (row) => <span className="font-mono text-[11.5px] text-muted" dir="ltr">{row.queue}</span> },
-                { key: 'type', header: 'النوع', cell: (row) => <span className="font-mono text-[11.5px] text-ink-2" dir="ltr">{row.type}</span> },
+                { key: 'queue', header: 'الوجهة', cell: (row) => <span className="text-[11.5px] text-muted">{queueLabel(row.queue)}</span> },
+                { key: 'type', header: 'الحدث', cell: (row) => (
+                  <details className="text-[11.5px] text-ink-2">
+                    <summary className="cursor-pointer font-bold">{jobTypeText(row.type)}</summary>
+                    <code dir="ltr">{row.type}</code>
+                  </details>
+                ) },
                 {
                   key: 'status',
                   header: 'الحالة',
@@ -251,18 +267,19 @@ export default function JobsPage() {
                 },
                 {
                   key: 'payload',
-                  header: 'مفاتيح الحمولة',
+                  header: 'تفاصيل الحدث',
                   cell: (row) =>
                     row.payloadKeys.length === 0 ? (
                       <span className="text-muted">—</span>
                     ) : (
-                      <span className="flex flex-wrap gap-1" dir="ltr">
-                        {row.payloadKeys.map((key) => (
-                          <span key={key} className="rounded-md border border-line bg-surface-2 px-1.5 py-0.5 font-mono text-[10.5px] text-muted">
-                            {key}
-                          </span>
-                        ))}
-                      </span>
+                      <details className="text-[11.5px] text-muted">
+                        <summary className="cursor-pointer">عرض الحقول المرتبطة</summary>
+                        <span className="flex flex-wrap gap-1" dir="ltr">
+                          {row.payloadKeys.map((key) => (
+                            <span key={key} className="rounded-md border border-line bg-surface-2 px-1.5 py-0.5 font-mono text-[10.5px] text-muted">{key}</span>
+                          ))}
+                        </span>
+                      </details>
                     ),
                 },
                 {
@@ -270,8 +287,8 @@ export default function JobsPage() {
                   header: 'آخر خطأ',
                   cell: (row) =>
                     row.lastError ? (
-                      <span className="block max-w-[260px] truncate font-mono text-[11px] text-danger" dir="ltr" title={row.lastError}>
-                        {row.lastError}
+                      <span className="block max-w-[260px] text-[11.5px] text-danger" title="يمكن مراجعة تفاصيل الخطأ في سجل المراجعة">
+                        {arabicErrorText(new Error(row.lastError), 'تعذّر تنفيذ المهمة؛ راجع السجل التشغيلي.')}
                       </span>
                     ) : (
                       <span className="text-muted">—</span>
@@ -327,6 +344,21 @@ function formatAge(seconds: number): string {
 }
 
 function apiMessage(error: unknown): string {
-  if (error instanceof Error) return error.message;
-  return String(error);
+  return arabicErrorText(error, 'تعذّر تنفيذ الإجراء. أعد المحاولة أو راجع سجل المهام.');
+}
+
+/** Translate the operational family; an uncommon identifier stays available on disclosure. */
+function jobTypeText(type: string): string {
+  if (/invoice|billing|payment/i.test(type)) return 'مستند أو إشعار مالي';
+  if (/email|mail/i.test(type)) return 'رسالة بريد';
+  if (/whatsapp|sms/i.test(type)) return 'رسالة للعميل';
+  if (/notification|push/i.test(type)) return 'إشعار';
+  if (/report|export/i.test(type)) return 'تقرير أو تصدير';
+  return 'مهمة تشغيلية';
+}
+
+function queueLabel(queue: string): string {
+  if (/mail|email/i.test(queue)) return 'طابور البريد';
+  if (/notification|message/i.test(queue)) return 'طابور الرسائل';
+  return 'طابور المعالجة';
 }
