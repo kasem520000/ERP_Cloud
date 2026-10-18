@@ -1,9 +1,15 @@
 'use client';
 
+import { Page, PageHead, Panel } from '@erp/ui';
 import { useEffect, useState } from 'react';
 
 import { ApiError, apiData, apiPost } from '../../../lib/api';
-import { clearSyncedPunches, enqueuePunch, readPunchQueue, type OfflinePunch } from '../../../lib/employee-offline';
+import {
+  clearSyncedPunches,
+  enqueuePunch,
+  readPunchQueue,
+  type OfflinePunch,
+} from '../../../lib/employee-offline';
 
 type TodayRow = { id: string; type: string; status: string; at: string; distance_meters?: number | null };
 
@@ -45,13 +51,16 @@ export default function AttendancePage() {
     try {
       // If browser GPS is blocked or unavailable on desktop, fall back to default coordinates so attendance still works
       const point = await locate().catch(() => ({ lat: 24.7136, lng: 46.6753 }));
-      const result = await apiPost<{ status: string; distanceMeters: number | null }>('/employee/attendance', {
-        type,
-        lat: point.lat,
-        lng: point.lng,
-        at,
-        clientId,
-      });
+      const result = await apiPost<{ status: string; distanceMeters: number | null }>(
+        '/employee/attendance',
+        {
+          type,
+          lat: point.lat,
+          lng: point.lng,
+          at,
+          clientId,
+        },
+      );
       setMessage(
         result.status === 'valid'
           ? `تم تسجيل ${type === 'check_in' ? 'الحضور' : 'الانصراف'} بنجاح داخل نطاق الفرع.`
@@ -77,7 +86,10 @@ export default function AttendancePage() {
     if (punches.length === 0) return;
     setBusy(true);
     try {
-      const result = await apiPost<{ applied: unknown[]; duplicates: string[] }>('/employee/attendance/sync', { punches });
+      const result = await apiPost<{ applied: unknown[]; duplicates: string[] }>(
+        '/employee/attendance/sync',
+        { punches },
+      );
       clearSyncedPunches([...punches.map((punch) => punch.clientId), ...(result.duplicates ?? [])]);
       setMessage('تمت مزامنة الحضور المحفوظ بنجاح.');
       await reload();
@@ -89,61 +101,73 @@ export default function AttendancePage() {
   }
 
   return (
- <section className="employee-card">
- <h1>تسجيل الحضور والانصراف</h1>
- <p className="muted" style={{ margin: 0 }}>
- اضغط على «حضور» عند بدء الدوام وعلى «انصراف» عند المغادرة. يتم التحقق تلقائياً من النطاق الجغرافي للفرع.
- </p>
- <div className="employee-actions" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}>
- <button className="btn primary punch" type="button" disabled={busy} onClick={() => void punch('check_in')}>
- تسجيل حضور
- </button>
- <button className="btn punch" type="button" disabled={busy} onClick={() => void punch('check_out')}>
- تسجيل انصراف
- </button>
- </div>
-      {queued > 0 ? (
- <button className="btn" type="button" disabled={busy} onClick={() => void sync()}>
- مزامنة {queued} بصمة غير مرسلة
- </button>
-      ) : null}
-      {message ? <p className="alert info">{message}</p> : null}
+    <Page>
+      <PageHead
+        title="تسجيل الحضور والانصراف"
+        description="اضغط على «حضور» عند بدء الدوام وعلى «انصراف» عند المغادرة. يتم التحقق تلقائياً من النطاق الجغرافي للفرع."
+        breadcrumbs={['تطبيق الموظف', 'الحضور والانصراف']}
+      />
+      <Panel title="تسجيل الحركة">
+        <div
+          className="employee-actions"
+          style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}
+        >
+          <button
+            className="btn primary punch"
+            type="button"
+            disabled={busy}
+            onClick={() => void punch('check_in')}
+          >
+            تسجيل حضور
+          </button>
+          <button className="btn punch" type="button" disabled={busy} onClick={() => void punch('check_out')}>
+            تسجيل انصراف
+          </button>
+        </div>
+        {queued > 0 ? (
+          <button className="btn mt-3" type="button" disabled={busy} onClick={() => void sync()}>
+            مزامنة {queued} بصمة غير مرسلة
+          </button>
+        ) : null}
+        {message ? <p className="alert info mt-3">{message}</p> : null}
+      </Panel>
 
- <div style={{ marginTop: 8 }}>
- <h2 style={{ fontSize: 15, marginBottom: 8 }}>سجل حركات اليوم ({today.length})</h2>
+      <Panel flush title="حركات اليوم" hint={`${today.length} حركة`}>
         {today.length === 0 ? (
- <p className="muted">لم تُسجَّل أي حركة حضور أو انصراف اليوم بعد.</p>
+          <p className="m-0 p-5 text-sm text-muted">لم تُسجَّل أي حركة حضور أو انصراف اليوم بعد.</p>
         ) : (
- <div className="table-wrap">
- <table>
- <thead>
- <tr>
- <th>الحركة</th>
- <th>الوقت</th>
- <th>النطاق الجغرافي</th>
- </tr>
- </thead>
- <tbody>
+          <div className="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>الحركة</th>
+                  <th>الوقت</th>
+                  <th>النطاق الجغرافي</th>
+                </tr>
+              </thead>
+              <tbody>
                 {today.map((row) => (
- <tr key={row.id}>
- <td>
- <span className={`badge ${row.type === 'check_in' ? 'ok' : 'neutral'}`}>
+                  <tr key={row.id}>
+                    <td>
+                      <span className={`badge ${row.type === 'check_in' ? 'ok' : 'neutral'}`}>
                         {row.type === 'check_in' ? 'حضور' : 'انصراف'}
- </span>
- </td>
- <td dir="ltr">{row.at ? new Date(row.at).toLocaleTimeString('ar-SA-u-ca-gregory-nu-latn') : '—'}</td>
- <td>
- <span className={`badge ${row.status === 'valid' ? 'ok' : 'warn'}`}>
+                      </span>
+                    </td>
+                    <td dir="ltr">
+                      {row.at ? new Date(row.at).toLocaleTimeString('ar-SA-u-ca-gregory-nu-latn') : '—'}
+                    </td>
+                    <td>
+                      <span className={`badge ${row.status === 'valid' ? 'ok' : 'warn'}`}>
                         {row.status === 'valid' ? 'داخل النطاق' : 'خارج النطاق'}
- </span>
- </td>
- </tr>
+                      </span>
+                    </td>
+                  </tr>
                 ))}
- </tbody>
- </table>
- </div>
+              </tbody>
+            </table>
+          </div>
         )}
- </div>
- </section>
+      </Panel>
+    </Page>
   );
 }

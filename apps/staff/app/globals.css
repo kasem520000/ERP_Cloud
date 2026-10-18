@@ -1816,17 +1816,6 @@ tr.opening td {
   flex-wrap: wrap;
   gap: 8px;
 }
-.employee-card {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-  background: var(--surface);
-  color: var(--text);
-  border: 1px solid var(--line);
-  border-radius: 16px;
-  padding: 20px;
-  box-shadow: var(--shadow-1);
-}
 .employee-actions {
   display: grid;
   gap: 10px;
