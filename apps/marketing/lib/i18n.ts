@@ -94,9 +94,9 @@ const ar: Dictionary = {
   'industries.final.body': 'اطلب عرضاً ونجعل النشاط الأقرب إليك هو ما تُعرض عليه الشاشات.',
   'trust.title': 'الأمان والثقة',
   'trust.subtitle':
-    'أربعة أسئلةٍ يسألها كل مشترٍ جدّيّ — التشفير · العزل · النسخ · الفاتورة الإلكترونية — ولكل بندٍ مصدرٌ يمكن فتحه.',
+    'إجراءات لحماية الحساب والبيانات وعزل المنشآت والنسخ والفوترة، مع حدود واضحة لما لا نَعِد به.',
   'trust.limits.title': 'ما لا ندّعيه',
-  'trust.limits.subtitle': 'الحدّ جزءٌ من الوصف: هذه ليست على القائمة اليوم، ولن تُكتب هنا كأنها كذلك.',
+  'trust.limits.subtitle': 'حدود الادعاءات جزء من وصف الخدمة.',
   'trust.final.title': 'اسألنا عن التفصيل الذي يهمّك',
   'trust.final.body': 'نقول ما هو مُنفَّذ، وما هو في خطة العمل، وما لن نفعله — ولن نُجيب بجملةٍ عامّة.',
   'cta.start': 'ابدأ مجاناً',
@@ -250,7 +250,7 @@ const en: Dictionary = {
   'industries.final.body': 'Book a demo and we show the trade closest to yours.',
   'trust.title': 'Trust and security',
   'trust.subtitle':
-    'Four questions every serious buyer asks — encryption, isolation, backups, e-invoicing — each with a source you can open.',
+    'How accounts and data are protected, how organisations are separated, and what the service does not promise.',
   'trust.limits.title': 'What we do not claim',
   'trust.limits.subtitle': 'Limits are part of the description.',
   'trust.final.title': 'Ask about the detail you care about',

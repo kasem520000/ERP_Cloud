@@ -179,12 +179,13 @@ describe('marketing /trust — كل بندٍ ومعه مصدره (P-M8)', () => 
     expect(broken).toEqual([]);
   });
 
-  it('ولا بندَ بلا نصّ، ولا نصَّ بلا مصدر', () => {
+  it('ولا بندَ بلا نصّ، ولا نصَّ بلا مصدر؛ والصياغة العامة لا تسرّب مسار المصدر', () => {
     for (const axis of trustAxes) {
       for (const point of axis.points) {
         expect(point.titleAr.length, axis.key).toBeGreaterThan(3);
         expect(point.bodyAr.length, point.titleAr).toBeGreaterThan(40);
         expect(point.source.length, point.titleAr).toBeGreaterThan(5);
+        expect(`${point.titleAr} ${point.bodyAr}`, point.titleAr).not.toMatch(/apps\/|packages\/|\.ts\b|`|\b(?:CSID|TOTP|dry-run|tenant_id)\b/);
       }
     }
   });

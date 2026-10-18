@@ -667,64 +667,71 @@ export function CasesIndexView({ locale, cases }: { locale: Locale; cases: Conte
   );
 }
 
-/**
- * P-M8 — `/trust`: كل بندٍ ومعه مصدره.
- *
- * والشكل تابعٌ للقرار: البطاقة تحمل **الدليل** في سطرٍ صغير (`source-line`) لا في حاشية، لأن
- * صفحةَ ثقةٍ بلا دليلٍ صفحةُ إعلان. و«ما لا ندّعيه» قسمٌ كامل في آخرها، لا حاشيةً صغيرة: حدُّ
- * المنتج جزءٌ من وصفه.
- *
- * وصفحةُ المحتوى (من نظام إدارة المحتوى) تُعرض **فوق** الأقسام الثابتة إن وُجدت: من كتب نصّاً
- * تحريرياً في اللوحة لا يُنازع الأرقام الثابتة، بل يقدّم لها مقدّمة.
- */
+/** Public language is intentionally separate from the implementation references in lib/trust.ts. */
 export function TrustView({ locale, page }: { locale: Locale; page: ContentPageDetail | null }) {
   return (
-    <>
-      <header className="page-head">
+    <div className="trust-page">
+      <header className="trust-hero">
+        <p className="trust-eyebrow">قبل أن تعتمد على النظام</p>
         <h1>{page ? titleFor(page, locale) : t(locale, 'trust.title')}</h1>
-        <p className="muted">{page ? summaryFor(page, locale) : t(locale, 'trust.subtitle')}</p>
+        <p className="trust-lead">{page ? summaryFor(page, locale) : 'ما الذي يحمي بياناتك؟ وما الذي لا تَعِد به هذه الصفحة؟ اقرأ ما نطبّقه وحدود ما يمكن الجزم به قبل اتخاذ قرارك.'}</p>
+        <nav className="trust-index" aria-label="محاور الأمان والثقة">
+          {trustAxes.map((axis, index) => (
+            <a href={`#trust-${axis.key}`} key={axis.key}>
+              <span aria-hidden="true">{String(index + 1).padStart(2, '0')}</span>{axis.titleAr}
+            </a>
+          ))}
+          <a href="#trust-limits"><span aria-hidden="true">05</span>ما لا ندّعيه</a>
+        </nav>
       </header>
       {page && page.blocks.length > 0 ? <ContentBlocks blocks={page.blocks} locale={locale} /> : null}
 
-      {trustAxes.map((axis) => (
-        <section className="section" key={axis.key}>
-          <SectionHeading title={`${axis.icon} ${axis.titleAr}`} subtitle={axis.leadAr} />
-          <div className="grid cols">
+      {trustAxes.map((axis, index) => (
+        <section className="trust-axis" id={`trust-${axis.key}`} key={axis.key} aria-labelledby={`trust-title-${axis.key}`}>
+          <div className="trust-axis-heading">
+            <span className="trust-number" aria-hidden="true">{String(index + 1).padStart(2, '0')}</span>
+            <div>
+              <h2 id={`trust-title-${axis.key}`}>{axis.titleAr}</h2>
+              <p>{axis.leadAr}</p>
+            </div>
+          </div>
+          <div className="trust-points">
             {axis.points.map((point) => (
-              <article className="card" key={point.titleAr}>
+              <article className="trust-point" key={point.titleAr}>
                 <h3>{point.titleAr}</h3>
-                <p className="muted">{point.bodyAr}</p>
-                <p className="source-line" dir="ltr">
-                  {point.source}
-                </p>
+                <p>{point.bodyAr}</p>
               </article>
             ))}
           </div>
         </section>
       ))}
 
-      <section className="section">
-        <SectionHeading title={t(locale, 'trust.limits.title')} subtitle={t(locale, 'trust.limits.subtitle')} />
-        <ul className="verify-notes">
-          {trustLimitsAr.map((line) => (
-            <li key={line}>{line}</li>
-          ))}
+      <section className="trust-limits" id="trust-limits" aria-labelledby="trust-limits-title">
+        <div className="trust-axis-heading">
+          <span className="trust-number" aria-hidden="true">05</span>
+          <div>
+            <h2 id="trust-limits-title">{t(locale, 'trust.limits.title')}</h2>
+            <p>هذه الحدود جزء من وصف الخدمة، وليست ملاحظات مخفية أسفل الصفحة.</p>
+          </div>
+        </div>
+        <ul>
+          {trustLimitsAr.map((line) => <li key={line}>{line}</li>)}
         </ul>
       </section>
 
       <section className="section cta-final">
         <h2>{t(locale, 'trust.final.title')}</h2>
-        <p className="muted">{t(locale, 'trust.final.body')}</p>
+        <p className="muted">الادعاءات هنا مرتبطة بمراجع تنفيذ وفحوص داخلية، وليست شهادة مستقلة. إن احتجت دليلاً على إجراء بعينه أو شروطاً تعاقدية، فتواصل معنا قبل الاعتماد عليه.</p>
         <div className="toolbar">
-          <Link className="btn primary" href={hrefFor(SITE_PATHS.verify, locale)}>
-            {t(locale, 'nav.verify')}
-          </Link>
-          <Link className="btn" href={hrefFor(SITE_PATHS.contact, locale)} data-goal="request_demo">
+          <Link className="btn primary" href={hrefFor(SITE_PATHS.contact, locale)} data-goal="request_demo">
             {t(locale, 'nav.contact')}
+          </Link>
+          <Link className="btn" href={hrefFor(SITE_PATHS.verify, locale)}>
+            {t(locale, 'nav.verify')}
           </Link>
         </div>
       </section>
-    </>
+    </div>
   );
 }
 
