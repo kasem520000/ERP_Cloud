@@ -72,7 +72,7 @@ export default function MarinaRotaPage() {
   const recalcTrips = (plan: Plan) => {
     const present = plan.lines.filter((line) => attendance[`${plan.id}:${line.lineNo}`] !== false).length;
     setTripCount(present);
-    setNotice({ kind: 'info', text: `🔄 إعادة احتساب الرحلات: ${present} مركب حاضر من ${plan.lines.length} — كل مركب حاضر = رحلة واحدة في اليوم.` });
+ setNotice({ kind: 'info', text: `إعادة احتساب الرحلات: ${present} مركب حاضر من ${plan.lines.length} — كل مركب حاضر = رحلة واحدة في اليوم.` });
   };
 
   return (
@@ -195,7 +195,7 @@ export default function MarinaRotaPage() {
                     {plan.name} — {shortDate(plan.planDate)} — {groupName(plan.groupId)}
  </h3>
  <button className="btn sm" type="button" onClick={() => recalcTrips(plan)}>
- 🔄إعادة احتساب الرحلات
+ إعادة احتساب الرحلات
  </button>
  </div>
  <div className="table-wrap">
@@ -224,7 +224,7 @@ export default function MarinaRotaPage() {
                                   checked={present}
                                   onChange={(e) => setAttendance((prev) => ({ ...prev, [key]: e.target.checked }))}
                                 />
- <span>{present ? '✅ حضور' : '❌ غياب'}</span>
+ <span>{present ? 'حضور' : 'غياب'}</span>
  </label>
  </td>
  </tr>

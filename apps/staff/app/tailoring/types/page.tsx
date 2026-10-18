@@ -36,7 +36,7 @@ export default function TailoringTypesPage() {
       crumbs={['التفصيل', 'التعاريف']}
       query={types}
       canCreate={can('tailoring.manage')}
-      createLabel="➕ إضافة نوع"
+ createLabel="إضافة نوع"
       formTitle="نوع تفصيل"
       fields={[
         { name: 'nameAr', label: 'اسم النوع', required: true },

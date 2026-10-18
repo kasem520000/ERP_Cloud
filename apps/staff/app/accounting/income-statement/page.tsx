@@ -77,12 +77,12 @@ export default function IncomeStatementPage() {
   return (
  <Screen
       title="أرباح وخسائر حسابات رئيسية"
-      subtitle="📊 قائمة الدخل — حسابات الإيرادات والمصروفات (FinalAcc = 2)، من القيود المرحّلة فقط."
+ subtitle="قائمة الدخل — حسابات الإيرادات والمصروفات (FinalAcc = 2)، من القيود المرحّلة فقط."
       crumbs={['المحاسبة', 'تقارير محاسبية']}
       actions={
  <>
  <button className="btn" type="button" onClick={() => window.print()} disabled={rows.length === 0}>
- 🖨️طباعة
+ طباعة
  </button>
  <button
             className="btn"
@@ -96,7 +96,7 @@ export default function IncomeStatementPage() {
               )
             }
           >
- 📊تصدير Excel
+ تصدير Excel
  </button>
  </>
       }
@@ -127,7 +127,7 @@ export default function IncomeStatementPage() {
             type="button"
             onClick={() => setApplied({ branchId, from: allPeriod ? '' : from, to: allPeriod ? '' : to, summary, withStock })}
           >
- 🔍عرض
+ عرض
  </button>
  </div>
  <div className="row" style={{ flexWrap: 'wrap', marginTop: 8 }}>
@@ -136,7 +136,7 @@ export default function IncomeStatementPage() {
  كل الفترة
  </label>
  <span className="group-label" style={{ marginInlineStart: 12 }}>
- 📑نوع التقرير
+ نوع التقرير
  </span>
  <button type="button" className={`btn sm${summary ? ' primary' : ''}`} onClick={() => setSummary(true)}>
  تجميعي (حسابات رئيسية)
@@ -157,7 +157,7 @@ export default function IncomeStatementPage() {
       {statement.status === 'success' && (
  <>
  <StatTiles>
- <StatTile label="💵 رصيد مدين" value={money(totals.debit)} tone="ok" />
+ <StatTile label="رصيد مدين" value={money(totals.debit)} tone="ok" />
  <StatTile label="رصيد دائن" value={money(totals.credit)} tone="brand" />
  <StatTile label="قيمة مخزون آخر المدة" value={money(totals.stock)} />
  <StatTile

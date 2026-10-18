@@ -27,16 +27,16 @@ const CASHER_FIELDS: Array<{ key: string; label: string; kind: 'boolean' | 'numb
   // النصوص حرفيةٌ من `frmCasherSetting.xaml` — بالأيقونة واللفظ الذي يراه المشرف هناك.
   {
     key: 'sales.saveAsDraft',
-    label: '📝 حفظ فاتورة المبيعات كمسودة قبل الترحيل',
+ label: 'حفظ فاتورة المبيعات كمسودة قبل الترحيل',
     kind: 'boolean',
     hint: 'عند إيقاف هذا الخيار (الوضع الافتراضي السحابي)، يتم حفظ وترحيل فاتورة المبيعات فوراً وإصدار رقمها الضريبي وباركود QR مباشرة.',
   },
-  { key: 'pos.barcodeAuto', label: '📷 الباركود أوتوماتيك', kind: 'boolean', hint: 'يُسجَّل الباركود تلقائياً عند فتح شاشة البيع.' },
-  { key: 'pos.touchScreen', label: '👆 الشاشة تدعم التاتش سكرين', kind: 'boolean', hint: 'تكبير أزرار شاشة اللمس وتبسيط التنقل.' },
-  { key: 'pos.showGroups', label: '📦 عرض المجموعات والأصناف', kind: 'boolean', hint: 'عرض المجموعات كأزرار سريعة أعلى لوحة الأصناف.' },
-  { key: 'pos.defaultDeliveryFee', label: '🚗 قيمة التوصيل الافتراضية', kind: 'number' },
-  { key: 'pos.defaultInsurance', label: '🛡️ قيمة التأمين الافتراضية', kind: 'number' },
-  { key: 'pos.defaultUnitId', label: '📏 الوحدة الافتراضية', kind: 'text' },
+ { key: 'pos.barcodeAuto', label: 'الباركود أوتوماتيك', kind: 'boolean', hint: 'يُسجَّل الباركود تلقائياً عند فتح شاشة البيع.' },
+ { key: 'pos.touchScreen', label: 'الشاشة تدعم التاتش سكرين', kind: 'boolean', hint: 'تكبير أزرار شاشة اللمس وتبسيط التنقل.' },
+ { key: 'pos.showGroups', label: 'عرض المجموعات والأصناف', kind: 'boolean', hint: 'عرض المجموعات كأزرار سريعة أعلى لوحة الأصناف.' },
+ { key: 'pos.defaultDeliveryFee', label: 'قيمة التوصيل الافتراضية', kind: 'number' },
+ { key: 'pos.defaultInsurance', label: 'قيمة التأمين الافتراضية', kind: 'number' },
+ { key: 'pos.defaultUnitId', label: 'الوحدة الافتراضية', kind: 'text' },
 ];
 
 export default function GeneralSettingsPage() {
@@ -98,7 +98,7 @@ export default function GeneralSettingsPage() {
  <section className="rounded-xl border border-line bg-surface shadow-1 overflow-hidden">
  <header className="px-4 pt-4 pb-1 flex items-center justify-between gap-2">
  <div>
- <h3 className="m-0 text-[15px] font-bold text-ink">⚙️ إعدادات الكاشير</h3>
+ <h3 className="m-0 text-[15px] font-bold text-ink">إعدادات الكاشير</h3>
  <p className="m-0 mt-0.5 text-[12.5px] text-muted">تُطبَّق مباشرة على شاشة نقطة البيع.</p>
  </div>
  </header>

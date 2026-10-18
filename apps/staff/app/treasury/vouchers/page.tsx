@@ -101,10 +101,10 @@ const SUBTYPES: Array<{ id: string; label: string; kind: 'receipt' | 'payment' |
 
 /** نوع الدفع — `frmSandQ` puts these two on radios: نقدي and بنكي. */
 const METHODS: Array<{ id: string; label: string; group: 'cash' | 'bank' }> = [
-  { id: 'cash', label: '💵 نقدي', group: 'cash' },
-  { id: 'cheque', label: '🏦 شيك', group: 'bank' },
-  { id: 'bank_transfer', label: '🏦 تحويل بنكي', group: 'bank' },
-  { id: 'card', label: '💳 شبكة', group: 'cash' },
+ { id: 'cash', label: 'نقدي', group: 'cash' },
+ { id: 'cheque', label: 'شيك', group: 'bank' },
+ { id: 'bank_transfer', label: 'تحويل بنكي', group: 'bank' },
+ { id: 'card', label: 'شبكة', group: 'cash' },
 ];
 
 /** حالة الشيك — the three states `frmPaymentVoucher` toggles. */
@@ -278,7 +278,7 @@ function VouchersScreen() {
       if (!put.ok) throw new Error(`فشل رفع المرفق: ${put.status}`);
       await apiPost(`/files/${presigned.fileId}/finalize`, { entity: 'voucher', entityId: docVoucherId });
       voucherFiles.reload();
-      setNotice({ kind: 'ok', text: '✅ تم إرفاق المستند' });
+ setNotice({ kind: 'ok', text: 'تم إرفاق المستند' });
     } catch (error) {
       setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) });
     } finally {
@@ -288,7 +288,7 @@ function VouchersScreen() {
 
   return (
  <Screen
-      title={kind === 'receipt' ? '📄 سند قبض' : '📄 سند صرف'}
+ title={kind === 'receipt' ? 'سند قبض' : 'سند صرف'}
       subtitle={
         kind === 'receipt'
           ? 'سند قبض عميل — كما في frmSandQ: من، كم، وكيف، ثم التفاصيل.'
@@ -298,24 +298,24 @@ function VouchersScreen() {
       actions={
         can('treasury.voucher.create') ? (
  <button className="btn primary" type="button" onClick={() => setOpen(!open)}>
-            {open ? '✖ إغلاق' : '➕ جديد'}
+ {open ? 'إغلاق' : 'جديد'}
  </button>
         ) : null
       }
     >
  <StatTiles>
- <StatTile label="📋 السندات" value={totals.count} hint="في الفترة المحددة" />
- <StatTile label="📝 مسودات" value={totals.drafts} hint="لم تُرحَّل بعد" tone="warn" />
- <StatTile label="✅ مُرحَّل" value={totals.posted} tone="ok" />
- <StatTile label="💰 قيمة المُرحَّل" value={money(totals.postedTotal.toFixed(4))} />
- <StatTile label="🏦 شيكات تحت التحصيل" value={totals.pending} hint="لا تلمس الرصيد قبل التحصيل" />
+ <StatTile label="السندات" value={totals.count} hint="في الفترة المحددة" />
+ <StatTile label="مسودات" value={totals.drafts} hint="لم تُرحَّل بعد" tone="warn" />
+ <StatTile label="مُرحَّل" value={totals.posted} tone="ok" />
+ <StatTile label="قيمة المُرحَّل" value={money(totals.postedTotal.toFixed(4))} />
+ <StatTile label="شيكات تحت التحصيل" value={totals.pending} hint="لا تلمس الرصيد قبل التحصيل" />
  </StatTiles>
 
  <div className="card toolbar">
  <Tabs
           items={[
-            { id: 'receipt' as const, label: '📥 سند قبض' },
-            { id: 'payment' as const, label: '📤 سند صرف' },
+ { id: 'receipt' as const, label: 'سند قبض' },
+ { id: 'payment' as const, label: 'سند صرف' },
           ]}
           value={kind}
           onChange={(next) => {
@@ -331,19 +331,19 @@ function VouchersScreen() {
       {/* البحث — `frmSandQ`'s panel: من تاريخ / إلى تاريخ, كل الفترة, and a free search. */}
  <div className="card toolbar">
  <label className="field">
- <span>📅 من تاريخ</span>
+ <span>من تاريخ</span>
  <input className="input" type="date" dir="ltr" value={from} onChange={(event) => setFrom(event.target.value)} />
  </label>
  <label className="field">
- <span>📅 إلى تاريخ</span>
+ <span>إلى تاريخ</span>
  <input className="input" type="date" dir="ltr" value={to} onChange={(event) => setTo(event.target.value)} />
  </label>
  <label className="field">
- <span>🔍 البحث</span>
+ <span>البحث</span>
  <input
             className="input"
             value={q}
-            placeholder="🔢 الرقم · رقم المرجع · رقم الشيك · البيان"
+ placeholder="الرقم · رقم المرجع · رقم الشيك · البيان"
             onChange={(event) => setQ(event.target.value)}
           />
  </label>
@@ -356,20 +356,20 @@ function VouchersScreen() {
             setQ('');
           }}
         >
- 📋كل الفترة
+ كل الفترة
  </button>
  </div>
 
       {open && (
  <form className="card" onSubmit={create}>
  <DocHead>
- <DocField label="🔢 الرقم">
+ <DocField label="الرقم">
  <span className="muted">يُرقَّم تلقائياً عند الترحيل</span>
  </DocField>
- <DocField label="📅 التاريخ">
+ <DocField label="التاريخ">
  <input className="input" type="date" dir="ltr" value={form.date} onChange={(event) => set('date', event.target.value)} required />
  </DocField>
- <DocField label="⏰ الوقت">
+ <DocField label="الوقت">
  <input
                 className="input"
                 dir="ltr"
@@ -379,7 +379,7 @@ function VouchersScreen() {
                 onChange={(event) => set('voucherTime', event.target.value)}
               />
  </DocField>
- <DocField label="🏢 الفرع">
+ <DocField label="الفرع">
  <select className="input" value={effectiveBranch} onChange={(event) => set('branchId', event.target.value)} required>
                 {branchOptions(branchRows).map((option) => (
  <option key={option.id} value={option.id}>
@@ -388,7 +388,7 @@ function VouchersScreen() {
                 ))}
  </select>
  </DocField>
- <DocField label={kind === 'receipt' ? '👤 حساب العميل' : '🏭 المورد'}>
+ <DocField label={kind === 'receipt' ? 'حساب العميل' : 'المورد'}>
  <select className="input" value={form.partyId} onChange={(event) => set('partyId', event.target.value)}>
  <option value="">— بدون —</option>
                 {(parties.data ?? []).map((row) => (
@@ -398,7 +398,7 @@ function VouchersScreen() {
                 ))}
  </select>
  </DocField>
- <DocField label="👤 الجهة">
+ <DocField label="الجهة">
  <select className="input" value={form.subtype} onChange={(event) => set('subtype', event.target.value)}>
                 {filteredSubtypes.map((entry) => (
  <option key={entry.id} value={entry.id}>
@@ -411,7 +411,7 @@ function VouchersScreen() {
 
  <div className="form-grid">
  <label className="field">
- <span>💵 قيمة السند *</span>
+ <span>قيمة السند *</span>
  <input
                 className="input"
                 dir="ltr"
@@ -422,17 +422,17 @@ function VouchersScreen() {
               />
  </label>
  <label className="field">
- <span>💲 العملة</span>
+ <span>العملة</span>
  <select className="input" value={form.currency} onChange={(event) => set('currency', event.target.value)}>
  <option value="SAR">ريال سعودي</option>
- <option value="USD">💲 دولار</option>
+ <option value="USD">دولار</option>
  <option value="YER">ريال يمني</option>
  <option value="EUR">يورو</option>
  </select>
  </label>
             {form.currency !== 'SAR' && (
  <label className="field">
- <span>💲 القيمة بالعملة</span>
+ <span>القيمة بالعملة</span>
  <input
                   className="input"
                   dir="ltr"
@@ -450,7 +450,7 @@ function VouchersScreen() {
                * voucher names the bank before it is saved.
                */
  <div className="card tight">
- <div className="card-head">🏦 البنوك المتاحة</div>
+ <div className="card-head">البنوك المتاحة</div>
  <div className="row" style={{ alignItems: 'center', justifyContent: 'space-between' }}>
  <span>
                     {form.cashLocationId
@@ -458,13 +458,13 @@ function VouchersScreen() {
                       : 'لم يُختر بنك'}
  </span>
  <button type="button" className="btn primary" onClick={() => setPickingBank(true)}>
- 🏦اختر البنك
+ اختر البنك
  </button>
  </div>
  </div>
             ) : (
  <label className="field">
- <span>{kind === 'receipt' ? '🏧 يودع في حساب *' : '🏧 يصرف من حساب *'}</span>
+ <span>{kind === 'receipt' ? 'يودع في حساب *' : 'يصرف من حساب *'}</span>
  <select className="input" value={form.cashLocationId} onChange={(event) => set('cashLocationId', event.target.value)} required>
  <option value="">— اختر —</option>
                   {cashRows.map((row) => (
@@ -476,7 +476,7 @@ function VouchersScreen() {
  </label>
             )}
  <label className="field">
- <span>🏦 دفعة لحساب</span>
+ <span>دفعة لحساب</span>
  <select className="input" value={form.counterAccountId} onChange={(event) => set('counterAccountId', event.target.value)}>
  <option value="">— حساب الطرف —</option>
                 {postable.map((account) => (
@@ -493,10 +493,10 @@ function VouchersScreen() {
 
           {/* تفاصيل الدفع — `frmSandQ`'s group box, with the cheque block behind it. */}
  <div className="card">
- <h4>💼 تفاصيل الدفع</h4>
+ <h4>تفاصيل الدفع</h4>
  <div className="form-grid">
  <label className="field">
- <span>💳 نوع الدفع</span>
+ <span>نوع الدفع</span>
  <select className="input" value={form.method} onChange={(event) => set('method', event.target.value)}>
                   {METHODS.map((entry) => (
  <option key={entry.id} value={entry.id}>
@@ -508,13 +508,13 @@ function VouchersScreen() {
               {isBank && (
  <>
  <label className="field">
- <span>🏦 مسحوب على بنك</span>
+ <span>مسحوب على بنك</span>
  <input className="input" value={form.bankName} onChange={(event) => set('bankName', event.target.value)} />
  </label>
                   {form.method === 'cheque' && (
  <>
  <label className="field">
- <span>🔢 رقم الشيك *</span>
+ <span>رقم الشيك *</span>
  <input
                           className="input"
                           dir="ltr"
@@ -524,7 +524,7 @@ function VouchersScreen() {
                         />
  </label>
  <label className="field">
- <span>📅 تاريخ استحقاق (شيك)</span>
+ <span>تاريخ استحقاق (شيك)</span>
  <input
                           className="input"
                           type="date"
@@ -538,7 +538,7 @@ function VouchersScreen() {
  </>
               )}
  <label className="field">
- <span>📅 تاريخ المرجع</span>
+ <span>تاريخ المرجع</span>
  <input
                   className="input"
                   type="date"
@@ -548,7 +548,7 @@ function VouchersScreen() {
                 />
  </label>
  <label className="field">
- <span>🔢 رقم المرجع</span>
+ <span>رقم المرجع</span>
  <input className="input" dir="ltr" value={form.referenceNo} onChange={(event) => set('referenceNo', event.target.value)} />
  </label>
  <label className="field">
@@ -563,7 +563,7 @@ function VouchersScreen() {
  </select>
  </label>
  <label className="field">
- <span>👔 المندوب</span>
+ <span>المندوب</span>
  <select className="input" value={form.salesmanId} onChange={(event) => set('salesmanId', event.target.value)}>
  <option value="">— بدون —</option>
                   {(employees.data ?? []).map((row) => (
@@ -578,7 +578,7 @@ function VouchersScreen() {
  <input className="input" value={form.recipient} onChange={(event) => set('recipient', event.target.value)} />
  </label>
  <label className="field">
- <span>📝 البيان</span>
+ <span>البيان</span>
  <input className="input" value={form.description} onChange={(event) => set('description', event.target.value)} />
  <span className="muted small">ينتقل إلى سطر القيد كما فيReceipts.Notes.</span>
  </label>
@@ -588,7 +588,7 @@ function VouchersScreen() {
  <Notice notice={notice} />
  <ActionBar>
  <button className="btn primary" type="submit" disabled={busy}>
-              {busy ? 'جارٍ الحفظ…' : '💾 حفظ'}
+ {busy ? 'جارٍ الحفظ…' : 'حفظ'}
  </button>
  </ActionBar>
  </form>
@@ -598,10 +598,10 @@ function VouchersScreen() {
       {highlightedId && (
  <div className="card tight" style={{ background: 'var(--warn-soft)', borderColor: 'var(--warn-line)' }}>
  <span>
- 🔍تم فتح السند <code dir="ltr">{highlightedId}</code> من تقرير آخر — الصف المميز أدناه هو المطلوب.
+ تم فتح السند <code dir="ltr">{highlightedId}</code> من تقرير آخر — الصف المميز أدناه هو المطلوب.
  </span>
  <Link className="btn sm" href={`/print/voucher/${highlightedId}`} style={{ marginInlineStart: 12 }}>
- 🖨️طباعة السند
+ طباعة السند
  </Link>
  </div>
       )}
@@ -631,12 +631,12 @@ function VouchersScreen() {
               '',
             ]}
             columns={[
-              { key: 'number', header: '🔢 الرقم', align: 'ltr', cell: (row) => row.number ?? 'مسودة' },
-              { key: 'date', header: '📅 التاريخ', align: 'ltr', cell: (row) => shortDate(row.date) },
-              { key: 'time', header: '⏰ الوقت', align: 'ltr', cell: (row) => row.voucherTime?.slice(0, 5) ?? '—' },
+ { key: 'number', header: 'الرقم', align: 'ltr', cell: (row) => row.number ?? 'مسودة' },
+ { key: 'date', header: 'التاريخ', align: 'ltr', cell: (row) => shortDate(row.date) },
+ { key: 'time', header: 'الوقت', align: 'ltr', cell: (row) => row.voucherTime?.slice(0, 5) ?? '—' },
               {
                 key: 'party',
-                header: kind === 'receipt' ? '👤 العميل' : '🏭 المورد',
+ header: kind === 'receipt' ? 'العميل' : 'المورد',
                 cell: (row) => {
                   const party = partyOf(row.partyId);
                   return party ? partyLabel(party) : (row.recipient ?? '—');
@@ -644,7 +644,7 @@ function VouchersScreen() {
               },
               {
                 key: 'description',
-                header: '📝 البيان',
+ header: 'البيان',
                 cell: (row) => row.description ?? '—',
               },
               {
@@ -654,7 +654,7 @@ function VouchersScreen() {
               },
               {
                 key: 'cash',
-                header: '🏦 الصندوق',
+ header: 'الصندوق',
                 cell: (row) => {
                   const location = cashRows.find((entry) => entry.id === row.cashLocationId);
                   return location ? cashLocationLabel(location) : '—';
@@ -662,22 +662,22 @@ function VouchersScreen() {
               },
               {
                 key: 'method',
-                header: '💳 نوع الدفع',
+ header: 'نوع الدفع',
                 cell: (row) =>
                   row.method === 'cheque'
-                    ? `🏦 شيك ${row.chequeNo ?? ''}`.trim()
+ ? `شيك ${row.chequeNo ?? ''}`.trim()
                     : (METHODS.find((entry) => entry.id === row.method)?.label ?? row.method),
               },
-              { key: 'amount', header: '💰 المبلغ', align: 'num', cell: (row) => money(row.amount, row.currency) },
+ { key: 'amount', header: 'المبلغ', align: 'num', cell: (row) => money(row.amount, row.currency) },
               {
                 key: 'foreign',
-                header: '💲 أجنبي',
+ header: 'أجنبي',
                 align: 'num',
                 cell: (row) => (row.foreignAmount ? `${money(row.foreignAmount, row.currency)}${row.fxRate ? ` @${Number(row.fxRate).toFixed(4)}` : ''}` : '—'),
               },
               {
                 key: 'status',
-                header: '📋 الحالة',
+ header: 'الحالة',
                 cell: (row) => (
  <span className="badge">
                     {row.method === 'cheque' && row.chequeState
@@ -692,10 +692,10 @@ function VouchersScreen() {
                 cell: (row) => (
  <span className="row">
  <Link className="btn sm" href={`/print/voucher/${row.id}`}>
- 🖨️طباعة
+ طباعة
  </Link>
  <button className="btn sm" type="button" onClick={() => setDocVoucherId(row.id)}>
- 📎مرفقات
+ مرفقات
  </button>
                     {row.status === 'draft' && can('treasury.voucher.post') && (
  <button
@@ -704,7 +704,7 @@ function VouchersScreen() {
                         disabled={busy}
                         onClick={() => run(() => apiPost(`/vouchers/${row.id}/post`, {}), 'تم ترحيل السند.')}
                       >
- ✅ترحيل
+ ترحيل
  </button>
                     )}
                     {row.status === 'posted' && row.method === 'cheque' && row.chequeState === 'pending' && (
@@ -717,7 +717,7 @@ function VouchersScreen() {
                             run(() => apiPost(`/vouchers/${row.id}/cheque`, { action: 'clear' }), 'تم تحصيل الشيك.')
                           }
                         >
- 💰تحصيل
+ تحصيل
  </button>
  <button
                           className="btn sm danger"
@@ -727,7 +727,7 @@ function VouchersScreen() {
                             run(() => apiPost(`/vouchers/${row.id}/cheque`, { action: 'bounce' }), 'أُعيد الدين على الطرف.')
                           }
                         >
-                          ↩ إرجاع
+ إرجاع
  </button>
  </>
                     )}
@@ -740,7 +740,7 @@ function VouchersScreen() {
                           run(() => apiPost(`/vouchers/${row.id}/void`, { reason: 'إلغاء من شاشة السندات' }), 'تم إلغاء السند.')
                         }
                       >
- 🗑️إلغاء
+ إلغاء
  </button>
                     )}
  </span>
@@ -753,7 +753,7 @@ function VouchersScreen() {
 
       {docVoucherId && (
  <div className="card">
- <h3>📎 مرفقات السند — `ReceiptOper.insertDocument` — {docVoucherId.slice(0, 8)}…</h3>
+ <h3>مرفقات السند — `ReceiptOper.insertDocument` — {docVoucherId.slice(0, 8)}…</h3>
  <div className="toolbar">
  <input
               className="input"
@@ -765,10 +765,10 @@ function VouchersScreen() {
               disabled={docBusy}
             />
  <button className="btn sm" type="button" onClick={() => voucherFiles.reload()} disabled={voucherFiles.status === 'loading'}>
- 🔄تحديث
+ تحديث
  </button>
  <button className="btn sm" type="button" onClick={() => setDocVoucherId(null)}>
- ✖إغلاق
+ إغلاق
  </button>
  </div>
           {voucherFiles.status === 'loading' && <p className="hint">جارٍ التحميل…</p>}
@@ -778,7 +778,7 @@ function VouchersScreen() {
  <table>
  <thead>
  <tr>
- <th>📄 اسم الملف</th>
+ <th>اسم الملف</th>
  <th>النوع</th>
  <th>الحجم</th>
  <th>التاريخ</th>
@@ -806,7 +806,7 @@ function VouchersScreen() {
                               }
                             }}
                           >
- ⬇️تنزيل
+ تنزيل
  </button>
  <button
                             className="btn sm danger"
@@ -821,7 +821,7 @@ function VouchersScreen() {
                               }
                             }}
                           >
- 🗑️حذف
+ حذف
  </button>
  </span>
  </td>

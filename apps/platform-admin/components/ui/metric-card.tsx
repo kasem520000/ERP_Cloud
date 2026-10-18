@@ -98,7 +98,7 @@ export function MetricCard({
         <div className="min-w-0">
           {delta !== null && delta !== undefined ? (
             <p className="m-0 flex items-center gap-1 text-[11.5px] font-bold" style={{ color: positive ? 'var(--ok)' : 'var(--danger)' }}>
-              <span dir="ltr">{positive ? '▲' : '▼'} {Math.abs(delta).toFixed(1)}%</span>
+ <span dir="ltr">{positive ? '' : ''} {Math.abs(delta).toFixed(1)}%</span>
               {deltaLabel ? <span className="font-medium text-muted">{deltaLabel}</span> : null}
             </p>
           ) : hint ? (

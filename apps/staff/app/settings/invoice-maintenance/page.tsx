@@ -157,7 +157,7 @@ export default function InvoiceMaintenancePage() {
                 <DataTable
                   columns={[
                     { key: 'prefix', header: 'السلسلة', align: 'ltr', cell: (row: Gap) => row.prefix },
-                    { key: 'range', header: 'المدى', align: 'ltr', cell: (row: Gap) => `${row.first_seq} → ${row.last_seq}` },
+ { key: 'range', header: 'المدى', align: 'ltr', cell: (row: Gap) => `${row.first_seq} ${row.last_seq}` },
                     { key: 'issued', header: 'الصادر', align: 'num', cell: (row: Gap) => String(row.issued) },
                     { key: 'missing', header: 'المفقود', align: 'num', cell: (row: Gap) => String(row.missing) },
                   ]}

@@ -134,7 +134,7 @@ export default function UsagePage() {
             <dl className="kv">
               <dt>الفترة</dt>
               <dd dir="ltr">
-                {dateText(data.periodStart)} ← {dateText(data.periodEnd)}
+ {dateText(data.periodStart)} {dateText(data.periodEnd)}
               </dd>
               <dt>العملاء</dt>
               <dd>{data.totals.tenants}</dd>

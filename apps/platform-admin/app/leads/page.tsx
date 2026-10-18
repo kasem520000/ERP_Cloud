@@ -369,7 +369,7 @@ function LeadCard({ leadId, canManage, onChanged }: { leadId: string; canManage:
                       )
                     }
                   >
-                    → {leadStatusLabelsAr[next]}
+ {leadStatusLabelsAr[next]}
                   </button>
                 ))
               )}

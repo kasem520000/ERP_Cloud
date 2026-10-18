@@ -127,44 +127,44 @@ export default function MovementsPage() {
 
   return (
  <Screen
-      title="🏦 حركة الصندوق"
+ title="حركة الصندوق"
       subtitle={`كشف حساب الصندوق من دفتر الأستاذ — كما في frmRptKhzna: كل ما حرّك الحساب، برصيد متحرك.${
         statement.data ? ` ${statement.data.cashLocation}` : ''
       }`}
       crumbs={['الخزينة', 'التقارير']}
       actions={
  <button className="btn sm" type="button" onClick={exportCsv}>
- 📊تصدير Excel
+ تصدير Excel
  </button>
       }
     >
  <StatTiles>
  <StatTile
-          label="⚖️ الرصيد الإجمالي"
+ label="الرصيد الإجمالي"
           value={money(statement.data?.totalAll ?? '0', currency)}
           hint={allPeriod ? 'رصيد الصندوق حتى آخر حركة' : `حتى ${to} ${toTime}`}
           tone={new Decimal(statement.data?.totalAll ?? '0').lt(0) ? 'danger' : 'ok'}
         />
  <StatTile
-          label="📅 رصيد الفترة المحددة"
+ label="رصيد الفترة المحددة"
           value={money(statement.data?.totalPeriod ?? '0', currency)}
-          hint={allPeriod ? 'كل الفترة' : `${from} → ${to}`}
+ hint={allPeriod ? 'كل الفترة' : `${from} ${to}`}
           tone="brand"
         />
  <StatTile
-          label="🧾 رصيد سابق"
+ label="رصيد سابق"
           value={money(statement.data?.openingBalance ?? '0', currency)}
           hint={allPeriod ? 'بلا فترة محددة' : `قبل ${from}`}
         />
- <StatTile label="📥 إجمالي الوارد" value={money(totals.income.toFixed(4), currency)} tone="ok" />
- <StatTile label="📤 إجمالي الصادر" value={money(totals.outcome.toFixed(4), currency)} tone="danger" />
- <StatTile label="🔢 عدد الحركات" value={totals.count} hint="بلا سطر الرصيد السابق" />
+ <StatTile label="إجمالي الوارد" value={money(totals.income.toFixed(4), currency)} tone="ok" />
+ <StatTile label="إجمالي الصادر" value={money(totals.outcome.toFixed(4), currency)} tone="danger" />
+ <StatTile label="عدد الحركات" value={totals.count} hint="بلا سطر الرصيد السابق" />
  </StatTiles>
 
       {/* لوحة الترشيح — `frmRptKhzna.xaml` L245–L300 */}
  <div className="card toolbar">
  <label className="field">
- <span>🏦 الصندوق</span>
+ <span>الصندوق</span>
  <select
             className="input"
             value={effectiveLocation}
@@ -178,7 +178,7 @@ export default function MovementsPage() {
  </select>
  </label>
  <label className="field">
- <span>📅 من تاريخ</span>
+ <span>من تاريخ</span>
  <input
             className="input"
             type="date"
@@ -200,7 +200,7 @@ export default function MovementsPage() {
           />
  </label>
  <label className="field">
- <span>📅 إلى تاريخ</span>
+ <span>إلى تاريخ</span>
  <input
             className="input"
             type="date"
@@ -223,10 +223,10 @@ export default function MovementsPage() {
  </label>
  <label className="row" style={{ gap: 6 }}>
  <input type="checkbox" checked={allPeriod} onChange={(event) => setAllPeriod(event.target.checked)} />
- <span className="small">📅 كل الفترة</span>
+ <span className="small">كل الفترة</span>
  </label>
  <button className="btn primary" type="button" onClick={() => statement.reload()}>
- 🏦عرض حركة الصندوق
+ عرض حركة الصندوق
  </button>
  </div>
 
@@ -238,7 +238,7 @@ export default function MovementsPage() {
               text:
                 statement.error?.includes('CASH_ACCOUNT_REQUIRED') ||
                 statement.error?.includes('حساب مرتبط')
-                  ? 'لم يتم العثور على حساب مرتبط بهذا الصندوق — اربط الصندوق بحساب من «🏦 تعريف الخزينة».'
+ ? 'لم يتم العثور على حساب مرتبط بهذا الصندوق — اربط الصندوق بحساب من «تعريف الخزينة».'
                   : (statement.error ?? 'تعذر تحميل حركة الصندوق'),
             }}
           />
@@ -271,22 +271,22 @@ export default function MovementsPage() {
                   ),
               },
               { key: 'number', header: 'الرقم', align: 'ltr', cell: (row) => row.number || '—' },
-              { key: 'date', header: '📅 التاريخ', align: 'ltr', cell: (row) => row.date },
+ { key: 'date', header: 'التاريخ', align: 'ltr', cell: (row) => row.date },
               {
                 key: 'income',
-                header: '📥 وارد',
+ header: 'وارد',
                 align: 'num',
                 cell: (row) => (new Decimal(row.income || '0').isZero() ? '—' : money(row.income)),
               },
               {
                 key: 'outcome',
-                header: '📤 صادر',
+ header: 'صادر',
                 align: 'num',
                 cell: (row) => (new Decimal(row.outcome || '0').isZero() ? '—' : money(row.outcome)),
               },
               {
                 key: 'balance',
-                header: '⚖️ الرصيد',
+ header: 'الرصيد',
                 align: 'num',
                 cell: (row) => (
  <strong style={new Decimal(row.balance || '0').lt(0) ? { color: 'var(--danger)' } : undefined}>
@@ -294,7 +294,7 @@ export default function MovementsPage() {
  </strong>
                 ),
               },
-              { key: 'note', header: '📝 البيان', cell: (row) => row.note || '—' },
+ { key: 'note', header: 'البيان', cell: (row) => row.note || '—' },
             ]}
             footer={[
               '',

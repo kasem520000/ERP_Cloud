@@ -31,7 +31,7 @@ export default function EmployeeHomePage() {
  <section className="employee-card">
  <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap' }}>
  <div>
- <h1 style={{ margin: 0 }}>مرحباً{me?.name ? ` ${me.name}` : ''} 👋</h1>
+ <h1 style={{ margin: 0 }}>مرحباً{me?.name ? ` ${me.name}` : ''} </h1>
  <p className="muted" style={{ margin: '4px 0 0' }}>
  سجّل حضورك وانصرافك، واطلب إجازة أو سلفة أو عهدة، وتابع كشوف راتبك وإجازاتك.
  </p>
@@ -47,16 +47,16 @@ export default function EmployeeHomePage() {
       {error ? <p className="alert danger">{error}</p> : null}
  <div className="employee-actions">
  <Link className="btn primary punch" href="/m/attendance">
-          ⏱ حضور وانصراف ({today.length} حركة اليوم)
+ حضور وانصراف ({today.length} حركة اليوم)
  </Link>
  <Link className="btn punch" href="/m/requests/new">
- 📝تقديم طلب جديد (إجازة · استئذان · سلفة · عهدة)
+ تقديم طلب جديد (إجازة · استئذان · سلفة · عهدة)
  </Link>
  <Link className="btn punch" href="/m/profile">
- 💳راتبي وإجازاتي وعهدي
+ راتبي وإجازاتي وعهدي
  </Link>
  <Link className="btn" href="/m/approvals">
- ✅موافقات الفريق (للمديرين والمشرفين)
+ موافقات الفريق (للمديرين والمشرفين)
  </Link>
  </div>
  </section>

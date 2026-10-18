@@ -132,12 +132,12 @@ function SalesmanCommissions() {
   return (
  <Screen
       title="مبيعات مندوب خلال فترة"
-      subtitle="📋 طباعة فواتير مندوب وعمولاتهم — فواتيره وإشعارات مدينه وسندات قبضه، وما يستحقّه على كلٍّ منها."
+ subtitle="طباعة فواتير مندوب وعمولاتهم — فواتيره وإشعارات مدينه وسندات قبضه، وما يستحقّه على كلٍّ منها."
       crumbs={['التقارير', 'المبيعات']}
       actions={
  <>
  <button className="btn" type="button" onClick={() => window.print()} disabled={rows.length === 0}>
- 🖨️طباعة
+ طباعة
  </button>
  <button
             className="btn"
@@ -175,7 +175,7 @@ function SalesmanCommissions() {
               )
             }
           >
- 📊تصدير CSV
+ تصدير CSV
  </button>
  </>
       }
@@ -183,7 +183,7 @@ function SalesmanCommissions() {
  <div className="card tight no-print">
  <div className="row" style={{ flexWrap: 'wrap', alignItems: 'flex-end' }}>
  <label className="field" style={{ margin: 0, minWidth: 240, flex: 1 }}>
- <span>👤 المندوب</span>
+ <span>المندوب</span>
  <select
               className="input"
               value={salesmanId}
@@ -211,10 +211,10 @@ function SalesmanCommissions() {
                 if (event.target.checked) setSalesmanId('');
               }}
             />
- 🌐الكل
+ الكل
  </label>
  <label className="field" style={{ margin: 0, minWidth: 200 }}>
- <span>🏢 الفرع</span>
+ <span>الفرع</span>
  <select className="input" value={branchId} onChange={(event) => setBranchId(event.target.value)}>
  <option value="">كل الفروع</option>
               {(branches.data ?? []).map((branch) => (
@@ -226,7 +226,7 @@ function SalesmanCommissions() {
  </label>
  </div>
  <div className="row" style={{ flexWrap: 'wrap', alignItems: 'flex-end', marginTop: 8 }}>
- <span className="group-label">📅 الفترة الزمنية</span>
+ <span className="group-label">الفترة الزمنية</span>
  <label className="check" style={{ margin: 0 }}>
  <input type="checkbox" checked={allPeriod} onChange={(event) => setAllPeriod(event.target.checked)} />
  كل الفترة
@@ -244,7 +244,7 @@ function SalesmanCommissions() {
             type="button"
             onClick={() => setApplied({ salesmanId, allSalesmen, allPeriod, from, to, branchId })}
           >
- 📊عرض
+ عرض
  </button>
  </div>
  <p className="muted" style={{ marginBottom: 0 }}>
@@ -259,10 +259,10 @@ function SalesmanCommissions() {
       {report.status === 'success' && (
  <>
  <StatTiles>
- <StatTile label="💰 إجمالي القيمة" value={money(totals.totalValue)} tone="ok" hint="المبيعات − المرتجعات − الإشعارات + التحصيل" />
- <StatTile label="📈 ع. المبيعات" value={money(totals.salesCommission)} tone="brand" />
- <StatTile label="💳 ع. التحصيل" value={money(totals.collectionCommission)} />
- <StatTile label="📊 ع. الربح" value={money(totals.profitCommission)} />
+ <StatTile label="إجمالي القيمة" value={money(totals.totalValue)} tone="ok" hint="المبيعات − المرتجعات − الإشعارات + التحصيل" />
+ <StatTile label="ع. المبيعات" value={money(totals.salesCommission)} tone="brand" />
+ <StatTile label="ع. التحصيل" value={money(totals.collectionCommission)} />
+ <StatTile label="ع. الربح" value={money(totals.profitCommission)} />
  <StatTile label="عدد الفواتير" value={String(totals.invoices)} />
  <StatTile label="إشعارات مدين" value={String(totals.notes)} />
  <StatTile label="سندات القبض" value={String(totals.receipts)} />
@@ -279,17 +279,17 @@ function SalesmanCommissions() {
  <thead>
  <tr>
  <th>م</th>
- <th>📌 نوع الحركة</th>
- <th>📅 التاريخ</th>
- <th>🔢 رقم السند</th>
- <th>🔗 رقم المرجع</th>
- <th>👤 المندوب</th>
+ <th>نوع الحركة</th>
+ <th>التاريخ</th>
+ <th>رقم السند</th>
+ <th>رقم المرجع</th>
+ <th>المندوب</th>
  <th>الفرع</th>
- <th className="num">💰 القيمة</th>
- <th className="num">📈 عمولة المبيعات</th>
- <th className="num">💳 عمولة التحصيل</th>
- <th className="num">📊 عمولة الربح</th>
- <th>👁️ عرض</th>
+ <th className="num">القيمة</th>
+ <th className="num">عمولة المبيعات</th>
+ <th className="num">عمولة التحصيل</th>
+ <th className="num">عمولة الربح</th>
+ <th>عرض</th>
  </tr>
  </thead>
  <tbody>
@@ -315,14 +315,14 @@ function SalesmanCommissions() {
  <td className="num">{money(String(Number(row.salesCommission) * row.isPlus))}</td>
  <td className="num">{money(String(Number(row.collectionCommission) * row.isPlus))}</td>
  <td className="num">{money(String(Number(row.profitCommission) * row.isPlus))}</td>
- <td>{href ? <Link className="btn sm" href={href}>👁️ عرض</Link> : <span className="muted">—</span>}</td>
+ <td>{href ? <Link className="btn sm" href={href}>عرض</Link> : <span className="muted">—</span>}</td>
  </tr>
                     );
                   })}
  </tbody>
  <tfoot>
  <tr>
- <th colSpan={7}>🏆 الإجمالي</th>
+ <th colSpan={7}>الإجمالي</th>
  <th className="num">{money(totals.totalValue)}</th>
  <th className="num">{money(totals.salesCommission)}</th>
  <th className="num">{money(totals.collectionCommission)}</th>

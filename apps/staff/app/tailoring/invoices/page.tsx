@@ -104,9 +104,9 @@ type Draft = {
 };
 
 const GROUPS: Array<{ key: MeasurementField['group']; title: string }> = [
-  { key: 'measurements', title: '📐 المقاسات' },
-  { key: 'shapes', title: '✨ الأشكال والتفاصيل' },
-  { key: 'extra', title: '📏 مقاسات إضافية' },
+ { key: 'measurements', title: 'المقاسات' },
+ { key: 'shapes', title: 'الأشكال والتفاصيل' },
+ { key: 'extra', title: 'مقاسات إضافية' },
 ];
 
 const METHODS: Array<{ value: string; label: string }> = [
@@ -319,13 +319,13 @@ function TailoringInvoices() {
 
   return (
  <Screen
-      title="🧾 فواتير التفصيل"
+ title="فواتير التفصيل"
       subtitle="ما يُفصَّل ويُحاسب عليه: بيانات الثوب ومقاساته وإجماليه بضريبته، وما قُبض منه وما بقي، وحالته من «مستلم» إلى «تم التسليم»."
       crumbs={['التفصيل', 'الفواتير']}
       actions={
         canManage ? (
  <button className="btn primary" type="button" onClick={openNew}>
- ➕فاتورة جديدة
+ فاتورة جديدة
  </button>
         ) : null
       }
@@ -337,11 +337,11 @@ function TailoringInvoices() {
  <div className="card tight no-print">
  <div className="row" style={{ flexWrap: 'wrap', alignItems: 'flex-end' }}>
  <label className="field" style={{ margin: 0, minWidth: 280, flex: 1 }}>
- <span>🔍 الهاتف أو اسم العميل...</span>
+ <span>الهاتف أو اسم العميل...</span>
  <input
               className="input"
               value={search}
-              placeholder="🔍 الهاتف أو اسم العميل..."
+ placeholder="الهاتف أو اسم العميل..."
               onChange={(event) => {
                 setSearch(event.target.value);
                 setApplied(event.target.value);
@@ -357,30 +357,30 @@ function TailoringInvoices() {
       {invoices.status === 'success' && (
  <>
  <div className="row" style={{ justifyContent: 'space-between', alignItems: 'baseline' }}>
- <span className="group-label" style={{ margin: 0 }}>📋 الفواتير</span>
+ <span className="group-label" style={{ margin: 0 }}>الفواتير</span>
             {/* «النتائج: {n}» — `lblResultCount`. */}
  <span className="muted">النتائج: {invoices.data?.total ?? rows.length}</span>
  </div>
           {rows.length === 0 ? (
  <Empty
               title="لا توجد فواتير"
-              detail={applied ? `لا فاتورة تطابق «${applied}».` : 'ابدأ بـ «➕ فاتورة جديدة».'}
+ detail={applied ? `لا فاتورة تطابق «${applied}».` : 'ابدأ بـ «فاتورة جديدة».'}
             />
           ) : (
  <div className="table-wrap">
  <table>
  <thead>
  <tr>
- <th>📋 رقم الفاتورة</th>
- <th>👤 الاسم</th>
- <th>📱 الجوال</th>
- <th>📅 التاريخ</th>
- <th>👔 نوع الثوب</th>
- <th className="num">💰 الإجمالي</th>
- <th className="num">✅ المدفوع</th>
- <th className="num">⏳ الباقي</th>
- <th>📌 الحالة</th>
- <th>👁️ عرض</th>
+ <th>رقم الفاتورة</th>
+ <th>الاسم</th>
+ <th>الجوال</th>
+ <th>التاريخ</th>
+ <th>نوع الثوب</th>
+ <th className="num">الإجمالي</th>
+ <th className="num">المدفوع</th>
+ <th className="num">الباقي</th>
+ <th>الحالة</th>
+ <th>عرض</th>
                     {canManage && <th>إجراءات</th>}
  </tr>
  </thead>
@@ -410,7 +410,7 @@ function TailoringInvoices() {
  </td>
  <td>
  <button className="btn sm" type="button" onClick={() => setViewing(row)}>
- 👁️عرض
+ عرض
  </button>
  </td>
                       {canManage && (
@@ -421,20 +421,20 @@ function TailoringInvoices() {
                               type="button"
                               onClick={() => setDraft(draftOf(row))}
                             >
- ✏️تعديل
+ تعديل
  </button>
  <button
                               className="btn sm"
                               type="button"
                               onClick={() => setStatusOf({ id: row.id, number: row.number, statusId: row.statusId })}
                             >
- 🔄تغيير الحالة
+ تغيير الحالة
  </button>
  <button className="btn sm" type="button" onClick={() => openPayment(row)}>
- 💵إستلام دفعة
+ إستلام دفعة
  </button>
  <button className="btn sm danger" type="button" onClick={() => remove(row)}>
- 🗑️حذف
+ حذف
  </button>
  </div>
  </td>
@@ -453,62 +453,62 @@ function TailoringInvoices() {
  <div className="modal-card" style={{ maxWidth: 900 }}>
  <div className="modal-head">
  <span className="modal-title">
- 👁️عرض — <span dir="ltr">{viewing.number}</span>
+ عرض — <span dir="ltr">{viewing.number}</span>
  </span>
  <button className="btn sm" type="button" onClick={() => setViewing(null)}>
- ✖إغلاق
+ إغلاق
  </button>
  </div>
  <div style={{ padding: 16, display: 'grid', gap: 12, maxHeight: '70vh', overflow: 'auto' }}>
  <div className="form-grid">
  <div className="field">
- <span>👤 الاسم</span>
+ <span>الاسم</span>
  <output className="input">{viewing.customerName}</output>
  </div>
  <div className="field">
- <span>📞 رقم الجوال</span>
+ <span>رقم الجوال</span>
  <output className="input" dir="ltr">
                     {viewing.phone || '—'}
  </output>
  </div>
  <div className="field">
- <span>📅 التاريخ</span>
+ <span>التاريخ</span>
  <output className="input" dir="ltr">
                     {viewing.invoiceDate}
  </output>
  </div>
  <div className="field">
- <span>👔 نوع الثوب</span>
+ <span>نوع الثوب</span>
  <output className="input">{viewing.garmentTypeName ?? '—'}</output>
  </div>
  <div className="field">
- <span>🔢 العدد</span>
+ <span>العدد</span>
  <output className="input">{Number(viewing.quantity).toString()}</output>
  </div>
  <div className="field">
- <span>💰 السعر</span>
+ <span>السعر</span>
  <output className="input">{money(viewing.unitPrice)}</output>
  </div>
  <div className="field">
- <span>💵 الإجمالي</span>
+ <span>الإجمالي</span>
  <output className="input">{money(viewing.total)}</output>
  </div>
  <div className="field">
- <span>💳 الصافي (مع الضريبة)</span>
+ <span>الصافي (مع الضريبة)</span>
  <output className="input">{money(viewing.totalWithTax)}</output>
  </div>
  <div className="field">
- <span>💵 المدفوع</span>
+ <span>المدفوع</span>
  <output className="input">{money(viewing.paidAmount)}</output>
  </div>
  <div className="field">
- <span>💰 الباقي</span>
+ <span>الباقي</span>
  <output className="input" style={{ fontWeight: 700 }}>
                     {money(viewing.remainingAmount)}
  </output>
  </div>
  <div className="field">
- <span>✅ الحالة</span>
+ <span>الحالة</span>
  <output className="input">
  <span className="badge">{viewing.statusName}</span>
  </output>
@@ -529,7 +529,7 @@ function TailoringInvoices() {
  <output className="input">
                             {field.kind === 'flag'
                               ? viewing.measurements[field.key] === 'true'
-                                ? '✔'
+ ? ''
                                 : '—'
                               : viewing.measurements[field.key]}
  </output>
@@ -549,12 +549,12 @@ function TailoringInvoices() {
 
               {viewing.payments.length > 0 && (
  <fieldset className="card tight" style={{ margin: 0 }}>
- <legend className="group-label">💵 إستلام دفعة</legend>
+ <legend className="group-label">إستلام دفعة</legend>
  <div className="table-wrap">
  <table>
  <thead>
  <tr>
- <th>📅 التاريخ</th>
+ <th>التاريخ</th>
  <th className="num">المبلغ</th>
  <th>ملاحظات</th>
  <th>سند القبض</th>
@@ -566,7 +566,7 @@ function TailoringInvoices() {
  <td dir="ltr">{payment.paidAt}</td>
  <td className="num">{money(payment.amount)}</td>
  <td>{payment.note ?? '—'}</td>
- <td>{payment.voucherId ? '✔' : '—'}</td>
+ <td>{payment.voucherId ? '' : '—'}</td>
  </tr>
                         ))}
  </tbody>
@@ -577,15 +577,15 @@ function TailoringInvoices() {
  </div>
  <div className="modal-foot">
  <button className="btn" type="button" onClick={() => window.print()}>
- 🖨️طباعه
+ طباعه
  </button>
               {canManage && (
  <button className="btn primary" type="button" onClick={() => setDraft(draftOf(viewing))}>
- ✏️تعديل
+ تعديل
  </button>
               )}
  <button className="btn danger" type="button" onClick={() => setViewing(null)}>
- ✖إغلاق
+ إغلاق
  </button>
  </div>
  </div>
@@ -597,18 +597,18 @@ function TailoringInvoices() {
  <div className="modal-card" style={{ maxWidth: 1000 }}>
  <div className="modal-head">
  <span className="modal-title">
-                {draft.id ? '✏️ تعديل فاتورة تفصيل' : '➕ إضافة مقاس جديد'}
+ {draft.id ? 'تعديل فاتورة تفصيل' : 'إضافة مقاس جديد'}
  </span>
  <button className="btn sm" type="button" onClick={() => setDraft(null)}>
- ✖إغلاق
+ إغلاق
  </button>
  </div>
  <div style={{ padding: 16, display: 'grid', gap: 12, maxHeight: '70vh', overflow: 'auto' }}>
  <fieldset className="card tight" style={{ margin: 0 }}>
- <legend className="group-label">📋 البيانات الأساسية</legend>
+ <legend className="group-label">البيانات الأساسية</legend>
  <div className="form-grid">
  <label className="field">
- <span>👤 اسم العميل</span>
+ <span>اسم العميل</span>
  <select
                       className="input"
                       value={draft.partyId}
@@ -631,7 +631,7 @@ function TailoringInvoices() {
  </select>
  </label>
  <label className="field">
- <span>📞 رقم الجوال</span>
+ <span>رقم الجوال</span>
  <input
                       className="input"
                       dir="ltr"
@@ -640,7 +640,7 @@ function TailoringInvoices() {
                     />
  </label>
  <label className="field">
- <span>👔 نوع الثوب</span>
+ <span>نوع الثوب</span>
  <select
                       className="input"
                       value={draft.garmentTypeId}
@@ -655,7 +655,7 @@ function TailoringInvoices() {
  </select>
  </label>
  <label className="field">
- <span>📅 التاريخ</span>
+ <span>التاريخ</span>
  <input
                       className="input"
                       type="date"
@@ -664,7 +664,7 @@ function TailoringInvoices() {
                     />
  </label>
  <label className="field">
- <span>🔢 العدد</span>
+ <span>العدد</span>
  <input
                       className="input"
                       type="number"
@@ -675,7 +675,7 @@ function TailoringInvoices() {
                     />
  </label>
  <label className="field">
- <span>💰 السعر</span>
+ <span>السعر</span>
  <input
                       className="input"
                       type="number"
@@ -686,17 +686,17 @@ function TailoringInvoices() {
                     />
  </label>
  <div className="field">
- <span>💵 الإجمالي</span>
+ <span>الإجمالي</span>
  <output className="input" style={{ fontWeight: 700 }}>
                       {money(String(totalOf(draft)))}
  </output>
  </div>
  <div className="field">
- <span>💳 الصافي (مع الضريبة)</span>
+ <span>الصافي (مع الضريبة)</span>
  <output className="input">{money(String(withTaxOf(totalOf(draft))))}</output>
  </div>
  <label className="field">
- <span>✅ الحالة</span>
+ <span>الحالة</span>
  <select
                       className="input"
                       value={draft.statusId}
@@ -796,7 +796,7 @@ function TailoringInvoices() {
  </div>
  <div className="modal-foot">
  <button className="btn primary" type="button" onClick={save} disabled={busy}>
- 💾حفظ
+ حفظ
  </button>
               {draft.id && (
                 // «مكرر» — the same فاتورة with no number yet, as the desktop's button does.
@@ -809,10 +809,10 @@ function TailoringInvoices() {
  </button>
               )}
  <button className="btn" type="button" onClick={() => window.print()}>
- 🖨️طباعه
+ طباعه
  </button>
  <button className="btn danger" type="button" onClick={() => setDraft(null)} disabled={busy}>
- ✖إغلاق
+ إغلاق
  </button>
  </div>
  </div>
@@ -846,10 +846,10 @@ function TailoringInvoices() {
  </div>
  <div className="modal-foot">
  <button className="btn primary" type="button" onClick={saveStatus} disabled={busy}>
- ✔تغيير
+ تغيير
  </button>
  <button className="btn danger" type="button" onClick={() => setStatusOf(null)} disabled={busy}>
- ✖إلغاء
+ إلغاء
  </button>
  </div>
  </div>
@@ -861,7 +861,7 @@ function TailoringInvoices() {
  <div className="modal-card" style={{ maxWidth: 520 }}>
  <div className="modal-head">
               {/* «إستلام دفعة» — `frmSandQ` opened with `ISTailor = true` (L664). */}
- <span className="modal-title">💵 إستلام دفعة</span>
+ <span className="modal-title">إستلام دفعة</span>
  </div>
  <div style={{ padding: 16, display: 'grid', gap: 12 }}>
  <p style={{ margin: 0, fontWeight: 700 }}>
@@ -881,7 +881,7 @@ function TailoringInvoices() {
                   />
  </label>
  <label className="field">
- <span>📅 التاريخ:</span>
+ <span>التاريخ:</span>
  <input
                     className="input"
                     type="date"
@@ -904,7 +904,7 @@ function TailoringInvoices() {
  </select>
  </label>
  <label className="field">
- <span>💵 الصندوق:</span>
+ <span>الصندوق:</span>
  <select
                     className="input"
                     value={paying.cashLocationId}
@@ -920,7 +920,7 @@ function TailoringInvoices() {
  </select>
  </label>
  <label className="field">
- <span>🏢 الفرع:</span>
+ <span>الفرع:</span>
  <select
                     className="input"
                     value={paying.branchId}
@@ -946,10 +946,10 @@ function TailoringInvoices() {
  </div>
  <div className="modal-foot">
  <button className="btn primary" type="button" onClick={pay} disabled={busy}>
- ✔إستلام
+ إستلام
  </button>
  <button className="btn danger" type="button" onClick={() => setPaying(null)} disabled={busy}>
- ✖إلغاء
+ إلغاء
  </button>
  </div>
  </div>

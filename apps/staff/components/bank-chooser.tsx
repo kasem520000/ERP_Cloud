@@ -62,14 +62,14 @@ export function BankChooser({
   }
 
   return (
- <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label="🏦 اختر طريقة الدفع (تحويل بنكي)">
+ <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label="اختر طريقة الدفع (تحويل بنكي)">
  <div className="modal-card" style={{ maxWidth: 640 }}>
  <div className="modal-head">
- <span className="modal-title">🏦 اختر طريقة الدفع (تحويل بنكي)</span>
+ <span className="modal-title">اختر طريقة الدفع (تحويل بنكي)</span>
  </div>
 
  <div className="card" style={{ margin: 12 }}>
- <div className="card-head">🏦 البنوك المتاحة</div>
+ <div className="card-head">البنوك المتاحة</div>
  <div className="bank-tiles">
             {loading ? <p className="muted small">…</p> : null}
             {!loading && banks.length === 0 ? (
@@ -99,10 +99,10 @@ export function BankChooser({
 
  <div className="modal-foot">
  <button type="button" className="btn danger" onClick={onCancel}>
- ✖خروج
+ خروج
  </button>
  <button type="button" className="btn primary" onClick={confirm}>
- ✔موافق
+ موافق
  </button>
  </div>
  </div>

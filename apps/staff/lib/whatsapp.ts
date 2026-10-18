@@ -80,16 +80,16 @@ export type WhatsappSendInput = {
 
 /** «💬 واتساب» — the desktop's own words for the three ways a send can end. */
 export const WHATSAPP_STATUS_LABELS: Record<string, string> = {
-  sent: '✅ أُرسلت',
-  failed: '❌ لم تُرسل',
-  skipped: '⏭️ تُركت',
+ sent: 'أُرسلت',
+ failed: 'لم تُرسل',
+ skipped: 'تُركت',
   none: '—',
 };
 
 export const ATTACHMENT_STATUS_LABELS: Record<string, string> = {
   none: 'بلا مُرفق',
-  sent: '📎 أُرفقت',
-  failed: '⚠️ تعذّر الإرفاق',
+ sent: 'أُرفقت',
+ failed: 'تعذّر الإرفاق',
 };
 
 /** ⚙️ الإعدادات — the number, the token (masked) and the two switches. */

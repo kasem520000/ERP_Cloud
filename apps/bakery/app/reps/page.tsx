@@ -199,7 +199,7 @@ export default function RepsPage() {
  <Card>
  <CardBody>
  <p className={`m-0 rounded-[10px] border px-4 py-2.5 text-[13px] font-semibold ${NOTICE_CLASSES.warn}`}>
- 🔒لا تملك <span dir="ltr">{REPS_VIEW_PERMISSION}</span> — والخادم يرفض قراءة
+ لا تملك <span dir="ltr">{REPS_VIEW_PERMISSION}</span> — والخادم يرفض قراءة
  البطاقات (<span dir="ltr">{REPS_MESSAGES.viewForbidden}</span>). ولم يُرسل هذا
  التطبيق طلبًا سيُرفض حتمًا، ولا عرض بطاقاتٍ من المتصفّح بدلها.
  </p>
@@ -521,7 +521,7 @@ export default function RepsPage() {
  <CardBody>
             {!canLink ? (
  <p className={`m-0 mb-3 rounded-[10px] border px-4 py-2.5 text-[13px] font-semibold ${NOTICE_CLASSES.warn}`}>
- 🔒لا تملك <span dir="ltr">{LINK_ACCOUNT_PERMISSION}</span> — والخادم يرفض بـ
+ لا تملك <span dir="ltr">{LINK_ACCOUNT_PERMISSION}</span> — والخادم يرفض بـ
  <span dir="ltr">{REPS_MESSAGES.linkForbidden}</span>. وربطُ الحسابات عملُ مكتبٍ
  خلفيّ لا يملكه المندوب.
  </p>
@@ -611,7 +611,7 @@ export default function RepsPage() {
                       className={`rounded-[8px] border px-3 py-2 text-[12.5px] font-semibold ${NOTICE_CLASSES.danger}`}
                       key={text}
                     >
-                       ⛔{text}
+ {text}
  </li>
                   ))}
  </ul>
@@ -624,7 +624,7 @@ export default function RepsPage() {
                       className={`rounded-[8px] border px-3 py-2 text-[12.5px] font-semibold ${NOTICE_CLASSES.warn}`}
                       key={text}
                     >
-                       ⚠️{text}
+ {text}
  </li>
                   ))}
  </ul>

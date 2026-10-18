@@ -176,7 +176,7 @@ export default function NewPurchaseInvoicePage() {
  </select>
  </label>
  <label className="field">
- <span>🏪 المستودع</span>
+ <span>المستودع</span>
  <select className="input" value={effectiveWarehouse} onChange={(event) => setWarehouseId(event.target.value)}>
  <option value="">— بدون حركة مخزنية —</option>
               {warehouseRows
@@ -192,7 +192,7 @@ export default function NewPurchaseInvoicePage() {
             )}
  </label>
  <label className="field">
- <span>👤 اسم المورد *</span>
+ <span>اسم المورد *</span>
  <select className="input" value={effectivePartyId} onChange={(event) => setPartyId(event.target.value)}>
               {supplierRows.length === 0 && <option value="">مورد عام (الافتراضي)</option>}
               {supplierRows.map((row) => (
@@ -210,8 +210,8 @@ export default function NewPurchaseInvoicePage() {
  </select>
  </label>
  <label className="field">
-            {/* «📋 المرجع» — `frmInvPurch.xaml` L545 (`txtRefNo` = رقم فاتورة المورد). */}
- <span>📋 المرجع</span>
+ {/* «المرجع» — `frmInvPurch.xaml` L545 (`txtRefNo` = رقم فاتورة المورد). */}
+ <span>المرجع</span>
  <input className="input" dir="ltr" value={supplierRef} onChange={(event) => setSupplierRef(event.target.value)} />
             {duplicateRef && <span className="muted small">عفوآ رقم المرجع موجود مسبقآ هل تريد الاستمرار ؟</span>}
  </label>
@@ -224,9 +224,9 @@ export default function NewPurchaseInvoicePage() {
  <input className="input" dir="ltr" inputMode="decimal" value={invoiceDiscountText} onChange={(event) => setInvoiceDiscountText(event.target.value)} />
  <span className="muted small">يُخفّض وعاء الضريبة قبل احتسابها.</span>
  </label>
-          {/* «🔢 التسلسلي:» — الإدخال يقرأ الرقم عن العبوة فيُضيف السطر (R8). */}
+ {/* «التسلسلي:» — الإدخال يقرأ الرقم عن العبوة فيُضيف السطر (R8). */}
  <label className="field">
- <span>🔢 التسلسلي:</span>
+ <span>التسلسلي:</span>
  <span className="row">
  <input
                 className="input"
@@ -247,9 +247,9 @@ export default function NewPurchaseInvoicePage() {
  </span>
  <span className="muted small">الرقم المسجَّل عندنا يُضاف سطره، والمباع يُنبَّه عليه.</span>
  </label>
-          {/* «📊 مركز التكلفة» — `frmInvPurch.xaml` L467 (بلا نقطتين، كما في نافذة الشراء). */}
+ {/* «مركز التكلفة» — `frmInvPurch.xaml` L467 (بلا نقطتين، كما في نافذة الشراء). */}
  <label className="field">
- <span>📊 مركز التكلفة</span>
+ <span>مركز التكلفة</span>
  <select className="input" value={costCenterId} onChange={(event) => setCostCenterId(event.target.value)}>
  <option value="">— بلا مركز —</option>
               {(costCenters.data ?? []).map((center) => (
@@ -292,12 +292,12 @@ export default function NewPurchaseInvoicePage() {
 
  <Notice notice={notice} />
  <div className="row">
-          {/* «💾 حفظ» L1428 و«🖨️💾 حفظ مع طباعة» L1424 في `frmInvPurch.xaml`. */}
+ {/* «حفظ» L1428 و«حفظ مع طباعة» L1424 في `frmInvPurch.xaml`. */}
  <button className="btn primary" type="submit" disabled={busy}>
-            {busy ? 'جارٍ الحفظ…' : '💾 حفظ'}
+ {busy ? 'جارٍ الحفظ…' : 'حفظ'}
  </button>
  <button className="btn" type="button" disabled={busy} onClick={(event) => void save(event, true)}>
- 🖨️💾حفظ مع طباعة
+ حفظ مع طباعة
  </button>
  </div>
  </form>

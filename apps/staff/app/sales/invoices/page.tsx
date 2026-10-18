@@ -140,22 +140,26 @@ function InvoicesInner() {
   return (
     <div className="grid gap-4">
       {/* ------------------------------------------------ header */}
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <p className="m-0 text-[12px] font-semibold text-muted">المبيعات ← العمليات</p>
-          <h1 className="m-0 text-[26px] font-bold text-ink tracking-tight">فواتير المبيعات</h1>
-          <p className="m-0 mt-1 text-[13px] text-muted">
-            كل الفواتير: المسودات القابلة للتعديل والمرحّلة بأرقامها الرسمية.
-          </p>
+      <header className="page-head">
+        <div className="page-head-copy">
+          <nav className="crumbs" aria-label="مسار الصفحة">
+            <span>المبيعات</span>
+            <span aria-hidden> / </span>
+            <span>العمليات</span>
+          </nav>
+          <h1 className="page-head-title">فواتير المبيعات</h1>
+          <p className="page-head-sub">كل الفواتير: المسودات القابلة للتعديل والمرحّلة بأرقامها الرسمية.</p>
         </div>
         {can('sales.invoice.create') ? (
-          <Link href="/sales/invoices/new">
-            <Button variant="primary" size="lg" icon={<FilePlus2 size={17} />}>
-              فاتورة جديدة
-            </Button>
-          </Link>
+          <div className="page-head-actions">
+            <Link href="/sales/invoices/new">
+              <Button variant="primary" size="lg" icon={<FilePlus2 size={17} />}>
+                فاتورة جديدة
+              </Button>
+            </Link>
+          </div>
         ) : null}
-      </div>
+      </header>
 
       {/* ------------------------------------------------ filter bar */}
       <section className="rounded-xl border border-line bg-surface p-3.5 shadow-1 grid gap-3">

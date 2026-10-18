@@ -69,7 +69,7 @@ export default function ProjectTimePage() {
           <div className="grid gap-3 md:grid-cols-3">
             <label className="field">
               <span>المهمة</span>
-              <select value={taskId} onChange={(event) => setTaskId(event.target.value)}>
+              <select className="input" value={taskId} onChange={(event) => setTaskId(event.target.value)}>
                 {tasks.map((task) => (
                   <option key={task.id} value={task.id}>{task.title}</option>
                 ))}
@@ -77,11 +77,11 @@ export default function ProjectTimePage() {
             </label>
             <label className="field">
               <span>الساعات</span>
-              <input value={hours} onChange={(event) => setHours(event.target.value)} />
+              <input className="input" value={hours} onChange={(event) => setHours(event.target.value)} />
             </label>
             <label className="field">
               <span>ملاحظة</span>
-              <input value={note} onChange={(event) => setNote(event.target.value)} />
+              <input className="input" value={note} onChange={(event) => setNote(event.target.value)} />
             </label>
           </div>
           <button className="btn primary" type="button" disabled={busy || !taskId} onClick={() => void save()}>

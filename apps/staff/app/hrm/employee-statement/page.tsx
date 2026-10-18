@@ -128,13 +128,13 @@ function EmployeeStatement() {
       subtitle={
         reported
           ? `${reported.employeeNo} — ${reported.name} · الحساب ${reported.accountCode ?? '—'} ${reported.accountName ?? ''}`.trim()
-          : '📄 حركة حساب الموظف من القيود المرحّلة فقط — سلفة، صرف راتب، واستحقاق.'
+ : 'حركة حساب الموظف من القيود المرحّلة فقط — سلفة، صرف راتب، واستحقاق.'
       }
       crumbs={['الموظفين والرواتب', 'التقارير']}
       actions={
  <>
  <button className="btn" type="button" onClick={() => window.print()} disabled={rows.length === 0}>
- 🖨️طباعة
+ طباعة
  </button>
  <button
             className="btn"
@@ -160,7 +160,7 @@ function EmployeeStatement() {
               )
             }
           >
- 📊تصدير CSV
+ تصدير CSV
  </button>
  </>
       }
@@ -168,7 +168,7 @@ function EmployeeStatement() {
  <div className="card tight no-print">
  <div className="row" style={{ flexWrap: 'wrap', alignItems: 'flex-end' }}>
  <label className="field" style={{ margin: 0, minWidth: 260, flex: 1 }}>
- <span>👤 اسم الموظف *</span>
+ <span>اسم الموظف *</span>
  <select className="input" value={employeeId} onChange={(event) => setEmployeeId(event.target.value)}>
  <option value="">اختر الموظف...</option>
               {withAccount.map((row) => (
@@ -179,7 +179,7 @@ function EmployeeStatement() {
  </select>
  </label>
  <label className="field" style={{ margin: 0, minWidth: 200 }}>
- <span>🏢 الفرع</span>
+ <span>الفرع</span>
  <select className="input" value={branchId} onChange={(event) => setBranchId(event.target.value)}>
  <option value="">كل الفروع</option>
               {(branches.data ?? []).map((branch) => (
@@ -203,11 +203,11 @@ function EmployeeStatement() {
             disabled={!employeeId}
             onClick={() => setApplied({ employeeId, branchId, from, to, fullPeriod, hidePrevious, detailed })}
           >
- 🔍عرض كشف الحساب
+ عرض كشف الحساب
  </button>
  </div>
  <div className="row" style={{ flexWrap: 'wrap', marginTop: 8 }}>
- <span className="group-label">📅 الفترة الزمنية</span>
+ <span className="group-label">الفترة الزمنية</span>
  <label className="check">
  <input type="checkbox" checked={fullPeriod} onChange={(event) => setFullPeriod(event.target.checked)} />
  فترة كاملة
@@ -217,7 +217,7 @@ function EmployeeStatement() {
  عدم إظهار الرصيد السابق
  </label>
  <span className="group-label" style={{ marginInlineStart: 12 }}>
- 📑نوع التقرير
+ نوع التقرير
  </span>
  <button type="button" className={`btn sm${detailed ? '' : ' primary'}`} onClick={() => setDetailed(false)}>
  تجميعي
@@ -235,10 +235,10 @@ function EmployeeStatement() {
       {applied.employeeId && statement.status === 'success' && (
  <>
  <StatTiles>
- <StatTile label="💳 إجمالي المدين" value={money(totals.totalDebit)} tone="ok" />
- <StatTile label="💵 إجمالي الدائن" value={money(totals.totalCredit)} tone="brand" />
- <StatTile label="⚖️ الرصيد المدين" value={money(totals.balanceDebit)} />
- <StatTile label="⚖️ الرصيد الدائن" value={money(totals.balanceCredit)} />
+ <StatTile label="إجمالي المدين" value={money(totals.totalDebit)} tone="ok" />
+ <StatTile label="إجمالي الدائن" value={money(totals.totalCredit)} tone="brand" />
+ <StatTile label="الرصيد المدين" value={money(totals.balanceDebit)} />
+ <StatTile label="الرصيد الدائن" value={money(totals.balanceCredit)} />
  </StatTiles>
 
           {rows.length === 0 ? (
@@ -257,7 +257,7 @@ function EmployeeStatement() {
  <th>تفاصيل</th>
  <th className="num">مدين</th>
  <th className="num">دائن</th>
- <th className="num">⚖️ الرصيد</th>
+ <th className="num">الرصيد</th>
  <th>الحالة</th>
  </tr>
  </thead>

@@ -16,7 +16,7 @@ import {
  * «سهمٍ يقفز إلى غير ما يتوقّعه المُدخِل»: الطرفان يُعطَّلان (ولا يُخفيان)، والنطاق يبقى،
  * والعنوان يسمّي الوجهة.
  */
-describe('journal entry navigation (⏮ ◀ ▶ ⏭)', () => {
+describe('journal entry navigation ()', () => {
   const row = (id: string, number: string | null, date: string) => ({
     id,
     number,
@@ -35,7 +35,7 @@ describe('journal entry navigation (⏮ ◀ ▶ ⏭)', () => {
   };
 
   it('يحمل الأزرار الأربعة برموزها ونصوصها المكتبية وترتيبها', () => {
-    expect(NAV_ITEMS.map((item) => `${item.glyph}${item.label}`)).toEqual(['⏮الأول', '◀السابق', '▶التالي', '⏭الأخير']);
+ expect(NAV_ITEMS.map((item) => `${item.glyph}${item.label}`)).toEqual(['الأول', 'السابق', 'التالي', 'الأخير']);
   });
 
   it('يربط كل زرٍّ بجارِه في النطاق نفسه', () => {

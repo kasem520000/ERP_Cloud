@@ -536,7 +536,7 @@ function SubscriptionTab({ card }: { card: PlatformTenantDetailResponse }) {
  </div>
       )}
  <p className="muted small" style={{ marginTop: 8 }}>
- <Link href="/subscriptions">إدارة التراخيص في القائمة الكاملة ←</Link>
+ <Link href="/subscriptions">إدارة التراخيص في القائمة الكاملة </Link>
  </p>
  </div>
   );
@@ -610,7 +610,7 @@ function UsersTab({
  <td>{STATUS_LABEL[member.membershipStatus] ?? member.membershipStatus}</td>
  <td>{member.roleCount}</td>
  <td dir="ltr">{when(member.lastLoginAt)}</td>
- <td>{member.isOwner ? '✔' : '—'}</td>
+ <td>{member.isOwner ? '' : '—'}</td>
  </tr>
               ))}
  </tbody>
@@ -1039,7 +1039,7 @@ function FlagsTab({
  </div>
 
  <div className="card">
- <h2>🛒 الباقات والأنظمة القطاعية للعميل (سوق الإضافات)</h2>
+ <h2>الباقات والأنظمة القطاعية للعميل (سوق الإضافات)</h2>
  <p className="muted small">
  تحكّم مباشر في تفعيل أو إيقاف الباقات القطاعية والتكاملات السحابية الخاصة بهذا العميل (مثل توزيع المناديب والمخابز، التصنيع، تطبيق الموظف، والمشاريع).
  </p>
@@ -1138,7 +1138,7 @@ function CustomerTicketsTab({ tenantId }: { tenantId: string }) {
  <div className="card">
  <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
  <div>
- <h2 style={{ margin: 0 }}>🛟 تذاكر الدعم وطلبات المساعدة من هذا العميل ({rows.length})</h2>
+ <h2 style={{ margin: 0 }}>تذاكر الدعم وطلبات المساعدة من هذا العميل ({rows.length})</h2>
  <p className="muted small">جميع طلبات المساعدة والرسائل المرسلة من المنشأة إلى إدارة المنصة.</p>
  </div>
  <button className="btn" type="button" onClick={tickets.reload}>
@@ -1181,7 +1181,7 @@ function CustomerTicketsTab({ tenantId }: { tenantId: string }) {
  <td dir="ltr">{when(t.createdAt)}</td>
  <td>
  <Link className="btn sm primary" href={`/tickets/${t.id}`}>
- فتح والرد ←
+ فتح والرد 
  </Link>
  </td>
  </tr>

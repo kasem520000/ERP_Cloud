@@ -265,21 +265,21 @@ function MarinaBookings() {
 
   return (
  <Screen
-      title="⛵ الحجوزات"
+ title="الحجوزات"
       subtitle="حجز مركب لعميل: قيمته ومدته وإضافاته، ثم مجاميعه — «إجمالي الإضافات · الإجمالي · ضريبة 15% · الصافي» كما يحسبها الديسكتوب، ومنه فاتورة التأجير."
       crumbs={['إدارة المراسي', 'الحجوزات']}
       actions={
  <div className="row" style={{ gap: 6 }}>
  <Link className="btn" href="/marina/violations">
- ⚠️المخالفات
+ المخالفات
  </Link>
-          {/* «➕» بجوار «🎁 الإضافات» — `btnAddObj_Click` يفتح `frmAdditions`. */}
+ {/* «» بجوار «الإضافات» — `btnAddObj_Click` يفتح `frmAdditions`. */}
  <Link className="btn" href="/marina/additions">
- 📋إضافات
+ إضافات
  </Link>
           {canManage && (
  <button className="btn primary" type="button" onClick={openNew}>
- ➕حجز جديد
+ حجز جديد
  </button>
           )}
  </div>
@@ -288,7 +288,7 @@ function MarinaBookings() {
       {error && <p className="alert danger">{error}</p>}
       {notice && <p className="alert ok">{notice}</p>}
 
-      {/* «🔍 البحث» — رقم الحجز · اسم العميل أو جواله · من تاريخ وإلى تاريخ. */}
+ {/* «البحث» — رقم الحجز · اسم العميل أو جواله · من تاريخ وإلى تاريخ. */}
  <div className="card tight no-print">
  <div className="row" style={{ flexWrap: 'wrap', alignItems: 'flex-end' }}>
  <label className="field" style={{ margin: 0, minWidth: 130 }}>
@@ -297,7 +297,7 @@ function MarinaBookings() {
  </label>
  <label className="field" style={{ margin: 0, minWidth: 200 }}>
  <span>اسم العميل / رقم الجوال</span>
- <input className="input" value={filters.customer} placeholder="🔍 الجوال أو الاسم..." onChange={(event) => setFilters({ ...filters, customer: event.target.value })} />
+ <input className="input" value={filters.customer} placeholder="الجوال أو الاسم..." onChange={(event) => setFilters({ ...filters, customer: event.target.value })} />
  </label>
  <label className="field" style={{ margin: 0, minWidth: 150 }}>
  <span>من تاريخ</span>
@@ -308,11 +308,11 @@ function MarinaBookings() {
  <input className="input" type="date" value={filters.to} onChange={(event) => setFilters({ ...filters, to: event.target.value })} />
  </label>
  <button className="btn primary" type="button" onClick={() => setApplied(filters)}>
- 🔍بحث
+ بحث
  </button>
           {applied && (
  <button className="btn" type="button" onClick={() => { setFilters({ number: '', customer: '', from: '', to: '' }); setApplied(null); }}>
- 🗑️تصفية الحقول
+ تصفية الحقول
  </button>
           )}
  </div>
@@ -324,27 +324,27 @@ function MarinaBookings() {
       {bookings.status === 'success' && (
  <>
  <div className="row" style={{ justifyContent: 'space-between', alignItems: 'baseline' }}>
- <span className="group-label" style={{ margin: 0 }}>📋 بيانات الحجوزات</span>
+ <span className="group-label" style={{ margin: 0 }}>بيانات الحجوزات</span>
  <span className="muted">عدد السجلات: {rows.length}</span>
  </div>
           {rows.length === 0 ? (
- <Empty title="لا توجد حجوزات" detail="ابدأ بـ «➕ حجز جديد»: مركب وعميل وقيمة ومدة — والمدة شرط الحفظ." />
+ <Empty title="لا توجد حجوزات" detail="ابدأ بـ «حجز جديد»: مركب وعميل وقيمة ومدة — والمدة شرط الحفظ." />
           ) : (
  <div className="table-wrap">
  <table>
  <thead>
  <tr>
- <th>🔢 الرقم</th>
- <th>📅 التاريخ</th>
- <th>👤 العميل</th>
- <th>⚓ المركب</th>
- <th>🚢 نوع الحجز</th>
- <th className="num">⏱ المدة</th>
- <th className="num">💰 القيمة</th>
- <th className="num">🎁 الإضافات</th>
+ <th>الرقم</th>
+ <th>التاريخ</th>
+ <th>العميل</th>
+ <th>المركب</th>
+ <th>نوع الحجز</th>
+ <th className="num">المدة</th>
+ <th className="num">القيمة</th>
+ <th className="num">الإضافات</th>
  <th className="num">الإجمالي</th>
  <th className="num">الصافي</th>
- <th>🔖 حالة الحجز</th>
+ <th>حالة الحجز</th>
                     {(canManage || canInvoice) && <th>إجراءات</th>}
  </tr>
  </thead>
@@ -373,17 +373,17 @@ function MarinaBookings() {
  <div className="row" style={{ gap: 4 }}>
                             {canManage && (
  <button className="btn sm" type="button" onClick={() => setCard(cardOf(row))}>
- ✏️تعديل
+ تعديل
  </button>
                             )}
                             {canInvoice && (
  <button className="btn sm" type="button" onClick={() => invoice(row)}>
- 🧾فاتورة
+ فاتورة
  </button>
                             )}
                             {canManage && (
  <button className="btn sm danger" type="button" onClick={() => remove(row)}>
- 🗑️حذف
+ حذف
  </button>
                             )}
  </div>
@@ -402,23 +402,23 @@ function MarinaBookings() {
  <div className="modal-backdrop" role="dialog" aria-modal="true">
  <div className="modal-card" style={{ maxWidth: 860 }}>
  <div className="modal-head">
- <span className="modal-title">{card.id ? '✏️ تعديل الحجز' : '📋 بيانات الحجوزات'}</span>
+ <span className="modal-title">{card.id ? 'تعديل الحجز' : 'بيانات الحجوزات'}</span>
  <button className="btn sm" type="button" onClick={() => setCard(null)}>
- ✖خروج
+ خروج
  </button>
  </div>
  <div style={{ padding: 16, display: 'grid', gap: 12, maxHeight: '70vh', overflow: 'auto' }}>
  <div className="form-grid">
  <label className="field">
- <span>🔢 الرقم</span>
+ <span>الرقم</span>
  <input className="input" value={card.id ? 'يُصدر عند الحفظ' : 'يُصدر عند الحفظ'} disabled />
  </label>
  <label className="field">
- <span>📅 التاريخ</span>
+ <span>التاريخ</span>
  <input className="input" type="date" value={card.documentDate} onChange={(event) => setField({ documentDate: event.target.value })} />
  </label>
  <label className="field">
- <span>🏢 الفرع</span>
+ <span>الفرع</span>
  <select className="input" value={card.branchId} onChange={(event) => setField({ branchId: event.target.value })}>
  <option value="">— اختر فرعاً —</option>
                     {(branches.data ?? []).map((branch) => (
@@ -427,7 +427,7 @@ function MarinaBookings() {
  </select>
  </label>
  <label className="field">
- <span>👤 العميل *</span>
+ <span>العميل *</span>
  <select className="input" value={card.partyId} onChange={(event) => setField({ partyId: event.target.value })}>
  <option value="">— اختر عميلاً —</option>
                     {(parties.data ?? []).map((party) => (
@@ -436,7 +436,7 @@ function MarinaBookings() {
  </select>
  </label>
  <label className="field">
- <span>⚓ المركب *</span>
+ <span>المركب *</span>
  <select className="input" value={card.vesselId} onChange={(event) => setField({ vesselId: event.target.value })}>
  <option value="">— اختر مركباً —</option>
                     {vessels.map((vessel) => (
@@ -445,26 +445,26 @@ function MarinaBookings() {
  </select>
  </label>
  <label className="field">
- <span>🔖 حالة الحجز</span>
+ <span>حالة الحجز</span>
  <select className="input" value={card.status} onChange={(event) => setField({ status: event.target.value })}>
  <option value="مؤكد">مؤكد</option>
  <option value="غير مؤكد">غير مؤكد</option>
  </select>
  </label>
  <label className="field">
- <span>📅 تاريخ الحجز</span>
+ <span>تاريخ الحجز</span>
  <input className="input" type="datetime-local" value={card.startsAt} onChange={(event) => setField({ startsAt: event.target.value })} />
  </label>
  <label className="field">
- <span>🕐 حتى</span>
+ <span>حتى</span>
  <input className="input" type="datetime-local" value={card.endsAt} onChange={(event) => setField({ endsAt: event.target.value })} />
  </label>
  <label className="field">
- <span>💰 القيمة</span>
+ <span>القيمة</span>
  <input className="input numeric" value={card.rentalAmount} onChange={(event) => setField({ rentalAmount: event.target.value })} />
  </label>
  <label className="field">
- <span>⏱ المدة ساعة</span>
+ <span>المدة ساعة</span>
  <input className="input numeric" value={card.periodHours} onChange={(event) => setField({ periodHours: event.target.value })} />
  </label>
  <label className="field">
@@ -472,17 +472,17 @@ function MarinaBookings() {
  <input className="input numeric" value={card.periodMinutes} onChange={(event) => setField({ periodMinutes: event.target.value })} />
  </label>
  <label className="field">
- <span>🛡️ التأمين</span>
+ <span>التأمين</span>
  <input className="input numeric" value={card.insuranceAmount} onChange={(event) => setField({ insuranceAmount: event.target.value })} />
  </label>
  <label className="field">
- <span>👥 المرافقون</span>
+ <span>المرافقون</span>
  <input className="input numeric" value={card.companions} onChange={(event) => setField({ companions: event.target.value })} />
  </label>
  </div>
 
  <fieldset className="card tight" style={{ margin: 0 }}>
- <legend className="group-label" style={{ margin: 0 }}>🚢 نوع الحجز</legend>
+ <legend className="group-label" style={{ margin: 0 }}>نوع الحجز</legend>
  <div className="row" style={{ gap: 12 }}>
                   {['حجز عادي', 'بحر مفتوح'].map((type) => (
  <label key={type} className="row" style={{ gap: 6 }}>
@@ -495,10 +495,10 @@ function MarinaBookings() {
 
               {/* الإضافات — الوصف · العدد · السعر · الإجمالي · حذف */}
  <fieldset className="card tight" style={{ margin: 0 }}>
- <legend className="group-label" style={{ margin: 0 }}>🎁 الإضافات</legend>
+ <legend className="group-label" style={{ margin: 0 }}>الإضافات</legend>
  <div className="row" style={{ gap: 6, flexWrap: 'wrap', alignItems: 'flex-end' }}>
  <label className="field" style={{ margin: 0, flex: 1, minWidth: 180 }}>
- <span>🎁 الإضافات</span>
+ <span>الإضافات</span>
  <select
                       className="input"
                       value={line.additionId ?? ''}
@@ -558,7 +558,7 @@ function MarinaBookings() {
  <table>
  <thead>
  <tr>
- <th>🎁 الإضافة</th>
+ <th>الإضافة</th>
  <th>الوصف</th>
  <th className="num">العدد</th>
  <th className="num">السعر</th>
@@ -580,7 +580,7 @@ function MarinaBookings() {
                                 type="button"
                                 onClick={() => setCard({ ...card, additions: card.additions.filter((_, i) => i !== index) })}
                               >
- 🗑️حذف
+ حذف
  </button>
  </td>
  </tr>
@@ -605,14 +605,14 @@ function MarinaBookings() {
  </div>
  <div className="modal-foot">
  <button className="btn primary" type="button" onClick={() => void save()} disabled={busy}>
- 💾حفظ
+ حفظ
  </button>
-              {/* «🔄 جديد» = `CLR` — كل الصناديق تعود فارغة. */}
+ {/* «جديد» = `CLR` — كل الصناديق تعود فارغة. */}
  <button className="btn" type="button" disabled={busy} onClick={() => setCard(emptyCard(card.branchId, card.partyId, card.vesselId))}>
- 🔄جديد
+ جديد
  </button>
  <button className="btn danger" type="button" onClick={() => setCard(null)} disabled={busy}>
- ✖خروج
+ خروج
  </button>
  </div>
  </div>

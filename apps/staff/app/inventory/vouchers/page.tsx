@@ -501,9 +501,9 @@ export default function VouchersPage() {
  <th>الكمية</th>
  <th>الوحدة</th>
                   {!isIssue && <th>تكلفة الوحدة</th>}
- <th>📁 رقم الدفعة</th>
- <th>📅 تاريخ الإنتاج</th>
- <th>⏳ تاريخ الانتهاء</th>
+ <th>رقم الدفعة</th>
+ <th>تاريخ الإنتاج</th>
+ <th>تاريخ الانتهاء</th>
  <th>رقم تسلسلي</th>
  <th>ملاحظة</th>
  <th />
@@ -573,7 +573,6 @@ export default function VouchersPage() {
                         {line.unitId && Number(line.qtyText) > 0 && (
  <span className="muted small" dir="ltr">
                             {`= ${(Number(line.qtyText) * factorOf(line)).toLocaleString('ar-EG')} `}
-                            {arabicName(itemOf(line.itemId) ?? {}) ? '' : ''}
  </span>
                         )}
  </td>
@@ -711,7 +710,7 @@ export default function VouchersPage() {
  <Notice notice={notice} />
  <div className="row" style={{ gap: 8 }}>
  <button className="btn primary" type="submit" disabled={busy}>
-              {busy ? 'جارٍ الحفظ والترحيل…' : '⚡ حفظ وترحيل فوري'}
+ {busy ? 'جارٍ الحفظ والترحيل…' : 'حفظ وترحيل فوري'}
  </button>
  <button
               className="btn"
@@ -719,7 +718,7 @@ export default function VouchersPage() {
               disabled={busy}
               onClick={() => void saveVoucher(false)}
             >
- 💾حفظ كمسودة
+ حفظ كمسودة
  </button>
  </div>
  </form>
@@ -878,7 +877,7 @@ export default function VouchersPage() {
                   { key: 'value', header: 'القيمة', align: 'num', cell: (line) => money(line.lineCost) },
                   {
                     key: 'serials',
-                    header: '🔢 الأرقام التسلسلية',
+ header: 'الأرقام التسلسلية',
                     cell: (line) =>
                       line.serialNos?.length ? (
  <span dir="ltr" className="small">
@@ -890,13 +889,13 @@ export default function VouchersPage() {
                   },
                   {
                     key: 'batch',
-                    header: '📁 رقم الدفعة',
+ header: 'رقم الدفعة',
                     cell: (line) =>
                       line.batchNo ? (
  <span dir="ltr" className="small">
                           {line.batchNo}
-                          {line.productionDate ? ` · 📅 ${shortDate(line.productionDate)}` : ''}
-                          {line.expiryDate ? ` · ⏳ ${shortDate(line.expiryDate)}` : ''}
+ {line.productionDate ? ` · ${shortDate(line.productionDate)}` : ''}
+ {line.expiryDate ? ` · ${shortDate(line.expiryDate)}` : ''}
  </span>
                       ) : (
                         '—'

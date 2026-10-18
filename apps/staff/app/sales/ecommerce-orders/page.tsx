@@ -32,22 +32,22 @@ export default function EcommerceOrdersPage() {
 
   return (
  <Screen
-      title="🧾 طلبات المتجر الإلكتروني"
+ title="طلبات المتجر الإلكتروني"
       subtitle="كل طلب من سلة أو زد أو Shopify يظهر هنا، مع حالة الاستيراد ورابط مسودة فاتورة المبيعات في ERP."
       crumbs={['المبيعات', 'طلبات المتجر الإلكتروني']}
       actions={
  <button className="btn" type="button" disabled={busy} onClick={() => void reload()}>
- 🔄تحديث
+ تحديث
  </button>
       }
     >
  <Notice notice={notice} />
  <div className="card">
  <div className="toolbar">
- <h3>📋 طلبات المتاجر</h3>
+ <h3>طلبات المتاجر</h3>
  <label className="field inline">
  <span>الحالة</span>
- <select value={status} onChange={(event) => setStatus(event.target.value)}>
+ <select className="input" value={status} onChange={(event) => setStatus(event.target.value)}>
  <option value="">الكل</option>
  <option value="pending">قيد المعالجة</option>
  <option value="imported">مستورد</option>
@@ -115,7 +115,7 @@ export default function EcommerceOrdersPage() {
  </div>
       {orders.some((row) => row.error) ? (
  <div className="card">
- <h3>⚠️ أخطاء الاستيراد</h3>
+ <h3>أخطاء الاستيراد</h3>
           {orders
             .filter((row) => row.error)
             .map((row) => (

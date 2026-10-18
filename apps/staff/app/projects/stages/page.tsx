@@ -122,7 +122,7 @@ export default function ProjectStagesPage() {
     if (!canMove(stages, selected.id, direction)) return setNotice({ kind: 'warn', text: 'المرحلة على الطرف — لا جارَ لها في هذا الاتجاه.' });
     await guard(async () => {
       await apiPost(`/projects/stages/${selected.id}/move`, { direction });
-      afterChange(direction === 'up' ? '⬆️ تحرّكت المرحلة لأعلى.' : '⬇️ تحرّكت المرحلة لأسفل.');
+ afterChange(direction === 'up' ? 'تحرّكت المرحلة لأعلى.' : 'تحرّكت المرحلة لأسفل.');
     });
   }
 
@@ -193,7 +193,7 @@ export default function ProjectStagesPage() {
  </select>
  </label>
  <label className="field wide">
- <span>🗂️ المجموعة</span>
+ <span>المجموعة</span>
  <select className="input" value={templateId} onChange={(event) => setTemplateId(event.target.value)}>
  <option value="">— بلا مجموعة —</option>
               {(templates.data ?? []).map((row) => (
@@ -204,7 +204,7 @@ export default function ProjectStagesPage() {
  </select>
  </label>
  <button className="btn" type="button" onClick={() => void applyTemplate()} disabled={busy || !projectId}>
- 💾حفظ مراحل المجموعة
+ حفظ مراحل المجموعة
  </button>
  </div>
  </div>
@@ -217,7 +217,7 @@ export default function ProjectStagesPage() {
           {() => (
  <>
  <div className="card">
- <h3>➕ إضافة حالة</h3>
+ <h3>إضافة حالة</h3>
  <div className="toolbar">
  <label className="field wide">
  <span>اسم المرحلة</span>
@@ -231,35 +231,35 @@ export default function ProjectStagesPage() {
                     />
  </label>
  <button className="btn primary" type="button" onClick={() => void addStage()} disabled={busy}>
- ➕إضافة حالة
+ إضافة حالة
  </button>
  </div>
  </div>
 
  <div className="toolbar">
  <button className="btn" type="button" onClick={() => focusOn(0)} disabled={stages.length === 0}>
-                  ⏮
+ 
  </button>
  <button className="btn" type="button" onClick={() => focusOn(stages.findIndex((row) => row.id === selectedId) - 1)} disabled={!selected || stages[0]?.id === selectedId}>
-                  ◀
+ 
  </button>
  <button className="btn" type="button" onClick={() => focusOn(stages.findIndex((row) => row.id === selectedId) + 1)} disabled={!selected || stages[stages.length - 1]?.id === selectedId}>
-                  ▶
+ 
  </button>
  <button className="btn" type="button" onClick={() => focusOn(stages.length - 1)} disabled={stages.length === 0}>
-                  ⏭
+ 
  </button>
  <button className="btn" type="button" onClick={() => window.print()} disabled={stages.length === 0}>
- 🖨️ طباعة
+ طباعة
  </button>
  <button className="btn" type="button" onClick={() => void shift('up')} disabled={busy || !selected}>
- ⬆️لأعلى
+ لأعلى
  </button>
  <button className="btn" type="button" onClick={() => void shift('down')} disabled={busy || !selected}>
- ⬇️لأسفل
+ لأسفل
  </button>
  <button className="btn danger" type="button" onClick={() => void remove(selected)} disabled={busy}>
- 🗑️حذف
+ حذف
  </button>
  </div>
 
@@ -270,7 +270,7 @@ export default function ProjectStagesPage() {
  <span className="chip">{`المعتمدة: ${stages.filter((stage) => stage.status === 'accredited').length}`}</span>
  <span className="chip">{`المحدَّدة: ${selected?.name ?? '—'}`}</span>
  </div>
-                {stages.length === 0 && <Notice notice={{ kind: 'info', text: 'لا توجد مراحل لهذا المشروع بعد — أضف الحالة الأولى أو انسخ «🗂️ المجموعة».' }} />}
+ {stages.length === 0 && <Notice notice={{ kind: 'info', text: 'لا توجد مراحل لهذا المشروع بعد — أضف الحالة الأولى أو انسخ «المجموعة».' }} />}
 
  <DataTable<Stage>
                   rows={stages}
@@ -278,8 +278,8 @@ export default function ProjectStagesPage() {
                   onRowClick={(row) => setSelectedId(row.id)}
                   activeKey={selectedId}
                   columns={[
-                    { key: 'order', header: '🔢 الرقم', align: 'num', cell: (row) => numberById.get(row.id) ?? row.stageOrder },
-                    { key: 'name', header: '📝 اسم المرحلة', cell: (row) => row.name },
+ { key: 'order', header: 'الرقم', align: 'num', cell: (row) => numberById.get(row.id) ?? row.stageOrder },
+ { key: 'name', header: 'اسم المرحلة', cell: (row) => row.name },
                     { key: 'state', header: 'الحالة', cell: (row) => <span className="badge">{stageStatusLabel(row.status)}</span> },
                     {
                       key: 'accredited',

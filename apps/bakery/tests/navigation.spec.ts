@@ -35,7 +35,7 @@ function declaredPages(dir: string, prefix = ''): string[] {
 }
 
 describe('خريطة وحدات واجهة المخابز', () => {
-  it('«مبنيّة» ⇔ صفحةٌ فعلًا: لا إعلان بلا بناء، ولا بناء بلا إعلان', () => {
+ it('«مبنيّة» صفحةٌ فعلًا: لا إعلان بلا بناء، ولا بناء بلا إعلان', () => {
     for (const module of BAKERY_MODULES) {
       const href = module.href;
       if (module.status === 'ready') {

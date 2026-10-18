@@ -177,13 +177,13 @@ function OpticsPrescriptions() {
 
   return (
  <Screen
-      title="👓 بيانات النظارات"
-      subtitle="وصفة كل عميل بعشر قيم: خمس لليمين وخمس لليسار، بأسماءٍ يسمّيها صاحب المحل في «⚙️ أسماء الحقول» — وما يُطبع على الفاتورة هو هذا."
+ title="بيانات النظارات"
+ subtitle="وصفة كل عميل بعشر قيم: خمس لليمين وخمس لليسار، بأسماءٍ يسمّيها صاحب المحل في «أسماء الحقول» — وما يُطبع على الفاتورة هو هذا."
       crumbs={['النظارات', 'بيانات النظارات']}
       actions={
  <div className="row" style={{ gap: 6 }}>
  <Link className="btn" href="/optics/field-labels">
- ⚙️أسماء الحقول
+ أسماء الحقول
  </Link>
           {canManage && (
  <button
@@ -195,7 +195,7 @@ function OpticsPrescriptions() {
                 setDraft(emptyDraft(prescriptions.data?.customer?.id ?? (customers.data ?? [])[0]?.id ?? ''));
               }}
             >
- ➕وصفة جديدة
+ وصفة جديدة
  </button>
           )}
  </div>
@@ -205,7 +205,7 @@ function OpticsPrescriptions() {
       {notice && <p className="alert ok">{notice}</p>}
       {lineIdFilter && (
  <div className="card tight" style={{ background: 'var(--warn-soft)', borderColor: 'var(--warn-line)' }}>
- 🔍تم فتح بيانات النظارات للسطر <code dir="ltr">{lineIdFilter}</code> من فاتورة المبيعات (Alt+G) — الوصفات المرتبطة بهذا السطر مميزة أدناه.
+ تم فتح بيانات النظارات للسطر <code dir="ltr">{lineIdFilter}</code> من فاتورة المبيعات (Alt+G) — الوصفات المرتبطة بهذا السطر مميزة أدناه.
  </div>
       )}
 
@@ -216,7 +216,7 @@ function OpticsPrescriptions() {
  <input
               className="input"
               value={search}
-              placeholder="🔍 الجوال أو الاسم..."
+ placeholder="الجوال أو الاسم..."
               onChange={(event) => setSearch(event.target.value)}
               onKeyDown={(event) => {
                 if (event.key === 'Enter') searchNow();
@@ -224,18 +224,18 @@ function OpticsPrescriptions() {
             />
  </label>
  <button className="btn primary" type="button" onClick={searchNow}>
- 🔍بحث
+ بحث
  </button>
           {applied !== null && (
  <button className="btn" type="button" onClick={showAll}>
- 📋كل الوصفات
+ كل الوصفات
  </button>
           )}
  </div>
         {prescriptions.data?.customer && (
  <div className="row" style={{ marginTop: 8, gap: 16, fontWeight: 700 }}>
- <span>👤 العميل: {prescriptions.data.customer.name}</span>
- <span dir="ltr">📞 الجوال: {prescriptions.data.customer.phone || '—'}</span>
+ <span>العميل: {prescriptions.data.customer.name}</span>
+ <span dir="ltr">الجوال: {prescriptions.data.customer.phone || '—'}</span>
  </div>
         )}
  </div>
@@ -246,7 +246,7 @@ function OpticsPrescriptions() {
       {prescriptions.status === 'success' && (
  <>
  <div className="row" style={{ justifyContent: 'space-between', alignItems: 'baseline' }}>
- <span className="group-label" style={{ margin: 0 }}>👓 بيانات النظارات</span>
+ <span className="group-label" style={{ margin: 0 }}>بيانات النظارات</span>
  <span className="muted">عدد السجلات: {prescriptions.data?.total ?? rows.length}</span>
  </div>
           {rows.length === 0 ? (
@@ -254,7 +254,7 @@ function OpticsPrescriptions() {
               title="لا توجد وصفات"
               detail={
                 prescriptions.data?.customer
-                  ? `لا وصفة محفوظة لـ«${prescriptions.data.customer.name}». ابدأ بـ «➕ وصفة جديدة».`
+ ? `لا وصفة محفوظة لـ«${prescriptions.data.customer.name}». ابدأ بـ «وصفة جديدة».`
                   : 'ابحث بجوال عميل أو اسمه لعرض وصفاته، أو أضف وصفة من «كل الوصفات».'
               }
             />
@@ -262,17 +262,17 @@ function OpticsPrescriptions() {
  <div className="table-wrap">
  <table>
  <thead>
-                  {/* «🔴 العين اليمنى (RE)» و«🟢 العين اليسرى (LE)» — the two columns of the card. */}
+ {/* «العين اليمنى (RE)» و«العين اليسرى (LE)» — the two columns of the card. */}
  <tr>
- <th rowSpan={2}>👤 العميل</th>
- <th rowSpan={2}>📅 التاريخ</th>
+ <th rowSpan={2}>العميل</th>
+ <th rowSpan={2}>التاريخ</th>
  <th colSpan={5} style={{ background: 'var(--brand-soft)' }}>
- 🔴العين اليمنى (RE)
+ العين اليمنى (RE)
  </th>
  <th colSpan={5} style={{ background: 'var(--ok-soft)' }}>
- 🟢العين اليسرى (LE)
+ العين اليسرى (LE)
  </th>
- <th rowSpan={2}>📝 الملاحظات</th>
+ <th rowSpan={2}>الملاحظات</th>
                     {canManage && <th rowSpan={2}>إجراءات</th>}
  </tr>
  <tr>
@@ -314,10 +314,10 @@ function OpticsPrescriptions() {
  <td>
  <div className="row" style={{ gap: 4 }}>
  <button className="btn sm" type="button" onClick={() => setDraft(draftOf(row))}>
- ✏️تعديل
+ تعديل
  </button>
  <button className="btn sm danger" type="button" onClick={() => remove(row)}>
- 🗑️حذف
+ حذف
  </button>
  </div>
  </td>
@@ -335,16 +335,16 @@ function OpticsPrescriptions() {
  <div className="modal-backdrop" role="dialog" aria-modal="true">
  <div className="modal-card" style={{ maxWidth: 720 }}>
  <div className="modal-head">
-              {/* «👓 بيانات النظارات» — `frmGlasses`, opened from a فاتورة or from here. */}
- <span className="modal-title">{draft.id ? '✏️ تعديل الوصفة' : '👓 بيانات النظارات'}</span>
+ {/* «بيانات النظارات» — `frmGlasses`, opened from a فاتورة or from here. */}
+ <span className="modal-title">{draft.id ? 'تعديل الوصفة' : 'بيانات النظارات'}</span>
  <button className="btn sm" type="button" onClick={() => setDraft(null)}>
- ✖خروج
+ خروج
  </button>
  </div>
  <div style={{ padding: 16, display: 'grid', gap: 12, maxHeight: '70vh', overflow: 'auto' }}>
  <label className="field">
                 {/* The desktop takes the عميل from the فاتورة; here the وصفة is his own card. */}
- <span>👤 العميل *</span>
+ <span>العميل *</span>
  <select
                   className="input"
                   value={draft.partyId}
@@ -361,14 +361,14 @@ function OpticsPrescriptions() {
  </label>
               {selectedCustomer && (
  <p className="muted" style={{ margin: 0, fontWeight: 700 }}>
- 👤العميل: {selectedCustomer.name} —  📞{selectedCustomer.phone || '—'}
+ العميل: {selectedCustomer.name} — {selectedCustomer.phone || '—'}
  </p>
               )}
 
               {(
                 [
-                  { side: 'right' as const, title: '🔴 العين اليمنى (RE)', background: 'var(--brand-soft)', captions: rightLabels },
-                  { side: 'left' as const, title: '🟢 العين اليسرى (LE)', background: 'var(--ok-soft)', captions: leftLabels },
+ { side: 'right' as const, title: 'العين اليمنى (RE)', background: 'var(--brand-soft)', captions: rightLabels },
+ { side: 'left' as const, title: 'العين اليسرى (LE)', background: 'var(--ok-soft)', captions: leftLabels },
                 ]
               ).map((column) => (
  <fieldset key={column.side} className="card tight" style={{ margin: 0, background: column.background }}>
@@ -378,7 +378,7 @@ function OpticsPrescriptions() {
  <div className="form-grid">
                     {column.captions.map((caption) => (
  <label key={caption.key} className="field" style={{ margin: 0 }}>
-                        {/* The caption is «⚙️ أسماء الحقول»'s, or the desktop's default. */}
+ {/* The caption is «أسماء الحقول»'s, or the desktop's default. */}
  <span dir="ltr">{caption.label}</span>
  <input
                           className="input"
@@ -394,7 +394,7 @@ function OpticsPrescriptions() {
               ))}
 
  <label className="field">
- <span>📝 ملاحظات</span>
+ <span>ملاحظات</span>
  <textarea
                   className="input"
                   rows={2}
@@ -409,19 +409,19 @@ function OpticsPrescriptions() {
  </div>
  <div className="modal-foot">
  <button className="btn primary" type="button" onClick={() => void save()} disabled={busy}>
- ✔إدراج
+ إدراج
  </button>
-              {/* «🔄 جديد» = `CLR` — the ten boxes and the ملاحظات go blank. */}
+ {/* «جديد» = `CLR` — the ten boxes and the ملاحظات go blank. */}
  <button
                 className="btn"
                 type="button"
                 disabled={busy}
                 onClick={() => setDraft(emptyDraft(draft.partyId))}
               >
- 🔄جديد
+ جديد
  </button>
  <button className="btn danger" type="button" onClick={() => setDraft(null)} disabled={busy}>
- ✖خروج
+ خروج
  </button>
  </div>
  </div>

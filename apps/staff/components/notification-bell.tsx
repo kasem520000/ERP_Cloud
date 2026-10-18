@@ -17,13 +17,13 @@ type Notification = {
 };
 
 const TYPE_LABEL_AR: Record<string, string> = {
-  support_ticket_reply: '🛟 رد الدعم الفني',
-  marketplace_addon_approved: '🛒 تفعيل باقة إضافية',
-  marketplace_addon_rejected: '🛒 تحديث طلب باقة',
-  van_sales_closing_request: '🚚 طلب إغلاق وردية مندوب',
-  van_sales_closing_approved: '✅ اعتماد إغلاق الوردية',
-  announcement: '📢 إعلان المنصة',
-  'comment.mention': '💬 إشارة في تعليق',
+ support_ticket_reply: 'رد الدعم الفني',
+ marketplace_addon_approved: 'تفعيل باقة إضافية',
+ marketplace_addon_rejected: 'تحديث طلب باقة',
+ van_sales_closing_request: 'طلب إغلاق وردية مندوب',
+ van_sales_closing_approved: 'اعتماد إغلاق الوردية',
+ announcement: 'إعلان المنصة',
+ 'comment.mention': 'إشارة في تعليق',
 };
 
 function text(value: unknown, fallback = ''): string {
@@ -226,7 +226,7 @@ export function NotificationBell({ label }: { label: string }) {
                           disabled={busyId === item.id}
                           onClick={() => void markOneRead(item.id)}
                         >
- ✓مقروء
+ مقروء
  </button>
                       )}
  </div>
@@ -249,7 +249,7 @@ export function NotificationBell({ label }: { label: string }) {
                             setOpen(false);
                           }}
                         >
- فتح والانتقال ←
+ فتح والانتقال 
  </Link>
                       )}
  </div>
@@ -356,7 +356,7 @@ export function NotificationInbox({ locale }: { locale: 'ar' | 'en' }) {
  </p>
                   {info.href ? (
  <Link href={info.href} style={{ fontWeight: 700 }}>
- فتح المستند ←
+ فتح المستند 
  </Link>
                   ) : null}
  <p className="muted" style={{ margin: '6px 0 0', fontSize: 12 }}>

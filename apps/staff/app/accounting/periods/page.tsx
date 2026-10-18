@@ -152,14 +152,14 @@ export default function FiscalPeriodsPage() {
       actions={
  <>
  <button className="btn" type="button" onClick={reload} disabled={periods.status === 'loading'}>
- 🔄تحديث
+ تحديث
  </button>
  <button
             className="btn"
             type="button"
             onClick={() => setForm({ ...EMPTY_FORM, startDate: firstOfYear, endDate: lastOfYear })}
           >
- 🆕جديد
+ جديد
  </button>
  </>
       }
@@ -167,7 +167,7 @@ export default function FiscalPeriodsPage() {
       {message && <p className={`alert ${message.kind}`}>{message.text}</p>}
 
  <section className="card">
- <h2>{editing ? `✏️ تعديل — ${form.name}` : '➕ إضافة فترة محاسبية'}</h2>
+ <h2>{editing ? `تعديل — ${form.name}` : 'إضافة فترة محاسبية'}</h2>
  <form className="form-grid" onSubmit={submit}>
  <label className="field">
  <span>رقم الفترة</span>
@@ -191,12 +191,12 @@ export default function FiscalPeriodsPage() {
  </label>
  <label className="check" style={{ alignSelf: 'end' }}>
  <input type="checkbox" checked={form.isActive} onChange={(event) => setForm({ ...form, isActive: event.target.checked })} />
- ✔️فترة نشطة حالياً
+ فترة نشطة حالياً
  </label>
           {canManage && (
  <div className="toolbar">
  <button className="btn primary" type="submit" disabled={busy === 'form'}>
-                {busy === 'form' ? '…' : editing ? '✏️ تعديل' : '➕ إضافة'}
+ {busy === 'form' ? '…' : editing ? 'تعديل' : 'إضافة'}
  </button>
               {editing && (
  <button className="btn" type="button" onClick={() => setForm({ ...EMPTY_FORM, startDate: firstOfYear, endDate: lastOfYear })}>
@@ -242,8 +242,8 @@ export default function FiscalPeriodsPage() {
  <td dir="ltr">{period.yearName ?? '—'}</td>
  <td dir="ltr">{period.startDate}</td>
  <td dir="ltr">{period.endDate}</td>
- <td>{period.isActive ? '✔️' : '—'}</td>
- <td>{period.status === 'closed' ? '🔒' : '—'}</td>
+ <td>{period.isActive ? '' : '—'}</td>
+ <td>{period.status === 'closed' ? '' : '—'}</td>
  <td>{period.closedByName ?? '—'}</td>
  <td dir="ltr">{stamp(period.closedAt)}</td>
  <td>{period.notes ?? '—'}</td>
@@ -266,24 +266,24 @@ export default function FiscalPeriodsPage() {
                                   });
                                 }}
                               >
- ✏️تعديل
+ تعديل
  </button>
                               {!period.isActive && (
  <button className="btn sm" type="button" disabled={busy === period.id} onClick={() => void act(period, 'activate')}>
- ⚡تفعيل
+ تفعيل
  </button>
                               )}
  <button className="btn sm" type="button" disabled={busy === period.id} onClick={() => void act(period, 'close')}>
- 🔒إغلاق الفترة
+ إغلاق الفترة
  </button>
  <button className="btn sm" type="button" disabled={busy === period.id} onClick={() => void act(period, 'delete')}>
- 🗑️حذف
+ حذف
  </button>
  </>
                           )}
                           {can('accounting.period.reopen') && period.status === 'closed' && (
  <button className="btn sm" type="button" disabled={busy === period.id} onClick={() => void act(period, 'reopen')}>
- 🔓إعادة فتح
+ إعادة فتح
  </button>
                           )}
  </div>

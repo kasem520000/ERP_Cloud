@@ -122,12 +122,12 @@ export default function TrialBalancePage() {
   return (
  <Screen
       title="أرصدة الحسابات"
-      subtitle="⚖️ ميزان المراجعة — افتتاحي · خلال الفترة المحددة · ختامي، من القيود المرحّلة فقط."
+ subtitle="ميزان المراجعة — افتتاحي · خلال الفترة المحددة · ختامي، من القيود المرحّلة فقط."
       crumbs={['المحاسبة', 'تقارير محاسبية']}
       actions={
  <>
  <button className="btn" type="button" onClick={() => window.print()} disabled={rows.length === 0}>
- 🖨️طباعة
+ طباعة
  </button>
  <button
             className="btn"
@@ -152,10 +152,10 @@ export default function TrialBalancePage() {
               )
             }
           >
- 📊تصدير Excel
+ تصدير Excel
  </button>
  <button className="btn" type="button" onClick={trial.reload}>
- 🔄تحديث
+ تحديث
  </button>
  </>
       }

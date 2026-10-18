@@ -239,8 +239,8 @@ export default function SerialsPage() {
 
  <Tabs<TabId>
         items={[
-          { id: 'available', label: `📋 الأرقام المتاحة (${count('available') + count('reserved')})` },
-          { id: 'sold', label: `📤 الأرقام المباعة (${count('sold') + count('returned')})` },
+ { id: 'available', label: `الأرقام المتاحة (${count('available') + count('reserved')})` },
+ { id: 'sold', label: `الأرقام المباعة (${count('sold') + count('returned')})` },
         ]}
         value={tab}
         onChange={(next) => {
@@ -301,7 +301,7 @@ export default function SerialsPage() {
               },
               {
                 key: 'serial',
-                header: '🔢 الرقم التسلسلي',
+ header: 'الرقم التسلسلي',
                 align: 'ltr',
                 cell: (row) => row.serialNo,
               },
@@ -319,7 +319,7 @@ export default function SerialsPage() {
               },
               {
                 key: 'status',
-                header: '⚙️ الحالة',
+ header: 'الحالة',
                 cell: (row) => (
  <span
                     className={`badge ${
@@ -338,7 +338,7 @@ export default function SerialsPage() {
       {trace && (
  <div className="card">
  <div className="section-title">
- <h4>{`🔍 مسار الرقم ${trace.serial.serialNo}`}</h4>
+ <h4>{`مسار الرقم ${trace.serial.serialNo}`}</h4>
  <button className="btn sm" type="button" onClick={() => setTrace(undefined)}>
  إغلاق
  </button>
@@ -374,7 +374,7 @@ export default function SerialsPage() {
 
       {manage && (
  <div className="card">
- <h4>⚙️ توليد — دفعة أرقام من بادئة واحدة</h4>
+ <h4>توليد — دفعة أرقام من بادئة واحدة</h4>
  <form
             className="form-grid"
             onSubmit={(event) => {
@@ -472,12 +472,12 @@ export default function SerialsPage() {
  </label>
  <div className="row">
  <button className="btn primary" type="submit" disabled={busy || !draft.itemId}>
-                {busy ? 'جارٍ التوليد…' : '⚙️ توليد'}
+ {busy ? 'جارٍ التوليد…' : 'توليد'}
  </button>
  </div>
  </form>
 
- <h4>✅ إدراج — رقم واحد</h4>
+ <h4>إدراج — رقم واحد</h4>
  <form
             className="form-grid"
             onSubmit={(event) => {

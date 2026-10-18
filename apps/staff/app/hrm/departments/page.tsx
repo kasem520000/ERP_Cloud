@@ -69,7 +69,7 @@ export default function DepartmentsPage() {
     try {
       if (managementForm.id) await apiPatch(`/hrm/departments/${managementForm.id}`, body);
       else await apiPost('/hrm/departments', body);
-      setMessage({ kind: 'ok', text: '✅ تم الحفظ بنجاح' });
+ setMessage({ kind: 'ok', text: 'تم الحفظ بنجاح' });
       setManagementForm({ ...BLANK });
       departments.reload();
     } catch (error) {
@@ -88,7 +88,7 @@ export default function DepartmentsPage() {
     try {
       if (sectionForm.id) await apiPatch(`/hrm/departments/${sectionForm.id}`, body);
       else await apiPost('/hrm/departments', body);
-      setMessage({ kind: 'ok', text: '✅ تم الحفظ بنجاح' });
+ setMessage({ kind: 'ok', text: 'تم الحفظ بنجاح' });
       setSectionForm({ ...BLANK });
       departments.reload();
     } catch (error) {
@@ -99,12 +99,12 @@ export default function DepartmentsPage() {
   };
 
   const remove = async (row: Department) => {
-    if (!window.confirm(`⚠️ هل أنت متأكد من حذف ${row.kind === 'section' ? 'هذا القسم' : 'هذه الإدارة'}؟ — ${row.name}`)) return;
+ if (!window.confirm(`هل أنت متأكد من حذف ${row.kind === 'section' ? 'هذا القسم' : 'هذه الإدارة'}؟ — ${row.name}`)) return;
     setBusy(true);
     setMessage(undefined);
     try {
       await apiDelete(`/hrm/departments/${row.id}`);
-      setMessage({ kind: 'ok', text: '✅ تم الحذف بنجاح' });
+ setMessage({ kind: 'ok', text: 'تم الحذف بنجاح' });
       if (managementForm.id === row.id) setManagementForm({ ...BLANK });
       if (sectionForm.id === row.id) setSectionForm({ ...BLANK });
       departments.reload();
@@ -136,7 +136,7 @@ export default function DepartmentsPage() {
       crumbs={['الموظفين والرواتب', 'التعاريف']}
       actions={
  <button className="btn" type="button" onClick={departments.reload} disabled={departments.status === 'loading'}>
- 🔄تحديث
+ تحديث
  </button>
       }
     >
@@ -161,11 +161,11 @@ export default function DepartmentsPage() {
             {branchField(managementForm.branchId, (next) => setManagementForm({ ...managementForm, branchId: next }))}
  <div className="toolbar">
  <button className="btn primary" type="submit" disabled={busy}>
-                {managementForm.id ? '✏️ تعديل' : '➕ إضافة إدارة جديدة'}
+ {managementForm.id ? 'تعديل' : 'إضافة إدارة جديدة'}
  </button>
               {managementForm.id && (
  <button className="btn" type="button" onClick={() => setManagementForm({ ...BLANK })}>
- 🆕جديد
+ جديد
  </button>
               )}
  </div>
@@ -243,11 +243,11 @@ export default function DepartmentsPage() {
             {branchField(sectionForm.branchId, (next) => setSectionForm({ ...sectionForm, branchId: next }))}
  <div className="toolbar">
  <button className="btn primary" type="submit" disabled={busy}>
-                {sectionForm.id ? '✏️ تعديل' : '💾 حفظ'}
+ {sectionForm.id ? 'تعديل' : 'حفظ'}
  </button>
               {sectionForm.id && (
  <button className="btn" type="button" onClick={() => setSectionForm({ ...BLANK })}>
- 🆕جديد
+ جديد
  </button>
               )}
  </div>

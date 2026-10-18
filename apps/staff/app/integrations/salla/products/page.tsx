@@ -113,14 +113,14 @@ export default function SallaProductsPage() {
 
   return (
  <Screen
-      title="📦 منتجات متجر سلة"
-      subtitle="«📦 جلب المنتجات» و«➕ إضافة منتج» من `FrmSallah`: ما في المتجر، وما يحتاج تصديراً من أصنافك."
+ title="منتجات متجر سلة"
+ subtitle="«جلب المنتجات» و«إضافة منتج» من `FrmSallah`: ما في المتجر، وما يحتاج تصديراً من أصنافك."
       crumbs={['المستودعات', 'متجر سلة']}
       actions={
  <div className="row" style={{ gap: 6 }}>
           {canManage && (
  <button type="button" className="btn primary" disabled={busy || !activeConnection} onClick={pull}>
- 📦جلب المنتجات
+ جلب المنتجات
  </button>
           )}
  <button
@@ -178,7 +178,7 @@ export default function SallaProductsPage() {
  <div className="row" style={{ gap: 4 }}>
                       {canManage && (
  <button type="button" className="btn sm" disabled={busy || !activeConnection} onClick={() => push(row)}>
- ➕إضافة منتج
+ إضافة منتج
  </button>
                       )}
  <button type="button" className="btn sm" disabled={busy || !activeConnection} onClick={() => queue(row)}>
@@ -203,7 +203,7 @@ export default function SallaProductsPage() {
                               )
                             }
                           >
- ✏️تحديث
+ تحديث
  </button>
  <button
                             type="button"
@@ -222,7 +222,7 @@ export default function SallaProductsPage() {
                               )
                             }
                           >
- 🗑️احذف من المتجر
+ احذف من المتجر
  </button>
  </>
                       )}
@@ -238,13 +238,13 @@ export default function SallaProductsPage() {
  </QueryView>
 
  <div className="row" style={{ justifyContent: 'space-between', alignItems: 'baseline' }}>
- <span className="group-label" style={{ margin: 0 }}>📦 منتجات المتجر</span>
+ <span className="group-label" style={{ margin: 0 }}>منتجات المتجر</span>
  <span className="muted">عدد السجلات: {catalog.data?.length ?? 0}</span>
  </div>
  <QueryView
         query={catalog}
         empty="لم تُجلب منتجات المتجر بعد"
-        emptyDetail="اضغط «📦 جلب المنتجات» ليجلبها `ProductsManager.GetProducts()` ويحفظها هنا."
+ emptyDetail="اضغط «جلب المنتجات» ليجلبها `ProductsManager.GetProducts()` ويحفظها هنا."
       >
         {(rows) => (
  <div className="card">

@@ -200,21 +200,21 @@ export function CashLocationMaster({ kind }: { kind: 'safe' | 'bank' }) {
 
   return (
  <Screen
-      title={isBank ? '🏦 تعريف البنوك' : '🏦 تعريف الخزينة'}
+ title={isBank ? 'تعريف البنوك' : 'تعريف الخزينة'}
       subtitle={
         isBank
-          ? '🏦 تعريف البنوك — كما في frmBanks: اسم البنك، الدولة والمدينة، الحساب والآيبان، ونسبة الاقتطاع.'
-          : '🏦 تعريف الخزن — كما في frmTreasury: بيانات الصندوق، مسئولوه، وملاحظاته.'
+ ? 'تعريف البنوك — كما في frmBanks: اسم البنك، الدولة والمدينة، الحساب والآيبان، ونسبة الاقتطاع.'
+ : 'تعريف الخزن — كما في frmTreasury: بيانات الصندوق، مسئولوه، وملاحظاته.'
       }
       crumbs={['الخزينة', 'تعاريف']}
     >
  <StatTiles>
- <StatTile label="📋 عدد الصناديق" value={stats.all} />
- <StatTile label="✅ نشط" value={stats.active} tone="ok" />
- <StatTile label="⛔ مغلق" value={stats.closed} tone="warn" />
- <StatTile label="⭐ الافتراضي" value={stats.defaultName} />
+ <StatTile label="عدد الصناديق" value={stats.all} />
+ <StatTile label="نشط" value={stats.active} tone="ok" />
+ <StatTile label="مغلق" value={stats.closed} tone="warn" />
+ <StatTile label="الافتراضي" value={stats.defaultName} />
  <StatTile
-          label="👤 بلا مسئول"
+ label="بلا مسئول"
           value={stats.unsigned}
           hint={isBank ? 'مسموح للبنك' : 'الصندوق يحتاج مسئولاً'}
           tone={stats.unsigned > 0 && !isBank ? 'warn' : undefined}
@@ -223,9 +223,9 @@ export function CashLocationMaster({ kind }: { kind: 'safe' | 'bank' }) {
 
  <Tabs
         items={[
-          { id: 'data' as const, label: isBank ? '📋 بيانات البنوك' : '📋 بيانات الصناديق' },
-          { id: 'custodians' as const, label: '👤 مسئولي الصندوق' },
-          { id: 'notes' as const, label: '📝 ملاحظات' },
+ { id: 'data' as const, label: isBank ? 'بيانات البنوك' : 'بيانات الصناديق' },
+ { id: 'custodians' as const, label: 'مسئولي الصندوق' },
+ { id: 'notes' as const, label: 'ملاحظات' },
         ]}
         value={tab}
         onChange={setTab}
@@ -234,10 +234,10 @@ export function CashLocationMaster({ kind }: { kind: 'safe' | 'bank' }) {
       {tab === 'data' && (
  <form className="card" onSubmit={create}>
  <DocHead>
- <DocField label="🔢 الرقم">
+ <DocField label="الرقم">
  <span className="muted">تلقائي</span>
  </DocField>
- <DocField label={isBank ? '🏦 اسم البنك *' : '🏦 اسم الصندوق *'}>
+ <DocField label={isBank ? 'اسم البنك *' : 'اسم الصندوق *'}>
  <input
                 className="input"
                 value={form.name}
@@ -245,7 +245,7 @@ export function CashLocationMaster({ kind }: { kind: 'safe' | 'bank' }) {
                 required
               />
  </DocField>
- <DocField label="🏢 الفرع *">
+ <DocField label="الفرع *">
  <select
                 className="input"
                 value={effectiveBranch}
@@ -259,7 +259,7 @@ export function CashLocationMaster({ kind }: { kind: 'safe' | 'bank' }) {
                 ))}
  </select>
  </DocField>
- <DocField label="📋 حالة الصندوق">
+ <DocField label="حالة الصندوق">
  <select
                 className="input"
                 value={form.isActive ? 'active' : 'closed'}
@@ -269,7 +269,7 @@ export function CashLocationMaster({ kind }: { kind: 'safe' | 'bank' }) {
  <option value="closed">مغلق</option>
  </select>
  </DocField>
- <DocField label="⭐ الافتراضي">
+ <DocField label="الافتراضي">
  <label className="row">
  <input
                   type="checkbox"
@@ -279,7 +279,7 @@ export function CashLocationMaster({ kind }: { kind: 'safe' | 'bank' }) {
  <span className="muted small">يجعله الصندوق الافتراضي لهذا النوع</span>
  </label>
  </DocField>
- <DocField label="💱 العملة">
+ <DocField label="العملة">
  <select
                 className="input"
                 value={form.currency}
@@ -291,7 +291,7 @@ export function CashLocationMaster({ kind }: { kind: 'safe' | 'bank' }) {
  <option value="EUR">يورو</option>
  </select>
  </DocField>
- <DocField label="🧾 الحساب المرتبط">
+ <DocField label="الحساب المرتبط">
  <select
                 className="input"
                 value={form.accountId}
@@ -309,10 +309,10 @@ export function CashLocationMaster({ kind }: { kind: 'safe' | 'bank' }) {
 
           {isBank && (
  <div className="card">
- <h4>🏦 بيانات البنك</h4>
+ <h4>بيانات البنك</h4>
  <div className="form-grid">
  <label className="field">
- <span>🏦 اسم البنك *</span>
+ <span>اسم البنك *</span>
  <input
                     className="input"
                     value={form.bankName}
@@ -321,7 +321,7 @@ export function CashLocationMaster({ kind }: { kind: 'safe' | 'bank' }) {
                   />
  </label>
  <label className="field">
- <span>🔢 رقم الحساب</span>
+ <span>رقم الحساب</span>
  <input
                     className="input"
                     dir="ltr"
@@ -330,7 +330,7 @@ export function CashLocationMaster({ kind }: { kind: 'safe' | 'bank' }) {
                   />
  </label>
  <label className="field">
- <span>🏦 الآيبان</span>
+ <span>الآيبان</span>
  <input
                     className="input"
                     dir="ltr"
@@ -340,7 +340,7 @@ export function CashLocationMaster({ kind }: { kind: 'safe' | 'bank' }) {
                   />
  </label>
  <label className="field">
- <span>🏦 سويفت</span>
+ <span>سويفت</span>
  <input
                     className="input"
                     dir="ltr"
@@ -349,7 +349,7 @@ export function CashLocationMaster({ kind }: { kind: 'safe' | 'bank' }) {
                   />
  </label>
  <label className="field">
- <span>🌍 الدولة</span>
+ <span>الدولة</span>
  <input
                     className="input"
                     value={form.country}
@@ -357,7 +357,7 @@ export function CashLocationMaster({ kind }: { kind: 'safe' | 'bank' }) {
                   />
  </label>
  <label className="field">
- <span>🏙️ المدينة</span>
+ <span>المدينة</span>
  <input
                     className="input"
                     value={form.city}
@@ -365,7 +365,7 @@ export function CashLocationMaster({ kind }: { kind: 'safe' | 'bank' }) {
                   />
  </label>
  <label className="field">
- <span>📍 المنطقة</span>
+ <span>المنطقة</span>
  <input
                     className="input"
                     value={form.region}
@@ -373,7 +373,7 @@ export function CashLocationMaster({ kind }: { kind: 'safe' | 'bank' }) {
                   />
  </label>
  <label className="field">
- <span>📞 تليفون</span>
+ <span>تليفون</span>
  <input
                     className="input"
                     dir="ltr"
@@ -382,7 +382,7 @@ export function CashLocationMaster({ kind }: { kind: 'safe' | 'bank' }) {
                   />
  </label>
  <label className="field">
- <span>📱 موبايل</span>
+ <span>موبايل</span>
  <input
                     className="input"
                     dir="ltr"
@@ -391,7 +391,7 @@ export function CashLocationMaster({ kind }: { kind: 'safe' | 'bank' }) {
                   />
  </label>
  <label className="field">
- <span>💰 نسبة الاقتطاع %</span>
+ <span>نسبة الاقتطاع %</span>
  <input
                     className="input"
                     dir="ltr"
@@ -402,7 +402,7 @@ export function CashLocationMaster({ kind }: { kind: 'safe' | 'bank' }) {
                   />
  </label>
  <label className="field">
- <span>✅ تغيير في نقطة البيع</span>
+ <span>تغيير في نقطة البيع</span>
  <label className="row">
  <input
                       type="checkbox"
@@ -420,7 +420,7 @@ export function CashLocationMaster({ kind }: { kind: 'safe' | 'bank' }) {
           {manage && (
  <ActionBar>
  <button className="btn primary" type="submit" disabled={busy}>
-                {busy ? 'جارٍ الحفظ…' : '💾 حفظ'}
+ {busy ? 'جارٍ الحفظ…' : 'حفظ'}
  </button>
  </ActionBar>
           )}
@@ -429,9 +429,9 @@ export function CashLocationMaster({ kind }: { kind: 'safe' | 'bank' }) {
 
       {tab === 'custodians' && (
  <div className="card">
- <h4>👤 مسئولي الصندوق</h4>
+ <h4>مسئولي الصندوق</h4>
  <label className="field">
- <span>{isBank ? '🏦 البنك' : '🏦 الصندوق'}</span>
+ <span>{isBank ? 'البنك' : 'الصندوق'}</span>
  <select
               className="input"
               value={selectedId}
@@ -477,7 +477,7 @@ export function CashLocationMaster({ kind }: { kind: 'safe' | 'bank' }) {
               {manage && (
  <ActionBar>
  <button className="btn primary" type="button" disabled={busy} onClick={() => void saveSelected()}>
- 💾حفظ المسئولين
+ حفظ المسئولين
  </button>
  </ActionBar>
               )}
@@ -490,9 +490,9 @@ export function CashLocationMaster({ kind }: { kind: 'safe' | 'bank' }) {
 
       {tab === 'notes' && (
  <div className="card">
- <h4>📝 ملاحظات</h4>
+ <h4>ملاحظات</h4>
  <label className="field">
- <span>{isBank ? '🏦 البنك' : '🏦 الصندوق'}</span>
+ <span>{isBank ? 'البنك' : 'الصندوق'}</span>
  <select
               className="input"
               value={selectedId}
@@ -513,7 +513,7 @@ export function CashLocationMaster({ kind }: { kind: 'safe' | 'bank' }) {
           {selected ? (
  <>
  <label className="field">
- <span>📝 ملاحظات</span>
+ <span>ملاحظات</span>
  <textarea
                   className="input"
                   rows={4}
@@ -525,7 +525,7 @@ export function CashLocationMaster({ kind }: { kind: 'safe' | 'bank' }) {
               {manage && (
  <ActionBar>
  <button className="btn primary" type="button" disabled={busy} onClick={() => void saveSelected()}>
- 💾حفظ الملاحظات
+ حفظ الملاحظات
  </button>
  </ActionBar>
               )}
@@ -548,11 +548,11 @@ export function CashLocationMaster({ kind }: { kind: 'safe' | 'bank' }) {
  <thead>
  <tr>
  <th>#</th>
- <th>{isBank ? '🏦 اسم البنك' : '🏦 اسم الصندوق'}</th>
- <th>🏢 الفرع</th>
- <th>👤 الموظف المسئول</th>
- <th>🧾 الحساب</th>
- <th>📋 حالة الصندوق</th>
+ <th>{isBank ? 'اسم البنك' : 'اسم الصندوق'}</th>
+ <th>الفرع</th>
+ <th>الموظف المسئول</th>
+ <th>الحساب</th>
+ <th>حالة الصندوق</th>
  <th><span className="sr-only">إجراءات</span></th>
  <th />
  </tr>

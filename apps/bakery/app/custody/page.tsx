@@ -359,7 +359,7 @@ export default function CustodyPage() {
  <div className="flex flex-wrap items-center gap-2">
           {uncovered.count > 0 ? (
  <span className="rounded-[8px] border border-danger-line bg-danger-soft px-2 py-1 text-[12px] font-semibold text-danger-ink">
- 🚐الرصيد الرسمي لا يغطي {uncovered.count} عهدة مفتوحة — نقص{' '}
+ الرصيد الرسمي لا يغطي {uncovered.count} عهدة مفتوحة — نقص{' '}
  <span dir="ltr">{uncovered.shortfallText}</span> كجم
  </span>
           ) : null}
@@ -374,7 +374,7 @@ export default function CustodyPage() {
  <Card>
  <CardBody>
  <p className="m-0 rounded-[10px] border border-warn-line bg-warn-soft px-4 py-2.5 text-[13px] font-semibold text-warn-ink">
- 🔒لا تملك `{VIEW_PERMISSION}` — والخادم يرفض قراءة لوحة العهدة وسياسة العجز. ولم
+ لا تملك `{VIEW_PERMISSION}` — والخادم يرفض قراءة لوحة العهدة وسياسة العجز. ولم
  يُرسل هذا التطبيق طلباً سيُرفض حتماً، ولا عرض أرقاماً من المتصفح بدلها.
  </p>
  </CardBody>
@@ -399,13 +399,13 @@ export default function CustodyPage() {
 
       {policyDone ? (
  <p className="m-0 rounded-[10px] border border-ok-line bg-ok-soft px-4 py-2.5 text-[13px] font-semibold text-ok-ink">
-           ✅{policyDone}
+ {policyDone}
  </p>
       ) : null}
 
       {actionDone ? (
  <p className="m-0 rounded-[10px] border border-ok-line bg-ok-soft px-4 py-2.5 text-[13px] font-semibold text-ok-ink">
-           ✅{actionDone}
+ {actionDone}
  </p>
       ) : null}
 
@@ -473,7 +473,7 @@ export default function CustodyPage() {
  </div>
             ) : (
  <p className="m-0 rounded-[10px] border border-line bg-surface px-3 py-2 text-[12.5px] text-muted">
- 🔒الكتابة تحتاج `{OVERRIDE_PERMISSION}` — الأساس قرارٌ ماليّ، فلا يُكتب لمن يقرأ.
+ الكتابة تحتاج `{OVERRIDE_PERMISSION}` — الأساس قرارٌ ماليّ، فلا يُكتب لمن يقرأ.
  والقراءة معروضة أعلاه كما هي في الخادم.
  </p>
             )}
@@ -760,12 +760,12 @@ export default function CustodyPage() {
                   ) : null}
                   {unsettled ? (
  <span className="rounded-[8px] border border-warn-line bg-warn-soft px-2 py-1 font-semibold text-warn-ink">
-                       ⚠️{unsettled}
+ {unsettled}
  </span>
                   ) : null}
                   {selectedAudit?.absorbed ? (
  <span className="rounded-[8px] border border-warn-line bg-warn-soft px-2 py-1 font-semibold text-warn-ink">
- ⚠️مستند الجرد امتصّ <span dir="ltr">{selectedAudit.absorbedQtyText}</span> كجم
+ مستند الجرد امتصّ <span dir="ltr">{selectedAudit.absorbedQtyText}</span> كجم
  خارج هذا الأمر — رصيد السيارة عند الترحيل{' '}
  <span dir="ltr">{selectedAudit.documentExpectedText}</span> مقابل فرقٍ معتمد{' '}
  <span dir="ltr">{selectedAudit.approvedVarianceText}</span>
@@ -773,9 +773,9 @@ export default function CustodyPage() {
                   ) : null}
                   {selected.vehicleCountQty === null || selected.vehicleCountQty === undefined ? null : (
  <span className="text-muted">
- 🚐عُدّت السيارة كلها: <span dir="ltr">{numberText(selected.vehicleCountQty)}</span>{' '}
+ عُدّت السيارة كلها: <span dir="ltr">{numberText(selected.vehicleCountQty)}</span>{' '}
  كجم، منها <span dir="ltr">{numberText(selected.otherCustodyQty)}</span> كجم
- عهدةُ أوامرَ أخرى ⇒ نصيبُ هذه العهدة{' '}
+ عهدةُ أوامرَ أخرى نصيبُ هذه العهدة{' '}
  <span dir="ltr">{numberText(selected.actualRemainingQty)}</span> كجم.
  </span>
                   )}
@@ -787,11 +787,11 @@ export default function CustodyPage() {
                           : 'rounded-[8px] border border-warn-line bg-warn-soft px-2 py-1 font-semibold text-warn-ink'
                       }
                     >
-                       🚐{coverage.warning}
+ {coverage.warning}
  </span>
                   ) : coverage?.open ? (
  <span className="text-muted">
- 🚐الرصيد الرسمي للسيارة <span dir="ltr">{coverage.officialText}</span> كجم —
+ الرصيد الرسمي للسيارة <span dir="ltr">{coverage.officialText}</span> كجم —
  يغطي عهدة هذا الأمر، ولا عهدةَ أخرى في السيارة.
  </span>
                   ) : null}
@@ -856,7 +856,7 @@ export default function CustodyPage() {
                   />
  <Input
                     dir="ltr"
-                    hint="قرار المالك: العددُ للسيارة كلها. يطرح الخادم عهدةَ الأوامر الأخرى ويشتقّ نصيبَ هذه العهدة، ويُرسل مستند الجرد بالعدد كله — فلا يُشطب ما لا تملكه هذه العهدة. فارغ ⇒ عددٌ لهذا الأمر وحده (السلوك السابق)."
+ hint="قرار المالك: العددُ للسيارة كلها. يطرح الخادم عهدةَ الأوامر الأخرى ويشتقّ نصيبَ هذه العهدة، ويُرسل مستند الجرد بالعدد كله — فلا يُشطب ما لا تملكه هذه العهدة. فارغ عددٌ لهذا الأمر وحده (السلوك السابق)."
                     label="عددُ الصنف في السيارة كلها (كجم)"
                     onChange={(event) =>
                       setClosing({ ...closing, vehicleCountQty: event.target.value })
@@ -868,7 +868,7 @@ export default function CustodyPage() {
                     hint={
                       countPreview?.declared
                         ? 'يُشتقّ منه نصيبُ هذه العهدة — لا يُرسل للخادم مع عدد السيارة (جمعهما يُرفض 422).'
-                        : 'الرقم الذي يُقاس به العجز/الفائض. فارغ ⇒ لا جردَ مكتوباً (ولا يُفترض صفر).'
+ : 'الرقم الذي يُقاس به العجز/الفائض. فارغ لا جردَ مكتوباً (ولا يُفترض صفر).'
                     }
                     label="المتبقي الفعلي بالجرد (كجم)"
                     onChange={(event) =>
@@ -884,7 +884,7 @@ export default function CustodyPage() {
                           : 'm-0 rounded-[8px] border border-line bg-surface px-2 py-1 text-[12.5px] leading-relaxed text-muted md:col-span-2'
                       }
                     >
-                       🚐{countPreview.note} وفرقُها{' '}
+ {countPreview.note} وفرقُها{' '}
  <span dir="ltr">{countPreview.varianceText}</span> كجم (
                       {VARIANCE_KIND_LABELS[countPreview.varianceKind]}).
  </p>
@@ -999,7 +999,7 @@ export default function CustodyPage() {
                     {blockers.length > 0 ? (
  <div className="grid gap-1 text-[12.5px] font-semibold text-danger-ink">
                         {blockers.map((text) => (
- <span key={text}>⛔ {text}</span>
+ <span key={text}>{text}</span>
                         ))}
  <span className="font-normal text-muted">
  الخادم يرفض الاعتماد 422 ما دام هذا المانع قائماً — ولا تُغلق العهدة بنصف

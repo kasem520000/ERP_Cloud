@@ -168,7 +168,7 @@ export function printThermalReceipt80mm(receipt: ThermalReceiptData) {
 </head>
 <body>
  <div class="no-print">
- <button onclick="window.print()" style="padding:6px 14px;font-weight:700;cursor:pointer;">🖨️ طباعة الإيصال الحراري (80mm)</button>
+ <button onclick="window.print()" style="padding:6px 14px;font-weight:700;cursor:pointer;">طباعة الإيصال الحراري (80mm)</button>
  </div>
  <div class="center">
  <div class="title">${escapeHtml(receipt.companyName)}</div>

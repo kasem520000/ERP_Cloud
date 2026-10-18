@@ -328,7 +328,7 @@ export default function DistributionPage() {
  <Card>
  <CardBody>
  <p className="m-0 rounded-[10px] border border-warn-line bg-warn-soft px-4 py-2.5 text-[13px] font-semibold text-warn-ink">
- 🔒لا تملك `{VIEW_PERMISSION}` — والخادم يرفض قراءة لوحة التوزيع وقائمة المندوبين.
+ لا تملك `{VIEW_PERMISSION}` — والخادم يرفض قراءة لوحة التوزيع وقائمة المندوبين.
  ولم يُرسل هذا التطبيق طلباً سيُرفض حتماً، ولا عرض أرقاماً من المتصفح بدلها.
  </p>
  </CardBody>
@@ -363,7 +363,7 @@ export default function DistributionPage() {
 
       {actionDone ? (
  <p className="m-0 rounded-[10px] border border-ok-line bg-ok-soft px-4 py-2.5 text-[13px] font-semibold text-ok-ink">
-           ✅{actionDone}
+ {actionDone}
  </p>
       ) : null}
 
@@ -414,7 +414,7 @@ export default function DistributionPage() {
  <div className="grid gap-1.5">
                   {blocking ? (
  <p className="m-0 rounded-[10px] border border-warn-line bg-warn-soft px-3 py-2 text-[12.5px] font-semibold text-warn-ink">
-                       ⚠️{blocking}
+ {blocking}
  </p>
                   ) : null}
                   {advisories.map((note) => (
@@ -458,7 +458,7 @@ export default function DistributionPage() {
 
               {itemRequiresBatch(items, itemId, productionBatchNo) ? (
  <p className="m-0 rounded-[10px] border border-warn-line bg-warn-soft px-4 py-2.5 text-[12.5px] font-semibold text-warn-ink">
- 🏷️هذا الصنف يُتتبَّع بالدفعات: اربطه بدفعة إنتاج من القائمة، وإلا رفضه الخادم
+ هذا الصنف يُتتبَّع بالدفعات: اربطه بدفعة إنتاج من القائمة، وإلا رفضه الخادم
                   (‏422 <span dir="ltr">VAN_LOAD_ORDER_BATCH_REQUIRED</span>) — ولا يُفترض رقمُ دفعةٍ
  من تاريخ اليوم، لأنه يلتقي برقم أوّل دفعةٍ تُنشأ اليوم نفسها.
  </p>
@@ -533,7 +533,7 @@ export default function DistributionPage() {
 
               {created ? (
  <p className="m-0 rounded-[10px] border border-ok-line bg-ok-soft px-4 py-2.5 text-[13px] font-semibold text-ok-ink">
- ✅أُنشئ أمر التحميل <span dir="ltr">{created.number ?? '—'}</span> — الحالة:{' '}
+ أُنشئ أمر التحميل <span dir="ltr">{created.number ?? '—'}</span> — الحالة:{' '}
                   {loadOrderStatusLabel(created.status ?? '')} — المصروف:{' '}
  <span dir="ltr">{numberText(created.loadedQty)}</span> — بانتظار تأكيد المندوب
  للاستلام.
@@ -565,7 +565,7 @@ export default function DistributionPage() {
  <>
  <Input
                     dir="ltr"
-                    hint="فارغة ⇒ يستعمل الخادم الكمية المحمّلة. والصفر يُكتب صراحةً."
+ hint="فارغة يستعمل الخادم الكمية المحمّلة. والصفر يُكتب صراحةً."
                     inputMode="decimal"
                     label="الكمية المستلمة فعلياً"
                     onChange={(event) => setReceivedQty(event.target.value)}
@@ -579,7 +579,7 @@ export default function DistributionPage() {
                   />
                   {receiptVerdict?.ok && receiptVerdict.usesLoadedQty ? (
  <p className="m-0 rounded-[10px] border border-warn-line bg-warn-soft px-3 py-2 text-[12.5px] font-semibold text-warn-ink">
- تركتَها فارغة ⇒ يستعمل الخادم الكمية المحمّلة (
+ تركتَها فارغة يستعمل الخادم الكمية المحمّلة (
  <span dir="ltr">{numberText(actionRow.loadedQty)}</span>) ويكون الفرق صفراً.
  الفراغ هنا ليس صفراً مكتوباً: لو استلمتَ <strong>صفر</strong> فاكتب 0 صراحةً ليُسجَّل
  الفرق كاملاً.

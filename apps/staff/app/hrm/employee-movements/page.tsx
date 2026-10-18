@@ -111,12 +111,12 @@ function EmployeeMovements() {
   return (
  <Screen
       title="حركات الموظف"
-      subtitle="📈 مبيعات ومشتريات موظف خلال الفترة — ما باعه الموظف، سطراً بسطر، من الفواتير المرحَّلة وحدها."
+ subtitle="مبيعات ومشتريات موظف خلال الفترة — ما باعه الموظف، سطراً بسطر، من الفواتير المرحَّلة وحدها."
       crumbs={['الموظفين والرواتب', 'التقارير']}
       actions={
  <>
  <button className="btn" type="button" onClick={() => window.print()} disabled={rows.length === 0}>
- 🖨️طباعة
+ طباعة
  </button>
  <button
             className="btn"
@@ -141,7 +141,7 @@ function EmployeeMovements() {
               )
             }
           >
- 📊تصدير CSV
+ تصدير CSV
  </button>
  </>
       }
@@ -149,7 +149,7 @@ function EmployeeMovements() {
  <div className="card tight no-print">
  <div className="row" style={{ flexWrap: 'wrap', alignItems: 'flex-end' }}>
  <label className="field" style={{ margin: 0, minWidth: 240, flex: 1 }}>
- <span>👤 الموظف</span>
+ <span>الموظف</span>
  <select
               className="input"
               value={employeeId}
@@ -169,7 +169,7 @@ function EmployeeMovements() {
  الكل
  </label>
  <label className="field" style={{ margin: 0, minWidth: 200 }}>
- <span>🏢 الفرع</span>
+ <span>الفرع</span>
  <select className="input" value={branchId} onChange={(event) => setBranchId(event.target.value)}>
  <option value="">كل الفروع</option>
               {(branches.data ?? []).map((branch) => (
@@ -180,11 +180,11 @@ function EmployeeMovements() {
  </select>
  </label>
  <label className="field" style={{ margin: 0, width: 160 }}>
- <span>📅 من تاريخ</span>
+ <span>من تاريخ</span>
  <input className="input" type="date" value={from} onChange={(event) => setFrom(event.target.value)} />
  </label>
  <label className="field" style={{ margin: 0, width: 160 }}>
- <span>📅 إلى تاريخ</span>
+ <span>إلى تاريخ</span>
  <input className="input" type="date" value={to} onChange={(event) => setTo(event.target.value)} />
  </label>
  <button
@@ -193,11 +193,11 @@ function EmployeeMovements() {
             disabled={!employeeId && !allEmployees}
             onClick={() => setApplied({ employeeId, allEmployees, branchId, from, to, movementType })}
           >
- 🔍عرض
+ عرض
  </button>
  </div>
  <div className="row" style={{ flexWrap: 'wrap', marginTop: 8 }}>
- <span className="group-label">🔄 نوع الحركة</span>
+ <span className="group-label">نوع الحركة</span>
  <button type="button" className={`btn sm${movementType === 'all' ? ' primary' : ''}`} onClick={() => setMovementType('all')}>
  الكل
  </button>
@@ -221,7 +221,7 @@ function EmployeeMovements() {
       {(applied.employeeId || applied.allEmployees) && movements.status === 'success' && (
  <>
  <StatTiles>
- <StatTile label="💰 الإجمالي" value={money(totals.total)} tone="ok" hint="المبيعات − المرتجع" />
+ <StatTile label="الإجمالي" value={money(totals.total)} tone="ok" hint="المبيعات − المرتجع" />
  <StatTile label="مبيعات" value={money(totals.salesTotal)} tone="brand" />
  <StatTile label="مرتجع" value={money(totals.returnsTotal)} />
  <StatTile label="عدد الفواتير" value={String(totals.invoices)} />
@@ -245,7 +245,7 @@ function EmployeeMovements() {
  <th className="num">السعر</th>
  <th className="num">إضافات</th>
  <th className="num">الإجمالي</th>
- <th>👁️ عرض</th>
+ <th>عرض</th>
  </tr>
  </thead>
  <tbody>
@@ -263,7 +263,7 @@ function EmployeeMovements() {
  <td className="num">{money(row.lineTotal)}</td>
  <td>
  <Link className="btn sm" href={`/sales/invoices/${row.invoiceId}`}>
- 👁️عرض
+ عرض
  </Link>
  </td>
  </tr>
@@ -271,7 +271,7 @@ function EmployeeMovements() {
  </tbody>
  <tfoot>
  <tr>
- <th colSpan={9}>💰 الإجمالي</th>
+ <th colSpan={9}>الإجمالي</th>
  <th className="num">{money(totals.total)}</th>
  <th><span className="sr-only">إجراءات</span></th>
  </tr>

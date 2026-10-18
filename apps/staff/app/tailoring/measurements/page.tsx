@@ -184,13 +184,13 @@ function TailoringMeasurements() {
 
   return (
  <Screen
-      title="📏 إدارة قياسات العملاء"
+ title="إدارة قياسات العملاء"
       subtitle="قياس كل عميل باسمه وتاريخه وملاحظاته، وقيمه كما يحدّدها ترتيب «خصائص القياسات» — وما يُخاط اليوم يُقاس على هذا."
       crumbs={['التفصيل', 'القياسات']}
       actions={
  <div className="row" style={{ gap: 6 }}>
  <Link className="btn" href="/tailoring/measurements/attributes">
- 📏خصائص القياسات
+ خصائص القياسات
  </Link>
           {canManage && (
  <button
@@ -205,7 +205,7 @@ function TailoringMeasurements() {
                 setDraft(emptyDraft(measurements.data.customer.id));
               }}
             >
- ➕إضافة قياس جديد
+ إضافة قياس جديد
  </button>
           )}
  </div>
@@ -221,7 +221,7 @@ function TailoringMeasurements() {
  <input
               className="input"
               value={search}
-              placeholder="🔍 الجوال أو الاسم..."
+ placeholder="الجوال أو الاسم..."
               onChange={(event) => setSearch(event.target.value)}
               onKeyDown={(event) => {
                 // `txtSearch_KeyDown` — Return searches, as «🔍 بحث» does.
@@ -230,19 +230,19 @@ function TailoringMeasurements() {
             />
  </label>
  <button className="btn primary" type="button" onClick={searchNow}>
- 🔍بحث
+ بحث
  </button>
           {applied !== null && (
  <button className="btn" type="button" onClick={showAll}>
- 📋كل القياسات
+ كل القياسات
  </button>
           )}
  </div>
         {measurements.data?.customer && (
           // `pnlCustomerInfo` — «العميل: …» «الجوال: …», shown only once a عميل is picked.
  <div className="row" style={{ marginTop: 8, gap: 16, fontWeight: 700 }}>
- <span>👤 العميل: {measurements.data.customer.name}</span>
- <span dir="ltr">📞 الجوال: {measurements.data.customer.phone || '—'}</span>
+ <span>العميل: {measurements.data.customer.name}</span>
+ <span dir="ltr">الجوال: {measurements.data.customer.phone || '—'}</span>
  </div>
         )}
  </div>
@@ -253,7 +253,7 @@ function TailoringMeasurements() {
       {measurements.status === 'success' && (
  <>
  <div className="row" style={{ justifyContent: 'space-between', alignItems: 'baseline' }}>
- <span className="group-label" style={{ margin: 0 }}>📋 قياسات العميل</span>
+ <span className="group-label" style={{ margin: 0 }}>قياسات العميل</span>
  <span className="muted">عدد السجلات: {measurements.data?.total ?? rows.length}</span>
  </div>
           {rows.length === 0 ? (
@@ -261,7 +261,7 @@ function TailoringMeasurements() {
               title="لا توجد قياسات"
               detail={
                 measurements.data?.customer
-                  ? `لا قياس محفوظ لـ«${measurements.data.customer.name}». ابدأ بـ «➕ إضافة قياس جديد».`
+ ? `لا قياس محفوظ لـ«${measurements.data.customer.name}». ابدأ بـ «إضافة قياس جديد».`
                   : 'ابحث بجوال عميل أو اسمه لعرض قياساته، أو أضف قياساً من «كل القياسات».'
               }
             />
@@ -270,10 +270,10 @@ function TailoringMeasurements() {
  <table>
  <thead>
  <tr>
- <th>👤 اسم صاحب القياس</th>
- <th>📅 التاريخ</th>
- <th>📝 الملاحظات</th>
- <th className="num">📐 عدد المقاسات</th>
+ <th>اسم صاحب القياس</th>
+ <th>التاريخ</th>
+ <th>الملاحظات</th>
+ <th className="num">عدد المقاسات</th>
  <th>العميل</th>
                     {canManage && <th>إجراءات</th>}
  </tr>
@@ -290,10 +290,10 @@ function TailoringMeasurements() {
  <td>
  <div className="row" style={{ gap: 4 }}>
  <button className="btn sm" type="button" onClick={() => setDraft(draftOf(row))}>
- ✏️تعديل القياس
+ تعديل القياس
  </button>
  <button className="btn sm danger" type="button" onClick={() => remove(row)}>
- 🗑️حذف القياس
+ حذف القياس
  </button>
  </div>
  </td>
@@ -311,23 +311,23 @@ function TailoringMeasurements() {
  <div className="modal-backdrop" role="dialog" aria-modal="true">
  <div className="modal-card" style={{ maxWidth: 620 }}>
  <div className="modal-head">
-              {/* «📏 بيانات القياس» — `frmMeasurementDetails`. */}
- <span className="modal-title">{draft.id ? '✏️ تعديل القياس' : '📏 بيانات القياس'}</span>
+ {/* «بيانات القياس» — `frmMeasurementDetails`. */}
+ <span className="modal-title">{draft.id ? 'تعديل القياس' : 'بيانات القياس'}</span>
  <button className="btn sm" type="button" onClick={() => setDraft(null)}>
- ✖إغلاق
+ إغلاق
  </button>
  </div>
  <div style={{ padding: 16, display: 'grid', gap: 12, maxHeight: '70vh', overflow: 'auto' }}>
               {selectedCustomer && (
  <p className="muted" style={{ margin: 0, fontWeight: 700 }}>
- 👤العميل: {selectedCustomer.name} —  📞{selectedCustomer.phone || '—'}
+ العميل: {selectedCustomer.name} — {selectedCustomer.phone || '—'}
  </p>
               )}
 
  <fieldset className="card tight" style={{ margin: 0 }}>
  <div className="form-grid">
  <label className="field">
- <span>👤 اسم صاحب القياس *</span>
+ <span>اسم صاحب القياس *</span>
  <input
                       className="input"
                       value={draft.name}
@@ -335,7 +335,7 @@ function TailoringMeasurements() {
                     />
  </label>
  <label className="field">
- <span>📅 التاريخ</span>
+ <span>التاريخ</span>
  <input
                       className="input"
                       type="date"
@@ -347,11 +347,11 @@ function TailoringMeasurements() {
  </fieldset>
 
  <fieldset className="card tight" style={{ margin: 0 }}>
- <legend className="group-label">📐 قيم القياسات</legend>
+ <legend className="group-label">قيم القياسات</legend>
                 {activeAttributes.length === 0 ? (
  <p className="muted" style={{ margin: 0 }}>
  لا خصائص مفعّلة. أضف خاصية من{' '}
- <Link href="/tailoring/measurements/attributes">📏 إدارة خصائص القياسات</Link>.
+ <Link href="/tailoring/measurements/attributes">إدارة خصائص القياسات</Link>.
  </p>
                 ) : (
  <div className="form-grid">
@@ -382,7 +382,7 @@ function TailoringMeasurements() {
 
  <fieldset className="card tight" style={{ margin: 0 }}>
  <label className="field" style={{ margin: 0 }}>
- <span>📝 ملاحظات</span>
+ <span>ملاحظات</span>
  <textarea
                     className="input"
                     rows={3}
@@ -394,10 +394,10 @@ function TailoringMeasurements() {
  </div>
  <div className="modal-foot">
  <button className="btn primary" type="button" onClick={save} disabled={busy}>
- 💾حفظ
+ حفظ
  </button>
  <button className="btn danger" type="button" onClick={() => setDraft(null)} disabled={busy}>
- ✖إلغاء
+ إلغاء
  </button>
  </div>
  </div>

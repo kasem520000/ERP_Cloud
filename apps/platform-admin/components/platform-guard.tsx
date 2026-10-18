@@ -159,7 +159,7 @@ export function PlatformGuard({ children }: { children: React.ReactNode }) {
  </button>
  <nav className="crumbs" aria-label="موقعك في اللوحة">
  <Link href="/">المنصة</Link>
-              {activeGroup ? ` ← ${activeGroup.labelAr}` : ''}
+ {activeGroup ? ` ${activeGroup.labelAr}` : ''}
  </nav>
  </div>
 
@@ -302,7 +302,7 @@ function Bell({
           }}
         >
  <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
- <strong>🔔 مركز إشعارات وطلبات المنصة ({totalCount})</strong>
+ <strong>مركز إشعارات وطلبات المنصة ({totalCount})</strong>
  <button type="button" className="btn sm" onClick={() => void loadNotifications()}>
  تحديث
  </button>
@@ -311,9 +311,9 @@ function Bell({
           {/* 1. Open Support Tickets from Customers */}
  <div style={{ borderTop: '1px solid var(--line)', paddingTop: 8 }}>
  <div className="row" style={{ justifyContent: 'space-between', marginBottom: 6 }}>
- <strong style={{ fontSize: 13 }}>🛟 طلبات المساعدة والدعم الفني ({openTickets.length})</strong>
+ <strong style={{ fontSize: 13 }}>طلبات المساعدة والدعم الفني ({openTickets.length})</strong>
  <Link href="/tickets" className="small" onClick={() => setOpen(false)}>
- فتح الصندوق ←
+ فتح الصندوق 
  </Link>
  </div>
             {openTickets.length === 0 ? (
@@ -356,9 +356,9 @@ function Bell({
           {/* 2. Pending Marketplace Add-on Requests */}
  <div style={{ borderTop: '1px solid var(--line)', paddingTop: 8 }}>
  <div className="row" style={{ justifyContent: 'space-between', marginBottom: 6 }}>
- <strong style={{ fontSize: 13 }}>🛒 طلبات تفعيل الباقات القطاعية ({addonRequests.length})</strong>
+ <strong style={{ fontSize: 13 }}>طلبات تفعيل الباقات القطاعية ({addonRequests.length})</strong>
  <Link href="/marketplace" className="small" onClick={() => setOpen(false)}>
- إدارة الباقات ←
+ إدارة الباقات 
  </Link>
  </div>
             {addonRequests.length === 0 ? (
@@ -394,7 +394,7 @@ function Bell({
 
           {/* 3. System / Subscription Counters */}
  <div style={{ borderTop: '1px solid var(--line)', paddingTop: 8 }}>
- <strong style={{ fontSize: 13, display: 'block', marginBottom: 6 }}>⚙️ تنبيهات التشغيل والتراخيص</strong>
+ <strong style={{ fontSize: 13, display: 'block', marginBottom: 6 }}>تنبيهات التشغيل والتراخيص</strong>
  <ul style={{ margin: 0, paddingInlineStart: 18, display: 'grid', gap: 4, fontSize: 13 }}>
  <li>
  <Link href="/activation-requests" onClick={() => setOpen(false)}>

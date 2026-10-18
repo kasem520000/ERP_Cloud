@@ -39,7 +39,7 @@ export function ImpersonationBanner({
   return (
  <section className="imp-banner" role="alert" aria-live="polite">
  <div>
- <strong>{lang === 'ar' ? '🔴 جلسة دخول مؤقّت' : '🔴 Temporary access session'}</strong>
+ <strong>{lang === 'ar' ? 'جلسة دخول مؤقّت' : 'Temporary access session'}</strong>
  <p style={{ margin: '2px 0 0' }}>
           {lang === 'ar'
             ? `أنت داخل منشأة عميل باسم «${who}» — السبب: ${impersonation.reason}`

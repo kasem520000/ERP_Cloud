@@ -170,7 +170,7 @@ function ListTab({ onEdit }: { onEdit: (item: Announcement) => void }) {
       <div className="toolbar">
         <label className="row" style={{ gap: 6, alignItems: 'center' }}>
           <span>الحالة</span>
-          <select
+          <select className="input"
             value={status}
             onChange={(event) => setStatus(event.target.value as AnnouncementStatus | '')}
           >
@@ -184,7 +184,7 @@ function ListTab({ onEdit }: { onEdit: (item: Announcement) => void }) {
         </label>
         <label className="row" style={{ gap: 6, alignItems: 'center' }}>
           <span>الجمهور</span>
-          <select
+          <select className="input"
             value={audience}
             onChange={(event) => setAudience(event.target.value as AnnouncementAudience | '')}
           >
@@ -458,11 +458,11 @@ function ComposeTab({ editing, onSaved }: { editing: Announcement | null; onSave
         <div className="grid">
           <label>
             العنوان (عربي)
-            <input value={titleAr} onChange={(event) => setTitleAr(event.target.value)} maxLength={200} />
+            <input className="input" value={titleAr} onChange={(event) => setTitleAr(event.target.value)} maxLength={200} />
           </label>
           <label>
             Title (English)
-            <input
+            <input className="input"
               dir="ltr"
               value={titleEn}
               onChange={(event) => setTitleEn(event.target.value)}
@@ -471,7 +471,7 @@ function ComposeTab({ editing, onSaved }: { editing: Announcement | null; onSave
           </label>
           <label>
             النصّ (عربي)
-            <textarea
+            <textarea className="input"
               rows={5}
               value={bodyAr}
               onChange={(event) => setBodyAr(event.target.value)}
@@ -480,7 +480,7 @@ function ComposeTab({ editing, onSaved }: { editing: Announcement | null; onSave
           </label>
           <label>
             Body (English)
-            <textarea
+            <textarea className="input"
               dir="ltr"
               rows={5}
               value={bodyEn}
@@ -493,7 +493,7 @@ function ComposeTab({ editing, onSaved }: { editing: Announcement | null; onSave
         <div className="grid">
           <label>
             الجمهور
-            <select
+            <select className="input"
               value={audience}
               onChange={(event) => setAudience(event.target.value as AnnouncementAudience)}
             >
@@ -508,7 +508,7 @@ function ComposeTab({ editing, onSaved }: { editing: Announcement | null; onSave
           {audience === 'plan' && (
             <label>
               الباقة
-              <input
+              <input className="input"
                 list="announcement-plans"
                 value={planCode}
                 onChange={(event) => setPlanCode(event.target.value)}
@@ -527,7 +527,7 @@ function ComposeTab({ editing, onSaved }: { editing: Announcement | null; onSave
           {audience === 'status' && (
             <label>
               حالة المنشأة
-              <select
+              <select className="input"
                 value={tenantStatus}
                 onChange={(event) => setTenantStatus(event.target.value as AnnouncementTargetStatus)}
               >
@@ -557,7 +557,7 @@ function ComposeTab({ editing, onSaved }: { editing: Announcement | null; onSave
 
           <label>
             الجدولة (اتركها فارغةً للنشر اليدوي)
-            <input
+            <input className="input"
               type="datetime-local"
               dir="ltr"
               value={publishAt}
@@ -570,7 +570,7 @@ function ComposeTab({ editing, onSaved }: { editing: Announcement | null; onSave
 
           <label>
             سبب التغيير (يُكتب في سجل التدقيق)
-            <input value={reason} onChange={(event) => setReason(event.target.value)} maxLength={300} />
+            <input className="input" value={reason} onChange={(event) => setReason(event.target.value)} maxLength={300} />
           </label>
         </div>
       </div>

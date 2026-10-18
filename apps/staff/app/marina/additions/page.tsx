@@ -88,10 +88,10 @@ export default function MarinaAdditionsPage() {
       const payload = { name: card.name.trim(), salePrice: card.salePrice.trim() || '0' };
       if (card.id) {
         await apiPatch(`/marina/additions/${card.id}`, { ...payload, ...(card.version ? { version: card.version } : {}) });
-        setNotice('✅ تم حفظ التعديلات بنجاح');
+ setNotice('تم حفظ التعديلات بنجاح');
       } else {
         await apiPost('/marina/additions', payload);
-        setNotice('✅ تم الحفظ بنجاح');
+ setNotice('تم الحفظ بنجاح');
       }
       setCard(null);
       additions.reload();
@@ -104,13 +104,13 @@ export default function MarinaAdditionsPage() {
   }
 
   async function remove(row: Addition) {
-    if (!window.confirm(`هل أنت متأكد من حذف هذه الإضافة؟ 🗑️\n\n${row.number} — ${row.name}`)) return;
+ if (!window.confirm(`هل أنت متأكد من حذف هذه الإضافة؟ \n\n${row.number} — ${row.name}`)) return;
     setBusy(true);
     setError('');
     setNotice('');
     try {
       await apiDelete(`/marina/additions/${row.id}`);
-      setNotice('✅ تم الحذف بنجاح');
+ setNotice('تم الحذف بنجاح');
       if (card?.id === row.id) setCard(null);
       additions.reload();
       next.reload();
@@ -123,13 +123,13 @@ export default function MarinaAdditionsPage() {
 
   return (
  <Screen
-      title="📋 إضافات"
-      subtitle="إدارة الإضافات: الرقم والاسم والقيمة — وهي ما يملأ «🎁 الإضافات» في «الحجوزات»، فاختيارٌ منها يكتب «السعر» و«الإجمالي» = الكمية × السعر."
+ title="إضافات"
+ subtitle="إدارة الإضافات: الرقم والاسم والقيمة — وهي ما يملأ «الإضافات» في «الحجوزات»، فاختيارٌ منها يكتب «السعر» و«الإجمالي» = الكمية × السعر."
       crumbs={['إدارة المراسي', 'التعاريف']}
       actions={
  <div className="row" style={{ gap: 6 }}>
  <a className="btn" href="/marina/bookings">
- ⛵الحجوزات
+ الحجوزات
  </a>
           {canManage && (
  <button
@@ -141,7 +141,7 @@ export default function MarinaAdditionsPage() {
                 setCard(emptyCard(next.data?.number ?? rows.length + 1));
               }}
             >
- ➕جديد
+ جديد
  </button>
           )}
  </div>
@@ -157,20 +157,20 @@ export default function MarinaAdditionsPage() {
       {additions.status === 'success' && (
  <>
  <div className="row" style={{ justifyContent: 'space-between', alignItems: 'baseline' }}>
- <span className="group-label" style={{ margin: 0 }}>📋 إدارة الإضافات</span>
+ <span className="group-label" style={{ margin: 0 }}>إدارة الإضافات</span>
  <span className="muted">عدد السجلات: {rows.length}</span>
  </div>
           {rows.length === 0 ? (
- <Empty title="لا توجد إضافات" detail="ابدأ بـ «➕ جديد»: اسم الإضافة وقيمتها، فتظهر في «🎁 الإضافات» داخل الحجز." />
+ <Empty title="لا توجد إضافات" detail="ابدأ بـ «جديد»: اسم الإضافة وقيمتها، فتظهر في «الإضافات» داخل الحجز." />
           ) : (
  <div className="table-wrap">
  <table>
  <thead>
  <tr>
- <th>🔢 الرقم</th>
- <th>📝 الاسم</th>
- <th className="num">💰 القيمة</th>
- <th className="num">🧾 الاستخدام</th>
+ <th>الرقم</th>
+ <th>الاسم</th>
+ <th className="num">القيمة</th>
+ <th className="num">الاستخدام</th>
                     {canManage && <th>إجراءات</th>}
  </tr>
  </thead>
@@ -185,10 +185,10 @@ export default function MarinaAdditionsPage() {
  <td>
  <div className="row" style={{ gap: 4 }}>
  <button className="btn sm" type="button" onClick={() => setCard(cardOf(row))}>
- ✏️تعديل
+ تعديل
  </button>
  <button className="btn sm danger" type="button" onClick={() => remove(row)}>
- 🗑️حذف
+ حذف
  </button>
  </div>
  </td>
@@ -202,38 +202,38 @@ export default function MarinaAdditionsPage() {
  </>
       )}
 
-      {/* «📋 إدارة الإضافات» — الصناديق الثلاثة كما في `frmAdditions`. */}
+ {/* «إدارة الإضافات» — الصناديق الثلاثة كما في `frmAdditions`. */}
       {card && (
  <div className="modal-backdrop" role="dialog" aria-modal="true">
  <div className="modal-card" style={{ maxWidth: 560 }}>
  <div className="modal-head">
- <span className="modal-title">{card.id ? '✏️ تعديل الإضافة' : '📋 إدارة الإضافات'}</span>
+ <span className="modal-title">{card.id ? 'تعديل الإضافة' : 'إدارة الإضافات'}</span>
  <button className="btn sm" type="button" onClick={() => setCard(null)}>
- ✖إغلاق
+ إغلاق
  </button>
  </div>
  <div style={{ padding: 16, display: 'grid', gap: 12, maxHeight: '70vh', overflow: 'auto' }}>
  <div className="form-grid">
  <label className="field">
- <span>🔢 الرقم</span>
+ <span>الرقم</span>
  <input className="input" dir="ltr" value={card.id ? String(card.number ?? '') : String(card.number ?? next.data?.number ?? '')} disabled />
  </label>
  <label className="field">
- <span>📝 الاسم *</span>
+ <span>الاسم *</span>
  <input className="input" value={card.name} onChange={(event) => setField({ name: event.target.value })} />
  </label>
  <label className="field">
- <span>💰 القيمة</span>
+ <span>القيمة</span>
  <input className="input" dir="ltr" inputMode="decimal" value={card.salePrice} onChange={(event) => setField({ salePrice: event.target.value })} />
  </label>
  </div>
 
  <div className="row" style={{ gap: 6 }}>
  <button className="btn primary" type="button" disabled={busy || !card.name.trim()} onClick={save}>
- 💾حفظ
+ حفظ
  </button>
  <button className="btn" type="button" disabled={busy} onClick={() => setCard(emptyCard(next.data?.number ?? rows.length + 1))}>
- ➕جديد
+ جديد
  </button>
  <span style={{ flex: 1 }} />
                 {card.id && (
@@ -246,11 +246,11 @@ export default function MarinaAdditionsPage() {
                       if (row) void remove(row);
                     }}
                   >
- 🗑️حذف
+ حذف
  </button>
                 )}
  </div>
- <p className="muted">💰 القيمة الفارغة تُحفظ صفراً، كما يفعل «💾 حفظ» عند الديسكتوب.</p>
+ <p className="muted">القيمة الفارغة تُحفظ صفراً، كما يفعل «حفظ» عند الديسكتوب.</p>
  </div>
  </div>
  </div>

@@ -197,7 +197,7 @@ export default function AccountStatementPage() {
       actions={
  <>
  <button className="btn" type="button" onClick={() => window.print()} disabled={!applied.accountId}>
- 🖨️طباعة
+ طباعة
  </button>
  <button className="btn" type="button" onClick={exportCsv} disabled={rows.length === 0}>
  تصدير CSV
@@ -256,7 +256,7 @@ export default function AccountStatementPage() {
  </label>
  <label className="field" style={{ margin: 0, width: 120 }}>
  <span>من وقت</span>
- <input className="input" type="time" value={fromTime} onChange={(event) => setFromTime(event.target.value)} disabled={fullPeriod || !from} title="⏰ الوقت — صندوق الوقت في frmAccountBalance L458-L463" />
+ <input className="input" type="time" value={fromTime} onChange={(event) => setFromTime(event.target.value)} disabled={fullPeriod || !from} title="الوقت — صندوق الوقت في frmAccountBalance L458-L463" />
  </label>
  <label className="field" style={{ margin: 0, width: 150 }}>
  <span>إلى تاريخ</span>
@@ -264,10 +264,10 @@ export default function AccountStatementPage() {
  </label>
  <label className="field" style={{ margin: 0, width: 120 }}>
  <span>إلى وقت</span>
- <input className="input" type="time" value={toTime} onChange={(event) => setToTime(event.target.value)} disabled={fullPeriod || !to} title="⏰ الوقت — صندوق الوقت في frmAccountBalance L458-L463" />
+ <input className="input" type="time" value={toTime} onChange={(event) => setToTime(event.target.value)} disabled={fullPeriod || !to} title="الوقت — صندوق الوقت في frmAccountBalance L458-L463" />
  </label>
  <label className="field" style={{ margin: 0, minWidth: 180 }}>
- <span>📋 نوع القيد</span>
+ <span>نوع القيد</span>
  <select className="input" value={entryKind} onChange={(event) => setEntryKind(event.target.value)}>
  <option value="">الكل</option>
  <option value="opening">قيد افتتاحي</option>
@@ -298,12 +298,12 @@ export default function AccountStatementPage() {
             descendants,
             entryKind,
           })}>
- 🚀عرض البيانات
+ عرض البيانات
  </button>
  </div>
 
  <div className="row" style={{ flexWrap: 'wrap', marginTop: 8 }}>
- <span className="group-label">⚖️ نوع الرصيد</span>
+ <span className="group-label">نوع الرصيد</span>
           {(
             [
               { id: 'all', label: 'الكل' },
@@ -321,7 +321,7 @@ export default function AccountStatementPage() {
  </button>
           ))}
  <span className="group-label" style={{ marginInlineStart: 12 }}>
- 📊طريقة العرض
+ طريقة العرض
  </span>
  <button
             type="button"
@@ -392,7 +392,7 @@ export default function AccountStatementPage() {
  </dd>
  <dt>الفترة</dt>
  <dd dir="ltr">
-                {applied.fullPeriod ? 'من البداية' : `${applied.from || '…'}${applied.fromTime ? ` ${applied.fromTime}` : ''} → ${applied.to || '…'}${applied.toTime ? ` ${applied.toTime}` : ''}`}
+ {applied.fullPeriod ? 'من البداية' : `${applied.from || '…'}${applied.fromTime ? ` ${applied.fromTime}` : ''} ${applied.to || '…'}${applied.toTime ? ` ${applied.toTime}` : ''}`}
  </dd>
  <dt>عدد الحركات</dt>
  <dd>{rows.filter((row) => row.rank !== 0).length}</dd>
@@ -447,7 +447,7 @@ export default function AccountStatementPage() {
                       {!descendants && <td className="num">{money(row.runningBalance ?? '')}</td>}
                       {!descendants && <td>{row.balanceStatus ?? '—'}</td>}
  <td>
-                        {/*  — يفتح القيد في شاشته (R10)، حيث متنقّل ⏮ ◀ ▶ ⏭ وطباعته. */}
+ {/* — يفتح القيد في شاشته (R10)، حيث متنقّل وطباعته. */}
                         {row.entryId ? (
  <Link className="btn sm" href={`/accounting/journal-entries/${row.entryId}`}>
 

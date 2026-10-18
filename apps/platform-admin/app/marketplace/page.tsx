@@ -219,21 +219,21 @@ export default function PlatformMarketplacePage() {
           className={tab === 'requests' ? 'btn primary' : 'btn'}
           onClick={() => setTab('requests')}
         >
- 📩طلبات التفعيل من المنشآت ({pendingCount} بانتظار الموافقة)
+ طلبات التفعيل من المنشآت ({pendingCount} بانتظار الموافقة)
  </button>
  <button
           type="button"
           className={tab === 'tenant_direct' ? 'btn primary' : 'btn'}
           onClick={() => setTab('tenant_direct')}
         >
- 🏢تفعيل/إيقاف مباشر لمنشأة
+ تفعيل/إيقاف مباشر لمنشأة
  </button>
  <button
           type="button"
           className={tab === 'catalog' ? 'btn primary' : 'btn'}
           onClick={() => setTab('catalog')}
         >
- 💰كتالوج وأسعار الباقات ({apps.length})
+ كتالوج وأسعار الباقات ({apps.length})
  </button>
  <button
           type="button"
@@ -243,7 +243,7 @@ export default function PlatformMarketplacePage() {
             if (!usage) void loadUsage(usageDays);
           }}
         >
- 📊الاستعمال بلا ترخيص ({usage?.summary.stillUnlicensed ?? '…'})
+ الاستعمال بلا ترخيص ({usage?.summary.stillUnlicensed ?? '…'})
  </button>
  </div>
 
@@ -356,7 +356,7 @@ export default function PlatformMarketplacePage() {
               .map((app) => (
  <article key={app.code} className="card" style={{ display: 'grid', gap: 8 }}>
  <strong>
-                    {app.icon ?? '📦'} {app.nameAr} <span dir="ltr">({app.code})</span>
+ {app.icon ?? ''} {app.nameAr} <span dir="ltr">({app.code})</span>
  </strong>
  <p className="muted" style={{ margin: 0, fontSize: 12 }}>
                     {app.descriptionAr}
@@ -387,7 +387,7 @@ export default function PlatformMarketplacePage() {
 
       {tab === 'usage' && (
  <section className="card" style={{ display: 'grid', gap: 12 }}>
- <h2 style={{ marginTop: 0 }}>📊 مَنْ يستعمل سطحاً قطاعياً بلا باقة — القياس قبل قرار الفرض</h2>
+ <h2 style={{ marginTop: 0 }}>مَنْ يستعمل سطحاً قطاعياً بلا باقة — القياس قبل قرار الفرض</h2>
  <p className="muted" style={{ margin: 0 }}>
  المصدر <code dir="ltr">audit_log</code>: حارسُ الترخيص يكتب سطراً لكلّ <strong>كتابةٍ</strong> من
  منشأةٍ بلا باقة (ولا يكتب للقراءات، فلوحةٌ تُستطلع كل ثلاثين ثانية ليست استعمالاً جديداً).
@@ -412,7 +412,7 @@ export default function PlatformMarketplacePage() {
  </button>
             ))}
  <button type="button" className="btn sm" onClick={() => void loadUsage(usageDays)}>
- 🔄إعادة القراءة
+ إعادة القراءة
  </button>
  </div>
 
@@ -549,7 +549,7 @@ export default function PlatformMarketplacePage() {
           {apps.map((app) => (
  <article key={app.code} className="card" style={{ display: 'grid', gap: 8 }}>
  <strong>
-                {app.icon ?? '📦'} {app.nameAr} <span dir="ltr">({app.code})</span>
+ {app.icon ?? ''} {app.nameAr} <span dir="ltr">({app.code})</span>
  </strong>
  <p className="muted" style={{ margin: 0 }}>
                 {app.descriptionAr}
@@ -603,9 +603,9 @@ function whenText(value: string | null): string {
  * محض، و«باقةٌ مُطفأة» تعني أنّ قراراً اتُّخذ ثمّ أُوقف، و«لم تطلب» تعني أنّ أحداً لم يطرق الباب.
  */
 function licenceLabel(state: UnlicensedUsageRow['licence']['state'], enabledApps: string[]): string {
-  if (state === 'licensed') return `✅ مُرخّصة الآن (${enabledApps.join(', ')}) — القياس تاريخ`;
-  if (state === 'disabled') return '⏸ باقةٌ مثبّتة لكنها مُطفأة';
-  return '⛔ بلا باقة مفعّلة';
+ if (state === 'licensed') return `مُرخّصة الآن (${enabledApps.join(', ')}) — القياس تاريخ`;
+ if (state === 'disabled') return 'باقةٌ مثبّتة لكنها مُطفأة';
+ return 'بلا باقة مفعّلة';
 }
 
 function messageOf(error: unknown): string {

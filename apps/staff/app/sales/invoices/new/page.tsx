@@ -179,7 +179,7 @@ export default function NewSalesInvoicePage() {
 
   if (!can('sales.invoice.create')) {
     return (
- <Screen title="🧾 فاتورة مبيعات" crumbs={['المبيعات', 'العمليات']}>
+ <Screen title="فاتورة مبيعات" crumbs={['المبيعات', 'العمليات']}>
  <div className="card state">
  <strong>لا تملك صلاحية إنشاء فواتير المبيعات</strong>
  </div>
@@ -190,7 +190,7 @@ export default function NewSalesInvoicePage() {
   return (
  <Screen
       // «🧾 فاتورة مبيعات» — `Form_WPF/frmInvSale.xaml` L347.
-      title="🧾 فاتورة مبيعات"
+ title="فاتورة مبيعات"
       subtitle={
         saveAsDraftByDefault
           ? 'وضع المسودة مفعّل من الإعدادات العامة: تُحفظ الفاتورة كمسودة أولاً، أو يمكنك ترحيلها فوراً.'
@@ -198,7 +198,14 @@ export default function NewSalesInvoicePage() {
       }
       crumbs={['المبيعات', 'العمليات']}
     >
- <form className="card" onSubmit={save}>
+ <form className="panel" onSubmit={save}>
+ <div className="panel-head">
+ <div>
+ <h2>بيانات الفاتورة</h2>
+ <p>الفرع والمستودع والعميل ثم شروط الضريبة والخصم. الحقول المعلَّمة بـ* إلزامية.</p>
+ </div>
+ </div>
+ <div className="form-section">
  <div className="form-grid">
  <label className="field">
  <span>الفرع *</span>
@@ -211,7 +218,7 @@ export default function NewSalesInvoicePage() {
  </select>
  </label>
  <label className="field">
- <span>🏪 المستودع{filledLines(lines).some((line) => line.itemId) ? ' *' : ''}</span>
+ <span>المستودع{filledLines(lines).some((line) => line.itemId) ? ' *' : ''}</span>
  <select className="input" value={effectiveWarehouse} onChange={(event) => setWarehouseId(event.target.value)}>
  <option value="">— بدون حركة مخزنية —</option>
               {warehouseRows
@@ -227,7 +234,7 @@ export default function NewSalesInvoicePage() {
             )}
  </label>
  <label className="field">
- <span>👤 العميل</span>
+ <span>العميل</span>
  <select className="input" value={partyId} onChange={(event) => setPartyId(event.target.value)}>
  <option value="">— عميل عام (فاتورة ضريبية مبسطة) —</option>
               {(parties.data ?? []).map((row) => (
@@ -241,7 +248,7 @@ export default function NewSalesInvoicePage() {
  </select>
  </label>
  <div className="field">
- <span>🧾 تصنيف الفاتورة الضريبية</span>
+ <span>تصنيف الفاتورة الضريبية</span>
  <div
               className="input"
               style={{
@@ -263,7 +270,7 @@ export default function NewSalesInvoicePage() {
           {!partyId && (
  <>
  <label className="field">
- <span>💵 اسم العميل (الافتراضي: عميل عام)</span>
+ <span>اسم العميل (الافتراضي: عميل عام)</span>
  <input
                   className="input"
                   value={cashName}
@@ -272,13 +279,13 @@ export default function NewSalesInvoicePage() {
                 />
  </label>
  <label className="field">
- <span>📱 الجوال</span>
+ <span>الجوال</span>
  <input className="input" dir="ltr" value={cashMobile} onChange={(event) => setCashMobile(event.target.value)} />
  </label>
  </>
           )}
  <label className="field">
- <span>👨‍💼 المندوب</span>
+ <span>المندوب</span>
  <select className="input" value={salesmanId} onChange={(event) => setSalesmanId(event.target.value)}>
  <option value="">— بدون مندوب —</option>
               {(salesmen.data ?? []).filter((row) => row.active !== false).map((row) => (
@@ -289,18 +296,18 @@ export default function NewSalesInvoicePage() {
  </select>
  </label>
           {/*
-            «🔢 التسلسلي:» — `frmInvSale.xaml` L592، وخانتها `txtSrchSerialNo` تقرأ
- الرقم عند `Enter` (L3599 ← `SearchBySerialNo` L722). الإدخال هنا يضيف سطراً
+ «التسلسلي:» — `frmInvSale.xaml` L592، وخانتها `txtSrchSerialNo` تقرأ
+ الرقم عند `Enter` (L3599 `SearchBySerialNo` L722). الإدخال هنا يضيف سطراً
  بالصنف والرقم، والرسائل الثلاث من النافذة نفسها بحروفها.
           */}
           {/*
-            «📊 مركز التكلفة:» — `frmInvSale.xaml` L530 (القائمة `cmbCostCenter`) وتحتها زرّ
+ «مركز التكلفة:» — `frmInvSale.xaml` L530 (القائمة `cmbCostCenter`) وتحتها زرّ
             «إضافة مركز تكلفة» يفتح `frmCostCenter`. وهو مركز الفاتورة كلها: السطر الذي لا
  يذكر مركزاً يأخذه، والسطر الذي يذكر مركزاً يسبقه — كما في بناء القيد بالديسكتوب
             (`InvoiceOper.cs` L2461 ثم L2432).
           */}
  <label className="field">
- <span>📊 مركز التكلفة:</span>
+ <span>مركز التكلفة:</span>
  <select className="input" value={costCenterId} onChange={(event) => setCostCenterId(event.target.value)}>
  <option value="">— بلا مركز —</option>
               {(costCenters.data ?? []).map((center) => (
@@ -312,7 +319,7 @@ export default function NewSalesInvoicePage() {
  <span className="muted small">مركز الفاتورة كلها — ولكل سطرٍ أن يخالفه من عموده.</span>
  </label>
  <label className="field">
- <span>🔢 التسلسلي:</span>
+ <span>التسلسلي:</span>
  <span className="row">
  <input
                 className="input"
@@ -334,7 +341,7 @@ export default function NewSalesInvoicePage() {
  <span className="muted small">يُضيف الصنف بسطرٍ يحمل الرقم — تماماً كما في النافذة المكتبية.</span>
  </label>
  <label className="field">
- <span>🔻 خصم</span>
+ <span>خصم</span>
  <input className="input" dir="ltr" inputMode="decimal" value={invoiceDiscountText} onChange={(event) => setInvoiceDiscountText(event.target.value)} />
  <span className="muted small">يُخفّض وعاء الضريبة قبل احتسابها.{discountLimitText ? ` ${discountLimitText}.` : ''}</span>
  </label>
@@ -346,8 +353,15 @@ export default function NewSalesInvoicePage() {
  </span>
  </label>
  </div>
+ </div>
 
+ <div className="panel-head">
+ <div>
  <h2>الأصناف</h2>
+ <p>أضف سطراً لكل صنف؛ الحقول المحسوبة (المجموع والضريبة والصافي) تُحدَّث فوراً.</p>
+ </div>
+ </div>
+ <div className="form-section" style={{ paddingInline: 0 }}>
  <InvoiceLines
           lines={lines}
           onChange={setLines}
@@ -359,25 +373,33 @@ export default function NewSalesInvoicePage() {
           costCenters={costCenters.data ?? []}
         />
 
+ </div>
+ <div className="panel-head">
+ <div>
  <h2>الإجماليات</h2>
+ <p>تُحتسب من الأسطر أعلاه — لا تُحرَّر يدوياً.</p>
+ </div>
+ </div>
+ <div className="form-section">
  <TotalsPanel totals={totals} />
 
  <Notice notice={notice} />
- <div className="row" style={{ gap: 8, flexWrap: 'wrap' }}>
-          {/* «💾 حفظ» L1263 و«💾🖨️ حفظ + طباعة» L1257 في `frmInvSale.xaml`. */}
+ </div>
+ <div className="panel-foot">
+ {/* «حفظ» L1263 و«حفظ + طباعة» L1257 في `frmInvSale.xaml`. */}
  <button className="btn primary" type="submit" disabled={busy}>
-            {busy ? 'جارٍ الحفظ…' : saveAsDraftByDefault ? '💾 حفظ كمسودة' : '⚡ حفظ وترحيل فوري'}
+ {busy ? 'جارٍ الحفظ…' : saveAsDraftByDefault ? 'حفظ كمسودة' : 'حفظ وترحيل فوري'}
  </button>
  <button className="btn" type="button" disabled={busy} onClick={(event) => void save(event, true)}>
-            {saveAsDraftByDefault ? '💾🖨️ حفظ + طباعة' : '⚡🖨️ حفظ وترحيل + طباعة'}
+ {saveAsDraftByDefault ? 'حفظ + طباعة' : 'حفظ وترحيل + طباعة'}
  </button>
           {saveAsDraftByDefault ? (
  <button className="btn" type="button" disabled={busy} onClick={(event) => void save(event, false, false)}>
- ⚡حفظ وترحيل فوري
+ حفظ وترحيل فوري
  </button>
           ) : (
  <button className="btn" type="button" disabled={busy} onClick={(event) => void save(event, false, true)}>
- 📝حفظ كمسودة فقط
+ حفظ كمسودة فقط
  </button>
           )}
  </div>

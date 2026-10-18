@@ -379,7 +379,7 @@ function ReportChart({ entry, result }: { entry: ReportEntry; result: ReportResu
  <div className="rounded-xl border border-line bg-surface p-4 shadow-1">
  <div className="flex items-center justify-between mb-2">
  <h3 className="m-0 text-[15px] font-bold text-ink">
-           📈{valueCol} — {entry.titleAr}
+ {valueCol} — {entry.titleAr}
  </h3>
  <Badge tone="blue" dot>
           {entry.chart === 'bar' ? 'أعمدة' : 'خط'}

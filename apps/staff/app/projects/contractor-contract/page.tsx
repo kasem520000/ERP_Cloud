@@ -279,7 +279,7 @@ export default function ContractorContractPage() {
           <div className="chips">
             <span className="chip">{`الحالة: ${STATUS_LABELS[current.status] ?? statusLabel(current.status)}`}</span>
             <span className="chip">{`الاحتجاز: ${percent(Number(current.retentionPct) / 100)}`}</span>
-            <span className="chip">{`المدة: ${current.startsOn ? shortDate(current.startsOn) : '—'} → ${current.endsOn ? shortDate(current.endsOn) : '—'}`}</span>
+ <span className="chip">{`المدة: ${current.startsOn ? shortDate(current.startsOn) : '—'} ${current.endsOn ? shortDate(current.endsOn) : '—'}`}</span>
             <span className="chip">{`صافي المدفوع: ${money(current.paidNet)}`}</span>
           </div>
           {can('projects.manage') && (

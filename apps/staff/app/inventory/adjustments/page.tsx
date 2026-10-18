@@ -366,9 +366,9 @@ export default function StockAdjustmentsPage() {
  <th>الوحدة</th>
  <th>الفرق</th>
  <th>تكلفة الوحدة</th>
- <th>📁 رقم الدفعة</th>
- <th>📅 تاريخ الإنتاج</th>
- <th>⏳ تاريخ الانتهاء</th>
+ <th>رقم الدفعة</th>
+ <th>تاريخ الإنتاج</th>
+ <th>تاريخ الانتهاء</th>
  <th>رقم تسلسلي</th>
  <th />
  </tr>
@@ -706,13 +706,13 @@ export default function StockAdjustmentsPage() {
                   { key: 'value', header: 'قيمة الفرق', align: 'num', cell: (line) => money(line.varianceValue) },
                   {
                     key: 'batch',
-                    header: '📁 رقم الدفعة',
+ header: 'رقم الدفعة',
                     cell: (line) =>
                       line.batchNo ? (
  <span dir="ltr" className="small">
                           {line.batchNo}
-                          {line.productionDate ? ` · 📅 ${shortDate(line.productionDate)}` : ''}
-                          {line.expiryDate ? ` · ⏳ ${shortDate(line.expiryDate)}` : ''}
+ {line.productionDate ? ` · ${shortDate(line.productionDate)}` : ''}
+ {line.expiryDate ? ` · ${shortDate(line.expiryDate)}` : ''}
  </span>
                       ) : (
                         '—'

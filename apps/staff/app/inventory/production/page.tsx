@@ -228,7 +228,7 @@ export default function ProductionOrdersPage() {
  <input className="input" value={outputQty} onChange={(event) => setOutputQty(event.target.value)} inputMode="decimal" />
  </label>
  <label className="field">
- <span>📐 الوحدة</span>
+ <span>الوحدة</span>
  <select
                 className="input"
                 value={unitId}
@@ -244,15 +244,15 @@ export default function ProductionOrdersPage() {
  </select>
  </label>
  <label className="field">
- <span>📊 الكمية المتوفرة</span>
+ <span>الكمية المتوفرة</span>
  <input className="input" dir="ltr" readOnly value={outputItemId ? quantity(onHand(outputItemId)) : '—'} />
  </label>
  <label className="field">
- <span>📄 رقم المرجع</span>
+ <span>رقم المرجع</span>
  <input className="input" dir="ltr" value={referenceNo} onChange={(event) => setReferenceNo(event.target.value)} />
  </label>
  <label className="field">
- <span>📅 تاريخ المرجع</span>
+ <span>تاريخ المرجع</span>
  <input className="input" type="date" value={referenceDate} onChange={(event) => setReferenceDate(event.target.value)} />
  </label>
  <label className="field wide">

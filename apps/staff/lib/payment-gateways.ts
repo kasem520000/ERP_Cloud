@@ -87,12 +87,12 @@ export type TransactionRow = {
 
 /** The word the window puts under each status — the gateway's own, not ours. */
 export const STATUS_LABELS: Record<string, string> = {
-  initiated: '⏳ بانتظار الدفع',
-  approved: '✅ مقبولة',
-  declined: '❌ مرفوضة',
-  cancelled: '🚫 ملغاة',
-  unknown: '❓ حالة غير معروفة',
-  error: '⚠️ تعذّر الوصول إلى البوابة',
+ initiated: 'بانتظار الدفع',
+ approved: 'مقبولة',
+ declined: 'مرفوضة',
+ cancelled: 'ملغاة',
+ unknown: 'حالة غير معروفة',
+ error: 'تعذّر الوصول إلى البوابة',
 };
 
 /** 💳 إعدادات جيديا + NeoLeap — the two cards, each with its own saved row. */

@@ -382,7 +382,7 @@ export default function TreasuryPage() {
  <TreasuryTable
             columns={CASH_LOCATION_COLUMNS}
             emptyAr="لا مواضعَ نقدٍ رجعت من الخادم — فأنشئها في لوحة staff (‏/accounting/cash-locations) أو تحقّق من الصلاحية."
-            emptyIcon="🏦"
+ emptyIcon=""
             rows={locationRows}
             state={locationsState}
             storageKey="cash-locations"
@@ -405,7 +405,7 @@ export default function TreasuryPage() {
  <TreasuryTable
             columns={LINE_VOUCHER_COLUMNS}
             emptyAr="لا سندَ خطٍّ في هذا المدى. والتحديدُ بمفتاح عدم التكرار `van-collection-voucher:` — فسندٌ يدويٌّ يحمل رقمَ مستندٍ في المرجع لا يُعدّ من الخطّ هنا."
-            emptyIcon="🧾"
+ emptyIcon=""
             rows={lineViewRows}
             state={vouchersState}
             storageKey="line-vouchers"
@@ -425,7 +425,7 @@ export default function TreasuryPage() {
  <TreasuryTable
             columns={VOUCHER_COLUMNS}
             emptyAr="لا سنداتَ في هذا المدى (أو أنّ القائمةَ رُفضت على جلستك)."
-            emptyIcon="📒"
+ emptyIcon=""
             rows={voucherRows}
             state={vouchersState}
             storageKey="vouchers"

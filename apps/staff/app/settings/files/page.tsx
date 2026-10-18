@@ -64,7 +64,7 @@ type Presign = {
 };
 
 /** `frmshowdocument.xaml:66` — عنوان النافذة المكتبية، وهو عنوان البطاقة هنا. */
-const CARD_TITLE = '📄 الوثائق المرفقة';
+const CARD_TITLE = 'الوثائق المرفقة';
 
 /**
  * «م» (`frmshowdocument.xaml:99`) · «📄 اسم الملف» (:115) · «🗑️ حذف» (:135) — بحروفها.
@@ -273,7 +273,7 @@ export default function FilesPage() {
             counts.reload();
           }}
         >
- 🔄تحديث
+ تحديث
  </button>
       }
     >
@@ -355,7 +355,7 @@ export default function FilesPage() {
  <DataTable
                 columns={[
                   { key: 'no', header: 'م', align: 'num', cell: (_row, index) => String(offset + index + 1) },
-                  { key: 'name', header: '📄 اسم الملف', cell: (row) => row.name },
+ { key: 'name', header: 'اسم الملف', cell: (row) => row.name },
                   { key: 'mime', header: 'النوع', cell: (row) => row.mime, align: 'ltr' },
                   { key: 'size', header: 'الحجم', align: 'num', cell: (row) => size(row.sizeBytes) },
                   {
@@ -390,7 +390,7 @@ export default function FilesPage() {
                           }
                           onClick={() => download(row)}
                         >
- ⬇️تنزيل
+ تنزيل
  </button>{' '}
  <button
                           type="button"
@@ -401,7 +401,7 @@ export default function FilesPage() {
                           }
                           onClick={() => remove(row)}
                         >
- 🗑️حذف
+ حذف
  </button>
  </>
                     ),
@@ -444,7 +444,7 @@ export default function FilesPage() {
  </section>
 
  <section className="card">
- <h3>📎 اختيار المرفقات</h3>
+ <h3>اختيار المرفقات</h3>
  <p className="muted small" style={{ marginTop: 0 }}>
  الملفّ يُدفع من هذا المتصفّح إلى التخزين الكائني مباشرةً برابطٍ موقّع، ثم يُثبَّت الصفّ — فلا تمرّ
  البايتات بالـAPI. والنوع والحجم يحكمهما الخادم؛ رفضُهما يظهر نصّه هنا كما هو.
@@ -460,7 +460,7 @@ export default function FilesPage() {
             }}
           />
  <span className="muted small">
-            {uploading ? 'جارٍ الرفع والتثبيت…' : 'اختر ملفاً واحداً — والحذف من عمود «🗑️ حذف».'}
+ {uploading ? 'جارٍ الرفع والتثبيت…' : 'اختر ملفاً واحداً — والحذف من عمود «حذف».'}
  </span>
  </div>
  <Notice notice={notice} />

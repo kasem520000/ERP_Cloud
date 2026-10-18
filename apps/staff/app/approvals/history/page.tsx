@@ -42,7 +42,7 @@ export default function ApprovalHistoryPage() {
  <td className="p-3 font-bold">{labels[request.entityType]} <span className="muted">#{request.entityId.slice(0, 8)}</span></td>
  <td className="p-3">{request.workflowName ?? '—'}</td>
  <td className="p-3"><span className={`chip ${request.status === 'approved' ? 'success' : ''}`}>{request.status === 'approved' ? 'مقبول' : 'مرفوض'}</span></td>
- <td className="p-3">{request.decisions.map((decision) => <div key={decision.id}>{decision.decision === 'approved' ? '✓ موافقة' : '✕ رفض'} · {decision.comment || 'بلا تعليق'}</div>)}</td>
+ <td className="p-3">{request.decisions.map((decision) => <div key={decision.id}>{decision.decision === 'approved' ? 'موافقة' : 'رفض'} · {decision.comment || 'بلا تعليق'}</div>)}</td>
  <td className="p-3">{new Date(request.createdAt).toLocaleString('ar')}</td>
  </tr>
               ))}

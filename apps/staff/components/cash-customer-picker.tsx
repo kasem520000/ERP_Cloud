@@ -83,11 +83,11 @@ export function CashCustomerPicker({ value, onPick, onClose, embedded }: Props) 
  <>
  <div className="form-grid">
  <label className="field">
- <span>🏷️ الاسم:</span>
+ <span>الاسم:</span>
  <input className="input" value={name} onChange={(event) => setName(event.target.value)} />
  </label>
  <label className="field">
- <span>📱 رقم الجوال:</span>
+ <span>رقم الجوال:</span>
  <input
             className="input"
             dir="ltr"
@@ -100,10 +100,10 @@ export function CashCustomerPicker({ value, onPick, onClose, embedded }: Props) 
 
  <div className="row" style={{ marginTop: 10, justifyContent: 'center' }}>
  <button type="button" className="btn primary" onClick={insert}>
- ✅إدراج
+ إدراج
  </button>
  <button type="button" className="btn danger" onClick={onClose}>
- 🚪خروج
+ خروج
  </button>
  </div>
 
@@ -115,7 +115,7 @@ export function CashCustomerPicker({ value, onPick, onClose, embedded }: Props) 
 
  <div className="grid cols" style={{ marginTop: 14 }}>
  <label className="field">
- <span>📱 الجوال</span>
+ <span>الجوال</span>
  <div className="row" style={{ flexWrap: 'nowrap' }}>
  <input
               className="input"
@@ -136,7 +136,7 @@ export function CashCustomerPicker({ value, onPick, onClose, embedded }: Props) 
  </div>
  </label>
  <label className="field">
- <span>🏷️ الاسم:</span>
+ <span>الاسم:</span>
  <div className="row" style={{ flexWrap: 'nowrap' }}>
  <input
               className="input"
@@ -159,8 +159,8 @@ export function CashCustomerPicker({ value, onPick, onClose, embedded }: Props) 
  <table className="compact">
  <thead>
  <tr>
- <th>👤 الاسم</th>
- <th>📱 الجوال</th>
+ <th>الاسم</th>
+ <th>الجوال</th>
  <th>فاتورة</th>
  <th>اختيار</th>
  </tr>
@@ -188,7 +188,7 @@ export function CashCustomerPicker({ value, onPick, onClose, embedded }: Props) 
                         setNotice('');
                       }}
                     >
- ✔اختار
+ اختار
  </button>
  </td>
  </tr>
@@ -203,10 +203,10 @@ export function CashCustomerPicker({ value, onPick, onClose, embedded }: Props) 
   if (embedded) return panel;
 
   return (
- <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label="👤 عميل نقدي">
+ <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label="عميل نقدي">
  <div className="modal-card" style={{ maxWidth: 860 }}>
  <div className="modal-head">
- <span className="modal-title">👤 عميل نقدي</span>
+ <span className="modal-title">عميل نقدي</span>
  </div>
  <p className="muted small" style={{ textAlign: 'center', margin: '8px 12px 0' }}>
  إضافة أو اختيار عميل نقدي للفاتورة

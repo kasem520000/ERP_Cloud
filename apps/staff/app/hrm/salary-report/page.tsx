@@ -86,12 +86,12 @@ function SalaryReport() {
   return (
  <Screen
       title="تقرير الرواتب"
-      subtitle="💼 كل إذن صرف عن كل شهر — «كل الفترة» تعرضها كلها، والشهر والسنة يضيّقانها."
+ subtitle="كل إذن صرف عن كل شهر — «كل الفترة» تعرضها كلها، والشهر والسنة يضيّقانها."
       crumbs={['الموظفين والرواتب', 'التقارير']}
       actions={
  <>
  <button className="btn" type="button" onClick={() => window.print()} disabled={rows.length === 0}>
- 🖨️طباعة
+ طباعة
  </button>
  <button
             className="btn"
@@ -118,7 +118,7 @@ function SalaryReport() {
               )
             }
           >
- 📊تصدير CSV
+ تصدير CSV
  </button>
  </>
       }
@@ -159,10 +159,10 @@ function SalaryReport() {
             type="button"
             onClick={() => setApplied({ month, year, allPeriod })}
           >
- 🔍عرض
+ عرض
  </button>
  <a className="btn" href="/hrm/salary-payments">
- 💰سند استلام راتب لموظف
+ سند استلام راتب لموظف
  </a>
  </div>
  </div>
@@ -173,8 +173,8 @@ function SalaryReport() {
       {report.status === 'success' && (
  <>
  <StatTiles>
- <StatTile label="💰 إجمالي الرواتب" value={money(totals.total)} tone="ok" />
- <StatTile label="💰 الإجمالي" value={money(totals.gross)} tone="brand" />
+ <StatTile label="إجمالي الرواتب" value={money(totals.total)} tone="ok" />
+ <StatTile label="الإجمالي" value={money(totals.gross)} tone="brand" />
  <StatTile label="الخصومات" value={money(totals.deductions)} />
  <StatTile label="عدد الإذونات" value={String(totals.count)} />
  </StatTiles>
@@ -225,7 +225,7 @@ function SalaryReport() {
  </tbody>
  <tfoot>
  <tr>
- <th colSpan={9}>💰 إجمالي الرواتب</th>
+ <th colSpan={9}>إجمالي الرواتب</th>
  <th className="num">{money(totals.gross)}</th>
  <th className="num">{money(totals.deductions)}</th>
  <th className="num">{money(totals.total)}</th>

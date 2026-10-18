@@ -153,7 +153,7 @@ function TemplatesTab() {
  <div className="row">
  <label>
  اللغة
- <select value={locale} onChange={(change) => setLocale(change.target.value as EmailLocale)}>
+ <select className="input" value={locale} onChange={(change) => setLocale(change.target.value as EmailLocale)}>
  <option value="ar">{LOCALE_LABEL.ar}</option>
  <option value="en">{LOCALE_LABEL.en}</option>
  </select>
@@ -217,15 +217,15 @@ function TemplatesTab() {
  </p>
  <label>
  الموضوع
- <input value={subject} onChange={(change) => setSubject(change.target.value)} />
+ <input className="input" value={subject} onChange={(change) => setSubject(change.target.value)} />
  </label>
  <label>
  النصّ
- <textarea rows={10} value={body} onChange={(change) => setBody(change.target.value)} />
+ <textarea className="input" rows={10} value={body} onChange={(change) => setBody(change.target.value)} />
  </label>
  <label>
  سبب التعديل (اختياري، يُسجَّل في تدقيق منشأتك)
- <input value={reason} onChange={(change) => setReason(change.target.value)} />
+ <input className="input" value={reason} onChange={(change) => setReason(change.target.value)} />
  </label>
  <div className="row">
  <button className="btn" type="button" disabled={busy} onClick={() => save()}>
@@ -274,7 +274,7 @@ function MessagesTab() {
  <div className="row">
  <label>
  الحدث
- <select value={event} onChange={(change) => setEvent(change.target.value)}>
+ <select className="input" value={event} onChange={(change) => setEvent(change.target.value)}>
  <option value="">كل الأحداث</option>
               {emailEvents.map((key) => (
  <option key={key} value={key}>
@@ -285,7 +285,7 @@ function MessagesTab() {
  </label>
  <label>
  الحالة
- <select value={status} onChange={(change) => setStatus(change.target.value)}>
+ <select className="input" value={status} onChange={(change) => setStatus(change.target.value)}>
  <option value="">كل الحالات</option>
               {emailMessageStatuses.map((value) => (
  <option key={value} value={value}>
@@ -463,7 +463,7 @@ function SenderTab({ canEdit }: { canEdit: boolean }) {
  <div className="row">
  <label>
  مزوّد خدمة البريد
- <select
+ <select className="input"
               value={selectedProvider}
               disabled={!canEdit}
               onChange={(change) =>
@@ -478,7 +478,7 @@ function SenderTab({ canEdit }: { canEdit: boolean }) {
  </label>
  <label>
  اسم المُرسِل
- <input
+ <input className="input"
               value={value('fromName') ?? ''}
               disabled={!canEdit}
               onChange={(change) => setDraft({ ...draft, fromName: change.target.value })}
@@ -486,7 +486,7 @@ function SenderTab({ canEdit }: { canEdit: boolean }) {
  </label>
  <label>
  عنوان البريد المُرسِل
- <input
+ <input className="input"
               value={value('fromEmail') ?? ''}
               disabled={!canEdit}
               dir="ltr"
@@ -496,7 +496,7 @@ function SenderTab({ canEdit }: { canEdit: boolean }) {
  </label>
  <label>
  ردّ إلى (Reply-To)
- <input
+ <input className="input"
               value={value('replyTo') ?? ''}
               disabled={!canEdit}
               dir="ltr"
@@ -506,7 +506,7 @@ function SenderTab({ canEdit }: { canEdit: boolean }) {
  </label>
  <label>
  نطاق الإرسال (Sending Domain)
- <input
+ <input className="input"
               value={value('sendingDomain') ?? ''}
               disabled={!canEdit}
               dir="ltr"
@@ -522,7 +522,7 @@ function SenderTab({ canEdit }: { canEdit: boolean }) {
               {selectedProvider === 'resend'
                 ? 'مفتاح Resend API Key'
                 : 'مفتاح المصادقة (Bearer API Key)'}
- <input
+ <input className="input"
                 type="password"
                 dir="ltr"
                 disabled={!canEdit}
@@ -541,7 +541,7 @@ function SenderTab({ canEdit }: { canEdit: boolean }) {
               {selectedProvider === 'resend'
                 ? 'رابط Resend API (اختياري — الافتراضي https://api.resend.com/emails)'
                 : 'رابط نقطة النهاية (HTTP Webhook URL)'}
- <input
+ <input className="input"
                 dir="ltr"
                 disabled={!canEdit}
                 value={value('apiEndpoint') ?? ''}
@@ -560,7 +560,7 @@ function SenderTab({ canEdit }: { canEdit: boolean }) {
  <div className="row" style={{ marginTop: 12 }}>
  <label>
  مُضيف SMTP (Host)
- <input
+ <input className="input"
                 dir="ltr"
                 disabled={!canEdit}
                 value={value('smtpHost') ?? ''}
@@ -570,7 +570,7 @@ function SenderTab({ canEdit }: { canEdit: boolean }) {
  </label>
  <label>
  المنفذ (Port)
- <input
+ <input className="input"
                 type="number"
                 dir="ltr"
                 disabled={!canEdit}
@@ -585,7 +585,7 @@ function SenderTab({ canEdit }: { canEdit: boolean }) {
  </label>
  <label>
  اسم مستخدم SMTP
- <input
+ <input className="input"
                 dir="ltr"
                 disabled={!canEdit}
                 value={value('smtpUser') ?? ''}
@@ -595,7 +595,7 @@ function SenderTab({ canEdit }: { canEdit: boolean }) {
  </label>
  <label>
  كلمة مرور SMTP
- <input
+ <input className="input"
                 type="password"
                 dir="ltr"
                 disabled={!canEdit}
@@ -619,7 +619,7 @@ function SenderTab({ canEdit }: { canEdit: boolean }) {
  <div className="row" style={{ marginTop: 14 }}>
  <label>
  سبب التعديل (تدقيق اختياري)
- <input value={reason} disabled={!canEdit} onChange={(change) => setReason(change.target.value)} />
+ <input className="input" value={reason} disabled={!canEdit} onChange={(change) => setReason(change.target.value)} />
  </label>
  <button className="btn primary" type="button" disabled={!canEdit || busy} onClick={save}>
  حفظ الإعدادات
@@ -634,7 +634,7 @@ function SenderTab({ canEdit }: { canEdit: boolean }) {
  <div className="row">
  <label style={{ flex: 1 }}>
  إرسال بريد تجريبي للتحقق من الاتصال
- <input
+ <input className="input"
               type="email"
               dir="ltr"
               value={probeTo}

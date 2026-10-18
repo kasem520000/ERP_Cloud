@@ -64,7 +64,7 @@ function scopeLabel(
   const role = roles.find((item) => item.id === scope.roleId)?.name ?? scope.roleId;
   const type = scopeTypeLabel(scope.scopeType);
   if (scope.scopeId === TENANT_WIDE_SCOPE_ID) {
-    return `${role} ← ${type}: كل المنشأة (وصول شامل صريح)`;
+ return `${role} ${type}: كل المنشأة (وصول شامل صريح)`;
   }
   const target =
     scope.scopeType === 'branch'
@@ -74,7 +74,7 @@ function scopeLabel(
         : scope.scopeType === 'cash_location'
           ? (cashLocations.find((item) => item.id === scope.scopeId)?.name ?? scope.scopeId)
           : scope.scopeId;
-  return `${role} ← ${type}: ${target}`;
+ return `${role} ${type}: ${target}`;
 }
 
 /**
@@ -224,8 +224,8 @@ export default function TenantUsersPage() {
 
  <section className="card">
  <div className="row">
-          {/* «📋 قائمة المستخدمين» — `frmAddUsers.xaml` س325. */}
- <h2>📋 قائمة المستخدمين ({(memberships.data ?? []).length})</h2>
+ {/* «قائمة المستخدمين» — `frmAddUsers.xaml` س325. */}
+ <h2>قائمة المستخدمين ({(memberships.data ?? []).length})</h2>
  <button type="button" className="btn primary" disabled={busy} onClick={() => setShowInvite(!showInvite)}>
             {showInvite ? 'إغلاق الدعوة' : 'دعوة مستخدم'}
  </button>
@@ -233,15 +233,15 @@ export default function TenantUsersPage() {
 
         {showInvite && (
  <div className="form-grid">
-            {/* «🔑 اسم المستخدم» — `frmAddUsers.xaml` س243: في السحابة اسم الدخول هو البريد. */}
+ {/* «اسم المستخدم» — `frmAddUsers.xaml` س243: في السحابة اسم الدخول هو البريد. */}
  <label>
- 🔑اسم المستخدم (البريد الإلكتروني)
- <input type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="user@company.sa" dir="ltr" />
+ اسم المستخدم (البريد الإلكتروني)
+ <input className="input" type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="user@company.sa" dir="ltr" />
  </label>
-            {/* «👤 الموظف» — `frmAddUsers.xaml` س234: في الديسكتوب اختيارٌ من الموظفين، وهنا كتابةٌ للاسم. */}
+ {/* «الموظف» — `frmAddUsers.xaml` س234: في الديسكتوب اختيارٌ من الموظفين، وهنا كتابةٌ للاسم. */}
  <label>
- 👤الموظف
- <input value={fullName} onChange={(event) => setFullName(event.target.value)} placeholder="اختياري" />
+ الموظف
+ <input className="input" value={fullName} onChange={(event) => setFullName(event.target.value)} placeholder="اختياري" />
  </label>
  <fieldset>
  <legend>الأدوار (دور واحد على الأقل)</legend>
@@ -268,10 +268,10 @@ export default function TenantUsersPage() {
               {!inviteScopeAll && inviteScope.length === 0 && <p className="muted">اختر فرعاً واحداً على الأقل أو فعّل «كل الفروع».</p>}
  </fieldset>
  <fieldset>
- <legend>💰 حدود الخصم (فارغ = بلا حدّ)</legend>
+ <legend>حدود الخصم (فارغ = بلا حدّ)</legend>
  <label>
  أعلى نسبة للخصم %
- <input
+ <input className="input"
                   value={inviteMaxPct}
                   onChange={(event) => setInviteMaxPct(event.target.value)}
                   inputMode="decimal"
@@ -281,7 +281,7 @@ export default function TenantUsersPage() {
  </label>
  <label>
  أعلى قيمة للخصم
- <input
+ <input className="input"
                   value={inviteMaxAmount}
                   onChange={(event) => setInviteMaxAmount(event.target.value)}
                   inputMode="decimal"
@@ -353,12 +353,12 @@ export default function TenantUsersPage() {
  </div>
  <div className="form-grid">
  <label>
- 👤الموظف
- <input value={displayName} onChange={(event) => setDisplayName(event.target.value)} />
+ الموظف
+ <input className="input" value={displayName} onChange={(event) => setDisplayName(event.target.value)} />
  </label>
  <label>
  الحالة
- <select value={status} onChange={(event) => setStatus(event.target.value as Membership['status'])}>
+ <select className="input" value={status} onChange={(event) => setStatus(event.target.value as Membership['status'])}>
  <option value="active">نشط</option>
  <option value="invited">مدعو</option>
  <option value="suspended">موقوف</option>
@@ -400,7 +400,7 @@ export default function TenantUsersPage() {
  </p>
               ))}
  <div className="form-grid">
- <select value={scopeRole} onChange={(event) => setScopeRole(event.target.value)}>
+ <select className="input" value={scopeRole} onChange={(event) => setScopeRole(event.target.value)}>
                   {roleRows
                     .filter((role) => editRoles.includes(role.id))
                     .map((role) => (
@@ -409,16 +409,16 @@ export default function TenantUsersPage() {
  </option>
                     ))}
  </select>
- <select value={scopeType} onChange={(event) => setScopeType(event.target.value as typeof scopeType)}>
+ <select className="input" value={scopeType} onChange={(event) => setScopeType(event.target.value as typeof scopeType)}>
                   {SCOPE_TYPES.map((item) => (
  <option key={item.value} value={item.value}>
                       {item.label}
  </option>
                   ))}
  </select>
- <select value={scopeTarget} onChange={(event) => setScopeTarget(event.target.value)}>
+ <select className="input" value={scopeTarget} onChange={(event) => setScopeTarget(event.target.value)}>
  <option value="">— اختر —</option>
- <option value={TENANT_WIDE_SCOPE_ID}>🌐 كل المنشأة (وصول شامل صريح)</option>
+ <option value={TENANT_WIDE_SCOPE_ID}>كل المنشأة (وصول شامل صريح)</option>
                   {scopeTargets.map((option) => (
  <option key={option.id} value={option.id}>
                       {option.label}
@@ -439,14 +439,14 @@ export default function TenantUsersPage() {
  </div>
  </fieldset>
  <fieldset>
- <legend>💰 حدود الخصم (فارغ = بلا حدّ)</legend>
+ <legend>حدود الخصم (فارغ = بلا حدّ)</legend>
  <label>
  أعلى نسبة للخصم %
- <input value={capPct} onChange={(event) => setCapPct(event.target.value)} inputMode="decimal" placeholder="مثال: 10" dir="ltr" />
+ <input className="input" value={capPct} onChange={(event) => setCapPct(event.target.value)} inputMode="decimal" placeholder="مثال: 10" dir="ltr" />
  </label>
  <label>
  أعلى قيمة للخصم
- <input value={capAmount} onChange={(event) => setCapAmount(event.target.value)} inputMode="decimal" placeholder="مثال: 50.0000" dir="ltr" />
+ <input className="input" value={capAmount} onChange={(event) => setCapAmount(event.target.value)} inputMode="decimal" placeholder="مثال: 50.0000" dir="ltr" />
  </label>
  <p className="muted">
  الحدّ يُفحص في الخادم عند كتابة الخصم في فاتورة البيع أو الكاشير، ومجموع الخصم = خصم

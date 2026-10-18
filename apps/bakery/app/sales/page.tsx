@@ -321,7 +321,7 @@ export default function SalesPage() {
  <Card>
  <CardBody>
  <p className={`m-0 rounded-[10px] border px-4 py-2.5 text-[13px] font-semibold ${NOTICE_CLASSES.warn}`}>
- 🔒لا تملك <span dir="ltr">{VIEW_PERMISSION}</span> — والخادم يرفض قراءة لوحة
+ لا تملك <span dir="ltr">{VIEW_PERMISSION}</span> — والخادم يرفض قراءة لوحة
  المبيعات وطباعة أيّ مستند. ولم يُرسل هذا التطبيق طلبًا سيُرفض حتمًا، ولا عرض
  أرقامًا من المتصفّح بدلها.
  </p>
@@ -423,7 +423,7 @@ export default function SalesPage() {
  </p>
             {dashboard.summary.returnDocumentCount > 0 ? (
  <p className="m-0 mt-2 text-[12.5px] text-muted">
-                ↩ الأرقامُ أعلاه صافيةٌ من المرتجعات: إجماليُّ المبيعات{' '}
+ الأرقامُ أعلاه صافيةٌ من المرتجعات: إجماليُّ المبيعات{' '}
  <span dir="ltr">{numberText(dashboard.summary.totalSalesGrossSar)}</span> −
  مرتجعات <span dir="ltr">{numberText(dashboard.summary.totalReturnsSar)}</span>{' '}
  وضريبتُها{' '}
@@ -437,7 +437,7 @@ export default function SalesPage() {
             ) : null}
             {dashboard.postingReadiness.message ? (
  <p className={`m-0 mt-3 rounded-[10px] border px-4 py-2.5 text-[12.5px] font-semibold ${NOTICE_CLASSES.warn}`}>
-                 ⚠️{dashboard.postingReadiness.message}
+ {dashboard.postingReadiness.message}
  </p>
             ) : null}
  </CardBody>
@@ -448,7 +448,7 @@ export default function SalesPage() {
  <Card>
  <CardBody>
  <p className={`m-0 rounded-[10px] border px-4 py-2.5 text-[13px] font-semibold ${NOTICE_CLASSES.warn}`}>
- 🔒تملك القراءة (<span dir="ltr">{VIEW_PERMISSION}</span>) لا الإصدار (
+ تملك القراءة (<span dir="ltr">{VIEW_PERMISSION}</span>) لا الإصدار (
  <span dir="ltr">{CREATE_PERMISSION}</span>) — فتُعرض المستندات وتُطبع نسختاها، ولا
  يُرسل إصدارٌ سيُرفض 403.
  </p>
@@ -537,7 +537,7 @@ export default function SalesPage() {
 
               {agreement ? (
  <p className="m-0 rounded-[10px] border border-line bg-surface px-3 py-2 text-[12.5px] text-ink">
- 🏷️اتفاقُ هذا العميل على هذا الصنف ({agreement.priceTierLabel}): السعر{' '}
+ اتفاقُ هذا العميل على هذا الصنف ({agreement.priceTierLabel}): السعر{' '}
  <span dir="ltr">{agreement.unitPrice}</span> ريال/كجم
                   {agreement.lockPrice ? ' — مثبَّت، والخادم يمنع البيع بأقلّ إلا باعتماد التجاوز' : ''} ·
  سقف الخصم <span dir="ltr">{agreement.maxDiscountPct}%</span> · سقف البونص{' '}
@@ -736,7 +736,7 @@ export default function SalesPage() {
  <div className="grid gap-1.5">
                   {verdict.warnings.map((line) => (
  <p key={line} className={`m-0 rounded-[10px] border px-3 py-2 text-[12.5px] font-semibold ${NOTICE_CLASSES.warn}`}>
-                       ⛔{line}
+ {line}
  </p>
                   ))}
  </div>
@@ -863,17 +863,17 @@ export default function SalesPage() {
                             type="button"
                             variant="secondary"
                           >
- 🖨️نسختان
+ نسختان
  </Button>
                           {row.documentKind === 'sale' && canCreate ? (
  <Button onClick={() => openReturn(row)} size="sm" type="button" variant="secondary">
-                              ↩ مرتجع
+ مرتجع
  </Button>
                           ) : null}
  </div>
                         {anomalyNote(row) ? (
  <p className={`m-0 mt-1 rounded-[8px] border px-2 py-1 text-[11.5px] font-semibold ${NOTICE_CLASSES.warn}`}>
-                             ⚠️{anomalyNote(row)}
+ {anomalyNote(row)}
  </p>
                         ) : null}
  </td>
@@ -962,11 +962,11 @@ export default function SalesPage() {
 
  <div className="mt-3 flex flex-wrap items-center gap-2">
  <Button disabled={busy} onClick={() => void printCopies(selected.id)} size="sm" type="button" variant="primary">
- 🖨️طباعة نسختي المستند
+ طباعة نسختي المستند
  </Button>
               {selected.documentKind === 'sale' && canCreate ? (
  <Button onClick={() => openReturn(selected)} size="sm" type="button" variant="secondary">
-                  ↩ تسجيل مرتجع
+ تسجيل مرتجع
  </Button>
               ) : null}
  <span className="text-[12px] text-muted">
@@ -1016,12 +1016,12 @@ export default function SalesPage() {
 
                 {returnJudgement.blocked.map((line) => (
  <p key={line} className={`m-0 rounded-[10px] border px-3 py-2 text-[12.5px] font-semibold ${NOTICE_CLASSES.danger}`}>
-                     ⚠️{line}
+ {line}
  </p>
                 ))}
                 {returnJudgement.warnings.map((line) => (
  <p key={line} className={`m-0 rounded-[10px] border px-3 py-2 text-[12.5px] font-semibold ${NOTICE_CLASSES.warn}`}>
-                     ⛔{line}
+ {line}
  </p>
                 ))}
 

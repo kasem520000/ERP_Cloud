@@ -25,24 +25,23 @@ export function Screen({
 }) {
   return (
     <div className="grid gap-4">
-      <section className="flex flex-wrap items-end justify-between gap-3">
-        <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="exec-eyebrow">{crumbs && crumbs.length > 0 ? crumbs[0] : 'Executive'}</span>
-            {crumbs && crumbs.length > 1 ? (
-              <span className="text-xs font-semibold text-muted">
-                / {crumbs.slice(1).join(' / ')}
-              </span>
-            ) : null}
-          </div>
-          <h1 className="m-0 mt-2 text-[25px] font-extrabold leading-tight tracking-[-0.03em] text-ink">
-            {title}
-          </h1>
-          {subtitle ? <p className="m-0 mt-1 max-w-2xl text-[12.5px] leading-relaxed text-muted">{subtitle}</p> : null}
+      <header className="page-head">
+        <div className="page-head-copy">
+          {crumbs && crumbs.length > 0 ? (
+            <nav className="crumbs" aria-label="مسار الصفحة">
+              {crumbs.map((crumb, index) => (
+                <span key={`${crumb}-${index}`}>
+                  {index > 0 ? <span aria-hidden> / </span> : null}
+                  {crumb}
+                </span>
+              ))}
+            </nav>
+          ) : null}
+          <h1 className="page-head-title">{title}</h1>
+          {subtitle ? <p className="page-head-sub">{subtitle}</p> : null}
         </div>
-        {actions ? <div className="flex flex-wrap items-center gap-2 no-print">{actions}</div> : null}
-      </section>
-      <div className="page-rule" aria-hidden />
+        {actions ? <div className="page-head-actions no-print">{actions}</div> : null}
+      </header>
       {children}
     </div>
   );
@@ -112,72 +111,25 @@ export function Empty({ title, detail }: { title: string; detail?: string }) {
 }
 
 /**
- * Placeholder for a screen that exists in the menu tree but is not built yet.
- * It never fakes data: it states the status and names the endpoint it will consume,
- * so the roadmap is visible instead of hidden behind a dummy table.
+ * A route that exists in the menu tree but has no screen behind it yet.
+ *
+ * Production rule: it renders a plain, customer-facing "not available" state —
+ * no API path, no permission code, no roadmap wording, no «قيد التطوير». Those
+ * belong in the repository, not in front of an accountant. In development the
+ * same state is kept; the engineering detail is available in the code and in
+ * `docs/ui-v5/SCREENS.md` instead.
  */
 export function ScreenScaffold({ href }: { href: string }) {
   const item = findScreenByHref(href);
-
-  if (!item) {
-    return (
-      <Screen title="شاشة غير معروفة" subtitle={href}>
-        <Empty title="هذه الشاشة غير مسجلة في شجرة النظام" detail="تحقق من الرابط أو ارجع للرئيسية." />
-        <Link className="btn" href="/">
-          الرئيسية
-        </Link>
-      </Screen>
-    );
-  }
-
   return (
-    <Screen
-      title={item.labelAr}
-      subtitle={item.labelEn}
-      crumbs={[item.moduleLabelAr, item.groupLabelAr]}
-      actions={
-        <Link className="btn" href="/">
-          الرئيسية
-        </Link>
-      }
-    >
-      <div className="rounded-xl border border-line bg-surface p-4 shadow-1">
-        <div className="flex items-center gap-2" style={{ marginBottom: 10 }}>
-          <span
-            className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[12px] font-bold ${
-              item.status === 'api' ? 'bg-ok-soft text-ok-ink' : 'bg-warn-soft text-warn-ink'
-            }`}
-          >
-            {item.status === 'api' ? 'الواجهة البرمجية جاهزة — الشاشة قيد التنفيذ' : 'قيد التطوير'}
-          </span>
-        </div>
-        {item.status === 'api' ? (
-          <p className="m-0 text-[13.5px] text-ink-2">
-            منطق هذه الشاشة موجود بالفعل في الخادم ويمكن استدعاؤه الآن عبر المسار أدناه؛ ما ينقص هو واجهة
-            الإدخال والعرض.
-          </p>
-        ) : (
-          <p className="m-0 text-[13.5px] text-ink-2">
-            هذه الشاشة مدرجة في خطة النظام ولم تُنفذ بعد، لا في الواجهة ولا في الخادم.
-          </p>
-        )}
-        {item.endpoint ? (
-          <dl className="grid gap-1.5 mt-3 text-[13px]">
-            <dt className="text-muted font-bold">المسار البرمجي</dt>
-            <dd className="m-0 font-bold text-ink" dir="ltr">
-              {item.endpoint}
-            </dd>
-            {item.permission ? (
-              <>
-                <dt className="text-muted font-bold">الصلاحية</dt>
-                <dd className="m-0 font-bold text-ink" dir="ltr">
-                  {item.permission}
-                </dd>
-              </>
-            ) : null}
-          </dl>
-        ) : null}
-      </div>
+    <Screen title={item?.labelAr ?? 'صفحة غير متاحة'} crumbs={item ? [item.moduleLabelAr, item.groupLabelAr] : undefined}>
+      <Empty
+        title="هذه الصفحة غير متاحة في نسختك"
+        detail="إن وصلت إلى هنا من رابط قديم، فارجع إلى القائمة الجانبية أو تواصل مع مسؤول الحساب لتفعيل الوحدة."
+      />
+      <Link className="btn" href="/">
+        العودة إلى الرئيسية
+      </Link>
     </Screen>
   );
 }

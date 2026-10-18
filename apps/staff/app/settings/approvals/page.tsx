@@ -174,13 +174,13 @@ export default function ApprovalSettingsPage() {
         <div className="form-grid">
           <label className="field">
             <span>نوع المستند</span>
-            <select value={entity} onChange={(event) => setEntity(event.target.value as ApprovalEntity)}>
+            <select className="input" value={entity} onChange={(event) => setEntity(event.target.value as ApprovalEntity)}>
               {(Object.keys(entityLabels) as ApprovalEntity[]).map((key) => <option key={key} value={key}>{entityLabels[key]}</option>)}
             </select>
           </label>
           <label className="field wide">
             <span>اسم المسار</span>
-            <input value={name} onChange={(event) => setName(event.target.value)} placeholder="مثال: مشتريات أعلى من 5,000" />
+            <input className="input" value={name} onChange={(event) => setName(event.target.value)} placeholder="مثال: مشتريات أعلى من 5,000" />
           </label>
           <label className="field" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <input type="checkbox" checked={active} onChange={(event) => setActive(event.target.checked)} />
@@ -197,13 +197,13 @@ export default function ApprovalSettingsPage() {
                 {steps.length > 1 ? <button className="btn" type="button" onClick={() => setSteps((current) => current.filter((_, i) => i !== index))}>حذف</button> : null}
               </div>
               <div className="form-grid">
-                <label className="field"><span>دور المراجع</span><input value={step.approver_role} onChange={(event) => updateStep(index, { approver_role: event.target.value })} placeholder="Accountant أو مدير" /></label>
-                <label className="field"><span>معرّف المستخدم (اختياري)</span><input dir="ltr" value={step.approver_user_id} onChange={(event) => updateStep(index, { approver_user_id: event.target.value })} placeholder="UUID" /></label>
-                <label className="field"><span>الحد الأدنى</span><input dir="ltr" value={step.min_amount} onChange={(event) => updateStep(index, { min_amount: event.target.value })} placeholder="10000" /></label>
-                <label className="field"><span>الحد الأعلى</span><input dir="ltr" value={step.max_amount} onChange={(event) => updateStep(index, { max_amount: event.target.value })} placeholder="اتركه بلا حد" /></label>
-                <label className="field"><span>معرّف الفرع (اختياري)</span><input dir="ltr" value={step.branch_id} onChange={(event) => updateStep(index, { branch_id: event.target.value })} placeholder="UUID" /></label>
-                <label className="field"><span>مركز التكلفة (اختياري)</span><input dir="ltr" value={step.cost_center_id} onChange={(event) => updateStep(index, { cost_center_id: event.target.value })} placeholder="UUID" /></label>
-                <label className="field"><span>الإجراء</span><select value={step.action} onChange={(event) => updateStep(index, { action: event.target.value as 'approve' | 'notify' })}><option value="approve">موافقة مطلوبة</option><option value="notify">إشعار فقط</option></select></label>
+                <label className="field"><span>دور المراجع</span><input className="input" value={step.approver_role} onChange={(event) => updateStep(index, { approver_role: event.target.value })} placeholder="Accountant أو مدير" /></label>
+                <label className="field"><span>معرّف المستخدم (اختياري)</span><input className="input" dir="ltr" value={step.approver_user_id} onChange={(event) => updateStep(index, { approver_user_id: event.target.value })} placeholder="UUID" /></label>
+                <label className="field"><span>الحد الأدنى</span><input className="input" dir="ltr" value={step.min_amount} onChange={(event) => updateStep(index, { min_amount: event.target.value })} placeholder="10000" /></label>
+                <label className="field"><span>الحد الأعلى</span><input className="input" dir="ltr" value={step.max_amount} onChange={(event) => updateStep(index, { max_amount: event.target.value })} placeholder="اتركه بلا حد" /></label>
+                <label className="field"><span>معرّف الفرع (اختياري)</span><input className="input" dir="ltr" value={step.branch_id} onChange={(event) => updateStep(index, { branch_id: event.target.value })} placeholder="UUID" /></label>
+                <label className="field"><span>مركز التكلفة (اختياري)</span><input className="input" dir="ltr" value={step.cost_center_id} onChange={(event) => updateStep(index, { cost_center_id: event.target.value })} placeholder="UUID" /></label>
+                <label className="field"><span>الإجراء</span><select className="input" value={step.action} onChange={(event) => updateStep(index, { action: event.target.value as 'approve' | 'notify' })}><option value="approve">موافقة مطلوبة</option><option value="notify">إشعار فقط</option></select></label>
               </div>
             </div>
           ))}

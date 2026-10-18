@@ -382,7 +382,7 @@ export default function OfflinePosPage() {
  <span
             className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[12px] font-bold ${online ? 'bg-ok-soft text-ok-ink' : 'bg-danger-soft text-danger-ink'}`}
           >
-            {online ? '🟢 متصل' : '🔴 أوفلاين'}
+ {online ? 'متصل' : 'أوفلاين'}
  </span>
  <Link className="btn sm" href="/sales/pos">
             POS الرئيسي
@@ -444,7 +444,7 @@ export default function OfflinePosPage() {
  إضافة
  </button>
  <button className="btn" type="button" onClick={() => setScannerOpen((open) => !open)}>
-                {scannerOpen ? 'إغلاق الكاميرا' : '📷 مسح'}
+ {scannerOpen ? 'إغلاق الكاميرا' : 'مسح'}
  </button>
  </div>
             {scannerOpen ? (
@@ -610,7 +610,7 @@ export default function OfflinePosPage() {
  حفظ فاتورة نقدية أوفلاين
  </button>
  <button className="btn" type="button" disabled={!lastReceipt} onClick={printReceipt}>
- 🖨️إيصال 80mm
+ إيصال 80mm
  </button>
  <button
                 className="btn"

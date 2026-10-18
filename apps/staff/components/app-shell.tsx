@@ -209,7 +209,7 @@ function normalizeModuleGroups(module: ModuleNode): ScreenGroup[] {
   ) {
     ops.unshift({
       key: 'opening-stock- explicit',
-      labelAr: '📦 مخزون أول المدة',
+ labelAr: 'مخزون أول المدة',
       labelEn: 'Opening inventory',
       href: '/inventory/vouchers?kind=opening',
       status: 'ready',
@@ -441,7 +441,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     // Inject Van Sales & Bakery Distribution module when enabled via Marketplace
     const vanSalesModule: ModuleNode = {
       key: 'van-sales',
-      icon: '🏭',
+ icon: '',
       labelAr: 'نظام المصنع والمخابز ومناديب التوزيع',
       labelEn: 'Factory, Bakery & Van Sales',
       href: '/van-sales',
@@ -675,9 +675,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
  <div className="topbar-context">
  <p className="topbar-eyebrow">
  <span>{me?.membership.tenantName ?? '—'}</span>
- <span aria-hidden>·</span>
- <span dir="ltr">{me?.membership.tenantCode ?? '—'}</span>
-                {isPlatformAdmin ? <span className="badge planned">{lang === 'ar' ? 'مدير منصة' : 'Platform admin'}</span> : null}
+                {isPlatformAdmin ? <span className="badge">{lang === 'ar' ? 'مدير منصة' : 'Platform admin'}</span> : null}
  </p>
  <strong>{screenLabel ?? t('nav.home')}</strong>
  </div>

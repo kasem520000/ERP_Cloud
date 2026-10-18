@@ -144,7 +144,7 @@ export default function MarinaLinkInvoicesPage() {
  </QueryView>
  </div>
 
-      {/* «🔍 خيارات البحث» — `Form_WPF/frmInvoiceRentSrch.xaml` («بحث الفواتير»). */}
+ {/* «خيارات البحث» — `Form_WPF/frmInvoiceRentSrch.xaml` («بحث الفواتير»). */}
  <div className="card tight no-print">
  <div className="row" style={{ flexWrap: 'wrap', alignItems: 'flex-end' }}>
  <label className="field" style={{ margin: 0, minWidth: 200 }}>
@@ -152,7 +152,7 @@ export default function MarinaLinkInvoicesPage() {
  <input
               className="input"
               value={filters.customer}
-              placeholder="🔍 الاسم أو الجوال..."
+ placeholder="الاسم أو الجوال..."
               onChange={(event) => setFilters({ ...filters, customer: event.target.value })}
             />
  </label>
@@ -173,7 +173,7 @@ export default function MarinaLinkInvoicesPage() {
  <input className="input numeric" value={filters.maxNet} onChange={(event) => setFilters({ ...filters, maxNet: event.target.value })} />
  </label>
  <button className="btn primary" type="button" onClick={() => setApplied(filters)}>
- 🔍بحث
+ بحث
  </button>
           {applied && (
  <button
@@ -184,7 +184,7 @@ export default function MarinaLinkInvoicesPage() {
                 setApplied(null);
               }}
             >
- 🗑️تصفية الحقول
+ تصفية الحقول
  </button>
           )}
  </div>
@@ -199,15 +199,15 @@ export default function MarinaLinkInvoicesPage() {
             rowKey={(row) => row.id}
             columns={[
               { key: 'number', header: 'الرقم', align: 'ltr', cell: (row) => row.number ?? '—' },
-              { key: 'date', header: '📅 التاريخ', align: 'ltr', cell: (row) => row.documentDate },
-              { key: 'customer', header: '👤 العميل', cell: (row) => row.customerName || customerName(row.bookingId) },
+ { key: 'date', header: 'التاريخ', align: 'ltr', cell: (row) => row.documentDate },
+ { key: 'customer', header: 'العميل', cell: (row) => row.customerName || customerName(row.bookingId) },
               { key: 'vessel', header: 'المركب', cell: (row) => bookingVessel(row.bookingId) },
               { key: 'period', header: 'قيمة الفترة', align: 'num', cell: (row) => money(row.periodAmount) },
               { key: 'additions', header: 'الإضافات', align: 'num', cell: (row) => money(row.additionsAmount) },
               { key: 'total', header: 'الإجمالي', align: 'num', cell: (row) => money(row.total) },
               { key: 'tax', header: 'الضريبة', align: 'num', cell: (row) => money(row.taxAmount) },
-              { key: 'net', header: '💰 الصافي', align: 'num', cell: (row) => money(row.netAmount) },
-              { key: 'phone', header: '📱 الجوال', align: 'ltr', cell: (row) => row.customerPhone || '—' },
+ { key: 'net', header: 'الصافي', align: 'num', cell: (row) => money(row.netAmount) },
+ { key: 'phone', header: 'الجوال', align: 'ltr', cell: (row) => row.customerPhone || '—' },
               {
                 key: 'sales',
                 header: 'فاتورة المبيعات',

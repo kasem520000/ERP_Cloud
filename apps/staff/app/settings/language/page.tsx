@@ -60,8 +60,8 @@ export default function LanguagePage() {
  <h3 className="m-0 text-[15px] font-bold text-ink">اختر لغة الواجهة</h3>
  </div>
  <div className="grid gap-3 sm:grid-cols-2">
-          {option('ar', 'العربية', 'Arabic', 'اتجاه الكتابة من اليمين إلى اليسار (RTL). هذا هو الوضع الافتراضي للنظام.', '🇸🇦')}
-          {option('en', 'الإنجليزية', 'English', 'Left-to-right (LTR). Shell, menus and the login screen switch; screen content stays Arabic-first.', '🇬🇧')}
+ {option('ar', 'العربية', 'Arabic', 'اتجاه الكتابة من اليمين إلى اليسار (RTL). هذا هو الوضع الافتراضي للنظام.', '')}
+ {option('en', 'الإنجليزية', 'English', 'Left-to-right (LTR). Shell, menus and the login screen switch; screen content stays Arabic-first.', '')}
  </div>
  </section>
 

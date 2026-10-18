@@ -120,7 +120,7 @@ describe('تصميمُ تطبيق المندوب للجوال: قراراتٌ م
     const { repCss, page } = await read();
     const bar = repCss.slice(repCss.indexOf('.rep-statusbar {'));
     expect(bar.slice(0, bar.indexOf('}'))).toContain('position: sticky');
-    expect(page).toContain("online ? '🟢 متصل' : '📴 دون اتصال'");
+ expect(page).toContain("online ? 'متصل' : 'دون اتصال'");
     // ‏وعددُ المعلّق والمرفوض ظاهران بلا تمرير.
     expect(page).toContain('{counts.pending}');
     expect(page).toContain('مرفوض');

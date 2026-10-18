@@ -31,7 +31,7 @@ export default function CashCustomersPage() {
 
   if (!can('sales.view')) {
     return (
- <Screen title="👤 عميل نقدي" crumbs={['المبيعات']}>
+ <Screen title="عميل نقدي" crumbs={['المبيعات']}>
  <div className="card state">
  <strong>لا تملك صلاحية عرض العملاء</strong>
  <span>تحتاج صلاحية sales.view.</span>
@@ -42,13 +42,13 @@ export default function CashCustomersPage() {
 
   return (
  <Screen
-      title="👤 عميل نقدي"
+ title="عميل نقدي"
       subtitle="إضافة أو اختيار عميل نقدي للفاتورة — الأسماء التي خدمها المتجر"
       crumbs={['المبيعات', 'العملاء']}
     >
  <div className="grid cols">
  <div className="card">
- <div className="card-head">📋 ملخّص</div>
+ <div className="card-head">ملخّص</div>
  <dl className="kv">
  <dt>أسماء محفوظة</dt>
  <dd>{(recent.data ?? []).length}</dd>
@@ -72,7 +72,7 @@ export default function CashCustomersPage() {
  </div>
 
  <div className="card">
- <div className="card-head">🏷️ إضافة أو اختيار</div>
+ <div className="card-head">إضافة أو اختيار</div>
  <CashCustomerPicker
             embedded
             value={{ name: picked?.name ?? '', mobile: picked?.mobile ?? '' }}

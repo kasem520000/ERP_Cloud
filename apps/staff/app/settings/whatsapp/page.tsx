@@ -105,8 +105,8 @@ export default function WhatsappSettingsPage() {
 
   return (
  <Screen
-      title="📱 إعدادات واتساب"
-      subtitle="من أي رقم تخرج الرسائل، وبأي رمز، وإلى أي بلد يُضاف رقم العميل الناقص. 💬 «واتساب» على نافذة الفاتورة يقرأ هذه الإعدادات، ولا يُرسل منها إلا ما كان مفعّلاً."
+ title="إعدادات واتساب"
+ subtitle="من أي رقم تخرج الرسائل، وبأي رمز، وإلى أي بلد يُضاف رقم العميل الناقص. «واتساب» على نافذة الفاتورة يقرأ هذه الإعدادات، ولا يُرسل منها إلا ما كان مفعّلاً."
       crumbs={['الإعدادات', 'واتساب']}
       actions={<span className="chip">{saved.active ? 'مفعّل' : 'موقوف'}{saved.simulation ? ' · محاكاة' : ''}</span>}
     >
@@ -118,7 +118,7 @@ export default function WhatsappSettingsPage() {
       )}
 
  <div className="card">
- <h3>⚙️ الإعدادات</h3>
+ <h3>الإعدادات</h3>
  <div className="form-grid">
  <div className="field">
  <span>التفعيل</span>
@@ -128,21 +128,21 @@ export default function WhatsappSettingsPage() {
  </label>
  <label className="check">
  <input type="checkbox" checked={form.attachDocument} onChange={(event) => setField('attachDocument', event.target.checked)} />
- <span>📎 إرفاق الفاتورة مع الرسالة</span>
+ <span>إرفاق الفاتورة مع الرسالة</span>
  </label>
  <label className="check">
  <input type="checkbox" checked={form.simulation} onChange={(event) => setField('simulation', event.target.checked)} />
- <span>🧪 محاكاة (لا تُرسل رسالة حقيقية)</span>
+ <span>محاكاة (لا تُرسل رسالة حقيقية)</span>
  </label>
  </div>
  <label className="field wide">
  <span>عنوان الواتساب (Phone Number ID)</span>
- <input dir="ltr" value={form.phoneNumberId} onChange={(event) => setField('phoneNumberId', event.target.value)} placeholder="109357128475620" />
+ <input className="input" dir="ltr" value={form.phoneNumberId} onChange={(event) => setField('phoneNumberId', event.target.value)} placeholder="109357128475620" />
  <small className="muted">يأتي من لوحة Meta · وهو ما كان يعطيه مسح رمز QR في النسخة المكتبية.</small>
  </label>
  <label className="field">
  <span>الرمز (Access Token)</span>
- <input
+ <input className="input"
               dir="ltr"
               type="password"
               value={token}
@@ -152,12 +152,12 @@ export default function WhatsappSettingsPage() {
  </label>
  <label className="field">
  <span>رمز الدولة</span>
- <input dir="ltr" value={form.defaultCountryCode} onChange={(event) => setField('defaultCountryCode', event.target.value)} placeholder="966" />
+ <input className="input" dir="ltr" value={form.defaultCountryCode} onChange={(event) => setField('defaultCountryCode', event.target.value)} placeholder="966" />
  <small className="muted">يُضاف إلى رقم العميل بعد حذف أصفاره الأولى — كان «966» ثابتاً في النسخة المكتبية.</small>
  </label>
  <label className="field wide">
  <span>عنوان الخدمة</span>
- <input dir="ltr" value={form.baseUrl} readOnly />
+ <input className="input" dir="ltr" value={form.baseUrl} readOnly />
  <small className="muted">WhatsApp Cloud API · لا يحتاج إلى متصفّح ولا إلى جهاز الكاشير.</small>
  </label>
  </div>
@@ -175,7 +175,7 @@ export default function WhatsappSettingsPage() {
               })
             }
           >
- 💾حفظ
+ حفظ
  </button>
  <button
             type="button"
@@ -186,12 +186,12 @@ export default function WhatsappSettingsPage() {
                 const result = await testWhatsapp();
                 setNotice({
                   kind: result.ok ? 'ok' : 'warn',
-                  text: `${result.ok ? '✅' : '❌'} ${result.displayPhoneNumber ?? '—'} — ${result.message ?? result.status}`,
+ text: `${result.displayPhoneNumber ?? '—'} — ${result.message ?? result.status}`,
                 });
               })
             }
           >
- 🧪اختبار
+ اختبار
  </button>
           {busy !== '' ? <span className="chip">…</span> : null}
  </div>

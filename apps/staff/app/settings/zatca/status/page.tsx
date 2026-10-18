@@ -50,9 +50,9 @@ const REPORT_KEY = 'einvoice-sync-status';
 
 /** حالة المزامنة ZATCA — the three radios of the search panel (L470-L478). */
 const SYNC_FILTERS = [
-  { value: '', labelAr: '🔵 الكل', hint: '' },
-  { value: 'sent', labelAr: '✅ مرسل', hint: '' },
-  { value: 'unsent', labelAr: '❌ غير مرسل', hint: '' },
+ { value: '', labelAr: 'الكل', hint: '' },
+ { value: 'sent', labelAr: 'مرسل', hint: '' },
+ { value: 'unsent', labelAr: 'غير مرسل', hint: '' },
 ];
 
 /** نوع الفاتورة — `cmbInvType` as `LoadInvTypes` fills it (L87-L105). */
@@ -181,14 +181,14 @@ export default function ZatcaSyncStatusPage() {
 
   return (
  <Screen
-      title="🔄 مزامنة الفواتير - ZATCA"
+ title="مزامنة الفواتير - ZATCA"
       subtitle="كل فاتورةٍ مرحَّلة وحالة مزامنتها مع هيئة الزكاة والضريبة: ما قُبل وما لم يُقبل، ورسالة الهيئة نصّاً، ثم مزامنة ZATCA تُرسل ما تختاره."
       crumbs={['الإعدادات', 'إعدادات الربط الضريبي', 'مزامنة الفواتير']}
       actions={
  <>
  <span className="chip">العدد: {report?.rowCount ?? 0}</span>
  <Link className="btn" href="/settings/zatca/sent">
- 🧾الفواتير المرفوعة
+ الفواتير المرفوعة
  </Link>
  </>
       }
@@ -198,12 +198,12 @@ export default function ZatcaSyncStatusPage() {
       {/* ═══ خيارات البحث ═══ */}
  <div className="card">
  <div className="toolbar">
- <span className="chip">🔍 خيارات البحث</span>
+ <span className="chip">خيارات البحث</span>
 
           {/* حالة المزامنة ZATCA */}
  <label className="field">
- <span>🔄 حالة المزامنة ZATCA</span>
- <select value={status} onChange={(event) => setStatus(event.target.value)}>
+ <span>حالة المزامنة ZATCA</span>
+ <select className="input" value={status} onChange={(event) => setStatus(event.target.value)}>
               {SYNC_FILTERS.map((filter) => (
  <option key={filter.value || 'all'} value={filter.value}>
                   {filter.labelAr}
@@ -214,13 +214,13 @@ export default function ZatcaSyncStatusPage() {
 
           {/* نوع الفاتورة — «الكل» disables the combo, exactly as `ckAllInvs` does. */}
  <label className="field">
- <span>📋 نوع الفاتورة</span>
+ <span>نوع الفاتورة</span>
  <div className="toolbar">
  <label className="field">
  <input type="checkbox" checked={allTypes} onChange={(event) => setAllTypes(event.target.checked)} />
  <span>الكل</span>
  </label>
- <select value={type} disabled={allTypes} onChange={(event) => setType(event.target.value)}>
+ <select className="input" value={type} disabled={allTypes} onChange={(event) => setType(event.target.value)}>
  <option value="">—</option>
                 {INVOICE_TYPES.map((option) => (
  <option key={option.value} value={option.value}>
@@ -233,19 +233,19 @@ export default function ZatcaSyncStatusPage() {
 
           {/* الفترة الزمنية */}
  <label className="field">
- <span>📅 الفترة الزمنية</span>
+ <span>الفترة الزمنية</span>
  <div className="toolbar">
  <label className="field">
  <input type="checkbox" checked={allPeriod} onChange={(event) => setAllPeriod(event.target.checked)} />
- <span>📌 كل الفترة</span>
+ <span>كل الفترة</span>
  </label>
- <input type="date" value={from} disabled={allPeriod} onChange={(event) => setFrom(event.target.value)} aria-label="من" />
- <input type="date" value={to} disabled={allPeriod} onChange={(event) => setTo(event.target.value)} aria-label="إلى" />
+ <input className="input" type="date" value={from} disabled={allPeriod} onChange={(event) => setFrom(event.target.value)} aria-label="من" />
+ <input className="input" type="date" value={to} disabled={allPeriod} onChange={(event) => setTo(event.target.value)} aria-label="إلى" />
  </div>
  </label>
 
  <button type="button" className="btn primary" disabled={loading} onClick={() => void load()}>
- 🔍عرض النتائج
+ عرض النتائج
  </button>
  </div>
  </div>
@@ -257,7 +257,7 @@ export default function ZatcaSyncStatusPage() {
         {loading && !report ? (
  <Loading rows={5} />
         ) : rows.length === 0 ? (
- <Empty title="لا توجد عمليات بالجدول" detail="جرّب «📌 كل الفترة» أو «🔵 الكل»." />
+ <Empty title="لا توجد عمليات بالجدول" detail="جرّب «كل الفترة» أو «الكل»." />
         ) : (
  <DataTable
             rows={rows}
@@ -285,7 +285,7 @@ export default function ZatcaSyncStatusPage() {
                 key: 'sync_status',
                 header: 'حالة المزامنة',
                 cell: (row) => (
- <span className="chip" style={(row.sync_status ?? '').startsWith('✅') ? { background: 'var(--ok)', color: 'var(--on-accent)' } : { background: 'var(--danger)', color: 'var(--on-accent)' }}>
+ <span className="chip" style={(row.sync_status ?? '').startsWith('') ? { background: 'var(--ok)', color: 'var(--on-accent)' } : { background: 'var(--danger)', color: 'var(--on-accent)' }}>
                     {row.sync_status}
  </span>
                 ),
@@ -295,7 +295,7 @@ export default function ZatcaSyncStatusPage() {
                 header: 'تفاصيل',
                 cell: (row) => (
  <Link className="btn" href={`/sales/invoices/${invoiceId(row)}`}>
- 🔍تفاصيل
+ تفاصيل
  </Link>
                 ),
               },
@@ -331,19 +331,19 @@ export default function ZatcaSyncStatusPage() {
 
  <div className="toolbar">
  <button type="button" className="btn" disabled={busy !== '' || rows.length === 0} onClick={() => void exportExcel()}>
-            {busy === 'export' ? 'جارٍ التصدير…' : '📊 تصدير Excel'}
+ {busy === 'export' ? 'جارٍ التصدير…' : 'تصدير Excel'}
  </button>
  <button type="button" className="btn" disabled={busy !== '' || rows.length === 0} onClick={() => void print(false)}>
-            {busy === 'print' ? 'جارٍ التجهيز…' : '🖨️ طباعة'}
+ {busy === 'print' ? 'جارٍ التجهيز…' : 'طباعة'}
  </button>
  <button type="button" className="btn" disabled={busy !== '' || rows.length === 0} onClick={() => void print(true)}>
-            {busy === 'preview' ? 'جارٍ التجهيز…' : '👁️ معاينة'}
+ {busy === 'preview' ? 'جارٍ التجهيز…' : 'معاينة'}
  </button>
  <button type="button" className="btn primary" disabled={busy !== ''} onClick={() => void sync()}>
-            {busy === 'sync' ? 'جارٍ المزامنة…' : `🔄 مزامنة ZATCA${selected.length > 0 ? ` (${selected.length})` : ''}`}
+ {busy === 'sync' ? 'جارٍ المزامنة…' : `مزامنة ZATCA${selected.length > 0 ? ` (${selected.length})` : ''}`}
  </button>
  <Link className="btn" href="/settings/zatca">
- ✖خروج
+ خروج
  </Link>
  </div>
  </div>
@@ -351,9 +351,9 @@ export default function ZatcaSyncStatusPage() {
       {/* ═══ What مزامنة ZATCA answered, row by row ═══ */}
       {lastSync ? (
  <div className="card">
- <h3>🔄 مزامنة ZATCA — النتيجة</h3>
+ <h3>مزامنة ZATCA — النتيجة</h3>
  <p className="muted">
-            {lastSync.message} · البيئة: {lastSync.environment === 'simulation' ? '🧪 محاكاة' : lastSync.environment}
+ {lastSync.message} · البيئة: {lastSync.environment === 'simulation' ? 'محاكاة' : lastSync.environment}
  </p>
  <DataTable
             rows={lastSync.results}
@@ -363,7 +363,7 @@ export default function ZatcaSyncStatusPage() {
               {
                 key: 'outcome',
                 header: 'النتيجة',
-                cell: (row) => (row.outcome === 'sent' ? ' مرسل' : row.outcome === 'failed' ? ' فشل' : '⏭ مُتجاوَزة'),
+ cell: (row) => (row.outcome === 'sent' ? ' مرسل' : row.outcome === 'failed' ? ' فشل' : 'مُتجاوَزة'),
               },
               { key: 'status', header: 'الحالة', cell: (row) => row.status ?? '—' },
               { key: 'authority', header: 'كلمة الهيئة', cell: (row) => row.authorityStatus ?? '—' },

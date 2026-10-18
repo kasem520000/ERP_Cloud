@@ -226,14 +226,14 @@ export default function PlatformOverviewPage() {
  <div className="mb-3 flex items-center justify-between">
  <div>
  <h3 className="m-0 text-[15px] font-bold text-ink">
- 🛟طلبات المساعدة والدعم المفتوحة ({ticketRows.length})
+ طلبات المساعدة والدعم المفتوحة ({ticketRows.length})
  </h3>
  <p className="m-0 mt-0.5 text-[12px] text-muted">
  الرسائل والتذاكر الواردة من لوحة العملاء بانتظار رد إدارة المنصة
  </p>
  </div>
  <Link href="/tickets">
- <Button variant="secondary" size="sm">صندوق الدعم ←</Button>
+ <Button variant="secondary" size="sm">صندوق الدعم </Button>
  </Link>
  </div>
           {ticketRows.length === 0 ? (
@@ -266,14 +266,14 @@ export default function PlatformOverviewPage() {
  <div className="mb-3 flex items-center justify-between">
  <div>
  <h3 className="m-0 text-[15px] font-bold text-ink">
- 🛒طلبات تفعيل الباقات والإضافات القطاعية ({addonRows.length})
+ طلبات تفعيل الباقات والإضافات القطاعية ({addonRows.length})
  </h3>
  <p className="m-0 mt-0.5 text-[12px] text-muted">
  طلبات العملاء لتفعيل الأنظمة القطاعية (المخابز والمناديب، التصنيع، تطبيق الموظف…)
  </p>
  </div>
  <Link href="/marketplace">
- <Button variant="secondary" size="sm">إدارة الباقات ←</Button>
+ <Button variant="secondary" size="sm">إدارة الباقات </Button>
  </Link>
  </div>
           {addonRows.length === 0 ? (

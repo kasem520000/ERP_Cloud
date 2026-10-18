@@ -240,7 +240,7 @@ export default function ReportsPage() {
  <p
               className={`m-0 rounded-[10px] border px-4 py-2.5 text-[13px] font-semibold ${NOTICE_CLASSES.warn}`}
             >
- 🔒لا تملك <span dir="ltr">{REPORTS_PERMISSION}</span> — والخادم يرفض قراءة التقرير
+ لا تملك <span dir="ltr">{REPORTS_PERMISSION}</span> — والخادم يرفض قراءة التقرير
               (الحارسُ يفرض الرموز قبل أيّ منطق). ولم يُرسل هذا التطبيق طلبًا سيُرفض حتمًا، ولا
  عرض أرقامًا من المتصفح بدلها.
  </p>
@@ -351,7 +351,7 @@ export default function ReportsPage() {
                     className={`rounded-[10px] border px-4 py-2 text-[12.5px] font-semibold ${NOTICE_CLASSES.danger}`}
                     key={line}
                   >
-                     ⛔{line}
+ {line}
  </li>
                 ))}
  </ul>
@@ -363,7 +363,7 @@ export default function ReportsPage() {
                     className={`rounded-[10px] border px-4 py-2 text-[12.5px] ${NOTICE_CLASSES.warn}`}
                     key={line}
                   >
-                     ⚠️{line}
+ {line}
  </li>
                 ))}
  </ul>
@@ -437,7 +437,7 @@ export default function ReportsPage() {
                       className={`rounded-[10px] border px-4 py-2 text-[12.5px] ${NOTICE_CLASSES.warn}`}
                       key={line}
                     >
-                       ⚠️{line}
+ {line}
  </li>
                   ))}
  </ul>

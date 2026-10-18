@@ -271,10 +271,6 @@
   flex-wrap: wrap;
   box-shadow: var(--shadow-1);
 }
-.only-mobile {
-  display: none;
-}
-
 /* ------------------------------------------------------------------ layout bits */
 /* Layout primitives live in the components layer so Tailwind utilities can
  * still win. Unlayered, `.grid{display:grid;gap:16px}` beat every utility in
@@ -349,9 +345,13 @@
   flex-wrap: wrap;
 }
 .crumbs {
-  font-size: 12px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  font-size: 11.5px;
+  font-weight: 600;
   color: var(--muted);
-  margin-bottom: 4px;
+  margin: 0;
 }
 .crumbs a {
   color: var(--muted);
@@ -1658,9 +1658,6 @@ tr.opening td {
   }
   .side.open {
     inset-inline-start: 0;
-  }
-  .only-mobile {
-    display: inline-flex;
   }
   .main {
     padding: 14px 14px 32px;
@@ -3288,23 +3285,6 @@ h3 {
   font-size: 12.8px;
   line-height: 1.7;
   max-width: 68ch;
-}
-
-/* ------------------------------------------------------------- visibility -- */
-/* Declared after `.btn` on purpose so the cascade no longer resurrects it. */
-.only-mobile {
-  display: none;
-}
-.only-desktop {
-  display: inline-flex;
-}
-@media (max-width: 1000px) {
-  .only-mobile {
-    display: inline-flex;
-  }
-  .only-desktop {
-    display: none;
-  }
 }
 
 /* ------------------------------------------------------------------ cards -- */

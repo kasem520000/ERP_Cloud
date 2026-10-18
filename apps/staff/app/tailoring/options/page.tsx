@@ -125,7 +125,7 @@ function TailoringOptions() {
   return (
  <Screen
       title="إدارة الخيارات الجاهزة"
-      subtitle="📂 التصنيفات (الأنواع) و🔧 الخيارات المتاحة التي يختار منها الطلب: ياقة، جيب، قماش… وخيار واحد افتراضي لكل تصنيف."
+ subtitle="التصنيفات (الأنواع) والخيارات المتاحة التي يختار منها الطلب: ياقة، جيب، قماش… وخيار واحد افتراضي لكل تصنيف."
       crumbs={['التفصيل', 'الخيارات']}
     >
       {error && <p className="alert danger">{error}</p>}
@@ -138,7 +138,7 @@ function TailoringOptions() {
  <div className="grid cols-2">
           {/* التصنيفات (الأنواع) */}
  <section className="card">
- <p className="group-label">📂 التصنيفات (الأنواع)</p>
+ <p className="group-label">التصنيفات (الأنواع)</p>
             {rows.length === 0 ? (
  <Empty title="لا توجد تصنيفات" detail="أضف تصنيفاً واحداً على الأقل قبل إضافة خيارات." />
             ) : (
@@ -197,11 +197,11 @@ function TailoringOptions() {
  <div className="toolbar" style={{ marginTop: 8 }}>
                   {editingCategory ? (
  <button className="btn primary" type="button" onClick={editCategory} disabled={busy}>
- ✔حفظ التعديل
+ حفظ التعديل
  </button>
                   ) : (
  <button className="btn primary" type="button" onClick={addCategory} disabled={busy || !categoryName.trim()}>
- ➕إضافة
+ إضافة
  </button>
                   )}
  <button
@@ -213,10 +213,10 @@ function TailoringOptions() {
                       setCategoryName(selected?.nameAr ?? '');
                     }}
                   >
- ✏️تعديل
+ تعديل
  </button>
  <button className="btn danger" type="button" onClick={deleteCategory} disabled={busy || !categoryId}>
- 🗑️حذف
+ حذف
  </button>
  </div>
  </>
@@ -225,7 +225,7 @@ function TailoringOptions() {
 
           {/* الخيارات المتاحة */}
  <section className="card">
- <p className="group-label">🔧 الخيارات المتاحة{selected ? ` — ${selected.nameAr}` : ''}</p>
+ <p className="group-label">الخيارات المتاحة{selected ? ` — ${selected.nameAr}` : ''}</p>
             {!selected ? (
  <Empty title="اختر تصنيفاً" detail="الخيار يتبع تصنيفاً؛ اختر تصنيفاً من القائمة الأولى." />
             ) : values.length === 0 ? (
@@ -260,7 +260,7 @@ function TailoringOptions() {
  <td className="num" dir="ltr">
                           {value.displayOrder}
  </td>
- <td>{value.isDefault ? '⭐ افتراضي' : '—'}</td>
+ <td>{value.isDefault ? 'افتراضي' : '—'}</td>
  </tr>
                     ))}
  </tbody>
@@ -280,11 +280,11 @@ function TailoringOptions() {
  <div className="toolbar" style={{ marginTop: 8 }}>
                   {editingValue ? (
  <button className="btn primary" type="button" onClick={editValue} disabled={busy}>
- ✔حفظ التعديل
+ حفظ التعديل
  </button>
                   ) : (
  <button className="btn primary" type="button" onClick={addValue} disabled={busy || !valueName.trim()}>
- ➕إضافة
+ إضافة
  </button>
                   )}
  <button
@@ -298,13 +298,13 @@ function TailoringOptions() {
                       setValueName(value.nameAr);
                     }}
                   >
- ✏️تعديل
+ تعديل
  </button>
  <button className="btn danger" type="button" onClick={deleteValue} disabled={busy || !editingValue}>
- 🗑️حذف
+ حذف
  </button>
  <button className="btn" type="button" onClick={() => setDefault(editingValue ?? values[0]?.id ?? '')} disabled={busy || !values.length}>
- ⭐تعيين افتراضي
+ تعيين افتراضي
  </button>
  </div>
  </>

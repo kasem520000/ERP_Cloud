@@ -65,7 +65,7 @@ export const consoleGroups: readonly ConsoleGroup[] = [
     key: 'customers',
     labelAr: 'العملاء',
     labelEn: 'Customers',
-    icon: '🏢',
+ icon: '',
     items: [
       item('tenants', 'العملاء', 'Customers', '/tenants', 'console.tenants.view', 'GET /platform/tenants'),
       item(
@@ -103,7 +103,7 @@ export const consoleGroups: readonly ConsoleGroup[] = [
     key: 'money',
     labelAr: 'المال',
     labelEn: 'Money',
-    icon: '💳',
+ icon: '',
     items: [
       item(
         'subscriptions',
@@ -149,7 +149,7 @@ export const consoleGroups: readonly ConsoleGroup[] = [
     key: 'operations',
     labelAr: 'التشغيل',
     labelEn: 'Operations',
-    icon: '🛠️',
+ icon: '',
     items: [
       item('audit', 'التدقيق', 'Audit', '/audit', 'console.audit.view', 'GET /platform/audit'),
       // P-C6 — «البريد»: خدمةٌ تُشرَف لا تقريرٌ يُقرأ. موضعها في التشغيل لأنها تُسائل الجواب
@@ -214,7 +214,7 @@ export const consoleGroups: readonly ConsoleGroup[] = [
     key: 'platform',
     labelAr: 'المنصة',
     labelEn: 'Platform',
-    icon: '⚙️',
+ icon: '',
     items: [
       item('overview', 'نظرة عامة', 'Overview', '/', 'console.tenants.view', 'GET /platform/overview'),
       // P-C5 — «الاستخدام والحصص»: شبكةٌ تقول من اقترب من حدّه ومن تجاوزه، وتصديرٌ لمن

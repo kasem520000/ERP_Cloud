@@ -177,7 +177,7 @@ export default function JournalRegisterPage() {
  <span className="row">
                           {/*
                             «تفاصيل» صارت باباً إلى شاشة القيد (R10) — في الرابط
- نطاقُ السجل نفسه، فيبقى المتنقّل ⏮ ◀ ▶ ⏭ داخل الفترة المعروضة.
+ نطاقُ السجل نفسه، فيبقى المتنقّل داخل الفترة المعروضة.
                           */}
  <Link className="btn sm" href={`/accounting/journal-entries/${row.id}${scopeSuffix}`}>
  تفاصيل

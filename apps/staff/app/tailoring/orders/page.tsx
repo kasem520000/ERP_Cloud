@@ -248,13 +248,13 @@ function TailoringOrders() {
 
   return (
  <Screen
-      title="🧵 إدارة طلبات التفصيل"
+ title="إدارة طلبات التفصيل"
       subtitle="طلب التفصيل: العميل وقياسه ونوع التفصيل وموعد التسليم، وحالته من «مستلم» إلى «تم التسليم»، وما دُفع منه وما بقي."
       crumbs={['التفصيل', 'الطلبات']}
       actions={
         canManage ? (
  <button className="btn primary" type="button" onClick={openNew}>
- ➕إضافة طلب جديد
+ إضافة طلب جديد
  </button>
         ) : null
       }
@@ -303,7 +303,7 @@ function TailoringOrders() {
             />
  </label>
  <label className="field" style={{ margin: 0, minWidth: 220, flex: 1 }}>
- <span>🔍 البحث (رقم/اسم):</span>
+ <span>البحث (رقم/اسم):</span>
  <input
               className="input"
               value={filters.search}
@@ -312,7 +312,7 @@ function TailoringOrders() {
             />
  </label>
  <button className="btn" type="button" onClick={() => setApplied(filters)}>
- 🔍بحث
+ بحث
  </button>
  </div>
  </div>
@@ -323,13 +323,13 @@ function TailoringOrders() {
       {orders.status === 'success' && (
  <>
  <div className="row" style={{ justifyContent: 'space-between', alignItems: 'baseline' }}>
- <span className="group-label" style={{ margin: 0 }}>📋 قائمة الطلبات</span>
+ <span className="group-label" style={{ margin: 0 }}>قائمة الطلبات</span>
  <span className="muted">عدد السجلات: {orders.data?.total ?? rows.length}</span>
  </div>
           {rows.length === 0 ? (
  <Empty
               title="لا توجد طلبات"
-              detail="ابدأ بـ «➕ إضافة طلب جديد»، أو وسّع الفترة، أو اختر «الكل» في الحالة."
+ detail="ابدأ بـ «إضافة طلب جديد»، أو وسّع الفترة، أو اختر «الكل» في الحالة."
             />
           ) : (
  <div className="table-wrap">
@@ -337,16 +337,16 @@ function TailoringOrders() {
  <thead>
  <tr>
  <th>رقم الطلب</th>
- <th>👤 العميل</th>
- <th>📞 الجوال</th>
+ <th>العميل</th>
+ <th>الجوال</th>
  <th>القياس</th>
  <th>نوع التفصيل</th>
- <th>⚙️ الحالة</th>
- <th>📅 تاريخ الطلب</th>
- <th>📅 موعد التسليم</th>
- <th className="num">💰 السعر</th>
- <th className="num">💵 المدفوع</th>
- <th className="num">⌛ المتبقي</th>
+ <th>الحالة</th>
+ <th>تاريخ الطلب</th>
+ <th>موعد التسليم</th>
+ <th className="num">السعر</th>
+ <th className="num">المدفوع</th>
+ <th className="num">المتبقي</th>
                     {canManage && <th>إجراءات</th>}
  </tr>
  </thead>
@@ -379,17 +379,17 @@ function TailoringOrders() {
  <td>
  <div className="row" style={{ gap: 4 }}>
  <button className="btn sm" type="button" onClick={() => openEdit(row)}>
- ✏️تعديل
+ تعديل
  </button>
  <button
                               className="btn sm"
                               type="button"
                               onClick={() => setStatusOf({ id: row.id, number: row.number, statusId: row.statusId })}
                             >
- 🔄تغيير الحالة
+ تغيير الحالة
  </button>
  <button className="btn sm danger" type="button" onClick={() => remove(row)}>
- 🗑️حذف
+ حذف
  </button>
  </div>
  </td>
@@ -407,11 +407,11 @@ function TailoringOrders() {
  <div className="modal-backdrop" role="dialog" aria-modal="true">
  <div className="modal-card" style={{ maxWidth: 860 }}>
  <div className="modal-head">
- <span className="modal-title">{draft.id ? '✏️ تعديل الطلب' : '👔 إضافة طلب جديد'}</span>
+ <span className="modal-title">{draft.id ? 'تعديل الطلب' : 'إضافة طلب جديد'}</span>
  </div>
  <div style={{ padding: 16, display: 'grid', gap: 12, maxHeight: '70vh', overflowY: 'auto' }}>
  <fieldset className="card tight" style={{ margin: 0 }}>
- <legend className="group-label">👤 بيانات العميل</legend>
+ <legend className="group-label">بيانات العميل</legend>
  <div className="row" style={{ flexWrap: 'wrap', alignItems: 'flex-end' }}>
  <label className="field" style={{ margin: 0, minWidth: 260, flex: 1 }}>
  <span>العميل:</span>
@@ -435,7 +435,7 @@ function TailoringOrders() {
  </fieldset>
 
  <fieldset className="card tight" style={{ margin: 0 }}>
- <legend className="group-label">📋 تفاصيل الطلب</legend>
+ <legend className="group-label">تفاصيل الطلب</legend>
  <div className="form-grid">
  <label className="field">
  <span>القياس:</span>
@@ -476,7 +476,7 @@ function TailoringOrders() {
  </select>
  </label>
  <label className="field">
- <span>⚙️ الحالة</span>
+ <span>الحالة</span>
  <select className="input" value={draft.statusId} onChange={(event) => setField({ statusId: event.target.value })}>
                       {(statuses.data ?? []).map((status) => (
  <option key={status.id} value={status.id}>
@@ -486,7 +486,7 @@ function TailoringOrders() {
  </select>
  </label>
  <label className="field">
- <span>📅 تاريخ الطلب</span>
+ <span>تاريخ الطلب</span>
  <input
                       className="input"
                       type="date"
@@ -549,7 +549,7 @@ function TailoringOrders() {
 
               {(categories.data ?? []).length > 0 && (
  <fieldset className="card tight" style={{ margin: 0 }}>
- <legend className="group-label">🔧 الخيارات</legend>
+ <legend className="group-label">الخيارات</legend>
                   {(categories.data ?? []).map((category) => (
  <div key={category.id} style={{ marginBottom: 8 }}>
  <p className="muted" style={{ margin: '0 0 4px', fontWeight: 700 }}>
@@ -576,7 +576,7 @@ function TailoringOrders() {
               )}
 
  <fieldset className="card tight" style={{ margin: 0 }}>
- <legend className="group-label">🧵 تفاصيل القماش والتصميم</legend>
+ <legend className="group-label">تفاصيل القماش والتصميم</legend>
  <div className="form-grid">
  <label className="field">
  <span>نوع القماش:</span>
@@ -608,10 +608,10 @@ function TailoringOrders() {
  </div>
  <div className="modal-foot">
  <button className="btn primary" type="button" onClick={save} disabled={busy}>
- 💾حفظ الطلب
+ حفظ الطلب
  </button>
  <button className="btn danger" type="button" onClick={() => setDraft(null)} disabled={busy}>
- ✖إلغاء
+ إلغاء
  </button>
  </div>
  </div>
@@ -649,10 +649,10 @@ function TailoringOrders() {
  </div>
  <div className="modal-foot">
  <button className="btn primary" type="button" onClick={changeStatus} disabled={busy}>
- ✔تغيير
+ تغيير
  </button>
  <button className="btn danger" type="button" onClick={() => setStatusOf(null)} disabled={busy}>
- ✖إلغاء
+ إلغاء
  </button>
  </div>
  </div>

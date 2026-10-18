@@ -114,7 +114,7 @@ export default function PaymentGatewaysPage() {
 
   return (
  <Screen
-      title="💳 بوابات الدفع — إعدادات جيديا · NeoLeap"
+ title="بوابات الدفع — إعدادات جيديا · NeoLeap"
       subtitle="تفعيل البوابة، واختبارها بمبلغٍ رمزي، ثم أخذ الدفع بها من نقطة البيع. كل عملية تُسجَّل في «آخر العمليات»: ما طلبناه، وما أجابت به البوابة، وهل قُيّد المبلغ على الفاتورة."
       crumbs={['الإعدادات', 'بوابات الدفع']}
       actions={<span className="chip">{activeCount === 0 ? 'كل البوابات موقوفة' : `${activeCount} من ${PROVIDER_ORDER.length} بوابة مفعّلة`}</span>}
@@ -132,7 +132,7 @@ export default function PaymentGatewaysPage() {
         const geidea = provider === 'geidea';
         return (
  <div className="card" key={provider}>
- <h3>{geidea ? '💳 إعدادات جيديا' : 'NeoLeap'}</h3>
+ <h3>{geidea ? 'إعدادات جيديا' : 'NeoLeap'}</h3>
  <div className="form-grid">
  <div className="field">
  <span>التفعيل</span>
@@ -146,29 +146,29 @@ export default function PaymentGatewaysPage() {
  </label>
  <label className="check">
  <input type="checkbox" checked={form.simulation} onChange={(event) => setField(provider, 'simulation', event.target.checked)} />
- <span>🧪 Simulation تجريبي</span>
+ <span>Simulation تجريبي</span>
  </label>
  </div>
  <label className="field">
  <span>المنفذ</span>
- <input dir="ltr" value={form.port ?? ''} onChange={(event) => setField(provider, 'port', event.target.value === '' ? null : Number(event.target.value))} />
+ <input className="input" dir="ltr" value={form.port ?? ''} onChange={(event) => setField(provider, 'port', event.target.value === '' ? null : Number(event.target.value))} />
  </label>
  <label className="field">
  <span>المبلغ</span>
- <input dir="ltr" value={testValues[provider] ?? ''} onChange={(event) => setTestValues((previous) => ({ ...previous, [provider]: event.target.value }))} />
+ <input className="input" dir="ltr" value={testValues[provider] ?? ''} onChange={(event) => setTestValues((previous) => ({ ...previous, [provider]: event.target.value }))} />
  <small className="muted">{geidea ? 'يُستخدم في TEST (0.01 افتراضياً)' : 'الاختبار يخصم 0.50 دائماً بمرجع تجريبي'}</small>
  </label>
  <label className="field wide">
  <span>{geidea ? 'عنوان البوابة' : 'عنوان الخدمة (يُشتقّ من المنفذ إن تُرك فارغاً)'}</span>
- <input dir="ltr" value={form.baseUrl} onChange={(event) => setField(provider, 'baseUrl', event.target.value)} placeholder={geidea ? 'https://api.ksamerchant.geidea.net' : 'http://127.0.0.1:8080'} />
+ <input className="input" dir="ltr" value={form.baseUrl} onChange={(event) => setField(provider, 'baseUrl', event.target.value)} placeholder={geidea ? 'https://api.ksamerchant.geidea.net' : 'http://127.0.0.1:8080'} />
  </label>
  <label className="field">
  <span>{geidea ? 'المعرّف العام (Merchant Key)' : 'Tranportal ID'}</span>
- <input dir="ltr" value={form.merchantKey} onChange={(event) => setField(provider, 'merchantKey', event.target.value)} />
+ <input className="input" dir="ltr" value={form.merchantKey} onChange={(event) => setField(provider, 'merchantKey', event.target.value)} />
  </label>
  <label className="field">
  <span>{geidea ? 'كلمة سرّ الـ API' : 'Token'}</span>
- <input
+ <input className="input"
                   dir="ltr"
                   type="password"
                   value={secrets[provider] ?? ''}
@@ -178,12 +178,12 @@ export default function PaymentGatewaysPage() {
  </label>
  <label className="field">
  <span>العملة</span>
- <input dir="ltr" value={form.currency} onChange={(event) => setField(provider, 'currency', event.target.value)} />
+ <input className="input" dir="ltr" value={form.currency} onChange={(event) => setField(provider, 'currency', event.target.value)} />
  </label>
               {geidea ? (
  <label className="field wide">
  <span>رابط الإرجاع</span>
- <input dir="ltr" value={form.callbackUrl} onChange={(event) => setField(provider, 'callbackUrl', event.target.value)} placeholder="https://example.com/hooks/geidea" />
+ <input className="input" dir="ltr" value={form.callbackUrl} onChange={(event) => setField(provider, 'callbackUrl', event.target.value)} placeholder="https://example.com/hooks/geidea" />
  </label>
               ) : null}
  </div>
@@ -209,7 +209,7 @@ export default function PaymentGatewaysPage() {
                   setNotice({ kind: 'ok', text: `تم حفظ الإعدادات · ${savedView.secretMasked ?? 'بلا مفتاح'}` });
                 })}
               >
- 💾حفظ
+ حفظ
  </button>
  <button
                 type="button"
@@ -220,11 +220,11 @@ export default function PaymentGatewaysPage() {
                   setNotice({ kind: result.ok ? 'ok' : 'warn', text: `${STATUS_LABELS[result.status] ?? result.status} — ${result.message ?? 'بلا رسالة'}` });
                 })}
               >
-                 🧪{geidea ? 'TEST' : 'Test'}
+ {geidea ? 'TEST' : 'Test'}
  </button>
  <span className="field inline">
- <span>💳 دفع</span>
- <input dir="ltr" value={payValues[provider] ?? ''} onChange={(event) => setPayValues((previous) => ({ ...previous, [provider]: event.target.value }))} />
+ <span>دفع</span>
+ <input className="input" dir="ltr" value={payValues[provider] ?? ''} onChange={(event) => setPayValues((previous) => ({ ...previous, [provider]: event.target.value }))} />
  </span>
  <button
                 type="button"
@@ -238,7 +238,7 @@ export default function PaymentGatewaysPage() {
                   });
                 })}
               >
- 💳ادفع الآن
+ ادفع الآن
  </button>
               {busy.startsWith(`${provider}`) || busy.startsWith('save-') || busy.startsWith('test-') || busy.startsWith('pay-') ? <span className="chip">…</span> : null}
  </div>
@@ -253,9 +253,9 @@ export default function PaymentGatewaysPage() {
 
  <div className="card">
  <div className="toolbar">
- <h3>📜 آخر العمليات</h3>
+ <h3>آخر العمليات</h3>
  <button type="button" className="btn" disabled={busy !== ''} onClick={() => void run('reload', async () => reload())}>
- 🔄تحديث
+ تحديث
  </button>
  </div>
         {transactions.length === 0 ? (
@@ -274,7 +274,7 @@ export default function PaymentGatewaysPage() {
               { key: 'approvalCode', header: 'رقم الموافقة', align: 'ltr', cell: (row) => row.approvalCode ?? '—' },
               { key: 'cardScheme', header: 'الشبكة', cell: (row) => row.cardScheme ?? '—' },
               { key: 'panMasked', header: 'البطاقة', align: 'ltr', cell: (row) => row.panMasked ?? '—' },
-              { key: 'settled', header: 'الفاتورة', cell: (row) => (row.settled ? <span className="chip">✓ قُيّدت</span> : row.invoiceId ? 'لم تُقيَّد' : '—') },
+ { key: 'settled', header: 'الفاتورة', cell: (row) => (row.settled ? <span className="chip">قُيّدت</span> : row.invoiceId ? 'لم تُقيَّد' : '—') },
               {
                 key: 'actions',
                 header: 'إجراء',
@@ -289,7 +289,7 @@ export default function PaymentGatewaysPage() {
                         setNotice({ kind: result.transaction.status === 'approved' ? 'ok' : 'warn', text: STATUS_LABELS[result.transaction.status] ?? result.transaction.status });
                       })}
                     >
- 🔄تحديث الحالة
+ تحديث الحالة
  </button>
                   ) : (
                     '—'

@@ -192,7 +192,7 @@ export default function MarinaGroupCardsPage() {
           offerMinutes: Number(row.offerMinutes || 0),
         })),
       });
-      setNotice('✅ تم الحفظ بنجاح');
+ setNotice('تم الحفظ بنجاح');
       setEditingPeriods(null);
       groups.reload();
     } catch (cause) {
@@ -222,17 +222,17 @@ export default function MarinaGroupCardsPage() {
 
   return (
  <Screen
-      title="📋 بطاقة فئة"
-      subtitle="فئة المركب وتسعيرها: قيمة الساعة وقيمة النصف ساعة وعرضاهما بالدقائق، ثم «➕ إضافة مدة» لِما زاد من الفترات — و«📋 قائمة الفئات» تحتها."
+ title="بطاقة فئة"
+ subtitle="فئة المركب وتسعيرها: قيمة الساعة وقيمة النصف ساعة وعرضاهما بالدقائق، ثم «إضافة مدة» لِما زاد من الفترات — و«قائمة الفئات» تحتها."
       crumbs={['إدارة المراسي', 'التعاريف']}
       actions={
  <div className="row" style={{ gap: 6 }}>
  <a className="btn" href="/marina/vessels">
- ⚓المراكب
+ المراكب
  </a>
           {canManage && (
  <button className="btn primary" type="button" onClick={() => { setError(''); setNotice(''); setCard(emptyCard()); }}>
- ➕جديد
+ جديد
  </button>
           )}
  </div>
@@ -248,24 +248,24 @@ export default function MarinaGroupCardsPage() {
       {groups.status === 'success' && (
  <>
  <div className="row" style={{ justifyContent: 'space-between', alignItems: 'baseline' }}>
- <span className="group-label" style={{ margin: 0 }}>📋 قائمة الفئات</span>
+ <span className="group-label" style={{ margin: 0 }}>قائمة الفئات</span>
  <span className="muted">عدد السجلات: {rows.length}</span>
  </div>
           {rows.length === 0 ? (
- <Empty title="لا توجد فئات" detail="ابدأ بـ «➕ جديد»: رمز الفئة واسمها، ثم قيمة الساعة وقيمة النصف ساعة." />
+ <Empty title="لا توجد فئات" detail="ابدأ بـ «جديد»: رمز الفئة واسمها، ثم قيمة الساعة وقيمة النصف ساعة." />
           ) : (
  <div className="table-wrap">
  <table>
  <thead>
  <tr>
- <th>🔢 رقم الفئة</th>
+ <th>رقم الفئة</th>
  <th>رمز الفئة</th>
  <th>اسم الفئة</th>
  <th>اسم الفئة (EN)</th>
  <th className="num">قيمة الساعة</th>
  <th className="num">قيمة النصف ساعة</th>
- <th className="num">⏰ الفترات</th>
- <th className="num">⛵ المراكب</th>
+ <th className="num">الفترات</th>
+ <th className="num">المراكب</th>
                     {canManage && <th>إجراءات</th>}
  </tr>
  </thead>
@@ -284,17 +284,17 @@ export default function MarinaGroupCardsPage() {
  <td>
  <div className="row" style={{ gap: 4 }}>
  <button className="btn sm" type="button" onClick={() => setCard(cardOf(row))}>
- ✏️تعديل
+ تعديل
  </button>
  <button
                               className="btn sm"
                               type="button"
                               onClick={() => setEditingPeriods({ id: row.id, code: row.code, rows: periodsOf(row) })}
                             >
-                              ⏰ الفترات
+ الفترات
  </button>
  <button className="btn sm danger" type="button" onClick={() => remove(row)}>
- 🗑️حذف
+ حذف
  </button>
  </div>
  </td>
@@ -308,20 +308,20 @@ export default function MarinaGroupCardsPage() {
  </>
       )}
 
-      {/* « بطاقة فئة» — الحقول كما في `frmGroupM`، و⏮ ◀ ▶ ⏭ أسفلها. */}
+ {/* « بطاقة فئة» — الحقول كما في `frmGroupM`، وأسفلها. */}
       {card && (
  <div className="modal-backdrop" role="dialog" aria-modal="true">
  <div className="modal-card" style={{ maxWidth: 760 }}>
  <div className="modal-head">
- <span className="modal-title">{card.id ? '✏️ تعديل الفئة' : '📋 بطاقة فئة'}</span>
+ <span className="modal-title">{card.id ? 'تعديل الفئة' : 'بطاقة فئة'}</span>
  <button className="btn sm" type="button" onClick={() => setCard(null)}>
- ✖خروج
+ خروج
  </button>
  </div>
  <div style={{ padding: 16, display: 'grid', gap: 12, maxHeight: '70vh', overflow: 'auto' }}>
  <div className="form-grid">
  <label className="field">
- <span>🔢 رقم الفئة</span>
+ <span>رقم الفئة</span>
  <input className="input" value={card.id ? String(rows.find((row) => row.id === card.id)?.number ?? '') : 'يُصدر عند الحفظ'} disabled />
  </label>
  <label className="field">
@@ -353,18 +353,18 @@ export default function MarinaGroupCardsPage() {
  <input className="input" dir="ltr" inputMode="numeric" value={card.halfHourOfferMinutes} onChange={(event) => setField({ halfHourOfferMinutes: event.target.value })} />
  </label>
  <label className="field" style={{ gridColumn: '1 / -1' }}>
- <span>🖼️ صورة الفئة — رابط الصورة</span>
+ <span>صورة الفئة — رابط الصورة</span>
  <input className="input" dir="ltr" placeholder="https://…" value={card.imageUrl} onChange={(event) => setField({ imageUrl: event.target.value })} />
  </label>
  </div>
 
               {card.imageUrl && /^(https?:\/\/|data:image\/)/i.test(card.imageUrl) && (
- <img src={card.imageUrl} alt="🖼️ صورة الفئة" style={{ maxHeight: 120, alignSelf: 'flex-start', borderRadius: 8 }} />
+ <img src={card.imageUrl} alt="صورة الفئة" style={{ maxHeight: 120, alignSelf: 'flex-start', borderRadius: 8 }} />
               )}
 
  <div className="row" style={{ gap: 6, flexWrap: 'wrap' }}>
  <button className="btn primary" type="button" disabled={busy || !card.code.trim()} onClick={save}>
- 💾حفظ
+ حفظ
  </button>
                 {card.id && (
  <button
@@ -378,34 +378,34 @@ export default function MarinaGroupCardsPage() {
                       })
                     }
                   >
- ➕إضافة مدة
+ إضافة مدة
  </button>
                 )}
                 {card.imageUrl && (
  <button className="btn" type="button" onClick={() => setField({ imageUrl: '' })}>
- 🗑️حذف الصورة
+ حذف الصورة
  </button>
                 )}
  <span style={{ flex: 1 }} />
- <button className="btn sm" type="button" disabled={busy} onClick={() => walk('first')} title="الأول">⏮</button>
- <button className="btn sm" type="button" disabled={busy} onClick={() => walk('previous')} title="السابق">◀</button>
- <button className="btn sm" type="button" disabled={busy} onClick={() => walk('next')} title="التالي">▶</button>
- <button className="btn sm" type="button" disabled={busy} onClick={() => walk('last')} title="الأخير">⏭</button>
+ <button className="btn sm" type="button" disabled={busy} onClick={() => walk('first')} title="الأول"></button>
+ <button className="btn sm" type="button" disabled={busy} onClick={() => walk('previous')} title="السابق"></button>
+ <button className="btn sm" type="button" disabled={busy} onClick={() => walk('next')} title="التالي"></button>
+ <button className="btn sm" type="button" disabled={busy} onClick={() => walk('last')} title="الأخير"></button>
  </div>
-              {!card.id && <p className="muted">⏰ فترتا «ساعة» و«نصف ساعة» تُكتبان من هذين الصندوقين عند الحفظ، كما يكتبها `frmGroupM`.</p>}
+ {!card.id && <p className="muted">فترتا «ساعة» و«نصف ساعة» تُكتبان من هذين الصندوقين عند الحفظ، كما يكتبها `frmGroupM`.</p>}
  </div>
  </div>
  </div>
       )}
 
-      {/* «⏰ إدارة فترات التأجير» — `frmAddPeriod`. */}
+ {/* «إدارة فترات التأجير» — `frmAddPeriod`. */}
       {editingPeriods && (
  <div className="modal-backdrop" role="dialog" aria-modal="true">
  <div className="modal-card" style={{ maxWidth: 660 }}>
  <div className="modal-head">
- <span className="modal-title">⏰ إدارة فترات التأجير — {editingPeriods.code}</span>
+ <span className="modal-title">إدارة فترات التأجير — {editingPeriods.code}</span>
  <button className="btn sm" type="button" onClick={() => setEditingPeriods(null)}>
- ✖إغلاق
+ إغلاق
  </button>
  </div>
  <div style={{ padding: 16, display: 'grid', gap: 12, maxHeight: '70vh', overflow: 'auto' }}>
@@ -413,9 +413,9 @@ export default function MarinaGroupCardsPage() {
  <table>
  <thead>
  <tr>
- <th>⏰ المدة</th>
- <th className="num">💵 السعر</th>
- <th className="num">🎁 العرض</th>
+ <th>المدة</th>
+ <th className="num">السعر</th>
+ <th className="num">العرض</th>
  <th><span className="sr-only">إجراءات</span></th>
  </tr>
  </thead>
@@ -480,7 +480,7 @@ export default function MarinaGroupCardsPage() {
                               setEditingPeriods((current) => (current ? { ...current, rows: current.rows.filter((_, at) => at !== index) } : current))
                             }
                           >
- 🗑️حذف
+ حذف
  </button>
  </td>
  </tr>
@@ -501,10 +501,10 @@ export default function MarinaGroupCardsPage() {
  </button>
  <span style={{ flex: 1 }} />
  <button className="btn primary" type="button" disabled={busy || editingPeriods.rows.length === 0} onClick={savePeriods}>
- 💾حفظ
+ حفظ
  </button>
  </div>
- <p className="muted">🎁 العرض بالدقائق، كما في `RentPeriodSub.offer`.</p>
+ <p className="muted">العرض بالدقائق، كما في `RentPeriodSub.offer`.</p>
  </div>
  </div>
  </div>

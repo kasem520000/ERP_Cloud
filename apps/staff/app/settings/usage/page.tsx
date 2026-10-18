@@ -90,7 +90,7 @@ export default function UsageSettingsPage() {
  </dd>
  <dt>الفترة</dt>
  <dd dir="ltr">
-                {data.periodStart} ← {data.periodEnd}
+ {data.periodStart} {data.periodEnd}
  </dd>
  <dt>حالة الحساب</dt>
  <dd>{data.tenantStatus}</dd>

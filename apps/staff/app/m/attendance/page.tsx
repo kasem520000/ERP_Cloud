@@ -90,21 +90,21 @@ export default function AttendancePage() {
 
   return (
  <section className="employee-card">
- <h1>⏱ تسجيل الحضور والانصراف</h1>
+ <h1>تسجيل الحضور والانصراف</h1>
  <p className="muted" style={{ margin: 0 }}>
  اضغط على «حضور» عند بدء الدوام وعلى «انصراف» عند المغادرة. يتم التحقق تلقائياً من النطاق الجغرافي للفرع.
  </p>
  <div className="employee-actions" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}>
  <button className="btn primary punch" type="button" disabled={busy} onClick={() => void punch('check_in')}>
- ✅تسجيل حضور
+ تسجيل حضور
  </button>
  <button className="btn punch" type="button" disabled={busy} onClick={() => void punch('check_out')}>
- 🚪تسجيل انصراف
+ تسجيل انصراف
  </button>
  </div>
       {queued > 0 ? (
  <button className="btn" type="button" disabled={busy} onClick={() => void sync()}>
- 🔄مزامنة {queued} بصمة غير مرسلة
+ مزامنة {queued} بصمة غير مرسلة
  </button>
       ) : null}
       {message ? <p className="alert info">{message}</p> : null}

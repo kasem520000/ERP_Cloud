@@ -266,7 +266,7 @@ export default function CollectionPage() {
  <Card>
  <CardBody>
  <p className={`m-0 rounded-[10px] border px-4 py-2.5 text-[13px] font-semibold ${NOTICE_CLASSES.warn}`}>
- 🔒لا تملك <span dir="ltr">{VIEW_PERMISSION}</span> — والخادم يرفض قراءة الذمم
+ لا تملك <span dir="ltr">{VIEW_PERMISSION}</span> — والخادم يرفض قراءة الذمم
  والحركات. ولم يُرسل هذا التطبيق طلبًا سيُرفض حتمًا، ولا عرض أرقامًا من المتصفّح
  بدلها.
  </p>
@@ -343,7 +343,7 @@ export default function CollectionPage() {
  </dl>
             {dashboard.summary.returnDocumentCount > 0 ? (
  <p className="m-0 mt-3 text-[12.5px] text-muted">
-                ↩ ذممُ الخادم صافيةٌ من المرتجعات: إجماليُّ المبيعات{' '}
+ ذممُ الخادم صافيةٌ من المرتجعات: إجماليُّ المبيعات{' '}
  <span dir="ltr">{numberText(dashboard.summary.totalSalesGrossSar)}</span> −
  مرتجعات <span dir="ltr">{numberText(dashboard.summary.totalReturnsSar)}</span>{' '}
  وضريبتُها{' '}
@@ -358,7 +358,7 @@ export default function CollectionPage() {
             ) : null}
             {dashboard.postingReadiness.receiptVoucher ? null : (
  <p className={`m-0 mt-3 rounded-[10px] border px-4 py-2.5 text-[12.5px] font-semibold ${NOTICE_CLASSES.warn}`}>
- ⚠️ملفُّ ترحيل الفرع لا يغطّي سند القبض: قد يُقبض المال ويبقى السند مسودةً غير
+ ملفُّ ترحيل الفرع لا يغطّي سند القبض: قد يُقبض المال ويبقى السند مسودةً غير
  مُرحَّلة (يلزم حساب ذمم العملاء على بطاقة العميل أو في ملف الترحيل) — فيزيد
  الصندوق ولا يعرف الأستاذ.
                 {dashboard.postingReadiness.message ? ` وقولُ الخادم: ${dashboard.postingReadiness.message}` : ''}
@@ -372,7 +372,7 @@ export default function CollectionPage() {
  <Card>
  <CardBody>
  <p className={`m-0 rounded-[10px] border px-4 py-2.5 text-[13px] font-semibold ${NOTICE_CLASSES.warn}`}>
- 🔒تملك القراءة (<span dir="ltr">{VIEW_PERMISSION}</span>) لا التحصيل (
+ تملك القراءة (<span dir="ltr">{VIEW_PERMISSION}</span>) لا التحصيل (
  <span dir="ltr">{COLLECTION_PERMISSION}</span>) — فتُعرض الذمم، ولا يُرسل سندٌ
  سيُرفض 403.
  </p>
@@ -481,12 +481,12 @@ export default function CollectionPage() {
 
               {verdict.blocked.map((line) => (
  <p key={line} className={`m-0 rounded-[10px] border px-3 py-2 text-[12.5px] font-semibold ${NOTICE_CLASSES.danger}`}>
-                   ⛔{line}
+ {line}
  </p>
               ))}
               {verdict.warnings.map((line) => (
  <p key={line} className={`m-0 rounded-[10px] border px-3 py-2 text-[12.5px] font-semibold ${NOTICE_CLASSES.warn}`}>
-                   ⚠️{line}
+ {line}
  </p>
               ))}
 
@@ -633,7 +633,7 @@ export default function CollectionPage() {
  <td className="border-b border-line p-2">
                         {canCollect ? (
  <Button onClick={() => pickDocument(row)} size="sm" type="button" variant="secondary">
- 💵تحصيل
+ تحصيل
  </Button>
                         ) : (
  <span className="text-[11.5px] text-muted">بلا صلاحية تحصيل</span>
@@ -656,7 +656,7 @@ export default function CollectionPage() {
  <CardBody>
           {!canOverride ? (
  <p className={`m-0 rounded-[10px] border px-4 py-2.5 text-[13px] font-semibold ${NOTICE_CLASSES.warn}`}>
- 🔒المسار محميٌّ بـ<span dir="ltr">{RECONCILIATION_PERMISSION}</span> على الوضعين
+ المسار محميٌّ بـ<span dir="ltr">{RECONCILIATION_PERMISSION}</span> على الوضعين
  معًا (المعاينة والتنفيذ) — فلا تُرسل الشاشة طلبًا مآله 403.
  </p>
           ) : (
@@ -697,12 +697,12 @@ export default function CollectionPage() {
 
               {reconVerdict.blocked.map((line) => (
  <p key={line} className={`m-0 rounded-[10px] border px-3 py-2 text-[12.5px] font-semibold ${NOTICE_CLASSES.danger}`}>
-                   ⛔{line}
+ {line}
  </p>
               ))}
               {reconVerdict.warnings.map((line) => (
  <p key={line} className={`m-0 rounded-[10px] border px-3 py-2 text-[12.5px] font-semibold ${NOTICE_CLASSES.warn}`}>
-                   ⚠️{line}
+ {line}
  </p>
               ))}
 

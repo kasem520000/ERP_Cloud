@@ -441,20 +441,20 @@ export default function RepAppPage() {
  <div className="rep-statusbar-id">
  <strong>{data?.isRep ? (data.salesmanName ?? 'المندوب') : 'تطبيقُ المندوب'}</strong>
  <small>
-            {data?.isRep && data.vehiclePlate ? `🚐 ${data.vehiclePlate} · ` : ''}
+ {data?.isRep && data.vehiclePlate ? `${data.vehiclePlate} · ` : ''}
  رصيدُ السيارة <span className="rep-num">{data?.custodyKg ?? '—'}</span> كجم · قيمة{' '}
  <span className="rep-num">{data?.custodyValue ?? '—'}</span>
  </small>
  </div>
  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
  <span className="rep-pill" data-tone={online ? 'ok' : 'warn'}>
-            {online ? '🟢 متصل' : '📴 دون اتصال'}
+ {online ? 'متصل' : 'دون اتصال'}
  </span>
  <span
             className="rep-pill"
             data-tone={counts.refused > 0 ? 'danger' : counts.pending > 0 ? 'warn' : 'ok'}
           >
- 📥<span className="rep-num">{counts.pending}</span> معلّق
+ <span className="rep-num">{counts.pending}</span> معلّق
             {counts.refused > 0 ? (
  <>
                 {' '}
@@ -470,14 +470,14 @@ export default function RepAppPage() {
 
       {!online ? (
  <p className="rep-note" data-tone="warn">
- 📴لا شبكة: ما يُحفظ هو المستنداتُ والمرتجعاتُ والتحصيلات (بمفاتيح عدم تكرارٍ تُخزَّن
+ لا شبكة: ما يُحفظ هو المستنداتُ والمرتجعاتُ والتحصيلات (بمفاتيح عدم تكرارٍ تُخزَّن
  معها فتُعاد بلا مستندٍ مكرَّر). وأمّا إغلاقُ الوردية وتأكيدُ الاستلام فلا يُحفظان —
  والسببُ معروضٌ عند كلّ زرٍّ منهما.
  </p>
       ) : null}
       {storageError ? (
  <p className="rep-note" data-tone="danger">
-           ⚠️{storageError} — فلا تُحفظ نيّاتٌ دون اتصال في هذا المتصفّح.
+ {storageError} — فلا تُحفظ نيّاتٌ دون اتصال في هذا المتصفّح.
  </p>
       ) : null}
       {loadError ? (
@@ -492,7 +492,7 @@ export default function RepAppPage() {
 
       {data && !data.isRep ? (
  <div className="rep-card">
- <h2 className="rep-card-title">⚠️ حسابك غير مرتبط ببطاقة مندوب</h2>
+ <h2 className="rep-card-title">حسابك غير مرتبط ببطاقة مندوب</h2>
  <p className="rep-note" data-tone="warn">
             {data.message ??
               'حسابك غير مرتبط ببطاقة مندوب توزيع — اطلب من المحاسب ربطك من شاشة المندوبين.'}
@@ -509,7 +509,7 @@ export default function RepAppPage() {
  <p className="rep-card-sub">{notes.documents}</p>
  </div>
             {reconcileNote ? (
- <p className="rep-note" data-tone="danger">🔎 {reconcileNote}</p>
+ <p className="rep-note" data-tone="danger">{reconcileNote}</p>
             ) : null}
  <div className="rep-tiles">
               {cards.map((card) => (
@@ -525,7 +525,7 @@ export default function RepAppPage() {
           {/* الطابور */}
  <div className="rep-card">
  <div>
- <h2 className="rep-card-title">📴 نيّاتُك المحفوظة دون اتصال</h2>
+ <h2 className="rep-card-title">نيّاتُك المحفوظة دون اتصال</h2>
  <p className="rep-card-sub">
                 {queueSummaryLine(counts)} · {REP_QUEUE_MESSAGES.deviceLine(deviceId)}
  </p>
@@ -538,7 +538,7 @@ export default function RepAppPage() {
                 disabled={busy || counts.pending === 0}
                 onClick={() => void replayQueue()}
               >
- ♻️أعد إرسال المعلّق (<span className="rep-num">{counts.pending}</span>)
+ أعد إرسال المعلّق (<span className="rep-num">{counts.pending}</span>)
  </button>
  <button
                 type="button"
@@ -546,7 +546,7 @@ export default function RepAppPage() {
                 disabled={busy || counts.synced === 0}
                 onClick={() => void dropSynced()}
               >
- 🧹احذف ما وصل (<span className="rep-num">{counts.synced}</span>)
+ احذف ما وصل (<span className="rep-num">{counts.synced}</span>)
  </button>
  <button
                 type="button"
@@ -573,7 +573,7 @@ export default function RepAppPage() {
                           record.status === 'synced' ? 'ok' : record.status === 'refused' ? 'danger' : 'warn'
                         }
                       >
-                        {record.status === 'pending' ? '⏳ معلّقة' : record.status === 'synced' ? ' وصلت' : ' مرفوضة'}
+ {record.status === 'pending' ? 'معلّقة' : record.status === 'synced' ? ' وصلت' : ' مرفوضة'}
  </span>
  </div>
  <div className="rep-row-meta">
@@ -584,7 +584,7 @@ export default function RepAppPage() {
  </div>
  <div className="rep-row-meta">
  <span className="rep-num" title="مفتاحُ عدم التكرار — يُخزَّن مع النيّة فتُعاد بلا تكرار">
-                         🔑{record.idempotencyKey}
+ {record.idempotencyKey}
  </span>
  </div>
                     {record.lastMessage ? (
@@ -607,7 +607,7 @@ export default function RepAppPage() {
  <div className="rep-card">
  <div>
  <h2 className="rep-card-title">
- 🚚توريداتٌ بانتظار تأكيد استلامك (<span className="rep-num">{data.pendingReceipts.length}</span>)
+ توريداتٌ بانتظار تأكيد استلامك (<span className="rep-num">{data.pendingReceipts.length}</span>)
  </h2>
  <p className="rep-card-sub">
  قائمةٌ كاملةٌ بلا نافذة (استعلامُها بلا LIMIT) — فكلُّ توريدٍ لك معروض.
@@ -628,7 +628,7 @@ export default function RepAppPage() {
  <div className="rep-row-meta">
  <span>{row.loadDate}</span>
  <span>
-                        {row.itemName} ← {row.fromWarehouseName}
+ {row.itemName} {row.fromWarehouseName}
  </span>
  </div>
  <div className="rep-row-actions">
@@ -640,7 +640,7 @@ export default function RepAppPage() {
                           setReceiptDraft({ receivedQty: row.loadedQty, notes: '', loadedQty: row.loadedQty });
                         }}
                       >
- ✅تأكيدُ الاستلام
+ تأكيدُ الاستلام
  </button>
  </div>
  </div>
@@ -651,7 +651,7 @@ export default function RepAppPage() {
             {receiptTarget ? (
  <div className="rep-card" style={{ background: 'var(--inset)' }}>
  <h3 className="rep-card-title">
- ✅تأكيدُ استلام {receiptTarget.number} (المحمَّل{' '}
+ تأكيدُ استلام {receiptTarget.number} (المحمَّل{' '}
  <span className="rep-num">{numberText(receiptTarget.loadedQty)}</span> كجم)
  </h3>
                 {receiptQueueVerdict.blocked.map((line) => (
@@ -669,7 +669,7 @@ export default function RepAppPage() {
  </label>
  <label className="rep-field">
  <span>ملاحظات</span>
- <input
+ <input className="input"
                       value={receiptDraft.notes}
                       onChange={(event) => setReceiptDraft({ ...receiptDraft, notes: event.target.value })}
                     />
@@ -714,7 +714,7 @@ export default function RepAppPage() {
           {/* بيع */}
  <div className="rep-card">
  <div>
- <h2 className="rep-card-title">🧾 تسجيل بيعٍ وإصدار فاتورة</h2>
+ <h2 className="rep-card-title">تسجيل بيعٍ وإصدار فاتورة</h2>
  <p className="rep-card-sub">
  الحكمُ الماليّ من `documentVerdict` نفسه وحكمُ الطابور من `queueVerdict` — والخادمُ
  هو المُصدر، فالمنعُ هنا قولٌ لا ضبط.
@@ -729,7 +729,7 @@ export default function RepAppPage() {
  <div className="rep-fields">
  <label className="rep-field">
  <span>أمرُ التحميل / عهدتك</span>
- <select
+ <select className="input"
                       value={saleDraft.loadOrderId}
                       onChange={(event) => setSaleDraft({ ...saleDraft, loadOrderId: event.target.value })}
                     >
@@ -743,7 +743,7 @@ export default function RepAppPage() {
  </label>
  <label className="rep-field">
  <span>العميل (بطاقة) — أو اتركه للعميل النقدي</span>
- <select
+ <select className="input"
                       value={saleDraft.partyId}
                       onChange={(event) => setSaleDraft({ ...saleDraft, partyId: event.target.value })}
                     >
@@ -759,7 +759,7 @@ export default function RepAppPage() {
                   {!saleDraft.partyId ? (
  <label className="rep-field">
  <span>اسم العميل النقدي</span>
- <input
+ <input className="input"
                         value={saleDraft.customerName}
                         onChange={(event) => setSaleDraft({ ...saleDraft, customerName: event.target.value })}
                       />
@@ -794,14 +794,14 @@ export default function RepAppPage() {
  </label>
  <label className="rep-field">
  <span>سببُ البونص (مطلوبٌ إن وُجد)</span>
- <input
+ <input className="input"
                       value={saleDraft.bonusReason}
                       onChange={(event) => setSaleDraft({ ...saleDraft, bonusReason: event.target.value })}
                     />
  </label>
  <label className="rep-field">
  <span>طريقةُ الدفع</span>
- <select
+ <select className="input"
                       value={saleDraft.paymentMethod}
                       onChange={(event) =>
                         setSaleDraft({ ...saleDraft, paymentMethod: event.target.value as DocumentDraft['paymentMethod'] })
@@ -814,7 +814,7 @@ export default function RepAppPage() {
  </label>
  <label className="rep-field">
  <span>وضعُ المستند</span>
- <select
+ <select className="input"
                       value={saleDraft.invoiceMode}
                       onChange={(event) =>
                         setSaleDraft({ ...saleDraft, invoiceMode: event.target.value as DocumentDraft['invoiceMode'] })
@@ -852,7 +852,7 @@ export default function RepAppPage() {
                       });
                     }}
                   >
-                    {busy ? 'جارٍ الإرسال…' : online ? '🧾 إصدار المستند' : '💾 حفظُ النيّة في الطابور'}
+ {busy ? 'جارٍ الإرسال…' : online ? 'إصدار المستند' : 'حفظُ النيّة في الطابور'}
  </button>
  </div>
  </>
@@ -862,7 +862,7 @@ export default function RepAppPage() {
           {/* مستنداتك */}
  <div className="rep-card">
  <div>
- <h2 className="rep-card-title">📄 فواتيرُك ومستنداتُك</h2>
+ <h2 className="rep-card-title">فواتيرُك ومستنداتُك</h2>
  <p className="rep-card-sub">{notes.documents}</p>
  </div>
             {data.documents.length === 0 ? (
@@ -878,10 +878,10 @@ export default function RepAppPage() {
                         data-tone={row.documentKind === 'return' ? 'warn' : Number(row.outstanding) > 0 ? 'danger' : 'ok'}
                       >
                         {row.documentKind === 'return'
-                          ? '↩ مرتجع'
+ ? 'مرتجع'
                           : row.invoiceMode === 'zatca_tax'
-                            ? '🧾 ضريبية'
-                            : '📃 تسليم داخلي'}
+ ? 'ضريبية'
+ : 'تسليم داخلي'}
  </span>
  </div>
  <div className="rep-row-meta">
@@ -901,7 +901,7 @@ export default function RepAppPage() {
                           className="rep-btn"
                           onClick={() => setReturnDraft({ documentId: row.id, returnedQty: '', reason: '', notes: '' })}
                         >
-                          ↩ مرتجع
+ مرتجع
  </button>
                       ) : null}
                       {Number(row.outstanding) > 0 && canCollect ? (
@@ -916,7 +916,7 @@ export default function RepAppPage() {
                             })
                           }
                         >
- 💵تحصيل
+ تحصيل
  </button>
                       ) : null}
  </div>
@@ -928,7 +928,7 @@ export default function RepAppPage() {
             {returnDraft.documentId ? (
  <div className="rep-card" style={{ background: 'var(--inset)' }}>
  <h3 className="rep-card-title">
-                  ↩ مرتجعٌ على{' '}
+ مرتجعٌ على{' '}
                   {returnable.find((row) => row.id === returnDraft.documentId)?.number ?? returnDraft.documentId}
  </h3>
  <p className="rep-card-sub">
@@ -956,7 +956,7 @@ export default function RepAppPage() {
  </label>
  <label className="rep-field">
  <span>السبب</span>
- <input
+ <input className="input"
                       value={returnDraft.reason}
                       onChange={(event) => setReturnDraft({ ...returnDraft, reason: event.target.value })}
                     />
@@ -983,7 +983,7 @@ export default function RepAppPage() {
                       });
                     }}
                   >
-                    {online ? 'تسجيلُ المرتجع' : '💾 حفظُ المرتجع في الطابور'}
+ {online ? 'تسجيلُ المرتجع' : 'حفظُ المرتجع في الطابور'}
  </button>
  <button
                     type="button"
@@ -998,7 +998,7 @@ export default function RepAppPage() {
 
             {collectionDraft.documentId ? (
  <div className="rep-card" style={{ background: 'var(--inset)' }}>
- <h3 className="rep-card-title">💵 تحصيلُ مديونية</h3>
+ <h3 className="rep-card-title">تحصيلُ مديونية</h3>
                 {collectionQueueVerdict.blocked.map((line) => (
  <p key={line} className="rep-note" data-tone="danger">{line}</p>
                 ))}
@@ -1036,7 +1036,7 @@ export default function RepAppPage() {
                       });
                     }}
                   >
-                    {online ? 'تأكيدُ التحصيل' : '💾 حفظُ التحصيل في الطابور'}
+ {online ? 'تأكيدُ التحصيل' : 'حفظُ التحصيل في الطابور'}
  </button>
  <button type="button" className="rep-btn" onClick={() => setCollectionDraft(emptyCollectionDraft())}>
  إلغاء
@@ -1049,7 +1049,7 @@ export default function RepAppPage() {
           {/* إغلاق الوردية */}
  <div className="rep-card">
  <div>
- <h2 className="rep-card-title">🔒 إغلاقُ الوردية وتصفيةُ العهدة</h2>
+ <h2 className="rep-card-title">إغلاقُ الوردية وتصفيةُ العهدة</h2>
  <p className="rep-card-sub">{notes.loadOrders}</p>
  </div>
             {data.loadOrders.length === 0 ? (
@@ -1109,7 +1109,7 @@ export default function RepAppPage() {
                               });
                             }}
                           >
- 🔒تقديمُ الإغلاق
+ تقديمُ الإغلاق
  </button>
                         ) : null}
  </div>
@@ -1122,7 +1122,7 @@ export default function RepAppPage() {
             {closingTarget ? (
  <div className="rep-card" style={{ background: 'var(--inset)' }}>
  <h3 className="rep-card-title">
- 🔒تقديمُ إغلاق {closingTarget.number} — المتوقَّع أن يبقى{' '}
+ تقديمُ إغلاق {closingTarget.number} — المتوقَّع أن يبقى{' '}
  <span className="rep-num">{numberText(closingTarget.expectedRemainingQty)}</span> كجم
  </h3>
                 {closingQueueVerdict.blocked.map((line) => (
@@ -1134,7 +1134,7 @@ export default function RepAppPage() {
  <div className="rep-fields">
  <label className="rep-field">
  <span>دلالةُ العدّ (قرارُ المالك: العددُ للمركبة كلّها)</span>
- <select
+ <select className="input"
                       value={countMode}
                       onChange={(event) => setCountMode(event.target.value as 'whole-vehicle' | 'per-order')}
                     >
@@ -1179,7 +1179,7 @@ export default function RepAppPage() {
  </label>
  <label className="rep-field">
  <span>سببُ التلف (مطلوبٌ إن كان التالفُ أكثرَ من صفر)</span>
- <input
+ <input className="input"
                       value={closingDraft.damageReason}
                       onChange={(event) => setClosingDraft({ ...closingDraft, damageReason: event.target.value })}
                     />
@@ -1195,7 +1195,7 @@ export default function RepAppPage() {
  </label>
  <label className="rep-field">
  <span>ملاحظاتُ الإغلاق</span>
- <input
+ <input className="input"
                       value={closingDraft.closingNotes}
                       onChange={(event) => setClosingDraft({ ...closingDraft, closingNotes: event.target.value })}
                     />
@@ -1240,7 +1240,7 @@ export default function RepAppPage() {
           {/* أرصدة السيارة */}
  <div className="rep-card">
  <div>
- <h2 className="rep-card-title">📦 أرصدةُ أصناف سيارتك (من دفتر المخزون الرسمي)</h2>
+ <h2 className="rep-card-title">أرصدةُ أصناف سيارتك (من دفتر المخزون الرسمي)</h2>
  <p className="rep-card-sub">
  كاملةٌ بلا نافذة: فاستعلامُ الأرصدة بلا LIMIT — ولهذا لا مفتاحَ لها في `windows`.
  </p>
@@ -1275,7 +1275,7 @@ export default function RepAppPage() {
           {/* التحصيلات */}
  <div className="rep-card">
  <div>
- <h2 className="rep-card-title">💵 ما حصّلته</h2>
+ <h2 className="rep-card-title">ما حصّلته</h2>
  <p className="rep-card-sub">{notes.collections}</p>
  </div>
             {data.collections.length === 0 ? (
@@ -1304,7 +1304,7 @@ export default function RepAppPage() {
           {data.notifications.length > 0 ? (
  <div className="rep-card">
  <div>
- <h2 className="rep-card-title">🔔 إشعارات</h2>
+ <h2 className="rep-card-title">إشعارات</h2>
  <p className="rep-card-sub">{notes.notifications}</p>
  </div>
  <div className="rep-rows">

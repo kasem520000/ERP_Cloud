@@ -280,7 +280,7 @@ export default function TransfersPage() {
   return (
  <Screen
       title="مناقلة مخزنية"
-      subtitle="مسودة ← إرسال (بضاعة تحت التحويل) ← استلام (إدخال للمخزون) — المناقلة محايدة القيمة: ما يخرج من مستودع يدخل الآخر بنفس التكلفة."
+ subtitle="مسودة إرسال (بضاعة تحت التحويل) استلام (إدخال للمخزون) — المناقلة محايدة القيمة: ما يخرج من مستودع يدخل الآخر بنفس التكلفة."
       crumbs={['المستودعات', 'العمليات']}
       actions={
         can('inventory.adjust') ? (
@@ -356,10 +356,10 @@ export default function TransfersPage() {
  <th>الكمية</th>
  <th>الوحدة</th>
  <th>تكلفة الوحدة</th>
- <th>📁 رقم الدفعة</th>
- <th>📅 تاريخ الإنتاج</th>
- <th>⏳ تاريخ الانتهاء</th>
- <th>🔢 الأرقام التسلسلية</th>
+ <th>رقم الدفعة</th>
+ <th>تاريخ الإنتاج</th>
+ <th>تاريخ الانتهاء</th>
+ <th>الأرقام التسلسلية</th>
  <th />
  </tr>
  </thead>
@@ -564,17 +564,17 @@ export default function TransfersPage() {
               type="button"
               onClick={() => setSearch({ number: '', from: '', to: '' })}
             >
- 📋كل الفترة
+ كل الفترة
  </button>
  <button className="btn primary" type="button" onClick={() => transfers.reload()}>
- 🔍بحث
+ بحث
  </button>
  </>
         }
       >
  <label className="field">
- <span>🔢 رقم التحويل</span>
- <input
+ <span>رقم التحويل</span>
+ <input className="input"
             dir="ltr"
             value={search.number}
             onChange={(event) => setSearch((current) => ({ ...current, number: event.target.value }))}
@@ -582,16 +582,16 @@ export default function TransfersPage() {
           />
  </label>
  <label className="field">
- <span>📅 من تاريخ</span>
- <input
+ <span>من تاريخ</span>
+ <input className="input"
             type="date"
             value={search.from}
             onChange={(event) => setSearch((current) => ({ ...current, from: event.target.value }))}
           />
  </label>
  <label className="field">
- <span>📅 إلى تاريخ</span>
- <input
+ <span>إلى تاريخ</span>
+ <input className="input"
             type="date"
             value={search.to}
             onChange={(event) => setSearch((current) => ({ ...current, to: event.target.value }))}
@@ -618,7 +618,7 @@ export default function TransfersPage() {
                     >
  <span className="list-title" dir="ltr">{row.number}</span>
  <span className="list-sub">
-                        {`${nameOfWarehouse(row.fromWarehouseId)} ← ${nameOfWarehouse(row.toWarehouseId)}`}
+ {`${nameOfWarehouse(row.fromWarehouseId)} ${nameOfWarehouse(row.toWarehouseId)}`}
  </span>
  <span className="row" style={{ justifyContent: 'space-between' }}>
  <span className={`badge ${row.status === 'received' ? 'ok' : row.status === 'cancelled' ? 'danger' : ''}`}>
@@ -697,7 +697,7 @@ export default function TransfersPage() {
                   { key: 'qty', header: 'الكمية', align: 'num', cell: (line) => quantity(line.qty) },
                   {
                     key: 'serials',
-                    header: '🔢 الأرقام التسلسلية',
+ header: 'الأرقام التسلسلية',
                     cell: (line) =>
                       line.serialNos?.length ? (
  <span dir="ltr" className="small">
@@ -709,13 +709,13 @@ export default function TransfersPage() {
                   },
                   {
                     key: 'batch',
-                    header: '📁 رقم الدفعة',
+ header: 'رقم الدفعة',
                     cell: (line) =>
                       line.batchNo ? (
  <span dir="ltr" className="small">
                           {line.batchNo}
-                          {line.productionDate ? ` · 📅 ${shortDate(line.productionDate)}` : ''}
-                          {line.expiryDate ? ` · ⏳ ${shortDate(line.expiryDate)}` : ''}
+ {line.productionDate ? ` · ${shortDate(line.productionDate)}` : ''}
+ {line.expiryDate ? ` · ${shortDate(line.expiryDate)}` : ''}
  </span>
                       ) : (
                         '—'

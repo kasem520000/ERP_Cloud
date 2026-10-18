@@ -115,7 +115,7 @@ const BLOCK_TEMPLATE: Record<ContentBlockKind, unknown> = {
   text: { text: 'اكتب الفقرة هنا…' },
   list: { items: ['البند الأول', 'البند الثاني'], ordered: false },
   cards: {
-    items: [{ icon: '🧾', title: 'الفوترة الإلكترونية', body: 'إصدارٌ فوري متوافق مع زاتكا', href: '/features/einvoicing' }],
+ items: [{ icon: '', title: 'الفوترة الإلكترونية', body: 'إصدارٌ فوري متوافق مع زاتكا', href: '/features/einvoicing' }],
   },
   table: { caption: 'المقارنة', columns: ['الباقة', 'المستخدمون'], rows: [['الأساسية', '٣'], ['الاحترافية', '١٠']] },
   faq: { items: [{ question: 'هل النظام متوافق مع زاتكا؟', answer: 'نعم، إصدارٌ فوري وربطٌ مباشر بهيئة الزكاة والضريبة.' }] },
@@ -987,10 +987,10 @@ function BlocksTab() {
                     ))}
  </select>
  <button type="button" className="btn sm" onClick={() => move(index, -1)} disabled={index === 0}>
-                    ▲
+ 
  </button>
  <button type="button" className="btn sm" onClick={() => move(index, 1)} disabled={index === drafts.length - 1}>
-                    ▼
+ 
  </button>
  <button
                     type="button"
@@ -1265,7 +1265,7 @@ function MenusTab() {
                                 setItems(position, next);
                               }}
                             >
-                              ▲
+ 
  </button>
  <button
                               type="button"
@@ -1278,7 +1278,7 @@ function MenusTab() {
                                 setItems(position, next);
                               }}
                             >
-                              ▼
+ 
  </button>
  <button
                               type="button"
@@ -1511,7 +1511,7 @@ function BannersTab() {
  <td>{TONE_LABEL[row.tone]}</td>
  <td>{AUDIENCE_LABEL[row.audience]}</td>
  <td className="small">
-                    {dateTime(row.startsAt)} ← {row.endsAt ? dateTime(row.endsAt) : 'بلا نهاية'}
+ {dateTime(row.startsAt)} {row.endsAt ? dateTime(row.endsAt) : 'بلا نهاية'}
  </td>
  <td>
  <span className={`badge ${row.live ? 'ok' : row.active ? 'draft' : 'archived'}`}>

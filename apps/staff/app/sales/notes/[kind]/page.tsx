@@ -81,7 +81,7 @@ export default function SalesNotePage({ params }: { params: Promise<{ kind: stri
  <Screen title={meta.title} subtitle={meta.hint} crumbs={['المبيعات', 'الإشعارات']}>
       {highlightedId && (
  <div className="card tight" style={{ background: 'var(--warn-soft)', borderColor: 'var(--warn-line)' }}>
- 🔍تم فتح الإشعار <code dir="ltr">{highlightedId}</code> من تقرير عمولات المندوب — الصف المميز أدناه هو المطلوب.
+ تم فتح الإشعار <code dir="ltr">{highlightedId}</code> من تقرير عمولات المندوب — الصف المميز أدناه هو المطلوب.
  </div>
       )}
  <form className="card" onSubmit={submit}>

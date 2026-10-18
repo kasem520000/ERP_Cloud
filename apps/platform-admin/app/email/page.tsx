@@ -210,7 +210,7 @@ function TemplatesTab() {
         <div className="row">
           <label>
             الحدث
-            <select value={event} onChange={(change) => setEvent(change.target.value as EmailEvent | '')}>
+            <select className="input" value={event} onChange={(change) => setEvent(change.target.value as EmailEvent | '')}>
               <option value="">كل الأحداث ({emailEvents.length})</option>
               {emailEvents.map((key) => (
                 <option key={key} value={key}>
@@ -221,7 +221,7 @@ function TemplatesTab() {
           </label>
           <label>
             اللغة
-            <select value={locale} onChange={(change) => setLocale(change.target.value as EmailLocale)}>
+            <select className="input" value={locale} onChange={(change) => setLocale(change.target.value as EmailLocale)}>
               {emailLocales.map((value) => (
                 <option key={value} value={value}>
                   {LOCALE_LABEL[value]}
@@ -231,7 +231,7 @@ function TemplatesTab() {
           </label>
           <label>
             العميل (لتجاوزٍ بعينه)
-            <select value={tenantId} onChange={(change) => setTenantId(change.target.value)}>
+            <select className="input" value={tenantId} onChange={(change) => setTenantId(change.target.value)}>
               <option value="">قالب المنصة</option>
               {(tenants.data ?? []).map((tenant) => (
                 <option key={tenant.id} value={tenant.id}>
@@ -324,15 +324,15 @@ function TemplatesTab() {
           </p>
           <label>
             الموضوع
-            <input value={subject} onChange={(change) => setSubject(change.target.value)} />
+            <input className="input" value={subject} onChange={(change) => setSubject(change.target.value)} />
           </label>
           <label>
             النصّ
-            <textarea rows={10} value={body} onChange={(change) => setBody(change.target.value)} />
+            <textarea className="input" rows={10} value={body} onChange={(change) => setBody(change.target.value)} />
           </label>
           <label>
             سبب التعديل (يُسجَّل في التدقيق)
-            <input value={reason} onChange={(change) => setReason(change.target.value)} />
+            <input className="input" value={reason} onChange={(change) => setReason(change.target.value)} />
           </label>
           <div className="row">
             <button className="btn" type="button" disabled={busy || reason.trim().length < 3} onClick={save}>
@@ -340,7 +340,7 @@ function TemplatesTab() {
             </button>
             <label>
               فحص إلى عنوان
-              <input
+              <input className="input"
                 value={probeTo}
                 placeholder="ops@example.com"
                 onChange={(change) => setProbeTo(change.target.value)}
@@ -428,7 +428,7 @@ function MessagesTab() {
         <div className="row">
           <label>
             العميل
-            <select value={tenantId} onChange={(change) => setTenantId(change.target.value)}>
+            <select className="input" value={tenantId} onChange={(change) => setTenantId(change.target.value)}>
               <option value="">كل العملاء</option>
               {(tenants.data ?? []).map((tenant) => (
                 <option key={tenant.id} value={tenant.id}>
@@ -439,7 +439,7 @@ function MessagesTab() {
           </label>
           <label>
             الحدث
-            <select value={event} onChange={(change) => setEvent(change.target.value)}>
+            <select className="input" value={event} onChange={(change) => setEvent(change.target.value)}>
               <option value="">كل الأحداث</option>
               {emailEvents.map((key) => (
                 <option key={key} value={key}>
@@ -450,7 +450,7 @@ function MessagesTab() {
           </label>
           <label>
             الحالة
-            <select value={status} onChange={(change) => setStatus(change.target.value)}>
+            <select className="input" value={status} onChange={(change) => setStatus(change.target.value)}>
               <option value="">كل الحالات</option>
               {emailMessageStatuses.map((value) => (
                 <option key={value} value={value}>
@@ -461,7 +461,7 @@ function MessagesTab() {
           </label>
           <label>
             بحث (إلى أو الموضوع)
-            <input value={search} onChange={(change) => setSearch(change.target.value)} />
+            <input className="input" value={search} onChange={(change) => setSearch(change.target.value)} />
           </label>
           <button className="btn" type="button" onClick={messages.reload}>
             تحديث
@@ -642,7 +642,7 @@ function SettingsTab() {
         <div className="row">
           <label>
             المزوّد
-            <select
+            <select className="input"
               value={value('provider') ?? 'console'}
               onChange={(change) =>
                 setDraft({ ...draft, provider: change.target.value as EmailSettings['provider'] })
@@ -656,21 +656,21 @@ function SettingsTab() {
           </label>
           <label>
             اسم المُرسِل (عربي مسموح وهو الأفضل)
-            <input
+            <input className="input"
               value={value('fromName') ?? ''}
               onChange={(change) => setDraft({ ...draft, fromName: change.target.value })}
             />
           </label>
           <label>
             عنوان المُرسِل
-            <input
+            <input className="input"
               value={value('fromEmail') ?? ''}
               onChange={(change) => setDraft({ ...draft, fromEmail: change.target.value })}
             />
           </label>
           <label>
             ردّ إلى (اختياري)
-            <input
+            <input className="input"
               value={value('replyTo') ?? ''}
               onChange={(change) => setDraft({ ...draft, replyTo: change.target.value })}
             />
@@ -679,7 +679,7 @@ function SettingsTab() {
         <div className="row">
           <label>
             نطاق الإرسال المُتحقَّق منه
-            <input
+            <input className="input"
               value={value('sendingDomain') ?? ''}
               placeholder="mail.example.com"
               onChange={(change) => setDraft({ ...draft, sendingDomain: change.target.value })}
@@ -687,7 +687,7 @@ function SettingsTab() {
           </label>
           <label>
             سقف يومي (حماية مزوّد)
-            <input
+            <input className="input"
               type="number"
               min={1}
               value={value('dailyLimit') ?? ''}
@@ -701,7 +701,7 @@ function SettingsTab() {
           </label>
           <label>
             سقف شهري
-            <input
+            <input className="input"
               type="number"
               min={1}
               value={value('monthlyLimit') ?? ''}
@@ -715,7 +715,7 @@ function SettingsTab() {
           </label>
           <label>
             سبب التعديل (تدقيق)
-            <input value={reason} onChange={(change) => setReason(change.target.value)} />
+            <input className="input" value={reason} onChange={(change) => setReason(change.target.value)} />
           </label>
         </div>
 
@@ -723,7 +723,7 @@ function SettingsTab() {
           <div className="row">
             <label style={{ flex: 2 }}>
               {selectedProvider === 'resend' ? 'مفتاح Resend API Key' : 'مفتاح المصادقة (Bearer API Key)'}
-              <input
+              <input className="input"
                 type="password"
                 dir="ltr"
                 value={apiKeyDraft ?? ''}
@@ -741,7 +741,7 @@ function SettingsTab() {
               {selectedProvider === 'resend'
                 ? 'رابط Resend API (اختياري)'
                 : 'رابط نقطة النهاية (HTTP Webhook URL)'}
-              <input
+              <input className="input"
                 dir="ltr"
                 value={value('apiEndpoint') ?? ''}
                 placeholder={
@@ -759,7 +759,7 @@ function SettingsTab() {
           <div className="row">
             <label>
               مُضيف SMTP (Host)
-              <input
+              <input className="input"
                 dir="ltr"
                 value={value('smtpHost') ?? ''}
                 placeholder="smtp.resend.com"
@@ -768,7 +768,7 @@ function SettingsTab() {
             </label>
             <label>
               المنفذ (Port)
-              <input
+              <input className="input"
                 type="number"
                 dir="ltr"
                 value={value('smtpPort') ?? 587}
@@ -782,7 +782,7 @@ function SettingsTab() {
             </label>
             <label>
               اسم مستخدم SMTP
-              <input
+              <input className="input"
                 dir="ltr"
                 value={value('smtpUser') ?? ''}
                 placeholder="resend"
@@ -791,7 +791,7 @@ function SettingsTab() {
             </label>
             <label>
               كلمة مرور SMTP
-              <input
+              <input className="input"
                 type="password"
                 dir="ltr"
                 value={smtpPasswordDraft ?? ''}
@@ -808,7 +808,7 @@ function SettingsTab() {
           </button>
           <label>
             فحص الاتصال إلى
-            <input
+            <input className="input"
               value={probeTo}
               placeholder="ops@example.com"
               onChange={(change) => setProbeTo(change.target.value)}
@@ -910,7 +910,7 @@ function SuppressionsTab() {
         <div className="row">
           <label>
             العنوان
-            <input
+            <input className="input"
               value={email}
               placeholder="blocked@example.com"
               onChange={(change) => setEmail(change.target.value)}
@@ -918,7 +918,7 @@ function SuppressionsTab() {
           </label>
           <label>
             السبب
-            <select
+            <select className="input"
               value={reason}
               onChange={(change) =>
                 setReason(change.target.value as (typeof emailSuppressionReasons)[number])
@@ -933,7 +933,7 @@ function SuppressionsTab() {
           </label>
           <label>
             ملاحظة
-            <input value={note} onChange={(change) => setNote(change.target.value)} />
+            <input className="input" value={note} onChange={(change) => setNote(change.target.value)} />
           </label>
           <button className="btn" type="button" disabled={busy || !email.includes('@')} onClick={add}>
             إضافة حجر

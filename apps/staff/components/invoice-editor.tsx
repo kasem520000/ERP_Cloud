@@ -143,7 +143,7 @@ export function InvoiceLines({
     const pieces = Number(line.quantityText || '0');
     if (!written) return 'عدد الأرقام = عدد القطع';
     return written === pieces
-      ? `${written} من ${pieces} ✓`
+ ? `${written} من ${pieces} `
       : `${written} من ${pieces} — العدد لا يطابق الكمية`;
   }
 
@@ -169,15 +169,15 @@ export function InvoiceLines({
  <table>
  <thead>
  <tr>
- <th style={{ minWidth: '14rem' }}>📦 الصنف</th>
+ <th style={{ minWidth: '14rem' }}>الصنف</th>
  <th>الوحدة</th>
  <th>الكمية</th>
  <th>السعر</th>
  <th>خصم %</th>
  <th>ضريبة %</th>
-              {withNumbers && <th>📁 رقم الدفعة</th>}
-              {withNumbers && <th>🔢 التسلسلي</th>}
-              {costCenters.length > 0 && <th>📊 مركز التكلفة</th>}
+ {withNumbers && <th>رقم الدفعة</th>}
+ {withNumbers && <th>التسلسلي</th>}
+ {costCenters.length > 0 && <th>مركز التكلفة</th>}
  <th>المجموع</th>
  <th>الخصم</th>
  <th>الإجمالي</th>
@@ -192,7 +192,7 @@ export function InvoiceLines({
               return (
  <tr key={index}>
  <td>
- <select className="input" value={line.itemId} onChange={(event) => pickItem(index, event.target.value)}>
+ <select className="input table-input" value={line.itemId} onChange={(event) => pickItem(index, event.target.value)}>
  <option value="">— بند حر —</option>
                       {items.map((row) => (
  <option key={row.id} value={row.id}>
@@ -202,7 +202,7 @@ export function InvoiceLines({
  </select>
                     {!line.itemId && (
  <input
-                        className="input"
+                        className="input table-input"
                         placeholder="وصف البند"
                         value={line.description}
                         onChange={(event) => update(index, { description: event.target.value })}
@@ -211,21 +211,21 @@ export function InvoiceLines({
  </td>
  <td>{unitOf(line)}</td>
  <td>
- <input className="input" dir="ltr" inputMode="decimal" value={line.quantityText} onChange={(event) => update(index, { quantityText: event.target.value })} />
+ <input className="input table-input" dir="ltr" inputMode="decimal" value={line.quantityText} onChange={(event) => update(index, { quantityText: event.target.value })} />
  </td>
  <td>
- <input className="input" dir="ltr" inputMode="decimal" value={line.unitPriceText} onChange={(event) => update(index, { unitPriceText: event.target.value })} />
+ <input className="input table-input" dir="ltr" inputMode="decimal" value={line.unitPriceText} onChange={(event) => update(index, { unitPriceText: event.target.value })} />
  </td>
  <td>
- <input className="input" dir="ltr" inputMode="decimal" value={line.discountRateText} onChange={(event) => update(index, { discountRateText: event.target.value })} />
+ <input className="input table-input" dir="ltr" inputMode="decimal" value={line.discountRateText} onChange={(event) => update(index, { discountRateText: event.target.value })} />
  </td>
  <td>
- <input className="input" dir="ltr" inputMode="decimal" value={line.taxRateText} onChange={(event) => update(index, { taxRateText: event.target.value })} />
+ <input className="input table-input" dir="ltr" inputMode="decimal" value={line.taxRateText} onChange={(event) => update(index, { taxRateText: event.target.value })} />
  </td>
                   {withNumbers && (
  <td>
  <input
-                        className="input"
+                        className="input table-input"
                         dir="ltr"
                         placeholder="رقم الدفعة"
                         value={line.batchNo}
@@ -236,7 +236,7 @@ export function InvoiceLines({
                   {withNumbers && (
  <td>
  <input
-                        className="input"
+                        className="input table-input"
                         dir="ltr"
                         placeholder="رقم في كل سطر"
                         value={line.serialText}
@@ -253,7 +253,7 @@ export function InvoiceLines({
                   {costCenters.length > 0 && (
  <td>
  <select
-                        className="input"
+                        className="input table-input"
                         value={line.costCenterId}
                         onChange={(event) => update(index, { costCenterId: event.target.value })}
                         title="اتركه فارغاً ليأخذ مركز رأس الفاتورة"
@@ -301,11 +301,11 @@ export function InvoiceLines({
  */
 const TOTALS_LABELS = {
   sales: {
-    sum: '📊 المجموع:',
-    discount: '🔻 الخصم:',
-    net: '💵 الإجمالي:',
-    tax: '🧾 الضريبة:',
-    total: '✅ الصافي:',
+ sum: 'المجموع:',
+ discount: 'الخصم:',
+ net: 'الإجمالي:',
+ tax: 'الضريبة:',
+ total: 'الصافي:',
   },
   purchase: {
     sum: 'المجموع :',

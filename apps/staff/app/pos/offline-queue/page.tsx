@@ -94,7 +94,7 @@ export default function OfflineQueuePage() {
  <span
             className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[12px] font-bold ${online ? 'bg-ok-soft text-ok-ink' : 'bg-danger-soft text-danger-ink'}`}
           >
-            {online ? '🟢 متصل' : '🔴 أوفلاين'}
+ {online ? 'متصل' : 'أوفلاين'}
  </span>
  <Link className="btn sm" href="/pos/offline">
  العودة إلى POS

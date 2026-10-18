@@ -52,11 +52,11 @@ export default function LotsPage() {
       blocked={itemRows.length === 0 ? 'أضف مادة واحدة على الأقل من «دليل المواد».' : undefined}
       fields={[
         { name: 'itemId', label: 'المادة', type: 'select', required: true, options: itemRows.map((row) => ({ id: row.id, label: itemLabel(row) })) },
-        { name: 'lotNo', label: '📁 رقم الدفعة', required: true, ltr: true },
-        { name: 'productionDate', label: '📅 تاريخ الإنتاج', type: 'date' },
-        { name: 'expiryDate', label: '⏳ تاريخ الانتهاء', type: 'date' },
+ { name: 'lotNo', label: 'رقم الدفعة', required: true, ltr: true },
+ { name: 'productionDate', label: 'تاريخ الإنتاج', type: 'date' },
+ { name: 'expiryDate', label: 'تاريخ الانتهاء', type: 'date' },
         // تاريخ الاستلام كان يُكتب باسم «📅 تاريخ الإنتاج» — وهو عنوانٌ لا يصف العمود (R5).
-        { name: 'receivedAt', label: '📥 تاريخ الاستلام', type: 'date' },
+ { name: 'receivedAt', label: 'تاريخ الاستلام', type: 'date' },
       ]}
       onCreate={(values) =>
         apiPost('/inventory/lots', {
@@ -132,10 +132,10 @@ export default function LotsPage() {
             return item ? itemLabel(item) : row.itemId;
           },
         },
-        { key: 'lot', header: '📁 رقم الدفعة', align: 'ltr', cell: (row) => row.lotNo },
-        { key: 'produced', header: '📅 تاريخ الإنتاج', align: 'ltr', cell: (row) => shortDate(row.productionDate) },
-        { key: 'expiry', header: '⏳ تاريخ الانتهاء', align: 'ltr', cell: (row) => shortDate(row.expiryDate) },
-        { key: 'received', header: '📥 تاريخ الاستلام', align: 'ltr', cell: (row) => shortDate(row.receivedAt) },
+ { key: 'lot', header: 'رقم الدفعة', align: 'ltr', cell: (row) => row.lotNo },
+ { key: 'produced', header: 'تاريخ الإنتاج', align: 'ltr', cell: (row) => shortDate(row.productionDate) },
+ { key: 'expiry', header: 'تاريخ الانتهاء', align: 'ltr', cell: (row) => shortDate(row.expiryDate) },
+ { key: 'received', header: 'تاريخ الاستلام', align: 'ltr', cell: (row) => shortDate(row.receivedAt) },
         ...(manage
           ? [
               {

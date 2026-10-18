@@ -206,7 +206,7 @@ function TicketBody({ ticket, onChanged }: { ticket: TicketDetail; onChanged: ()
           </div>
           <label>
             النصّ
-            <textarea rows={4} value={body} onChange={(event) => setBody(event.target.value)} />
+            <textarea className="input" rows={4} value={body} onChange={(event) => setBody(event.target.value)} />
           </label>
           <div className="row">
             <label className="row" style={{ gap: 6, alignItems: 'center' }}>
@@ -219,7 +219,7 @@ function TicketBody({ ticket, onChanged }: { ticket: TicketDetail; onChanged: ()
             </label>
             <label>
               السبب (اختياري)
-              <input value={reason} onChange={(event) => setReason(event.target.value)} />
+              <input className="input" value={reason} onChange={(event) => setReason(event.target.value)} />
             </label>
             <button
               className="btn"
@@ -238,7 +238,7 @@ function TicketBody({ ticket, onChanged }: { ticket: TicketDetail; onChanged: ()
         <div className="row" style={{ flexWrap: 'wrap' }}>
           <label>
             الحالة
-            <select
+            <select className="input"
               value=""
               disabled={busy}
               onChange={(event) =>
@@ -264,7 +264,7 @@ function TicketBody({ ticket, onChanged }: { ticket: TicketDetail; onChanged: ()
           </label>
           <label>
             الأولوية
-            <select
+            <select className="input"
               value=""
               disabled={busy}
               onChange={(event) =>

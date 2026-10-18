@@ -65,10 +65,10 @@ export default function SalesmenPage() {
       crumbs={['المبيعات', 'التعاريف']}
       query={salesmen}
       canCreate={can('sales.salesman.manage')}
-      createLabel="➕ جديد"
-      formTitle="🧑‍💼 بيانات المندوبين"
+ createLabel="جديد"
+ formTitle="بيانات المندوبين"
       fields={[
-        { name: 'name', label: '🧑‍💼 اسم المندوب:', required: true, wide: true },
+ { name: 'name', label: 'اسم المندوب:', required: true, wide: true },
         { name: 'commissionRate', label: 'عمولة المبيعات:', type: 'number', ltr: true, placeholder: '0', hint: 'نسبة مئوية من صافي الفاتورة' },
         { name: 'collectionCommissionRate', label: 'عمولة التحصيل:', type: 'number', ltr: true, placeholder: '0', hint: 'تُحسب على الفواتير المُحصَّلة فقط' },
         { name: 'profitCommissionRate', label: 'عمولة الربح:', type: 'number', ltr: true, placeholder: '0', hint: 'من هامش الربح، إن كان موجباً' },
@@ -137,17 +137,17 @@ export default function SalesmenPage() {
       empty="لا يوجد مندوبون"
       toolbar={
  <Link className="btn sm" href="/sales/salesman-commissions">
- 📋طباعة فواتير مندوب وعمولاتهم
+ طباعة فواتير مندوب وعمولاتهم
  </Link>
       }
       columns={[
-        { key: 'name', header: '🧑‍💼 اسم المندوب', cell: (row) => row.name },
+ { key: 'name', header: 'اسم المندوب', cell: (row) => row.name },
         { key: 'comm', header: 'عمولة المبيعات', align: 'ltr', cell: (row) => pct(row.commissionRate) },
         { key: 'colle', header: 'عمولة التحصيل', align: 'ltr', cell: (row) => pct(row.collectionCommissionRate) },
         { key: 'profit', header: 'عمولة الربح', align: 'ltr', cell: (row) => pct(row.profitCommissionRate) },
-        { key: 'email', header: '📧 البريد الإلكتروني', align: 'ltr', cell: (row) => row.email ?? '—' },
-        { key: 'tel', header: '📞 الهاتف', align: 'ltr', cell: (row) => row.tel ?? '—' },
-        { key: 'mobile', header: '📱 الجوال', align: 'ltr', cell: (row) => row.mobile ?? '—' },
+ { key: 'email', header: 'البريد الإلكتروني', align: 'ltr', cell: (row) => row.email ?? '—' },
+ { key: 'tel', header: 'الهاتف', align: 'ltr', cell: (row) => row.tel ?? '—' },
+ { key: 'mobile', header: 'الجوال', align: 'ltr', cell: (row) => row.mobile ?? '—' },
         { key: 'active', header: 'الحالة', cell: (row) => (row.active ? 'نشط' : 'موقوف') },
       ]}
     />

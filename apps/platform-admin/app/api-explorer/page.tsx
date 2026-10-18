@@ -93,7 +93,7 @@ export default function ApiExplorerPage() {
         <div className="form-grid">
           <label>
             بحث في المسارات والأوصاف
-            <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="integration أو invoice أو webhook" />
+            <input className="input" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="integration أو invoice أو webhook" />
           </label>
         </div>
         {document.data?.info && (

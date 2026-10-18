@@ -320,10 +320,10 @@ export default function ReportDesignerPage() {
                       </td>
                       <td className="row">
                         <button type="button" className="btn sm" disabled={index === 0} onClick={() => move(index, -1)}>
-                          ↑
+ 
                         </button>
                         <button type="button" className="btn sm" disabled={index === columns.length - 1} onClick={() => move(index, 1)}>
-                          ↓
+ 
                         </button>
                       </td>
                     </tr>

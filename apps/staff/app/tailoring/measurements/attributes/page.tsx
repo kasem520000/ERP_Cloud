@@ -118,13 +118,13 @@ function TailoringMeasurementAttributes() {
 
   return (
  <Screen
-      title="📏 إدارة خصائص القياسات"
+ title="إدارة خصائص القياسات"
       subtitle="ما يُقاس: الخاصية وترتيبها وحالتها. والترتيب هو ترتيب الصناديق في بطاقة القياس — و«معطل» تعني أنها تختفي من القياسات الجديدة، لا أنها تُمحى."
       crumbs={['التفصيل', 'القياسات', 'خصائص القياسات']}
       actions={
  <div className="row" style={{ gap: 6 }}>
  <Link className="btn" href="/tailoring/measurements">
- 📏قياسات العملاء
+ قياسات العملاء
  </Link>
           {canManage && (
  <button
@@ -140,7 +140,7 @@ function TailoringMeasurementAttributes() {
                 })
               }
             >
- ➕إضافة
+ إضافة
  </button>
           )}
  </div>
@@ -155,19 +155,19 @@ function TailoringMeasurementAttributes() {
       {attributes.status === 'success' && (
  <>
  <div className="row" style={{ justifyContent: 'space-between', alignItems: 'baseline' }}>
- <span className="group-label" style={{ margin: 0 }}>📏 خصائص القياسات</span>
+ <span className="group-label" style={{ margin: 0 }}>خصائص القياسات</span>
  <span className="muted">عدد السجلات: {rows.length}</span>
  </div>
           {rows.length === 0 ? (
- <Empty title="لا توجد خصائص" detail="ابدأ بـ «➕ إضافة» — «الطول» مثالاً كما في الديسكتوب." />
+ <Empty title="لا توجد خصائص" detail="ابدأ بـ «إضافة» — «الطول» مثالاً كما في الديسكتوب." />
           ) : (
  <div className="table-wrap">
  <table>
  <thead>
  <tr>
- <th>📝 اسم الخاصية</th>
- <th className="num">🔢 الترتيب</th>
- <th>⚙️ الحالة</th>
+ <th>اسم الخاصية</th>
+ <th className="num">الترتيب</th>
+ <th>الحالة</th>
                     {canManage && <th>إجراءات</th>}
  </tr>
  </thead>
@@ -196,11 +196,11 @@ function TailoringMeasurementAttributes() {
                                 })
                               }
                             >
- ✏️تعديل
+ تعديل
  </button>
                             {row.active && (
  <button className="btn sm" type="button" onClick={() => deactivate(row)}>
- 🔕تعطيل
+ تعطيل
  </button>
                             )}
  <button
@@ -210,7 +210,7 @@ function TailoringMeasurementAttributes() {
                               disabled={rows[0]?.id === row.id}
                               onClick={() => move(row, 'up')}
                             >
-                              ▲
+ 
  </button>
  <button
                               className="btn sm"
@@ -219,7 +219,7 @@ function TailoringMeasurementAttributes() {
                               disabled={rows[rows.length - 1]?.id === row.id}
                               onClick={() => move(row, 'down')}
                             >
-                              ▼
+ 
  </button>
  </div>
  </td>
@@ -250,10 +250,10 @@ function TailoringMeasurementAttributes() {
  </div>
  <div className="modal-foot">
  <button className="btn primary" type="button" onClick={submit} disabled={busy}>
- ✔موافق
+ موافق
  </button>
  <button className="btn danger" type="button" onClick={() => setPrompt(null)} disabled={busy}>
- ✖إلغاء
+ إلغاء
  </button>
  </div>
  </div>

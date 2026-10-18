@@ -363,7 +363,7 @@ function DetailCard({ invoice, onClose }: { invoice: Invoice; onClose: () => voi
         </dd>
         <dt>الفترة</dt>
         <dd dir="ltr">
-          {dateText(invoice.periodStart)} ← {dateText(invoice.periodEnd)}
+ {dateText(invoice.periodStart)} {dateText(invoice.periodEnd)}
         </dd>
         <dt>الرقم الضريبي للمشتري</dt>
         <dd dir="ltr">{invoice.buyerTaxNumber ?? '—'}</dd>

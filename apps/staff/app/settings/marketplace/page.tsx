@@ -94,7 +94,7 @@ export default function MarketplacePage() {
 
   return (
  <Screen
-      title="🛒 سوق الإضافات والباقات القطاعية"
+ title="سوق الإضافات والباقات القطاعية"
       subtitle="اطلب تفعيل الباقات القطاعية المتخصصة (التصنيع، التفصيل، النظارات، المراسي، المشاريع، تطبيق الموظف، وتوزيع المناديب والمخابز). الباقات غير المفعّلة تختفي شاشاتها وإعداداتها لتبسيط النظام."
       crumbs={['سوق الإضافات']}
     >
@@ -113,21 +113,21 @@ export default function MarketplacePage() {
           className={filter === 'sector' ? 'btn primary sm' : 'btn sm'}
           onClick={() => setFilter('sector')}
         >
- 🏢الباقات والأنظمة القطاعية ({apps.filter((a) => a.category === 'sector').length})
+ الباقات والأنظمة القطاعية ({apps.filter((a) => a.category === 'sector').length})
  </button>
  <button
           type="button"
           className={filter === 'integration' ? 'btn primary sm' : 'btn sm'}
           onClick={() => setFilter('integration')}
         >
- 🔗تكاملات المتاجر والدفع ({apps.filter((a) => (a.category ?? (a.isCore ? 'core' : 'integration')) === 'integration').length})
+ تكاملات المتاجر والدفع ({apps.filter((a) => (a.category ?? (a.isCore ? 'core' : 'integration')) === 'integration').length})
  </button>
  <button
           type="button"
           className={filter === 'core' ? 'btn primary sm' : 'btn sm'}
           onClick={() => setFilter('core')}
         >
- ⚙️خدمات مدمجة ({apps.filter((a) => a.isCore).length})
+ خدمات مدمجة ({apps.filter((a) => a.isCore).length})
  </button>
  </div>
 
@@ -194,7 +194,7 @@ export default function MarketplacePage() {
  <>
                     {app.screens[0] ? (
  <Link className="btn primary sm" href={app.screens[0]}>
- فتح الباقة⬅
+ فتح الباقة
  </Link>
                     ) : null}
  <button
@@ -216,10 +216,10 @@ export default function MarketplacePage() {
                     {busy === app.code
                       ? 'جارٍ الإرسال…'
                       : isPending
-                        ? '🔄 تحديث طلب التفعيل (بانتظار موافقة المنصة)'
+ ? 'تحديث طلب التفعيل (بانتظار موافقة المنصة)'
                         : app.requiresApproval
-                          ? '📩 طلب تفعيل الباقة'
-                          : '⚡ تفعيل الإضافة'}
+ ? 'طلب تفعيل الباقة'
+ : 'تفعيل الإضافة'}
  </button>
                 )}
  </div>

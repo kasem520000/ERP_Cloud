@@ -272,7 +272,7 @@ export default function ShiftsPage() {
                         )
                       }
                     >
- 🔗ربط
+ ربط
  </button>
                   ) : (
                     '—'

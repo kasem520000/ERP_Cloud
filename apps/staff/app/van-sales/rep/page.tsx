@@ -167,24 +167,24 @@ type RepWorkspace = {
 
 const LOAD_STATUS_AR: Record<string, string> = {
   draft: 'مسودة',
-  pending_receipt: '🚚 بانتظار تأكيد استلامك',
-  loaded: '✅ في عهدتك',
-  in_route: '🛣️ قيد التوزيع',
-  pending_closing: '⏳ إغلاق مُقدَّم بانتظار المحاسب',
+ pending_receipt: 'بانتظار تأكيد استلامك',
+ loaded: 'في عهدتك',
+ in_route: 'قيد التوزيع',
+ pending_closing: 'إغلاق مُقدَّم بانتظار المحاسب',
   /** اعتُمدت الكميات، لكن رصيد سيارتك الرسمي ما زال يختلف عن جردك — العهدة لم تُغلق بعد. */
-  pending_stock_settlement: '🧾 معتَمَد الكميات وبانتظار تسوية المخزون',
-  settled: '✔ مُعتمد ومُصفّى ومُسوّى مخزنياً',
-  reconciled: '✔ مُطابَق',
-  rejected: '❌ مرفوض من قبلك (أُعيدت الكمية رسمياً)',
-  canceled: '🗑️ ملغى من المحاسب',
+ pending_stock_settlement: 'معتَمَد الكميات وبانتظار تسوية المخزون',
+ settled: 'مُعتمد ومُصفّى ومُسوّى مخزنياً',
+ reconciled: 'مُطابَق',
+ rejected: 'مرفوض من قبلك (أُعيدت الكمية رسمياً)',
+ canceled: 'ملغى من المحاسب',
 };
 
 /** حالة تسوية المخزون كما تُعرض للمندوب. */
 const SETTLEMENT_STATUS_AR: Record<string, string> = {
-  pending_transit_decision: '🚦 فرق استلامك بانتظار قرار المحاسب',
-  pending_count_decision: '🧾 فرق جردك بانتظار تسوية المحاسب',
-  settled_officially: '✅ سُوّي رصيد سيارتك رسمياً',
-  blocked_missing_accounts: '⛔ تسويتك متوقفة على إعداد حسابات المحاسبة',
+ pending_transit_decision: 'فرق استلامك بانتظار قرار المحاسب',
+ pending_count_decision: 'فرق جردك بانتظار تسوية المحاسب',
+ settled_officially: 'سُوّي رصيد سيارتك رسمياً',
+ blocked_missing_accounts: 'تسويتك متوقفة على إعداد حسابات المحاسبة',
 };
 
 export default function VanSalesRepPage() {
@@ -292,12 +292,12 @@ export default function VanSalesRepPage() {
 
   return (
  <Screen
-      title="🚐 تطبيق مندوب التوزيع"
+ title="تطبيق مندوب التوزيع"
       subtitle="عهدتك وأرصدة سيارتك الرسمية، توريداتك بانتظار التأكيد، فواتيرك وتحصيلاتك، وإغلاق ورديتك — كلها من حسابك أنت."
       crumbs={['توزيع المناديب والمخابز', 'تطبيق المندوب']}
       actions={
  <button type="button" className="btn sm" onClick={() => void load()} disabled={busy}>
- 🔄تحديث
+ تحديث
  </button>
       }
     >
@@ -305,7 +305,7 @@ export default function VanSalesRepPage() {
 
       {data && !data.isRep ? (
  <div className="card">
- <h2 style={{ marginTop: 0 }}>⚠️ حسابك غير مرتبط ببطاقة مندوب</h2>
+ <h2 style={{ marginTop: 0 }}>حسابك غير مرتبط ببطاقة مندوب</h2>
  <p className="muted">{data.message}</p>
  </div>
       ) : null}
@@ -318,7 +318,7 @@ export default function VanSalesRepPage() {
  <div className="muted small">المندوب</div>
  <strong>{data.salesmanName}</strong>
  <div className="muted small">
-                {data.vehiclePlate ? `🚐 ${data.vehiclePlate}` : '🚐 بلا لوحة مسجّلة'}
+ {data.vehiclePlate ? `${data.vehiclePlate}` : 'بلا لوحة مسجّلة'}
  </div>
  </div>
  <div className="card">
@@ -350,7 +350,7 @@ export default function VanSalesRepPage() {
  </div>
               {data.totals.returnCount > 0 ? (
  <div className="muted small">
-                  ↩ بعد خصم {data.totals.returnCount} إشعارٍ دائن لمرتجعاتك
+ بعد خصم {data.totals.returnCount} إشعارٍ دائن لمرتجعاتك
                   {data.totals.returnsWithoutCostCount > 0
                     ? ` (ومنها ${data.totals.returnsWithoutCostCount} بلا تكلفةٍ مُرحّلة)`
                     : ''}
@@ -362,8 +362,8 @@ export default function VanSalesRepPage() {
  <strong style={{ fontSize: 21 }} dir="ltr">{data.custody?.expectedKg ?? '0.0000'} kg</strong>
  <div className="muted small">
                 {data.custody?.pendingClosings
-                  ? `⏳ ${data.custody.pendingClosings} إغلاق بانتظار المحاسب`
-                  : '✅ لا يوجد إغلاق معلّق'}
+ ? `${data.custody.pendingClosings} إغلاق بانتظار المحاسب`
+ : 'لا يوجد إغلاق معلّق'}
  </div>
  </div>
  </div>
@@ -371,7 +371,7 @@ export default function VanSalesRepPage() {
           {/* إشعارات التوريد */}
           {data.notifications.length ? (
  <div className="card">
- <h2 style={{ marginTop: 0 }}>🔔 إشعارات</h2>
+ <h2 style={{ marginTop: 0 }}>إشعارات</h2>
  <div className="muted small">
                 {windowNote(data.windows, 'notifications', NOTIFICATIONS_WINDOW_FALLBACK, {
                   totalsClause: REP_TOTALS_CLAUSE,
@@ -391,7 +391,7 @@ export default function VanSalesRepPage() {
 
           {/* التوريدات بانتظار تأكيدك */}
  <div className="card">
- <h2 style={{ marginTop: 0 }}>🚚 توريدات بانتظار تأكيد استلامك ({data.pendingReceipts.length})</h2>
+ <h2 style={{ marginTop: 0 }}>توريدات بانتظار تأكيد استلامك ({data.pendingReceipts.length})</h2>
  <p className="muted small" style={{ margin: 0 }}>
  البضاعة المصروفة لك تبقى رسميًّا «تحت التحويل» ولا تدخل رصيد سيارتك إلا بعد تأكيدك. إن وصلك أقل من
  المصروف، سجّل الفرق وسيراجعه المحاسب.
@@ -429,7 +429,7 @@ export default function VanSalesRepPage() {
                             setReceiptNotes('');
                           }}
                         >
- ✅تأكيد / تسجيل فرق
+ تأكيد / تسجيل فرق
  </button>
  </td>
  </tr>
@@ -446,7 +446,7 @@ export default function VanSalesRepPage() {
 
           {/* أرصدة سيارتك الرسمية */}
  <div className="card">
- <h2 style={{ marginTop: 0 }}>📦 أرصدة أصناف سيارتك (من دفتر المخزون الرسمي)</h2>
+ <h2 style={{ marginTop: 0 }}>أرصدة أصناف سيارتك (من دفتر المخزون الرسمي)</h2>
  <div className="table-wrap">
  <table>
  <thead>
@@ -505,7 +505,7 @@ export default function VanSalesRepPage() {
               );
             }}
           >
- <h2 style={{ margin: 0 }}>🧾 تسجيل بيع وإصدار فاتورة</h2>
+ <h2 style={{ margin: 0 }}>تسجيل بيع وإصدار فاتورة</h2>
  <p className="muted small" style={{ margin: 0 }}>
  تُخصم الكمية المباعة والمجانية من رصيد سيارتك الرسمي، وتُصدر فاتورة مبيعات رسمية مرقّمة بالضريبة
  المستحقة. السعر يلتزم بشريحة العميل المعتمدة — وأي تجاوز يحتاج صلاحية اعتماد من الإدارة.
@@ -613,14 +613,14 @@ export default function VanSalesRepPage() {
  </div>
  <div>
  <button type="submit" className="btn primary" disabled={busy || !can('van_sales.invoice.create')}>
-                {busy ? 'جارٍ الإصدار…' : '🧾 اعتماد البيع وإصدار الفاتورة'}
+ {busy ? 'جارٍ الإصدار…' : 'اعتماد البيع وإصدار الفاتورة'}
  </button>
  </div>
  </form>
 
           {/* سجل الفواتير والتحصيل */}
  <div className="card">
- <h2 style={{ marginTop: 0 }}>🧾 فواتيرك ومستنداتك</h2>
+ <h2 style={{ marginTop: 0 }}>فواتيرك ومستنداتك</h2>
  <div className="muted small">
               {windowNote(data.windows, 'documents', DOCUMENTS_WINDOW_FALLBACK, {
                 totalsClause: REP_TOTALS_CLAUSE,
@@ -653,7 +653,7 @@ export default function VanSalesRepPage() {
  <td>{row.customerName}</td>
  <td dir="ltr">
                         {row.soldQty} / {row.bonusQty}
-                        {row.documentKind === 'return' ? ' ↩ مرتجع' : ''}
+ {row.documentKind === 'return' ? ' مرتجع' : ''}
  </td>
  <td align="left" dir="ltr">{row.total}</td>
  <td align="left" dir="ltr">{row.paidAmount}</td>
@@ -671,7 +671,7 @@ export default function VanSalesRepPage() {
                               setCollectAmount(row.outstanding);
                             }}
                           >
- 💵تحصيل
+ تحصيل
  </button>
                         ) : (
  <span className="muted small">مسدّد</span>
@@ -696,7 +696,7 @@ export default function VanSalesRepPage() {
               * والجملةُ تحت العنوان تقول العددَين من الخادم. وعنوانٌ يعدُ بما لا تُظهره
               * القائمةُ كذبٌ ولو كان الرقمُ صحيحًا.
               */}
- <h2 style={{ marginTop: 0 }}>💵 ما حصّلته</h2>
+ <h2 style={{ marginTop: 0 }}>ما حصّلته</h2>
  <div className="muted small">
               {windowNote(data.windows, 'collections', COLLECTIONS_WINDOW_FALLBACK, {
                 totalsClause: REP_TOTALS_CLAUSE,
@@ -736,7 +736,7 @@ export default function VanSalesRepPage() {
 
           {/* إغلاق الوردية */}
  <div className="card">
- <h2 style={{ marginTop: 0 }}>🔒 إغلاق الوردية وتصفية العهدة</h2>
+ <h2 style={{ marginTop: 0 }}>إغلاق الوردية وتصفية العهدة</h2>
  <div className="muted small">
               {windowNote(data.windows, 'loadOrders', LOAD_ORDERS_WINDOW_FALLBACK, {
                 totalsClause: REP_TOTALS_CLAUSE,
@@ -802,18 +802,18 @@ export default function VanSalesRepPage() {
                               setClosingNotes('');
                             }}
                           >
- 🔒تقديم إغلاق الوردية
+ تقديم إغلاق الوردية
  </button>
                         ) : (
  <span className="muted small">
                             {row.status === 'pending_closing'
-                              ? '⏳ بانتظار اعتماد المحاسب'
+ ? 'بانتظار اعتماد المحاسب'
                               : row.status === 'pending_stock_settlement'
-                                ? '🧾 اعتُمدت كمياتك وبانتظار تسوية المخزون الرسمية — عهدتك لم تُغلق بعد'
+ ? 'اعتُمدت كمياتك وبانتظار تسوية المخزون الرسمية — عهدتك لم تُغلق بعد'
                                 : row.status === 'rejected'
-                                  ? '❌ رفضتَ استلامه وأُعيدت الكمية رسمياً'
+ ? 'رفضتَ استلامه وأُعيدت الكمية رسمياً'
                                   : row.status === 'canceled'
-                                    ? '🗑️ أُلغي وأُعيدت كميته إلى المستودع'
+ ? 'أُلغي وأُعيدت كميته إلى المستودع'
                                     : '—'}
  </span>
                         )}
@@ -831,7 +831,7 @@ export default function VanSalesRepPage() {
       {receiptTarget ? (
  <div role="dialog" aria-modal="true" className="modal-backdrop" style={backdropStyle}>
  <div className="card" style={dialogStyle}>
- <h2 style={{ marginTop: 0 }}>✅ تأكيد استلام التوريد {receiptTarget.number}</h2>
+ <h2 style={{ marginTop: 0 }}>تأكيد استلام التوريد {receiptTarget.number}</h2>
  <p className="muted small" style={{ marginTop: 0 }}>
  المصروف من المستودع الرئيسي: <b dir="ltr">{receiptTarget.loadedQty} kg</b> — الصنف:{' '}
               {receiptTarget.itemName}. أكّد الكمية التي استلمتها فعلًا؛ أي فرق يُسجَّل ويصل المحاسب للمراجعة.
@@ -880,7 +880,7 @@ export default function VanSalesRepPage() {
                   ).then(() => setReceiptTarget(null))
                 }
               >
-                {busy ? 'جارٍ التأكيد…' : '✅ تأكيد الاستلام'}
+ {busy ? 'جارٍ التأكيد…' : 'تأكيد الاستلام'}
  </button>
  <button
                 type="button"
@@ -898,11 +898,11 @@ export default function VanSalesRepPage() {
                         reason: reason.trim() || undefined,
                       }),
                     () =>
-                      `❌ رُفض استلام التوريد ${receiptTarget.number} وأُعيدت الكمية رسمياً إلى المستودع المصدر بقيد من ملف الترحيل.`,
+ `رُفض استلام التوريد ${receiptTarget.number} وأُعيدت الكمية رسمياً إلى المستودع المصدر بقيد من ملف الترحيل.`,
                   ).then(() => setReceiptTarget(null));
                 }}
               >
- ❌رفض الاستلام وإعادة الكمية
+ رفض الاستلام وإعادة الكمية
  </button>
  <button type="button" className="btn" onClick={() => setReceiptTarget(null)}>
  إلغاء
@@ -920,7 +920,7 @@ export default function VanSalesRepPage() {
       {collectDocId ? (
  <div role="dialog" aria-modal="true" className="modal-backdrop" style={backdropStyle}>
  <div className="card" style={dialogStyle}>
- <h2 style={{ marginTop: 0 }}>💵 تسجيل تحصيل من العميل</h2>
+ <h2 style={{ marginTop: 0 }}>تسجيل تحصيل من العميل</h2>
  <p className="muted small" style={{ marginTop: 0 }}>
  يُصدر النظام سند قبض رسمي ويربطه بالفاتورة ويحدّث المبلغ المستحق — لا يُكتفى بتسجيل المبلغ في جدول
  التوزيع.
@@ -955,7 +955,7 @@ export default function VanSalesRepPage() {
                   ).then(() => setCollectDocId(''))
                 }
               >
-                {busy ? 'جارٍ التسجيل…' : '💵 تأكيد التحصيل'}
+ {busy ? 'جارٍ التسجيل…' : 'تأكيد التحصيل'}
  </button>
  <button type="button" className="btn" onClick={() => setCollectDocId('')}>
  إلغاء
@@ -969,7 +969,7 @@ export default function VanSalesRepPage() {
       {closingTarget ? (
  <div role="dialog" aria-modal="true" className="modal-backdrop" style={backdropStyle}>
  <div className="card" style={dialogStyle}>
- <h2 style={{ marginTop: 0 }}>🔒 تقديم إغلاق وردية ({closingTarget.number})</h2>
+ <h2 style={{ marginTop: 0 }}>تقديم إغلاق وردية ({closingTarget.number})</h2>
  <p className="muted small" style={{ marginTop: 0 }}>
  سجّل ما عاد معك سالمًا وما تلف والنقد المحصّل؛ يحسب النظام الفرق بين الرصيد المتوقع والجرد الفعلي ويحيل
  الطلب إلى المحاسب للاعتماد. لا يُغلق الطلب مرتين ولا يُعتمد من قِبل مقدّمه.
@@ -1065,7 +1065,7 @@ export default function VanSalesRepPage() {
                   ).then(() => setClosingTarget(null))
                 }
               >
-                {busy ? 'جارٍ التقديم…' : '🔒 تقديم الإغلاق'}
+ {busy ? 'جارٍ التقديم…' : 'تقديم الإغلاق'}
  </button>
  <button type="button" className="btn" onClick={() => setClosingTarget(null)}>
  إلغاء

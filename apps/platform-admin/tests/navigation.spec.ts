@@ -38,7 +38,7 @@ describe('platform console navigation', () => {
   it('names only declared console permissions', () => {
     for (const entry of consoleItems) {
       expect(entry.permission.startsWith('console.'), entry.labelAr).toBe(true);
-      expect(consoleCodes.has(entry.permission), `${entry.labelAr} → ${entry.permission}`).toBe(true);
+ expect(consoleCodes.has(entry.permission), `${entry.labelAr} ${entry.permission}`).toBe(true);
     }
   });
 

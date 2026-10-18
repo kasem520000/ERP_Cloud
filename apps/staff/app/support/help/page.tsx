@@ -140,12 +140,12 @@ export default function HelpPage() {
 
   return (
  <Screen
-      title="🛟 طلب المساعدة والدعم الفني"
+ title="طلب المساعدة والدعم الفني"
       subtitle="تواصل مباشر مع إدارة المنصة — أرسل استفسارك أو مشكلتك وسيظهر إشعار فوري لمدير المنصة، وعند الرد يصلك إشعار في جرس التنبيهات."
       crumbs={['طلب المساعدة']}
       actions={
  <button className="btn primary" type="button" onClick={() => setCreating(!creating)}>
-          {creating ? 'إغلاق النموذج' : '➕ فتح طلب مساعدة جديد'}
+ {creating ? 'إغلاق النموذج' : 'فتح طلب مساعدة جديد'}
  </button>
       }
     >
@@ -153,7 +153,7 @@ export default function HelpPage() {
 
       {(creating || tickets.length === 0) && (
  <form className="card" onSubmit={submitNewTicket} style={{ display: 'grid', gap: 12 }}>
- <h2 style={{ margin: 0 }}>📩 إرسال رسالة / تذكرة جديدة لمدير المنصة</h2>
+ <h2 style={{ margin: 0 }}>إرسال رسالة / تذكرة جديدة لمدير المنصة</h2>
  <p className="muted" style={{ margin: 0 }}>
  المنشأة: <strong>{me?.membership.tenantName}</strong> (<span dir="ltr">{me?.membership.tenantCode}</span>) · المستخدم:{' '}
  <span dir="ltr">{me?.user.email}</span>
@@ -208,7 +208,7 @@ export default function HelpPage() {
  </label>
  <div className="row" style={{ gap: 8 }}>
  <button className="btn primary" type="submit" disabled={busy || subject.trim().length < 3 || body.trim().length < 3}>
-              {busy ? 'جارٍ الإرسال…' : '🚀 إرسال إلى إدارة المنصة'}
+ {busy ? 'جارٍ الإرسال…' : 'إرسال إلى إدارة المنصة'}
  </button>
  </div>
  </form>
@@ -292,8 +292,8 @@ export default function HelpPage() {
  <div className="row" style={{ justifyContent: 'space-between', marginBottom: 6 }}>
  <strong>
                         {msg.authorKind === 'operator'
-                          ? `👨‍💻 دعم المنصة (${msg.authorLabel ?? 'الإدارة'})`
-                          : `👤 أنت (${msg.authorLabel ?? me?.user.fullName ?? 'العميل'})`}
+ ? `دعم المنصة (${msg.authorLabel ?? 'الإدارة'})`
+ : `أنت (${msg.authorLabel ?? me?.user.fullName ?? 'العميل'})`}
  </strong>
  <span className="muted small" dir="ltr">
                         {new Date(msg.createdAt).toLocaleString('ar-SA')}

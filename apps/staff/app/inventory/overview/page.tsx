@@ -34,14 +34,14 @@ type ShortRow = { itemId: string; sku: string; nameAr: string; warehouseId: stri
 type Voucher = { id: string; number: string; kind: string; status: string; totalCost: string };
 
 const QUICK = [
-  { href: '/inventory/vouchers?kind=stock_in', icon: '📥', label: 'سند إدخال' },
-  { href: '/inventory/vouchers?kind=stock_out', icon: '📤', label: 'سند إخراج' },
-  { href: '/inventory/transfers', icon: '🔄', label: 'مناقلة' },
-  { href: '/inventory/adjustments', icon: '🧮', label: 'جرد وتسوية' },
-  { href: '/inventory/item-card', icon: '🧾', label: 'بطاقة صنف' },
-  { href: '/inventory/in-transit', icon: '🚚', label: 'بضاعة في الطريق' },
-  { href: '/inventory/below-minimum', icon: '⚠️', label: 'تحت حد الطلب' },
-  { href: '/inventory/expiry', icon: '⏰', label: 'تواريخ الصلاحية' },
+ { href: '/inventory/vouchers?kind=stock_in', icon: '', label: 'سند إدخال' },
+ { href: '/inventory/vouchers?kind=stock_out', icon: '', label: 'سند إخراج' },
+ { href: '/inventory/transfers', icon: '', label: 'مناقلة' },
+ { href: '/inventory/adjustments', icon: '', label: 'جرد وتسوية' },
+ { href: '/inventory/item-card', icon: '', label: 'بطاقة صنف' },
+ { href: '/inventory/in-transit', icon: '', label: 'بضاعة في الطريق' },
+ { href: '/inventory/below-minimum', icon: '', label: 'تحت حد الطلب' },
+ { href: '/inventory/expiry', icon: '', label: 'تواريخ الصلاحية' },
 ];
 
 export default function InventoryOverviewPage() {

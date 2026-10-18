@@ -178,7 +178,7 @@ export default function AdjustmentsPage() {
           : undefined
       }
       deleteLabel="حذف"
-      confirmDelete={(row) => `⚠️ هل أنت متأكد من الحذف؟\nسند رقم ${row.number ?? '—'} للموظف ${row.employeeName ?? ''}`}
+ confirmDelete={(row) => `هل أنت متأكد من الحذف؟\nسند رقم ${row.number ?? '—'} للموظف ${row.employeeName ?? ''}`}
       rowLabel={(row) => `السند ${row.number ?? ''}`}
       tiles={[
         { label: 'عدد الحركات', value: String(rows.length), hint: 'بعد البحث' },
@@ -190,7 +190,7 @@ export default function AdjustmentsPage() {
           {error ? <span className="alert danger">{error}</span> : null}
  <label className="field inline">
  <span>الموظف</span>
- <select value={filterEmployee} onChange={(event) => setFilterEmployee(event.target.value)}>
+ <select className="input" value={filterEmployee} onChange={(event) => setFilterEmployee(event.target.value)}>
  <option value="">كل الموظفين</option>
               {(employees.data ?? []).map((row) => (
  <option key={row.id} value={row.id}>
@@ -201,7 +201,7 @@ export default function AdjustmentsPage() {
  </label>
  <label className="field inline">
  <span>النوع</span>
- <select value={filterType} onChange={(event) => setFilterType(event.target.value)}>
+ <select className="input" value={filterType} onChange={(event) => setFilterType(event.target.value)}>
  <option value="">كل الأنواع</option>
               {typeRows.map((row) => (
  <option key={row.id} value={row.code}>
@@ -212,11 +212,11 @@ export default function AdjustmentsPage() {
  </label>
  <label className="field inline">
  <span>من</span>
- <input type="date" value={filterFrom} onChange={(event) => setFilterFrom(event.target.value)} dir="ltr" />
+ <input className="input" type="date" value={filterFrom} onChange={(event) => setFilterFrom(event.target.value)} dir="ltr" />
  </label>
  <label className="field inline">
  <span>إلى</span>
- <input type="date" value={filterTo} onChange={(event) => setFilterTo(event.target.value)} dir="ltr" />
+ <input className="input" type="date" value={filterTo} onChange={(event) => setFilterTo(event.target.value)} dir="ltr" />
  </label>
  <button
             className="btn"
@@ -249,10 +249,10 @@ export default function AdjustmentsPage() {
           cell: (row) =>
             row.kind === 'addition'
               ? row.subFromSalary
-                ? '✅ تضاف على الراتب'
+ ? 'تضاف على الراتب'
                 : 'نقداً'
               : row.subFromSalary
-                ? '✂️ تخصم من الراتب'
+ ? 'تخصم من الراتب'
                 : 'نقداً',
         },
         {

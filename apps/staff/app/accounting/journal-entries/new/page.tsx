@@ -221,12 +221,12 @@ function JournalEntryForm() {
 
   return (
  <Screen
-      title={isOpening ? 'قيد إفتتاحي' : '📒 إنشاء قيد يومية'}
+ title={isOpening ? 'قيد إفتتاحي' : 'إنشاء قيد يومية'}
       subtitle="القيد المزدوج: كل سطر إما مدين أو دائن، والمجموعان يجب أن يتساويا قبل الترحيل."
       crumbs={['المحاسبة', 'العمليات']}
       actions={
  <button className="btn" type="button" onClick={() => window.print()}>
- 🖨️طباعة
+ طباعة
  </button>
       }
     >
@@ -262,23 +262,23 @@ function JournalEntryForm() {
  <input className="input" dir="ltr" value={posted?.number ?? ''} readOnly placeholder="يُولَّد عند الحفظ" />
  </label>
  <label className="field">
- <span>📅 التاريخ *</span>
+ <span>التاريخ *</span>
  <input className="input" type="date" value={date} onChange={(event) => setDate(event.target.value)} required />
  </label>
  <label className="field">
- <span>⏰ الوقت</span>
+ <span>الوقت</span>
  <input className="input" type="time" dir="ltr" value={time} onChange={(event) => setTime(event.target.value)} />
  </label>
  <label className="field">
- <span>🔑 الرقم العام</span>
+ <span>الرقم العام</span>
  <input className="input" dir="ltr" value={posted?.id ?? ''} readOnly placeholder="يُولَّد عند الحفظ" />
  </label>
  <label className="check" style={{ alignSelf: 'end', marginBottom: 10 }}>
  <input type="checkbox" checked={isVat} onChange={(event) => setIsVat(event.target.checked)} />
- ✅قيد ضريبي
+ قيد ضريبي
  </label>
  <label className="field" style={{ gridColumn: '1 / -1' }}>
- <span>📝 الملاحظة</span>
+ <span>الملاحظة</span>
  <input
                 className="input"
                 value={description}
@@ -294,7 +294,7 @@ function JournalEntryForm() {
 
  <section className="card tight">
  <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
- <h2 style={{ margin: 0 }}>📋 تفاصيل القيد</h2>
+ <h2 style={{ margin: 0 }}>تفاصيل القيد</h2>
             {/* الفرق= — gold, and only green when the two sides are equal. */}
  <span className="row" style={{ gap: 4 }}>
  <span className="diff-label" style={{ color: balanced ? 'var(--ok)' : '#e2543a' }}>
@@ -317,7 +317,7 @@ function JournalEntryForm() {
  <th style={{ minWidth: 150 }}>مركز تكلفة</th>
  <th style={{ minWidth: 180 }}>الشرح</th>
  <th style={{ minWidth: 140 }}>المندوب</th>
- <th style={{ width: 64 }}>🗑️ حذف</th>
+ <th style={{ width: 64 }}>حذف</th>
  </tr>
  </thead>
  <tbody>
@@ -454,10 +454,10 @@ function JournalEntryForm() {
 
  <div className="toolbar">
  <button className="btn primary" type="submit" disabled={busy || blocked || !branchId || !periodId}>
- 💾حفظ
+ حفظ
  </button>
  <button className="btn" type="button" onClick={reset} disabled={busy}>
- ➕جديد
+ جديد
  </button>
  </div>
  </form>

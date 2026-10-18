@@ -183,24 +183,24 @@ export default function CompanyProfilePage() {
           <h2>{profile.data ? 'تعديل البيانات القانونية' : 'إضافة بيانات المنشأة'}</h2>
           {notice && <p className={`alert ${notice.kind}`}>{notice.text}</p>}
           <form className="form-grid" onSubmit={(event) => void save(event)}>
-            <label>الاسم القانوني (عربي)<input required maxLength={200} value={draft.nameAr} onChange={(event) => setDraft({ ...draft, nameAr: event.target.value })} /></label>
-            <label>الاسم القانوني (إنجليزي)<input maxLength={200} value={draft.nameEn} onChange={(event) => setDraft({ ...draft, nameEn: event.target.value })} dir="auto" /></label>
-            <label>الرقم الضريبي<input maxLength={15} inputMode="numeric" value={draft.taxNo} onChange={(event) => setDraft({ ...draft, taxNo: event.target.value })} dir="ltr" /></label>
-            <label>السجل التجاري<input maxLength={20} value={draft.crNo} onChange={(event) => setDraft({ ...draft, crNo: event.target.value })} dir="ltr" /></label>
-            <label>البريد الإلكتروني<input type="email" maxLength={320} value={draft.email} onChange={(event) => setDraft({ ...draft, email: event.target.value })} dir="ltr" /></label>
-            <label>أرقام الهاتف (افصل بينها بفاصلة)<input value={draft.phones} onChange={(event) => setDraft({ ...draft, phones: event.target.value })} dir="ltr" /></label>
-            <label>رمز الدولة<input maxLength={2} value={draft.countryCode} onChange={(event) => setDraft({ ...draft, countryCode: event.target.value })} dir="ltr" /></label>
+            <label>الاسم القانوني (عربي)<input className="input" required maxLength={200} value={draft.nameAr} onChange={(event) => setDraft({ ...draft, nameAr: event.target.value })} /></label>
+            <label>الاسم القانوني (إنجليزي)<input className="input" maxLength={200} value={draft.nameEn} onChange={(event) => setDraft({ ...draft, nameEn: event.target.value })} dir="auto" /></label>
+            <label>الرقم الضريبي<input className="input" maxLength={15} inputMode="numeric" value={draft.taxNo} onChange={(event) => setDraft({ ...draft, taxNo: event.target.value })} dir="ltr" /></label>
+            <label>السجل التجاري<input className="input" maxLength={20} value={draft.crNo} onChange={(event) => setDraft({ ...draft, crNo: event.target.value })} dir="ltr" /></label>
+            <label>البريد الإلكتروني<input className="input" type="email" maxLength={320} value={draft.email} onChange={(event) => setDraft({ ...draft, email: event.target.value })} dir="ltr" /></label>
+            <label>أرقام الهاتف (افصل بينها بفاصلة)<input className="input" value={draft.phones} onChange={(event) => setDraft({ ...draft, phones: event.target.value })} dir="ltr" /></label>
+            <label>رمز الدولة<input className="input" maxLength={2} value={draft.countryCode} onChange={(event) => setDraft({ ...draft, countryCode: event.target.value })} dir="ltr" /></label>
             <fieldset>
               <legend>العنوان الوطني</legend>
               <div className="form-grid">
-                <label>المدينة<input value={draft.address.city} onChange={(event) => setAddress('city', event.target.value)} /></label>
-                <label>الحي<input value={draft.address.district} onChange={(event) => setAddress('district', event.target.value)} /></label>
-                <label>الشارع<input value={draft.address.street} onChange={(event) => setAddress('street', event.target.value)} /></label>
-                <label>الشارع الإضافي<input value={draft.address.addStreet} onChange={(event) => setAddress('addStreet', event.target.value)} /></label>
-                <label>رقم المبنى<input value={draft.address.building} onChange={(event) => setAddress('building', event.target.value)} /></label>
-                <label>الرقم الفرعي<input value={draft.address.plot} onChange={(event) => setAddress('plot', event.target.value)} /></label>
-                <label>الرمز البريدي<input value={draft.address.postal} onChange={(event) => setAddress('postal', event.target.value)} /></label>
-                <label>رمز الدولة<input maxLength={2} value={draft.address.countryCode} onChange={(event) => setAddress('countryCode', event.target.value)} dir="ltr" /></label>
+                <label>المدينة<input className="input" value={draft.address.city} onChange={(event) => setAddress('city', event.target.value)} /></label>
+                <label>الحي<input className="input" value={draft.address.district} onChange={(event) => setAddress('district', event.target.value)} /></label>
+                <label>الشارع<input className="input" value={draft.address.street} onChange={(event) => setAddress('street', event.target.value)} /></label>
+                <label>الشارع الإضافي<input className="input" value={draft.address.addStreet} onChange={(event) => setAddress('addStreet', event.target.value)} /></label>
+                <label>رقم المبنى<input className="input" value={draft.address.building} onChange={(event) => setAddress('building', event.target.value)} /></label>
+                <label>الرقم الفرعي<input className="input" value={draft.address.plot} onChange={(event) => setAddress('plot', event.target.value)} /></label>
+                <label>الرمز البريدي<input className="input" value={draft.address.postal} onChange={(event) => setAddress('postal', event.target.value)} /></label>
+                <label>رمز الدولة<input className="input" maxLength={2} value={draft.address.countryCode} onChange={(event) => setAddress('countryCode', event.target.value)} dir="ltr" /></label>
               </div>
             </fieldset>
             <div className="row">

@@ -97,7 +97,7 @@ export default function PlatformUserCardPage() {
       crumbs={['المنصة', 'المستخدمون']}
     >
       <p className="no-print">
-        <Link href="/users">→ عودة إلى المستخدمين</Link>
+ <Link href="/users">عودة إلى المستخدمين</Link>
       </p>
 
       {detail.status === 'loading' && <Loading />}

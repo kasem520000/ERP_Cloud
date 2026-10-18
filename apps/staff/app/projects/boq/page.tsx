@@ -180,10 +180,10 @@ export default function BoqPage() {
           {() => (
  <>
  <div className="card">
- <h3>{editingId ? `✏️ تعديل البند` : '➕ بند جديد'}</h3>
+ <h3>{editingId ? `تعديل البند` : 'بند جديد'}</h3>
  <div className="form-grid">
  <label className="field">
- <span>🔢 الرقم</span>
+ <span>الرقم</span>
  <input
                       className="input ltr"
                       dir="ltr"
@@ -192,7 +192,7 @@ export default function BoqPage() {
                     />
  </label>
  <label className="field wide">
- <span>📝 الاسم</span>
+ <span>الاسم</span>
  <input className="input" value={draft.description} onChange={(event) => setDraft({ ...draft, description: event.target.value })} />
  </label>
  <label className="field">
@@ -239,10 +239,10 @@ export default function BoqPage() {
  </div>
  <div className="toolbar">
  <button className="btn primary" type="button" onClick={() => void save()} disabled={busy}>
-                    💾 حفظ
+ حفظ
  </button>
  <button className="btn" type="button" onClick={resetDraft} disabled={busy}>
-                    {editingId ? '✖ إلغاء التعديل' : '✖ تفريغ'}
+ {editingId ? 'إلغاء التعديل' : 'تفريغ'}
  </button>
                   {!editingId && (
  <button className="btn" type="button" onClick={() => setDraft({ ...draft, code: suggestedCode })} disabled={busy}>
@@ -254,26 +254,26 @@ export default function BoqPage() {
 
  <div className="toolbar">
  <button className="btn" type="button" onClick={() => focus(0)} disabled={terms.length === 0}>
-                  ⏮
+ 
  </button>
  <button className="btn" type="button" onClick={() => focus(terms.findIndex((row) => row.id === selectedId) - 1)} disabled={!selected || terms[0]?.id === selectedId}>
-                  ◀
+ 
  </button>
  <button className="btn" type="button" onClick={() => focus(terms.findIndex((row) => row.id === selectedId) + 1)} disabled={!selected || terms[terms.length - 1]?.id === selectedId}>
-                  ▶
+ 
  </button>
  <button className="btn" type="button" onClick={() => focus(terms.length - 1)} disabled={terms.length === 0}>
-                  ⏭
+ 
  </button>
  <button className="btn" type="button" onClick={() => window.print()} disabled={terms.length === 0}>
-                  🖨️ طباعة
+ طباعة
  </button>
  <button className="btn danger" type="button" onClick={() => void remove(selected as BoqTerm)} disabled={busy || !selected}>
-                  🗑️ حذف
+ حذف
  </button>
                 {editingId && selected && (
  <button className="btn" type="button" onClick={() => startEdit(selected)} disabled={busy}>
-                    ✏️ تعديل البند المحدَّد
+ تعديل البند المحدَّد
  </button>
                 )}
  </div>
@@ -293,8 +293,8 @@ export default function BoqPage() {
                   onRowClick={(row) => setSelectedId(row.id)}
                   activeKey={selectedId}
                   columns={[
-                    { key: 'code', header: '🔢 الرقم', align: 'ltr', cell: (row) => row.code },
-                    { key: 'name', header: '📝 الاسم', cell: (row) => row.description },
+ { key: 'code', header: 'الرقم', align: 'ltr', cell: (row) => row.code },
+ { key: 'name', header: 'الاسم', cell: (row) => row.description },
                     { key: 'qty', header: 'الكمية', align: 'num', cell: (row) => row.qty },
                     { key: 'price', header: 'سعر البيع', align: 'num', cell: (row) => money(row.unitValue) },
                     { key: 'value', header: 'قيمة البند', align: 'num', cell: (row) => money(boqLineValue(row.qty, row.unitValue)) },

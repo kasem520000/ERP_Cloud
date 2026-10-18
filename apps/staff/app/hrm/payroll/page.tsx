@@ -64,7 +64,7 @@ export default function PayrollPage() {
                 const range = periodRange(period);
                 return (
                   <option key={period.id} value={period.id}>
-                    {`${period.name} (${range.from} → ${range.to})`}
+ {`${period.name} (${range.from} ${range.to})`}
                   </option>
                 );
               })}

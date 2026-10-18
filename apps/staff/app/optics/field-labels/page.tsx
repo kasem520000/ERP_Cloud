@@ -102,13 +102,13 @@ function OpticsFieldLabels() {
 
   return (
  <Screen
-      title="⚙️ أسماء الحقول"
-      subtitle="ما يُكتب بجانب كل رقم في «👓 القياسات»: عشرة أسماء، خمسة لليمين وخمسة لليسار. والصندوق الفارغ يُقرأ باسمه الأصلي — «RE-SPH» … «LE-IPD»."
+ title="أسماء الحقول"
+ subtitle="ما يُكتب بجانب كل رقم في «القياسات»: عشرة أسماء، خمسة لليمين وخمسة لليسار. والصندوق الفارغ يُقرأ باسمه الأصلي — «RE-SPH» … «LE-IPD»."
       crumbs={['النظارات', 'أسماء الحقول']}
       actions={
  <div className="row" style={{ gap: 6 }}>
  <Link className="btn" href="/optics/prescriptions">
- 👓بيانات النظارات
+ بيانات النظارات
  </Link>
           {canManage && rows && draft && (
  <button
@@ -117,7 +117,7 @@ function OpticsFieldLabels() {
               disabled={busy}
               onClick={() => void save()}
             >
- 💾حفظ الأسماء
+ حفظ الأسماء
  </button>
           )}
  </div>
@@ -138,9 +138,9 @@ function OpticsFieldLabels() {
           }}
         >
  <div className="row" style={{ justifyContent: 'space-between', alignItems: 'baseline' }}>
- <span className="group-label" style={{ margin: 0 }}>⚙️ أسماء الحقول</span>
+ <span className="group-label" style={{ margin: 0 }}>أسماء الحقول</span>
             {canManage ? (
- <span className="muted"> عدّل ما شئت ثم «💾 حفظ الأسماء»</span>
+ <span className="muted"> عدّل ما شئت ثم «حفظ الأسماء»</span>
             ) : (
  <span className="muted">للقراءة فقط</span>
             )}
@@ -150,7 +150,7 @@ function OpticsFieldLabels() {
             {(['R', 'L'] as const).map((side) => (
  <fieldset key={side} className="card tight" style={{ margin: 0 }}>
  <legend className="group-label" style={{ margin: 0 }}>
-                  {side === 'R' ? '🔴 R (Right)' : '🟢 L (Left)'}
+ {side === 'R' ? 'R (Right)' : 'L (Left)'}
  </legend>
  <div style={{ display: 'grid', gap: 10 }}>
                   {SLOTS.filter((slot) => slot.startsWith(side.toLowerCase())).map((slot) => {
@@ -179,7 +179,7 @@ function OpticsFieldLabels() {
  <div className="row" style={{ gap: 6, marginTop: 8 }}>
             {canManage && (
  <button className="btn primary" type="submit" disabled={busy}>
- 💾حفظ الأسماء
+ حفظ الأسماء
  </button>
             )}
             {draft && (
@@ -192,17 +192,17 @@ function OpticsFieldLabels() {
                   setNotice('');
                 }}
               >
-                ↩ إلغاء
+ إلغاء
  </button>
             )}
  <Link className="btn danger" href="/optics/prescriptions">
- ✖خروج
+ خروج
  </Link>
  </div>
 
  <p className="muted" style={{ marginBottom: 0 }}>
  حقل 1…5 هي العين اليمنى (R1…R5) وحقل 6…10 هي العين اليسرى (L1…L5) — بترتيب
-            «💾 حفظ الأسماء» نفسه في الديسكتوب.
+ «حفظ الأسماء» نفسه في الديسكتوب.
  </p>
  </form>
       )}

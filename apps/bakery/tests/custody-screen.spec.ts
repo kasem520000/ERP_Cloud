@@ -63,7 +63,7 @@ describe('mapCustodyRows — صفوف اللوحة كما هي', () => {
     expect(mapped[0]?.id).toBe('lo-1');
   });
 
-  it('لا لوحة ⇒ لا صفوف (لا اختراع)', () => {
+ it('لا لوحة لا صفوف (لا اختراع)', () => {
     expect(mapCustodyRows(null)).toEqual([]);
     expect(mapCustodyRows({})).toEqual([]);
     expect(mapCustodyRows({ loadOrders: null })).toEqual([]);
@@ -174,12 +174,12 @@ describe('cashPosition — أرقام الخادم لا حسبة المتصفح'
 });
 
 describe('chargeEvidence — دليلُ ما رُحِّل لا وعدُ السياسة', () => {
-  it('بلا قيد ⇒ null (لا رقمَ مُقدَّراً)', () => {
+ it('بلا قيد null (لا رقمَ مُقدَّراً)', () => {
     expect(chargeEvidence(row())).toBeNull();
     expect(chargeEvidence(row({ shortageChargeAmount: '3.8000', shortageJournalEntryId: null }))).toBeNull();
   });
 
-  it('قيدٌ مُرحَّل ⇒ مبلغه وأساسه ومعرّفه', () => {
+ it('قيدٌ مُرحَّل مبلغه وأساسه ومعرّفه', () => {
     const evidence = chargeEvidence(
       row({
         shortageJournalEntryId: 'je-9',
@@ -196,7 +196,7 @@ describe('chargeEvidence — دليلُ ما رُحِّل لا وعدُ السي
     });
   });
 
-  it('اعتمادٌ سابق للشريحة 4: قيدٌ معلومٌ بلا أساسٍ مكتوب ⇒ الأساس «—» لا تخمين', () => {
+ it('اعتمادٌ سابق للشريحة 4: قيدٌ معلومٌ بلا أساسٍ مكتوب الأساس «—» لا تخمين', () => {
     const evidence = chargeEvidence(row({ shortageJournalEntryId: 'je-1', shortageChargeBasis: null }));
     expect(evidence?.basisText).toBe('—');
     expect(evidence?.amount).toBe('—');
@@ -241,7 +241,7 @@ describe('policySummary — الأساس وما يتقدّم عليه', () => {
     expect(summary.explicitPriceText).toBe('5.2500');
   });
 
-  it('بلا سياسة ولا حساب ⇒ «—» و«بلا سياسة» لا تطمين', () => {
+ it('بلا سياسة ولا حساب «—» و«بلا سياسة» لا تطمين', () => {
     const summary = policySummary(null);
     expect(summary.basisText).toBe('—');
     expect(summary.sourceText).toBe('—');
@@ -292,7 +292,7 @@ describe('approvalBlockers — ما يُقال قبل الضغط', () => {
     expect(blockers).toEqual([]);
   });
 
-  it('صفٌّ مُسوّى وحساباتٌ كاملة ⇒ لا موانع', () => {
+ it('صفٌّ مُسوّى وحساباتٌ كاملة لا موانع', () => {
     expect(approvalBlockers(row({ shortageQty: '1', shortageValue: '3.80' }), readyReadiness, true)).toEqual([]);
   });
 });
@@ -319,7 +319,7 @@ describe('countSettlementAudit — ما امتصّه مستند الجرد خا�
     countDocumentVarianceQty: '9.50',
     countDocumentVarianceValue: '9.50',
     stockSettlementNote:
-      'سُوِّي رصيد السيارة رسمياً مع الجرد الفعلي (4.50 كجم) بفارق 1.50 كجم عبر مستند الجرد الرسمي — ⚠️ امتصّ مستند الجرد حركةً إضافية بمقدار 8.00 كجم لم تكن ضمن الاعتماد: راجع حركات السيارة في فترة التسوية',
+ 'سُوِّي رصيد السيارة رسمياً مع الجرد الفعلي (4.50 كجم) بفارق 1.50 كجم عبر مستند الجرد الرسمي — امتصّ مستند الجرد حركةً إضافية بمقدار 8.00 كجم لم تكن ضمن الاعتماد: راجع حركات السيارة في فترة التسوية',
   });
 
   it('الامتصاص من رقمَي الخادم، لا من تقدير الشاشة', () => {
@@ -334,7 +334,7 @@ describe('countSettlementAudit — ما امتصّه مستند الجرد خا�
     expect(audit.noteText).toContain('امتصّ مستند الجرد حركةً إضافية بمقدار 8.00 كجم');
   });
 
-  it('تطابقُ الفرقين ⇒ لا امتصاص ولا تحذيرَ مُختلَع', () => {
+ it('تطابقُ الفرقين لا امتصاص ولا تحذيرَ مُختلَع', () => {
     const audit = countSettlementAudit(
       row({
         countVarianceQty: '2.00',
@@ -359,7 +359,7 @@ describe('countSettlementAudit — ما امتصّه مستند الجرد خا�
     expect(surplus.absorbedQtyText).toBe('—');
   });
 
-  it('مستندٌ لم يُرحَّل ⇒ لا أرقام ولا ادّعاء', () => {
+ it('مستندٌ لم يُرحَّل لا أرقام ولا ادّعاء', () => {
     const audit = countSettlementAudit(row({ stockSettlementStatus: 'pending_count_decision' }));
     expect(audit.posted).toBe(false);
     expect(audit.absorbed).toBe(false);
@@ -371,7 +371,7 @@ describe('countSettlementAudit — ما امتصّه مستند الجرد خا�
 });
 
 describe('vanCustodyCoverage — تغطية الرصيد الرسمي للعهدة (أرقام منشأة العرض مقاسةً)', () => {
-  it('الرصيد أقلّ من عهدةٍ مفتوحة ⇒ نقصٌ بخطورةٍ يُقال قبل الإقفال', () => {
+ it('الرصيد أقلّ من عهدةٍ مفتوحة نقصٌ بخطورةٍ يُقال قبل الإقفال', () => {
     // VLO-0001 مقاساً: عهدةٌ مفتوحة 18.00 كجم ورصيد السيارة الرسمي 4.50 — امتصّت تسوياتُ أوامرَ
     // أخرى 13.50 كجم من عهدةٍ لم تُقفل بعد (مستند الجرد مطلقٌ يضبط الرصيد كله).
     const coverage = vanCustodyCoverage(
@@ -393,7 +393,7 @@ describe('vanCustodyCoverage — تغطية الرصيد الرسمي للعهد
     expect(coverage.warning).toContain('18.00');
   });
 
-  it('في السيارة عهدةٌ أخرى ⇒ تحذيرٌ أنّ العدد المُعلن لهذا الأمر وحده', () => {
+ it('في السيارة عهدةٌ أخرى تحذيرٌ أنّ العدد المُعلن لهذا الأمر وحده', () => {
     // VLO-0005 عند إقفاله: رصيد 28.00 = عهدة هذا الأمر 10.00 + عهدة VLO-0004 المفتوحة 18.00.
     const coverage = vanCustodyCoverage(
       row({
@@ -409,7 +409,7 @@ describe('vanCustodyCoverage — تغطية الرصيد الرسمي للعهد
     expect(coverage.warning).toContain('18.00');
   });
 
-  it('تغطيةٌ سليمة ⇒ لا تحذير ولا ادّعاء', () => {
+ it('تغطيةٌ سليمة لا تحذير ولا ادّعاء', () => {
     const coverage = vanCustodyCoverage(
       row({
         expectedRemainingQty: '10.00',
@@ -423,7 +423,7 @@ describe('vanCustodyCoverage — تغطية الرصيد الرسمي للعهد
     expect(coverage.warning).toBeNull();
   });
 
-  it('أمرٌ مُسوّى ⇒ الحقول null من الخادم فلا تقيس الشاشة شيئاً', () => {
+ it('أمرٌ مُسوّى الحقول null من الخادم فلا تقيس الشاشة شيئاً', () => {
     const coverage = vanCustodyCoverage(
       row({ status: 'settled', stockSettlementStatus: 'settled_officially' }),
     );
@@ -446,7 +446,7 @@ describe('uncoveredCustodySummary — العهدة المفتوحة بلا غط�
     expect(summary.shortfallText).toBe('15.75');
   });
 
-  it('لا صفوف ⇒ صفرٌ لا تحذير', () => {
+ it('لا صفوف صفرٌ لا تحذير', () => {
     expect(uncoveredCustodySummary([]).count).toBe(0);
     expect(uncoveredCustodySummary([]).shortfallText).toBe('0.00');
   });
@@ -462,7 +462,7 @@ describe('vehicleCountPreview — معاينةُ اشتقاق نصيب العه�
     closingNotes: '',
   };
 
-  it('أرقام حالة `veh` المقاسة: 25.5 − 20 = 5.5 مقابل متوقّع 6 ⇒ عجز 0.5', () => {
+ it('أرقام حالة `veh` المقاسة: 25.5 − 20 = 5.5 مقابل متوقّع 6 عجز 0.5', () => {
     const preview = vehicleCountPreview(
       row({ expectedRemainingQty: '6.00', otherCustodyInVanQty: '20.00', vanOfficialQty: '26.00' }),
       { ...draft, vehicleCountQty: '25.5', otherCustodyInVanQty: '20.00' },
@@ -489,7 +489,7 @@ describe('vehicleCountPreview — معاينةُ اشتقاق نصيب العه�
     expect(preview.varianceKind).toBe('surplus');
   });
 
-  it('عددٌ دون عهدة الغير ⇒ يُقال الرفض قبل الإرسال', () => {
+ it('عددٌ دون عهدة الغير يُقال الرفض قبل الإرسال', () => {
     const preview = vehicleCountPreview(
       row({ expectedRemainingQty: '6.00' }),
       { ...draft, vehicleCountQty: '5', otherCustodyInVanQty: '20' },
@@ -499,7 +499,7 @@ describe('vehicleCountPreview — معاينةُ اشتقاق نصيب العه�
     expect(preview.note).toContain('أقلّ من عهدة أوامرَ أخرى');
   });
 
-  it('بلا عدد مركبة ⇒ لا معاينة ولا ادّعاء (سلوكُ اليوم)', () => {
+ it('بلا عدد مركبة لا معاينة ولا ادّعاء (سلوكُ اليوم)', () => {
     const preview = vehicleCountPreview(row({ expectedRemainingQty: '6.00' }), {
       ...draft,
       actualRemainingQty: '5.5',

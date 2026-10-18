@@ -235,7 +235,7 @@ export default function ProductionPage() {
  <Card>
  <CardBody>
  <p className="m-0 rounded-[10px] border border-warn-line bg-warn-soft px-4 py-2.5 text-[13px] font-semibold text-warn-ink">
- 🔒لا تملك `{VIEW_PERMISSION}` — والخادم يرفض قراءة لوحة الخطّ (الدفعات والأرصدة
+ لا تملك `{VIEW_PERMISSION}` — والخادم يرفض قراءة لوحة الخطّ (الدفعات والأرصدة
  الرسمية). ولم يُرسل هذا التطبيق طلباً سيُرفض حتماً، ولا عرض أرقاماً من المتصفح
  بدلها.
  </p>
@@ -430,7 +430,7 @@ export default function ProductionPage() {
  </p>
                   {estimate.unvalued > 0 ? (
  <p className="m-0 rounded-[8px] border border-warn-line bg-warn-soft px-3 py-2 text-[12.5px] font-bold text-warn-ink">
-                       ⚠️{estimate.unvalued} من المكوّنات بلا قيمة أو بلا رصيد في المستودع المختار —
+ {estimate.unvalued} من المكوّنات بلا قيمة أو بلا رصيد في المستودع المختار —
  الخادم يرفض الدفعة بـ VAN_PRODUCTION_COST_REQUIRED قبل أن تُصرف أي مادة.
  </p>
                   ) : null}
@@ -454,7 +454,7 @@ export default function ProductionPage() {
 
               {created ? (
  <p className="m-0 rounded-[10px] border border-success-line bg-success-soft px-4 py-2.5 text-[13px] font-semibold text-success-ink">
- ✅سُجّلت الدفعة {created.batchNo ?? ''} — المنتج {numberText(created.producedQty)}،
+ سُجّلت الدفعة {created.batchNo ?? ''} — المنتج {numberText(created.producedQty)}،
  وتكلفة الوحدة {numberText(created.unitCost)} ({costBasisLabel(created.costBasis).text})،
  وإجمالي التكلفة {numberText(created.totalCost)}. وهي أول صفٍّ في الجدول أدناه.
  </p>
@@ -472,7 +472,7 @@ export default function ProductionPage() {
  <Card>
  <CardBody>
  <p className="m-0 rounded-[10px] border border-warn-line bg-warn-soft px-4 py-2.5 text-[13px] font-semibold text-warn-ink">
- 🔒لا تملك `{PRODUCTION_PERMISSION}` — والخادم يرفض التسجيل (403) حتى لو أُرسل
+ لا تملك `{PRODUCTION_PERMISSION}` — والخادم يرفض التسجيل (403) حتى لو أُرسل
  الطلب. القائمة الجانبية لا تعرض هذه الشاشة لمن لا يملك الصلاحية، وأنت وصلت إليها
  بالعنوان مباشرة، فالتسجيل معطّل هنا صراحةً بدل أن يُرفض بعد الضغط.
  </p>

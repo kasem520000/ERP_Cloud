@@ -94,13 +94,13 @@ export default function SallaOrdersPage() {
 
   return (
  <Screen
-      title="📋 إدارة طلبات سلة"
-      subtitle="«📋 جلب الطلبات» من `FrmSallah`: كل طلبٍ وارد يصبح فاتورة مبيعات — رقمه عند المتجر هو ما يمنع استيراده مرّتين."
+ title="إدارة طلبات سلة"
+ subtitle="«جلب الطلبات» من `FrmSallah`: كل طلبٍ وارد يصبح فاتورة مبيعات — رقمه عند المتجر هو ما يمنع استيراده مرّتين."
       crumbs={['المستودعات', 'متجر سلة']}
       actions={
         canManage ? (
  <button type="button" className="btn primary" disabled={busy || !activeConnection} onClick={pull}>
- 📋جلب الطلبات
+ جلب الطلبات
  </button>
         ) : undefined
       }
@@ -134,7 +134,7 @@ export default function SallaOrdersPage() {
  <QueryView
         query={orders}
         empty="لا توجد طلبات واردة"
-        emptyDetail="سجّل عنوان الويب هوك في لوحة سلة، أو اضغط «📋 جلب الطلبات» ليستوردها النظام من المتجر."
+ emptyDetail="سجّل عنوان الويب هوك في لوحة سلة، أو اضغط «جلب الطلبات» ليستوردها النظام من المتجر."
       >
         {(rows) => (
  <div className="card">
@@ -168,7 +168,7 @@ export default function SallaOrdersPage() {
  تحديث الحالة
  </button>
  <button type="button" className="btn sm danger" disabled={busy} onClick={() => remove(row)}>
- 🗑️حذف
+ حذف
  </button>
  </>
                       )}

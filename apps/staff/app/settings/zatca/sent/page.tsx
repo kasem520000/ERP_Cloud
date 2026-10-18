@@ -70,10 +70,10 @@ const REASON_LABELS: Record<string, string> = {
 
 /** مرسل / غير مرسل — the two states `frmInvsSyncStatusZatca` filters on. */
 const SYNC_FILTERS = [
-  { value: '', labelAr: '🔵 الكل' },
-  { value: 'cleared', labelAr: '✅ مرسل (مُصادق)' },
-  { value: 'reported', labelAr: '✅ مرسل (مُبلَّغ)' },
-  { value: 'failed', labelAr: '❌ غير مرسل' },
+ { value: '', labelAr: 'الكل' },
+ { value: 'cleared', labelAr: 'مرسل (مُصادق)' },
+ { value: 'reported', labelAr: 'مرسل (مُبلَّغ)' },
+ { value: 'failed', labelAr: 'غير مرسل' },
   { value: 'signed', labelAr: 'موقّعة (بانتظار الربط)' },
   { value: 'prepared', labelAr: 'مُجهَّزة' },
 ];
@@ -169,7 +169,7 @@ export default function SentEinvoicesPage() {
 
   return (
  <Screen
-      title="🧾 الفواتير المرفوعة على موقع الضرائب"
+ title="الفواتير المرفوعة على موقع الضرائب"
       subtitle="كل فاتورة أُرسلت إلى هيئة الزكاة والضريبة: حالتها عند الهيئة، وتجزئتها، ومكانها في السلسلة، والوثيقة التي أُرسلت والتي عادت مُصادَقة."
       crumbs={['الإعدادات', 'إعدادات الربط الضريبي', 'الفواتير المرفوعة']}
       actions={
@@ -190,7 +190,7 @@ export default function SentEinvoicesPage() {
  <div className="toolbar">
  <label className="field">
  <span>حجم الصفحة:</span>
- <input
+ <input className="input"
               type="number"
               min={1}
               max={100}
@@ -201,7 +201,7 @@ export default function SentEinvoicesPage() {
  </label>
  <label className="field">
  <span>رقم الصفحة:</span>
- <input
+ <input className="input"
               type="number"
               min={1}
               max={pages}
@@ -211,8 +211,8 @@ export default function SentEinvoicesPage() {
             />
  </label>
  <label className="field">
- <span>🔄 حالة المزامنة ZATCA</span>
- <select value={status} onChange={(event) => setStatus(event.target.value)}>
+ <span>حالة المزامنة ZATCA</span>
+ <select className="input" value={status} onChange={(event) => setStatus(event.target.value)}>
               {SYNC_FILTERS.map((filter) => (
  <option key={filter.value} value={filter.value}>
                   {filter.labelAr}
@@ -222,21 +222,21 @@ export default function SentEinvoicesPage() {
  </label>
  <label className="field">
  <span>من</span>
- <input type="date" value={from} onChange={(event) => setFrom(event.target.value)} />
+ <input className="input" type="date" value={from} onChange={(event) => setFrom(event.target.value)} />
  </label>
  <label className="field">
  <span>إلى</span>
- <input type="date" value={to} onChange={(event) => setTo(event.target.value)} />
+ <input className="input" type="date" value={to} onChange={(event) => setTo(event.target.value)} />
  </label>
  <button type="button" className="btn primary" disabled={loading} onClick={() => void load()}>
- 🔍عرض
+ عرض
  </button>
  </div>
  </div>
 
       {/* ═══ The grid ═══ */}
  <div className="card">
- <h3>📋 قائمة الفواتير المرفوعة</h3>
+ <h3>قائمة الفواتير المرفوعة</h3>
         {loading && rows.length === 0 && <p className="muted">جارٍ التحميل…</p>}
  <DataTable
           rows={rows}
@@ -255,7 +255,7 @@ export default function SentEinvoicesPage() {
               header: 'حالة المزامنة',
               cell: (row) => (
  <span className="chip">
-                  {sent(row.status) ? '' : row.status === 'failed' ? '' : '⏳'} {STATUS_LABELS[row.status] ?? row.status}
+ {STATUS_LABELS[row.status] ?? row.status}
                   {row.chainIndex ? ` · ${row.chainIndex}` : ''}
  </span>
               ),
@@ -267,7 +267,7 @@ export default function SentEinvoicesPage() {
               header: 'تفاصيل',
               cell: (row) => (
  <button type="button" className="btn" disabled={busy !== ''} onClick={() => void show(row)}>
- 🔍تفاصيل
+ تفاصيل
  </button>
               ),
             },
@@ -275,16 +275,16 @@ export default function SentEinvoicesPage() {
         />
  <div className="toolbar">
  <button type="button" className="btn" disabled={pageNo <= 1 || loading} onClick={() => setPageNo(pageNo - 1)}>
-            → السابق
+ السابق
  </button>
  <span className="chip">
  صفحة {pageNo} من {pages}
  </span>
  <button type="button" className="btn" disabled={pageNo >= pages || loading} onClick={() => setPageNo(pageNo + 1)}>
- التالي ←
+ التالي 
  </button>
  <button type="button" className="btn" disabled={loading} onClick={() => void load()}>
- 🔄تحديث
+ تحديث
  </button>
  </div>
  </div>
@@ -292,36 +292,36 @@ export default function SentEinvoicesPage() {
       {/* ═══ Selected row — UUID + Public URL ═══ */}
       {selected && (
  <div className="card">
- <h3>📄 بيانات الفاتورة</h3>
+ <h3>بيانات الفاتورة</h3>
  <div className="form-grid">
  <label className="field wide">
  <span>UUID</span>
- <input readOnly dir="ltr" value={selected.uuid ?? '—'} />
+ <input className="input" readOnly dir="ltr" value={selected.uuid ?? '—'} />
  </label>
  <label className="field wide">
  <span>Public URL</span>
- <input readOnly dir="ltr" value="—" />
+ <input className="input" readOnly dir="ltr" value="—" />
  </label>
  <label className="field">
  <span>حالة الهيئة</span>
- <input readOnly value={selected.authorityStatus ?? '—'} />
+ <input className="input" readOnly value={selected.authorityStatus ?? '—'} />
  </label>
  <label className="field">
  <span>المحاولات</span>
- <input readOnly value={selected.attempts} />
+ <input className="input" readOnly value={selected.attempts} />
  </label>
  </div>
  <p className="small muted">
- 📌انقر على صف لتحديد UUID والرابط العام · الرابط العام لا تصدره هيئة الزكاة — يظهر هنا متى أصدرته الجهة
+ انقر على صف لتحديد UUID والرابط العام · الرابط العام لا تصدره هيئة الزكاة — يظهر هنا متى أصدرته الجهة
             (الضرائب المصرية تفعل ذلك).
  </p>
  <div className="toolbar">
  <button type="button" className="btn" onClick={() => printInvoice(selected.invoiceId)}>
- 🖨️طباعة
+ طباعة
  </button>
             {!sent(selected.status) && (
  <button type="button" className="btn" disabled={busy !== ''} onClick={() => void retry(selected)}>
- 🔁إعادة الإرسال
+ إعادة الإرسال
  </button>
             )}
             {busy === 'retry' && <span className="chip">…</span>}
@@ -331,23 +331,23 @@ export default function SentEinvoicesPage() {
 
           {detail && (
  <>
- <h3>🔗 السلسلة — مكان الفاتورة</h3>
+ <h3>السلسلة — مكان الفاتورة</h3>
  <div className="form-grid">
  <label className="field wide">
  <span>الرقم التسلسلي للفاتورة (ICV)</span>
- <input readOnly value={detail.document.counter ?? '—'} />
+ <input className="input" readOnly value={detail.document.counter ?? '—'} />
  </label>
  <label className="field wide">
  <span>تجزئة الفاتورة السابقة (PIH)</span>
- <input readOnly dir="ltr" value={detail.chain.previousHash ?? '—'} />
+ <input className="input" readOnly dir="ltr" value={detail.chain.previousHash ?? '—'} />
  </label>
  <label className="field wide">
  <span>تجزئة هذه الفاتورة (Hash)</span>
- <input readOnly dir="ltr" value={detail.chain.hash ?? '—'} />
+ <input className="input" readOnly dir="ltr" value={detail.chain.hash ?? '—'} />
  </label>
  </div>
 
- <h3>🏷️ رمز الاستجابة السريعة — الوسوم الثمانية</h3>
+ <h3>رمز الاستجابة السريعة — الوسوم الثمانية</h3>
  <DataTable
                 rows={detail.qr.tags}
                 rowKey={(tag) => String(tag.tag)}
@@ -359,7 +359,7 @@ export default function SentEinvoicesPage() {
                 ]}
               />
 
- <h3>📄 الوثيقة</h3>
+ <h3>الوثيقة</h3>
  <div className="toolbar">
  <button type="button" className="btn" onClick={() => downloadXml(`zatca-${detail.submission.uuid ?? detail.submission.id}.xml`, detail.document.xml)}>
  تنزيل الوثيقة المرسلة (UBL)
@@ -372,7 +372,7 @@ export default function SentEinvoicesPage() {
  </div>
               {detail.document.clearedXml ? (
  <p className="small muted">
- ✅الفاتورة ضريبية: أعادت الهيئة وثيقة مُصادَقة، ورمز الاستجابة السريعة مقروء منها لا من وثيقتنا.
+ الفاتورة ضريبية: أعادت الهيئة وثيقة مُصادَقة، ورمز الاستجابة السريعة مقروء منها لا من وثيقتنا.
  </p>
               ) : (
  <p className="small muted">الفاتورة مبسّطة: تُبلَّغ ولا تُصادَق، فلا تعود وثيقة من الهيئة.</p>
@@ -381,7 +381,7 @@ export default function SentEinvoicesPage() {
               {detail.authority.errors.length > 0 && <p className="alert danger">أخطاء الهيئة: {detail.authority.errors.join(' · ')}</p>}
  <label className="field wide">
  <span>الوثيقة المرسلة</span>
- <textarea readOnly rows={8} dir="ltr" value={detail.document.xml ?? ''} />
+ <textarea className="input" readOnly rows={8} dir="ltr" value={detail.document.xml ?? ''} />
  </label>
  </>
           )}

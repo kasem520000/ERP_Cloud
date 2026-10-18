@@ -161,8 +161,8 @@ export function repHeadlineCards(workspace: RepWorkspace): HeadlineCard[] {
       valueText: `${custody?.expectedKg ?? '0.0000'} كجم`,
       hintAr: custody
         ? custody.pendingClosings > 0
-          ? `⏳ ${custody.pendingClosings} إغلاق بانتظار المحاسب — والرصيدُ الرسميّ ${custody.officialKg} كجم`
-          : `✅ لا إغلاقَ معلّق — والرصيدُ الرسميّ ${custody.officialKg} كجم`
+ ? `${custody.pendingClosings} إغلاق بانتظار المحاسب — والرصيدُ الرسميّ ${custody.officialKg} كجم`
+ : `لا إغلاقَ معلّق — والرصيدُ الرسميّ ${custody.officialKg} كجم`
         : 'لا عهدةَ مفتوحة.',
     },
   ];

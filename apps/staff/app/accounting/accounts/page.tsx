@@ -297,10 +297,10 @@ export default function ChartOfAccountsPage() {
       {notice && <p className={`alert ${notice.kind}`}>{notice.text}</p>}
 
  <StatTiles>
- <StatTile label="📊 عدد الحسابات" value={totals.count} hint="في نتيجة البحث الحالية" />
- <StatTile label="📈 مجموع الأرصدة المدينة" value={money(totals.debit.toFixed(4))} tone="ok" />
- <StatTile label="📉 مجموع الأرصدة الدائنة" value={money(totals.credit.toFixed(4))} tone="brand" />
- <StatTile label="💰 حسابات بلا حركة" value={totals.count - totals.balances} hint="رصيدها صفر" />
+ <StatTile label="عدد الحسابات" value={totals.count} hint="في نتيجة البحث الحالية" />
+ <StatTile label="مجموع الأرصدة المدينة" value={money(totals.debit.toFixed(4))} tone="ok" />
+ <StatTile label="مجموع الأرصدة الدائنة" value={money(totals.credit.toFixed(4))} tone="brand" />
+ <StatTile label="حسابات بلا حركة" value={totals.count - totals.balances} hint="رصيدها صفر" />
  </StatTiles>
 
  <div className="card tight">
@@ -308,7 +308,7 @@ export default function ChartOfAccountsPage() {
  <input
             className="input"
             style={{ maxWidth: 260 }}
-            placeholder="🔍 بحث بالرمز أو الاسم"
+ placeholder="بحث بالرمز أو الاسم"
             value={search}
             onChange={(event) => setSearch(event.target.value)}
           />
@@ -333,7 +333,7 @@ export default function ChartOfAccountsPage() {
             type="button"
             onClick={() => setApplied({ search, type, branchId })}
           >
- 🚀عرض البيانات
+ عرض البيانات
  </button>
  <span className="muted" style={{ alignSelf: 'center' }}>
             {rows.length} حساب
@@ -344,7 +344,7 @@ export default function ChartOfAccountsPage() {
       {/* شجرة الحسابات — `frmAccountsDirectory`: every node carries its balance. */}
  <div className="card tight">
  <div className="row" style={{ justifyContent: 'space-between' }}>
- <h2 style={{ margin: 0 }}>📂 شجرة الحسابات</h2>
+ <h2 style={{ margin: 0 }}>شجرة الحسابات</h2>
  <span className="row" style={{ gap: 6 }}>
  <span className="muted small" style={{ alignSelf: 'center' }}>مستويات التوسعة:</span>
             {LEVELS.map((entry) => (
@@ -359,7 +359,7 @@ export default function ChartOfAccountsPage() {
             ))}
             {selected ? (
  <button className="btn sm" type="button" onClick={() => setSelectedId('')}>
- ✖كل الدليل
+ كل الدليل
  </button>
             ) : null}
  </span>
@@ -389,7 +389,7 @@ export default function ChartOfAccountsPage() {
       {/* تفاصيل الحسابات — filled from the node selected in the tree. */}
       {accounts.status === 'success' && selected ? (
  <p className="muted small">
- 📋تفاصيل الحسابات — <strong>{selected.code} {nameOf(selected)}</strong> وما تحته ({details.length} حساب).
+ تفاصيل الحسابات — <strong>{selected.code} {nameOf(selected)}</strong> وما تحته ({details.length} حساب).
  </p>
       ) : null}
 
@@ -561,19 +561,19 @@ function AccountForm({
  </select>
  </label>
  <label className="field">
- <span>⚖️ طبيعة الحساب</span>
+ <span>طبيعة الحساب</span>
  <select className="input" value={normalBalance} onChange={(event) => setNormalBalance(event.target.value)}>
  <option value="">حسب النوع</option>
- <option value="debit">📈 مدين</option>
- <option value="credit">📉 دائن</option>
+ <option value="debit">مدين</option>
+ <option value="credit">دائن</option>
  </select>
  </label>
  <label className="field">
- <span>📅 تاريخ فتح الحساب</span>
+ <span>تاريخ فتح الحساب</span>
  <input className="input" type="date" value={openedAt} onChange={(event) => setOpenedAt(event.target.value)} />
  </label>
  <label className="field">
- <span>💰 الرصيد الافتتاحي</span>
+ <span>الرصيد الافتتاحي</span>
  <input
             className="input"
             dir="ltr"
@@ -583,7 +583,7 @@ function AccountForm({
           />
  </label>
  <label className="field">
- <span>📊 مركز التكلفة</span>
+ <span>مركز التكلفة</span>
  <select className="input" value={costCenterId} onChange={(event) => setCostCenterId(event.target.value)}>
  <option value="">— بدون —</option>
             {(costCenters.data ?? []).map((center) => (

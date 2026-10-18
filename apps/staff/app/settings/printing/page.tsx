@@ -167,7 +167,7 @@ export default function PrintingSettingsPage() {
       }
     >
  <div className="card toolbar">
- <span className="chip">🧩 تفعيل إعدادات الطباعة</span>
+ <span className="chip">تفعيل إعدادات الطباعة</span>
         {PRINT_SCOPES.map((entry) => (
  <button
             key={entry.scope}
@@ -176,30 +176,30 @@ export default function PrintingSettingsPage() {
             onClick={() => setScope(entry.scope)}
           >
             {entry.labelAr}
-            {rows.find((row) => row.scope === entry.scope)?.saved ? ' ✓' : ''}
+ {rows.find((row) => row.scope === entry.scope)?.saved ? ' ' : ''}
  </button>
         ))}
  </div>
 
  <form className="card" onSubmit={save}>
- <h3>🖨️ إعدادات الطباعة — {PRINT_SCOPES.find((entry) => entry.scope === scope)?.labelAr ?? scope}</h3>
+ <h3>إعدادات الطباعة — {PRINT_SCOPES.find((entry) => entry.scope === scope)?.labelAr ?? scope}</h3>
 
  <div className="form-grid">
  <label className="field">
  <span>طابعة الكاشير</span>
- <input value={form.casherPrinter} onChange={(event) => set('casherPrinter', event.target.value)} placeholder="HP LaserJet" />
+ <input className="input" value={form.casherPrinter} onChange={(event) => set('casherPrinter', event.target.value)} placeholder="HP LaserJet" />
  </label>
  <label className="field">
  <span>طابعة المطبخ</span>
- <input value={form.kitchenPrinter} onChange={(event) => set('kitchenPrinter', event.target.value)} placeholder="EPSON TM-T82" />
+ <input className="input" value={form.kitchenPrinter} onChange={(event) => set('kitchenPrinter', event.target.value)} placeholder="EPSON TM-T82" />
  </label>
  <label className="field">
  <span>عدد النسخ</span>
- <input type="number" min={1} max={50} value={form.printNo} onChange={(event) => set('printNo', Number(event.target.value))} />
+ <input className="input" type="number" min={1} max={50} value={form.printNo} onChange={(event) => set('printNo', Number(event.target.value))} />
  </label>
  <label className="field">
- <span>🔢 ترتيب بنود الفاتورة</span>
- <select value={(form as any).printItemType ?? 1} onChange={(e) => set('printItemType' as any, Number(e.target.value) as any)}>
+ <span>ترتيب بنود الفاتورة</span>
+ <select className="input" value={(form as any).printItemType ?? 1} onChange={(e) => set('printItemType' as any, Number(e.target.value) as any)}>
  <option value={1}>1 — ترتيب الإدخال</option>
  <option value={2}>2 — حسب الرمز</option>
  <option value={3}>3 — حسب اسم الصنف</option>
@@ -209,31 +209,31 @@ export default function PrintingSettingsPage() {
  </label>
  <label className="field">
  <span>اسم التقرير</span>
- <input value={form.rptName} onChange={(event) => set('rptName', event.target.value)} placeholder="RptSalesInPeriod1.repx" dir="ltr" />
+ <input className="input" value={form.rptName} onChange={(event) => set('rptName', event.target.value)} placeholder="RptSalesInPeriod1.repx" dir="ltr" />
  </label>
  <label className="field">
  <span>مسار التقرير</span>
- <input value={form.rptUrl} onChange={(event) => set('rptUrl', event.target.value)} placeholder="C:\\SmartAuditERP\\Reports" dir="ltr" />
+ <input className="input" value={form.rptUrl} onChange={(event) => set('rptUrl', event.target.value)} placeholder="C:\\SmartAuditERP\\Reports" dir="ltr" />
  </label>
  <label className="field wide">
  <span>ملاحظات التقرير</span>
- <input value={form.note} onChange={(event) => set('note', event.target.value)} placeholder="تُطبع تحت الجدول" />
+ <input className="input" value={form.note} onChange={(event) => set('note', event.target.value)} placeholder="تُطبع تحت الجدول" />
  </label>
  </div>
 
- <h3>📄 نوع الورق — «🖨️ افتراضي طباعة الفواتير»</h3>
+ <h3>نوع الورق — «افتراضي طباعة الفواتير»</h3>
  <div className="toolbar">
  <label className="check">
  <input type="radio" name="paper" checked={form.printType === 1} onChange={() => set('printType', 1)} />
- <span>📄 ورقة A4</span>
+ <span>ورقة A4</span>
  </label>
  <label className="check">
  <input type="radio" name="paper" checked={form.printType === 2} onChange={() => set('printType', 2)} />
- <span>🧾 ورق صغير</span>
+ <span>ورق صغير</span>
  </label>
  </div>
 
- <h3>🧩 ما يُطبع على الورقة</h3>
+ <h3>ما يُطبع على الورقة</h3>
  <div className="toolbar">
  <label className="check">
  <input type="checkbox" checked={form.printHeader} onChange={(event) => set('printHeader', event.target.checked)} />
@@ -269,7 +269,7 @@ export default function PrintingSettingsPage() {
  </label>
  </div>
 
- <h3>🖼️ الصور — الترويـسة · التـذيـيـل · الخـتـم</h3>
+ <h3>الصور — الترويـسة · التـذيـيـل · الخـتـم</h3>
  <p className="small muted">
  يحفظ الديسكتوب هذه الصور بايتاتٍ في <code>HeaderImage</code> · <code>FooterImage</code> · <code>StampImage</code>؛
  السحابة لا تخزّن ملفات، فهي روابط <span dir="ltr">https://</span> تُدرج في الورقة كما هي.
@@ -277,32 +277,32 @@ export default function PrintingSettingsPage() {
  <div className="form-grid">
  <label className="field">
  <span>الترويـسة</span>
- <input dir="ltr" value={form.headerImageUrl} onChange={(event) => set('headerImageUrl', event.target.value)} placeholder="https://…/header.png" />
+ <input className="input" dir="ltr" value={form.headerImageUrl} onChange={(event) => set('headerImageUrl', event.target.value)} placeholder="https://…/header.png" />
  </label>
  <label className="field">
  <span>التـذيـيـل</span>
- <input dir="ltr" value={form.footerImageUrl} onChange={(event) => set('footerImageUrl', event.target.value)} placeholder="https://…/footer.png" />
+ <input className="input" dir="ltr" value={form.footerImageUrl} onChange={(event) => set('footerImageUrl', event.target.value)} placeholder="https://…/footer.png" />
  </label>
  <label className="field">
  <span>الخـتـم</span>
- <input dir="ltr" value={form.stampImageUrl} onChange={(event) => set('stampImageUrl', event.target.value)} placeholder="https://…/stamp.png" />
+ <input className="input" dir="ltr" value={form.stampImageUrl} onChange={(event) => set('stampImageUrl', event.target.value)} placeholder="https://…/stamp.png" />
  </label>
  </div>
 
  <Notice notice={notice} />
  <div className="toolbar">
  <button className="btn primary" type="submit" disabled={busy}>
-            {busy ? 'جارٍ الحفظ…' : '💾 حفظ'}
+ {busy ? 'جارٍ الحفظ…' : 'حفظ'}
  </button>
  <button className="btn" type="button" disabled={busy || !current.saved} onClick={() => void reset()}>
- 🗑️إرجاع إلى الإفتراضي
+ إرجاع إلى الإفتراضي
  </button>
  </div>
  </form>
 
       {/* شبكة ربط الطابعات — `PrinterSettings` L2163-L2180 (`Inv_Id, PrintName, Printer, RptUrl, RptName`) */}
  <div className="card">
- <h3>📑 ربط الطابعات بالتقارير — `PrinterSettings` (Inv_Id, PrintName, Printer, RptUrl, RptName)</h3>
+ <h3>ربط الطابعات بالتقارير — `PrinterSettings` (Inv_Id, PrintName, Printer, RptUrl, RptName)</h3>
  <p className="small muted">
  الديسكتوب يحفظ في <code>PrinterSettings</code> ربط كل تقرير بطابعة واسم ملف <code>RptName</code> ومسار <code>RptUrl</code> (txtRptPath المشترك).
  السحابة تحفظ نفس الحقول في <code>printer_report_links</code> وتظهرها بجانب زر الطباعة — الطابعة الفعلية يختارها المتصفح.
@@ -321,7 +321,7 @@ export default function PrintingSettingsPage() {
  <input className="input" placeholder="اسم الطابعة (Printer)" value={linkForm.printerName} onChange={(e) => setLinkForm((p) => ({ ...p, printerName: e.target.value }))} style={{ minWidth: 140 }} />
  <input className="input" placeholder="مسار التقرير (RptUrl)" dir="ltr" value={linkForm.rptUrl} onChange={(e) => setLinkForm((p) => ({ ...p, rptUrl: e.target.value }))} style={{ minWidth: 160 }} />
  <input className="input" placeholder="اسم الملف (RptName)" dir="ltr" value={linkForm.rptName} onChange={(e) => setLinkForm((p) => ({ ...p, rptName: e.target.value }))} style={{ minWidth: 160 }} />
- <button className="btn primary" type="submit" disabled={linkBusy}>{linkBusy ? 'جارٍ الحفظ…' : '➕ إضافة'}</button>
+ <button className="btn primary" type="submit" disabled={linkBusy}>{linkBusy ? 'جارٍ الحفظ…' : 'إضافة'}</button>
  </form>
 
         {linkNotice ? <Notice notice={linkNotice} /> : null}
@@ -349,7 +349,7 @@ export default function PrintingSettingsPage() {
  <td>{link.printerName}</td>
  <td dir="ltr" className="small">{link.rptUrl || '—'}</td>
  <td dir="ltr" className="small">{link.rptName || '—'}</td>
- <td><button className="btn" disabled={linkBusy} onClick={() => void removeLink(link.id)}>🗑️ حذف</button></td>
+ <td><button className="btn" disabled={linkBusy} onClick={() => void removeLink(link.id)}>حذف</button></td>
  </tr>
                 ))
               )}
@@ -360,10 +360,10 @@ export default function PrintingSettingsPage() {
 
       {scope === 'reports' && (
  <div className="card">
- <h3>🖨️ إعدادات تقرير بعينه</h3>
+ <h3>إعدادات تقرير بعينه</h3>
  <p className="small muted">
  كل تقرير يقرأ إعداداته أولاً، ثم «تقارير»، ثم «الإفتراضي». افتح التقرير من{' '}
- <Link href="/reports">التقارير</Link> واضغط «🖨️ معاينة الطباعة» لترى الورقة بهذه الإعدادات.
+ <Link href="/reports">التقارير</Link> واضغط «معاينة الطباعة» لترى الورقة بهذه الإعدادات.
  </p>
  <div className="table-wrap">
  <table>

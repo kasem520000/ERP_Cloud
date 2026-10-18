@@ -425,7 +425,7 @@ export default function SalesInvoiceDetailPage() {
                             onClick={() => setGlassesLine(row)}
                             className="text-[10.5px] font-bold text-brand bg-brand-soft border border-brand-line rounded-full px-2 py-0.5 hover:bg-brand-soft transition-colors flex-none"
                           >
- 👓بيانات
+ بيانات
  </button>
                         ) : null}
  </span>
@@ -551,7 +551,7 @@ export default function SalesInvoiceDetailPage() {
                     }, 'تم إنشاء رابط الدفع.')
                   }
                 >
- 💳إنشاء رابط دفع
+ إنشاء رابط دفع
  </Button>
  </div>
  </div>
@@ -777,7 +777,7 @@ export default function SalesInvoiceDetailPage() {
                     });
                   }}
                 >
- 🧾طباعة إيصال كاشير حراري (80mm)
+ طباعة إيصال كاشير حراري (80mm)
  </button>
  </div>
 
@@ -981,7 +981,7 @@ function GlassesModal({ line, onClose }: { line: InvoiceLine | null; onClose: ()
  <Modal
       open={line !== null}
       onClose={onClose}
-      title={section.data?.title ?? '👓 بيانات النظارات'}
+ title={section.data?.title ?? 'بيانات النظارات'}
       size="lg"
       footer={<Button variant="ghost" onClick={onClose}>إغلاق</Button>}
     >

@@ -582,7 +582,7 @@ function FunnelSection({
         <div>
           <h3 className="m-0 text-[15px] font-bold text-ink">قمع التفعيل</h3>
           <p className="m-0 mt-0.5 text-[11.5px] text-muted">
-            تسجيل → تفعيل → أول حركة → زاتكا: أين تسقط المنشآت؟
+ تسجيل تفعيل أول حركة زاتكا: أين تسقط المنشآت؟
           </p>
         </div>
         <div style={{ width: 150 }}>

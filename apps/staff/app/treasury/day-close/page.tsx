@@ -90,13 +90,13 @@ type CloseDetail = {
 const KIND_LABELS: Record<string, string> = {
   'method-total': 'إجمالي طريقة الدفع',
   'voucher-cash': 'نقد السندات',
-  'bank-transfer': '🏦 تحويل بنكي',
+ 'bank-transfer': 'تحويل بنكي',
 };
 const METHOD_LABELS: Record<string, string> = {
-  cash: '💵 نقدي',
-  card: '💳 شبكة',
-  bank: '🏦 بنك',
-  credit: '📋 آجل',
+ cash: 'نقدي',
+ card: 'شبكة',
+ bank: 'بنك',
+ credit: 'آجل',
 };
 
 /** The denominations a cashier actually counts — ريال and its halves. */
@@ -185,7 +185,7 @@ export default function DayClosePage() {
   const postEntry = (row: DayClose) =>
     run(
       () => apiPost(`/shift-closes/${row.id}/post`, {}),
-      `📒 رُحِّل قيد الإغلاق ${row.number ?? ''} — العهدة ${money(row.safeBalance)} إلى ${row.custodyAccountCode ?? 'عهدة الإغلاق'} والفرق ${money(row.diff)}.`,
+ `رُحِّل قيد الإغلاق ${row.number ?? ''} — العهدة ${money(row.safeBalance)} إلى ${row.custodyAccountCode ?? 'عهدة الإغلاق'} والفرق ${money(row.diff)}.`,
     );
 
   async function showDetail(row: DayClose) {
@@ -199,18 +199,18 @@ export default function DayClosePage() {
 
   return (
  <Screen
-      title="📊 إغلاقات اليومية"
+ title="إغلاقات اليومية"
       subtitle="عرض وإدارة إغلاقات وردية الموظفين — كما في frmCloseShift: ما أخذه الدرج وما خرج منه، ورصيد الصندوق مقابل الفرق."
       crumbs={['الخزينة', 'العمليات']}
     >
  <StatTiles>
- <StatTile label="📊 عدد الإغلاقات" value={totals.count} hint="في الفترة المحددة" />
- <StatTile label="💵 إجمالي النقدي" value={money(totals.cash.toFixed(4))} tone="ok" />
- <StatTile label="🌐 إجمالي الشبكة" value={money(totals.network.toFixed(4))} tone="brand" />
- <StatTile label="🧾 الضريبة" value={money(totals.tax.toFixed(4))} />
- <StatTile label="📤 المصاريف" value={money(totals.expenses.toFixed(4))} tone="danger" />
+ <StatTile label="عدد الإغلاقات" value={totals.count} hint="في الفترة المحددة" />
+ <StatTile label="إجمالي النقدي" value={money(totals.cash.toFixed(4))} tone="ok" />
+ <StatTile label="إجمالي الشبكة" value={money(totals.network.toFixed(4))} tone="brand" />
+ <StatTile label="الضريبة" value={money(totals.tax.toFixed(4))} />
+ <StatTile label="المصاريف" value={money(totals.expenses.toFixed(4))} tone="danger" />
  <StatTile
-          label="📉 مجموع الفروق"
+ label="مجموع الفروق"
           value={money(totals.diff.toFixed(4))}
           hint="المعدود − المتوقع"
           tone={totals.diff.isZero() ? 'ok' : 'warn'}
@@ -219,22 +219,22 @@ export default function DayClosePage() {
 
       {/* الوردية المفتوحة — فتح الدرج وجرده، وهو ما يحتاجه الكاشير قبل ما يحتاجه المحاسب */}
  <div className="card">
- <h2>🏦 الوردية الحالية</h2>
+ <h2>الوردية الحالية</h2>
  <Notice notice={notice} />
         {opened ? (
  <>
  <dl className="kv">
- <dt>👤 الموظف</dt>
+ <dt>الموظف</dt>
  <dd>{opened.employee || '—'}</dd>
- <dt>📅 إغلاق من</dt>
+ <dt>إغلاق من</dt>
  <dd>{dateTime(opened.openedAt)}</dd>
- <dt>💵 النقدي</dt>
+ <dt>النقدي</dt>
  <dd>{money(opened.cash)}</dd>
- <dt>🌐 الشبكة</dt>
+ <dt>الشبكة</dt>
  <dd>{money(opened.network)}</dd>
- <dt>📋 آجل</dt>
+ <dt>آجل</dt>
  <dd>{money(opened.postponed)}</dd>
- <dt>📤 المصاريف</dt>
+ <dt>المصاريف</dt>
  <dd>{money(opened.expenses.total)}</dd>
  <dt>النقد المتوقع الآن</dt>
  <dd>
@@ -258,11 +258,11 @@ export default function DayClosePage() {
               ))}
  </div>
  <dl className="kv">
- <dt>🏦 رصيد الصندوق (المعدود)</dt>
+ <dt>رصيد الصندوق (المعدود)</dt>
  <dd>
  <strong>{money(String(countedValue))}</strong>
  </dd>
- <dt>📉 الفرق</dt>
+ <dt>الفرق</dt>
  <dd>
  <strong>{money(new Decimal(countedValue).minus(new Decimal(opened.expected || '0')).toFixed(4))}</strong>
  </dd>
@@ -285,7 +285,7 @@ export default function DayClosePage() {
                   )
                 }
               >
- ✔إغلاق الوردية
+ إغلاق الوردية
  </button>
             )}
  </>
@@ -303,7 +303,7 @@ export default function DayClosePage() {
                   run(() => apiPost('/shift-closes/open', { branchId: effectiveBranch }), 'تم فتح الوردية.')
                 }
               >
- ➕فتح وردية
+ فتح وردية
  </button>
             )}
  </>
@@ -313,7 +313,7 @@ export default function DayClosePage() {
       {/* بيانات البحث — `frmCloseShift.xaml`: من تاريخ / إلى تاريخ، كل الفترة، الموظف، عرض */}
  <div className="card toolbar">
  <label className="field">
- <span>🏢 الفرع</span>
+ <span>الفرع</span>
  <select className="input" value={effectiveBranch} onChange={(event) => setBranchId(event.target.value)}>
             {branchOptions(branchRows).map((option) => (
  <option key={option.id} value={option.id}>
@@ -323,7 +323,7 @@ export default function DayClosePage() {
  </select>
  </label>
  <label className="field">
- <span>📅 التاريخ من</span>
+ <span>التاريخ من</span>
  <input
             className="input"
             type="date"
@@ -334,7 +334,7 @@ export default function DayClosePage() {
           />
  </label>
  <label className="field">
- <span>📅 إلى</span>
+ <span>إلى</span>
  <input
             className="input"
             type="date"
@@ -345,9 +345,9 @@ export default function DayClosePage() {
           />
  </label>
  <label className="field">
- <span>👤 الموظف</span>
+ <span>الموظف</span>
  <select className="input" value={employeeId} onChange={(event) => setEmployeeId(event.target.value)}>
- <option value="">📋 الكل</option>
+ <option value="">الكل</option>
             {employeeRows.map((employee) => (
  <option key={employee.id} value={employee.membershipId ?? ''}>{employee.name}</option>
             ))}
@@ -355,10 +355,10 @@ export default function DayClosePage() {
  </label>
  <label className="row" style={{ gap: 6 }}>
  <input type="checkbox" checked={allPeriod} onChange={(event) => setAllPeriod(event.target.checked)} />
- <span className="small">📆 كل الفترة</span>
+ <span className="small">كل الفترة</span>
  </label>
  <button className="btn primary" type="button" onClick={() => closes.reload()}>
- 👁️عرض
+ عرض
  </button>
  </div>
 
@@ -374,36 +374,36 @@ export default function DayClosePage() {
             onRowClick={(row) => (row.status === 'open' ? setOpened(row) : void showDetail(row))}
             activeKey={opened?.id ?? detail?.shift.id}
             columns={[
-              { key: 'number', header: '🔢 الرقم', align: 'ltr', cell: (row) => row.number ?? '—' },
-              { key: 'employee', header: '👤 الموظف', cell: (row) => row.employee || '—' },
-              { key: 'openedAt', header: '📅 إغلاق من', align: 'ltr', cell: (row) => dateTime(row.openedAt) },
+ { key: 'number', header: 'الرقم', align: 'ltr', cell: (row) => row.number ?? '—' },
+ { key: 'employee', header: 'الموظف', cell: (row) => row.employee || '—' },
+ { key: 'openedAt', header: 'إغلاق من', align: 'ltr', cell: (row) => dateTime(row.openedAt) },
               {
                 key: 'closedAt',
-                header: '📅 إغلاق إلى',
+ header: 'إغلاق إلى',
                 align: 'ltr',
                 cell: (row) => (row.closedAt ? dateTime(row.closedAt) : 'مفتوحة'),
               },
-              { key: 'postponed', header: '📋 آجل', align: 'num', cell: (row) => money(row.postponed) },
-              { key: 'network', header: '🌐 الشبكة', align: 'num', cell: (row) => money(row.network) },
-              { key: 'cash', header: '💵 النقدي', align: 'num', cell: (row) => money(row.cash) },
+ { key: 'postponed', header: 'آجل', align: 'num', cell: (row) => money(row.postponed) },
+ { key: 'network', header: 'الشبكة', align: 'num', cell: (row) => money(row.network) },
+ { key: 'cash', header: 'النقدي', align: 'num', cell: (row) => money(row.cash) },
               {
                 key: 'sumCashAndNetwork',
-                header: '💰 مجموع الشبكة والنقدي',
+ header: 'مجموع الشبكة والنقدي',
                 align: 'num',
                 cell: (row) => money(row.sumCashAndNetwork),
               },
-              { key: 'expenses', header: '📤 المصاريف', align: 'num', cell: (row) => money(row.expenses.total) },
-              { key: 'purchases', header: '🛒 المشتريات', align: 'num', cell: (row) => money(row.expenses.purchases) },
-              { key: 'delivery', header: '🚗 توصيل', align: 'num', cell: (row) => money(row.expenses.delivery) },
-              { key: 'insurance', header: '🛡️ تأمين', align: 'num', cell: (row) => money(row.expenses.insurance) },
-              { key: 'hospitality', header: '☕ الضيافة', align: 'num', cell: (row) => money(row.expenses.hospitality) },
-              { key: 'discount', header: '🏷️ الخصم', align: 'num', cell: (row) => money(row.discount) },
-              { key: 'tax', header: '🧾 الضريبة', align: 'num', cell: (row) => money(row.tax) },
-              { key: 'net', header: '💹 الصافي', align: 'num', cell: (row) => money(row.net) },
-              { key: 'safeBalance', header: '🏦 رصيد الصندوق', align: 'num', cell: (row) => money(row.safeBalance) },
+ { key: 'expenses', header: 'المصاريف', align: 'num', cell: (row) => money(row.expenses.total) },
+ { key: 'purchases', header: 'المشتريات', align: 'num', cell: (row) => money(row.expenses.purchases) },
+ { key: 'delivery', header: 'توصيل', align: 'num', cell: (row) => money(row.expenses.delivery) },
+ { key: 'insurance', header: 'تأمين', align: 'num', cell: (row) => money(row.expenses.insurance) },
+ { key: 'hospitality', header: 'الضيافة', align: 'num', cell: (row) => money(row.expenses.hospitality) },
+ { key: 'discount', header: 'الخصم', align: 'num', cell: (row) => money(row.discount) },
+ { key: 'tax', header: 'الضريبة', align: 'num', cell: (row) => money(row.tax) },
+ { key: 'net', header: 'الصافي', align: 'num', cell: (row) => money(row.net) },
+ { key: 'safeBalance', header: 'رصيد الصندوق', align: 'num', cell: (row) => money(row.safeBalance) },
               {
                 key: 'custody',
-                header: '🧾 العهدة',
+ header: 'العهدة',
                 cell: (row) =>
                   row.journalEntryId ? (
  <span
@@ -419,11 +419,11 @@ export default function DayClosePage() {
               },
               {
                 key: 'entry',
-                header: '📒 القيد',
+ header: 'القيد',
                 cell: (row) =>
                   row.journalEntryId ? (
  <span className="badge posted" title={row.postedAt ? dateTime(row.postedAt) : undefined}>
- ✅مُرحَّل
+ مُرحَّل
  </span>
                   ) : row.postable ? (
                     can('treasury.shift.post') ? (
@@ -437,7 +437,7 @@ export default function DayClosePage() {
                           postEntry(row);
                         }}
                       >
- 📒ترحيل القيد
+ ترحيل القيد
  </button>
                     ) : (
  <span className="badge pending">بلا قيد</span>
@@ -448,7 +448,7 @@ export default function DayClosePage() {
               },
               {
                 key: 'diff',
-                header: '📉 الفرق',
+ header: 'الفرق',
                 align: 'num',
                 cell: (row) => (
  <strong style={new Decimal(row.diff || '0').abs().gt(0) ? { color: 'var(--danger)' } : undefined}>
@@ -483,7 +483,7 @@ export default function DayClosePage() {
               detail?.shift.id === row.id ? (
  <div className="grid">
  <p className="muted" style={{ margin: 0 }}>
- 🧾الملاحظات المعدودة ({detail.counts.length}) · سطور الملخّص ({detail.lines.length})
+ الملاحظات المعدودة ({detail.counts.length}) · سطور الملخّص ({detail.lines.length})
  </p>
                   {detail.counts.length > 0 && (
  <table className="compact">

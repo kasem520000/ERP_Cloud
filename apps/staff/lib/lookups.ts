@@ -428,7 +428,7 @@ export function partyLabel(party: Party): string {
   return `${party.code ? `${party.code} — ` : ''}${party.name}`;
 }
 export function cashLocationLabel(location: CashLocation): string {
-  return `${location.kind === 'bank' ? '🏦' : '💵'} ${location.name}`;
+ return `${location.kind === 'bank' ? '' : ''} ${location.name}`;
 }
 
 /** The default branch/warehouse is what a single-branch tenant always wants preselected. */

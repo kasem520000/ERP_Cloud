@@ -335,7 +335,7 @@ function DiffPanel({ row }: { row: AuditRow }) {
     }
     return (
       <pre className="code small" dir="ltr">
-        {raw.map((value) => showValue(value)).join('\n→\n')}
+ {raw.map((value) => showValue(value)).join('\n\n')}
       </pre>
     );
   }

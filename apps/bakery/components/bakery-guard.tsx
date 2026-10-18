@@ -172,7 +172,7 @@ export function BakeryGuard({ children }: { children: React.ReactNode }) {
             </Button>
             <nav aria-label="موقعك في الواجهة" className="bak-crumbs">
               <Link href="/">المخابز</Link>
-              {active && active.href !== '/' ? ` ← ${active.labelAr}` : ''}
+ {active && active.href !== '/' ? ` ${active.labelAr}` : ''}
             </nav>
           </div>
 

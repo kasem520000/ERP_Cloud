@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { CheckCircle2, Circle } from 'lucide-react';
 
 import { DataTable, Notice } from '../../../components/data-view';
 import { Screen } from '../../../components/screen';
@@ -50,15 +51,15 @@ import { ApiError } from '../../../lib/api';
  *      message box, and the private key is shown once — at the moment it is generated.
  */
 const CSR_FIELDS: Array<{ key: keyof CsrProperties; labelAr: string; readOnly?: boolean; dir?: 'ltr' }> = [
-  { key: 'serialNumber', labelAr: '🖥️ Serial Number (سريال الجهاز)', readOnly: true, dir: 'ltr' },
-  { key: 'countryName', labelAr: '🌍 Country Name (الدولة)', dir: 'ltr' },
-  { key: 'commonName', labelAr: '🏢 Common Name (اسم المنشأة)' },
-  { key: 'organizationIdentifier', labelAr: '🔢 Organization Identifier (الرقم الضريبي)', dir: 'ltr' },
-  { key: 'organizationName', labelAr: '🏭 Organization Name (اسم المنشأة)' },
-  { key: 'invoiceType', labelAr: '📄 Invoice Type (نوع الفواتير)', dir: 'ltr' },
-  { key: 'industry', labelAr: '🏗️ Industry (النشاط التجاري)' },
-  { key: 'organizationUnitName', labelAr: '🏬 Organization Unit (اسم الفرع)' },
-  { key: 'address', labelAr: '📍 Address (العنوان المختصر)' },
+ { key: 'serialNumber', labelAr: 'سريال الجهاز (Serial Number)', readOnly: true, dir: 'ltr' },
+ { key: 'countryName', labelAr: 'الدولة (Country Name)', dir: 'ltr' },
+ { key: 'commonName', labelAr: 'اسم المنشأة (Common Name)' },
+ { key: 'organizationIdentifier', labelAr: 'الرقم الضريبي (Organization Identifier)', dir: 'ltr' },
+ { key: 'organizationName', labelAr: 'الاسم التجاري (Organization Name)' },
+ { key: 'invoiceType', labelAr: 'نوع الفواتير (Invoice Type)', dir: 'ltr' },
+ { key: 'industry', labelAr: 'النشاط التجاري (Industry)' },
+ { key: 'organizationUnitName', labelAr: 'اسم الفرع (Organization Unit)' },
+ { key: 'address', labelAr: 'العنوان المختصر (Address)' },
 ];
 
 export default function ZatcaSettingsPage() {
@@ -108,7 +109,7 @@ export default function ZatcaSettingsPage() {
 
   return (
  <Screen
-      title="⚙️ إعدادات الربط الضريبي - زاتكا ZATCA"
+ title="الربط الضريبي — ZATCA"
       subtitle="التأهيل خطوة بخطوة: توليد الشهادة، ثم شهادة الامتثال بالـ OTP، ثم مفتاح التشفير، ثم اختبار الربط بالستة وثائق — وآخرها تشغيل الربط أو إيقافه."
       crumbs={['الإعدادات', 'إعدادات الربط الضريبي']}
       actions={
@@ -122,138 +123,234 @@ export default function ZatcaSettingsPage() {
 
       {view && (
  <>
-          {/* ═══ Card 1: OTP + Activate + Mode ═══ */}
- <div className="card">
+          {/* ── الاتصال والتفعيل ───────────────────────────────────── */}
+ <section className="panel">
+ <div className="panel-head">
+ <div>
+ <h2>الاتصال والتفعيل</h2>
+ <p>أدخل التاريخ وكود OTP المرسل من هيئة الزكاة، ثم اختر بيئة الربط.</p>
+ </div>
+ </div>
+ <div className="form-section">
  <div className="form-grid">
  <label className="field">
- <span>📅 التاريخ</span>
- <input type="date" value={settings.startDate} onChange={(event) => setSettings({ ...settings, startDate: event.target.value })} />
+ <span>التاريخ</span>
+ <input className="input" type="date" value={settings.startDate} onChange={(event) => setSettings({ ...settings, startDate: event.target.value })} />
  </label>
  <label className="field">
- <span>🔑 OTP</span>
- <input dir="ltr" value={otp} onChange={(event) => setOtp(event.target.value)} placeholder="الكود المرسل من هيئة الزكاة" />
+ <span>OTP</span>
+ <input className="input" dir="ltr" value={otp} onChange={(event) => setOtp(event.target.value)} placeholder="الكود المرسل من هيئة الزكاة" />
  </label>
  <div className="field">
- <span>التفعيل ووضع الاتصال</span>
- <label className="check"><input type="checkbox" checked={settings.active} onChange={(event) => setSettings({ ...settings, active: event.target.checked })} /><span>✅ تمكين Activate</span></label>
- <label className="check"><input type="checkbox" checked={settings.simulation} onChange={(event) => setSettings({ ...settings, simulation: event.target.checked })} /><span>🧪 Simulation تجريبي</span></label>
- <label className="check"><input type="checkbox" checked={settings.syncManual} onChange={(event) => setSettings({ ...settings, syncManual: event.target.checked })} /><span>Sync manual</span></label>
+ <span>خيارات التشغيل</span>
+ <label className="check"><input type="checkbox" checked={settings.active} onChange={(event) => setSettings({ ...settings, active: event.target.checked })} /><span>تمكين الربط</span></label>
+ <label className="check"><input type="checkbox" checked={settings.simulation} onChange={(event) => setSettings({ ...settings, simulation: event.target.checked })} /><span>وضع المحاكاة</span></label>
+ <label className="check"><input type="checkbox" checked={settings.syncManual} onChange={(event) => setSettings({ ...settings, syncManual: event.target.checked })} /><span>مزامنة يدوية</span></label>
  </div>
  <div className="field">
  <span>نوع الربط</span>
- <label className="check"><input type="radio" name="environment" checked={settings.environment === 'production'} onChange={() => setSettings({ ...settings, environment: 'production' })} /><span>🔴 Production ربط فعلي</span></label>
- <label className="check"><input type="radio" name="environment" checked={settings.environment === 'compliance'} onChange={() => setSettings({ ...settings, environment: 'compliance' })} /><span>🔵 Compliance تجريبي</span></label>
+ <label className="check"><input type="radio" name="environment" checked={settings.environment === 'production'} onChange={() => setSettings({ ...settings, environment: 'production' })} /><span>ربط فعلي (Production)</span></label>
+ <label className="check"><input type="radio" name="environment" checked={settings.environment === 'compliance'} onChange={() => setSettings({ ...settings, environment: 'compliance' })} /><span>بيئة الامتثال (Compliance)</span></label>
  <p className="small muted">من {settings.startDate || '—'} إلى {settings.endDate || '—'}</p>
  </div>
  </div>
  </div>
+ </section>
 
-          {/* ═══ Card 2: CSR Properties ═══ */}
- <div className="card">
- <h3>📋 خصائص شهادة CSR</h3>
- <div className="toolbar">
- <button type="button" className="btn" disabled={busy !== ''} onClick={() => void run('fill', async () => {
-                const filled = await fillCsrFromCompany();
-                setCsr(filled.settings.csr);
-                setSettings({ ...settings, startDate: filled.settings.settings.startDate, endDate: filled.settings.settings.endDate });
-                if (filled.warnings.length > 0) setNotice({ kind: 'warn', text: filled.warnings.join(' · ') });
-                return filled;
-              })}>
- 🔄تعبئة تلقائي
- </button>
-              {busy === 'fill' && <span className="chip">…</span>}
+          {/* ── خصائص شهادة CSR ───────────────────────────────────── */}
+          <section className="panel">
+            <div className="panel-head">
+              <div>
+                <h2>خصائص شهادة CSR</h2>
+                <p>تُقرأ من بيانات المنشأة؛ عدّلها فقط إذا اختلفت عن المسجَّل في هيئة الزكاة.</p>
+              </div>
+              <div className="panel-actions">
+                <button
+                  type="button"
+                  className="btn"
+                  disabled={busy !== ''}
+                  onClick={() =>
+                    void run('fill', async () => {
+                      const filled = await fillCsrFromCompany();
+                      setCsr(filled.settings.csr);
+                      setSettings({
+                        ...settings,
+                        startDate: filled.settings.settings.startDate,
+                        endDate: filled.settings.settings.endDate,
+                      });
+                      if (filled.warnings.length > 0)
+                        setNotice({ kind: 'warn', text: filled.warnings.join(' · ') });
+                      return filled;
+                    })
+                  }
+                >
+                  تعبئة من بيانات المنشأة
+                </button>
+                {busy === 'fill' && <span className="badge">جارٍ التعبئة…</span>}
+              </div>
+            </div>
+            <div className="form-section">
+              <div className="form-grid">
+                {CSR_FIELDS.map((field) => (
+                  <label key={field.key} className="field">
+                    <span>{field.labelAr}</span>
+                    <input
+                      className="input"
+                      dir={field.dir}
+                      readOnly={field.readOnly}
+                      value={csr[field.key]}
+                      onChange={(event) => setField(field.key, event.target.value)}
+                    />
+                  </label>
+                ))}
+              </div>
+            </div>
+          </section>
+
+          {/* ── خطوات التأهيل ─────────────────────────────────────── */}
+          <section className="panel">
+            <div className="panel-head">
+              <div>
+                <h2>خطوات التأهيل</h2>
+                <p>الخطوات بالترتيب؛ لا تنتقل إلى التالية قبل نجاح السابقة.</p>
+              </div>
+            </div>
+            <div className="form-section">
+              <ol className="checklist">
+                {view.checklist.map((row) => (
+                  <li key={row.key} className={row.done ? 'checklist-item done' : 'checklist-item'}>
+                    {row.done ? (
+                      <CheckCircle2 size={17} strokeWidth={2} aria-hidden />
+                    ) : (
+                      <Circle size={17} strokeWidth={2} aria-hidden />
+                    )}
+                    <span>{row.labelAr}</span>
+                  </li>
+                ))}
+              </ol>
+            </div>
+          </section>
+
+          {/* ── الإجراءات ─────────────────────────────────────────── */}
+          <section className="panel">
+            <div className="panel-head">
+              <div>
+                <h2>الإجراءات</h2>
+                <p>نفّذ الخطوة الحالية فقط؛ الأزرار غير المتاحة تنتظر الخطوة السابقة.</p>
+              </div>
+            </div>
+            <div className="form-section">
+              <div className="toolbar">
+                <button
+                  type="button"
+                  className="btn primary"
+                  disabled={busy !== ''}
+                  onClick={() => void run('save', () => saveZatcaSettings({ ...settings, csr }))}
+                >
+                  حفظ الإعدادات
+                </button>
+                <button
+                  type="button"
+                  className="btn"
+                  disabled={busy !== '' || !otp}
+                  onClick={() => void run('compliance', () => requestComplianceCsid(otp))}
+                >
+                  إصدار شهادة الامتثال
+                </button>
+                <button
+                  type="button"
+                  className="btn"
+                  disabled={busy !== '' || !done('csr')}
+                  onClick={() => void run('generate', async () => {
+                    const next = await generateCsr();
+                    setGenerated(next);
+                    return next;
+                  })}
+                >
+                  توليد الشهادة
+                </button>
+                <button
+                  type="button"
+                  className="btn"
+                  disabled={busy !== '' || !done('compliance-csid')}
+                  onClick={() => void run('production', () => requestProductionCsid())}
+                >
+                  حفظ مفتاح التشفير
+                </button>
+                <button
+                  type="button"
+                  className="btn"
+                  disabled={busy !== '' || !done('csr')}
+                  onClick={() => void run('check', () => runComplianceCheck())}
+                >
+                  اختبار الربط
+                </button>
+                <button
+                  type="button"
+                  className="btn"
+                  disabled={busy !== '' || !done('production-csid')}
+                  onClick={() => void run('renew', () => renewCsid())}
+                >
+                  تجديد الشهادة
+                </button>
+                <button
+                  type="button"
+                  className="btn"
+                  disabled={busy !== '' || !view.link.canToggle}
+                  onClick={() => void run('link', () => toggleZatcaLink())}
+                >
+                  {view.link.active ? 'إيقاف الربط' : 'تشغيل الربط'}
+                </button>
+              </div>
+            </div>
+          </section>
+
+          {/* ── المفاتيح والشهادات ───────────────────────────────── */}
+ <section className="panel">
+ <div className="panel-head">
+ <div>
+ <h2>المفاتيح والشهادات</h2>
+ <p>تُعرض مقنّعة بعد الحفظ؛ القيم الكاملة لا تُعاد من الخادم.</p>
  </div>
+ </div>
+ <div className="form-section">
  <div className="form-grid">
-              {CSR_FIELDS.map((field) => (
- <label key={field.key} className="field wide">
- <span>{field.labelAr}</span>
- <input
-                    dir={field.dir}
-                    readOnly={field.readOnly}
-                    value={csr[field.key]}
-                    onChange={(event) => setField(field.key, event.target.value)}
-                  />
- </label>
-              ))}
+ <label className="field"><span>شهادة CSR</span><input className="input" readOnly value={view.credential.csr ? `${view.credential.csr.slice(0, 42)}…` : '—'} dir="ltr" /></label>
+ <label className="field"><span>المفتاح الخاص</span><input className="input" readOnly value={view.credential.privateKeyMasked ?? '—'} dir="ltr" /></label>
+ <label className="field"><span>معرّف طلب الامتثال</span><input className="input" readOnly value={view.credential.requestId ?? '—'} dir="ltr" /></label>
+ <label className="field"><span>شهادة الامتثال (CSID)</span><input className="input" readOnly value={view.credential.csidMasked ?? '—'} dir="ltr" /></label>
+ <label className="field"><span>سرّ الامتثال</span><input className="input" readOnly value={view.credential.secretMasked ?? '—'} dir="ltr" /></label>
+ <label className="field"><span>معرّف طلب الإنتاج</span><input className="input" readOnly value={view.credential.productionRequestId ?? '—'} dir="ltr" /></label>
+ <label className="field"><span>شهادة الإنتاج (PCSID)</span><input className="input" readOnly value={view.credential.productionCsidMasked ?? '—'} dir="ltr" /></label>
+ <label className="field"><span>سرّ الإنتاج</span><input className="input" readOnly value={view.credential.productionSecretMasked ?? '—'} dir="ltr" /></label>
  </div>
  </div>
-
-          {/* ═══ Card 3: actions ═══ */}
- <div className="card">
- <div className="toolbar">
- <button type="button" className="btn primary" disabled={busy !== ''} onClick={() => void run('save', () => saveZatcaSettings({ ...settings, csr }))}>
- 💾حفظ الإعدادات — Save Settings
- </button>
- <button type="button" className="btn" disabled={busy !== '' || !otp} onClick={() => void run('compliance', () => requestComplianceCsid(otp))}>
- 🔵إصدار شهادة امتثال — Compliance CSID
- </button>
- <button type="button" className="btn" disabled={busy !== '' || !done('compliance-csid')} onClick={() => void run('production', () => requestProductionCsid())}>
- 🔐حفظ مفتاح التشفير — Get PCSID
- </button>
- <button type="button" className="btn" disabled={busy !== '' || !done('csr')} onClick={() => void run('check', () => runComplianceCheck())}>
- 🧪اختبار الربط — Test Compliance
- </button>
- <button type="button" className="btn" disabled={busy !== '' || !done('production-csid')} onClick={() => void run('renew', () => renewCsid())}>
-                 🔄Renews CSID — تجديد الشهادة بعد 5 سنوات
- </button>
- <button type="button" className="btn" disabled={busy !== ''} onClick={() => void run('generate', async () => {
-                const next = await generateCsr();
-                setGenerated(next);
-                return next;
-              })}>
- ⚡توليد — Generate
- </button>
- <button type="button" className="btn" disabled={busy !== '' || !view.link.canToggle} onClick={() => void run('link', () => toggleZatcaLink())}>
-                {view.link.active ? '⏸ إيقاف الربط' : '▶ تشغيل'}
- </button>
- </div>
-
- <h3>خطوات التأهيل</h3>
- <div className="toolbar">
-              {view.checklist.map((row) => (
- <span key={row.key} className="chip">
-                  {row.done ? '' : '○'} {row.labelAr}
- </span>
-              ))}
- </div>
-
- <h3>🔐 المفاتيح والشهادات</h3>
- <div className="form-grid">
- <label className="field"><span>شهادة CSR</span><input readOnly value={view.credential.csr ? `${view.credential.csr.slice(0, 42)}…` : '—'} dir="ltr" /></label>
- <label className="field"><span>المفتاح الخاص</span><input readOnly value={view.credential.privateKeyMasked ?? '—'} dir="ltr" /></label>
- <label className="field"><span>معرّف طلب الامتثال</span><input readOnly value={view.credential.requestId ?? '—'} dir="ltr" /></label>
- <label className="field"><span>شهادة الامتثال (CSID)</span><input readOnly value={view.credential.csidMasked ?? '—'} dir="ltr" /></label>
- <label className="field"><span>سرّ الامتثال</span><input readOnly value={view.credential.secretMasked ?? '—'} dir="ltr" /></label>
- <label className="field"><span>معرّف طلب الإنتاج</span><input readOnly value={view.credential.productionRequestId ?? '—'} dir="ltr" /></label>
- <label className="field"><span>شهادة الإنتاج (PCSID)</span><input readOnly value={view.credential.productionCsidMasked ?? '—'} dir="ltr" /></label>
- <label className="field"><span>سرّ الإنتاج</span><input readOnly value={view.credential.productionSecretMasked ?? '—'} dir="ltr" /></label>
- </div>
- </div>
+ </section>
 
           {generated && (
  <div className="card">
- <h3>⚡ الشهادة المولّدة — تُعرض مرة واحدة</h3>
+ <h3>الشهادة المولّدة — تُعرض مرة واحدة</h3>
  <p className="small muted">البصمة: <span dir="ltr">{generated.fingerprint}</span> · السريال: <span dir="ltr">{generated.serialNumber}</span></p>
  <label className="field wide">
  <span>المفتاح الخاص (انسخه الآن — لن يظهر مرة أخرى)</span>
- <textarea readOnly rows={5} dir="ltr" value={generated.privateKey} />
+ <textarea className="input" readOnly rows={5} dir="ltr" value={generated.privateKey} />
  </label>
  <label className="field wide">
  <span>طلب التوقيع CSR</span>
- <textarea readOnly rows={3} dir="ltr" value={generated.csr} />
+ <textarea className="input" readOnly rows={3} dir="ltr" value={generated.csr} />
  </label>
-              {generated.revokedCredentials && <p className="small muted">🔄 أُلغيت الشهادات القديمة: الشهادة مرتبطة بالمفتاح الذي طُلبت به.</p>}
+ {generated.revokedCredentials && <p className="small muted">أُلغيت الشهادات القديمة: الشهادة مرتبطة بالمفتاح الذي طُلبت به.</p>}
  </div>
           )}
 
           {view.onboarding.lastComplianceCheck && (
  <div className="card">
- <h3>🧪 آخر اختبار ربط — {view.onboarding.lastComplianceCheck.passed ? 'تم بنجاح' : 'فشل'}</h3>
+ <h3>آخر اختبار ربط — {view.onboarding.lastComplianceCheck.passed ? 'تم بنجاح' : 'فشل'}</h3>
  <DataTable
                 rows={view.onboarding.lastComplianceCheck.checks}
                 rowKey={(row) => row.key}
                 columns={[
-                  { key: 'labelAr', header: 'الوثيقة', cell: (row) => `${row.success ? '✓' : '✗'} ${row.labelAr}` },
+ { key: 'labelAr', header: 'الوثيقة', cell: (row) => `${row.labelAr}` },
                   { key: 'labelEn', header: 'الاسم في الديسكتوب', cell: (row) => row.labelEn },
                   { key: 'invoiceTypeCode', header: 'النوع', cell: (row) => row.invoiceTypeCode },
                   { key: 'typeName', header: 'الصنف', cell: (row) => row.typeName },

@@ -34,7 +34,7 @@ export function AssistantLauncher() {
  </aside>
       ) : null}
  <button className="assistant-fab btn primary" type="button" onClick={() => setOpen((value) => !value)}>
- 💬مساعد
+ مساعد
  </button>
  </>
   );

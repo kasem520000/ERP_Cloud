@@ -115,12 +115,12 @@ function CostCentreStatement() {
   return (
  <Screen
       title="تقرير مركز كلفة"
-      subtitle="📊 كشف مركز الكلفة — حركة المركز ورصيده من القيود المرحّلة فقط."
+ subtitle="كشف مركز الكلفة — حركة المركز ورصيده من القيود المرحّلة فقط."
       crumbs={['المحاسبة', 'تقارير محاسبية']}
       actions={
  <>
  <button className="btn" type="button" onClick={() => window.print()} disabled={rows.length === 0}>
- 🖨️طباعة
+ طباعة
  </button>
  <button
             className="btn"
@@ -154,7 +154,7 @@ function CostCentreStatement() {
  <div className="card tight no-print">
  <div className="row" style={{ flexWrap: 'wrap', alignItems: 'flex-end' }}>
  <label className="field" style={{ margin: 0, minWidth: 240, flex: 1 }}>
- <span>🏢 مركز الكلفة *</span>
+ <span>مركز الكلفة *</span>
  <select className="input" value={centerId} onChange={(event) => setCenterId(event.target.value)}>
  <option value="">— اختر مركز الكلفة</option>
               {(centers.data ?? []).map((center) => (
@@ -179,7 +179,7 @@ function CostCentreStatement() {
  </select>
  </label>
  <label className="field" style={{ margin: 0, minWidth: 180 }}>
- <span>🌿 الفرع</span>
+ <span>الفرع</span>
  <select className="input" value={branchId} onChange={(event) => setBranchId(event.target.value)}>
  <option value="">الكل</option>
               {(branches.data ?? []).map((branch) => (
@@ -195,7 +195,7 @@ function CostCentreStatement() {
  </label>
  <label className="field" style={{ margin: 0, width: 110 }}>
  <span>من وقت</span>
- <input className="input" type="time" value={fromTime} onChange={(event) => setFromTime(event.target.value)} disabled={fullPeriod || !from} title="⏰ الوقت — frmAccountBalance L458-L463" />
+ <input className="input" type="time" value={fromTime} onChange={(event) => setFromTime(event.target.value)} disabled={fullPeriod || !from} title="الوقت — frmAccountBalance L458-L463" />
  </label>
  <label className="field" style={{ margin: 0, width: 140 }}>
  <span>إلى</span>
@@ -203,10 +203,10 @@ function CostCentreStatement() {
  </label>
  <label className="field" style={{ margin: 0, width: 110 }}>
  <span>إلى وقت</span>
- <input className="input" type="time" value={toTime} onChange={(event) => setToTime(event.target.value)} disabled={fullPeriod || !to} title="⏰ الوقت — frmAccountBalance L458-L463" />
+ <input className="input" type="time" value={toTime} onChange={(event) => setToTime(event.target.value)} disabled={fullPeriod || !to} title="الوقت — frmAccountBalance L458-L463" />
  </label>
  <label className="field" style={{ margin: 0, minWidth: 180 }}>
- <span>📋 نوع القيد</span>
+ <span>نوع القيد</span>
  <select className="input" value={entryKind} onChange={(event) => setEntryKind(event.target.value)}>
  <option value="">الكل</option>
  <option value="opening">قيد افتتاحي</option>
@@ -231,11 +231,11 @@ function CostCentreStatement() {
               setApplied({ centerId, accountId, branchId, from, to, fromTime, toTime, fullPeriod, hidePrevious, summary, entryKind })
             }
           >
- 🔍عرض
+ عرض
  </button>
  </div>
  <div className="row" style={{ flexWrap: 'wrap', marginTop: 8 }}>
- <span className="group-label">📊 نوع الرصيد</span>
+ <span className="group-label">نوع الرصيد</span>
           {(
             [
               { id: 'all', label: 'الكل' },
@@ -253,7 +253,7 @@ function CostCentreStatement() {
  </button>
           ))}
  <span className="group-label" style={{ marginInlineStart: 12 }}>
- 📑نوع التقرير
+ نوع التقرير
  </span>
  <button type="button" className={`btn sm${summary ? ' primary' : ''}`} onClick={() => setSummary(true)}>
  تجميعي
@@ -283,11 +283,11 @@ function CostCentreStatement() {
       {applied.centerId && statement.status === 'success' && (
  <>
  <StatTiles>
- <StatTile label="💸 إجمالي مدين" value={money(totals.debit)} tone="ok" />
- <StatTile label="💰 إجمالي دائن" value={money(totals.credit)} tone="brand" />
+ <StatTile label="إجمالي مدين" value={money(totals.debit)} tone="ok" />
+ <StatTile label="إجمالي دائن" value={money(totals.credit)} tone="brand" />
  <StatTile label="رصيد الفترة (مدين)" value={money(totals.periodDebit)} />
  <StatTile label="رصيد الفترة (دائن)" value={money(totals.periodCredit)} />
- <StatTile label="⚖️ الرصيد" value={money(totals.closing)} hint={totals.closingStatus ?? undefined} />
+ <StatTile label="الرصيد" value={money(totals.closing)} hint={totals.closingStatus ?? undefined} />
  </StatTiles>
 
           {rows.length === 0 ? (
@@ -303,16 +303,16 @@ function CostCentreStatement() {
  <th>م</th>
  <th>التاريخ</th>
  <th>النوع</th>
- <th>📄 رقم السند</th>
- <th>🔢 الرقم العام</th>
+ <th>رقم السند</th>
+ <th>الرقم العام</th>
  <th>الفرع</th>
  <th>البيان</th>
  <th>رمز الحساب</th>
  <th>اسم الحساب</th>
-                    {showDebit && <th className="num">💸 مدين</th>}
-                    {showCredit && <th className="num">💰 دائن</th>}
- <th className="num">⚖️ الرصيد</th>
- <th>📌 الحالة</th>
+ {showDebit && <th className="num">مدين</th>}
+ {showCredit && <th className="num">دائن</th>}
+ <th className="num">الرصيد</th>
+ <th>الحالة</th>
  </tr>
  </thead>
  <tbody>

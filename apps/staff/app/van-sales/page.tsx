@@ -418,39 +418,39 @@ type DashboardData = {
 };
 
 const MOVEMENT_TYPE_AR: Record<string, string> = {
-  production_in: '🏭 إنتاج يومي للمستودع الرئيسي',
-  van_load: '🚚 صرف وتحميل عهدة مندوب',
-  van_sale: '🧾 بيع فعلي لعميل',
-  van_bonus: '🎁 كمية مجانية / عينات',
-  van_return: '↩ إرجاع سليم للمستودع',
-  van_damage: '⚠️ تالف مفحوص ومعتمد',
-  van_shortage: '🔴 عجز عهدة مخصوم من راتب المندوب',
-  stocktake_adjustment: '📋 تسوية جرد فعلي',
-  collection_receipt: '💵 سند قبض وتحصيل مديونية',
+ production_in: 'إنتاج يومي للمستودع الرئيسي',
+ van_load: 'صرف وتحميل عهدة مندوب',
+ van_sale: 'بيع فعلي لعميل',
+ van_bonus: 'كمية مجانية / عينات',
+ van_return: 'إرجاع سليم للمستودع',
+ van_damage: 'تالف مفحوص ومعتمد',
+ van_shortage: 'عجز عهدة مخصوم من راتب المندوب',
+ stocktake_adjustment: 'تسوية جرد فعلي',
+ collection_receipt: 'سند قبض وتحصيل مديونية',
 };
 
 const LOAD_STATUS_AR: Record<string, string> = {
   draft: 'مسودة',
   /** صُرفت البضاعة من المستودع الرئيسي وهي رسميًّا «تحت التحويل» — لم تدخل عهدة المندوب بعد. */
-  pending_receipt: '🚚 مصروف وبانتظار تأكيد استلام المندوب',
+ pending_receipt: 'مصروف وبانتظار تأكيد استلام المندوب',
   loaded: 'محمّل في السيارة (بعد تأكيد الاستلام)',
   in_route: 'قيد التوزيع اليومي',
-  pending_closing: '⏳ معلق بانتظار فحص التالف واعتماد المحاسب',
+ pending_closing: 'معلق بانتظار فحص التالف واعتماد المحاسب',
   /** الكميات اعتُمدت، لكن رصيد السيارة الرسمي ما زال يختلف عن الجرد الفعلي. */
-  pending_stock_settlement: '🧾 بانتظار تسوية المخزون الرسمية (العهدة لم تُغلق)',
-  settled: '✅ معتمد ومُصفّى ومُسوّى مخزنياً',
-  reconciled: '✅ مُطابَق',
-  rejected: '❌ مرفوض من المندوب (أُعيدت الكمية رسمياً)',
-  canceled: '🗑️ ملغى (أُلغيت المناقلة الرسمية)',
+ pending_stock_settlement: 'بانتظار تسوية المخزون الرسمية (العهدة لم تُغلق)',
+ settled: 'معتمد ومُصفّى ومُسوّى مخزنياً',
+ reconciled: 'مُطابَق',
+ rejected: 'مرفوض من المندوب (أُعيدت الكمية رسمياً)',
+ canceled: 'ملغى (أُلغيت المناقلة الرسمية)',
 };
 
 /** حالة تسوية المخزون الرسمية كما يراها المحاسب. */
 const SETTLEMENT_STATUS_AR: Record<string, string> = {
   not_required: 'لا يلزم تسوية',
-  pending_transit_decision: '🚦 فرق استلام بلا قرار',
-  pending_count_decision: '🧾 جرد بلا تسوية مُرحّلة',
-  settled_officially: '✅ سُوّي رسمياً',
-  blocked_missing_accounts: '⛔ حسابات ملف الترحيل ناقصة',
+ pending_transit_decision: 'فرق استلام بلا قرار',
+ pending_count_decision: 'جرد بلا تسوية مُرحّلة',
+ settled_officially: 'سُوّي رسمياً',
+ blocked_missing_accounts: 'حسابات ملف الترحيل ناقصة',
 };
 
 const BONUS_REASONS = [
@@ -1040,7 +1040,7 @@ export default function VanSalesPage() {
       setClosingTarget(updated);
       setNotice({
         kind: 'warn',
-        text: `⏳ تم تقديم طلب إغلاق الوردية (${closingTarget.number}) وحساب العجز تلقائياً، وباتت الحالة «معلق بانتظار فحص التالف واعتماد المحاسب».`,
+ text: `تم تقديم طلب إغلاق الوردية (${closingTarget.number}) وحساب العجز تلقائياً، وباتت الحالة «معلق بانتظار فحص التالف واعتماد المحاسب».`,
       });
     } catch (error) {
       setNotice({ kind: 'danger', text: apiErrorText(error, 'تعذر تقديم إغلاق الوردية') });
@@ -1067,8 +1067,8 @@ export default function VanSalesPage() {
         kind: updated?.status === 'settled' ? 'ok' : 'warn',
         text:
           updated?.status === 'settled'
-            ? `✅ سُوّي رصيد السيارة الرسمي مع الجرد الفعلي (${load.number}) وأُغلقت العهدة. مسؤولية أي عجز ما زالت معلّقة بانتظار السياسة.`
-            : `⏳ ${updated?.stockSettlementNote ?? 'لم تكتمل تسوية المخزون بعد'} (${load.number}).`,
+ ? `سُوّي رصيد السيارة الرسمي مع الجرد الفعلي (${load.number}) وأُغلقت العهدة. مسؤولية أي عجز ما زالت معلّقة بانتظار السياسة.`
+ : `${updated?.stockSettlementNote ?? 'لم تكتمل تسوية المخزون بعد'} (${load.number}).`,
       });
     } catch (error) {
       setNotice({
@@ -1094,8 +1094,8 @@ export default function VanSalesPage() {
         kind: 'ok',
         text:
           mode === 'return'
-            ? `↩ أُعيد فرق الاستلام (${load.discrepancyQty ?? '0'} كجم) رسمياً إلى المستودع المصدر بقيد من ملف الترحيل (${load.number}).`
-            : `⚠️ اعتُبر فرق الاستلام (${load.discrepancyQty ?? '0'} كجم) عجز تحويل ورُحّل رسمياً (Dr تسوية المخزون / Cr بضاعة تحت التحويل) (${load.number}).`,
+ ? `أُعيد فرق الاستلام (${load.discrepancyQty ?? '0'} كجم) رسمياً إلى المستودع المصدر بقيد من ملف الترحيل (${load.number}).`
+ : `اعتُبر فرق الاستلام (${load.discrepancyQty ?? '0'} كجم) عجز تحويل ورُحّل رسمياً (Dr تسوية المخزون / Cr بضاعة تحت التحويل) (${load.number}).`,
       });
     } catch (error) {
       setNotice({
@@ -1121,7 +1121,7 @@ export default function VanSalesPage() {
         reason: reason.trim() || undefined,
       });
       setData(next);
-      setNotice({ kind: 'ok', text: `🗑️ أُلغي أمر التحميل (${load.number}) وأُلغيت المناقلة الرسمية وأعادت الكميات وقيد الإرسال.` });
+ setNotice({ kind: 'ok', text: `أُلغي أمر التحميل (${load.number}) وأُلغيت المناقلة الرسمية وأعادت الكميات وقيد الإرسال.` });
     } catch (error) {
       setNotice({
         kind: 'danger',
@@ -1159,10 +1159,10 @@ export default function VanSalesPage() {
         text: stillOpen
           // ‏بلا `**…**`: فنصُّ التنبيه يُطبع كما هو، وعلاماتُ التنصيص لا تُصرَف في JSX —
           // ‏وكانت النجمتان تظهران للمستخدم حرفيًّا.
-          ? `⏳ اعتُمدت كميات الوردية (${closingTarget.number}) لكن العهدة لم تُغلق: ${
+ ? `اعتُمدت كميات الوردية (${closingTarget.number}) لكن العهدة لم تُغلق: ${
               updated?.stockSettlementNote ?? 'رصيد السيارة الرسمي ما زال يختلف عن الجرد الفعلي'
-            } — استخدم «♻️ استكمال تسوية المخزون» بعد تفويض ترحيل مستند الجرد الرسمي.`
-          : `✅ اعتُمدت الوردية (${closingTarget.number}) وسُوّي رصيد السيارة الرسمي مع الجرد الفعلي${
+ } — استخدم «استكمال تسوية المخزون» بعد تفويض ترحيل مستند الجرد الرسمي.`
+ : `اعتُمدت الوردية (${closingTarget.number}) وسُوّي رصيد السيارة الرسمي مع الجرد الفعلي${
               closingRemainingAction === 'return_to_main'
                 ? ' وأُعيد المتبقي رسمياً إلى المستودع الرئيسي'
                 : closingRemainingAction === 'carry_over'
@@ -1247,7 +1247,7 @@ export default function VanSalesPage() {
 
   return (
  <Screen
-      title="🏭 نظام المصنع والمخابز ومناديب التوزيع المتكامل"
+ title="نظام المصنع والمخابز ومناديب التوزيع المتكامل"
       subtitle="الحل الشامل لإدارة الإنتاج اليومي، المستودع الرئيسي، عهد المناديب، إغلاق الوردية المعلق لاعتماد المحاسب وفحص التالف وخصم العجز من الراتب، ضبط الأسعار والبونص، والفوترة الإلكترونية ZATCA."
       crumbs={['توزيع المناديب والمخابز']}
     >
@@ -1260,31 +1260,31 @@ export default function VanSalesPage() {
           className={tab === 'owner' ? 'btn primary' : 'btn'}
           onClick={() => setTab('owner')}
         >
-           📊1. لوحة صاحب المصنع والملخص التنفيذي
+ 1. لوحة صاحب المصنع والملخص التنفيذي
  </button>
  <button
           type="button"
           className={tab === 'production' ? 'btn primary' : 'btn'}
           onClick={() => setTab('production')}
         >
-           🏭2. الإنتاج اليومي والمستودع وحركة البضاعة ({data?.productionBatches.length ?? 0})
+ 2. الإنتاج اليومي والمستودع وحركة البضاعة ({data?.productionBatches.length ?? 0})
  </button>
  <button
           type="button"
           className={tab === 'reps' ? 'btn primary' : 'btn'}
           onClick={() => setTab('reps')}
         >
-           🧑‍💼3. مندوبو التوزيع وحساباتهم ومستودعات سياراتهم ({vanSalesmen.length})
+ 3. مندوبو التوزيع وحساباتهم ومستودعات سياراتهم ({vanSalesmen.length})
  </button>
  <button
           type="button"
           className={tab === 'loads' ? 'btn primary' : 'btn'}
           onClick={() => setTab('loads')}
         >
-           🚚4. توريد المنتجات وعهد المناديب وإغلاق الوردية ({data?.loadOrders.length ?? 0})
-          {(data?.summary.pendingReceiptsCount ?? 0) > 0 ? ` · ⏳ ${data?.summary.pendingReceiptsCount} بانتظار الاستلام` : ''}
+ 4. توريد المنتجات وعهد المناديب وإغلاق الوردية ({data?.loadOrders.length ?? 0})
+ {(data?.summary.pendingReceiptsCount ?? 0) > 0 ? ` · ${data?.summary.pendingReceiptsCount} بانتظار الاستلام` : ''}
           {(data?.summary.pendingStockSettlementsCount ?? 0) > 0
-            ? ` · 🧾 ${data?.summary.pendingStockSettlementsCount} بلا تسوية مخزون`
+ ? ` · ${data?.summary.pendingStockSettlementsCount} بلا تسوية مخزون`
             : ''}
  </button>
  <button
@@ -1292,21 +1292,21 @@ export default function VanSalesPage() {
           className={tab === 'invoice' ? 'btn primary' : 'btn'}
           onClick={() => setTab('invoice')}
         >
-           🧾4. فواتير التوزيع (ZATCA / عادية) والتحصيل ({data?.documents.length ?? 0})
+ 4. فواتير التوزيع (ZATCA / عادية) والتحصيل ({data?.documents.length ?? 0})
  </button>
  <button
           type="button"
           className={tab === 'prices' ? 'btn primary' : 'btn'}
           onClick={() => setTab('prices')}
         >
-           💰5. ضبط أسعار العملاء والائتمان والبونص ({data?.customerPrices.length ?? 0})
+ 5. ضبط أسعار العملاء والائتمان والبونص ({data?.customerPrices.length ?? 0})
  </button>
  <button
           type="button"
           className={tab === 'audit' ? 'btn primary' : 'btn'}
           onClick={() => setTab('audit')}
         >
-           🛡️6. رادار البونص والصلاحيات والأمان
+ 6. رادار البونص والصلاحيات والأمان
  </button>
  </div>
 
@@ -1326,14 +1326,14 @@ export default function VanSalesPage() {
         >
  <div>
  <strong>
-              ⏳ يوجد ({data?.summary.pendingClosingsCount}) طلب إغلاق وردية مندوب معلق بانتظار فحص التالف واعتماد المحاسب!
+ يوجد ({data?.summary.pendingClosingsCount}) طلب إغلاق وردية مندوب معلق بانتظار فحص التالف واعتماد المحاسب!
  </strong>
  <div className="muted small">
  لا يتم تصفير عهدة المندوب أو قيد التالف والعجز على راتب المندوب إلا بعد مراجعة المحاسب والاعتماد النهائي.
  </div>
  </div>
  <button type="button" className="btn primary" onClick={() => setTab('loads')}>
- مراجعة واعتماد إغلاقات الورديات الآن ←
+ مراجعة واعتماد إغلاقات الورديات الآن 
  </button>
  </div>
       )}
@@ -1343,7 +1343,7 @@ export default function VanSalesPage() {
         (data?.summary.pendingTransitDecisionsCount ?? 0) > 0) && (
  <div className="card" style={{ border: '2px solid var(--danger)' }}>
  <strong>
- 🧾يوجد ({data?.summary.pendingStockSettlementsCount ?? 0}) وردية اعتُمدت كمياتها ولم تُسوَّ
+ يوجد ({data?.summary.pendingStockSettlementsCount ?? 0}) وردية اعتُمدت كمياتها ولم تُسوَّ
  مخزنياً
             {(data?.summary.pendingTransitDecisionsCount ?? 0) > 0
               ? ` و(${data?.summary.pendingTransitDecisionsCount}) فرق استلام بلا قرار`
@@ -1351,11 +1351,11 @@ export default function VanSalesPage() {
  </strong>
  <div className="muted small">
  العهدة <b>لم تُغلق</b>: رصيد السيارة الرسمي في دفتر المخزون ما زال يختلف عن الجرد الفعلي. لا تُغلق
- أي عهدة مع بقاء فرق بلا تسوية في دفتر المخزون — استخدم «♻️ استكمال تسوية المخزون» على الأمر المعنيّ
+ أي عهدة مع بقاء فرق بلا تسوية في دفتر المخزون — استخدم «استكمال تسوية المخزون» على الأمر المعنيّ
  بعد تفويض ترحيل مستند الجرد الرسمي. المسؤولية المالية عن أي عجز تبقى معلّقة حتى تعتمد السياسة.
  </div>
  <button type="button" className="btn primary" onClick={() => setTab('loads')}>
- عرض الورديات المعلّقة وتسويتها الآن ←
+ عرض الورديات المعلّقة وتسويتها الآن 
  </button>
  </div>
       )}
@@ -1363,13 +1363,13 @@ export default function VanSalesPage() {
       {/* Pending supply receipts — goods officially in transit, not yet in the rep's custody */}
       {(data?.summary.pendingReceiptsCount ?? 0) > 0 && (
  <div className="card" style={{ border: '2px solid var(--info, #2f6fed)' }}>
- <strong>🚚 يوجد ({data?.summary.pendingReceiptsCount}) توريد بانتظار تأكيد استلام المندوب</strong>
+ <strong>يوجد ({data?.summary.pendingReceiptsCount}) توريد بانتظار تأكيد استلام المندوب</strong>
  <div className="muted small">
  البضاعة خرجت من المستودع الرئيسي وهي رسميًّا «تحت التحويل» — لا تدخل عهدة المندوب ولا يظهر لها رصيد في
  سيارته إلا بعد أن يؤكّد الاستلام من تطبيق المندوب (أو يؤكده المحاسب نيابةً عنه).
  </div>
  <button type="button" className="btn" onClick={() => setTab('loads')}>
- عرض التوريدات المنتظرة ←
+ عرض التوريدات المنتظرة 
  </button>
  </div>
       )}
@@ -1377,25 +1377,27 @@ export default function VanSalesPage() {
       {/* جاهزية الترحيل المحاسبي — named per operation so the message is actionable */}
       {data?.postingReadiness && !data.postingReadiness.salesInvoice && (
  <div className="card" style={{ border: '2px solid var(--warn)' }}>
- <strong>⚠️ ملف الترحيل المحاسبي غير مكتمل</strong>
+ <strong>ملف الترحيل المحاسبي غير مكتمل</strong>
  <div className="muted small">{data.postingReadiness.message}</div>
  <div className="muted small">
- الحالة الآن: فاتورة المبيعات الرسمية {data.postingReadiness.salesInvoice ? '✅' : '❌'} · المناولات
- المخزنية {data.postingReadiness.stockTransfer ? '✅' : '❌'} · سندات القبض{' '}
-            {data.postingReadiness.receiptVoucher ? '✅' : '❌'} — تسجيل الإنتاج وحركة الأرصدة يعملان بدونها.
+ الحالة الآن: فاتورة المبيعات الرسمية{' '}
+                {data.postingReadiness.salesInvoice ? 'جاهزة' : 'غير جاهزة'} · المناولات المخزنية{' '}
+                {data.postingReadiness.stockTransfer ? 'جاهزة' : 'غير جاهزة'} · سندات القبض{' '}
+                {data.postingReadiness.receiptVoucher ? 'جاهزة' : 'غير جاهزة'} — تسجيل الإنتاج وحركة
+                الأرصدة يعملان بدونها.
  </div>
  </div>
       )}
 
       {/* الأرصدة الرسمية — the same rows the inventory screens read */}
  <div className="card">
- <h2 style={{ marginTop: 0 }}>📦 الأرصدة الرسمية في المستودعات (من دفتر المخزون الموحّد)</h2>
+ <h2 style={{ marginTop: 0 }}>الأرصدة الرسمية في المستودعات (من دفتر المخزون الموحّد)</h2>
  <div className="muted small" style={{ marginBottom: 8 }}>
  هذه هي الأرصدة نفسها التي تراها في شاشة أرصدة المخزون وبطاقة الصنف والتقارير الرسمية — تُقرأ من
  <code> stock_balances</code> ولا تُحتسب من جداول الإضافة.
           {data?.summary.stockLedgerAgrees === false ? (
  <b style={{ color: 'var(--danger)' }}>
-              {' '}⚠️ يوجد اختلاف بين الرصيد الرسمي والرصيد المشتق من سجلات التوزيع — راجع الحركات.
+ {' '}يوجد اختلاف بين الرصيد الرسمي والرصيد المشتق من سجلات التوزيع — راجع الحركات.
  </b>
           ) : null}
  </div>
@@ -1416,7 +1418,7 @@ export default function VanSalesPage() {
  <tr key={`${row.warehouseId}-${row.itemId}`}>
  <td>
                     {row.warehouseName}
-                    {row.warehouseId === data?.mainWarehouseId ? ' 🏭 (رئيسي)' : ''}
+ {row.warehouseId === data?.mainWarehouseId ? ' (رئيسي)' : ''}
  </td>
  <td>{row.itemName}</td>
  <td dir="ltr">{row.sku}</td>
@@ -1441,7 +1443,7 @@ export default function VanSalesPage() {
       {Number(data?.summary.inTransitKg ?? 0) > 0 && (
  <div className="card" style={{ border: '2px solid var(--info, #2f6fed)' }}>
  <strong>
- 🚚بضاعة تحت التحويل: {data?.summary.inTransitKg} كجم بقيمة{' '}
+ بضاعة تحت التحويل: {data?.summary.inTransitKg} كجم بقيمة{' '}
             {data?.summary.inTransitValueSar} ريال ({data?.summary.inTransitTransfersCount ?? 0} مناولة)
  </strong>
  <div className="muted small">
@@ -1500,7 +1502,7 @@ export default function VanSalesPage() {
  </div>
               {(data?.summary.returnDocumentCount ?? 0) > 0 ? (
  <div className="muted small" dir="ltr">
-                  ↩ gross {data?.summary.totalSalesGrossSar ?? '0.00'} − returns{' '}
+ gross {data?.summary.totalSalesGrossSar ?? '0.00'} − returns{' '}
                   {data?.summary.totalReturnsSar ?? '0.00'} − vat{' '}
                   {data?.summary.totalReturnsVatSar ?? '0.00'} = {data?.summary.totalRevenueSar ?? '0.00'} (
                   {data?.summary.returnDocumentCount} docs
@@ -1531,13 +1533,13 @@ export default function VanSalesPage() {
  <div className="card">
  <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
  <div>
- <h2 style={{ margin: 0 }}>👨‍✈️ ملخص رقابة المناديب والعهد والربحية والعجز المخصوم من الراتب</h2>
+ <h2 style={{ margin: 0 }}>ملخص رقابة المناديب والعهد والربحية والعجز المخصوم من الراتب</h2>
  <p className="muted small" style={{ margin: 0 }}>
  مقارنة شاملة لكل مندوب: المستلم، المباع، البونص، التالف، العجز المحسوب على المندوب، التحصيل، المديونيات، وصافي الربح.
  </p>
  </div>
  <button type="button" className="btn sm primary" onClick={() => setTab('loads')}>
- ➕تحميل عهدة / إغلاق وردية
+ تحميل عهدة / إغلاق وردية
  </button>
  </div>
  <div className="table-wrap">
@@ -1612,7 +1614,7 @@ export default function VanSalesPage() {
       {tab === 'production' && (
  <div style={{ display: 'grid', gap: 16 }}>
  <form className="card" onSubmit={submitProductionBatch} style={{ display: 'grid', gap: 12 }}>
- <h2 style={{ margin: 0 }}>🏭 تسجيل دفعة إنتاج يومي للمصنع والمخبز وتوريدها للمستودع الرئيسي</h2>
+ <h2 style={{ margin: 0 }}>تسجيل دفعة إنتاج يومي للمصنع والمخبز وتوريدها للمستودع الرئيسي</h2>
  <p className="muted small" style={{ margin: 0 }}>
  تُقيَّد الكمية المنتجة في <b>الرصيد الرسمي للمستودع</b> برقم دفعة فريد (نفس الأرصدة التي تظهر في شاشة
  المخزون وبطاقة الصنف)، ولا يستطيع أي مندوب بيع كمية إلا بعد صرفها رسمياً من هذه الدفعات.
@@ -1715,7 +1717,7 @@ export default function VanSalesPage() {
  </span>
  </label>
  <label className="field">
- <span>🏷️ رقم دفعة الإنتاج (اختياري)</span>
+ <span>رقم دفعة الإنتاج (اختياري)</span>
  <input
                   className="input"
                   dir="ltr"
@@ -1729,7 +1731,7 @@ export default function VanSalesPage() {
  </span>
  </label>
  <div className="field" style={{ gridColumn: '1 / -1' }}>
- <span>🌾 مكوّنات الدفعة — مصدر المواد *</span>
+ <span>مكوّنات الدفعة — مصدر المواد *</span>
  <span className="muted small">
  كل مكوّن يُصرف رسمياً من مستودع المنشأة بالمتوسط المرجّح، وقيمته هي تكلفة الدفعة.
  بلا مكوّنات (أو قائمة مواد مرتبطة بالصنف) تُرفض الدفعة؛ والوارد من خارج المنشأة
@@ -1791,7 +1793,7 @@ export default function VanSalesPage() {
                     className="btn"
                     onClick={() => setProdComponents((rows) => [...rows, { itemId: '', qty: '' }])}
                   >
- ➕إضافة مكوّن
+ إضافة مكوّن
  </button>
                   {(() => {
                     const filled = prodComponents.filter(
@@ -1806,12 +1808,12 @@ export default function VanSalesPage() {
                     });
                     return estimate.unvalued > 0 ? (
  <span className="small" style={{ color: 'var(--warn)' }}>
-                         ⚠️{estimate.unvalued} من المكوّنات ليس له قيمة أو رصيد في هذا المستودع —
+ {estimate.unvalued} من المكوّنات ليس له قيمة أو رصيد في هذا المستودع —
  ستُرفض الدفعة حتى تُقيَّم المواد (إذن إدخال رسمي أو تسوية جرد معتمدة).
  </span>
                     ) : (
  <span className="muted small">
- تقدير التكلفة من المتوسط الرسمي: {estimate.totalValue} ريال ⇒{' '}
+ تقدير التكلفة من المتوسط الرسمي: {estimate.totalValue} ريال {' '}
                         {estimate.perKg} ريال/كجم — والرقم الفعلي هو قيمة ما يخرج من الرفّ.
  </span>
                     );
@@ -1829,13 +1831,13 @@ export default function VanSalesPage() {
  </div>
  <div>
  <button type="submit" className="btn primary" disabled={busy}>
-                {busy ? 'جارٍ الحفظ…' : '➕ اعتماد دفعة الإنتاج وتوريدها للمستودع الرئيسي'}
+ {busy ? 'جارٍ الحفظ…' : 'اعتماد دفعة الإنتاج وتوريدها للمستودع الرئيسي'}
  </button>
  </div>
  </form>
 
  <div className="card">
- <h2 style={{ marginTop: 0 }}>📦 دفعات الإنتاج وأرصدة المستودع الرئيسي</h2>
+ <h2 style={{ marginTop: 0 }}>دفعات الإنتاج وأرصدة المستودع الرئيسي</h2>
  <div className="muted small">{windowNote(data?.windows, 'productionBatches', PRODUCTION_WINDOW_FALLBACK, { totalsClause: DASHBOARD_TOTALS_CLAUSE })}</div>
  <div className="table-wrap">
  <table>
@@ -1871,15 +1873,15 @@ export default function VanSalesPage() {
                         {b.unitCost} SAR
  <div className="muted small">
                           {b.costBasis === 'manufacturing_order'
-                            ? '✅ تكلفة فعلية من أمر تصنيع رسمي'
-                            : '⚠️ تكلفة مدخلة أو من بطاقة الصنف — ليست تكلفة أمر تصنيع'}
+ ? 'تكلفة فعلية من أمر تصنيع رسمي'
+ : 'تكلفة مدخلة أو من بطاقة الصنف — ليست تكلفة أمر تصنيع'}
  </div>
                         {Number(b.scrapQty ?? 0) > 0 ? (
  <div
                             className="muted small"
                             style={{ color: b.scrapCostLoaded ? undefined : 'var(--warn)' }}
                           >
- 🗑️فاقد {b.scrapQty} كجم بقيمة {b.scrapValue} SAR —{' '}
+ فاقد {b.scrapQty} كجم بقيمة {b.scrapValue} SAR —{' '}
                             {b.scrapCostLoaded
                               ? 'محمّلة على تكلفة المنتج الجيد'
                               : 'غير محمّلة على المنتج الجيد — أمر الإنتاج يُنتج الكمية الصالحة وحدها فلا تُصرف مواد للفاقد (تحميله قرار تسعير تكلفة لم يُعتمد بعد)'}
@@ -1895,8 +1897,8 @@ export default function VanSalesPage() {
  <span className="badge warn">دفعة قديمة بلا أمر رسمي</span>
                         )}
  <div className="muted small">
-                          {b.inventoryTransactionId ? 'حركة مخزون رسمية ✓' : 'بلا حركة رسمية مربوطة'}
-                          {b.lotId ? ' · دفعة ناتج (لوت) ✓' : ''}
+ {b.inventoryTransactionId ? 'حركة مخزون رسمية ' : 'بلا حركة رسمية مربوطة'}
+ {b.lotId ? ' · دفعة ناتج (لوت) ' : ''}
  </div>
  </td>
  <td dir="ltr"><strong>{b.totalCost} SAR</strong></td>
@@ -1915,7 +1917,7 @@ export default function VanSalesPage() {
  </div>
 
  <div className="card">
- <h2 style={{ marginTop: 0 }}>🔍 سجل الرقابة على حركة البضاعة والتدقيق (من نفذ العملية ومن اعتمدها)</h2>
+ <h2 style={{ marginTop: 0 }}>سجل الرقابة على حركة البضاعة والتدقيق (من نفذ العملية ومن اعتمدها)</h2>
  <div className="muted small">{windowNote(data?.windows, 'movements', MOVEMENTS_WINDOW_FALLBACK, { totalsClause: DASHBOARD_TOTALS_CLAUSE })}</div>
  <div className="table-wrap">
  <table>
@@ -1959,12 +1961,12 @@ export default function VanSalesPage() {
       {tab === 'reps' && (
  <div style={{ display: 'grid', gap: 16 }}>
  <div className="card">
- <h2 style={{ marginTop: 0 }}>🧑‍💼 مندوبو التوزيع — البطاقة والموظف وحساب الدخول ومستودع السيارة</h2>
+ <h2 style={{ marginTop: 0 }}>مندوبو التوزيع — البطاقة والموظف وحساب الدخول ومستودع السيارة</h2>
  <p className="muted small" style={{ margin: 0 }}>
  لا يوجد جدول مندوبين منفصل: هذه هي بطاقة المندوب الرسمية نفسها (<code>salesmen</code>) مربوطة ببطاقة
- الموظف (<code>employees</code>) وحساب الدخول (<code>memberships</code> ← <code>users</code>) ومستودع سيارة
+ الموظف (<code>employees</code>) وحساب الدخول (<code>memberships</code> <code>users</code>) ومستودع سيارة
  التوزيع. إنشاء المندوب نفسه وتعديل عمولاته من شاشة{' '}
- <a href="/sales/salesmen">المبيعات ← المندوبين</a>، وهنا يُستكمل ربط التوزيع.
+ <a href="/sales/salesmen">المبيعات المندوبين</a>، وهنا يُستكمل ربط التوزيع.
  </p>
  <div className="table-wrap">
  <table>
@@ -1995,7 +1997,7 @@ export default function VanSalesPage() {
  <div className="muted small" dir="ltr">{rep.employeeNo}</div>
  </>
                         ) : (
- <span className="muted small">❌ بلا بطاقة موظف</span>
+ <span className="muted small">بلا بطاقة موظف</span>
                         )}
  </td>
  <td>
@@ -2003,12 +2005,12 @@ export default function VanSalesPage() {
  <>
  <span dir="ltr">{rep.userEmail}</span>
  <div className="muted small">
-                              {rep.membershipStatus === 'active' ? ' فعّال' : `⏳ ${rep.membershipStatus ?? 'مدعو'}`}
+ {rep.membershipStatus === 'active' ? ' فعّال' : `${rep.membershipStatus ?? 'مدعو'}`}
                               {rep.roleCount ? ` · ${rep.roleCount} دور` : ''}
  </div>
  </>
                         ) : (
- <span className="muted small">❌ بلا حساب دخول</span>
+ <span className="muted small">بلا حساب دخول</span>
                         )}
  </td>
  <td>
@@ -2016,10 +2018,10 @@ export default function VanSalesPage() {
  <>
                             {rep.warehouseName}
  <div className="muted small" dir="ltr">{rep.warehouseCode}</div>
-                            {rep.vehiclePlate ? <div className="muted small">🚐 {rep.vehiclePlate}</div> : null}
+ {rep.vehiclePlate ? <div className="muted small">{rep.vehiclePlate}</div> : null}
  </>
                         ) : (
- <span className="muted small">❌ بلا مستودع سيارة</span>
+ <span className="muted small">بلا مستودع سيارة</span>
                         )}
  </td>
  <td align="left" dir="ltr">
@@ -2031,10 +2033,10 @@ export default function VanSalesPage() {
  <td align="left" dir="ltr">{rep.custody.outstandingCash}</td>
  <td>
  <div className="muted small">
-                          {rep.readiness.hasEmployee ? '✅' : '❌'} موظف ·{' '}
-                          {rep.readiness.hasLoginAccount ? '✅' : '❌'} حساب دخول ·{' '}
-                          {rep.readiness.hasVanWarehouse ? '✅' : '❌'} مستودع ·{' '}
-                          {rep.readiness.hasVanSalesPermissions ? '✅' : '❌'} صلاحيات توزيع
+ {rep.readiness.hasEmployee ? 'موظف مرتبط' : 'بلا موظف'} ·{' '}
+ {rep.readiness.hasLoginAccount ? 'حساب دخول' : 'بلا حساب دخول'} ·{' '}
+ {rep.readiness.hasVanWarehouse ? 'مستودع مخصّص' : 'بلا مستودع'} ·{' '}
+ {rep.readiness.hasVanSalesPermissions ? 'صلاحيات توزيع' : 'بلا صلاحيات توزيع'}
  </div>
                         {rep.custody.items.length ? (
  <div className="muted small">
@@ -2055,10 +2057,10 @@ export default function VanSalesPage() {
                               setRepFullName(rep.employeeName ?? rep.name);
                             }}
                           >
-                             🔗{rep.membershipId ? 'إعادة ربط الحساب' : 'ربط حساب دخول'}
+ {rep.membershipId ? 'إعادة ربط الحساب' : 'ربط حساب دخول'}
  </button>
  <a className="btn sm" href="/sales/salesmen">
- 🧑‍💼بطاقة المندوب
+ بطاقة المندوب
  </a>
  </div>
  </td>
@@ -2067,7 +2069,7 @@ export default function VanSalesPage() {
                   {vanSalesmen.length === 0 ? (
  <tr>
  <td colSpan={8} className="muted">
- لا يوجد مندوبون — أنشئ بطاقة المندوب من شاشة المبيعات ← المندوبين ثم اربطها هنا.
+ لا يوجد مندوبون — أنشئ بطاقة المندوب من شاشة المبيعات المندوبين ثم اربطها هنا.
  </td>
  </tr>
                   ) : null}
@@ -2078,7 +2080,7 @@ export default function VanSalesPage() {
 
           {repTarget ? (
  <form className="card" onSubmit={linkRepAccount} style={{ display: 'grid', gap: 12 }}>
- <h2 style={{ margin: 0 }}>🔗 ربط المندوب ({repTarget.name}) بحساب دخول رسمي</h2>
+ <h2 style={{ margin: 0 }}>ربط المندوب ({repTarget.name}) بحساب دخول رسمي</h2>
  <p className="muted small" style={{ margin: 0 }}>
  يُنشئ النظام مستخدمًا وعضوية عبر مسار الدعوة الرسمي نفسه المستعمل لبقية الموظفين، ويضعها على دور
                 «مندوب توزيع» بصلاحيات: رؤية عهدته، إصدار فواتيره، تسجيل تحصيلاته، وتقديم إغلاق ورديته. كلمة المرور لا
@@ -2112,18 +2114,18 @@ export default function VanSalesPage() {
                   onChange={(e) => setRepScopeToVan(e.target.checked)}
                 />
  <span>
- 🔒قصر صلاحية الحساب على مستودع سيارة هذا المندوب فقط (يمنعه من قراءة عهدة مندوب آخر)
+ قصر صلاحية الحساب على مستودع سيارة هذا المندوب فقط (يمنعه من قراءة عهدة مندوب آخر)
  </span>
  </label>
               {!repTarget.readiness.hasEmployee ? (
  <div className="muted small" style={{ color: 'var(--warn)' }}>
- هذه البطاقة غير مربوطة ببطاقة موظف — اربطها أولًا من شاشة المبيعات ← المندوبين حتى تُنسب سندات
+ هذه البطاقة غير مربوطة ببطاقة موظف — اربطها أولًا من شاشة المبيعات المندوبين حتى تُنسب سندات
  القبض والإغلاقات إلى الموظف نفسه.
  </div>
               ) : null}
  <div className="row" style={{ gap: 8 }}>
  <button type="submit" className="btn primary" disabled={busy}>
-                  {busy ? 'جارٍ الربط…' : '🔗 إنشاء / ربط حساب الدخول'}
+ {busy ? 'جارٍ الربط…' : 'إنشاء / ربط حساب الدخول'}
  </button>
  <button type="button" className="btn" onClick={() => setRepTarget(null)}>
  إلغاء
@@ -2138,7 +2140,7 @@ export default function VanSalesPage() {
       {tab === 'loads' && (
  <div style={{ display: 'grid', gap: 16 }}>
  <form className="card" onSubmit={submitLoadOrder} style={{ display: 'grid', gap: 12 }}>
- <h2 style={{ margin: 0 }}>🚚 توريد المنتجات من المستودع الرئيسي إلى سيارة المندوب</h2>
+ <h2 style={{ margin: 0 }}>توريد المنتجات من المستودع الرئيسي إلى سيارة المندوب</h2>
  <p className="muted small" style={{ margin: 0 }}>
  يُنشئ النظام <b>مناولة مخزنية رسمية</b> (تحويل بين مستودعين) فتخرج الكمية من رصيد المستودع الرئيسي إلى
               «بضاعة تحت التحويل»، وتبقى هناك حتى <b>يؤكّد المندوب الاستلام</b> — عندها فقط تدخل رصيد سيارة المندوب
@@ -2247,13 +2249,13 @@ export default function VanSalesPage() {
  </div>
  <div>
  <button type="submit" className="btn primary" disabled={busy}>
-                {busy ? 'جارٍ الإصدار…' : '➕ اعتماد أمر التحميل وتسليم العهدة للمندوب'}
+ {busy ? 'جارٍ الإصدار…' : 'اعتماد أمر التحميل وتسليم العهدة للمندوب'}
  </button>
  </div>
  </form>
 
  <div className="card">
- <h2 style={{ marginTop: 0 }}>📋 سجل عهد المناديب وإغلاق الورديات واعتماد المحاسب</h2>
+ <h2 style={{ marginTop: 0 }}>سجل عهد المناديب وإغلاق الورديات واعتماد المحاسب</h2>
  <div className="muted small">{windowNote(data?.windows, 'loadOrders', LOAD_ORDERS_WINDOW_FALLBACK, { totalsClause: DASHBOARD_TOTALS_CLAUSE })}</div>
  <div className="table-wrap">
  <table>
@@ -2285,14 +2287,14 @@ export default function VanSalesPage() {
  <td dir="ltr">
                         {l.awaitingReceipt ? (
  <div className="row" style={{ gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
- <span className="badge warn">⏳ {l.loadedQty} kg</span>
+ <span className="badge warn">{l.loadedQty} kg</span>
  <button
                               type="button"
                               className="btn sm primary"
                               disabled={busy}
                               onClick={() => void confirmLoadReceipt(l.id, l.loadedQty)}
                             >
- ✅تأكيد الاستلام نيابةً عن المندوب
+ تأكيد الاستلام نيابةً عن المندوب
  </button>
  </div>
                         ) : (
@@ -2311,7 +2313,7 @@ export default function VanSalesPage() {
  <td dir="ltr">{l.returnedQty} kg</td>
  <td dir="ltr" style={{ color: Number(l.damagedQty) > 0 ? 'var(--warn)' : undefined }}>
                         {l.damagedQty} kg
-                        {l.damageInspected && Number(l.damagedQty) > 0 ? ' (✔ مفحوص)' : ''}
+ {l.damageInspected && Number(l.damagedQty) > 0 ? ' (مفحوص)' : ''}
  </td>
  <td dir="ltr" style={{ color: Number(l.shortageQty) > 0 ? 'var(--danger)' : undefined, fontWeight: 700 }}>
                         {l.shortageQty} kg
@@ -2389,7 +2391,7 @@ export default function VanSalesPage() {
                                 disabled={busy}
                                 onClick={() => void handleSettleLoadOrderStock(l, true)}
                               >
- ♻️استكمال تسوية المخزون وترحيل مستند الجرد
+ استكمال تسوية المخزون وترحيل مستند الجرد
  </button>
  <button
                                 type="button"
@@ -2397,7 +2399,7 @@ export default function VanSalesPage() {
                                 disabled={busy}
                                 onClick={() => openClosingModal(l)}
                               >
- 🔍مراجعة الأرقام
+ مراجعة الأرقام
  </button>
  </>
                           ) : l.status !== 'settled' && l.status !== 'reconciled' ? (
@@ -2408,8 +2410,8 @@ export default function VanSalesPage() {
                               onClick={() => openClosingModal(l)}
                             >
                               {l.status === 'pending_closing'
-                                ? '🔍 مراجعة واعتماد المحاسب'
-                                : '🔒 إغلاق الوردية وتصفية العهدة'}
+ ? 'مراجعة واعتماد المحاسب'
+ : 'إغلاق الوردية وتصفية العهدة'}
  </button>
                           ) : (
  <span className="muted small">
@@ -2426,7 +2428,7 @@ export default function VanSalesPage() {
                                 disabled={busy}
                                 onClick={() => void handleCloseTransitDifference(l, 'return')}
                               >
-                                ↩ إرجاع الفرق إلى المصدر
+ إرجاع الفرق إلى المصدر
  </button>
  <button
                                 type="button"
@@ -2434,7 +2436,7 @@ export default function VanSalesPage() {
                                 disabled={busy}
                                 onClick={() => void handleCloseTransitDifference(l, 'shortage')}
                               >
- ⚠️اعتباره عجز تحويل
+ اعتباره عجز تحويل
  </button>
  </>
                           ) : null}
@@ -2447,7 +2449,7 @@ export default function VanSalesPage() {
                               disabled={busy}
                               onClick={() => void handleCancelLoadOrder(l)}
                             >
- 🗑️إلغاء التوريد
+ إلغاء التوريد
  </button>
                           ) : null}
  </div>
@@ -2477,7 +2479,7 @@ export default function VanSalesPage() {
  <div className="card" style={{ width: '100%', maxWidth: 680, display: 'grid', gap: 12 }}>
  <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
  <h2 style={{ margin: 0 }}>
- 🔒إغلاق وردية المندوب ({closingTarget.salesmanName}) — أمر رقم {closingTarget.number}
+ إغلاق وردية المندوب ({closingTarget.salesmanName}) — أمر رقم {closingTarget.number}
  </h2>
  <button type="button" className="btn sm" onClick={() => setClosingTarget(null)} aria-label="إغلاق"><X size={14} /></button>
  </div>
@@ -2605,7 +2607,7 @@ export default function VanSalesPage() {
                     gap: 8,
                   }}
                 >
- <strong>✅ ضوابط اعتماد المحاسب النهائي:</strong>
+ <strong>ضوابط اعتماد المحاسب النهائي:</strong>
  <label className="row" style={{ gap: 8, alignItems: 'center' }}>
  <input
                       type="checkbox"
@@ -2624,7 +2626,7 @@ export default function VanSalesPage() {
  إقرار بمراجعة العجز ({modalShortageKg.toFixed(2)} كجم ≈ {modalShortageSar.toFixed(2)} ريال) وسببه، وتصفير رصيد عهدة المندوب إلى (0.00 كجم).
  <br />
  <span className="muted small">
- ⚠️لا يُنشئ هذا الإقرار أي قيد على راتب المندوب أو ذمته: المعالجة المالية للعجز
+ لا يُنشئ هذا الإقرار أي قيد على راتب المندوب أو ذمته: المعالجة المالية للعجز
                         (أساس التقييم والحساب المقابل) معلّقة حتى تعتمد السياسة من الإعدادات، ويُكتفى
  بتسجيل الحالة «بانتظار اعتماد السياسة».
  </span>
@@ -2642,7 +2644,7 @@ export default function VanSalesPage() {
                     gap: 8,
                   }}
                 >
- <strong>🧾 تسوية المخزون الرسمية (بدونها لا تُغلق العهدة):</strong>
+ <strong>تسوية المخزون الرسمية (بدونها لا تُغلق العهدة):</strong>
 
                   {modalActualRemaining > 0 ? (
  <div style={{ display: 'grid', gap: 6 }}>
@@ -2657,7 +2659,7 @@ export default function VanSalesPage() {
                           onChange={() => setClosingRemainingAction('return_to_main')}
                         />
  <span>
-                          ↩ إرجاعه رسمياً إلى المستودع الرئيسي (حركة مخزنية رسمية وقيد من ملف الترحيل، ورصيد
+ إرجاعه رسمياً إلى المستودع الرئيسي (حركة مخزنية رسمية وقيد من ملف الترحيل، ورصيد
  السيارة يصبح صفراً)
  </span>
  </label>
@@ -2669,7 +2671,7 @@ export default function VanSalesPage() {
                           onChange={() => setClosingRemainingAction('carry_over')}
                         />
  <span>
- 🔄إبقاؤه عهدة المندوب للوردية التالية (يبقى في رصيد السيارة الرسمي بنفس الكمية
+ إبقاؤه عهدة المندوب للوردية التالية (يبقى في رصيد السيارة الرسمي بنفس الكمية
  المجرودة)
  </span>
  </label>
@@ -2686,7 +2688,7 @@ export default function VanSalesPage() {
                         onChange={(e) => setClosingSurplusAck(e.target.checked)}
                       />
  <span>
- ⚖️أقرّ بأن الجرد الفعلي أكبر من العهدة بفائض {modalSurplusKg.toFixed(2)} كجم، ويُسجَّل
+ أقرّ بأن الجرد الفعلي أكبر من العهدة بفائض {modalSurplusKg.toFixed(2)} كجم، ويُسجَّل
  في مستند الجرد الرسمي (Dr المخزون / Cr تسوية الجرد) — لا إيراداً ولا هديةً ولا تعديلاً
  على المستندات.
  </span>
@@ -2700,11 +2702,11 @@ export default function VanSalesPage() {
                       onChange={(e) => setClosingSettleStock(e.target.checked)}
                     />
  <span>
- 🖋️فوّضني بترحيل مستند الجرد الرسمي الآن، فيصبح رصيد السيارة الرسمي مساوياً للجرد الفعلي
+ فوّضني بترحيل مستند الجرد الرسمي الآن، فيصبح رصيد السيارة الرسمي مساوياً للجرد الفعلي
                       ({modalActualRemaining.toFixed(2)} كجم).
  <br />
  <span className="muted small">
- ⚠️بدون هذا التفويض يُنشأ مستند الجرد <b>مسودةً</b> وتبقى الوردية «بانتظار تسوية
+ بدون هذا التفويض يُنشأ مستند الجرد <b>مسودةً</b> وتبقى الوردية «بانتظار تسوية
  المخزون» ولا تُغلق العهدة — وهذا هو المقصود: لا تُغلق عهدة مع بقاء فرق في دفتر المخزون.
  المسؤولية المالية عن العجز تبقى معلّقة في الحالتين.
  </span>
@@ -2719,7 +2721,7 @@ export default function VanSalesPage() {
                     disabled={busy}
                     onClick={() => void handleSubmitPendingClosing()}
                   >
-                     📤1. حفظ وتقديم كطلب إغلاق معلق للمحاسب
+ 1. حفظ وتقديم كطلب إغلاق معلق للمحاسب
  </button>
  <div className="row" style={{ gap: 8 }}>
  <button type="button" className="btn" onClick={() => setClosingTarget(null)}>
@@ -2736,8 +2738,8 @@ export default function VanSalesPage() {
                       onClick={() => void handleAccountantApproveClosing()}
                     >
                       {closingSettleStock
-                        ? '✅ 2. اعتماد المحاسب وتسوية المخزون رسمياً'
-                        : '✅ 2. اعتماد الكميات (العهدة تبقى بانتظار تسوية المخزون)'}
+ ? '2. اعتماد المحاسب وتسوية المخزون رسمياً'
+ : '2. اعتماد الكميات (العهدة تبقى بانتظار تسوية المخزون)'}
  </button>
  </div>
  </div>
@@ -2751,7 +2753,7 @@ export default function VanSalesPage() {
       {tab === 'invoice' && (
  <div className="split">
  <form className="card" onSubmit={submitVanDocument} style={{ display: 'grid', gap: 12 }}>
- <h2 style={{ margin: 0 }}>🧾 إصدار فاتورة توزيع (ضريبية ZATCA أو عادية)</h2>
+ <h2 style={{ margin: 0 }}>إصدار فاتورة توزيع (ضريبية ZATCA أو عادية)</h2>
  <p className="muted small" style={{ margin: 0 }}>
  السعر يُجلب ويُثبّت تلقائياً حسب العميل، وتُخصم الكمية مباشرة من عهدة المندوب، مع دعم الفاتورة الضريبية (15% VAT + QR) أو فاتورة تسليم عادية للمحلات التي لا تطلب فاتورة ضريبية ورقية.
  </p>
@@ -2764,7 +2766,7 @@ export default function VanSalesPage() {
               */}
             {data?.policy?.zatcaSeller && data.policy.zatcaSeller.ready === false ? (
  <p className="muted small" style={{ margin: 0, color: 'var(--danger)' }}>
-                 🧾{data.policy.zatcaSeller.refusalDetail}
+ {data.policy.zatcaSeller.refusalDetail}
  </p>
             ) : null}
 
@@ -2872,7 +2874,7 @@ export default function VanSalesPage() {
 
  <label className="field">
  <span>
- سعر الكيلو (ريال) {selectedCustomerRule?.lockPrice ? '🔒 مثبّت للعميل' : ''}
+ سعر الكيلو (ريال) {selectedCustomerRule?.lockPrice ? 'مثبّت للعميل' : ''}
  </span>
  <input
                   className="input"
@@ -2985,15 +2987,15 @@ export default function VanSalesPage() {
  </div>
  </div>
  <button type="submit" className="btn primary" disabled={busy || !activeLoadOrder}>
-                {busy ? 'جارٍ الإصدار…' : '🚀 اعتماد الفاتورة وخصم العهدة'}
+ {busy ? 'جارٍ الإصدار…' : 'اعتماد الفاتورة وخصم العهدة'}
  </button>
  </div>
  </form>
 
-          {/* 🖨️ Printing: one official document, two copies (customer + rep) and an 80mm receipt */}
+ {/* Printing: one official document, two copies (customer + rep) and an 80mm receipt */}
  <div className="card" style={{ display: 'grid', gap: 12, alignContent: 'start' }}>
  <div className="row" style={{ justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
- <h3 style={{ margin: 0 }}>🖨️ طباعة مستند البيع — نسختان من فاتورة رسمية واحدة</h3>
+ <h3 style={{ margin: 0 }}>طباعة مستند البيع — نسختان من فاتورة رسمية واحدة</h3>
               {selectedDoc && (
  <div className="row" style={{ gap: 6, flexWrap: 'wrap' }}>
  <button
@@ -3002,7 +3004,7 @@ export default function VanSalesPage() {
                     disabled={busy}
                     onClick={() => void printDocumentCopies(selectedDoc.id)}
                   >
- 🖨️طباعة نسختين (عميل + مندوب موقّعة)
+ طباعة نسختين (عميل + مندوب موقّعة)
  </button>
  <button
                     type="button"
@@ -3010,7 +3012,7 @@ export default function VanSalesPage() {
                     disabled={busy}
                     onClick={() => void printThermalFromView(selectedDoc.id)}
                   >
- 🧾إيصال حراري 80mm
+ إيصال حراري 80mm
  </button>
                   {selectedDoc.documentKind !== 'return' ? (
  <button
@@ -3027,7 +3029,7 @@ export default function VanSalesPage() {
                         void submitReturn(selectedDoc.id, qty, reason);
                       }}
                     >
-                      ↩ مرتجع عميل
+ مرتجع عميل
  </button>
                   ) : null}
  </div>
@@ -3146,7 +3148,7 @@ export default function VanSalesPage() {
       {tab === 'prices' && (
  <div style={{ display: 'grid', gap: 16 }}>
  <form className="card" onSubmit={submitCustomerTier} style={{ display: 'grid', gap: 12 }}>
- <h2 style={{ margin: 0 }}>💰 تخصيص وتثبيت سعر العميل (6 / 6.5 / 7 ريال) وسقف الائتمان والبونص</h2>
+ <h2 style={{ margin: 0 }}>تخصيص وتثبيت سعر العميل (6 / 6.5 / 7 ريال) وسقف الائتمان والبونص</h2>
  <div className="form-grid">
  <label className="field">
  <span>العميل *</span>
@@ -3253,7 +3255,7 @@ export default function VanSalesPage() {
                 checked={tierLockPrice}
                 onChange={(e) => setTierLockPrice(e.target.checked)}
               />
- <span>🔒 تثبيت السعر تلقائياً عند البيع ومنع المندوب من تغييره أو البيع بسعر أقل</span>
+ <span>تثبيت السعر تلقائياً عند البيع ومنع المندوب من تغييره أو البيع بسعر أقل</span>
  </label>
  <div>
  <button type="submit" className="btn primary" disabled={busy}>
@@ -3263,7 +3265,7 @@ export default function VanSalesPage() {
  </form>
 
  <div className="card">
- <h2 style={{ marginTop: 0 }}>📋 قائمة أسعار وسياسات العملاء المعتمدة</h2>
+ <h2 style={{ marginTop: 0 }}>قائمة أسعار وسياسات العملاء المعتمدة</h2>
  <div className="table-wrap">
  <table>
  <thead>
@@ -3284,7 +3286,7 @@ export default function VanSalesPage() {
  <td><strong>{cp.partyName}</strong></td>
  <td>{cp.priceTierLabel}</td>
  <td dir="ltr"><strong>{cp.unitPrice} SAR</strong></td>
- <td>{cp.lockPrice ? <span className="badge ok">🔒 مثبّت</span> : 'مرن'}</td>
+ <td>{cp.lockPrice ? <span className="badge ok">مثبّت</span> : 'مرن'}</td>
  <td dir="ltr">{cp.creditLimit} SAR ({cp.paymentTermsDays} يوم)</td>
  <td dir="ltr">{cp.maxBonusKgPerInvoice} kg ({cp.maxBonusPct}%)</td>
  <td dir="ltr">{cp.maxDiscountPct}%</td>
@@ -3297,7 +3299,7 @@ export default function VanSalesPage() {
  </div>
 
  <div className="card">
- <h2 style={{ marginTop: 0 }}>📜 سجل تدقيق وتاريخ تعديلات أسعار العملاء</h2>
+ <h2 style={{ marginTop: 0 }}>سجل تدقيق وتاريخ تعديلات أسعار العملاء</h2>
  <div className="muted small">{windowNote(data?.windows, 'customerPriceHistory', PRICE_HISTORY_WINDOW_FALLBACK, { totalsClause: DASHBOARD_TOTALS_CLAUSE })}</div>
  <div className="table-wrap">
  <table>
@@ -3317,7 +3319,7 @@ export default function VanSalesPage() {
  <td dir="ltr">{h.previousUnitPrice ? `${h.previousUnitPrice} SAR` : '—'}</td>
  <td dir="ltr"><strong>{h.newUnitPrice} SAR</strong></td>
  <td dir="ltr">{h.effectiveFrom}</td>
- <td>{h.lockPrice ? '🔒 مثبّت' : 'مرن'}</td>
+ <td>{h.lockPrice ? 'مثبّت' : 'مرن'}</td>
  <td>{h.changeReason || '—'}</td>
  <td dir="ltr">{new Date(h.changedAt).toLocaleString('ar-SA')}</td>
  </tr>
@@ -3334,7 +3336,7 @@ export default function VanSalesPage() {
  <div style={{ display: 'grid', gap: 16 }}>
  <div className="card">
  <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
- <h2 style={{ margin: 0 }}>🔍 فحص توافق البيانات السابقة وربطها بالنواة (Dry-Run)</h2>
+ <h2 style={{ margin: 0 }}>فحص توافق البيانات السابقة وربطها بالنواة (Dry-Run)</h2>
  <button
                 type="button"
                 className="btn primary"
@@ -3364,7 +3366,7 @@ export default function VanSalesPage() {
  </div>
 
  <div className="card">
- <h2 style={{ marginTop: 0 }}>🛡️ رادار الرقابة على الكميات المجانية (البونص) والعينات والخصومات</h2>
+ <h2 style={{ marginTop: 0 }}>رادار الرقابة على الكميات المجانية (البونص) والعينات والخصومات</h2>
  <div className="table-wrap">
  <table>
  <thead>
@@ -3392,7 +3394,7 @@ export default function VanSalesPage() {
  <td dir="ltr" style={{ color: 'var(--warn)', fontWeight: 700 }}>{d.bonusQty} kg</td>
  <td>{d.bonusReason || '—'}</td>
  <td dir="ltr">{d.discountAmount} SAR</td>
- <td>{d.customerBonusConfirmed ? '✔ مؤكد' : 'غير مؤكد'}</td>
+ <td>{d.customerBonusConfirmed ? 'مؤكد' : 'غير مؤكد'}</td>
  <td>
                           {d.bonusAnomaly ? (
  <span className="badge danger">{d.anomalyReason || 'تجاوز سقف البونص'}</span>
@@ -3408,7 +3410,7 @@ export default function VanSalesPage() {
  </div>
 
  <div className="card">
- <h2 style={{ marginTop: 0 }}>🔐 مصفوفة الصلاحيات والأمان للأدوار الأربعة في المصنع</h2>
+ <h2 style={{ marginTop: 0 }}>مصفوفة الصلاحيات والأمان للأدوار الأربعة في المصنع</h2>
  <div className="table-wrap">
  <table>
  <thead>
@@ -3421,25 +3423,25 @@ export default function VanSalesPage() {
  </thead>
  <tbody>
  <tr>
- <td><strong>👑 صاحب المصنع (Factory Owner)</strong></td>
+ <td><strong>صاحب المصنع (Factory Owner)</strong></td>
  <td>اطلاع كامل على لوحة صاحب المصنع، تكلفة الإنتاج، وهوامش الربح لكل صنف ومندوب وعميل.</td>
  <td>تحديد وتثبيت شرائح الأسعار (6 / 6.5 / 7 ريال) واعتماد الخصومات الاستثنائية وتجاوز البونص.</td>
  <td>اعتماد نهائي لإغلاق الورديات، مراجعة سجل التدقيق الكامل، واستلام التنبيهات الفورية.</td>
  </tr>
  <tr>
- <td><strong>🧮 المحاسب (Accountant)</strong></td>
+ <td><strong>المحاسب (Accountant)</strong></td>
  <td>مطابقة أرصدة المستودع الرئيسي وعهد المناديب والقيود المحاسبية وتكلفة البضاعة المباعة.</td>
  <td>مراجعة الفواتير الضريبية (ZATCA) والعادية، ومراقبة السقوف الائتمانية والتحصيل.</td>
  <td><strong>مراجعة إغلاقات الورديات المعلقة، تأكيد الفحص الفعلي للتالف، تصفير العهد، وقيد العجز خصماً على راتب المندوب.</strong></td>
  </tr>
  <tr>
- <td><strong>📦 أمين المستودع (Warehouse Keeper)</strong></td>
+ <td><strong>أمين المستودع (Warehouse Keeper)</strong></td>
  <td>تسجيل دفعات الإنتاج اليومية، صرف أوامر التحميل للمناديب، واستلام المرتجع السليم.</td>
  <td>لا يملك صلاحية تعديل أسعار العملاء أو منح خصومات مالية.</td>
  <td>المشاركة في الفحص الفعلي للكميات التالفة والجرد الدوري المفاجئ لسيارات المناديب.</td>
  </tr>
  <tr>
- <td><strong>🚚 المندوب (Sales Rep)</strong></td>
+ <td><strong>المندوب (Sales Rep)</strong></td>
  <td>استلام العهدة المحددة بأمر التحميل فقط (يُمنع بيع أي كمية تتجاوز دفعة المخبز المستلمة).</td>
  <td>البيع بالسعر المثبّت للعميل تلقائياً، وتسجيل سبب البونص ضمن السقف المسموح فقط.</td>
  <td><strong>تقديم طلب إغلاق الوردية اليومي في نهاية الدوام (تبقى الحالة معلقة حتى يعتمدها المحاسب).</strong></td>

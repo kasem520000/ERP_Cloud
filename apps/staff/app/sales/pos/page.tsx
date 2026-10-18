@@ -115,8 +115,8 @@ const METHODS: Array<{ id: Method; label: string; hint: string }> = [
   { id: 'credit', label: 'آجل', hint: 'يُرحّل على حساب العميل (ذمم مدينة)' },
   {
     id: 'split',
-    label: '🔀 متعدد',
-    hint: 'دفع الفاتورة بأكثر من طريقة — «⚖️ مطابقة» تجعل مجموعها الصافي، وما بقي يقف على حساب العميل',
+ label: 'متعدد',
+ hint: 'دفع الفاتورة بأكثر من طريقة — «مطابقة» تجعل مجموعها الصافي، وما بقي يقف على حساب العميل',
   },
 ];
 
@@ -360,7 +360,7 @@ export default function PosPage() {
           throw new ApiError(
             422,
             'POS_TENDER_MISMATCH',
-            `مجموع الطرق أكبر من الصافي بـ${money(tenderDiff)} — صحّح «⚖️ المطابقة».`,
+ `مجموع الطرق أكبر من الصافي بـ${money(tenderDiff)} — صحّح «المطابقة».`,
           );
         if (tenderDiff < 0 && customerMode !== 'account')
           throw new ApiError(
@@ -659,7 +659,7 @@ export default function PosPage() {
             ))}
  </div>
           {visible.length === 0 && (
- <p className="muted">لا توجد أصناف مطابقة. أضف المواد من «المستودعات ← دليل المواد».</p>
+ <p className="muted">لا توجد أصناف مطابقة. أضف المواد من «المستودعات دليل المواد».</p>
           )}
  </div>
 
@@ -787,7 +787,7 @@ export default function PosPage() {
             {customerMode === 'walkin' ? (
  <>
  <label className="field">
- <span>🏷️ الاسم:</span>
+ <span>الاسم:</span>
  <div className="row" style={{ flexWrap: 'nowrap' }}>
  <input
                       className="input"
@@ -796,12 +796,12 @@ export default function PosPage() {
                       onChange={(event) => setCustomerName(event.target.value)}
                     />
  <button type="button" className="btn" onClick={() => setPickingCustomer(true)}>
- 👤بحث
+ بحث
  </button>
  </div>
  </label>
  <label className="field">
- <span>📱 رقم الجوال:</span>
+ <span>رقم الجوال:</span>
  <input
                     className="input"
                     dir="ltr"
@@ -853,7 +853,7 @@ export default function PosPage() {
            */}
           {method === 'split' && (
  <div className="card tight" style={{ marginTop: 8 }}>
- <div className="card-head">🔀 طرق الدفع</div>
+ <div className="card-head">طرق الدفع</div>
               {tenders.map((row) => (
  <div key={row.key} className="row" style={{ alignItems: 'flex-end', gap: 6, marginBottom: 6 }}>
  <label className="field" style={{ flex: '0 0 110px' }}>
@@ -871,9 +871,9 @@ export default function PosPage() {
                         )
                       }
                     >
- <option value="cash">💵 كاش</option>
- <option value="card">🖧 شبكة</option>
- <option value="bank">💳 تحويل</option>
+ <option value="cash">كاش</option>
+ <option value="card">شبكة</option>
+ <option value="bank">تحويل</option>
  </select>
  </label>
  <label className="field" style={{ flex: '0 0 110px' }}>
@@ -947,7 +947,7 @@ export default function PosPage() {
  </button>
  </div>
  <dl className="kv" style={{ marginTop: 8 }}>
- <dt>⚖️ مطابقة</dt>
+ <dt>مطابقة</dt>
  <dd className={tenderDiff === 0 ? 'pos-change' : 'pos-change-due'}>
                   {tenderDiff === 0
                     ? `مطابق — ${money(tenderTotal)}`
@@ -969,11 +969,11 @@ export default function PosPage() {
              * cannot be a dropdown default the cashier never looked at.
              */
  <div className="card tight" style={{ marginTop: 8 }}>
- <div className="card-head">🏦 البنوك المتاحة</div>
+ <div className="card-head">البنوك المتاحة</div>
  <div className="row" style={{ alignItems: 'center', justifyContent: 'space-between' }}>
  <span>{effectiveDrawer ? cashLocationLabel(drawers.find((row) => row.id === effectiveDrawer) ?? ({} as CashLocation)) : 'لم يُختر بنك'}</span>
  <button type="button" className="btn primary" onClick={() => setPickingBank(true)}>
- 🏦اختر البنك
+ اختر البنك
  </button>
  </div>
  </div>
@@ -1049,7 +1049,7 @@ export default function PosPage() {
        * الحدّ للمحرّك: خانةٌ فارغة ليست عيباً، والمخفيُّ لا يُخبَر به الكاشير.
        */}
  <div className="card">
- <div className="card-head">⏸ الفواتير المعلّقة — ٩ خانات</div>
+ <div className="card-head">الفواتير المعلّقة — ٩ خانات</div>
  <div className="row" style={{ flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
           {(holds.data ?? []).map((hold) => (
  <button
@@ -1082,7 +1082,7 @@ export default function PosPage() {
             onClick={holdTicket}
             title="F7"
           >
-            ⏸ تعليق F7
+ تعليق F7
  </button>
  </div>
  <p className="muted small">
@@ -1094,7 +1094,7 @@ export default function PosPage() {
       {receipt && (
  <div className="card receipt">
  <div className="toolbar no-print" style={{ justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
- <h2>🧾 آخر إيصال كاشير (80mm)</h2>
+ <h2>آخر إيصال كاشير (80mm)</h2>
  <div className="toolbar" style={{ gap: 8, flexWrap: 'wrap' }}>
  <label className="row" style={{ fontSize: 12, gap: 6 }}>
  <input
@@ -1131,7 +1131,7 @@ export default function PosPage() {
                   });
                 }}
               >
- 🖨️طباعة إيصال كاشير حراري (80mm)
+ طباعة إيصال كاشير حراري (80mm)
  </button>
  <Link className="btn sm" href={`/sales/invoices/${receipt.invoiceId}`}>
  تفاصيل الفاتورة
@@ -1152,7 +1152,7 @@ export default function PosPage() {
               {receipt.tenders?.map((row) => (
  <>
  <dt key={`${row.method}-dt`}>
-                    {row.method === 'cash' ? '💵 كاش' : row.method === 'card' ? '🖧 شبكة' : '💳 تحويل'}
+ {row.method === 'cash' ? 'كاش' : row.method === 'card' ? 'شبكة' : 'تحويل'}
  </dt>
  <dd key={`${row.method}-dd`}>{money(row.amount)}</dd>
  </>
@@ -1252,7 +1252,7 @@ export default function PosPage() {
         />
       ) : null}
 
-      {/** 👤 `frmCashCustomer` — a walk-in is a name and a mobile, not a ledger account. */}
+ {/** `frmCashCustomer` — a walk-in is a name and a mobile, not a ledger account. */}
       {pickingCustomer ? (
  <CashCustomerPicker
           value={{ name: customerName, mobile: customerMobile }}

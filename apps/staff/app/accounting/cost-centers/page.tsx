@@ -164,28 +164,28 @@ export default function CostCentersPage() {
 
   return (
  <Screen
-      title="مركز التكلفة 🏢"
+ title="مركز التكلفة "
       subtitle="تُستخدم لتوزيع المصروفات والإيرادات على الأنشطة والفروع، وكل مركز برصيده من القيود المرحّلة."
       crumbs={['المحاسبة', 'تعاريف']}
       actions={
  <Link className="btn" href="/reports/cost-center-balances">
- 📊كشف مركز الكلفة
+ كشف مركز الكلفة
  </Link>
       }
     >
  <StatTiles>
- <StatTile label="🌳 عدد المراكز" value={totals.count} />
- <StatTile label="💸 إنفاق المراكز الرئيسية" value={money(totals.spent.toFixed(2))} tone="ok" />
- <StatTile label="💰 أرصدة دائنة" value={money(totals.credited.toFixed(2))} tone="brand" />
- <StatTile label="📌 مراكز عليها حركة" value={totals.used} hint="رصيدها غير صفر" />
+ <StatTile label="عدد المراكز" value={totals.count} />
+ <StatTile label="إنفاق المراكز الرئيسية" value={money(totals.spent.toFixed(2))} tone="ok" />
+ <StatTile label="أرصدة دائنة" value={money(totals.credited.toFixed(2))} tone="brand" />
+ <StatTile label="مراكز عليها حركة" value={totals.used} hint="رصيدها غير صفر" />
  </StatTiles>
 
  <div className="grid two">
  <section className="card">
- <h2 style={{ marginTop: 0 }}>📝 بيانات مركز التكلفة</h2>
+ <h2 style={{ marginTop: 0 }}>بيانات مركز التكلفة</h2>
  <div className="form-grid">
  <label className="field">
- <span>🔢 الرقم *</span>
+ <span>الرقم *</span>
  <input
                 className="input"
                 dir="ltr"
@@ -194,7 +194,7 @@ export default function CostCentersPage() {
               />
  </label>
  <label className="field">
- <span>✏️ الاسم *</span>
+ <span>الاسم *</span>
  <input
                 className="input"
                 value={form.nameAr}
@@ -202,7 +202,7 @@ export default function CostCentersPage() {
               />
  </label>
  <label className="field">
- <span>🌐 الاسم EN</span>
+ <span>الاسم EN</span>
  <input
                 className="input"
                 dir="ltr"
@@ -211,7 +211,7 @@ export default function CostCentersPage() {
               />
  </label>
  <label className="field">
- <span>📂 البند الرئيسي</span>
+ <span>البند الرئيسي</span>
  <select
                 className="input"
                 value={form.parentId}
@@ -228,7 +228,7 @@ export default function CostCentersPage() {
  </select>
  </label>
  <label className="field">
- <span>🏬 الفرع</span>
+ <span>الفرع</span>
  <select
                 className="input"
                 value={form.branchId}
@@ -243,10 +243,10 @@ export default function CostCentersPage() {
  </select>
  </label>
  <div className="field">
- <span>🏷️ النوع</span>
+ <span>النوع</span>
  <div className="row" style={{ gap: 6 }}>
  <span className={`badge${form.parentId ? '' : ' active'}`}>
-                  {form.parentId ? '🔵 فرعي' : '🟢 رئيسي'}
+ {form.parentId ? 'فرعي' : 'رئيسي'}
  </span>
  <span className="muted small">يُقرأ من «البند الرئيسي»</span>
  </div>
@@ -256,10 +256,10 @@ export default function CostCentersPage() {
           {manage && (
  <div className="toolbar">
  <button className="btn primary" type="button" disabled={busy || !form.code || !form.nameAr} onClick={() => void save()}>
- 💾حفظ
+ حفظ
  </button>
  <button className="btn" type="button" disabled={busy} onClick={reset}>
- ➕جديد
+ جديد
  </button>
               {editingId && (
  <button
@@ -268,7 +268,7 @@ export default function CostCentersPage() {
                   disabled={busy}
                   onClick={() => void remove(rows.find((row) => row.id === editingId)!)}
                 >
- 🗑️حذف
+ حذف
  </button>
               )}
  </div>
@@ -277,7 +277,7 @@ export default function CostCentersPage() {
 
  <section className="card tight">
  <div className="row" style={{ justifyContent: 'space-between' }}>
- <h2 style={{ margin: 0 }}>🌳 شجرة مراكز التكلفة</h2>
+ <h2 style={{ margin: 0 }}>شجرة مراكز التكلفة</h2>
  <button className="btn sm" type="button" onClick={() => setOpen(!open)}>
               {open ? 'طي الكل' : 'توسيع الكل'}
  </button>
@@ -329,7 +329,7 @@ function Nodes({
  <button className="tree-label" type="button" onClick={() => onEdit(node)}>
  <span dir="ltr">{node.code}</span> {node.nameAr}
  <span className="badge" style={{ marginInlineStart: 6 }}>
-                  {node.parentId ? '🔵 فرعي' : '🟢 رئيسي'}
+ {node.parentId ? 'فرعي' : 'رئيسي'}
  </span>
  </button>
  <span className="tree-balance num" dir="ltr">

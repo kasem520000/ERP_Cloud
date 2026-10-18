@@ -153,10 +153,10 @@ export default function PurchaseInvoiceDetailPage() {
       crumbs={['المشتريات', 'العمليات']}
       actions={
  <>
-          {/* «🖨️ طباعة» — `frmInvPurch.xaml` L1411 (و«👁️ معاينة» L1416 مؤجَّلة: ورقةُ
+ {/* «طباعة» — `frmInvPurch.xaml` L1411 (و«معاينة» L1416 مؤجَّلة: ورقةُ
  الطباعة نفسها تُعاين في المتصفّح قبل الطبع). */}
  <Link className="btn primary" href={`/print/purchase-invoice/${doc.id}`}>
- 🖨️طباعة
+ طباعة
  </Link>
           {ocrJobId && doc.status === 'draft' && doc.lines.length === 0 && (
  <Link className="btn" href={`/purchases/invoices/ocr?job=${encodeURIComponent(ocrJobId)}`}>
@@ -175,25 +175,25 @@ export default function PurchaseInvoiceDetailPage() {
           {approval.data?.status === 'pending' ? <Badge tone="purple" dot>بانتظار موافقة</Badge> : null}
           {approval.data?.status === 'rejected' ? <Badge tone="red" dot>رُفضت — ما زالت مسودة</Badge> : null}
  <dl className="kv">
- <dt>📋 الحالة</dt>
+ <dt>الحالة</dt>
  <dd>{statusLabel(doc.status)}</dd>
-            {/* «🔢 الرقم» L366 — رقم المستند نفسه، ويُمنح عند الترحيل (في الديسكتوب `txtNo` للقراءة فقط). */}
- <dt>🔢 الرقم</dt>
+ {/* «الرقم» L366 — رقم المستند نفسه، ويُمنح عند الترحيل (في الديسكتوب `txtNo` للقراءة فقط). */}
+ <dt>الرقم</dt>
  <dd>{doc.number ?? '(مسودة)'}</dd>
-            {/* «📊 مركز التكلفة» L467 — يُعرض باسمه كما في الديسكتوب (`Print.cs` L772–774). */}
+ {/* «مركز التكلفة» L467 — يُعرض باسمه كما في الديسكتوب (`Print.cs` L772–774). */}
             {costCenterLabel && (
  <>
- <dt>📊 مركز التكلفة</dt>
+ <dt>مركز التكلفة</dt>
  <dd>{costCenterLabel}</dd>
  </>
             )}
-            {/* «📋 المرجع» L545 — رقم فاتورة المورد. */}
- <dt>📋 المرجع</dt>
+ {/* «المرجع» L545 — رقم فاتورة المورد. */}
+ <dt>المرجع</dt>
  <dd>{doc.supplierReferenceNo ?? '—'}</dd>
-            {/* «📅 التاريخ» L434 و«🕐 وقت الفاتورة» L503. */}
- <dt>📅 التاريخ</dt>
+ {/* «التاريخ» L434 و«وقت الفاتورة» L503. */}
+ <dt>التاريخ</dt>
  <dd>{shortDate(doc.createdAt)}</dd>
- <dt>🕐 وقت الفاتورة</dt>
+ <dt>وقت الفاتورة</dt>
  <dd>{dateTime(doc.createdAt).slice(11)}</dd>
  <dt>الترحيل</dt>
  <dd>{doc.postedAt ? dateTime(doc.postedAt) : '—'}</dd>
@@ -216,11 +216,11 @@ export default function PurchaseInvoiceDetailPage() {
  السحابة من بياناتها. وما بقي منها (الكمية الحالية · التعادل · كمية و/س ·
  آخر شراء/آخر بيع/المتوسط/المنافس · باركود الصنف) مؤجَّلٌ ومُعلَّل في §R3.5.
             */}
- <dt>📊 عدد البنود</dt>
+ <dt>عدد البنود</dt>
  <dd>{doc.lines.length}</dd>
- <dt>📦 إجمالي الكمية</dt>
+ <dt>إجمالي الكمية</dt>
  <dd>{quantity(doc.lines.reduce((sum, line) => sum + Number(line.quantity), 0))}</dd>
- <dt>🏷️ خصم الفاتورة</dt>
+ <dt>خصم الفاتورة</dt>
  <dd>{money(doc.invoiceDiscount ?? '0', doc.currency)}</dd>
  </dl>
  </div>
@@ -290,9 +290,9 @@ export default function PurchaseInvoiceDetailPage() {
           {doc.status === 'draft' && can('purchase.invoice.post') && (
  <>
  <h3>الترحيل</h3>
-              {/* «💳 طريقة الدفع» L330 وخياراتها «آجلة»/«نقدية»/«بنك» (`frmInvPurch.xaml.cs` L191–193). */}
+ {/* «طريقة الدفع» L330 وخياراتها «آجلة»/«نقدية»/«بنك» (`frmInvPurch.xaml.cs` L191–193). */}
  <label className="field">
- <span>💳 طريقة الدفع</span>
+ <span>طريقة الدفع</span>
  <select className="input" value={settlement} onChange={(event) => setSettlement(event.target.value as 'credit' | 'cash' | 'bank')}>
  <option value="credit">آجلة</option>
  <option value="cash">نقدية</option>
@@ -301,8 +301,8 @@ export default function PurchaseInvoiceDetailPage() {
  </label>
               {settlement !== 'credit' && (
  <label className="field">
-                  {/* «🏦 الصندوق» L340 أو «🏦 البنك» L424 — التسمية تتبدّل مع طريقة الدفع. */}
- <span>{settlement === 'bank' ? '🏦 البنك' : '🏦 الصندوق'} *</span>
+ {/* «الصندوق» L340 أو «البنك» L424 — التسمية تتبدّل مع طريقة الدفع. */}
+ <span>{settlement === 'bank' ? 'البنك' : 'الصندوق'} *</span>
  <select className="input" value={settleLocationId} onChange={(event) => setSettleLocationId(event.target.value)}>
  <option value="">— اختر —</option>
                     {(cashLocations.data ?? []).map((row) => (
@@ -341,8 +341,8 @@ export default function PurchaseInvoiceDetailPage() {
 
           {doc.status === 'posted' && can('purchase.invoice.void') && (
  <>
-              {/* «🗑️ حذف» L1406 — والسحابة تعكسها إلغاءً، كما في نافذة البيع (§R2.5). */}
- <h3>🗑️ إلغاء الفاتورة</h3>
+ {/* «حذف» L1406 — والسحابة تعكسها إلغاءً، كما في نافذة البيع (§R2.5). */}
+ <h3>إلغاء الفاتورة</h3>
  <label className="field">
  <span>سبب الإلغاء</span>
  <input className="input" value={voidReason} onChange={(event) => setVoidReason(event.target.value)} />
@@ -353,7 +353,7 @@ export default function PurchaseInvoiceDetailPage() {
                 disabled={busy || !voidReason.trim()}
                 onClick={() => run(() => apiPost(`/purchase-invoices/${doc.id}/void`, { reason: voidReason.trim() }), 'تم إلغاء الفاتورة.')}
               >
- 🗑️إلغاء الفاتورة
+ إلغاء الفاتورة
  </button>
  </>
           )}
@@ -361,8 +361,8 @@ export default function PurchaseInvoiceDetailPage() {
  </div>
 
  <div className="card">
-        {/* «📋 بنود الفاتورة» — `frmInvPurch.xaml` L665. */}
- <h2>📋 بنود الفاتورة</h2>
+ {/* «بنود الفاتورة» — `frmInvPurch.xaml` L665. */}
+ <h2>بنود الفاتورة</h2>
  <DataTable
           rows={doc.lines}
           rowKey={(row) => row.id}
@@ -371,7 +371,7 @@ export default function PurchaseInvoiceDetailPage() {
             {
               // «🔍 الصنف» — `frmInvPurch.xaml` L746.
               key: 'item',
-              header: '🔍 الصنف',
+ header: 'الصنف',
               cell: (row) => {
                 const item = (items.data ?? []).find((entry) => entry.id === row.itemId);
                 return item ? itemLabel(item) : (row.description ?? '—');
@@ -387,18 +387,18 @@ export default function PurchaseInvoiceDetailPage() {
             { key: 'tax', header: 'الضريبة', align: 'num', cell: (row) => money(row.tax) },
             // «الصافي» L847 = `ItemNetPrice` أي السطر بعد الخصم **مع** الضريبة.
             { key: 'total', header: 'الصافي', align: 'num', cell: (row) => money(row.total) },
-            { key: 'batch', header: '📁 رقم الدفعة', align: 'ltr', cell: (row) => row.batchNo ?? '—' },
-            { key: 'costCenter', header: '📊 مركز التكلفة', cell: (row) => centerName(row.costCenterId ?? doc.costCenterId) },
+ { key: 'batch', header: 'رقم الدفعة', align: 'ltr', cell: (row) => row.batchNo ?? '—' },
+ { key: 'costCenter', header: 'مركز التكلفة', cell: (row) => centerName(row.costCenterId ?? doc.costCenterId) },
             {
               key: 'serials',
-              header: '🔢 التسلسلي',
+ header: 'التسلسلي',
               align: 'ltr',
               cell: (row) => (row.serialNos ?? []).join(' · ') || '—',
             },
             // عمودان سحابيان لا نظيرَ لهما في جدول النافذة: الديسكتوب يصهر التكلفة
             // الإضافية في تكلفة الصنف (`ItemAdditonalCos`, `ItemOper.cs:2086`) فلا يُظهرها.
-            { key: 'alloc', header: '📦 مصاريف محمّلة', align: 'num', cell: (row) => money(row.allocatedCost) },
-            { key: 'unitcost', header: '📦 التكلفة النهائية', align: 'num', cell: (row) => money(row.unitCostAtPost) },
+ { key: 'alloc', header: 'مصاريف محمّلة', align: 'num', cell: (row) => money(row.allocatedCost) },
+ { key: 'unitcost', header: 'التكلفة النهائية', align: 'num', cell: (row) => money(row.unitCostAtPost) },
           ]}
         />
  </div>
@@ -407,10 +407,10 @@ export default function PurchaseInvoiceDetailPage() {
  <div className="card">
           {/*
  عمودٌ سحابي لا نظيرَ له في جدول النافذة: الديسكتوب يكتب الدفعة في دفتر
-            `Entry` ويُظهر «💰 الرصيد» L489 وحده. وصفوف التخصيص كانت تُكتب في السحابة
+ `Entry` ويُظهر «الرصيد» L489 وحده. وصفوف التخصيص كانت تُكتب في السحابة
  ولا تُقرأ — أُضيفت قراءتها في R3 (`GET /purchase-invoices/:id`).
           */}
- <h2>💵 الدفعات المسدّدة</h2>
+ <h2>الدفعات المسدّدة</h2>
  <DataTable
             rows={doc.payments}
             rowKey={(row) => row.id}

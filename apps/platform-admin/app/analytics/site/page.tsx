@@ -58,7 +58,7 @@ export default function SiteAnalyticsPage() {
         <div className="row">
           <label className="field">
             <span>النافذة</span>
-            <select value={windowDays} onChange={(event) => setWindowDays(event.target.value)}>
+            <select className="input" value={windowDays} onChange={(event) => setWindowDays(event.target.value)}>
               {WINDOWS.map((option) => (
                 <option key={option.value} value={option.value}>
                   {option.label}

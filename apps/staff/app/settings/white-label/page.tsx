@@ -175,11 +175,11 @@ export default function WhiteLabelPage() {
         </label>
         <label className="field">
           <span>اللون الأساسي</span>
-          <input dir="ltr" value={brand.primaryColor} onChange={(event) => setBrand({ ...brand, primaryColor: event.target.value })} />
+          <input className="input" dir="ltr" value={brand.primaryColor} onChange={(event) => setBrand({ ...brand, primaryColor: event.target.value })} />
         </label>
         <label className="field">
           <span>اللون الثانوي</span>
-          <input dir="ltr" value={brand.secondaryColor} onChange={(event) => setBrand({ ...brand, secondaryColor: event.target.value })} />
+          <input className="input" dir="ltr" value={brand.secondaryColor} onChange={(event) => setBrand({ ...brand, secondaryColor: event.target.value })} />
         </label>
         <button className="btn primary" type="button" disabled={busy === 'colors'} onClick={() => saveColors()}>
           حفظ الألوان
@@ -189,7 +189,7 @@ export default function WhiteLabelPage() {
         <strong>دومين خاص</strong>
         <label className="field wide">
           <span>الدومين</span>
-          <input dir="ltr" value={domain} placeholder="shop.example.com" onChange={(event) => setDomain(event.target.value)} />
+          <input className="input" dir="ltr" value={domain} placeholder="shop.example.com" onChange={(event) => setDomain(event.target.value)} />
         </label>
         <button className="btn primary" type="button" disabled={busy === 'domain' || !domain.trim()} onClick={() => addDomain()}>
           إضافة

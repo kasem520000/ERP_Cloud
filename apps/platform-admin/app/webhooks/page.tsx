@@ -250,7 +250,7 @@ export default function WebhooksPage() {
  <div className="card grid cols-2">
  <label>
  المنشأة
- <select value={tenantId} onChange={(event) => setTenantId(event.target.value)}>
+ <select className="input" value={tenantId} onChange={(event) => setTenantId(event.target.value)}>
  <option value="">— اختر منشأة —</option>
             {(tenants.data ?? []).map((entry) => (
  <option key={entry.id} value={entry.id}>
@@ -271,11 +271,11 @@ export default function WebhooksPage() {
  <div className="form-grid">
  <label>
  العنوان
- <input value={url} onChange={(event) => setUrl(event.target.value)} placeholder="https://example.com/hooks/erp" />
+ <input className="input" value={url} onChange={(event) => setUrl(event.target.value)} placeholder="https://example.com/hooks/erp" />
  </label>
  <label>
  وصف (اختياري)
- <input value={description} onChange={(event) => setDescription(event.target.value)} placeholder="بوت المحاسبة" />
+ <input className="input" value={description} onChange={(event) => setDescription(event.target.value)} placeholder="بوت المحاسبة" />
  </label>
  </div>
  <div className="form-grid">
@@ -344,7 +344,7 @@ export default function WebhooksPage() {
                       {row.status !== 'active' && <div className="muted">الأحداث التلقائية متوقّفة</div>}
  </td>
  <td>
-                      {row.stats.delivered} ✔ / {row.stats.failed} ✖ / {row.stats.pending} …
+ {row.stats.delivered} / {row.stats.failed} / {row.stats.pending} …
                       {row.stats.lastError && <div className="muted">{row.stats.lastError}</div>}
  </td>
  <td>

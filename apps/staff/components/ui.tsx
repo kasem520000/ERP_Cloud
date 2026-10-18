@@ -81,7 +81,7 @@ export function StatusTrack({
             {index > 0 ? <span className="step-sep" /> : null}
  <span className={`step${state === 'todo' ? '' : ` ${state}`}`}>
  <span className="step-bullet">
-                {state === 'done' ? '✓' : state === 'cancelled' ? '✕' : index + 1}
+ {state === 'done' ? '' : state === 'cancelled' ? '' : index + 1}
  </span>
               {step}
  </span>
@@ -156,7 +156,7 @@ export function DocField({ label, children }: { label: string; children: ReactNo
 // ----------------------------------------------------------------------- states
 
 export function StateBox({
-  icon = '📭',
+ icon = '',
   title,
   detail,
   action,

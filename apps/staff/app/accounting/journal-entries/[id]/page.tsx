@@ -147,18 +147,18 @@ export default function JournalEntryPage() {
       actions={
  <>
           {/*
-            «🖨️ طباعة» و«👁️ معاينة» — `FrmNewEntry.xaml` L454–455. والشاشتان واحدةٌ عندنا:
+ «طباعة» و«معاينة» — `FrmNewEntry.xaml` L454–455. والشاشتان واحدةٌ عندنا:
  ورقة المستند تُفتح داخل إطار، و`?auto=1` يطبعها فور جهوزها (فرقُ الزرّين في
  المكتب: المعاينة تُعرض، والطباعة تُخرج الورق).
           */}
  <Link className="btn primary" href={`/print/journal-entry/${doc.id}?auto=1`}>
- 🖨️طباعة
+ طباعة
  </Link>
  <Link className="btn" href={`/print/journal-entry/${doc.id}`}>
- 👁️معاينة
+ معاينة
  </Link>
           {/*
- 🗑️حذف — `FrmNewEntry.xaml` L450 `btnDelete` + L378-397 عمود حذف السطر
+ حذف — `FrmNewEntry.xaml` L450 `btnDelete` + L378-397 عمود حذف السطر
             (`BtnDeleteRow_Click` L532). في الديسكتوب: `update Entry set IS_Deleted=1
             where GlobalId=N'…'` (L654) + سجل «تم حذف سند قيد برقم …». في السحابة
  القيد المرحّل لا يُحذف — الحذف ممنوع في القاعدة (`prevent_posted_journal_mutation`
@@ -172,18 +172,18 @@ export default function JournalEntryPage() {
             title="القيد المرحّل لا يُحذف. استخدم «عكس القيد» لإنشاء قيدٍ عكسيّ موثّق."
             aria-label="حذف"
           >
- 🗑️حذف
+ حذف
  </button>
-          {/* «✖» خروج — L427؛ والخروج هنا عودةٌ إلى السجل بالنطاق نفسه. */}
+ {/* «» خروج — L427؛ والخروج هنا عودةٌ إلى السجل بالنطاق نفسه. */}
  <Link className="btn" href={registerHref}>
- ✖خروج
+ خروج
  </Link>
  </>
       }
     >
  <div className="card tight">
         {/*
-          ⏮ ◀ ▶ ⏭ — `FrmNewEntry.xaml` L428–431 بترتيبها ونصوصها. وزرٌّ بلا جارٍ يُعطَّل
+ — `FrmNewEntry.xaml` L428–431 بترتيبها ونصوصها. وزرٌّ بلا جارٍ يُعطَّل
  ولا يُخفى (فالنافذة المكتبية تُبقي الأزرار الأربعة دائماً).
         */}
  <div className="row" style={{ alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
@@ -211,13 +211,13 @@ export default function JournalEntryPage() {
             {/* «رقم القيد» — FrmNewEntry.xaml L254. */}
  <dt>رقم القيد</dt>
  <dd dir="ltr">{doc.number ?? '—'}</dd>
-            {/* «📅 التاريخ» — L257. */}
+ {/* «التاريخ» — L257. */}
  <dt>التاريخ</dt>
  <dd dir="ltr">{doc.date}</dd>
-            {/* «⏰ الوقت» — L260 (`txtTime`)، والقيد القديم قد يخلو منه. */}
+ {/* «الوقت» — L260 (`txtTime`)، والقيد القديم قد يخلو منه. */}
  <dt>الوقت</dt>
  <dd dir="ltr">{doc.entryTime ? String(doc.entryTime).slice(0, 5) : '—'}</dd>
-            {/* «📝 الملاحظة» — L269 (شرح القيد). */}
+ {/* «الملاحظة» — L269 (شرح القيد). */}
  <dt>الملاحظة</dt>
  <dd>{doc.description ?? '—'}</dd>
  <dt>الحالة</dt>
@@ -240,10 +240,10 @@ export default function JournalEntryPage() {
  <dd dir="ltr">{String(doc.postedAt).slice(0, 19).replace('T', ' ')}</dd>
  </>
             )}
-            {/* «🔑 الرقم العام» — L263؛ ويظهر حين يوجد مرجعٌ قديم فقط. */}
+ {/* «الرقم العام» — L263؛ ويظهر حين يوجد مرجعٌ قديم فقط. */}
             {doc.legacyId && (
  <>
- <dt>🔑 الرقم العام</dt>
+ <dt>الرقم العام</dt>
  <dd dir="ltr">{doc.legacyId}</dd>
  </>
             )}
@@ -265,8 +265,8 @@ export default function JournalEntryPage() {
  </div>
 
  <div className="card">
-        {/* «📋 تفاصيل القيد» — L291، بأعمدة الشبكة L320–366. */}
- <h2>📋 تفاصيل القيد</h2>
+ {/* «تفاصيل القيد» — L291، بأعمدة الشبكة L320–366. */}
+ <h2>تفاصيل القيد</h2>
         {doc.lines.length === 0 ? (
  <Empty title="لا سطور لهذا القيد" detail="القيد المُعلَن عناصرُه." />
         ) : (
@@ -298,14 +298,14 @@ export default function JournalEntryPage() {
  </div>
         )}
         {/*
- عمود «🗑️ حذف» على كل سطر — `FrmNewEntry.xaml` L378-397 `BtnDeleteRow_Click`
+ عمود «حذف» على كل سطر — `FrmNewEntry.xaml` L378-397 `BtnDeleteRow_Click`
           (L532) + `DeleteCurrentRow` L552 + `GridControl1_KeyDown` L482 (Delete key).
  في الديسكتوب يحذف السطر قبل الحفظ (`EntryAccList.Remove` + `ReIndexRows`).
  في السحابة القيد المرحّل لا يُعدَّل أصلاً، والشاشة قراءة — فالعمود غير موجود،
  ويُعلَن هنا حيث يُتوقّعه من يقرأ الشبكة.
         */}
  <p className="muted small" style={{ marginTop: 8 }}>
- حذف السطر (🗑️) في `FrmNewEntry.xaml:378-397` كان قبل الحفظ فقط — القيد المرحّل لا يُعدَّل، فالشبكة هنا قراءة.
+ حذف السطر () في `FrmNewEntry.xaml:378-397` كان قبل الحفظ فقط — القيد المرحّل لا يُعدَّل، فالشبكة هنا قراءة.
  </p>
  </div>
 
@@ -319,9 +319,9 @@ export default function JournalEntryPage() {
  <Notice notice={{ kind: 'info', text: 'القيد المرحّل لا يُعدَّل ولا يُحذف — التصحيح يكون بقيدٍ عكسيّ موثّق. زرّ «حذف» معطّل لهذا السبب، و«عكس القيد» أدناه هو الطريق الصحيح.' }} />
 
  <div className="card">
- <h2>↩ عكس القيد</h2>
+ <h2>عكس القيد</h2>
  <p className="muted small">
- العكس ينشئ قيداً مرآةً (مدين ↔ دائن) بنفس الأبعاد (مركز التكلفة · الفرع · المندوب) — ترحيل 0047.
+ العكس ينشئ قيداً مرآةً (مدين دائن) بنفس الأبعاد (مركز التكلفة · الفرع · المندوب) — ترحيل 0047.
               {doc.kind === 'reversal' ? ' هذا القيد نفسه عكسي.' : ''}
  </p>
             {reversedId ? (
@@ -344,7 +344,7 @@ export default function JournalEntryPage() {
                     />
  </label>
  <button className="btn primary" type="button" onClick={handleReverse} disabled={reversing || doc.kind === 'reversal'}>
-                    {reversing ? 'جاري العكس…' : '↩ عكس القيد'}
+ {reversing ? 'جاري العكس…' : 'عكس القيد'}
  </button>
  </div>
                 {reverseError && (

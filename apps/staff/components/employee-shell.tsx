@@ -13,11 +13,11 @@ import { ImpersonationBanner } from './impersonation-banner';
 type Notice = { id: string; title: string; body: string };
 
 const NAV_ITEMS = [
-  { href: '/m', label: '🏠 الرئيسية' },
-  { href: '/m/attendance', label: '⏱ الحضور والانصراف' },
-  { href: '/m/requests/new', label: '📝 طلب جديد' },
-  { href: '/m/approvals', label: '✅ موافقات الفريق' },
-  { href: '/m/profile', label: '👤 راتبي وإجازاتي' },
+ { href: '/m', label: 'الرئيسية' },
+ { href: '/m/attendance', label: 'الحضور والانصراف' },
+ { href: '/m/requests/new', label: 'طلب جديد' },
+ { href: '/m/approvals', label: 'موافقات الفريق' },
+ { href: '/m/profile', label: 'راتبي وإجازاتي' },
 ];
 
 export function EmployeeShell({ children }: { children: ReactNode }) {
@@ -57,13 +57,13 @@ export function EmployeeShell({ children }: { children: ReactNode }) {
  <header className="employee-bar">
  <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
  <div>
- <strong style={{ fontSize: 18 }}>📱 تطبيق الموظف الذاتي</strong>
+ <strong style={{ fontSize: 18 }}>تطبيق الموظف الذاتي</strong>
  <p className="muted" style={{ margin: '2px 0 0', fontSize: 12 }}>
               {me?.membership.tenantName ?? 'المنشأة'} · {me?.user.fullName || me?.user.email || ''}
  </p>
  </div>
  <Link className="btn sm" href="/">
-            ↩ العودة للنظام الرئيسي
+ العودة للنظام الرئيسي
  </Link>
  </div>
  <nav>
