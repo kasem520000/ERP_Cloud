@@ -76,6 +76,17 @@ export default function JournalRegisterPage() {
       title="القيود اليومية"
       subtitle="سجل كل القيود المرحّلة خلال الفترة المحددة."
       crumbs={['المحاسبة', 'تقارير محاسبية']}
+      kpis={[
+        { label: 'عدد القيود', value: rows.length, hint: 'داخل الفترة المحددة' },
+        { label: 'إجمالي المدين', value: money(String(totalDebit)) },
+        { label: 'إجمالي الدائن', value: money(String(totalCredit)) },
+        {
+          label: 'فرق المدين والدائن',
+          value: money(String(totalDebit - totalCredit)),
+          hint: totalDebit === totalCredit ? 'القيود متوازنة' : 'يجب أن يكون صفراً',
+          tone: totalDebit === totalCredit ? 'up' : 'down',
+        },
+      ]}
       actions={
  <>
  <button className="btn" type="button" onClick={() => window.print()}>
@@ -97,17 +108,17 @@ export default function JournalRegisterPage() {
  </>
       }
     >
- <div className="card tight no-print">
- <div className="row">
- <label className="field" style={{ margin: 0 }}>
+ <div className="ui-filter-bar no-print">
+ <div className="ui-filter-fields">
+ <label className="field" style={{ marginBottom: 0 }}>
  <span>من تاريخ</span>
  <input className="input" type="date" value={from} onChange={(event) => setFrom(event.target.value)} />
  </label>
- <label className="field" style={{ margin: 0 }}>
+ <label className="field" style={{ marginBottom: 0 }}>
  <span>إلى تاريخ</span>
  <input className="input" type="date" value={to} onChange={(event) => setTo(event.target.value)} />
  </label>
- <label className="field" style={{ margin: 0 }}>
+ <label className="field" style={{ marginBottom: 0 }}>
  <span>الحالة</span>
  <select className="input" value={status} onChange={(event) => setStatus(event.target.value)}>
  <option value="">الكل</option>
@@ -116,7 +127,10 @@ export default function JournalRegisterPage() {
  <option value="void">ملغي</option>
  </select>
  </label>
- <button className="btn primary" type="button" style={{ alignSelf: 'end' }} onClick={() => setApplied({ from, to, status })}>
+ </div>
+ <div className="ui-filter-actions">
+ <span className="ui-filter-summary">{rows.length} قيد</span>
+ <button className="btn primary" type="button" onClick={() => setApplied({ from, to, status })}>
  عرض
  </button>
  </div>
@@ -130,21 +144,8 @@ export default function JournalRegisterPage() {
  <Empty title="لا توجد قيود في هذه الفترة" detail="جرّب توسيع المدى الزمني أو أنشئ سند قيد جديد." />
         ) : (
  <>
- <div className="grid cols">
- <article className="card">
- <p className="muted">عدد القيود</p>
- <div className="kpi">{rows.length}</div>
- </article>
- <article className="card">
- <p className="muted">إجمالي المدين</p>
- <div className="kpi" style={{ fontSize: 22 }}>{money(String(totalDebit))}</div>
- </article>
- <article className="card">
- <p className="muted">إجمالي الدائن</p>
- <div className="kpi" style={{ fontSize: 22 }}>{money(String(totalCredit))}</div>
- </article>
- </div>
-
+ <div className="ui-panel">
+ <div className="ui-panel-body" style={{ padding: 0 }}>
  <div className="table-wrap">
  <table>
  <thead>
@@ -191,6 +192,8 @@ export default function JournalRegisterPage() {
                   ))}
  </tbody>
  </table>
+ </div>
+ </div>
  </div>
 
  </>

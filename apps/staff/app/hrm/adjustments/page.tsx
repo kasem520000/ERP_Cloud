@@ -88,6 +88,7 @@ export default function AdjustmentsPage() {
 
   return (
  <Directory<Adjustment>
+      listTitle="الحوافز والجزاءات"
       title="الحوافز والجزاءات"
       subtitle="إدخال الحوافز والخصومات للموظفين — ما يُصرف الآن يُقيَّد على الصندوق، وما يخصم من الراتب ينتظر مسير الرواتب."
       crumbs={['الموظفين والرواتب', 'العمليات']}

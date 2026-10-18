@@ -14,6 +14,7 @@ export default function CategoriesPage() {
 
   return (
     <Directory<Category>
+      listTitle="مجموعات الأصناف"
       title="بطاقة مجموعة"
       subtitle="مجموعات الأصناف — تُستخدم في التقارير وفي عرض المواد داخل نقطة البيع."
       crumbs={['المستودعات', 'التعاريف']}

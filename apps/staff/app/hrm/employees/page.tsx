@@ -316,8 +316,28 @@ export default function EmployeesPage() {
   return (
  <Screen
       title="تعريف موظف"
-      subtitle={`السجل: ${editing ? form.employeeNo || '—' : '--'} · عدد الموظفين: ${rows.length}`}
+      subtitle="بطاقة الموظف: بياناته الأساسية ورواتبه، ثم قائمة الموظفين للتنقّل والبحث."
       crumbs={['الموظفين والرواتب', 'التعاريف']}
+      kpis={[
+        { label: 'عدد الموظفين', value: rows.length, hint: 'في القائمة الحالية' },
+        {
+          label: 'على رأس العمل',
+          value: rows.filter((row) => row.status === 'active').length,
+          hint: 'حالتهم نشطة',
+          tone: 'up',
+        },
+        {
+          label: 'إجمالي الرواتب',
+          value: money(rows.reduce((sum, row) => sum + Number(row.totalSalary ?? 0), 0)),
+          hint: 'شهرياً، لكل الموظفين',
+        },
+        {
+          label: 'بلا حساب محاسبي',
+          value: rows.filter((row) => !row.accountCode).length,
+          hint: 'يُخصَّص عند أول ترحيل',
+          tone: rows.some((row) => !row.accountCode) ? 'warn' : 'up',
+        },
+      ]}
       actions={
  <>
  <button className="btn" type="button" onClick={reload} disabled={employees.status === 'loading'}>

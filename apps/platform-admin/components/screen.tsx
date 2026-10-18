@@ -1,47 +1,50 @@
 'use client';
 
-import type { ReactNode } from 'react';
+import { KpiStrip, Page, PageHead, type KpiItem } from '@erp/ui';
 import { FolderOpen, LockKeyhole } from 'lucide-react';
+import type { ReactNode } from 'react';
 
-/**
- * Standard page chrome — v2 (Vercel/Linear): breadcrumbs + 24px title +
- * subtitle + actions, matching the redesigned console pages.
- */
 export function Screen({
   title,
   subtitle,
   crumbs,
   actions,
+  kpis,
+  filters,
+  chips,
+  meta,
   children,
 }: {
   title: string;
   subtitle?: string;
   crumbs?: string[];
   actions?: ReactNode;
+  /** شريط المؤشرات — سطرٌ واحد فوق التصفية. */
+  kpis?: KpiItem[];
+  /** شريط التصفية الموحّد (`ui-filter-bar`). */
+  filters?: ReactNode;
+  /** صفّ الحالات (`ui-chip-row`). */
+  chips?: ReactNode;
+  /** سياق صغير في رأس الصفحة (الفترة، البيئة، الحالة). */
+  meta?: ReactNode;
   children: ReactNode;
 }) {
   return (
- <div className="grid gap-4">
- <section className="flex flex-wrap items-end justify-between gap-3">
- <div className="min-w-0">
- <div className="flex flex-wrap items-center gap-2">
- <span className="exec-eyebrow">{crumbs && crumbs.length > 0 ? crumbs[0] : 'Executive'}</span>
-            {crumbs && crumbs.length > 1 ? (
- <span className="text-xs font-semibold text-muted">
-                / {crumbs.slice(1).join(' / ')}
- </span>
-            ) : null}
- </div>
- <h1 className="m-0 mt-2 text-[25px] font-extrabold leading-tight tracking-[-0.03em] text-ink">
-            {title}
- </h1>
-          {subtitle ? <p className="m-0 mt-1 max-w-2xl text-[12.5px] leading-relaxed text-muted">{subtitle}</p> : null}
- </div>
-        {actions ? <div className="flex flex-wrap items-center gap-2 no-print">{actions}</div> : null}
- </section>
- <div className="page-rule" aria-hidden />
-      {children}
- </div>
+    <Page>
+      <PageHead
+        title={title}
+        description={subtitle}
+        breadcrumbs={crumbs}
+        actions={actions}
+        meta={meta}
+      />
+      <div className="ui-screen-body">
+        {kpis && kpis.length > 0 ? <KpiStrip items={kpis} /> : null}
+        {filters}
+        {chips}
+        {children}
+      </div>
+    </Page>
   );
 }
 

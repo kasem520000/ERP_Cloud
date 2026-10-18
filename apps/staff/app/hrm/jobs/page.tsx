@@ -13,6 +13,7 @@ export default function JobsPage() {
 
   return (
     <Directory<Job>
+      listTitle="الأقسام والوظائف"
       title="تعريف الأقسام والوظائف"
       subtitle="المسميات الوظيفية المستخدمة في بطاقة الموظف."
       crumbs={['الموظفين والرواتب', 'التعاريف']}

@@ -37,6 +37,7 @@ export default function PaymentMethodsPage() {
 
   return (
     <Directory<PaymentMethod>
+      listTitle="طرق الدفع"
       title="طريقة دفع عميل"
       subtitle="طرق السداد المعتمدة: نقداً، شبكة، تحويل، شيك أو آجل بمدة محددة."
       crumbs={['المحاسبة', 'تعاريف']}

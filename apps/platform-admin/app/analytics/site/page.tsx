@@ -53,6 +53,30 @@ export default function SiteAnalyticsPage() {
     <Screen
       title="تحليلات الموقع"
       subtitle="ما يُقرأ في الموقع التسويقي، وما يُطلب منه — أحداثٌ مجهولة الهوية بعد موافقة الزائر."
+      kpis={
+        data
+          ? [
+              {
+                label: 'الزوّار',
+                value: count(data.visitors.all),
+                hint: `زائرٌ مميّز · اليوم ${count(data.visitors.today)}`,
+              },
+              {
+                label: 'المشاهدات',
+                value: count(data.views.all),
+                hint: `صفحةٌ مقروءة · اليوم ${count(data.views.today)}`,
+              },
+              {
+                label: 'أعلى هدف',
+                value:
+                  data.goals
+                    .filter((goal) => goal.visitors > 0)
+                    .sort((left, right) => right.visitors - left.visitors)[0]?.labelAr ?? '—',
+                hint: 'ترتيب الأهداف بأعداد الزوّار',
+              },
+            ]
+          : undefined
+      }
     >
       <div className="card">
         <div className="row">
@@ -77,30 +101,6 @@ export default function SiteAnalyticsPage() {
 
       {data ? (
         <>
-          <section className="grid cols-2">
-            <article className="card">
-              <h2>الزوّار</h2>
-              <p className="kpi">{count(data.visitors.all)}</p>
-              <p className="small muted">
-                زائرٌ مميّزٌ في النافذة · اليوم: {count(data.visitors.today)}
-              </p>
-            </article>
-            <article className="card">
-              <h2>المشاهدات</h2>
-              <p className="kpi">{count(data.views.all)}</p>
-              <p className="small muted">صفحةٌ مقروءة · اليوم: {count(data.views.today)}</p>
-            </article>
-            <article className="card">
-              <h2>أعلى هدف</h2>
-              <p className="kpi">
-                {data.goals
-                  .filter((goal) => goal.visitors > 0)
-                  .sort((left, right) => right.visitors - left.visitors)[0]?.labelAr ?? '—'}
-              </p>
-              <p className="small muted">من يرتّب الأهداف بأعداد الزوّار لا بالنقرات</p>
-            </article>
-          </section>
-
           <section className="card">
             <h2>القمع — الأهداف الأربعة</h2>
             <table className="table">

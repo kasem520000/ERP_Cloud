@@ -43,6 +43,7 @@ export default function LotsPage() {
 
   return (
  <Directory<Lot>
+      listTitle="الدفعات"
       title="صلاحية المواد (الدفعات)"
       subtitle="دفعات الإنتاج وتواريخ انتهاء الصلاحية المرتبطة بالمواد."
       crumbs={['المستودعات', 'تقارير مستودعية']}

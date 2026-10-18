@@ -87,26 +87,26 @@ export default function InvoiceMaintenancePage() {
         </p>
         <Notice notice={notice} />
         {counts && (
-          <div className="kpi" style={{ marginTop: 12 }}>
-            <div>
-              <span className="muted small">إجماليات غير مطابقة</span>
-              <strong>{counts.totalsMismatch}</strong>
+          <div className="ui-kpi-strip">
+            <div className="ui-kpi-cell">
+              <span className="ui-kpi-label">إجماليات غير مطابقة</span>
+              <span className="ui-kpi-value">{counts.totalsMismatch}</span>
             </div>
-            <div>
-              <span className="muted small">قابل للتصحيح (مسودات)</span>
-              <strong>{counts.repairableTotals}</strong>
+            <div className="ui-kpi-cell">
+              <span className="ui-kpi-label">قابل للتصحيح (مسودات)</span>
+              <span className="ui-kpi-value">{counts.repairableTotals}</span>
             </div>
-            <div>
-              <span className="muted small">مرحّلة بلا قيد</span>
-              <strong>{counts.postedWithoutJournal}</strong>
+            <div className="ui-kpi-cell">
+              <span className="ui-kpi-label">مرحّلة بلا قيد</span>
+              <span className="ui-kpi-value">{counts.postedWithoutJournal}</span>
             </div>
-            <div>
-              <span className="muted small">أرقام مفقودة</span>
-              <strong>{counts.numberingGaps}</strong>
+            <div className="ui-kpi-cell">
+              <span className="ui-kpi-label">أرقام مفقودة</span>
+              <span className="ui-kpi-value">{counts.numberingGaps}</span>
             </div>
-            <div>
-              <span className="muted small">مسودات معلّقة</span>
-              <strong>{counts.staleDrafts}</strong>
+            <div className="ui-kpi-cell">
+              <span className="ui-kpi-label">مسودات معلّقة</span>
+              <span className="ui-kpi-value">{counts.staleDrafts}</span>
             </div>
           </div>
         )}

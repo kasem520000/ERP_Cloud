@@ -1,13 +1,14 @@
 'use client';
 
 import { useState, type ReactNode } from 'react';
+import { Panel, type KpiItem } from '@erp/ui';
 
 import { ApiError } from '../lib/api';
 import type { QueryState } from '../lib/use-query';
 
 import { DataTable, Notice, QueryView, type Column } from './data-view';
 import { Screen } from './screen';
-import { StatTiles, type Tone } from './ui';
+import type { Tone } from './ui';
 
 /** One KPI tile above the table. */
 export type Tile = { label: string; value: React.ReactNode; hint?: React.ReactNode; tone?: Tone };
@@ -71,6 +72,8 @@ export function Directory<T>({
   blocked,
   toolbar,
   tiles,
+  listTitle = 'السجلات',
+  listHint,
   footer,
   children,
 }: {
@@ -103,6 +106,9 @@ export function Directory<T>({
   toolbar?: ReactNode;
   /** KPI tiles rendered above the table — counts the screen can derive from its rows. */
   tiles?: Tile[];
+  /** عنوان لوحة القائمة — يظهر في رأس اللوحة فوق الجدول. */
+  listTitle?: string;
+  listHint?: ReactNode;
   /** Totals row for the table, computed from the rows on screen. */
   footer?: (rows: T[]) => ReactNode[];
   /** Extra content rendered between the form and the table. */
@@ -202,6 +208,26 @@ export function Directory<T>({
       title={title}
       subtitle={subtitle}
       crumbs={crumbs}
+      kpis={tiles?.map<KpiItem>((tile) => ({
+        label: tile.label,
+        value: tile.value,
+        hint: tile.hint,
+        tone:
+          tile.tone === 'ok'
+            ? 'up'
+            : tile.tone === 'warn'
+              ? 'warn'
+              : tile.tone === 'danger'
+                ? 'down'
+                : 'neutral',
+      }))}
+      filters={
+        toolbar ? (
+          <div className="ui-filter-bar">
+            <div className="ui-filter-fields">{toolbar}</div>
+          </div>
+        ) : undefined
+      }
       actions={
         canCreate ? (
           <button
@@ -223,45 +249,38 @@ export function Directory<T>({
           {blocked && !editing && <p className="alert warn">{blocked}</p>}
           <FormFields fields={fields} values={values} onChange={setValues} />
           <Notice notice={notice} />
-          <div className="row">
-            <button className="btn primary" type="submit" disabled={busy || (Boolean(blocked) && !editing)}>
-              {busy ? 'جارٍ الحفظ…' : editing ? 'حفظ التعديل' : 'حفظ'}
-            </button>
-            {editing && (
-              <button className="btn" type="button" onClick={reset} disabled={busy}>
-                إلغاء التعديل
+          <div className="ui-form-actions">
+            <span className="ui-form-actions-note" />
+            <div className="ui-form-actions-buttons">
+              <button className="btn primary" type="submit" disabled={busy || (Boolean(blocked) && !editing)}>
+                {busy ? 'جارٍ الحفظ…' : editing ? 'حفظ التعديل' : 'حفظ'}
               </button>
-            )}
+              {editing && (
+                <button className="btn" type="button" onClick={reset} disabled={busy}>
+                  إلغاء التعديل
+                </button>
+              )}
+            </div>
           </div>
         </form>
       )}
 
-      {toolbar && <div className="card toolbar">{toolbar}</div>}
-      {children}
-      {tiles && tiles.length > 0 && (
-        <StatTiles>
-          {tiles.map((tile) => (
-            <div className={`tile${tile.tone && tile.tone !== 'default' ? ` ${tile.tone}` : ''}`} key={tile.label}>
-              <span className="tile-label">{tile.label}</span>
-              <span className="tile-value">{tile.value}</span>
-              {tile.hint ? <span className="tile-hint">{tile.hint}</span> : null}
-            </div>
-          ))}
-        </StatTiles>
-      )}
-
       {!open && notice && <Notice notice={notice} />}
 
-      <QueryView query={query} empty={empty} emptyDetail={emptyDetail}>
-        {(rows) => (
-          <DataTable
-            rows={rows}
-            rowKey={rowKey}
-            columns={rowColumns}
-            footer={footer ? footer(rows) : undefined}
-          />
-        )}
-      </QueryView>
+      <Panel title={listTitle} hint={listHint} flush>
+        <QueryView query={query} empty={empty} emptyDetail={emptyDetail}>
+          {(rows) => (
+            <DataTable
+              rows={rows}
+              rowKey={rowKey}
+              columns={rowColumns}
+              footer={footer ? footer(rows) : undefined}
+            />
+          )}
+        </QueryView>
+      </Panel>
+
+      {children}
     </Screen>
   );
 }

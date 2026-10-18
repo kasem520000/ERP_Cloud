@@ -26,31 +26,40 @@ function Invoices() {
         <p className="muted">الفواتير المرحّلة الصادرة باسمك، مع إمكانية فتح الفاتورة وطباعتها بصيغتها الرسمية.</p>
       </section>
 
-      <div className="toolbar card">
-        <label className="muted">
-          من <input className="input" type="date" value={range.from} onChange={(event) => setRange({ ...range, from: event.target.value })} />
-        </label>
-        <label className="muted">
-          إلى <input className="input" type="date" value={range.to} onChange={(event) => setRange({ ...range, to: event.target.value })} />
-        </label>
-        <input className="input" placeholder="بحث برقم الفاتورة" value={search} onChange={(event) => setSearch(event.target.value)} aria-label="بحث برقم الفاتورة" />
-        <button className="btn primary" type="button" onClick={() => setApplied({ from: range.from || undefined, to: range.to || undefined })}>
-          عرض
-        </button>
-        <button
-          className="btn"
-          type="button"
-          onClick={() => {
-            setRange({ from: '', to: '' });
-            setApplied({});
-            setSearch('');
-          }}
-        >
-          إلغاء الفلترة
-        </button>
+      <div className="ui-filter-bar">
+        <div className="ui-filter-fields">
+          <label className="field">
+            <span>من تاريخ</span>
+            <input className="input" type="date" value={range.from} onChange={(event) => setRange({ ...range, from: event.target.value })} />
+          </label>
+          <label className="field">
+            <span>إلى تاريخ</span>
+            <input className="input" type="date" value={range.to} onChange={(event) => setRange({ ...range, to: event.target.value })} />
+          </label>
+          <label className="field">
+            <span>رقم الفاتورة</span>
+            <input className="input" placeholder="بحث برقم الفاتورة" value={search} onChange={(event) => setSearch(event.target.value)} />
+          </label>
+        </div>
+        <div className="ui-filter-actions">
+          <span className="ui-filter-summary">{rows.length} فاتورة</span>
+          <button className="btn" type="button" onClick={() => { setRange({ from: '', to: '' }); setApplied({}); setSearch(''); }}>
+            إلغاء الفلترة
+          </button>
+          <button className="btn primary" type="button" onClick={() => setApplied({ from: range.from || undefined, to: range.to || undefined })}>
+            عرض
+          </button>
+        </div>
       </div>
 
-      <section className="card" style={{ overflowX: 'auto' }}>
+      <section className="ui-panel">
+        <div className="ui-panel-head">
+          <div className="ui-panel-copy">
+            <h2 className="ui-panel-title">الفواتير الصادرة</h2>
+            <p className="ui-panel-hint">المرحّلة فقط — افتح الفاتورة لعرضها أو دفعها.</p>
+          </div>
+        </div>
+        <div className="ui-panel-body">
         {invoices.status === 'loading' ? (
           <p className="muted">جارٍ تحميل الفواتير…</p>
         ) : invoices.status === 'error' ? (
@@ -101,6 +110,7 @@ function Invoices() {
             </table>
           </div>
         )}
+        </div>
       </section>
     </>
   );

@@ -230,7 +230,7 @@ function JournalEntryForm() {
  </button>
       }
     >
- <form className="grid" onSubmit={submit}>
+ <form className="grid ui-doc-form" onSubmit={submit}>
  <section className="card">
  <div className="form-grid">
  <label className="field">
@@ -452,13 +452,18 @@ function JournalEntryForm() {
 
         {result && <p className={`alert ${result.kind}`}>{result.text}</p>}
 
- <div className="toolbar">
- <button className="btn primary" type="submit" disabled={busy || blocked || !branchId || !periodId}>
- حفظ
- </button>
+ <div className="ui-form-actions">
+ <span className="ui-form-actions-note">
+ المجموعان يجب أن يتساويا قبل الترحيل — يُولَّد رقم القيد عند الحفظ.
+ </span>
+ <div className="ui-form-actions-buttons">
  <button className="btn" type="button" onClick={reset} disabled={busy}>
  جديد
  </button>
+ <button className="btn primary" type="submit" disabled={busy || blocked || !branchId || !periodId}>
+ حفظ
+ </button>
+ </div>
  </div>
  </form>
  </Screen>

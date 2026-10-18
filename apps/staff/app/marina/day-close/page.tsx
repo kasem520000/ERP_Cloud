@@ -1,5 +1,6 @@
 'use client';
 
+import { Panel } from '@erp/ui';
 import { useState } from 'react';
 
 import { DataTable, Notice, QueryView } from '../../../components/data-view';
@@ -83,7 +84,8 @@ export default function MarinaDayClosePage() {
       subtitle="تجميد يوم المرسى: بعد الإغلاق يرفض النظام أي حجز أو فاتورة تأجير بتاريخ ذلك اليوم لنفس الفرع."
       crumbs={['إدارة المراسي', 'العمليات']}
     >
-      <div className="toolbar">
+      <div className="ui-filter-bar no-print">
+        <div className="ui-filter-fields">
         <label className="field">
           <span>الفرع</span>
           <select className="input" value={currentBranch} onChange={(event) => setBranchId(event.target.value)}>
@@ -98,40 +100,29 @@ export default function MarinaDayClosePage() {
           <span>التاريخ</span>
           <input className="input" dir="ltr" type="date" value={day} onChange={(event) => setDay(event.target.value)} />
         </label>
+        </div>
       </div>
 
       <Notice notice={notice} />
 
       {data && (
-        <div className="card">
-          <h2>
-            حركة {shortDate(data.closeDate)} — {branchName(data.branchId)}
-          </h2>
-          <div className="grid cols-2">
-            <div className="kpi">
-              <span>الحجوزات</span>
-              <strong>{data.bookingsCount}</strong>
+        <section className="ui-panel">
+          <div className="ui-panel-head">
+            <div className="ui-panel-copy">
+              <h2 className="ui-panel-title">
+                حركة {shortDate(data.closeDate)} — {branchName(data.branchId)}
+              </h2>
+              <p className="ui-panel-hint">تفصيل ما جرى في اليوم قبل تجميده.</p>
             </div>
-            <div className="kpi">
-              <span>فواتير التأجير</span>
-              <strong>{data.rentalsCount}</strong>
-            </div>
-            <div className="kpi">
-              <span>إجمالي التأجير</span>
-              <strong>{money(data.rentalsTotal)}</strong>
-            </div>
-            <div className="kpi">
-              <span>الإضافات</span>
-              <strong>{money(data.additionsTotal)}</strong>
-            </div>
-            <div className="kpi">
-              <span>التأمينات</span>
-              <strong>{money(data.insuranceTotal)}</strong>
-            </div>
-            <div className="kpi">
-              <span>المخالفات ({data.violationsCount})</span>
-              <strong>{money(data.violationsTotal)}</strong>
-            </div>
+          </div>
+          <div className="ui-panel-body">
+          <div className="ui-kpi-strip">
+            <div className="ui-kpi-cell"><span className="ui-kpi-label">الحجوزات</span><span className="ui-kpi-value">{data.bookingsCount}</span></div>
+            <div className="ui-kpi-cell"><span className="ui-kpi-label">فواتير التأجير</span><span className="ui-kpi-value">{data.rentalsCount}</span></div>
+            <div className="ui-kpi-cell"><span className="ui-kpi-label">إجمالي التأجير</span><span className="ui-kpi-value">{money(data.rentalsTotal)}</span></div>
+            <div className="ui-kpi-cell"><span className="ui-kpi-label">الإضافات</span><span className="ui-kpi-value">{money(data.additionsTotal)}</span></div>
+            <div className="ui-kpi-cell"><span className="ui-kpi-label">التأمينات</span><span className="ui-kpi-value">{money(data.insuranceTotal)}</span></div>
+            <div className="ui-kpi-cell"><span className="ui-kpi-label">المخالفات ({data.violationsCount})</span><span className="ui-kpi-value">{money(data.violationsTotal)}</span></div>
           </div>
 
           {data.closed && <p className="alert ok">هذه اليومية مغلقة بالفعل.</p>}
@@ -152,15 +143,24 @@ export default function MarinaDayClosePage() {
                   </span>
                 </label>
               )}
-              <button className="btn primary" type="button" onClick={closeDay} disabled={busy || data.bookingsCount === 0}>
-                {busy ? 'جارٍ الإغلاق…' : 'إغلاق اليومية'}
-              </button>
             </>
           )}
-        </div>
+          {!data.closed && can('marina.manage') ? (
+            <div className="ui-form-actions">
+              <span className="ui-form-actions-note">الإغلاق نهائي لهذا اليوم — لا يمكن التراجع عنه.</span>
+              <div className="ui-form-actions-buttons">
+                <button className="btn primary" type="button" onClick={closeDay} disabled={busy || data.bookingsCount === 0}>
+                  {busy ? 'جارٍ الإغلاق…' : 'إغلاق اليومية'}
+                </button>
+              </div>
+            </div>
+          ) : null}
+          </div>
+        </section>
       )}
 
-      <QueryView query={closings} empty="لا توجد إغلاقات سابقة" emptyDetail="أغلق أول يومية لتظهر هنا.">
+      <Panel title="إغلاقات سابقة" hint="كل يومية أُغلقت، ومن أغلقها ومتى." flush>
+        <QueryView query={closings} empty="لا توجد إغلاقات سابقة" emptyDetail="أغلق أول يومية لتظهر هنا.">
         {(rows) => (
           <DataTable
             rows={rows}
@@ -176,7 +176,8 @@ export default function MarinaDayClosePage() {
             ]}
           />
         )}
-      </QueryView>
+        </QueryView>
+      </Panel>
     </Screen>
   );
 }

@@ -20,7 +20,6 @@ import { useMemo, useState } from 'react';
  * `frmAccountSrch`), not the page the browser happens to have loaded.
  */
 import { Empty, ErrorBox, Forbidden, Loading, Screen } from '../../../components/screen';
-import { StatTile, StatTiles } from '../../../components/ui';
 import { ApiError, apiData, apiDelete, apiPatch, apiPost } from '../../../lib/api';
 import {
   ACCOUNT_TYPE_LABELS,
@@ -244,6 +243,17 @@ export default function ChartOfAccountsPage() {
       title="دليل الحسابات"
       subtitle="كل حسابات المنشأة مع النوع وقابلية الترحيل."
       crumbs={['المحاسبة', 'تعاريف']}
+      kpis={[
+        { label: 'عدد الحسابات', value: totals.count, hint: 'في نتيجة البحث الحالية' },
+        { label: 'مجموع الأرصدة المدينة', value: money(totals.debit.toFixed(4)), tone: 'up' },
+        { label: 'مجموع الأرصدة الدائنة', value: money(totals.credit.toFixed(4)) },
+        {
+          label: 'حسابات بلا حركة',
+          value: totals.count - totals.balances,
+          hint: 'رصيدها صفر',
+          tone: totals.count - totals.balances > 0 ? 'warn' : 'up',
+        },
+      ]}
       actions={
  <>
           {can('accounting.account.manage') && (
@@ -277,6 +287,54 @@ export default function ChartOfAccountsPage() {
  </>
       }
     >
+      {notice && <p className={`alert ${notice.kind}`}>{notice.text}</p>}
+
+      <div className="ui-filter-bar">
+        <div className="ui-filter-fields">
+          <label className="field" style={{ marginBottom: 0 }}>
+            <span>بحث</span>
+            <input
+              className="input"
+              placeholder="بحث بالرمز أو الاسم"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+            />
+          </label>
+          <label className="field" style={{ marginBottom: 0 }}>
+            <span>النوع</span>
+            <select className="input" value={type} onChange={(event) => setType(event.target.value)}>
+              <option value="">كل الأنواع</option>
+              {Object.entries(ACCOUNT_TYPE_LABELS).map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="field" style={{ marginBottom: 0 }}>
+            <span>الفرع</span>
+            <select className="input" value={branchId} onChange={(event) => setBranchId(event.target.value)}>
+              <option value="">كل الفروع</option>
+              {branchRows.map((branch) => (
+                <option key={branch.id} value={branch.id}>
+                  {branch.nameAr ?? branch.name ?? branch.id}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+        <div className="ui-filter-actions">
+          <span className="ui-filter-summary">{rows.length} حساب</span>
+          <button
+            className="btn primary"
+            type="button"
+            onClick={() => setApplied({ search, type, branchId })}
+          >
+            عرض البيانات
+          </button>
+        </div>
+      </div>
+
       {creating && (
  <AccountForm
           key={editing?.id ?? 'new'}
@@ -294,57 +352,14 @@ export default function ChartOfAccountsPage() {
         />
       )}
 
-      {notice && <p className={`alert ${notice.kind}`}>{notice.text}</p>}
-
- <StatTiles>
- <StatTile label="عدد الحسابات" value={totals.count} hint="في نتيجة البحث الحالية" />
- <StatTile label="مجموع الأرصدة المدينة" value={money(totals.debit.toFixed(4))} tone="ok" />
- <StatTile label="مجموع الأرصدة الدائنة" value={money(totals.credit.toFixed(4))} tone="brand" />
- <StatTile label="حسابات بلا حركة" value={totals.count - totals.balances} hint="رصيدها صفر" />
- </StatTiles>
-
- <div className="card tight">
- <div className="row">
- <input
-            className="input"
-            style={{ maxWidth: 260 }}
- placeholder="بحث بالرمز أو الاسم"
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-          />
- <select className="input" style={{ maxWidth: 180 }} value={type} onChange={(event) => setType(event.target.value)}>
- <option value="">كل الأنواع</option>
-            {Object.entries(ACCOUNT_TYPE_LABELS).map(([value, label]) => (
- <option key={value} value={value}>
-                {label}
- </option>
-            ))}
- </select>
- <select className="input" style={{ maxWidth: 200 }} value={branchId} onChange={(event) => setBranchId(event.target.value)}>
- <option value="">كل الفروع</option>
-            {branchRows.map((branch) => (
- <option key={branch.id} value={branch.id}>
-                {branch.nameAr ?? branch.name ?? branch.id}
- </option>
-            ))}
- </select>
- <button
-            className="btn primary"
-            type="button"
-            onClick={() => setApplied({ search, type, branchId })}
-          >
- عرض البيانات
- </button>
- <span className="muted" style={{ alignSelf: 'center' }}>
-            {rows.length} حساب
- </span>
- </div>
- </div>
-
       {/* شجرة الحسابات — `frmAccountsDirectory`: every node carries its balance. */}
- <div className="card tight">
- <div className="row" style={{ justifyContent: 'space-between' }}>
- <h2 style={{ margin: 0 }}>شجرة الحسابات</h2>
+ <div className="ui-panel">
+ <div className="ui-panel-head">
+ <div className="ui-panel-copy">
+ <h2 className="ui-panel-title">شجرة الحسابات</h2>
+ <p className="ui-panel-hint">كل مستوى يعرض رصيده المجمّع — افتح المستوى للتفصيل.</p>
+ </div>
+ <div className="ui-panel-actions">
  <span className="row" style={{ gap: 6 }}>
  <span className="muted small" style={{ alignSelf: 'center' }}>مستويات التوسعة:</span>
             {LEVELS.map((entry) => (
@@ -364,7 +379,9 @@ export default function ChartOfAccountsPage() {
             ) : null}
  </span>
  </div>
- <div className="tree" style={{ marginTop: 8 }}>
+ </div>
+ <div className="ui-panel-body">
+ <div className="tree">
  <TreeNodes
             nodes={tree}
             depth={0}
@@ -380,6 +397,7 @@ export default function ChartOfAccountsPage() {
             }
             onSelect={setSelectedId}
           />
+ </div>
  </div>
  </div>
 

@@ -54,6 +54,7 @@ function Inner() {
 
   return (
     <Directory<CashLocation>
+      listTitle="مواقع النقدية"
       title={title}
       subtitle="مواقع النقدية المرتبطة بحسابات دليل الحسابات — منها تُصرف وتُقبض السندات."
       crumbs={['المحاسبة', 'تعاريف']}

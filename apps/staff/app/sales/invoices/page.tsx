@@ -1,13 +1,13 @@
 'use client';
 
 import Link from 'next/link';
+import { FilterBand, KpiStrip, Page, PageHead, Panel } from '@erp/ui';
 import { FilePlus2, Printer, ReceiptText, Search, X } from 'lucide-react';
 import { Suspense, useMemo, useState } from 'react';
 
 import { Badge } from '../../../components/ui/badge';
 import { Button } from '../../../components/ui/button';
 import { EmptyState } from '../../../components/ui/empty-state';
-import { Labeled, Select } from '../../../components/ui/input';
 import { Table, type SortState } from '../../../components/ui/table';
 import { apiList } from '../../../lib/api';
 import { listBranches, listParties, money, shortDate, type Branch, type Party } from '../../../lib/lookups';
@@ -138,116 +138,132 @@ function InvoicesInner() {
   }
 
   return (
-    <div className="grid gap-4">
-      {/* ------------------------------------------------ header */}
-      <header className="page-head">
-        <div className="page-head-copy">
-          <nav className="crumbs" aria-label="مسار الصفحة">
-            <span>المبيعات</span>
-            <span aria-hidden> / </span>
-            <span>العمليات</span>
-          </nav>
-          <h1 className="page-head-title">فواتير المبيعات</h1>
-          <p className="page-head-sub">كل الفواتير: المسودات القابلة للتعديل والمرحّلة بأرقامها الرسمية.</p>
-        </div>
-        {can('sales.invoice.create') ? (
-          <div className="page-head-actions">
+    <Page>
+      <PageHead
+        breadcrumbs={['المبيعات', 'العمليات']}
+        title="فواتير المبيعات"
+        description="كل الفواتير: المسودات القابلة للتعديل والمرحّلة بأرقامها الرسمية."
+        actions={
+          can('sales.invoice.create') ? (
             <Link href="/sales/invoices/new">
               <Button variant="primary" size="lg" icon={<FilePlus2 size={17} />}>
                 فاتورة جديدة
               </Button>
             </Link>
-          </div>
-        ) : null}
-      </header>
+          ) : null
+        }
+      />
 
-      {/* ------------------------------------------------ filter bar */}
-      <section className="rounded-xl border border-line bg-surface p-3.5 shadow-1 grid gap-3">
-        <div className="grid gap-3 grid-cols-1 md:grid-cols-2 xl:grid-cols-12 items-end">
-          <div className="xl:col-span-3">
-            <div className="relative">
-              <Search size={15} className="absolute start-3 top-1/2 -translate-y-1/2 text-muted" />
-              <input
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="بحث برقم الفاتورة أو العميل…"
-                className="w-full h-10 ps-9 pe-3 rounded-[10px] border border-line-strong bg-surface text-[13.5px] focus:outline-none focus:border-brand-600 focus:shadow-[var(--ring-brand)] transition-all duration-150"
-              />
-            </div>
-          </div>
-          <div className="xl:col-span-2">
-            <Select label="النوع" value={kind} onChange={(e) => setKind(e.target.value)} placeholder="كل الأنواع">
-              {Object.entries(KIND_LABELS).map(([value, label]) => (
-                <option key={value} value={value}>
-                  {label}
-                </option>
-              ))}
-            </Select>
-          </div>
-          <div className="xl:col-span-2">
-            <Select label="الفرع" value={branchId} onChange={(e) => setBranchId(e.target.value)} placeholder="كل الفروع">
-              {(branches.data ?? []).map((b) => (
-                <option key={b.id} value={b.id}>
-                  {b.nameAr}
-                </option>
-              ))}
-            </Select>
-          </div>
-          <div className="xl:col-span-2">
-            <Labeled label="من تاريخ">
-              <input
-                type="date"
-                value={from}
-                onChange={(e) => setFrom(e.target.value)}
-                className="w-full h-10 px-3 rounded-[10px] border border-line-strong bg-surface text-[13.5px] focus:outline-none focus:border-brand-600 focus:shadow-[var(--ring-brand)] transition-all duration-150"
-              />
-            </Labeled>
-          </div>
-          <div className="xl:col-span-2">
-            <Labeled label="إلى تاريخ">
-              <input
-                type="date"
-                value={to}
-                onChange={(e) => setTo(e.target.value)}
-                className="w-full h-10 px-3 rounded-[10px] border border-line-strong bg-surface text-[13.5px] focus:outline-none focus:border-brand-600 focus:shadow-[var(--ring-brand)] transition-all duration-150"
-              />
-            </Labeled>
-          </div>
-          <div className="xl:col-span-1 flex xl:justify-end">
-            {hasFilters ? (
-              <Button variant="ghost" size="md" icon={<X size={14} />} onClick={clearFilters}>
-                مسح
-              </Button>
-            ) : null}
-          </div>
-        </div>
+      <KpiStrip
+        items={[
+          {
+            label: 'إجمالي الفواتير',
+            value: (invoices.data ?? []).length,
+            hint: 'مرحّلة ومسودات في الفترة',
+          },
+          {
+            label: 'قيمة المبيعات',
+            value: money(
+              (invoices.data ?? [])
+                .filter((row) => row.status === 'posted')
+                .reduce((sum, row) => sum + Number(row.total), 0),
+            ),
+            hint: 'المرحّل فقط، شامل الضريبة',
+          },
+          {
+            label: 'غير مسددة',
+            value: money(
+              (invoices.data ?? [])
+                .filter((row) => row.status === 'posted' && row.paymentStatus !== 'paid')
+                .reduce((sum, row) => sum + (Number(row.total) - Number(row.paidTotal)), 0),
+            ),
+            hint: 'المتبقي على العملاء',
+            tone: (invoices.data ?? []).some(
+              (row) => row.status === 'posted' && row.paymentStatus !== 'paid',
+            )
+              ? 'warn'
+              : 'up',
+          },
+          {
+            label: 'مسودات',
+            value: (invoices.data ?? []).filter((row) => row.status === 'draft').length,
+            hint: 'قابلة للتعديل قبل الترحيل',
+          },
+        ]}
+      />
 
-        {/* status chips */}
-        <div className="flex flex-wrap gap-2 items-center border-t border-line pt-3">
-          {STATUS_CHIPS.map((c) => (
-            <button
-              key={c.key}
-              type="button"
-              onClick={() => setChip(c.key)}
-              className={`inline-flex items-center gap-1.5 h-8 px-3.5 rounded-full text-[12.5px] font-bold border transition-all duration-150 ${
-                chip === c.key
-                  ? 'bg-brand-600 border-brand-600 text-on-accent shadow-2'
-                  : 'bg-surface border-line text-ink-2 hover:border-brand-400 hover:text-brand-700'
-              }`}
-            >
-              {c.label}
-              <span className={`text-xs font-bold ${chip === c.key ? 'text-on-accent' : 'text-muted'}`}>
-                {c.key === 'all'
-                  ? (invoices.data ?? []).length
-                  : (invoices.data ?? []).filter(c.test).length}
-              </span>
-            </button>
-          ))}
-          <span className="ms-auto text-[12px] text-muted font-semibold">
-            {filtered.length} نتيجة {invoices.data ? `من ${(invoices.data ?? []).length}` : ''}
-          </span>
-        </div>
-      </section>
+      <FilterBand
+        summary={`${filtered.length} من ${(invoices.data ?? []).length}`}
+        actions={
+          hasFilters ? (
+            <Button variant="ghost" size="md" icon={<X size={14} />} onClick={clearFilters}>
+              مسح الفلاتر
+            </Button>
+          ) : null
+        }
+      >
+        <label className="field" style={{ marginBottom: 0 }}>
+          <span>بحث</span>
+          <input
+            className="input"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="رقم الفاتورة أو العميل"
+          />
+        </label>
+        <label className="field" style={{ marginBottom: 0 }}>
+          <span>النوع</span>
+          <select className="input" value={kind} onChange={(e) => setKind(e.target.value)}>
+            <option value="">كل الأنواع</option>
+            {Object.entries(KIND_LABELS).map(([value, label]) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="field" style={{ marginBottom: 0 }}>
+          <span>الفرع</span>
+          <select className="input" value={branchId} onChange={(e) => setBranchId(e.target.value)}>
+            <option value="">كل الفروع</option>
+            {(branches.data ?? []).map((b) => (
+              <option key={b.id} value={b.id}>
+                {b.nameAr}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="field" style={{ marginBottom: 0 }}>
+          <span>من تاريخ</span>
+          <input className="input" type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
+        </label>
+        <label className="field" style={{ marginBottom: 0 }}>
+          <span>إلى تاريخ</span>
+          <input className="input" type="date" value={to} onChange={(e) => setTo(e.target.value)} />
+        </label>
+      </FilterBand>
+
+      <div className="ui-chip-row">
+        {STATUS_CHIPS.map((c) => (
+          <button
+            key={c.key}
+            type="button"
+            aria-pressed={chip === c.key}
+            className="ui-chip"
+            onClick={() => setChip(c.key)}
+          >
+            {c.label}
+            <span className="ui-chip-count">
+              {c.key === 'all'
+                ? (invoices.data ?? []).length
+                : (invoices.data ?? []).filter(c.test).length}
+            </span>
+          </button>
+        ))}
+        <span className="ui-chip-spacer">
+          {filtered.length} نتيجة {invoices.data ? `من ${(invoices.data ?? []).length}` : ''}
+        </span>
+      </div>
 
       {/* ------------------------------------------------ bulk bar */}
       {selected.size > 0 ? (
@@ -286,6 +302,11 @@ function InvoicesInner() {
           action={<Button variant="primary" onClick={invoices.reload}>إعادة المحاولة</Button>}
         />
       ) : (
+        <Panel
+          title="قائمة الفواتير"
+          hint="اضغط أي صف لفتح الفاتورة؛ التحديد الجماعي يفعّل شريط الإجراءات أعلاه."
+          flush
+        >
         <Table
           loading={invoices.status === 'loading'}
           rows={filtered}
@@ -379,8 +400,9 @@ function InvoicesInner() {
             },
           ]}
         />
+        </Panel>
       )}
-    </div>
+    </Page>
   );
 }
 

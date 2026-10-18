@@ -31,6 +31,7 @@ export default function TailoringTypesPage() {
 
   return (
  <Directory<TailoringType>
+      listTitle="أنواع التفصيل"
       title="أنواع التفصيل"
       subtitle="أنواع التفصيل المتاحة في طلبات التفصيل، ولكلّ نوعٍ سعرُه الافتراضي. والطلب يقترح السعر ولا يفرضه."
       crumbs={['التفصيل', 'التعاريف']}

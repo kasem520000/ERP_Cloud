@@ -96,6 +96,7 @@ export default function SalaryPaymentsPage() {
 
   return (
  <Directory<SalaryPayment>
+      listTitle="إذونات صرف الرواتب"
       title="دفع الرواتب"
       subtitle="إذن صرف راتب لكل موظف عن كل شهر — «لقد تم دفع راتب الموظف سابقاً» يحرس التكرار، والمبلغ هو صافي مسيّر الشهر."
       crumbs={['الموظفين والرواتب', 'العمليات']}

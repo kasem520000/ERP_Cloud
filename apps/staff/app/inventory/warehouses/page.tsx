@@ -16,6 +16,7 @@ export default function WarehousesPage() {
 
   return (
     <Directory<Warehouse>
+      listTitle="المستودعات"
       title="بطاقة مستودع"
       subtitle="المستودعات التي تُرحَّل إليها حركة المخزون؛ لكل فرع مستودع افتراضي واحد."
       crumbs={['المستودعات', 'التعاريف']}

@@ -207,11 +207,11 @@ export default function ItemUnitsPage() {
       )}
 
       {itemId && (itemUnits.data ?? []).length > 0 && (
-        <div className="tiles">
+        <div className="ui-kpi-strip">
           {(itemUnits.data ?? []).map((row) => (
-            <div className="tile" key={row.unitId}>
-              <span className="tile-label">{row.unitNameAr ?? unitName(row.unitId)}</span>
-              <span className="tile-value" dir="ltr">
+            <div className="ui-kpi-cell" key={row.unitId}>
+              <span className="ui-kpi-label">{row.unitNameAr ?? unitName(row.unitId)}</span>
+              <span className="ui-kpi-value" dir="ltr">
                 {`1 = ${Number(row.ratio).toLocaleString('ar-EG')}`}
               </span>
               <span className="tile-hint">

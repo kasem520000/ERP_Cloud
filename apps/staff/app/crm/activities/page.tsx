@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
+import { Panel } from '@erp/ui';
 
 import { DataTable, Notice } from '../../../components/data-view';
 import { Screen } from '../../../components/screen';
@@ -21,7 +22,7 @@ export default function CrmActivitiesPage() {
   return (
     <Screen title="أنشطة المبيعات" subtitle="كل نشاط مرتبط بصفقة، بما فيه رسائل واتساب الصادرة والواردة." crumbs={['المبيعات', 'الأنشطة']}>
       <Notice notice={notice} />
-      <div className="card">
+      <Panel title="سجل الأنشطة" hint="أحدث الأنشطة أولاً — كل نشاط يفتح صفقته." flush>
         <DataTable
           columns={[
             { key: 'type', header: 'النوع', cell: (row: CrmActivity) => row.type },
@@ -32,7 +33,7 @@ export default function CrmActivitiesPage() {
           rows={rows}
           rowKey={(row) => row.id}
         />
-      </div>
+      </Panel>
     </Screen>
   );
 }

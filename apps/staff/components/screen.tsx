@@ -1,49 +1,60 @@
 'use client';
 
 import Link from 'next/link';
+import { KpiStrip, Page, PageHead, type KpiItem } from '@erp/ui';
 import { FolderOpen, LockKeyhole } from 'lucide-react';
 import type { ReactNode } from 'react';
 
 import { findScreenByHref } from '../lib/navigation';
 
 /**
- * Standard page chrome — v2: breadcrumbs + 24px title + subtitle + actions,
- * matching the redesigned pages (dashboard / invoices / reports).
+ * إطار الشاشة — صار من `@erp/ui` كي تتشاركه كل الأسطح.
+ *
+ * الشاشات هنا تُركَّب على `Page` + `PageHead`: مسار، ثم عنوان، ثم شرح، ثم
+ * إجراءات — بمسافاتٍ واحدة مهما كانت الشاشة. من احتاج ترتيباً مختلفاً رتّب
+ * الأقسام داخل الإطار، ولم يغيّر الإطار.
  */
 export function Screen({
   title,
   subtitle,
   crumbs,
   actions,
+  kpis,
+  filters,
+  chips,
+  meta,
   children,
 }: {
   title: string;
   subtitle?: string;
   crumbs?: string[];
   actions?: ReactNode;
+  /** شريط المؤشرات — سطرٌ واحد فوق التصفية، لا بطاقاتٌ عائمة. */
+  kpis?: KpiItem[];
+  /** شريط التصفية الموحّد (`ui-filter-bar`). */
+  filters?: ReactNode;
+  /** صفّ حالات/شرائح (`ui-chip-row`) تحت التصفية. */
+  chips?: ReactNode;
+  /** سياق صغير في رأس الصفحة (الفترة، الفرع، الحالة). */
+  meta?: ReactNode;
   children: ReactNode;
 }) {
   return (
-    <div className="grid gap-4">
-      <header className="page-head">
-        <div className="page-head-copy">
-          {crumbs && crumbs.length > 0 ? (
-            <nav className="crumbs" aria-label="مسار الصفحة">
-              {crumbs.map((crumb, index) => (
-                <span key={`${crumb}-${index}`}>
-                  {index > 0 ? <span aria-hidden> / </span> : null}
-                  {crumb}
-                </span>
-              ))}
-            </nav>
-          ) : null}
-          <h1 className="page-head-title">{title}</h1>
-          {subtitle ? <p className="page-head-sub">{subtitle}</p> : null}
-        </div>
-        {actions ? <div className="page-head-actions no-print">{actions}</div> : null}
-      </header>
-      {children}
-    </div>
+    <Page>
+      <PageHead
+        title={title}
+        description={subtitle}
+        breadcrumbs={crumbs}
+        actions={actions}
+        meta={meta}
+      />
+      <div className="ui-screen-body">
+        {kpis && kpis.length > 0 ? <KpiStrip items={kpis} /> : null}
+        {filters}
+        {chips}
+        {children}
+      </div>
+    </Page>
   );
 }
 

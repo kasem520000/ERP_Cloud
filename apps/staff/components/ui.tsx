@@ -14,16 +14,19 @@ import type { ReactNode } from 'react';
 
 export type Tone = 'default' | 'ok' | 'warn' | 'danger' | 'brand';
 
-function toneClass(tone?: Tone): string {
-  return tone && tone !== 'default' ? ` ${tone}` : '';
-}
-
 // ------------------------------------------------------------------------- tiles
 
 /** A row of KPI tiles. Each tile carries a quantity *and*, where it exists, a value. */
 export function StatTiles({ children }: { children: ReactNode }) {
-  return <div className="tiles">{children}</div>;
+  return <div className="ui-kpi-strip">{children}</div>;
 }
+
+const TILE_TONE: Record<Exclude<Tone, 'default'>, 'up' | 'warn' | 'down'> = {
+  ok: 'up',
+  warn: 'warn',
+  danger: 'down',
+  brand: 'up',
+};
 
 export function StatTile({
   label,
@@ -39,17 +42,18 @@ export function StatTile({
   /** 0–100. Renders a progress bar under the value — used for "received of sent". */
   bar?: number;
 }) {
+  const state = tone && tone !== 'default' ? TILE_TONE[tone] : undefined;
   return (
- <div className={`tile${toneClass(tone)}`}>
- <span className="tile-label">{label}</span>
- <span className="tile-value">{value}</span>
-      {hint ? <span className="tile-hint">{hint}</span> : null}
+    <div className="ui-kpi-cell">
+      <span className="ui-kpi-label">{label}</span>
+      <span className={state ? `ui-kpi-value is-${state}` : 'ui-kpi-value'}>{value}</span>
+      {hint ? <span className="ui-kpi-hint">{hint}</span> : null}
       {typeof bar === 'number' ? (
- <span className={`bar${toneClass(tone).trim()}`}>
- <span style={{ width: `${Math.max(0, Math.min(100, bar))}%` }} />
- </span>
+        <span className={`ui-kpi-bar${state ? ` is-${state}` : ''}`}>
+          <span style={{ width: `${Math.max(0, Math.min(100, bar))}%` }} />
+        </span>
       ) : null}
- </div>
+    </div>
   );
 }
 
@@ -125,10 +129,10 @@ export function Tabs<T extends string>({
 /** Sticky-ish filter row. Fields keep their own labels; actions sit at the end. */
 export function FilterBar({ children, actions }: { children: ReactNode; actions?: ReactNode }) {
   return (
- <div className="filters no-print">
-      {children}
-      {actions ? <div className="filters-actions">{actions}</div> : null}
- </div>
+    <div className="ui-filter-bar no-print">
+      <div className="ui-filter-fields">{children}</div>
+      {actions ? <div className="ui-filter-actions">{actions}</div> : null}
+    </div>
   );
 }
 

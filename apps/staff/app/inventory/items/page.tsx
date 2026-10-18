@@ -311,6 +311,64 @@ export default function ItemsPage() {
         ) : null
       }
     >
+ <StatTiles>
+ <StatTile label="عدد المواد" value={rows.length} hint="بطاقة صنف مسجّلة" tone="brand" />
+ <StatTile
+          label="مواد مخزنية"
+          value={rows.filter((row) => (row.kind ?? 'stock') === 'stock').length}
+          hint="تُدار أرصدتها"
+        />
+ <StatTile
+          label="خدمات"
+          value={rows.filter((row) => row.kind === 'service').length}
+          hint="بلا مخزون"
+        />
+ <StatTile
+          label="أصناف مركبة"
+          value={rows.filter((row) => row.kind === 'composite').length}
+          hint="لها مكونات"
+          tone={rows.some((row) => row.kind === 'composite') ? 'warn' : 'default'}
+        />
+ <StatTile
+          label="بدون باركود"
+          value={rows.filter((row) => !row.barcode).length}
+          hint="لن تُقرأ بالقارئ"
+          tone={rows.filter((row) => !row.barcode).length > 0 ? 'warn' : 'ok'}
+        />
+ </StatTiles>
+
+ <FilterBar
+        actions={<span className="small muted">{applied ? `نتيجة البحث عن «${applied}»` : `${rows.length} مادة`}</span>}
+      >
+ <label className="field">
+ <span>بحث</span>
+ <input
+            className="input"
+            placeholder="بحث بالاسم العربي…"
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter') setApplied(search.trim());
+            }}
+          />
+ </label>
+ <button className="btn" type="button" onClick={() => setApplied(search.trim())}>
+ بحث
+ </button>
+        {applied && (
+ <button
+            className="btn"
+            type="button"
+            onClick={() => {
+              setSearch('');
+              setApplied('');
+            }}
+          >
+ إلغاء الفلتر
+ </button>
+        )}
+ </FilterBar>
+
       {open && (
  <form className="card" onSubmit={submit}>
  <h2>{editing ? `تعديل بطاقة المادة ${editing.sku}` : 'بطاقة مادة جديدة'}</h2>
@@ -469,63 +527,6 @@ export default function ItemsPage() {
  </form>
       )}
 
- <StatTiles>
- <StatTile label="عدد المواد" value={rows.length} hint="بطاقة صنف مسجّلة" tone="brand" />
- <StatTile
-          label="مواد مخزنية"
-          value={rows.filter((row) => (row.kind ?? 'stock') === 'stock').length}
-          hint="تُدار أرصدتها"
-        />
- <StatTile
-          label="خدمات"
-          value={rows.filter((row) => row.kind === 'service').length}
-          hint="بلا مخزون"
-        />
- <StatTile
-          label="أصناف مركبة"
-          value={rows.filter((row) => row.kind === 'composite').length}
-          hint="لها مكونات"
-          tone={rows.some((row) => row.kind === 'composite') ? 'warn' : 'default'}
-        />
- <StatTile
-          label="بدون باركود"
-          value={rows.filter((row) => !row.barcode).length}
-          hint="لن تُقرأ بالقارئ"
-          tone={rows.filter((row) => !row.barcode).length > 0 ? 'warn' : 'ok'}
-        />
- </StatTiles>
-
- <FilterBar
-        actions={<span className="small muted">{applied ? `نتيجة البحث عن «${applied}»` : `${rows.length} مادة`}</span>}
-      >
- <label className="field">
- <span>بحث</span>
- <input
-            className="input"
-            placeholder="بحث بالاسم العربي…"
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key === 'Enter') setApplied(search.trim());
-            }}
-          />
- </label>
- <button className="btn" type="button" onClick={() => setApplied(search.trim())}>
- بحث
- </button>
-        {applied && (
- <button
-            className="btn"
-            type="button"
-            onClick={() => {
-              setSearch('');
-              setApplied('');
-            }}
-          >
- إلغاء الفلتر
- </button>
-        )}
- </FilterBar>
 
       {!open && notice && <Notice notice={notice} />}
 
@@ -613,7 +614,7 @@ export default function ItemsPage() {
 
                   {customValues.length > 0 && (
  <section className="card tight" style={{ marginTop: 16 }}>
- <div className="section-title"><h3>الحقول الإضافية</h3><span className="muted small">قيم typed خاصة بهذا الصنف</span></div>
+ <div className="section-title"><h3>الحقول الإضافية</h3><span className="muted small">قيم مخصّصة لهذا الصنف</span></div>
  <div className="form-grid">
                         {customValues.map((field) => (
  <label className="field" key={field.id}>

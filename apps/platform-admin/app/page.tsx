@@ -12,6 +12,7 @@ import {
   RefreshCw,
   Zap,
 } from 'lucide-react';
+import { Panel } from '@erp/ui';
 import { useState } from 'react';
 
 import { Screen } from '../components/screen';
@@ -20,7 +21,6 @@ import { Button } from '../components/ui/button';
 import { AreaCardChart, BarCardChart } from '../components/ui/chart';
 import { Reveal } from '../components/ui/count-up';
 import { EmptyState } from '../components/ui/empty-state';
-import { MetricCard } from '../components/ui/metric-card';
 import { SkeletonCard } from '../components/ui/skeleton';
 import { apiData } from '../lib/api';
 import { useQuery } from '../lib/use-query';
@@ -152,6 +152,54 @@ export default function PlatformOverviewPage() {
       title="لوحة تحكم المنصة"
       subtitle="مؤشرات تشغيل الخدمة: الإيراد، العملاء، الاستخدام والصحة — بنظرة واحدة."
       crumbs={['المنصة']}
+      kpis={[
+        {
+          label: 'MRR — الإيراد الشهري',
+          value: money(Number(a?.mrr ?? o?.subscriptions.mrr ?? 0) || 0, a?.currency),
+          hint:
+            mrrDelta === null
+              ? 'الإيراد المتكرر الشهري'
+              : `عن الشهر السابق ${mrrDelta > 0 ? '+' : ''}${mrrDelta}%`,
+          tone: mrrDelta !== null && mrrDelta < 0 ? 'down' : 'neutral',
+          icon: <CircleDollarSign size={13} />,
+        },
+        {
+          label: 'ARR — الإيراد السنوي',
+          value: money(Number(a?.arr ?? 0) || 0, a?.currency),
+          hint: a ? `ARPU: ${money(Number(a.arpu) || 0, a.currency)}` : 'الإيراد المتكرر السنوي',
+          icon: <Activity size={13} />,
+        },
+        {
+          label: 'العملاء',
+          value: o?.tenants.active ?? 0,
+          hint: o
+            ? `من أصل ${o.tenants.total} · ${o.tenants.new_30d} جديد / 30ي · ${o.tenants.suspended} موقوف`
+            : 'المنشآت النشطة',
+          icon: <Building2 size={13} />,
+        },
+        {
+          label: 'متوسط الاستخدام',
+          value: `${Math.round(avgUtilization * 10) / 10}%`,
+          hint: peakMetric
+            ? `الأعلى: ${peakMetric.label}${peakMetric.limit ? ` (${peakMetric.peak}/${peakMetric.limit})` : ''}`
+            : 'لا مقاييس بعد',
+          icon: <Gauge size={13} />,
+        },
+        {
+          label: 'تنبيهات الصحة',
+          value: alertCount,
+          hint: critical > 0 ? `${critical} حرجة تتطلب إجراءً` : alertCount > 0 ? 'ضمن الحدود — راقبها' : 'كل المؤشرات خضراء',
+          tone: critical > 0 ? 'down' : alertCount > 0 ? 'warn' : 'up',
+          icon: <Bell size={13} />,
+        },
+        {
+          label: 'مهام في الطابور',
+          value: pendingJobs,
+          hint: runnerLive ? 'المنفّذ يعمل الآن' : 'المنفّذ متوقف',
+          tone: runnerLive ? 'neutral' : 'warn',
+          icon: <Zap size={13} />,
+        },
+      ]}
       actions={
  <>
  <Link href="/tenants/new">
@@ -163,80 +211,17 @@ export default function PlatformOverviewPage() {
  </>
       }
     >
-      {/* metrics */}
- <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
- <MetricCard
-          label="MRR — الإيراد الشهري"
-          value={Number(a?.mrr ?? o?.subscriptions.mrr ?? 0) || 0}
-          suffix={a?.currency ?? 'SAR'}
-          tone="violet"
-          icon={<CircleDollarSign size={16} />}
-          delta={mrrDelta ?? undefined}
-          deltaLabel={mrrDelta === null ? undefined : 'عن الشهر السابق'}
-          spark={mrrPoints.length > 1 ? mrrPoints : undefined}
-        />
- <MetricCard
-          label="ARR — الإيراد السنوي"
-          value={Number(a?.arr ?? 0) || 0}
-          suffix={a?.currency ?? 'SAR'}
-          tone="sky"
-          icon={<Activity size={16} />}
-          hint={a ? `ARPU: ${money(Number(a.arpu) || 0, a.currency)}` : undefined}
-          delay={0.05}
-        />
- <MetricCard
-          label="العملاء"
-          value={o?.tenants.active ?? 0}
-          tone="green"
-          icon={<Building2 size={16} />}
-          hint={o ? `من أصل ${o.tenants.total} · ${o.tenants.new_30d} جديد / 30ي · ${o.tenants.suspended} موقوف` : undefined}
-          delay={0.1}
-        />
- <MetricCard
-          label="متوسط الاستخدام"
-          value={Math.round(avgUtilization * 10) / 10}
-          suffix="%"
-          tone="amber"
-          icon={<Gauge size={16} />}
-          hint={peakMetric ? `الأعلى: ${peakMetric.label}${peakMetric.limit ? ` (${peakMetric.peak}/${peakMetric.limit})` : ''}` : 'لا مقاييس بعد'}
-          delay={0.15}
-        />
- <MetricCard
-          label="تنبيهات الصحة"
-          value={alertCount}
-          tone={critical > 0 ? 'red' : alertCount > 0 ? 'amber' : 'green'}
-          icon={<Bell size={16} />}
-          live={critical > 0}
-          hint={critical > 0 ? `${critical} حرجة تتطلب إجراءً` : alertCount > 0 ? 'ضمن الحدود — راقبها' : 'كل المؤشرات خضراء'}
-          delay={0.2}
-        />
- <MetricCard
-          label="مهام في الطابور"
-          value={pendingJobs}
-          tone="slate"
-          icon={<Zap size={16} />}
-          live={runnerLive}
-          hint={runnerLive ? 'المنفّذ يعمل الآن' : 'المنفّذ متوقف'}
-          delay={0.25}
-        />
- </div>
-
       {/* Live Customer Support Tickets & Add-on Activation Requests */}
  <div className="grid gap-4 xl:grid-cols-2">
- <section className="rounded-[10px] border border-line bg-surface p-4 shadow-1">
- <div className="mb-3 flex items-center justify-between">
- <div>
- <h3 className="m-0 text-[15px] font-bold text-ink">
- طلبات المساعدة والدعم المفتوحة ({ticketRows.length})
- </h3>
- <p className="m-0 mt-0.5 text-[12px] text-muted">
- الرسائل والتذاكر الواردة من لوحة العملاء بانتظار رد إدارة المنصة
- </p>
- </div>
- <Link href="/tickets">
- <Button variant="secondary" size="sm">صندوق الدعم </Button>
- </Link>
- </div>
+ <Panel
+        title={`طلبات المساعدة والدعم المفتوحة (${ticketRows.length})`}
+        hint="الرسائل والتذاكر الواردة من لوحة العملاء بانتظار رد إدارة المنصة"
+        actions={
+          <Link href="/tickets">
+            <Button variant="secondary" size="sm">صندوق الدعم</Button>
+          </Link>
+        }
+      >
           {ticketRows.length === 0 ? (
  <p className="m-0 text-[13px] text-muted">لا توجد طلبات مساعدة مفتوحة حالياً.</p>
           ) : (
@@ -261,22 +246,17 @@ export default function PlatformOverviewPage() {
               ))}
  </div>
           )}
- </section>
+      </Panel>
 
- <section className="rounded-[10px] border border-line bg-surface p-4 shadow-1">
- <div className="mb-3 flex items-center justify-between">
- <div>
- <h3 className="m-0 text-[15px] font-bold text-ink">
- طلبات تفعيل الباقات والإضافات القطاعية ({addonRows.length})
- </h3>
- <p className="m-0 mt-0.5 text-[12px] text-muted">
- طلبات العملاء لتفعيل الأنظمة القطاعية (المخابز والمناديب، التصنيع، تطبيق الموظف…)
- </p>
- </div>
- <Link href="/marketplace">
- <Button variant="secondary" size="sm">إدارة الباقات </Button>
- </Link>
- </div>
+ <Panel
+        title={`طلبات تفعيل الباقات والإضافات القطاعية (${addonRows.length})`}
+        actions={
+          <Link href="/marketplace">
+            <Button variant="secondary" size="sm">إدارة الباقات</Button>
+          </Link>
+        }
+        hint="طلبات العملاء لتفعيل الأنظمة القطاعية (المخابز والمناديب، التصنيع، تطبيق الموظف…)"
+      >
           {addonRows.length === 0 ? (
  <p className="m-0 text-[13px] text-muted">لا توجد طلبات تفعيل باقات معلقة حالياً.</p>
           ) : (
@@ -301,7 +281,7 @@ export default function PlatformOverviewPage() {
               ))}
  </div>
           )}
- </section>
+      </Panel>
  </div>
 
       {/* charts */}

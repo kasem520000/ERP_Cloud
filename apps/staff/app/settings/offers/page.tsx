@@ -58,6 +58,7 @@ export default function OffersPage() {
 
   return (
     <Directory<Offer>
+      listTitle="العروض"
       title="العروض"
       subtitle="قواعد الخصم الترويجي: الشرط (كمية أو قيمة) والخصم الناتج، محدودة بفترة صلاحية."
       crumbs={['الإعدادات', 'المبيعات']}

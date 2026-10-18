@@ -76,31 +76,13 @@ export default function ProjectFollowupPage() {
             <h2>
               {project.code} — {project.name}
             </h2>
-            <div className="grid cols-2">
-              <div className="kpi">
-                <span>قيمة العقد</span>
-                <strong>{money(project.contractValue)}</strong>
-              </div>
-              <div className="kpi">
-                <span>المستخلَص (مرحَّل)</span>
-                <strong>{money(billedValue)}</strong>
-              </div>
-              <div className="kpi">
-                <span>نسبة الإنجاز</span>
-                <strong>{percent(completion)}</strong>
-              </div>
-              <div className="kpi">
-                <span>المتبقي من العقد</span>
-                <strong>{money(Math.max(contractValue - billedValue, 0))}</strong>
-              </div>
-              <div className="kpi">
-                <span>المحتجز لدى العميل</span>
-                <strong>{money(retentionHeld)}</strong>
-              </div>
-              <div className="kpi">
-                <span>نسبة الاحتجاز</span>
-                <strong>{percent(Number(project.retentionPct) / 100)}</strong>
-              </div>
+            <div className="ui-kpi-strip">
+              <div className="ui-kpi-cell"><span className="ui-kpi-label">قيمة العقد</span><span className="ui-kpi-value">{money(project.contractValue)}</span></div>
+              <div className="ui-kpi-cell"><span className="ui-kpi-label">المستخلَص (مرحَّل)</span><span className="ui-kpi-value">{money(billedValue)}</span></div>
+              <div className="ui-kpi-cell"><span className="ui-kpi-label">نسبة الإنجاز</span><span className="ui-kpi-value">{percent(completion)}</span></div>
+              <div className="ui-kpi-cell"><span className="ui-kpi-label">المتبقي من العقد</span><span className="ui-kpi-value">{money(Math.max(contractValue - billedValue, 0))}</span></div>
+              <div className="ui-kpi-cell"><span className="ui-kpi-label">المحتجز لدى العميل</span><span className="ui-kpi-value">{money(retentionHeld)}</span></div>
+              <div className="ui-kpi-cell"><span className="ui-kpi-label">نسبة الاحتجاز</span><span className="ui-kpi-value">{percent(Number(project.retentionPct) / 100)}</span></div>
             </div>
             <div className="chips">
               <span className="chip">{`الحالة: ${statusLabel(project.status)}`}</span>

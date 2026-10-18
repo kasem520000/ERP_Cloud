@@ -14,6 +14,7 @@ export default function SuppliersPage() {
 
   return (
     <Directory<Party>
+      listTitle="الموردون"
       title="بطاقة مورد"
       subtitle="ملف المورد المستخدم في فواتير المشتريات وسندات الصرف وكشف الحساب."
       crumbs={['المشتريات', 'التعاريف']}

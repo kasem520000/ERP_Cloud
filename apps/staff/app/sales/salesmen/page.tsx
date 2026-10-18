@@ -60,6 +60,7 @@ export default function SalesmenPage() {
 
   return (
  <Directory<Salesman>
+      listTitle="المندوبون"
       title="شاشة المندوبين"
       subtitle="بطاقة المندوب: العمولات الثلاث التي تُحسب على فواتيره، وبيانات التواصل، وربطه ببطاقة الموظف حتى تُنسَب سندات القبض إليه."
       crumbs={['المبيعات', 'التعاريف']}
