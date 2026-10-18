@@ -19,13 +19,13 @@ import { Screen } from './screen';
 import { Notice, QueryView } from './data-view';
 
 /**
- * 🏦 تعريف الخزن · 🏦 تعريف البنوك — one table, one screen shape, two masters.
+ * تعريف الخزن · تعريف البنوك — one table, one screen shape, two masters.
  *
  * `Form_WPF/frmTreasury.xaml` (`Title="تعريف الخزن"`) is three group boxes sitting on
- * one card: `📋 بيانات الصناديق` (name, branch, status, ⭐ الافتراضي), `👤 مسئولي
+ * one card: ` بيانات الصناديق` (name, branch, status, الافتراضي), ` مسئولي
  * الصندوق` (the employees who sign for it, stored in `Stock_Emps`), and `📝 ملاحظات`.
- * `frmBanks.xaml` is the same card for a bank, plus 🌍 الدولة، 🏙️ المدينة، 📍 المنطقة،
- * تليفون، موبايل، 💰 نسبة الاقتطاع % and ✅ تغيير في نقطة البيع.
+ * `frmBanks.xaml` is the same card for a bank, plus الدولة، المدينة، المنطقة،
+ * تليفون، موبايل، نسبة الاقتطاع % and تغيير في نقطة البيع.
  *
  * The save in `frmTreasury.xaml.cs:222` is the part worth keeping: it refuses a الصندوق
  * with no مسئول — «يجب اختيار موظف مسئول» — and replaces the whole responsible set
@@ -199,200 +199,200 @@ export function CashLocationMaster({ kind }: { kind: 'safe' | 'bank' }) {
   }
 
   return (
-    <Screen
-      title={isBank ? '🏦 تعريف البنوك' : '🏦 تعريف الخزينة'}
+ <Screen
+ title={isBank ? 'تعريف البنوك' : 'تعريف الخزينة'}
       subtitle={
         isBank
-          ? '🏦 تعريف البنوك — كما في frmBanks: اسم البنك، الدولة والمدينة، الحساب والآيبان، ونسبة الاقتطاع.'
-          : '🏦 تعريف الخزن — كما في frmTreasury: بيانات الصندوق، مسئولوه، وملاحظاته.'
+ ? 'تعريف البنوك — كما في frmBanks: اسم البنك، الدولة والمدينة، الحساب والآيبان، ونسبة الاقتطاع.'
+ : 'تعريف الخزن — كما في frmTreasury: بيانات الصندوق، مسئولوه، وملاحظاته.'
       }
       crumbs={['الخزينة', 'تعاريف']}
     >
-      <StatTiles>
-        <StatTile label="📋 عدد الصناديق" value={stats.all} />
-        <StatTile label="✅ نشط" value={stats.active} tone="ok" />
-        <StatTile label="⛔ مغلق" value={stats.closed} tone="warn" />
-        <StatTile label="⭐ الافتراضي" value={stats.defaultName} />
-        <StatTile
-          label="👤 بلا مسئول"
+ <StatTiles>
+ <StatTile label="عدد الصناديق" value={stats.all} />
+ <StatTile label="نشط" value={stats.active} tone="ok" />
+ <StatTile label="مغلق" value={stats.closed} tone="warn" />
+ <StatTile label="الافتراضي" value={stats.defaultName} />
+ <StatTile
+ label="بلا مسئول"
           value={stats.unsigned}
           hint={isBank ? 'مسموح للبنك' : 'الصندوق يحتاج مسئولاً'}
           tone={stats.unsigned > 0 && !isBank ? 'warn' : undefined}
         />
-      </StatTiles>
+ </StatTiles>
 
-      <Tabs
+ <Tabs
         items={[
-          { id: 'data' as const, label: isBank ? '📋 بيانات البنوك' : '📋 بيانات الصناديق' },
-          { id: 'custodians' as const, label: '👤 مسئولي الصندوق' },
-          { id: 'notes' as const, label: '📝 ملاحظات' },
+ { id: 'data' as const, label: isBank ? 'بيانات البنوك' : 'بيانات الصناديق' },
+ { id: 'custodians' as const, label: 'مسئولي الصندوق' },
+ { id: 'notes' as const, label: 'ملاحظات' },
         ]}
         value={tab}
         onChange={setTab}
       />
 
       {tab === 'data' && (
-        <form className="card" onSubmit={create}>
-          <DocHead>
-            <DocField label="🔢 الرقم">
-              <span className="muted">تلقائي</span>
-            </DocField>
-            <DocField label={isBank ? '🏦 اسم البنك *' : '🏦 اسم الصندوق *'}>
-              <input
+ <form className="card" onSubmit={create}>
+ <DocHead>
+ <DocField label="الرقم">
+ <span className="muted">تلقائي</span>
+ </DocField>
+ <DocField label={isBank ? 'اسم البنك *' : 'اسم الصندوق *'}>
+ <input
                 className="input"
                 value={form.name}
                 onChange={(event) => set('name', event.target.value)}
                 required
               />
-            </DocField>
-            <DocField label="🏢 الفرع *">
-              <select
+ </DocField>
+ <DocField label="الفرع *">
+ <select
                 className="input"
                 value={effectiveBranch}
                 onChange={(event) => set('branchId', event.target.value)}
                 required
               >
                 {branchOptions(branchRows).map((option) => (
-                  <option key={option.id} value={option.id}>
+ <option key={option.id} value={option.id}>
                     {option.label}
-                  </option>
+ </option>
                 ))}
-              </select>
-            </DocField>
-            <DocField label="📋 حالة الصندوق">
-              <select
+ </select>
+ </DocField>
+ <DocField label="حالة الصندوق">
+ <select
                 className="input"
                 value={form.isActive ? 'active' : 'closed'}
                 onChange={(event) => set('isActive', event.target.value === 'active')}
               >
-                <option value="active">نشط</option>
-                <option value="closed">مغلق</option>
-              </select>
-            </DocField>
-            <DocField label="⭐ الافتراضي">
-              <label className="row">
-                <input
+ <option value="active">نشط</option>
+ <option value="closed">مغلق</option>
+ </select>
+ </DocField>
+ <DocField label="الافتراضي">
+ <label className="row">
+ <input
                   type="checkbox"
                   checked={form.isDefault}
                   onChange={(event) => set('isDefault', event.target.checked)}
                 />
-                <span className="muted small">يجعله الصندوق الافتراضي لهذا النوع</span>
-              </label>
-            </DocField>
-            <DocField label="💱 العملة">
-              <select
+ <span className="muted small">يجعله الصندوق الافتراضي لهذا النوع</span>
+ </label>
+ </DocField>
+ <DocField label="العملة">
+ <select
                 className="input"
                 value={form.currency}
                 onChange={(event) => set('currency', event.target.value)}
               >
-                <option value="SAR">ريال سعودي</option>
-                <option value="USD">دولار</option>
-                <option value="YER">ريال يمني</option>
-                <option value="EUR">يورو</option>
-              </select>
-            </DocField>
-            <DocField label="🧾 الحساب المرتبط">
-              <select
+ <option value="SAR">ريال سعودي</option>
+ <option value="USD">دولار</option>
+ <option value="YER">ريال يمني</option>
+ <option value="EUR">يورو</option>
+ </select>
+ </DocField>
+ <DocField label="الحساب المرتبط">
+ <select
                 className="input"
                 value={form.accountId}
                 onChange={(event) => set('accountId', event.target.value)}
               >
-                <option value="">— بلا حساب —</option>
+ <option value="">— بلا حساب —</option>
                 {accountRows.map((account) => (
-                  <option key={account.id} value={account.id}>
+ <option key={account.id} value={account.id}>
                     {accountLabel(account)}
-                  </option>
+ </option>
                 ))}
-              </select>
-            </DocField>
-          </DocHead>
+ </select>
+ </DocField>
+ </DocHead>
 
           {isBank && (
-            <div className="card">
-              <h4>🏦 بيانات البنك</h4>
-              <div className="form-grid">
-                <label className="field">
-                  <span>🏦 اسم البنك *</span>
-                  <input
+ <div className="card">
+ <h4>بيانات البنك</h4>
+ <div className="form-grid">
+ <label className="field">
+ <span>اسم البنك *</span>
+ <input
                     className="input"
                     value={form.bankName}
                     onChange={(event) => set('bankName', event.target.value)}
                     required
                   />
-                </label>
-                <label className="field">
-                  <span>🔢 رقم الحساب</span>
-                  <input
+ </label>
+ <label className="field">
+ <span>رقم الحساب</span>
+ <input
                     className="input"
                     dir="ltr"
                     value={form.accountNo}
                     onChange={(event) => set('accountNo', event.target.value)}
                   />
-                </label>
-                <label className="field">
-                  <span>🏦 الآيبان</span>
-                  <input
+ </label>
+ <label className="field">
+ <span>الآيبان</span>
+ <input
                     className="input"
                     dir="ltr"
                     placeholder="SA0380000000608010167519"
                     value={form.iban}
                     onChange={(event) => set('iban', event.target.value)}
                   />
-                </label>
-                <label className="field">
-                  <span>🏦 سويفت</span>
-                  <input
+ </label>
+ <label className="field">
+ <span>سويفت</span>
+ <input
                     className="input"
                     dir="ltr"
                     value={form.swift}
                     onChange={(event) => set('swift', event.target.value)}
                   />
-                </label>
-                <label className="field">
-                  <span>🌍 الدولة</span>
-                  <input
+ </label>
+ <label className="field">
+ <span>الدولة</span>
+ <input
                     className="input"
                     value={form.country}
                     onChange={(event) => set('country', event.target.value)}
                   />
-                </label>
-                <label className="field">
-                  <span>🏙️ المدينة</span>
-                  <input
+ </label>
+ <label className="field">
+ <span>المدينة</span>
+ <input
                     className="input"
                     value={form.city}
                     onChange={(event) => set('city', event.target.value)}
                   />
-                </label>
-                <label className="field">
-                  <span>📍 المنطقة</span>
-                  <input
+ </label>
+ <label className="field">
+ <span>المنطقة</span>
+ <input
                     className="input"
                     value={form.region}
                     onChange={(event) => set('region', event.target.value)}
                   />
-                </label>
-                <label className="field">
-                  <span>📞 تليفون</span>
-                  <input
+ </label>
+ <label className="field">
+ <span>تليفون</span>
+ <input
                     className="input"
                     dir="ltr"
                     value={form.phone}
                     onChange={(event) => set('phone', event.target.value)}
                   />
-                </label>
-                <label className="field">
-                  <span>📱 موبايل</span>
-                  <input
+ </label>
+ <label className="field">
+ <span>موبايل</span>
+ <input
                     className="input"
                     dir="ltr"
                     value={form.mobile}
                     onChange={(event) => set('mobile', event.target.value)}
                   />
-                </label>
-                <label className="field">
-                  <span>💰 نسبة الاقتطاع %</span>
-                  <input
+ </label>
+ <label className="field">
+ <span>نسبة الاقتطاع %</span>
+ <input
                     className="input"
                     dir="ltr"
                     inputMode="decimal"
@@ -400,39 +400,39 @@ export function CashLocationMaster({ kind }: { kind: 'safe' | 'bank' }) {
                     value={form.deductionPct}
                     onChange={(event) => set('deductionPct', event.target.value)}
                   />
-                </label>
-                <label className="field">
-                  <span>✅ تغيير في نقطة البيع</span>
-                  <label className="row">
-                    <input
+ </label>
+ <label className="field">
+ <span>تغيير في نقطة البيع</span>
+ <label className="row">
+ <input
                       type="checkbox"
                       checked={form.changeInPos}
                       onChange={(event) => set('changeInPos', event.target.checked)}
                     />
-                    <span className="muted small">يسمح للكاشير بأخذ الباقي منه</span>
-                  </label>
-                </label>
-              </div>
-            </div>
+ <span className="muted small">يسمح للكاشير بأخذ الباقي منه</span>
+ </label>
+ </label>
+ </div>
+ </div>
           )}
 
-          <Notice notice={notice} />
+ <Notice notice={notice} />
           {manage && (
-            <ActionBar>
-              <button className="btn primary" type="submit" disabled={busy}>
-                {busy ? 'جارٍ الحفظ…' : '💾 حفظ'}
-              </button>
-            </ActionBar>
+ <ActionBar>
+ <button className="btn primary" type="submit" disabled={busy}>
+ {busy ? 'جارٍ الحفظ…' : 'حفظ'}
+ </button>
+ </ActionBar>
           )}
-        </form>
+ </form>
       )}
 
       {tab === 'custodians' && (
-        <div className="card">
-          <h4>👤 مسئولي الصندوق</h4>
-          <label className="field">
-            <span>{isBank ? '🏦 البنك' : '🏦 الصندوق'}</span>
-            <select
+ <div className="card">
+ <h4>مسئولي الصندوق</h4>
+ <label className="field">
+ <span>{isBank ? 'البنك' : 'الصندوق'}</span>
+ <select
               className="input"
               value={selectedId}
               onChange={(event) => {
@@ -441,20 +441,20 @@ export function CashLocationMaster({ kind }: { kind: 'safe' | 'bank' }) {
                 else setSelectedId('');
               }}
             >
-              <option value="">— اختر —</option>
+ <option value="">— اختر —</option>
               {rows.map((row) => (
-                <option key={row.id} value={row.id}>
+ <option key={row.id} value={row.id}>
                   {row.name}
-                </option>
+ </option>
               ))}
-            </select>
-          </label>
+ </select>
+ </label>
           {selected ? (
-            <>
-              <div className="form-grid">
+ <>
+ <div className="form-grid">
                 {employeeRows.map((employee) => (
-                  <label className="row" key={employee.id}>
-                    <input
+ <label className="row" key={employee.id}>
+ <input
                       type="checkbox"
                       checked={custodians.includes(employee.id)}
                       onChange={(event) =>
@@ -465,35 +465,35 @@ export function CashLocationMaster({ kind }: { kind: 'safe' | 'bank' }) {
                         )
                       }
                     />
-                    <span>
+ <span>
                       {employee.name}
-                      <span className="muted small"> · {employee.employeeNo}</span>
-                    </span>
-                  </label>
+ <span className="muted small"> · {employee.employeeNo}</span>
+ </span>
+ </label>
                 ))}
-              </div>
+ </div>
               {employeeRows.length === 0 && <p className="muted">لا يوجد موظفون بعد.</p>}
-              <Notice notice={notice} />
+ <Notice notice={notice} />
               {manage && (
-                <ActionBar>
-                  <button className="btn primary" type="button" disabled={busy} onClick={() => void saveSelected()}>
-                    💾 حفظ المسئولين
-                  </button>
-                </ActionBar>
+ <ActionBar>
+ <button className="btn primary" type="button" disabled={busy} onClick={() => void saveSelected()}>
+ حفظ المسئولين
+ </button>
+ </ActionBar>
               )}
-            </>
+ </>
           ) : (
-            <p className="muted">اختر صندوقاً لتحديد مسئوليه.</p>
+ <p className="muted">اختر صندوقاً لتحديد مسئوليه.</p>
           )}
-        </div>
+ </div>
       )}
 
       {tab === 'notes' && (
-        <div className="card">
-          <h4>📝 ملاحظات</h4>
-          <label className="field">
-            <span>{isBank ? '🏦 البنك' : '🏦 الصندوق'}</span>
-            <select
+ <div className="card">
+ <h4>ملاحظات</h4>
+ <label className="field">
+ <span>{isBank ? 'البنك' : 'الصندوق'}</span>
+ <select
               className="input"
               value={selectedId}
               onChange={(event) => {
@@ -502,91 +502,91 @@ export function CashLocationMaster({ kind }: { kind: 'safe' | 'bank' }) {
                 else setSelectedId('');
               }}
             >
-              <option value="">— اختر —</option>
+ <option value="">— اختر —</option>
               {rows.map((row) => (
-                <option key={row.id} value={row.id}>
+ <option key={row.id} value={row.id}>
                   {row.name}
-                </option>
+ </option>
               ))}
-            </select>
-          </label>
+ </select>
+ </label>
           {selected ? (
-            <>
-              <label className="field">
-                <span>📝 ملاحظات</span>
-                <textarea
+ <>
+ <label className="field">
+ <span>ملاحظات</span>
+ <textarea
                   className="input"
                   rows={4}
                   value={notes}
                   onChange={(event) => setNotes(event.target.value)}
                 />
-              </label>
-              <Notice notice={notice} />
+ </label>
+ <Notice notice={notice} />
               {manage && (
-                <ActionBar>
-                  <button className="btn primary" type="button" disabled={busy} onClick={() => void saveSelected()}>
-                    💾 حفظ الملاحظات
-                  </button>
-                </ActionBar>
+ <ActionBar>
+ <button className="btn primary" type="button" disabled={busy} onClick={() => void saveSelected()}>
+ حفظ الملاحظات
+ </button>
+ </ActionBar>
               )}
-            </>
+ </>
           ) : (
-            <p className="muted">اختر صندوقاً لكتابة ملاحظاته.</p>
+ <p className="muted">اختر صندوقاً لكتابة ملاحظاته.</p>
           )}
-        </div>
+ </div>
       )}
 
-      <QueryView
+ <QueryView
         query={locations}
         isEmpty={() => rows.length === 0}
         empty={isBank ? 'لا توجد بنوك' : 'لا توجد صناديق'}
         emptyDetail={isBank ? 'أضف بنكاً لتبدأ.' : 'أضف صندوقاً لتبدأ.'}
       >
         {() => (
-          <div className="table-wrap">
-            <table className="zebra">
-              <thead>
-                <tr>
-                  <th>#</th>
-                  <th>{isBank ? '🏦 اسم البنك' : '🏦 اسم الصندوق'}</th>
-                  <th>🏢 الفرع</th>
-                  <th>👤 الموظف المسئول</th>
-                  <th>🧾 الحساب</th>
-                  <th>📋 حالة الصندوق</th>
-                  <th>⭐</th>
-                  <th />
-                </tr>
-              </thead>
-              <tbody>
+ <div className="table-wrap">
+ <table className="zebra">
+ <thead>
+ <tr>
+ <th>#</th>
+ <th>{isBank ? 'اسم البنك' : 'اسم الصندوق'}</th>
+ <th>الفرع</th>
+ <th>الموظف المسئول</th>
+ <th>الحساب</th>
+ <th>حالة الصندوق</th>
+ <th><span className="sr-only">إجراءات</span></th>
+ <th />
+ </tr>
+ </thead>
+ <tbody>
                 {rows.map((row, index) => (
-                  <tr key={row.id}>
-                    <td className="num">{index + 1}</td>
-                    <td>
-                      <button className="btn sm" type="button" onClick={() => select(row)}>
+ <tr key={row.id}>
+ <td className="num">{index + 1}</td>
+ <td>
+ <button className="btn sm" type="button" onClick={() => select(row)}>
                         {row.name}
-                      </button>
-                    </td>
-                    <td>{branchRows.find((entry) => entry.id === row.branchId)?.nameAr ?? '—'}</td>
-                    <td>
+ </button>
+ </td>
+ <td>{branchRows.find((entry) => entry.id === row.branchId)?.nameAr ?? '—'}</td>
+ <td>
                       {(row.custodianIds ?? []).length
                         ? (row.custodianIds ?? []).map(employeeName).join(' · ')
                         : '—'}
-                    </td>
-                    <td>
+ </td>
+ <td>
                       {row.accountId
                         ? accountLabel(
                             (accounts.data ?? []).find((entry) => entry.id === row.accountId) ??
                               ({ id: row.accountId, code: '—' } as Account),
                           )
                         : '—'}
-                    </td>
-                    <td>
-                      <span className="badge">{row.isActive === false ? 'مغلق' : 'نشط'}</span>
-                    </td>
-                    <td>{row.isDefault ? '⭐' : ''}</td>
-                    <td>
+ </td>
+ <td>
+ <span className="badge">{row.isActive === false ? 'مغلق' : 'نشط'}</span>
+ </td>
+ <td>{row.isDefault ? <span className="badge ok">افتراضي</span> : null}</td>
+ <td>
                       {manage && !row.isDefault && (
-                        <button
+ <button
                           className="btn sm danger"
                           type="button"
                           disabled={busy}
@@ -597,17 +597,17 @@ export function CashLocationMaster({ kind }: { kind: 'safe' | 'bank' }) {
                             )
                           }
                         >
-                          🗑️
-                        </button>
+
+ </button>
                       )}
-                    </td>
-                  </tr>
+ </td>
+ </tr>
                 ))}
-              </tbody>
-            </table>
-          </div>
+ </tbody>
+ </table>
+ </div>
         )}
-      </QueryView>
-    </Screen>
+ </QueryView>
+ </Screen>
   );
 }

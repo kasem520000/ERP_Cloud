@@ -40,6 +40,7 @@ import { CountUp } from './count-up';
 import { ContentBlocks } from './blocks';
 import { HelpfulVote } from './helpful-vote';
 import { HeroExperiment } from './hero-experiment';
+import { SiteIcon } from './icon';
 import { Marquee } from './marquee';
 import { Reveal } from './reveal';
 import { Breadcrumbs, EmptyState, FaqList, ModuleCard, PostCard, SectionHeading, StepList } from './pieces';
@@ -212,13 +213,10 @@ export function FeaturesView({ locale, page }: { locale: Locale; page: ContentPa
           {siteModules.map((module) => (
             <article className="card module-card" key={module.key}>
               <span className="card-icon" aria-hidden="true">
-                {module.icon}
+                <SiteIcon glyph={module.icon} size={26} />
               </span>
               <h3>{locale === 'en' ? module.labelEn : module.labelAr}</h3>
               <p className="muted">{locale === 'en' ? module.blurbEn : module.blurbAr}</p>
-              <p className="source-line" dir="ltr">
-                {module.source}
-              </p>
             </article>
           ))}
         </div>
@@ -428,7 +426,7 @@ export function HelpArticleView({ locale, article }: { locale: Locale; article: 
       ) : null}
       <p className="back-link">
         <Link className="text-link" href={base}>
-          ← {t(locale, 'help.title')}
+          <span className="arrow-back" aria-hidden>←</span> {t(locale, 'help.title')}
         </Link>
       </p>
     </article>
@@ -476,7 +474,7 @@ export function ChangelogView({ locale, entries }: { locale: Locale; entries: Co
       )}
       <p className="back-link">
         <Link className="text-link" href={base}>
-          ← {t(locale, 'changelog.title')}
+          <span className="arrow-back" aria-hidden>←</span> {t(locale, 'changelog.title')}
         </Link>
       </p>
     </>
@@ -598,7 +596,7 @@ export function ArticleView({
       <ContentBlocks blocks={page.blocks} locale={locale} />
       <p className="back-link">
         <Link className="text-link" href={basePath}>
-          ← {baseLabel}
+          <span className="arrow-back" aria-hidden>←</span> {baseLabel}
         </Link>
       </p>
     </article>
@@ -637,9 +635,9 @@ export function CasesIndexView({ locale, cases }: { locale: Locale; cases: Conte
 /**
  * P-M8 — `/trust`: كل بندٍ ومعه مصدره.
  *
- * والشكل تابعٌ للقرار: البطاقة تحمل **الدليل** في سطرٍ صغير (`source-line`) لا في حاشية، لأن
- * صفحةَ ثقةٍ بلا دليلٍ صفحةُ إعلان. و«ما لا ندّعيه» قسمٌ كامل في آخرها، لا حاشيةً صغيرة: حدُّ
- * المنتج جزءٌ من وصفه.
+ * وكانت البطاقة تحمل ملفَّ الكود وسطرَه (`source-line`) دليلاً على أن كل بندٍ خلفه شاشة.
+ * والدليل مكانه المستودع لا صفحةُ الزائر: المسار البرمجي يُقرأ خطأً تقنياً لا ثقةً، وقد ظهر
+ * في الإنتاج. أُزيل من العرض، وبقي في بيانات `lib/trust.ts` لمن يفتح المستودع.
  *
  * وصفحةُ المحتوى (من نظام إدارة المحتوى) تُعرض **فوق** الأقسام الثابتة إن وُجدت: من كتب نصّاً
  * تحريرياً في اللوحة لا يُنازع الأرقام الثابتة، بل يقدّم لها مقدّمة.
@@ -655,15 +653,12 @@ export function TrustView({ locale, page }: { locale: Locale; page: ContentPageD
 
       {trustAxes.map((axis) => (
         <section className="section" key={axis.key}>
-          <SectionHeading title={`${axis.icon} ${axis.titleAr}`} subtitle={axis.leadAr} />
+          <SectionHeading title={axis.titleAr} subtitle={axis.leadAr} icon={<SiteIcon glyph={axis.icon} size={22} />} />
           <div className="grid cols">
             {axis.points.map((point) => (
               <article className="card" key={point.titleAr}>
                 <h3>{point.titleAr}</h3>
                 <p className="muted">{point.bodyAr}</p>
-                <p className="source-line" dir="ltr">
-                  {point.source}
-                </p>
               </article>
             ))}
           </div>
@@ -708,7 +703,7 @@ export function IndustriesView({ locale, page }: { locale: Locale; page: Content
         {industries.map((industry) => (
           <article className="card module-card" key={industry.slug}>
             <span className="card-icon" aria-hidden="true">
-              {industry.icon}
+              <SiteIcon glyph={industry.icon} size={26} />
             </span>
             <h3>{industry.labelAr}</h3>
             <p className="muted">{industry.summaryAr}</p>
@@ -716,9 +711,6 @@ export function IndustriesView({ locale, page }: { locale: Locale; page: Content
               <Link className="text-link" href={industryPath(industry.slug)}>
                 {t(locale, 'industries.open')}
               </Link>
-            </p>
-            <p className="source-line" dir="ltr">
-              {industry.module.source}
             </p>
           </article>
         ))}
@@ -747,12 +739,9 @@ export function IndustryView({ locale, industry }: { locale: Locale; industry: I
 
       <header className="page-head">
         <h1>
-          <span aria-hidden="true">{industry.icon}</span> {industry.labelAr}
+          <SiteIcon glyph={industry.icon} size={26} className="head-icon" /> {industry.labelAr}
         </h1>
         <p className="muted">{industry.summaryAr}</p>
-        <p className="source-line" dir="ltr">
-          {industry.module.label} — {industry.module.source}
-        </p>
       </header>
 
       <section className="section">
@@ -774,9 +763,6 @@ export function IndustryView({ locale, industry }: { locale: Locale; industry: I
             <article className="card industry-card" key={screen.label}>
               <h3>{screen.label}</h3>
               <p className="muted">{screen.whatAr}</p>
-              <p className="source-line" dir="ltr">
-                {screen.href} · {screen.source}
-              </p>
             </article>
           ))}
         </div>

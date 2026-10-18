@@ -88,7 +88,7 @@ export function ProjectTaskDetail({ taskId, projectId }: { taskId: string; proje
         <div className="card grid gap-3 md:grid-cols-2">
           <label className="field">
             <span>الحالة</span>
-            <select value={task.status} onChange={(event) => void save({ status: event.target.value }, 'تغيّرت الحالة.')}>
+            <select className="input" value={task.status} onChange={(event) => void save({ status: event.target.value }, 'تغيّرت الحالة.')}>
               {Object.entries(taskStatusLabel).map(([value, label]) => (
                 <option key={value} value={value}>{label}</option>
               ))}
@@ -96,7 +96,7 @@ export function ProjectTaskDetail({ taskId, projectId }: { taskId: string; proje
           </label>
           <label className="field">
             <span>الأولوية</span>
-            <select value={task.priority} onChange={(event) => void save({ priority: event.target.value }, 'تغيّرت الأولوية.')}>
+            <select className="input" value={task.priority} onChange={(event) => void save({ priority: event.target.value }, 'تغيّرت الأولوية.')}>
               {Object.entries(priorityLabel).map(([value, label]) => (
                 <option key={value} value={value}>{label}</option>
               ))}
@@ -104,23 +104,23 @@ export function ProjectTaskDetail({ taskId, projectId }: { taskId: string; proje
           </label>
           <label className="field">
             <span>البداية</span>
-            <input type="date" value={task.startDate ?? ''} onChange={(event) => void save({ startDate: event.target.value }, 'تغيّر التاريخ.')} />
+            <input className="input" type="date" value={task.startDate ?? ''} onChange={(event) => void save({ startDate: event.target.value }, 'تغيّر التاريخ.')} />
           </label>
           <label className="field">
             <span>الاستحقاق</span>
-            <input type="date" value={task.dueDate ?? ''} onChange={(event) => void save({ dueDate: event.target.value }, 'تغيّر التاريخ.')} />
+            <input className="input" type="date" value={task.dueDate ?? ''} onChange={(event) => void save({ dueDate: event.target.value }, 'تغيّر التاريخ.')} />
           </label>
           <label className="field">
             <span>ساعات مخططة</span>
-            <input defaultValue={task.estimatedHours} onBlur={(event) => void save({ estimatedHours: event.target.value }, 'تغيّر المخطط.')} />
+            <input className="input" defaultValue={task.estimatedHours} onBlur={(event) => void save({ estimatedHours: event.target.value }, 'تغيّر المخطط.')} />
           </label>
           <label className="field">
             <span>مصاريف المهمة</span>
-            <input defaultValue={task.expenseValue} onBlur={(event) => void save({ expenseValue: event.target.value }, 'تغيّرت المصاريف.')} />
+            <input className="input" defaultValue={task.expenseValue} onBlur={(event) => void save({ expenseValue: event.target.value }, 'تغيّرت المصاريف.')} />
           </label>
           <label className="field">
             <span>بند جدول الكميات</span>
-            <select value={task.boqTermId ?? ''} onChange={(event) => void save({ boqTermId: event.target.value }, 'رُبط البند.')}>
+            <select className="input" value={task.boqTermId ?? ''} onChange={(event) => void save({ boqTermId: event.target.value }, 'رُبط البند.')}>
               <option value="">بدون</option>
               {(board?.boq ?? []).map((term) => (
                 <option key={term.id} value={term.id}>{term.code} — {term.description}</option>
@@ -129,7 +129,7 @@ export function ProjectTaskDetail({ taskId, projectId }: { taskId: string; proje
           </label>
           <label className="field">
             <span>تعتمد على</span>
-            <select value={dependsOn} onChange={(event) => setDependsOn(event.target.value)}>
+            <select className="input" value={dependsOn} onChange={(event) => setDependsOn(event.target.value)}>
               <option value="">اختر مهمة</option>
               {siblings.map((item) => (
                 <option key={item.id} value={item.id}>{item.title}</option>
@@ -155,8 +155,8 @@ export function ProjectTaskDetail({ taskId, projectId }: { taskId: string; proje
         <p>فعلي {task.actualHours} ساعة من {task.estimatedHours} مخططة.</p>
         {can('projects.time_logs.manage') ? (
           <div className="grid gap-3 md:grid-cols-3">
-            <input value={hours} onChange={(event) => setHours(event.target.value)} />
-            <input value={note} onChange={(event) => setNote(event.target.value)} placeholder="ملاحظة" />
+            <input className="input" value={hours} onChange={(event) => setHours(event.target.value)} />
+            <input className="input" value={note} onChange={(event) => setNote(event.target.value)} placeholder="ملاحظة" />
             <button
               className="btn primary"
               type="button"

@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import { Trash2 } from 'lucide-react';
 
 import { DataTable, Notice, QueryView } from '../../../components/data-view';
 import { Screen } from '../../../components/screen';
@@ -17,10 +18,10 @@ import {
 import { useQuery } from '../../../lib/use-query';
 
 /**
- * 🏗️ مراحل مشروع — `Form_WPF/frmProjectStagesPM.xaml` و`Form_WPF/frmStagePM.xaml`.
+ * مراحل مشروع — `Form_WPF/frmProjectStagesPM.xaml` و`Form_WPF/frmStagePM.xaml`.
  *
- * اللوحتان في المصدر: «🗂️ المجموعة» (قوالب المراحل؛ `Home.xaml:583` ⇒ `Home.xaml.cs:3750`)
- * و«الحالات» (مراحل المشروع نفسه)، وفي التذييل `✖` · `⏮` · `◀` · `▶` · `⏭` · `🖨️` · `🗑️` · `💾`
+ * اللوحتان في المصدر: « المجموعة» (قوالب المراحل؛ `Home.xaml:583` ⇒ `Home.xaml.cs:3750`)
+ * و«الحالات» (مراحل المشروع نفسه)، وفي التذييل `` · `⏮` · `◀` · `▶` · `⏭` · `` · `` · ``
  * وهي تنقّلٌ بين السجلّات المحدَّدة — فصارت هنا تنقّلاً بين المراحل المحدَّدة نفسها،
  * وهي قاعدة «يجب تحديد المرحلة» التي يعتمد عليها الرفض في L212.
  * و`⬆️ لأعلى` و`⬇️ لأسفل` (L347/L353) تُبدّل المرحلة مع جارتها.
@@ -121,7 +122,7 @@ export default function ProjectStagesPage() {
     if (!canMove(stages, selected.id, direction)) return setNotice({ kind: 'warn', text: 'المرحلة على الطرف — لا جارَ لها في هذا الاتجاه.' });
     await guard(async () => {
       await apiPost(`/projects/stages/${selected.id}/move`, { direction });
-      afterChange(direction === 'up' ? '⬆️ تحرّكت المرحلة لأعلى.' : '⬇️ تحرّكت المرحلة لأسفل.');
+ afterChange(direction === 'up' ? 'تحرّكت المرحلة لأعلى.' : 'تحرّكت المرحلة لأسفل.');
     });
   }
 
@@ -164,17 +165,17 @@ export default function ProjectStagesPage() {
   };
 
   return (
-    <Screen
+ <Screen
       title="مراحل مشروع"
       subtitle="مراحل تنفيذ المشروع بترتيبها، ومنها تُبنى نسب الإنجاز في المستخلصات. والمجموعة الجاهزة تُنسخ إلى المشروع ثم تُعدَّل بحرّية."
       crumbs={['إدارة المشاريع', 'التعريفات']}
     >
-      <div className="card">
-        <h3>المشروع والمجموعة</h3>
-        <div className="toolbar">
-          <label className="field wide">
-            <span>المشروع</span>
-            <select
+ <div className="card">
+ <h3>المشروع والمجموعة</h3>
+ <div className="toolbar">
+ <label className="field wide">
+ <span>المشروع</span>
+ <select
               className="input"
               value={projectId}
               onChange={(event) => {
@@ -183,44 +184,44 @@ export default function ProjectStagesPage() {
                 setNotice(undefined);
               }}
             >
-              <option value="">— اختر مشروعاً —</option>
+ <option value="">— اختر مشروعاً —</option>
               {(projects.data ?? []).map((row) => (
-                <option key={row.id} value={row.id}>
+ <option key={row.id} value={row.id}>
                   {`${row.code} — ${row.name}`}
-                </option>
+ </option>
               ))}
-            </select>
-          </label>
-          <label className="field wide">
-            <span>🗂️ المجموعة</span>
-            <select className="input" value={templateId} onChange={(event) => setTemplateId(event.target.value)}>
-              <option value="">— بلا مجموعة —</option>
+ </select>
+ </label>
+ <label className="field wide">
+ <span>المجموعة</span>
+ <select className="input" value={templateId} onChange={(event) => setTemplateId(event.target.value)}>
+ <option value="">— بلا مجموعة —</option>
               {(templates.data ?? []).map((row) => (
-                <option key={row.id} value={row.id}>
+ <option key={row.id} value={row.id}>
                   {`${row.name} (${row.stages.length} مرحلة)`}
-                </option>
+ </option>
               ))}
-            </select>
-          </label>
-          <button className="btn" type="button" onClick={() => void applyTemplate()} disabled={busy || !projectId}>
-            💾 حفظ مراحل المجموعة
-          </button>
-        </div>
-      </div>
+ </select>
+ </label>
+ <button className="btn" type="button" onClick={() => void applyTemplate()} disabled={busy || !projectId}>
+ حفظ مراحل المجموعة
+ </button>
+ </div>
+ </div>
 
       {notice && <Notice notice={notice} />}
       {!projectId && <Notice notice={{ kind: 'info', text: 'اختر مشروعاً لعرض مراحله.' }} />}
 
       {project && (
-        <QueryView query={detail} empty="لا توجد بيانات">
+ <QueryView query={detail} empty="لا توجد بيانات">
           {() => (
-            <>
-              <div className="card">
-                <h3>➕ إضافة حالة</h3>
-                <div className="toolbar">
-                  <label className="field wide">
-                    <span>اسم المرحلة</span>
-                    <input
+ <>
+ <div className="card">
+ <h3>إضافة حالة</h3>
+ <div className="toolbar">
+ <label className="field wide">
+ <span>اسم المرحلة</span>
+ <input
                       className="input"
                       value={newName}
                       onChange={(event) => setNewName(event.target.value)}
@@ -228,57 +229,57 @@ export default function ProjectStagesPage() {
                         if (event.key === 'Enter') void addStage();
                       }}
                     />
-                  </label>
-                  <button className="btn primary" type="button" onClick={() => void addStage()} disabled={busy}>
-                    ➕ إضافة حالة
-                  </button>
-                </div>
-              </div>
+ </label>
+ <button className="btn primary" type="button" onClick={() => void addStage()} disabled={busy}>
+ إضافة حالة
+ </button>
+ </div>
+ </div>
 
-              <div className="toolbar">
-                <button className="btn" type="button" onClick={() => focusOn(0)} disabled={stages.length === 0}>
-                  ⏮
-                </button>
-                <button className="btn" type="button" onClick={() => focusOn(stages.findIndex((row) => row.id === selectedId) - 1)} disabled={!selected || stages[0]?.id === selectedId}>
-                  ◀
-                </button>
-                <button className="btn" type="button" onClick={() => focusOn(stages.findIndex((row) => row.id === selectedId) + 1)} disabled={!selected || stages[stages.length - 1]?.id === selectedId}>
-                  ▶
-                </button>
-                <button className="btn" type="button" onClick={() => focusOn(stages.length - 1)} disabled={stages.length === 0}>
-                  ⏭
-                </button>
-                <button className="btn" type="button" onClick={() => window.print()} disabled={stages.length === 0}>
-                  🖨️ طباعة
-                </button>
-                <button className="btn" type="button" onClick={() => void shift('up')} disabled={busy || !selected}>
-                  ⬆️ لأعلى
-                </button>
-                <button className="btn" type="button" onClick={() => void shift('down')} disabled={busy || !selected}>
-                  ⬇️ لأسفل
-                </button>
-                <button className="btn danger" type="button" onClick={() => void remove(selected)} disabled={busy}>
-                  🗑️ حذف
-                </button>
-              </div>
+ <div className="toolbar">
+ <button className="btn" type="button" onClick={() => focusOn(0)} disabled={stages.length === 0}>
+ 
+ </button>
+ <button className="btn" type="button" onClick={() => focusOn(stages.findIndex((row) => row.id === selectedId) - 1)} disabled={!selected || stages[0]?.id === selectedId}>
+ 
+ </button>
+ <button className="btn" type="button" onClick={() => focusOn(stages.findIndex((row) => row.id === selectedId) + 1)} disabled={!selected || stages[stages.length - 1]?.id === selectedId}>
+ 
+ </button>
+ <button className="btn" type="button" onClick={() => focusOn(stages.length - 1)} disabled={stages.length === 0}>
+ 
+ </button>
+ <button className="btn" type="button" onClick={() => window.print()} disabled={stages.length === 0}>
+ طباعة
+ </button>
+ <button className="btn" type="button" onClick={() => void shift('up')} disabled={busy || !selected}>
+ لأعلى
+ </button>
+ <button className="btn" type="button" onClick={() => void shift('down')} disabled={busy || !selected}>
+ لأسفل
+ </button>
+ <button className="btn danger" type="button" onClick={() => void remove(selected)} disabled={busy}>
+ حذف
+ </button>
+ </div>
 
-              <div className="card">
-                <div className="chips">
-                  <span className="chip">{`${project.code} — ${project.name}`}</span>
-                  <span className="chip">{`المراحل: ${stages.length}`}</span>
-                  <span className="chip">{`المعتمدة: ${stages.filter((stage) => stage.status === 'accredited').length}`}</span>
-                  <span className="chip">{`المحدَّدة: ${selected?.name ?? '—'}`}</span>
-                </div>
-                {stages.length === 0 && <Notice notice={{ kind: 'info', text: 'لا توجد مراحل لهذا المشروع بعد — أضف الحالة الأولى أو انسخ «🗂️ المجموعة».' }} />}
+ <div className="card">
+ <div className="chips">
+ <span className="chip">{`${project.code} — ${project.name}`}</span>
+ <span className="chip">{`المراحل: ${stages.length}`}</span>
+ <span className="chip">{`المعتمدة: ${stages.filter((stage) => stage.status === 'accredited').length}`}</span>
+ <span className="chip">{`المحدَّدة: ${selected?.name ?? '—'}`}</span>
+ </div>
+ {stages.length === 0 && <Notice notice={{ kind: 'info', text: 'لا توجد مراحل لهذا المشروع بعد — أضف الحالة الأولى أو انسخ «المجموعة».' }} />}
 
-                <DataTable<Stage>
+ <DataTable<Stage>
                   rows={stages}
                   rowKey={(row) => row.id}
                   onRowClick={(row) => setSelectedId(row.id)}
                   activeKey={selectedId}
                   columns={[
-                    { key: 'order', header: '🔢 الرقم', align: 'num', cell: (row) => numberById.get(row.id) ?? row.stageOrder },
-                    { key: 'name', header: '📝 اسم المرحلة', cell: (row) => row.name },
+ { key: 'order', header: 'الرقم', align: 'num', cell: (row) => numberById.get(row.id) ?? row.stageOrder },
+ { key: 'name', header: 'اسم المرحلة', cell: (row) => row.name },
                     { key: 'state', header: 'الحالة', cell: (row) => <span className="badge">{stageStatusLabel(row.status)}</span> },
                     {
                       key: 'accredited',
@@ -291,30 +292,30 @@ export default function ProjectStagesPage() {
                       key: '__actions',
                       header: '',
                       cell: (row) => (
-                        <span className="row">
-                          <button className="btn sm" type="button" onClick={() => void rename(row)} disabled={busy}>
-                            تعديل الاسم
+ <span className="row">
+ <button className="btn sm" type="button" onClick={() => void rename(row)} disabled={busy}>
+ تعديل الاسم
+ </button>
+ <button className="btn sm" type="button" onClick={() => void accredit(row)} disabled={busy || row.status === 'accredited'}>
+ اعتماد
+ </button>
+ <button className="btn sm danger" type="button" onClick={() => void remove(row)} disabled={busy}>
+                            <Trash2 size={13} />
                           </button>
-                          <button className="btn sm" type="button" onClick={() => void accredit(row)} disabled={busy || row.status === 'accredited'}>
-                            اعتماد
-                          </button>
-                          <button className="btn sm danger" type="button" onClick={() => void remove(row)} disabled={busy}>
-                            🗑️
-                          </button>
-                        </span>
+ </span>
                       ),
                     },
                   ]}
                 />
-              </div>
+ </div>
 
-              <p className="muted">
-                حالة المشروع: {statusLabel(project.status)}. الترتيب يُحفظ بالتزحيف داخل معاملة واحدة، فيبقى الترقيم 1..n بلا فجوة عند النقل والحذف.
-              </p>
-            </>
+ <p className="muted">
+ حالة المشروع: {statusLabel(project.status)}. الترتيب يُحفظ بالتزحيف داخل معاملة واحدة، فيبقى الترقيم 1..n بلا فجوة عند النقل والحذف.
+ </p>
+ </>
           )}
-        </QueryView>
+ </QueryView>
       )}
-    </Screen>
+ </Screen>
   );
 }

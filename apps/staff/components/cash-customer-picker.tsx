@@ -1,12 +1,13 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { Search } from 'lucide-react';
 
 import { apiList } from '../lib/api';
 import { useQuery } from '../lib/use-query';
 
 /**
- * 👤 عميل نقدي — `Form_WPF/frmCashCustomer.xaml`.
+ * عميل نقدي — `Form_WPF/frmCashCustomer.xaml`.
  *
  * The desktop window is `👤 عميل نقدي` / «إضافة أو اختيار عميل نقدي للفاتورة» with
  * `🏷️ الاسم:`, `📱 رقم الجوال:`, `✅ إدراج` / `🚪 خروج`, a search row — `🔍` بالجوال or
@@ -79,44 +80,44 @@ export function CashCustomerPicker({ value, onPick, onClose, embedded }: Props) 
   }
 
   const panel = (
-    <>
-      <div className="form-grid">
-        <label className="field">
-          <span>🏷️ الاسم:</span>
-          <input className="input" value={name} onChange={(event) => setName(event.target.value)} />
-        </label>
-        <label className="field">
-          <span>📱 رقم الجوال:</span>
-          <input
+ <>
+ <div className="form-grid">
+ <label className="field">
+ <span>الاسم:</span>
+ <input className="input" value={name} onChange={(event) => setName(event.target.value)} />
+ </label>
+ <label className="field">
+ <span>رقم الجوال:</span>
+ <input
             className="input"
             dir="ltr"
             inputMode="tel"
             value={mobile}
             onChange={(event) => setMobile(event.target.value)}
           />
-        </label>
-      </div>
+ </label>
+ </div>
 
-      <div className="row" style={{ marginTop: 10, justifyContent: 'center' }}>
-        <button type="button" className="btn primary" onClick={insert}>
-          ✅ إدراج
-        </button>
-        <button type="button" className="btn danger" onClick={onClose}>
-          🚪 خروج
-        </button>
-      </div>
+ <div className="row" style={{ marginTop: 10, justifyContent: 'center' }}>
+ <button type="button" className="btn primary" onClick={insert}>
+ إدراج
+ </button>
+ <button type="button" className="btn danger" onClick={onClose}>
+ خروج
+ </button>
+ </div>
 
       {notice ? (
-        <p className="alert warn" style={{ marginTop: 8 }}>
+ <p className="alert warn" style={{ marginTop: 8 }}>
           {notice}
-        </p>
+ </p>
       ) : null}
 
-      <div className="grid cols" style={{ marginTop: 14 }}>
-        <label className="field">
-          <span>📱 الجوال</span>
-          <div className="row" style={{ flexWrap: 'nowrap' }}>
-            <input
+ <div className="grid cols" style={{ marginTop: 14 }}>
+ <label className="field">
+ <span>الجوال</span>
+ <div className="row" style={{ flexWrap: 'nowrap' }}>
+ <input
               className="input"
               dir="ltr"
               inputMode="tel"
@@ -127,15 +128,17 @@ export function CashCustomerPicker({ value, onPick, onClose, embedded }: Props) 
                 if (event.key === 'Enter') results.reload();
               }}
             />
-            <button type="button" className="btn" title="بحث بالجوال" onClick={() => results.reload()}>
-              🔍
-            </button>
-          </div>
-        </label>
-        <label className="field">
-          <span>🏷️ الاسم:</span>
-          <div className="row" style={{ flexWrap: 'nowrap' }}>
-            <input
+ <button type="button" className="btn" title="بحث بالجوال" onClick={() => results.reload()}>
+                <Search size={14} />
+
+
+ </button>
+ </div>
+ </label>
+ <label className="field">
+ <span>الاسم:</span>
+ <div className="row" style={{ flexWrap: 'nowrap' }}>
+ <input
               className="input"
               value={searchName}
               onChange={(event) => setSearchName(event.target.value)}
@@ -143,38 +146,40 @@ export function CashCustomerPicker({ value, onPick, onClose, embedded }: Props) 
                 if (event.key === 'Enter') results.reload();
               }}
             />
-            <button type="button" className="btn" title="بحث بالاسم" onClick={() => results.reload()}>
-              🔍
-            </button>
-          </div>
-        </label>
-      </div>
+ <button type="button" className="btn" title="بحث بالاسم" onClick={() => results.reload()}>
+                <Search size={14} />
 
-      <div className="table-wrap" style={{ marginTop: 10, maxHeight: 300 }}>
-        <table className="compact">
-          <thead>
-            <tr>
-              <th>👤 الاسم</th>
-              <th>📱 الجوال</th>
-              <th>فاتورة</th>
-              <th>اختيار</th>
-            </tr>
-          </thead>
-          <tbody>
+
+ </button>
+ </div>
+ </label>
+ </div>
+
+ <div className="table-wrap" style={{ marginTop: 10, maxHeight: 300 }}>
+ <table className="compact">
+ <thead>
+ <tr>
+ <th>الاسم</th>
+ <th>الجوال</th>
+ <th>فاتورة</th>
+ <th>اختيار</th>
+ </tr>
+ </thead>
+ <tbody>
             {rows.length === 0 ? (
-              <tr>
-                <td colSpan={4} className="muted" style={{ textAlign: 'center' }}>
-                  لا يوجد عملاء بهذا البحث
-                </td>
-              </tr>
+ <tr>
+ <td colSpan={4} className="muted" style={{ textAlign: 'center' }}>
+ لا يوجد عملاء بهذا البحث
+ </td>
+ </tr>
             ) : (
               rows.map((row) => (
-                <tr key={`${row.name}-${row.mobile ?? ''}`}>
-                  <td>{row.name}</td>
-                  <td dir="ltr">{row.mobile ?? '—'}</td>
-                  <td>{row.invoices}</td>
-                  <td>
-                    <button
+ <tr key={`${row.name}-${row.mobile ?? ''}`}>
+ <td>{row.name}</td>
+ <td dir="ltr">{row.mobile ?? '—'}</td>
+ <td>{row.invoices}</td>
+ <td>
+ <button
                       type="button"
                       className="btn"
                       onClick={() => {
@@ -183,31 +188,31 @@ export function CashCustomerPicker({ value, onPick, onClose, embedded }: Props) 
                         setNotice('');
                       }}
                     >
-                      ✔ اختار
-                    </button>
-                  </td>
-                </tr>
+ اختار
+ </button>
+ </td>
+ </tr>
               ))
             )}
-          </tbody>
-        </table>
-      </div>
-    </>
+ </tbody>
+ </table>
+ </div>
+ </>
   );
 
   if (embedded) return panel;
 
   return (
-    <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label="👤 عميل نقدي">
-      <div className="modal-card" style={{ maxWidth: 860 }}>
-        <div className="modal-head">
-          <span className="modal-title">👤 عميل نقدي</span>
-        </div>
-        <p className="muted small" style={{ textAlign: 'center', margin: '8px 12px 0' }}>
-          إضافة أو اختيار عميل نقدي للفاتورة
-        </p>
-        <div style={{ padding: 12 }}>{panel}</div>
-      </div>
-    </div>
+ <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label="عميل نقدي">
+ <div className="modal-card" style={{ maxWidth: 860 }}>
+ <div className="modal-head">
+ <span className="modal-title">عميل نقدي</span>
+ </div>
+ <p className="muted small" style={{ textAlign: 'center', margin: '8px 12px 0' }}>
+ إضافة أو اختيار عميل نقدي للفاتورة
+ </p>
+ <div style={{ padding: 12 }}>{panel}</div>
+ </div>
+ </div>
   );
 }

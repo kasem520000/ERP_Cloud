@@ -39,10 +39,10 @@ export type NavKey = 'first' | 'previous' | 'next' | 'last';
  * والترتيب ترتيبُها في التذييل: خروج · الأول · السابق · التالي · الأخير.
  */
 export const NAV_ITEMS: ReadonlyArray<{ key: NavKey; glyph: string; label: string }> = [
-  { key: 'first', glyph: '⏮', label: 'الأول' },
-  { key: 'previous', glyph: '◀', label: 'السابق' },
-  { key: 'next', glyph: '▶', label: 'التالي' },
-  { key: 'last', glyph: '⏭', label: 'الأخير' },
+ { key: 'first', glyph: '', label: 'الأول' },
+ { key: 'previous', glyph: '', label: 'السابق' },
+ { key: 'next', glyph: '', label: 'التالي' },
+ { key: 'last', glyph: '', label: 'الأخير' },
 ];
 
 /**

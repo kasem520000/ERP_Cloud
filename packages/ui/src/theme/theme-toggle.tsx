@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { Monitor, Moon, Sun } from 'lucide-react';
 
 import { useTheme } from './theme-provider';
@@ -49,11 +50,18 @@ export function ThemeToggle({
   lang = 'ar',
 }: ThemeToggleProps) {
   const { choice, setChoice, resolved } = useTheme();
+  // The stored choice is applied right after hydration, but the switch itself must
+  // render exactly what the server painted until then — otherwise a returning
+  // visitor hydrates a different icon than the markup (React 418). One extra
+  // render after mount is free; a mismatched `aria-checked` is not.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  const shownChoice = mounted ? choice : 'system';
 
   if (variant === 'icon') {
-    const current = choice === 'system' ? 'system' : resolved;
+    const current = shownChoice === 'system' ? 'system' : resolved;
     const Icon = ICONS[current];
-    const text = label(choice, lang);
+    const text = label(shownChoice, lang);
     return (
       <button
         type="button"
@@ -61,7 +69,7 @@ export function ThemeToggle({
         disabled={disabled}
         aria-label={text}
         title={text}
-        data-theme-choice={choice}
+        data-theme-choice={shownChoice}
         className={`grid size-9 place-items-center rounded-[10px] border border-line bg-surface text-muted transition-colors duration-150 ease-out hover:bg-surface-3 hover:text-ink focus-visible:ring-4 focus-visible:ring-brand-600/20 disabled:cursor-not-allowed disabled:opacity-55 ${className}`}
       >
         <Icon size={17} strokeWidth={2} aria-hidden />
@@ -74,7 +82,7 @@ export function ThemeToggle({
     <div
       role="radiogroup"
       aria-label={lang === 'ar' ? 'مظهر الواجهة' : 'Appearance'}
-      data-theme-choice={choice}
+      data-theme-choice={shownChoice}
       className={`inline-flex items-center gap-0.5 rounded-[10px] border border-line bg-surface-2 p-0.5 ${className}`}
     >
       {options.map((option) => {

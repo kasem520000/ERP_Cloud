@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { Panel } from '@erp/ui';
 
 import { DataTable, Notice, QueryView } from '../../../components/data-view';
 import { Screen } from '../../../components/screen';
@@ -108,15 +109,20 @@ export default function SupplierPortalAdminPage() {
               <input className="input" type="email" value={email} onChange={(event) => setEmail(event.target.value)} required />
             </label>
           </div>
-          <button className="btn primary" type="submit" disabled={busy}>
-            {busy ? 'جارٍ الحفظ…' : 'إنشاء الدخول'}
-          </button>
+          <div className="ui-form-actions">
+            <span className="ui-form-actions-note">كلمة المرور تُعرض مرة واحدة بعد الإنشاء.</span>
+            <div className="ui-form-actions-buttons">
+              <button className="btn primary" type="submit" disabled={busy}>
+                {busy ? 'جارٍ الحفظ…' : 'إنشاء الدخول'}
+              </button>
+            </div>
+          </div>
         </form>
       ) : null}
 
       <QueryView query={users} empty="لا توجد دعوات">
         {(rows) => (
-          <div className="card">
+          <Panel title="دعوات الموردين" hint="الحساب الموقوف يمنع الدخول دون حذف السجل." flush>
             <DataTable
               columns={[
                 { key: 'party', header: 'المورد', cell: (row: PortalUser) => partyOf(row.partyId) },
@@ -127,7 +133,7 @@ export default function SupplierPortalAdminPage() {
               rows={rows}
               rowKey={(row) => row.id}
             />
-          </div>
+          </Panel>
         )}
       </QueryView>
 
@@ -144,15 +150,20 @@ export default function SupplierPortalAdminPage() {
               <input className="input" value={note} onChange={(event) => setNote(event.target.value)} />
             </label>
           </div>
-          <button className="btn" type="submit" disabled={busy || !partyId}>
-            إرسال الطلب للمورد المختار
-          </button>
+          <div className="ui-form-actions">
+            <span className="ui-form-actions-note">يُرسَل الطلب إلى المورد المختار أعلاه.</span>
+            <div className="ui-form-actions-buttons">
+              <button className="btn" type="submit" disabled={busy || !partyId}>
+                إرسال الطلب للمورد المختار
+              </button>
+            </div>
+          </div>
         </form>
       ) : null}
 
       <QueryView query={rfqs} empty="لا توجد طلبات">
         {(rows) => (
-          <div className="card">
+          <Panel title="طلبات عروض الأسعار" hint="الطلب يصل إلى المورد في بوابته؛ العرض والملاحظة يعودان هنا." flush>
             <DataTable
               columns={[
                 { key: 'number', header: 'الرقم', cell: (row: Rfq) => row.number },
@@ -165,14 +176,13 @@ export default function SupplierPortalAdminPage() {
               rows={rows}
               rowKey={(row) => row.id}
             />
-          </div>
+          </Panel>
         )}
       </QueryView>
 
-      <h2>فواتير رفعها الموردون</h2>
       <QueryView query={uploads} empty="لا توجد فواتير مرفوعة">
         {(rows) => (
-          <div className="card">
+          <Panel title="فواتير رفعها الموردون" hint="لا تُقيَّد تلقائياً — تُراجَع هنا قبل إنشاء فاتورة الشراء." flush>
             <DataTable
               columns={[
                 { key: 'party', header: 'المورد', cell: (row: Upload) => partyOf(row.partyId) },
@@ -184,7 +194,7 @@ export default function SupplierPortalAdminPage() {
               rows={rows}
               rowKey={(row) => row.id}
             />
-          </div>
+          </Panel>
         )}
       </QueryView>
     </Screen>

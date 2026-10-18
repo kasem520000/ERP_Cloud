@@ -67,7 +67,7 @@ const screen = (
 // ---------------------------------------------------------------------------
 const accounting: ModuleNode = {
   key: 'accounting',
-  icon: '📊',
+ icon: '',
   labelAr: 'المحاسبة',
   labelEn: 'Accounting',
   href: '/accounting/accounts',
@@ -162,7 +162,7 @@ const accounting: ModuleNode = {
         }),
         screen(
           'cc-balances',
-          '📊 كشف مركز الكلفة',
+ 'كشف مركز الكلفة',
           'Cost-centre statement',
           '/accounting/cost-center-statement',
           'ready',
@@ -308,10 +308,10 @@ const accounting: ModuleNode = {
 // ---------------------------------------------------------------------------
 const inventory: ModuleNode = {
   key: 'inventory',
-  icon: '🏭',
+ icon: '',
   labelAr: 'المستودعات',
   labelEn: 'Inventory',
-  href: '/s/inventory/items',
+  href: '/inventory/overview',
   permission: 'inventory.view',
   groups: [
     {
@@ -380,7 +380,10 @@ const inventory: ModuleNode = {
           permission: 'purchase.invoice.create',
           endpoint: 'POST /purchase-invoices',
         }),
-        screen('goods-out', 'فاتورة إخراج', 'Goods issue', '/sales/invoices/new', 'ready', {
+        // «فاتورة إخراج» في الديسكتوب هي شاشة صرف مخزني (Goods issue) عبر `/inventory/vouchers`،
+        // لا فاتورة بيع. كانت تشير إلى `/sales/invoices/new`، فكان عنوان الترويسة يقول «فاتورة إخراج»
+        // بينما الشاشة المفتوحة «فاتورة مبيعات» — تعارضٌ يراه المستخدم أول سطر.
+        screen('goods-out', 'صرف مخزني', 'Goods issue', '/inventory/vouchers?kind=issue', 'ready', {
           permission: 'sales.invoice.create',
           endpoint: 'POST /sales/invoices',
         }),
@@ -568,7 +571,7 @@ const inventory: ModuleNode = {
 // ---------------------------------------------------------------------------
 const purchases: ModuleNode = {
   key: 'purchases',
-  icon: '🛒',
+ icon: '',
   labelAr: 'المشتريات',
   labelEn: 'Purchases',
   href: '/purchases/invoices',
@@ -761,7 +764,7 @@ const purchases: ModuleNode = {
 // ---------------------------------------------------------------------------
 const sales: ModuleNode = {
   key: 'sales',
-  icon: '🧾',
+ icon: '',
   labelAr: 'المبيعات',
   labelEn: 'Sales',
   href: '/sales/invoices',
@@ -787,7 +790,7 @@ const sales: ModuleNode = {
         screen('sales-invoice', 'فاتورة مبيعات', 'Sales invoice', '/sales/invoices', 'ready', {
           endpoint: '/sales/invoices',
         }),
-        screen('cash-customer', '👤 عميل نقدي', 'Cash customer', '/sales/cash-customers', 'ready', {
+ screen('cash-customer', 'عميل نقدي', 'Cash customer', '/sales/cash-customers', 'ready', {
           endpoint: '/sales/cash-customers',
         }),
         screen('sales-return', 'مردود المبيعات', 'Sales return', '/sales/returns', 'ready', {
@@ -1052,7 +1055,7 @@ const sales: ModuleNode = {
         }),
         screen(
           'salesman-commissions',
-          '📋 طباعة فواتير مندوب وعمولاتهم',
+ 'طباعة فواتير مندوب وعمولاتهم',
           'Salesman commissions',
           '/sales/salesman-commissions',
           'ready',
@@ -1215,7 +1218,7 @@ const sales: ModuleNode = {
  */
 const tailoring: ModuleNode = {
   key: 'tailoring',
-  icon: '🧵',
+ icon: '',
   labelAr: 'التفصيل',
   labelEn: 'Tailoring',
   href: '/tailoring/orders',
@@ -1305,7 +1308,7 @@ const tailoring: ModuleNode = {
 // ---------------------------------------------------------------------------
 const optics: ModuleNode = {
   key: 'optics',
-  icon: '👓',
+ icon: '',
   labelAr: 'النظارات',
   labelEn: 'Optics',
   href: '/optics/prescriptions',
@@ -1350,7 +1353,7 @@ const optics: ModuleNode = {
 // ---------------------------------------------------------------------------
 const hrm: ModuleNode = {
   key: 'hrm',
-  icon: '👥',
+ icon: '',
   labelAr: 'الموظفين والرواتب',
   labelEn: 'HR & Payroll',
   href: '/hrm/employees',
@@ -1467,7 +1470,7 @@ const hrm: ModuleNode = {
 // ---------------------------------------------------------------------------
 const marina: ModuleNode = {
   key: 'marina',
-  icon: '⛵',
+ icon: '',
   labelAr: 'إدارة المراسي',
   labelEn: 'Marina',
   href: '/marina/vessels',
@@ -1568,7 +1571,7 @@ const marina: ModuleNode = {
 // ---------------------------------------------------------------------------
 const projects: ModuleNode = {
   key: 'projects',
-  icon: '🏗️',
+ icon: '',
   labelAr: 'إدارة المشاريع',
   labelEn: 'Projects',
   href: '/projects',
@@ -1647,7 +1650,7 @@ const projects: ModuleNode = {
 // ---------------------------------------------------------------------------
 const settings: ModuleNode = {
   key: 'settings',
-  icon: '⚙️',
+ icon: '',
   labelAr: 'الإعدادات',
   labelEn: 'Settings',
   href: '/settings/company',
@@ -1779,7 +1782,7 @@ const settings: ModuleNode = {
           permission: 'tenant.file.upload',
           endpoint: 'GET /files · POST /files/presign · DELETE /files/:id',
           description:
-            'frmshowdocument.xaml («الوثائق» · «📄 الوثائق المرفقة») — المخزن الكامل: بحثٌ وترشيحٌ بالحالة وبالمستند المرتبط، وتنزيلٌ برابطٍ موقّع قصير العمر، ورفعٌ مباشر إلى التخزين الكائني (بلا مرور البايتات بالـAPI)، وحذفٌ ناعم برمزه `tenant.file.manage`.',
+ 'frmshowdocument.xaml («الوثائق» · «الوثائق المرفقة») — المخزن الكامل: بحثٌ وترشيحٌ بالحالة وبالمستند المرتبط، وتنزيلٌ برابطٍ موقّع قصير العمر، ورفعٌ مباشر إلى التخزين الكائني (بلا مرور البايتات بالـAPI)، وحذفٌ ناعم برمزه `tenant.file.manage`.',
         }),
         screen('backup', 'النسخ الإحتياطي', 'Backup', '/settings/backup', 'ready', {
           permission: 'settings.backup.manage',
@@ -1981,7 +1984,7 @@ const settings: ModuleNode = {
 // ---------------------------------------------------------------------------
 const support: ModuleNode = {
   key: 'support',
-  icon: '🎧',
+ icon: '',
   labelAr: 'الدعم الفني',
   labelEn: 'Support',
   href: '/support/license',
@@ -2004,7 +2007,7 @@ const support: ModuleNode = {
           'ready',
           { permission: 'reporting.layout.manage', endpoint: '/reports/layouts' },
         ),
-        screen('help', '🆘 إطلب المساعدة', 'Request help', '/support/help', 'ready'),
+ screen('help', 'إطلب المساعدة', 'Request help', '/support/help', 'ready'),
       ],
     },
   ],
@@ -2020,7 +2023,7 @@ const support: ModuleNode = {
 // ---------------------------------------------------------------------------
 const treasury: ModuleNode = {
   key: 'treasury',
-  icon: '🏦',
+ icon: '',
   labelAr: 'الخزينة',
   labelEn: 'Treasury',
   href: '/treasury/vouchers',
@@ -2031,15 +2034,15 @@ const treasury: ModuleNode = {
       labelAr: 'تعاريف',
       labelEn: 'Definitions',
       items: [
-        screen('safe-card', '🏦 تعريف الخزينة', 'Safes', '/treasury/safes', 'ready', {
+ screen('safe-card', 'تعريف الخزينة', 'Safes', '/treasury/safes', 'ready', {
           permission: 'organization.cashlocation.view',
           endpoint: '/cash-locations?filter[kind]=safe',
         }),
-        screen('bank-def', '🏦 تعريف البنوك', 'Banks', '/treasury/banks', 'ready', {
+ screen('bank-def', 'تعريف البنوك', 'Banks', '/treasury/banks', 'ready', {
           permission: 'organization.cashlocation.view',
           endpoint: '/cash-locations?filter[kind]=bank',
         }),
-        screen('expense-card', '📒 بطاقة حساب المصاريف', 'Expense card', '/accounting/expenses', 'ready', {
+ screen('expense-card', 'بطاقة حساب المصاريف', 'Expense card', '/accounting/expenses', 'ready', {
           permission: 'treasury.view',
           endpoint: '/expense-types',
         }),
@@ -2085,7 +2088,7 @@ const treasury: ModuleNode = {
       items: [
         screen(
           'receipt-voucher',
-          '📄 سند قبض',
+ 'سند قبض',
           'Receipt voucher',
           '/treasury/vouchers?kind=receipt',
           'ready',
@@ -2096,7 +2099,7 @@ const treasury: ModuleNode = {
         ),
         screen(
           'payment-voucher',
-          '📄 سند صرف',
+ 'سند صرف',
           'Payment voucher',
           '/treasury/vouchers?kind=payment',
           'ready',
@@ -2105,7 +2108,7 @@ const treasury: ModuleNode = {
             endpoint: '/vouchers',
           },
         ),
-        screen('day-close', '📊 إغلاق اليومية', 'Day close', '/treasury/day-close', 'ready', {
+ screen('day-close', 'إغلاق اليومية', 'Day close', '/treasury/day-close', 'ready', {
           permission: 'treasury.view',
           endpoint: '/shift-closes/day-closes',
         }),
@@ -2120,11 +2123,11 @@ const treasury: ModuleNode = {
       labelAr: 'الشيكات',
       labelEn: 'Cheques',
       items: [
-        screen('cheques', '🏦 كشف الشيكات', 'Cheque register', '/treasury/cheques', 'ready', {
+ screen('cheques', 'كشف الشيكات', 'Cheque register', '/treasury/cheques', 'ready', {
           permission: 'treasury.view',
           endpoint: '/vouchers?filter[method]=cheque',
           description:
-            'frmSandQ / frmPaymentVoucher — تحت التحصيل/محصّل/مرتجع مع تحصيل بقيد أوراق القبض→صندوق وارتجاع بقيد عكسي',
+ 'frmSandQ / frmPaymentVoucher — تحت التحصيل/محصّل/مرتجع مع تحصيل بقيد أوراق القبضصندوق وارتجاع بقيد عكسي',
         }),
       ],
     },
@@ -2133,7 +2136,7 @@ const treasury: ModuleNode = {
       labelAr: 'التقارير',
       labelEn: 'Reports',
       items: [
-        screen('safe-movement', '🏦 حركة الصندوق', 'Safe movement', '/treasury/movements', 'ready', {
+ screen('safe-movement', 'حركة الصندوق', 'Safe movement', '/treasury/movements', 'ready', {
           permission: 'treasury.view',
           endpoint: '/cash-locations/:id/movements',
         }),
@@ -2144,7 +2147,7 @@ const treasury: ModuleNode = {
 
 const employeeApp: ModuleNode = {
   key: 'employee-app',
-  icon: '📱',
+ icon: '',
   labelAr: 'تطبيق الموظف',
   labelEn: 'Employee app',
   href: '/m',
@@ -2188,7 +2191,7 @@ const employeeApp: ModuleNode = {
 
 const manufacturing: ModuleNode = {
   key: 'manufacturing',
-  icon: '⚙️',
+ icon: '',
   labelAr: 'التصنيع',
   labelEn: 'Manufacturing',
   href: '/manufacturing/orders',
@@ -2214,7 +2217,7 @@ const manufacturing: ModuleNode = {
 
 const dashboards: ModuleNode = {
   key: 'dashboards',
-  icon: '📈',
+ icon: '',
   labelAr: 'لوحات المؤشرات',
   labelEn: 'Dashboards',
   href: '/dashboards',
@@ -2270,6 +2273,36 @@ export const allScreens: Array<
 export function findScreenByHref(href: string) {
   const normalised = href.split('?')[0];
   return allScreens.find((item) => item.href.split('?')[0] === normalised);
+}
+
+/**
+ * `findScreenForPath` — the label for a *detail* route.
+ *
+ * `findScreenByHref` is an exact match and must stay that way (the scanner and the
+ * scaffold rely on it). The top bar, however, sits on `/sales/invoices/<id>` too:
+ * it asks for the closest registered screen so the header reads «فواتير المبيعات»
+ * instead of falling back to «الرئيسية». Longest prefix wins, on a path boundary.
+ */
+const TRAILING_SLASHES = new RegExp('/+$');
+
+export function findScreenForPath(href: string) {
+  const raw = href.split('?')[0] ?? '/';
+  const path = raw.length > 1 ? raw.replace(TRAILING_SLASHES, '') : raw;
+  const exact = findScreenByHref(path);
+  if (exact) return exact;
+  let best: (typeof allScreens)[number] | undefined;
+  let bestLength = -1;
+  for (const item of allScreens) {
+    const base = (item.href.split('?')[0] ?? '').replace(TRAILING_SLASHES, '');
+    if (base === '' || base === '/') continue;
+    if (path === base || path.startsWith(`${base}/`)) {
+      if (base.length > bestLength) {
+        best = item;
+        bestLength = base.length;
+      }
+    }
+  }
+  return best;
 }
 
 export function screenCounts() {

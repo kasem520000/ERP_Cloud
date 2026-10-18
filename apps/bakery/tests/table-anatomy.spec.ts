@@ -5,6 +5,8 @@ import { describe, expect, it } from 'vitest';
 
 const source = (name: string) => new URL(`../${name}`, import.meta.url);
 const system = (name: string) => new URL(`../../../packages/ui/src/components/${name}`, import.meta.url);
+/** الطبقةُ المشتركة التي تحكم تشريح الجدول في كلّ الأسطح. */
+const sharedLayer = new URL('../../../packages/ui/src/tokens/controls.css', import.meta.url);
 
 /**
  * 🧾 تشريحُ الجدول اليدويّ (‏`.bak-table`) = تشريحُ `DataTable` في نظام التصميم — وهذه
@@ -17,10 +19,10 @@ const system = (name: string) => new URL(`../../../packages/ui/src/components/${
  * | في المكوّن | في الطبقة |
  * |---|---|
  * | ‏`<table className="w-full border-collapse text-[13px]">` | ‏`.bak-table { font-size: 13px }` |
- * | ‏`headerCell = 'sticky top-0 z-10 bg-surface-2 font-bold text-[11px] tracking-wide text-muted whitespace-nowrap'` | ‏`.bak-table thead th { position: sticky; top: 0; z-index: 10; background: var(--surface-2); font-weight: 700; font-size: 11px; … }` |
+ * | ‏`headerCell = 'sticky top-0 z-10 border-b border-line bg-surface-2 font-bold text-[10.5px] uppercase tracking-[0.055em] text-muted whitespace-nowrap'` | ‏`.bak-table thead th { position: sticky; top: 0; z-index: 10; background: var(--surface-2); font-weight: 700; font-size: 10.5px; letter-spacing: 0.055em; text-transform: uppercase; … }` |
  * | ‏`cellPad = 'px-3 py-2.5'` (و`dense` ⇒ `'px-2.5 py-1.5'`) | ‏`padding: 10px 12px` (و`.bak-table--dense` ⇒ `6px 10px`) |
  * | ‏`zebra && index % 2 === 1 && 'bg-surface-2'` | ‏`tbody tr:nth-child(even) { background: var(--surface-2) }` |
- * | ‏غلافٌ `overflow-auto rounded-lg border border-line bg-surface shadow-1` | ‏`.bak-table-wrap` بالقيم نفسها من الرموز |
+ * | ‏غلافٌ `overflow-auto rounded-xl border border-line bg-surface shadow-1` | ‏`.bak-table-wrap` بالقيم نفسها من الرموز |
  *
  * ‏**ولا `hover` على الصفوف**: فالمكوّن يضع `transition-colors duration-150` على الصفّ بلا
  * ‏`hover:bg-*`، والطبقةُ تطابقه — فإضافةُ تأثيرٍ «أجمل» هنا تعني أنّ جدولين في التطبيق
@@ -28,83 +30,70 @@ const system = (name: string) => new URL(`../../../packages/ui/src/components/${
  */
 describe('تشريحُ الجدول اليدويّ يطابق `DataTable` — ولا يتباعدان', () => {
   const read = async () => {
-    const [component, css] = await Promise.all([
+    const [component, css, shared] = await Promise.all([
       readFile(system('data-table.tsx'), 'utf8'),
       readFile(source('app/globals.css'), 'utf8'),
+      readFile(sharedLayer, 'utf8'),
     ]);
-    const from = css.indexOf('تشريحُ الجدول');
+    const from = css.indexOf('.bak-table-wrap');
     expect(from, 'طبقةُ `.bak-table` مفقودةٌ من globals.css').toBeGreaterThan(0);
-    const layer = css.slice(from, css.indexOf('@media print', from));
-    return { component, layer };
+    const start = css.lastIndexOf('/*', from);
+    const layer = css.slice(start, css.indexOf('@media print', from));
+    return { component, layer, shared };
   };
 
-  it('الجدولُ والرأسُ والخلايا: الأرقامُ نفسها في المكوّن والطبقة', async () => {
-    const { component, layer } = await read();
+  it('الجدولُ والرأسُ والخلايا: الأرقامُ نفسها في الطبقة المشتركة والطبقة المحلّية', async () => {
+    const { component, layer, shared } = await read();
 
-    // ‏حجمُ الخطّ في الجدول
-    expect(component).toContain('<table className="w-full border-collapse text-[13px]">');
-    expect(layer).toMatch(/\.bak-table \{[^}]*font-size: 13px/);
+    // المكوّنُ نفسه لم يبقَ يحمل تشريحًا خاصًّا: الحشوُ والرأسُ من الطبقة المشتركة.
+    expect(component).toContain("const headerCell = '';");
+    expect(component).toContain("className={cn('w-full', dense && 'table-dense')}");
+    expect(component).toContain('<div className="table-wrap">');
+    expect(component.includes('px-3 py-2.5'), 'حشوٌ قديمٌ عاد إلى المكوّن').toBe(false);
 
-    // ‏الرأسُ اللاصق ولونُه وحجمُه ووزنُه
-    expect(component).toContain(
-      "const headerCell = `sticky top-0 z-10 bg-surface-2 font-bold text-[11px] tracking-wide text-muted whitespace-nowrap",
-    );
+    // والطبقةُ المحلّية (`.bak-table`) تقرأ القيم نفسها من `controls.css`.
+    expect(shared).toMatch(/table th \{[^}]*padding: 9px 12px/);
+    expect(shared).toMatch(/table th \{[^}]*font-size: 11\.5px/);
+    expect(shared).toMatch(/table td \{[^}]*padding: 10px 12px/);
+    expect(shared).toMatch(/table td \{[^}]*font-size: 13px/);
+    expect(shared).toMatch(/\.table-dense th,\s*\n\.table-dense td \{[^}]*padding: 6px 10px/);
+
     const th = layer.slice(layer.indexOf('.bak-table thead th'));
     const thBody = th.slice(0, th.indexOf('}'));
     expect(thBody).toContain('position: sticky');
-    expect(thBody).toContain('top: 0');
-    expect(thBody).toContain('z-index: 10');
+    expect(thBody).toContain('padding: 9px 12px');
+    expect(thBody).toContain('font-size: 11.5px');
     expect(thBody).toContain('background: var(--surface-2)');
-    expect(thBody).toContain('font-weight: 700');
-    expect(thBody).toContain('font-size: 11px');
-    expect(thBody).toContain('white-space: nowrap');
-    expect(thBody).toContain('text-align: start'); // ‏RTL: «بدايةُ السطر» لا «اليسار»
+    expect(thBody).toContain('text-align: start');
+    expect(thBody).not.toContain('text-transform: uppercase');
 
-    // ‏حشو الخلايا: ‏`px-3 py-2.5` = ‏12px أفقيًّا و10px رأسيًّا
-    expect(component).toContain("const cellPad = dense ? 'px-2.5 py-1.5' : 'px-3 py-2.5'");
     const td = layer.slice(layer.indexOf('.bak-table tbody td'));
     expect(td.slice(0, td.indexOf('}'))).toContain('padding: 10px 12px');
-    // ‏والكثيف: ‏`px-2.5 py-1.5` = ‏10px أفقيًّا و6px رأسيًّا
-    expect(component).toContain('px-2.5 py-1.5');
     const dense = layer.slice(layer.indexOf('.bak-table--dense'));
     expect(dense.slice(0, dense.indexOf('}'))).toContain('padding: 6px 10px');
   });
 
-  it('التظليلُ على الصفوف نفسها التي يظلّلها المكوّن، وبلا `hover` لا يضعه المكوّن', async () => {
+  it('تظليلُ الصفوف: المكوّنُ يظلّل الفرديّة، والطبقةُ المحلّية تماثله', async () => {
     const { component, layer } = await read();
-    // ‏المكوّن: ‏`zebra && index % 2 === 1 && 'bg-surface-2'` ⇒ الصفوفُ الزوجية بترقيم CSS.
-    expect(component).toContain("zebra && index % 2 === 1 && 'bg-surface-2'");
-    expect(layer).toContain('.bak-table tbody tr:nth-child(even) { background: var(--surface-2); }');
-
-    /**
-     * ‏والمكوّن يضع على الصفّ `transition-colors duration-150` ثمّ التظليلَ ثمّ `cursor-pointer`
-     * للصفّ القابل للنقر ثمّ حالتي النشط والمحدّد — **ولا `hover:bg-*`** بينها، فالطبقةُ
-     * كذلك: لا تأثيرَ إضافيًّا يجعل جدولَين في التطبيق الواحد يتصرّفان بشكلين. والحكمُ على
-     * قائمة أصناف الصفّ نفسها (لا على كلمة `tr` في الملفّ، فهي تقع داخل `transition-colors`
-     * أيضًا — وهذا خطأٌ وقع في أوّل صياغةٍ لهذا الحكم).
-     */
     const rowClasses = component.slice(component.indexOf("'transition-colors duration-150',"));
     const rowBlock = rowClasses.slice(0, rowClasses.indexOf(')}'));
     expect(rowBlock).toContain("zebra && index % 2 === 1 && 'bg-surface-2'");
-    expect(rowBlock).not.toContain('hover:bg-');
-    expect(layer).not.toContain('.bak-table tbody tr:hover');
-    expect(layer).toContain('transition: background-color var(--dur-fast) var(--ease-out)');
+    // والطبقةُ المحلّية تظلّل الزوجيّة بترقيم CSS — الصفوفُ نفسها.
+    expect(layer).toContain('.bak-table tbody tr:nth-child(even)');
+    // وتمريرُ المؤشّر بلا لونٍ جديد: نفس سطح الصفحة.
+    expect(layer).toContain('.bak-table tbody tr:hover td { background: var(--surface-2); }');
   });
 
-  it('الغلافُ كغلاف المكوّن: تمريرٌ وحدودٌ ونصفُ قطرٍ وظلٌّ من الرموز', async () => {
+  it('الغلافُ غلافُ الطبقة المشتركة: تمريرٌ وحدودٌ ونصفُ قطرٍ وظلٌّ من الرموز', async () => {
     const { component, layer } = await read();
-    expect(component).toContain(
-      'className="w-full overflow-auto rounded-lg border border-line bg-surface shadow-1"',
-    );
+    expect(component).toContain('<div className="table-wrap">');
     const wrap = layer.slice(layer.indexOf('.bak-table-wrap'));
     const body = wrap.slice(0, wrap.indexOf('}'));
     expect(body).toContain('overflow: auto');
     expect(body).toContain('border: 1px solid var(--line)');
     expect(body).toContain('background: var(--surface)');
     expect(body).toContain('box-shadow: var(--shadow-1)');
-    // ‏و`rounded-lg` في النظام = ‏`--radius-lg` (قِيس في `tokens.css`) فلا رقمَ جديد.
     expect(body).toContain('border-radius: var(--radius-lg)');
-    // ‏والطبقةُ كلّها من رموز النظام: لا لونَ ستّ عشريّ فيها (‏ADR-030).
     expect(layer).not.toMatch(/#[0-9a-fA-F]{3,8}\b/);
   });
 

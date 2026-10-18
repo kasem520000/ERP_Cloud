@@ -132,22 +132,26 @@ export default function AiSettingsPage() {
         <p className="alert warn">أوقف مشغّل المنصة المساعد لهذه المنشأة.</p>
       ) : null}
 
-      <div className="kpi-grid">
-        <div className="kpi">
-          <span>حالة المساعد</span>
-          <strong>{enabled ? 'مفعّل' : 'متوقف'}</strong>
+      <div className="ui-kpi-strip">
+        <div className="ui-kpi-cell">
+          <span className="ui-kpi-label">حالة المساعد</span>
+          <span className="ui-kpi-value">{enabled ? 'مفعّل' : 'متوقف'}</span>
+          <span className="ui-kpi-hint">حسب إعداد المنشأة</span>
         </div>
-        <div className="kpi">
-          <span>المزوّد الفعّال</span>
-          <strong dir="ltr">{settings?.effectiveProvider ?? 'local'}</strong>
+        <div className="ui-kpi-cell">
+          <span className="ui-kpi-label">المزوّد الفعّال</span>
+          <span className="ui-kpi-value" dir="ltr">{settings?.effectiveProvider ?? 'local'}</span>
+          <span className="ui-kpi-hint">المزوّد الذي يخدم الطلبات الآن</span>
         </div>
-        <div className="kpi">
-          <span>النموذج الفعّال</span>
-          <strong dir="ltr">{settings?.effectiveModel ?? 'local-grounded'}</strong>
+        <div className="ui-kpi-cell">
+          <span className="ui-kpi-label">النموذج الفعّال</span>
+          <span className="ui-kpi-value" dir="ltr">{settings?.effectiveModel ?? 'local-grounded'}</span>
+          <span className="ui-kpi-hint">يُستبدل تلقائياً عند تعذّر الأصل</span>
         </div>
-        <div className="kpi">
-          <span>استهلاك الشهر ({settings?.usage.period ?? '—'})</span>
-          <strong>{(settings?.usage.tokens ?? 0).toLocaleString('ar-SA')} توكن</strong>
+        <div className="ui-kpi-cell">
+          <span className="ui-kpi-label">استهلاك الشهر ({settings?.usage.period ?? '—'})</span>
+          <span className="ui-kpi-value">{(settings?.usage.tokens ?? 0).toLocaleString('en-US')} توكن</span>
+          <span className="ui-kpi-hint">يُعاد ضبطه أول كل شهر</span>
         </div>
       </div>
 

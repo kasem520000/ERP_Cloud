@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { Panel } from '@erp/ui';
 
 import { DataTable, Notice, QueryView } from '../../../components/data-view';
 import { Screen } from '../../../components/screen';
@@ -53,34 +54,36 @@ export default function MigrationRunsPage() {
   return (
     <Screen
       title="إستيراد وتصدير البيانات"
-      subtitle="ترحيل بيانات النظام القديم: تحليل ← تشغيل تجريبي ← استيراد ← مطابقة، وكل عملية تُسجَّل بمشاكلها."
+ subtitle="ترحيل بيانات النظام القديم: تحليل تشغيل تجريبي استيراد مطابقة، وكل عملية تُسجَّل بمشاكلها."
       crumbs={['الإعدادات', 'البيانات']}
     >
-      <div className="card toolbar">
-        <label className="field">
-          <span>نوع العملية</span>
-          <select className="input" value={mode} onChange={(event) => setMode(event.target.value)}>
-            {MODES.map((row) => (
-              <option key={row.id} value={row.id}>
-                {row.label}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="field">
-          <span>وصف المصدر</span>
-          <input className="input" dir="ltr" value={label} placeholder="sqlserver:Data16" onChange={(event) => setLabel(event.target.value)} />
-        </label>
-        <button type="button" className="btn primary" disabled={busy} onClick={start}>
-          {busy ? 'جارٍ التنفيذ…' : 'تشغيل'}
-        </button>
+      <div className="ui-filter-bar no-print">
+        <div className="ui-filter-fields">
+          <label className="field">
+            <span>نوع العملية</span>
+            <select className="input" value={mode} onChange={(event) => setMode(event.target.value)}>
+              {MODES.map((row) => (
+                <option key={row.id} value={row.id}>
+                  {row.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="field">
+            <span>وصف المصدر</span>
+            <input className="input" dir="ltr" value={label} placeholder="sqlserver:Data16" onChange={(event) => setLabel(event.target.value)} />
+          </label>
+          <button type="button" className="btn primary" disabled={busy} onClick={start}>
+            {busy ? 'جارٍ التنفيذ…' : 'تشغيل'}
+          </button>
+        </div>
+        <p className="ui-filter-hint">{MODES.find((row) => row.id === mode)?.hint}</p>
       </div>
-      <p className="muted small">{MODES.find((row) => row.id === mode)?.hint}</p>
       <Notice notice={notice} />
 
       <QueryView query={runs} empty="لا توجد عمليات ترحيل" emptyDetail="ابدأ بـ«تحليل» لمعرفة جاهزية المصدر قبل أي استيراد.">
         {(rows) => (
-          <div className="card">
+          <Panel title="عمليات الترحيل" hint="كل تشغيل يُسجَّل — بما فيه التحليل والتشغيل التجريبي." flush>
             <DataTable
               columns={[
                 { key: 'source', header: 'المصدر', align: 'ltr', cell: (row: Run) => row.source_label },
@@ -101,13 +104,12 @@ export default function MigrationRunsPage() {
               rows={rows}
               rowKey={(row) => row.id}
             />
-          </div>
+          </Panel>
         )}
       </QueryView>
 
       {openRun ? (
-        <div className="card">
-          <h3>مشاكل العملية</h3>
+        <Panel title="مشاكل العملية" hint="مشاكل مسجّلة لهذه العملية وحدها — الدرجة والرمز يحددان ما يحتاج إصلاحاً." flush>
           <QueryView query={issues} empty="لا توجد مشاكل مسجّلة لهذه العملية">
             {(rows) => (
               <DataTable
@@ -123,7 +125,7 @@ export default function MigrationRunsPage() {
               />
             )}
           </QueryView>
-        </div>
+        </Panel>
       ) : null}
     </Screen>
   );

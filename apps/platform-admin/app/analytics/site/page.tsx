@@ -31,11 +31,11 @@ const WINDOWS: Array<{ value: string; label: string }> = [
 ];
 
 function count(value: number | undefined): string {
-  return value === undefined ? '—' : value.toLocaleString('ar-SA');
+  return value === undefined ? '—' : value.toLocaleString('ar-SA-u-ca-gregory-nu-latn');
 }
 
 function dayText(value: string): string {
-  return new Intl.DateTimeFormat('ar-SA', { day: 'numeric', month: 'short', timeZone: 'UTC' }).format(
+  return new Intl.DateTimeFormat('ar-SA-u-ca-gregory-nu-latn', { day: 'numeric', month: 'short', timeZone: 'UTC' }).format(
     new Date(`${value}T00:00:00.000Z`),
   );
 }
@@ -53,12 +53,36 @@ export default function SiteAnalyticsPage() {
     <Screen
       title="تحليلات الموقع"
       subtitle="ما يُقرأ في الموقع التسويقي، وما يُطلب منه — أحداثٌ مجهولة الهوية بعد موافقة الزائر."
+      kpis={
+        data
+          ? [
+              {
+                label: 'الزوّار',
+                value: count(data.visitors.all),
+                hint: `زائرٌ مميّز · اليوم ${count(data.visitors.today)}`,
+              },
+              {
+                label: 'المشاهدات',
+                value: count(data.views.all),
+                hint: `صفحةٌ مقروءة · اليوم ${count(data.views.today)}`,
+              },
+              {
+                label: 'أعلى هدف',
+                value:
+                  data.goals
+                    .filter((goal) => goal.visitors > 0)
+                    .sort((left, right) => right.visitors - left.visitors)[0]?.labelAr ?? '—',
+                hint: 'ترتيب الأهداف بأعداد الزوّار',
+              },
+            ]
+          : undefined
+      }
     >
       <div className="card">
         <div className="row">
           <label className="field">
             <span>النافذة</span>
-            <select value={windowDays} onChange={(event) => setWindowDays(event.target.value)}>
+            <select className="input" value={windowDays} onChange={(event) => setWindowDays(event.target.value)}>
               {WINDOWS.map((option) => (
                 <option key={option.value} value={option.value}>
                   {option.label}
@@ -77,30 +101,6 @@ export default function SiteAnalyticsPage() {
 
       {data ? (
         <>
-          <section className="grid cols-2">
-            <article className="card">
-              <h2>الزوّار</h2>
-              <p className="kpi">{count(data.visitors.all)}</p>
-              <p className="small muted">
-                زائرٌ مميّزٌ في النافذة · اليوم: {count(data.visitors.today)}
-              </p>
-            </article>
-            <article className="card">
-              <h2>المشاهدات</h2>
-              <p className="kpi">{count(data.views.all)}</p>
-              <p className="small muted">صفحةٌ مقروءة · اليوم: {count(data.views.today)}</p>
-            </article>
-            <article className="card">
-              <h2>أعلى هدف</h2>
-              <p className="kpi">
-                {data.goals
-                  .filter((goal) => goal.visitors > 0)
-                  .sort((left, right) => right.visitors - left.visitors)[0]?.labelAr ?? '—'}
-              </p>
-              <p className="small muted">من يرتّب الأهداف بأعداد الزوّار لا بالنقرات</p>
-            </article>
-          </section>
-
           <section className="card">
             <h2>القمع — الأهداف الأربعة</h2>
             <table className="table">
@@ -118,7 +118,7 @@ export default function SiteAnalyticsPage() {
                     <td>{goal.labelAr}</td>
                     <td>{count(goal.visitors)}</td>
                     <td>{count(goal.events)}</td>
-                    <td>{goal.visitors === 0 ? '—' : `${goal.ratePct.toLocaleString('ar-SA', { maximumFractionDigits: 1 })}٪`}</td>
+                    <td>{goal.visitors === 0 ? '—' : `${goal.ratePct.toLocaleString('ar-SA-u-ca-gregory-nu-latn', { maximumFractionDigits: 1 })}٪`}</td>
                   </tr>
                 ))}
               </tbody>
@@ -229,7 +229,7 @@ export default function SiteAnalyticsPage() {
                         <td>{variant.key}</td>
                         <td>{count(variant.exposures)}</td>
                         <td>{count(variant.converters)}</td>
-                        <td>{variant.exposures === 0 ? '—' : `${variant.ratePct.toLocaleString('ar-SA', { maximumFractionDigits: 1 })}٪`}</td>
+                        <td>{variant.exposures === 0 ? '—' : `${variant.ratePct.toLocaleString('ar-SA-u-ca-gregory-nu-latn', { maximumFractionDigits: 1 })}٪`}</td>
                       </tr>
                     )),
                   )}
@@ -284,7 +284,7 @@ export default function SiteAnalyticsPage() {
               </tbody>
             </table>
             <p className="small muted">
-              آخر قراءة: {new Date(data.generatedAt).toLocaleString('ar-SA')} — والشاشة تقرأ ما
+              آخر قراءة: {new Date(data.generatedAt).toLocaleString('ar-SA-u-ca-gregory-nu-latn')} — والشاشة تقرأ ما
               جمعه الخادم لحظة الطلب، بلا تخزينٍ وسيط.
             </p>
           </section>

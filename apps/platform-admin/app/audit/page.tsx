@@ -215,7 +215,7 @@ export default function AuditPage() {
                   {rows.map((row) => (
                     <Fragment key={row.id}>
                       <tr>
-                        <td dir="ltr">{new Date(row.createdAt).toLocaleString('ar-SA')}</td>
+                        <td dir="ltr">{new Date(row.createdAt).toLocaleString('ar-SA-u-ca-gregory-nu-latn')}</td>
                         <td>
                           {row.tenantName ? (
                             <>
@@ -335,7 +335,7 @@ function DiffPanel({ row }: { row: AuditRow }) {
     }
     return (
       <pre className="code small" dir="ltr">
-        {raw.map((value) => showValue(value)).join('\n→\n')}
+ {raw.map((value) => showValue(value)).join('\n\n')}
       </pre>
     );
   }

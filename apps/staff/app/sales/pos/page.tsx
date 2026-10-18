@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { Trash2 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import type { CompanyProfileDto } from '@erp/contracts';
 
@@ -42,10 +43,10 @@ type Ticket = { line: LineDraft; item: Item };
 
 type Method = 'cash' | 'card' | 'bank' | 'credit' | 'split';
 
-/** 💳 صفُّ طريقةٍ في الدفع المتعدّد — «🔀 متعدد» في `frmPOSPay.xaml` L286. */
+/** صفُّ طريقةٍ في الدفع المتعدّد — « متعدد» في `frmPOSPay.xaml` L286. */
 type Tender = { key: number; method: 'cash' | 'card' | 'bank'; amountText: string; drawerId: string };
 
-/** 🅿️ الفاتورة المعلّقة كما ترجع من الخادم — سلةٌ لا مستند. */
+/** الفاتورة المعلّقة كما ترجع من الخادم — سلةٌ لا مستند. */
 type Hold = {
   id: string;
   slot: number;
@@ -67,7 +68,7 @@ type Hold = {
   };
 };
 
-/** ⚙️ إعدادات الكاشير — `frmCasherSetting.xaml`. */
+/** إعدادات الكاشير — `frmCasherSetting.xaml`. */
 type PosSettings = {
   'pos.barcodeAuto': boolean;
   'pos.touchScreen': boolean;
@@ -101,7 +102,7 @@ type Receipt = {
   shiftId: string | null;
   change: string;
   tendered: string | null;
-  /** 🔀 ما قبضته الفاتورة طريقةً طريقة، وكم بقي على ذمة العميل. */
+  /** ما قبضته الفاتورة طريقةً طريقة، وكم بقي على ذمة العميل. */
   tenders?: Array<{ method: string; amount: string }> | null;
   onAccount?: string | null;
   cashierId?: string | null;
@@ -114,8 +115,8 @@ const METHODS: Array<{ id: Method; label: string; hint: string }> = [
   { id: 'credit', label: 'آجل', hint: 'يُرحّل على حساب العميل (ذمم مدينة)' },
   {
     id: 'split',
-    label: '🔀 متعدد',
-    hint: 'دفع الفاتورة بأكثر من طريقة — «⚖️ مطابقة» تجعل مجموعها الصافي، وما بقي يقف على حساب العميل',
+    label: 'متعدد',
+    hint: 'دفع الفاتورة بأكثر من طريقة — «مطابقة» تجعل مجموعها الصافي، وما بقي يقف على حساب العميل',
   },
 ];
 
@@ -174,7 +175,7 @@ export default function PosPage() {
   const [customerMobile, setCustomerMobile] = useState('');
   const [partyId, setPartyId] = useState('');
   /**
-   * 🏦 اختر البنك / 👤 عميل نقدي — `frmPayBank` و`frmCashCustomer` are windows opened
+   * اختر البنك / عميل نقدي — `frmPayBank` و`frmCashCustomer` are windows opened
    * *from* the sale, and each returns one answer to it: which bank the transfer went to,
    * and which walk-in the invoice is written for.
    */
@@ -192,24 +193,27 @@ export default function PosPage() {
   >([]);
   const [autoPrintThermal, setAutoPrintThermal] = useState(true);
   /**
-   * ⚙️ إعدادات الكاشير — تُقرأ من `GET /pos/settings` بصلاحية `pos.view` (لا صلاحية
+   * إعدادات الكاشير — تُقرأ من `GET /pos/settings` بصلاحية `pos.view` (لا صلاحية
    * إعدادات المستأجر) لأنّ الكاشير يحتاجها ليعمل، والكتابة تبقى في شاشة الإعدادات.
    */
   const settings = useQuery<PosSettings>(() => apiData<PosSettings>('/pos/settings'), []);
-  // 🏢 اسم المنشأة ورقمها الضريبي كما هما في ملفّها — لا ثوابت تُطبع لكلّ مستأجر.
+  // اسم المنشأة ورقمها الضريبي كما هما في ملفّها — لا ثوابت تُطبع لكلّ مستأجر.
   const company = useQuery<CompanyProfileDto | null>(() => readCompanyProfile(), []);
   /**
-   * 🧾 رمز الفاتورة الإلكترونية إن كان صدر لهذه الفاتورة فعلًا؛ وما لم يصدر لا يُرسم
+   * رمز الفاتورة الإلكترونية إن كان صدر لهذه الفاتورة فعلًا؛ وما لم يصدر لا يُرسم
    * رمزٌ ولا يُختَرع — الإيصال والشاشة يقولان «لم تُصدر بعد».
    */
-  const receiptQr = useQuery<string | null>(() => issuedQrPayload(receipt?.invoiceId), [receipt?.invoiceId ?? '']);
+  const receiptQr = useQuery<string | null>(
+    () => issuedQrPayload(receipt?.invoiceId),
+    [receipt?.invoiceId ?? ''],
+  );
   const casher = {
     barcodeAuto: settings.data?.['pos.barcodeAuto'] ?? true,
     touchScreen: settings.data?.['pos.touchScreen'] ?? false,
     showGroups: settings.data?.['pos.showGroups'] ?? true,
     requireShift: settings.data?.['pos.requireShift'] ?? false,
   };
-  /** 🔀 الدفع المتعدّد: صفوف الطرق، ومفتاحها لعنصر React لا لتسلسلٍ يُعاد ترتيبه. */
+  /** الدفع المتعدّد: صفوف الطرق، ومفتاحها لعنصر React لا لتسلسلٍ يُعاد ترتيبه. */
   const [tenders, setTenders] = useState<Tender[]>([]);
   const tenderSeq = useMemo(() => ({ next: 1 }), []);
   const newTender = (method: 'cash' | 'card' | 'bank', amountText = ''): Tender => ({
@@ -221,7 +225,7 @@ export default function PosPage() {
 
   const [notice, setNotice] = useState<{ kind: 'ok' | 'danger' | 'info'; text: string } | undefined>();
   /**
-   * ✋ تعديل السعر — `frmPOS.xaml` L387: زرّ التعديل `IsEnabled = User.EditPrice`، ومن
+   * تعديل السعر — `frmPOS.xaml` L387: زرّ التعديل `IsEnabled = User.EditPrice`، ومن
    * ضغطه بلا الحقّ سمع «لا يمكن تعديل السعر» (`frmPOS.xaml.cs` L1377، والحارس `User.EditPrice`
    * من `Class/User.cs` L24 · OperNo 13). والسحابة تُعطّل الحقل وتُظهر السبب، والمحرّك يرفض
    * على أي حال بـ`POS_PRICE_OVERRIDE_FORBIDDEN` — فالإخفاء ليس هو الفرض.
@@ -261,7 +265,7 @@ export default function PosPage() {
   })();
   const tenderedValue = Number(tendered || 0);
   const saleValue = Number(totals.total);
-  /** 🔀 مجموع الطرق وفرقها عن الصافي — «⚖️ F6 مطابقة». */
+  /** مجموع الطرق وفرقها عن الصافي — « F6 مطابقة». */
   const tenderTotal = tenders.reduce((sum, row) => sum + Number(row.amountText || 0), 0);
   const tenderDiff = tenderTotal - saleValue;
   const change = tenderedValue > 0 ? tenderedValue - saleValue : 0;
@@ -359,7 +363,7 @@ export default function PosPage() {
           throw new ApiError(
             422,
             'POS_TENDER_MISMATCH',
-            `مجموع الطرق أكبر من الصافي بـ${money(tenderDiff)} — صحّح «⚖️ المطابقة».`,
+            `مجموع الطرق أكبر من الصافي بـ${money(tenderDiff)} — صحّح «المطابقة».`,
           );
         if (tenderDiff < 0 && customerMode !== 'account')
           throw new ApiError(
@@ -396,7 +400,7 @@ export default function PosPage() {
                 cashLocationId: method === 'credit' ? undefined : effectiveDrawer,
                 tendered: method === 'cash' && tendered ? tendered : undefined,
               },
-        /** 🔀 الطرق كما كُتبت — والرمز `split` يبقى في الشاشة لا في الطلب. */
+        /** الطرق كما كُتبت — والرمز `split` يبقى في الشاشة لا في الطلب. */
         payments:
           method === 'split'
             ? tenders.map((row) => ({
@@ -433,12 +437,13 @@ export default function PosPage() {
           branchName: branchRow ? arabicName(branchRow) : undefined,
           invoiceNumber: receiptData.number ?? receiptData.invoiceId.slice(0, 8),
           invoiceTypeLabel: 'فاتورة ضريبية مبسطة — إيصال كاشير',
-          issuedAt: new Date().toLocaleString('ar-SA'),
+          issuedAt: new Date().toLocaleString('ar-SA-u-ca-gregory-nu-latn'),
           customerName:
             customerMode === 'walkin'
               ? customerName.trim() || 'عميل عام'
               : (customers.data ?? []).find((c) => c.id === partyId)?.name || 'عميل عام',
-          paymentMethodLabel: METHODS.find((row) => row.id === receiptData.method)?.label ?? receiptData.method,
+          paymentMethodLabel:
+            METHODS.find((row) => row.id === receiptData.method)?.label ?? receiptData.method,
           lines: soldLines,
           subtotal: receiptData.subtotal,
           taxTotal: receiptData.taxTotal,
@@ -466,7 +471,7 @@ export default function PosPage() {
   );
 
   /**
-   * ⏸️ تعليق الأوردر — `frmPOS.xaml.cs` L1871–L1962.
+   * ⏸ تعليق الأوردر — `frmPOS.xaml.cs` L1871–L1962.
    *
    * الديسكتوب يكتب رقم الفاتورة في `HoldList[9]` (L179) ويلوّن الزرّ أخضر (L1907)، ويقول
    * عند امتلاء الخانات «لقد وصلت للحد الاقصي من عمليات الايقاف المؤقت» (L1935) — والرمز
@@ -538,7 +543,7 @@ export default function PosPage() {
     }
   }
 
-  // F7 — اختصار التعليق كما في الديسكتوب («⏸️ تعليق  F7»), ويُتجاهل داخل حقول الكتابة.
+  // F7 — اختصار التعليق كما في الديسكتوب («⏸ تعليق F7»), ويُتجاهل داخل حقول الكتابة.
   useEffect(() => {
     function onKey(event: KeyboardEvent) {
       if (event.key !== 'F7') return;
@@ -622,7 +627,10 @@ export default function PosPage() {
             </label>
           </div>
           {/* «عرض المجموعات والأصناف» (`frmCasherSetting.xaml` L265). */}
-          <div className="chips" style={{ marginBottom: 10, display: casher.showGroups ? undefined : 'none' }}>
+          <div
+            className="chips"
+            style={{ marginBottom: 10, display: casher.showGroups ? undefined : 'none' }}
+          >
             <button
               className={`chip ${categoryId === '' ? 'on' : ''}`}
               type="button"
@@ -649,7 +657,7 @@ export default function PosPage() {
                 key={item.id}
                 onClick={() => add(item)}
                 /* 🖐️ «تاتش سكرين» (`frmCasherSetting.xaml` L252): بلاطاتٌ أكبر لإصبعٍ
-                   لا لمؤشّر — الإعداد يغيّر المقاس لا المحتوى. */
+ لا لمؤشّر — الإعداد يغيّر المقاس لا المحتوى. */
                 style={casher.touchScreen ? { minHeight: 104, fontSize: 15 } : undefined}
               >
                 <strong>{arabicName(item)}</strong>
@@ -658,7 +666,7 @@ export default function PosPage() {
             ))}
           </div>
           {visible.length === 0 && (
-            <p className="muted">لا توجد أصناف مطابقة. أضف المواد من «المستودعات ← دليل المواد».</p>
+            <p className="muted">لا توجد أصناف مطابقة. أضف المواد من «المستودعات دليل المواد».</p>
           )}
         </div>
 
@@ -786,7 +794,7 @@ export default function PosPage() {
             {customerMode === 'walkin' ? (
               <>
                 <label className="field">
-                  <span>🏷️ الاسم:</span>
+                  <span>الاسم:</span>
                   <div className="row" style={{ flexWrap: 'nowrap' }}>
                     <input
                       className="input"
@@ -795,12 +803,12 @@ export default function PosPage() {
                       onChange={(event) => setCustomerName(event.target.value)}
                     />
                     <button type="button" className="btn" onClick={() => setPickingCustomer(true)}>
-                      👤 بحث
+                      بحث
                     </button>
                   </div>
                 </label>
                 <label className="field">
-                  <span>📱 رقم الجوال:</span>
+                  <span>رقم الجوال:</span>
                   <input
                     className="input"
                     dir="ltr"
@@ -846,15 +854,19 @@ export default function PosPage() {
           <p className="muted small">{METHODS.find((row) => row.id === method)?.hint}</p>
 
           {/**
-           * 🔀 دفع الفاتورة بأكثر من طريقة — `frmPOSPay.xaml` L286 (زرّ «🔀 متعدد») وL548
+           * دفع الفاتورة بأكثر من طريقة — `frmPOSPay.xaml` L286 (زرّ « متعدد») وL548
            * («⚖️ F6 مطابقة»). صفٌّ لكل طريقة: بماذا، وكم، ومن أيّ صندوقٍ أو بنك. والمطابقة
            * سطرٌ ظاهر لا حسابٌ في الرأس: الكاشير يرى الفرق قبل أن يضغط «✔ دفع».
            */}
           {method === 'split' && (
             <div className="card tight" style={{ marginTop: 8 }}>
-              <div className="card-head">🔀 طرق الدفع</div>
+              <div className="card-head">طرق الدفع</div>
               {tenders.map((row) => (
-                <div key={row.key} className="row" style={{ alignItems: 'flex-end', gap: 6, marginBottom: 6 }}>
+                <div
+                  key={row.key}
+                  className="row"
+                  style={{ alignItems: 'flex-end', gap: 6, marginBottom: 6 }}
+                >
                   <label className="field" style={{ flex: '0 0 110px' }}>
                     <span>الطريقة</span>
                     <select
@@ -870,9 +882,9 @@ export default function PosPage() {
                         )
                       }
                     >
-                      <option value="cash">💵 كاش</option>
-                      <option value="card">🖧 شبكة</option>
-                      <option value="bank">💳 تحويل</option>
+                      <option value="cash">كاش</option>
+                      <option value="card">شبكة</option>
+                      <option value="bank">تحويل</option>
                     </select>
                   </label>
                   <label className="field" style={{ flex: '0 0 110px' }}>
@@ -916,8 +928,9 @@ export default function PosPage() {
                     className="btn sm"
                     type="button"
                     onClick={() => setTenders((current) => current.filter((entry) => entry.key !== row.key))}
+                    aria-label="حذف طريقة الدفع"
                   >
-                    ✖
+                    <Trash2 size={13} />
                   </button>
                 </div>
               ))}
@@ -927,25 +940,25 @@ export default function PosPage() {
                   type="button"
                   onClick={() => setTenders((current) => [...current, newTender('cash')])}
                 >
-                  + 💵 كاش
+                  + كاش
                 </button>
                 <button
                   className="btn sm"
                   type="button"
                   onClick={() => setTenders((current) => [...current, newTender('card')])}
                 >
-                  + 🖧 شبكة
+                  + شبكة
                 </button>
                 <button
                   className="btn sm"
                   type="button"
                   onClick={() => setTenders((current) => [...current, newTender('bank')])}
                 >
-                  + 💳 تحويل
+                  + تحويل
                 </button>
               </div>
               <dl className="kv" style={{ marginTop: 8 }}>
-                <dt>⚖️ مطابقة</dt>
+                <dt>مطابقة</dt>
                 <dd className={tenderDiff === 0 ? 'pos-change' : 'pos-change-due'}>
                   {tenderDiff === 0
                     ? `مطابق — ${money(tenderTotal)}`
@@ -961,17 +974,23 @@ export default function PosPage() {
 
           {method === 'bank' ? (
             /**
-             * 🏦 تحويل بنكي — `frmPayBank.xaml`: a tile per bank, `✔ موافق` / `✖ خروج`,
+             * تحويل بنكي — `frmPayBank.xaml`: a tile per bank, ` موافق` / ` خروج`,
              * and no sale without a named bank. `EntryOper.cs` L493/L620 then debits
              * *that* bank's account instead of the generic شبكة account, so the choice
              * cannot be a dropdown default the cashier never looked at.
              */
             <div className="card tight" style={{ marginTop: 8 }}>
-              <div className="card-head">🏦 البنوك المتاحة</div>
+              <div className="card-head">البنوك المتاحة</div>
               <div className="row" style={{ alignItems: 'center', justifyContent: 'space-between' }}>
-                <span>{effectiveDrawer ? cashLocationLabel(drawers.find((row) => row.id === effectiveDrawer) ?? ({} as CashLocation)) : 'لم يُختر بنك'}</span>
+                <span>
+                  {effectiveDrawer
+                    ? cashLocationLabel(
+                        drawers.find((row) => row.id === effectiveDrawer) ?? ({} as CashLocation),
+                      )
+                    : 'لم يُختر بنك'}
+                </span>
                 <button type="button" className="btn primary" onClick={() => setPickingBank(true)}>
-                  🏦 اختر البنك
+                  اختر البنك
                 </button>
               </div>
             </div>
@@ -1040,14 +1059,14 @@ export default function PosPage() {
       </div>
 
       {/**
-       * ⏸️ أزرار التعليق — الصفّ الثالث في `frmPOS.xaml` (L1120–L1180): تسعة أزرار
-       * عنوانها «1»…«9» و`HoldList[9]` (L179)، وزرّ «⏸️ تعليق  F7» تحتها. والمشغول أخضر
+       * ⏸ أزرار التعليق — الصفّ الثالث في `frmPOS.xaml` (L1120–L1180): تسعة أزرار
+       * عنوانها «1»…«9» و`HoldList[9]` (L179)، وزرّ «⏸ تعليق F7» تحتها. والمشغول أخضر
        * (`Colors.Green`) والفارغ معطّل — نفس ما تراه العين هنا. والديسكتوب يُخفي 6–9
        * (`Visibility="Collapsed"`) حتى تُشترى الخانات… والسحابة تُظهرها كلها وتترك
        * الحدّ للمحرّك: خانةٌ فارغة ليست عيباً، والمخفيُّ لا يُخبَر به الكاشير.
        */}
       <div className="card">
-        <div className="card-head">⏸️ الفواتير المعلّقة — ٩ خانات</div>
+        <div className="card-head">الفواتير المعلّقة — ٩ خانات</div>
         <div className="row" style={{ flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
           {(holds.data ?? []).map((hold) => (
             <button
@@ -1080,19 +1099,22 @@ export default function PosPage() {
             onClick={holdTicket}
             title="F7"
           >
-            ⏸️ تعليق  F7
+            تعليق F7
           </button>
         </div>
         <p className="muted small">
-          الضغط على خانةٍ مشغولة يسترجع سلها، والضغط الطويل (زرّ الفأرة الأيمن) يُفرغها. و«يوجد أصناف في الجدول»
-          تمنع دهس سلةٍ لم تُتمّ.
+          الضغط على خانةٍ مشغولة يسترجع سلها، والضغط الطويل (زرّ الفأرة الأيمن) يُفرغها. و«يوجد أصناف في
+          الجدول» تمنع دهس سلةٍ لم تُتمّ.
         </p>
       </div>
 
       {receipt && (
         <div className="card receipt">
-          <div className="toolbar no-print" style={{ justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
-            <h2>🧾 آخر إيصال كاشير (80mm)</h2>
+          <div
+            className="toolbar no-print"
+            style={{ justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}
+          >
+            <h2>آخر إيصال كاشير (80mm)</h2>
             <div className="toolbar" style={{ gap: 8, flexWrap: 'wrap' }}>
               <label className="row" style={{ fontSize: 12, gap: 6 }}>
                 <input
@@ -1106,20 +1128,31 @@ export default function PosPage() {
                 className="btn primary sm"
                 type="button"
                 onClick={() => {
-                  const identity = receiptIdentity(company.data ?? null, branchRow ? arabicName(branchRow) : 'المنشأة');
+                  const identity = receiptIdentity(
+                    company.data ?? null,
+                    branchRow ? arabicName(branchRow) : 'المنشأة',
+                  );
                   printThermalReceipt80mm({
                     companyName: identity.companyName,
                     taxNo: identity.taxNo,
                     branchName: branchRow ? arabicName(branchRow) : undefined,
                     invoiceNumber: receipt.number ?? receipt.invoiceId.slice(0, 8),
                     invoiceTypeLabel: 'فاتورة ضريبية مبسطة — إيصال كاشير',
-                    issuedAt: new Date().toLocaleString('ar-SA'),
+                    issuedAt: new Date().toLocaleString('ar-SA-u-ca-gregory-nu-latn'),
                     customerName: customerName.trim() || 'عميل عام',
-                    paymentMethodLabel: METHODS.find((row) => row.id === receipt.method)?.label ?? receipt.method,
+                    paymentMethodLabel:
+                      METHODS.find((row) => row.id === receipt.method)?.label ?? receipt.method,
                     lines:
                       receiptLines.length > 0
                         ? receiptLines
-                        : [{ name: 'مبيعات نقطة بيع', quantity: '1', unitPrice: receipt.subtotal, total: receipt.total }],
+                        : [
+                            {
+                              name: 'مبيعات نقطة بيع',
+                              quantity: '1',
+                              unitPrice: receipt.subtotal,
+                              total: receipt.total,
+                            },
+                          ],
                     subtotal: receipt.subtotal,
                     taxTotal: receipt.taxTotal,
                     total: receipt.total,
@@ -1129,7 +1162,7 @@ export default function PosPage() {
                   });
                 }}
               >
-                🖨️ طباعة إيصال كاشير حراري (80mm)
+                طباعة إيصال كاشير حراري (80mm)
               </button>
               <Link className="btn sm" href={`/sales/invoices/${receipt.invoiceId}`}>
                 تفاصيل الفاتورة
@@ -1146,11 +1179,11 @@ export default function PosPage() {
               <dd>{money(receipt.taxTotal)}</dd>
               <dt>طريقة الدفع</dt>
               <dd>{METHODS.find((row) => row.id === receipt.method)?.label ?? receipt.method}</dd>
-              {/* 🔀 متعدد: الإيصال يفصّل ما قُبض طريقةً طريقة، والباقي على الحساب إن بقي. */}
+              {/* متعدد: الإيصال يفصّل ما قُبض طريقةً طريقة، والباقي على الحساب إن بقي. */}
               {receipt.tenders?.map((row) => (
                 <>
                   <dt key={`${row.method}-dt`}>
-                    {row.method === 'cash' ? '💵 كاش' : row.method === 'card' ? '🖧 شبكة' : '💳 تحويل'}
+                    {row.method === 'cash' ? 'كاش' : row.method === 'card' ? 'شبكة' : 'تحويل'}
                   </dt>
                   <dd key={`${row.method}-dd`}>{money(row.amount)}</dd>
                 </>
@@ -1250,7 +1283,7 @@ export default function PosPage() {
         />
       ) : null}
 
-      {/** 👤 `frmCashCustomer` — a walk-in is a name and a mobile, not a ledger account. */}
+      {/** `frmCashCustomer` — a walk-in is a name and a mobile, not a ledger account. */}
       {pickingCustomer ? (
         <CashCustomerPicker
           value={{ name: customerName, mobile: customerMobile }}

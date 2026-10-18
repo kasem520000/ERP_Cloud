@@ -181,7 +181,7 @@ export default function DataRequestsPage() {
         window.open(outcome.export.downloadUrl, '_blank', 'noopener');
         setNotice({
           kind: 'ok',
-          text: `صُدِّر ${outcome.export.totalRows} صفاً في ملفٍ حجمه ${formatBytes(outcome.export.bytes)} — الرابط صالح حتى ${new Date(outcome.export.expiresAt).toLocaleString('ar-SA')}.`,
+          text: `صُدِّر ${outcome.export.totalRows} صفاً في ملفٍ حجمه ${formatBytes(outcome.export.bytes)} — الرابط صالح حتى ${new Date(outcome.export.expiresAt).toLocaleString('ar-SA-u-ca-gregory-nu-latn')}.`,
         });
       } else if (outcome.erased) {
         setNotice({
@@ -319,7 +319,7 @@ export default function DataRequestsPage() {
                     <tbody>
                       {rows.map((row) => (
                         <tr key={row.id}>
-                          <td dir="ltr">{new Date(row.createdAt).toLocaleString('ar-SA')}</td>
+                          <td dir="ltr">{new Date(row.createdAt).toLocaleString('ar-SA-u-ca-gregory-nu-latn')}</td>
                           <td>
                             <span className={`badge ${row.kind === 'erase' ? 'failed' : 'pending'}`}>
                               {KIND_LABEL[row.kind] ?? row.kind}

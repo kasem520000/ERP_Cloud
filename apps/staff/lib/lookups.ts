@@ -428,7 +428,7 @@ export function partyLabel(party: Party): string {
   return `${party.code ? `${party.code} — ` : ''}${party.name}`;
 }
 export function cashLocationLabel(location: CashLocation): string {
-  return `${location.kind === 'bank' ? '🏦' : '💵'} ${location.name}`;
+ return `${location.kind === 'bank' ? '' : ''} ${location.name}`;
 }
 
 /** The default branch/warehouse is what a single-branch tenant always wants preselected. */
@@ -508,4 +508,29 @@ export const DOC_STATUS_LABELS: Record<string, string> = {
 export function statusLabel(status?: string | null): string {
   if (!status) return '—';
   return DOC_STATUS_LABELS[status] ?? status;
+}
+
+/**
+ * Where a journal entry came from. The API speaks in snake_case source types
+ * (`sales_invoice`, `purchase_invoice`, …) and those used to be printed raw inside an
+ * otherwise Arabic screen. Reading, not accounting: the value itself never changes.
+ */
+export const SOURCE_TYPE_LABELS: Record<string, string> = {
+  sales_invoice: 'فاتورة مبيعات',
+  purchase_invoice: 'فاتورة مشتريات',
+  sales_return: 'مردود مبيعات',
+  purchase_return: 'مردود مشتريات',
+  payment: 'سند دفع',
+  receipt: 'سند قبض',
+  voucher: 'سند',
+  adjustment: 'تسوية',
+  opening: 'قيد افتتاحي',
+  manual: 'يدوي',
+  payroll: 'رواتب',
+  reversal: 'قيد عكسي',
+};
+
+export function sourceTypeLabel(source?: string | null): string {
+  if (!source) return 'يدوي';
+  return SOURCE_TYPE_LABELS[source] ?? source;
 }

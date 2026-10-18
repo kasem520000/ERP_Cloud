@@ -14,6 +14,7 @@ import {
   money,
   quantity,
   shortDate,
+  statusLabel,
   type InTransitRow,
   type Warehouse,
 } from '../../../lib/lookups';
@@ -167,7 +168,7 @@ export default function InTransitPage() {
                 </div>
                 <div className="doc-field">
                   <span>حالة المناقلة</span>
-                  <b>{row.status}</b>
+                  <b>{statusLabel(row.status)}</b>
                 </div>
                 <div className="doc-field">
                   <span>سطر</span>

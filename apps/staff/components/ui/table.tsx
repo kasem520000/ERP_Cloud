@@ -1,6 +1,6 @@
 'use client';
 
-import { ChevronDown, ChevronUp, ChevronsUpDown, Inbox } from 'lucide-react';
+import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, ChevronsUpDown, Inbox } from 'lucide-react';
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 
 import { Badge, type BadgeTone } from './badge';
@@ -49,6 +49,13 @@ type TableProps<T> = {
   actions?: (row: T) => Array<{ label: string; icon?: ReactNode; onClick: () => void; danger?: boolean }>;
   dense?: boolean;
   zebra?: boolean;
+  /**
+   * Rows per page. Omitted → every row is rendered (the historical behaviour, kept so
+   * existing callers do not change). When set, the table pages internally and a footer
+   * states «n من m» — a list of 68 invoices should not be 68 rows of DOM inside a 70vh
+   * scroll box with no way to know where you are.
+   */
+  pageSize?: number;
 };
 
 export function Table<T>({
@@ -70,19 +77,34 @@ export function Table<T>({
   actions,
   dense = false,
   zebra = true,
+  pageSize,
 }: TableProps<T>) {
+  const [page, setPage] = useState(0);
+  const pageCount = pageSize ? Math.max(1, Math.ceil(rows.length / pageSize)) : 1;
+  // A filter, a reload or a different row count must not strand the reader on page 4 of 1.
+  const safePage = Math.min(page, pageCount - 1);
+  useEffect(() => {
+    if (page !== safePage) setPage(safePage);
+  }, [page, safePage]);
+  useEffect(() => {
+    setPage(0);
+  }, [rows.length]);
+  const pageRows = pageSize ? rows.slice(safePage * pageSize, safePage * pageSize + pageSize) : rows;
+  // Selection is scoped to what is on screen: a "select all" that silently ticks 200
+  // hidden rows is a foot-gun on a batch screen.
   const allSelected =
-    selectable && rows.length > 0 && rows.every((row, i) => selectedKeys?.has(rowKey(row, i)));
+    selectable && pageRows.length > 0 && pageRows.every((row, i) => selectedKeys?.has(rowKey(row, i + (pageSize ? safePage * pageSize : 0))));
   const someSelected =
-    selectable && rows.some((row, i) => selectedKeys?.has(rowKey(row, i))) && !allSelected;
+    selectable && pageRows.some((row, i) => selectedKeys?.has(rowKey(row, i + (pageSize ? safePage * pageSize : 0)))) && !allSelected;
 
   const colSpan = columns.length + (selectable ? 1 : 0) + (actions ? 1 : 0);
 
   function toggleAll() {
     if (!onSelectionChange) return;
     const next = new Set(selectedKeys);
-    if (allSelected) for (const [i, row] of rows.entries()) next.delete(rowKey(row, i));
-    else for (const [i, row] of rows.entries()) next.add(rowKey(row, i));
+    const offset = pageSize ? safePage * pageSize : 0;
+    if (allSelected) for (const [i, row] of pageRows.entries()) next.delete(rowKey(row, i + offset));
+    else for (const [i, row] of pageRows.entries()) next.add(rowKey(row, i + offset));
     onSelectionChange(next);
   }
 
@@ -104,7 +126,9 @@ export function Table<T>({
   const cellPad = dense ? 'px-2.5 py-1.5' : 'px-3 py-2.5';
 
   return (
-    <div className="w-full overflow-auto max-h-[70vh] rounded-xl border border-line bg-surface shadow-1">
+    <div className="w-full overflow-hidden rounded-xl border border-line bg-surface shadow-1">
+      {/* Only the rows scroll; the pager below stays reachable at the bottom of the frame. */}
+      <div className="max-h-[70vh] overflow-auto">
       <table className="w-full border-collapse text-[13px]">
         <thead>
           <tr>
@@ -126,7 +150,7 @@ export function Table<T>({
               <th
                 key={col.key}
                 style={col.width ? { width: col.width } : undefined}
-                className={`sticky top-0 z-10 bg-surface-2 font-bold text-[11px] tracking-wide text-muted whitespace-nowrap ${cellPad} ${
+                className={`sticky top-0 z-10 bg-surface-2 font-bold text-xs tracking-wide text-muted whitespace-nowrap ${cellPad} ${
                   col.numeric ? 'text-end' : 'text-start'
                 } ${col.grow ? 'w-full' : ''}`}
               >
@@ -193,8 +217,9 @@ export function Table<T>({
                     </td>
                   </tr>,
                 ]
-              : rows.map((row, index) => {
-                  const key = rowKey(row, index);
+              : pageRows.map((row, index) => {
+                  const absolute = index + (pageSize ? safePage * pageSize : 0);
+                  const key = rowKey(row, absolute);
                   const selected = selectedKeys?.has(key) ?? false;
                   const active = activeKey !== undefined && activeKey === key;
                   return (
@@ -275,6 +300,35 @@ export function Table<T>({
           </tfoot>
         ) : null}
       </table>
+      </div>
+      {pageSize && rows.length > 0 ? (
+        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-line bg-surface px-3 py-2 no-print">
+          <span className="text-[11.5px] font-semibold text-muted tabular-nums" dir="rtl">
+            {`${safePage * pageSize + 1}–${Math.min((safePage + 1) * pageSize, rows.length)} من ${rows.length}`}
+          </span>
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              className="inline-flex items-center gap-1 rounded-lg border border-line px-2.5 py-1 text-[12px] font-semibold text-ink-2 hover:bg-surface-2 disabled:opacity-40"
+              onClick={() => setPage((current) => Math.max(0, current - 1))}
+              disabled={safePage === 0}
+            >
+              <ChevronRight size={14} /><span>السابق</span>
+            </button>
+            <span className="px-2 text-[12px] font-bold tabular-nums text-ink" dir="ltr">
+              {`${safePage + 1} / ${pageCount}`}
+            </span>
+            <button
+              type="button"
+              className="inline-flex items-center gap-1 rounded-lg border border-line px-2.5 py-1 text-[12px] font-semibold text-ink-2 hover:bg-surface-2 disabled:opacity-40"
+              onClick={() => setPage((current) => Math.min(pageCount - 1, current + 1))}
+              disabled={safePage >= pageCount - 1}
+            >
+              <span>التالي</span><ChevronLeft size={14} />
+            </button>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

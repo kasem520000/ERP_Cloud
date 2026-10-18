@@ -194,7 +194,12 @@ export function DataTable<T>({
 
   const hideable = useMemo(() => columns.filter((column) => column.hideable !== false), [columns]);
 
-  const cellPad = dense ? 'px-2.5 py-1.5' : 'px-3 py-2.5';
+  /**
+   * The cell no longer carries its own padding: `controls.css` owns the table
+   * anatomy (`table th` / `table td`) so a `DataTable` and a hand-written
+   * `.table-wrap` table read the same on every surface. `dense` is a modifier
+   * on the table, not a class repeated on every cell.
+   */
   const allSelected =
     selectable && rows.length > 0 && rows.every((row, index) => selectedKeys?.has(rowKey(row, index)));
   const someSelected =
@@ -238,16 +243,16 @@ export function DataTable<T>({
     [onSortChange, sort],
   );
 
-  const headerCell = `sticky top-0 z-10 bg-surface-2 font-bold text-[11px] tracking-wide text-muted whitespace-nowrap ${cellPad}`;
+  const headerCell = '';
 
   return (
     <div className={cn('grid gap-2', className)}>
-      <div className="w-full overflow-auto rounded-lg border border-line bg-surface shadow-1">
-        <table className="w-full border-collapse text-[13px]">
+      <div className="table-wrap">
+        <table className={cn('w-full', dense && 'table-dense')}>
           <thead>
             <tr>
               {selectable ? (
-                <th className={cn(headerCell, 'w-10')}>
+                <th className="w-10">
                   <input
                     type="checkbox"
                     className="size-4 cursor-pointer accent-brand"
@@ -265,8 +270,7 @@ export function DataTable<T>({
                   key={column.key}
                   style={column.width ? { width: column.width } : undefined}
                   className={cn(
-                    headerCell,
-                    column.numeric ? 'text-end' : 'text-start',
+                    column.numeric ? 'num' : undefined,
                     column.grow && 'w-full',
                   )}
                 >
@@ -295,7 +299,7 @@ export function DataTable<T>({
                   )}
                 </th>
               ))}
-              {actions ? <th className={cn(headerCell, 'w-10')} /> : null}
+              {actions ? <th className="w-10" /> : null}
             </tr>
           </thead>
 
@@ -304,17 +308,17 @@ export function DataTable<T>({
               ? Array.from({ length: 6 }).map((_, rowIndex) => (
                   <tr key={`skeleton-${rowIndex}`} className={zebra && rowIndex % 2 === 1 ? 'bg-surface-2' : ''}>
                     {selectable ? (
-                      <td className={cellPad}>
+                      <td>
                         <Skeleton className="size-4" />
                       </td>
                     ) : null}
                     {visibleColumns.map((column) => (
-                      <td key={column.key} className={cellPad}>
+                      <td key={column.key} className={column.numeric ? 'num' : undefined}>
                         <Skeleton className="h-3.5 w-3/4" />
                       </td>
                     ))}
                     {actions ? (
-                      <td className={cellPad}>
+                      <td>
                         <Skeleton className="size-6" />
                       </td>
                     ) : null}
@@ -389,10 +393,7 @@ export function DataTable<T>({
                             )}
                           >
                             {selectable ? (
-                              <td
-                                className={cellPad}
-                                onClick={(event) => event.stopPropagation()}
-                              >
+                              <td onClick={(event) => event.stopPropagation()}>
                                 <input
                                   type="checkbox"
                                   className="size-4 cursor-pointer accent-brand"
@@ -406,7 +407,7 @@ export function DataTable<T>({
                               <td
                                 key={column.key}
                                 className={cn(
-                                  cellPad,
+                                  column.numeric ? 'num' : undefined,
                                   'align-middle',
                                   column.numeric ? 'text-end' : 'text-start',
                                   column.ltr && 'ltr',
@@ -421,7 +422,7 @@ export function DataTable<T>({
                               </td>
                             ))}
                             {actions ? (
-                              <td className={cn(cellPad, 'text-center')} onClick={(event) => event.stopPropagation()}>
+                              <td className="text-center" onClick={(event) => event.stopPropagation()}>
                                 <RowActions
                                   items={actions(row)}
                                   labels={{ open: labels.openActions, close: labels.closeActions }}
@@ -436,12 +437,11 @@ export function DataTable<T>({
           {footer && state.kind === 'ready' && items.length > 0 ? (
             <tfoot>
               <tr>
-                {selectable ? <td className={cn(cellPad, 'border-t-2 border-line-strong bg-surface-2')} /> : null}
+                {selectable ? <td className="border-t-2 border-line-strong bg-surface-2" /> : null}
                 {footer.map((cell, index) => (
                   <td
                     key={index}
                     className={cn(
-                      cellPad,
                       'border-t-2 border-line-strong bg-surface-2 font-bold text-ink',
                       visibleColumns[index]?.numeric ? 'num text-end' : 'text-start',
                     )}

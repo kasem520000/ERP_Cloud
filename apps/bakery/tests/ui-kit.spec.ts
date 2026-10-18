@@ -22,7 +22,7 @@ const readCell = (row: Record<string, unknown>, column: ScreenColumn): string =>
   String(row[column.key] ?? '—');
 
 describe('جسرُ الشاشات إلى نظام التصميم: الأعمدةُ والحالةُ ومفتاحُ الصفّ', () => {
-  it('إعلانُ العمود ⇒ عمودُ `DataTable` بكلّ سماته، والقارئُ يُستدعى بالعمود نفسه', () => {
+ it('إعلانُ العمود عمودُ `DataTable` بكلّ سماته، والقارئُ يُستدعى بالعمود نفسه', () => {
     const mapped = tableColumns<Record<string, unknown>>(columns, readCell);
     expect(mapped.map((column) => column.key)).toEqual(['number', 'total', 'notes', 'status']);
     expect(mapped.map((column) => column.header)).toEqual(['الرقم', 'الإجمالي', 'ملاحظات', 'الحالة']);
@@ -54,7 +54,7 @@ describe('جسرُ الشاشات إلى نظام التصميم: الأعمدة
     expect(seen).toEqual(['total']);
   });
 
-  it('الحالاتُ الأربع بترتيبٍ مقصود: ممنوع ← تحميل ← خطأ ← جاهز', () => {
+ it('الحالاتُ الأربع بترتيبٍ مقصود: ممنوع تحميل خطأ جاهز', () => {
     expect(listState({})).toEqual({ kind: 'ready' });
     expect(listState({ loading: true })).toEqual({ kind: 'loading' });
     expect(listState({ error: 'تعذّر التحميل' })).toEqual({

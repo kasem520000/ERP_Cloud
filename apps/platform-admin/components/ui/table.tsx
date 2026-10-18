@@ -126,7 +126,7 @@ export function Table<T>({
               <th
                 key={col.key}
                 style={col.width ? { width: col.width } : undefined}
-                className={`sticky top-0 z-10 bg-surface-2 font-bold text-[11px] tracking-wide text-muted whitespace-nowrap ${cellPad} ${
+                className={`sticky top-0 z-10 bg-surface-2 font-bold text-xs tracking-wide text-muted whitespace-nowrap ${cellPad} ${
                   col.numeric ? 'text-end' : 'text-start'
                 } ${col.grow ? 'w-full' : ''}`}
               >

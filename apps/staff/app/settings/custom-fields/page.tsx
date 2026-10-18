@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 
 import { ErrorBox, Forbidden, Loading, Screen } from '../../../components/screen';
+import { Input, Select, Textarea } from '../../../components/ui/input';
 import { createCustomField, deleteCustomField, listCustomFields, type CustomField, type CustomFieldEntity, type CustomFieldType } from '../../../lib/custom-fields';
 import { useSession } from '../../../lib/session';
 
@@ -76,9 +77,11 @@ export default function CustomFieldsSettingsPage() {
         <section className="rounded-xl border border-line bg-surface p-5 shadow-1">
           <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
             <h2 className="m-0 text-[16px] font-bold text-ink">الحقول المعرفة</h2>
-            <select className="h-10 rounded-lg border border-line px-3 text-sm" value={entity} onChange={(event) => setEntity(event.target.value as CustomFieldEntity)}>
-              {entities.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-            </select>
+            <div className="w-52">
+              <Select label="الكيان" value={entity} onChange={(event) => setEntity(event.target.value as CustomFieldEntity)}>
+                {entities.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
+              </Select>
+            </div>
           </div>
           {loading ? <Loading rows={4} /> : error ? <ErrorBox message={error} onRetry={() => void reload()} /> : fields.length === 0 ? <p className="text-sm text-muted">لا توجد حقول لهذا الكيان بعد.</p> : (
             <div className="overflow-x-auto"><table className="w-full text-sm"><thead><tr className="border-b text-right text-muted"><th className="p-2">الاسم</th><th className="p-2">المفتاح</th><th className="p-2">النوع</th><th className="p-2">مطلوب</th><th className="p-2">الحالة</th><th /></tr></thead><tbody>
@@ -87,12 +90,12 @@ export default function CustomFieldsSettingsPage() {
           )}
         </section>
         {can('custom_fields.manage') ? <section className="rounded-xl border border-line bg-surface p-5 shadow-1"><h2 className="m-0 mb-4 text-[16px] font-bold">حقل جديد</h2><div className="grid gap-3">
-          <label className="grid gap-1 text-sm"><span>الاسم الظاهر</span><input className="h-10 rounded-lg border px-3" value={label} onChange={(event) => setLabel(event.target.value)} placeholder="تاريخ الضمان" /></label>
-          <label className="grid gap-1 text-sm"><span>المفتاح البرمجي</span><input className="h-10 rounded-lg border px-3 font-mono" dir="ltr" value={key} onChange={(event) => setKey(event.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '_'))} placeholder="warranty_date" /></label>
-          <label className="grid gap-1 text-sm"><span>النوع</span><select className="h-10 rounded-lg border px-3" value={type} onChange={(event) => setType(event.target.value as CustomFieldType)}>{types.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</select></label>
-          {type === 'select' ? <label className="grid gap-1 text-sm"><span>الخيارات، كل خيار في سطر</span><textarea className="min-h-24 rounded-lg border p-3" value={options} onChange={(event) => setOptions(event.target.value)} /></label> : null}
+          <Input label="الاسم الظاهر" value={label} onChange={(event) => setLabel(event.target.value)} placeholder="تاريخ الضمان" />
+          <Input label="المفتاح البرمجي" dir="ltr" className="font-mono" value={key} onChange={(event) => setKey(event.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '_'))} placeholder="warranty_date" />
+          <Select label="النوع" value={type} onChange={(event) => setType(event.target.value as CustomFieldType)}>{types.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}</Select>
+          {type === 'select' ? <Textarea label="الخيارات، كل خيار في سطر" value={options} onChange={(event) => setOptions(event.target.value)} /> : null}
           <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={required} onChange={(event) => setRequired(event.target.checked)} /> حقل مطلوب عند الحفظ</label>
-          <button className="h-10 rounded-lg bg-brand-600 px-4 font-bold text-on-accent disabled:opacity-50" type="button" disabled={busy || !label.trim() || !key.trim()} onClick={() => void save()}>حفظ الحقل</button>
+          <button className="btn primary" type="button" disabled={busy || !label.trim() || !key.trim()} onClick={() => void save()}>حفظ الحقل</button>
           {notice ? <p className="m-0 text-sm text-ink-2">{notice}</p> : null}
         </div></section> : null}
       </div>

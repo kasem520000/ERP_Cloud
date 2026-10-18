@@ -395,8 +395,10 @@ await run('categories + items + units', async () => {
     ];
     for (const [wh, qty] of rows) {
       await q(
-        `update stock_balances set quantity = $2, value = ($2::numeric * $3::numeric), average_cost = $3, updated_at = now()
-         where tenant_id = $1 and item_id = $4 and warehouse_id = $5`,
+        `insert into stock_balances (tenant_id, item_id, warehouse_id, quantity, value, average_cost, version, updated_at)
+         values ($1, $4, $5, $2, ($2::numeric * $3::numeric), $3, 1, now())
+         on conflict (tenant_id, item_id, warehouse_id) do update
+           set quantity = excluded.quantity, value = excluded.value, average_cost = excluded.average_cost, updated_at = now()`,
         [tid, qty, cost, itemId[sku], wh],
       );
       await q(

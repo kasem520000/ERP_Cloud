@@ -13,17 +13,17 @@ const BASE_LABEL =
 /** Resting (centered) → shrunk (top) on focus or when the control has content. */
 const INPUT_LABEL =
   `${BASE_LABEL} top-1/2 -translate-y-1/2 text-[13px] text-muted ` +
-  `group-has-[input:focus]/field:top-0 group-has-[input:focus]/field:-translate-y-1/2 group-has-[input:focus]/field:text-[11px] group-has-[input:focus]/field:font-bold group-has-[input:focus]/field:text-brand-600 ` +
-  `group-has-[input:not(:placeholder-shown)]/field:top-0 group-has-[input:not(:placeholder-shown)]/field:-translate-y-1/2 group-has-[input:not(:placeholder-shown)]/field:text-[11px] group-has-[input:not(:placeholder-shown)]/field:font-bold`;
+  `group-has-[input:focus]/field:top-0 group-has-[input:focus]/field:-translate-y-1/2 group-has-[input:focus]/field:text-xs group-has-[input:focus]/field:font-bold group-has-[input:focus]/field:text-brand-600 ` +
+  `group-has-[input:not(:placeholder-shown)]/field:top-0 group-has-[input:not(:placeholder-shown)]/field:-translate-y-1/2 group-has-[input:not(:placeholder-shown)]/field:text-xs group-has-[input:not(:placeholder-shown)]/field:font-bold`;
 
 const TEXTAREA_LABEL =
   `${BASE_LABEL} top-5 text-[13px] text-muted ` +
-  `group-has-[textarea:focus]/field:top-1.5 group-has-[textarea:focus]/field:text-[11px] group-has-[textarea:focus]/field:font-bold group-has-[textarea:focus]/field:text-brand-600 ` +
-  `group-has-[textarea:not(:placeholder-shown)]/field:top-1.5 group-has-[textarea:not(:placeholder-shown)]/field:text-[11px] group-has-[textarea:not(:placeholder-shown)]/field:font-bold`;
+  `group-has-[textarea:focus]/field:top-1.5 group-has-[textarea:focus]/field:text-xs group-has-[textarea:focus]/field:font-bold group-has-[textarea:focus]/field:text-brand-600 ` +
+  `group-has-[textarea:not(:placeholder-shown)]/field:top-1.5 group-has-[textarea:not(:placeholder-shown)]/field:text-xs group-has-[textarea:not(:placeholder-shown)]/field:font-bold`;
 
 /** A select always shows a value, so its label always sits shrunken at the top. */
 const SELECT_LABEL =
-  `${BASE_LABEL} top-0 -translate-y-1/2 text-[11px] font-bold ` +
+  `${BASE_LABEL} top-0 -translate-y-1/2 text-xs font-bold ` +
   `group-has-[select:focus]/field:text-brand-600`;
 
 const FRAME = (error?: string) =>
@@ -134,7 +134,7 @@ export function Labeled({ label, children, hint }: { label: string; children: Re
     <label className="grid gap-1.5 min-w-0">
       <span className="text-xs font-bold text-muted">{label}</span>
       {children}
-      {hint ? <span className="text-[11px] text-muted">{hint}</span> : null}
+      {hint ? <span className="text-xs text-muted">{hint}</span> : null}
     </label>
   );
 }

@@ -58,7 +58,7 @@ export default function TenantAuditPage() {
               <tbody>
                 {rows.map((row) => (
                   <tr key={row.id}>
-                    <td dir="ltr">{new Date(row.occurredAt ?? row.occurred_at ?? Date.now()).toLocaleString('ar-SA')}</td>
+                    <td dir="ltr">{new Date(row.occurredAt ?? row.occurred_at ?? Date.now()).toLocaleString('ar-SA-u-ca-gregory-nu-latn')}</td>
                     <td dir="ltr">{row.action}</td>
                     <td dir="ltr">{row.entityType ?? row.entity_type}</td>
                     <td dir="ltr" className="small">{(row.entityId ?? row.entity_id ?? '').slice(0, 8)}</td>

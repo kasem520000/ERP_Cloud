@@ -11,8 +11,17 @@ import { useAsync } from '../../lib/use-async';
 
 const STATUS_AR: Record<string, string> = { unpaid: 'غير مسددة', partial: 'مسددة جزئياً', paid: 'مسددة', posted: 'مرحّلة', draft: 'مسودة', voided: 'ملغاة' };
 
+/** رصيد سالب = دفعات مقدّمة/دائن، لا «مستحق» بالسالب؛ فالوسم يتبدّل والرقم يُعرض مطلقاً. */
+function balanceKpi(balanceText: string): { label: string; value: string; hint: string } {
+  const credit = new Decimal(balanceText || '0');
+  return credit.isNegative()
+    ? { label: 'رصيد دائن لكم', value: moneyText(credit.abs().toFixed(2)), hint: 'دفعات مقدّمة أو أرصدة لصالحكم' }
+    : { label: 'الرصيد المستحق', value: moneyText(credit.toFixed(2)), hint: 'حسب دفاتر المورد' };
+}
+
 function Dashboard() {
   const { profile } = usePortalProfile();
+  const balanceView = balanceKpi(profile?.balance ?? '0');
   const invoices = useAsync(() => fetchInvoices(), []);
   const payments = useAsync(() => fetchPayments(), []);
 
@@ -28,20 +37,26 @@ function Dashboard() {
         <p className="muted">ملخص تعاملك مع {profile?.company.nameAr || 'المورد'} — الفواتير الصادرة لك والمبالغ المسددة.</p>
       </section>
 
-      <div className="grid cols">
-        <Kpi label="الرصيد المستحق" value={moneyText(profile?.balance ?? '0')} hint="حسب دفاتر المورد" />
+      <div className="ui-kpi-strip">
+        <Kpi label={balanceView.label} value={balanceView.value} hint={balanceView.hint} />
         <Kpi label="غير المسدد من الفواتير" value={moneyText(outstanding.toFixed(2))} hint={`${overdueCount} فاتورة مفتوحة`} />
         <Kpi label="عدد الفواتير" value={String(rows.length)} hint="الفواتير المرحّلة الصادرة لك" />
         <Kpi label="آخر دفعة" value={lastPayment ? moneyText(lastPayment.amount) : '—'} hint={lastPayment ? dateText(lastPayment.day) : 'لا توجد دفعات مسجلة'} />
       </div>
 
-      <section className="card">
-        <div className="row" style={{ justifyContent: 'space-between' }}>
-          <h2 style={{ margin: 0 }}>أحدث الفواتير</h2>
-          <Link className="btn" href="/portal/invoices">
-            عرض الكل
-          </Link>
+      <section className="ui-panel">
+        <div className="ui-panel-head">
+          <div className="ui-panel-copy">
+            <h2 className="ui-panel-title">أحدث الفواتير</h2>
+            <p className="ui-panel-hint">آخر خمس فواتير مرحّلة — افتح الفاتورة للتفصيل أو الدفع.</p>
+          </div>
+          <div className="ui-panel-actions">
+            <Link className="btn" href="/portal/invoices">
+              عرض الكل
+            </Link>
+          </div>
         </div>
+        <div className="ui-panel-body">
         {invoices.status === 'loading' ? (
           <p className="muted">جارٍ التحميل…</p>
         ) : invoices.status === 'error' ? (
@@ -51,7 +66,8 @@ function Dashboard() {
         ) : rows.length === 0 ? (
           <p className="muted">لم تصدر لك فواتير بعد.</p>
         ) : (
-          <table>
+          <div className="table-wrap">
+            <table>
             <thead>
               <tr>
                 <th>الرقم</th>
@@ -76,8 +92,10 @@ function Dashboard() {
                 </tr>
               ))}
             </tbody>
-          </table>
+            </table>
+          </div>
         )}
+        </div>
       </section>
     </>
   );

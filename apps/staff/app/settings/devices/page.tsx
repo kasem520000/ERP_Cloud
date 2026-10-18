@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { Panel } from '@erp/ui';
 
 import { DataTable, Notice, QueryView } from '../../../components/data-view';
 import { FormFields, type FormValues } from '../../../components/directory';
@@ -87,7 +88,7 @@ export default function SyncDevicesPage() {
 
       <QueryView query={devices} empty="لا توجد أجهزة" emptyDetail="أنشئ جهازاً لتتمكن تطبيقات الكاشير من المزامنة.">
         {(rows) => (
-          <div className="card">
+          <Panel title="الأجهزة المسجَّلة" hint="يُعرض المفتاح مرة واحدة عند الإنشاء؛ إيقاف الجهاز يمنع المزامنة فوراً." flush>
             <DataTable
               columns={[
                 { key: 'name', header: 'الجهاز', cell: (row: Device) => row.name },
@@ -111,7 +112,7 @@ export default function SyncDevicesPage() {
               rows={rows}
               rowKey={(row) => row.id}
             />
-          </div>
+          </Panel>
         )}
       </QueryView>
     </Screen>

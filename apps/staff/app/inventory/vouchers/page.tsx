@@ -62,12 +62,12 @@ type VoucherLine = {
   unitCost?: string | null;
   lineCost?: string | null;
   lotId?: string | null;
-  /** 📁 رقم الدفعة وتواريخها على السطر — كما كُتبت على العبوة، وما ينشئ الدفعة (R5). */
+  /** رقم الدفعة وتواريخها على السطر — كما كُتبت على العبوة، وما ينشئ الدفعة (R5). */
   batchNo?: string | null;
   productionDate?: string | null;
   expiryDate?: string | null;
   serialId?: string | null;
-  /** 🔢 الأرقام التسلسلية — one number per piece, as `Class/InvoiceOper.cs` stores them. */
+  /** الأرقام التسلسلية — one number per piece, as `Class/InvoiceOper.cs` stores them. */
   serialNos?: string[];
   note?: string | null;
 };
@@ -120,9 +120,9 @@ export default function VouchersPage() {
       qtyText: string;
       unitId: string;
       costText: string;
-      /** 📁 رقم الدفعة كما هو على العبوة — يُبحث أو يُنشأ عند الحفظ (R5). */
+      /** رقم الدفعة كما هو على العبوة — يُبحث أو يُنشأ عند الحفظ (R5). */
       batchNo: string;
-      /** 📅 تاريخ الإنتاج المطبوع على العبوة. */
+      /** تاريخ الإنتاج المطبوع على العبوة. */
       productionDate: string;
       /** ⏳ تاريخ الانتهاء المطبوع على العبوة. */
       expiryDate: string;
@@ -369,19 +369,19 @@ export default function VouchersPage() {
   const rows = vouchers.data ?? [];
 
   return (
-    <Screen
+ <Screen
       title="سندات المخزون"
       subtitle="إدخال · إخراج · بضاعة أول المدة — كل سند مرحّل ينشئ قيداً متزناً في نفس اللحظة التي يحرك فيها المخزون."
       crumbs={['المستودعات', 'العمليات']}
       actions={
         can('inventory.adjust') ? (
-          <button className="btn primary" type="button" onClick={() => setOpen(!open)}>
+ <button className="btn primary" type="button" onClick={() => setOpen(!open)}>
             {open ? 'إغلاق' : 'سند جديد'}
-          </button>
+ </button>
         ) : null
       }
     >
-      <Tabs
+ <Tabs
         items={KINDS.map((option) => ({ id: option.id, label: option.label }))}
         value={kind}
         onChange={(next) => {
@@ -389,88 +389,88 @@ export default function VouchersPage() {
           setNotice(undefined);
         }}
       />
-      <p className="muted" style={{ marginTop: -4 }}>
+ <p className="muted" style={{ marginTop: -4 }}>
         {KINDS.find((option) => option.id === kind)?.hint}
-      </p>
+ </p>
 
       {open && (
-        <form className="card" onSubmit={createVoucher}>
-          <h2>
-            سند {KIND_LABELS[kind]} جديد <span className="muted">({PREFIXES[kind]}…)</span>
-          </h2>
-          <div className="form-grid">
-            <label className="field">
-              <span>الفرع *</span>
-              <select
+ <form className="card" onSubmit={createVoucher}>
+ <h2>
+ سند {KIND_LABELS[kind]} جديد <span className="muted">({PREFIXES[kind]}…)</span>
+ </h2>
+ <div className="form-grid">
+ <label className="field">
+ <span>الفرع *</span>
+ <select
                 className="input"
                 value={effectiveBranch}
                 onChange={(event) => setBranchId(event.target.value)}
                 required
               >
-                <option value="">— اختر —</option>
+ <option value="">— اختر —</option>
                 {branchRows.map((row) => (
-                  <option key={row.id} value={row.id}>
+ <option key={row.id} value={row.id}>
                     {row.code ? `${row.code} — ` : ''}
                     {arabicName(row)}
-                  </option>
+ </option>
                 ))}
-              </select>
-            </label>
-            <label className="field">
-              <span>المستودع *</span>
-              <select
+ </select>
+ </label>
+ <label className="field">
+ <span>المستودع *</span>
+ <select
                 className="input"
                 value={effectiveWarehouse}
                 onChange={(event) => setWarehouseId(event.target.value)}
                 required
               >
-                <option value="">— اختر —</option>
+ <option value="">— اختر —</option>
                 {warehouseRows.map((row) => (
-                  <option key={row.id} value={row.id}>
+ <option key={row.id} value={row.id}>
                     {arabicName(row)}
-                  </option>
+ </option>
                 ))}
-              </select>
-            </label>
-            <label className="field">
-              <span>التاريخ</span>
-              <input
+ </select>
+ </label>
+ <label className="field">
+ <span>التاريخ</span>
+ <input
                 className="input"
                 type="date"
                 dir="ltr"
                 value={voucherDate}
                 onChange={(event) => setVoucherDate(event.target.value)}
               />
-            </label>
-            <label className="field">
-              <span>السبب</span>
-              <input
+ </label>
+ <label className="field">
+ <span>السبب</span>
+ <input
                 className="input"
                 value={reason}
                 onChange={(event) => setReason(event.target.value)}
                 placeholder="تالف، هالك، عينة، افتتاح…"
               />
-            </label>
-            <label className="field">
-              <span>الحساب المقابل (اختياري)</span>
-              <select
+ </label>
+ <label className="field">
+ <span>الحساب المقابل (اختياري)</span>
+ <select
                 className="input"
                 value={counterAccountId}
                 onChange={(event) => setCounterAccountId(event.target.value)}
               >
-                <option value="">— من دليل الحسابات الافتراضي —</option>
+ <option value="">— من دليل الحسابات الافتراضي —</option>
                 {accountRows.map((row) => (
-                  <option key={row.id} value={row.id}>
+ <option key={row.id} value={row.id}>
                     {accountLabel(row)}
-                  </option>
+ </option>
                 ))}
-              </select>
-            </label>
-          </div>
+ </select>
+ </label>
+ </div>
 
-          <h3>الأصناف</h3>
-          <div className="row" style={{ gap: 8 }}>
-            <input
+ <h3>الأصناف</h3>
+ <div className="row" style={{ gap: 8 }}>
+ <input
               className="input"
               dir="ltr"
               placeholder="امسح باركود الصنف…"
@@ -483,39 +483,39 @@ export default function VouchersPage() {
                 }
               }}
             />
-            <button
+ <button
               className="btn sm"
               type="button"
               onClick={() => void applyScan()}
               disabled={busy || !scan.trim()}
             >
-              إضافة بالباركود
-            </button>
-          </div>
+ إضافة بالباركود
+ </button>
+ </div>
 
-          <div className="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>المادة</th>
-                  <th>الكمية</th>
-                  <th>الوحدة</th>
+ <div className="table-wrap">
+ <table>
+ <thead>
+ <tr>
+ <th>المادة</th>
+ <th>الكمية</th>
+ <th>الوحدة</th>
                   {!isIssue && <th>تكلفة الوحدة</th>}
-                  <th>📁 رقم الدفعة</th>
-                  <th>📅 تاريخ الإنتاج</th>
-                  <th>⏳ تاريخ الانتهاء</th>
-                  <th>رقم تسلسلي</th>
-                  <th>ملاحظة</th>
-                  <th />
-                </tr>
-              </thead>
-              <tbody>
+ <th>رقم الدفعة</th>
+ <th>تاريخ الإنتاج</th>
+ <th>تاريخ الانتهاء</th>
+ <th>رقم تسلسلي</th>
+ <th>ملاحظة</th>
+ <th />
+ </tr>
+ </thead>
+ <tbody>
                 {lines.map((line, index) => {
                   const item = itemOf(line.itemId);
                   return (
-                    <tr key={index}>
-                      <td>
-                        <select
+ <tr key={index}>
+ <td>
+ <select
                           className="input"
                           value={line.itemId}
                           onChange={(event) => {
@@ -533,31 +533,31 @@ export default function VouchersPage() {
                             });
                           }}
                         >
-                          <option value="">— اختر —</option>
+ <option value="">— اختر —</option>
                           {itemRows.map((row) => (
-                            <option key={row.id} value={row.id}>
+ <option key={row.id} value={row.id}>
                               {itemLabel(row)}
-                            </option>
+ </option>
                           ))}
-                        </select>
-                      </td>
-                      <td>
-                        <input
+ </select>
+ </td>
+ <td>
+ <input
                           className="input"
                           dir="ltr"
                           inputMode="decimal"
                           value={line.qtyText}
                           onChange={(event) => updateLine(index, { qtyText: event.target.value })}
                         />
-                      </td>
-                      <td>
-                        <select
+ </td>
+ <td>
+ <select
                           className="input"
                           value={line.unitId}
                           onChange={(event) => updateLine(index, { unitId: event.target.value })}
                           disabled={!line.itemId}
                         >
-                          <option value="">الوحدة الأساسية</option>
+ <option value="">الوحدة الأساسية</option>
                           {unitsOf(line.itemId)
                             .filter(
                               (unit) =>
@@ -565,37 +565,36 @@ export default function VouchersPage() {
                                 (itemOf(line.itemId)?.baseUnitId ?? itemOf(line.itemId)?.base_unit_id),
                             )
                             .map((unit) => (
-                              <option key={unit.unitId} value={unit.unitId}>
+ <option key={unit.unitId} value={unit.unitId}>
                                 {`${unit.unitNameAr ?? ''} (×${Number(unit.ratio).toLocaleString('ar-EG')})`}
-                              </option>
+ </option>
                             ))}
-                        </select>
+ </select>
                         {line.unitId && Number(line.qtyText) > 0 && (
-                          <span className="muted small" dir="ltr">
+ <span className="muted small" dir="ltr">
                             {`= ${(Number(line.qtyText) * factorOf(line)).toLocaleString('ar-EG')} `}
-                            {arabicName(itemOf(line.itemId) ?? {}) ? '' : ''}
-                          </span>
+ </span>
                         )}
-                      </td>
+ </td>
                       {!isIssue && (
-                        <td>
-                          <input
+ <td>
+ <input
                             className="input"
                             dir="ltr"
                             inputMode="decimal"
                             value={line.costText}
                             onChange={(event) => updateLine(index, { costText: event.target.value })}
                           />
-                        </td>
+ </td>
                       )}
-                      <td>
+ <td>
                         {/*
-                          الديسكتوب يكتب رقم الدفعة على السطر ولا يطلب اختيارها من قائمة
+ الديسكتوب يكتب رقم الدفعة على السطر ولا يطلب اختيارها من قائمة
                           (`InvoiceItemDetail.BatchNo`, `frmInvSale.xaml:876`). فنُبقي الكتابة
-                          ممكنةً للدفعة الجديدة، ونعرض الدفعات المسجَّلة اقتراحاً لمن يريد
-                          الاصطفاف على دفعةٍ قائمة.
+ ممكنةً للدفعة الجديدة، ونعرض الدفعات المسجَّلة اقتراحاً لمن يريد
+ الاصطفاف على دفعةٍ قائمة.
                         */}
-                        <input
+ <input
                           className="input"
                           dir="ltr"
                           list={`lots-${index}`}
@@ -604,18 +603,18 @@ export default function VouchersPage() {
                           disabled={!item || !item.trackLot}
                           onChange={(event) => updateLine(index, { batchNo: event.target.value })}
                         />
-                        <datalist id={`lots-${index}`}>
+ <datalist id={`lots-${index}`}>
                           {lotRows
                             .filter((lot) => lot.itemId === line.itemId)
                             .map((lot) => (
-                              <option key={lot.id} value={lot.lotNo}>
+ <option key={lot.id} value={lot.lotNo}>
                                 {lot.expiryDate ? shortDate(lot.expiryDate) : ''}
-                              </option>
+ </option>
                             ))}
-                        </datalist>
-                      </td>
-                      <td>
-                        <input
+ </datalist>
+ </td>
+ <td>
+ <input
                           className="input"
                           type="date"
                           dir="ltr"
@@ -623,9 +622,9 @@ export default function VouchersPage() {
                           disabled={!item || !item.trackLot}
                           onChange={(event) => updateLine(index, { productionDate: event.target.value })}
                         />
-                      </td>
-                      <td>
-                        <input
+ </td>
+ <td>
+ <input
                           className="input"
                           type="date"
                           dir="ltr"
@@ -633,11 +632,11 @@ export default function VouchersPage() {
                           disabled={!item || !item.trackLot}
                           onChange={(event) => updateLine(index, { expiryDate: event.target.value })}
                         />
-                      </td>
-                      <td>
+ </td>
+ <td>
                         {item?.trackSerial ? (
-                          <>
-                            <textarea
+ <>
+ <textarea
                               className="input"
                               rows={2}
                               dir="ltr"
@@ -645,7 +644,7 @@ export default function VouchersPage() {
                               value={line.serialNos}
                               onChange={(event) => updateLine(index, { serialNos: event.target.value })}
                             />
-                            <span
+ <span
                               className={`chip ${
                                 splitSerials(line.serialNos).length > 0 &&
                                 splitSerials(line.serialNos).length !== Number(line.qtyText || '0')
@@ -654,116 +653,116 @@ export default function VouchersPage() {
                               }`}
                             >
                               {`${splitSerials(line.serialNos).length} من ${line.qtyText || '—'}`}
-                            </span>
+ </span>
                             {!isIssue && serialRows.some((serial) => serial.itemId === line.itemId) && (
-                              <span className="muted small">
+ <span className="muted small">
                                 {' '}
-                                رقم جديد لكل قطعة — أو ألصق أرقاماً مولَّدة من شاشة الأرقام التسلسلية.
-                              </span>
+ رقم جديد لكل قطعة — أو ألصق أرقاماً مولَّدة من شاشة الأرقام التسلسلية.
+ </span>
                             )}
-                          </>
+ </>
                         ) : (
-                          <span className="muted">—</span>
+ <span className="muted">—</span>
                         )}
-                      </td>
-                      <td>
-                        <input
+ </td>
+ <td>
+ <input
                           className="input"
                           value={line.note}
                           onChange={(event) => updateLine(index, { note: event.target.value })}
                         />
-                      </td>
-                      <td>
-                        <button
+ </td>
+ <td>
+ <button
                           className="btn sm"
                           type="button"
                           onClick={() =>
                             setLines((current) => current.filter((_, position) => position !== index))
                           }
                         >
-                          حذف
-                        </button>
-                      </td>
-                    </tr>
+ حذف
+ </button>
+ </td>
+ </tr>
                   );
                 })}
-              </tbody>
-            </table>
-          </div>
-          <div className="row" style={{ gap: 8 }}>
-            <button
+ </tbody>
+ </table>
+ </div>
+ <div className="row" style={{ gap: 8 }}>
+ <button
               className="btn sm"
               type="button"
               onClick={() => setLines((current) => [...current, blankLine])}
             >
               + سطر
-            </button>
+ </button>
             {!isIssue && (
-              <span className="muted">
-                الإجمالي التقديري: <strong dir="ltr">{money(amountLabel(lineTotal))}</strong>
-              </span>
+ <span className="muted">
+ الإجمالي التقديري: <strong dir="ltr">{money(amountLabel(lineTotal))}</strong>
+ </span>
             )}
             {isIssue && (
-              <span className="muted">يُصرف بمتوسط التكلفة — تُحسب القيمة تلقائياً عند الترحيل.</span>
+ <span className="muted">يُصرف بمتوسط التكلفة — تُحسب القيمة تلقائياً عند الترحيل.</span>
             )}
-          </div>
+ </div>
 
-          <Notice notice={notice} />
-          <div className="row" style={{ gap: 8 }}>
-            <button className="btn primary" type="submit" disabled={busy}>
-              {busy ? 'جارٍ الحفظ والترحيل…' : '⚡ حفظ وترحيل فوري'}
-            </button>
-            <button
+ <Notice notice={notice} />
+ <div className="row" style={{ gap: 8 }}>
+ <button className="btn primary" type="submit" disabled={busy}>
+ {busy ? 'جارٍ الحفظ والترحيل…' : 'حفظ وترحيل فوري'}
+ </button>
+ <button
               className="btn"
               type="button"
               disabled={busy}
               onClick={() => void saveVoucher(false)}
             >
-              💾 حفظ كمسودة
-            </button>
-          </div>
-        </form>
+ حفظ كمسودة
+ </button>
+ </div>
+ </form>
       )}
 
       {!open && <Notice notice={notice} />}
 
-      <StatTiles>
-        <StatTile
+ <StatTiles>
+ <StatTile
           label={`سندات ${KIND_LABELS[kind]}`}
           value={rows.length}
           hint={PREFIXES[kind]}
           tone="brand"
         />
-        <StatTile label="إجمالي القيمة" value={money(rows.reduce((sum, row) => sum + Number(row.totalCost), 0))} hint="مجموع السندات المعروضة" />
-        <StatTile
+ <StatTile label="إجمالي القيمة" value={money(rows.reduce((sum, row) => sum + Number(row.totalCost), 0))} hint="مجموع السندات المعروضة" />
+ <StatTile
           label="مسودات تنتظر الترحيل"
           value={rows.filter((row) => row.status === 'draft').length}
           hint="لم تُحرّك المخزون بعد"
           tone={rows.some((row) => row.status === 'draft') ? 'warn' : 'ok'}
         />
-        <StatTile
+ <StatTile
           label="مُرحَّلة"
           value={rows.filter((row) => row.status === 'posted').length}
           hint="لها قيد محاسبي"
           tone="ok"
         />
-        <StatTile
+ <StatTile
           label="إجمالي الكمية"
           value={quantity(rows.reduce((sum, row) => sum + row.lines.reduce((inner, line) => inner + Number(line.qty), 0), 0))}
           hint="بوحدات السندات"
         />
-      </StatTiles>
+ </StatTiles>
 
-      <div className="split">
-        <div className="card tight split-list">
-          <QueryView query={vouchers} empty="لا توجد سندات" emptyDetail="أنشئ سند إدخال أو إخراج لتحريك المخزون بقيد متزن.">
+ <div className="split">
+ <div className="card tight split-list">
+ <QueryView query={vouchers} empty="لا توجد سندات" emptyDetail="أنشئ سند إدخال أو إخراج لتحريك المخزون بقيد متزن.">
             {() => (
-              <>
+ <>
                 {rows.length === 0 ? (
-                  <p className="muted" style={{ padding: 12 }}>لا سندات من هذا النوع.</p>
+ <p className="muted" style={{ padding: 12 }}>لا سندات من هذا النوع.</p>
                 ) : (
                   rows.map((row) => (
-                    <button
+ <button
                       key={row.id}
                       type="button"
                       className={`list-row${row.id === selected?.id ? ' active' : ''}`}
@@ -776,69 +775,69 @@ export default function VouchersPage() {
                         }
                       }}
                     >
-                      <span className="list-title" dir="ltr">{row.number}</span>
-                      <span className="list-sub">{`${shortDate(row.voucherDate)} · ${arabicName(
+ <span className="list-title" dir="ltr">{row.number}</span>
+ <span className="list-sub">{`${shortDate(row.voucherDate)} · ${arabicName(
                         warehouseRows.find((warehouse) => warehouse.id === row.warehouseId) ?? {},
                       )}`}</span>
-                      <span className="row" style={{ justifyContent: 'space-between' }}>
-                        <span
+ <span className="row" style={{ justifyContent: 'space-between' }}>
+ <span
                           className={`badge ${
                             row.status === 'posted' ? 'ok' : row.status === 'voided' ? 'danger' : ''
                           }`}
                         >
                           {statusLabel(row.status)}
-                        </span>
-                        <span className="list-sub" dir="ltr">{money(row.totalCost)}</span>
-                      </span>
-                    </button>
+ </span>
+ <span className="list-sub" dir="ltr">{money(row.totalCost)}</span>
+ </span>
+ </button>
                   ))
                 )}
-              </>
+ </>
             )}
-          </QueryView>
-        </div>
+ </QueryView>
+ </div>
 
-        <div className="card">
+ <div className="card">
           {!selected ? (
-            <p className="muted">اختر سنداً من القائمة لعرض بياناته وأسطره وأفعاله.</p>
+ <p className="muted">اختر سنداً من القائمة لعرض بياناته وأسطره وأفعاله.</p>
           ) : (
-            <>
-              <div className="section-title">
-                <h2 dir="ltr">{selected.number}</h2>
-                <span
+ <>
+ <div className="section-title">
+ <h2 dir="ltr">{selected.number}</h2>
+ <span
                   className={`badge ${
                     selected.status === 'posted' ? 'ok' : selected.status === 'voided' ? 'danger' : ''
                   }`}
                 >
                   {statusLabel(selected.status)}
-                </span>
-              </div>
+ </span>
+ </div>
 
-              <StatusTrack
+ <StatusTrack
                 steps={['مسودة', 'مُرحَّل', 'مُلغى']}
                 current={selected.status === 'draft' ? 0 : selected.status === 'posted' ? 1 : 2}
                 cancelled={selected.status === 'voided'}
               />
 
-              <DocHead>
-                <DocField label="الرقم">
-                  <span dir="ltr">{selected.number}</span>
-                </DocField>
-                <DocField label="النوع">{KIND_LABELS[selected.kind] ?? selected.kind}</DocField>
-                <DocField label="التاريخ">{shortDate(selected.voucherDate)}</DocField>
-                <DocField label="المستودع">
+ <DocHead>
+ <DocField label="الرقم">
+ <span dir="ltr">{selected.number}</span>
+ </DocField>
+ <DocField label="النوع">{KIND_LABELS[selected.kind] ?? selected.kind}</DocField>
+ <DocField label="التاريخ">{shortDate(selected.voucherDate)}</DocField>
+ <DocField label="المستودع">
                   {arabicName(warehouseRows.find((warehouse) => warehouse.id === selected.warehouseId) ?? {})}
-                </DocField>
-                <DocField label="السبب">{selected.reason ?? '—'}</DocField>
-                <DocField label="القيد">{selected.journalEntryId ? 'له قيد محاسبي' : 'لم يُرحَّل'}</DocField>
-                <DocField label="أُنشئ">{dateTime(selected.createdAt)}</DocField>
-              </DocHead>
+ </DocField>
+ <DocField label="السبب">{selected.reason ?? '—'}</DocField>
+ <DocField label="القيد">{selected.journalEntryId ? 'له قيد محاسبي' : 'لم يُرحَّل'}</DocField>
+ <DocField label="أُنشئ">{dateTime(selected.createdAt)}</DocField>
+ </DocHead>
 
-              <DataTable
+ <DataTable
                 rows={selected.lines}
                 rowKey={(line) => String(line.lineNo)}
                 footer={[
-                  <>المجموع</>,
+ <>المجموع</>,
                   '',
                   quantity(selected.lines.reduce((sum, line) => sum + Number(line.qty), 0)),
                   '',
@@ -846,8 +845,8 @@ export default function VouchersPage() {
                   '',
                   money(selected.totalCost),
                   '',
-                  '', // 🔢 الأرقام التسلسلية
-                  '', // 📁 رقم الدفعة
+                  '', // الأرقام التسلسلية
+                  '', // رقم الدفعة
                   '', // ملاحظة
                 ]}
                 columns={[
@@ -878,26 +877,26 @@ export default function VouchersPage() {
                   { key: 'value', header: 'القيمة', align: 'num', cell: (line) => money(line.lineCost) },
                   {
                     key: 'serials',
-                    header: '🔢 الأرقام التسلسلية',
+ header: 'الأرقام التسلسلية',
                     cell: (line) =>
                       line.serialNos?.length ? (
-                        <span dir="ltr" className="small">
+ <span dir="ltr" className="small">
                           {line.serialNos.join(' · ')}
-                        </span>
+ </span>
                       ) : (
                         '—'
                       ),
                   },
                   {
                     key: 'batch',
-                    header: '📁 رقم الدفعة',
+ header: 'رقم الدفعة',
                     cell: (line) =>
                       line.batchNo ? (
-                        <span dir="ltr" className="small">
+ <span dir="ltr" className="small">
                           {line.batchNo}
-                          {line.productionDate ? ` · 📅 ${shortDate(line.productionDate)}` : ''}
-                          {line.expiryDate ? ` · ⏳ ${shortDate(line.expiryDate)}` : ''}
-                        </span>
+ {line.productionDate ? ` · ${shortDate(line.productionDate)}` : ''}
+ {line.expiryDate ? ` · ${shortDate(line.expiryDate)}` : ''}
+ </span>
                       ) : (
                         '—'
                       ),
@@ -906,7 +905,7 @@ export default function VouchersPage() {
                 ]}
               />
 
-              <Totals
+ <Totals
                 items={[
                   { label: 'إجمالي الكمية', value: quantity(selected.lines.reduce((sum, line) => sum + Number(line.qty), 0)) },
                   {
@@ -918,9 +917,9 @@ export default function VouchersPage() {
                 ]}
               />
 
-              <ActionBar>
+ <ActionBar>
                 {selected.status === 'draft' && can('inventory.adjust') && (
-                  <button
+ <button
                     className="btn primary"
                     type="button"
                     onClick={() => {
@@ -932,11 +931,11 @@ export default function VouchersPage() {
                       }
                     }}
                   >
-                    ترحيل
-                  </button>
+ ترحيل
+ </button>
                 )}
                 {selected.status === 'posted' && can('inventory.adjust') && (
-                  <button
+ <button
                     className="btn danger"
                     type="button"
                     onClick={() => {
@@ -949,34 +948,34 @@ export default function VouchersPage() {
                       }
                     }}
                   >
-                    إلغاء
-                  </button>
+ إلغاء
+ </button>
                 )}
-                <button className="btn" type="button" onClick={() => setSelected(undefined)}>
-                  إغلاق التفاصيل
-                </button>
-                <button className="btn" type="button" onClick={() => window.print()}>
-                  طباعة
-                </button>
-              </ActionBar>
-            </>
+ <button className="btn" type="button" onClick={() => setSelected(undefined)}>
+ إغلاق التفاصيل
+ </button>
+ <button className="btn" type="button" onClick={() => window.print()}>
+ طباعة
+ </button>
+ </ActionBar>
+ </>
           )}
-        </div>
-      </div>
+ </div>
+ </div>
 
       {can('inventory.negative.override') && (
-        <label className="field no-print" style={{ maxWidth: 420 }}>
-          <span>
-            <input
+ <label className="field no-print" style={{ maxWidth: 420 }}>
+ <span>
+ <input
               type="checkbox"
               checked={allowNegative}
               onChange={(event) => setAllowNegative(event.target.checked)}
             />{' '}
-            السماح بالصرف تحت الصفر
-          </span>
-          <span className="muted">صالح فقط للجلسات التي تملك صلاحية تجاوز الرصيد السالب.</span>
-        </label>
+ السماح بالصرف تحت الصفر
+ </span>
+ <span className="muted">صالح فقط للجلسات التي تملك صلاحية تجاوز الرصيد السالب.</span>
+ </label>
       )}
-    </Screen>
+ </Screen>
   );
 }

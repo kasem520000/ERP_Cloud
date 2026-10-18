@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 
 import { Notice } from '../../../components/data-view';
 import { Forbidden, Screen } from '../../../components/screen';
-import { ApiError } from '../../../lib/api';
+import { ApiError, apiList } from '../../../lib/api';
 import {
   deactivateApprovalWorkflow,
   listApprovalWorkflows,
@@ -15,7 +15,9 @@ import {
   type ApprovalWorkflow,
   type ApprovalWorkflowInput,
 } from '../../../lib/approvals';
+import { listBranches, listCostCenters } from '../../../lib/lookups';
 import { useSession } from '../../../lib/session';
+import { useQuery } from '../../../lib/use-query';
 
 const entityLabels: Record<ApprovalEntity, string> = {
   sales_invoice: 'فاتورة مبيعات',
@@ -26,6 +28,8 @@ const entityLabels: Record<ApprovalEntity, string> = {
 };
 
 type NoticeState = { kind: 'ok' | 'danger' | 'info' | 'warn'; text: string };
+type RoleOption = { id: string; name: string };
+type MembershipOption = { id: string; displayName: string; status?: string };
 type DraftStep = {
   approver_role: string;
   approver_user_id: string;
@@ -68,6 +72,10 @@ export default function ApprovalSettingsPage() {
   const [steps, setSteps] = useState<DraftStep[]>([emptyStep()]);
   const [notice, setNotice] = useState<NoticeState>();
   const [busy, setBusy] = useState(false);
+  const roles = useQuery<RoleOption[]>(() => apiList('/memberships/assignable-roles'), []);
+  const members = useQuery<MembershipOption[]>(() => apiList('/memberships'), []);
+  const branches = useQuery(listBranches, []);
+  const costCenters = useQuery(listCostCenters, []);
 
   const reload = async (): Promise<void> => setWorkflows(await listApprovalWorkflows());
 
@@ -174,13 +182,13 @@ export default function ApprovalSettingsPage() {
         <div className="form-grid">
           <label className="field">
             <span>نوع المستند</span>
-            <select value={entity} onChange={(event) => setEntity(event.target.value as ApprovalEntity)}>
+            <select className="input" value={entity} onChange={(event) => setEntity(event.target.value as ApprovalEntity)}>
               {(Object.keys(entityLabels) as ApprovalEntity[]).map((key) => <option key={key} value={key}>{entityLabels[key]}</option>)}
             </select>
           </label>
           <label className="field wide">
             <span>اسم المسار</span>
-            <input value={name} onChange={(event) => setName(event.target.value)} placeholder="مثال: مشتريات أعلى من 5,000" />
+            <input className="input" value={name} onChange={(event) => setName(event.target.value)} placeholder="مثال: مشتريات أعلى من 5,000" />
           </label>
           <label className="field" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <input type="checkbox" checked={active} onChange={(event) => setActive(event.target.checked)} />
@@ -197,13 +205,51 @@ export default function ApprovalSettingsPage() {
                 {steps.length > 1 ? <button className="btn" type="button" onClick={() => setSteps((current) => current.filter((_, i) => i !== index))}>حذف</button> : null}
               </div>
               <div className="form-grid">
-                <label className="field"><span>دور المراجع</span><input value={step.approver_role} onChange={(event) => updateStep(index, { approver_role: event.target.value })} placeholder="Accountant أو مدير" /></label>
-                <label className="field"><span>معرّف المستخدم (اختياري)</span><input dir="ltr" value={step.approver_user_id} onChange={(event) => updateStep(index, { approver_user_id: event.target.value })} placeholder="UUID" /></label>
-                <label className="field"><span>الحد الأدنى</span><input dir="ltr" value={step.min_amount} onChange={(event) => updateStep(index, { min_amount: event.target.value })} placeholder="10000" /></label>
-                <label className="field"><span>الحد الأعلى</span><input dir="ltr" value={step.max_amount} onChange={(event) => updateStep(index, { max_amount: event.target.value })} placeholder="اتركه بلا حد" /></label>
-                <label className="field"><span>معرّف الفرع (اختياري)</span><input dir="ltr" value={step.branch_id} onChange={(event) => updateStep(index, { branch_id: event.target.value })} placeholder="UUID" /></label>
-                <label className="field"><span>مركز التكلفة (اختياري)</span><input dir="ltr" value={step.cost_center_id} onChange={(event) => updateStep(index, { cost_center_id: event.target.value })} placeholder="UUID" /></label>
-                <label className="field"><span>الإجراء</span><select value={step.action} onChange={(event) => updateStep(index, { action: event.target.value as 'approve' | 'notify' })}><option value="approve">موافقة مطلوبة</option><option value="notify">إشعار فقط</option></select></label>
+                <label className="field">
+                  <span>دور المراجع</span>
+                  <select className="input" value={step.approver_role} onChange={(event) => updateStep(index, { approver_role: event.target.value })}>
+                    <option value="">أي دور</option>
+                    {step.approver_role && !(roles.data ?? []).some((role) => role.name === step.approver_role) ? (
+                      <option value={step.approver_role}>{step.approver_role}</option>
+                    ) : null}
+                    {(roles.data ?? []).map((role) => (
+                      <option key={role.id} value={role.name}>{role.name}</option>
+                    ))}
+                  </select>
+                </label>
+                <label className="field">
+                  <span>المراجع بعينه (اختياري)</span>
+                  <select className="input" value={step.approver_user_id} onChange={(event) => updateStep(index, { approver_user_id: event.target.value })}>
+                    <option value="">حسب الدور</option>
+                    {step.approver_user_id && !(members.data ?? []).some((member) => member.id === step.approver_user_id) ? (
+                      <option value={step.approver_user_id}>عضو سابق</option>
+                    ) : null}
+                    {(members.data ?? []).filter((member) => member.status !== 'suspended').map((member) => (
+                      <option key={member.id} value={member.id}>{member.displayName}</option>
+                    ))}
+                  </select>
+                </label>
+                <label className="field"><span>الحد الأدنى</span><input className="input" dir="ltr" value={step.min_amount} onChange={(event) => updateStep(index, { min_amount: event.target.value })} placeholder="10000" /></label>
+                <label className="field"><span>الحد الأعلى</span><input className="input" dir="ltr" value={step.max_amount} onChange={(event) => updateStep(index, { max_amount: event.target.value })} placeholder="اتركه بلا حد" /></label>
+                <label className="field">
+                  <span>الفرع (اختياري)</span>
+                  <select className="input" value={step.branch_id} onChange={(event) => updateStep(index, { branch_id: event.target.value })}>
+                    <option value="">كل الفروع</option>
+                    {(branches.data ?? []).map((branch) => (
+                      <option key={branch.id} value={branch.id}>{branch.nameAr ?? branch.name_ar ?? branch.code}</option>
+                    ))}
+                  </select>
+                </label>
+                <label className="field">
+                  <span>مركز التكلفة (اختياري)</span>
+                  <select className="input" value={step.cost_center_id} onChange={(event) => updateStep(index, { cost_center_id: event.target.value })}>
+                    <option value="">كل المراكز</option>
+                    {(costCenters.data ?? []).map((center) => (
+                      <option key={center.id} value={center.id}>{center.nameAr ?? center.name_ar ?? center.code}</option>
+                    ))}
+                  </select>
+                </label>
+                <label className="field"><span>الإجراء</span><select className="input" value={step.action} onChange={(event) => updateStep(index, { action: event.target.value as 'approve' | 'notify' })}><option value="approve">موافقة مطلوبة</option><option value="notify">إشعار فقط</option></select></label>
               </div>
             </div>
           ))}

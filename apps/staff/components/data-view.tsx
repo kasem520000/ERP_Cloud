@@ -19,6 +19,7 @@ export function QueryView<T>({
   empty,
   emptyDetail,
   isEmpty,
+  wrapEmpty,
   children,
 }: {
   query: QueryState<T>;
@@ -26,6 +27,12 @@ export function QueryView<T>({
   emptyDetail?: string;
   /** Defaults to "an array with no elements". */
   isEmpty?: (data: T) => boolean;
+  /**
+   * Wraps the empty state in the screen's own frame (a `Panel` with its head),
+   * so an empty result keeps the same panel every populated result has instead
+   * of replacing it with a bare card.
+   */
+  wrapEmpty?: (empty: ReactNode) => ReactNode;
   children: (data: T) => ReactNode;
 }) {
   if (query.status === 'loading') return <Loading />;
@@ -34,7 +41,10 @@ export function QueryView<T>({
 
   const data = query.data as T;
   const blank = isEmpty ? isEmpty(data) : Array.isArray(data) && data.length === 0;
-  if (blank) return <Empty title={empty ?? 'لا توجد بيانات'} detail={emptyDetail} />;
+  if (blank) {
+    const node = <Empty title={empty ?? 'لا توجد بيانات'} detail={emptyDetail} />;
+    return <>{wrapEmpty ? wrapEmpty(node) : node}</>;
+  }
   return <>{children(data)}</>;
 }
 
@@ -62,6 +72,7 @@ export function DataTable<T>({
   activeKey,
   footer,
   expanded,
+  empty,
 }: {
   columns: Array<Column<T>>;
   rows: T[];
@@ -74,6 +85,8 @@ export function DataTable<T>({
   footer?: ReactNode[];
   /** Detail rendered under the row — lot, serial, the source document. */
   expanded?: (row: T) => ReactNode;
+  /** Shown in place of the body when the query returned nothing. */
+  empty?: string;
 }) {
   return (
     <div className="table-wrap">
@@ -88,6 +101,13 @@ export function DataTable<T>({
           </tr>
         </thead>
         <tbody>
+          {rows.length === 0 && empty ? (
+            <tr>
+              <td colSpan={columns.length} className="table-blank">
+                {empty}
+              </td>
+            </tr>
+          ) : null}
           {rows.map((row, index) => {
             const key = rowKey(row, index);
             const active = activeKey !== undefined && activeKey === key;

@@ -7,7 +7,7 @@ import type { ReactNode } from 'react';
 export type AvatarSize = 'sm' | 'md' | 'lg';
 
 const SIZES: Record<AvatarSize, { box: string; text: string; img: number }> = {
-  sm: { box: 'size-8', text: 'text-[11px]', img: 32 },
+  sm: { box: 'size-8', text: 'text-xs', img: 32 },
   md: { box: 'size-10', text: 'text-[13px]', img: 40 },
   lg: { box: 'size-14', text: 'text-[17px]', img: 56 },
 };

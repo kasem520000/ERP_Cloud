@@ -22,14 +22,14 @@ import { useSession } from '../../../lib/session';
 import { useQuery } from '../../../lib/use-query';
 
 /**
- * 📊 إغلاقات اليومية — `Form_WPF/frmCloseShift.xaml` («عرض وإدارة إغلاقات وردية
+ * إغلاقات اليومية — `Form_WPF/frmCloseShift.xaml` («عرض وإدارة إغلاقات وردية
  * الموظفين»).
  *
  * The desktop reads `CasherClosed` joined with `CasherClosed_Sub`
  * (`frmCloseShift.xaml.cs:214` and `:270`) and puts one row per close on the grid: what
- * the drawer took (💵 النقدي · 🌐 الشبكة · 💰 مجموع الشبكة والنقدي · 📋 آجل · 🧾 الضريبة ·
- * 🏷️ الخصم · 💹 الصافي) beside what left it (📤 المصاريف · 🛒 المشتريات · 🚗 توصيل ·
- * ☕ الضيافة · 🛡️ تأمين), with `🏦 رصيد الصندوق` against `📉 الفرق` first among equals.
+ * the drawer took ( النقدي · الشبكة · مجموع الشبكة والنقدي · آجل · الضريبة ·
+ * الخصم · الصافي) beside what left it ( المصاريف · المشتريات · توصيل ·
+ * الضيافة · تأمين), with ` رصيد الصندوق` against ` الفرق` first among equals.
  *
  * The cloud could close a drawer before this screen, but the close had no number, no grid
  * and none of those columns — and the only way to see one was the POS shift page, which
@@ -57,11 +57,11 @@ type DayClose = {
   safeBalance: string;
   expected: string;
   diff: string;
-  /** 📒 القيد — the entry the count produced, and whether one is still owed. */
+  /** القيد — the entry the count produced, and whether one is still owed. */
   journalEntryId: string | null;
   postedAt: string | null;
   postable: boolean;
-  /** 🧾 عهدة الإغلاق — `1211002`: where the tracked count landed once the entry is posted. */
+  /** عهدة الإغلاق — `1211002`: where the tracked count landed once the entry is posted. */
   custodyAccountId: string | null;
   custodyAccountCode: string | null;
   custodyAccountName: string | null;
@@ -90,13 +90,13 @@ type CloseDetail = {
 const KIND_LABELS: Record<string, string> = {
   'method-total': 'إجمالي طريقة الدفع',
   'voucher-cash': 'نقد السندات',
-  'bank-transfer': '🏦 تحويل بنكي',
+ 'bank-transfer': 'تحويل بنكي',
 };
 const METHOD_LABELS: Record<string, string> = {
-  cash: '💵 نقدي',
-  card: '💳 شبكة',
-  bank: '🏦 بنك',
-  credit: '📋 آجل',
+ cash: 'نقدي',
+ card: 'شبكة',
+ bank: 'بنك',
+ credit: 'آجل',
 };
 
 /** The denominations a cashier actually counts — ريال and its halves. */
@@ -173,8 +173,8 @@ export default function DayClosePage() {
   }
 
   /**
-   * 📒 ترحيل القيد — `BindCloseShiftToEntry`. The count moves the day's cash out of the
-   * drawer and onto 🧾 عهدة الإغلاق, and what the count disagreed with lands on 📉 الفرق:
+   * ترحيل القيد — `BindCloseShiftToEntry`. The count moves the day's cash out of the
+   * drawer and onto عهدة الإغلاق, and what the count disagreed with lands on الفرق:
    *
    *   Dr عهدة الإغلاق (المعدود) · Cr الصندوق (المتوقع) · ± فرق الصندوق
    *
@@ -185,7 +185,7 @@ export default function DayClosePage() {
   const postEntry = (row: DayClose) =>
     run(
       () => apiPost(`/shift-closes/${row.id}/post`, {}),
-      `📒 رُحِّل قيد الإغلاق ${row.number ?? ''} — العهدة ${money(row.safeBalance)} إلى ${row.custodyAccountCode ?? 'عهدة الإغلاق'} والفرق ${money(row.diff)}.`,
+ `رُحِّل قيد الإغلاق ${row.number ?? ''} — العهدة ${money(row.safeBalance)} إلى ${row.custodyAccountCode ?? 'عهدة الإغلاق'} والفرق ${money(row.diff)}.`,
     );
 
   async function showDetail(row: DayClose) {
@@ -198,78 +198,78 @@ export default function DayClosePage() {
   }
 
   return (
-    <Screen
-      title="📊 إغلاقات اليومية"
+ <Screen
+ title="إغلاقات اليومية"
       subtitle="عرض وإدارة إغلاقات وردية الموظفين — كما في frmCloseShift: ما أخذه الدرج وما خرج منه، ورصيد الصندوق مقابل الفرق."
       crumbs={['الخزينة', 'العمليات']}
     >
-      <StatTiles>
-        <StatTile label="📊 عدد الإغلاقات" value={totals.count} hint="في الفترة المحددة" />
-        <StatTile label="💵 إجمالي النقدي" value={money(totals.cash.toFixed(4))} tone="ok" />
-        <StatTile label="🌐 إجمالي الشبكة" value={money(totals.network.toFixed(4))} tone="brand" />
-        <StatTile label="🧾 الضريبة" value={money(totals.tax.toFixed(4))} />
-        <StatTile label="📤 المصاريف" value={money(totals.expenses.toFixed(4))} tone="danger" />
-        <StatTile
-          label="📉 مجموع الفروق"
+ <StatTiles>
+ <StatTile label="عدد الإغلاقات" value={totals.count} hint="في الفترة المحددة" />
+ <StatTile label="إجمالي النقدي" value={money(totals.cash.toFixed(4))} tone="ok" />
+ <StatTile label="إجمالي الشبكة" value={money(totals.network.toFixed(4))} tone="brand" />
+ <StatTile label="الضريبة" value={money(totals.tax.toFixed(4))} />
+ <StatTile label="المصاريف" value={money(totals.expenses.toFixed(4))} tone="danger" />
+ <StatTile
+ label="مجموع الفروق"
           value={money(totals.diff.toFixed(4))}
           hint="المعدود − المتوقع"
           tone={totals.diff.isZero() ? 'ok' : 'warn'}
         />
-      </StatTiles>
+ </StatTiles>
 
       {/* الوردية المفتوحة — فتح الدرج وجرده، وهو ما يحتاجه الكاشير قبل ما يحتاجه المحاسب */}
-      <div className="card">
-        <h2>🏦 الوردية الحالية</h2>
-        <Notice notice={notice} />
+ <div className="card">
+ <h2>الوردية الحالية</h2>
+ <Notice notice={notice} />
         {opened ? (
-          <>
-            <dl className="kv">
-              <dt>👤 الموظف</dt>
-              <dd>{opened.employee || '—'}</dd>
-              <dt>📅 إغلاق من</dt>
-              <dd>{dateTime(opened.openedAt)}</dd>
-              <dt>💵 النقدي</dt>
-              <dd>{money(opened.cash)}</dd>
-              <dt>🌐 الشبكة</dt>
-              <dd>{money(opened.network)}</dd>
-              <dt>📋 آجل</dt>
-              <dd>{money(opened.postponed)}</dd>
-              <dt>📤 المصاريف</dt>
-              <dd>{money(opened.expenses.total)}</dd>
-              <dt>النقد المتوقع الآن</dt>
-              <dd>
-                <strong>{money(opened.expected)}</strong>
-              </dd>
-            </dl>
+ <>
+ <dl className="kv">
+ <dt>الموظف</dt>
+ <dd>{opened.employee || '—'}</dd>
+ <dt>إغلاق من</dt>
+ <dd>{dateTime(opened.openedAt)}</dd>
+ <dt>النقدي</dt>
+ <dd>{money(opened.cash)}</dd>
+ <dt>الشبكة</dt>
+ <dd>{money(opened.network)}</dd>
+ <dt>آجل</dt>
+ <dd>{money(opened.postponed)}</dd>
+ <dt>المصاريف</dt>
+ <dd>{money(opened.expenses.total)}</dd>
+ <dt>النقد المتوقع الآن</dt>
+ <dd>
+ <strong>{money(opened.expected)}</strong>
+ </dd>
+ </dl>
 
-            <h3>جرد النقد</h3>
-            <div className="form-grid">
+ <h3>جرد النقد</h3>
+ <div className="form-grid">
               {DENOMINATIONS.map((denomination) => (
-                <label className="field" key={denomination}>
-                  <span>فئة {denomination}</span>
-                  <input
+ <label className="field" key={denomination}>
+ <span>فئة {denomination}</span>
+ <input
                     className="input"
                     dir="ltr"
                     inputMode="numeric"
                     value={counts[denomination] ?? ''}
                     onChange={(event) => setCounts((data) => ({ ...data, [denomination]: event.target.value }))}
                   />
-                </label>
+ </label>
               ))}
-            </div>
-            <dl className="kv">
-              <dt>🏦 رصيد الصندوق (المعدود)</dt>
-              <dd>
-                <strong>{money(String(countedValue))}</strong>
-              </dd>
-              <dt>📉 الفرق</dt>
-              <dd>
-                <strong>{money(new Decimal(countedValue).minus(new Decimal(opened.expected || '0')).toFixed(4))}</strong>
-              </dd>
-            </dl>
+ </div>
+ <dl className="kv">
+ <dt>رصيد الصندوق (المعدود)</dt>
+ <dd>
+ <strong>{money(String(countedValue))}</strong>
+ </dd>
+ <dt>الفرق</dt>
+ <dd>
+ <strong>{money(new Decimal(countedValue).minus(new Decimal(opened.expected || '0')).toFixed(4))}</strong>
+ </dd>
+ </dl>
 
             {can('treasury.shift.close') && (
-              <button
+ <button
                 className="btn primary"
                 type="button"
                 disabled={busy}
@@ -285,17 +285,17 @@ export default function DayClosePage() {
                   )
                 }
               >
-                ✔ إغلاق الوردية
-              </button>
+ إغلاق الوردية
+ </button>
             )}
-          </>
+ </>
         ) : (
-          <>
-            <p className="muted">
-              اختر وردية مفتوحة من الجدول لجردها وإغلاقها، أو افتح وردية جديدة لهذا الفرع.
-            </p>
+ <>
+ <p className="muted">
+ اختر وردية مفتوحة من الجدول لجردها وإغلاقها، أو افتح وردية جديدة لهذا الفرع.
+ </p>
             {can('treasury.shift.close') && (
-              <button
+ <button
                 className="btn primary"
                 type="button"
                 disabled={busy || !effectiveBranch}
@@ -303,28 +303,28 @@ export default function DayClosePage() {
                   run(() => apiPost('/shift-closes/open', { branchId: effectiveBranch }), 'تم فتح الوردية.')
                 }
               >
-                ➕ فتح وردية
-              </button>
+ فتح وردية
+ </button>
             )}
-          </>
+ </>
         )}
-      </div>
+ </div>
 
-      {/* 🔍 بيانات البحث — `frmCloseShift.xaml`: من تاريخ / إلى تاريخ، 📆 كل الفترة، 👤 الموظف، 👁️ عرض */}
-      <div className="card toolbar">
-        <label className="field">
-          <span>🏢 الفرع</span>
-          <select className="input" value={effectiveBranch} onChange={(event) => setBranchId(event.target.value)}>
+      {/* بيانات البحث — `frmCloseShift.xaml`: من تاريخ / إلى تاريخ، كل الفترة، الموظف، عرض */}
+ <div className="card toolbar">
+ <label className="field">
+ <span>الفرع</span>
+ <select className="input" value={effectiveBranch} onChange={(event) => setBranchId(event.target.value)}>
             {branchOptions(branchRows).map((option) => (
-              <option key={option.id} value={option.id}>
+ <option key={option.id} value={option.id}>
                 {option.label}
-              </option>
+ </option>
             ))}
-          </select>
-        </label>
-        <label className="field">
-          <span>📅 التاريخ من</span>
-          <input
+ </select>
+ </label>
+ <label className="field">
+ <span>التاريخ من</span>
+ <input
             className="input"
             type="date"
             dir="ltr"
@@ -332,10 +332,10 @@ export default function DayClosePage() {
             disabled={allPeriod}
             onChange={(event) => setFrom(event.target.value)}
           />
-        </label>
-        <label className="field">
-          <span>📅 إلى</span>
-          <input
+ </label>
+ <label className="field">
+ <span>إلى</span>
+ <input
             className="input"
             type="date"
             dir="ltr"
@@ -343,91 +343,91 @@ export default function DayClosePage() {
             disabled={allPeriod}
             onChange={(event) => setTo(event.target.value)}
           />
-        </label>
-        <label className="field">
-          <span>👤 الموظف</span>
-          <select className="input" value={employeeId} onChange={(event) => setEmployeeId(event.target.value)}>
-            <option value="">📋 الكل</option>
+ </label>
+ <label className="field">
+ <span>الموظف</span>
+ <select className="input" value={employeeId} onChange={(event) => setEmployeeId(event.target.value)}>
+ <option value="">الكل</option>
             {employeeRows.map((employee) => (
-              <option key={employee.id} value={employee.membershipId ?? ''}>{employee.name}</option>
+ <option key={employee.id} value={employee.membershipId ?? ''}>{employee.name}</option>
             ))}
-          </select>
-        </label>
-        <label className="row" style={{ gap: 6 }}>
-          <input type="checkbox" checked={allPeriod} onChange={(event) => setAllPeriod(event.target.checked)} />
-          <span className="small">📆 كل الفترة</span>
-        </label>
-        <button className="btn primary" type="button" onClick={() => closes.reload()}>
-          👁️ عرض
-        </button>
-      </div>
+ </select>
+ </label>
+ <label className="row" style={{ gap: 6 }}>
+ <input type="checkbox" checked={allPeriod} onChange={(event) => setAllPeriod(event.target.checked)} />
+ <span className="small">كل الفترة</span>
+ </label>
+ <button className="btn primary" type="button" onClick={() => closes.reload()}>
+ عرض
+ </button>
+ </div>
 
-      <div className="card">
+ <div className="card">
         {closes.status === 'loading' ? (
-          <p className="muted">… جارٍ تحميل الإغلاقات</p>
+ <p className="muted">… جارٍ تحميل الإغلاقات</p>
         ) : rows.length === 0 ? (
-          <p className="muted">لا توجد إغلاقات في الفترة المحددة.</p>
+ <p className="muted">لا توجد إغلاقات في الفترة المحددة.</p>
         ) : (
-          <DataTable
+ <DataTable
             rows={rows}
             rowKey={(row) => row.id}
             onRowClick={(row) => (row.status === 'open' ? setOpened(row) : void showDetail(row))}
             activeKey={opened?.id ?? detail?.shift.id}
             columns={[
-              { key: 'number', header: '🔢 الرقم', align: 'ltr', cell: (row) => row.number ?? '—' },
-              { key: 'employee', header: '👤 الموظف', cell: (row) => row.employee || '—' },
-              { key: 'openedAt', header: '📅 إغلاق من', align: 'ltr', cell: (row) => dateTime(row.openedAt) },
+ { key: 'number', header: 'الرقم', align: 'ltr', cell: (row) => row.number ?? '—' },
+ { key: 'employee', header: 'الموظف', cell: (row) => row.employee || '—' },
+ { key: 'openedAt', header: 'إغلاق من', align: 'ltr', cell: (row) => dateTime(row.openedAt) },
               {
                 key: 'closedAt',
-                header: '📅 إغلاق إلى',
+ header: 'إغلاق إلى',
                 align: 'ltr',
                 cell: (row) => (row.closedAt ? dateTime(row.closedAt) : 'مفتوحة'),
               },
-              { key: 'postponed', header: '📋 آجل', align: 'num', cell: (row) => money(row.postponed) },
-              { key: 'network', header: '🌐 الشبكة', align: 'num', cell: (row) => money(row.network) },
-              { key: 'cash', header: '💵 النقدي', align: 'num', cell: (row) => money(row.cash) },
+ { key: 'postponed', header: 'آجل', align: 'num', cell: (row) => money(row.postponed) },
+ { key: 'network', header: 'الشبكة', align: 'num', cell: (row) => money(row.network) },
+ { key: 'cash', header: 'النقدي', align: 'num', cell: (row) => money(row.cash) },
               {
                 key: 'sumCashAndNetwork',
-                header: '💰 مجموع الشبكة والنقدي',
+ header: 'مجموع الشبكة والنقدي',
                 align: 'num',
                 cell: (row) => money(row.sumCashAndNetwork),
               },
-              { key: 'expenses', header: '📤 المصاريف', align: 'num', cell: (row) => money(row.expenses.total) },
-              { key: 'purchases', header: '🛒 المشتريات', align: 'num', cell: (row) => money(row.expenses.purchases) },
-              { key: 'delivery', header: '🚗 توصيل', align: 'num', cell: (row) => money(row.expenses.delivery) },
-              { key: 'insurance', header: '🛡️ تأمين', align: 'num', cell: (row) => money(row.expenses.insurance) },
-              { key: 'hospitality', header: '☕ الضيافة', align: 'num', cell: (row) => money(row.expenses.hospitality) },
-              { key: 'discount', header: '🏷️ الخصم', align: 'num', cell: (row) => money(row.discount) },
-              { key: 'tax', header: '🧾 الضريبة', align: 'num', cell: (row) => money(row.tax) },
-              { key: 'net', header: '💹 الصافي', align: 'num', cell: (row) => money(row.net) },
-              { key: 'safeBalance', header: '🏦 رصيد الصندوق', align: 'num', cell: (row) => money(row.safeBalance) },
+ { key: 'expenses', header: 'المصاريف', align: 'num', cell: (row) => money(row.expenses.total) },
+ { key: 'purchases', header: 'المشتريات', align: 'num', cell: (row) => money(row.expenses.purchases) },
+ { key: 'delivery', header: 'توصيل', align: 'num', cell: (row) => money(row.expenses.delivery) },
+ { key: 'insurance', header: 'تأمين', align: 'num', cell: (row) => money(row.expenses.insurance) },
+ { key: 'hospitality', header: 'الضيافة', align: 'num', cell: (row) => money(row.expenses.hospitality) },
+ { key: 'discount', header: 'الخصم', align: 'num', cell: (row) => money(row.discount) },
+ { key: 'tax', header: 'الضريبة', align: 'num', cell: (row) => money(row.tax) },
+ { key: 'net', header: 'الصافي', align: 'num', cell: (row) => money(row.net) },
+ { key: 'safeBalance', header: 'رصيد الصندوق', align: 'num', cell: (row) => money(row.safeBalance) },
               {
                 key: 'custody',
-                header: '🧾 العهدة',
+ header: 'العهدة',
                 cell: (row) =>
                   row.journalEntryId ? (
-                    <span
+ <span
                       title={row.custodyAccountName ?? undefined}
                       className="small"
                     >
                       {row.custodyAccountCode ? `${row.custodyAccountCode} · ` : ''}
                       {money(row.custodyAmount ?? row.safeBalance)}
-                    </span>
+ </span>
                   ) : (
-                    <span className="muted small">—</span>
+ <span className="muted small">—</span>
                   ),
               },
               {
                 key: 'entry',
-                header: '📒 القيد',
+ header: 'القيد',
                 cell: (row) =>
                   row.journalEntryId ? (
-                    <span className="badge posted" title={row.postedAt ? dateTime(row.postedAt) : undefined}>
-                      ✅ مُرحَّل
-                    </span>
+ <span className="badge posted" title={row.postedAt ? dateTime(row.postedAt) : undefined}>
+ مُرحَّل
+ </span>
                   ) : row.postable ? (
                     can('treasury.shift.post') ? (
-                      <button
+ <button
                         type="button"
                         className="btn sm"
                         disabled={busy}
@@ -437,88 +437,88 @@ export default function DayClosePage() {
                           postEntry(row);
                         }}
                       >
-                        📒 ترحيل القيد
-                      </button>
+ ترحيل القيد
+ </button>
                     ) : (
-                      <span className="badge pending">بلا قيد</span>
+ <span className="badge pending">بلا قيد</span>
                     )
                   ) : (
-                    <span className="muted small">— مطابق</span>
+ <span className="muted small">— مطابق</span>
                   ),
               },
               {
                 key: 'diff',
-                header: '📉 الفرق',
+ header: 'الفرق',
                 align: 'num',
                 cell: (row) => (
-                  <strong style={new Decimal(row.diff || '0').abs().gt(0) ? { color: 'var(--danger)' } : undefined}>
+ <strong style={new Decimal(row.diff || '0').abs().gt(0) ? { color: 'var(--danger)' } : undefined}>
                     {money(row.diff)}
-                  </strong>
+ </strong>
                 ),
               },
             ]}
             footer={[
-              <strong key="foot-label">المجموع</strong>,
+ <strong key="foot-label">المجموع</strong>,
               '',
               '',
               '',
               '',
-              <strong key="foot-network">{money(totals.network.toFixed(4))}</strong>,
-              <strong key="foot-cash">{money(totals.cash.toFixed(4))}</strong>,
+ <strong key="foot-network">{money(totals.network.toFixed(4))}</strong>,
+ <strong key="foot-cash">{money(totals.cash.toFixed(4))}</strong>,
               '',
-              <strong key="foot-expenses">{money(totals.expenses.toFixed(4))}</strong>,
-              '',
-              '',
-              '',
-              '',
-              '',
-              <strong key="foot-tax">{money(totals.tax.toFixed(4))}</strong>,
+ <strong key="foot-expenses">{money(totals.expenses.toFixed(4))}</strong>,
               '',
               '',
               '',
               '',
-              <strong key="foot-diff">{money(totals.diff.toFixed(4))}</strong>,
+              '',
+ <strong key="foot-tax">{money(totals.tax.toFixed(4))}</strong>,
+              '',
+              '',
+              '',
+              '',
+ <strong key="foot-diff">{money(totals.diff.toFixed(4))}</strong>,
             ]}
             expanded={(row) =>
               detail?.shift.id === row.id ? (
-                <div className="grid">
-                  <p className="muted" style={{ margin: 0 }}>
-                    🧾 الملاحظات المعدودة ({detail.counts.length}) · سطور الملخّص ({detail.lines.length})
-                  </p>
+ <div className="grid">
+ <p className="muted" style={{ margin: 0 }}>
+ الملاحظات المعدودة ({detail.counts.length}) · سطور الملخّص ({detail.lines.length})
+ </p>
                   {detail.counts.length > 0 && (
-                    <table className="compact">
-                      <thead>
-                        <tr>
-                          <th>الفئة</th>
-                          <th>العدد</th>
-                          <th>الإجمالي</th>
-                        </tr>
-                      </thead>
-                      <tbody>
+ <table className="compact">
+ <thead>
+ <tr>
+ <th>الفئة</th>
+ <th>العدد</th>
+ <th>الإجمالي</th>
+ </tr>
+ </thead>
+ <tbody>
                         {detail.counts.map((line) => (
-                          <tr key={line.denomination}>
-                            <td>{line.denomination}</td>
-                            <td>{line.count}</td>
-                            <td>{money(line.total)}</td>
-                          </tr>
+ <tr key={line.denomination}>
+ <td>{line.denomination}</td>
+ <td>{line.count}</td>
+ <td>{money(line.total)}</td>
+ </tr>
                         ))}
-                      </tbody>
-                    </table>
+ </tbody>
+ </table>
                   )}
                   {detail.lines.length > 0 && (
-                    <table className="compact">
-                      <thead>
-                        <tr>
-                          <th>النوع</th>
-                          <th>الطريقة</th>
-                          <th>المبلغ</th>
-                        </tr>
-                      </thead>
-                      <tbody>
+ <table className="compact">
+ <thead>
+ <tr>
+ <th>النوع</th>
+ <th>الطريقة</th>
+ <th>المبلغ</th>
+ </tr>
+ </thead>
+ <tbody>
                         {detail.lines.map((line, index) => (
-                          <tr key={`${line.kind}-${index}`}>
-                            <td>{KIND_LABELS[line.kind] ?? line.kind}</td>
-                            <td>
+ <tr key={`${line.kind}-${index}`}>
+ <td>{KIND_LABELS[line.kind] ?? line.kind}</td>
+ <td>
                               {/**
                                * 🏦 a named transfer names its bank — the whole point of
                                * `frmPayBank`, and the reason the line exists at all.
@@ -526,19 +526,19 @@ export default function DayClosePage() {
                               {line.kind === 'bank-transfer' && line.metadata?.name
                                 ? line.metadata.name
                                 : (METHOD_LABELS[line.method ?? ''] ?? line.method ?? '—')}
-                            </td>
-                            <td>{money(line.amount)}</td>
-                          </tr>
+ </td>
+ <td>{money(line.amount)}</td>
+ </tr>
                         ))}
-                      </tbody>
-                    </table>
+ </tbody>
+ </table>
                   )}
-                </div>
+ </div>
               ) : null
             }
           />
         )}
-      </div>
-    </Screen>
+ </div>
+ </Screen>
   );
 }

@@ -44,7 +44,7 @@ export default function NewPurchaseInvoicePage() {
    * للإعلام فقط، تماماً كما في النافذة.
    */
   const invoices = useQuery<{ supplierReferenceNo: string | null }[]>(() => apiList('/purchase-invoices'), []);
-  /** R9 — 📊 مركز التكلفة: قائمة الرأس كما في `frmInvPurch.xaml` L467. */
+  /** R9 — مركز التكلفة: قائمة الرأس كما في `frmInvPurch.xaml` L467. */
   const costCenters = useQuery<CostCenter[]>(() => listCostCenters(), []);
 
   const [branchId, setBranchId] = useState('');
@@ -148,87 +148,87 @@ export default function NewPurchaseInvoicePage() {
 
   if (!can('purchase.invoice.create')) {
     return (
-      <Screen title="فاتورة المشتريات" crumbs={['المشتريات', 'العمليات']}>
-        <div className="card state">
-          <strong>لا تملك صلاحية إنشاء فواتير المشتريات</strong>
-        </div>
-      </Screen>
+ <Screen title="فاتورة المشتريات" crumbs={['المشتريات', 'العمليات']}>
+ <div className="card state">
+ <strong>لا تملك صلاحية إنشاء فواتير المشتريات</strong>
+ </div>
+ </Screen>
     );
   }
 
   return (
-    <Screen
-      // «فاتورة المشتريات» — `Form_WPF/frmInvPurch.xaml` L7، وتبويبها «📄  الفاتورة  » L290.
+ <Screen
+      // «فاتورة المشتريات» — `Form_WPF/frmInvPurch.xaml` L7، وتبويبها « الفاتورة » L290.
       title="فاتورة المشتريات"
       subtitle="تُحفظ كمسودة يمكن إضافة مصاريف الشحن والتخليص إليها، ثم تُرحَّل فتُحمَّل تلك المصاريف على تكلفة الأصناف."
       crumbs={['المشتريات', 'العمليات']}
     >
-      <form className="card" onSubmit={save}>
-        <div className="form-grid">
-          <label className="field">
-            <span>الفرع *</span>
-            <select className="input" value={effectiveBranch} onChange={(event) => setBranchId(event.target.value)} required>
+ <form className="card" onSubmit={save}>
+ <div className="form-grid">
+ <label className="field">
+ <span>الفرع *</span>
+ <select className="input" value={effectiveBranch} onChange={(event) => setBranchId(event.target.value)} required>
               {branchOptions(branchRows).map((option) => (
-                <option key={option.id} value={option.id}>
+ <option key={option.id} value={option.id}>
                   {option.label}
-                </option>
+ </option>
               ))}
-            </select>
-          </label>
-          <label className="field">
-            <span>🏪 المستودع</span>
-            <select className="input" value={effectiveWarehouse} onChange={(event) => setWarehouseId(event.target.value)}>
-              <option value="">— بدون حركة مخزنية —</option>
+ </select>
+ </label>
+ <label className="field">
+ <span>المستودع</span>
+ <select className="input" value={effectiveWarehouse} onChange={(event) => setWarehouseId(event.target.value)}>
+ <option value="">— بدون حركة مخزنية —</option>
               {warehouseRows
                 .filter((row) => !effectiveBranch || row.branchId === effectiveBranch)
                 .map((row) => (
-                  <option key={row.id} value={row.id}>
+ <option key={row.id} value={row.id}>
                     {arabicName(row)}
-                  </option>
+ </option>
                 ))}
-            </select>
+ </select>
             {filledLines(lines).some((line) => line.itemId) && !effectiveWarehouse && (
-              <span className="muted small">ترحيل فاتورة فيها أصناف مخزنية يتطلب اختيار مستودع.</span>
+ <span className="muted small">ترحيل فاتورة فيها أصناف مخزنية يتطلب اختيار مستودع.</span>
             )}
-          </label>
-          <label className="field">
-            <span>👤 اسم المورد *</span>
-            <select className="input" value={effectivePartyId} onChange={(event) => setPartyId(event.target.value)}>
+ </label>
+ <label className="field">
+ <span>اسم المورد *</span>
+ <select className="input" value={effectivePartyId} onChange={(event) => setPartyId(event.target.value)}>
               {supplierRows.length === 0 && <option value="">مورد عام (الافتراضي)</option>}
               {supplierRows.map((row) => (
-                <option key={row.id} value={row.id}>
+ <option key={row.id} value={row.id}>
                   {partyLabel(row)}
-                </option>
+ </option>
               ))}
-            </select>
-          </label>
-          <label className="field">
-            <span>النوع</span>
-            <select className="input" value={kind} onChange={(event) => setKind(event.target.value as 'purchase' | 'purchase_return')}>
-              <option value="purchase">فاتورة مشتريات</option>
-              <option value="purchase_return">مردود مشتريات</option>
-            </select>
-          </label>
-          <label className="field">
-            {/* «📋 المرجع» — `frmInvPurch.xaml` L545 (`txtRefNo` = رقم فاتورة المورد). */}
-            <span>📋 المرجع</span>
-            <input className="input" dir="ltr" value={supplierRef} onChange={(event) => setSupplierRef(event.target.value)} />
+ </select>
+ </label>
+ <label className="field">
+ <span>النوع</span>
+ <select className="input" value={kind} onChange={(event) => setKind(event.target.value as 'purchase' | 'purchase_return')}>
+ <option value="purchase">فاتورة مشتريات</option>
+ <option value="purchase_return">مردود مشتريات</option>
+ </select>
+ </label>
+ <label className="field">
+ {/* «المرجع» — `frmInvPurch.xaml` L545 (`txtRefNo` = رقم فاتورة المورد). */}
+ <span>المرجع</span>
+ <input className="input" dir="ltr" value={supplierRef} onChange={(event) => setSupplierRef(event.target.value)} />
             {duplicateRef && <span className="muted small">عفوآ رقم المرجع موجود مسبقآ هل تريد الاستمرار ؟</span>}
-          </label>
-          <label className="field">
-            <span>تاريخ فاتورة المورد</span>
-            <input className="input" type="date" dir="ltr" value={supplierRefDate} onChange={(event) => setSupplierRefDate(event.target.value)} />
-          </label>
-          <label className="field">
-            <span>خصم على الفاتورة</span>
-            <input className="input" dir="ltr" inputMode="decimal" value={invoiceDiscountText} onChange={(event) => setInvoiceDiscountText(event.target.value)} />
-            <span className="muted small">يُخفّض وعاء الضريبة قبل احتسابها.</span>
-          </label>
-          {/* «🔢 التسلسلي:» — الإدخال يقرأ الرقم عن العبوة فيُضيف السطر (R8). */}
-          <label className="field">
-            <span>🔢 التسلسلي:</span>
-            <span className="row">
-              <input
+ </label>
+ <label className="field">
+ <span>تاريخ فاتورة المورد</span>
+ <input className="input" type="date" dir="ltr" value={supplierRefDate} onChange={(event) => setSupplierRefDate(event.target.value)} />
+ </label>
+ <label className="field">
+ <span>خصم على الفاتورة</span>
+ <input className="input" dir="ltr" inputMode="decimal" value={invoiceDiscountText} onChange={(event) => setInvoiceDiscountText(event.target.value)} />
+ <span className="muted small">يُخفّض وعاء الضريبة قبل احتسابها.</span>
+ </label>
+ {/* «التسلسلي:» — الإدخال يقرأ الرقم عن العبوة فيُضيف السطر (R8). */}
+ <label className="field">
+ <span>التسلسلي:</span>
+ <span className="row">
+ <input
                 className="input"
                 dir="ltr"
                 value={serialQuery}
@@ -241,43 +241,43 @@ export default function NewPurchaseInvoicePage() {
                   }
                 }}
               />
-              <button className="btn sm" type="button" onClick={() => void findSerial()}>
-                بحث
-              </button>
-            </span>
-            <span className="muted small">الرقم المسجَّل عندنا يُضاف سطره، والمباع يُنبَّه عليه.</span>
-          </label>
-          {/* «📊 مركز التكلفة» — `frmInvPurch.xaml` L467 (بلا نقطتين، كما في نافذة الشراء). */}
-          <label className="field">
-            <span>📊 مركز التكلفة</span>
-            <select className="input" value={costCenterId} onChange={(event) => setCostCenterId(event.target.value)}>
-              <option value="">— بلا مركز —</option>
+ <button className="btn sm" type="button" onClick={() => void findSerial()}>
+ بحث
+ </button>
+ </span>
+ <span className="muted small">الرقم المسجَّل عندنا يُضاف سطره، والمباع يُنبَّه عليه.</span>
+ </label>
+ {/* «مركز التكلفة» — `frmInvPurch.xaml` L467 (بلا نقطتين، كما في نافذة الشراء). */}
+ <label className="field">
+ <span>مركز التكلفة</span>
+ <select className="input" value={costCenterId} onChange={(event) => setCostCenterId(event.target.value)}>
+ <option value="">— بلا مركز —</option>
               {(costCenters.data ?? []).map((center) => (
-                <option key={center.id} value={center.id}>
+ <option key={center.id} value={center.id}>
                   {center.code} — {arabicName(center)}
-                </option>
+ </option>
               ))}
-            </select>
-            <span className="muted small">مركز الفاتورة كلها — ولكل سطرٍ أن يخالفه من عموده.</span>
-          </label>
-          <label className="field">
-            <span>توزيع المصاريف</span>
-            <select className="input" value={allocation} onChange={(event) => setAllocation(event.target.value as 'value' | 'qty')}>
-              <option value="value">بحسب القيمة</option>
-              <option value="qty">بحسب الكمية</option>
-            </select>
-          </label>
-          <label className="field">
-            <span>الأسعار شاملة الضريبة</span>
-            <span className="row">
-              <input type="checkbox" checked={includesVat} onChange={(event) => setIncludesVat(event.target.checked)} />
-              <span className="muted small">تُستخرج الضريبة من السعر بدل إضافتها إليه.</span>
-            </span>
-          </label>
-        </div>
+ </select>
+ <span className="muted small">مركز الفاتورة كلها — ولكل سطرٍ أن يخالفه من عموده.</span>
+ </label>
+ <label className="field">
+ <span>توزيع المصاريف</span>
+ <select className="input" value={allocation} onChange={(event) => setAllocation(event.target.value as 'value' | 'qty')}>
+ <option value="value">بحسب القيمة</option>
+ <option value="qty">بحسب الكمية</option>
+ </select>
+ </label>
+ <label className="field">
+ <span>الأسعار شاملة الضريبة</span>
+ <span className="row">
+ <input type="checkbox" checked={includesVat} onChange={(event) => setIncludesVat(event.target.checked)} />
+ <span className="muted small">تُستخرج الضريبة من السعر بدل إضافتها إليه.</span>
+ </span>
+ </label>
+ </div>
 
-        <h2>الأصناف</h2>
-        <InvoiceLines
+ <h2>الأصناف</h2>
+ <InvoiceLines
           lines={lines}
           onChange={setLines}
           items={items.data ?? []}
@@ -287,20 +287,20 @@ export default function NewPurchaseInvoicePage() {
           costCenters={costCenters.data ?? []}
         />
 
-        <h2>الإجماليات</h2>
-        <TotalsPanel totals={totals} variant="purchase" />
+ <h2>الإجماليات</h2>
+ <TotalsPanel totals={totals} variant="purchase" />
 
-        <Notice notice={notice} />
-        <div className="row">
-          {/* «💾 حفظ» L1428 و«🖨️💾 حفظ مع طباعة» L1424 في `frmInvPurch.xaml`. */}
-          <button className="btn primary" type="submit" disabled={busy}>
-            {busy ? 'جارٍ الحفظ…' : '💾 حفظ'}
-          </button>
-          <button className="btn" type="button" disabled={busy} onClick={(event) => void save(event, true)}>
-            🖨️💾 حفظ مع طباعة
-          </button>
-        </div>
-      </form>
-    </Screen>
+ <Notice notice={notice} />
+ <div className="row">
+ {/* «حفظ» L1428 و«حفظ مع طباعة» L1424 في `frmInvPurch.xaml`. */}
+ <button className="btn primary" type="submit" disabled={busy}>
+ {busy ? 'جارٍ الحفظ…' : 'حفظ'}
+ </button>
+ <button className="btn" type="button" disabled={busy} onClick={(event) => void save(event, true)}>
+ حفظ مع طباعة
+ </button>
+ </div>
+ </form>
+ </Screen>
   );
 }

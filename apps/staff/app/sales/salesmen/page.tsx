@@ -9,14 +9,14 @@ import { useSession } from '../../../lib/session';
 import { useQuery } from '../../../lib/use-query';
 
 /**
- * 🧑‍💼 شاشة المندوبين — `Form_WPF/frmSalesMen.xaml` («شاشة المندوبين»).
+ * شاشة المندوبين — `Form_WPF/frmSalesMen.xaml` («شاشة المندوبين»).
  *
  * Two tabs in the desktop, and this screen keeps both: the card («🧑‍💼 بيانات
  * المندوبين») is the form below, and the search («🔍 البحث») is the grid.
  * `btnSave_Click` L155 writes
  * `salesmen(name, comm, tel, mobile, email, notes, IS_Deleted, Profit_Comm, Colle_Comm)`,
- * and the grid's columns are `الرقم · 🧑‍💼 اسم المندوب · عمولة المبيعات ·
- * 📧 البريد الإلكتروني · 📞 الهاتف · 📱 الجوال` — with the three rates added, because a
+ * and the grid's columns are `الرقم · اسم المندوب · عمولة المبيعات ·
+ * البريد الإلكتروني · الهاتف · الجوال` — with the three rates added, because a
  * مندوب you cannot see the commission of is a مندوب you cannot pay.
  *
  * «📋 طباعة فواتير مندوب وعمولاتهم» (L272 `Button1_Click`) opens `frmInvBySalesMen`;
@@ -60,19 +60,46 @@ export default function SalesmenPage() {
 
   return (
     <Directory<Salesman>
+      listTitle="المندوبون"
       title="شاشة المندوبين"
       subtitle="بطاقة المندوب: العمولات الثلاث التي تُحسب على فواتيره، وبيانات التواصل، وربطه ببطاقة الموظف حتى تُنسَب سندات القبض إليه."
       crumbs={['المبيعات', 'التعاريف']}
       query={salesmen}
       canCreate={can('sales.salesman.manage')}
-      createLabel="➕ جديد"
-      formTitle="🧑‍💼 بيانات المندوبين"
+      createLabel="جديد"
+      formTitle="بيانات المندوبين"
       fields={[
-        { name: 'name', label: '🧑‍💼 اسم المندوب:', required: true, wide: true },
-        { name: 'commissionRate', label: 'عمولة المبيعات:', type: 'number', ltr: true, placeholder: '0', hint: 'نسبة مئوية من صافي الفاتورة' },
-        { name: 'collectionCommissionRate', label: 'عمولة التحصيل:', type: 'number', ltr: true, placeholder: '0', hint: 'تُحسب على الفواتير المُحصَّلة فقط' },
-        { name: 'profitCommissionRate', label: 'عمولة الربح:', type: 'number', ltr: true, placeholder: '0', hint: 'من هامش الربح، إن كان موجباً' },
-        { name: 'employeeId', label: 'الموظف', type: 'select', options: [{ id: '', label: '— بلا موظف —' }, ...employeeOptions] },
+        { name: 'name', label: 'اسم المندوب:', required: true, wide: true },
+        {
+          name: 'commissionRate',
+          label: 'عمولة المبيعات:',
+          type: 'number',
+          ltr: true,
+          placeholder: '0',
+          hint: 'نسبة مئوية من صافي الفاتورة',
+        },
+        {
+          name: 'collectionCommissionRate',
+          label: 'عمولة التحصيل:',
+          type: 'number',
+          ltr: true,
+          placeholder: '0',
+          hint: 'تُحسب على الفواتير المُحصَّلة فقط',
+        },
+        {
+          name: 'profitCommissionRate',
+          label: 'عمولة الربح:',
+          type: 'number',
+          ltr: true,
+          placeholder: '0',
+          hint: 'من هامش الربح، إن كان موجباً',
+        },
+        {
+          name: 'employeeId',
+          label: 'الموظف',
+          type: 'select',
+          options: [{ id: '', label: '— بلا موظف —' }, ...employeeOptions],
+        },
         { name: 'tel', label: 'الهاتف', ltr: true },
         { name: 'mobile', label: 'الجوال', ltr: true },
         { name: 'email', label: 'البريد الإلكتروني', ltr: true },
@@ -137,17 +164,22 @@ export default function SalesmenPage() {
       empty="لا يوجد مندوبون"
       toolbar={
         <Link className="btn sm" href="/sales/salesman-commissions">
-          📋 طباعة فواتير مندوب وعمولاتهم
+          طباعة فواتير مندوب وعمولاتهم
         </Link>
       }
       columns={[
-        { key: 'name', header: '🧑‍💼 اسم المندوب', cell: (row) => row.name },
+        { key: 'name', header: 'اسم المندوب', cell: (row) => row.name },
         { key: 'comm', header: 'عمولة المبيعات', align: 'ltr', cell: (row) => pct(row.commissionRate) },
-        { key: 'colle', header: 'عمولة التحصيل', align: 'ltr', cell: (row) => pct(row.collectionCommissionRate) },
+        {
+          key: 'colle',
+          header: 'عمولة التحصيل',
+          align: 'ltr',
+          cell: (row) => pct(row.collectionCommissionRate),
+        },
         { key: 'profit', header: 'عمولة الربح', align: 'ltr', cell: (row) => pct(row.profitCommissionRate) },
-        { key: 'email', header: '📧 البريد الإلكتروني', align: 'ltr', cell: (row) => row.email ?? '—' },
-        { key: 'tel', header: '📞 الهاتف', align: 'ltr', cell: (row) => row.tel ?? '—' },
-        { key: 'mobile', header: '📱 الجوال', align: 'ltr', cell: (row) => row.mobile ?? '—' },
+        { key: 'email', header: 'البريد الإلكتروني', align: 'ltr', cell: (row) => row.email ?? '—' },
+        { key: 'tel', header: 'الهاتف', align: 'ltr', cell: (row) => row.tel ?? '—' },
+        { key: 'mobile', header: 'الجوال', align: 'ltr', cell: (row) => row.mobile ?? '—' },
         { key: 'active', header: 'الحالة', cell: (row) => (row.active ? 'نشط' : 'موقوف') },
       ]}
     />

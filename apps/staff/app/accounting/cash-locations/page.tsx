@@ -54,13 +54,14 @@ function Inner() {
 
   return (
     <Directory<CashLocation>
+      listTitle="مواقع النقدية"
       title={title}
       subtitle="مواقع النقدية المرتبطة بحسابات دليل الحسابات — منها تُصرف وتُقبض السندات."
       crumbs={['المحاسبة', 'تعاريف']}
       query={view}
       canCreate={manage}
       createLabel={isBank ? 'حساب بنكي جديد' : 'صندوق جديد'}
-      blocked={branchRows.length === 0 ? 'أنشئ فرعاً أولاً من «الإعدادات ← بطاقة فرع».' : undefined}
+ blocked={branchRows.length === 0 ? 'أنشئ فرعاً أولاً من «الإعدادات بطاقة فرع».' : undefined}
       fields={[
         { name: 'name', label: 'الاسم', required: true },
         { name: 'branchId', label: 'الفرع', type: 'select', required: true, options: branchOptions(branchRows) },

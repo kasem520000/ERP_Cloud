@@ -124,15 +124,15 @@ export default function ReportRunnerPage({ params }: { params: Promise<{ key: st
 
   if (catalog.status === 'success' && !entry) {
     return (
-      <EmptyState
+ <EmptyState
         tone="red"
         icon={<FileText size={30} strokeWidth={1.5} />}
         title="تقرير غير معروف"
         description={`لا يوجد تقرير بالمفتاح «${reportKey}». راجع مركز التقارير.`}
         action={
-          <Link href="/reports">
-            <Button variant="primary" icon={<ArrowRight size={15} />}>مركز التقارير</Button>
-          </Link>
+ <Link href="/reports">
+ <Button variant="primary" icon={<ArrowRight size={15} />}>مركز التقارير</Button>
+ </Link>
         }
       />
     );
@@ -161,47 +161,47 @@ export default function ReportRunnerPage({ params }: { params: Promise<{ key: st
   }
 
   return (
-    <div className="grid gap-4">
+ <div className="grid gap-4">
       {/* header */}
-      <Reveal>
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-3 min-w-0">
-            <Link href="/reports" className="grid place-items-center size-9 rounded-xl bg-surface border border-line shadow-1 text-muted hover:text-brand-600 hover:border-brand-200 transition-colors">
-              <ArrowRight size={17} />
-            </Link>
-            <div className="min-w-0">
-              <div className="flex items-center gap-2">
-                <h1 className="m-0 text-[22px] font-bold text-ink tracking-tight leading-tight truncate">{entry?.titleAr ?? 'تقرير'}</h1>
-                <Badge tone="blue" dot>
+ <Reveal>
+ <div className="flex flex-wrap items-center justify-between gap-3">
+ <div className="flex items-center gap-3 min-w-0">
+ <Link href="/reports" className="grid place-items-center size-9 rounded-xl bg-surface border border-line shadow-1 text-muted hover:text-brand-600 hover:border-brand-200 transition-colors">
+ <ArrowRight size={17} />
+ </Link>
+ <div className="min-w-0">
+ <div className="flex items-center gap-2">
+ <h1 className="m-0 text-[22px] font-bold text-ink tracking-tight leading-tight truncate">{entry?.titleAr ?? 'تقرير'}</h1>
+ <Badge tone="blue" dot>
                   {REPORT_GROUP_LABELS[entry?.group ?? ''] ?? 'تقارير'}
-                </Badge>
-              </div>
+ </Badge>
+ </div>
               {entry?.hintAr ? <p className="m-0 text-[12.5px] text-muted truncate">{entry.hintAr}</p> : null}
-            </div>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <Link href="/settings/printing">
-              <Button variant="ghost" icon={<Printer size={15} />}>
-                إعدادات الطباعة
-              </Button>
-            </Link>
-            <Button variant="secondary" icon={<FileSpreadsheet size={15} />} disabled={!result || busy !== null} loading={busy === 'xlsx'} onClick={() => void download('xlsx')}>
+ </div>
+ </div>
+ <div className="flex flex-wrap items-center gap-2">
+ <Link href="/settings/printing">
+ <Button variant="ghost" icon={<Printer size={15} />}>
+ إعدادات الطباعة
+ </Button>
+ </Link>
+ <Button variant="secondary" icon={<FileSpreadsheet size={15} />} disabled={!result || busy !== null} loading={busy === 'xlsx'} onClick={() => void download('xlsx')}>
               Excel
-            </Button>
-            <Button variant="secondary" icon={<Download size={15} />} disabled={!result || busy !== null} loading={busy === 'csv'} onClick={() => void download('csv')}>
+ </Button>
+ <Button variant="secondary" icon={<Download size={15} />} disabled={!result || busy !== null} loading={busy === 'csv'} onClick={() => void download('csv')}>
               CSV
-            </Button>
-            <Button variant="primary" icon={<Printer size={15} />} disabled={!result || busy !== null} loading={busy === 'pdf'} onClick={() => void download('pdf')}>
-              طباعة / PDF
-            </Button>
-          </div>
-        </div>
-      </Reveal>
+ </Button>
+ <Button variant="primary" icon={<Printer size={15} />} disabled={!result || busy !== null} loading={busy === 'pdf'} onClick={() => void download('pdf')}>
+ طباعة / PDF
+ </Button>
+ </div>
+ </div>
+ </Reveal>
 
       {/* filters */}
       {entry ? (
-        <Reveal delay={0.05}>
-          <form
+ <Reveal delay={0.05}>
+ <form
             className="rounded-xl border border-line bg-surface p-4 shadow-1"
             onSubmit={(event) => {
               event.preventDefault();
@@ -209,26 +209,26 @@ export default function ReportRunnerPage({ params }: { params: Promise<{ key: st
               setApplied({ ...filters });
             }}
           >
-            <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 items-end">
+ <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 items-end">
               {(layouts.data ?? []).length > 0 ? (
-                <Labeled label="التصميم">
-                  <select
+ <Labeled label="التصميم">
+ <select
                     value={filters.layout ?? ''}
                     onChange={(event) => setFilters((current) => ({ ...current, layout: event.target.value }))}
                     className="w-full h-10 px-3 rounded-[10px] border border-line-strong bg-surface text-[13.5px] text-ink focus:outline-none focus:border-brand-600 focus:shadow-[var(--ring-brand)] transition-all duration-150"
                   >
-                    <option value="">الافتراضي</option>
+ <option value="">الافتراضي</option>
                     {(layouts.data ?? []).map((layout) => (
-                      <option key={layout.id} value={layout.id}>
+ <option key={layout.id} value={layout.id}>
                         {layout.name}
-                      </option>
+ </option>
                     ))}
-                    <option value="none">كل الأعمدة</option>
-                  </select>
-                </Labeled>
+ <option value="none">كل الأعمدة</option>
+ </select>
+ </Labeled>
               ) : null}
               {entry.params.map((param) => (
-                <FilterField
+ <FilterField
                   key={param.name}
                   param={param}
                   value={filters[param.name] ?? ''}
@@ -240,18 +240,18 @@ export default function ReportRunnerPage({ params }: { params: Promise<{ key: st
                   onChange={(value) => setFilters((current) => ({ ...current, [param.name]: value }))}
                 />
               ))}
-              <div className="col-span-2 sm:col-span-3 lg:col-span-4 xl:col-span-5 flex justify-end">
-                <Button type="submit" variant="primary" size="lg" icon={<Search size={16} />}>
-                  عرض التقرير
-                </Button>
-              </div>
-            </div>
-          </form>
-        </Reveal>
+ <div className="col-span-2 sm:col-span-3 lg:col-span-4 xl:col-span-5 flex justify-end">
+ <Button type="submit" variant="primary" size="lg" icon={<Search size={16} />}>
+ عرض التقرير
+ </Button>
+ </div>
+ </div>
+ </form>
+ </Reveal>
       ) : null}
 
       {notice ? (
-        <div
+ <div
           className={`flex items-center gap-2 rounded-xl border px-4 py-2.5 text-[13px] font-semibold ${
             notice.kind === 'ok'
               ? 'border-ok-line bg-ok-soft text-ok-ink'
@@ -261,22 +261,22 @@ export default function ReportRunnerPage({ params }: { params: Promise<{ key: st
           }`}
         >
           {notice.text}
-        </div>
+ </div>
       ) : null}
 
       {/* body */}
       {report.status === 'loading' ? (
-        <div className="grid gap-4">
-          <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
-            <SkeletonCard lines={2} />
-            <SkeletonCard lines={2} />
-            <SkeletonCard lines={2} />
-            <SkeletonCard lines={2} />
-          </div>
-          <SkeletonCard lines={7} />
-        </div>
+ <div className="grid gap-4">
+ <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
+ <SkeletonCard lines={2} />
+ <SkeletonCard lines={2} />
+ <SkeletonCard lines={2} />
+ <SkeletonCard lines={2} />
+ </div>
+ <SkeletonCard lines={7} />
+ </div>
       ) : report.status === 'error' ? (
-        <EmptyState
+ <EmptyState
           tone="red"
           icon={<FileText size={30} strokeWidth={1.5} />}
           title="تعذّر تشغيل التقرير"
@@ -284,16 +284,16 @@ export default function ReportRunnerPage({ params }: { params: Promise<{ key: st
           action={<Button variant="primary" onClick={report.reload}>إعادة المحاولة</Button>}
         />
       ) : !result ? null : result.rows.length === 0 ? (
-        <EmptyState
+ <EmptyState
           icon={<ListChecks size={30} strokeWidth={1.5} />}
           title="لا توجد بيانات ضمن هذه الفترة"
           description="جرّب توسيع الفترة أو إزالة المرشحات — التقارير تعرض المستندات المرحّلة فقط."
         />
       ) : (
-        <>
+ <>
           {/* summary cards */}
-          <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
-            <KpiCard
+ <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
+ <KpiCard
               title="عدد السطور"
               value={result.rowCount.toLocaleString('ar-EG')}
               icon={<Hash size={20} />}
@@ -301,7 +301,7 @@ export default function ReportRunnerPage({ params }: { params: Promise<{ key: st
               hint={`وقت الاستخراج: ${result.generatedAt.slice(0, 16).replace('T', ' ')}`}
             />
             {result.grandTotal.slice(0, 3).map((card, index) => (
-              <KpiCard
+ <KpiCard
                 key={card.key}
                 title={card.labelAr}
                 value={formatCell(card.amount, 'money')}
@@ -312,7 +312,7 @@ export default function ReportRunnerPage({ params }: { params: Promise<{ key: st
             ))}
             {result.grandTotal.length === 0
               ? Object.entries(result.totals).slice(0, 3).map(([key, value], index) => (
-                  <KpiCard
+ <KpiCard
                     key={key}
                     title={result.columns.find((column) => column.key === key)?.labelAr ?? key}
                     value={formatCell(value, result.columns.find((column) => column.key === key)?.type ?? 'money')}
@@ -322,43 +322,43 @@ export default function ReportRunnerPage({ params }: { params: Promise<{ key: st
                   />
                 ))
               : null}
-          </div>
+ </div>
 
           {/* chart */}
           {entry?.chart && result.columns.length > 0 ? (
-            <Reveal delay={0.1}>
-              <ReportChart entry={entry} result={result} />
-            </Reveal>
+ <Reveal delay={0.1}>
+ <ReportChart entry={entry} result={result} />
+ </Reveal>
           ) : null}
 
           {/* table */}
-          <Reveal delay={0.15}>
-            <div className="rounded-xl border border-line bg-surface shadow-1 overflow-hidden">
-              <div className="flex flex-wrap items-center justify-between gap-2 px-4 pt-4 pb-1">
-                <h3 className="m-0 text-[15px] font-bold text-ink">نتائج التقرير</h3>
-                <div className="flex flex-wrap gap-1.5">
+ <Reveal delay={0.15}>
+ <div className="rounded-xl border border-line bg-surface shadow-1 overflow-hidden">
+ <div className="flex flex-wrap items-center justify-between gap-2 px-4 pt-4 pb-1">
+ <h3 className="m-0 text-[15px] font-bold text-ink">نتائج التقرير</h3>
+ <div className="flex flex-wrap gap-1.5">
                   {Object.entries(result.totals).map(([key, value]) => {
                     const column = result.columns.find((col) => col.key === key);
                     return (
-                      <Badge key={key} tone="neutral" dot>
+ <Badge key={key} tone="neutral" dot>
                         {column?.labelAr ?? key}: {formatCell(value, column?.type ?? 'money')}
-                      </Badge>
+ </Badge>
                     );
                   })}
-                </div>
-              </div>
-              <div className="px-1 pb-1">
-                <SortableReportTable result={result} />
-              </div>
-            </div>
-          </Reveal>
-        </>
+ </div>
+ </div>
+ <div className="px-1 pb-1">
+ <SortableReportTable result={result} />
+ </div>
+ </div>
+ </Reveal>
+ </>
       )}
-    </div>
+ </div>
   );
 }
 
-/** 📈 مخطط بياني تفاعلي — يعتمد أول عمود رقمي من `net`/`total`/`quantity`/`sales`/`invoices`/`count`. */
+/** مخطط بياني تفاعلي — يعتمد أول عمود رقمي من `net`/`total`/`quantity`/`sales`/`invoices`/`count`. */
 function ReportChart({ entry, result }: { entry: ReportEntry; result: ReportResult }) {
   const numericCols = result.columns.filter((c) => c.type === 'money' || c.type === 'qty' || c.type === 'int');
   const preferred = ['net', 'total', 'quantity', 'sales', 'invoices', 'count'].find((k) => numericCols.some((c) => c.key === k)) ?? numericCols[0]?.key ?? '';
@@ -376,25 +376,25 @@ function ReportChart({ entry, result }: { entry: ReportEntry; result: ReportResu
   );
 
   return (
-    <div className="rounded-xl border border-line bg-surface p-4 shadow-1">
-      <div className="flex items-center justify-between mb-2">
-        <h3 className="m-0 text-[15px] font-bold text-ink">
-          📈 {valueCol} — {entry.titleAr}
-        </h3>
-        <Badge tone="blue" dot>
+ <div className="rounded-xl border border-line bg-surface p-4 shadow-1">
+ <div className="flex items-center justify-between mb-2">
+ <h3 className="m-0 text-[15px] font-bold text-ink">
+ {valueCol} — {entry.titleAr}
+ </h3>
+ <Badge tone="blue" dot>
           {entry.chart === 'bar' ? 'أعمدة' : 'خط'}
-        </Badge>
-      </div>
+ </Badge>
+ </div>
       {data.length > 0 ? (
         entry.chart === 'line' ? (
-          <LineCardChart data={data} xKey="name" dataKey="value" name={valueCol} height={300} formatter={(v) => formatCell(String(v), 'money')} />
+ <LineCardChart data={data} xKey="name" dataKey="value" name={valueCol} height={300} formatter={(v) => formatCell(String(v), 'money')} />
         ) : (
-          <BarCardChart data={data} xKey="name" dataKey="value" name={valueCol} height={300} formatter={(v) => formatCell(String(v), 'money')} />
+ <BarCardChart data={data} xKey="name" dataKey="value" name={valueCol} height={300} formatter={(v) => formatCell(String(v), 'money')} />
         )
       ) : (
-        <EmptyState icon={<ListChecks size={24} strokeWidth={1.5} />} title="لا توجد قيم للرسم" />
+ <EmptyState icon={<ListChecks size={24} strokeWidth={1.5} />} title="لا توجد قيم للرسم" />
       )}
-    </div>
+ </div>
   );
 }
 
@@ -420,16 +420,16 @@ function SortableReportTable({ result }: { result: ReportResult }) {
       result.columns.map((column) => {
         const value = result.totals[column.key];
         return value !== undefined ? (
-          <span className="font-bold text-ink">{formatCell(value, column.type)}</span>
+ <span className="font-bold text-ink">{formatCell(value, column.type)}</span>
         ) : (
-          <span className="text-muted">·</span>
+ <span className="text-muted">·</span>
         );
       }),
     [result],
   );
 
   return (
-    <Table
+ <Table
       rows={rows}
       rowKey={(_row, index) => `${result.key}-${index}`}
       sortable
@@ -443,7 +443,7 @@ function SortableReportTable({ result }: { result: ReportResult }) {
         numeric: isNumericColumn(column),
         sortable: true,
         cell: (row: Record<string, string>) => (
-          <span style={isNumericColumn(column) ? { fontVariantNumeric: 'tabular-nums' } : undefined}>{formatCell(row[column.key] ?? '', column.type)}</span>
+ <span style={isNumericColumn(column) ? { fontVariantNumeric: 'tabular-nums' } : undefined}>{formatCell(row[column.key] ?? '', column.type)}</span>
         ),
       }))}
     />
@@ -453,21 +453,21 @@ function SortableReportTable({ result }: { result: ReportResult }) {
 function FilterField({ param, value, options, onChange }: { param: ReportParam; value: string; options: Array<{ value: string; label: string }>; onChange: (value: string) => void }) {
   if (param.kind === 'date') {
     return (
-      <Labeled label={param.labelAr}>
-        <input
+ <Labeled label={param.labelAr}>
+ <input
           type="date"
           dir="ltr"
           value={value}
           onChange={(event) => onChange(event.target.value)}
           className="w-full h-10 px-3 rounded-[10px] border border-line-strong bg-surface text-[13.5px] text-ink focus:outline-none focus:border-brand-600 focus:shadow-[var(--ring-brand)] transition-all duration-150"
         />
-      </Labeled>
+ </Labeled>
     );
   }
   if (param.kind === 'serial' || param.kind === 'entryNo' || param.kind === 'docNo' || param.kind === 'year') {
     return (
-      <Labeled label={param.labelAr}>
-        <input
+ <Labeled label={param.labelAr}>
+ <input
           type="text"
           dir="ltr"
           value={value}
@@ -475,13 +475,13 @@ function FilterField({ param, value, options, onChange }: { param: ReportParam; 
           onChange={(event) => onChange(event.target.value)}
           className="w-full h-10 px-3 rounded-[10px] border border-line-strong bg-surface text-[13.5px] text-ink focus:outline-none focus:border-brand-600 focus:shadow-[var(--ring-brand)] transition-all duration-150"
         />
-      </Labeled>
+ </Labeled>
     );
   }
   if (param.kind === 'time') {
     return (
-      <Labeled label={param.labelAr}>
-        <input
+ <Labeled label={param.labelAr}>
+ <input
           type="time"
           step="1"
           dir="ltr"
@@ -489,23 +489,23 @@ function FilterField({ param, value, options, onChange }: { param: ReportParam; 
           onChange={(event) => onChange(event.target.value)}
           className="w-full h-10 px-3 rounded-[10px] border border-line-strong bg-surface text-[13.5px] text-ink focus:outline-none focus:border-brand-600 focus:shadow-[var(--ring-brand)] transition-all duration-150"
         />
-      </Labeled>
+ </Labeled>
     );
   }
   return (
-    <Labeled label={param.labelAr}>
-      <select
+ <Labeled label={param.labelAr}>
+ <select
         value={value}
         onChange={(event) => onChange(event.target.value)}
         className="w-full h-10 px-3 rounded-[10px] border border-line-strong bg-surface text-[13.5px] text-ink focus:outline-none focus:border-brand-600 focus:shadow-[var(--ring-brand)] transition-all duration-150"
       >
-        <option value="">الكل</option>
+ <option value="">الكل</option>
         {options.map((option) => (
-          <option key={option.value} value={option.value}>
+ <option key={option.value} value={option.value}>
             {option.label}
-          </option>
+ </option>
         ))}
-      </select>
-    </Labeled>
+ </select>
+ </Labeled>
   );
 }

@@ -15,7 +15,7 @@ import { listParties, type Party } from '../../../lib/lookups';
 import { useSession } from '../../../lib/session';
 
 /**
- * 🚐 تطبيق المندوب — the rep's own workspace.
+ * تطبيق المندوب — the rep's own workspace.
  *
  * Everything on this page comes from `GET /van-sales/me`, which derives the rep from the
  * caller's own membership (`memberships → employees → salesmen`) and reads the **official**
@@ -23,7 +23,7 @@ import { useSession } from '../../../lib/session';
  * cannot open another's custody — and the server enforces the same thing, not just the UI.
  */
 // ‏ذيلُ جملة النافذة (`REP_TOTALS_CLAUSE`) من `@erp/web-van/windows`: فالمجاميعُ في هذا
-// ‏الوجه `totals` و`custody` لا `summary`، والمفردةُ نصٌّ واحدٌ في الحزمة المشتركة. 
+// ‏الوجه `totals` و`custody` لا `summary`، والمفردةُ نصٌّ واحدٌ في الحزمة المشتركة.
 const DOCUMENTS_WINDOW_FALLBACK = 'أحدث ١٠٠ مستند (حدُّ نافذة الخادم) — والأرقامُ أعلاه من جدولك كلّه';
 const LOAD_ORDERS_WINDOW_FALLBACK = 'أحدث ٥٠ أمر تحميل (حدُّ نافذة الخادم) — والعهدةُ من أوامرك كلّها';
 const COLLECTIONS_WINDOW_FALLBACK = 'أحدث ٥٠ حركة تحصيل (حدُّ نافذة الخادم)';
@@ -79,7 +79,7 @@ type LoadOrder = {
   discrepancyNotes: string | null;
   closingSubmittedAt: string | null;
   approvedAt: string | null;
-  /** 🧾 تسوية المخزون الرسمية بعد اعتماد المحاسب. */
+  /** تسوية المخزون الرسمية بعد اعتماد المحاسب. */
   stockSettlementStatus?: string;
   stockSettlementNote?: string;
   remainingAction?: 'return_to_main' | 'carry_over' | null;
@@ -150,7 +150,7 @@ type RepWorkspace = {
   };
   custody: { expectedKg: string; officialKg: string; pendingClosings: number } | null;
   /**
-   * 🪟 نوافذُ القراءة كما يعلنها الخادم: القوائمُ الأربع محدودةٌ بـ`LIMIT` (‏٥٠ أمرًا، ١٠٠
+   * نوافذُ القراءة كما يعلنها الخادم: القوائمُ الأربع محدودةٌ بـ`LIMIT` (‏٥٠ أمرًا، ١٠٠
    * مستند، ٥٠ تحصيلًا، ٢٠ إشعارًا) وأمّا الأرقامُ فجمعُ جدول المندوب كلّه. وغيابُ المفتاح
    * يعني «لا أعرف» فتُعرض الجملةُ الاحتياطية — ولا رقمَ مخمَّن. (`balances` و
    * `pendingReceipts` كاملتان في استعلاميهما فلا نافذةَ لهما.)
@@ -167,24 +167,24 @@ type RepWorkspace = {
 
 const LOAD_STATUS_AR: Record<string, string> = {
   draft: 'مسودة',
-  pending_receipt: '🚚 بانتظار تأكيد استلامك',
-  loaded: '✅ في عهدتك',
-  in_route: '🛣️ قيد التوزيع',
-  pending_closing: '⏳ إغلاق مُقدَّم بانتظار المحاسب',
+ pending_receipt: 'بانتظار تأكيد استلامك',
+ loaded: 'في عهدتك',
+ in_route: 'قيد التوزيع',
+ pending_closing: 'إغلاق مُقدَّم بانتظار المحاسب',
   /** اعتُمدت الكميات، لكن رصيد سيارتك الرسمي ما زال يختلف عن جردك — العهدة لم تُغلق بعد. */
-  pending_stock_settlement: '🧾 معتَمَد الكميات وبانتظار تسوية المخزون',
-  settled: '✔ مُعتمد ومُصفّى ومُسوّى مخزنياً',
-  reconciled: '✔ مُطابَق',
-  rejected: '❌ مرفوض من قبلك (أُعيدت الكمية رسمياً)',
-  canceled: '🗑️ ملغى من المحاسب',
+ pending_stock_settlement: 'معتَمَد الكميات وبانتظار تسوية المخزون',
+ settled: 'مُعتمد ومُصفّى ومُسوّى مخزنياً',
+ reconciled: 'مُطابَق',
+ rejected: 'مرفوض من قبلك (أُعيدت الكمية رسمياً)',
+ canceled: 'ملغى من المحاسب',
 };
 
 /** حالة تسوية المخزون كما تُعرض للمندوب. */
 const SETTLEMENT_STATUS_AR: Record<string, string> = {
-  pending_transit_decision: '🚦 فرق استلامك بانتظار قرار المحاسب',
-  pending_count_decision: '🧾 فرق جردك بانتظار تسوية المحاسب',
-  settled_officially: '✅ سُوّي رصيد سيارتك رسمياً',
-  blocked_missing_accounts: '⛔ تسويتك متوقفة على إعداد حسابات المحاسبة',
+ pending_transit_decision: 'فرق استلامك بانتظار قرار المحاسب',
+ pending_count_decision: 'فرق جردك بانتظار تسوية المحاسب',
+ settled_officially: 'سُوّي رصيد سيارتك رسمياً',
+ blocked_missing_accounts: 'تسويتك متوقفة على إعداد حسابات المحاسبة',
 };
 
 export default function VanSalesRepPage() {
@@ -194,12 +194,12 @@ export default function VanSalesRepPage() {
   const [notice, setNotice] = useState<{ kind: 'ok' | 'danger' | 'warn'; text: string }>();
   const [busy, setBusy] = useState(false);
 
-  // ✅ تأكيد الاستلام
+  // تأكيد الاستلام
   const [receiptTarget, setReceiptTarget] = useState<PendingReceipt | null>(null);
   const [receiptQty, setReceiptQty] = useState('');
   const [receiptNotes, setReceiptNotes] = useState('');
 
-  // 🧾 إصدار فاتورة بيع
+  // إصدار فاتورة بيع
   const [saleLoadOrderId, setSaleLoadOrderId] = useState('');
   const [salePartyId, setSalePartyId] = useState('');
   const [saleWalkIn, setSaleWalkIn] = useState('');
@@ -209,11 +209,11 @@ export default function VanSalesRepPage() {
   const [saleUnitPrice, setSaleUnitPrice] = useState('');
   const [salePayment, setSalePayment] = useState<'cash' | 'card' | 'credit'>('cash');
 
-  // 💵 تحصيل مديونية
+  // تحصيل مديونية
   const [collectDocId, setCollectDocId] = useState('');
   const [collectAmount, setCollectAmount] = useState('');
 
-  // 🔒 إغلاق الوردية
+  // إغلاق الوردية
   const [closingTarget, setClosingTarget] = useState<LoadOrder | null>(null);
   const [closingReturned, setClosingReturned] = useState('0');
   const [closingDamaged, setClosingDamaged] = useState('0');
@@ -243,7 +243,7 @@ export default function VanSalesRepPage() {
   }, [load]);
 
   /**
-   * 🔁 مفتاحٌ واحدٌ للنيّة الواحدة لا للنقرة الواحدة.
+   * مفتاحٌ واحدٌ للنيّة الواحدة لا للنقرة الواحدة.
    *
    * كان هنا مولّدٌ يعطي مفتاحاً جديداً **لكلّ نداء** (`Date.now()` + `Math.random()`) تحت تعليقٍ
    * يعد بأنّ إعادة المحاولة ترجع بالنتيجة نفسها — وعدٌ لا يحققه: المفتاح يختلف بين المحاولتين،
@@ -291,135 +291,135 @@ export default function VanSalesRepPage() {
   );
 
   return (
-    <Screen
-      title="🚐 تطبيق مندوب التوزيع"
+ <Screen
+ title="تطبيق مندوب التوزيع"
       subtitle="عهدتك وأرصدة سيارتك الرسمية، توريداتك بانتظار التأكيد، فواتيرك وتحصيلاتك، وإغلاق ورديتك — كلها من حسابك أنت."
       crumbs={['توزيع المناديب والمخابز', 'تطبيق المندوب']}
       actions={
-        <button type="button" className="btn sm" onClick={() => void load()} disabled={busy}>
-          🔄 تحديث
-        </button>
+ <button type="button" className="btn sm" onClick={() => void load()} disabled={busy}>
+ تحديث
+ </button>
       }
     >
       {notice ? <Notice notice={notice} /> : null}
 
       {data && !data.isRep ? (
-        <div className="card">
-          <h2 style={{ marginTop: 0 }}>⚠️ حسابك غير مرتبط ببطاقة مندوب</h2>
-          <p className="muted">{data.message}</p>
-        </div>
+ <div className="card">
+ <h2 style={{ marginTop: 0 }}>حسابك غير مرتبط ببطاقة مندوب</h2>
+ <p className="muted">{data.message}</p>
+ </div>
       ) : null}
 
       {data?.isRep ? (
-        <div className="grid gap-4">
+ <div className="grid gap-4">
           {/* البطاقة والعهدات */}
-          <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))' }}>
-            <div className="card">
-              <div className="muted small">المندوب</div>
-              <strong>{data.salesmanName}</strong>
-              <div className="muted small">
-                {data.vehiclePlate ? `🚐 ${data.vehiclePlate}` : '🚐 بلا لوحة مسجّلة'}
-              </div>
-            </div>
-            <div className="card">
-              <div className="muted small">رصيد سيارتك الرسمي</div>
-              <strong style={{ fontSize: 21 }} dir="ltr">{data.custodyKg} kg</strong>
-              <div className="muted small" dir="ltr">قيمة: {data.custodyValue} SAR</div>
-            </div>
-            <div className="card">
+ <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))' }}>
+ <div className="card">
+ <div className="muted small">المندوب</div>
+ <strong>{data.salesmanName}</strong>
+ <div className="muted small">
+ {data.vehiclePlate ? `${data.vehiclePlate}` : 'بلا لوحة مسجّلة'}
+ </div>
+ </div>
+ <div className="card">
+ <div className="muted small">رصيد سيارتك الرسمي</div>
+ <strong style={{ fontSize: 21 }} dir="ltr">{data.custodyKg} kg</strong>
+ <div className="muted small" dir="ltr">قيمة: {data.custodyValue} SAR</div>
+ </div>
+ <div className="card">
               {/**
                 * العنوانُ كان «مبيعات اليوم (إجمالي)» وكلا الوصفين غيرُ صحيح: فالرقمُ ليس
                 * لليوم (إنّما هو جدولُ المندوب كلّه) وليس إجماليًّا (إنّما صافٍ من
                 * المرتجعات منذ إصلاح المجاميع). فصار العنوانُ يقول ما هو الرقم، والسطرُ
                 * تحتَه يعرض أطرافَ المعادلة: نقديّ + آجل − مرتجعات − ضريبتُها = الصافي.
                 */}
-              <div className="muted small">مبيعاتك — صافي المرتجعات</div>
-              <strong style={{ fontSize: 21, color: 'var(--ok)' }} dir="ltr">{data.totals.revenue}</strong>
-              <div className="muted small" dir="ltr">
-                نقدي {data.totals.cashSales} · آجل {data.totals.creditSales}
+ <div className="muted small">مبيعاتك — صافي المرتجعات</div>
+ <strong style={{ fontSize: 21, color: 'var(--ok)' }} dir="ltr">{data.totals.revenue}</strong>
+ <div className="muted small" dir="ltr">
+ نقدي {data.totals.cashSales} · آجل {data.totals.creditSales}
                 {data.totals.returnCount > 0
                   ? ` − مرتجعات ${data.totals.returns} وضريبتُها ${data.totals.returnsVat}`
                   : ''}
-              </div>
-            </div>
-            <div className="card">
-              <div className="muted small">المحصّل / المتبقي على العملاء</div>
-              <strong style={{ fontSize: 21 }} dir="ltr">{data.totals.collected}</strong>
-              <div className="muted small" dir="ltr" style={{ color: 'var(--warn)' }}>
-                متبقٍ: {data.totals.outstanding}
-              </div>
+ </div>
+ </div>
+ <div className="card">
+ <div className="muted small">المحصّل / المتبقي على العملاء</div>
+ <strong style={{ fontSize: 21 }} dir="ltr">{data.totals.collected}</strong>
+ <div className="muted small" dir="ltr" style={{ color: 'var(--warn)' }}>
+ متبقٍ: {data.totals.outstanding}
+ </div>
               {data.totals.returnCount > 0 ? (
-                <div className="muted small">
-                  ↩️ بعد خصم {data.totals.returnCount} إشعارٍ دائن لمرتجعاتك
+ <div className="muted small">
+ بعد خصم {data.totals.returnCount} إشعارٍ دائن لمرتجعاتك
                   {data.totals.returnsWithoutCostCount > 0
                     ? ` (ومنها ${data.totals.returnsWithoutCostCount} بلا تكلفةٍ مُرحّلة)`
                     : ''}
-                </div>
+ </div>
               ) : null}
-            </div>
-            <div className="card">
-              <div className="muted small">حالة العهدة</div>
-              <strong style={{ fontSize: 21 }} dir="ltr">{data.custody?.expectedKg ?? '0.0000'} kg</strong>
-              <div className="muted small">
+ </div>
+ <div className="card">
+ <div className="muted small">حالة العهدة</div>
+ <strong style={{ fontSize: 21 }} dir="ltr">{data.custody?.expectedKg ?? '0.0000'} kg</strong>
+ <div className="muted small">
                 {data.custody?.pendingClosings
-                  ? `⏳ ${data.custody.pendingClosings} إغلاق بانتظار المحاسب`
-                  : '✅ لا يوجد إغلاق معلّق'}
-              </div>
-            </div>
-          </div>
+ ? `${data.custody.pendingClosings} إغلاق بانتظار المحاسب`
+ : 'لا يوجد إغلاق معلّق'}
+ </div>
+ </div>
+ </div>
 
-          {/* 🔔 إشعارات التوريد */}
+          {/* إشعارات التوريد */}
           {data.notifications.length ? (
-            <div className="card">
-              <h2 style={{ marginTop: 0 }}>🔔 إشعارات</h2>
-              <div className="muted small">
+ <div className="card">
+ <h2 style={{ marginTop: 0 }}>إشعارات</h2>
+ <div className="muted small">
                 {windowNote(data.windows, 'notifications', NOTIFICATIONS_WINDOW_FALLBACK, {
                   totalsClause: REP_TOTALS_CLAUSE,
                 })}
-              </div>
-              <ul className="muted small" style={{ margin: 0, paddingInlineStart: 18 }}>
+ </div>
+ <ul className="muted small" style={{ margin: 0, paddingInlineStart: 18 }}>
                 {data.notifications.slice(0, 6).map((row) => (
-                  <li key={row.id}>
-                    <b>{String(row.payload.title ?? row.type)}</b>
+ <li key={row.id}>
+ <b>{String(row.payload.title ?? row.type)}</b>
                     {row.payload.body ? ` — ${String(row.payload.body)}` : ''}
                     {!row.read ? ' (جديد)' : ''}
-                  </li>
+ </li>
                 ))}
-              </ul>
-            </div>
+ </ul>
+ </div>
           ) : null}
 
-          {/* ✅ التوريدات بانتظار تأكيدك */}
-          <div className="card">
-            <h2 style={{ marginTop: 0 }}>🚚 توريدات بانتظار تأكيد استلامك ({data.pendingReceipts.length})</h2>
-            <p className="muted small" style={{ margin: 0 }}>
-              البضاعة المصروفة لك تبقى رسميًّا «تحت التحويل» ولا تدخل رصيد سيارتك إلا بعد تأكيدك. إن وصلك أقل من
-              المصروف، سجّل الفرق وسيراجعه المحاسب.
-            </p>
-            <div className="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>رقم الأمر</th>
-                    <th>التاريخ</th>
-                    <th>من مستودع</th>
-                    <th>الصنف</th>
-                    <th>المصروف</th>
-                    <th>دفعة الإنتاج</th>
-                    <th>إجراء</th>
-                  </tr>
-                </thead>
-                <tbody>
+          {/* التوريدات بانتظار تأكيدك */}
+ <div className="card">
+ <h2 style={{ marginTop: 0 }}>توريدات بانتظار تأكيد استلامك ({data.pendingReceipts.length})</h2>
+ <p className="muted small" style={{ margin: 0 }}>
+ البضاعة المصروفة لك تبقى رسميًّا «تحت التحويل» ولا تدخل رصيد سيارتك إلا بعد تأكيدك. إن وصلك أقل من
+ المصروف، سجّل الفرق وسيراجعه المحاسب.
+ </p>
+ <div className="table-wrap">
+ <table>
+ <thead>
+ <tr>
+ <th>رقم الأمر</th>
+ <th>التاريخ</th>
+ <th>من مستودع</th>
+ <th>الصنف</th>
+ <th>المصروف</th>
+ <th>دفعة الإنتاج</th>
+ <th>إجراء</th>
+ </tr>
+ </thead>
+ <tbody>
                   {data.pendingReceipts.map((row) => (
-                    <tr key={row.id}>
-                      <td dir="ltr"><b>{row.number}</b></td>
-                      <td dir="ltr">{row.loadDate}</td>
-                      <td>{row.fromWarehouseName}</td>
-                      <td>{row.itemName}</td>
-                      <td dir="ltr"><b>{row.loadedQty} kg</b></td>
-                      <td dir="ltr">{row.productionBatchNo}</td>
-                      <td>
-                        <button
+ <tr key={row.id}>
+ <td dir="ltr"><b>{row.number}</b></td>
+ <td dir="ltr">{row.loadDate}</td>
+ <td>{row.fromWarehouseName}</td>
+ <td>{row.itemName}</td>
+ <td dir="ltr"><b>{row.loadedQty} kg</b></td>
+ <td dir="ltr">{row.productionBatchNo}</td>
+ <td>
+ <button
                           type="button"
                           className="btn sm primary"
                           disabled={busy || !can('van_sales.view')}
@@ -429,59 +429,59 @@ export default function VanSalesRepPage() {
                             setReceiptNotes('');
                           }}
                         >
-                          ✅ تأكيد / تسجيل فرق
-                        </button>
-                      </td>
-                    </tr>
+ تأكيد / تسجيل فرق
+ </button>
+ </td>
+ </tr>
                   ))}
                   {data.pendingReceipts.length === 0 ? (
-                    <tr>
-                      <td colSpan={7} className="muted">لا يوجد توريد بانتظارك.</td>
-                    </tr>
+ <tr>
+ <td colSpan={7} className="muted">لا يوجد توريد بانتظارك.</td>
+ </tr>
                   ) : null}
-                </tbody>
-              </table>
-            </div>
-          </div>
+ </tbody>
+ </table>
+ </div>
+ </div>
 
-          {/* 📦 أرصدة سيارتك الرسمية */}
-          <div className="card">
-            <h2 style={{ marginTop: 0 }}>📦 أرصدة أصناف سيارتك (من دفتر المخزون الرسمي)</h2>
-            <div className="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>الصنف</th>
-                    <th>البطاقة</th>
-                    <th>المستودع</th>
-                    <th align="left">الرصيد</th>
-                    <th align="left">متوسط التكلفة</th>
-                    <th align="left">القيمة</th>
-                  </tr>
-                </thead>
-                <tbody>
+          {/* أرصدة سيارتك الرسمية */}
+ <div className="card">
+ <h2 style={{ marginTop: 0 }}>أرصدة أصناف سيارتك (من دفتر المخزون الرسمي)</h2>
+ <div className="table-wrap">
+ <table>
+ <thead>
+ <tr>
+ <th>الصنف</th>
+ <th>البطاقة</th>
+ <th>المستودع</th>
+ <th align="left">الرصيد</th>
+ <th align="left">متوسط التكلفة</th>
+ <th align="left">القيمة</th>
+ </tr>
+ </thead>
+ <tbody>
                   {data.balances.map((row) => (
-                    <tr key={`${row.warehouseId}-${row.itemId}`}>
-                      <td>{row.itemName}</td>
-                      <td dir="ltr">{row.sku}</td>
-                      <td>{row.warehouseName}</td>
-                      <td align="left" dir="ltr"><b>{row.quantity}</b></td>
-                      <td align="left" dir="ltr">{row.averageCost}</td>
-                      <td align="left" dir="ltr">{row.value}</td>
-                    </tr>
+ <tr key={`${row.warehouseId}-${row.itemId}`}>
+ <td>{row.itemName}</td>
+ <td dir="ltr">{row.sku}</td>
+ <td>{row.warehouseName}</td>
+ <td align="left" dir="ltr"><b>{row.quantity}</b></td>
+ <td align="left" dir="ltr">{row.averageCost}</td>
+ <td align="left" dir="ltr">{row.value}</td>
+ </tr>
                   ))}
                   {data.balances.length === 0 ? (
-                    <tr>
-                      <td colSpan={6} className="muted">لا يوجد رصيد في سيارتك بعد — أكّد استلام أول توريد.</td>
-                    </tr>
+ <tr>
+ <td colSpan={6} className="muted">لا يوجد رصيد في سيارتك بعد — أكّد استلام أول توريد.</td>
+ </tr>
                   ) : null}
-                </tbody>
-              </table>
-            </div>
-          </div>
+ </tbody>
+ </table>
+ </div>
+ </div>
 
-          {/* 🧾 إصدار فاتورة بيع */}
-          <form
+          {/* إصدار فاتورة بيع */}
+ <form
             className="card"
             style={{ display: 'grid', gap: 12 }}
             onSubmit={(event) => {
@@ -505,23 +505,23 @@ export default function VanSalesRepPage() {
               );
             }}
           >
-            <h2 style={{ margin: 0 }}>🧾 تسجيل بيع وإصدار فاتورة</h2>
-            <p className="muted small" style={{ margin: 0 }}>
-              تُخصم الكمية المباعة والمجانية من رصيد سيارتك الرسمي، وتُصدر فاتورة مبيعات رسمية مرقّمة بالضريبة
-              المستحقة. السعر يلتزم بشريحة العميل المعتمدة — وأي تجاوز يحتاج صلاحية اعتماد من الإدارة.
-            </p>
-            <div className="form-grid">
-              <label className="field">
-                <span>العهدة / أمر التحميل *</span>
-                <select
+ <h2 style={{ margin: 0 }}>تسجيل بيع وإصدار فاتورة</h2>
+ <p className="muted small" style={{ margin: 0 }}>
+ تُخصم الكمية المباعة والمجانية من رصيد سيارتك الرسمي، وتُصدر فاتورة مبيعات رسمية مرقّمة بالضريبة
+ المستحقة. السعر يلتزم بشريحة العميل المعتمدة — وأي تجاوز يحتاج صلاحية اعتماد من الإدارة.
+ </p>
+ <div className="form-grid">
+ <label className="field">
+ <span>العهدة / أمر التحميل *</span>
+ <select
                   className="input"
                   required
                   value={saleLoadOrderId}
                   onChange={(e) => setSaleLoadOrderId(e.target.value)}
                 >
-                  <option value="">— اختر —</option>
+ <option value="">— اختر —</option>
                   {openLoads.map((row) => (
-                    <option key={row.id} value={row.id}>
+ <option key={row.id} value={row.id}>
                       {row.number} · {row.itemName} · متبقٍ{' '}
                       {(
                         Number(row.receivedQty) -
@@ -531,33 +531,33 @@ export default function VanSalesRepPage() {
                         Number(row.damagedQty)
                       ).toFixed(2)}{' '}
                       kg
-                    </option>
+ </option>
                   ))}
-                </select>
-              </label>
-              <label className="field">
-                <span>العميل</span>
-                <select className="input" value={salePartyId} onChange={(e) => setSalePartyId(e.target.value)}>
-                  <option value="">— عميل نقدي (بدون بطاقة) —</option>
+ </select>
+ </label>
+ <label className="field">
+ <span>العميل</span>
+ <select className="input" value={salePartyId} onChange={(e) => setSalePartyId(e.target.value)}>
+ <option value="">— عميل نقدي (بدون بطاقة) —</option>
                   {customers.map((row) => (
-                    <option key={row.id} value={row.id}>{row.name}</option>
+ <option key={row.id} value={row.id}>{row.name}</option>
                   ))}
-                </select>
-              </label>
+ </select>
+ </label>
               {!salePartyId ? (
-                <label className="field">
-                  <span>اسم العميل النقدي</span>
-                  <input
+ <label className="field">
+ <span>اسم العميل النقدي</span>
+ <input
                     className="input"
                     value={saleWalkIn}
                     onChange={(e) => setSaleWalkIn(e.target.value)}
                     placeholder="مثال: بقالة الحي"
                   />
-                </label>
+ </label>
               ) : null}
-              <label className="field">
-                <span>الكمية المباعة *</span>
-                <input
+ <label className="field">
+ <span>الكمية المباعة *</span>
+ <input
                   className="input"
                   type="number"
                   step="0.01"
@@ -566,10 +566,10 @@ export default function VanSalesRepPage() {
                   value={saleQty}
                   onChange={(e) => setSaleQty(e.target.value)}
                 />
-              </label>
-              <label className="field">
-                <span>سعر الوحدة (اتركه فارغًا لاستخدام شريحة العميل)</span>
-                <input
+ </label>
+ <label className="field">
+ <span>سعر الوحدة (اتركه فارغًا لاستخدام شريحة العميل)</span>
+ <input
                   className="input"
                   type="number"
                   step="0.01"
@@ -577,10 +577,10 @@ export default function VanSalesRepPage() {
                   value={saleUnitPrice}
                   onChange={(e) => setSaleUnitPrice(e.target.value)}
                 />
-              </label>
-              <label className="field">
-                <span>كمية مجانية / بونص</span>
-                <input
+ </label>
+ <label className="field">
+ <span>كمية مجانية / بونص</span>
+ <input
                   className="input"
                   type="number"
                   step="0.01"
@@ -588,81 +588,81 @@ export default function VanSalesRepPage() {
                   value={saleBonusQty}
                   onChange={(e) => setSaleBonusQty(e.target.value)}
                 />
-              </label>
-              <label className="field">
-                <span>سبب البونص</span>
-                <input
+ </label>
+ <label className="field">
+ <span>سبب البونص</span>
+ <input
                   className="input"
                   value={saleBonusReason}
                   onChange={(e) => setSaleBonusReason(e.target.value)}
                   placeholder="مثال: عرض ترويجي متفق عليه"
                 />
-              </label>
-              <label className="field">
-                <span>طريقة الدفع</span>
-                <select
+ </label>
+ <label className="field">
+ <span>طريقة الدفع</span>
+ <select
                   className="input"
                   value={salePayment}
                   onChange={(e) => setSalePayment(e.target.value as 'cash' | 'card' | 'credit')}
                 >
-                  <option value="cash">نقدًا</option>
-                  <option value="card">شبكة</option>
-                  <option value="credit">آجل (على حساب العميل)</option>
-                </select>
-              </label>
-            </div>
-            <div>
-              <button type="submit" className="btn primary" disabled={busy || !can('van_sales.invoice.create')}>
-                {busy ? 'جارٍ الإصدار…' : '🧾 اعتماد البيع وإصدار الفاتورة'}
-              </button>
-            </div>
-          </form>
+ <option value="cash">نقدًا</option>
+ <option value="card">شبكة</option>
+ <option value="credit">آجل (على حساب العميل)</option>
+ </select>
+ </label>
+ </div>
+ <div>
+ <button type="submit" className="btn primary" disabled={busy || !can('van_sales.invoice.create')}>
+ {busy ? 'جارٍ الإصدار…' : 'اعتماد البيع وإصدار الفاتورة'}
+ </button>
+ </div>
+ </form>
 
-          {/* 🧾 سجل الفواتير والتحصيل */}
-          <div className="card">
-            <h2 style={{ marginTop: 0 }}>🧾 فواتيرك ومستنداتك</h2>
-            <div className="muted small">
+          {/* سجل الفواتير والتحصيل */}
+ <div className="card">
+ <h2 style={{ marginTop: 0 }}>فواتيرك ومستنداتك</h2>
+ <div className="muted small">
               {windowNote(data.windows, 'documents', DOCUMENTS_WINDOW_FALLBACK, {
                 totalsClause: REP_TOTALS_CLAUSE,
               })}
-            </div>
-            <div className="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>رقم المستند</th>
-                    <th>الفاتورة الرسمية</th>
-                    <th>التاريخ</th>
-                    <th>العميل</th>
-                    <th>مباع / مجاني</th>
-                    <th align="left">الإجمالي</th>
-                    <th align="left">المدفوع</th>
-                    <th align="left">المتبقي</th>
-                    <th>تحصيل</th>
-                  </tr>
-                </thead>
-                <tbody>
+ </div>
+ <div className="table-wrap">
+ <table>
+ <thead>
+ <tr>
+ <th>رقم المستند</th>
+ <th>الفاتورة الرسمية</th>
+ <th>التاريخ</th>
+ <th>العميل</th>
+ <th>مباع / مجاني</th>
+ <th align="left">الإجمالي</th>
+ <th align="left">المدفوع</th>
+ <th align="left">المتبقي</th>
+ <th>تحصيل</th>
+ </tr>
+ </thead>
+ <tbody>
                   {data.documents.map((row) => (
-                    <tr key={row.id}>
-                      <td dir="ltr"><b>{row.number}</b></td>
-                      <td dir="ltr">
+ <tr key={row.id}>
+ <td dir="ltr"><b>{row.number}</b></td>
+ <td dir="ltr">
                         {row.invoiceNumber ?? '—'}
                         {row.invoiceStatus ? <div className="muted small">{row.invoiceStatus}</div> : null}
-                      </td>
-                      <td dir="ltr">{row.docDate}</td>
-                      <td>{row.customerName}</td>
-                      <td dir="ltr">
+ </td>
+ <td dir="ltr">{row.docDate}</td>
+ <td>{row.customerName}</td>
+ <td dir="ltr">
                         {row.soldQty} / {row.bonusQty}
-                        {row.documentKind === 'return' ? ' ↩️ مرتجع' : ''}
-                      </td>
-                      <td align="left" dir="ltr">{row.total}</td>
-                      <td align="left" dir="ltr">{row.paidAmount}</td>
-                      <td align="left" dir="ltr" style={{ color: Number(row.outstanding) > 0 ? 'var(--warn)' : undefined }}>
+ {row.documentKind === 'return' ? ' مرتجع' : ''}
+ </td>
+ <td align="left" dir="ltr">{row.total}</td>
+ <td align="left" dir="ltr">{row.paidAmount}</td>
+ <td align="left" dir="ltr" style={{ color: Number(row.outstanding) > 0 ? 'var(--warn)' : undefined }}>
                         {row.outstanding}
-                      </td>
-                      <td>
+ </td>
+ <td>
                         {Number(row.outstanding) > 0 ? (
-                          <button
+ <button
                             type="button"
                             className="btn sm"
                             disabled={busy || !can('van_sales.collection.create')}
@@ -671,99 +671,99 @@ export default function VanSalesRepPage() {
                               setCollectAmount(row.outstanding);
                             }}
                           >
-                            💵 تحصيل
-                          </button>
+ تحصيل
+ </button>
                         ) : (
-                          <span className="muted small">مسدّد</span>
+ <span className="muted small">مسدّد</span>
                         )}
-                      </td>
-                    </tr>
+ </td>
+ </tr>
                   ))}
                   {data.documents.length === 0 ? (
-                    <tr>
-                      <td colSpan={9} className="muted">لا توجد فواتير بعد.</td>
-                    </tr>
+ <tr>
+ <td colSpan={9} className="muted">لا توجد فواتير بعد.</td>
+ </tr>
                   ) : null}
-                </tbody>
-              </table>
-            </div>
-          </div>
+ </tbody>
+ </table>
+ </div>
+ </div>
 
-          {/* 💵 التحصيلات */}
-          <div className="card">
+          {/* التحصيلات */}
+ <div className="card">
             {/**
               * ‏«اليوم» حُذفت من العنوان: فالقائمةُ أحدثُ ٥٠ حركة تحصيل لا حركاتِ اليوم،
               * والجملةُ تحت العنوان تقول العددَين من الخادم. وعنوانٌ يعدُ بما لا تُظهره
               * القائمةُ كذبٌ ولو كان الرقمُ صحيحًا.
               */}
-            <h2 style={{ marginTop: 0 }}>💵 ما حصّلته</h2>
-            <div className="muted small">
+ <h2 style={{ marginTop: 0 }}>ما حصّلته</h2>
+ <div className="muted small">
               {windowNote(data.windows, 'collections', COLLECTIONS_WINDOW_FALLBACK, {
                 totalsClause: REP_TOTALS_CLAUSE,
               })}
-            </div>
-            <div className="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>الوقت</th>
-                    <th align="left">المبلغ</th>
-                    <th>سند القبض الرسمي</th>
-                    <th>البيان</th>
-                  </tr>
-                </thead>
-                <tbody>
+ </div>
+ <div className="table-wrap">
+ <table>
+ <thead>
+ <tr>
+ <th>الوقت</th>
+ <th align="left">المبلغ</th>
+ <th>سند القبض الرسمي</th>
+ <th>البيان</th>
+ </tr>
+ </thead>
+ <tbody>
                   {data.collections.map((row) => (
-                    <tr key={row.id}>
-                      <td dir="ltr">{new Date(row.collectedAt).toLocaleString('ar-SA-u-ca-gregory')}</td>
-                      <td align="left" dir="ltr"><b>{row.amount}</b></td>
-                      <td dir="ltr">
+ <tr key={row.id}>
+ <td dir="ltr">{new Date(row.collectedAt).toLocaleString('ar-SA-u-ca-gregory-nu-latn')}</td>
+ <td align="left" dir="ltr"><b>{row.amount}</b></td>
+ <td dir="ltr">
                         {row.voucherNumber ?? '—'}
                         {row.voucherStatus ? <div className="muted small">{row.voucherStatus}</div> : null}
-                      </td>
-                      <td className="muted small">{row.reason}</td>
-                    </tr>
+ </td>
+ <td className="muted small">{row.reason}</td>
+ </tr>
                   ))}
                   {data.collections.length === 0 ? (
-                    <tr>
-                      <td colSpan={4} className="muted">لا توجد تحصيلات مسجّلة.</td>
-                    </tr>
+ <tr>
+ <td colSpan={4} className="muted">لا توجد تحصيلات مسجّلة.</td>
+ </tr>
                   ) : null}
-                </tbody>
-              </table>
-            </div>
-          </div>
+ </tbody>
+ </table>
+ </div>
+ </div>
 
-          {/* 🔒 إغلاق الوردية */}
-          <div className="card">
-            <h2 style={{ marginTop: 0 }}>🔒 إغلاق الوردية وتصفية العهدة</h2>
-            <div className="muted small">
+          {/* إغلاق الوردية */}
+ <div className="card">
+ <h2 style={{ marginTop: 0 }}>إغلاق الوردية وتصفية العهدة</h2>
+ <div className="muted small">
               {windowNote(data.windows, 'loadOrders', LOAD_ORDERS_WINDOW_FALLBACK, {
                 totalsClause: REP_TOTALS_CLAUSE,
               })}
-            </div>
-            <div className="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>الأمر</th>
-                    <th>الحالة</th>
-                    <th>استلمت</th>
-                    <th>بعت</th>
-                    <th>مجاني</th>
-                    <th>متبقٍ بالعهدة</th>
-                    <th>نقد متوقع / محصّل</th>
-                    <th>إجراء</th>
-                  </tr>
-                </thead>
-                <tbody>
+ </div>
+ <div className="table-wrap">
+ <table>
+ <thead>
+ <tr>
+ <th>الأمر</th>
+ <th>الحالة</th>
+ <th>استلمت</th>
+ <th>بعت</th>
+ <th>مجاني</th>
+ <th>متبقٍ بالعهدة</th>
+ <th>نقد متوقع / محصّل</th>
+ <th>إجراء</th>
+ </tr>
+ </thead>
+ <tbody>
                   {data.loadOrders.map((row) => (
-                    <tr key={row.id}>
-                      <td dir="ltr"><b>{row.number}</b></td>
-                      <td>
+ <tr key={row.id}>
+ <td dir="ltr"><b>{row.number}</b></td>
+ <td>
                         {LOAD_STATUS_AR[row.status] ?? row.status}
                         {row.stockSettlementStatus && row.stockSettlementStatus !== 'not_required' ? (
-                          <div className="muted small">
+ <div className="muted small">
                             {SETTLEMENT_STATUS_AR[row.stockSettlementStatus] ?? row.stockSettlementStatus}
                             {row.remainingAction
                               ? ` · المتبقي: ${
@@ -772,22 +772,22 @@ export default function VanSalesRepPage() {
                                     : 'بقي عهدة الوردية التالية'
                                 }`
                               : ''}
-                          </div>
+ </div>
                         ) : null}
-                      </td>
-                      <td dir="ltr">{row.receivedQty}</td>
-                      <td dir="ltr">{row.soldQty}</td>
-                      <td dir="ltr">{row.bonusQty}</td>
-                      <td dir="ltr">
+ </td>
+ <td dir="ltr">{row.receivedQty}</td>
+ <td dir="ltr">{row.soldQty}</td>
+ <td dir="ltr">{row.bonusQty}</td>
+ <td dir="ltr">
                         {Number(row.expectedRemainingQty).toFixed(2)}
                         {Number(row.actualRemainingQty) > 0 || row.status === 'settled' ? (
-                          <span className="muted small"> / جرد {Number(row.actualRemainingQty).toFixed(2)}</span>
+ <span className="muted small"> / جرد {Number(row.actualRemainingQty).toFixed(2)}</span>
                         ) : null}
-                      </td>
-                      <td dir="ltr">{row.expectedCash} / {row.collectedCash}</td>
-                      <td>
+ </td>
+ <td dir="ltr">{row.expectedCash} / {row.collectedCash}</td>
+ <td>
                         {['loaded', 'in_route'].includes(row.status) ? (
-                          <button
+ <button
                             type="button"
                             className="btn sm primary"
                             disabled={busy || !can('van_sales.closing.submit')}
@@ -802,44 +802,44 @@ export default function VanSalesRepPage() {
                               setClosingNotes('');
                             }}
                           >
-                            🔒 تقديم إغلاق الوردية
-                          </button>
+ تقديم إغلاق الوردية
+ </button>
                         ) : (
-                          <span className="muted small">
+ <span className="muted small">
                             {row.status === 'pending_closing'
-                              ? '⏳ بانتظار اعتماد المحاسب'
+ ? 'بانتظار اعتماد المحاسب'
                               : row.status === 'pending_stock_settlement'
-                                ? '🧾 اعتُمدت كمياتك وبانتظار تسوية المخزون الرسمية — عهدتك لم تُغلق بعد'
+ ? 'اعتُمدت كمياتك وبانتظار تسوية المخزون الرسمية — عهدتك لم تُغلق بعد'
                                 : row.status === 'rejected'
-                                  ? '❌ رفضتَ استلامه وأُعيدت الكمية رسمياً'
+ ? 'رفضتَ استلامه وأُعيدت الكمية رسمياً'
                                   : row.status === 'canceled'
-                                    ? '🗑️ أُلغي وأُعيدت كميته إلى المستودع'
+ ? 'أُلغي وأُعيدت كميته إلى المستودع'
                                     : '—'}
-                          </span>
+ </span>
                         )}
-                      </td>
-                    </tr>
+ </td>
+ </tr>
                   ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
+ </tbody>
+ </table>
+ </div>
+ </div>
+ </div>
       ) : null}
 
-      {/* ✅ نافذة تأكيد الاستلام */}
+      {/* نافذة تأكيد الاستلام */}
       {receiptTarget ? (
-        <div role="dialog" aria-modal="true" className="modal-backdrop" style={backdropStyle}>
-          <div className="card" style={dialogStyle}>
-            <h2 style={{ marginTop: 0 }}>✅ تأكيد استلام التوريد {receiptTarget.number}</h2>
-            <p className="muted small" style={{ marginTop: 0 }}>
-              المصروف من المستودع الرئيسي: <b dir="ltr">{receiptTarget.loadedQty} kg</b> — الصنف:{' '}
+ <div role="dialog" aria-modal="true" className="modal-backdrop" style={backdropStyle}>
+ <div className="card" style={dialogStyle}>
+ <h2 style={{ marginTop: 0 }}>تأكيد استلام التوريد {receiptTarget.number}</h2>
+ <p className="muted small" style={{ marginTop: 0 }}>
+ المصروف من المستودع الرئيسي: <b dir="ltr">{receiptTarget.loadedQty} kg</b> — الصنف:{' '}
               {receiptTarget.itemName}. أكّد الكمية التي استلمتها فعلًا؛ أي فرق يُسجَّل ويصل المحاسب للمراجعة.
-            </p>
-            <div className="form-grid">
-              <label className="field">
-                <span>الكمية المستلمة فعلًا *</span>
-                <input
+ </p>
+ <div className="form-grid">
+ <label className="field">
+ <span>الكمية المستلمة فعلًا *</span>
+ <input
                   className="input"
                   type="number"
                   step="0.01"
@@ -848,19 +848,19 @@ export default function VanSalesRepPage() {
                   value={receiptQty}
                   onChange={(e) => setReceiptQty(e.target.value)}
                 />
-              </label>
-              <label className="field">
-                <span>ملاحظات / سبب الفرق</span>
-                <input
+ </label>
+ <label className="field">
+ <span>ملاحظات / سبب الفرق</span>
+ <input
                   className="input"
                   value={receiptNotes}
                   onChange={(e) => setReceiptNotes(e.target.value)}
                   placeholder="مثال: كرتونة تالفة أثناء النقل"
                 />
-              </label>
-            </div>
-            <div className="row" style={{ gap: 8 }}>
-              <button
+ </label>
+ </div>
+ <div className="row" style={{ gap: 8 }}>
+ <button
                 type="button"
                 className="btn primary"
                 disabled={busy}
@@ -880,9 +880,9 @@ export default function VanSalesRepPage() {
                   ).then(() => setReceiptTarget(null))
                 }
               >
-                {busy ? 'جارٍ التأكيد…' : '✅ تأكيد الاستلام'}
-              </button>
-              <button
+ {busy ? 'جارٍ التأكيد…' : 'تأكيد الاستلام'}
+ </button>
+ <button
                 type="button"
                 className="btn"
                 disabled={busy}
@@ -898,36 +898,36 @@ export default function VanSalesRepPage() {
                         reason: reason.trim() || undefined,
                       }),
                     () =>
-                      `❌ رُفض استلام التوريد ${receiptTarget.number} وأُعيدت الكمية رسمياً إلى المستودع المصدر بقيد من ملف الترحيل.`,
+ `رُفض استلام التوريد ${receiptTarget.number} وأُعيدت الكمية رسمياً إلى المستودع المصدر بقيد من ملف الترحيل.`,
                   ).then(() => setReceiptTarget(null));
                 }}
               >
-                ❌ رفض الاستلام وإعادة الكمية
-              </button>
-              <button type="button" className="btn" onClick={() => setReceiptTarget(null)}>
-                إلغاء
-              </button>
-            </div>
-            <p className="muted small" style={{ margin: 0 }}>
-              الرفض يُقفل المناقلة الرسمية بوضع «الإرجاع»: تعود الكمية إلى المستودع المصدر ولا تدخل عهدتك، ويصل
-              المحاسبَ إشعار بسبب الرفض.
-            </p>
-          </div>
-        </div>
+ رفض الاستلام وإعادة الكمية
+ </button>
+ <button type="button" className="btn" onClick={() => setReceiptTarget(null)}>
+ إلغاء
+ </button>
+ </div>
+ <p className="muted small" style={{ margin: 0 }}>
+ الرفض يُقفل المناقلة الرسمية بوضع «الإرجاع»: تعود الكمية إلى المستودع المصدر ولا تدخل عهدتك، ويصل
+ المحاسبَ إشعار بسبب الرفض.
+ </p>
+ </div>
+ </div>
       ) : null}
 
-      {/* 💵 نافذة التحصيل */}
+      {/* نافذة التحصيل */}
       {collectDocId ? (
-        <div role="dialog" aria-modal="true" className="modal-backdrop" style={backdropStyle}>
-          <div className="card" style={dialogStyle}>
-            <h2 style={{ marginTop: 0 }}>💵 تسجيل تحصيل من العميل</h2>
-            <p className="muted small" style={{ marginTop: 0 }}>
-              يُصدر النظام سند قبض رسمي ويربطه بالفاتورة ويحدّث المبلغ المستحق — لا يُكتفى بتسجيل المبلغ في جدول
-              التوزيع.
-            </p>
-            <label className="field">
-              <span>المبلغ المحصّل *</span>
-              <input
+ <div role="dialog" aria-modal="true" className="modal-backdrop" style={backdropStyle}>
+ <div className="card" style={dialogStyle}>
+ <h2 style={{ marginTop: 0 }}>تسجيل تحصيل من العميل</h2>
+ <p className="muted small" style={{ marginTop: 0 }}>
+ يُصدر النظام سند قبض رسمي ويربطه بالفاتورة ويحدّث المبلغ المستحق — لا يُكتفى بتسجيل المبلغ في جدول
+ التوزيع.
+ </p>
+ <label className="field">
+ <span>المبلغ المحصّل *</span>
+ <input
                 className="input"
                 type="number"
                 step="0.01"
@@ -936,9 +936,9 @@ export default function VanSalesRepPage() {
                 value={collectAmount}
                 onChange={(e) => setCollectAmount(e.target.value)}
               />
-            </label>
-            <div className="row" style={{ gap: 8 }}>
-              <button
+ </label>
+ <div className="row" style={{ gap: 8 }}>
+ <button
                 type="button"
                 className="btn primary"
                 disabled={busy}
@@ -955,29 +955,29 @@ export default function VanSalesRepPage() {
                   ).then(() => setCollectDocId(''))
                 }
               >
-                {busy ? 'جارٍ التسجيل…' : '💵 تأكيد التحصيل'}
-              </button>
-              <button type="button" className="btn" onClick={() => setCollectDocId('')}>
-                إلغاء
-              </button>
-            </div>
-          </div>
-        </div>
+ {busy ? 'جارٍ التسجيل…' : 'تأكيد التحصيل'}
+ </button>
+ <button type="button" className="btn" onClick={() => setCollectDocId('')}>
+ إلغاء
+ </button>
+ </div>
+ </div>
+ </div>
       ) : null}
 
-      {/* 🔒 نافذة إغلاق الوردية */}
+      {/* نافذة إغلاق الوردية */}
       {closingTarget ? (
-        <div role="dialog" aria-modal="true" className="modal-backdrop" style={backdropStyle}>
-          <div className="card" style={dialogStyle}>
-            <h2 style={{ marginTop: 0 }}>🔒 تقديم إغلاق وردية ({closingTarget.number})</h2>
-            <p className="muted small" style={{ marginTop: 0 }}>
-              سجّل ما عاد معك سالمًا وما تلف والنقد المحصّل؛ يحسب النظام الفرق بين الرصيد المتوقع والجرد الفعلي ويحيل
-              الطلب إلى المحاسب للاعتماد. لا يُغلق الطلب مرتين ولا يُعتمد من قِبل مقدّمه.
-            </p>
-            <div className="form-grid">
-              <label className="field">
-                <span>مرتجع سليم للمستودع</span>
-                <input
+ <div role="dialog" aria-modal="true" className="modal-backdrop" style={backdropStyle}>
+ <div className="card" style={dialogStyle}>
+ <h2 style={{ marginTop: 0 }}>تقديم إغلاق وردية ({closingTarget.number})</h2>
+ <p className="muted small" style={{ marginTop: 0 }}>
+ سجّل ما عاد معك سالمًا وما تلف والنقد المحصّل؛ يحسب النظام الفرق بين الرصيد المتوقع والجرد الفعلي ويحيل
+ الطلب إلى المحاسب للاعتماد. لا يُغلق الطلب مرتين ولا يُعتمد من قِبل مقدّمه.
+ </p>
+ <div className="form-grid">
+ <label className="field">
+ <span>مرتجع سليم للمستودع</span>
+ <input
                   className="input"
                   type="number"
                   step="0.01"
@@ -985,10 +985,10 @@ export default function VanSalesRepPage() {
                   value={closingReturned}
                   onChange={(e) => setClosingReturned(e.target.value)}
                 />
-              </label>
-              <label className="field">
-                <span>كمية تالفة</span>
-                <input
+ </label>
+ <label className="field">
+ <span>كمية تالفة</span>
+ <input
                   className="input"
                   type="number"
                   step="0.01"
@@ -996,18 +996,18 @@ export default function VanSalesRepPage() {
                   value={closingDamaged}
                   onChange={(e) => setClosingDamaged(e.target.value)}
                 />
-              </label>
-              <label className="field">
-                <span>سبب التلف</span>
-                <input
+ </label>
+ <label className="field">
+ <span>سبب التلف</span>
+ <input
                   className="input"
                   value={closingDamageReason}
                   onChange={(e) => setClosingDamageReason(e.target.value)}
                 />
-              </label>
-              <label className="field">
-                <span>النقد المحصّل</span>
-                <input
+ </label>
+ <label className="field">
+ <span>النقد المحصّل</span>
+ <input
                   className="input"
                   type="number"
                   step="0.01"
@@ -1015,10 +1015,10 @@ export default function VanSalesRepPage() {
                   value={closingCash}
                   onChange={(e) => setClosingCash(e.target.value)}
                 />
-              </label>
-              <label className="field">
-                <span>المتبقي الفعلي بالجرد في السيارة *</span>
-                <input
+ </label>
+ <label className="field">
+ <span>المتبقي الفعلي بالجرد في السيارة *</span>
+ <input
                   className="input"
                   type="number"
                   step="0.01"
@@ -1029,23 +1029,23 @@ export default function VanSalesRepPage() {
                   value={closingActualRemaining}
                   onChange={(e) => setClosingActualRemaining(e.target.value)}
                 />
-                <span className="muted small">
-                  المتوقع حسب المستندات: {Number(closingTarget.expectedRemainingQty).toFixed(2)} كجم. اكتب ما
-                  <b> عددتَه فعلياً</b> — الفرق يظهر للمحاسب عجزاً أو فائضاً ويجب تفسيره في الملاحظات. تركه
-                  فارغاً يعني أنك لم تُثبت وجود أي كمية في السيارة.
-                </span>
-              </label>
-              <label className="field">
-                <span>ملاحظات الجرد</span>
-                <input
+ <span className="muted small">
+ المتوقع حسب المستندات: {Number(closingTarget.expectedRemainingQty).toFixed(2)} كجم. اكتب ما
+ <b> عددتَه فعلياً</b> — الفرق يظهر للمحاسب عجزاً أو فائضاً ويجب تفسيره في الملاحظات. تركه
+ فارغاً يعني أنك لم تُثبت وجود أي كمية في السيارة.
+ </span>
+ </label>
+ <label className="field">
+ <span>ملاحظات الجرد</span>
+ <input
                   className="input"
                   value={closingNotes}
                   onChange={(e) => setClosingNotes(e.target.value)}
                 />
-              </label>
-            </div>
-            <div className="row" style={{ gap: 8 }}>
-              <button
+ </label>
+ </div>
+ <div className="row" style={{ gap: 8 }}>
+ <button
                 type="button"
                 className="btn primary"
                 disabled={busy || closingActualRemaining.trim() === ''}
@@ -1065,16 +1065,16 @@ export default function VanSalesRepPage() {
                   ).then(() => setClosingTarget(null))
                 }
               >
-                {busy ? 'جارٍ التقديم…' : '🔒 تقديم الإغلاق'}
-              </button>
-              <button type="button" className="btn" onClick={() => setClosingTarget(null)}>
-                إلغاء
-              </button>
-            </div>
-          </div>
-        </div>
+ {busy ? 'جارٍ التقديم…' : 'تقديم الإغلاق'}
+ </button>
+ <button type="button" className="btn" onClick={() => setClosingTarget(null)}>
+ إلغاء
+ </button>
+ </div>
+ </div>
+ </div>
       ) : null}
-    </Screen>
+ </Screen>
   );
 }
 

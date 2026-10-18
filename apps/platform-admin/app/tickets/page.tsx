@@ -48,7 +48,7 @@ const PRIORITY_LABEL: Record<TicketPriority, string> = {
 const SLA_HOURS: Record<TicketPriority, number> = { urgent: 1, high: 4, normal: 24, low: 72 };
 
 function dateTime(value: string | null | undefined): string {
-  return value ? new Date(value).toLocaleString('ar-SA') : '—';
+  return value ? new Date(value).toLocaleString('ar-SA-u-ca-gregory-nu-latn') : '—';
 }
 
 /** المتبقّي من المهلة بالدقائق — سالبٌ يعني تجاوزاً. */
@@ -132,7 +132,7 @@ function InboxTab() {
       <div className="toolbar">
         <label>
           الحالة
-          <select value={status} onChange={(event) => setStatus(event.target.value as TicketStatus | '')}>
+          <select className="input" value={status} onChange={(event) => setStatus(event.target.value as TicketStatus | '')}>
             <option value="">الكل</option>
             {ticketStatuses.map((value) => (
               <option key={value} value={value}>
@@ -143,7 +143,7 @@ function InboxTab() {
         </label>
         <label>
           الأولوية
-          <select
+          <select className="input"
             value={priority}
             onChange={(event) => setPriority(event.target.value as TicketPriority | '')}
           >
@@ -314,7 +314,7 @@ function NewTicketTab({ onCreated }: { onCreated: () => void }) {
       <div className="row">
         <label>
           العميل
-          <select value={tenantId} onChange={(event) => setTenantId(event.target.value)}>
+          <select className="input" value={tenantId} onChange={(event) => setTenantId(event.target.value)}>
             <option value="">اختر منشأة…</option>
             {(tenants.data ?? []).map((tenant) => (
               <option key={tenant.id} value={tenant.id}>
@@ -325,7 +325,7 @@ function NewTicketTab({ onCreated }: { onCreated: () => void }) {
         </label>
         <label>
           الأولوية
-          <select value={priority} onChange={(event) => setPriority(event.target.value as TicketPriority)}>
+          <select className="input" value={priority} onChange={(event) => setPriority(event.target.value as TicketPriority)}>
             {ticketPriorities.map((value) => (
               <option key={value} value={value}>
                 {PRIORITY_LABEL[value]} · مهلة {SLA_HOURS[value]} ساعة
@@ -335,7 +335,7 @@ function NewTicketTab({ onCreated }: { onCreated: () => void }) {
         </label>
         <label>
           الباب (اختياري)
-          <input
+          <input className="input"
             value={category}
             onChange={(event) => setCategory(event.target.value)}
             placeholder="طباعة · فواتير · صلاحيات"
@@ -344,15 +344,15 @@ function NewTicketTab({ onCreated }: { onCreated: () => void }) {
       </div>
       <label>
         الموضوع
-        <input value={subject} onChange={(event) => setSubject(event.target.value)} />
+        <input className="input" value={subject} onChange={(event) => setSubject(event.target.value)} />
       </label>
       <label>
         الرسالة الأولى (ما قاله العميل)
-        <textarea rows={4} value={body} onChange={(event) => setBody(event.target.value)} />
+        <textarea className="input" rows={4} value={body} onChange={(event) => setBody(event.target.value)} />
       </label>
       <label>
         السبب الداخلي
-        <input
+        <input className="input"
           value={reason}
           onChange={(event) => setReason(event.target.value)}
           placeholder="مكالمة هاتفية · بريد · زيارة"

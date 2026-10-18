@@ -250,36 +250,18 @@ export default function ContractorContractPage() {
           <h3>
             {current.number} — {current.title}
           </h3>
-          <div className="grid cols-2">
-            <div className="kpi">
-              <span>قيمة العقد</span>
-              <strong>{money(current.contractValue)}</strong>
-            </div>
-            <div className="kpi">
-              <span>المستخلَص</span>
-              <strong>{money(current.certified)}</strong>
-            </div>
-            <div className="kpi">
-              <span>المتبقي</span>
-              <strong>{money(current.remainingValue)}</strong>
-            </div>
-            <div className="kpi">
-              <span>المحتجز لدى المنشأة</span>
-              <strong>{money(current.retentionHeld)}</strong>
-            </div>
-            <div className="kpi">
-              <span>الدفعة المقدمة المصروفة</span>
-              <strong>{money(current.advanceIssued)}</strong>
-            </div>
-            <div className="kpi">
-              <span>المتبقي استرداده من المقدمة</span>
-              <strong>{money(current.advanceOutstanding)}</strong>
-            </div>
+          <div className="ui-kpi-strip">
+            <div className="ui-kpi-cell"><span className="ui-kpi-label">قيمة العقد</span><span className="ui-kpi-value">{money(current.contractValue)}</span></div>
+            <div className="ui-kpi-cell"><span className="ui-kpi-label">المستخلَص</span><span className="ui-kpi-value">{money(current.certified)}</span></div>
+            <div className="ui-kpi-cell"><span className="ui-kpi-label">المتبقي</span><span className="ui-kpi-value">{money(current.remainingValue)}</span></div>
+            <div className="ui-kpi-cell"><span className="ui-kpi-label">المحتجز لدى المنشأة</span><span className="ui-kpi-value">{money(current.retentionHeld)}</span></div>
+            <div className="ui-kpi-cell"><span className="ui-kpi-label">الدفعة المقدمة المصروفة</span><span className="ui-kpi-value">{money(current.advanceIssued)}</span></div>
+            <div className="ui-kpi-cell"><span className="ui-kpi-label">المتبقي استرداده من المقدمة</span><span className="ui-kpi-value">{money(current.advanceOutstanding)}</span></div>
           </div>
           <div className="chips">
             <span className="chip">{`الحالة: ${STATUS_LABELS[current.status] ?? statusLabel(current.status)}`}</span>
             <span className="chip">{`الاحتجاز: ${percent(Number(current.retentionPct) / 100)}`}</span>
-            <span className="chip">{`المدة: ${current.startsOn ? shortDate(current.startsOn) : '—'} → ${current.endsOn ? shortDate(current.endsOn) : '—'}`}</span>
+ <span className="chip">{`المدة: ${current.startsOn ? shortDate(current.startsOn) : '—'} ${current.endsOn ? shortDate(current.endsOn) : '—'}`}</span>
             <span className="chip">{`صافي المدفوع: ${money(current.paidNet)}`}</span>
           </div>
           {can('projects.manage') && (

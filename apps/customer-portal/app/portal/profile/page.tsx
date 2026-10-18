@@ -18,7 +18,8 @@ function Details() {
       <div className="grid cols">
         <section className="card">
           <h2>بطاقتي لدى المورد</h2>
-          <table>
+          <div className="table-wrap">
+            <table>
             <tbody>
               <tr>
                 <td className="muted">الاسم</td>
@@ -51,12 +52,14 @@ function Details() {
                 </td>
               </tr>
             </tbody>
-          </table>
+            </table>
+          </div>
         </section>
 
         <section className="card">
           <h2>بيانات المورد</h2>
-          <table>
+          <div className="table-wrap">
+            <table>
             <tbody>
               <tr>
                 <td className="muted">المنشأة</td>
@@ -79,7 +82,8 @@ function Details() {
                 <td>{company?.phones?.length ? company.phones.join(' · ') : '—'}</td>
               </tr>
             </tbody>
-          </table>
+            </table>
+          </div>
         </section>
       </div>
     </>

@@ -1,10 +1,13 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import { Notice } from '../../../components/data-view';
+import { Empty } from '../../../components/screen';
 import { Screen } from '../../../components/screen';
 import { ApiError } from '../../../lib/api';
+import { useQuery } from '../../../lib/use-query';
+import { branchOptions, listBranches, type Branch } from '../../../lib/lookups';
 import {
   connectEcommerceStore,
   deleteEcommerceStore,
@@ -28,6 +31,8 @@ export default function EcommerceSettingsPage() {
   const [branchId, setBranchId] = useState('');
   const [busy, setBusy] = useState('');
   const [notice, setNotice] = useState<{ kind: 'ok' | 'danger' | 'info' | 'warn'; text: string }>();
+  const branches = useQuery<Branch[]>(() => listBranches(), []);
+  const branchChoices = useMemo(() => branchOptions(branches.data ?? []), [branches.data]);
 
   async function reload() {
     const [nextProviders, nextStores] = await Promise.all([ecommerceProviders(), ecommerceStores()]);
@@ -55,20 +60,27 @@ export default function EcommerceSettingsPage() {
   }
 
   return (
-    <Screen
-      title="🛒 تكامل المتاجر الإلكترونية"
+ <Screen
+ title="تكامل المتاجر الإلكترونية"
       subtitle="متجري في سلة · متجري في زد · Shopify — اربط المتجر، اختبر الرمز، ثم ابدأ مزامنة الطلبات والمخزون. مفاتيح الربط لا تُعرض بعد الحفظ."
       crumbs={['الإعدادات', 'التجارة الإلكترونية']}
-      actions={<span className="chip">{stores.length} متجر</span>}
+      actions={<span className="badge">{stores.length} متجر مرتبط</span>}
     >
-      <Notice notice={notice} />
+ <Notice notice={notice} />
 
-      <div className="card">
-        <h3>🔗 ربط متجر</h3>
-        <div className="form-grid">
-          <label className="field">
-            <span>المزوّد</span>
-            <select
+ <section className="panel">
+ <div className="panel-head">
+ <div>
+ <h2>ربط متجر</h2>
+ <p>اختر المنصة وأدخل مفتاح الوصول؛ يُشفَّر المفتاح عند الحفظ ولا يُعرض بعدها.</p>
+ </div>
+ </div>
+ <div className="form-section">
+ <div className="form-grid">
+ <label className="field">
+ <span>المزوّد</span>
+ <select
+              className="input"
               value={provider}
               onChange={(event) => setProvider(event.target.value as EcommerceProvider)}
             >
@@ -80,55 +92,61 @@ export default function EcommerceSettingsPage() {
                     supports: [],
                   }))
               ).map((item) => (
-                <option key={item.provider} value={item.provider}>
+ <option key={item.provider} value={item.provider}>
                   {item.label}
-                </option>
+ </option>
               ))}
-            </select>
-          </label>
-          <label className="field wide">
-            <span>{provider === 'shopify' ? 'Store URL' : 'API Key / OAuth code'}</span>
-            <input
+ </select>
+ </label>
+ <label className="field wide">
+ <span>{provider === 'shopify' ? 'مفتاح الوصول' : 'مفتاح الربط أو رمز OAuth'}</span>
+ <input
+              className="input"
               dir="ltr"
               type="password"
               value={apiKey}
               onChange={(event) => setApiKey(event.target.value)}
               placeholder="يُشفّر ولا يُعرض بعد الحفظ"
             />
-          </label>
+ </label>
           {provider === 'shopify' ? (
-            <label className="field wide">
-              <span>عنوان متجر Shopify</span>
-              <input
+ <label className="field wide">
+ <span>عنوان المتجر</span>
+ <input
+                className="input"
                 dir="ltr"
                 value={storeUrl}
                 onChange={(event) => setStoreUrl(event.target.value)}
                 placeholder="https://shop.example.com"
               />
-            </label>
+ </label>
           ) : null}
-          <label className="field">
-            <span>رمز HMAC للويب هوك (اختياري)</span>
-            <input
+ <label className="field">
+ <span>رمز التحقق من الإشعارات (اختياري)</span>
+ <input
+              className="input"
               dir="ltr"
               type="password"
               value={webhookSecret}
               onChange={(event) => setWebhookSecret(event.target.value)}
               placeholder="إن تركته فارغاً يُستخدم الرمز"
             />
-          </label>
-          <label className="field">
-            <span>معرّف الفرع الافتراضي (اختياري)</span>
-            <input
-              dir="ltr"
-              value={branchId}
-              onChange={(event) => setBranchId(event.target.value)}
-              placeholder="يُختار أول فرع إن تركته فارغاً"
-            />
-          </label>
-        </div>
-        <div className="toolbar">
-          <button
+ </label>
+ <label className="field">
+ <span>الفرع الافتراضي (اختياري)</span>
+ <select className="input" value={branchId} onChange={(event) => setBranchId(event.target.value)}>
+ <option value="">— بدون فرع افتراضي —</option>
+                {branchChoices.map((option) => (
+ <option key={option.id} value={option.id}>
+                    {option.label}
+ </option>
+                ))}
+ </select>
+ </label>
+ </div>
+ </div>
+ <div className="panel-foot">
+ <button
             className="btn primary"
             type="button"
             disabled={busy !== '' || apiKey.trim() === ''}
@@ -153,42 +171,48 @@ export default function EcommerceSettingsPage() {
               })
             }
           >
-            🔗 ربط واختبار
-          </button>
-          {busy ? <span className="chip">جارٍ التنفيذ…</span> : null}
-        </div>
-      </div>
+ ربط واختبار
+ </button>
+          {busy ? <span className="badge">جارٍ التنفيذ…</span> : null}
+ </div>
+ </section>
 
-      <div className="card">
-        <div className="toolbar">
-          <h3>🏪 المتاجر المرتبطة</h3>
-          <button className="btn" type="button" onClick={() => void run('reload', reload)}>
-            🔄 تحديث
-          </button>
-        </div>
+ <section className="panel">
+ <div className="panel-head">
+ <div>
+ <h2>المتاجر المرتبطة</h2>
+ <p>حالة كل متجر وآخر مزامنة، مع إمكانية المزامنة أو الفصل.</p>
+ </div>
+ <div className="panel-actions">
+ <button className="btn" type="button" onClick={() => void run('reload', reload)}>
+ تحديث
+ </button>
+ </div>
+ </div>
         {stores.length === 0 ? (
-          <p className="muted">لا توجد متاجر مرتبطة بعد.</p>
+ <Empty title="لا توجد متاجر مرتبطة" detail="اربط متجرك من النموذج أعلاه ليبدأ استيراد الطلبات والمخزون." />
         ) : (
-          <div className="stack">
+ <div className="stack">
             {stores.map((store) => (
-              <div className="card inset" key={store.id}>
-                <div className="toolbar">
-                  <div>
-                    <strong>
-                      {labels[store.provider]} — {store.storeUrl ?? store.remoteStoreId ?? 'متجر تجريبي'}
-                    </strong>
-                    <div className="muted">
-                      الرمز: {store.accessTokenMasked} · آخر مزامنة:{' '}
+ <div className="card inset" key={store.id}>
+ <div className="toolbar">
+ <div>
+ <strong>
+                      {labels[store.provider]} —{' '}
+                      <span dir="ltr">{store.storeUrl ?? store.remoteStoreId ?? store.id.slice(0, 8)}</span>
+ </strong>
+ <div className="muted">
+ الرمز: {store.accessTokenMasked} · آخر مزامنة:{' '}
                       {store.lastSyncAt ? new Date(store.lastSyncAt).toLocaleString('ar') : 'لم تبدأ'}
-                    </div>
-                  </div>
-                  <span className={`chip ${store.status === 'active' ? 'success' : 'danger'}`}>
-                    {store.status === 'active' ? 'مفعّل' : 'error'}
-                  </span>
-                </div>
-                {store.lastError ? <p className="notice danger">⚠️ {store.lastError}</p> : null}
-                <div className="toolbar">
-                  <button
+ </div>
+ </div>
+ <span className={`badge ${store.status === 'active' ? 'ok' : 'warn'}`}>
+                    {store.status === 'active' ? 'مفعّل' : 'يحتاج مراجعة'}
+ </span>
+ </div>
+ {store.lastError ? <p className="notice danger">{store.lastError}</p> : null}
+ <div className="toolbar">
+ <button
                     className="btn primary"
                     type="button"
                     disabled={busy !== ''}
@@ -202,9 +226,9 @@ export default function EcommerceSettingsPage() {
                       })
                     }
                   >
-                    🔄 مزامنة الطلبات
-                  </button>
-                  <button
+ مزامنة الطلبات
+ </button>
+ <button
                     className="btn danger"
                     type="button"
                     disabled={busy !== ''}
@@ -213,14 +237,14 @@ export default function EcommerceSettingsPage() {
                         void run(`delete-${store.id}`, async () => deleteEcommerceStore(store.id));
                     }}
                   >
-                    حذف الربط
-                  </button>
-                </div>
-              </div>
+ حذف الربط
+ </button>
+ </div>
+ </div>
             ))}
-          </div>
+ </div>
         )}
-      </div>
-    </Screen>
+ </section>
+ </Screen>
   );
 }

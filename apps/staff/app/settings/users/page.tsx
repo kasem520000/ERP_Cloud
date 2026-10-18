@@ -43,6 +43,13 @@ const SCOPE_TYPES = [
 
 const TENANT_WIDE_SCOPE_ID = '00000000-0000-0000-0000-000000000000';
 
+/** Membership states are database enums; the screen speaks Arabic. */
+const MEMBERSHIP_STATUS: Record<Membership['status'], string> = {
+  active: 'نشط',
+  invited: 'مدعو',
+  suspended: 'موقوف',
+};
+
 const scopeTypeLabel = (scopeType: Scope['scopeType']): string =>
   SCOPE_TYPES.find((item) => item.value === scopeType)?.label ??
   (scopeType === 'pos_terminal' ? 'طرفية نقاط البيع' : scopeType);
@@ -57,7 +64,7 @@ function scopeLabel(
   const role = roles.find((item) => item.id === scope.roleId)?.name ?? scope.roleId;
   const type = scopeTypeLabel(scope.scopeType);
   if (scope.scopeId === TENANT_WIDE_SCOPE_ID) {
-    return `${role} ← ${type}: كل المنشأة (وصول شامل صريح)`;
+ return `${role} ${type}: كل المنشأة (وصول شامل صريح)`;
   }
   const target =
     scope.scopeType === 'branch'
@@ -67,7 +74,7 @@ function scopeLabel(
         : scope.scopeType === 'cash_location'
           ? (cashLocations.find((item) => item.id === scope.scopeId)?.name ?? scope.scopeId)
           : scope.scopeId;
-  return `${role} ← ${type}: ${target}`;
+ return `${role} ${type}: ${target}`;
 }
 
 /**
@@ -122,9 +129,9 @@ export default function TenantUsersPage() {
 
   if (!can('tenant.membership.manage')) {
     return (
-      <Screen title="بطاقة مستخدم" subtitle="مستخدمو هذه المنشأة وأدوارهم." crumbs={['الإعدادات', 'إعدادات المستخدمين']}>
-        <Forbidden />
-      </Screen>
+ <Screen title="بطاقة مستخدم" subtitle="مستخدمو هذه المنشأة وأدوارهم." crumbs={['الإعدادات', 'إعدادات المستخدمين']}>
+ <Forbidden />
+ </Screen>
     );
   }
 
@@ -212,98 +219,98 @@ export default function TenantUsersPage() {
         : cashRows.map((item) => ({ id: item.id, label: item.name }));
 
   return (
-    <Screen title="بطاقة مستخدم" subtitle="مستخدمو هذه المنشأة وأدوارهم ونطاقات فروعهم." crumbs={['الإعدادات', 'إعدادات المستخدمين']}>
-      <Notice notice={notice} />
+ <Screen title="بطاقة مستخدم" subtitle="مستخدمو هذه المنشأة وأدوارهم ونطاقات فروعهم." crumbs={['الإعدادات', 'إعدادات المستخدمين']}>
+ <Notice notice={notice} />
 
-      <section className="card">
-        <div className="row">
-          {/* «📋 قائمة المستخدمين» — `frmAddUsers.xaml` س325. */}
-          <h2>📋 قائمة المستخدمين ({(memberships.data ?? []).length})</h2>
-          <button type="button" className="btn primary" disabled={busy} onClick={() => setShowInvite(!showInvite)}>
+ <section className="card">
+ <div className="row">
+ {/* «قائمة المستخدمين» — `frmAddUsers.xaml` س325. */}
+ <h2>قائمة المستخدمين ({(memberships.data ?? []).length})</h2>
+ <button type="button" className="btn primary" disabled={busy} onClick={() => setShowInvite(!showInvite)}>
             {showInvite ? 'إغلاق الدعوة' : 'دعوة مستخدم'}
-          </button>
-        </div>
+ </button>
+ </div>
 
         {showInvite && (
-          <div className="form-grid">
-            {/* «🔑 اسم المستخدم» — `frmAddUsers.xaml` س243: في السحابة اسم الدخول هو البريد. */}
-            <label>
-              🔑 اسم المستخدم (البريد الإلكتروني)
-              <input type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="user@company.sa" dir="ltr" />
-            </label>
-            {/* «👤 الموظف» — `frmAddUsers.xaml` س234: في الديسكتوب اختيارٌ من الموظفين، وهنا كتابةٌ للاسم. */}
-            <label>
-              👤 الموظف
-              <input value={fullName} onChange={(event) => setFullName(event.target.value)} placeholder="اختياري" />
-            </label>
-            <fieldset>
-              <legend>الأدوار (دور واحد على الأقل)</legend>
+ <div className="form-grid">
+ {/* «اسم المستخدم» — `frmAddUsers.xaml` س243: في السحابة اسم الدخول هو البريد. */}
+ <label>
+ اسم المستخدم (البريد الإلكتروني)
+ <input className="input" type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="user@company.sa" dir="ltr" />
+ </label>
+ {/* «الموظف» — `frmAddUsers.xaml` س234: في الديسكتوب اختيارٌ من الموظفين، وهنا كتابةٌ للاسم. */}
+ <label>
+ الموظف
+ <input className="input" value={fullName} onChange={(event) => setFullName(event.target.value)} placeholder="اختياري" />
+ </label>
+ <fieldset>
+ <legend>الأدوار (دور واحد على الأقل)</legend>
               {roleRows.map((role) => (
-                <label key={role.id}>
-                  <input type="checkbox" checked={inviteRoles.includes(role.id)} onChange={() => setInviteRoles(toggle(inviteRoles, role.id))} />
+ <label key={role.id}>
+ <input type="checkbox" checked={inviteRoles.includes(role.id)} onChange={() => setInviteRoles(toggle(inviteRoles, role.id))} />
                   {role.name}
-                </label>
+ </label>
               ))}
-            </fieldset>
-            <fieldset>
-              <legend>نطاق الفروع</legend>
-              <label>
-                <input type="checkbox" checked={inviteScopeAll} onChange={() => setInviteScopeAll(!inviteScopeAll)} />
-                كل الفروع
-              </label>
+ </fieldset>
+ <fieldset>
+ <legend>نطاق الفروع</legend>
+ <label>
+ <input type="checkbox" checked={inviteScopeAll} onChange={() => setInviteScopeAll(!inviteScopeAll)} />
+ كل الفروع
+ </label>
               {!inviteScopeAll &&
                 branchOptions(branchRows).map((option) => (
-                  <label key={option.id}>
-                    <input type="checkbox" checked={inviteScope.includes(option.id)} onChange={() => setInviteScope(toggle(inviteScope, option.id))} />
+ <label key={option.id}>
+ <input type="checkbox" checked={inviteScope.includes(option.id)} onChange={() => setInviteScope(toggle(inviteScope, option.id))} />
                     {option.label}
-                  </label>
+ </label>
                 ))}
               {!inviteScopeAll && inviteScope.length === 0 && <p className="muted">اختر فرعاً واحداً على الأقل أو فعّل «كل الفروع».</p>}
-            </fieldset>
-            <fieldset>
-              <legend>💰 حدود الخصم (فارغ = بلا حدّ)</legend>
-              <label>
-                أعلى نسبة للخصم %
-                <input
+ </fieldset>
+ <fieldset>
+ <legend>حدود الخصم (فارغ = بلا حدّ)</legend>
+ <label>
+ أعلى نسبة للخصم %
+ <input className="input"
                   value={inviteMaxPct}
                   onChange={(event) => setInviteMaxPct(event.target.value)}
                   inputMode="decimal"
                   placeholder="مثال: 10"
                   dir="ltr"
                 />
-              </label>
-              <label>
-                أعلى قيمة للخصم
-                <input
+ </label>
+ <label>
+ أعلى قيمة للخصم
+ <input className="input"
                   value={inviteMaxAmount}
                   onChange={(event) => setInviteMaxAmount(event.target.value)}
                   inputMode="decimal"
                   placeholder="مثال: 50.0000"
                   dir="ltr"
                 />
-              </label>
-            </fieldset>
-            <button
+ </label>
+ </fieldset>
+ <button
               type="button"
               className="btn primary"
               disabled={busy || inviteRoles.length === 0 || !email.trim() || (!inviteScopeAll && inviteScope.length === 0)}
               onClick={() => void invite()}
             >
-              إرسال الدعوة
-            </button>
-          </div>
+ إرسال الدعوة
+ </button>
+ </div>
         )}
 
-        <QueryView
+ <QueryView
           query={memberships}
           empty="لا يوجد مستخدمون"
           children={(list) => (
-            <DataTable
+ <DataTable
               rows={list}
               rowKey={(row) => row.id}
               columns={[
-                { key: 'name', header: '👤 الموظف', cell: (row) => row.displayName },
-                { key: 'status', header: 'الحالة', cell: (row) => <span className={`badge ${row.status}`}>{row.status}</span> },
+                { key: 'name', header: 'الموظف', cell: (row) => row.displayName },
+                { key: 'status', header: 'الحالة', cell: (row) => <span className={`badge ${row.status}`}>{MEMBERSHIP_STATUS[row.status] ?? row.status}</span> },
                 { key: 'owner', header: 'مالك', cell: (row) => (row.isOwner ? 'نعم' : '—') },
                 { key: 'roles', header: 'الأدوار', cell: (row) => row.roles.map((role) => role.name).join('، ') || '—' },
                 { key: 'scope', header: 'النطاق', cell: (row) => (row.branchScope === null ? 'كل الفروع' : `${row.branchScope.length} فروع`) },
@@ -312,11 +319,11 @@ export default function TenantUsersPage() {
                   key: 'actions',
                   header: 'إجراءات',
                   cell: (row) => (
-                    <span className="row">
-                      <button type="button" className="btn sm" disabled={busy} onClick={() => startEdit(row)}>
-                        تعديل
-                      </button>
-                      <button
+ <span className="row">
+ <button type="button" className="btn sm" disabled={busy} onClick={() => startEdit(row)}>
+ تعديل
+ </button>
+ <button
                         type="button"
                         className="btn sm danger"
                         disabled={busy || row.isOwner}
@@ -325,100 +332,100 @@ export default function TenantUsersPage() {
                           if (window.confirm(`حذف ${row.displayName}؟`)) void remove(row);
                         }}
                       >
-                        حذف
-                      </button>
-                    </span>
+ حذف
+ </button>
+ </span>
                   ),
                 },
               ]}
             />
           )}
         />
-      </section>
+ </section>
 
       {editing && (
-        <section className="card">
-          <div className="row">
-            <h2>تعديل: {editing.displayName}</h2>
-            <button type="button" className="btn sm" onClick={() => setEditingId(null)}>
-              إلغاء
-            </button>
-          </div>
-          <div className="form-grid">
-            <label>
-              👤 الموظف
-              <input value={displayName} onChange={(event) => setDisplayName(event.target.value)} />
-            </label>
-            <label>
-              الحالة
-              <select value={status} onChange={(event) => setStatus(event.target.value as Membership['status'])}>
-                <option value="active">نشط</option>
-                <option value="invited">مدعو</option>
-                <option value="suspended">موقوف</option>
-              </select>
-            </label>
-            <fieldset>
-              <legend>الأدوار</legend>
+ <section className="card">
+ <div className="row">
+ <h2>تعديل: {editing.displayName}</h2>
+ <button type="button" className="btn sm" onClick={() => setEditingId(null)}>
+ إلغاء
+ </button>
+ </div>
+ <div className="form-grid">
+ <label>
+ الموظف
+ <input className="input" value={displayName} onChange={(event) => setDisplayName(event.target.value)} />
+ </label>
+ <label>
+ الحالة
+ <select className="input" value={status} onChange={(event) => setStatus(event.target.value as Membership['status'])}>
+ <option value="active">نشط</option>
+ <option value="invited">مدعو</option>
+ <option value="suspended">موقوف</option>
+ </select>
+ </label>
+ <fieldset>
+ <legend>الأدوار</legend>
               {roleRows.map((role) => (
-                <label key={role.id}>
-                  <input type="checkbox" checked={editRoles.includes(role.id)} onChange={() => setEditRoles(toggle(editRoles, role.id))} />
+ <label key={role.id}>
+ <input type="checkbox" checked={editRoles.includes(role.id)} onChange={() => setEditRoles(toggle(editRoles, role.id))} />
                   {role.name}
-                </label>
+ </label>
               ))}
-            </fieldset>
-            <fieldset>
-              <legend>نطاق الفروع</legend>
-              <label>
-                <input type="checkbox" checked={scopeAll} onChange={() => setScopeAll(!scopeAll)} />
-                كل الفروع
-              </label>
+ </fieldset>
+ <fieldset>
+ <legend>نطاق الفروع</legend>
+ <label>
+ <input type="checkbox" checked={scopeAll} onChange={() => setScopeAll(!scopeAll)} />
+ كل الفروع
+ </label>
               {!scopeAll &&
                 branchOptions(branchRows).map((option) => (
-                  <label key={option.id}>
-                    <input type="checkbox" checked={scope.includes(option.id)} onChange={() => setScope(toggle(scope, option.id))} />
+ <label key={option.id}>
+ <input type="checkbox" checked={scope.includes(option.id)} onChange={() => setScope(toggle(scope, option.id))} />
                     {option.label}
-                  </label>
+ </label>
                 ))}
               {!scopeAll && scope.length === 0 && <p className="muted">اختر فرعاً واحداً على الأقل أو فعّل «كل الفروع».</p>}
-            </fieldset>
-            <fieldset>
-              <legend>تقييدات النطاق الدقيقة (فارغ = كل المنشأة)</legend>
+ </fieldset>
+ <fieldset>
+ <legend>تقييدات النطاق الدقيقة (فارغ = كل المنشأة)</legend>
               {scopes.length === 0 && <p className="muted">لا توجد تقييدات — المنح سارية على كل المنشأة.</p>}
               {scopes.map((item, index) => (
-                <p key={`${item.roleId}-${item.scopeType}-${item.scopeId}`} className="row">
-                  <span>{scopeLabel(item, roleRows, branchRows, warehouseRows, cashRows)}</span>
-                  <button type="button" className="btn sm danger" onClick={() => setScopes(scopes.filter((_, i) => i !== index))}>
-                    إزالة
-                  </button>
-                </p>
+ <p key={`${item.roleId}-${item.scopeType}-${item.scopeId}`} className="row">
+ <span>{scopeLabel(item, roleRows, branchRows, warehouseRows, cashRows)}</span>
+ <button type="button" className="btn sm danger" onClick={() => setScopes(scopes.filter((_, i) => i !== index))}>
+ إزالة
+ </button>
+ </p>
               ))}
-              <div className="form-grid">
-                <select value={scopeRole} onChange={(event) => setScopeRole(event.target.value)}>
+ <div className="form-grid">
+ <select className="input" value={scopeRole} onChange={(event) => setScopeRole(event.target.value)}>
                   {roleRows
                     .filter((role) => editRoles.includes(role.id))
                     .map((role) => (
-                      <option key={role.id} value={role.id}>
+ <option key={role.id} value={role.id}>
                         {role.name}
-                      </option>
+ </option>
                     ))}
-                </select>
-                <select value={scopeType} onChange={(event) => setScopeType(event.target.value as typeof scopeType)}>
+ </select>
+ <select className="input" value={scopeType} onChange={(event) => setScopeType(event.target.value as typeof scopeType)}>
                   {SCOPE_TYPES.map((item) => (
-                    <option key={item.value} value={item.value}>
+ <option key={item.value} value={item.value}>
                       {item.label}
-                    </option>
+ </option>
                   ))}
-                </select>
-                <select value={scopeTarget} onChange={(event) => setScopeTarget(event.target.value)}>
-                  <option value="">— اختر —</option>
-                  <option value={TENANT_WIDE_SCOPE_ID}>🌐 كل المنشأة (وصول شامل صريح)</option>
+ </select>
+ <select className="input" value={scopeTarget} onChange={(event) => setScopeTarget(event.target.value)}>
+ <option value="">— اختر —</option>
+ <option value={TENANT_WIDE_SCOPE_ID}>كل المنشأة (وصول شامل صريح)</option>
                   {scopeTargets.map((option) => (
-                    <option key={option.id} value={option.id}>
+ <option key={option.id} value={option.id}>
                       {option.label}
-                    </option>
+ </option>
                   ))}
-                </select>
-                <button
+ </select>
+ <button
                   type="button"
                   className="btn sm"
                   disabled={!scopeRole || !scopeTarget}
@@ -427,36 +434,36 @@ export default function TenantUsersPage() {
                     setScopeTarget('');
                   }}
                 >
-                  إضافة تقييد
-                </button>
-              </div>
-            </fieldset>
-            <fieldset>
-              <legend>💰 حدود الخصم (فارغ = بلا حدّ)</legend>
-              <label>
-                أعلى نسبة للخصم %
-                <input value={capPct} onChange={(event) => setCapPct(event.target.value)} inputMode="decimal" placeholder="مثال: 10" dir="ltr" />
-              </label>
-              <label>
-                أعلى قيمة للخصم
-                <input value={capAmount} onChange={(event) => setCapAmount(event.target.value)} inputMode="decimal" placeholder="مثال: 50.0000" dir="ltr" />
-              </label>
-              <p className="muted">
-                الحدّ يُفحص في الخادم عند كتابة الخصم في فاتورة البيع أو الكاشير، ومجموع الخصم = خصم
-                السطور + خصم الفاتورة.
-              </p>
-            </fieldset>
-            <button
+ إضافة تقييد
+ </button>
+ </div>
+ </fieldset>
+ <fieldset>
+ <legend>حدود الخصم (فارغ = بلا حدّ)</legend>
+ <label>
+ أعلى نسبة للخصم %
+ <input className="input" value={capPct} onChange={(event) => setCapPct(event.target.value)} inputMode="decimal" placeholder="مثال: 10" dir="ltr" />
+ </label>
+ <label>
+ أعلى قيمة للخصم
+ <input className="input" value={capAmount} onChange={(event) => setCapAmount(event.target.value)} inputMode="decimal" placeholder="مثال: 50.0000" dir="ltr" />
+ </label>
+ <p className="muted">
+ الحدّ يُفحص في الخادم عند كتابة الخصم في فاتورة البيع أو الكاشير، ومجموع الخصم = خصم
+ السطور + خصم الفاتورة.
+ </p>
+ </fieldset>
+ <button
               type="button"
               className="btn primary"
               disabled={busy || editRoles.length === 0 || !displayName.trim() || (!scopeAll && scope.length === 0)}
               onClick={() => void saveEdit(editing.id)}
             >
-              حفظ
-            </button>
-          </div>
-        </section>
+ حفظ
+ </button>
+ </div>
+ </section>
       )}
-    </Screen>
+ </Screen>
   );
 }

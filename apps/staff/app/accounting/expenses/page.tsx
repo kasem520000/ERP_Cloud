@@ -23,6 +23,7 @@ export default function ExpenseTypesPage() {
 
   return (
     <Directory<ExpenseType>
+      listTitle="أنواع المصاريف"
       title="بطاقة المصاريف"
       subtitle="عرّف كل نوع مصروف مرة واحدة واربطه بحساب المصروف ومركز التكلفة."
       crumbs={['المحاسبة', 'تعاريف']}

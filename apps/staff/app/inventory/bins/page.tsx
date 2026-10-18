@@ -91,7 +91,7 @@ export default function WarehouseBinsPage() {
             key={row.id}
             type="button"
             className="card"
-            style={{ textAlign: 'right', borderColor: binId === row.id ? 'var(--brand, #2563eb)' : undefined, opacity: row.isActive ? 1 : 0.55 }}
+            style={{ textAlign: 'right', borderColor: binId === row.id ? 'var(--brand)' : undefined, opacity: row.isActive ? 1 : 0.55 }}
             onClick={() => setBinId(row.id)}
           >
             <strong dir="ltr">{row.code}</strong>

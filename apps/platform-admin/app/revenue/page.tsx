@@ -22,6 +22,7 @@ import { SkeletonRows } from '../../components/ui/skeleton';
 import { Table } from '../../components/ui/table';
 import { apiData } from '../../lib/api';
 import { useQuery } from '../../lib/use-query';
+import { dateText } from '../../lib/format';
 
 /**
  * لوحة الإيراد — شاشة يطلبها P-C4 («revenue dashboard: MRR · ARR · المتأخّر»).
@@ -63,12 +64,12 @@ type Revenue = {
 type MrrSeries = Array<{ month: string; mrr: string }>;
 
 const gregDate = (value: string | null) =>
-  value ? new Date(value).toLocaleDateString('ar-SA-u-ca-gregory', { year: 'numeric', month: 'short', day: 'numeric', timeZone: 'UTC' }) : '—';
+  value ? dateText(value) : '—';
 
 const monthLabel = (iso: string) => {
   const [y, m] = iso.split('-').map(Number);
   const d = new Date(Date.UTC(y ?? 2026, (m ?? 1) - 1, 1));
-  return d.toLocaleDateString('ar-SA-u-ca-gregory', { month: 'short', year: '2-digit', timeZone: 'UTC' });
+  return `\u2066${d.toISOString().slice(0, 7)}\u2069`;
 };
 
 const num = (value: string) => Number(value) || 0;

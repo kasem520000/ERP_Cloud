@@ -16,13 +16,14 @@ export default function WarehousesPage() {
 
   return (
     <Directory<Warehouse>
+      listTitle="المستودعات"
       title="بطاقة مستودع"
       subtitle="المستودعات التي تُرحَّل إليها حركة المخزون؛ لكل فرع مستودع افتراضي واحد."
       crumbs={['المستودعات', 'التعاريف']}
       query={warehouses}
       canCreate={can('organization.warehouse.manage')}
       createLabel="مستودع جديد"
-      blocked={branchRows.length === 0 ? 'أنشئ فرعاً أولاً من «الإعدادات ← بطاقة فرع».' : undefined}
+ blocked={branchRows.length === 0 ? 'أنشئ فرعاً أولاً من «الإعدادات بطاقة فرع».' : undefined}
       fields={[
         { name: 'code', label: 'الرمز', required: true, ltr: true },
         { name: 'name', label: 'الاسم', required: true },

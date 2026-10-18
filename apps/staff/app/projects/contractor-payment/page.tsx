@@ -173,23 +173,11 @@ export default function ContractorPaymentPage() {
           <h3>
             {header.number} — {header.title}
           </h3>
-          <div className="grid cols-2">
-            <div className="kpi">
-              <span>قيمة العقد</span>
-              <strong>{money(header.contractValue)}</strong>
-            </div>
-            <div className="kpi">
-              <span>المتبقي للاستخلاص</span>
-              <strong>{money(header.remainingValue)}</strong>
-            </div>
-            <div className="kpi">
-              <span>المحتجز الحالي</span>
-              <strong>{money(header.retentionHeld)}</strong>
-            </div>
-            <div className="kpi">
-              <span>المتبقي من المقدمة</span>
-              <strong>{money(header.advanceOutstanding)}</strong>
-            </div>
+          <div className="ui-kpi-strip">
+            <div className="ui-kpi-cell"><span className="ui-kpi-label">قيمة العقد</span><span className="ui-kpi-value">{money(header.contractValue)}</span></div>
+            <div className="ui-kpi-cell"><span className="ui-kpi-label">المتبقي للاستخلاص</span><span className="ui-kpi-value">{money(header.remainingValue)}</span></div>
+            <div className="ui-kpi-cell"><span className="ui-kpi-label">المحتجز الحالي</span><span className="ui-kpi-value">{money(header.retentionHeld)}</span></div>
+            <div className="ui-kpi-cell"><span className="ui-kpi-label">المتبقي من المقدمة</span><span className="ui-kpi-value">{money(header.advanceOutstanding)}</span></div>
           </div>
         </div>
       )}

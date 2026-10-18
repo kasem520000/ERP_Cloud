@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { Panel } from '@erp/ui';
 
 import { DataTable, Notice, QueryView } from '../../../../components/data-view';
 import { Screen } from '../../../../components/screen';
@@ -105,7 +106,7 @@ export default function ZatcaSyncPage() {
 
       <QueryView query={submissions} empty="لا توجد فواتير مُرسَلة" emptyDetail="رحّل فاتورة ثم أرسلها للهيئة لتظهر هنا.">
         {(rows) => (
-          <div className="card">
+          <Panel title="الإرسالات السابقة" hint="سجل كل إرسال: الحالة، التجزئة، والسبب عند الرفض." flush>
             <DataTable
               columns={[
                 { key: 'created', header: 'التاريخ', cell: (row: Submission) => dateTime(row.submittedAt ?? row.createdAt) },
@@ -138,7 +139,7 @@ export default function ZatcaSyncPage() {
               rows={rows}
               rowKey={(row) => row.id}
             />
-          </div>
+          </Panel>
         )}
       </QueryView>
     </Screen>

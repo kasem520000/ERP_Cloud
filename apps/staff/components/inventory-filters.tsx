@@ -5,7 +5,7 @@
  *
  * Item, warehouse and period are asked for again and again across the inventory
  * screens; putting them here means a new report states *what* it filters by instead of
- * re-building three `<select>`s — and a document type is named the same way everywhere
+ * re-building three `<select className="input">`s — and a document type is named the same way everywhere
  * it is shown.
  */
 import { arabicName, itemLabel, listItems, listWarehouses, type Item, type Warehouse } from '../lib/lookups';

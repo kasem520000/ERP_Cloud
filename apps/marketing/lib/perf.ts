@@ -36,8 +36,12 @@ export const KIB = 1024;
  * قياسها بسقف ٦٨٠ ك.ب كان سيُسقط البناء لأن الصفحة تحمل المكتبات كلها عن قصد.
  *
  * وهذا **ليس** رفع سقف: السقف كما هو، والقائمة هنا تقول بأيّ مسارٍ لا ينطبق.
+ *
+ * و`/layout` مفتاحٌ داخليّ لـ Next (حزمة الجذر المشتركة)، وليس صفحةً يراها زائر:
+ * ملفّاته نفسها محسوبةٌ في كل مسارٍ عامّ، فقياسُه بسقف صفحةٍ افتراضيّ يعدّ الحزمة
+ * نفسها مرّتين ويُسقط البناء بلا عيبٍ يُرى.
  */
-export const UNMEASURED_ROUTES: readonly string[] = ['/design'];
+export const UNMEASURED_ROUTES: readonly string[] = ['/design', '/layout'];
 
 export function formatKib(bytes: number): string {
   return `${(bytes / KIB).toFixed(1)} kB`;

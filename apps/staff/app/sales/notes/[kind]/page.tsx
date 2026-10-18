@@ -2,6 +2,7 @@
 
 import { use, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { Panel } from '@erp/ui';
 
 import { DataTable, Notice, QueryView } from '../../../../components/data-view';
 import { FormFields, type FormValues } from '../../../../components/directory';
@@ -78,15 +79,15 @@ export default function SalesNotePage({ params }: { params: Promise<{ kind: stri
   }
 
   return (
-    <Screen title={meta.title} subtitle={meta.hint} crumbs={['المبيعات', 'الإشعارات']}>
+ <Screen title={meta.title} subtitle={meta.hint} crumbs={['المبيعات', 'الإشعارات']}>
       {highlightedId && (
-        <div className="card tight" style={{ background: 'var(--warn-soft)', borderColor: 'var(--warn-line)' }}>
-          🔍 تم فتح الإشعار <code dir="ltr">{highlightedId}</code> من تقرير عمولات المندوب — الصف المميز أدناه هو المطلوب.
-        </div>
+ <div className="card tight" style={{ background: 'var(--warn-soft)', borderColor: 'var(--warn-line)' }}>
+ تم فتح الإشعار <code dir="ltr">{highlightedId}</code> من تقرير عمولات المندوب — الصف المميز أدناه هو المطلوب.
+ </div>
       )}
-      <form className="card" onSubmit={submit}>
-        <h3>إشعار جديد</h3>
-        <FormFields
+ <form className="card" onSubmit={submit}>
+ <h2>إشعار جديد</h2>
+ <FormFields
           fields={[
             {
               name: 'invoiceId',
@@ -106,16 +107,29 @@ export default function SalesNotePage({ params }: { params: Promise<{ kind: stri
           values={values}
           onChange={setValues}
         />
-        <Notice notice={notice} />
-        <button className="btn primary" type="submit" disabled={busy || !selected || !values.reason || !values.amountText}>
-          {busy ? 'جارٍ الحفظ…' : 'إنشاء الإشعار'}
-        </button>
-      </form>
+ <Notice notice={notice} />
+ <div className="ui-form-actions">
+ <span className="ui-form-actions-note">الإشعار يُنشأ مسودةً ثم يُرحَّل من الجدول أدناه.</span>
+ <div className="ui-form-actions-buttons">
+ <button className="btn primary" type="submit" disabled={busy || !selected || !values.reason || !values.amountText}>
+ {busy ? 'جارٍ الحفظ…' : 'إنشاء الإشعار'}
+ </button>
+ </div>
+ </div>
+ </form>
 
-      <QueryView query={notes} empty="لا توجد إشعارات من هذا النوع">
+ <QueryView
+        query={notes}
+        empty="لا توجد إشعارات من هذا النوع"
+        wrapEmpty={(node) => (
+          <Panel title="الإشعارات" hint="المسودة تُرحَّل من هنا — الترحيل نهائي ويُنشئ قيداً عكسياً." flush>
+            {node}
+          </Panel>
+        )}
+      >
         {(rows) => (
-          <div className="card">
-            <DataTable
+ <Panel title="الإشعارات" hint="المسودة تُرحَّل من هنا — الترحيل نهائي ويُنشئ قيداً عكسياً." flush>
+ <DataTable
               activeKey={highlightedId ?? undefined}
               columns={[
                 { key: 'number', header: 'رقم الإشعار', align: 'ltr', cell: (row: Note) => row.number ?? 'مسودة' },
@@ -129,20 +143,20 @@ export default function SalesNotePage({ params }: { params: Promise<{ kind: stri
                   header: '',
                   cell: (row: Note) =>
                     row.status === 'draft' ? (
-                      <button type="button" className="btn sm primary" disabled={busy} onClick={() => postNote(row)}>
-                        ترحيل
-                      </button>
+ <button type="button" className="btn sm primary" disabled={busy} onClick={() => postNote(row)}>
+ ترحيل
+ </button>
                     ) : (
-                      <span className="muted">—</span>
+ <span className="muted">—</span>
                     ),
                 },
               ]}
               rows={rows}
               rowKey={(row) => row.id}
             />
-          </div>
+ </Panel>
         )}
-      </QueryView>
-    </Screen>
+ </QueryView>
+ </Screen>
   );
 }

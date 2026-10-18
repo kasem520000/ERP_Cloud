@@ -68,7 +68,7 @@ function TreasuryTable({
 }) {
   const [sort, setSort] = useState<SortState>(null);
   return (
-    <DataTable<Record<string, unknown>>
+ <DataTable<Record<string, unknown>>
       columns={tableColumns<Record<string, unknown>>(columns, treasuryCellText)}
       dense
       empty={<EmptyState description={emptyAr} icon={<span aria-hidden>{emptyIcon}</span>} title="لا صفوف في هذا الجدول" />}
@@ -85,7 +85,7 @@ function TreasuryTable({
 }
 
 /**
- * 🏦 شاشة الخزينة — **قراءةُ ما كتبه مسارُ الخطّ الرسميّ في الخزينة**، لا مدخلُ مالٍ ثانٍ.
+ * شاشة الخزينة — **قراءةُ ما كتبه مسارُ الخطّ الرسميّ في الخزينة**، لا مدخلُ مالٍ ثانٍ.
  *
  * وما قِيس قبل كتابة هذه الشاشة (‏`van-sales.service.ts:6953-7027`) هو سببُ شكلها:
  * ‏`POST /van-sales/collections` يُنشئ سندَ قبضٍ عبر `TreasuryService` **ويُرحِّله**
@@ -96,15 +96,15 @@ function TreasuryTable({
  *
  * وما تفعله الشاشة بثلاثةِ أرقامٍ صادقة:
  *   1. **سنداتُ الخطّ**: تُنسب بالمفتاح الذي يكتبه المسارُ نفسه (`idempotencyKey`) لا
- *      بالبيان ولا بالمرجع — فسندٌ يدويٌّ قد يحمل رقمَ مستندٍ في `referenceNo`، والنسبةُ
- *      بالتخمين كذب.
+ * بالبيان ولا بالمرجع — فسندٌ يدويٌّ قد يحمل رقمَ مستندٍ في `referenceNo`، والنسبةُ
+ * بالتخمين كذب.
  *   2. **المسودةُ منها فجوةٌ تُقال**: فالمسارُ لا يُرحِّل إلا حين يُحلّ حسابٌ مقابل، وبلا
- *      ترحيلٍ لم يدخل المالُ الصندوقَ ولا الأستاذ — وعدُّها هنا يمنع قراءةَ «محصَّل» في
- *      تقرير الخطّ على أنّه «في الخزينة».
+ * ترحيلٍ لم يدخل المالُ الصندوقَ ولا الأستاذ — وعدُّها هنا يمنع قراءةَ «محصَّل» في
+ * تقرير الخطّ على أنّه «في الخزينة».
  *   3. **بلا إجماليٍّ من نافذة**: ‏`GET /vouchers` يرجع مصفوفةً سقفُها ٥٠٠ صفٍّ في الخادم
  *      (‏`.limit(500)`، بلا `meta.total` ولا مجاميع) — فحين تُلامس القائمةُ السقفَ **لا
- *      يُعرض مجموع**؛ لأنّ مجموعَ نافذةٍ مقطوعة بعنوان «الإجمالي» هو الخطأ نفسه الذي
- *      أُصلح في الشريحة ١٣أ (مجاميعُ من SQL لا من قائمةٍ محدودة).
+ * يُعرض مجموع**؛ لأنّ مجموعَ نافذةٍ مقطوعة بعنوان «الإجمالي» هو الخطأ نفسه الذي
+ * أُصلح في الشريحة ١٣أ (مجاميعُ من SQL لا من قائمةٍ محدودة).
  *
  * والأرصدةُ من `GET /cash-locations/:id/balances` وهي **كاشٌ مُطابَق** (‏`cash_location_balances`)
  * والحقيقةُ الأستاذ — وتُقال كذلك في عنوان العمود. وبلا صفِّ رصيدٍ يُعرض «—» ولا يُخترع صفر:
@@ -164,7 +164,7 @@ export default function TreasuryPage() {
       setVouchers([]);
       if (reason instanceof ApiError && reason.status === 403) {
         setVouchersForbidden(true);
-        setVouchersError(`يرفض الخادمُ قراءةَ السندات على جلستك (${TREASURY_VIEW_PERMISSION}).`);
+        setVouchersError('يرفض الخادمُ قراءةَ السندات على جلستك — اطلب صلاحيةَ الخزينة من مدير المنشأة.');
       } else if (canView) {
         setVouchersError(apiErrorText(reason, 'تعذّر تحميل السندات'));
       }
@@ -180,7 +180,7 @@ export default function TreasuryPage() {
       setLocationsMeta(undefined);
       if (reason instanceof ApiError && reason.status === 403) {
         setLocationsForbidden(true);
-        setLocationsError(`مواضعُ النقد تحتاج ${CASH_LOCATION_PERMISSION} — والأعمدةُ التي تعتمد عليها تُعرض «—».`);
+        setLocationsError('لا صلاحيةَ لقراءة مواضع النقد — والأعمدةُ التي تعتمد عليها تُعرض «—».');
       } else if (canReadLocations) {
         setLocationsError(apiErrorText(reason, 'تعذّر تحميل مواضع النقد'));
       }
@@ -249,99 +249,93 @@ export default function TreasuryPage() {
 
   if (!canView && !canReadLocations) {
     return (
-      <section className="grid gap-4">
-        <Card>
-          <CardHeader subtitle="ولا يُرسل طلبٌ سيُرفض حتمًا." title="لا صلاحيةَ لخزينة على جلستك" />
-          <CardBody>
-            <p className="m-0 text-[13px] leading-relaxed text-ink">
-              تحتاج <span dir="ltr">{TREASURY_VIEW_PERMISSION}</span> لقراءة السندات و
-              <span dir="ltr">{CASH_LOCATION_PERMISSION}</span> لمواضع النقد — والضابطُ الخادمُ
-              لا هذه الشاشة. وحسابُ مندوبٍ محصورٍ لا يراهما: فله أرقامُه في{' '}
-              <span dir="ltr">/rep</span> وخطُّه في <span dir="ltr">/custody</span>.
-            </p>
-          </CardBody>
-        </Card>
-      </section>
+ <section className="ui-page">
+ <Card>
+ <CardHeader subtitle="ولا يُرسل طلبٌ سيُرفض حتمًا." title="لا صلاحيةَ لخزينة على جلستك" />
+ <CardBody>
+ <p className="m-0 text-[13px] leading-relaxed text-ink">
+ تحتاج لقراءة السندات و لمواضع النقد — والضابطُ الخادمُ
+ لا هذه الشاشة. وحسابُ مندوبٍ محصورٍ لا يراهما: فله أرقامُه في{' '}
+ <span dir="ltr">/rep</span> وخطُّه في <span dir="ltr">/custody</span>.
+ </p>
+ </CardBody>
+ </Card>
+ </section>
     );
   }
 
   return (
-    <section className="grid gap-4">
-      <header className="flex flex-wrap items-end justify-between gap-3">
-        <div className="min-w-0">
-          <h1 className="m-0 text-[24px] font-extrabold leading-tight tracking-tight text-ink">الخزينة</h1>
-          <p className="m-0 mt-1 text-[13px] text-muted">
-            نقدُ الخطّ كما دخل الخزينةَ فعلًا: سنداتُ القبض التي كتبها مسارُ التحصيل الرسميّ،
-            ومواضعُ النقد وأرصدتُها. ولا سندَ يُنشأ من هنا — فسندٌ ثانٍ على النقد نفسه قبضٌ مزدوج.
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <Badge dot status={canView ? 'active' : 'pending'}>
-            <span dir="ltr">{TREASURY_VIEW_PERMISSION}</span>
-          </Badge>
-          <Badge dot status={canReadLocations ? 'active' : 'pending'}>
-            <span dir="ltr">{CASH_LOCATION_PERMISSION}</span>
-          </Badge>
-          <Button disabled={loading} onClick={() => void load()} size="sm">
+ <section className="grid gap-4">
+ <header className="ui-page-head">
+ <div className="ui-page-head-copy">
+ <h1 className="ui-page-title">الخزينة</h1>
+ <p className="ui-page-sub">
+ نقدُ الخطّ كما دخل الخزينةَ فعلًا: سنداتُ القبض التي كتبها مسارُ التحصيل الرسميّ،
+ ومواضعُ النقد وأرصدتُها. ولا سندَ يُنشأ من هنا — فسندٌ ثانٍ على النقد نفسه قبضٌ مزدوج.
+ </p>
+ </div>
+ <div className="ui-page-actions">
+ <Button disabled={loading} onClick={() => void load()} size="sm">
             {loading ? 'يُحمَّل…' : 'تحديث'}
-          </Button>
-        </div>
-      </header>
+ </Button>
+ </div>
+ </header>
+      <div className="ui-screen-body">
 
-      <Card>
-        <CardHeader
-          subtitle="‏`GET /vouchers?from&to&q` — والخادمُ يتحقّق من التاريخين قبل SQL (‏TREASURY_DATE_INVALID)."
+ <Card>
+ <CardHeader
+          subtitle="مدى القراءة: من تاريخ إلى تاريخ، مع بحثٍ اختياريّ. والخادمُ يتحقّق من صحة التاريخين قبل التنفيذ."
           title="مدى القراءة"
         />
-        <CardBody>
-          <div className="grid gap-3 md:grid-cols-4">
-            <label className="grid gap-1 text-[12.5px] text-muted">
-              من تاريخ
-              <Input onChange={(event) => setFromDate(event.target.value)} type="date" value={fromDate} />
-            </label>
-            <label className="grid gap-1 text-[12.5px] text-muted">
-              إلى تاريخ
-              <Input onChange={(event) => setToDate(event.target.value)} type="date" value={toDate} />
-            </label>
-            <label className="grid gap-1 text-[12.5px] text-muted">
-              بحث (رقمُ سند، مرجع، شيك، بيان، مستفيد)
-              <Input onChange={(event) => setSearch(event.target.value)} placeholder="RV-000004" value={search} />
-            </label>
-            <div className="flex items-end">
-              <Button
+ <CardBody>
+ <div className="grid gap-3 md:grid-cols-4">
+ <label className="field">
+ <span>من تاريخ</span>
+ <Input onChange={(event) => setFromDate(event.target.value)} type="date" value={fromDate} />
+ </label>
+ <label className="field">
+ <span>إلى تاريخ</span>
+ <Input onChange={(event) => setToDate(event.target.value)} type="date" value={toDate} />
+ </label>
+ <label className="field">
+ <span>بحث (رقمُ سند، مرجع، شيك، بيان، مستفيد)</span>
+ <Input onChange={(event) => setSearch(event.target.value)} placeholder="RV-000004" value={search} />
+ </label>
+ <div className="flex items-end">
+ <Button
                 disabled={blocked || loading}
                 onClick={() => setApplied({ fromDate: fromDate.trim(), toDate: toDate.trim(), search: search.trim() })}
                 variant="primary"
               >
-                تطبيق المدى
-              </Button>
-            </div>
-          </div>
+ تطبيق المدى
+ </Button>
+ </div>
+ </div>
           {blocked ? (
-            <p className="m-0 mt-3 text-[12.5px] leading-relaxed text-danger-ink" role="alert">
+ <p className="m-0 mt-3 text-[12.5px] leading-relaxed text-danger-ink" role="alert">
               {verdict.blocked.join(' · ')}
-            </p>
+ </p>
           ) : null}
           {!blocked && verdict.warnings.length > 0 ? (
-            <p className="m-0 mt-3 text-[12.5px] leading-relaxed text-muted">{verdict.warnings.join(' · ')}</p>
+ <p className="m-0 mt-3 text-[12.5px] leading-relaxed text-muted">{verdict.warnings.join(' · ')}</p>
           ) : null}
-        </CardBody>
-      </Card>
+ </CardBody>
+ </Card>
 
-      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-        <Kpi
+ <div className="ui-kpi-strip">
+ <Kpi
           hint="تُنسب بمفتاح `van-collection-voucher:` الذي يكتبه مسارُ التحصيل — لا بالبيان"
           title="سنداتُ الخطّ في هذا المدى"
           tone="brand"
           value={String(lineRows.length)}
         />
-        <Kpi
+ <Kpi
           hint="دخلت الصندوقَ والأستاذ (‏journalEntryId مرتبط)"
           title="مُرحَّلة"
           tone="ok"
           value={String(postedRows.length)}
         />
-        <Kpi
+ <Kpi
           hint={
             draftRows.length > 0
               ? 'تحصيلٌ لم يُرحَّل: لم يدخل الصندوقَ ولا الأستاذ — فالمسارُ لا يُرحِّل بلا حسابٍ مقابل'
@@ -351,115 +345,116 @@ export default function TreasuryPage() {
           tone={draftRows.length > 0 ? 'warn' : 'ok'}
           value={String(draftRows.length)}
         />
-        <Kpi
+ <Kpi
           hint={capHit ? VOUCHER_CAP_NOTE : 'مجموعُ المعروض لا إجماليُّ السجلّ — والخادمُ لا يرجع إجماليًّا هنا'}
           title="مجموعُ سندات الخطّ المعروضة"
           tone={lineSum ? 'neutral' : 'warn'}
           value={lineSum ? numberText(lineSum.text) : '—'}
         />
-      </div>
+ </div>
 
       {capHit ? (
-        <Card>
-          <CardHeader subtitle={`سقفُ الخادم ${VOUCHER_SERVER_LIMIT} صفٍّ في treasury.service.vouchers`} title="القائمةُ مقطوعة" />
-          <CardBody>
-            <p className="m-0 text-[13px] leading-relaxed text-danger-ink" role="alert">
+ <Card>
+ <CardHeader subtitle={`سقفُ الخادم ${VOUCHER_SERVER_LIMIT} صفٍّ في treasury.service.vouchers`} title="القائمةُ مقطوعة" />
+ <CardBody>
+ <p className="m-0 text-[13px] leading-relaxed text-danger-ink" role="alert">
               {VOUCHER_CAP_NOTE}
-            </p>
-          </CardBody>
-        </Card>
+ </p>
+ </CardBody>
+ </Card>
       ) : null}
 
-      <Card>
-        <CardHeader
+ <Card>
+ <CardHeader
           subtitle={
             balanceNote ??
             'الرصيدُ كاشٌ مُطابَق (`cash_location_balances`) والحقيقةُ الأستاذ — وحركةُ الصندوق من الأستاذ في لوحة staff.'
           }
           title="مواضعُ النقد وأرصدتُها"
         />
-        <CardBody>
-          <TreasuryTable
+ <CardBody>
+ <TreasuryTable
             columns={CASH_LOCATION_COLUMNS}
             emptyAr="لا مواضعَ نقدٍ رجعت من الخادم — فأنشئها في لوحة staff (‏/accounting/cash-locations) أو تحقّق من الصلاحية."
-            emptyIcon="🏦"
+ emptyIcon=""
             rows={locationRows}
             state={locationsState}
             storageKey="cash-locations"
           />
           {locationsMeta && typeof locationsMeta.total === 'number' && locationsMeta.total > locationRows.length ? (
-            <p className="m-0 mt-2 text-[12.5px] text-muted">
-              معروضٌ {locationRows.length} من {locationsMeta.total} موضعًا (سقفُ الطلب{' '}
-              <span dir="ltr">limit={CASH_LOCATION_LIMIT}</span>) — فليست كلّ المواضع هنا.
-            </p>
+ <p className="m-0 mt-2 text-[12.5px] text-muted">
+ معروضٌ {locationRows.length} من {locationsMeta.total} موضعًا (سقفُ الطلب{' '}
+ <span dir="ltr">limit={CASH_LOCATION_LIMIT}</span>) — فليست كلّ المواضع هنا.
+ </p>
           ) : null}
-        </CardBody>
-      </Card>
+ </CardBody>
+ </Card>
 
-      <Card>
-        <CardHeader
-          subtitle="ما كتبه `POST /van-sales/collections` عبر `TreasuryService` — ورقمُ مستند الخطّ في `referenceNo`."
+ <Card>
+ <CardHeader
+          subtitle="سنداتُ قبضٍ كتبها مسارُ التحصيل الرسميّ — ورقمُ مستند الخطّ ظاهرٌ في كلّ صفّ."
           title="سنداتُ قبض الخطّ"
         />
-        <CardBody>
-          <TreasuryTable
+ <CardBody>
+ <TreasuryTable
             columns={LINE_VOUCHER_COLUMNS}
             emptyAr="لا سندَ خطٍّ في هذا المدى. والتحديدُ بمفتاح عدم التكرار `van-collection-voucher:` — فسندٌ يدويٌّ يحمل رقمَ مستندٍ في المرجع لا يُعدّ من الخطّ هنا."
-            emptyIcon="🧾"
+ emptyIcon=""
             rows={lineViewRows}
             state={vouchersState}
             storageKey="line-vouchers"
           />
           {lineSum ? (
-            <p className="m-0 mt-2 text-[12.5px] text-muted">{shownSumCaption(lineRows.length, lineSum.count)}</p>
+ <p className="m-0 mt-2 text-[12.5px] text-muted">{shownSumCaption(lineRows.length, lineSum.count)}</p>
           ) : null}
-        </CardBody>
-      </Card>
+ </CardBody>
+ </Card>
 
-      <Card>
-        <CardHeader
+ <Card>
+ <CardHeader
           subtitle="كلُّ سندات الخزينة في المدى — لا سنداتُ الخطّ وحدها: ففيها الرواتبُ والمصروفاتُ والشيكات."
           title="سنداتُ الفترة"
         />
-        <CardBody>
-          <TreasuryTable
+ <CardBody>
+ <TreasuryTable
             columns={VOUCHER_COLUMNS}
             emptyAr="لا سنداتَ في هذا المدى (أو أنّ القائمةَ رُفضت على جلستك)."
-            emptyIcon="📒"
+ emptyIcon=""
             rows={voucherRows}
             state={vouchersState}
             storageKey="vouchers"
           />
-          <p className="m-0 mt-2 text-[12.5px] text-muted">
-            معروضٌ {vouchers.length} سندًا{capHit ? ` — وهو سقفُ الخادم (${VOUCHER_SERVER_LIMIT}) فالقائمةُ مقطوعة` : ''}.
-          </p>
-        </CardBody>
-      </Card>
+ <p className="m-0 mt-2 text-[12.5px] text-muted">
+ معروضٌ {vouchers.length} سندًا{capHit ? ` — وهو سقفُ الخادم (${VOUCHER_SERVER_LIMIT}) فالقائمةُ مقطوعة` : ''}.
+ </p>
+ </CardBody>
+ </Card>
 
-      <Card>
-        <CardHeader subtitle="وما يحتاج حكمًا محاسبيًّا وجهتُه اللوحةُ بتسليم جلسة." title="ما لا تفعله هذه الشاشة" />
-        <CardBody>
-          <ul className="m-0 grid gap-2 text-[13px] leading-relaxed text-ink">
+ <Card>
+ <CardHeader subtitle="وما يحتاج حكمًا محاسبيًّا وجهتُه اللوحةُ بتسليم جلسة." title="ما لا تفعله هذه الشاشة" />
+ <CardBody>
+ <ul className="m-0 grid gap-2 text-[13px] leading-relaxed text-ink">
             {NO_WRITE_HERE_AR.map((line) => (
-              <li key={line}>{line}</li>
+ <li key={line}>{line}</li>
             ))}
-          </ul>
-          <div className="mt-4 grid gap-3 md:grid-cols-2">
+ </ul>
+ <div className="mt-4 grid gap-3 md:grid-cols-2">
             {destinationsOf('treasury').map((destination) => (
-              <article className="grid gap-2 rounded-lg border border-line bg-surface p-4 shadow-1" key={destination.key}>
-                <div className="flex flex-wrap items-center gap-2">
-                  <h2 className="m-0 text-[15px] font-extrabold text-ink">{destination.labelAr}</h2>
-                  <Badge tone="neutral">
-                    <span dir="ltr">{destination.path}</span>
-                  </Badge>
-                </div>
-                <p className="m-0 text-[13px] leading-relaxed text-muted">{destination.noteAr}</p>
-                <StaffHandoffLink destination={destination} labelAr="افتح في لوحة الخزينة" />
-              </article>
+ <article className="grid gap-2 rounded-lg border border-line bg-surface p-4 shadow-1" key={destination.key}>
+ <div className="flex flex-wrap items-center gap-2">
+ <h2 className="m-0 text-[15px] font-extrabold text-ink">{destination.labelAr}</h2>
+ <Badge tone="neutral">
+ <span dir="ltr">{destination.path}</span>
+ </Badge>
+ </div>
+ <p className="m-0 text-[13px] leading-relaxed text-muted">{destination.noteAr}</p>
+ <StaffHandoffLink destination={destination} labelAr="افتح في لوحة الخزينة" />
+ </article>
             ))}
-          </div>
-        </CardBody>
-      </Card>
+ </div>
+ </CardBody>
+ </Card>
+       </div>
     </section>
   );
 }

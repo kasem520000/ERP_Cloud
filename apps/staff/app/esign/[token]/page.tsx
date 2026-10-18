@@ -131,6 +131,7 @@ export default function EsignPage() {
     }
   }
 
+  const docLabel = view?.document?.kind === 'quotation' ? 'عرض سعر' : 'مستند';
   const mark = (view?.companyName || 'ت').slice(0, 1);
 
   return (
@@ -162,8 +163,12 @@ export default function EsignPage() {
                   <span className="logo-mark">{mark}</span>
                   <strong>{view.companyName || 'المنشأة'}</strong>
                 </span>
-                <span className="muted small">{view.document?.number ?? 'مستند'}</span>
+                <span className="muted small">{view.document?.number ?? docLabel}</span>
               </header>
+              <h1 className="sign-title">
+                توقيع {docLabel}
+                {view.document?.number ? <span className="muted"> {view.document.number}</span> : null}
+              </h1>
               {view.signerName ? <p>إلى: {view.signerName}</p> : null}
               {view.message ? <p>{view.message}</p> : null}
               <table className="sign-table">

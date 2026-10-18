@@ -5,6 +5,7 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useState,
   type ReactNode,
@@ -35,6 +36,9 @@ type ThemeContextValue = {
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
+/** `useLayoutEffect` on the client, `useEffect` on the server (where layout does not exist). */
+const useIsomorphicLayoutEffect = typeof window === 'undefined' ? useEffect : useLayoutEffect;
+
 export type ThemeProviderProps = {
   children: ReactNode;
   /**
@@ -53,8 +57,18 @@ export type ThemeProviderProps = {
  * change that matters while the choice is `system`.
  */
 export function ThemeProvider({ children, defaultChoice = 'system' }: ThemeProviderProps) {
-  const [choice, setChoiceState] = useState<ThemeChoice>(() => readThemeChoice(defaultChoice));
-  const [prefersDark, setPrefersDark] = useState<boolean>(() => systemPrefersDark());
+  // First render must be identical on the server and in the browser. Reading
+  // `localStorage`/`matchMedia` in the initialiser does the opposite: the server
+  // has neither, so a returning visitor with a stored theme hydrated a different
+  // tree than the one that was painted (React 418) on every page. The stored
+  // answer is applied in a layout effect — before paint, after hydration.
+  const [choice, setChoiceState] = useState<ThemeChoice>(defaultChoice);
+  const [prefersDark, setPrefersDark] = useState(false);
+
+  useIsomorphicLayoutEffect(() => {
+    setChoiceState(readThemeChoice(defaultChoice));
+    setPrefersDark(systemPrefersDark());
+  }, [defaultChoice]);
 
   // Keep the OS listener in sync; only meaningful while choice === 'system'.
   useEffect(() => {

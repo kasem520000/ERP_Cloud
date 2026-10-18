@@ -36,7 +36,7 @@ const STATUS_LABEL: Record<ImpersonationSession['status'], string> = {
 };
 
 function dateTime(value: string | null | undefined): string {
-  return value ? new Date(value).toLocaleString('ar-SA') : '—';
+  return value ? new Date(value).toLocaleString('ar-SA-u-ca-gregory-nu-latn') : '—';
 }
 
 function apiMessage(error: unknown): string {
@@ -141,7 +141,7 @@ export default function ImpersonationPage() {
         <div className="row" style={{ flexWrap: 'wrap' }}>
           <label>
             المنشأة
-            <select value={tenantId} onChange={(event) => setTenantId(event.target.value)}>
+            <select className="input" value={tenantId} onChange={(event) => setTenantId(event.target.value)}>
               <option value="">اختر منشأة…</option>
               {(tenants.data ?? []).map((tenant) => (
                 <option key={tenant.id} value={tenant.id}>
@@ -152,7 +152,7 @@ export default function ImpersonationPage() {
           </label>
           <label>
             المدّة (دقائق)
-            <input
+            <input className="input"
               type="number"
               min={IMPERSONATION_MIN_MINUTES}
               max={IMPERSONATION_MAX_MINUTES}
@@ -163,7 +163,7 @@ export default function ImpersonationPage() {
         </div>
         <label>
           السبب (يُقرأ للعميل في سجلّه، ويُقيَّد في التدقيق)
-          <textarea rows={3} value={reason} onChange={(event) => setReason(event.target.value)} />
+          <textarea className="input" rows={3} value={reason} onChange={(event) => setReason(event.target.value)} />
         </label>
         <div className="row">
           <button className="btn" type="button" disabled={!ready || busy} onClick={() => void start()}>

@@ -23,6 +23,7 @@ import { SkeletonRows } from '../../components/ui/skeleton';
 import { Table } from '../../components/ui/table';
 import { ApiError, apiData, apiPost } from '../../lib/api';
 import { useQuery } from '../../lib/use-query';
+import { dateText } from '../../lib/format';
 
 type Tenant = {
   id: string;
@@ -59,7 +60,7 @@ const SUB_TONE: Record<string, 'green' | 'blue' | 'amber' | 'red' | 'purple' | '
 };
 
 const gregDate = (iso: string) =>
-  new Date(iso).toLocaleDateString('ar-SA-u-ca-gregory', { year: 'numeric', month: 'short', day: 'numeric', timeZone: 'UTC' });
+  dateText(iso);
 
 export default function TenantsPage() {
   const [search, setSearch] = useState('');
@@ -234,7 +235,7 @@ export default function TenantsPage() {
                       <Badge tone={SUB_TONE[row.subscriptionStatus] ?? 'neutral'} dot>
                         {SUB_LABEL[row.subscriptionStatus] ?? row.subscriptionStatus}
                       </Badge>
-                      <span className="text-[11px] text-muted font-semibold">{row.planName}</span>
+                      <span className="text-xs text-muted font-semibold">{row.planName}</span>
                     </span>
                   ) : (
                     <Badge tone="neutral">بدون ترخيص</Badge>

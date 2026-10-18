@@ -100,19 +100,19 @@ export default function CrmPipelinesPage() {
         <div className="grid gap-3 md:grid-cols-4">
           <label className="field">
             <span>العنوان</span>
-            <input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="توريد أجهزة" />
+            <input className="input" value={title} onChange={(event) => setTitle(event.target.value)} placeholder="توريد أجهزة" />
           </label>
           <label className="field">
             <span>القيمة</span>
-            <input value={value} onChange={(event) => setValue(event.target.value)} />
+            <input className="input" value={value} onChange={(event) => setValue(event.target.value)} />
           </label>
           <label className="field">
             <span>الاحتمال %</span>
-            <input type="number" min={0} max={100} value={probability} onChange={(event) => setProbability(Number(event.target.value))} />
+            <input className="input" type="number" min={0} max={100} value={probability} onChange={(event) => setProbability(Number(event.target.value))} />
           </label>
           <label className="field">
             <span>العميل</span>
-            <select value={partyId} onChange={(event) => setPartyId(event.target.value)}>
+            <select className="input" value={partyId} onChange={(event) => setPartyId(event.target.value)}>
               <option value="">بدون عميل</option>
               {parties.map((party) => (
                 <option key={party.id} value={party.id}>

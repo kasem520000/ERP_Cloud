@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { Panel } from '@erp/ui';
 
 import { DataTable, Notice, QueryView } from '../../../../components/data-view';
 import { Screen } from '../../../../components/screen';
@@ -10,7 +11,7 @@ import { useSession } from '../../../../lib/session';
 import { useQuery } from '../../../../lib/use-query';
 
 /**
- * 📦 منتجات متجر سلة — `Form_WPF/FrmSallah.xaml` («تكامل Salla API») و`Home.xaml` L395
+ * منتجات متجر سلة — `Form_WPF/FrmSallah.xaml` («تكامل Salla API») و`Home.xaml` L395
  * («المنتجات»).
  *
  * The window has two buttons that do work — «📦 جلب المنتجات» و«➕ إضافة منتج» — and this
@@ -96,7 +97,7 @@ export default function SallaProductsPage() {
     }, '');
   }
 
-  /** ➕ إضافة منتج — a real صنف, not the window's fixed literal. */
+  /** إضافة منتج — a real صنف, not the window's fixed literal. */
   function push(row: Product) {
     return run(async () => {
       const result = await callRaw<PushResult>('/integrations/salla/products/push', {
@@ -112,52 +113,50 @@ export default function SallaProductsPage() {
   }
 
   return (
-    <Screen
-      title="📦 منتجات متجر سلة"
-      subtitle="«📦 جلب المنتجات» و«➕ إضافة منتج» من `FrmSallah`: ما في المتجر، وما يحتاج تصديراً من أصنافك."
+ <Screen
+ title="منتجات متجر سلة"
+ subtitle="«جلب المنتجات» و«إضافة منتج» من `FrmSallah`: ما في المتجر، وما يحتاج تصديراً من أصنافك."
       crumbs={['المستودعات', 'متجر سلة']}
       actions={
-        <div className="row" style={{ gap: 6 }}>
+ <div className="row" style={{ gap: 6 }}>
           {canManage && (
-            <button type="button" className="btn primary" disabled={busy || !activeConnection} onClick={pull}>
-              📦 جلب المنتجات
-            </button>
+ <button type="button" className="btn primary" disabled={busy || !activeConnection} onClick={pull}>
+ جلب المنتجات
+ </button>
           )}
-          <button
+ <button
             type="button"
             className="btn"
             disabled={busy || !activeConnection}
             onClick={() => run(() => apiPost('/integrations/salla/export-next', {}), 'تم تنفيذ أول عملية في طابور التصدير.')}
           >
-            تنفيذ التصدير التالي
-          </button>
-        </div>
+ تنفيذ التصدير التالي
+ </button>
+ </div>
       }
     >
-      <div className="card toolbar">
-        <label className="field">
-          <span>المتجر</span>
-          <select className="input" value={activeConnection} onChange={(event) => setConnectionId(event.target.value)}>
+ <div className="ui-filter-bar no-print">
+ <div className="ui-filter-fields">
+ <label className="field">
+ <span>المتجر</span>
+ <select className="input" value={activeConnection} onChange={(event) => setConnectionId(event.target.value)}>
             {connectionRows.length === 0 ? <option value="">لا يوجد متجر مرتبط</option> : null}
             {connectionRows.map((row) => (
-              <option key={row.id} value={row.id}>
+ <option key={row.id} value={row.id}>
                 {row.storeId}
-              </option>
+ </option>
             ))}
-          </select>
-        </label>
-        <span className="muted small">المنتجات تُجلب من المتجر، والأصناف تُصدَّر إليه — وكل محاولة تُسجَّل في سجل التصدير أسفل الشاشة.</span>
-      </div>
-      <Notice notice={notice} />
+ </select>
+ </label>
+ </div>
+ <p className="ui-filter-hint">المنتجات تُجلب من المتجر، والأصناف تُصدَّر إليه — وكل محاولة تُسجَّل في سجل التصدير أسفل الشاشة.</p>
+ </div>
+ <Notice notice={notice} />
 
-      <div className="row" style={{ justifyContent: 'space-between', alignItems: 'baseline' }}>
-        <span className="group-label" style={{ margin: 0 }}>الأصناف محلياً</span>
-        <span className="muted">عدد السجلات: {products.data?.length ?? 0}</span>
-      </div>
-      <QueryView query={products} empty="لا توجد أصناف" emptyDetail="أضف أصنافاً من دليل المواد أولاً.">
+ <QueryView query={products} empty="لا توجد أصناف" emptyDetail="أضف أصنافاً من دليل المواد أولاً.">
         {(rows) => (
-          <div className="card">
-            <DataTable
+ <Panel title="الأصناف محلياً" hint={`عدد السجلات: ${products.data?.length ?? 0} — تُصدَّر إلى المتجر من زر التصدير أعلاه.`} flush>
+ <DataTable
               columns={[
                 { key: 'sku', header: 'الرمز', align: 'ltr', cell: (row: Product) => row.sku },
                 { key: 'name', header: 'الصنف', cell: (row: Product) => row.nameAr },
@@ -175,18 +174,18 @@ export default function SallaProductsPage() {
                   key: 'actions',
                   header: '',
                   cell: (row: Product) => (
-                    <div className="row" style={{ gap: 4 }}>
+ <div className="row" style={{ gap: 4 }}>
                       {canManage && (
-                        <button type="button" className="btn sm" disabled={busy || !activeConnection} onClick={() => push(row)}>
-                          ➕ إضافة منتج
-                        </button>
+ <button type="button" className="btn sm" disabled={busy || !activeConnection} onClick={() => push(row)}>
+ إضافة منتج
+ </button>
                       )}
-                      <button type="button" className="btn sm" disabled={busy || !activeConnection} onClick={() => queue(row)}>
-                        أضف للطابور
-                      </button>
+ <button type="button" className="btn sm" disabled={busy || !activeConnection} onClick={() => queue(row)}>
+ أضف للطابور
+ </button>
                       {canManage && row.remoteId && (
-                        <>
-                          <button
+ <>
+ <button
                             type="button"
                             className="btn sm"
                             disabled={busy || !activeConnection}
@@ -203,9 +202,9 @@ export default function SallaProductsPage() {
                               )
                             }
                           >
-                            ✏️ تحديث
-                          </button>
-                          <button
+ تحديث
+ </button>
+ <button
                             type="button"
                             className="btn sm danger"
                             disabled={busy || !activeConnection}
@@ -222,33 +221,29 @@ export default function SallaProductsPage() {
                               )
                             }
                           >
-                            🗑️ احذف من المتجر
-                          </button>
-                        </>
+ احذف من المتجر
+ </button>
+ </>
                       )}
-                    </div>
+ </div>
                   ),
                 },
               ]}
               rows={rows}
               rowKey={(row) => row.itemId}
             />
-          </div>
+ </Panel>
         )}
-      </QueryView>
+ </QueryView>
 
-      <div className="row" style={{ justifyContent: 'space-between', alignItems: 'baseline' }}>
-        <span className="group-label" style={{ margin: 0 }}>📦 منتجات المتجر</span>
-        <span className="muted">عدد السجلات: {catalog.data?.length ?? 0}</span>
-      </div>
-      <QueryView
+ <QueryView
         query={catalog}
         empty="لم تُجلب منتجات المتجر بعد"
-        emptyDetail="اضغط «📦 جلب المنتجات» ليجلبها `ProductsManager.GetProducts()` ويحفظها هنا."
+ emptyDetail="اضغط «جلب المنتجات» ليجلبها `ProductsManager.GetProducts()` ويحفظها هنا."
       >
         {(rows) => (
-          <div className="card">
-            <DataTable
+ <Panel title="منتجات المتجر" hint={`عدد السجلات: ${catalog.data?.length ?? 0} — آخر جلب من سلة.`} flush>
+ <DataTable
               columns={[
                 { key: 'remote', header: 'الرقم', align: 'ltr', cell: (row: StoreProduct) => row.remoteId },
                 { key: 'sku', header: 'الرمز', align: 'ltr', cell: (row: StoreProduct) => row.sku || '—' },
@@ -261,15 +256,14 @@ export default function SallaProductsPage() {
               rows={rows}
               rowKey={(row) => row.id}
             />
-          </div>
+ </Panel>
         )}
-      </QueryView>
+ </QueryView>
 
-      <div className="card">
-        <h3>سجل التصدير</h3>
-        <QueryView query={logs} empty="لا توجد عمليات تصدير بعد">
+ <Panel title="سجل التصدير" hint="كل محاولة إرسال إلى المتجر — الناجحة والفاشلة." flush>
+ <QueryView query={logs} empty="لا توجد عمليات تصدير بعد">
           {(rows) => (
-            <DataTable
+ <DataTable
               columns={[
                 { key: 'created', header: 'الوقت', cell: (row: ExportLog) => dateTime(row.createdAt) },
                 { key: 'action', header: 'العملية', cell: (row: ExportLog) => row.action },
@@ -280,8 +274,8 @@ export default function SallaProductsPage() {
               rowKey={(row) => row.id}
             />
           )}
-        </QueryView>
-      </div>
-    </Screen>
+ </QueryView>
+ </Panel>
+ </Screen>
   );
 }

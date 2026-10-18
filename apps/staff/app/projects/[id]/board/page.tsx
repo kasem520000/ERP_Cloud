@@ -121,11 +121,11 @@ export default function ProjectBoardPage() {
           <div className="grid gap-3 md:grid-cols-3">
             <label className="field">
               <span>المهمة</span>
-              <input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="صب القواعد" />
+              <input className="input" value={title} onChange={(event) => setTitle(event.target.value)} placeholder="صب القواعد" />
             </label>
             <label className="field">
               <span>العمود</span>
-              <select value={stageId} onChange={(event) => setStageId(event.target.value)}>
+              <select className="input" value={stageId} onChange={(event) => setStageId(event.target.value)}>
                 {board.stages.map((stage) => (
                   <option key={stage.id} value={stage.id}>{stage.name}</option>
                 ))}
@@ -133,7 +133,7 @@ export default function ProjectBoardPage() {
             </label>
             <label className="field">
               <span>المكلّف</span>
-              <select value={assigneeId} onChange={(event) => setAssigneeId(event.target.value)}>
+              <select className="input" value={assigneeId} onChange={(event) => setAssigneeId(event.target.value)}>
                 <option value="">بدون</option>
                 {board.assignees.map((person) => (
                   <option key={person.id} value={person.id}>{person.name}</option>

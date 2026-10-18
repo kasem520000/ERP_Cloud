@@ -9,7 +9,7 @@ import { removeOfflineInvoice, listOfflineInvoices, type OfflineQueueRecord } fr
 import { retryOfflineConflict, startOfflineAutoSync, syncOfflineInvoices } from '../../../lib/sync-engine';
 
 const money = (value: string | number | undefined) =>
-  Number(value ?? 0).toLocaleString('ar-SA', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  Number(value ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 export default function OfflineQueuePage() {
   const [rows, setRows] = useState<OfflineQueueRecord[]>([]);
@@ -85,91 +85,91 @@ export default function OfflineQueuePage() {
   }
 
   return (
-    <Screen
+ <Screen
       title="طابور POS أوفلاين"
       subtitle="كل فاتورة لها نتيجة مستقلة؛ تعارض المخزون لا يوقف بقية الدفعة"
       crumbs={['المبيعات', 'POS أوفلاين']}
       actions={
-        <>
-          <span
+ <>
+ <span
             className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[12px] font-bold ${online ? 'bg-ok-soft text-ok-ink' : 'bg-danger-soft text-danger-ink'}`}
           >
-            {online ? '🟢 متصل' : '🔴 أوفلاين'}
-          </span>
-          <Link className="btn sm" href="/pos/offline">
-            العودة إلى POS
-          </Link>
-          <button className="btn primary sm" type="button" disabled={busy || !online} onClick={syncNow}>
-            مزامنة الآن
-          </button>
-        </>
+ {online ? 'متصل' : 'أوفلاين'}
+ </span>
+ <Link className="btn sm" href="/pos/offline">
+ العودة إلى POS
+ </Link>
+ <button className="btn primary sm" type="button" disabled={busy || !online} onClick={syncNow}>
+ مزامنة الآن
+ </button>
+ </>
       }
     >
       {notice ? <Notice notice={notice} /> : null}
-      <div className="grid cols-3">
-        <div className="stat-card">
-          <span>معلقة</span>
-          <strong>{pending.length}</strong>
-          <small>تنتظر الاتصال</small>
-        </div>
-        <div className="stat-card">
-          <span>تعارض</span>
-          <strong className="text-danger">{conflicts.length}</strong>
-          <small>تحتاج حلاً قبل الترحيل</small>
-        </div>
-        <div className="stat-card">
-          <span>مُرحّلة</span>
-          <strong className="text-ok">{synced.length}</strong>
-          <small>تحمل رقماً حقيقياً</small>
-        </div>
-      </div>
+ <div className="grid cols-3">
+ <div className="stat-card">
+ <span>معلقة</span>
+ <strong>{pending.length}</strong>
+ <small>تنتظر الاتصال</small>
+ </div>
+ <div className="stat-card">
+ <span>تعارض</span>
+ <strong className="text-danger">{conflicts.length}</strong>
+ <small>تحتاج حلاً قبل الترحيل</small>
+ </div>
+ <div className="stat-card">
+ <span>مُرحّلة</span>
+ <strong className="text-ok">{synced.length}</strong>
+ <small>تحمل رقماً حقيقياً</small>
+ </div>
+ </div>
 
-      <section className="card">
-        <div className="card-head">
-          <h2>الفواتير المحلية</h2>
-          <span className="muted small">المزامنة التلقائية كل 10 ثوانٍ عند الاتصال</span>
-        </div>
+ <section className="card">
+ <div className="card-head">
+ <h2>الفواتير المحلية</h2>
+ <span className="muted small">المزامنة التلقائية كل 10 ثوانٍ عند الاتصال</span>
+ </div>
         {!rows.length ? (
-          <div className="state">
-            <strong>الطابور فارغ</strong>
-            <span>الفواتير التي تنشئها دون شبكة ستظهر هنا.</span>
-            <Link className="btn" href="/pos/offline">
-              فتح POS أوفلاين
-            </Link>
-          </div>
+ <div className="state">
+ <strong>الطابور فارغ</strong>
+ <span>الفواتير التي تنشئها دون شبكة ستظهر هنا.</span>
+ <Link className="btn" href="/pos/offline">
+ فتح POS أوفلاين
+ </Link>
+ </div>
         ) : (
-          <div className="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>المعرّف المؤقت</th>
-                  <th>التسلسل</th>
-                  <th>الأصناف</th>
-                  <th>الإجمالي</th>
-                  <th>الحالة</th>
-                  <th>التفصيل / الإجراء</th>
-                </tr>
-              </thead>
-              <tbody>
+ <div className="table-wrap">
+ <table>
+ <thead>
+ <tr>
+ <th>المعرّف المؤقت</th>
+ <th>التسلسل</th>
+ <th>الأصناف</th>
+ <th>الإجمالي</th>
+ <th>الحالة</th>
+ <th>التفصيل / الإجراء</th>
+ </tr>
+ </thead>
+ <tbody>
                 {rows.map((row) => (
-                  <tr key={row.offlineId}>
-                    <td dir="ltr">
-                      <strong>{row.offlineId}</strong>
-                      <br />
-                      <span className="muted small">{new Date(row.createdAt).toLocaleString('ar')}</span>
-                    </td>
-                    <td dir="ltr">{row.sequenceNo}</td>
-                    <td>{row.payload.lines.length}</td>
-                    <td>
+ <tr key={row.offlineId}>
+ <td dir="ltr">
+ <strong>{row.offlineId}</strong>
+ <br />
+ <span className="muted small">{new Date(row.createdAt).toLocaleString('ar')}</span>
+ </td>
+ <td dir="ltr">{row.sequenceNo}</td>
+ <td>{row.payload.lines.length}</td>
+ <td>
                       {money(
                         row.payload.lines.reduce(
                           (sum, line) => sum + Number(line.unitPrice) * Number(line.quantity),
                           0,
                         ),
                       )}
-                    </td>
-                    <td>
-                      <span
+ </td>
+ <td>
+ <span
                         className={`badge ${row.status === 'synced' ? 'posted' : row.status === 'conflict' ? 'danger' : 'draft'}`}
                       >
                         {row.status === 'synced'
@@ -177,53 +177,53 @@ export default function OfflineQueuePage() {
                           : row.status === 'conflict'
                             ? 'تعارض'
                             : 'معلقة'}
-                      </span>
-                    </td>
-                    <td>
+ </span>
+ </td>
+ <td>
                       {row.status === 'conflict' ? (
-                        <>
-                          <span className="text-danger-ink">
+ <>
+ <span className="text-danger-ink">
                             {row.message ?? row.errorCode ?? 'تحتاج مراجعة'}
-                          </span>
-                          <div className="toolbar" style={{ marginTop: 6 }}>
-                            <button
+ </span>
+ <div className="toolbar" style={{ marginTop: 6 }}>
+ <button
                               className="btn sm primary"
                               type="button"
                               disabled={busy || !online}
                               onClick={() => retry(row)}
                             >
-                              إعادة المحاولة
-                            </button>
-                            <button
+ إعادة المحاولة
+ </button>
+ <button
                               className="btn sm"
                               type="button"
                               disabled={busy}
                               onClick={() => discard(row)}
                             >
-                              حذف المحلية
-                            </button>
-                          </div>
-                        </>
+ حذف المحلية
+ </button>
+ </div>
+ </>
                       ) : row.status === 'synced' ? (
-                        <span className="text-ok-ink">تم الترحيل بنجاح</span>
+ <span className="text-ok-ink">تم الترحيل بنجاح</span>
                       ) : (
-                        <span className="muted">ستتم المحاولة تلقائياً</span>
+ <span className="muted">ستتم المحاولة تلقائياً</span>
                       )}
-                    </td>
-                  </tr>
+ </td>
+ </tr>
                 ))}
-              </tbody>
-            </table>
-          </div>
+ </tbody>
+ </table>
+ </div>
         )}
-      </section>
-      <div className="card subtle">
-        <strong>حل التعارض</strong>
-        <p className="muted">
-          عند نفاد المخزون يظهر الرمز STOCK_INSUFFICIENT. صحّح الكمية أو حدّث حزمة المخزون ثم اضغط «إعادة
-          المحاولة». لا يتأثر باقي الطابور.
-        </p>
-      </div>
-    </Screen>
+ </section>
+ <div className="card subtle">
+ <strong>حل التعارض</strong>
+ <p className="muted">
+ عند نفاد المخزون يظهر الرمز STOCK_INSUFFICIENT. صحّح الكمية أو حدّث حزمة المخزون ثم اضغط «إعادة
+ المحاولة». لا يتأثر باقي الطابور.
+ </p>
+ </div>
+ </Screen>
   );
 }

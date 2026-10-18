@@ -177,7 +177,7 @@ export default function ApiKeysPage() {
       <div className="card grid cols-2">
         <label>
           المنشأة
-          <select value={tenantId} onChange={(event) => setTenantId(event.target.value)}>
+          <select className="input" value={tenantId} onChange={(event) => setTenantId(event.target.value)}>
             <option value="">— اختر منشأة —</option>
             {(tenants.data ?? []).map((entry) => (
               <option key={entry.id} value={entry.id}>
@@ -204,11 +204,11 @@ export default function ApiKeysPage() {
           <div className="form-grid">
             <label>
               الاسم (ما ستعرفه به لاحقاً)
-              <input value={name} onChange={(event) => setName(event.target.value)} placeholder="تكامل المستودع" />
+              <input className="input" value={name} onChange={(event) => setName(event.target.value)} placeholder="تكامل المستودع" />
             </label>
             <label>
               ينتهي بعد (أيام — فارغ = بلا انتهاء)
-              <input
+              <input className="input"
                 value={days}
                 inputMode="numeric"
                 onChange={(event) => setDays(event.target.value.replace(/[^0-9]/g, ''))}
@@ -316,7 +316,7 @@ export default function ApiKeysPage() {
           </div>
           <label className="grid">
             سبب الإبطال/التدوير (٥ محارف على الأقل — يُكتب في التدقيق)
-            <input value={reason} onChange={(event) => setReason(event.target.value)} />
+            <input className="input" value={reason} onChange={(event) => setReason(event.target.value)} />
           </label>
         </div>
       )}

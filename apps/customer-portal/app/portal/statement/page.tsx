@@ -75,7 +75,8 @@ function Statement() {
         ) : lines.length === 0 ? (
           <p className="muted">لا توجد حركات في هذه الفترة.</p>
         ) : (
-          <table>
+          <div className="table-wrap">
+            <table>
             <thead>
               <tr>
                 <th>التاريخ</th>
@@ -112,7 +113,8 @@ function Statement() {
                 </td>
               </tr>
             </tfoot>
-          </table>
+            </table>
+          </div>
         )}
       </section>
     </>

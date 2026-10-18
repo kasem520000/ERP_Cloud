@@ -45,9 +45,9 @@ type TransferLine = {
   qty: string;
   receivedQty: string;
   unitCost: string;
-  /** 🔢 الأرقام التسلسلية riding with the goods — one per piece. */
+  /** الأرقام التسلسلية riding with the goods — one per piece. */
   serialNos?: string[];
-  /** 📁 رقم الدفعة وتواريخها على السطر (R5). */
+  /** رقم الدفعة وتواريخها على السطر (R5). */
   batchNo?: string | null;
   productionDate?: string | null;
   expiryDate?: string | null;
@@ -99,7 +99,7 @@ const lineValue = (line: TransferLine) => Number(line.qty) * Number(line.unitCos
 export default function TransfersPage() {
   const { can } = useSession();
   /**
-   * 🔍 البحث — `frmSafesTransfer` narrows the grid by `🔢 رقم التحويل` and by a
+   * البحث — `frmSafesTransfer` narrows the grid by ` رقم التحويل` and by a
    * `📅 من تاريخ` / `📅 إلى تاريخ` window, and `📋 كل الفترة` puts the whole history
    * back. The server does the narrowing so the clerk searches a year of transfers, not
    * the one page the browser happened to have cached.
@@ -142,7 +142,7 @@ export default function TransfersPage() {
       qtyText: string;
       unitId: string;
       unitCostText: string;
-      /** 📁 رقم الدفعة — المناقلة تنقل دفعةً بعينها، فيُكتب رقمها على السطر (R5). */
+      /** رقم الدفعة — المناقلة تنقل دفعةً بعينها، فيُكتب رقمها على السطر (R5). */
       batchNo: string;
       productionDate: string;
       expiryDate: string;
@@ -278,96 +278,96 @@ export default function TransfersPage() {
     .reduce((sum, line) => sum + (Number(line.qty) - Number(line.receivedQty)) * Number(line.unitCost ?? 0), 0);
 
   return (
-    <Screen
+ <Screen
       title="مناقلة مخزنية"
-      subtitle="مسودة ← إرسال (بضاعة تحت التحويل) ← استلام (إدخال للمخزون) — المناقلة محايدة القيمة: ما يخرج من مستودع يدخل الآخر بنفس التكلفة."
+ subtitle="مسودة إرسال (بضاعة تحت التحويل) استلام (إدخال للمخزون) — المناقلة محايدة القيمة: ما يخرج من مستودع يدخل الآخر بنفس التكلفة."
       crumbs={['المستودعات', 'العمليات']}
       actions={
         can('inventory.adjust') ? (
-          <button className="btn primary" type="button" onClick={() => setOpen(!open)}>
+ <button className="btn primary" type="button" onClick={() => setOpen(!open)}>
             {open ? 'إغلاق' : 'مناقلة جديدة'}
-          </button>
+ </button>
         ) : null
       }
     >
       {open && (
-        <form className="card" onSubmit={createTransfer}>
-          <h2>مناقلة جديدة</h2>
-          <div className="form-grid">
-            <label className="field">
-              <span>الفرع *</span>
-              <select
+ <form className="card" onSubmit={createTransfer}>
+ <h2>مناقلة جديدة</h2>
+ <div className="form-grid">
+ <label className="field">
+ <span>الفرع *</span>
+ <select
                 className="input"
                 value={effectiveBranch}
                 onChange={(event) => setBranchId(event.target.value)}
                 required
               >
-                <option value="">— اختر —</option>
+ <option value="">— اختر —</option>
                 {branchRows.map((row) => (
-                  <option key={row.id} value={row.id}>
+ <option key={row.id} value={row.id}>
                     {row.code ? `${row.code} — ` : ''}
                     {arabicName(row)}
-                  </option>
+ </option>
                 ))}
-              </select>
-            </label>
-            <label className="field">
-              <span>من مستودع *</span>
-              <select
+ </select>
+ </label>
+ <label className="field">
+ <span>من مستودع *</span>
+ <select
                 className="input"
                 value={fromWarehouseId}
                 onChange={(event) => setFrom(event.target.value)}
                 required
               >
-                <option value="">— اختر —</option>
+ <option value="">— اختر —</option>
                 {warehouseRows.map((row) => (
-                  <option key={row.id} value={row.id}>
+ <option key={row.id} value={row.id}>
                     {arabicName(row)}
-                  </option>
+ </option>
                 ))}
-              </select>
-            </label>
-            <label className="field">
-              <span>إلى مستودع *</span>
-              <select
+ </select>
+ </label>
+ <label className="field">
+ <span>إلى مستودع *</span>
+ <select
                 className="input"
                 value={toWarehouseId}
                 onChange={(event) => setTo(event.target.value)}
                 required
               >
-                <option value="">— اختر —</option>
+ <option value="">— اختر —</option>
                 {warehouseRows
                   .filter((row) => row.id !== fromWarehouseId)
                   .map((row) => (
-                    <option key={row.id} value={row.id}>
+ <option key={row.id} value={row.id}>
                       {arabicName(row)}
-                    </option>
+ </option>
                   ))}
-              </select>
-            </label>
-          </div>
+ </select>
+ </label>
+ </div>
 
-          <h3>الأصناف</h3>
-          <div className="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>المادة</th>
-                  <th>الكمية</th>
-                  <th>الوحدة</th>
-                  <th>تكلفة الوحدة</th>
-                  <th>📁 رقم الدفعة</th>
-                  <th>📅 تاريخ الإنتاج</th>
-                  <th>⏳ تاريخ الانتهاء</th>
-                  <th>🔢 الأرقام التسلسلية</th>
-                  <th />
-                </tr>
-              </thead>
-              <tbody>
+ <h3>الأصناف</h3>
+ <div className="table-wrap">
+ <table>
+ <thead>
+ <tr>
+ <th>المادة</th>
+ <th>الكمية</th>
+ <th>الوحدة</th>
+ <th>تكلفة الوحدة</th>
+ <th>رقم الدفعة</th>
+ <th>تاريخ الإنتاج</th>
+ <th>تاريخ الانتهاء</th>
+ <th>الأرقام التسلسلية</th>
+ <th />
+ </tr>
+ </thead>
+ <tbody>
                 {lines.map((line, index) => (
-                  <tr key={index}>
-                    <td>
-                      <select
+ <tr key={index}>
+ <td>
+ <select
                         className="input"
                         value={line.itemId}
                         onChange={(event) =>
@@ -380,31 +380,31 @@ export default function TransfersPage() {
                           })
                         }
                       >
-                        <option value="">— اختر —</option>
+ <option value="">— اختر —</option>
                         {itemRows.map((row) => (
-                          <option key={row.id} value={row.id}>
+ <option key={row.id} value={row.id}>
                             {itemLabel(row)}
-                          </option>
+ </option>
                         ))}
-                      </select>
-                    </td>
-                    <td>
-                      <input
+ </select>
+ </td>
+ <td>
+ <input
                         className="input"
                         dir="ltr"
                         inputMode="decimal"
                         value={line.qtyText}
                         onChange={(event) => updateLine(index, { qtyText: event.target.value })}
                       />
-                    </td>
-                    <td>
-                      <select
+ </td>
+ <td>
+ <select
                         className="input"
                         value={line.unitId}
                         onChange={(event) => updateLine(index, { unitId: event.target.value })}
                         disabled={!line.itemId}
                       >
-                        <option value="">الوحدة الأساسية</option>
+ <option value="">الوحدة الأساسية</option>
                         {unitsOf(line.itemId)
                           .filter(
                             (unit) =>
@@ -412,24 +412,24 @@ export default function TransfersPage() {
                               (itemOf(line.itemId)?.baseUnitId ?? itemOf(line.itemId)?.base_unit_id),
                           )
                           .map((unit) => (
-                            <option key={unit.unitId} value={unit.unitId}>
+ <option key={unit.unitId} value={unit.unitId}>
                               {`${unit.unitNameAr ?? ''} (×${Number(unit.ratio).toLocaleString('ar-EG')})`}
-                            </option>
+ </option>
                           ))}
-                      </select>
-                    </td>
-                    <td>
-                      <input
+ </select>
+ </td>
+ <td>
+ <input
                         className="input"
                         dir="ltr"
                         inputMode="decimal"
                         value={line.unitCostText}
                         onChange={(event) => updateLine(index, { unitCostText: event.target.value })}
                       />
-                    </td>
-                    <td>
+ </td>
+ <td>
                       {/* دفعةٌ بعينها تنتقل — والصنف الذي لا يُتتبَّع بالدفعات لا يقبل رقماً */}
-                      <input
+ <input
                         className="input"
                         dir="ltr"
                         list={`tr-lots-${index}`}
@@ -438,18 +438,18 @@ export default function TransfersPage() {
                         disabled={!itemOf(line.itemId)?.trackLot}
                         onChange={(event) => updateLine(index, { batchNo: event.target.value })}
                       />
-                      <datalist id={`tr-lots-${index}`}>
+ <datalist id={`tr-lots-${index}`}>
                         {(lots.data ?? [])
                           .filter((lot) => lot.itemId === line.itemId)
                           .map((lot) => (
-                            <option key={lot.id} value={lot.lotNo}>
+ <option key={lot.id} value={lot.lotNo}>
                               {lot.expiryDate ? shortDate(lot.expiryDate) : ''}
-                            </option>
+ </option>
                           ))}
-                      </datalist>
-                    </td>
-                    <td>
-                      <input
+ </datalist>
+ </td>
+ <td>
+ <input
                         className="input"
                         type="date"
                         dir="ltr"
@@ -457,9 +457,9 @@ export default function TransfersPage() {
                         disabled={!itemOf(line.itemId)?.trackLot}
                         onChange={(event) => updateLine(index, { productionDate: event.target.value })}
                       />
-                    </td>
-                    <td>
-                      <input
+ </td>
+ <td>
+ <input
                         className="input"
                         type="date"
                         dir="ltr"
@@ -467,11 +467,11 @@ export default function TransfersPage() {
                         disabled={!itemOf(line.itemId)?.trackLot}
                         onChange={(event) => updateLine(index, { expiryDate: event.target.value })}
                       />
-                    </td>
-                    <td>
+ </td>
+ <td>
                       {itemOf(line.itemId)?.trackSerial ? (
-                        <>
-                          <textarea
+ <>
+ <textarea
                             className="input"
                             rows={2}
                             dir="ltr"
@@ -479,31 +479,31 @@ export default function TransfersPage() {
                             value={line.serialNos}
                             onChange={(event) => updateLine(index, { serialNos: event.target.value })}
                           />
-                          <span className="chip">
+ <span className="chip">
                             {`${line.serialNos.split(/[\s,،;؛]+/).filter(Boolean).length} من ${line.qtyText || '—'}`}
-                          </span>
-                        </>
+ </span>
+ </>
                       ) : (
-                        <span className="muted">—</span>
+ <span className="muted">—</span>
                       )}
-                    </td>
-                    <td>
-                      <button
+ </td>
+ <td>
+ <button
                         className="btn sm"
                         type="button"
                         onClick={() =>
                           setLines((current) => current.filter((_, position) => position !== index))
                         }
                       >
-                        حذف
-                      </button>
-                    </td>
-                  </tr>
+ حذف
+ </button>
+ </td>
+ </tr>
                 ))}
-              </tbody>
-            </table>
-          </div>
-          <button
+ </tbody>
+ </table>
+ </div>
+ <button
             className="btn sm"
             type="button"
             onClick={() =>
@@ -523,150 +523,150 @@ export default function TransfersPage() {
             }
           >
             + سطر
-          </button>
+ </button>
 
-          <Notice notice={notice} />
-          <button className="btn primary" type="submit" disabled={busy}>
+ <Notice notice={notice} />
+ <button className="btn primary" type="submit" disabled={busy}>
             {busy ? 'جارٍ الحفظ…' : 'حفظ كمسودة'}
-          </button>
-        </form>
+ </button>
+ </form>
       )}
 
       {!open && <Notice notice={notice} />}
 
-      <StatTiles>
-        <StatTile
+ <StatTiles>
+ <StatTile
           label="مناقلات في الطريق"
           value={rows.filter((row) => row.status === 'in_transit').length}
           hint="خرجت من المصدر ولم تصل"
           tone="warn"
         />
-        <StatTile
+ <StatTile
           label="مستلمة جزئياً"
           value={rows.filter((row) => row.status === 'partially_received').length}
           hint="وصل بعضها وبقي بعضها"
           tone="warn"
         />
-        <StatTile
+ <StatTile
           label="الكمية المعلّقة"
           value={quantity(transitQty)}
           hint="لم تُستلم بعد"
         />
-        <StatTile label="قيمة ما في الطريق" value={money(transitValue)} hint="في حساب بضاعة تحت التحويل" tone="brand" />
-        <StatTile label="مسودات" value={rows.filter((row) => row.status === 'draft').length} hint="تنتظر الإرسال" />
-      </StatTiles>
+ <StatTile label="قيمة ما في الطريق" value={money(transitValue)} hint="في حساب بضاعة تحت التحويل" tone="brand" />
+ <StatTile label="مسودات" value={rows.filter((row) => row.status === 'draft').length} hint="تنتظر الإرسال" />
+ </StatTiles>
 
-      <FilterBar
+ <FilterBar
         actions={
-          <>
-            <button
+ <>
+ <button
               className="btn"
               type="button"
               onClick={() => setSearch({ number: '', from: '', to: '' })}
             >
-              📋 كل الفترة
-            </button>
-            <button className="btn primary" type="button" onClick={() => transfers.reload()}>
-              🔍 بحث
-            </button>
-          </>
+ كل الفترة
+ </button>
+ <button className="btn primary" type="button" onClick={() => transfers.reload()}>
+ بحث
+ </button>
+ </>
         }
       >
-        <label className="field">
-          <span>🔢 رقم التحويل</span>
-          <input
+ <label className="field">
+ <span>رقم التحويل</span>
+ <input className="input"
             dir="ltr"
             value={search.number}
             onChange={(event) => setSearch((current) => ({ ...current, number: event.target.value }))}
             placeholder="TR-0001"
           />
-        </label>
-        <label className="field">
-          <span>📅 من تاريخ</span>
-          <input
+ </label>
+ <label className="field">
+ <span>من تاريخ</span>
+ <input className="input"
             type="date"
             value={search.from}
             onChange={(event) => setSearch((current) => ({ ...current, from: event.target.value }))}
           />
-        </label>
-        <label className="field">
-          <span>📅 إلى تاريخ</span>
-          <input
+ </label>
+ <label className="field">
+ <span>إلى تاريخ</span>
+ <input className="input"
             type="date"
             value={search.to}
             onChange={(event) => setSearch((current) => ({ ...current, to: event.target.value }))}
           />
-        </label>
-      </FilterBar>
+ </label>
+ </FilterBar>
 
-      <Tabs items={BUCKETS} value={bucket} onChange={setBucket} />
+ <Tabs items={BUCKETS} value={bucket} onChange={setBucket} />
 
-      <div className="split">
-        <div className="card tight split-list">
-          <QueryView query={transfers} empty="لا توجد مناقلات" emptyDetail="أنشئ مناقلة لنقل بضاعة بين مستودعين.">
+ <div className="split">
+ <div className="card tight split-list">
+ <QueryView query={transfers} empty="لا توجد مناقلات" emptyDetail="أنشئ مناقلة لنقل بضاعة بين مستودعين.">
             {() => (
-              <>
+ <>
                 {shown.length === 0 ? (
-                  <p className="muted" style={{ padding: 12 }}>لا مناقلات في هذا التبويب.</p>
+ <p className="muted" style={{ padding: 12 }}>لا مناقلات في هذا التبويب.</p>
                 ) : (
                   shown.map((row) => (
-                    <button
+ <button
                       key={row.id}
                       type="button"
                       className={`list-row${row.id === selectedId ? ' active' : ''}`}
                       onClick={() => setSelectedId(row.id)}
                     >
-                      <span className="list-title" dir="ltr">{row.number}</span>
-                      <span className="list-sub">
-                        {`${nameOfWarehouse(row.fromWarehouseId)} ← ${nameOfWarehouse(row.toWarehouseId)}`}
-                      </span>
-                      <span className="row" style={{ justifyContent: 'space-between' }}>
-                        <span className={`badge ${row.status === 'received' ? 'ok' : row.status === 'cancelled' ? 'danger' : ''}`}>
+ <span className="list-title" dir="ltr">{row.number}</span>
+ <span className="list-sub">
+ {`${nameOfWarehouse(row.fromWarehouseId)} ${nameOfWarehouse(row.toWarehouseId)}`}
+ </span>
+ <span className="row" style={{ justifyContent: 'space-between' }}>
+ <span className={`badge ${row.status === 'received' ? 'ok' : row.status === 'cancelled' ? 'danger' : ''}`}>
                           {TRANSFER_STATUS[row.status] ?? statusLabel(row.status)}
-                        </span>
-                        <span className="list-sub" dir="ltr">{dateTime(row.createdAt)}</span>
-                      </span>
-                    </button>
+ </span>
+ <span className="list-sub" dir="ltr">{dateTime(row.createdAt)}</span>
+ </span>
+ </button>
                   ))
                 )}
-              </>
+ </>
             )}
-          </QueryView>
-        </div>
+ </QueryView>
+ </div>
 
-        <div className="card">
+ <div className="card">
           {!selected ? (
-            <p className="muted">اختر مناقلة من القائمة لعرض خطواتها وأسطرها وأفعالها.</p>
+ <p className="muted">اختر مناقلة من القائمة لعرض خطواتها وأسطرها وأفعالها.</p>
           ) : (
-            <>
-              <div className="section-title">
-                <h2 dir="ltr">{selected.number}</h2>
-                <span className={`badge ${selected.status === 'received' ? 'ok' : selected.status === 'cancelled' ? 'danger' : ''}`}>
+ <>
+ <div className="section-title">
+ <h2 dir="ltr">{selected.number}</h2>
+ <span className={`badge ${selected.status === 'received' ? 'ok' : selected.status === 'cancelled' ? 'danger' : ''}`}>
                   {TRANSFER_STATUS[selected.status] ?? statusLabel(selected.status)}
-                </span>
-              </div>
+ </span>
+ </div>
 
-              <StatusTrack
+ <StatusTrack
                 steps={STEPS}
                 current={STATUS_STEP[selected.status] ?? 0}
                 cancelled={selected.status === 'cancelled'}
               />
 
-              <DocHead>
-                <DocField label="الرقم">
-                  <span dir="ltr">{selected.number}</span>
-                </DocField>
-                <DocField label="من مستودع">{nameOfWarehouse(selected.fromWarehouseId)}</DocField>
-                <DocField label="إلى مستودع">{nameOfWarehouse(selected.toWarehouseId)}</DocField>
-                <DocField label="أُنشئت">{dateTime(selected.createdAt)}</DocField>
-                <DocField label="الأسطر">{selected.lines.length}</DocField>
-              </DocHead>
+ <DocHead>
+ <DocField label="الرقم">
+ <span dir="ltr">{selected.number}</span>
+ </DocField>
+ <DocField label="من مستودع">{nameOfWarehouse(selected.fromWarehouseId)}</DocField>
+ <DocField label="إلى مستودع">{nameOfWarehouse(selected.toWarehouseId)}</DocField>
+ <DocField label="أُنشئت">{dateTime(selected.createdAt)}</DocField>
+ <DocField label="الأسطر">{selected.lines.length}</DocField>
+ </DocHead>
 
-              <DataTable
+ <DataTable
                 rows={selected.lines}
                 rowKey={(line) => String(line.lineNo)}
                 footer={[
-                  <>المجموع</>,
+ <>المجموع</>,
                   '',
                   quantity(selected.lines.reduce((sum, line) => sum + Number(line.qty), 0)),
                   quantity(selected.lines.reduce((sum, line) => sum + Number(line.receivedQty), 0)),
@@ -678,7 +678,7 @@ export default function TransfersPage() {
                   ),
                   '',
                   money(selected.lines.reduce((sum, line) => sum + lineValue(line), 0)),
-                  '', // 📁 رقم الدفعة
+                  '', // رقم الدفعة
                 ]}
                 columns={[
                   {
@@ -689,7 +689,7 @@ export default function TransfersPage() {
                       return item ? (
                         itemLabel(item)
                       ) : (
-                        <span className="muted" dir="ltr">{line.itemId.slice(0, 8)}</span>
+ <span className="muted" dir="ltr">{line.itemId.slice(0, 8)}</span>
                       );
                     },
                   },
@@ -697,26 +697,26 @@ export default function TransfersPage() {
                   { key: 'qty', header: 'الكمية', align: 'num', cell: (line) => quantity(line.qty) },
                   {
                     key: 'serials',
-                    header: '🔢 الأرقام التسلسلية',
+ header: 'الأرقام التسلسلية',
                     cell: (line) =>
                       line.serialNos?.length ? (
-                        <span dir="ltr" className="small">
+ <span dir="ltr" className="small">
                           {line.serialNos.join(' · ')}
-                        </span>
+ </span>
                       ) : (
                         '—'
                       ),
                   },
                   {
                     key: 'batch',
-                    header: '📁 رقم الدفعة',
+ header: 'رقم الدفعة',
                     cell: (line) =>
                       line.batchNo ? (
-                        <span dir="ltr" className="small">
+ <span dir="ltr" className="small">
                           {line.batchNo}
-                          {line.productionDate ? ` · 📅 ${shortDate(line.productionDate)}` : ''}
-                          {line.expiryDate ? ` · ⏳ ${shortDate(line.expiryDate)}` : ''}
-                        </span>
+ {line.productionDate ? ` · ${shortDate(line.productionDate)}` : ''}
+ {line.expiryDate ? ` · ${shortDate(line.expiryDate)}` : ''}
+ </span>
                       ) : (
                         '—'
                       ),
@@ -739,12 +739,12 @@ export default function TransfersPage() {
                       const got = Number(line.receivedQty);
                       const pct = sent > 0 ? Math.round((got / sent) * 100) : 0;
                       return (
-                        <span style={{ display: 'grid', gap: 2 }}>
-                          <span className="small muted" dir="ltr">{`${pct}٪`}</span>
-                          <span className={`bar ${pct >= 100 ? 'ok' : pct > 0 ? 'warn' : 'danger'}`}>
-                            <span style={{ width: `${Math.min(100, pct)}%` }} />
-                          </span>
-                        </span>
+ <span style={{ display: 'grid', gap: 2 }}>
+ <span className="small muted" dir="ltr">{`${pct}٪`}</span>
+ <span className={`bar ${pct >= 100 ? 'ok' : pct > 0 ? 'warn' : 'danger'}`}>
+ <span style={{ width: `${Math.min(100, pct)}%` }} />
+ </span>
+ </span>
                       );
                     },
                   },
@@ -752,7 +752,7 @@ export default function TransfersPage() {
                 ]}
               />
 
-              <Totals
+ <Totals
                 items={[
                   { label: 'إجمالي الكمية', value: quantity(selected.lines.reduce((sum, line) => sum + Number(line.qty), 0)) },
                   { label: 'المُستلَم', value: quantity(selected.lines.reduce((sum, line) => sum + Number(line.receivedQty), 0)) },
@@ -766,9 +766,9 @@ export default function TransfersPage() {
                 ]}
               />
 
-              <ActionBar>
+ <ActionBar>
                 {selected.status === 'draft' && can('inventory.adjust') && (
-                  <button
+ <button
                     className="btn primary"
                     type="button"
                     onClick={() =>
@@ -778,11 +778,11 @@ export default function TransfersPage() {
                       )
                     }
                   >
-                    إرسال
-                  </button>
+ إرسال
+ </button>
                 )}
                 {['in_transit', 'partially_received'].includes(selected.status) && can('inventory.adjust') && (
-                  <button
+ <button
                     className="btn primary"
                     type="button"
                     onClick={() =>
@@ -800,11 +800,11 @@ export default function TransfersPage() {
                       )
                     }
                   >
-                    استلام كامل
-                  </button>
+ استلام كامل
+ </button>
                 )}
                 {['draft', 'in_transit'].includes(selected.status) && can('inventory.adjust') && (
-                  <button
+ <button
                     className="btn danger"
                     type="button"
                     onClick={() => {
@@ -826,17 +826,17 @@ export default function TransfersPage() {
                       }
                     }}
                   >
-                    إلغاء
-                  </button>
+ إلغاء
+ </button>
                 )}
-                <button className="btn" type="button" onClick={() => window.print()}>
-                  طباعة
-                </button>
-              </ActionBar>
-            </>
+ <button className="btn" type="button" onClick={() => window.print()}>
+ طباعة
+ </button>
+ </ActionBar>
+ </>
           )}
-        </div>
-      </div>
-    </Screen>
+ </div>
+ </div>
+ </Screen>
   );
 }

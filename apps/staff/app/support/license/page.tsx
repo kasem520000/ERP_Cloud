@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { ApiError, apiData, apiPost } from '../../../lib/api';
 import { ErrorBox, Loading, Screen } from '../../../components/screen';
 import { useQuery } from '../../../lib/use-query';
+import { dateText } from '../../../lib/format';
 
 type Subscription = {
   status: string;
@@ -68,12 +69,12 @@ export default function LicensePage() {
               <dd>{subscription.data.provider === 'stripe' ? 'Stripe' : 'تفعيل يدوي'}</dd>
               <dt>تاريخ التفعيل</dt>
               <dd dir="ltr">
-                {subscription.data.activated_at ? new Date(subscription.data.activated_at).toLocaleDateString('ar-SA') : '—'}
+                {subscription.data.activated_at ? dateText(subscription.data.activated_at) : '—'}
               </dd>
               <dt>ينتهي في</dt>
               <dd dir="ltr">
                 {subscription.data.current_period_end
-                  ? new Date(subscription.data.current_period_end).toLocaleDateString('ar-SA')
+                  ? dateText(subscription.data.current_period_end)
                   : '—'}
               </dd>
             </dl>

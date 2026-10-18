@@ -113,7 +113,7 @@ export function Modal({
       {open ? (
         <div className="fixed inset-0 z-50 grid place-items-center overflow-y-auto p-4">
           <motion.div
-            className="fixed inset-0 bg-slate-950/45 backdrop-blur-[2px]"
+            className="fixed inset-0 bg-slate-950/50 backdrop-blur-[4px]"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -131,14 +131,14 @@ export function Modal({
             exit={{ opacity: 0, y: 8, scale: 0.99 }}
             transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
             className={cn(
-              'relative z-10 w-full rounded-xl border border-line bg-raised p-5 shadow-5',
+              'ui-panel relative z-10 w-full rounded-2xl border border-line bg-raised p-5 shadow-5',
               SIZES[size],
               className,
             )}
           >
             <div className="mb-4 flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <h2 id={titleId} className="m-0 text-[17px] font-bold text-ink">
+                <h2 id={titleId} className="m-0 text-[17px] font-bold tracking-[-0.015em] text-ink">
                   {title}
                 </h2>
                 {description ? (
@@ -315,9 +315,11 @@ export function ConfirmDialog({
             disabled={!confirmed || loading}
             onClick={() => onConfirm(reason.trim())}
             className={cn(
-              'h-9 rounded-md border px-4 text-[13px] font-bold text-white shadow-2 transition-[filter] duration-150',
+              'h-9 rounded-md border px-4 text-[13px] font-bold shadow-2 transition-[filter] duration-150',
               'disabled:cursor-not-allowed disabled:opacity-55',
-              tone === 'danger' ? 'border-danger bg-danger' : 'border-brand bg-brand',
+              tone === 'danger'
+                ? 'border-danger bg-danger text-white'
+                : 'border-brand bg-brand text-brand-ink',
             )}
           >
             {loading ? '…' : confirmLabel}

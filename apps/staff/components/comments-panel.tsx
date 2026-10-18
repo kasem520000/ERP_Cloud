@@ -112,7 +112,7 @@ export function CommentsPanel({ entityType, entityId }: { entityType: string; en
         <div className="grid gap-2">
           {replyTo ? <p className="muted">رد على تعليق</p> : null}
           {editing ? <p className="muted">تعديل تعليقك</p> : null}
-          <textarea value={body} onChange={(event) => setBody(event.target.value)} placeholder="اكتب تعليقاً. @ يفتح الزملاء" />
+          <textarea className="input" value={body} onChange={(event) => setBody(event.target.value)} placeholder="اكتب تعليقاً. @ يفتح الزملاء" />
           {suggestions.length > 0 ? (
             <ul>
               {suggestions.map((person) => (

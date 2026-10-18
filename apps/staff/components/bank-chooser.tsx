@@ -1,11 +1,12 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { Landmark } from 'lucide-react';
 
 import { cashLocationLabel, type CashLocation } from '../lib/lookups';
 
 /**
- * 🏦 اختر طريقة الدفع (تحويل بنكي) — `Form_WPF/frmPayBank.xaml`.
+ * اختر طريقة الدفع (تحويل بنكي) — `Form_WPF/frmPayBank.xaml`.
  *
  * The desktop window is a **chooser, not a form**: a header `🏦 اختر طريقة الدفع
  * (تحويل بنكي)`, a `🏦 البنوك المتاحة` panel of tiles built in `LoadBanks()` from
@@ -61,24 +62,24 @@ export function BankChooser({
   }
 
   return (
-    <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label="🏦 اختر طريقة الدفع (تحويل بنكي)">
-      <div className="modal-card" style={{ maxWidth: 640 }}>
-        <div className="modal-head">
-          <span className="modal-title">🏦 اختر طريقة الدفع (تحويل بنكي)</span>
-        </div>
+ <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label="اختر طريقة الدفع (تحويل بنكي)">
+ <div className="modal-card" style={{ maxWidth: 640 }}>
+ <div className="modal-head">
+ <span className="modal-title">اختر طريقة الدفع (تحويل بنكي)</span>
+ </div>
 
-        <div className="card" style={{ margin: 12 }}>
-          <div className="card-head">🏦 البنوك المتاحة</div>
-          <div className="bank-tiles">
+ <div className="card" style={{ margin: 12 }}>
+ <div className="card-head">البنوك المتاحة</div>
+ <div className="bank-tiles">
             {loading ? <p className="muted small">…</p> : null}
             {!loading && banks.length === 0 ? (
               // `frmPayBank.xaml.cs` writes this into the panel when the query is empty.
-              <p className="muted" style={{ textAlign: 'center', margin: '20px 0' }}>
-                لا توجد بنوك متاحة
-              </p>
+ <p className="muted" style={{ textAlign: 'center', margin: '20px 0' }}>
+ لا توجد بنوك متاحة
+ </p>
             ) : null}
             {banks.map((bank) => (
-              <button
+ <button
                 key={bank.id}
                 type="button"
                 className={`bank-tile ${chosen === bank.id ? 'on' : ''}`}
@@ -87,24 +88,24 @@ export function BankChooser({
                   setNotice('');
                 }}
               >
-                <span className="bank-tile-icon">🏦</span>
-                <span className="bank-tile-name">{cashLocationLabel(bank)}</span>
-              </button>
+ <span className="bank-tile-icon"><Landmark size={16} /></span>
+ <span className="bank-tile-name">{cashLocationLabel(bank)}</span>
+ </button>
             ))}
-          </div>
-        </div>
+ </div>
+ </div>
 
         {notice ? <p className="notice danger" style={{ margin: '0 12px' }}>{notice}</p> : null}
 
-        <div className="modal-foot">
-          <button type="button" className="btn danger" onClick={onCancel}>
-            ✖ خروج
-          </button>
-          <button type="button" className="btn primary" onClick={confirm}>
-            ✔ موافق
-          </button>
-        </div>
-      </div>
-    </div>
+ <div className="modal-foot">
+ <button type="button" className="btn danger" onClick={onCancel}>
+ خروج
+ </button>
+ <button type="button" className="btn primary" onClick={confirm}>
+ موافق
+ </button>
+ </div>
+ </div>
+ </div>
   );
 }

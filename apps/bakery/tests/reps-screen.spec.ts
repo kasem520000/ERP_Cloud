@@ -264,7 +264,7 @@ describe('reps screen — الحمولة والحكم قبل الإرسال', ()
     expect(verdict.warnings).toHaveLength(1);
   });
 
-  it('حسابٌ قائم ⇒ تحذيرُ إعادة الاستعمال والبريد الفعليّ', () => {
+ it('حسابٌ قائم تحذيرُ إعادة الاستعمال والبريد الفعليّ', () => {
     const verdict = linkVerdict(
       { ...emptyLinkDraft(), salesmanId: readyRep().id, email: 'other@bakery.test' },
       readyRep(),
@@ -357,7 +357,7 @@ describe('reps screen — قراءة إيصال الربط بحقوله', () => 
     expect(outcome?.notes.join(' ')).toContain('مندوب توزيع');
     expect(outcome?.notes.join(' ')).toContain('لم تُخترع كلمةُ مرور');
     expect(outcome?.notes.join(' ')).toContain('رابطُ التفعيل');
-    expect(outcome?.tone).toBe('warn'); // `invited` ⇒ ليس «تمّ» بلا قيد
+ expect(outcome?.tone).toBe('warn'); // `invited` ليس «تمّ» بلا قيد
   });
 
   it('حسابٌ نشط مقيَّد مربوط: قولٌ أخضر بلا إنذارٍ كاذب', () => {

@@ -1,6 +1,7 @@
 'use client';
 
 import { use, useMemo, useState } from 'react';
+import { Panel } from '@erp/ui';
 
 import { DataTable, Notice, QueryView } from '../../../../components/data-view';
 import { FormFields, type FormValues } from '../../../../components/directory';
@@ -84,7 +85,7 @@ export default function PurchaseNotePage({ params }: { params: Promise<{ kind: s
   return (
     <Screen title={meta.title} subtitle={meta.hint} crumbs={['المشتريات', 'الإشعارات']}>
       <form className="card" onSubmit={submit}>
-        <h3>إشعار جديد</h3>
+        <h2>إشعار جديد</h2>
         <FormFields
           fields={[
             {
@@ -106,14 +107,27 @@ export default function PurchaseNotePage({ params }: { params: Promise<{ kind: s
           onChange={setValues}
         />
         <Notice notice={notice} />
-        <button className="btn primary" type="submit" disabled={busy || !selected || !values.reason || !values.amountText}>
-          {busy ? 'جارٍ الحفظ…' : 'إنشاء الإشعار'}
-        </button>
+        <div className="ui-form-actions">
+          <span className="ui-form-actions-note">الإشعار يُنشأ مسودةً ثم يُرحَّل من الجدول أدناه.</span>
+          <div className="ui-form-actions-buttons">
+            <button className="btn primary" type="submit" disabled={busy || !selected || !values.reason || !values.amountText}>
+              {busy ? 'جارٍ الحفظ…' : 'إنشاء الإشعار'}
+            </button>
+          </div>
+        </div>
       </form>
 
-      <QueryView query={notes} empty="لا توجد إشعارات من هذا النوع">
+      <QueryView
+        query={notes}
+        empty="لا توجد إشعارات من هذا النوع"
+        wrapEmpty={(node) => (
+          <Panel title="إشعارات الموردين" hint="المسودة تُرحَّل من هنا — الترحيل نهائي ويُنشئ قيداً عكسياً." flush>
+            {node}
+          </Panel>
+        )}
+      >
         {(rows) => (
-          <div className="card">
+          <Panel title="إشعارات الموردين" hint="المسودة تُرحَّل من هنا — الترحيل نهائي ويُنشئ قيداً عكسياً." flush>
             <DataTable
               columns={[
                 { key: 'number', header: 'رقم الإشعار', align: 'ltr', cell: (row: Note) => row.number ?? 'مسودة' },
@@ -139,7 +153,7 @@ export default function PurchaseNotePage({ params }: { params: Promise<{ kind: s
               rows={rows}
               rowKey={(row) => row.id}
             />
-          </div>
+          </Panel>
         )}
       </QueryView>
     </Screen>

@@ -10,12 +10,12 @@ import { money } from '../../../lib/lookups';
 import { useQuery } from '../../../lib/use-query';
 
 /**
- * 💼 تقرير الرواتب — `Form_WPF/frmRptSalary.xaml` («تقرير الرواتب»).
+ * تقرير الرواتب — `Form_WPF/frmRptSalary.xaml` («تقرير الرواتب»).
  *
  * The window is `الشهر:` · `السنة:` · `كل الفترة` (checked, and it disables both boxes)
  * · `🔍 عرض` · `💰 سند استلام راتب لموظف`, over a grid «💼 بيانات الرواتب» of
- * `م · SalId · رقم السند · 👤 الموظف · الراتب الأساسي · بدل سكن · بدل مواصلات · الحوافز ·
- * 💰 الإجمالي · الخصومات · 💵 صافي الراتب · 👁️ عرض`, with `💰 إجمالي الرواتب:` in the
+ * `م · SalId · رقم السند · الموظف · الراتب الأساسي · بدل سكن · بدل مواصلات · الحوافز ·
+ * الإجمالي · الخصومات · صافي الراتب · عرض`, with ` إجمالي الرواتب:` in the
  * footer. `btnShow_Click` (L58) reads `SalaryPay` — the cloud's `salary_payments`, the
  * إذن صرف of part three — with `IS_Deleted=0`, narrowed by year and month unless
  * «كل الفترة» is on.
@@ -84,16 +84,16 @@ function SalaryReport() {
   const totals = report.data?.summary ?? EMPTY;
 
   return (
-    <Screen
+ <Screen
       title="تقرير الرواتب"
-      subtitle="💼 كل إذن صرف عن كل شهر — «كل الفترة» تعرضها كلها، والشهر والسنة يضيّقانها."
+ subtitle="كل إذن صرف عن كل شهر — «كل الفترة» تعرضها كلها، والشهر والسنة يضيّقانها."
       crumbs={['الموظفين والرواتب', 'التقارير']}
       actions={
-        <>
-          <button className="btn" type="button" onClick={() => window.print()} disabled={rows.length === 0}>
-            🖨️ طباعة
-          </button>
-          <button
+ <>
+ <button className="btn" type="button" onClick={() => window.print()} disabled={rows.length === 0}>
+ طباعة
+ </button>
+ <button
             className="btn"
             type="button"
             disabled={rows.length === 0}
@@ -118,16 +118,16 @@ function SalaryReport() {
               )
             }
           >
-            📊 تصدير CSV
-          </button>
-        </>
+ تصدير CSV
+ </button>
+ </>
       }
     >
-      <div className="card tight no-print">
-        <div className="row" style={{ flexWrap: 'wrap', alignItems: 'flex-end' }}>
-          <label className="field" style={{ margin: 0, width: 120 }}>
-            <span>الشهر:</span>
-            <input
+ <div className="card tight no-print">
+ <div className="row" style={{ flexWrap: 'wrap', alignItems: 'flex-end' }}>
+ <label className="field" style={{ margin: 0, width: 120 }}>
+ <span>الشهر:</span>
+ <input
               className="input"
               type="number"
               min={1}
@@ -137,10 +137,10 @@ function SalaryReport() {
               onChange={(event) => setMonth(event.target.value)}
               disabled={allPeriod}
             />
-          </label>
-          <label className="field" style={{ margin: 0, width: 140 }}>
-            <span>السنة:</span>
-            <input
+ </label>
+ <label className="field" style={{ margin: 0, width: 140 }}>
+ <span>السنة:</span>
+ <input
               className="input"
               type="number"
               min={2000}
@@ -149,101 +149,101 @@ function SalaryReport() {
               onChange={(event) => setYear(event.target.value)}
               disabled={allPeriod}
             />
-          </label>
-          <label className="check" style={{ margin: 0 }}>
-            <input type="checkbox" checked={allPeriod} onChange={(event) => setAllPeriod(event.target.checked)} />
-            كل الفترة
-          </label>
-          <button
+ </label>
+ <label className="check" style={{ margin: 0 }}>
+ <input type="checkbox" checked={allPeriod} onChange={(event) => setAllPeriod(event.target.checked)} />
+ كل الفترة
+ </label>
+ <button
             className="btn primary"
             type="button"
             onClick={() => setApplied({ month, year, allPeriod })}
           >
-            🔍 عرض
-          </button>
-          <a className="btn" href="/hrm/salary-payments">
-            💰 سند استلام راتب لموظف
-          </a>
-        </div>
-      </div>
+ عرض
+ </button>
+ <a className="btn" href="/hrm/salary-payments">
+ سند استلام راتب لموظف
+ </a>
+ </div>
+ </div>
 
       {report.status === 'loading' && <Loading />}
       {report.status === 'forbidden' && <Forbidden />}
       {report.status === 'error' && <ErrorBox message={report.error} onRetry={report.reload} />}
       {report.status === 'success' && (
-        <>
-          <StatTiles>
-            <StatTile label="💰 إجمالي الرواتب" value={money(totals.total)} tone="ok" />
-            <StatTile label="💰 الإجمالي" value={money(totals.gross)} tone="brand" />
-            <StatTile label="الخصومات" value={money(totals.deductions)} />
-            <StatTile label="عدد الإذونات" value={String(totals.count)} />
-          </StatTiles>
+ <>
+ <StatTiles>
+ <StatTile label="إجمالي الرواتب" value={money(totals.total)} tone="ok" />
+ <StatTile label="الإجمالي" value={money(totals.gross)} tone="brand" />
+ <StatTile label="الخصومات" value={money(totals.deductions)} />
+ <StatTile label="عدد الإذونات" value={String(totals.count)} />
+ </StatTiles>
 
           {rows.length === 0 ? (
-            <Empty title="لا إذنات صرف في هذه الفترة" detail="أوقف «كل الفترة» وحدّد شهراً وسنة، أو أنشئ إذن صرف من شاشة «دفع الرواتب»." />
+ <Empty title="لا إذنات صرف في هذه الفترة" detail="أوقف «كل الفترة» وحدّد شهراً وسنة، أو أنشئ إذن صرف من شاشة «دفع الرواتب»." />
           ) : (
-            <div className="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>م</th>
-                    <th>رقم السند</th>
-                    <th>الموظف</th>
-                    <th>الشهر</th>
-                    <th>السنة</th>
-                    <th className="num">الراتب الأساسي</th>
-                    <th className="num">بدل سكن</th>
-                    <th className="num">بدل مواصلات</th>
-                    <th className="num">الحوافز</th>
-                    <th className="num">الإجمالي</th>
-                    <th className="num">الخصومات</th>
-                    <th className="num">صافي الراتب</th>
-                  </tr>
-                </thead>
-                <tbody>
+ <div className="table-wrap">
+ <table>
+ <thead>
+ <tr>
+ <th>م</th>
+ <th>رقم السند</th>
+ <th>الموظف</th>
+ <th>الشهر</th>
+ <th>السنة</th>
+ <th className="num">الراتب الأساسي</th>
+ <th className="num">بدل سكن</th>
+ <th className="num">بدل مواصلات</th>
+ <th className="num">الحوافز</th>
+ <th className="num">الإجمالي</th>
+ <th className="num">الخصومات</th>
+ <th className="num">صافي الراتب</th>
+ </tr>
+ </thead>
+ <tbody>
                   {rows.map((row) => (
-                    <tr key={row.id}>
-                      <td dir="ltr">{row.seq}</td>
-                      <td dir="ltr">{row.number}</td>
-                      <td>
+ <tr key={row.id}>
+ <td dir="ltr">{row.seq}</td>
+ <td dir="ltr">{row.number}</td>
+ <td>
                         {row.employeeNo ? `${row.employeeNo} — ` : ''}
                         {row.employeeName}
                         {/* «إذنٌ بلا صرف» — the window reads every `SalaryPay` with `IS_Deleted=0`. */}
                         {row.posted ? '' : ' (بلا سند)'}
-                      </td>
-                      <td dir="ltr">{row.month}</td>
-                      <td dir="ltr">{row.year}</td>
-                      <td className="num">{money(row.basic)}</td>
-                      <td className="num">{money(row.housing)}</td>
-                      <td className="num">{money(row.transport)}</td>
-                      <td className="num">{money(row.additions)}</td>
-                      <td className="num">{money(row.gross)}</td>
-                      <td className="num">{money(row.deductions)}</td>
-                      <td className="num">{money(row.net)}</td>
-                    </tr>
+ </td>
+ <td dir="ltr">{row.month}</td>
+ <td dir="ltr">{row.year}</td>
+ <td className="num">{money(row.basic)}</td>
+ <td className="num">{money(row.housing)}</td>
+ <td className="num">{money(row.transport)}</td>
+ <td className="num">{money(row.additions)}</td>
+ <td className="num">{money(row.gross)}</td>
+ <td className="num">{money(row.deductions)}</td>
+ <td className="num">{money(row.net)}</td>
+ </tr>
                   ))}
-                </tbody>
-                <tfoot>
-                  <tr>
-                    <th colSpan={9}>💰 إجمالي الرواتب</th>
-                    <th className="num">{money(totals.gross)}</th>
-                    <th className="num">{money(totals.deductions)}</th>
-                    <th className="num">{money(totals.total)}</th>
-                  </tr>
-                </tfoot>
-              </table>
-            </div>
+ </tbody>
+ <tfoot>
+ <tr>
+ <th colSpan={9}>إجمالي الرواتب</th>
+ <th className="num">{money(totals.gross)}</th>
+ <th className="num">{money(totals.deductions)}</th>
+ <th className="num">{money(totals.total)}</th>
+ </tr>
+ </tfoot>
+ </table>
+ </div>
           )}
-        </>
+ </>
       )}
-    </Screen>
+ </Screen>
   );
 }
 
 export default function Page() {
   return (
-    <Suspense fallback={<Loading rows={6} />}>
-      <SalaryReport />
-    </Suspense>
+ <Suspense fallback={<Loading rows={6} />}>
+ <SalaryReport />
+ </Suspense>
   );
 }

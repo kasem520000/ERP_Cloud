@@ -1,13 +1,13 @@
 'use client';
 
 import Link from 'next/link';
+import { FilterBand, KpiStrip, Page, PageHead, Panel } from '@erp/ui';
 import { FilePlus2, Printer, ReceiptText, Search, X } from 'lucide-react';
 import { Suspense, useMemo, useState } from 'react';
 
 import { Badge } from '../../../components/ui/badge';
 import { Button } from '../../../components/ui/button';
 import { EmptyState } from '../../../components/ui/empty-state';
-import { Labeled, Select } from '../../../components/ui/input';
 import { Table, type SortState } from '../../../components/ui/table';
 import { apiList } from '../../../lib/api';
 import { listBranches, listParties, money, shortDate, type Branch, type Party } from '../../../lib/lookups';
@@ -66,15 +66,17 @@ const STATUS_CHIPS: StatusChip[] = [
   { key: 'posted', label: 'مرحّلة', test: (row) => row.status === 'posted' },
   { key: 'draft', label: 'مسودة', test: (row) => row.status === 'draft' },
   { key: 'paid', label: 'مسددة', test: (row) => row.paymentStatus === 'paid' },
-  { key: 'unpaid', label: 'غير مسددة', test: (row) => row.paymentStatus !== 'paid' && row.status === 'posted' },
+  {
+    key: 'unpaid',
+    label: 'غير مسددة',
+    test: (row) => row.paymentStatus !== 'paid' && row.status === 'posted',
+  },
 ];
 
 function InvoicesInner() {
   const { can } = useSession();
   const [searchParams] = useState(() =>
-    typeof window === 'undefined'
-      ? new URLSearchParams()
-      : new URLSearchParams(window.location.search),
+    typeof window === 'undefined' ? new URLSearchParams() : new URLSearchParams(window.location.search),
   );
   const highlightedId = searchParams.get('id');
 
@@ -91,8 +93,7 @@ function InvoicesInner() {
   const [sort, setSort] = useState<SortState>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
-  const branchName = (id: string | null) =>
-    (branches.data ?? []).find((b) => b.id === id)?.nameAr ?? '—';
+  const branchName = (id: string | null) => (branches.data ?? []).find((b) => b.id === id)?.nameAr ?? '—';
   const customerOf = (row: Invoice) => {
     if (row.cashCustomerName) return `${row.cashCustomerName} (نقدي)`;
     const party = (parties.data ?? []).find((p) => p.id === row.partyId);
@@ -118,7 +119,8 @@ function InvoicesInner() {
       const dir = sort.dir === 'asc' ? 1 : -1;
       rows = [...rows].sort((a, b) => {
         if (sort.key === 'total') return (Number(a.total) - Number(b.total)) * dir;
-        if (sort.key === 'date') return (a.postedAt ?? a.createdAt).localeCompare(b.postedAt ?? b.createdAt) * dir;
+        if (sort.key === 'date')
+          return (a.postedAt ?? a.createdAt).localeCompare(b.postedAt ?? b.createdAt) * dir;
         if (sort.key === 'customer') return customerOf(a).localeCompare(customerOf(b), 'ar') * dir;
         return 0;
       });
@@ -138,119 +140,136 @@ function InvoicesInner() {
   }
 
   return (
-    <div className="grid gap-4">
-      {/* ------------------------------------------------ header */}
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <p className="m-0 text-[12px] font-semibold text-muted">المبيعات ← العمليات</p>
-          <h1 className="m-0 text-[26px] font-bold text-ink tracking-tight">فواتير المبيعات</h1>
-          <p className="m-0 mt-1 text-[13px] text-muted">
-            كل الفواتير: المسودات القابلة للتعديل والمرحّلة بأرقامها الرسمية.
-          </p>
-        </div>
-        {can('sales.invoice.create') ? (
-          <Link href="/sales/invoices/new">
-            <Button variant="primary" size="lg" icon={<FilePlus2 size={17} />}>
-              فاتورة جديدة
-            </Button>
-          </Link>
-        ) : null}
-      </div>
-
-      {/* ------------------------------------------------ filter bar */}
-      <section className="rounded-xl border border-line bg-surface p-3.5 shadow-1 grid gap-3">
-        <div className="grid gap-3 grid-cols-1 md:grid-cols-2 xl:grid-cols-12 items-end">
-          <div className="xl:col-span-3">
-            <div className="relative">
-              <Search size={15} className="absolute start-3 top-1/2 -translate-y-1/2 text-muted" />
-              <input
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                placeholder="بحث برقم الفاتورة أو العميل…"
-                className="w-full h-10 ps-9 pe-3 rounded-[10px] border border-line-strong bg-surface text-[13.5px] focus:outline-none focus:border-brand-600 focus:shadow-[var(--ring-brand)] transition-all duration-150"
-              />
-            </div>
-          </div>
-          <div className="xl:col-span-2">
-            <Select label="النوع" value={kind} onChange={(e) => setKind(e.target.value)} placeholder="كل الأنواع">
-              {Object.entries(KIND_LABELS).map(([value, label]) => (
-                <option key={value} value={value}>
-                  {label}
-                </option>
-              ))}
-            </Select>
-          </div>
-          <div className="xl:col-span-2">
-            <Select label="الفرع" value={branchId} onChange={(e) => setBranchId(e.target.value)} placeholder="كل الفروع">
-              {(branches.data ?? []).map((b) => (
-                <option key={b.id} value={b.id}>
-                  {b.nameAr}
-                </option>
-              ))}
-            </Select>
-          </div>
-          <div className="xl:col-span-2">
-            <Labeled label="من تاريخ">
-              <input
-                type="date"
-                value={from}
-                onChange={(e) => setFrom(e.target.value)}
-                className="w-full h-10 px-3 rounded-[10px] border border-line-strong bg-surface text-[13.5px] focus:outline-none focus:border-brand-600 focus:shadow-[var(--ring-brand)] transition-all duration-150"
-              />
-            </Labeled>
-          </div>
-          <div className="xl:col-span-2">
-            <Labeled label="إلى تاريخ">
-              <input
-                type="date"
-                value={to}
-                onChange={(e) => setTo(e.target.value)}
-                className="w-full h-10 px-3 rounded-[10px] border border-line-strong bg-surface text-[13.5px] focus:outline-none focus:border-brand-600 focus:shadow-[var(--ring-brand)] transition-all duration-150"
-              />
-            </Labeled>
-          </div>
-          <div className="xl:col-span-1 flex xl:justify-end">
-            {hasFilters ? (
-              <Button variant="ghost" size="md" icon={<X size={14} />} onClick={clearFilters}>
-                مسح
+    <Page>
+      <PageHead
+        breadcrumbs={['المبيعات', 'العمليات']}
+        title="فواتير المبيعات"
+        description="كل الفواتير: المسودات القابلة للتعديل والمرحّلة بأرقامها الرسمية."
+        actions={
+          can('sales.invoice.create') ? (
+            <Link href="/sales/invoices/new">
+              <Button variant="primary" size="lg" icon={<FilePlus2 size={17} />}>
+                فاتورة جديدة
               </Button>
-            ) : null}
-          </div>
-        </div>
+            </Link>
+          ) : null
+        }
+      />
 
-        {/* status chips */}
-        <div className="flex flex-wrap gap-2 items-center border-t border-line pt-3">
-          {STATUS_CHIPS.map((c) => (
-            <button
-              key={c.key}
-              type="button"
-              onClick={() => setChip(c.key)}
-              className={`inline-flex items-center gap-1.5 h-8 px-3.5 rounded-full text-[12.5px] font-bold border transition-all duration-150 ${
-                chip === c.key
-                  ? 'bg-brand-600 border-brand-600 text-on-accent shadow-2'
-                  : 'bg-surface border-line text-ink-2 hover:border-brand-400 hover:text-brand-700'
-              }`}
-            >
-              {c.label}
-              <span className={`text-[11px] font-bold ${chip === c.key ? 'text-on-accent' : 'text-muted'}`}>
-                {c.key === 'all'
-                  ? (invoices.data ?? []).length
-                  : (invoices.data ?? []).filter(c.test).length}
-              </span>
-            </button>
-          ))}
-          <span className="ms-auto text-[12px] text-muted font-semibold">
-            {filtered.length} نتيجة {invoices.data ? `من ${(invoices.data ?? []).length}` : ''}
-          </span>
-        </div>
-      </section>
+      <KpiStrip
+        items={[
+          {
+            label: 'إجمالي الفواتير',
+            value: (invoices.data ?? []).length,
+            hint: 'مرحّلة ومسودات في الفترة',
+          },
+          {
+            label: 'قيمة المبيعات',
+            value: money(
+              (invoices.data ?? [])
+                .filter((row) => row.status === 'posted')
+                .reduce((sum, row) => sum + Number(row.total), 0),
+            ),
+            hint: 'المرحّل فقط، شامل الضريبة',
+          },
+          {
+            label: 'غير مسددة',
+            value: money(
+              (invoices.data ?? [])
+                .filter((row) => row.status === 'posted' && row.paymentStatus !== 'paid')
+                .reduce((sum, row) => sum + (Number(row.total) - Number(row.paidTotal)), 0),
+            ),
+            hint: 'المتبقي على العملاء',
+            tone: (invoices.data ?? []).some((row) => row.status === 'posted' && row.paymentStatus !== 'paid')
+              ? 'warn'
+              : 'up',
+          },
+          {
+            label: 'مسودات',
+            value: (invoices.data ?? []).filter((row) => row.status === 'draft').length,
+            hint: 'قابلة للتعديل قبل الترحيل',
+          },
+        ]}
+      />
+
+      <FilterBand
+        summary={`${filtered.length} من ${(invoices.data ?? []).length}`}
+        actions={
+          hasFilters ? (
+            <Button variant="ghost" size="md" icon={<X size={14} />} onClick={clearFilters}>
+              مسح الفلاتر
+            </Button>
+          ) : null
+        }
+      >
+        <label className="field" style={{ marginBottom: 0 }}>
+          <span>بحث</span>
+          <input
+            className="input"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="رقم الفاتورة أو العميل"
+          />
+        </label>
+        <label className="field" style={{ marginBottom: 0 }}>
+          <span>النوع</span>
+          <select className="input" value={kind} onChange={(e) => setKind(e.target.value)}>
+            <option value="">كل الأنواع</option>
+            {Object.entries(KIND_LABELS).map(([value, label]) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="field" style={{ marginBottom: 0 }}>
+          <span>الفرع</span>
+          <select className="input" value={branchId} onChange={(e) => setBranchId(e.target.value)}>
+            <option value="">كل الفروع</option>
+            {(branches.data ?? []).map((b) => (
+              <option key={b.id} value={b.id}>
+                {b.nameAr}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="field" style={{ marginBottom: 0 }}>
+          <span>من تاريخ</span>
+          <input className="input" type="date" value={from} onChange={(e) => setFrom(e.target.value)} />
+        </label>
+        <label className="field" style={{ marginBottom: 0 }}>
+          <span>إلى تاريخ</span>
+          <input className="input" type="date" value={to} onChange={(e) => setTo(e.target.value)} />
+        </label>
+      </FilterBand>
+
+      <div className="ui-chip-row">
+        {STATUS_CHIPS.map((c) => (
+          <button
+            key={c.key}
+            type="button"
+            aria-pressed={chip === c.key}
+            className="ui-chip"
+            onClick={() => setChip(c.key)}
+          >
+            {c.label}
+            <span className="ui-chip-count">
+              {c.key === 'all' ? (invoices.data ?? []).length : (invoices.data ?? []).filter(c.test).length}
+            </span>
+          </button>
+        ))}
+        <span className="ui-chip-spacer">
+          {filtered.length} نتيجة {invoices.data ? `من ${(invoices.data ?? []).length}` : ''}
+        </span>
+      </div>
 
       {/* ------------------------------------------------ bulk bar */}
       {selected.size > 0 ? (
         <div className="flex flex-wrap items-center gap-3 rounded-xl border border-brand-200 bg-info-soft px-4 py-2.5">
           <span className="text-[13px] font-bold text-brand-800">تم تحديد {selected.size} فاتورة</span>
           <span className="text-[12.5px] text-brand-700">
-            الإجمالي: {money(filtered.filter((r) => selected.has(r.id)).reduce((s, r) => s + Number(r.total), 0))}
+            الإجمالي:{' '}
+            {money(filtered.filter((r) => selected.has(r.id)).reduce((s, r) => s + Number(r.total), 0))}
           </span>
           <div className="ms-auto flex gap-2">
             <Button size="sm" variant="secondary" onClick={() => setSelected(new Set())}>
@@ -279,103 +298,122 @@ function InvoicesInner() {
           icon={<ReceiptText size={30} strokeWidth={1.5} />}
           title="تعذر تحميل الفواتير"
           description={invoices.error}
-          action={<Button variant="primary" onClick={invoices.reload}>إعادة المحاولة</Button>}
+          action={
+            <Button variant="primary" onClick={invoices.reload}>
+              إعادة المحاولة
+            </Button>
+          }
         />
       ) : (
-        <Table
-          loading={invoices.status === 'loading'}
-          rows={filtered}
-          rowKey={(row) => row.id}
-          activeKey={highlightedId ?? undefined}
-          selectable
-          selectedKeys={selected}
-          onSelectionChange={setSelected}
-          sortable
-          sort={sort}
-          onSortChange={setSort}
-          onRowClick={(row) => (window.location.href = `/sales/invoices/${row.id}`)}
-          empty={
-            hasFilters
-              ? 'لا توجد فواتير تطابق المرشحات — جرّب توسيع النطاق.'
-              : 'لا توجد فواتير بعد. ابدأ بإصدار فاتورة مبيعات جديدة.'
-          }
-          actions={(row) => [
-            {
-              label: 'عرض الفاتورة',
-              onClick: () => {
-                window.location.href = `/sales/invoices/${row.id}`;
+        <Panel
+          title="قائمة الفواتير"
+          hint="اضغط أي صف لفتح الفاتورة؛ التحديد الجماعي يفعّل شريط الإجراءات أعلاه."
+          flush
+        >
+          <Table
+            loading={invoices.status === 'loading'}
+            rows={filtered}
+            rowKey={(row) => row.id}
+            activeKey={highlightedId ?? undefined}
+            selectable
+            pageSize={20}
+            selectedKeys={selected}
+            onSelectionChange={setSelected}
+            sortable
+            sort={sort}
+            onSortChange={setSort}
+            onRowClick={(row) => (window.location.href = `/sales/invoices/${row.id}`)}
+            empty={
+              hasFilters
+                ? 'لا توجد فواتير تطابق المرشحات — جرّب توسيع النطاق.'
+                : 'لا توجد فواتير بعد. ابدأ بإصدار فاتورة مبيعات جديدة.'
+            }
+            actions={(row) => [
+              {
+                label: 'عرض الفاتورة',
+                onClick: () => {
+                  window.location.href = `/sales/invoices/${row.id}`;
+                },
               },
-            },
-            {
-              label: 'طباعة',
-              icon: <Printer size={14} />,
-              onClick: () => {
-                window.location.href = `/print/sales-invoice/${row.id}`;
+              {
+                label: 'طباعة',
+                icon: <Printer size={14} />,
+                onClick: () => {
+                  window.location.href = `/print/sales-invoice/${row.id}`;
+                },
               },
-            },
-          ]}
-          columns={[
-            {
-              key: 'number',
-              header: 'الرقم',
-              ltr: true,
-              cell: (row) => (
-                <span className="font-bold text-brand-700">{row.number ?? 'مسودة'}</span>
-              ),
-            },
-            {
-              key: 'kind',
-              header: 'النوع',
-              cell: (row) => (
-                <Badge tone={row.kind === 'quotation' ? 'purple' : 'blue'}>
-                  {KIND_LABELS[row.kind] ?? row.kind}
-                </Badge>
-              ),
-            },
-            { key: 'customer', header: 'العميل', sortable: true, cell: (row) => customerOf(row) },
-            { key: 'branch', header: 'الفرع', cell: (row) => branchName(row.branchId) },
-            {
-              key: 'date',
-              header: 'التاريخ',
-              sortable: true,
-              cell: (row) => (
-                <span title={shortDate(row.postedAt ?? row.createdAt)}>
-                  <span className="font-semibold text-ink-2">{relativeTime(row.postedAt ?? row.createdAt)}</span>
-                  <span className="block text-[11px] text-muted">{shortDate(row.postedAt ?? row.createdAt)}</span>
-                </span>
-              ),
-            },
-            { key: 'total', header: 'الإجمالي', numeric: true, sortable: true, cell: (row) => money(row.total) },
-            {
-              key: 'paid',
-              header: 'المدفوع',
-              numeric: true,
-              cell: (row) => (
-                <span className={Number(row.paidTotal) >= Number(row.total) ? 'text-ok' : 'text-warn'}>
-                  {money(row.paidTotal)}
-                </span>
-              ),
-            },
-            {
-              key: 'status',
-              header: 'الحالة',
-              cell: (row) => (
-                <span className="inline-flex gap-1.5">
-                  <Badge tone={row.status === 'posted' ? 'green' : 'amber'} dot>
-                    {row.status === 'posted' ? 'مرحّلة' : 'مسودة'}
+            ]}
+            columns={[
+              {
+                key: 'number',
+                header: 'الرقم',
+                ltr: true,
+                cell: (row) => <span className="font-bold text-brand-700">{row.number ?? 'مسودة'}</span>,
+              },
+              {
+                key: 'kind',
+                header: 'النوع',
+                cell: (row) => (
+                  <Badge tone={row.kind === 'quotation' ? 'purple' : 'blue'}>
+                    {KIND_LABELS[row.kind] ?? row.kind}
                   </Badge>
-                  {row.status === 'posted' ? (
-                    <Badge tone={row.paymentStatus === 'paid' ? 'blue' : 'amber'}>
-                      {row.paymentStatus === 'paid' ? 'مسدّدة' : 'غير مسدّدة'}
+                ),
+              },
+              { key: 'customer', header: 'العميل', sortable: true, cell: (row) => customerOf(row) },
+              { key: 'branch', header: 'الفرع', cell: (row) => branchName(row.branchId) },
+              {
+                key: 'date',
+                header: 'التاريخ',
+                sortable: true,
+                cell: (row) => (
+                  <span title={shortDate(row.postedAt ?? row.createdAt)}>
+                    <span className="font-semibold text-ink-2">
+                      {relativeTime(row.postedAt ?? row.createdAt)}
+                    </span>
+                    <span className="block text-xs text-muted">
+                      {shortDate(row.postedAt ?? row.createdAt)}
+                    </span>
+                  </span>
+                ),
+              },
+              {
+                key: 'total',
+                header: 'الإجمالي',
+                numeric: true,
+                sortable: true,
+                cell: (row) => money(row.total),
+              },
+              {
+                key: 'paid',
+                header: 'المدفوع',
+                numeric: true,
+                cell: (row) => (
+                  <span className={Number(row.paidTotal) >= Number(row.total) ? 'text-ok' : 'text-warn'}>
+                    {money(row.paidTotal)}
+                  </span>
+                ),
+              },
+              {
+                key: 'status',
+                header: 'الحالة',
+                cell: (row) => (
+                  <span className="inline-flex gap-1.5">
+                    <Badge tone={row.status === 'posted' ? 'green' : 'amber'} dot>
+                      {row.status === 'posted' ? 'مرحّلة' : 'مسودة'}
                     </Badge>
-                  ) : null}
-                </span>
-              ),
-            },
-          ]}
-        />
+                    {row.status === 'posted' ? (
+                      <Badge tone={row.paymentStatus === 'paid' ? 'blue' : 'amber'}>
+                        {row.paymentStatus === 'paid' ? 'مسدّدة' : 'غير مسدّدة'}
+                      </Badge>
+                    ) : null}
+                  </span>
+                ),
+              },
+            ]}
+          />
+        </Panel>
       )}
-    </div>
+    </Page>
   );
 }
 

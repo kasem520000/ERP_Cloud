@@ -103,7 +103,7 @@ export default function ItemCardPage() {
                     <DocField label="الصنف">{data.nameAr ?? '—'}</DocField>
                     <DocField label="المستودع">{data.warehouseId ? 'مستودع محدد' : 'كل المستودعات'}</DocField>
                     <DocField label="الفترة">
-                      {data.from || data.to ? `${shortDate(data.from) ?? ''} → ${shortDate(data.to) ?? ''}` : 'كل الفترات'}
+ {data.from || data.to ? `${shortDate(data.from) ?? ''} ${shortDate(data.to) ?? ''}` : 'كل الفترات'}
                     </DocField>
                   </DocHead>
                 </div>

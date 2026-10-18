@@ -164,7 +164,7 @@ export default function PlansPage() {
                     <td dir="ltr">{plan.code}</td>
                     <td>{plan.name}</td>
                     <td className="num">
-                      {Number(plan.amount).toLocaleString('ar-SA', { minimumFractionDigits: 2 })} {plan.currency}
+                      {Number(plan.amount).toLocaleString('ar-SA-u-ca-gregory-nu-latn', { minimumFractionDigits: 2 })} {plan.currency}
                     </td>
                     <td>{plan.interval === 'year' ? 'سنوي' : 'شهري'}</td>
                     <td className="num">{plan.monthlyAmount}</td>

@@ -20,12 +20,12 @@ export type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'succ
 export type ButtonSize = 'sm' | 'md' | 'lg';
 
 const VARIANTS: Record<ButtonVariant, string> = {
-  primary: 'bg-brand text-brand-ink border-brand shadow-2 hover:brightness-110 active:brightness-95',
+  primary: 'exec-primary text-white border-brand shadow-2 hover:brightness-105',
   secondary:
-    'bg-surface text-ink border-line-strong shadow-1 hover:bg-surface-3 hover:border-line-raised',
+    'bg-surface text-ink-2 border-line-strong shadow-1 hover:bg-surface-2 hover:border-line-raised hover:shadow-2',
   ghost: 'bg-transparent text-ink-2 border-transparent hover:bg-surface-3 hover:text-ink',
-  danger: 'bg-surface text-danger border-danger-line hover:bg-danger-soft hover:border-danger',
-  success: 'bg-ok text-white border-ok shadow-2 hover:brightness-110',
+  danger: 'bg-surface text-danger-ink border-danger-line shadow-1 hover:bg-danger-soft hover:border-danger',
+  success: 'bg-ok text-white border-ok shadow-2 hover:brightness-105',
 };
 
 const SIZES: Record<ButtonSize, string> = {
@@ -65,8 +65,9 @@ export function Button({
     <button
       type={type}
       className={cn(
-        'inline-flex items-center justify-center border font-semibold whitespace-nowrap',
-        'transition-[filter,background-color,border-color,box-shadow] duration-150 ease-out',
+        'inline-flex items-center justify-center border font-semibold whitespace-nowrap select-none',
+        'transition-[transform,filter,background-color,border-color,box-shadow] duration-150 ease-out',
+        'hover:-translate-y-px active:translate-y-0 active:scale-[0.985]',
         'focus-visible:ring-4 focus-visible:ring-brand/25 focus-visible:border-brand',
         'disabled:cursor-not-allowed disabled:opacity-55 disabled:shadow-none',
         VARIANTS[variant],

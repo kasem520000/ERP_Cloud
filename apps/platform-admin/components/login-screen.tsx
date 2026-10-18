@@ -110,6 +110,7 @@ export function LoginScreen({ initialError }: { initialError?: string }) {
   return (
     <div className="auth-page">
       <div className="auth-brand">
+        <span className="exec-eyebrow">Platform Operations</span>
         <span className="logo big">ERP</span>
         <h1>لوحة تحكم المنصة</h1>
         <p>إدارة المنشآت والاشتراكات والتراخيص — لمشغّلي المنصة فقط.</p>
@@ -182,7 +183,7 @@ export function LoginScreen({ initialError }: { initialError?: string }) {
                   style={{
                     background: 'none',
                     border: 'none',
-                    color: 'var(--color-primary-600, #2563eb)',
+                    color: 'var(--color-primary-600, var(--brand))',
                     fontSize: '0.82rem',
                     fontWeight: 600,
                     cursor: 'pointer',
@@ -287,7 +288,8 @@ export function LoginScreen({ initialError }: { initialError?: string }) {
           </p>
         )}
 
-        <button className="btn primary block" type="submit" disabled={busy}>
+        <button className="btn primary block" type="submit" disabled={busy} aria-busy={busy || undefined}>
+          {busy ? <span className="btn-spinner" aria-hidden /> : null}
           {busy
             ? 'جارٍ التنفيذ…'
             : step === 'mfa'

@@ -27,6 +27,7 @@ export default function SallaSettingsPage() {
 
   return (
     <Directory<Connection>
+      listTitle="المتاجر المرتبطة"
       title="إعدادات ربط سلة"
       subtitle="اربط متجر سلة عبر رمز الوصول وسر التوقيع. تُخزَّن الأسرار مشفّرة ولا تُعرض مرة أخرى."
       crumbs={['الإعدادات', 'التكاملات']}

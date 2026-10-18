@@ -9,10 +9,10 @@ import { useSession } from '../../../lib/session';
 import { useQuery } from '../../../lib/use-query';
 
 /**
- * ⚙️ أسماء الحقول — the second tab of `Form_WPF/frmGlasses.xaml`
+ * أسماء الحقول — the second tab of `Form_WPF/frmGlasses.xaml`
  * («👓 بيانات النظارات»).
  *
- * The ten boxes of «👓  القياسات» are not named in the markup: `loadNameLbl` reads them
+ * The ten boxes of « القياسات» are not named in the markup: `loadNameLbl` reads them
  * at runtime — `select isnull(L1,'LE-SPH') … isnull(R5,'RE-IPD') from Other_Column` — so
  * what is typed here is what the optician sees beside every number.
  *
@@ -25,7 +25,7 @@ import { useQuery } from '../../../lib/use-query';
  *     `insert into Other_Column (R1,R2,R3,R4,R5,L1,L2,L3,L4,L5)`, then
  *     «تم الحفظ بنجاح». The row is replaced, never patched: a box left blank is a name
  *     given up, and the default answers in its place.
- *   • «✖ خروج» — back to 👓 بيانات النظارات.
+ *   • « خروج» — back to بيانات النظارات.
  */
 type FieldLabels = {
   id: string | null;
@@ -101,26 +101,26 @@ function OpticsFieldLabels() {
     setDraft((current) => ({ ...(current ?? draftOf(rows as FieldLabels)), [slot]: next }));
 
   return (
-    <Screen
-      title="⚙️ أسماء الحقول"
-      subtitle="ما يُكتب بجانب كل رقم في «👓 القياسات»: عشرة أسماء، خمسة لليمين وخمسة لليسار. والصندوق الفارغ يُقرأ باسمه الأصلي — «RE-SPH» … «LE-IPD»."
+ <Screen
+ title="أسماء الحقول"
+ subtitle="ما يُكتب بجانب كل رقم في «القياسات»: عشرة أسماء، خمسة لليمين وخمسة لليسار. والصندوق الفارغ يُقرأ باسمه الأصلي — «RE-SPH» … «LE-IPD»."
       crumbs={['النظارات', 'أسماء الحقول']}
       actions={
-        <div className="row" style={{ gap: 6 }}>
-          <Link className="btn" href="/optics/prescriptions">
-            👓 بيانات النظارات
-          </Link>
+ <div className="row" style={{ gap: 6 }}>
+ <Link className="btn" href="/optics/prescriptions">
+ بيانات النظارات
+ </Link>
           {canManage && rows && draft && (
-            <button
+ <button
               className="btn primary"
               type="button"
               disabled={busy}
               onClick={() => void save()}
             >
-              💾 حفظ الأسماء
-            </button>
+ حفظ الأسماء
+ </button>
           )}
-        </div>
+ </div>
       }
     >
       {error && <p className="alert danger">{error}</p>}
@@ -130,60 +130,60 @@ function OpticsFieldLabels() {
       {labels.status === 'forbidden' && <Forbidden />}
       {labels.status === 'error' && <ErrorBox message={labels.error} onRetry={labels.reload} />}
       {labels.status === 'success' && rows && (
-        <form
+ <form
           className="card tight"
           onSubmit={(event) => {
             event.preventDefault();
             if (canManage) void save();
           }}
         >
-          <div className="row" style={{ justifyContent: 'space-between', alignItems: 'baseline' }}>
-            <span className="group-label" style={{ margin: 0 }}>⚙️ أسماء الحقول</span>
+ <div className="row" style={{ justifyContent: 'space-between', alignItems: 'baseline' }}>
+ <span className="group-label" style={{ margin: 0 }}>أسماء الحقول</span>
             {canManage ? (
-              <span className="muted"> عدّل ما شئت ثم «💾 حفظ الأسماء»</span>
+ <span className="muted"> عدّل ما شئت ثم «حفظ الأسماء»</span>
             ) : (
-              <span className="muted">للقراءة فقط</span>
+ <span className="muted">للقراءة فقط</span>
             )}
-          </div>
+ </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16 }}>
+ <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 16 }}>
             {(['R', 'L'] as const).map((side) => (
-              <fieldset key={side} className="card tight" style={{ margin: 0 }}>
-                <legend className="group-label" style={{ margin: 0 }}>
-                  {side === 'R' ? '🔴 R (Right)' : '🟢 L (Left)'}
-                </legend>
-                <div style={{ display: 'grid', gap: 10 }}>
+ <fieldset key={side} className="card tight" style={{ margin: 0 }}>
+ <legend className="group-label" style={{ margin: 0 }}>
+ {side === 'R' ? 'R (Right)' : 'L (Left)'}
+ </legend>
+ <div style={{ display: 'grid', gap: 10 }}>
                   {SLOTS.filter((slot) => slot.startsWith(side.toLowerCase())).map((slot) => {
                     const index = SLOTS.indexOf(slot) + 1;
                     return (
-                      <label key={slot} className="field" style={{ margin: 0 }}>
+ <label key={slot} className="field" style={{ margin: 0 }}>
                         {/* «حقل 1» … «حقل 10» — `frmGlasses.xaml` names the boxes this way. */}
-                        <span>
-                          حقل {index} <span className="muted" dir="ltr">({SLOT_NAMES[slot]})</span>
-                        </span>
-                        <input
+ <span>
+ حقل {index} <span className="muted" dir="ltr">({SLOT_NAMES[slot]})</span>
+ </span>
+ <input
                           className="input"
                           value={value(slot)}
                           disabled={!canManage}
                           placeholder={rows.fields.find((field) => field.slot === slot)?.placeholder ?? `حقل ${index}`}
                           onChange={(event) => set(slot, event.target.value)}
                         />
-                      </label>
+ </label>
                     );
                   })}
-                </div>
-              </fieldset>
+ </div>
+ </fieldset>
             ))}
-          </div>
+ </div>
 
-          <div className="row" style={{ gap: 6, marginTop: 8 }}>
+ <div className="row" style={{ gap: 6, marginTop: 8 }}>
             {canManage && (
-              <button className="btn primary" type="submit" disabled={busy}>
-                💾 حفظ الأسماء
-              </button>
+ <button className="btn primary" type="submit" disabled={busy}>
+ حفظ الأسماء
+ </button>
             )}
             {draft && (
-              <button
+ <button
                 className="btn"
                 type="button"
                 disabled={busy}
@@ -192,28 +192,28 @@ function OpticsFieldLabels() {
                   setNotice('');
                 }}
               >
-                ↩️ إلغاء
-              </button>
+ إلغاء
+ </button>
             )}
-            <Link className="btn danger" href="/optics/prescriptions">
-              ✖ خروج
-            </Link>
-          </div>
+ <Link className="btn danger" href="/optics/prescriptions">
+ خروج
+ </Link>
+ </div>
 
-          <p className="muted" style={{ marginBottom: 0 }}>
-            حقل 1…5 هي العين اليمنى (R1…R5) وحقل 6…10 هي العين اليسرى (L1…L5) — بترتيب
-            «💾 حفظ الأسماء» نفسه في الديسكتوب.
-          </p>
-        </form>
+ <p className="muted" style={{ marginBottom: 0 }}>
+ حقل 1…5 هي العين اليمنى (R1…R5) وحقل 6…10 هي العين اليسرى (L1…L5) — بترتيب
+ «حفظ الأسماء» نفسه في الديسكتوب.
+ </p>
+ </form>
       )}
-    </Screen>
+ </Screen>
   );
 }
 
 export default function Page() {
   return (
-    <Suspense fallback={<Loading rows={6} />}>
-      <OpticsFieldLabels />
-    </Suspense>
+ <Suspense fallback={<Loading rows={6} />}>
+ <OpticsFieldLabels />
+ </Suspense>
   );
 }
