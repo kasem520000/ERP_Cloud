@@ -1,5 +1,6 @@
 'use client';
 
+import { FormActions, FormGrid, Panel } from '@erp/ui';
 import { useEffect, useState } from 'react';
 
 import { Notice } from '../../../components/data-view';
@@ -87,7 +88,11 @@ export default function ApprovalSettingsPage() {
 
   if (!can('approval.manage')) {
     return (
-      <Screen title="مسارات الموافقات" subtitle="إدارة التسلسل والشروط لكل مستند." crumbs={['الإعدادات', 'الموافقات']}>
+      <Screen
+        title="مسارات الموافقات"
+        subtitle="إدارة التسلسل والشروط لكل مستند."
+        crumbs={['الإعدادات', 'الموافقات']}
+      >
         <Forbidden />
       </Screen>
     );
@@ -111,7 +116,9 @@ export default function ApprovalSettingsPage() {
   };
 
   const updateStep = (index: number, patch: Partial<DraftStep>): void =>
-    setSteps((current) => current.map((step, stepIndex) => (stepIndex === index ? { ...step, ...patch } : step)));
+    setSteps((current) =>
+      current.map((step, stepIndex) => (stepIndex === index ? { ...step, ...patch } : step)),
+    );
 
   const buildInput = (): ApprovalWorkflowInput => ({
     entity,
@@ -171,110 +178,228 @@ export default function ApprovalSettingsPage() {
     >
       <Notice notice={notice} />
 
-      <section className="card grid gap-4">
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <div>
-            <h2 className="m-0">{editingId ? 'تعديل مسار' : 'مسار جديد'}</h2>
-            <p className="muted m-0">لا توجد موافقات متوازية؛ التنفيذ متسلسل من الأعلى إلى الأسفل.</p>
-          </div>
-          {editingId ? <button className="btn" type="button" onClick={reset}>إلغاء التعديل</button> : null}
-        </div>
-        <div className="form-grid">
+      <Panel
+        title={editingId ? 'تعديل مسار' : 'مسار جديد'}
+        hint="لا توجد موافقات متوازية؛ التنفيذ متسلسل من الأعلى إلى الأسفل."
+        actions={
+          editingId ? (
+            <button className="btn" type="button" onClick={reset}>
+              إلغاء التعديل
+            </button>
+          ) : null
+        }
+      >
+        <FormGrid cols={3}>
           <label className="field">
             <span>نوع المستند</span>
-            <select className="input" value={entity} onChange={(event) => setEntity(event.target.value as ApprovalEntity)}>
-              {(Object.keys(entityLabels) as ApprovalEntity[]).map((key) => <option key={key} value={key}>{entityLabels[key]}</option>)}
+            <select
+              className="input"
+              value={entity}
+              onChange={(event) => setEntity(event.target.value as ApprovalEntity)}
+            >
+              {(Object.keys(entityLabels) as ApprovalEntity[]).map((key) => (
+                <option key={key} value={key}>
+                  {entityLabels[key]}
+                </option>
+              ))}
             </select>
           </label>
           <label className="field wide">
             <span>اسم المسار</span>
-            <input className="input" value={name} onChange={(event) => setName(event.target.value)} placeholder="مثال: مشتريات أعلى من 5,000" />
+            <input
+              className="input"
+              value={name}
+              onChange={(event) => setName(event.target.value)}
+              placeholder="مثال: مشتريات أعلى من 5,000"
+            />
           </label>
-          <label className="field" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <label className="check">
             <input type="checkbox" checked={active} onChange={(event) => setActive(event.target.checked)} />
             <span>مسار نشط</span>
           </label>
-        </div>
+        </FormGrid>
 
-        <div className="grid gap-3">
-          <h3 className="m-0">الخطوات</h3>
+        <div className="grid gap-3 mt-4">
           {steps.map((step, index) => (
             <div className="rounded-xl border border-line bg-surface-2 p-3 grid gap-3" key={index}>
               <div className="flex items-center justify-between gap-2">
                 <strong>الخطوة {index + 1}</strong>
-                {steps.length > 1 ? <button className="btn" type="button" onClick={() => setSteps((current) => current.filter((_, i) => i !== index))}>حذف</button> : null}
+                {steps.length > 1 ? (
+                  <button
+                    className="btn"
+                    type="button"
+                    onClick={() => setSteps((current) => current.filter((_, i) => i !== index))}
+                  >
+                    حذف
+                  </button>
+                ) : null}
               </div>
-              <div className="form-grid">
+              <FormGrid cols={4}>
                 <label className="field">
                   <span>دور المراجع</span>
-                  <select className="input" value={step.approver_role} onChange={(event) => updateStep(index, { approver_role: event.target.value })}>
+                  <select
+                    className="input"
+                    value={step.approver_role}
+                    onChange={(event) => updateStep(index, { approver_role: event.target.value })}
+                  >
                     <option value="">أي دور</option>
-                    {step.approver_role && !(roles.data ?? []).some((role) => role.name === step.approver_role) ? (
+                    {step.approver_role &&
+                    !(roles.data ?? []).some((role) => role.name === step.approver_role) ? (
                       <option value={step.approver_role}>{step.approver_role}</option>
                     ) : null}
                     {(roles.data ?? []).map((role) => (
-                      <option key={role.id} value={role.name}>{role.name}</option>
+                      <option key={role.id} value={role.name}>
+                        {role.name}
+                      </option>
                     ))}
                   </select>
                 </label>
                 <label className="field">
                   <span>المراجع بعينه (اختياري)</span>
-                  <select className="input" value={step.approver_user_id} onChange={(event) => updateStep(index, { approver_user_id: event.target.value })}>
+                  <select
+                    className="input"
+                    value={step.approver_user_id}
+                    onChange={(event) => updateStep(index, { approver_user_id: event.target.value })}
+                  >
                     <option value="">حسب الدور</option>
-                    {step.approver_user_id && !(members.data ?? []).some((member) => member.id === step.approver_user_id) ? (
+                    {step.approver_user_id &&
+                    !(members.data ?? []).some((member) => member.id === step.approver_user_id) ? (
                       <option value={step.approver_user_id}>عضو سابق</option>
                     ) : null}
-                    {(members.data ?? []).filter((member) => member.status !== 'suspended').map((member) => (
-                      <option key={member.id} value={member.id}>{member.displayName}</option>
-                    ))}
+                    {(members.data ?? [])
+                      .filter((member) => member.status !== 'suspended')
+                      .map((member) => (
+                        <option key={member.id} value={member.id}>
+                          {member.displayName}
+                        </option>
+                      ))}
                   </select>
                 </label>
-                <label className="field"><span>الحد الأدنى</span><input className="input" dir="ltr" value={step.min_amount} onChange={(event) => updateStep(index, { min_amount: event.target.value })} placeholder="10000" /></label>
-                <label className="field"><span>الحد الأعلى</span><input className="input" dir="ltr" value={step.max_amount} onChange={(event) => updateStep(index, { max_amount: event.target.value })} placeholder="اتركه بلا حد" /></label>
+                <label className="field">
+                  <span>الحد الأدنى</span>
+                  <input
+                    className="input"
+                    dir="ltr"
+                    value={step.min_amount}
+                    onChange={(event) => updateStep(index, { min_amount: event.target.value })}
+                    placeholder="10000"
+                  />
+                </label>
+                <label className="field">
+                  <span>الحد الأعلى</span>
+                  <input
+                    className="input"
+                    dir="ltr"
+                    value={step.max_amount}
+                    onChange={(event) => updateStep(index, { max_amount: event.target.value })}
+                    placeholder="اتركه بلا حد"
+                  />
+                </label>
                 <label className="field">
                   <span>الفرع (اختياري)</span>
-                  <select className="input" value={step.branch_id} onChange={(event) => updateStep(index, { branch_id: event.target.value })}>
+                  <select
+                    className="input"
+                    value={step.branch_id}
+                    onChange={(event) => updateStep(index, { branch_id: event.target.value })}
+                  >
                     <option value="">كل الفروع</option>
                     {(branches.data ?? []).map((branch) => (
-                      <option key={branch.id} value={branch.id}>{branch.nameAr ?? branch.name_ar ?? branch.code}</option>
+                      <option key={branch.id} value={branch.id}>
+                        {branch.nameAr ?? branch.name_ar ?? branch.code}
+                      </option>
                     ))}
                   </select>
                 </label>
                 <label className="field">
                   <span>مركز التكلفة (اختياري)</span>
-                  <select className="input" value={step.cost_center_id} onChange={(event) => updateStep(index, { cost_center_id: event.target.value })}>
+                  <select
+                    className="input"
+                    value={step.cost_center_id}
+                    onChange={(event) => updateStep(index, { cost_center_id: event.target.value })}
+                  >
                     <option value="">كل المراكز</option>
                     {(costCenters.data ?? []).map((center) => (
-                      <option key={center.id} value={center.id}>{center.nameAr ?? center.name_ar ?? center.code}</option>
+                      <option key={center.id} value={center.id}>
+                        {center.nameAr ?? center.name_ar ?? center.code}
+                      </option>
                     ))}
                   </select>
                 </label>
-                <label className="field"><span>الإجراء</span><select className="input" value={step.action} onChange={(event) => updateStep(index, { action: event.target.value as 'approve' | 'notify' })}><option value="approve">موافقة مطلوبة</option><option value="notify">إشعار فقط</option></select></label>
-              </div>
+                <label className="field">
+                  <span>الإجراء</span>
+                  <select
+                    className="input"
+                    value={step.action}
+                    onChange={(event) =>
+                      updateStep(index, { action: event.target.value as 'approve' | 'notify' })
+                    }
+                  >
+                    <option value="approve">موافقة مطلوبة</option>
+                    <option value="notify">إشعار فقط</option>
+                  </select>
+                </label>
+              </FormGrid>
             </div>
           ))}
-          <div className="toolbar">
-            <button className="btn" type="button" onClick={() => setSteps((current) => [...current, emptyStep()])}>+ إضافة خطوة</button>
-            <button className="btn primary" type="button" disabled={busy || !name.trim()} onClick={() => void save()}>{busy ? 'جارٍ الحفظ…' : 'حفظ المسار'}</button>
-          </div>
         </div>
-      </section>
+        <FormActions note={`${steps.length} خطوة`}>
+          <button
+            className="btn"
+            type="button"
+            onClick={() => setSteps((current) => [...current, emptyStep()])}
+          >
+            إضافة خطوة
+          </button>
+          <button
+            className="btn primary"
+            type="button"
+            disabled={busy || !name.trim()}
+            onClick={() => void save()}
+          >
+            {busy ? 'جارٍ الحفظ…' : 'حفظ المسار'}
+          </button>
+        </FormActions>
+      </Panel>
 
-      <section className="card grid gap-3">
-        <h2 className="m-0">المسارات الحالية</h2>
-        {workflows.length === 0 ? <p className="muted m-0">لا توجد مسارات بعد.</p> : workflows.map((workflow) => (
-          <article className="rounded-xl border border-line p-4 grid gap-2" key={workflow.id}>
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <div><strong>{workflow.name}</strong><span className="muted"> · {entityLabels[workflow.entity]}</span></div>
-              <span className={`chip ${workflow.isActive ? 'success' : ''}`}>{workflow.isActive ? 'نشط' : 'متوقف'}</span>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {workflow.steps.map((step) => <span className="chip" key={step.id}>{step.stepOrder}. {step.approverRole ?? step.approverUserId ?? '—'} · {step.action === 'approve' ? 'موافقة' : 'إشعار'}</span>)}
-            </div>
-            <div className="toolbar"><button className="btn" type="button" onClick={() => edit(workflow)}>تعديل</button>{workflow.isActive ? <button className="btn" type="button" onClick={() => void deactivate(workflow)}>إيقاف</button> : null}</div>
-          </article>
-        ))}
-      </section>
+      <Panel title="المسارات الحالية" hint="كل مسار يُطبَّق على مستنداته هو فقط، وتُقرأ شروطه بالترتيب.">
+        {workflows.length === 0 ? (
+          <p className="muted m-0">لا توجد مسارات بعد.</p>
+        ) : (
+          <div className="grid gap-3">
+            {workflows.map((workflow) => (
+              <article className="rounded-xl border border-line p-4 grid gap-2" key={workflow.id}>
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div>
+                    <strong>{workflow.name}</strong>
+                    <span className="muted"> · {entityLabels[workflow.entity]}</span>
+                  </div>
+                  <span className={`chip ${workflow.isActive ? 'success' : ''}`}>
+                    {workflow.isActive ? 'نشط' : 'متوقف'}
+                  </span>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {workflow.steps.map((step) => (
+                    <span className="chip" key={step.id}>
+                      {step.stepOrder}. {step.approverRole ?? step.approverUserId ?? '—'} ·{' '}
+                      {step.action === 'approve' ? 'موافقة' : 'إشعار'}
+                    </span>
+                  ))}
+                </div>
+                <div className="toolbar">
+                  <button className="btn" type="button" onClick={() => edit(workflow)}>
+                    تعديل
+                  </button>
+                  {workflow.isActive ? (
+                    <button className="btn" type="button" onClick={() => void deactivate(workflow)}>
+                      إيقاف
+                    </button>
+                  ) : null}
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
+      </Panel>
     </Screen>
   );
 }

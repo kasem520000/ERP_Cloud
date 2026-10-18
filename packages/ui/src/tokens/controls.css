@@ -1722,8 +1722,17 @@ a.ui-kpi-cell:hover {
 .ui-panel-body > .ui-form-actions:last-child,
 .ui-card-bare > .ui-form-actions:last-child,
 .ui-panel-body > form:last-child > .ui-form-actions:last-child {
-  margin: 0 -16px -16px;
+  margin: 12px -16px -16px;
   border-radius: 0;
+}
+.ui-panel-foot > .ui-form-actions,
+.ui-card-bare > .ui-panel-foot > .ui-form-actions {
+  position: static;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  inline-size: 100%;
 }
 .ui-form-actions-note {
   font-size: 12px;
