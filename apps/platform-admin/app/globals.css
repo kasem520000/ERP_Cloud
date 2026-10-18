@@ -120,7 +120,7 @@
 }
 .card.lift { transition: transform var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out); }
 .card.lift:hover { transform: translateY(-3px); box-shadow: var(--shadow-4); border-color: var(--line-strong); }
-.card.tight { padding: 10px 12px; }
+.card.tight { padding: 12px 14px; }
 .muted { color: var(--muted); }
 .small { font-size: 12px; }
 .kpi {
@@ -331,7 +331,7 @@ td.num, th.num { text-align: end; font-variant-numeric: tabular-nums; font-famil
 }
 
 .card.tight {
-  padding: 14px 18px;
+  padding: 12px 14px;
 }
 
 .row {

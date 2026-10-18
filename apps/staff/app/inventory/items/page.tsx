@@ -591,7 +591,7 @@ export default function ItemsPage() {
 
         <div className="card">
           {!selected ? (
-            <Empty title="لا توجد مادة محددة" detail="اختر مادة من القائمة لعرض بطاقتها بتبويباتها." />
+            <Empty bare title="لا توجد مادة محددة" detail="اختر مادة من القائمة لعرض بطاقتها بتبويباتها." />
           ) : (
             <>
               <div className="section-title">

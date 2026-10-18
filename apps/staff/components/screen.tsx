@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { KpiStrip, Page, PageHead, type KpiItem } from '@erp/ui';
+import { KpiStrip, Page, PageHead, cn, type KpiItem } from '@erp/ui';
 import { FolderOpen, LockKeyhole } from 'lucide-react';
 import type { ReactNode } from 'react';
 
@@ -100,9 +100,22 @@ export function Forbidden() {
   );
 }
 
-export function Empty({ title, detail }: { title: string; detail?: string }) {
+/**
+ * حالة الفراغ.
+ *
+ * `bare` لفراغٍ يسكن بطاقةً أو لوحةً: البطاقة نفسها هي السطح، فلا نضع بطاقةً
+ * داخل بطاقة — يبقى الرسمُ والنصّ ويذهب الإطار والظل.
+ */
+export function Empty({ title, detail, bare = false }: { title: string; detail?: string; bare?: boolean }) {
   return (
-    <div className="ui-empty rounded-xl border border-line bg-surface p-8 shadow-1 grid place-items-center text-center gap-2">
+    <div
+      className={cn(
+        'ui-empty grid place-items-center text-center gap-2',
+        bare
+          ? 'border-0 bg-transparent shadow-none p-6'
+          : 'rounded-xl border border-line bg-surface p-8 shadow-1',
+      )}
+    >
       <span className="grid place-items-center size-12 rounded-2xl bg-surface-3 text-muted">
         <FolderOpen size={22} strokeWidth={1.7} aria-hidden />
       </span>

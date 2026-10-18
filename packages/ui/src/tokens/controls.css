@@ -394,8 +394,9 @@ html[dir='rtl'] select.ui-input {
   margin: -16px -18px 12px;
   padding: 13px 16px;
   border-block-end: 1px solid var(--line);
-  border-start-start-radius: var(--radius-lg);
-  border-start-end-radius: var(--radius-lg);
+  /* نصفُ القطر من البطاقة نفسها: كلُّ تطبيقٍ يعرّف `.card` بمقاسه، والشريط يتّبعها. */
+  border-start-start-radius: inherit;
+  border-start-end-radius: inherit;
   background: var(--surface);
 }
 .card.tight > h2:first-child,

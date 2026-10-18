@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 
 import { Notice } from '../../../components/data-view';
-import { Screen } from '../../../components/screen';
+import { Empty, Screen } from '../../../components/screen';
 import { ApiError, apiData, apiPost } from '../../../lib/api';
 import { useSession } from '../../../lib/session';
 import { dateText } from '../../../lib/format';
@@ -264,7 +264,9 @@ export default function HelpPage() {
 
         <div className="card split-detail">
           {!selected ? (
-            <p className="muted">اختر تذكرة من القائمة لعرض المحادثة والردود.</p>
+            <p className="muted">
+              <Empty bare title="لم يُختَر بعد" detail="اختر تذكرة من القائمة لعرض المحادثة والردود." />
+            </p>
           ) : (
             <div style={{ display: 'grid', gap: 14 }}>
               <div className="row" style={{ justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>

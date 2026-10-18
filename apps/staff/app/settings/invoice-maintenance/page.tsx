@@ -7,7 +7,15 @@ import { Screen } from '../../../components/screen';
 import { apiPost } from '../../../lib/api';
 import { dateTime, money, shortDate } from '../../../lib/lookups';
 
-type Mismatch = { id: string; number: string | null; status: string; kind: string; stored_total: string; line_total: string; repairable: boolean };
+type Mismatch = {
+  id: string;
+  number: string | null;
+  status: string;
+  kind: string;
+  stored_total: string;
+  line_total: string;
+  repairable: boolean;
+};
 type Unposted = { id: string; number: string | null; status: string; total: string };
 type Gap = { prefix: string; first_seq: string; last_seq: string; issued: number; missing: number };
 type StaleDraft = { id: string; number: string | null; created_at: string; total: string };
@@ -21,7 +29,13 @@ type MaintenanceRun = {
     postedWithoutJournal: Unposted[];
     numberingGaps: Gap[];
     staleDrafts: StaleDraft[];
-    counts: { totalsMismatch: number; repairableTotals: number; postedWithoutJournal: number; numberingGaps: number; staleDrafts: number };
+    counts: {
+      totalsMismatch: number;
+      repairableTotals: number;
+      postedWithoutJournal: number;
+      numberingGaps: number;
+      staleDrafts: number;
+    };
   };
   applied: { repairedDraftTotals?: Array<{ id: string; from: string; to: string }> };
 };
@@ -52,7 +66,12 @@ export default function InvoiceMaintenancePage() {
       const repaired = result.applied?.repairedDraftTotals?.length ?? 0;
       setNotice(
         mode === 'apply'
-          ? { kind: 'ok', text: repaired ? `تم تصحيح إجماليات ${repaired} فاتورة مسودة.` : 'لا توجد مسودات تحتاج تصحيحاً.' }
+          ? {
+              kind: 'ok',
+              text: repaired
+                ? `تم تصحيح إجماليات ${repaired} فاتورة مسودة.`
+                : 'لا توجد مسودات تحتاج تصحيحاً.',
+            }
           : { kind: 'info', text: 'فحص فقط — لم يُعدّل أي مستند.' },
       );
     } catch (error) {
@@ -74,43 +93,46 @@ export default function InvoiceMaintenancePage() {
           <button type="button" className="btn" disabled={busy} onClick={() => scan('preview')}>
             فحص
           </button>
-          <button type="button" className="btn primary" disabled={busy || !counts?.repairableTotals} onClick={() => scan('apply')}>
+          <button
+            type="button"
+            className="btn primary"
+            disabled={busy || !counts?.repairableTotals}
+            onClick={() => scan('apply')}
+          >
             تصحيح المسودات
           </button>
         </>
       }
     >
-      <div className="card">
-        <p className="alert info">
-          التصحيح التلقائي يقتصر على فواتير <strong>المسودة</strong>: تُعاد حساب إجمالياتها من سطورها. الفواتير
-          المرحّلة تُعرض للمراجعة ولا تُعدّل، لأن تعديل مستند مرحّل يُصحَّح بإشعار دائن لا بتحرير صامت.
-        </p>
-        <Notice notice={notice} />
-        {counts && (
-          <div className="ui-kpi-strip">
-            <div className="ui-kpi-cell">
-              <span className="ui-kpi-label">إجماليات غير مطابقة</span>
-              <span className="ui-kpi-value">{counts.totalsMismatch}</span>
-            </div>
-            <div className="ui-kpi-cell">
-              <span className="ui-kpi-label">قابل للتصحيح (مسودات)</span>
-              <span className="ui-kpi-value">{counts.repairableTotals}</span>
-            </div>
-            <div className="ui-kpi-cell">
-              <span className="ui-kpi-label">مرحّلة بلا قيد</span>
-              <span className="ui-kpi-value">{counts.postedWithoutJournal}</span>
-            </div>
-            <div className="ui-kpi-cell">
-              <span className="ui-kpi-label">أرقام مفقودة</span>
-              <span className="ui-kpi-value">{counts.numberingGaps}</span>
-            </div>
-            <div className="ui-kpi-cell">
-              <span className="ui-kpi-label">مسودات معلّقة</span>
-              <span className="ui-kpi-value">{counts.staleDrafts}</span>
-            </div>
+      <p className="alert info">
+        التصحيح التلقائي يقتصر على فواتير <strong>المسودة</strong>: تُعاد حساب إجمالياتها من سطورها. الفواتير
+        المرحّلة تُعرض للمراجعة ولا تُعدّل، لأن تعديل مستند مرحّل يُصحَّح بإشعار دائن لا بتحرير صامت.
+      </p>
+      <Notice notice={notice} />
+      {counts && (
+        <div className="ui-kpi-strip">
+          <div className="ui-kpi-cell">
+            <span className="ui-kpi-label">إجماليات غير مطابقة</span>
+            <span className="ui-kpi-value">{counts.totalsMismatch}</span>
           </div>
-        )}
-      </div>
+          <div className="ui-kpi-cell">
+            <span className="ui-kpi-label">قابل للتصحيح (مسودات)</span>
+            <span className="ui-kpi-value">{counts.repairableTotals}</span>
+          </div>
+          <div className="ui-kpi-cell">
+            <span className="ui-kpi-label">مرحّلة بلا قيد</span>
+            <span className="ui-kpi-value">{counts.postedWithoutJournal}</span>
+          </div>
+          <div className="ui-kpi-cell">
+            <span className="ui-kpi-label">أرقام مفقودة</span>
+            <span className="ui-kpi-value">{counts.numberingGaps}</span>
+          </div>
+          <div className="ui-kpi-cell">
+            <span className="ui-kpi-label">مسودات معلّقة</span>
+            <span className="ui-kpi-value">{counts.staleDrafts}</span>
+          </div>
+        </div>
+      )}
 
       {run && (
         <>
@@ -121,11 +143,35 @@ export default function InvoiceMaintenancePage() {
             ) : (
               <DataTable
                 columns={[
-                  { key: 'number', header: 'الفاتورة', align: 'ltr', cell: (row: Mismatch) => row.number ?? row.id.slice(0, 8) },
-                  { key: 'status', header: 'الحالة', cell: (row: Mismatch) => (row.status === 'posted' ? 'مرحّلة' : 'مسودة') },
-                  { key: 'stored', header: 'المسجّل', align: 'num', cell: (row: Mismatch) => money(row.stored_total) },
-                  { key: 'lines', header: 'من السطور', align: 'num', cell: (row: Mismatch) => money(row.line_total) },
-                  { key: 'fix', header: 'الإجراء', cell: (row: Mismatch) => (row.repairable ? 'يُصحَّح تلقائياً' : 'مراجعة يدوية — إشعار دائن') },
+                  {
+                    key: 'number',
+                    header: 'الفاتورة',
+                    align: 'ltr',
+                    cell: (row: Mismatch) => row.number ?? row.id.slice(0, 8),
+                  },
+                  {
+                    key: 'status',
+                    header: 'الحالة',
+                    cell: (row: Mismatch) => (row.status === 'posted' ? 'مرحّلة' : 'مسودة'),
+                  },
+                  {
+                    key: 'stored',
+                    header: 'المسجّل',
+                    align: 'num',
+                    cell: (row: Mismatch) => money(row.stored_total),
+                  },
+                  {
+                    key: 'lines',
+                    header: 'من السطور',
+                    align: 'num',
+                    cell: (row: Mismatch) => money(row.line_total),
+                  },
+                  {
+                    key: 'fix',
+                    header: 'الإجراء',
+                    cell: (row: Mismatch) =>
+                      row.repairable ? 'يُصحَّح تلقائياً' : 'مراجعة يدوية — إشعار دائن',
+                  },
                 ]}
                 rows={run.findings.totalsMismatch}
                 rowKey={(row) => row.id}
@@ -141,8 +187,18 @@ export default function InvoiceMaintenancePage() {
               ) : (
                 <DataTable
                   columns={[
-                    { key: 'number', header: 'الفاتورة', align: 'ltr', cell: (row: Unposted) => row.number ?? row.id.slice(0, 8) },
-                    { key: 'total', header: 'الإجمالي', align: 'num', cell: (row: Unposted) => money(row.total) },
+                    {
+                      key: 'number',
+                      header: 'الفاتورة',
+                      align: 'ltr',
+                      cell: (row: Unposted) => row.number ?? row.id.slice(0, 8),
+                    },
+                    {
+                      key: 'total',
+                      header: 'الإجمالي',
+                      align: 'num',
+                      cell: (row: Unposted) => money(row.total),
+                    },
                   ]}
                   rows={run.findings.postedWithoutJournal}
                   rowKey={(row) => row.id}
@@ -157,9 +213,19 @@ export default function InvoiceMaintenancePage() {
                 <DataTable
                   columns={[
                     { key: 'prefix', header: 'السلسلة', align: 'ltr', cell: (row: Gap) => row.prefix },
- { key: 'range', header: 'المدى', align: 'ltr', cell: (row: Gap) => `${row.first_seq} ${row.last_seq}` },
+                    {
+                      key: 'range',
+                      header: 'المدى',
+                      align: 'ltr',
+                      cell: (row: Gap) => `${row.first_seq} ${row.last_seq}`,
+                    },
                     { key: 'issued', header: 'الصادر', align: 'num', cell: (row: Gap) => String(row.issued) },
-                    { key: 'missing', header: 'المفقود', align: 'num', cell: (row: Gap) => String(row.missing) },
+                    {
+                      key: 'missing',
+                      header: 'المفقود',
+                      align: 'num',
+                      cell: (row: Gap) => String(row.missing),
+                    },
                   ]}
                   rows={run.findings.numberingGaps}
                   rowKey={(row) => row.prefix}
@@ -175,9 +241,19 @@ export default function InvoiceMaintenancePage() {
             ) : (
               <DataTable
                 columns={[
-                  { key: 'number', header: 'الفاتورة', align: 'ltr', cell: (row: StaleDraft) => row.number ?? row.id.slice(0, 8) },
+                  {
+                    key: 'number',
+                    header: 'الفاتورة',
+                    align: 'ltr',
+                    cell: (row: StaleDraft) => row.number ?? row.id.slice(0, 8),
+                  },
                   { key: 'created', header: 'أُنشئت', cell: (row: StaleDraft) => shortDate(row.created_at) },
-                  { key: 'total', header: 'الإجمالي', align: 'num', cell: (row: StaleDraft) => money(row.total) },
+                  {
+                    key: 'total',
+                    header: 'الإجمالي',
+                    align: 'num',
+                    cell: (row: StaleDraft) => money(row.total),
+                  },
                 ]}
                 rows={run.findings.staleDrafts}
                 rowKey={(row) => row.id}
