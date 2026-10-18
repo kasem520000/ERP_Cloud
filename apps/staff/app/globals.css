@@ -1252,6 +1252,12 @@ tr.row-active {
   background: var(--surface);
   padding: 6px 0;
 }
+.ui-panel-body > .tree {
+  margin: -16px;
+  border: 0;
+  border-radius: 0;
+  max-height: 60vh;
+}
 .tree-row {
   display: flex;
   align-items: center;

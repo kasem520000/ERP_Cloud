@@ -41,13 +41,7 @@ export function Screen({
 }) {
   return (
     <Page>
-      <PageHead
-        title={title}
-        description={subtitle}
-        breadcrumbs={crumbs}
-        actions={actions}
-        meta={meta}
-      />
+      <PageHead title={title} description={subtitle} breadcrumbs={crumbs} actions={actions} meta={meta} />
       <div className="ui-screen-body">
         {kpis && kpis.length > 0 ? <KpiStrip items={kpis} /> : null}
         {filters}
@@ -60,10 +54,7 @@ export function Screen({
 
 export function Loading({ rows = 4 }: { rows?: number }) {
   return (
-    <div
-      className="rounded-xl border border-line bg-surface p-4 shadow-1 grid gap-3"
-      aria-busy="true"
-    >
+    <div className="rounded-xl border border-line bg-surface p-4 shadow-1 grid gap-3" aria-busy="true">
       {Array.from({ length: rows }).map((_, index) => (
         <div
           key={index}
@@ -97,7 +88,7 @@ export function ErrorBox({ message, onRetry }: { message?: string; onRetry?: () 
 
 export function Forbidden() {
   return (
-    <div className="rounded-xl border border-line bg-surface p-8 shadow-1 grid place-items-center text-center gap-2">
+    <div className="ui-empty rounded-xl border border-line bg-surface p-8 shadow-1 grid place-items-center text-center gap-2">
       <span className="grid place-items-center size-12 rounded-2xl bg-warn-soft text-warn">
         <LockKeyhole size={22} strokeWidth={1.7} aria-hidden />
       </span>
@@ -111,7 +102,7 @@ export function Forbidden() {
 
 export function Empty({ title, detail }: { title: string; detail?: string }) {
   return (
-    <div className="rounded-xl border border-line bg-surface p-8 shadow-1 grid place-items-center text-center gap-2">
+    <div className="ui-empty rounded-xl border border-line bg-surface p-8 shadow-1 grid place-items-center text-center gap-2">
       <span className="grid place-items-center size-12 rounded-2xl bg-surface-3 text-muted">
         <FolderOpen size={22} strokeWidth={1.7} aria-hidden />
       </span>
@@ -133,7 +124,10 @@ export function Empty({ title, detail }: { title: string; detail?: string }) {
 export function ScreenScaffold({ href }: { href: string }) {
   const item = findScreenByHref(href);
   return (
-    <Screen title={item?.labelAr ?? 'صفحة غير متاحة'} crumbs={item ? [item.moduleLabelAr, item.groupLabelAr] : undefined}>
+    <Screen
+      title={item?.labelAr ?? 'صفحة غير متاحة'}
+      crumbs={item ? [item.moduleLabelAr, item.groupLabelAr] : undefined}
+    >
       <Empty
         title="هذه الصفحة غير متاحة في نسختك"
         detail="إن وصلت إلى هنا من رابط قديم، فارجع إلى القائمة الجانبية أو تواصل مع مسؤول الحساب لتفعيل الوحدة."

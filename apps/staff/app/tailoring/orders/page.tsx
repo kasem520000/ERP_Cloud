@@ -1,5 +1,6 @@
 'use client';
 
+import { FilterBand } from '@erp/ui';
 import { Suspense, useState } from 'react';
 
 import { Empty, ErrorBox, Forbidden, Loading, Screen } from '../../../components/screen';
@@ -125,7 +126,10 @@ function TailoringOrders() {
 
   const statuses = useQuery<Status[]>(() => apiList<Status>('/tailoring/order-statuses'), []);
   const types = useQuery<Type[]>(() => apiList<Type>('/tailoring/types'), []);
-  const categories = useQuery<OptionCategory[]>(() => apiList<OptionCategory>('/tailoring/option-categories'), []);
+  const categories = useQuery<OptionCategory[]>(
+    () => apiList<OptionCategory>('/tailoring/option-categories'),
+    [],
+  );
   const customers = useQuery<Party[]>(() => listParties('customer'), []);
 
   const orders = useQuery<{ rows: Order[]; total: number }>(() => {
@@ -135,14 +139,17 @@ function TailoringOrders() {
     if (applied.to) params.set('to', applied.to);
     if (applied.search) params.set('search', applied.search);
     const query = params.toString();
-    return apiFetch<{ data: Order[]; meta: { total: number } }>(`/tailoring/orders${query ? `?${query}` : ''}`).then(
-      (body) => ({ rows: body.data ?? [], total: body.meta?.total ?? (body.data ?? []).length }),
-    );
+    return apiFetch<{ data: Order[]; meta: { total: number } }>(
+      `/tailoring/orders${query ? `?${query}` : ''}`,
+    ).then((body) => ({ rows: body.data ?? [], total: body.meta?.total ?? (body.data ?? []).length }));
   }, [applied]);
 
   const draftPartyId = draft?.partyId ?? '';
   const measurements = useQuery<Measurement[]>(
-    () => (draftPartyId ? apiList<Measurement>(`/tailoring/parties/${draftPartyId}/measurements`) : Promise.resolve([])),
+    () =>
+      draftPartyId
+        ? apiList<Measurement>(`/tailoring/parties/${draftPartyId}/measurements`)
+        : Promise.resolve([]),
     [draftPartyId],
   );
 
@@ -150,7 +157,8 @@ function TailoringOrders() {
   const remaining = Number(draft?.price || 0) - Number(draft?.paidAmount || 0);
   const selectedCustomer = (customers.data ?? []).find((party) => party.id === draft?.partyId);
 
-  const setField = (patch: Partial<Draft>) => setDraft((current) => (current ? { ...current, ...patch } : current));
+  const setField = (patch: Partial<Draft>) =>
+    setDraft((current) => (current ? { ...current, ...patch } : current));
 
   async function save() {
     if (!draft) return;
@@ -175,7 +183,10 @@ function TailoringOrders() {
         options: Object.entries(draft.options).map(([categoryId, valueId]) => ({ categoryId, valueId })),
       };
       const saved = draft.id
-        ? await apiPatch<{ number: string }>(`/tailoring/orders/${draft.id}`, { ...payload, ...(draft.version ? { version: draft.version } : {}) })
+        ? await apiPatch<{ number: string }>(`/tailoring/orders/${draft.id}`, {
+            ...payload,
+            ...(draft.version ? { version: draft.version } : {}),
+          })
         : await apiPost<{ number: string }>('/tailoring/orders', payload);
       setNotice(`تم حفظ الطلب بنجاح — رقم الطلب: ${saved.number ?? ''}`.trim());
       setDraft(null);
@@ -189,7 +200,10 @@ function TailoringOrders() {
 
   async function remove(order: Order) {
     // «هل أنت متأكد من حذف هذا الطلب؟\nسيتم حذف جميع البيانات المرتبطة به» (L212).
-    if (!window.confirm(`هل أنت متأكد من حذف هذا الطلب؟\nسيتم حذف جميع البيانات المرتبطة به\n\n${order.number}`)) return;
+    if (
+      !window.confirm(`هل أنت متأكد من حذف هذا الطلب؟\nسيتم حذف جميع البيانات المرتبطة به\n\n${order.number}`)
+    )
+      return;
     setBusy(true);
     setError('');
     setNotice('');
@@ -223,8 +237,7 @@ function TailoringOrders() {
     }
   }
 
-  const openNew = () =>
-    setDraft(emptyDraft((statuses.data ?? [])[0]?.id ?? ''));
+  const openNew = () => setDraft(emptyDraft((statuses.data ?? [])[0]?.id ?? ''));
 
   const openEdit = (order: Order) =>
     setDraft({
@@ -247,215 +260,219 @@ function TailoringOrders() {
     });
 
   return (
- <Screen
- title="إدارة طلبات التفصيل"
+    <Screen
+      title="إدارة طلبات التفصيل"
       subtitle="طلب التفصيل: العميل وقياسه ونوع التفصيل وموعد التسليم، وحالته من «مستلم» إلى «تم التسليم»، وما دُفع منه وما بقي."
       crumbs={['التفصيل', 'الطلبات']}
       actions={
         canManage ? (
- <button className="btn primary" type="button" onClick={openNew}>
- إضافة طلب جديد
- </button>
+          <button className="btn primary" type="button" onClick={openNew}>
+            إضافة طلب جديد
+          </button>
         ) : null
       }
     >
       {error && <p className="alert danger">{error}</p>}
       {notice && <p className="alert ok">{notice}</p>}
 
- <div className="card tight no-print">
- <div className="row" style={{ flexWrap: 'wrap', alignItems: 'flex-end' }}>
- <label className="field" style={{ margin: 0, minWidth: 180 }}>
- <span>الحالة:</span>
- <select
-              className="input"
-              value={filters.statusId}
-              onChange={(event) => {
-                const next = { ...filters, statusId: event.target.value };
-                setFilters(next);
-                // `cmbStatus_SelectionChanged` reloads on every change, not on «🔍 بحث».
-                setApplied(next);
-              }}
-            >
- <option value={ALL}>الكل</option>
-              {(statuses.data ?? []).map((status) => (
- <option key={status.id} value={status.id}>
-                  {status.nameAr}
- </option>
-              ))}
- </select>
- </label>
- <label className="field" style={{ margin: 0, width: 160 }}>
- <span>من:</span>
- <input
-              className="input"
-              type="date"
-              value={filters.from}
-              onChange={(event) => setFilters({ ...filters, from: event.target.value })}
-            />
- </label>
- <label className="field" style={{ margin: 0, width: 160 }}>
- <span>إلى:</span>
- <input
-              className="input"
-              type="date"
-              value={filters.to}
-              onChange={(event) => setFilters({ ...filters, to: event.target.value })}
-            />
- </label>
- <label className="field" style={{ margin: 0, minWidth: 220, flex: 1 }}>
- <span>البحث (رقم/اسم):</span>
- <input
-              className="input"
-              value={filters.search}
-              onChange={(event) => setFilters({ ...filters, search: event.target.value })}
-              placeholder="رقم الطلب أو اسم العميل"
-            />
- </label>
- <button className="btn" type="button" onClick={() => setApplied(filters)}>
- بحث
- </button>
- </div>
- </div>
+      <FilterBand>
+        <label className="field">
+          <span>الحالة</span>
+          <select
+            className="input"
+            value={filters.statusId}
+            onChange={(event) => {
+              const next = { ...filters, statusId: event.target.value };
+              setFilters(next);
+              // `cmbStatus_SelectionChanged` reloads on every change, not on «بحث».
+              setApplied(next);
+            }}
+          >
+            <option value={ALL}>الكل</option>
+            {(statuses.data ?? []).map((status) => (
+              <option key={status.id} value={status.id}>
+                {status.nameAr}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="field">
+          <span>من</span>
+          <input
+            className="input"
+            type="date"
+            value={filters.from}
+            onChange={(event) => setFilters({ ...filters, from: event.target.value })}
+          />
+        </label>
+        <label className="field">
+          <span>إلى</span>
+          <input
+            className="input"
+            type="date"
+            value={filters.to}
+            onChange={(event) => setFilters({ ...filters, to: event.target.value })}
+          />
+        </label>
+        <label className="field">
+          <span>البحث (رقم أو اسم)</span>
+          <input
+            className="input"
+            value={filters.search}
+            onChange={(event) => setFilters({ ...filters, search: event.target.value })}
+            placeholder="رقم الطلب أو اسم العميل"
+          />
+        </label>
+        <button className="btn" type="button" onClick={() => setApplied(filters)}>
+          بحث
+        </button>
+      </FilterBand>
 
       {orders.status === 'loading' && <Loading rows={6} />}
       {orders.status === 'forbidden' && <Forbidden />}
       {orders.status === 'error' && <ErrorBox message={orders.error} onRetry={orders.reload} />}
       {orders.status === 'success' && (
- <>
- <div className="row" style={{ justifyContent: 'space-between', alignItems: 'baseline' }}>
- <span className="group-label" style={{ margin: 0 }}>قائمة الطلبات</span>
- <span className="muted">عدد السجلات: {orders.data?.total ?? rows.length}</span>
- </div>
+        <>
+          <p className="m-0 text-[12.5px] font-semibold text-muted">
+            قائمة الطلبات · {orders.data?.total ?? rows.length} سجل
+          </p>
           {rows.length === 0 ? (
- <Empty
+            <Empty
               title="لا توجد طلبات"
- detail="ابدأ بـ «إضافة طلب جديد»، أو وسّع الفترة، أو اختر «الكل» في الحالة."
+              detail="ابدأ بـ «إضافة طلب جديد»، أو وسّع الفترة، أو اختر «الكل» في الحالة."
             />
           ) : (
- <div className="table-wrap">
- <table>
- <thead>
- <tr>
- <th>رقم الطلب</th>
- <th>العميل</th>
- <th>الجوال</th>
- <th>القياس</th>
- <th>نوع التفصيل</th>
- <th>الحالة</th>
- <th>تاريخ الطلب</th>
- <th>موعد التسليم</th>
- <th className="num">السعر</th>
- <th className="num">المدفوع</th>
- <th className="num">المتبقي</th>
+            <div className="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>رقم الطلب</th>
+                    <th>العميل</th>
+                    <th>الجوال</th>
+                    <th>القياس</th>
+                    <th>نوع التفصيل</th>
+                    <th>الحالة</th>
+                    <th>تاريخ الطلب</th>
+                    <th>موعد التسليم</th>
+                    <th className="num">السعر</th>
+                    <th className="num">المدفوع</th>
+                    <th className="num">المتبقي</th>
                     {canManage && <th>إجراءات</th>}
- </tr>
- </thead>
- <tbody>
+                  </tr>
+                </thead>
+                <tbody>
                   {rows.map((row) => (
- <tr
+                    <tr
                       key={row.id}
                       // ⌛ متأخّر — the desktop paints the row `#FFE4E4` with dark-red text.
-                      style={row.isDelayed ? { background: '#FFE4E4', color: 'var(--danger-ink)' } : undefined}
+                      style={
+                        row.isDelayed ? { background: '#FFE4E4', color: 'var(--danger-ink)' } : undefined
+                      }
                       onDoubleClick={() => canManage && openEdit(row)}
                     >
- <td dir="ltr">{row.number}</td>
- <td>{row.customerName}</td>
- <td dir="ltr">{row.customerPhone || '—'}</td>
- <td>{row.measurementName ?? '—'}</td>
- <td>{row.typeName}</td>
- <td>
- <span className="badge">{row.statusName}</span>
+                      <td dir="ltr">{row.number}</td>
+                      <td>{row.customerName}</td>
+                      <td dir="ltr">{row.customerPhone || '—'}</td>
+                      <td>{row.measurementName ?? '—'}</td>
+                      <td>{row.typeName}</td>
+                      <td>
+                        <span className="badge">{row.statusName}</span>
                         {row.isDelayed && <span className="badge danger"> متأخّر</span>}
- </td>
- <td dir="ltr">{row.orderDate}</td>
- <td dir="ltr">{row.deliveryDate ?? '—'}</td>
- <td className="num">{money(row.price)}</td>
- <td className="num">{money(row.paidAmount)}</td>
+                      </td>
+                      <td dir="ltr">{row.orderDate}</td>
+                      <td dir="ltr">{row.deliveryDate ?? '—'}</td>
+                      <td className="num">{money(row.price)}</td>
+                      <td className="num">{money(row.paidAmount)}</td>
                       {/* A negative remaining is green in the desktop, never refused. */}
- <td className="num" style={{ color: Number(row.remainingAmount) < 0 ? 'var(--ok, #0a7a3d)' : undefined }}>
+                      <td
+                        className="num"
+                        style={{ color: Number(row.remainingAmount) < 0 ? 'var(--ok, #0a7a3d)' : undefined }}
+                      >
                         {money(row.remainingAmount)}
- </td>
+                      </td>
                       {canManage && (
- <td>
- <div className="row" style={{ gap: 4 }}>
- <button className="btn sm" type="button" onClick={() => openEdit(row)}>
- تعديل
- </button>
- <button
+                        <td>
+                          <div className="row" style={{ gap: 4 }}>
+                            <button className="btn sm" type="button" onClick={() => openEdit(row)}>
+                              تعديل
+                            </button>
+                            <button
                               className="btn sm"
                               type="button"
-                              onClick={() => setStatusOf({ id: row.id, number: row.number, statusId: row.statusId })}
+                              onClick={() =>
+                                setStatusOf({ id: row.id, number: row.number, statusId: row.statusId })
+                              }
                             >
- تغيير الحالة
- </button>
- <button className="btn sm danger" type="button" onClick={() => remove(row)}>
- حذف
- </button>
- </div>
- </td>
+                              تغيير الحالة
+                            </button>
+                            <button className="btn sm danger" type="button" onClick={() => remove(row)}>
+                              حذف
+                            </button>
+                          </div>
+                        </td>
                       )}
- </tr>
+                    </tr>
                   ))}
- </tbody>
- </table>
- </div>
+                </tbody>
+              </table>
+            </div>
           )}
- </>
+        </>
       )}
 
       {draft && (
- <div className="modal-backdrop" role="dialog" aria-modal="true">
- <div className="modal-card" style={{ maxWidth: 860 }}>
- <div className="modal-head">
- <span className="modal-title">{draft.id ? 'تعديل الطلب' : 'إضافة طلب جديد'}</span>
- </div>
- <div style={{ padding: 16, display: 'grid', gap: 12, maxHeight: '70vh', overflowY: 'auto' }}>
- <fieldset className="card tight" style={{ margin: 0 }}>
- <legend className="group-label">بيانات العميل</legend>
- <div className="row" style={{ flexWrap: 'wrap', alignItems: 'flex-end' }}>
- <label className="field" style={{ margin: 0, minWidth: 260, flex: 1 }}>
- <span>العميل:</span>
- <select
+        <div className="modal-backdrop" role="dialog" aria-modal="true">
+          <div className="modal-card" style={{ maxWidth: 860 }}>
+            <div className="modal-head">
+              <span className="modal-title">{draft.id ? 'تعديل الطلب' : 'إضافة طلب جديد'}</span>
+            </div>
+            <div style={{ padding: 16, display: 'grid', gap: 12, maxHeight: '70vh', overflowY: 'auto' }}>
+              <fieldset className="card tight" style={{ margin: 0 }}>
+                <legend className="group-label">بيانات العميل</legend>
+                <div className="row" style={{ flexWrap: 'wrap', alignItems: 'flex-end' }}>
+                  <label className="field" style={{ margin: 0, minWidth: 260, flex: 1 }}>
+                    <span>العميل:</span>
+                    <select
                       className="input"
                       value={draft.partyId}
                       onChange={(event) => setField({ partyId: event.target.value, measurementId: '' })}
                     >
- <option value="">اختر العميل...</option>
+                      <option value="">اختر العميل...</option>
                       {(customers.data ?? []).map((party) => (
- <option key={party.id} value={party.id}>
+                        <option key={party.id} value={party.id}>
                           {party.name}
- </option>
+                        </option>
                       ))}
- </select>
- </label>
- <p className="muted" style={{ margin: 0 }}>
- الجوال: {selectedCustomer?.phone ?? '—'}
- </p>
- </div>
- </fieldset>
+                    </select>
+                  </label>
+                  <p className="muted" style={{ margin: 0 }}>
+                    الجوال: {selectedCustomer?.phone ?? '—'}
+                  </p>
+                </div>
+              </fieldset>
 
- <fieldset className="card tight" style={{ margin: 0 }}>
- <legend className="group-label">تفاصيل الطلب</legend>
- <div className="form-grid">
- <label className="field">
- <span>القياس:</span>
- <select
+              <fieldset className="card tight" style={{ margin: 0 }}>
+                <legend className="group-label">تفاصيل الطلب</legend>
+                <div className="form-grid">
+                  <label className="field">
+                    <span>القياس:</span>
+                    <select
                       className="input"
                       value={draft.measurementId}
                       onChange={(event) => setField({ measurementId: event.target.value })}
                       disabled={!draft.partyId}
                     >
- <option value="">— بلا قياس —</option>
+                      <option value="">— بلا قياس —</option>
                       {(measurements.data ?? []).map((measurement) => (
- <option key={measurement.id} value={measurement.id}>
- قياس بتاريخ {measurement.createdAt.slice(0, 10)}
- </option>
+                        <option key={measurement.id} value={measurement.id}>
+                          قياس بتاريخ {measurement.createdAt.slice(0, 10)}
+                        </option>
                       ))}
- </select>
- </label>
- <label className="field">
- <span>نوع التفصيل:</span>
- <select
+                    </select>
+                  </label>
+                  <label className="field">
+                    <span>نوع التفصيل:</span>
+                    <select
                       className="input"
                       value={draft.typeId}
                       onChange={(event) => {
@@ -467,45 +484,49 @@ function TailoringOrders() {
                         });
                       }}
                     >
- <option value="">اختر نوع التفصيل...</option>
+                      <option value="">اختر نوع التفصيل...</option>
                       {(types.data ?? []).map((type) => (
- <option key={type.id} value={type.id}>
+                        <option key={type.id} value={type.id}>
                           {type.nameAr}
- </option>
+                        </option>
                       ))}
- </select>
- </label>
- <label className="field">
- <span>الحالة</span>
- <select className="input" value={draft.statusId} onChange={(event) => setField({ statusId: event.target.value })}>
+                    </select>
+                  </label>
+                  <label className="field">
+                    <span>الحالة</span>
+                    <select
+                      className="input"
+                      value={draft.statusId}
+                      onChange={(event) => setField({ statusId: event.target.value })}
+                    >
                       {(statuses.data ?? []).map((status) => (
- <option key={status.id} value={status.id}>
+                        <option key={status.id} value={status.id}>
                           {status.nameAr}
- </option>
+                        </option>
                       ))}
- </select>
- </label>
- <label className="field">
- <span>تاريخ الطلب</span>
- <input
+                    </select>
+                  </label>
+                  <label className="field">
+                    <span>تاريخ الطلب</span>
+                    <input
                       className="input"
                       type="date"
                       value={draft.orderDate}
                       onChange={(event) => setField({ orderDate: event.target.value })}
                     />
- </label>
- <label className="field">
- <span>موعد التسليم:</span>
- <input
+                  </label>
+                  <label className="field">
+                    <span>موعد التسليم:</span>
+                    <input
                       className="input"
                       type="date"
                       value={draft.deliveryDate}
                       onChange={(event) => setField({ deliveryDate: event.target.value })}
                     />
- </label>
- <label className="field">
- <span>الكمية:</span>
- <input
+                  </label>
+                  <label className="field">
+                    <span>الكمية:</span>
+                    <input
                       className="input"
                       type="number"
                       min="0"
@@ -513,10 +534,10 @@ function TailoringOrders() {
                       value={draft.quantity}
                       onChange={(event) => setField({ quantity: event.target.value })}
                     />
- </label>
- <label className="field">
- <span>السعر:</span>
- <input
+                  </label>
+                  <label className="field">
+                    <span>السعر:</span>
+                    <input
                       className="input"
                       type="number"
                       min="0"
@@ -524,40 +545,40 @@ function TailoringOrders() {
                       value={draft.price}
                       onChange={(event) => setField({ price: event.target.value })}
                     />
- </label>
- <label className="field">
- <span>المدفوع:</span>
- <input
+                  </label>
+                  <label className="field">
+                    <span>المدفوع:</span>
+                    <input
                       className="input"
                       type="number"
                       step="0.01"
                       value={draft.paidAmount}
                       onChange={(event) => setField({ paidAmount: event.target.value })}
                     />
- </label>
- <div className="field">
- <span>المتبقي:</span>
- <output
+                  </label>
+                  <div className="field">
+                    <span>المتبقي:</span>
+                    <output
                       className="input"
                       style={{ color: remaining < 0 ? 'var(--ok, #0a7a3d)' : '#E35656', fontWeight: 700 }}
                     >
                       {money(String(remaining))}
- </output>
- </div>
- </div>
- </fieldset>
+                    </output>
+                  </div>
+                </div>
+              </fieldset>
 
               {(categories.data ?? []).length > 0 && (
- <fieldset className="card tight" style={{ margin: 0 }}>
- <legend className="group-label">الخيارات</legend>
+                <fieldset className="card tight" style={{ margin: 0 }}>
+                  <legend className="group-label">الخيارات</legend>
                   {(categories.data ?? []).map((category) => (
- <div key={category.id} style={{ marginBottom: 8 }}>
- <p className="muted" style={{ margin: '0 0 4px', fontWeight: 700 }}>
+                    <div key={category.id} style={{ marginBottom: 8 }}>
+                      <p className="muted" style={{ margin: '0 0 4px', fontWeight: 700 }}>
                         {category.nameAr}:
- </p>
- <div className="chips">
+                      </p>
+                      <div className="chips">
                         {category.values.map((value) => (
- <button
+                          <button
                             key={value.id}
                             type="button"
                             className={`chip${draft.options[category.id] === value.id ? ' on' : ''}`}
@@ -567,105 +588,105 @@ function TailoringOrders() {
                             }
                           >
                             {value.nameAr}
- </button>
+                          </button>
                         ))}
- </div>
- </div>
+                      </div>
+                    </div>
                   ))}
- </fieldset>
+                </fieldset>
               )}
 
- <fieldset className="card tight" style={{ margin: 0 }}>
- <legend className="group-label">تفاصيل القماش والتصميم</legend>
- <div className="form-grid">
- <label className="field">
- <span>نوع القماش:</span>
- <input
+              <fieldset className="card tight" style={{ margin: 0 }}>
+                <legend className="group-label">تفاصيل القماش والتصميم</legend>
+                <div className="form-grid">
+                  <label className="field">
+                    <span>نوع القماش:</span>
+                    <input
                       className="input"
                       value={draft.fabricType}
                       onChange={(event) => setField({ fabricType: event.target.value })}
                     />
- </label>
- <label className="field">
- <span>اللون:</span>
- <input
+                  </label>
+                  <label className="field">
+                    <span>اللون:</span>
+                    <input
                       className="input"
                       value={draft.fabricColor}
                       onChange={(event) => setField({ fabricColor: event.target.value })}
                     />
- </label>
- <label className="field" style={{ gridColumn: '1 / -1' }}>
- <span>ملاحظات:</span>
- <textarea
+                  </label>
+                  <label className="field" style={{ gridColumn: '1 / -1' }}>
+                    <span>ملاحظات:</span>
+                    <textarea
                       className="input"
                       rows={3}
                       value={draft.designNotes}
                       onChange={(event) => setField({ designNotes: event.target.value })}
                     />
- </label>
- </div>
- </fieldset>
- </div>
- <div className="modal-foot">
- <button className="btn primary" type="button" onClick={save} disabled={busy}>
- حفظ الطلب
- </button>
- <button className="btn danger" type="button" onClick={() => setDraft(null)} disabled={busy}>
- إلغاء
- </button>
- </div>
- </div>
- </div>
+                  </label>
+                </div>
+              </fieldset>
+            </div>
+            <div className="modal-foot">
+              <button className="btn primary" type="button" onClick={save} disabled={busy}>
+                حفظ الطلب
+              </button>
+              <button className="btn danger" type="button" onClick={() => setDraft(null)} disabled={busy}>
+                إلغاء
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {statusOf && (
- <div className="modal-backdrop" role="dialog" aria-modal="true">
- <div className="modal-card" style={{ maxWidth: 420 }}>
- <div className="modal-head">
- <span className="modal-title">تغيير حالة الطلب</span>
- </div>
- <div style={{ padding: 16, display: 'grid', gap: 12 }}>
- <p style={{ margin: 0, fontWeight: 700 }}>
- الحالة الحالية:{' '}
+        <div className="modal-backdrop" role="dialog" aria-modal="true">
+          <div className="modal-card" style={{ maxWidth: 420 }}>
+            <div className="modal-head">
+              <span className="modal-title">تغيير حالة الطلب</span>
+            </div>
+            <div style={{ padding: 16, display: 'grid', gap: 12 }}>
+              <p style={{ margin: 0, fontWeight: 700 }}>
+                الحالة الحالية:{' '}
                 {(statuses.data ?? []).find((status) => status.id === statusOf.statusId)?.nameAr ?? '—'}
- </p>
- <label className="field" style={{ margin: 0 }}>
- <span>الحالة الجديدة:</span>
- <select
+              </p>
+              <label className="field" style={{ margin: 0 }}>
+                <span>الحالة الجديدة:</span>
+                <select
                   className="input"
                   value={statusOf.statusId}
                   onChange={(event) => setStatusOf({ ...statusOf, statusId: event.target.value })}
                 >
                   {(statuses.data ?? []).map((status) => (
- <option key={status.id} value={status.id}>
+                    <option key={status.id} value={status.id}>
                       {status.nameAr}
- </option>
+                    </option>
                   ))}
- </select>
- </label>
- <p className="muted" style={{ margin: 0 }}>
- الطلب رقم <span dir="ltr">{statusOf.number}</span>
- </p>
- </div>
- <div className="modal-foot">
- <button className="btn primary" type="button" onClick={changeStatus} disabled={busy}>
- تغيير
- </button>
- <button className="btn danger" type="button" onClick={() => setStatusOf(null)} disabled={busy}>
- إلغاء
- </button>
- </div>
- </div>
- </div>
+                </select>
+              </label>
+              <p className="muted" style={{ margin: 0 }}>
+                الطلب رقم <span dir="ltr">{statusOf.number}</span>
+              </p>
+            </div>
+            <div className="modal-foot">
+              <button className="btn primary" type="button" onClick={changeStatus} disabled={busy}>
+                تغيير
+              </button>
+              <button className="btn danger" type="button" onClick={() => setStatusOf(null)} disabled={busy}>
+                إلغاء
+              </button>
+            </div>
+          </div>
+        </div>
       )}
- </Screen>
+    </Screen>
   );
 }
 
 export default function Page() {
   return (
- <Suspense fallback={<Loading rows={6} />}>
- <TailoringOrders />
- </Suspense>
+    <Suspense fallback={<Loading rows={6} />}>
+      <TailoringOrders />
+    </Suspense>
   );
 }

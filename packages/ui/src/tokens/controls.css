@@ -1746,6 +1746,15 @@ a.ui-kpi-cell:hover {
   gap: 8px;
 }
 
+/* داخل لوحة أو بطاقة، الحالة الفارغة ليست بطاقةً ثانية — تُسطَّح إلى كتلةٍ مركزيّة. */
+.ui-panel-body .ui-empty,
+.ui-card-bare .ui-empty,
+.card .ui-empty {
+  border: 0;
+  background: none;
+  box-shadow: none;
+}
+
 /* ------------------------------------------------------------- responsive */
 @media (max-width: 1180px) {
   .ui-split {
