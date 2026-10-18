@@ -1,6 +1,7 @@
 'use client';
 
 import { Fragment, useState } from 'react';
+import { ContentPanel, WorkflowGuide } from '@erp/ui/page';
 
 import { Empty, ErrorBox, Forbidden, Loading, Screen } from '../../components/screen';
 import { apiData } from '../../lib/api';
@@ -66,9 +67,11 @@ const AUDIT_ACTION_AR: Record<string, string> = {
   'operator.role.grant': 'منح دور منصّي',
   'operator.role.revoke': 'سحب دور منصّي',
   'operator.role.permissions': 'تعديل صلاحيات دور منصّي',
+  'auth.refresh': 'تجديد جلسة',
 };
 
 const AUDIT_ENTITY_AR: Record<string, string> = {
+  auth: 'جلسة دخول',
   tenant: 'منشأة عميل',
   tenant_setting: 'إعداد منشأة',
   tenant_flag: 'راية ميزة',
@@ -107,7 +110,7 @@ export default function AuditPage() {
   return (
     <Screen
       title="سجل التدقيق"
-      subtitle="سجل عابر للمستأجرين: كل عملية مؤثّرة في أي منشأة، بمَن فعلها ولمن. للقراءة فقط."
+      subtitle="تتبّع ما تغيّر، ومَن أجراه، ومتى؛ قارن التفاصيل فقط عند الحاجة. العرض للقراءة دون تعديل السجلات."
       crumbs={['المنصة', 'التشغيل']}
       actions={
         <button className="btn" type="button" onClick={audit.reload}>
@@ -115,38 +118,18 @@ export default function AuditPage() {
         </button>
       }
     >
-      <div className="card tight no-print">
+      <WorkflowGuide title="كيف تراجع سجل التدقيق؟" steps={[
+        { title: 'حدّد النطاق', detail: 'ابدأ بوقت الحدث ثم ضيّق البحث بنوعه أو المنشأة.' },
+        { title: 'تعرّف على الأثر', detail: 'يعرض السجل الإجراء والجهة التي نفذته والوقت المرتبط به.' },
+        { title: 'افتح الفرق عند الحاجة', detail: 'قارن ما كان قبل التغيير بما أصبح بعده دون تعديل البيانات.' },
+      ]} />
+      <ContentPanel title="ابحث في الأحداث" description="المرشحات تغيّر ما تراه فقط؛ لا تمس سجل التدقيق." className="no-print">
+        <div className="erp-page-actions">
+          <span className="muted small">اختصار الإجراء:</span>
+          <button className="btn sm" type="button" onClick={() => { const next = { ...filters, action: 'auth.login' }; setFilters(next); setApplied(next); }}>تسجيل دخول</button>
+          <button className="btn sm" type="button" onClick={() => { const next = { ...filters, action: 'platform.setting' }; setFilters(next); setApplied(next); }}>إعدادات المنصة</button>
+        </div>
         <div className="form-grid">
-          <label className="field">
-            <span>معرّف العميل (UUID)</span>
-            <input
-              className="input"
-              dir="ltr"
-              value={filters.tenant}
-              placeholder="اتركه فارغاً لكل العملاء"
-              onChange={(event) => setFilters({ ...filters, tenant: event.target.value })}
-            />
-          </label>
-          <label className="field">
-            <span>الإجراء</span>
-            <input
-              className="input"
-              dir="ltr"
-              value={filters.action}
-              placeholder="create · update · auth.login"
-              onChange={(event) => setFilters({ ...filters, action: event.target.value })}
-            />
-          </label>
-          <label className="field">
-            <span>الكيان</span>
-            <input
-              className="input"
-              dir="ltr"
-              value={filters.entity}
-              placeholder="settings · sales_invoices"
-              onChange={(event) => setFilters({ ...filters, entity: event.target.value })}
-            />
-          </label>
           <label className="field">
             <span>من وقت</span>
             <input
@@ -166,6 +149,38 @@ export default function AuditPage() {
             />
           </label>
         </div>
+        <details className="muted small"><summary>خيارات بحث متقدمة: المنشأة ورموز السجل</summary><div className="form-grid" style={{ marginTop: 12 }}>
+          <label className="field">
+            <span>معرّف المنشأة</span>
+            <input
+              className="input"
+              dir="ltr"
+              value={filters.tenant}
+              placeholder="اتركه فارغاً لكل العملاء"
+              onChange={(event) => setFilters({ ...filters, tenant: event.target.value })}
+            />
+          </label>
+          <label className="field">
+            <span>رمز الإجراء</span>
+            <input
+              className="input"
+              dir="ltr"
+              value={filters.action}
+              placeholder="مثال: auth.login"
+              onChange={(event) => setFilters({ ...filters, action: event.target.value })}
+            />
+          </label>
+          <label className="field">
+            <span>رمز نوع السجل</span>
+            <input
+              className="input"
+              dir="ltr"
+              value={filters.entity}
+              placeholder="مثال: sales_invoices"
+              onChange={(event) => setFilters({ ...filters, entity: event.target.value })}
+            />
+          </label>
+        </div></details>
         <div className="row">
           <button className="btn primary" type="button" onClick={() => setApplied(filters)}>
             تطبيق المرشّحات
@@ -182,13 +197,13 @@ export default function AuditPage() {
             إزالة المرشّحات
           </button>
         </div>
-      </div>
+      </ContentPanel>
 
       {audit.status === 'loading' && <Loading />}
       {audit.status === 'forbidden' && <Forbidden />}
       {audit.status === 'error' && <ErrorBox message={audit.error} onRetry={audit.reload} />}
-      {audit.status === 'success' &&
-        (rows.length === 0 ? (
+      {audit.status === 'success' && <ContentPanel title={`الأحداث (${audit.data?.total ?? 0})`} description="يظهر الأحدث أولاً. المرجع الفني والفرق التفصيلي عند الطلب؛ على الهاتف يمكن سحب الجدول لعرض بقية الأعمدة.">
+        {rows.length === 0 ? (
           <Empty
             title="لا توجد سجلات مطابقة"
             detail="جرّب توسيع الفترة أو إزالة المرشّحات — القراءة تشمل كل المنشآت."
@@ -206,7 +221,7 @@ export default function AuditPage() {
                     <th>العميل</th>
                     <th>الإجراء</th>
                     <th>الكيان</th>
-                    <th>المعرّف</th>
+                    <th>مرجع الحدث</th>
                     <th>المستخدم</th>
                     <th>الفرق</th>
                   </tr>
@@ -230,15 +245,15 @@ export default function AuditPage() {
                           )}
                         </td>
                         <td>
-                          <strong>{AUDIT_ACTION_AR[row.action] ?? row.action}</strong>
-                          <div className="muted small" dir="ltr">{row.action}</div>
+                          <strong>{AUDIT_ACTION_AR[row.action] ?? 'إجراء آخر'}</strong>
+                          <details className="muted small"><summary>رمز الإجراء</summary><code dir="ltr">{row.action}</code></details>
                         </td>
                         <td>
-                          <strong>{AUDIT_ENTITY_AR[row.entity] ?? row.entity}</strong>
-                          <div className="muted small" dir="ltr">{row.entity}</div>
+                          <strong>{AUDIT_ENTITY_AR[row.entity] ?? 'سجل آخر'}</strong>
+                          <details className="muted small"><summary>رمز السجل</summary><code dir="ltr">{row.entity}</code></details>
                         </td>
-                        <td dir="ltr" className="small">
-                          {row.entityId ? row.entityId.slice(0, 12) : '—'}
+                        <td className="small">
+                          {row.entityId ? <details><summary>عرض المرجع</summary><code dir="ltr">{row.entityId}</code></details> : '—'}
                         </td>
                         <td dir="ltr" className="small">
                           {row.actorLabel ?? (row.actorUserId ? row.actorUserId.slice(0, 8) : '—')}
@@ -267,7 +282,8 @@ export default function AuditPage() {
               </table>
             </div>
           </>
-        ))}
+        )}
+      </ContentPanel>}
     </Screen>
   );
 }
@@ -331,7 +347,7 @@ function DiffPanel({ row }: { row: AuditRow }) {
   if (changes.length === 0) {
     const raw = [row.before, row.after].filter((value) => value !== null && value !== undefined);
     if (raw.length === 0) {
-      return <p className="muted small">لا `before` ولا `after` في هذا السطر — بعض الأفعال لا تغيّر صفاً.</p>;
+      return <p className="muted small">لا توجد قيمتان للمقارنة في هذا الحدث؛ بعض الإجراءات لا تغيّر صفاً.</p>;
     }
     return (
       <pre className="code small" dir="ltr">

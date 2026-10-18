@@ -9,6 +9,8 @@ import {
   type UsageMetricState,
   type UsageSnapshot,
 } from '@erp/contracts';
+import { ContentPanel, WorkflowGuide } from '@erp/ui/page';
+import { arabicErrorText } from '@erp/web-core/error-language';
 
 import { Empty, ErrorBox, Loading, Screen } from '../../components/screen';
 import { ApiError, apiData, downloadFile } from '../../lib/api';
@@ -46,7 +48,7 @@ const STATE_LABEL: Record<UsageMetricState, string> = {
 const SOURCE_LABEL: Record<'tenant' | 'platform' | 'default', string> = {
   tenant: 'تجاوز العميل',
   platform: 'افتراض المنصة',
-  default: 'مغلّف الفهرس',
+  default: 'حد إرشادي غير مفروض',
 };
 
 function toneOf(state: UsageMetricState): 'ok' | 'warn' | 'danger' {
@@ -90,16 +92,14 @@ export default function UsagePage() {
     setExports(undefined);
     try {
       await downloadFile('/platform/usage/export.csv', 'platform-usage.csv');
-      setExports({ kind: 'ok', text: 'نُزِّل البيان — الأرقام هي نفسها المعروضة أعلاه، بترميز BOM وفواصل RFC 4180.' });
+      setExports({ kind: 'ok', text: 'نُزّل ملف استخدام العملاء للفترة المعروضة. راجع حد كل عميل قبل استخدام البيان.' });
     } catch (error) {
       setExports({
         kind: 'danger',
         text:
           error instanceof ApiError && error.isForbidden
-            ? 'التصدير يحتاج صلاحية «إدارة الفوترة» (console.billing.manage).'
-            : error instanceof Error
-              ? error.message
-              : String(error),
+            ? 'التصدير يحتاج صلاحية إدارة فوترة المنصة.'
+            : arabicErrorText(error, 'تعذّر تنزيل ملف الاستخدام. أعد المحاولة لاحقاً.'),
       });
     } finally {
       setExporting(false);
@@ -109,7 +109,7 @@ export default function UsagePage() {
   return (
     <Screen
       title="الاستخدام والحصص"
-      subtitle="ما يستهلكه كل عميل، وحدّه، ومن بلغه — ناعماً عند ٨٠٪ وصلباً عند ١٠٠٪."
+      subtitle="اعرف من اقترب من حصته ومن بلغها، ثم افتح تفاصيل المنشأة لمعرفة مصدر الحد وما إذا كان يُطبّق."
       crumbs={['المنصة', 'العملاء']}
       actions={
         <>
@@ -122,15 +122,20 @@ export default function UsagePage() {
         </>
       }
     >
+      <WorkflowGuide title="من قراءة الحصة إلى الإجراء" steps={[
+        { title: 'اقرأ التنبيه', detail: '٨٠٪ تنبيه مبكر، و١٠٠٪ حد قد يمنع إذا كان مفروضاً على المنشأة.' },
+        { title: 'افتح تفاصيل العميل', detail: 'قارن الاستهلاك بالحد ومصدره قبل تفسير أي رفض.' },
+        { title: 'قرر الإجراء', detail: 'راجع إعداد العميل أو فوترة الباقة؛ لا يغيّر هذا العرض أي حصة.' },
+      ]} />
       {exports && <p className={`alert ${exports.kind}`}>{exports.text}</p>}
 
       {grid.status === 'loading' && <Loading rows={5} />}
       {grid.status === 'error' && <ErrorBox message={grid.error} onRetry={grid.reload} />}
-      {grid.status === 'forbidden' && <Empty title="لا تملك صلاحية الوصول" detail="هذه الشاشة تحتاج console.tenants.view." />}
+      {grid.status === 'forbidden' && <Empty title="لا تملك صلاحية الوصول" detail="اطلب صلاحية الاطلاع على العملاء وحصصهم." />}
 
       {grid.status === 'success' && data && (
         <>
-          <div className="card">
+          <ContentPanel title="ملخص الاستخدام" description="المجموعات من الفترة الحالية؛ التنبيه لا يعني وحده أن العميل ممنوع من الخدمة.">
             <dl className="kv">
               <dt>الفترة</dt>
               <dd dir="ltr">
@@ -148,22 +153,23 @@ export default function UsagePage() {
               <dd>{data.totals.invoicesThisMonth.toLocaleString('ar-SA')}</dd>
             </dl>
             <p className="muted small" style={{ marginBottom: 0 }}>
-              الحدّ الذي يمنع هو ما كتبه مشغّل (تجاوز العميل أو افتراض المنصة)؛ ومغلّف الفهرس الافتراضي
-              يُعرض بوسم «مغلّف الفهرس» ولا يمنع — لو مُنع لتوقّف كل عميل قائم عند نشر الحصص.
+              الحد الذي يُطبَّق يأتي من إعداد العميل أو المنصة. أما القيمة الافتراضية المعروضة للمقارنة فهي
+              إرشادية ولا تمنع العميل وحدها؛ افتح التفاصيل لمعرفة مصدر كل حد.
             </p>
-          </div>
+          </ContentPanel>
 
-          <section className="card">
+          <ContentPanel title={`المنشآت (${rows.length})`} description="ترتب الخدمة الصفوف حسب شدة الحالة؛ اضغط «التفصيل» لمعرفة مصدر حد المنشأة.">
             <div className="section-title">
-              <h2>الشبكة — عميلٌ في كل صفّ</h2>
+              <label className="field">البحث في المنشآت
               <input
                 className="input"
                 style={{ maxWidth: 240 }}
                 placeholder="ابحث باسم العميل أو رمزه"
                 value={search}
                 onChange={(event) => setSearch(event.target.value)}
-              />
+              /></label>
             </div>
+            {rows.length > 0 && <p className="muted small">على الهاتف، اسحب الجدول أفقياً لرؤية المقاييس والتفصيل.</p>}
             {rows.length === 0 ? (
               <Empty title="لا عميل مطابق" detail="جرّب جزءاً من الاسم أو الرمز." />
             ) : (
@@ -201,7 +207,7 @@ export default function UsagePage() {
                           </span>
                           {row.softCount + row.hardCount > 0 && (
                             <div className="muted small">
-                              {row.hardCount} صلب · {row.softCount} ناعم
+                              {row.hardCount} بلغ الحد · {row.softCount} تنبيه مبكر
                             </div>
                           )}
                         </td>
@@ -220,10 +226,10 @@ export default function UsagePage() {
                 </table>
               </div>
             )}
-          </section>
+          </ContentPanel>
 
           {selected && (
-            <section className="card">
+            <ContentPanel>
               {detail.status === 'loading' && <Loading rows={3} />}
               {detail.status === 'error' && <ErrorBox message={detail.error} onRetry={detail.reload} />}
               {detail.data && (
@@ -291,7 +297,7 @@ export default function UsagePage() {
                       </p>
                     ))}
 
-                  <h3 style={{ marginTop: 16 }}>استدعاءات الـAPI — آخر ٣٠ يوماً</h3>
+                  <h3 style={{ marginTop: 16 }}>طلبات الخدمة — آخر ٣٠ يوماً</h3>
                   <div className="day-bars" dir="ltr">
                     {detail.data.apiCallsPerDay.map((day) => {
                       const max = Math.max(1, ...detail.data!.apiCallsPerDay.map((entry) => entry.count));
@@ -311,7 +317,7 @@ export default function UsagePage() {
                   </p>
                 </>
               )}
-            </section>
+            </ContentPanel>
           )}
         </>
       )}
