@@ -1,6 +1,8 @@
 'use client';
 
 import { useState } from 'react';
+import { ContentPanel, TableViewport, WorkflowGuide } from '@erp/ui/page';
+import { arabicErrorText } from '@erp/web-core/error-language';
 import {
   emailEvents,
   emailEventDefinition,
@@ -57,7 +59,10 @@ const REASON_LABEL: Record<(typeof emailSuppressionReasons)[number], string> = {
   manual: 'يدويّ',
 };
 
-const LOCALE_LABEL: Record<EmailLocale, string> = { ar: 'العربية', en: 'English' };
+const LOCALE_LABEL: Record<EmailLocale, string> = { ar: 'العربية', en: 'الإنجليزية' };
+const PROVIDER_LABEL: Record<EmailSettings['provider'], string> = {
+  console: 'سجل النظام فقط', smtp: 'خادم البريد', resend: 'خدمة Resend', http: 'بوابة إرسال مخصّصة',
+};
 
 function dateTime(value: string | null | undefined): string {
   return value ? new Date(value).toLocaleString('ar-SA') : '—';
@@ -71,9 +76,14 @@ export default function EmailPage() {
   return (
     <Screen
       title="البريد"
-      subtitle="خدمة البريد: القوالب لكل حدث، وسجلّ الرسائل، والمُرسِل، وقائمة الحجر. لا يُرسل هذا الجزء بريداً حقيقياً إلا من زرّ الاختبار — وكل اختبارٍ يُوسَم ولا يُحتسب على العميل."
+      subtitle="راجع محتوى الرسائل ومسار تسليمها، ثم حرّر إعدادات المُرسِل أو قائمة الحجر بقرار واضح. أزرار الاختبار قد ترسل بريداً فعلياً إلى العنوان المحدد."
       crumbs={['المنصة', 'التشغيل']}
     >
+      <WorkflowGuide title="مسار مراجعة البريد" steps={[
+        { title: 'راجع المحتوى', detail: 'اختر الحدث واللغة والنطاق، وتحقق من النص قبل حفظه.' },
+        { title: 'افحص التسليم', detail: 'اقرأ سجل الرسائل وحالة العنوان قبل أي إعادة محاولة.' },
+        { title: 'قرّر الإرسال', detail: 'احفظ إعدادات المُرسِل أو راجع أثر الحجر؛ الاختبار يرسل إلى عنوان حقيقي.' },
+      ]} />
       <Tabs<TabId>
         value={tab}
         onChange={setTab}
@@ -105,6 +115,7 @@ function TemplatesTab() {
   const [probeTo, setProbeTo] = useState('');
   const [notice, setNotice] = useState<{ kind: 'ok' | 'warn' | 'danger'; text: string } | undefined>();
   const [busy, setBusy] = useState(false);
+  const templateChanged = Boolean(editing && (subject !== editing.subject || body !== editing.body));
 
   const tenants = useQuery<Array<{ id: string; code: string; name: string }>>(
     () => apiData<Array<{ id: string; code: string; name: string }>>('/platform/tenants?limit=100'),
@@ -122,11 +133,13 @@ function TemplatesTab() {
     setSubject(template.subject);
     setBody(template.body);
     setReason('');
+    setProbeTo('');
     setNotice(undefined);
   }
 
   async function save() {
-    if (!editing) return;
+    if (!editing || busy || !templateChanged || reason.trim().length < 3 ||
+      !window.confirm(`حفظ نص «${editing.labelAr}» (${LOCALE_LABEL[editing.locale]}) ${tenantId ? 'للعميل المختار' : 'على مستوى المنصة'}؟ قد يُستخدم في رسائل لاحقة. السبب: ${reason.trim()}.`)) return;
     setBusy(true);
     setNotice(undefined);
     try {
@@ -162,7 +175,8 @@ function TemplatesTab() {
   }
 
   async function sendTest() {
-    if (!editing?.id) return;
+    if (!editing?.id || busy || templateChanged || !probeTo.includes('@') ||
+      !window.confirm(`إرسال رسالة اختبار فعلية إلى «${probeTo.trim()}» باستخدام النص المحفوظ لحدث «${editing.labelAr}»؟`)) return;
     setBusy(true);
     setNotice(undefined);
     try {
@@ -190,7 +204,7 @@ function TemplatesTab() {
   }
 
   async function clearOverride(template: EmailTemplate) {
-    if (!template.id) return;
+    if (!template.id || busy || !window.confirm(`حذف تجاوز نص «${template.labelAr}» للعميل المختار؟ سيعود النص المعتمد إلى قالب المنصة.`)) return;
     setBusy(true);
     try {
       await apiFetch(`/platform/email/templates/${template.id}`, { method: 'DELETE' });
@@ -206,11 +220,11 @@ function TemplatesTab() {
 
   return (
     <div className="grid">
-      <div className="card tight">
+      <ContentPanel className="card" title="تحديد نص الرسالة" description="المرشحات تغيّر عرض القوالب فقط؛ التحرير والحفظ عمليتان منفصلتان.">
         <div className="row">
           <label>
             الحدث
-            <select value={event} onChange={(change) => setEvent(change.target.value as EmailEvent | '')}>
+            <select value={event} onChange={(change) => { setEvent(change.target.value as EmailEvent | ''); setEditing(null); }}>
               <option value="">كل الأحداث ({emailEvents.length})</option>
               {emailEvents.map((key) => (
                 <option key={key} value={key}>
@@ -221,7 +235,7 @@ function TemplatesTab() {
           </label>
           <label>
             اللغة
-            <select value={locale} onChange={(change) => setLocale(change.target.value as EmailLocale)}>
+            <select value={locale} onChange={(change) => { setLocale(change.target.value as EmailLocale); setEditing(null); }}>
               {emailLocales.map((value) => (
                 <option key={value} value={value}>
                   {LOCALE_LABEL[value]}
@@ -231,7 +245,7 @@ function TemplatesTab() {
           </label>
           <label>
             العميل (لتجاوزٍ بعينه)
-            <select value={tenantId} onChange={(change) => setTenantId(change.target.value)}>
+            <select value={tenantId} onChange={(change) => { setTenantId(change.target.value); setEditing(null); }}>
               <option value="">قالب المنصة</option>
               {(tenants.data ?? []).map((tenant) => (
                 <option key={tenant.id} value={tenant.id}>
@@ -244,11 +258,8 @@ function TemplatesTab() {
             تحديث
           </button>
         </div>
-        <p className="muted">
-          التجاوز نصٌّ لا كود: العميل يكتب نصّه، والحدث ومتغيّراته من الفهرس في الكود. و«متغيّرات ناقصة» تعني
-          متغيّراً معلناً للحدث لم يستعمله النصّ — تحذيرٌ لا خطأ.
-        </p>
-      </div>
+        <p className="muted">القالب الخاص بالعميل يحل محل نص المنصة لهذا الحدث واللغة فقط. «متغيرات ناقصة» تنبيه إلى حقول متاحة لم تُستخدم في النص.</p>
+      </ContentPanel>
 
       {notice && <p className={`alert ${notice.kind}`}>{notice.text}</p>}
 
@@ -259,8 +270,9 @@ function TemplatesTab() {
       ) : templates.status === 'error' ? (
         <ErrorBox message={templates.error} onRetry={templates.reload} />
       ) : (
-        <div className="card">
-          <table className="table">
+        <ContentPanel title="القوالب المتاحة" description="افتح نصاً للمراجعة؛ لا تُرسل أي رسالة بمجرد فتحه.">
+          <TableViewport label="جدول قوالب البريد">
+          <table className="table" style={{ minWidth: 780 }}>
             <thead>
               <tr>
                 <th>الحدث</th>
@@ -310,15 +322,13 @@ function TemplatesTab() {
               ))}
             </tbody>
           </table>
+          </TableViewport>
           {(templates.data?.data ?? []).length === 0 && <Empty title="لا قوالب بهذا المرشّح" />}
-        </div>
+        </ContentPanel>
       )}
 
       {editing && (
-        <div className="card">
-          <h2 style={{ marginTop: 0 }}>
-            {editing.labelAr} — {LOCALE_LABEL[editing.locale]}
-          </h2>
+        <ContentPanel className="card" title={`${editing.labelAr} — ${LOCALE_LABEL[editing.locale]}`} description={editing.id ? 'حرّر النص ثم احفظه قبل فحصه بإرسال رسالة.' : 'هذا نص أولي؛ أنشئه أولاً قبل إرسال اختبار.'}>
           <p className="muted">
             المتغيّرات المعلَنة: {editing.variables.map((name) => `{{${name}}}`).join(' · ') || 'لا شيء'}
           </p>
@@ -335,7 +345,7 @@ function TemplatesTab() {
             <input value={reason} onChange={(change) => setReason(change.target.value)} />
           </label>
           <div className="row">
-            <button className="btn" type="button" disabled={busy || reason.trim().length < 3} onClick={save}>
+            <button className="btn" type="button" disabled={busy || !templateChanged || reason.trim().length < 3} onClick={save}>
               {editing.id ? 'حفظ النصّ' : 'إنشاء تجاوزٍ بهذا النصّ'}
             </button>
             <label>
@@ -349,7 +359,7 @@ function TemplatesTab() {
             <button
               className="btn"
               type="button"
-              disabled={busy || !editing.id || !probeTo.includes('@')}
+              disabled={busy || !editing.id || templateChanged || !probeTo.includes('@')}
               onClick={sendTest}
             >
               إرسال اختبار
@@ -358,11 +368,8 @@ function TemplatesTab() {
               إغلاق
             </button>
           </div>
-          <p className="muted">
-            متغيّرٌ خارج فهرس الحدث يُرفض عند الحفظ (400) — والاختبار يملأ المتغيّرات بقيمٍ تجريبية ليخرج
-            النصّ كاملاً.
-          </p>
-        </div>
+          <p className="muted">الإرسال التجريبي يستخدم النسخة المحفوظة فقط وبريداً فعلياً للعنوان المحدد؛ إن كان النص معدلاً وغير محفوظ فلن يتاح الإرسال. تحقّق من المتغيرات قبل الحفظ.</p>
+        </ContentPanel>
       )}
     </div>
   );
@@ -397,10 +404,12 @@ function MessagesTab() {
 
   async function retry(row: EmailMessage) {
     const reason = window.prompt('سبب إعادة المحاولة؟', 'بطلبٍ من الدعم');
-    if (!reason || reason.trim().length < 3) {
+    if (reason === null) return;
+    if (reason.trim().length < 3) {
       setNotice({ kind: 'danger', text: 'إعادة المحاولة تحتاج سبباً مكتوباً (٣ أحرف على الأقل).' });
       return;
     }
+    if (busy || !window.confirm(`إعادة محاولة إرسال الرسالة إلى «${row.toEmail}»؟ قد تصل الرسالة إلى هذا العنوان. السبب: ${reason.trim()}.`)) return;
     setBusy(true);
     try {
       const updated = await apiData<EmailMessage>(`/platform/email/messages/${row.id}/retry`, {
@@ -424,7 +433,7 @@ function MessagesTab() {
 
   return (
     <div className="grid">
-      <div className="card tight">
+      <ContentPanel className="card" title="تصفية سجل التسليم" description="اختر العميل أو الحدث أو الحالة، ثم راجع النتيجة قبل إعادة أي محاولة.">
         <div className="row">
           <label>
             العميل
@@ -471,7 +480,7 @@ function MessagesTab() {
           الحالات:{' '}
           {emailMessageStatuses.map((value) => `${STATUS_LABEL[value]} ${counts[value] ?? 0}`).join(' · ')}
         </p>
-      </div>
+      </ContentPanel>
 
       {notice && <p className={`alert ${notice.kind}`}>{notice.text}</p>}
 
@@ -482,8 +491,9 @@ function MessagesTab() {
       ) : messages.status === 'error' ? (
         <ErrorBox message={messages.error} onRetry={messages.reload} />
       ) : (
-        <div className="card">
-          <table className="table">
+        <ContentPanel title="الرسائل المسجّلة" description="قد تعيد المحاولة إرسال البريد إلى العنوان الظاهر؛ راجع حالة الحجر أولاً.">
+          <TableViewport label="جدول سجل البريد">
+          <table className="table" style={{ minWidth: 940 }}>
             <thead>
               <tr>
                 <th>الوقت</th>
@@ -541,10 +551,11 @@ function MessagesTab() {
               })}
             </tbody>
           </table>
+          </TableViewport>
           {rows.length === 0 && (
-            <Empty title="لا رسائل بهذه المرشّحات" detail="جرّب توسيع الفترة أو إزالة المرشّح." />
+            <Empty title="لا رسائل بهذه المرشّحات" detail="جرّب إزالة مرشّح الحالة أو الحدث أو البحث." />
           )}
-        </div>
+        </ContentPanel>
       )}
     </div>
   );
@@ -564,11 +575,14 @@ function SettingsTab() {
 
   const current = settings.data;
   const value = <K extends keyof EmailSettings>(key: K): EmailSettings[K] | undefined =>
-    draft[key] ?? current?.[key];
+    Object.prototype.hasOwnProperty.call(draft, key) ? draft[key] : current?.[key];
 
   const selectedProvider = value('provider') ?? 'console';
+  const hasChanges = Object.keys(draft).length > 0 || apiKeyDraft !== undefined || smtpPasswordDraft !== undefined;
+  const reasonValid = !reason.trim() || reason.trim().length >= 3;
 
   async function save() {
+    if (busy || !hasChanges || !reasonValid || !window.confirm(`حفظ إعدادات إرسال البريد للمُنصّة بالمزوّد «${PROVIDER_LABEL[selectedProvider]}»؟ قد تؤثر التغييرات في الرسائل التالية.`)) return;
     setBusy(true);
     setNotice(undefined);
     try {
@@ -600,7 +614,7 @@ function SettingsTab() {
       setReason('');
       setNotice({
         kind: 'ok',
-        text: `حُفظت الإعدادات — المزوّد الفعّال «${updated.provider}»، والمُرسِل ${updated.fromName} <${updated.fromEmail}>.`,
+        text: `حُفظت الإعدادات — المزوّد الفعّال «${PROVIDER_LABEL[updated.provider]}»، والمُرسِل ${updated.fromName} <${updated.fromEmail}>.`,
       });
       settings.reload();
     } catch (error) {
@@ -611,6 +625,7 @@ function SettingsTab() {
   }
 
   async function sendTest() {
+    if (busy || hasChanges || !probeTo.includes('@') || !window.confirm(`إرسال فحص بريد فعلي إلى «${probeTo.trim()}» باستخدام الإعدادات المحفوظة، وليس أي مسودة مفتوحة؟`)) return;
     setBusy(true);
     try {
       const result = await apiData<EmailTestResult>('/platform/email/settings/test', {
@@ -637,8 +652,7 @@ function SettingsTab() {
 
   return (
     <div className="grid">
-      <div className="card">
-        <h2 style={{ marginTop: 0 }}>المُرسِل والمزوّد</h2>
+      <ContentPanel className="card" title="المُرسِل والمزوّد" description="إعدادات الإرسال الحالية؛ أي تغيير هنا مسودة حتى الحفظ، والفحص يستخدم المحفوظ فقط.">
         <div className="row">
           <label>
             المزوّد
@@ -648,10 +662,10 @@ function SettingsTab() {
                 setDraft({ ...draft, provider: change.target.value as EmailSettings['provider'] })
               }
             >
-              <option value="resend">resend — خدمة Resend API السحابية</option>
-              <option value="smtp">smtp — خادم SMTP قياسي (TLS / STARTTLS)</option>
-              <option value="http">http — بوابة HTTP Webhook / API مخصّصة</option>
-              <option value="console">console — يطبع في السجلّ (محلي)</option>
+              <option value="resend">Resend — خدمة بريد سحابية</option>
+              <option value="smtp">خادم بريد SMTP</option>
+              <option value="http">بوابة إرسال مخصّصة</option>
+              <option value="console">سجل النظام فقط — دون إرسال بريد</option>
             </select>
           </label>
           <label>
@@ -734,7 +748,7 @@ function SettingsTab() {
                       ? 're_123456789...'
                       : 'Bearer token...'
                 }
-                onChange={(change) => setApiKeyDraft(change.target.value)}
+                onChange={(change) => setApiKeyDraft(change.target.value || undefined)}
               />
             </label>
             <label style={{ flex: 2 }}>
@@ -796,15 +810,15 @@ function SettingsTab() {
                 dir="ltr"
                 value={smtpPasswordDraft ?? ''}
                 placeholder={current?.smtpConfigured ? '•••••••• (محفوظة)' : 'كلمة المرور'}
-                onChange={(change) => setSmtpPasswordDraft(change.target.value)}
+                onChange={(change) => setSmtpPasswordDraft(change.target.value || undefined)}
               />
             </label>
           </div>
         )}
 
         <div className="row">
-          <button className="btn" type="button" disabled={busy} onClick={save}>
-            حفظ
+          <button className="btn" type="button" disabled={busy || !hasChanges || !reasonValid} onClick={save}>
+            حفظ التغييرات
           </button>
           <label>
             فحص الاتصال إلى
@@ -814,27 +828,28 @@ function SettingsTab() {
               onChange={(change) => setProbeTo(change.target.value)}
             />
           </label>
-          <button className="btn" type="button" disabled={busy || !probeTo.includes('@')} onClick={sendTest}>
+          <button className="btn" type="button" disabled={busy || hasChanges || !probeTo.includes('@')} onClick={sendTest}>
             إرسال فحص
           </button>
-          <button className="btn" type="button" onClick={settings.reload}>
-            استرجاع
+          <button className="btn" type="button" onClick={() => {
+            if (hasChanges && !window.confirm('تجاهل تغييرات إعدادات البريد غير المحفوظة واستعادة القيم الحالية؟')) return;
+            setDraft({});
+            setApiKeyDraft(undefined);
+            setSmtpPasswordDraft(undefined);
+            setReason('');
+            settings.reload();
+          }}>
+            تجاهل المسودة وتحديث القراءة
           </button>
         </div>
-        <p className="muted">
-          اعتمادات SMTP (المستخدم وكلمة المرور) تبقى في بيئة الخادم ولا تُخزَّن في جدول — يُخزَّن الاختيار
-          والهوية والسقفان فقط. آخر تعديل: {dateTime(current?.updatedAt ?? null)}.
-          {current?.smtpHost ? ` مُضيف SMTP المُهيّأ: ${current.smtpHost}.` : ' لا مُضيف SMTP في البيئة.'}
-          {current?.smtpConfigured
-            ? ''
-            : ' ولا اعتماد (SMTP_USER/SMTP_PASS) — الإرسال الفعلي عبر smtp سيفشل.'}
-        </p>
-      </div>
+        {hasChanges && <p className="alert warn" role="status">تغييرات غير محفوظة: فحص الاتصال معطّل حتى تحفظ أو تتجاهل المسودة. {reasonValid ? '' : 'أكمل سبب التعديل إلى ثلاثة أحرف على الأقل أو امسحه.'}</p>}
+        <p className="muted">آخر تعديل: {dateTime(current?.updatedAt ?? null)}. {current?.smtpConfigured ? 'اعتمادات خادم البريد مهيأة.' : 'اعتمادات خادم البريد غير مهيأة؛ قد يتعذر الإرسال عبره.'} لا تظهر الأسرار المحفوظة في هذه الصفحة.</p>
+      </ContentPanel>
 
       {notice && <p className={`alert ${notice.kind}`}>{notice.text}</p>}
 
-      <div className="card">
-        <h2 style={{ marginTop: 0 }}>التسليم: SPF وDKIM وDMARC</h2>
+      <ContentPanel title="التحقق من النطاق" description="إرشادات تهيئة التسليم؛ لا تعني أن سجلات النطاق قد فُحصت.">
+        <h3>سجلات SPF وDKIM وDMARC</h3>
         <ul className="muted">
           <li>
             <strong>SPF</strong> — سجلّ TXT على النطاق يسمح بخوادمنا:{' '}
@@ -850,10 +865,9 @@ function SettingsTab() {
           </li>
         </ul>
         <p className="alert warn">
-          لا فحص DNS آليّاً بعد: الشاشة تشرح ما يجب نشره ولا تدّعي أنه نُشر. حين يُضاف مزوّد ويب
-          (SendGrid/Resend/SES) خلف المهايئ نفسه، يصير التحقّق من النطاق خطوةً في هذا التبويب.
+          لا تتحقق الصفحة من سجلات النطاق آلياً. راجع إعدادات المزود ونطاق الإرسال قبل الاعتماد على التسليم.
         </p>
-      </div>
+      </ContentPanel>
     </div>
   );
 }
@@ -873,6 +887,7 @@ function SuppressionsTab() {
   );
 
   async function add() {
+    if (busy || !email.trim().includes('@') || !window.confirm(`حجر العنوان «${email.trim()}» على مستوى جميع العملاء؟ سيتوقف إرسال البريد إليه من المنصة.`)) return;
     setBusy(true);
     setNotice(undefined);
     try {
@@ -892,6 +907,7 @@ function SuppressionsTab() {
   }
 
   async function remove(row: EmailSuppression) {
+    if (busy || !window.confirm(`رفع الحجر عن «${row.email}» ${row.tenantId ? 'لهذا العميل' : 'لجميع العملاء'}؟ قد تُرسل إليه رسائل جديدة بعد ذلك.`)) return;
     setBusy(true);
     try {
       await apiFetch(`/platform/email/suppressions/${row.id}`, { method: 'DELETE' });
@@ -906,7 +922,7 @@ function SuppressionsTab() {
 
   return (
     <div className="grid">
-      <div className="card tight">
+      <ContentPanel className="card" title="حجر عنوان" description="هذا النموذج يحظر العنوان على مستوى جميع العملاء؛ لا يوجد اختيار منشأة عند الإضافة هنا.">
         <div className="row">
           <label>
             العنوان
@@ -939,11 +955,8 @@ function SuppressionsTab() {
             إضافة حجر
           </button>
         </div>
-        <p className="muted">
-          الحجر بلا نطاق يمنع كل العملاء، وبعميلٍ يمنعه وحده. وسبب «ارتداد» أو «شكوى» يُوسم آخر رسالةٍ أُرسلت
-          لذلك العنوان بـ«ارتدّت» — لأن الحجر بلا أثرٍ في السجلّ يترك السؤال معلّقاً.
-        </p>
-      </div>
+        <p className="muted">قد تظهر أدناه قيود خاصة بعميل أو عامة، لكن إنشاء قيد من هذا النموذج عام. راجع العنوان والسبب قبل التأكيد؛ الحجر قد يمنع إرسال رسائل مهمة.</p>
+      </ContentPanel>
 
       {notice && <p className={`alert ${notice.kind}`}>{notice.text}</p>}
 
@@ -954,8 +967,9 @@ function SuppressionsTab() {
       ) : list.status === 'error' ? (
         <ErrorBox message={list.error} onRetry={list.reload} />
       ) : (
-        <div className="card">
-          <table className="table">
+        <ContentPanel title="العناوين المحجوبة" description="راجع نطاق كل صف قبل رفع الحجر؛ لا يعني رفعه إعادة إرسال الرسائل السابقة.">
+          <TableViewport label="جدول عناوين الحجر">
+          <table className="table" style={{ minWidth: 720 }}>
             <thead>
               <tr>
                 <th>العنوان</th>
@@ -983,10 +997,11 @@ function SuppressionsTab() {
               ))}
             </tbody>
           </table>
+          </TableViewport>
           {(list.data?.data ?? []).length === 0 && (
             <Empty title="لا عناوين محجوبة" detail="الحجر يمنع الإرسال قبل الطابور، فلا تُستهلك محاولة." />
           )}
-        </div>
+        </ContentPanel>
       )}
     </div>
   );
@@ -1024,8 +1039,8 @@ function sampleVariables(event: EmailEvent): Record<string, string> {
 
 function apiMessage(error: unknown): string {
   if (error instanceof ApiError) {
-    if (error.isForbidden) return 'تحتاج صلاحية «إدارة البريد» (console.email.manage) لهذا الإجراء.';
+    if (error.isForbidden) return 'تحتاج صلاحية إدارة البريد لهذا الإجراء.';
     return error.message;
   }
-  return error instanceof Error ? error.message : String(error);
+  return arabicErrorText(error);
 }
