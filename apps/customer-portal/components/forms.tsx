@@ -31,7 +31,7 @@ export function LoginForm() {
   }
 
   return (
-    <form className="form" onSubmit={submit} noValidate>
+    <form className="form" method="post" onSubmit={submit} noValidate>
       <FormField label="رمز الشركة (المورد)">
         <input
           className="input"
@@ -117,7 +117,7 @@ export function ChangePasswordForm() {
     );
 
   return (
-    <form className="form" onSubmit={submit} noValidate>
+    <form className="form" method="post" onSubmit={submit} noValidate>
       <FormField label="كلمة المرور الحالية أو المؤقتة">
         <input className="input" name="current" type="password" autoComplete="current-password" required />
       </FormField>

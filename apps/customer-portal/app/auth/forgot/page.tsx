@@ -81,7 +81,7 @@ export default function ForgotPage() {
           </p>
         ) : null}
 
-        <form className="form" onSubmit={submit}>
+        <form className="form" method="post" onSubmit={submit}>
           {step === 'request' ? (
             <>
               <FormField label="رمز المنشأة (اختياري)">

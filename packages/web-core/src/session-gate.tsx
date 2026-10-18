@@ -75,10 +75,19 @@ export function SessionGate(props: SessionGateProps) {
 
   if (status === 'loading') return <>{boot ?? <BootCard />}</>;
 
-  if (status === 'anonymous') return <>{login({ initialError: error })}</>;
+  // Render slots as React components, never invoke them as functions: login/shell
+  // use hooks and swapping anonymous → authenticated must not change this gate's hook list.
+  if (status === 'anonymous') {
+    const Login = login;
+    return <Login initialError={error} />;
+  }
 
   // AUD-13 — قشرة الموظف على مساره وحده: `/marina` و`/migration` ليستا تطبيق الموظف.
-  if (employeeShell && policy?.isEmployeeSurface(pathname)) return <>{employeeShell({ children })}</>;
+  if (employeeShell && policy?.isEmployeeSurface(pathname)) {
+    const EmployeeShell = employeeShell;
+    return <EmployeeShell>{children}</EmployeeShell>;
+  }
 
-  return <>{shell({ children })}</>;
+  const Shell = shell;
+  return <Shell>{children}</Shell>;
 }
