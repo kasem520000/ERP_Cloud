@@ -11,6 +11,8 @@ import {
   paymentGatewaysText,
   planFamily,
   plansForInterval,
+  resolvePlanInterval,
+  fetchPublicPlans,
   pricingFaq,
   savingsFor,
   storageText,
@@ -89,6 +91,28 @@ describe('marketing pricing table (P-M3)', () => {
     const plans = [starter, pro, proYearly];
     expect(plansForInterval(plans, 'month').map((entry) => entry.code)).toEqual(['starter-monthly', 'pro-monthly']);
     expect(plansForInterval(plans, 'year').map((entry) => entry.code)).toEqual(['pro-yearly']);
+  });
+
+  it('لا يعرض دورة بلا باقات عندما تكون الدورة الأخرى منشورة', () => {
+    expect(resolvePlanInterval([proYearly])).toBe('year');
+    expect(resolvePlanInterval([proYearly], 'year')).toBe('year');
+    expect(resolvePlanInterval([starter], 'year')).toBe('month');
+    expect(resolvePlanInterval([starter, proYearly], 'year')).toBe('year');
+    expect(resolvePlanInterval([starter, proYearly], 'unknown')).toBe('month');
+  });
+
+  it('يميز فشل قراءة الأسعار عن رد سليم لا يضم باقات', async () => {
+    const original = globalThis.fetch;
+    try {
+      globalThis.fetch = async () => new Response(null, { status: 503 });
+      expect((await fetchPublicPlans()).unavailable).toBe(true);
+      globalThis.fetch = async () => new Response(JSON.stringify({ data: [], meta: { vatRatePercent: 15 } }), { status: 200 });
+      expect(await fetchPublicPlans()).toMatchObject({ plans: [], unavailable: false, vatRatePercent: 15 });
+      globalThis.fetch = async () => new Response(JSON.stringify({ data: null }), { status: 200 });
+      expect((await fetchPublicPlans()).unavailable).toBe(true);
+    } finally {
+      globalThis.fetch = original;
+    }
   });
 
   it('يعرف الباقة الشهرية ونظيرها السنوي بالرمز لا بالفهرسة', () => {

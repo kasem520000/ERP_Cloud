@@ -47,19 +47,17 @@ export type PublicPlan = {
 
 export type PricingData = {
   plans: PublicPlan[];
+  /** false for a successful empty response; true when the source cannot be read. */
+  unavailable?: boolean;
   /** نسبة ضريبة القيمة المضافة من إعدادات المنصة — والاحتياطي 15٪ (النسبة النظامية). */
   vatRatePercent: number;
 };
 
-const fallbackPricing: PricingData = { plans: [], vatRatePercent: 15 };
-
-/** زمن إعادة التحقّق كما في `lib/content.ts`: صفر في التطوير كي يظهر تعديل السعر فوراً. */
-
+const fallbackPricing: PricingData = { plans: [], vatRatePercent: 15, unavailable: true };
 
 /**
- * الباقات العامة — وإن لم يقم الـAPI أو لم تكن هناك باقة، تُعاد قائمةٌ فارغة والصفحة تقول
- * «لا باقات معلنة الآن» بدل أن تسقط: موقعٌ يعرض 500 لأن الخادم تعطّل أسوأ من موقعٍ يقول
- * الحقيقة.
+ * الباقات العامة: نجاح الردّ الفارغ مختلف عن تعذر القراءة. عند فشل المصدر
+ * تظل الصفحة متاحة لكن لا تزعم أن المنصة لم تنشر باقات.
  */
 export async function fetchPublicPlans(): Promise<PricingData> {
   try {
@@ -72,9 +70,10 @@ export async function fetchPublicPlans(): Promise<PricingData> {
       data?: PublicPlan[];
       meta?: { vatRatePercent?: number };
     };
-    const plans = Array.isArray(payload.data) ? payload.data : [];
+    if (!Array.isArray(payload.data)) return fallbackPricing;
+    const plans = payload.data;
     const vatRatePercent = Number(payload.meta?.vatRatePercent ?? fallbackPricing.vatRatePercent);
-    return { plans, vatRatePercent: Number.isFinite(vatRatePercent) ? vatRatePercent : 15 };
+    return { plans, vatRatePercent: Number.isFinite(vatRatePercent) ? vatRatePercent : 15, unavailable: false };
   } catch {
     return fallbackPricing;
   }
@@ -224,6 +223,15 @@ export function cellText(
 
 export function plansForInterval(plans: readonly PublicPlan[], interval: PlanInterval): PublicPlan[] {
   return plans.filter((plan) => plan.interval === interval);
+}
+
+/** Prefer the requested billing period, but never render an empty period when the other is published. */
+export function resolvePlanInterval(plans: readonly PublicPlan[], requested?: string): PlanInterval {
+  const monthAvailable = plans.some((plan) => plan.interval === 'month');
+  const yearAvailable = plans.some((plan) => plan.interval === 'year');
+  if (requested === 'year' && yearAvailable) return 'year';
+  if (requested === 'month' && monthAvailable) return 'month';
+  return monthAvailable ? 'month' : yearAvailable ? 'year' : 'month';
 }
 
 /** `pro-monthly` و`pro-yearly` باقةٌ واحدة بدورتين — والرمز هو ما يربطهما. */

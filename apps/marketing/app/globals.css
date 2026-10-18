@@ -1991,3 +1991,51 @@ p {
     display: none;
   }
 }
+
+/* Pricing decisions: a public, readable progression rather than an ERP operator form. */
+.pricing-journey {
+  padding: clamp(18px, 3vw, 28px);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+.pricing-journey h2 { font-size: clamp(18px, 2vw, 22px); margin-block-end: 12px; }
+.pricing-journey ol {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  padding: 0;
+  margin: 0;
+  list-style: none;
+  counter-reset: pricing-step;
+}
+.pricing-journey li {
+  counter-increment: pricing-step;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 14px;
+  font-weight: 700;
+}
+.pricing-journey li::before {
+  content: counter(pricing-step);
+  flex: none;
+  display: inline-grid;
+  place-items: center;
+  inline-size: 28px;
+  block-size: 28px;
+  border-radius: 50%;
+  background: var(--brand-soft);
+  color: var(--brand);
+}
+.plan-saving {
+  color: var(--ok);
+  font-weight: 800;
+  font-size: 14px;
+}
+@media (max-width: 640px) {
+  .pricing-journey ol { grid-template-columns: 1fr; }
+}
+.pricing-page { grid-template-columns: minmax(0, 1fr); }
+.pricing-page > * { min-width: 0; }
+.pricing-page .source-line { font-family: inherit; font-size: 14px; }

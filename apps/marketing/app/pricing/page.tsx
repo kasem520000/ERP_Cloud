@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 import { JsonLd } from '../../components/site/pieces';
 import { PricingView } from '../../components/site/pricing';
 import { staticMetadata, siteInfo } from '../../lib/meta';
-import { fetchPublicPlans, offersJsonLd, pricingFaq } from '../../lib/pricing';
+import { fetchPublicPlans, offersJsonLd, pricingFaq, resolvePlanInterval } from '../../lib/pricing';
 import { faqJsonLd, SITE_PATHS } from '../../lib/site';
 
 /**
@@ -34,23 +34,23 @@ export default async function PricingPage({
   searchParams: Promise<{ interval?: string }>;
 }) {
   const [data, site, params] = await Promise.all([fetchPublicPlans(), siteInfo(), searchParams]);
-  // `/pricing` شهري، و`/pricing?interval=year` سنوي. وقيمةٌ غريبة تعود إلى الشهري بدل أن
-  // تُنتج صفحةً فارغة، وإن لم تُعلن باقةٌ شهرية فالوجه الآخر هو الافتراضي.
-  const intervals = new Set(data.plans.map((plan) => plan.interval));
-  const interval: 'month' | 'year' =
-    params.interval === 'year' && !intervals.has('month') ? 'month' : params.interval === 'year' ? 'year' : 'month';
+  const interval = resolvePlanInterval(data.plans, params.interval);
 
   return (
     <>
-      <JsonLd
-        data={offersJsonLd(data.plans, {
-          siteUrl: site.siteUrl,
-          path: SITE_PATHS.pricing,
-          brandName: site.brandName,
-          locale: 'ar',
-        })}
-      />
-      <JsonLd data={faqJsonLd(pricingFaq('ar'))} />
+      {data.unavailable || data.plans.length === 0 ? null : (
+        <>
+          <JsonLd
+            data={offersJsonLd(data.plans, {
+              siteUrl: site.siteUrl,
+              path: SITE_PATHS.pricing,
+              brandName: site.brandName,
+              locale: 'ar',
+            })}
+          />
+          <JsonLd data={faqJsonLd(pricingFaq('ar'))} />
+        </>
+      )}
       <PricingView locale="ar" data={data} interval={interval} />
     </>
   );

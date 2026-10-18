@@ -22,7 +22,6 @@ import {
   amountText,
   cellText,
   comparisonRows,
-  paymentGatewaysSource,
   plansForInterval,
   pricingFaq,
   savingsFor,
@@ -42,17 +41,20 @@ export function PricingView({
 }) {
   const monthly = plansForInterval(data.plans, 'month');
   const yearly = plansForInterval(data.plans, 'year');
+  const availablePeriods = (['month', 'year'] as const).filter((option) =>
+    option === 'month' ? monthly.length > 0 : yearly.length > 0,
+  );
   const plans = interval === 'year' ? yearly : monthly;
 
   if (data.plans.length === 0) {
     return (
-      <div className="grid">
+      <div className="grid pricing-page">
         <header className="page-head">
           <h1>{t(locale, 'pricing.title')}</h1>
           <p className="muted">{t(locale, 'pricing.subtitle')}</p>
         </header>
         <p className="empty-state" role="status">
-          {t(locale, 'pricing.empty')}
+          {t(locale, data.unavailable ? 'pricing.unavailable' : 'pricing.empty')}
         </p>
         <section className="cta-block">
           <Link className="btn primary" href="/contact" data-goal="request_demo">
@@ -64,18 +66,26 @@ export function PricingView({
   }
 
   const rows = comparisonRows(plans);
-  const yearlySaving = yearly.map((plan) => savingsFor(plan, data.plans)).find((saving) => saving?.percent != null) ?? null;
 
   return (
-    <div className="grid">
+    <div className="grid pricing-page">
       <header className="page-head">
         <h1>{t(locale, 'pricing.title')}</h1>
         <p className="muted">{t(locale, 'pricing.subtitle')}</p>
       </header>
 
+      <section className="pricing-journey" aria-label={t(locale, 'pricing.steps.title')}>
+        <h2>{t(locale, 'pricing.steps.title')}</h2>
+        <ol>
+          <li>{t(locale, 'pricing.steps.period')}</li>
+          <li>{t(locale, 'pricing.steps.rights')}</li>
+          <li>{t(locale, 'pricing.steps.tax')}</li>
+        </ol>
+      </section>
+
       {/* ── مبدّل الدورة: رابطان لا زرّان — كل وجهٍ صفحةٌ يفهرسها محرّك البحث */}
       <div className="chip-row" role="group" aria-label={t(locale, 'pricing.interval.label')}>
-        {(['month', 'year'] as const).map((option) => (
+        {availablePeriods.map((option) => (
           <Link
             key={option}
             className={option === interval ? 'chip active' : 'chip'}
@@ -85,10 +95,6 @@ export function PricingView({
             {t(locale, option === 'month' ? 'pricing.interval.month' : 'pricing.interval.year')}
           </Link>
         ))}
-        {yearlySaving?.percent ? (
-          // النصّ يُبنى في سلسلةٍ واحدة: الرقم وعلامة النسبة عقدةٌ واحدة في الواجهة وفي HTML.
-          <span className="badge ready">{`${t(locale, 'pricing.save')} ${yearlySaving.percent}%`}</span>
-        ) : null}
       </div>
 
       {/* ── بطاقات الباقات: الباقة الثانية هي «المميزة» — الوسطى إن وجدت ثلاث، والرفيعة (pro)
@@ -96,19 +102,21 @@ export function PricingView({
       <section className="plan-grid" aria-label={t(locale, 'pricing.compare.title')}>
         {plans.map((plan, index) => {
           const featured = plans.length >= 2 && index === 1;
+          const saving = plan.interval === 'year' ? savingsFor(plan, data.plans) : null;
           return (
             <article className={featured ? 'card plan-card featured' : 'card plan-card'} key={plan.id}>
               {featured ? <span className="plan-badge">{t(locale, 'pricing.featured')}</span> : null}
               <h3>{plan.name}</h3>
               <p className="plan-price">{amountText(plan.amount, plan.currency, locale)}</p>
-            <p className="muted">
-              {t(locale, plan.interval === 'year' ? 'pricing.perYear' : 'pricing.perMonth')}
-            </p>
-            {plan.interval === 'year' ? (
               <p className="muted">
-                {t(locale, 'pricing.equivalent')} {amountText(plan.monthlyAmount, plan.currency, locale)}
+                {t(locale, plan.interval === 'year' ? 'pricing.perYear' : 'pricing.perMonth')}
               </p>
-            ) : null}
+              {plan.interval === 'year' ? (
+                <p className="muted">
+                  {t(locale, 'pricing.equivalent')} {amountText(plan.monthlyAmount, plan.currency, locale)}
+                </p>
+              ) : null}
+              {saving?.percent ? <p className="plan-saving">{`${t(locale, 'pricing.save')} ${saving.percent}%`}</p> : null}
               <Link className="btn primary" href={`/onboarding?plan=${encodeURIComponent(plan.code)}`} data-goal="signup_start">
                 {t(locale, 'pricing.choose')}
               </Link>
@@ -116,6 +124,10 @@ export function PricingView({
           );
         })}
       </section>
+
+      <p className="plan-note" role="note">
+        {`${t(locale, 'pricing.note.vat')} ${data.vatRatePercent}%`}
+      </p>
 
       {/* ── جدول المقارنة: الباقة × الحقوق */}
       <section className="section">
@@ -142,7 +154,7 @@ export function PricingView({
                   {plans.map((plan) => {
                     const cell = cellText(plan, row, locale);
                     return (
-                      <td key={`${plan.id}-${row.key}`} title={cell.source ?? undefined}>
+                      <td key={`${plan.id}-${row.key}`}>
                         {cell.text}
                       </td>
                     );
@@ -152,15 +164,8 @@ export function PricingView({
             </tbody>
           </table>
         </div>
-        <p className="source-line" dir="ltr">
-          GET /public/plans · {paymentGatewaysSource}
-        </p>
+        <p className="source-line">{t(locale, 'pricing.source')}</p>
       </section>
-
-      {/* ── الضريبة: الرقم من إعدادات المنصة (`billing.tax_rate`) لا من نصٍّ هنا */}
-      <p className="plan-note" role="note">
-        {`${t(locale, 'pricing.note.vat')} ${data.vatRatePercent}%`}
-      </p>
 
       {/* ── أسئلة التسعير — أجوبتها من قواعد المنتج في هذا المستودع */}
       <section className="section">

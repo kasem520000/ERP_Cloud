@@ -44,6 +44,8 @@ describe('P-M10 — ميزانية أداء الموقع', () => {
     }
     // والسقف الافتراضي يمنع مساراً جديداً من الدخول بلا قياس.
     expect(kib['/default']).toBeGreaterThan(0);
+    // مدخل التخطيط المشترك له حد مستقل؛ لا ترفع الحد الافتراضي لجميع المسارات.
+    expect(kib['/layout']).toBeGreaterThan(0);
     // وكل سقفٍ معقول: مسارٌ بسقف ميغابايت لن يُقاس أبداً.
     expect(Object.values(kib).every((value) => value > 20 && value < 1024)).toBe(true);
   });
