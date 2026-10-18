@@ -1331,6 +1331,36 @@ a.ui-kpi-cell:hover {
   margin: -10px -12px 10px;
   padding: 10px 12px;
 }
+/*
+ * `.card-head` هو رأسُ البطاقة في مئات الشاشات القديمة: سطرٌ صغيرٌ بلون العلامة
+ * بدل شريطٍ ممتد. حين يتصدّر البطاقة يصير هو نفسُه الشريط — بالمقاس والحشو
+ * والحدّ — كي لا تختلف بطاقةٌ عن بطاقةٍ في الشاشة الواحدة.
+ */
+:where(.shell, .ui-page) .card > .card-head:first-child {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+  margin: -16px -16px 16px;
+  padding: 13px 16px;
+  border-block-end: 1px solid var(--line);
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--text);
+}
+:where(.shell, .ui-page) .card.tight > .card-head:first-child {
+  margin: -10px -12px 10px;
+  padding: 10px 12px;
+}
+/* العنوانُ داخل شريط `.card-head` يأخذ مقاسَ عنوان اللوحة لا مقاسَ النصّ المحيط. */
+:where(.shell, .ui-page) .card > .card-head:first-child :is(h2, h3) {
+  margin: 0;
+  font: inherit;
+  color: inherit;
+  letter-spacing: inherit;
+}
 :where(.shell, .ui-page) .card > h2:first-child > h2,
 :where(.shell, .ui-page) .card > h2:first-child > h3,
 :where(.shell, .ui-page) .card > .section-title:first-child > h2,
@@ -1349,13 +1379,23 @@ a.ui-kpi-cell:hover {
   font-weight: 800;
   letter-spacing: -0.01em;
 }
-:where(.shell, .ui-page) .card > h3 {
+/*
+ * عنوانُ قسمٍ داخل سطحٍ يحمل عنوانه في رأسه: البطاقةُ العتيقة واللوحةُ الجديدة
+ * تتشاركان القاعدة نفسها — عنوانٌ صغيرٌ خفيفٌ فوق كتلته، وظهورُه أولَ عنصرٍ
+ * لا يعلوه فراغٌ زائد.
+ */
+:where(.shell, .ui-page) .card > h3,
+:where(.shell, .ui-page) .ui-panel-body > h3 {
   margin-block: 16px 8px;
   font-size: 12.5px;
   font-weight: 800;
   letter-spacing: 0;
   color: var(--muted);
   text-transform: none;
+}
+:where(.shell, .ui-page) .card > h3:first-child,
+:where(.shell, .ui-page) .ui-panel-body > h3:first-child {
+  margin-block-start: 0;
 }
 /*
  * بطاقةٌ قديمة تنتهي بجدول: الجدولُ يأخذ عرض البطاقة ويشاركها نصفَ قطرها،

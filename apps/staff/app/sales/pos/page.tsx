@@ -1,5 +1,6 @@
 'use client';
 
+import { Panel } from '@erp/ui';
 import Link from 'next/link';
 import { Trash2 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
@@ -592,8 +593,7 @@ export default function PosPage() {
     >
       <div className="ui-split is-rail-wide">
         <div className="ui-split-main">
-          <div className="card">
-            <h2>الأصناف</h2>
+          <Panel title="الأصناف" hint="اختر صنفاً لإضافته إلى الفاتورة، أو امسح الباركود.">
             <div className="toolbar" style={{ marginBottom: 8 }}>
               <input
                 className="input"
@@ -669,11 +669,10 @@ export default function PosPage() {
             {visible.length === 0 && (
               <p className="muted">لا توجد أصناف مطابقة. أضف المواد من «المستودعات دليل المواد».</p>
             )}
-          </div>
+          </Panel>
         </div>
         <aside className="ui-split-rail" style={{ position: 'static' }}>
-          <div className="card">
-            <h2>الفاتورة الحالية</h2>
+          <Panel title="الفاتورة الحالية">
             {ticket.length === 0 ? (
               <p className="muted">اضغط على صنف لإضافته.</p>
             ) : (
@@ -841,7 +840,7 @@ export default function PosPage() {
               )}
             </div>
 
-            <h2 style={{ marginTop: 6 }}>الدفع</h2>
+            <h3>الدفع</h3>
             <div className="chips">
               {METHODS.map((row) => (
                 <button
@@ -863,8 +862,7 @@ export default function PosPage() {
              * سطرٌ ظاهر لا حسابٌ في الرأس: الكاشير يرى الفرق قبل أن يضغط «✔ دفع».
              */}
             {method === 'split' && (
-              <div className="card tight" style={{ marginTop: 8 }}>
-                <div className="card-head">طرق الدفع</div>
+              <Panel title="طرق الدفع">
                 {tenders.map((row) => (
                   <div
                     key={row.key}
@@ -975,7 +973,7 @@ export default function PosPage() {
                   {tenderDiff < 0 && <dt>والباقي على حساب العميل</dt>}
                   {tenderDiff < 0 && <dd>{money(-tenderDiff)}</dd>}
                 </dl>
-              </div>
+              </Panel>
             )}
 
             {method === 'bank' ? (
@@ -985,8 +983,7 @@ export default function PosPage() {
                * *that* bank's account instead of the generic شبكة account, so the choice
                * cannot be a dropdown default the cashier never looked at.
                */
-              <div className="card tight" style={{ marginTop: 8 }}>
-                <div className="card-head">البنوك المتاحة</div>
+              <Panel title="البنوك المتاحة">
                 <div className="row" style={{ alignItems: 'center', justifyContent: 'space-between' }}>
                   <span>
                     {effectiveDrawer
@@ -999,7 +996,7 @@ export default function PosPage() {
                     اختر البنك
                   </button>
                 </div>
-              </div>
+              </Panel>
             ) : null}
 
             {method !== 'credit' && method !== 'bank' && method !== 'split' && (
@@ -1061,7 +1058,7 @@ export default function PosPage() {
             {!shift.data && (
               <p className="muted small">لا توجد وردية مفتوحة: لن تُنسب هذه المبيعة إلى جرد اليومية.</p>
             )}
-          </div>
+          </Panel>
         </aside>
       </div>
 
@@ -1072,8 +1069,7 @@ export default function PosPage() {
        * (`Visibility="Collapsed"`) حتى تُشترى الخانات… والسحابة تُظهرها كلها وتترك
        * الحدّ للمحرّك: خانةٌ فارغة ليست عيباً، والمخفيُّ لا يُخبَر به الكاشير.
        */}
-      <div className="card">
-        <div className="card-head">الفواتير المعلّقة — ٩ خانات</div>
+      <Panel title="الفواتير المعلّقة — ٩ خانات" hint="خانةٌ مشغولة تُسترجع بضغطة، وتُفرَّغ بالزرّ الأيمن.">
         <div className="row" style={{ flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
           {(holds.data ?? []).map((hold) => (
             <button
@@ -1109,19 +1105,14 @@ export default function PosPage() {
             تعليق F7
           </button>
         </div>
-        <p className="muted small">
-          الضغط على خانةٍ مشغولة يسترجع سلها، والضغط الطويل (زرّ الفأرة الأيمن) يُفرغها. و«يوجد أصناف في
-          الجدول» تمنع دهس سلةٍ لم تُتمّ.
-        </p>
-      </div>
+        <p className="muted small">«يوجد أصناف في الجدول» تمنع دهس سلةٍ لم تُتمّ.</p>
+      </Panel>
 
       {receipt && (
-        <div className="card receipt">
-          <div
-            className="toolbar no-print"
-            style={{ justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}
-          >
-            <h2>آخر إيصال كاشير (80mm)</h2>
+        <Panel
+          className="receipt"
+          title="آخر إيصال كاشير (80mm)"
+          actions={
             <div className="toolbar" style={{ gap: 8, flexWrap: 'wrap' }}>
               <label className="row" style={{ fontSize: 12, gap: 6 }}>
                 <input
@@ -1175,7 +1166,8 @@ export default function PosPage() {
                 تفاصيل الفاتورة
               </Link>
             </div>
-          </div>
+          }
+        >
           <div className="row" style={{ gap: 18, alignItems: 'flex-start', flexWrap: 'wrap' }}>
             <dl className="kv" style={{ flex: 1, minWidth: 220 }}>
               <dt>الرقم</dt>
@@ -1233,11 +1225,10 @@ export default function PosPage() {
               label="باركود الفاتورة الضريبية المبسطة (QR)"
             />
           </div>
-        </div>
+        </Panel>
       )}
 
-      <div className="card">
-        <h2>آخر مبيعات نقطة البيع</h2>
+      <Panel title="آخر مبيعات نقطة البيع" flush>
         <div className="table-wrap">
           <table>
             <thead>
@@ -1271,7 +1262,7 @@ export default function PosPage() {
             </tbody>
           </table>
         </div>
-      </div>
+      </Panel>
 
       {/**
        * 🏦 `frmPayBank` — the bank is chosen at the moment of payment, or the sale is

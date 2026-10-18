@@ -474,7 +474,7 @@ function SenderTab({ canEdit }: { canEdit: boolean }) {
   return (
     <div className="grid">
       <div className="card">
-        <h2 style={{ marginTop: 0 }}>مزوّد البريد الإلكتروني وهوية المُرسِل</h2>
+        <h2>مزوّد البريد الإلكتروني وهوية المُرسِل</h2>
         <p className="muted">
           يمكنك الربط المباشر مع <strong>Resend</strong> أو خادم <strong>SMTP</strong> مخصّص أو بوابة{' '}
           <strong>HTTP Webhook / API</strong> لإرسال الفواتير واستعادة كلمات المرور والإشعارات.
@@ -701,7 +701,7 @@ function SenderTab({ canEdit }: { canEdit: boolean }) {
       <Notice notice={notice} />
 
       <div className="card">
-        <h2 style={{ marginTop: 0 }}>لماذا لا تصل الرسالة أحياناً؟</h2>
+        <h2>لماذا لا تصل الرسالة أحياناً؟</h2>
         <ul className="muted">
           <li>
             <strong>محجوبة</strong> — العنوان في قائمة الحجر (ارتداد سابق أو إلغاء اشتراك أو طلب العميل). لا

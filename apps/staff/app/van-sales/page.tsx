@@ -1497,10 +1497,7 @@ export default function VanSalesPage() {
           </div>
 
           <div className="card">
-            <div
-              className="row"
-              style={{ justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}
-            >
+            <div className="card-head">
               <div>
                 <h2>ملخص رقابة المناديب والعهد والربحية والعجز المخصوم من الراتب</h2>
                 <p className="muted small" style={{ margin: 0 }}>
@@ -3473,10 +3470,7 @@ export default function VanSalesPage() {
       {tab === 'audit' && (
         <div style={{ display: 'grid', gap: 16 }}>
           <div className="card">
-            <div
-              className="row"
-              style={{ justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}
-            >
+            <div className="card-head">
               <h2>فحص توافق البيانات السابقة وربطها بالنواة (Dry-Run)</h2>
               <button
                 type="button"
