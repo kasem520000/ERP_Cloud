@@ -29,7 +29,7 @@ type PortalAccount = {
 const EMPTY: FormValues = { partyId: '', email: '', fullName: '' };
 
 function when(value: string | null) {
-  return value ? new Date(value).toLocaleString('ar-SA', { dateStyle: 'short', timeStyle: 'short' }) : '—';
+  return value ? new Date(value).toLocaleString('ar-SA-u-ca-gregory-nu-latn', { dateStyle: 'short', timeStyle: 'short' }) : '—';
 }
 
 export default function PortalAccessPage() {

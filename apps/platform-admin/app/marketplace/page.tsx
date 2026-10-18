@@ -595,7 +595,7 @@ export default function PlatformMarketplacePage() {
 function whenText(value: string | null): string {
   if (!value) return '—';
   const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? value : date.toLocaleString('ar-SA');
+  return Number.isNaN(date.getTime()) ? value : date.toLocaleString('ar-SA-u-ca-gregory-nu-latn');
 }
 
 /**

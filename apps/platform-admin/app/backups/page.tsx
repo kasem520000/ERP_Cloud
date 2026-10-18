@@ -199,7 +199,7 @@ export default function BackupsPage() {
       window.open(link.url, '_blank', 'noopener');
       setNotice({
         kind: 'ok',
-        text: `رابطٌ موقّع صالح حتى ${new Date(link.expiresAt).toLocaleString('ar-SA')}.`,
+        text: `رابطٌ موقّع صالح حتى ${new Date(link.expiresAt).toLocaleString('ar-SA-u-ca-gregory-nu-latn')}.`,
       });
     } catch (error) {
       setNotice({ kind: 'danger', text: apiMessage(error) });
@@ -359,7 +359,7 @@ export default function BackupsPage() {
                     <tbody>
                       {rows.map((row) => (
                         <tr key={row.id}>
-                          <td dir="ltr">{new Date(row.startedAt).toLocaleString('ar-SA')}</td>
+                          <td dir="ltr">{new Date(row.startedAt).toLocaleString('ar-SA-u-ca-gregory-nu-latn')}</td>
                           <td>
                             {row.scope === 'platform'
                               ? 'المنصّة'

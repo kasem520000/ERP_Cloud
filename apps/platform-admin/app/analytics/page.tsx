@@ -64,23 +64,23 @@ function money(value: string | undefined): string {
   // اسم المتغيّر ليس مالياً عمداً: قاعدة المال في eslint تصطاد المعرّفات المسمّاة بمفردات
   // المال حتى في العارض — وهي محقّة، فالرقم هنا رقمٌ معروض لا قيمة تُحسب.
   const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed.toLocaleString('ar-SA', { minimumFractionDigits: 2 }) : value;
+  return Number.isFinite(parsed) ? parsed.toLocaleString('ar-SA-u-ca-gregory-nu-latn', { minimumFractionDigits: 2 }) : value;
 }
 
 /** نسبةٌ قد تكون `null` — و«—» أصدق من «٠٪». */
 function percent(value: number | null | undefined): string {
   if (value === null || value === undefined) return '—';
-  return `${value.toLocaleString('ar-SA', { maximumFractionDigits: 2 })}٪`;
+  return `${value.toLocaleString('ar-SA-u-ca-gregory-nu-latn', { maximumFractionDigits: 2 })}٪`;
 }
 
 function days(value: number | null | undefined): string {
   if (value === null || value === undefined) return '—';
-  return `${value.toLocaleString('ar-SA', { maximumFractionDigits: 1 })}ي`;
+  return `${value.toLocaleString('ar-SA-u-ca-gregory-nu-latn', { maximumFractionDigits: 1 })}ي`;
 }
 
 function monthText(value: string): string {
   const [year, month] = value.split('-');
-  return new Intl.DateTimeFormat('ar-SA', { month: 'long', year: 'numeric', timeZone: 'UTC' })
+  return new Intl.DateTimeFormat('ar-SA-u-ca-gregory-nu-latn', { month: 'long', year: 'numeric', timeZone: 'UTC' })
     .format(new Date(`${year}-${month}-01T00:00:00.000Z`));
 }
 
@@ -449,7 +449,7 @@ export default function AnalyticsPage() {
                 </p>
                 <dl className="m-0 mt-3 grid gap-2 md:grid-cols-2 xl:grid-cols-3">
                   <ReportItem label="الحالة" value={report.data.enabled ? 'مُشغَّل' : 'متوقّف'} />
-                  <ReportItem label="الموعد" value={`${report.data.schedule.dayLabelAr} ${report.data.schedule.hour}:00 — القادم ${new Date(report.data.schedule.nextRunAt).toLocaleString('ar-SA', { dateStyle: 'medium', timeStyle: 'short' })}`} />
+                  <ReportItem label="الموعد" value={`${report.data.schedule.dayLabelAr} ${report.data.schedule.hour}:00 — القادم ${new Date(report.data.schedule.nextRunAt).toLocaleString('ar-SA-u-ca-gregory-nu-latn', { dateStyle: 'medium', timeStyle: 'short' })}`} />
                   <ReportItem label="المستلمون" value={report.data.recipients.length > 0 ? report.data.recipients.join(', ') : 'لا أحد — لا تقرير'} ltr />
                   <ReportItem label="أُرسل لهذه النافذة" value={report.data.sentTo.length > 0 ? report.data.sentTo.join(', ') : '—'} ltr />
                   <ReportItem label="رابط التقرير" value={report.data.link} ltr />

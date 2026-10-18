@@ -434,7 +434,7 @@ export default function PosPage() {
           branchName: branchRow ? arabicName(branchRow) : undefined,
           invoiceNumber: receiptData.number ?? receiptData.invoiceId.slice(0, 8),
           invoiceTypeLabel: 'فاتورة ضريبية مبسطة — إيصال كاشير',
-          issuedAt: new Date().toLocaleString('ar-SA'),
+          issuedAt: new Date().toLocaleString('ar-SA-u-ca-gregory-nu-latn'),
           customerName:
             customerMode === 'walkin'
               ? customerName.trim() || 'عميل عام'
@@ -1115,7 +1115,7 @@ export default function PosPage() {
                     branchName: branchRow ? arabicName(branchRow) : undefined,
                     invoiceNumber: receipt.number ?? receipt.invoiceId.slice(0, 8),
                     invoiceTypeLabel: 'فاتورة ضريبية مبسطة — إيصال كاشير',
-                    issuedAt: new Date().toLocaleString('ar-SA'),
+                    issuedAt: new Date().toLocaleString('ar-SA-u-ca-gregory-nu-latn'),
                     customerName: customerName.trim() || 'عميل عام',
                     paymentMethodLabel: METHODS.find((row) => row.id === receipt.method)?.label ?? receipt.method,
                     lines:

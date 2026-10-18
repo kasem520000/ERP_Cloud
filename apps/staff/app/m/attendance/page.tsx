@@ -131,7 +131,7 @@ export default function AttendancePage() {
                         {row.type === 'check_in' ? 'حضور' : 'انصراف'}
  </span>
  </td>
- <td dir="ltr">{row.at ? new Date(row.at).toLocaleTimeString('ar-SA') : '—'}</td>
+ <td dir="ltr">{row.at ? new Date(row.at).toLocaleTimeString('ar-SA-u-ca-gregory-nu-latn') : '—'}</td>
  <td>
  <span className={`badge ${row.status === 'valid' ? 'ok' : 'warn'}`}>
                         {row.status === 'valid' ? 'داخل النطاق' : 'خارج النطاق'}

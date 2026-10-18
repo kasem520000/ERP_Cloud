@@ -48,7 +48,7 @@ const PRIORITY_LABEL: Record<TicketPriority, string> = {
 const SLA_HOURS: Record<TicketPriority, number> = { urgent: 1, high: 4, normal: 24, low: 72 };
 
 function dateTime(value: string | null | undefined): string {
-  return value ? new Date(value).toLocaleString('ar-SA') : '—';
+  return value ? new Date(value).toLocaleString('ar-SA-u-ca-gregory-nu-latn') : '—';
 }
 
 /** المتبقّي من المهلة بالدقائق — سالبٌ يعني تجاوزاً. */

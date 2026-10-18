@@ -60,7 +60,7 @@ const REASON_LABEL: Record<(typeof emailSuppressionReasons)[number], string> = {
 const LOCALE_LABEL: Record<EmailLocale, string> = { ar: 'العربية', en: 'English' };
 
 function dateTime(value: string | null | undefined): string {
-  return value ? new Date(value).toLocaleString('ar-SA') : '—';
+  return value ? new Date(value).toLocaleString('ar-SA-u-ca-gregory-nu-latn') : '—';
 }
 
 type TabId = 'templates' | 'messages' | 'settings' | 'suppressions';

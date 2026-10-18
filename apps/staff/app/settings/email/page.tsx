@@ -53,7 +53,7 @@ const LOCALE_LABEL: Record<EmailLocale, string> = { ar: 'العربية', en: 'E
 type TabId = 'templates' | 'messages' | 'settings';
 
 function dateTime(value: string | null | undefined): string {
-  return value ? new Date(value).toLocaleString('ar-SA') : '—';
+  return value ? new Date(value).toLocaleString('ar-SA-u-ca-gregory-nu-latn') : '—';
 }
 
 export default function EmailSettingsPage() {

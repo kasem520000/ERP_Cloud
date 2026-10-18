@@ -237,7 +237,7 @@ export function NotificationBell({ label }: { label: string }) {
                     )}
  <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center', marginTop: 2 }}>
  <span className="muted" style={{ fontSize: 11 }} dir="ltr">
-                        {new Date(item.createdAt).toLocaleString('ar-SA')}
+                        {new Date(item.createdAt).toLocaleString('ar-SA-u-ca-gregory-nu-latn')}
  </span>
                       {info.href && (
  <Link
@@ -360,7 +360,7 @@ export function NotificationInbox({ locale }: { locale: 'ar' | 'en' }) {
  </Link>
                   ) : null}
  <p className="muted" style={{ margin: '6px 0 0', fontSize: 12 }}>
-                    {new Date(item.createdAt).toLocaleString(locale === 'ar' ? 'ar-SA' : 'en-GB')} ·{' '}
+                    {new Date(item.createdAt).toLocaleString(locale === 'ar' ? 'ar-SA-u-ca-gregory-nu-latn' : 'en-GB')} ·{' '}
                     {TYPE_LABEL_AR[item.type] ?? item.type}
  </p>
  </div>

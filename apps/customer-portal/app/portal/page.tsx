@@ -11,8 +11,17 @@ import { useAsync } from '../../lib/use-async';
 
 const STATUS_AR: Record<string, string> = { unpaid: 'غير مسددة', partial: 'مسددة جزئياً', paid: 'مسددة', posted: 'مرحّلة', draft: 'مسودة', voided: 'ملغاة' };
 
+/** رصيد سالب = دفعات مقدّمة/دائن، لا «مستحق» بالسالب؛ فالوسم يتبدّل والرقم يُعرض مطلقاً. */
+function balanceKpi(balanceText: string): { label: string; value: string; hint: string } {
+  const credit = new Decimal(balanceText || '0');
+  return credit.isNegative()
+    ? { label: 'رصيد دائن لكم', value: moneyText(credit.abs().toFixed(2)), hint: 'دفعات مقدّمة أو أرصدة لصالحكم' }
+    : { label: 'الرصيد المستحق', value: moneyText(credit.toFixed(2)), hint: 'حسب دفاتر المورد' };
+}
+
 function Dashboard() {
   const { profile } = usePortalProfile();
+  const balanceView = balanceKpi(profile?.balance ?? '0');
   const invoices = useAsync(() => fetchInvoices(), []);
   const payments = useAsync(() => fetchPayments(), []);
 
@@ -29,7 +38,7 @@ function Dashboard() {
       </section>
 
       <div className="grid cols kpis">
-        <Kpi label="الرصيد المستحق" value={moneyText(profile?.balance ?? '0')} hint="حسب دفاتر المورد" />
+        <Kpi label={balanceView.label} value={balanceView.value} hint={balanceView.hint} />
         <Kpi label="غير المسدد من الفواتير" value={moneyText(outstanding.toFixed(2))} hint={`${overdueCount} فاتورة مفتوحة`} />
         <Kpi label="عدد الفواتير" value={String(rows.length)} hint="الفواتير المرحّلة الصادرة لك" />
         <Kpi label="آخر دفعة" value={lastPayment ? moneyText(lastPayment.amount) : '—'} hint={lastPayment ? dateText(lastPayment.day) : 'لا توجد دفعات مسجلة'} />

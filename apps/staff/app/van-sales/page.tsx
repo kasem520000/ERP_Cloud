@@ -1938,7 +1938,7 @@ export default function VanSalesPage() {
  <tbody>
                   {(data?.movements ?? []).map((m) => (
  <tr key={m.id}>
- <td dir="ltr" className="small">{new Date(m.createdAt).toLocaleString('ar-SA')}</td>
+ <td dir="ltr" className="small">{new Date(m.createdAt).toLocaleString('ar-SA-u-ca-gregory-nu-latn')}</td>
  <td><strong>{MOVEMENT_TYPE_AR[m.movementType] ?? m.movementType}</strong></td>
  <td dir="ltr">{m.batchNo || '—'}</td>
  <td>{m.salesmanName}</td>
@@ -3321,7 +3321,7 @@ export default function VanSalesPage() {
  <td dir="ltr">{h.effectiveFrom}</td>
  <td>{h.lockPrice ? 'مثبّت' : 'مرن'}</td>
  <td>{h.changeReason || '—'}</td>
- <td dir="ltr">{new Date(h.changedAt).toLocaleString('ar-SA')}</td>
+ <td dir="ltr">{new Date(h.changedAt).toLocaleString('ar-SA-u-ca-gregory-nu-latn')}</td>
  </tr>
                   ))}
  </tbody>

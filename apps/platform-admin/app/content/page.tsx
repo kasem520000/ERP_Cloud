@@ -134,7 +134,7 @@ const BLOCK_TEMPLATE: Record<ContentBlockKind, unknown> = {
 // ───────────────────────────────────────────────────────────── أدوات
 
 function dateTime(value: string | null | undefined): string {
-  return value ? new Date(value).toLocaleString('ar-SA') : '—';
+  return value ? new Date(value).toLocaleString('ar-SA-u-ca-gregory-nu-latn') : '—';
 }
 
 /** `datetime-local` بلا منطقة زمنية ⇒ تُحوَّل إلى ISO بإزاحة صريحة كما يشترط العقد. */

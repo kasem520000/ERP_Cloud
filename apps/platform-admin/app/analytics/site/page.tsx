@@ -31,11 +31,11 @@ const WINDOWS: Array<{ value: string; label: string }> = [
 ];
 
 function count(value: number | undefined): string {
-  return value === undefined ? '—' : value.toLocaleString('ar-SA');
+  return value === undefined ? '—' : value.toLocaleString('ar-SA-u-ca-gregory-nu-latn');
 }
 
 function dayText(value: string): string {
-  return new Intl.DateTimeFormat('ar-SA', { day: 'numeric', month: 'short', timeZone: 'UTC' }).format(
+  return new Intl.DateTimeFormat('ar-SA-u-ca-gregory-nu-latn', { day: 'numeric', month: 'short', timeZone: 'UTC' }).format(
     new Date(`${value}T00:00:00.000Z`),
   );
 }
@@ -118,7 +118,7 @@ export default function SiteAnalyticsPage() {
                     <td>{goal.labelAr}</td>
                     <td>{count(goal.visitors)}</td>
                     <td>{count(goal.events)}</td>
-                    <td>{goal.visitors === 0 ? '—' : `${goal.ratePct.toLocaleString('ar-SA', { maximumFractionDigits: 1 })}٪`}</td>
+                    <td>{goal.visitors === 0 ? '—' : `${goal.ratePct.toLocaleString('ar-SA-u-ca-gregory-nu-latn', { maximumFractionDigits: 1 })}٪`}</td>
                   </tr>
                 ))}
               </tbody>
@@ -229,7 +229,7 @@ export default function SiteAnalyticsPage() {
                         <td>{variant.key}</td>
                         <td>{count(variant.exposures)}</td>
                         <td>{count(variant.converters)}</td>
-                        <td>{variant.exposures === 0 ? '—' : `${variant.ratePct.toLocaleString('ar-SA', { maximumFractionDigits: 1 })}٪`}</td>
+                        <td>{variant.exposures === 0 ? '—' : `${variant.ratePct.toLocaleString('ar-SA-u-ca-gregory-nu-latn', { maximumFractionDigits: 1 })}٪`}</td>
                       </tr>
                     )),
                   )}
@@ -284,7 +284,7 @@ export default function SiteAnalyticsPage() {
               </tbody>
             </table>
             <p className="small muted">
-              آخر قراءة: {new Date(data.generatedAt).toLocaleString('ar-SA')} — والشاشة تقرأ ما
+              آخر قراءة: {new Date(data.generatedAt).toLocaleString('ar-SA-u-ca-gregory-nu-latn')} — والشاشة تقرأ ما
               جمعه الخادم لحظة الطلب، بلا تخزينٍ وسيط.
             </p>
           </section>

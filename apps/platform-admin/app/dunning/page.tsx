@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { Empty, ErrorBox, Loading, Screen } from '../../components/screen';
 import { ApiError, apiData, apiPost } from '../../lib/api';
 import { useQuery } from '../../lib/use-query';
+import { dateText } from '../../lib/format';
 
 /**
  * المتابعة والتحصيل — شاشة يطلبها P-C4 («dunning screen: attempts · schedule · messages»).
@@ -81,10 +82,6 @@ const STATUS_LABEL: Record<AttemptStatus, string> = {
   failed: 'فشلت',
   skipped: 'متجاوَزة',
 };
-
-function dateText(value: string | null): string {
-  return value ? new Date(value).toLocaleDateString('ar-SA') : '—';
-}
 
 export default function DunningPage() {
   const board = useQuery<Board>(() => apiData<Board>('/platform/dunning'), []);
@@ -195,7 +192,7 @@ export default function DunningPage() {
                         <td dir="ltr">{dateText(row.dueDate)}</td>
                         <td className="num">{row.daysOverdue} يوماً</td>
                         <td className="num">
-                          {Number(row.remaining).toLocaleString('ar-SA', { minimumFractionDigits: 2 })} {row.currency}
+                          {Number(row.remaining).toLocaleString('ar-SA-u-ca-gregory-nu-latn', { minimumFractionDigits: 2 })} {row.currency}
                         </td>
                         <td className="num">
                           {row.attemptsMade} / {data.maxAttempts}

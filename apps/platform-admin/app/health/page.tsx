@@ -130,7 +130,7 @@ export default function HealthPage() {
             <span className="font-mono text-[12px] text-muted" dir="ltr">
               uptime {formatDuration(data.uptimeSeconds)}
             </span>
-            <span className="text-[12px] text-muted">آخر فحص {new Date(data.checkedAt).toLocaleTimeString('ar-SA')}</span>
+            <span className="text-[12px] text-muted">آخر فحص {new Date(data.checkedAt).toLocaleTimeString('ar-SA-u-ca-gregory-nu-latn')}</span>
             <span className="ms-auto flex flex-wrap gap-2">
               <Badge tone={data.backlog.dead > 0 ? 'red' : 'neutral'} dot>ميتة: {data.backlog.dead}</Badge>
               <Badge tone={data.requests.errorRate > 0.01 ? 'amber' : 'green'} dot>

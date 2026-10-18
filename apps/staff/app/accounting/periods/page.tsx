@@ -43,7 +43,7 @@ const EMPTY_FORM = { id: '', name: '', startDate: '', endDate: '', isActive: fal
 const firstOfYear = `${new Date().getFullYear()}-01-01`;
 const lastOfYear = `${new Date().getFullYear()}-12-31`;
 
-const stamp = (value: string | null) => (value ? new Date(value).toLocaleString('ar-SA') : '—');
+const stamp = (value: string | null) => (value ? new Date(value).toLocaleString('ar-SA-u-ca-gregory-nu-latn') : '—');
 
 export default function FiscalPeriodsPage() {
   const { can } = useSession();

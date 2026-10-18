@@ -36,7 +36,7 @@ const STATUS_LABEL: Record<ImpersonationSession['status'], string> = {
 };
 
 function dateTime(value: string | null | undefined): string {
-  return value ? new Date(value).toLocaleString('ar-SA') : '—';
+  return value ? new Date(value).toLocaleString('ar-SA-u-ca-gregory-nu-latn') : '—';
 }
 
 function apiMessage(error: unknown): string {

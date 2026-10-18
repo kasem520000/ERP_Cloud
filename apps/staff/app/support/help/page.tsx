@@ -6,6 +6,7 @@ import { Notice } from '../../../components/data-view';
 import { Screen } from '../../../components/screen';
 import { ApiError, apiData, apiPost } from '../../../lib/api';
 import { useSession } from '../../../lib/session';
+import { dateText } from '../../../lib/format';
 
 type SupportTicket = {
   id: string;
@@ -235,7 +236,7 @@ export default function HelpPage() {
               >
  <span className="list-title">{ticket.subject}</span>
  <span className="list-sub">
-                  {ticket.category ?? 'عام'} · {new Date(ticket.createdAt).toLocaleDateString('ar-SA')}
+                  {ticket.category ?? 'عام'} · {dateText(ticket.createdAt)}
  </span>
  <span className="row" style={{ justifyContent: 'space-between', marginTop: 4 }}>
  <span
@@ -266,7 +267,7 @@ export default function HelpPage() {
  <h2 style={{ margin: 0 }}>{selected.subject}</h2>
  <p className="muted" style={{ margin: '4px 0 0', fontSize: 13 }}>
                     {selected.category ?? 'عام'} · الأولوية: {PRIORITY_LABELS[selected.priority]} · فُتحت في:{' '}
-                    {new Date(selected.createdAt).toLocaleString('ar-SA')}
+                    {new Date(selected.createdAt).toLocaleString('ar-SA-u-ca-gregory-nu-latn')}
  </p>
  </div>
  <span
@@ -296,7 +297,7 @@ export default function HelpPage() {
  : `أنت (${msg.authorLabel ?? me?.user.fullName ?? 'العميل'})`}
  </strong>
  <span className="muted small" dir="ltr">
-                        {new Date(msg.createdAt).toLocaleString('ar-SA')}
+                        {new Date(msg.createdAt).toLocaleString('ar-SA-u-ca-gregory-nu-latn')}
  </span>
  </div>
  <p style={{ margin: 0, whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>{msg.body}</p>

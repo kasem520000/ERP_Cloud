@@ -66,7 +66,7 @@ const CANNED_REPLIES: ReadonlyArray<{ id: string; label: string; body: string }>
 ];
 
 function dateTime(value: string | null | undefined): string {
-  return value ? new Date(value).toLocaleString('ar-SA') : '—';
+  return value ? new Date(value).toLocaleString('ar-SA-u-ca-gregory-nu-latn') : '—';
 }
 
 function apiMessage(error: unknown): string {

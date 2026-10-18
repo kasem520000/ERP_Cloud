@@ -345,7 +345,7 @@ function Bell({
  </div>
  <div className="muted small" style={{ marginTop: 2 }}>
  المنشأة: {t.tenantName ?? t.tenantCode ?? 'عميل'} ·{' '}
-                      {new Date(t.createdAt).toLocaleString('ar-SA')}
+                      {new Date(t.createdAt).toLocaleString('ar-SA-u-ca-gregory-nu-latn')}
  </div>
  </Link>
                 ))}

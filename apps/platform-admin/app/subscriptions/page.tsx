@@ -10,6 +10,7 @@ import { Select } from '../../components/ui/input';
 import { Table } from '../../components/ui/table';
 import { ApiError, apiData, apiPost } from '../../lib/api';
 import { useQuery } from '../../lib/use-query';
+import { dateText } from '../../lib/format';
 
 const SUB_STATUS_TONE: Record<Status, 'blue' | 'purple' | 'green' | 'amber' | 'red' | 'neutral'> = {
   pending: 'amber',
@@ -103,10 +104,6 @@ const STATUS_LABEL: Record<Status, string> = {
 
 /** الحالات التي لا يزال الترخيص فيها حيّاً — عليها تظهر إجراءات الحياة. */
 const LIVE: readonly Status[] = ['trialing', 'active', 'past_due', 'paused'];
-
-function dateText(value: string | null): string {
-  return value ? new Date(value).toLocaleDateString('ar-SA') : '—';
-}
 
 export default function SubscriptionsPage() {
   const [status, setStatus] = useState('');

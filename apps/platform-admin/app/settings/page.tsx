@@ -224,7 +224,7 @@ export default function PlatformSettingsPage() {
 
                 <p className="muted small" style={{ margin: 0 }}>
                   {setting.updatedAt
-                    ? `آخر تحديث ${new Date(setting.updatedAt).toLocaleString('ar-SA')}`
+                    ? `آخر تحديث ${new Date(setting.updatedAt).toLocaleString('ar-SA-u-ca-gregory-nu-latn')}`
                     : 'لم تُكتب منذ إنشاء المنصة'}
                 </p>
               </section>

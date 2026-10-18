@@ -24,6 +24,7 @@ import { MetricCard } from '../components/ui/metric-card';
 import { SkeletonCard } from '../components/ui/skeleton';
 import { apiData } from '../lib/api';
 import { useQuery } from '../lib/use-query';
+import { dateText } from '../lib/format';
 
 type Overview = {
   tenants: { total: number; active: number; suspended: number; new_30d: number };
@@ -91,7 +92,7 @@ const money = (value: number, currency = 'SAR') =>
 const monthLabel = (iso: string) => {
   const [y, m] = iso.split('-').map(Number);
   const d = new Date(Date.UTC(y ?? 2026, (m ?? 1) - 1, 1));
-  return d.toLocaleDateString('ar-SA-u-ca-gregory', { month: 'short', year: '2-digit', timeZone: 'UTC' });
+  return `\u2066${d.toISOString().slice(0, 7)}\u2069`;
 };
 
 export default function PlatformOverviewPage() {
@@ -250,7 +251,7 @@ export default function PlatformOverviewPage() {
  <div className="truncate text-[13.5px] font-bold text-ink">{t.subject}</div>
  <div className="text-[11.5px] text-muted">
  العميل: {t.tenantName ?? t.tenantCode ?? 'منشأة'} · {t.category ?? 'عام'} ·{' '}
-                      {new Date(t.createdAt).toLocaleString('ar-SA')}
+                      {new Date(t.createdAt).toLocaleString('ar-SA-u-ca-gregory-nu-latn')}
  </div>
  </div>
  <Badge tone={t.priority === 'urgent' || t.priority === 'high' ? 'red' : 'amber'}>
@@ -292,7 +293,7 @@ export default function PlatformOverviewPage() {
  </div>
  <div className="text-[11.5px] text-muted">
  المنشأة: {req.tenantName} ({req.tenantCode}) ·{' '}
-                      {new Date(req.createdAt).toLocaleString('ar-SA')}
+                      {new Date(req.createdAt).toLocaleString('ar-SA-u-ca-gregory-nu-latn')}
  </div>
  </div>
  <Badge tone="amber">بانتظار الموافقة</Badge>
@@ -400,7 +401,7 @@ export default function PlatformOverviewPage() {
  <span className="min-w-0 flex-1">
  <span className="block truncate text-[13.5px] font-bold text-ink">{t.name}</span>
  <span className="block font-mono text-xs text-muted" dir="ltr">
-                            {t.code} · {new Date(t.createdAt).toLocaleDateString('ar-SA-u-ca-gregory', { year: 'numeric', month: 'short', day: 'numeric', timeZone: 'UTC' })}
+                            {t.code} · {dateText(t.createdAt)}
  </span>
  </span>
  <Badge tone={t.planName ? 'purple' : 'neutral'} dot>{t.planName ?? 'بلا باقة'}</Badge>

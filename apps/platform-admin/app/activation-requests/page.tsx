@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { Empty, ErrorBox, Loading, Screen } from '../../components/screen';
 import { ApiError, apiData, apiPost } from '../../lib/api';
 import { useQuery } from '../../lib/use-query';
+import { dateText } from '../../lib/format';
 
 type Request = {
   id: string;
@@ -86,9 +87,9 @@ export default function ActivationRequestsPage() {
                     <td dir="ltr" className="small">{row.requested_by_email ?? '—'}</td>
                     <td>{row.plan_name ?? '—'}</td>
                     <td className="num">
-                      {row.amount ? `${Number(row.amount).toLocaleString('ar-SA', { minimumFractionDigits: 2 })} ${row.currency ?? ''}` : '—'}
+                      {row.amount ? `${Number(row.amount).toLocaleString('ar-SA-u-ca-gregory-nu-latn', { minimumFractionDigits: 2 })} ${row.currency ?? ''}` : '—'}
                     </td>
-                    <td dir="ltr">{new Date(row.created_at).toLocaleDateString('ar-SA')}</td>
+                    <td dir="ltr">{dateText(row.created_at)}</td>
                     <td className="small">{row.notes ?? '—'}</td>
                     <td>
                       {row.status === 'pending' && (

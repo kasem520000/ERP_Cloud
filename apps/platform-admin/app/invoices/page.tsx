@@ -11,6 +11,7 @@ import { Select } from '../../components/ui/input';
 import { Table } from '../../components/ui/table';
 import { ApiError, apiData, apiPost } from '../../lib/api';
 import { useQuery } from '../../lib/use-query';
+import { dateText } from '../../lib/format';
 
 const INVOICE_STATUS_TONE: Record<InvoiceStatus, 'blue' | 'purple' | 'green' | 'neutral'> = {
   draft: 'blue',
@@ -112,11 +113,7 @@ const METHOD_LABEL: Record<PaymentMethod, string> = {
 };
 
 function money(value: string, currency: string): string {
-  return `${Number(value).toLocaleString('ar-SA', { minimumFractionDigits: 2 })} ${currency}`;
-}
-
-function dateText(value: string | null): string {
-  return value ? new Date(value).toLocaleDateString('ar-SA') : '—';
+  return `${Number(value).toLocaleString('ar-SA-u-ca-gregory-nu-latn', { minimumFractionDigits: 2 })} ${currency}`;
 }
 
 export default function InvoicesPage() {
@@ -401,8 +398,8 @@ function DetailCard({ invoice, onClose }: { invoice: Invoice; onClose: () => voi
               <td>{line.lineNo}</td>
               <td>{line.description}</td>
               <td className="num">{line.quantity}</td>
-              <td className="num">{Number(line.unitPrice).toLocaleString('ar-SA', { minimumFractionDigits: 2 })}</td>
-              <td className="num">{Number(line.amount).toLocaleString('ar-SA', { minimumFractionDigits: 2 })}</td>
+              <td className="num">{Number(line.unitPrice).toLocaleString('ar-SA-u-ca-gregory-nu-latn', { minimumFractionDigits: 2 })}</td>
+              <td className="num">{Number(line.amount).toLocaleString('ar-SA-u-ca-gregory-nu-latn', { minimumFractionDigits: 2 })}</td>
             </tr>
           ))}
         </tbody>

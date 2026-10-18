@@ -127,15 +127,15 @@ export default function PlatformUserCardPage() {
               </div>
               <div>
                 <div className="muted">آخر دخول</div>
-                <div dir="ltr">{data.user.lastLoginAt ? new Date(data.user.lastLoginAt).toLocaleString('ar-SA') : '—'}</div>
+                <div dir="ltr">{data.user.lastLoginAt ? new Date(data.user.lastLoginAt).toLocaleString('ar-SA-u-ca-gregory-nu-latn') : '—'}</div>
               </div>
               <div>
                 <div className="muted">أُنشئ في</div>
-                <div dir="ltr">{new Date(data.user.createdAt).toLocaleString('ar-SA')}</div>
+                <div dir="ltr">{new Date(data.user.createdAt).toLocaleString('ar-SA-u-ca-gregory-nu-latn')}</div>
               </div>
               <div>
                 <div className="muted">مقفول حتى</div>
-                <div dir="ltr">{data.user.lockedUntil ? new Date(data.user.lockedUntil).toLocaleString('ar-SA') : '—'}</div>
+                <div dir="ltr">{data.user.lockedUntil ? new Date(data.user.lockedUntil).toLocaleString('ar-SA-u-ca-gregory-nu-latn') : '—'}</div>
               </div>
             </div>
           </div>
@@ -230,7 +230,7 @@ export default function PlatformUserCardPage() {
                         <td>
                           <span className={`badge ${member.tenantStatus}`}>{USER_STATUS_AR[member.tenantStatus] ?? member.tenantStatus}</span>
                         </td>
-                        <td dir="ltr">{new Date(member.createdAt).toLocaleString('ar-SA')}</td>
+                        <td dir="ltr">{new Date(member.createdAt).toLocaleString('ar-SA-u-ca-gregory-nu-latn')}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -269,9 +269,9 @@ export default function PlatformUserCardPage() {
                         </td>
                         <td dir="ltr">{entry.ip ?? '—'}</td>
                         <td>{entry.tenantCode ?? 'منصة'}</td>
-                        <td dir="ltr">{new Date(entry.createdAt).toLocaleString('ar-SA')}</td>
-                        <td dir="ltr">{new Date(entry.lastSeenAt).toLocaleString('ar-SA')}</td>
-                        <td dir="ltr">{new Date(entry.expiresAt).toLocaleString('ar-SA')}</td>
+                        <td dir="ltr">{new Date(entry.createdAt).toLocaleString('ar-SA-u-ca-gregory-nu-latn')}</td>
+                        <td dir="ltr">{new Date(entry.lastSeenAt).toLocaleString('ar-SA-u-ca-gregory-nu-latn')}</td>
+                        <td dir="ltr">{new Date(entry.expiresAt).toLocaleString('ar-SA-u-ca-gregory-nu-latn')}</td>
                         <td className="num">{entry.rotationCount}</td>
                         <td>
                           {canManage ? (
@@ -357,8 +357,8 @@ export default function PlatformUserCardPage() {
                         <tr key={entry.id}>
                           <td>{entry.userAgent ? entry.userAgent.slice(0, 48) : '—'}</td>
                           <td dir="ltr">{entry.ip ?? '—'}</td>
-                          <td dir="ltr">{new Date(entry.lastSeenAt).toLocaleString('ar-SA')}</td>
-                          <td dir="ltr">{entry.revokedAt ? new Date(entry.revokedAt).toLocaleString('ar-SA') : '—'}</td>
+                          <td dir="ltr">{new Date(entry.lastSeenAt).toLocaleString('ar-SA-u-ca-gregory-nu-latn')}</td>
+                          <td dir="ltr">{entry.revokedAt ? new Date(entry.revokedAt).toLocaleString('ar-SA-u-ca-gregory-nu-latn') : '—'}</td>
                         </tr>
                       ))}
                     </tbody>

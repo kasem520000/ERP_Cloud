@@ -13,6 +13,7 @@ import {
 import { Empty, ErrorBox, Loading, Screen } from '../../components/screen';
 import { ApiError, apiData, downloadFile } from '../../lib/api';
 import { useQuery } from '../../lib/use-query';
+import { dateText } from '../../lib/format';
 
 /**
  * الاستخدام والحصص — شاشة يطلبها P-C5 (`docs/roadmap/PLATFORM_CONSOLE_PLAN.md` §4:
@@ -58,10 +59,6 @@ function toneOf(state: UsageMetricState): 'ok' | 'warn' | 'danger' {
 function ratioOf(used: number, limit: number | null): number {
   if (limit === null) return 0;
   return Math.min(1, used / Math.max(limit, 1));
-}
-
-function dateText(value: string | null | undefined): string {
-  return value ? new Date(value).toLocaleDateString('ar-SA') : '—';
 }
 
 export default function UsagePage() {
@@ -143,9 +140,9 @@ export default function UsagePage() {
               <dt>بلغوا الحدّ (١٠٠٪)</dt>
               <dd>{data.totals.hard}</dd>
               <dt>استدعاءات اليوم (كل العملاء)</dt>
-              <dd>{data.totals.apiCallsToday.toLocaleString('ar-SA')}</dd>
+              <dd>{data.totals.apiCallsToday.toLocaleString('ar-SA-u-ca-gregory-nu-latn')}</dd>
               <dt>فواتير الشهر</dt>
-              <dd>{data.totals.invoicesThisMonth.toLocaleString('ar-SA')}</dd>
+              <dd>{data.totals.invoicesThisMonth.toLocaleString('ar-SA-u-ca-gregory-nu-latn')}</dd>
             </dl>
             <p className="muted small" style={{ marginBottom: 0 }}>
               الحدّ الذي يمنع هو ما كتبه مشغّل (تجاوز العميل أو افتراض المنصة)؛ ومغلّف الفهرس الافتراضي
@@ -252,8 +249,8 @@ export default function UsagePage() {
                         {detail.data.metrics.map((metric) => (
                           <tr key={metric.key}>
                             <td>{metric.labelAr}</td>
-                            <td className="num">{metric.used.toLocaleString('ar-SA')}</td>
-                            <td className="num">{metric.limit === null ? 'بلا حدّ' : metric.limit.toLocaleString('ar-SA')}</td>
+                            <td className="num">{metric.used.toLocaleString('ar-SA-u-ca-gregory-nu-latn')}</td>
+                            <td className="num">{metric.limit === null ? 'بلا حدّ' : metric.limit.toLocaleString('ar-SA-u-ca-gregory-nu-latn')}</td>
                             <td>
                               <span className="meter">
                                 <span
@@ -329,8 +326,8 @@ function MetricCell({ row, metric }: { row: PlatformUsageGridRow; metric: UsageM
   return (
     <>
       <div>
-        {entry.used.toLocaleString('ar-SA')}
-        <span className="muted small"> / {entry.limit === null ? '∞' : entry.limit.toLocaleString('ar-SA')}</span>
+        {entry.used.toLocaleString('ar-SA-u-ca-gregory-nu-latn')}
+        <span className="muted small"> / {entry.limit === null ? '∞' : entry.limit.toLocaleString('ar-SA-u-ca-gregory-nu-latn')}</span>
       </div>
       <span className="meter" style={{ marginTop: 4 }}>
         <span

@@ -715,7 +715,7 @@ export default function VanSalesRepPage() {
  <tbody>
                   {data.collections.map((row) => (
  <tr key={row.id}>
- <td dir="ltr">{new Date(row.collectedAt).toLocaleString('ar-SA-u-ca-gregory')}</td>
+ <td dir="ltr">{new Date(row.collectedAt).toLocaleString('ar-SA-u-ca-gregory-nu-latn')}</td>
  <td align="left" dir="ltr"><b>{row.amount}</b></td>
  <td dir="ltr">
                         {row.voucherNumber ?? '—'}

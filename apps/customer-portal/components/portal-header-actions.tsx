@@ -3,27 +3,61 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
-import { readToken } from '../lib/api';
+import { fetchProfile, logout, readToken, type PortalProfile } from '../lib/api';
 
 /**
- * The portal layout is a server component and cannot read the client-stored
- * token, so it used to render «دخول» even for a signed-in customer. This
- * island hides the CTA once a session exists; the sidebar already owns logout.
+ * الشريط العلوي يحمل هوية العميل، لا زرّ دخول فقط.
+ *
+ * التخطيط خادميّ ولا يقرأ الكوكي، فكان الشريط بعد الدخول فارغاً إلا من الشعار —
+ * مساحةٌ بيضاء في أعلى كل صفحة. هذه الجزيرة تقرأ الجلسة والملف، وتعرض اسم
+ * العميل والمنشأة وزرّ خروج، وتُخفي دعوة الدخول إن كان المستخدم داخل البوابة.
  */
 export function PortalHeaderActions() {
   const [signedIn, setSignedIn] = useState<boolean | null>(null);
+  const [profile, setProfile] = useState<PortalProfile | null>(null);
 
   useEffect(() => {
-    setSignedIn(Boolean(readToken()));
+    if (!readToken()) {
+      setSignedIn(false);
+      return;
+    }
+    setSignedIn(true);
+    fetchProfile()
+      .then(setProfile)
+      .catch(() => setProfile(null));
   }, []);
 
-  if (signedIn === null || signedIn) return null;
+  if (signedIn === null) return null;
+
+  if (!signedIn) {
+    return (
+      <nav className="nav" aria-label="portal navigation">
+        <Link className="btn primary" href="/auth/login">
+          دخول
+        </Link>
+      </nav>
+    );
+  }
+
+  const name = profile?.party?.name;
+  const company = profile?.company?.nameAr;
 
   return (
-    <nav className="nav" aria-label="portal navigation">
-      <Link className="btn primary" href="/auth/login">
-        دخول
-      </Link>
-    </nav>
+    <div className="row" style={{ gap: 10, alignItems: 'center' }}>
+      {name ? (
+        <Link className="row" href="/portal/profile" style={{ gap: 8, alignItems: 'center', textDecoration: 'none', color: 'inherit' }}>
+          <span className="portal-avatar" aria-hidden style={{ width: 30, height: 30, fontSize: 13 }}>
+            {name.trim().slice(0, 1)}
+          </span>
+          <span style={{ display: 'grid', lineHeight: 1.25 }}>
+            <strong style={{ fontSize: 13 }}>{name}</strong>
+            {company ? <small className="muted" style={{ fontSize: 11 }}>{company}</small> : null}
+          </span>
+        </Link>
+      ) : null}
+      <button className="btn sm" type="button" onClick={logout}>
+        تسجيل الخروج
+      </button>
+    </div>
   );
 }

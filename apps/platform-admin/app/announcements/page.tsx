@@ -55,7 +55,7 @@ const CHANNEL_LABEL: Record<AnnouncementChannel, string> = {
 };
 
 function dateTime(value: string | null | undefined): string {
-  return value ? new Date(value).toLocaleString('ar-SA') : '—';
+  return value ? new Date(value).toLocaleString('ar-SA-u-ca-gregory-nu-latn') : '—';
 }
 
 /** `datetime-local` يكتب الوقت المحلّي بلا منطقة زمنية؛ والـAPI يقرأ ISO. */

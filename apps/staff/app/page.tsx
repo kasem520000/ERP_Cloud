@@ -51,7 +51,7 @@ function useDashboardData() {
 
 /** Hijri + Gregorian date line for the greeting. */
 function dateLine(now = new Date()): { greg: string; hijri: string } {
-  const greg = new Intl.DateTimeFormat('ar-SA-u-ca-gregory', {
+  const greg = new Intl.DateTimeFormat('ar-SA-u-ca-gregory-nu-latn', {
     weekday: 'long',
     day: 'numeric',
     month: 'long',

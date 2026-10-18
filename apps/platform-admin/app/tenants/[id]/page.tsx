@@ -116,7 +116,7 @@ function noticeFrom(error: unknown): Notice {
 
 function when(value: string | null | undefined): string {
   if (!value) return '—';
-  return new Date(value).toLocaleString('ar-SA');
+  return new Date(value).toLocaleString('ar-SA-u-ca-gregory-nu-latn');
 }
 
 function money(text: string | null, code: string | null): string {

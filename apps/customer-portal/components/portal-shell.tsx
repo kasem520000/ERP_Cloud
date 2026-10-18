@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
+import { Decimal } from 'decimal.js';
 
 import { fetchProfile, logout, readToken, type PortalProfile } from '../lib/api';
 import { moneyText } from '../lib/format';
@@ -49,6 +50,7 @@ export function PortalShell({ children }: { children: ReactNode }) {
 
   const { party, company } = state.profile;
   const dueBalance = state.profile.balance;
+  const credit = new Decimal(dueBalance || '0').isNegative();
 
   return (
     <ProfileContext.Provider value={state}>
@@ -74,14 +76,11 @@ export function PortalShell({ children }: { children: ReactNode }) {
             ))}
           </nav>
           <div className="portal-balance">
-            <small>الرصيد المستحق</small>
+            <small>{credit ? 'رصيد دائن لكم' : 'الرصيد المستحق'}</small>
             <div className="kpi" style={{ fontSize: 22 }}>
-              {moneyText(dueBalance)}
+              {moneyText(credit ? new Decimal(dueBalance).abs().toFixed(2) : dueBalance)}
             </div>
           </div>
-          <button className="btn" type="button" onClick={logout} style={{ marginTop: 12, width: '100%' }}>
-            تسجيل الخروج
-          </button>
         </aside>
         <section className="grid">{children}</section>
       </div>

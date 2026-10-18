@@ -274,7 +274,7 @@ export default function PlatformUsersPage() {
                         <span className="tag default">غير مُفعَّلة</span>
                       )}
                     </td>
-                    <td dir="ltr">{row.lastLoginAt ? new Date(row.lastLoginAt).toLocaleString('ar-SA') : '—'}</td>
+                    <td dir="ltr">{row.lastLoginAt ? new Date(row.lastLoginAt).toLocaleString('ar-SA-u-ca-gregory-nu-latn') : '—'}</td>
                     <td className="num">{row.activeSessionCount}</td>
                     <td>
                       {row.platformRoles.length > 0 ? (
