@@ -4,7 +4,16 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
 import { Notice } from '../../../../components/data-view';
-import { InvoiceLines, TotalsPanel, computeTotals, emptyLine, filledLines, serialList, toApiLines, type LineDraft } from '../../../../components/invoice-editor';
+import {
+  InvoiceLines,
+  TotalsPanel,
+  computeTotals,
+  emptyLine,
+  filledLines,
+  serialList,
+  toApiLines,
+  type LineDraft,
+} from '../../../../components/invoice-editor';
 import { Screen } from '../../../../components/screen';
 import { ApiError, apiData, apiPost } from '../../../../lib/api';
 import {
@@ -71,16 +80,20 @@ export default function NewSalesInvoicePage() {
   const branchRows = branches.data ?? [];
   const warehouseRows = warehouses.data ?? [];
   const effectiveBranch = branchId || defaultOf(branchRows)?.id || '';
-  const effectiveWarehouse = warehouseId || defaultOf(warehouseRows.filter((row) => !effectiveBranch || row.branchId === effectiveBranch))?.id || '';
+  const effectiveWarehouse =
+    warehouseId ||
+    defaultOf(warehouseRows.filter((row) => !effectiveBranch || row.branchId === effectiveBranch))?.id ||
+    '';
   const selectedParty = (parties.data ?? []).find((row) => row.id === partyId);
   const selectedPartyTaxNo = String(selectedParty?.taxNo ?? selectedParty?.tax_no ?? '').trim();
   const isGeneralCustomer =
-    !partyId ||
-    selectedParty?.code === 'CUST-GEN' ||
-    selectedParty?.name === 'عميل عام';
+    !partyId || selectedParty?.code === 'CUST-GEN' || selectedParty?.name === 'عميل عام';
   const isStandardTaxInvoice = Boolean(!isGeneralCustomer && selectedPartyTaxNo.length > 0);
   const taxInvoiceTypeLabel = isStandardTaxInvoice ? 'فاتورة ضريبية' : 'فاتورة ضريبية مبسطة';
-  const totals = computeTotals(lines, { priceIncludesVat: includesVat, invoiceDiscount: invoiceDiscountText });
+  const totals = computeTotals(lines, {
+    priceIncludesVat: includesVat,
+    invoiceDiscount: invoiceDiscountText,
+  });
   /**
    * حدّ الخصم على العضوية (R1، بديل `OperMaxDiscount`). عرضٌ لا فرض: الفرض في
    * `assertDiscountWithinLimit` على الخادم، وهذه الشاشة تُعلن السقف قبل الكتابة.
@@ -110,7 +123,9 @@ export default function NewSalesInvoicePage() {
       return;
     }
     try {
-      const lookup = await apiData<SerialLookup>(`/inventory/serials/lookup?serialNo=${encodeURIComponent(value)}`);
+      const lookup = await apiData<SerialLookup>(
+        `/inventory/serials/lookup?serialNo=${encodeURIComponent(value)}`,
+      );
       const verdict = decideSerial({
         lookup: { ...lookup, serialNo: value },
         lines,
@@ -122,7 +137,9 @@ export default function NewSalesInvoicePage() {
       }
       const decision = verdict.decision;
       const item = (items.data ?? []).find((row) => row.id === decision.itemId);
-      const group = item?.taxGroupId ? (taxGroups.data ?? []).find((row) => row.id === item.taxGroupId) : undefined;
+      const group = item?.taxGroupId
+        ? (taxGroups.data ?? []).find((row) => row.id === item.taxGroupId)
+        : undefined;
       const base = emptyLine(group ? String(Number(group.rate) * 100) : '15');
       const next: LineDraft = {
         ...base,
@@ -138,7 +155,8 @@ export default function NewSalesInvoicePage() {
       ]);
       setSerialQuery('');
     } catch (error) {
-      const text = error instanceof ApiError && error.status === 403 ? SERIAL_MESSAGES.forbidden : String(error);
+      const text =
+        error instanceof ApiError && error.status === 403 ? SERIAL_MESSAGES.forbidden : String(error);
       setNotice({ kind: 'warn', text });
     }
   }
@@ -153,9 +171,11 @@ export default function NewSalesInvoicePage() {
     setBusy(true);
     setNotice(undefined);
     try {
-      if (filledLines(lines).length === 0) throw new ApiError(422, 'VALIDATION_FAILED', 'أضف سطراً واحداً على الأقل.');
+      if (filledLines(lines).length === 0)
+        throw new ApiError(422, 'VALIDATION_FAILED', 'أضف سطراً واحداً على الأقل.');
       const resolvedCashName = cashName.trim() || 'عميل عام';
-      const shouldAutoPost = forceDraft === true ? false : forceDraft === false ? true : !saveAsDraftByDefault;
+      const shouldAutoPost =
+        forceDraft === true ? false : forceDraft === false ? true : !saveAsDraftByDefault;
       const invoice = await apiPost<{ id: string }>('/sales/invoices', {
         branchId: effectiveBranch,
         warehouseId: effectiveWarehouse || undefined,
@@ -179,18 +199,18 @@ export default function NewSalesInvoicePage() {
 
   if (!can('sales.invoice.create')) {
     return (
- <Screen title="فاتورة مبيعات" crumbs={['المبيعات', 'العمليات']}>
- <div className="card state">
- <strong>لا تملك صلاحية إنشاء فواتير المبيعات</strong>
- </div>
- </Screen>
+      <Screen title="فاتورة مبيعات" crumbs={['المبيعات', 'العمليات']}>
+        <div className="card state">
+          <strong>لا تملك صلاحية إنشاء فواتير المبيعات</strong>
+        </div>
+      </Screen>
     );
   }
 
   return (
- <Screen
+    <Screen
       // «🧾 فاتورة مبيعات» — `Form_WPF/frmInvSale.xaml` L347.
- title="فاتورة مبيعات"
+      title="فاتورة مبيعات"
       subtitle={
         saveAsDraftByDefault
           ? 'وضع المسودة مفعّل من الإعدادات العامة: تُحفظ الفاتورة كمسودة أولاً، أو يمكنك ترحيلها فوراً.'
@@ -198,212 +218,263 @@ export default function NewSalesInvoicePage() {
       }
       crumbs={['المبيعات', 'العمليات']}
     >
- <form className="panel" onSubmit={save}>
- <div className="panel-head">
- <div>
- <h2>بيانات الفاتورة</h2>
- <p>الفرع والمستودع والعميل ثم شروط الضريبة والخصم. الحقول المعلَّمة بـ* إلزامية.</p>
- </div>
- </div>
- <div className="form-section">
- <div className="form-grid">
- <label className="field">
- <span>الفرع *</span>
- <select className="input" value={effectiveBranch} onChange={(event) => setBranchId(event.target.value)} required>
-              {branchOptions(branchRows).map((option) => (
- <option key={option.id} value={option.id}>
-                  {option.label}
- </option>
-              ))}
- </select>
- </label>
- <label className="field">
- <span>المستودع{filledLines(lines).some((line) => line.itemId) ? ' *' : ''}</span>
- <select className="input" value={effectiveWarehouse} onChange={(event) => setWarehouseId(event.target.value)}>
- <option value="">— بدون حركة مخزنية —</option>
-              {warehouseRows
-                .filter((row) => !effectiveBranch || row.branchId === effectiveBranch)
-                .map((row) => (
- <option key={row.id} value={row.id}>
-                    {arabicName(row)}
- </option>
+      <form className="panel" onSubmit={save}>
+        <div className="panel-head">
+          <div>
+            <h2>بيانات الفاتورة</h2>
+            <p>الفرع والمستودع والعميل ثم شروط الضريبة والخصم. الحقول المعلَّمة بـ* إلزامية.</p>
+          </div>
+        </div>
+        <div className="form-section">
+          <div className="form-grid">
+            <label className="field">
+              <span>الفرع *</span>
+              <select
+                className="input"
+                value={effectiveBranch}
+                onChange={(event) => setBranchId(event.target.value)}
+                required
+              >
+                {branchOptions(branchRows).map((option) => (
+                  <option key={option.id} value={option.id}>
+                    {option.label}
+                  </option>
                 ))}
- </select>
-            {filledLines(lines).some((line) => line.itemId) && !effectiveWarehouse && (
- <span className="muted small">ترحيل فاتورة فيها أصناف مخزنية يتطلب اختيار مستودع.</span>
+              </select>
+            </label>
+            <label className="field">
+              <span>المستودع{filledLines(lines).some((line) => line.itemId) ? ' *' : ''}</span>
+              <select
+                className="input"
+                value={effectiveWarehouse}
+                onChange={(event) => setWarehouseId(event.target.value)}
+              >
+                <option value="">— بدون حركة مخزنية —</option>
+                {warehouseRows
+                  .filter((row) => !effectiveBranch || row.branchId === effectiveBranch)
+                  .map((row) => (
+                    <option key={row.id} value={row.id}>
+                      {arabicName(row)}
+                    </option>
+                  ))}
+              </select>
+              {filledLines(lines).some((line) => line.itemId) && !effectiveWarehouse && (
+                <span className="muted small">ترحيل فاتورة فيها أصناف مخزنية يتطلب اختيار مستودع.</span>
+              )}
+            </label>
+            <label className="field">
+              <span>العميل</span>
+              <select className="input" value={partyId} onChange={(event) => setPartyId(event.target.value)}>
+                <option value="">— عميل عام (فاتورة ضريبية مبسطة) —</option>
+                {(parties.data ?? []).map((row) => (
+                  <option key={row.id} value={row.id}>
+                    {partyLabel(row)}
+                    {(row.taxNo ?? row.tax_no ?? '').trim() &&
+                    row.name !== 'عميل عام' &&
+                    row.code !== 'CUST-GEN'
+                      ? ` — رقم ضريبي: ${row.taxNo ?? row.tax_no}`
+                      : ' — فاتورة ضريبية مبسطة'}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <div className="field">
+              <span>تصنيف الفاتورة الضريبية</span>
+              <div
+                className="input"
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: 8,
+                  background: 'var(--surface-2)',
+                }}
+              >
+                <span className={`badge ${isStandardTaxInvoice ? 'active' : 'neutral'}`}>
+                  {taxInvoiceTypeLabel}
+                </span>
+                <small className="muted" dir="ltr">
+                  {isStandardTaxInvoice
+                    ? `الرقم الضريبي: ${selectedPartyTaxNo}`
+                    : 'عميل عام / بدون رقم ضريبي'}
+                </small>
+              </div>
+            </div>
+            {!partyId && (
+              <>
+                <label className="field">
+                  <span>اسم العميل (الافتراضي: عميل عام)</span>
+                  <input
+                    className="input"
+                    value={cashName}
+                    placeholder="عميل عام"
+                    onChange={(event) => setCashName(event.target.value)}
+                  />
+                </label>
+                <label className="field">
+                  <span>الجوال</span>
+                  <input
+                    className="input"
+                    dir="ltr"
+                    value={cashMobile}
+                    onChange={(event) => setCashMobile(event.target.value)}
+                  />
+                </label>
+              </>
             )}
- </label>
- <label className="field">
- <span>العميل</span>
- <select className="input" value={partyId} onChange={(event) => setPartyId(event.target.value)}>
- <option value="">— عميل عام (فاتورة ضريبية مبسطة) —</option>
-              {(parties.data ?? []).map((row) => (
- <option key={row.id} value={row.id}>
-                  {partyLabel(row)}
-                  {(row.taxNo ?? row.tax_no ?? '').trim() && row.name !== 'عميل عام' && row.code !== 'CUST-GEN'
-                    ? ` — رقم ضريبي: ${row.taxNo ?? row.tax_no}`
-                    : ' — فاتورة ضريبية مبسطة'}
- </option>
-              ))}
- </select>
- </label>
- <div className="field">
- <span>تصنيف الفاتورة الضريبية</span>
- <div
-              className="input"
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                gap: 8,
-                background: 'var(--surface-2)',
-              }}
-            >
- <span className={`badge ${isStandardTaxInvoice ? 'active' : 'neutral'}`}>
-                {taxInvoiceTypeLabel}
- </span>
- <small className="muted" dir="ltr">
-                {isStandardTaxInvoice ? `الرقم الضريبي: ${selectedPartyTaxNo}` : 'عميل عام / بدون رقم ضريبي'}
- </small>
- </div>
- </div>
-          {!partyId && (
- <>
- <label className="field">
- <span>اسم العميل (الافتراضي: عميل عام)</span>
- <input
-                  className="input"
-                  value={cashName}
-                  placeholder="عميل عام"
-                  onChange={(event) => setCashName(event.target.value)}
-                />
- </label>
- <label className="field">
- <span>الجوال</span>
- <input className="input" dir="ltr" value={cashMobile} onChange={(event) => setCashMobile(event.target.value)} />
- </label>
- </>
-          )}
- <label className="field">
- <span>المندوب</span>
- <select className="input" value={salesmanId} onChange={(event) => setSalesmanId(event.target.value)}>
- <option value="">— بدون مندوب —</option>
-              {(salesmen.data ?? []).filter((row) => row.active !== false).map((row) => (
- <option key={row.id} value={row.id}>
-                  {row.name}
- </option>
-              ))}
- </select>
- </label>
-          {/*
+            <label className="field">
+              <span>المندوب</span>
+              <select
+                className="input"
+                value={salesmanId}
+                onChange={(event) => setSalesmanId(event.target.value)}
+              >
+                <option value="">— بدون مندوب —</option>
+                {(salesmen.data ?? [])
+                  .filter((row) => row.active !== false)
+                  .map((row) => (
+                    <option key={row.id} value={row.id}>
+                      {row.name}
+                    </option>
+                  ))}
+              </select>
+            </label>
+            {/*
  «التسلسلي:» — `frmInvSale.xaml` L592، وخانتها `txtSrchSerialNo` تقرأ
  الرقم عند `Enter` (L3599 `SearchBySerialNo` L722). الإدخال هنا يضيف سطراً
  بالصنف والرقم، والرسائل الثلاث من النافذة نفسها بحروفها.
           */}
-          {/*
+            {/*
  «مركز التكلفة:» — `frmInvSale.xaml` L530 (القائمة `cmbCostCenter`) وتحتها زرّ
             «إضافة مركز تكلفة» يفتح `frmCostCenter`. وهو مركز الفاتورة كلها: السطر الذي لا
  يذكر مركزاً يأخذه، والسطر الذي يذكر مركزاً يسبقه — كما في بناء القيد بالديسكتوب
             (`InvoiceOper.cs` L2461 ثم L2432).
           */}
- <label className="field">
- <span>مركز التكلفة:</span>
- <select className="input" value={costCenterId} onChange={(event) => setCostCenterId(event.target.value)}>
- <option value="">— بلا مركز —</option>
-              {(costCenters.data ?? []).map((center) => (
- <option key={center.id} value={center.id}>
-                  {center.code} — {arabicName(center)}
- </option>
-              ))}
- </select>
- <span className="muted small">مركز الفاتورة كلها — ولكل سطرٍ أن يخالفه من عموده.</span>
- </label>
- <label className="field">
- <span>التسلسلي:</span>
- <span className="row">
- <input
+            <label className="field">
+              <span>مركز التكلفة:</span>
+              <select
+                className="input"
+                value={costCenterId}
+                onChange={(event) => setCostCenterId(event.target.value)}
+              >
+                <option value="">— بلا مركز —</option>
+                {(costCenters.data ?? []).map((center) => (
+                  <option key={center.id} value={center.id}>
+                    {center.code} — {arabicName(center)}
+                  </option>
+                ))}
+              </select>
+              <span className="muted small">مركز الفاتورة كلها — ولكل سطرٍ أن يخالفه من عموده.</span>
+            </label>
+            <label className="field">
+              <span>التسلسلي:</span>
+              <span className="row">
+                <input
+                  className="input"
+                  dir="ltr"
+                  value={serialQuery}
+                  placeholder="امسح الرقم أو اكتبه"
+                  onChange={(event) => setSerialQuery(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter') {
+                      event.preventDefault();
+                      void findSerial();
+                    }
+                  }}
+                />
+                <button className="btn sm" type="button" onClick={() => void findSerial()}>
+                  بحث
+                </button>
+              </span>
+              <span className="muted small">
+                يُضيف الصنف بسطرٍ يحمل الرقم — تماماً كما في النافذة المكتبية.
+              </span>
+            </label>
+            <label className="field">
+              <span>خصم</span>
+              <input
                 className="input"
                 dir="ltr"
-                value={serialQuery}
-                placeholder="امسح الرقم أو اكتبه"
-                onChange={(event) => setSerialQuery(event.target.value)}
-                onKeyDown={(event) => {
-                  if (event.key === 'Enter') {
-                    event.preventDefault();
-                    void findSerial();
-                  }
-                }}
+                inputMode="decimal"
+                value={invoiceDiscountText}
+                onChange={(event) => setInvoiceDiscountText(event.target.value)}
               />
- <button className="btn sm" type="button" onClick={() => void findSerial()}>
- بحث
- </button>
- </span>
- <span className="muted small">يُضيف الصنف بسطرٍ يحمل الرقم — تماماً كما في النافذة المكتبية.</span>
- </label>
- <label className="field">
- <span>خصم</span>
- <input className="input" dir="ltr" inputMode="decimal" value={invoiceDiscountText} onChange={(event) => setInvoiceDiscountText(event.target.value)} />
- <span className="muted small">يُخفّض وعاء الضريبة قبل احتسابها.{discountLimitText ? ` ${discountLimitText}.` : ''}</span>
- </label>
- <label className="field">
- <span>الأسعار شاملة الضريبة</span>
- <span className="row">
- <input type="checkbox" checked={includesVat} onChange={(event) => setIncludesVat(event.target.checked)} />
- <span className="muted small">تُستخرج الضريبة من السعر بدل إضافتها إليه.</span>
- </span>
- </label>
- </div>
- </div>
+              <span className="muted small">
+                يُخفّض وعاء الضريبة قبل احتسابها.{discountLimitText ? ` ${discountLimitText}.` : ''}
+              </span>
+            </label>
+            <label className="field">
+              <span>الأسعار شاملة الضريبة</span>
+              <span className="row">
+                <input
+                  type="checkbox"
+                  checked={includesVat}
+                  onChange={(event) => setIncludesVat(event.target.checked)}
+                />
+                <span className="muted small">تُستخرج الضريبة من السعر بدل إضافتها إليه.</span>
+              </span>
+            </label>
+          </div>
+        </div>
 
- <div className="panel-head">
- <div>
- <h2>الأصناف</h2>
- <p>أضف سطراً لكل صنف؛ الحقول المحسوبة (المجموع والضريبة والصافي) تُحدَّث فوراً.</p>
- </div>
- </div>
- <div className="form-section" style={{ paddingInline: 0 }}>
- <InvoiceLines
-          lines={lines}
-          onChange={setLines}
-          items={items.data ?? []}
-          taxGroups={taxGroups.data ?? []}
-          units={units.data ?? []}
-          priceField="salePrice"
-          withNumbers
-          costCenters={costCenters.data ?? []}
-        />
+        <div className="panel-head">
+          <div>
+            <h2>الأصناف</h2>
+            <p>أضف سطراً لكل صنف؛ الحقول المحسوبة (المجموع والضريبة والصافي) تُحدَّث فوراً.</p>
+          </div>
+        </div>
+        <div className="form-section" style={{ paddingInline: 0 }}>
+          <InvoiceLines
+            lines={lines}
+            onChange={setLines}
+            items={items.data ?? []}
+            taxGroups={taxGroups.data ?? []}
+            units={units.data ?? []}
+            priceField="salePrice"
+            withNumbers
+            costCenters={costCenters.data ?? []}
+          />
+        </div>
+        <div className="panel-head">
+          <div>
+            <h2>الإجماليات</h2>
+            <p>تُحتسب من الأسطر أعلاه — لا تُحرَّر يدوياً.</p>
+          </div>
+        </div>
+        <div className="form-section">
+          <TotalsPanel totals={totals} />
 
- </div>
- <div className="panel-head">
- <div>
- <h2>الإجماليات</h2>
- <p>تُحتسب من الأسطر أعلاه — لا تُحرَّر يدوياً.</p>
- </div>
- </div>
- <div className="form-section">
- <TotalsPanel totals={totals} />
-
- <Notice notice={notice} />
- </div>
- <div className="panel-foot">
- {/* «حفظ» L1263 و«حفظ + طباعة» L1257 في `frmInvSale.xaml`. */}
- <button className="btn primary" type="submit" disabled={busy}>
- {busy ? 'جارٍ الحفظ…' : saveAsDraftByDefault ? 'حفظ كمسودة' : 'حفظ وترحيل فوري'}
- </button>
- <button className="btn" type="button" disabled={busy} onClick={(event) => void save(event, true)}>
- {saveAsDraftByDefault ? 'حفظ + طباعة' : 'حفظ وترحيل + طباعة'}
- </button>
+          <Notice notice={notice} />
+        </div>
+        <div className="panel-foot">
+          {/* «حفظ» L1263 و«حفظ + طباعة» L1257 في `frmInvSale.xaml`. */}
+          <button className="btn primary" type="submit" disabled={busy}>
+            {busy ? 'جارٍ الحفظ…' : saveAsDraftByDefault ? 'حفظ كمسودة' : 'حفظ وترحيل فوري'}
+          </button>
+          <button className="btn" type="button" disabled={busy} onClick={(event) => void save(event, true)}>
+            {saveAsDraftByDefault ? 'حفظ + طباعة' : 'حفظ وترحيل + طباعة'}
+          </button>
           {saveAsDraftByDefault ? (
- <button className="btn" type="button" disabled={busy} onClick={(event) => void save(event, false, false)}>
- حفظ وترحيل فوري
- </button>
+            <button
+              className="btn"
+              type="button"
+              disabled={busy}
+              onClick={(event) => void save(event, false, false)}
+            >
+              حفظ وترحيل فوري
+            </button>
           ) : (
- <button className="btn" type="button" disabled={busy} onClick={(event) => void save(event, false, true)}>
- حفظ كمسودة فقط
- </button>
+            <button
+              className="btn"
+              type="button"
+              disabled={busy}
+              onClick={(event) => void save(event, false, true)}
+            >
+              حفظ كمسودة فقط
+            </button>
           )}
- </div>
- </form>
- </Screen>
+        </div>
+      </form>
+    </Screen>
   );
 }

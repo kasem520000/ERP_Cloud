@@ -68,7 +68,8 @@ export default function QuotationEsignPage() {
       <Notice notice={notice} />
       {row && row.kind === 'quotation' ? (
         <p className="muted">
-          {row.number ?? 'عرض سعر'} — {money(row.total, row.currency)} — {row.status === 'draft' ? 'مفتوح' : row.status}
+          {row.number ?? 'عرض سعر'} — {money(row.total, row.currency)} —{' '}
+          {row.status === 'draft' ? 'مفتوح' : row.status}
         </p>
       ) : null}
 
@@ -76,11 +77,21 @@ export default function QuotationEsignPage() {
         <div className="form-grid">
           <label className="field">
             <span>بريد الموقّع *</span>
-            <input className="input" type="email" value={signerEmail} onChange={(event) => setSignerEmail(event.target.value)} required />
+            <input
+              className="input"
+              type="email"
+              value={signerEmail}
+              onChange={(event) => setSignerEmail(event.target.value)}
+              required
+            />
           </label>
           <label className="field">
             <span>اسم الموقّع</span>
-            <input className="input" value={signerName} onChange={(event) => setSignerName(event.target.value)} />
+            <input
+              className="input"
+              value={signerName}
+              onChange={(event) => setSignerName(event.target.value)}
+            />
           </label>
           <label className="field">
             <span>رسالة</span>
@@ -95,8 +106,15 @@ export default function QuotationEsignPage() {
       {issued ? (
         <section className="card">
           <h2>الرابط</h2>
-          <p className="muted small">انسخه إذا لم يصل البريد. في وضع التطوير يظهر الرمز هنا لأن نص الرسالة لا يُطبع.</p>
-          <input className="input" readOnly value={issued.href} onFocus={(event) => event.currentTarget.select()} />
+          <p className="muted small">
+            انسخه إذا لم يصل البريد. في وضع التطوير يظهر الرمز هنا لأن نص الرسالة لا يُطبع.
+          </p>
+          <input
+            className="input"
+            readOnly
+            value={issued.href}
+            onFocus={(event) => event.currentTarget.select()}
+          />
           {issued.previewOtp ? <p>رمز التحقق: {issued.previewOtp}</p> : null}
         </section>
       ) : null}

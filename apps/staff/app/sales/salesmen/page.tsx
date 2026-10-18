@@ -61,6 +61,7 @@ export default function SalesmenPage() {
   return (
     <Directory<Salesman>
       listTitle="المندوبون"
+      listHint="كل مندوب بعمولاته الثلاثة وربطه ببطاقة الموظف — والتعديل يُحدّث البطاقة نفسها."
       title="شاشة المندوبين"
       subtitle="بطاقة المندوب: العمولات الثلاث التي تُحسب على فواتيره، وبيانات التواصل، وربطه ببطاقة الموظف حتى تُنسَب سندات القبض إليه."
       crumbs={['المبيعات', 'التعاريف']}
@@ -68,6 +69,7 @@ export default function SalesmenPage() {
       canCreate={can('sales.salesman.manage')}
       createLabel="جديد"
       formTitle="بيانات المندوبين"
+      formHint="العمولات نسبٌ مئوية (0–100)، والموظف يربط سندات القبض بالبطاقة."
       fields={[
         { name: 'name', label: 'اسم المندوب:', required: true, wide: true },
         {

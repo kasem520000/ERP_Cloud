@@ -1,10 +1,10 @@
 'use client';
 
 import Link from 'next/link';
+import { FilterBand, Panel } from '@erp/ui';
 import { Suspense, useState } from 'react';
 
 import { Empty, ErrorBox, Forbidden, Loading, Screen } from '../../../components/screen';
-import { StatTile, StatTiles } from '../../../components/ui';
 import { downloadCsv } from '../../../lib/accounts';
 import { apiFetch } from '../../../lib/api';
 import { listBranches, listSalesmen, money } from '../../../lib/lookups';
@@ -186,22 +186,20 @@ function SalesmanCommissions() {
           </button>
         </>
       }
-    >
-      <div className="card tight no-print">
-        <div className="row" style={{ flexWrap: 'wrap', alignItems: 'flex-end' }}>
-          <label className="field" style={{ margin: 0, minWidth: 240, flex: 1 }}>
+      filters={
+        <FilterBand summary="«كل الفترة» ترفع التاريخين عن الفواتير وحدها؛ وسندات القبض مقيدة بهما دائماً، ولا تُقيَّد بالفرع.">
+          <label className="field">
             <span>المندوب</span>
             <select
-              className="input"
+              className="ui-select"
               value={salesmanId}
               onChange={(event) => {
                 setSalesmanId(event.target.value);
-                // «🌐 الكل» and a picked مندوب are the same control in the window.
                 if (event.target.value) setAllSalesmen(false);
               }}
               disabled={allSalesmen}
             >
-              <option value="">اختر المندوب...</option>
+              <option value="">اختر المندوب…</option>
               {(salesmen.data ?? []).map((row) => (
                 <option key={row.id} value={row.id}>
                   {row.name}
@@ -209,7 +207,7 @@ function SalesmanCommissions() {
               ))}
             </select>
           </label>
-          <label className="check" style={{ margin: 0 }}>
+          <label className="field-check">
             <input
               type="checkbox"
               checked={allSalesmen}
@@ -218,11 +216,15 @@ function SalesmanCommissions() {
                 if (event.target.checked) setSalesmanId('');
               }}
             />
-            الكل
+            <span>كل المناديب</span>
           </label>
-          <label className="field" style={{ margin: 0, minWidth: 200 }}>
+          <label className="field">
             <span>الفرع</span>
-            <select className="input" value={branchId} onChange={(event) => setBranchId(event.target.value)}>
+            <select
+              className="ui-select"
+              value={branchId}
+              onChange={(event) => setBranchId(event.target.value)}
+            >
               <option value="">كل الفروع</option>
               {(branches.data ?? []).map((branch) => (
                 <option key={branch.id} value={branch.id}>
@@ -231,29 +233,33 @@ function SalesmanCommissions() {
               ))}
             </select>
           </label>
-        </div>
-        <div className="row" style={{ flexWrap: 'wrap', alignItems: 'flex-end', marginTop: 8 }}>
-          <span className="group-label">الفترة الزمنية</span>
-          <label className="check" style={{ margin: 0 }}>
-            <input
-              type="checkbox"
-              checked={allPeriod}
-              onChange={(event) => setAllPeriod(event.target.checked)}
-            />
-            كل الفترة
-          </label>
-          <label className="field" style={{ margin: 0, width: 160 }}>
+          <label className="field">
             <span>من</span>
             <input
               className="input"
               type="date"
               value={from}
+              disabled={allPeriod}
               onChange={(event) => setFrom(event.target.value)}
             />
           </label>
-          <label className="field" style={{ margin: 0, width: 160 }}>
+          <label className="field">
             <span>إلى</span>
-            <input className="input" type="date" value={to} onChange={(event) => setTo(event.target.value)} />
+            <input
+              className="input"
+              type="date"
+              value={to}
+              disabled={allPeriod}
+              onChange={(event) => setTo(event.target.value)}
+            />
+          </label>
+          <label className="field-check">
+            <input
+              type="checkbox"
+              checked={allPeriod}
+              onChange={(event) => setAllPeriod(event.target.checked)}
+            />
+            <span>كل الفترة</span>
           </label>
           <button
             className="btn primary"
@@ -262,32 +268,59 @@ function SalesmanCommissions() {
           >
             عرض
           </button>
-        </div>
-        <p className="muted" style={{ marginBottom: 0 }}>
-          «كل الفترة» ترفع التاريخين عن <strong>الفواتير</strong> وحدها؛ أما سندات القبض فمقيدة بهما دائماً،
-          كما في النافذة، والسندات لا تُقيَّد بالفرع.
-        </p>
-      </div>
-
+        </FilterBand>
+      }
+    >
       {report.status === 'loading' && <Loading rows={6} />}
       {report.status === 'forbidden' && <Forbidden />}
       {report.status === 'error' && <ErrorBox message={report.error} onRetry={report.reload} />}
       {report.status === 'success' && (
         <>
-          <StatTiles>
-            <StatTile
-              label="إجمالي القيمة"
-              value={money(totals.totalValue)}
-              tone="ok"
-              hint="المبيعات − المرتجعات − الإشعارات + التحصيل"
-            />
-            <StatTile label="ع. المبيعات" value={money(totals.salesCommission)} tone="brand" />
-            <StatTile label="ع. التحصيل" value={money(totals.collectionCommission)} />
-            <StatTile label="ع. الربح" value={money(totals.profitCommission)} />
-            <StatTile label="عدد الفواتير" value={String(totals.invoices)} />
-            <StatTile label="إشعارات مدين" value={String(totals.notes)} />
-            <StatTile label="سندات القبض" value={String(totals.receipts)} />
-          </StatTiles>
+          <div className="ui-kpi-grid">
+            <div className="ui-kpi-cell">
+              <span className="ui-kpi-label">إجمالي القيمة</span>
+              <span className="ui-kpi-value num is-up" dir="ltr">
+                {money(totals.totalValue)}
+              </span>
+              <span className="ui-kpi-hint">المبيعات − المرتجعات − الإشعارات + التحصيل</span>
+            </div>
+            <div className="ui-kpi-cell">
+              <span className="ui-kpi-label">عمولة المبيعات</span>
+              <span className="ui-kpi-value num" dir="ltr">
+                {money(totals.salesCommission)}
+              </span>
+            </div>
+            <div className="ui-kpi-cell">
+              <span className="ui-kpi-label">عمولة التحصيل</span>
+              <span className="ui-kpi-value num" dir="ltr">
+                {money(totals.collectionCommission)}
+              </span>
+            </div>
+            <div className="ui-kpi-cell">
+              <span className="ui-kpi-label">عمولة الربح</span>
+              <span className="ui-kpi-value num" dir="ltr">
+                {money(totals.profitCommission)}
+              </span>
+            </div>
+            <div className="ui-kpi-cell">
+              <span className="ui-kpi-label">عدد الفواتير</span>
+              <span className="ui-kpi-value num" dir="ltr">
+                {totals.invoices}
+              </span>
+            </div>
+            <div className="ui-kpi-cell">
+              <span className="ui-kpi-label">إشعارات مدين</span>
+              <span className="ui-kpi-value num" dir="ltr">
+                {totals.notes}
+              </span>
+            </div>
+            <div className="ui-kpi-cell">
+              <span className="ui-kpi-label">سندات القبض</span>
+              <span className="ui-kpi-value num" dir="ltr">
+                {totals.receipts}
+              </span>
+            </div>
+          </div>
 
           {rows.length === 0 ? (
             <Empty
@@ -295,76 +328,78 @@ function SalesmanCommissions() {
               detail="تأكد من التاريخين، أو أن فواتير المندوب مرحَّلة، أو أن له سندات قبض باسم بطاقة موظفه."
             />
           ) : (
-            <div className="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>م</th>
-                    <th>نوع الحركة</th>
-                    <th>التاريخ</th>
-                    <th>رقم السند</th>
-                    <th>رقم المرجع</th>
-                    <th>المندوب</th>
-                    <th>الفرع</th>
-                    <th className="num">القيمة</th>
-                    <th className="num">عمولة المبيعات</th>
-                    <th className="num">عمولة التحصيل</th>
-                    <th className="num">عمولة الربح</th>
-                    <th>عرض</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {rows.map((row) => {
-                    const isInvoice = row.movementType.includes('فاتورة');
-                    const isNote = row.movementType.includes('إشعار');
-                    const isReceipt = row.movementType.includes('سند قبض');
-                    let href = '';
-                    if (isInvoice) href = `/sales/invoices/${row.documentId}`;
-                    else if (isNote) href = `/sales/notes/debit?id=${row.documentId}`;
-                    else if (isReceipt) href = `/treasury/vouchers?kind=receipt&id=${row.documentId}`;
-                    return (
-                      <tr key={`${row.documentId}-${row.seq}`}>
-                        <td dir="ltr">{row.seq}</td>
-                        <td>{row.movementType}</td>
-                        <td dir="ltr">{row.date ?? '—'}</td>
-                        <td dir="ltr">{row.number ?? '—'}</td>
-                        <td dir="ltr">{row.refNumber ?? '—'}</td>
-                        <td>{row.salesmanName}</td>
-                        <td>{row.branchName ?? '—'}</td>
-                        {/* «القيمة» تُعرض بإشارتها: المرتجع وإشعار المدين ينقصان. */}
-                        <td className="num">{money(String(Number(row.value) * row.isPlus))}</td>
-                        <td className="num">{money(String(Number(row.salesCommission) * row.isPlus))}</td>
-                        <td className="num">
-                          {money(String(Number(row.collectionCommission) * row.isPlus))}
-                        </td>
-                        <td className="num">{money(String(Number(row.profitCommission) * row.isPlus))}</td>
-                        <td>
-                          {href ? (
-                            <Link className="btn sm" href={href}>
-                              عرض
-                            </Link>
-                          ) : (
-                            <span className="muted">—</span>
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-                <tfoot>
-                  <tr>
-                    <th colSpan={7}>الإجمالي</th>
-                    <th className="num">{money(totals.totalValue)}</th>
-                    <th className="num">{money(totals.salesCommission)}</th>
-                    <th className="num">{money(totals.collectionCommission)}</th>
-                    <th className="num">{money(totals.profitCommission)}</th>
-                    <th>
-                      <span className="sr-only">إجراءات</span>
-                    </th>
-                  </tr>
-                </tfoot>
-              </table>
-            </div>
+            <Panel flush hint="القيمة بإشارتها: المرتجع وإشعار المدين ينقصان." title="حركات المندوب">
+              <div className="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>م</th>
+                      <th>نوع الحركة</th>
+                      <th>التاريخ</th>
+                      <th>رقم السند</th>
+                      <th>رقم المرجع</th>
+                      <th>المندوب</th>
+                      <th>الفرع</th>
+                      <th className="num">القيمة</th>
+                      <th className="num">عمولة المبيعات</th>
+                      <th className="num">عمولة التحصيل</th>
+                      <th className="num">عمولة الربح</th>
+                      <th>عرض</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {rows.map((row) => {
+                      const isInvoice = row.movementType.includes('فاتورة');
+                      const isNote = row.movementType.includes('إشعار');
+                      const isReceipt = row.movementType.includes('سند قبض');
+                      let href = '';
+                      if (isInvoice) href = `/sales/invoices/${row.documentId}`;
+                      else if (isNote) href = `/sales/notes/debit?id=${row.documentId}`;
+                      else if (isReceipt) href = `/treasury/vouchers?kind=receipt&id=${row.documentId}`;
+                      return (
+                        <tr key={`${row.documentId}-${row.seq}`}>
+                          <td dir="ltr">{row.seq}</td>
+                          <td>{row.movementType}</td>
+                          <td dir="ltr">{row.date ?? '—'}</td>
+                          <td dir="ltr">{row.number ?? '—'}</td>
+                          <td dir="ltr">{row.refNumber ?? '—'}</td>
+                          <td>{row.salesmanName}</td>
+                          <td>{row.branchName ?? '—'}</td>
+                          {/* «القيمة» تُعرض بإشارتها: المرتجع وإشعار المدين ينقصان. */}
+                          <td className="num">{money(String(Number(row.value) * row.isPlus))}</td>
+                          <td className="num">{money(String(Number(row.salesCommission) * row.isPlus))}</td>
+                          <td className="num">
+                            {money(String(Number(row.collectionCommission) * row.isPlus))}
+                          </td>
+                          <td className="num">{money(String(Number(row.profitCommission) * row.isPlus))}</td>
+                          <td>
+                            {href ? (
+                              <Link className="btn sm" href={href}>
+                                عرض
+                              </Link>
+                            ) : (
+                              <span className="muted">—</span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                  <tfoot>
+                    <tr>
+                      <th colSpan={7}>الإجمالي</th>
+                      <th className="num">{money(totals.totalValue)}</th>
+                      <th className="num">{money(totals.salesCommission)}</th>
+                      <th className="num">{money(totals.collectionCommission)}</th>
+                      <th className="num">{money(totals.profitCommission)}</th>
+                      <th>
+                        <span className="sr-only">إجراءات</span>
+                      </th>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            </Panel>
           )}
         </>
       )}
