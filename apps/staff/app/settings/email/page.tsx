@@ -1,5 +1,6 @@
 'use client';
 
+import { FilterBand, Panel } from '@erp/ui';
 import { useState } from 'react';
 import {
   emailEventDefinition,
@@ -63,12 +64,12 @@ export default function EmailSettingsPage() {
   const canEdit = session.can('tenant.email.template.manage');
 
   return (
- <Screen
+    <Screen
       title="البريد"
       subtitle="نصوص الرسائل التي تخرج باسم منشأتك، وسجلّ ما خرج منها، وهوِيّة المُرسِل. النصّ الذي تكتبه هنا يخصّ منشأتك وحدها."
       crumbs={['الإعدادات', 'البريد']}
     >
- <Tabs<TabId>
+      <Tabs<TabId>
         value={tab}
         onChange={setTab}
         items={[
@@ -80,7 +81,7 @@ export default function EmailSettingsPage() {
       {tab === 'templates' && canEdit && <TemplatesTab />}
       {tab === 'messages' && canViewLog && <MessagesTab />}
       {tab === 'settings' && canViewLog && <SenderTab canEdit={canEdit} />}
- </Screen>
+    </Screen>
   );
 }
 
@@ -148,104 +149,120 @@ function TemplatesTab() {
   const overridden = rows.filter((row) => row.source === 'tenant').length;
 
   return (
- <div className="grid">
- <div className="card tight">
- <div className="row">
- <label>
- اللغة
- <select className="input" value={locale} onChange={(change) => setLocale(change.target.value as EmailLocale)}>
- <option value="ar">{LOCALE_LABEL.ar}</option>
- <option value="en">{LOCALE_LABEL.en}</option>
- </select>
- </label>
- <button className="btn" type="button" onClick={list.reload}>
- تحديث
- </button>
- </div>
- <p className="muted">
-          {rows.length} حدثاً في هذه اللغة، منها {overridden} بنصّك. «أعِد نصّ المنصة» يكتب نصّ المنصة في
- الحقل، وإن أعَدت الحقلين معاً حُذف تجاوزك وعاد الحدث إلى نصّها بالكامل.
- </p>
- </div>
+    <div className="grid">
+      <FilterBand
+        summary={`${rows.length} حدثاً في هذه اللغة، منها ${overridden} بنصّك.`}
+        actions={
+          <button className="btn" type="button" onClick={list.reload}>
+            تحديث
+          </button>
+        }
+      >
+        <label className="field">
+          <span>اللغة</span>
+          <select
+            className="input"
+            value={locale}
+            onChange={(change) => setLocale(change.target.value as EmailLocale)}
+          >
+            <option value="ar">{LOCALE_LABEL.ar}</option>
+            <option value="en">{LOCALE_LABEL.en}</option>
+          </select>
+        </label>
+      </FilterBand>
 
- <Notice notice={notice} />
+      <Notice notice={notice} />
 
- <div className="card">
- <table className="table">
- <thead>
- <tr>
- <th>الحدث</th>
- <th>الموضوع</th>
- <th>النصّ</th>
- <th>المصدر</th>
- <th>المتغيّرات</th>
- <th />
- </tr>
- </thead>
- <tbody>
-            {rows.map((row) => (
- <tr key={row.event}>
- <td>{row.labelAr}</td>
- <td className="muted">{row.subject}</td>
- <td className="muted">
-                  {row.body.split('\n')[0]?.slice(0, 60)}
-                  {row.body.length > 60 ? '…' : ''}
- </td>
- <td>
- <span className={`chip ${row.source === 'tenant' ? 'on' : ''}`}>
-                    {row.source === 'tenant' ? 'نصّنا' : 'نصّ المنصة'}
- </span>
- </td>
- <td className="muted">{row.variables.map((name) => `{{${name}}}`).join(' ')}</td>
- <td>
- <button className="btn sm" type="button" onClick={() => open(row)}>
- تحرير
- </button>
- </td>
- </tr>
-            ))}
- </tbody>
- </table>
- </div>
+      <Panel
+        flush
+        title="نصوص الرسائل"
+        hint="«أعِد نصّ المنصة» يكتب نصّ المنصة في الحقل، وإن أعَدت الحقلين معاً حُذف تجاوزك وعاد الحدث إلى نصّها بالكامل."
+      >
+        <div className="table-wrap">
+          <table className="table">
+            <thead>
+              <tr>
+                <th>الحدث</th>
+                <th>الموضوع</th>
+                <th>النصّ</th>
+                <th>المصدر</th>
+                <th>المتغيّرات</th>
+                <th />
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((row) => (
+                <tr key={row.event}>
+                  <td>{row.labelAr}</td>
+                  <td className="muted">{row.subject}</td>
+                  <td className="muted">
+                    {row.body.split('\n')[0]?.slice(0, 60)}
+                    {row.body.length > 60 ? '…' : ''}
+                  </td>
+                  <td>
+                    <span className={`chip ${row.source === 'tenant' ? 'on' : ''}`}>
+                      {row.source === 'tenant' ? 'نصّنا' : 'نصّ المنصة'}
+                    </span>
+                  </td>
+                  <td className="muted">{row.variables.map((name) => `{{${name}}}`).join(' ')}</td>
+                  <td>
+                    <button className="btn sm" type="button" onClick={() => open(row)}>
+                      تحرير
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </Panel>
 
       {editing && (
- <div className="card">
- <h2 style={{ marginTop: 0 }}>{editing.labelAr}</h2>
- <p className="muted">
- المتغيّرات المعلَنة: {editing.variables.map((name) => `{{${name}}}`).join(' · ') || 'لا شيء'} —
- ومتغيّرٌ خارجها يُرفض عند الحفظ، فلا يخرج نصٌّ فيه متغيّرٌ مجهول إلى عميل.
- </p>
- <label>
- الموضوع
- <input className="input" value={subject} onChange={(change) => setSubject(change.target.value)} />
- </label>
- <label>
- النصّ
- <textarea className="input" rows={10} value={body} onChange={(change) => setBody(change.target.value)} />
- </label>
- <label>
- سبب التعديل (اختياري، يُسجَّل في تدقيق منشأتك)
- <input className="input" value={reason} onChange={(change) => setReason(change.target.value)} />
- </label>
- <div className="row">
- <button className="btn" type="button" disabled={busy} onClick={() => save()}>
- حفظ نصّي
- </button>
- <button
-              className="btn"
-              type="button"
-              disabled={busy}
-              onClick={() => save({ subject: null, body: null })}
-            >
- أعِد نصّ المنصة
- </button>
- <button className="btn" type="button" onClick={() => setEditing(null)}>
- إغلاق
- </button>
- </div>
- </div>
+        <Panel
+          title={editing.labelAr}
+          hint={`المتغيّرات المعلَنة: ${
+            editing.variables.map((name) => `{{${name}}}`).join(' · ') || 'لا شيء'
+          } — ومتغيّرٌ خارجها يُرفض عند الحفظ، فلا يخرج نصٌّ فيه متغيّرٌ مجهول إلى عميل.`}
+        >
+          <label className="field">
+            <span>الموضوع</span>
+            <input className="input" value={subject} onChange={(change) => setSubject(change.target.value)} />
+          </label>
+          <label className="field">
+            <span>النصّ</span>
+            <textarea
+              className="input"
+              rows={10}
+              value={body}
+              onChange={(change) => setBody(change.target.value)}
+            />
+          </label>
+          <label className="field">
+            <span>سبب التعديل (اختياري، يُسجَّل في تدقيق منشأتك)</span>
+            <input className="input" value={reason} onChange={(change) => setReason(change.target.value)} />
+          </label>
+          <div className="ui-form-actions">
+            <span />
+            <div className="ui-form-actions-buttons">
+              <button className="btn" type="button" disabled={busy} onClick={() => save()}>
+                حفظ نصّي
+              </button>
+              <button
+                className="btn"
+                type="button"
+                disabled={busy}
+                onClick={() => save({ subject: null, body: null })}
+              >
+                أعِد نصّ المنصة
+              </button>
+              <button className="btn" type="button" onClick={() => setEditing(null)}>
+                إغلاق
+              </button>
+            </div>
+          </div>
+        </Panel>
       )}
- </div>
+    </div>
   );
 }
 
@@ -269,83 +286,89 @@ function MessagesTab() {
   const counts = list.data?.counts ?? {};
 
   return (
- <div className="grid">
- <div className="card tight">
- <div className="row">
- <label>
- الحدث
- <select className="input" value={event} onChange={(change) => setEvent(change.target.value)}>
- <option value="">كل الأحداث</option>
-              {emailEvents.map((key) => (
- <option key={key} value={key}>
-                  {emailEventDefinition(key).labelAr}
- </option>
-              ))}
- </select>
- </label>
- <label>
- الحالة
- <select className="input" value={status} onChange={(change) => setStatus(change.target.value)}>
- <option value="">كل الحالات</option>
-              {emailMessageStatuses.map((value) => (
- <option key={value} value={value}>
-                  {STATUS_LABEL[value]}
- </option>
-              ))}
- </select>
- </label>
- <button className="btn" type="button" onClick={list.reload}>
- تحديث
- </button>
- </div>
- <p className="muted">
-          {emailMessageStatuses.map((value) => `${STATUS_LABEL[value]}: ${counts[value] ?? 0}`).join(' · ')} —
- والرسائل التي تراها هي رسائل منشأتك وحدها.
- </p>
- </div>
-
- <div className="card">
- <table className="table">
- <thead>
- <tr>
- <th>الوقت</th>
- <th>إلى</th>
- <th>الحدث</th>
- <th>الحالة</th>
- <th>المحاولات</th>
- <th>آخر خطأ</th>
- </tr>
- </thead>
- <tbody>
-            {rows.map((row: EmailMessage) => (
- <tr key={row.id}>
- <td>{dateTime(row.sentAt ?? row.queuedAt)}</td>
- <td>
-                  {row.toEmail}
-                  {row.isTest && <span className="chip">اختبار</span>}
- </td>
- <td>{row.eventLabelAr}</td>
- <td>
- <span
-                    className={`chip ${row.status === 'sent' ? 'on' : row.status === 'failed' ? 'off' : ''}`}
-                  >
-                    {STATUS_LABEL[row.status]}
- </span>
- </td>
- <td>{row.attempts}</td>
- <td className="muted">{row.lastError ?? '—'}</td>
- </tr>
+    <div className="grid">
+      <FilterBand
+        summary={`${emailMessageStatuses
+          .map((value) => `${STATUS_LABEL[value]}: ${counts[value] ?? 0}`)
+          .join(' · ')} — والرسائل التي تراها هي رسائل منشأتك وحدها.`}
+        actions={
+          <button className="btn" type="button" onClick={list.reload}>
+            تحديث
+          </button>
+        }
+      >
+        <label className="field">
+          <span>الحدث</span>
+          <select className="input" value={event} onChange={(change) => setEvent(change.target.value)}>
+            <option value="">كل الأحداث</option>
+            {emailEvents.map((key) => (
+              <option key={key} value={key}>
+                {emailEventDefinition(key).labelAr}
+              </option>
             ))}
- </tbody>
- </table>
-        {rows.length === 0 && (
- <Empty
-            title="لا رسائل بعد"
-            detail="سينبني السجلّ تلقائياً حين يرسل النظام أول رسالةٍ باسم منشأتك (دعوة · فاتورة · تنبيه)."
-          />
-        )}
- </div>
- </div>
+          </select>
+        </label>
+        <label className="field">
+          <span>الحالة</span>
+          <select className="input" value={status} onChange={(change) => setStatus(change.target.value)}>
+            <option value="">كل الحالات</option>
+            {emailMessageStatuses.map((value) => (
+              <option key={value} value={value}>
+                {STATUS_LABEL[value]}
+              </option>
+            ))}
+          </select>
+        </label>
+      </FilterBand>
+
+      <Panel
+        flush
+        title="سجلّ الرسائل"
+        hint="كل محاولة إرسال وحالتها وآخر خطأ — للرسائل التي تخصّ منشأتك وحدها."
+      >
+        <div className="table-wrap">
+          <table className="table">
+            <thead>
+              <tr>
+                <th>الوقت</th>
+                <th>إلى</th>
+                <th>الحدث</th>
+                <th>الحالة</th>
+                <th>المحاولات</th>
+                <th>آخر خطأ</th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((row: EmailMessage) => (
+                <tr key={row.id}>
+                  <td>{dateTime(row.sentAt ?? row.queuedAt)}</td>
+                  <td>
+                    {row.toEmail}
+                    {row.isTest && <span className="chip">اختبار</span>}
+                  </td>
+                  <td>{row.eventLabelAr}</td>
+                  <td>
+                    <span
+                      className={`chip ${row.status === 'sent' ? 'on' : row.status === 'failed' ? 'off' : ''}`}
+                    >
+                      {STATUS_LABEL[row.status]}
+                    </span>
+                  </td>
+                  <td>{row.attempts}</td>
+                  <td className="muted">{row.lastError ?? '—'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {rows.length === 0 && (
+            <Empty
+              title="لا رسائل بعد"
+              detail="سينبني السجلّ تلقائياً حين يرسل النظام أول رسالةٍ باسم منشأتك (دعوة · فاتورة · تنبيه)."
+            />
+          )}
+        </div>
+      </Panel>
+    </div>
   );
 }
 
@@ -430,13 +453,10 @@ function SenderTab({ canEdit }: { canEdit: boolean }) {
     setBusy(true);
     setNotice(undefined);
     try {
-      const result = await apiData<{ status: string; provider: string; to: string }>(
-        '/email/settings/test',
-        {
-          method: 'POST',
-          body: JSON.stringify({ to: probeTo.trim(), locale: 'ar' }),
-        },
-      );
+      const result = await apiData<{ status: string; provider: string; to: string }>('/email/settings/test', {
+        method: 'POST',
+        body: JSON.stringify({ to: probeTo.trim(), locale: 'ar' }),
+      });
       setNotice({
         kind: result.status === 'sent' ? 'ok' : 'danger',
         text:
@@ -452,77 +472,81 @@ function SenderTab({ canEdit }: { canEdit: boolean }) {
   }
 
   return (
- <div className="grid">
- <div className="card">
- <h2 style={{ marginTop: 0 }}>مزوّد البريد الإلكتروني وهوية المُرسِل</h2>
- <p className="muted">
- يمكنك الربط المباشر مع <strong>Resend</strong> أو خادم <strong>SMTP</strong> مخصّص أو بوابة{' '}
- <strong>HTTP Webhook / API</strong> لإرسال الفواتير واستعادة كلمات المرور والإشعارات.
- </p>
+    <div className="grid">
+      <div className="card">
+        <h2 style={{ marginTop: 0 }}>مزوّد البريد الإلكتروني وهوية المُرسِل</h2>
+        <p className="muted">
+          يمكنك الربط المباشر مع <strong>Resend</strong> أو خادم <strong>SMTP</strong> مخصّص أو بوابة{' '}
+          <strong>HTTP Webhook / API</strong> لإرسال الفواتير واستعادة كلمات المرور والإشعارات.
+        </p>
 
- <div className="row">
- <label>
- مزوّد خدمة البريد
- <select className="input"
+        <div className="row">
+          <label className="field">
+            <span>مزوّد خدمة البريد</span>
+            <select
+              className="input"
               value={selectedProvider}
               disabled={!canEdit}
               onChange={(change) =>
                 setDraft({ ...draft, provider: change.target.value as EmailSettings['provider'] })
               }
             >
- <option value="resend">Resend API (موصى به للسحابة)</option>
- <option value="smtp">SMTP — خادم بريد قياسي (TLS / STARTTLS)</option>
- <option value="http">HTTP API / Webhook — مزوّد بريد خارجي مخصّص</option>
- <option value="console">Console — سجلّ النظام الداخلي</option>
- </select>
- </label>
- <label>
- اسم المُرسِل
- <input className="input"
+              <option value="resend">Resend API (موصى به للسحابة)</option>
+              <option value="smtp">SMTP — خادم بريد قياسي (TLS / STARTTLS)</option>
+              <option value="http">HTTP API / Webhook — مزوّد بريد خارجي مخصّص</option>
+              <option value="console">Console — سجلّ النظام الداخلي</option>
+            </select>
+          </label>
+          <label className="field">
+            <span>اسم المُرسِل</span>
+            <input
+              className="input"
               value={value('fromName') ?? ''}
               disabled={!canEdit}
               onChange={(change) => setDraft({ ...draft, fromName: change.target.value })}
             />
- </label>
- <label>
- عنوان البريد المُرسِل
- <input className="input"
+          </label>
+          <label className="field">
+            <span>عنوان البريد المُرسِل</span>
+            <input
+              className="input"
               value={value('fromEmail') ?? ''}
               disabled={!canEdit}
               dir="ltr"
               placeholder="noreply@yourdomain.com"
               onChange={(change) => setDraft({ ...draft, fromEmail: change.target.value })}
             />
- </label>
- <label>
- ردّ إلى (Reply-To)
- <input className="input"
+          </label>
+          <label className="field">
+            <span>ردّ إلى (Reply-To)</span>
+            <input
+              className="input"
               value={value('replyTo') ?? ''}
               disabled={!canEdit}
               dir="ltr"
               placeholder="support@yourdomain.com"
               onChange={(change) => setDraft({ ...draft, replyTo: change.target.value })}
             />
- </label>
- <label>
- نطاق الإرسال (Sending Domain)
- <input className="input"
+          </label>
+          <label className="field">
+            <span>نطاق الإرسال (Sending Domain)</span>
+            <input
+              className="input"
               value={value('sendingDomain') ?? ''}
               disabled={!canEdit}
               dir="ltr"
               placeholder="mail.example.com"
               onChange={(change) => setDraft({ ...draft, sendingDomain: change.target.value })}
             />
- </label>
- </div>
+          </label>
+        </div>
 
         {(selectedProvider === 'resend' || selectedProvider === 'http') && (
- <div className="row" style={{ marginTop: 12 }}>
- <label style={{ flex: 2 }}>
-              {selectedProvider === 'resend'
-                ? 'مفتاح Resend API Key'
-                : 'مفتاح المصادقة (Bearer API Key)'}
- <input className="input"
+          <div className="row" style={{ marginTop: 12 }}>
+            <label style={{ flex: 2 }}>
+              {selectedProvider === 'resend' ? 'مفتاح Resend API Key' : 'مفتاح المصادقة (Bearer API Key)'}
+              <input
+                className="input"
                 type="password"
                 dir="ltr"
                 disabled={!canEdit}
@@ -536,12 +560,13 @@ function SenderTab({ canEdit }: { canEdit: boolean }) {
                 }
                 onChange={(change) => setApiKeyDraft(change.target.value)}
               />
- </label>
- <label style={{ flex: 2 }}>
+            </label>
+            <label style={{ flex: 2 }}>
               {selectedProvider === 'resend'
                 ? 'رابط Resend API (اختياري — الافتراضي https://api.resend.com/emails)'
                 : 'رابط نقطة النهاية (HTTP Webhook URL)'}
- <input className="input"
+              <input
+                className="input"
                 dir="ltr"
                 disabled={!canEdit}
                 value={value('apiEndpoint') ?? ''}
@@ -552,25 +577,27 @@ function SenderTab({ canEdit }: { canEdit: boolean }) {
                 }
                 onChange={(change) => setDraft({ ...draft, apiEndpoint: change.target.value })}
               />
- </label>
- </div>
+            </label>
+          </div>
         )}
 
         {selectedProvider === 'smtp' && (
- <div className="row" style={{ marginTop: 12 }}>
- <label>
- مُضيف SMTP (Host)
- <input className="input"
+          <div className="row" style={{ marginTop: 12 }}>
+            <label className="field">
+              <span>مُضيف SMTP (Host)</span>
+              <input
+                className="input"
                 dir="ltr"
                 disabled={!canEdit}
                 value={value('smtpHost') ?? ''}
                 placeholder="smtp.resend.com أو smtp.office365.com"
                 onChange={(change) => setDraft({ ...draft, smtpHost: change.target.value })}
               />
- </label>
- <label>
- المنفذ (Port)
- <input className="input"
+            </label>
+            <label className="field">
+              <span>المنفذ (Port)</span>
+              <input
+                className="input"
                 type="number"
                 dir="ltr"
                 disabled={!canEdit}
@@ -582,20 +609,22 @@ function SenderTab({ canEdit }: { canEdit: boolean }) {
                   })
                 }
               />
- </label>
- <label>
- اسم مستخدم SMTP
- <input className="input"
+            </label>
+            <label className="field">
+              <span>اسم مستخدم SMTP</span>
+              <input
+                className="input"
                 dir="ltr"
                 disabled={!canEdit}
                 value={value('smtpUser') ?? ''}
                 placeholder="resend أو user@domain.com"
                 onChange={(change) => setDraft({ ...draft, smtpUser: change.target.value })}
               />
- </label>
- <label>
- كلمة مرور SMTP
- <input className="input"
+            </label>
+            <label className="field">
+              <span>كلمة مرور SMTP</span>
+              <input
+                className="input"
                 type="password"
                 dir="ltr"
                 disabled={!canEdit}
@@ -603,38 +632,44 @@ function SenderTab({ canEdit }: { canEdit: boolean }) {
                 placeholder={current?.smtpConfigured ? '•••••••• (محفوظة)' : 'كلمة المرور أو مفتاح SMTP'}
                 onChange={(change) => setSmtpPasswordDraft(change.target.value)}
               />
- </label>
- <label style={{ display: 'flex', alignItems: 'center', gap: 8, paddingTop: 22 }}>
- <input
+            </label>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 8, paddingTop: 22 }}>
+              <input
                 type="checkbox"
                 disabled={!canEdit}
                 checked={Boolean(value('smtpSecure'))}
                 onChange={(change) => setDraft({ ...draft, smtpSecure: change.target.checked })}
               />
- اتصال TLS مباشر (منفذ 465)
- </label>
- </div>
+              اتصال TLS مباشر (منفذ 465)
+            </label>
+          </div>
         )}
 
- <div className="row" style={{ marginTop: 14 }}>
- <label>
- سبب التعديل (تدقيق اختياري)
- <input className="input" value={reason} disabled={!canEdit} onChange={(change) => setReason(change.target.value)} />
- </label>
- <button className="btn primary" type="button" disabled={!canEdit || busy} onClick={save}>
- حفظ الإعدادات
- </button>
- <button className="btn" type="button" onClick={settings.reload}>
- استرجاع
- </button>
- </div>
+        <div className="row" style={{ marginTop: 14 }}>
+          <label className="field">
+            <span>سبب التعديل (تدقيق اختياري)</span>
+            <input
+              className="input"
+              value={reason}
+              disabled={!canEdit}
+              onChange={(change) => setReason(change.target.value)}
+            />
+          </label>
+          <button className="btn primary" type="button" disabled={!canEdit || busy} onClick={save}>
+            حفظ الإعدادات
+          </button>
+          <button className="btn" type="button" onClick={settings.reload}>
+            استرجاع
+          </button>
+        </div>
 
- <hr style={{ margin: '18px 0', border: 0, borderTop: '1px solid var(--line, #e2e8f0)' }} />
+        <hr style={{ margin: '18px 0', border: 0, borderTop: '1px solid var(--line, #e2e8f0)' }} />
 
- <div className="row">
- <label style={{ flex: 1 }}>
- إرسال بريد تجريبي للتحقق من الاتصال
- <input className="input"
+        <div className="row">
+          <label style={{ flex: 1 }}>
+            إرسال بريد تجريبي للتحقق من الاتصال
+            <input
+              className="input"
               type="email"
               dir="ltr"
               value={probeTo}
@@ -642,46 +677,46 @@ function SenderTab({ canEdit }: { canEdit: boolean }) {
               placeholder="test@yourdomain.com"
               onChange={(change) => setProbeTo(change.target.value)}
             />
- </label>
- <button
+          </label>
+          <button
             className="btn"
             type="button"
             disabled={!canEdit || busy || !probeTo.includes('@')}
             onClick={sendTest}
           >
- إرسال رسالة اختبار
- </button>
- </div>
+            إرسال رسالة اختبار
+          </button>
+        </div>
 
         {!canEdit && (
- <p className="alert warn">قراءةٌ فقط: تعديل إعدادات البريد يحتاج صلاحية «إدارة قوالب البريد».</p>
+          <p className="alert warn">قراءةٌ فقط: تعديل إعدادات البريد يحتاج صلاحية «إدارة قوالب البريد».</p>
         )}
- <p className="muted">
- المزوّد الفعّال حالياً: <strong>{current?.provider}</strong>
+        <p className="muted">
+          المزوّد الفعّال حالياً: <strong>{current?.provider}</strong>
           {current?.apiKeyMasked ? ` · مفتاح API: ${current.apiKeyMasked}` : ''} — آخر تعديل:{' '}
           {dateTime(current?.updatedAt ?? null)}.
- </p>
- </div>
+        </p>
+      </div>
 
- <Notice notice={notice} />
+      <Notice notice={notice} />
 
- <div className="card">
- <h2 style={{ marginTop: 0 }}>لماذا لا تصل الرسالة أحياناً؟</h2>
- <ul className="muted">
- <li>
- <strong>محجوبة</strong> — العنوان في قائمة الحجر (ارتداد سابق أو إلغاء اشتراك أو طلب العميل). لا
- تُستهلك محاولة: الحجر يمنع قبل الطابور.
- </li>
- <li>
- <strong>فشلت</strong> — حاول المُرسِل ثلاث مرات (بعد دقيقة، ثم خمس، ثم ثلاثين)، ثم توقّف. الإصلاح
- من المنصة: مزوّد البريد والإعدادات.
- </li>
- <li>
- <strong>في الطابور</strong> — الرسالة مسجَّلة ومهمّتها قائمة، ولم تُسلَّم بعد.
- </li>
- </ul>
- </div>
- </div>
+      <div className="card">
+        <h2 style={{ marginTop: 0 }}>لماذا لا تصل الرسالة أحياناً؟</h2>
+        <ul className="muted">
+          <li>
+            <strong>محجوبة</strong> — العنوان في قائمة الحجر (ارتداد سابق أو إلغاء اشتراك أو طلب العميل). لا
+            تُستهلك محاولة: الحجر يمنع قبل الطابور.
+          </li>
+          <li>
+            <strong>فشلت</strong> — حاول المُرسِل ثلاث مرات (بعد دقيقة، ثم خمس، ثم ثلاثين)، ثم توقّف. الإصلاح
+            من المنصة: مزوّد البريد والإعدادات.
+          </li>
+          <li>
+            <strong>في الطابور</strong> — الرسالة مسجَّلة ومهمّتها قائمة، ولم تُسلَّم بعد.
+          </li>
+        </ul>
+      </div>
+    </div>
   );
 }
 

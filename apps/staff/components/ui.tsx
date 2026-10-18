@@ -76,23 +76,23 @@ export function StatusTrack({
   cancelled?: boolean;
 }) {
   return (
- <div className="stepper">
+    <div className="stepper">
       {steps.map((step, index) => {
         const state: 'done' | 'current' | 'cancelled' | 'todo' =
           index < current ? 'done' : index > current ? 'todo' : cancelled ? 'cancelled' : 'current';
         return (
- <span key={step} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+          <span key={step} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
             {index > 0 ? <span className="step-sep" /> : null}
- <span className={`step${state === 'todo' ? '' : ` ${state}`}`}>
- <span className="step-bullet">
- {state === 'done' ? '' : state === 'cancelled' ? '' : index + 1}
- </span>
+            <span className={`step${state === 'todo' ? '' : ` ${state}`}`}>
+              <span className="step-bullet">
+                {state === 'done' ? '' : state === 'cancelled' ? '' : index + 1}
+              </span>
               {step}
- </span>
- </span>
+            </span>
+          </span>
         );
       })}
- </div>
+    </div>
   );
 }
 
@@ -108,19 +108,20 @@ export function Tabs<T extends string>({
   onChange: (next: T) => void;
 }) {
   return (
- <div className="tabs">
+    <div className="ui-tabs" role="tablist">
       {items.map((item) => (
- <button
+        <button
           key={item.id}
           type="button"
-          className={`tab${item.id === value ? ' active' : ''}`}
+          role="tab"
+          aria-selected={item.id === value}
+          className={`ui-tab${item.id === value ? ' is-active' : ''}`}
           onClick={() => onChange(item.id)}
-          aria-current={item.id === value}
         >
           {item.label}
- </button>
+        </button>
       ))}
- </div>
+    </div>
   );
 }
 
@@ -150,17 +151,17 @@ export function DocHead({ children }: { children: ReactNode }) {
 
 export function DocField({ label, children }: { label: string; children: ReactNode }) {
   return (
- <div className="doc-field">
- <span>{label}</span>
- <b>{children}</b>
- </div>
+    <div className="doc-field">
+      <span>{label}</span>
+      <b>{children}</b>
+    </div>
   );
 }
 
 // ----------------------------------------------------------------------- states
 
 export function StateBox({
- icon = '',
+  icon = '',
   title,
   detail,
   action,
@@ -171,27 +172,27 @@ export function StateBox({
   action?: ReactNode;
 }) {
   return (
- <div className="state-box">
- <span className="state-icon" aria-hidden>
+    <div className="state-box">
+      <span className="state-icon" aria-hidden>
         {icon}
- </span>
- <span className="state-title">{title}</span>
+      </span>
+      <span className="state-title">{title}</span>
       {detail ? <span className="small">{detail}</span> : null}
       {action}
- </div>
+    </div>
   );
 }
 
 /** Totals strip under a document grid. */
 export function Totals({ items }: { items: Array<{ label: string; value: ReactNode }> }) {
   return (
- <div className="totals">
+    <div className="totals">
       {items.map((item) => (
- <div key={item.label}>
- <span>{item.label}</span>
- <b>{item.value}</b>
- </div>
+        <div key={item.label}>
+          <span>{item.label}</span>
+          <b>{item.value}</b>
+        </div>
       ))}
- </div>
+    </div>
   );
 }

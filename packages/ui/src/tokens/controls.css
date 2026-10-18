@@ -510,37 +510,7 @@ table th.num {
   gap: 6px;
 }
 
-/* ------------------------------------------------------------------ tabs */
-.tabs {
-  display: inline-flex;
-  flex-wrap: wrap;
-  gap: 2px;
-  padding: 3px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-md);
-  background: var(--surface-2);
-}
-.tabs button,
-.tabs a {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  block-size: 30px;
-  padding: 0 12px;
-  border: 0;
-  border-radius: 7px;
-  background: transparent;
-  color: var(--muted);
-  font-size: 12.5px;
-  font-weight: 700;
-  cursor: pointer;
-}
-.tabs button[aria-selected='true'],
-.tabs .is-active {
-  background: var(--surface);
-  color: var(--text);
-  box-shadow: var(--shadow-1);
-}
+/* التبويباتُ تُعرَّف في قسم `ui-tabs` أدناه — تعريفٌ واحد. */
 
 /* ------------------------------------------------------------- empty state */
 .state {
@@ -1422,6 +1392,68 @@ a.ui-kpi-cell:hover {
   gap: 8px;
 }
 
+/* --------------------------------------------------------------- tabs */
+/*
+ * `.ui-tabs` بنفس شكل `Tabs` المكوّن: خطُّ سفليٌّ رفيع، والتبويبُ النشط
+ * بخطٍّ ذهبيّ لا بزرٍّ مصمت — فالشاشة لا تتقدّم بزرٍّ يبدو كإجراءٍ رئيسي.
+ */
+.ui-tabs,
+.tabs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  margin-block-end: 14px;
+  border-block-end: 1px solid var(--line);
+  min-width: 0;
+}
+.ui-tab,
+.tab {
+  position: relative;
+  margin-block-end: -1px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border: 0;
+  border-block-end: 2px solid transparent;
+  background: none;
+  color: var(--muted);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    color var(--dur-fast) var(--ease-out),
+    border-color var(--dur-fast) var(--ease-out);
+}
+.ui-tab:hover,
+.tab:hover {
+  color: var(--text);
+  border-block-end-color: var(--line-strong);
+}
+.ui-tab.is-active,
+.tab.active {
+  color: var(--text);
+  border-block-end-color: var(--gold);
+}
+.ui-tab:focus-visible,
+.tab:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+/* الشريطُ السفلي في `.ui-tab` يكفي؛ `.tab::after` القديم كان يرسم شريطًا ثانيًا. */
+.tab::after {
+  content: none;
+}
+.ui-tab-count {
+  font-size: 11px;
+  font-weight: 700;
+  opacity: 0.8;
+  font-variant-numeric: tabular-nums;
+}
+
 /* ------------------------------------------------------------- chip row */
 /* A status filter is one row of pills, not a second card. */
 .ui-chip-row {
@@ -1539,6 +1571,13 @@ a.ui-kpi-cell:hover {
 }
 .ui-split-single {
   grid-template-columns: minmax(0, 1fr);
+}
+/*
+ * عمودُ سياقٍ أوسع: تذكرةُ نقطة البيع تحتاج 420px لأزرار الدفع والمجموع،
+ * بخلاف عمود 320px المخصّص للسياق والملاحظات.
+ */
+.ui-split.is-rail-wide {
+  grid-template-columns: minmax(0, 1fr) 420px;
 }
 .ui-split-main {
   display: grid;

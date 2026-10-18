@@ -44,11 +44,25 @@ type Draft = {
 };
 
 const EMPTY_ADDRESS: Required<Address> = {
-  plot: '', building: '', street: '', addStreet: '', district: '', city: '', postal: '', countryCode: '',
+  plot: '',
+  building: '',
+  street: '',
+  addStreet: '',
+  district: '',
+  city: '',
+  postal: '',
+  countryCode: '',
 };
 
 const EMPTY_DRAFT: Draft = {
-  nameAr: '', nameEn: '', taxNo: '', crNo: '', phones: '', email: '', countryCode: 'SA', address: EMPTY_ADDRESS,
+  nameAr: '',
+  nameEn: '',
+  taxNo: '',
+  crNo: '',
+  phones: '',
+  email: '',
+  countryCode: 'SA',
+  address: EMPTY_ADDRESS,
 };
 
 const LABELS: Record<string, string> = {
@@ -90,16 +104,20 @@ export default function CompanyProfilePage() {
   useEffect(() => {
     if (profile.status !== 'success') return;
     const row = profile.data;
-    setDraft(row ? {
-      nameAr: row.nameAr,
-      nameEn: row.nameEn ?? '',
-      taxNo: row.taxNo ?? '',
-      crNo: row.crNo ?? '',
-      phones: row.phones.join(', '),
-      email: row.email ?? '',
-      countryCode: row.countryCode ?? 'SA',
-      address: { ...EMPTY_ADDRESS, ...(row.address ?? {}) },
-    } : EMPTY_DRAFT);
+    setDraft(
+      row
+        ? {
+            nameAr: row.nameAr,
+            nameEn: row.nameEn ?? '',
+            taxNo: row.taxNo ?? '',
+            crNo: row.crNo ?? '',
+            phones: row.phones.join(', '),
+            email: row.email ?? '',
+            countryCode: row.countryCode ?? 'SA',
+            address: { ...EMPTY_ADDRESS, ...(row.address ?? {}) },
+          }
+        : EMPTY_DRAFT,
+    );
   }, [profile.status, profile.data]);
 
   const setAddress = (key: keyof Address, value: string): void =>
@@ -119,7 +137,10 @@ export default function CompanyProfilePage() {
         taxNo: draft.taxNo.trim() || null,
         crNo: draft.crNo.trim() || null,
         address: Object.keys(address).length > 0 ? address : null,
-        phones: draft.phones.split(/[,،\n]/).map((phone) => phone.trim()).filter(Boolean),
+        phones: draft.phones
+          .split(/[,،\n]/)
+          .map((phone) => phone.trim())
+          .filter(Boolean),
         email: draft.email.trim() || null,
         countryCode: draft.countryCode.trim().toUpperCase() || null,
         logoFileId: profile.data?.logoFileId ?? null,
@@ -137,7 +158,11 @@ export default function CompanyProfilePage() {
   };
 
   return (
-    <Screen title="بطاقة المنشأة" subtitle="البيانات القانونية المطبوعة على الفواتير والمستندات." crumbs={['الإعدادات', 'تعاريف المنشأة']}>
+    <Screen
+      title="بطاقة المنشأة"
+      subtitle="البيانات القانونية المطبوعة على الفواتير والمستندات."
+      crumbs={['الإعدادات', 'تعاريف المنشأة']}
+    >
       <section className="card">
         <h2>حساب المنشأة على المنصة</h2>
         <dl className="kv">
@@ -157,22 +182,56 @@ export default function CompanyProfilePage() {
         <section className="card">
           <div className="row">
             <h2>البيانات القانونية</h2>
-            {canManage && <button type="button" className="btn primary" onClick={() => { setNotice(undefined); setEditing(true); }}>{profile.data ? 'تعديل البيانات' : 'إضافة بيانات المنشأة'}</button>}
+            {canManage && (
+              <button
+                type="button"
+                className="btn primary"
+                onClick={() => {
+                  setNotice(undefined);
+                  setEditing(true);
+                }}
+              >
+                {profile.data ? 'تعديل البيانات' : 'إضافة بيانات المنشأة'}
+              </button>
+            )}
           </div>
           {notice && <p className={`alert ${notice.kind}`}>{notice.text}</p>}
           {!profile.data ? (
-            <Empty title="لم تُسجَّل بيانات المنشأة بعد" detail={canManage ? 'أضف الاسم القانوني وبيانات التواصل والعنوان.' : 'اطلب من مالك المنشأة إدخال بياناتها القانونية.'} />
+            <Empty
+              title="لم تُسجَّل بيانات المنشأة بعد"
+              detail={
+                canManage
+                  ? 'أضف الاسم القانوني وبيانات التواصل والعنوان.'
+                  : 'اطلب من مالك المنشأة إدخال بياناتها القانونية.'
+              }
+            />
           ) : (
             <dl className="kv">
-              <dt>{LABELS.nameAr}</dt><dd>{profile.data.nameAr}</dd>
-              <dt>{LABELS.nameEn}</dt><dd>{profile.data.nameEn ?? '—'}</dd>
-              <dt>{LABELS.taxNo}</dt><dd dir="ltr">{profile.data.taxNo ?? '—'}</dd>
-              <dt>{LABELS.crNo}</dt><dd dir="ltr">{profile.data.crNo ?? '—'}</dd>
+              <dt>{LABELS.nameAr}</dt>
+              <dd>{profile.data.nameAr}</dd>
+              <dt>{LABELS.nameEn}</dt>
+              <dd>{profile.data.nameEn ?? '—'}</dd>
+              <dt>{LABELS.taxNo}</dt>
+              <dd dir="ltr">{profile.data.taxNo ?? '—'}</dd>
+              <dt>{LABELS.crNo}</dt>
+              <dd dir="ltr">{profile.data.crNo ?? '—'}</dd>
               <dt>العنوان الوطني</dt>
-              <dd>{profile.data.address ? Object.entries(profile.data.address).map(([key, value]) => value ? `${ADDRESS_LABELS[key as keyof Address]}: ${value}` : null).filter(Boolean).join('، ') || '—' : '—'}</dd>
-              <dt>الهاتف</dt><dd dir="ltr">{profile.data.phones.join('، ') || '—'}</dd>
-              <dt>{LABELS.email}</dt><dd dir="ltr">{profile.data.email ?? '—'}</dd>
-              <dt>{LABELS.countryCode}</dt><dd dir="ltr">{profile.data.countryCode ?? '—'}</dd>
+              <dd>
+                {profile.data.address
+                  ? Object.entries(profile.data.address)
+                      .map(([key, value]) =>
+                        value ? `${ADDRESS_LABELS[key as keyof Address]}: ${value}` : null,
+                      )
+                      .filter(Boolean)
+                      .join('، ') || '—'
+                  : '—'}
+              </dd>
+              <dt>الهاتف</dt>
+              <dd dir="ltr">{profile.data.phones.join('، ') || '—'}</dd>
+              <dt>{LABELS.email}</dt>
+              <dd dir="ltr">{profile.data.email ?? '—'}</dd>
+              <dt>{LABELS.countryCode}</dt>
+              <dd dir="ltr">{profile.data.countryCode ?? '—'}</dd>
             </dl>
           )}
         </section>
@@ -183,29 +242,165 @@ export default function CompanyProfilePage() {
           <h2>{profile.data ? 'تعديل البيانات القانونية' : 'إضافة بيانات المنشأة'}</h2>
           {notice && <p className={`alert ${notice.kind}`}>{notice.text}</p>}
           <form className="form-grid" onSubmit={(event) => void save(event)}>
-            <label>الاسم القانوني (عربي)<input className="input" required maxLength={200} value={draft.nameAr} onChange={(event) => setDraft({ ...draft, nameAr: event.target.value })} /></label>
-            <label>الاسم القانوني (إنجليزي)<input className="input" maxLength={200} value={draft.nameEn} onChange={(event) => setDraft({ ...draft, nameEn: event.target.value })} dir="auto" /></label>
-            <label>الرقم الضريبي<input className="input" maxLength={15} inputMode="numeric" value={draft.taxNo} onChange={(event) => setDraft({ ...draft, taxNo: event.target.value })} dir="ltr" /></label>
-            <label>السجل التجاري<input className="input" maxLength={20} value={draft.crNo} onChange={(event) => setDraft({ ...draft, crNo: event.target.value })} dir="ltr" /></label>
-            <label>البريد الإلكتروني<input className="input" type="email" maxLength={320} value={draft.email} onChange={(event) => setDraft({ ...draft, email: event.target.value })} dir="ltr" /></label>
-            <label>أرقام الهاتف (افصل بينها بفاصلة)<input className="input" value={draft.phones} onChange={(event) => setDraft({ ...draft, phones: event.target.value })} dir="ltr" /></label>
-            <label>رمز الدولة<input className="input" maxLength={2} value={draft.countryCode} onChange={(event) => setDraft({ ...draft, countryCode: event.target.value })} dir="ltr" /></label>
+            <label className="field">
+              <span>الاسم القانوني (عربي)</span>
+              <input
+                className="input"
+                required
+                maxLength={200}
+                value={draft.nameAr}
+                onChange={(event) => setDraft({ ...draft, nameAr: event.target.value })}
+              />
+            </label>
+            <label className="field">
+              <span>الاسم القانوني (إنجليزي)</span>
+              <input
+                className="input"
+                maxLength={200}
+                value={draft.nameEn}
+                onChange={(event) => setDraft({ ...draft, nameEn: event.target.value })}
+                dir="auto"
+              />
+            </label>
+            <label className="field">
+              <span>الرقم الضريبي</span>
+              <input
+                className="input"
+                maxLength={15}
+                inputMode="numeric"
+                value={draft.taxNo}
+                onChange={(event) => setDraft({ ...draft, taxNo: event.target.value })}
+                dir="ltr"
+              />
+            </label>
+            <label className="field">
+              <span>السجل التجاري</span>
+              <input
+                className="input"
+                maxLength={20}
+                value={draft.crNo}
+                onChange={(event) => setDraft({ ...draft, crNo: event.target.value })}
+                dir="ltr"
+              />
+            </label>
+            <label className="field">
+              <span>البريد الإلكتروني</span>
+              <input
+                className="input"
+                type="email"
+                maxLength={320}
+                value={draft.email}
+                onChange={(event) => setDraft({ ...draft, email: event.target.value })}
+                dir="ltr"
+              />
+            </label>
+            <label className="field">
+              <span>أرقام الهاتف (افصل بينها بفاصلة)</span>
+              <input
+                className="input"
+                value={draft.phones}
+                onChange={(event) => setDraft({ ...draft, phones: event.target.value })}
+                dir="ltr"
+              />
+            </label>
+            <label className="field">
+              <span>رمز الدولة</span>
+              <input
+                className="input"
+                maxLength={2}
+                value={draft.countryCode}
+                onChange={(event) => setDraft({ ...draft, countryCode: event.target.value })}
+                dir="ltr"
+              />
+            </label>
             <fieldset>
               <legend>العنوان الوطني</legend>
               <div className="form-grid">
-                <label>المدينة<input className="input" value={draft.address.city} onChange={(event) => setAddress('city', event.target.value)} /></label>
-                <label>الحي<input className="input" value={draft.address.district} onChange={(event) => setAddress('district', event.target.value)} /></label>
-                <label>الشارع<input className="input" value={draft.address.street} onChange={(event) => setAddress('street', event.target.value)} /></label>
-                <label>الشارع الإضافي<input className="input" value={draft.address.addStreet} onChange={(event) => setAddress('addStreet', event.target.value)} /></label>
-                <label>رقم المبنى<input className="input" value={draft.address.building} onChange={(event) => setAddress('building', event.target.value)} /></label>
-                <label>الرقم الفرعي<input className="input" value={draft.address.plot} onChange={(event) => setAddress('plot', event.target.value)} /></label>
-                <label>الرمز البريدي<input className="input" value={draft.address.postal} onChange={(event) => setAddress('postal', event.target.value)} /></label>
-                <label>رمز الدولة<input className="input" maxLength={2} value={draft.address.countryCode} onChange={(event) => setAddress('countryCode', event.target.value)} dir="ltr" /></label>
+                <label className="field">
+                  <span>المدينة</span>
+                  <input
+                    className="input"
+                    value={draft.address.city}
+                    onChange={(event) => setAddress('city', event.target.value)}
+                  />
+                </label>
+                <label className="field">
+                  <span>الحي</span>
+                  <input
+                    className="input"
+                    value={draft.address.district}
+                    onChange={(event) => setAddress('district', event.target.value)}
+                  />
+                </label>
+                <label className="field">
+                  <span>الشارع</span>
+                  <input
+                    className="input"
+                    value={draft.address.street}
+                    onChange={(event) => setAddress('street', event.target.value)}
+                  />
+                </label>
+                <label className="field">
+                  <span>الشارع الإضافي</span>
+                  <input
+                    className="input"
+                    value={draft.address.addStreet}
+                    onChange={(event) => setAddress('addStreet', event.target.value)}
+                  />
+                </label>
+                <label className="field">
+                  <span>رقم المبنى</span>
+                  <input
+                    className="input"
+                    value={draft.address.building}
+                    onChange={(event) => setAddress('building', event.target.value)}
+                  />
+                </label>
+                <label className="field">
+                  <span>الرقم الفرعي</span>
+                  <input
+                    className="input"
+                    value={draft.address.plot}
+                    onChange={(event) => setAddress('plot', event.target.value)}
+                  />
+                </label>
+                <label className="field">
+                  <span>الرمز البريدي</span>
+                  <input
+                    className="input"
+                    value={draft.address.postal}
+                    onChange={(event) => setAddress('postal', event.target.value)}
+                  />
+                </label>
+                <label className="field">
+                  <span>رمز الدولة</span>
+                  <input
+                    className="input"
+                    maxLength={2}
+                    value={draft.address.countryCode}
+                    onChange={(event) => setAddress('countryCode', event.target.value)}
+                    dir="ltr"
+                  />
+                </label>
               </div>
             </fieldset>
             <div className="row">
-              <button type="submit" className="btn primary" disabled={busy || !draft.nameAr.trim()}>{busy ? 'جارٍ الحفظ…' : 'حفظ البيانات'}</button>
-              {profile.data && <button type="button" className="btn" disabled={busy} onClick={() => { setNotice(undefined); setEditing(false); }}>إلغاء</button>}
+              <button type="submit" className="btn primary" disabled={busy || !draft.nameAr.trim()}>
+                {busy ? 'جارٍ الحفظ…' : 'حفظ البيانات'}
+              </button>
+              {profile.data && (
+                <button
+                  type="button"
+                  className="btn"
+                  disabled={busy}
+                  onClick={() => {
+                    setNotice(undefined);
+                    setEditing(false);
+                  }}
+                >
+                  إلغاء
+                </button>
+              )}
             </div>
           </form>
         </section>
