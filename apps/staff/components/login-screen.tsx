@@ -37,9 +37,7 @@ export function LoginScreen({ initialError }: { initialError?: string }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | undefined>(
     initialError ??
-      (handoffFailed
-        ? 'رابط الدخول المسلَّم منتهٍ أو مُستعمل سابقاً — سجّل الدخول مباشرةً'
-        : undefined),
+      (handoffFailed ? 'رابط الدخول المسلَّم منتهٍ أو مُستعمل سابقاً — سجّل الدخول مباشرةً' : undefined),
   );
   const [notice, setNotice] = useState<string | undefined>();
   const justJoined = params.get('joined') === '1';
@@ -61,7 +59,8 @@ export function LoginScreen({ initialError }: { initialError?: string }) {
       if (caught instanceof ApiError) {
         if (caught.code === 'MFA_REQUIRED') {
           setStep('mfa');
-        } else if (caught.status === 401) setError(t(step === 'mfa' ? 'mfa.error.invalid' : 'login.error.invalid'));
+        } else if (caught.status === 401)
+          setError(t(step === 'mfa' ? 'mfa.error.invalid' : 'login.error.invalid'));
         else if (caught.status === 423) setError(t('login.error.suspended'));
         else if (caught.status === 429) setError(t('login.error.rateLimited'));
         else setError(caught.message);
@@ -153,7 +152,7 @@ export function LoginScreen({ initialError }: { initialError?: string }) {
   return (
     <div className="auth-page">
       <div className="auth-brand">
-        <span className="logo big">ERP</span>
+        <span className="logo big">س</span>
         <h1>{t('app.name')}</h1>
         <p>{t('app.tagline')}</p>
         <ul>
@@ -187,7 +186,7 @@ export function LoginScreen({ initialError }: { initialError?: string }) {
                 className="input"
                 value={tenantCode}
                 onChange={(event) => setTenantCode(event.target.value)}
-                placeholder="company-code"
+                placeholder="رمز المنشأة من مسؤول النظام"
                 autoComplete="organization"
                 required
                 dir="ltr"
@@ -269,7 +268,7 @@ export function LoginScreen({ initialError }: { initialError?: string }) {
                 className="input"
                 value={tenantCode}
                 onChange={(event) => setTenantCode(event.target.value)}
-                placeholder="company-code"
+                placeholder="رمز المنشأة من مسؤول النظام"
                 autoComplete="organization"
                 dir="ltr"
               />

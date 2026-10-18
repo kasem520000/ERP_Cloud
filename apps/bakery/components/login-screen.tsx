@@ -61,10 +61,10 @@ export function LoginScreen({ initialError }: { initialError?: string }) {
         <CardBody className="grid gap-5">
           <header className="grid justify-items-center gap-3 text-center">
             <span aria-hidden="true" className="bak-logo bak-logo-lg">
-              🥖
+              س
             </span>
             <div className="grid gap-1">
-              <h1 className="m-0 text-[21px] font-extrabold tracking-tight text-ink">واجهة المخابز</h1>
+              <h1 className="m-0 text-[21px] font-extrabold tracking-tight text-ink">نظام سحاب المملكة للحلول المحاسبية</h1>
               <p className="m-0 text-[12.5px] text-muted">الإنتاج والتوزيع والمناديب والتحصيل</p>
             </div>
           </header>
@@ -110,7 +110,7 @@ export function LoginScreen({ initialError }: { initialError?: string }) {
               <Input
                 autoComplete="one-time-code"
                 dir="ltr"
-                hint="الخطوةُ الثانية ليست خطأً: ما كُتب أعلاه محفوظ"
+                hint="أدخل الرمز من تطبيق المصادقة لإكمال الدخول"
                 inputMode="numeric"
                 label="رمز التحقّق الثنائي"
                 onChange={(event) => setMfaCode(event.target.value)}
@@ -124,9 +124,7 @@ export function LoginScreen({ initialError }: { initialError?: string }) {
           </form>
 
           <p className="m-0 rounded-[10px] border border-line bg-surface-2 px-3.5 py-3 text-[12px] leading-relaxed text-muted">
-            الجلسة والخادم واحدان مع لوحة التحكم: الدخول هنا هو الدخول نفسه بصلاحياتك
-            الممنوحة، ولا تُنشئ هذه الواجهة حسابات ولا تمنح صلاحيات. وتحتاج المنشأة باقةً
-            قطاعية مرخَّصة (`bakery_distribution`) لتعمل الشاشات — وإلّا ظهر الرفض صريحاً.
+            استخدم بيانات حساب منشأتك المعتادة. الوصول إلى خدمات المخابز يتطلب تفعيل باقة المخابز والصلاحيات المناسبة لحسابك.
           </p>
         </CardBody>
       </Card>

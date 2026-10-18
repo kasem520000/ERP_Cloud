@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { ThemeToggle } from '@erp/ui/theme';
+import { SYSTEM_NAME_AR, ThemeToggle } from '@erp/ui/theme';
 
 import { ApiError, apiData, apiPatch } from '../lib/api';
 import { useLang, type Lang } from '../lib/i18n';
@@ -235,7 +235,7 @@ function ModuleBlock({
         </span>
         <span className="nav-module-label">
           {label(lang, module)}
-          <small>{lang === 'ar' ? module.labelEn : module.labelAr}</small>
+          {lang === 'en' ? <small>{module.labelAr}</small> : null}
         </span>
         <span className="chev" aria-hidden>
           {expanded ? '▾' : '◂'}
@@ -502,10 +502,10 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 style={{ background: 'var(--surface)', objectFit: 'contain', padding: 2 }}
               />
             ) : (
-              <span className="logo">ERP</span>
+              <span className="logo">س</span>
             )}
             <span style={brandColor ? { color: brandColor } : undefined}>
-              {brand?.nameAr || 'Cloud SaaS ERP'}
+              {brand?.nameAr || SYSTEM_NAME_AR}
               <small>{me?.membership.tenantName ?? '—'}</small>
             </span>
           </div>

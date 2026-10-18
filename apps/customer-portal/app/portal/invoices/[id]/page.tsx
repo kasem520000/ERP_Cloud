@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { use, useState } from 'react';
+import { ContentPanel, PageFrame, PageHeader, TableViewport, ViewNotice } from '@erp/ui/page';
 
 import { PortalShell } from '../../../../components/portal-shell';
 import { fetchInvoice, fetchInvoiceHtml, openPrintWindow } from '../../../../lib/api';
@@ -9,7 +10,13 @@ import { dateText, moneyText } from '../../../../lib/format';
 import { useAsync } from '../../../../lib/use-async';
 
 const PAYMENT_AR: Record<string, string> = { unpaid: 'غير مسددة', partial: 'مسددة جزئياً', paid: 'مسددة' };
-const ZATCA_AR: Record<string, string> = { cleared: 'مصدّقة من هيئة الزكاة', reported: 'مبلّغة للهيئة', signed: 'موقّعة', prepared: 'قيد التجهيز', failed: 'فشل الإرسال' };
+const ZATCA_AR: Record<string, string> = {
+  cleared: 'مصدّقة من هيئة الزكاة',
+  reported: 'مبلّغة للهيئة',
+  signed: 'موقّعة',
+  prepared: 'قيد التجهيز',
+  failed: 'فشل الإرسال',
+};
 
 function InvoiceDetail({ id }: { id: string }) {
   const [printError, setPrintError] = useState('');
@@ -19,94 +26,108 @@ function InvoiceDetail({ id }: { id: string }) {
     setPrintError('');
     try {
       const html = await fetchInvoiceHtml(id);
-      if (!openPrintWindow(html)) setPrintError('منع المتصفح فتح نافذة الطباعة. اسمح بالنوافذ المنبثقة ثم أعد المحاولة.');
+      if (!openPrintWindow(html))
+        setPrintError('منع المتصفح فتح نافذة الطباعة. اسمح بالنوافذ المنبثقة ثم أعد المحاولة.');
     } catch (error) {
       setPrintError(error instanceof Error ? error.message : 'تعذّرت الطباعة');
     }
   }
 
-  if (detail.status === 'loading') return <p className="muted">جارٍ تحميل الفاتورة…</p>;
+  if (detail.status === 'loading') return <ViewNotice state="loading">جارٍ تحميل الفاتورة…</ViewNotice>;
   if (detail.status === 'error' || !detail.data)
     return (
-      <section className="card">
-        <h1>الفاتورة غير متاحة</h1>
-        <p className="muted" role="alert">
-          {detail.error || 'المستند غير موجود أو لا يخص حسابك.'}
-        </p>
-        <Link className="btn" href="/portal/invoices">
-          رجوع للفواتير
-        </Link>
-      </section>
+      <PageFrame>
+        <PageHeader
+          title="الفاتورة غير متاحة"
+          actions={
+            <Link className="btn" href="/portal/invoices">
+              رجوع للفواتير
+            </Link>
+          }
+        />
+        <ViewNotice state="error">{detail.error || 'المستند غير موجود أو لا يخص حسابك.'}</ViewNotice>
+      </PageFrame>
     );
 
   const { invoice, lines, payments } = detail.data;
 
   return (
-    <>
-      <section className="card">
-        <div className="row" style={{ justifyContent: 'space-between' }}>
-          <div>
-            <h1 style={{ marginBottom: 4 }}>فاتورة {invoice.number ?? '—'}</h1>
-            <p className="muted">
-              {dateText(invoice.posted_at ?? invoice.created_at)} · {invoice.currency}
-              {invoice.zatca_status ? ` · ${ZATCA_AR[invoice.zatca_status] ?? invoice.zatca_status}` : ''}
-            </p>
-          </div>
-          <div className="toolbar">
-            <span className={`badge ${invoice.payment_status === 'paid' ? 'paid' : 'open'}`}>{PAYMENT_AR[invoice.payment_status] ?? invoice.payment_status}</span>
+    <PageFrame>
+      <PageHeader
+        eyebrow="تفاصيل المستند"
+        title={
+          <>
+            فاتورة{' '}
+            <span dir="auto" className="num">
+              {invoice.number ?? '—'}
+            </span>
+          </>
+        }
+        description={
+          <>
+            {dateText(invoice.posted_at ?? invoice.created_at)} · <span dir="ltr">{invoice.currency}</span>
+            {invoice.zatca_status ? ` · ${ZATCA_AR[invoice.zatca_status] ?? invoice.zatca_status}` : ''}
+          </>
+        }
+        actions={
+          <>
+            <span className={`badge ${invoice.payment_status === 'paid' ? 'paid' : 'open'}`}>
+              {PAYMENT_AR[invoice.payment_status] ?? invoice.payment_status}
+            </span>
             <Link className="btn primary" href={`/portal/invoices/${id}/pay`}>
               ادفع
             </Link>
             <button className="btn" type="button" onClick={print}>
               طباعة / حفظ PDF
             </button>
-          </div>
-        </div>
-        {printError ? (
-          <p className="muted" role="alert">
-            {printError}
-          </p>
-        ) : null}
-      </section>
+          </>
+        }
+      />
+      {printError ? <ViewNotice state="error">{printError}</ViewNotice> : null}
 
-      <section className="card" style={{ overflowX: 'auto' }}>
-        <table>
-          <thead>
-            <tr>
-              <th>#</th>
-              <th>الصنف</th>
-              <th>الوحدة</th>
-              <th>الكمية</th>
-              <th>السعر</th>
-              <th>الخصم</th>
-              <th>الصافي</th>
-              <th>الضريبة</th>
-              <th>الإجمالي</th>
-            </tr>
-          </thead>
-          <tbody>
-            {lines.map((line) => (
-              <tr key={line.line_no}>
-                <td>{line.line_no}</td>
-                <td>{line.name}</td>
-                <td>{line.unit ?? '—'}</td>
-                <td>{line.quantity}</td>
-                <td>{moneyText(line.unit_price)}</td>
-                <td>{moneyText(line.discount_amount)}</td>
-                <td>{moneyText(line.net)}</td>
-                <td>{moneyText(line.tax)}</td>
-                <td>
-                  <strong>{moneyText(line.total)}</strong>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </section>
+      <ContentPanel title="بنود الفاتورة">
+        {lines.length === 0 ? (
+          <ViewNotice state="empty">لا توجد بنود لهذه الفاتورة.</ViewNotice>
+        ) : (
+          <TableViewport label="بنود الفاتورة">
+            <table>
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>الصنف</th>
+                  <th>الوحدة</th>
+                  <th>الكمية</th>
+                  <th>السعر</th>
+                  <th>الخصم</th>
+                  <th>الصافي</th>
+                  <th>الضريبة</th>
+                  <th>الإجمالي</th>
+                </tr>
+              </thead>
+              <tbody>
+                {lines.map((line) => (
+                  <tr key={line.line_no}>
+                    <td>{line.line_no}</td>
+                    <td>{line.name}</td>
+                    <td>{line.unit ?? '—'}</td>
+                    <td>{line.quantity}</td>
+                    <td>{moneyText(line.unit_price)}</td>
+                    <td>{moneyText(line.discount_amount)}</td>
+                    <td>{moneyText(line.net)}</td>
+                    <td>{moneyText(line.tax)}</td>
+                    <td>
+                      <strong>{moneyText(line.total)}</strong>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </TableViewport>
+        )}
+      </ContentPanel>
 
-      <div className="grid cols">
-        <section className="card">
-          <h2>الإجماليات</h2>
+      <div className="portal-details-grid">
+        <ContentPanel title="الإجماليات">
           <table>
             <tbody>
               <tr>
@@ -131,37 +152,38 @@ function InvoiceDetail({ id }: { id: string }) {
               </tr>
             </tbody>
           </table>
-        </section>
+        </ContentPanel>
 
-        <section className="card">
-          <h2>الدفعات على الفاتورة</h2>
+        <ContentPanel title="الدفعات على الفاتورة">
           {payments.length === 0 ? (
-            <p className="muted">لم تُسجَّل دفعات على هذه الفاتورة.</p>
+            <ViewNotice state="empty">لم تُسجَّل دفعات على هذه الفاتورة.</ViewNotice>
           ) : (
-            <table>
-              <thead>
-                <tr>
-                  <th>التاريخ</th>
-                  <th>الطريقة</th>
-                  <th>المبلغ</th>
-                  <th>المرجع</th>
-                </tr>
-              </thead>
-              <tbody>
-                {payments.map((payment, index) => (
-                  <tr key={`${payment.created_at}-${index}`}>
-                    <td>{dateText(payment.created_at ?? '')}</td>
-                    <td>{payment.method}</td>
-                    <td>{moneyText(payment.amount ?? '0')}</td>
-                    <td>{payment.reference ?? '—'}</td>
+            <TableViewport label="دفعات الفاتورة">
+              <table>
+                <thead>
+                  <tr>
+                    <th>التاريخ</th>
+                    <th>الطريقة</th>
+                    <th>المبلغ</th>
+                    <th>المرجع</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {payments.map((payment, index) => (
+                    <tr key={`${payment.created_at}-${index}`}>
+                      <td>{dateText(payment.created_at ?? '')}</td>
+                      <td>{payment.method}</td>
+                      <td>{moneyText(payment.amount ?? '0')}</td>
+                      <td>{payment.reference ?? '—'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </TableViewport>
           )}
-        </section>
+        </ContentPanel>
       </div>
-    </>
+    </PageFrame>
   );
 }
 

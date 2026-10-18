@@ -9,7 +9,8 @@ const nextConfig = {
   output: 'standalone',
   // ‏`@erp/web-core` تُشحن مصدراً TypeScript (ADR-030) فيُصرّفها التطبيق نفسه؛ والبوابة
   // تستهلك منها قرارَ عنوان التسليم (`handoffAction`) بدل نسخةٍ محلية ثانية من القاعدة.
-  transpilePackages: ['@erp/web-core'],
+  transpilePackages: ['@erp/ui', '@erp/web-core'],
+  allowedDevOrigins: ['localhost', '127.0.0.1', '*.e2b.app', '*.e2b.dev', '*.arena.ai'],
   poweredByHeader: false,
   env: {
     NEXT_PUBLIC_API_BASE_URL: process.env.NEXT_PUBLIC_API_BASE_URL ?? '',

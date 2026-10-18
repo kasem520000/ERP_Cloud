@@ -1,3 +1,5 @@
+import { ContentPanel, PageFrame, PageHeader } from '@erp/ui/page';
+
 import { LoginForm } from '../../../components/forms';
 
 /**
@@ -8,16 +10,22 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
   const params = await searchParams;
   const handoffFailed = params?.handoff === 'failed';
   return (
-    <section className="card">
-      <h1>تسجيل الدخول</h1>
-      {handoffFailed ? (
-        <p className="alert danger" role="alert">
-          رابط الدخول المسلَّم منتهٍ أو مُستعمل سابقاً — سجّل الدخول مباشرةً برمز الشركة
-          والبريد وكلمة المرور.
-        </p>
-      ) : null}
-      <p className="muted">رموز الدخول تحفظ في الذاكرة أثناء الجلسة؛ لا يتم تخزينها في localStorage عند نمط cookie.</p>
-      <LoginForm />
-    </section>
+    <PageFrame className="portal-auth">
+      <PageHeader
+        eyebrow="بوابة العملاء"
+        title="تسجيل الدخول"
+        description="ادخل إلى فواتيرك وكشف حسابك لدى المورد."
+      />
+      <ContentPanel>
+        {handoffFailed ? (
+          <p className="alert danger" role="alert">
+            رابط الدخول المسلَّم منتهٍ أو مُستعمل سابقاً — سجّل الدخول مباشرةً برمز الشركة والبريد وكلمة
+            المرور.
+          </p>
+        ) : null}
+        <p className="muted">أدخل رمز الشركة الذي زوّدك به المورد لتصل إلى مستندات حسابك بأمان.</p>
+        <LoginForm />
+      </ContentPanel>
+    </PageFrame>
   );
 }

@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ThemeToggle } from '@erp/ui/theme';
+import { SYSTEM_NAME_AR, ThemeToggle } from '@erp/ui/theme';
 import type { SupportTicket } from '@erp/contracts';
 
 import { apiData } from '../lib/api';
@@ -92,9 +92,9 @@ export function PlatformGuard({ children }: { children: React.ReactNode }) {
       <aside className={`side no-print ${drawerOpen ? 'open' : ''}`}>
         <div className="brand" style={{ justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <span className="logo">ERP</span>
+            <span className="logo">س</span>
             <span>
-              لوحة تحكم المنصة
+              {SYSTEM_NAME_AR}
               <small>{environment ? `بيئة ${environment.labelAr}` : 'بيئة السحابة'}</small>
             </span>
           </div>

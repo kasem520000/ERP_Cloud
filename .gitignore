@@ -1,4 +1,6 @@
 node_modules/
+# Temporary Chromium/Playwright tooling and browser downloads used for UI review
+.cache/
 dist/
 .next/
 # مجلّد بناء التحقّق الإنتاجيّ (`NEXT_DIST_DIR=.next-build`) — لا يُودَع

@@ -8,6 +8,7 @@
     ".": "./src/index.ts",
     "./tokens.css": "./src/tokens/tokens.css",
     "./theme": "./src/theme/index.ts",
+    "./page": "./src/components/page-layout.tsx",
     "./package.json": "./package.json"
   },
   "dependencies": {

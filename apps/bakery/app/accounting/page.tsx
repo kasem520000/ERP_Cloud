@@ -2,83 +2,52 @@
 
 import { useMemo } from 'react';
 import { Badge, Card, CardBody, CardHeader } from '@erp/ui';
+import { PageFrame, PageHeader } from '@erp/ui/page';
 import { useSession } from '@erp/web-core/session';
 
 import { StaffHandoffLink } from '../../components/staff-handoff-link';
-import {
-  HANDOFF_NOTES_AR,
-  STAFF_URL_ENV,
-  destinationsOf,
-  staffBaseUrl,
-  type StaffDestination,
-} from '../../lib/staff-handoff';
+import { destinationsOf, staffBaseUrl } from '../../lib/staff-handoff';
 
-/**
- * أيُّ رموز المحاسبة تُظهر هذه الشاشة — وهي رموزٌ حقيقية في سجلّ العقود (‏`isKnownPermissionCode`
- * يقيسها `tests/navigation.spec.ts`) وتفرضها **وجهاتُ اللوحة** لا هذا الرابط: فـ`POST /auth/handoff`
- * متاحٌ لأيّ عضوٍ نشط، وما يُفتح في staff يُحكم عليه هناك بأذونات الجلسة نفسها.
- */
-const ACCOUNTING_PERMISSIONS = ['accounting.reports.view', 'accounting.account.view', 'accounting.period.view'] as const;
+/** The detailed books remain in staff. This page only offers one-time session handoff links. */
+const ACCOUNTING_PERMISSIONS = [
+  'accounting.reports.view',
+  'accounting.account.view',
+  'accounting.period.view',
+] as const;
 
-/**
- * 🔗 المحاسبة التفصيلية — **رابطٌ يعمل**، لا شاشةٌ تُقلّد الأستاذ.
- *
- * ولماذا ليست نسخةً هنا (قرارُ المالك رقم ١ لهذه الواجهة، وأكّده في الشريحة ٢٠): فالأستاذُ
- * والقيودُ والميزانُ والفتراتُ ومراكزُ التكلفة محرّكٌ واحد في `apps/api` وواجهتُه الكاملة في
- * ‏`apps/staff` — ونسخةٌ في واجهة المخابز تعني محرّكًا محاسبيًّا ثانيًا أو شاشةً تعرض بعضَ
- * الحقول وتُوحي أنّها كلّها. وما هنا يسدّ الحاجةَ الحقيقية: أن يصل صاحبُ المخبز من رقمٍ في
- * الخطّ إلى القيد الذي كتبه، بجلسته هو، بلا لصقِ عنوانٍ ولا خروجٍ من السياق.
- *
- * والآليةُ من `@erp/web-core` نفسها (‏AUD-08): رمزُ تسليمٍ لمرةٍ واحدة يُصنع عند النقر،
- * والعنوانُ يحمله وحده، ولوحةُ staff تستبدله بجلسة. والمساراتُ مقاسةٌ على شجرة
- * ‏`apps/staff/app` — ويثبّت `tests/staff-handoff.spec.ts` أنّ لكلٍّ صفحةً موجودة، فلا رابطَ
- * ميتٍ هنا (والرابطُ الميتُ كان أحدَ شكلَي الكذب الذي تمنعه `lib/navigation.ts`).
- */
 export default function AccountingHandoffPage() {
   const { can, me } = useSession();
   const base = staffBaseUrl();
-  const destinations: readonly StaffDestination[] = useMemo(() => destinationsOf('accounting'), []);
+  const destinations = useMemo(() => destinationsOf('accounting'), []);
   const grantedAny = ACCOUNTING_PERMISSIONS.some((code) => can(code));
 
   return (
-    <section className="grid gap-4">
-      <header className="flex flex-wrap items-end justify-between gap-3">
-        <div className="min-w-0">
-          <h1 className="m-0 text-[24px] font-extrabold leading-tight tracking-tight text-ink">
-            المحاسبة التفصيلية — في لوحة staff
-          </h1>
-          <p className="m-0 mt-1 text-[13px] text-muted">
-            {me?.membership.tenantName ?? 'المنشأة'} · لا أستاذَ ولا قيدَ في هذه الواجهة: ما هنا
-            روابطُ تعمل بتسليم جلسة إلى المحرّك المحاسبيّ نفسه.
-          </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <Badge dot status={base ? 'active' : 'pending'} title={`${STAFF_URL_ENV} من .env`}>
-            {base ? (
-              <>
-                اللوحة: <span dir="ltr">{base}</span>
-              </>
-            ) : (
-              <>
-                {STAFF_URL_ENV} غير مُهيَّأ
-              </>
-            )}
-          </Badge>
-          <Badge dot status={grantedAny ? 'active' : 'pending'}>
-            {grantedAny ? 'معك صلاحيةُ قراءةٍ محاسبية' : 'بلا صلاحيةِ محاسبةٍ في جلستك'}
-          </Badge>
-        </div>
-      </header>
+    <PageFrame>
+      <PageHeader
+        eyebrow="المالية"
+        title="المحاسبة التفصيلية"
+        description={`انتقل إلى سجلات ${me?.membership.tenantName ?? 'المنشأة'} المالية في لوحة الموظفين، باستخدام صلاحيات حسابك الحالية.`}
+        actions={
+          <>
+            <Badge dot status={base ? 'active' : 'pending'}>
+              {base ? 'اللوحة متاحة' : 'اللوحة غير متصلة'}
+            </Badge>
+            <Badge dot status={grantedAny ? 'active' : 'pending'}>
+              {grantedAny ? 'لديك صلاحية محاسبية' : 'يلزم منح صلاحية محاسبية'}
+            </Badge>
+          </>
+        }
+      />
 
       {!base ? (
         <Card>
-          <CardHeader subtitle="ولا يُخترع عنوانٌ بديل" title="الرابطُ غير مُهيَّأ" />
+          <CardHeader
+            title="لا يمكن فتح لوحة المحاسبة الآن"
+            subtitle="رابط لوحة الموظفين غير متاح لهذه المنشأة."
+          />
           <CardBody>
             <p className="m-0 text-[13px] leading-relaxed text-ink">
-              أضِف <span dir="ltr">{STAFF_URL_ENV}</span> إلى <span dir="ltr">.env</span> (مثالُه في{' '}
-              <span dir="ltr">.env.example</span>: ‏<span dir="ltr">http://localhost:3001</span>) ثم أعد
-              تشغيل الواجهة. وبلا عنوانٍ صحيح **لا يُصنع رمزُ تسليم** — فرمزٌ لمرةٍ واحدة لا
-              يُستبدل ضياعٌ له، والرابطُ الميتُ كذب.
+              تواصل مع مسؤول النظام لإعداد رابط لوحة الموظفين. لن تُنشأ جلسة انتقال قبل توافر وجهة صالحة.
             </p>
           </CardBody>
         </Card>
@@ -86,14 +55,14 @@ export default function AccountingHandoffPage() {
 
       {!grantedAny ? (
         <Card>
-          <CardHeader subtitle="فاللوحةُ تعرض ما تملكه لا ما تملكه هذه الشاشة" title="جلستُك بلا رموز محاسبة" />
+          <CardHeader
+            title="صلاحيات المحاسبة"
+            subtitle="الوصول إلى كل سجل يعتمد على صلاحيات حسابك في لوحة الموظفين."
+          />
           <CardBody>
             <p className="m-0 text-[13px] leading-relaxed text-ink">
-              التسليمُ يعمل (‏<span dir="ltr">POST /auth/handoff</span> متاحٌ لأيّ عضوٍ نشط)، لكنّ
-              الوجهات أدناه تفرض أذوناتها في اللوحة: فبلا{' '}
-              <span dir="ltr">accounting.reports.view</span> أو <span dir="ltr">accounting.account.view</span>{' '}
-              أو <span dir="ltr">accounting.period.view</span> لن ترى الأستاذَ ولا الميزانَ ولا
-              الفترات هناك. والضابطُ الخادمُ في الطرفَين — وهذه الشاشةُ لا تمنح شيئًا.
+              يمكنك فتح اللوحة، لكن عرض الأستاذ والميزان والفترات يتطلب صلاحية مناسبة. اطلبها من مسؤول المنشأة
+              عند الحاجة.
             </p>
           </CardBody>
         </Card>
@@ -101,19 +70,17 @@ export default function AccountingHandoffPage() {
 
       <Card>
         <CardHeader
-          subtitle="لكلٍّ مسارٌ حقيقيّ في apps/staff/app — ويُقاس وجودُه في الاختبار."
-          title="وجهاتُ المحاسبة التفصيلية"
+          title="اختر السجل الذي تريد فتحه"
+          subtitle="تُفتح التفاصيل في لوحة الموظفين دون نسخ القيود إلى واجهة المخابز."
         />
         <CardBody>
           <div className="grid gap-3 md:grid-cols-2">
             {destinations.map((destination) => (
-              <article className="grid gap-2 rounded-lg border border-line bg-surface p-4 shadow-1" key={destination.key}>
-                <div className="flex flex-wrap items-center gap-2">
-                  <h2 className="m-0 text-[15px] font-extrabold text-ink">{destination.labelAr}</h2>
-                  <Badge tone="neutral">
-                    <span dir="ltr">{destination.path}</span>
-                  </Badge>
-                </div>
+              <article
+                className="grid gap-2 rounded-lg border border-line bg-surface p-4 shadow-1"
+                key={destination.key}
+              >
+                <h2 className="m-0 text-[15px] font-extrabold text-ink">{destination.labelAr}</h2>
                 <p className="m-0 text-[13px] leading-relaxed text-muted">{destination.noteAr}</p>
                 <StaffHandoffLink destination={destination} labelAr="افتح في لوحة المحاسبة" />
               </article>
@@ -123,36 +90,14 @@ export default function AccountingHandoffPage() {
       </Card>
 
       <Card>
-        <CardHeader subtitle="من `packages/web-core/src/token-bridge.tsx` — ولا آليةَ ثانية هنا." title="كيف يُسلَّم الرابط" />
+        <CardHeader title="أين أجد أرقام المخبز؟" />
         <CardBody>
-          <ul className="m-0 grid gap-2 text-[13px] leading-relaxed text-ink">
-            {HANDOFF_NOTES_AR.map((note) => (
-              <li key={note}>{note}</li>
-            ))}
-          </ul>
+          <p className="m-0 text-[13px] leading-relaxed text-ink">
+            تقارير المبيعات والتحصيل متاحة في قسمي التقارير والخزينة. أما القيود والأستاذ وميزان المراجعة
+            والفترات المالية، فتُدار في لوحة الموظفين حتى تبقى السجلات المحاسبية في مكان واحد.
+          </p>
         </CardBody>
       </Card>
-
-      <Card>
-        <CardHeader subtitle="فلا تظنّ الشاشةُ أنّها تفعل ما لا تفعله." title="ما ليس هنا" />
-        <CardBody>
-          <ul className="m-0 grid gap-2 text-[13px] leading-relaxed text-muted">
-            <li>
-              <strong>لا أستاذَ ولا قيودَ ولا ميزانَ</strong> في واجهة المخابز — ولا تُستنسخ
-              جداولُ المحاسبة هنا ولا يُنشأ محرّكٌ ثانٍ (قرارُ المالك رقم ١).
-            </li>
-            <li>
-              <strong>أرقامُ الخطّ نفسها</strong> في <span dir="ltr">/reports</span> (تقريرُ الفترة
-              من محرّك التقارير) وفي <span dir="ltr">/treasury</span> (سنداتُ القبض التي كتبها
-              التحصيل وأرصدةُ مواضع النقد) — وهي قراءةٌ من الخادم نفسه لا حسابٌ في المتصفح.
-            </li>
-            <li>
-              <strong>ولا شيءَ يُرحَّل من هنا</strong>: ترحيلُ سندٍ أو قيدِ فرقٍ أو إغلاقُ فترةٍ
-              كتابةٌ في المال، ووجهتُها اللوحةُ بالأذونات التي تفرضها.
-            </li>
-          </ul>
-        </CardBody>
-      </Card>
-    </section>
+    </PageFrame>
   );
 }

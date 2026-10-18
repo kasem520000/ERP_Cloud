@@ -131,13 +131,14 @@ describe('طابور المندوب: ما يُحفظ، وما لا يُحفظ و
     const refused = classifyReplay({
       status: 422,
       code: 'VALIDATION_FAILED',
-      detail: 'لا يمكن إصدار فاتورة ضريبية (ZATCA) وهويّةُ البائع ناقصة: الرقم الضريبي غير مُدخلٍ في بيانات المنشأة.',
+      detail:
+        'لا يمكن إصدار فاتورة ضريبية (ZATCA) وهويّةُ البائع ناقصة: الرقم الضريبي غير مُدخلٍ في بيانات المنشأة.',
     });
     expect(refused.nextStatus).toBe('refused');
     expect(refused.reasonAr).toContain('هويّةُ البائع ناقصة');
-    expect(classifyReplay({ status: 403, detail: 'permission van_sales.invoice.create required' }).nextStatus).toBe(
-      'refused',
-    );
+    expect(
+      classifyReplay({ status: 403, detail: 'permission van_sales.invoice.create required' }).nextStatus,
+    ).toBe('refused');
     expect(classifyReplay({ status: 404, detail: 'أمر التحميل غير موجود' }).reasonAr).toBe(
       'أمر التحميل غير موجود',
     );
@@ -186,9 +187,9 @@ describe('طابور المندوب: ما يُحفظ، وما لا يُحفظ و
     const offlineDocument = queueVerdict({ online: false, operation: 'document', can });
     expect(offlineDocument.blocked).toEqual([]);
     expect(offlineDocument.warnings).toHaveLength(2);
-    expect(offlineDocument.warnings[0]).toContain('حُفظت النيّةُ محليًّا');
+    expect(offlineDocument.warnings[0]).toContain('حُفظت العملية');
     // ‏والأرقامُ المعروضة دون اتصال ليست مجاميعَ محليّة — فلا يُخترع رقم.
-    expect(offlineDocument.warnings[1]).toContain('من آخر قراءةٍ ناجحة');
+    expect(offlineDocument.warnings[1]).toContain('من آخر تحديث ناجح');
 
     // ‏دون اتصال + إقفال ⇒ حظرٌ بالسبب المقاس (لا يُحفظ ولا يُرسل عمياءً).
     const offlineClosing = queueVerdict({ online: false, operation: 'closing', can, targetId: 'load-1' });
@@ -203,12 +204,12 @@ describe('طابور المندوب: ما يُحفظ، وما لا يُحفظ و
     ).toEqual([]);
     // ‏وبلا صلاحية الإقفال يُحظر ولو كان متّصلًا — فالطابورُ ليس سببَ الحظر الوحيد هنا.
     expect(queueVerdict({ online: true, operation: 'closing', can, targetId: 'load-1' }).blocked).toContain(
-      'permission van_sales.closing.submit required',
+      'ليس لديك صلاحية تقديم إقفال العهدة. اطلبها من مسؤول المنشأة.',
     );
 
-    // ‏وبلا صلاحية: نصُّ الخادم حرفًا (`permission … required`) لا صياغةٌ ألطف.
+    // يُعرض سبب المنع بالعربية، بينما يبقى رمز التفويض الداخلي ثابتاً.
     const noPermission = queueVerdict({ online: false, operation: 'collection', can });
-    expect(noPermission.blocked).toContain('permission van_sales.collection.create required');
+    expect(noPermission.blocked).toContain('ليس لديك صلاحية تسجيل تحصيل العملاء. اطلبها من مسؤول المنشأة.');
 
     // ‏ومرتجعٌ بلا مستندٍ مصدر ⇒ حظرٌ (فالمسارُ يحتاجه).
     expect(queueVerdict({ online: false, operation: 'return', can }).blocked).toContain(
@@ -221,8 +222,8 @@ describe('طابور المندوب: ما يُحفظ، وما لا يُحفظ و
   });
 
   it('وسمُ الجهاز يُقال كما هو: تتبّعٌ لا حدٌّ أمنيّ', () => {
-    expect(REP_QUEUE_MESSAGES.deviceLine('device-abc')).toContain('device-abc');
-    expect(REP_QUEUE_MESSAGES.deviceLine('device-abc')).toContain('ليس حدًّا أمنيًّا');
-    expect(REP_QUEUE_MESSAGES.deviceLine(null)).toContain('لم يُنشأ بعدُ وسمُ جهاز');
+    expect(REP_QUEUE_MESSAGES.deviceLine('device-abc')).toContain('هذا الجهاز');
+    expect(REP_QUEUE_MESSAGES.deviceLine('device-abc')).not.toContain('device-abc');
+    expect(REP_QUEUE_MESSAGES.deviceLine(null)).toContain('عند أول إجراء');
   });
 });

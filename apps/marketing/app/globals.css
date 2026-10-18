@@ -21,6 +21,8 @@
 @import '@fontsource-variable/inter/index.css';
 @import 'tailwindcss';
 @import '@erp/ui/tokens.css';
+/* Generates the shared ThemeToggle / gallery utilities, including classes absent from local JSX. */
+@source '../../../packages/ui/src';
 
 /* Marketing layer.
    The shared contract (`--bg --surface --text --muted --line --brand …`) comes
@@ -1153,6 +1155,21 @@ p {
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
+}
+
+.brand-name-short {
+  display: none;
+}
+
+@media (max-width: 640px) {
+  .header-inner { gap: 8px; }
+  .site-header .brand { gap: 6px; font-size: 14px; min-width: 0; }
+  .site-header .logo { width: 32px; height: 32px; flex: 0 0 32px; }
+  .site-header .header-actions { gap: 4px; }
+  .site-header .header-actions .btn { padding: 7px 9px; font-size: 12px; }
+  .site-header .lang-switch { padding: 6px 8px; font-size: 12px; }
+  .brand-name-full { display: none; }
+  .brand-name-short { display: inline; white-space: nowrap; }
 }
 
 .site-nav {

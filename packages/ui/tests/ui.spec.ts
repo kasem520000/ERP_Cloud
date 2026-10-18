@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
+import { SYSTEM_NAME_AR, SYSTEM_NAME_EN } from '../src/theme/identity';
 import { cn } from '../src/lib/cn';
 import {
   formatCompactMoney,
@@ -23,6 +24,13 @@ import {
 describe('cn', () => {
   it('drops falsy values and keeps order', () => {
     expect(cn('a', false, undefined, null, 'b', 0, 'c')).toBe('a b c');
+  });
+});
+
+describe('default identity', () => {
+  it('keeps the Arabic product name stable for app fallbacks', () => {
+    expect(SYSTEM_NAME_AR).toBe('نظام سحاب المملكة للحلول المحاسبية');
+    expect(SYSTEM_NAME_EN).toBe('Sahab Al-Mamlaka Accounting Solutions');
   });
 });
 

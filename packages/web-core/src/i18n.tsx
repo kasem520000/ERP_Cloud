@@ -19,13 +19,19 @@ export const LANGUAGE_STORAGE_KEY = 'erp.lang';
 type DictEntry = { ar: string; en: string };
 
 export const STRINGS: Record<string, DictEntry> = {
-  'app.name': { ar: 'نظام المحاسبة السحابي', en: 'Cloud Accounting System' },
+  'app.name': { ar: 'نظام سحاب المملكة للحلول المحاسبية', en: 'Sahab Al-Mamlaka Accounting Solutions' },
   'app.tagline': {
     ar: 'محاسبة، مستودعات، مشتريات، مبيعات، رواتب، مراسٍ ومشاريع — بنظام متعدد المنشآت وفوترة إلكترونية متوافقة مع هيئة الزكاة والضريبة.',
     en: 'Accounting, inventory, purchasing, sales, payroll, marinas and projects — multi-tenant with ZATCA-compliant e-invoicing.',
   },
-  'app.feature.isolation': { ar: 'عزل كامل لبيانات كل منشأة (RLS على مستوى قاعدة البيانات)', en: 'Full per-tenant data isolation (database-level RLS)' },
-  'app.feature.permissions': { ar: 'صلاحيات دقيقة لكل شاشة وكل إجراء', en: 'Fine-grained permissions for every screen and action' },
+  'app.feature.isolation': {
+    ar: 'بيانات كل منشأة محفوظة بمعزل عن المنشآت الأخرى',
+    en: 'Full per-tenant data isolation (database-level RLS)',
+  },
+  'app.feature.permissions': {
+    ar: 'صلاحيات دقيقة لكل شاشة وكل إجراء',
+    en: 'Fine-grained permissions for every screen and action',
+  },
   'app.feature.audit': { ar: 'سجل تدقيق غير قابل للتعديل', en: 'Tamper-proof audit log' },
 
   'nav.home': { ar: 'الرئيسية', en: 'Home' },
@@ -49,25 +55,46 @@ export const STRINGS: Record<string, DictEntry> = {
 
   'login.title': { ar: 'تسجيل الدخول', en: 'Sign in' },
   'login.subtitle': { ar: 'لوحة تحكم المنشأة وموظفيها.', en: 'Tenant back office for staff.' },
-  'login.joined': { ar: 'تم إنشاء منشأتك. سجّل الدخول ببيانات المالك للبدء.', en: 'Your tenant was created. Sign in with the owner credentials to start.' },
+  'login.joined': {
+    ar: 'تم إنشاء منشأتك. سجّل الدخول ببيانات المالك للبدء.',
+    en: 'Your tenant was created. Sign in with the owner credentials to start.',
+  },
   'login.tenantCode': { ar: 'رمز المنشأة', en: 'Tenant code' },
   'login.email': { ar: 'البريد الإلكتروني', en: 'E-mail' },
   'login.password': { ar: 'كلمة المرور', en: 'Password' },
   'login.submit': { ar: 'دخول', en: 'Sign in' },
   'login.busy': { ar: 'جارٍ الدخول…', en: 'Signing in…' },
   'login.signup': { ar: 'ليس لديك حساب؟ اشترك الآن', en: 'No account? Sign up' },
-  'login.error.invalid': { ar: 'بيانات الدخول غير صحيحة. تحقق من رمز المنشأة والبريد وكلمة المرور.', en: 'Invalid credentials. Check the tenant code, e-mail and password.' },
-  'login.error.suspended': { ar: 'الاشتراك موقوف. تواصل مع إدارة المنصة لتفعيل الحساب.', en: 'Subscription suspended. Contact platform administration to activate the account.' },
-  'login.error.rateLimited': { ar: 'محاولات كثيرة. انتظر دقيقة ثم أعد المحاولة.', en: 'Too many attempts. Wait a minute and try again.' },
-  'login.error.unreachable': { ar: 'تعذر الاتصال بالخادم. تأكد من تشغيل الـ API وضبط API_PROXY_TARGET في ملف .env', en: 'Could not reach the server. Make sure the API is running and API_PROXY_TARGET is set in .env' },
+  'login.error.invalid': {
+    ar: 'بيانات الدخول غير صحيحة. تحقق من رمز المنشأة والبريد وكلمة المرور.',
+    en: 'Invalid credentials. Check the tenant code, e-mail and password.',
+  },
+  'login.error.suspended': {
+    ar: 'الاشتراك موقوف. تواصل مع إدارة المنصة لتفعيل الحساب.',
+    en: 'Subscription suspended. Contact platform administration to activate the account.',
+  },
+  'login.error.rateLimited': {
+    ar: 'محاولات كثيرة. انتظر دقيقة ثم أعد المحاولة.',
+    en: 'Too many attempts. Wait a minute and try again.',
+  },
+  'login.error.unreachable': {
+    ar: 'تعذر الاتصال بالخادم. تأكد من تشغيل الـ API وضبط API_PROXY_TARGET في ملف .env',
+    en: 'Could not reach the server. Make sure the API is running and API_PROXY_TARGET is set in .env',
+  },
 
   'mfa.title': { ar: 'رمز التحقق', en: 'Verification code' },
-  'mfa.hint': { ar: 'أدخل الرمز المكوَّن من 6 أرقام من تطبيق المصادقة، أو رمز استرداد لم يُستخدم من قبل.', en: 'Enter the 6-digit code from your authenticator app, or an unused recovery code.' },
+  'mfa.hint': {
+    ar: 'أدخل الرمز المكوَّن من 6 أرقام من تطبيق المصادقة، أو رمز استرداد لم يُستخدم من قبل.',
+    en: 'Enter the 6-digit code from your authenticator app, or an unused recovery code.',
+  },
   'mfa.code': { ar: 'رمز التحقق', en: 'Verification code' },
   'mfa.verify': { ar: 'تحقق', en: 'Verify' },
   'mfa.verifying': { ar: 'جارٍ التحقق…', en: 'Verifying…' },
   'mfa.back': { ar: 'رجوع', en: 'Back' },
-  'mfa.error.invalid': { ar: 'الرمز غير صحيح. تحقق من التطبيق وأعد المحاولة.', en: 'Invalid code. Check your authenticator and try again.' },
+  'mfa.error.invalid': {
+    ar: 'الرمز غير صحيح. تحقق من التطبيق وأعد المحاولة.',
+    en: 'Invalid code. Check your authenticator and try again.',
+  },
 
   'common.loading': { ar: 'جارٍ التحميل…', en: 'Loading…' },
   'common.retry': { ar: 'إعادة المحاولة', en: 'Retry' },

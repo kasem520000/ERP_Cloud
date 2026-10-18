@@ -1,0 +1,20 @@
+# محرك الواجهة الحالي وخريطة الترحيل
+
+المصدر الواحد الموجود مسبقاً هو `packages/ui/src/tokens/tokens.css` (semantic light/dark + `@theme` لـTailwind v4)، و`packages/ui/src/theme/*` (ThemeScript قبل hydration، ThemeProvider، ThemeToggle، مفتاح localStorage واحد `erp.theme`) و`packages/ui/src/components/*` (Button/Input/Select/Card/DataTable/Modal/ConfirmDialog/Tabs/Toast/EmptyState…). **لا تنشئ توكن جديداً داخل الصفحة**. يشتق التطبيق CSS الخاص ببنية عمله من `var(--bg)`, `var(--surface)`, `var(--text)`, `var(--muted)`, `var(--line)`, `var(--brand)`, `var(--ok-ink)`, `var(--warn-soft)`, `var(--danger-line)` بدلاً من hex خاص به. `@theme` يعرّف الخط Tajawal/Inter والخط الرقمي، الزوايا، ظلال الوضعين، مدة الحركة، ارتفاع الحقل ومقياس `--ui-space-*` ومقاسات shell والطباعة. مكوّنات Tailwind تقرأ `bg-surface`, `text-ink`, `border-line` من نفس العقد. تغيير متغير semantic فاتح/داكن في هذا الملف ينعكس على كل الأسطح التي رُبطت بالفعل؛ لا يُعد هذا علاجاً للتنسيقات القديمة خارج العقد.
+
+## ربط التطبيق
+
+في `app/globals.css` استورد خطوط Tajawal/Inter محلياً و`tailwindcss` ثم `@erp/ui/tokens.css`، فعّل `@tailwindcss/postcss` في `postcss.config.mjs`، وأضف `@source '../../../packages/ui/src'` حتى لا تُسقط Tailwind أصناف المكونات التي لا تظهر حرفياً في التطبيق. في `app/layout.tsx` ضع `<ThemeScript defaultChoice="system" />` في `<head>` و`<ThemeProvider>` حول الصفحة؛ منصة الإدارة `dark` افتراضياً. استعمل `@erp/ui/theme` لتغيير الثيم والاسم الافتراضي `SYSTEM_NAME_AR`؛ الاسم القادم من white-label أو محتوى الموقع يُحترم. لا تعكس كل الأيقونات في RTL؛ الأرقام/الأكواد تحتاج `dir=ltr` أو `.num` حيث يلزم. استعمل `padding-inline`, `margin-inline`, `start/end` عوضاً عن اليمين/اليسار. قواعد `.dense/.comfortable` للجداول موجودة في ملف التوكنات.
+
+**البنية المشتركة الجديدة**: `packages/ui/src/components/page-layout.tsx` تُصدّر `PageFrame`, `PageHeader`, `ContentPanel`, `TableViewport`, `FormField`, `SummaryStat`, `ViewNotice` عبر `@erp/ui/page` (استيراد فرعي خفيف بدلاً من barrel الضخم). شكلها ومقياس المسافات وحالاتها وتجاوبها في `tokens.css`، لذلك تعديل `--ui-space-*` و`--ui-content-max` يغير **هندسة** الصفحات التي تستخدمها لا الألوان فقط. `Screen` في staff والمنصة يستخدم PageFrame/PageHeader؛ هذا يحسّن رأس الصفحة في 197 مدخلاً تقريباً لكن **لا يرحّل المكونات الداخلية تلقائياً**.
+
+**قاعدة تباين الأزرار:** قواعد إعادة ضبط عناصر `button/input` في `tokens.css` داخل `@layer base` لا خارج الطبقات؛ وإلا تغلب `color: inherit` غير المطبّق على `.text-brand-ink` حتى مع توليد Tailwind لها. تم التحقق من زر دخول المخابز في Chromium: النص `rgb(255,255,255)` على الأزرق `rgb(37,99,235)`. يظل التحقق من التباين على بقية المكونات والأوضاع مطلوباً.
+
+**بوابة العملاء في هذه الدفعة**: أعيدت بنية 10 مصادر صفحات و`PortalShell` وحقول الدخول والتعافي، والملف الشخصي يستخدم `dl` بدلاً من جدول بيانات غير مناسب، والجداول الطويلة تمر عبر `TableViewport`، وبيانات الحالة تُعرض صراحةً ولا تدّعي صفراً قبل وصول API. `globals.css` للبوابة الآن تخطيط rail/forms/tables من الرموز، ولا يضم لوحة ألوان منفصلة. `@erp/ui/page` خفّض حمولة شاشة الدخول المبنية من 277kB إلى 105kB في قياس Next. في marketing فُعّل PostCSS و`@source` حتى تصل أصناف Tailwind/المكونات المشتركة فعلاً للمتصفح؛ لم تتحول صفحات الموقع إلى تصميم ERP تشغيلي لأنها مساحة تسويقية ذات وظيفة مختلفة. النماذج تحتفظ بعقود الحقول واستدعاءات API، ومبدّل الثيم يستخدم المفتاح نفسه في الجميع.
+
+## منع الانحراف وإضافة شاشة
+
+1. سجل `page.tsx` الجديد عبر `node scripts/ui-screen-registry.mjs` ثم املأ الحالات بدليل؛ لا تعدل معرّفات ID.
+2. استخدم مكون `@erp/ui` الموجود أو استخرج المشترك بدلاً من تكراره، وعرّف اختلاف نشاط الشاشة في CSS الخاص بها عبر توكن دلالي. احتفظ باستثناء ثابت اللون فقط بتعليق يشرح لماذا (شعار طرف ثالث، لون طباعة قانوني، category chart).
+3. شغّل `node scripts/check-ui-design.mjs` + typecheck/lint/test/build؛ الفحص يمنع إعادة لون مستقل للبوابة ويضمن import الرموز لكل سطح. لا يشهد بأن باقي الصفحات رُحّلت أو فُحصت بصرياً. أضف نطاقات أخرى بالتدريج بعد مراجعة الاستثناءات لا بكسر صفحات قديمة.
+4. افتح الشاشة قبل وبعد بأحجام مناسبة، وفحص حالاتها وRTL/LTR، وسجل مصدر الصورة والأخطاء في `SCREEN_REGISTRY.md` و`TEST_REPORT.md`.

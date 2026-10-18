@@ -10,6 +10,7 @@
  */
 
 /* ---------------------------------------------------------------- theme -- */
+export { SYSTEM_NAME_AR, SYSTEM_NAME_EN } from './theme/identity';
 export {
   ThemeProvider,
   useTheme,
@@ -31,6 +32,8 @@ export {
   type ResolvedTheme,
   type ThemeChoice,
 } from './theme/theme';
+
+export { PageFrame, PageHeader, ContentPanel, TableViewport, FormField, SummaryStat, ViewNotice } from './components/page-layout';
 
 /* ------------------------------------------------------------------ lib -- */
 export { cn, type ClassValue } from './lib/cn';

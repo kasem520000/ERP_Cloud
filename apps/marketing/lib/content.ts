@@ -14,6 +14,8 @@
  * الثابت. و`tests/site.spec.ts` يقيس هذا السلوك.
  */
 
+import { SYSTEM_NAME_AR } from '@erp/ui/theme';
+
 import type { Locale } from './i18n';
 
 const apiBase = (
@@ -129,7 +131,7 @@ export type SiteShell = {
 };
 
 const emptyShell: SiteShell = {
-  brandName: 'Cloud SaaS ERP',
+  brandName: SYSTEM_NAME_AR,
   brandInitials: 'ERP',
   taglineAr: 'نظام تخطيط موارد المؤسسات السحابي',
   taglineEn: 'Cloud ERP for growing businesses',

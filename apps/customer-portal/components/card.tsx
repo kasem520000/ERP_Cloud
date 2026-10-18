@@ -1,2 +1,0 @@
-export function Kpi({ label, value, hint }: { label: string; value: string; hint?: string }) { return <article className="card"><p className="muted">{label}</p><div className="kpi">{value}</div>{hint ? <small className="muted">{hint}</small> : null}</article>; }
-export function Empty({ title, detail }: { title: string; detail: string }) { return <section className="card"><h3>{title}</h3><p className="muted">{detail}</p></section>; }

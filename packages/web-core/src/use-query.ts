@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 
 import { ApiError } from './api';
+import { arabicErrorText } from './error-language';
 
 export type QueryState<T> = {
   status: 'loading' | 'success' | 'error' | 'forbidden';
@@ -13,7 +14,9 @@ export type QueryState<T> = {
 
 /** Minimal data hook — no cache, explicit states, forbidden separated from error. */
 export function useQuery<T>(loader: () => Promise<T>, deps: unknown[] = []): QueryState<T> {
-  const [state, setState] = useState<{ status: QueryState<T>['status']; data?: T; error?: string }>({ status: 'loading' });
+  const [state, setState] = useState<{ status: QueryState<T>['status']; data?: T; error?: string }>({
+    status: 'loading',
+  });
   const [nonce, setNonce] = useState(0);
 
   // The loader identity changes on every render by design; the caller controls
@@ -33,7 +36,7 @@ export function useQuery<T>(loader: () => Promise<T>, deps: unknown[] = []): Que
           setState({ status: 'forbidden', error: error.message });
           return;
         }
-        setState({ status: 'error', error: error instanceof Error ? error.message : String(error) });
+        setState({ status: 'error', error: arabicErrorText(error) });
       });
     return () => {
       cancelled = true;

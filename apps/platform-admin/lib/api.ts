@@ -1,5 +1,7 @@
 /* global RequestInit */
 
+import { arabicProblem } from '@erp/web-core/error-language';
+
 /**
  * API client for the admin console.
  *
@@ -112,9 +114,11 @@ async function toError(response: Response): Promise<ApiError> {
       problem = { detail: text.slice(0, 400) };
     }
   }
-  const code = problem.code ?? (response.status === 401 ? 'UNAUTHENTICATED' : response.status === 403 ? 'FORBIDDEN' : 'HTTP_ERROR');
-  const message = problem.title ?? problem.message ?? problem.detail ?? `${response.status} ${response.statusText}`;
-  return new ApiError(response.status, code, message, problem.detail);
+  const code =
+    problem.code ??
+    (response.status === 401 ? 'UNAUTHENTICATED' : response.status === 403 ? 'FORBIDDEN' : 'HTTP_ERROR');
+  const localized = arabicProblem(response.status, problem.title ?? problem.message, problem.detail);
+  return new ApiError(response.status, code, localized.message, localized.detail);
 }
 
 let refreshInFlight: Promise<StoredSession | undefined> | undefined;
@@ -135,7 +139,9 @@ async function refreshSession(): Promise<StoredSession | undefined> {
         writeSession(undefined);
         return undefined;
       }
-      const payload = (await response.json()) as { data: { accessToken: string; refreshToken: string; expiresIn: number } };
+      const payload = (await response.json()) as {
+        data: { accessToken: string; refreshToken: string; expiresIn: number };
+      };
       const next: StoredSession = {
         accessToken: payload.data.accessToken,
         refreshToken: payload.data.refreshToken,
@@ -166,7 +172,8 @@ export async function apiFetch<T>(path: string, options: ApiOptions = {}): Promi
 
   const call = async (token?: string): Promise<Response> => {
     const headers = new Headers(init.headers ?? {});
-    if (!headers.has('content-type') && init.body !== undefined) headers.set('content-type', 'application/json');
+    if (!headers.has('content-type') && init.body !== undefined)
+      headers.set('content-type', 'application/json');
     headers.set('accept', 'application/json');
     if (token) headers.set('authorization', `Bearer ${token}`);
     if (branchId) headers.set('x-branch-id', branchId);
@@ -236,7 +243,11 @@ export async function apiData<T>(path: string, options: ApiOptions = {}): Promis
 export async function apiList<T>(path: string, options: ApiOptions = {}): Promise<T[]> {
   const payload = unwrap<unknown>(await apiFetch<unknown>(path, options));
   if (Array.isArray(payload)) return payload as T[];
-  if (payload !== null && typeof payload === 'object' && Array.isArray((payload as { items?: unknown }).items)) {
+  if (
+    payload !== null &&
+    typeof payload === 'object' &&
+    Array.isArray((payload as { items?: unknown }).items)
+  ) {
     return (payload as { items: T[] }).items;
   }
   return [];
@@ -301,7 +312,14 @@ export type LoginPayload = {
     platformRoles: string[];
     mustChangePassword: boolean;
   };
-  memberships: Array<{ id: string; tenantId: string; tenantCode: string; tenantName: string; isOwner: boolean; status: string }>;
+  memberships: Array<{
+    id: string;
+    tenantId: string;
+    tenantCode: string;
+    tenantName: string;
+    isOwner: boolean;
+    status: string;
+  }>;
 };
 
 export async function login(
@@ -342,7 +360,14 @@ export type MePayload = {
     platformRoles: string[];
     mustChangePassword: boolean;
   };
-  membership: { id: string; tenantId: string; tenantCode: string; tenantName: string; displayName: string; isOwner: boolean };
+  membership: {
+    id: string;
+    tenantId: string;
+    tenantCode: string;
+    tenantName: string;
+    displayName: string;
+    isOwner: boolean;
+  };
   permissions: string[];
   /** P-C1 — the `console.*` codes of the operator's platform roles (never tenant codes). */
   platformPermissions: string[];

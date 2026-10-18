@@ -275,8 +275,11 @@ td.num, th.num { text-align: end; font-variant-numeric: tabular-nums; font-famil
   .side { position: fixed; inset-inline-start: -320px; width: 300px; z-index: 40; transition: inset-inline-start .2s var(--ease-out); }
   .side.open { inset-inline-start: 0; box-shadow: 0 0 0 100vmax rgb(2 6 23 / 55%); }
   .only-mobile { display: inline-flex; }
-  .auth-page { grid-template-columns: 1fr; }
-  .auth-brand { padding: 28px; }
+  .auth-page { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
+  .auth-brand { padding: 20px; gap: 8px; align-items: center; text-align: center; }
+  .auth-brand h1 { font-size: 22px; margin: 0; }
+  .auth-brand p { display: none; }
+  .auth-card { align-self: start; margin-block: 14px 28px; }
   .main { padding: 14px; }
 }
 

@@ -37,6 +37,21 @@ const CONSOLE_PERM_AR: Record<string, string> = {
   'console.tenants.view': 'عرض العملاء والمنشآت',
   'console.tenants.manage': 'إدارة العملاء والتعليق والتفعيل',
   'console.plans.manage': 'إدارة الخطط والتراخيص والاشتراكات',
+  'console.subscriptions.manage': 'إدارة اشتراكات المنشآت',
+  'console.activation.review': 'مراجعة طلبات تفعيل المنشآت',
+  'console.marketplace.manage': 'إدارة تطبيقات سوق الإضافات',
+  'console.health.view': 'عرض حالة الخدمات',
+  'console.jobs.view': 'عرض المهام والطوابير',
+  'console.billing.manage': 'إدارة الفوترة والتحصيل',
+  'console.email.view': 'عرض سجل البريد الصادر',
+  'console.notifications.manage': 'إدارة إعلانات المنصة',
+  'console.backups.manage': 'إدارة نسخ المنصة وطلبات البيانات',
+  'console.apikeys.manage': 'إدارة مفاتيح الربط البرمجي',
+  'console.webhooks.manage': 'إدارة إشعارات الربط الفورية',
+  'console.content.view': 'عرض المحتوى والمسودات',
+  'console.leads.view': 'عرض العملاء المحتملين',
+  'console.leads.manage': 'إدارة العملاء المحتملين',
+  'console.campaigns.manage': 'إدارة الحملات البريدية',
   'console.users.view': 'عرض دليل المستخدمين والجلسات',
   'console.users.manage': 'إدارة المستخدمين وأدوار المنصة و2FA',
   'console.audit.view': 'عرض سجل التدقيق العابر للمنشآت',
@@ -70,7 +85,9 @@ export default function PlatformRolesPage() {
   const session = useSession();
   const canManage = session.canConsole('console.users.manage');
 
-  const roles = useQuery<PlatformRoleMatrixEntry[]>(() => apiData<PlatformRoleMatrixEntry[]>('/platform/roles'));
+  const roles = useQuery<PlatformRoleMatrixEntry[]>(() =>
+    apiData<PlatformRoleMatrixEntry[]>('/platform/roles'),
+  );
   const permissions = useQuery<PermissionDto[]>(() => apiData<PermissionDto[]>('/platform/permissions'));
 
   const [draft, setDraft] = useState<Draft>({});
@@ -182,11 +199,18 @@ function RoleMatrix({
     <div className="card">
       <div className="row" style={{ justifyContent: 'space-between', alignItems: 'baseline' }}>
         <h3 style={{ margin: 0 }}>
-          {role.nameAr} <span className="muted" dir="ltr">({role.code})</span>
+          {role.nameAr}{' '}
+          <span className="muted" dir="ltr">
+            ({role.code})
+          </span>
         </h3>
         <span className="muted">
           الحائزون: {role.holderCount} ·{' '}
-          {role.overridden ? <span className="tag tenant">تجاوز مسجَّل</span> : <span className="tag default">كما في الفهرس</span>}
+          {role.overridden ? (
+            <span className="tag tenant">تجاوز مسجَّل</span>
+          ) : (
+            <span className="tag default">كما في الفهرس</span>
+          )}
         </span>
       </div>
       <p className="muted">{ROLE_DESC_AR[role.code] ?? role.description}</p>
@@ -199,12 +223,19 @@ function RoleMatrix({
             <label
               key={code}
               className="chip"
-              title={`${CONSOLE_PERM_AR[code] ?? code} (${code})`}
+              title={`${CONSOLE_PERM_AR[code] ?? 'صلاحية غير مصنّفة'} (${code})`}
               style={{ opacity: on ? 1 : 0.6 }}
             >
-              <input type="checkbox" checked={on} disabled={!canManage || busy} onChange={(event) => onToggle(code, event.target.checked)} />
-              <span>{CONSOLE_PERM_AR[code] ?? code.replace('console.', '')}</span>
-              <span className="muted small" dir="ltr">({code.replace('console.', '')})</span>
+              <input
+                type="checkbox"
+                checked={on}
+                disabled={!canManage || busy}
+                onChange={(event) => onToggle(code, event.target.checked)}
+              />
+              <span>{CONSOLE_PERM_AR[code] ?? 'صلاحية غير مصنّفة'}</span>
+              <span className="muted small" dir="ltr">
+                ({code.replace('console.', '')})
+              </span>
               {inCatalogue !== on && <span className="muted">{inCatalogue ? '−' : '+'}</span>}
             </label>
           );
@@ -220,7 +251,12 @@ function RoleMatrix({
             value={reason}
             onChange={(event) => setReason(event.target.value)}
           />
-          <button className="btn primary" type="button" disabled={!dirty || busy || reason.trim().length < 3} onClick={() => onSave(reason.trim())}>
+          <button
+            className="btn primary"
+            type="button"
+            disabled={!dirty || busy || reason.trim().length < 3}
+            onClick={() => onSave(reason.trim())}
+          >
             {busy ? 'جارٍ الحفظ…' : 'حفظ مجموعة هذا الدور'}
           </button>
           <button
@@ -278,7 +314,9 @@ function UsersAndHolders() {
                           {ROLE_NAME_AR[code] ?? code}
                         </span>
                       ))}
-                      {row.platformRoles.length === 0 && row.isPlatformAdmin && <span className="badge active">مالك المنصة</span>}
+                      {row.platformRoles.length === 0 && row.isPlatformAdmin && (
+                        <span className="badge active">مالك المنصة</span>
+                      )}
                     </td>
                   </tr>
                 ))}

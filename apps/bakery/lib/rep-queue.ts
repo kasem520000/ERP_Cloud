@@ -29,6 +29,7 @@ import {
   SUBMISSION_KEY_MAX_LENGTH,
 } from '@erp/web-core/idempotency';
 import type { VanQueueOperation, VanQueueRecord, VanQueueStatus } from '@erp/web-core/offline-db';
+import { arabicProblem } from '@erp/web-core/error-language';
 
 /** رموزُ الصلاحية كما في `van-sales.controller.ts` — حرفًا، فإخفاءُ الزرّ ليس ضبطًا. */
 export const REP_PERMISSIONS = {
@@ -114,19 +115,25 @@ export const NOT_QUEUEABLE_OPERATIONS: Readonly<
   },
 };
 
-/** نصوصُ هذا الوجه. وما كان نصَّ الخادم يُنقل حرفًا ولا يُصاغ ألطف. */
+/** نصوص هذا الوجه موجّهة للمندوب؛ رموز الصلاحيات تبقى داخل التفويض لا في رسائل الشاشة. */
 export const REP_QUEUE_MESSAGES = {
-  /** نصُّ الـ٤٠٣ كما يكتبه الخادم (RFC-9457 `detail`). */
-  permissionRequired: (codes: readonly string[]) => `permission ${codes.join(', ')} required`,
+  permissionRequired: (codes: readonly string[]) => {
+    const labels: Record<string, string> = {
+      'van_sales.view': 'عرض بيانات البيع الميداني',
+      'van_sales.invoice.create': 'إصدار فواتير البيع الميداني',
+      'van_sales.collection.create': 'تسجيل تحصيل العملاء',
+      'van_sales.closing.submit': 'تقديم إقفال العهدة',
+    };
+    return `ليس لديك صلاحية ${codes.map((code) => labels[code] ?? 'تنفيذ هذا الإجراء').join('، ')}. اطلبها من مسؤول المنشأة.`;
+  },
   storedOffline: (labelAr: string) =>
-    `حُفظت النيّةُ محليًّا (${labelAr}) وستُرسل إلى مسارها الرسميّ لحظةَ عودة الشبكة بمفتاحِ عدم تكرارٍ واحد — فلا مستندَ مكرَّر ولو أُعيد الإرسال مرّات.`,
-  offlineNumbersAreStale:
-    'الأرقامُ المعروضة من آخر قراءةٍ ناجحة: فالطابورُ يحفظ النيّات ولا يحسب المجاميع — والمجاميعُ من الخادم وحده (`totals` و`custody` في `/van-sales/me`).',
+    `حُفظت العملية (${labelAr}) على هذا الجهاز وستُرسل تلقائياً بعد عودة الاتصال. لا تمسح بيانات المتصفح قبل وصولها.`,
+  offlineNumbersAreStale: 'الأرقام المعروضة من آخر تحديث ناجح؛ قد تتغير بعد إرسال العمليات المحفوظة.',
   deviceLine: (deviceId: string | null) =>
     deviceId
-      ? `جهازُ هذا المتصفّح: ${deviceId} — وسمُ تتبّعٍ يظهر في مفاتيح عدم التكرار، وليس حدًّا أمنيًّا: فمن مسح تخزينَ المتصفّح أخذ هويّةً جديدة.`
-      : 'لم يُنشأ بعدُ وسمُ جهازٍ لهذا المتصفّح — يُنشأ عند أوّل نيّةٍ محفوظة.',
-  nothingQueued: 'لا نيّاتٍ محفوظة: كلّ ما أرسلتَه وصل.',
+      ? 'العمليات المحفوظة مرتبطة بهذا الجهاز. لا تمسح بيانات المتصفح قبل إرسالها.'
+      : 'ستُحفظ العمليات على هذا الجهاز عند أول إجراء دون اتصال.',
+  nothingQueued: 'لا عمليات محفوظة بانتظار الإرسال.',
 } as const;
 
 /** المسارُ الرسميّ لعمليّةٍ — ولا يُخترع مسارُ مزامنةٍ جماعية. */
@@ -177,7 +184,8 @@ export function classifyReplay(response: {
   detail?: string | null;
 }): ReplayOutcome {
   const status = typeof response.status === 'number' ? response.status : null;
-  const detail = response.detail?.trim() || '';
+  const detail =
+    status === null ? '' : (arabicProblem(status, undefined, response.detail ?? undefined).detail ?? '');
   if (status === null)
     return { nextStatus: 'pending', reasonAr: 'لم تصل النيّةُ إلى الخادم (انقطاع شبكة) — تبقى في الطابور.' };
   if (status >= 200 && status < 300)
@@ -271,9 +279,7 @@ export function queueVerdict(input: QueueVerdictInput): QueueVerdict {
     !input.targetId
   ) {
     blocked.push(
-      input.operation === 'return'
-        ? 'حدّد مستندَ البيع الأصلي للمرتجع'
-        : 'حدّد أمرَ التحميل المطلوب',
+      input.operation === 'return' ? 'حدّد مستندَ البيع الأصلي للمرتجع' : 'حدّد أمرَ التحميل المطلوب',
     );
   }
 

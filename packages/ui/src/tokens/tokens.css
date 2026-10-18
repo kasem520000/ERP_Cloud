@@ -118,6 +118,19 @@
   /* -------------------------------------------------------- density ---- */
   --control-h: 36px; /* شرائح الإدخال h-9 */
   --leading: 1.6;
+  /* Semantic layout ladder used by shells, forms and ledger rows. */
+  --ui-space-1: 4px;
+  --ui-space-2: 8px;
+  --ui-space-3: 12px;
+  --ui-space-4: 16px;
+  --ui-space-5: 20px;
+  --ui-space-6: 24px;
+  --ui-space-8: 32px;
+  --ui-content-max: 1280px;
+  --ui-rail-width: 240px;
+  --ui-type-body: 14px;
+  --ui-type-caption: 12px;
+  --ui-type-kpi: 28px;
 
   /* ------------------------------------------- semantic contract ------ */
   /* Every utility below resolves through a runtime variable, which is what
@@ -196,6 +209,7 @@
 
   /* brand */
   --brand: #2563eb;
+  --brand-hover: color-mix(in oklab, var(--brand) 84%, var(--text));
   --brand-2: #3b82f6;
   --brand-ink: #ffffff;
   --brand-soft: #eff6ff;
@@ -355,12 +369,16 @@ a:hover {
   color: var(--brand);
 }
 
-button,
-input,
-select,
-textarea {
-  font: inherit;
-  color: inherit;
+/* Base controls belong to the base cascade layer. An unlayered `color: inherit`
+ * overrides Tailwind's layered `.text-brand-ink` even on a primary button. */
+@layer base {
+  button,
+  input,
+  select,
+  textarea {
+    font: inherit;
+    color: inherit;
+  }
 }
 
 ::selection {
@@ -491,6 +509,48 @@ h6 {
 .logo-plate img {
   max-width: 100%;
   height: auto;
+}
+
+/* Operational screen anatomy. Shared by staff, console, bakery and portal.
+ * Layout is not an accidental consequence of changing the colour palette. */
+.erp-page { display: grid; align-content: start; gap: var(--ui-space-5); min-width: 0; }
+.erp-page > * { min-width: 0; }
+.erp-page-header {
+  display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between;
+  gap: var(--ui-space-4); padding-block-end: var(--ui-space-4);
+  border-block-end: 1px solid var(--line);
+}
+.erp-page-heading { min-width: 0; max-width: 76ch; }
+.erp-page-heading h1 { margin: 0; font-size: clamp(22px, 2.5vw, 28px); line-height: 1.3; overflow-wrap: anywhere; }
+.erp-page-description { margin: var(--ui-space-1) 0 0; color: var(--muted); font-size: var(--ui-type-body); line-height: 1.6; }
+.erp-page-eyebrow, .erp-page-breadcrumbs { margin: 0 0 var(--ui-space-2); color: var(--muted); font-size: var(--ui-type-caption); font-weight: 700; }
+.erp-page-actions { display: flex; flex-wrap: wrap; gap: var(--ui-space-2); align-items: center; }
+.erp-panel { min-width: 0; padding: var(--ui-space-5); border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--surface); }
+.erp-panel-header { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: var(--ui-space-3); margin-block-end: var(--ui-space-4); }
+.erp-panel-heading { min-width: 0; }
+.erp-panel-heading h2 { margin: 0; font-size: 16px; }
+.erp-panel-heading p { margin: var(--ui-space-1) 0 0; font-size: var(--ui-type-caption); color: var(--muted); }
+.erp-table-viewport { max-width: 100%; overflow-x: auto; overscroll-behavior-inline: contain; }
+.erp-table-viewport:focus-visible { outline: 2px solid var(--brand); outline-offset: -2px; }
+.erp-field { min-width: 0; display: grid; align-content: start; gap: var(--ui-space-1); font-size: var(--ui-type-body); }
+.erp-field-label { font-weight: 700; color: var(--text); }
+.erp-field-hint { font-size: var(--ui-type-caption); color: var(--muted); }
+.erp-field-error { font-size: var(--ui-type-caption); color: var(--danger-ink); }
+.erp-stat { min-width: 0; display: grid; align-content: start; gap: var(--ui-space-1); padding: var(--ui-space-4); border: 1px solid var(--line); border-radius: var(--radius-lg); background: var(--surface); }
+.erp-stat-label, .erp-stat-hint { font-size: var(--ui-type-caption); color: var(--muted); }
+.erp-stat-label { font-weight: 700; }
+.erp-stat-value { font: 700 clamp(20px, 2.4vw, 28px)/1.3 var(--font-num); font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.erp-view-notice { padding: var(--ui-space-6); border: 1px dashed var(--line-strong); border-radius: var(--radius-md); color: var(--muted-2); text-align: center; background: var(--surface-2); }
+.erp-view-error { color: var(--danger-ink); background: var(--danger-soft); border-color: var(--danger-line); }
+@media (max-width: 640px) {
+  .erp-panel { padding: var(--ui-space-4); }
+  .erp-page-header { align-items: start; }
+  .erp-page-actions { width: 100%; }
+}
+@media print {
+  .erp-page { gap: var(--ui-space-2); }
+  .erp-panel { padding: var(--ui-space-2); border: 0; }
+  .erp-table-viewport { overflow: visible; }
 }
 
 /* Density helpers — staff is a keyboard tool, not a poster (§4). */

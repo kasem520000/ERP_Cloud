@@ -3,16 +3,17 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
+import { ContentPanel, ViewNotice } from '@erp/ui/page';
+import { arabicErrorText } from '@erp/web-core/error-language';
 
 import { fetchProfile, logout, readToken, type PortalProfile } from '../lib/api';
 import { moneyText } from '../lib/format';
 import { portalRoutes } from '../lib/navigation';
 
 type ShellState = { profile: PortalProfile | null; error: string };
-
 const ProfileContext = createContext<ShellState>({ profile: null, error: '' });
 
-/** Lets a page reuse the profile the shell already loaded instead of asking again. */
+/** Reuse the profile already loaded by the gate; never create a second request per screen. */
 export const usePortalProfile = () => useContext(ProfileContext);
 
 export function PortalShell({ children }: { children: ReactNode }) {
@@ -27,56 +28,69 @@ export function PortalShell({ children }: { children: ReactNode }) {
     }
     fetchProfile()
       .then((profile) => setState({ profile, error: '' }))
-      .catch((error: Error) => setState({ profile: null, error: error.message }))
+      .catch((error: unknown) => setState({ profile: null, error: arabicErrorText(error) }))
       .finally(() => setChecked(true));
   }, []);
 
-  if (!checked) return <div className="card">جارٍ فتح البوابة…</div>;
+  if (!checked) return <ViewNotice state="loading">جارٍ فتح البوابة…</ViewNotice>;
 
-  // An account that exists but is not linked to a customer gets a plain explanation instead of
-  // a shell full of endpoints that will all fail the same way.
+  // Do not render a successful-looking ledger for an unlinked or expired account.
   if (!state.profile) {
     return (
-      <section className="card">
+      <ContentPanel>
         <h1>لا يمكن فتح البوابة</h1>
-        <p className="muted">{state.error || 'تعذّر تحميل بيانات الحساب.'}</p>
+        <ViewNotice state="error">{state.error || 'تعذّر تحميل بيانات الحساب.'}</ViewNotice>
         <button className="btn" type="button" onClick={logout}>
           تسجيل الخروج
         </button>
-      </section>
+      </ContentPanel>
     );
   }
 
   const { party, company } = state.profile;
   const dueBalance = state.profile.balance;
-
   return (
     <ProfileContext.Provider value={state}>
       <div className="portal">
-        <aside className="card side">
-          <strong>{party?.name ?? 'بوابة العملاء'}</strong>
-          <p className="muted" style={{ margin: '4px 0 12px' }}>
-            <small>{company.nameAr || 'المورد'}</small>
-          </p>
-          {portalRoutes.map((route) => (
-            <Link href={route.href} key={route.key} style={pathname === route.href ? { background: '#eff6ff', color: 'var(--brand)' } : undefined}>
-              {route.labelAr}
-              <br />
-              <small>{route.labelEn}</small>
-            </Link>
-          ))}
-          <hr style={{ border: 0, borderTop: '1px solid var(--line)', margin: '12px 0' }} />
-          <p className="muted">
-            <small>الرصيد المستحق</small>
-          </p>
-          <div className="kpi" style={{ fontSize: 20 }}>
-            {moneyText(dueBalance)}
+        <aside className="portal-rail" aria-label="حساب العميل">
+          <div className="portal-identity">
+            <span className="portal-avatar" aria-hidden="true">
+              {(party?.name || 'ع').trim().slice(0, 1)}
+            </span>
+            <div className="portal-identity-text">
+              <strong>{party?.name ?? 'بوابة العملاء'}</strong>
+              <small>{company.nameAr || 'المورد'}</small>
+            </div>
           </div>
-          <button className="btn" type="button" onClick={logout} style={{ marginTop: 12, width: '100%' }}>
+          <nav className="portal-links" aria-label="أقسام بوابة العملاء">
+            {portalRoutes.map((route) => (
+              <Link
+                href={route.href}
+                key={route.key}
+                aria-current={
+                  pathname === route.href ||
+                  (route.href !== '/portal' && pathname.startsWith(`${route.href}/`))
+                    ? 'page'
+                    : undefined
+                }
+              >
+                <span>{route.labelAr}</span>
+              </Link>
+            ))}
+          </nav>
+          <div className="portal-account-summary">
+            <small>الرصيد المستحق</small>
+            <strong className="num" dir="auto">
+              {moneyText(dueBalance)}
+            </strong>
+          </div>
+          <button className="btn portal-signout" type="button" onClick={logout}>
             تسجيل الخروج
           </button>
         </aside>
-        <section className="grid">{children}</section>
+        <section className="portal-workspace" aria-label="محتوى الحساب">
+          {children}
+        </section>
       </div>
     </ProfileContext.Provider>
   );

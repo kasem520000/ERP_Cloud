@@ -7,7 +7,6 @@ import { hasVanSalesCompanyScope } from '@erp/contracts';
 import { apiData, apiErrorText } from '@erp/web-core/api';
 import { useSession } from '@erp/web-core/session';
 
-import { BAKERY_APP_CODE } from '../lib/licence';
 import { BAKERY_MODULES, readyModules, visibleModules } from '../lib/navigation';
 import { numberText } from '../lib/lookups';
 
@@ -123,13 +122,13 @@ export default function BakeryOverviewPage() {
           </h1>
           <p className="m-0 mt-1 text-[13px] text-muted">
             {me?.membership.tenantName ?? me?.membership.displayName ?? 'المنشأة'} ·{' '}
-            <span dir="ltr">{me?.membership.tenantCode}</span> — واجهةُ قطاع المخابز والتوزيع{' '}
-            على النظام نفسه: بلا سجلّاتٍ موازية ولا دفاترَ ثانية.
+            <span dir="ltr">{me?.membership.tenantCode}</span> — واجهةُ قطاع المخابز والتوزيع على النظام نفسه:
+            بلا سجلّاتٍ موازية ولا دفاترَ ثانية.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <Badge dot status="active" title="الباقةُ القطاعية مفعَّلةٌ لمنشأتك — وتُقرأ من جلسة دخولك">
-            مرخَّصة: <span dir="ltr">{BAKERY_APP_CODE}</span>
+            باقة المخابز مفعّلة
           </Badge>
           {repScoped ? (
             <Badge dot status="pending" title="بطاقةُ مندوبٍ مربوطةٌ بالعضوية وبلا إذنِ إدارةِ الخطّ">
@@ -137,7 +136,7 @@ export default function BakeryOverviewPage() {
             </Badge>
           ) : (
             <Badge status={built.length === modules.length ? 'active' : 'pending'}>
-              {built.length} من {modules.length} وحدة مبنيّة
+              {built.length} من {modules.length} خدمات متاحة
             </Badge>
           )}
           <Button onClick={() => void reload()} size="sm">
@@ -164,8 +163,8 @@ export default function BakeryOverviewPage() {
           }
           subtitle={
             repScoped
-              ? 'جدولُك أنت كلُّه لا نافذةُ قراءة — ولوحةُ المنشأة لا تُفتح على حسابك.'
-              : 'كلُّ السجلّ لا اليوم وحده، والأرصدةُ لحظتُها — ولا رقمَ يُحسب في المتصفح.'
+              ? 'اطّلع على مبيعاتك وتحصيلاتك وعهدتك الحالية.'
+              : 'متابعة المبيعات والتحصيل وعهدة التوزيع في منشأتك.'
           }
           title={repScoped ? 'أرقامُك أنت' : 'أرقامُ الخطّ'}
         />
@@ -196,7 +195,12 @@ export default function BakeryOverviewPage() {
             />
           ) : repScoped ? (
             <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-5">
-              <Kpi hint="مستنداتُك كلّها، والمرتجعُ مخصوم" title="إيرادُك" tone="brand" value={repValue('revenue')} />
+              <Kpi
+                hint="مستنداتُك كلّها، والمرتجعُ مخصوم"
+                title="إيرادُك"
+                tone="brand"
+                value={repValue('revenue')}
+              />
               <Kpi hint="طريقةُ الدفع نقدًا" title="نقديّ" tone="ok" value={repValue('cashSales')} />
               <Kpi
                 hint="ما ليس نقدًا — ومنه البطاقة"
@@ -233,7 +237,12 @@ export default function BakeryOverviewPage() {
                 tone={Number(value('totalReturnsSar')) > 0 ? 'warn' : 'neutral'}
                 value={value('totalReturnsSar')}
               />
-              <Kpi hint="سنداتُ قبضٍ مُرحّلة" title="المحصَّل نقدًا" tone="ok" value={value('totalCollectedCashSar')} />
+              <Kpi
+                hint="سنداتُ قبضٍ مُرحّلة"
+                title="المحصَّل نقدًا"
+                tone="ok"
+                value={value('totalCollectedCashSar')}
+              />
               <Kpi
                 hint="بعد خصم الإشعارات الدائنة"
                 title="ذممٌ غير محصّلة"
@@ -265,17 +274,20 @@ export default function BakeryOverviewPage() {
         <CardHeader
           subtitle={
             repScoped
-              ? 'القائمةُ مصفّاةٌ عمّا سيرفضه الخادمُ على حسابك — وشاشتُك هي تطبيق المندوب.'
+              ? 'الخدمات المتاحة لحساب المندوب.'
               : plannedCount > 0
-                ? 'الجاهزة روابطُ بشارةٍ خضراء، والمخطَّطة نصٌّ بمرحلتها — ولا رابط لمسارٍ غير موجود.'
-                : 'كلُّ وحدةٍ هنا مبنيّةٌ ورابطُها يعمل — ولا رابط لمسارٍ غير موجود.'
+                ? 'اختر الخدمة المتاحة لك؛ تظهر الخدمات القادمة دون رابط.'
+                : 'اختر الخدمة التي تريد العمل عليها.'
           }
           title="خريطة الوحدات"
         />
         <CardBody>
           <div className="grid gap-3 md:grid-cols-2">
             {modules.map((module) => (
-              <article className="grid gap-2 rounded-lg border border-line bg-surface p-4 shadow-1" key={module.key}>
+              <article
+                className="grid gap-2 rounded-lg border border-line bg-surface p-4 shadow-1"
+                key={module.key}
+              >
                 <div className="flex flex-wrap items-center gap-2">
                   <span aria-hidden="true">{module.icon}</span>
                   <h2 className="m-0 text-[15px] font-extrabold text-ink">
@@ -288,30 +300,10 @@ export default function BakeryOverviewPage() {
                     )}
                   </h2>
                   <Badge dot status={module.status === 'ready' ? 'active' : 'pending'}>
-                    {module.status === 'ready' ? 'مبنيّة' : module.phaseAr}
+                    {module.status === 'ready' ? 'متاحة' : 'غير متاحة حالياً'}
                   </Badge>
-                  {module.permission ? (
-                    <Badge tone="neutral">
-                      <span dir="ltr">{module.permission}</span>
-                    </Badge>
-                  ) : null}
                 </div>
-                {/* سطرٌ للعميل. وأمّا السجلُّ الهندسيّ (‏`planAr`) ومساراتُ API فتُعرض مطويّةً
-                    تحت «التفاصيل التقنية»: ففيها أسماءُ ملفاتٍ وأرقامُ شرائحَ وملاحظاتُ قياسٍ
-                    لا تعني عميلًا، وعرضُها افتراضيًّا كان يجعل الصفحةَ جدارَ نصٍّ (قِيس من
-                    لصقةِ صاحبِ العمل) — وهذا بندُه «بياناتٌ تظهر في الشاشات لا تصلح للإنتاج». */}
                 <p className="m-0 text-[13px] leading-relaxed text-muted">{module.summaryAr}</p>
-                <details className="bak-tech">
-                  <summary>التفاصيل التقنية</summary>
-                  <p className="m-0 text-[12.5px] leading-relaxed text-muted">{module.planAr}</p>
-                  <div className="bak-endpoints">
-                    {module.endpoints.map((endpoint) => (
-                      <code className="bak-endpoint" key={endpoint}>
-                        {endpoint}
-                      </code>
-                    ))}
-                  </div>
-                </details>
               </article>
             ))}
           </div>
@@ -323,18 +315,17 @@ export default function BakeryOverviewPage() {
         <CardBody>
           <ul className="m-0 grid gap-2 text-[13px] leading-relaxed text-ink">
             <li>
-              <strong>الباقة قطاعية</strong>: تفعيلُها طلبٌ من سوق الإضافات يقرّه مالكُ المنصّة
-              — فلا تفعيلَ ذاتيّ من داخل المنشأة.
+              <strong>الباقة قطاعية</strong>: تفعيلُها طلبٌ من سوق الإضافات يقرّه مالكُ المنصّة — فلا تفعيلَ
+              ذاتيّ من داخل المنشأة.
             </li>
             <li>
-              <strong>الترخيصُ يُقرأ من جلسة دخولك</strong>: فكلُّ عضوٍ في المنشأة يعرف هل
-              باقتُه مفعَّلة، بلا صلاحيةٍ إضافية ولا طلبٍ ثانٍ.
+              <strong>الترخيصُ يُقرأ من جلسة دخولك</strong>: فكلُّ عضوٍ في المنشأة يعرف هل باقتُه مفعَّلة، بلا
+              صلاحيةٍ إضافية ولا طلبٍ ثانٍ.
             </li>
             <li>
-              <strong>الصلاحياتُ يفرضها النظام على كلّ طلب</strong>: وهذه الواجهة لا تمنح ولا
-              ترفع صلاحيةً ولا تُنشئ حسابًا. والمندوبُ يقرأ خطَّه هو ويكتب على أحماله
-              ومستنداته هو، ولا تُفتح له لوحةُ المنشأة — والقائمةُ هنا تُصفّى راحةً للعين
-              لا ضابطًا.
+              <strong>الصلاحياتُ يفرضها النظام على كلّ طلب</strong>: وهذه الواجهة لا تمنح ولا ترفع صلاحيةً ولا
+              تُنشئ حسابًا. والمندوبُ يقرأ خطَّه هو ويكتب على أحماله ومستنداته هو، ولا تُفتح له لوحةُ المنشأة
+              — والقائمةُ هنا تُصفّى راحةً للعين لا ضابطًا.
             </li>
             <li>
               <strong>أرقامُ هذه الصفحة كلّها من الخادم</strong>:{' '}
@@ -348,32 +339,6 @@ export default function BakeryOverviewPage() {
               — وكلُّ بلاطةٍ تُعرض من حمولةٍ وصلت، وبلا بلاطةٍ فارغةَ تدّعي بيانات.
             </li>
           </ul>
-          {/* ما فوقَ هذا بلغةُ العميل. وأمّا المساراتُ والرموزُ فمطويّةٌ هنا: فهي دليلُ
-              مهندسٍ لا نصُّ شاشة، وحذفُها خسارةٌ للصدق وعرضُها مفتوحةً جدارُ نصّ. */}
-          <details className="bak-tech">
-            <summary>التفاصيل التقنية</summary>
-            <ul className="m-0 grid gap-2 text-[12.5px] leading-relaxed text-muted">
-              <li>
-                ‏<span dir="ltr">POST /marketplace/apps/{BAKERY_APP_CODE}/install</span> يُرفض ٤٠٣{' '}
-                <span dir="ltr">ADDON_REQUIRES_PLATFORM_APPROVAL</span> — فلا تفعيلَ ذاتيّ.
-              </li>
-              <li>
-                الترخيصُ من <span dir="ltr">enabledApps</span> في ‏<span dir="ltr">GET /me</span> لا
-                من كتالوج السوق: فالكتالوج يحتاج <span dir="ltr">tenant.view</span> ولا يملكه مندوب،
-                والترخيصُ يجب أن يعرفه كلّ عضو.
-              </li>
-              <li>
-                لوحةُ المنشأة تُرفض على المندوب ٤٠٣ ‏
-                <span dir="ltr">VAN_SALES_COMPANY_SCOPE_REQUIRED</span> (تحجيمُ الشريحة ١٩ على
-                مستوى الصفّ، وبطاقةُ المندوب وأذوناتُه تُقرأ من القاعدة لا من الرمزية).
-              </li>
-              <li>
-                أرقامُ البطاقات من <span dir="ltr">GET /van-sales/dashboard</span> (وللمندوب{' '}
-                <span dir="ltr">GET /van-sales/me</span>) — ولا مجموعَ يُشتقّ في المتصفح من نافذةٍ
-                مقطوعة.
-              </li>
-            </ul>
-          </details>
         </CardBody>
       </Card>
     </section>

@@ -2,7 +2,7 @@ import './globals.css';
 
 import type { Metadata, Viewport } from 'next';
 import type { ReactNode } from 'react';
-import { ThemeProvider, ThemeScript } from '@erp/ui';
+import { SYSTEM_NAME_AR, ThemeProvider, ThemeScript } from '@erp/ui';
 import { SessionProvider } from '@erp/web-core/session';
 import { TokenBridge } from '@erp/web-core/token-bridge';
 
@@ -10,7 +10,7 @@ import { AuthGate } from '../components/auth-gate';
 import { ServiceWorkerRegister } from '../components/service-worker-register';
 
 export const metadata: Metadata = {
-  title: 'المخابز: الإنتاج والتوزيع — Cloud ERP',
+  title: `المخابز: الإنتاج والتوزيع · ${SYSTEM_NAME_AR}`,
   description:
     'واجهة المخابز: دفعة الإنتاج، حمولة التوزيع، المناديب، التحصيل وإقفال العهدة. تعمل على apps/api نفسها وبصلاحياتها، ومرخَّصة بباقة bakery_distribution.',
   /**

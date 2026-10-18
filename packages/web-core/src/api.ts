@@ -1,5 +1,7 @@
 /* global RequestInit */
 
+import { arabicProblem } from './error-language';
+
 /**
  * API client for the admin console.
  *
@@ -192,9 +194,8 @@ async function toError(response: Response): Promise<ApiError> {
   const code =
     problem.code ??
     (response.status === 401 ? 'UNAUTHENTICATED' : response.status === 403 ? 'FORBIDDEN' : 'HTTP_ERROR');
-  const message =
-    problem.title ?? problem.message ?? problem.detail ?? `${response.status} ${response.statusText}`;
-  return new ApiError(response.status, code, message, problem.detail);
+  const localized = arabicProblem(response.status, problem.title ?? problem.message, problem.detail);
+  return new ApiError(response.status, code, localized.message, localized.detail);
 }
 
 let refreshInFlight: Promise<StoredSession | undefined> | undefined;
@@ -253,7 +254,8 @@ export async function apiOpen(path: string, init: RequestInit = {}): Promise<Res
   const session = readSession();
   const call = async (token?: string): Promise<Response> => {
     const headers = new Headers(init.headers ?? {});
-    if (!headers.has('content-type') && init.body !== undefined) headers.set('content-type', 'application/json');
+    if (!headers.has('content-type') && init.body !== undefined)
+      headers.set('content-type', 'application/json');
     if (token) headers.set('authorization', `Bearer ${token}`);
     return fetch(`${apiBaseUrl}${path}`, { ...init, headers });
   };

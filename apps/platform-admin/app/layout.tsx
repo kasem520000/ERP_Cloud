@@ -2,13 +2,13 @@ import './globals.css';
 
 import type { Metadata, Viewport } from 'next';
 import type { ReactNode } from 'react';
-import { ThemeProvider, ThemeScript } from '@erp/ui';
+import { SYSTEM_NAME_AR, ThemeProvider, ThemeScript } from '@erp/ui';
 
 import { AuthGate } from '../components/auth-gate';
 import { SessionProvider } from '../lib/session';
 
 export const metadata: Metadata = {
-  title: 'لوحة تحكم المنصة — Cloud ERP',
+  title: `لوحة تحكم المنصة · ${SYSTEM_NAME_AR}`,
   description: 'إدارة المنشآت والاشتراكات والتراخيص لمشغّلي المنصة',
 };
 

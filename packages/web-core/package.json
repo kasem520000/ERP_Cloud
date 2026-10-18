@@ -7,6 +7,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./api": "./src/api.ts",
+    "./error-language": "./src/error-language.ts",
     "./session": "./src/session.tsx",
     "./session-gate": "./src/session-gate.tsx",
     "./surface-policy": "./src/surface-policy.ts",

@@ -630,7 +630,7 @@ export default function OfflinePosPage() {
       ) : null}
 
       <div className="offline-receipt" aria-hidden="true">
-        <h1>ERPCloud</h1>
+        <h1>نظام سحاب المملكة للحلول المحاسبية</h1>
         <p>إيصال بيع نقدي</p>
         <p>{lastReceipt?.number ?? lastReceipt?.offlineId ?? '—'}</p>
         <p>{lastReceipt ? new Date(lastReceipt.createdAt).toLocaleString('ar') : ''}</p>

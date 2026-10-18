@@ -42,11 +42,16 @@ export function SiteHeader({ shell, locale }: { shell: SiteShell; locale: Locale
   return (
     <header className="site-header">
       <div className="wrap header-inner">
-        <Link className="brand" href={locale === 'ar' ? '/' : '/en'}>
+        <Link className="brand" href={locale === 'ar' ? '/' : '/en'} aria-label={shell.brandName}>
           <span className="logo" aria-hidden="true">
             {shell.brandInitials}
           </span>
-          <span className="brand-name">{shell.brandName}</span>
+          <span className="brand-name">
+            <span className="brand-name-full">{shell.brandName}</span>
+            <span className="brand-name-short" aria-hidden="true">
+              {locale === 'ar' ? 'سحاب المملكة' : 'Kingdom Cloud'}
+            </span>
+          </span>
         </Link>
         <nav className="site-nav" aria-label={locale === 'ar' ? 'التنقّل الرئيسي' : 'Main navigation'}>
           {nav}
@@ -125,7 +130,9 @@ export function SiteFooter({ shell, locale }: { shell: SiteShell; locale: Locale
               {shell.supportPhone}
             </a>
           ) : null}
-          {socialItems.length > 0 ? <nav className="footer-social">{menuItems(socialItems, locale)}</nav> : null}
+          {socialItems.length > 0 ? (
+            <nav className="footer-social">{menuItems(socialItems, locale)}</nav>
+          ) : null}
         </div>
 
         {groups.map((group) => (
@@ -187,7 +194,11 @@ export function SiteShellLayout({
       <HeaderScroll>
         <SiteHeader shell={shell} locale={locale} />
       </HeaderScroll>
-      {shell.maintenance ? <MaintenanceNotice locale={locale} /> : <SiteBanner shell={shell} locale={locale} />}
+      {shell.maintenance ? (
+        <MaintenanceNotice locale={locale} />
+      ) : (
+        <SiteBanner shell={shell} locale={locale} />
+      )}
       <main id="main" className="wrap site-main">
         {children}
       </main>

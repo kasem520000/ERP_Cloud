@@ -97,7 +97,7 @@ export function BakeryGuard({ children }: { children: React.ReactNode }) {
       <aside className={`bak-side no-print ${drawerOpen ? 'open' : ''}`}>
         <div className="bak-brand">
           <span aria-hidden="true" className="bak-logo">
-            🥖
+            س
           </span>
           <span>
             المخابز
@@ -111,7 +111,7 @@ export function BakeryGuard({ children }: { children: React.ReactNode }) {
             const href = module.href;
             if (!href) {
               return (
-                <span className="bak-nav-item" key={module.key} title={`${module.phaseAr} — ${module.summaryAr}`}>
+                <span className="bak-nav-item" key={module.key} title={`غير متاحة حالياً — ${module.summaryAr}`}>
                   <span aria-hidden="true" className={`bak-dot ${module.status}`} />
                   <span aria-hidden="true">{module.icon}</span>
                   {module.labelAr}

@@ -15,10 +15,15 @@ import {
   type Warehouse,
 } from '../../../lib/lookups';
 import { useSession } from '../../../lib/session';
+import { systemRoleNameAr } from '../../../lib/permission-labels';
 import { useQuery } from '../../../lib/use-query';
 
 type Role = { id: string; name: string; description?: string | null; isSystem?: boolean };
-type Scope = { roleId: string; scopeType: 'branch' | 'warehouse' | 'cash_location' | 'pos_terminal'; scopeId: string };
+type Scope = {
+  roleId: string;
+  scopeType: 'branch' | 'warehouse' | 'cash_location' | 'pos_terminal';
+  scopeId: string;
+};
 type Membership = {
   id: string;
   displayName: string;
@@ -57,7 +62,7 @@ function scopeLabel(
   const role = roles.find((item) => item.id === scope.roleId)?.name ?? scope.roleId;
   const type = scopeTypeLabel(scope.scopeType);
   if (scope.scopeId === TENANT_WIDE_SCOPE_ID) {
-    return `${role} ← ${type}: كل المنشأة (وصول شامل صريح)`;
+    return `${systemRoleNameAr(role)} ← ${type}: كل المنشأة (وصول شامل صريح)`;
   }
   const target =
     scope.scopeType === 'branch'
@@ -67,7 +72,7 @@ function scopeLabel(
         : scope.scopeType === 'cash_location'
           ? (cashLocations.find((item) => item.id === scope.scopeId)?.name ?? scope.scopeId)
           : scope.scopeId;
-  return `${role} ← ${type}: ${target}`;
+  return `${systemRoleNameAr(role)} ← ${type}: ${target}`;
 }
 
 /**
@@ -122,7 +127,11 @@ export default function TenantUsersPage() {
 
   if (!can('tenant.membership.manage')) {
     return (
-      <Screen title="بطاقة مستخدم" subtitle="مستخدمو هذه المنشأة وأدوارهم." crumbs={['الإعدادات', 'إعدادات المستخدمين']}>
+      <Screen
+        title="بطاقة مستخدم"
+        subtitle="مستخدمو هذه المنشأة وأدوارهم."
+        crumbs={['الإعدادات', 'إعدادات المستخدمين']}
+      >
         <Forbidden />
       </Screen>
     );
@@ -212,14 +221,23 @@ export default function TenantUsersPage() {
         : cashRows.map((item) => ({ id: item.id, label: item.name }));
 
   return (
-    <Screen title="بطاقة مستخدم" subtitle="مستخدمو هذه المنشأة وأدوارهم ونطاقات فروعهم." crumbs={['الإعدادات', 'إعدادات المستخدمين']}>
+    <Screen
+      title="بطاقة مستخدم"
+      subtitle="مستخدمو هذه المنشأة وأدوارهم ونطاقات فروعهم."
+      crumbs={['الإعدادات', 'إعدادات المستخدمين']}
+    >
       <Notice notice={notice} />
 
       <section className="card">
         <div className="row">
           {/* «📋 قائمة المستخدمين» — `frmAddUsers.xaml` س325. */}
           <h2>📋 قائمة المستخدمين ({(memberships.data ?? []).length})</h2>
-          <button type="button" className="btn primary" disabled={busy} onClick={() => setShowInvite(!showInvite)}>
+          <button
+            type="button"
+            className="btn primary"
+            disabled={busy}
+            onClick={() => setShowInvite(!showInvite)}
+          >
             {showInvite ? 'إغلاق الدعوة' : 'دعوة مستخدم'}
           </button>
         </div>
@@ -229,36 +247,60 @@ export default function TenantUsersPage() {
             {/* «🔑 اسم المستخدم» — `frmAddUsers.xaml` س243: في السحابة اسم الدخول هو البريد. */}
             <label>
               🔑 اسم المستخدم (البريد الإلكتروني)
-              <input type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="user@company.sa" dir="ltr" />
+              <input
+                type="email"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                placeholder="user@company.sa"
+                dir="ltr"
+              />
             </label>
             {/* «👤 الموظف» — `frmAddUsers.xaml` س234: في الديسكتوب اختيارٌ من الموظفين، وهنا كتابةٌ للاسم. */}
             <label>
               👤 الموظف
-              <input value={fullName} onChange={(event) => setFullName(event.target.value)} placeholder="اختياري" />
+              <input
+                value={fullName}
+                onChange={(event) => setFullName(event.target.value)}
+                placeholder="اختياري"
+              />
             </label>
             <fieldset>
               <legend>الأدوار (دور واحد على الأقل)</legend>
               {roleRows.map((role) => (
                 <label key={role.id}>
-                  <input type="checkbox" checked={inviteRoles.includes(role.id)} onChange={() => setInviteRoles(toggle(inviteRoles, role.id))} />
-                  {role.name}
+                  <input
+                    type="checkbox"
+                    checked={inviteRoles.includes(role.id)}
+                    onChange={() => setInviteRoles(toggle(inviteRoles, role.id))}
+                  />
+                  {systemRoleNameAr(role.name)}
                 </label>
               ))}
             </fieldset>
             <fieldset>
               <legend>نطاق الفروع</legend>
               <label>
-                <input type="checkbox" checked={inviteScopeAll} onChange={() => setInviteScopeAll(!inviteScopeAll)} />
+                <input
+                  type="checkbox"
+                  checked={inviteScopeAll}
+                  onChange={() => setInviteScopeAll(!inviteScopeAll)}
+                />
                 كل الفروع
               </label>
               {!inviteScopeAll &&
                 branchOptions(branchRows).map((option) => (
                   <label key={option.id}>
-                    <input type="checkbox" checked={inviteScope.includes(option.id)} onChange={() => setInviteScope(toggle(inviteScope, option.id))} />
+                    <input
+                      type="checkbox"
+                      checked={inviteScope.includes(option.id)}
+                      onChange={() => setInviteScope(toggle(inviteScope, option.id))}
+                    />
                     {option.label}
                   </label>
                 ))}
-              {!inviteScopeAll && inviteScope.length === 0 && <p className="muted">اختر فرعاً واحداً على الأقل أو فعّل «كل الفروع».</p>}
+              {!inviteScopeAll && inviteScope.length === 0 && (
+                <p className="muted">اختر فرعاً واحداً على الأقل أو فعّل «كل الفروع».</p>
+              )}
             </fieldset>
             <fieldset>
               <legend>💰 حدود الخصم (فارغ = بلا حدّ)</legend>
@@ -286,7 +328,12 @@ export default function TenantUsersPage() {
             <button
               type="button"
               className="btn primary"
-              disabled={busy || inviteRoles.length === 0 || !email.trim() || (!inviteScopeAll && inviteScope.length === 0)}
+              disabled={
+                busy ||
+                inviteRoles.length === 0 ||
+                !email.trim() ||
+                (!inviteScopeAll && inviteScope.length === 0)
+              }
               onClick={() => void invite()}
             >
               إرسال الدعوة
@@ -303,10 +350,22 @@ export default function TenantUsersPage() {
               rowKey={(row) => row.id}
               columns={[
                 { key: 'name', header: '👤 الموظف', cell: (row) => row.displayName },
-                { key: 'status', header: 'الحالة', cell: (row) => <span className={`badge ${row.status}`}>{row.status}</span> },
+                {
+                  key: 'status',
+                  header: 'الحالة',
+                  cell: (row) => <span className={`badge ${row.status}`}>{row.status}</span>,
+                },
                 { key: 'owner', header: 'مالك', cell: (row) => (row.isOwner ? 'نعم' : '—') },
-                { key: 'roles', header: 'الأدوار', cell: (row) => row.roles.map((role) => role.name).join('، ') || '—' },
-                { key: 'scope', header: 'النطاق', cell: (row) => (row.branchScope === null ? 'كل الفروع' : `${row.branchScope.length} فروع`) },
+                {
+                  key: 'roles',
+                  header: 'الأدوار',
+                  cell: (row) => row.roles.map((role) => systemRoleNameAr(role.name)).join('، ') || '—',
+                },
+                {
+                  key: 'scope',
+                  header: 'النطاق',
+                  cell: (row) => (row.branchScope === null ? 'كل الفروع' : `${row.branchScope.length} فروع`),
+                },
                 { key: 'discount', header: 'حدّ الخصم', cell: (row) => discountLimitLabel(row) },
                 {
                   key: 'actions',
@@ -351,7 +410,10 @@ export default function TenantUsersPage() {
             </label>
             <label>
               الحالة
-              <select value={status} onChange={(event) => setStatus(event.target.value as Membership['status'])}>
+              <select
+                value={status}
+                onChange={(event) => setStatus(event.target.value as Membership['status'])}
+              >
                 <option value="active">نشط</option>
                 <option value="invited">مدعو</option>
                 <option value="suspended">موقوف</option>
@@ -361,8 +423,12 @@ export default function TenantUsersPage() {
               <legend>الأدوار</legend>
               {roleRows.map((role) => (
                 <label key={role.id}>
-                  <input type="checkbox" checked={editRoles.includes(role.id)} onChange={() => setEditRoles(toggle(editRoles, role.id))} />
-                  {role.name}
+                  <input
+                    type="checkbox"
+                    checked={editRoles.includes(role.id)}
+                    onChange={() => setEditRoles(toggle(editRoles, role.id))}
+                  />
+                  {systemRoleNameAr(role.name)}
                 </label>
               ))}
             </fieldset>
@@ -375,11 +441,17 @@ export default function TenantUsersPage() {
               {!scopeAll &&
                 branchOptions(branchRows).map((option) => (
                   <label key={option.id}>
-                    <input type="checkbox" checked={scope.includes(option.id)} onChange={() => setScope(toggle(scope, option.id))} />
+                    <input
+                      type="checkbox"
+                      checked={scope.includes(option.id)}
+                      onChange={() => setScope(toggle(scope, option.id))}
+                    />
                     {option.label}
                   </label>
                 ))}
-              {!scopeAll && scope.length === 0 && <p className="muted">اختر فرعاً واحداً على الأقل أو فعّل «كل الفروع».</p>}
+              {!scopeAll && scope.length === 0 && (
+                <p className="muted">اختر فرعاً واحداً على الأقل أو فعّل «كل الفروع».</p>
+              )}
             </fieldset>
             <fieldset>
               <legend>تقييدات النطاق الدقيقة (فارغ = كل المنشأة)</legend>
@@ -387,7 +459,11 @@ export default function TenantUsersPage() {
               {scopes.map((item, index) => (
                 <p key={`${item.roleId}-${item.scopeType}-${item.scopeId}`} className="row">
                   <span>{scopeLabel(item, roleRows, branchRows, warehouseRows, cashRows)}</span>
-                  <button type="button" className="btn sm danger" onClick={() => setScopes(scopes.filter((_, i) => i !== index))}>
+                  <button
+                    type="button"
+                    className="btn sm danger"
+                    onClick={() => setScopes(scopes.filter((_, i) => i !== index))}
+                  >
                     إزالة
                   </button>
                 </p>
@@ -398,11 +474,14 @@ export default function TenantUsersPage() {
                     .filter((role) => editRoles.includes(role.id))
                     .map((role) => (
                       <option key={role.id} value={role.id}>
-                        {role.name}
+                        {systemRoleNameAr(role.name)}
                       </option>
                     ))}
                 </select>
-                <select value={scopeType} onChange={(event) => setScopeType(event.target.value as typeof scopeType)}>
+                <select
+                  value={scopeType}
+                  onChange={(event) => setScopeType(event.target.value as typeof scopeType)}
+                >
                   {SCOPE_TYPES.map((item) => (
                     <option key={item.value} value={item.value}>
                       {item.label}
@@ -435,21 +514,35 @@ export default function TenantUsersPage() {
               <legend>💰 حدود الخصم (فارغ = بلا حدّ)</legend>
               <label>
                 أعلى نسبة للخصم %
-                <input value={capPct} onChange={(event) => setCapPct(event.target.value)} inputMode="decimal" placeholder="مثال: 10" dir="ltr" />
+                <input
+                  value={capPct}
+                  onChange={(event) => setCapPct(event.target.value)}
+                  inputMode="decimal"
+                  placeholder="مثال: 10"
+                  dir="ltr"
+                />
               </label>
               <label>
                 أعلى قيمة للخصم
-                <input value={capAmount} onChange={(event) => setCapAmount(event.target.value)} inputMode="decimal" placeholder="مثال: 50.0000" dir="ltr" />
+                <input
+                  value={capAmount}
+                  onChange={(event) => setCapAmount(event.target.value)}
+                  inputMode="decimal"
+                  placeholder="مثال: 50.0000"
+                  dir="ltr"
+                />
               </label>
               <p className="muted">
-                الحدّ يُفحص في الخادم عند كتابة الخصم في فاتورة البيع أو الكاشير، ومجموع الخصم = خصم
-                السطور + خصم الفاتورة.
+                الحدّ يُفحص في الخادم عند كتابة الخصم في فاتورة البيع أو الكاشير، ومجموع الخصم = خصم السطور +
+                خصم الفاتورة.
               </p>
             </fieldset>
             <button
               type="button"
               className="btn primary"
-              disabled={busy || editRoles.length === 0 || !displayName.trim() || (!scopeAll && scope.length === 0)}
+              disabled={
+                busy || editRoles.length === 0 || !displayName.trim() || (!scopeAll && scope.length === 0)
+              }
               onClick={() => void saveEdit(editing.id)}
             >
               حفظ

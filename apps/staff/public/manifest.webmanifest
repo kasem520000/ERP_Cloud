@@ -1,7 +1,7 @@
 {
-  "name": "ERPCloud Offline POS",
+  "name": "سحاب المملكة — نقاط البيع دون اتصال",
   "short_name": "ERP POS",
-  "description": "Cash-only offline point of sale for ERPCloud",
+  "description": "نقطة بيع دون اتصال لنظام سحاب المملكة للحلول المحاسبية",
   "lang": "ar",
   "dir": "rtl",
   "start_url": "/pos/offline",

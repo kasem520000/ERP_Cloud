@@ -1661,10 +1661,17 @@ tr.opening td {
   }
   .auth-page {
     grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr;
   }
   .auth-brand {
-    padding: 28px;
+    padding: 20px;
+    gap: 8px;
+    align-items: center;
+    text-align: center;
   }
+  .auth-brand h1 { font-size: 22px; margin: 0; }
+  .auth-brand p, .auth-brand ul { display: none; }
+  .auth-card { align-self: start; margin-block: 14px 28px; }
   h1 {
     font-size: 26px;
   }

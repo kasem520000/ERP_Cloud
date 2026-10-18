@@ -14,6 +14,7 @@
  */
 
 import type { Metadata } from 'next';
+import { SYSTEM_NAME_AR } from '@erp/ui/theme';
 
 import { industrySlugs } from './industries';
 import { DEFAULT_LOCALE, LOCALES, localePath, type Locale } from './i18n';
@@ -35,7 +36,7 @@ export type SiteInfo = {
 
 /** احتياطيٌ يعمل بلا خادم: القشرة لا تسقط لأن الـAPI لم يُجِب. */
 export const fallbackSite: SiteInfo = {
-  brandName: 'Cloud SaaS ERP',
+  brandName: SYSTEM_NAME_AR,
   brandInitials: 'ERP',
   taglineAr: 'نظام تخطيط موارد المؤسسات السحابي',
   taglineEn: 'Cloud ERP for growing businesses',

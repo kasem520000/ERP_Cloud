@@ -1,6 +1,7 @@
 'use client';
 
 import type { ReactNode } from 'react';
+import { PageFrame, PageHeader } from '@erp/ui/page';
 
 /**
  * Standard page chrome — v2 (Vercel/Linear): breadcrumbs + 24px title +
@@ -20,26 +21,26 @@ export function Screen({
   children: ReactNode;
 }) {
   return (
-    <div className="grid gap-4">
-      <section className="flex flex-wrap items-end justify-between gap-3">
-        <div className="min-w-0">
-          {crumbs && crumbs.length > 0 ? (
-            <nav className="flex flex-wrap items-center gap-1.5 text-[11.5px] font-bold text-muted" aria-label="المسار">
-              {crumbs.map((crumb, i) => (
-                <span key={`${crumb}-${i}`} className="flex items-center gap-1.5">
-                  {i > 0 ? <span aria-hidden>‹</span> : null}
-                  <span className={i === crumbs.length - 1 ? 'text-ink-2' : undefined}>{crumb}</span>
-                </span>
+    <PageFrame>
+      <PageHeader
+        title={title}
+        description={subtitle}
+        actions={actions}
+        breadcrumbs={
+          crumbs && crumbs.length > 0 ? (
+            <ol className="flex flex-wrap items-center gap-1.5">
+              {crumbs.map((crumb, index) => (
+                <li key={`${crumb}-${index}`} className="flex items-center gap-1.5">
+                  {index > 0 ? <span aria-hidden="true">‹</span> : null}
+                  <span aria-current={index === crumbs.length - 1 ? 'location' : undefined}>{crumb}</span>
+                </li>
               ))}
-            </nav>
-          ) : null}
-          <h1 className="m-0 mt-1 text-[24px] font-extrabold tracking-tight text-ink leading-tight">{title}</h1>
-          {subtitle ? <p className="m-0 mt-1 text-[13px] text-muted">{subtitle}</p> : null}
-        </div>
-        {actions ? <div className="flex flex-wrap items-center gap-2 no-print">{actions}</div> : null}
-      </section>
+            </ol>
+          ) : undefined
+        }
+      />
       {children}
-    </div>
+    </PageFrame>
   );
 }
 
@@ -47,7 +48,11 @@ export function Loading({ rows = 4 }: { rows?: number }) {
   return (
     <div className="grid gap-3 rounded-[10px] border border-line bg-surface p-4 shadow-1" aria-busy="true">
       {Array.from({ length: rows }).map((_, index) => (
-        <div key={index} className="h-4 animate-pulse rounded-md bg-surface-3" style={{ width: `${100 - index * 8}%` }} />
+        <div
+          key={index}
+          className="h-4 animate-pulse rounded-md bg-surface-3"
+          style={{ width: `${100 - index * 8}%` }}
+        />
       ))}
     </div>
   );

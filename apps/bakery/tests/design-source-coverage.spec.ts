@@ -37,15 +37,9 @@ const UI_SRC = join(ROOT, 'packages', 'ui', 'src');
  * وتستورد `@erp/ui`.
  *
  * والمستثنيان مقاسان لا منسيّان:
- *   • `customer-portal` — لا يستورد `@erp/ui` ولا يستعمل Tailwind.
- *   • `marketing` — **بلا `postcss.config.mjs` أصلًا**، فـ`@tailwindcss/postcss` لا يعمل
- *     هناك: ‏`@theme` يصل المتصفحَ خامًّا (‏`@theme{--font-sans:…}` في CSS المبنية،
- *     والمتصفحُ يتجاهل مجهولَ القواعد) وصفرُ مرافق (لا `.flex` ولا `--tw-` ولا `.md:`).
- *     والعامّةُ من صفحاته مكتوبةٌ يدويًّا في `globals.css` (٣٩٠٣٥ بايت) وpreflight
- *     مطبَّقٌ أصلًا لأنه CSS صريحٌ يحلّه أيُّ مُجمِّع — فالمتضرّرُ صفحةُ `/design`
- *     (‏`DesignGalleryWithToasts`) و`ThemeToggle` وحدهما. وإصلاحُهما سطرٌ واحد
- *     (`postcss.config.mjs`) لكنه يُحيي المرافقَ على موقعٍ عامٍّ لم يُرَ بالعين بعد
- *     التصحيح، فبقي قرارًا للمالك لا خطوةً عمياء — والاختبارُ الأخير يمسكه.
+ *   • `customer-portal` now consumes @erp/ui/page and compiles shared tokens too.
+ *   • `marketing` enables PostCSS/Tailwind and declares @source for the shared
+ *     theme switch and gallery. This test keeps that route protected from purge.
  */
 const APPS = ['staff', 'platform-admin', 'bakery'];
 
@@ -106,8 +100,7 @@ describe('توجيهُ مسح Tailwind إلى مصادر مكتبة الواجه
   });
 
   it('لا خيارَ content في إعداد postcss: آليةٌ واحدة لا اثنتان تتصارعان', () => {
-    // ‏`marketing` بلا ملفّ إعدادٍ أصلًا (‏Next ١٥ يطبّق `@tailwindcss/postcss` تلقائيًّا إن
-    // كان تابعًا)، فالاختبارُ يقرأ ما هو موجود ولا يفترض اسمًا — وإلّا فشل على غيابٍ بريء.
+    // ‏كل تطبيق يشغّل Tailwind يحدد PostCSS ويمسح مصادر @erp/ui صراحةً.
     const found: string[] = [];
     for (const app of APPS) {
       for (const name of ['postcss.config.mjs', 'postcss.config.js', 'postcss.config.cjs']) {
@@ -126,7 +119,7 @@ describe('توجيهُ مسح Tailwind إلى مصادر مكتبة الواجه
     const hasConfig = ['postcss.config.mjs', 'postcss.config.js', 'postcss.config.cjs'].some((name) =>
       existsSync(join(appDir, name)),
     );
-    if (!hasConfig) return; // الحالةُ المقاسة اليوم: المرافقُ خاملةٌ كلّها، فلا معنى لتوجيهٍ لا يُقرأ
+    expect(hasConfig, "الموقع يحتاج PostCSS لإظهار ThemeToggle والمكونات المشتركة").toBe(true);
     const css = read(join(appDir, 'app', 'globals.css'));
     expect(css, 'التشغيلُ بلا توجيهٍ يعيد العيبَ نفسه: مكوّنات @erp/ui بلا ألوان').toMatch(
       /@source\s+'\.\.\/\.\.\/\.\.\/packages\/ui\/src'/,

@@ -210,7 +210,12 @@ export default function RepAppPage() {
    * الإعادةَ آمنةً بلا مستندٍ مكرَّر.
    */
   const enqueue = useCallback(
-    async (operation: RepOperation, body: Record<string, unknown>, targetId: string | null, labelAr: string) => {
+    async (
+      operation: RepOperation,
+      body: Record<string, unknown>,
+      targetId: string | null,
+      labelAr: string,
+    ) => {
       if (!isQueueable(operation)) return false;
       try {
         await enqueueVanOperation({
@@ -369,7 +374,12 @@ export default function RepAppPage() {
 
   const salePayload = buildDocumentPayload(saleDraft);
   const saleVerdict = documentVerdict(saleDraft, { canOverride: false });
-  const saleQueueVerdict = queueVerdict({ online, operation: 'document', can, targetId: saleDraft.loadOrderId });
+  const saleQueueVerdict = queueVerdict({
+    online,
+    operation: 'document',
+    can,
+    targetId: saleDraft.loadOrderId,
+  });
   const returnPayload = buildReturnPayload(returnDraft);
   const returnQueueVerdict = queueVerdict({
     online,
@@ -433,10 +443,10 @@ export default function RepAppPage() {
   return (
     <section className="rep-page">
       {/**
-        * شريطُ الحالة اللاصق: ما يحتاج المندوبُ رؤيتَه **بلا تمرير** — من هو، وهل الشبكة
-        * قائمة، وكم نيّةً في الطابور. فحالةُ الشبكة هي التي تقرّر ما يحدث عند الضغط (إرسالٌ أم حفظ)،
-        * وإخفاؤُها يعني أن يضغط وهو لا يدري أنّ بيعه سيُحفظ محليًّا.
-        */}
+       * شريطُ الحالة اللاصق: ما يحتاج المندوبُ رؤيتَه **بلا تمرير** — من هو، وهل الشبكة
+       * قائمة، وكم نيّةً في الطابور. فحالةُ الشبكة هي التي تقرّر ما يحدث عند الضغط (إرسالٌ أم حفظ)،
+       * وإخفاؤُها يعني أن يضغط وهو لا يدري أنّ بيعه سيُحفظ محليًّا.
+       */}
       <div className="rep-statusbar">
         <div className="rep-statusbar-id">
           <strong>{data?.isRep ? (data.salesmanName ?? 'المندوب') : '📱 تطبيقُ المندوب'}</strong>
@@ -470,9 +480,9 @@ export default function RepAppPage() {
 
       {!online ? (
         <p className="rep-note" data-tone="warn">
-          📴 لا شبكة: ما يُحفظ هو المستنداتُ والمرتجعاتُ والتحصيلات (بمفاتيح عدم تكرارٍ تُخزَّن
-          معها فتُعاد بلا مستندٍ مكرَّر). وأمّا إغلاقُ الوردية وتأكيدُ الاستلام فلا يُحفظان —
-          والسببُ معروضٌ عند كلّ زرٍّ منهما.
+          📴 لا شبكة: ما يُحفظ هو المستنداتُ والمرتجعاتُ والتحصيلات (بمفاتيح عدم تكرارٍ تُخزَّن معها فتُعاد
+          بلا مستندٍ مكرَّر). وأمّا إغلاقُ الوردية وتأكيدُ الاستلام فلا يُحفظان — والسببُ معروضٌ عند كلّ زرٍّ
+          منهما.
         </p>
       ) : null}
       {storageError ? (
@@ -481,18 +491,21 @@ export default function RepAppPage() {
         </p>
       ) : null}
       {loadError ? (
-        <p className="rep-note" data-tone="danger">{loadError}</p>
+        <p className="rep-note" data-tone="danger">
+          {loadError}
+        </p>
       ) : null}
       {notice ? (
-        <p className="rep-note" data-tone={notice.kind}>{notice.text}</p>
+        <p className="rep-note" data-tone={notice.kind}>
+          {notice.text}
+        </p>
       ) : null}
 
       {data && !data.isRep ? (
         <div className="rep-card">
           <h2 className="rep-card-title">⚠️ حسابك غير مرتبط ببطاقة مندوب</h2>
           <p className="rep-note" data-tone="warn">
-            {data.message ??
-              'حسابك غير مرتبط ببطاقة مندوب توزيع — اطلب من المحاسب ربطك من شاشة المندوبين.'}
+            {data.message ?? 'حسابك غير مرتبط ببطاقة مندوب توزيع — اطلب من المحاسب ربطك من شاشة المندوبين.'}
           </p>
         </div>
       ) : null}
@@ -506,7 +519,9 @@ export default function RepAppPage() {
               <p className="rep-card-sub">{notes.documents}</p>
             </div>
             {reconcileNote ? (
-              <p className="rep-note" data-tone="danger">🔎 {reconcileNote}</p>
+              <p className="rep-note" data-tone="danger">
+                🔎 {reconcileNote}
+              </p>
             ) : null}
             <div className="rep-tiles">
               {cards.map((card) => (
@@ -570,25 +585,20 @@ export default function RepAppPage() {
                           record.status === 'synced' ? 'ok' : record.status === 'refused' ? 'danger' : 'warn'
                         }
                       >
-                        {record.status === 'pending' ? '⏳ معلّقة' : record.status === 'synced' ? '✅ وصلت' : '⛔ مرفوضة'}
+                        {record.status === 'pending'
+                          ? '⏳ معلّقة'
+                          : record.status === 'synced'
+                            ? '✅ وصلت'
+                            : '⛔ مرفوضة'}
                       </span>
                     </div>
                     <div className="rep-row-meta">
                       <span>
                         محاولات <span className="rep-num">{record.attempts}</span>
                       </span>
-                      <span className="rep-num">{record.endpoint}</span>
-                    </div>
-                    <div className="rep-row-meta">
-                      <span className="rep-num" title="مفتاحُ عدم التكرار — يُخزَّن مع النيّة فتُعاد بلا تكرار">
-                        🔑 {record.idempotencyKey}
-                      </span>
                     </div>
                     {record.lastMessage ? (
-                      <p
-                        className="rep-note"
-                        data-tone={record.status === 'refused' ? 'danger' : undefined}
-                      >
+                      <p className="rep-note" data-tone={record.status === 'refused' ? 'danger' : undefined}>
                         {record.lastMessage}
                       </p>
                     ) : null}
@@ -604,11 +614,10 @@ export default function RepAppPage() {
           <div className="rep-card">
             <div>
               <h2 className="rep-card-title">
-                🚚 توريداتٌ بانتظار تأكيد استلامك (<span className="rep-num">{data.pendingReceipts.length}</span>)
+                🚚 توريداتٌ بانتظار تأكيد استلامك (
+                <span className="rep-num">{data.pendingReceipts.length}</span>)
               </h2>
-              <p className="rep-card-sub">
-                قائمةٌ كاملةٌ بلا نافذة (استعلامُها بلا LIMIT) — فكلُّ توريدٍ لك معروض.
-              </p>
+              <p className="rep-card-sub">تظهر هنا جميع التوريدات التي تنتظر تأكيد استلامك.</p>
             </div>
             {data.pendingReceipts.length === 0 ? (
               <p className="rep-empty">لا توريدَ بانتظارك.</p>
@@ -634,7 +643,11 @@ export default function RepAppPage() {
                         className="rep-btn"
                         onClick={() => {
                           setReceiptTarget(row);
-                          setReceiptDraft({ receivedQty: row.loadedQty, notes: '', loadedQty: row.loadedQty });
+                          setReceiptDraft({
+                            receivedQty: row.loadedQty,
+                            notes: '',
+                            loadedQty: row.loadedQty,
+                          });
                         }}
                       >
                         ✅ تأكيدُ الاستلام
@@ -652,7 +665,9 @@ export default function RepAppPage() {
                   <span className="rep-num">{numberText(receiptTarget.loadedQty)}</span> كجم)
                 </h3>
                 {receiptQueueVerdict.blocked.map((line) => (
-                  <p key={line} className="rep-note" data-tone="danger">{line}</p>
+                  <p key={line} className="rep-note" data-tone="danger">
+                    {line}
+                  </p>
                 ))}
                 <div className="rep-fields">
                   <label className="rep-field">
@@ -661,7 +676,9 @@ export default function RepAppPage() {
                       inputMode="decimal"
                       className="rep-num"
                       value={receiptDraft.receivedQty}
-                      onChange={(event) => setReceiptDraft({ ...receiptDraft, receivedQty: event.target.value })}
+                      onChange={(event) =>
+                        setReceiptDraft({ ...receiptDraft, receivedQty: event.target.value })
+                      }
                     />
                   </label>
                   <label className="rep-field">
@@ -673,10 +690,14 @@ export default function RepAppPage() {
                   </label>
                 </div>
                 {receiptVerdict.ok ? null : (
-                  <p className="rep-note" data-tone="danger">{receiptVerdict.message}</p>
+                  <p className="rep-note" data-tone="danger">
+                    {receiptVerdict.message}
+                  </p>
                 )}
                 {receiptVerdict.ok && receiptVerdict.usesLoadedQty ? (
-                  <p className="rep-note" data-tone="warn">ستُستعمل الكميةُ المحمَّلة كما هي.</p>
+                  <p className="rep-note" data-tone="warn">
+                    ستُستعمل الكميةُ المحمَّلة كما هي.
+                  </p>
                 ) : null}
                 <div className="rep-actions">
                   <button
@@ -712,10 +733,7 @@ export default function RepAppPage() {
           <div className="rep-card">
             <div>
               <h2 className="rep-card-title">🧾 تسجيل بيعٍ وإصدار فاتورة</h2>
-              <p className="rep-card-sub">
-                الحكمُ الماليّ من `documentVerdict` نفسه وحكمُ الطابور من `queueVerdict` — والخادمُ
-                هو المُصدر، فالمنعُ هنا قولٌ لا ضبط.
-              </p>
+              <p className="rep-card-sub">اختر أمر التحميل والأصناف لتسجيل البيع وإصدار الفاتورة.</p>
             </div>
             {!canInvoice ? (
               <p className="rep-note" data-tone="danger">
@@ -752,7 +770,11 @@ export default function RepAppPage() {
                       ))}
                     </select>
                   </label>
-                  {partiesError ? <p className="rep-note" data-tone="warn">{partiesError}</p> : null}
+                  {partiesError ? (
+                    <p className="rep-note" data-tone="warn">
+                      {partiesError}
+                    </p>
+                  ) : null}
                   {!saleDraft.partyId ? (
                     <label className="rep-field">
                       <span>اسم العميل النقدي</span>
@@ -801,7 +823,10 @@ export default function RepAppPage() {
                     <select
                       value={saleDraft.paymentMethod}
                       onChange={(event) =>
-                        setSaleDraft({ ...saleDraft, paymentMethod: event.target.value as DocumentDraft['paymentMethod'] })
+                        setSaleDraft({
+                          ...saleDraft,
+                          paymentMethod: event.target.value as DocumentDraft['paymentMethod'],
+                        })
                       }
                     >
                       <option value="cash">نقدي</option>
@@ -814,7 +839,10 @@ export default function RepAppPage() {
                     <select
                       value={saleDraft.invoiceMode}
                       onChange={(event) =>
-                        setSaleDraft({ ...saleDraft, invoiceMode: event.target.value as DocumentDraft['invoiceMode'] })
+                        setSaleDraft({
+                          ...saleDraft,
+                          invoiceMode: event.target.value as DocumentDraft['invoiceMode'],
+                        })
                       }
                     >
                       <option value="zatca_tax">فاتورة ضريبية (ZATCA)</option>
@@ -824,10 +852,14 @@ export default function RepAppPage() {
                 </div>
 
                 {[...saleVerdict.blocked, ...saleQueueVerdict.blocked].map((line) => (
-                  <p key={line} className="rep-note" data-tone="danger">{line}</p>
+                  <p key={line} className="rep-note" data-tone="danger">
+                    {line}
+                  </p>
                 ))}
                 {[...saleVerdict.warnings, ...saleQueueVerdict.warnings].map((line) => (
-                  <p key={line} className="rep-note" data-tone="warn">{line}</p>
+                  <p key={line} className="rep-note" data-tone="warn">
+                    {line}
+                  </p>
                 ))}
                 <div className="rep-actions">
                   <button
@@ -872,7 +904,13 @@ export default function RepAppPage() {
                       <span className="rep-num">{row.number}</span>
                       <span
                         className="rep-pill"
-                        data-tone={row.documentKind === 'return' ? 'warn' : Number(row.outstanding) > 0 ? 'danger' : 'ok'}
+                        data-tone={
+                          row.documentKind === 'return'
+                            ? 'warn'
+                            : Number(row.outstanding) > 0
+                              ? 'danger'
+                              : 'ok'
+                        }
                       >
                         {row.documentKind === 'return'
                           ? '↩️ مرتجع'
@@ -896,7 +934,9 @@ export default function RepAppPage() {
                         <button
                           type="button"
                           className="rep-btn"
-                          onClick={() => setReturnDraft({ documentId: row.id, returnedQty: '', reason: '', notes: '' })}
+                          onClick={() =>
+                            setReturnDraft({ documentId: row.id, returnedQty: '', reason: '', notes: '' })
+                          }
                         >
                           ↩️ مرتجع
                         </button>
@@ -926,7 +966,8 @@ export default function RepAppPage() {
               <div className="rep-card" style={{ background: 'var(--inset)' }}>
                 <h3 className="rep-card-title">
                   ↩️ مرتجعٌ على{' '}
-                  {returnable.find((row) => row.id === returnDraft.documentId)?.number ?? returnDraft.documentId}
+                  {returnable.find((row) => row.id === returnDraft.documentId)?.number ??
+                    returnDraft.documentId}
                 </h3>
                 <p className="rep-card-sub">
                   {returnCeilingText(
@@ -936,10 +977,14 @@ export default function RepAppPage() {
                   )}
                 </p>
                 {returnQueueVerdict.blocked.map((line) => (
-                  <p key={line} className="rep-note" data-tone="danger">{line}</p>
+                  <p key={line} className="rep-note" data-tone="danger">
+                    {line}
+                  </p>
                 ))}
                 {returnQueueVerdict.warnings.map((line) => (
-                  <p key={line} className="rep-note" data-tone="warn">{line}</p>
+                  <p key={line} className="rep-note" data-tone="warn">
+                    {line}
+                  </p>
                 ))}
                 <div className="rep-fields">
                   <label className="rep-field">
@@ -948,7 +993,9 @@ export default function RepAppPage() {
                       inputMode="decimal"
                       className="rep-num"
                       value={returnDraft.returnedQty}
-                      onChange={(event) => setReturnDraft({ ...returnDraft, returnedQty: event.target.value })}
+                      onChange={(event) =>
+                        setReturnDraft({ ...returnDraft, returnedQty: event.target.value })
+                      }
                     />
                   </label>
                   <label className="rep-field">
@@ -997,10 +1044,14 @@ export default function RepAppPage() {
               <div className="rep-card" style={{ background: 'var(--inset)' }}>
                 <h3 className="rep-card-title">💵 تحصيلُ مديونية</h3>
                 {collectionQueueVerdict.blocked.map((line) => (
-                  <p key={line} className="rep-note" data-tone="danger">{line}</p>
+                  <p key={line} className="rep-note" data-tone="danger">
+                    {line}
+                  </p>
                 ))}
                 {collectionQueueVerdict.warnings.map((line) => (
-                  <p key={line} className="rep-note" data-tone="warn">{line}</p>
+                  <p key={line} className="rep-note" data-tone="warn">
+                    {line}
+                  </p>
                 ))}
                 <div className="rep-fields">
                   <label className="rep-field">
@@ -1009,7 +1060,9 @@ export default function RepAppPage() {
                       inputMode="decimal"
                       className="rep-num"
                       value={collectionDraft.collectedAmount}
-                      onChange={(event) => setCollectionDraft({ ...collectionDraft, collectedAmount: event.target.value })}
+                      onChange={(event) =>
+                        setCollectionDraft({ ...collectionDraft, collectedAmount: event.target.value })
+                      }
                     />
                   </label>
                 </div>
@@ -1018,12 +1071,18 @@ export default function RepAppPage() {
                     type="button"
                     className="rep-btn"
                     data-variant="primary"
-                    disabled={busy || collectionQueueVerdict.blocked.length > 0 || !collectionDraft.collectedAmount}
+                    disabled={
+                      busy || collectionQueueVerdict.blocked.length > 0 || !collectionDraft.collectedAmount
+                    }
                     onClick={() => {
                       const key = collectionKey.key(collectionPayload);
                       void submit({
                         operation: 'collection',
-                        body: bodyWithIdempotencyKey('collection', collectionPayload as Record<string, unknown>, key),
+                        body: bodyWithIdempotencyKey(
+                          'collection',
+                          collectionPayload as Record<string, unknown>,
+                          key,
+                        ),
                         labelAr: `${collectionDraft.collectedAmount} ريال`,
                         successAr: 'سُجِّل التحصيلُ وأُصدر سندُ القبض الرسميّ.',
                         after: () => {
@@ -1035,7 +1094,11 @@ export default function RepAppPage() {
                   >
                     {online ? 'تأكيدُ التحصيل' : '💾 حفظُ التحصيل في الطابور'}
                   </button>
-                  <button type="button" className="rep-btn" onClick={() => setCollectionDraft(emptyCollectionDraft())}>
+                  <button
+                    type="button"
+                    className="rep-btn"
+                    onClick={() => setCollectionDraft(emptyCollectionDraft())}
+                  >
                     إلغاء
                   </button>
                 </div>
@@ -1054,8 +1117,11 @@ export default function RepAppPage() {
             ) : (
               <div className="rep-rows">
                 {data.loadOrders.map((row) => {
-                  const serverNotes = [receiptShortfallText(row), closingShortageText(row), row.stockSettlementNote]
-                    .filter((line): line is string => Boolean(line));
+                  const serverNotes = [
+                    receiptShortfallText(row),
+                    closingShortageText(row),
+                    row.stockSettlementNote,
+                  ].filter((line): line is string => Boolean(line));
                   return (
                     <div key={row.id} className="rep-row">
                       <div className="rep-row-main">
@@ -1078,14 +1144,17 @@ export default function RepAppPage() {
                       <div className="rep-row-meta">
                         <span>{row.itemName}</span>
                         <span>
-                          المتوقَّع أن يبقى <span className="rep-num">{numberText(row.expectedRemainingQty)}</span> كجم
+                          المتوقَّع أن يبقى{' '}
+                          <span className="rep-num">{numberText(row.expectedRemainingQty)}</span> كجم
                         </span>
                         <span>
                           نقدٌ متبقٍّ <span className="rep-num">{numberText(row.outstandingCash)}</span>
                         </span>
                       </div>
                       {serverNotes.length > 0 ? (
-                        <p className="rep-note" data-tone="warn">{serverNotes.join(' · ')}</p>
+                        <p className="rep-note" data-tone="warn">
+                          {serverNotes.join(' · ')}
+                        </p>
                       ) : null}
                       <div className="rep-row-actions">
                         {canClose && row.status === 'loaded' ? (
@@ -1123,10 +1192,14 @@ export default function RepAppPage() {
                   <span className="rep-num">{numberText(closingTarget.expectedRemainingQty)}</span> كجم
                 </h3>
                 {closingQueueVerdict.blocked.map((line) => (
-                  <p key={line} className="rep-note" data-tone="danger">{line}</p>
+                  <p key={line} className="rep-note" data-tone="danger">
+                    {line}
+                  </p>
                 ))}
                 {!online ? (
-                  <p className="rep-note" data-tone="warn">{NOT_QUEUEABLE_OPERATIONS.closing.reasonAr}</p>
+                  <p className="rep-note" data-tone="warn">
+                    {NOT_QUEUEABLE_OPERATIONS.closing.reasonAr}
+                  </p>
                 ) : null}
                 <div className="rep-fields">
                   <label className="rep-field">
@@ -1135,18 +1208,26 @@ export default function RepAppPage() {
                       value={countMode}
                       onChange={(event) => setCountMode(event.target.value as 'whole-vehicle' | 'per-order')}
                     >
-                      <option value="whole-vehicle">عددُ الصنف في السيارة كلّها (يشتقّ الخادمُ نصيبَ هذا الأمر)</option>
+                      <option value="whole-vehicle">
+                        عددُ الصنف في السيارة كلّها (يشتقّ الخادمُ نصيبَ هذا الأمر)
+                      </option>
                       <option value="per-order">نصيبُ هذا الأمر وحده</option>
                     </select>
                   </label>
                   <label className="rep-field">
                     <span>
-                      {countMode === 'whole-vehicle' ? 'عددُ المركبة كلّها (كجم)' : 'المتبقّي الفعليّ لهذا الأمر (كجم)'}
+                      {countMode === 'whole-vehicle'
+                        ? 'عددُ المركبة كلّها (كجم)'
+                        : 'المتبقّي الفعليّ لهذا الأمر (كجم)'}
                     </span>
                     <input
                       inputMode="decimal"
                       className="rep-num"
-                      value={countMode === 'whole-vehicle' ? closingDraft.vehicleCountQty : closingDraft.actualRemainingQty}
+                      value={
+                        countMode === 'whole-vehicle'
+                          ? closingDraft.vehicleCountQty
+                          : closingDraft.actualRemainingQty
+                      }
                       onChange={(event) =>
                         setClosingDraft(
                           countMode === 'whole-vehicle'
@@ -1162,7 +1243,9 @@ export default function RepAppPage() {
                       inputMode="decimal"
                       className="rep-num"
                       value={closingDraft.returnedQty}
-                      onChange={(event) => setClosingDraft({ ...closingDraft, returnedQty: event.target.value })}
+                      onChange={(event) =>
+                        setClosingDraft({ ...closingDraft, returnedQty: event.target.value })
+                      }
                     />
                   </label>
                   <label className="rep-field">
@@ -1171,14 +1254,18 @@ export default function RepAppPage() {
                       inputMode="decimal"
                       className="rep-num"
                       value={closingDraft.damagedQty}
-                      onChange={(event) => setClosingDraft({ ...closingDraft, damagedQty: event.target.value })}
+                      onChange={(event) =>
+                        setClosingDraft({ ...closingDraft, damagedQty: event.target.value })
+                      }
                     />
                   </label>
                   <label className="rep-field">
                     <span>سببُ التلف (مطلوبٌ إن كان التالفُ أكثرَ من صفر)</span>
                     <input
                       value={closingDraft.damageReason}
-                      onChange={(event) => setClosingDraft({ ...closingDraft, damageReason: event.target.value })}
+                      onChange={(event) =>
+                        setClosingDraft({ ...closingDraft, damageReason: event.target.value })
+                      }
                     />
                   </label>
                   <label className="rep-field">
@@ -1187,32 +1274,40 @@ export default function RepAppPage() {
                       inputMode="decimal"
                       className="rep-num"
                       value={closingDraft.collectedCash}
-                      onChange={(event) => setClosingDraft({ ...closingDraft, collectedCash: event.target.value })}
+                      onChange={(event) =>
+                        setClosingDraft({ ...closingDraft, collectedCash: event.target.value })
+                      }
                     />
                   </label>
                   <label className="rep-field">
                     <span>ملاحظاتُ الإغلاق</span>
                     <input
                       value={closingDraft.closingNotes}
-                      onChange={(event) => setClosingDraft({ ...closingDraft, closingNotes: event.target.value })}
+                      onChange={(event) =>
+                        setClosingDraft({ ...closingDraft, closingNotes: event.target.value })
+                      }
                     />
                   </label>
                 </div>
                 {countMode === 'whole-vehicle' ? (
                   <p className="rep-note" data-tone="warn">
-                    يخصم الخادمُ من عددِ المركبة عهدةَ الأوامر الأخرى الجالسة في السيارة نفسها —
-                    وحمولةُ المندوب لا تحمل تلك العهدة، فالحكمُ له لا لهذه الشاشة.
+                    يخصم الخادمُ من عددِ المركبة عهدةَ الأوامر الأخرى الجالسة في السيارة نفسها — وحمولةُ
+                    المندوب لا تحمل تلك العهدة، فالحكمُ له لا لهذه الشاشة.
                   </p>
                 ) : null}
                 {closingVerdict.ok ? null : (
-                  <p className="rep-note" data-tone="danger">{closingVerdict.message}</p>
+                  <p className="rep-note" data-tone="danger">
+                    {closingVerdict.message}
+                  </p>
                 )}
                 <div className="rep-actions">
                   <button
                     type="button"
                     className="rep-btn"
                     data-variant="primary"
-                    disabled={busy || !closingVerdict.ok || closingQueueVerdict.blocked.length > 0 || !canClose}
+                    disabled={
+                      busy || !closingVerdict.ok || closingQueueVerdict.blocked.length > 0 || !canClose
+                    }
                     onClick={() =>
                       void submit({
                         operation: 'closing',
@@ -1238,9 +1333,7 @@ export default function RepAppPage() {
           <div className="rep-card">
             <div>
               <h2 className="rep-card-title">📦 أرصدةُ أصناف سيارتك (من دفتر المخزون الرسمي)</h2>
-              <p className="rep-card-sub">
-                كاملةٌ بلا نافذة: فاستعلامُ الأرصدة بلا LIMIT — ولهذا لا مفتاحَ لها في `windows`.
-              </p>
+              <p className="rep-card-sub">تظهر أرصدة الأصناف المتاحة في سيارتك.</p>
             </div>
             {data.balances.length === 0 ? (
               <p className="rep-empty">لا رصيدَ في سيارتك الآن.</p>
@@ -1325,8 +1418,7 @@ export default function RepAppPage() {
           ) : null}
 
           <p className="rep-card-sub">
-            قوائمُ هذه الشاشة نوافذُ الخادم: {notes.loadOrders} · وأمّا الأرصدةُ والتوريداتُ
-            المعلّقة فكاملةٌ (بلا LIMIT في استعلاميهما). وفواتيرُ آجلةٌ بلا تحصيلٍ بعد:{' '}
+            قد تتوزع بعض القوائم على صفحات. {notes.loadOrders} · فواتير آجلة بلا تحصيل حتى الآن:{' '}
             <span className="rep-num">{unpaidDocuments.length}</span> في هذه النافذة.
           </p>
         </>

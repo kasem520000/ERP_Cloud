@@ -8,6 +8,8 @@
  * `http://localhost:3000` worked only on the developer's laptop and broke behind every proxy,
  * container and preview URL.
  */
+import { arabicProblem } from '@erp/web-core/error-language';
+
 const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || '/api/v1';
 
 const TOKEN_COOKIE = 'erp_access_token';
@@ -27,7 +29,11 @@ export function clearToken(): void {
 }
 
 export class PortalError extends Error {
-  constructor(message: string, readonly status: number, readonly code?: string) {
+  constructor(
+    message: string,
+    readonly status: number,
+    readonly code?: string,
+  ) {
     super(message);
     this.name = 'PortalError';
   }
@@ -44,7 +50,11 @@ export async function portalFetch<T>(path: string, init?: RequestInit): Promise<
   const token = readToken();
   const response = await fetch(`${baseUrl}${path}`, {
     ...init,
-    headers: { 'content-type': 'application/json', ...(token ? { authorization: `Bearer ${token}` } : {}), ...(init?.headers ?? {}) },
+    headers: {
+      'content-type': 'application/json',
+      ...(token ? { authorization: `Bearer ${token}` } : {}),
+      ...(init?.headers ?? {}),
+    },
   });
   const text = await response.text();
   const payload = text ? (JSON.parse(text) as Record<string, unknown>) : {};
@@ -56,28 +66,58 @@ export async function portalFetch<T>(path: string, init?: RequestInit): Promise<
       clearToken();
       globalThis.location.assign('/auth/login');
     }
-    throw new PortalError(MESSAGES[code ?? ''] ?? (typeof payload.detail === 'string' ? payload.detail : 'تعذّر تنفيذ الطلب'), response.status, code);
+    const detail = typeof payload.detail === 'string' ? payload.detail : undefined;
+    throw new PortalError(
+      MESSAGES[code ?? ''] ?? arabicProblem(response.status, undefined, detail).message,
+      response.status,
+      code,
+    );
   }
   return (payload.data !== undefined ? payload.data : payload) as T;
 }
 
 export type Session = { mustChangePassword: boolean; fullName: string; email: string };
 
-export async function login(input: { tenantCode: string; email: string; password: string }): Promise<Session> {
-  const response = await fetch(`${baseUrl}/auth/login`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(input) });
+export async function login(input: {
+  tenantCode: string;
+  email: string;
+  password: string;
+}): Promise<Session> {
+  const response = await fetch(`${baseUrl}/auth/login`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(input),
+  });
   if (!response.ok) {
-    throw new PortalError(response.status === 401 ? 'بيانات الدخول غير صحيحة' : response.status === 429 ? 'محاولات كثيرة، انتظر قليلاً' : 'تعذّر تسجيل الدخول', response.status);
+    throw new PortalError(
+      response.status === 401
+        ? 'بيانات الدخول غير صحيحة'
+        : response.status === 429
+          ? 'محاولات كثيرة، انتظر قليلاً'
+          : 'تعذّر تسجيل الدخول',
+      response.status,
+    );
   }
   const body = (await response.json()) as { data?: Record<string, unknown> } & Record<string, unknown>;
-  const payload = (body.data ?? body) as { accessToken?: string; user?: { mustChangePassword?: boolean; fullName?: string; email?: string } };
+  const payload = (body.data ?? body) as {
+    accessToken?: string;
+    user?: { mustChangePassword?: boolean; fullName?: string; email?: string };
+  };
   if (!payload.accessToken) throw new PortalError('لم يصل رمز الدخول من الخادم', 500);
   storeToken(payload.accessToken);
-  return { mustChangePassword: Boolean(payload.user?.mustChangePassword), fullName: payload.user?.fullName ?? '', email: payload.user?.email ?? input.email };
+  return {
+    mustChangePassword: Boolean(payload.user?.mustChangePassword),
+    fullName: payload.user?.fullName ?? '',
+    email: payload.user?.email ?? input.email,
+  };
 }
 
 /** Changes the caller's own password; the API revokes every session afterwards. */
 export async function changePassword(current: string, next: string): Promise<void> {
-  await portalFetch<void>('/auth/change-password', { method: 'POST', body: JSON.stringify({ current, new: next }) });
+  await portalFetch<void>('/auth/change-password', {
+    method: 'POST',
+    body: JSON.stringify({ current, new: next }),
+  });
   clearToken();
 }
 
@@ -88,8 +128,22 @@ export function logout(): void {
 
 // ---------------------------------------------------------------- portal resources
 
-export type PortalParty = { id: string; code: string; name: string; taxNo: string | null; phone: string | null; email: string | null; creditLimit: string };
-export type PortalCompany = { nameAr: string; nameEn: string; taxNo: string; email: string; phones: string[] };
+export type PortalParty = {
+  id: string;
+  code: string;
+  name: string;
+  taxNo: string | null;
+  phone: string | null;
+  email: string | null;
+  creditLimit: string;
+};
+export type PortalCompany = {
+  nameAr: string;
+  nameEn: string;
+  taxNo: string;
+  email: string;
+  phones: string[];
+};
 export type PortalProfile = { party: PortalParty | null; company: PortalCompany; balance: string };
 
 export type PortalInvoice = {
@@ -108,20 +162,56 @@ export type PortalInvoice = {
   zatca_status: string | null;
 };
 
-export type PortalInvoiceLine = { line_no: number; name: string; unit: string | null; quantity: string; unit_price: string; discount_amount: string; net: string; tax: string; total: string };
-export type PortalPayment = { id: string; number: string | null; day: string; kind: string; method: string; amount: string; status: string; notes: string | null };
-export type StatementLine = { day: string; doc_type: string; number: string; description: string; debit: string; credit: string; running: string; document_id: string };
+export type PortalInvoiceLine = {
+  line_no: number;
+  name: string;
+  unit: string | null;
+  quantity: string;
+  unit_price: string;
+  discount_amount: string;
+  net: string;
+  tax: string;
+  total: string;
+};
+export type PortalPayment = {
+  id: string;
+  number: string | null;
+  day: string;
+  kind: string;
+  method: string;
+  amount: string;
+  status: string;
+  notes: string | null;
+};
+export type StatementLine = {
+  day: string;
+  doc_type: string;
+  number: string;
+  description: string;
+  debit: string;
+  credit: string;
+  running: string;
+  document_id: string;
+};
 
 export const fetchProfile = () => portalFetch<PortalProfile>('/portal/me');
 export const fetchInvoices = (range: { from?: string; to?: string } = {}) => {
   const query = new URLSearchParams(Object.entries(range).filter(([, value]) => value)).toString();
   return portalFetch<PortalInvoice[]>(`/portal/invoices${query ? `?${query}` : ''}`);
 };
-export const fetchInvoice = (id: string) => portalFetch<{ invoice: PortalInvoice; lines: PortalInvoiceLine[]; payments: Array<Record<string, string>> }>(`/portal/invoices/${id}`);
-export const fetchInvoiceHtml = (id: string) => portalFetch<{ html: string }>(`/portal/invoices/${id}/print`).then((result) => result.html);
+export const fetchInvoice = (id: string) =>
+  portalFetch<{
+    invoice: PortalInvoice;
+    lines: PortalInvoiceLine[];
+    payments: Array<Record<string, string>>;
+  }>(`/portal/invoices/${id}`);
+export const fetchInvoiceHtml = (id: string) =>
+  portalFetch<{ html: string }>(`/portal/invoices/${id}/print`).then((result) => result.html);
 export const fetchStatement = (range: { from?: string; to?: string } = {}) => {
   const query = new URLSearchParams(Object.entries(range).filter(([, value]) => value)).toString();
-  return portalFetch<{ lines: StatementLine[]; closing: string }>(`/portal/statement${query ? `?${query}` : ''}`);
+  return portalFetch<{ lines: StatementLine[]; closing: string }>(
+    `/portal/statement${query ? `?${query}` : ''}`,
+  );
 };
 export const fetchPayments = () => portalFetch<PortalPayment[]>('/portal/payments');
 

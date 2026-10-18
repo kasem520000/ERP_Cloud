@@ -2,7 +2,7 @@ import './globals.css';
 
 import type { Metadata, Viewport } from 'next';
 import type { ReactNode } from 'react';
-import { ThemeProvider, ThemeScript, ToastProvider } from '@erp/ui';
+import { SYSTEM_NAME_AR, ThemeProvider, ThemeScript, ToastProvider } from '@erp/ui';
 import { TokenBridge } from '@erp/web-core/token-bridge';
 
 import { AuthGate } from '../components/auth-gate';
@@ -11,7 +11,7 @@ import { SessionProvider } from '../lib/session';
 import { ServiceWorkerRegister } from '../components/service-worker-register';
 
 export const metadata: Metadata = {
-  title: 'Cloud ERP — لوحة التحكم',
+  title: `لوحة التحكم · ${SYSTEM_NAME_AR}`,
   description: 'نظام محاسبي سحابي متعدد المنشآت',
   manifest: '/manifest.webmanifest',
 };

@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { SYSTEM_NAME_AR } from '@erp/ui/theme';
 
 import { ApiError, apiPost } from '../lib/api';
 import { useSession } from '../lib/session';
@@ -110,8 +111,8 @@ export function LoginScreen({ initialError }: { initialError?: string }) {
   return (
     <div className="auth-page">
       <div className="auth-brand">
-        <span className="logo big">ERP</span>
-        <h1>لوحة تحكم المنصة</h1>
+        <span className="logo big">س</span>
+        <h1>{SYSTEM_NAME_AR}</h1>
         <p>إدارة المنشآت والاشتراكات والتراخيص — لمشغّلي المنصة فقط.</p>
       </div>
 
