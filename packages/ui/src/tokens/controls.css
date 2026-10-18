@@ -53,57 +53,19 @@
   flex: none;
 }
 
-/* A section card with a real header: title + optional hint + actions. */
-.panel {
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-1);
-  min-width: 0;
-}
-.panel-head {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3);
-  padding: 14px 16px;
-  border-block-end: 1px solid var(--line);
-}
-.panel-head h2,
-.panel-head h3 {
-  margin: 0;
-  font-size: 14px;
-  font-weight: 800;
-  color: var(--text);
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.panel-head p {
-  margin: 2px 0 0;
-  font-size: 12px;
-  color: var(--muted);
-}
-.panel-body {
+/*
+ * الأسماءُ القديمة للوحة (`panel`, `panel-head`) تُعرَّف مع `ui-panel` نفسِها
+ * في طبقة السطح أدناه — فلا نسخةَ ثانية تفرق عنها في الحشو أو الحدّ.
+ */
+.panel-body,
+.ui-panel-body {
   padding: 16px;
   min-width: 0;
 }
 .panel-body.flush {
   padding: 0;
 }
-.panel-foot {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2);
-  align-items: center;
-  justify-content: flex-end;
-  padding: 12px 16px;
-  border-block-start: 1px solid var(--line);
-  background: var(--surface-2);
-  border-end-start-radius: var(--radius-lg);
-  border-end-end-radius: var(--radius-lg);
-}
+/* `.panel-foot` تُعرَّف مع `.ui-panel-foot` أدناه. */
 
 /* --------------------------------------------------------------- controls */
 .input,
@@ -173,10 +135,15 @@ html[dir='rtl'] select.ui-input {
   border: 1px solid var(--line-strong);
   border-radius: var(--radius-md);
   background-color: var(--surface);
-  background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%),
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--muted) 50%),
     linear-gradient(135deg, var(--muted) 50%, transparent 50%);
-  background-position: calc(100% - 15px) 50%, calc(100% - 20px) 50%;
-  background-size: 5px 5px, 5px 5px;
+  background-position:
+    calc(100% - 15px) 50%,
+    calc(100% - 20px) 50%;
+  background-size:
+    5px 5px,
+    5px 5px;
   background-repeat: no-repeat;
   color: var(--text);
   font: inherit;
@@ -186,7 +153,9 @@ html[dir='rtl'] select.ui-input {
 }
 [dir='rtl'] .ui-select {
   padding: 0 12px 0 34px;
-  background-position: calc(0% + 20px) 50%, calc(0% + 15px) 50%;
+  background-position:
+    calc(0% + 20px) 50%,
+    calc(0% + 15px) 50%;
 }
 .ui-select:hover {
   border-color: var(--line-raised);
@@ -271,96 +240,26 @@ html[dir='rtl'] select.ui-input {
 }
 
 /* Explicit column counts — never auto-fit: auto-fit produced six 190px
-   columns inside a 1080px card and made every form look improvised. */
-.form-grid {
-  display: grid;
-  gap: var(--space-3) var(--space-4);
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  min-inline-size: 0;
-}
-.form-grid.cols-1 {
-  grid-template-columns: minmax(0, 1fr);
-}
-.form-grid.cols-2 {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-.form-grid.cols-3 {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-}
-.form-grid.cols-4 {
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-}
-.form-grid > .span-2 {
+   columns inside a 1080px card and made every form look improvised.
+   (الشبكةُ نفسها تُعرَّف مع `.ui-form-grid` في طبقة النموذج أدناه.) */
+.form-grid > .span-2,
+.ui-form-grid > .span-2 {
   grid-column: span 2;
 }
-.form-grid > .span-3 {
+.form-grid > .span-3,
+.ui-form-grid > .span-3 {
   grid-column: span 3;
 }
 .form-grid > .span-4,
-.form-grid > .span-full {
+.form-grid > .span-full,
+.ui-form-grid > .span-4,
+.ui-form-grid > .span-full {
   grid-column: 1 / -1;
 }
-.form-section {
-  display: grid;
-  gap: var(--space-4);
-  padding: var(--space-4);
-  border-block-end: 1px solid var(--line);
-}
-.form-section:last-child {
-  border-block-end: 0;
-}
-.form-section-head {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-2);
-}
-.form-section-head h3 {
-  margin: 0;
-  font-size: 13px;
-  font-weight: 800;
-  color: var(--text);
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.form-section-head .muted {
-  font-size: 12px;
-}
-
-@container (max-width: 1100px) {
-  .form-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-}
-@media (max-width: 1180px) {
-  .form-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-}
-@media (max-width: 900px) {
-  .form-grid,
-  .form-grid.cols-4 {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-  .form-grid > .span-3,
-  .form-grid > .span-4 {
-    grid-column: 1 / -1;
-  }
-}
-@media (max-width: 640px) {
-  .form-grid,
-  .form-grid.cols-2,
-  .form-grid.cols-3,
-  .form-grid.cols-4 {
-    grid-template-columns: minmax(0, 1fr);
-  }
-  .form-grid > .span-2,
-  .form-grid > .span-3 {
-    grid-column: 1 / -1;
-  }
-}
+/*
+ * قسمُ النموذج: الأسماءُ القديمة (`form-section`) والكيت (`ui-form-section`)
+ * تُعرَّفان معًا أدناه — قسمٌ واحد برأسٍ rails وقسمٌ بلا رأسٍ يمتدّ على عمود واحد.
+ */
 
 /* ---------------------------------------------------------------- buttons */
 .btn {
@@ -670,7 +569,7 @@ table th.num {
  * `Button`/`Input` use (`h-9` + 1px border), and a 34px local override is what
  * made two adjacent fields look misaligned. */
 :root {
---control-h: 38px;
+  --control-h: 38px;
 }
 
 /* --------------------------------------------------------------------------
@@ -973,7 +872,13 @@ table td {
 }
 
 /* ----------------------------------------------------------------- panel */
-.ui-panel {
+/*
+ * سطحُ اللوحة الواحد. `panel`/`panel-head` أسماءٌ قديمة بقيّةٌ في شاشاتٍ كُتبت
+ * قبل الكيت: تُجمَع هنا مع `ui-panel` في تعريفٍ واحد، فلا يوجد شكلان لسطحٍ واحد
+ * ولا شاشتان تختلفان لأنّهما استعملتا الاسم الآخر.
+ */
+.ui-panel,
+.panel {
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: var(--radius-lg);
@@ -981,7 +886,8 @@ table td {
   overflow: clip;
   min-width: 0;
 }
-.ui-panel-head {
+.ui-panel-head,
+.panel-head {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -991,19 +897,26 @@ table td {
   border-block-end: 1px solid var(--line);
   background: var(--surface);
 }
-.ui-panel-copy {
+.ui-panel-copy,
+.panel-head > div:first-child {
   display: grid;
   gap: 2px;
   min-width: 0;
 }
-.ui-panel-title {
+.ui-panel-title,
+.panel-head h2,
+.panel-head h3 {
   margin: 0;
   font-size: 14px;
   font-weight: 800;
   letter-spacing: -0.01em;
   color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
-.ui-panel-hint {
+.ui-panel-hint,
+.panel-head p {
   margin: 0;
   font-size: 12px;
   line-height: 1.55;
@@ -1072,11 +985,24 @@ table td {
  * و«لا صفوف» و«الجدول» تُبقي حشوَ النصّ حين يظهر النصّ وحده.
  */
 .ui-panel-body > .table-wrap:last-child,
-.ui-panel-body > .bak-table-wrap:last-child {
-  margin: 0 -16px -16px;
+.ui-panel-body > .bak-table-wrap:last-child,
+.ui-panel-body-flush > .table-wrap:last-child,
+.ui-panel-body-flush > .bak-table-wrap:last-child {
   border: 0;
   border-radius: 0;
   box-shadow: none;
+}
+/*
+ * الحشوُ السالب يخصّ جسمًا بحشوٍ 16px فقط: جسم `flush` ليس فيه حشوٌ يُعوَّض،
+ * فالسالبُ يُزيح الجدول عن حدّ اللوحة ويُقصّ عمودُه الأخير تحت `overflow: clip`.
+ */
+.ui-panel-body:not(.ui-panel-body-flush) > .table-wrap:last-child,
+.ui-panel-body:not(.ui-panel-body-flush) > .bak-table-wrap:last-child {
+  margin: 0 -16px -16px;
+}
+.ui-panel-body-flush > .table-wrap,
+.ui-panel-body-flush > .bak-table-wrap {
+  margin: 0;
 }
 .ui-panel-body > .table-wrap:last-child table thead th:first-child,
 .ui-panel-body > .table-wrap:last-child table tbody td:first-child,
@@ -1091,7 +1017,8 @@ table td {
   padding-inline-end: 16px;
 }
 
-.ui-panel-foot {
+.ui-panel-foot,
+.panel-foot {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -1122,6 +1049,44 @@ table td {
   border-radius: 0;
   box-shadow: none;
   max-block-size: none;
+}
+
+/* --------------------------------------------------------------- totals */
+/*
+ * جدولُ إجماليات المستند: كتلةٌ واحدة بعرضٍ مقروء في الطرف الذي تبدأ منه
+ * القراءة، والوصفُ يمينًا والقيمةُ يسارًا في صفٍّ واحد — بدل سطرٍ يمدّ
+ * قيمتَه إلى آخر اللوحة فيبدو فراغًا لا رقمًا.
+ */
+.ui-totals {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 7px 24px;
+  inline-size: min(100%, 380px);
+  margin-block: 0;
+  margin-inline: 0 auto;
+  font-size: 13px;
+}
+.ui-totals dt {
+  font-weight: 600;
+  color: var(--muted);
+}
+.ui-totals dd {
+  margin: 0;
+  font-weight: 700;
+  text-align: end;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+/* الصافي هو آخر سطر: فاصلٌ رقيق يفصله كما في ورقة الفاتورة المطبوعة. */
+.ui-totals dt:last-of-type,
+.ui-totals dd:last-of-type {
+  margin-block-start: 2px;
+  padding-block-start: 9px;
+  border-block-start: 1px solid var(--line);
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--text);
 }
 
 /* ------------------------------------------------------------ kpi strip */
@@ -1337,20 +1302,7 @@ a.ui-kpi-cell:hover {
   color: var(--muted);
   text-transform: none;
 }
-:where(.shell, .ui-page) .form-grid {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 12px;
-}
-@media (max-width: 980px) {
-  :where(.shell, .ui-page) .form-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-@media (max-width: 620px) {
-  :where(.shell, .ui-page) .form-grid {
-    grid-template-columns: minmax(0, 1fr);
-  }
-}
+/* شبكةُ النموذج تُعرَّف مرّةً واحدة في طبقة `ui-form-grid` أدناه. */
 :where(.shell, .ui-page) .filters {
   gap: 10px 16px;
   padding: 12px 14px;
@@ -1503,29 +1455,52 @@ a.ui-kpi-cell:hover {
 }
 
 /* ------------------------------------------------------------------ form */
-.ui-form-section {
+.ui-form-section,
+.form-section {
   display: grid;
   grid-template-columns: 210px minmax(0, 1fr);
   gap: 6px 24px;
   padding-block: 18px;
   border-block-start: 1px solid var(--line);
 }
-.ui-form-section:first-child {
+.ui-form-section:first-child,
+.form-section:first-child {
   border-block-start: 0;
   padding-block-start: 0;
 }
-.ui-form-section-head {
+/*
+ * قسمٌ بلا رأس (نموذجٌ من شبكةٍ واحدة) يجري على عرض النموذج لا على عمود الرأس،
+ * ويأخذ حشوَ 16px من نفسه لأنّه يسكن لوحةً بلا body (الاسم القديم .panel)، بينما
+ * `.ui-form-section` يأخذ هذا الحشوَ من `.ui-panel-body`. النتيجةُ المرئيّة واحدة.
+ */
+.ui-form-section.is-plain,
+.form-section:not(:has(> .ui-form-section-head, > .form-section-head)) {
+  grid-template-columns: minmax(0, 1fr);
+  padding: 16px;
+  gap: var(--space-4);
+}
+.form-section:not(:has(> .ui-form-section-head, > .form-section-head)) + .panel-head,
+.form-section:not(:has(> .ui-form-section-head, > .form-section-head)):last-child {
+  border-block-end: 0;
+}
+.ui-form-section-head,
+.form-section-head {
   display: grid;
   gap: 4px;
   align-content: start;
 }
-.ui-form-section-title {
+.ui-form-section-title,
+.form-section-head h3 {
   margin: 0;
   font-size: 13.5px;
   font-weight: 800;
   color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
-.ui-form-section-hint {
+.ui-form-section-hint,
+.form-section-head .muted {
   margin: 0;
   font-size: 12px;
   line-height: 1.6;
@@ -1536,19 +1511,35 @@ a.ui-kpi-cell:hover {
   gap: 14px;
   min-width: 0;
 }
-.ui-form-grid {
+/*
+ * شبكةُ الحقول: اسمٌ واحد للشبكة في التطبيقات كلّها. `.form-grid` (المستعملة في
+ * السطوح القديمة) و`.ui-form-grid` (المستعملة في الكيت) تُعرَّفان هنا معًا —
+ * نفسُ الفجوة ونفسُ الأعمدة، فلا يخرج نموذجان بتباعدين مختلفين.
+ */
+.ui-form-grid,
+.form-grid {
   display: grid;
   gap: 14px 16px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   min-width: 0;
 }
-.ui-form-grid-1 {
+.ui-form-grid-1,
+.form-grid.cols-1 {
   grid-template-columns: minmax(0, 1fr);
 }
-.ui-form-grid-2 {
+.ui-form-grid-2,
+.form-grid.cols-2 {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
-.ui-form-grid-3 {
+.ui-form-grid-3,
+.form-grid.cols-3 {
   grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.ui-form-grid-4 {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+.form-grid.cols-4 {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
 }
 .ui-form-section-actions {
   display: flex;
@@ -1602,6 +1593,13 @@ a.ui-kpi-cell:hover {
     grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
   }
 }
+/* أربعُ أعمدة تحت 1180px تصير ثلاثًا، ثم اثنتين — نفسُ التدرّج لكلّ شبكة. */
+@media (max-width: 1180px) {
+  .ui-form-grid,
+  .form-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
 @media (max-width: 900px) {
   .ui-kpi-strip {
     grid-auto-flow: row;
@@ -1614,10 +1612,16 @@ a.ui-kpi-cell:hover {
   .ui-kpi-cell:first-child {
     border-block-start: 0;
   }
-  .ui-form-section {
+  .ui-form-section,
+  .form-section {
     grid-template-columns: minmax(0, 1fr);
     gap: 10px;
   }
+  .ui-form-grid,
+  .form-grid,
+  .form-grid.cols-2,
+  .form-grid.cols-3,
+  .form-grid.cols-4,
   .ui-form-grid-2,
   .ui-form-grid-3 {
     grid-template-columns: minmax(0, 1fr);

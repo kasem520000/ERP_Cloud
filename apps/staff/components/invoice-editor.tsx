@@ -2,7 +2,15 @@
 
 import { calculateInvoiceTotals, type InvoiceTotals } from '@erp/contracts';
 
-import { arabicName, itemLabel, money, type CostCenter, type Item, type TaxGroup, type Unit } from '../lib/lookups';
+import {
+  arabicName,
+  itemLabel,
+  money,
+  type CostCenter,
+  type Item,
+  type TaxGroup,
+  type Unit,
+} from '../lib/lookups';
 
 /**
  * The line grid shared by the sales invoice, the purchase invoice and the POS ticket.
@@ -34,12 +42,30 @@ export type LineDraft = {
 };
 
 export function emptyLine(taxRateText = '15'): LineDraft {
-  return { itemId: '', description: '', quantityText: '1', unitPriceText: '', discountRateText: '', taxRateText, taxGroupId: '', batchNo: '', serialText: '', costCenterId: '' };
+  return {
+    itemId: '',
+    description: '',
+    quantityText: '1',
+    unitPriceText: '',
+    discountRateText: '',
+    taxRateText,
+    taxGroupId: '',
+    batchNo: '',
+    serialText: '',
+    costCenterId: '',
+  };
 }
 
 /** الأرقام التسلسلية المكتوبة في خانةٍ واحدة: واحدٌ في كل سطر أو مفصولةٌ بفاصلة. */
 export function serialList(text: string): string[] {
-  return [...new Set(text.split(/[\n,،;]+/).map((value) => value.trim()).filter(Boolean))];
+  return [
+    ...new Set(
+      text
+        .split(/[\n,،;]+/)
+        .map((value) => value.trim())
+        .filter(Boolean),
+    ),
+  ];
 }
 
 const numeric = (value: string) => (value.trim() === '' || Number.isNaN(Number(value)) ? '0' : value.trim());
@@ -48,7 +74,10 @@ export function filledLines(lines: LineDraft[]): LineDraft[] {
   return lines.filter((line) => (line.itemId || line.description.trim()) && Number(line.quantityText) > 0);
 }
 
-export function computeTotals(lines: LineDraft[], options: { priceIncludesVat?: boolean; invoiceDiscount?: string } = {}): InvoiceTotals {
+export function computeTotals(
+  lines: LineDraft[],
+  options: { priceIncludesVat?: boolean; invoiceDiscount?: string } = {},
+): InvoiceTotals {
   return calculateInvoiceTotals({
     lines: filledLines(lines).map((line) => ({
       quantity: numeric(line.quantityText),
@@ -143,7 +172,7 @@ export function InvoiceLines({
     const pieces = Number(line.quantityText || '0');
     if (!written) return 'عدد الأرقام = عدد القطع';
     return written === pieces
- ? `${written} من ${pieces} `
+      ? `${written} من ${pieces} `
       : `${written} من ${pieces} — العدد لا يطابق الكمية`;
   }
 
@@ -153,7 +182,11 @@ export function InvoiceLines({
 
   function pickItem(index: number, itemId: string) {
     const item = items.find((row) => row.id === itemId);
-    const catalogue = item ? ((priceField === 'salePrice' ? item.salePrice ?? item.sale_price : item.purchasePrice ?? item.purchase_price) ?? '') : '';
+    const catalogue = item
+      ? ((priceField === 'salePrice'
+          ? (item.salePrice ?? item.sale_price)
+          : (item.purchasePrice ?? item.purchase_price)) ?? '')
+      : '';
     const group = item?.taxGroupId ? taxGroups.find((row) => row.id === item.taxGroupId) : undefined;
     update(index, {
       itemId,
@@ -164,78 +197,106 @@ export function InvoiceLines({
   }
 
   return (
- <>
- <div className="table-wrap">
- <table>
- <thead>
- <tr>
- <th style={{ minWidth: '14rem' }}>الصنف</th>
- <th>الوحدة</th>
- <th>الكمية</th>
- <th>السعر</th>
- <th>خصم %</th>
- <th>ضريبة %</th>
- {withNumbers && <th>رقم الدفعة</th>}
- {withNumbers && <th>التسلسلي</th>}
- {costCenters.length > 0 && <th>مركز التكلفة</th>}
- <th>المجموع</th>
- <th>الخصم</th>
- <th>الإجمالي</th>
- <th>الضريبة</th>
- <th>الصافي</th>
- <th />
- </tr>
- </thead>
- <tbody>
+    <>
+      <div className="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th style={{ minWidth: '14rem' }}>الصنف</th>
+              <th>الوحدة</th>
+              <th>الكمية</th>
+              <th>السعر</th>
+              <th>خصم %</th>
+              <th>ضريبة %</th>
+              {withNumbers && <th>رقم الدفعة</th>}
+              {withNumbers && <th>التسلسلي</th>}
+              {costCenters.length > 0 && <th>مركز التكلفة</th>}
+              <th>المجموع</th>
+              <th>الخصم</th>
+              <th>الإجمالي</th>
+              <th>الضريبة</th>
+              <th>الصافي</th>
+              <th />
+            </tr>
+          </thead>
+          <tbody>
             {lines.map((line, index) => {
               const computed = totals.lines[filledLines(lines).indexOf(line)];
               return (
- <tr key={index}>
- <td>
- <select className="input table-input" value={line.itemId} onChange={(event) => pickItem(index, event.target.value)}>
- <option value="">— بند حر —</option>
+                <tr key={index}>
+                  <td>
+                    <select
+                      className="input table-input"
+                      value={line.itemId}
+                      onChange={(event) => pickItem(index, event.target.value)}
+                    >
+                      <option value="">— بند حر —</option>
                       {items.map((row) => (
- <option key={row.id} value={row.id}>
+                        <option key={row.id} value={row.id}>
                           {itemLabel(row)}
- </option>
+                        </option>
                       ))}
- </select>
+                    </select>
                     {!line.itemId && (
- <input
+                      <input
                         className="input table-input"
                         placeholder="وصف البند"
                         value={line.description}
                         onChange={(event) => update(index, { description: event.target.value })}
                       />
                     )}
- </td>
- <td>{unitOf(line)}</td>
- <td>
- <input className="input table-input" dir="ltr" inputMode="decimal" value={line.quantityText} onChange={(event) => update(index, { quantityText: event.target.value })} />
- </td>
- <td>
- <input className="input table-input" dir="ltr" inputMode="decimal" value={line.unitPriceText} onChange={(event) => update(index, { unitPriceText: event.target.value })} />
- </td>
- <td>
- <input className="input table-input" dir="ltr" inputMode="decimal" value={line.discountRateText} onChange={(event) => update(index, { discountRateText: event.target.value })} />
- </td>
- <td>
- <input className="input table-input" dir="ltr" inputMode="decimal" value={line.taxRateText} onChange={(event) => update(index, { taxRateText: event.target.value })} />
- </td>
+                  </td>
+                  <td>{unitOf(line)}</td>
+                  <td>
+                    <input
+                      className="input table-input"
+                      dir="ltr"
+                      inputMode="decimal"
+                      value={line.quantityText}
+                      onChange={(event) => update(index, { quantityText: event.target.value })}
+                    />
+                  </td>
+                  <td>
+                    <input
+                      className="input table-input"
+                      dir="ltr"
+                      inputMode="decimal"
+                      value={line.unitPriceText}
+                      onChange={(event) => update(index, { unitPriceText: event.target.value })}
+                    />
+                  </td>
+                  <td>
+                    <input
+                      className="input table-input"
+                      dir="ltr"
+                      inputMode="decimal"
+                      value={line.discountRateText}
+                      onChange={(event) => update(index, { discountRateText: event.target.value })}
+                    />
+                  </td>
+                  <td>
+                    <input
+                      className="input table-input"
+                      dir="ltr"
+                      inputMode="decimal"
+                      value={line.taxRateText}
+                      onChange={(event) => update(index, { taxRateText: event.target.value })}
+                    />
+                  </td>
                   {withNumbers && (
- <td>
- <input
+                    <td>
+                      <input
                         className="input table-input"
                         dir="ltr"
                         placeholder="رقم الدفعة"
                         value={line.batchNo}
                         onChange={(event) => update(index, { batchNo: event.target.value })}
                       />
- </td>
+                    </td>
                   )}
                   {withNumbers && (
- <td>
- <input
+                    <td>
+                      <input
                         className="input table-input"
                         dir="ltr"
                         placeholder="رقم في كل سطر"
@@ -244,50 +305,62 @@ export function InvoiceLines({
                         title={serialHint(line)}
                       />
                       {serialList(line.serialText).length > 0 && (
- <span className={serialList(line.serialText).length === Number(line.quantityText || '0') ? 'badge ready' : 'badge draft'}>
+                        <span
+                          className={
+                            serialList(line.serialText).length === Number(line.quantityText || '0')
+                              ? 'badge ready'
+                              : 'badge draft'
+                          }
+                        >
                           {serialHint(line)}
- </span>
+                        </span>
                       )}
- </td>
+                    </td>
                   )}
                   {costCenters.length > 0 && (
- <td>
- <select
+                    <td>
+                      <select
                         className="input table-input"
                         value={line.costCenterId}
                         onChange={(event) => update(index, { costCenterId: event.target.value })}
                         title="اتركه فارغاً ليأخذ مركز رأس الفاتورة"
                       >
- <option value="">— مركز الفاتورة —</option>
+                        <option value="">— مركز الفاتورة —</option>
                         {costCenters.map((center) => (
- <option key={center.id} value={center.id}>
+                          <option key={center.id} value={center.id}>
                             {center.code} — {arabicName(center)}
- </option>
+                          </option>
                         ))}
- </select>
- </td>
+                      </select>
+                    </td>
                   )}
                   {/* ترتيب أعمدة الديسكتوب: المجموع · الخصم · الإجمالي · الضريبة · الصافي */}
- <td className="num">{computed ? money(computed.gross) : '—'}</td>
- <td className="num">{computed ? money(Number(computed.discount) + Number(computed.headerDiscountShare)) : '—'}</td>
- <td className="num">{computed ? money(computed.net) : '—'}</td>
- <td className="num">{computed ? money(computed.tax) : '—'}</td>
- <td className="num">{computed ? money(computed.total) : '—'}</td>
- <td>
- <button className="btn sm" type="button" onClick={() => onChange(lines.filter((_, position) => position !== index))}>
- حذف
- </button>
- </td>
- </tr>
+                  <td className="num">{computed ? money(computed.gross) : '—'}</td>
+                  <td className="num">
+                    {computed ? money(Number(computed.discount) + Number(computed.headerDiscountShare)) : '—'}
+                  </td>
+                  <td className="num">{computed ? money(computed.net) : '—'}</td>
+                  <td className="num">{computed ? money(computed.tax) : '—'}</td>
+                  <td className="num">{computed ? money(computed.total) : '—'}</td>
+                  <td>
+                    <button
+                      className="btn sm"
+                      type="button"
+                      onClick={() => onChange(lines.filter((_, position) => position !== index))}
+                    >
+                      حذف
+                    </button>
+                  </td>
+                </tr>
               );
             })}
- </tbody>
- </table>
- </div>
- <button className="btn sm" type="button" onClick={() => onChange([...lines, emptyLine()])}>
+          </tbody>
+        </table>
+      </div>
+      <button className="btn sm" type="button" onClick={() => onChange([...lines, emptyLine()])}>
         + سطر
- </button>
- </>
+      </button>
+    </>
   );
 }
 
@@ -301,11 +374,11 @@ export function InvoiceLines({
  */
 const TOTALS_LABELS = {
   sales: {
- sum: 'المجموع:',
- discount: 'الخصم:',
- net: 'الإجمالي:',
- tax: 'الضريبة:',
- total: 'الصافي:',
+    sum: 'المجموع:',
+    discount: 'الخصم:',
+    net: 'الإجمالي:',
+    tax: 'الضريبة:',
+    total: 'الصافي:',
   },
   purchase: {
     sum: 'المجموع :',
@@ -328,21 +401,24 @@ export function TotalsPanel({
 }) {
   const labels = TOTALS_LABELS[variant];
   const grossSum = totals.lines.reduce((sum, line) => sum + Number(line.gross), 0);
-  const discountSum = totals.lines.reduce((sum, line) => sum + Number(line.discount) + Number(line.headerDiscountShare), 0);
+  const discountSum = totals.lines.reduce(
+    (sum, line) => sum + Number(line.discount) + Number(line.headerDiscountShare),
+    0,
+  );
   return (
- <dl className="kv">
- <dt>{labels.sum}</dt>
- <dd>{money(grossSum, currency)}</dd>
- <dt>{labels.discount}</dt>
- <dd>{money(discountSum, currency)}</dd>
- <dt>{labels.net}</dt>
- <dd>{money(totals.subtotal, currency)}</dd>
- <dt>{labels.tax}</dt>
- <dd>{money(totals.tax, currency)}</dd>
- <dt>{labels.total}</dt>
- <dd>
- <strong>{money(totals.total, currency)}</strong>
- </dd>
- </dl>
+    <dl className="ui-totals">
+      <dt>{labels.sum}</dt>
+      <dd>{money(grossSum, currency)}</dd>
+      <dt>{labels.discount}</dt>
+      <dd>{money(discountSum, currency)}</dd>
+      <dt>{labels.net}</dt>
+      <dd>{money(totals.subtotal, currency)}</dd>
+      <dt>{labels.tax}</dt>
+      <dd>{money(totals.tax, currency)}</dd>
+      <dt>{labels.total}</dt>
+      <dd>
+        <strong>{money(totals.total, currency)}</strong>
+      </dd>
+    </dl>
   );
 }

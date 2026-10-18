@@ -48,9 +48,8 @@ export function PageHead({
   eyebrow?: ReactNode;
 }) {
   const trail =
-    breadcrumbs?.map((crumb) =>
-      typeof crumb === 'string' ? { label: crumb, href: undefined } : crumb,
-    ) ?? [];
+    breadcrumbs?.map((crumb) => (typeof crumb === 'string' ? { label: crumb, href: undefined } : crumb)) ??
+    [];
 
   return (
     <header className="ui-page-head">
@@ -59,7 +58,11 @@ export function PageHead({
           <nav className="ui-crumbs" aria-label="مسار الصفحة">
             {trail.map((crumb, index) => (
               <span key={`${crumb.label}-${index}`}>
-                {index > 0 ? <span className="ui-crumbs-sep" aria-hidden>/</span> : null}
+                {index > 0 ? (
+                  <span className="ui-crumbs-sep" aria-hidden>
+                    /
+                  </span>
+                ) : null}
                 {crumb.href ? <a href={crumb.href}>{crumb.label}</a> : crumb.label}
               </span>
             ))}
@@ -185,7 +188,11 @@ export function KpiStrip({ items, className }: { items: KpiItem[]; className?: s
         const inner = (
           <>
             <span className="ui-kpi-label">
-              {item.icon ? <span className="ui-kpi-icon" aria-hidden>{item.icon}</span> : null}
+              {item.icon ? (
+                <span className="ui-kpi-icon" aria-hidden>
+                  {item.icon}
+                </span>
+              ) : null}
               {item.label}
             </span>
             <span className={cn('ui-kpi-value', item.tone && item.tone !== 'neutral' && `is-${item.tone}`)}>
@@ -285,14 +292,17 @@ export function FormSection({
   );
 }
 
-/** شبكة حقول موحّدة: عمودان افتراضاً، وثلاثة للشاشات العريضة. */
+/**
+ * شبكة حقول موحّدة: أربعة أعمدة على الشاشات العريضة — وهي نفسُها شبكةُ
+ * `.form-grid` القديمة — ثم ثلاثة تحت 1180px واثنان تحت 900px.
+ */
 export function FormGrid({
   children,
-  cols = 2,
+  cols = 4,
   className,
 }: {
   children: ReactNode;
-  cols?: 1 | 2 | 3;
+  cols?: 1 | 2 | 3 | 4;
   className?: string;
 }) {
   return <div className={cn('ui-form-grid', `ui-form-grid-${cols}`, className)}>{children}</div>;

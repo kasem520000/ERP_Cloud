@@ -1,5 +1,6 @@
 'use client';
 
+import { FormActions, FormGrid, Panel } from '@erp/ui';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
@@ -218,15 +219,12 @@ export default function NewSalesInvoicePage() {
       }
       crumbs={['المبيعات', 'العمليات']}
     >
-      <form className="panel" onSubmit={save}>
-        <div className="panel-head">
-          <div>
-            <h2>بيانات الفاتورة</h2>
-            <p>الفرع والمستودع والعميل ثم شروط الضريبة والخصم. الحقول المعلَّمة بـ* إلزامية.</p>
-          </div>
-        </div>
-        <div className="form-section">
-          <div className="form-grid">
+      <form className="ui-doc-form" onSubmit={save}>
+        <Panel
+          title="بيانات الفاتورة"
+          hint="الفرع والمستودع والعميل ثم شروط الضريبة والخصم. الحقول المعلَّمة بـ* إلزامية."
+        >
+          <FormGrid cols={4}>
             <label className="field">
               <span>الفرع *</span>
               <select
@@ -414,16 +412,14 @@ export default function NewSalesInvoicePage() {
                 <span className="muted small">تُستخرج الضريبة من السعر بدل إضافتها إليه.</span>
               </span>
             </label>
-          </div>
-        </div>
+          </FormGrid>
+        </Panel>
 
-        <div className="panel-head">
-          <div>
-            <h2>الأصناف</h2>
-            <p>أضف سطراً لكل صنف؛ الحقول المحسوبة (المجموع والضريبة والصافي) تُحدَّث فوراً.</p>
-          </div>
-        </div>
-        <div className="form-section" style={{ paddingInline: 0 }}>
+        <Panel
+          title="الأصناف"
+          hint="أضف سطراً لكل صنف؛ الحقول المحسوبة (المجموع والضريبة والصافي) تُحدَّث فوراً."
+          flush
+        >
           <InvoiceLines
             lines={lines}
             onChange={setLines}
@@ -434,19 +430,15 @@ export default function NewSalesInvoicePage() {
             withNumbers
             costCenters={costCenters.data ?? []}
           />
-        </div>
-        <div className="panel-head">
-          <div>
-            <h2>الإجماليات</h2>
-            <p>تُحتسب من الأسطر أعلاه — لا تُحرَّر يدوياً.</p>
-          </div>
-        </div>
-        <div className="form-section">
-          <TotalsPanel totals={totals} />
+        </Panel>
 
-          <Notice notice={notice} />
-        </div>
-        <div className="panel-foot">
+        <Panel title="الإجماليات" hint="تُحتسب من الأسطر أعلاه — لا تُحرَّر يدوياً.">
+          <TotalsPanel totals={totals} />
+        </Panel>
+
+        <Notice notice={notice} />
+
+        <FormActions note="الحفظ يُرحّل المستند ويحرّك المخزون والقيود — لا يُعاد الترحيل مرتين.">
           {/* «حفظ» L1263 و«حفظ + طباعة» L1257 في `frmInvSale.xaml`. */}
           <button className="btn primary" type="submit" disabled={busy}>
             {busy ? 'جارٍ الحفظ…' : saveAsDraftByDefault ? 'حفظ كمسودة' : 'حفظ وترحيل فوري'}
@@ -473,7 +465,7 @@ export default function NewSalesInvoicePage() {
               حفظ كمسودة فقط
             </button>
           )}
-        </div>
+        </FormActions>
       </form>
     </Screen>
   );
