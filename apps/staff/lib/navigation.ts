@@ -793,6 +793,14 @@ const sales: ModuleNode = {
  screen('cash-customer', 'عميل نقدي', 'Cash customer', '/sales/cash-customers', 'ready', {
           endpoint: '/sales/cash-customers',
         }),
+        screen('van-sales', 'توزيع المناديب والمخابز', 'Van sales & bakery distribution', '/van-sales', 'ready', {
+          permission: 'van_sales.view',
+          endpoint: 'GET /van-sales/dashboard',
+        }),
+        screen('van-sales-rep', 'تطبيق المندوب', 'Van rep portal', '/van-sales/rep', 'ready', {
+          permission: 'van_sales.view',
+          endpoint: 'GET /van-sales/me',
+        }),
         screen('sales-return', 'مردود المبيعات', 'Sales return', '/sales/returns', 'ready', {
           permission: 'sales.return.create',
           endpoint: 'POST /sales/invoices/{id}/return',
