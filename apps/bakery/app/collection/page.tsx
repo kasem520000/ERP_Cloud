@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Button, Card, CardBody, CardHeader, Input } from '@erp/ui';
+import { Button, Card, CardBody, CardHeader, Input, Table } from '@erp/ui';
 import { apiData, apiErrorText, apiList, apiPost } from '@erp/web-core/api';
 import { useSession } from '@erp/web-core/session';
 import { useSubmissionKey } from '@erp/web-core/use-submission-key';
@@ -47,7 +47,6 @@ import {
   paymentMethodLabel,
   type DocumentRow,
 } from '../../lib/sales-screen';
-import { Table } from '@erp/ui';
 
 /** الصلاحيات كما يفرضها الخادم على المسارات الثلاثة التي تستعملها هذه الشاشة. */
 const VIEW_PERMISSION = 'van_sales.view';

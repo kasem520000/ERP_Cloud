@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Button, Card, CardBody, CardHeader, Input } from '@erp/ui';
+import { Button, Card, CardBody, CardHeader, Input, Table } from '@erp/ui';
 import { apiData, apiErrorText, apiList, apiPost } from '@erp/web-core/api';
 import { useSession } from '@erp/web-core/session';
 import { useSubmissionKey } from '@erp/web-core/use-submission-key';
@@ -36,7 +36,6 @@ import {
   type ItemOption,
   type WarehouseOption,
 } from '../../lib/lookups';
-import { Table } from '@erp/ui';
 
 /** الصلاحية التي يفرضها الخادم على `POST /van-sales/load-orders` وعلى `…/cancel`. */
 const LOAD_PERMISSION = 'van_sales.load.manage';
