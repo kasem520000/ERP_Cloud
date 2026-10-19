@@ -1,0 +1,312 @@
+package com.erpcloud.bakery.printing
+
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.Color
+import android.graphics.Paint
+import android.graphics.RectF
+import android.text.Layout
+import android.text.StaticLayout
+import android.text.TextPaint
+import com.erpcloud.bakery.data.api.LoadOrderDto
+import com.erpcloud.bakery.data.api.ProductionBatchDto
+import com.erpcloud.bakery.util.Dec
+
+/**
+ * مستنداتُ طباعة تطبيق المخابز (ESC/POS عبر صورةٍ نقطيّة — العربيّةُ تُرسم في
+ * الصورة فتخرجُ سليمةً على أيّ طابعةٍ حراريّة):
+ *
+ * - [loadOrderNotice]: إشعارُ تحميلٍ يوقّعه المندوبُ عند الاستلام.
+ * - [closingSummary]: ملخّصُ إقفال ورديةٍ للمشرف/المحاسب (المتوقّع/الفعليّ/الفرق/النقد).
+ * - [batchLabel]: بطاقةُ دفعةِ إنتاجٍ تُعلَّق على الرفّ.
+ *
+ * البناءُ بمسارِ أوامرٍ واحد (Ops) يُقاس ويُرسَم بالترتيبِ نفسه — فلا انفصامَ
+ * بين الارتفاعِ المحسوب والمحتوى المرسوم (النمطُ المُقيسُ من فاتورة المندوب).
+ */
+
+/** لبناتُ مسار الرسم — خاصّةٌ بالملف. */
+private data class KvRow(
+    val label: String,
+    val value: String,
+    val bold: Boolean = false,
+    val boxed: Boolean = false,
+)
+
+private sealed class Op {
+    data class Section(val block: StaticLayout, val topGap: Int = 0) : Op()
+    data object Dash : Op()
+    data class Kv(val row: KvRow) : Op()
+    data class Signatures(val height: Int, val boxes: List<StaticLayout>, val boxWidth: Int) : Op()
+}
+
+/** سياقُ الرسم المشترك بين المستندات — القياسُ والرسمُ بمسارٍ واحد. */
+private class DocCanvas(widthPx: Int) {
+    val width = widthPx.coerceAtLeast(200)
+    val pad = width / 22
+    val innerWidth = width - pad * 2
+    val bodySize = (width / 26f).coerceIn(9f, 42f)
+    val titleSize = bodySize * 1.5f
+    val smallSize = bodySize * 0.85f
+
+    fun paint(size: Float, bold: Boolean = false, color: Int = Color.BLACK) = TextPaint().apply {
+        isAntiAlias = true
+        textSize = size
+        this.color = color
+        isFakeBoldText = bold
+    }
+
+    fun layout(
+        text: String,
+        tp: TextPaint,
+        w: Int,
+        align: Layout.Alignment = Layout.Alignment.ALIGN_CENTER,
+    ): StaticLayout = StaticLayout.Builder.obtain(text, 0, text.length, w.coerceAtLeast(1))
+        .setAlignment(align)
+        .setLineSpacing(0f, 1.15f)
+        .build()
+
+    fun kvRowHeight(row: KvRow, bodyPaint: TextPaint, boldPaint: TextPaint): Int {
+        val tp = if (row.bold) boldPaint else bodyPaint
+        return maxOf(tp.fontSpacing, tp.textSize * 1.25f).toInt()
+    }
+
+    /** يبني الصورة من المسار — قياسًا ثمّ رسمًا بالترتيب نفسه. */
+    fun render(ops: List<Op>): Bitmap {
+        val titlePaint = paint(titleSize, bold = true)
+        val bodyPaint = paint(bodySize)
+        val boldPaint = paint(bodySize, bold = true)
+
+        var height = pad
+        for (op in ops) {
+            height += when (op) {
+                is Op.Section -> op.topGap + op.block.height
+                is Op.Dash -> 14
+                is Op.Kv -> kvRowHeight(op.row, bodyPaint, boldPaint) + (if (op.row.boxed) pad / 2 else 0)
+                is Op.Signatures -> pad / 2 + op.height + (op.boxes.maxOfOrNull { it.height } ?: 0) + 8
+            }
+        }
+        height += pad
+
+        val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.RGB_565)
+        val canvas = Canvas(bitmap)
+        canvas.drawColor(Color.WHITE)
+
+        val dividerPaint = Paint().apply { color = Color.DKGRAY; strokeWidth = 2f }
+        val framePaint = Paint().apply { style = Paint.Style.STROKE; color = Color.DKGRAY; strokeWidth = 2f }
+        val softFillPaint = Paint().apply { color = Color.rgb(0xF5, 0xED, 0xE3); style = Paint.Style.FILL }
+
+        fun dashedLine(y: Float) {
+            var x = pad.toFloat()
+            val end = (width - pad).toFloat()
+            while (x < end) {
+                canvas.drawLine(x, y, minOf(x + 8f, end), y, dividerPaint)
+                x += 14f
+            }
+        }
+
+        val right = Layout.Alignment.ALIGN_NORMAL // مع RTL يبدأ من اليمين
+        var y = pad.toFloat()
+        for (op in ops) {
+            when (op) {
+                is Op.Section -> {
+                    y += op.topGap
+                    canvas.withTranslation(y) { op.block.draw(this) }
+                    y += op.block.height
+                }
+                is Op.Dash -> {
+                    dashedLine(y + 5f)
+                    y += 14f
+                }
+                is Op.Kv -> {
+                    val row = op.row
+                    val tp = if (row.bold) boldPaint else bodyPaint
+                    val rowH = kvRowHeight(row, bodyPaint, boldPaint)
+                    if (row.boxed) {
+                        val box = RectF(pad.toFloat(), y + 2f, (width - pad).toFloat(), y + rowH + pad / 3f)
+                        canvas.drawRoundRect(box, 8f, 8f, softFillPaint)
+                        canvas.drawRoundRect(box, 8f, 8f, framePaint)
+                        y += pad / 4f
+                    }
+                    // التسميةُ تلتصقُ باليمين، والقيمةُ باليسار — عمودان.
+                    val label = layout(row.label, tp, (innerWidth * 0.62f).toInt(), right)
+                    val value = layout(row.value, tp, (innerWidth * 0.36f).toInt(), right)
+                    canvas.save()
+                    canvas.translate((pad + innerWidth - label.width).toFloat(), y + (rowH - label.height) / 2f)
+                    label.draw(canvas)
+                    canvas.restore()
+                    canvas.save()
+                    canvas.translate(pad.toFloat(), y + (rowH - value.height) / 2f)
+                    value.draw(canvas)
+                    canvas.restore()
+                    y += rowH + (if (row.boxed) pad / 4 else 0)
+                }
+                is Op.Signatures -> {
+                    y += pad / 4f
+                    val count = op.boxes.size.coerceAtLeast(1)
+                    val gap = 12f
+                    val boxW = ((innerWidth - gap * (count - 1)) / count).toFloat()
+                    var x = pad.toFloat()
+                    for (box in op.boxes) {
+                        val boxRect = RectF(x, y, x + boxW, y + op.height)
+                        canvas.drawRect(boxRect, framePaint)
+                        canvas.withTranslation(
+                            x + (boxW - box.width) / 2f,
+                            y + op.height - box.height - 6f,
+                        ) { box.draw(this) }
+                        x += boxW + gap
+                    }
+                    y += op.height + 8f
+                }
+            }
+        }
+        return bitmap
+    }
+}
+
+/** حالةُ أمر التحميل بالعربيّة (تُشاركُ الملخّصَ والإشعار). */
+private fun loadStatusAr(status: String): String = when (status) {
+    "pending_receipt" -> "بانتظار الاستلام"
+    "loaded" -> "مُحمَّل"
+    "in_route" -> "في الطريق"
+    "pending_closing" -> "بانتظار الإقفال"
+    "pending_stock_settlement" -> "بانتظار تسوية المخزون"
+    "settled" -> "مُسوّاة"
+    "cancelled" -> "ملغاة"
+    else -> status
+}
+
+/** إزاحةٌ عموديّة مؤقّتة للرسم — محليّةٌ بالملف (كما في فاتورة المندوب، بلا استيراد androidx). */
+private inline fun Canvas.withTranslation(y: Float, block: Canvas.() -> Unit) {
+    save()
+    translate(0f, y)
+    block()
+    restore()
+}
+
+/** إشعارُ تحميلٍ — يوقّعه المندوبُ عند استلام التوريد. */
+fun loadOrderNotice(order: LoadOrderDto, widthPx: Int = 576): Bitmap {
+    val doc = DocCanvas(widthPx)
+    val titlePaint = doc.paint(doc.titleSize, bold = true)
+    val bodyPaint = doc.paint(doc.bodySize)
+    val smallPaint = doc.paint(doc.smallSize, color = Color.DKGRAY)
+    val center = Layout.Alignment.ALIGN_CENTER
+
+    val ops = mutableListOf<Op>()
+    ops += Op.Section(doc.layout("إشعار تحميل وتسلّم عهدة", titlePaint, doc.innerWidth, center))
+    ops += Op.Section(
+        doc.layout(
+            "${order.number.ifBlank { "أمر تحميل" }} · ${loadStatusAr(order.status)}",
+            smallPaint, doc.innerWidth, center,
+        ),
+    )
+    ops += Op.Dash
+
+    fun kv(label: String, value: String, bold: Boolean = false, boxed: Boolean = false) {
+        ops += Op.Kv(KvRow(label, value, bold, boxed))
+    }
+
+    kv("التاريخ", order.loadDate.ifBlank { "—" })
+    kv("المندوب", order.salesmanName.ifBlank { "—" })
+    kv("الصنف", order.itemName.ifBlank { "—" })
+    kv("الكميّةُ المحمَّلة", Dec.kg(order.loadedQty) + " كجم", bold = true, boxed = true)
+    if (order.vehiclePlate.isNotBlank()) kv("المركبة", order.vehiclePlate)
+    if (order.productionBatchNo.isNotBlank()) kv("دفعةُ الإنتاج", order.productionBatchNo)
+    if (Dec.isPositive(order.maxBonusQty)) kv("سقفُ المجاني", Dec.kg(order.maxBonusQty) + " كجم")
+    if (order.notes.isNotBlank()) kv("ملاحظات", order.notes)
+    ops += Op.Dash
+    ops += Op.Section(
+        doc.layout(
+            "يُوقّع المندوبُ على استلام العهدة أعلاه، وهي أساسُ ما يُسأل عنه عند الإقفال.",
+            smallPaint, doc.innerWidth, center,
+        ),
+    )
+    ops += Op.Signatures(
+        height = 56,
+        boxes = listOf(
+            doc.layout("توقيعُ المندوب", smallPaint, doc.innerWidth / 2, center),
+            doc.layout("توقيعُ أمين المستودع", smallPaint, doc.innerWidth / 2, center),
+        ),
+        boxWidth = doc.innerWidth / 2,
+    )
+    return doc.render(ops)
+}
+
+/** ملخّصُ إقفال ورديةٍ — للمشرف/المحاسب عند الاعتماد. */
+fun closingSummary(order: LoadOrderDto, widthPx: Int = 576): Bitmap {
+    val doc = DocCanvas(widthPx)
+    val titlePaint = doc.paint(doc.titleSize, bold = true)
+    val bodyPaint = doc.paint(doc.bodySize)
+    val smallPaint = doc.paint(doc.smallSize, color = Color.DKGRAY)
+    val center = Layout.Alignment.ALIGN_CENTER
+
+    val ops = mutableListOf<Op>()
+    ops += Op.Section(doc.layout("ملخّص إقفال وردية", titlePaint, doc.innerWidth, center))
+    ops += Op.Section(
+        doc.layout(
+            "${order.number.ifBlank { "أمر" }} · ${order.salesmanName.ifBlank { "مندوب" }} · ${loadStatusAr(order.status)}",
+            smallPaint, doc.innerWidth, center,
+        ),
+    )
+    ops += Op.Dash
+
+    fun kv(label: String, value: String, bold: Boolean = false, boxed: Boolean = false) {
+        ops += Op.Kv(KvRow(label, value, bold, boxed))
+    }
+
+    kv("التاريخ", order.loadDate.ifBlank { "—" })
+    kv("أساسُ العهدة (مستلَم)", Dec.kg(order.receivedQty) + " كجم")
+    kv("المُباع", Dec.kg(order.soldQty) + " كجم")
+    kv("المجاني", Dec.kg(order.bonusQty) + " كجم")
+    kv("المرتجع", Dec.kg(order.returnedQty) + " كجم")
+    kv("التالف", Dec.kg(order.damagedQty) + " كجم")
+    kv("العجز", Dec.kg(order.shortageQty) + " كجم")
+    kv("المتوقّعُ البقاء", Dec.kg(order.expectedRemainingQty) + " كجم", bold = true)
+    kv("المُعلنُ بالجرد", Dec.kg(order.actualRemainingQty) + " كجم", bold = true)
+    kv("فرقُ الاعتماد", Dec.kg(order.countVarianceQty) + " كجم", bold = true, boxed = true)
+    if (order.vehicleCountQty != null) kv("عددُ المركبة المُعلن", Dec.kg(order.vehicleCountQty) + " كجم")
+    ops += Op.Dash
+    kv("النقدُ المتوقّع", Dec.money(order.expectedCash) + " ر.س")
+    kv("النقدُ المُحصَّل", Dec.money(order.collectedCash) + " ر.س")
+    kv("فرقُ النقد", Dec.money(order.cashVariance) + " ر.س", boxed = true)
+    if (order.damageReason.isNotBlank()) kv("سببُ التالف", order.damageReason)
+    if (order.closingNotes.isNotBlank()) kv("ملاحظاتُ الإقفال", order.closingNotes)
+    if (order.approvedByLabel.isNotBlank()) kv("اعتُمد بوساطة", order.approvedByLabel)
+    ops += Op.Signatures(
+        height = 56,
+        boxes = listOf(
+            doc.layout("توقيعُ المندوب", smallPaint, doc.innerWidth / 2, center),
+            doc.layout("توقيعُ المحاسب", smallPaint, doc.innerWidth / 2, center),
+        ),
+        boxWidth = doc.innerWidth / 2,
+    )
+    return doc.render(ops)
+}
+
+/** بطاقةُ دفعةِ إنتاجٍ — تُعلَّق على رفّ المخبز. */
+fun batchLabel(batch: ProductionBatchDto, widthPx: Int = 576): Bitmap {
+    val doc = DocCanvas(widthPx)
+    val titlePaint = doc.paint(doc.titleSize, bold = true)
+    val bodyPaint = doc.paint(doc.bodySize)
+    val center = Layout.Alignment.ALIGN_CENTER
+
+    val ops = mutableListOf<Op>()
+    ops += Op.Section(doc.layout("دفعة إنتاج", titlePaint, doc.innerWidth, center))
+    ops += Op.Section(
+        doc.layout(batch.batchNo.ifBlank { "—" }, doc.paint(doc.titleSize), doc.innerWidth, center),
+    )
+    ops += Op.Dash
+
+    fun kv(label: String, value: String, bold: Boolean = false, boxed: Boolean = false) {
+        ops += Op.Kv(KvRow(label, value, bold, boxed))
+    }
+
+    kv("الصنف", batch.itemName.ifBlank { "—" })
+    kv("تاريخُ الإنتاج", batch.productionDate.ifBlank { "—" })
+    kv("المنتج", Dec.kg(batch.producedQty) + " كجم", bold = true, boxed = true)
+    kv("الفاقد", Dec.kg(batch.scrapQty) + " كجم")
+    kv("المتاحُ بالمستودع", Dec.kg(batch.availableWarehouseQty) + " كجم")
+    kv("تكلفةُ الوحدة", Dec.money(batch.unitCost) + " ر.س")
+    if (batch.supervisorName.isNotBlank()) kv("المشرف", batch.supervisorName)
+    if (batch.lotId != null) kv("رقمُ اللوط", batch.lotId ?: "")
+    return doc.render(ops)
+}

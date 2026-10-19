@@ -1,0 +1,135 @@
+# مرجعُ واجهة تطبيق إدارة المخابز (Android Bakery) — عقودٌ حرفيّةٌ من الخادم
+
+<div dir="rtl">
+
+هذا المرجعُ يوقّعُ كلَّ مسارٍ يستدعيه تطبيقُ `apps/android-bakery` على
+المصدر: `apps/api/src/modules/van-sales/van-sales.controller.ts` وما حوله
+(المصادقةُ `platform/auth`، الإشعاراتُ `platform-services/notifications`،
+البحثُ `organization` + `inventory`). **ما ليس هنا لا يستدعيه التطبيق، وما هنا
+موقّعٌ بموقعه في الكود.**
+
+قاعدةٌ عامّة: الردودُ الناجحةُ بغلاف `ApiEnvelope` — `{ "data": … }` —
+والاستثناءانِ الحرفيّان: `/parties` و`/organization/catalog/items` مصفوفاتٌ
+خام، و`/notifications` بغلافها الخاصّ. وكلُّ الأرقامِ (كميّاتٌ وأموال) **نصوص**
+(‏`numeric` من PostgreSQL) — يتعاملُ معها التطبيقُ بـBigDecimal (`Dec`).
+
+---
+
+## ٠. البنية العامة
+
+| العنصر | القيمة |
+|---|---|
+| البادئة | `/api/v1` (نسبيّة — المضيفُ من شاشة الدخول ويُطبَّق في `HostSelectionInterceptor`) |
+| المصادقة | `Authorization: Bearer <accessToken>` — لا تُلحق بمسارَي الدخول والتجديد |
+| التجديد | `POST /auth/refresh` عند 401 (مرةً واحدةً لكلّ طلب — single-flight) |
+| أخطاء 4xx/5xx | RFC-9457 Problem: `{type, title, status, code, detail, traceId, errors[{field, message}]}` — `detail` عربيٌّ يُعرض حرفيًّا |
+| المتصل | تطبيقٌ متصلٌ دائمًا: IOException = «لم تصل» (ليست رفضًا)؛ إجراءاتُ الدفعة/التحميل/التحصيل تحملُ `idempotencyKey` |
+
+## ١. المصادقة — `platform/auth`
+
+| المسار | ملاحظات |
+|---|---|
+| `POST /auth/login` | جسم: `{email, password, tenantCode, mfaCode?}` → `{data: {accessToken, refreshToken, tokenType, expiresIn, user{…, mustChangePassword}, memberships[]}}` |
+| `POST /auth/refresh` | `{refreshToken}` → كال login |
+| `POST /auth/logout` | 204 — تُحذفُ الجلسةُ محليًّا في كلّ حال |
+| `GET /me` | `{data: {user, membership, permissions[], platformPermissions[], impersonation?, branchScope?, enabledApps[]}}` — منها تبني الشاشاتُ صلاحياتِها |
+| `POST /auth/change-password` | `{current(1..200), new(12..200)}` → **204 ويُبطل كلَّ الجلسات**؛ سياسةٌ: ≥12 حرفًا، ≥3 فئات، لا DENY_LIST، لا local-part البريد/الاسم الكامل (token ≥4)؛ 400 VALIDATION_FAILED، 429 RATE_LIMITED |
+
+## ٢. لوحة القيادة — `GET /van-sales/dashboard` (إذن `van_sales.view`)
+
+**مصدرُ كلّ شاشة.** `{data: DashboardDto}` والحقلُ الغائب `null`:
+
+- `policy{allowInternalDeliveryWithoutTax, preventSelfApproval, shortageValuationBasis, zatcaSeller{ready, missingFields[], refusalDetail}}`
+- `postingReadiness{branchId?, salesInvoice, stockTransfer, receiptVoucher, message?}` — `message` عربيٌّ يُعرض حرفيًّا عند نقصِ ملفّ الترحيل.
+- `officialStock[{itemId?, itemName?, warehouseId?, warehouseName?, quantity?, averageCost?}]`
+- `mainWarehouseId?`
+- `windows{productionBatches, loadOrders, documents, movements, customerPriceHistory}` — كلٌّ `{returned, total, limit}`: القائمةُ نافذةٌ لا الجدولُ كلَّه.
+- `summary{…}`: ‏`totalProducedKg, totalScrapKg, mainWarehouseBalanceKg, vanWarehousesBalanceKg, derivedMainWarehouseBalanceKg, stockLedgerAgrees, inTransitKg, inTransitValueSar, inTransitTransfersCount, totalProductionCostSar, totalLoadedKg, totalSoldKg, totalBonusKg, totalReturnedKg, totalDamagedKg, totalShortageKg, totalShortageSar, remainingInVansKg, totalZatcaSalesSar, totalInternalSalesSar, totalRevenueSar, totalSalesGrossSar, totalReturnsSar, totalReturnsVatSar, returnDocumentCount, returnsWithoutCostCount, totalCollectedCashSar, totalCreditReceivablesSar, totalNetProfitSar, anomalyCount, pendingClosingsCount, pendingReceiptsCount, pendingStockSettlementsCount, pendingTransitDecisionsCount`.
+- `productionBatches[{id, batchNo, productionDate, itemId?, warehouseId?, itemName, producedQty, scrapQty, issuedQty, returnedGoodQty, damagedQty, availableWarehouseQty, unitCost, totalCost, costBasis(manufacturing_order|manual_input_or_item_cost), scrapValue, scrapCostLoaded, status(active|exhausted|closed), supervisorName, notes, …}]`
+- `loadOrders[{id, number, loadDate, productionBatchNo, vehiclePlate, status, salesmanId, salesmanName, warehouseId?, vanWarehouseId?, itemId?, itemName, loadedQty, receivedQty, discrepancyQty, discrepancyNotes, receivedAt?, awaitingReceipt, soldQty, bonusQty, returnedQty, damagedQty, shortageQty, shortageValue, remainingQty, actualRemainingQty, vehicleCountQty?, otherCustodyQty?, expectedRemainingQty, countVarianceQty(موجب=عجز، سالب=فائض), stockAdjustmentId?, remainingAction?, stockSettlementStatus, stockSettlementNote, awaitingStockSettlement, awaitingTransitDecision, maxBonusQty, maxBonusPct, expectedCash, collectedCash, cashVariance, damageReason, damageInspected, salaryDeductionApproved, closingNotes, closingSubmittedAt?, approvedAt?, approvedByLabel, notes, …}]`
+  - قيمُ `status`: `pending_receipt` · `loaded` · `in_route` · `pending_closing` · `pending_stock_settlement` · `settled` · `cancelled` (+أيُّ قيمةٍ غير معروفة تُعرض خامًا).
+- `customerPrices[{id, partyId, partyName, partyCode, partyTaxNo, itemId?, itemName, priceTierLabel, unitPrice, maxBonusPct, maxBonusKgPerInvoice, preferredInvoiceMode, creditLimit, paymentTermsDays, lockPrice, maxDiscountPct, effectiveFrom, effectiveTo?, changeReason, notes}]`
+- `customerPriceHistory[{…, previousUnitPrice?, newUnitPrice, changedByLabel, createdAt}]`
+- `documents[{id, number, docDate, invoiceMode, taxPolicyStatus, paymentMethod, documentKind(sale|sale_return), invoiceNumber?, invoiceStatus?, productionBatchNo, loadOrderId?, salesmanName, partyId?, customerName, customerTaxNo, itemId?, itemName, soldQty, bonusQty, bonusReason, unitPrice, discountAmount, discountReason, subtotal, taxRate, taxTotal, total, paidAmount, unitCost, netProfit, customerBonusConfirmed, bonusAnomaly, anomalyReason, qrPayload, notes, createdAt}]`
+- `movements[{id, movementType, batchNo, qty, unitPrice, amount, reason, salesmanName, customerName, actorLabel, approvedByLabel, createdAt}]`
+- `repPerformance[{salesmanId, salesmanName, loadedKg, soldKg, bonusKg, returnedKg, damagedKg, shortageKg, shortageSar, custodyRemainingKg, revenueSar, collectedSar, creditDebtSar, netProfitSar, pendingClosings}]`
+
+## ٣. الإنتاج — `POST /van-sales/production-batches` (إذن `van_sales.production.manage`)
+
+جسم: `{batchNo?, itemId?, warehouseId?, branchId?, productionDate?, bomId?, components?[{itemId, qty, unitId?}], itemName?, producedQty?, scrapQty?, scrapReason?, unitCost?, supervisorName?, notes?, idempotencyKey?}`
+
+قواعدُ الخادم (تُطابقُها فحوصُ النموذج في التطبيق):
+- `producedQty` رقمٌ **موجبٌ محدود**.
+- `scrapQty` ≥ 0، ومع أيّ فاقدٍ ( >0 ) **`scrapReason` إلزاميّ**.
+- `itemId` مطلوب.
+- `unitCost` موجبةٌ إن أُدخلت؛ الأولويّةُ لأمرِ التصنيعِ ثمّ البطاقة.
+- تكرارُ `idempotencyKey` يعيدُ نتيجةَ النيّةِ نفسِها فلا دفعةً مكرّرةً.
+
+## ٤. التحميل والتوزيع
+
+| المسار | الإذن | الجسم | ملاحظات |
+|---|---|---|---|
+| `POST /van-sales/load-orders` | `van_sales.load.manage` | `{salesmanId, warehouseId?, vanWarehouseId?, itemId?, vehiclePlate?, productionBatchNo?, loadedQty?, maxBonusQty?, maxBonusPct?, notes?, idempotencyKey?}` | `loadedQty` موجب؛ الأصنافُ المتتبَّعةُ بالدفعات (`track_lot`) تُرفضُ بلا `productionBatchNo`؛ مستودعُ المصدر ≠ مستودعُ السيارة؛ مع `idempotencyKey` يُعاد تحميلُ اللوحة (لا أمرًا مكرّرًا) |
+| `POST /van-sales/load-orders/{id}/confirm-receipt` | `van_sales.view` | `{receivedQty?, notes?}` | المندوبُ صاحبُ العهدة أو إدارةُ التحميل؛ بلا `receivedQty` = اعتمادٌ كامل |
+| `POST /van-sales/load-orders/{id}/reject-receipt` | `van_sales.view` | `{reason?}` | الكميّةُ رسميًّا في الطريق ⇒ مناقلةُ إرجاعٍ للمصدر |
+| `POST /van-sales/load-orders/{id}/cancel` | `van_sales.load.manage` | `{reason?}` | قبلَ الاستلام فقط — إلغاءُ المناقلةِ الرسميّة |
+| `POST /van-sales/load-orders/{id}/close-transit-difference` | `van_sales.load.manage` | `{mode: return|shortage, reason?}` | قرارٌ ماليٌّ ينفّذه محرّكُ المخزون |
+
+## ٥. العهدة والإقفال
+
+| المسار | الإذن | ملاحظات |
+|---|---|---|
+| `POST /van-sales/load-orders/{id}/submit-closing` | `van_sales.closing.submit` | جسم: `{returnedQty?, damagedQty?, damageReason?, collectedCash?, actualRemainingQty?, vehicleCountQty?, closingNotes?}` — **`actualRemainingQty` و`vehicleCountQty` بديلانِ لا رفيقان**: الثاني عددُ المركبةِ كلَّها ويُشتقُّ منه نصيبُ الأمر بعد طرحِ عهدةِ الأوامرِ الأخرى (ترحيل 0129) |
+| `POST /van-sales/load-orders/{id}/approve-closing` | `van_sales.closing.approve` | جسم: `{returnedQty?, damagedQty?, collectedCash?, damageInspected?, salaryDeductionApproved?, selfApprovalOverride?, notes?, actualRemainingQty?, vehicleCountQty?, remainingAction?(return_to_main|carry_over — إلزاميٌّ مع متبقٍّ فعليّ), settleStockAdjustment?(تفويضُ ترحيلِ مستندِ الجرد — بدونه مسودةٌ والعهدةُ معلّقة), surplusAcknowledged?(إقرارٌ إلزاميٌّ عند فائضِ الجرد)}` |
+| `POST /van-sales/load-orders/{id}/settle-stock` | `van_sales.closing.approve` | `{settleStockAdjustment?, remainingAction?}` — استكمالٌ آمنٌ لتسويةٍ معلّقة: التكرارُ لا يحرّكُ كيلوغرامًا مرّتين |
+
+## ٦. التحصيل والتسعير
+
+| المسار | الإذن | الجسم |
+|---|---|---|
+| `POST /van-sales/collections` | `van_sales.collection.create` | `{documentId, collectedAmount, cashLocationId?, offsetAccountId?, notes?, idempotencyKey?}` — التجاوزُ عن المتبقّي يُرفضُ: «مبلغ التحصيل (X ريال) يتجاوز الرصيد المتبقي على الفاتورة (Y ريال)» |
+| `POST /van-sales/customer-prices` | `van_sales.pricing.manage` | `{partyId, itemId?, priceTierLabel?, unitPrice, maxBonusPct?, maxBonusKgPerInvoice?, preferredInvoiceMode?(zatca_tax|internal_delivery), creditLimit?, paymentTermsDays?, lockPrice?, maxDiscountPct?, effectiveFrom?, effectiveTo?, changeReason?, notes?}` — upsertٌ بالعميل/الصنف بلا مفتاحِ نيّة |
+
+## ٧. السياسة والتقارير
+
+- `GET /van-sales/policy?salesmanId?` (إذن `van_sales.view`) → `{data: {shortageValuationBasis, shortageUnitPrice?, preventSelfApproval, allowInternalDeliveryWithoutTax, zatcaSeller{…}, valuationSource, configured, writableKeys[], chargeCreditAccount{id,name,code}?, salesmanReadiness{…}?}}`
+  — **`valuationSource` هو الحقيقة**: سعرٌ صريحٌ (`explicit_policy_price`) يتقدّمُ على الأساس.
+- `PUT /van-sales/policy` (إذن `van_sales.override.approve`) — دمجٌ لا استبدال: `{shortageValuationBasis?, shortageUnitPrice?, preventSelfApproval?}`؛ و`allowInternalDeliveryWithoutTax` **مرفوضٌ هنا** (قرارٌ ضريبيّ في موضعٍ آخر) — التطبيقُ لا يرسلُه أصلًا.
+- `GET /van-sales/reports?salesmanId&fromDate&toDate` (إذن `van_sales.view`) → `{data: {generatedAt?, filters?, rowCap?, truncated?, policy?, summary?, periodTotals?, repCustodyReport[{salesmanId?, salesmanName?, loadedKg?, soldKg?, bonusKg?, returnedKg?, damagedKg?, shortageKg?, shortageSar?, custodyRemainingKg?, revenueSar?, collectedSar?, creditDebtSar?, netProfitSar?, pendingClosings?}], transfersReport?, collectionsReport?, productionReport?, customerPriceAuditReport?}}`
+  — `periodTotals` **مجموعُ الفترة** و`summary` أرقامُ المنشأةِ الكاملة: لا يُخلطان.
+
+## ٨. المناديب
+
+| المسار | الإذن | ملاحظات |
+|---|---|---|
+| `GET /van-sales/salesmen` | `van_sales.view` | `{data: SalesmanCard[]}` — البطاقةُ الرسميّةُ بعهدتِها الحيّة: `custody{openLoadOrders, pendingReceipts, pendingClosings, custodyQty, outstandingCash, items[{itemId, itemName, warehouseName, quantity, value}]}` و`readiness{hasEmployee, hasLoginAccount, loginActive, hasVanWarehouse, hasVanSalesPermissions}` (يحسبها الخادمُ ولا يُعادُ حسابُها في العميل) |
+| `POST /van-sales/salesmen/{id}/account` | `sales.salesman.manage` | `{email?, fullName?, branchScope?, restrictToVanWarehouse?}` → إيصالُ `{salesmanId, salesmanName, membershipId, email(الفعليّ), requestedEmail, reusedExistingAccount, status, roleId, roleName, employeeLinked, scopedToVanWarehouse, activationRequired}` — الحسابُ الجديدُ بلا كلمةِ مرور: `invited` + `must_change_password` ورابطُ تفعيلٍ رسميّ |
+
+## ٩. البحث المشترك
+
+| المسار | الشكل |
+|---|---|
+| `GET /warehouses` (إذن `organization.warehouse.view`) | صفحةٌ `{data: [{id, code?, name?, nameAr?, isDefault?, …}], meta}` |
+| `GET /organization/catalog/items` (إذن `catalog.item.view`) | مصفوفةٌ خام (drizzle ⇒ camelCase): `[{id, sku?, nameAr?, name?, nameEn?, trackLot?, …}]` — يُقترحُ منها الصنفُ ومن `trackLot` يُطلبُ رقمُ الدفعة |
+| `GET /parties?kind=customer` | مصفوفةٌ خام: `[{id, code, kind, name, legalName?, taxNo?, phone?, creditLimit?, address?, …}]` |
+
+## ١٠. الإشعارات — `platform-services/notifications` (إذن `tenant.notification.view`)
+
+- `GET /notifications?limit=1..200&offset&filter[read]&filter[type]` — **بلا ApiEnvelope**:
+  `{data: [{id, membershipId, type, payload{title, body, href}, readAt, createdAt}], meta: {total, limit, offset, unread}}`
+- `POST /notifications/{id}/read` → 201 تكرارًا آمنًا.
+
+## ١١. الطباعة
+
+مستنداتُ التطبيق الثلاثة تُبنى **محليًّا** من بيانات اللوحة (لا مسارَ خادمًا لها):
+
+| المستند | المصدر | المحتوى |
+|---|---|---|
+| إشعارُ تحميلٍ وتسلّمِ عهدة | `LoadOrderDto` | الرقمُ/الحالة/المندوب/الصنف/الكميّة/المركبة/الدفعة/سقفُ المجاني + توقيعان |
+| ملخّصُ إقفال وردية | `LoadOrderDto` | أساسُ العهدة · مبيع/مجاني/مرتجع/تالف/عجز · المتوقّعُ مقابل المُعلن · فرقُ الاعتماد · النقدُ المتوقّع/المُحصَّل/الفرق + توقيعان |
+| بطاقةُ دفعةِ إنتاج | `ProductionBatchDto` | رقمُ الدفعة/الصنف/التاريخ/المنتج/الفاقد/المتاح/التكلفة |
+
+وفاتورةُ المستندِ الرسميّة إن لزمت: `GET /van-sales/documents/{id}/print-view?copies=1..6`
+(إذن `van_sales.view`) — كما في تطبيقِ المندوب.
+
+</div>
