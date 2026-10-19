@@ -59,8 +59,8 @@ fun ReturnScreen(vm: AppViewModel, onDone: () -> Unit) {
     var localError by remember { mutableStateOf<String?>(null) }
     var intentKey by rememberSaveable { mutableStateOf("") }
     var intentFingerprint by rememberSaveable { mutableStateOf("") }
-    val currentIntent: Pair<String, String>?
-        get() = intentKey.takeIf { it.isNotBlank() }?.let { it to intentFingerprint }
+    fun currentIntent(): Pair<String, String>? =
+        intentKey.takeIf { it.isNotBlank() }?.let { it to intentFingerprint }
 
     val returnable = workspace?.returnableDocuments ?: emptyList()
     val document = returnable.firstOrNull { it.id == documentId }
@@ -169,7 +169,7 @@ fun ReturnScreen(vm: AppViewModel, onDone: () -> Unit) {
                         operation = QueueOperation.RETURN,
                         targetId = documentId,
                         request = request,
-                        currentIntent = currentIntent,
+                        currentIntent = currentIntent(),
                     ) { outcome: SubmitOutcome ->
                         busy = false
                         when (val result = outcome.result) {

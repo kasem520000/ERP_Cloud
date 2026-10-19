@@ -86,9 +86,11 @@ data class SubmitOutcome(val result: ActionResult, val intent: Pair<String, Stri
  */
 class AppViewModel(application: Application) : AndroidViewModel(application) {
 
-    private val container get() = (application as com.erpcloud.rep.RepApp).container
+    // AndroidViewModel.application خاصٌّ — الوصولُ الرسميّ عبر getApplication<Application>().
+    private val container: com.erpcloud.rep.AppContainer
+        get() = (getApplication<Application>() as com.erpcloud.rep.RepApp).container
     private val repo: RepRepository get() = container.repository
-    private val appContext: Context get() = getApplication()
+    private val appContext: Application get() = getApplication()
 
     private val _uiState = MutableStateFlow(UiState())
     val uiState: StateFlow<UiState> = _uiState

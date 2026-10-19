@@ -26,7 +26,6 @@ import com.erpcloud.rep.data.offline.QueueStore
 import com.erpcloud.rep.data.offline.SessionStore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.jsonObject
@@ -190,10 +189,10 @@ class RepRepository(
         }
     }
 
-    /** إرسالُ إجراءٍ **غير قابلٍ للحفظ** (استلام/إقفال) — لا طابورَ ولا إعادة. */
+    /** إرسالُ إجراءٍ **غير قابلٍ للحفظ** (استلام/إقفال/تغيير كلمة مرور/تعليم إشعار) — لا طابورَ ولا إعادة. */
     suspend fun submitDirect(
         labelAr: String,
-        call: suspend () -> Response<JsonElement>,
+        call: suspend () -> Response<*>,
     ): ActionResult = withContext(Dispatchers.IO) {
         try {
             val response = call()

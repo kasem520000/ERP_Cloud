@@ -76,7 +76,7 @@ fun ClosingScreen(vm: AppViewModel, onDone: () -> Unit) {
 
     fun buildRequest(): ClosingRequest? {
         if (loadOrderId.isBlank()) return null
-        if (Dec.parse(damagedQty)?.signum() > 0 && damageReason.isBlank()) return null
+        if (Dec.isPositive(damagedQty) && damageReason.isBlank()) return null
         return ClosingRequest(
             returnedQty = returnedQty.trim().ifBlank { null },
             damagedQty = damagedQty.trim().ifBlank { null },
@@ -144,7 +144,7 @@ fun ClosingScreen(vm: AppViewModel, onDone: () -> Unit) {
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     modifier = Modifier.fillMaxWidth(),
                 )
-                if (Dec.parse(damagedQty)?.signum() > 0) {
+                if (Dec.isPositive(damagedQty)) {
                     OutlinedTextField(
                         value = damageReason,
                         onValueChange = { damageReason = it },

@@ -58,8 +58,8 @@ fun CollectionScreen(vm: AppViewModel, onDone: () -> Unit) {
     var localError by remember { mutableStateOf<String?>(null) }
     var intentKey by rememberSaveable { mutableStateOf("") }
     var intentFingerprint by rememberSaveable { mutableStateOf("") }
-    val currentIntent: Pair<String, String>?
-        get() = intentKey.takeIf { it.isNotBlank() }?.let { it to intentFingerprint }
+    fun currentIntent(): Pair<String, String>? =
+        intentKey.takeIf { it.isNotBlank() }?.let { it to intentFingerprint }
 
     val unpaid = workspace?.unpaidSaleDocuments ?: emptyList()
     val document = unpaid.firstOrNull { it.id == documentId }
@@ -158,7 +158,7 @@ fun CollectionScreen(vm: AppViewModel, onDone: () -> Unit) {
                         operation = QueueOperation.COLLECTION,
                         targetId = null,
                         request = request,
-                        currentIntent = currentIntent,
+                        currentIntent = currentIntent(),
                     ) { outcome: SubmitOutcome ->
                         busy = false
                         when (val result = outcome.result) {

@@ -29,6 +29,33 @@ import com.google.zxing.qrcode.QRCodeWriter
  *
  * العرضُ مُعاملٌ: ٥٧٦ نقطةً لطابعة ٨٠ملم و٣٨٤ لـ٥٨ملم، وأعلى للطباعة عبر النظام.
  */
+/**
+ * لبناتُ مسار الرسم — تُبنى بالترتيب البصريّ ثم تُقاس وتُرسَم بالترتيب نفسه،
+ * فلا انفصامَ بين الارتفاعِ المحسوب والمحتوى المرسوم. (خاصّةٌ بالملف.)
+ */
+private data class KvRow(
+    val label: String,
+    val value: String,
+    val bold: Boolean = false,
+    val boxed: Boolean = false,
+)
+
+private data class ItemBlock(val name: StaticLayout, val details: StaticLayout)
+
+private sealed class Op {
+    data class Section(val block: StaticLayout, val topGap: Int = 0) : Op()
+    data object Dash : Op()
+    data class Kv(val row: KvRow) : Op()
+    data class Item(val block: ItemBlock) : Op()
+    data class Qr(val bitmap: Bitmap, val caption: StaticLayout, val frameSide: Int) : Op()
+    data class Signatures(
+        val height: Int,
+        val customer: StaticLayout,
+        val rep: StaticLayout,
+        val boxWidth: Int,
+    ) : Op()
+}
+
 object InvoiceBitmap {
 
     fun render(view: PrintViewDto, widthPx: Int, copyKind: String? = null): Bitmap {
@@ -66,24 +93,6 @@ object InvoiceBitmap {
         val copy = view.copies.firstOrNull { copyKind == null || it.kind == copyKind }
             ?: view.copies.firstOrNull()
 
-        // ---------------- أنواعُ الأوامر ----------------
-        data class KvRow(val label: String, val value: String, val bold: Boolean = false, val boxed: Boolean = false)
-        data class ItemBlock(val name: StaticLayout, val details: StaticLayout)
-
-        sealed class Op {
-            data class Section(val block: StaticLayout, val topGap: Int = 0) : Op()
-            data object Dash : Op()
-            data class Kv(val row: KvRow) : Op()
-            data class Item(val block: ItemBlock) : Op()
-            data class Qr(val bitmap: Bitmap, val caption: StaticLayout, val frameSide: Int) : Op()
-            data class Signatures(
-                val height: Int,
-                val customer: StaticLayout,
-                val rep: StaticLayout,
-                val boxWidth: Int,
-            ) : Op()
-        }
-
         val ops = mutableListOf<Op>()
 
         // ---------------- بناءُ المحتوى بالترتيب البصريّ ----------------
@@ -116,7 +125,9 @@ object InvoiceBitmap {
         ops += Op.Dash
 
         // ٣) بياناتُ الطرفين
-        fun kv(label: String, value: String) = ops += Op.Kv(KvRow(label, value))
+        fun kv(label: String, value: String) {
+            ops += Op.Kv(KvRow(label, value))
+        }
         kv("التاريخ", view.saleDate)
         kv("العميل", view.customerName.ifBlank { "عميل نقدي" })
         if (view.customerTaxNo.isNotBlank()) kv("الرقمُ الضريبيّ للعميل", view.customerTaxNo)
@@ -149,8 +160,9 @@ object InvoiceBitmap {
         if (view.lines.isNotEmpty()) ops += Op.Dash
 
         // ٥) المجموعات — الإجماليُّ مؤطَّر
-        fun total(label: String, value: String, bold: Boolean = false, boxed: Boolean = false) =
+        fun total(label: String, value: String, bold: Boolean = false, boxed: Boolean = false) {
             ops += Op.Kv(KvRow(label, value, bold, boxed))
+        }
         total("المجموعُ قبل الضريبة", Dec.money(view.subtotal))
         if (view.discountTotal.isNotBlank() && Dec.parse(view.discountTotal)?.signum() != 0) {
             total("الخصم", Dec.money(view.discountTotal))
@@ -161,7 +173,7 @@ object InvoiceBitmap {
         total("الإجماليُّ المستحقّ", Dec.money(view.grandTotal), bold = true, boxed = true)
         total("المدفوع", Dec.money(view.paidAmount))
         total("المتبقّي", Dec.money(view.outstandingAmount))
-        if (Dec.parse(view.bonusQtyTotal)?.signum() > 0) {
+        if (Dec.isPositive(view.bonusQtyTotal)) {
             total("إجماليُّ البونص", "${Dec.fmt(view.bonusQtyTotal, 3)} كجم")
         }
 
