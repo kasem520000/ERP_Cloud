@@ -261,6 +261,16 @@ private fun PayRunDialog(vm: AppViewModel, runId: String, onDone: () -> Unit) {
         }
     }
 
+    /** درجُ الدفع حسب الطريقة — نقديٌّ/شيكاتٌ من صندوق، وتحويلٌ من بنك (كما في حوار الدفع). */
+    val methodDrawers = state.staff.cashLocations.filter { loc ->
+        loc.isActive && (if (method == "bank_transfer") loc.kind == "bank" else loc.kind != "bank")
+    }
+    LaunchedEffect(method) {
+        if (methodDrawers.none { it.id == cashLocationId }) {
+            methodDrawers.firstOrNull()?.let { cashLocationId = it.id; cashLabel = it.name }
+        }
+    }
+
     androidx.compose.material3.AlertDialog(
         onDismissRequest = { if (!sending) onDone() },
         title = { Text("دفعُ المسيّرة") },
@@ -342,8 +352,8 @@ private fun PayRunDialog(vm: AppViewModel, runId: String, onDone: () -> Unit) {
     }
     if (pickCash) {
         PickerDialog(
-            title = "اختر الخزينة",
-            items = state.staff.cashLocations.map { PickerItem(it.id, it.name, trailing = if (it.isDefault) "افتراضيّة" else null) },
+            title = if (method == "bank_transfer") "اختر البنك" else "اختر الخزينة",
+            items = methodDrawers.map { PickerItem(it.id, it.name, trailing = if (it.isDefault) "افتراضيّة" else null) },
             onDismiss = { pickCash = false },
             onSelect = { cashLocationId = it.id; cashLabel = it.title; pickCash = false },
         )

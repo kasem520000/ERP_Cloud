@@ -201,17 +201,18 @@ fun PosScreen(vm: AppViewModel, onBack: () -> Unit) {
         PayDialog(
             vm = vm,
             subtotal = cartSubtotal(cart),
-            customers = pos.customers,
-            cashLocations = pos.cashLocations,
-            defaults = pos.defaults,
-            onConfirm = { method, partyId, cashLocationId ->
+            pos = pos,
+            onConfirm = { method, partyId, cashLocationId, warehouseId ->
                 showPay = false
                 val checkoutBranchId = pos.defaults.branchId
                     ?: pos.branches.firstOrNull()?.id.orEmpty()
                 val body = buildJsonObject {
                     put("branchId", checkoutBranchId)
-                    pos.defaults.warehouseId?.let { put("warehouseId", it) }
-                    if (partyId.isNotBlank()) put("partyId", partyId)
+                    // المستودعُ مطلوبٌ دائمًا — الخادمُ يرفضُ فاتورةً تصرفُ مخزونًا بدونه
+                    // (SALES_WAREHOUSE_REQUIRED) مهما كان الإعداد الافتراضيّ.
+                    put("warehouseId", warehouseId)
+                    put("orderType", "pos")
+                    if (partyId.isNotBlank()) put("partyId", partyId) else put("cashCustomerName", "عميل عام")
                     put(
                         "lines",
                         buildJsonArray {
@@ -230,7 +231,9 @@ fun PosScreen(vm: AppViewModel, onBack: () -> Unit) {
                         "payment",
                         buildJsonObject {
                             put("method", method)
-                            if (cashLocationId.isNotBlank()) put("cashLocationId", cashLocationId)
+                            if (method != "credit" && cashLocationId.isNotBlank()) {
+                                put("cashLocationId", cashLocationId)
+                            }
                         },
                     )
                 }
@@ -328,33 +331,57 @@ private fun PosItemRow(item: PosItemDto, onAdd: () -> Unit) {
     }
 }
 
-/** حوارُ الدفع — طريقةُ الدفع + العميلُ (للآجل) + الخزينةُ (للنقد). */
+/**
+ * حوارُ الدفع — كما في شاشة الويب: طريقةُ الدفع + العميلُ (للآجل) +
+ * **المستودعُ المُصرفُ منه** (مطلوبٌ دائمًا — الخادمُ يرفضُ بدونه
+ * SALES_WAREHOUSE_REQUIRED) + **خزينةُ الاستلام** لكلِّ طريقةٍ غيرِ الآجل
+ * (نقديّ ⇒ صندوق safe · شبكة/تحويل ⇒ بنك bank).
+ */
 @Composable
 private fun PayDialog(
     vm: AppViewModel,
     subtotal: BigDecimal,
-    customers: List<com.erpcloud.bakery.data.api.PosCustomerDto>,
-    cashLocations: List<com.erpcloud.bakery.data.api.CashLocationDto>,
-    defaults: com.erpcloud.bakery.data.api.PosDefaultsDto,
-    onConfirm: (method: String, partyId: String, cashLocationId: String) -> Unit,
+    pos: com.erpcloud.bakery.data.api.PosOfflineDataDto,
+    onConfirm: (method: String, partyId: String, cashLocationId: String, warehouseId: String) -> Unit,
     onDismiss: () -> Unit,
 ) {
+    val branchId = pos.defaults.branchId ?: pos.branches.firstOrNull()?.id.orEmpty()
+    val branchWarehouses = remember(branchId) {
+        pos.warehouses.filter { branchId.isBlank() || it.branchId == null || it.branchId == branchId }
+    }
+    val initialWarehouse =
+        pos.defaults.warehouseId?.takeIf { dw -> branchWarehouses.any { it.id == dw } }
+            ?: branchWarehouses.firstOrNull()?.id
+            ?: pos.defaults.warehouseId
+            ?: ""
+
     var method by remember { mutableStateOf("cash") }
     var partyId by remember { mutableStateOf("") }
     var partyLabel by remember { mutableStateOf("") }
-    var cashLocationId by remember { mutableStateOf(defaults.cashLocationId ?: "") }
-    var cashLabel by remember { mutableStateOf("") }
+    var warehouseId by remember { mutableStateOf(initialWarehouse) }
+    var cashLocationId by remember { mutableStateOf(pos.defaults.cashLocationId ?: "") }
     var pickCustomer by remember { mutableStateOf(false) }
     var pickCash by remember { mutableStateOf(false) }
+    var pickWarehouse by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
 
-    LaunchedEffect(cashLocations) {
-        if (cashLocationId.isBlank() && defaults.cashLocationId == null) {
-            cashLocations.firstOrNull()?.let { cashLocationId = it.id; cashLabel = it.name }
-        } else {
-            cashLocations.firstOrNull { it.id == cashLocationId }?.let { cashLabel = it.name }
+    // خزائنُ الفرع حسب الطريقة: نقديّ ⇒ safe (والغائبُ يُفترَض safe كما في الويب)،
+    // شبكة/تحويل ⇒ bank.
+    val branchDrawers = remember(method, branchId) {
+        val kind = if (method == "cash") "safe" else "bank"
+        pos.cashLocations.filter { loc ->
+            val locKind = loc.kind.takeIf { it.isNotBlank() } ?: "safe"
+            locKind == kind && (branchId.isBlank() || loc.branchId == null || loc.branchId == branchId)
         }
     }
+    LaunchedEffect(branchDrawers) {
+        if (branchDrawers.none { it.id == cashLocationId }) {
+            cashLocationId = branchDrawers.firstOrNull { it.isDefault }?.id
+                ?: branchDrawers.firstOrNull()?.id ?: ""
+        }
+    }
+    val warehouseLabel = branchWarehouses.firstOrNull { it.id == warehouseId }?.label ?: ""
+    val cashLabel = branchDrawers.firstOrNull { it.id == cashLocationId }?.name ?: ""
 
     androidx.compose.material3.AlertDialog(
         onDismissRequest = onDismiss,
@@ -382,6 +409,15 @@ private fun PayDialog(
                         Text(labelAr)
                     }
                 }
+                Spacer(Modifier.height(6.dp))
+                OutlinedTextField(
+                    value = warehouseLabel,
+                    onValueChange = {},
+                    readOnly = true,
+                    label = { Text("المستودعُ المُصرفُ منه *") },
+                    modifier = Modifier.fillMaxWidth(),
+                    trailingIcon = { IconButton(onClick = { pickWarehouse = true }) { Text("اختر") } },
+                )
                 if (method == "credit") {
                     Spacer(Modifier.height(6.dp))
                     OutlinedTextField(
@@ -392,14 +428,13 @@ private fun PayDialog(
                         modifier = Modifier.fillMaxWidth(),
                         trailingIcon = { IconButton(onClick = { pickCustomer = true }) { Text("اختر") } },
                     )
-                }
-                if (method == "cash") {
+                } else {
                     Spacer(Modifier.height(6.dp))
                     OutlinedTextField(
                         value = cashLabel,
                         onValueChange = {},
                         readOnly = true,
-                        label = { Text("الخزينة *") },
+                        label = { Text(if (method == "cash") "الصندوقُ الذي يستلمُ المبلغ *" else "الحسابُ البنكيّ الذي يستلمُ المبلغ *") },
                         modifier = Modifier.fillMaxWidth(),
                         trailingIcon = { IconButton(onClick = { pickCash = true }) { Text("اختر") } },
                     )
@@ -414,12 +449,16 @@ private fun PayDialog(
             androidx.compose.material3.TextButton(
                 onClick = {
                     error = when {
-                        method == "credit" && partyId.isBlank() -> "البيعُ الآجل يحتاج عميلًا مسجّلًا — الخادمُ يرفض بلا partyId."
-                        method == "cash" && cashLocationId.isBlank() -> "اختر الخزينةَ للنقد."
+                        branchId.isBlank() -> "لا يوجد فرعٌ مُعرّف — لا يمكن إتمامُ البيعة."
+                        warehouseId.isBlank() -> "اختر المستودعَ الذي تُصرفُ منه الأصناف."
+                        method == "credit" && partyId.isBlank() -> "البيعُ الآجل يحتاج عميلًا مسجّلًا."
+                        method != "credit" && cashLocationId.isBlank() ->
+                            if (method == "cash") "اختر الصندوقَ الذي يستلمُ المبلغ."
+                            else "اختر الحسابَ البنكيّ الذي يستلمُ المبلغ."
                         else -> null
                     }
                     if (error != null) return@TextButton
-                    onConfirm(method, partyId, cashLocationId)
+                    onConfirm(method, partyId, cashLocationId, warehouseId)
                 },
             ) { Text("دفعٌ وإتمام") }
         },
@@ -431,17 +470,25 @@ private fun PayDialog(
     if (pickCustomer) {
         PickerDialog(
             title = "اختر العميل",
-            items = customers.map { PickerItem(it.id, it.name, trailing = it.mobile) },
+            items = pos.customers.map { PickerItem(it.id, it.name, trailing = it.mobile) },
             onDismiss = { pickCustomer = false },
             onSelect = { partyId = it.id; partyLabel = it.title; pickCustomer = false },
         )
     }
     if (pickCash) {
         PickerDialog(
-            title = "اختر الخزينة",
-            items = cashLocations.map { PickerItem(it.id, it.name, trailing = if (it.isDefault) "افتراضيّة" else null) },
+            title = if (method == "cash") "اختر الصندوق" else "اختر الحساب البنكيّ",
+            items = branchDrawers.map { PickerItem(it.id, it.name, trailing = if (it.isDefault) "افتراضيّة" else null) },
             onDismiss = { pickCash = false },
-            onSelect = { cashLocationId = it.id; cashLabel = it.title; pickCash = false },
+            onSelect = { cashLocationId = it.id; pickCash = false },
+        )
+    }
+    if (pickWarehouse) {
+        PickerDialog(
+            title = "اختر المستودع",
+            items = branchWarehouses.map { PickerItem(it.id, it.label, trailing = if (it.isDefault == true) "افتراضيّ" else null) },
+            onDismiss = { pickWarehouse = false },
+            onSelect = { warehouseId = it.id; pickWarehouse = false },
         )
     }
 }

@@ -562,6 +562,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
             adjustments = repo.adjustments(),
             adjustmentTypes = repo.adjustmentTypes(),
             employees = if (s.employees.isEmpty()) repo.employees() else s.employees,
+            cashLocations = if (s.cashLocations.isEmpty()) repo.cashLocations() else s.cashLocations,
         )
     }
 

@@ -1,5 +1,6 @@
 package com.erpcloud.bakery.ui.screens
 
+import androidx.compose.foundation.layout.Alignment
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -22,6 +23,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -52,8 +54,8 @@ import kotlinx.serialization.json.put
 
 /**
  * شاشةُ المنصرفات — إضافاتُ واستقطاعاتُ الراتب (من تطبيق الطاقم):
- * `GET/POST /payroll/adjustments` بإذنَي `payroll.adjust.view/create`
- * + **اعتمادُ** ما يحتاج موافقةً (`payroll.adjust.approve`).
+ * `GET/POST /hrm/adjustments` بإذنَي `hrm.view/hrm.manage`
+ * + **اعتمادُ** ما يحتاج موافقةً (`hrm.adjust.approve`).
  *
  * كلُّ منصرفٍ يبدأ من تاريخٍ (startsOn) ويحملُ قيمةً نصيّة (valueText) أو صيغةَ
  * نسبةٍ — والخادمُ يحسب أثرها في المسيّرة، لا التطبيق.
@@ -144,30 +146,47 @@ fun AdjustmentsScreen(vm: AppViewModel, onBack: () -> Unit) {
         )
     }
 }
-
-/** إنشاءُ منصرف/إضافة — موظفٌ + نوعٌ + قيمةٌ نصيّة + تاريخُ السريان. */
+/**
+ * إنشاءُ منصرف/إضافة — مرآةُ نافذة الويب: موظفٌ + **نوعُ إجراءٍ** (إلزاميّ عند الخادم)
+ * + قيمةٌ نصيّة + تاريخُ سريان. والنوعُ نفسُه يحملُ «إضافة/استقطاع»، فلا يُرسَلُ
+ * `kind` من هنا إطلاقًا — الخادمُ يشتقُّه من النوع.
+ *
+ * «تُخصم من الراتب» (subFromSalary): الإيقافُ يعني دفعَ المبلغ اليوم من صندوقٍ أو
+ * بنكٍ — والخادمُ يطلبُ حينها `cashLocationId` حتمًا (٤٢٢ بلاهُ).
+ */
 @Composable
 private fun AdjustmentForm(vm: AppViewModel, onDone: () -> Unit) {
     val state by vm.uiState.collectAsState()
     var employeeId by remember { mutableStateOf("") }
     var employeeLabel by remember { mutableStateOf("") }
-    var kind by remember { mutableStateOf("deduction") }
+    var typeId by remember { mutableStateOf("") }
+    var typeLabel by remember { mutableStateOf("") }
+    var typeKind by remember { mutableStateOf("deduction") }
     var valueText by remember { mutableStateOf("") }
     var startsOn by remember { mutableStateOf(todayIso()) }
+    var subFromSalary by remember { mutableStateOf(true) }
     var paymentMethod by remember { mutableStateOf("cash") }
     var cashLocationId by remember { mutableStateOf("") }
     var cashLabel by remember { mutableStateOf("") }
     var notes by remember { mutableStateOf("") }
     var pickEmployee by remember { mutableStateOf(false) }
-    var pickKind by remember { mutableStateOf(false) }
+    var pickType by remember { mutableStateOf(false) }
     var pickMethod by remember { mutableStateOf(false) }
     var pickCash by remember { mutableStateOf(false) }
     var error by remember { mutableStateOf<String?>(null) }
     var sending by remember { mutableStateOf(false) }
 
-    LaunchedEffect(state.staff.cashLocations) {
-        if (cashLocationId.isBlank()) {
-            state.staff.cashLocations.firstOrNull()?.let { cashLocationId = it.id; cashLabel = it.name }
+    val activeTypes = state.staff.adjustmentTypes.filter { it.isActive != false }
+
+    /** درجُ الصرف حسب الطريقة — نقديٌّ من صندوق، وتحويلٌ من بنك (كما في حوار الدفع). */
+    val methodDrawers = state.staff.cashLocations.filter { loc ->
+        loc.isActive && (if (paymentMethod == "cash") loc.kind != "bank" else loc.kind == "bank")
+    }
+    LaunchedEffect(paymentMethod, state.staff.cashLocations.size) {
+        if (methodDrawers.none { it.id == cashLocationId }) {
+            val first = methodDrawers.firstOrNull()
+            cashLocationId = first?.id ?: ""
+            cashLabel = first?.name ?: ""
         }
     }
 
@@ -187,12 +206,19 @@ private fun AdjustmentForm(vm: AppViewModel, onDone: () -> Unit) {
                 )
                 Spacer(Modifier.height(8.dp))
                 OutlinedTextField(
-                    value = if (kind == "addition") "إضافة" else "استقطاع",
+                    value = typeLabel,
                     onValueChange = {},
                     readOnly = true,
-                    label = { Text("النوع *") },
+                    label = { Text("نوعُ الإجراء *") },
                     modifier = Modifier.fillMaxWidth(),
-                    trailingIcon = { IconButton(onClick = { pickKind = true }) { Text("اختر") } },
+                    trailingIcon = { IconButton(onClick = { pickType = true }) { Text("اختر") } },
+                    supportingText = {
+                        if (activeTypes.isEmpty()) {
+                            Text("لا أنواعُ إجراءاتٍ مسجَّلة بعد — أضِف نوعًا من إدارة الطاقم أولًا.")
+                        } else if (typeId.isNotBlank()) {
+                            Text(if (typeKind == "addition") "إضافةٌ على الراتب" else "استقطاعٌ من الراتب")
+                        }
+                    },
                 )
                 Spacer(Modifier.height(8.dp))
                 OutlinedTextField(
@@ -204,27 +230,43 @@ private fun AdjustmentForm(vm: AppViewModel, onDone: () -> Unit) {
                 )
                 Spacer(Modifier.height(8.dp))
                 OutlinedTextField(value = startsOn, onValueChange = { startsOn = it }, label = { Text("تاريخُ السريان (YYYY-MM-DD) *") }, modifier = Modifier.fillMaxWidth())
-                Spacer(Modifier.height(8.dp))
-                OutlinedTextField(
-                    value = Labels.payMethod(paymentMethod),
-                    onValueChange = {},
-                    readOnly = true,
-                    label = { Text("طريقةُ الصرف") },
-                    modifier = Modifier.fillMaxWidth(),
-                    trailingIcon = { IconButton(onClick = { pickMethod = true }) { Text("اختر") } },
-                )
-                Spacer(Modifier.height(8.dp))
-                if (paymentMethod == "cash") {
+                Spacer(Modifier.height(4.dp))
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Column(Modifier.weight(1f)) {
+                        Text("تُخصم من الراتب", style = MaterialTheme.typography.bodyMedium)
+                        Text(
+                            "عند إيقافه يُصرَف المبلغ اليوم من صندوقٍ أو بنك",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    Switch(checked = subFromSalary, onCheckedChange = { subFromSalary = it })
+                }
+                if (!subFromSalary) {
+                    Spacer(Modifier.height(8.dp))
+                    OutlinedTextField(
+                        value = Labels.payMethod(paymentMethod),
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("طريقةُ الصرف *") },
+                        modifier = Modifier.fillMaxWidth(),
+                        trailingIcon = { IconButton(onClick = { pickMethod = true }) { Text("اختر") } },
+                    )
+                    Spacer(Modifier.height(8.dp))
                     OutlinedTextField(
                         value = cashLabel,
                         onValueChange = {},
                         readOnly = true,
-                        label = { Text("الخزينة (للنقد)") },
+                        label = { Text(if (paymentMethod == "cash") "الصندوق (للنقدي) *" else "البنك (للتحويل) *") },
                         modifier = Modifier.fillMaxWidth(),
                         trailingIcon = { IconButton(onClick = { pickCash = true }) { Text("اختر") } },
                     )
-                    Spacer(Modifier.height(8.dp))
                 }
+                Spacer(Modifier.height(8.dp))
                 OutlinedTextField(value = notes, onValueChange = { notes = it }, label = { Text("السبب/ملاحظات") }, modifier = Modifier.fillMaxWidth())
                 if (error != null) {
                     Spacer(Modifier.height(8.dp))
@@ -237,20 +279,26 @@ private fun AdjustmentForm(vm: AppViewModel, onDone: () -> Unit) {
                         onClick = {
                             error = when {
                                 employeeId.isBlank() -> "اختر الموظف."
+                                typeId.isBlank() -> "اختر نوعَ الإجراء — لا يقبلُ الخادمُ منصرفًا بلا نوع."
                                 !Dec.isPositive(valueText) -> "القيمةُ رقمٌ موجبٌ (نصٌّ دقيق)."
                                 startsOn.isBlank() || !Regex("""^\d{4}-\d{2}-\d{2}$""").matches(startsOn.trim()) ->
                                     "تاريخُ السريان بصيغة YYYY-MM-DD."
+                                !subFromSalary && cashLocationId.isBlank() ->
+                                    "اختر الصندوق أو البنك الذي يخرج منه المبلغ."
                                 else -> null
                             }
                             if (error != null) return@ActionButton
                             sending = true
                             val body = buildJsonObject {
                                 put("employeeId", employeeId)
-                                put("kind", kind)
+                                put("typeId", typeId)
                                 put("valueText", Dec.wire(valueText))
                                 put("startsOn", startsOn.trim())
-                                put("paymentMethod", paymentMethod)
-                                if (paymentMethod == "cash" && cashLocationId.isNotBlank()) put("cashLocationId", cashLocationId)
+                                put("subFromSalary", subFromSalary)
+                                if (!subFromSalary) {
+                                    put("paymentMethod", paymentMethod)
+                                    put("cashLocationId", cashLocationId)
+                                }
                                 if (notes.isNotBlank()) put("reason", notes.trim())
                             }
                             vm.createAdjustment(body) { result ->
@@ -276,20 +324,21 @@ private fun AdjustmentForm(vm: AppViewModel, onDone: () -> Unit) {
             title = "اختر الموظف",
             items = state.staff.employees.map { PickerItem(it.id, it.name, trailing = it.employeeNo) },
             onDismiss = { pickEmployee = false },
-            onSelect = { employeeId = it.id; employeeLabel = it.title },
+            onSelect = { employeeId = it.id; employeeLabel = it.title; pickEmployee = false },
         )
     }
-    if (pickKind) {
+    if (pickType) {
         PickerDialog(
-            title = "نوعُ المنصرف",
-            items = listOf(
-                PickerItem("addition", "إضافة"),
-                PickerItem("deduction", "استقطاع"),
-            ),
-            onDismiss = { pickKind = false },
-            onSelect = {
-                kind = it.id
-                pickKind = false
+            title = "نوعُ الإجراء",
+            items = activeTypes.map { t ->
+                PickerItem(t.id, t.name, trailing = if (t.kind == "addition") "إضافة" else "استقطاع")
+            },
+            onDismiss = { pickType = false },
+            onSelect = { item ->
+                typeId = item.id
+                typeLabel = item.title
+                typeKind = activeTypes.firstOrNull { it.id == item.id }?.kind ?: "deduction"
+                pickType = false
             },
         )
     }
@@ -309,8 +358,8 @@ private fun AdjustmentForm(vm: AppViewModel, onDone: () -> Unit) {
     }
     if (pickCash) {
         PickerDialog(
-            title = "اختر الخزينة",
-            items = state.staff.cashLocations.map { PickerItem(it.id, it.name, trailing = if (it.isDefault) "افتراضيّة" else null) },
+            title = if (paymentMethod == "cash") "اختر الصندوق" else "اختر البنك",
+            items = methodDrawers.map { PickerItem(it.id, it.name, trailing = if (it.isDefault) "افتراضيّة" else null) },
             onDismiss = { pickCash = false },
             onSelect = { cashLocationId = it.id; cashLabel = it.title; pickCash = false },
         )

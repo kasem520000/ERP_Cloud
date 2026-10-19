@@ -3,14 +3,37 @@ package com.erpcloud.bakery
 import android.os.Bundle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.ErrorOutline
+import androidx.compose.material.icons.filled.WarningAmber
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.DrawerValue
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.ModalDrawerSheet
 import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.Text
@@ -22,10 +45,16 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.fragment.app.FragmentActivity
@@ -52,7 +81,7 @@ import com.erpcloud.bakery.ui.screens.UsersScreen
 import com.erpcloud.bakery.ui.screens.VouchersScreen
 import kotlinx.coroutines.launch
 import com.erpcloud.bakery.ui.AppViewModel
-import com.erpcloud.bakery.ui.components.NoticeBanner
+import com.erpcloud.bakery.ui.components.Notice
 import com.erpcloud.bakery.ui.screens.ChangePasswordScreen
 import com.erpcloud.bakery.ui.screens.CollectionScreen
 import com.erpcloud.bakery.ui.screens.CustodyScreen
@@ -68,6 +97,7 @@ import com.erpcloud.bakery.ui.screens.PrintersScreen
 import com.erpcloud.bakery.ui.screens.ProductionScreen
 import com.erpcloud.bakery.ui.screens.ReportsScreen
 import com.erpcloud.bakery.ui.screens.SalesmenScreen
+import com.erpcloud.bakery.ui.theme.BakeryColors
 import com.erpcloud.bakery.ui.theme.BakeryTheme
 
 /**
@@ -180,9 +210,9 @@ fun AppRoot(vm: AppViewModel) {
             }
         },
     ) {
-        Column(Modifier.fillMaxSize()) {
-            NoticeBanner(notice = notice, onDismiss = { vm.consumeNotice() })
+        Box(Modifier.fillMaxSize()) {
             NavHost(
+                modifier = Modifier.fillMaxSize(),
                 navController = navController,
                 startDestination = if (state.session.loggedIn) Routes.HOME else Routes.LOGIN,
             ) {
@@ -258,6 +288,99 @@ fun AppRoot(vm: AppViewModel) {
                 } else if (!state.session.loggedIn && current != Routes.LOGIN) {
                     navController.navigate(Routes.LOGIN) {
                         popUpTo(0) { inclusive = true }
+                    }
+                }
+            }
+
+            // رسائلُ الخادم — بطاقةٌ عائمةٌ من أسفل الشاشة (v3) بدلَ الشريط الأعلىّ البدائيّ.
+            ServerNoticeOverlay(notice = notice, onConsume = { vm.consumeNotice() })
+        }
+    }
+}
+
+/**
+ * بطاقةُ رسائلِ الخادم العائمة — بديلُ الشريط العلويّ: تظهرُ من أسفلِ الشاشة بحركةٍ
+ * ناعمة، بأيقونةٍ دائريّةٍ وألوانِ v3 وخطّ Tajawal الثقيل، وتختفي وحدها بعد مهلةٍ
+ * تتفاوت مع نوعها (الخطأُ يبقى أطولَ ليُقرأ).
+ */
+@Composable
+private fun BoxScope.ServerNoticeOverlay(notice: Notice?, onConsume: () -> Unit) {
+    var current by remember { mutableStateOf<Notice?>(null) }
+    var shown by remember { mutableStateOf(false) }
+
+    LaunchedEffect(notice?.id) {
+        val n = notice ?: return@LaunchedEffect
+        current = n
+        shown = true
+        kotlinx.coroutines.delay(
+            when (n.kind) {
+                Notice.Kind.OK -> 3500L
+                Notice.Kind.WARN -> 6500L
+                Notice.Kind.DANGER -> 10000L
+            },
+        )
+        if (current?.id == n.id) shown = false
+    }
+
+    val card = current
+
+    AnimatedVisibility(
+        visible = shown,
+        enter = slideInVertically(initialOffsetY = { it / 2 }) + fadeIn(),
+        exit = slideOutVertically(targetOffsetY = { it / 2 }) + fadeOut(),
+        modifier = Modifier
+            .align(Alignment.BottomCenter)
+            .padding(bottom = 18.dp),
+    ) {
+        if (card != null) {
+            val (icon, tint) = when (card.kind) {
+                Notice.Kind.OK -> Icons.Default.CheckCircle to BakeryColors.Ok
+                Notice.Kind.WARN -> Icons.Default.WarningAmber to BakeryColors.Warn
+                Notice.Kind.DANGER -> Icons.Default.ErrorOutline to BakeryColors.Danger
+            }
+            Card(
+                shape = androidx.compose.foundation.shape.RoundedCornerShape(18.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
+                border = BorderStroke(1.dp, BakeryColors.Hairline),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp),
+            ) {
+                Row(
+                    Modifier.padding(start = 12.dp, end = 4.dp, top = 10.dp, bottom = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Box(
+                        Modifier
+                            .size(34.dp)
+                            .clip(CircleShape)
+                            .background(tint.copy(alpha = 0.14f)),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(20.dp))
+                    }
+                    Spacer(Modifier.width(10.dp))
+                    Text(
+                        card.text,
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.weight(1f),
+                    )
+                    IconButton(
+                        onClick = {
+                            shown = false
+                            onConsume()
+                        },
+                        modifier = Modifier.size(32.dp),
+                    ) {
+                        Icon(
+                            Icons.Default.Close,
+                            contentDescription = "إغلاق",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(16.dp),
+                        )
                     }
                 }
             }

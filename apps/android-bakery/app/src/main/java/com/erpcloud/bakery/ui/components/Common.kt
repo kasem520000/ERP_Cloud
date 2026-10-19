@@ -11,8 +11,17 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.ErrorOutline
+import androidx.compose.material.icons.filled.WarningAmber
 import androidx.compose.material3.Checkbox
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
@@ -32,15 +41,22 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.erpcloud.bakery.ui.theme.BakeryColors
+import com.erpcloud.bakery.ui.theme.ShapeCard
 
 /** إشعارٌ عابر — نتيجةُ إجراءٍ أو خطأ. */
 data class Notice(
     val kind: Kind,
     val text: String,
+    /** مُعرِّفٌ متزايد — يُميّز رسالتين متطابقتين فتلتقطهما الحركةُ العائمة. */
+    val id: Long = nextId(),
 ) {
     enum class Kind { OK, WARN, DANGER }
 
     companion object {
+        private val ids = java.util.concurrent.atomic.AtomicLong(0)
+        private fun nextId(): Long = ids.incrementAndGet()
+
         fun ok(text: String) = Notice(Kind.OK, text)
         fun warn(text: String) = Notice(Kind.WARN, text)
         fun danger(text: String) = Notice(Kind.DANGER, text)
@@ -57,13 +73,18 @@ fun SectionCard(
 ) {
     Card(
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(14.dp),
+        shape = ShapeCard,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+        border = androidx.compose.foundation.BorderStroke(1.dp, BakeryColors.Hairline),
     ) {
-        Column(Modifier.padding(14.dp)) {
+        Column(Modifier.padding(16.dp)) {
             if (title != null) {
-                Text(title, style = MaterialTheme.typography.titleMedium)
+                Text(
+                    title,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onBackground,
+                )
             }
             if (subtitle != null) {
                 Text(
@@ -104,13 +125,13 @@ fun KeyValue(label: String, value: String, modifier: Modifier = Modifier) {
 @Composable
 fun StatusChip(text: String, tone: ChipTone = ChipTone.NEUTRAL) {
     val (bg, fg) = when (tone) {
-        ChipTone.OK -> Color(0xFFDCFCE7) to Color(0xFF14532D)
-        ChipTone.WARN -> Color(0xFFFEF3C7) to Color(0xFF78350F)
-        ChipTone.DANGER -> Color(0xFFFEE2E2) to Color(0xFF7F1D1D)
-        ChipTone.INFO -> Color(0xFFDBEAFE) to Color(0xFF1E3A8A)
+        ChipTone.OK -> BakeryColors.OkBg to BakeryColors.Ok
+        ChipTone.WARN -> BakeryColors.WarnBg to BakeryColors.Warn
+        ChipTone.DANGER -> BakeryColors.DangerBg to BakeryColors.Danger
+        ChipTone.INFO -> BakeryColors.InfoBg to BakeryColors.Info
         ChipTone.NEUTRAL -> MaterialTheme.colorScheme.surfaceVariant to MaterialTheme.colorScheme.onSurfaceVariant
     }
-    Surface(color = bg, shape = RoundedCornerShape(8.dp)) {
+    Surface(color = bg, shape = RoundedCornerShape(50)) {
         Text(
             text,
             color = fg,
@@ -137,17 +158,18 @@ fun StatTile(
     tone: ChipTone = ChipTone.NEUTRAL,
 ) {
     val valueColor = when (tone) {
-        ChipTone.OK -> Color(0xFF14532D)
-        ChipTone.WARN -> Color(0xFF78350F)
-        ChipTone.DANGER -> Color(0xFF7F1D1D)
-        ChipTone.INFO -> Color(0xFF1E3A8A)
-        ChipTone.NEUTRAL -> MaterialTheme.colorScheme.onSurface
+        ChipTone.OK -> BakeryColors.Ok
+        ChipTone.WARN -> BakeryColors.Warn
+        ChipTone.DANGER -> BakeryColors.Danger
+        ChipTone.INFO -> BakeryColors.Info
+        ChipTone.NEUTRAL -> MaterialTheme.colorScheme.primary
     }
     Card(
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(14.dp),
+        shape = RoundedCornerShape(22.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+        border = androidx.compose.foundation.BorderStroke(1.dp, BakeryColors.Hairline),
     ) {
         Column(Modifier.padding(12.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -190,7 +212,7 @@ fun BadgeCount(count: Int, modifier: Modifier = Modifier) {
     if (count <= 0) return
     Surface(
         color = MaterialTheme.colorScheme.error,
-        shape = RoundedCornerShape(10.dp),
+        shape = RoundedCornerShape(50),
         modifier = modifier,
     ) {
         Text(
@@ -214,39 +236,57 @@ private fun formatArabicDigits(value: Int): String =
 fun EmptyState(text: String, modifier: Modifier = Modifier) {
     Text(
         text,
-        modifier = modifier.fillMaxWidth().padding(vertical = 12.dp),
+        modifier = modifier.fillMaxWidth().padding(vertical = 20.dp, horizontal = 8.dp),
         style = MaterialTheme.typography.bodyMedium,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         textAlign = TextAlign.Center,
     )
 }
 
-/** شريطُ الإشعار العلوميّ. */
+/**
+ * لافتةُ الإشعار — رسائلُ الخادم وأخطاؤه كما يجبُ أن تُرى:
+ * بطاقةٌ عائمةٌ بحوافٍ ١٨ وأيقونةٍ دائريّةٍ تقودُ العينَ ولونِ الحالة من
+ * لوحة v3 (أخضرُ نجاحٍ / كهرمانُ تحذيرٍ / أحمرُ خطرٍ)، لا شريطٌ خامٌ
+ * يلتصقُ بأعلى الشاشة.
+ */
 @Composable
 fun NoticeBanner(notice: Notice?, onDismiss: () -> Unit, modifier: Modifier = Modifier) {
     if (notice == null) return
-    val bg = when (notice.kind) {
-        Notice.Kind.OK -> Color(0xFFDCFCE7)
-        Notice.Kind.WARN -> Color(0xFFFEF3C7)
-        Notice.Kind.DANGER -> Color(0xFFFEE2E2)
+    val (bg, fg, icon) = when (notice.kind) {
+        Notice.Kind.OK -> Triple(BakeryColors.OkBg, BakeryColors.Ok, Icons.Filled.CheckCircle)
+        Notice.Kind.WARN -> Triple(BakeryColors.WarnBg, BakeryColors.Warn, Icons.Filled.WarningAmber)
+        Notice.Kind.DANGER -> Triple(BakeryColors.DangerBg, BakeryColors.Danger, Icons.Filled.ErrorOutline)
     }
-    val fg = when (notice.kind) {
-        Notice.Kind.OK -> Color(0xFF14532D)
-        Notice.Kind.WARN -> Color(0xFF78350F)
-        Notice.Kind.DANGER -> Color(0xFF7F1D1D)
-    }
-    Surface(color = bg, modifier = modifier.fillMaxWidth()) {
+    Surface(
+        color = bg,
+        shape = RoundedCornerShape(18.dp),
+        border = androidx.compose.foundation.BorderStroke(1.dp, fg.copy(alpha = 0.25f)),
+        modifier = modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 6.dp),
+    ) {
         Row(
-            Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+            Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
+            Surface(
+                color = fg.copy(alpha = 0.12f),
+                shape = CircleShape,
+                modifier = Modifier.size(34.dp),
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(icon, contentDescription = null, tint = fg, modifier = Modifier.size(20.dp))
+                }
+            }
+            Spacer(Modifier.width(10.dp))
             Text(
                 notice.text,
                 color = fg,
                 style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Bold,
                 modifier = Modifier.weight(1f),
             )
-            TextButton(onClick = onDismiss) { Text("إغلاق", color = fg) }
+            TextButton(onClick = onDismiss) {
+                Icon(Icons.Filled.Close, contentDescription = "إغلاق", tint = fg, modifier = Modifier.size(18.dp))
+            }
         }
     }
 }
@@ -399,7 +439,7 @@ fun ActionButton(
         onClick = onClick,
         enabled = enabled && !loading,
         modifier = modifier.height(52.dp),
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(16.dp),
     ) {
         if (loading) {
             CircularProgressIndicator(
