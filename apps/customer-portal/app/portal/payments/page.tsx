@@ -1,73 +1,92 @@
 'use client';
 
+import { KpiStrip, PageHead, Panel } from '@erp/ui';
 import { Decimal } from 'decimal.js';
 
-import { Kpi } from '../../../components/card';
+import { Empty } from '../../../components/card';
 import { PortalShell } from '../../../components/portal-shell';
 import { fetchPayments } from '../../../lib/api';
 import { dateText, moneyText } from '../../../lib/format';
 import { useAsync } from '../../../lib/use-async';
 
-const METHOD_AR: Record<string, string> = { cash: 'نقداً', cheque: 'شيك', bank_transfer: 'تحويل بنكي', card: 'شبكة/بطاقة' };
+const METHOD_AR: Record<string, string> = {
+  cash: 'نقداً',
+  cheque: 'شيك',
+  bank_transfer: 'تحويل بنكي',
+  card: 'شبكة/بطاقة',
+};
 const KIND_AR: Record<string, string> = { receipt: 'سند قبض', payment: 'سند صرف' };
 
 function Payments() {
   const payments = useAsync(() => fetchPayments(), []);
   const rows = payments.data ?? [];
-  const receiptsTotal = rows.filter((row) => row.kind === 'receipt').reduce((sum, row) => sum.plus(row.amount || '0'), new Decimal(0));
+  const receiptsTotal = rows
+    .filter((row) => row.kind === 'receipt')
+    .reduce((sum, row) => sum.plus(row.amount || '0'), new Decimal(0));
 
   return (
     <>
-      <section>
-        <h1>المدفوعات</h1>
-        <p className="muted">السندات المرحّلة المسجلة على حسابك لدى المورد.</p>
-      </section>
+      <PageHead title="المدفوعات" description="السندات المرحّلة المسجلة على حسابك لدى المورد." />
 
-      <div className="grid cols">
-        <Kpi label="إجمالي المقبوض منك" value={moneyText(receiptsTotal.toFixed(2))} hint={`${rows.length} سند`} />
-        <Kpi label="آخر سند" value={rows[0] ? moneyText(rows[0].amount) : '—'} hint={rows[0] ? dateText(rows[0].day) : 'لا توجد سندات'} />
-      </div>
+      <KpiStrip
+        items={[
+          {
+            label: 'إجمالي المقبوض منك',
+            value: moneyText(receiptsTotal.toFixed(2)),
+            hint: `${rows.length} سند`,
+          },
+          {
+            label: 'آخر سند',
+            value: rows[0] ? moneyText(rows[0].amount) : '—',
+            hint: rows[0] ? dateText(rows[0].day) : 'لا توجد سندات',
+          },
+        ]}
+      />
 
-      <section className="card" style={{ overflowX: 'auto' }}>
+      <Panel title="سندات القبض" flush>
         {payments.status === 'loading' ? (
-          <p className="muted">جارٍ تحميل السندات…</p>
+          <p className="panel-state">جارٍ تحميل السندات…</p>
         ) : payments.status === 'error' ? (
-          <p className="muted" role="alert">
+          <p className="panel-state" role="alert">
             {payments.error}
           </p>
         ) : rows.length === 0 ? (
-          <p className="muted">لم تُسجَّل أي سندات على حسابك بعد.</p>
+          <Empty bare title="لم تُسجَّل سندات بعد" detail="يظهر هنا كل سند قبض مرحّل على حسابك لدى المورد." />
         ) : (
           <div className="table-wrap">
             <table>
-            <thead>
-              <tr>
-                <th>الرقم</th>
-                <th>التاريخ</th>
-                <th>النوع</th>
-                <th>طريقة الدفع</th>
-                <th>المبلغ</th>
-                <th>المرجع</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((row) => (
-                <tr key={row.id}>
-                  <td>{row.number ?? '—'}</td>
-                  <td>{dateText(row.day)}</td>
-                  <td>{KIND_AR[row.kind] ?? row.kind}</td>
-                  <td>{METHOD_AR[row.method] ?? row.method}</td>
-                  <td>
-                    <strong>{moneyText(row.amount)}</strong>
-                  </td>
-                  <td>{(row as unknown as Record<string, string>).reference_no ?? (row as unknown as Record<string, string>).cheque_no ?? '—'}</td>
+              <thead>
+                <tr>
+                  <th>الرقم</th>
+                  <th>التاريخ</th>
+                  <th>النوع</th>
+                  <th>طريقة الدفع</th>
+                  <th>المبلغ</th>
+                  <th>المرجع</th>
                 </tr>
-              ))}
-            </tbody>
+              </thead>
+              <tbody>
+                {rows.map((row) => (
+                  <tr key={row.id}>
+                    <td>{row.number ?? '—'}</td>
+                    <td>{dateText(row.day)}</td>
+                    <td>{KIND_AR[row.kind] ?? row.kind}</td>
+                    <td>{METHOD_AR[row.method] ?? row.method}</td>
+                    <td>
+                      <strong>{moneyText(row.amount)}</strong>
+                    </td>
+                    <td>
+                      {(row as unknown as Record<string, string>).reference_no ??
+                        (row as unknown as Record<string, string>).cheque_no ??
+                        '—'}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
             </table>
           </div>
         )}
-      </section>
+      </Panel>
     </>
   );
 }

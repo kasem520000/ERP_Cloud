@@ -3,28 +3,20 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
-import { fetchProfile, logout, readToken, type PortalProfile } from '../lib/api';
+import { logout, readToken } from '../lib/api';
 
 /**
- * الشريط العلوي يحمل هوية العميل، لا زرّ دخول فقط.
+ * الشريط العلوي يحمل زرّ الجلسة فقط.
  *
- * التخطيط خادميّ ولا يقرأ الكوكي، فكان الشريط بعد الدخول فارغاً إلا من الشعار —
- * مساحةٌ بيضاء في أعلى كل صفحة. هذه الجزيرة تقرأ الجلسة والملف، وتعرض اسم
- * العميل والمنشأة وزرّ خروج، وتُخفي دعوة الدخول إن كان المستخدم داخل البوابة.
+ * هوية العميل ومنشأته مكانها لوحة السياقة في جانب الصفحة، فلا تتكرّر في الرأس؛
+ * ويكفي الصفحات الداخلية زرُّ خروج. التخطيط خادميّ لا يقرأ الكوكي، فهذه الجزيرة
+ * تقرأ الجلسة وتُبدّل بين «دخول» و«تسجيل الخروج».
  */
 export function PortalHeaderActions() {
   const [signedIn, setSignedIn] = useState<boolean | null>(null);
-  const [profile, setProfile] = useState<PortalProfile | null>(null);
 
   useEffect(() => {
-    if (!readToken()) {
-      setSignedIn(false);
-      return;
-    }
-    setSignedIn(true);
-    fetchProfile()
-      .then(setProfile)
-      .catch(() => setProfile(null));
+    setSignedIn(Boolean(readToken()));
   }, []);
 
   if (signedIn === null) return null;
@@ -39,25 +31,9 @@ export function PortalHeaderActions() {
     );
   }
 
-  const name = profile?.party?.name;
-  const company = profile?.company?.nameAr;
-
   return (
-    <div className="row" style={{ gap: 10, alignItems: 'center' }}>
-      {name ? (
-        <Link className="row" href="/portal/profile" style={{ gap: 8, alignItems: 'center', textDecoration: 'none', color: 'inherit' }}>
-          <span className="portal-avatar" aria-hidden style={{ width: 30, height: 30, fontSize: 13 }}>
-            {name.trim().slice(0, 1)}
-          </span>
-          <span style={{ display: 'grid', lineHeight: 1.25 }}>
-            <strong style={{ fontSize: 13 }}>{name}</strong>
-            {company ? <small className="muted" style={{ fontSize: 11 }}>{company}</small> : null}
-          </span>
-        </Link>
-      ) : null}
-      <button className="btn sm" type="button" onClick={logout}>
-        تسجيل الخروج
-      </button>
-    </div>
+    <button className="btn sm" type="button" onClick={logout}>
+      تسجيل الخروج
+    </button>
   );
 }

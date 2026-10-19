@@ -22,8 +22,7 @@
 body {
   background:
     radial-gradient(80rem 44rem at 100% -10%, rgb(11 122 99 / 0.05), transparent 55%),
-    radial-gradient(60rem 36rem at -8% 110%, rgb(201 162 39 / 0.045), transparent 52%),
-    var(--bg);
+    radial-gradient(60rem 36rem at -8% 110%, rgb(201 162 39 / 0.045), transparent 52%), var(--bg);
   color: var(--text);
   font-family: var(--font-sans);
   min-height: 100vh;
@@ -130,9 +129,7 @@ body {
   transform: translateY(0) scale(0.985);
 }
 .btn.primary {
-  background:
-    linear-gradient(180deg, rgb(255 255 255 / 0.14), transparent 55%),
-    var(--gradient-brand);
+  background: linear-gradient(180deg, rgb(255 255 255 / 0.14), transparent 55%), var(--gradient-brand);
   border-color: color-mix(in srgb, var(--color-brand-700) 80%, black);
   color: #fff;
   box-shadow:
@@ -186,8 +183,7 @@ body {
   color: #f2f7fb;
   background:
     radial-gradient(100% 140% at 100% 0%, rgb(16 185 129 / 0.2), transparent 55%),
-    radial-gradient(80% 120% at 0% 100%, rgb(210 173 69 / 0.12), transparent 48%),
-    var(--gradient-executive);
+    radial-gradient(80% 120% at 0% 100%, rgb(210 173 69 / 0.12), transparent 48%), var(--gradient-executive);
   box-shadow: var(--shadow-5);
 }
 .hero h1,
@@ -245,6 +241,53 @@ body {
 }
 
 .muted {
+  color: var(--muted);
+}
+
+/* حالة الفراغ — بطاقة مستقلّة، أو كتلة مسطّحة داخل لوحة. */
+.empty {
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  padding: 32px 24px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-xl);
+  background: var(--surface);
+  box-shadow: var(--shadow-1);
+  text-align: center;
+}
+.empty.is-bare {
+  padding: 28px 20px;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+}
+.empty-icon {
+  display: grid;
+  place-items: center;
+  inline-size: 48px;
+  block-size: 48px;
+  border-radius: 16px;
+  background: var(--surface-3);
+  color: var(--muted);
+}
+.empty-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+}
+.empty-detail {
+  margin: 0;
+  max-inline-size: 28rem;
+  font-size: 13px;
+  color: var(--muted);
+}
+.panel-state {
+  margin: 0;
+  padding: 18px 20px;
+  font-size: 13px;
   color: var(--muted);
 }
 .small {
@@ -357,9 +400,7 @@ body {
   padding: 12px;
   border: 1px solid var(--line);
   border-radius: 12px;
-  background:
-    linear-gradient(180deg, rgb(201 162 39 / 0.06), transparent 70%),
-    var(--surface-2);
+  background: linear-gradient(180deg, rgb(201 162 39 / 0.06), transparent 70%), var(--surface-2);
 }
 .portal-balance small {
   color: var(--muted);
@@ -562,7 +603,6 @@ tbody tr:last-child td {
     display: none;
   }
 }
-
 
 /* A 220 ms CSS-only route entrance (no motion library in this app). */
 .page-enter {
