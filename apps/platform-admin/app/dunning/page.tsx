@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Panel } from '@erp/ui';
 
 import { Empty, ErrorBox, Loading, Screen } from '../../components/screen';
+import { Table, type Column } from '../../components/ui/table';
 import { ApiError, apiData, apiPost } from '../../lib/api';
 import { useQuery } from '../../lib/use-query';
 import { dateText } from '../../lib/format';
@@ -118,6 +119,95 @@ export default function DunningPage() {
   const schedule = data?.schedule ?? [];
   const attempts = data?.attempts ?? [];
 
+  const scheduleColumns: Array<Column<ScheduleRow>> = [
+    { key: 'invoice', header: 'الفاتورة', ltr: true, cell: (row) => row.invoiceNumber ?? '—' },
+    {
+      key: 'tenant',
+      header: 'العميل',
+      grow: true,
+      cell: (row) => (
+        <>
+          <strong>{row.tenantName}</strong>
+          <div className="muted small" dir="ltr">
+            {row.tenantCode}
+          </div>
+        </>
+      ),
+    },
+    { key: 'due', header: 'الاستحقاق', ltr: true, cell: (row) => dateText(row.dueDate) },
+    { key: 'overdue', header: 'التأخير', numeric: true, cell: (row) => `${row.daysOverdue} يوماً` },
+    {
+      key: 'remaining',
+      header: 'المتبقّي',
+      numeric: true,
+      cell: (row) =>
+        `${Number(row.remaining).toLocaleString('ar-SA-u-ca-gregory-nu-latn', { minimumFractionDigits: 2 })} ${row.currency}`,
+    },
+    {
+      key: 'attempts',
+      header: 'المحاولات',
+      numeric: true,
+      cell: (row) => `${row.attemptsMade} / ${data?.maxAttempts ?? '—'}`,
+    },
+    {
+      key: 'next',
+      header: 'القادمة',
+      cell: (row) =>
+        row.exhausted ? (
+          <span className="badge failed">استُنفدت المحاولات</span>
+        ) : (
+          <>
+            <span className="badge pending">المحاولة {row.nextAttemptNo}</span>
+            <div className="muted small" dir="ltr">
+              {dateText(row.nextAttemptAt)}
+            </div>
+          </>
+        ),
+    },
+    {
+      key: 'action',
+      header: '',
+      cell: (row) => (
+        <button
+          className="btn sm"
+          type="button"
+          disabled={busyFor === row.subscriptionId}
+          onClick={() => void run(row)}
+        >
+          {busyFor === row.subscriptionId ? 'جارٍ…' : 'متابعة'}
+        </button>
+      ),
+    },
+  ];
+
+  const attemptColumns: Array<Column<Attempt>> = [
+    { key: 'no', header: '#', numeric: true, cell: (attempt) => attempt.attemptNo },
+    { key: 'invoice', header: 'الفاتورة', ltr: true, cell: (attempt) => attempt.invoiceNumber ?? '—' },
+    { key: 'tenant', header: 'العميل', cell: (attempt) => attempt.tenantName },
+    { key: 'channel', header: 'القناة', cell: (attempt) => CHANNEL_LABEL[attempt.channel] },
+    {
+      key: 'status',
+      header: 'الحالة',
+      cell: (attempt) => (
+        <>
+          <span className={`badge ${attempt.status}`}>{STATUS_LABEL[attempt.status]}</span>
+          {attempt.outcome && <div className="muted small">{attempt.outcome}</div>}
+        </>
+      ),
+    },
+    {
+      key: 'when',
+      header: 'التاريخ',
+      ltr: true,
+      cell: (attempt) => dateText(attempt.sentAt ?? attempt.scheduledAt),
+    },
+    {
+      key: 'message',
+      header: 'الرسالة',
+      cell: (attempt) => <span className="small">{attempt.message}</span>,
+    },
+  ];
+
   return (
     <Screen
       title="المتابعة والتحصيل"
@@ -170,68 +260,7 @@ export default function DunningPage() {
             {schedule.length === 0 ? (
               <Empty title="لا فاتورة متأخّرة" detail="كل فاتورة صادرة إمّا مدفوعة أو لم يحن استحقاقها." />
             ) : (
-              <div className="table-wrap">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>الفاتورة</th>
-                      <th>العميل</th>
-                      <th>الاستحقاق</th>
-                      <th className="num">التأخير</th>
-                      <th className="num">المتبقّي</th>
-                      <th className="num">المحاولات</th>
-                      <th>القادمة</th>
-                      <th />
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {schedule.map((row) => (
-                      <tr key={row.invoiceId}>
-                        <td dir="ltr">{row.invoiceNumber ?? '—'}</td>
-                        <td>
-                          <strong>{row.tenantName}</strong>
-                          <div className="muted small" dir="ltr">
-                            {row.tenantCode}
-                          </div>
-                        </td>
-                        <td dir="ltr">{dateText(row.dueDate)}</td>
-                        <td className="num">{row.daysOverdue} يوماً</td>
-                        <td className="num">
-                          {Number(row.remaining).toLocaleString('ar-SA-u-ca-gregory-nu-latn', {
-                            minimumFractionDigits: 2,
-                          })}{' '}
-                          {row.currency}
-                        </td>
-                        <td className="num">
-                          {row.attemptsMade} / {data.maxAttempts}
-                        </td>
-                        <td>
-                          {row.exhausted ? (
-                            <span className="badge failed">استُنفدت المحاولات</span>
-                          ) : (
-                            <>
-                              <span className="badge pending">المحاولة {row.nextAttemptNo}</span>
-                              <div className="muted small" dir="ltr">
-                                {dateText(row.nextAttemptAt)}
-                              </div>
-                            </>
-                          )}
-                        </td>
-                        <td>
-                          <button
-                            className="btn sm"
-                            type="button"
-                            disabled={busyFor === row.subscriptionId}
-                            onClick={() => void run(row)}
-                          >
-                            {busyFor === row.subscriptionId ? 'جارٍ…' : 'متابعة'}
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <Table bare columns={scheduleColumns} rows={schedule} rowKey={(row) => row.invoiceId} />
             )}
           </Panel>
 
@@ -239,37 +268,7 @@ export default function DunningPage() {
             {attempts.length === 0 ? (
               <Empty title="لا محاولات بعد" detail="شغّل المتابعة من الجدول أعلاه." />
             ) : (
-              <div className="table-wrap">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>#</th>
-                      <th>الفاتورة</th>
-                      <th>العميل</th>
-                      <th>القناة</th>
-                      <th>الحالة</th>
-                      <th>التاريخ</th>
-                      <th>الرسالة</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {attempts.map((attempt) => (
-                      <tr key={attempt.id}>
-                        <td className="num">{attempt.attemptNo}</td>
-                        <td dir="ltr">{attempt.invoiceNumber ?? '—'}</td>
-                        <td>{attempt.tenantName}</td>
-                        <td>{CHANNEL_LABEL[attempt.channel]}</td>
-                        <td>
-                          <span className={`badge ${attempt.status}`}>{STATUS_LABEL[attempt.status]}</span>
-                          {attempt.outcome && <div className="muted small">{attempt.outcome}</div>}
-                        </td>
-                        <td dir="ltr">{dateText(attempt.sentAt ?? attempt.scheduledAt)}</td>
-                        <td className="small">{attempt.message}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <Table bare columns={attemptColumns} rows={attempts} rowKey={(attempt) => attempt.id} />
             )}
           </Panel>
         </>

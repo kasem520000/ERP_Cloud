@@ -9,7 +9,7 @@ import { Empty, ErrorBox, Loading, Screen } from '../../components/screen';
 import { Badge } from '../../components/ui/badge';
 import { Button } from '../../components/ui/button';
 import { Select } from '../../components/ui/input';
-import { Table } from '../../components/ui/table';
+import { Table, type Column } from '../../components/ui/table';
 import { ApiError, apiData, apiPost } from '../../lib/api';
 import { useQuery } from '../../lib/use-query';
 import { dateText } from '../../lib/format';
@@ -444,6 +444,54 @@ export default function InvoicesPage() {
 }
 
 function DetailCard({ invoice, onClose }: { invoice: Invoice; onClose: () => void }) {
+  const lineColumns: Array<Column<InvoiceLine>> = [
+    { key: 'no', header: '#', numeric: true, cell: (line) => line.lineNo },
+    { key: 'description', header: 'البند', grow: true, cell: (line) => line.description },
+    { key: 'quantity', header: 'الكمية', numeric: true, cell: (line) => line.quantity },
+    {
+      key: 'price',
+      header: 'السعر',
+      numeric: true,
+      cell: (line) =>
+        Number(line.unitPrice).toLocaleString('ar-SA-u-ca-gregory-nu-latn', { minimumFractionDigits: 2 }),
+    },
+    {
+      key: 'amount',
+      header: 'المبلغ',
+      numeric: true,
+      cell: (line) =>
+        Number(line.amount).toLocaleString('ar-SA-u-ca-gregory-nu-latn', { minimumFractionDigits: 2 }),
+    },
+  ];
+
+  const paymentColumns: Array<Column<Payment>> = [
+    { key: 'date', header: 'التاريخ', ltr: true, cell: (payment) => payment.receivedAt.slice(0, 10) },
+    {
+      key: 'method',
+      header: 'الطريقة',
+      cell: (payment) => (
+        <>
+          {METHOD_LABEL[payment.method]}
+          {payment.gateway && <span className="muted small"> · {payment.gateway}</span>}
+        </>
+      ),
+    },
+    { key: 'reference', header: 'المرجع', ltr: true, cell: (payment) => payment.reference ?? '—' },
+    {
+      key: 'receipt',
+      header: 'الإيصال',
+      ltr: true,
+      cell: (payment) => <span className="small">{payment.receiptFileId ?? '—'}</span>,
+    },
+    {
+      key: 'amount',
+      header: 'المبلغ',
+      numeric: true,
+      cell: (payment) => money(payment.amount, invoice.currency),
+    },
+    { key: 'by', header: 'سجّلها', cell: (payment) => payment.recordedByLabel ?? '—' },
+  ];
+
   return (
     <Panel>
       <div className="row" style={{ justifyContent: 'space-between', alignItems: 'baseline' }}>
@@ -492,69 +540,12 @@ function DetailCard({ invoice, onClose }: { invoice: Invoice; onClose: () => voi
         )}
       </dl>
 
-      <table>
-        <thead>
-          <tr>
-            <th>#</th>
-            <th>البند</th>
-            <th className="num">الكمية</th>
-            <th className="num">السعر</th>
-            <th className="num">المبلغ</th>
-          </tr>
-        </thead>
-        <tbody>
-          {invoice.lines.map((line) => (
-            <tr key={line.lineNo}>
-              <td>{line.lineNo}</td>
-              <td>{line.description}</td>
-              <td className="num">{line.quantity}</td>
-              <td className="num">
-                {Number(line.unitPrice).toLocaleString('ar-SA-u-ca-gregory-nu-latn', {
-                  minimumFractionDigits: 2,
-                })}
-              </td>
-              <td className="num">
-                {Number(line.amount).toLocaleString('ar-SA-u-ca-gregory-nu-latn', {
-                  minimumFractionDigits: 2,
-                })}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      <Table bare columns={lineColumns} rows={invoice.lines} rowKey={(line) => String(line.lineNo)} />
 
       {invoice.payments.length > 0 && (
         <>
           <h2>الدفعات</h2>
-          <table>
-            <thead>
-              <tr>
-                <th>التاريخ</th>
-                <th>الطريقة</th>
-                <th>المرجع</th>
-                <th>الإيصال</th>
-                <th className="num">المبلغ</th>
-                <th>سجّلها</th>
-              </tr>
-            </thead>
-            <tbody>
-              {invoice.payments.map((payment) => (
-                <tr key={payment.id}>
-                  <td dir="ltr">{payment.receivedAt.slice(0, 10)}</td>
-                  <td>
-                    {METHOD_LABEL[payment.method]}
-                    {payment.gateway && <span className="muted small"> · {payment.gateway}</span>}
-                  </td>
-                  <td dir="ltr">{payment.reference ?? '—'}</td>
-                  <td dir="ltr" className="small">
-                    {payment.receiptFileId ?? '—'}
-                  </td>
-                  <td className="num">{money(payment.amount, invoice.currency)}</td>
-                  <td>{payment.recordedByLabel ?? '—'}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <Table bare columns={paymentColumns} rows={invoice.payments} rowKey={(payment) => payment.id} />
         </>
       )}
     </Panel>

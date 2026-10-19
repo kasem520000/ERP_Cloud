@@ -40,6 +40,7 @@ import {
 import { Panel } from '@erp/ui';
 
 import { Empty, ErrorBox, Forbidden, Loading, Screen } from '../../components/screen';
+import { Table, type Column } from '../../components/ui/table';
 import { Tabs } from '../../components/ui';
 import { ApiError, apiData, apiPatch, apiPost } from '../../lib/api';
 import { useSession } from '../../lib/session';
@@ -95,8 +96,33 @@ function Segments() {
   if (segments.status === 'forbidden') return <Forbidden />;
   if (segments.status === 'error') return <ErrorBox message={segments.error} onRetry={segments.reload} />;
 
+  const segmentColumns: Array<Column<CampaignSegmentInfo>> = [
+    { key: 'label', header: 'الشريحة', grow: true, cell: (segment) => segment.labelAr },
+    {
+      key: 'audience',
+      header: 'الجمهور',
+      cell: (segment) => (
+        <span className={segment.audience === 'people' ? 'tag ok' : 'tag platform'}>
+          {segment.audience === 'people' ? 'أشخاص' : 'حسابات'}
+        </span>
+      ),
+    },
+    { key: 'count', header: 'العدد', numeric: true, cell: (segment) => segment.count },
+    {
+      key: 'definition',
+      header: 'التعريف',
+      cell: (segment) => (
+        <>
+          <div className="muted">{segment.descriptionAr}</div>
+          {segment.warningAr ? <div className="alert danger">{segment.warningAr}</div> : null}
+        </>
+      ),
+    },
+  ];
+
   return (
     <Panel
+      flush
       title="الشرائح وأعدادها الآن"
       hint={
         <>
@@ -105,33 +131,7 @@ function Segments() {
         </>
       }
     >
-      <table className="table">
-        <thead>
-          <tr>
-            <th>الشريحة</th>
-            <th>الجمهور</th>
-            <th>العدد</th>
-            <th>التعريف</th>
-          </tr>
-        </thead>
-        <tbody>
-          {(segments.data ?? []).map((segment) => (
-            <tr key={segment.segment}>
-              <td>{segment.labelAr}</td>
-              <td>
-                <span className={segment.audience === 'people' ? 'tag ok' : 'tag platform'}>
-                  {segment.audience === 'people' ? 'أشخاص' : 'حسابات'}
-                </span>
-              </td>
-              <td>{segment.count}</td>
-              <td>
-                <div className="muted">{segment.descriptionAr}</div>
-                {segment.warningAr ? <div className="alert danger">{segment.warningAr}</div> : null}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      <Table bare columns={segmentColumns} rows={segments.data ?? []} rowKey={(segment) => segment.segment} />
     </Panel>
   );
 }
@@ -167,6 +167,54 @@ function Campaigns({ canManage }: { canManage: boolean }) {
   if (list.status === 'error') return <ErrorBox message={list.error} onRetry={list.reload} />;
 
   const payload = list.data!;
+
+  const campaignColumns: Array<Column<CampaignView>> = [
+    {
+      key: 'name',
+      header: 'الحملة',
+      grow: true,
+      cell: (campaign) => (
+        <>
+          {campaign.name}
+          <div className="muted">{campaign.subject}</div>
+        </>
+      ),
+    },
+    { key: 'segment', header: 'الشريحة', cell: (campaign) => campaign.segmentLabelAr },
+    {
+      key: 'status',
+      header: 'الحالة',
+      cell: (campaign) => <span className={STATUS_TONE[campaign.status]}>{campaign.statusLabelAr}</span>,
+    },
+    {
+      key: 'when',
+      header: 'الموعد',
+      cell: (campaign) => formatDate(campaign.scheduledAt ?? campaign.createdAt),
+    },
+    { key: 'recipients', header: 'المستلمون', numeric: true, cell: (campaign) => campaign.totals.recipients },
+    { key: 'sent', header: 'أُرسل', numeric: true, cell: (campaign) => campaign.totals.sent },
+    { key: 'opened', header: 'فُتح', numeric: true, cell: (campaign) => campaign.totals.opened },
+    { key: 'clicked', header: 'نُقر', numeric: true, cell: (campaign) => campaign.totals.clicked },
+    {
+      key: 'unsub',
+      header: 'ألغى الاشتراك',
+      numeric: true,
+      cell: (campaign) => campaign.totals.unsubscribed,
+    },
+    {
+      key: 'report',
+      header: '',
+      cell: (campaign) => (
+        <button
+          className="btn sm"
+          type="button"
+          onClick={() => setOpenId(openId === campaign.id ? null : campaign.id)}
+        >
+          {openId === campaign.id ? 'إغلاق' : 'التقرير'}
+        </button>
+      ),
+    },
+  ];
 
   return (
     <>
@@ -248,52 +296,8 @@ function Campaigns({ canManage }: { canManage: boolean }) {
           }
         />
       ) : (
-        <Panel>
-          <table className="table">
-            <thead>
-              <tr>
-                <th>الحملة</th>
-                <th>الشريحة</th>
-                <th>الحالة</th>
-                <th>الموعد</th>
-                <th>المستلمون</th>
-                <th>أُرسل</th>
-                <th>فُتح</th>
-                <th>نُقر</th>
-                <th>ألغى الاشتراك</th>
-                <th />
-              </tr>
-            </thead>
-            <tbody>
-              {payload.data.map((campaign) => (
-                <tr key={campaign.id}>
-                  <td>
-                    {campaign.name}
-                    <div className="muted">{campaign.subject}</div>
-                  </td>
-                  <td>{campaign.segmentLabelAr}</td>
-                  <td>
-                    <span className={STATUS_TONE[campaign.status]}>{campaign.statusLabelAr}</span>
-                  </td>
-                  <td>{formatDate(campaign.scheduledAt ?? campaign.createdAt)}</td>
-                  <td>{campaign.totals.recipients}</td>
-                  <td>{campaign.totals.sent}</td>
-                  <td>{campaign.totals.opened}</td>
-                  <td>{campaign.totals.clicked}</td>
-                  <td>{campaign.totals.unsubscribed}</td>
-                  <td>
-                    <button
-                      className="btn sm"
-                      type="button"
-                      onClick={() => setOpenId(openId === campaign.id ? null : campaign.id)}
-                    >
-                      {openId === campaign.id ? 'إغلاق' : 'التقرير'}
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <Panel flush title="الحملات">
+          <Table bare columns={campaignColumns} rows={payload.data} rowKey={(campaign) => campaign.id} />
         </Panel>
       )}
 
@@ -485,6 +489,54 @@ function CampaignCard({
   if (report.status === 'error') return <ErrorBox message={report.error} onRetry={report.reload} />;
 
   const { campaign, totals, messages, events, links } = report.data!;
+  const linkColumns: Array<Column<CampaignReport['links'][number]>> = [
+    { key: 'url', header: 'الوجهة', grow: true, cell: (link) => <bdi>{link.url}</bdi> },
+    { key: 'clicks', header: 'النقرات', numeric: true, cell: (link) => link.clicks },
+  ];
+
+  const messageColumns: Array<Column<CampaignReport['messages'][number]>> = [
+    { key: 'email', header: 'البريد', ltr: true, cell: (message) => <bdi>{message.email}</bdi> },
+    {
+      key: 'name',
+      header: 'الاسم',
+      cell: (message) => message.fullName ?? message.companyName ?? '—',
+    },
+    {
+      key: 'status',
+      header: 'الحالة',
+      cell: (message) => (
+        <span
+          className={
+            message.status === 'sent' ? 'tag ok' : message.status === 'failed' ? 'tag danger' : 'tag'
+          }
+        >
+          {message.statusLabelAr}
+        </span>
+      ),
+    },
+    {
+      key: 'detail',
+      header: 'السبب',
+      cell: (message) => <span className="muted">{message.detail ?? '—'}</span>,
+    },
+    {
+      key: 'sent',
+      header: 'أُرسلت',
+      cell: (message) => (message.sentAt ? formatDate(message.sentAt) : '—'),
+    },
+    {
+      key: 'opened',
+      header: 'فُتحت',
+      cell: (message) => (message.openedAt ? formatDate(message.openedAt) : '—'),
+    },
+    { key: 'clicks', header: 'النقرات', numeric: true, cell: (message) => message.clickCount },
+    {
+      key: 'lastClick',
+      header: 'آخر نقرة',
+      cell: (message) => (message.lastClickedUrl ? <bdi>{message.lastClickedUrl}</bdi> : '—'),
+    },
+  ];
+
   const locked =
     campaign.status === 'sent' || campaign.status === 'canceled' || campaign.status === 'sending';
 
@@ -723,79 +775,21 @@ function CampaignCard({
         <p className="muted">قراءةٌ فقط: الكتابة والإرسال والإلغاء تحتاج `console.campaigns.manage`.</p>
       )}
 
-      <Panel title="الروابط المُتتبَّعة">
+      <Panel flush title="الروابط المُتتبَّعة">
         {links.length === 0 ? (
           <p className="muted">لا نقرةَ مسجّلة بعد.</p>
         ) : (
-          <table className="table">
-            <thead>
-              <tr>
-                <th>الوجهة</th>
-                <th>النقرات</th>
-              </tr>
-            </thead>
-            <tbody>
-              {links.map((link) => (
-                <tr key={link.url}>
-                  <td>
-                    <bdi>{link.url}</bdi>
-                  </td>
-                  <td>{link.clicks}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <Table bare columns={linkColumns} rows={links} rowKey={(link) => link.url} />
         )}
       </Panel>
 
-      <Panel title={<>المستلمون ( {messages.length} )</>}>
+      <Panel flush title={<>المستلمون ( {messages.length} )</>}>
         {messages.length === 0 ? (
           <p className="muted">
             {campaign.status === 'scheduled' ? 'لم يُرسل بعد — الرسائل تُنشأ لحظة الإرسال.' : 'لا مستلمين.'}
           </p>
         ) : (
-          <table className="table">
-            <thead>
-              <tr>
-                <th>البريد</th>
-                <th>الاسم</th>
-                <th>الحالة</th>
-                <th>السبب</th>
-                <th>أُرسلت</th>
-                <th>فُتحت</th>
-                <th>النقرات</th>
-                <th>آخر نقرة</th>
-              </tr>
-            </thead>
-            <tbody>
-              {messages.map((message) => (
-                <tr key={message.id}>
-                  <td>
-                    <bdi>{message.email}</bdi>
-                  </td>
-                  <td>{message.fullName ?? message.companyName ?? '—'}</td>
-                  <td>
-                    <span
-                      className={
-                        message.status === 'sent'
-                          ? 'tag ok'
-                          : message.status === 'failed'
-                            ? 'tag danger'
-                            : 'tag'
-                      }
-                    >
-                      {message.statusLabelAr}
-                    </span>
-                  </td>
-                  <td className="muted">{message.detail ?? '—'}</td>
-                  <td>{message.sentAt ? formatDate(message.sentAt) : '—'}</td>
-                  <td>{message.openedAt ? formatDate(message.openedAt) : '—'}</td>
-                  <td>{message.clickCount}</td>
-                  <td>{message.lastClickedUrl ? <bdi>{message.lastClickedUrl}</bdi> : '—'}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <Table bare columns={messageColumns} rows={messages} rowKey={(message) => message.id} />
         )}
       </Panel>
 

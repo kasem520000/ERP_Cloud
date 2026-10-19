@@ -15,6 +15,7 @@ import {
 } from '@erp/contracts';
 
 import { Empty, ErrorBox, Forbidden, Loading, Screen } from '../../components/screen';
+import { Table, type Column } from '../../components/ui/table';
 import { Tabs } from '../../components/ui';
 import { ApiError, apiData, apiPost } from '../../lib/api';
 import { useQuery } from '../../lib/use-query';
@@ -128,6 +129,82 @@ function InboxTab() {
     };
   }, [tickets.reload]);
 
+  /** أعمدةُ صندوق التذاكر — `Table` المشترك. */
+  const columns: Array<Column<SupportTicket>> = [
+    {
+      key: 'subject',
+      header: 'الموضوع',
+      grow: true,
+      cell: (ticket) => (
+        <>
+          <strong>{ticket.subject}</strong>
+          <p className="muted" style={{ margin: '2px 0 0', fontSize: 12 }}>
+            {ticket.category ?? 'بلا بابٍ محدّد'}
+          </p>
+        </>
+      ),
+    },
+    {
+      key: 'tenant',
+      header: 'العميل',
+      cell: (ticket) => (
+        <>
+          {ticket.tenantName ?? '—'}
+          <p className="muted" style={{ margin: 0, fontSize: 12 }}>
+            {ticket.tenantCode ?? ''}
+          </p>
+        </>
+      ),
+    },
+    {
+      key: 'status',
+      header: 'الحالة',
+      cell: (ticket) => (
+        <span className={`chip${ticket.status === 'open' ? ' on' : ''}`}>{STATUS_LABEL[ticket.status]}</span>
+      ),
+    },
+    {
+      key: 'priority',
+      header: 'الأولوية',
+      cell: (ticket) => (
+        <>
+          <span className={`chip${ticket.priority === 'urgent' ? ' on' : ''}`}>
+            {PRIORITY_LABEL[ticket.priority]}
+          </span>
+          <p className="muted" style={{ margin: 0, fontSize: 12 }}>
+            مهلة {SLA_HOURS[ticket.priority]} ساعة
+          </p>
+        </>
+      ),
+    },
+    {
+      key: 'sla',
+      header: 'المهلة',
+      cell: (ticket) => {
+        const remaining = slaMinutesRemaining(ticket);
+        return (
+          <span className={remaining !== null && remaining <= 0 ? 'danger-text' : undefined}>
+            {slaText(remaining)}
+            <p className="muted" style={{ margin: 0, fontSize: 12 }}>
+              {ticket.firstResponseAt ? `أول ردّ: ${dateTime(ticket.firstResponseAt)}` : 'بلا ردٍّ بعد'}
+            </p>
+          </span>
+        );
+      },
+    },
+    { key: 'assigned', header: 'المكلَّف', cell: (ticket) => ticket.assignedToLabel ?? 'بلا إسناد' },
+    { key: 'messages', header: 'الرسائل', numeric: true, cell: (ticket) => ticket.messageCount },
+    {
+      key: 'open',
+      header: '',
+      cell: (ticket) => (
+        <Link className="btn" href={`/tickets/${ticket.id}`}>
+          فتح
+        </Link>
+      ),
+    },
+  ];
+
   return (
     <>
       <div className="toolbar">
@@ -189,71 +266,7 @@ function InboxTab() {
           />
         )}
         {tickets.status === 'success' && (tickets.data?.length ?? 0) > 0 && (
-          <div className="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>الموضوع</th>
-                  <th>العميل</th>
-                  <th>الحالة</th>
-                  <th>الأولوية</th>
-                  <th>المهلة</th>
-                  <th>المكلَّف</th>
-                  <th>الرسائل</th>
-                  <th />
-                </tr>
-              </thead>
-              <tbody>
-                {(tickets.data ?? []).map((ticket) => {
-                  const remaining = slaMinutesRemaining(ticket);
-                  return (
-                    <tr key={ticket.id}>
-                      <td>
-                        <strong>{ticket.subject}</strong>
-                        <p className="muted" style={{ margin: '2px 0 0', fontSize: 12 }}>
-                          {ticket.category ?? 'بلا بابٍ محدّد'}
-                        </p>
-                      </td>
-                      <td>
-                        {ticket.tenantName ?? '—'}
-                        <p className="muted" style={{ margin: 0, fontSize: 12 }}>
-                          {ticket.tenantCode ?? ''}
-                        </p>
-                      </td>
-                      <td>
-                        <span className={`chip${ticket.status === 'open' ? ' on' : ''}`}>
-                          {STATUS_LABEL[ticket.status]}
-                        </span>
-                      </td>
-                      <td>
-                        <span className={`chip${ticket.priority === 'urgent' ? ' on' : ''}`}>
-                          {PRIORITY_LABEL[ticket.priority]}
-                        </span>
-                        <p className="muted" style={{ margin: 0, fontSize: 12 }}>
-                          مهلة {SLA_HOURS[ticket.priority]} ساعة
-                        </p>
-                      </td>
-                      <td className={remaining !== null && remaining <= 0 ? 'danger-text' : undefined}>
-                        {slaText(remaining)}
-                        <p className="muted" style={{ margin: 0, fontSize: 12 }}>
-                          {ticket.firstResponseAt
-                            ? `أول ردّ: ${dateTime(ticket.firstResponseAt)}`
-                            : 'بلا ردٍّ بعد'}
-                        </p>
-                      </td>
-                      <td>{ticket.assignedToLabel ?? 'بلا إسناد'}</td>
-                      <td>{ticket.messageCount}</td>
-                      <td>
-                        <Link className="btn" href={`/tickets/${ticket.id}`}>
-                          فتح
-                        </Link>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+          <Table bare columns={columns} rows={tickets.data ?? []} rowKey={(ticket) => ticket.id} />
         )}
       </Panel>
     </>

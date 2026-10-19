@@ -4,6 +4,7 @@ import { Panel } from '@erp/ui';
 import { useState } from 'react';
 
 import { Empty, ErrorBox, Loading, Screen } from '../../components/screen';
+import { Table, type Column } from '../../components/ui/table';
 import { ApiError, apiData, apiPatch, apiPost, apiPut } from '../../lib/api';
 import { useQuery } from '../../lib/use-query';
 
@@ -91,6 +92,48 @@ export default function PlansPage() {
     }
   }
 
+  const planColumns: Array<Column<Plan>> = [
+    { key: 'code', header: 'الرمز', ltr: true, cell: (plan) => plan.code },
+    { key: 'name', header: 'الاسم', grow: true, cell: (plan) => plan.name },
+    {
+      key: 'amount',
+      header: 'السعر',
+      numeric: true,
+      cell: (plan) =>
+        `${Number(plan.amount).toLocaleString('ar-SA-u-ca-gregory-nu-latn', { minimumFractionDigits: 2 })} ${plan.currency}`,
+    },
+    { key: 'interval', header: 'الدورة', cell: (plan) => (plan.interval === 'year' ? 'سنوي' : 'شهري') },
+    { key: 'monthly', header: 'المكافئ الشهري', numeric: true, cell: (plan) => plan.monthlyAmount },
+    { key: 'entitlements', header: 'الحقوق', numeric: true, cell: (plan) => plan.entitlements.length },
+    { key: 'active', header: 'اشتراكات فعّالة', numeric: true, cell: (plan) => plan.activeSubscriptions },
+    {
+      key: 'status',
+      header: 'الحالة',
+      cell: (plan) => (
+        <span className={`badge ${plan.active ? 'active' : 'planned'}`}>
+          {plan.active ? 'نشطة' : 'متوقفة'}
+        </span>
+      ),
+    },
+    {
+      key: 'actions',
+      header: '',
+      cell: (plan) => (
+        <div className="row" style={{ gap: 6 }}>
+          <button className="btn sm" type="button" onClick={() => setEntitlementTarget(plan)}>
+            الحقوق
+          </button>
+          <button className="btn sm" type="button" onClick={() => setEditing(plan)}>
+            تعديل
+          </button>
+          <button className="btn sm" type="button" onClick={() => void toggle(plan)}>
+            {plan.active ? 'إيقاف' : 'تفعيل'}
+          </button>
+        </div>
+      ),
+    },
+  ];
+
   return (
     <Screen
       title="الباقات والأسعار"
@@ -148,59 +191,7 @@ export default function PlansPage() {
           <Empty title="لا توجد باقات" detail="أنشئ الباقة الأولى ليتمكن العملاء من الاشتراك." />
         ) : (
           <Panel flush title="الباقات">
-            <div className="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>الرمز</th>
-                    <th>الاسم</th>
-                    <th className="num">السعر</th>
-                    <th>الدورة</th>
-                    <th className="num">المكافئ الشهري</th>
-                    <th className="num">الحقوق</th>
-                    <th className="num">اشتراكات فعّالة</th>
-                    <th>الحالة</th>
-                    <th />
-                  </tr>
-                </thead>
-                <tbody>
-                  {(plans.data ?? []).map((plan) => (
-                    <tr key={plan.id}>
-                      <td dir="ltr">{plan.code}</td>
-                      <td>{plan.name}</td>
-                      <td className="num">
-                        {Number(plan.amount).toLocaleString('ar-SA-u-ca-gregory-nu-latn', {
-                          minimumFractionDigits: 2,
-                        })}{' '}
-                        {plan.currency}
-                      </td>
-                      <td>{plan.interval === 'year' ? 'سنوي' : 'شهري'}</td>
-                      <td className="num">{plan.monthlyAmount}</td>
-                      <td className="num">{plan.entitlements.length}</td>
-                      <td className="num">{plan.activeSubscriptions}</td>
-                      <td>
-                        <span className={`badge ${plan.active ? 'active' : 'planned'}`}>
-                          {plan.active ? 'نشطة' : 'متوقفة'}
-                        </span>
-                      </td>
-                      <td>
-                        <div className="row" style={{ gap: 6 }}>
-                          <button className="btn sm" type="button" onClick={() => setEntitlementTarget(plan)}>
-                            الحقوق
-                          </button>
-                          <button className="btn sm" type="button" onClick={() => setEditing(plan)}>
-                            تعديل
-                          </button>
-                          <button className="btn sm" type="button" onClick={() => void toggle(plan)}>
-                            {plan.active ? 'إيقاف' : 'تفعيل'}
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <Table bare columns={planColumns} rows={plans.data ?? []} rowKey={(plan) => plan.id} />
           </Panel>
         ))}
 

@@ -47,6 +47,7 @@ import {
 import { Panel } from '@erp/ui';
 
 import { Empty, ErrorBox, Forbidden, Loading, Screen } from '../../components/screen';
+import { Table, type Column } from '../../components/ui/table';
 import { Tabs } from '../../components/ui';
 import { ApiError, apiData, apiFetch, apiPatch, apiPost } from '../../lib/api';
 import { useSession } from '../../lib/session';
@@ -118,6 +119,44 @@ function Queue({ canManage }: { canManage: boolean }) {
   if (queue.status === 'error') return <ErrorBox message={queue.error} onRetry={queue.reload} />;
 
   const payload = queue.data!;
+
+  const leadColumns: Array<Column<LeadView>> = [
+    { key: 'reference', header: 'المرجع', ltr: true, cell: (lead) => <bdi>{lead.reference}</bdi> },
+    {
+      key: 'request',
+      header: 'الطلب',
+      grow: true,
+      cell: (lead) => (
+        <>
+          {lead.fullName ?? '—'}
+          {lead.companyName ? <div className="muted">{lead.companyName}</div> : null}
+        </>
+      ),
+    },
+    { key: 'email', header: 'البريد', ltr: true, cell: (lead) => <bdi>{lead.email}</bdi> },
+    { key: 'branches', header: 'الفروع', numeric: true, cell: (lead) => lead.branchCount ?? '—' },
+    { key: 'source', header: 'المصدر', cell: (lead) => lead.sourceLabelAr },
+    {
+      key: 'status',
+      header: 'الحالة',
+      cell: (lead) => <span className={STATUS_TONE[lead.status]}>{lead.statusLabelAr}</span>,
+    },
+    { key: 'owner', header: 'المسؤول', cell: (lead) => lead.assignedToName ?? '—' },
+    { key: 'created', header: 'وصل في', cell: (lead) => formatDate(lead.createdAt) },
+    {
+      key: 'details',
+      header: '',
+      cell: (lead) => (
+        <button
+          className="btn sm"
+          type="button"
+          onClick={() => setOpenId(openId === lead.id ? null : lead.id)}
+        >
+          {openId === lead.id ? 'إغلاق' : 'تفاصيل'}
+        </button>
+      ),
+    },
+  ];
 
   return (
     <>
@@ -197,54 +236,8 @@ function Queue({ canManage }: { canManage: boolean }) {
       {payload.data.length === 0 ? (
         <Empty title="لا طلبات بهذه المرشّحات" detail="جرّب توسيع الحالة أو المصدر، أو امسح البحث." />
       ) : (
-        <Panel>
-          <table className="table">
-            <thead>
-              <tr>
-                <th>المرجع</th>
-                <th>الطلب</th>
-                <th>البريد</th>
-                <th>الفروع</th>
-                <th>المصدر</th>
-                <th>الحالة</th>
-                <th>المسؤول</th>
-                <th>وصل في</th>
-                <th />
-              </tr>
-            </thead>
-            <tbody>
-              {payload.data.map((lead) => (
-                <tr key={lead.id}>
-                  <td>
-                    <bdi>{lead.reference}</bdi>
-                  </td>
-                  <td>
-                    {lead.fullName ?? '—'}
-                    {lead.companyName ? <div className="muted">{lead.companyName}</div> : null}
-                  </td>
-                  <td>
-                    <bdi>{lead.email}</bdi>
-                  </td>
-                  <td>{lead.branchCount ?? '—'}</td>
-                  <td>{lead.sourceLabelAr}</td>
-                  <td>
-                    <span className={STATUS_TONE[lead.status]}>{lead.statusLabelAr}</span>
-                  </td>
-                  <td>{lead.assignedToName ?? '—'}</td>
-                  <td>{formatDate(lead.createdAt)}</td>
-                  <td>
-                    <button
-                      className="btn sm"
-                      type="button"
-                      onClick={() => setOpenId(openId === lead.id ? null : lead.id)}
-                    >
-                      {openId === lead.id ? 'إغلاق' : 'تفاصيل'}
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <Panel flush title="الطلبات">
+          <Table bare columns={leadColumns} rows={payload.data} rowKey={(lead) => lead.id} />
         </Panel>
       )}
 
@@ -657,6 +650,49 @@ function Subscribers({ canManage }: { canManage: boolean }) {
     }
   };
 
+  const subscriberColumns: Array<Column<SubscriberView>> = [
+    { key: 'email', header: 'البريد', ltr: true, cell: (row) => <bdi>{row.email}</bdi> },
+    { key: 'status', header: 'الحالة', cell: (row) => <span className="tag">{row.statusLabelAr}</span> },
+    { key: 'locale', header: 'اللغة', cell: (row) => (row.locale === 'ar' ? 'العربية' : 'English') },
+    { key: 'source', header: 'المصدر', cell: (row) => leadSourceLabelsAr[row.source] },
+    { key: 'created', header: 'اشترك في', cell: (row) => formatDate(row.createdAt) },
+    {
+      key: 'confirmed',
+      header: 'أكّد في',
+      cell: (row) => (row.confirmedAt ? formatDate(row.confirmedAt) : '—'),
+    },
+    ...(canManage
+      ? [
+          {
+            key: 'action',
+            header: 'إجراء',
+            cell: (row: SubscriberView) => (
+              <div className="toolbar">
+                {row.status !== 'confirmed' ? (
+                  <button
+                    className="btn sm"
+                    type="button"
+                    onClick={() => void setSubscriber(row.id, 'confirmed')}
+                  >
+                    تأكيد
+                  </button>
+                ) : null}
+                {row.status !== 'unsubscribed' ? (
+                  <button
+                    className="btn sm"
+                    type="button"
+                    onClick={() => void setSubscriber(row.id, 'unsubscribed')}
+                  >
+                    إلغاء
+                  </button>
+                ) : null}
+              </div>
+            ),
+          },
+        ]
+      : []),
+  ];
+
   return (
     <>
       <Panel bodyClassName="grid">
@@ -687,60 +723,8 @@ function Subscribers({ canManage }: { canManage: boolean }) {
           detail="الاشتراك يبدأ من تذييل الموقع، ويُؤكَّد من رابط البريد."
         />
       ) : (
-        <Panel>
-          <table className="table">
-            <thead>
-              <tr>
-                <th>البريد</th>
-                <th>الحالة</th>
-                <th>اللغة</th>
-                <th>المصدر</th>
-                <th>اشترك في</th>
-                <th>أكّد في</th>
-                {canManage ? <th>إجراء</th> : null}
-              </tr>
-            </thead>
-            <tbody>
-              {payload.data.map((row) => (
-                <tr key={row.id}>
-                  <td>
-                    <bdi>{row.email}</bdi>
-                  </td>
-                  <td>
-                    <span className="tag">{row.statusLabelAr}</span>
-                  </td>
-                  <td>{row.locale === 'ar' ? 'العربية' : 'English'}</td>
-                  <td>{leadSourceLabelsAr[row.source]}</td>
-                  <td>{formatDate(row.createdAt)}</td>
-                  <td>{row.confirmedAt ? formatDate(row.confirmedAt) : '—'}</td>
-                  {canManage ? (
-                    <td>
-                      <div className="toolbar">
-                        {row.status !== 'confirmed' ? (
-                          <button
-                            className="btn sm"
-                            type="button"
-                            onClick={() => void setSubscriber(row.id, 'confirmed')}
-                          >
-                            تأكيد
-                          </button>
-                        ) : null}
-                        {row.status !== 'unsubscribed' ? (
-                          <button
-                            className="btn sm"
-                            type="button"
-                            onClick={() => void setSubscriber(row.id, 'unsubscribed')}
-                          >
-                            إلغاء
-                          </button>
-                        ) : null}
-                      </div>
-                    </td>
-                  ) : null}
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <Panel flush title="المشتركون">
+          <Table bare columns={subscriberColumns} rows={payload.data} rowKey={(row) => row.id} />
         </Panel>
       )}
     </>

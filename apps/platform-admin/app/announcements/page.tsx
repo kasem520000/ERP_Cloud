@@ -15,6 +15,7 @@ import {
 } from '@erp/contracts';
 
 import { Empty, ErrorBox, Forbidden, Loading, Screen } from '../../components/screen';
+import { Table, type Column } from '../../components/ui/table';
 import { Tabs } from '../../components/ui';
 import { ApiError, apiData } from '../../lib/api';
 import { useQuery } from '../../lib/use-query';
@@ -166,6 +167,84 @@ function ListTab({ onEdit }: { onEdit: (item: Announcement) => void }) {
     }
   }
 
+  const columns: Array<Column<Announcement>> = [
+    {
+      key: 'title',
+      header: 'العنوان',
+      grow: true,
+      cell: (item) => (
+        <>
+          <strong>{item.titleAr}</strong>
+          <p className="muted" style={{ margin: '2px 0 0', fontSize: 12 }}>
+            {item.titleEn}
+          </p>
+        </>
+      ),
+    },
+    {
+      key: 'status',
+      header: 'الحالة',
+      cell: (item) => (
+        <span className={`chip${item.status === 'published' ? ' on' : ''}`}>{STATUS_LABEL[item.status]}</span>
+      ),
+    },
+    {
+      key: 'audience',
+      header: 'الجمهور',
+      cell: (item) => (
+        <>
+          {AUDIENCE_LABEL[item.audience]}
+          {item.planCode ? ` · ${item.planCode}` : ''}
+          {item.tenantStatus ? ` · ${item.tenantStatus}` : ''}
+        </>
+      ),
+    },
+    {
+      key: 'channels',
+      header: 'القنوات',
+      cell: (item) => item.channels.map((channel) => CHANNEL_LABEL[channel]).join(' · '),
+    },
+    {
+      key: 'when',
+      header: 'الميعاد',
+      cell: (item) => (item.status === 'published' ? dateTime(item.publishedAt) : dateTime(item.publishAt)),
+    },
+    {
+      key: 'reach',
+      header: 'الوصول',
+      cell: (item) =>
+        `${item.stats.tenants} منشأة · ${item.stats.inApp} إشعاراً · ${item.stats.emails} بريداً · ${item.stats.reads} قراءة`,
+    },
+    {
+      key: 'actions',
+      header: '',
+      cell: (item) => (
+        <div className="row" style={{ gap: 6 }}>
+          {item.status !== 'published' && (
+            <button
+              className="btn"
+              type="button"
+              disabled={busyId === item.id}
+              onClick={() => void publish(item)}
+            >
+              نشر الآن
+            </button>
+          )}
+          {item.status !== 'published' && (
+            <button className="btn" type="button" onClick={() => onEdit(item)}>
+              تعديل
+            </button>
+          )}
+          {item.status === 'published' && (
+            <button className="btn" type="button" onClick={() => setReadsFor(item)}>
+              القراءات
+            </button>
+          )}
+        </div>
+      ),
+    },
+  ];
+
   return (
     <>
       <div className="toolbar">
@@ -218,75 +297,7 @@ function ListTab({ onEdit }: { onEdit: (item: Announcement) => void }) {
           <Empty title="لا إعلانات بعد" detail="ابدأ بـ«إعلان جديد» — النصّان (ar/en) إلزاميان قبل النشر." />
         )}
         {list.status === 'success' && (list.data?.length ?? 0) > 0 && (
-          <div className="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>العنوان</th>
-                  <th>الحالة</th>
-                  <th>الجمهور</th>
-                  <th>القنوات</th>
-                  <th>الميعاد</th>
-                  <th>الوصول</th>
-                  <th />
-                </tr>
-              </thead>
-              <tbody>
-                {(list.data ?? []).map((item) => (
-                  <tr key={item.id}>
-                    <td>
-                      <strong>{item.titleAr}</strong>
-                      <p className="muted" style={{ margin: '2px 0 0', fontSize: 12 }}>
-                        {item.titleEn}
-                      </p>
-                    </td>
-                    <td>
-                      <span className={`chip${item.status === 'published' ? ' on' : ''}`}>
-                        {STATUS_LABEL[item.status]}
-                      </span>
-                    </td>
-                    <td>
-                      {AUDIENCE_LABEL[item.audience]}
-                      {item.planCode ? ` · ${item.planCode}` : ''}
-                      {item.tenantStatus ? ` · ${item.tenantStatus}` : ''}
-                    </td>
-                    <td>{item.channels.map((channel) => CHANNEL_LABEL[channel]).join(' · ')}</td>
-                    <td>
-                      {item.status === 'published' ? dateTime(item.publishedAt) : dateTime(item.publishAt)}
-                    </td>
-                    <td>
-                      {item.stats.tenants} منشأة · {item.stats.inApp} إشعاراً · {item.stats.emails} بريداً ·{' '}
-                      {item.stats.reads} قراءة
-                    </td>
-                    <td>
-                      <div className="row" style={{ gap: 6 }}>
-                        {item.status !== 'published' && (
-                          <button
-                            className="btn"
-                            type="button"
-                            disabled={busyId === item.id}
-                            onClick={() => void publish(item)}
-                          >
-                            نشر الآن
-                          </button>
-                        )}
-                        {item.status !== 'published' && (
-                          <button className="btn" type="button" onClick={() => onEdit(item)}>
-                            تعديل
-                          </button>
-                        )}
-                        {item.status === 'published' && (
-                          <button className="btn" type="button" onClick={() => setReadsFor(item)}>
-                            القراءات
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <Table bare columns={columns} rows={list.data ?? []} rowKey={(item) => item.id} />
         )}
       </Panel>
 
@@ -302,6 +313,15 @@ function ReadsPanel({ announcement, onClose }: { announcement: Announcement; onC
     () => apiData<AnnouncementReadRow[]>(`/platform/announcements/${announcement.id}/reads?limit=100`),
     [announcement.id],
   );
+
+  const readColumns: Array<Column<AnnouncementReadRow>> = [
+    { key: 'tenant', header: 'المنشأة', grow: true, cell: (row) => row.tenantName },
+    { key: 'code', header: 'الرمز', ltr: true, cell: (row) => <code>{row.tenantCode}</code> },
+    { key: 'inApp', header: 'إشعارات', numeric: true, cell: (row) => row.inApp },
+    { key: 'emails', header: 'بريد', numeric: true, cell: (row) => row.emails },
+    { key: 'reads', header: 'قراءات', numeric: true, cell: (row) => row.reads },
+    { key: 'last', header: 'آخر قراءة', cell: (row) => dateTime(row.lastReadAt) },
+  ];
 
   return (
     <Panel>
@@ -322,34 +342,7 @@ function ReadsPanel({ announcement, onClose }: { announcement: Announcement; onC
         <Empty title="لا مستهدفين" detail="لم يطابق الاستهداف منشأةً نشطة لحظة النشر." />
       )}
       {reads.status === 'success' && (reads.data?.length ?? 0) > 0 && (
-        <div className="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>المنشأة</th>
-                <th>الرمز</th>
-                <th>إشعارات</th>
-                <th>بريد</th>
-                <th>قراءات</th>
-                <th>آخر قراءة</th>
-              </tr>
-            </thead>
-            <tbody>
-              {(reads.data ?? []).map((row) => (
-                <tr key={row.tenantId}>
-                  <td>{row.tenantName}</td>
-                  <td>
-                    <code>{row.tenantCode}</code>
-                  </td>
-                  <td>{row.inApp}</td>
-                  <td>{row.emails}</td>
-                  <td>{row.reads}</td>
-                  <td>{dateTime(row.lastReadAt)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <Table bare columns={readColumns} rows={reads.data ?? []} rowKey={(row) => row.tenantId} />
       )}
     </Panel>
   );

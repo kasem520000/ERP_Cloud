@@ -4,6 +4,7 @@ import { Panel } from '@erp/ui';
 import { useMemo, useState } from 'react';
 
 import { Empty, ErrorBox, Forbidden, Loading, Screen } from '../../components/screen';
+import { Table, type Column } from '../../components/ui/table';
 import { apiData, apiList } from '../../lib/api';
 import { useSession } from '../../lib/session';
 import { useQuery } from '../../lib/use-query';
@@ -215,6 +216,140 @@ export default function WebhooksPage() {
     }
   }
 
+  /** أعمدةُ العناوين — على `Table` المشترك، فلا جدولٌ خامٌ في شاشة. */
+  const endpointColumns: Array<Column<EndpointRow>> = [
+    {
+      key: 'url',
+      header: 'العنوان',
+      grow: true,
+      cell: (row) => (
+        <>
+          <strong>{row.url}</strong>
+          <div className="muted">
+            <code>{row.secretPrefix}</code> · {row.description ?? 'بلا وصف'}
+          </div>
+        </>
+      ),
+    },
+    {
+      key: 'events',
+      header: 'الأحداث',
+      cell: (row) =>
+        row.events.map((event) => (
+          <code key={event} className="chip">
+            {event}
+          </code>
+        )),
+    },
+    {
+      key: 'status',
+      header: 'الحالة',
+      cell: (row) => (
+        <>
+          {row.status === 'active' ? 'يعمل' : 'موقوف'}
+          {row.status !== 'active' && <div className="muted">الأحداث التلقائية متوقّفة</div>}
+        </>
+      ),
+    },
+    {
+      key: 'stats',
+      header: 'التسليمات',
+      cell: (row) => (
+        <>
+          {row.stats.delivered} / {row.stats.failed} / {row.stats.pending} …
+          {row.stats.lastError && <div className="muted">{row.stats.lastError}</div>}
+        </>
+      ),
+    },
+    {
+      key: 'lastResponse',
+      header: 'آخر ردّ',
+      cell: (row) => (
+        <>
+          {row.stats.lastResponseCode ?? '—'}
+          {row.stats.lastDeliveryAt && (
+            <div className="muted">{row.stats.lastDeliveryAt.slice(0, 19).replace('T', ' ')}</div>
+          )}
+        </>
+      ),
+    },
+    {
+      key: 'actions',
+      header: 'الإجراء',
+      cell: (row) => (
+        <div className="row">
+          <button className="btn sm" onClick={() => test(row)} disabled={busy === row.id}>
+            اختبار
+          </button>
+          <button className="btn sm" onClick={() => setOpenId(row.id === openId ? '' : row.id)}>
+            {row.id === openId ? 'إخفاء السجلّ' : 'السجلّ'}
+          </button>
+          <button className="btn sm" onClick={() => toggleStatus(row)} disabled={busy === row.id}>
+            {row.status === 'active' ? 'إيقاف' : 'تشغيل'}
+          </button>
+          <button className="btn sm danger" onClick={() => remove(row)} disabled={busy === row.id}>
+            حذف
+          </button>
+        </div>
+      ),
+    },
+  ];
+
+  /** أعمدةُ سجلّ التسليم — الحمولة بمفاتيحها لا بقيمها. */
+  const deliveryColumns: Array<Column<DeliveryRow>> = [
+    {
+      key: 'event',
+      header: 'الحدث',
+      cell: (row) => (
+        <>
+          <code>{row.event}</code>
+          <div className="muted">{row.createdAt.slice(0, 19).replace('T', ' ')}</div>
+        </>
+      ),
+    },
+    {
+      key: 'status',
+      header: 'الحالة',
+      cell: (row) => (row.status === 'delivered' ? 'وصل' : row.status === 'failed' ? 'فشل' : 'منتظر'),
+    },
+    {
+      key: 'attempts',
+      header: 'المحاولات',
+      numeric: true,
+      cell: (row) => `${row.attempts}/${row.maxAttempts}`,
+    },
+    { key: 'responseCode', header: 'رمز الاستجابة', numeric: true, cell: (row) => row.responseCode ?? '—' },
+    {
+      key: 'duration',
+      header: 'الزمن',
+      numeric: true,
+      cell: (row) => (row.durationMs === null ? '—' : `${row.durationMs} ms`),
+    },
+    {
+      key: 'payload',
+      header: 'الحمولة',
+      cell: (row) => (
+        <>
+          <code>{row.payloadKeys.join(', ')}</code>
+          <div className="muted">{row.payloadBytes} بايت</div>
+        </>
+      ),
+    },
+    { key: 'error', header: 'الخطأ', cell: (row) => <span className="small">{row.error ?? '—'}</span> },
+    {
+      key: 'action',
+      header: 'الإجراء',
+      cell: (row) =>
+        row.status === 'failed' ? (
+          <button className="btn sm" onClick={() => retry(opened!, row)} disabled={busy === row.id}>
+            إعادة الإرسال
+          </button>
+        ) : (
+          <span className="muted">—</span>
+        ),
+    },
+  ];
+
   if (!allowed) {
     return (
       <Screen title="الويب هوك" subtitle="أحداثٌ تخرج إلى أنظمة العميل بتوقيعٍ يُتحقَّق منه">
@@ -331,80 +466,8 @@ export default function WebhooksPage() {
       )}
 
       {rows.length > 0 && (
-        <Panel>
-          <div className="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>العنوان</th>
-                  <th>الأحداث</th>
-                  <th>الحالة</th>
-                  <th>التسليمات</th>
-                  <th>آخر ردّ</th>
-                  <th>الإجراء</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((row) => (
-                  <tr key={row.id}>
-                    <td>
-                      <strong>{row.url}</strong>
-                      <div className="muted">
-                        <code>{row.secretPrefix}</code> · {row.description ?? 'بلا وصف'}
-                      </div>
-                    </td>
-                    <td>
-                      <span className="chips">
-                        {row.events.map((event) => (
-                          <code key={event} className="chip">
-                            {event}
-                          </code>
-                        ))}
-                      </span>
-                    </td>
-                    <td>
-                      {row.status === 'active' ? 'يعمل' : 'موقوف'}
-                      {row.status !== 'active' && <div className="muted">الأحداث التلقائية متوقّفة</div>}
-                    </td>
-                    <td>
-                      {row.stats.delivered} / {row.stats.failed} / {row.stats.pending} …
-                      {row.stats.lastError && <div className="muted">{row.stats.lastError}</div>}
-                    </td>
-                    <td>
-                      {row.stats.lastResponseCode ?? '—'}
-                      {row.stats.lastDeliveryAt && (
-                        <div className="muted">{row.stats.lastDeliveryAt.slice(0, 19).replace('T', ' ')}</div>
-                      )}
-                    </td>
-                    <td>
-                      <div className="row">
-                        <button className="btn sm" onClick={() => test(row)} disabled={busy === row.id}>
-                          اختبار
-                        </button>
-                        <button className="btn sm" onClick={() => setOpenId(row.id === openId ? '' : row.id)}>
-                          {row.id === openId ? 'إخفاء السجلّ' : 'السجلّ'}
-                        </button>
-                        <button
-                          className="btn sm"
-                          onClick={() => toggleStatus(row)}
-                          disabled={busy === row.id}
-                        >
-                          {row.status === 'active' ? 'إيقاف' : 'تشغيل'}
-                        </button>
-                        <button
-                          className="btn sm danger"
-                          onClick={() => remove(row)}
-                          disabled={busy === row.id}
-                        >
-                          حذف
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+        <Panel flush title="العناوين">
+          <Table bare columns={endpointColumns} rows={rows} rowKey={(row) => row.id} />
         </Panel>
       )}
 
@@ -423,58 +486,7 @@ export default function WebhooksPage() {
             <Empty title="لا تسليمات بعد" detail="جرّب «اختبار» — أو انتظر حدثاً حقيقياً من المنشأة." />
           )}
           {deliveries.status === 'success' && (deliveries.data ?? []).length > 0 && (
-            <div className="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>الحدث</th>
-                    <th>الحالة</th>
-                    <th>المحاولات</th>
-                    <th>رمز الاستجابة</th>
-                    <th>الزمن</th>
-                    <th>الحمولة</th>
-                    <th>الخطأ</th>
-                    <th>الإجراء</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {(deliveries.data ?? []).map((row) => (
-                    <tr key={row.id}>
-                      <td>
-                        <code>{row.event}</code>
-                        <div className="muted">{row.createdAt.slice(0, 19).replace('T', ' ')}</div>
-                      </td>
-                      <td>
-                        {row.status === 'delivered' ? 'وصل' : row.status === 'failed' ? 'فشل' : 'منتظر'}
-                      </td>
-                      <td>
-                        {row.attempts}/{row.maxAttempts}
-                      </td>
-                      <td>{row.responseCode ?? '—'}</td>
-                      <td>{row.durationMs === null ? '—' : `${row.durationMs} ms`}</td>
-                      <td>
-                        <code>{row.payloadKeys.join(', ')}</code>
-                        <div className="muted">{row.payloadBytes} بايت</div>
-                      </td>
-                      <td className="small">{row.error ?? '—'}</td>
-                      <td>
-                        {row.status === 'failed' ? (
-                          <button
-                            className="btn sm"
-                            onClick={() => retry(opened, row)}
-                            disabled={busy === row.id}
-                          >
-                            إعادة الإرسال
-                          </button>
-                        ) : (
-                          <span className="muted">—</span>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <Table bare columns={deliveryColumns} rows={deliveries.data ?? []} rowKey={(row) => row.id} />
           )}
         </Panel>
       )}

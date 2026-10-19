@@ -6,6 +6,7 @@ import type { PermissionDto, PlatformDirectoryUser, PlatformRoleMatrixEntry } fr
 import { Panel } from '@erp/ui';
 
 import { Empty, ErrorBox, Loading, Screen } from '../../components/screen';
+import { Table, type Column } from '../../components/ui/table';
 import { ApiError, apiData, apiPut } from '../../lib/api';
 import { useSession } from '../../lib/session';
 import { useQuery } from '../../lib/use-query';
@@ -365,6 +366,32 @@ function UsersAndHolders() {
   const users = useQuery<PlatformDirectoryUser[]>(() => apiData<PlatformDirectoryUser[]>('/platform/users'));
   const rows = (users.data ?? []).filter((row) => row.platformRoles.length > 0 || row.isPlatformAdmin);
 
+  const columns: Array<Column<PlatformDirectoryUser>> = [
+    {
+      key: 'name',
+      header: 'المشغّل',
+      grow: true,
+      cell: (row) => <Link href={`/users/${row.id}`}>{row.fullName}</Link>,
+    },
+    { key: 'email', header: 'البريد', ltr: true, cell: (row) => row.email },
+    {
+      key: 'roles',
+      header: 'الأدوار',
+      cell: (row) => (
+        <>
+          {row.platformRoles.map((code) => (
+            <span key={code} className="badge active" style={{ marginInlineEnd: 4 }}>
+              {ROLE_NAME_AR[code] ?? code}
+            </span>
+          ))}
+          {row.platformRoles.length === 0 && row.isPlatformAdmin && (
+            <span className="badge active">مالك المنصة</span>
+          )}
+        </>
+      ),
+    },
+  ];
+
   return (
     <Panel title="الحائزون" flush>
       {users.status === 'loading' && <Loading />}
@@ -373,37 +400,7 @@ function UsersAndHolders() {
         (rows.length === 0 ? (
           <Empty title="لا حائزين" />
         ) : (
-          <div className="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>المشغّل</th>
-                  <th>البريد</th>
-                  <th>الأدوار</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((row) => (
-                  <tr key={row.id}>
-                    <td>
-                      <Link href={`/users/${row.id}`}>{row.fullName}</Link>
-                    </td>
-                    <td dir="ltr">{row.email}</td>
-                    <td>
-                      {row.platformRoles.map((code) => (
-                        <span key={code} className="badge active" style={{ marginInlineEnd: 4 }}>
-                          {ROLE_NAME_AR[code] ?? code}
-                        </span>
-                      ))}
-                      {row.platformRoles.length === 0 && row.isPlatformAdmin && (
-                        <span className="badge active">مالك المنصة</span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <Table bare columns={columns} rows={rows} rowKey={(row) => row.id} />
         ))}
     </Panel>
   );

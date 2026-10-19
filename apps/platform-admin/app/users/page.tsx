@@ -6,6 +6,7 @@ import { useState } from 'react';
 import type { PlatformDirectoryUser } from '@erp/contracts';
 
 import { Empty, ErrorBox, Loading, Screen } from '../../components/screen';
+import { Table, type Column } from '../../components/ui/table';
 import { ApiError, apiData, apiPost } from '../../lib/api';
 import { useSession } from '../../lib/session';
 import { useQuery } from '../../lib/use-query';
@@ -114,6 +115,86 @@ export default function PlatformUsersPage() {
     if (scopeFilter === 'operators') return isOperator;
     return true;
   });
+
+  const columns: Array<Column<PlatformDirectoryUser>> = [
+    {
+      key: 'name',
+      header: 'الاسم',
+      grow: true,
+      cell: (row) => <Link href={`/users/${row.id}`}>{row.fullName}</Link>,
+    },
+    { key: 'email', header: 'البريد', ltr: true, cell: (row) => row.email },
+    {
+      key: 'tenant',
+      header: 'المنشأة',
+      cell: (row) => {
+        const customerTenants = row.tenants.filter(
+          (tenant) => !['platform', 'platform-ops'].includes(tenant.code.toLowerCase()),
+        );
+        if (customerTenants.length === 0) {
+          return <span className="tag platform">مشغّل منصة داخلي</span>;
+        }
+        return customerTenants.map((tenant) => (
+          <span key={tenant.id} style={{ marginInlineEnd: 6 }}>
+            {tenant.name}
+            {tenant.isOwner && (
+              <span className="tag tenant" style={{ marginInlineStart: 4 }}>
+                مالك
+              </span>
+            )}
+          </span>
+        ));
+      },
+    },
+    {
+      key: 'status',
+      header: 'الحالة',
+      cell: (row) => (
+        <>
+          <span className={`badge ${row.status}`}>{USER_STATUS_AR[row.status] ?? row.status}</span>
+          {row.mustChangePassword && (
+            <span className="badge pending" style={{ marginInlineStart: 4 }}>
+              تغيير كلمة المرور
+            </span>
+          )}
+        </>
+      ),
+    },
+    {
+      key: 'mfa',
+      header: '2FA',
+      cell: (row) =>
+        row.mfaEnabled ? (
+          <span className="tag platform">مُفعَّلة</span>
+        ) : (
+          <span className="tag default">غير مُفعَّلة</span>
+        ),
+    },
+    {
+      key: 'lastLogin',
+      header: 'آخر دخول',
+      ltr: true,
+      cell: (row) =>
+        row.lastLoginAt ? new Date(row.lastLoginAt).toLocaleString('ar-SA-u-ca-gregory-nu-latn') : '—',
+    },
+    { key: 'sessions', header: 'جلسات', numeric: true, cell: (row) => row.activeSessionCount },
+    {
+      key: 'roles',
+      header: 'أدوار المنصة',
+      cell: (row) =>
+        row.platformRoles.length > 0 ? (
+          row.platformRoles.map((code) => (
+            <span key={code} className="badge active" style={{ marginInlineEnd: 4 }}>
+              {PLATFORM_ROLE_AR[code] ?? code}
+            </span>
+          ))
+        ) : row.isPlatformAdmin ? (
+          <span className="badge active">مالك المنصة</span>
+        ) : (
+          '—'
+        ),
+    },
+  ];
 
   return (
     <Screen
@@ -254,88 +335,7 @@ export default function PlatformUsersPage() {
           <Empty title="لا توجد نتائج" />
         ) : (
           <Panel flush title="المستخدمون">
-            <div className="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>الاسم</th>
-                    <th>البريد</th>
-                    <th>المنشأة</th>
-                    <th>الحالة</th>
-                    <th>2FA</th>
-                    <th>آخر دخول</th>
-                    <th className="num">جلسات</th>
-                    <th>أدوار المنصة</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {rows.map((row) => (
-                    <tr key={row.id}>
-                      <td>
-                        <Link href={`/users/${row.id}`}>{row.fullName}</Link>
-                      </td>
-                      <td dir="ltr">{row.email}</td>
-                      <td>
-                        {(() => {
-                          const customerTenants = row.tenants.filter(
-                            (t) => !['platform', 'platform-ops'].includes(t.code.toLowerCase()),
-                          );
-                          if (customerTenants.length === 0) {
-                            return <span className="tag platform">مشغّل منصة داخلي</span>;
-                          }
-                          return customerTenants.map((tenant) => (
-                            <span key={tenant.id} style={{ marginInlineEnd: 6 }}>
-                              {tenant.name}
-                              {tenant.isOwner && (
-                                <span className="tag tenant" style={{ marginInlineStart: 4 }}>
-                                  مالك
-                                </span>
-                              )}
-                            </span>
-                          ));
-                        })()}
-                      </td>
-                      <td>
-                        <span className={`badge ${row.status}`}>
-                          {USER_STATUS_AR[row.status] ?? row.status}
-                        </span>
-                        {row.mustChangePassword && (
-                          <span className="badge pending" style={{ marginInlineStart: 4 }}>
-                            تغيير كلمة المرور
-                          </span>
-                        )}
-                      </td>
-                      <td>
-                        {row.mfaEnabled ? (
-                          <span className="tag platform">مُفعَّلة</span>
-                        ) : (
-                          <span className="tag default">غير مُفعَّلة</span>
-                        )}
-                      </td>
-                      <td dir="ltr">
-                        {row.lastLoginAt
-                          ? new Date(row.lastLoginAt).toLocaleString('ar-SA-u-ca-gregory-nu-latn')
-                          : '—'}
-                      </td>
-                      <td className="num">{row.activeSessionCount}</td>
-                      <td>
-                        {row.platformRoles.length > 0 ? (
-                          row.platformRoles.map((code) => (
-                            <span key={code} className="badge active" style={{ marginInlineEnd: 4 }}>
-                              {PLATFORM_ROLE_AR[code] ?? code}
-                            </span>
-                          ))
-                        ) : row.isPlatformAdmin ? (
-                          <span className="badge active">مالك المنصة</span>
-                        ) : (
-                          '—'
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <Table bare columns={columns} rows={rows} rowKey={(row) => row.id} />
           </Panel>
         ))}
     </Screen>

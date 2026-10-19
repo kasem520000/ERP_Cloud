@@ -20,6 +20,7 @@ import {
 import { Panel } from '@erp/ui';
 
 import { Empty, ErrorBox, Forbidden, Loading, Screen } from '../../components/screen';
+import { Table, type Column } from '../../components/ui/table';
 import { SourceTag, Tabs } from '../../components/ui';
 import { ApiError, apiData, apiFetch } from '../../lib/api';
 import { useQuery } from '../../lib/use-query';
@@ -205,6 +206,53 @@ function TemplatesTab() {
     }
   }
 
+  const templateColumns: Array<Column<EmailTemplateListResponse['data'][number]>> = [
+    { key: 'event', header: 'الحدث', grow: true, cell: (template) => template.labelAr },
+    { key: 'locale', header: 'اللغة', cell: (template) => LOCALE_LABEL[template.locale] },
+    {
+      key: 'subject',
+      header: 'الموضوع',
+      cell: (template) => <span className="muted">{template.subject}</span>,
+    },
+    {
+      key: 'source',
+      header: 'المصدر',
+      cell: (template) => <SourceTag source={template.source === 'seed' ? 'default' : template.source} />,
+    },
+    { key: 'version', header: 'النسخة', numeric: true, cell: (template) => template.version },
+    {
+      key: 'missing',
+      header: 'متغيّرات ناقصة',
+      cell: (template) =>
+        template.missingVariables.length === 0 ? (
+          '—'
+        ) : (
+          <span className="tag warn">{template.missingVariables.join(' · ')}</span>
+        ),
+    },
+    {
+      key: 'actions',
+      header: '',
+      cell: (template) => (
+        <div className="row">
+          <button className="btn sm" type="button" onClick={() => openEditor(template)}>
+            تحرير
+          </button>
+          {template.id && template.source === 'tenant' && (
+            <button
+              className="btn sm danger"
+              type="button"
+              disabled={busy}
+              onClick={() => clearOverride(template)}
+            >
+              مسح التجاوز
+            </button>
+          )}
+        </div>
+      ),
+    },
+  ];
+
   return (
     <div className="grid">
       <Panel className="tight">
@@ -272,57 +320,13 @@ function TemplatesTab() {
       ) : templates.status === 'error' ? (
         <ErrorBox message={templates.error} onRetry={templates.reload} />
       ) : (
-        <Panel>
-          <table className="table">
-            <thead>
-              <tr>
-                <th>الحدث</th>
-                <th>اللغة</th>
-                <th>الموضوع</th>
-                <th>المصدر</th>
-                <th>النسخة</th>
-                <th>متغيّرات ناقصة</th>
-                <th />
-              </tr>
-            </thead>
-            <tbody>
-              {(templates.data?.data ?? []).map((template) => (
-                <tr key={`${template.event}-${template.locale}-${template.id ?? 'seed'}`}>
-                  <td>{template.labelAr}</td>
-                  <td>{LOCALE_LABEL[template.locale]}</td>
-                  <td className="muted">{template.subject}</td>
-                  <td>
-                    <SourceTag source={template.source === 'seed' ? 'default' : template.source} />
-                  </td>
-                  <td>{template.version}</td>
-                  <td>
-                    {template.missingVariables.length === 0 ? (
-                      '—'
-                    ) : (
-                      <span className="tag warn">{template.missingVariables.join(' · ')}</span>
-                    )}
-                  </td>
-                  <td>
-                    <div className="row">
-                      <button className="btn sm" type="button" onClick={() => openEditor(template)}>
-                        تحرير
-                      </button>
-                      {template.id && template.source === 'tenant' && (
-                        <button
-                          className="btn sm danger"
-                          type="button"
-                          disabled={busy}
-                          onClick={() => clearOverride(template)}
-                        >
-                          مسح التجاوز
-                        </button>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <Panel flush title="القوالب">
+          <Table
+            bare
+            columns={templateColumns}
+            rows={templates.data?.data ?? []}
+            rowKey={(template) => `${template.event}-${template.locale}-${template.id ?? 'seed'}`}
+          />
           {(templates.data?.data ?? []).length === 0 && <Empty title="لا قوالب بهذا المرشّح" />}
         </Panel>
       )}
@@ -444,6 +448,70 @@ function MessagesTab() {
   const rows = messages.data?.data ?? [];
   const counts = messages.data?.counts ?? {};
 
+  const messageColumns: Array<Column<EmailMessageListResponse['data'][number]>> = [
+    { key: 'when', header: 'الوقت', cell: (row) => dateTime(row.sentAt ?? row.queuedAt) },
+    {
+      key: 'to',
+      header: 'إلى',
+      ltr: true,
+      cell: (row) => (
+        <>
+          {row.toEmail}
+          {row.isTest && <span className="tag">اختبار</span>}
+        </>
+      ),
+    },
+    { key: 'event', header: 'الحدث', cell: (row) => row.eventLabelAr },
+    {
+      key: 'status',
+      header: 'الحالة',
+      cell: (row) => (
+        <span className={`chip ${row.status === 'sent' ? 'on' : row.status === 'failed' ? 'off' : ''}`}>
+          {STATUS_LABEL[row.status]}
+        </span>
+      ),
+    },
+    { key: 'provider', header: 'المزوّد', cell: (row) => row.provider },
+    {
+      key: 'attempts',
+      header: 'المحاولات',
+      numeric: true,
+      cell: (row) => (
+        <>
+          {row.attempts}
+          {row.status === 'queued' && <span className="muted"> (ستُعاد)</span>}
+        </>
+      ),
+    },
+    { key: 'tenant', header: 'العميل', cell: (row) => row.tenantCode ?? 'المنصة' },
+    {
+      key: 'error',
+      header: 'آخر خطأ',
+      cell: (row) => {
+        const blocked = (suppressions.data?.data ?? []).some(
+          (entry) =>
+            entry.email === row.toEmail && (entry.tenantId === null || entry.tenantId === row.tenantId),
+        );
+        return (
+          <span className="muted">
+            {row.lastError ?? '—'}
+            {blocked && <span className="tag warn">محجوب الآن</span>}
+          </span>
+        );
+      },
+    },
+    {
+      key: 'retry',
+      header: '',
+      cell: (row) =>
+        row.status !== 'sent' && row.status !== 'suppressed' ? (
+          <button className="btn sm" type="button" disabled={busy} onClick={() => retry(row)}>
+            إعادة محاولة
+          </button>
+        ) : null,
+    },
+  ];
+
   return (
     <div className="grid">
       <Panel className="tight">
@@ -508,65 +576,8 @@ function MessagesTab() {
       ) : messages.status === 'error' ? (
         <ErrorBox message={messages.error} onRetry={messages.reload} />
       ) : (
-        <Panel>
-          <table className="table">
-            <thead>
-              <tr>
-                <th>الوقت</th>
-                <th>إلى</th>
-                <th>الحدث</th>
-                <th>الحالة</th>
-                <th>المزوّد</th>
-                <th>المحاولات</th>
-                <th>العميل</th>
-                <th>آخر خطأ</th>
-                <th />
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((row) => {
-                const blocked = (suppressions.data?.data ?? []).some(
-                  (entry) =>
-                    entry.email === row.toEmail &&
-                    (entry.tenantId === null || entry.tenantId === row.tenantId),
-                );
-                return (
-                  <tr key={row.id}>
-                    <td>{dateTime(row.sentAt ?? row.queuedAt)}</td>
-                    <td>
-                      {row.toEmail}
-                      {row.isTest && <span className="tag">اختبار</span>}
-                    </td>
-                    <td>{row.eventLabelAr}</td>
-                    <td>
-                      <span
-                        className={`chip ${row.status === 'sent' ? 'on' : row.status === 'failed' ? 'off' : ''}`}
-                      >
-                        {STATUS_LABEL[row.status]}
-                      </span>
-                    </td>
-                    <td>{row.provider}</td>
-                    <td>
-                      {row.attempts}
-                      {row.status === 'queued' && <span className="muted"> (ستُعاد)</span>}
-                    </td>
-                    <td>{row.tenantCode ?? 'المنصة'}</td>
-                    <td className="muted">
-                      {row.lastError ?? '—'}
-                      {blocked && <span className="tag warn">محجوب الآن</span>}
-                    </td>
-                    <td>
-                      {row.status !== 'sent' && row.status !== 'suppressed' && (
-                        <button className="btn sm" type="button" disabled={busy} onClick={() => retry(row)}>
-                          إعادة محاولة
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+        <Panel flush title="سجلّ الرسائل">
+          <Table bare columns={messageColumns} rows={rows} rowKey={(row) => row.id} />
           {rows.length === 0 && (
             <Empty title="لا رسائل بهذه المرشّحات" detail="جرّب توسيع الفترة أو إزالة المرشّح." />
           )}
@@ -942,6 +953,23 @@ function SuppressionsTab() {
     }
   }
 
+  const suppressionColumns: Array<Column<EmailSuppression>> = [
+    { key: 'email', header: 'العنوان', ltr: true, cell: (row) => row.email },
+    { key: 'scope', header: 'النطاق', cell: (row) => row.tenantId ?? 'كل العملاء' },
+    { key: 'reason', header: 'السبب', cell: (row) => REASON_LABEL[row.reason] },
+    { key: 'note', header: 'ملاحظة', cell: (row) => <span className="muted">{row.note ?? '—'}</span> },
+    { key: 'created', header: 'أُضيف', cell: (row) => dateTime(row.createdAt) },
+    {
+      key: 'action',
+      header: '',
+      cell: (row) => (
+        <button className="btn sm" type="button" disabled={busy} onClick={() => remove(row)}>
+          رفع الحجر
+        </button>
+      ),
+    },
+  ];
+
   return (
     <div className="grid">
       <Panel className="tight">
@@ -994,35 +1022,8 @@ function SuppressionsTab() {
       ) : list.status === 'error' ? (
         <ErrorBox message={list.error} onRetry={list.reload} />
       ) : (
-        <Panel>
-          <table className="table">
-            <thead>
-              <tr>
-                <th>العنوان</th>
-                <th>النطاق</th>
-                <th>السبب</th>
-                <th>ملاحظة</th>
-                <th>أُضيف</th>
-                <th />
-              </tr>
-            </thead>
-            <tbody>
-              {(list.data?.data ?? []).map((row) => (
-                <tr key={row.id}>
-                  <td>{row.email}</td>
-                  <td>{row.tenantId ?? 'كل العملاء'}</td>
-                  <td>{REASON_LABEL[row.reason]}</td>
-                  <td className="muted">{row.note ?? '—'}</td>
-                  <td>{dateTime(row.createdAt)}</td>
-                  <td>
-                    <button className="btn sm" type="button" disabled={busy} onClick={() => remove(row)}>
-                      رفع الحجر
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <Panel flush title="قائمة الحجر">
+          <Table bare columns={suppressionColumns} rows={list.data?.data ?? []} rowKey={(row) => row.id} />
           {(list.data?.data ?? []).length === 0 && (
             <Empty title="لا عناوين محجوبة" detail="الحجر يمنع الإرسال قبل الطابور، فلا تُستهلك محاولة." />
           )}
