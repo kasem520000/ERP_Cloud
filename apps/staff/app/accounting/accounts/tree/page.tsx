@@ -1,5 +1,6 @@
 'use client';
 
+import { Panel } from '@erp/ui';
 import { useMemo, useState } from 'react';
 
 import { Empty, ErrorBox, Forbidden, Loading, Screen } from '../../../../components/screen';
@@ -45,30 +46,51 @@ function buildTree(accounts: Account[]): TreeNode[] {
   return roots;
 }
 
-function Node({ node, depth, expanded, toggle }: { node: TreeNode; depth: number; expanded: Set<string>; toggle: (id: string) => void }) {
+function Node({
+  node,
+  depth,
+  expanded,
+  toggle,
+}: {
+  node: TreeNode;
+  depth: number;
+  expanded: Set<string>;
+  toggle: (id: string) => void;
+}) {
   const open = expanded.has(node.id);
   const hasChildren = node.children.length > 0;
   return (
- <>
- <tr>
- <td style={{ paddingInlineStart: 10 + depth * 20 }}>
+    <>
+      <tr>
+        <td style={{ paddingInlineStart: 10 + depth * 20 }}>
           {hasChildren ? (
- <button className="btn sm" type="button" onClick={() => toggle(node.id)} aria-expanded={open}>
+            <button className="btn sm" type="button" onClick={() => toggle(node.id)} aria-expanded={open}>
               {open ? '−' : '+'}
- </button>
+            </button>
           ) : (
- <span style={{ display: 'inline-block', width: 22 }} />
+            <span style={{ display: 'inline-block', width: 22 }} />
           )}{' '}
- <span dir="ltr">{node.code}</span>
- </td>
- <td>{nameOf(node)}</td>
- <td>{ACCOUNT_TYPE_LABELS[typeOf(node)] ?? typeOf(node)}</td>
- <td>{postableOf(node) ? <span className="badge active">ترحيل</span> : <span className="badge">تجميعي</span>}</td>
- <td className="num">{node.children.length || ''}</td>
- <td className="num" dir="ltr">{money(balanceOf(node).toFixed(4))}</td>
- </tr>
-      {open && node.children.map((child) => <Node key={child.id} node={child} depth={depth + 1} expanded={expanded} toggle={toggle} />)}
- </>
+          <span dir="ltr">{node.code}</span>
+        </td>
+        <td>{nameOf(node)}</td>
+        <td>{ACCOUNT_TYPE_LABELS[typeOf(node)] ?? typeOf(node)}</td>
+        <td>
+          {postableOf(node) ? (
+            <span className="badge active">ترحيل</span>
+          ) : (
+            <span className="badge">تجميعي</span>
+          )}
+        </td>
+        <td className="num">{node.children.length || ''}</td>
+        <td className="num" dir="ltr">
+          {money(balanceOf(node).toFixed(4))}
+        </td>
+      </tr>
+      {open &&
+        node.children.map((child) => (
+          <Node key={child.id} node={child} depth={depth + 1} expanded={expanded} toggle={toggle} />
+        ))}
+    </>
   );
 }
 
@@ -106,21 +128,23 @@ export default function AccountTreePage() {
   };
 
   return (
- <Screen
+    <Screen
       title="شجرة الحسابات"
       subtitle="عرض هرمي لدليل الحسابات بالمستويات، وكل فرع برصيده من القيود المرحّلة فقط."
       crumbs={['المحاسبة', 'تعاريف']}
       actions={
- <>
- <button className="btn" type="button" onClick={expandAll}>
- توسيع الكل
- </button>
- <button className="btn" type="button" onClick={() => setExpanded(new Set())}>
- طي الكل
- </button>
- <span className="muted small" style={{ alignSelf: 'center' }}>مستويات التوسعة:</span>
+        <>
+          <button className="btn" type="button" onClick={expandAll}>
+            توسيع الكل
+          </button>
+          <button className="btn" type="button" onClick={() => setExpanded(new Set())}>
+            طي الكل
+          </button>
+          <span className="muted small" style={{ alignSelf: 'center' }}>
+            مستويات التوسعة:
+          </span>
           {LEVELS.map((entry) => (
- <button
+            <button
               key={entry.id}
               type="button"
               className={`btn sm${level === entry.id ? ' primary' : ''}`}
@@ -130,12 +154,12 @@ export default function AccountTreePage() {
               }}
             >
               {entry.label}
- </button>
+            </button>
           ))}
- <button className="btn" type="button" onClick={() => window.print()}>
- طباعة
- </button>
- </>
+          <button className="btn" type="button" onClick={() => window.print()}>
+            طباعة
+          </button>
+        </>
       }
     >
       {accounts.status === 'loading' && <Loading />}
@@ -143,28 +167,30 @@ export default function AccountTreePage() {
       {accounts.status === 'error' && <ErrorBox message={accounts.error} onRetry={accounts.reload} />}
       {accounts.status === 'success' &&
         (tree.length === 0 ? (
- <Empty title="لا توجد حسابات بعد" />
+          <Empty title="لا توجد حسابات بعد" />
         ) : (
- <div className="table-wrap">
- <table>
- <thead>
- <tr>
- <th>الرمز</th>
- <th>الاسم</th>
- <th>النوع</th>
- <th>الحالة</th>
- <th className="num">فروع</th>
- <th className="num">الرصيد</th>
- </tr>
- </thead>
- <tbody>
-                {tree.map((node) => (
- <Node key={node.id} node={node} depth={0} expanded={expanded} toggle={toggle} />
-                ))}
- </tbody>
- </table>
- </div>
+          <Panel flush title="شجرة الحسابات">
+            <div className="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>الرمز</th>
+                    <th>الاسم</th>
+                    <th>النوع</th>
+                    <th>الحالة</th>
+                    <th className="num">فروع</th>
+                    <th className="num">الرصيد</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {tree.map((node) => (
+                    <Node key={node.id} node={node} depth={0} expanded={expanded} toggle={toggle} />
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </Panel>
         ))}
- </Screen>
+    </Screen>
   );
 }

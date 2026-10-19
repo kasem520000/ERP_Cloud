@@ -1,5 +1,7 @@
 'use client';
 
+import { Panel } from '@erp/ui';
+
 import { Empty, ErrorBox, Forbidden, Loading, Screen } from '../../../components/screen';
 import { apiData } from '../../../lib/api';
 import { useQuery } from '../../../lib/use-query';
@@ -20,7 +22,10 @@ type AuditRow = {
 };
 
 export default function TenantAuditPage() {
-  const audit = useQuery<AuditRow[] | { items?: AuditRow[]; data?: AuditRow[] }>(() => apiData('/audit-log?limit=100'), []);
+  const audit = useQuery<AuditRow[] | { items?: AuditRow[]; data?: AuditRow[] }>(
+    () => apiData('/audit-log?limit=100'),
+    [],
+  );
 
   const rows: AuditRow[] = Array.isArray(audit.data)
     ? audit.data
@@ -44,30 +49,40 @@ export default function TenantAuditPage() {
         (rows.length === 0 ? (
           <Empty title="لا توجد سجلات بعد" />
         ) : (
-          <div className="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>الوقت</th>
-                  <th>الإجراء</th>
-                  <th>الكيان</th>
-                  <th>المعرف</th>
-                  <th>المستخدم</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((row) => (
-                  <tr key={row.id}>
-                    <td dir="ltr">{new Date(row.occurredAt ?? row.occurred_at ?? Date.now()).toLocaleString('ar-SA-u-ca-gregory-nu-latn')}</td>
-                    <td dir="ltr">{row.action}</td>
-                    <td dir="ltr">{row.entityType ?? row.entity_type}</td>
-                    <td dir="ltr" className="small">{(row.entityId ?? row.entity_id ?? '').slice(0, 8)}</td>
-                    <td dir="ltr" className="small">{(row.actorUserId ?? row.actor_user_id ?? '—').slice(0, 8)}</td>
+          <Panel flush title="سجل التدقيق">
+            <div className="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>الوقت</th>
+                    <th>الإجراء</th>
+                    <th>الكيان</th>
+                    <th>المعرف</th>
+                    <th>المستخدم</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {rows.map((row) => (
+                    <tr key={row.id}>
+                      <td dir="ltr">
+                        {new Date(row.occurredAt ?? row.occurred_at ?? Date.now()).toLocaleString(
+                          'ar-SA-u-ca-gregory-nu-latn',
+                        )}
+                      </td>
+                      <td dir="ltr">{row.action}</td>
+                      <td dir="ltr">{row.entityType ?? row.entity_type}</td>
+                      <td dir="ltr" className="small">
+                        {(row.entityId ?? row.entity_id ?? '').slice(0, 8)}
+                      </td>
+                      <td dir="ltr" className="small">
+                        {(row.actorUserId ?? row.actor_user_id ?? '—').slice(0, 8)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </Panel>
         ))}
     </Screen>
   );

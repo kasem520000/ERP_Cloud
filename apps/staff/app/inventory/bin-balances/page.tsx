@@ -3,7 +3,7 @@
 import { Panel } from '@erp/ui';
 import { useState } from 'react';
 
-import { DataTable, Notice } from '../../../components/data-view';
+import { DataTable, Notice, QueryView } from '../../../components/data-view';
 import { Screen } from '../../../components/screen';
 import { ApiError, apiList, apiPost } from '../../../lib/api';
 import { itemLabel, listItems, quantity, type Item } from '../../../lib/lookups';
@@ -145,15 +145,25 @@ export default function BinBalancesPage() {
           تسجيل الجرد
         </button>
       </Panel>
-      <DataTable
-        rows={rows.data ?? []}
-        rowKey={(row) => row.id}
-        columns={[
-          { key: 'bin', header: 'الرف', cell: (row) => row.binCode },
-          { key: 'item', header: 'المادة', cell: (row) => `${row.itemSku} — ${row.itemName}` },
-          { key: 'qty', header: 'الكمية', align: 'num', cell: (row) => quantity(row.quantity) },
-        ]}
-      />
+      <QueryView
+        panel="أرصدة الرفوف"
+        panelHint="كمية كل مادة في كل رف حسب آخر جرد أو حركة."
+        query={rows}
+        empty="لا توجد أرصدة رفوف"
+        emptyDetail="سجّل جرداً أو رحّل استلاماً ليظهر الرصيد هنا."
+      >
+        {(data) => (
+          <DataTable
+            rows={data}
+            rowKey={(row) => row.id}
+            columns={[
+              { key: 'bin', header: 'الرف', cell: (row) => row.binCode },
+              { key: 'item', header: 'المادة', cell: (row) => `${row.itemSku} — ${row.itemName}` },
+              { key: 'qty', header: 'الكمية', align: 'num', cell: (row) => quantity(row.quantity) },
+            ]}
+          />
+        )}
+      </QueryView>
     </Screen>
   );
 }

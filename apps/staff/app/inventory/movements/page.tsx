@@ -44,7 +44,8 @@ export default function MovementsPage() {
   const rows = movements.data ?? [];
   const inward = rows.filter((row) => row.direction === 'in');
   const outward = rows.filter((row) => row.direction === 'out');
-  const sum = (list: MovementRow[], field: 'qty' | 'baseQty') => list.reduce((acc, row) => acc + Number(row[field]), 0);
+  const sum = (list: MovementRow[], field: 'qty' | 'baseQty') =>
+    list.reduce((acc, row) => acc + Number(row[field]), 0);
   const sumValue = (list: MovementRow[]) => list.reduce((acc, row) => acc + Number(row.totalCost ?? 0), 0);
 
   return (
@@ -67,12 +68,18 @@ export default function MovementsPage() {
           hint={quantity(sum(outward, 'baseQty'))}
           tone="danger"
         />
-        <StatTile label="صافي الكمية" value={quantity(sum(inward, 'baseQty') - sum(outward, 'baseQty'))} hint="وارد − صادر" />
+        <StatTile
+          label="صافي الكمية"
+          value={quantity(sum(inward, 'baseQty') - sum(outward, 'baseQty'))}
+          hint="وارد − صادر"
+        />
         <StatTile label="قيمة الحركات" value={money(sumValue(rows))} hint="مجموع قيمة الوارد والصادر" />
       </StatTiles>
 
       <FilterBar
-        actions={<span className="small muted">{rows.length === 0 ? 'لا حركات' : `${rows.length} حركة`}</span>}
+        actions={
+          <span className="small muted">{rows.length === 0 ? 'لا حركات' : `${rows.length} حركة`}</span>
+        }
       >
         <ItemPicker value={itemId} onChange={setItemId} />
         <WarehousePicker value={warehouseId} onChange={setWarehouseId} includeAll />
@@ -80,6 +87,8 @@ export default function MovementsPage() {
       </FilterBar>
 
       <QueryView
+        panel="حركات المخزون"
+        panelHint="الوارد والصادر ومرجعه من المستندات المرحّلة."
         query={movements}
         empty="لا توجد حركات"
         emptyDetail="تظهر الحركات بعد ترحيل فاتورة أو مناقلة أو تسوية."

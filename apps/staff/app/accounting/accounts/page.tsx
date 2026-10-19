@@ -428,60 +428,62 @@ export default function ChartOfAccountsPage() {
             detail="ابدأ بإنشاء دليل الحسابات أو استوردها من النظام القديم عبر أداة الهجرة."
           />
         ) : (
-          <div className="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>الحساب الرئيسي</th>
-                  <th>رمز الحساب</th>
-                  <th>اسم الحساب</th>
-                  <th>الفرع</th>
-                  <th>الرصيد</th>
-                  <th>كشف حساب</th>
-                  {can('accounting.account.manage') && <th>تعديل</th>}
-                </tr>
-              </thead>
-              <tbody>
-                {details.map((account) => (
-                  <tr key={account.id}>
-                    <td>{account.parentName ?? '— رئيسي —'}</td>
-                    <td dir="ltr">{account.code}</td>
-                    <td>{nameOf(account)}</td>
-                    <td>
-                      {account.branchId
-                        ? (branchRows.find((branch) => branch.id === account.branchId)?.nameAr ??
-                          account.branchId)
-                        : '—'}
-                    </td>
-                    <td className="num" dir="ltr">
-                      {money(balanceOf(account).toFixed(4))}
-                    </td>
-                    <td>
-                      <a className="btn sm" href={`/accounting/ledger?account=${account.id}`}>
-                        كشف حساب
-                      </a>
-                    </td>
-                    {can('accounting.account.manage') && (
-                      <td>
-                        <span className="row">
-                          <button className="btn sm" type="button" onClick={() => startEdit(account)}>
-                            تعديل
-                          </button>
-                          <button
-                            className="btn sm danger"
-                            type="button"
-                            onClick={() => void remove(account)}
-                          >
-                            حذف
-                          </button>
-                        </span>
-                      </td>
-                    )}
+          <Panel flush title="دليل الحسابات">
+            <div className="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>الحساب الرئيسي</th>
+                    <th>رمز الحساب</th>
+                    <th>اسم الحساب</th>
+                    <th>الفرع</th>
+                    <th>الرصيد</th>
+                    <th>كشف حساب</th>
+                    {can('accounting.account.manage') && <th>تعديل</th>}
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {details.map((account) => (
+                    <tr key={account.id}>
+                      <td>{account.parentName ?? '— رئيسي —'}</td>
+                      <td dir="ltr">{account.code}</td>
+                      <td>{nameOf(account)}</td>
+                      <td>
+                        {account.branchId
+                          ? (branchRows.find((branch) => branch.id === account.branchId)?.nameAr ??
+                            account.branchId)
+                          : '—'}
+                      </td>
+                      <td className="num" dir="ltr">
+                        {money(balanceOf(account).toFixed(4))}
+                      </td>
+                      <td>
+                        <a className="btn sm" href={`/accounting/ledger?account=${account.id}`}>
+                          كشف حساب
+                        </a>
+                      </td>
+                      {can('accounting.account.manage') && (
+                        <td>
+                          <span className="row">
+                            <button className="btn sm" type="button" onClick={() => startEdit(account)}>
+                              تعديل
+                            </button>
+                            <button
+                              className="btn sm danger"
+                              type="button"
+                              onClick={() => void remove(account)}
+                            >
+                              حذف
+                            </button>
+                          </span>
+                        </td>
+                      )}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </Panel>
         ))}
     </Screen>
   );
