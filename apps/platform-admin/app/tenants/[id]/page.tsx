@@ -24,6 +24,7 @@ import {
   type PlatformTenantSubscription,
   type PlatformTenantUsageResponse,
   type TenantBrandingResponse,
+  type TenantFlagView,
   type TenantFlagsResponse,
   type TenantNotesResponse,
   type TenantSettingsResponse,
@@ -31,6 +32,7 @@ import {
 import { Panel } from '@erp/ui';
 
 import { Empty, ErrorBox, Loading, Screen } from '../../../components/screen';
+import { Table, type Column } from '../../../components/ui/table';
 import { Badge } from '../../../components/ui/badge';
 import { Button } from '../../../components/ui/button';
 import { Tabs as TabsBar } from '../../../components/ui/tabs';
@@ -576,6 +578,15 @@ function BrandingSection({
 
 function SubscriptionTab({ card }: { card: PlatformTenantDetailResponse }) {
   const rows: PlatformTenantSubscription[] = card.subscriptions;
+  const columns: Array<Column<PlatformTenantSubscription>> = [
+    { key: 'plan', header: 'الباقة', grow: true, cell: (row) => row.planName ?? row.planCode ?? '—' },
+    { key: 'status', header: 'الحالة', cell: (row) => SUBSCRIPTION_LABEL[row.status] ?? row.status },
+    { key: 'amount', header: 'القيمة', ltr: true, cell: (row) => money(row.amount, row.currency) },
+    { key: 'start', header: 'بداية الفترة', ltr: true, cell: (row) => when(row.startedAt) },
+    { key: 'end', header: 'نهاية الفترة', ltr: true, cell: (row) => when(row.currentPeriodEnd) },
+    { key: 'cancelled', header: 'أُلغيت في', ltr: true, cell: (row) => when(row.cancelledAt) },
+  ];
+
   return (
     <Panel title="الاشتراك والتراخيص" flush>
       {rows.length === 0 ? (
@@ -584,32 +595,7 @@ function SubscriptionTab({ card }: { card: PlatformTenantDetailResponse }) {
           detail="يمكن إصدار ترخيص من صفحة «التراخيص» أو من قائمة العملاء."
         />
       ) : (
-        <div className="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>الباقة</th>
-                <th>الحالة</th>
-                <th>القيمة</th>
-                <th>بداية الفترة</th>
-                <th>نهاية الفترة</th>
-                <th>أُلغيت في</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((row) => (
-                <tr key={row.id}>
-                  <td>{row.planName ?? row.planCode ?? '—'}</td>
-                  <td>{SUBSCRIPTION_LABEL[row.status] ?? row.status}</td>
-                  <td dir="ltr">{money(row.amount, row.currency)}</td>
-                  <td dir="ltr">{when(row.startedAt)}</td>
-                  <td dir="ltr">{when(row.currentPeriodEnd)}</td>
-                  <td dir="ltr">{when(row.cancelledAt)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <Table bare columns={columns} rows={rows} rowKey={(row) => row.id} />
       )}
       <p className="muted small" style={{ marginTop: 8 }}>
         <Link href="/subscriptions">إدارة التراخيص في القائمة الكاملة </Link>
@@ -660,37 +646,24 @@ function UsersTab({
     }
   }
 
+  const memberColumns: Array<Column<PlatformTenantMember>> = [
+    { key: 'name', header: 'الاسم', grow: true, cell: (member) => member.fullName },
+    { key: 'email', header: 'البريد', ltr: true, cell: (member) => member.email },
+    { key: 'status', header: 'الحالة', cell: (member) => STATUS_LABEL[member.status] ?? member.status },
+    {
+      key: 'membership',
+      header: 'العضوية',
+      cell: (member) => STATUS_LABEL[member.membershipStatus] ?? member.membershipStatus,
+    },
+    { key: 'roles', header: 'الأدوار', numeric: true, cell: (member) => member.roleCount },
+    { key: 'login', header: 'آخر دخول', ltr: true, cell: (member) => when(member.lastLoginAt) },
+    { key: 'owner', header: 'المالك', cell: (member) => (member.isOwner ? 'مالك' : '—') },
+  ];
+
   return (
     <div className="grid">
       <Panel title={<>مستخدمو المنشأة ( {members.length} )</>} flush>
-        <div className="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>الاسم</th>
-                <th>البريد</th>
-                <th>الحالة</th>
-                <th>العضوية</th>
-                <th>الأدوار</th>
-                <th>آخر دخول</th>
-                <th>المالك</th>
-              </tr>
-            </thead>
-            <tbody>
-              {members.map((member) => (
-                <tr key={member.membershipId}>
-                  <td>{member.fullName}</td>
-                  <td dir="ltr">{member.email}</td>
-                  <td>{STATUS_LABEL[member.status] ?? member.status}</td>
-                  <td>{STATUS_LABEL[member.membershipStatus] ?? member.membershipStatus}</td>
-                  <td>{member.roleCount}</td>
-                  <td dir="ltr">{when(member.lastLoginAt)}</td>
-                  <td>{member.isOwner ? '' : '—'}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <Table bare columns={memberColumns} rows={members} rowKey={(member) => member.membershipId} />
       </Panel>
 
       <Panel
@@ -792,78 +765,82 @@ function UsageTab({
     }
   }
 
+  const metricColumns: Array<Column<PlatformTenantUsageResponse['metrics'][number]>> = [
+    {
+      key: 'label',
+      header: 'البند',
+      grow: true,
+      cell: (metric) => (
+        <>
+          {metric.labelAr}
+          <div className="muted small">{metric.unitAr ?? ''}</div>
+        </>
+      ),
+    },
+    { key: 'used', header: 'المستخدم', numeric: true, cell: (metric) => metric.used },
+    { key: 'limit', header: 'الحدّ', numeric: true, cell: (metric) => metric.limit ?? 'بلا حدّ' },
+    {
+      key: 'ratio',
+      header: 'النسبة',
+      cell: (metric) => (
+        <>
+          <MeterBar
+            ratio={metric.limit === null ? 0 : metric.used / Math.max(metric.limit, 1)}
+            tone={
+              metric.limit === null
+                ? 'ok'
+                : metric.used >= metric.limit
+                  ? 'danger'
+                  : metric.used / metric.limit >= 0.8
+                    ? 'warn'
+                    : 'ok'
+            }
+          />
+          <span className="muted small">{metric.percentUsed === null ? '—' : `${metric.percentUsed}%`}</span>
+          {metric.state && (
+            <span
+              className={`badge ${metric.state === 'ok' ? 'ready' : metric.state}`}
+              style={{ marginInlineStart: 6 }}
+            >
+              {USAGE_STATE_LABEL[metric.state]}
+            </span>
+          )}
+        </>
+      ),
+    },
+    {
+      key: 'source',
+      header: 'من أين جاء الحدّ؟',
+      cell: (metric) => (
+        <>
+          <SourceTag source={metric.limitSource} />
+          {metric.enforced !== undefined && (
+            <div className="muted small">{metric.enforced ? 'يُطبَّق' : 'يُبلَّغ عنه فقط'}</div>
+          )}
+        </>
+      ),
+    },
+    {
+      key: 'override',
+      header: 'تجاوز خاص بالعميل',
+      cell: (metric) => (
+        <LimitEditor
+          metricKey={metric.key}
+          current={metric.limitSource === 'tenant' ? metric.limit : null}
+          disabled={!canSettings || busy}
+          onSave={(raw) => void setLimit(metric.key, raw)}
+        />
+      ),
+    },
+  ];
+
   return (
     <div className="grid">
       {usage.status === 'loading' && <Loading rows={3} />}
       {usage.status === 'error' && <ErrorBox message={usage.error} onRetry={usage.reload} />}
       {usage.status === 'success' && (
         <Panel title="الاستهلاك مقابل الحدود" flush>
-          <div className="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>البند</th>
-                  <th>المستخدم</th>
-                  <th>الحدّ</th>
-                  <th>النسبة</th>
-                  <th>من أين جاء الحدّ؟</th>
-                  <th>تجاوز خاص بالعميل</th>
-                </tr>
-              </thead>
-              <tbody>
-                {metrics.map((metric) => (
-                  <tr key={metric.key}>
-                    <td>
-                      {metric.labelAr}
-                      <div className="muted small">{metric.unitAr ?? ''}</div>
-                    </td>
-                    <td>{metric.used}</td>
-                    <td>{metric.limit ?? 'بلا حدّ'}</td>
-                    <td>
-                      <MeterBar
-                        ratio={metric.limit === null ? 0 : metric.used / Math.max(metric.limit, 1)}
-                        tone={
-                          metric.limit === null
-                            ? 'ok'
-                            : metric.used >= metric.limit
-                              ? 'danger'
-                              : metric.used / metric.limit >= 0.8
-                                ? 'warn'
-                                : 'ok'
-                        }
-                      />
-                      <span className="muted small">
-                        {metric.percentUsed === null ? '—' : `${metric.percentUsed}%`}
-                      </span>
-                      {metric.state && (
-                        <span
-                          className={`badge ${metric.state === 'ok' ? 'ready' : metric.state}`}
-                          style={{ marginInlineStart: 6 }}
-                        >
-                          {USAGE_STATE_LABEL[metric.state]}
-                        </span>
-                      )}
-                    </td>
-                    <td>
-                      <SourceTag source={metric.limitSource} />
-                      {/* المغلّف الافتراضي يُبلَّغ عنه ولا يمنع — والعمود يقول أيّهما هذا. */}
-                      {metric.enforced !== undefined && (
-                        <div className="muted small">{metric.enforced ? 'يُطبَّق' : 'يُبلَّغ عنه فقط'}</div>
-                      )}
-                    </td>
-                    <td>
-                      <LimitEditor
-                        metricKey={metric.key}
-                        current={metric.limitSource === 'tenant' ? metric.limit : null}
-                        disabled={!canSettings || busy}
-                        onSave={(raw) => void setLimit(metric.key, raw)}
-                      />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <Table bare columns={metricColumns} rows={metrics} rowKey={(metric) => metric.key} />
           {metrics
             .filter((metric) => metric.noticeAr && metric.state !== 'ok' && metric.state !== 'unlimited')
             .map((metric) => (
@@ -977,6 +954,13 @@ function LimitEditor({
 /** The keys the customer card may change: the tenant-scoped ones, exactly as the API sends them. */
 function AllSettingsCard({ settings }: { settings: PlatformSettingView[] }) {
   const rows = settings.filter((setting) => setting.key.startsWith('limits.'));
+  const settingColumns: Array<Column<PlatformSettingView>> = [
+    { key: 'label', header: 'المفتاح', grow: true, cell: (row) => row.labelAr },
+    { key: 'value', header: 'القيمة الفعّالة', ltr: true, cell: (row) => String(row.value) },
+    { key: 'source', header: 'المصدر', cell: (row) => <SourceTag source={row.source} /> },
+    { key: 'updated', header: 'آخر تعديل', ltr: true, cell: (row) => when(row.updatedAt) },
+  ];
+
   return (
     <Panel
       title="الحدود الافتراضية للتطبيق"
@@ -988,30 +972,7 @@ function AllSettingsCard({ settings }: { settings: PlatformSettingView[] }) {
       }
       flush
     >
-      <div className="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>المفتاح</th>
-              <th>القيمة الفعّالة</th>
-              <th>المصدر</th>
-              <th>آخر تعديل</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((row) => (
-              <tr key={row.key}>
-                <td>{row.labelAr}</td>
-                <td dir="ltr">{String(row.value)}</td>
-                <td>
-                  <SourceTag source={row.source} />
-                </td>
-                <td dir="ltr">{when(row.updatedAt)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <Table bare columns={settingColumns} rows={rows} rowKey={(row) => row.key} />
     </Panel>
   );
 }
@@ -1082,6 +1043,95 @@ function FlagsTab({
 
   const CORE_DEFAULT_OPEN = new Set(['feature.pos', 'feature.hrm']);
 
+  const flagColumns: Array<Column<TenantFlagView>> = [
+    { key: 'label', header: 'الحزمة', grow: true, cell: (flag) => <strong>{flag.labelAr}</strong> },
+    {
+      key: 'description',
+      header: 'الوصف',
+      cell: (flag) => <span className="muted small">{flag.descriptionAr}</span>,
+    },
+    {
+      key: 'state',
+      header: 'الحالة الفعلية للعميل',
+      cell: (flag) => {
+        const isCore = CORE_DEFAULT_OPEN.has(flag.key);
+        const effectivelyOpen = flag.enabled || (isCore && flag.isDefault);
+        return effectivelyOpen ? (
+          <span className="badge active">
+            {flag.enabled ? 'مفتوحة (مثبّتة)' : 'مفعّلة ضمن النظام الأساسي'}
+          </span>
+        ) : (
+          <span className="badge">اختيارية — تُفعّل حسب الطلب</span>
+        );
+      },
+    },
+    {
+      key: 'source',
+      header: 'المصدر',
+      cell: (flag) => (flag.isDefault ? 'النظام الأساسي الافتراضي' : 'مضبوطة خصيصاً لهذا العميل'),
+    },
+    { key: 'updated', header: 'آخر تغيير', ltr: true, cell: (flag) => when(flag.updatedAt) },
+    {
+      key: 'action',
+      header: '',
+      cell: (flag) => (
+        <button
+          className="btn"
+          type="button"
+          disabled={!canSettings || busy}
+          onClick={() => void toggle(flag.key, !flag.enabled)}
+        >
+          {flag.enabled ? 'إرجاع للافتراضي' : 'تثبيت الفتح'}
+        </button>
+      ),
+    },
+  ];
+
+  const addonColumns: Array<Column<TenantAddonRow>> = [
+    { key: 'name', header: 'الباقة / الإضافة', grow: true, cell: (app) => <strong>{app.nameAr}</strong> },
+    {
+      key: 'category',
+      header: 'الفئة',
+      cell: (app) => (app.category === 'sector_addon' ? 'باقة قطاعية' : 'تكامل سحابي'),
+    },
+    { key: 'price', header: 'الاشتراك الشهري', ltr: true, cell: (app) => `${app.priceMonthlySar} SAR` },
+    {
+      key: 'enabled',
+      header: 'الحالة لدى العميل',
+      cell: (app) => (
+        <span className={`badge ${app.enabled ? 'active' : ''}`}>
+          {app.enabled ? 'مفعّلة للعميل' : 'غير مفعّلة'}
+        </span>
+      ),
+    },
+    {
+      key: 'request',
+      header: 'طلب العميل',
+      cell: (app) =>
+        app.latestRequestStatus === 'pending' ? (
+          <span className="badge pending">طلب تفعيل معلق</span>
+        ) : app.latestRequestStatus === 'approved' ? (
+          <span className="badge active">تمت الموافقة</span>
+        ) : (
+          '—'
+        ),
+    },
+    {
+      key: 'action',
+      header: 'الإجراء',
+      cell: (app) => (
+        <button
+          className={`btn sm ${app.enabled ? '' : 'primary'}`}
+          type="button"
+          disabled={busy}
+          onClick={() => void toggleAddon(app.code, !app.enabled)}
+        >
+          {app.enabled ? 'إيقاف الباقة' : 'تفعيل للعميل'}
+        </button>
+      ),
+    },
+  ];
+
   return (
     <div className="grid">
       <Panel
@@ -1097,55 +1147,7 @@ function FlagsTab({
         {flags.status === 'loading' && <Loading rows={3} />}
         {flags.status === 'error' && <ErrorBox message={flags.error} onRetry={flags.reload} />}
         {flags.status === 'success' && (
-          <div className="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>الحزمة</th>
-                  <th>الوصف</th>
-                  <th>الحالة الفعلية للعميل</th>
-                  <th>المصدر</th>
-                  <th>آخر تغيير</th>
-                  <th />
-                </tr>
-              </thead>
-              <tbody>
-                {(flags.data?.flags ?? []).map((flag) => {
-                  const isCore = CORE_DEFAULT_OPEN.has(flag.key);
-                  const effectivelyOpen = flag.enabled || (isCore && flag.isDefault);
-                  return (
-                    <tr key={flag.key}>
-                      <td>
-                        <strong>{flag.labelAr}</strong>
-                      </td>
-                      <td className="muted small">{flag.descriptionAr}</td>
-                      <td>
-                        {effectivelyOpen ? (
-                          <span className="badge active">
-                            {flag.enabled ? 'مفتوحة (مثبّتة)' : 'مفعّلة ضمن النظام الأساسي'}
-                          </span>
-                        ) : (
-                          <span className="badge">اختيارية — تُفعّل حسب الطلب</span>
-                        )}
-                      </td>
-                      <td>{flag.isDefault ? 'النظام الأساسي الافتراضي' : 'مضبوطة خصيصاً لهذا العميل'}</td>
-                      <td dir="ltr">{when(flag.updatedAt)}</td>
-                      <td>
-                        <button
-                          className="btn"
-                          type="button"
-                          disabled={!canSettings || busy}
-                          onClick={() => void toggle(flag.key, !flag.enabled)}
-                        >
-                          {flag.enabled ? 'إرجاع للافتراضي' : 'تثبيت الفتح'}
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+          <Table bare columns={flagColumns} rows={flags.data?.flags ?? []} rowKey={(flag) => flag.key} />
         )}
       </Panel>
 
@@ -1162,55 +1164,7 @@ function FlagsTab({
         {addons.status === 'loading' && <Loading rows={3} />}
         {addons.status === 'error' && <ErrorBox message={addons.error} onRetry={addons.reload} />}
         {addons.status === 'success' && (
-          <div className="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>الباقة / الإضافة</th>
-                  <th>الفئة</th>
-                  <th>الاشتراك الشهري</th>
-                  <th>الحالة لدى العميل</th>
-                  <th>طلب العميل</th>
-                  <th>الإجراء</th>
-                </tr>
-              </thead>
-              <tbody>
-                {(addons.data?.apps ?? []).map((app) => (
-                  <tr key={app.code}>
-                    <td>
-                      <strong>{app.nameAr}</strong>
-                    </td>
-                    <td>{app.category === 'sector_addon' ? 'باقة قطاعية' : 'تكامل سحابي'}</td>
-                    <td dir="ltr">{app.priceMonthlySar} SAR</td>
-                    <td>
-                      <span className={`badge ${app.enabled ? 'active' : ''}`}>
-                        {app.enabled ? 'مفعّلة للعميل' : 'غير مفعّلة'}
-                      </span>
-                    </td>
-                    <td>
-                      {app.latestRequestStatus === 'pending' ? (
-                        <span className="badge pending">طلب تفعيل معلق</span>
-                      ) : app.latestRequestStatus === 'approved' ? (
-                        <span className="badge active">تمت الموافقة</span>
-                      ) : (
-                        '—'
-                      )}
-                    </td>
-                    <td>
-                      <button
-                        className={`btn sm ${app.enabled ? '' : 'primary'}`}
-                        type="button"
-                        disabled={busy}
-                        onClick={() => void toggleAddon(app.code, !app.enabled)}
-                      >
-                        {app.enabled ? 'إيقاف الباقة' : 'تفعيل للعميل'}
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <Table bare columns={addonColumns} rows={addons.data?.apps ?? []} rowKey={(app) => app.code} />
         )}
       </Panel>
     </div>
@@ -1250,6 +1204,34 @@ function CustomerTicketsTab({ tenantId }: { tenantId: string }) {
   );
   const rows = Array.isArray(tickets.data) ? tickets.data : [];
 
+  const columns: Array<Column<CustomerTicketRow>> = [
+    { key: 'subject', header: 'الموضوع', grow: true, cell: (t) => <strong>{t.subject}</strong> },
+    { key: 'category', header: 'التصنيف', cell: (t) => t.category ?? 'عام' },
+    {
+      key: 'status',
+      header: 'الحالة',
+      cell: (t) => (
+        <span
+          className={`badge ${t.status === 'open' ? 'pending' : t.status === 'resolved' ? 'active' : ''}`}
+        >
+          {TICKET_STATUS_AR[t.status] ?? t.status}
+        </span>
+      ),
+    },
+    { key: 'priority', header: 'الأولوية', cell: (t) => TICKET_PRIORITY_AR[t.priority] ?? t.priority },
+    { key: 'messages', header: 'عدد الرسائل', numeric: true, cell: (t) => t.messageCount },
+    { key: 'created', header: 'تاريخ الفتح', ltr: true, cell: (t) => when(t.createdAt) },
+    {
+      key: 'open',
+      header: '',
+      cell: (t) => (
+        <Link className="btn sm primary" href={`/tickets/${t.id}`}>
+          فتح والرد
+        </Link>
+      ),
+    },
+  ];
+
   return (
     <Panel>
       <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
@@ -1267,46 +1249,7 @@ function CustomerTicketsTab({ tenantId }: { tenantId: string }) {
         <Empty title="لا توجد تذاكر دعم لهذا العميل" detail="عند إرسال العميل لطلب مساعدة سيظهر هنا فوراً." />
       )}
       {tickets.status === 'success' && rows.length > 0 && (
-        <div className="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>الموضوع</th>
-                <th>التصنيف</th>
-                <th>الحالة</th>
-                <th>الأولوية</th>
-                <th>عدد الرسائل</th>
-                <th>تاريخ الفتح</th>
-                <th>الإجراء</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((t) => (
-                <tr key={t.id}>
-                  <td>
-                    <strong>{t.subject}</strong>
-                  </td>
-                  <td>{t.category ?? 'عام'}</td>
-                  <td>
-                    <span
-                      className={`badge ${t.status === 'open' ? 'pending' : t.status === 'resolved' ? 'active' : ''}`}
-                    >
-                      {TICKET_STATUS_AR[t.status] ?? t.status}
-                    </span>
-                  </td>
-                  <td>{TICKET_PRIORITY_AR[t.priority] ?? t.priority}</td>
-                  <td className="num">{t.messageCount}</td>
-                  <td dir="ltr">{when(t.createdAt)}</td>
-                  <td>
-                    <Link className="btn sm primary" href={`/tickets/${t.id}`}>
-                      فتح والرد
-                    </Link>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <Table bare columns={columns} rows={rows} rowKey={(t) => t.id} />
       )}
     </Panel>
   );
@@ -1403,6 +1346,42 @@ function AuditTab({ tenantId }: { tenantId: string }) {
     return apiData<{ items: AuditRow[]; total: number }>(`/platform/audit?${params.toString()}`);
   }, [tenantId]);
 
+  const columns: Array<Column<AuditRow>> = [
+    { key: 'time', header: 'الوقت', ltr: true, cell: (row) => when(row.createdAt) },
+    { key: 'action', header: 'الإجراء', cell: (row) => ACTION_LABEL[row.action] ?? row.action },
+    {
+      key: 'entity',
+      header: 'الكيان',
+      cell: (row) => (
+        <>
+          {row.entity}
+          <br />
+          <span className="muted small" dir="ltr">
+            {row.entityId ?? ''}
+          </span>
+        </>
+      ),
+    },
+    { key: 'actor', header: 'المستخدم', cell: (row) => row.actorLabel ?? '—' },
+    {
+      key: 'before',
+      header: 'قبل',
+      ltr: true,
+      cell: (row) => <span className="muted small">{row.before ? JSON.stringify(row.before) : '—'}</span>,
+    },
+    {
+      key: 'after',
+      header: 'بعد',
+      ltr: true,
+      cell: (row) => <span className="muted small">{row.after ? JSON.stringify(row.after) : '—'}</span>,
+    },
+    {
+      key: 'reason',
+      header: 'السبب',
+      cell: (row) => (typeof row.meta?.reason === 'string' ? row.meta.reason : '—'),
+    },
+  ];
+
   return (
     <Panel
       title="تدقيق هذا العميل"
@@ -1417,44 +1396,7 @@ function AuditTab({ tenantId }: { tenantId: string }) {
       {audit.status === 'loading' && <Loading rows={4} />}
       {audit.status === 'error' && <ErrorBox message={audit.error} onRetry={audit.reload} />}
       {audit.status === 'success' && (
-        <div className="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>الوقت</th>
-                <th>الإجراء</th>
-                <th>الكيان</th>
-                <th>المستخدم</th>
-                <th>قبل</th>
-                <th>بعد</th>
-                <th>السبب</th>
-              </tr>
-            </thead>
-            <tbody>
-              {(audit.data?.items ?? []).map((row) => (
-                <tr key={row.id}>
-                  <td dir="ltr">{when(row.createdAt)}</td>
-                  <td>{ACTION_LABEL[row.action] ?? row.action}</td>
-                  <td>
-                    {row.entity}
-                    <br />
-                    <span className="muted small" dir="ltr">
-                      {row.entityId ?? ''}
-                    </span>
-                  </td>
-                  <td>{row.actorLabel ?? '—'}</td>
-                  <td dir="ltr" className="muted small">
-                    {row.before ? JSON.stringify(row.before) : '—'}
-                  </td>
-                  <td dir="ltr" className="muted small">
-                    {row.after ? JSON.stringify(row.after) : '—'}
-                  </td>
-                  <td>{typeof row.meta?.reason === 'string' ? row.meta.reason : '—'}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <Table bare columns={columns} rows={audit.data?.items ?? []} rowKey={(row) => row.id} />
       )}
     </Panel>
   );
