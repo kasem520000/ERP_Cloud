@@ -1,7 +1,7 @@
 'use client';
 
 import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, ChevronsUpDown, Inbox } from 'lucide-react';
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { Fragment, useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 
 import { Skeleton } from './skeleton';
 
@@ -21,6 +21,13 @@ export type Column<T> = {
   grow?: boolean;
   width?: number | string;
   sortable?: boolean;
+  /**
+   * تنسيق خلية العمود من الصف نفسه — لخرائط الحرارة (خلفيةٌ تتدرّج مع القيمة)
+   * ولأي عمودٍ يحتاج لوناً محسوباً. التنسيق البنيوي يبقى للجدول.
+   */
+  cellStyle?: (row: T, index: number) => CSSProperties | undefined;
+  /** عمودُ إجراءاتٍ لا معنى له على الورق: يُخفى عند الطباعة. */
+  hideOnPrint?: boolean;
 };
 
 export type SortState = { key: string; dir: 'asc' | 'desc' } | null;
@@ -44,6 +51,12 @@ type TableProps<T> = {
   sortable?: boolean;
   sort?: SortState;
   onSortChange?: (sort: SortState) => void;
+  /**
+   * صفٌّ ينفتح تحت صاحبه (تفاصيل التدقيق مثلاً): مفتاح الصفّ المنفتح ودالّة
+   * محتواه. البنيةُ هي بنيةُ الجدول نفسه — بلا جدولٍ ثانٍ داخل الخليّة.
+   */
+  expandedKey?: string | null;
+  renderExpanded?: (row: T) => ReactNode;
   /** Per-row 3-dot menu. */
   actions?: (row: T) => Array<{ label: string; icon?: ReactNode; onClick: () => void; danger?: boolean }>;
   dense?: boolean;
@@ -79,6 +92,8 @@ export function Table<T>({
   sort,
   onSortChange,
   actions,
+  expandedKey,
+  renderExpanded,
   dense = false,
   zebra = true,
   bare = false,
@@ -98,9 +113,13 @@ export function Table<T>({
   // Selection is scoped to what is on screen: a "select all" that silently ticks 200
   // hidden rows is a foot-gun on a batch screen.
   const allSelected =
-    selectable && pageRows.length > 0 && pageRows.every((row, i) => selectedKeys?.has(rowKey(row, i + (pageSize ? safePage * pageSize : 0))));
+    selectable &&
+    pageRows.length > 0 &&
+    pageRows.every((row, i) => selectedKeys?.has(rowKey(row, i + (pageSize ? safePage * pageSize : 0))));
   const someSelected =
-    selectable && pageRows.some((row, i) => selectedKeys?.has(rowKey(row, i + (pageSize ? safePage * pageSize : 0)))) && !allSelected;
+    selectable &&
+    pageRows.some((row, i) => selectedKeys?.has(rowKey(row, i + (pageSize ? safePage * pageSize : 0)))) &&
+    !allSelected;
 
   const colSpan = columns.length + (selectable ? 1 : 0) + (actions ? 1 : 0);
 
@@ -140,177 +159,183 @@ export function Table<T>({
     >
       {/* Only the rows scroll; the pager below stays reachable at the bottom of the frame. */}
       <div className="max-h-[70vh] overflow-auto">
-      <table className="w-full border-collapse text-[13px]">
-        <thead>
-          <tr>
-            {selectable ? (
-              <th className={`sticky top-0 z-10 bg-surface-2 w-10 ${cellPad}`}>
-                <input
-                  type="checkbox"
-                  className="size-4 accent-brand-600 cursor-pointer"
-                  checked={allSelected}
-                  ref={(el) => {
-                    if (el) el.indeterminate = someSelected;
-                  }}
-                  onChange={toggleAll}
-                  aria-label="تحديد الكل"
-                />
-              </th>
-            ) : null}
-            {columns.map((col) => (
-              <th
-                key={col.key}
-                style={col.width ? { width: col.width } : undefined}
-                className={`sticky top-0 z-10 bg-surface-2 font-bold text-xs tracking-wide text-muted whitespace-nowrap ${cellPad} ${
-                  col.numeric ? 'text-end' : 'text-start'
-                } ${col.grow ? 'w-full' : ''}`}
-              >
-                {col.sortable && sortable ? (
-                  <button
-                    type="button"
-                    onClick={() => toggleSort(col.key)}
-                    className={`inline-flex items-center gap-1 hover:text-ink transition-colors duration-150 ${
-                      sort?.key === col.key ? 'text-brand-700' : ''
+        <table className="w-full border-collapse text-[13px]">
+          <thead>
+            <tr>
+              {selectable ? (
+                <th className={`sticky top-0 z-10 bg-surface-2 w-10 ${cellPad}`}>
+                  <input
+                    type="checkbox"
+                    className="size-4 accent-brand-600 cursor-pointer"
+                    checked={allSelected}
+                    ref={(el) => {
+                      if (el) el.indeterminate = someSelected;
+                    }}
+                    onChange={toggleAll}
+                    aria-label="تحديد الكل"
+                  />
+                </th>
+              ) : null}
+              {columns.map((col) => (
+                <th
+                  key={col.key}
+                  style={col.width ? { width: col.width } : undefined}
+                  className={`sticky top-0 z-10 bg-surface-2 font-bold text-xs tracking-wide text-muted whitespace-nowrap ${cellPad} ${col.hideOnPrint ? 'print:hidden' : ''} ${
+                    col.numeric ? 'text-end' : 'text-start'
+                  } ${col.grow ? 'w-full' : ''}`}
+                >
+                  {col.sortable && sortable ? (
+                    <button
+                      type="button"
+                      onClick={() => toggleSort(col.key)}
+                      className={`inline-flex items-center gap-1 hover:text-ink transition-colors duration-150 ${
+                        sort?.key === col.key ? 'text-brand-700' : ''
+                      }`}
+                    >
+                      {col.header}
+                      {sort?.key === col.key ? (
+                        sort.dir === 'asc' ? (
+                          <ChevronUp size={13} />
+                        ) : (
+                          <ChevronDown size={13} />
+                        )
+                      ) : (
+                        <ChevronsUpDown size={13} className="opacity-40" />
+                      )}
+                    </button>
+                  ) : (
+                    col.header
+                  )}
+                </th>
+              ))}
+              {actions ? <th className={`sticky top-0 z-10 bg-surface-2 w-10 ${cellPad}`} /> : null}
+            </tr>
+          </thead>
+          <tbody>
+            {loading
+              ? Array.from({ length: skeletonRows }).map((_, i) => (
+                  <tr key={i} className={zebra && i % 2 === 1 ? 'bg-surface-2' : ''}>
+                    {selectable ? (
+                      <td className={cellPad}>
+                        <Skeleton className="size-4" />
+                      </td>
+                    ) : null}
+                    {columns.map((col) => (
+                      <td key={col.key} className={cellPad}>
+                        <Skeleton className="h-3.5 w-3/4" />
+                      </td>
+                    ))}
+                    {actions ? (
+                      <td className={cellPad}>
+                        <Skeleton className="size-6 mx-auto" />
+                      </td>
+                    ) : null}
+                  </tr>
+                ))
+              : rows.length === 0
+                ? [
+                    <tr key="empty">
+                      <td colSpan={colSpan}>
+                        <div className="grid place-items-center gap-2 py-14 text-muted">
+                          <span className="grid place-items-center size-16 rounded-2xl bg-surface-3 text-muted">
+                            <Inbox size={30} strokeWidth={1.5} />
+                          </span>
+                          <p className="m-0 text-sm font-semibold text-muted">
+                            {empty ?? 'لا توجد سجلات لعرضها'}
+                          </p>
+                        </div>
+                      </td>
+                    </tr>,
+                  ]
+                : pageRows.map((row, index) => {
+                    const absolute = index + (pageSize ? safePage * pageSize : 0);
+                    const key = rowKey(row, absolute);
+                    const selected = selectedKeys?.has(key) ?? false;
+                    const active = activeKey !== undefined && activeKey === key;
+                    return (
+                      <Fragment key={key}>
+                        <tr
+                          onClick={onRowClick ? () => onRowClick(row) : undefined}
+                          className={[
+                            'transition-colors duration-150',
+                            zebra && index % 2 === 1 ? 'bg-surface-2' : '',
+                            onRowClick ? 'cursor-pointer' : '',
+                            active ? '!bg-info-soft shadow-[inset_0_0_0_1.5px_var(--brand-line)]' : '',
+                            selected ? '!bg-info-soft' : '',
+                          ]
+                            .filter(Boolean)
+                            .join(' ')}
+                        >
+                          {selectable ? (
+                            <td className={cellPad} onClick={(event) => event.stopPropagation()}>
+                              <input
+                                type="checkbox"
+                                className="size-4 accent-brand-600 cursor-pointer"
+                                checked={selected}
+                                onChange={() => toggleOne(key)}
+                                aria-label="تحديد الصف"
+                              />
+                            </td>
+                          ) : null}
+                          {columns.map((col) => (
+                            <td
+                              key={col.key}
+                              className={`${cellPad} align-middle ${col.numeric ? 'text-end' : 'text-start'} ${
+                                col.ltr ? 'ltr' : ''
+                              } ${col.hideOnPrint ? 'print:hidden' : ''}`}
+                              style={{
+                                ...(col.numeric
+                                  ? { fontVariantNumeric: 'tabular-nums', direction: 'ltr' as const }
+                                  : col.ltr
+                                    ? { direction: 'ltr' as const }
+                                    : {}),
+                                ...col.cellStyle?.(row, absolute),
+                              }}
+                            >
+                              {col.cell(row, index)}
+                            </td>
+                          ))}
+                          {actions ? (
+                            <td
+                              className={`${cellPad} text-center`}
+                              onClick={(event) => event.stopPropagation()}
+                            >
+                              <RowActions
+                                items={actions(row)}
+                                labels={{ open: 'فتح القائمة', close: 'إغلاق القائمة' }}
+                              />
+                            </td>
+                          ) : null}
+                        </tr>
+                        {renderExpanded && expandedKey === key ? (
+                          <tr>
+                            <td colSpan={colSpan} className="bg-surface-2/60 border-b border-line">
+                              {renderExpanded(row)}
+                            </td>
+                          </tr>
+                        ) : null}
+                      </Fragment>
+                    );
+                  })}
+          </tbody>
+          {footer && !loading && rows.length > 0 ? (
+            <tfoot>
+              <tr>
+                {selectable ? <td className={`${cellPad} bg-surface-2 border-t-2 border-line`} /> : null}
+                {footer.map((cell, i) => (
+                  <td
+                    key={i}
+                    className={`${cellPad} bg-surface-2 border-t-2 border-line font-bold ${
+                      columns[i]?.numeric ? 'text-end' : 'text-start'
                     }`}
                   >
-                    {col.header}
-                    {sort?.key === col.key ? (
-                      sort.dir === 'asc' ? (
-                        <ChevronUp size={13} />
-                      ) : (
-                        <ChevronDown size={13} />
-                      )
-                    ) : (
-                      <ChevronsUpDown size={13} className="opacity-40" />
-                    )}
-                  </button>
-                ) : (
-                  col.header
-                )}
-              </th>
-            ))}
-            {actions ? <th className={`sticky top-0 z-10 bg-surface-2 w-10 ${cellPad}`} /> : null}
-          </tr>
-        </thead>
-        <tbody>
-          {loading
-            ? Array.from({ length: skeletonRows }).map((_, i) => (
-                <tr key={i} className={zebra && i % 2 === 1 ? 'bg-surface-2' : ''}>
-                  {selectable ? (
-                    <td className={cellPad}>
-                      <Skeleton className="size-4" />
-                    </td>
-                  ) : null}
-                  {columns.map((col) => (
-                    <td key={col.key} className={cellPad}>
-                      <Skeleton className="h-3.5 w-3/4" />
-                    </td>
-                  ))}
-                  {actions ? (
-                    <td className={cellPad}>
-                      <Skeleton className="size-6 mx-auto" />
-                    </td>
-                  ) : null}
-                </tr>
-              ))
-            : rows.length === 0
-              ? [
-                  <tr key="empty">
-                    <td colSpan={colSpan}>
-                      <div className="grid place-items-center gap-2 py-14 text-muted">
-                        <span className="grid place-items-center size-16 rounded-2xl bg-surface-3 text-muted">
-                          <Inbox size={30} strokeWidth={1.5} />
-                        </span>
-                        <p className="m-0 text-sm font-semibold text-muted">
-                          {empty ?? 'لا توجد سجلات لعرضها'}
-                        </p>
-                      </div>
-                    </td>
-                  </tr>,
-                ]
-              : pageRows.map((row, index) => {
-                  const absolute = index + (pageSize ? safePage * pageSize : 0);
-                  const key = rowKey(row, absolute);
-                  const selected = selectedKeys?.has(key) ?? false;
-                  const active = activeKey !== undefined && activeKey === key;
-                  return (
-                    <tr
-                      key={key}
-                      onClick={onRowClick ? () => onRowClick(row) : undefined}
-                      className={[
-                        'transition-colors duration-150',
-                        zebra && index % 2 === 1 ? 'bg-surface-2' : '',
-                        onRowClick ? 'cursor-pointer' : '',
-                        active ? '!bg-info-soft shadow-[inset_0_0_0_1.5px_var(--brand-line)]' : '',
-                        selected ? '!bg-info-soft' : '',
-                      ]
-                        .filter(Boolean)
-                        .join(' ')}
-                    >
-                      {selectable ? (
-                        <td
-                          className={cellPad}
-                          onClick={(event) => event.stopPropagation()}
-                        >
-                          <input
-                            type="checkbox"
-                            className="size-4 accent-brand-600 cursor-pointer"
-                            checked={selected}
-                            onChange={() => toggleOne(key)}
-                            aria-label="تحديد الصف"
-                          />
-                        </td>
-                      ) : null}
-                      {columns.map((col) => (
-                        <td
-                          key={col.key}
-                          className={`${cellPad} align-middle ${col.numeric ? 'text-end' : 'text-start'} ${
-                            col.ltr ? 'ltr' : ''
-                          }`}
-                          style={
-                            col.numeric
-                              ? { fontVariantNumeric: 'tabular-nums', direction: 'ltr' }
-                              : col.ltr
-                                ? { direction: 'ltr' }
-                                : undefined
-                          }
-                        >
-                          {col.cell(row, index)}
-                        </td>
-                      ))}
-                      {actions ? (
-                        <td
-                          className={`${cellPad} text-center`}
-                          onClick={(event) => event.stopPropagation()}
-                        >
-                          <RowActions
-                            items={actions(row)}
-                            labels={{ open: 'فتح القائمة', close: 'إغلاق القائمة' }}
-                          />
-                        </td>
-                      ) : null}
-                    </tr>
-                  );
-                })}
-        </tbody>
-        {footer && !loading && rows.length > 0 ? (
-          <tfoot>
-            <tr>
-              {selectable ? <td className={`${cellPad} bg-surface-2 border-t-2 border-line`} /> : null}
-              {footer.map((cell, i) => (
-                <td
-                  key={i}
-                  className={`${cellPad} bg-surface-2 border-t-2 border-line font-bold ${
-                    columns[i]?.numeric ? 'text-end' : 'text-start'
-                  }`}
-                >
-                  {cell}
-                </td>
-              ))}
-            </tr>
-          </tfoot>
-        ) : null}
-      </table>
+                    {cell}
+                  </td>
+                ))}
+              </tr>
+            </tfoot>
+          ) : null}
+        </table>
       </div>
       {pageSize && rows.length > 0 ? (
         <div className="flex flex-wrap items-center justify-between gap-2 border-t border-line bg-surface px-3 py-2 no-print">
@@ -324,7 +349,8 @@ export function Table<T>({
               onClick={() => setPage((current) => Math.max(0, current - 1))}
               disabled={safePage === 0}
             >
-              <ChevronRight size={14} /><span>السابق</span>
+              <ChevronRight size={14} />
+              <span>السابق</span>
             </button>
             <span className="px-2 text-[12px] font-bold tabular-nums text-ink" dir="ltr">
               {`${safePage + 1} / ${pageCount}`}
@@ -335,7 +361,8 @@ export function Table<T>({
               onClick={() => setPage((current) => Math.min(pageCount - 1, current + 1))}
               disabled={safePage >= pageCount - 1}
             >
-              <span>التالي</span><ChevronLeft size={14} />
+              <span>التالي</span>
+              <ChevronLeft size={14} />
             </button>
           </div>
         </div>
