@@ -178,6 +178,10 @@ export type KpiItem = {
   icon?: ReactNode;
   tone?: 'neutral' | 'up' | 'down' | 'warn';
   href?: string;
+  /** تغيّر النسبة عن الفترة السابقة — يُقرأ كسهمٍ ونسبة، لا كلونٍ على الرقم نفسه. */
+  delta?: number | null;
+  /** ما تُقارن به النسبة: «عن الأمس» أو «عن الشهر الماضي». */
+  deltaLabel?: string;
 };
 
 /**
@@ -201,6 +205,13 @@ export function KpiStrip({ items, className }: { items: KpiItem[]; className?: s
             <span className={cn('ui-kpi-value', item.tone && item.tone !== 'neutral' && `is-${item.tone}`)}>
               {item.value}
             </span>
+            {item.delta !== undefined && item.delta !== null ? (
+              <span className={cn('ui-kpi-delta', item.delta >= 0 ? 'is-up' : 'is-down')}>
+                <span aria-hidden>{item.delta >= 0 ? '▲' : '▼'}</span>
+                {Math.abs(item.delta).toFixed(1)}%
+                {item.deltaLabel ? <span className="ui-kpi-delta-label">{item.deltaLabel}</span> : null}
+              </span>
+            ) : null}
             {item.hint ? <span className="ui-kpi-hint">{item.hint}</span> : null}
           </>
         );

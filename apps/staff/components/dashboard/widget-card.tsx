@@ -1,5 +1,6 @@
 'use client';
 
+import { Panel } from '@erp/ui';
 import { GripVertical, Minus, TrendingDown, TrendingUp, X } from 'lucide-react';
 
 import { money } from '../../lib/lookups';
@@ -28,7 +29,7 @@ export function WidgetCard({
   const delta = widget.deltaPercent === undefined ? null : Number(widget.deltaPercent);
   const up = (delta ?? 0) >= 0;
   return (
-    <article
+    <div
       draggable={Boolean(editable)}
       onDragStart={() => onDragStart?.(widget.id)}
       onDragOver={(event) => {
@@ -38,30 +39,48 @@ export function WidgetCard({
         event.preventDefault();
         onDrop?.(widget.id);
       }}
-      className="flex h-full flex-col overflow-hidden rounded-2xl border border-line bg-surface shadow-1"
+      className="h-full"
     >
-      <header className="flex items-center justify-between gap-2 border-b border-line px-3 py-2">
-        <div className="flex min-w-0 items-center gap-1.5">
-          {editable ? <GripVertical size={14} className="shrink-0 text-muted" /> : null}
-          <h3 className="m-0 truncate text-[13px] font-semibold text-ink">{widget.titleAr}</h3>
-        </div>
-        {editable && onRemove ? (
-          <button type="button" className="rounded-md p-1 text-muted hover:bg-surface-3 hover:text-danger" onClick={() => onRemove(widget.id)} aria-label="حذف المؤشر">
-            <X size={14} />
-          </button>
-        ) : null}
-      </header>
-      <div className="min-h-0 flex-1 p-3">
+      <Panel
+        className="flex h-full flex-col"
+        title={widget.titleAr}
+        actions={
+          <>
+            {editable ? <GripVertical size={14} className="shrink-0 text-muted" aria-hidden /> : null}
+            {editable && onRemove ? (
+              <button
+                type="button"
+                className="rounded-md p-1 text-muted hover:bg-surface-3 hover:text-danger"
+                onClick={() => onRemove(widget.id)}
+                aria-label="حذف المؤشر"
+              >
+                <X size={14} />
+              </button>
+            ) : null}
+          </>
+        }
+        bodyClassName="min-h-0 flex-1 p-3"
+      >
         {widget.error ? <p className="m-0 text-[13px] text-warn-ink">{widget.error}</p> : null}
         {!widget.error && widget.kind === 'kpi' ? (
           <div>
             <p className="m-0 text-[28px] font-bold tracking-tight text-ink">{figureText(widget)}</p>
             {delta !== null && Number.isFinite(delta) ? (
-              <p className={`m-0 mt-1 inline-flex items-center gap-1 text-[12px] font-semibold ${up ? 'text-ok' : 'text-danger'}`}>
-                {delta === 0 ? <Minus size={13} /> : up ? <TrendingUp size={13} /> : <TrendingDown size={13} />}
+              <p
+                className={`m-0 mt-1 inline-flex items-center gap-1 text-[12px] font-semibold ${up ? 'text-ok' : 'text-danger'}`}
+              >
+                {delta === 0 ? (
+                  <Minus size={13} />
+                ) : up ? (
+                  <TrendingUp size={13} />
+                ) : (
+                  <TrendingDown size={13} />
+                )}
                 {up && delta > 0 ? '+' : ''}
                 {delta.toFixed(1)}%
-                {widget.comparisonAr ? <span className="font-normal text-muted">{widget.comparisonAr}</span> : null}
+                {widget.comparisonAr ? (
+                  <span className="font-normal text-muted">{widget.comparisonAr}</span>
+                ) : null}
               </p>
             ) : null}
           </div>
@@ -70,8 +89,8 @@ export function WidgetCard({
         {!widget.error && (widget.kind === 'table' || widget.kind === 'list') ? (
           <Rows columns={widget.columns ?? []} rows={widget.rows ?? []} />
         ) : null}
-      </div>
-    </article>
+      </Panel>
+    </div>
   );
 }
 
@@ -84,7 +103,10 @@ function Bars({ series }: { series: { label: string; value: string }[] }) {
         <li key={item.label} className="grid grid-cols-[4.5rem_1fr_auto] items-center gap-2 text-[12px]">
           <span className="truncate text-muted">{item.label}</span>
           <span className="h-2 overflow-hidden rounded-full bg-surface-3">
-            <span className="block h-full rounded-full bg-brand-600" style={{ width: `${Math.max(4, ((Number(item.value) || 0) / max) * 100)}%` }} />
+            <span
+              className="block h-full rounded-full bg-brand-600"
+              style={{ width: `${Math.max(4, ((Number(item.value) || 0) / max) * 100)}%` }}
+            />
           </span>
           <span className="tabular-nums text-ink-2">{money(item.value)}</span>
         </li>
@@ -111,7 +133,9 @@ function Rows({ columns, rows }: { columns: string[]; rows: string[][] }) {
       <thead>
         <tr className="text-muted">
           {columns.map((column) => (
-            <th key={column} className="pb-1 text-start font-medium">{column}</th>
+            <th key={column} className="pb-1 text-start font-medium">
+              {column}
+            </th>
           ))}
         </tr>
       </thead>
@@ -119,7 +143,9 @@ function Rows({ columns, rows }: { columns: string[]; rows: string[][] }) {
         {rows.map((row, index) => (
           <tr key={index} className="border-t border-line text-ink-2">
             {row.map((cell, cellIndex) => (
-              <td key={cellIndex} className="py-1 pe-2">{formatCell(cell)}</td>
+              <td key={cellIndex} className="py-1 pe-2">
+                {formatCell(cell)}
+              </td>
             ))}
           </tr>
         ))}

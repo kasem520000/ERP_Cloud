@@ -1,6 +1,6 @@
 'use client';
 
-import { FilterBand, Panel } from '@erp/ui';
+import { FilterBand, KpiStrip, Panel } from '@erp/ui';
 import Link from 'next/link';
 import { use, useEffect, useMemo, useState } from 'react';
 import {
@@ -22,7 +22,6 @@ import { Button } from '../../../components/ui/button';
 import { BarCardChart, LineCardChart } from '../../../components/ui/chart';
 import { EmptyState } from '../../../components/ui/empty-state';
 import { Labeled } from '../../../components/ui/input';
-import { KpiCard } from '../../../components/ui/kpi-card';
 import { SkeletonCard } from '../../../components/ui/skeleton';
 import { Table, type SortState } from '../../../components/ui/table';
 import {
@@ -356,42 +355,33 @@ export default function ReportRunnerPage({ params }: { params: Promise<{ key: st
         />
       ) : (
         <>
-          <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
-            <KpiCard
-              title="عدد السطور"
-              value={result.rowCount.toLocaleString('ar-EG')}
-              icon={<Hash size={20} />}
-              tone="blue"
-              hint={`وقت الاستخراج: ${result.generatedAt.slice(0, 16).replace('T', ' ')}`}
-            />
-            {result.grandTotal.slice(0, 3).map((card, index) => (
-              <KpiCard
-                key={card.key}
-                title={card.labelAr}
-                value={formatCell(card.amount, 'money')}
-                icon={<Banknote size={20} />}
-                tone={index % 2 === 0 ? 'green' : 'amber'}
-                delay={0.06 * (index + 1)}
-              />
-            ))}
-            {result.grandTotal.length === 0
-              ? Object.entries(result.totals)
-                  .slice(0, 3)
-                  .map(([key, value], index) => (
-                    <KpiCard
-                      key={key}
-                      title={result.columns.find((column) => column.key === key)?.labelAr ?? key}
-                      value={formatCell(
+          <KpiStrip
+            items={[
+              {
+                label: 'عدد السطور',
+                value: result.rowCount.toLocaleString('ar-EG'),
+                icon: <Hash size={18} />,
+                hint: `وقت الاستخراج: ${result.generatedAt.slice(0, 16).replace('T', ' ')}`,
+              },
+              ...result.grandTotal.slice(0, 3).map((card) => ({
+                label: card.labelAr,
+                value: formatCell(card.amount, 'money'),
+                icon: <Banknote size={18} />,
+              })),
+              ...(result.grandTotal.length === 0
+                ? Object.entries(result.totals)
+                    .slice(0, 3)
+                    .map(([key, value]) => ({
+                      label: result.columns.find((column) => column.key === key)?.labelAr ?? key,
+                      value: formatCell(
                         value,
                         result.columns.find((column) => column.key === key)?.type ?? 'money',
-                      )}
-                      icon={<Timer size={20} />}
-                      tone={index % 2 === 0 ? 'amber' : 'green'}
-                      delay={0.06 * (index + 1)}
-                    />
-                  ))
-              : null}
-          </div>
+                      ),
+                      icon: <Timer size={18} />,
+                    }))
+                : []),
+            ]}
+          />
 
           {entry?.chart && result.columns.length > 0 ? <ReportChart entry={entry} result={result} /> : null}
 

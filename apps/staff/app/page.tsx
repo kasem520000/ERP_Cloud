@@ -16,12 +16,12 @@ import {
   Wallet,
 } from 'lucide-react';
 import { useEffect, useState } from 'react';
+import { KpiStrip, Panel, Section } from '@erp/ui';
 
 import { UserDashboard } from '../components/dashboard/user-dashboard';
 import { AreaCardChart, DonutCardChart } from '../components/ui/chart';
 import { CountUp, Reveal } from '../components/ui/count-up';
 import { EmptyState } from '../components/ui/empty-state';
-import { KpiCard } from '../components/ui/kpi-card';
 import { SkeletonCard } from '../components/ui/skeleton';
 import { Badge } from '../components/ui/badge';
 import { useSession } from '../lib/session';
@@ -29,7 +29,11 @@ import { money, quantity, shortDate } from '../lib/lookups';
 import { computeStats, fetchDashboardData, partyName, type DashboardData } from '../lib/dashboard';
 
 function useDashboardData() {
-  const [state, setState] = useState<{ status: 'loading' | 'success' | 'error'; data?: DashboardData; error?: string }>({
+  const [state, setState] = useState<{
+    status: 'loading' | 'success' | 'error';
+    data?: DashboardData;
+    error?: string;
+  }>({
     status: 'loading',
   });
   const [nonce, setNonce] = useState(0);
@@ -38,9 +42,10 @@ function useDashboardData() {
     setState({ status: 'loading' });
     fetchDashboardData()
       .then((data) => !cancelled && setState({ status: 'success', data }))
-      .catch((error) =>
-        !cancelled &&
-        setState({ status: 'error', error: error instanceof Error ? error.message : String(error) }),
+      .catch(
+        (error) =>
+          !cancelled &&
+          setState({ status: 'error', error: error instanceof Error ? error.message : String(error) }),
       );
     return () => {
       cancelled = true;
@@ -116,7 +121,6 @@ function ActionTile({
   );
 }
 
-
 export default function DashboardPage() {
   const { me, can } = useSession();
   const data = useDashboardData();
@@ -128,9 +132,13 @@ export default function DashboardPage() {
   const dates = dateLine();
 
   const todayDelta =
-    stats && stats.yesterdaySales > 0 ? ((stats.todaySales - stats.yesterdaySales) / stats.yesterdaySales) * 100 : null;
+    stats && stats.yesterdaySales > 0
+      ? ((stats.todaySales - stats.yesterdaySales) / stats.yesterdaySales) * 100
+      : null;
   const monthDelta =
-    stats && stats.lastMonthSales > 0 ? ((stats.monthSales - stats.lastMonthSales) / stats.lastMonthSales) * 100 : null;
+    stats && stats.lastMonthSales > 0
+      ? ((stats.monthSales - stats.lastMonthSales) / stats.lastMonthSales) * 100
+      : null;
 
   if (data.status === 'error') {
     return (
@@ -205,66 +213,78 @@ export default function DashboardPage() {
       <UserDashboard />
 
       {/* -------------------------------------------------------- KPIs */}
-      <div className="flex items-end justify-between gap-3">
-        <div>
-          <span className="exec-eyebrow">المؤشرات الرئيسية</span>
-          <h2 className="m-0 mt-1 text-[18px] font-bold tracking-[-0.02em] text-ink">نبض المنشأة اليوم</h2>
-        </div>
-        <span className="hidden text-[11.5px] text-muted sm:inline">
-          {data.status === 'success' ? 'مقارنة بالفترة السابقة' : 'جارٍ التحديث…'}
-        </span>
-      </div>
-      {data.status === 'loading' ? (
-        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 xl:grid-cols-4">
-          {Array.from({ length: 4 }).map((_, i) => (
-            <SkeletonCard key={i} />
-          ))}
-        </div>
-      ) : stats ? (
-        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 xl:grid-cols-4">
-          <KpiCard
-            title="مبيعات اليوم"
-            value={<CountUp value={stats.todaySales} format={SAR} />}
-            icon={<Wallet size={21} />}
-            tone="blue"
-            delta={todayDelta}
-            deltaLabel="مقارنةً بالأمس"
-            spark={stats.weekSpark}
-            delay={0}
-          />
-          <KpiCard
-            title={`مبيعات ${new Intl.DateTimeFormat('ar', { month: 'long' }).format(new Date())}`}
-            value={<CountUp value={stats.monthSales} format={SAR} />}
-            icon={<ShoppingCart size={21} />}
-            tone="green"
-            delta={monthDelta}
-            deltaLabel="عن الشهر السابق"
-            spark={[stats.lastMonthSales, stats.monthSales]}
-            delay={0.1}
-          />
-          <KpiCard
-            title="ذمم مدينة (فواتير غير مسددة)"
-            value={<CountUp value={stats.receivable} format={SAR} />}
-            icon={<TrendingUp size={21} />}
-            tone="amber"
-            hint={`${stats.overdueInvoices} فاتورة لدى ${stats.overdueCustomers} عميل`}
-            delay={0.2}
-          />
-          <KpiCard
-            title="أصناف تحت الحد الأدنى"
-            value={<CountUp value={stats.lowStockCount} />}
-            icon={<PackageSearch size={21} />}
-            tone={stats.lowStockCount > 0 ? 'red' : 'slate'}
-            hint={`${stats.nearExpiryCount} صنف قريب من الانتهاء`}
-            delay={0.3}
-          />
-        </div>
-      ) : null}
+      <Section
+        title="نبض المنشأة اليوم"
+        hint={data.status === 'success' ? 'مقارنة بالفترة السابقة' : 'جارٍ التحديث…'}
+      >
+        <KpiStrip
+          items={[
+            {
+              label: 'مبيعات اليوم',
+              value: stats ? <CountUp value={stats.todaySales} format={SAR} /> : '—',
+              icon: <Wallet size={18} />,
+              delta: todayDelta,
+              deltaLabel: 'عن الأمس',
+              href: '/sales/invoices',
+            },
+            {
+              label: `مبيعات ${new Intl.DateTimeFormat('ar', { month: 'long' }).format(new Date())}`,
+              value: stats ? <CountUp value={stats.monthSales} format={SAR} /> : '—',
+              icon: <ShoppingCart size={18} />,
+              delta: monthDelta,
+              deltaLabel: 'عن الشهر الماضي',
+            },
+            {
+              label: 'ذمم مدينة (فواتير غير مسددة)',
+              value: stats ? <CountUp value={stats.receivable} format={SAR} /> : '—',
+              icon: <TrendingUp size={18} />,
+              hint: stats
+                ? `${stats.overdueInvoices} فاتورة لدى ${stats.overdueCustomers} عميل`
+                : 'جارٍ التحديث…',
+              tone: stats && stats.overdueInvoices > 0 ? 'warn' : 'neutral',
+            },
+            {
+              label: 'أصناف تحت الحد الأدنى',
+              value: stats ? <CountUp value={stats.lowStockCount} /> : '—',
+              icon: <PackageSearch size={18} />,
+              hint: stats ? `${stats.nearExpiryCount} صنف قريب من الانتهاء` : 'جارٍ التحديث…',
+              tone: stats && stats.lowStockCount > 0 ? 'down' : 'neutral',
+              href: '/inventory/below-minimum',
+            },
+          ]}
+        />
+      </Section>
 
       {/* ------------------------------------------------- action centre */}
       {stats ? (
         <Reveal delay={0.1}>
-          <section className="exec-card overflow-hidden">
+          <Panel
+            title="مركز الإجراءات"
+            hint="بنود تحتاج نظراً منك اليوم."
+            flush
+            actions={
+              <div className="flex flex-wrap items-center gap-3 text-[11.5px] font-bold">
+                <Link
+                  className="inline-flex items-center gap-1 text-brand hover:underline"
+                  href="/approvals/inbox"
+                >
+                  صندوق الموافقات <ArrowRight size={12} className="arrow-forward" aria-hidden />
+                </Link>
+                <Link
+                  className="inline-flex items-center gap-1 text-muted hover:text-ink"
+                  href="/accounting/income-statement"
+                >
+                  قائمة الدخل <ArrowRight size={12} className="arrow-forward" aria-hidden />
+                </Link>
+                <Link
+                  className="inline-flex items-center gap-1 text-muted hover:text-ink"
+                  href="/accounting/trial-balance"
+                >
+                  ميزان المراجعة <ArrowRight size={12} className="arrow-forward" aria-hidden />
+                </Link>
+              </div>
+            }
+          >
             <div className="grid grid-cols-1 divide-y divide-line sm:grid-cols-3 sm:divide-x sm:divide-y-0">
               <ActionTile
                 href="/sales/invoices"
@@ -291,55 +311,40 @@ export default function DashboardPage() {
                 tone={stats.nearExpiryCount > 0 ? 'warn' : 'ok'}
               />
             </div>
-            <div className="flex flex-wrap items-center justify-between gap-2 border-t border-line bg-surface-2/60 px-5 py-3">
-              <span className="text-[11.5px] font-semibold text-muted">مركز الإجراءات — بنود تحتاج نظراً منك اليوم</span>
-              <div className="flex flex-wrap items-center gap-3 text-[11.5px] font-bold">
-                <Link className="inline-flex items-center gap-1 text-brand hover:underline" href="/approvals/inbox">
-                  صندوق الموافقات <ArrowRight size={12} className="arrow-forward" aria-hidden />
-                </Link>
-                <Link className="inline-flex items-center gap-1 text-muted hover:text-ink" href="/accounting/income-statement">
-                  قائمة الدخل <ArrowRight size={12} className="arrow-forward" aria-hidden />
-                </Link>
-                <Link className="inline-flex items-center gap-1 text-muted hover:text-ink" href="/accounting/trial-balance">
-                  ميزان المراجعة <ArrowRight size={12} className="arrow-forward" aria-hidden />
-                </Link>
-              </div>
-            </div>
-          </section>
+          </Panel>
         </Reveal>
       ) : null}
 
       {/* ------------------------------------------------------ charts */}
       <div className="grid gap-4 grid-cols-1 xl:grid-cols-5">
         <Reveal delay={0.15} className="xl:col-span-3">
-          <section className="exec-card h-full p-5">
-            <header className="flex items-start justify-between gap-3 mb-2">
-              <div>
-                <span className="exec-eyebrow">الأداء الزمني</span>
-                <h3 className="m-0 mt-1 text-[15.5px] font-bold tracking-tight text-ink">مبيعات آخر 7 أيام</h3>
-                <p className="m-0 mt-0.5 text-xs text-muted">إجمالي الفواتير المرحّلة (بالريال السعودي)</p>
-              </div>
+          <Panel
+            className="h-full"
+            title="مبيعات آخر 7 أيام"
+            hint="إجمالي الفواتير المرحّلة (بالريال السعودي)."
+            actions={
               <Badge tone="blue" dot>
                 {stats ? `${stats.week.reduce((sum, day) => sum + day.count, 0)} فاتورة` : '…'}
               </Badge>
-            </header>
+            }
+          >
             {data.status === 'loading' ? (
               <SkeletonCard lines={5} />
             ) : stats ? (
-              <AreaCardChart data={stats.week} xKey="label" dataKey="total" formatter={SAR} name="المبيعات" height={264} />
+              <AreaCardChart
+                data={stats.week}
+                xKey="label"
+                dataKey="total"
+                formatter={SAR}
+                name="المبيعات"
+                height={264}
+              />
             ) : null}
-          </section>
+          </Panel>
         </Reveal>
 
         <Reveal delay={0.25} className="xl:col-span-2">
-          <section className="exec-card h-full p-5">
-            <header className="flex items-start justify-between gap-3 mb-2">
-              <div>
-                <span className="exec-eyebrow">التوزيع</span>
-                <h3 className="m-0 mt-1 text-[15.5px] font-bold tracking-tight text-ink">المبيعات حسب الفرع</h3>
-                <p className="m-0 mt-0.5 text-xs text-muted">توزيع الإيراد على الفروع</p>
-              </div>
-            </header>
+          <Panel className="h-full" title="المبيعات حسب الفرع" hint="توزيع الإيراد على الفروع.">
             {data.status === 'loading' ? (
               <SkeletonCard lines={5} />
             ) : stats && stats.branchTotals.length > 0 ? (
@@ -358,22 +363,25 @@ export default function DashboardPage() {
                 description="عندما تُرحَّل أول فاتورة سيظهر توزيعها على الفروع هنا."
               />
             )}
-          </section>
+          </Panel>
         </Reveal>
       </div>
 
       {/* ------------------------------------------------ mini tables */}
       <div className="grid gap-4 grid-cols-1 xl:grid-cols-2">
         <Reveal delay={0.3}>
-          <section className="exec-card overflow-hidden">
-            <header className="flex items-center justify-between gap-3 px-4 pt-4 pb-2">
-              <h3 className="m-0 flex items-center gap-2 text-[15.5px] font-bold tracking-tight text-ink">
-                <span className="size-1.5 rounded-full bg-[var(--gold)]" aria-hidden /> أحدث الفواتير
-              </h3>
-              <Link href="/sales/invoices" className="inline-flex items-center gap-1 text-[12.5px] font-bold text-brand-600 hover:text-brand-700">
+          <Panel
+            flush
+            title="أحدث الفواتير"
+            actions={
+              <Link
+                href="/sales/invoices"
+                className="inline-flex items-center gap-1 text-[12.5px] font-bold text-brand-600 hover:text-brand-700"
+              >
                 عرض الكل <ArrowRight size={12} className="arrow-forward" aria-hidden />
               </Link>
-            </header>
+            }
+          >
             {data.status === 'loading' ? (
               <div className="p-4">
                 <SkeletonCard lines={4} />
@@ -394,13 +402,20 @@ export default function DashboardPage() {
                           {invoice.number ?? 'مسودة'}
                         </span>
                         <span className="block text-[11.5px] text-muted truncate">
-                          {data.data ? partyName(invoice, data.data.parties) : '—'} · {shortDate(invoice.postedAt ?? invoice.createdAt)}
+                          {data.data ? partyName(invoice, data.data.parties) : '—'} ·{' '}
+                          {shortDate(invoice.postedAt ?? invoice.createdAt)}
                         </span>
                       </span>
-                      <span className="text-[13px] font-bold text-ink" style={{ fontVariantNumeric: 'tabular-nums' }}>
+                      <span
+                        className="text-[13px] font-bold text-ink"
+                        style={{ fontVariantNumeric: 'tabular-nums' }}
+                      >
                         {money(invoice.total)}
                       </span>
-                      <Badge tone={invoice.paymentStatus === 'paid' ? 'green' : 'amber'} status={invoice.paymentStatus}>
+                      <Badge
+                        tone={invoice.paymentStatus === 'paid' ? 'green' : 'amber'}
+                        status={invoice.paymentStatus}
+                      >
                         {invoice.paymentStatus === 'paid' ? 'مسدّدة' : 'غير مسدّدة'}
                       </Badge>
                     </Link>
@@ -417,19 +432,22 @@ export default function DashboardPage() {
                 />
               </div>
             )}
-          </section>
+          </Panel>
         </Reveal>
 
         <Reveal delay={0.4}>
-          <section className="exec-card overflow-hidden">
-            <header className="flex items-center justify-between gap-3 px-4 pt-4 pb-2">
-              <h3 className="m-0 flex items-center gap-2 text-[15.5px] font-bold tracking-tight text-ink">
-                <span className="size-1.5 rounded-full bg-[var(--danger)]" aria-hidden /> أصناف تحت الحد الأدنى
-              </h3>
-              <Link href="/inventory/below-minimum" className="inline-flex items-center gap-1 text-[12.5px] font-bold text-brand-600 hover:text-brand-700">
+          <Panel
+            flush
+            title="أصناف تحت الحد الأدنى"
+            actions={
+              <Link
+                href="/inventory/below-minimum"
+                className="inline-flex items-center gap-1 text-[12.5px] font-bold text-brand-600 hover:text-brand-700"
+              >
                 عرض الكل <ArrowRight size={12} className="arrow-forward" aria-hidden />
               </Link>
-            </header>
+            }
+          >
             {data.status === 'loading' ? (
               <div className="p-4">
                 <SkeletonCard lines={4} />
@@ -437,7 +455,10 @@ export default function DashboardPage() {
             ) : data.data && data.data.lowStock.length > 0 ? (
               <ul className="m-0 list-none p-0 divide-y divide-line">
                 {data.data.lowStock.slice(0, 5).map((row) => (
-                  <li key={`${row.itemId}-${row.warehouseId}`} className="flex items-center gap-3 px-4 py-2.5">
+                  <li
+                    key={`${row.itemId}-${row.warehouseId}`}
+                    className="flex items-center gap-3 px-4 py-2.5"
+                  >
                     <span className="grid place-items-center size-9 rounded-lg bg-danger-soft text-danger flex-none">
                       <PackageSearch size={16} />
                     </span>
@@ -448,7 +469,8 @@ export default function DashboardPage() {
                       </span>
                     </span>
                     <span className="text-[12px] text-muted font-semibold">
-                      المتاح <b className="text-danger">{quantity(row.quantity)}</b> / الحد {quantity(row.minQty)}
+                      المتاح <b className="text-danger">{quantity(row.quantity)}</b> / الحد{' '}
+                      {quantity(row.minQty)}
                     </span>
                     <Badge tone="red" dot>
                       ناقص {row.shortage}
@@ -466,7 +488,7 @@ export default function DashboardPage() {
                 />
               </div>
             )}
-          </section>
+          </Panel>
         </Reveal>
       </div>
     </div>
