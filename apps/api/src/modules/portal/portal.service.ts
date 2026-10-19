@@ -126,6 +126,13 @@ export class PortalService {
         // An existing staff membership promoted to portal access becomes portal-only:
         // one login, one audience — a buyer must never double as back-office staff.
         await tx.update(memberships).set({ kind: 'portal' }).where(eq(memberships.id, membership.id));
+      } else if (membership.status !== 'active' || membership.deletedAt) {
+        // Re-inviting a customer whose access was revoked earlier. `revokeAccess` keeps the
+        // user row and soft-deletes the membership, so without this the new grant would
+        // hand over a password that can never sign in — the membership stays suspended.
+        await tx.update(memberships)
+          .set({ status: 'active', deletedAt: null, updatedAt: new Date() })
+          .where(eq(memberships.id, membership.id));
       }
 
       const id = newId();

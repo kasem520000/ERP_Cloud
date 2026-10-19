@@ -52,6 +52,9 @@ Also confirmed from the earlier batch: table pagination/frame in the staff panel
 | `apps/customer-portal/app/portal/*.tsx` | All 9 invoice/statement tables wrapped in `.table-wrap`. | 390 px `scrollWidth = innerWidth = 390`; table scrolls inside its card. |
 | `apps/staff/app/purchases/page.tsx` | **New** server redirect `/purchases` → `/purchases/invoices`. | Bare module URL returns 200 instead of 404. |
 | 111 TSX files (staff, bakery, marketing) | Restored the desktop source labels that the typography pass had stripped (emoji + spacing) — 1 591 label lines re-inserted from `HEAD`, including `🔢 الرقم`, `📝 الاسم`, `💾 حفظ`, `🗂️ المجموعة`, `🖨️ طباعة`. No layout or handler changed. | `project-definitions.spec.ts` **10/10**; labels match `frm*.xaml` again; 763 glyphs remain inside rewritten copy (see §6.2). |
+| `apps/platform-admin/components/ui/table.tsx` + 26 pages | كل جداول القراءة في اللوحة على المكوّن المشترك؛ أُضيف إليه ما تحتاجه الشاشات فعلاً: `cellStyle` (خريطة الأفواج الحرارية)، `expandedKey`/`renderExpanded` (فرق التدقيق بصفٍّ ينفتح)، `hideOnPrint`. بقي `<table>` في شبكتَي تحكّم فقط (محرّر الحقوق ومحرّر القائمة). | 34 مساراً على 1440 وعلى 390: 0 جدولٍ عارٍ، 0 فيض، 0 خطأ. |
+| `apps/marketing/app/globals.css` | فجوات الرأس وحدها ≤480px: الشعار + أدوات الرأس كانا يفيضان ببكسلين على `/en`. | `/en` 390: `scrollWidth` 392→**390**؛ 36 مساراً على 390 وعلى 1440 بلا فيض. |
+| `apps/api/src/modules/portal/portal.service.ts` | إعادة منح الوصول لعميل سُحب وصوله سابقاً تُعيد عضويته إلى `active` وتمحو حذفها الناعم — كانت تبقى معلّقة فيفشل الدخول بكلمة المرور الجديدة. | `portal.spec.ts` **14/14** بقضية انحدار (سحب ← منح ← دخول 200 ← `/portal/me` 200)؛ تحقق حيّ بالحساب الموثّق `portal@demo.test`. |
 
 
 ---

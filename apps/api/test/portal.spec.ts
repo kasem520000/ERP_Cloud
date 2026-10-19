@@ -309,6 +309,21 @@ describe('customer portal', () => {
     expect(relogin.status).toBe(401);
   });
 
+  it('restores a previously revoked customer when access is granted again', async () => {
+    const regranted = await api(ctx.server, 'post', `/api/v1/parties/${buyerId}/portal-access`, {
+      token: staff.token,
+      body: { email: 'buyer@nokhba.test', password: 'Rewelcomed#2026Aa', notify: false },
+    });
+    expect(regranted.status).toBe(201);
+
+    const login = await api(ctx.server, 'post', '/api/v1/auth/login', {
+      body: { email: 'buyer@nokhba.test', password: 'Rewelcomed#2026Aa', tenantCode: 'portalco' },
+    });
+    expect(login.status, 'a re-granted login signs in').toBe(200);
+    const token = ((login.body.data ?? login.body) as Record<string, string>).accessToken;
+    expect((await api(ctx.server, 'get', '/api/v1/portal/me', { token })).status).toBe(200);
+  });
+
   it('refuses to point one login at two customers', async () => {
     const first = await api(ctx.server, 'post', `/api/v1/parties/${buyerId}/portal-access`, { token: staff.token, body: { email: 'shared@buyer.test' } });
     expect(first.status).toBe(201);
