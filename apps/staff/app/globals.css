@@ -755,6 +755,49 @@ th.num {
   display: grid;
   gap: 16px;
 }
+/* رأس الصفحة العامة: شعارٌ وعنوان وشرح — لا بطاقةً عائمة في وسط فراغ. */
+.public-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.public-head strong {
+  display: block;
+  font-size: 17px;
+  line-height: 1.4;
+}
+.public-head p {
+  margin: 2px 0 0;
+  max-width: 60ch;
+}
+/* صفّ طلب عرض سعر داخل لوحةٍ واحدة (بلا لوحةٍ داخل لوحة). */
+.quote-row {
+  display: grid;
+  gap: 4px;
+  padding: 14px 16px;
+  border-top: 1px solid var(--line);
+}
+.quote-row:first-child {
+  border-top: 0;
+}
+/* فرق سجل التدقيق: قبلٌ باهتٌ وبعدٌ مؤكَّد — اللون وحده، بلا صندوقٍ ثانٍ. */
+.audit-before {
+  color: var(--muted);
+  text-decoration: line-through;
+  text-decoration-color: color-mix(in oklab, var(--muted) 50%, transparent);
+}
+.audit-after {
+  color: var(--ok-ink);
+  font-weight: 600;
+}
+.audit-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 18px;
+  padding: 10px 16px;
+  border-top: 1px solid var(--line);
+}
 .logo-mark {
   display: inline-grid;
   place-items: center;

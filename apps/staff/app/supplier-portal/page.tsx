@@ -1,8 +1,10 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Panel } from '@erp/ui';
+import { KpiStrip, Panel } from '@erp/ui';
 
+import { Empty } from '../../components/screen';
+import { Table } from '../../components/ui/table';
 import { money } from '../../lib/lookups';
 import {
   SupplierError,
@@ -143,138 +145,225 @@ export default function SupplierPortalPage() {
 
   if (!token) {
     return (
-      <div className="boot">
-        <form className="auth-card" onSubmit={login}>
-          <span className="logo-mark">م</span>
-          <h1>بوابة الموردين</h1>
-          <p className="muted">فواتيرك ومدفوعاتك وطلبات عروض الأسعار. الدخول لا يفتح شاشات الموظفين.</p>
-          {error ? <p className="alert danger">{error}</p> : null}
-          <label className="field">
-            <span>رمز المنشأة</span>
-            <input
-              className="input"
-              value={tenantCode}
-              onChange={(event) => setTenantCode(event.target.value)}
-              required
-            />
-          </label>
-          <label className="field">
-            <span>البريد</span>
-            <input
-              className="input"
-              type="email"
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              required
-            />
-          </label>
-          <label className="field">
-            <span>كلمة المرور</span>
-            <input
-              className="input"
-              type="password"
-              value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              required
-            />
-          </label>
-          <button className="btn primary" type="submit" disabled={busy}>
-            {busy ? 'جارٍ الدخول…' : 'دخول'}
-          </button>
-        </form>
-      </div>
+      <main className="public-page">
+        <div className="public-wrap">
+          <header className="row public-head">
+            <span className="logo-mark">م</span>
+            <div>
+              <strong>بوابة الموردين</strong>
+              <p className="muted small">
+                فواتيرك ومدفوعاتك وطلبات عروض الأسعار. الدخول لا يفتح شاشات الموظفين.
+              </p>
+            </div>
+          </header>
+
+          <Panel title="الدخول" hint="برمز المنشأة والبريد وكلمة المرور التي منحك إياها المشتري.">
+            {error ? <p className="alert danger">{error}</p> : null}
+            <form onSubmit={login}>
+              <div className="form-grid">
+                <label className="field">
+                  <span>رمز المنشأة</span>
+                  <input
+                    className="input"
+                    value={tenantCode}
+                    onChange={(event) => setTenantCode(event.target.value)}
+                    required
+                  />
+                </label>
+                <label className="field">
+                  <span>البريد</span>
+                  <input
+                    className="input"
+                    type="email"
+                    value={email}
+                    onChange={(event) => setEmail(event.target.value)}
+                    required
+                  />
+                </label>
+                <label className="field">
+                  <span>كلمة المرور</span>
+                  <input
+                    className="input"
+                    type="password"
+                    value={password}
+                    onChange={(event) => setPassword(event.target.value)}
+                    required
+                  />
+                </label>
+              </div>
+              <div className="row" style={{ justifyContent: 'flex-start', marginTop: 12 }}>
+                <button className="btn primary" type="submit" disabled={busy}>
+                  {busy ? 'جارٍ الدخول…' : 'دخول'}
+                </button>
+              </div>
+            </form>
+          </Panel>
+        </div>
+      </main>
     );
   }
+
+  const unpaid = invoices.reduce(
+    (sum, row) => sum + Math.max(0, Number(row.total) - Number(row.paidTotal)),
+    0,
+  );
+  const openQuotes = quotes.filter((row) => row.status === 'open').length;
 
   return (
     <main className="public-page">
       <div className="public-wrap">
-        <header className="row" style={{ justifyContent: 'space-between' }}>
-          <span className="row">
+        <header className="row public-head">
+          <span className="row" style={{ gap: 10 }}>
             <span className="logo-mark">م</span>
-            <strong>بوابة الموردين</strong>
+            <div>
+              <strong>بوابة الموردين</strong>
+              <p className="muted small">فواتيرك ومدفوعاتك وطلبات عروض الأسعار — بلا شاشات داخلية.</p>
+            </div>
           </span>
           <button className="btn sm" type="button" onClick={logout}>
             خروج
           </button>
         </header>
+
         {error ? <p className="alert danger">{error}</p> : null}
 
-        <Panel title="فواتير الشراء">
-          {invoices.length === 0 ? <p className="muted">لا توجد فواتير مرحّلة باسمكم.</p> : null}
-          {invoices.map((row) => (
-            <p key={row.id}>
-              {row.number ?? '—'} — {money(row.total, row.currency)} — مسدّد{' '}
-              {money(row.paidTotal, row.currency)} — {row.paymentStatus}
-            </p>
-          ))}
+        <KpiStrip
+          items={[
+            { label: 'فواتير مرحّلة', value: String(invoices.length), hint: 'باسمكم وفي الدفاتر' },
+            {
+              label: 'متبقٍّ غير مسدّد',
+              value: money(unpaid.toFixed(2)),
+              tone: unpaid > 0 ? 'warn' : 'neutral',
+              hint: 'الإجمالي ناقص المسدّد',
+            },
+            { label: 'طلبات عروض مفتوحة', value: String(openQuotes), hint: 'بانتظار سعركم' },
+          ]}
+        />
+
+        <Panel title="فواتير الشراء" hint={`${invoices.length} فاتورة`} flush>
+          {invoices.length === 0 ? (
+            <Empty
+              bare
+              title="لا فواتير مرحّلة"
+              detail="تظهر هنا الفواتير التي رحّلها المشتري باسم منشأتكم، بعد قيدها في الدفاتر."
+            />
+          ) : (
+            <Table
+              bare
+              columns={[
+                { key: 'c0', header: 'الرقم', ltr: true, cell: (row) => row.number ?? '—' },
+                {
+                  key: 'c1',
+                  header: 'الإجمالي',
+                  numeric: true,
+                  cell: (row) => money(row.total, row.currency),
+                },
+                {
+                  key: 'c2',
+                  header: 'المسدّد',
+                  numeric: true,
+                  cell: (row) => money(row.paidTotal, row.currency),
+                },
+                { key: 'c3', header: 'الحالة', cell: (row) => row.paymentStatus },
+              ]}
+              rows={invoices}
+              rowKey={(row) => row.id}
+            />
+          )}
         </Panel>
 
-        <Panel title="المدفوعات">
-          {payments.length === 0 ? <p className="muted">لا توجد سندات صرف مرحّلة.</p> : null}
-          {payments.map((row) => (
-            <p key={row.id}>
-              {row.number ?? '—'} — {row.day} — {money(row.value, row.currency)}
-            </p>
-          ))}
+        <Panel title="المدفوعات" hint={`${payments.length} سند`} flush>
+          {payments.length === 0 ? (
+            <Empty bare title="لا مدفوعات بعد" detail="كل سند صرف يُقيَّد لكم يظهر هنا بتاريخه ومبلغه." />
+          ) : (
+            <Table
+              bare
+              columns={[
+                { key: 'c0', header: 'السند', ltr: true, cell: (row) => row.number ?? '—' },
+                { key: 'c1', header: 'التاريخ', ltr: true, cell: (row) => row.day },
+                {
+                  key: 'c2',
+                  header: 'المبلغ',
+                  numeric: true,
+                  cell: (row) => money(row.value, row.currency),
+                },
+              ]}
+              rows={payments}
+              rowKey={(row) => row.id}
+            />
+          )}
         </Panel>
 
-        <Panel title="طلبات عروض الأسعار">
-          {quotes.length === 0 ? <p className="muted">لا توجد طلبات مفتوحة.</p> : null}
-          {quotes.map((row) => (
-            <Panel key={row.id} className="tight">
-              <strong>
-                {row.number} — {row.title}
-              </strong>
-              <p className="muted small">
-                {row.note || 'بلا ملاحظة'} — {STATUS[row.status] ?? row.status}
-              </p>
-              {row.status === 'open' ? (
-                <div className="form-grid">
-                  <label className="field">
-                    <span>السعر</span>
-                    <input
-                      className="input"
-                      inputMode="decimal"
-                      value={offers[row.id]?.offer ?? ''}
-                      onChange={(event) =>
-                        setOffers((current) => ({
-                          ...current,
-                          [row.id]: { offer: event.target.value, note: current[row.id]?.note ?? '' },
-                        }))
-                      }
-                    />
-                  </label>
-                  <label className="field">
-                    <span>ملاحظة</span>
-                    <input
-                      className="input"
-                      value={offers[row.id]?.note ?? ''}
-                      onChange={(event) =>
-                        setOffers((current) => ({
-                          ...current,
-                          [row.id]: { offer: current[row.id]?.offer ?? '', note: event.target.value },
-                        }))
-                      }
-                    />
-                  </label>
-                  <button className="btn primary" type="button" disabled={busy} onClick={() => respond(row)}>
-                    إرسال الرد
-                  </button>
+        <Panel title="طلبات عروض الأسعار" hint={`${quotes.length} طلب`} flush>
+          {quotes.length === 0 ? (
+            <Empty bare title="لا طلبات عروض" detail="يرسلها المشتري حين يريد سعركم على أصناف محددة." />
+          ) : (
+            quotes.map((row) => (
+              <div key={row.id} className="quote-row">
+                <div className="row" style={{ justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                  <div>
+                    <strong>
+                      {row.number} — {row.title}
+                    </strong>
+                    <p className="muted small" style={{ margin: 0 }}>
+                      {row.note || 'بلا ملاحظة'}
+                    </p>
+                  </div>
+                  <span className="badge">{STATUS[row.status] ?? row.status}</span>
                 </div>
-              ) : (
-                <p>
-                  العرض: {row.offer ? money(row.offer) : '—'}{' '}
-                  {row.responseNote ? `— ${row.responseNote}` : ''}
-                </p>
-              )}
-            </Panel>
-          ))}
+                {row.status === 'open' ? (
+                  <div className="form-grid" style={{ marginTop: 10 }}>
+                    <label className="field">
+                      <span>السعر</span>
+                      <input
+                        className="input"
+                        inputMode="decimal"
+                        value={offers[row.id]?.offer ?? ''}
+                        onChange={(event) =>
+                          setOffers((current) => ({
+                            ...current,
+                            [row.id]: { offer: event.target.value, note: current[row.id]?.note ?? '' },
+                          }))
+                        }
+                      />
+                    </label>
+                    <label className="field">
+                      <span>ملاحظة</span>
+                      <input
+                        className="input"
+                        value={offers[row.id]?.note ?? ''}
+                        onChange={(event) =>
+                          setOffers((current) => ({
+                            ...current,
+                            [row.id]: { offer: current[row.id]?.offer ?? '', note: event.target.value },
+                          }))
+                        }
+                      />
+                    </label>
+                    <div className="row" style={{ alignItems: 'flex-end' }}>
+                      <button
+                        className="btn primary"
+                        type="button"
+                        disabled={busy}
+                        onClick={() => respond(row)}
+                      >
+                        إرسال الرد
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <p style={{ margin: '8px 0 0' }}>
+                    العرض: {row.offer ? money(row.offer) : '—'}
+                    {row.responseNote ? ` — ${row.responseNote}` : ''}
+                  </p>
+                )}
+              </div>
+            ))
+          )}
         </Panel>
 
-        <form onSubmit={upload}>
-          <Panel title="رفع فاتورة">
-            <p className="muted small">التقديم يصل إلى الموظف ولا يُرحَّل في الدفاتر حتى يقيّده.</p>
+        <Panel title="رفع فاتورة" hint="التقديم يصل إلى الموظف ولا يُرحَّل في الدفاتر حتى يقيّده.">
+          <form onSubmit={upload}>
             <div className="form-grid">
               <label className="field">
                 <span>رقم الفاتورة *</span>
@@ -300,11 +389,13 @@ export default function SupplierPortalPage() {
                 <input className="input" value={note} onChange={(event) => setNote(event.target.value)} />
               </label>
             </div>
-            <button className="btn primary" type="submit" disabled={busy}>
-              {busy ? 'جارٍ الإرسال…' : 'إرسال الفاتورة'}
-            </button>
-          </Panel>
-        </form>
+            <div className="row" style={{ justifyContent: 'flex-start', marginTop: 12 }}>
+              <button className="btn primary" type="submit" disabled={busy}>
+                {busy ? 'جارٍ الإرسال…' : 'إرسال الفاتورة'}
+              </button>
+            </div>
+          </form>
+        </Panel>
       </div>
     </main>
   );
