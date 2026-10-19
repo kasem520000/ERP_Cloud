@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useState } from 'react';
+import { Panel } from '@erp/ui';
 
 import { Notice } from '../../../../../components/data-view';
 import { Screen } from '../../../../../components/screen';
@@ -104,11 +105,10 @@ export default function QuotationEsignPage() {
       </form>
 
       {issued ? (
-        <section className="card">
-          <h2>الرابط</h2>
-          <p className="muted small">
-            انسخه إذا لم يصل البريد. في وضع التطوير يظهر الرمز هنا لأن نص الرسالة لا يُطبع.
-          </p>
+        <Panel
+          title="الرابط"
+          hint={<>انسخه إذا لم يصل البريد. في وضع التطوير يظهر الرمز هنا لأن نص الرسالة لا يُطبع.</>}
+        >
           <input
             className="input"
             readOnly
@@ -116,7 +116,7 @@ export default function QuotationEsignPage() {
             onFocus={(event) => event.currentTarget.select()}
           />
           {issued.previewOtp ? <p>رمز التحقق: {issued.previewOtp}</p> : null}
-        </section>
+        </Panel>
       ) : null}
     </Screen>
   );

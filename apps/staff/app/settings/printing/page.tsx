@@ -400,14 +400,17 @@ export default function PrintingSettingsPage() {
       </Panel>
 
       {/* شبكة ربط الطابعات — `PrinterSettings` L2163-L2180 (`Inv_Id, PrintName, Printer, RptUrl, RptName`) */}
-      <div className="card">
-        <h3>ربط الطابعات بالتقارير — `PrinterSettings` (Inv_Id, PrintName, Printer, RptUrl, RptName)</h3>
-        <p className="small muted">
-          الديسكتوب يحفظ في <code>PrinterSettings</code> ربط كل تقرير بطابعة واسم ملف <code>RptName</code>{' '}
-          ومسار <code>RptUrl</code> (txtRptPath المشترك). السحابة تحفظ نفس الحقول في{' '}
-          <code>printer_report_links</code> وتظهرها بجانب زر الطباعة — الطابعة الفعلية يختارها المتصفح.
-        </p>
-
+      <Panel
+        title="ربط الطابعات بالتقارير — PrinterSettings (Inv_Id, PrintName, Printer, RptUrl, RptName)"
+        hint={
+          <>
+            الديسكتوب يحفظ في <code>PrinterSettings</code> ربط كل تقرير بطابعة واسم ملف <code>RptName</code>{' '}
+            ومسار <code>RptUrl</code> (txtRptPath المشترك). السحابة تحفظ نفس الحقول في{' '}
+            <code>printer_report_links</code> وتظهرها بجانب زر الطباعة — الطابعة الفعلية يختارها المتصفح.
+          </>
+        }
+        flush
+      >
         <form className="toolbar" onSubmit={addLink} style={{ flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
           <select
             className="input"
@@ -510,15 +513,19 @@ export default function PrintingSettingsPage() {
             </tbody>
           </table>
         </div>
-      </div>
+      </Panel>
 
       {scope === 'reports' && (
-        <div className="card">
-          <h3>إعدادات تقرير بعينه</h3>
-          <p className="small muted">
-            كل تقرير يقرأ إعداداته أولاً، ثم «تقارير»، ثم «الافتراضي». افتح التقرير من{' '}
-            <Link href="/reports">التقارير</Link> واضغط «معاينة الطباعة» لترى الورقة بهذه الإعدادات.
-          </p>
+        <Panel
+          title="إعدادات تقرير بعينه"
+          hint={
+            <>
+              كل تقرير يقرأ إعداداته أولاً، ثم «تقارير»، ثم «الافتراضي». افتح التقرير من{' '}
+              <Link href="/reports">التقارير</Link> واضغط «معاينة الطباعة» لترى الورقة بهذه الإعدادات.
+            </>
+          }
+          flush
+        >
           <div className="table-wrap">
             <table>
               <thead>
@@ -543,7 +550,7 @@ export default function PrintingSettingsPage() {
               </tbody>
             </table>
           </div>
-        </div>
+        </Panel>
       )}
     </Screen>
   );

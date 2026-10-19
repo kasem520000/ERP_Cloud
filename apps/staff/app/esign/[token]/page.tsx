@@ -2,6 +2,7 @@
 
 import { useParams } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
+import { Panel } from '@erp/ui';
 
 import { money } from '../../../lib/lookups';
 import { SupplierError, supplierFetch } from '../../../lib/supplier-portal';
@@ -199,13 +200,12 @@ export default function EsignPage() {
             </article>
 
             {done || view.status === 'signed' ? (
-              <section className="card">
-                <h2>تم التوقيع</h2>
+              <Panel title="تم التوقيع">
                 <p>حُفظت نسخة PDF موقّعة، وتغيّرت حالة عرض السعر إن كان مفتوحاً.</p>
                 <a className="btn primary" href={`/api/v1/esign/${token}/pdf`}>
                   تنزيل PDF
                 </a>
-              </section>
+              </Panel>
             ) : (
               <form className="card" onSubmit={sign}>
                 <h2>التوقيع</h2>
@@ -223,7 +223,14 @@ export default function EsignPage() {
                 </button>
                 <label className="field">
                   <span>رمز التحقق من البريد</span>
-                  <input className="input" inputMode="numeric" autoComplete="one-time-code" value={otp} onChange={(event) => setOtp(event.target.value)} required />
+                  <input
+                    className="input"
+                    inputMode="numeric"
+                    autoComplete="one-time-code"
+                    value={otp}
+                    onChange={(event) => setOtp(event.target.value)}
+                    required
+                  />
                 </label>
                 <button className="btn primary" type="submit" disabled={busy}>
                   {busy ? 'جارٍ الحفظ…' : 'توقيع المستند'}

@@ -1,6 +1,7 @@
 'use client';
 
 import { useRef, useState } from 'react';
+import { Panel } from '@erp/ui';
 
 import { DataTable, Notice, QueryView } from '../../../components/data-view';
 import { Screen } from '../../../components/screen';
@@ -251,21 +252,21 @@ export default function FilesPage() {
 
   if (!canUpload) {
     return (
- <Screen title="مدير الملفات" crumbs={['الإعدادات', 'إعدادات إدارية']}>
- <p className="alert warn">
- لا تملك صلاحية الملفات (`tenant.file.upload`) — اطلبها من «صلاحيات المستخدمين».
- </p>
- </Screen>
+      <Screen title="مدير الملفات" crumbs={['الإعدادات', 'إعدادات إدارية']}>
+        <p className="alert warn">
+          لا تملك صلاحية الملفات (`tenant.file.upload`) — اطلبها من «صلاحيات المستخدمين».
+        </p>
+      </Screen>
     );
   }
 
   return (
- <Screen
+    <Screen
       title="مدير الملفات"
       subtitle="مخزن المنشأة: كل ما رُفع، بحالته ومستنده المرتبط، مع تنزيلٍ برابط موقّع ورفعٍ مباشر إلى التخزين. البايتات لا تمرّ بالـAPI."
       crumbs={['الإعدادات', 'إعدادات إدارية']}
       actions={
- <button
+        <button
           type="button"
           className="btn"
           onClick={() => {
@@ -273,32 +274,32 @@ export default function FilesPage() {
             counts.reload();
           }}
         >
- تحديث
- </button>
+          تحديث
+        </button>
       }
     >
- <StatTiles>
- <StatTile label="الكل" value={counts.data?.all ?? '—'} hint="صفوف المخزن غير المحذوفة" />
- <StatTile
+      <StatTiles>
+        <StatTile label="الكل" value={counts.data?.all ?? '—'} hint="صفوف المخزن غير المحذوفة" />
+        <StatTile
           label={STATUS_LABEL.ready}
           value={counts.data?.ready ?? '—'}
           tone="ok"
           hint="مرفوعة ومُثبَّتة"
         />
- <StatTile
+        <StatTile
           label={STATUS_LABEL.pending}
           value={counts.data?.pending ?? '—'}
           tone="warn"
           hint="رابطٌ صدر ولم يُثبَّت بعد"
         />
- </StatTiles>
+      </StatTiles>
 
- <section className="card">
- <h2>{CARD_TITLE}</h2>
- <div className="filters no-print">
- <label className="field">
- <span>بحث في الاسم</span>
- <input
+      <section className="card">
+        <h2>{CARD_TITLE}</h2>
+        <div className="filters no-print">
+          <label className="field">
+            <span>بحث في الاسم</span>
+            <input
               className="input"
               value={term}
               onChange={(event) => {
@@ -307,10 +308,10 @@ export default function FilesPage() {
               }}
               placeholder="فاتورة · عقد · شعار"
             />
- </label>
- <label className="field">
- <span>الحالة</span>
- <select
+          </label>
+          <label className="field">
+            <span>الحالة</span>
+            <select
               className="input"
               value={status}
               onChange={(event) => {
@@ -318,15 +319,15 @@ export default function FilesPage() {
                 setOffset(0);
               }}
             >
- <option value="">الكل</option>
- <option value="ready">{STATUS_LABEL.ready}</option>
- <option value="pending">{STATUS_LABEL.pending}</option>
- <option value="deleted">{STATUS_LABEL.deleted}</option>
- </select>
- </label>
- <label className="field">
- <span>مرتبط بـ</span>
- <select
+              <option value="">الكل</option>
+              <option value="ready">{STATUS_LABEL.ready}</option>
+              <option value="pending">{STATUS_LABEL.pending}</option>
+              <option value="deleted">{STATUS_LABEL.deleted}</option>
+            </select>
+          </label>
+          <label className="field">
+            <span>مرتبط بـ</span>
+            <select
               className="input"
               value={entity}
               onChange={(event) => {
@@ -334,35 +335,35 @@ export default function FilesPage() {
                 setOffset(0);
               }}
             >
- <option value="">الكل</option>
+              <option value="">الكل</option>
               {Object.entries(ENTITY_LABEL).map(([key, label]) => (
- <option key={key} value={key}>
+                <option key={key} value={key}>
                   {label}
- </option>
+                </option>
               ))}
- </select>
- </label>
- </div>
+            </select>
+          </label>
+        </div>
 
- <QueryView
+        <QueryView
           query={files}
           isEmpty={(data) => data.data.length === 0}
           empty="لا يوجد وثائق."
           emptyDetail="ارفع ملفاً من البطاقة أدناه — أو جرّب توسيع البحث أو الحالة."
         >
           {(data) => (
- <>
- <DataTable
+            <>
+              <DataTable
                 columns={[
                   { key: 'no', header: 'م', align: 'num', cell: (_row, index) => String(offset + index + 1) },
- { key: 'name', header: 'اسم الملف', cell: (row) => row.name },
+                  { key: 'name', header: 'اسم الملف', cell: (row) => row.name },
                   { key: 'mime', header: 'النوع', cell: (row) => row.mime, align: 'ltr' },
                   { key: 'size', header: 'الحجم', align: 'num', cell: (row) => size(row.sizeBytes) },
                   {
                     key: 'status',
                     header: 'الحالة',
                     cell: (row) => (
- <span className={`badge ${STATUS_BADGE[row.status]}`}>{STATUS_LABEL[row.status]}</span>
+                      <span className={`badge ${STATUS_BADGE[row.status]}`}>{STATUS_LABEL[row.status]}</span>
                     ),
                   },
                   {
@@ -370,7 +371,7 @@ export default function FilesPage() {
                     header: 'مرتبط بـ',
                     cell: (row) =>
                       row.entity ? (
- <span title={row.entityId ?? ''}>{ENTITY_LABEL[row.entity] ?? row.entity}</span>
+                        <span title={row.entityId ?? ''}>{ENTITY_LABEL[row.entity] ?? row.entity}</span>
                       ) : (
                         '—'
                       ),
@@ -380,8 +381,8 @@ export default function FilesPage() {
                     key: 'actions',
                     header: '',
                     cell: (row) => (
- <>
- <button
+                      <>
+                        <button
                           type="button"
                           className="btn sm"
                           disabled={row.status !== 'ready' || busyId === row.id}
@@ -390,9 +391,9 @@ export default function FilesPage() {
                           }
                           onClick={() => download(row)}
                         >
- تنزيل
- </button>{' '}
- <button
+                          تنزيل
+                        </button>{' '}
+                        <button
                           type="button"
                           className="btn sm danger"
                           disabled={!canManage || busyId === row.id}
@@ -401,9 +402,9 @@ export default function FilesPage() {
                           }
                           onClick={() => remove(row)}
                         >
- حذف
- </button>
- </>
+                          حذف
+                        </button>
+                      </>
                     ),
                   },
                 ]}
@@ -411,46 +412,49 @@ export default function FilesPage() {
                 rowKey={(row) => row.id}
                 footer={[`المعروض ${data.data.length} من ${matchCount}`, '', '', '', '', '', '', '']}
               />
- <div className="toolbar no-print">
- <button
+              <div className="toolbar no-print">
+                <button
                   type="button"
                   className="btn sm"
                   disabled={offset === 0}
                   onClick={() => setOffset(Math.max(0, offset - PAGE_SIZE))}
                 >
- السابق
- </button>
- <span className="muted small">
- الصفوف {offset + 1}–{offset + data.data.length} من {matchCount}
- </span>
- <button
+                  السابق
+                </button>
+                <span className="muted small">
+                  الصفوف {offset + 1}–{offset + data.data.length} من {matchCount}
+                </span>
+                <button
                   type="button"
                   className="btn sm"
                   disabled={offset + PAGE_SIZE >= matchCount}
                   onClick={() => setOffset(offset + PAGE_SIZE)}
                 >
- التالي
- </button>
- </div>
- </>
+                  التالي
+                </button>
+              </div>
+            </>
           )}
- </QueryView>
+        </QueryView>
 
         {!canManage && (
- <p className="muted small">
- الحذف يحتاج صلاحية <span dir="ltr">tenant.file.manage</span> — وهي غير ممنوحة لدورك.
- </p>
+          <p className="muted small">
+            الحذف يحتاج صلاحية <span dir="ltr">tenant.file.manage</span> — وهي غير ممنوحة لدورك.
+          </p>
         )}
- </section>
+      </section>
 
- <section className="card">
- <h3>اختيار المرفقات</h3>
- <p className="muted small" style={{ marginTop: 0 }}>
- الملفّ يُدفع من هذا المتصفّح إلى التخزين الكائني مباشرةً برابطٍ موقّع، ثم يُثبَّت الصفّ — فلا تمرّ
- البايتات بالـAPI. والنوع والحجم يحكمهما الخادم؛ رفضُهما يظهر نصّه هنا كما هو.
- </p>
- <div className="toolbar">
- <input
+      <Panel
+        title="اختيار المرفقات"
+        hint={
+          <>
+            الملفّ يُدفع من هذا المتصفّح إلى التخزين الكائني مباشرةً برابطٍ موقّع، ثم يُثبَّت الصفّ — فلا تمرّ
+            البايتات بالـAPI. والنوع والحجم يحكمهما الخادم؛ رفضُهما يظهر نصّه هنا كما هو.
+          </>
+        }
+      >
+        <div className="toolbar">
+          <input
             ref={input}
             className="input"
             style={{ blockSize: 'auto', paddingBlock: 6, maxWidth: 320 }}
@@ -461,12 +465,12 @@ export default function FilesPage() {
               if (file) void upload(file);
             }}
           />
- <span className="muted small">
- {uploading ? 'جارٍ الرفع والتثبيت…' : 'اختر ملفاً واحداً — والحذف من عمود «حذف».'}
- </span>
- </div>
- <Notice notice={notice} />
- </section>
- </Screen>
+          <span className="muted small">
+            {uploading ? 'جارٍ الرفع والتثبيت…' : 'اختر ملفاً واحداً — والحذف من عمود «حذف».'}
+          </span>
+        </div>
+        <Notice notice={notice} />
+      </Panel>
+    </Screen>
   );
 }

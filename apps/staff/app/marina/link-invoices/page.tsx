@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { Panel } from '@erp/ui';
 
 import { DataTable, Notice, QueryView } from '../../../components/data-view';
 import { Screen } from '../../../components/screen';
@@ -127,8 +128,7 @@ export default function MarinaLinkInvoicesPage() {
     >
       <Notice notice={notice} />
 
-      <div className="card">
-        <h2>حجوزات بلا فاتورة تأجير</h2>
+      <Panel title="حجوزات بلا فاتورة تأجير" flush>
         <QueryView query={uninvoiced} empty="كل الحجوزات مفوترة" emptyDetail="لا يوجد حجز بدون فاتورة تأجير.">
           {(rows) => (
             <DataTable
@@ -168,7 +168,7 @@ export default function MarinaLinkInvoicesPage() {
             />
           )}
         </QueryView>
-      </div>
+      </Panel>
 
       {/* «خيارات البحث» — `Form_WPF/frmInvoiceRentSrch.xaml` («بحث الفواتير»). */}
       <div className="card tight no-print">

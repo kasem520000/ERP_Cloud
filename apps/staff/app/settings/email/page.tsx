@@ -473,13 +473,15 @@ function SenderTab({ canEdit }: { canEdit: boolean }) {
 
   return (
     <div className="grid">
-      <div className="card">
-        <h2>مزوّد البريد الإلكتروني وهوية المُرسِل</h2>
-        <p className="muted">
-          يمكنك الربط المباشر مع <strong>Resend</strong> أو خادم <strong>SMTP</strong> مخصّص أو بوابة{' '}
-          <strong>HTTP Webhook / API</strong> لإرسال الفواتير واستعادة كلمات المرور والإشعارات.
-        </p>
-
+      <Panel
+        title="مزوّد البريد الإلكتروني وهوية المُرسِل"
+        hint={
+          <>
+            يمكنك الربط المباشر مع <strong>Resend</strong> أو خادم <strong>SMTP</strong> مخصّص أو بوابة{' '}
+            <strong>HTTP Webhook / API</strong> لإرسال الفواتير واستعادة كلمات المرور والإشعارات.
+          </>
+        }
+      >
         <div className="row">
           <label className="field">
             <span>مزوّد خدمة البريد</span>
@@ -696,12 +698,11 @@ function SenderTab({ canEdit }: { canEdit: boolean }) {
           {current?.apiKeyMasked ? ` · مفتاح API: ${current.apiKeyMasked}` : ''} — آخر تعديل:{' '}
           {dateTime(current?.updatedAt ?? null)}.
         </p>
-      </div>
+      </Panel>
 
       <Notice notice={notice} />
 
-      <div className="card">
-        <h2>لماذا لا تصل الرسالة أحياناً؟</h2>
+      <Panel title="لماذا لا تصل الرسالة أحياناً؟">
         <ul className="muted">
           <li>
             <strong>محجوبة</strong> — العنوان في قائمة الحجر (ارتداد سابق أو إلغاء اشتراك أو طلب العميل). لا
@@ -715,7 +716,7 @@ function SenderTab({ canEdit }: { canEdit: boolean }) {
             <strong>في الطابور</strong> — الرسالة مسجَّلة ومهمّتها قائمة، ولم تُسلَّم بعد.
           </li>
         </ul>
-      </div>
+      </Panel>
     </div>
   );
 }

@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
+import { Panel } from '@erp/ui';
 
 import { DataTable, Notice, QueryView } from '../../../components/data-view';
 import { Screen } from '../../../components/screen';
@@ -64,8 +65,7 @@ export default function PayrollPage() {
       subtitle="احسب مسيّر الشهر من بطاقات الموظفين والحوافز المعتمدة، ثم رحّله واصرفه."
       crumbs={['الموظفين والرواتب', 'العمليات']}
     >
-      <div className="card">
-        <h2>مسيّر جديد</h2>
+      <Panel title="مسيّر جديد">
         <div className="form-grid">
           <label className="field">
             <span>الشهر (YYYY-MM)</span>
@@ -126,7 +126,7 @@ export default function PayrollPage() {
             </button>
           )}
         </div>
-      </div>
+      </Panel>
 
       {preview && (
         <div className="card">

@@ -1,6 +1,7 @@
 'use client';
 
-import { FilterBand } from '@erp/ui';import Link from 'next/link';
+import { FilterBand, Panel } from '@erp/ui';
+import Link from 'next/link';
 import Decimal from 'decimal.js';
 import { useSearchParams } from 'next/navigation';
 import { Suspense, useMemo, useState } from 'react';
@@ -545,8 +546,7 @@ function VouchersScreen() {
           </div>
 
           {/* تفاصيل الدفع — `frmSandQ`'s group box, with the cheque block behind it. */}
-          <div className="card">
-            <h4>تفاصيل الدفع</h4>
+          <Panel title="تفاصيل الدفع">
             <div className="form-grid">
               <label className="field">
                 <span>نوع الدفع</span>
@@ -665,7 +665,7 @@ function VouchersScreen() {
                 <span className="muted small">ينتقل إلى سطر القيد كما فيReceipts.Notes.</span>
               </label>
             </div>
-          </div>
+          </Panel>
 
           <Notice notice={notice} />
           <ActionBar>

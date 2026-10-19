@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { Panel } from '@erp/ui';
 
 import { Empty, ErrorBox, Forbidden, Loading, Screen } from '../../../components/screen';
 import { ApiError, apiData, apiPut } from '../../../lib/api';
@@ -163,8 +164,7 @@ export default function CompanyProfilePage() {
       subtitle="البيانات القانونية المطبوعة على الفواتير والمستندات."
       crumbs={['الإعدادات', 'تعاريف المنشأة']}
     >
-      <section className="card">
-        <h2>حساب المنشأة على المنصة</h2>
+      <Panel title="حساب المنشأة على المنصة">
         <dl className="kv">
           <dt>اسم المنشأة</dt>
           <dd>{me?.membership.tenantName}</dd>
@@ -173,7 +173,7 @@ export default function CompanyProfilePage() {
           <dt>دورك</dt>
           <dd>{me?.membership.isOwner ? 'مالك' : 'مستخدم'}</dd>
         </dl>
-      </section>
+      </Panel>
 
       {profile.status === 'loading' && <Loading rows={3} />}
       {profile.status === 'forbidden' && <Forbidden />}

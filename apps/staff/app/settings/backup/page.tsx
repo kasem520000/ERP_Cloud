@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
+import { Panel } from '@erp/ui';
 
 import { DataTable, Notice, QueryView } from '../../../components/data-view';
 import { Screen } from '../../../components/screen';
@@ -113,8 +114,7 @@ export default function BackupPage() {
         emptyDetail="اضغط «أخذ نسخة الآن» لإنشاء أول نسخة."
       >
         {(rows) => (
-          <section className="card">
-            <h3>النسخ المحفوظة</h3>
+          <Panel title="النسخ المحفوظة" flush>
             <DataTable
               columns={[
                 { key: 'createdAt', header: 'التاريخ', cell: (row: BackupRun) => dateTime(row.createdAt) },
@@ -151,7 +151,7 @@ export default function BackupPage() {
               rows={rows}
               rowKey={(row) => row.id}
             />
-          </section>
+          </Panel>
         )}
       </QueryView>
     </Screen>

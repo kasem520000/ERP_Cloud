@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Waypoints } from 'lucide-react';
+import { Panel } from '@erp/ui';
 
 import { DataTable, Notice, QueryView } from '../../../components/data-view';
 import { Screen } from '../../../components/screen';
@@ -397,8 +398,7 @@ export default function SerialsPage() {
       )}
 
       {manage && (
-        <div className="card">
-          <h4>توليد — دفعة أرقام من بادئة واحدة</h4>
+        <Panel title="توليد — دفعة أرقام من بادئة واحدة">
           <form
             className="form-grid"
             onSubmit={(event) => {
@@ -572,7 +572,7 @@ export default function SerialsPage() {
           <p className="muted small">
             {`الأرقام غير المتاحة (محجوزة أو مباعة) لا تُحذف — أعدها إلى المخزون أولاً. ${shortDate(new Date().toISOString())}`}
           </p>
-        </div>
+        </Panel>
       )}
     </Screen>
   );

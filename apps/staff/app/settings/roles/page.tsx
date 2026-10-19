@@ -1,5 +1,6 @@
 'use client';
 
+import { Panel } from '@erp/ui';
 import { useEffect, useMemo, useState } from 'react';
 
 import { Notice, QueryView } from '../../../components/data-view';
@@ -45,7 +46,6 @@ const ROLE_DESCRIPTION_AR: Record<string, string> = {
 function roleName(role: { name: string }): string {
   return ROLE_NAME_AR[role.name] ?? role.name;
 }
-
 
 export default function RolesPage() {
   const { can, me } = useSession();
@@ -167,7 +167,10 @@ export default function RolesPage() {
       });
       setNewName('');
       setNewDesc('');
-      setNotice({ kind: 'ok', text: `تم إنشاء الدور «${created.name}» بنجاح. يمكنك الآن تحديد صلاحياته وحفظها.` });
+      setNotice({
+        kind: 'ok',
+        text: `تم إنشاء الدور «${created.name}» بنجاح. يمكنك الآن تحديد صلاحياته وحفظها.`,
+      });
       roles.reload();
       pickRole(created);
     } catch (error) {
@@ -241,13 +244,16 @@ export default function RolesPage() {
       <Notice notice={notice} />
 
       <div className="grid cols-2" style={{ alignItems: 'start' }}>
-        <section className="card grid">
-          <div>
-            <h2 style={{ marginBottom: 4 }}>إنشاء دور وظيفي جديد</h2>
-            <p className="muted small" style={{ margin: 0 }}>
-              أنشئ دوراً مخصصاً (مثل: مدير مبيعات، أمين مستودع، مدقق حسابات) ثم حدد صلاحياته من القائمة المقابلة.
-            </p>
-          </div>
+        <Panel
+          title="إنشاء دور وظيفي جديد"
+          hint={
+            <>
+              أنشئ دوراً مخصصاً (مثل: مدير مبيعات، أمين مستودع، مدقق حسابات) ثم حدد صلاحياته من القائمة
+              المقابلة.
+            </>
+          }
+          flush
+        >
           <form className="form" onSubmit={createRole}>
             <div className="form-grid">
               <label className="field">
@@ -276,253 +282,233 @@ export default function RolesPage() {
               </button>
             </div>
           </form>
+        </Panel>
 
-          <hr style={{ border: 0, borderTop: '1px solid var(--line)', margin: '4px 0' }} />
-
-          <h3 style={{ marginBottom: 4 }}>الأدوار المسجلة في المنشأة</h3>
+        <Panel title="الأدوار المسجلة في المنشأة" hint="اختر دوراً لتظهر صلاحياته في اللوحة أسفله." flush>
           <QueryView query={roles} empty="لا توجد أدوار مسجلة.">
             {(rows) => (
-              <div className="table-wrap">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>الدور</th>
-                      <th>النوع</th>
-                      <th>عدد الصلاحيات</th>
-                      <th>إجراء</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {rows.map((role) => {
-                      const isActive = active?.id === role.id;
-                      const count = (role.permissionCodes ?? role.permissions ?? []).length;
-                      return (
-                        <tr
-                          key={role.id}
-                          className={isActive ? 'row-active clickable' : 'clickable'}
-                          onClick={() => pickRole(role)}
-                        >
-                          <td>
-                            <strong>{roleName(role)}</strong>
-                            {(ROLE_DESCRIPTION_AR[role.name] ?? role.description) ? (
-                              <div className="muted small" style={{ marginTop: 2 }}>
-                                {ROLE_DESCRIPTION_AR[role.name] ?? role.description}
-                              </div>
-                            ) : null}
-                          </td>
-                          <td>
-                            <span className={`badge ${role.isSystem ? 'neutral' : 'active'}`}>
-                              {role.isSystem ? 'دور نظامي' : 'دور مخصص'}
-                            </span>
-                          </td>
-                          <td className="num">{count}</td>
-                          <td>
-                            <button
-                              className={`btn sm ${isActive ? 'primary' : ''}`}
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                pickRole(role);
-                              }}
-                            >
-                              {isActive ? 'محدد حالياً' : 'تعديل الصلاحيات'}
-                            </button>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </QueryView>
-        </section>
-
-        <section className="card grid">
-          <div className="section-title">
-            <div>
-              <h2 style={{ marginBottom: 4 }}>
-                صلاحيات الدور: {active ? roleName(active) : 'اختر دوراً'}
-              </h2>
-              <p className="muted small" style={{ margin: 0 }}>
-                محدد حالياً: <strong>{checked.size}</strong> من أصل <strong>{canonicalPermissions.length}</strong> صلاحية
-              </p>
-            </div>
-            {active && (
-              <div className="toolbar">
-                {isOwnerRole ? (
-                  <button
-                    className="btn"
-                    type="button"
-                    disabled={busy}
-                    onClick={() => void cloneRoleAsCustom(active)}
-                  >
-                    نسخ إلى دور مخصص قابل للتعديل
-                  </button>
-                ) : (
-                  <>
-                    <button
-                      className="btn sm"
-                      type="button"
-                      disabled={busy || !canEditActivePermissions}
-                      onClick={() => setChecked(new Set(canonicalPermissions.map((p) => p.code)))}
-                    >
-                      تحديد الكل
-                    </button>
-                    <button
-                      className="btn sm"
-                      type="button"
-                      disabled={busy || !canEditActivePermissions}
-                      onClick={() => setChecked(new Set())}
-                    >
-                      إلغاء الكل
-                    </button>
-                    <button
-                      className="btn primary"
-                      type="button"
-                      disabled={busy || !canEditActivePermissions}
-                      onClick={() => void savePermissions()}
-                    >
-                      {busy ? 'جاري الحفظ...' : 'حفظ التعديلات'}
-                    </button>
-                  </>
-                )}
-              </div>
-            )}
-          </div>
-
-          {isOwnerRole && (
-            <div className="alert info">
-              <span>
-                دور <strong>مالك الحساب (Owner)</strong> يمتلك كافة صلاحيات المنشأة تلقائياً ولا يمكن تقليص صلاحياته
-                حمايةً للحساب. لإنشاء دور مشابه بصلاحيات مخصصة، اضغط على «نسخ إلى دور مخصص قابل للتعديل».
-              </span>
-            </div>
-          )}
-
-          {isSystemNonOwner && !me?.membership.isOwner && (
-            <div className="alert warn">
-              <span>تعديل الأدوار النظامية متاح لمالك الحساب فقط. يمكنك إنشاء وتعديل الأدوار المخصصة.</span>
-            </div>
-          )}
-
-          {active && !active.isSystem && (
-            <div className="form-grid" style={{ padding: '10px 12px', background: 'var(--surface-2)', borderRadius: 10 }}>
-              <label className="field" style={{ marginBottom: 0 }}>
-                <span>اسم الدور المخصص</span>
-                <input
-                  className="input"
-                  value={editName}
-                  onChange={(e) => setEditName(e.target.value)}
-                  disabled={busy}
-                />
-              </label>
-              <label className="field" style={{ marginBottom: 0 }}>
-                <span>وصف الدور</span>
-                <input
-                  className="input"
-                  value={editDesc}
-                  onChange={(e) => setEditDesc(e.target.value)}
-                  disabled={busy}
-                  placeholder="وصف اختياري"
-                />
-              </label>
-            </div>
-          )}
-
-          <label className="field" style={{ marginBottom: 4 }}>
-            <span>بحث في الصلاحيات</span>
-            <input
-              className="input"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder="ابحث باسم الصلاحية بالعربية أو اسم الوحدة..."
-            />
-          </label>
-
-          <QueryView query={permissions} empty="لا توجد صلاحيات مسجلة.">
-            {() => (
-              <div className="grid" style={{ maxHeight: '62vh', overflowY: 'auto', paddingInlineEnd: 4 }}>
-                {grouped.map(([mod, list]) => {
-                  const moduleTitle = PERMISSION_MODULE_AR[mod] ?? 'صلاحيات أخرى';
-                  const selectedInGroup = list.filter((p) => checked.has(p.code)).length;
-                  const allSelectedInGroup = list.length > 0 && selectedInGroup === list.length;
-
+              <div>
+                {rows.map((role) => {
+                  const isActive = active?.id === role.id;
+                  const count = (role.permissionCodes ?? role.permissions ?? []).length;
+                  const description = ROLE_DESCRIPTION_AR[role.name] ?? role.description;
                   return (
-                    <div key={mod} className="card tight" style={{ background: 'var(--surface-2)' }}>
-                      <div
+                    <button
+                      key={role.id}
+                      type="button"
+                      className={`list-row${isActive ? ' active' : ''}`}
+                      onClick={() => pickRole(role)}
+                    >
+                      <span
                         className="row"
-                        style={{
-                          justifyContent: 'space-between',
-                          alignItems: 'center',
-                          marginBottom: 8,
-                          paddingBottom: 6,
-                          borderBottom: '1px solid var(--line)',
-                        }}
+                        style={{ justifyContent: 'space-between', alignItems: 'baseline' }}
                       >
-                        <div>
-                          <strong style={{ fontSize: 14 }}>{moduleTitle}</strong>
-                          <span className="badge neutral" style={{ marginInlineStart: 8 }}>
-                            {selectedInGroup} / {list.length}
-                          </span>
-                        </div>
-                        {canEditActivePermissions && (
-                          <button
-                            type="button"
-                            className="btn sm"
-                            onClick={() => toggleModuleGroup(list, !allSelectedInGroup)}
-                          >
-                            {allSelectedInGroup ? 'إلغاء تحديد القسم' : 'تحديد القسم بالكامل'}
-                          </button>
-                        )}
-                      </div>
-
-                      <div className="grid cols-2" style={{ gap: 8 }}>
-                        {list.map((permission) => {
-                          const info = describePermissionAr(permission.code, permission.module);
-                          const isChecked = checked.has(permission.code);
-                          return (
-                            <label
-                              key={permission.code}
-                              style={{
-                                display: 'flex',
-                                gap: 10,
-                                alignItems: 'flex-start',
-                                padding: '8px 10px',
-                                borderRadius: 8,
-                                border: `1px solid ${isChecked ? 'var(--brand-line)' : 'var(--line)'}`,
-                                background: isChecked ? 'var(--brand-soft)' : 'var(--surface)',
-                                cursor: canEditActivePermissions ? 'pointer' : 'default',
-                                opacity: canEditActivePermissions || isChecked ? 1 : 0.75,
-                              }}
-                            >
-                              <input
-                                type="checkbox"
-                                checked={isChecked}
-                                disabled={!canEditActivePermissions}
-                                onChange={() => toggle(permission.code)}
-                                style={{ marginTop: 3, width: 16, height: 16, accentColor: 'var(--brand)' }}
-                              />
-                              <span style={{ display: 'grid', gap: 2, minWidth: 0 }}>
-                                <strong style={{ fontSize: 13 }}>{info.title}</strong>
-                                {info.detail ? (
-                                  <small className="muted" style={{ fontSize: 11.5, lineHeight: 1.4 }}>
-                                    {info.detail}
-                                  </small>
-                                ) : null}
-                              </span>
-                            </label>
-                          );
-                        })}
-                      </div>
-                    </div>
+                        <span className="list-title">{roleName(role)}</span>
+                        <span className={`badge ${role.isSystem ? 'neutral' : 'active'}`}>
+                          {role.isSystem ? 'دور نظامي' : 'دور مخصص'}
+                        </span>
+                      </span>
+                      {description ? <span className="list-sub">{description}</span> : null}
+                      <span className="list-sub">{`${count} من الصلاحيات`}</span>
+                    </button>
                   );
                 })}
               </div>
             )}
           </QueryView>
-        </section>
+        </Panel>
       </div>
+
+      <Panel
+        title={`صلاحيات الدور: ${active ? roleName(active) : 'اختر دوراً'}`}
+        hint={
+          <>
+            محدد حالياً: <strong>{checked.size}</strong> من أصل <strong>{canonicalPermissions.length}</strong>{' '}
+            صلاحية
+          </>
+        }
+        actions={
+          active ? (
+            <div className="toolbar">
+              {isOwnerRole ? (
+                <button
+                  className="btn"
+                  type="button"
+                  disabled={busy}
+                  onClick={() => void cloneRoleAsCustom(active)}
+                >
+                  نسخ إلى دور مخصص قابل للتعديل
+                </button>
+              ) : (
+                <>
+                  <button
+                    className="btn sm"
+                    type="button"
+                    disabled={busy || !canEditActivePermissions}
+                    onClick={() => setChecked(new Set(canonicalPermissions.map((p) => p.code)))}
+                  >
+                    تحديد الكل
+                  </button>
+                  <button
+                    className="btn sm"
+                    type="button"
+                    disabled={busy || !canEditActivePermissions}
+                    onClick={() => setChecked(new Set())}
+                  >
+                    إلغاء الكل
+                  </button>
+                  <button
+                    className="btn primary"
+                    type="button"
+                    disabled={busy || !canEditActivePermissions}
+                    onClick={() => void savePermissions()}
+                  >
+                    {busy ? 'جاري الحفظ...' : 'حفظ التعديلات'}
+                  </button>
+                </>
+              )}
+            </div>
+          ) : null
+        }
+      >
+        {isOwnerRole && (
+          <div className="alert info">
+            <span>
+              دور <strong>مالك الحساب (Owner)</strong> يمتلك كافة صلاحيات المنشأة تلقائياً ولا يمكن تقليص
+              صلاحياته حمايةً للحساب. لإنشاء دور مشابه بصلاحيات مخصصة، اضغط على «نسخ إلى دور مخصص قابل
+              للتعديل».
+            </span>
+          </div>
+        )}
+
+        {isSystemNonOwner && !me?.membership.isOwner && (
+          <div className="alert warn">
+            <span>تعديل الأدوار النظامية متاح لمالك الحساب فقط. يمكنك إنشاء وتعديل الأدوار المخصصة.</span>
+          </div>
+        )}
+
+        {active && !active.isSystem && (
+          <div
+            className="form-grid"
+            style={{ padding: '10px 12px', background: 'var(--surface-2)', borderRadius: 10 }}
+          >
+            <label className="field" style={{ marginBottom: 0 }}>
+              <span>اسم الدور المخصص</span>
+              <input
+                className="input"
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+                disabled={busy}
+              />
+            </label>
+            <label className="field" style={{ marginBottom: 0 }}>
+              <span>وصف الدور</span>
+              <input
+                className="input"
+                value={editDesc}
+                onChange={(e) => setEditDesc(e.target.value)}
+                disabled={busy}
+                placeholder="وصف اختياري"
+              />
+            </label>
+          </div>
+        )}
+
+        <label className="field" style={{ marginBottom: 4 }}>
+          <span>بحث في الصلاحيات</span>
+          <input
+            className="input"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="ابحث باسم الصلاحية بالعربية أو اسم الوحدة..."
+          />
+        </label>
+
+        <QueryView query={permissions} empty="لا توجد صلاحيات مسجلة.">
+          {() => (
+            <div className="grid" style={{ maxHeight: '62vh', overflowY: 'auto', paddingInlineEnd: 4 }}>
+              {grouped.map(([mod, list]) => {
+                const moduleTitle = PERMISSION_MODULE_AR[mod] ?? 'صلاحيات أخرى';
+                const selectedInGroup = list.filter((p) => checked.has(p.code)).length;
+                const allSelectedInGroup = list.length > 0 && selectedInGroup === list.length;
+
+                return (
+                  <div
+                    key={mod}
+                    style={{ display: 'grid', gap: 8, paddingTop: 12, borderTop: '1px solid var(--line)' }}
+                  >
+                    <div
+                      className="row"
+                      style={{
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                        marginBottom: 8,
+                        paddingBottom: 6,
+                        borderBottom: '1px solid var(--line)',
+                      }}
+                    >
+                      <div>
+                        <strong style={{ fontSize: 14 }}>{moduleTitle}</strong>
+                        <span className="badge neutral" style={{ marginInlineStart: 8 }}>
+                          {selectedInGroup} / {list.length}
+                        </span>
+                      </div>
+                      {canEditActivePermissions && (
+                        <button
+                          type="button"
+                          className="btn sm"
+                          onClick={() => toggleModuleGroup(list, !allSelectedInGroup)}
+                        >
+                          {allSelectedInGroup ? 'إلغاء تحديد القسم' : 'تحديد القسم بالكامل'}
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="grid cols-2" style={{ gap: 8 }}>
+                      {list.map((permission) => {
+                        const info = describePermissionAr(permission.code, permission.module);
+                        const isChecked = checked.has(permission.code);
+                        return (
+                          <label
+                            key={permission.code}
+                            style={{
+                              display: 'flex',
+                              gap: 10,
+                              alignItems: 'flex-start',
+                              padding: '8px 10px',
+                              borderRadius: 8,
+                              border: `1px solid ${isChecked ? 'var(--brand-line)' : 'var(--line)'}`,
+                              background: isChecked ? 'var(--brand-soft)' : 'var(--surface)',
+                              cursor: canEditActivePermissions ? 'pointer' : 'default',
+                              opacity: canEditActivePermissions || isChecked ? 1 : 0.75,
+                            }}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={isChecked}
+                              disabled={!canEditActivePermissions}
+                              onChange={() => toggle(permission.code)}
+                              style={{ marginTop: 3, width: 16, height: 16, accentColor: 'var(--brand)' }}
+                            />
+                            <span style={{ display: 'grid', gap: 2, minWidth: 0 }}>
+                              <strong style={{ fontSize: 13 }}>{info.title}</strong>
+                              {info.detail ? (
+                                <small className="muted" style={{ fontSize: 11.5, lineHeight: 1.4 }}>
+                                  {info.detail}
+                                </small>
+                              ) : null}
+                            </span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </QueryView>
+      </Panel>
     </Screen>
   );
 }

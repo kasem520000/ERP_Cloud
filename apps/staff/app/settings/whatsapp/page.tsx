@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { Panel } from '@erp/ui';
 
 import { Notice } from '../../../components/data-view';
 import { Screen } from '../../../components/screen';
@@ -54,7 +55,9 @@ export default function WhatsappSettingsPage() {
   const [token, setToken] = useState('');
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState('');
-  const [notice, setNotice] = useState<{ kind: 'ok' | 'danger' | 'info' | 'warn'; text: string } | undefined>();
+  const [notice, setNotice] = useState<
+    { kind: 'ok' | 'danger' | 'info' | 'warn'; text: string } | undefined
+  >();
 
   async function reload() {
     const next = await whatsappSettings();
@@ -104,66 +107,101 @@ export default function WhatsappSettingsPage() {
   };
 
   return (
- <Screen
- title="إعدادات واتساب"
- subtitle="من أي رقم تخرج الرسائل، وبأي رمز، وإلى أي بلد يُضاف رقم العميل الناقص. «واتساب» على نافذة الفاتورة يقرأ هذه الإعدادات، ولا يُرسل منها إلا ما كان مفعّلاً."
+    <Screen
+      title="إعدادات واتساب"
+      subtitle="من أي رقم تخرج الرسائل، وبأي رمز، وإلى أي بلد يُضاف رقم العميل الناقص. «واتساب» على نافذة الفاتورة يقرأ هذه الإعدادات، ولا يُرسل منها إلا ما كان مفعّلاً."
       crumbs={['الإعدادات', 'واتساب']}
-      actions={<span className="chip">{saved.active ? 'مفعّل' : 'موقوف'}{saved.simulation ? ' · محاكاة' : ''}</span>}
+      actions={
+        <span className="chip">
+          {saved.active ? 'مفعّل' : 'موقوف'}
+          {saved.simulation ? ' · محاكاة' : ''}
+        </span>
+      }
     >
- <Notice notice={notice} />
+      <Notice notice={notice} />
       {loading && (
- <div className="card grid" aria-busy="true">
- <p className="muted">جارٍ التحميل…</p>
- </div>
+        <div className="card grid" aria-busy="true">
+          <p className="muted">جارٍ التحميل…</p>
+        </div>
       )}
 
- <div className="card">
- <h3>الإعدادات</h3>
- <div className="form-grid">
- <div className="field">
- <span>التفعيل</span>
- <label className="check">
- <input type="checkbox" checked={form.active} onChange={(event) => setField('active', event.target.checked)} />
- <span>تفعيل إرسال الفواتير عبر واتساب</span>
- </label>
- <label className="check">
- <input type="checkbox" checked={form.attachDocument} onChange={(event) => setField('attachDocument', event.target.checked)} />
- <span>إرفاق الفاتورة مع الرسالة</span>
- </label>
- <label className="check">
- <input type="checkbox" checked={form.simulation} onChange={(event) => setField('simulation', event.target.checked)} />
- <span>محاكاة (لا تُرسل رسالة حقيقية)</span>
- </label>
- </div>
- <label className="field wide">
- <span>عنوان الواتساب (Phone Number ID)</span>
- <input className="input" dir="ltr" value={form.phoneNumberId} onChange={(event) => setField('phoneNumberId', event.target.value)} placeholder="109357128475620" />
- <small className="muted">يأتي من لوحة Meta · وهو ما كان يعطيه مسح رمز QR في النسخة المكتبية.</small>
- </label>
- <label className="field">
- <span>الرمز (Access Token)</span>
- <input className="input"
+      <Panel title="الإعدادات">
+        <div className="form-grid">
+          <div className="field">
+            <span>التفعيل</span>
+            <label className="check">
+              <input
+                type="checkbox"
+                checked={form.active}
+                onChange={(event) => setField('active', event.target.checked)}
+              />
+              <span>تفعيل إرسال الفواتير عبر واتساب</span>
+            </label>
+            <label className="check">
+              <input
+                type="checkbox"
+                checked={form.attachDocument}
+                onChange={(event) => setField('attachDocument', event.target.checked)}
+              />
+              <span>إرفاق الفاتورة مع الرسالة</span>
+            </label>
+            <label className="check">
+              <input
+                type="checkbox"
+                checked={form.simulation}
+                onChange={(event) => setField('simulation', event.target.checked)}
+              />
+              <span>محاكاة (لا تُرسل رسالة حقيقية)</span>
+            </label>
+          </div>
+          <label className="field wide">
+            <span>عنوان الواتساب (Phone Number ID)</span>
+            <input
+              className="input"
+              dir="ltr"
+              value={form.phoneNumberId}
+              onChange={(event) => setField('phoneNumberId', event.target.value)}
+              placeholder="109357128475620"
+            />
+            <small className="muted">
+              يأتي من لوحة Meta · وهو ما كان يعطيه مسح رمز QR في النسخة المكتبية.
+            </small>
+          </label>
+          <label className="field">
+            <span>الرمز (Access Token)</span>
+            <input
+              className="input"
               dir="ltr"
               type="password"
               value={token}
-              placeholder={form.hasToken ? `محفوظ (${form.tokenMasked ?? '****'})` : 'يُكتب مرة واحدة ولا يُعرض'}
+              placeholder={
+                form.hasToken ? `محفوظ (${form.tokenMasked ?? '****'})` : 'يُكتب مرة واحدة ولا يُعرض'
+              }
               onChange={(event) => setToken(event.target.value)}
             />
- </label>
- <label className="field">
- <span>رمز الدولة</span>
- <input className="input" dir="ltr" value={form.defaultCountryCode} onChange={(event) => setField('defaultCountryCode', event.target.value)} placeholder="966" />
- <small className="muted">يُضاف إلى رقم العميل بعد حذف أصفاره الأولى — كان «966» ثابتاً في النسخة المكتبية.</small>
- </label>
- <label className="field wide">
- <span>عنوان الخدمة</span>
- <input className="input" dir="ltr" value={form.baseUrl} readOnly />
- <small className="muted">WhatsApp Cloud API · لا يحتاج إلى متصفّح ولا إلى جهاز الكاشير.</small>
- </label>
- </div>
+          </label>
+          <label className="field">
+            <span>رمز الدولة</span>
+            <input
+              className="input"
+              dir="ltr"
+              value={form.defaultCountryCode}
+              onChange={(event) => setField('defaultCountryCode', event.target.value)}
+              placeholder="966"
+            />
+            <small className="muted">
+              يُضاف إلى رقم العميل بعد حذف أصفاره الأولى — كان «966» ثابتاً في النسخة المكتبية.
+            </small>
+          </label>
+          <label className="field wide">
+            <span>عنوان الخدمة</span>
+            <input className="input" dir="ltr" value={form.baseUrl} readOnly />
+            <small className="muted">WhatsApp Cloud API · لا يحتاج إلى متصفّح ولا إلى جهاز الكاشير.</small>
+          </label>
+        </div>
 
- <div className="toolbar">
- <button
+        <div className="toolbar">
+          <button
             type="button"
             className="btn primary"
             disabled={busy !== ''}
@@ -171,13 +209,16 @@ export default function WhatsappSettingsPage() {
               void run('save', async () => {
                 const result = await saveWhatsappSettings(input);
                 setToken('');
-                setNotice({ kind: 'ok', text: `تم حفظ الإعدادات · ${result.settings.tokenMasked ?? 'بلا رمز'}` });
+                setNotice({
+                  kind: 'ok',
+                  text: `تم حفظ الإعدادات · ${result.settings.tokenMasked ?? 'بلا رمز'}`,
+                });
               })
             }
           >
- حفظ
- </button>
- <button
+            حفظ
+          </button>
+          <button
             type="button"
             className="btn"
             disabled={busy !== ''}
@@ -186,21 +227,22 @@ export default function WhatsappSettingsPage() {
                 const result = await testWhatsapp();
                 setNotice({
                   kind: result.ok ? 'ok' : 'warn',
- text: `${result.displayPhoneNumber ?? '—'} — ${result.message ?? result.status}`,
+                  text: `${result.displayPhoneNumber ?? '—'} — ${result.message ?? result.status}`,
                 });
               })
             }
           >
- اختبار
- </button>
+            اختبار
+          </button>
           {busy !== '' ? <span className="chip">…</span> : null}
- </div>
+        </div>
 
- <h4>Logging</h4>
- <pre className="log" dir="ltr">
-          {(saved.lastTest?.lines ?? []).join('\n') || (saved.lastTest ? JSON.stringify(saved.lastTest, null, 2) : '— لم يُجرَ اختبار بعد —')}
- </pre>
- </div>
- </Screen>
+        <h4>Logging</h4>
+        <pre className="log" dir="ltr">
+          {(saved.lastTest?.lines ?? []).join('\n') ||
+            (saved.lastTest ? JSON.stringify(saved.lastTest, null, 2) : '— لم يُجرَ اختبار بعد —')}
+        </pre>
+      </Panel>
+    </Screen>
   );
 }

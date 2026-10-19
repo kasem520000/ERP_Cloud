@@ -1,13 +1,34 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { Panel } from '@erp/ui';
 
 import { money } from '../../lib/lookups';
-import { SupplierError, readSupplierSession, supplierFetch, writeSupplierSession } from '../../lib/supplier-portal';
+import {
+  SupplierError,
+  readSupplierSession,
+  supplierFetch,
+  writeSupplierSession,
+} from '../../lib/supplier-portal';
 
-type Invoice = { id: string; number: string | null; paymentStatus: string; currency: string; total: string; paidTotal: string };
+type Invoice = {
+  id: string;
+  number: string | null;
+  paymentStatus: string;
+  currency: string;
+  total: string;
+  paidTotal: string;
+};
 type Payment = { id: string; number: string | null; day: string; value: string; currency: string };
-type Quote = { id: string; number: string; title: string; note: string; status: string; offer: string | null; responseNote: string | null };
+type Quote = {
+  id: string;
+  number: string;
+  title: string;
+  note: string;
+  status: string;
+  offer: string | null;
+  responseNote: string | null;
+};
 
 const STATUS: Record<string, string> = { open: 'بانتظار الرد', responded: 'تم الرد', closed: 'مغلق' };
 
@@ -130,15 +151,32 @@ export default function SupplierPortalPage() {
           {error ? <p className="alert danger">{error}</p> : null}
           <label className="field">
             <span>رمز المنشأة</span>
-            <input className="input" value={tenantCode} onChange={(event) => setTenantCode(event.target.value)} required />
+            <input
+              className="input"
+              value={tenantCode}
+              onChange={(event) => setTenantCode(event.target.value)}
+              required
+            />
           </label>
           <label className="field">
             <span>البريد</span>
-            <input className="input" type="email" value={email} onChange={(event) => setEmail(event.target.value)} required />
+            <input
+              className="input"
+              type="email"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              required
+            />
           </label>
           <label className="field">
             <span>كلمة المرور</span>
-            <input className="input" type="password" value={password} onChange={(event) => setPassword(event.target.value)} required />
+            <input
+              className="input"
+              type="password"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              required
+            />
           </label>
           <button className="btn primary" type="submit" disabled={busy}>
             {busy ? 'جارٍ الدخول…' : 'دخول'}
@@ -162,35 +200,35 @@ export default function SupplierPortalPage() {
         </header>
         {error ? <p className="alert danger">{error}</p> : null}
 
-        <section className="card">
-          <h2>فواتير الشراء</h2>
+        <Panel title="فواتير الشراء">
           {invoices.length === 0 ? <p className="muted">لا توجد فواتير مرحّلة باسمكم.</p> : null}
           {invoices.map((row) => (
             <p key={row.id}>
-              {row.number ?? '—'} — {money(row.total, row.currency)} — مسدّد {money(row.paidTotal, row.currency)} — {row.paymentStatus}
+              {row.number ?? '—'} — {money(row.total, row.currency)} — مسدّد{' '}
+              {money(row.paidTotal, row.currency)} — {row.paymentStatus}
             </p>
           ))}
-        </section>
+        </Panel>
 
-        <section className="card">
-          <h2>المدفوعات</h2>
+        <Panel title="المدفوعات">
           {payments.length === 0 ? <p className="muted">لا توجد سندات صرف مرحّلة.</p> : null}
           {payments.map((row) => (
             <p key={row.id}>
               {row.number ?? '—'} — {row.day} — {money(row.value, row.currency)}
             </p>
           ))}
-        </section>
+        </Panel>
 
-        <section className="card">
-          <h2>طلبات عروض الأسعار</h2>
+        <Panel title="طلبات عروض الأسعار">
           {quotes.length === 0 ? <p className="muted">لا توجد طلبات مفتوحة.</p> : null}
           {quotes.map((row) => (
             <article key={row.id} className="card tight">
               <strong>
                 {row.number} — {row.title}
               </strong>
-              <p className="muted small">{row.note || 'بلا ملاحظة'} — {STATUS[row.status] ?? row.status}</p>
+              <p className="muted small">
+                {row.note || 'بلا ملاحظة'} — {STATUS[row.status] ?? row.status}
+              </p>
               {row.status === 'open' ? (
                 <div className="form-grid">
                   <label className="field">
@@ -200,7 +238,10 @@ export default function SupplierPortalPage() {
                       inputMode="decimal"
                       value={offers[row.id]?.offer ?? ''}
                       onChange={(event) =>
-                        setOffers((current) => ({ ...current, [row.id]: { offer: event.target.value, note: current[row.id]?.note ?? '' } }))
+                        setOffers((current) => ({
+                          ...current,
+                          [row.id]: { offer: event.target.value, note: current[row.id]?.note ?? '' },
+                        }))
                       }
                     />
                   </label>
@@ -210,7 +251,10 @@ export default function SupplierPortalPage() {
                       className="input"
                       value={offers[row.id]?.note ?? ''}
                       onChange={(event) =>
-                        setOffers((current) => ({ ...current, [row.id]: { offer: current[row.id]?.offer ?? '', note: event.target.value } }))
+                        setOffers((current) => ({
+                          ...current,
+                          [row.id]: { offer: current[row.id]?.offer ?? '', note: event.target.value },
+                        }))
                       }
                     />
                   </label>
@@ -220,12 +264,13 @@ export default function SupplierPortalPage() {
                 </div>
               ) : (
                 <p>
-                  العرض: {row.offer ? money(row.offer) : '—'} {row.responseNote ? `— ${row.responseNote}` : ''}
+                  العرض: {row.offer ? money(row.offer) : '—'}{' '}
+                  {row.responseNote ? `— ${row.responseNote}` : ''}
                 </p>
               )}
             </article>
           ))}
-        </section>
+        </Panel>
 
         <form className="card" onSubmit={upload}>
           <h2>رفع فاتورة</h2>
@@ -233,11 +278,22 @@ export default function SupplierPortalPage() {
           <div className="form-grid">
             <label className="field">
               <span>رقم الفاتورة *</span>
-              <input className="input" value={referenceNo} onChange={(event) => setReferenceNo(event.target.value)} required />
+              <input
+                className="input"
+                value={referenceNo}
+                onChange={(event) => setReferenceNo(event.target.value)}
+                required
+              />
             </label>
             <label className="field">
               <span>الإجمالي *</span>
-              <input className="input" inputMode="decimal" value={declared} onChange={(event) => setDeclared(event.target.value)} required />
+              <input
+                className="input"
+                inputMode="decimal"
+                value={declared}
+                onChange={(event) => setDeclared(event.target.value)}
+                required
+              />
             </label>
             <label className="field">
               <span>ملاحظة</span>

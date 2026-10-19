@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { Trash2 } from 'lucide-react';
 import { useMemo, useState } from 'react';
+import { Panel } from '@erp/ui';
 
 import { ErrorBox, Forbidden, Loading, Screen } from '../../../components/screen';
 import { StatTile, StatTiles } from '../../../components/ui';
@@ -187,8 +188,7 @@ export default function CostCentersPage() {
       </StatTiles>
 
       <div className="grid two">
-        <section className="card">
-          <h2>بيانات مركز التكلفة</h2>
+        <Panel title="بيانات مركز التكلفة">
           <div className="form-grid">
             <label className="field">
               <span>الرقم *</span>
@@ -284,7 +284,7 @@ export default function CostCentersPage() {
               )}
             </div>
           )}
-        </section>
+        </Panel>
 
         <section className="card tight">
           <div className="row" style={{ justifyContent: 'space-between' }}>

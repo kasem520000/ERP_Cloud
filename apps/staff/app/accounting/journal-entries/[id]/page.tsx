@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useParams, useSearchParams } from 'next/navigation';
 import { useState } from 'react';
+import { Panel } from '@erp/ui';
 
 import { Empty, ErrorBox, Forbidden, Loading, Screen } from '../../../../components/screen';
 import { Notice } from '../../../../components/data-view';
@@ -101,9 +102,9 @@ export default function JournalEntryPage() {
   if (entry.status === 'forbidden') return <Forbidden />;
   if (entry.status !== 'success' || !entry.data) {
     return (
- <Screen title="القيد" crumbs={['المحاسبة', 'القيود اليومية']}>
- <ErrorBox message={entry.error ?? 'تعذّر تحميل القيد'} onRetry={entry.reload} />
- </Screen>
+      <Screen title="القيد" crumbs={['المحاسبة', 'القيود اليومية']}>
+        <ErrorBox message={entry.error ?? 'تعذّر تحميل القيد'} onRetry={entry.reload} />
+      </Screen>
     );
   }
 
@@ -140,23 +141,23 @@ export default function JournalEntryPage() {
   }
 
   return (
- <Screen
+    <Screen
       title={`قيد يومية ${doc.number ?? ''}`.trim()}
       subtitle={doc.description ?? '—'}
       crumbs={['المحاسبة', 'القيود اليومية', 'القيد']}
       actions={
- <>
+        <>
           {/*
  «طباعة» و«معاينة» — `FrmNewEntry.xaml` L454–455. والشاشتان واحدةٌ عندنا:
  ورقة المستند تُفتح داخل إطار، و`?auto=1` يطبعها فور جهوزها (فرقُ الزرّين في
  المكتب: المعاينة تُعرض، والطباعة تُخرج الورق).
           */}
- <Link className="btn primary" href={`/print/journal-entry/${doc.id}?auto=1`}>
- طباعة
- </Link>
- <Link className="btn" href={`/print/journal-entry/${doc.id}`}>
- معاينة
- </Link>
+          <Link className="btn primary" href={`/print/journal-entry/${doc.id}?auto=1`}>
+            طباعة
+          </Link>
+          <Link className="btn" href={`/print/journal-entry/${doc.id}`}>
+            معاينة
+          </Link>
           {/*
  حذف — `FrmNewEntry.xaml` L450 `btnDelete` + L378-397 عمود حذف السطر
             (`BtnDeleteRow_Click` L532). في الديسكتوب: `update Entry set IS_Deleted=1
@@ -165,137 +166,149 @@ export default function JournalEntryPage() {
  يُصلح بـ0047 ليُطبّق void لكن الحذف يبقى ممنوعاً)، وعكسه هو الطريق.
  فالزرّ معطّل مع شرح، وحذف السطر غير موجود أصلاً لأن الشاشة قراءة.
           */}
- <button
+          <button
             className="btn"
             type="button"
             disabled
             title="القيد المرحّل لا يُحذف. استخدم «عكس القيد» لإنشاء قيدٍ عكسيّ موثّق."
             aria-label="حذف"
           >
- حذف
- </button>
- {/* «» خروج — L427؛ والخروج هنا عودةٌ إلى السجل بالنطاق نفسه. */}
- <Link className="btn" href={registerHref}>
- خروج
- </Link>
- </>
+            حذف
+          </button>
+          {/* «» خروج — L427؛ والخروج هنا عودةٌ إلى السجل بالنطاق نفسه. */}
+          <Link className="btn" href={registerHref}>
+            خروج
+          </Link>
+        </>
       }
     >
- <div className="card tight">
+      <div className="card tight">
         {/*
  — `FrmNewEntry.xaml` L428–431 بترتيبها ونصوصها. وزرٌّ بلا جارٍ يُعطَّل
  ولا يُخفى (فالنافذة المكتبية تُبقي الأزرار الأربعة دائماً).
         */}
- <div className="row" style={{ alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+        <div className="row" style={{ alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
           {buttons.map((button) =>
             button.href ? (
- <Link key={button.key} className="btn" href={button.href} title={button.title} aria-label={button.label}>
- <span aria-hidden>{button.glyph}</span> {button.label}
- </Link>
+              <Link
+                key={button.key}
+                className="btn"
+                href={button.href}
+                title={button.title}
+                aria-label={button.label}
+              >
+                <span aria-hidden>{button.glyph}</span> {button.label}
+              </Link>
             ) : (
- <button key={button.key} className="btn" type="button" disabled title={button.title} aria-label={button.label}>
- <span aria-hidden>{button.glyph}</span> {button.label}
- </button>
+              <button
+                key={button.key}
+                className="btn"
+                type="button"
+                disabled
+                title={button.title}
+                aria-label={button.label}
+              >
+                <span aria-hidden>{button.glyph}</span> {button.label}
+              </button>
             ),
           )}
- <span className="muted small" style={{ marginInlineStart: 'auto' }}>
+          <span className="muted small" style={{ marginInlineStart: 'auto' }}>
             {positionLabel(neighbours.data)}
- </span>
- </div>
- </div>
+          </span>
+        </div>
+      </div>
 
- <div className="grid cols-2">
- <div className="card">
- <h2>بيانات القيد</h2>
- <dl className="kv">
+      <div className="grid cols-2">
+        <Panel title="بيانات القيد">
+          <dl className="kv">
             {/* «رقم القيد» — FrmNewEntry.xaml L254. */}
- <dt>رقم القيد</dt>
- <dd dir="ltr">{doc.number ?? '—'}</dd>
- {/* «التاريخ» — L257. */}
- <dt>التاريخ</dt>
- <dd dir="ltr">{doc.date}</dd>
- {/* «الوقت» — L260 (`txtTime`)، والقيد القديم قد يخلو منه. */}
- <dt>الوقت</dt>
- <dd dir="ltr">{doc.entryTime ? String(doc.entryTime).slice(0, 5) : '—'}</dd>
- {/* «الملاحظة» — L269 (شرح القيد). */}
- <dt>الملاحظة</dt>
- <dd>{doc.description ?? '—'}</dd>
- <dt>الحالة</dt>
- <dd>{STATUS_LABELS[doc.status] ?? doc.status}</dd>
- <dt>المصدر</dt>
- <dd>{sourceTypeLabel(doc.sourceType)}</dd>
+            <dt>رقم القيد</dt>
+            <dd dir="ltr">{doc.number ?? '—'}</dd>
+            {/* «التاريخ» — L257. */}
+            <dt>التاريخ</dt>
+            <dd dir="ltr">{doc.date}</dd>
+            {/* «الوقت» — L260 (`txtTime`)، والقيد القديم قد يخلو منه. */}
+            <dt>الوقت</dt>
+            <dd dir="ltr">{doc.entryTime ? String(doc.entryTime).slice(0, 5) : '—'}</dd>
+            {/* «الملاحظة» — L269 (شرح القيد). */}
+            <dt>الملاحظة</dt>
+            <dd>{doc.description ?? '—'}</dd>
+            <dt>الحالة</dt>
+            <dd>{STATUS_LABELS[doc.status] ?? doc.status}</dd>
+            <dt>المصدر</dt>
+            <dd>{sourceTypeLabel(doc.sourceType)}</dd>
             {doc.reversalOf && (
- <>
- <dt>قيدٌ عكسيّ لـ</dt>
- <dd>
- <Link className="muted" href={`/accounting/journal-entries/${doc.reversalOf}`}>
+              <>
+                <dt>قيدٌ عكسيّ لـ</dt>
+                <dd>
+                  <Link className="muted" href={`/accounting/journal-entries/${doc.reversalOf}`}>
                     {doc.reversalOf.slice(0, 8)}…
- </Link>
- </dd>
- </>
+                  </Link>
+                </dd>
+              </>
             )}
             {doc.postedAt && (
- <>
- <dt>الترحيل</dt>
- <dd dir="ltr">{String(doc.postedAt).slice(0, 19).replace('T', ' ')}</dd>
- </>
+              <>
+                <dt>الترحيل</dt>
+                <dd dir="ltr">{String(doc.postedAt).slice(0, 19).replace('T', ' ')}</dd>
+              </>
             )}
- {/* «الرقم العام» — L263؛ ويظهر حين يوجد مرجعٌ قديم فقط. */}
+            {/* «الرقم العام» — L263؛ ويظهر حين يوجد مرجعٌ قديم فقط. */}
             {doc.legacyId && (
- <>
- <dt>الرقم العام</dt>
- <dd dir="ltr">{doc.legacyId}</dd>
- </>
+              <>
+                <dt>الرقم العام</dt>
+                <dd dir="ltr">{doc.legacyId}</dd>
+              </>
             )}
- </dl>
- </div>
+          </dl>
+        </Panel>
 
- <div className="card">
+        <div className="card">
           {/* «مجموع المدين:» و«مجموع الدائن:» — L446–449، و«الفرق=» — L293. */}
- <h2>الملخّص</h2>
- <dl className="kv">
- <dt>مجموع المدين:</dt>
- <dd>{money(String(totalDebit))}</dd>
- <dt>مجموع الدائن:</dt>
- <dd>{money(String(totalCredit))}</dd>
- <dt>الفرق</dt>
- <dd>{money(String(difference))}</dd>
- </dl>
- </div>
- </div>
+          <h2>الملخّص</h2>
+          <dl className="kv">
+            <dt>مجموع المدين:</dt>
+            <dd>{money(String(totalDebit))}</dd>
+            <dt>مجموع الدائن:</dt>
+            <dd>{money(String(totalCredit))}</dd>
+            <dt>الفرق</dt>
+            <dd>{money(String(difference))}</dd>
+          </dl>
+        </div>
+      </div>
 
- <div className="card">
- {/* «تفاصيل القيد» — L291، بأعمدة الشبكة L320–366. */}
- <h2>تفاصيل القيد</h2>
+      <div className="card">
+        {/* «تفاصيل القيد» — L291، بأعمدة الشبكة L320–366. */}
+        <h2>تفاصيل القيد</h2>
         {doc.lines.length === 0 ? (
- <Empty title="لا سطور لهذا القيد" detail="القيد المُعلَن عناصرُه." />
+          <Empty title="لا سطور لهذا القيد" detail="القيد المُعلَن عناصرُه." />
         ) : (
- <div className="table-wrap">
- <table>
- <thead>
- <tr>
- <th>#</th>
- <th>رمز الحساب</th>
- <th>اسم الحساب</th>
- <th className="num">مدين</th>
- <th className="num">دائن</th>
- <th>الشرح</th>
- </tr>
- </thead>
- <tbody>
+          <div className="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>رمز الحساب</th>
+                  <th>اسم الحساب</th>
+                  <th className="num">مدين</th>
+                  <th className="num">دائن</th>
+                  <th>الشرح</th>
+                </tr>
+              </thead>
+              <tbody>
                 {doc.lines.map((line) => (
- <tr key={line.lineNo}>
- <td>{line.lineNo}</td>
- <td dir="ltr">{line.accountCode ?? '—'}</td>
- <td>{line.accountNameAr ?? '—'}</td>
- <td className="num">{money(line.debit)}</td>
- <td className="num">{money(line.credit)}</td>
- <td>{line.description ?? '—'}</td>
- </tr>
+                  <tr key={line.lineNo}>
+                    <td>{line.lineNo}</td>
+                    <td dir="ltr">{line.accountCode ?? '—'}</td>
+                    <td>{line.accountNameAr ?? '—'}</td>
+                    <td className="num">{money(line.debit)}</td>
+                    <td className="num">{money(line.credit)}</td>
+                    <td>{line.description ?? '—'}</td>
+                  </tr>
                 ))}
- </tbody>
- </table>
- </div>
+              </tbody>
+            </table>
+          </div>
         )}
         {/*
  عمود «حذف» على كل سطر — `FrmNewEntry.xaml` L378-397 `BtnDeleteRow_Click`
@@ -304,10 +317,11 @@ export default function JournalEntryPage() {
  في السحابة القيد المرحّل لا يُعدَّل أصلاً، والشاشة قراءة — فالعمود غير موجود،
  ويُعلَن هنا حيث يُتوقّعه من يقرأ الشبكة.
         */}
- <p className="muted small" style={{ marginTop: 8 }}>
- حذف السطر () في `FrmNewEntry.xaml:378-397` كان قبل الحفظ فقط — القيد المرحّل لا يُعدَّل، فالشبكة هنا قراءة.
- </p>
- </div>
+        <p className="muted small" style={{ marginTop: 8 }}>
+          حذف السطر () في `FrmNewEntry.xaml:378-397` كان قبل الحفظ فقط — القيد المرحّل لا يُعدَّل، فالشبكة هنا
+          قراءة.
+        </p>
+      </div>
 
       {/*
  القيد المرحّل لا يُعدَّل في السحابة (وهو المؤجَّل المُعلَن من نافذة الديسكتوب)،
@@ -315,48 +329,61 @@ export default function JournalEntryPage() {
  وزرّ الحذف معطّل في الأعلى مع tooltip يسمّي السطر الديسكتوبي.
       */}
       {doc.status === 'posted' && (
- <>
- <Notice notice={{ kind: 'info', text: 'القيد المرحّل لا يُعدَّل ولا يُحذف — التصحيح يكون بقيدٍ عكسيّ موثّق. زرّ «حذف» معطّل لهذا السبب، و«عكس القيد» أدناه هو الطريق الصحيح.' }} />
+        <>
+          <Notice
+            notice={{
+              kind: 'info',
+              text: 'القيد المرحّل لا يُعدَّل ولا يُحذف — التصحيح يكون بقيدٍ عكسيّ موثّق. زرّ «حذف» معطّل لهذا السبب، و«عكس القيد» أدناه هو الطريق الصحيح.',
+            }}
+          />
 
- <div className="card">
- <h2>عكس القيد</h2>
- <p className="muted small">
- العكس ينشئ قيداً مرآةً (مدين دائن) بنفس الأبعاد (مركز التكلفة · الفرع · المندوب) — ترحيل 0047.
-              {doc.kind === 'reversal' ? ' هذا القيد نفسه عكسي.' : ''}
- </p>
+          <Panel
+            title="عكس القيد"
+            hint={
+              <>
+                العكس ينشئ قيداً مرآةً (مدين دائن) بنفس الأبعاد (مركز التكلفة · الفرع · المندوب) — ترحيل 0047.
+                {doc.kind === 'reversal' ? ' هذا القيد نفسه عكسي.' : ''}
+              </>
+            }
+          >
             {reversedId ? (
- <div className="row" style={{ marginTop: 8 }}>
- <span>تم العكس — القيد العكسي:</span>
- <Link className="btn primary sm" href={`/accounting/journal-entries/${reversedId}`}>
+              <div className="row" style={{ marginTop: 8 }}>
+                <span>تم العكس — القيد العكسي:</span>
+                <Link className="btn primary sm" href={`/accounting/journal-entries/${reversedId}`}>
                   {reversedId.slice(0, 8)}…
- </Link>
- </div>
+                </Link>
+              </div>
             ) : (
- <>
- <div className="row" style={{ marginTop: 8 }}>
- <label className="field" style={{ flex: 1, margin: 0 }}>
- <span>سبب العكس (بيان القيد العكسي)</span>
- <input
+              <>
+                <div className="row" style={{ marginTop: 8 }}>
+                  <label className="field" style={{ flex: 1, margin: 0 }}>
+                    <span>سبب العكس (بيان القيد العكسي)</span>
+                    <input
                       className="input"
                       value={reverseReason}
                       onChange={(event) => setReverseReason(event.target.value)}
                       placeholder="مثال: تصحيح قيد …"
                     />
- </label>
- <button className="btn primary" type="button" onClick={handleReverse} disabled={reversing || doc.kind === 'reversal'}>
- {reversing ? 'جاري العكس…' : 'عكس القيد'}
- </button>
- </div>
+                  </label>
+                  <button
+                    className="btn primary"
+                    type="button"
+                    onClick={handleReverse}
+                    disabled={reversing || doc.kind === 'reversal'}
+                  >
+                    {reversing ? 'جاري العكس…' : 'عكس القيد'}
+                  </button>
+                </div>
                 {reverseError && (
- <p className="muted small" style={{ color: 'var(--danger, #c00)', marginTop: 6 }}>
+                  <p className="muted small" style={{ color: 'var(--danger, #c00)', marginTop: 6 }}>
                     {reverseError}
- </p>
+                  </p>
                 )}
- </>
+              </>
             )}
- </div>
- </>
+          </Panel>
+        </>
       )}
- </Screen>
+    </Screen>
   );
 }

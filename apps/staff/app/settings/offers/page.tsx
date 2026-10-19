@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { Panel } from '@erp/ui';
 
 import { Notice } from '../../../components/data-view';
 import { Directory } from '../../../components/directory';
@@ -23,7 +24,10 @@ type Offer = {
 
 type Evaluation = { eligible: boolean; discount: string; reason?: string };
 
-const REASONS: Record<string, string> = { OFFER_NOT_VALID: 'العرض موقوف أو خارج فترة صلاحيته', TARGET_NOT_MET: 'الكمية/القيمة أقل من الحد الأدنى' };
+const REASONS: Record<string, string> = {
+  OFFER_NOT_VALID: 'العرض موقوف أو خارج فترة صلاحيته',
+  TARGET_NOT_MET: 'الكمية/القيمة أقل من الحد الأدنى',
+};
 
 const TARGETS: Record<string, string> = { quantity: 'كمية', value: 'قيمة' };
 const DISCOUNTS: Record<string, string> = { percent: 'نسبة %', amount: 'مبلغ ثابت' };
@@ -67,17 +71,49 @@ export default function OffersPage() {
       formTitle="بطاقة عرض"
       empty="لا توجد عروض"
       emptyDetail="أنشئ عرضاً ثم جرّبه بالحاسبة أسفل الشاشة قبل تفعيله."
-      initial={{ validFrom: today(), validTo: today(), targetType: 'quantity', discountType: 'percent', status: 'active' }}
+      initial={{
+        validFrom: today(),
+        validTo: today(),
+        targetType: 'quantity',
+        discountType: 'percent',
+        status: 'active',
+      }}
       fields={[
         { name: 'code', label: 'الرمز', required: true, ltr: true },
         { name: 'name', label: 'اسم العرض', required: true },
         { name: 'validFrom', label: 'من تاريخ', type: 'date', required: true },
         { name: 'validTo', label: 'إلى تاريخ', type: 'date', required: true },
-        { name: 'targetType', label: 'الشرط على', type: 'select', required: true, options: [{ id: 'quantity', label: 'الكمية' }, { id: 'value', label: 'قيمة السطر' }] },
+        {
+          name: 'targetType',
+          label: 'الشرط على',
+          type: 'select',
+          required: true,
+          options: [
+            { id: 'quantity', label: 'الكمية' },
+            { id: 'value', label: 'قيمة السطر' },
+          ],
+        },
         { name: 'targetValue', label: 'الحد الأدنى', required: true, placeholder: '10' },
-        { name: 'discountType', label: 'نوع الخصم', type: 'select', required: true, options: [{ id: 'percent', label: 'نسبة %' }, { id: 'amount', label: 'مبلغ ثابت' }] },
+        {
+          name: 'discountType',
+          label: 'نوع الخصم',
+          type: 'select',
+          required: true,
+          options: [
+            { id: 'percent', label: 'نسبة %' },
+            { id: 'amount', label: 'مبلغ ثابت' },
+          ],
+        },
         { name: 'discountValue', label: 'قيمة الخصم', required: true, placeholder: '5' },
-        { name: 'status', label: 'الحالة', type: 'select', options: [{ id: 'active', label: 'مفعّل' }, { id: 'inactive', label: 'موقوف' }] },
+        {
+          name: 'status',
+          label: 'الحالة',
+          type: 'select',
+          options: [
+            { id: 'active', label: 'مفعّل' },
+            { id: 'inactive', label: 'موقوف' },
+          ],
+        },
       ]}
       onCreate={(values) =>
         apiPost('/sales/offers', {
@@ -96,21 +132,31 @@ export default function OffersPage() {
       columns={[
         { key: 'code', header: 'الرمز', align: 'ltr', cell: (row) => row.code },
         { key: 'name', header: 'العرض', cell: (row) => row.name },
-        { key: 'target', header: 'الشرط', cell: (row) => `${TARGETS[row.targetType] ?? row.targetType} ≥ ${quantity(row.targetValue)}` },
-        { key: 'discount', header: 'الخصم', cell: (row) => `${DISCOUNTS[row.discountType] ?? row.discountType} ${row.discountValue}` },
+        {
+          key: 'target',
+          header: 'الشرط',
+          cell: (row) => `${TARGETS[row.targetType] ?? row.targetType} ≥ ${quantity(row.targetValue)}`,
+        },
+        {
+          key: 'discount',
+          header: 'الخصم',
+          cell: (row) => `${DISCOUNTS[row.discountType] ?? row.discountType} ${row.discountValue}`,
+        },
         { key: 'from', header: 'من', cell: (row) => shortDate(row.validFrom) },
         { key: 'to', header: 'إلى', cell: (row) => shortDate(row.validTo) },
         { key: 'status', header: 'الحالة', cell: (row) => (row.status === 'active' ? 'مفعّل' : 'موقوف') },
       ]}
       rowKey={(row) => row.id}
     >
-      <div className="card">
-        <h3>حاسبة العرض</h3>
-        <p className="muted small">جرّب العرض على صنف وكمية قبل استخدامه في الفواتير.</p>
+      <Panel title="حاسبة العرض" hint={<>جرّب العرض على صنف وكمية قبل استخدامه في الفواتير.</>}>
         <div className="toolbar">
           <label className="field">
             <span>العرض</span>
-            <select className="input" value={probe.offerId} onChange={(event) => setProbe({ ...probe, offerId: event.target.value })}>
+            <select
+              className="input"
+              value={probe.offerId}
+              onChange={(event) => setProbe({ ...probe, offerId: event.target.value })}
+            >
               <option value="">—</option>
               {(offers.data ?? []).map((row) => (
                 <option key={row.id} value={row.id}>
@@ -121,7 +167,11 @@ export default function OffersPage() {
           </label>
           <label className="field">
             <span>الصنف</span>
-            <select className="input" value={probe.itemId} onChange={(event) => setProbe({ ...probe, itemId: event.target.value })}>
+            <select
+              className="input"
+              value={probe.itemId}
+              onChange={(event) => setProbe({ ...probe, itemId: event.target.value })}
+            >
               <option value="">—</option>
               {(items.data ?? []).map((row) => (
                 <option key={row.id} value={row.id}>
@@ -132,11 +182,21 @@ export default function OffersPage() {
           </label>
           <label className="field">
             <span>الكمية</span>
-            <input className="input" dir="ltr" value={probe.quantity} onChange={(event) => setProbe({ ...probe, quantity: event.target.value })} />
+            <input
+              className="input"
+              dir="ltr"
+              value={probe.quantity}
+              onChange={(event) => setProbe({ ...probe, quantity: event.target.value })}
+            />
           </label>
           <label className="field">
             <span>قيمة السطر</span>
-            <input className="input" dir="ltr" value={probe.value} onChange={(event) => setProbe({ ...probe, value: event.target.value })} />
+            <input
+              className="input"
+              dir="ltr"
+              value={probe.value}
+              onChange={(event) => setProbe({ ...probe, value: event.target.value })}
+            />
           </label>
           <button type="button" className="btn" disabled={!probe.offerId || !probe.itemId} onClick={evaluate}>
             احسب
@@ -150,7 +210,7 @@ export default function OffersPage() {
               : `لا ينطبق العرض${result.reason ? ` — ${REASONS[result.reason] ?? result.reason}` : ''}`}
           </div>
         ) : null}
-      </div>
+      </Panel>
     </Directory>
   );
 }

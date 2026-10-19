@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { Panel } from '@erp/ui';
 
 import { DataTable, Notice } from '../../../components/data-view';
 import { Screen } from '../../../components/screen';
@@ -136,8 +137,7 @@ export default function InvoiceMaintenancePage() {
 
       {run && (
         <>
-          <section className="card">
-            <h3>إجماليات لا تطابق السطور</h3>
+          <Panel title="إجماليات لا تطابق السطور" flush>
             {run.findings.totalsMismatch.length === 0 ? (
               <p className="muted">لا توجد فروقات.</p>
             ) : (
@@ -177,11 +177,10 @@ export default function InvoiceMaintenancePage() {
                 rowKey={(row) => row.id}
               />
             )}
-          </section>
+          </Panel>
 
           <div className="grid cols-2">
-            <section className="card">
-              <h3>مرحّلة بلا قيد محاسبي</h3>
+            <Panel title="مرحّلة بلا قيد محاسبي" flush>
               {run.findings.postedWithoutJournal.length === 0 ? (
                 <p className="muted">لا توجد.</p>
               ) : (
@@ -204,9 +203,8 @@ export default function InvoiceMaintenancePage() {
                   rowKey={(row) => row.id}
                 />
               )}
-            </section>
-            <section className="card">
-              <h3>فجوات الترقيم</h3>
+            </Panel>
+            <Panel title="فجوات الترقيم" flush>
               {run.findings.numberingGaps.length === 0 ? (
                 <p className="muted">التسلسل متصل.</p>
               ) : (
@@ -231,11 +229,10 @@ export default function InvoiceMaintenancePage() {
                   rowKey={(row) => row.prefix}
                 />
               )}
-            </section>
+            </Panel>
           </div>
 
-          <section className="card">
-            <h3>مسودات معلّقة</h3>
+          <Panel title="مسودات معلّقة" flush>
             {run.findings.staleDrafts.length === 0 ? (
               <p className="muted">لا توجد مسودات قديمة.</p>
             ) : (
@@ -259,7 +256,7 @@ export default function InvoiceMaintenancePage() {
                 rowKey={(row) => row.id}
               />
             )}
-          </section>
+          </Panel>
 
           <p className="muted small">آخر فحص: {dateTime(run.createdAt)}</p>
         </>

@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
+import { Panel } from '@erp/ui';
 
 import { DataTable, Notice, QueryView } from '../../../components/data-view';
 import { Screen } from '../../../components/screen';
@@ -172,8 +173,7 @@ export default function RestorePage() {
         emptyDetail="ابدأ بفحص تجريبي لنسخة محفوظة."
       >
         {(rows) => (
-          <section className="card">
-            <h3>سجل عمليات الإستعادة</h3>
+          <Panel title="سجل عمليات الإستعادة" flush>
             <DataTable
               columns={[
                 { key: 'createdAt', header: 'التاريخ', cell: (row: RestoreRun) => dateTime(row.createdAt) },
@@ -198,7 +198,7 @@ export default function RestorePage() {
               rows={rows}
               rowKey={(row) => row.id}
             />
-          </section>
+          </Panel>
         )}
       </QueryView>
     </Screen>

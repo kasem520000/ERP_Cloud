@@ -1,11 +1,20 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import { Panel } from '@erp/ui';
 
 import { DataTable, Notice } from '../../../../components/data-view';
 import { Screen } from '../../../../components/screen';
 import { ApiError } from '../../../../lib/api';
-import { filingDetail, filingsPage, retryFiling, zatcaChain, type ChainState, type FilingDetail, type FilingRow } from '../../../../lib/einvoice';
+import {
+  filingDetail,
+  filingsPage,
+  retryFiling,
+  zatcaChain,
+  type ChainState,
+  type FilingDetail,
+  type FilingRow,
+} from '../../../../lib/einvoice';
 import { dateTime } from '../../../../lib/lookups';
 
 /**
@@ -70,10 +79,10 @@ const REASON_LABELS: Record<string, string> = {
 
 /** مرسل / غير مرسل — the two states `frmInvsSyncStatusZatca` filters on. */
 const SYNC_FILTERS = [
- { value: '', labelAr: 'الكل' },
- { value: 'cleared', labelAr: 'مرسل (مُصادق)' },
- { value: 'reported', labelAr: 'مرسل (مُبلَّغ)' },
- { value: 'failed', labelAr: 'غير مرسل' },
+  { value: '', labelAr: 'الكل' },
+  { value: 'cleared', labelAr: 'مرسل (مُصادق)' },
+  { value: 'reported', labelAr: 'مرسل (مُبلَّغ)' },
+  { value: 'failed', labelAr: 'غير مرسل' },
   { value: 'signed', labelAr: 'موقّعة (بانتظار الربط)' },
   { value: 'prepared', labelAr: 'مُجهَّزة' },
 ];
@@ -108,12 +117,20 @@ export default function SentEinvoicesPage() {
   const [chain, setChain] = useState<ChainState | undefined>();
   const [busy, setBusy] = useState('');
   const [loading, setLoading] = useState(true);
-  const [notice, setNotice] = useState<{ kind: 'ok' | 'danger' | 'info' | 'warn'; text: string } | undefined>();
+  const [notice, setNotice] = useState<
+    { kind: 'ok' | 'danger' | 'info' | 'warn'; text: string } | undefined
+  >();
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const page = await filingsPage({ status: status || undefined, from: from || undefined, to: to || undefined, pageNo, pageSize });
+      const page = await filingsPage({
+        status: status || undefined,
+        from: from || undefined,
+        to: to || undefined,
+        pageNo,
+        pageSize,
+      });
       setRows(page.items);
       setTotalRows(page.total);
       setPages(page.pages);
@@ -147,7 +164,12 @@ export default function SentEinvoicesPage() {
     setNotice(undefined);
     try {
       const next = await retryFiling(row.id);
-      setNotice({ kind: sent(next.status) ? 'ok' : 'warn', text: sent(next.status) ? 'تم ارسال الفاتورة بنجاح' : `الحالة الآن: ${STATUS_LABELS[next.status] ?? next.status}` });
+      setNotice({
+        kind: sent(next.status) ? 'ok' : 'warn',
+        text: sent(next.status)
+          ? 'تم ارسال الفاتورة بنجاح'
+          : `الحالة الآن: ${STATUS_LABELS[next.status] ?? next.status}`,
+      });
       setDetail(undefined);
       await load();
     } catch (error) {
@@ -168,29 +190,30 @@ export default function SentEinvoicesPage() {
   }
 
   return (
- <Screen
- title="الفواتير المرفوعة على موقع الضرائب"
+    <Screen
+      title="الفواتير المرفوعة على موقع الضرائب"
       subtitle="كل فاتورة أُرسلت إلى هيئة الزكاة والضريبة: حالتها عند الهيئة، وتجزئتها، ومكانها في السلسلة، والوثيقة التي أُرسلت والتي عادت مُصادَقة."
       crumbs={['الإعدادات', 'إعدادات الربط الضريبي', 'الفواتير المرفوعة']}
       actions={
- <>
- <span className="chip">الإجمالي: {totalRows}</span>
+        <>
+          <span className="chip">الإجمالي: {totalRows}</span>
           {chain && (
- <span className="chip">
- آخر تجزئة: <span dir="ltr">{chain.lastHash.slice(0, 12)}…</span> · العدّاد: {chain.counter}
- </span>
+            <span className="chip">
+              آخر تجزئة: <span dir="ltr">{chain.lastHash.slice(0, 12)}…</span> · العدّاد: {chain.counter}
+            </span>
           )}
- </>
+        </>
       }
     >
- <Notice notice={notice} />
+      <Notice notice={notice} />
 
       {/* ═══ Toolbar — خيارات البحث ═══ */}
- <div className="card">
- <div className="toolbar">
- <label className="field">
- <span>حجم الصفحة:</span>
- <input className="input"
+      <div className="card">
+        <div className="toolbar">
+          <label className="field">
+            <span>حجم الصفحة:</span>
+            <input
+              className="input"
               type="number"
               min={1}
               max={100}
@@ -198,10 +221,11 @@ export default function SentEinvoicesPage() {
               value={pageSize}
               onChange={(event) => setPageSize(Math.max(1, Math.min(100, Number(event.target.value) || 20)))}
             />
- </label>
- <label className="field">
- <span>رقم الصفحة:</span>
- <input className="input"
+          </label>
+          <label className="field">
+            <span>رقم الصفحة:</span>
+            <input
+              className="input"
               type="number"
               min={1}
               max={pages}
@@ -209,184 +233,246 @@ export default function SentEinvoicesPage() {
               value={pageNo}
               onChange={(event) => setPageNo(Math.max(1, Math.min(pages, Number(event.target.value) || 1)))}
             />
- </label>
- <label className="field">
- <span>حالة المزامنة ZATCA</span>
- <select className="input" value={status} onChange={(event) => setStatus(event.target.value)}>
+          </label>
+          <label className="field">
+            <span>حالة المزامنة ZATCA</span>
+            <select className="input" value={status} onChange={(event) => setStatus(event.target.value)}>
               {SYNC_FILTERS.map((filter) => (
- <option key={filter.value} value={filter.value}>
+                <option key={filter.value} value={filter.value}>
                   {filter.labelAr}
- </option>
+                </option>
               ))}
- </select>
- </label>
- <label className="field">
- <span>من</span>
- <input className="input" type="date" value={from} onChange={(event) => setFrom(event.target.value)} />
- </label>
- <label className="field">
- <span>إلى</span>
- <input className="input" type="date" value={to} onChange={(event) => setTo(event.target.value)} />
- </label>
- <button type="button" className="btn primary" disabled={loading} onClick={() => void load()}>
- عرض
- </button>
- </div>
- </div>
+            </select>
+          </label>
+          <label className="field">
+            <span>من</span>
+            <input
+              className="input"
+              type="date"
+              value={from}
+              onChange={(event) => setFrom(event.target.value)}
+            />
+          </label>
+          <label className="field">
+            <span>إلى</span>
+            <input className="input" type="date" value={to} onChange={(event) => setTo(event.target.value)} />
+          </label>
+          <button type="button" className="btn primary" disabled={loading} onClick={() => void load()}>
+            عرض
+          </button>
+        </div>
+      </div>
 
       {/* ═══ The grid ═══ */}
- <div className="card">
- <h3>قائمة الفواتير المرفوعة</h3>
+      <Panel title="قائمة الفواتير المرفوعة" flush>
         {loading && rows.length === 0 && <p className="muted">جارٍ التحميل…</p>}
- <DataTable
+        <DataTable
           rows={rows}
           rowKey={(row) => row.id}
           columns={[
             { key: 'index', header: 'م', cell: (row, index) => (pageNo - 1) * pageSize + index + 1 },
             { key: 'number', header: 'رقم الفاتورة', cell: (row) => row.invoice?.number ?? '—' },
-            { key: 'kind', header: 'نوع الفاتورة', cell: (row) => KIND_LABELS[row.invoice?.kind ?? ''] ?? (row.invoice?.kind ?? '—') },
+            {
+              key: 'kind',
+              header: 'نوع الفاتورة',
+              cell: (row) => KIND_LABELS[row.invoice?.kind ?? ''] ?? row.invoice?.kind ?? '—',
+            },
             { key: 'date', header: 'التاريخ', cell: (row) => dateTime(row.submittedAt ?? row.createdAt) },
             { key: 'party', header: 'العميل', cell: (row) => row.invoice?.partyName ?? '—' },
             { key: 'branch', header: 'الفرع', cell: (row) => row.invoice?.branchName ?? '—' },
             { key: 'user', header: 'المستخدم', cell: (row) => row.invoice?.createdByName ?? '—' },
-            { key: 'total', header: 'الصافي', cell: (row) => (row.invoice?.total ? Number(row.invoice.total).toFixed(2) : '—') },
+            {
+              key: 'total',
+              header: 'الصافي',
+              cell: (row) => (row.invoice?.total ? Number(row.invoice.total).toFixed(2) : '—'),
+            },
             {
               key: 'status',
               header: 'حالة المزامنة',
               cell: (row) => (
- <span className="chip">
- {STATUS_LABELS[row.status] ?? row.status}
+                <span className="chip">
+                  {STATUS_LABELS[row.status] ?? row.status}
                   {row.chainIndex ? ` · ${row.chainIndex}` : ''}
- </span>
+                </span>
               ),
             },
-            { key: 'profile', header: 'الصنف', cell: (row) => PROFILE_LABELS[String(row.response?.profile ?? '')] ?? row.response?.profile ?? '—' },
+            {
+              key: 'profile',
+              header: 'الصنف',
+              cell: (row) =>
+                PROFILE_LABELS[String(row.response?.profile ?? '')] ?? row.response?.profile ?? '—',
+            },
             { key: 'message', header: 'الرسالة', cell: (row) => messageOf(row) },
             {
               key: 'actions',
               header: 'تفاصيل',
               cell: (row) => (
- <button type="button" className="btn" disabled={busy !== ''} onClick={() => void show(row)}>
- تفاصيل
- </button>
+                <button type="button" className="btn" disabled={busy !== ''} onClick={() => void show(row)}>
+                  تفاصيل
+                </button>
               ),
             },
           ]}
         />
- <div className="toolbar">
- <button type="button" className="btn" disabled={pageNo <= 1 || loading} onClick={() => setPageNo(pageNo - 1)}>
- السابق
- </button>
- <span className="chip">
- صفحة {pageNo} من {pages}
- </span>
- <button type="button" className="btn" disabled={pageNo >= pages || loading} onClick={() => setPageNo(pageNo + 1)}>
- التالي 
- </button>
- <button type="button" className="btn" disabled={loading} onClick={() => void load()}>
- تحديث
- </button>
- </div>
- </div>
+        <div className="toolbar">
+          <button
+            type="button"
+            className="btn"
+            disabled={pageNo <= 1 || loading}
+            onClick={() => setPageNo(pageNo - 1)}
+          >
+            السابق
+          </button>
+          <span className="chip">
+            صفحة {pageNo} من {pages}
+          </span>
+          <button
+            type="button"
+            className="btn"
+            disabled={pageNo >= pages || loading}
+            onClick={() => setPageNo(pageNo + 1)}
+          >
+            التالي
+          </button>
+          <button type="button" className="btn" disabled={loading} onClick={() => void load()}>
+            تحديث
+          </button>
+        </div>
+      </Panel>
 
       {/* ═══ Selected row — UUID + Public URL ═══ */}
       {selected && (
- <div className="card">
- <h3>بيانات الفاتورة</h3>
- <div className="form-grid">
- <label className="field wide">
- <span>UUID</span>
- <input className="input" readOnly dir="ltr" value={selected.uuid ?? '—'} />
- </label>
- <label className="field wide">
- <span>Public URL</span>
- <input className="input" readOnly dir="ltr" value="—" />
- </label>
- <label className="field">
- <span>حالة الهيئة</span>
- <input className="input" readOnly value={selected.authorityStatus ?? '—'} />
- </label>
- <label className="field">
- <span>المحاولات</span>
- <input className="input" readOnly value={selected.attempts} />
- </label>
- </div>
- <p className="small muted">
- انقر على صف لتحديد UUID والرابط العام · الرابط العام لا تصدره هيئة الزكاة — يظهر هنا متى أصدرته الجهة
-            (الضرائب المصرية تفعل ذلك).
- </p>
- <div className="toolbar">
- <button type="button" className="btn" onClick={() => printInvoice(selected.invoiceId)}>
- طباعة
- </button>
+        <Panel title="بيانات الفاتورة" flush>
+          <div className="form-grid">
+            <label className="field wide">
+              <span>UUID</span>
+              <input className="input" readOnly dir="ltr" value={selected.uuid ?? '—'} />
+            </label>
+            <label className="field wide">
+              <span>Public URL</span>
+              <input className="input" readOnly dir="ltr" value="—" />
+            </label>
+            <label className="field">
+              <span>حالة الهيئة</span>
+              <input className="input" readOnly value={selected.authorityStatus ?? '—'} />
+            </label>
+            <label className="field">
+              <span>المحاولات</span>
+              <input className="input" readOnly value={selected.attempts} />
+            </label>
+          </div>
+          <p className="small muted">
+            انقر على صف لتحديد UUID والرابط العام · الرابط العام لا تصدره هيئة الزكاة — يظهر هنا متى أصدرته
+            الجهة (الضرائب المصرية تفعل ذلك).
+          </p>
+          <div className="toolbar">
+            <button type="button" className="btn" onClick={() => printInvoice(selected.invoiceId)}>
+              طباعة
+            </button>
             {!sent(selected.status) && (
- <button type="button" className="btn" disabled={busy !== ''} onClick={() => void retry(selected)}>
- إعادة الإرسال
- </button>
+              <button
+                type="button"
+                className="btn"
+                disabled={busy !== ''}
+                onClick={() => void retry(selected)}
+              >
+                إعادة الإرسال
+              </button>
             )}
             {busy === 'retry' && <span className="chip">…</span>}
- </div>
+          </div>
 
           {busy === 'detail' && <p className="muted">جارٍ تحميل الوثيقة…</p>}
 
           {detail && (
- <>
- <h3>السلسلة — مكان الفاتورة</h3>
- <div className="form-grid">
- <label className="field wide">
- <span>الرقم التسلسلي للفاتورة (ICV)</span>
- <input className="input" readOnly value={detail.document.counter ?? '—'} />
- </label>
- <label className="field wide">
- <span>تجزئة الفاتورة السابقة (PIH)</span>
- <input className="input" readOnly dir="ltr" value={detail.chain.previousHash ?? '—'} />
- </label>
- <label className="field wide">
- <span>تجزئة هذه الفاتورة (Hash)</span>
- <input className="input" readOnly dir="ltr" value={detail.chain.hash ?? '—'} />
- </label>
- </div>
+            <>
+              <h3>السلسلة — مكان الفاتورة</h3>
+              <div className="form-grid">
+                <label className="field wide">
+                  <span>الرقم التسلسلي للفاتورة (ICV)</span>
+                  <input className="input" readOnly value={detail.document.counter ?? '—'} />
+                </label>
+                <label className="field wide">
+                  <span>تجزئة الفاتورة السابقة (PIH)</span>
+                  <input className="input" readOnly dir="ltr" value={detail.chain.previousHash ?? '—'} />
+                </label>
+                <label className="field wide">
+                  <span>تجزئة هذه الفاتورة (Hash)</span>
+                  <input className="input" readOnly dir="ltr" value={detail.chain.hash ?? '—'} />
+                </label>
+              </div>
 
- <h3>رمز الاستجابة السريعة — الوسوم الثمانية</h3>
- <DataTable
+              <h3>رمز الاستجابة السريعة — الوسوم الثمانية</h3>
+              <DataTable
                 rows={detail.qr.tags}
                 rowKey={(tag) => String(tag.tag)}
                 columns={[
                   { key: 'tag', header: 'الوسم', cell: (tag) => tag.tag },
                   { key: 'labelAr', header: 'المحتوى', cell: (tag) => tag.labelAr },
                   { key: 'bytes', header: 'الحجم', cell: (tag) => `${tag.bytes} بايت` },
-                  { key: 'value', header: 'القيمة', cell: (tag) => <span dir="ltr">{tag.value.length > 60 ? `${tag.value.slice(0, 60)}…` : tag.value}</span> },
+                  {
+                    key: 'value',
+                    header: 'القيمة',
+                    cell: (tag) => (
+                      <span dir="ltr">
+                        {tag.value.length > 60 ? `${tag.value.slice(0, 60)}…` : tag.value}
+                      </span>
+                    ),
+                  },
                 ]}
               />
 
- <h3>الوثيقة</h3>
- <div className="toolbar">
- <button type="button" className="btn" onClick={() => downloadXml(`zatca-${detail.submission.uuid ?? detail.submission.id}.xml`, detail.document.xml)}>
- تنزيل الوثيقة المرسلة (UBL)
- </button>
+              <h3>الوثيقة</h3>
+              <div className="toolbar">
+                <button
+                  type="button"
+                  className="btn"
+                  onClick={() =>
+                    downloadXml(
+                      `zatca-${detail.submission.uuid ?? detail.submission.id}.xml`,
+                      detail.document.xml,
+                    )
+                  }
+                >
+                  تنزيل الوثيقة المرسلة (UBL)
+                </button>
                 {detail.document.clearedXml && (
- <button type="button" className="btn" onClick={() => downloadXml(`zatca-cleared-${detail.submission.uuid ?? detail.submission.id}.xml`, detail.document.clearedXml)}>
- تنزيل الوثيقة المُصادَقة
- </button>
+                  <button
+                    type="button"
+                    className="btn"
+                    onClick={() =>
+                      downloadXml(
+                        `zatca-cleared-${detail.submission.uuid ?? detail.submission.id}.xml`,
+                        detail.document.clearedXml,
+                      )
+                    }
+                  >
+                    تنزيل الوثيقة المُصادَقة
+                  </button>
                 )}
- </div>
+              </div>
               {detail.document.clearedXml ? (
- <p className="small muted">
- الفاتورة ضريبية: أعادت الهيئة وثيقة مُصادَقة، ورمز الاستجابة السريعة مقروء منها لا من وثيقتنا.
- </p>
+                <p className="small muted">
+                  الفاتورة ضريبية: أعادت الهيئة وثيقة مُصادَقة، ورمز الاستجابة السريعة مقروء منها لا من
+                  وثيقتنا.
+                </p>
               ) : (
- <p className="small muted">الفاتورة مبسّطة: تُبلَّغ ولا تُصادَق، فلا تعود وثيقة من الهيئة.</p>
+                <p className="small muted">الفاتورة مبسّطة: تُبلَّغ ولا تُصادَق، فلا تعود وثيقة من الهيئة.</p>
               )}
-              {detail.authority.warnings.length > 0 && <p className="alert warn">تحذيرات الهيئة: {detail.authority.warnings.join(' · ')}</p>}
-              {detail.authority.errors.length > 0 && <p className="alert danger">أخطاء الهيئة: {detail.authority.errors.join(' · ')}</p>}
- <label className="field wide">
- <span>الوثيقة المرسلة</span>
- <textarea className="input" readOnly rows={8} dir="ltr" value={detail.document.xml ?? ''} />
- </label>
- </>
+              {detail.authority.warnings.length > 0 && (
+                <p className="alert warn">تحذيرات الهيئة: {detail.authority.warnings.join(' · ')}</p>
+              )}
+              {detail.authority.errors.length > 0 && (
+                <p className="alert danger">أخطاء الهيئة: {detail.authority.errors.join(' · ')}</p>
+              )}
+              <label className="field wide">
+                <span>الوثيقة المرسلة</span>
+                <textarea className="input" readOnly rows={8} dir="ltr" value={detail.document.xml ?? ''} />
+              </label>
+            </>
           )}
- </div>
+        </Panel>
       )}
- </Screen>
+    </Screen>
   );
 }

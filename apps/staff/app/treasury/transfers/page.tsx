@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import { Panel } from '@erp/ui';
 
 import { DataTable, Notice } from '../../../components/data-view';
 import { Screen } from '../../../components/screen';
@@ -86,9 +87,9 @@ const STATUS_TONE: Record<string, string> = {
 
 /** The three tabs, in the window's order and with its own words. */
 const TABS = [
- { id: 'send', label: 'التحويل' },
- { id: 'receive', label: 'استلام تحويل' },
- { id: 'search', label: 'البحث' },
+  { id: 'send', label: 'التحويل' },
+  { id: 'receive', label: 'استلام تحويل' },
+  { id: 'search', label: 'البحث' },
 ] as const;
 
 type TabId = (typeof TABS)[number]['id'];
@@ -121,7 +122,9 @@ export default function CashTransfersPage() {
   const branchRows = branches.data ?? [];
   const drawerRows = cashLocations.data ?? [];
   const effectiveBranch = branchId || defaultOf(branchRows)?.id || '';
-  const safeRows = drawerRows.filter((row) => !effectiveBranch || !row.branchId || row.branchId === effectiveBranch);
+  const safeRows = drawerRows.filter(
+    (row) => !effectiveBranch || !row.branchId || row.branchId === effectiveBranch,
+  );
 
   const query = useMemo(() => {
     const params = new URLSearchParams();
@@ -180,296 +183,327 @@ export default function CashTransfersPage() {
       'حُفظت المناقلة كمسودة — اعتمد الإرسال ليخرج المبلغ من الخزنة.',
     );
 
- const send = (id: string) => run(() => apiPost(`/cash-transfers/${id}/send`, {}), 'تم اعتماد الإرسال.');
+  const send = (id: string) => run(() => apiPost(`/cash-transfers/${id}/send`, {}), 'تم اعتماد الإرسال.');
   const receive = (id: string) =>
- run(() => apiPost(`/cash-transfers/${id}/receive`, {}), 'تم تأكيد الاستلام.');
- const cancel = (id: string) => run(() => apiPost(`/cash-transfers/${id}/cancel`, {}), 'أُلغيت المناقلة.');
+    run(() => apiPost(`/cash-transfers/${id}/receive`, {}), 'تم تأكيد الاستلام.');
+  const cancel = (id: string) => run(() => apiPost(`/cash-transfers/${id}/cancel`, {}), 'أُلغيت المناقلة.');
 
   /** استلام الكل — the window's button: everything that is on the road lands at once. */
   const receiveAll = () =>
-    run(
-      async () => {
-        for (const row of inTransitRows) await apiPost(`/cash-transfers/${row.id}/receive`, {});
-      },
- `استُلمت ${inTransitRows.length} مناقلة.`,
-    );
+    run(async () => {
+      for (const row of inTransitRows) await apiPost(`/cash-transfers/${row.id}/receive`, {});
+    }, `استُلمت ${inTransitRows.length} مناقلة.`);
 
   if (!can('treasury.view')) {
     return (
- <Screen title="مناقلة الخزن" crumbs={['الخزينة']}>
- <div className="card state">
- <strong>لا تملك صلاحية عرض الخزينة</strong>
- <span>تحتاج صلاحية treasury.view.</span>
- </div>
- </Screen>
+      <Screen title="مناقلة الخزن" crumbs={['الخزينة']}>
+        <div className="card state">
+          <strong>لا تملك صلاحية عرض الخزينة</strong>
+          <span>تحتاج صلاحية treasury.view.</span>
+        </div>
+      </Screen>
     );
   }
 
   return (
- <Screen
+    <Screen
       title="مناقلة"
       subtitle="مناقلة الخزن — إرسال من خزنة واستلام في أخرى، كما في frmSafesTransfer: مسودة ثم إرسال ثم استلام."
       crumbs={['الخزينة', 'العمليات']}
     >
- <StatTiles>
- <StatTile label="عدد المناقلات" value={totals.count} hint="في نتيجة البحث الحالية" />
- <StatTile label="مسودات" value={totals.drafts} />
- <StatTile label="مُرسَلة" value={totals.sent} tone="warn" />
- <StatTile label="مُستلَمة" value={totals.received} tone="ok" />
- <StatTile
- label="في الطريق"
+      <StatTiles>
+        <StatTile label="عدد المناقلات" value={totals.count} hint="في نتيجة البحث الحالية" />
+        <StatTile label="مسودات" value={totals.drafts} />
+        <StatTile label="مُرسَلة" value={totals.sent} tone="warn" />
+        <StatTile label="مُستلَمة" value={totals.received} tone="ok" />
+        <StatTile
+          label="في الطريق"
           value={money(totals.inTransit.toFixed(4))}
           hint="أُرسلت ولم تُستلم بعد"
           tone={totals.inTransit > 0 ? 'warn' : 'default'}
         />
- </StatTiles>
+      </StatTiles>
 
- <Tabs items={TABS.map((entry) => ({ id: entry.id, label: entry.label }))} value={tab} onChange={setTab} />
+      <Tabs
+        items={TABS.map((entry) => ({ id: entry.id, label: entry.label }))}
+        value={tab}
+        onChange={setTab}
+      />
 
       {tab === 'send' ? (
- <div className="card">
- <h2>إدخال بيانات التحويل</h2>
- <Notice notice={notice} />
- <div className="form-grid">
- <label className="field">
- <span>الفرع</span>
- <select className="input" value={effectiveBranch} onChange={(event) => setBranchId(event.target.value)}>
+        <Panel title="إدخال بيانات التحويل">
+          <Notice notice={notice} />
+          <div className="form-grid">
+            <label className="field">
+              <span>الفرع</span>
+              <select
+                className="input"
+                value={effectiveBranch}
+                onChange={(event) => setBranchId(event.target.value)}
+              >
                 {branchOptions(branchRows).map((option) => (
- <option key={option.id} value={option.id}>
+                  <option key={option.id} value={option.id}>
                     {option.label}
- </option>
+                  </option>
                 ))}
- </select>
- </label>
- <label className="field">
- <span>التاريخ</span>
- <input className="input" value={today()} readOnly />
- </label>
- <label className="field">
- <span>من خزنة</span>
- <select className="input" value={fromId} onChange={(event) => setFromId(event.target.value)}>
- <option value="">— اختر —</option>
+              </select>
+            </label>
+            <label className="field">
+              <span>التاريخ</span>
+              <input className="input" value={today()} readOnly />
+            </label>
+            <label className="field">
+              <span>من خزنة</span>
+              <select className="input" value={fromId} onChange={(event) => setFromId(event.target.value)}>
+                <option value="">— اختر —</option>
                 {safeRows.map((row) => (
- <option key={row.id} value={row.id}>
+                  <option key={row.id} value={row.id}>
                     {cashLocationLabel(row)}
- </option>
+                  </option>
                 ))}
- </select>
- </label>
- <label className="field">
- <span>إلى خزنة</span>
- <select className="input" value={toId} onChange={(event) => setToId(event.target.value)}>
- <option value="">— اختر —</option>
+              </select>
+            </label>
+            <label className="field">
+              <span>إلى خزنة</span>
+              <select className="input" value={toId} onChange={(event) => setToId(event.target.value)}>
+                <option value="">— اختر —</option>
                 {safeRows.map((row) => (
- <option key={row.id} value={row.id}>
+                  <option key={row.id} value={row.id}>
                     {cashLocationLabel(row)}
- </option>
+                  </option>
                 ))}
- </select>
- </label>
- <label className="field">
- <span>المبلغ</span>
- <input
+              </select>
+            </label>
+            <label className="field">
+              <span>المبلغ</span>
+              <input
                 className="input"
                 dir="ltr"
                 inputMode="decimal"
                 value={amountText}
                 onChange={(event) => setAmountText(event.target.value)}
               />
- </label>
- </div>
- <div className="row" style={{ marginTop: 10 }}>
- <button type="button" className="btn primary" disabled={busy || !canManage || !fromId || !toId || !amountText} onClick={createDraft}>
- حفظ كمسودة
- </button>
- </div>
- <p className="muted small" style={{ marginTop: 8 }}>
- المناقلة لا تخرج من الخزنة إلا بعد <strong>اعتماد الإرسال</strong> من تبويب الاستلام أو من الشبكة أدناه.
- </p>
- </div>
+            </label>
+          </div>
+          <div className="row" style={{ marginTop: 10 }}>
+            <button
+              type="button"
+              className="btn primary"
+              disabled={busy || !canManage || !fromId || !toId || !amountText}
+              onClick={createDraft}
+            >
+              حفظ كمسودة
+            </button>
+          </div>
+          <p className="muted small" style={{ marginTop: 8 }}>
+            المناقلة لا تخرج من الخزنة إلا بعد <strong>اعتماد الإرسال</strong> من تبويب الاستلام أو من الشبكة
+            أدناه.
+          </p>
+        </Panel>
       ) : null}
 
       {tab === 'receive' ? (
- <div className="card">
- <h2>استلام تحويل</h2>
- <Notice notice={notice} />
- <div className="form-grid">
- <label className="field">
- <span>رقم المناقلة</span>
- <select
+        <Panel title="استلام تحويل">
+          <Notice notice={notice} />
+          <div className="form-grid">
+            <label className="field">
+              <span>رقم المناقلة</span>
+              <select
                 className="input"
                 value={selectedId}
                 onChange={(event) => setSelectedId(event.target.value)}
               >
- <option value="">— اختر مناقلة مُرسَلة —</option>
+                <option value="">— اختر مناقلة مُرسَلة —</option>
                 {inTransitRows.map((row) => (
- <option key={row.id} value={row.id}>
+                  <option key={row.id} value={row.id}>
                     {row.number ?? row.id.slice(0, 8)} — {money(row.amount)} {row.currency}
- </option>
+                  </option>
                 ))}
- </select>
- </label>
- <label className="field">
- <span>من خزنة</span>
- <input className="input" value={selected?.fromName ?? '—'} readOnly />
- </label>
- <label className="field">
- <span>إلى خزنة</span>
- <input className="input" value={selected?.toName ?? '—'} readOnly />
- </label>
- <label className="field">
- <span>المبلغ</span>
- <input className="input" dir="ltr" value={selected ? money(selected.amount) : '—'} readOnly />
- </label>
- </div>
+              </select>
+            </label>
+            <label className="field">
+              <span>من خزنة</span>
+              <input className="input" value={selected?.fromName ?? '—'} readOnly />
+            </label>
+            <label className="field">
+              <span>إلى خزنة</span>
+              <input className="input" value={selected?.toName ?? '—'} readOnly />
+            </label>
+            <label className="field">
+              <span>المبلغ</span>
+              <input className="input" dir="ltr" value={selected ? money(selected.amount) : '—'} readOnly />
+            </label>
+          </div>
 
- <div className="row" style={{ marginTop: 10, gap: 8, flexWrap: 'wrap' }}>
- <button
-              type="button"
-              className="btn"
-              disabled={!selected}
-              onClick={() => setPreview(!preview)}
-            >
- عرض
- </button>
- <button
+          <div className="row" style={{ marginTop: 10, gap: 8, flexWrap: 'wrap' }}>
+            <button type="button" className="btn" disabled={!selected} onClick={() => setPreview(!preview)}>
+              عرض
+            </button>
+            <button
               type="button"
               className="btn primary"
               disabled={busy || !canManage || !selected || selected.status !== 'sent'}
               onClick={() => selected && receive(selected.id)}
             >
- تأكيد الاستلام
- </button>
- <button
+              تأكيد الاستلام
+            </button>
+            <button
               type="button"
               className="btn"
               disabled={busy || !canManage || inTransitRows.length === 0}
               onClick={receiveAll}
             >
- استلام الكل ({inTransitRows.length})
- </button>
- </div>
+              استلام الكل ({inTransitRows.length})
+            </button>
+          </div>
 
           {!canManage ? (
- <p className="muted small" style={{ marginTop: 8 }}>
- تحتاج صلاحية <code>treasury.transfer.manage</code> لاعتماد الإرسال أو الاستلام.
- </p>
+            <p className="muted small" style={{ marginTop: 8 }}>
+              تحتاج صلاحية <code>treasury.transfer.manage</code> لاعتماد الإرسال أو الاستلام.
+            </p>
           ) : null}
 
           {preview && selected ? (
- <div className="doc-head" style={{ marginTop: 12 }}>
- <div className="doc-field">
- <span className="muted small">رقم المناقلة</span>
- <b dir="ltr">{selected.number ?? '—'}</b>
- </div>
- <div className="doc-field">
- <span className="muted small">تاريخ الإرسال</span>
- <b>{selected.sentAt ? dateTime(selected.sentAt) : 'لم تُرسل بعد'}</b>
- </div>
- <div className="doc-field">
- <span className="muted small">من خزنة</span>
- <b>{selected.fromName ?? '—'}</b>
- </div>
- <div className="doc-field">
- <span className="muted small">إلى خزنة</span>
- <b>{selected.toName ?? '—'}</b>
- </div>
- <div className="doc-field">
- <span className="muted small">المبلغ</span>
- <b dir="ltr">
+            <div className="doc-head" style={{ marginTop: 12 }}>
+              <div className="doc-field">
+                <span className="muted small">رقم المناقلة</span>
+                <b dir="ltr">{selected.number ?? '—'}</b>
+              </div>
+              <div className="doc-field">
+                <span className="muted small">تاريخ الإرسال</span>
+                <b>{selected.sentAt ? dateTime(selected.sentAt) : 'لم تُرسل بعد'}</b>
+              </div>
+              <div className="doc-field">
+                <span className="muted small">من خزنة</span>
+                <b>{selected.fromName ?? '—'}</b>
+              </div>
+              <div className="doc-field">
+                <span className="muted small">إلى خزنة</span>
+                <b>{selected.toName ?? '—'}</b>
+              </div>
+              <div className="doc-field">
+                <span className="muted small">المبلغ</span>
+                <b dir="ltr">
                   {money(selected.amount)} {selected.currency}
- </b>
- </div>
- <div className="doc-field">
- <span className="muted small">الحالة</span>
- <b>
- <span className={`badge ${STATUS_TONE[selected.status] ?? ''}`}>
+                </b>
+              </div>
+              <div className="doc-field">
+                <span className="muted small">الحالة</span>
+                <b>
+                  <span className={`badge ${STATUS_TONE[selected.status] ?? ''}`}>
                     {STATUS_LABELS[selected.status] ?? selected.status}
- </span>
- </b>
- </div>
- <div className="doc-field">
- <span className="muted small">قيد الإرسال</span>
- <b dir="ltr">{selected.sentJournalEntryId ? selected.sentJournalEntryId.slice(0, 8) : '—'}</b>
- </div>
- <div className="doc-field">
- <span className="muted small">قيد الاستلام</span>
- <b dir="ltr">{selected.receivedJournalEntryId ? selected.receivedJournalEntryId.slice(0, 8) : '—'}</b>
- </div>
- </div>
+                  </span>
+                </b>
+              </div>
+              <div className="doc-field">
+                <span className="muted small">قيد الإرسال</span>
+                <b dir="ltr">{selected.sentJournalEntryId ? selected.sentJournalEntryId.slice(0, 8) : '—'}</b>
+              </div>
+              <div className="doc-field">
+                <span className="muted small">قيد الاستلام</span>
+                <b dir="ltr">
+                  {selected.receivedJournalEntryId ? selected.receivedJournalEntryId.slice(0, 8) : '—'}
+                </b>
+              </div>
+            </div>
           ) : null}
 
           {inTransitRows.length === 0 ? (
- <p className="muted small" style={{ marginTop: 8 }}>
- لا توجد مناقلات في الطريق — ما أُرسل استُلم، وما لم يُرسل ما زال مسودة.
- </p>
+            <p className="muted small" style={{ marginTop: 8 }}>
+              لا توجد مناقلات في الطريق — ما أُرسل استُلم، وما لم يُرسل ما زال مسودة.
+            </p>
           ) : null}
- </div>
+        </Panel>
       ) : null}
 
       {tab === 'search' ? (
- <FilterBar>
- <label className="field">
- <span>رقم التحويل</span>
- <input className="input" dir="ltr" value={numberQuery} onChange={(event) => setNumberQuery(event.target.value)} />
- </label>
- <label className="field">
- <span>من تاريخ</span>
- <input className="input" type="date" value={from} onChange={(event) => setFrom(event.target.value)} disabled={allPeriod} />
- </label>
- <label className="field">
- <span>إلى تاريخ</span>
- <input className="input" type="date" value={to} onChange={(event) => setTo(event.target.value)} disabled={allPeriod} />
- </label>
- <label className="field" style={{ justifyContent: 'center' }}>
- <span>كل الفترة</span>
- <input type="checkbox" checked={allPeriod} onChange={(event) => setAllPeriod(event.target.checked)} />
- </label>
- <label className="field">
- <span>الحالة</span>
- <select className="input" value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>
- <option value="">الكل</option>
- <option value="draft">مسودة</option>
- <option value="sent">مُرسَلة</option>
- <option value="received">مُستلَمة</option>
- <option value="voided">مُلغاة</option>
- </select>
- </label>
- <button type="button" className="btn primary" onClick={() => setSearched(!searched)}>
- بحث
- </button>
- </FilterBar>
+        <FilterBar>
+          <label className="field">
+            <span>رقم التحويل</span>
+            <input
+              className="input"
+              dir="ltr"
+              value={numberQuery}
+              onChange={(event) => setNumberQuery(event.target.value)}
+            />
+          </label>
+          <label className="field">
+            <span>من تاريخ</span>
+            <input
+              className="input"
+              type="date"
+              value={from}
+              onChange={(event) => setFrom(event.target.value)}
+              disabled={allPeriod}
+            />
+          </label>
+          <label className="field">
+            <span>إلى تاريخ</span>
+            <input
+              className="input"
+              type="date"
+              value={to}
+              onChange={(event) => setTo(event.target.value)}
+              disabled={allPeriod}
+            />
+          </label>
+          <label className="field" style={{ justifyContent: 'center' }}>
+            <span>كل الفترة</span>
+            <input
+              type="checkbox"
+              checked={allPeriod}
+              onChange={(event) => setAllPeriod(event.target.checked)}
+            />
+          </label>
+          <label className="field">
+            <span>الحالة</span>
+            <select
+              className="input"
+              value={statusFilter}
+              onChange={(event) => setStatusFilter(event.target.value)}
+            >
+              <option value="">الكل</option>
+              <option value="draft">مسودة</option>
+              <option value="sent">مُرسَلة</option>
+              <option value="received">مُستلَمة</option>
+              <option value="voided">مُلغاة</option>
+            </select>
+          </label>
+          <button type="button" className="btn primary" onClick={() => setSearched(!searched)}>
+            بحث
+          </button>
+        </FilterBar>
       ) : null}
 
- <div className="card">
- <div className="section-title">
- <h2>نتائج البحث</h2>
- <span className="muted small">{rows.length} مناقلة</span>
- </div>
- <DataTable
+      <Panel title="نتائج البحث" flush>
+        <DataTable
           rows={rows}
           rowKey={(row) => row.id}
           columns={[
- { key: 'number', header: 'الرقم', cell: (row) => row.number ?? '—' },
- { key: 'date', header: 'التاريخ', cell: (row) => dateTime(row.createdAt) },
- { key: 'from', header: 'من خزنة', cell: (row) => row.fromName ?? '—' },
- { key: 'to', header: 'إلى خزنة', cell: (row) => row.toName ?? '—' },
- { key: 'amount', header: 'المبلغ', align: 'num', cell: (row) => money(row.amount) },
+            { key: 'number', header: 'الرقم', cell: (row) => row.number ?? '—' },
+            { key: 'date', header: 'التاريخ', cell: (row) => dateTime(row.createdAt) },
+            { key: 'from', header: 'من خزنة', cell: (row) => row.fromName ?? '—' },
+            { key: 'to', header: 'إلى خزنة', cell: (row) => row.toName ?? '—' },
+            { key: 'amount', header: 'المبلغ', align: 'num', cell: (row) => money(row.amount) },
             {
               key: 'status',
- header: 'الحالة',
-              cell: (row) => <span className={`badge ${STATUS_TONE[row.status] ?? ''}`}>{STATUS_LABELS[row.status] ?? row.status}</span>,
+              header: 'الحالة',
+              cell: (row) => (
+                <span className={`badge ${STATUS_TONE[row.status] ?? ''}`}>
+                  {STATUS_LABELS[row.status] ?? row.status}
+                </span>
+              ),
             },
             {
               key: 'entry',
- header: 'القيد',
+              header: 'القيد',
               cell: (row) =>
                 row.sentJournalEntryId || row.receivedJournalEntryId ? (
- <span className="muted small">
+                  <span className="muted small">
                     {row.sentJournalEntryId ? 'قيد الصرف مُرحَّل' : 'قيد الصرف غير مُرحَّل'}
                     {row.sentJournalEntryId && row.receivedJournalEntryId ? ' · ' : ''}
                     {row.receivedJournalEntryId ? 'قيد الاستلام مُرحَّل' : ''}
- </span>
+                  </span>
                 ) : (
                   '—'
                 ),
@@ -478,44 +512,55 @@ export default function CashTransfersPage() {
               key: 'actions',
               header: 'إجراء',
               cell: (row) => (
- <div className="row" style={{ gap: 6 }}>
+                <div className="row" style={{ gap: 6 }}>
                   {row.status === 'draft' ? (
- <>
- <button type="button" className="btn sm" disabled={busy || !canManage} onClick={() => send(row.id)}>
- اعتماد الإرسال
- </button>
- <button type="button" className="btn sm" disabled={busy || !canManage} onClick={() => cancel(row.id)}>
- حذف
- </button>
- </>
+                    <>
+                      <button
+                        type="button"
+                        className="btn sm"
+                        disabled={busy || !canManage}
+                        onClick={() => send(row.id)}
+                      >
+                        اعتماد الإرسال
+                      </button>
+                      <button
+                        type="button"
+                        className="btn sm"
+                        disabled={busy || !canManage}
+                        onClick={() => cancel(row.id)}
+                      >
+                        حذف
+                      </button>
+                    </>
                   ) : null}
                   {row.status === 'sent' ? (
- <button type="button" className="btn sm" disabled={busy || !canManage} onClick={() => receive(row.id)}>
- تأكيد الاستلام
- </button>
+                    <button
+                      type="button"
+                      className="btn sm"
+                      disabled={busy || !canManage}
+                      onClick={() => receive(row.id)}
+                    >
+                      تأكيد الاستلام
+                    </button>
                   ) : null}
- </div>
+                </div>
               ),
             },
           ]}
           footer={[
- <strong key="label">الإجمالي</strong>,
+            <strong key="label">الإجمالي</strong>,
             '',
             '',
             '',
- <strong key="value">
-              {money(
-                rows
-                  .reduce((running, row) => running + Number(row.amount ?? 0), 0)
-                  .toFixed(4),
-              )}
- </strong>,
+            <strong key="value">
+              {money(rows.reduce((running, row) => running + Number(row.amount ?? 0), 0).toFixed(4))}
+            </strong>,
             '',
             '',
             '',
           ]}
         />
- </div>
- </Screen>
+      </Panel>
+    </Screen>
   );
 }

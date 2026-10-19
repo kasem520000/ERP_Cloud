@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { ContactRound } from 'lucide-react';
+import { Panel } from '@erp/ui';
 
 import { CommentsPanel } from '../../../components/comments-panel';
 import { Empty, ErrorBox, Forbidden, Loading, Screen } from '../../../components/screen';
@@ -131,7 +132,15 @@ const BLANK = {
   bankName: '',
   photoFileId: '',
   branchIds: [] as string[],
-  salary: { basic: '', housing: '', transport: '', food: '', medical: '', fixedBonus: '', other: '' } as Record<string, string>,
+  salary: {
+    basic: '',
+    housing: '',
+    transport: '',
+    food: '',
+    medical: '',
+    fixedBonus: '',
+    other: '',
+  } as Record<string, string>,
 };
 
 type Form = typeof BLANK;
@@ -145,7 +154,10 @@ export default function EmployeesPage() {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<{ kind: 'ok' | 'danger'; text: string } | undefined>();
 
-  const employees = useQuery<EmployeeCard[]>(() => apiList<EmployeeCard>(`/hrm/employees${term ? `?q=${encodeURIComponent(term)}` : ''}`), [term]);
+  const employees = useQuery<EmployeeCard[]>(
+    () => apiList<EmployeeCard>(`/hrm/employees${term ? `?q=${encodeURIComponent(term)}` : ''}`),
+    [term],
+  );
   const departments = useQuery<Department[]>(() => apiList<Department>('/hrm/departments'), []);
   const jobs = useQuery<Job[]>(() => apiList<Job>('/hrm/jobs'), []);
   const branches = useQuery<Branch[]>(() => listBranches(), []);
@@ -170,7 +182,10 @@ export default function EmployeesPage() {
 
   const fail = (error: unknown) => {
     const caught = error instanceof ApiError ? error : undefined;
-    setMessage({ kind: 'danger', text: caught ? `${caught.message}${caught.detail ? ` — ${caught.detail}` : ''}` : String(error) });
+    setMessage({
+      kind: 'danger',
+      text: caught ? `${caught.message}${caught.detail ? ` — ${caught.detail}` : ''}` : String(error),
+    });
   };
 
   const openCard = (row: EmployeeCard) => {
@@ -214,7 +229,12 @@ export default function EmployeesPage() {
   /** ⏮ أول · ◀ السابق · التالي ▶ · ⏭ الأخير — the window's navigator, over the list. */
   const navigate = (where: 'first' | 'previous' | 'next' | 'last') => {
     if (!rows.length) return;
-    const index = where === 'first' ? 0 : where === 'last' ? rows.length - 1 : Math.min(Math.max(cursor + (where === 'next' ? 1 : -1), 0), rows.length - 1);
+    const index =
+      where === 'first'
+        ? 0
+        : where === 'last'
+          ? rows.length - 1
+          : Math.min(Math.max(cursor + (where === 'next' ? 1 : -1), 0), rows.length - 1);
     const row = rows[index];
     if (row) openCard(row);
   };
@@ -223,7 +243,9 @@ export default function EmployeesPage() {
     event.preventDefault();
     setBusy(true);
     setMessage(undefined);
-    const salary = Object.fromEntries(Object.entries(form.salary).filter(([, value]) => value !== '' && Number(value) !== 0));
+    const salary = Object.fromEntries(
+      Object.entries(form.salary).filter(([, value]) => value !== '' && Number(value) !== 0),
+    );
     const body = {
       employeeNo: form.employeeNo.trim(),
       name: form.name.trim(),
@@ -249,14 +271,19 @@ export default function EmployeesPage() {
       address: form.address || null,
       notes: form.notes || null,
       salaryComponents: salary,
-      bank: { iban: form.iban || undefined, bankNo: form.bankNo || undefined, bankName: form.bankName || undefined, bankCode: form.bankCode || undefined },
+      bank: {
+        iban: form.iban || undefined,
+        bankNo: form.bankNo || undefined,
+        bankName: form.bankName || undefined,
+        bankCode: form.bankCode || undefined,
+      },
       photoFileId: form.photoFileId || null,
       branchIds: form.branchIds,
     };
     try {
       if (editing) await apiPatch(`/hrm/employees/${form.id}`, body);
       else await apiPost('/hrm/employees', body);
- setMessage({ kind: 'ok', text: editing ? 'تم الحفظ بنجاح' : 'تم الحفظ بنجاح' });
+      setMessage({ kind: 'ok', text: editing ? 'تم الحفظ بنجاح' : 'تم الحفظ بنجاح' });
       setForm({ ...BLANK, salary: { ...BLANK.salary } });
       setCursor(-1);
       reload();
@@ -268,12 +295,12 @@ export default function EmployeesPage() {
   };
 
   const remove = async (row: EmployeeCard) => {
- if (!window.confirm(`هل أنت متأكد من حذف هذا الموظف؟ — ${row.name}`)) return;
+    if (!window.confirm(`هل أنت متأكد من حذف هذا الموظف؟ — ${row.name}`)) return;
     setBusy(true);
     setMessage(undefined);
     try {
       await apiDelete(`/hrm/employees/${row.id}`);
- setMessage({ kind: 'ok', text: 'تم الحذف' });
+      setMessage({ kind: 'ok', text: 'تم الحذف' });
       if (form.id === row.id) setForm({ ...BLANK, salary: { ...BLANK.salary } });
       reload();
     } catch (error) {
@@ -290,7 +317,11 @@ export default function EmployeesPage() {
     setBusy(true);
     setMessage(undefined);
     try {
-      const presigned = await apiPost<{ fileId: string; uploadUrl: string; requiredHeaders: Record<string, string> }>('/files/presign', {
+      const presigned = await apiPost<{
+        fileId: string;
+        uploadUrl: string;
+        requiredHeaders: Record<string, string>;
+      }>('/files/presign', {
         name: file.name,
         mime: file.type || 'image/jpeg',
         sizeBytes: file.size,
@@ -303,9 +334,12 @@ export default function EmployeesPage() {
         headers: { ...presigned.requiredHeaders, 'Content-Type': file.type || 'image/jpeg' },
       });
       if (!put.ok) throw new Error(`فشل رفع الصورة: ${put.status}`);
-      const finalized = await apiPost<{ id: string }>(`/files/${presigned.fileId}/finalize`, form.id ? { entity: 'employee', entityId: form.id } : {});
+      const finalized = await apiPost<{ id: string }>(
+        `/files/${presigned.fileId}/finalize`,
+        form.id ? { entity: 'employee', entityId: form.id } : {},
+      );
       setForm((prev) => ({ ...prev, photoFileId: finalized.id }));
- setMessage({ kind: 'ok', text: 'تم رفع الصورة' });
+      setMessage({ kind: 'ok', text: 'تم رفع الصورة' });
     } catch (error) {
       fail(error);
     } finally {
@@ -314,7 +348,7 @@ export default function EmployeesPage() {
   };
 
   return (
- <Screen
+    <Screen
       title="تعريف موظف"
       subtitle="بطاقة الموظف: بياناته الأساسية ورواتبه، ثم قائمة الموظفين للتنقّل والبحث."
       crumbs={['الموظفين والرواتب', 'التعاريف']}
@@ -339,244 +373,389 @@ export default function EmployeesPage() {
         },
       ]}
       actions={
- <>
- <button className="btn" type="button" onClick={reload} disabled={employees.status === 'loading'}>
- تحديث
- </button>
- <button className="btn" type="button" onClick={() => navigate('first')} disabled={!rows.length}>
- أول
- </button>
- <button className="btn" type="button" onClick={() => navigate('previous')} disabled={cursor <= 0}>
- السابق
- </button>
- <button className="btn" type="button" onClick={() => navigate('next')} disabled={cursor < 0 || cursor >= rows.length - 1}>
- التالي 
- </button>
- <button className="btn" type="button" onClick={() => navigate('last')} disabled={!rows.length}>
- الأخير
- </button>
- </>
+        <>
+          <button className="btn" type="button" onClick={reload} disabled={employees.status === 'loading'}>
+            تحديث
+          </button>
+          <button className="btn" type="button" onClick={() => navigate('first')} disabled={!rows.length}>
+            أول
+          </button>
+          <button className="btn" type="button" onClick={() => navigate('previous')} disabled={cursor <= 0}>
+            السابق
+          </button>
+          <button
+            className="btn"
+            type="button"
+            onClick={() => navigate('next')}
+            disabled={cursor < 0 || cursor >= rows.length - 1}
+          >
+            التالي
+          </button>
+          <button className="btn" type="button" onClick={() => navigate('last')} disabled={!rows.length}>
+            الأخير
+          </button>
+        </>
       }
     >
       {message && <p className={`alert ${message.kind}`}>{message.text}</p>}
 
       {canManage ? (
- <form onSubmit={submit}>
- <section className="card">
- <h2>{editing ? `تعديل — ${form.name}` : 'إضافة جديد'}</h2>
+        <form onSubmit={submit}>
+          <section className="card">
+            <h2>{editing ? `تعديل — ${form.name}` : 'إضافة جديد'}</h2>
 
- <h3>بيانات الموظف الأساسية</h3>
- <div className="form-grid">
- <label className="field">
- <span>رقم الموظف *</span>
- <input className="input" dir="ltr" value={form.employeeNo} onChange={(event) => setForm({ ...form, employeeNo: event.target.value })} required />
- </label>
- <label className="field">
- <span>اسم الموظف *</span>
- <input className="input" value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} required />
- </label>
- <label className="field">
- <span>رقم الحساب</span>
- <input className="input" dir="ltr" value={editing ? form.accountCode ?? '' : ''} readOnly placeholder="يُخصَّص تلقائياً" />
- </label>
- <label className="field">
- <span>الإدارة</span>
- <select
+            <h3>بيانات الموظف الأساسية</h3>
+            <div className="form-grid">
+              <label className="field">
+                <span>رقم الموظف *</span>
+                <input
+                  className="input"
+                  dir="ltr"
+                  value={form.employeeNo}
+                  onChange={(event) => setForm({ ...form, employeeNo: event.target.value })}
+                  required
+                />
+              </label>
+              <label className="field">
+                <span>اسم الموظف *</span>
+                <input
+                  className="input"
+                  value={form.name}
+                  onChange={(event) => setForm({ ...form, name: event.target.value })}
+                  required
+                />
+              </label>
+              <label className="field">
+                <span>رقم الحساب</span>
+                <input
+                  className="input"
+                  dir="ltr"
+                  value={editing ? (form.accountCode ?? '') : ''}
+                  readOnly
+                  placeholder="يُخصَّص تلقائياً"
+                />
+              </label>
+              <label className="field">
+                <span>الإدارة</span>
+                <select
                   className="input"
                   value={form.managementId}
-                  onChange={(event) => setForm({ ...form, managementId: event.target.value, departmentId: '' })}
+                  onChange={(event) =>
+                    setForm({ ...form, managementId: event.target.value, departmentId: '' })
+                  }
                 >
- <option value="">اختر...</option>
+                  <option value="">اختر...</option>
                   {managements.map((row) => (
- <option key={row.id} value={row.id}>
+                    <option key={row.id} value={row.id}>
                       {row.name}
- </option>
+                    </option>
                   ))}
- </select>
- </label>
- <label className="field">
- <span>القسم</span>
- <select className="input" value={form.departmentId} onChange={(event) => setForm({ ...form, departmentId: event.target.value })} disabled={!form.managementId}>
- <option value="">{form.managementId ? 'بدون (الإدارة نفسها)' : 'اختر الإدارة أولاً'}</option>
+                </select>
+              </label>
+              <label className="field">
+                <span>القسم</span>
+                <select
+                  className="input"
+                  value={form.departmentId}
+                  onChange={(event) => setForm({ ...form, departmentId: event.target.value })}
+                  disabled={!form.managementId}
+                >
+                  <option value="">
+                    {form.managementId ? 'بدون (الإدارة نفسها)' : 'اختر الإدارة أولاً'}
+                  </option>
                   {sections.map((row) => (
- <option key={row.id} value={row.id}>
+                    <option key={row.id} value={row.id}>
                       {row.name}
- </option>
+                    </option>
                   ))}
- </select>
- </label>
- <label className="field">
- <span>الوظيفة</span>
- <select className="input" value={form.jobId} onChange={(event) => setForm({ ...form, jobId: event.target.value })}>
- <option value="">اختر...</option>
+                </select>
+              </label>
+              <label className="field">
+                <span>الوظيفة</span>
+                <select
+                  className="input"
+                  value={form.jobId}
+                  onChange={(event) => setForm({ ...form, jobId: event.target.value })}
+                >
+                  <option value="">اختر...</option>
                   {(jobs.data ?? []).map((row) => (
- <option key={row.id} value={row.id}>
+                    <option key={row.id} value={row.id}>
                       {row.name}
- </option>
+                    </option>
                   ))}
- </select>
- </label>
- <label className="field">
- <span>الحالة</span>
- <select className="input" value={form.status} onChange={(event) => setForm({ ...form, status: event.target.value })}>
+                </select>
+              </label>
+              <label className="field">
+                <span>الحالة</span>
+                <select
+                  className="input"
+                  value={form.status}
+                  onChange={(event) => setForm({ ...form, status: event.target.value })}
+                >
                   {STATUS_OPTIONS.map((row) => (
- <option key={row.id} value={row.id}>
+                    <option key={row.id} value={row.id}>
                       {row.label}
- </option>
+                    </option>
                   ))}
- </select>
- </label>
- <label className="field">
- <span>تاريخ الميلاد</span>
- <input className="input" type="date" value={form.birthDate} onChange={(event) => setForm({ ...form, birthDate: event.target.value })} />
- </label>
- <label className="field">
- <span>تاريخ التعيين</span>
- <input className="input" type="date" value={form.hireDate} onChange={(event) => setForm({ ...form, hireDate: event.target.value })} />
- </label>
- <label className="field">
- <span>رقم التأمينات</span>
- <input className="input" dir="ltr" value={form.insuranceNo} onChange={(event) => setForm({ ...form, insuranceNo: event.target.value })} />
- </label>
- <label className="field">
- <span>انتهاء الإقامة</span>
- <input className="input" type="date" value={form.iqamaExpiresOn} onChange={(event) => setForm({ ...form, iqamaExpiresOn: event.target.value })} />
- </label>
- <label className="field">
- <span>انتهاء التأمين</span>
- <input className="input" type="date" value={form.insuranceExpiresOn} onChange={(event) => setForm({ ...form, insuranceExpiresOn: event.target.value })} />
- </label>
- <label className="field">
- <span>نظام التأمينات</span>
- <select className="input" value={form.gosiScheme} onChange={(event) => setForm({ ...form, gosiScheme: event.target.value })}>
- <option value="">تلقائي من تاريخ التعيين</option>
- <option value="old">قديم (قبل 3 يوليو 2024)</option>
- <option value="new">جديد</option>
- </select>
- </label>
- <label className="field">
- <span>الحالة الاجتماعية</span>
- <input className="input" list="marital-statuses" value={form.maritalStatus} onChange={(event) => setForm({ ...form, maritalStatus: event.target.value })} />
- <datalist id="marital-statuses">
+                </select>
+              </label>
+              <label className="field">
+                <span>تاريخ الميلاد</span>
+                <input
+                  className="input"
+                  type="date"
+                  value={form.birthDate}
+                  onChange={(event) => setForm({ ...form, birthDate: event.target.value })}
+                />
+              </label>
+              <label className="field">
+                <span>تاريخ التعيين</span>
+                <input
+                  className="input"
+                  type="date"
+                  value={form.hireDate}
+                  onChange={(event) => setForm({ ...form, hireDate: event.target.value })}
+                />
+              </label>
+              <label className="field">
+                <span>رقم التأمينات</span>
+                <input
+                  className="input"
+                  dir="ltr"
+                  value={form.insuranceNo}
+                  onChange={(event) => setForm({ ...form, insuranceNo: event.target.value })}
+                />
+              </label>
+              <label className="field">
+                <span>انتهاء الإقامة</span>
+                <input
+                  className="input"
+                  type="date"
+                  value={form.iqamaExpiresOn}
+                  onChange={(event) => setForm({ ...form, iqamaExpiresOn: event.target.value })}
+                />
+              </label>
+              <label className="field">
+                <span>انتهاء التأمين</span>
+                <input
+                  className="input"
+                  type="date"
+                  value={form.insuranceExpiresOn}
+                  onChange={(event) => setForm({ ...form, insuranceExpiresOn: event.target.value })}
+                />
+              </label>
+              <label className="field">
+                <span>نظام التأمينات</span>
+                <select
+                  className="input"
+                  value={form.gosiScheme}
+                  onChange={(event) => setForm({ ...form, gosiScheme: event.target.value })}
+                >
+                  <option value="">تلقائي من تاريخ التعيين</option>
+                  <option value="old">قديم (قبل 3 يوليو 2024)</option>
+                  <option value="new">جديد</option>
+                </select>
+              </label>
+              <label className="field">
+                <span>الحالة الاجتماعية</span>
+                <input
+                  className="input"
+                  list="marital-statuses"
+                  value={form.maritalStatus}
+                  onChange={(event) => setForm({ ...form, maritalStatus: event.target.value })}
+                />
+                <datalist id="marital-statuses">
                   {MARITAL_OPTIONS.map((value) => (
- <option key={value} value={value} />
+                    <option key={value} value={value} />
                   ))}
- </datalist>
- </label>
- <label className="field">
- <span>الجنسية</span>
- <input className="input" value={form.nationality} onChange={(event) => setForm({ ...form, nationality: event.target.value })} />
- </label>
- <div className="field">
- <span>النوع</span>
- <div className="toolbar">
- <label className="check">
- <input type="radio" name="gender" checked={form.gender === 'male'} onChange={() => setForm({ ...form, gender: 'male' })} />
- ذكر
- </label>
- <label className="check">
- <input type="radio" name="gender" checked={form.gender === 'female'} onChange={() => setForm({ ...form, gender: 'female' })} />
- أنثى
- </label>
- </div>
- </div>
- <label className="field">
- <span>رقم الهاتف</span>
- <input className="input" dir="ltr" value={form.phone} onChange={(event) => setForm({ ...form, phone: event.target.value })} />
- </label>
- <label className="field">
- <span>رقم الموبايل</span>
- <input className="input" dir="ltr" value={form.mobile} onChange={(event) => setForm({ ...form, mobile: event.target.value })} />
- </label>
- <label className="field">
- <span>البريد الإلكتروني</span>
- <input className="input" dir="ltr" type="email" value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} />
- </label>
- <label className="field">
- <span>الفرع</span>
- <select className="input" value={form.branchId} onChange={(event) => setForm({ ...form, branchId: event.target.value })}>
- <option value="">كل الفروع</option>
+                </datalist>
+              </label>
+              <label className="field">
+                <span>الجنسية</span>
+                <input
+                  className="input"
+                  value={form.nationality}
+                  onChange={(event) => setForm({ ...form, nationality: event.target.value })}
+                />
+              </label>
+              <div className="field">
+                <span>النوع</span>
+                <div className="toolbar">
+                  <label className="check">
+                    <input
+                      type="radio"
+                      name="gender"
+                      checked={form.gender === 'male'}
+                      onChange={() => setForm({ ...form, gender: 'male' })}
+                    />
+                    ذكر
+                  </label>
+                  <label className="check">
+                    <input
+                      type="radio"
+                      name="gender"
+                      checked={form.gender === 'female'}
+                      onChange={() => setForm({ ...form, gender: 'female' })}
+                    />
+                    أنثى
+                  </label>
+                </div>
+              </div>
+              <label className="field">
+                <span>رقم الهاتف</span>
+                <input
+                  className="input"
+                  dir="ltr"
+                  value={form.phone}
+                  onChange={(event) => setForm({ ...form, phone: event.target.value })}
+                />
+              </label>
+              <label className="field">
+                <span>رقم الموبايل</span>
+                <input
+                  className="input"
+                  dir="ltr"
+                  value={form.mobile}
+                  onChange={(event) => setForm({ ...form, mobile: event.target.value })}
+                />
+              </label>
+              <label className="field">
+                <span>البريد الإلكتروني</span>
+                <input
+                  className="input"
+                  dir="ltr"
+                  type="email"
+                  value={form.email}
+                  onChange={(event) => setForm({ ...form, email: event.target.value })}
+                />
+              </label>
+              <label className="field">
+                <span>الفرع</span>
+                <select
+                  className="input"
+                  value={form.branchId}
+                  onChange={(event) => setForm({ ...form, branchId: event.target.value })}
+                >
+                  <option value="">كل الفروع</option>
                   {branchOptions(branches.data ?? []).map((option) => (
- <option key={option.id} value={option.id}>
+                    <option key={option.id} value={option.id}>
                       {option.label}
- </option>
+                    </option>
                   ))}
- </select>
- </label>
- </div>
+                </select>
+              </label>
+            </div>
 
- <h3>الرواتب والمستحقات</h3>
- <div className="form-grid">
+            <h3>الرواتب والمستحقات</h3>
+            <div className="form-grid">
               {SALARY_ROWS.map((row) => (
- <label className="field" key={row.key}>
- <span>{row.label}</span>
- <input
+                <label className="field" key={row.key}>
+                  <span>{row.label}</span>
+                  <input
                     className="input"
                     dir="ltr"
                     type="number"
                     min="0"
                     step="0.01"
                     value={form.salary[row.key] ?? ''}
-                    onChange={(event) => setForm({ ...form, salary: { ...form.salary, [row.key]: event.target.value } })}
+                    onChange={(event) =>
+                      setForm({ ...form, salary: { ...form.salary, [row.key]: event.target.value } })
+                    }
                   />
- </label>
+                </label>
               ))}
- <label className="field">
- <span>إجمالي الرواتب والمستحقات</span>
- <input className="input" dir="ltr" value={salaryTotal.toFixed(2)} readOnly />
- </label>
- </div>
+              <label className="field">
+                <span>إجمالي الرواتب والمستحقات</span>
+                <input className="input" dir="ltr" value={salaryTotal.toFixed(2)} readOnly />
+              </label>
+            </div>
 
- <h3>البيانات التكميلية</h3>
- <div className="form-grid">
- <label className="field">
- <span>العنوان</span>
- <input className="input" value={form.address} onChange={(event) => setForm({ ...form, address: event.target.value })} />
- </label>
- <label className="field">
- <span>رقم الهوية</span>
- <input className="input" dir="ltr" value={form.nationalId} onChange={(event) => setForm({ ...form, nationalId: event.target.value })} />
- </label>
- <label className="field">
- <span>رقم الحساب البنكي</span>
- <input className="input" dir="ltr" value={form.bankNo} onChange={(event) => setForm({ ...form, bankNo: event.target.value })} />
- </label>
- <label className="field">
- <span>اسم البنك</span>
- <input className="input" value={form.bankName} onChange={(event) => setForm({ ...form, bankName: event.target.value })} />
- </label>
- <label className="field">
- <span>الآيبان</span>
- <input className="input" dir="ltr" value={form.iban} onChange={(event) => setForm({ ...form, iban: event.target.value })} />
- </label>
- <label className="field">
- <span>رمز البنك</span>
- <input className="input" dir="ltr" value={form.bankCode} onChange={(event) => setForm({ ...form, bankCode: event.target.value.toUpperCase() })} />
- </label>
- <label className="field">
- <span>ملاحظات</span>
- <input className="input" value={form.notes} onChange={(event) => setForm({ ...form, notes: event.target.value })} />
- </label>
- </div>
+            <h3>البيانات التكميلية</h3>
+            <div className="form-grid">
+              <label className="field">
+                <span>العنوان</span>
+                <input
+                  className="input"
+                  value={form.address}
+                  onChange={(event) => setForm({ ...form, address: event.target.value })}
+                />
+              </label>
+              <label className="field">
+                <span>رقم الهوية</span>
+                <input
+                  className="input"
+                  dir="ltr"
+                  value={form.nationalId}
+                  onChange={(event) => setForm({ ...form, nationalId: event.target.value })}
+                />
+              </label>
+              <label className="field">
+                <span>رقم الحساب البنكي</span>
+                <input
+                  className="input"
+                  dir="ltr"
+                  value={form.bankNo}
+                  onChange={(event) => setForm({ ...form, bankNo: event.target.value })}
+                />
+              </label>
+              <label className="field">
+                <span>اسم البنك</span>
+                <input
+                  className="input"
+                  value={form.bankName}
+                  onChange={(event) => setForm({ ...form, bankName: event.target.value })}
+                />
+              </label>
+              <label className="field">
+                <span>الآيبان</span>
+                <input
+                  className="input"
+                  dir="ltr"
+                  value={form.iban}
+                  onChange={(event) => setForm({ ...form, iban: event.target.value })}
+                />
+              </label>
+              <label className="field">
+                <span>رمز البنك</span>
+                <input
+                  className="input"
+                  dir="ltr"
+                  value={form.bankCode}
+                  onChange={(event) => setForm({ ...form, bankCode: event.target.value.toUpperCase() })}
+                />
+              </label>
+              <label className="field">
+                <span>ملاحظات</span>
+                <input
+                  className="input"
+                  value={form.notes}
+                  onChange={(event) => setForm({ ...form, notes: event.target.value })}
+                />
+              </label>
+            </div>
 
- <h3>صورة الموظف — frmEmployees.xaml L195 imgPersonal</h3>
- <div className="form-grid">
- <div className="field">
- <span>الصورة الحالية</span>
+            <h3>صورة الموظف — frmEmployees.xaml L195 imgPersonal</h3>
+            <div className="form-grid">
+              <div className="field">
+                <span>الصورة الحالية</span>
                 {form.photoFileId ? (
- <div className="toolbar">
- <span className="badge">{form.photoFileId.slice(0, 8)}…</span>
- <button className="btn small" type="button" onClick={() => setForm({ ...form, photoFileId: '' })}>
- إزالة
- </button>
- </div>
+                  <div className="toolbar">
+                    <span className="badge">{form.photoFileId.slice(0, 8)}…</span>
+                    <button
+                      className="btn small"
+                      type="button"
+                      onClick={() => setForm({ ...form, photoFileId: '' })}
+                    >
+                      إزالة
+                    </button>
+                  </div>
                 ) : (
- <span className="hint">لا توجد صورة — btnImgAdd / btnImgDelete</span>
+                  <span className="hint">لا توجد صورة — btnImgAdd / btnImgDelete</span>
                 )}
- </div>
- <label className="field">
- <span>رفع صورة جديدة</span>
- <input
+              </div>
+              <label className="field">
+                <span>رفع صورة جديدة</span>
+                <input
                   className="input"
                   type="file"
                   accept="image/*"
@@ -585,43 +764,52 @@ export default function EmployeesPage() {
                     if (file) void uploadPhoto(file);
                   }}
                 />
- </label>
- </div>
+              </label>
+            </div>
 
- <h3>فروع الموظف — frmEmployees.xaml L172 EmpBranches</h3>
- <div className="form-grid">
- <div className="field" style={{ gridColumn: '1 / -1' }}>
- <span>الفروع الإضافية (بجانب الفرع الأساسي)</span>
- <div className="toolbar" style={{ flexWrap: 'wrap' }}>
+            <h3>فروع الموظف — frmEmployees.xaml L172 EmpBranches</h3>
+            <div className="form-grid">
+              <div className="field" style={{ gridColumn: '1 / -1' }}>
+                <span>الفروع الإضافية (بجانب الفرع الأساسي)</span>
+                <div className="toolbar" style={{ flexWrap: 'wrap' }}>
                   {(branches.data ?? []).map((branch) => (
- <label key={branch.id} className="check">
- <input
+                    <label key={branch.id} className="check">
+                      <input
                         type="checkbox"
                         checked={form.branchIds.includes(branch.id)}
                         onChange={(event) => {
                           setForm((prev) => ({
                             ...prev,
-                            branchIds: event.target.checked ? [...prev.branchIds, branch.id] : prev.branchIds.filter((id) => id !== branch.id),
+                            branchIds: event.target.checked
+                              ? [...prev.branchIds, branch.id]
+                              : prev.branchIds.filter((id) => id !== branch.id),
                           }));
                         }}
                       />
                       {branch.nameAr ?? branch.name_ar ?? branch.id}
- </label>
+                    </label>
                   ))}
- </div>
- <p className="hint">الفرع الأساسي يُحدد في «بيانات الموظف الأساسية»؛ هذه الفروع الإضافية تُخزن في EmpBranches — employee_branches.</p>
- </div>
- </div>
+                </div>
+                <p className="hint">
+                  الفرع الأساسي يُحدد في «بيانات الموظف الأساسية»؛ هذه الفروع الإضافية تُخزن في EmpBranches —
+                  employee_branches.
+                </p>
+              </div>
+            </div>
 
- <div className="toolbar">
- <button className="btn primary" type="submit" disabled={busy}>
- حفظ
- </button>
- <button className="btn" type="button" onClick={() => setForm({ ...BLANK, salary: { ...BLANK.salary } })}>
- جديد
- </button>
+            <div className="toolbar">
+              <button className="btn primary" type="submit" disabled={busy}>
+                حفظ
+              </button>
+              <button
+                className="btn"
+                type="button"
+                onClick={() => setForm({ ...BLANK, salary: { ...BLANK.salary } })}
+              >
+                جديد
+              </button>
               {editing && (
- <button
+                <button
                   className="btn danger"
                   type="button"
                   disabled={busy}
@@ -630,26 +818,27 @@ export default function EmployeesPage() {
                     if (row) void remove(row);
                   }}
                 >
- حذف الموظف
- </button>
+                  حذف الموظف
+                </button>
               )}
- </div>
+            </div>
             {editing && form.id ? <CommentsPanel entityType="employee" entityId={form.id} /> : null}
- <p className="hint">
- اضغط Enter في خانة البحث للبحث عن موظف بالاسم — «اسم الموظف:» في نافذة الديسكتوب.
- </p>
- </section>
- </form>
+            <p className="hint">
+              اضغط Enter في خانة البحث للبحث عن موظف بالاسم — «اسم الموظف:» في نافذة الديسكتوب.
+            </p>
+          </section>
+        </form>
       ) : (
- <section className="card">
- <p className="hint">عرض البيانات متاح لكل من يملك صلاحية العرض؛ التحرير يتطلب صلاحية إدارة الموظفين.</p>
- </section>
+        <section className="card">
+          <p className="hint">
+            عرض البيانات متاح لكل من يملك صلاحية العرض؛ التحرير يتطلب صلاحية إدارة الموظفين.
+          </p>
+        </section>
       )}
 
- <section className="card">
- <h2>قائمة الموظفين</h2>
- <div className="toolbar">
- <input
+      <Panel title="قائمة الموظفين" flush>
+        <div className="toolbar">
+          <input
             className="input"
             style={{ maxWidth: 260 }}
             placeholder="اسم الموظف:"
@@ -659,11 +848,11 @@ export default function EmployeesPage() {
               if (event.key === 'Enter') setTerm(search);
             }}
           />
- <button className="btn" type="button" onClick={() => setTerm(search)}>
- بحث
- </button>
+          <button className="btn" type="button" onClick={() => setTerm(search)}>
+            بحث
+          </button>
           {term && (
- <button
+            <button
               className="btn"
               type="button"
               onClick={() => {
@@ -671,62 +860,66 @@ export default function EmployeesPage() {
                 setTerm('');
               }}
             >
- مسح
- </button>
+              مسح
+            </button>
           )}
- </div>
+        </div>
 
         {employees.status === 'loading' && <Loading rows={4} />}
         {employees.status === 'forbidden' && <Forbidden />}
         {employees.status === 'error' && <ErrorBox message={employees.error} onRetry={employees.reload} />}
         {employees.status === 'success' &&
           (rows.length === 0 ? (
- <Empty title="لا يوجد موظفون" detail={term ? 'لا نتائج للبحث الحالي.' : 'أضف بطاقات الموظفين ليمكن احتساب الرواتب.'} />
+            <Empty
+              title="لا يوجد موظفون"
+              detail={term ? 'لا نتائج للبحث الحالي.' : 'أضف بطاقات الموظفين ليمكن احتساب الرواتب.'}
+            />
           ) : (
- <div className="table-wrap">
- <table>
- <thead>
- <tr>
- <th>الرقم</th>
- <th>الاسم</th>
- <th>إجمالي المرتب</th>
- <th>الإدارة</th>
- <th>القسم</th>
- <th>الوظيفة</th>
- <th>رقم الحساب</th>
- <th>الموبايل</th>
- <th>التعيين</th>
- <th>الحالة</th>
- <th />
- </tr>
- </thead>
- <tbody>
+            <div className="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>الرقم</th>
+                    <th>الاسم</th>
+                    <th>إجمالي المرتب</th>
+                    <th>الإدارة</th>
+                    <th>القسم</th>
+                    <th>الوظيفة</th>
+                    <th>رقم الحساب</th>
+                    <th>الموبايل</th>
+                    <th>التعيين</th>
+                    <th>الحالة</th>
+                    <th />
+                  </tr>
+                </thead>
+                <tbody>
                   {rows.map((row) => (
- <tr key={row.id} style={row.id === form.id ? { background: 'var(--surface-2, #f6f7fb)' } : undefined}>
- <td dir="ltr">{row.employeeNo}</td>
- <td>{row.name}</td>
- <td dir="ltr">{money(row.totalSalary ?? '0')}</td>
- <td>{row.managementName ?? '—'}</td>
- <td>{row.sectionName ?? '—'}</td>
- <td>{row.jobName ?? '—'}</td>
- <td dir="ltr">{row.accountCode ?? '—'}</td>
- <td dir="ltr">{row.mobile ?? '—'}</td>
- <td dir="ltr">{shortDate(row.hireDate)}</td>
- <td>{row.statusLabel ?? statusLabel(row.status)}</td>
- <td>
- <button className="btn small" type="button" onClick={() => openCard(row)}>
-                            <ContactRound size={14} />
-
-
- </button>
- </td>
- </tr>
+                    <tr
+                      key={row.id}
+                      style={row.id === form.id ? { background: 'var(--surface-2, #f6f7fb)' } : undefined}
+                    >
+                      <td dir="ltr">{row.employeeNo}</td>
+                      <td>{row.name}</td>
+                      <td dir="ltr">{money(row.totalSalary ?? '0')}</td>
+                      <td>{row.managementName ?? '—'}</td>
+                      <td>{row.sectionName ?? '—'}</td>
+                      <td>{row.jobName ?? '—'}</td>
+                      <td dir="ltr">{row.accountCode ?? '—'}</td>
+                      <td dir="ltr">{row.mobile ?? '—'}</td>
+                      <td dir="ltr">{shortDate(row.hireDate)}</td>
+                      <td>{row.statusLabel ?? statusLabel(row.status)}</td>
+                      <td>
+                        <button className="btn small" type="button" onClick={() => openCard(row)}>
+                          <ContactRound size={14} />
+                        </button>
+                      </td>
+                    </tr>
                   ))}
- </tbody>
- </table>
- </div>
+                </tbody>
+              </table>
+            </div>
           ))}
- </section>
- </Screen>
+      </Panel>
+    </Screen>
   );
 }

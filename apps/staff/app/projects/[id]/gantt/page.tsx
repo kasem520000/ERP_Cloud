@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useEffect, useState, type PointerEvent as ReactPointerEvent } from 'react';
+import { Panel } from '@erp/ui';
 
 import { Notice } from '../../../../components/data-view';
 import { ErrorBox, Loading, Screen } from '../../../../components/screen';
@@ -34,7 +35,9 @@ export default function ProjectGanttPage() {
   }
 
   useEffect(() => {
-    void reload().catch((reason: unknown) => setError(reason instanceof ApiError ? reason.message : String(reason)));
+    void reload().catch((reason: unknown) =>
+      setError(reason instanceof ApiError ? reason.message : String(reason)),
+    );
   }, [projectId]);
 
   if (error && !ready) {
@@ -47,7 +50,10 @@ export default function ProjectGanttPage() {
   if (!ready) return <Loading />;
 
   const origin = earliest(tasks);
-  const span = Math.max(14, ...tasks.map((task) => dayIndex(origin, task.dueDate ?? task.startDate ?? origin) + 2));
+  const span = Math.max(
+    14,
+    ...tasks.map((task) => dayIndex(origin, task.dueDate ?? task.startDate ?? origin) + 2),
+  );
 
   function drag(task: ProjectTask, event: ReactPointerEvent<HTMLButtonElement>) {
     if (!can('projects.tasks.manage')) return;
@@ -61,7 +67,9 @@ export default function ProjectGanttPage() {
       void updateTask(task.id, { startDate: shiftDate(startDate, days), dueDate: shiftDate(dueDate, days) })
         .then(() => reload())
         .then(() => setNotice({ kind: 'ok', text: 'تغيّر تاريخ المهمة.' }))
-        .catch((reason: unknown) => setNotice({ kind: 'danger', text: reason instanceof ApiError ? reason.message : String(reason) }));
+        .catch((reason: unknown) =>
+          setNotice({ kind: 'danger', text: reason instanceof ApiError ? reason.message : String(reason) }),
+        );
     };
     window.addEventListener('pointerup', onUp);
   }
@@ -71,7 +79,11 @@ export default function ProjectGanttPage() {
       title="مخطط جانت"
       subtitle={`المسار الحرج ${lengthDays} يوم. اسحب الشريط لتغيير التاريخ.`}
       crumbs={['إدارة المشاريع']}
-      actions={<Link className="btn" href={`/projects/${projectId}/board`}>اللوحة</Link>}
+      actions={
+        <Link className="btn" href={`/projects/${projectId}/board`}>
+          اللوحة
+        </Link>
+      }
     >
       <Notice notice={notice} />
       <div className="card" dir="ltr" style={{ overflowX: 'auto' }}>
@@ -85,13 +97,22 @@ export default function ProjectGanttPage() {
             if (!fromTask || !toTask) return null;
             const x1 = (dayIndex(origin, fromTask.dueDate ?? fromTask.startDate ?? origin) + 1) * DAY;
             const x2 = dayIndex(origin, toTask.startDate ?? origin) * DAY;
-            return <line key={edge.id} x1={x1} y1={from * 36 + 18} x2={x2} y2={to * 36 + 18} stroke="var(--muted)" />;
+            return (
+              <line
+                key={edge.id}
+                x1={x1}
+                y1={from * 36 + 18}
+                x2={x2}
+                y2={to * 36 + 18}
+                stroke="var(--muted)"
+              />
+            );
           })}
         </svg>
         <div style={{ marginTop: -Math.max(48, tasks.length * 36) }}>
           {tasks.map((task) => {
             const left = dayIndex(origin, task.startDate ?? origin) * DAY;
-            const width = Math.max(DAY, (duration(task) ) * DAY);
+            const width = Math.max(DAY, duration(task) * DAY);
             const marked = critical.includes(task.id);
             return (
               <div key={task.id} style={{ height: 36, position: 'relative' }}>
@@ -119,8 +140,7 @@ export default function ProjectGanttPage() {
           })}
         </div>
       </div>
-      <div className="card">
-        <h3>الاعتمادات</h3>
+      <Panel title="الاعتمادات">
         {edges.length === 0 ? <p className="muted">لا اعتمادات. تُضاف من بطاقة المهمة.</p> : null}
         {edges.map((edge) => (
           <p key={edge.id}>
@@ -129,13 +149,15 @@ export default function ProjectGanttPage() {
             {critical.includes(edge.taskId) ? ' · مسار حرج' : ''}
           </p>
         ))}
-      </div>
+      </Panel>
     </Screen>
   );
 }
 
 function earliest(tasks: ProjectTask[]): string {
-  const dates = tasks.flatMap((task) => [task.startDate, task.dueDate].filter((value): value is string => Boolean(value)));
+  const dates = tasks.flatMap((task) =>
+    [task.startDate, task.dueDate].filter((value): value is string => Boolean(value)),
+  );
   return dates.sort()[0] ?? new Date().toISOString().slice(0, 10);
 }
 

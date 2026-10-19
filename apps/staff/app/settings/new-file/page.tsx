@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { Panel } from '@erp/ui';
 
 import { DataTable, Notice } from '../../../components/data-view';
 import { Screen } from '../../../components/screen';
@@ -95,7 +96,12 @@ export default function NewCompanyFilePage() {
           </label>
           <label className="field wide">
             <span>اسم المنشأة في الملف الجديد</span>
-            <input className="input" value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} placeholder="مؤسسة النور — فرع جدة" />
+            <input
+              className="input"
+              value={form.name}
+              onChange={(event) => setForm({ ...form, name: event.target.value })}
+              placeholder="مؤسسة النور — فرع جدة"
+            />
           </label>
         </div>
         <p className="muted small" style={{ marginTop: 10 }}>
@@ -103,21 +109,31 @@ export default function NewCompanyFilePage() {
         </p>
         <div className="chips">
           {COPY_SETS.map((set) => (
-            <button key={set.id} type="button" className={`chip ${copy.includes(set.id) ? 'on' : ''}`} onClick={() => toggle(set.id)} title={set.hint}>
+            <button
+              key={set.id}
+              type="button"
+              className={`chip ${copy.includes(set.id) ? 'on' : ''}`}
+              onClick={() => toggle(set.id)}
+              title={set.hint}
+            >
               {set.label}
             </button>
           ))}
         </div>
         <div className="toolbar" style={{ marginTop: 12 }}>
-          <button type="button" className="btn primary" disabled={busy || form.code.trim().length < 2 || form.name.trim().length < 2} onClick={create}>
+          <button
+            type="button"
+            className="btn primary"
+            disabled={busy || form.code.trim().length < 2 || form.name.trim().length < 2}
+            onClick={create}
+          >
             {busy ? 'جارٍ الإنشاء…' : 'إنشاء الملف'}
           </button>
         </div>
         <Notice notice={notice} />
       </div>
 
-      <section className="card">
-        <h3>الملفات المُنشأة من هنا</h3>
+      <Panel title="الملفات المُنشأة من هنا" flush>
         {(files.data ?? []).length === 0 ? (
           <p className="muted">لم يُنشأ أي ملف بعد.</p>
         ) : (
@@ -139,7 +155,7 @@ export default function NewCompanyFilePage() {
             rowKey={(row) => row.id}
           />
         )}
-      </section>
+      </Panel>
     </Screen>
   );
 }

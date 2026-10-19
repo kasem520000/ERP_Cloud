@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { X } from 'lucide-react';
-import { Tabs } from '@erp/ui';
+import { Panel, Tabs } from '@erp/ui';
 import { useSubmissionKey } from '@erp/web-core/use-submission-key';
 import { openVanDocumentPrintWindow, type VanDocumentPrintView } from '@erp/web-van/document-print';
 import { DASHBOARD_TOTALS_CLAUSE, windowNote, type DashboardWindows } from '@erp/web-van/windows';
@@ -1358,8 +1358,7 @@ export default function VanSalesPage() {
       )}
 
       {/* الأرصدة الرسمية — the same rows the inventory screens read */}
-      <div className="card">
-        <h2>الأرصدة الرسمية في المستودعات (من دفتر المخزون الموحّد)</h2>
+      <Panel title="الأرصدة الرسمية في المستودعات (من دفتر المخزون الموحّد)" flush>
         <div className="muted small" style={{ marginBottom: 8 }}>
           هذه هي الأرصدة نفسها التي تراها في شاشة أرصدة المخزون وبطاقة الصنف والتقارير الرسمية — تُقرأ من
           <code> stock_balances</code> ولا تُحتسب من جداول الإضافة.
@@ -1412,7 +1411,7 @@ export default function VanSalesPage() {
             </tbody>
           </table>
         </div>
-      </div>
+      </Panel>
 
       {/* بضاعة تحت التحويل — الكمية التي لا هي في المستودع ولا في السيارة */}
       {Number(data?.summary.inTransitKg ?? 0) > 0 && (
@@ -1826,8 +1825,7 @@ export default function VanSalesPage() {
             </div>
           </form>
 
-          <div className="card">
-            <h2>دفعات الإنتاج وأرصدة المستودع الرئيسي</h2>
+          <Panel title="دفعات الإنتاج وأرصدة المستودع الرئيسي" flush>
             <div className="muted small">
               {windowNote(data?.windows, 'productionBatches', PRODUCTION_WINDOW_FALLBACK, {
                 totalsClause: DASHBOARD_TOTALS_CLAUSE,
@@ -1918,10 +1916,9 @@ export default function VanSalesPage() {
                 </tbody>
               </table>
             </div>
-          </div>
+          </Panel>
 
-          <div className="card">
-            <h2>سجل الرقابة على حركة البضاعة والتدقيق (من نفذ العملية ومن اعتمدها)</h2>
+          <Panel title="سجل الرقابة على حركة البضاعة والتدقيق (من نفذ العملية ومن اعتمدها)" flush>
             <div className="muted small">
               {windowNote(data?.windows, 'movements', MOVEMENTS_WINDOW_FALLBACK, {
                 totalsClause: DASHBOARD_TOTALS_CLAUSE,
@@ -1965,21 +1962,25 @@ export default function VanSalesPage() {
                 </tbody>
               </table>
             </div>
-          </div>
+          </Panel>
         </div>
       )}
 
       {/* TAB 3: DISTRIBUTION REPS — the official `salesmen` card, its employee, its login, its van */}
       {tab === 'reps' && (
         <div style={{ display: 'grid', gap: 16 }}>
-          <div className="card">
-            <h2>مندوبو التوزيع — البطاقة والموظف وحساب الدخول ومستودع السيارة</h2>
-            <p className="muted small" style={{ margin: 0 }}>
-              لا يوجد جدول مندوبين منفصل: هذه هي بطاقة المندوب الرسمية نفسها (<code>salesmen</code>) مربوطة
-              ببطاقة الموظف (<code>employees</code>) وحساب الدخول (<code>memberships</code> <code>users</code>
-              ) ومستودع سيارة التوزيع. إنشاء المندوب نفسه وتعديل عمولاته من شاشة{' '}
-              <a href="/sales/salesmen">المبيعات المندوبين</a>، وهنا يُستكمل ربط التوزيع.
-            </p>
+          <Panel
+            title="مندوبو التوزيع — البطاقة والموظف وحساب الدخول ومستودع السيارة"
+            hint={
+              <>
+                لا يوجد جدول مندوبين منفصل: هذه هي بطاقة المندوب الرسمية نفسها (<code>salesmen</code>) مربوطة
+                ببطاقة الموظف (<code>employees</code>) وحساب الدخول (<code>memberships</code>{' '}
+                <code>users</code>) ومستودع سيارة التوزيع. إنشاء المندوب نفسه وتعديل عمولاته من شاشة{' '}
+                <a href="/sales/salesmen">المبيعات المندوبين</a>، وهنا يُستكمل ربط التوزيع.
+              </>
+            }
+            flush
+          >
             <div className="table-wrap">
               <table>
                 <thead>
@@ -2098,7 +2099,7 @@ export default function VanSalesPage() {
                 </tbody>
               </table>
             </div>
-          </div>
+          </Panel>
 
           {repTarget ? (
             <form className="card" onSubmit={linkRepAccount} style={{ display: 'grid', gap: 12 }}>
@@ -2282,8 +2283,7 @@ export default function VanSalesPage() {
             </div>
           </form>
 
-          <div className="card">
-            <h2>سجل عهد المناديب وإغلاق الورديات واعتماد المحاسب</h2>
+          <Panel title="سجل عهد المناديب وإغلاق الورديات واعتماد المحاسب" flush>
             <div className="muted small">
               {windowNote(data?.windows, 'loadOrders', LOAD_ORDERS_WINDOW_FALLBACK, {
                 totalsClause: DASHBOARD_TOTALS_CLAUSE,
@@ -2512,7 +2512,7 @@ export default function VanSalesPage() {
                 </tbody>
               </table>
             </div>
-          </div>
+          </Panel>
 
           {/* Shift Closing & Accountant Approval Modal */}
           {closingTarget && (
@@ -3385,8 +3385,7 @@ export default function VanSalesPage() {
             </div>
           </form>
 
-          <div className="card">
-            <h2>قائمة أسعار وسياسات العملاء المعتمدة</h2>
+          <Panel title="قائمة أسعار وسياسات العملاء المعتمدة" flush>
             <div className="table-wrap">
               <table>
                 <thead>
@@ -3425,10 +3424,9 @@ export default function VanSalesPage() {
                 </tbody>
               </table>
             </div>
-          </div>
+          </Panel>
 
-          <div className="card">
-            <h2>سجل تدقيق وتاريخ تعديلات أسعار العملاء</h2>
+          <Panel title="سجل تدقيق وتاريخ تعديلات أسعار العملاء" flush>
             <div className="muted small">
               {windowNote(data?.windows, 'customerPriceHistory', PRICE_HISTORY_WINDOW_FALLBACK, {
                 totalsClause: DASHBOARD_TOTALS_CLAUSE,
@@ -3462,7 +3460,7 @@ export default function VanSalesPage() {
                 </tbody>
               </table>
             </div>
-          </div>
+          </Panel>
         </div>
       )}
 
@@ -3508,8 +3506,7 @@ export default function VanSalesPage() {
             )}
           </div>
 
-          <div className="card">
-            <h2>رادار الرقابة على الكميات المجانية (البونص) والعينات والخصومات</h2>
+          <Panel title="رادار الرقابة على الكميات المجانية (البونص) والعينات والخصومات" flush>
             <div className="table-wrap">
               <table>
                 <thead>
@@ -3554,10 +3551,9 @@ export default function VanSalesPage() {
                 </tbody>
               </table>
             </div>
-          </div>
+          </Panel>
 
-          <div className="card">
-            <h2>مصفوفة الصلاحيات والأمان للأدوار الأربعة في المصنع</h2>
+          <Panel title="مصفوفة الصلاحيات والأمان للأدوار الأربعة في المصنع" flush>
             <div className="table-wrap">
               <table>
                 <thead>
@@ -3625,7 +3621,7 @@ export default function VanSalesPage() {
                 </tbody>
               </table>
             </div>
-          </div>
+          </Panel>
         </div>
       )}
     </Screen>

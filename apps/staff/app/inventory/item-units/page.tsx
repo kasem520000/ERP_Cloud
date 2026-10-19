@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { Panel } from '@erp/ui';
 
 import { DataTable, Notice, QueryView } from '../../../components/data-view';
 import { Screen } from '../../../components/screen';
@@ -187,16 +188,8 @@ export default function ItemUnitsPage() {
             hint="كل كمية في المخزون محفوظة بها"
             tone="brand"
           />
-          <StatTile
-            label="وحدات التعبئة"
-            value={(itemUnits.data ?? []).length}
-            hint="علبة · كرتون · عبوة"
-          />
-          <StatTile
-            label="باركودات إضافية"
-            value={(barcodes.data ?? []).length}
-            hint="ملصق آخر لنفس الصنف"
-          />
+          <StatTile label="وحدات التعبئة" value={(itemUnits.data ?? []).length} hint="علبة · كرتون · عبوة" />
+          <StatTile label="باركودات إضافية" value={(barcodes.data ?? []).length} hint="ملصق آخر لنفس الصنف" />
           <StatTile
             label="وحدات بلا باركود"
             value={(itemUnits.data ?? []).filter((row) => !row.barcode).length}
@@ -231,8 +224,7 @@ export default function ItemUnitsPage() {
         </div>
       ) : (
         <>
-          <div className="card">
-            <h2>وحدات القياس</h2>
+          <Panel title="وحدات القياس" flush>
             <QueryView
               query={itemUnits}
               empty="لا توجد وحدات إضافية"
@@ -368,10 +360,9 @@ export default function ItemUnitsPage() {
                 </div>
               </form>
             )}
-          </div>
+          </Panel>
 
-          <div className="card">
-            <h2>باركودات إضافية</h2>
+          <Panel title="باركودات إضافية" flush>
             <QueryView
               query={barcodes}
               empty="لا توجد باركودات إضافية"
@@ -446,7 +437,7 @@ export default function ItemUnitsPage() {
                 </div>
               </form>
             )}
-          </div>
+          </Panel>
         </>
       )}
 

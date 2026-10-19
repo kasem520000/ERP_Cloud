@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
+import { Panel } from '@erp/ui';
 
 import { QueryView } from '../../../components/data-view';
 import { WarehousePicker } from '../../../components/inventory-filters';
@@ -133,8 +134,7 @@ export default function InventoryOverviewPage() {
         />
       </StatTiles>
 
-      <div className="card">
-        <h2>إجراءات سريعة</h2>
+      <Panel title="إجراءات سريعة">
         <div className="grid cols">
           {QUICK.map((item) => (
             <Link key={item.href} className="card tight" href={item.href}>
@@ -143,11 +143,10 @@ export default function InventoryOverviewPage() {
             </Link>
           ))}
         </div>
-      </div>
+      </Panel>
 
       <div className="grid cols-2">
-        <div className="card">
-          <h2>أكبر الأرصدة قيمةً</h2>
+        <Panel title="أكبر الأرصدة قيمةً">
           <QueryView query={levels} empty="لا أرصدة" emptyDetail="لا توجد أرصدة مسجّلة في هذا المستودع.">
             {() => (
               <ol className="grid" style={{ gap: 8, margin: 0, paddingInlineStart: 18 }}>
@@ -169,10 +168,9 @@ export default function InventoryOverviewPage() {
               </ol>
             )}
           </QueryView>
-        </div>
+        </Panel>
 
-        <div className="card">
-          <h2>أكبر العجز</h2>
+        <Panel title="أكبر العجز">
           <QueryView query={short} empty="لا عجز" emptyDetail="كل الأصناف أعلى من حد الطلب المعرّف لها.">
             {() => (
               <ol className="grid" style={{ gap: 8, margin: 0, paddingInlineStart: 18 }}>
@@ -196,7 +194,7 @@ export default function InventoryOverviewPage() {
               </ol>
             )}
           </QueryView>
-        </div>
+        </Panel>
       </div>
     </Screen>
   );

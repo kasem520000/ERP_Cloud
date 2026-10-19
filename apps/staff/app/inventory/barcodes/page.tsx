@@ -1,6 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import { Panel } from '@erp/ui';
 
 import { Screen } from '../../../components/screen';
 import { code128Bars, sanitizeBarcode } from '../../../lib/barcode';
@@ -28,18 +29,27 @@ export default function BarcodesPage() {
     const needle = search.trim().toLowerCase();
     const data = items.data ?? [];
     if (!needle) return data.slice(0, 60);
-    return data.filter((item) => `${itemLabel(item)} ${item.barcode ?? ''}`.toLowerCase().includes(needle)).slice(0, 60);
+    return data
+      .filter((item) => `${itemLabel(item)} ${item.barcode ?? ''}`.toLowerCase().includes(needle))
+      .slice(0, 60);
   }, [items.data, search]);
 
   const labels = useMemo(
     () =>
       (items.data ?? [])
         .filter((item) => (copies[item.id] ?? 0) > 0 && barcodeOf(item).length > 0)
-        .flatMap((item) => Array.from({ length: Math.min(copies[item.id] ?? 0, 60) }, (_, index) => ({ item, key: `${item.id}-${index}` }))),
+        .flatMap((item) =>
+          Array.from({ length: Math.min(copies[item.id] ?? 0, 60) }, (_, index) => ({
+            item,
+            key: `${item.id}-${index}`,
+          })),
+        ),
     [items.data, copies],
   );
 
-  const missingCode = (items.data ?? []).some((item) => (copies[item.id] ?? 0) > 0 && barcodeOf(item).length === 0);
+  const missingCode = (items.data ?? []).some(
+    (item) => (copies[item.id] ?? 0) > 0 && barcodeOf(item).length === 0,
+  );
 
   return (
     <Screen
@@ -47,7 +57,12 @@ export default function BarcodesPage() {
       subtitle="اختر الأصناف وعدد الملصقات لكل صنف، ثم اطبع الورقة على ورق الملصقات. الترميز Code 128-B قابل للمسح."
       crumbs={['المستودعات', 'العمليات']}
       actions={
-        <button type="button" className="btn primary" disabled={labels.length === 0} onClick={() => window.print()}>
+        <button
+          type="button"
+          className="btn primary"
+          disabled={labels.length === 0}
+          onClick={() => window.print()}
+        >
           طباعة ({labels.length})
         </button>
       }
@@ -56,11 +71,20 @@ export default function BarcodesPage() {
         <div className="toolbar">
           <label className="field">
             <span>بحث عن صنف</span>
-            <input className="input" value={search} placeholder="اسم الصنف أو الباركود" onChange={(event) => setSearch(event.target.value)} />
+            <input
+              className="input"
+              value={search}
+              placeholder="اسم الصنف أو الباركود"
+              onChange={(event) => setSearch(event.target.value)}
+            />
           </label>
           <label className="field">
             <span>السعر على الملصق</span>
-            <select className="input" value={showPrice ? 'yes' : 'no'} onChange={(event) => setShowPrice(event.target.value === 'yes')}>
+            <select
+              className="input"
+              value={showPrice ? 'yes' : 'no'}
+              onChange={(event) => setShowPrice(event.target.value === 'yes')}
+            >
               <option value="yes">يظهر</option>
               <option value="no">لا يظهر</option>
             </select>
@@ -70,7 +94,9 @@ export default function BarcodesPage() {
           </button>
         </div>
 
-        {missingCode ? <div className="alert warn">بعض الأصناف المختارة بلا باركود أو رمز صنف، ولن تُطبع لها ملصقات.</div> : null}
+        {missingCode ? (
+          <div className="alert warn">بعض الأصناف المختارة بلا باركود أو رمز صنف، ولن تُطبع لها ملصقات.</div>
+        ) : null}
 
         <div className="table-wrap">
           <table>
@@ -96,7 +122,12 @@ export default function BarcodesPage() {
                       min={0}
                       max={60}
                       value={copies[item.id] ?? 0}
-                      onChange={(event) => setCopies({ ...copies, [item.id]: Math.max(0, Math.min(60, Number(event.target.value) || 0)) })}
+                      onChange={(event) =>
+                        setCopies({
+                          ...copies,
+                          [item.id]: Math.max(0, Math.min(60, Number(event.target.value) || 0)),
+                        })
+                      }
                     />
                   </td>
                 </tr>
@@ -114,8 +145,7 @@ export default function BarcodesPage() {
       </div>
 
       {labels.length > 0 ? (
-        <div className="card">
-          <h3 className="no-print">معاينة الورقة</h3>
+        <Panel title="معاينة الورقة">
           <div className="label-sheet">
             {labels.map(({ item, key }) => {
               const value = barcodeOf(item);
@@ -123,20 +153,35 @@ export default function BarcodesPage() {
               return (
                 <div className="label" key={key}>
                   <span className="label-name">{itemLabel(item)}</span>
-                  <svg className="label-bars" viewBox={`0 0 ${width} 40`} preserveAspectRatio="none" role="img" aria-label={value}>
+                  <svg
+                    className="label-bars"
+                    viewBox={`0 0 ${width} 40`}
+                    preserveAspectRatio="none"
+                    role="img"
+                    aria-label={value}
+                  >
                     {bars.map((bar) => (
-                      <rect key={`${bar.x}`} x={bar.x} y={0} width={bar.width} height={40} fill="var(--text)" />
+                      <rect
+                        key={`${bar.x}`}
+                        x={bar.x}
+                        y={0}
+                        width={bar.width}
+                        height={40}
+                        fill="var(--text)"
+                      />
                     ))}
                   </svg>
                   <span className="label-code" dir="ltr">
                     {value}
                   </span>
-                  {showPrice ? <span className="label-price">{money(item.salePrice ?? item.sale_price ?? '0')}</span> : null}
+                  {showPrice ? (
+                    <span className="label-price">{money(item.salePrice ?? item.sale_price ?? '0')}</span>
+                  ) : null}
                 </div>
               );
             })}
           </div>
-        </div>
+        </Panel>
       ) : null}
     </Screen>
   );

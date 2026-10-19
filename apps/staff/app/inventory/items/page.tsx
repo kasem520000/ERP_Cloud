@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { Panel } from '@erp/ui';
 
 import { DataTable, Notice, QueryView } from '../../../components/data-view';
 import { Empty, Screen } from '../../../components/screen';
@@ -649,11 +650,7 @@ export default function ItemsPage() {
                   </DocHead>
 
                   {customValues.length > 0 && (
-                    <section className="card tight" style={{ marginTop: 16 }}>
-                      <div className="section-title">
-                        <h3>الحقول الإضافية</h3>
-                        <span className="muted small">قيم مخصّصة لهذا الصنف</span>
-                      </div>
+                    <Panel title="الحقول الإضافية">
                       <div className="form-grid">
                         {customValues.map((field) => (
                           <label className="field" key={field.id}>
@@ -721,7 +718,7 @@ export default function ItemsPage() {
                           {customBusy ? 'جارٍ الحفظ…' : 'حفظ الحقول الإضافية'}
                         </button>
                       ) : null}
-                    </section>
+                    </Panel>
                   )}
 
                   <Totals

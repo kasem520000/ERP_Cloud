@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useSubmissionKey } from '@erp/web-core/use-submission-key';
 import { REP_TOTALS_CLAUSE, windowNote, type DashboardWindows } from '@erp/web-van/windows';
+import { Panel } from '@erp/ui';
 
 import { Notice } from '../../../components/data-view';
 import { Screen } from '../../../components/screen';
@@ -304,10 +305,7 @@ export default function VanSalesRepPage() {
       {notice ? <Notice notice={notice} /> : null}
 
       {data && !data.isRep ? (
-        <div className="card">
-          <h2>حسابك غير مرتبط ببطاقة مندوب</h2>
-          <p className="muted">{data.message}</p>
-        </div>
+        <Panel title="حسابك غير مرتبط ببطاقة مندوب" hint={<>{data.message}</>}></Panel>
       ) : null}
 
       {data?.isRep ? (
@@ -380,8 +378,7 @@ export default function VanSalesRepPage() {
 
           {/* إشعارات التوريد */}
           {data.notifications.length ? (
-            <div className="card">
-              <h2>إشعارات</h2>
+            <Panel title="إشعارات">
               <div className="muted small">
                 {windowNote(data.windows, 'notifications', NOTIFICATIONS_WINDOW_FALLBACK, {
                   totalsClause: REP_TOTALS_CLAUSE,
@@ -396,7 +393,7 @@ export default function VanSalesRepPage() {
                   </li>
                 ))}
               </ul>
-            </div>
+            </Panel>
           ) : null}
 
           {/* التوريدات بانتظار تأكيدك */}
@@ -461,8 +458,7 @@ export default function VanSalesRepPage() {
           </div>
 
           {/* أرصدة سيارتك الرسمية */}
-          <div className="card">
-            <h2>أرصدة أصناف سيارتك (من دفتر المخزون الرسمي)</h2>
+          <Panel title="أرصدة أصناف سيارتك (من دفتر المخزون الرسمي)" flush>
             <div className="table-wrap">
               <table>
                 <thead>
@@ -502,7 +498,7 @@ export default function VanSalesRepPage() {
                 </tbody>
               </table>
             </div>
-          </div>
+          </Panel>
 
           {/* إصدار فاتورة بيع */}
           <form
@@ -653,8 +649,7 @@ export default function VanSalesRepPage() {
           </form>
 
           {/* سجل الفواتير والتحصيل */}
-          <div className="card">
-            <h2>فواتيرك ومستنداتك</h2>
+          <Panel title="فواتيرك ومستنداتك" flush>
             <div className="muted small">
               {windowNote(data.windows, 'documents', DOCUMENTS_WINDOW_FALLBACK, {
                 totalsClause: REP_TOTALS_CLAUSE,
@@ -733,7 +728,7 @@ export default function VanSalesRepPage() {
                 </tbody>
               </table>
             </div>
-          </div>
+          </Panel>
 
           {/* التحصيلات */}
           <div className="card">
@@ -787,8 +782,7 @@ export default function VanSalesRepPage() {
           </div>
 
           {/* إغلاق الوردية */}
-          <div className="card">
-            <h2>إغلاق الوردية وتصفية العهدة</h2>
+          <Panel title="إغلاق الوردية وتصفية العهدة" flush>
             <div className="muted small">
               {windowNote(data.windows, 'loadOrders', LOAD_ORDERS_WINDOW_FALLBACK, {
                 totalsClause: REP_TOTALS_CLAUSE,
@@ -882,7 +876,7 @@ export default function VanSalesRepPage() {
                 </tbody>
               </table>
             </div>
-          </div>
+          </Panel>
         </div>
       ) : null}
 
@@ -978,12 +972,15 @@ export default function VanSalesRepPage() {
       {/* نافذة التحصيل */}
       {collectDocId ? (
         <div role="dialog" aria-modal="true" className="modal-backdrop" style={backdropStyle}>
-          <div className="card" style={dialogStyle}>
-            <h2>تسجيل تحصيل من العميل</h2>
-            <p className="muted small" style={{ marginTop: 0 }}>
-              يُصدر النظام سند قبض رسمي ويربطه بالفاتورة ويحدّث المبلغ المستحق — لا يُكتفى بتسجيل المبلغ في
-              جدول التوزيع.
-            </p>
+          <Panel
+            title="تسجيل تحصيل من العميل"
+            hint={
+              <>
+                يُصدر النظام سند قبض رسمي ويربطه بالفاتورة ويحدّث المبلغ المستحق — لا يُكتفى بتسجيل المبلغ في
+                جدول التوزيع.
+              </>
+            }
+          >
             <label className="field">
               <span>المبلغ المحصّل *</span>
               <input
@@ -1020,7 +1017,7 @@ export default function VanSalesRepPage() {
                 إلغاء
               </button>
             </div>
-          </div>
+          </Panel>
         </div>
       ) : null}
 
