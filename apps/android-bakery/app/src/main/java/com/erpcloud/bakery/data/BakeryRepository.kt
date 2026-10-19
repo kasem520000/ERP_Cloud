@@ -19,6 +19,31 @@ import com.erpcloud.bakery.data.api.ReportsPayloadDto
 import com.erpcloud.bakery.data.api.SalesmanCardDto
 import com.erpcloud.bakery.data.api.ShortagePolicyDto
 import com.erpcloud.bakery.data.api.WarehouseOptionDto
+import com.erpcloud.bakery.data.api.AdjustmentDto
+import com.erpcloud.bakery.data.api.AdjustmentTypeDto
+import com.erpcloud.bakery.data.api.BomDto
+import com.erpcloud.bakery.data.api.BranchDto
+import com.erpcloud.bakery.data.api.CashLocationDto
+import com.erpcloud.bakery.data.api.CategoryDto
+import com.erpcloud.bakery.data.api.CatalogItemDto
+import com.erpcloud.bakery.data.api.DepartmentDto
+import com.erpcloud.bakery.data.api.EmployeeDto
+import com.erpcloud.bakery.data.api.EmployeeStatementDto
+import com.erpcloud.bakery.data.api.ItemUnitDto
+import com.erpcloud.bakery.data.api.JobDto
+import com.erpcloud.bakery.data.api.MembershipDto
+import com.erpcloud.bakery.data.api.PayrollRunDto
+import com.erpcloud.bakery.data.api.PermissionDto
+import com.erpcloud.bakery.data.api.PosCheckoutReceiptDto
+import com.erpcloud.bakery.data.api.PosOfflineDataDto
+import com.erpcloud.bakery.data.api.PurchaseInvoiceDto
+import com.erpcloud.bakery.data.api.ReportCatalogEntryDto
+import com.erpcloud.bakery.data.api.ReportResultDto
+import com.erpcloud.bakery.data.api.RoleDto
+import com.erpcloud.bakery.data.api.SalaryPaymentDto
+import com.erpcloud.bakery.data.api.SalesRegistryDto
+import com.erpcloud.bakery.data.api.StockVoucherDto
+import com.erpcloud.bakery.data.api.UnitDto
 import com.erpcloud.bakery.data.offline.Idempotency
 import com.erpcloud.bakery.data.offline.SessionStore
 import kotlinx.coroutines.Dispatchers
@@ -127,11 +152,15 @@ class BakeryRepository(
         response.body() ?: emptyList()
     }
 
-    suspend fun parties(): List<PartyDto> = withContext(Dispatchers.IO) {
-        val response = api.parties()
+    suspend fun parties(kind: String = "customer"): List<PartyDto> = withContext(Dispatchers.IO) {
+        val response = api.parties(kind = kind)
         if (!response.isSuccessful) throw response.toApiException()
         response.body() ?: emptyList()
     }
+
+    /** إنشاءُ طرفٍ — مورّدٌ أو عميل (إذن parties.manage). */
+    suspend fun createParty(body: JsonObject): ActionResult =
+        submitDirect("حفظ الطرف") { api.createParty(body) }
 
     suspend fun printView(documentId: String): PrintViewDto = withContext(Dispatchers.IO) {
         val response = api.printView(documentId, copies = 2)
@@ -263,4 +292,214 @@ class BakeryRepository(
         }
         return ApiException(problem, code())
     }
+
+    // ============================================================ وحدات «الطاقم»
+
+    /** قائمةٌ خام تُفكّ تسلسلها من الاستجابة — الغلافُ إن وُجد يُتجاوز. */
+    private inline fun <reified T> rawList(call: () -> Response<List<T>>): List<T> =
+        withContext(Dispatchers.IO) {
+            val response = call()
+            if (!response.isSuccessful) throw response.toApiException()
+            response.body() ?: emptyList()
+        }
+
+    // ------------------------------------------------------------ الكتالوج
+
+    suspend fun catalogCategories(): List<CategoryDto> = rawList { api.catalogCategories() }
+
+    suspend fun catalogUnits(): List<UnitDto> = rawList { api.catalogUnits() }
+
+    suspend fun createCategory(body: JsonObject): ActionResult =
+        submitDirect("إنشاء المجموعة") { api.createCategory(body) }
+
+    suspend fun createUnit(body: JsonObject): ActionResult =
+        submitDirect("إنشاء وحدة القياس") { api.createUnit(body) }
+
+    suspend fun createCatalogItem(body: JsonObject): ActionResult =
+        submitDirect("إنشاء الصنف") { api.createCatalogItem(body) }
+
+    suspend fun itemUnits(itemId: String): List<ItemUnitDto> = rawList { api.itemUnits(itemId) }
+
+    suspend fun setItemUnit(itemId: String, body: JsonObject): ActionResult =
+        submitDirect("إضافة وحدة إلى الصنف") { api.setItemUnit(itemId, body) }
+
+    // ------------------------------------------------------- الفروع والخزائن
+
+    suspend fun branches(): List<BranchDto> = withContext(Dispatchers.IO) {
+        val response = api.branches()
+        if (!response.isSuccessful) throw response.toApiException()
+        response.body()?.data ?: emptyList()
+    }
+
+    suspend fun cashLocations(): List<CashLocationDto> = withContext(Dispatchers.IO) {
+        val response = api.cashLocations()
+        if (!response.isSuccessful) throw response.toApiException()
+        response.body()?.data ?: emptyList()
+    }
+
+    // ------------------------------------------------------------- المشتريات
+
+    suspend fun purchaseInvoices(): List<PurchaseInvoiceDto> = rawList { api.purchaseInvoices() }
+
+    suspend fun createPurchaseInvoice(body: JsonObject): ActionResult =
+        submitDirect("إنشاء فاتورة المشتريات") { api.createPurchaseInvoice(body) }
+
+    suspend fun postPurchaseInvoice(id: String, body: JsonObject): ActionResult =
+        submitDirect("ترحيل فاتورة المشتريات") { api.postPurchaseInvoice(id, body) }
+
+    // --------------------------------------------------------- سندات المخزون
+
+    suspend fun stockVouchers(kind: String? = null, status: String? = null): List<StockVoucherDto> = rawList {
+        api.stockVouchers(kind, status)
+    }
+
+    suspend fun createStockVoucher(body: JsonObject): ActionResult =
+        submitDirect("إنشاء السند المخزنيّ") { api.createStockVoucher(body) }
+
+    suspend fun postStockVoucher(id: String, body: JsonObject): ActionResult =
+        submitDirect("ترحيل السند المخزنيّ") { api.postStockVoucher(id, body) }
+
+    // ------------------------------------------------------------ نقطة البيع
+
+    /** قوائمُ الموادّ (BOM) — مصدرُ الإنتاج البديل عن الإدخال اليدويّ للمكوّنات. */
+    suspend fun boms(): List<BomDto> = withContext(Dispatchers.IO) {
+        val response = api.boms()
+        unwrapEnvelope(response) ?: emptyList()
+    }
+
+    suspend fun posOfflineData(): PosOfflineDataDto = withContext(Dispatchers.IO) {
+        val response = api.posOfflineData()
+        unwrapEnvelope(response) ?: throw ApiException(ProblemDto(title = "Empty POS data"), response.code())
+    }
+
+    /** إتمامُ بيعة نقطة البيع — الإيصالُ كما أعاده الخادم (رقمُ الفاتورة لا يُخترع). */
+    suspend fun posCheckout(body: JsonObject): PosCheckoutReceiptDto = withContext(Dispatchers.IO) {
+        val response = api.posCheckout(body)
+        unwrapEnvelope(response) ?: throw ApiException(ProblemDto(title = "Empty checkout response"), response.code())
+    }
+
+    // ------------------------------------------------------ الموارد البشريّة
+
+    suspend fun departments(): List<DepartmentDto> = rawList { api.departments() }
+
+    suspend fun jobs(): List<JobDto> = rawList { api.jobs() }
+
+    suspend fun employees(): List<EmployeeDto> = rawList { api.employees() }
+
+    suspend fun createEmployee(body: JsonObject): ActionResult =
+        submitDirect("إنشاء الموظف") { api.createEmployee(body) }
+
+    suspend fun adjustmentTypes(): List<AdjustmentTypeDto> = rawList { api.adjustmentTypes() }
+
+    suspend fun adjustments(employeeId: String? = null, status: String? = null): List<AdjustmentDto> =
+        withContext(Dispatchers.IO) {
+            val response = api.adjustments(employeeId, status)
+            unwrapEnvelope(response) ?: emptyList()
+        }
+
+    suspend fun createAdjustment(body: JsonObject): ActionResult =
+        submitDirect("تسجيل المنصرف") { api.createAdjustment(body) }
+
+    suspend fun approveAdjustment(id: String): ActionResult =
+        submitDirect("اعتماد المنصرف") { api.approveAdjustment(id) }
+
+    suspend fun payrollRuns(): List<PayrollRunDto> = withContext(Dispatchers.IO) {
+        val response = api.payrollRuns()
+        unwrapEnvelope(response) ?: emptyList()
+    }
+
+    suspend fun createPayrollRun(body: JsonObject): PayrollRunDto = withContext(Dispatchers.IO) {
+        val response = api.createPayrollRun(body)
+        unwrapEnvelope(response) ?: throw ApiException(ProblemDto(title = "Empty payroll run"), response.code())
+    }
+
+    suspend fun postPayrollRun(id: String, body: JsonObject): ActionResult =
+        submitDirect("ترحيل مسيّر الرواتب") { api.postPayrollRun(id, body) }
+
+    suspend fun payPayrollRun(id: String, body: JsonObject): ActionResult =
+        submitDirect("دفع مسيّر الرواتب") { api.payPayrollRun(id, body) }
+
+    suspend fun employeeStatement(
+        employeeId: String,
+        from: String?,
+        to: String?,
+        fullPeriod: Boolean = false,
+    ): EmployeeStatementDto =
+        withContext(Dispatchers.IO) {
+            val response = api.employeeStatement(
+                employeeId = employeeId,
+                from = if (fullPeriod) null else from?.trim()?.takeIf { it.isNotEmpty() },
+                to = if (fullPeriod) null else to?.trim()?.takeIf { it.isNotEmpty() },
+                fullPeriod = if (fullPeriod) "true" else null,
+            )
+            if (!response.isSuccessful) throw response.toApiException()
+            val element = response.body() ?: throw ApiException(
+                ProblemDto(title = "Empty statement response"), response.code(),
+            )
+            // الردُّ `{data: {...}}` — يُفكّ يدويًّا لأن الخدمة تعيد كائنًا مركّبًا.
+            val payload = (element as? JsonObject)?.get("data") ?: element
+            AppJson.decodeFromJsonElement(EmployeeStatementDto.serializer(), payload)
+        }
+
+    suspend fun salaryPayments(employeeId: String? = null): List<SalaryPaymentDto> =
+        withContext(Dispatchers.IO) {
+            val response = api.salaryPayments(employeeId)
+            unwrapEnvelope(response) ?: emptyList()
+        }
+
+    suspend fun createSalaryPayment(body: JsonObject): ActionResult =
+        submitDirect("تسجيل إذن صرف الراتب") { api.createSalaryPayment(body) }
+
+    // ---------------------------------------------------- المنظّمة والأدوار
+
+    suspend fun salesRegistry(): List<SalesRegistryDto> = rawList { api.salesRegistry() }
+
+    suspend fun createSalesRegistry(body: JsonObject): ActionResult =
+        submitDirect("إنشاء مندوب المبيعات") { api.createSalesRegistry(body) }
+
+    suspend fun memberships(): List<MembershipDto> = withContext(Dispatchers.IO) {
+        val response = api.memberships()
+        if (!response.isSuccessful) throw response.toApiException()
+        response.body()?.data ?: emptyList()
+    }
+
+    suspend fun assignableRoles(): List<RoleDto> = withContext(Dispatchers.IO) {
+        val response = api.assignableRoles()
+        unwrapEnvelope(response) ?: emptyList()
+    }
+
+    suspend fun inviteMembership(body: JsonObject): ActionResult =
+        submitDirect("دعوة المستخدم") { api.inviteMembership(body) }
+
+    suspend fun roles(): List<RoleDto> = withContext(Dispatchers.IO) {
+        val response = api.roles()
+        if (!response.isSuccessful) throw response.toApiException()
+        response.body()?.data ?: emptyList()
+    }
+
+    suspend fun createRole(body: JsonObject): ActionResult =
+        submitDirect("إنشاء الدور") { api.createRole(body) }
+
+    suspend fun permissions(): List<PermissionDto> = withContext(Dispatchers.IO) {
+        val response = api.permissions()
+        unwrapEnvelope(response) ?: emptyList()
+    }
+
+    // -------------------------------------------------------------- التقارير
+
+    suspend fun reportCatalog(): List<ReportCatalogEntryDto> = rawList { api.reportCatalog() }
+
+    suspend fun runReport(key: String, params: JsonObject): ReportResultDto =
+        withContext(Dispatchers.IO) {
+            val query = params.entries
+                .mapNotNull { (name, value) ->
+                    (value as? kotlinx.serialization.json.JsonPrimitive)
+                        ?.takeIf { it.content.isNotBlank() }
+                        ?.let { name to it.content }
+                }
+                .toMap()
+            val response = api.runReport(key, query)
+            if (!response.isSuccessful) throw response.toApiException()
+            response.body() ?: throw ApiException(ProblemDto(title = "Empty report response"), response.code())
+        }
 }

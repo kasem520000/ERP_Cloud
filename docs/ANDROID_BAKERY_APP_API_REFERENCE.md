@@ -63,6 +63,10 @@
 - `scrapQty` ≥ 0، ومع أيّ فاقدٍ ( >0 ) **`scrapReason` إلزاميّ**.
 - `itemId` مطلوب.
 - `unitCost` موجبةٌ إن أُدخلت؛ الأولويّةُ لأمرِ التصنيعِ ثمّ البطاقة.
+- **مصدرُ الموادّ إلزاميّ**: `bomId` **أو** `components[{itemId, qty, unitId?}]` —
+  بلا أحدهما يرفضُ الخادمُ الدفعةَ بـ 422 `VAN_PRODUCTION_INPUT_REQUIRED`
+  (لا مخزونَ من العدم: الواردُ من خارج المنشأة موضعهُ إذنُ إدخالٍ مخزنيٌّ رسميّ
+  أو تسويةُ جردٍ معتمدة).
 - تكرارُ `idempotencyKey` يعيدُ نتيجةَ النيّةِ نفسِها فلا دفعةً مكرّرةً.
 
 ## ٤. التحميل والتوزيع
@@ -128,8 +132,76 @@
 | إشعارُ تحميلٍ وتسلّمِ عهدة | `LoadOrderDto` | الرقمُ/الحالة/المندوب/الصنف/الكميّة/المركبة/الدفعة/سقفُ المجاني + توقيعان |
 | ملخّصُ إقفال وردية | `LoadOrderDto` | أساسُ العهدة · مبيع/مجاني/مرتجع/تالف/عجز · المتوقّعُ مقابل المُعلن · فرقُ الاعتماد · النقدُ المتوقّع/المُحصَّل/الفرق + توقيعان |
 | بطاقةُ دفعةِ إنتاج | `ProductionBatchDto` | رقمُ الدفعة/الصنف/التاريخ/المنتج/الفاقد/المتاح/التكلفة |
+| إيصالُ بيعةِ نقطة البيع | `PosCheckoutReceiptDto` | رقمُ الفاتورة/الإجماليُّ قبل الضريبة/الضريبة/الصافي/المدفوع/الباقي/حالةُ السداد |
 
 وفاتورةُ المستندِ الرسميّة إن لزمت: `GET /van-sales/documents/{id}/print-view?copies=1..6`
 (إذن `van_sales.view`) — كما في تطبيقِ المندوب.
+
+</div>
+
+## ١٢. وحداتُ «الطاقم» المنقولة من `apps/staff` (الكتالوج/المشتريات/السندات/نقطة البيع/HRM/الأدوار/التقارير)
+
+كلُّ هذه المسارات تُستدعى بأذونها الرسميّة نفسِها، والأرقامُ نصوصٌ (numeric من PostgreSQL):
+
+### الكتالوج — `organization/catalog`
+- `GET /organization/catalog/categories` (إذن `catalog.item.view`) — مصفوفةٌ خام:
+  `{id, code, nameAr, nameEn?, parentId?, sortOrder?}`.
+- `GET /organization/catalog/units` — `{id, code, nameAr, nameEn?}`.
+- `GET /organization/catalog/items?q=` — `{id, sku, barcode?, nameAr, categoryId?, baseUnitId?, kind, salePrice?, purchasePrice?, minQty?, trackLot, showInPos, active?…}`.
+- `POST /organization/catalog/categories` (إذن `catalog.category.manage`) — `{code, nameAr, parentId?}`.
+- `POST /organization/catalog/units` (إذن `catalog.unit.manage`) — `{code, nameAr}`.
+- `POST /organization/catalog/items` (إذن `catalog.item.manage`) — `{sku, nameAr, categoryId, baseUnitId, barcode?, salePrice?, purchasePrice?, minQty?, trackLot?…}`.
+
+### الفروع والخزائن
+- `GET /branches` (إذن `organization.view`) — صفحةٌ `{data: [{id, nameAr, code?, isActive, isDefault}]}`.
+- `GET /cash-locations` — صفحةٌ `{data: [{id, name, kind, branchId?, isDefault, changeInPos, isActive}]}`.
+
+### المشتريات
+- `GET /purchase-invoices` (إذن `purchase.view`) — مصفوفةٌ خام (آخر 100): `{id, number, invoiceDate?, partyId?, partyName?, branchId?, warehouseId?, kind, status, supplierReferenceNo?, subtotal?, taxTotal?, total?, paidTotal?, paymentStatus?, createdAt?}`.
+- `POST /purchase-invoices` (إذن `purchase.invoice.create`) — `{branchId, partyId, warehouseId?, supplierReferenceNo?, lines[{itemId, quantity, unitPrice, discountRate?, taxRate?, batchNo?, expiryDate?}]}`.
+- `POST /purchase-invoices/{id}/post` (إذن `purchase.invoice.post`) — `{fiscalPeriodId?, journalLines?, settlement?: credit|cash|bank, settlementAccountId?, settlementCashLocationId?}`.
+- `POST /parties` (إذن `parties.manage`) — `{kind: supplier, name, taxNo?, phone?}`.
+
+### السندات المخزنيّة — `inventory/vouchers`
+- `GET /inventory/vouchers?kind=&status=&warehouse_id=` (إذن `inventory.view`) — مصفوفةٌ خام (آخر 200) مع السطور: `{id, number, kind: opening|stock_in|stock_out, status, voucherDate?, branchId?, warehouseId?, warehouseName?, reason?, notes?, lines[{itemId, qty, unitId?, unitCost?, batchNo?}]}`.
+- `POST /inventory/vouchers` (إذن `inventory.adjust`) — `{branchId, warehouseId, kind, voucherDate?, reason?, notes?, lines[{itemId, qty, unitId?, unitCost?, batchNo?, expiryDate?}]}` — **بضاعةُ أوّل المدة تحتاج unitCost موجبةً لكلّ صنف**.
+- `POST /inventory/vouchers/{id}/post` (إذن `inventory.adjust`) — `{fiscalPeriodId?, allowNegative?}`.
+
+### قوائمُ الموادّ — `manufacturing`
+- `GET /manufacturing/boms` (إذن `manufacturing.view`) — `{data: [{id, name, version?, productItemId?, lines[{id, componentItemId, qty, unitId?}]}]}` (آخر 200).
+
+### نقطة البيع — `pos`
+- `GET /pos/offline-data` (إذن `pos.view`) — `{data: {schemaVersion, generatedAt, items[], categories[], units[], itemUnits[], barcodes[], taxes[], customers[], branches[], warehouses[], cashLocations[], priceLists[], prices[], stock[], defaults{branchId, warehouseId, cashLocationId}}}` — الأصنافُ `showInPos` فقط.
+- `POST /pos/checkout` (إذنان `pos.operate` + `sales.invoice.post`) —
+  `{branchId, warehouseId?, partyId? (إلزاميٌّ للآجل), cashCustomerName?, lines[{itemId, quantity, unitPrice, taxRate?, discountAmount?}], payment{method: cash|card|bank|credit, cashLocationId?, tendered?}, payments?[]}`
+  ← يُعيد `{data: {invoiceId, number, subtotal, taxTotal, total, paidTotal, paymentStatus, method, change, shiftId}}` — **رقمُ الفاتورة من الخادم**.
+
+### المواردُ البشريّة — `hrm`
+- `GET /hrm/employees?q=&status=&branch_id=&department_id=&job_id=` (إذن `hrm.view`) — مصفوفةٌ خام من بطاقات الموظفين: `{id, employeeNo, name, status, branchId?, departmentId?, departmentName?, managementName?, jobId?, jobName?, hireDate?, phone?, mobile?, email?, nationalId?, accountCode?, totalSalary, salaryComponents{code→قيمة نصّيّة}}`.
+- `POST /hrm/employees` (إذن `hrm.manage`) — `{employeeNo, name, branchId?, departmentId?, jobId?, hireDate?, gender?, phone?, mobile?, email?, salaryComponents?}`.
+- `GET /hrm/departments` / `GET /hrm/jobs` — مصفوفتان خامتان.
+- `GET /hrm/adjustments?employee_id=&status=` (إذن `hrm.view`) — `{data: [{id, employeeId, employeeName?, employeeNo?, typeId?, typeCode?, typeName?, kind: addition|deduction, valueText, startsOn, endsOn?, recurring, paymentMethod?, cashLocationName?, reason?, number?, status: draft|approved, createdAt?}]}`.
+- `POST /hrm/adjustments` (إذن `hrm.manage`) — `{employeeId, typeId?|typeCode?, kind?, componentCode?, valueText, startsOn, endsOn?, recurring?, subFromSalary?, paymentMethod?: cash|bank, cashLocationId?, reason?, postEntry?}`.
+- `POST /hrm/adjustments/{id}/approve` (إذن `hrm.adjust.approve`) — يحوّل draft → approved.
+- `GET /hrm/payroll/runs` (إذن `hrm.view`) — `{data: [{id, yearMonth, periodId?, currency?, status: draft|posted|paid, summary{preview{yearMonth, employeeCount, netPayable, lines[{employeeId, employeeName, gross, additions, deductions, net}]}}, createdAt?}]}`.
+- `POST /hrm/payroll/runs` (إذن `hrm.manage`) — `{yearMonth, periodId?, currency?, unpaidDaysByEmployee?}`.
+- `POST /hrm/payroll/runs/{id}/post` (إذن `hrm.payroll.post`) — `{journalEntryId?, branchId?, fiscalPeriodId?, journalLines?}`.
+- `POST /hrm/payroll/runs/{id}/pay` (إذن `hrm.payroll.post`) — **`{branchId, cashLocationId}` إلزاميّان** + `method?: cash|cheque|bank_transfer|card`.
+- `GET /hrm/employee-statement?employee_id=&from=&to=&branch_id=&full_period=` (إذن `hrm.view`) — `{data: {employee{id, employeeNo, name, accountCode, accountName}, branchId?, from?, to?, fullPeriod, summary{totalDebit, totalCredit, balanceDebit, balanceCredit}, rows[{seq, date, entryId?, entryNumber?, description?, debit, credit, runningBalance?, balanceStatus?, branchName?, entryType?}]}}`.
+- `GET /hrm/salary-payments?employee_id=` (إذن `hrm.view`) — `{data: [{id, number, employeeId, employeeName?, branchName?, yearMonth, paymentDate, method, cashLocationName?, net, voucherNumber?, voucherStatus?, notes?, createdAt?}]}`.
+
+### المنظّمة والأدوار
+- `GET /sales/salesmen` (إذن `sales.view`) — مصفوفةٌ خام: `{id, name, active, employeeId?, commissionRate, collectionCommissionRate, profitCommissionRate, tel?, mobile?, notes?}`.
+- `POST /sales/salesmen` (إذن `sales.salesman.manage`) — `{name, employeeId?, active?, commissionRate?, collectionCommissionRate?, profitCommissionRate?, tel?, mobile?, notes?}`.
+- `GET /memberships` (إذن `tenant.membership.manage`) — صفحةٌ `{data: [{id, displayName, status, isOwner, kind, branchScope: uuid[]|null, roles[{id, name, isSystem}]}]}`.
+- `GET /memberships/assignable-roles` — `{data: [{id, name, isSystem}]}`.
+- `POST /memberships` — `{email, fullName?, displayName?, branchScope?, roleIds (واحدٌ على الأقلّ)}`.
+- `GET /roles` (إذن `tenant.role.manage`) — صفحةٌ `{data: [{id, name, description?, isSystem, permissionCodes[]}]}`.
+- `POST /roles` — `{name, description?, permissionCodes[]}` (أذوناتٌ من الفهرس لا تُخترع).
+- `GET /permissions` — عامٌّ للهويّة: `{data: [{code, module, description}]}`.
+
+### حزمةُ التقارير — `reports`
+- `GET /reports` (إذن `reporting.view`) — فهرسٌ خام: `{key, titleAr, group, hintAr?, params[], columns[], totals[], grandTotal[], chart?}`.
+- `GET /reports/{key}?branch_id=&from=&to=&month=` — كائنٌ خام: `{key, titleAr, group, hintAr?, params, columns[{key, labelAr, type: text|money|qty|int|date|percent, hidden?}], rows[{key→قيمة نصّيّة}], totals{key→قيمة}, grandTotal[{key, labelAr, amount}], rowCount, generatedAt}` — **كلُّ الحساب عند الخادم**.
 
 </div>

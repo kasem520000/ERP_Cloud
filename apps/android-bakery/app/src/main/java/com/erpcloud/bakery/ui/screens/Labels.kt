@@ -114,4 +114,77 @@ object Labels {
 
     /** تاريخٌ YYYY-MM-DD كما جاء — للعرض بلا تحويل (البساطةُ أوضح من إعادة التهيئة). */
     fun dateOrDash(value: String?): String = value?.takeIf { it.isNotBlank() } ?: "—"
+
+    // ---------------------------------------------------- تسمياتُ وحدات «الطاقم»
+
+    /** نوعُ السند المخزنيّ — كما في `VOUCHER_KIND_LABELS` عند الخادم. */
+    fun voucherKind(kind: String): String = when (kind) {
+        "opening" -> "بضاعة أول المدة"
+        "stock_in" -> "سند إدخال مخزني"
+        "stock_out" -> "سند إخراج مخزني"
+        else -> kind
+    }
+
+    /** حالةُ مستندٍ (مسودة/مرحّل/ملغى…) — تُعرض خامًا إن جهلت. */
+    fun docStatus(status: String): Pair<String, ChipTone> = when (status) {
+        "draft" -> "مسودة" to ChipTone.WARN
+        "posted" -> "مرحّلة" to ChipTone.OK
+        "paid" -> "مدفوعة" to ChipTone.OK
+        "void", "voided", "cancelled" -> "ملغاة" to ChipTone.DANGER
+        "pending" -> "بانتظار الاعتماد" to ChipTone.WARN
+        "approved" -> "معتمدة" to ChipTone.OK
+        "active" -> "نشطة" to ChipTone.OK
+        "suspended" -> "موقوفة" to ChipTone.WARN
+        "terminated" -> "منتهية" to ChipTone.DANGER
+        "reversed" -> "معكوسة" to ChipTone.DANGER
+        else -> status to ChipTone.NEUTRAL
+    }
+
+    /** نوعُ فاتورة المشتريات. */
+    fun purchaseKind(kind: String): String = when (kind) {
+        "purchase" -> "مشتريات"
+        "purchase_return" -> "مردود مشتريات"
+        else -> kind
+    }
+
+    /** إضافةٌ أم استقطاعٌ في المنصرفات. */
+    fun adjustmentKind(kind: String): String = when (kind) {
+        "addition" -> "إضافة"
+        "deduction" -> "استقطاع"
+        else -> kind
+    }
+
+    /** طريقةُ دفع الرواتب ونقطة البيع. */
+    fun payMethod(method: String?): String = when (method) {
+        "cash" -> "نقدي"
+        "card" -> "شبكة"
+        "bank", "bank_transfer" -> "تحويل بنكي"
+        "cheque" -> "شيك"
+        "credit" -> "آجل"
+        "split" -> "متعدّد"
+        else -> method ?: "—"
+    }
+
+    /** حالةُ العضويّة. */
+    fun membershipStatus(status: String): Pair<String, ChipTone> = when (status) {
+        "active" -> "نشط" to ChipTone.OK
+        "invited" -> "مدعوّ" to ChipTone.INFO
+        "suspended" -> "موقوف" to ChipTone.WARN
+        "removed" -> "مزال" to ChipTone.DANGER
+        else -> status to ChipTone.NEUTRAL
+    }
+
+    /** مجموعةُ التقرير كما في فهرس التقارير. */
+    fun reportGroup(group: String): String = when (group) {
+        "sales" -> "المبيعات"
+        "purchases" -> "المشتريات"
+        "inventory" -> "المخزون"
+        "accounting" -> "المحاسبة"
+        "pos" -> "نقطة البيع"
+        "hrm" -> "الموارد البشريّة"
+        "marina" -> "المراسي"
+        "projects" -> "المشاريع"
+        "zatca" -> "الفاتورة الإلكترونيّة"
+        else -> group
+    }
 }

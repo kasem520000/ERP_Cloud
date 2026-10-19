@@ -310,3 +310,48 @@ fun batchLabel(batch: ProductionBatchDto, widthPx: Int = 576): Bitmap {
     if (batch.lotId != null) kv("رقمُ اللوط", batch.lotId ?: "")
     return doc.render(ops)
 }
+
+/** إيصالُ بيعةِ نقطة البيع — يُطبعُ فور نجاح `pos/checkout` (رقمُ الفاتورة من الخادم). */
+fun posReceipt(receipt: com.erpcloud.bakery.data.api.PosCheckoutReceiptDto, subtotal: java.math.BigDecimal, widthPx: Int = 576): Bitmap {
+    val doc = DocCanvas(widthPx)
+    val titlePaint = doc.paint(doc.titleSize, bold = true)
+    val bodyPaint = doc.paint(doc.bodySize)
+    val smallPaint = doc.paint(doc.smallSize, color = Color.DKGRAY)
+    val center = Layout.Alignment.ALIGN_CENTER
+
+    val ops = mutableListOf<Op>()
+    ops += Op.Section(doc.layout("إيصال بيع — نقطة البيع", titlePaint, doc.innerWidth, center))
+    ops += Op.Section(
+        doc.layout(
+            "فاتورة ${receipt.number.ifBlank { "—" }} · ${Labels_receipt(receipt)}",
+            smallPaint, doc.innerWidth, center,
+        ),
+    )
+    ops += Op.Dash
+
+    fun kv(label: String, value: String, bold: Boolean = false, boxed: Boolean = false) {
+        ops += Op.Kv(KvRow(label, value, bold, boxed))
+    }
+
+    kv("الإجماليُّ قبل الضريبة", Dec.money(subtotal.toPlainString()) + " ر.س")
+    receipt.taxTotal?.let { kv("الضريبة", Dec.money(it) + " ر.س") }
+    receipt.total?.let { kv("الصافي", Dec.money(it) + " ر.س", bold = true, boxed = true) }
+    receipt.paidTotal?.let { kv("المدفوع", Dec.money(it) + " ر.س") }
+    receipt.change?.takeIf { it.isNotBlank() && Dec.isPositive(it) }?.let { kv("الباقي للعميل", Dec.money(it) + " ر.س") }
+    receipt.paymentStatus?.let { kv("حالةُ السداد", it) }
+    ops += Op.Dash
+    ops += Op.Section(
+        doc.layout("شكرًا لزيارتكم — الإيصالُ من نظام المخبز الرسميّ.", smallPaint, doc.innerWidth, center),
+    )
+    return doc.render(ops)
+}
+
+/** طريقةُ الدفع كما أعادها الخادم (cash/card/bank/credit/split). */
+private fun Labels_receipt(receipt: com.erpcloud.bakery.data.api.PosCheckoutReceiptDto): String = when (receipt.method) {
+    "cash" -> "نقدي"
+    "card" -> "شبكة"
+    "bank" -> "تحويل بنكي"
+    "credit" -> "آجل"
+    "split" -> "متعدّد"
+    else -> receipt.method ?: "—"
+}

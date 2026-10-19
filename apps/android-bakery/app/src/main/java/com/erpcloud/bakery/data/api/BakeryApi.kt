@@ -9,6 +9,7 @@ import retrofit2.http.POST
 import retrofit2.http.PUT
 import retrofit2.http.Path
 import retrofit2.http.Query
+import retrofit2.http.QueryMap
 
 /**
  * واجهةُ الخادم لتطبيق إدارة المخابز — كلُّ مسارٍ هنا موقّعٌ على المتحكّم الرسميّ
@@ -166,6 +167,10 @@ interface BakeryApi {
     @GET("parties")
     suspend fun parties(@Query("kind") kind: String = "customer"): Response<List<PartyDto>>
 
+    /** إنشاءُ طرفٍ (مورّد/عميل) — إذن `parties.manage`. */
+    @POST("parties")
+    suspend fun createParty(@Body body: JsonObject): Response<JsonElement>
+
     // ----------------------------------------------------------- الإشعارات
 
     @GET("notifications")
@@ -177,4 +182,225 @@ interface BakeryApi {
 
     @POST("notifications/{id}/read")
     suspend fun markNotificationRead(@Path("id") id: String): Response<JsonElement>
+
+    // ============================================================ وحدات «الطاقم»
+
+    // ------------------------------------------------------------ الكتالوج
+
+    /** المجموعات — إذن `catalog.category.view` (مصفوفةٌ خام). */
+    @GET("organization/catalog/categories")
+    suspend fun catalogCategories(): Response<List<CategoryDto>>
+
+    /** إنشاء مجموعة — إذن `catalog.category.manage`. */
+    @POST("organization/catalog/categories")
+    suspend fun createCategory(@Body body: JsonObject): Response<JsonElement>
+
+    /** وحدات القياس — إذن `catalog.unit.view`. */
+    @GET("organization/catalog/units")
+    suspend fun catalogUnits(): Response<List<UnitDto>>
+
+    /** إنشاء وحدة — إذن `catalog.unit.manage`. */
+    @POST("organization/catalog/units")
+    suspend fun createUnit(@Body body: JsonObject): Response<JsonElement>
+
+    /** إنشاء صنف — إذن `catalog.item.manage`. */
+    @POST("organization/catalog/items")
+    suspend fun createCatalogItem(@Body body: JsonObject): Response<JsonElement>
+
+    /** وحداتُ صنفٍ — إذن `catalog.item.view`. */
+    @GET("organization/catalog/items/{id}/units")
+    suspend fun itemUnits(@Path("id") itemId: String): Response<List<ItemUnitDto>>
+
+    /** إضافةُ وحدةٍ إلى صنف — إذن `catalog.item.manage`. */
+    @POST("organization/catalog/items/{id}/units")
+    suspend fun setItemUnit(
+        @Path("id") itemId: String,
+        @Body body: JsonObject,
+    ): Response<JsonElement>
+
+    // ------------------------------------------------------------ الفروع والخزائن
+
+    /** الفروع — إذن `organization.branch.view` (غلافُ صفحةٍ). */
+    @GET("branches")
+    suspend fun branches(): Response<BranchPageDto>
+
+    /** الخزائن — إذنُ قراءة الخزائن (غلافُ صفحةٍ). */
+    @GET("cash-locations")
+    suspend fun cashLocations(): Response<CashLocationPageDto>
+
+    // ------------------------------------------------------------- المشتريات
+
+    /** فواتيرُ المشتريات — إذن `purchase.view` (مصفوفةٌ خام). */
+    @GET("purchase-invoices")
+    suspend fun purchaseInvoices(): Response<List<PurchaseInvoiceDto>>
+
+    /** إنشاءُ فاتورة مشتريات (مسودة) — إذن `purchase.invoice.create`. */
+    @POST("purchase-invoices")
+    suspend fun createPurchaseInvoice(@Body body: JsonObject): Response<JsonElement>
+
+    /** ترحيلُ الفاتورة — إذن `purchase.invoice.post`. */
+    @POST("purchase-invoices/{id}/post")
+    suspend fun postPurchaseInvoice(
+        @Path("id") id: String,
+        @Body body: JsonObject,
+    ): Response<JsonElement>
+
+    // --------------------------------------------------------- سندات المخزون
+
+    /** السنداتُ المخزنيّة (أول المدة/إدخال/إخراج) — إذن `inventory.view`. */
+    @GET("inventory/vouchers")
+    suspend fun stockVouchers(
+        @Query("kind") kind: String? = null,
+        @Query("status") status: String? = null,
+    ): Response<List<StockVoucherDto>>
+
+    /** إنشاءُ سندٍ — إذن `inventory.adjust`. */
+    @POST("inventory/vouchers")
+    suspend fun createStockVoucher(@Body body: JsonObject): Response<JsonElement>
+
+    /** ترحيلُ السند — إذن `inventory.adjust`. */
+    @POST("inventory/vouchers/{id}/post")
+    suspend fun postStockVoucher(@Path("id") id: String, @Body body: JsonObject): Response<JsonElement>
+
+    // ------------------------------------------------------------ نقطة البيع
+
+    /** قوائمُ الموادّ — إذن `manufacturing.view` (`{data}`). */
+    @GET("manufacturing/boms")
+    suspend fun boms(): Response<ApiEnvelope<List<BomDto>>>
+
+    /** حزمةُ بيانات نقطة البيع — إذن `pos.view` (`{data}`). */
+    @GET("pos/offline-data")
+    suspend fun posOfflineData(): Response<ApiEnvelope<PosOfflineDataDto>>
+
+    /** إتمامُ بيعة — إذنَا `pos.operate` + `sales.invoice.post` (`{data}`). */
+    @POST("pos/checkout")
+    suspend fun posCheckout(@Body body: JsonObject): Response<ApiEnvelope<PosCheckoutReceiptDto>>
+
+    // ------------------------------------------------------ الموارد البشريّة
+
+    /** الأقسام — إذن `hrm.view`. */
+    @GET("hrm/departments")
+    suspend fun departments(): Response<List<DepartmentDto>>
+
+    /** الوظائف — إذن `hrm.view`. */
+    @GET("hrm/jobs")
+    suspend fun jobs(): Response<List<JobDto>>
+
+    /** الموظفون — إذن `hrm.view` (بطاقات drizzle خام). */
+    @GET("hrm/employees")
+    suspend fun employees(
+        @Query("q") q: String? = null,
+        @Query("status") status: String? = null,
+    ): Response<List<EmployeeDto>>
+
+    /** إنشاءُ موظف — إذن `hrm.manage`. */
+    @POST("hrm/employees")
+    suspend fun createEmployee(@Body body: JsonObject): Response<JsonElement>
+
+    /** أنواعُ المنصرفات — إذن `hrm.view`. */
+    @GET("hrm/adjustment-types")
+    suspend fun adjustmentTypes(): Response<List<AdjustmentTypeDto>>
+
+    /** المنصرفاتُ والاستقطاعات — إذن `hrm.view` (`{data}`). */
+    @GET("hrm/adjustments")
+    suspend fun adjustments(
+        @Query("employee_id") employeeId: String? = null,
+        @Query("status") status: String? = null,
+    ): Response<ApiEnvelope<List<AdjustmentDto>>>
+
+    /** تسجيلُ منصرف/استقطاع — إذن `hrm.manage`. */
+    @POST("hrm/adjustments")
+    suspend fun createAdjustment(@Body body: JsonObject): Response<JsonElement>
+
+    /** اعتمادُ المنصرف — إذن `hrm.adjust.approve`. */
+    @POST("hrm/adjustments/{id}/approve")
+    suspend fun approveAdjustment(@Path("id") id: String): Response<JsonElement>
+
+    /** مسيّراتُ الرواتب — إذن `hrm.view` (`{data}`). */
+    @GET("hrm/payroll/runs")
+    suspend fun payrollRuns(): Response<ApiEnvelope<List<PayrollRunDto>>>
+
+    /** إنشاءُ مسيّر رواتب لشهر — إذن `hrm.manage` (`{data}`). */
+    @POST("hrm/payroll/runs")
+    suspend fun createPayrollRun(@Body body: JsonObject): Response<ApiEnvelope<PayrollRunDto>>
+
+    /** ترحيلُ المسيّر — إذن `hrm.payroll.post`. */
+    @POST("hrm/payroll/runs/{id}/post")
+    suspend fun postPayrollRun(
+        @Path("id") id: String,
+        @Body body: JsonObject,
+    ): Response<JsonElement>
+
+    /** دفعُ المسيّر — إذن `hrm.payroll.post`. */
+    @POST("hrm/payroll/runs/{id}/pay")
+    suspend fun payPayrollRun(
+        @Path("id") id: String,
+        @Body body: JsonObject,
+    ): Response<JsonElement>
+
+    /** كشفُ حساب موظف — إذن `hrm.view` (معامِلاتٌ snake_case كما في المتحكّم). */
+    @GET("hrm/employee-statement")
+    suspend fun employeeStatement(
+        @Query("employee_id") employeeId: String,
+        @Query("from") from: String? = null,
+        @Query("to") to: String? = null,
+        @Query("full_period") fullPeriod: String? = null,
+    ): Response<JsonElement>
+
+    /** أذونُ صرف الرواتب — إذن `hrm.view` (`{data}`). */
+    @GET("hrm/salary-payments")
+    suspend fun salaryPayments(
+        @Query("employee_id") employeeId: String? = null,
+    ): Response<ApiEnvelope<List<SalaryPaymentDto>>>
+
+    /** إذنُ صرف راتب — إذن `hrm.payroll.post`. */
+    @POST("hrm/salary-payments")
+    suspend fun createSalaryPayment(@Body body: JsonObject): Response<JsonElement>
+
+    // ---------------------------------------------------- المنظّمة والأدوار
+
+    /** سجلُّ مناديب المبيعات — إذن `sales.view` (مصفوفةٌ خام). */
+    @GET("sales/salesmen")
+    suspend fun salesRegistry(): Response<List<SalesRegistryDto>>
+
+    /** إنشاءُ مندوب مبيعات — إذن `sales.salesman.manage`. */
+    @POST("sales/salesmen")
+    suspend fun createSalesRegistry(@Body body: JsonObject): Response<JsonElement>
+
+    /** العضويّات — إذن `tenant.membership.manage` (غلافُ صفحةٍ). */
+    @GET("memberships")
+    suspend fun memberships(): Response<MembershipPageDto>
+
+    /** الأدوارُ القابلة للإسناد — إذن `tenant.membership.manage` (`{data}`). */
+    @GET("memberships/assignable-roles")
+    suspend fun assignableRoles(): Response<ApiEnvelope<List<RoleDto>>>
+
+    /** دعوةُ مستخدمٍ إلى المنشأة — إذن `tenant.membership.manage`. */
+    @POST("memberships")
+    suspend fun inviteMembership(@Body body: JsonObject): Response<JsonElement>
+
+    /** الأدوار — إذن `tenant.role.manage` (غلافُ صفحةٍ). */
+    @GET("roles")
+    suspend fun roles(): Response<RolePageDto>
+
+    /** إنشاءُ دور — إذن `tenant.role.manage`. */
+    @POST("roles")
+    suspend fun createRole(@Body body: JsonObject): Response<JsonElement>
+
+    /** سجلُّ الأذونات — عامٌّ للهويّة (`{data}`). */
+    @GET("permissions")
+    suspend fun permissions(): Response<ApiEnvelope<List<PermissionDto>>>
+
+    // -------------------------------------------------------------- التقارير
+
+    /** فهرسُ التقارير — إذن `reporting.view` (مصفوفةٌ خام). */
+    @GET("reports")
+    suspend fun reportCatalog(): Response<List<ReportCatalogEntryDto>>
+
+    /** تشغيلُ تقريرٍ بمدخلاته — إذن `reporting.view` (كائنٌ خام). */
+    @GET("reports/{key}")
+    suspend fun runReport(
+        @Path("key") key: String,
+        @QueryMap params: Map<String, String>,
+    ): Response<ReportResultDto>
 }

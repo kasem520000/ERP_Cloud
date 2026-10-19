@@ -14,6 +14,7 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Logout
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Notifications
 import androidx.compose.material.icons.outlined.BakeryDining
 import androidx.compose.material.icons.outlined.Inventory2
@@ -61,6 +62,7 @@ import com.erpcloud.bakery.util.Dec
 @Composable
 fun DashboardScreen(
     vm: AppViewModel,
+    onMenu: () -> Unit = {},
     onProduction: () -> Unit,
     onDistribution: () -> Unit,
     onCustody: () -> Unit,
@@ -82,6 +84,11 @@ fun DashboardScreen(
         topBar = {
             TopAppBar(
                 title = { Text("إدارة المخابز") },
+                navigationIcon = {
+                    IconButton(onClick = onMenu) {
+                        Icon(Icons.Default.Menu, contentDescription = "قائمة الوحدات")
+                    }
+                },
                 actions = {
                     if (state.can("tenant.notification.view")) {
                         IconButton(onClick = onNotifications) {

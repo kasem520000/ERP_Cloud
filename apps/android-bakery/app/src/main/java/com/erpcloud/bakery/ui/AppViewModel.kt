@@ -22,6 +22,30 @@ import com.erpcloud.bakery.data.api.ReportsPayloadDto
 import com.erpcloud.bakery.data.api.SalesmanCardDto
 import com.erpcloud.bakery.data.api.ShortagePolicyDto
 import com.erpcloud.bakery.data.api.WarehouseOptionDto
+import com.erpcloud.bakery.data.api.AdjustmentDto
+import com.erpcloud.bakery.data.api.AdjustmentTypeDto
+import com.erpcloud.bakery.data.api.BomDto
+import com.erpcloud.bakery.data.api.BranchDto
+import com.erpcloud.bakery.data.api.CashLocationDto
+import com.erpcloud.bakery.data.api.CatalogItemDto
+import com.erpcloud.bakery.data.api.CategoryDto
+import com.erpcloud.bakery.data.api.DepartmentDto
+import com.erpcloud.bakery.data.api.EmployeeDto
+import com.erpcloud.bakery.data.api.EmployeeStatementDto
+import com.erpcloud.bakery.data.api.JobDto
+import com.erpcloud.bakery.data.api.MembershipDto
+import com.erpcloud.bakery.data.api.PayrollRunDto
+import com.erpcloud.bakery.data.api.PermissionDto
+import com.erpcloud.bakery.data.api.PosCheckoutReceiptDto
+import com.erpcloud.bakery.data.api.PosOfflineDataDto
+import com.erpcloud.bakery.data.api.PurchaseInvoiceDto
+import com.erpcloud.bakery.data.api.ReportCatalogEntryDto
+import com.erpcloud.bakery.data.api.ReportResultDto
+import com.erpcloud.bakery.data.api.RoleDto
+import com.erpcloud.bakery.data.api.SalaryPaymentDto
+import com.erpcloud.bakery.data.api.SalesRegistryDto
+import com.erpcloud.bakery.data.api.StockVoucherDto
+import com.erpcloud.bakery.data.api.UnitDto
 import com.erpcloud.bakery.data.offline.SavedCredentials
 import com.erpcloud.bakery.data.offline.SessionState
 import com.erpcloud.bakery.ui.components.Notice
@@ -55,6 +79,8 @@ data class UiState(
     val reportsError: String? = null,
     val online: Boolean = true,
     val notifications: NotificationsState = NotificationsState(),
+    /** وحداتُ «الطاقم» — كلُّ شاشةٍ تُحمَّل عند فتحها (لا مسبقًا) وتحفظ نتيجتها هنا. */
+    val staff: StaffState = StaffState(),
 ) {
     fun can(permission: String): Boolean = me?.can(permission) == true
 
@@ -77,6 +103,51 @@ data class NotificationsState(
     val items: List<NotificationDto> = emptyList(),
     val unread: Int = 0,
     val total: Int = 0,
+    val error: String? = null,
+)
+
+/**
+ * حالةُ وحدات «الطاقم» (الكتالوج/المشتريات/السندات/نقطة البيع/الموارد البشريّة/
+ * المنظّمة/التقارير) — شاشةٌ واحدة لكلّ وظيفة، وكلٌّ منها تحملُ تحميلها وخطأها.
+ */
+data class StaffState(
+    // الكتالوج
+    val categories: List<CategoryDto> = emptyList(),
+    val units: List<UnitDto> = emptyList(),
+    val catalogItems: List<CatalogItemDto> = emptyList(),
+    // الفروع والخزائن والمورّدون
+    val branches: List<BranchDto> = emptyList(),
+    val cashLocations: List<CashLocationDto> = emptyList(),
+    val suppliers: List<PartyDto> = emptyList(),
+    // المشتريات
+    val purchaseInvoices: List<PurchaseInvoiceDto> = emptyList(),
+    // السندات المخزنيّة
+    val vouchers: List<StockVoucherDto> = emptyList(),
+    // نقطة البيع
+    val posData: PosOfflineDataDto? = null,
+    // قوائمُ الموادّ (BOM)
+    val boms: List<BomDto> = emptyList(),
+    // الموارد البشريّة
+    val employees: List<EmployeeDto> = emptyList(),
+    val departments: List<DepartmentDto> = emptyList(),
+    val jobs: List<JobDto> = emptyList(),
+    val adjustmentTypes: List<AdjustmentTypeDto> = emptyList(),
+    val adjustments: List<AdjustmentDto> = emptyList(),
+    val payrollRuns: List<PayrollRunDto> = emptyList(),
+    val salaryPayments: List<SalaryPaymentDto> = emptyList(),
+    // المنظّمة
+    val salesRegistry: List<SalesRegistryDto> = emptyList(),
+    val memberships: List<MembershipDto> = emptyList(),
+    val assignableRoles: List<RoleDto> = emptyList(),
+    val roles: List<RoleDto> = emptyList(),
+    val permissions: List<PermissionDto> = emptyList(),
+    // التقارير
+    val reportCatalog: List<ReportCatalogEntryDto> = emptyList(),
+    // نتيجةُ آخر كشف حساب موظف / تشغيل تقرير (تُقرأ عند الطلب)
+    val employeeStatement: EmployeeStatementDto? = null,
+    val reportResult: ReportResultDto? = null,
+    // حالةُ التحميل والخطأ المشتركة (شاشةٌ تُحمَّل في كلّ مرة تُفتح)
+    val loadingKey: String? = null,
     val error: String? = null,
 )
 
@@ -407,6 +478,228 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     /** مفتاحُ النيّة — نيّةٌ واحدةٌ مفتاحٌ واحد (يُحفظ نصًّا في الشاشة). */
     fun ensureIdempotencyKey(prefix: String, body: JsonObject, existingKey: String?): JsonObject =
         repo.ensureIdempotencyKey(prefix, body, existingKey)
+
+    // ============================================================ وحدات «الطاقم»
+
+    /**
+     * قاعدةُ تحميل شاشات الطاقم: تُحمَّل عند الفتح (لا مسبقًا)، والخطأُ يبقى في
+     * الشاشة نفسها — فشلُ شاشةٍ لا يُسقط غيرها.
+     */
+    private fun loadStaff(key: String, update: suspend (StaffState) -> StaffState) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(staff = it.staff.copy(loadingKey = key, error = null)) }
+            try {
+                val patched = update(_uiState.value.staff)
+                _uiState.update { it.copy(staff = patched.copy(loadingKey = null)) }
+            } catch (error: Exception) {
+                _uiState.update {
+                    it.copy(staff = it.staff.copy(loadingKey = null, error = friendly(error)))
+                }
+            }
+        }
+    }
+
+    fun loadCatalog() = loadStaff("catalog") { s ->
+        s.copy(
+            categories = repo.catalogCategories(),
+            units = repo.catalogUnits(),
+            catalogItems = repo.catalogItems(),
+        )
+    }
+
+    fun loadPurchases() = loadStaff("purchases") { s ->
+        s.copy(
+            purchaseInvoices = repo.purchaseInvoices(),
+            suppliers = repo.parties("supplier"),
+            branches = if (s.branches.isEmpty()) repo.branches() else s.branches,
+        )
+    }
+
+    fun loadVouchers(kind: String? = null) = loadStaff("vouchers") { s ->
+        s.copy(
+            vouchers = repo.stockVouchers(kind),
+            branches = if (s.branches.isEmpty()) repo.branches() else s.branches,
+        )
+    }
+
+    fun loadPos() = loadStaff("pos") { s ->
+        s.copy(posData = repo.posOfflineData())
+    }
+
+    fun loadBoms() = loadStaff("boms") { s ->
+        s.copy(boms = repo.boms())
+    }
+
+    fun loadEmployees() = loadStaff("employees") { s ->
+        s.copy(
+            employees = repo.employees(),
+            departments = repo.departments(),
+            jobs = repo.jobs(),
+            branches = if (s.branches.isEmpty()) repo.branches() else s.branches,
+        )
+    }
+
+    fun loadAdjustments() = loadStaff("adjustments") { s ->
+        s.copy(
+            adjustments = repo.adjustments(),
+            adjustmentTypes = repo.adjustmentTypes(),
+            employees = if (s.employees.isEmpty()) repo.employees() else s.employees,
+        )
+    }
+
+    fun loadPayroll() = loadStaff("payroll") { s ->
+        s.copy(
+            payrollRuns = repo.payrollRuns(),
+            branches = if (s.branches.isEmpty()) repo.branches() else s.branches,
+            cashLocations = if (s.cashLocations.isEmpty()) repo.cashLocations() else s.cashLocations,
+        )
+    }
+
+    fun loadSalaryPayments() = loadStaff("salary-payments") { s ->
+        s.copy(salaryPayments = repo.salaryPayments())
+    }
+
+    fun loadSalesRegistry() = loadStaff("sales-registry") { s ->
+        s.copy(salesRegistry = repo.salesRegistry())
+    }
+
+    fun loadUsers() = loadStaff("users") { s ->
+        s.copy(
+            memberships = repo.memberships(),
+            assignableRoles = repo.assignableRoles(),
+        )
+    }
+
+    fun loadRoles() = loadStaff("roles") { s ->
+        s.copy(
+            roles = repo.roles(),
+            permissions = if (s.permissions.isEmpty()) repo.permissions() else s.permissions,
+        )
+    }
+
+    fun loadReportCatalog() = loadStaff("report-catalog") { s ->
+        s.copy(reportCatalog = repo.reportCatalog())
+    }
+
+    // ------------------------------------------------------------ إجراءات الطاقم
+
+    private fun staffAction(label: String, action: suspend () -> ActionResult, onDone: (ActionResult) -> Unit = {}) {
+        viewModelScope.launch {
+            val result = action()
+            when (result) {
+                is ActionResult.Synced -> _notice.value = Notice.ok(result.messageAr)
+                is ActionResult.Refused -> _notice.value = Notice.danger(result.messageAr)
+                is ActionResult.Offline -> _notice.value = Notice.warn(result.messageAr)
+            }
+            onDone(result)
+        }
+    }
+
+    fun createSupplier(body: JsonObject, onDone: (ActionResult) -> Unit) {
+        staffAction("supplier", { repo.createParty(body) }, onDone)
+    }
+
+    fun createCategory(body: JsonObject, onDone: (ActionResult) -> Unit) {
+        staffAction("category", { repo.createCategory(body) }, onDone)
+    }
+
+    fun createUnit(body: JsonObject, onDone: (ActionResult) -> Unit) {
+        staffAction("unit", { repo.createUnit(body) }, onDone)
+    }
+
+    fun createCatalogItem(body: JsonObject, onDone: (ActionResult) -> Unit) {
+        staffAction("item", { repo.createCatalogItem(body) }, onDone)
+    }
+
+    fun createPurchaseInvoice(body: JsonObject, onDone: (ActionResult) -> Unit) {
+        staffAction("purchase", { repo.createPurchaseInvoice(body) }, onDone)
+    }
+
+    fun postPurchaseInvoice(id: String, body: JsonObject, onDone: (ActionResult) -> Unit) {
+        staffAction("purchase-post", { repo.postPurchaseInvoice(id, body) }, onDone)
+    }
+
+    fun createStockVoucher(body: JsonObject, onDone: (ActionResult) -> Unit) {
+        staffAction("voucher", { repo.createStockVoucher(body) }, onDone)
+    }
+
+    fun postStockVoucher(id: String, body: JsonObject, onDone: (ActionResult) -> Unit) {
+        staffAction("voucher-post", { repo.postStockVoucher(id, body) }, onDone)
+    }
+
+    /** إتمامُ بيعة نقطة البيع — يُرجعُ الإيصالَ أو خطأً نصيًّا. */
+    fun posCheckout(body: JsonObject, onDone: (PosCheckoutReceiptDto?) -> Unit) {
+        viewModelScope.launch {
+            try {
+                val receipt = repo.posCheckout(body)
+                _notice.value = Notice.ok("تمّت البيعة — فاتورة ${receipt.number}.")
+                onDone(receipt)
+            } catch (error: Exception) {
+                _notice.value = Notice.danger(friendly(error))
+                onDone(null)
+            }
+        }
+    }
+
+    fun createEmployee(body: JsonObject, onDone: (ActionResult) -> Unit) {
+        staffAction("employee", { repo.createEmployee(body) }, onDone)
+    }
+
+    fun createAdjustment(body: JsonObject, onDone: (ActionResult) -> Unit) {
+        staffAction("adjustment", { repo.createAdjustment(body) }, onDone)
+    }
+
+    fun approveAdjustment(id: String, onDone: (ActionResult) -> Unit) {
+        staffAction("adjustment-approve", { repo.approveAdjustment(id) }, onDone)
+    }
+
+    fun createPayrollRun(body: JsonObject, onDone: (ActionResult) -> Unit) {
+        viewModelScope.launch {
+            try {
+                val run = repo.createPayrollRun(body)
+                _notice.value = Notice.ok("أُنشئ مسيّر رواتب ${run.yearMonth} (${run.status}).")
+                onDone(ActionResult.Synced("created"))
+            } catch (error: Exception) {
+                _notice.value = Notice.danger(friendly(error))
+                onDone(ActionResult.Refused(friendly(error)))
+            }
+        }
+    }
+
+    fun postPayrollRun(id: String, body: JsonObject, onDone: (ActionResult) -> Unit) {
+        staffAction("payroll-post", { repo.postPayrollRun(id, body) }, onDone)
+    }
+
+    fun payPayrollRun(id: String, body: JsonObject, onDone: (ActionResult) -> Unit) {
+        staffAction("payroll-pay", { repo.payPayrollRun(id, body) }, onDone)
+    }
+
+    fun createSalaryPayment(body: JsonObject, onDone: (ActionResult) -> Unit) {
+        staffAction("salary-payment", { repo.createSalaryPayment(body) }, onDone)
+    }
+
+    fun createSalesRegistry(body: JsonObject, onDone: (ActionResult) -> Unit) {
+        staffAction("salesman", { repo.createSalesRegistry(body) }, onDone)
+    }
+
+    fun createMembership(body: JsonObject, onDone: (ActionResult) -> Unit) {
+        staffAction("membership", { repo.inviteMembership(body) }, onDone)
+    }
+
+    fun createRole(body: JsonObject, onDone: (ActionResult) -> Unit) {
+        staffAction("role", { repo.createRole(body) }, onDone)
+    }
+
+    /** كشفُ حساب موظف — يُحمَّل في `staff.employeeStatement` (الفترةُ الكاملة تجعلُ من/إلى تُهملان). */
+    fun employeeStatement(employeeId: String, from: String, to: String, fullPeriod: Boolean) =
+        loadStaff("employee-statement") { s ->
+            s.copy(employeeStatement = repo.employeeStatement(employeeId, from, to, fullPeriod))
+        }
+
+    /** تشغيلُ تقريرٍ بمدخلاته — النتيجةُ في `staff.reportResult` والخطأُ في `staff.error`. */
+    fun runReport(key: String, params: JsonObject) = loadStaff("report-$key") { s ->
+        s.copy(reportResult = repo.runReport(key, params))
+    }
 
     // ------------------------------------------------------------ الإشعارات
 

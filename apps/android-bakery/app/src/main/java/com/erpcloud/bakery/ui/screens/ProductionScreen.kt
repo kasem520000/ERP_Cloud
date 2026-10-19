@@ -16,15 +16,22 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -34,6 +41,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.unit.dp
 import com.erpcloud.bakery.data.ActionResult
 import com.erpcloud.bakery.ui.AppViewModel
+import com.erpcloud.bakery.ui.components.ActionButton
 import com.erpcloud.bakery.ui.components.CenterLoading
 import com.erpcloud.bakery.ui.components.ChipTone
 import com.erpcloud.bakery.ui.components.EmptyState
@@ -46,17 +54,25 @@ import com.erpcloud.bakery.util.Dec
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
+import java.math.BigDecimal
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
 /**
  * شاشةُ الإنتاج — دفعاتُ المصنع كما تعود في لوحة الخطّ، ودفعةٌ جديدةٌ
- * (إذنُ van_sales.production.manage). قواعدُ الخادم حرفيّةً هنا:
- * الكميةُ المنتجةُ موجبةٌ، والفاقدُ صفرٌ أو أكثر **بسببٍ إلزاميٍّ مع أيّ فاقد**،
- * والصنفُ مطلوبٌ، وتكلفةُ الوحدة موجبةٌ إن أُدخلت.
+ * (إذنُ van_sales.production.manage).
+ *
+ * قواعدُ الخادم حرفيّةً هنا (كما في شاشة الويب نفسها):
+ * - الكميةُ المنتجةُ موجبةٌ، والفاقدُ صفرٌ أو أكثر **بسببٍ إلزاميٍّ مع أيّ فاقد**.
+ * - **مصدرُ الموادّ إلزاميّ**: قائمةُ موادّ (bomId) أو مكوّناتٌ مصروفة
+ *   (الصنف والكميّة) — بلا أحدهما يرفض الخادم 422 `VAN_PRODUCTION_INPUT_REQUIRED`
+ *   لأنّ الدفعة تُدخل مخزونًا بلا مصدر ولا تكلفة.
+ * - التكلفةُ الفعليّة من أمر الإنتاج الرسميّ — ما يُعرض هنا **تقديرٌ إرشاديّ**
+ *   من متوسط التكلفة الرسميّ في `officialStock`.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -124,7 +140,7 @@ fun ProductionScreen(vm: AppViewModel, onBack: () -> Unit) {
                     if (batch.supervisorName.isNotBlank()) KeyValue("المشرف", batch.supervisorName)
                     if (batch.notes.isNotBlank()) KeyValue("ملاحظات", batch.notes)
                     Spacer(Modifier.height(8.dp))
-                    androidx.compose.material3.OutlinedButton(
+                    OutlinedButton(
                         onClick = {
                             busy = true
                             scope.launch {
@@ -159,7 +175,16 @@ fun ProductionScreen(vm: AppViewModel, onBack: () -> Unit) {
     }
 }
 
-/** نموذجُ دفعةٍ جديدة — نيّةٌ واحدةٌ مفتاحٌ واحد: المفتاحُ يُبنى عند أوّل إرسال ويُعاد استعماله. */
+/** سطرُ مكوّنٍ في المسودة — الصنفُ والكميّة فقط (كما في شاشة الويب). */
+private data class ComponentDraft(val itemId: String = "", val itemLabel: String = "", val qty: String = "")
+
+/** تقديرُ قيمةِ المكوّنات كما في الويب — إرشاديٌّ من متوسط التكلفة الرسميّ. */
+private data class ComponentEstimate(val totalValue: BigDecimal, val perKg: BigDecimal?, val unvalued: Int)
+
+/**
+ * نموذجُ دفعةٍ جديدة — نيّةٌ واحدةٌ مفتاحٌ واحد: المفتاحُ يُبنى عند أوّل إرسال ويُعاد استعماله.
+ * مصدرُ الموادّ: قائمةُ موادّ (BOM) أو إدخالٌ يدويّ للمكوّنات — لا ثالثَ لهما.
+ */
 @Composable
 private fun BatchForm(vm: AppViewModel, onDone: () -> Unit) {
     val state by vm.uiState.collectAsState()
@@ -177,12 +202,21 @@ private fun BatchForm(vm: AppViewModel, onDone: () -> Unit) {
     var unitCost by rememberSaveable { mutableStateOf("") }
     var supervisorName by rememberSaveable { mutableStateOf("") }
     var notes by rememberSaveable { mutableStateOf("") }
-    var pickItems by remember { mutableStateOf(false) }
-    var pickWarehouses by remember { mutableStateOf(false) }
     var localError by remember { mutableStateOf<String?>(null) }
 
+    // مصدرُ الموادّ: 0 = قائمةُ موادّ (BOM)، 1 = إدخالٌ يدويّ.
+    var materialSource by rememberSaveable { mutableStateOf(1) }
+    var bomId by rememberSaveable { mutableStateOf("") }
+    var bomLabel by rememberSaveable { mutableStateOf("") }
+    val components = remember { mutableStateListOf(ComponentDraft(), ComponentDraft()) }
+
+    var pickItems by remember { mutableStateOf(false) }
+    var pickWarehouses by remember { mutableStateOf(false) }
+    var pickBoms by remember { mutableStateOf(false) }
+    var pickComponentAt by remember { mutableStateOf(-1) }
+
     // المستودعُ الرئيسيّ كما تقوله اللوحة — يُقترح مرّةً ولا يُخترع مستودع.
-    androidx.compose.runtime.LaunchedEffect(state.warehouses, state.dashboard?.mainWarehouseId) {
+    LaunchedEffect(state.warehouses, state.dashboard?.mainWarehouseId) {
         if (warehouseId.isBlank() && state.warehouses.isNotEmpty()) {
             val main = state.warehouses.firstOrNull { it.id == state.dashboard?.mainWarehouseId }
                 ?: state.warehouses.firstOrNull { it.isDefault == true }
@@ -191,6 +225,36 @@ private fun BatchForm(vm: AppViewModel, onDone: () -> Unit) {
                 warehouseLabel = main.label
             }
         }
+    }
+    // قوائمُ الموادّ تُحمَّل مع النموذج (إذنُ manufacturing.view — فشلُها لا يُسقط اليدويّ).
+    LaunchedEffect(Unit) { vm.loadBoms() }
+
+    // التقديرُ الإرشاديّ — من officialStock (متوسطُ تكلفةٍ رسميّ)، لا رقمَ يُخترع.
+    val estimate: ComponentEstimate? = remember(components.toList(), materialSource, warehouseId, producedQty) {
+        if (materialSource != 1) return@remember null
+        val stock = state.dashboard?.officialStock.orEmpty()
+        val produced = Dec.parse(producedQty)
+        var total = BigDecimal.ZERO
+        var unvalued = 0
+        for (line in components) {
+            if (line.itemId.isBlank()) continue
+            val qty = Dec.parse(line.qty)
+            if (qty == null || qty.signum() <= 0) continue
+            val costText = stock
+                .firstOrNull { it.itemId == line.itemId && it.warehouseId == warehouseId }?.averageCost
+                ?: stock.firstOrNull { it.itemId == line.itemId }?.averageCost
+            val unitCostDecimal = costText?.let { Dec.parse(it) }
+            if (unitCostDecimal == null) {
+                unvalued++
+                continue
+            }
+            total = total.add(qty.multiply(unitCostDecimal))
+        }
+        ComponentEstimate(
+            total,
+            produced?.takeIf { it.signum() > 0 }?.let { total.divide(it, 4, java.math.RoundingMode.HALF_UP) },
+            unvalued,
+        )
     }
 
     LazyColumn(
@@ -276,17 +340,127 @@ private fun BatchForm(vm: AppViewModel, onDone: () -> Unit) {
                     label = { Text("ملاحظات") },
                     modifier = Modifier.fillMaxWidth(),
                 )
-                if (localError != null) {
-                    Spacer(Modifier.height(8.dp))
-                    StatusChip(localError ?: "", ChipTone.DANGER)
+            }
+        }
+
+        // ---------------------------------------------- مصدرُ الموادّ (إلزاميّ)
+        item {
+            SectionCard(title = "مصدرُ الموادّ", subtitle = "بلا مصدرٍ يرفضُ الخادمُ الدفعة (422)") {
+                SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth()) {
+                    SegmentedButton(
+                        selected = materialSource == 0,
+                        onClick = { materialSource = 0 },
+                        shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2),
+                    ) { Text("قائمةُ موادّ (BOM)") }
+                    SegmentedButton(
+                        selected = materialSource == 1,
+                        onClick = { materialSource = 1 },
+                        shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2),
+                    ) { Text("إدخالٌ يدويّ للمكوّنات") }
                 }
-                Spacer(Modifier.height(12.dp))
+                if (materialSource == 0) {
+                    Spacer(Modifier.height(8.dp))
+                    OutlinedTextField(
+                        value = bomLabel,
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text("قائمةُ الموادّ *") },
+                        placeholder = { Text("اختر قائمة الموادّ") },
+                        modifier = Modifier.fillMaxWidth(),
+                        trailingIcon = {
+                            IconButton(onClick = { pickBoms = true }) { Text("اختر") }
+                        },
+                    )
+                    Text(
+                        "الأمرُ الرسميُّ يصرفُ الموادَّ ويُرحّل التكلفةَ الفعليّة — تُنشأ الدفعةُ مرتبطةً به.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+        }
+
+        // ------------------------------------- المكوّناتُ المصروفة (الإدخال اليدويّ)
+        if (materialSource == 1) {
+            item {
+                SectionCard(title = "المكوّناتُ المصروفة", subtitle = "الصنفُ والكميّة لكلّ سطر — سطرٌ واحدٌ على الأقلّ") {
+                    components.forEachIndexed { index, line ->
+                        Row(
+                            Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+                        ) {
+                            OutlinedTextField(
+                                value = line.itemLabel,
+                                onValueChange = {},
+                                readOnly = true,
+                                label = { Text("صنفُ المكوّن ${index + 1}") },
+                                placeholder = { Text("اختر الصنف") },
+                                modifier = Modifier.weight(1.6f),
+                                trailingIcon = {
+                                    IconButton(onClick = { pickComponentAt = index }) { Text("اختر") }
+                                },
+                            )
+                            OutlinedTextField(
+                                value = line.qty,
+                                onValueChange = { if (Dec.isValidInput(it)) components[index] = line.copy(qty = it) },
+                                label = { Text("الكميّة") },
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                                modifier = Modifier.weight(1f),
+                            )
+                            IconButton(
+                                onClick = { components.removeAt(index) },
+                                enabled = components.size > 1,
+                            ) { Text("✕") }
+                        }
+                    }
+                    OutlinedButton(onClick = { components.add(ComponentDraft()) }, modifier = Modifier.fillMaxWidth()) {
+                        Text("+ أضف مكوّنًا")
+                    }
+                    Spacer(Modifier.height(6.dp))
+                    Text(
+                        "بلا مكوّناتٍ (أو قائمة موادّ) يرفضُ الخادمُ الدفعة — لأنّها تُدخل مخزونًا بلا مصدر ولا تكلفة، " +
+                            "والواردُ من خارج المنشأة موضعهُ إذنُ إدخالٍ مخزنيٌّ رسميٌّ أو تسويةُ جردٍ معتمدة.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    if (estimate != null && estimate.totalValue.signum() > 0) {
+                        Spacer(Modifier.height(8.dp))
+                        KeyValue("تقديرُ قيمةِ المكوّنات (متوسطٌ رسميٌّ)", Dec.money(estimate.totalValue.toPlainString()) + " ر.س")
+                        estimate.perKg?.let {
+                            KeyValue("تكلفةُ الكيلو المتوقّعة", Dec.money(it.toPlainString()) + " ر.س")
+                        }
+                        Text(
+                            "رقمٌ إرشاديٌّ قبل الاعتماد — الفعليُّ قيمةُ ما يُصرف من الرفّ في أمر الإنتاج الرسميّ.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    if (estimate != null && estimate.unvalued > 0) {
+                        Spacer(Modifier.height(6.dp))
+                        StatusChip(
+                            "⚠️ ${estimate.unvalued} من المكوّنات بلا قيمةٍ أو بلا رصيدٍ في المستودع المختار — " +
+                                "الخادمُ يرفض الدفعة قبل أن تُصرف أيُّ مادّة.",
+                            ChipTone.WARN,
+                        )
+                    }
+                }
+            }
+        }
+
+        item {
+            SectionCard(title = null) {
+                if (localError != null) {
+                    StatusChip(localError ?: "", ChipTone.DANGER)
+                    Spacer(Modifier.height(8.dp))
+                }
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    com.erpcloud.bakery.ui.components.ActionButton(
+                    ActionButton(
                         label = if (sending) "جارٍ الإرسال…" else "تسجيل الدفعة",
                         onClick = {
                             val produced = Dec.parse(producedQty)
                             val unitCostValue = Dec.parse(unitCost)
+                            val validComponents = components.filter { it.itemId.isNotBlank() && (Dec.parse(it.qty)?.signum() ?: 0) > 0 }
                             localError = when {
                                 itemId.isBlank() -> "اختر الصنف أولًا."
                                 produced == null || produced.signum() <= 0 ->
@@ -295,6 +469,15 @@ private fun BatchForm(vm: AppViewModel, onDone: () -> Unit) {
                                     "سببُ الفاقد إلزاميٌّ مع أيّ كمية فاقد."
                                 unitCostValue?.signum() == -1 ->
                                     "تكلفةُ الوحدة تُقبل موجبةً فقط."
+                                materialSource == 0 && bomId.isBlank() ->
+                                    "اختر قائمةَ الموادّ أو بدّل إلى الإدخال اليدويّ للمكوّنات."
+                                materialSource == 1 && validComponents.isEmpty() ->
+                                    "الدفعةُ تحتاج مصدرًا للموادّ: أدخل مكوّنًا واحدًا على الأقلّ (الصنف والكميّة) " +
+                                        "أو اختر قائمةَ موادّ."
+                                materialSource == 1 && components.any {
+                                    it.itemId.isNotBlank() && (Dec.parse(it.qty)?.signum() ?: 0) <= 0
+                                } ->
+                                    "كميّةُ كلّ مكوّنٍ مُختارٍ يجب أن تكون رقمًا موجبًا."
                                 else -> null
                             }
                             if (localError != null) return@ActionButton
@@ -309,6 +492,23 @@ private fun BatchForm(vm: AppViewModel, onDone: () -> Unit) {
                                 if (unitCost.isNotBlank()) put("unitCost", Dec.wire(unitCost))
                                 if (supervisorName.isNotBlank()) put("supervisorName", supervisorName.trim())
                                 if (notes.isNotBlank()) put("notes", notes.trim())
+                                if (materialSource == 0) {
+                                    put("bomId", bomId)
+                                } else {
+                                    put(
+                                        "components",
+                                        buildJsonArray {
+                                            validComponents.forEach { line ->
+                                                add(
+                                                    buildJsonObject {
+                                                        put("itemId", line.itemId)
+                                                        put("qty", Dec.wire(line.qty))
+                                                    }
+                                                )
+                                            }
+                                        },
+                                    )
+                                }
                             }
                             val withKey = vm.ensureIdempotencyKey("bakery-batch", body, intentKey)
                             intentKey = (withKey["idempotencyKey"] as? JsonPrimitive)?.content ?: intentKey
@@ -321,7 +521,7 @@ private fun BatchForm(vm: AppViewModel, onDone: () -> Unit) {
                         loading = sending,
                         modifier = Modifier.weight(1f),
                     )
-                    com.erpcloud.bakery.ui.components.ActionButton(
+                    ActionButton(
                         label = "رجوع",
                         onClick = onDone,
                         enabled = !sending,
@@ -351,6 +551,34 @@ private fun BatchForm(vm: AppViewModel, onDone: () -> Unit) {
             onSelect = { item ->
                 warehouseId = item.id
                 warehouseLabel = item.title
+            },
+        )
+    }
+    if (pickBoms) {
+        PickerDialog(
+            title = "اختر قائمة الموادّ",
+            items = state.staff.boms.map { bom ->
+                PickerItem(
+                    bom.id,
+                    bom.name + (bom.lines.takeIf { it.isNotEmpty() }?.let { " — ${it.size} مكوّنًا" } ?: ""),
+                )
+            },
+            onDismiss = { pickBoms = false },
+            onSelect = { item ->
+                bomId = item.id
+                bomLabel = item.title
+            },
+        )
+    }
+    if (pickComponentAt >= 0) {
+        val at = pickComponentAt
+        PickerDialog(
+            title = "صنفُ المكوّن ${at + 1}",
+            items = state.items.map { PickerItem(it.id, it.label) },
+            onDismiss = { pickComponentAt = -1 },
+            onSelect = { item ->
+                components[at] = components[at].copy(itemId = item.id, itemLabel = item.title)
+                pickComponentAt = -1
             },
         )
     }
