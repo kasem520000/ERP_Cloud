@@ -65,11 +65,25 @@ jobs:
           set -o pipefail
           ./gradlew assembleDebug --no-daemon --stacktrace 2>&1 | tee /tmp/bakery-build.log
 
+      - name: Upload bakery APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-bakery-debug
+          path: apps/android-bakery/app/build/outputs/apk/debug/
+          if-no-files-found: error
+
       - name: Build android-rep (assembleDebug)
         working-directory: apps/android-rep
         run: |
           set -o pipefail
           ./gradlew assembleDebug --no-daemon --stacktrace 2>&1 | tee /tmp/rep-build.log
+
+      - name: Upload rep APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-rep-debug
+          path: apps/android-rep/app/build/outputs/apk/debug/
+          if-no-files-found: error
 
       # سجلُّ الوظيفة يُخزَّنُ خارج github.com؛ هذا التعليقُ يجعلُ أخطاءَ الترجمة
       # قابلةً للقراءة عبر واجهة API من بيئاتٍ محدودةِ المضيفات.
