@@ -397,9 +397,7 @@ export default function VouchersPage() {
           setNotice(undefined);
         }}
       />
-      <p className="muted" style={{ marginTop: -4 }}>
-        {KINDS.find((option) => option.id === kind)?.hint}
-      </p>
+      <p className="ui-filter-hint">{KINDS.find((option) => option.id === kind)?.hint}</p>
 
       {open && (
         <form className="card" onSubmit={createVoucher}>

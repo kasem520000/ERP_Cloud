@@ -164,6 +164,7 @@ export default function BelowMinimumPage() {
 
       <QueryView
         panel="الأصناف تحت حد الطلب"
+        panelHint="حد الطلب يُضبط من بطاقة الصنف (دليل المواد). السند يُنشأ كمسودة — حدّد تكلفة الوحدة ثم رحّله من شاشة سندات المخزون."
         query={rows}
         empty="لا توجد أصناف تحت حد الطلب"
         emptyDetail="كل الأصناف أعلى من حد الطلب، أو أن بطاقات الأصناف لم يُحدَّد لها حد بعد."
@@ -230,11 +231,6 @@ export default function BelowMinimumPage() {
           />
         )}
       </QueryView>
-
-      <p className="muted" style={{ fontSize: 13 }}>
-        حد الطلب يُضبط من بطاقة الصنف (دليل المواد). السند يُنشأ كمسودة — حدّد تكلفة الوحدة ثم رحّله من شاشة
-        سندات المخزون.
-      </p>
     </Screen>
   );
 }

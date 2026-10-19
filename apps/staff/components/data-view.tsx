@@ -21,6 +21,7 @@ export function QueryView<T>({
   isEmpty,
   wrapEmpty,
   panel,
+  panelHint,
   children,
 }: {
   query: QueryState<T>;
@@ -40,6 +41,8 @@ export function QueryView<T>({
    * other section; otherwise its heading disappears when the list is empty.
    */
   panel?: ReactNode;
+  /** A sentence under the panel title — what the current mode/list means. */
+  panelHint?: ReactNode;
   children: (data: T) => ReactNode;
 }) {
   const render = (): ReactNode => {
@@ -59,7 +62,7 @@ export function QueryView<T>({
   const body = render();
   if (panel === undefined) return <>{body}</>;
   return (
-    <Panel title={panel} flush>
+    <Panel title={panel} hint={panelHint} flush>
       {body}
     </Panel>
   );
