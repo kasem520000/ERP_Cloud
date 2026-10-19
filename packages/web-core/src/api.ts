@@ -53,6 +53,17 @@ export class ApiError extends Error {
 export function apiErrorText(error: unknown, fallback = 'تعذر إكمال الطلب'): string {
   if (!(error instanceof ApiError)) return fallback;
   const detail = error.status < 500 ? (error.detail ?? '').trim() : '';
+  /*
+   * رمز آليّ لا جملة: بلا حرف عربيّ، وشكله شكل المفاتيح (`PERMISSION_DENIED`،
+   * `not_found`) أو كلمتان بلا مسافات داخلهما تنتهيان بـ required
+   * (`permission parties.view required`). الجملة الإنجليزيّة الكاملة تبقى كما هي.
+   */
+  const codeShape =
+    (!/[\u0600-\u06FF]/.test(detail) && /^[\w.-]{1,60}$/.test(detail)) ||
+    (/^[^\u0600-\u06FF]+$/.test(detail) &&
+      /^[\w.]+(\s+[\w.]+)*\s+required$/i.test(detail) &&
+      detail.length <= 80);
+  if (codeShape) return fallback;
   return detail || error.message || fallback;
 }
 
@@ -253,7 +264,8 @@ export async function apiOpen(path: string, init: RequestInit = {}): Promise<Res
   const session = readSession();
   const call = async (token?: string): Promise<Response> => {
     const headers = new Headers(init.headers ?? {});
-    if (!headers.has('content-type') && init.body !== undefined) headers.set('content-type', 'application/json');
+    if (!headers.has('content-type') && init.body !== undefined)
+      headers.set('content-type', 'application/json');
     if (token) headers.set('authorization', `Bearer ${token}`);
     return fetch(`${apiBaseUrl}${path}`, { ...init, headers });
   };

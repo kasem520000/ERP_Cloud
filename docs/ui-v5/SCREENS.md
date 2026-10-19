@@ -494,14 +494,14 @@
 
 | ✔ | الشاشة | المسار | الملف | المعالجة | ملاحظة |
 | :-: | --- | --- | --- | :-: | --- |
-| [x] | الرئيسية | `/` | `page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
-| [x] | المحاسبة | `/accounting` | `accounting/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
-| [x] | التحصيل | `/collection` | `collection/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
-| [x] | العهدة | `/custody` | `custody/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
-| [x] | التوزيع | `/distribution` | `distribution/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
-| [x] | الإنتاج | `/production` | `production/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
-| [x] | شاشة المندوب | `/rep` | `rep/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
-| [x] | التقارير | `/reports` | `reports/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
-| [x] | المناديب | `/reps` | `reps/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
-| [x] | المبيعات | `/sales` | `sales/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
-| [x] | الخزينة | `/treasury` | `treasury/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
+| [x] | الرئيسية | `/` | `page.tsx` | R | تحقق في المتصفح 1440 · لوحات Panel + شريط KpiStrip · بلا بطاقات عائمة |
+| [x] | المحاسبة | `/accounting` | `accounting/page.tsx` | R | تحقق في المتصفح 1440 · لوحات Panel + شريط KpiStrip · بلا بطاقات عائمة |
+| [x] | التحصيل | `/collection` | `collection/page.tsx` | R | تحقق في المتصفح 1440 · لوحات Panel + شريط KpiStrip · بلا بطاقات عائمة |
+| [x] | العهدة | `/custody` | `custody/page.tsx` | R | تحقق في المتصفح 1440 · لوحات Panel + شريط KpiStrip · بلا بطاقات عائمة |
+| [x] | التوزيع | `/distribution` | `distribution/page.tsx` | R | تحقق في المتصفح 1440 · لوحات Panel + شريط KpiStrip · بلا بطاقات عائمة |
+| [x] | الإنتاج | `/production` | `production/page.tsx` | R | تحقق في المتصفح 1440 · لوحات Panel + شريط KpiStrip · بلا بطاقات عائمة |
+| [x] | شاشة المندوب | `/rep` | `rep/page.tsx` | R | تحقق في المتصفح 1440 · لوحات Panel + شريط KpiStrip · بلا بطاقات عائمة |
+| [x] | التقارير | `/reports` | `reports/page.tsx` | R | تحقق في المتصفح 1440 · لوحات Panel + شريط KpiStrip · بلا بطاقات عائمة |
+| [x] | المناديب | `/reps` | `reps/page.tsx` | R | تحقق في المتصفح 1440 · لوحات Panel + شريط KpiStrip · بلا بطاقات عائمة |
+| [x] | المبيعات | `/sales` | `sales/page.tsx` | R | تحقق في المتصفح 1440 · لوحات Panel + شريط KpiStrip · بلا بطاقات عائمة |
+| [x] | الخزينة | `/treasury` | `treasury/page.tsx` | R | تحقق في المتصفح 1440 · لوحات Panel + شريط KpiStrip · بلا بطاقات عائمة |

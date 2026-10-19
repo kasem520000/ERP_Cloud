@@ -13,7 +13,7 @@ import { ServiceWorkerRegister } from '../components/service-worker-register';
 export const metadata: Metadata = {
   title: 'المخابز: الإنتاج والتوزيع — Cloud ERP',
   description:
-    'واجهة المخابز: دفعة الإنتاج، حمولة التوزيع، المناديب، التحصيل وإقفال العهدة. تعمل على apps/api نفسها وبصلاحياتها، ومرخَّصة بباقة bakery_distribution.',
+    'واجهة المخابز: دفعة الإنتاج، وحمولة التوزيع، والمناديب، والتحصيل، وإقفال العهدة — كلّها على بيانات منشأتك وصلاحياتها.',
   /**
    * قابليةُ التثبيت على الهاتف (تطبيقُ المندوب `/rep`): ‏`start_url` في الملفّ `/rep`
    * و`display: standalone`. ويُقال صريحًا ما لا يفعله هذا: فالعاملُ يُخزِّن **القشرة** لا
@@ -46,19 +46,19 @@ export const viewport: Viewport = {
  */
 export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
   return (
- <html lang="ar" dir="rtl" suppressHydrationWarning>
- <head>
- <ThemeScript defaultChoice="system" />
- </head>
- <body>
- <ThemeProvider defaultChoice="system">
- <SessionProvider>
- <TokenBridge />
- <ServiceWorkerRegister />
- <AuthGate>{children}</AuthGate>
- </SessionProvider>
- </ThemeProvider>
- </body>
- </html>
+    <html lang="ar" dir="rtl" suppressHydrationWarning>
+      <head>
+        <ThemeScript defaultChoice="system" />
+      </head>
+      <body>
+        <ThemeProvider defaultChoice="system">
+          <SessionProvider>
+            <TokenBridge />
+            <ServiceWorkerRegister />
+            <AuthGate>{children}</AuthGate>
+          </SessionProvider>
+        </ThemeProvider>
+      </body>
+    </html>
   );
 }

@@ -81,7 +81,9 @@ describe('تشريحُ الجدول اليدويّ يطابق `DataTable` — و
     // والطبقةُ المحلّية تظلّل الزوجيّة بترقيم CSS — الصفوفُ نفسها.
     expect(layer).toContain('.bak-table tbody tr:nth-child(even)');
     // وتمريرُ المؤشّر بلا لونٍ جديد: نفس سطح الصفحة.
-    expect(layer).toContain('.bak-table tbody tr:hover td { background: var(--surface-2); }');
+    expect(layer.replace(/\s+/g, ' ')).toContain(
+      '.bak-table tbody tr:hover td { background: var(--surface-2); }',
+    );
   });
 
   it('الغلافُ غلافُ الطبقة المشتركة: تمريرٌ وحدودٌ ونصفُ قطرٍ وظلٌّ من الرموز', async () => {

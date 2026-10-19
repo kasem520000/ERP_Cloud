@@ -37,80 +37,193 @@
 @source '../../../packages/ui/src';
 
 /* ------------------------------------------------------------------ shell */
-.bak-shell { display: grid; grid-template-columns: 264px 1fr; min-height: 100vh; }
+.bak-shell {
+  display: grid;
+  grid-template-columns: 264px 1fr;
+  min-height: 100vh;
+}
 .bak-side {
   background: linear-gradient(180deg, var(--bg) 0%, var(--inset) 100%);
   color: var(--text);
   padding: 18px 12px 14px;
-  position: sticky; top: 0; height: 100vh; overflow: auto;
-  display: flex; flex-direction: column; gap: 12px;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
   border-inline-end: 1px solid var(--line);
 }
-.bak-brand { display: flex; gap: 10px; align-items: center; font-weight: 800; font-size: 15px; padding: 0 6px; }
-.bak-brand small { display: block; font-weight: 400; font-size: 12px; color: var(--muted); }
+.bak-brand {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  font-weight: 800;
+  font-size: 15px;
+  padding: 0 6px;
+}
+.bak-brand small {
+  display: block;
+  font-weight: 400;
+  font-size: 12px;
+  color: var(--muted);
+}
 .bak-logo {
-  width: 36px; height: 36px; border-radius: 10px; flex: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  flex: none;
   background: linear-gradient(135deg, var(--color-brand-600), var(--color-brand-400));
-  display: grid; place-items: center; font-size: 17px; color: var(--brand-ink);
+  display: grid;
+  place-items: center;
+  font-size: 17px;
+  color: var(--brand-ink);
 }
-.bak-nav { display: flex; flex-direction: column; gap: 3px; flex: 1; }
+.bak-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 1;
+}
 .bak-nav-title {
-  margin: 10px 8px 4px; font-size: 10px; letter-spacing: .08em;
-  color: var(--muted); text-transform: uppercase; font-weight: 700;
+  margin: 10px 8px 4px;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  text-transform: uppercase;
+  font-weight: 700;
 }
-.bak-nav-link, .bak-nav-item {
-  display: flex; align-items: center; gap: 8px;
-  padding: 7px 10px; border-radius: 8px; font-size: 12.5px;
-  color: var(--ink-2, var(--muted-2)); text-decoration: none;
+.bak-nav-link,
+.bak-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  border-radius: 8px;
+  font-size: 12.5px;
+  color: var(--ink-2, var(--muted-2));
+  text-decoration: none;
   border-inline-start: 2px solid transparent;
 }
-.bak-nav-link:hover { background: var(--surface-3); color: var(--text); }
+.bak-nav-link:hover {
+  background: var(--surface-3);
+  color: var(--text);
+}
 .bak-nav-link.active {
   background: linear-gradient(90deg, rgb(11 122 99 / 0.18), transparent);
-  color: var(--brand-ink); border-inline-start-color: var(--brand-2); font-weight: 700;
+  color: var(--brand-ink);
+  border-inline-start-color: var(--brand-2);
+  font-weight: 700;
 }
 /* المخطَّط ليس رابطاً: لا href لشاشةٍ لم تُبنَ (الرابط الميت كذب). */
-.bak-nav-item { cursor: default; opacity: .82; }
-.bak-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--line-raised); flex: none; }
-.bak-dot.ready { background: var(--color-chart-3); }
-.bak-dot.planned { background: var(--muted); }
+.bak-nav-item {
+  cursor: default;
+  opacity: 0.82;
+}
+.bak-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--line-raised);
+  flex: none;
+}
+.bak-dot.ready {
+  background: var(--color-chart-3);
+}
+.bak-dot.planned {
+  background: var(--muted);
+}
 .bak-legend {
-  display: flex; gap: 10px; flex-wrap: wrap; font-size: 10.5px; color: var(--muted);
-  padding: 8px 6px 0; border-top: 1px solid var(--line);
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  font-size: 10.5px;
+  color: var(--muted);
+  padding: 8px 6px 0;
+  border-top: 1px solid var(--line);
 }
-.bak-legend span { display: inline-flex; align-items: center; gap: 4px; }
+.bak-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
 
-.bak-main { padding: 20px 24px 44px; min-width: 0; }
-.bak-topbar {
-  background: var(--surface); border: 1px solid var(--line);
-  border-radius: var(--radius); padding: 10px 14px; margin-bottom: 16px;
-  display: flex; justify-content: space-between; gap: 12px; align-items: center; flex-wrap: wrap;
+.bak-main {
+  padding: 20px 24px 44px;
+  min-width: 0;
 }
-.bak-crumbs { font-size: 12px; color: var(--muted); display: flex; align-items: center; gap: 6px; }
-.bak-only-mobile { display: none; }
+.bak-topbar {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  margin-bottom: 16px;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.bak-crumbs {
+  font-size: 12px;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.bak-only-mobile {
+  display: none;
+}
 
 /* --------------------------------------------------------------- statuses */
 .bak-badge {
-  display: inline-flex; align-items: center; gap: 6px;
-  border-radius: 999px; padding: 3px 10px; font-size: 11.5px; font-weight: 700;
-  border: 1px solid var(--line); background: var(--surface-2); color: var(--muted-2);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 999px;
+  padding: 3px 10px;
+  font-size: 11.5px;
+  font-weight: 700;
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  color: var(--muted-2);
 }
-.bak-badge.ok { border-color: var(--success-line, var(--line)); background: var(--success-soft, var(--surface-2)); color: var(--success-ink, var(--text)); }
-.bak-badge.bad { border-color: var(--danger-line, var(--line)); background: var(--danger-soft, var(--surface-2)); color: var(--danger-ink, var(--text)); }
-.bak-badge.warn { border-color: var(--warn-line, var(--line)); background: var(--warn-soft, var(--surface-2)); color: var(--warn-ink, var(--text)); }
+.bak-badge.ok {
+  border-color: var(--success-line, var(--line));
+  background: var(--success-soft, var(--surface-2));
+  color: var(--success-ink, var(--text));
+}
+.bak-badge.bad {
+  border-color: var(--danger-line, var(--line));
+  background: var(--danger-soft, var(--surface-2));
+  color: var(--danger-ink, var(--text));
+}
+.bak-badge.warn {
+  border-color: var(--warn-line, var(--line));
+  background: var(--warn-soft, var(--surface-2));
+  color: var(--warn-ink, var(--text));
+}
 
 .bak-wall {
-  min-height: 100vh; display: grid; place-items: center; padding: 24px;
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
   /* غسلةُ علامةٍ خلف بطاقة الدخول: تدرّجٌ من رمزٍ موجود، لا صورةٌ ولا مكتبةُ أيقونات.
      ولماذا CSS صريحٌ لا `bg-gradient-to-b`: فاسمُ المرافق تغيّر بين إصدارات Tailwind
      (‏`bg-linear-to-b` في v4)، والقاعدةُ هنا لا يجوز أن تسكت إن تغيّر الاسم. */
-  background:
-    radial-gradient(1100px 400px at 50% -150px, var(--brand-soft), transparent 72%),
-    var(--bg);
+  background: radial-gradient(1100px 400px at 50% -150px, var(--brand-soft), transparent 72%), var(--bg);
 }
 /* علامةُ الدخول: `.bak-logo` نفسها بحجمٍ أكبر. والتعديلُ صنفٌ لا مرفقُ Tailwind،
    لأنّ قواعد هذا الملف بلا طبقةٍ فتغلب المرافقَ (وهذا مقصودٌ وموثّقٌ أدناه). */
-.bak-logo-lg { width: 56px; height: 56px; border-radius: 16px; font-size: 26px; box-shadow: var(--shadow-3); }
+.bak-logo-lg {
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  font-size: 26px;
+  box-shadow: var(--shadow-3);
+}
 
 /* ------------------------------------------------------------------ autofill
  * ملءُ المتصفح التلقائيّ: ‏Chrome وSafari يصبغان الحقلَ أصفرَ/أزرقَ ويُجبران لونَ
@@ -128,11 +241,20 @@ select:-webkit-autofill {
   box-shadow: 0 0 0 1000px var(--surface) inset;
   transition: background-color 9999s ease-in-out 0s;
 }
-.bak-endpoints { display: flex; flex-wrap: wrap; gap: 6px; }
+.bak-endpoints {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
 .bak-endpoint {
-  font-family: var(--font-mono); font-size: 11px; direction: ltr;
-  border: 1px solid var(--line); border-radius: 6px; padding: 2px 6px;
-  background: var(--inset); color: var(--muted-2);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  direction: ltr;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 2px 6px;
+  background: var(--inset);
+  color: var(--muted-2);
 }
 
 /*
@@ -143,31 +265,73 @@ select:-webkit-autofill {
  * خريطةَ الوحدات جدارَ نصٍّ — قِيس من لصقة صاحبِ العمل (٢٠٢٦-١٠-١٧) حيث طغى النصُّ
  * الهندسيّ على الصفحة كلّها. وبلا رموزِ لونٍ ستّ عشرية: رموزُ النظام فقط (قاعدةُ ١٨).
  */
-.bak-tech { border-top: 1px dashed var(--line); padding-top: 8px; }
-.bak-tech > summary {
-  cursor: pointer; list-style: none; user-select: none;
-  display: inline-flex; align-items: center; gap: 6px; min-height: 28px;
-  font-size: 12px; font-weight: 700; color: var(--muted-2);
+.bak-tech {
+  border-top: 1px dashed var(--line);
+  padding-top: 8px;
 }
-.bak-tech > summary::-webkit-details-marker { display: none; }
-.bak-tech > summary::before { content: '▸'; font-size: 10px; transition: transform 120ms ease; }
-.bak-tech[open] > summary::before { transform: rotate(90deg); }
-.bak-tech > summary:hover, .bak-tech > summary:focus-visible { color: var(--text); }
-.bak-tech[open] { display: grid; gap: 8px; }
-.bak-tech .bak-endpoints { padding-bottom: 2px; }
+.bak-tech > summary {
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 28px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--muted-2);
+}
+.bak-tech > summary::-webkit-details-marker {
+  display: none;
+}
+.bak-tech > summary::before {
+  content: '▸';
+  font-size: 10px;
+  transition: transform 120ms ease;
+}
+.bak-tech[open] > summary::before {
+  transform: rotate(90deg);
+}
+.bak-tech > summary:hover,
+.bak-tech > summary:focus-visible {
+  color: var(--text);
+}
+.bak-tech[open] {
+  display: grid;
+  gap: 8px;
+}
+.bak-tech .bak-endpoints {
+  padding-bottom: 2px;
+}
 
 /* وسيلةُ «مخطَّط» تُستبدل بقولٍ صريحٍ حين لا يكون ثمّة مخطَّط (فلا تناقضَ مع «١١ من ١١»). */
-.bak-legend-note { font-size: 11.5px; color: var(--muted-2); }
+.bak-legend-note {
+  font-size: 11.5px;
+  color: var(--muted-2);
+}
 
 @media (max-width: 900px) {
-  .bak-shell { grid-template-columns: 1fr; }
-  .bak-side {
-    position: fixed; inset-block: 0; inset-inline-start: 0; width: min(84vw, 300px);
-    z-index: 50; transform: translateX(100%); transition: transform var(--dur-fast) var(--ease-out);
+  .bak-shell {
+    grid-template-columns: 1fr;
   }
-  .bak-side.open { transform: translateX(0); }
-  .bak-only-mobile { display: inline-flex; }
-  .bak-main { padding: 14px 12px 32px; }
+  .bak-side {
+    position: fixed;
+    inset-block: 0;
+    inset-inline-start: 0;
+    width: min(84vw, 300px);
+    z-index: 50;
+    transform: translateX(100%);
+    transition: transform var(--dur-fast) var(--ease-out);
+  }
+  .bak-side.open {
+    transform: translateX(0);
+  }
+  .bak-only-mobile {
+    display: inline-flex;
+  }
+  .bak-main {
+    padding: 14px 12px 32px;
+  }
 }
 
 /* --------------------------------------------------------------------------
@@ -213,9 +377,20 @@ select:-webkit-autofill {
   backdrop-filter: blur(8px);
   border-bottom: 1px solid var(--line);
 }
-.rep-statusbar-id { min-width: 0; }
-.rep-statusbar-id strong { display: block; font-size: 15px; font-weight: 800; color: var(--text); }
-.rep-statusbar-id small { display: block; font-size: 11.5px; color: var(--muted); }
+.rep-statusbar-id {
+  min-width: 0;
+}
+.rep-statusbar-id strong {
+  display: block;
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--text);
+}
+.rep-statusbar-id small {
+  display: block;
+  font-size: 11.5px;
+  color: var(--muted);
+}
 
 .rep-pill {
   display: inline-flex;
@@ -231,54 +406,29 @@ select:-webkit-autofill {
   color: var(--text);
   white-space: nowrap;
 }
-button.rep-pill { cursor: pointer; font: inherit; }
-button.rep-pill:disabled { opacity: .55; cursor: not-allowed; }
-.rep-pill[data-tone='ok'] { border-color: var(--ok-line); background: var(--ok-soft); color: var(--ok-ink); }
-.rep-pill[data-tone='warn'] { border-color: var(--warn-line); background: var(--warn-soft); color: var(--warn-ink); }
-.rep-pill[data-tone='danger'] { border-color: var(--danger-line); background: var(--danger-soft); color: var(--danger-ink); }
-
-/* البطاقاتُ والأرقام */
-.rep-card {
-  border: 1px solid var(--line);
-  border-radius: var(--radius-xl);
-  background: var(--surface);
-  box-shadow: var(--shadow-1);
-  padding: 14px;
-  display: grid;
-  gap: 10px;
+button.rep-pill {
+  cursor: pointer;
+  font: inherit;
 }
-.rep-card-title { margin: 0; font-size: 15.5px; font-weight: 800; color: var(--text); }
-.rep-card-sub { margin: 0; font-size: 12px; line-height: 1.7; color: var(--muted); }
-
-.rep-tiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
-@media (min-width: 768px) {
-  .rep-tiles { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+button.rep-pill:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
 }
-.rep-tile {
-  border: 1px solid var(--line);
-  border-radius: var(--radius-lg);
-  background: var(--inset);
-  padding: 12px;
-  display: grid;
-  gap: 4px;
-  min-width: 0;
+.rep-pill[data-tone='ok'] {
+  border-color: var(--ok-line);
+  background: var(--ok-soft);
+  color: var(--ok-ink);
 }
-.rep-tile-label { font-size: 11.5px; font-weight: 700; color: var(--muted); }
-.rep-tile-value {
-  font-family: var(--font-num);
-  font-size: 24px;
-  font-weight: 800;
-  line-height: 1.15;
-  color: var(--text);
-  font-variant-numeric: tabular-nums;
-  direction: ltr;
-  unicode-bidi: isolate;
-  overflow-wrap: anywhere;
+.rep-pill[data-tone='warn'] {
+  border-color: var(--warn-line);
+  background: var(--warn-soft);
+  color: var(--warn-ink);
 }
-@media (min-width: 768px) {
-  .rep-tile-value { font-size: 27px; }
+.rep-pill[data-tone='danger'] {
+  border-color: var(--danger-line);
+  background: var(--danger-soft);
+  color: var(--danger-ink);
 }
-.rep-tile-hint { font-size: 11.5px; line-height: 1.6; color: var(--muted); }
 
 /* أرقامُ المال أينما وقعت */
 .rep-num {
@@ -290,9 +440,14 @@ button.rep-pill:disabled { opacity: .55; cursor: not-allowed; }
 }
 
 /* صفوفٌ بطاقيةٌ بدل الجدول */
-.rep-rows { display: grid; gap: 8px; }
+.rep-rows {
+  display: grid;
+  gap: 8px;
+}
 @media (min-width: 900px) {
-  .rep-rows { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .rep-rows {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 .rep-row {
   border: 1px solid var(--line);
@@ -321,15 +476,32 @@ button.rep-pill:disabled { opacity: .55; cursor: not-allowed; }
   line-height: 1.6;
   color: var(--muted);
 }
-.rep-row-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.rep-row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
 
 /* النماذج: هدفُ لمسٍ وخطٌّ لا يُكبّر iOS */
-.rep-fields { display: grid; gap: 10px; }
-@media (min-width: 768px) {
-  .rep-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.rep-fields {
+  display: grid;
+  gap: 10px;
 }
-.rep-field { display: grid; gap: 4px; min-width: 0; }
-.rep-field > span { font-size: 12.5px; font-weight: 700; color: var(--muted); }
+@media (min-width: 768px) {
+  .rep-fields {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+.rep-field {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+.rep-field > span {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--muted);
+}
 /**
  * ارتفاعُ الحقل `max(--control-h, 46px)`: فارتفاعُ النظام ٣٦px وهو صحيحٌ لفأرة، والمطلوبُ
  * هنا هدفُ إبهام — والـ`max()` تقول «رفعتُ ارتفاعَ النظام» بدل أن تُنشئ رقمًا موازيًا له.
@@ -372,22 +544,42 @@ button.rep-pill:disabled { opacity: .55; cursor: not-allowed; }
   gap: 8px;
   width: 100%;
   cursor: pointer;
-  transition: transform var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out);
+  transition:
+    transform var(--dur-fast) var(--ease-out),
+    box-shadow var(--dur-fast) var(--ease-out);
 }
-.rep-btn:active:not(:disabled) { transform: scale(.985); }
+.rep-btn:active:not(:disabled) {
+  transform: scale(0.985);
+}
 @media (min-width: 768px) {
-  .rep-btn { width: auto; }
+  .rep-btn {
+    width: auto;
+  }
 }
-.rep-btn:disabled { opacity: .55; cursor: not-allowed; }
+.rep-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
 .rep-btn[data-variant='primary'] {
   background: linear-gradient(135deg, var(--color-brand-600), var(--color-brand-400));
   border-color: transparent;
   color: var(--brand-ink);
 }
-.rep-btn[data-variant='danger'] { background: var(--danger-soft); border-color: var(--danger-line); color: var(--danger-ink); }
-.rep-actions { display: grid; gap: 8px; }
+.rep-btn[data-variant='danger'] {
+  background: var(--danger-soft);
+  border-color: var(--danger-line);
+  color: var(--danger-ink);
+}
+.rep-actions {
+  display: grid;
+  gap: 8px;
+}
 @media (min-width: 768px) {
-  .rep-actions { grid-auto-flow: column; grid-auto-columns: max-content; justify-content: start; }
+  .rep-actions {
+    grid-auto-flow: column;
+    grid-auto-columns: max-content;
+    justify-content: start;
+  }
 }
 
 /* أسطرُ الأحكام والتحذيرات — مقروءةٌ في الشمس */
@@ -401,16 +593,38 @@ button.rep-pill:disabled { opacity: .55; cursor: not-allowed; }
   line-height: 1.75;
   color: var(--text);
 }
-.rep-note[data-tone='ok'] { border-color: var(--ok-line); background: var(--ok-soft); color: var(--ok-ink); }
-.rep-note[data-tone='warn'] { border-color: var(--warn-line); background: var(--warn-soft); color: var(--warn-ink); }
-.rep-note[data-tone='danger'] { border-color: var(--danger-line); background: var(--danger-soft); color: var(--danger-ink); }
+.rep-note[data-tone='ok'] {
+  border-color: var(--ok-line);
+  background: var(--ok-soft);
+  color: var(--ok-ink);
+}
+.rep-note[data-tone='warn'] {
+  border-color: var(--warn-line);
+  background: var(--warn-soft);
+  color: var(--warn-ink);
+}
+.rep-note[data-tone='danger'] {
+  border-color: var(--danger-line);
+  background: var(--danger-soft);
+  color: var(--danger-ink);
+}
 
-.rep-empty { margin: 0; font-size: 13px; color: var(--muted); }
+.rep-empty {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
+}
 
 /* الطباعة: تطبيقُ المندوب لا يُطبع — فالسندُ يُطبع من شاشة المستندات بنسختيه. */
 @media print {
-  .rep-statusbar, .rep-actions, .rep-btn { display: none !important; }
-  .rep-page { padding-bottom: 0; }
+  .rep-statusbar,
+  .rep-actions,
+  .rep-btn {
+    display: none !important;
+  }
+  .rep-page {
+    padding-bottom: 0;
+  }
 }
 
 /* --------------------------------------------------------------------------
@@ -435,7 +649,9 @@ button.rep-pill:disabled { opacity: .55; cursor: not-allowed; }
   .bak-main {
     padding: 12px 10px calc(env(safe-area-inset-bottom, 0px) + 24px);
   }
-  .bak-main h1 { font-size: 19px; }
+  .bak-main h1 {
+    font-size: 19px;
+  }
 
   /* أهدافُ اللمس — ويُستثنى وسمُ الحالة في تطبيق المندوب (‏`.rep-pill`) فحجمُه مقصودٌ هناك. */
   .bak-main button:not(.rep-pill),
@@ -460,7 +676,9 @@ button.rep-pill:disabled { opacity: .55; cursor: not-allowed; }
 
   /* وبطاقاتُ المكتب تضيق حشوتُها كي لا يضيع نصفُ العرض في الحوافّ. */
   .bak-main .p-4,
-  .bak-main .p-5 { padding: 12px; }
+  .bak-main .p-5 {
+    padding: 12px;
+  }
 }
 
 /* --------------------------------------------------------------------------
@@ -502,7 +720,12 @@ button.rep-pill:disabled { opacity: .55; cursor: not-allowed; }
   box-shadow: var(--shadow-1);
 }
 /* نفسُ ترويسة الجدول وتباعد خلاياه في كلّ الأسطح — لا نسخةً ثانية هنا. */
-.bak-table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 13px; }
+.bak-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 13px;
+}
 .bak-table thead th {
   position: sticky;
   top: 0;
@@ -524,9 +747,15 @@ button.rep-pill:disabled { opacity: .55; cursor: not-allowed; }
   vertical-align: middle;
   font-size: 13px;
 }
-.bak-table tbody tr:nth-child(even) td { background: var(--surface-2); }
-.bak-table tbody tr:last-child td { border-block-end: 0; }
-.bak-table tbody tr:hover td { background: var(--surface-2); }
+.bak-table tbody tr:nth-child(even) td {
+  background: var(--surface-2);
+}
+.bak-table tbody tr:last-child td {
+  border-block-end: 0;
+}
+.bak-table tbody tr:hover td {
+  background: var(--surface-2);
+}
 .bak-table td[dir='ltr'],
 .bak-table .num {
   font-variant-numeric: tabular-nums;
@@ -534,18 +763,32 @@ button.rep-pill:disabled { opacity: .55; cursor: not-allowed; }
   font-weight: 600;
 }
 .bak-table--dense thead th,
-.bak-table--dense tbody td { padding: 6px 10px; }
+.bak-table--dense tbody td {
+  padding: 6px 10px;
+}
 @media (max-width: 640px) {
-  .bak-table { font-size: 12.5px; }
+  .bak-table {
+    font-size: 12.5px;
+  }
   .bak-table thead th,
-  .bak-table tbody td { padding: 8px 10px; }
+  .bak-table tbody td {
+    padding: 8px 10px;
+  }
 }
 
 /* الطباعة: سندٌ واحد بنسختين — لا تُطبع القشرة ولا يُطبع شريطٌ علويّ. */
 @media print {
-  .bak-side, .bak-topbar, .bak-legend { display: none !important; }
-  .bak-shell { grid-template-columns: 1fr; }
-  .bak-main { padding: 0; }
+  .bak-side,
+  .bak-topbar,
+  .bak-legend {
+    display: none !important;
+  }
+  .bak-shell {
+    grid-template-columns: 1fr;
+  }
+  .bak-main {
+    padding: 0;
+  }
 }
 
 /* ==========================================================================
@@ -556,8 +799,7 @@ button.rep-pill:disabled { opacity: .55; cursor: not-allowed; }
 body {
   background:
     radial-gradient(70rem 40rem at 100% -10%, rgb(11 122 99 / 0.045), transparent 55%),
-    radial-gradient(50rem 32rem at -8% 110%, rgb(201 162 39 / 0.04), transparent 52%),
-    var(--bg);
+    radial-gradient(50rem 32rem at -8% 110%, rgb(201 162 39 / 0.04), transparent 52%), var(--bg);
 }
 
 .bak-shell {
@@ -715,27 +957,6 @@ body {
   color: var(--warn-ink);
 }
 
-/* The bakery report surfaces. */
-.rep-card {
-  background:
-    linear-gradient(180deg, rgb(255 255 255 / 0.5), transparent 30%),
-    var(--surface);
-  border-radius: var(--radius-xl);
-  box-shadow: var(--shadow-1);
-}
-.dark .rep-card {
-  background:
-    linear-gradient(180deg, rgb(255 255 255 / 0.025), transparent 30%),
-    var(--surface);
-}
-.rep-tile {
-  background: var(--surface-2);
-  border: 1px solid var(--line);
-  border-radius: 12px;
-}
-.rep-tile-value {
-  letter-spacing: -0.025em;
-}
 .rep-btn {
   border-radius: 9px;
   font-weight: 600;
@@ -754,9 +975,7 @@ body {
   transform: translateY(0) scale(0.985);
 }
 .rep-btn[data-variant='primary'] {
-  background:
-    linear-gradient(180deg, rgb(255 255 255 / 0.14), transparent 55%),
-    var(--gradient-brand);
+  background: linear-gradient(180deg, rgb(255 255 255 / 0.14), transparent 55%), var(--gradient-brand);
   border-color: color-mix(in srgb, var(--color-brand-700) 80%, black);
   color: #fff;
   box-shadow:
@@ -783,7 +1002,6 @@ body {
     inset-block-start: 8px;
   }
 }
-
 
 /* A 220 ms CSS-only route entrance — bakery ships no motion library. */
 .page-enter {
@@ -827,6 +1045,37 @@ body {
 .bak-nav-item:hover .bak-nav-icon {
   color: #e3c46e;
   opacity: 1;
+}
+/* خريطة الوحدات: قائمةٌ مقسومةٌ بخطٍّ شعريّ داخل لوحةٍ واحدة، لا بطاقاتٌ عائمة */
+.bak-module-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+}
+@media (min-width: 900px) {
+  .bak-module-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+.bak-module-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: 10px;
+  background: var(--surface);
+  border-block-start: 1px solid var(--line);
+  padding: 14px 16px;
+}
+.bak-module-row:first-child {
+  border-block-start: 0;
+}
+@media (min-width: 900px) {
+  /* الصفُّ الثاني في العمود الآخر يشارك الأوّلَ خطَّه الأعلى، والفرديّةُ تفصل العمودين */
+  .bak-module-row:nth-child(2) {
+    border-block-start: 0;
+  }
+  .bak-module-row:nth-child(even) {
+    border-inline-start: 1px solid var(--line);
+  }
 }
 .bak-module-icon {
   display: inline-grid;

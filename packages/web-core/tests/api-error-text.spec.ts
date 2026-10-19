@@ -38,6 +38,27 @@ describe('api error text (📣 نصّ الرفض)', () => {
     expect(apiErrorText(error)).not.toContain('ECONNREFUSED');
   });
 
+  it('hides machine codes and shows the screen fallback instead', () => {
+    expect(
+      apiErrorText(
+        new ApiError(403, 'FORBIDDEN', 'Forbidden', 'permission parties.view required'),
+        'تعذّر قراءة بطاقات العملاء',
+      ),
+    ).toBe('تعذّر قراءة بطاقات العملاء');
+    expect(
+      apiErrorText(new ApiError(403, 'FORBIDDEN', 'Forbidden', 'PERMISSION_DENIED'), 'تعذّر الحفظ'),
+    ).toBe('تعذّر الحفظ');
+  });
+
+  it('keeps a real English sentence even when the screen has a fallback', () => {
+    expect(
+      apiErrorText(
+        new ApiError(422, 'CREDIT_LIMIT', 'Unprocessable', 'Customer credit limit exceeded by 1200.00 SAR'),
+        'تعذّر الحفظ',
+      ),
+    ).toContain('credit limit exceeded');
+  });
+
   it('ignores a blank detail instead of showing an empty notice', () => {
     expect(apiErrorText(new ApiError(409, 'VERSION_CONFLICT', 'Version conflict', '   '))).toBe(
       'Version conflict',

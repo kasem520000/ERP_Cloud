@@ -1,16 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import {
-  Button,
-  DataTable,
-  EmptyState,
-  Input,
-  Kpi,
-  Panel,
-  type SortState,
-  type TableState,
-} from '@erp/ui';
+import { Button, DataTable, EmptyState, Input, Kpi, Panel, type SortState, type TableState } from '@erp/ui';
 import { apiData, apiErrorText, apiList } from '@erp/web-core/api';
 import { useSession } from '@erp/web-core/session';
 
@@ -93,12 +84,8 @@ function ReportTable({
       dense
       empty={
         /** ‏`icon` مطلوبٌ في `EmptyState`، و`lucide-react` ليست من اعتمادات هذه الواجهة —
-          * فالرمزُ التعبيريّ لغةُ التطبيق القائمة ولا يُضاف اعتمادٌ لأجل أيقونة. */
-        <EmptyState
-          description={emptyAr}
-          icon={<span aria-hidden>📄</span>}
-          title="لا صفوف في هذا الجدول"
-        />
+         * فالرمزُ التعبيريّ لغةُ التطبيق القائمة ولا يُضاف اعتمادٌ لأجل أيقونة. */
+        <EmptyState description={emptyAr} icon={<span aria-hidden>📄</span>} title="لا صفوف في هذا الجدول" />
       }
       onSortChange={setSort}
       pageSize={25}
@@ -177,33 +164,30 @@ export default function ReportsPage() {
     };
   }, [canView]);
 
-  const runReport = useCallback(
-    async (next: ReportRangeDraft): Promise<void> => {
-      const gate = rangeVerdict(next);
-      if (gate.blocked.length > 0) {
-        setNotice({ kind: 'danger', text: gate.blocked[0] ?? 'مدى الفترة غير صالح' });
-        return;
-      }
-      setLoading(true);
-      setLoadError(undefined);
-      setNotice(undefined);
-      setAsked(true);
-      try {
-        const data = await apiData<ReportsPayload>(`/van-sales/reports${reportsQuery(next)}`);
-        setPayload(data);
-        setNotice({
-          kind: isAnyListTruncated(data) ? 'warn' : 'ok',
-          text: `${REPORTS_MESSAGES.loaded} المطبَّق: ${filterHeadline(data)}`,
-        });
-      } catch (caught) {
-        setPayload(null);
-        setLoadError(apiErrorText(caught, 'تعذّر تحميل التقرير'));
-      } finally {
-        setLoading(false);
-      }
-    },
-    [],
-  );
+  const runReport = useCallback(async (next: ReportRangeDraft): Promise<void> => {
+    const gate = rangeVerdict(next);
+    if (gate.blocked.length > 0) {
+      setNotice({ kind: 'danger', text: gate.blocked[0] ?? 'مدى الفترة غير صالح' });
+      return;
+    }
+    setLoading(true);
+    setLoadError(undefined);
+    setNotice(undefined);
+    setAsked(true);
+    try {
+      const data = await apiData<ReportsPayload>(`/van-sales/reports${reportsQuery(next)}`);
+      setPayload(data);
+      setNotice({
+        kind: isAnyListTruncated(data) ? 'warn' : 'ok',
+        text: `${REPORTS_MESSAGES.loaded} المطبَّق: ${filterHeadline(data)}`,
+      });
+    } catch (caught) {
+      setPayload(null);
+      setLoadError(apiErrorText(caught, 'تعذّر تحميل التقرير'));
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   function apply(next: ReportRangeDraft) {
     setDraft(next);
@@ -216,8 +200,8 @@ export default function ReportsPage() {
         <div className="ui-page-head-copy">
           <h1 className="ui-page-title">تقارير الخطّ</h1>
           <p className="ui-page-sub">
-            مبيعاتُ المندوب ومرتجعُه وهالكُه وتحصيلُه في فترةٍ تختارها — الأرقامُ من محرّك تقارير
-            الخادم نفسه، وتواريخُ العمل هي تاريخ التحميل وتاريخ المستند وتاريخ الإنتاج.
+            مبيعاتُ المندوب ومرتجعُه وهالكُه وتحصيلُه في فترةٍ تختارها — الأرقامُ من محرّك تقارير الخادم نفسه،
+            وتواريخُ العمل هي تاريخ التحميل وتاريخ المستند وتاريخ الإنتاج.
           </p>
         </div>
       </header>
@@ -279,8 +263,7 @@ export default function ReportsPage() {
                   <p
                     className={`m-0 rounded-[10px] border px-4 py-2.5 text-[12.5px] font-semibold ${NOTICE_CLASSES.warn}`}
                   >
-                    قائمةُ المناديب لم تُحمَّل الآن — يعمل التقرير بمرشّح «كلّ المناديب» حتى تُعاد
-                    المحاولة.
+                    قائمةُ المناديب لم تُحمَّل الآن — يعمل التقرير بمرشّح «كلّ المناديب» حتى تُعاد المحاولة.
                   </p>
                 ) : null}
               </div>
@@ -379,8 +362,8 @@ export default function ReportsPage() {
 
         {canView && !asked && !loading ? (
           <p className="m-0 text-[13px] text-muted">
-            {REPORTS_MESSAGES.pickPeriod} وقد يبلغ العرضُ سقفَ الصفوف في منشأةٍ كبيرة، ويُقال حينها
-            إنّ القائمة مقصوصة.
+            {REPORTS_MESSAGES.pickPeriod} وقد يبلغ العرضُ سقفَ الصفوف في منشأةٍ كبيرة، ويُقال حينها إنّ
+            القائمة مقصوصة.
           </p>
         ) : null}
 
@@ -501,8 +484,8 @@ export default function ReportsPage() {
               flush
               footer={
                 <span>
-                  تقريرُ قراءةٍ فقط: لا يُنشئ قيدًا ولا يُحمِّل نقصًا على أحد. والتقاريرُ المحاسبية
-                  الرسمية في لوحة الموظفين.
+                  تقريرُ قراءةٍ فقط: لا يُنشئ قيدًا ولا يُحمِّل نقصًا على أحد. والتقاريرُ المحاسبية الرسمية في
+                  لوحة الموظفين.
                 </span>
               }
               hint="سجلُّ تغيير أسعار العملاء — يُصفّى بتاريخ الإنشاء لأنّ الجدول بلا تاريخ عمل."

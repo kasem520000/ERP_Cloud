@@ -137,10 +137,7 @@ export default function CustodyPage() {
 
   const rows = useMemo(() => mapCustodyRows(dashboard), [dashboard]);
   const pending = useMemo(() => openCustodies(rows), [rows]);
-  const selected = useMemo(
-    () => rows.find((row) => row.id === selectedId),
-    [rows, selectedId],
-  );
+  const selected = useMemo(() => rows.find((row) => row.id === selectedId), [rows, selectedId]);
   const readiness = policy?.chargeReadiness ?? null;
   const summary = useMemo(() => policySummary(policy), [policy]);
 
@@ -313,9 +310,7 @@ export default function CustodyPage() {
   };
 
   const separation = selected ? fourWaySeparation(selected) : null;
-  const preview = selected
-    ? chargePreview(selected, readiness, flags.salaryDeductionApproved)
-    : null;
+  const preview = selected ? chargePreview(selected, readiness, flags.salaryDeductionApproved) : null;
   const blockers = selected ? approvalBlockers(selected, readiness, flags.salaryDeductionApproved) : [];
   const evidence = selected ? chargeEvidence(selected) : null;
   const cash = selected ? cashPosition(selected) : null;
@@ -328,9 +323,7 @@ export default function CustodyPage() {
    */
   const absorbedAudits = useMemo(
     () =>
-      rows
-        .map((row) => ({ row, audit: countSettlementAudit(row) }))
-        .filter((entry) => entry.audit.absorbed),
+      rows.map((row) => ({ row, audit: countSettlementAudit(row) })).filter((entry) => entry.audit.absorbed),
     [rows],
   );
   /**
@@ -344,703 +337,676 @@ export default function CustodyPage() {
   const uncovered = useMemo(() => uncoveredCustodySummary(rows), [rows]);
 
   return (
- <section className="ui-page">
- <header className="ui-page-head">
- <div className="ui-page-head-copy">
- <h1 className="ui-page-title">
- إقفال العهدة
- </h1>
- <p className="ui-page-sub">
- جردٌ فعليّ في السيارة، ثمّ فصلٌ رباعيّ لا يُدمج (مرتجع سليم · تالف · عجز · متبقٍ)، ثمّ
- تسويةٌ رسمية للمخزون. وتحميل العجز على المندوب <strong>قرارٌ لكلّ حالة</strong>: بلا
- علمٍ صريح لا يُرحَّل قيد، ومع العلم يُقال أثره هنا قبل الضغط.
- </p>
- </div>
- <div className="ui-page-actions">
+    <section className="ui-page">
+      <header className="ui-page-head">
+        <div className="ui-page-head-copy">
+          <h1 className="ui-page-title">إقفال العهدة</h1>
+          <p className="ui-page-sub">
+            جردٌ فعليّ في السيارة، ثمّ فصلٌ رباعيّ لا يُدمج (مرتجع سليم · تالف · عجز · متبقٍ)، ثمّ تسويةٌ
+            رسمية للمخزون. وتحميل العجز على المندوب <strong>قرارٌ لكلّ حالة</strong>: بلا علمٍ صريح لا يُرحَّل
+            قيد، ومع العلم يُقال أثره هنا قبل الضغط.
+          </p>
+        </div>
+        <div className="ui-page-actions">
           {uncovered.count > 0 ? (
- <span className="rounded-[8px] border border-danger-line bg-danger-soft px-2 py-1 text-[12px] font-semibold text-danger-ink">
- الرصيد الرسمي لا يغطي {uncovered.count} عهدة مفتوحة — نقص{' '}
- <span dir="ltr">{uncovered.shortfallText}</span> كجم
- </span>
+            <span className="rounded-[8px] border border-danger-line bg-danger-soft px-2 py-1 text-[12px] font-semibold text-danger-ink">
+              الرصيد الرسمي لا يغطي {uncovered.count} عهدة مفتوحة — نقص{' '}
+              <span dir="ltr">{uncovered.shortfallText}</span> كجم
+            </span>
           ) : null}
- <span className="bak-badge">التقديم والاعتماد من هنا</span>
- <Button disabled={loading || !canView} onClick={() => void load()} size="sm">
- تحديث
- </Button>
- </div>
- </header>
+          <span className="bak-badge">التقديم والاعتماد من هنا</span>
+          <Button disabled={loading || !canView} onClick={() => void load()} size="sm">
+            تحديث
+          </Button>
+        </div>
+      </header>
       <div className="ui-screen-body">
+        {!canView ? (
+          <Card>
+            <CardBody>
+              <p className="m-0 rounded-[10px] border border-warn-line bg-warn-soft px-4 py-2.5 text-[13px] font-semibold text-warn-ink">
+                لا تملك صلاحيةَ هذا القسم — والخادم يرفض قراءة لوحة العهدة وسياسة العجز. ولم يُرسل هذا التطبيق
+                طلباً سيُرفض حتماً، ولا عرض أرقاماً من المتصفح بدلها.
+              </p>
+            </CardBody>
+          </Card>
+        ) : null}
 
-      {!canView ? (
- <Card>
- <CardBody>
- <p className="m-0 rounded-[10px] border border-warn-line bg-warn-soft px-4 py-2.5 text-[13px] font-semibold text-warn-ink">
- لا تملك صلاحيةَ هذا القسم — والخادم يرفض قراءة لوحة العهدة وسياسة العجز. ولم
- يُرسل هذا التطبيق طلباً سيُرفض حتماً، ولا عرض أرقاماً من المتصفح بدلها.
- </p>
- </CardBody>
- </Card>
-      ) : null}
+        {loadError ? (
+          <Card>
+            <CardBody>
+              <p
+                className="m-0 rounded-[10px] border border-danger-line bg-danger-soft px-4 py-2.5 text-[13px] font-semibold text-danger-ink"
+                role="alert"
+              >
+                تعذّر تحميل بيانات العهدة: {loadError}
+              </p>
+              <Button className="mt-3" onClick={() => void load()} size="sm">
+                إعادة المحاولة
+              </Button>
+            </CardBody>
+          </Card>
+        ) : null}
 
-      {loadError ? (
- <Card>
- <CardBody>
- <p
-              className="m-0 rounded-[10px] border border-danger-line bg-danger-soft px-4 py-2.5 text-[13px] font-semibold text-danger-ink"
-              role="alert"
-            >
- تعذّر تحميل بيانات العهدة: {loadError}
- </p>
- <Button className="mt-3" onClick={() => void load()} size="sm">
- إعادة المحاولة
- </Button>
- </CardBody>
- </Card>
-      ) : null}
+        {policyDone ? (
+          <p className="m-0 rounded-[10px] border border-ok-line bg-ok-soft px-4 py-2.5 text-[13px] font-semibold text-ok-ink">
+            {policyDone}
+          </p>
+        ) : null}
 
-      {policyDone ? (
- <p className="m-0 rounded-[10px] border border-ok-line bg-ok-soft px-4 py-2.5 text-[13px] font-semibold text-ok-ink">
- {policyDone}
- </p>
-      ) : null}
+        {actionDone ? (
+          <p className="m-0 rounded-[10px] border border-ok-line bg-ok-soft px-4 py-2.5 text-[13px] font-semibold text-ok-ink">
+            {actionDone}
+          </p>
+        ) : null}
 
-      {actionDone ? (
- <p className="m-0 rounded-[10px] border border-ok-line bg-ok-soft px-4 py-2.5 text-[13px] font-semibold text-ok-ink">
- {actionDone}
- </p>
-      ) : null}
+        {/* سياسة تقييم العجز — القرار الماليّ الذي يُقاس به كلّ عجز لاحق. */}
+        <Card>
+          <CardHeader
+            subtitle="سياسةُ العهدة كما تحفظها المنشأة. والسعرُ الصريح يتقدّم على الأساس، فـ«ما يُنفَّذ فعلاً» هو الحقيقة. وأمّا تسليمُ الفروع دون ضريبة فقرارٌ ضريبيّ يُضبط من موضعه لا من هنا."
+            title="سياسة تقييم العجز"
+          />
+          <CardBody>
+            <div className="grid gap-3 md:grid-cols-2">
+              <div className="grid gap-1 text-[12.5px]">
+                <span className="font-bold text-ink">الأساس المضبوط</span>
+                <span className="text-muted">{summary.basisText}</span>
+                <span className="font-bold text-ink">ما ينفّذ فعلاً عند الاعتماد</span>
+                <span className="text-muted">{summary.sourceText}</span>
+                <span className="font-bold text-ink">سعرٌ صريح في السياسة</span>
+                <span className="text-muted" dir="ltr">
+                  {summary.explicitPriceText}
+                </span>
+                <span className="font-bold text-ink">الحساب الدائن المربوط (van_shortage_charge)</span>
+                <span className="text-muted">{summary.creditAccountText}</span>
+                <span className="font-bold text-ink">منع الاعتماد الذاتي</span>
+                <span className="text-muted">{summary.preventSelfApproval ? 'مفعّل' : 'غير مفعّل'}</span>
+              </div>
 
-      {/* سياسة تقييم العجز — القرار الماليّ الذي يُقاس به كلّ عجز لاحق. */}
- <Card>
- <CardHeader
-          subtitle="سياسةُ العهدة كما تحفظها المنشأة. والسعرُ الصريح يتقدّم على الأساس، فـ«ما يُنفَّذ فعلاً» هو الحقيقة. وأمّا تسليمُ الفروع دون ضريبة فقرارٌ ضريبيّ يُضبط من موضعه لا من هنا."
-          title="سياسة تقييم العجز"
-        />
- <CardBody>
- <div className="grid gap-3 md:grid-cols-2">
- <div className="grid gap-1 text-[12.5px]">
- <span className="font-bold text-ink">الأساس المضبوط</span>
- <span className="text-muted">{summary.basisText}</span>
- <span className="font-bold text-ink">ما ينفّذ فعلاً عند الاعتماد</span>
- <span className="text-muted">{summary.sourceText}</span>
- <span className="font-bold text-ink">سعرٌ صريح في السياسة</span>
- <span className="text-muted" dir="ltr">
-                {summary.explicitPriceText}
- </span>
- <span className="font-bold text-ink">الحساب الدائن المربوط (van_shortage_charge)</span>
- <span className="text-muted">{summary.creditAccountText}</span>
- <span className="font-bold text-ink">منع الاعتماد الذاتي</span>
- <span className="text-muted">{summary.preventSelfApproval ? 'مفعّل' : 'غير مفعّل'}</span>
- </div>
-
-            {canOverride ? (
- <div className="grid gap-3">
- <label className="field">
- <span>أساس التقييم</span>
- <select
-                    className={selectClass}
-                    onChange={(event) => setBasisValue(event.target.value)}
-                    value={basisValue}
-                  >
- <option value="">— لا تغيير —</option>
-                    {VALUATION_BASES.map((basis) => (
- <option key={basis} value={basis}>
-                        {valuationBasisLabel(basis)} ({basis})
- </option>
-                    ))}
- </select>
- </label>
- <Input
-                  dir="ltr"
-                  hint="يُكتب لمسح السعر أن يُترك فارغاً ويُختار أساسٌ — والمسح الصريح بـnull من API."
-                  label="سعرٌ صريح للعجز (يتقدّم على الأساس)"
-                  onChange={(event) => setPriceValue(event.target.value)}
-                  value={priceValue}
-                />
- <label className={checkClass}>
- <input
-                    checked={selfApprovalValue}
-                    onChange={(event) => setSelfApprovalValue(event.target.checked)}
-                    type="checkbox"
+              {canOverride ? (
+                <div className="grid gap-3">
+                  <label className="field">
+                    <span>أساس التقييم</span>
+                    <select
+                      className={selectClass}
+                      onChange={(event) => setBasisValue(event.target.value)}
+                      value={basisValue}
+                    >
+                      <option value="">— لا تغيير —</option>
+                      {VALUATION_BASES.map((basis) => (
+                        <option key={basis} value={basis}>
+                          {valuationBasisLabel(basis)} ({basis})
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <Input
+                    dir="ltr"
+                    hint="لمسح السعر: اتركه فارغًا واختر أساسًا — يُرسل الطلب مسحًا صريحًا للخادم."
+                    label="سعرٌ صريح للعجز (يتقدّم على الأساس)"
+                    onChange={(event) => setPriceValue(event.target.value)}
+                    value={priceValue}
                   />
- منع الاعتماد الذاتي (من قدّم الإقفال لا يعتمده)
- </label>
- <div className="flex items-center gap-2">
- <Button disabled={policyBusy} onClick={() => void writePolicy()} size="sm">
- كتابة السياسة
- </Button>
- <span className="text-[12px] text-muted">تُحفظ في سياسة المنشأة</span>
- </div>
- </div>
-            ) : (
- <p className="m-0 rounded-[10px] border border-line bg-surface px-3 py-2 text-[12.5px] text-muted">
- الكتابة تحتاج صلاحيةَ تجاوز الأساس — وهو قرارٌ ماليّ، فلا يُكتب لمن يقرأ.
- والقراءة معروضة أعلاه كما هي في الخادم.
- </p>
-            )}
- </div>
-          {policyError ? (
- <p
-              className="m-0 mt-3 rounded-[10px] border border-danger-line bg-danger-soft px-3 py-2 text-[12.5px] font-semibold text-danger-ink"
-              role="alert"
-            >
-              {policyError}
- </p>
-          ) : null}
- </CardBody>
- </Card>
+                  <label className={checkClass}>
+                    <input
+                      checked={selfApprovalValue}
+                      onChange={(event) => setSelfApprovalValue(event.target.checked)}
+                      type="checkbox"
+                    />
+                    منع الاعتماد الذاتي (من قدّم الإقفال لا يعتمده)
+                  </label>
+                  <div className="flex items-center gap-2">
+                    <Button disabled={policyBusy} onClick={() => void writePolicy()} size="sm">
+                      كتابة السياسة
+                    </Button>
+                    <span className="text-[12px] text-muted">تُحفظ في سياسة المنشأة</span>
+                  </div>
+                </div>
+              ) : (
+                <p className="m-0 rounded-[10px] border border-line bg-surface px-3 py-2 text-[12.5px] text-muted">
+                  الكتابة تحتاج صلاحيةَ تجاوز الأساس — وهو قرارٌ ماليّ، فلا يُكتب لمن يقرأ. والقراءة معروضة
+                  أعلاه كما هي في الخادم.
+                </p>
+              )}
+            </div>
+            {policyError ? (
+              <p
+                className="m-0 mt-3 rounded-[10px] border border-danger-line bg-danger-soft px-3 py-2 text-[12.5px] font-semibold text-danger-ink"
+                role="alert"
+              >
+                {policyError}
+              </p>
+            ) : null}
+          </CardBody>
+        </Card>
 
-      {/* العهدات التي تنتظر قراراً */}
- <Card>
- <CardHeader
-          subtitle="أحمالٌ تنتظر قراراً: تقديمٌ أو اعتمادٌ أو تسويةٌ معلّقة أو فرقُ عبور. والأرقام كما يرسلها الخادم — لا يُعاد حسابها هنا."
-          title={`عهدات تنتظر قراراً (${pending.length})`}
-        />
- <CardBody>
-          {pending.length === 0 ? (
- <p className="m-0 text-[13px] text-muted">
- لا عهدة معلّقة الآن — {loading ? '(جارٍ القراءة…)' : 'اقرأ اللوحة بالتحديث إن تغيّر شيء.'}
- </p>
-          ) : (
- <div className="bak-table-wrap">
- <table className="bak-table">
- <thead>
- <tr>
- <th>الأمر</th>
- <th>الحالة</th>
- <th>العهدة</th>
- <th>متوقع</th>
- <th>فعلي</th>
- <th>فرق الجرد</th>
- <th>مرتجع</th>
- <th>تالف</th>
- <th>عجز</th>
- <th>متبقٍ</th>
- <th>تسوية المخزون</th>
- <th>سياسة العجز</th>
- <th>إجراء</th>
- </tr>
- </thead>
- <tbody>
-                  {pending.map((row) => {
-                    const split = fourWaySeparation(row);
+        {/* العهدات التي تنتظر قراراً */}
+        <Card>
+          <CardHeader
+            subtitle="أحمالٌ تنتظر قراراً: تقديمٌ أو اعتمادٌ أو تسويةٌ معلّقة أو فرقُ عبور. والأرقام كما يرسلها الخادم — لا يُعاد حسابها هنا."
+            title={`عهدات تنتظر قراراً (${pending.length})`}
+          />
+          <CardBody>
+            {pending.length === 0 ? (
+              <p className="m-0 text-[13px] text-muted">
+                لا عهدة معلّقة الآن — {loading ? '(جارٍ القراءة…)' : 'اقرأ اللوحة بالتحديث إن تغيّر شيء.'}
+              </p>
+            ) : (
+              <div className="bak-table-wrap">
+                <table className="bak-table">
+                  <thead>
+                    <tr>
+                      <th>الأمر</th>
+                      <th>الحالة</th>
+                      <th>العهدة</th>
+                      <th>متوقع</th>
+                      <th>فعلي</th>
+                      <th>فرق الجرد</th>
+                      <th>مرتجع</th>
+                      <th>تالف</th>
+                      <th>عجز</th>
+                      <th>متبقٍ</th>
+                      <th>تسوية المخزون</th>
+                      <th>سياسة العجز</th>
+                      <th>إجراء</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {pending.map((row) => {
+                      const split = fourWaySeparation(row);
+                      return (
+                        <tr key={row.id ?? row.number ?? custodyLabel(row)}>
+                          <td>{custodyLabel(row)}</td>
+                          <td dir="ltr">{row.status ?? '—'}</td>
+                          <td className="num" dir="ltr">
+                            {numberText(row.receivedQty)} / {numberText(row.loadedQty)}
+                          </td>
+                          <td className="num" dir="ltr">
+                            {split.expectedRemaining}
+                          </td>
+                          <td className="num" dir="ltr">
+                            {split.actualRemaining}
+                          </td>
+                          <td className="num" dir="ltr">
+                            {split.countVariance}
+                          </td>
+                          <td className="num" dir="ltr">
+                            {split.returned}
+                          </td>
+                          <td className="num" dir="ltr">
+                            {split.damaged}
+                          </td>
+                          <td className="num" dir="ltr">
+                            {split.shortage}
+                          </td>
+                          <td className="num" dir="ltr">
+                            {split.surplus}
+                          </td>
+                          <td>{stockSettlementStatusLabel(row.stockSettlementStatus ?? '')}</td>
+                          <td>{shortagePolicyStatusLabel(row.shortagePolicyStatus ?? null)}</td>
+                          <td>
+                            <div className="flex flex-wrap gap-1">
+                              {canSubmitClosing(row) && canSubmit ? (
+                                <Button onClick={() => pick(row, 'submit')} size="sm" variant="secondary">
+                                  تقديم إقفال
+                                </Button>
+                              ) : null}
+                              {canApproveClosing(row) && canApprove ? (
+                                <Button onClick={() => pick(row, 'approve')} size="sm">
+                                  اعتماد
+                                </Button>
+                              ) : null}
+                              {canSettleStock(row) && canApprove ? (
+                                <Button onClick={() => pick(row, 'settle')} size="sm" variant="secondary">
+                                  استكمال التسوية
+                                </Button>
+                              ) : null}
+                              {canCloseTransitDifference(row) && canManageLoad ? (
+                                <Button onClick={() => pick(row, 'transit')} size="sm" variant="secondary">
+                                  فرق العبور
+                                </Button>
+                              ) : null}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+            <p className="m-0 mt-2 text-[12px] text-muted">
+              العمود «متبقٍ» في هذا الجدول هو <strong>الفائض</strong> عن المستندات (فرق جردٍ سالب) — لا يُدمج
+              مع العجز ولا مع التالف، ولا يُقلب إيراداً أو هدية: يُسجَّل في مستند الجرد الرسمي بإقرارٍ صريح.
+            </p>
+          </CardBody>
+        </Card>
+
+        {/* ما رُحِّل من ذمم — دليلٌ لا وصف */}
+        <Card>
+          <CardHeader
+            subtitle="من أعمدة van_load_orders نفسها (shortage_charge_amount / shortage_charge_basis / shortage_journal_entry_id): ما رُحِّل فعلاً وبأيّ أساس، لا ما تقوله السياسة اليوم."
+            title="عيون العهدة: ما اعتُمد وما رُحِّل"
+          />
+          <CardBody flush>
+            <div className="bak-table-wrap">
+              <table className="bak-table">
+                <thead>
+                  <tr>
+                    <th>الأمر</th>
+                    <th>الحالة</th>
+                    <th>سياسة العجز</th>
+                    <th>علم التحميل</th>
+                    <th>العجز</th>
+                    <th>المبلغ المُرحَّل</th>
+                    <th>الأساس الفعلي</th>
+                    <th>القيد</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.slice(0, 20).map((row) => {
+                    const proof = chargeEvidence(row);
                     return (
- <tr key={row.id ?? row.number ?? custodyLabel(row)}>
- <td>{custodyLabel(row)}</td>
- <td dir="ltr">
-                          {row.status ?? '—'}
- </td>
- <td className="num" dir="ltr">
-                          {numberText(row.receivedQty)} / {numberText(row.loadedQty)}
- </td>
- <td className="num" dir="ltr">
-                          {split.expectedRemaining}
- </td>
- <td className="num" dir="ltr">
-                          {split.actualRemaining}
- </td>
- <td className="num" dir="ltr">
-                          {split.countVariance}
- </td>
- <td className="num" dir="ltr">
-                          {split.returned}
- </td>
- <td className="num" dir="ltr">
-                          {split.damaged}
- </td>
- <td className="num" dir="ltr">
-                          {split.shortage}
- </td>
- <td className="num" dir="ltr">
-                          {split.surplus}
- </td>
- <td>
-                          {stockSettlementStatusLabel(row.stockSettlementStatus ?? '')}
- </td>
- <td>
-                          {shortagePolicyStatusLabel(row.shortagePolicyStatus ?? null)}
- </td>
- <td>
- <div className="flex flex-wrap gap-1">
-                            {canSubmitClosing(row) && canSubmit ? (
- <Button onClick={() => pick(row, 'submit')} size="sm" variant="secondary">
- تقديم إقفال
- </Button>
-                            ) : null}
-                            {canApproveClosing(row) && canApprove ? (
- <Button onClick={() => pick(row, 'approve')} size="sm">
- اعتماد
- </Button>
-                            ) : null}
-                            {canSettleStock(row) && canApprove ? (
- <Button onClick={() => pick(row, 'settle')} size="sm" variant="secondary">
- استكمال التسوية
- </Button>
-                            ) : null}
-                            {canCloseTransitDifference(row) && canManageLoad ? (
- <Button onClick={() => pick(row, 'transit')} size="sm" variant="secondary">
- فرق العبور
- </Button>
-                            ) : null}
- </div>
- </td>
- </tr>
+                      <tr key={row.id ?? row.number ?? custodyLabel(row)}>
+                        <td>{custodyLabel(row)}</td>
+                        <td dir="ltr">{row.status ?? '—'}</td>
+                        <td>{shortagePolicyStatusLabel(row.shortagePolicyStatus ?? null)}</td>
+                        <td>{row.salaryDeductionApproved === true ? 'معتمد صراحةً' : 'لم يُعتمد'}</td>
+                        <td className="num" dir="ltr">
+                          {numberText(row.shortageQty)}
+                        </td>
+                        <td className="num" dir="ltr">
+                          {proof ? proof.amount : '—'}
+                        </td>
+                        <td>{proof ? proof.basisText : '—'}</td>
+                        <td dir="ltr">{proof ? proof.journalEntryId.slice(0, 8) : '—'}</td>
+                      </tr>
                     );
                   })}
- </tbody>
- </table>
- </div>
-          )}
- <p className="m-0 mt-2 text-[12px] text-muted">
- العمود «متبقٍ» في هذا الجدول هو <strong>الفائض</strong> عن المستندات (فرق جردٍ سالب) —
- لا يُدمج مع العجز ولا مع التالف، ولا يُقلب إيراداً أو هدية: يُسجَّل في مستند الجرد
- الرسمي بإقرارٍ صريح.
- </p>
- </CardBody>
- </Card>
+                  {rows.length === 0 ? (
+                    <tr>
+                      <td className="border-b border-line p-2 text-muted" colSpan={8}>
+                        لا صفوف في اللوحة بعد {loading ? '(جارٍ القراءة…)' : ''}
+                      </td>
+                    </tr>
+                  ) : null}
+                </tbody>
+              </table>
+            </div>
+          </CardBody>
+        </Card>
 
-      {/* ما رُحِّل من ذمم — دليلٌ لا وصف */}
- <Card>
- <CardHeader
-          subtitle="من أعمدة van_load_orders نفسها (shortage_charge_amount / shortage_charge_basis / shortage_journal_entry_id): ما رُحِّل فعلاً وبأيّ أساس، لا ما تقوله السياسة اليوم."
-          title="عيون العهدة: ما اعتُمد وما رُحِّل"
-        />
- <CardBody flush>
- <div className="bak-table-wrap">
- <table className="bak-table">
- <thead>
- <tr>
- <th>الأمر</th>
- <th>الحالة</th>
- <th>سياسة العجز</th>
- <th>علم التحميل</th>
- <th>العجز</th>
- <th>المبلغ المُرحَّل</th>
- <th>الأساس الفعلي</th>
- <th>القيد</th>
- </tr>
- </thead>
- <tbody>
-                {rows.slice(0, 20).map((row) => {
-                  const proof = chargeEvidence(row);
-                  return (
- <tr key={row.id ?? row.number ?? custodyLabel(row)}>
- <td>{custodyLabel(row)}</td>
- <td dir="ltr">
-                        {row.status ?? '—'}
- </td>
- <td>
-                        {shortagePolicyStatusLabel(row.shortagePolicyStatus ?? null)}
- </td>
- <td>
-                        {row.salaryDeductionApproved === true ? 'معتمد صراحةً' : 'لم يُعتمد'}
- </td>
- <td className="num" dir="ltr">
-                        {numberText(row.shortageQty)}
- </td>
- <td className="num" dir="ltr">
-                        {proof ? proof.amount : '—'}
- </td>
- <td>{proof ? proof.basisText : '—'}</td>
- <td dir="ltr">
-                        {proof ? proof.journalEntryId.slice(0, 8) : '—'}
- </td>
- </tr>
-                  );
-                })}
-                {rows.length === 0 ? (
- <tr>
- <td className="border-b border-line p-2 text-muted" colSpan={8}>
- لا صفوف في اللوحة بعد {loading ? '(جارٍ القراءة…)' : ''}
- </td>
- </tr>
-                ) : null}
- </tbody>
- </table>
- </div>
- </CardBody>
- </Card>
-
- <Card>
- <CardHeader
-          subtitle="مستند الجرد الرسمي مطلق: يضبط رصيد السيارة على العدد المُعلن، وفرقه يُحسب من الرصيد الرسمي لحظة الترحيل — بينما فرق الاعتماد محسوبٌ من عهدة هذا الأمر وحده. فما زاد خرج من المخزون إلى حساب التسويات ولم يقع في عهدة أحد، والخادم نفسه يكتبه تحذيراً في stock_settlement_note. والأرقام هنا أرقامه، لا تقدير الشاشة."
-          title={`تدقيق مستندات الجرد: ما امتصّه المستند خارج أمره (${absorbedAudits.length})`}
-        />
- <CardBody>
-          {absorbedAudits.length === 0 ? (
- <p className="m-0 text-[13px] leading-relaxed text-muted">
- لا مستند جردٍ مُرحَّل امتصّ حركةً خارج أمره. وما لم يُرحَّل بعد لا يُعرض هنا كأنّه
- مُرحَّل: غياب أرقام المستند عن الصفّ يعني مسودةً أو أمراً لم يُسوَّ مخزونياً.
- </p>
-          ) : (
- <div className="bak-table-wrap">
- <table className="bak-table">
- <thead>
- <tr>
- <th className="border-b border-line p-2 text-right font-bold">الأمر</th>
- <th className="border-b border-line p-2 text-right font-bold">
- رصيد السيارة عند الترحيل
- </th>
- <th className="border-b border-line p-2 text-right font-bold">فرق المستند (كمية)</th>
- <th className="border-b border-line p-2 text-right font-bold">قيمته</th>
- <th className="border-b border-line p-2 text-right font-bold">فرق الاعتماد</th>
- <th className="border-b border-line p-2 text-right font-bold">الممتصّ خارج الأمر</th>
- <th className="border-b border-line p-2 text-right font-bold">ملاحظة الخادم</th>
- </tr>
- </thead>
- <tbody>
-                  {absorbedAudits.map(({ row, audit }) => (
- <tr key={row.id}>
- <td>{custodyLabel(row)}</td>
- <td className="num" dir="ltr">
-                        {audit.documentExpectedText}
- </td>
- <td className="num" dir="ltr">
-                        {audit.documentVarianceQtyText}
- </td>
- <td className="num" dir="ltr">
-                        {audit.documentVarianceValueText}
- </td>
- <td className="num" dir="ltr">
-                        {audit.approvedVarianceText}
- </td>
- <td className="border-b border-line p-2 num font-extrabold text-warn-ink" dir="ltr">
-                        {audit.absorbedQtyText}
- </td>
- <td className="border-b border-line p-2 text-muted">{audit.noteText ?? '—'}</td>
- </tr>
-                  ))}
- </tbody>
- </table>
- </div>
-          )}
- </CardBody>
- </Card>
-
-      {/* لوحة الإجراء — الأثر قبل الضغط */}
-      {selected && actionKind ? (
- <Card>
- <CardHeader
-            subtitle={`${ACTION_LABELS[actionKind]} · ${selected.number ?? selected.id} · ${
-              ACTION_ROUTES[actionKind](selected.id ?? '')
-            }`}
-            title={custodyLabel(selected)}
+        <Card>
+          <CardHeader
+            subtitle="مستند الجرد الرسمي مطلق: يضبط رصيد السيارة على العدد المُعلن، وفرقه يُحسب من الرصيد الرسمي لحظة الترحيل — بينما فرق الاعتماد محسوبٌ من عهدة هذا الأمر وحده. فما زاد خرج من المخزون إلى حساب التسويات ولم يقع في عهدة أحد، والخادم نفسه يكتبه تحذيراً في stock_settlement_note. والأرقام هنا أرقامه، لا تقدير الشاشة."
+            title={`تدقيق مستندات الجرد: ما امتصّه المستند خارج أمره (${absorbedAudits.length})`}
           />
- <CardBody>
- <div className="grid gap-3">
-              {separation ? (
- <div className="grid gap-2 rounded-[10px] border border-line bg-surface p-3 text-[12.5px] md:grid-cols-4">
- <span className="font-bold text-ink">
- مرتجع سليم: <span dir="ltr">{separation.returned}</span>
- </span>
- <span className="font-bold text-ink">
- تالف: <span dir="ltr">{separation.damaged}</span>
- </span>
- <span className="font-bold text-ink">
- عجز: <span dir="ltr">{separation.shortage}</span>
- </span>
- <span className="font-bold text-ink">
- متبقٍ فعلي: <span dir="ltr">{separation.actualRemaining}</span>
- </span>
- <span className="text-muted">
- مباع <span dir="ltr">{separation.sold}</span> + بونص{' '}
- <span dir="ltr">{separation.bonus}</span> — المتوقع{' '}
- <span dir="ltr">{separation.expectedRemaining}</span> — فرق الجرد{' '}
- <span dir="ltr">{separation.countVariance}</span>
-                    {separation.hasSurplus ? ` (منه فائض ${separation.surplus})` : ''}
- </span>
-                  {cash ? (
- <span className="text-muted">
- النقد: محصَّل <span dir="ltr">{cash.collected}</span> / متوقع{' '}
- <span dir="ltr">{cash.expected}</span> / فرق{' '}
- <span dir="ltr">{cash.variance}</span>
- </span>
-                  ) : null}
-                  {selected.damageReason ? (
- <span className="text-muted">سبب التلف كما كتبه المندوب: {selected.damageReason}</span>
-                  ) : null}
-                  {unsettled ? (
- <span className="rounded-[8px] border border-warn-line bg-warn-soft px-2 py-1 font-semibold text-warn-ink">
- {unsettled}
- </span>
-                  ) : null}
-                  {selectedAudit?.absorbed ? (
- <span className="rounded-[8px] border border-warn-line bg-warn-soft px-2 py-1 font-semibold text-warn-ink">
- مستند الجرد امتصّ <span dir="ltr">{selectedAudit.absorbedQtyText}</span> كجم
- خارج هذا الأمر — رصيد السيارة عند الترحيل{' '}
- <span dir="ltr">{selectedAudit.documentExpectedText}</span> مقابل فرقٍ معتمد{' '}
- <span dir="ltr">{selectedAudit.approvedVarianceText}</span>
- </span>
-                  ) : null}
-                  {selected.vehicleCountQty === null || selected.vehicleCountQty === undefined ? null : (
- <span className="text-muted">
- عُدّت السيارة كلها: <span dir="ltr">{numberText(selected.vehicleCountQty)}</span>{' '}
- كجم، منها <span dir="ltr">{numberText(selected.otherCustodyQty)}</span> كجم
- عهدةُ أوامرَ أخرى نصيبُ هذه العهدة{' '}
- <span dir="ltr">{numberText(selected.actualRemainingQty)}</span> كجم.
- </span>
-                  )}
-                  {coverage?.warning ? (
- <span
-                      className={
-                        coverage.tone === 'danger'
-                          ? 'rounded-[8px] border border-danger-line bg-danger-soft px-2 py-1 font-semibold text-danger-ink'
-                          : 'rounded-[8px] border border-warn-line bg-warn-soft px-2 py-1 font-semibold text-warn-ink'
-                      }
-                    >
- {coverage.warning}
- </span>
-                  ) : coverage?.open ? (
- <span className="text-muted">
- الرصيد الرسمي للسيارة <span dir="ltr">{coverage.officialText}</span> كجم —
- يغطي عهدة هذا الأمر، ولا عهدةَ أخرى في السيارة.
- </span>
-                  ) : null}
- </div>
-              ) : null}
+          <CardBody>
+            {absorbedAudits.length === 0 ? (
+              <p className="m-0 text-[13px] leading-relaxed text-muted">
+                لا مستند جردٍ مُرحَّل امتصّ حركةً خارج أمره. وما لم يُرحَّل بعد لا يُعرض هنا كأنّه مُرحَّل:
+                غياب أرقام المستند عن الصفّ يعني مسودةً أو أمراً لم يُسوَّ مخزونياً.
+              </p>
+            ) : (
+              <div className="bak-table-wrap">
+                <table className="bak-table">
+                  <thead>
+                    <tr>
+                      <th className="border-b border-line p-2 text-right font-bold">الأمر</th>
+                      <th className="border-b border-line p-2 text-right font-bold">
+                        رصيد السيارة عند الترحيل
+                      </th>
+                      <th className="border-b border-line p-2 text-right font-bold">فرق المستند (كمية)</th>
+                      <th className="border-b border-line p-2 text-right font-bold">قيمته</th>
+                      <th className="border-b border-line p-2 text-right font-bold">فرق الاعتماد</th>
+                      <th className="border-b border-line p-2 text-right font-bold">الممتصّ خارج الأمر</th>
+                      <th className="border-b border-line p-2 text-right font-bold">ملاحظة الخادم</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {absorbedAudits.map(({ row, audit }) => (
+                      <tr key={row.id}>
+                        <td>{custodyLabel(row)}</td>
+                        <td className="num" dir="ltr">
+                          {audit.documentExpectedText}
+                        </td>
+                        <td className="num" dir="ltr">
+                          {audit.documentVarianceQtyText}
+                        </td>
+                        <td className="num" dir="ltr">
+                          {audit.documentVarianceValueText}
+                        </td>
+                        <td className="num" dir="ltr">
+                          {audit.approvedVarianceText}
+                        </td>
+                        <td className="border-b border-line p-2 num font-extrabold text-warn-ink" dir="ltr">
+                          {audit.absorbedQtyText}
+                        </td>
+                        <td className="border-b border-line p-2 text-muted">{audit.noteText ?? '—'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </CardBody>
+        </Card>
 
-              {actionKind === 'transit' ? (
- <div className="grid gap-3 md:grid-cols-2">
- <label className="field">
- <span>قرار فرق العبور</span>
- <select
-                      className={selectClass}
-                      onChange={(event) => setTransitMode(event.target.value)}
-                      value={transitMode}
-                    >
- <option value="return">return — إرجاع الباقي إلى المصدر</option>
- <option value="shortage">shortage — عجز تحويل رسمي</option>
- </select>
- </label>
- <Input
-                    hint="قرارٌ ماليّ صريح ينفّذه محرّك المخزون بقيوده وحساباته من ملف الترحيل."
-                    label="سبب القرار"
-                    onChange={(event) => setTransitReason(event.target.value)}
-                    value={transitReason}
-                  />
- <p className="m-0 text-[12.5px] text-muted">
- الفرق عند الاستلام: <span dir="ltr">{numberText(selected.discrepancyQty)}</span>{' '}
-                    — ولا تُغلق العهدة وفرقُ العبور معلّق ().
- </p>
- </div>
-              ) : (
- <div className="grid gap-3 md:grid-cols-2">
- <Input
-                    dir="ltr"
-                    hint={
-                      actionKind === 'submit'
-                        ? 'ما عاد سليماً إلى المستودع — يُسجَّل بمناقلة رسمية.'
-                        : 'ما قدّمه المندوب؛ للمحاسب تصحيحه إن عدّ بنفسه.'
-                    }
-                    label="مرتجع سليم (كجم)"
-                    onChange={(event) => setClosing({ ...closing, returnedQty: event.target.value })}
-                    value={closing.returnedQty}
-                  />
- <Input
-                    dir="ltr"
-                    hint="بلا سببٍ واضح يرفض الخادم 422 (إحالةٌ للفحص الفعلي)."
-                    label="تالف (كجم)"
-                    onChange={(event) => setClosing({ ...closing, damagedQty: event.target.value })}
-                    value={closing.damagedQty}
-                  />
- <Input
-                    hint="إلزامي مع أيّ كمية تالفة — نصّ الخادم لا نصّنا."
-                    label="سبب التلف"
-                    onChange={(event) => setClosing({ ...closing, damageReason: event.target.value })}
-                    value={closing.damageReason}
-                  />
- <Input
-                    dir="ltr"
-                    label="النقد المحصَّل"
-                    onChange={(event) => setClosing({ ...closing, collectedCash: event.target.value })}
-                    value={closing.collectedCash}
-                  />
- <Input
-                    dir="ltr"
- hint="قرار المالك: العددُ للسيارة كلها. يطرح الخادم عهدةَ الأوامر الأخرى ويشتقّ نصيبَ هذه العهدة، ويُرسل مستند الجرد بالعدد كله — فلا يُشطب ما لا تملكه هذه العهدة. فارغ عددٌ لهذا الأمر وحده (السلوك السابق)."
-                    label="عددُ الصنف في السيارة كلها (كجم)"
-                    onChange={(event) =>
-                      setClosing({ ...closing, vehicleCountQty: event.target.value })
-                    }
-                    value={closing.vehicleCountQty ?? ''}
-                  />
- <Input
-                    dir="ltr"
-                    hint={
-                      countPreview?.declared
-                        ? 'يُشتقّ منه نصيبُ هذه العهدة — لا يُرسل للخادم مع عدد السيارة (جمعهما يُرفض 422).'
- : 'الرقم الذي يُقاس به العجز/الفائض. فارغ لا جردَ مكتوباً (ولا يُفترض صفر).'
-                    }
-                    label="المتبقي الفعلي بالجرد (كجم)"
-                    onChange={(event) =>
-                      setClosing({ ...closing, actualRemainingQty: event.target.value })
-                    }
-                    value={closing.actualRemainingQty}
-                  />
-                  {countPreview?.declared ? (
- <p
-                      className={
-                        countPreview.belowOtherCustody
-                          ? 'm-0 rounded-[8px] border border-danger-line bg-danger-soft px-2 py-1 text-[12.5px] font-semibold leading-relaxed text-danger-ink md:col-span-2'
-                          : 'm-0 rounded-[8px] border border-line bg-surface px-2 py-1 text-[12.5px] leading-relaxed text-muted md:col-span-2'
-                      }
-                    >
- {countPreview.note} وفرقُها{' '}
- <span dir="ltr">{countPreview.varianceText}</span> كجم (
-                      {VARIANCE_KIND_LABELS[countPreview.varianceKind]}).
- </p>
-                  ) : null}
-                  {actionKind === 'submit' ? (
- <Input
-                      label="ملاحظات الإقفال"
-                      onChange={(event) => setClosing({ ...closing, closingNotes: event.target.value })}
-                      value={closing.closingNotes}
-                    />
-                  ) : (
- <label className="field">
- <span>مصير المتبقي الفعلي (إلزامي إن وُجد)</span>
- <select
-                        className={selectClass}
-                        onChange={(event) => setRemainingAction(event.target.value)}
-                        value={remainingAction}
+        {/* لوحة الإجراء — الأثر قبل الضغط */}
+        {selected && actionKind ? (
+          <Card>
+            <CardHeader
+              subtitle={`${ACTION_LABELS[actionKind]} · ${selected.number ?? selected.id} · ${ACTION_ROUTES[
+                actionKind
+              ](selected.id ?? '')}`}
+              title={custodyLabel(selected)}
+            />
+            <CardBody>
+              <div className="grid gap-3">
+                {separation ? (
+                  <div className="grid gap-2 rounded-[10px] border border-line bg-surface p-3 text-[12.5px] md:grid-cols-4">
+                    <span className="font-bold text-ink">
+                      مرتجع سليم: <span dir="ltr">{separation.returned}</span>
+                    </span>
+                    <span className="font-bold text-ink">
+                      تالف: <span dir="ltr">{separation.damaged}</span>
+                    </span>
+                    <span className="font-bold text-ink">
+                      عجز: <span dir="ltr">{separation.shortage}</span>
+                    </span>
+                    <span className="font-bold text-ink">
+                      متبقٍ فعلي: <span dir="ltr">{separation.actualRemaining}</span>
+                    </span>
+                    <span className="text-muted">
+                      مباع <span dir="ltr">{separation.sold}</span> + بونص{' '}
+                      <span dir="ltr">{separation.bonus}</span> — المتوقع{' '}
+                      <span dir="ltr">{separation.expectedRemaining}</span> — فرق الجرد{' '}
+                      <span dir="ltr">{separation.countVariance}</span>
+                      {separation.hasSurplus ? ` (منه فائض ${separation.surplus})` : ''}
+                    </span>
+                    {cash ? (
+                      <span className="text-muted">
+                        النقد: محصَّل <span dir="ltr">{cash.collected}</span> / متوقع{' '}
+                        <span dir="ltr">{cash.expected}</span> / فرق <span dir="ltr">{cash.variance}</span>
+                      </span>
+                    ) : null}
+                    {selected.damageReason ? (
+                      <span className="text-muted">سبب التلف كما كتبه المندوب: {selected.damageReason}</span>
+                    ) : null}
+                    {unsettled ? (
+                      <span className="rounded-[8px] border border-warn-line bg-warn-soft px-2 py-1 font-semibold text-warn-ink">
+                        {unsettled}
+                      </span>
+                    ) : null}
+                    {selectedAudit?.absorbed ? (
+                      <span className="rounded-[8px] border border-warn-line bg-warn-soft px-2 py-1 font-semibold text-warn-ink">
+                        مستند الجرد امتصّ <span dir="ltr">{selectedAudit.absorbedQtyText}</span> كجم خارج هذا
+                        الأمر — رصيد السيارة عند الترحيل{' '}
+                        <span dir="ltr">{selectedAudit.documentExpectedText}</span> مقابل فرقٍ معتمد{' '}
+                        <span dir="ltr">{selectedAudit.approvedVarianceText}</span>
+                      </span>
+                    ) : null}
+                    {selected.vehicleCountQty === null || selected.vehicleCountQty === undefined ? null : (
+                      <span className="text-muted">
+                        عُدّت السيارة كلها: <span dir="ltr">{numberText(selected.vehicleCountQty)}</span> كجم،
+                        منها <span dir="ltr">{numberText(selected.otherCustodyQty)}</span> كجم عهدةُ أوامرَ
+                        أخرى نصيبُ هذه العهدة <span dir="ltr">{numberText(selected.actualRemainingQty)}</span>{' '}
+                        كجم.
+                      </span>
+                    )}
+                    {coverage?.warning ? (
+                      <span
+                        className={
+                          coverage.tone === 'danger'
+                            ? 'rounded-[8px] border border-danger-line bg-danger-soft px-2 py-1 font-semibold text-danger-ink'
+                            : 'rounded-[8px] border border-warn-line bg-warn-soft px-2 py-1 font-semibold text-warn-ink'
+                        }
                       >
- <option value="">— لم يُحدَّد —</option>
-                        {REMAINING_ACTIONS.map((action) => (
- <option key={action} value={action}>
-                            {remainingActionLabel(action)} ({action})
- </option>
-                        ))}
- </select>
- </label>
-                  )}
- </div>
-              )}
+                        {coverage.warning}
+                      </span>
+                    ) : coverage?.open ? (
+                      <span className="text-muted">
+                        الرصيد الرسمي للسيارة <span dir="ltr">{coverage.officialText}</span> كجم — يغطي عهدة
+                        هذا الأمر، ولا عهدةَ أخرى في السيارة.
+                      </span>
+                    ) : null}
+                  </div>
+                ) : null}
 
-              {actionKind === 'approve' || actionKind === 'settle' ? (
- <div className="grid gap-2 rounded-[10px] border border-line bg-surface p-3">
- <label className={checkClass}>
- <input
-                      checked={flags.damageInspected}
-                      onChange={(event) =>
-                        setFlags({ ...flags, damageInspected: event.target.checked })
-                      }
-                      type="checkbox"
+                {actionKind === 'transit' ? (
+                  <div className="grid gap-3 md:grid-cols-2">
+                    <label className="field">
+                      <span>قرار فرق العبور</span>
+                      <select
+                        className={selectClass}
+                        onChange={(event) => setTransitMode(event.target.value)}
+                        value={transitMode}
+                      >
+                        <option value="return">return — إرجاع الباقي إلى المصدر</option>
+                        <option value="shortage">shortage — عجز تحويل رسمي</option>
+                      </select>
+                    </label>
+                    <Input
+                      hint="قرارٌ ماليّ صريح ينفّذه محرّك المخزون بقيوده وحساباته من ملف الترحيل."
+                      label="سبب القرار"
+                      onChange={(event) => setTransitReason(event.target.value)}
+                      value={transitReason}
                     />
- تأكّد الفحص الفعلي للتالف (بلا تأكيدٍ وكميةٍ تالفة يرفض الخادم 422)
- </label>
- <label className={checkClass}>
- <input
-                      checked={flags.settleStockAdjustment}
-                      onChange={(event) =>
-                        setFlags({ ...flags, settleStockAdjustment: event.target.checked })
+                    <p className="m-0 text-[12.5px] text-muted">
+                      الفرق عند الاستلام: <span dir="ltr">{numberText(selected.discrepancyQty)}</span> — ولا
+                      تُغلق العهدة وفرقُ العبور معلّق ().
+                    </p>
+                  </div>
+                ) : (
+                  <div className="grid gap-3 md:grid-cols-2">
+                    <Input
+                      dir="ltr"
+                      hint={
+                        actionKind === 'submit'
+                          ? 'ما عاد سليماً إلى المستودع — يُسجَّل بمناقلة رسمية.'
+                          : 'ما قدّمه المندوب؛ للمحاسب تصحيحه إن عدّ بنفسه.'
                       }
-                      type="checkbox"
+                      label="مرتجع سليم (كجم)"
+                      onChange={(event) => setClosing({ ...closing, returnedQty: event.target.value })}
+                      value={closing.returnedQty}
                     />
- تفويض ترحيل مستند الجرد الرسمي (بدونه يبقى مسودةً وتبقى العهدة معلّقة)
- </label>
- <label className={checkClass}>
- <input
-                      checked={flags.surplusAcknowledged}
-                      onChange={(event) =>
-                        setFlags({ ...flags, surplusAcknowledged: event.target.checked })
+                    <Input
+                      dir="ltr"
+                      hint="بلا سببٍ واضح يرفض الخادم 422 (إحالةٌ للفحص الفعلي)."
+                      label="تالف (كجم)"
+                      onChange={(event) => setClosing({ ...closing, damagedQty: event.target.value })}
+                      value={closing.damagedQty}
+                    />
+                    <Input
+                      hint="إلزامي مع أيّ كمية تالفة — نصّ الخادم لا نصّنا."
+                      label="سبب التلف"
+                      onChange={(event) => setClosing({ ...closing, damageReason: event.target.value })}
+                      value={closing.damageReason}
+                    />
+                    <Input
+                      dir="ltr"
+                      label="النقد المحصَّل"
+                      onChange={(event) => setClosing({ ...closing, collectedCash: event.target.value })}
+                      value={closing.collectedCash}
+                    />
+                    <Input
+                      dir="ltr"
+                      hint="قرار المالك: العددُ للسيارة كلها. يطرح الخادم عهدةَ الأوامر الأخرى ويشتقّ نصيبَ هذه العهدة، ويُرسل مستند الجرد بالعدد كله — فلا يُشطب ما لا تملكه هذه العهدة. فارغ عددٌ لهذا الأمر وحده (السلوك السابق)."
+                      label="عددُ الصنف في السيارة كلها (كجم)"
+                      onChange={(event) => setClosing({ ...closing, vehicleCountQty: event.target.value })}
+                      value={closing.vehicleCountQty ?? ''}
+                    />
+                    <Input
+                      dir="ltr"
+                      hint={
+                        countPreview?.declared
+                          ? 'يُشتقّ منه نصيبُ هذه العهدة — لا يُرسل للخادم مع عدد السيارة (جمعهما يُرفض 422).'
+                          : 'الرقم الذي يُقاس به العجز/الفائض. فارغ لا جردَ مكتوباً (ولا يُفترض صفر).'
                       }
-                      type="checkbox"
+                      label="المتبقي الفعلي بالجرد (كجم)"
+                      onChange={(event) => setClosing({ ...closing, actualRemainingQty: event.target.value })}
+                      value={closing.actualRemainingQty}
                     />
- إقرارٌ صريح بفائض الجرد عن العهدة (يُرفض الرقم بدونه حمايةً من خطأ الإدخال)
- </label>
- <label className={checkClass}>
- <input
-                      checked={flags.selfApprovalOverride}
-                      onChange={(event) =>
-                        setFlags({ ...flags, selfApprovalOverride: event.target.checked })
-                      }
-                      type="checkbox"
-                    />
- تجاوز منع الاعتماد الذاتي (يُكتب في سجلّ التدقيق)
- </label>
+                    {countPreview?.declared ? (
+                      <p
+                        className={
+                          countPreview.belowOtherCustody
+                            ? 'm-0 rounded-[8px] border border-danger-line bg-danger-soft px-2 py-1 text-[12.5px] font-semibold leading-relaxed text-danger-ink md:col-span-2'
+                            : 'm-0 rounded-[8px] border border-line bg-surface px-2 py-1 text-[12.5px] leading-relaxed text-muted md:col-span-2'
+                        }
+                      >
+                        {countPreview.note} وفرقُها <span dir="ltr">{countPreview.varianceText}</span> كجم (
+                        {VARIANCE_KIND_LABELS[countPreview.varianceKind]}).
+                      </p>
+                    ) : null}
+                    {actionKind === 'submit' ? (
+                      <Input
+                        label="ملاحظات الإقفال"
+                        onChange={(event) => setClosing({ ...closing, closingNotes: event.target.value })}
+                        value={closing.closingNotes}
+                      />
+                    ) : (
+                      <label className="field">
+                        <span>مصير المتبقي الفعلي (إلزامي إن وُجد)</span>
+                        <select
+                          className={selectClass}
+                          onChange={(event) => setRemainingAction(event.target.value)}
+                          value={remainingAction}
+                        >
+                          <option value="">— لم يُحدَّد —</option>
+                          {REMAINING_ACTIONS.map((action) => (
+                            <option key={action} value={action}>
+                              {remainingActionLabel(action)} ({action})
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                    )}
+                  </div>
+                )}
 
-                  {/* القرار الماليّ: أثرُه قبل الضغط لا بعده بخطأ. */}
- <div className="mt-1 grid gap-1 rounded-[10px] border border-warn-line bg-warn-soft p-3">
- <label className={checkClass}>
- <input
-                        checked={flags.salaryDeductionApproved}
+                {actionKind === 'approve' || actionKind === 'settle' ? (
+                  <div className="grid gap-2 rounded-[10px] border border-line bg-surface p-3">
+                    <label className={checkClass}>
+                      <input
+                        checked={flags.damageInspected}
+                        onChange={(event) => setFlags({ ...flags, damageInspected: event.target.checked })}
+                        type="checkbox"
+                      />
+                      تأكّد الفحص الفعلي للتالف (بلا تأكيدٍ وكميةٍ تالفة يرفض الخادم 422)
+                    </label>
+                    <label className={checkClass}>
+                      <input
+                        checked={flags.settleStockAdjustment}
                         onChange={(event) =>
-                          setFlags({ ...flags, salaryDeductionApproved: event.target.checked })
+                          setFlags({ ...flags, settleStockAdjustment: event.target.checked })
                         }
                         type="checkbox"
                       />
- تحميل العجز على المندوب — <strong>مديونية موظف</strong> تُرحَّل قيداً
- </label>
-                    {preview ? (
- <div className="grid gap-1 text-[12.5px] text-warn-ink">
- <span>
- العجز <span dir="ltr">{numberText(selected.shortageQty)}</span> كجم · القيمة
- بحسب السياسة <span dir="ltr">{preview.amountText}</span> · وعلى أساس
- التكلفة <span dir="ltr">{preview.costValueText}</span>
- </span>
- <span>
- الأساس المتوقع: {summary.sourceText} · المدين: {preview.debitText} · الدائن:{' '}
-                          {preview.creditText}
- </span>
- <span>
-                          {preview.posted
-                            ? 'قيدٌ مُرحَّل من قبل — تُعرض نتيجته أدناه ولا يُعاد ترحيله (مفتاح عدم تكرار).'
-                            : preview.willPost
-                              ? 'سيُرحَّل قيدٌ واحد عند هذا الاعتماد — وبلا هذا العلم لا يُرحَّل شيء.'
-                              : 'لن يُرحَّل أيّ قيد: العلم غير مرفوع (أو لا عجز في هذا الأمر).'}
- </span>
-                        {evidence ? (
- <span>
- الدليل المُرحَّل: <span dir="ltr">{evidence.amount}</span> · الأساس{' '}
-                            {evidence.basisText} · قيد <span dir="ltr">{evidence.journalEntryId}</span>
- </span>
-                        ) : null}
- </div>
-                    ) : null}
-                    {blockers.length > 0 ? (
- <div className="grid gap-1 text-[12.5px] font-semibold text-danger-ink">
-                        {blockers.map((text) => (
- <span key={text}>{text}</span>
-                        ))}
- <span className="font-normal text-muted">
- الخادم يرفض الاعتماد 422 ما دام هذا المانع قائماً — ولا تُغلق العهدة بنصف
- كتابة.
- </span>
- </div>
-                    ) : null}
- </div>
+                      تفويض ترحيل مستند الجرد الرسمي (بدونه يبقى مسودةً وتبقى العهدة معلّقة)
+                    </label>
+                    <label className={checkClass}>
+                      <input
+                        checked={flags.surplusAcknowledged}
+                        onChange={(event) =>
+                          setFlags({ ...flags, surplusAcknowledged: event.target.checked })
+                        }
+                        type="checkbox"
+                      />
+                      إقرارٌ صريح بفائض الجرد عن العهدة (يُرفض الرقم بدونه حمايةً من خطأ الإدخال)
+                    </label>
+                    <label className={checkClass}>
+                      <input
+                        checked={flags.selfApprovalOverride}
+                        onChange={(event) =>
+                          setFlags({ ...flags, selfApprovalOverride: event.target.checked })
+                        }
+                        type="checkbox"
+                      />
+                      تجاوز منع الاعتماد الذاتي (يُكتب في سجلّ التدقيق)
+                    </label>
 
- <Input
-                    label="ملاحظات الاعتماد"
-                    onChange={(event) => setNotes(event.target.value)}
-                    value={notes}
-                  />
- </div>
-              ) : null}
+                    {/* القرار الماليّ: أثرُه قبل الضغط لا بعده بخطأ. */}
+                    <div className="mt-1 grid gap-1 rounded-[10px] border border-warn-line bg-warn-soft p-3">
+                      <label className={checkClass}>
+                        <input
+                          checked={flags.salaryDeductionApproved}
+                          onChange={(event) =>
+                            setFlags({ ...flags, salaryDeductionApproved: event.target.checked })
+                          }
+                          type="checkbox"
+                        />
+                        تحميل العجز على المندوب — <strong>مديونية موظف</strong> تُرحَّل قيداً
+                      </label>
+                      {preview ? (
+                        <div className="grid gap-1 text-[12.5px] text-warn-ink">
+                          <span>
+                            العجز <span dir="ltr">{numberText(selected.shortageQty)}</span> كجم · القيمة بحسب
+                            السياسة <span dir="ltr">{preview.amountText}</span> · وعلى أساس التكلفة{' '}
+                            <span dir="ltr">{preview.costValueText}</span>
+                          </span>
+                          <span>
+                            الأساس المتوقع: {summary.sourceText} · المدين: {preview.debitText} · الدائن:{' '}
+                            {preview.creditText}
+                          </span>
+                          <span>
+                            {preview.posted
+                              ? 'قيدٌ مُرحَّل من قبل — تُعرض نتيجته أدناه ولا يُعاد ترحيله (مفتاح عدم تكرار).'
+                              : preview.willPost
+                                ? 'سيُرحَّل قيدٌ واحد عند هذا الاعتماد — وبلا هذا العلم لا يُرحَّل شيء.'
+                                : 'لن يُرحَّل أيّ قيد: العلم غير مرفوع (أو لا عجز في هذا الأمر).'}
+                          </span>
+                          {evidence ? (
+                            <span>
+                              الدليل المُرحَّل: <span dir="ltr">{evidence.amount}</span> · الأساس{' '}
+                              {evidence.basisText} · قيد <span dir="ltr">{evidence.journalEntryId}</span>
+                            </span>
+                          ) : null}
+                        </div>
+                      ) : null}
+                      {blockers.length > 0 ? (
+                        <div className="grid gap-1 text-[12.5px] font-semibold text-danger-ink">
+                          {blockers.map((text) => (
+                            <span key={text}>{text}</span>
+                          ))}
+                          <span className="font-normal text-muted">
+                            الخادم يرفض الاعتماد 422 ما دام هذا المانع قائماً — ولا تُغلق العهدة بنصف كتابة.
+                          </span>
+                        </div>
+                      ) : null}
+                    </div>
 
-              {actionError ? (
- <p
-                  className="m-0 rounded-[10px] border border-danger-line bg-danger-soft px-3 py-2 text-[12.5px] font-semibold text-danger-ink"
-                  role="alert"
-                >
-                  {actionError}
- </p>
-              ) : null}
+                    <Input
+                      label="ملاحظات الاعتماد"
+                      onChange={(event) => setNotes(event.target.value)}
+                      value={notes}
+                    />
+                  </div>
+                ) : null}
 
- <div className="flex flex-wrap items-center gap-2">
- <Button disabled={busy} onClick={() => void runAction()} size="sm">
-                  {busy ? 'جارٍ التنفيذ…' : ACTION_LABELS[actionKind]}
- </Button>
- <Button disabled={busy} onClick={closeAction} size="sm" variant="secondary">
- إغلاق
- </Button>
- <span className="text-[12px] text-muted">والحكم النهائي للخادم.</span>
- </div>
- </div>
- </CardBody>
- </Card>
-      ) : null}
-       </div>
+                {actionError ? (
+                  <p
+                    className="m-0 rounded-[10px] border border-danger-line bg-danger-soft px-3 py-2 text-[12.5px] font-semibold text-danger-ink"
+                    role="alert"
+                  >
+                    {actionError}
+                  </p>
+                ) : null}
+
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button disabled={busy} onClick={() => void runAction()} size="sm">
+                    {busy ? 'جارٍ التنفيذ…' : ACTION_LABELS[actionKind]}
+                  </Button>
+                  <Button disabled={busy} onClick={closeAction} size="sm" variant="secondary">
+                    إغلاق
+                  </Button>
+                  <span className="text-[12px] text-muted">والحكم النهائي للخادم.</span>
+                </div>
+              </div>
+            </CardBody>
+          </Card>
+        ) : null}
+      </div>
     </section>
   );
 }

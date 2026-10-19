@@ -29,7 +29,13 @@ import {
   type LoadOrderRow,
   type SalesmanRow,
 } from '../../lib/distribution-screen';
-import { itemLabel, numberText, warehouseLabel, type ItemOption, type WarehouseOption } from '../../lib/lookups';
+import {
+  itemLabel,
+  numberText,
+  warehouseLabel,
+  type ItemOption,
+  type WarehouseOption,
+} from '../../lib/lookups';
 
 /** الصلاحية التي يفرضها الخادم على `POST /van-sales/load-orders` وعلى `…/cancel`. */
 const LOAD_PERMISSION = 'van_sales.load.manage';
@@ -179,7 +185,17 @@ export default function DistributionPage() {
       vehiclePlate,
       notes,
     }),
-    [salesmanId, itemId, pickedItem, productionBatchNo, loadedQty, warehouseId, vanWarehouseId, vehiclePlate, notes],
+    [
+      salesmanId,
+      itemId,
+      pickedItem,
+      productionBatchNo,
+      loadedQty,
+      warehouseId,
+      vanWarehouseId,
+      vehiclePlate,
+      notes,
+    ],
   );
   const verdict = useMemo(() => buildLoadOrderPayload(draft), [draft]);
   // مفتاحٌ واحد للنيّة الواحدة: إعادة الإرسال بعد انقطاع الشبكة ترجع بأمر التحميل الأول
@@ -229,7 +245,8 @@ export default function DistributionPage() {
     return buildReceiptPayload({
       receivedQty,
       notes: receiptNotes,
-      loadedQty: actionRow.loadedQty === null || actionRow.loadedQty === undefined ? '' : String(actionRow.loadedQty),
+      loadedQty:
+        actionRow.loadedQty === null || actionRow.loadedQty === undefined ? '' : String(actionRow.loadedQty),
     });
   }, [actionRow, actionKind, receivedQty, receiptNotes]);
 
@@ -305,511 +322,507 @@ export default function DistributionPage() {
   const advisories = pickedSalesman ? salesmanAdvisories(pickedSalesman) : [];
 
   return (
- <section className="ui-page">
- <header className="ui-page-head">
- <div className="ui-page-head-copy">
- <h1 className="ui-page-title">
- التوزيع والأحمال
- </h1>
- <p className="ui-page-sub">
- أمر تحميلٍ لمندوب: يُصرف من المستودع بمناقلة رسمية وتصير البضاعة عهدةً <strong>عند تأكيد
- الاستلام</strong>. والإقفال والاعتماد وتسوية الفرق وحدةٌ أخرى (في `staff`).
- </p>
- </div>
- <div className="ui-page-actions">
- <Button disabled={loading || !canView} onClick={() => void load()} size="sm">
- تحديث
- </Button>
- </div>
- </header>
+    <section className="ui-page">
+      <header className="ui-page-head">
+        <div className="ui-page-head-copy">
+          <h1 className="ui-page-title">التوزيع والأحمال</h1>
+          <p className="ui-page-sub">
+            أمر تحميلٍ لمندوب: يُصرف من المستودع بمناقلة رسمية وتصير البضاعة عهدةً{' '}
+            <strong>عند تأكيد الاستلام</strong>. والإقفال والاعتماد وتسوية الفرق وحدةٌ أخرى (في `staff`).
+          </p>
+        </div>
+        <div className="ui-page-actions">
+          <Button disabled={loading || !canView} onClick={() => void load()} size="sm">
+            تحديث
+          </Button>
+        </div>
+      </header>
       <div className="ui-screen-body">
+        {!canView ? (
+          <Card>
+            <CardBody>
+              <p className="m-0 rounded-[10px] border border-warn-line bg-warn-soft px-4 py-2.5 text-[13px] font-semibold text-warn-ink">
+                لا تملك صلاحيةَ هذا القسم — والخادم يرفض قراءة لوحة التوزيع وقائمة المندوبين. ولم يُرسل هذا
+                التطبيق طلباً سيُرفض حتماً، ولا عرض أرقاماً من المتصفح بدلها.
+              </p>
+            </CardBody>
+          </Card>
+        ) : null}
 
-      {!canView ? (
- <Card>
- <CardBody>
- <p className="m-0 rounded-[10px] border border-warn-line bg-warn-soft px-4 py-2.5 text-[13px] font-semibold text-warn-ink">
- لا تملك صلاحيةَ هذا القسم — والخادم يرفض قراءة لوحة التوزيع وقائمة المندوبين.
- ولم يُرسل هذا التطبيق طلباً سيُرفض حتماً، ولا عرض أرقاماً من المتصفح بدلها.
- </p>
- </CardBody>
- </Card>
-      ) : null}
+        {loadError ? (
+          <Card>
+            <CardBody>
+              <p
+                className="m-0 rounded-[10px] border border-danger-line bg-danger-soft px-4 py-2.5 text-[13px] font-semibold text-danger-ink"
+                role="alert"
+              >
+                تعذّر تحميل بيانات التوزيع: {loadError}
+              </p>
+              <p className="m-0 mt-2 text-[12.5px] text-muted">
+                تحقّق من اتصالك بالشبكة ومن صلاحيتك على التوزيع، ثمّ أعد المحاولة — لا تُعرض هنا أحمالٌ محسوبة
+                في المتصفّح.
+              </p>
+              <Button className="mt-3" onClick={() => void load()} size="sm">
+                إعادة المحاولة
+              </Button>
+            </CardBody>
+          </Card>
+        ) : null}
 
-      {loadError ? (
- <Card>
- <CardBody>
- <p
-              className="m-0 rounded-[10px] border border-danger-line bg-danger-soft px-4 py-2.5 text-[13px] font-semibold text-danger-ink"
-              role="alert"
-            >
- تعذّر تحميل بيانات التوزيع: {loadError}
- </p>
- <p className="m-0 mt-2 text-[12.5px] text-muted">
- السبب المعتاد: لا تملك  أو أنّ الـAPI غير متاح من هذه الواجهة.
- ولا تُعرض أحمالٌ بديلة من المتصفح.
- </p>
- <Button className="mt-3" onClick={() => void load()} size="sm">
- إعادة المحاولة
- </Button>
- </CardBody>
- </Card>
-      ) : null}
+        {lookupWarning ? (
+          <p className="m-0 rounded-[10px] border border-warn-line bg-warn-soft px-4 py-2.5 text-[13px] font-semibold text-warn-ink">
+            {lookupWarning}
+          </p>
+        ) : null}
 
-      {lookupWarning ? (
- <p className="m-0 rounded-[10px] border border-warn-line bg-warn-soft px-4 py-2.5 text-[13px] font-semibold text-warn-ink">
-          {lookupWarning}
- </p>
-      ) : null}
+        {actionDone ? (
+          <p className="m-0 rounded-[10px] border border-ok-line bg-ok-soft px-4 py-2.5 text-[13px] font-semibold text-ok-ink">
+            {actionDone}
+          </p>
+        ) : null}
 
-      {actionDone ? (
- <p className="m-0 rounded-[10px] border border-ok-line bg-ok-soft px-4 py-2.5 text-[13px] font-semibold text-ok-ink">
- {actionDone}
- </p>
-      ) : null}
+        {canManage ? (
+          <Card>
+            <CardHeader
+              subtitle="بياناتُ أمر التحميل: المندوب والمستودع والصنف والكمية. ولا يُقبل صنفٌ يُتتبَّع بالدفعات بلا رقم دفعة صريح — يُقال ذلك قبل الإرسال، والنظام يتحقّق منه أيضاً."
+              title="أمر تحميل جديد"
+            />
+            <CardBody>
+              <form
+                className="grid gap-3"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  void submit();
+                }}
+              >
+                <div className="grid gap-3 md:grid-cols-2">
+                  <label className="field">
+                    <span>المندوب (صاحب العهدة)</span>
+                    <select
+                      className={selectClass}
+                      onChange={(event) => pickSalesman(event.target.value)}
+                      value={salesmanId}
+                    >
+                      <option value="">— اختر المندوب —</option>
+                      {salesmen.map((row) => (
+                        <option key={row.id} value={row.id ?? ''}>
+                          {salesmanLabel(row)}
+                          {row.warehouseName ? ` — ${row.warehouseName}` : ' — بلا مستودع سيارة'}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
 
-      {canManage ? (
- <Card>
- <CardHeader
-            subtitle="بياناتُ أمر التحميل: المندوب والمستودع والصنف والكمية. ولا يُقبل صنفٌ يُتتبَّع بالدفعات بلا رقم دفعة صريح — يُقال ذلك قبل الإرسال، والنظام يتحقّق منه أيضاً."
-            title="أمر تحميل جديد"
-          />
- <CardBody>
- <form
-              className="grid gap-3"
-              onSubmit={(event) => {
-                event.preventDefault();
-                void submit();
-              }}
-            >
- <div className="grid gap-3 md:grid-cols-2">
- <label className="field">
- <span>المندوب (صاحب العهدة)</span>
- <select
-                    className={selectClass}
-                    onChange={(event) => pickSalesman(event.target.value)}
-                    value={salesmanId}
-                  >
- <option value="">— اختر المندوب —</option>
-                    {salesmen.map((row) => (
- <option key={row.id} value={row.id ?? ''}>
-                        {salesmanLabel(row)}
-                        {row.warehouseName ? ` — ${row.warehouseName}` : ' — بلا مستودع سيارة'}
- </option>
-                    ))}
- </select>
- </label>
-
- <Input
-                  dir="ltr"
-                  hint="صنفٌ واحد لكلّ أمر تحميل — حمولةٌ متعددة الأصناف أوامرٌ متعددة."
-                  inputMode="decimal"
-                  label="الكمية المحمّلة"
-                  onChange={(event) => setLoadedQty(event.target.value)}
-                  placeholder="0.0000"
-                  value={loadedQty}
-                />
- </div>
-
-              {pickedSalesman ? (
- <div className="grid gap-1.5">
-                  {blocking ? (
- <p className="m-0 rounded-[10px] border border-warn-line bg-warn-soft px-3 py-2 text-[12.5px] font-semibold text-warn-ink">
- {blocking}
- </p>
-                  ) : null}
-                  {advisories.map((note) => (
- <p key={note} className="m-0 text-[12.5px] text-muted">
-                      · {note}
- </p>
-                  ))}
- <p className="m-0 text-[12.5px] text-muted" dir="rtl">
- عهدته الآن: {numberText(pickedSalesman.custody?.custodyQty)} — أوامر مفتوحة:{' '}
-                    {numberText(pickedSalesman.custody?.openLoadOrders)} — بانتظار استلام:{' '}
-                    {numberText(pickedSalesman.custody?.pendingReceipts)} (من بطاقة المندوب).
- </p>
- </div>
-              ) : null}
-
- <div className="grid gap-3 md:grid-cols-2">
- <label className="field">
- <span>الصنف المحمَّل</span>
- <select className={selectClass} onChange={(event) => setItemId(event.target.value)} value={itemId}>
- <option value="">— اختر الصنف —</option>
-                    {items.map((row) => (
- <option key={row.id} value={row.id}>
-                        {row.trackLot === true ? `${itemLabel(row)} — يتطلّب دفعة إنتاج` : itemLabel(row)}
- </option>
-                    ))}
- </select>
- </label>
-
- <label className="field">
- <span>أو اربطه بدفعة إنتاج (يُشتقّ الصنف واللوت منها)</span>
- <select className={selectClass} onChange={(event) => pickBatch(event.target.value)} value={batchKey}>
- <option value="">— بلا ربط بدفعة —</option>
-                    {batches.map((row) => (
- <option key={row.id ?? row.batchNo ?? ''} value={row.id ?? ''}>
-                        {batchOptionLabel(row)}
- </option>
-                    ))}
- </select>
- </label>
- </div>
-
-              {itemRequiresBatch(items, itemId, productionBatchNo) ? (
- <p className="m-0 rounded-[10px] border border-warn-line bg-warn-soft px-4 py-2.5 text-[12.5px] font-semibold text-warn-ink">
- هذا الصنف يُتتبَّع بالدفعات: اربطه بدفعة إنتاج من القائمة، وإلا رفضه الخادم
-                  (‏422 <span dir="ltr">VAN_LOAD_ORDER_BATCH_REQUIRED</span>) — ولا يُفترض رقمُ دفعةٍ
- من تاريخ اليوم، لأنه يلتقي برقم أوّل دفعةٍ تُنشأ اليوم نفسها.
- </p>
-              ) : null}
-
- <div className="grid gap-3 md:grid-cols-2">
- <label className="field">
- <span>مستودع المصدر (المصروف منه)</span>
- <select
-                    className={selectClass}
-                    onChange={(event) => setWarehouseId(event.target.value)}
-                    value={warehouseId}
-                  >
- <option value="">— يحدده الخادم —</option>
-                    {warehouses.map((row) => (
- <option key={row.id} value={row.id}>
-                        {warehouseLabel(row)}
- </option>
-                    ))}
- </select>
- </label>
-
- <label className="field">
- <span>مستودع السيارة (وجهة العهدة)</span>
- <select
-                    className={selectClass}
-                    onChange={(event) => setVanWarehouseId(event.target.value)}
-                    value={vanWarehouseId}
-                  >
- <option value="">— يشتقّه الخادم من بطاقة المندوب —</option>
-                    {warehouses.map((row) => (
- <option key={row.id} value={row.id}>
-                        {warehouseLabel(row)}
- </option>
-                    ))}
- </select>
- </label>
- </div>
-
- <div className="grid gap-3 md:grid-cols-2">
- <Input
-                  hint="تُملأ من بطاقة المندوب حين تكون الخانة فارغة — ولا تُختلق لوحة."
-                  label="لوحة السيارة"
-                  onChange={(event) => setVehiclePlate(event.target.value)}
-                  value={vehiclePlate}
-                />
-
- <Input label="ملاحظات" onChange={(event) => setNotes(event.target.value)} value={notes} />
- </div>
-
-              {productionBatchNo ? (
- <p className="m-0 text-[12.5px] text-muted">
- رقم الدفعة المُرسلة: <span dir="ltr">{productionBatchNo}</span> — والخادم يتحقّق
- أنّها دفعةُ هذا المستأجر، ويشتقّ منها الصنف واللوت إن لم يُكتب صنف.
- </p>
-              ) : null}
-
-              {!verdict.ok ? (
- <p className="m-0 rounded-[10px] border border-warn-line bg-warn-soft px-4 py-2.5 text-[13px] font-semibold text-warn-ink">
-                  {verdict.message}
- </p>
-              ) : null}
-
-              {submitError ? (
- <p
-                  className="m-0 rounded-[10px] border border-danger-line bg-danger-soft px-4 py-2.5 text-[13px] font-semibold text-danger-ink"
-                  role="alert"
-                >
- رفض الخادم: {submitError}
- </p>
-              ) : null}
-
-              {created ? (
- <p className="m-0 rounded-[10px] border border-ok-line bg-ok-soft px-4 py-2.5 text-[13px] font-semibold text-ok-ink">
- أُنشئ أمر التحميل <span dir="ltr">{created.number ?? '—'}</span> — الحالة:{' '}
-                  {loadOrderStatusLabel(created.status ?? '')} — المصروف:{' '}
- <span dir="ltr">{numberText(created.loadedQty)}</span> — بانتظار تأكيد المندوب
- للاستلام.
- </p>
-              ) : null}
-
- <div className="ui-form-actions">
- <Button disabled={busy || !verdict.ok} size="sm" type="submit">
-                  {busy ? 'جارٍ الإنشاء…' : 'إنشاء أمر التحميل'}
- </Button>
- <span className="text-[12px] text-muted">
- لا تُرسل الشاشة حدّ البونص ولا سعراً: السياسة والتسعير من الخادم.
- </span>
- </div>
- </form>
- </CardBody>
- </Card>
-      ) : null}
-
-      {actionRow && actionKind ? (
- <Card>
- <CardHeader
-            subtitle={`أمر التحميل ${actionRow.number ?? actionRow.id ?? '—'} — ${actionRow.itemName ?? '—'} · مصروف ${numberText(actionRow.loadedQty)} · مستلم ${numberText(actionRow.receivedQty)}`}
-            title={ACTION_LABELS[actionKind]}
-          />
- <CardBody>
- <div className="grid gap-3">
-              {actionKind === 'confirm' ? (
- <>
- <Input
+                  <Input
                     dir="ltr"
- hint="فارغة يستعمل الخادم الكمية المحمّلة. والصفر يُكتب صراحةً."
+                    hint="صنفٌ واحد لكلّ أمر تحميل — حمولةٌ متعددة الأصناف أوامرٌ متعددة."
                     inputMode="decimal"
-                    label="الكمية المستلمة فعلياً"
-                    onChange={(event) => setReceivedQty(event.target.value)}
-                    placeholder="فارغة = الكمية المحمّلة"
-                    value={receivedQty}
+                    label="الكمية المحمّلة"
+                    onChange={(event) => setLoadedQty(event.target.value)}
+                    placeholder="0.0000"
+                    value={loadedQty}
                   />
- <Input
-                    label="ملاحظات الاستلام"
-                    onChange={(event) => setReceiptNotes(event.target.value)}
-                    value={receiptNotes}
-                  />
-                  {receiptVerdict?.ok && receiptVerdict.usesLoadedQty ? (
- <p className="m-0 rounded-[10px] border border-warn-line bg-warn-soft px-3 py-2 text-[12.5px] font-semibold text-warn-ink">
- تركتَها فارغة يستعمل الخادم الكمية المحمّلة (
- <span dir="ltr">{numberText(actionRow.loadedQty)}</span>) ويكون الفرق صفراً.
- الفراغ هنا ليس صفراً مكتوباً: لو استلمتَ <strong>صفر</strong> فاكتب 0 صراحةً ليُسجَّل
- الفرق كاملاً.
- </p>
-                  ) : null}
-                  {receiptVerdict && !receiptVerdict.ok ? (
- <p className="m-0 rounded-[10px] border border-warn-line bg-warn-soft px-3 py-2 text-[12.5px] font-semibold text-warn-ink">
-                      {receiptVerdict.message}
- </p>
-                  ) : null}
- </>
-              ) : (
- <Input
-                  hint="اختياري — يكتب الخادم سبباً افتراضياً إن تُرك فارغاً."
-                  label="السبب"
-                  onChange={(event) => setActionReason(event.target.value)}
-                  value={actionReason}
-                />
-              )}
+                </div>
 
-              {actionError ? (
- <p
-                  className="m-0 rounded-[10px] border border-danger-line bg-danger-soft px-4 py-2.5 text-[13px] font-semibold text-danger-ink"
-                  role="alert"
-                >
- رفض الخادم: {actionError}
- </p>
-              ) : null}
-
- <div className="flex flex-wrap items-center gap-2">
- <Button
-                  disabled={actionBusy || (actionKind === 'confirm' && receiptVerdict?.ok === false)}
-                  onClick={() => void runAction()}
-                  size="sm"
-                >
-                  {actionBusy ? 'جارٍ التنفيذ…' : ACTION_LABELS[actionKind]}
- </Button>
- <Button onClick={closeAction} size="sm" variant="ghost">
- إغلاق
- </Button>
-                {actionKind === 'confirm' ? (
- <span className="text-[12px] text-muted">
- يؤكّده المندوب صاحب العهدة أو من يملك صلاحية الأحمال — وغيرهما يُرفض
- من الخادم.
- </span>
+                {pickedSalesman ? (
+                  <div className="grid gap-1.5">
+                    {blocking ? (
+                      <p className="m-0 rounded-[10px] border border-warn-line bg-warn-soft px-3 py-2 text-[12.5px] font-semibold text-warn-ink">
+                        {blocking}
+                      </p>
+                    ) : null}
+                    {advisories.map((note) => (
+                      <p key={note} className="m-0 text-[12.5px] text-muted">
+                        · {note}
+                      </p>
+                    ))}
+                    <p className="m-0 text-[12.5px] text-muted" dir="rtl">
+                      عهدته الآن: {numberText(pickedSalesman.custody?.custodyQty)} — أوامر مفتوحة:{' '}
+                      {numberText(pickedSalesman.custody?.openLoadOrders)} — بانتظار استلام:{' '}
+                      {numberText(pickedSalesman.custody?.pendingReceipts)} (من بطاقة المندوب).
+                    </p>
+                  </div>
                 ) : null}
- </div>
- </div>
- </CardBody>
- </Card>
-      ) : null}
 
- <Card>
- <CardHeader
-          action={<span className="bak-badge">{loadOrders.length} صف</span>}
-          subtitle="أحدث ٦٠ أمر تحميل، مرتّبةً من الأحدث."
-          title="الأحمال"
-        />
- <CardBody>
-          {loading ? (
- <p aria-busy="true" className="m-0 text-[13px] text-muted">
- جارٍ تحميل الأحمال…
- </p>
-          ) : loadOrders.length === 0 ? (
- <p className="m-0 text-[13px] text-muted">
- لا أمر تحميل بعد{canManage ? ' — أنشئ الأول أعلاه' : ''}. ولا يُعرض هنا رقمٌ
- تجريبيّ.
- </p>
-          ) : (
- <div className="bak-table-wrap">
- <table className="bak-table">
- <thead>
- <tr>
- <th>رقم الأمر</th>
- <th>التاريخ</th>
- <th>المندوب</th>
- <th>الصنف</th>
- <th>الدفعة</th>
- <th>مصروف</th>
- <th>مستلم</th>
- <th>الفرق</th>
- <th>المتبقي</th>
- <th>الحالة</th>
- <th>تسوية المخزون</th>
- <th>إجراء</th>
- </tr>
- </thead>
- <tbody>
-                  {loadOrders.map((row) => (
- <tr key={row.id ?? `${row.number ?? 'load'}-${row.loadDate ?? ''}`}>
- <td dir="ltr">
-                        {row.number ?? '—'}
- </td>
- <td dir="ltr">
-                        {row.loadDate ?? '—'}
- </td>
- <td>{row.salesmanName ?? '—'}</td>
- <td>{row.itemName ?? '—'}</td>
- <td dir="ltr">
-                        {batchCellText(row)}
- </td>
- <td className="num" dir="ltr">
-                        {numberText(row.loadedQty)}
- </td>
- <td className="num" dir="ltr">
-                        {numberText(row.receivedQty)}
- </td>
- <td className="num" dir="ltr">
-                        {numberText(row.discrepancyQty)}
- </td>
- <td className="num" dir="ltr">
-                        {numberText(row.remainingQty)}
- </td>
- <td>
- </td>
- <td>{stockSettlementStatusLabel(row.stockSettlementStatus ?? '')}</td>
- <td>
- <div className="flex flex-wrap gap-1">
-                          {canConfirmReceipt(row) ? (
- <Button onClick={() => openAction(row, 'confirm')} size="sm" variant="ghost">
- استلام
- </Button>
-                          ) : null}
-                          {canCancelLoadOrder(row) && canManage ? (
- <Button onClick={() => openAction(row, 'cancel')} size="sm" variant="ghost">
- إلغاء
- </Button>
-                          ) : null}
-                          {canConfirmReceipt(row) ? (
- <Button onClick={() => openAction(row, 'reject')} size="sm" variant="ghost">
- رفض
- </Button>
-                          ) : null}
- </div>
- </td>
- </tr>
-                  ))}
- </tbody>
- </table>
- </div>
-          )}
-          {!loading && pendingReceipt.length > 0 ? (
- <p className="m-0 mt-3 text-[12.5px] text-muted">
-              {pendingReceipt.length} أمرٍ بانتظار استلام المندوب — البضاعة لا تدخل عهدةً رسمية
- قبله.
- </p>
-          ) : null}
- </CardBody>
- </Card>
+                <div className="grid gap-3 md:grid-cols-2">
+                  <label className="field">
+                    <span>الصنف المحمَّل</span>
+                    <select
+                      className={selectClass}
+                      onChange={(event) => setItemId(event.target.value)}
+                      value={itemId}
+                    >
+                      <option value="">— اختر الصنف —</option>
+                      {items.map((row) => (
+                        <option key={row.id} value={row.id}>
+                          {row.trackLot === true ? `${itemLabel(row)} — يتطلّب دفعة إنتاج` : itemLabel(row)}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
 
- <Card>
- <CardHeader subtitle="ما يحدث فعلياً عند إنشاء أمر التحميل — بلا وعودٍ زائدة." title="ماذا يحدث بعد الإنشاء" />
- <CardBody>
- <ul className="m-0 grid gap-2 text-[13px] leading-relaxed text-ink">
- <li>
- يُصرف الصنف من مستودع المصدر بمناقلة رسمية (`stockTransferId`) إلى مستودع السيارة،
- و<strong>لا تدخل البضاعة عهدة المندوب عند الصرف</strong>: تدخلها عند تأكيد الاستلام
-              (‏`InventoryService.receiveTransfer` — Dr المخزون / Cr بضاعة تحت التحويل).
- </li>
- <li>
- الاستلام الناقص يسجّل الفرق (`discrepancyQty`) ويُبقي الباقي <strong>في الطريق
- بانتظار قرار</strong> — قِيس حيّاً: مناولة `TR-000001` بقيت `partially_received`
- و2 كجم في الطريق، والصفّ يحمل `awaitingTransitDecision` وحالة تسوية
-              `pending_transit_decision`. وحسم الفرق (`close-transit-difference`) وتسويته من وحدة
-              «إقفال العهدة»: هذه الشاشة لا تُنهي فرقاً ولا تدّعي إنهاءه.
- </li>
- <li>
- الإلغاء (في `draft`/`pending_receipt`) ورفض الاستلام يُعيدان الكمية إلى مستودع
- المصدر — قِيس حيّاً: بعد إلغاء 5 كجم ورفض 3 كجم عاد الرصيد إلى ما كان ولم يبقَ في
- الطريق إلا فرق الاستلام الناقص. ورفض الخادم إلغاءَ أمرٍ بعد الاستلام (409
-              ‏`VAN_LOAD_ORDER_NOT_CANCELLABLE`) هو ما تعكسه `canCancelLoadOrder` هنا.
- </li>
- <li>
- حدّ البونص (`maxBonusQty`/`maxBonusPct`) يُشتقّ من سياسة المستأجر في الخادم،
- والشاشة لا ترسله ولا تعدّله.
- </li>
- <li>
- <strong>لا رقمَ دفعةٍ مُختلَعاً (§5.1 منفَّذ):</strong> كان الخادم يكتب على الأمر{' '}
- <code dir="ltr">{'PROD-<اليوم>-0001'}</code> حين لا تُذكر دفعة — وقِيس حيّاً أنّ `VLO-0001`
- حمل `PROD-20261014-0001` مع أنّ في المستأجر <strong>صفراً</strong> من دفعات الإنتاج. ولم
- يكن الرقم «مرجعاً بريئاً»: بادئةُ مولّد دفعات الإنتاج هي نفسها، فأوّلُ دفعةٍ تُنشأ في
- اليوم تحمل ذلك الرقم — ورفضُ الاستلام ينقص `issued_qty` من دفعةٍ لم تصرف شيئاً،
- والبيع يأخذ `unit_cost` دفعةٍ أخرى، ونسبُ اللوت في المناقلة والفاتورة يشير إلى دفعةٍ
- لم تُحمَّل. الآن: إمّا دفعةٌ مُسمّاة وإمّا «بلا دفعة» في العمود، وصنفٌ يُتتبَّع بالدفعات
- يُرفض تحميله بلا دفعة (‏422). وأوامرٌ كُتبت قبل الإصلاح قد تحمل رقماً لا يشير إلى
- دفعةٍ موجودة — تُقرأ كما هي، ولا يُعاد تأريخُ ما سُمّي خطأً.
- </li>
- <li>
- إن كان للمندوب حساب دخول أُرسل إليه إشعار `van_sales_supply_pending_receipt`
- برقم الأمر والكمية.
- </li>
- <li>
- المندوب ليس اسماً حراً: سجلّه مرتبطٌ بموظفٍ وحساب دخول، وصلاحياته يمنحها المدير —
- وبطاقة المندوب في `apps/staff` لا هنا.
- </li>
- </ul>
- </CardBody>
- </Card>
+                  <label className="field">
+                    <span>أو اربطه بدفعة إنتاج (يُشتقّ الصنف واللوت منها)</span>
+                    <select
+                      className={selectClass}
+                      onChange={(event) => pickBatch(event.target.value)}
+                      value={batchKey}
+                    >
+                      <option value="">— بلا ربط بدفعة —</option>
+                      {batches.map((row) => (
+                        <option key={row.id ?? row.batchNo ?? ''} value={row.id ?? ''}>
+                          {batchOptionLabel(row)}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
 
- <Card>
- <CardHeader
-          subtitle="حدودٌ مقصودة، لا نقصٌ في التنفيذ — ومعها أين يُكمل المشرف."
-          title="ما لا تفعله هذه الشاشة"
-        />
- <CardBody>
- <ul className="m-0 grid gap-2 text-[13px] leading-relaxed text-ink">
- <li>
- <strong>إقفال العهدة واعتماده وتسوية فرق المخزون</strong> (`submit-closing` / `approve-closing` /
-              `settle-stock` / `close-transit-difference`): مبنيّة في وحدة «إقفال العهدة» (‏`/custody`)
- من هذه اللوحة — فصلٌ رباعيّ للعجز (مبيع/بونص/مرتجع/تالف)، وقرار تحميل العجز على
- المندوب لكلّ حالةٍ بعلمٍ صريح، ولا تُقفل عهدةٌ بفرق مخزونٍ غير مسوّى. والأستاذ
- وتفصيل القيود في `apps/staff`.
- </li>
- <li>
- <strong>لا تحرير لأمر تحميل قائم</strong>: الإلغاء (في `draft`/`pending_receipt`) أو رفض
- الاستلام بسبب. تعديل كميةٍ مصروفة يعني كسر المناقلة الرسمية التي سندها.
- </li>
- <li>
- <strong>لا مبيعات ولا تحصيل هنا</strong>: مستندات المبيعات والفواتير والتحصيل وحداتٌ مستقلة في
- التنقل (ولم تُبنَ شاشاتها بعد) — وهذه الشاشة لا تلخّص أرقامها ولا تعرض نقديّةً
- من عند نفسها.
- </li>
- <li>
- <strong>لا حكم محلي على من يحقّ له التأكيد</strong>: الخادم يفحص أنّ المؤكّد هو المندوب صاحب
- العهدة أو حامل ، ورفضه (403) يُعرض بنصّه.
- </li>
- </ul>
- </CardBody>
- </Card>
-       </div>
+                {itemRequiresBatch(items, itemId, productionBatchNo) ? (
+                  <p className="m-0 rounded-[10px] border border-warn-line bg-warn-soft px-4 py-2.5 text-[12.5px] font-semibold text-warn-ink">
+                    هذا الصنف يُتتبَّع بالدفعات: اربطه بدفعة إنتاج من القائمة، وإلا رفضه الخادم (‏422{' '}
+                    <span dir="ltr">VAN_LOAD_ORDER_BATCH_REQUIRED</span>) — ولا يُفترض رقمُ دفعةٍ من تاريخ
+                    اليوم، لأنه يلتقي برقم أوّل دفعةٍ تُنشأ اليوم نفسها.
+                  </p>
+                ) : null}
+
+                <div className="grid gap-3 md:grid-cols-2">
+                  <label className="field">
+                    <span>مستودع المصدر (المصروف منه)</span>
+                    <select
+                      className={selectClass}
+                      onChange={(event) => setWarehouseId(event.target.value)}
+                      value={warehouseId}
+                    >
+                      <option value="">— يحدده الخادم —</option>
+                      {warehouses.map((row) => (
+                        <option key={row.id} value={row.id}>
+                          {warehouseLabel(row)}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+
+                  <label className="field">
+                    <span>مستودع السيارة (وجهة العهدة)</span>
+                    <select
+                      className={selectClass}
+                      onChange={(event) => setVanWarehouseId(event.target.value)}
+                      value={vanWarehouseId}
+                    >
+                      <option value="">— يشتقّه الخادم من بطاقة المندوب —</option>
+                      {warehouses.map((row) => (
+                        <option key={row.id} value={row.id}>
+                          {warehouseLabel(row)}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
+
+                <div className="grid gap-3 md:grid-cols-2">
+                  <Input
+                    hint="تُملأ من بطاقة المندوب حين تكون الخانة فارغة — ولا تُختلق لوحة."
+                    label="لوحة السيارة"
+                    onChange={(event) => setVehiclePlate(event.target.value)}
+                    value={vehiclePlate}
+                  />
+
+                  <Input label="ملاحظات" onChange={(event) => setNotes(event.target.value)} value={notes} />
+                </div>
+
+                {productionBatchNo ? (
+                  <p className="m-0 text-[12.5px] text-muted">
+                    رقم الدفعة المُرسلة: <span dir="ltr">{productionBatchNo}</span> — والخادم يتحقّق أنّها
+                    دفعةُ هذا المستأجر، ويشتقّ منها الصنف واللوت إن لم يُكتب صنف.
+                  </p>
+                ) : null}
+
+                {!verdict.ok ? (
+                  <p className="m-0 rounded-[10px] border border-warn-line bg-warn-soft px-4 py-2.5 text-[13px] font-semibold text-warn-ink">
+                    {verdict.message}
+                  </p>
+                ) : null}
+
+                {submitError ? (
+                  <p
+                    className="m-0 rounded-[10px] border border-danger-line bg-danger-soft px-4 py-2.5 text-[13px] font-semibold text-danger-ink"
+                    role="alert"
+                  >
+                    رفض الخادم: {submitError}
+                  </p>
+                ) : null}
+
+                {created ? (
+                  <p className="m-0 rounded-[10px] border border-ok-line bg-ok-soft px-4 py-2.5 text-[13px] font-semibold text-ok-ink">
+                    أُنشئ أمر التحميل <span dir="ltr">{created.number ?? '—'}</span> — الحالة:{' '}
+                    {loadOrderStatusLabel(created.status ?? '')} — المصروف:{' '}
+                    <span dir="ltr">{numberText(created.loadedQty)}</span> — بانتظار تأكيد المندوب للاستلام.
+                  </p>
+                ) : null}
+
+                <div className="ui-form-actions">
+                  <Button disabled={busy || !verdict.ok} size="sm" type="submit">
+                    {busy ? 'جارٍ الإنشاء…' : 'إنشاء أمر التحميل'}
+                  </Button>
+                  <span className="text-[12px] text-muted">
+                    لا تُرسل الشاشة حدّ البونص ولا سعراً: السياسة والتسعير من الخادم.
+                  </span>
+                </div>
+              </form>
+            </CardBody>
+          </Card>
+        ) : null}
+
+        {actionRow && actionKind ? (
+          <Card>
+            <CardHeader
+              subtitle={`أمر التحميل ${actionRow.number ?? actionRow.id ?? '—'} — ${actionRow.itemName ?? '—'} · مصروف ${numberText(actionRow.loadedQty)} · مستلم ${numberText(actionRow.receivedQty)}`}
+              title={ACTION_LABELS[actionKind]}
+            />
+            <CardBody>
+              <div className="grid gap-3">
+                {actionKind === 'confirm' ? (
+                  <>
+                    <Input
+                      dir="ltr"
+                      hint="فارغة يستعمل الخادم الكمية المحمّلة. والصفر يُكتب صراحةً."
+                      inputMode="decimal"
+                      label="الكمية المستلمة فعلياً"
+                      onChange={(event) => setReceivedQty(event.target.value)}
+                      placeholder="فارغة = الكمية المحمّلة"
+                      value={receivedQty}
+                    />
+                    <Input
+                      label="ملاحظات الاستلام"
+                      onChange={(event) => setReceiptNotes(event.target.value)}
+                      value={receiptNotes}
+                    />
+                    {receiptVerdict?.ok && receiptVerdict.usesLoadedQty ? (
+                      <p className="m-0 rounded-[10px] border border-warn-line bg-warn-soft px-3 py-2 text-[12.5px] font-semibold text-warn-ink">
+                        تركتَها فارغة يستعمل الخادم الكمية المحمّلة (
+                        <span dir="ltr">{numberText(actionRow.loadedQty)}</span>) ويكون الفرق صفراً. الفراغ
+                        هنا ليس صفراً مكتوباً: لو استلمتَ <strong>صفر</strong> فاكتب 0 صراحةً ليُسجَّل الفرق
+                        كاملاً.
+                      </p>
+                    ) : null}
+                    {receiptVerdict && !receiptVerdict.ok ? (
+                      <p className="m-0 rounded-[10px] border border-warn-line bg-warn-soft px-3 py-2 text-[12.5px] font-semibold text-warn-ink">
+                        {receiptVerdict.message}
+                      </p>
+                    ) : null}
+                  </>
+                ) : (
+                  <Input
+                    hint="اختياري — يكتب الخادم سبباً افتراضياً إن تُرك فارغاً."
+                    label="السبب"
+                    onChange={(event) => setActionReason(event.target.value)}
+                    value={actionReason}
+                  />
+                )}
+
+                {actionError ? (
+                  <p
+                    className="m-0 rounded-[10px] border border-danger-line bg-danger-soft px-4 py-2.5 text-[13px] font-semibold text-danger-ink"
+                    role="alert"
+                  >
+                    رفض الخادم: {actionError}
+                  </p>
+                ) : null}
+
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button
+                    disabled={actionBusy || (actionKind === 'confirm' && receiptVerdict?.ok === false)}
+                    onClick={() => void runAction()}
+                    size="sm"
+                  >
+                    {actionBusy ? 'جارٍ التنفيذ…' : ACTION_LABELS[actionKind]}
+                  </Button>
+                  <Button onClick={closeAction} size="sm" variant="ghost">
+                    إغلاق
+                  </Button>
+                  {actionKind === 'confirm' ? (
+                    <span className="text-[12px] text-muted">
+                      يؤكّده المندوب صاحب العهدة أو من يملك صلاحية الأحمال — وغيرهما يُرفض من الخادم.
+                    </span>
+                  ) : null}
+                </div>
+              </div>
+            </CardBody>
+          </Card>
+        ) : null}
+
+        <Card>
+          <CardHeader
+            action={<span className="bak-badge">{loadOrders.length} صف</span>}
+            subtitle="أحدث ٦٠ أمر تحميل، مرتّبةً من الأحدث."
+            title="الأحمال"
+          />
+          <CardBody>
+            {loading ? (
+              <p aria-busy="true" className="m-0 text-[13px] text-muted">
+                جارٍ تحميل الأحمال…
+              </p>
+            ) : loadOrders.length === 0 ? (
+              <p className="m-0 text-[13px] text-muted">
+                لا أمر تحميل بعد{canManage ? ' — أنشئ الأول أعلاه' : ''}. ولا يُعرض هنا رقمٌ تجريبيّ.
+              </p>
+            ) : (
+              <div className="bak-table-wrap">
+                <table className="bak-table">
+                  <thead>
+                    <tr>
+                      <th>رقم الأمر</th>
+                      <th>التاريخ</th>
+                      <th>المندوب</th>
+                      <th>الصنف</th>
+                      <th>الدفعة</th>
+                      <th>مصروف</th>
+                      <th>مستلم</th>
+                      <th>الفرق</th>
+                      <th>المتبقي</th>
+                      <th>الحالة</th>
+                      <th>تسوية المخزون</th>
+                      <th>إجراء</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {loadOrders.map((row) => (
+                      <tr key={row.id ?? `${row.number ?? 'load'}-${row.loadDate ?? ''}`}>
+                        <td dir="ltr">{row.number ?? '—'}</td>
+                        <td dir="ltr">{row.loadDate ?? '—'}</td>
+                        <td>{row.salesmanName ?? '—'}</td>
+                        <td>{row.itemName ?? '—'}</td>
+                        <td dir="ltr">{batchCellText(row)}</td>
+                        <td className="num" dir="ltr">
+                          {numberText(row.loadedQty)}
+                        </td>
+                        <td className="num" dir="ltr">
+                          {numberText(row.receivedQty)}
+                        </td>
+                        <td className="num" dir="ltr">
+                          {numberText(row.discrepancyQty)}
+                        </td>
+                        <td className="num" dir="ltr">
+                          {numberText(row.remainingQty)}
+                        </td>
+                        <td></td>
+                        <td>{stockSettlementStatusLabel(row.stockSettlementStatus ?? '')}</td>
+                        <td>
+                          <div className="flex flex-wrap gap-1">
+                            {canConfirmReceipt(row) ? (
+                              <Button onClick={() => openAction(row, 'confirm')} size="sm" variant="ghost">
+                                استلام
+                              </Button>
+                            ) : null}
+                            {canCancelLoadOrder(row) && canManage ? (
+                              <Button onClick={() => openAction(row, 'cancel')} size="sm" variant="ghost">
+                                إلغاء
+                              </Button>
+                            ) : null}
+                            {canConfirmReceipt(row) ? (
+                              <Button onClick={() => openAction(row, 'reject')} size="sm" variant="ghost">
+                                رفض
+                              </Button>
+                            ) : null}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+            {!loading && pendingReceipt.length > 0 ? (
+              <p className="m-0 mt-3 text-[12.5px] text-muted">
+                {pendingReceipt.length} أمرٍ بانتظار استلام المندوب — البضاعة لا تدخل عهدةً رسمية قبله.
+              </p>
+            ) : null}
+          </CardBody>
+        </Card>
+
+        <Card>
+          <CardHeader
+            subtitle="ما يحدث فعلياً عند إنشاء أمر التحميل — بلا وعودٍ زائدة."
+            title="ماذا يحدث بعد الإنشاء"
+          />
+          <CardBody>
+            <ul className="m-0 grid gap-2 text-[13px] leading-relaxed text-ink">
+              <li>
+                يُصرف الصنف من مستودع المصدر بمناقلة رسمية (`stockTransferId`) إلى مستودع السيارة، و
+                <strong>لا تدخل البضاعة عهدة المندوب عند الصرف</strong>: تدخلها عند تأكيد الاستلام
+                (‏`InventoryService.receiveTransfer` — Dr المخزون / Cr بضاعة تحت التحويل).
+              </li>
+              <li>
+                الاستلام الناقص يسجّل الفرق (`discrepancyQty`) ويُبقي الباقي{' '}
+                <strong>في الطريق بانتظار قرار</strong> — قِيس حيّاً: مناولة `TR-000001` بقيت
+                `partially_received` و2 كجم في الطريق، والصفّ يحمل `awaitingTransitDecision` وحالة تسوية
+                `pending_transit_decision`. وحسم الفرق (`close-transit-difference`) وتسويته من وحدة «إقفال
+                العهدة»: هذه الشاشة لا تُنهي فرقاً ولا تدّعي إنهاءه.
+              </li>
+              <li>
+                الإلغاء (في `draft`/`pending_receipt`) ورفض الاستلام يُعيدان الكمية إلى مستودع المصدر — قِيس
+                حيّاً: بعد إلغاء 5 كجم ورفض 3 كجم عاد الرصيد إلى ما كان ولم يبقَ في الطريق إلا فرق الاستلام
+                الناقص. ورفض الخادم إلغاءَ أمرٍ بعد الاستلام (409 ‏`VAN_LOAD_ORDER_NOT_CANCELLABLE`) هو ما
+                تعكسه `canCancelLoadOrder` هنا.
+              </li>
+              <li>
+                حدّ البونص (`maxBonusQty`/`maxBonusPct`) يُشتقّ من سياسة المستأجر في الخادم، والشاشة لا ترسله
+                ولا تعدّله.
+              </li>
+              <li>
+                <strong>لا رقمَ دفعةٍ مُختلَعاً (§5.1 منفَّذ):</strong> كان الخادم يكتب على الأمر{' '}
+                <code dir="ltr">{'PROD-<اليوم>-0001'}</code> حين لا تُذكر دفعة — وقِيس حيّاً أنّ `VLO-0001`
+                حمل `PROD-20261014-0001` مع أنّ في المستأجر <strong>صفراً</strong> من دفعات الإنتاج. ولم يكن
+                الرقم «مرجعاً بريئاً»: بادئةُ مولّد دفعات الإنتاج هي نفسها، فأوّلُ دفعةٍ تُنشأ في اليوم تحمل
+                ذلك الرقم — ورفضُ الاستلام ينقص `issued_qty` من دفعةٍ لم تصرف شيئاً، والبيع يأخذ `unit_cost`
+                دفعةٍ أخرى، ونسبُ اللوت في المناقلة والفاتورة يشير إلى دفعةٍ لم تُحمَّل. الآن: إمّا دفعةٌ
+                مُسمّاة وإمّا «بلا دفعة» في العمود، وصنفٌ يُتتبَّع بالدفعات يُرفض تحميله بلا دفعة (‏422).
+                وأوامرٌ كُتبت قبل الإصلاح قد تحمل رقماً لا يشير إلى دفعةٍ موجودة — تُقرأ كما هي، ولا يُعاد
+                تأريخُ ما سُمّي خطأً.
+              </li>
+              <li>
+                إن كان للمندوب حساب دخول أُرسل إليه إشعار `van_sales_supply_pending_receipt` برقم الأمر
+                والكمية.
+              </li>
+              <li>
+                المندوب ليس اسماً حراً: سجلّه مرتبطٌ بموظفٍ وحساب دخول، وصلاحياته يمنحها المدير — وبطاقة
+                المندوب في `apps/staff` لا هنا.
+              </li>
+            </ul>
+          </CardBody>
+        </Card>
+
+        <Card>
+          <CardHeader
+            subtitle="حدودٌ مقصودة، لا نقصٌ في التنفيذ — ومعها أين يُكمل المشرف."
+            title="ما لا تفعله هذه الشاشة"
+          />
+          <CardBody>
+            <ul className="m-0 grid gap-2 text-[13px] leading-relaxed text-ink">
+              <li>
+                <strong>إقفال العهدة واعتماده وتسوية فرق المخزون</strong> (`submit-closing` /
+                `approve-closing` / `settle-stock` / `close-transit-difference`): مبنيّة في وحدة «إقفال
+                العهدة» (‏`/custody`) من هذه اللوحة — فصلٌ رباعيّ للعجز (مبيع/بونص/مرتجع/تالف)، وقرار تحميل
+                العجز على المندوب لكلّ حالةٍ بعلمٍ صريح، ولا تُقفل عهدةٌ بفرق مخزونٍ غير مسوّى. والأستاذ
+                وتفصيل القيود في `apps/staff`.
+              </li>
+              <li>
+                <strong>لا تحرير لأمر تحميل قائم</strong>: الإلغاء (في `draft`/`pending_receipt`) أو رفض
+                الاستلام بسبب. تعديل كميةٍ مصروفة يعني كسر المناقلة الرسمية التي سندها.
+              </li>
+              <li>
+                <strong>لا مبيعات ولا تحصيل هنا</strong>: مستندات المبيعات والفواتير والتحصيل وحداتٌ مستقلة في
+                التنقل (ولم تُبنَ شاشاتها بعد) — وهذه الشاشة لا تلخّص أرقامها ولا تعرض نقديّةً من عند نفسها.
+              </li>
+              <li>
+                <strong>لا حكم محلي على من يحقّ له التأكيد</strong>: الخادم يفحص أنّ المؤكّد هو المندوب صاحب
+                العهدة أو حامل ، ورفضه (403) يُعرض بنصّه.
+              </li>
+            </ul>
+          </CardBody>
+        </Card>
+      </div>
     </section>
   );
 }
