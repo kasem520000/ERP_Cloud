@@ -10,8 +10,10 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.Checkbox
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
@@ -308,6 +310,55 @@ fun PickerDialog(
                     }
                 }
             }
+        },
+    )
+}
+
+/** نافذةُ انتقاءٍ متعدّدٍ (أذوناتُ دور، أدوارُ مستخدم، نطاقُ فروع) — toggle مباشر. */
+@Composable
+fun MultiPickerDialog(
+    title: String,
+    items: List<PickerItem>,
+    selectedIds: Set<String>,
+    onToggle: (String) -> Unit,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(title, style = MaterialTheme.typography.titleMedium) },
+        text = {
+            LazyColumn(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(2.dp),
+            ) {
+                items(items, key = { it.id }) { item ->
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onToggle(item.id) }
+                            .padding(vertical = 2.dp),
+                    ) {
+                        Checkbox(
+                            checked = item.id in selectedIds,
+                            onCheckedChange = { onToggle(item.id) },
+                        )
+                        Column(Modifier.padding(start = 4.dp)) {
+                            Text(item.title, style = MaterialTheme.typography.bodyMedium)
+                            item.subtitle?.takeIf { it.isNotBlank() }?.let {
+                                Text(
+                                    it,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = onDismiss) { Text("تمّ") }
         },
     )
 }

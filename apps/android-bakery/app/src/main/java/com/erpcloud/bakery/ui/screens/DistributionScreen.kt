@@ -36,7 +36,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.erpcloud.bakery.data.ActionResult
 import com.erpcloud.bakery.data.api.LoadOrderDto
-import com.erpcloud.bakery.printing.BakeryDocs
+import com.erpcloud.bakery.printing.loadOrderNotice
 import com.erpcloud.bakery.printing.EscPos
 import com.erpcloud.bakery.printing.PrintKit
 import com.erpcloud.bakery.ui.AppViewModel
@@ -189,7 +189,7 @@ private fun LoadOrderCard(
                             val mac = state.session.printerMac
                             val width = state.session.printerWidthDots
                             val bitmap = withContext(kotlinx.coroutines.Dispatchers.IO) {
-                                val rendered = BakeryDocs.loadOrderNotice(order)
+                                val rendered = loadOrderNotice(order)
                                 if (mac.isNotBlank()) {
                                     EscPos.printBitmap(context, mac, width, rendered)
                                 }

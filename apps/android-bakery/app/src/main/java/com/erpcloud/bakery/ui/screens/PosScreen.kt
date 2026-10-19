@@ -127,7 +127,7 @@ fun PosScreen(vm: AppViewModel, onBack: () -> Unit) {
                         }
                     }
                     Spacer(Modifier.height(6.dp))
-                    KeyValue("الإجماليُّ قبل الضريبة", Dec.money(cartSubtotal(cart)) + " ر.س")
+                    KeyValue("الإجماليُّ قبل الضريبة", Dec.money(cartSubtotal(cart).toPlainString()) + " ر.س")
                     if (state.can("pos.operate") && state.can("sales.invoice.post")) {
                         Spacer(Modifier.height(8.dp))
                         OutlinedButton(onClick = { showPay = true }, modifier = Modifier.fillMaxWidth()) {
@@ -188,7 +188,7 @@ fun PosScreen(vm: AppViewModel, onBack: () -> Unit) {
         PickerDialog(
             title = "مجموعةُ الأصناف",
             items = listOf(PickerItem("", "كلُّ المجموعات"), PickerItem("none", "بلا مجموعة")) +
-                pos.categories.map { PickerItem(it.id, it.nameAr) },
+                (pos?.categories ?: emptyList()).map { PickerItem(it.id, it.nameAr) },
             onDismiss = { pickCategory = false },
             onSelect = {
                 categoryFilter = it.id
@@ -244,7 +244,7 @@ fun PosScreen(vm: AppViewModel, onBack: () -> Unit) {
                                 val mac = state.session.printerMac
                                 val width = state.session.printerWidthDots
                                 val bitmap = withContext(kotlinx.coroutines.Dispatchers.IO) {
-                                    val rendered = com.erpcloud.bakery.printing.BakeryDocs.posReceipt(
+                                    val rendered = posReceipt(
                                         receipt, cartTotalsSnapshot(withKey),
                                     )
                                     if (mac.isNotBlank()) {

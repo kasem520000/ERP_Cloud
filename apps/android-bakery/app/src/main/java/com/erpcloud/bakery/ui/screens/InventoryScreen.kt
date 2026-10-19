@@ -33,6 +33,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Locale
 import com.erpcloud.bakery.ui.AppViewModel
 import com.erpcloud.bakery.ui.components.CenterLoading
 import com.erpcloud.bakery.ui.components.ChipTone
@@ -153,7 +156,7 @@ private fun LevelsTab(vm: AppViewModel) {
 @Composable
 private fun MovementsTab(vm: AppViewModel) {
     val state by vm.uiState.collectAsState()
-    var from by remember { mutableStateOf("${java.time.YearMonth.now().minusMonths(1)}-01") }
+    var from by remember { mutableStateOf(firstDayOfPreviousMonth()) }
     var to by remember { mutableStateOf(todayIso()) }
     var itemId by remember { mutableStateOf("") }
     var itemLabel by remember { mutableStateOf("") }
@@ -351,4 +354,12 @@ private fun ItemCardTab(vm: AppViewModel) {
             onSelect = { itemId = it.id; itemLabel = it.title; pickItem = false },
         )
     }
+}
+
+/** أوّلُ اليومِ الأوّلِ من الشهرِ الماضي (SimpleDateFormat: minSdk 24). */
+private fun firstDayOfPreviousMonth(): String {
+    val cal = java.util.Calendar.getInstance()
+    cal.add(Calendar.MONTH, -1)
+    cal.set(Calendar.DAY_OF_MONTH, 1)
+    return SimpleDateFormat("yyyy-MM-01", Locale.US).format(cal.time)
 }

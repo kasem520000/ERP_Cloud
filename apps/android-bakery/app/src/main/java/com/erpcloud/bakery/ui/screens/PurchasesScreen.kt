@@ -188,8 +188,9 @@ private fun PurchaseInvoiceForm(vm: AppViewModel, onDone: () -> Unit, onAddSuppl
     // الفرعُ الافتراضيّ يُقترح مرّةً.
     androidx.compose.runtime.LaunchedEffect(state.staff.branches) {
         if (branchId.isBlank()) {
-            state.staff.branches.firstOrNull { it.isDefault } ?: state.staff.branches.firstOrNull()
-        }?.let { branchId = it.id; branchLabel = it.nameAr }
+            (state.staff.branches.firstOrNull { it.isDefault } ?: state.staff.branches.firstOrNull())
+                ?.let { branchId = it.id; branchLabel = it.nameAr }
+        }
     }
 
     LazyColumn(

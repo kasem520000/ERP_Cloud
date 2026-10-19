@@ -27,6 +27,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -61,7 +62,7 @@ fun PolicyScreen(vm: AppViewModel, onBack: () -> Unit) {
     var unitPrice by rememberSaveable { mutableStateOf("") }
     var preventSelfApproval by rememberSaveable { mutableStateOf(false) }
     var sending by remember { mutableStateOf(false) }
-    var localError by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf<String?>(null) }
+    var localError by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(state.policy) {
         state.policy?.let { policy ->

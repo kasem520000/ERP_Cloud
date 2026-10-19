@@ -149,7 +149,7 @@ fun ProductionScreen(vm: AppViewModel, onBack: () -> Unit) {
                                     val mac = state.session.printerMac
                                     val width = state.session.printerWidthDots
                                     val bitmap = withContext(kotlinx.coroutines.Dispatchers.IO) {
-                                        val rendered = com.erpcloud.bakery.printing.BakeryDocs.batchLabel(batch)
+                                        val rendered = batchLabel(batch)
                                         if (mac.isNotBlank()) {
                                             com.erpcloud.bakery.printing.EscPos.printBitmap(context, mac, width, rendered)
                                         }

@@ -83,7 +83,7 @@ jobs:
               echo "### $f"
               echo '```'
               if grep -qE '^e: |error: |What went wrong' "$f"; then
-                grep -E -A3 '^e: |error: |FAILURE|What went wrong|Caused by' "$f" | tail -n 250
+                grep -E '^e: |error: |What went wrong|Caused by' "$f" | head -c 55000
               else
                 tail -n 100 "$f"
               fi

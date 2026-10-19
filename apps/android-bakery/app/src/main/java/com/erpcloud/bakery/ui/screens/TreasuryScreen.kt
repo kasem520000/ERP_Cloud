@@ -94,7 +94,7 @@ fun TreasuryScreen(vm: AppViewModel, onBack: () -> Unit) {
             CenterLoading("جارٍ تحميل السندات…", Modifier.padding(padding))
             return@Scaffold
         }
-        val vouchers = state.staff.vouchers
+        val vouchers = state.staff.treasuryVouchers
         if (vouchers.isEmpty()) {
             EmptyState(state.staff.error ?: "لا سنداتَ بعد.", Modifier.padding(padding))
             return@Scaffold

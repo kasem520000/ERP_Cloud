@@ -159,9 +159,9 @@ data class RepCustodyRowDto(
 data class ReportsPayloadDto(
     val generatedAt: String? = null,
     val rowCap: Int? = null,
-    val policy: kotlin.serialization.json.JsonObject? = null,
-    val summary: kotlin.serialization.json.JsonObject? = null,
-    val periodTotals: kotlin.serialization.json.JsonObject? = null,
+    val policy: kotlinx.serialization.json.JsonObject? = null,
+    val summary: kotlinx.serialization.json.JsonObject? = null,
+    val periodTotals: kotlinx.serialization.json.JsonObject? = null,
     val repCustodyReport: List<RepCustodyRowDto> = emptyList(),
 )
 

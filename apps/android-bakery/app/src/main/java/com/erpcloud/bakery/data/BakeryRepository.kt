@@ -19,6 +19,7 @@ import com.erpcloud.bakery.data.api.ReportsPayloadDto
 import com.erpcloud.bakery.data.api.SalesmanCardDto
 import com.erpcloud.bakery.data.api.ShortagePolicyDto
 import com.erpcloud.bakery.data.api.WarehouseOptionDto
+import com.erpcloud.bakery.data.api.AccountDto
 import com.erpcloud.bakery.data.api.AdjustmentDto
 import com.erpcloud.bakery.data.api.AdjustmentTypeDto
 import com.erpcloud.bakery.data.api.BomDto
@@ -29,6 +30,7 @@ import com.erpcloud.bakery.data.api.CatalogItemDto
 import com.erpcloud.bakery.data.api.DepartmentDto
 import com.erpcloud.bakery.data.api.EmployeeDto
 import com.erpcloud.bakery.data.api.EmployeeStatementDto
+import com.erpcloud.bakery.data.api.ItemCardDto
 import com.erpcloud.bakery.data.api.ItemUnitDto
 import com.erpcloud.bakery.data.api.JobDto
 import com.erpcloud.bakery.data.api.MembershipDto
@@ -36,13 +38,18 @@ import com.erpcloud.bakery.data.api.PayrollRunDto
 import com.erpcloud.bakery.data.api.PermissionDto
 import com.erpcloud.bakery.data.api.PosCheckoutReceiptDto
 import com.erpcloud.bakery.data.api.PosOfflineDataDto
+import com.erpcloud.bakery.data.api.PartyBalanceDto
 import com.erpcloud.bakery.data.api.PurchaseInvoiceDto
 import com.erpcloud.bakery.data.api.ReportCatalogEntryDto
 import com.erpcloud.bakery.data.api.ReportResultDto
 import com.erpcloud.bakery.data.api.RoleDto
 import com.erpcloud.bakery.data.api.SalaryPaymentDto
 import com.erpcloud.bakery.data.api.SalesRegistryDto
+import com.erpcloud.bakery.data.api.StockAdjustmentDto
+import com.erpcloud.bakery.data.api.StockLevelDto
+import com.erpcloud.bakery.data.api.StockMovementDto
 import com.erpcloud.bakery.data.api.StockVoucherDto
+import com.erpcloud.bakery.data.api.TreasuryVoucherDto
 import com.erpcloud.bakery.data.api.UnitDto
 import com.erpcloud.bakery.data.offline.Idempotency
 import com.erpcloud.bakery.data.offline.SessionStore

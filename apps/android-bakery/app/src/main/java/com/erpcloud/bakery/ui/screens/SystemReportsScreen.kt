@@ -36,6 +36,8 @@ import androidx.compose.ui.unit.dp
 import com.erpcloud.bakery.data.api.ReportResultDto
 import com.erpcloud.bakery.ui.AppViewModel
 import com.erpcloud.bakery.ui.components.CenterLoading
+import com.erpcloud.bakery.ui.components.PickerDialog
+import com.erpcloud.bakery.ui.components.PickerItem
 import com.erpcloud.bakery.ui.components.ChipTone
 import com.erpcloud.bakery.ui.components.EmptyState
 import com.erpcloud.bakery.ui.components.KeyValue
@@ -43,6 +45,7 @@ import com.erpcloud.bakery.ui.components.SectionCard
 import com.erpcloud.bakery.ui.components.StatusChip
 import com.erpcloud.bakery.util.Dec
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.put
 
 /**
  * شاشةُ حزمةِ التقارير (من تطبيق الطاقم) — مركزُ تقارير المنشأة كلِّها:
@@ -230,7 +233,7 @@ private fun ReportResult(result: ReportResultDto) {
         contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = 20.dp),
     ) {
         item {
-            SectionCard(title = result.titleAr, subtitle = "${result.rowCount} صفًّا · ${Labels.dateOrDash(result.generatedAt.take(10))}") {
+            SectionCard(title = result.titleAr, subtitle = "${result.rowCount} صفًّا · ${Labels.dateOrDash(result.generatedAt?.take(10))}") {
                 StatusChip(Labels.reportGroup(result.group), ChipTone.INFO)
                 Spacer(Modifier.height(6.dp))
                 val labelOf = { key: String ->

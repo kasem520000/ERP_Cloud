@@ -23,6 +23,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -45,12 +46,10 @@ import com.erpcloud.bakery.util.Dec
 @Composable
 fun ReportsScreen(vm: AppViewModel, onBack: () -> Unit) {
     val state by vm.uiState.collectAsState()
-    var salesmanFilter by androidx.compose.runtime.rememberSaveable {
-        androidx.compose.runtime.mutableStateOf("")
-    }
-    var salesmanLabel by androidx.compose.runtime.rememberSaveable { androidx.compose.runtime.mutableStateOf("") }
-    var fromDate by androidx.compose.runtime.rememberSaveable { androidx.compose.runtime.mutableStateOf("") }
-    var toDate by androidx.compose.runtime.rememberSaveable { androidx.compose.runtime.mutableStateOf("") }
+    var salesmanFilter by rememberSaveable { androidx.compose.runtime.mutableStateOf("") }
+    var salesmanLabel by rememberSaveable { androidx.compose.runtime.mutableStateOf("") }
+    var fromDate by rememberSaveable { androidx.compose.runtime.mutableStateOf("") }
+    var toDate by rememberSaveable { androidx.compose.runtime.mutableStateOf("") }
     var pickSalesman by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf(false) }
 
     Scaffold(

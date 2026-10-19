@@ -650,30 +650,6 @@ data class SalesRegistryDto(
     val notes: String? = null,
 )
 
-/** صفُّ عضويّة مستخدم — `GET /memberships` (`{data, meta}`). */
-@Serializable
-data class MembershipDto(
-    val id: String = "",
-    val displayName: String = "",
-    val status: String = "active",
-    val isOwner: Boolean = false,
-    val kind: String = "staff",
-    /** نطاقُ الفروع: `null` = كلُّ الفروع. */
-    val branchScope: List<String>? = null,
-    val roles: List<RoleDto> = emptyList(),
-)
-
-/** صفُّ دور — `GET /roles` و`memberships/assignable-roles`. */
-@Serializable
-data class RoleDto(
-    val id: String = "",
-    val name: String = "",
-    val description: String? = null,
-    val isSystem: Boolean = false,
-    /** في قراءة التفاصيل — `permissionCodes`. */
-    val permissionCodes: List<String> = emptyList(),
-)
-
 /** صفُّ إذنٍ في السجلّ — `GET /permissions` (`{data}`): {code, module, description}. */
 @Serializable
 data class PermissionDto(

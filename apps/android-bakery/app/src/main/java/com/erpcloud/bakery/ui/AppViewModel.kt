@@ -22,6 +22,7 @@ import com.erpcloud.bakery.data.api.ReportsPayloadDto
 import com.erpcloud.bakery.data.api.SalesmanCardDto
 import com.erpcloud.bakery.data.api.ShortagePolicyDto
 import com.erpcloud.bakery.data.api.WarehouseOptionDto
+import com.erpcloud.bakery.data.api.AccountDto
 import com.erpcloud.bakery.data.api.AdjustmentDto
 import com.erpcloud.bakery.data.api.AdjustmentTypeDto
 import com.erpcloud.bakery.data.api.BomDto
@@ -32,19 +33,25 @@ import com.erpcloud.bakery.data.api.CategoryDto
 import com.erpcloud.bakery.data.api.DepartmentDto
 import com.erpcloud.bakery.data.api.EmployeeDto
 import com.erpcloud.bakery.data.api.EmployeeStatementDto
+import com.erpcloud.bakery.data.api.ItemCardDto
 import com.erpcloud.bakery.data.api.JobDto
 import com.erpcloud.bakery.data.api.MembershipDto
 import com.erpcloud.bakery.data.api.PayrollRunDto
 import com.erpcloud.bakery.data.api.PermissionDto
 import com.erpcloud.bakery.data.api.PosCheckoutReceiptDto
 import com.erpcloud.bakery.data.api.PosOfflineDataDto
+import com.erpcloud.bakery.data.api.PartyBalanceDto
 import com.erpcloud.bakery.data.api.PurchaseInvoiceDto
 import com.erpcloud.bakery.data.api.ReportCatalogEntryDto
 import com.erpcloud.bakery.data.api.ReportResultDto
 import com.erpcloud.bakery.data.api.RoleDto
 import com.erpcloud.bakery.data.api.SalaryPaymentDto
 import com.erpcloud.bakery.data.api.SalesRegistryDto
+import com.erpcloud.bakery.data.api.StockAdjustmentDto
+import com.erpcloud.bakery.data.api.StockLevelDto
+import com.erpcloud.bakery.data.api.StockMovementDto
 import com.erpcloud.bakery.data.api.StockVoucherDto
+import com.erpcloud.bakery.data.api.TreasuryVoucherDto
 import com.erpcloud.bakery.data.api.UnitDto
 import com.erpcloud.bakery.data.offline.SavedCredentials
 import com.erpcloud.bakery.data.offline.SessionState
@@ -147,7 +154,7 @@ data class StaffState(
     val employeeStatement: EmployeeStatementDto? = null,
     val reportResult: ReportResultDto? = null,
     // الخزينة والمصروفات
-    val vouchers: List<TreasuryVoucherDto> = emptyList(),
+    val treasuryVouchers: List<TreasuryVoucherDto> = emptyList(),
     val accounts: List<AccountDto> = emptyList(),
     // المخزون والأرصدة
     val stockLevels: List<StockLevelDto> = emptyList(),
@@ -716,7 +723,7 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     fun loadTreasury() = loadStaff("treasury") { s ->
         s.copy(
-            vouchers = repo.treasuryVouchers(),
+            treasuryVouchers = repo.treasuryVouchers(),
             cashLocations = if (s.cashLocations.isEmpty()) repo.cashLocations() else s.cashLocations,
             branches = if (s.branches.isEmpty()) repo.branches() else s.branches,
         )

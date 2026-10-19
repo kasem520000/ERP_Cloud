@@ -182,14 +182,16 @@ private fun VoucherForm(vm: AppViewModel, onDone: () -> Unit) {
 
     LaunchedEffect(state.staff.branches) {
         if (branchId.isBlank()) {
-            state.staff.branches.firstOrNull { it.isDefault } ?: state.staff.branches.firstOrNull()
-        }?.let { branchId = it.id; branchLabel = it.nameAr }
+            (state.staff.branches.firstOrNull { it.isDefault } ?: state.staff.branches.firstOrNull())
+                ?.let { branchId = it.id; branchLabel = it.nameAr }
+        }
     }
     LaunchedEffect(state.warehouses, state.dashboard?.mainWarehouseId) {
         if (warehouseId.isBlank()) {
-            state.warehouses.firstOrNull { it.id == state.dashboard?.mainWarehouseId }
-                ?: state.warehouses.firstOrNull { it.isDefault == true }
-        }?.let { warehouseId = it.id; warehouseLabel = it.label }
+            (state.warehouses.firstOrNull { it.id == state.dashboard?.mainWarehouseId }
+                ?: state.warehouses.firstOrNull { it.isDefault == true })
+                ?.let { warehouseId = it.id; warehouseLabel = it.label }
+        }
     }
 
     LazyColumn(

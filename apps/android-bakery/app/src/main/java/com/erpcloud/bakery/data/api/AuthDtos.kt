@@ -49,6 +49,8 @@ data class RoleDto(
     val name: String,
     val description: String? = null,
     val isSystem: Boolean = false,
+    /** في قراءة تفاصيل الدور — `GET /roles/{id}`. */
+    val permissionCodes: List<String> = emptyList(),
 )
 
 @Serializable
