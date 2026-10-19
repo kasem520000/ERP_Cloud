@@ -44,6 +44,9 @@ jobs:
     name: Android (compile bakery & rep)
     runs-on: ubuntu-latest
     timeout-minutes: 45
+    permissions:
+      contents: read
+      pull-requests: write
 
     steps:
       - name: Checkout repository
@@ -58,8 +61,36 @@ jobs:
 
       - name: Build android-bakery (assembleDebug)
         working-directory: apps/android-bakery
-        run: ./gradlew assembleDebug --no-daemon --stacktrace
+        run: |
+          set -o pipefail
+          ./gradlew assembleDebug --no-daemon --stacktrace 2>&1 | tee /tmp/bakery-build.log
 
       - name: Build android-rep (assembleDebug)
         working-directory: apps/android-rep
-        run: ./gradlew assembleDebug --no-daemon --stacktrace
+        run: |
+          set -o pipefail
+          ./gradlew assembleDebug --no-daemon --stacktrace 2>&1 | tee /tmp/rep-build.log
+
+      # سجلُّ الوظيفة يُخزَّنُ خارج github.com؛ هذا التعليقُ يجعلُ أخطاءَ الترجمة
+      # قابلةً للقراءة عبر واجهة API من بيئاتٍ محدودةِ المضيفات.
+      - name: Report build errors on the PR (on failure)
+        if: failure() && github.event_name == 'pull_request'
+        run: |
+          {
+            echo "## Android build errors — ${GITHUB_SHA::7}"
+            for f in /tmp/bakery-build.log /tmp/rep-build.log; do
+              [ -f "$f" ] || continue
+              echo "### $f"
+              echo '```'
+              if grep -qE '^e: |error: |What went wrong' "$f"; then
+                grep -E -A3 '^e: |error: |FAILURE|What went wrong|Caused by' "$f" | tail -n 250
+              else
+                tail -n 100 "$f"
+              fi
+              echo '```'
+            done
+          } > /tmp/errors.md
+          gh pr comment "$PR_NUMBER" --body-file /tmp/errors.md || true
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.number }}
