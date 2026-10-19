@@ -129,12 +129,12 @@ export default function ImpersonationPage() {
       crumbs={['الدعم']}
     >
       {active && (
-        <section className="card tight">
+        <Panel className="tight">
           <p className="alert danger" style={{ margin: 0 }}>
             جلسةٌ نشطة الآن على «{active.tenantName ?? active.tenantId}» ({active.operatorLabel ?? '—'}) —
             تنتهي {dateTime(active.expiresAt)}. أنهِها إن لم تكن قيد العمل.
           </p>
-        </section>
+        </Panel>
       )}
 
       <Panel title="جلسةٌ جديدة" bodyClassName="grid">
@@ -185,7 +185,7 @@ export default function ImpersonationPage() {
           </p>
         )}
         {started && (
-          <div className="card tight">
+          <Panel className="tight">
             <p style={{ margin: 0 }}>
               الرمز صالحٌ حتى {dateTime(started.session.expiresAt)} ({started.expiresIn} ثانية)، ولا يُجدَّد.
             </p>
@@ -207,7 +207,7 @@ export default function ImpersonationPage() {
               </button>
               <span className="muted">الرمز يمرّ في جزء العنوان، ولا يُرسل إلى أي خادم.</span>
             </div>
-          </div>
+          </Panel>
         )}
       </Panel>
 

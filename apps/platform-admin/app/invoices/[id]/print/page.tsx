@@ -1,5 +1,6 @@
 'use client';
 
+import { Panel } from '@erp/ui';
 import Link from 'next/link';
 import { use, useEffect, useRef, useState } from 'react';
 
@@ -80,7 +81,7 @@ export default function InvoicePrintPage({ params }: { params: Promise<{ id: str
       {error && <ErrorBox message={error} />}
       {!html && !error && <Loading />}
       {html && (
-        <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+        <Panel style={{ padding: 0, overflow: 'hidden' }}>
           <iframe
             ref={frame}
             title="فاتورة المنصة"
@@ -88,7 +89,7 @@ export default function InvoicePrintPage({ params }: { params: Promise<{ id: str
             sandbox="allow-same-origin allow-modals"
             style={{ width: '100%', height: '80vh', border: 0, background: 'var(--surface)' }}
           />
-        </div>
+        </Panel>
       )}
     </Screen>
   );

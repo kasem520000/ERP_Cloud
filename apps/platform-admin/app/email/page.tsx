@@ -207,7 +207,7 @@ function TemplatesTab() {
 
   return (
     <div className="grid">
-      <div className="card tight">
+      <Panel className="tight">
         <div className="row">
           <label>
             الحدث
@@ -261,7 +261,7 @@ function TemplatesTab() {
           التجاوز نصٌّ لا كود: العميل يكتب نصّه، والحدث ومتغيّراته من الفهرس في الكود. و«متغيّرات ناقصة» تعني
           متغيّراً معلناً للحدث لم يستعمله النصّ — تحذيرٌ لا خطأ.
         </p>
-      </div>
+      </Panel>
 
       {notice && <p className={`alert ${notice.kind}`}>{notice.text}</p>}
 
@@ -272,7 +272,7 @@ function TemplatesTab() {
       ) : templates.status === 'error' ? (
         <ErrorBox message={templates.error} onRetry={templates.reload} />
       ) : (
-        <div className="card">
+        <Panel>
           <table className="table">
             <thead>
               <tr>
@@ -324,7 +324,7 @@ function TemplatesTab() {
             </tbody>
           </table>
           {(templates.data?.data ?? []).length === 0 && <Empty title="لا قوالب بهذا المرشّح" />}
-        </div>
+        </Panel>
       )}
 
       {editing && (
@@ -446,7 +446,7 @@ function MessagesTab() {
 
   return (
     <div className="grid">
-      <div className="card tight">
+      <Panel className="tight">
         <div className="row">
           <label>
             العميل
@@ -497,7 +497,7 @@ function MessagesTab() {
           الحالات:{' '}
           {emailMessageStatuses.map((value) => `${STATUS_LABEL[value]} ${counts[value] ?? 0}`).join(' · ')}
         </p>
-      </div>
+      </Panel>
 
       {notice && <p className={`alert ${notice.kind}`}>{notice.text}</p>}
 
@@ -508,7 +508,7 @@ function MessagesTab() {
       ) : messages.status === 'error' ? (
         <ErrorBox message={messages.error} onRetry={messages.reload} />
       ) : (
-        <div className="card">
+        <Panel>
           <table className="table">
             <thead>
               <tr>
@@ -570,7 +570,7 @@ function MessagesTab() {
           {rows.length === 0 && (
             <Empty title="لا رسائل بهذه المرشّحات" detail="جرّب توسيع الفترة أو إزالة المرشّح." />
           )}
-        </div>
+        </Panel>
       )}
     </div>
   );
@@ -944,7 +944,7 @@ function SuppressionsTab() {
 
   return (
     <div className="grid">
-      <div className="card tight">
+      <Panel className="tight">
         <div className="row">
           <label>
             العنوان
@@ -983,7 +983,7 @@ function SuppressionsTab() {
           الحجر بلا نطاق يمنع كل العملاء، وبعميلٍ يمنعه وحده. وسبب «ارتداد» أو «شكوى» يُوسم آخر رسالةٍ أُرسلت
           لذلك العنوان بـ«ارتدّت» — لأن الحجر بلا أثرٍ في السجلّ يترك السؤال معلّقاً.
         </p>
-      </div>
+      </Panel>
 
       {notice && <p className={`alert ${notice.kind}`}>{notice.text}</p>}
 
@@ -994,7 +994,7 @@ function SuppressionsTab() {
       ) : list.status === 'error' ? (
         <ErrorBox message={list.error} onRetry={list.reload} />
       ) : (
-        <div className="card">
+        <Panel>
           <table className="table">
             <thead>
               <tr>
@@ -1026,7 +1026,7 @@ function SuppressionsTab() {
           {(list.data?.data ?? []).length === 0 && (
             <Empty title="لا عناوين محجوبة" detail="الحجر يمنع الإرسال قبل الطابور، فلا تُستهلك محاولة." />
           )}
-        </div>
+        </Panel>
       )}
     </div>
   );

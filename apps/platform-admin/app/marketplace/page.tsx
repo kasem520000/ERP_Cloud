@@ -360,7 +360,7 @@ export default function PlatformMarketplacePage() {
             {apps
               .filter((app) => !app.isCore)
               .map((app) => (
-                <article key={app.code} className="card" style={{ display: 'grid', gap: 8 }}>
+                <Panel key={app.code} style={{ display: 'grid', gap: 8 }}>
                   <strong>
                     {app.icon ?? ''} {app.nameAr} <span dir="ltr">({app.code})</span>
                   </strong>
@@ -385,7 +385,7 @@ export default function PlatformMarketplacePage() {
                       إيقاف
                     </button>
                   </div>
-                </article>
+                </Panel>
               ))}
           </div>
         </Panel>
@@ -551,7 +551,7 @@ export default function PlatformMarketplacePage() {
       {tab === 'catalog' && (
         <div className="grid" style={{ gap: 12 }}>
           {apps.map((app) => (
-            <article key={app.code} className="card" style={{ display: 'grid', gap: 8 }}>
+            <Panel key={app.code} style={{ display: 'grid', gap: 8 }}>
               <strong>
                 {app.icon ?? ''} {app.nameAr} <span dir="ltr">({app.code})</span>
               </strong>
@@ -587,7 +587,7 @@ export default function PlatformMarketplacePage() {
                   {app.isActive ? 'إيقاف البيع' : 'إعادة البيع'}
                 </button>
               </span>
-            </article>
+            </Panel>
           ))}
         </div>
       )}

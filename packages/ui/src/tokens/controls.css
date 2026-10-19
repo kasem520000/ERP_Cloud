@@ -384,6 +384,9 @@ html[dir='rtl'] select.ui-input {
   inline-size: min(460px, 100%);
   margin-inline: auto;
   padding: 28px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
   box-shadow: var(--shadow-4);
 }
 

@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { BellRing, LogOut, Menu, Search, X } from 'lucide-react';
+import { Panel } from '@erp/ui';
 import { ThemeToggle } from '@erp/ui/theme';
 import type { SupportTicket } from '@erp/contracts';
 
@@ -78,9 +79,9 @@ export function PlatformGuard({ children }: { children: React.ReactNode }) {
   const environment = settings.data?.environment;
 
   return (
- <div className="shell">
+    <div className="shell">
       {drawerOpen && (
- <div
+        <div
           className="no-print"
           onClick={() => setDrawerOpen(false)}
           style={{
@@ -91,108 +92,109 @@ export function PlatformGuard({ children }: { children: React.ReactNode }) {
           }}
         />
       )}
- <aside className={`side no-print ${drawerOpen ? 'open' : ''}`}>
- <div className="brand" style={{ justifyContent: 'space-between' }}>
- <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
- <span className="logo">ERP</span>
- <span>
- لوحة تحكم المنصة
- <small>{environment ? `بيئة ${environment.labelAr}` : 'بيئة السحابة'}</small>
- </span>
- </div>
+      <aside className={`side no-print ${drawerOpen ? 'open' : ''}`}>
+        <div className="brand" style={{ justifyContent: 'space-between' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span className="logo">ERP</span>
+            <span>
+              لوحة تحكم المنصة
+              <small>{environment ? `بيئة ${environment.labelAr}` : 'بيئة السحابة'}</small>
+            </span>
+          </div>
           {drawerOpen && (
- <button
+            <button
               type="button"
               className="btn sm only-mobile"
               onClick={() => setDrawerOpen(false)}
               aria-label="إغلاق القائمة"
             >
- <X size={14} />
- </button>
+              <X size={14} />
+            </button>
           )}
- </div>
+        </div>
 
- <nav className="nav" aria-label="أقسام لوحة المنصة">
+        <nav className="nav" aria-label="أقسام لوحة المنصة">
           {groups.map((group) => (
- <div className="nav-group" key={group.key}>
- <p className="nav-group-title">
+            <div className="nav-group" key={group.key}>
+              <p className="nav-group-title">
                 {group.icon} {group.labelAr}
- </p>
+              </p>
               {group.items.map((entry) => {
-                const active = pathname === entry.href || (entry.href !== '/' && pathname.startsWith(entry.href));
+                const active =
+                  pathname === entry.href || (entry.href !== '/' && pathname.startsWith(entry.href));
                 return (
- <Link
+                  <Link
                     key={entry.key}
                     href={entry.href}
                     className={`nav-link ${active ? 'active' : ''}`}
                     onClick={() => setDrawerOpen(false)}
                   >
- <span className={`dot ${entry.status}`} aria-hidden="true" />
+                    <span className={`dot ${entry.status}`} aria-hidden="true" />
                     {entry.labelAr}
- </Link>
+                  </Link>
                 );
               })}
- </div>
+            </div>
           ))}
- </nav>
+        </nav>
 
- <div className="nav-legend">
- <span>
- <span className="dot ready" /> جاهز
- </span>
- <span>
- <span className="dot planned" /> مخطَّط
- </span>
- </div>
- </aside>
+        <div className="nav-legend">
+          <span>
+            <span className="dot ready" /> جاهز
+          </span>
+          <span>
+            <span className="dot planned" /> مخطَّط
+          </span>
+        </div>
+      </aside>
 
- <div className="main">
- <header className="topbar no-print">
- <div className="row" style={{ alignItems: 'center' }}>
- <button
+      <div className="main">
+        <header className="topbar no-print">
+          <div className="row" style={{ alignItems: 'center' }}>
+            <button
               className="btn sm only-mobile"
               type="button"
               onClick={() => setDrawerOpen((open) => !open)}
               aria-label="إظهار القائمة"
             >
- <Menu size={16} />
- </button>
- <nav className="crumbs" aria-label="موقعك في اللوحة">
- <Link href="/">المنصة</Link>
- {activeGroup ? ` ${activeGroup.labelAr}` : ''}
- </nav>
- </div>
+              <Menu size={16} />
+            </button>
+            <nav className="crumbs" aria-label="موقعك في اللوحة">
+              <Link href="/">المنصة</Link>
+              {activeGroup ? ` ${activeGroup.labelAr}` : ''}
+            </nav>
+          </div>
 
- <div className="row" style={{ alignItems: 'center' }}>
- <ThemeToggle compact />
- <button className="btn sm" type="button" onClick={() => setPaletteOpen(true)}>
- <Search size={14} aria-hidden /> بحث شامل <span className="muted small">Ctrl+K</span>
- </button>
- <Bell
+          <div className="row" style={{ alignItems: 'center' }}>
+            <ThemeToggle compact />
+            <button className="btn sm" type="button" onClick={() => setPaletteOpen(true)}>
+              <Search size={14} aria-hidden /> بحث شامل <span className="muted small">Ctrl+K</span>
+            </button>
+            <Bell
               pendingActivations={overview.data?.pendingActivations ?? 0}
               pastDue={overview.data?.subscriptions.past_due ?? 0}
               suspendedTenants={overview.data?.tenants.suspended ?? 0}
               pathname={pathname}
             />
             {environment && (
- <span className={`badge ${environment.name === 'production' ? 'failed' : 'pending'}`}>
+              <span className={`badge ${environment.name === 'production' ? 'failed' : 'pending'}`}>
                 {environment.labelAr}
- </span>
+              </span>
             )}
- <span className="muted small">
+            <span className="muted small">
               {me?.user.fullName} · {me?.user.email}
- </span>
- <button className="btn sm" type="button" onClick={() => void signOut()}>
- <LogOut size={14} aria-hidden /> تسجيل الخروج
- </button>
- </div>
- </header>
+            </span>
+            <button className="btn sm" type="button" onClick={() => void signOut()}>
+              <LogOut size={14} aria-hidden /> تسجيل الخروج
+            </button>
+          </div>
+        </header>
 
         {paletteOpen && <Omnibox onClose={() => setPaletteOpen(false)} />}
 
- <PageTransition>{children}</PageTransition>
- </div>
- </div>
+        <PageTransition>{children}</PageTransition>
+      </div>
+    </div>
   );
 }
 
@@ -220,7 +222,9 @@ function Bell({
 
   const loadNotifications = useCallback(async () => {
     const [ticketsRes, addonsRes] = await Promise.all([
-      apiData<SupportTicket[]>('/platform/tickets?filter[status]=open&limit=10').catch(() => [] as SupportTicket[]),
+      apiData<SupportTicket[]>('/platform/tickets?filter[status]=open&limit=10').catch(
+        () => [] as SupportTicket[],
+      ),
       apiData<AddonPendingRequest[]>('/platform/marketplace/requests?status=pending').catch(
         () => [] as AddonPendingRequest[],
       ),
@@ -270,8 +274,8 @@ function Bell({
     openTickets.length + addonRequests.length + pendingActivations + pastDue + suspendedTenants;
 
   return (
- <div ref={containerRef} style={{ position: 'relative' }}>
- <button
+    <div ref={containerRef} style={{ position: 'relative' }}>
+      <button
         className={`btn sm ${totalCount > 0 ? 'primary' : ''}`}
         type="button"
         aria-label={`التنبيهات (${totalCount})`}
@@ -282,11 +286,11 @@ function Bell({
           if (next) void loadNotifications();
         }}
       >
- <BellRing size={14} aria-hidden /> الإشعارات {totalCount > 0 ? `(${totalCount})` : '(0)'}
- </button>
+        <BellRing size={14} aria-hidden /> الإشعارات {totalCount > 0 ? `(${totalCount})` : '(0)'}
+      </button>
       {open && (
- <div
-          className="card menu-pop"
+        <div
+          className="ui-popover menu-pop"
           style={{
             position: 'absolute',
             insetInlineEnd: 0,
@@ -301,29 +305,29 @@ function Bell({
             boxShadow: 'var(--shadow-4)',
           }}
         >
- <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
- <strong>مركز إشعارات وطلبات المنصة ({totalCount})</strong>
- <button type="button" className="btn sm" onClick={() => void loadNotifications()}>
- تحديث
- </button>
- </div>
+          <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+            <strong>مركز إشعارات وطلبات المنصة ({totalCount})</strong>
+            <button type="button" className="btn sm" onClick={() => void loadNotifications()}>
+              تحديث
+            </button>
+          </div>
 
           {/* 1. Open Support Tickets from Customers */}
- <div style={{ borderTop: '1px solid var(--line)', paddingTop: 8 }}>
- <div className="row" style={{ justifyContent: 'space-between', marginBottom: 6 }}>
- <strong style={{ fontSize: 13 }}>طلبات المساعدة والدعم الفني ({openTickets.length})</strong>
- <Link href="/tickets" className="small" onClick={() => setOpen(false)}>
- فتح الصندوق 
- </Link>
- </div>
+          <div style={{ borderTop: '1px solid var(--line)', paddingTop: 8 }}>
+            <div className="row" style={{ justifyContent: 'space-between', marginBottom: 6 }}>
+              <strong style={{ fontSize: 13 }}>طلبات المساعدة والدعم الفني ({openTickets.length})</strong>
+              <Link href="/tickets" className="small" onClick={() => setOpen(false)}>
+                فتح الصندوق
+              </Link>
+            </div>
             {openTickets.length === 0 ? (
- <p className="muted small" style={{ margin: 0 }}>
- لا توجد تذاكر مساعدة مفتوحة حالياً.
- </p>
+              <p className="muted small" style={{ margin: 0 }}>
+                لا توجد تذاكر مساعدة مفتوحة حالياً.
+              </p>
             ) : (
- <div style={{ display: 'grid', gap: 6 }}>
+              <div style={{ display: 'grid', gap: 6 }}>
                 {openTickets.map((t) => (
- <Link
+                  <Link
                     key={t.id}
                     href={`/tickets/${t.id}`}
                     onClick={() => setOpen(false)}
@@ -337,38 +341,38 @@ function Bell({
                       color: 'inherit',
                     }}
                   >
- <div className="row" style={{ justifyContent: 'space-between' }}>
- <strong style={{ fontSize: 13 }}>{t.subject}</strong>
- <span className="badge pending" style={{ fontSize: 11 }}>
+                    <div className="row" style={{ justifyContent: 'space-between' }}>
+                      <strong style={{ fontSize: 13 }}>{t.subject}</strong>
+                      <span className="badge pending" style={{ fontSize: 11 }}>
                         {PRIORITY_AR[t.priority] ?? t.priority}
- </span>
- </div>
- <div className="muted small" style={{ marginTop: 2 }}>
- المنشأة: {t.tenantName ?? t.tenantCode ?? 'عميل'} ·{' '}
+                      </span>
+                    </div>
+                    <div className="muted small" style={{ marginTop: 2 }}>
+                      المنشأة: {t.tenantName ?? t.tenantCode ?? 'عميل'} ·{' '}
                       {new Date(t.createdAt).toLocaleString('ar-SA-u-ca-gregory-nu-latn')}
- </div>
- </Link>
+                    </div>
+                  </Link>
                 ))}
- </div>
+              </div>
             )}
- </div>
+          </div>
 
           {/* 2. Pending Marketplace Add-on Requests */}
- <div style={{ borderTop: '1px solid var(--line)', paddingTop: 8 }}>
- <div className="row" style={{ justifyContent: 'space-between', marginBottom: 6 }}>
- <strong style={{ fontSize: 13 }}>طلبات تفعيل الباقات القطاعية ({addonRequests.length})</strong>
- <Link href="/marketplace" className="small" onClick={() => setOpen(false)}>
- إدارة الباقات 
- </Link>
- </div>
+          <div style={{ borderTop: '1px solid var(--line)', paddingTop: 8 }}>
+            <div className="row" style={{ justifyContent: 'space-between', marginBottom: 6 }}>
+              <strong style={{ fontSize: 13 }}>طلبات تفعيل الباقات القطاعية ({addonRequests.length})</strong>
+              <Link href="/marketplace" className="small" onClick={() => setOpen(false)}>
+                إدارة الباقات
+              </Link>
+            </div>
             {addonRequests.length === 0 ? (
- <p className="muted small" style={{ margin: 0 }}>
- لا توجد طلبات باقات معلقة.
- </p>
+              <p className="muted small" style={{ margin: 0 }}>
+                لا توجد طلبات باقات معلقة.
+              </p>
             ) : (
- <div style={{ display: 'grid', gap: 6 }}>
+              <div style={{ display: 'grid', gap: 6 }}>
                 {addonRequests.map((req) => (
- <Link
+                  <Link
                     key={req.id}
                     href="/marketplace"
                     onClick={() => setOpen(false)}
@@ -382,40 +386,42 @@ function Bell({
                       color: 'inherit',
                     }}
                   >
- <strong style={{ fontSize: 13 }}>طلب تفعيل: {req.appNameAr}</strong>
- <div className="muted small">
- العميل: {req.tenantName} ({req.tenantCode})
- </div>
- </Link>
+                    <strong style={{ fontSize: 13 }}>طلب تفعيل: {req.appNameAr}</strong>
+                    <div className="muted small">
+                      العميل: {req.tenantName} ({req.tenantCode})
+                    </div>
+                  </Link>
                 ))}
- </div>
+              </div>
             )}
- </div>
+          </div>
 
           {/* 3. System / Subscription Counters */}
- <div style={{ borderTop: '1px solid var(--line)', paddingTop: 8 }}>
- <strong style={{ fontSize: 13, display: 'block', marginBottom: 6 }}>تنبيهات التشغيل والتراخيص</strong>
- <ul style={{ margin: 0, paddingInlineStart: 18, display: 'grid', gap: 4, fontSize: 13 }}>
- <li>
- <Link href="/activation-requests" onClick={() => setOpen(false)}>
- طلبات تفعيل منشآت جديدة ({pendingActivations})
- </Link>
- </li>
- <li>
- <Link href="/subscriptions" onClick={() => setOpen(false)}>
- تراخيص متأخرة السداد ({pastDue})
- </Link>
- </li>
- <li>
- <Link href="/tenants?status=suspended" onClick={() => setOpen(false)}>
- عملاء موقوفون ({suspendedTenants})
- </Link>
- </li>
- </ul>
- </div>
- </div>
+          <div style={{ borderTop: '1px solid var(--line)', paddingTop: 8 }}>
+            <strong style={{ fontSize: 13, display: 'block', marginBottom: 6 }}>
+              تنبيهات التشغيل والتراخيص
+            </strong>
+            <ul style={{ margin: 0, paddingInlineStart: 18, display: 'grid', gap: 4, fontSize: 13 }}>
+              <li>
+                <Link href="/activation-requests" onClick={() => setOpen(false)}>
+                  طلبات تفعيل منشآت جديدة ({pendingActivations})
+                </Link>
+              </li>
+              <li>
+                <Link href="/subscriptions" onClick={() => setOpen(false)}>
+                  تراخيص متأخرة السداد ({pastDue})
+                </Link>
+              </li>
+              <li>
+                <Link href="/tenants?status=suspended" onClick={() => setOpen(false)}>
+                  عملاء موقوفون ({suspendedTenants})
+                </Link>
+              </li>
+            </ul>
+          </div>
+        </div>
       )}
- </div>
+    </div>
   );
 }
 
@@ -468,9 +474,9 @@ function Omnibox({ onClose }: { onClose: () => void }) {
   }, [term, search]);
 
   return (
- <div className="card" role="dialog" aria-label="البحث الشامل" style={{ marginBottom: 16 }}>
- <div className="row">
- <input
+    <Panel title="البحث الشامل" aria-label="البحث الشامل" style={{ marginBottom: 16 }}>
+      <div className="row">
+        <input
           className="input"
           style={{ flex: 1 }}
           autoFocus
@@ -478,49 +484,44 @@ function Omnibox({ onClose }: { onClose: () => void }) {
           value={term}
           onChange={(event) => setTerm(event.target.value)}
         />
- <button className="btn" type="button" onClick={onClose}>
- إغلاق
- </button>
- </div>
+        <button className="btn" type="button" onClick={onClose}>
+          إغلاق
+        </button>
+      </div>
 
       {busy && <p className="muted small">جارٍ البحث…</p>}
       {error && <p className="alert danger">{error}</p>}
 
       {!busy && term.trim().length > 0 && tenants.length === 0 && users.length === 0 && !error && (
- <p className="muted small">لا نتائج.</p>
+        <p className="muted small">لا نتائج.</p>
       )}
 
       {tenants.length > 0 && (
- <>
- <h3>العملاء</h3>
- <div className="chips">
+        <>
+          <h3>العملاء</h3>
+          <div className="chips">
             {tenants.map((hit) => (
- <Link
-                key={hit.id}
-                className="chip"
-                href={`/tenants/${hit.id}`}
-                onClick={onClose}
-              >
+              <Link key={hit.id} className="chip" href={`/tenants/${hit.id}`} onClick={onClose}>
                 {hit.name} <span className="muted">({hit.code})</span>
- </Link>
+              </Link>
             ))}
- </div>
- </>
+          </div>
+        </>
       )}
 
       {users.length > 0 && (
- <>
- <h3>المستخدمون</h3>
- <div className="chips">
+        <>
+          <h3>المستخدمون</h3>
+          <div className="chips">
             {users.map((hit) => (
- <Link key={hit.id} className="chip" href={`/users/${hit.id}`} onClick={onClose}>
+              <Link key={hit.id} className="chip" href={`/users/${hit.id}`} onClick={onClose}>
                 {hit.fullName ?? hit.full_name ?? hit.email}
- </Link>
+              </Link>
             ))}
- </div>
- </>
+          </div>
+        </>
       )}
- </div>
+    </Panel>
   );
 }
 

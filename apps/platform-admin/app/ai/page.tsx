@@ -1,5 +1,6 @@
 'use client';
 
+import { Panel } from '@erp/ui';
 import { useEffect, useState } from 'react';
 
 import { Screen } from '../../components/screen';
@@ -48,7 +49,9 @@ export default function PlatformAiPage() {
   }
 
   useEffect(() => {
-    void reload().catch((error: unknown) => setMessage(error instanceof ApiError ? error.message : String(error)));
+    void reload().catch((error: unknown) =>
+      setMessage(error instanceof ApiError ? error.message : String(error)),
+    );
   }, []);
 
   return (
@@ -59,7 +62,6 @@ export default function PlatformAiPage() {
     >
       {message ? <p className="muted">{message}</p> : null}
       <form
-        className="card"
         onSubmit={(event) => {
           event.preventDefault();
           setBusy(true);
@@ -85,51 +87,95 @@ export default function PlatformAiPage() {
             .finally(() => setBusy(false));
         }}
       >
-        <div className="form-grid">
+        <Panel title="إعدادات المزوّد" hint="المفتاح يُكتب مرّةً ويُخزَّن مشفّراً؛ لا يُعرض بعد الحفظ.">
+          <div className="form-grid">
+            <label className="field">
+              <span>المزود</span>
+              <select
+                className="input"
+                value={provider}
+                disabled={!canWrite}
+                onChange={(event) => setProvider(event.target.value)}
+              >
+                <option value="local">محلي</option>
+                <option value="openai">OpenAI</option>
+                <option value="anthropic">Anthropic</option>
+              </select>
+            </label>
+            <label className="field">
+              <span>النموذج</span>
+              <input
+                className="input"
+                dir="ltr"
+                value={model}
+                disabled={!canWrite}
+                onChange={(event) => setModel(event.target.value)}
+              />
+            </label>
+            <label className="field">
+              <span>رابط الأساس</span>
+              <input
+                className="input"
+                dir="ltr"
+                value={baseUrl}
+                disabled={!canWrite}
+                onChange={(event) => setBaseUrl(event.target.value)}
+                placeholder="https://api.openai.com"
+              />
+            </label>
+            <label className="field">
+              <span>حد التوكنز الافتراضي</span>
+              <input
+                className="input"
+                dir="ltr"
+                value={tokenLimit}
+                disabled={!canWrite}
+                onChange={(event) => setTokenLimit(event.target.value)}
+              />
+            </label>
+            <label className="field">
+              <span>مفتاح API</span>
+              <input
+                className="input"
+                dir="ltr"
+                type="password"
+                value={apiKey}
+                disabled={!canWrite}
+                onChange={(event) => setApiKey(event.target.value)}
+                placeholder={settings?.hasApiKey ? 'محفوظ — اكتب لاستبداله' : 'غير محفوظ'}
+              />
+            </label>
+            <label className="field">
+              <span>التفعيل العام</span>
+              <select
+                className="input"
+                value={enabled ? 'on' : 'off'}
+                disabled={!canWrite}
+                onChange={(event) => setEnabled(event.target.value === 'on')}
+              >
+                <option value="on">مفعّل</option>
+                <option value="off">متوقف لكل المنشآت</option>
+              </select>
+            </label>
+          </div>
           <label className="field">
-            <span>المزود</span>
-            <select className="input" value={provider} disabled={!canWrite} onChange={(event) => setProvider(event.target.value)}>
-              <option value="local">محلي</option>
-              <option value="openai">OpenAI</option>
-              <option value="anthropic">Anthropic</option>
-            </select>
+            <span>
+              <input
+                type="checkbox"
+                checked={clearKey}
+                disabled={!canWrite}
+                onChange={(event) => setClearKey(event.target.checked)}
+              />{' '}
+              حذف المفتاح المحفوظ
+            </span>
           </label>
-          <label className="field">
-            <span>النموذج</span>
-            <input className="input" dir="ltr" value={model} disabled={!canWrite} onChange={(event) => setModel(event.target.value)} />
-          </label>
-          <label className="field">
-            <span>رابط الأساس</span>
-            <input className="input" dir="ltr" value={baseUrl} disabled={!canWrite} onChange={(event) => setBaseUrl(event.target.value)} placeholder="https://api.openai.com" />
-          </label>
-          <label className="field">
-            <span>حد التوكنز الافتراضي</span>
-            <input className="input" dir="ltr" value={tokenLimit} disabled={!canWrite} onChange={(event) => setTokenLimit(event.target.value)} />
-          </label>
-          <label className="field">
-            <span>مفتاح API</span>
-            <input className="input" dir="ltr" type="password" value={apiKey} disabled={!canWrite} onChange={(event) => setApiKey(event.target.value)} placeholder={settings?.hasApiKey ? 'محفوظ — اكتب لاستبداله' : 'غير محفوظ'} />
-          </label>
-          <label className="field">
-            <span>التفعيل العام</span>
-            <select className="input" value={enabled ? 'on' : 'off'} disabled={!canWrite} onChange={(event) => setEnabled(event.target.value === 'on')}>
-              <option value="on">مفعّل</option>
-              <option value="off">متوقف لكل المنشآت</option>
-            </select>
-          </label>
-        </div>
-        <label className="field">
-          <span>
-            <input type="checkbox" checked={clearKey} disabled={!canWrite} onChange={(event) => setClearKey(event.target.checked)} /> حذف المفتاح المحفوظ
-          </span>
-        </label>
-        <button className="btn primary" type="submit" disabled={!canWrite || busy}>
-          {busy ? 'جارٍ الحفظ…' : 'حفظ'}
-        </button>
+          <button className="btn primary" type="submit" disabled={!canWrite || busy}>
+            {busy ? 'جارٍ الحفظ…' : 'حفظ'}
+          </button>
+        </Panel>
       </form>
 
       <form
-        className="card"
         onSubmit={(event) => {
           event.preventDefault();
           setBusy(true);
@@ -140,23 +186,33 @@ export default function PlatformAiPage() {
             .finally(() => setBusy(false));
         }}
       >
-        <h2>إيقاف منشأة</h2>
-        <div className="form-grid">
-          <label className="field">
-            <span>معرّف المنشأة</span>
-            <input className="input" dir="ltr" value={tenantId} onChange={(event) => setTenantId(event.target.value)} />
-          </label>
-          <label className="field">
-            <span>الحالة</span>
-            <select className="input" value={suspended ? 'off' : 'on'} onChange={(event) => setSuspended(event.target.value === 'off')}>
-              <option value="off">إيقاف</option>
-              <option value="on">تفعيل</option>
-            </select>
-          </label>
-        </div>
-        <button className="btn" type="submit" disabled={!canWrite || busy || !tenantId}>
-          تطبيق
-        </button>
+        <Panel title="إيقاف منشأة">
+          <div className="form-grid">
+            <label className="field">
+              <span>معرّف المنشأة</span>
+              <input
+                className="input"
+                dir="ltr"
+                value={tenantId}
+                onChange={(event) => setTenantId(event.target.value)}
+              />
+            </label>
+            <label className="field">
+              <span>الحالة</span>
+              <select
+                className="input"
+                value={suspended ? 'off' : 'on'}
+                onChange={(event) => setSuspended(event.target.value === 'off')}
+              >
+                <option value="off">إيقاف</option>
+                <option value="on">تفعيل</option>
+              </select>
+            </label>
+          </div>
+          <button className="btn" type="submit" disabled={!canWrite || busy || !tenantId}>
+            تطبيق
+          </button>
+        </Panel>
       </form>
     </Screen>
   );

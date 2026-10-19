@@ -121,7 +121,7 @@ function Queue({ canManage }: { canManage: boolean }) {
 
   return (
     <>
-      <section className="card grid">
+      <Panel bodyClassName="grid">
         <div className="toolbar">
           <select
             className="input"
@@ -192,12 +192,12 @@ function Queue({ canManage }: { canManage: boolean }) {
             المعروض: {payload.data.length} من {payload.meta.total}
           </span>
         </div>
-      </section>
+      </Panel>
 
       {payload.data.length === 0 ? (
         <Empty title="لا طلبات بهذه المرشّحات" detail="جرّب توسيع الحالة أو المصدر، أو امسح البحث." />
       ) : (
-        <section className="card">
+        <Panel>
           <table className="table">
             <thead>
               <tr>
@@ -245,7 +245,7 @@ function Queue({ canManage }: { canManage: boolean }) {
               ))}
             </tbody>
           </table>
-        </section>
+        </Panel>
       )}
 
       {openId ? (
@@ -311,25 +311,27 @@ function LeadCard({
   };
 
   return (
-    <section className="card grid" aria-label={`طلب ${lead.reference}`}>
-      <header className="section-title">
-        <div>
-          <h2 style={{ margin: 0 }}>
-            <bdi>{lead.reference}</bdi> · {lead.fullName ?? lead.email}
-          </h2>
-          <p className="muted" style={{ margin: '4px 0 0' }}>
-            {lead.sourceLabelAr} · {formatDate(lead.createdAt)} ·{' '}
-            <span className={STATUS_TONE[lead.status]}>{lead.statusLabelAr}</span>
-            {lead.convertedTenantCode ? (
-              <>
-                {' '}
-                · منشأة: <bdi>{lead.convertedTenantCode}</bdi>
-              </>
-            ) : null}
-          </p>
-        </div>
-      </header>
-
+    <Panel
+      title={
+        <>
+          <bdi>{lead.reference}</bdi> · {lead.fullName ?? lead.email}
+        </>
+      }
+      hint={
+        <>
+          {lead.sourceLabelAr} · {formatDate(lead.createdAt)} ·{' '}
+          <span className={STATUS_TONE[lead.status]}>{lead.statusLabelAr}</span>
+          {lead.convertedTenantCode ? (
+            <>
+              {' '}
+              · منشأة: <bdi>{lead.convertedTenantCode}</bdi>
+            </>
+          ) : null}
+        </>
+      }
+      bodyClassName="grid"
+      aria-label={`طلب ${lead.reference}`}
+    >
       {error ? <p className="alert danger">{error}</p> : null}
 
       <div className="grid cols-2">
@@ -498,7 +500,7 @@ function LeadCard({
           </ul>
         </Panel>
       </div>
-    </section>
+    </Panel>
   );
 }
 
@@ -657,7 +659,7 @@ function Subscribers({ canManage }: { canManage: boolean }) {
 
   return (
     <>
-      <section className="card grid">
+      <Panel bodyClassName="grid">
         <div className="toolbar">
           <select
             className="input"
@@ -677,7 +679,7 @@ function Subscribers({ canManage }: { canManage: boolean }) {
           {!canManage ? <span className="muted">قراءةٌ فقط</span> : null}
         </div>
         {error ? <p className="alert danger">{error}</p> : null}
-      </section>
+      </Panel>
 
       {payload.data.length === 0 ? (
         <Empty
@@ -685,7 +687,7 @@ function Subscribers({ canManage }: { canManage: boolean }) {
           detail="الاشتراك يبدأ من تذييل الموقع، ويُؤكَّد من رابط البريد."
         />
       ) : (
-        <section className="card">
+        <Panel>
           <table className="table">
             <thead>
               <tr>
@@ -739,7 +741,7 @@ function Subscribers({ canManage }: { canManage: boolean }) {
               ))}
             </tbody>
           </table>
-        </section>
+        </Panel>
       )}
     </>
   );

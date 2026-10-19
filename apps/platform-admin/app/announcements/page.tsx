@@ -1,5 +1,6 @@
 'use client';
 
+import { Panel } from '@erp/ui';
 import { useState } from 'react';
 import {
   announcementAudiences,
@@ -170,7 +171,8 @@ function ListTab({ onEdit }: { onEdit: (item: Announcement) => void }) {
       <div className="toolbar">
         <label className="row" style={{ gap: 6, alignItems: 'center' }}>
           <span>الحالة</span>
-          <select className="input"
+          <select
+            className="input"
             value={status}
             onChange={(event) => setStatus(event.target.value as AnnouncementStatus | '')}
           >
@@ -184,7 +186,8 @@ function ListTab({ onEdit }: { onEdit: (item: Announcement) => void }) {
         </label>
         <label className="row" style={{ gap: 6, alignItems: 'center' }}>
           <span>الجمهور</span>
-          <select className="input"
+          <select
+            className="input"
             value={audience}
             onChange={(event) => setAudience(event.target.value as AnnouncementAudience | '')}
           >
@@ -207,7 +210,7 @@ function ListTab({ onEdit }: { onEdit: (item: Announcement) => void }) {
         </p>
       )}
 
-      <section className="card">
+      <Panel>
         {list.status === 'loading' && <Loading rows={3} />}
         {list.status === 'forbidden' && <Forbidden />}
         {list.status === 'error' && <ErrorBox message={list.error} onRetry={list.reload} />}
@@ -285,7 +288,7 @@ function ListTab({ onEdit }: { onEdit: (item: Announcement) => void }) {
             </table>
           </div>
         )}
-      </section>
+      </Panel>
 
       {readsFor && <ReadsPanel announcement={readsFor} onClose={() => setReadsFor(null)} />}
     </>
@@ -301,7 +304,7 @@ function ReadsPanel({ announcement, onClose }: { announcement: Announcement; onC
   );
 
   return (
-    <section className="card">
+    <Panel>
       <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
         <h2 style={{ margin: 0 }}>القراءات — {announcement.titleAr}</h2>
         <button className="btn" type="button" onClick={onClose}>
@@ -348,7 +351,7 @@ function ReadsPanel({ announcement, onClose }: { announcement: Announcement; onC
           </table>
         </div>
       )}
-    </section>
+    </Panel>
   );
 }
 
@@ -453,16 +456,22 @@ function ComposeTab({ editing, onSaved }: { editing: Announcement | null; onSave
     );
 
   return (
-    <section className="card">
+    <Panel>
       <div className="grid cols-2">
         <div className="grid">
           <label>
             العنوان (عربي)
-            <input className="input" value={titleAr} onChange={(event) => setTitleAr(event.target.value)} maxLength={200} />
+            <input
+              className="input"
+              value={titleAr}
+              onChange={(event) => setTitleAr(event.target.value)}
+              maxLength={200}
+            />
           </label>
           <label>
             Title (English)
-            <input className="input"
+            <input
+              className="input"
               dir="ltr"
               value={titleEn}
               onChange={(event) => setTitleEn(event.target.value)}
@@ -471,7 +480,8 @@ function ComposeTab({ editing, onSaved }: { editing: Announcement | null; onSave
           </label>
           <label>
             النصّ (عربي)
-            <textarea className="input"
+            <textarea
+              className="input"
               rows={5}
               value={bodyAr}
               onChange={(event) => setBodyAr(event.target.value)}
@@ -480,7 +490,8 @@ function ComposeTab({ editing, onSaved }: { editing: Announcement | null; onSave
           </label>
           <label>
             Body (English)
-            <textarea className="input"
+            <textarea
+              className="input"
               dir="ltr"
               rows={5}
               value={bodyEn}
@@ -493,7 +504,8 @@ function ComposeTab({ editing, onSaved }: { editing: Announcement | null; onSave
         <div className="grid">
           <label>
             الجمهور
-            <select className="input"
+            <select
+              className="input"
               value={audience}
               onChange={(event) => setAudience(event.target.value as AnnouncementAudience)}
             >
@@ -508,7 +520,8 @@ function ComposeTab({ editing, onSaved }: { editing: Announcement | null; onSave
           {audience === 'plan' && (
             <label>
               الباقة
-              <input className="input"
+              <input
+                className="input"
                 list="announcement-plans"
                 value={planCode}
                 onChange={(event) => setPlanCode(event.target.value)}
@@ -527,7 +540,8 @@ function ComposeTab({ editing, onSaved }: { editing: Announcement | null; onSave
           {audience === 'status' && (
             <label>
               حالة المنشأة
-              <select className="input"
+              <select
+                className="input"
                 value={tenantStatus}
                 onChange={(event) => setTenantStatus(event.target.value as AnnouncementTargetStatus)}
               >
@@ -557,7 +571,8 @@ function ComposeTab({ editing, onSaved }: { editing: Announcement | null; onSave
 
           <label>
             الجدولة (اتركها فارغةً للنشر اليدوي)
-            <input className="input"
+            <input
+              className="input"
               type="datetime-local"
               dir="ltr"
               value={publishAt}
@@ -570,7 +585,12 @@ function ComposeTab({ editing, onSaved }: { editing: Announcement | null; onSave
 
           <label>
             سبب التغيير (يُكتب في سجل التدقيق)
-            <input className="input" value={reason} onChange={(event) => setReason(event.target.value)} maxLength={300} />
+            <input
+              className="input"
+              value={reason}
+              onChange={(event) => setReason(event.target.value)}
+              maxLength={300}
+            />
           </label>
         </div>
       </div>
@@ -586,7 +606,7 @@ function ComposeTab({ editing, onSaved }: { editing: Announcement | null; onSave
         />
       </div>
 
-      <article className="card" style={{ background: 'var(--surface)' }}>
+      <Panel style={{ background: 'var(--surface)' }}>
         <strong>{preview === 'ar' ? titleAr || '—' : titleEn || '—'}</strong>
         <p dir={preview === 'ar' ? 'rtl' : 'ltr'} style={{ whiteSpace: 'pre-wrap', margin: '8px 0 0' }}>
           {preview === 'ar' ? bodyAr || '—' : bodyEn || '—'}
@@ -597,7 +617,7 @@ function ComposeTab({ editing, onSaved }: { editing: Announcement | null; onSave
           {audience === 'status' ? ` · ${tenantStatus}` : ''} ·{' '}
           {channels.map((channel) => CHANNEL_LABEL[channel]).join(' · ') || 'بلا قناة'}
         </p>
-      </article>
+      </Panel>
 
       {notice && (
         <p className={`alert ${notice.kind === 'ok' ? 'ok' : 'danger'}`} style={{ margin: 0 }}>
@@ -624,6 +644,6 @@ function ComposeTab({ editing, onSaved }: { editing: Announcement | null; onSave
           إلغاء
         </button>
       </div>
-    </section>
+    </Panel>
   );
 }

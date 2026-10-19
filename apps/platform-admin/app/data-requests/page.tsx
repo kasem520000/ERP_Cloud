@@ -1,5 +1,6 @@
 'use client';
 
+import { Panel } from '@erp/ui';
 import { useState } from 'react';
 
 import { Empty, ErrorBox, Forbidden, Loading, Screen } from '../../components/screen';
@@ -212,7 +213,7 @@ export default function DataRequestsPage() {
         <Forbidden />
       ) : (
         <>
-          <div className="card tight no-print">
+          <Panel className="tight no-print">
             <div className="row" style={{ flexWrap: 'wrap', alignItems: 'flex-end' }}>
               <label className="field" style={{ minWidth: 160 }}>
                 <span>نوع الطلب</span>
@@ -261,9 +262,9 @@ export default function DataRequestsPage() {
               التدقيق: الأولى دفاتر العميل تحتاج مرجع منشئها، والثانية هي الإيصال. والفرق يُعرض في عمود
               النتيجة.
             </p>
-          </div>
+          </Panel>
 
-          <div className="card tight no-print">
+          <Panel className="tight no-print">
             <div className="row" style={{ flexWrap: 'wrap', alignItems: 'flex-end' }}>
               <label className="field" style={{ minWidth: 380, flex: 1 }}>
                 <span>سبب القرار / سبب التنفيذ (5 محارف على الأقل)</span>
@@ -285,7 +286,7 @@ export default function DataRequestsPage() {
                 />
               </label>
             </div>
-          </div>
+          </Panel>
 
           {notice && <div className={`alert ${notice.kind === 'ok' ? '' : 'danger'}`}>{notice.text}</div>}
 
@@ -319,7 +320,9 @@ export default function DataRequestsPage() {
                     <tbody>
                       {rows.map((row) => (
                         <tr key={row.id}>
-                          <td dir="ltr">{new Date(row.createdAt).toLocaleString('ar-SA-u-ca-gregory-nu-latn')}</td>
+                          <td dir="ltr">
+                            {new Date(row.createdAt).toLocaleString('ar-SA-u-ca-gregory-nu-latn')}
+                          </td>
                           <td>
                             <span className={`badge ${row.kind === 'erase' ? 'failed' : 'pending'}`}>
                               {KIND_LABEL[row.kind] ?? row.kind}

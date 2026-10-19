@@ -193,7 +193,7 @@ export default function PlatformRolesPage() {
         ) : selected ? (
           <div className="grid gap-4 lg:grid-cols-[minmax(220px,280px)_minmax(0,1fr)] items-start">
             {/* ------------------------------------------------ role rail */}
-            <nav className="card tight" aria-label="أدوار المنصة">
+            <Panel flush aria-label="أدوار المنصة" bodyClassName="p-1">
               <ul className="m-0 list-none divide-y divide-[var(--line)] p-0">
                 {catalogue.map((role) => {
                   const active = role.code === selected.code;
@@ -240,11 +240,11 @@ export default function PlatformRolesPage() {
                   );
                 })}
               </ul>
-            </nav>
+            </Panel>
 
             {/* ------------------------------------------------ permission matrix */}
             <div className="grid gap-4">
-              <section className="card">
+              <Panel>
                 <header className="flex flex-wrap items-start justify-between gap-3">
                   <div className="min-w-0">
                     <h2 className="m-0 flex flex-wrap items-center gap-2 text-[16px] font-bold">
@@ -350,7 +350,7 @@ export default function PlatformRolesPage() {
                     القراءة متاحة؛ التعديل يحتاج صلاحية <span dir="ltr">console.users.manage</span>.
                   </p>
                 )}
-              </section>
+              </Panel>
             </div>
           </div>
         ) : null)}

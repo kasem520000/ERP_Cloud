@@ -145,7 +145,7 @@ function TicketBody({ ticket, onChanged }: { ticket: TicketDetail; onChanged: ()
 
   return (
     <div className="grid">
-      <section className="card tight">
+      <Panel className="tight">
         <div className="row" style={{ justifyContent: 'space-between', flexWrap: 'wrap' }}>
           <div>
             <p style={{ margin: 0 }}>
@@ -171,7 +171,7 @@ function TicketBody({ ticket, onChanged }: { ticket: TicketDetail; onChanged: ()
             <p style={{ margin: 0 }}>أُغلقت: {ticket.closedAt ? dateTime(ticket.closedAt) : '—'}</p>
           </div>
         </div>
-      </section>
+      </Panel>
 
       <Panel title="المحادثة">
         <ul className="thread">

@@ -1,5 +1,6 @@
 'use client';
 
+import { Panel } from '@erp/ui';
 import { Fragment, useState } from 'react';
 
 import { Empty, ErrorBox, Forbidden, Loading, Screen } from '../../components/screen';
@@ -115,7 +116,7 @@ export default function AuditPage() {
         </button>
       }
     >
-      <div className="card tight no-print">
+      <Panel className="tight no-print">
         <div className="form-grid">
           <label className="field">
             <span>معرّف العميل (UUID)</span>
@@ -182,7 +183,7 @@ export default function AuditPage() {
             إزالة المرشّحات
           </button>
         </div>
-      </div>
+      </Panel>
 
       {audit.status === 'loading' && <Loading />}
       {audit.status === 'forbidden' && <Forbidden />}
@@ -215,7 +216,9 @@ export default function AuditPage() {
                   {rows.map((row) => (
                     <Fragment key={row.id}>
                       <tr>
-                        <td dir="ltr">{new Date(row.createdAt).toLocaleString('ar-SA-u-ca-gregory-nu-latn')}</td>
+                        <td dir="ltr">
+                          {new Date(row.createdAt).toLocaleString('ar-SA-u-ca-gregory-nu-latn')}
+                        </td>
                         <td>
                           {row.tenantName ? (
                             <>
@@ -231,11 +234,15 @@ export default function AuditPage() {
                         </td>
                         <td>
                           <strong>{AUDIT_ACTION_AR[row.action] ?? row.action}</strong>
-                          <div className="muted small" dir="ltr">{row.action}</div>
+                          <div className="muted small" dir="ltr">
+                            {row.action}
+                          </div>
                         </td>
                         <td>
                           <strong>{AUDIT_ENTITY_AR[row.entity] ?? row.entity}</strong>
-                          <div className="muted small" dir="ltr">{row.entity}</div>
+                          <div className="muted small" dir="ltr">
+                            {row.entity}
+                          </div>
                         </td>
                         <td dir="ltr" className="small">
                           {row.entityId ? row.entityId.slice(0, 12) : '—'}
@@ -335,7 +342,7 @@ function DiffPanel({ row }: { row: AuditRow }) {
     }
     return (
       <pre className="code small" dir="ltr">
- {raw.map((value) => showValue(value)).join('\n\n')}
+        {raw.map((value) => showValue(value)).join('\n\n')}
       </pre>
     );
   }

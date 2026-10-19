@@ -8,7 +8,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
   const params = await searchParams;
   const handoffFailed = params?.handoff === 'failed';
   return (
-    <section className="card ui-auth-card">
+    <section className="ui-auth-card">
       <h1>تسجيل الدخول</h1>
       {handoffFailed ? (
         <p className="alert danger" role="alert">

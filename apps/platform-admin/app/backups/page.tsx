@@ -279,8 +279,7 @@ export default function BackupsPage() {
         <Forbidden />
       ) : (
         <>
-          <div className="card tight no-print">
-            <div className="row" style={{ flexWrap: 'wrap', alignItems: 'flex-end' }}>
+          <Panel className="tight no-print"><div className="row" style={{ flexWrap: 'wrap', alignItems: 'flex-end' }}>
               <label className="field" style={{ minWidth: 180 }}>
                 <span>نطاق النسخة</span>
                 <select
@@ -327,7 +326,7 @@ export default function BackupsPage() {
               (`app.tenant_id`)، وجداول المنصّة في سياق المنصّة. والملف NDJSON مشفّر بـAES-256-GCM ومكتوبٌ مع
               ترويسته، والصفّ يسجّل حجمه وبصمته بعد قراءتهما من المخزن.
             </p>
-          </div>
+</Panel>
 
           {notice && <div className={`alert ${notice.kind === 'ok' ? '' : 'danger'}`}>{notice.text}</div>}
 

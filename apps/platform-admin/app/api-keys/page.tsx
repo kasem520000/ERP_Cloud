@@ -1,5 +1,6 @@
 'use client';
 
+import { Panel } from '@erp/ui';
 import { useMemo, useState } from 'react';
 
 import { Empty, ErrorBox, Forbidden, Loading, Screen } from '../../components/screen';
@@ -158,11 +159,11 @@ export default function ApiKeysPage() {
       {notice && <p className={`alert ${notice.kind}`}>{notice.text}</p>}
 
       {secret && (
-        <div className="card">
+        <Panel>
           <strong>النصّ الصريح يظهر مرّة واحدة</strong>
           <p className="muted">
-            انسخه الآن وسلّمه لحامله. القاعدة تحفظ البادئة والبصمة فقط — ومن ضاع منه المفتاح
-            يُدوّره ولا ينتظر إعادة عرض.
+            انسخه الآن وسلّمه لحامله. القاعدة تحفظ البادئة والبصمة فقط — ومن ضاع منه المفتاح يُدوّره ولا ينتظر
+            إعادة عرض.
           </p>
           <pre className="code">{secret.value}</pre>
           <p className="muted">
@@ -171,10 +172,10 @@ export default function ApiKeysPage() {
           <button className="btn" onClick={() => setSecret(undefined)}>
             أخفِ النصّ
           </button>
-        </div>
+        </Panel>
       )}
 
-      <div className="card grid cols-2">
+      <Panel bodyClassName="grid cols-2">
         <label>
           المنشأة
           <select className="input" value={tenantId} onChange={(event) => setTenantId(event.target.value)}>
@@ -196,19 +197,25 @@ export default function ApiKeysPage() {
             'اختر منشأة لعرض مفاتيحها.'
           )}
         </div>
-      </div>
+      </Panel>
 
       {tenantId && (
-        <div className="card">
+        <Panel>
           <strong>مفتاح جديد</strong>
           <div className="form-grid">
             <label>
               الاسم (ما ستعرفه به لاحقاً)
-              <input className="input" value={name} onChange={(event) => setName(event.target.value)} placeholder="تكامل المستودع" />
+              <input
+                className="input"
+                value={name}
+                onChange={(event) => setName(event.target.value)}
+                placeholder="تكامل المستودع"
+              />
             </label>
             <label>
               ينتهي بعد (أيام — فارغ = بلا انتهاء)
-              <input className="input"
+              <input
+                className="input"
                 value={days}
                 inputMode="numeric"
                 onChange={(event) => setDays(event.target.value.replace(/[^0-9]/g, ''))}
@@ -238,14 +245,15 @@ export default function ApiKeysPage() {
           {catalogue.data && (
             <p className="muted">
               التوقيع للنهايات المشتركة: <code>{catalogue.data.signature.header}</code> —{' '}
-              {catalogue.data.signature.algorithm}، ونافذة القبول {catalogue.data.signature.toleranceSeconds} ثانية.
+              {catalogue.data.signature.algorithm}، ونافذة القبول {catalogue.data.signature.toleranceSeconds}{' '}
+              ثانية.
             </p>
           )}
 
           <button className="btn" onClick={create} disabled={busy === 'create'}>
             {busy === 'create' ? 'جارٍ الإصدار…' : 'أصدر المفتاح'}
           </button>
-        </div>
+        </Panel>
       )}
 
       {tenantId && keys.status === 'loading' && <Loading />}
@@ -255,70 +263,76 @@ export default function ApiKeysPage() {
       )}
 
       {tenantId && (keys.data ?? []).length > 0 && (
-        <div className="card">
+        <Panel>
           <div className="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>الاسم</th>
-                <th>البادئة</th>
-                <th>النطاقات</th>
-                <th>الحالة</th>
-                <th>آخر استخدام</th>
-                <th>الطلبات</th>
-                <th>الإجراء</th>
-              </tr>
-            </thead>
-            <tbody>
-              {(keys.data ?? []).map((row) => (
-                <tr key={row.id}>
-                  <td>
-                    <strong>{row.name}</strong>
-                    <div className="muted">{row.createdByLabel ?? '—'}</div>
-                  </td>
-                  <td>
-                    <code>{row.prefix}</code>
-                  </td>
-                  <td>
-                    {row.scopes.map((scope) => (
-                      <code key={scope} className="chip">
-                        {scope}
-                      </code>
-                    ))}
-                  </td>
-                  <td>
-                    {row.status === 'active' ? 'نشط' : 'مُبطَل'}
-                    {row.expiresAt && row.status === 'active' && (
-                      <div className="muted">ينتهي {row.expiresAt.slice(0, 10)}</div>
-                    )}
-                    {row.revokedReason && <div className="muted">{row.revokedReason}</div>}
-                  </td>
-                  <td>{row.lastUsedAt ? row.lastUsedAt.slice(0, 19).replace('T', ' ') : 'لم يُستعمل بعد'}</td>
-                  <td>{row.uses}</td>
-                  <td>
-                    {row.status === 'active' ? (
-                      <div className="row">
-                        <button className="btn sm" onClick={() => rotate(row)} disabled={busy === row.id}>
-                          تدوير
-                        </button>
-                        <button className="btn danger" onClick={() => revoke(row)} disabled={busy === row.id}>
-                          إبطال
-                        </button>
-                      </div>
-                    ) : (
-                      <span className="muted">—</span>
-                    )}
-                  </td>
+            <table>
+              <thead>
+                <tr>
+                  <th>الاسم</th>
+                  <th>البادئة</th>
+                  <th>النطاقات</th>
+                  <th>الحالة</th>
+                  <th>آخر استخدام</th>
+                  <th>الطلبات</th>
+                  <th>الإجراء</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {(keys.data ?? []).map((row) => (
+                  <tr key={row.id}>
+                    <td>
+                      <strong>{row.name}</strong>
+                      <div className="muted">{row.createdByLabel ?? '—'}</div>
+                    </td>
+                    <td>
+                      <code>{row.prefix}</code>
+                    </td>
+                    <td>
+                      {row.scopes.map((scope) => (
+                        <code key={scope} className="chip">
+                          {scope}
+                        </code>
+                      ))}
+                    </td>
+                    <td>
+                      {row.status === 'active' ? 'نشط' : 'مُبطَل'}
+                      {row.expiresAt && row.status === 'active' && (
+                        <div className="muted">ينتهي {row.expiresAt.slice(0, 10)}</div>
+                      )}
+                      {row.revokedReason && <div className="muted">{row.revokedReason}</div>}
+                    </td>
+                    <td>
+                      {row.lastUsedAt ? row.lastUsedAt.slice(0, 19).replace('T', ' ') : 'لم يُستعمل بعد'}
+                    </td>
+                    <td>{row.uses}</td>
+                    <td>
+                      {row.status === 'active' ? (
+                        <div className="row">
+                          <button className="btn sm" onClick={() => rotate(row)} disabled={busy === row.id}>
+                            تدوير
+                          </button>
+                          <button
+                            className="btn danger"
+                            onClick={() => revoke(row)}
+                            disabled={busy === row.id}
+                          >
+                            إبطال
+                          </button>
+                        </div>
+                      ) : (
+                        <span className="muted">—</span>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
           <label className="grid">
             سبب الإبطال/التدوير (٥ محارف على الأقل — يُكتب في التدقيق)
             <input className="input" value={reason} onChange={(event) => setReason(event.target.value)} />
           </label>
-        </div>
+        </Panel>
       )}
     </Screen>
   );

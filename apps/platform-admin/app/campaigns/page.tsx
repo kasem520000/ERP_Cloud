@@ -170,7 +170,7 @@ function Campaigns({ canManage }: { canManage: boolean }) {
 
   return (
     <>
-      <section className="card grid">
+      <Panel bodyClassName="grid">
         <div className="toolbar">
           <select
             className="input"
@@ -224,7 +224,7 @@ function Campaigns({ canManage }: { canManage: boolean }) {
             المعروض: {payload.data.length} من {payload.meta.total}
           </span>
         </div>
-      </section>
+      </Panel>
 
       {composing && canManage ? (
         <Composer
@@ -248,7 +248,7 @@ function Campaigns({ canManage }: { canManage: boolean }) {
           }
         />
       ) : (
-        <section className="card">
+        <Panel>
           <table className="table">
             <thead>
               <tr>
@@ -294,7 +294,7 @@ function Campaigns({ canManage }: { canManage: boolean }) {
               ))}
             </tbody>
           </table>
-        </section>
+        </Panel>
       )}
 
       {openId ? (
@@ -353,12 +353,12 @@ function Composer({
   };
 
   return (
-    <section className="card grid" aria-label="مسوّدة حملة جديدة">
-      <header className="section-title">
-        <h2 style={{ margin: 0 }}>حملة جديدة</h2>
-        <span className="muted">تُحفظ مسوّدةً: تُراجَع ثم تُجدَّل أو تُرسل.</span>
-      </header>
-
+    <Panel
+      title="حملة جديدة"
+      hint="تُحفظ مسوّدةً: تُراجَع ثم تُجدَّل أو تُرسل."
+      bodyClassName="grid"
+      aria-label="مسوّدة حملة جديدة"
+    >
       {error ? <p className="alert danger">{error}</p> : null}
 
       <div className="grid cols-2">
@@ -446,7 +446,7 @@ function Composer({
           إلغاء
         </button>
       </div>
-    </section>
+    </Panel>
   );
 }
 
@@ -504,20 +504,20 @@ function CampaignCard({
   };
 
   return (
-    <section className="card grid" aria-label={`حملة ${campaign.name}`}>
-      <header className="section-title">
-        <div>
-          <h2 style={{ margin: 0 }}>{campaign.name}</h2>
-          <p className="muted" style={{ margin: '4px 0 0' }}>
-            {campaign.subject} · {campaign.segmentLabelAr} ·{' '}
-            <span className={STATUS_TONE[campaign.status]}>{campaign.statusLabelAr}</span>
-            {campaign.createdByLabel ? <> · أنشأها: {campaign.createdByLabel}</> : null}
-            {campaign.scheduledAt ? <> · الموعد: {formatDate(campaign.scheduledAt)}</> : null}
-            {campaign.finishedAt ? <> · انتهت: {formatDate(campaign.finishedAt)}</> : null}
-          </p>
-        </div>
-      </header>
-
+    <Panel
+      title={campaign.name}
+      hint={
+        <>
+          {campaign.subject} · {campaign.segmentLabelAr} ·{' '}
+          <span className={STATUS_TONE[campaign.status]}>{campaign.statusLabelAr}</span>
+          {campaign.createdByLabel ? <> · أنشأها: {campaign.createdByLabel}</> : null}
+          {campaign.scheduledAt ? <> · الموعد: {formatDate(campaign.scheduledAt)}</> : null}
+          {campaign.finishedAt ? <> · انتهت: {formatDate(campaign.finishedAt)}</> : null}
+        </>
+      }
+      bodyClassName="grid"
+      aria-label={`حملة ${campaign.name}`}
+    >
       {error ? <p className="alert danger">{error}</p> : null}
       {notice ? <p className="alert ok">{notice}</p> : null}
       {campaign.canceledReason ? <p className="muted">سبب الإلغاء: {campaign.canceledReason}</p> : null}
@@ -816,7 +816,7 @@ function CampaignCard({
           </ol>
         )}
       </Panel>
-    </section>
+    </Panel>
   );
 }
 

@@ -1,5 +1,6 @@
 'use client';
 
+import { Panel } from '@erp/ui';
 import { useMemo, useState } from 'react';
 
 import { Empty, ErrorBox, Forbidden, Loading, Screen } from '../../components/screen';
@@ -77,7 +78,11 @@ type Attempt = {
   attempts: number;
 };
 
-type Catalogue = { events: string[]; testEvent: string; signature: { header: string; toleranceSeconds: number } };
+type Catalogue = {
+  events: string[];
+  testEvent: string;
+  signature: { header: string; toleranceSeconds: number };
+};
 
 export default function WebhooksPage() {
   const { canConsole } = useSession();
@@ -99,7 +104,8 @@ export default function WebhooksPage() {
     [tenantId],
   );
   const deliveries = useQuery(
-    () => (openId ? apiList<DeliveryRow>(`/platform/webhooks/${openId}/deliveries?limit=50`) : Promise.resolve([])),
+    () =>
+      openId ? apiList<DeliveryRow>(`/platform/webhooks/${openId}/deliveries?limit=50`) : Promise.resolve([]),
     [openId],
   );
 
@@ -152,7 +158,10 @@ export default function WebhooksPage() {
     setBusy(row.id);
     setNotice(undefined);
     try {
-      const attempt = await apiData<Attempt>(`/platform/webhooks/${row.id}/test`, { method: 'POST', body: JSON.stringify({}) });
+      const attempt = await apiData<Attempt>(`/platform/webhooks/${row.id}/test`, {
+        method: 'POST',
+        body: JSON.stringify({}),
+      });
       setNotice({
         kind: attempt.status === 'delivered' ? 'ok' : 'danger',
         text:
@@ -174,10 +183,10 @@ export default function WebhooksPage() {
     setBusy(delivery.id);
     setNotice(undefined);
     try {
-      const attempt = await apiData<Attempt>(
-        `/platform/webhooks/${row.id}/deliveries/${delivery.id}/retry`,
-        { method: 'POST', body: JSON.stringify({}) },
-      );
+      const attempt = await apiData<Attempt>(`/platform/webhooks/${row.id}/deliveries/${delivery.id}/retry`, {
+        method: 'POST',
+        body: JSON.stringify({}),
+      });
       setNotice({
         kind: attempt.status === 'delivered' ? 'ok' : 'danger',
         text: `المحاولة ${attempt.attempts}: ${attempt.responseCode ?? 'لا استجابة'} — ${attempt.error ?? 'وصل'}`,
@@ -208,238 +217,268 @@ export default function WebhooksPage() {
 
   if (!allowed) {
     return (
- <Screen title="الويب هوك" subtitle="أحداثٌ تخرج إلى أنظمة العميل بتوقيعٍ يُتحقَّق منه">
- <Forbidden />
- </Screen>
+      <Screen title="الويب هوك" subtitle="أحداثٌ تخرج إلى أنظمة العميل بتوقيعٍ يُتحقَّق منه">
+        <Forbidden />
+      </Screen>
     );
   }
 
   const opened = rows.find((row) => row.id === openId);
 
   return (
- <Screen
+    <Screen
       title="الويب هوك"
       subtitle="الأحداث، والعنوان، وسرّ التوقيع، وسجلّ تسليمٍ بأكواد استجابةٍ حقيقية"
       actions={
- <button className="btn" onClick={() => endpoints.reload()} disabled={!tenantId}>
- تحديث
- </button>
+        <button className="btn" onClick={() => endpoints.reload()} disabled={!tenantId}>
+          تحديث
+        </button>
       }
     >
       {notice && <p className={`alert ${notice.kind}`}>{notice.text}</p>}
 
       {secret && (
- <div className="card">
- <strong>سرّ التوقيع يظهر مرّة واحدة</strong>
- <p className="muted">
- يُخزَّن مشفَّراً لأن الإرسال يحتاج قراءته لحظة التوقيع. الصيغة:{' '}
- <code>{catalogue.data?.signature.header ?? 'x-erp-signature'}</code> —
-            HMAC-SHA256 على <code>&quot;&lt;الطابع&gt;.&lt;الجسم&gt;&quot;</code>، ونافذة القبول{' '}
+        <Panel>
+          <strong>سرّ التوقيع يظهر مرّة واحدة</strong>
+          <p className="muted">
+            يُخزَّن مشفَّراً لأن الإرسال يحتاج قراءته لحظة التوقيع. الصيغة:{' '}
+            <code>{catalogue.data?.signature.header ?? 'x-erp-signature'}</code> — HMAC-SHA256 على{' '}
+            <code>&quot;&lt;الطابع&gt;.&lt;الجسم&gt;&quot;</code>، ونافذة القبول{' '}
             {catalogue.data?.signature.toleranceSeconds ?? 300} ثانية.
- </p>
- <pre className="code">{secret.value}</pre>
- <p className="muted">
+          </p>
+          <pre className="code">{secret.value}</pre>
+          <p className="muted">
             {secret.label} · البادئة <code>{secret.value.slice(0, 14)}</code>
- </p>
- <button className="btn" onClick={() => setSecret(undefined)}>
- أخفِ السرّ
- </button>
- </div>
+          </p>
+          <button className="btn" onClick={() => setSecret(undefined)}>
+            أخفِ السرّ
+          </button>
+        </Panel>
       )}
 
- <div className="card grid cols-2">
- <label>
- المنشأة
- <select className="input" value={tenantId} onChange={(event) => setTenantId(event.target.value)}>
- <option value="">— اختر منشأة —</option>
+      <Panel bodyClassName="grid cols-2">
+        <label>
+          المنشأة
+          <select className="input" value={tenantId} onChange={(event) => setTenantId(event.target.value)}>
+            <option value="">— اختر منشأة —</option>
             {(tenants.data ?? []).map((entry) => (
- <option key={entry.id} value={entry.id}>
+              <option key={entry.id} value={entry.id}>
                 {entry.name} ({entry.code})
- </option>
+              </option>
             ))}
- </select>
- </label>
- <div className="muted">
- العنوان يجب أن يكون <code>https</code>، ويُقبل <code>http</code> على <code>localhost</code> وحده —
- فالسرّ يمنع التزوير لا التنصّت.
- </div>
- </div>
+          </select>
+        </label>
+        <div className="muted">
+          العنوان يجب أن يكون <code>https</code>، ويُقبل <code>http</code> على <code>localhost</code> وحده —
+          فالسرّ يمنع التزوير لا التنصّت.
+        </div>
+      </Panel>
 
       {tenantId && (
- <div className="card">
- <strong>عنوان جديد</strong>
- <div className="form-grid">
- <label>
- العنوان
- <input className="input" value={url} onChange={(event) => setUrl(event.target.value)} placeholder="https://example.com/hooks/erp" />
- </label>
- <label>
- وصف (اختياري)
- <input className="input" value={description} onChange={(event) => setDescription(event.target.value)} placeholder="بوت المحاسبة" />
- </label>
- </div>
- <div className="form-grid">
- <strong>الأحداث المشترَك بها</strong>
+        <Panel>
+          <strong>عنوان جديد</strong>
+          <div className="form-grid">
+            <label>
+              العنوان
+              <input
+                className="input"
+                value={url}
+                onChange={(event) => setUrl(event.target.value)}
+                placeholder="https://example.com/hooks/erp"
+              />
+            </label>
+            <label>
+              وصف (اختياري)
+              <input
+                className="input"
+                value={description}
+                onChange={(event) => setDescription(event.target.value)}
+                placeholder="بوت المحاسبة"
+              />
+            </label>
+          </div>
+          <div className="form-grid">
+            <strong>الأحداث المشترَك بها</strong>
             {(catalogue.data?.events ?? []).map((event) => (
- <label key={event}>
- <input
+              <label key={event}>
+                <input
                   type="checkbox"
                   checked={events.includes(event)}
                   onChange={(change) =>
                     setEvents((current) =>
-                      change.target.checked ? [...current, event] : current.filter((entry) => entry !== event),
+                      change.target.checked
+                        ? [...current, event]
+                        : current.filter((entry) => entry !== event),
                     )
                   }
                 />
- <code>{event}</code>
- </label>
+                <code>{event}</code>
+              </label>
             ))}
- </div>
- <button className="btn primary" onClick={create} disabled={busy === 'create'}>
+          </div>
+          <button className="btn primary" onClick={create} disabled={busy === 'create'}>
             {busy === 'create' ? 'جارٍ الإضافة…' : 'أضف العنوان'}
- </button>
- </div>
+          </button>
+        </Panel>
       )}
 
       {tenantId && endpoints.status === 'loading' && <Loading />}
-      {tenantId && endpoints.status === 'error' && <ErrorBox message={endpoints.error} onRetry={() => endpoints.reload()} />}
+      {tenantId && endpoints.status === 'error' && (
+        <ErrorBox message={endpoints.error} onRetry={() => endpoints.reload()} />
+      )}
       {tenantId && endpoints.status === 'success' && rows.length === 0 && (
- <Empty title="لا عناوين لهذه المنشأة" detail="أضف عنواناً واشترك بحدثٍ واحد على الأقل." />
+        <Empty title="لا عناوين لهذه المنشأة" detail="أضف عنواناً واشترك بحدثٍ واحد على الأقل." />
       )}
 
       {rows.length > 0 && (
- <div className="card">
- <div className="table-wrap">
- <table>
- <thead>
- <tr>
- <th>العنوان</th>
- <th>الأحداث</th>
- <th>الحالة</th>
- <th>التسليمات</th>
- <th>آخر ردّ</th>
- <th>الإجراء</th>
- </tr>
- </thead>
- <tbody>
+        <Panel>
+          <div className="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>العنوان</th>
+                  <th>الأحداث</th>
+                  <th>الحالة</th>
+                  <th>التسليمات</th>
+                  <th>آخر ردّ</th>
+                  <th>الإجراء</th>
+                </tr>
+              </thead>
+              <tbody>
                 {rows.map((row) => (
- <tr key={row.id}>
- <td>
- <strong>{row.url}</strong>
- <div className="muted">
- <code>{row.secretPrefix}</code> · {row.description ?? 'بلا وصف'}
- </div>
- </td>
- <td>
- <span className="chips">
+                  <tr key={row.id}>
+                    <td>
+                      <strong>{row.url}</strong>
+                      <div className="muted">
+                        <code>{row.secretPrefix}</code> · {row.description ?? 'بلا وصف'}
+                      </div>
+                    </td>
+                    <td>
+                      <span className="chips">
                         {row.events.map((event) => (
- <code key={event} className="chip">
+                          <code key={event} className="chip">
                             {event}
- </code>
+                          </code>
                         ))}
- </span>
- </td>
- <td>
+                      </span>
+                    </td>
+                    <td>
                       {row.status === 'active' ? 'يعمل' : 'موقوف'}
                       {row.status !== 'active' && <div className="muted">الأحداث التلقائية متوقّفة</div>}
- </td>
- <td>
- {row.stats.delivered} / {row.stats.failed} / {row.stats.pending} …
+                    </td>
+                    <td>
+                      {row.stats.delivered} / {row.stats.failed} / {row.stats.pending} …
                       {row.stats.lastError && <div className="muted">{row.stats.lastError}</div>}
- </td>
- <td>
+                    </td>
+                    <td>
                       {row.stats.lastResponseCode ?? '—'}
                       {row.stats.lastDeliveryAt && (
- <div className="muted">{row.stats.lastDeliveryAt.slice(0, 19).replace('T', ' ')}</div>
+                        <div className="muted">{row.stats.lastDeliveryAt.slice(0, 19).replace('T', ' ')}</div>
                       )}
- </td>
- <td>
- <div className="row">
- <button className="btn sm" onClick={() => test(row)} disabled={busy === row.id}>
- اختبار
- </button>
- <button className="btn sm" onClick={() => setOpenId(row.id === openId ? '' : row.id)}>
+                    </td>
+                    <td>
+                      <div className="row">
+                        <button className="btn sm" onClick={() => test(row)} disabled={busy === row.id}>
+                          اختبار
+                        </button>
+                        <button className="btn sm" onClick={() => setOpenId(row.id === openId ? '' : row.id)}>
                           {row.id === openId ? 'إخفاء السجلّ' : 'السجلّ'}
- </button>
- <button className="btn sm" onClick={() => toggleStatus(row)} disabled={busy === row.id}>
+                        </button>
+                        <button
+                          className="btn sm"
+                          onClick={() => toggleStatus(row)}
+                          disabled={busy === row.id}
+                        >
                           {row.status === 'active' ? 'إيقاف' : 'تشغيل'}
- </button>
- <button className="btn sm danger" onClick={() => remove(row)} disabled={busy === row.id}>
- حذف
- </button>
- </div>
- </td>
- </tr>
+                        </button>
+                        <button
+                          className="btn sm danger"
+                          onClick={() => remove(row)}
+                          disabled={busy === row.id}
+                        >
+                          حذف
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
                 ))}
- </tbody>
- </table>
- </div>
- </div>
+              </tbody>
+            </table>
+          </div>
+        </Panel>
       )}
 
       {opened && (
- <div className="card">
- <strong>سجلّ التسليم — {opened.url}</strong>
- <p className="muted">
- الحمولة تُعرض بمفاتيحها لا بقيمها: بيانات العميل تُقرأ عنده، وهذا السجلّ يجيب «هل وصل»
- لا «ماذا كان».
- </p>
+        <Panel>
+          <strong>سجلّ التسليم — {opened.url}</strong>
+          <p className="muted">
+            الحمولة تُعرض بمفاتيحها لا بقيمها: بيانات العميل تُقرأ عنده، وهذا السجلّ يجيب «هل وصل» لا «ماذا
+            كان».
+          </p>
           {deliveries.status === 'loading' && <Loading rows={3} />}
-          {deliveries.status === 'error' && <ErrorBox message={deliveries.error} onRetry={() => deliveries.reload()} />}
+          {deliveries.status === 'error' && (
+            <ErrorBox message={deliveries.error} onRetry={() => deliveries.reload()} />
+          )}
           {deliveries.status === 'success' && (deliveries.data ?? []).length === 0 && (
- <Empty title="لا تسليمات بعد" detail="جرّب «اختبار» — أو انتظر حدثاً حقيقياً من المنشأة." />
+            <Empty title="لا تسليمات بعد" detail="جرّب «اختبار» — أو انتظر حدثاً حقيقياً من المنشأة." />
           )}
           {deliveries.status === 'success' && (deliveries.data ?? []).length > 0 && (
- <div className="table-wrap">
- <table>
- <thead>
- <tr>
- <th>الحدث</th>
- <th>الحالة</th>
- <th>المحاولات</th>
- <th>رمز الاستجابة</th>
- <th>الزمن</th>
- <th>الحمولة</th>
- <th>الخطأ</th>
- <th>الإجراء</th>
- </tr>
- </thead>
- <tbody>
+            <div className="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>الحدث</th>
+                    <th>الحالة</th>
+                    <th>المحاولات</th>
+                    <th>رمز الاستجابة</th>
+                    <th>الزمن</th>
+                    <th>الحمولة</th>
+                    <th>الخطأ</th>
+                    <th>الإجراء</th>
+                  </tr>
+                </thead>
+                <tbody>
                   {(deliveries.data ?? []).map((row) => (
- <tr key={row.id}>
- <td>
- <code>{row.event}</code>
- <div className="muted">{row.createdAt.slice(0, 19).replace('T', ' ')}</div>
- </td>
- <td>{row.status === 'delivered' ? 'وصل' : row.status === 'failed' ? 'فشل' : 'منتظر'}</td>
- <td>
+                    <tr key={row.id}>
+                      <td>
+                        <code>{row.event}</code>
+                        <div className="muted">{row.createdAt.slice(0, 19).replace('T', ' ')}</div>
+                      </td>
+                      <td>
+                        {row.status === 'delivered' ? 'وصل' : row.status === 'failed' ? 'فشل' : 'منتظر'}
+                      </td>
+                      <td>
                         {row.attempts}/{row.maxAttempts}
- </td>
- <td>{row.responseCode ?? '—'}</td>
- <td>{row.durationMs === null ? '—' : `${row.durationMs} ms`}</td>
- <td>
- <code>{row.payloadKeys.join(', ')}</code>
- <div className="muted">{row.payloadBytes} بايت</div>
- </td>
- <td className="small">{row.error ?? '—'}</td>
- <td>
+                      </td>
+                      <td>{row.responseCode ?? '—'}</td>
+                      <td>{row.durationMs === null ? '—' : `${row.durationMs} ms`}</td>
+                      <td>
+                        <code>{row.payloadKeys.join(', ')}</code>
+                        <div className="muted">{row.payloadBytes} بايت</div>
+                      </td>
+                      <td className="small">{row.error ?? '—'}</td>
+                      <td>
                         {row.status === 'failed' ? (
- <button className="btn sm" onClick={() => retry(opened, row)} disabled={busy === row.id}>
- إعادة الإرسال
- </button>
+                          <button
+                            className="btn sm"
+                            onClick={() => retry(opened, row)}
+                            disabled={busy === row.id}
+                          >
+                            إعادة الإرسال
+                          </button>
                         ) : (
- <span className="muted">—</span>
+                          <span className="muted">—</span>
                         )}
- </td>
- </tr>
+                      </td>
+                    </tr>
                   ))}
- </tbody>
- </table>
- </div>
+                </tbody>
+              </table>
+            </div>
           )}
- </div>
+        </Panel>
       )}
- </Screen>
+    </Screen>
   );
 }
 

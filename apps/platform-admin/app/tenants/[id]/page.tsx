@@ -1251,7 +1251,7 @@ function CustomerTicketsTab({ tenantId }: { tenantId: string }) {
   const rows = Array.isArray(tickets.data) ? tickets.data : [];
 
   return (
-    <div className="card">
+    <Panel>
       <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
           <h2 style={{ margin: 0 }}>تذاكر الدعم وطلبات المساعدة من هذا العميل ({rows.length})</h2>
@@ -1308,7 +1308,7 @@ function CustomerTicketsTab({ tenantId }: { tenantId: string }) {
           </table>
         </div>
       )}
-    </div>
+    </Panel>
   );
 }
 
@@ -1545,7 +1545,7 @@ function NotesTab({
           ) : (
             <ul className="grid">
               {(notes.data?.items ?? []).map((note) => (
-                <li key={note.id} className="card tight">
+                <li key={note.id} className="ui-field-group">
                   <p style={{ margin: 0 }}>{note.body}</p>
                   <p className="muted small" style={{ margin: '6px 0 0' }}>
                     {note.authorLabel || 'مشغّل'} · <span dir="ltr">{when(note.createdAt)}</span>

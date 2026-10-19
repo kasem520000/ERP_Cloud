@@ -149,7 +149,7 @@ export default function DunningPage() {
 
       {board.status === 'success' && data && (
         <>
-          <div className="card">
+          <Panel>
             <dl className="kv">
               <dt>السلّم</dt>
               <dd dir="ltr">{data.ladderDays.join(' · ')} يوم بعد الاستحقاق</dd>
@@ -164,7 +164,7 @@ export default function DunningPage() {
               المحاولة تُسجَّل «مجدولة» عند إنشائها — لا خدمة بريد بعد (P-C6)، ولا ندّعي إرسالاً لم يقع.
               واختيار «اتصال يدوي» يسجّلها «أُرسلت» لأن من أجراها مشغّل.
             </p>
-          </div>
+          </Panel>
 
           <Panel title="الجدول — ما سيُنفَّذ" flush>
             {schedule.length === 0 ? (

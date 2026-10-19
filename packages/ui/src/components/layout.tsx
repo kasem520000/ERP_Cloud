@@ -137,6 +137,7 @@ export function Panel({
   bodyClassName,
   id,
   style,
+  'aria-label': ariaLabel,
 }: {
   title?: ReactNode;
   hint?: ReactNode;
@@ -148,9 +149,11 @@ export function Panel({
   bodyClassName?: string;
   id?: string;
   style?: CSSProperties;
+  /** For panels that a screen reader should announce by name (a list of campaigns). */
+  'aria-label'?: string;
 }) {
   return (
-    <section className={cn('ui-panel', className)} id={id} style={style}>
+    <section className={cn('ui-panel', className)} id={id} style={style} aria-label={ariaLabel}>
       {title || actions ? (
         <header className="ui-panel-head">
           <div className="ui-panel-copy">

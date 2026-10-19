@@ -81,7 +81,7 @@ export default function SiteAnalyticsPage() {
           : undefined
       }
     >
-      <div className="card">
+      <Panel>
         <div className="row">
           <label className="field">
             <span>النافذة</span>
@@ -98,7 +98,7 @@ export default function SiteAnalyticsPage() {
             </select>
           </label>
         </div>
-      </div>
+      </Panel>
 
       {query.status === 'loading' ? <Loading /> : null}
       {query.status === 'forbidden' ? (
@@ -161,8 +161,7 @@ export default function SiteAnalyticsPage() {
           </Panel>
 
           <section className="grid cols-2">
-            <article className="card">
-              <h2>المصادر</h2>
+            <Panel title="المصادر">
               {data.sources.length === 0 ? (
                 <p className="muted">لا زياراتٍ في النافذة بعد.</p>
               ) : (
@@ -183,10 +182,9 @@ export default function SiteAnalyticsPage() {
                   </tbody>
                 </table>
               )}
-            </article>
+            </Panel>
 
-            <article className="card">
-              <h2>أكثر الصفحات</h2>
+            <Panel title="أكثر الصفحات">
               {data.paths.length === 0 ? (
                 <p className="muted">لا صفحاتٍ في النافذة بعد.</p>
               ) : (
@@ -209,7 +207,7 @@ export default function SiteAnalyticsPage() {
                   </tbody>
                 </table>
               )}
-            </article>
+            </Panel>
           </section>
 
           <Panel title="تجارب أ/ب">

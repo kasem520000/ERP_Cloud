@@ -1,5 +1,6 @@
 'use client';
 
+import { Panel } from '@erp/ui';
 import { useState } from 'react';
 import {
   usageMetricRegistry,
@@ -62,7 +63,10 @@ function ratioOf(used: number, limit: number | null): number {
 }
 
 export default function UsagePage() {
-  const grid = useQuery<PlatformUsageGridResponse>(() => apiData<PlatformUsageGridResponse>('/platform/usage'), []);
+  const grid = useQuery<PlatformUsageGridResponse>(
+    () => apiData<PlatformUsageGridResponse>('/platform/usage'),
+    [],
+  );
   const [selected, setSelected] = useState<string | undefined>();
   const [search, setSearch] = useState('');
   const [exporting, setExporting] = useState(false);
@@ -71,7 +75,8 @@ export default function UsagePage() {
   // A tenant is only fetched once an operator asks for it — the grid already carries the
   // eight numbers, and this call adds the series and the per-metric sentence.
   const detail = useQuery<UsageSnapshot | undefined>(
-    () => (selected ? apiData<UsageSnapshot>(`/platform/usage?tenantId=${selected}`) : Promise.resolve(undefined)),
+    () =>
+      selected ? apiData<UsageSnapshot>(`/platform/usage?tenantId=${selected}`) : Promise.resolve(undefined),
     [selected],
   );
 
@@ -79,7 +84,9 @@ export default function UsagePage() {
   const needle = search.trim();
   const rows = (data?.tenants ?? []).filter(
     (row) =>
-      needle.length === 0 || row.tenantName.includes(needle) || row.tenantCode.toLowerCase().includes(needle.toLowerCase()),
+      needle.length === 0 ||
+      row.tenantName.includes(needle) ||
+      row.tenantCode.toLowerCase().includes(needle.toLowerCase()),
   );
 
   async function exportCsv() {
@@ -87,7 +94,10 @@ export default function UsagePage() {
     setExports(undefined);
     try {
       await downloadFile('/platform/usage/export.csv', 'platform-usage.csv');
-      setExports({ kind: 'ok', text: 'نُزِّل البيان — الأرقام هي نفسها المعروضة أعلاه، بترميز BOM وفواصل RFC 4180.' });
+      setExports({
+        kind: 'ok',
+        text: 'نُزِّل البيان — الأرقام هي نفسها المعروضة أعلاه، بترميز BOM وفواصل RFC 4180.',
+      });
     } catch (error) {
       setExports({
         kind: 'danger',
@@ -123,15 +133,17 @@ export default function UsagePage() {
 
       {grid.status === 'loading' && <Loading rows={5} />}
       {grid.status === 'error' && <ErrorBox message={grid.error} onRetry={grid.reload} />}
-      {grid.status === 'forbidden' && <Empty title="لا تملك صلاحية الوصول" detail="هذه الشاشة تحتاج console.tenants.view." />}
+      {grid.status === 'forbidden' && (
+        <Empty title="لا تملك صلاحية الوصول" detail="هذه الشاشة تحتاج console.tenants.view." />
+      )}
 
       {grid.status === 'success' && data && (
         <>
-          <div className="card">
+          <Panel>
             <dl className="kv">
               <dt>الفترة</dt>
               <dd dir="ltr">
- {dateText(data.periodStart)} {dateText(data.periodEnd)}
+                {dateText(data.periodStart)} {dateText(data.periodEnd)}
               </dd>
               <dt>العملاء</dt>
               <dd>{data.totals.tenants}</dd>
@@ -145,12 +157,12 @@ export default function UsagePage() {
               <dd>{data.totals.invoicesThisMonth.toLocaleString('ar-SA-u-ca-gregory-nu-latn')}</dd>
             </dl>
             <p className="muted small" style={{ marginBottom: 0 }}>
-              الحدّ الذي يمنع هو ما كتبه مشغّل (تجاوز العميل أو افتراض المنصة)؛ ومغلّف الفهرس الافتراضي
-              يُعرض بوسم «مغلّف الفهرس» ولا يمنع — لو مُنع لتوقّف كل عميل قائم عند نشر الحصص.
+              الحدّ الذي يمنع هو ما كتبه مشغّل (تجاوز العميل أو افتراض المنصة)؛ ومغلّف الفهرس الافتراضي يُعرض
+              بوسم «مغلّف الفهرس» ولا يمنع — لو مُنع لتوقّف كل عميل قائم عند نشر الحصص.
             </p>
-          </div>
+          </Panel>
 
-          <section className="card">
+          <Panel>
             <div className="section-title">
               <h2>الشبكة — عميلٌ في كل صفّ</h2>
               <input
@@ -217,10 +229,10 @@ export default function UsagePage() {
                 </table>
               </div>
             )}
-          </section>
+          </Panel>
 
           {selected && (
-            <section className="card">
+            <Panel>
               {detail.status === 'loading' && <Loading rows={3} />}
               {detail.status === 'error' && <ErrorBox message={detail.error} onRetry={detail.reload} />}
               {detail.data && (
@@ -249,13 +261,21 @@ export default function UsagePage() {
                         {detail.data.metrics.map((metric) => (
                           <tr key={metric.key}>
                             <td>{metric.labelAr}</td>
-                            <td className="num">{metric.used.toLocaleString('ar-SA-u-ca-gregory-nu-latn')}</td>
-                            <td className="num">{metric.limit === null ? 'بلا حدّ' : metric.limit.toLocaleString('ar-SA-u-ca-gregory-nu-latn')}</td>
+                            <td className="num">
+                              {metric.used.toLocaleString('ar-SA-u-ca-gregory-nu-latn')}
+                            </td>
+                            <td className="num">
+                              {metric.limit === null
+                                ? 'بلا حدّ'
+                                : metric.limit.toLocaleString('ar-SA-u-ca-gregory-nu-latn')}
+                            </td>
                             <td>
                               <span className="meter">
                                 <span
                                   className={`meter-fill ${toneOf(metric.state) === 'ok' ? '' : toneOf(metric.state)}`}
-                                  style={{ width: `${Math.round(ratioOf(metric.used, metric.limit) * 100)}%` }}
+                                  style={{
+                                    width: `${Math.round(ratioOf(metric.used, metric.limit) * 100)}%`,
+                                  }}
                                 />
                               </span>
                               <span className="muted small" style={{ marginInlineStart: 6 }}>
@@ -268,7 +288,9 @@ export default function UsagePage() {
                               </span>
                             </td>
                             <td>
-                              <span className={`tag ${metric.limitSource}`}>{SOURCE_LABEL[metric.limitSource]}</span>
+                              <span className={`tag ${metric.limitSource}`}>
+                                {SOURCE_LABEL[metric.limitSource]}
+                              </span>
                               <div className="muted small">
                                 {metric.enforced ? 'يُطبَّق' : 'يُبلَّغ عنه فقط'}
                               </div>
@@ -283,7 +305,11 @@ export default function UsagePage() {
                   {detail.data.metrics
                     .filter((metric) => metric.noticeAr !== null && metric.state !== 'ok')
                     .map((metric) => (
-                      <p key={metric.key} className={`alert ${metric.state === 'hard' ? 'danger' : 'warn'}`} style={{ marginTop: 8 }}>
+                      <p
+                        key={metric.key}
+                        className={`alert ${metric.state === 'hard' ? 'danger' : 'warn'}`}
+                        style={{ marginTop: 8 }}
+                      >
                         {metric.noticeAr}
                       </p>
                     ))}
@@ -303,12 +329,12 @@ export default function UsagePage() {
                     })}
                   </div>
                   <p className="muted small">
-                    اليوم الحالي: {detail.data.apiCallsPerDay.at(-1)?.count ?? 0} استدعاء · المقياس يُصفَّر كل يوم · أحدث
-                    توليد {dateText(detail.data.generatedAt)}
+                    اليوم الحالي: {detail.data.apiCallsPerDay.at(-1)?.count ?? 0} استدعاء · المقياس يُصفَّر كل
+                    يوم · أحدث توليد {dateText(detail.data.generatedAt)}
                   </p>
                 </>
               )}
-            </section>
+            </Panel>
           )}
         </>
       )}
@@ -327,7 +353,10 @@ function MetricCell({ row, metric }: { row: PlatformUsageGridRow; metric: UsageM
     <>
       <div>
         {entry.used.toLocaleString('ar-SA-u-ca-gregory-nu-latn')}
-        <span className="muted small"> / {entry.limit === null ? '∞' : entry.limit.toLocaleString('ar-SA-u-ca-gregory-nu-latn')}</span>
+        <span className="muted small">
+          {' '}
+          / {entry.limit === null ? '∞' : entry.limit.toLocaleString('ar-SA-u-ca-gregory-nu-latn')}
+        </span>
       </div>
       <span className="meter" style={{ marginTop: 4 }}>
         <span

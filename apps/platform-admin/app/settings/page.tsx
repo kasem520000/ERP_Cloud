@@ -1,5 +1,6 @@
 'use client';
 
+import { Panel } from '@erp/ui';
 import { useEffect, useState } from 'react';
 
 import { Empty, ErrorBox, Loading, Screen } from '../../components/screen';
@@ -84,9 +85,7 @@ export default function PlatformSettingsPage() {
 
   useEffect(() => {
     if (!settings.data) return;
-    setDrafts(
-      Object.fromEntries(settings.data.settings.map((setting) => [setting.key, toDraft(setting)])),
-    );
+    setDrafts(Object.fromEntries(settings.data.settings.map((setting) => [setting.key, toDraft(setting)])));
   }, [settings.data]);
 
   async function save() {
@@ -103,7 +102,10 @@ export default function PlatformSettingsPage() {
     } catch (error) {
       setMessage({
         kind: 'danger',
-        text: error instanceof ApiError ? `${error.message}${error.detail ? ` — ${error.detail}` : ''}` : String(error),
+        text:
+          error instanceof ApiError
+            ? `${error.message}${error.detail ? ` — ${error.detail}` : ''}`
+            : String(error),
       });
     } finally {
       setBusy(false);
@@ -120,7 +122,12 @@ export default function PlatformSettingsPage() {
           <button className="btn" type="button" onClick={settings.reload}>
             تحديث
           </button>
-          <button className="btn primary" type="button" disabled={!canWrite || busy} onClick={() => void save()}>
+          <button
+            className="btn primary"
+            type="button"
+            disabled={!canWrite || busy}
+            onClick={() => void save()}
+          >
             {busy ? 'جارٍ الحفظ…' : 'حفظ'}
           </button>
         </>
@@ -139,11 +146,13 @@ export default function PlatformSettingsPage() {
           )}
           {message && <p className={`alert ${message.kind === 'ok' ? 'ok' : 'danger'}`}>{message.text}</p>}
 
-          <div className="card">
+          <Panel>
             <dl className="kv">
               <dt>البيئة</dt>
               <dd>
-                <span className={`badge ${settings.data.environment.name === 'production' ? 'failed' : 'pending'}`}>
+                <span
+                  className={`badge ${settings.data.environment.name === 'production' ? 'failed' : 'pending'}`}
+                >
                   {settings.data.environment.labelAr}
                 </span>{' '}
                 <span className="muted small" dir="ltr">
@@ -155,11 +164,11 @@ export default function PlatformSettingsPage() {
               <dt>النطاق</dt>
               <dd>المنصة كلها (تُطبَّق على كل عميل ما لم يكن له تجاوز خاص)</dd>
             </dl>
-          </div>
+          </Panel>
 
           <div className="grid cols-2">
             {settings.data.settings.map((setting) => (
-              <section className="card" key={setting.key}>
+              <Panel key={setting.key}>
                 <div className="row" style={{ justifyContent: 'space-between', alignItems: 'baseline' }}>
                   <h2 style={{ marginBottom: 0 }}>{setting.labelAr}</h2>
                   <span className={`badge ${setting.isDefault ? 'planned' : 'ready'}`}>
@@ -227,7 +236,7 @@ export default function PlatformSettingsPage() {
                     ? `آخر تحديث ${new Date(setting.updatedAt).toLocaleString('ar-SA-u-ca-gregory-nu-latn')}`
                     : 'لم تُكتب منذ إنشاء المنصة'}
                 </p>
-              </section>
+              </Panel>
             ))}
           </div>
         </>

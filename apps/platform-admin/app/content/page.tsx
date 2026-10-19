@@ -439,7 +439,7 @@ function PagesTab() {
     <div className="grid">
       {notice && <p className={`alert ${notice.kind}`}>{notice.text}</p>}
 
-      <section className="card grid">
+      <Panel bodyClassName="grid">
         <div className="toolbar">
           <label className="field" style={{ marginBottom: 0 }}>
             <span>النوع</span>
@@ -513,7 +513,7 @@ function PagesTab() {
           {(categories.data?.blog ?? []).join(' · ') || 'لا شيء بعد'} — وتصنيفات المساعدة:{' '}
           {(categories.data?.help ?? []).join(' · ') || 'لا شيء بعد'}.
         </p>
-      </section>
+      </Panel>
 
       {creating && canManage && (
         <Panel title="صفحة جديدة" bodyClassName="grid">
@@ -1009,7 +1009,7 @@ function BlocksTab() {
     <div className="grid">
       {notice && <p className={`alert ${notice.kind}`}>{notice.text}</p>}
 
-      <section className="card grid">
+      <Panel bodyClassName="grid">
         <div className="toolbar">
           <Field label="الصفحة">
             <select
@@ -1041,7 +1041,7 @@ function BlocksTab() {
           الأحد عشر نوعاً هي ما يفهمه الموقع: {contentBlockKinds.map((kind) => BLOCK_LABEL[kind]).join(' · ')}
           . ولا HTML حرّاً — لأن التصميم يُبنى من هذه الكتل لا من وسومٍ يكتبها المحرّر.
         </p>
-      </section>
+      </Panel>
 
       {pages.status === 'forbidden' && <Forbidden />}
       {pages.status === 'error' && <ErrorBox message={pages.error} onRetry={pages.reload} />}
@@ -1052,7 +1052,7 @@ function BlocksTab() {
           {drafts.length === 0 && <Empty title="لا كتل في هذه الصفحة" detail="أضف أول كتلة من الأسفل." />}
 
           {drafts.map((draft, index) => (
-            <section className="card grid" key={`${index}-${draft.kind}`}>
+            <Panel key={`${index}-${draft.kind}`} bodyClassName="grid">
               <div className="section-title">
                 <h3 style={{ margin: 0 }}>
                   {index + 1}. {BLOCK_LABEL[draft.kind]}
@@ -1118,10 +1118,10 @@ function BlocksTab() {
                   الحمولة تُطابق مخطّط النوع «{BLOCK_LABEL[draft.kind]}» — والـAPI سيقبلها كما هي.
                 </p>
               )}
-            </section>
+            </Panel>
           ))}
 
-          <section className="card grid">
+          <Panel bodyClassName="grid">
             <div className="section-title">
               <h3 style={{ margin: 0 }}>إضافة كتلة</h3>
               <div className="row">
@@ -1173,7 +1173,7 @@ function BlocksTab() {
                 <span className="muted small">القراءة متاحة، والحفظ يحتاج `console.content.manage`.</span>
               )}
             </div>
-          </section>
+          </Panel>
         </>
       )}
     </div>
@@ -1233,7 +1233,7 @@ function MenusTab() {
         const items = itemsOf(position);
         const dirty = edits[position] !== undefined;
         return (
-          <section className="card grid" key={position}>
+          <Panel key={position} bodyClassName="grid">
             <div className="section-title">
               <h3 style={{ margin: 0 }}>
                 {MENU_LABEL[position]} <span className="muted small">({items.length} عنصراً)</span>
@@ -1400,7 +1400,7 @@ function MenusTab() {
               آخر تحديث: {dateTime(byPosition.get(position)?.updatedAt)} — الرابط يبدأ بـ`/` أو `https://` أو
               `mailto:` أو `tel:`.
             </p>
-          </section>
+          </Panel>
         );
       })}
     </div>

@@ -1,5 +1,6 @@
 'use client';
 
+import { Panel } from '@erp/ui';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import {
@@ -132,7 +133,11 @@ function InboxTab() {
       <div className="toolbar">
         <label>
           الحالة
-          <select className="input" value={status} onChange={(event) => setStatus(event.target.value as TicketStatus | '')}>
+          <select
+            className="input"
+            value={status}
+            onChange={(event) => setStatus(event.target.value as TicketStatus | '')}
+          >
             <option value="">الكل</option>
             {ticketStatuses.map((value) => (
               <option key={value} value={value}>
@@ -143,7 +148,8 @@ function InboxTab() {
         </label>
         <label>
           الأولوية
-          <select className="input"
+          <select
+            className="input"
             value={priority}
             onChange={(event) => setPriority(event.target.value as TicketPriority | '')}
           >
@@ -168,7 +174,7 @@ function InboxTab() {
         </button>
       </div>
 
-      <section className="card">
+      <Panel>
         {tickets.status === 'loading' && <Loading rows={3} />}
         {tickets.status === 'forbidden' && <Forbidden />}
         {tickets.status === 'error' && <ErrorBox message={tickets.error} onRetry={tickets.reload} />}
@@ -249,7 +255,7 @@ function InboxTab() {
             </table>
           </div>
         )}
-      </section>
+      </Panel>
     </>
   );
 }
@@ -306,7 +312,7 @@ function NewTicketTab({ onCreated }: { onCreated: () => void }) {
     tenantId.length > 0 && subject.trim().length >= 3 && body.trim().length >= 5 && reason.trim().length >= 3;
 
   return (
-    <section className="card grid">
+    <Panel bodyClassName="grid">
       <p className="muted" style={{ marginTop: 0 }}>
         اكتب ما قاله العميل بنفسه في «الرسالة الأولى»، والسبب سطرٌ داخلي يُقيَّد في التدقيق ويشرح لماذا فُتحت
         التذكرة.
@@ -325,7 +331,11 @@ function NewTicketTab({ onCreated }: { onCreated: () => void }) {
         </label>
         <label>
           الأولوية
-          <select className="input" value={priority} onChange={(event) => setPriority(event.target.value as TicketPriority)}>
+          <select
+            className="input"
+            value={priority}
+            onChange={(event) => setPriority(event.target.value as TicketPriority)}
+          >
             {ticketPriorities.map((value) => (
               <option key={value} value={value}>
                 {PRIORITY_LABEL[value]} · مهلة {SLA_HOURS[value]} ساعة
@@ -335,7 +345,8 @@ function NewTicketTab({ onCreated }: { onCreated: () => void }) {
         </label>
         <label>
           الباب (اختياري)
-          <input className="input"
+          <input
+            className="input"
             value={category}
             onChange={(event) => setCategory(event.target.value)}
             placeholder="طباعة · فواتير · صلاحيات"
@@ -352,7 +363,8 @@ function NewTicketTab({ onCreated }: { onCreated: () => void }) {
       </label>
       <label>
         السبب الداخلي
-        <input className="input"
+        <input
+          className="input"
           value={reason}
           onChange={(event) => setReason(event.target.value)}
           placeholder="مكالمة هاتفية · بريد · زيارة"
@@ -378,6 +390,6 @@ function NewTicketTab({ onCreated }: { onCreated: () => void }) {
           {notice.text}
         </p>
       )}
-    </section>
+    </Panel>
   );
 }
