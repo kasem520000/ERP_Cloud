@@ -186,118 +186,122 @@ export default function StockDeliveriesPage() {
       </StatTiles>
 
       {can('inventory.delivery.manage') && (
-        <form className="card" onSubmit={createDelivery}>
-          <h2>سند توصيل جديد</h2>
-          <div className="form-grid">
-            <label className="field wide">
-              <span>الفاتورة (مرحَّلة وعليها كميات لم تُسلَّم) *</span>
-              <select
-                className="input"
-                value={invoiceId}
-                onChange={(event) => pickInvoice(event.target.value)}
-                required
-              >
-                <option value="">— اختر —</option>
-                {outstandingRows.map((row) => (
-                  <option key={row.id} value={row.id}>
-                    {`${row.number ?? row.id.slice(0, 8)} — ${row.cashCustomerName ?? 'عميل مسجَّل'} — ${money(row.total)}`}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="field">
-              <span>المستودع *</span>
-              <select
-                className="input"
-                value={warehouseId}
-                onChange={(event) => setWarehouseId(event.target.value)}
-                required
-              >
-                <option value="">— اختر —</option>
-                {warehouseRows.map((row) => (
-                  <option key={row.id} value={row.id}>
-                    {arabicName(row)}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="field">
-              <span>تاريخ التسليم</span>
-              <input
-                className="input"
-                dir="ltr"
-                type="date"
-                value={deliveredOn}
-                onChange={(event) => setDeliveredOn(event.target.value)}
-              />
-            </label>
-            <label className="field">
-              <span>المستلِم</span>
-              <input
-                className="input"
-                value={recipientName}
-                onChange={(event) => setRecipient(event.target.value)}
-                placeholder="اسم من استلم البضاعة"
-              />
-            </label>
-            <label className="field">
-              <span>السائق / المندوب</span>
-              <input
-                className="input"
-                value={driverName}
-                onChange={(event) => setDriver(event.target.value)}
-              />
-            </label>
-            <label className="field wide">
-              <span>ملاحظات</span>
-              <input className="input" value={notes} onChange={(event) => setNotes(event.target.value)} />
-            </label>
-          </div>
+        <form onSubmit={createDelivery}>
+          <Panel title="سند توصيل جديد">
+            <div className="form-grid">
+              <label className="field wide">
+                <span>الفاتورة (مرحَّلة وعليها كميات لم تُسلَّم) *</span>
+                <select
+                  className="input"
+                  value={invoiceId}
+                  onChange={(event) => pickInvoice(event.target.value)}
+                  required
+                >
+                  <option value="">— اختر —</option>
+                  {outstandingRows.map((row) => (
+                    <option key={row.id} value={row.id}>
+                      {`${row.number ?? row.id.slice(0, 8)} — ${row.cashCustomerName ?? 'عميل مسجَّل'} — ${money(row.total)}`}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="field">
+                <span>المستودع *</span>
+                <select
+                  className="input"
+                  value={warehouseId}
+                  onChange={(event) => setWarehouseId(event.target.value)}
+                  required
+                >
+                  <option value="">— اختر —</option>
+                  {warehouseRows.map((row) => (
+                    <option key={row.id} value={row.id}>
+                      {arabicName(row)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="field">
+                <span>تاريخ التسليم</span>
+                <input
+                  className="input"
+                  dir="ltr"
+                  type="date"
+                  value={deliveredOn}
+                  onChange={(event) => setDeliveredOn(event.target.value)}
+                />
+              </label>
+              <label className="field">
+                <span>المستلِم</span>
+                <input
+                  className="input"
+                  value={recipientName}
+                  onChange={(event) => setRecipient(event.target.value)}
+                  placeholder="اسم من استلم البضاعة"
+                />
+              </label>
+              <label className="field">
+                <span>السائق / المندوب</span>
+                <input
+                  className="input"
+                  value={driverName}
+                  onChange={(event) => setDriver(event.target.value)}
+                />
+              </label>
+              <label className="field wide">
+                <span>ملاحظات</span>
+                <input className="input" value={notes} onChange={(event) => setNotes(event.target.value)} />
+              </label>
+            </div>
 
-          {invoice && (
-            <>
-              <h3>الأصناف</h3>
-              <div className="table-wrap">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>المادة</th>
-                      <th>بالفاتورة</th>
-                      <th>سُلِّم سابقاً</th>
-                      <th>المتبقي</th>
-                      <th>كمية هذا السند</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {invoice.lines.map((line) => (
-                      <tr key={line.itemId}>
-                        <td>{nameOfItem(line.itemId, line.description)}</td>
-                        <td className="num">{quantity(line.invoicedQty)}</td>
-                        <td className="num">{quantity(line.deliveredQty)}</td>
-                        <td className="num">{quantity(line.remainingQty)}</td>
-                        <td>
-                          <input
-                            className="input"
-                            dir="ltr"
-                            inputMode="decimal"
-                            value={quantities[line.itemId] ?? ''}
-                            onChange={(event) =>
-                              setQuantities((current) => ({ ...current, [line.itemId]: event.target.value }))
-                            }
-                          />
-                        </td>
+            {invoice && (
+              <>
+                <h3>الأصناف</h3>
+                <div className="table-wrap">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>المادة</th>
+                        <th>بالفاتورة</th>
+                        <th>سُلِّم سابقاً</th>
+                        <th>المتبقي</th>
+                        <th>كمية هذا السند</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </>
-          )}
+                    </thead>
+                    <tbody>
+                      {invoice.lines.map((line) => (
+                        <tr key={line.itemId}>
+                          <td>{nameOfItem(line.itemId, line.description)}</td>
+                          <td className="num">{quantity(line.invoicedQty)}</td>
+                          <td className="num">{quantity(line.deliveredQty)}</td>
+                          <td className="num">{quantity(line.remainingQty)}</td>
+                          <td>
+                            <input
+                              className="input"
+                              dir="ltr"
+                              inputMode="decimal"
+                              value={quantities[line.itemId] ?? ''}
+                              onChange={(event) =>
+                                setQuantities((current) => ({
+                                  ...current,
+                                  [line.itemId]: event.target.value,
+                                }))
+                              }
+                            />
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </>
+            )}
 
-          <Notice notice={notice} />
-          <button className="btn primary" type="submit" disabled={busy || !invoiceId}>
-            {busy ? 'جارٍ الحفظ…' : 'حفظ سند التوصيل'}
-          </button>
+            <Notice notice={notice} />
+            <button className="btn primary" type="submit" disabled={busy || !invoiceId}>
+              {busy ? 'جارٍ الحفظ…' : 'حفظ سند التوصيل'}
+            </button>
+          </Panel>
         </form>
       )}
 

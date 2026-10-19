@@ -1,5 +1,6 @@
 'use client';
 
+import { Panel } from '@erp/ui';
 import { useState } from 'react';
 
 import { DataTable, Notice, QueryView } from '../../../components/data-view';
@@ -294,244 +295,245 @@ export default function TransfersPage() {
       }
     >
       {open && (
-        <form className="card" onSubmit={createTransfer}>
-          <h2>مناقلة جديدة</h2>
-          <div className="form-grid">
-            <label className="field">
-              <span>الفرع *</span>
-              <select
-                className="input"
-                value={effectiveBranch}
-                onChange={(event) => setBranchId(event.target.value)}
-                required
-              >
-                <option value="">— اختر —</option>
-                {branchRows.map((row) => (
-                  <option key={row.id} value={row.id}>
-                    {row.code ? `${row.code} — ` : ''}
-                    {arabicName(row)}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="field">
-              <span>من مستودع *</span>
-              <select
-                className="input"
-                value={fromWarehouseId}
-                onChange={(event) => setFrom(event.target.value)}
-                required
-              >
-                <option value="">— اختر —</option>
-                {warehouseRows.map((row) => (
-                  <option key={row.id} value={row.id}>
-                    {arabicName(row)}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="field">
-              <span>إلى مستودع *</span>
-              <select
-                className="input"
-                value={toWarehouseId}
-                onChange={(event) => setTo(event.target.value)}
-                required
-              >
-                <option value="">— اختر —</option>
-                {warehouseRows
-                  .filter((row) => row.id !== fromWarehouseId)
-                  .map((row) => (
+        <form onSubmit={createTransfer}>
+          <Panel title="مناقلة جديدة">
+            <div className="form-grid">
+              <label className="field">
+                <span>الفرع *</span>
+                <select
+                  className="input"
+                  value={effectiveBranch}
+                  onChange={(event) => setBranchId(event.target.value)}
+                  required
+                >
+                  <option value="">— اختر —</option>
+                  {branchRows.map((row) => (
+                    <option key={row.id} value={row.id}>
+                      {row.code ? `${row.code} — ` : ''}
+                      {arabicName(row)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="field">
+                <span>من مستودع *</span>
+                <select
+                  className="input"
+                  value={fromWarehouseId}
+                  onChange={(event) => setFrom(event.target.value)}
+                  required
+                >
+                  <option value="">— اختر —</option>
+                  {warehouseRows.map((row) => (
                     <option key={row.id} value={row.id}>
                       {arabicName(row)}
                     </option>
                   ))}
-              </select>
-            </label>
-          </div>
+                </select>
+              </label>
+              <label className="field">
+                <span>إلى مستودع *</span>
+                <select
+                  className="input"
+                  value={toWarehouseId}
+                  onChange={(event) => setTo(event.target.value)}
+                  required
+                >
+                  <option value="">— اختر —</option>
+                  {warehouseRows
+                    .filter((row) => row.id !== fromWarehouseId)
+                    .map((row) => (
+                      <option key={row.id} value={row.id}>
+                        {arabicName(row)}
+                      </option>
+                    ))}
+                </select>
+              </label>
+            </div>
 
-          <h3>الأصناف</h3>
-          <div className="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>المادة</th>
-                  <th>الكمية</th>
-                  <th>الوحدة</th>
-                  <th>تكلفة الوحدة</th>
-                  <th>رقم الدفعة</th>
-                  <th>تاريخ الإنتاج</th>
-                  <th>تاريخ الانتهاء</th>
-                  <th>الأرقام التسلسلية</th>
-                  <th />
-                </tr>
-              </thead>
-              <tbody>
-                {lines.map((line, index) => (
-                  <tr key={index}>
-                    <td>
-                      <select
-                        className="input"
-                        value={line.itemId}
-                        onChange={(event) =>
-                          updateLine(index, {
-                            itemId: event.target.value,
-                            batchNo: '',
-                            productionDate: '',
-                            expiryDate: '',
-                            serialNos: '',
-                          })
-                        }
-                      >
-                        <option value="">— اختر —</option>
-                        {itemRows.map((row) => (
-                          <option key={row.id} value={row.id}>
-                            {itemLabel(row)}
-                          </option>
-                        ))}
-                      </select>
-                    </td>
-                    <td>
-                      <input
-                        className="input"
-                        dir="ltr"
-                        inputMode="decimal"
-                        value={line.qtyText}
-                        onChange={(event) => updateLine(index, { qtyText: event.target.value })}
-                      />
-                    </td>
-                    <td>
-                      <select
-                        className="input"
-                        value={line.unitId}
-                        onChange={(event) => updateLine(index, { unitId: event.target.value })}
-                        disabled={!line.itemId}
-                      >
-                        <option value="">الوحدة الأساسية</option>
-                        {unitsOf(line.itemId)
-                          .filter(
-                            (unit) =>
-                              unit.unitId !==
-                              (itemOf(line.itemId)?.baseUnitId ?? itemOf(line.itemId)?.base_unit_id),
-                          )
-                          .map((unit) => (
-                            <option key={unit.unitId} value={unit.unitId}>
-                              {`${unit.unitNameAr ?? ''} (×${Number(unit.ratio).toLocaleString('ar-EG')})`}
-                            </option>
-                          ))}
-                      </select>
-                    </td>
-                    <td>
-                      <input
-                        className="input"
-                        dir="ltr"
-                        inputMode="decimal"
-                        value={line.unitCostText}
-                        onChange={(event) => updateLine(index, { unitCostText: event.target.value })}
-                      />
-                    </td>
-                    <td>
-                      {/* دفعةٌ بعينها تنتقل — والصنف الذي لا يُتتبَّع بالدفعات لا يقبل رقماً */}
-                      <input
-                        className="input"
-                        dir="ltr"
-                        list={`tr-lots-${index}`}
-                        placeholder={itemOf(line.itemId)?.trackLot ? 'LOT-1' : '—'}
-                        value={line.batchNo}
-                        disabled={!itemOf(line.itemId)?.trackLot}
-                        onChange={(event) => updateLine(index, { batchNo: event.target.value })}
-                      />
-                      <datalist id={`tr-lots-${index}`}>
-                        {(lots.data ?? [])
-                          .filter((lot) => lot.itemId === line.itemId)
-                          .map((lot) => (
-                            <option key={lot.id} value={lot.lotNo}>
-                              {lot.expiryDate ? shortDate(lot.expiryDate) : ''}
-                            </option>
-                          ))}
-                      </datalist>
-                    </td>
-                    <td>
-                      <input
-                        className="input"
-                        type="date"
-                        dir="ltr"
-                        value={line.productionDate}
-                        disabled={!itemOf(line.itemId)?.trackLot}
-                        onChange={(event) => updateLine(index, { productionDate: event.target.value })}
-                      />
-                    </td>
-                    <td>
-                      <input
-                        className="input"
-                        type="date"
-                        dir="ltr"
-                        value={line.expiryDate}
-                        disabled={!itemOf(line.itemId)?.trackLot}
-                        onChange={(event) => updateLine(index, { expiryDate: event.target.value })}
-                      />
-                    </td>
-                    <td>
-                      {itemOf(line.itemId)?.trackSerial ? (
-                        <>
-                          <textarea
-                            className="input"
-                            rows={2}
-                            dir="ltr"
-                            placeholder="A-1 A-2"
-                            value={line.serialNos}
-                            onChange={(event) => updateLine(index, { serialNos: event.target.value })}
-                          />
-                          <span className="chip">
-                            {`${line.serialNos.split(/[\s,،;؛]+/).filter(Boolean).length} من ${line.qtyText || '—'}`}
-                          </span>
-                        </>
-                      ) : (
-                        <span className="muted">—</span>
-                      )}
-                    </td>
-                    <td>
-                      <button
-                        className="btn sm"
-                        type="button"
-                        onClick={() =>
-                          setLines((current) => current.filter((_, position) => position !== index))
-                        }
-                      >
-                        حذف
-                      </button>
-                    </td>
+            <h3>الأصناف</h3>
+            <div className="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>المادة</th>
+                    <th>الكمية</th>
+                    <th>الوحدة</th>
+                    <th>تكلفة الوحدة</th>
+                    <th>رقم الدفعة</th>
+                    <th>تاريخ الإنتاج</th>
+                    <th>تاريخ الانتهاء</th>
+                    <th>الأرقام التسلسلية</th>
+                    <th />
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <button
-            className="btn sm"
-            type="button"
-            onClick={() =>
-              setLines((current) => [
-                ...current,
-                {
-                  itemId: '',
-                  qtyText: '',
-                  unitId: '',
-                  unitCostText: '',
-                  batchNo: '',
-                  productionDate: '',
-                  expiryDate: '',
-                  serialNos: '',
-                },
-              ])
-            }
-          >
-            + سطر
-          </button>
+                </thead>
+                <tbody>
+                  {lines.map((line, index) => (
+                    <tr key={index}>
+                      <td>
+                        <select
+                          className="input"
+                          value={line.itemId}
+                          onChange={(event) =>
+                            updateLine(index, {
+                              itemId: event.target.value,
+                              batchNo: '',
+                              productionDate: '',
+                              expiryDate: '',
+                              serialNos: '',
+                            })
+                          }
+                        >
+                          <option value="">— اختر —</option>
+                          {itemRows.map((row) => (
+                            <option key={row.id} value={row.id}>
+                              {itemLabel(row)}
+                            </option>
+                          ))}
+                        </select>
+                      </td>
+                      <td>
+                        <input
+                          className="input"
+                          dir="ltr"
+                          inputMode="decimal"
+                          value={line.qtyText}
+                          onChange={(event) => updateLine(index, { qtyText: event.target.value })}
+                        />
+                      </td>
+                      <td>
+                        <select
+                          className="input"
+                          value={line.unitId}
+                          onChange={(event) => updateLine(index, { unitId: event.target.value })}
+                          disabled={!line.itemId}
+                        >
+                          <option value="">الوحدة الأساسية</option>
+                          {unitsOf(line.itemId)
+                            .filter(
+                              (unit) =>
+                                unit.unitId !==
+                                (itemOf(line.itemId)?.baseUnitId ?? itemOf(line.itemId)?.base_unit_id),
+                            )
+                            .map((unit) => (
+                              <option key={unit.unitId} value={unit.unitId}>
+                                {`${unit.unitNameAr ?? ''} (×${Number(unit.ratio).toLocaleString('ar-EG')})`}
+                              </option>
+                            ))}
+                        </select>
+                      </td>
+                      <td>
+                        <input
+                          className="input"
+                          dir="ltr"
+                          inputMode="decimal"
+                          value={line.unitCostText}
+                          onChange={(event) => updateLine(index, { unitCostText: event.target.value })}
+                        />
+                      </td>
+                      <td>
+                        {/* دفعةٌ بعينها تنتقل — والصنف الذي لا يُتتبَّع بالدفعات لا يقبل رقماً */}
+                        <input
+                          className="input"
+                          dir="ltr"
+                          list={`tr-lots-${index}`}
+                          placeholder={itemOf(line.itemId)?.trackLot ? 'LOT-1' : '—'}
+                          value={line.batchNo}
+                          disabled={!itemOf(line.itemId)?.trackLot}
+                          onChange={(event) => updateLine(index, { batchNo: event.target.value })}
+                        />
+                        <datalist id={`tr-lots-${index}`}>
+                          {(lots.data ?? [])
+                            .filter((lot) => lot.itemId === line.itemId)
+                            .map((lot) => (
+                              <option key={lot.id} value={lot.lotNo}>
+                                {lot.expiryDate ? shortDate(lot.expiryDate) : ''}
+                              </option>
+                            ))}
+                        </datalist>
+                      </td>
+                      <td>
+                        <input
+                          className="input"
+                          type="date"
+                          dir="ltr"
+                          value={line.productionDate}
+                          disabled={!itemOf(line.itemId)?.trackLot}
+                          onChange={(event) => updateLine(index, { productionDate: event.target.value })}
+                        />
+                      </td>
+                      <td>
+                        <input
+                          className="input"
+                          type="date"
+                          dir="ltr"
+                          value={line.expiryDate}
+                          disabled={!itemOf(line.itemId)?.trackLot}
+                          onChange={(event) => updateLine(index, { expiryDate: event.target.value })}
+                        />
+                      </td>
+                      <td>
+                        {itemOf(line.itemId)?.trackSerial ? (
+                          <>
+                            <textarea
+                              className="input"
+                              rows={2}
+                              dir="ltr"
+                              placeholder="A-1 A-2"
+                              value={line.serialNos}
+                              onChange={(event) => updateLine(index, { serialNos: event.target.value })}
+                            />
+                            <span className="chip">
+                              {`${line.serialNos.split(/[\s,،;؛]+/).filter(Boolean).length} من ${line.qtyText || '—'}`}
+                            </span>
+                          </>
+                        ) : (
+                          <span className="muted">—</span>
+                        )}
+                      </td>
+                      <td>
+                        <button
+                          className="btn sm"
+                          type="button"
+                          onClick={() =>
+                            setLines((current) => current.filter((_, position) => position !== index))
+                          }
+                        >
+                          حذف
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <button
+              className="btn sm"
+              type="button"
+              onClick={() =>
+                setLines((current) => [
+                  ...current,
+                  {
+                    itemId: '',
+                    qtyText: '',
+                    unitId: '',
+                    unitCostText: '',
+                    batchNo: '',
+                    productionDate: '',
+                    expiryDate: '',
+                    serialNos: '',
+                  },
+                ])
+              }
+            >
+              + سطر
+            </button>
 
-          <Notice notice={notice} />
-          <button className="btn primary" type="submit" disabled={busy}>
-            {busy ? 'جارٍ الحفظ…' : 'حفظ كمسودة'}
-          </button>
+            <Notice notice={notice} />
+            <button className="btn primary" type="submit" disabled={busy}>
+              {busy ? 'جارٍ الحفظ…' : 'حفظ كمسودة'}
+            </button>
+          </Panel>
         </form>
       )}
 
@@ -609,7 +611,7 @@ export default function TransfersPage() {
       <Tabs items={BUCKETS} value={bucket} onChange={setBucket} />
 
       <div className="split">
-        <div className="card tight split-list">
+        <Panel flush bodyClassName="split-list">
           <QueryView
             query={transfers}
             empty="لا توجد مناقلات"
@@ -651,9 +653,9 @@ export default function TransfersPage() {
               </>
             )}
           </QueryView>
-        </div>
+        </Panel>
 
-        <div className="card">
+        <Panel>
           {!selected ? (
             <p className="muted">
               <Empty
@@ -891,7 +893,7 @@ export default function TransfersPage() {
               </ActionBar>
             </>
           )}
-        </div>
+        </Panel>
       </div>
     </Screen>
   );

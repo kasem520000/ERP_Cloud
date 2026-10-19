@@ -156,107 +156,114 @@ export default function QuotationsPage() {
       }
     >
       {open ? (
-        <form className="card" onSubmit={save}>
-          <h2>عرض سعر جديد</h2>
-          <p className="ui-panel-hint">
-            صالح حتى تاريخ محدد؛ لا يؤثر على المخزون أو المحاسبة حتى يتحوّل إلى فاتورة.
-          </p>
-          <div className="form-grid">
-            <label className="field">
-              <span>الفرع *</span>
-              <select
-                className="input"
-                value={effectiveBranch}
-                onChange={(event) => setBranchId(event.target.value)}
-                required
-              >
-                {branchOptions(branchRows).map((option) => (
-                  <option key={option.id} value={option.id}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="field">
-              <span>المستودع</span>
-              <select
-                className="input"
-                value={effectiveWarehouse}
-                onChange={(event) => setWarehouseId(event.target.value)}
-              >
-                <option value="">— بدون —</option>
-                {warehouseRows.map((row) => (
-                  <option key={row.id} value={row.id}>
-                    {arabicName(row)}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="field">
-              <span>العميل</span>
-              <select className="input" value={partyId} onChange={(event) => setPartyId(event.target.value)}>
-                <option value="">— عميل نقدي —</option>
-                {(parties.data ?? []).map((row) => (
-                  <option key={row.id} value={row.id}>
-                    {partyLabel(row)}
-                  </option>
-                ))}
-              </select>
-            </label>
-            {!partyId && (
+        <form onSubmit={save}>
+          <Panel title="عرض سعر جديد">
+            <p className="ui-panel-hint">
+              صالح حتى تاريخ محدد؛ لا يؤثر على المخزون أو المحاسبة حتى يتحوّل إلى فاتورة.
+            </p>
+            <div className="form-grid">
               <label className="field">
-                <span>اسم العميل *</span>
+                <span>الفرع *</span>
+                <select
+                  className="input"
+                  value={effectiveBranch}
+                  onChange={(event) => setBranchId(event.target.value)}
+                  required
+                >
+                  {branchOptions(branchRows).map((option) => (
+                    <option key={option.id} value={option.id}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="field">
+                <span>المستودع</span>
+                <select
+                  className="input"
+                  value={effectiveWarehouse}
+                  onChange={(event) => setWarehouseId(event.target.value)}
+                >
+                  <option value="">— بدون —</option>
+                  {warehouseRows.map((row) => (
+                    <option key={row.id} value={row.id}>
+                      {arabicName(row)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="field">
+                <span>العميل</span>
+                <select
+                  className="input"
+                  value={partyId}
+                  onChange={(event) => setPartyId(event.target.value)}
+                >
+                  <option value="">— عميل نقدي —</option>
+                  {(parties.data ?? []).map((row) => (
+                    <option key={row.id} value={row.id}>
+                      {partyLabel(row)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              {!partyId && (
+                <label className="field">
+                  <span>اسم العميل *</span>
+                  <input
+                    className="input"
+                    value={cashName}
+                    onChange={(event) => setCashName(event.target.value)}
+                    required
+                  />
+                </label>
+              )}
+              <label className="field">
+                <span>صالح حتى</span>
                 <input
                   className="input"
-                  value={cashName}
-                  onChange={(event) => setCashName(event.target.value)}
-                  required
+                  type="date"
+                  value={validUntil}
+                  min={today()}
+                  onChange={(event) => setValidUntil(event.target.value)}
                 />
               </label>
-            )}
-            <label className="field">
-              <span>صالح حتى</span>
-              <input
-                className="input"
-                type="date"
-                value={validUntil}
-                min={today()}
-                onChange={(event) => setValidUntil(event.target.value)}
-              />
-            </label>
-            <label className="field">
-              <span>الأسعار شاملة الضريبة</span>
-              <span className="row">
-                <input
-                  type="checkbox"
-                  checked={includesVat}
-                  onChange={(event) => setIncludesVat(event.target.checked)}
-                />
-                <span className="muted small">تُستخرج الضريبة من السعر بدل إضافتها إليه.</span>
-              </span>
-            </label>
-          </div>
-
-          <h3>الأصناف</h3>
-          <InvoiceLines
-            lines={lines}
-            onChange={setLines}
-            items={items.data ?? []}
-            taxGroups={taxGroups.data ?? []}
-            priceField="salePrice"
-          />
-
-          <h3>الإجماليات</h3>
-          <TotalsPanel totals={totals} />
-
-          <div className="ui-form-actions">
-            <span className="ui-form-actions-note">يُحفَظ العرض مسعّراً ويمكن تحويله لفاتورة من الجدول.</span>
-            <div className="ui-form-actions-buttons">
-              <button className="btn primary" type="submit" disabled={busy}>
-                {busy ? 'جارٍ الحفظ…' : 'إصدار عرض السعر'}
-              </button>
+              <label className="field">
+                <span>الأسعار شاملة الضريبة</span>
+                <span className="row">
+                  <input
+                    type="checkbox"
+                    checked={includesVat}
+                    onChange={(event) => setIncludesVat(event.target.checked)}
+                  />
+                  <span className="muted small">تُستخرج الضريبة من السعر بدل إضافتها إليه.</span>
+                </span>
+              </label>
             </div>
-          </div>
+
+            <h3>الأصناف</h3>
+            <InvoiceLines
+              lines={lines}
+              onChange={setLines}
+              items={items.data ?? []}
+              taxGroups={taxGroups.data ?? []}
+              priceField="salePrice"
+            />
+
+            <h3>الإجماليات</h3>
+            <TotalsPanel totals={totals} />
+
+            <div className="ui-form-actions">
+              <span className="ui-form-actions-note">
+                يُحفَظ العرض مسعّراً ويمكن تحويله لفاتورة من الجدول.
+              </span>
+              <div className="ui-form-actions-buttons">
+                <button className="btn primary" type="submit" disabled={busy}>
+                  {busy ? 'جارٍ الحفظ…' : 'إصدار عرض السعر'}
+                </button>
+              </div>
+            </div>
+          </Panel>
         </form>
       ) : null}
 

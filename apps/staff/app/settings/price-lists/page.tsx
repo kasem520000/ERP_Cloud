@@ -102,7 +102,6 @@ export default function PriceListsPage() {
     >
       <div className="grid cols-2">
         <form
-          className="card"
           onSubmit={(event) => {
             event.preventDefault();
             void run(
@@ -120,20 +119,21 @@ export default function PriceListsPage() {
             );
           }}
         >
-          <h3>قائمة أسعار جديدة</h3>
-          <FormFields
-            fields={[
-              { name: 'name', label: 'اسم القائمة', required: true },
-              { name: 'currencyCode', label: 'العملة', required: true, ltr: true, placeholder: 'SAR' },
-              { name: 'isDefault', label: 'القائمة الافتراضية', type: 'checkbox' },
-              { name: 'isActive', label: 'مفعّلة', type: 'checkbox' },
-            ]}
-            values={listForm}
-            onChange={setListForm}
-          />
-          <button className="btn primary" type="submit" disabled={busy}>
-            حفظ القائمة
-          </button>
+          <Panel title="قائمة أسعار جديدة">
+            <FormFields
+              fields={[
+                { name: 'name', label: 'اسم القائمة', required: true },
+                { name: 'currencyCode', label: 'العملة', required: true, ltr: true, placeholder: 'SAR' },
+                { name: 'isDefault', label: 'القائمة الافتراضية', type: 'checkbox' },
+                { name: 'isActive', label: 'مفعّلة', type: 'checkbox' },
+              ]}
+              values={listForm}
+              onChange={setListForm}
+            />
+            <button className="btn primary" type="submit" disabled={busy}>
+              حفظ القائمة
+            </button>
+          </Panel>
         </form>
 
         <Panel title="القوائم" flush>

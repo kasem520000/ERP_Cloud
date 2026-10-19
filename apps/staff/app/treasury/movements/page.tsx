@@ -1,13 +1,21 @@
 'use client';
 
+import { FilterBand, Panel } from '@erp/ui';
 import Decimal from 'decimal.js';
 import { useMemo, useState } from 'react';
 
 import { DataTable, Notice } from '../../../components/data-view';
-import { Screen } from '../../../components/screen';
+import { Empty, Screen } from '../../../components/screen';
 import { StatTile, StatTiles } from '../../../components/ui';
 import { apiData } from '../../../lib/api';
-import { cashLocationLabel, defaultOf, listCashLocations, money, today, type CashLocation } from '../../../lib/lookups';
+import {
+  cashLocationLabel,
+  defaultOf,
+  listCashLocations,
+  money,
+  today,
+  type CashLocation,
+} from '../../../lib/lookups';
 import { useQuery } from '../../../lib/use-query';
 
 /**
@@ -126,60 +134,60 @@ export default function MovementsPage() {
   }
 
   return (
- <Screen
- title="حركة الصندوق"
+    <Screen
+      title="حركة الصندوق"
       subtitle={`كشف حساب الصندوق من دفتر الأستاذ — كما في frmRptKhzna: كل ما حرّك الحساب، برصيد متحرك.${
         statement.data ? ` ${statement.data.cashLocation}` : ''
       }`}
       crumbs={['الخزينة', 'التقارير']}
       actions={
- <button className="btn sm" type="button" onClick={exportCsv}>
- تصدير Excel
- </button>
+        <button className="btn sm" type="button" onClick={exportCsv}>
+          تصدير Excel
+        </button>
       }
     >
- <StatTiles>
- <StatTile
- label="الرصيد الإجمالي"
+      <StatTiles>
+        <StatTile
+          label="الرصيد الإجمالي"
           value={money(statement.data?.totalAll ?? '0', currency)}
           hint={allPeriod ? 'رصيد الصندوق حتى آخر حركة' : `حتى ${to} ${toTime}`}
           tone={new Decimal(statement.data?.totalAll ?? '0').lt(0) ? 'danger' : 'ok'}
         />
- <StatTile
- label="رصيد الفترة المحددة"
+        <StatTile
+          label="رصيد الفترة المحددة"
           value={money(statement.data?.totalPeriod ?? '0', currency)}
- hint={allPeriod ? 'كل الفترة' : `${from} ${to}`}
+          hint={allPeriod ? 'كل الفترة' : `${from} ${to}`}
           tone="brand"
         />
- <StatTile
- label="رصيد سابق"
+        <StatTile
+          label="رصيد سابق"
           value={money(statement.data?.openingBalance ?? '0', currency)}
           hint={allPeriod ? 'بلا فترة محددة' : `قبل ${from}`}
         />
- <StatTile label="إجمالي الوارد" value={money(totals.income.toFixed(4), currency)} tone="ok" />
- <StatTile label="إجمالي الصادر" value={money(totals.outcome.toFixed(4), currency)} tone="danger" />
- <StatTile label="عدد الحركات" value={totals.count} hint="بلا سطر الرصيد السابق" />
- </StatTiles>
+        <StatTile label="إجمالي الوارد" value={money(totals.income.toFixed(4), currency)} tone="ok" />
+        <StatTile label="إجمالي الصادر" value={money(totals.outcome.toFixed(4), currency)} tone="danger" />
+        <StatTile label="عدد الحركات" value={totals.count} hint="بلا سطر الرصيد السابق" />
+      </StatTiles>
 
       {/* لوحة الترشيح — `frmRptKhzna.xaml` L245–L300 */}
- <div className="card toolbar">
- <label className="field">
- <span>الصندوق</span>
- <select
+      <FilterBand>
+        <label className="field">
+          <span>الصندوق</span>
+          <select
             className="input"
             value={effectiveLocation}
             onChange={(event) => setLocationId(event.target.value)}
           >
             {(boxes as CashLocation[]).map((box) => (
- <option key={box.id} value={box.id}>
+              <option key={box.id} value={box.id}>
                 {cashLocationLabel(box)}
- </option>
+              </option>
             ))}
- </select>
- </label>
- <label className="field">
- <span>من تاريخ</span>
- <input
+          </select>
+        </label>
+        <label className="field">
+          <span>من تاريخ</span>
+          <input
             className="input"
             type="date"
             dir="ltr"
@@ -187,10 +195,10 @@ export default function MovementsPage() {
             disabled={allPeriod}
             onChange={(event) => setFrom(event.target.value)}
           />
- </label>
- <label className="field">
- <span>من وقت (HH:mm)</span>
- <input
+        </label>
+        <label className="field">
+          <span>من وقت (HH:mm)</span>
+          <input
             className="input"
             dir="ltr"
             value={fromTime}
@@ -198,10 +206,10 @@ export default function MovementsPage() {
             disabled={allPeriod}
             onChange={(event) => setFromTime(event.target.value)}
           />
- </label>
- <label className="field">
- <span>إلى تاريخ</span>
- <input
+        </label>
+        <label className="field">
+          <span>إلى تاريخ</span>
+          <input
             className="input"
             type="date"
             dir="ltr"
@@ -209,10 +217,10 @@ export default function MovementsPage() {
             disabled={allPeriod}
             onChange={(event) => setTo(event.target.value)}
           />
- </label>
- <label className="field">
- <span>إلى وقت (HH:mm)</span>
- <input
+        </label>
+        <label className="field">
+          <span>إلى وقت (HH:mm)</span>
+          <input
             className="input"
             dir="ltr"
             value={toTime}
@@ -220,42 +228,47 @@ export default function MovementsPage() {
             disabled={allPeriod}
             onChange={(event) => setToTime(event.target.value)}
           />
- </label>
- <label className="row" style={{ gap: 6 }}>
- <input type="checkbox" checked={allPeriod} onChange={(event) => setAllPeriod(event.target.checked)} />
- <span className="small">كل الفترة</span>
- </label>
- <button className="btn primary" type="button" onClick={() => statement.reload()}>
- عرض حركة الصندوق
- </button>
- </div>
+        </label>
+        <label className="row" style={{ gap: 6 }}>
+          <input
+            type="checkbox"
+            checked={allPeriod}
+            onChange={(event) => setAllPeriod(event.target.checked)}
+          />
+          <span className="small">كل الفترة</span>
+        </label>
+        <button className="btn primary" type="button" onClick={() => statement.reload()}>
+          عرض حركة الصندوق
+        </button>
+      </FilterBand>
 
       {(statement.status === 'error' || statement.status === 'forbidden') && (
- <div className="card">
- <Notice
+        <Panel title="تعذّر تحميل حركة الصندوق">
+          <Notice
             notice={{
               kind: 'danger',
               text:
-                statement.error?.includes('CASH_ACCOUNT_REQUIRED') ||
-                statement.error?.includes('حساب مرتبط')
- ? 'لم يتم العثور على حساب مرتبط بهذا الصندوق — اربط الصندوق بحساب من «تعريف الخزينة».'
+                statement.error?.includes('CASH_ACCOUNT_REQUIRED') || statement.error?.includes('حساب مرتبط')
+                  ? 'لم يتم العثور على حساب مرتبط بهذا الصندوق — اربط الصندوق بحساب من «تعريف الخزينة».'
                   : (statement.error ?? 'تعذر تحميل حركة الصندوق'),
             }}
           />
- <button className="btn" type="button" style={{ marginTop: 10 }} onClick={() => statement.reload()}>
- إعادة المحاولة
- </button>
- </div>
+          <button className="btn" type="button" style={{ marginTop: 10 }} onClick={() => statement.reload()}>
+            إعادة المحاولة
+          </button>
+        </Panel>
       )}
       {notice && <Notice notice={notice} />}
 
- <div className="card">
+      <Panel title="حركة الصندوق" hint="كل سطر من دفتر الأستاذ مع الرصيد المتحرك بعد كل حركة." flush>
         {statement.status === 'loading' ? (
- <p className="muted">… جارٍ تحميل حركة الصندوق</p>
+          <p className="muted" style={{ padding: 14, margin: 0 }}>
+            … جارٍ تحميل حركة الصندوق
+          </p>
         ) : rows.length === 0 ? (
- <p className="muted">لا توجد حركات على هذا الصندوق في الفترة المحددة.</p>
+          <Empty bare title="لا توجد حركات على هذا الصندوق" detail="غيّر الصندوق أو وسّع الفترة الزمنية." />
         ) : (
- <DataTable
+          <DataTable
             rows={rows}
             rowKey={(row) => `${row.seq}-${row.number}-${row.date}`}
             columns={[
@@ -264,51 +277,49 @@ export default function MovementsPage() {
                 key: 'processType',
                 header: 'العملية',
                 cell: (row) =>
-                  row.isOpening ? (
- <strong>{row.processType}</strong>
-                  ) : (
- <span>{row.processType}</span>
-                  ),
+                  row.isOpening ? <strong>{row.processType}</strong> : <span>{row.processType}</span>,
               },
               { key: 'number', header: 'الرقم', align: 'ltr', cell: (row) => row.number || '—' },
- { key: 'date', header: 'التاريخ', align: 'ltr', cell: (row) => row.date },
+              { key: 'date', header: 'التاريخ', align: 'ltr', cell: (row) => row.date },
               {
                 key: 'income',
- header: 'وارد',
+                header: 'وارد',
                 align: 'num',
                 cell: (row) => (new Decimal(row.income || '0').isZero() ? '—' : money(row.income)),
               },
               {
                 key: 'outcome',
- header: 'صادر',
+                header: 'صادر',
                 align: 'num',
                 cell: (row) => (new Decimal(row.outcome || '0').isZero() ? '—' : money(row.outcome)),
               },
               {
                 key: 'balance',
- header: 'الرصيد',
+                header: 'الرصيد',
                 align: 'num',
                 cell: (row) => (
- <strong style={new Decimal(row.balance || '0').lt(0) ? { color: 'var(--danger)' } : undefined}>
+                  <strong
+                    style={new Decimal(row.balance || '0').lt(0) ? { color: 'var(--danger)' } : undefined}
+                  >
                     {money(row.balance)}
- </strong>
+                  </strong>
                 ),
               },
- { key: 'note', header: 'البيان', cell: (row) => row.note || '—' },
+              { key: 'note', header: 'البيان', cell: (row) => row.note || '—' },
             ]}
             footer={[
               '',
- <strong key="foot-label">المجموع</strong>,
+              <strong key="foot-label">المجموع</strong>,
               '',
               '',
- <strong key="foot-in">{money(totals.income.toFixed(4))}</strong>,
- <strong key="foot-out">{money(totals.outcome.toFixed(4))}</strong>,
- <strong key="foot-bal">{money(statement.data?.totalAll ?? '0')}</strong>,
+              <strong key="foot-in">{money(totals.income.toFixed(4))}</strong>,
+              <strong key="foot-out">{money(totals.outcome.toFixed(4))}</strong>,
+              <strong key="foot-bal">{money(statement.data?.totalAll ?? '0')}</strong>,
               '',
             ]}
           />
         )}
- </div>
- </Screen>
+      </Panel>
+    </Screen>
   );
 }

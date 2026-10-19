@@ -1,6 +1,6 @@
 'use client';
 
-import { Panel } from '@erp/ui';
+import { FilterBand, Panel } from '@erp/ui';
 import { Suspense, useState } from 'react';
 
 import { Empty, ErrorBox, Forbidden, Loading, Screen } from '../../../components/screen';
@@ -146,7 +146,7 @@ function SalaryReport() {
         </>
       }
     >
-      <div className="card tight no-print">
+      <FilterBand className="no-print">
         <div className="row" style={{ flexWrap: 'wrap', alignItems: 'flex-end' }}>
           <label className="field" style={{ margin: 0, width: 120 }}>
             <span>الشهر:</span>
@@ -192,7 +192,7 @@ function SalaryReport() {
             سند استلام راتب لموظف
           </a>
         </div>
-      </div>
+      </FilterBand>
 
       {report.status === 'loading' && <Loading />}
       {report.status === 'forbidden' && <Forbidden />}

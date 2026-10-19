@@ -5,7 +5,7 @@ import Link from 'next/link';
 import Decimal from 'decimal.js';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
-import { Screen } from '../../../components/screen';
+import { Empty, Screen } from '../../../components/screen';
 import { Notice } from '../../../components/data-view';
 import { ApiError } from '../../../lib/api';
 import {
@@ -401,15 +401,24 @@ export default function OfflinePosPage() {
       }
     >
       {notice ? <Notice notice={notice} /> : null}
-      {loading ? <div className="card state">جارٍ فتح التخزين المحلي…</div> : null}
+      {loading ? <p className="muted">جارٍ فتح التخزين المحلي…</p> : null}
       {!catalog && !loading ? (
-        <div className="card state">
-          <strong>لا توجد حزمة بيانات على هذا الجهاز</strong>
-          <span>اتصل بالشبكة واضغط «تحديث البيانات» قبل مغادرة الفرع.</span>
-          <button className="btn primary" type="button" onClick={downloadCatalog} disabled={busy || !online}>
-            تحميل حزمة الأوفلاين
-          </button>
-        </div>
+        <>
+          <Empty
+            title="لا توجد حزمة بيانات على هذا الجهاز"
+            detail="اتصل بالشبكة واضغط «تحديث البيانات» قبل مغادرة الفرع."
+          />
+          <div className="toolbar" style={{ justifyContent: 'center' }}>
+            <button
+              className="btn primary"
+              type="button"
+              onClick={downloadCatalog}
+              disabled={busy || !online}
+            >
+              تحميل حزمة الأوفلاين
+            </button>
+          </div>
+        </>
       ) : null}
 
       {catalog ? (

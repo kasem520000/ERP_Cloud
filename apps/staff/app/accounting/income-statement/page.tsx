@@ -1,5 +1,6 @@
 'use client';
 
+import { FilterBand } from '@erp/ui';
 import { useState } from 'react';
 
 import { Empty, ErrorBox, Forbidden, Loading, Screen } from '../../../components/screen';
@@ -48,10 +49,21 @@ type Totals = {
 type Envelope = { data: Row[]; totals: Totals };
 type Branch = { id: string; nameAr?: string; name?: string };
 
-const EMPTY: Totals = { debit: '0', credit: '0', stock: '0', profit: '0', profitLabel: '', balanced: true, balancedLabel: '' };
+const EMPTY: Totals = {
+  debit: '0',
+  credit: '0',
+  stock: '0',
+  profit: '0',
+  profitLabel: '',
+  balanced: true,
+  balancedLabel: '',
+};
 
 export default function IncomeStatementPage() {
-  const branches = useQuery<Branch[]>(() => apiFetch<{ data: Branch[] }>('/branches').then((body) => body.data), []);
+  const branches = useQuery<Branch[]>(
+    () => apiFetch<{ data: Branch[] }>('/branches').then((body) => body.data),
+    [],
+  );
 
   const [branchId, setBranchId] = useState('');
   const [from, setFrom] = useState('');
@@ -75,16 +87,16 @@ export default function IncomeStatementPage() {
   const totals = statement.data?.totals ?? EMPTY;
 
   return (
- <Screen
+    <Screen
       title="أرباح وخسائر حسابات رئيسية"
- subtitle="قائمة الدخل — حسابات الإيرادات والمصروفات (FinalAcc = 2)، من القيود المرحّلة فقط."
+      subtitle="قائمة الدخل — حسابات الإيرادات والمصروفات (FinalAcc = 2)، من القيود المرحّلة فقط."
       crumbs={['المحاسبة', 'تقارير محاسبية']}
       actions={
- <>
- <button className="btn" type="button" onClick={() => window.print()} disabled={rows.length === 0}>
- طباعة
- </button>
- <button
+        <>
+          <button className="btn" type="button" onClick={() => window.print()} disabled={rows.length === 0}>
+            طباعة
+          </button>
+          <button
             className="btn"
             type="button"
             disabled={rows.length === 0}
@@ -96,118 +108,157 @@ export default function IncomeStatementPage() {
               )
             }
           >
- تصدير Excel
- </button>
- </>
+            تصدير Excel
+          </button>
+        </>
       }
     >
- <div className="card tight no-print">
- <div className="row" style={{ flexWrap: 'wrap', alignItems: 'flex-end' }}>
- <label className="field" style={{ margin: 0, minWidth: 200 }}>
- <span>الفروع</span>
- <select className="input" value={branchId} onChange={(event) => setBranchId(event.target.value)}>
- <option value="">كل الفروع</option>
+      <FilterBand className="no-print">
+        <div className="row" style={{ flexWrap: 'wrap', alignItems: 'flex-end' }}>
+          <label className="field" style={{ margin: 0, minWidth: 200 }}>
+            <span>الفروع</span>
+            <select className="input" value={branchId} onChange={(event) => setBranchId(event.target.value)}>
+              <option value="">كل الفروع</option>
               {(branches.data ?? []).map((branch) => (
- <option key={branch.id} value={branch.id}>
+                <option key={branch.id} value={branch.id}>
                   {branch.nameAr ?? branch.name ?? branch.id}
- </option>
+                </option>
               ))}
- </select>
- </label>
- <label className="field" style={{ margin: 0, width: 160 }}>
- <span>من</span>
- <input className="input" type="date" value={from} onChange={(event) => setFrom(event.target.value)} disabled={allPeriod} />
- </label>
- <label className="field" style={{ margin: 0, width: 160 }}>
- <span>إلى</span>
- <input className="input" type="date" value={to} onChange={(event) => setTo(event.target.value)} disabled={allPeriod} />
- </label>
- <button
+            </select>
+          </label>
+          <label className="field" style={{ margin: 0, width: 160 }}>
+            <span>من</span>
+            <input
+              className="input"
+              type="date"
+              value={from}
+              onChange={(event) => setFrom(event.target.value)}
+              disabled={allPeriod}
+            />
+          </label>
+          <label className="field" style={{ margin: 0, width: 160 }}>
+            <span>إلى</span>
+            <input
+              className="input"
+              type="date"
+              value={to}
+              onChange={(event) => setTo(event.target.value)}
+              disabled={allPeriod}
+            />
+          </label>
+          <button
             className="btn primary"
             type="button"
-            onClick={() => setApplied({ branchId, from: allPeriod ? '' : from, to: allPeriod ? '' : to, summary, withStock })}
+            onClick={() =>
+              setApplied({
+                branchId,
+                from: allPeriod ? '' : from,
+                to: allPeriod ? '' : to,
+                summary,
+                withStock,
+              })
+            }
           >
- عرض
- </button>
- </div>
- <div className="row" style={{ flexWrap: 'wrap', marginTop: 8 }}>
- <label className="check">
- <input type="checkbox" checked={allPeriod} onChange={(event) => setAllPeriod(event.target.checked)} />
- كل الفترة
- </label>
- <span className="group-label" style={{ marginInlineStart: 12 }}>
- نوع التقرير
- </span>
- <button type="button" className={`btn sm${summary ? ' primary' : ''}`} onClick={() => setSummary(true)}>
- تجميعي (حسابات رئيسية)
- </button>
- <button type="button" className={`btn sm${summary ? '' : ' primary'}`} onClick={() => setSummary(false)}>
- تفصيلي
- </button>
- <label className="check" style={{ marginInlineStart: 12 }}>
- <input type="checkbox" checked={withStock} onChange={(event) => setWithStock(event.target.checked)} />
- قيمة مخزون بضاعة آخر المدة
- </label>
- </div>
- </div>
+            عرض
+          </button>
+        </div>
+        <div className="row" style={{ flexWrap: 'wrap', marginTop: 8 }}>
+          <label className="check">
+            <input
+              type="checkbox"
+              checked={allPeriod}
+              onChange={(event) => setAllPeriod(event.target.checked)}
+            />
+            كل الفترة
+          </label>
+          <span className="group-label" style={{ marginInlineStart: 12 }}>
+            نوع التقرير
+          </span>
+          <button
+            type="button"
+            className={`btn sm${summary ? ' primary' : ''}`}
+            onClick={() => setSummary(true)}
+          >
+            تجميعي (حسابات رئيسية)
+          </button>
+          <button
+            type="button"
+            className={`btn sm${summary ? '' : ' primary'}`}
+            onClick={() => setSummary(false)}
+          >
+            تفصيلي
+          </button>
+          <label className="check" style={{ marginInlineStart: 12 }}>
+            <input
+              type="checkbox"
+              checked={withStock}
+              onChange={(event) => setWithStock(event.target.checked)}
+            />
+            قيمة مخزون بضاعة آخر المدة
+          </label>
+        </div>
+      </FilterBand>
 
       {statement.status === 'loading' && <Loading />}
       {statement.status === 'forbidden' && <Forbidden />}
       {statement.status === 'error' && <ErrorBox message={statement.error} onRetry={statement.reload} />}
       {statement.status === 'success' && (
- <>
- <StatTiles>
- <StatTile label="رصيد مدين" value={money(totals.debit)} tone="ok" />
- <StatTile label="رصيد دائن" value={money(totals.credit)} tone="brand" />
- <StatTile label="قيمة مخزون آخر المدة" value={money(totals.stock)} />
- <StatTile
+        <>
+          <StatTiles>
+            <StatTile label="رصيد مدين" value={money(totals.debit)} tone="ok" />
+            <StatTile label="رصيد دائن" value={money(totals.credit)} tone="brand" />
+            <StatTile label="قيمة مخزون آخر المدة" value={money(totals.stock)} />
+            <StatTile
               label={totals.profitLabel || 'النتيجة'}
               value={money(totals.profit)}
               tone={totals.profitLabel === 'صافي أرباح العام' ? 'ok' : 'danger'}
             />
- </StatTiles>
+          </StatTiles>
 
           {rows.filter((row) => row.kind === 'account').length === 0 ? (
- <Empty
+            <Empty
               title="لا توجد حسابات إيرادات أو مصروفات"
               detail="القائمة تُبنى من الحسابات التي يبدأ رمزها بـ3 أو بـ4 (FinalAcc = 2)."
             />
           ) : (
- <div className="table-wrap">
- <table>
- <thead>
- <tr>
- <th>الحساب</th>
- <th>اسم الحساب</th>
- <th className="num">رصيد مدين</th>
- <th className="num">رصيد دائن</th>
- <th>الحالة</th>
- </tr>
- </thead>
- <tbody>
+            <div className="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>الحساب</th>
+                    <th>اسم الحساب</th>
+                    <th className="num">رصيد مدين</th>
+                    <th className="num">رصيد دائن</th>
+                    <th>الحالة</th>
+                  </tr>
+                </thead>
+                <tbody>
                   {rows.map((row, index) => (
- <tr key={`${row.kind}-${row.code ?? index}`} className={row.kind === 'profit' ? 'opening' : undefined}>
- <td dir="ltr">{row.code ?? '—'}</td>
- <td>{row.name}</td>
- <td className="num">{money(row.balanceDebit)}</td>
- <td className="num">{money(row.balanceCredit)}</td>
- <td>{statusLabel(row.status)}</td>
- </tr>
+                    <tr
+                      key={`${row.kind}-${row.code ?? index}`}
+                      className={row.kind === 'profit' ? 'opening' : undefined}
+                    >
+                      <td dir="ltr">{row.code ?? '—'}</td>
+                      <td>{row.name}</td>
+                      <td className="num">{money(row.balanceDebit)}</td>
+                      <td className="num">{money(row.balanceCredit)}</td>
+                      <td>{statusLabel(row.status)}</td>
+                    </tr>
                   ))}
- </tbody>
- <tfoot>
- <tr>
- <th colSpan={2}>المجموع</th>
- <th className="num">{money(totals.debit)}</th>
- <th className="num">{money(totals.credit)}</th>
- <th>{totals.balanced ? totals.balancedLabel : '—'}</th>
- </tr>
- </tfoot>
- </table>
- </div>
+                </tbody>
+                <tfoot>
+                  <tr>
+                    <th colSpan={2}>المجموع</th>
+                    <th className="num">{money(totals.debit)}</th>
+                    <th className="num">{money(totals.credit)}</th>
+                    <th>{totals.balanced ? totals.balancedLabel : '—'}</th>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
           )}
- </>
+        </>
       )}
- </Screen>
+    </Screen>
   );
 }

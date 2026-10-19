@@ -263,9 +263,7 @@ export default function JournalEntryPage() {
           </dl>
         </Panel>
 
-        <div className="card">
-          {/* «مجموع المدين:» و«مجموع الدائن:» — L446–449، و«الفرق=» — L293. */}
-          <h2>الملخّص</h2>
+        <Panel title="الملخّص">
           <dl className="kv">
             <dt>مجموع المدين:</dt>
             <dd>{money(String(totalDebit))}</dd>
@@ -274,12 +272,10 @@ export default function JournalEntryPage() {
             <dt>الفرق</dt>
             <dd>{money(String(difference))}</dd>
           </dl>
-        </div>
+        </Panel>
       </div>
 
-      <div className="card">
-        {/* «تفاصيل القيد» — L291، بأعمدة الشبكة L320–366. */}
-        <h2>تفاصيل القيد</h2>
+      <Panel title="تفاصيل القيد" flush>
         {doc.lines.length === 0 ? (
           <Empty title="لا سطور لهذا القيد" detail="القيد المُعلَن عناصرُه." />
         ) : (
@@ -321,7 +317,7 @@ export default function JournalEntryPage() {
           حذف السطر () في `FrmNewEntry.xaml:378-397` كان قبل الحفظ فقط — القيد المرحّل لا يُعدَّل، فالشبكة هنا
           قراءة.
         </p>
-      </div>
+      </Panel>
 
       {/*
  القيد المرحّل لا يُعدَّل في السحابة (وهو المؤجَّل المُعلَن من نافذة الديسكتوب)،

@@ -393,167 +393,168 @@ export default function ItemsPage() {
       </FilterBar>
 
       {open && (
-        <form className="card" onSubmit={submit}>
-          <h2>{editing ? `تعديل بطاقة المادة ${editing.sku}` : 'بطاقة مادة جديدة'}</h2>
-          {missingRefs && !editing && (
-            <p className="alert warn">
-              يلزم وجود مجموعة واحدة ووحدة قياس واحدة على الأقل. أنشئها من «بطاقة مجموعة» و«بطاقة وحدة».
-            </p>
-          )}
-          <div className="form-grid">
-            <label className="field">
-              <span>الرمز (SKU) *</span>
-              <input className="input" dir="ltr" value={form.sku} onChange={set('sku')} required />
-            </label>
-            <label className="field">
-              <span>الباركود</span>
-              <input
-                className="input"
-                dir="ltr"
-                value={form.barcode}
-                onChange={set('barcode')}
-                placeholder="يُستخدم الرمز (SKU) عند تركه فارغاً"
-              />
-            </label>
-            <label className="field">
-              <span>الاسم العربي *</span>
-              <input className="input" value={form.nameAr} onChange={set('nameAr')} required />
-            </label>
-            <label className="field">
-              <span>الاسم الإنجليزي</span>
-              <input className="input" dir="ltr" value={form.nameEn} onChange={set('nameEn')} />
-            </label>
-            <label className="field">
-              <span>المجموعة *</span>
-              <select className="input" value={form.categoryId} onChange={set('categoryId')} required>
-                <option value="">— اختر —</option>
-                {categoryRows.map((row) => (
-                  <option key={row.id} value={row.id}>{`${row.code} — ${arabicName(row)}`}</option>
-                ))}
-              </select>
-            </label>
-            <label className="field">
-              <span>وحدة القياس *</span>
-              <select
-                className="input"
-                value={form.baseUnitId}
-                onChange={set('baseUnitId')}
-                required
-                disabled={Boolean(editing)}
-              >
-                <option value="">— اختر —</option>
-                {unitRows.map((row) => (
-                  <option key={row.id} value={row.id}>{`${row.code} — ${arabicName(row)}`}</option>
-                ))}
-              </select>
-              {editing && <span className="muted small">وحدة القياس الأساسية ثابتة بعد إنشاء المادة.</span>}
-            </label>
-            <label className="field">
-              <span>النوع</span>
-              <select className="input" value={form.kind} onChange={set('kind')}>
-                <option value="stock">مخزنية</option>
-                <option value="service">خدمة</option>
-                <option value="composite">مركبة</option>
-              </select>
-            </label>
-            <label className="field">
-              <span>سعر البيع</span>
-              <input
-                className="input"
-                dir="ltr"
-                inputMode="decimal"
-                value={form.salePrice}
-                onChange={set('salePrice')}
-              />
-            </label>
-            <label className="field">
-              <span>سعر الشراء</span>
-              <input
-                className="input"
-                dir="ltr"
-                inputMode="decimal"
-                value={form.purchasePrice}
-                onChange={set('purchasePrice')}
-              />
-            </label>
-            <label className="field">
-              <span>حد الطلب (أدنى رصيد)</span>
-              <input
-                className="input"
-                dir="ltr"
-                inputMode="decimal"
-                value={form.minQty}
-                onChange={set('minQty')}
-                placeholder="0"
-              />
-            </label>
-            <label className="field">
-              <span>الحد الأقصى</span>
-              <input
-                className="input"
-                dir="ltr"
-                inputMode="decimal"
-                value={form.maxQty}
-                onChange={set('maxQty')}
-                placeholder="—"
-              />
-            </label>
-            <label className="field">
-              <span>تتبع بدفعات / تواريخ صلاحية</span>
-              <select
-                className="input"
-                value={form.trackLot ? 'yes' : 'no'}
-                onChange={(event) =>
-                  setForm((current) => ({ ...current, trackLot: event.target.value === 'yes' }))
-                }
-              >
-                <option value="no">لا</option>
-                <option value="yes">نعم</option>
-              </select>
-            </label>
-            <label className="field">
-              <span>تتبع بأرقام تسلسلية</span>
-              <select
-                className="input"
-                value={form.trackSerial ? 'yes' : 'no'}
-                onChange={(event) =>
-                  setForm((current) => ({ ...current, trackSerial: event.target.value === 'yes' }))
-                }
-              >
-                <option value="no">لا</option>
-                <option value="yes">نعم</option>
-              </select>
-            </label>
-            <label className="field">
-              <span>المجموعة الضريبية</span>
-              <select className="input" value={form.taxGroupId} onChange={set('taxGroupId')}>
-                <option value="">— بدون —</option>
-                {(taxGroups.data ?? []).map((row) => (
-                  <option key={row.id} value={row.id}>
-                    {arabicName(row)}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </div>
-          <Notice notice={notice} />
-          <div className="row">
-            <button className="btn primary" type="submit" disabled={busy || (missingRefs && !editing)}>
-              {busy ? 'جارٍ الحفظ…' : editing ? 'حفظ التعديل' : 'حفظ المادة'}
-            </button>
-            {editing && (
-              <button className="btn" type="button" onClick={cancelEdit} disabled={busy}>
-                إلغاء التعديل
-              </button>
+        <form onSubmit={submit}>
+          <Panel title={<>{editing ? `تعديل بطاقة المادة ${editing.sku}` : 'بطاقة مادة جديدة'}</>}>
+            {missingRefs && !editing && (
+              <p className="alert warn">
+                يلزم وجود مجموعة واحدة ووحدة قياس واحدة على الأقل. أنشئها من «بطاقة مجموعة» و«بطاقة وحدة».
+              </p>
             )}
-          </div>
+            <div className="form-grid">
+              <label className="field">
+                <span>الرمز (SKU) *</span>
+                <input className="input" dir="ltr" value={form.sku} onChange={set('sku')} required />
+              </label>
+              <label className="field">
+                <span>الباركود</span>
+                <input
+                  className="input"
+                  dir="ltr"
+                  value={form.barcode}
+                  onChange={set('barcode')}
+                  placeholder="يُستخدم الرمز (SKU) عند تركه فارغاً"
+                />
+              </label>
+              <label className="field">
+                <span>الاسم العربي *</span>
+                <input className="input" value={form.nameAr} onChange={set('nameAr')} required />
+              </label>
+              <label className="field">
+                <span>الاسم الإنجليزي</span>
+                <input className="input" dir="ltr" value={form.nameEn} onChange={set('nameEn')} />
+              </label>
+              <label className="field">
+                <span>المجموعة *</span>
+                <select className="input" value={form.categoryId} onChange={set('categoryId')} required>
+                  <option value="">— اختر —</option>
+                  {categoryRows.map((row) => (
+                    <option key={row.id} value={row.id}>{`${row.code} — ${arabicName(row)}`}</option>
+                  ))}
+                </select>
+              </label>
+              <label className="field">
+                <span>وحدة القياس *</span>
+                <select
+                  className="input"
+                  value={form.baseUnitId}
+                  onChange={set('baseUnitId')}
+                  required
+                  disabled={Boolean(editing)}
+                >
+                  <option value="">— اختر —</option>
+                  {unitRows.map((row) => (
+                    <option key={row.id} value={row.id}>{`${row.code} — ${arabicName(row)}`}</option>
+                  ))}
+                </select>
+                {editing && <span className="muted small">وحدة القياس الأساسية ثابتة بعد إنشاء المادة.</span>}
+              </label>
+              <label className="field">
+                <span>النوع</span>
+                <select className="input" value={form.kind} onChange={set('kind')}>
+                  <option value="stock">مخزنية</option>
+                  <option value="service">خدمة</option>
+                  <option value="composite">مركبة</option>
+                </select>
+              </label>
+              <label className="field">
+                <span>سعر البيع</span>
+                <input
+                  className="input"
+                  dir="ltr"
+                  inputMode="decimal"
+                  value={form.salePrice}
+                  onChange={set('salePrice')}
+                />
+              </label>
+              <label className="field">
+                <span>سعر الشراء</span>
+                <input
+                  className="input"
+                  dir="ltr"
+                  inputMode="decimal"
+                  value={form.purchasePrice}
+                  onChange={set('purchasePrice')}
+                />
+              </label>
+              <label className="field">
+                <span>حد الطلب (أدنى رصيد)</span>
+                <input
+                  className="input"
+                  dir="ltr"
+                  inputMode="decimal"
+                  value={form.minQty}
+                  onChange={set('minQty')}
+                  placeholder="0"
+                />
+              </label>
+              <label className="field">
+                <span>الحد الأقصى</span>
+                <input
+                  className="input"
+                  dir="ltr"
+                  inputMode="decimal"
+                  value={form.maxQty}
+                  onChange={set('maxQty')}
+                  placeholder="—"
+                />
+              </label>
+              <label className="field">
+                <span>تتبع بدفعات / تواريخ صلاحية</span>
+                <select
+                  className="input"
+                  value={form.trackLot ? 'yes' : 'no'}
+                  onChange={(event) =>
+                    setForm((current) => ({ ...current, trackLot: event.target.value === 'yes' }))
+                  }
+                >
+                  <option value="no">لا</option>
+                  <option value="yes">نعم</option>
+                </select>
+              </label>
+              <label className="field">
+                <span>تتبع بأرقام تسلسلية</span>
+                <select
+                  className="input"
+                  value={form.trackSerial ? 'yes' : 'no'}
+                  onChange={(event) =>
+                    setForm((current) => ({ ...current, trackSerial: event.target.value === 'yes' }))
+                  }
+                >
+                  <option value="no">لا</option>
+                  <option value="yes">نعم</option>
+                </select>
+              </label>
+              <label className="field">
+                <span>المجموعة الضريبية</span>
+                <select className="input" value={form.taxGroupId} onChange={set('taxGroupId')}>
+                  <option value="">— بدون —</option>
+                  {(taxGroups.data ?? []).map((row) => (
+                    <option key={row.id} value={row.id}>
+                      {arabicName(row)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+            <Notice notice={notice} />
+            <div className="row">
+              <button className="btn primary" type="submit" disabled={busy || (missingRefs && !editing)}>
+                {busy ? 'جارٍ الحفظ…' : editing ? 'حفظ التعديل' : 'حفظ المادة'}
+              </button>
+              {editing && (
+                <button className="btn" type="button" onClick={cancelEdit} disabled={busy}>
+                  إلغاء التعديل
+                </button>
+              )}
+            </div>
+          </Panel>
         </form>
       )}
 
       {!open && notice && <Notice notice={notice} />}
 
       <div className="split">
-        <div className="card tight split-list">
+        <Panel flush bodyClassName="split-list">
           <QueryView query={items} empty="لا توجد مواد" emptyDetail="ابدأ بإضافة بطاقة مادة جديدة.">
             {() => (
               <>
@@ -588,9 +589,9 @@ export default function ItemsPage() {
               </>
             )}
           </QueryView>
-        </div>
+        </Panel>
 
-        <div className="card">
+        <Panel>
           {!selected ? (
             <Empty bare title="لا توجد مادة محددة" detail="اختر مادة من القائمة لعرض بطاقتها بتبويباتها." />
           ) : (
@@ -1034,7 +1035,7 @@ export default function ItemsPage() {
               )}
             </>
           )}
-        </div>
+        </Panel>
       </div>
     </Screen>
   );

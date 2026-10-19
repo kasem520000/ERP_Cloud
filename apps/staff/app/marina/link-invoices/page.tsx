@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Panel } from '@erp/ui';
+import { FilterBand, Panel } from '@erp/ui';
 
 import { DataTable, Notice, QueryView } from '../../../components/data-view';
 import { Screen } from '../../../components/screen';
@@ -171,7 +171,7 @@ export default function MarinaLinkInvoicesPage() {
       </Panel>
 
       {/* «خيارات البحث» — `Form_WPF/frmInvoiceRentSrch.xaml` («بحث الفواتير»). */}
-      <div className="card tight no-print">
+      <FilterBand className="no-print">
         <div className="row" style={{ flexWrap: 'wrap', alignItems: 'flex-end' }}>
           <label className="field" style={{ margin: 0, minWidth: 200 }}>
             <span>العميل</span>
@@ -232,7 +232,7 @@ export default function MarinaLinkInvoicesPage() {
             </button>
           )}
         </div>
-      </div>
+      </FilterBand>
 
       {/* « قائمة الفواتير» — الرقم · التاريخ · العميل · الصافي · الجوال.
           `Form_WPF/frmInvoiceRentSrch.xaml` («بحث الفواتير»). */}

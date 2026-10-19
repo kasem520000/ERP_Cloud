@@ -15,7 +15,7 @@ import {
   toApiLines,
   type LineDraft,
 } from '../../../../components/invoice-editor';
-import { Screen } from '../../../../components/screen';
+import { Empty, Screen } from '../../../../components/screen';
 import { ApiError, apiData, apiPost } from '../../../../lib/api';
 import {
   arabicName,
@@ -201,9 +201,10 @@ export default function NewSalesInvoicePage() {
   if (!can('sales.invoice.create')) {
     return (
       <Screen title="فاتورة مبيعات" crumbs={['المبيعات', 'العمليات']}>
-        <div className="card state">
-          <strong>لا تملك صلاحية إنشاء فواتير المبيعات</strong>
-        </div>
+        <Empty
+          title="لا تملك صلاحية إنشاء فواتير المبيعات"
+          detail="اطلب من مسؤول الحساب منحك صلاحية إنشاء الفواتير."
+        />
       </Screen>
     );
   }

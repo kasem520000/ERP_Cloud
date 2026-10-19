@@ -272,37 +272,38 @@ export default function SupplierPortalPage() {
           ))}
         </Panel>
 
-        <form className="card" onSubmit={upload}>
-          <h2>رفع فاتورة</h2>
-          <p className="muted small">التقديم يصل إلى الموظف ولا يُرحَّل في الدفاتر حتى يقيّده.</p>
-          <div className="form-grid">
-            <label className="field">
-              <span>رقم الفاتورة *</span>
-              <input
-                className="input"
-                value={referenceNo}
-                onChange={(event) => setReferenceNo(event.target.value)}
-                required
-              />
-            </label>
-            <label className="field">
-              <span>الإجمالي *</span>
-              <input
-                className="input"
-                inputMode="decimal"
-                value={declared}
-                onChange={(event) => setDeclared(event.target.value)}
-                required
-              />
-            </label>
-            <label className="field">
-              <span>ملاحظة</span>
-              <input className="input" value={note} onChange={(event) => setNote(event.target.value)} />
-            </label>
-          </div>
-          <button className="btn primary" type="submit" disabled={busy}>
-            {busy ? 'جارٍ الإرسال…' : 'إرسال الفاتورة'}
-          </button>
+        <form onSubmit={upload}>
+          <Panel title="رفع فاتورة">
+            <p className="muted small">التقديم يصل إلى الموظف ولا يُرحَّل في الدفاتر حتى يقيّده.</p>
+            <div className="form-grid">
+              <label className="field">
+                <span>رقم الفاتورة *</span>
+                <input
+                  className="input"
+                  value={referenceNo}
+                  onChange={(event) => setReferenceNo(event.target.value)}
+                  required
+                />
+              </label>
+              <label className="field">
+                <span>الإجمالي *</span>
+                <input
+                  className="input"
+                  inputMode="decimal"
+                  value={declared}
+                  onChange={(event) => setDeclared(event.target.value)}
+                  required
+                />
+              </label>
+              <label className="field">
+                <span>ملاحظة</span>
+                <input className="input" value={note} onChange={(event) => setNote(event.target.value)} />
+              </label>
+            </div>
+            <button className="btn primary" type="submit" disabled={busy}>
+              {busy ? 'جارٍ الإرسال…' : 'إرسال الفاتورة'}
+            </button>
+          </Panel>
         </form>
       </div>
     </main>

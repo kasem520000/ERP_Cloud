@@ -1,6 +1,6 @@
 'use client';
 
-import { FilterBand, Panel } from '@erp/ui';
+import { FilterBand, FormSection, Panel } from '@erp/ui';
 import { Suspense, useState } from 'react';
 
 import { Empty, ErrorBox, Forbidden, Loading, Screen } from '../../../components/screen';
@@ -428,8 +428,7 @@ function TailoringOrders() {
               <span className="modal-title">{draft.id ? 'تعديل الطلب' : 'إضافة طلب جديد'}</span>
             </div>
             <div style={{ padding: 16, display: 'grid', gap: 12, maxHeight: '70vh', overflowY: 'auto' }}>
-              <fieldset className="card tight" style={{ margin: 0 }}>
-                <legend className="group-label">بيانات العميل</legend>
+              <FormSection title="بيانات العميل">
                 <div className="row" style={{ flexWrap: 'wrap', alignItems: 'flex-end' }}>
                   <label className="field" style={{ margin: 0, minWidth: 260, flex: 1 }}>
                     <span>العميل:</span>
@@ -450,10 +449,9 @@ function TailoringOrders() {
                     الجوال: {selectedCustomer?.phone ?? '—'}
                   </p>
                 </div>
-              </fieldset>
+              </FormSection>
 
-              <fieldset className="card tight" style={{ margin: 0 }}>
-                <legend className="group-label">تفاصيل الطلب</legend>
+              <FormSection title="تفاصيل الطلب">
                 <div className="form-grid">
                   <label className="field">
                     <span>القياس:</span>
@@ -567,11 +565,10 @@ function TailoringOrders() {
                     </output>
                   </div>
                 </div>
-              </fieldset>
+              </FormSection>
 
               {(categories.data ?? []).length > 0 && (
-                <fieldset className="card tight" style={{ margin: 0 }}>
-                  <legend className="group-label">الخيارات</legend>
+                <FormSection title="الخيارات">
                   {(categories.data ?? []).map((category) => (
                     <div key={category.id} style={{ marginBottom: 8 }}>
                       <p className="muted" style={{ margin: '0 0 4px', fontWeight: 700 }}>
@@ -594,11 +591,10 @@ function TailoringOrders() {
                       </div>
                     </div>
                   ))}
-                </fieldset>
+                </FormSection>
               )}
 
-              <fieldset className="card tight" style={{ margin: 0 }}>
-                <legend className="group-label">تفاصيل القماش والتصميم</legend>
+              <FormSection title="تفاصيل القماش والتصميم">
                 <div className="form-grid">
                   <label className="field">
                     <span>نوع القماش:</span>
@@ -626,7 +622,7 @@ function TailoringOrders() {
                     />
                   </label>
                 </div>
-              </fieldset>
+              </FormSection>
             </div>
             <div className="modal-foot">
               <button className="btn primary" type="button" onClick={save} disabled={busy}>

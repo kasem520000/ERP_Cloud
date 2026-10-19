@@ -213,151 +213,152 @@ export default function GoodsRequestsPage() {
       }
     >
       {open && (
-        <form className="card" onSubmit={submitRequest}>
-          <h2>طلب بضاعة جديد</h2>
-          <div className="form-grid">
-            <label className="field">
-              <span>الفرع *</span>
-              <select
-                className="input"
-                value={currentBranch}
-                onChange={(event) => setBranchId(event.target.value)}
-                required
-              >
-                <option value="">— اختر —</option>
-                {branchChoices.map((option) => (
-                  <option key={option.id} value={option.id}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="field">
-              <span>المستودع الطالب *</span>
-              <select
-                className="input"
-                value={toWarehouseId}
-                onChange={(event) => setTo(event.target.value)}
-                required
-              >
-                <option value="">— اختر —</option>
-                {warehouseRows.map((row) => (
-                  <option key={row.id} value={row.id}>
-                    {arabicName(row)}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="field">
-              <span>المستودع المورِّد</span>
-              <select
-                className="input"
-                value={fromWarehouseId}
-                onChange={(event) => setFrom(event.target.value)}
-              >
-                <option value="">— يُحدَّد عند الاعتماد —</option>
-                {warehouseRows
-                  .filter((row) => row.id !== toWarehouseId)
-                  .map((row) => (
+        <form onSubmit={submitRequest}>
+          <Panel title="طلب بضاعة جديد">
+            <div className="form-grid">
+              <label className="field">
+                <span>الفرع *</span>
+                <select
+                  className="input"
+                  value={currentBranch}
+                  onChange={(event) => setBranchId(event.target.value)}
+                  required
+                >
+                  <option value="">— اختر —</option>
+                  {branchChoices.map((option) => (
+                    <option key={option.id} value={option.id}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="field">
+                <span>المستودع الطالب *</span>
+                <select
+                  className="input"
+                  value={toWarehouseId}
+                  onChange={(event) => setTo(event.target.value)}
+                  required
+                >
+                  <option value="">— اختر —</option>
+                  {warehouseRows.map((row) => (
                     <option key={row.id} value={row.id}>
                       {arabicName(row)}
                     </option>
                   ))}
-              </select>
-            </label>
-            <label className="field">
-              <span>مطلوب بتاريخ</span>
-              <input
-                className="input"
-                dir="ltr"
-                type="date"
-                value={neededBy}
-                onChange={(event) => setNeededBy(event.target.value)}
-              />
-            </label>
-            <label className="field wide">
-              <span>ملاحظات</span>
-              <input
-                className="input"
-                value={notes}
-                onChange={(event) => setNotes(event.target.value)}
-                placeholder="سبب الطلب أو تفاصيل النواقص"
-              />
-            </label>
-          </div>
+                </select>
+              </label>
+              <label className="field">
+                <span>المستودع المورِّد</span>
+                <select
+                  className="input"
+                  value={fromWarehouseId}
+                  onChange={(event) => setFrom(event.target.value)}
+                >
+                  <option value="">— يُحدَّد عند الاعتماد —</option>
+                  {warehouseRows
+                    .filter((row) => row.id !== toWarehouseId)
+                    .map((row) => (
+                      <option key={row.id} value={row.id}>
+                        {arabicName(row)}
+                      </option>
+                    ))}
+                </select>
+              </label>
+              <label className="field">
+                <span>مطلوب بتاريخ</span>
+                <input
+                  className="input"
+                  dir="ltr"
+                  type="date"
+                  value={neededBy}
+                  onChange={(event) => setNeededBy(event.target.value)}
+                />
+              </label>
+              <label className="field wide">
+                <span>ملاحظات</span>
+                <input
+                  className="input"
+                  value={notes}
+                  onChange={(event) => setNotes(event.target.value)}
+                  placeholder="سبب الطلب أو تفاصيل النواقص"
+                />
+              </label>
+            </div>
 
-          <h3>الأصناف المطلوبة</h3>
-          <div className="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>المادة</th>
-                  <th>الكمية</th>
-                  <th>ملاحظة</th>
-                  <th />
-                </tr>
-              </thead>
-              <tbody>
-                {lines.map((line, index) => (
-                  <tr key={index}>
-                    <td>
-                      <select
-                        className="input"
-                        value={line.itemId}
-                        onChange={(event) => updateLine(index, { itemId: event.target.value })}
-                      >
-                        <option value="">— اختر —</option>
-                        {itemRows.map((row) => (
-                          <option key={row.id} value={row.id}>
-                            {itemLabel(row)}
-                          </option>
-                        ))}
-                      </select>
-                    </td>
-                    <td>
-                      <input
-                        className="input"
-                        dir="ltr"
-                        inputMode="decimal"
-                        value={line.qtyText}
-                        onChange={(event) => updateLine(index, { qtyText: event.target.value })}
-                      />
-                    </td>
-                    <td>
-                      <input
-                        className="input"
-                        value={line.note}
-                        onChange={(event) => updateLine(index, { note: event.target.value })}
-                      />
-                    </td>
-                    <td>
-                      <button
-                        className="btn sm"
-                        type="button"
-                        onClick={() =>
-                          setLines((current) => current.filter((_, position) => position !== index))
-                        }
-                      >
-                        حذف
-                      </button>
-                    </td>
+            <h3>الأصناف المطلوبة</h3>
+            <div className="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>المادة</th>
+                    <th>الكمية</th>
+                    <th>ملاحظة</th>
+                    <th />
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <button
-            className="btn sm"
-            type="button"
-            onClick={() => setLines((current) => [...current, emptyLine()])}
-          >
-            + سطر
-          </button>
+                </thead>
+                <tbody>
+                  {lines.map((line, index) => (
+                    <tr key={index}>
+                      <td>
+                        <select
+                          className="input"
+                          value={line.itemId}
+                          onChange={(event) => updateLine(index, { itemId: event.target.value })}
+                        >
+                          <option value="">— اختر —</option>
+                          {itemRows.map((row) => (
+                            <option key={row.id} value={row.id}>
+                              {itemLabel(row)}
+                            </option>
+                          ))}
+                        </select>
+                      </td>
+                      <td>
+                        <input
+                          className="input"
+                          dir="ltr"
+                          inputMode="decimal"
+                          value={line.qtyText}
+                          onChange={(event) => updateLine(index, { qtyText: event.target.value })}
+                        />
+                      </td>
+                      <td>
+                        <input
+                          className="input"
+                          value={line.note}
+                          onChange={(event) => updateLine(index, { note: event.target.value })}
+                        />
+                      </td>
+                      <td>
+                        <button
+                          className="btn sm"
+                          type="button"
+                          onClick={() =>
+                            setLines((current) => current.filter((_, position) => position !== index))
+                          }
+                        >
+                          حذف
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <button
+              className="btn sm"
+              type="button"
+              onClick={() => setLines((current) => [...current, emptyLine()])}
+            >
+              + سطر
+            </button>
 
-          <Notice notice={notice} />
-          <button className="btn primary" type="submit" disabled={busy}>
-            {busy ? 'جارٍ الحفظ…' : 'حفظ كمسودة'}
-          </button>
+            <Notice notice={notice} />
+            <button className="btn primary" type="submit" disabled={busy}>
+              {busy ? 'جارٍ الحفظ…' : 'حفظ كمسودة'}
+            </button>
+          </Panel>
         </form>
       )}
 

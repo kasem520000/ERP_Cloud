@@ -1,6 +1,6 @@
 'use client';
 
-import { Panel } from '@erp/ui';
+import { FilterBand, FormSection, Panel } from '@erp/ui';
 import { Suspense, useState } from 'react';
 
 import { Empty, ErrorBox, Forbidden, Loading, Screen } from '../../../components/screen';
@@ -345,7 +345,7 @@ function TailoringInvoices() {
       {notice && <p className="alert ok">{notice}</p>}
 
       {/* `txtPhoneNum` — searched as you type, as `txtPhoneNum_TextChanged` does. */}
-      <div className="card tight no-print">
+      <FilterBand className="no-print">
         <div className="row" style={{ flexWrap: 'wrap', alignItems: 'flex-end' }}>
           <label className="field" style={{ margin: 0, minWidth: 280, flex: 1 }}>
             <span>الهاتف أو اسم العميل...</span>
@@ -360,7 +360,7 @@ function TailoringInvoices() {
             />
           </label>
         </div>
-      </div>
+      </FilterBand>
 
       {invoices.status === 'loading' && <Loading rows={6} />}
       {invoices.status === 'forbidden' && <Forbidden />}
@@ -527,8 +527,7 @@ function TailoringInvoices() {
                 const filled = groupFields.filter((field) => viewing.measurements?.[field.key]);
                 if (!filled.length) return null;
                 return (
-                  <fieldset className="card tight" key={group.key} style={{ margin: 0 }}>
-                    <legend className="group-label">{group.title}</legend>
+                  <FormSection key={group.key} title={<>{group.title}</>}>
                     <div className="form-grid">
                       {filled.map((field) => (
                         <div className="field" key={field.key}>
@@ -543,20 +542,18 @@ function TailoringInvoices() {
                         </div>
                       ))}
                     </div>
-                  </fieldset>
+                  </FormSection>
                 );
               })}
 
               {viewing.notes && (
-                <fieldset className="card tight" style={{ margin: 0 }}>
-                  <legend className="group-label">ملاحظات</legend>
+                <FormSection title="ملاحظات">
                   <p style={{ margin: 0, whiteSpace: 'pre-wrap' }}>{viewing.notes}</p>
-                </fieldset>
+                </FormSection>
               )}
 
               {viewing.payments.length > 0 && (
-                <fieldset className="card tight" style={{ margin: 0 }}>
-                  <legend className="group-label">إستلام دفعة</legend>
+                <FormSection title="إستلام دفعة">
                   <div className="table-wrap">
                     <table>
                       <thead>
@@ -579,7 +576,7 @@ function TailoringInvoices() {
                       </tbody>
                     </table>
                   </div>
-                </fieldset>
+                </FormSection>
               )}
             </div>
             <div className="modal-foot">
@@ -609,8 +606,7 @@ function TailoringInvoices() {
               </button>
             </div>
             <div style={{ padding: 16, display: 'grid', gap: 12, maxHeight: '70vh', overflow: 'auto' }}>
-              <fieldset className="card tight" style={{ margin: 0 }}>
-                <legend className="group-label">البيانات الأساسية</legend>
+              <FormSection title="البيانات الأساسية">
                 <div className="form-grid">
                   <label className="field">
                     <span>اسم العميل</span>
@@ -715,11 +711,10 @@ function TailoringInvoices() {
                     </select>
                   </label>
                 </div>
-              </fieldset>
+              </FormSection>
 
               {GROUPS.map((group) => (
-                <fieldset className="card tight" key={group.key} style={{ margin: 0 }}>
-                  <legend className="group-label">{group.title}</legend>
+                <FormSection key={group.key} title={<>{group.title}</>}>
                   <div className="form-grid">
                     {(fields.data ?? [])
                       .filter((field) => field.group === group.key)
@@ -796,7 +791,7 @@ function TailoringInvoices() {
                       </label>
                     )}
                   </div>
-                </fieldset>
+                </FormSection>
               ))}
             </div>
             <div className="modal-foot">

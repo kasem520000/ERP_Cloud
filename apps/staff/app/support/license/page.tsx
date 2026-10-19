@@ -53,7 +53,7 @@ export default function LicensePage() {
         <ErrorBox message={subscription.error} onRetry={subscription.reload} />
       )}
       {subscription.status === 'success' && (
-        <section className="card">
+        <Panel title="بيانات الترخيص">
           {!subscription.data ? (
             <p className="alert warn">لا يوجد ترخيص فعّال لهذه المنشأة.</p>
           ) : (
@@ -80,7 +80,7 @@ export default function LicensePage() {
               </dd>
             </dl>
           )}
-        </section>
+        </Panel>
       )}
 
       <Panel

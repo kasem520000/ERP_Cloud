@@ -114,44 +114,45 @@ export default function SupplierPortalAdminPage() {
       ) : null}
 
       {manage ? (
-        <form className="card" onSubmit={invite}>
-          <h2>دعوة مورد</h2>
-          <div className="form-grid">
-            <label className="field">
-              <span>المورد *</span>
-              <select
-                className="input"
-                value={partyId}
-                onChange={(event) => setPartyId(event.target.value)}
-                required
-              >
-                <option value="">— اختر —</option>
-                {(suppliers.data ?? []).map((row) => (
-                  <option key={row.id} value={row.id}>
-                    {partyLabel(row)}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="field">
-              <span>البريد *</span>
-              <input
-                className="input"
-                type="email"
-                value={email}
-                onChange={(event) => setEmail(event.target.value)}
-                required
-              />
-            </label>
-          </div>
-          <div className="ui-form-actions">
-            <span className="ui-form-actions-note">كلمة المرور تُعرض مرة واحدة بعد الإنشاء.</span>
-            <div className="ui-form-actions-buttons">
-              <button className="btn primary" type="submit" disabled={busy}>
-                {busy ? 'جارٍ الحفظ…' : 'إنشاء الدخول'}
-              </button>
+        <form onSubmit={invite}>
+          <Panel title="دعوة مورد">
+            <div className="form-grid">
+              <label className="field">
+                <span>المورد *</span>
+                <select
+                  className="input"
+                  value={partyId}
+                  onChange={(event) => setPartyId(event.target.value)}
+                  required
+                >
+                  <option value="">— اختر —</option>
+                  {(suppliers.data ?? []).map((row) => (
+                    <option key={row.id} value={row.id}>
+                      {partyLabel(row)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="field">
+                <span>البريد *</span>
+                <input
+                  className="input"
+                  type="email"
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
+                  required
+                />
+              </label>
             </div>
-          </div>
+            <div className="ui-form-actions">
+              <span className="ui-form-actions-note">كلمة المرور تُعرض مرة واحدة بعد الإنشاء.</span>
+              <div className="ui-form-actions-buttons">
+                <button className="btn primary" type="submit" disabled={busy}>
+                  {busy ? 'جارٍ الحفظ…' : 'إنشاء الدخول'}
+                </button>
+              </div>
+            </div>
+          </Panel>
         </form>
       ) : null}
 
@@ -185,32 +186,33 @@ export default function SupplierPortalAdminPage() {
       </QueryView>
 
       {manage ? (
-        <form className="card" onSubmit={createRfq}>
-          <h2>طلب عرض سعر</h2>
-          <div className="form-grid">
-            <label className="field">
-              <span>العنوان *</span>
-              <input
-                className="input"
-                value={title}
-                onChange={(event) => setTitle(event.target.value)}
-                required
-                maxLength={160}
-              />
-            </label>
-            <label className="field">
-              <span>ملاحظة</span>
-              <input className="input" value={note} onChange={(event) => setNote(event.target.value)} />
-            </label>
-          </div>
-          <div className="ui-form-actions">
-            <span className="ui-form-actions-note">يُرسَل الطلب إلى المورد المختار أعلاه.</span>
-            <div className="ui-form-actions-buttons">
-              <button className="btn" type="submit" disabled={busy || !partyId}>
-                إرسال الطلب للمورد المختار
-              </button>
+        <form onSubmit={createRfq}>
+          <Panel title="طلب عرض سعر">
+            <div className="form-grid">
+              <label className="field">
+                <span>العنوان *</span>
+                <input
+                  className="input"
+                  value={title}
+                  onChange={(event) => setTitle(event.target.value)}
+                  required
+                  maxLength={160}
+                />
+              </label>
+              <label className="field">
+                <span>ملاحظة</span>
+                <input className="input" value={note} onChange={(event) => setNote(event.target.value)} />
+              </label>
             </div>
-          </div>
+            <div className="ui-form-actions">
+              <span className="ui-form-actions-note">يُرسَل الطلب إلى المورد المختار أعلاه.</span>
+              <div className="ui-form-actions-buttons">
+                <button className="btn" type="submit" disabled={busy || !partyId}>
+                  إرسال الطلب للمورد المختار
+                </button>
+              </div>
+            </div>
+          </Panel>
         </form>
       ) : null}
 

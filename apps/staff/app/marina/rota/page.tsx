@@ -1,5 +1,6 @@
 'use client';
 
+import { Panel } from '@erp/ui';
 import { useState } from 'react';
 
 import { DataTable, Notice, QueryView } from '../../../components/data-view';
@@ -96,115 +97,120 @@ export default function MarinaRotaPage() {
       crumbs={['إدارة المراسي', 'العمليات']}
     >
       {can('marina.manage') && (
-        <form className="card" onSubmit={createPlan}>
-          <h2>خطة دور جديدة</h2>
-          <div className="form-grid">
-            <label className="field">
-              <span>اسم الخطة *</span>
-              <input
-                className="input"
-                value={name}
-                onChange={(event) => setName(event.target.value)}
-                required
-                placeholder="دور يوم الخميس"
-              />
-            </label>
-            <label className="field">
-              <span>التاريخ *</span>
-              <input
-                className="input"
-                dir="ltr"
-                type="date"
-                value={planDate}
-                onChange={(event) => setPlanDate(event.target.value)}
-                required
-              />
-            </label>
-            <label className="field">
-              <span>المجموعة</span>
-              <select className="input" value={groupId} onChange={(event) => setGroupId(event.target.value)}>
-                <option value="">— كل المجموعات —</option>
-                {groups.map((row) => (
-                  <option key={row.id} value={row.id}>
-                    {row.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </div>
+        <form onSubmit={createPlan}>
+          <Panel title="خطة دور جديدة">
+            <div className="form-grid">
+              <label className="field">
+                <span>اسم الخطة *</span>
+                <input
+                  className="input"
+                  value={name}
+                  onChange={(event) => setName(event.target.value)}
+                  required
+                  placeholder="دور يوم الخميس"
+                />
+              </label>
+              <label className="field">
+                <span>التاريخ *</span>
+                <input
+                  className="input"
+                  dir="ltr"
+                  type="date"
+                  value={planDate}
+                  onChange={(event) => setPlanDate(event.target.value)}
+                  required
+                />
+              </label>
+              <label className="field">
+                <span>المجموعة</span>
+                <select
+                  className="input"
+                  value={groupId}
+                  onChange={(event) => setGroupId(event.target.value)}
+                >
+                  <option value="">— كل المجموعات —</option>
+                  {groups.map((row) => (
+                    <option key={row.id} value={row.id}>
+                      {row.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
 
-          <h3>ترتيب الدور</h3>
-          <div className="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>#</th>
-                  <th>المركب</th>
-                  <th>الفترة</th>
-                  <th />
-                </tr>
-              </thead>
-              <tbody>
-                {lines.map((line, index) => (
-                  <tr key={index}>
-                    <td className="num">{index + 1}</td>
-                    <td>
-                      <select
-                        className="input"
-                        value={line.vesselId}
-                        onChange={(event) => updateLine(index, { vesselId: event.target.value })}
-                      >
-                        <option value="">— اختر —</option>
-                        {vessels.map((row) => (
-                          <option key={row.id} value={row.id}>
-                            {`${row.code} — ${row.name}`}
-                          </option>
-                        ))}
-                      </select>
-                    </td>
-                    <td>
-                      <select
-                        className="input"
-                        value={line.periodLabel}
-                        onChange={(event) => updateLine(index, { periodLabel: event.target.value })}
-                      >
-                        {PERIODS.map((period) => (
-                          <option key={period} value={period}>
-                            {period}
-                          </option>
-                        ))}
-                      </select>
-                    </td>
-                    <td>
-                      <button
-                        className="btn sm"
-                        type="button"
-                        onClick={() =>
-                          setLines((current) => current.filter((_, position) => position !== index))
-                        }
-                      >
-                        حذف
-                      </button>
-                    </td>
+            <h3>ترتيب الدور</h3>
+            <div className="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>المركب</th>
+                    <th>الفترة</th>
+                    <th />
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <button
-            className="btn sm"
-            type="button"
-            onClick={() =>
-              setLines((current) => [...current, { vesselId: '', periodLabel: PERIODS[0] ?? '' }])
-            }
-          >
-            + مركب
-          </button>
+                </thead>
+                <tbody>
+                  {lines.map((line, index) => (
+                    <tr key={index}>
+                      <td className="num">{index + 1}</td>
+                      <td>
+                        <select
+                          className="input"
+                          value={line.vesselId}
+                          onChange={(event) => updateLine(index, { vesselId: event.target.value })}
+                        >
+                          <option value="">— اختر —</option>
+                          {vessels.map((row) => (
+                            <option key={row.id} value={row.id}>
+                              {`${row.code} — ${row.name}`}
+                            </option>
+                          ))}
+                        </select>
+                      </td>
+                      <td>
+                        <select
+                          className="input"
+                          value={line.periodLabel}
+                          onChange={(event) => updateLine(index, { periodLabel: event.target.value })}
+                        >
+                          {PERIODS.map((period) => (
+                            <option key={period} value={period}>
+                              {period}
+                            </option>
+                          ))}
+                        </select>
+                      </td>
+                      <td>
+                        <button
+                          className="btn sm"
+                          type="button"
+                          onClick={() =>
+                            setLines((current) => current.filter((_, position) => position !== index))
+                          }
+                        >
+                          حذف
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            <button
+              className="btn sm"
+              type="button"
+              onClick={() =>
+                setLines((current) => [...current, { vesselId: '', periodLabel: PERIODS[0] ?? '' }])
+              }
+            >
+              + مركب
+            </button>
 
-          <Notice notice={notice} />
-          <button className="btn primary" type="submit" disabled={busy}>
-            {busy ? 'جارٍ الحفظ…' : 'حفظ الخطة'}
-          </button>
+            <Notice notice={notice} />
+            <button className="btn primary" type="submit" disabled={busy}>
+              {busy ? 'جارٍ الحفظ…' : 'حفظ الخطة'}
+            </button>
+          </Panel>
         </form>
       )}
 

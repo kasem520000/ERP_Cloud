@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { Panel } from '@erp/ui';
+import { FilterBand, Panel } from '@erp/ui';
 import { useEffect, useMemo, useState } from 'react';
 
 import { Empty, ErrorBox, Forbidden, Loading, Screen } from '../../../components/screen';
@@ -210,7 +210,7 @@ export default function AccountStatementPage() {
       }
     >
       {/* فلاتر البحث المتقدم — the header of the window's own filter panel. */}
-      <div className="card tight no-print">
+      <FilterBand className="no-print">
         <div className="row" style={{ flexWrap: 'wrap', alignItems: 'flex-end' }}>
           <label className="field" style={{ margin: 0, minWidth: 260, flex: 1 }}>
             <span>اسم الحساب</span>
@@ -406,7 +406,7 @@ export default function AccountStatementPage() {
             عدم إظهار الرصيد السابق
           </label>
         </div>
-      </div>
+      </FilterBand>
 
       {!applied.accountId && (
         <Panel title="كشف الحساب" flush>

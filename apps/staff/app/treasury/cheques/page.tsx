@@ -1,5 +1,6 @@
 'use client';
 
+import { FilterBand } from '@erp/ui';
 import Link from 'next/link';
 import Decimal from 'decimal.js';
 import { useMemo, useState } from 'react';
@@ -129,7 +130,7 @@ export default function ChequesPage() {
         <StatTile label="قيمة محصّلة" value={money(totals.collectedTotal.toFixed(4))} />
       </StatTiles>
 
-      <div className="card toolbar">
+      <FilterBand>
         <label className="field">
           <span>من تاريخ</span>
           <input
@@ -175,7 +176,7 @@ export default function ChequesPage() {
         >
           كل الفترة
         </button>
-      </div>
+      </FilterBand>
 
       <Notice notice={notice} />
 

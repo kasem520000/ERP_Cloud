@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Panel } from '@erp/ui';
+import { FilterBand, Panel } from '@erp/ui';
 
 import { DataTable, Notice, QueryView } from '../../../../components/data-view';
 import { Screen } from '../../../../components/screen';
@@ -85,7 +85,7 @@ export default function ZatcaSyncPage() {
       subtitle="حالة كل فاتورة أُرسلت للهيئة، وسلسلة التجزئة (hash chain) التي تربطها بسابقتها."
       crumbs={['الإعدادات', 'المزامنة']}
     >
-      <div className="card toolbar">
+      <FilterBand>
         <label className="field">
           <span>الحالة</span>
           <select className="input" value={status} onChange={(event) => setStatus(event.target.value)}>
@@ -101,7 +101,7 @@ export default function ZatcaSyncPage() {
         <span className="muted small">
           الإرسال يتم من شاشة الفاتورة بعد ترحيلها؛ هذه الشاشة للمتابعة وإعادة المحاولة.
         </span>
-      </div>
+      </FilterBand>
       <Notice notice={notice} />
       <Notice
         notice={{

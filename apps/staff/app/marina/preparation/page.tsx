@@ -1,5 +1,6 @@
 'use client';
 
+import { Panel } from '@erp/ui';
 import { useState } from 'react';
 
 import { DataTable, Notice, QueryView } from '../../../components/data-view';
@@ -111,69 +112,70 @@ export default function MarinaPreparationPage() {
       crumbs={['إدارة المراسي', 'العمليات']}
     >
       {can('marina.manage') && (
-        <form className="card" onSubmit={prepare}>
-          <h2>تحضير حجز</h2>
-          <div className="form-grid">
-            <label className="field wide">
-              <span>الحجز *</span>
-              <select
-                className="input"
-                value={bookingId}
-                onChange={(event) => setBookingId(event.target.value)}
-                required
-              >
-                <option value="">— اختر حجزاً لم يُحضَّر بعد —</option>
-                {pending.map((row) => (
-                  <option key={row.id} value={row.id}>
-                    {`${vesselName(row.vesselId)} — ${dateTime(row.startsAt)} — مرافقون: ${row.companions ?? 0}`}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="field">
-              <span>تاريخ التحضير</span>
-              <input
-                className="input"
-                dir="ltr"
-                type="date"
-                value={day}
-                onChange={(event) => setDay(event.target.value)}
-              />
-            </label>
-            <label className="field">
-              <span>مستوى الوقود</span>
-              <select className="input" value={fuelLevel} onChange={(event) => setFuel(event.target.value)}>
-                <option value="full">ممتلئ</option>
-                <option value="three_quarters">¾</option>
-                <option value="half">نصف</option>
-                <option value="quarter">¼</option>
-                <option value="empty">فارغ</option>
-              </select>
-            </label>
-            <label className="field">
-              <span>سترات النجاة{booking ? ` (المطلوب ${booking.companions ?? 0})` : ''}</span>
-              <input
-                className="input"
-                dir="ltr"
-                inputMode="numeric"
-                value={lifeJackets}
-                onChange={(event) => setJackets(event.target.value)}
-              />
-            </label>
-            <label className="field wide">
-              <span>ملاحظات</span>
-              <input
-                className="input"
-                value={notes}
-                onChange={(event) => setNotes(event.target.value)}
-                placeholder="أعطال، نواقص، ملاحظات السلامة"
-              />
-            </label>
-          </div>
-          <Notice notice={notice} />
-          <button className="btn primary" type="submit" disabled={busy}>
-            {busy ? 'جارٍ الحفظ…' : 'تسجيل التحضير'}
-          </button>
+        <form onSubmit={prepare}>
+          <Panel title="تحضير حجز">
+            <div className="form-grid">
+              <label className="field wide">
+                <span>الحجز *</span>
+                <select
+                  className="input"
+                  value={bookingId}
+                  onChange={(event) => setBookingId(event.target.value)}
+                  required
+                >
+                  <option value="">— اختر حجزاً لم يُحضَّر بعد —</option>
+                  {pending.map((row) => (
+                    <option key={row.id} value={row.id}>
+                      {`${vesselName(row.vesselId)} — ${dateTime(row.startsAt)} — مرافقون: ${row.companions ?? 0}`}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="field">
+                <span>تاريخ التحضير</span>
+                <input
+                  className="input"
+                  dir="ltr"
+                  type="date"
+                  value={day}
+                  onChange={(event) => setDay(event.target.value)}
+                />
+              </label>
+              <label className="field">
+                <span>مستوى الوقود</span>
+                <select className="input" value={fuelLevel} onChange={(event) => setFuel(event.target.value)}>
+                  <option value="full">ممتلئ</option>
+                  <option value="three_quarters">¾</option>
+                  <option value="half">نصف</option>
+                  <option value="quarter">¼</option>
+                  <option value="empty">فارغ</option>
+                </select>
+              </label>
+              <label className="field">
+                <span>سترات النجاة{booking ? ` (المطلوب ${booking.companions ?? 0})` : ''}</span>
+                <input
+                  className="input"
+                  dir="ltr"
+                  inputMode="numeric"
+                  value={lifeJackets}
+                  onChange={(event) => setJackets(event.target.value)}
+                />
+              </label>
+              <label className="field wide">
+                <span>ملاحظات</span>
+                <input
+                  className="input"
+                  value={notes}
+                  onChange={(event) => setNotes(event.target.value)}
+                  placeholder="أعطال، نواقص، ملاحظات السلامة"
+                />
+              </label>
+            </div>
+            <Notice notice={notice} />
+            <button className="btn primary" type="submit" disabled={busy}>
+              {busy ? 'جارٍ الحفظ…' : 'تسجيل التحضير'}
+            </button>
+          </Panel>
         </form>
       )}
 

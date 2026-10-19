@@ -7,7 +7,7 @@ import { useEffect, useMemo, useState } from 'react';
 import type { CompanyProfileDto } from '@erp/contracts';
 
 import { Notice } from '../../../components/data-view';
-import { Screen } from '../../../components/screen';
+import { Empty, Screen } from '../../../components/screen';
 import { computeTotals, emptyLine, type LineDraft } from '../../../components/invoice-editor';
 import { ApiError, apiData, apiList, apiPost } from '../../../lib/api';
 import { readCompanyProfile, receiptIdentity } from '../../../lib/company-profile';
@@ -560,10 +560,10 @@ export default function PosPage() {
   if (!can('pos.operate')) {
     return (
       <Screen title="نقطة البيع" crumbs={['المبيعات']}>
-        <div className="card state">
-          <strong>لا تملك صلاحية تشغيل نقطة البيع</strong>
-          <span>تحتاج صلاحية pos.operate.</span>
-        </div>
+        <Empty
+          title="لا تملك صلاحية تشغيل نقطة البيع"
+          detail="اطلب من مسؤول الحساب تفعيل نقطة البيع لحسابك."
+        />
       </Screen>
     );
   }

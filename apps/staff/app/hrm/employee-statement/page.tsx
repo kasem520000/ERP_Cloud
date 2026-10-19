@@ -1,7 +1,7 @@
 'use client';
 
 import { useSearchParams } from 'next/navigation';
-import { Panel } from '@erp/ui';
+import { FilterBand, Panel } from '@erp/ui';
 import { Suspense, useState } from 'react';
 
 import { Empty, ErrorBox, Forbidden, Loading, Screen } from '../../../components/screen';
@@ -202,7 +202,7 @@ function EmployeeStatement() {
         </>
       }
     >
-      <div className="card tight no-print">
+      <FilterBand className="no-print">
         <div className="row" style={{ flexWrap: 'wrap', alignItems: 'flex-end' }}>
           <label className="field" style={{ margin: 0, minWidth: 260, flex: 1 }}>
             <span>اسم الموظف *</span>
@@ -295,7 +295,7 @@ function EmployeeStatement() {
             تفصيلي
           </button>
         </div>
-      </div>
+      </FilterBand>
 
       {!applied.employeeId && (
         <Panel title="كشف حساب الموظف" flush>

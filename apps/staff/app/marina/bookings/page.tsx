@@ -1,6 +1,6 @@
 'use client';
 
-import { Panel } from '@erp/ui';
+import { FilterBand, FormSection, Panel } from '@erp/ui';
 import Link from 'next/link';
 import { Suspense, useState } from 'react';
 
@@ -320,7 +320,7 @@ function MarinaBookings() {
       {notice && <p className="alert ok">{notice}</p>}
 
       {/* «البحث» — رقم الحجز · اسم العميل أو جواله · من تاريخ وإلى تاريخ. */}
-      <div className="card tight no-print">
+      <FilterBand className="no-print">
         <div className="row" style={{ flexWrap: 'wrap', alignItems: 'flex-end' }}>
           <label className="field" style={{ margin: 0, minWidth: 130 }}>
             <span>رقم الحجز</span>
@@ -374,7 +374,7 @@ function MarinaBookings() {
             </button>
           )}
         </div>
-      </div>
+      </FilterBand>
 
       {bookings.status === 'loading' && <Loading rows={6} />}
       {bookings.status === 'forbidden' && <Forbidden />}
@@ -609,10 +609,7 @@ function MarinaBookings() {
                 </label>
               </div>
 
-              <fieldset className="card tight" style={{ margin: 0 }}>
-                <legend className="group-label" style={{ margin: 0 }}>
-                  نوع الحجز
-                </legend>
+              <FormSection title="نوع الحجز">
                 <div className="row" style={{ gap: 12 }}>
                   {['حجز عادي', 'بحر مفتوح'].map((type) => (
                     <label key={type} className="row" style={{ gap: 6 }}>
@@ -626,13 +623,10 @@ function MarinaBookings() {
                     </label>
                   ))}
                 </div>
-              </fieldset>
+              </FormSection>
 
               {/* الإضافات — الوصف · العدد · السعر · الإجمالي · حذف */}
-              <fieldset className="card tight" style={{ margin: 0 }}>
-                <legend className="group-label" style={{ margin: 0 }}>
-                  الإضافات
-                </legend>
+              <FormSection title="الإضافات">
                 <div className="row" style={{ gap: 6, flexWrap: 'wrap', alignItems: 'flex-end' }}>
                   <label className="field" style={{ margin: 0, flex: 1, minWidth: 180 }}>
                     <span>الإضافات</span>
@@ -759,7 +753,7 @@ function MarinaBookings() {
                     </table>
                   </div>
                 )}
-              </fieldset>
+              </FormSection>
 
               {totals && (
                 <div className="row" style={{ gap: 16, flexWrap: 'wrap', fontWeight: 700 }}>

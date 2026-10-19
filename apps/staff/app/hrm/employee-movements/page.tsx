@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { Panel } from '@erp/ui';
+import { FilterBand, Panel } from '@erp/ui';
 import { Suspense, useState } from 'react';
 
 import { Empty, ErrorBox, Forbidden, Loading, Screen } from '../../../components/screen';
@@ -179,7 +179,7 @@ function EmployeeMovements() {
         </>
       }
     >
-      <div className="card tight no-print">
+      <FilterBand className="no-print">
         <div className="row" style={{ flexWrap: 'wrap', alignItems: 'flex-end' }}>
           <label className="field" style={{ margin: 0, minWidth: 240, flex: 1 }}>
             <span>الموظف</span>
@@ -262,7 +262,7 @@ function EmployeeMovements() {
             مرتجع
           </button>
         </div>
-      </div>
+      </FilterBand>
 
       {!applied.employeeId && !applied.allEmployees && (
         <Panel title="حركة الموظف" flush>

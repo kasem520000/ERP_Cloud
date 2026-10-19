@@ -1,6 +1,6 @@
 'use client';
 
-import { Panel } from '@erp/ui';
+import { FilterBand, FormSection, Panel } from '@erp/ui';
 import Link from 'next/link';
 import { Suspense, useState } from 'react';
 
@@ -216,7 +216,7 @@ function TailoringMeasurements() {
       {error && <p className="alert danger">{error}</p>}
       {notice && <p className="alert ok">{notice}</p>}
 
-      <div className="card tight no-print">
+      <FilterBand className="no-print">
         <div className="row" style={{ flexWrap: 'wrap', alignItems: 'flex-end' }}>
           <label className="field" style={{ margin: 0, minWidth: 260, flex: 1 }}>
             <span>البحث برقم الجوال أو الاسم:</span>
@@ -247,7 +247,7 @@ function TailoringMeasurements() {
             <span dir="ltr">الجوال: {measurements.data.customer.phone || '—'}</span>
           </div>
         )}
-      </div>
+      </FilterBand>
 
       {measurements.status === 'loading' && <Loading rows={6} />}
       {measurements.status === 'forbidden' && <Forbidden />}
@@ -353,8 +353,7 @@ function TailoringMeasurements() {
                 </div>
               </fieldset>
 
-              <fieldset className="card tight" style={{ margin: 0 }}>
-                <legend className="group-label">قيم القياسات</legend>
+              <FormSection title="قيم القياسات">
                 {activeAttributes.length === 0 ? (
                   <p className="muted" style={{ margin: 0 }}>
                     لا خصائص مفعّلة. أضف خاصية من{' '}
@@ -385,7 +384,7 @@ function TailoringMeasurements() {
                     ))}
                   </div>
                 )}
-              </fieldset>
+              </FormSection>
 
               <fieldset className="card tight" style={{ margin: 0 }}>
                 <label className="field" style={{ margin: 0 }}>

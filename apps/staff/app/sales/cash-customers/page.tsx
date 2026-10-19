@@ -4,7 +4,7 @@ import { Panel } from '@erp/ui';
 import { useState } from 'react';
 
 import { CashCustomerPicker, type CashCustomer } from '../../../components/cash-customer-picker';
-import { Screen } from '../../../components/screen';
+import { Empty, Screen } from '../../../components/screen';
 import { apiList } from '../../../lib/api';
 import { useSession } from '../../../lib/session';
 import { useQuery } from '../../../lib/use-query';
@@ -33,10 +33,7 @@ export default function CashCustomersPage() {
   if (!can('sales.view')) {
     return (
       <Screen title="عميل نقدي" crumbs={['المبيعات']}>
-        <div className="card state">
-          <strong>لا تملك صلاحية عرض العملاء</strong>
-          <span>تحتاج صلاحية sales.view.</span>
-        </div>
+        <Empty title="لا تملك صلاحية عرض العملاء" detail="اطلب من مسؤول الحساب منحك صلاحية عرض العملاء." />
       </Screen>
     );
   }

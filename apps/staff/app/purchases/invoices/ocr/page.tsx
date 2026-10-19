@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useState, type ChangeEvent, type FormEvent } from 'react';
 
 import { Notice } from '../../../../components/data-view';
-import { Screen } from '../../../../components/screen';
+import { Empty, Screen } from '../../../../components/screen';
 import { ApiError, apiData, apiPost } from '../../../../lib/api';
 import {
   arabicName,
@@ -67,12 +67,24 @@ type ReviewValues = {
 };
 
 const band = (score: number | undefined) =>
-  score !== undefined && score > 0.9 ? { label: 'ثقة عالية', color: 'var(--ok)', background: 'var(--ok-soft)' } : score !== undefined && score >= 0.7 ? { label: 'تحتاج مراجعة', color: 'var(--warn)', background: 'var(--warn-soft)' } : { label: 'ثقة منخفضة', color: 'var(--danger)', background: 'var(--danger-soft)' };
+  score !== undefined && score > 0.9
+    ? { label: 'ثقة عالية', color: 'var(--ok)', background: 'var(--ok-soft)' }
+    : score !== undefined && score >= 0.7
+      ? { label: 'تحتاج مراجعة', color: 'var(--warn)', background: 'var(--warn-soft)' }
+      : { label: 'ثقة منخفضة', color: 'var(--danger)', background: 'var(--danger-soft)' };
 
 function Confidence({ score }: { score?: number }) {
   const tone = band(score);
   return (
-    <span style={{ background: tone.background, borderRadius: 999, color: tone.color, fontSize: 12, padding: '2px 8px' }}>
+    <span
+      style={{
+        background: tone.background,
+        borderRadius: 999,
+        color: tone.color,
+        fontSize: 12,
+        padding: '2px 8px',
+      }}
+    >
       {score === undefined ? 'غير متاح' : `${Math.round(score * 100)}% · ${tone.label}`}
     </span>
   );
@@ -93,7 +105,16 @@ export default function OcrPurchaseInvoicePage() {
   const [warehouseId, setWarehouseId] = useState('');
   const [partyId, setPartyId] = useState('');
   const [mappedItems, setMappedItems] = useState<Record<number, string>>({});
-  const [reviewValues, setReviewValues] = useState<ReviewValues>({ supplierName: '', supplierTaxNumber: '', invoiceNumber: '', invoiceDate: '', subtotal: '', taxAmount: '', total: '', currency: '' });
+  const [reviewValues, setReviewValues] = useState<ReviewValues>({
+    supplierName: '',
+    supplierTaxNumber: '',
+    invoiceNumber: '',
+    invoiceDate: '',
+    subtotal: '',
+    taxAmount: '',
+    total: '',
+    currency: '',
+  });
   const [reviewJobId, setReviewJobId] = useState('');
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<{ kind: 'ok' | 'danger' | 'warn'; text: string }>();
@@ -109,7 +130,9 @@ export default function OcrPurchaseInvoicePage() {
     if (!existingJobId || job) return undefined;
     void apiData<OcrJob>(`/ocr/jobs/${existingJobId}`)
       .then(setJob)
-      .catch((error: unknown) => setNotice({ kind: 'danger', text: error instanceof Error ? error.message : String(error) }));
+      .catch((error: unknown) =>
+        setNotice({ kind: 'danger', text: error instanceof Error ? error.message : String(error) }),
+      );
     return undefined;
   }, [job, searchParams]);
 
@@ -133,7 +156,9 @@ export default function OcrPurchaseInvoicePage() {
     const timer = setInterval(() => {
       void apiData<OcrJob>(`/ocr/jobs/${job.id}`)
         .then(setJob)
-        .catch((error: unknown) => setNotice({ kind: 'danger', text: error instanceof Error ? error.message : String(error) }));
+        .catch((error: unknown) =>
+          setNotice({ kind: 'danger', text: error instanceof Error ? error.message : String(error) }),
+        );
     }, 2_000);
     return () => clearInterval(timer);
   }, [job]);
@@ -167,7 +192,10 @@ export default function OcrPurchaseInvoicePage() {
       });
       if (!upload.ok) throw new Error(`فشل رفع المستند (${upload.status}).`);
       await apiPost(`/files/${presign.fileId}/finalize`, {});
-      const created = await apiPost<OcrJob>('/ocr/jobs', { fileId: presign.fileId, entityType: 'purchase_invoice' });
+      const created = await apiPost<OcrJob>('/ocr/jobs', {
+        fileId: presign.fileId,
+        entityType: 'purchase_invoice',
+      });
       setJob(created);
       setNotice({ kind: 'ok', text: 'تم رفع المستند. يجري استخراج الحقول الآن.' });
     } catch (error) {
@@ -223,9 +251,10 @@ export default function OcrPurchaseInvoicePage() {
   if (!can('purchase.ocr.use')) {
     return (
       <Screen title="OCR فواتير الشراء" crumbs={['المشتريات', 'العمليات']}>
-        <div className="card state">
-          <strong>تحتاج صلاحية <code dir="ltr">purchase.ocr.use</code></strong>
-        </div>
+        <Empty
+          title="لا تملك صلاحية قراءة فواتير الشراء بالمسح"
+          detail="اطلب من مسؤول الحساب تفعيل مسح فواتير الشراء لحسابك."
+        />
       </Screen>
     );
   }
@@ -237,7 +266,11 @@ export default function OcrPurchaseInvoicePage() {
       title="قراءة فاتورة شراء بالـ OCR"
       subtitle="ارفع المستند، راجع الحقول وألوان الثقة، ثم أنشئ مسودة قبل الترحيل. لا يُرحّل OCR أي فاتورة تلقائياً."
       crumbs={['المشتريات', 'العمليات']}
-      actions={<Link className="btn" href="/purchases/invoices">العودة للفواتير</Link>}
+      actions={
+        <Link className="btn" href="/purchases/invoices">
+          العودة للفواتير
+        </Link>
+      }
     >
       <Notice notice={notice} />
 
@@ -245,15 +278,32 @@ export default function OcrPurchaseInvoicePage() {
         <div className="form-grid">
           <label className="field" style={{ gridColumn: '1 / -1' }}>
             <span>المستند (PDF أو صورة) *</span>
-            <input className="input" type="file" accept="application/pdf,image/png,image/jpeg,image/webp,image/gif" onChange={chooseFile} />
-            <span className="muted small">تتم معالجة الصفحة الأولى من PDF متعدد الصفحات، وتبقى البايتات في التخزين الكائني.</span>
+            <input
+              className="input"
+              type="file"
+              accept="application/pdf,image/png,image/jpeg,image/webp,image/gif"
+              onChange={chooseFile}
+            />
+            <span className="muted small">
+              تتم معالجة الصفحة الأولى من PDF متعدد الصفحات، وتبقى البايتات في التخزين الكائني.
+            </span>
           </label>
         </div>
         <div className="actions">
           <button className="btn primary" type="submit" disabled={busy || !selectedFile}>
             {busy ? 'جارٍ الرفع…' : 'رفع وبدء القراءة'}
           </button>
-          {job && <span className="badge">{job.status === 'queued' ? 'في الانتظار' : job.status === 'processing' ? 'جارٍ الاستخراج' : job.status === 'done' ? 'اكتمل' : 'فشل'}</span>}
+          {job && (
+            <span className="badge">
+              {job.status === 'queued'
+                ? 'في الانتظار'
+                : job.status === 'processing'
+                  ? 'جارٍ الاستخراج'
+                  : job.status === 'done'
+                    ? 'اكتمل'
+                    : 'فشل'}
+            </span>
+          )}
         </div>
       </form>
 
@@ -270,7 +320,11 @@ export default function OcrPurchaseInvoicePage() {
               </a>
             </div>
             <div className="ocr-document-preview">
-              {job.file.mime === 'application/pdf' ? <iframe title="معاينة الفاتورة" src={job.file.downloadUrl} /> : <img alt="معاينة فاتورة الشراء" src={job.file.downloadUrl} />}
+              {job.file.mime === 'application/pdf' ? (
+                <iframe title="معاينة الفاتورة" src={job.file.downloadUrl} />
+              ) : (
+                <img alt="معاينة فاتورة الشراء" src={job.file.downloadUrl} />
+              )}
             </div>
           </section>
 
@@ -282,27 +336,33 @@ export default function OcrPurchaseInvoicePage() {
               </div>
               <Confidence score={job.confidence ?? job.extracted.confidence} />
             </div>
-            {job.status === 'failed' && <div className="notice danger">تعذر إكمال OCR: {job.error ?? 'خطأ غير معروف'}</div>}
+            {job.status === 'failed' && (
+              <div className="notice danger">تعذر إكمال OCR: {job.error ?? 'خطأ غير معروف'}</div>
+            )}
             {job.status === 'done' && (
               <div className="ocr-fields">
-                {([
-                  ['supplierName', 'المورد', job.extracted.supplierName],
-                  ['supplierTaxNumber', 'الرقم الضريبي', job.extracted.supplierTaxNumber],
-                  ['invoiceNumber', 'رقم الفاتورة', job.extracted.invoiceNumber],
-                  ['invoiceDate', 'تاريخ الفاتورة', job.extracted.invoiceDate],
-                  ['subtotal', 'قبل الضريبة', job.extracted.subtotal],
-                  ['taxAmount', 'الضريبة', job.extracted.taxAmount],
-                  ['total', 'الإجمالي', job.extracted.total],
-                  ['currency', 'العملة', job.extracted.currency],
-                ] as Array<[keyof ReviewValues, string, string | null]>).map(([key, label, value]) => (
+                {(
+                  [
+                    ['supplierName', 'المورد', job.extracted.supplierName],
+                    ['supplierTaxNumber', 'الرقم الضريبي', job.extracted.supplierTaxNumber],
+                    ['invoiceNumber', 'رقم الفاتورة', job.extracted.invoiceNumber],
+                    ['invoiceDate', 'تاريخ الفاتورة', job.extracted.invoiceDate],
+                    ['subtotal', 'قبل الضريبة', job.extracted.subtotal],
+                    ['taxAmount', 'الضريبة', job.extracted.taxAmount],
+                    ['total', 'الإجمالي', job.extracted.total],
+                    ['currency', 'العملة', job.extracted.currency],
+                  ] as Array<[keyof ReviewValues, string, string | null]>
+                ).map(([key, label, value]) => (
                   <div className="ocr-field" key={key}>
                     <strong>{label}</strong>
                     <input
                       className="input"
                       dir="ltr"
                       type={key === 'invoiceDate' ? 'date' : 'text'}
-                      value={reviewJobId === job.id ? reviewValues[key] : value ?? ''}
-                      onChange={(event) => setReviewValues((current) => ({ ...current, [key]: event.target.value }))}
+                      value={reviewJobId === job.id ? reviewValues[key] : (value ?? '')}
+                      onChange={(event) =>
+                        setReviewValues((current) => ({ ...current, [key]: event.target.value }))
+                      }
                     />
                     <Confidence score={job.extracted.confidenceByField[key]} />
                   </div>
@@ -314,7 +374,10 @@ export default function OcrPurchaseInvoicePage() {
       )}
 
       {job?.status === 'done' && !canCreateInvoice && (
-        <div className="notice warn">يمكنك مراجعة نتيجة OCR، لكن إنشاء المسودة يحتاج صلاحية <code dir="ltr">purchase.invoice.create</code>.</div>
+        <div className="notice warn">
+          يمكنك مراجعة نتيجة OCR، لكن إنشاء المسودة يحتاج صلاحية{' '}
+          <code dir="ltr">purchase.invoice.create</code>.
+        </div>
       )}
 
       {job?.status === 'done' && canCreateInvoice && (
@@ -322,29 +385,53 @@ export default function OcrPurchaseInvoicePage() {
           <div className="section-heading">
             <div>
               <h3>مراجعة المسودة</h3>
-              <p className="muted small">اختر المورد واربط البنود بالأصناف. إذا لم تربط أي بند، تُنشأ مسودة رأسية بالقيم المستخرجة لإكمالها لاحقاً.</p>
+              <p className="muted small">
+                اختر المورد واربط البنود بالأصناف. إذا لم تربط أي بند، تُنشأ مسودة رأسية بالقيم المستخرجة
+                لإكمالها لاحقاً.
+              </p>
             </div>
           </div>
           <div className="form-grid">
             <label className="field">
               <span>الفرع *</span>
-              <select className="input" value={effectiveBranch} onChange={(event) => setBranchId(event.target.value)} required>
+              <select
+                className="input"
+                value={effectiveBranch}
+                onChange={(event) => setBranchId(event.target.value)}
+                required
+              >
                 <option value="">— اختر —</option>
-                {branchOptions(branches.data ?? []).map((option) => <option key={option.id} value={option.id}>{option.label}</option>)}
+                {branchOptions(branches.data ?? []).map((option) => (
+                  <option key={option.id} value={option.id}>
+                    {option.label}
+                  </option>
+                ))}
               </select>
             </label>
             <label className="field">
               <span>المستودع</span>
-              <select className="input" value={warehouseId} onChange={(event) => setWarehouseId(event.target.value)}>
+              <select
+                className="input"
+                value={warehouseId}
+                onChange={(event) => setWarehouseId(event.target.value)}
+              >
                 <option value="">— بدون حركة مخزنية —</option>
-                {filteredWarehouses.map((row) => <option key={row.id} value={row.id}>{arabicName(row)}</option>)}
+                {filteredWarehouses.map((row) => (
+                  <option key={row.id} value={row.id}>
+                    {arabicName(row)}
+                  </option>
+                ))}
               </select>
             </label>
             <label className="field">
               <span>المورد</span>
               <select className="input" value={partyId} onChange={(event) => setPartyId(event.target.value)}>
                 <option value="">— مطابقة تلقائية بالاسم —</option>
-                {(suppliers.data ?? []).map((row) => <option key={row.id} value={row.id}>{partyLabel(row)}</option>)}
+                {(suppliers.data ?? []).map((row) => (
+                  <option key={row.id} value={row.id}>
+                    {partyLabel(row)}
+                  </option>
+                ))}
               </select>
             </label>
           </div>
@@ -352,18 +439,38 @@ export default function OcrPurchaseInvoicePage() {
           {job.extracted.lines.length > 0 && (
             <div className="table-wrap">
               <table className="zebra compact">
-                <thead><tr><th>الوصف</th><th>الكمية</th><th>السعر</th><th>الثقة</th><th>الصنف</th></tr></thead>
+                <thead>
+                  <tr>
+                    <th>الوصف</th>
+                    <th>الكمية</th>
+                    <th>السعر</th>
+                    <th>الثقة</th>
+                    <th>الصنف</th>
+                  </tr>
+                </thead>
                 <tbody>
                   {job.extracted.lines.map((line, index) => (
                     <tr key={`${line.description}-${index}`}>
                       <td>{line.description}</td>
                       <td dir="ltr">{line.quantity ?? '1'}</td>
                       <td dir="ltr">{line.unitPrice ?? line.total ?? '—'}</td>
-                      <td><Confidence score={line.confidence} /></td>
                       <td>
-                        <select className="input" value={mappedItems[index] ?? ''} onChange={(event) => setMappedItems((current) => ({ ...current, [index]: event.target.value }))}>
+                        <Confidence score={line.confidence} />
+                      </td>
+                      <td>
+                        <select
+                          className="input"
+                          value={mappedItems[index] ?? ''}
+                          onChange={(event) =>
+                            setMappedItems((current) => ({ ...current, [index]: event.target.value }))
+                          }
+                        >
                           <option value="">— مسودة رأس فقط —</option>
-                          {(items.data ?? []).map((item) => <option key={item.id} value={item.id}>{item.sku} · {item.nameAr ?? item.nameEn ?? item.sku}</option>)}
+                          {(items.data ?? []).map((item) => (
+                            <option key={item.id} value={item.id}>
+                              {item.sku} · {item.nameAr ?? item.nameEn ?? item.sku}
+                            </option>
+                          ))}
                         </select>
                       </td>
                     </tr>
@@ -373,8 +480,14 @@ export default function OcrPurchaseInvoicePage() {
             </div>
           )}
           <div className="actions">
-            <button className="btn primary" type="submit" disabled={busy}>{busy ? 'جارٍ الإنشاء…' : 'إنشاء مسودة فاتورة'}</button>
-            {job.draftInvoiceId && <Link className="btn" href={`/purchases/invoices/${job.draftInvoiceId}`}>فتح المسودة الحالية</Link>}
+            <button className="btn primary" type="submit" disabled={busy}>
+              {busy ? 'جارٍ الإنشاء…' : 'إنشاء مسودة فاتورة'}
+            </button>
+            {job.draftInvoiceId && (
+              <Link className="btn" href={`/purchases/invoices/${job.draftInvoiceId}`}>
+                فتح المسودة الحالية
+              </Link>
+            )}
           </div>
         </form>
       )}

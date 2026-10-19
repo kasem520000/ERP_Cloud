@@ -1,7 +1,7 @@
 'use client';
 
 import { useSearchParams } from 'next/navigation';
-import { Panel } from '@erp/ui';
+import { FilterBand, Panel } from '@erp/ui';
 import { Suspense, useState } from 'react';
 
 import { Empty, ErrorBox, Forbidden, Loading, Screen } from '../../../components/screen';
@@ -189,7 +189,7 @@ function CostCentreStatement() {
         </>
       }
     >
-      <div className="card tight no-print">
+      <FilterBand className="no-print">
         <div className="row" style={{ flexWrap: 'wrap', alignItems: 'flex-end' }}>
           <label className="field" style={{ margin: 0, minWidth: 240, flex: 1 }}>
             <span>مركز الكلفة *</span>
@@ -370,7 +370,7 @@ function CostCentreStatement() {
             عدم إظهار الرصيد السابق
           </label>
         </div>
-      </div>
+      </FilterBand>
 
       {!applied.centerId && (
         <Panel title="كشف مركز التكلفة" flush>

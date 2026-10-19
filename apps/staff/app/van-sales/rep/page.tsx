@@ -508,7 +508,6 @@ export default function VanSalesRepPage() {
 
           {/* إصدار فاتورة بيع */}
           <form
-            className="card"
             style={{ display: 'grid', gap: 12 }}
             onSubmit={(event) => {
               event.preventDefault();
@@ -531,127 +530,129 @@ export default function VanSalesRepPage() {
               );
             }}
           >
-            <h2>تسجيل بيع وإصدار فاتورة</h2>
-            <p className="muted small" style={{ margin: 0 }}>
-              تُخصم الكمية المباعة والمجانية من رصيد سيارتك الرسمي، وتُصدر فاتورة مبيعات رسمية مرقّمة بالضريبة
-              المستحقة. السعر يلتزم بشريحة العميل المعتمدة — وأي تجاوز يحتاج صلاحية اعتماد من الإدارة.
-            </p>
-            <div className="form-grid">
-              <label className="field">
-                <span>العهدة / أمر التحميل *</span>
-                <select
-                  className="input"
-                  required
-                  value={saleLoadOrderId}
-                  onChange={(e) => setSaleLoadOrderId(e.target.value)}
-                >
-                  <option value="">— اختر —</option>
-                  {openLoads.map((row) => (
-                    <option key={row.id} value={row.id}>
-                      {row.number} · {row.itemName} · متبقٍ{' '}
-                      {(
-                        Number(row.receivedQty) -
-                        Number(row.soldQty) -
-                        Number(row.bonusQty) -
-                        Number(row.returnedQty) -
-                        Number(row.damagedQty)
-                      ).toFixed(2)}{' '}
-                      kg
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="field">
-                <span>العميل</span>
-                <select
-                  className="input"
-                  value={salePartyId}
-                  onChange={(e) => setSalePartyId(e.target.value)}
-                >
-                  <option value="">— عميل نقدي (بدون بطاقة) —</option>
-                  {customers.map((row) => (
-                    <option key={row.id} value={row.id}>
-                      {row.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              {!salePartyId ? (
+            <Panel title="تسجيل بيع وإصدار فاتورة">
+              <p className="muted small" style={{ margin: 0 }}>
+                تُخصم الكمية المباعة والمجانية من رصيد سيارتك الرسمي، وتُصدر فاتورة مبيعات رسمية مرقّمة
+                بالضريبة المستحقة. السعر يلتزم بشريحة العميل المعتمدة — وأي تجاوز يحتاج صلاحية اعتماد من
+                الإدارة.
+              </p>
+              <div className="form-grid">
                 <label className="field">
-                  <span>اسم العميل النقدي</span>
+                  <span>العهدة / أمر التحميل *</span>
+                  <select
+                    className="input"
+                    required
+                    value={saleLoadOrderId}
+                    onChange={(e) => setSaleLoadOrderId(e.target.value)}
+                  >
+                    <option value="">— اختر —</option>
+                    {openLoads.map((row) => (
+                      <option key={row.id} value={row.id}>
+                        {row.number} · {row.itemName} · متبقٍ{' '}
+                        {(
+                          Number(row.receivedQty) -
+                          Number(row.soldQty) -
+                          Number(row.bonusQty) -
+                          Number(row.returnedQty) -
+                          Number(row.damagedQty)
+                        ).toFixed(2)}{' '}
+                        kg
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="field">
+                  <span>العميل</span>
+                  <select
+                    className="input"
+                    value={salePartyId}
+                    onChange={(e) => setSalePartyId(e.target.value)}
+                  >
+                    <option value="">— عميل نقدي (بدون بطاقة) —</option>
+                    {customers.map((row) => (
+                      <option key={row.id} value={row.id}>
+                        {row.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                {!salePartyId ? (
+                  <label className="field">
+                    <span>اسم العميل النقدي</span>
+                    <input
+                      className="input"
+                      value={saleWalkIn}
+                      onChange={(e) => setSaleWalkIn(e.target.value)}
+                      placeholder="مثال: بقالة الحي"
+                    />
+                  </label>
+                ) : null}
+                <label className="field">
+                  <span>الكمية المباعة *</span>
                   <input
                     className="input"
-                    value={saleWalkIn}
-                    onChange={(e) => setSaleWalkIn(e.target.value)}
-                    placeholder="مثال: بقالة الحي"
+                    type="number"
+                    step="0.01"
+                    required
+                    dir="ltr"
+                    value={saleQty}
+                    onChange={(e) => setSaleQty(e.target.value)}
                   />
                 </label>
-              ) : null}
-              <label className="field">
-                <span>الكمية المباعة *</span>
-                <input
-                  className="input"
-                  type="number"
-                  step="0.01"
-                  required
-                  dir="ltr"
-                  value={saleQty}
-                  onChange={(e) => setSaleQty(e.target.value)}
-                />
-              </label>
-              <label className="field">
-                <span>سعر الوحدة (اتركه فارغًا لاستخدام شريحة العميل)</span>
-                <input
-                  className="input"
-                  type="number"
-                  step="0.01"
-                  dir="ltr"
-                  value={saleUnitPrice}
-                  onChange={(e) => setSaleUnitPrice(e.target.value)}
-                />
-              </label>
-              <label className="field">
-                <span>كمية مجانية / بونص</span>
-                <input
-                  className="input"
-                  type="number"
-                  step="0.01"
-                  dir="ltr"
-                  value={saleBonusQty}
-                  onChange={(e) => setSaleBonusQty(e.target.value)}
-                />
-              </label>
-              <label className="field">
-                <span>سبب البونص</span>
-                <input
-                  className="input"
-                  value={saleBonusReason}
-                  onChange={(e) => setSaleBonusReason(e.target.value)}
-                  placeholder="مثال: عرض ترويجي متفق عليه"
-                />
-              </label>
-              <label className="field">
-                <span>طريقة الدفع</span>
-                <select
-                  className="input"
-                  value={salePayment}
-                  onChange={(e) => setSalePayment(e.target.value as 'cash' | 'card' | 'credit')}
+                <label className="field">
+                  <span>سعر الوحدة (اتركه فارغًا لاستخدام شريحة العميل)</span>
+                  <input
+                    className="input"
+                    type="number"
+                    step="0.01"
+                    dir="ltr"
+                    value={saleUnitPrice}
+                    onChange={(e) => setSaleUnitPrice(e.target.value)}
+                  />
+                </label>
+                <label className="field">
+                  <span>كمية مجانية / بونص</span>
+                  <input
+                    className="input"
+                    type="number"
+                    step="0.01"
+                    dir="ltr"
+                    value={saleBonusQty}
+                    onChange={(e) => setSaleBonusQty(e.target.value)}
+                  />
+                </label>
+                <label className="field">
+                  <span>سبب البونص</span>
+                  <input
+                    className="input"
+                    value={saleBonusReason}
+                    onChange={(e) => setSaleBonusReason(e.target.value)}
+                    placeholder="مثال: عرض ترويجي متفق عليه"
+                  />
+                </label>
+                <label className="field">
+                  <span>طريقة الدفع</span>
+                  <select
+                    className="input"
+                    value={salePayment}
+                    onChange={(e) => setSalePayment(e.target.value as 'cash' | 'card' | 'credit')}
+                  >
+                    <option value="cash">نقدًا</option>
+                    <option value="card">شبكة</option>
+                    <option value="credit">آجل (على حساب العميل)</option>
+                  </select>
+                </label>
+              </div>
+              <div>
+                <button
+                  type="submit"
+                  className="btn primary"
+                  disabled={busy || !can('van_sales.invoice.create')}
                 >
-                  <option value="cash">نقدًا</option>
-                  <option value="card">شبكة</option>
-                  <option value="credit">آجل (على حساب العميل)</option>
-                </select>
-              </label>
-            </div>
-            <div>
-              <button
-                type="submit"
-                className="btn primary"
-                disabled={busy || !can('van_sales.invoice.create')}
-              >
-                {busy ? 'جارٍ الإصدار…' : 'اعتماد البيع وإصدار الفاتورة'}
-              </button>
-            </div>
+                  {busy ? 'جارٍ الإصدار…' : 'اعتماد البيع وإصدار الفاتورة'}
+                </button>
+              </div>
+            </Panel>
           </form>
 
           {/* سجل الفواتير والتحصيل */}
@@ -737,13 +738,7 @@ export default function VanSalesRepPage() {
           </Panel>
 
           {/* التحصيلات */}
-          <div className="card">
-            {/**
-             * ‏«اليوم» حُذفت من العنوان: فالقائمةُ أحدثُ ٥٠ حركة تحصيل لا حركاتِ اليوم،
-             * والجملةُ تحت العنوان تقول العددَين من الخادم. وعنوانٌ يعدُ بما لا تُظهره
-             * القائمةُ كذبٌ ولو كان الرقمُ صحيحًا.
-             */}
-            <h2>ما حصّلته</h2>
+          <Panel title="ما حصّلته" flush>
             <div className="muted small">
               {windowNote(data.windows, 'collections', COLLECTIONS_WINDOW_FALLBACK, {
                 totalsClause: REP_TOTALS_CLAUSE,
@@ -785,7 +780,7 @@ export default function VanSalesRepPage() {
                 </tbody>
               </table>
             </div>
-          </div>
+          </Panel>
 
           {/* إغلاق الوردية */}
           <Panel title="إغلاق الوردية وتصفية العهدة" flush>

@@ -75,31 +75,32 @@ export default function SyncDevicesPage() {
       subtitle="كل جهاز يُصدر له مفتاح API خاص بفرع واحد، ويمكن إيقافه فوراً عند فقدانه."
       crumbs={['الإعدادات', 'المزامنة']}
     >
-      <form className="card" onSubmit={createDevice}>
-        <h3>جهاز جديد</h3>
-        <FormFields
-          fields={[
-            { name: 'name', label: 'اسم الجهاز', required: true, placeholder: 'كاشير الفرع الرئيسي' },
-            {
-              name: 'branchId',
-              label: 'الفرع',
-              type: 'select',
-              required: true,
-              options: branchRows.map((row) => ({ id: row.id, label: arabicName(row) })),
-            },
-          ]}
-          values={values}
-          onChange={setValues}
-        />
-        <button className="btn primary" type="submit" disabled={busy || !values.name || !values.branchId}>
-          {busy ? 'جارٍ الإنشاء…' : 'إنشاء وإصدار مفتاح'}
-        </button>
-        <Notice notice={notice} />
-        {issuedKey ? (
-          <p className="alert ok" dir="ltr">
-            <code>{issuedKey}</code>
-          </p>
-        ) : null}
+      <form onSubmit={createDevice}>
+        <Panel title="جهاز جديد">
+          <FormFields
+            fields={[
+              { name: 'name', label: 'اسم الجهاز', required: true, placeholder: 'كاشير الفرع الرئيسي' },
+              {
+                name: 'branchId',
+                label: 'الفرع',
+                type: 'select',
+                required: true,
+                options: branchRows.map((row) => ({ id: row.id, label: arabicName(row) })),
+              },
+            ]}
+            values={values}
+            onChange={setValues}
+          />
+          <button className="btn primary" type="submit" disabled={busy || !values.name || !values.branchId}>
+            {busy ? 'جارٍ الإنشاء…' : 'إنشاء وإصدار مفتاح'}
+          </button>
+          <Notice notice={notice} />
+          {issuedKey ? (
+            <p className="alert ok" dir="ltr">
+              <code>{issuedKey}</code>
+            </p>
+          ) : null}
+        </Panel>
       </form>
 
       <QueryView

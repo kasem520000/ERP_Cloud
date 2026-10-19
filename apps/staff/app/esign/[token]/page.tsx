@@ -147,15 +147,13 @@ export default function EsignPage() {
         </header>
 
         {status === 410 ? (
-          <section className="card">
-            <h1>انتهت صلاحية الرابط</h1>
-            <p>اطلب من المُرسِل رابطاً جديداً. هذا الرابط لم يعد يقبل توقيعاً.</p>
-          </section>
+          <Panel title="انتهت صلاحية الرابط">
+            <p className="muted">اطلب من المُرسِل رابطاً جديداً. هذا الرابط لم يعد يقبل توقيعاً.</p>
+          </Panel>
         ) : error && !view ? (
-          <section className="card">
-            <h1>تعذّر فتح المستند</h1>
-            <p>{error}</p>
-          </section>
+          <Panel title="تعذّر فتح المستند">
+            <p className="muted">{error}</p>
+          </Panel>
         ) : view ? (
           <>
             <article className="sign-sheet">
@@ -207,34 +205,35 @@ export default function EsignPage() {
                 </a>
               </Panel>
             ) : (
-              <form className="card" onSubmit={sign}>
-                <h2>التوقيع</h2>
-                {error ? <p className="alert danger">{error}</p> : null}
-                <canvas
-                  ref={canvasRef}
-                  className="sign-pad"
-                  onPointerDown={start}
-                  onPointerMove={move}
-                  onPointerUp={stop}
-                  onPointerLeave={stop}
-                />
-                <button className="btn sm" type="button" onClick={clearPad}>
-                  مسح الرسم
-                </button>
-                <label className="field">
-                  <span>رمز التحقق من البريد</span>
-                  <input
-                    className="input"
-                    inputMode="numeric"
-                    autoComplete="one-time-code"
-                    value={otp}
-                    onChange={(event) => setOtp(event.target.value)}
-                    required
+              <form onSubmit={sign}>
+                <Panel title="التوقيع">
+                  {error ? <p className="alert danger">{error}</p> : null}
+                  <canvas
+                    ref={canvasRef}
+                    className="sign-pad"
+                    onPointerDown={start}
+                    onPointerMove={move}
+                    onPointerUp={stop}
+                    onPointerLeave={stop}
                   />
-                </label>
-                <button className="btn primary" type="submit" disabled={busy}>
-                  {busy ? 'جارٍ الحفظ…' : 'توقيع المستند'}
-                </button>
+                  <button className="btn sm" type="button" onClick={clearPad}>
+                    مسح الرسم
+                  </button>
+                  <label className="field">
+                    <span>رمز التحقق من البريد</span>
+                    <input
+                      className="input"
+                      inputMode="numeric"
+                      autoComplete="one-time-code"
+                      value={otp}
+                      onChange={(event) => setOtp(event.target.value)}
+                      required
+                    />
+                  </label>
+                  <button className="btn primary" type="submit" disabled={busy}>
+                    {busy ? 'جارٍ الحفظ…' : 'توقيع المستند'}
+                  </button>
+                </Panel>
               </form>
             )}
           </>

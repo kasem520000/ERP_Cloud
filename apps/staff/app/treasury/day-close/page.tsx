@@ -2,10 +2,10 @@
 
 import Decimal from 'decimal.js';
 import { useMemo, useState } from 'react';
-import { Panel } from '@erp/ui';
+import { FilterBand, Panel } from '@erp/ui';
 
 import { DataTable, Notice } from '../../../components/data-view';
-import { Screen } from '../../../components/screen';
+import { Empty, Screen } from '../../../components/screen';
 import { StatTile, StatTiles } from '../../../components/ui';
 import { ApiError, apiData, apiList, apiPost } from '../../../lib/api';
 import {
@@ -315,7 +315,7 @@ export default function DayClosePage() {
       </Panel>
 
       {/* بيانات البحث — `frmCloseShift.xaml`: من تاريخ / إلى تاريخ، كل الفترة، الموظف، عرض */}
-      <div className="card toolbar">
+      <FilterBand>
         <label className="field">
           <span>الفرع</span>
           <select
@@ -378,13 +378,19 @@ export default function DayClosePage() {
         <button className="btn primary" type="button" onClick={() => closes.reload()}>
           عرض
         </button>
-      </div>
+      </FilterBand>
 
-      <div className="card">
+      <Panel title="الإغلاقات" flush>
         {closes.status === 'loading' ? (
-          <p className="muted">… جارٍ تحميل الإغلاقات</p>
+          <p className="muted" style={{ padding: 14, margin: 0 }}>
+            … جارٍ تحميل الإغلاقات
+          </p>
         ) : rows.length === 0 ? (
-          <p className="muted">لا توجد إغلاقات في الفترة المحددة.</p>
+          <Empty
+            bare
+            title="لا توجد إغلاقات في الفترة المحددة"
+            detail="وسّع الفترة أو افتح وردية جديدة ثم أغلقها."
+          />
         ) : (
           <DataTable
             rows={rows}
@@ -575,7 +581,7 @@ export default function DayClosePage() {
             }
           />
         )}
-      </div>
+      </Panel>
     </Screen>
   );
 }

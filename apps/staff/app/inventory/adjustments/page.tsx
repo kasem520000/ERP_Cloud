@@ -1,5 +1,6 @@
 'use client';
 
+import { Panel } from '@erp/ui';
 import { useState } from 'react';
 
 import { DataTable, Notice, QueryView } from '../../../components/data-view';
@@ -318,263 +319,264 @@ export default function StockAdjustmentsPage() {
       }
     >
       {open && (
-        <form className="card" onSubmit={create}>
-          <h2>جرد جديد</h2>
-          <div className="form-grid">
-            <label className="field">
-              <span>الفرع *</span>
-              <select
-                className="input"
-                value={effectiveBranch}
-                onChange={(event) => setBranchId(event.target.value)}
-                required
-              >
-                <option value="">— اختر —</option>
-                {branchRows.map((row) => (
-                  <option key={row.id} value={row.id}>
-                    {row.code ? `${row.code} — ` : ''}
-                    {arabicName(row)}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="field">
-              <span>المستودع *</span>
-              <select
-                className="input"
-                value={effectiveWarehouse}
-                onChange={(event) => setWarehouseId(event.target.value)}
-                required
-              >
-                <option value="">— اختر —</option>
-                {warehouseRows.map((row) => (
-                  <option key={row.id} value={row.id}>
-                    {arabicName(row)}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="field">
-              <span>السبب *</span>
-              <input
-                className="input"
-                value={reason}
-                onChange={(event) => setReason(event.target.value)}
-                placeholder="جرد سنوي، جرد مفاجئ…"
-                required
-              />
-            </label>
-          </div>
+        <form onSubmit={create}>
+          <Panel title="جرد جديد">
+            <div className="form-grid">
+              <label className="field">
+                <span>الفرع *</span>
+                <select
+                  className="input"
+                  value={effectiveBranch}
+                  onChange={(event) => setBranchId(event.target.value)}
+                  required
+                >
+                  <option value="">— اختر —</option>
+                  {branchRows.map((row) => (
+                    <option key={row.id} value={row.id}>
+                      {row.code ? `${row.code} — ` : ''}
+                      {arabicName(row)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="field">
+                <span>المستودع *</span>
+                <select
+                  className="input"
+                  value={effectiveWarehouse}
+                  onChange={(event) => setWarehouseId(event.target.value)}
+                  required
+                >
+                  <option value="">— اختر —</option>
+                  {warehouseRows.map((row) => (
+                    <option key={row.id} value={row.id}>
+                      {arabicName(row)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="field">
+                <span>السبب *</span>
+                <input
+                  className="input"
+                  value={reason}
+                  onChange={(event) => setReason(event.target.value)}
+                  placeholder="جرد سنوي، جرد مفاجئ…"
+                  required
+                />
+              </label>
+            </div>
 
-          <h3>الأصناف المجرودة</h3>
-          <div className="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>المادة</th>
-                  <th>الرصيد الدفتري</th>
-                  <th>الكمية المجرودة</th>
-                  <th>الوحدة</th>
-                  <th>الفرق</th>
-                  <th>تكلفة الوحدة</th>
-                  <th>رقم الدفعة</th>
-                  <th>تاريخ الإنتاج</th>
-                  <th>تاريخ الانتهاء</th>
-                  <th>رقم تسلسلي</th>
-                  <th />
-                </tr>
-              </thead>
-              <tbody>
-                {lines.map((line, index) => {
-                  const variance = varianceOf(line);
-                  return (
-                    <tr key={index}>
-                      <td>
-                        <select
-                          className="input"
-                          value={line.itemId}
-                          onChange={(event) =>
-                            updateLine(index, {
-                              itemId: event.target.value,
-                              batchNo: '',
-                              productionDate: '',
-                              expiryDate: '',
-                              serialNos: '',
-                            })
-                          }
-                        >
-                          <option value="">— اختر —</option>
-                          {itemRows.map((row) => (
-                            <option key={row.id} value={row.id}>
-                              {itemLabel(row)}
-                            </option>
-                          ))}
-                        </select>
-                      </td>
-                      <td dir="ltr">
-                        {quantity(Number(levelOf(line.itemId)?.quantity ?? 0) / (factorOf(line) || 1))}
-                      </td>
-                      <td>
-                        <input
-                          className="input"
-                          dir="ltr"
-                          inputMode="decimal"
-                          value={line.countedText}
-                          onChange={(event) => updateLine(index, { countedText: event.target.value })}
-                        />
-                      </td>
-                      <td>
-                        <select
-                          className="input"
-                          value={line.unitId ?? ''}
-                          onChange={(event) => updateLine(index, { unitId: event.target.value })}
-                          disabled={!line.itemId}
-                        >
-                          <option value="">الوحدة الأساسية</option>
-                          {unitsOf(line.itemId)
-                            .filter(
-                              (unit) =>
-                                unit.unitId !==
-                                (itemOf(line.itemId)?.baseUnitId ?? itemOf(line.itemId)?.base_unit_id),
-                            )
-                            .map((unit) => (
-                              <option key={unit.unitId} value={unit.unitId}>
-                                {`${unit.unitNameAr ?? ''} (×${Number(unit.ratio).toLocaleString('ar-EG')})`}
-                              </option>
-                            ))}
-                        </select>
-                      </td>
-                      <td
-                        dir="ltr"
-                        style={{
-                          color:
-                            variance === 0
-                              ? undefined
-                              : variance > 0
-                                ? 'var(--ok, #1a7f37)'
-                                : 'var(--danger, #b42318)',
-                        }}
-                      >
-                        {line.itemId && line.countedText !== ''
-                          ? variance > 0
-                            ? `+${quantity(variance)}`
-                            : quantity(variance)
-                          : '—'}
-                      </td>
-                      <td>
-                        <input
-                          className="input"
-                          dir="ltr"
-                          inputMode="decimal"
-                          value={line.costText}
-                          placeholder={levelOf(line.itemId)?.averageCost ?? ''}
-                          onChange={(event) => updateLine(index, { costText: event.target.value })}
-                        />
-                      </td>
-                      <td>
-                        {/* الدفعة تُكتب على السطر كما على العبوة — والصنف الذي لا يُتتبَّع بها لا يقبلها */}
-                        <input
-                          className="input"
-                          dir="ltr"
-                          list={`adj-lots-${index}`}
-                          placeholder={itemOf(line.itemId)?.trackLot ? 'LOT-1' : '—'}
-                          value={line.batchNo}
-                          disabled={!itemOf(line.itemId)?.trackLot}
-                          onChange={(event) => updateLine(index, { batchNo: event.target.value })}
-                        />
-                        <datalist id={`adj-lots-${index}`}>
-                          {(lots.data ?? [])
-                            .filter((lot) => lot.itemId === line.itemId)
-                            .map((lot) => (
-                              <option key={lot.id} value={lot.lotNo}>
-                                {lot.expiryDate ? shortDate(lot.expiryDate) : ''}
-                              </option>
-                            ))}
-                        </datalist>
-                      </td>
-                      <td>
-                        <input
-                          className="input"
-                          type="date"
-                          dir="ltr"
-                          value={line.productionDate}
-                          disabled={!itemOf(line.itemId)?.trackLot}
-                          onChange={(event) => updateLine(index, { productionDate: event.target.value })}
-                        />
-                      </td>
-                      <td>
-                        <input
-                          className="input"
-                          type="date"
-                          dir="ltr"
-                          value={line.expiryDate}
-                          disabled={!itemOf(line.itemId)?.trackLot}
-                          onChange={(event) => updateLine(index, { expiryDate: event.target.value })}
-                        />
-                      </td>
-                      <td>
-                        {itemOf(line.itemId)?.trackSerial ? (
-                          <textarea
+            <h3>الأصناف المجرودة</h3>
+            <div className="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>المادة</th>
+                    <th>الرصيد الدفتري</th>
+                    <th>الكمية المجرودة</th>
+                    <th>الوحدة</th>
+                    <th>الفرق</th>
+                    <th>تكلفة الوحدة</th>
+                    <th>رقم الدفعة</th>
+                    <th>تاريخ الإنتاج</th>
+                    <th>تاريخ الانتهاء</th>
+                    <th>رقم تسلسلي</th>
+                    <th />
+                  </tr>
+                </thead>
+                <tbody>
+                  {lines.map((line, index) => {
+                    const variance = varianceOf(line);
+                    return (
+                      <tr key={index}>
+                        <td>
+                          <select
                             className="input"
-                            rows={2}
+                            value={line.itemId}
+                            onChange={(event) =>
+                              updateLine(index, {
+                                itemId: event.target.value,
+                                batchNo: '',
+                                productionDate: '',
+                                expiryDate: '',
+                                serialNos: '',
+                              })
+                            }
+                          >
+                            <option value="">— اختر —</option>
+                            {itemRows.map((row) => (
+                              <option key={row.id} value={row.id}>
+                                {itemLabel(row)}
+                              </option>
+                            ))}
+                          </select>
+                        </td>
+                        <td dir="ltr">
+                          {quantity(Number(levelOf(line.itemId)?.quantity ?? 0) / (factorOf(line) || 1))}
+                        </td>
+                        <td>
+                          <input
+                            className="input"
                             dir="ltr"
-                            placeholder="A-1 A-2"
-                            value={line.serialNos}
-                            onChange={(event) => updateLine(index, { serialNos: event.target.value })}
+                            inputMode="decimal"
+                            value={line.countedText}
+                            onChange={(event) => updateLine(index, { countedText: event.target.value })}
                           />
-                        ) : (
-                          <span className="muted">—</span>
-                        )}
-                      </td>
-                      <td>
-                        <button
-                          className="btn sm"
-                          type="button"
-                          onClick={() =>
-                            setLines((current) => current.filter((_, position) => position !== index))
-                          }
+                        </td>
+                        <td>
+                          <select
+                            className="input"
+                            value={line.unitId ?? ''}
+                            onChange={(event) => updateLine(index, { unitId: event.target.value })}
+                            disabled={!line.itemId}
+                          >
+                            <option value="">الوحدة الأساسية</option>
+                            {unitsOf(line.itemId)
+                              .filter(
+                                (unit) =>
+                                  unit.unitId !==
+                                  (itemOf(line.itemId)?.baseUnitId ?? itemOf(line.itemId)?.base_unit_id),
+                              )
+                              .map((unit) => (
+                                <option key={unit.unitId} value={unit.unitId}>
+                                  {`${unit.unitNameAr ?? ''} (×${Number(unit.ratio).toLocaleString('ar-EG')})`}
+                                </option>
+                              ))}
+                          </select>
+                        </td>
+                        <td
+                          dir="ltr"
+                          style={{
+                            color:
+                              variance === 0
+                                ? undefined
+                                : variance > 0
+                                  ? 'var(--ok, #1a7f37)'
+                                  : 'var(--danger, #b42318)',
+                          }}
                         >
-                          حذف
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-          <div className="row" style={{ gap: 8 }}>
-            <button
-              className="btn sm"
-              type="button"
-              onClick={() =>
-                setLines((current) => [
-                  ...current,
-                  {
-                    itemId: '',
-                    countedText: '',
-                    unitId: '',
-                    costText: '',
-                    batchNo: '',
-                    productionDate: '',
-                    expiryDate: '',
-                    serialNos: '',
-                  },
-                ])
-              }
-            >
-              + سطر
-            </button>
-            <span className="muted">
-              صافي قيمة الفروقات:{' '}
-              <strong dir="ltr">{money(String(Math.round(netVariance * 10000) / 10000))}</strong>
-            </span>
-          </div>
+                          {line.itemId && line.countedText !== ''
+                            ? variance > 0
+                              ? `+${quantity(variance)}`
+                              : quantity(variance)
+                            : '—'}
+                        </td>
+                        <td>
+                          <input
+                            className="input"
+                            dir="ltr"
+                            inputMode="decimal"
+                            value={line.costText}
+                            placeholder={levelOf(line.itemId)?.averageCost ?? ''}
+                            onChange={(event) => updateLine(index, { costText: event.target.value })}
+                          />
+                        </td>
+                        <td>
+                          {/* الدفعة تُكتب على السطر كما على العبوة — والصنف الذي لا يُتتبَّع بها لا يقبلها */}
+                          <input
+                            className="input"
+                            dir="ltr"
+                            list={`adj-lots-${index}`}
+                            placeholder={itemOf(line.itemId)?.trackLot ? 'LOT-1' : '—'}
+                            value={line.batchNo}
+                            disabled={!itemOf(line.itemId)?.trackLot}
+                            onChange={(event) => updateLine(index, { batchNo: event.target.value })}
+                          />
+                          <datalist id={`adj-lots-${index}`}>
+                            {(lots.data ?? [])
+                              .filter((lot) => lot.itemId === line.itemId)
+                              .map((lot) => (
+                                <option key={lot.id} value={lot.lotNo}>
+                                  {lot.expiryDate ? shortDate(lot.expiryDate) : ''}
+                                </option>
+                              ))}
+                          </datalist>
+                        </td>
+                        <td>
+                          <input
+                            className="input"
+                            type="date"
+                            dir="ltr"
+                            value={line.productionDate}
+                            disabled={!itemOf(line.itemId)?.trackLot}
+                            onChange={(event) => updateLine(index, { productionDate: event.target.value })}
+                          />
+                        </td>
+                        <td>
+                          <input
+                            className="input"
+                            type="date"
+                            dir="ltr"
+                            value={line.expiryDate}
+                            disabled={!itemOf(line.itemId)?.trackLot}
+                            onChange={(event) => updateLine(index, { expiryDate: event.target.value })}
+                          />
+                        </td>
+                        <td>
+                          {itemOf(line.itemId)?.trackSerial ? (
+                            <textarea
+                              className="input"
+                              rows={2}
+                              dir="ltr"
+                              placeholder="A-1 A-2"
+                              value={line.serialNos}
+                              onChange={(event) => updateLine(index, { serialNos: event.target.value })}
+                            />
+                          ) : (
+                            <span className="muted">—</span>
+                          )}
+                        </td>
+                        <td>
+                          <button
+                            className="btn sm"
+                            type="button"
+                            onClick={() =>
+                              setLines((current) => current.filter((_, position) => position !== index))
+                            }
+                          >
+                            حذف
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+            <div className="row" style={{ gap: 8 }}>
+              <button
+                className="btn sm"
+                type="button"
+                onClick={() =>
+                  setLines((current) => [
+                    ...current,
+                    {
+                      itemId: '',
+                      countedText: '',
+                      unitId: '',
+                      costText: '',
+                      batchNo: '',
+                      productionDate: '',
+                      expiryDate: '',
+                      serialNos: '',
+                    },
+                  ])
+                }
+              >
+                + سطر
+              </button>
+              <span className="muted">
+                صافي قيمة الفروقات:{' '}
+                <strong dir="ltr">{money(String(Math.round(netVariance * 10000) / 10000))}</strong>
+              </span>
+            </div>
 
-          <Notice notice={notice} />
-          <button className="btn primary" type="submit" disabled={busy}>
-            {busy ? 'جارٍ الحفظ…' : 'حفظ الجرد كمسودة'}
-          </button>
+            <Notice notice={notice} />
+            <button className="btn primary" type="submit" disabled={busy}>
+              {busy ? 'جارٍ الحفظ…' : 'حفظ الجرد كمسودة'}
+            </button>
+          </Panel>
         </form>
       )}
 
@@ -601,7 +603,7 @@ export default function StockAdjustmentsPage() {
       <Tabs items={BUCKETS} value={bucket} onChange={setBucket} />
 
       <div className="split">
-        <div className="card tight split-list">
+        <Panel flush bodyClassName="split-list">
           <QueryView
             query={adjustments}
             empty="لا توجد عمليات جرد"
@@ -639,9 +641,9 @@ export default function StockAdjustmentsPage() {
               </>
             )}
           </QueryView>
-        </div>
+        </Panel>
 
-        <div className="card">
+        <Panel>
           {!selected ? (
             <Empty bare title="لم يُختَر جرد" detail="اختر جرداً من القائمة لعرض أسطره وفروقه." />
           ) : (
@@ -818,7 +820,7 @@ export default function StockAdjustmentsPage() {
               <p className="muted small">آخر تحديث للسجل: {shortDate(new Date())}</p>
             </>
           )}
-        </div>
+        </Panel>
       </div>
     </Screen>
   );

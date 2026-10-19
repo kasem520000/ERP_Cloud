@@ -1,5 +1,6 @@
 'use client';
 
+import { Panel } from '@erp/ui';
 import { useEffect, useState } from 'react';
 
 import { Notice } from '../../../components/data-view';
@@ -153,79 +154,80 @@ export default function HelpPage() {
       {notice ? <Notice notice={notice} /> : null}
 
       {(creating || tickets.length === 0) && (
-        <form className="card" onSubmit={submitNewTicket} style={{ display: 'grid', gap: 12 }}>
-          <h2>إرسال رسالة / تذكرة جديدة لمدير المنصة</h2>
-          <p className="muted" style={{ margin: 0 }}>
-            المنشأة: <strong>{me?.membership.tenantName}</strong> (
-            <span dir="ltr">{me?.membership.tenantCode}</span>) · المستخدم:{' '}
-            <span dir="ltr">{me?.user.email}</span>
-          </p>
-          <div className="form-grid">
+        <form onSubmit={submitNewTicket} style={{ display: 'grid', gap: 12 }}>
+          <Panel title="إرسال رسالة / تذكرة جديدة لمدير المنصة">
+            <p className="muted" style={{ margin: 0 }}>
+              المنشأة: <strong>{me?.membership.tenantName}</strong> (
+              <span dir="ltr">{me?.membership.tenantCode}</span>) · المستخدم:{' '}
+              <span dir="ltr">{me?.user.email}</span>
+            </p>
+            <div className="form-grid">
+              <label className="field">
+                <span>عنوان الطلب *</span>
+                <input
+                  className="input"
+                  required
+                  minLength={3}
+                  value={subject}
+                  onChange={(event) => setSubject(event.target.value)}
+                  placeholder="مثال: استفسار حول تفعيل باقة التوزيع أو إعداد ضريبة القيمة المضافة"
+                />
+              </label>
+              <label className="field">
+                <span>القسم / التصنيف</span>
+                <select
+                  className="input"
+                  value={category}
+                  onChange={(event) => setCategory(event.target.value)}
+                >
+                  {CATEGORIES.map((cat) => (
+                    <option key={cat} value={cat}>
+                      {cat}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="field">
+                <span>الأولوية</span>
+                <select
+                  className="input"
+                  value={priority}
+                  onChange={(event) => setPriority(event.target.value as SupportTicket['priority'])}
+                >
+                  <option value="low">منخفضة</option>
+                  <option value="normal">عادية</option>
+                  <option value="high">عالية</option>
+                  <option value="urgent">عاجلة</option>
+                </select>
+              </label>
+            </div>
             <label className="field">
-              <span>عنوان الطلب *</span>
-              <input
+              <span>تفاصيل المشكلة أو الطلب *</span>
+              <textarea
                 className="input"
+                rows={4}
                 required
                 minLength={3}
-                value={subject}
-                onChange={(event) => setSubject(event.target.value)}
-                placeholder="مثال: استفسار حول تفعيل باقة التوزيع أو إعداد ضريبة القيمة المضافة"
+                value={body}
+                onChange={(event) => setBody(event.target.value)}
+                placeholder="اشرح ما تحتاجه بالتفصيل ليتمكن فريق المنصة من خدمتك فوراً…"
               />
             </label>
-            <label className="field">
-              <span>القسم / التصنيف</span>
-              <select
-                className="input"
-                value={category}
-                onChange={(event) => setCategory(event.target.value)}
+            <div className="row" style={{ gap: 8 }}>
+              <button
+                className="btn primary"
+                type="submit"
+                disabled={busy || subject.trim().length < 3 || body.trim().length < 3}
               >
-                {CATEGORIES.map((cat) => (
-                  <option key={cat} value={cat}>
-                    {cat}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="field">
-              <span>الأولوية</span>
-              <select
-                className="input"
-                value={priority}
-                onChange={(event) => setPriority(event.target.value as SupportTicket['priority'])}
-              >
-                <option value="low">منخفضة</option>
-                <option value="normal">عادية</option>
-                <option value="high">عالية</option>
-                <option value="urgent">عاجلة</option>
-              </select>
-            </label>
-          </div>
-          <label className="field">
-            <span>تفاصيل المشكلة أو الطلب *</span>
-            <textarea
-              className="input"
-              rows={4}
-              required
-              minLength={3}
-              value={body}
-              onChange={(event) => setBody(event.target.value)}
-              placeholder="اشرح ما تحتاجه بالتفصيل ليتمكن فريق المنصة من خدمتك فوراً…"
-            />
-          </label>
-          <div className="row" style={{ gap: 8 }}>
-            <button
-              className="btn primary"
-              type="submit"
-              disabled={busy || subject.trim().length < 3 || body.trim().length < 3}
-            >
-              {busy ? 'جارٍ الإرسال…' : 'إرسال إلى إدارة المنصة'}
-            </button>
-          </div>
+                {busy ? 'جارٍ الإرسال…' : 'إرسال إلى إدارة المنصة'}
+              </button>
+            </div>
+          </Panel>
         </form>
       )}
 
       <div className="split">
-        <div className="card tight split-list">
+        <Panel flush bodyClassName="split-list">
           <div style={{ padding: '12px 14px', borderBottom: '1px solid var(--line)' }}>
             <strong>سجل تذاكر الدعم ({tickets.length})</strong>
           </div>
@@ -260,7 +262,7 @@ export default function HelpPage() {
               </button>
             ))
           )}
-        </div>
+        </Panel>
 
         <div className="card split-detail">
           {!selected ? (

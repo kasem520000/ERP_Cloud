@@ -1602,227 +1602,229 @@ export default function VanSalesPage() {
       {/* TAB 2: FACTORY PRODUCTION & GOODS MOVEMENT LEDGER (Pillar 1 & 6) */}
       {tab === 'production' && (
         <div style={{ display: 'grid', gap: 16 }}>
-          <form className="card" onSubmit={submitProductionBatch} style={{ display: 'grid', gap: 12 }}>
-            <h2>تسجيل دفعة إنتاج يومي للمصنع والمخبز وتوريدها للمستودع الرئيسي</h2>
-            <p className="muted small" style={{ margin: 0 }}>
-              تُقيَّد الكمية المنتجة في <b>الرصيد الرسمي للمستودع</b> برقم دفعة فريد (نفس الأرصدة التي تظهر في
-              شاشة المخزون وبطاقة الصنف)، ولا يستطيع أي مندوب بيع كمية إلا بعد صرفها رسمياً من هذه الدفعات.
-            </p>
-            <div className="form-grid">
-              <label className="field">
-                <span>الصنف المنتج من الأصناف المسجلة *</span>
-                <select
-                  className="input"
-                  required
-                  value={prodItemId}
-                  onChange={(e) => {
-                    const nextId = e.target.value;
-                    setProdItemId(nextId);
-                    const picked = items.find((it) => it.id === nextId);
-                    if (picked) {
-                      setProdItemName(itemLabel(picked));
-                    }
-                  }}
-                >
-                  <option value="">— اختر الصنف —</option>
-                  {items.map((it) => (
-                    <option key={it.id} value={it.id}>
-                      {itemLabel(it)}
-                    </option>
-                  ))}
-                </select>
-                <span className="muted small">
-                  لا يمكن تسجيل إنتاج لصنف غير مسجل: الرصيد الرسمي يُحتسب بالصنف والمستودع.
-                </span>
-              </label>
-              <label className="field">
-                <span>المستودع الرئيسي المُورَّد إليه *</span>
-                <select
-                  className="input"
-                  value={prodWarehouseId}
-                  onChange={(e) => setProdWarehouseId(e.target.value)}
-                >
-                  {warehouses.map((wh) => (
-                    <option key={wh.id} value={wh.id}>
-                      {wh.name ?? wh.nameAr ?? wh.code}
-                      {wh.isDefault ? ' (افتراضي)' : ''}
-                    </option>
-                  ))}
-                </select>
-                <span className="muted small">
-                  يُختار المستودع الافتراضي تلقائيًا إن تُرك فارغًا — ولن تُسجَّل الدفعة بلا مستودع.
-                </span>
-              </label>
-              <label className="field">
-                <span>تاريخ الإنتاج</span>
-                <input
-                  className="input"
-                  type="date"
-                  dir="ltr"
-                  value={prodDate}
-                  onChange={(e) => setProdDate(e.target.value)}
-                />
-              </label>
-              <label className="field">
-                <span>الكمية المنتجة الصالحة (كجم) *</span>
-                <input
-                  className="input"
-                  type="number"
-                  step="0.01"
-                  required
-                  dir="ltr"
-                  value={prodQty}
-                  onChange={(e) => setProdQty(e.target.value)}
-                />
-                <span className="muted small">هذه الكمية هي التي تدخل الرصيد الرسمي وتُتاح للبيع.</span>
-              </label>
-              <label className="field">
-                <span>فاقد التصنيع / الهالك (كجم)</span>
-                <input
-                  className="input"
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  dir="ltr"
-                  value={prodScrapQty}
-                  onChange={(e) => setProdScrapQty(e.target.value)}
-                />
-                <span className="muted small">
-                  يُسجَّل في حركة مستقلة ولا يدخل الرصيد الصالح للبيع، وتُحسب قيمته منفصلة عن تكلفة المنتج
-                  الجيد.
-                </span>
-              </label>
-              <label className="field">
-                <span>سبب الفاقد {Number(prodScrapQty) > 0 ? '*' : ''}</span>
-                <input
-                  className="input"
-                  required={Number(prodScrapQty) > 0}
-                  value={prodScrapReason}
-                  onChange={(e) => setProdScrapReason(e.target.value)}
-                  placeholder="مثال: عجين لم يختمر / قطع محترقة في الفرن الثاني"
-                />
-                <span className="muted small">
-                  لا يُرحَّل فاقد بلا سبب: الكمية والسبب والدفعة تُسجَّل معاً حتى يمكن مراجعته.
-                </span>
-              </label>
-              <label className="field">
-                <span>رقم دفعة الإنتاج (اختياري)</span>
-                <input
-                  className="input"
-                  dir="ltr"
-                  value={prodBatchNo}
-                  onChange={(e) => setProdBatchNo(e.target.value)}
-                  placeholder="مثال: BR-2026-0001"
-                />
-                <span className="muted small">
-                  اتركه فارغاً ليُخصَّص رقم تسلسلي رسمي؛ وإن كتبته صار <b>رقم دفعة الناتج (اللوت)</b> في
-                  الرصيد الرسمي مطابقاً له — فيُقرأ الرقم نفسه على الشحنة والرفّ والجرد.
-                </span>
-              </label>
-              <div className="field" style={{ gridColumn: '1 / -1' }}>
-                <span>مكوّنات الدفعة — مصدر المواد *</span>
-                <span className="muted small">
-                  كل مكوّن يُصرف رسمياً من مستودع المنشأة بالمتوسط المرجّح، وقيمته هي تكلفة الدفعة. بلا
-                  مكوّنات (أو قائمة مواد مرتبطة بالصنف) تُرفض الدفعة؛ والوارد من خارج المنشأة موضعه إذن إدخال
-                  مخزني رسمي أو تسوية جرد معتمدة لا دفعة إنتاج.
-                </span>
-                {prodComponents.map((line, index) => (
-                  <div
-                    key={`component-${index}`}
-                    style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 160px auto', gap: 8 }}
+          <form onSubmit={submitProductionBatch} style={{ display: 'grid', gap: 12 }}>
+            <Panel title="تسجيل دفعة إنتاج يومي للمصنع والمخبز وتوريدها للمستودع الرئيسي">
+              <p className="muted small" style={{ margin: 0 }}>
+                تُقيَّد الكمية المنتجة في <b>الرصيد الرسمي للمستودع</b> برقم دفعة فريد (نفس الأرصدة التي تظهر
+                في شاشة المخزون وبطاقة الصنف)، ولا يستطيع أي مندوب بيع كمية إلا بعد صرفها رسمياً من هذه
+                الدفعات.
+              </p>
+              <div className="form-grid">
+                <label className="field">
+                  <span>الصنف المنتج من الأصناف المسجلة *</span>
+                  <select
+                    className="input"
+                    required
+                    value={prodItemId}
+                    onChange={(e) => {
+                      const nextId = e.target.value;
+                      setProdItemId(nextId);
+                      const picked = items.find((it) => it.id === nextId);
+                      if (picked) {
+                        setProdItemName(itemLabel(picked));
+                      }
+                    }}
                   >
-                    <select
-                      className="input"
-                      value={line.itemId}
-                      onChange={(e) =>
-                        setProdComponents((rows) =>
-                          rows.map((row, rowIndex) =>
-                            rowIndex === index ? { ...row, itemId: e.target.value } : row,
-                          ),
-                        )
-                      }
+                    <option value="">— اختر الصنف —</option>
+                    {items.map((it) => (
+                      <option key={it.id} value={it.id}>
+                        {itemLabel(it)}
+                      </option>
+                    ))}
+                  </select>
+                  <span className="muted small">
+                    لا يمكن تسجيل إنتاج لصنف غير مسجل: الرصيد الرسمي يُحتسب بالصنف والمستودع.
+                  </span>
+                </label>
+                <label className="field">
+                  <span>المستودع الرئيسي المُورَّد إليه *</span>
+                  <select
+                    className="input"
+                    value={prodWarehouseId}
+                    onChange={(e) => setProdWarehouseId(e.target.value)}
+                  >
+                    {warehouses.map((wh) => (
+                      <option key={wh.id} value={wh.id}>
+                        {wh.name ?? wh.nameAr ?? wh.code}
+                        {wh.isDefault ? ' (افتراضي)' : ''}
+                      </option>
+                    ))}
+                  </select>
+                  <span className="muted small">
+                    يُختار المستودع الافتراضي تلقائيًا إن تُرك فارغًا — ولن تُسجَّل الدفعة بلا مستودع.
+                  </span>
+                </label>
+                <label className="field">
+                  <span>تاريخ الإنتاج</span>
+                  <input
+                    className="input"
+                    type="date"
+                    dir="ltr"
+                    value={prodDate}
+                    onChange={(e) => setProdDate(e.target.value)}
+                  />
+                </label>
+                <label className="field">
+                  <span>الكمية المنتجة الصالحة (كجم) *</span>
+                  <input
+                    className="input"
+                    type="number"
+                    step="0.01"
+                    required
+                    dir="ltr"
+                    value={prodQty}
+                    onChange={(e) => setProdQty(e.target.value)}
+                  />
+                  <span className="muted small">هذه الكمية هي التي تدخل الرصيد الرسمي وتُتاح للبيع.</span>
+                </label>
+                <label className="field">
+                  <span>فاقد التصنيع / الهالك (كجم)</span>
+                  <input
+                    className="input"
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    dir="ltr"
+                    value={prodScrapQty}
+                    onChange={(e) => setProdScrapQty(e.target.value)}
+                  />
+                  <span className="muted small">
+                    يُسجَّل في حركة مستقلة ولا يدخل الرصيد الصالح للبيع، وتُحسب قيمته منفصلة عن تكلفة المنتج
+                    الجيد.
+                  </span>
+                </label>
+                <label className="field">
+                  <span>سبب الفاقد {Number(prodScrapQty) > 0 ? '*' : ''}</span>
+                  <input
+                    className="input"
+                    required={Number(prodScrapQty) > 0}
+                    value={prodScrapReason}
+                    onChange={(e) => setProdScrapReason(e.target.value)}
+                    placeholder="مثال: عجين لم يختمر / قطع محترقة في الفرن الثاني"
+                  />
+                  <span className="muted small">
+                    لا يُرحَّل فاقد بلا سبب: الكمية والسبب والدفعة تُسجَّل معاً حتى يمكن مراجعته.
+                  </span>
+                </label>
+                <label className="field">
+                  <span>رقم دفعة الإنتاج (اختياري)</span>
+                  <input
+                    className="input"
+                    dir="ltr"
+                    value={prodBatchNo}
+                    onChange={(e) => setProdBatchNo(e.target.value)}
+                    placeholder="مثال: BR-2026-0001"
+                  />
+                  <span className="muted small">
+                    اتركه فارغاً ليُخصَّص رقم تسلسلي رسمي؛ وإن كتبته صار <b>رقم دفعة الناتج (اللوت)</b> في
+                    الرصيد الرسمي مطابقاً له — فيُقرأ الرقم نفسه على الشحنة والرفّ والجرد.
+                  </span>
+                </label>
+                <div className="field" style={{ gridColumn: '1 / -1' }}>
+                  <span>مكوّنات الدفعة — مصدر المواد *</span>
+                  <span className="muted small">
+                    كل مكوّن يُصرف رسمياً من مستودع المنشأة بالمتوسط المرجّح، وقيمته هي تكلفة الدفعة. بلا
+                    مكوّنات (أو قائمة مواد مرتبطة بالصنف) تُرفض الدفعة؛ والوارد من خارج المنشأة موضعه إذن
+                    إدخال مخزني رسمي أو تسوية جرد معتمدة لا دفعة إنتاج.
+                  </span>
+                  {prodComponents.map((line, index) => (
+                    <div
+                      key={`component-${index}`}
+                      style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 160px auto', gap: 8 }}
                     >
-                      <option value="">— اختر المكوّن —</option>
-                      {items.map((it) => (
-                        <option key={it.id} value={it.id}>
-                          {itemLabel(it)}
-                        </option>
-                      ))}
-                    </select>
-                    <input
-                      className="input"
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      dir="ltr"
-                      placeholder="الكمية"
-                      value={line.qty}
-                      onChange={(e) =>
-                        setProdComponents((rows) =>
-                          rows.map((row, rowIndex) =>
-                            rowIndex === index ? { ...row, qty: e.target.value } : row,
-                          ),
-                        )
-                      }
-                    />
+                      <select
+                        className="input"
+                        value={line.itemId}
+                        onChange={(e) =>
+                          setProdComponents((rows) =>
+                            rows.map((row, rowIndex) =>
+                              rowIndex === index ? { ...row, itemId: e.target.value } : row,
+                            ),
+                          )
+                        }
+                      >
+                        <option value="">— اختر المكوّن —</option>
+                        {items.map((it) => (
+                          <option key={it.id} value={it.id}>
+                            {itemLabel(it)}
+                          </option>
+                        ))}
+                      </select>
+                      <input
+                        className="input"
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        dir="ltr"
+                        placeholder="الكمية"
+                        value={line.qty}
+                        onChange={(e) =>
+                          setProdComponents((rows) =>
+                            rows.map((row, rowIndex) =>
+                              rowIndex === index ? { ...row, qty: e.target.value } : row,
+                            ),
+                          )
+                        }
+                      />
+                      <button
+                        type="button"
+                        className="btn"
+                        onClick={() =>
+                          setProdComponents((rows) => rows.filter((_row, rowIndex) => rowIndex !== index))
+                        }
+                      >
+                        حذف
+                      </button>
+                    </div>
+                  ))}
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
                     <button
                       type="button"
                       className="btn"
-                      onClick={() =>
-                        setProdComponents((rows) => rows.filter((_row, rowIndex) => rowIndex !== index))
-                      }
+                      onClick={() => setProdComponents((rows) => [...rows, { itemId: '', qty: '' }])}
                     >
-                      حذف
+                      إضافة مكوّن
                     </button>
+                    {(() => {
+                      const filled = prodComponents.filter(
+                        (line) => line.itemId.trim().length > 0 && Number(line.qty) > 0,
+                      );
+                      if (filled.length === 0) return null;
+                      const estimate = estimateComponentCost({
+                        lines: filled,
+                        producedQty: prodQty,
+                        stockRows: data?.officialStock ?? [],
+                        warehouseId: prodWarehouseId,
+                      });
+                      return estimate.unvalued > 0 ? (
+                        <span className="small" style={{ color: 'var(--warn)' }}>
+                          {estimate.unvalued} من المكوّنات ليس له قيمة أو رصيد في هذا المستودع — ستُرفض الدفعة
+                          حتى تُقيَّم المواد (إذن إدخال رسمي أو تسوية جرد معتمدة).
+                        </span>
+                      ) : (
+                        <span className="muted small">
+                          تقدير التكلفة من المتوسط الرسمي: {estimate.totalValue} ريال {estimate.perKg}{' '}
+                          ريال/كجم — والرقم الفعلي هو قيمة ما يخرج من الرفّ.
+                        </span>
+                      );
+                    })()}
                   </div>
-                ))}
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
-                  <button
-                    type="button"
-                    className="btn"
-                    onClick={() => setProdComponents((rows) => [...rows, { itemId: '', qty: '' }])}
-                  >
-                    إضافة مكوّن
-                  </button>
-                  {(() => {
-                    const filled = prodComponents.filter(
-                      (line) => line.itemId.trim().length > 0 && Number(line.qty) > 0,
-                    );
-                    if (filled.length === 0) return null;
-                    const estimate = estimateComponentCost({
-                      lines: filled,
-                      producedQty: prodQty,
-                      stockRows: data?.officialStock ?? [],
-                      warehouseId: prodWarehouseId,
-                    });
-                    return estimate.unvalued > 0 ? (
-                      <span className="small" style={{ color: 'var(--warn)' }}>
-                        {estimate.unvalued} من المكوّنات ليس له قيمة أو رصيد في هذا المستودع — ستُرفض الدفعة
-                        حتى تُقيَّم المواد (إذن إدخال رسمي أو تسوية جرد معتمدة).
-                      </span>
-                    ) : (
-                      <span className="muted small">
-                        تقدير التكلفة من المتوسط الرسمي: {estimate.totalValue} ريال {estimate.perKg} ريال/كجم
-                        — والرقم الفعلي هو قيمة ما يخرج من الرفّ.
-                      </span>
-                    );
-                  })()}
                 </div>
+                <label className="field">
+                  <span>مشرف الإنتاج / أمين المستودع</span>
+                  <input
+                    className="input"
+                    value={prodSupervisor}
+                    onChange={(e) => setProdSupervisor(e.target.value)}
+                  />
+                </label>
               </div>
-              <label className="field">
-                <span>مشرف الإنتاج / أمين المستودع</span>
-                <input
-                  className="input"
-                  value={prodSupervisor}
-                  onChange={(e) => setProdSupervisor(e.target.value)}
-                />
-              </label>
-            </div>
-            <div>
-              <button type="submit" className="btn primary" disabled={busy}>
-                {busy ? 'جارٍ الحفظ…' : 'اعتماد دفعة الإنتاج وتوريدها للمستودع الرئيسي'}
-              </button>
-            </div>
+              <div>
+                <button type="submit" className="btn primary" disabled={busy}>
+                  {busy ? 'جارٍ الحفظ…' : 'اعتماد دفعة الإنتاج وتوريدها للمستودع الرئيسي'}
+                </button>
+              </div>
+            </Panel>
           </form>
 
           <Panel title="دفعات الإنتاج وأرصدة المستودع الرئيسي" flush>
@@ -2102,58 +2104,59 @@ export default function VanSalesPage() {
           </Panel>
 
           {repTarget ? (
-            <form className="card" onSubmit={linkRepAccount} style={{ display: 'grid', gap: 12 }}>
-              <h2>ربط المندوب ({repTarget.name}) بحساب دخول رسمي</h2>
-              <p className="muted small" style={{ margin: 0 }}>
-                يُنشئ النظام مستخدمًا وعضوية عبر مسار الدعوة الرسمي نفسه المستعمل لبقية الموظفين، ويضعها على
-                دور «مندوب توزيع» بصلاحيات: رؤية عهدته، إصدار فواتيره، تسجيل تحصيلاته، وتقديم إغلاق ورديته.
-                كلمة المرور لا تُخترَع هنا — يصل المندوب رابط التفعيل الرسمي.
-              </p>
-              <div className="form-grid">
-                <label className="field">
-                  <span>البريد الإلكتروني لحساب المندوب *</span>
-                  <input
-                    className="input"
-                    type="email"
-                    required
-                    dir="ltr"
-                    value={repEmail}
-                    onChange={(e) => setRepEmail(e.target.value)}
-                  />
-                </label>
-                <label className="field">
-                  <span>الاسم الظاهر</span>
-                  <input
-                    className="input"
-                    value={repFullName}
-                    onChange={(e) => setRepFullName(e.target.value)}
-                  />
-                </label>
-              </div>
-              <label className="row" style={{ gap: 8, alignItems: 'center' }}>
-                <input
-                  type="checkbox"
-                  checked={repScopeToVan}
-                  onChange={(e) => setRepScopeToVan(e.target.checked)}
-                />
-                <span>
-                  قصر صلاحية الحساب على مستودع سيارة هذا المندوب فقط (يمنعه من قراءة عهدة مندوب آخر)
-                </span>
-              </label>
-              {!repTarget.readiness.hasEmployee ? (
-                <div className="muted small" style={{ color: 'var(--warn)' }}>
-                  هذه البطاقة غير مربوطة ببطاقة موظف — اربطها أولًا من شاشة المبيعات المندوبين حتى تُنسب سندات
-                  القبض والإغلاقات إلى الموظف نفسه.
+            <form onSubmit={linkRepAccount} style={{ display: 'grid', gap: 12 }}>
+              <Panel title={<>ربط المندوب ( {repTarget.name} ) بحساب دخول رسمي</>}>
+                <p className="muted small" style={{ margin: 0 }}>
+                  يُنشئ النظام مستخدمًا وعضوية عبر مسار الدعوة الرسمي نفسه المستعمل لبقية الموظفين، ويضعها على
+                  دور «مندوب توزيع» بصلاحيات: رؤية عهدته، إصدار فواتيره، تسجيل تحصيلاته، وتقديم إغلاق ورديته.
+                  كلمة المرور لا تُخترَع هنا — يصل المندوب رابط التفعيل الرسمي.
+                </p>
+                <div className="form-grid">
+                  <label className="field">
+                    <span>البريد الإلكتروني لحساب المندوب *</span>
+                    <input
+                      className="input"
+                      type="email"
+                      required
+                      dir="ltr"
+                      value={repEmail}
+                      onChange={(e) => setRepEmail(e.target.value)}
+                    />
+                  </label>
+                  <label className="field">
+                    <span>الاسم الظاهر</span>
+                    <input
+                      className="input"
+                      value={repFullName}
+                      onChange={(e) => setRepFullName(e.target.value)}
+                    />
+                  </label>
                 </div>
-              ) : null}
-              <div className="row" style={{ gap: 8 }}>
-                <button type="submit" className="btn primary" disabled={busy}>
-                  {busy ? 'جارٍ الربط…' : 'إنشاء / ربط حساب الدخول'}
-                </button>
-                <button type="button" className="btn" onClick={() => setRepTarget(null)}>
-                  إلغاء
-                </button>
-              </div>
+                <label className="row" style={{ gap: 8, alignItems: 'center' }}>
+                  <input
+                    type="checkbox"
+                    checked={repScopeToVan}
+                    onChange={(e) => setRepScopeToVan(e.target.checked)}
+                  />
+                  <span>
+                    قصر صلاحية الحساب على مستودع سيارة هذا المندوب فقط (يمنعه من قراءة عهدة مندوب آخر)
+                  </span>
+                </label>
+                {!repTarget.readiness.hasEmployee ? (
+                  <div className="muted small" style={{ color: 'var(--warn)' }}>
+                    هذه البطاقة غير مربوطة ببطاقة موظف — اربطها أولًا من شاشة المبيعات المندوبين حتى تُنسب
+                    سندات القبض والإغلاقات إلى الموظف نفسه.
+                  </div>
+                ) : null}
+                <div className="row" style={{ gap: 8 }}>
+                  <button type="submit" className="btn primary" disabled={busy}>
+                    {busy ? 'جارٍ الربط…' : 'إنشاء / ربط حساب الدخول'}
+                  </button>
+                  <button type="button" className="btn" onClick={() => setRepTarget(null)}>
+                    إلغاء
+                  </button>
+                </div>
+              </Panel>
             </form>
           ) : null}
         </div>
@@ -2162,125 +2165,130 @@ export default function VanSalesPage() {
       {/* TAB 4: SUPPLY TO VANS, CUSTODY & END-OF-DAY SHIFT CLOSING (Pillar 2 & 7) */}
       {tab === 'loads' && (
         <div style={{ display: 'grid', gap: 16 }}>
-          <form className="card" onSubmit={submitLoadOrder} style={{ display: 'grid', gap: 12 }}>
-            <h2>توريد المنتجات من المستودع الرئيسي إلى سيارة المندوب</h2>
-            <p className="muted small" style={{ margin: 0 }}>
-              يُنشئ النظام <b>مناولة مخزنية رسمية</b> (تحويل بين مستودعين) فتخرج الكمية من رصيد المستودع
-              الرئيسي إلى «بضاعة تحت التحويل»، وتبقى هناك حتى <b>يؤكّد المندوب الاستلام</b> — عندها فقط تدخل
-              رصيد سيارة المندوب وتصبح عهدة قابلة للبيع. لا تُخصم الكمية مرتين ولا تظهر في العهدة قبل
-              الاستلام.
-            </p>
-            <div className="form-grid">
-              <label className="field">
-                <span>المندوب *</span>
-                <select
-                  className="input"
-                  required
-                  value={loadSalesmanId}
-                  onChange={(e) => setLoadSalesmanId(e.target.value)}
-                >
-                  <option value="">— اختر المندوب —</option>
-                  {salesmen.map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {s.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="field">
-                <span>المستودع الرئيسي (مصدر التوريد) *</span>
-                <select
-                  className="input"
-                  value={loadWarehouseId}
-                  onChange={(e) => setLoadWarehouseId(e.target.value)}
-                >
-                  {warehouses.map((wh) => (
-                    <option key={wh.id} value={wh.id}>
-                      {wh.name ?? wh.nameAr ?? wh.code}
-                      {wh.isDefault ? ' (افتراضي)' : ''}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="field">
-                <span>مستودع سيارة المندوب (الوجهة) *</span>
-                <select
-                  className="input"
-                  value={loadVanWarehouseId}
-                  onChange={(e) => setLoadVanWarehouseId(e.target.value)}
-                >
-                  <option value="">— مستودع المندوب المُسند في بطاقته —</option>
-                  {warehouses
-                    .filter((wh) => wh.id !== loadWarehouseId)
-                    .map((wh) => (
-                      <option key={wh.id} value={wh.id}>
-                        {wh.name ?? wh.nameAr ?? wh.code}
+          <form onSubmit={submitLoadOrder} style={{ display: 'grid', gap: 12 }}>
+            <Panel title="توريد المنتجات من المستودع الرئيسي إلى سيارة المندوب">
+              <p className="muted small" style={{ margin: 0 }}>
+                يُنشئ النظام <b>مناولة مخزنية رسمية</b> (تحويل بين مستودعين) فتخرج الكمية من رصيد المستودع
+                الرئيسي إلى «بضاعة تحت التحويل»، وتبقى هناك حتى <b>يؤكّد المندوب الاستلام</b> — عندها فقط تدخل
+                رصيد سيارة المندوب وتصبح عهدة قابلة للبيع. لا تُخصم الكمية مرتين ولا تظهر في العهدة قبل
+                الاستلام.
+              </p>
+              <div className="form-grid">
+                <label className="field">
+                  <span>المندوب *</span>
+                  <select
+                    className="input"
+                    required
+                    value={loadSalesmanId}
+                    onChange={(e) => setLoadSalesmanId(e.target.value)}
+                  >
+                    <option value="">— اختر المندوب —</option>
+                    {salesmen.map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.name}
                       </option>
                     ))}
-                </select>
-                <span className="muted small">
-                  يُستخدم مستودع السيارة المُسند للمندوب في بطاقته إن تُرك فارغًا — ويجب أن يختلف عن مستودع
-                  المصدر.
-                </span>
-              </label>
-              <label className="field">
-                <span>رقم دفعة الإنتاج (Batch No)</span>
-                <input
-                  className="input"
-                  dir="ltr"
-                  value={productionBatchNo}
-                  onChange={(e) => setProductionBatchNo(e.target.value)}
-                  placeholder="تلقائي: PROD-YYYYMMDD-XXX"
-                />
-              </label>
-              <label className="field">
-                <span>رقم لوحة السيارة</span>
-                <input
-                  className="input"
-                  value={vehiclePlate}
-                  onChange={(e) => setVehiclePlate(e.target.value)}
-                />
-              </label>
-              <label className="field">
-                <span>الكمية المستلمة كعهدة (كجم) *</span>
-                <input
-                  className="input"
-                  type="number"
-                  step="0.01"
-                  required
-                  dir="ltr"
-                  value={loadedQty}
-                  onChange={(e) => setLoadedQty(e.target.value)}
-                />
-              </label>
-              <label className="field">
-                <span>سقف البونص المسموح في الرحلة (كجم)</span>
-                <input
-                  className="input"
-                  type="number"
-                  step="0.01"
-                  dir="ltr"
-                  value={maxBonusQty}
-                  onChange={(e) => setMaxBonusQty(e.target.value)}
-                />
-              </label>
-              <label className="field">
-                <span>الصنف (اختياري)</span>
-                <select className="input" value={loadItemId} onChange={(e) => setLoadItemId(e.target.value)}>
-                  <option value="">رقائق سمبوسة وفطائر (عام)</option>
-                  {items.map((it) => (
-                    <option key={it.id} value={it.id}>
-                      {it.nameAr}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            </div>
-            <div>
-              <button type="submit" className="btn primary" disabled={busy}>
-                {busy ? 'جارٍ الإصدار…' : 'اعتماد أمر التحميل وتسليم العهدة للمندوب'}
-              </button>
-            </div>
+                  </select>
+                </label>
+                <label className="field">
+                  <span>المستودع الرئيسي (مصدر التوريد) *</span>
+                  <select
+                    className="input"
+                    value={loadWarehouseId}
+                    onChange={(e) => setLoadWarehouseId(e.target.value)}
+                  >
+                    {warehouses.map((wh) => (
+                      <option key={wh.id} value={wh.id}>
+                        {wh.name ?? wh.nameAr ?? wh.code}
+                        {wh.isDefault ? ' (افتراضي)' : ''}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="field">
+                  <span>مستودع سيارة المندوب (الوجهة) *</span>
+                  <select
+                    className="input"
+                    value={loadVanWarehouseId}
+                    onChange={(e) => setLoadVanWarehouseId(e.target.value)}
+                  >
+                    <option value="">— مستودع المندوب المُسند في بطاقته —</option>
+                    {warehouses
+                      .filter((wh) => wh.id !== loadWarehouseId)
+                      .map((wh) => (
+                        <option key={wh.id} value={wh.id}>
+                          {wh.name ?? wh.nameAr ?? wh.code}
+                        </option>
+                      ))}
+                  </select>
+                  <span className="muted small">
+                    يُستخدم مستودع السيارة المُسند للمندوب في بطاقته إن تُرك فارغًا — ويجب أن يختلف عن مستودع
+                    المصدر.
+                  </span>
+                </label>
+                <label className="field">
+                  <span>رقم دفعة الإنتاج (Batch No)</span>
+                  <input
+                    className="input"
+                    dir="ltr"
+                    value={productionBatchNo}
+                    onChange={(e) => setProductionBatchNo(e.target.value)}
+                    placeholder="تلقائي: PROD-YYYYMMDD-XXX"
+                  />
+                </label>
+                <label className="field">
+                  <span>رقم لوحة السيارة</span>
+                  <input
+                    className="input"
+                    value={vehiclePlate}
+                    onChange={(e) => setVehiclePlate(e.target.value)}
+                  />
+                </label>
+                <label className="field">
+                  <span>الكمية المستلمة كعهدة (كجم) *</span>
+                  <input
+                    className="input"
+                    type="number"
+                    step="0.01"
+                    required
+                    dir="ltr"
+                    value={loadedQty}
+                    onChange={(e) => setLoadedQty(e.target.value)}
+                  />
+                </label>
+                <label className="field">
+                  <span>سقف البونص المسموح في الرحلة (كجم)</span>
+                  <input
+                    className="input"
+                    type="number"
+                    step="0.01"
+                    dir="ltr"
+                    value={maxBonusQty}
+                    onChange={(e) => setMaxBonusQty(e.target.value)}
+                  />
+                </label>
+                <label className="field">
+                  <span>الصنف (اختياري)</span>
+                  <select
+                    className="input"
+                    value={loadItemId}
+                    onChange={(e) => setLoadItemId(e.target.value)}
+                  >
+                    <option value="">رقائق سمبوسة وفطائر (عام)</option>
+                    {items.map((it) => (
+                      <option key={it.id} value={it.id}>
+                        {it.nameAr}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+              <div>
+                <button type="submit" className="btn primary" disabled={busy}>
+                  {busy ? 'جارٍ الإصدار…' : 'اعتماد أمر التحميل وتسليم العهدة للمندوب'}
+                </button>
+              </div>
+            </Panel>
           </form>
 
           <Panel title="سجل عهد المناديب وإغلاق الورديات واعتماد المحاسب" flush>
@@ -2822,262 +2830,266 @@ export default function VanSalesPage() {
       {tab === 'invoice' && (
         <div className="ui-split">
           <div className="ui-split-main">
-            <form className="card" onSubmit={submitVanDocument} style={{ display: 'grid', gap: 12 }}>
-              <h2>إصدار فاتورة توزيع (ضريبية ZATCA أو عادية)</h2>
-              <p className="muted small" style={{ margin: 0 }}>
-                السعر يُجلب ويُثبّت تلقائياً حسب العميل، وتُخصم الكمية مباشرة من عهدة المندوب، مع دعم الفاتورة
-                الضريبية (15% VAT + QR) أو فاتورة تسليم عادية للمحلات التي لا تطلب فاتورة ضريبية ورقية.
-              </p>
-              {/**
-               * إنذارُ هويّة البائع **بجملة الخادم نفسها** (`policy.zatcaSeller.refusalDetail`):
-               * فالخادمُ يرفض الفاتورة الضريبية ٤٢٢ (`VAN_ZATCA_SELLER_IDENTITY_REQUIRED`)
-               * حين ينقص اسمُ المنشأة أو رقمُها الضريبيّ، لأنّ رقمَ ضريبةٍ ليس للمنشأة في
-               * رمزٍ على فاتورة عميلٍ خطأُ امتثالٍ لا خطأُ عرض. والمحاسبُ أولى بأن يعرف قبل أن
-               * يُصدر، لا بعد أن يُرفض — والجملةُ من الحمولة فلا نسخةَ ثانيةَ منها هنا.
-               */}
-              {data?.policy?.zatcaSeller && data.policy.zatcaSeller.ready === false ? (
-                <p className="muted small" style={{ margin: 0, color: 'var(--danger)' }}>
-                  {data.policy.zatcaSeller.refusalDetail}
+            <form onSubmit={submitVanDocument} style={{ display: 'grid', gap: 12 }}>
+              <Panel title="إصدار فاتورة توزيع (ضريبية ZATCA أو عادية)">
+                <p className="muted small" style={{ margin: 0 }}>
+                  السعر يُجلب ويُثبّت تلقائياً حسب العميل، وتُخصم الكمية مباشرة من عهدة المندوب، مع دعم
+                  الفاتورة الضريبية (15% VAT + QR) أو فاتورة تسليم عادية للمحلات التي لا تطلب فاتورة ضريبية
+                  ورقية.
                 </p>
-              ) : null}
-
-              <div className="form-grid">
-                <label className="field">
-                  <span>أمر التحميل / عهدة المندوب *</span>
-                  <select
-                    className="input"
-                    required
-                    value={docLoadOrderId}
-                    onChange={(e) => setDocLoadOrderId(e.target.value)}
-                  >
-                    <option value="">— اختر عهدة المندوب —</option>
-                    {(data?.loadOrders ?? [])
-                      .filter((l) => l.status !== 'settled')
-                      .map((l) => (
-                        <option key={l.id} value={l.id}>
-                          {l.number} · {l.salesmanName} (متبقي: {l.remainingQty} كجم — دفعة{' '}
-                          {l.productionBatchNo})
-                        </option>
-                      ))}
-                  </select>
-                </label>
-
-                <label className="field">
-                  <span>العميل (اختياري لمحلات التجزئة)</span>
-                  <select
-                    className="input"
-                    value={docPartyId}
-                    onChange={(e) => onSelectCustomer(e.target.value)}
-                  >
-                    <option value="">— محل تجزئة نقدي / عام —</option>
-                    {customers.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-
-                {!docPartyId && (
-                  <label className="field">
-                    <span>اسم المحل / العميل</span>
-                    <input
-                      className="input"
-                      value={docWalkinName}
-                      onChange={(e) => setDocWalkinName(e.target.value)}
-                      placeholder="مثال: بوفية البركة"
-                    />
-                  </label>
-                )}
-
-                <label className="field">
-                  <span>نوع المستند (متوافق مع ZATCA) *</span>
-                  <select
-                    className="input"
-                    value={docMode}
-                    onChange={(e) => setDocMode(e.target.value as 'zatca_tax' | 'internal_delivery')}
-                  >
-                    <option value="zatca_tax">فاتورة ضريبية إلكترونية ZATCA (15% VAT + QR)</option>
-                    <option value="internal_delivery">فاتورة توزيع عادية (لمحل لا يطلب ضريبية ورقية)</option>
-                  </select>
-                </label>
-
-                <label className="field">
-                  <span>طريقة الدفع</span>
-                  <select
-                    className="input"
-                    value={docPayment}
-                    onChange={(e) => setDocPayment(e.target.value as 'cash' | 'card' | 'credit')}
-                  >
-                    <option value="cash">نقدي (Cash)</option>
-                    <option value="card">شبكة مدى / تحويل</option>
-                    <option value="credit">آجل على ذمة العميل (Credit)</option>
-                  </select>
-                </label>
-
-                {docPayment !== 'credit' ? (
-                  <label className="field">
-                    <span>الصندوق / موقع النقد *</span>
-                    <select
-                      className="input"
-                      value={docCashLocationId}
-                      onChange={(e) => setDocCashLocationId(e.target.value)}
-                    >
-                      <option value="">— الصندوق الافتراضي للفرع —</option>
-                      {cashLocations.map((location) => (
-                        <option key={location.id} value={location.id}>
-                          {location.name}
-                          {location.isDefault ? ' (افتراضي)' : ''}
-                        </option>
-                      ))}
-                    </select>
-                    <span className="muted small">
-                      البيع النقدي يُرحَّل إلى حساب هذا الصندوق في الفاتورة الرسمية — لا يُخترَع حساب في
-                      الكود.
-                    </span>
-                  </label>
+                {/**
+                 * إنذارُ هويّة البائع **بجملة الخادم نفسها** (`policy.zatcaSeller.refusalDetail`):
+                 * فالخادمُ يرفض الفاتورة الضريبية ٤٢٢ (`VAN_ZATCA_SELLER_IDENTITY_REQUIRED`)
+                 * حين ينقص اسمُ المنشأة أو رقمُها الضريبيّ، لأنّ رقمَ ضريبةٍ ليس للمنشأة في
+                 * رمزٍ على فاتورة عميلٍ خطأُ امتثالٍ لا خطأُ عرض. والمحاسبُ أولى بأن يعرف قبل أن
+                 * يُصدر، لا بعد أن يُرفض — والجملةُ من الحمولة فلا نسخةَ ثانيةَ منها هنا.
+                 */}
+                {data?.policy?.zatcaSeller && data.policy.zatcaSeller.ready === false ? (
+                  <p className="muted small" style={{ margin: 0, color: 'var(--danger)' }}>
+                    {data.policy.zatcaSeller.refusalDetail}
+                  </p>
                 ) : null}
 
-                <label className="field">
-                  <span>الكمية المباعة (كجم) *</span>
-                  <input
-                    className="input"
-                    type="number"
-                    step="0.01"
-                    required
-                    dir="ltr"
-                    value={docSoldQty}
-                    onChange={(e) => setDocSoldQty(e.target.value)}
-                  />
-                </label>
-
-                <label className="field">
-                  <span>سعر الكيلو (ريال) {selectedCustomerRule?.lockPrice ? 'مثبّت للعميل' : ''}</span>
-                  <input
-                    className="input"
-                    type="number"
-                    step="0.01"
-                    required
-                    dir="ltr"
-                    readOnly={Boolean(selectedCustomerRule?.lockPrice && !docAllowOverride)}
-                    value={docUnitPrice}
-                    onChange={(e) => setDocUnitPrice(e.target.value)}
-                  />
-                </label>
-
-                <label className="field">
-                  <span>الكمية المجانية / البونص (كجم)</span>
-                  <input
-                    className="input"
-                    type="number"
-                    step="0.01"
-                    dir="ltr"
-                    value={docBonusQty}
-                    onChange={(e) => setDocBonusQty(e.target.value)}
-                  />
-                </label>
-
-                {Number(docBonusQty || 0) > 0 && (
+                <div className="form-grid">
                   <label className="field">
-                    <span>سبب منح الكمية المجانية / العينات *</span>
+                    <span>أمر التحميل / عهدة المندوب *</span>
                     <select
                       className="input"
-                      value={docBonusReason}
-                      onChange={(e) => setDocBonusReason(e.target.value)}
+                      required
+                      value={docLoadOrderId}
+                      onChange={(e) => setDocLoadOrderId(e.target.value)}
                     >
-                      {BONUS_REASONS.map((r) => (
-                        <option key={r} value={r}>
-                          {r}
+                      <option value="">— اختر عهدة المندوب —</option>
+                      {(data?.loadOrders ?? [])
+                        .filter((l) => l.status !== 'settled')
+                        .map((l) => (
+                          <option key={l.id} value={l.id}>
+                            {l.number} · {l.salesmanName} (متبقي: {l.remainingQty} كجم — دفعة{' '}
+                            {l.productionBatchNo})
+                          </option>
+                        ))}
+                    </select>
+                  </label>
+
+                  <label className="field">
+                    <span>العميل (اختياري لمحلات التجزئة)</span>
+                    <select
+                      className="input"
+                      value={docPartyId}
+                      onChange={(e) => onSelectCustomer(e.target.value)}
+                    >
+                      <option value="">— محل تجزئة نقدي / عام —</option>
+                      {customers.map((c) => (
+                        <option key={c.id} value={c.id}>
+                          {c.name}
                         </option>
                       ))}
                     </select>
                   </label>
-                )}
 
-                <label className="field">
-                  <span>خصم استثنائي (ريال — يتطلب صلاحية)</span>
-                  <input
-                    className="input"
-                    type="number"
-                    step="0.01"
-                    dir="ltr"
-                    value={docDiscountAmount}
-                    onChange={(e) => setDocDiscountAmount(e.target.value)}
-                  />
-                </label>
+                  {!docPartyId && (
+                    <label className="field">
+                      <span>اسم المحل / العميل</span>
+                      <input
+                        className="input"
+                        value={docWalkinName}
+                        onChange={(e) => setDocWalkinName(e.target.value)}
+                        placeholder="مثال: بوفية البركة"
+                      />
+                    </label>
+                  )}
 
-                {Number(docDiscountAmount || 0) > 0 && (
                   <label className="field">
-                    <span>سبب الخصم الاستثنائي</span>
+                    <span>نوع المستند (متوافق مع ZATCA) *</span>
+                    <select
+                      className="input"
+                      value={docMode}
+                      onChange={(e) => setDocMode(e.target.value as 'zatca_tax' | 'internal_delivery')}
+                    >
+                      <option value="zatca_tax">فاتورة ضريبية إلكترونية ZATCA (15% VAT + QR)</option>
+                      <option value="internal_delivery">
+                        فاتورة توزيع عادية (لمحل لا يطلب ضريبية ورقية)
+                      </option>
+                    </select>
+                  </label>
+
+                  <label className="field">
+                    <span>طريقة الدفع</span>
+                    <select
+                      className="input"
+                      value={docPayment}
+                      onChange={(e) => setDocPayment(e.target.value as 'cash' | 'card' | 'credit')}
+                    >
+                      <option value="cash">نقدي (Cash)</option>
+                      <option value="card">شبكة مدى / تحويل</option>
+                      <option value="credit">آجل على ذمة العميل (Credit)</option>
+                    </select>
+                  </label>
+
+                  {docPayment !== 'credit' ? (
+                    <label className="field">
+                      <span>الصندوق / موقع النقد *</span>
+                      <select
+                        className="input"
+                        value={docCashLocationId}
+                        onChange={(e) => setDocCashLocationId(e.target.value)}
+                      >
+                        <option value="">— الصندوق الافتراضي للفرع —</option>
+                        {cashLocations.map((location) => (
+                          <option key={location.id} value={location.id}>
+                            {location.name}
+                            {location.isDefault ? ' (افتراضي)' : ''}
+                          </option>
+                        ))}
+                      </select>
+                      <span className="muted small">
+                        البيع النقدي يُرحَّل إلى حساب هذا الصندوق في الفاتورة الرسمية — لا يُخترَع حساب في
+                        الكود.
+                      </span>
+                    </label>
+                  ) : null}
+
+                  <label className="field">
+                    <span>الكمية المباعة (كجم) *</span>
                     <input
                       className="input"
-                      value={docDiscountReason}
-                      onChange={(e) => setDocDiscountReason(e.target.value)}
+                      type="number"
+                      step="0.01"
+                      required
+                      dir="ltr"
+                      value={docSoldQty}
+                      onChange={(e) => setDocSoldQty(e.target.value)}
                     />
                   </label>
-                )}
-              </div>
 
-              <div className="row" style={{ gap: 16, flexWrap: 'wrap' }}>
-                <label className="row" style={{ gap: 6, alignItems: 'center' }}>
-                  <input
-                    type="checkbox"
-                    checked={docBonusConfirmed}
-                    onChange={(e) => setDocBonusConfirmed(e.target.checked)}
-                  />
-                  <span>إقرار استلام العميل للكمية المجانية ({docBonusQty || '0'} كجم)</span>
-                </label>
-                <label className="row" style={{ gap: 6, alignItems: 'center' }}>
-                  <input
-                    type="checkbox"
-                    checked={docAllowOverride}
-                    onChange={(e) => setDocAllowOverride(e.target.checked)}
-                  />
-                  <span>اعتماد استثنائي من صاحب المصنع / المحاسب لتجاوز السعر أو الخصم</span>
-                </label>
-                <input
-                  className="input"
-                  style={{ maxWidth: 200 }}
-                  value={docConfirmCode}
-                  onChange={(e) => setDocConfirmCode(e.target.value)}
-                  placeholder="رمز/توقيع العميل (اختياري)"
-                />
-              </div>
+                  <label className="field">
+                    <span>سعر الكيلو (ريال) {selectedCustomerRule?.lockPrice ? 'مثبّت للعميل' : ''}</span>
+                    <input
+                      className="input"
+                      type="number"
+                      step="0.01"
+                      required
+                      dir="ltr"
+                      readOnly={Boolean(selectedCustomerRule?.lockPrice && !docAllowOverride)}
+                      value={docUnitPrice}
+                      onChange={(e) => setDocUnitPrice(e.target.value)}
+                    />
+                  </label>
 
-              <div
-                className="row"
-                style={{
-                  justifyContent: 'space-between',
-                  padding: 12,
-                  borderRadius: 10,
-                  background: 'var(--surface-2)',
-                }}
-              >
-                <div>
-                  <span>
-                    الصافي قبل الضريبة: <strong dir="ltr">{previewSubtotal.toFixed(2)} SAR</strong>
-                  </span>
-                  {' · '}
-                  <span>
-                    الضريبة: <strong dir="ltr">{previewVat.toFixed(2)} SAR</strong>
-                  </span>
-                  {' · '}
-                  <span>
-                    الإجمالي:{' '}
-                    <strong dir="ltr" style={{ color: 'var(--brand)' }}>
-                      {previewTotal.toFixed(2)} SAR
-                    </strong>
-                  </span>
-                  <div className="muted small">
-                    الضريبةُ والإجماليُّ أعلاه تقديرٌ بنسبة {PREVIEW_VAT_RATE_PCT}٪ — والنسبةُ الفعلية تُحسم
-                    عند الإصدار من المجموعة الضريبية للصنف، وإلا المجموعةِ الافتراضية للمنشأة، وإلا ١٥٪.
-                    والمستندُ الصادرُ هو الرقمُ المعتمد.
-                  </div>
+                  <label className="field">
+                    <span>الكمية المجانية / البونص (كجم)</span>
+                    <input
+                      className="input"
+                      type="number"
+                      step="0.01"
+                      dir="ltr"
+                      value={docBonusQty}
+                      onChange={(e) => setDocBonusQty(e.target.value)}
+                    />
+                  </label>
+
+                  {Number(docBonusQty || 0) > 0 && (
+                    <label className="field">
+                      <span>سبب منح الكمية المجانية / العينات *</span>
+                      <select
+                        className="input"
+                        value={docBonusReason}
+                        onChange={(e) => setDocBonusReason(e.target.value)}
+                      >
+                        {BONUS_REASONS.map((r) => (
+                          <option key={r} value={r}>
+                            {r}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  )}
+
+                  <label className="field">
+                    <span>خصم استثنائي (ريال — يتطلب صلاحية)</span>
+                    <input
+                      className="input"
+                      type="number"
+                      step="0.01"
+                      dir="ltr"
+                      value={docDiscountAmount}
+                      onChange={(e) => setDocDiscountAmount(e.target.value)}
+                    />
+                  </label>
+
+                  {Number(docDiscountAmount || 0) > 0 && (
+                    <label className="field">
+                      <span>سبب الخصم الاستثنائي</span>
+                      <input
+                        className="input"
+                        value={docDiscountReason}
+                        onChange={(e) => setDocDiscountReason(e.target.value)}
+                      />
+                    </label>
+                  )}
                 </div>
-                <button type="submit" className="btn primary" disabled={busy || !activeLoadOrder}>
-                  {busy ? 'جارٍ الإصدار…' : 'اعتماد الفاتورة وخصم العهدة'}
-                </button>
-              </div>
+
+                <div className="row" style={{ gap: 16, flexWrap: 'wrap' }}>
+                  <label className="row" style={{ gap: 6, alignItems: 'center' }}>
+                    <input
+                      type="checkbox"
+                      checked={docBonusConfirmed}
+                      onChange={(e) => setDocBonusConfirmed(e.target.checked)}
+                    />
+                    <span>إقرار استلام العميل للكمية المجانية ({docBonusQty || '0'} كجم)</span>
+                  </label>
+                  <label className="row" style={{ gap: 6, alignItems: 'center' }}>
+                    <input
+                      type="checkbox"
+                      checked={docAllowOverride}
+                      onChange={(e) => setDocAllowOverride(e.target.checked)}
+                    />
+                    <span>اعتماد استثنائي من صاحب المصنع / المحاسب لتجاوز السعر أو الخصم</span>
+                  </label>
+                  <input
+                    className="input"
+                    style={{ maxWidth: 200 }}
+                    value={docConfirmCode}
+                    onChange={(e) => setDocConfirmCode(e.target.value)}
+                    placeholder="رمز/توقيع العميل (اختياري)"
+                  />
+                </div>
+
+                <div
+                  className="row"
+                  style={{
+                    justifyContent: 'space-between',
+                    padding: 12,
+                    borderRadius: 10,
+                    background: 'var(--surface-2)',
+                  }}
+                >
+                  <div>
+                    <span>
+                      الصافي قبل الضريبة: <strong dir="ltr">{previewSubtotal.toFixed(2)} SAR</strong>
+                    </span>
+                    {' · '}
+                    <span>
+                      الضريبة: <strong dir="ltr">{previewVat.toFixed(2)} SAR</strong>
+                    </span>
+                    {' · '}
+                    <span>
+                      الإجمالي:{' '}
+                      <strong dir="ltr" style={{ color: 'var(--brand)' }}>
+                        {previewTotal.toFixed(2)} SAR
+                      </strong>
+                    </span>
+                    <div className="muted small">
+                      الضريبةُ والإجماليُّ أعلاه تقديرٌ بنسبة {PREVIEW_VAT_RATE_PCT}٪ — والنسبةُ الفعلية تُحسم
+                      عند الإصدار من المجموعة الضريبية للصنف، وإلا المجموعةِ الافتراضية للمنشأة، وإلا ١٥٪.
+                      والمستندُ الصادرُ هو الرقمُ المعتمد.
+                    </div>
+                  </div>
+                  <button type="submit" className="btn primary" disabled={busy || !activeLoadOrder}>
+                    {busy ? 'جارٍ الإصدار…' : 'اعتماد الفاتورة وخصم العهدة'}
+                  </button>
+                </div>
+              </Panel>
             </form>
           </div>
 
@@ -3261,128 +3273,131 @@ export default function VanSalesPage() {
       {/* TAB 5: CUSTOMER PRICE TIERS, LOCKING & CREDIT LIMITS (Pillar 4 & 5) */}
       {tab === 'prices' && (
         <div style={{ display: 'grid', gap: 16 }}>
-          <form className="card" onSubmit={submitCustomerTier} style={{ display: 'grid', gap: 12 }}>
-            <h2>تخصيص وتثبيت سعر العميل (6 / 6.5 / 7 ريال) وسقف الائتمان والبونص</h2>
-            <div className="form-grid">
-              <label className="field">
-                <span>العميل *</span>
-                <select
-                  className="input"
-                  required
-                  value={tierPartyId}
-                  onChange={(e) => setTierPartyId(e.target.value)}
-                >
-                  <option value="">— اختر العميل —</option>
-                  {customers.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="field">
-                <span>سعر الكيلو المخصص (ريال) *</span>
+          <form onSubmit={submitCustomerTier} style={{ display: 'grid', gap: 12 }}>
+            <Panel title="تخصيص وتثبيت سعر العميل (6 / 6.5 / 7 ريال) وسقف الائتمان والبونص">
+              <div className="form-grid">
+                <label className="field">
+                  <span>العميل *</span>
+                  <select
+                    className="input"
+                    required
+                    value={tierPartyId}
+                    onChange={(e) => setTierPartyId(e.target.value)}
+                  >
+                    <option value="">— اختر العميل —</option>
+                    {customers.map((c) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="field">
+                  <span>سعر الكيلو المخصص (ريال) *</span>
+                  <input
+                    className="input"
+                    type="number"
+                    step="0.01"
+                    required
+                    dir="ltr"
+                    value={tierUnitPrice}
+                    onChange={(e) => setTierUnitPrice(e.target.value)}
+                  />
+                </label>
+                <label className="field">
+                  <span>وصف الشريحة</span>
+                  <input className="input" value={tierLabel} onChange={(e) => setTierLabel(e.target.value)} />
+                </label>
+                <label className="field">
+                  <span>سقف الائتمان الآجل (SAR)</span>
+                  <input
+                    className="input"
+                    type="number"
+                    step="1"
+                    dir="ltr"
+                    value={tierCreditLimit}
+                    onChange={(e) => setTierCreditLimit(e.target.value)}
+                  />
+                </label>
+                <label className="field">
+                  <span>مهلة السداد (أيام)</span>
+                  <input
+                    className="input"
+                    type="number"
+                    dir="ltr"
+                    value={tierPaymentTerms}
+                    onChange={(e) => setTierPaymentTerms(e.target.value)}
+                  />
+                </label>
+                <label className="field">
+                  <span>أقصى خصم مسموح للمندوب (%)</span>
+                  <input
+                    className="input"
+                    type="number"
+                    step="0.5"
+                    dir="ltr"
+                    value={tierMaxDiscountPct}
+                    onChange={(e) => setTierMaxDiscountPct(e.target.value)}
+                  />
+                </label>
+                <label className="field">
+                  <span>أقصى نسبة بونص مجاني (%)</span>
+                  <input
+                    className="input"
+                    type="number"
+                    step="0.5"
+                    dir="ltr"
+                    value={tierMaxBonusPct}
+                    onChange={(e) => setTierMaxBonusPct(e.target.value)}
+                  />
+                </label>
+                <label className="field">
+                  <span>أقصى بونص في الفاتورة (كجم)</span>
+                  <input
+                    className="input"
+                    type="number"
+                    step="0.1"
+                    dir="ltr"
+                    value={tierMaxBonusKg}
+                    onChange={(e) => setTierMaxBonusKg(e.target.value)}
+                  />
+                </label>
+                <label className="field">
+                  <span>نوع الفاتورة المفضل للعميل</span>
+                  <select
+                    className="input"
+                    value={tierPreferredMode}
+                    onChange={(e) =>
+                      setTierPreferredMode(e.target.value as 'zatca_tax' | 'internal_delivery')
+                    }
+                  >
+                    <option value="zatca_tax">فاتورة ضريبية إلكترونية ZATCA</option>
+                    <option value="internal_delivery">فاتورة توزيع عادية (بدون ضريبية ورقية)</option>
+                  </select>
+                </label>
+                <label className="field">
+                  <span>سبب اعتماد / تعديل السعر (لسجل التدقيق)</span>
+                  <input
+                    className="input"
+                    value={tierChangeReason}
+                    onChange={(e) => setTierChangeReason(e.target.value)}
+                  />
+                </label>
+              </div>
+              <label className="row" style={{ gap: 8, alignItems: 'center' }}>
                 <input
-                  className="input"
-                  type="number"
-                  step="0.01"
-                  required
-                  dir="ltr"
-                  value={tierUnitPrice}
-                  onChange={(e) => setTierUnitPrice(e.target.value)}
+                  type="checkbox"
+                  checked={tierLockPrice}
+                  onChange={(e) => setTierLockPrice(e.target.checked)}
                 />
+                <span>تثبيت السعر تلقائياً عند البيع ومنع المندوب من تغييره أو البيع بسعر أقل</span>
               </label>
-              <label className="field">
-                <span>وصف الشريحة</span>
-                <input className="input" value={tierLabel} onChange={(e) => setTierLabel(e.target.value)} />
-              </label>
-              <label className="field">
-                <span>سقف الائتمان الآجل (SAR)</span>
-                <input
-                  className="input"
-                  type="number"
-                  step="1"
-                  dir="ltr"
-                  value={tierCreditLimit}
-                  onChange={(e) => setTierCreditLimit(e.target.value)}
-                />
-              </label>
-              <label className="field">
-                <span>مهلة السداد (أيام)</span>
-                <input
-                  className="input"
-                  type="number"
-                  dir="ltr"
-                  value={tierPaymentTerms}
-                  onChange={(e) => setTierPaymentTerms(e.target.value)}
-                />
-              </label>
-              <label className="field">
-                <span>أقصى خصم مسموح للمندوب (%)</span>
-                <input
-                  className="input"
-                  type="number"
-                  step="0.5"
-                  dir="ltr"
-                  value={tierMaxDiscountPct}
-                  onChange={(e) => setTierMaxDiscountPct(e.target.value)}
-                />
-              </label>
-              <label className="field">
-                <span>أقصى نسبة بونص مجاني (%)</span>
-                <input
-                  className="input"
-                  type="number"
-                  step="0.5"
-                  dir="ltr"
-                  value={tierMaxBonusPct}
-                  onChange={(e) => setTierMaxBonusPct(e.target.value)}
-                />
-              </label>
-              <label className="field">
-                <span>أقصى بونص في الفاتورة (كجم)</span>
-                <input
-                  className="input"
-                  type="number"
-                  step="0.1"
-                  dir="ltr"
-                  value={tierMaxBonusKg}
-                  onChange={(e) => setTierMaxBonusKg(e.target.value)}
-                />
-              </label>
-              <label className="field">
-                <span>نوع الفاتورة المفضل للعميل</span>
-                <select
-                  className="input"
-                  value={tierPreferredMode}
-                  onChange={(e) => setTierPreferredMode(e.target.value as 'zatca_tax' | 'internal_delivery')}
-                >
-                  <option value="zatca_tax">فاتورة ضريبية إلكترونية ZATCA</option>
-                  <option value="internal_delivery">فاتورة توزيع عادية (بدون ضريبية ورقية)</option>
-                </select>
-              </label>
-              <label className="field">
-                <span>سبب اعتماد / تعديل السعر (لسجل التدقيق)</span>
-                <input
-                  className="input"
-                  value={tierChangeReason}
-                  onChange={(e) => setTierChangeReason(e.target.value)}
-                />
-              </label>
-            </div>
-            <label className="row" style={{ gap: 8, alignItems: 'center' }}>
-              <input
-                type="checkbox"
-                checked={tierLockPrice}
-                onChange={(e) => setTierLockPrice(e.target.checked)}
-              />
-              <span>تثبيت السعر تلقائياً عند البيع ومنع المندوب من تغييره أو البيع بسعر أقل</span>
-            </label>
-            <div>
-              <button type="submit" className="btn primary" disabled={busy}>
-                حفظ سياسة العميل السعرية والائتمانية
-              </button>
-            </div>
+              <div>
+                <button type="submit" className="btn primary" disabled={busy}>
+                  حفظ سياسة العميل السعرية والائتمانية
+                </button>
+              </div>
+            </Panel>
           </form>
 
           <Panel title="قائمة أسعار وسياسات العملاء المعتمدة" flush>

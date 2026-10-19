@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Panel } from '@erp/ui';
+import { FilterBand, Panel } from '@erp/ui';
 
 import { Notice } from '../../../components/data-view';
 import { Screen } from '../../../components/screen';
@@ -88,7 +88,7 @@ export default function PostingProfilesPage() {
       subtitle="أي حساب يستقبل كل نوع مستند. الفرع يتقدّم على الافتراضي العام، والمستند المحدد يتقدّم على «الافتراضي لكل المستندات»."
       crumbs={['الإعدادات', 'المحاسبة']}
     >
-      <div className="card toolbar">
+      <FilterBand>
         <label className="field">
           <span>النطاق</span>
           <select
@@ -124,7 +124,7 @@ export default function PostingProfilesPage() {
             ))}
           </select>
         </label>
-      </div>
+      </FilterBand>
 
       <Panel title={<>{existing ? 'تعديل الربط' : 'ربط جديد'}</>}>
         <div className="form-grid">

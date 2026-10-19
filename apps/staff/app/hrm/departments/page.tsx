@@ -365,9 +365,9 @@ export default function DepartmentsPage() {
       )}
 
       {departments.status === 'success' && !canManage && (
-        <section className="card">
+        <Panel title="الإدارات والأقسام" flush>
           {rows.length === 0 ? (
-            <Empty title="لا توجد إدارات أو أقسام" />
+            <Empty bare title="لا توجد إدارات أو أقسام" detail="أنشئ إدارة لتبدأ هيكل الأقسام." />
           ) : (
             <div className="table-wrap">
               <table>
@@ -392,7 +392,7 @@ export default function DepartmentsPage() {
               </table>
             </div>
           )}
-        </section>
+        </Panel>
       )}
     </Screen>
   );

@@ -1,6 +1,6 @@
 'use client';
 
-import { Panel } from '@erp/ui';
+import { FilterBand, Panel } from '@erp/ui';
 import Link from 'next/link';
 import { Suspense, useState } from 'react';
 
@@ -200,7 +200,7 @@ function MarinaViolations() {
       {error && <p className="alert danger">{error}</p>}
       {notice && <p className="alert ok">{notice}</p>}
 
-      <div className="card tight no-print">
+      <FilterBand className="no-print">
         <div className="row" style={{ flexWrap: 'wrap', alignItems: 'flex-end' }}>
           <label className="field" style={{ margin: 0, minWidth: 180 }}>
             <span>نوع المخالفة</span>
@@ -244,7 +244,7 @@ function MarinaViolations() {
             </button>
           )}
         </div>
-      </div>
+      </FilterBand>
 
       {violations.status === 'loading' && <Loading rows={5} />}
       {violations.status === 'forbidden' && <Forbidden />}

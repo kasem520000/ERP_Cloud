@@ -463,9 +463,7 @@ export default function PurchaseInvoiceDetailPage() {
         </Panel>
       </div>
 
-      <div className="card">
-        {/* «بنود الفاتورة» — `frmInvPurch.xaml` L665. */}
-        <h2>بنود الفاتورة</h2>
+      <Panel title="بنود الفاتورة" flush>
         <DataTable
           rows={doc.lines}
           rowKey={(row) => row.id}
@@ -518,16 +516,10 @@ export default function PurchaseInvoiceDetailPage() {
             },
           ]}
         />
-      </div>
+      </Panel>
 
       {doc.payments.length > 0 && (
-        <div className="card">
-          {/*
- عمودٌ سحابي لا نظيرَ له في جدول النافذة: الديسكتوب يكتب الدفعة في دفتر
- `Entry` ويُظهر «الرصيد» L489 وحده. وصفوف التخصيص كانت تُكتب في السحابة
- ولا تُقرأ — أُضيفت قراءتها في R3 (`GET /purchase-invoices/:id`).
-          */}
-          <h2>الدفعات المسدّدة</h2>
+        <Panel title="الدفعات المسدّدة" flush>
           <DataTable
             rows={doc.payments}
             rowKey={(row) => row.id}
@@ -542,7 +534,7 @@ export default function PurchaseInvoiceDetailPage() {
               { key: 'voucher', header: 'السند', cell: (row) => row.voucherId ?? 'عند الترحيل' },
             ]}
           />
-        </div>
+        </Panel>
       )}
 
       {doc.costs.length > 0 && (

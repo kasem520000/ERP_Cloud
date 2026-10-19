@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react';
 import { Panel } from '@erp/ui';
 
 import { DataTable, Notice } from '../../../components/data-view';
-import { Screen } from '../../../components/screen';
+import { Empty, Screen } from '../../../components/screen';
 import { FilterBar, StatTile, StatTiles, Tabs } from '../../../components/ui';
 import { ApiError, apiList, apiPost } from '../../../lib/api';
 import {
@@ -197,10 +197,7 @@ export default function CashTransfersPage() {
   if (!can('treasury.view')) {
     return (
       <Screen title="مناقلة الخزن" crumbs={['الخزينة']}>
-        <div className="card state">
-          <strong>لا تملك صلاحية عرض الخزينة</strong>
-          <span>تحتاج صلاحية treasury.view.</span>
-        </div>
+        <Empty title="لا تملك صلاحية عرض الخزينة" detail="اطلب من مسؤول الحساب منحك صلاحية عرض الخزينة." />
       </Screen>
     );
   }
