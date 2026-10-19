@@ -440,7 +440,6 @@ function PagesTab() {
     {
       key: 'title',
       header: 'العنوان',
-      grow: true,
       cell: (page) => (
         <>
           <strong>{page.titleAr}</strong>
@@ -480,6 +479,7 @@ function PagesTab() {
     {
       key: 'actions',
       header: '',
+      width: 200,
       cell: (page) => (
         <div className="row">
           <button type="button" className="btn sm" onClick={() => void openEditor(page)} disabled={busy}>
