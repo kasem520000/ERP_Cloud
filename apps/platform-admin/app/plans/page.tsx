@@ -147,59 +147,61 @@ export default function PlansPage() {
         ((plans.data ?? []).length === 0 ? (
           <Empty title="لا توجد باقات" detail="أنشئ الباقة الأولى ليتمكن العملاء من الاشتراك." />
         ) : (
-          <div className="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>الرمز</th>
-                  <th>الاسم</th>
-                  <th className="num">السعر</th>
-                  <th>الدورة</th>
-                  <th className="num">المكافئ الشهري</th>
-                  <th className="num">الحقوق</th>
-                  <th className="num">اشتراكات فعّالة</th>
-                  <th>الحالة</th>
-                  <th />
-                </tr>
-              </thead>
-              <tbody>
-                {(plans.data ?? []).map((plan) => (
-                  <tr key={plan.id}>
-                    <td dir="ltr">{plan.code}</td>
-                    <td>{plan.name}</td>
-                    <td className="num">
-                      {Number(plan.amount).toLocaleString('ar-SA-u-ca-gregory-nu-latn', {
-                        minimumFractionDigits: 2,
-                      })}{' '}
-                      {plan.currency}
-                    </td>
-                    <td>{plan.interval === 'year' ? 'سنوي' : 'شهري'}</td>
-                    <td className="num">{plan.monthlyAmount}</td>
-                    <td className="num">{plan.entitlements.length}</td>
-                    <td className="num">{plan.activeSubscriptions}</td>
-                    <td>
-                      <span className={`badge ${plan.active ? 'active' : 'planned'}`}>
-                        {plan.active ? 'نشطة' : 'متوقفة'}
-                      </span>
-                    </td>
-                    <td>
-                      <div className="row" style={{ gap: 6 }}>
-                        <button className="btn sm" type="button" onClick={() => setEntitlementTarget(plan)}>
-                          الحقوق
-                        </button>
-                        <button className="btn sm" type="button" onClick={() => setEditing(plan)}>
-                          تعديل
-                        </button>
-                        <button className="btn sm" type="button" onClick={() => void toggle(plan)}>
-                          {plan.active ? 'إيقاف' : 'تفعيل'}
-                        </button>
-                      </div>
-                    </td>
+          <Panel flush title="الباقات">
+            <div className="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>الرمز</th>
+                    <th>الاسم</th>
+                    <th className="num">السعر</th>
+                    <th>الدورة</th>
+                    <th className="num">المكافئ الشهري</th>
+                    <th className="num">الحقوق</th>
+                    <th className="num">اشتراكات فعّالة</th>
+                    <th>الحالة</th>
+                    <th />
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {(plans.data ?? []).map((plan) => (
+                    <tr key={plan.id}>
+                      <td dir="ltr">{plan.code}</td>
+                      <td>{plan.name}</td>
+                      <td className="num">
+                        {Number(plan.amount).toLocaleString('ar-SA-u-ca-gregory-nu-latn', {
+                          minimumFractionDigits: 2,
+                        })}{' '}
+                        {plan.currency}
+                      </td>
+                      <td>{plan.interval === 'year' ? 'سنوي' : 'شهري'}</td>
+                      <td className="num">{plan.monthlyAmount}</td>
+                      <td className="num">{plan.entitlements.length}</td>
+                      <td className="num">{plan.activeSubscriptions}</td>
+                      <td>
+                        <span className={`badge ${plan.active ? 'active' : 'planned'}`}>
+                          {plan.active ? 'نشطة' : 'متوقفة'}
+                        </span>
+                      </td>
+                      <td>
+                        <div className="row" style={{ gap: 6 }}>
+                          <button className="btn sm" type="button" onClick={() => setEntitlementTarget(plan)}>
+                            الحقوق
+                          </button>
+                          <button className="btn sm" type="button" onClick={() => setEditing(plan)}>
+                            تعديل
+                          </button>
+                          <button className="btn sm" type="button" onClick={() => void toggle(plan)}>
+                            {plan.active ? 'إيقاف' : 'تفعيل'}
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </Panel>
         ))}
 
       {plans.status === 'success' && (plans.data ?? []).length > 0 && (

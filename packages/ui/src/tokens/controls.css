@@ -1222,6 +1222,13 @@ table td {
 a.ui-kpi-cell:hover {
   background: var(--surface-2);
 }
+/* خليّةٌ داخل لوحةٍ لها سطحها: بلا حدودٍ ولا حشو — النصُّ وحده. */
+.ui-kpi-cell-plain {
+  display: grid;
+  align-content: start;
+  gap: 6px;
+  min-width: 0;
+}
 .ui-kpi-label {
   display: flex;
   align-items: center;

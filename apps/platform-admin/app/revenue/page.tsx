@@ -1,5 +1,6 @@
 'use client';
 
+import { Panel } from '@erp/ui';
 import {
   AlertTriangle,
   BadgeDollarSign,
@@ -63,8 +64,7 @@ type Revenue = {
 
 type MrrSeries = Array<{ month: string; mrr: string }>;
 
-const gregDate = (value: string | null) =>
-  value ? dateText(value) : '—';
+const gregDate = (value: string | null) => (value ? dateText(value) : '—');
 
 const monthLabel = (iso: string) => {
   const [y, m] = iso.split('-').map(Number);
@@ -76,11 +76,15 @@ const num = (value: string) => Number(value) || 0;
 
 export default function RevenuePage() {
   const revenue = useQuery<Revenue>(() => apiData<Revenue>('/platform/revenue'), []);
-  const series = useQuery<{ mrrSeries: MrrSeries }>(() => apiData<{ mrrSeries: MrrSeries }>('/platform/analytics/overview?months=12'), []);
+  const series = useQuery<{ mrrSeries: MrrSeries }>(
+    () => apiData<{ mrrSeries: MrrSeries }>('/platform/analytics/overview?months=12'),
+    [],
+  );
 
   const data = revenue.data;
   const currency = data?.currency ?? 'SAR';
-  const fmt = (value: number) => value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const fmt = (value: number) =>
+    value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
   const upcomingRows = data?.upcoming ?? [];
 
@@ -90,7 +94,14 @@ export default function RevenuePage() {
       subtitle="الإيراد المتكرّر والمتأخّر: أرقام شهرية واحدة، بتعريف مكتوب."
       crumbs={['المنصة', 'العملاء والتراخيص']}
       actions={
-        <Button variant="secondary" icon={<RefreshCw size={14} />} onClick={() => { revenue.reload(); series.reload(); }}>
+        <Button
+          variant="secondary"
+          icon={<RefreshCw size={14} />}
+          onClick={() => {
+            revenue.reload();
+            series.reload();
+          }}
+        >
           تحديث
         </Button>
       }
@@ -100,11 +111,16 @@ export default function RevenuePage() {
           <SkeletonRows rows={6} />
         </div>
       ) : revenue.status === 'error' ? (
-        <EmptyState tone="red" icon={<Wallet size={26} strokeWidth={1.5} />} title="تعذر تحميل الإيراد" description={revenue.error} />
+        <EmptyState
+          tone="red"
+          icon={<Wallet size={26} strokeWidth={1.5} />}
+          title="تعذر تحميل الإيراد"
+          description={revenue.error}
+        />
       ) : data ? (
         <>
           {/* top metrics */}
-          <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
+          <div className="ui-kpi-strip">
             <MetricCard
               label="MRR — شهري متكرر"
               value={num(data.mrr)}
@@ -128,7 +144,9 @@ export default function RevenuePage() {
               suffix={currency}
               tone={num(data.overdue) > 0 ? 'red' : 'green'}
               icon={<Timer size={16} />}
-              hint={data.overdueCount > 0 ? `${data.overdueCount} فاتورة متجاوزة الاستحقاق` : 'لا متأخّر حالياً'}
+              hint={
+                data.overdueCount > 0 ? `${data.overdueCount} فاتورة متجاوزة الاستحقاق` : 'لا متأخّر حالياً'
+              }
               delay={0.1}
             />
             <MetricCard
@@ -148,7 +166,9 @@ export default function RevenuePage() {
               <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
                 <div>
                   <h3 className="m-0 text-[15px] font-bold text-ink">منحنى MRR — 12 شهراً</h3>
-                  <p className="m-0 mt-0.5 text-[12px] text-muted">الإيراد الشهري المتكرر كما حُسب في العقود (بلا رسومٍ بلا معنى).</p>
+                  <p className="m-0 mt-0.5 text-[12px] text-muted">
+                    الإيراد الشهري المتكرر كما حُسب في العقود (بلا رسومٍ بلا معنى).
+                  </p>
                 </div>
                 {data.mixedCurrency ? (
                   <Badge tone="amber" dot>
@@ -158,7 +178,10 @@ export default function RevenuePage() {
               </div>
               {(series.data?.mrrSeries ?? []).length > 0 ? (
                 <AreaCardChart
-                  data={(series.data?.mrrSeries ?? []).map((p) => ({ month: monthLabel(p.month), mrr: num(p.mrr) }))}
+                  data={(series.data?.mrrSeries ?? []).map((p) => ({
+                    month: monthLabel(p.month),
+                    mrr: num(p.mrr),
+                  }))}
                   xKey="month"
                   dataKey="mrr"
                   name="MRR"
@@ -185,56 +208,99 @@ export default function RevenuePage() {
                     { label: 'موقوفة مؤقتاً', value: data.counts.paused, cls: 'text-warn' },
                     { label: 'ملغاة', value: data.counts.canceled, cls: 'text-muted' },
                   ].map((row) => (
-                    <div key={row.label} className="flex items-center justify-between rounded-lg border border-line bg-surface-2 px-3 py-2">
+                    <div
+                      key={row.label}
+                      className="flex items-center justify-between rounded-lg border border-line bg-surface-2 px-3 py-2"
+                    >
                       <dt className="text-[12.5px] font-bold text-muted m-0">{row.label}</dt>
-                      <dd className={`m-0 font-mono text-[15px] font-bold ${row.cls}`} dir="ltr">{row.value}</dd>
+                      <dd className={`m-0 font-mono text-[15px] font-bold ${row.cls}`} dir="ltr">
+                        {row.value}
+                      </dd>
                     </div>
                   ))}
                 </dl>
                 <p className="m-0 mt-3 text-[11.5px] text-muted leading-relaxed">
-                  MRR يعدّ «فعّالة» و«متأخّرة» فقط: من تأخّر في السداد ما زال متعاقداً، ومن يُجرّب لم يشترِ بعد.
+                  MRR يعدّ «فعّالة» و«متأخّرة» فقط: من تأخّر في السداد ما زال متعاقداً، ومن يُجرّب لم يشترِ
+                  بعد.
                 </p>
               </section>
             </Reveal>
 
             {/* upcoming invoices */}
             <Reveal delay={0.2} className="xl:col-span-2">
-              <section className="rounded-[10px] border border-line bg-surface shadow-1 overflow-hidden">
-                <header className="px-4 pt-4 pb-1 flex items-center gap-2">
-                  <CalendarClock size={15} className="text-muted" />
-                  <h3 className="m-0 text-[15px] font-bold text-ink">فواتير قائمة ({upcomingRows.length})</h3>
-                </header>
+              <Panel flush title={`فواتير قائمة (${upcomingRows.length})`}>
                 {upcomingRows.length === 0 ? (
                   <div className="px-4 pb-5">
-                    <EmptyState icon={<CalendarClock size={22} strokeWidth={1.5} />} title="لا فواتير قائمة" description="لا فاتورة صادرة غير مدفوعة في هذه اللحظة." />
-                  </div>
-                ) : (
-                  <div className="px-1 pb-1">
-                    <Table
-                      rows={upcomingRows}
-                      rowKey={(row) => row.invoiceId}
-                      dense
-                      columns={[
-                        { key: 'number', header: 'الفاتورة', ltr: true, cell: (row) => <span className="font-mono text-[12px]">{row.number ?? '—'}</span> },
-                        { key: 'tenant', header: 'العميل', cell: (row) => <span className="font-bold text-ink-2">{row.tenantName}</span> },
-                        { key: 'due', header: 'الاستحقاق', ltr: true, cell: (row) => <span className="font-mono text-[12px] text-muted">{gregDate(row.dueDate)}</span> },
-                        { key: 'total', header: 'الإجمالي', numeric: true, ltr: true, cell: (row) => <span className="font-mono text-[12px] font-bold">{fmt(num(row.total))}</span> },
-                        { key: 'remaining', header: 'المتبقّي', numeric: true, ltr: true, cell: (row) => <span className="font-mono text-[12px] font-bold text-warn-ink">{fmt(num(row.remaining))}</span> },
-                        {
-                          key: 'status',
-                          header: 'الحالة',
-                          cell: (row) =>
-                            row.daysOverdue > 0 ? (
-                              <Badge tone="red" dot>متأخّرة {row.daysOverdue} يوماً</Badge>
-                            ) : (
-                              <Badge tone="amber" dot>تنتظر السداد</Badge>
-                            ),
-                        },
-                      ]}
+                    <EmptyState
+                      icon={<CalendarClock size={22} strokeWidth={1.5} />}
+                      title="لا فواتير قائمة"
+                      description="لا فاتورة صادرة غير مدفوعة في هذه اللحظة."
                     />
                   </div>
+                ) : (
+                  <Table
+                    bare
+                    rows={upcomingRows}
+                    rowKey={(row) => row.invoiceId}
+                    dense
+                    columns={[
+                      {
+                        key: 'number',
+                        header: 'الفاتورة',
+                        ltr: true,
+                        cell: (row) => <span className="font-mono text-[12px]">{row.number ?? '—'}</span>,
+                      },
+                      {
+                        key: 'tenant',
+                        header: 'العميل',
+                        cell: (row) => <span className="font-bold text-ink-2">{row.tenantName}</span>,
+                      },
+                      {
+                        key: 'due',
+                        header: 'الاستحقاق',
+                        ltr: true,
+                        cell: (row) => (
+                          <span className="font-mono text-[12px] text-muted">{gregDate(row.dueDate)}</span>
+                        ),
+                      },
+                      {
+                        key: 'total',
+                        header: 'الإجمالي',
+                        numeric: true,
+                        ltr: true,
+                        cell: (row) => (
+                          <span className="font-mono text-[12px] font-bold">{fmt(num(row.total))}</span>
+                        ),
+                      },
+                      {
+                        key: 'remaining',
+                        header: 'المتبقّي',
+                        numeric: true,
+                        ltr: true,
+                        cell: (row) => (
+                          <span className="font-mono text-[12px] font-bold text-warn-ink">
+                            {fmt(num(row.remaining))}
+                          </span>
+                        ),
+                      },
+                      {
+                        key: 'status',
+                        header: 'الحالة',
+                        cell: (row) =>
+                          row.daysOverdue > 0 ? (
+                            <Badge tone="red" dot>
+                              متأخّرة {row.daysOverdue} يوماً
+                            </Badge>
+                          ) : (
+                            <Badge tone="amber" dot>
+                              تنتظر السداد
+                            </Badge>
+                          ),
+                      },
+                    ]}
+                  />
                 )}
-              </section>
+              </Panel>
             </Reveal>
           </div>
         </>

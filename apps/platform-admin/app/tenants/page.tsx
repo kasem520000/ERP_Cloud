@@ -1,15 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import {
-  Building2,
-  CheckCircle2,
-  CreditCard,
-  PauseCircle,
-  PlayCircle,
-  Plus,
-  Search,
-} from 'lucide-react';
+import { Panel } from '@erp/ui';
+import { Building2, CheckCircle2, CreditCard, PauseCircle, PlayCircle, Plus, Search } from 'lucide-react';
 import { useMemo, useState } from 'react';
 
 import { Screen } from '../../components/screen';
@@ -41,7 +34,15 @@ type Tenant = {
   currentPeriodEnd: string | null;
 };
 
-type Plan = { id: string; code: string; name: string; amount: string; currency: string; interval: string; active: boolean };
+type Plan = {
+  id: string;
+  code: string;
+  name: string;
+  amount: string;
+  currency: string;
+  interval: string;
+  active: boolean;
+};
 
 const STATUS_LABEL: Record<string, string> = { active: 'نشط', suspended: 'موقوف', archived: 'مؤرشف' };
 const SUB_LABEL: Record<string, string> = {
@@ -59,8 +60,7 @@ const SUB_TONE: Record<string, 'green' | 'blue' | 'amber' | 'red' | 'purple' | '
   canceled: 'neutral',
 };
 
-const gregDate = (iso: string) =>
-  dateText(iso);
+const gregDate = (iso: string) => dateText(iso);
 
 export default function TenantsPage() {
   const [search, setSearch] = useState('');
@@ -68,7 +68,9 @@ export default function TenantsPage() {
   const [applied, setApplied] = useState({ search: '', status: '' });
   const [message, setMessage] = useState<{ kind: 'ok' | 'danger'; text: string } | undefined>();
   const [granting, setGranting] = useState<Tenant | undefined>();
-  const [statusTarget, setStatusTarget] = useState<{ tenant: Tenant; next: 'active' | 'suspended' | 'archived' } | undefined>();
+  const [statusTarget, setStatusTarget] = useState<
+    { tenant: Tenant; next: 'active' | 'suspended' | 'archived' } | undefined
+  >();
 
   const tenants = useQuery<Tenant[]>(() => {
     const params = new URLSearchParams();
@@ -112,7 +114,9 @@ export default function TenantsPage() {
       crumbs={['المنصة', 'العملاء والتراخيص']}
       actions={
         <Link href="/tenants/new">
-          <Button variant="primary" icon={<Plus size={15} />}>عميل جديد</Button>
+          <Button variant="primary" icon={<Plus size={15} />}>
+            عميل جديد
+          </Button>
         </Link>
       }
     >
@@ -132,13 +136,17 @@ export default function TenantsPage() {
           </div>
           <div style={{ minWidth: 160 }}>
             <Select label="الحالة" value={status} onChange={(e) => setStatus(e.target.value)}>
-                <option value="">كل الحالات</option>
-                <option value="active">نشط</option>
-                <option value="suspended">موقوف</option>
+              <option value="">كل الحالات</option>
+              <option value="active">نشط</option>
+              <option value="suspended">موقوف</option>
               <option value="archived">مؤرشف</option>
             </Select>
           </div>
-          <Button variant="primary" icon={<Search size={15} />} onClick={() => setApplied({ search, status })}>
+          <Button
+            variant="primary"
+            icon={<Search size={15} />}
+            onClick={() => setApplied({ search, status })}
+          >
             بحث
           </Button>
           <div className="ms-auto flex flex-wrap gap-2">
@@ -161,7 +169,9 @@ export default function TenantsPage() {
       {message ? (
         <div
           className={`flex items-center gap-2 rounded-[10px] border px-4 py-2.5 text-[13px] font-semibold ${
-            message.kind === 'ok' ? 'border-ok-line bg-ok-soft text-ok-ink' : 'border-danger-line bg-danger-soft text-danger-ink'
+            message.kind === 'ok'
+              ? 'border-ok-line bg-ok-soft text-ok-ink'
+              : 'border-danger-line bg-danger-soft text-danger-ink'
           }`}
         >
           {message.text}
@@ -179,7 +189,11 @@ export default function TenantsPage() {
           icon={<Building2 size={26} strokeWidth={1.5} />}
           title="تعذر تحميل العملاء"
           description={tenants.error}
-          action={<Button variant="primary" onClick={tenants.reload}>إعادة المحاولة</Button>}
+          action={
+            <Button variant="primary" onClick={tenants.reload}>
+              إعادة المحاولة
+            </Button>
+          }
         />
       ) : customerRows.length === 0 ? (
         <EmptyState
@@ -188,8 +202,9 @@ export default function TenantsPage() {
           description="أنشئ أول عميل من زر «عميل جديد»."
         />
       ) : (
-        <div className="rounded-[10px] border border-line bg-surface shadow-1 overflow-hidden">
+        <Panel flush title="العملاء">
           <Table
+            bare
             rows={customerRows}
             rowKey={(row) => row.id}
             dense
@@ -200,10 +215,15 @@ export default function TenantsPage() {
                 cell: (tenant) => (
                   <Link href={`/tenants/${tenant.id}`} className="group grid gap-0.5">
                     <span className="flex items-center gap-2">
-                      <span className="grid size-7 flex-none place-items-center rounded-md bg-inverse font-mono text-[10px] font-bold text-on-accent" dir="ltr">
+                      <span
+                        className="grid size-7 flex-none place-items-center rounded-md bg-inverse font-mono text-[10px] font-bold text-on-accent"
+                        dir="ltr"
+                      >
                         {tenant.code.slice(0, 2).toUpperCase()}
                       </span>
-                      <span className="truncate font-bold text-ink group-hover:text-brand transition-colors duration-150">{tenant.name}</span>
+                      <span className="truncate font-bold text-ink group-hover:text-brand transition-colors duration-150">
+                        {tenant.name}
+                      </span>
                     </span>
                     <span className="font-mono text-[10.5px] text-muted" dir="ltr">
                       {gregDate(tenant.createdAt)}
@@ -221,7 +241,10 @@ export default function TenantsPage() {
                 key: 'status',
                 header: 'الحالة',
                 cell: (row) => (
-                  <Badge tone={row.status === 'active' ? 'green' : row.status === 'suspended' ? 'red' : 'neutral'} dot>
+                  <Badge
+                    tone={row.status === 'active' ? 'green' : row.status === 'suspended' ? 'red' : 'neutral'}
+                    dot
+                  >
                     {STATUS_LABEL[row.status] ?? row.status}
                   </Badge>
                 ),
@@ -260,7 +283,9 @@ export default function TenantsPage() {
                 header: 'ينتهي في',
                 ltr: true,
                 cell: (row) => (
-                  <span className="font-mono text-[12px] text-muted">{row.currentPeriodEnd ? gregDate(row.currentPeriodEnd) : '—'}</span>
+                  <span className="font-mono text-[12px] text-muted">
+                    {row.currentPeriodEnd ? gregDate(row.currentPeriodEnd) : '—'}
+                  </span>
                 ),
               },
               {
@@ -283,17 +308,34 @@ export default function TenantsPage() {
                 cell: (row) => (
                   <span className="flex items-center justify-end gap-1.5">
                     <Link href={`/tenants/${row.id}`}>
-                      <Button size="sm" variant="secondary">البطاقة</Button>
+                      <Button size="sm" variant="secondary">
+                        البطاقة
+                      </Button>
                     </Link>
-                    <Button size="sm" variant="primary" icon={<CreditCard size={12} />} onClick={() => setGranting(row)}>
+                    <Button
+                      size="sm"
+                      variant="primary"
+                      icon={<CreditCard size={12} />}
+                      onClick={() => setGranting(row)}
+                    >
                       ترخيص
                     </Button>
                     {row.status === 'active' ? (
-                      <Button size="sm" variant="danger" icon={<PauseCircle size={12} />} onClick={() => setStatusTarget({ tenant: row, next: 'suspended' })}>
+                      <Button
+                        size="sm"
+                        variant="danger"
+                        icon={<PauseCircle size={12} />}
+                        onClick={() => setStatusTarget({ tenant: row, next: 'suspended' })}
+                      >
                         إيقاف
                       </Button>
                     ) : (
-                      <Button size="sm" variant="secondary" icon={<PlayCircle size={12} />} onClick={() => setStatusTarget({ tenant: row, next: 'active' })}>
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        icon={<PlayCircle size={12} />}
+                        onClick={() => setStatusTarget({ tenant: row, next: 'active' })}
+                      >
                         تفعيل
                       </Button>
                     )}
@@ -302,7 +344,7 @@ export default function TenantsPage() {
               },
             ]}
           />
-        </div>
+        </Panel>
       )}
 
       {/* status reason modal */}
@@ -419,7 +461,13 @@ function GrantLicenceForm({
       description="يلغي أي ترخيص فعّال حالياً ويصدر ترخيصاً جديداً، ويعيد تفعيل المنشأة إن كانت موقوفة."
       footer={
         <>
-          <Button variant="primary" loading={busy} disabled={plans.length === 0} onClick={() => void submit()} icon={<CreditCard size={15} />}>
+          <Button
+            variant="primary"
+            loading={busy}
+            disabled={plans.length === 0}
+            onClick={() => void submit()}
+            icon={<CreditCard size={15} />}
+          >
             إصدار الترخيص
           </Button>
           <Button variant="ghost" onClick={onClose}>
@@ -430,7 +478,11 @@ function GrantLicenceForm({
     >
       {plans.length === 0 ? (
         <p className="m-0 rounded-[10px] border border-warn-line bg-warn-soft px-4 py-2.5 text-[13px] font-semibold text-warn-ink">
-          لا توجد باقات نشطة. أنشئ باقة أولاً من صفحة <Link href="/plans" className="underline">الباقات</Link>.
+          لا توجد باقات نشطة. أنشئ باقة أولاً من صفحة{' '}
+          <Link href="/plans" className="underline">
+            الباقات
+          </Link>
+          .
         </p>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2">
@@ -462,7 +514,9 @@ function GrantLicenceForm({
         </div>
       )}
       {error ? (
-        <p className="m-0 mt-3 rounded-[10px] border border-danger-line bg-danger-soft px-4 py-2.5 text-[13px] font-semibold text-danger-ink">{error}</p>
+        <p className="m-0 mt-3 rounded-[10px] border border-danger-line bg-danger-soft px-4 py-2.5 text-[13px] font-semibold text-danger-ink">
+          {error}
+        </p>
       ) : null}
     </Modal>
   );

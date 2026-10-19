@@ -219,8 +219,9 @@ export default function SubscriptionsPage() {
         (rows.length === 0 ? (
           <Empty title="لا توجد تراخيص" detail="أصدر ترخيصاً من هنا أو من صفحة العملاء." />
         ) : (
-          <div className="overflow-hidden rounded-[10px] border border-line bg-surface shadow-1">
+          <Panel flush title="التراخيص">
             <Table
+              bare
               rows={rows}
               rowKey={(row) => row.id}
               dense
@@ -386,7 +387,7 @@ export default function SubscriptionsPage() {
                 },
               ]}
             />
-          </div>
+          </Panel>
         ))}
     </Screen>
   );

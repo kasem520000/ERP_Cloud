@@ -199,80 +199,82 @@ export default function AuditPage() {
             <p className="muted small">
               {rows.length} من {audit.data?.total ?? rows.length} سجلاً
             </p>
-            <div className="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>الوقت</th>
-                    <th>العميل</th>
-                    <th>الإجراء</th>
-                    <th>الكيان</th>
-                    <th>المعرّف</th>
-                    <th>المستخدم</th>
-                    <th>الفرق</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {rows.map((row) => (
-                    <Fragment key={row.id}>
-                      <tr>
-                        <td dir="ltr">
-                          {new Date(row.createdAt).toLocaleString('ar-SA-u-ca-gregory-nu-latn')}
-                        </td>
-                        <td>
-                          {row.tenantName ? (
-                            <>
-                              {row.tenantName}
-                              <br />
-                              <span className="muted small" dir="ltr">
-                                {row.tenantCode}
-                              </span>
-                            </>
-                          ) : (
-                            <span className="muted">المنصة</span>
-                          )}
-                        </td>
-                        <td>
-                          <strong>{AUDIT_ACTION_AR[row.action] ?? row.action}</strong>
-                          <div className="muted small" dir="ltr">
-                            {row.action}
-                          </div>
-                        </td>
-                        <td>
-                          <strong>{AUDIT_ENTITY_AR[row.entity] ?? row.entity}</strong>
-                          <div className="muted small" dir="ltr">
-                            {row.entity}
-                          </div>
-                        </td>
-                        <td dir="ltr" className="small">
-                          {row.entityId ? row.entityId.slice(0, 12) : '—'}
-                        </td>
-                        <td dir="ltr" className="small">
-                          {row.actorLabel ?? (row.actorUserId ? row.actorUserId.slice(0, 8) : '—')}
-                        </td>
-                        <td>
-                          <button
-                            className="btn small"
-                            type="button"
-                            aria-expanded={expanded === row.id}
-                            onClick={() => setExpanded(expanded === row.id ? null : row.id)}
-                          >
-                            {expanded === row.id ? 'إخفاء' : describeChange(row)}
-                          </button>
-                        </td>
-                      </tr>
-                      {expanded === row.id && (
+            <Panel flush title="سجل التدقيق">
+              <div className="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>الوقت</th>
+                      <th>العميل</th>
+                      <th>الإجراء</th>
+                      <th>الكيان</th>
+                      <th>المعرّف</th>
+                      <th>المستخدم</th>
+                      <th>الفرق</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {rows.map((row) => (
+                      <Fragment key={row.id}>
                         <tr>
-                          <td colSpan={7} style={{ background: 'rgba(0,0,0,0.02)' }}>
-                            <DiffPanel row={row} />
+                          <td dir="ltr">
+                            {new Date(row.createdAt).toLocaleString('ar-SA-u-ca-gregory-nu-latn')}
+                          </td>
+                          <td>
+                            {row.tenantName ? (
+                              <>
+                                {row.tenantName}
+                                <br />
+                                <span className="muted small" dir="ltr">
+                                  {row.tenantCode}
+                                </span>
+                              </>
+                            ) : (
+                              <span className="muted">المنصة</span>
+                            )}
+                          </td>
+                          <td>
+                            <strong>{AUDIT_ACTION_AR[row.action] ?? row.action}</strong>
+                            <div className="muted small" dir="ltr">
+                              {row.action}
+                            </div>
+                          </td>
+                          <td>
+                            <strong>{AUDIT_ENTITY_AR[row.entity] ?? row.entity}</strong>
+                            <div className="muted small" dir="ltr">
+                              {row.entity}
+                            </div>
+                          </td>
+                          <td dir="ltr" className="small">
+                            {row.entityId ? row.entityId.slice(0, 12) : '—'}
+                          </td>
+                          <td dir="ltr" className="small">
+                            {row.actorLabel ?? (row.actorUserId ? row.actorUserId.slice(0, 8) : '—')}
+                          </td>
+                          <td>
+                            <button
+                              className="btn small"
+                              type="button"
+                              aria-expanded={expanded === row.id}
+                              onClick={() => setExpanded(expanded === row.id ? null : row.id)}
+                            >
+                              {expanded === row.id ? 'إخفاء' : describeChange(row)}
+                            </button>
                           </td>
                         </tr>
-                      )}
-                    </Fragment>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                        {expanded === row.id && (
+                          <tr>
+                            <td colSpan={7} style={{ background: 'rgba(0,0,0,0.02)' }}>
+                              <DiffPanel row={row} />
+                            </td>
+                          </tr>
+                        )}
+                      </Fragment>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </Panel>
           </>
         ))}
     </Screen>
@@ -347,33 +349,35 @@ function DiffPanel({ row }: { row: AuditRow }) {
     );
   }
   return (
-    <div className="table-wrap">
-      <table className="small">
-        <thead>
-          <tr>
-            <th>الحقل</th>
-            <th>قبل</th>
-            <th>بعد</th>
-            <th>نوع التغيير</th>
-          </tr>
-        </thead>
-        <tbody>
-          {changes.map((change) => (
-            <tr key={change.field}>
-              <td dir="ltr">{change.field}</td>
-              <td dir="ltr">{showValue(change.before)}</td>
-              <td dir="ltr">{showValue(change.after)}</td>
-              <td>
-                <span
-                  className={`badge ${change.kind === 'changed' ? 'pending' : change.kind === 'added' ? 'active' : 'failed'}`}
-                >
-                  {KIND_LABEL[change.kind]}
-                </span>
-              </td>
+    <Panel flush title="الفروق قبل وبعد">
+      <div className="table-wrap">
+        <table className="small">
+          <thead>
+            <tr>
+              <th>الحقل</th>
+              <th>قبل</th>
+              <th>بعد</th>
+              <th>نوع التغيير</th>
             </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
+          </thead>
+          <tbody>
+            {changes.map((change) => (
+              <tr key={change.field}>
+                <td dir="ltr">{change.field}</td>
+                <td dir="ltr">{showValue(change.before)}</td>
+                <td dir="ltr">{showValue(change.after)}</td>
+                <td>
+                  <span
+                    className={`badge ${change.kind === 'changed' ? 'pending' : change.kind === 'added' ? 'active' : 'failed'}`}
+                  >
+                    {KIND_LABEL[change.kind]}
+                  </span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </Panel>
   );
 }

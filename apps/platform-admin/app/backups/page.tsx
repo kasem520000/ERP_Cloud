@@ -341,7 +341,7 @@ export default function BackupsPage() {
                 <p className="muted small">
                   {rows.length} من {runs.data?.meta.total ?? rows.length} نسخة
                 </p>
-                <div className="table-wrap">
+                <Panel flush title="النسخ الاحتياطية"><div className="table-wrap">
                   <table>
                     <thead>
                       <tr>
@@ -417,7 +417,7 @@ export default function BackupsPage() {
                       ))}
                     </tbody>
                   </table>
-                </div>
+                </div></Panel>
               </>
             ))}
 

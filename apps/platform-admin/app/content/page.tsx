@@ -610,97 +610,99 @@ function PagesTab() {
       )}
 
       {rows.length > 0 && (
-        <div className="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>العنوان</th>
-                <th>النوع</th>
-                <th>الحالة</th>
-                <th>المسار</th>
-                <th>اللغات</th>
-                <th>الكتل</th>
-                <th>آخر تحديث</th>
-                <th />
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((page) => (
-                <tr key={page.id}>
-                  <td>
-                    <strong>{page.titleAr}</strong>
-                    {page.titleEn ? <div className="muted small">{page.titleEn}</div> : null}
-                  </td>
-                  <td>{KIND_LABEL[page.kind]}</td>
-                  <td>
-                    <span className={`badge ${page.status}`}>{STATUS_LABEL[page.status]}</span>
-                    {page.status === 'scheduled' && page.publishAt ? (
-                      <div className="muted small">تنشر {dateTime(page.publishAt)}</div>
-                    ) : null}
-                  </td>
-                  <td className="small">
-                    <code>{page.path}</code>
-                  </td>
-                  <td className="small">
-                    {page.translatedLocales.map((locale) => (locale === 'ar' ? 'ع' : 'EN')).join(' · ')}
-                  </td>
-                  <td>{page.blockCount}</td>
-                  <td className="small">{dateTime(page.updatedAt)}</td>
-                  <td>
-                    <div className="row">
-                      <button
-                        type="button"
-                        className="btn sm"
-                        onClick={() => void openEditor(page)}
-                        disabled={busy}
-                      >
-                        تحرير
-                      </button>
-                      <button
-                        type="button"
-                        className="btn sm"
-                        onClick={() => void loadVersions(page)}
-                        disabled={busy}
-                      >
-                        النسخ
-                      </button>
-                      {canManage && page.status !== 'published' && (
-                        <button
-                          type="button"
-                          className="btn sm primary"
-                          onClick={() => void publish(page)}
-                          disabled={busy}
-                        >
-                          نشر
-                        </button>
-                      )}
-                      {canManage && page.status !== 'published' && (
+        <Panel flush title="الصفحات">
+          <div className="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>العنوان</th>
+                  <th>النوع</th>
+                  <th>الحالة</th>
+                  <th>المسار</th>
+                  <th>اللغات</th>
+                  <th>الكتل</th>
+                  <th>آخر تحديث</th>
+                  <th />
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((page) => (
+                  <tr key={page.id}>
+                    <td>
+                      <strong>{page.titleAr}</strong>
+                      {page.titleEn ? <div className="muted small">{page.titleEn}</div> : null}
+                    </td>
+                    <td>{KIND_LABEL[page.kind]}</td>
+                    <td>
+                      <span className={`badge ${page.status}`}>{STATUS_LABEL[page.status]}</span>
+                      {page.status === 'scheduled' && page.publishAt ? (
+                        <div className="muted small">تنشر {dateTime(page.publishAt)}</div>
+                      ) : null}
+                    </td>
+                    <td className="small">
+                      <code>{page.path}</code>
+                    </td>
+                    <td className="small">
+                      {page.translatedLocales.map((locale) => (locale === 'ar' ? 'ع' : 'EN')).join(' · ')}
+                    </td>
+                    <td>{page.blockCount}</td>
+                    <td className="small">{dateTime(page.updatedAt)}</td>
+                    <td>
+                      <div className="row">
                         <button
                           type="button"
                           className="btn sm"
-                          onClick={() => setSchedule({ id: page.id, at: '' })}
+                          onClick={() => void openEditor(page)}
                           disabled={busy}
                         >
-                          جدولة
+                          تحرير
                         </button>
-                      )}
-                      {canManage && page.status === 'published' && (
                         <button
                           type="button"
-                          className="btn sm danger"
-                          onClick={() => setRetract({ id: page.id, reason: '' })}
+                          className="btn sm"
+                          onClick={() => void loadVersions(page)}
                           disabled={busy}
                         >
-                          سحب
+                          النسخ
                         </button>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                        {canManage && page.status !== 'published' && (
+                          <button
+                            type="button"
+                            className="btn sm primary"
+                            onClick={() => void publish(page)}
+                            disabled={busy}
+                          >
+                            نشر
+                          </button>
+                        )}
+                        {canManage && page.status !== 'published' && (
+                          <button
+                            type="button"
+                            className="btn sm"
+                            onClick={() => setSchedule({ id: page.id, at: '' })}
+                            disabled={busy}
+                          >
+                            جدولة
+                          </button>
+                        )}
+                        {canManage && page.status === 'published' && (
+                          <button
+                            type="button"
+                            className="btn sm danger"
+                            onClick={() => setRetract({ id: page.id, reason: '' })}
+                            disabled={busy}
+                          >
+                            سحب
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Panel>
       )}
 
       {editor && (
@@ -1591,84 +1593,86 @@ function BannersTab() {
       {rows.length === 0 ? (
         <Empty title="لا لافتات" detail="لا شيء معروض أعلى الموقع الآن." />
       ) : (
-        <div className="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>النصّ</th>
-                <th>اللون</th>
-                <th>الجمهور</th>
-                <th>النافذة</th>
-                <th>الحالة</th>
-                <th />
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((row) => (
-                <tr key={row.id}>
-                  <td>
-                    <strong>{row.textAr}</strong>
-                    {row.textEn ? <div className="muted small">{row.textEn}</div> : null}
-                    {row.href ? (
-                      <div className="small">
-                        <code>{row.href}</code> — {row.linkLabelAr ?? row.linkLabelEn ?? 'بلا نصّ رابط'}
-                      </div>
-                    ) : null}
-                  </td>
-                  <td>{TONE_LABEL[row.tone]}</td>
-                  <td>{AUDIENCE_LABEL[row.audience]}</td>
-                  <td className="small">
-                    {dateTime(row.startsAt)} {row.endsAt ? dateTime(row.endsAt) : 'بلا نهاية'}
-                  </td>
-                  <td>
-                    <span className={`badge ${row.live ? 'ok' : row.active ? 'draft' : 'archived'}`}>
-                      {row.live ? 'معروضة الآن' : row.active ? 'نشطة، خارج نافذتها' : 'موقوفة'}
-                    </span>
-                  </td>
-                  <td>
-                    <div className="row">
-                      {canManage && (
-                        <button
-                          type="button"
-                          className="btn sm"
-                          disabled={busy}
-                          onClick={() =>
-                            void run(
-                              () =>
-                                apiData<ContentBanner>(`/platform/content/banners/${row.id}`, {
-                                  method: 'PATCH',
-                                  body: JSON.stringify({ active: !row.active }),
-                                }),
-                              row.active ? 'أُوقفت اللافتة — اختفت من الموقع فوراً.' : 'فُعّلت اللافتة.',
-                            )
-                          }
-                        >
-                          {row.active ? 'أوقف' : 'فعّل'}
-                        </button>
-                      )}
-                      {canManage && (
-                        <button
-                          type="button"
-                          className="btn sm"
-                          onClick={() =>
-                            setEditing({
-                              id: row.id,
-                              textAr: row.textAr,
-                              textEn: row.textEn ?? '',
-                              href: row.href ?? '',
-                            })
-                          }
-                        >
-                          تحرير
-                        </button>
-                      )}
-                    </div>
-                  </td>
+        <Panel flush title="اللافتات">
+          <div className="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>النصّ</th>
+                  <th>اللون</th>
+                  <th>الجمهور</th>
+                  <th>النافذة</th>
+                  <th>الحالة</th>
+                  <th />
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {rows.map((row) => (
+                  <tr key={row.id}>
+                    <td>
+                      <strong>{row.textAr}</strong>
+                      {row.textEn ? <div className="muted small">{row.textEn}</div> : null}
+                      {row.href ? (
+                        <div className="small">
+                          <code>{row.href}</code> — {row.linkLabelAr ?? row.linkLabelEn ?? 'بلا نصّ رابط'}
+                        </div>
+                      ) : null}
+                    </td>
+                    <td>{TONE_LABEL[row.tone]}</td>
+                    <td>{AUDIENCE_LABEL[row.audience]}</td>
+                    <td className="small">
+                      {dateTime(row.startsAt)} {row.endsAt ? dateTime(row.endsAt) : 'بلا نهاية'}
+                    </td>
+                    <td>
+                      <span className={`badge ${row.live ? 'ok' : row.active ? 'draft' : 'archived'}`}>
+                        {row.live ? 'معروضة الآن' : row.active ? 'نشطة، خارج نافذتها' : 'موقوفة'}
+                      </span>
+                    </td>
+                    <td>
+                      <div className="row">
+                        {canManage && (
+                          <button
+                            type="button"
+                            className="btn sm"
+                            disabled={busy}
+                            onClick={() =>
+                              void run(
+                                () =>
+                                  apiData<ContentBanner>(`/platform/content/banners/${row.id}`, {
+                                    method: 'PATCH',
+                                    body: JSON.stringify({ active: !row.active }),
+                                  }),
+                                row.active ? 'أُوقفت اللافتة — اختفت من الموقع فوراً.' : 'فُعّلت اللافتة.',
+                              )
+                            }
+                          >
+                            {row.active ? 'أوقف' : 'فعّل'}
+                          </button>
+                        )}
+                        {canManage && (
+                          <button
+                            type="button"
+                            className="btn sm"
+                            onClick={() =>
+                              setEditing({
+                                id: row.id,
+                                textAr: row.textAr,
+                                textEn: row.textEn ?? '',
+                                href: row.href ?? '',
+                              })
+                            }
+                          >
+                            تحرير
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Panel>
       )}
 
       {editing && (

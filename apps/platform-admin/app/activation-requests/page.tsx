@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { Panel } from '@erp/ui';
 
 import { Empty, ErrorBox, Loading, Screen } from '../../components/screen';
 import { ApiError, apiData, apiPost } from '../../lib/api';
@@ -22,7 +23,10 @@ type Request = {
 
 export default function ActivationRequestsPage() {
   const [status, setStatus] = useState('pending');
-  const requests = useQuery<Request[]>(() => apiData<Request[]>(`/platform/activation-requests?status=${status}`), [status]);
+  const requests = useQuery<Request[]>(
+    () => apiData<Request[]>(`/platform/activation-requests?status=${status}`),
+    [status],
+  );
   const [message, setMessage] = useState<{ kind: 'ok' | 'danger'; text: string } | undefined>();
   const [busy, setBusy] = useState<string | undefined>();
 
@@ -31,7 +35,10 @@ export default function ActivationRequestsPage() {
     setMessage(undefined);
     try {
       await apiPost(`/platform/activation-requests/${id}/review`, { approve });
-      setMessage({ kind: 'ok', text: approve ? 'تم اعتماد الطلب وإصدار ترخيص لمدة 12 شهراً.' : 'تم رفض الطلب.' });
+      setMessage({
+        kind: 'ok',
+        text: approve ? 'تم اعتماد الطلب وإصدار ترخيص لمدة 12 شهراً.' : 'تم رفض الطلب.',
+      });
       requests.reload();
     } catch (error) {
       setMessage({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) });
@@ -48,7 +55,12 @@ export default function ActivationRequestsPage() {
       subtitle="طلبات الاشتراك اليدوية القادمة من بوابة العملاء."
       crumbs={['المنصة', 'العملاء والتراخيص']}
       actions={
-        <select className="input" style={{ maxWidth: 180 }} value={status} onChange={(event) => setStatus(event.target.value)}>
+        <select
+          className="input"
+          style={{ maxWidth: 180 }}
+          value={status}
+          onChange={(event) => setStatus(event.target.value)}
+        >
           <option value="pending">معلقة</option>
           <option value="approved">معتمدة</option>
           <option value="rejected">مرفوضة</option>
@@ -62,52 +74,68 @@ export default function ActivationRequestsPage() {
         (rows.length === 0 ? (
           <Empty title="لا توجد طلبات" detail="ستظهر هنا طلبات العملاء من صفحة الاشتراك في بوابة العملاء." />
         ) : (
-          <div className="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>المنشأة</th>
-                  <th>مقدم الطلب</th>
-                  <th>الباقة</th>
-                  <th className="num">القيمة</th>
-                  <th>التاريخ</th>
-                  <th>ملاحظات</th>
-                  <th />
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((row) => (
-                  <tr key={row.id}>
-                    <td>
-                      <strong>{row.tenant_name}</strong>
-                      <div className="muted small" dir="ltr">
-                        {row.tenant_code}
-                      </div>
-                    </td>
-                    <td dir="ltr" className="small">{row.requested_by_email ?? '—'}</td>
-                    <td>{row.plan_name ?? '—'}</td>
-                    <td className="num">
-                      {row.amount ? `${Number(row.amount).toLocaleString('ar-SA-u-ca-gregory-nu-latn', { minimumFractionDigits: 2 })} ${row.currency ?? ''}` : '—'}
-                    </td>
-                    <td dir="ltr">{dateText(row.created_at)}</td>
-                    <td className="small">{row.notes ?? '—'}</td>
-                    <td>
-                      {row.status === 'pending' && (
-                        <div className="row">
-                          <button className="btn sm primary" type="button" disabled={busy === row.id} onClick={() => void review(row.id, true)}>
-                            اعتماد
-                          </button>
-                          <button className="btn sm danger" type="button" disabled={busy === row.id} onClick={() => void review(row.id, false)}>
-                            رفض
-                          </button>
-                        </div>
-                      )}
-                    </td>
+          <Panel flush title="طلبات التفعيل">
+            <div className="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>المنشأة</th>
+                    <th>مقدم الطلب</th>
+                    <th>الباقة</th>
+                    <th className="num">القيمة</th>
+                    <th>التاريخ</th>
+                    <th>ملاحظات</th>
+                    <th />
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {rows.map((row) => (
+                    <tr key={row.id}>
+                      <td>
+                        <strong>{row.tenant_name}</strong>
+                        <div className="muted small" dir="ltr">
+                          {row.tenant_code}
+                        </div>
+                      </td>
+                      <td dir="ltr" className="small">
+                        {row.requested_by_email ?? '—'}
+                      </td>
+                      <td>{row.plan_name ?? '—'}</td>
+                      <td className="num">
+                        {row.amount
+                          ? `${Number(row.amount).toLocaleString('ar-SA-u-ca-gregory-nu-latn', { minimumFractionDigits: 2 })} ${row.currency ?? ''}`
+                          : '—'}
+                      </td>
+                      <td dir="ltr">{dateText(row.created_at)}</td>
+                      <td className="small">{row.notes ?? '—'}</td>
+                      <td>
+                        {row.status === 'pending' && (
+                          <div className="row">
+                            <button
+                              className="btn sm primary"
+                              type="button"
+                              disabled={busy === row.id}
+                              onClick={() => void review(row.id, true)}
+                            >
+                              اعتماد
+                            </button>
+                            <button
+                              className="btn sm danger"
+                              type="button"
+                              disabled={busy === row.id}
+                              onClick={() => void review(row.id, false)}
+                            >
+                              رفض
+                            </button>
+                          </div>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </Panel>
         ))}
     </Screen>
   );

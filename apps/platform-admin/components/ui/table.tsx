@@ -49,6 +49,11 @@ type TableProps<T> = {
   actions?: (row: T) => Array<{ label: string; icon?: ReactNode; onClick: () => void; danger?: boolean }>;
   dense?: boolean;
   zebra?: boolean;
+  /**
+   * الجدولُ داخل لوحةٍ لها سطحها: يُسقط الغلافُ حدودَه وظلَّه، ويبقى التمريرُ
+   * وسقفُ الارتفاع — فلا سطحٌ داخل سطح.
+   */
+  bare?: boolean;
 };
 
 export function Table<T>({
@@ -70,11 +75,11 @@ export function Table<T>({
   actions,
   dense = false,
   zebra = true,
+  bare = false,
 }: TableProps<T>) {
   const allSelected =
     selectable && rows.length > 0 && rows.every((row, i) => selectedKeys?.has(rowKey(row, i)));
-  const someSelected =
-    selectable && rows.some((row, i) => selectedKeys?.has(rowKey(row, i))) && !allSelected;
+  const someSelected = selectable && rows.some((row, i) => selectedKeys?.has(rowKey(row, i))) && !allSelected;
 
   const colSpan = columns.length + (selectable ? 1 : 0) + (actions ? 1 : 0);
 
@@ -104,7 +109,13 @@ export function Table<T>({
   const cellPad = dense ? 'px-2.5 py-1.5' : 'px-3 py-2.5';
 
   return (
-    <div className="w-full overflow-auto max-h-[70vh] rounded-xl border border-line bg-surface shadow-1">
+    <div
+      className={
+        bare
+          ? 'w-full overflow-auto max-h-[70vh]'
+          : 'w-full overflow-auto max-h-[70vh] rounded-xl border border-line bg-surface shadow-1'
+      }
+    >
       <table className="w-full border-collapse text-[13px]">
         <thead>
           <tr>
@@ -212,10 +223,7 @@ export function Table<T>({
                         .join(' ')}
                     >
                       {selectable ? (
-                        <td
-                          className={cellPad}
-                          onClick={(event) => event.stopPropagation()}
-                        >
+                        <td className={cellPad} onClick={(event) => event.stopPropagation()}>
                           <input
                             type="checkbox"
                             className="size-4 accent-brand-600 cursor-pointer"
@@ -243,10 +251,7 @@ export function Table<T>({
                         </td>
                       ))}
                       {actions ? (
-                        <td
-                          className={`${cellPad} text-center`}
-                          onClick={(event) => event.stopPropagation()}
-                        >
+                        <td className={`${cellPad} text-center`} onClick={(event) => event.stopPropagation()}>
                           <RowActions
                             items={actions(row)}
                             labels={{ open: 'فتح القائمة', close: 'إغلاق القائمة' }}
@@ -349,7 +354,15 @@ function RowActions({
 }
 
 /** شارة صغيرة للاستخدام داخل الخلايا. */
-export function CellBadge({ tone = 'neutral', dot, children }: { tone?: BadgeTone; dot?: boolean; children: ReactNode }) {
+export function CellBadge({
+  tone = 'neutral',
+  dot,
+  children,
+}: {
+  tone?: BadgeTone;
+  dot?: boolean;
+  children: ReactNode;
+}) {
   return (
     <Badge tone={tone} dot={dot}>
       {children}

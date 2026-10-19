@@ -303,8 +303,9 @@ export default function InvoicesPage() {
                 </div>
               ))}
             </div>
-            <div className="overflow-hidden rounded-[10px] border border-line bg-surface shadow-1">
+            <Panel flush title="الفواتير">
               <Table
+                bare
                 rows={rows}
                 rowKey={(row) => row.id}
                 dense
@@ -433,7 +434,7 @@ export default function InvoicesPage() {
                   },
                 ]}
               />
-            </div>
+            </Panel>
           </>
         ))}
 
