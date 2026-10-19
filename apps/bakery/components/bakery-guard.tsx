@@ -188,7 +188,7 @@ export function BakeryGuard({ children }: { children: React.ReactNode }) {
               الباقة مرخَّصة
             </span>
             <ThemeToggle compact />
-            <span className="text-[12px] text-muted">
+            <span className="bak-topbar-user text-[12px] text-muted">
               {me?.user.fullName} · {me?.membership.tenantCode}
             </span>
             <Button onClick={() => void signOut()} size="sm">

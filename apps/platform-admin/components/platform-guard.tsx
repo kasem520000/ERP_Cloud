@@ -167,8 +167,16 @@ export function PlatformGuard({ children }: { children: React.ReactNode }) {
 
           <div className="row" style={{ alignItems: 'center' }}>
             <ThemeToggle compact />
-            <button className="btn sm" type="button" onClick={() => setPaletteOpen(true)}>
-              <Search size={14} aria-hidden /> بحث شامل <span className="muted small">Ctrl+K</span>
+            <button
+              className="btn sm"
+              type="button"
+              onClick={() => setPaletteOpen(true)}
+              aria-label="بحث شامل"
+              title="بحث شامل (Ctrl+K)"
+            >
+              <Search size={14} aria-hidden />
+              <span className="topbar-search-label">بحث شامل</span>
+              <span className="muted small topbar-search-label">Ctrl+K</span>
             </button>
             <Bell
               pendingActivations={overview.data?.pendingActivations ?? 0}
@@ -181,7 +189,7 @@ export function PlatformGuard({ children }: { children: React.ReactNode }) {
                 {environment.labelAr}
               </span>
             )}
-            <span className="muted small">
+            <span className="muted small topbar-user">
               {me?.user.fullName} · {me?.user.email}
             </span>
             <button className="btn sm" type="button" onClick={() => void signOut()}>

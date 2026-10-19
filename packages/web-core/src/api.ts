@@ -64,6 +64,15 @@ export function apiErrorText(error: unknown, fallback = 'تعذر إكمال ا�
       /^[\w.]+(\s+[\w.]+)*\s+required$/i.test(detail) &&
       detail.length <= 80);
   if (codeShape) return fallback;
+  /*
+   * العنوانُ العامّ في `application/problem+json` («Request failed» / «Not found»)
+   * يقول إنّ شيئًا فشل ولا يقول ماذا — فالشاشة تقول ما تعذّر بلغتها بدل ترجمته.
+   */
+  const genericTitle =
+    /^(request failed|not found|forbidden|unauthorized|bad request|internal server error)$/i.test(
+      (error.message ?? '').trim(),
+    );
+  if (!detail && genericTitle) return fallback;
   return detail || error.message || fallback;
 }
 

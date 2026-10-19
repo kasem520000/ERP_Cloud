@@ -340,7 +340,7 @@ export default function ReportRunnerPage({ params }: { params: Promise<{ key: st
           tone="red"
           icon={<FileText size={30} strokeWidth={1.5} />}
           title="تعذّر تشغيل التقرير"
-          description={report.error ?? 'خطأ غير معروف'}
+          description={report.error}
           action={
             <Button variant="primary" onClick={report.reload}>
               إعادة المحاولة

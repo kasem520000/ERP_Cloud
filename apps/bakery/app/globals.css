@@ -988,7 +988,18 @@ body {
   .bak-shell {
     grid-template-columns: 1fr;
   }
+  /*
+   * درجٌ لا عمود: على الجوال يخرج الشريطُ من التخطيط تمامًا (`fixed`) ويُفتح بزرّ
+   * القائمة. وبدون `fixed` هنا يغلب `position: relative` اللاحق (طبقة v4) قاعدةَ
+   * الـ900px، فيحتلّ الشريطُ الشاشةَ الأولى كاملةً ويبدأ المحتوى بعدها — عيبٌ ظهر
+   * في /rep عند 390px: صفحةٌ بيضاء بطول 844px قبل أوّل سطر.
+   */
   .bak-side {
+    position: fixed;
+    inset-block: 0;
+    height: 100vh;
+    overflow: auto;
+    z-index: 50;
     inset-inline-start: -300px;
     width: 268px;
   }
@@ -1000,6 +1011,36 @@ body {
   }
   .bak-topbar {
     inset-block-start: 8px;
+  }
+}
+
+/*
+ * سطرٌ واحد على الهاتف: الشريطُ العلويّ يلتفّ إلى ثلاثة صفوف عند 390px (الباقة،
+ * التبديل، الحساب، الخروج) فيأكل 190px من شاشةٍ طولها 844. تُسقَط الزخارف
+ * الثانوية (شارة الباقة، اسم المستخدم) ويبقى: القائمة، الموقع، التبديل، الخروج.
+ */
+@media (max-width: 640px) {
+  .bak-topbar {
+    flex-wrap: nowrap;
+    gap: 8px;
+    padding: 8px 10px;
+  }
+  .bak-topbar > div {
+    min-width: 0;
+  }
+  .bak-topbar > div:last-child {
+    flex-wrap: nowrap;
+    gap: 6px;
+  }
+  /* `.bak-badge.ok` لاحقٌ بنفس الوزن فيغلب قاعدةَ الإخفاء — فالاختيار هنا بثلاثة أصناف. */
+  .bak-topbar .bak-badge.ok,
+  .bak-topbar .bak-topbar-user {
+    display: none;
+  }
+  .bak-crumbs {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
   }
 }
 

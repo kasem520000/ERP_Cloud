@@ -723,11 +723,29 @@ tbody tr:hover {
   box-shadow: 0 34px 70px -30px rgb(0 0 0 / 0.7);
 }
 
+/* هاتف: الشريطُ العلويّ كان يبلغ 245px عند 390px (أربعة صفوف) — ثلثُ الشاشة قبل
+ * أوّل سطر. يُطوى نصُّ البحث إلى أيقونةٍ (وظيفته باقية)، ويُسقَط بريدُ الحساب. */
+@media (max-width: 640px) {
+  .topbar { padding: 8px 10px; gap: 6px; border-radius: 12px; margin-bottom: 12px; }
+  .topbar .row { gap: 6px; }
+  .topbar .btn.sm { padding: 5px 8px; min-height: 30px; font-size: 11.5px; }
+  .topbar-search-label, .topbar-user { display: none; }
+  .crumbs { font-size: 11.5px; }
+}
+
 @media (max-width: 1000px) {
   .shell {
     grid-template-columns: 1fr;
   }
+  /* درجٌ لا عمود: `.side { position: relative }` في طبقة v4 يغلب قاعدةَ الـ900px
+   * الأولى، فيبقى الشريطُ في التخطيط ويحتلّ الشاشةَ الأولى (صندوقٌ فارغ 844px ثم
+   * المحتوى عند 390px). التثبيت هنا يخرجه من التخطيط ويُفتح بزرّ القائمة. */
   .side {
+    position: fixed;
+    inset-block: 0;
+    height: 100vh;
+    overflow: auto;
+    z-index: 40;
     inset-inline-start: -288px;
     width: 272px;
   }

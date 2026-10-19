@@ -245,7 +245,7 @@ export default function SalesInvoiceDetailPage() {
         tone="red"
         icon={<Package size={30} strokeWidth={1.5} />}
         title="تعذر تحميل الفاتورة"
-        description={invoice.error ?? 'خطأ غير معروف'}
+        description={invoice.error}
         action={
           <Button variant="primary" onClick={invoice.reload}>
             إعادة المحاولة
