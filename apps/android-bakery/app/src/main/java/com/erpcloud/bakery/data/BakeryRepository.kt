@@ -310,7 +310,7 @@ class BakeryRepository(
     // ============================================================ وحدات «الطاقم»
 
     /** قائمةٌ خام تُفكّ تسلسلها من الاستجابة — الغلافُ إن وُجد يُتجاوز. */
-    private suspend inline fun <reified T> rawList(crossinline call: () -> Response<List<T>>): List<T> =
+    private suspend inline fun <reified T> rawList(crossinline call: suspend () -> Response<List<T>>): List<T> =
         withContext(Dispatchers.IO) {
             val response = call()
             if (!response.isSuccessful) throw response.toApiException()

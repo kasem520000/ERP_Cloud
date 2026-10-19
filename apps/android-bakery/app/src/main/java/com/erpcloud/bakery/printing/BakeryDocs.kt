@@ -60,7 +60,7 @@ private class DocCanvas(widthPx: Int) {
         tp: TextPaint,
         w: Int,
         align: Layout.Alignment = Layout.Alignment.ALIGN_CENTER,
-    ): StaticLayout = StaticLayout.Builder.obtain(text, 0, text.length, w.coerceAtLeast(1), tp)
+    ): StaticLayout = StaticLayout.Builder.obtain(text, 0, text.length, tp, w.coerceAtLeast(1))
         .setAlignment(align)
         .setLineSpacing(0f, 1.15f)
         .build()
