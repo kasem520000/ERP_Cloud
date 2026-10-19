@@ -410,101 +410,129 @@ export default function VanSalesRepPage() {
             }
             flush
           >
-            <div className="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>رقم الأمر</th>
-                    <th>التاريخ</th>
-                    <th>من مستودع</th>
-                    <th>الصنف</th>
-                    <th>المصروف</th>
-                    <th>دفعة الإنتاج</th>
-                    <th>إجراء</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {data.pendingReceipts.map((row) => (
-                    <tr key={row.id}>
-                      <td dir="ltr">
-                        <b>{row.number}</b>
-                      </td>
-                      <td dir="ltr">{row.loadDate}</td>
-                      <td>{row.fromWarehouseName}</td>
-                      <td>{row.itemName}</td>
-                      <td dir="ltr">
-                        <b>{row.loadedQty} kg</b>
-                      </td>
-                      <td dir="ltr">{row.productionBatchNo}</td>
-                      <td>
-                        <button
-                          type="button"
-                          className="btn sm primary"
-                          disabled={busy || !can('van_sales.view')}
-                          onClick={() => {
-                            setReceiptTarget(row);
-                            setReceiptQty(row.loadedQty);
-                            setReceiptNotes('');
-                          }}
-                        >
-                          تأكيد / تسجيل فرق
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                  {data.pendingReceipts.length === 0 ? (
-                    <tr>
-                      <td colSpan={7} className="muted">
-                        لا يوجد توريد بانتظارك.
-                      </td>
-                    </tr>
-                  ) : null}
-                </tbody>
-              </table>
-            </div>
+            <Table
+              bare
+              empty={<>لا يوجد توريد بانتظارك.</>}
+              columns={[
+                {
+                  key: 'c0',
+                  header: 'رقم الأمر',
+                  ltr: true,
+                  cell: (row) => (
+                    <>
+                      <b>{row.number}</b>
+                    </>
+                  ),
+                },
+                {
+                  key: 'c1',
+                  header: 'التاريخ',
+                  ltr: true,
+                  cell: (row) => row.loadDate,
+                },
+                {
+                  key: 'c2',
+                  header: 'من مستودع',
+                  cell: (row) => row.fromWarehouseName,
+                },
+                {
+                  key: 'c3',
+                  header: 'الصنف',
+                  cell: (row) => row.itemName,
+                },
+                {
+                  key: 'c4',
+                  header: 'المصروف',
+                  ltr: true,
+                  cell: (row) => (
+                    <>
+                      <b>{row.loadedQty} kg</b>
+                    </>
+                  ),
+                },
+                {
+                  key: 'c5',
+                  header: 'دفعة الإنتاج',
+                  ltr: true,
+                  cell: (row) => row.productionBatchNo,
+                },
+                {
+                  key: 'c6',
+                  header: 'إجراء',
+                  cell: (row) => (
+                    <>
+                      <button
+                        type="button"
+                        className="btn sm primary"
+                        disabled={busy || !can('van_sales.view')}
+                        onClick={() => {
+                          setReceiptTarget(row);
+                          setReceiptQty(row.loadedQty);
+                          setReceiptNotes('');
+                        }}
+                      >
+                        تأكيد / تسجيل فرق
+                      </button>
+                    </>
+                  ),
+                },
+              ]}
+              rows={data.pendingReceipts}
+              rowKey={(row) => row.id}
+            />
           </Panel>
 
           {/* أرصدة سيارتك الرسمية */}
           <Panel title="أرصدة أصناف سيارتك (من دفتر المخزون الرسمي)" flush>
-            <div className="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>الصنف</th>
-                    <th>البطاقة</th>
-                    <th>المستودع</th>
-                    <th align="left">الرصيد</th>
-                    <th align="left">متوسط التكلفة</th>
-                    <th align="left">القيمة</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {data.balances.map((row) => (
-                    <tr key={`${row.warehouseId}-${row.itemId}`}>
-                      <td>{row.itemName}</td>
-                      <td dir="ltr">{row.sku}</td>
-                      <td>{row.warehouseName}</td>
-                      <td align="left" dir="ltr">
-                        <b>{row.quantity}</b>
-                      </td>
-                      <td align="left" dir="ltr">
-                        {row.averageCost}
-                      </td>
-                      <td align="left" dir="ltr">
-                        {row.value}
-                      </td>
-                    </tr>
-                  ))}
-                  {data.balances.length === 0 ? (
-                    <tr>
-                      <td colSpan={6} className="muted">
-                        لا يوجد رصيد في سيارتك بعد — أكّد استلام أول توريد.
-                      </td>
-                    </tr>
-                  ) : null}
-                </tbody>
-              </table>
-            </div>
+            <Table
+              bare
+              empty={<>لا يوجد رصيد في سيارتك بعد — أكّد استلام أول توريد.</>}
+              columns={[
+                {
+                  key: 'c0',
+                  header: 'الصنف',
+                  cell: (row) => row.itemName,
+                },
+                {
+                  key: 'c1',
+                  header: 'البطاقة',
+                  ltr: true,
+                  cell: (row) => row.sku,
+                },
+                {
+                  key: 'c2',
+                  header: 'المستودع',
+                  cell: (row) => row.warehouseName,
+                },
+                {
+                  key: 'c3',
+                  header: 'الرصيد',
+                  numeric: true,
+                  ltr: true,
+                  cell: (row) => (
+                    <>
+                      <b>{row.quantity}</b>
+                    </>
+                  ),
+                },
+                {
+                  key: 'c4',
+                  header: 'متوسط التكلفة',
+                  numeric: true,
+                  ltr: true,
+                  cell: (row) => row.averageCost,
+                },
+                {
+                  key: 'c5',
+                  header: 'القيمة',
+                  numeric: true,
+                  ltr: true,
+                  cell: (row) => row.value,
+                },
+              ]}
+              rows={data.balances}
+              rowKey={(row) => `${row.warehouseId}-${row.itemId}`}
+            />
           </Panel>
 
           {/* إصدار فاتورة بيع */}
@@ -663,79 +691,98 @@ export default function VanSalesRepPage() {
                 totalsClause: REP_TOTALS_CLAUSE,
               })}
             </div>
-            <div className="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>رقم المستند</th>
-                    <th>الفاتورة الرسمية</th>
-                    <th>التاريخ</th>
-                    <th>العميل</th>
-                    <th>مباع / مجاني</th>
-                    <th align="left">الإجمالي</th>
-                    <th align="left">المدفوع</th>
-                    <th align="left">المتبقي</th>
-                    <th>تحصيل</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {data.documents.map((row) => (
-                    <tr key={row.id}>
-                      <td dir="ltr">
-                        <b>{row.number}</b>
-                      </td>
-                      <td dir="ltr">
-                        {row.invoiceNumber ?? '—'}
-                        {row.invoiceStatus ? <div className="muted small">{row.invoiceStatus}</div> : null}
-                      </td>
-                      <td dir="ltr">{row.docDate}</td>
-                      <td>{row.customerName}</td>
-                      <td dir="ltr">
-                        {row.soldQty} / {row.bonusQty}
-                        {row.documentKind === 'return' ? ' مرتجع' : ''}
-                      </td>
-                      <td align="left" dir="ltr">
-                        {row.total}
-                      </td>
-                      <td align="left" dir="ltr">
-                        {row.paidAmount}
-                      </td>
-                      <td
-                        align="left"
-                        dir="ltr"
-                        style={{ color: Number(row.outstanding) > 0 ? 'var(--warn)' : undefined }}
+            <Table
+              bare
+              empty={<>لا توجد فواتير بعد.</>}
+              columns={[
+                {
+                  key: 'c0',
+                  header: 'رقم المستند',
+                  ltr: true,
+                  cell: (row) => (
+                    <>
+                      <b>{row.number}</b>
+                    </>
+                  ),
+                },
+                {
+                  key: 'c1',
+                  header: 'الفاتورة الرسمية',
+                  ltr: true,
+                  cell: (row) => (
+                    <>
+                      {row.invoiceNumber ?? '—'}
+                      {row.invoiceStatus ? <div className="muted small">{row.invoiceStatus}</div> : null}
+                    </>
+                  ),
+                },
+                {
+                  key: 'c2',
+                  header: 'التاريخ',
+                  ltr: true,
+                  cell: (row) => row.docDate,
+                },
+                {
+                  key: 'c3',
+                  header: 'العميل',
+                  cell: (row) => row.customerName,
+                },
+                {
+                  key: 'c4',
+                  header: 'مباع / مجاني',
+                  ltr: true,
+                  cell: (row) => (
+                    <>
+                      {row.soldQty} / {row.bonusQty}
+                      {row.documentKind === 'return' ? ' مرتجع' : ''}
+                    </>
+                  ),
+                },
+                {
+                  key: 'c5',
+                  header: 'الإجمالي',
+                  numeric: true,
+                  ltr: true,
+                  cell: (row) => row.total,
+                },
+                {
+                  key: 'c6',
+                  header: 'المدفوع',
+                  numeric: true,
+                  ltr: true,
+                  cell: (row) => row.paidAmount,
+                },
+                {
+                  key: 'c7',
+                  header: 'المتبقي',
+                  numeric: true,
+                  ltr: true,
+                  cell: (row) => row.outstanding,
+                },
+                {
+                  key: 'c8',
+                  header: 'تحصيل',
+                  cell: (row) =>
+                    Number(row.outstanding) > 0 ? (
+                      <button
+                        type="button"
+                        className="btn sm"
+                        disabled={busy || !can('van_sales.collection.create')}
+                        onClick={() => {
+                          setCollectDocId(row.id);
+                          setCollectAmount(row.outstanding);
+                        }}
                       >
-                        {row.outstanding}
-                      </td>
-                      <td>
-                        {Number(row.outstanding) > 0 ? (
-                          <button
-                            type="button"
-                            className="btn sm"
-                            disabled={busy || !can('van_sales.collection.create')}
-                            onClick={() => {
-                              setCollectDocId(row.id);
-                              setCollectAmount(row.outstanding);
-                            }}
-                          >
-                            تحصيل
-                          </button>
-                        ) : (
-                          <span className="muted small">مسدّد</span>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                  {data.documents.length === 0 ? (
-                    <tr>
-                      <td colSpan={9} className="muted">
-                        لا توجد فواتير بعد.
-                      </td>
-                    </tr>
-                  ) : null}
-                </tbody>
-              </table>
-            </div>
+                        تحصيل
+                      </button>
+                    ) : (
+                      <span className="muted small">مسدّد</span>
+                    ),
+                },
+              ]}
+              rows={data.documents}
+              rowKey={(row) => row.id}
+            />
           </Panel>
 
           {/* التحصيلات */}
@@ -745,42 +792,47 @@ export default function VanSalesRepPage() {
                 totalsClause: REP_TOTALS_CLAUSE,
               })}
             </div>
-            <div className="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>الوقت</th>
-                    <th align="left">المبلغ</th>
-                    <th>سند القبض الرسمي</th>
-                    <th>البيان</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {data.collections.map((row) => (
-                    <tr key={row.id}>
-                      <td dir="ltr">
-                        {new Date(row.collectedAt).toLocaleString('ar-SA-u-ca-gregory-nu-latn')}
-                      </td>
-                      <td align="left" dir="ltr">
-                        <b>{row.amount}</b>
-                      </td>
-                      <td dir="ltr">
-                        {row.voucherNumber ?? '—'}
-                        {row.voucherStatus ? <div className="muted small">{row.voucherStatus}</div> : null}
-                      </td>
-                      <td className="muted small">{row.reason}</td>
-                    </tr>
-                  ))}
-                  {data.collections.length === 0 ? (
-                    <tr>
-                      <td colSpan={4} className="muted">
-                        لا توجد تحصيلات مسجّلة.
-                      </td>
-                    </tr>
-                  ) : null}
-                </tbody>
-              </table>
-            </div>
+            <Table
+              bare
+              empty={<>لا توجد تحصيلات مسجّلة.</>}
+              columns={[
+                {
+                  key: 'c0',
+                  header: 'الوقت',
+                  ltr: true,
+                  cell: (row) => new Date(row.collectedAt).toLocaleString('ar-SA-u-ca-gregory-nu-latn'),
+                },
+                {
+                  key: 'c1',
+                  header: 'المبلغ',
+                  numeric: true,
+                  ltr: true,
+                  cell: (row) => (
+                    <>
+                      <b>{row.amount}</b>
+                    </>
+                  ),
+                },
+                {
+                  key: 'c2',
+                  header: 'سند القبض الرسمي',
+                  ltr: true,
+                  cell: (row) => (
+                    <>
+                      {row.voucherNumber ?? '—'}
+                      {row.voucherStatus ? <div className="muted small">{row.voucherStatus}</div> : null}
+                    </>
+                  ),
+                },
+                {
+                  key: 'c3',
+                  header: 'البيان',
+                  cell: (row) => row.reason,
+                },
+              ]}
+              rows={data.collections}
+              rowKey={(row) => row.id}
+            />
           </Panel>
 
           {/* إغلاق الوردية */}

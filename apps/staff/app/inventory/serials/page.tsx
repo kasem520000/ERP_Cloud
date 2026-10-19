@@ -31,6 +31,7 @@ import {
 } from '../../../lib/lookups';
 import { useSession } from '../../../lib/session';
 import { useQuery } from '../../../lib/use-query';
+import { Table } from '../../../components/ui/table';
 
 /**
  * الأرقام التسلسلية — `frmItemSerialNo.xaml` split the world in two: `📋 الأرقام المتاحة`
@@ -371,28 +372,36 @@ export default function SerialsPage() {
           {trace.documents.length === 0 ? (
             <p className="muted">لم يتحرك هذا الرقم على أي مستند بعد.</p>
           ) : (
-            <div className="table-wrap">
-              <table className="zebra">
-                <thead>
-                  <tr>
-                    <th>#</th>
-                    <th>المستند</th>
-                    <th>السطر</th>
-                    <th>التاريخ</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {trace.documents.map((row, index) => (
-                    <tr key={`${row.docId}-${row.lineNo}`}>
-                      <td className="num">{index + 1}</td>
-                      <td>{DOC_LABELS[row.docType] ?? row.docType}</td>
-                      <td className="num">{row.lineNo}</td>
-                      <td dir="ltr">{shortDate(row.createdAt)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <Table
+              bare
+              columns={[
+                {
+                  key: 'c0',
+                  header: '#',
+                  numeric: true,
+                  cell: (_, index) => index + 1,
+                },
+                {
+                  key: 'c1',
+                  header: 'المستند',
+                  cell: (row) => DOC_LABELS[row.docType] ?? row.docType,
+                },
+                {
+                  key: 'c2',
+                  header: 'السطر',
+                  numeric: true,
+                  cell: (row) => row.lineNo,
+                },
+                {
+                  key: 'c3',
+                  header: 'التاريخ',
+                  ltr: true,
+                  cell: (row) => shortDate(row.createdAt),
+                },
+              ]}
+              rows={trace.documents}
+              rowKey={(row) => `${row.docId}-${row.lineNo}`}
+            />
           )}
         </Panel>
       )}

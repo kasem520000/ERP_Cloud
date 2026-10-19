@@ -4,6 +4,7 @@ import { Panel } from '@erp/ui';
 import { useMemo, useState } from 'react';
 
 import { Empty, ErrorBox, Forbidden, Loading, Screen } from '../../../../components/screen';
+import { Table } from '../../../../components/ui/table';
 import { money } from '../../../../lib/lookups';
 import { useQuery } from '../../../../lib/use-query';
 import {
@@ -46,52 +47,20 @@ function buildTree(accounts: Account[]): TreeNode[] {
   return roots;
 }
 
-function Node({
-  node,
-  depth,
-  expanded,
-  toggle,
-}: {
-  node: TreeNode;
-  depth: number;
-  expanded: Set<string>;
-  toggle: (id: string) => void;
-}) {
-  const open = expanded.has(node.id);
-  const hasChildren = node.children.length > 0;
-  return (
-    <>
-      <tr>
-        <td style={{ paddingInlineStart: 10 + depth * 20 }}>
-          {hasChildren ? (
-            <button className="btn sm" type="button" onClick={() => toggle(node.id)} aria-expanded={open}>
-              {open ? '−' : '+'}
-            </button>
-          ) : (
-            <span style={{ display: 'inline-block', width: 22 }} />
-          )}{' '}
-          <span dir="ltr">{node.code}</span>
-        </td>
-        <td>{nameOf(node)}</td>
-        <td>{ACCOUNT_TYPE_LABELS[typeOf(node)] ?? typeOf(node)}</td>
-        <td>
-          {postableOf(node) ? (
-            <span className="badge active">ترحيل</span>
-          ) : (
-            <span className="badge">تجميعي</span>
-          )}
-        </td>
-        <td className="num">{node.children.length || ''}</td>
-        <td className="num" dir="ltr">
-          {money(balanceOf(node).toFixed(4))}
-        </td>
-      </tr>
-      {open &&
-        node.children.map((child) => (
-          <Node key={child.id} node={child} depth={depth + 1} expanded={expanded} toggle={toggle} />
-        ))}
-    </>
-  );
+type VisibleNode = { node: TreeNode; depth: number };
+
+/** الشجرة تُعرض بترتيبها نفسِه، لكن صفوفاً مسطَّحة: التوسعة تحدد ما يُعرض لا بنية DOM. */
+function flatten(
+  nodes: TreeNode[],
+  expanded: Set<string>,
+  depth = 0,
+  out: VisibleNode[] = [],
+): VisibleNode[] {
+  for (const node of nodes) {
+    out.push({ node, depth });
+    if (expanded.has(node.id) && node.children.length > 0) flatten(node.children, expanded, depth + 1, out);
+  }
+  return out;
 }
 
 export default function AccountTreePage() {
@@ -100,6 +69,7 @@ export default function AccountTreePage() {
   const [level, setLevel] = useState('1');
 
   const tree = useMemo(() => buildTree(accounts.data ?? []), [accounts.data]);
+  const visible = useMemo(() => flatten(tree, expanded), [tree, expanded]);
 
   const toggle = (id: string) =>
     setExpanded((current) => {
@@ -170,25 +140,64 @@ export default function AccountTreePage() {
           <Empty title="لا توجد حسابات بعد" />
         ) : (
           <Panel flush title="شجرة الحسابات">
-            <div className="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>الرمز</th>
-                    <th>الاسم</th>
-                    <th>النوع</th>
-                    <th>الحالة</th>
-                    <th className="num">فروع</th>
-                    <th className="num">الرصيد</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {tree.map((node) => (
-                    <Node key={node.id} node={node} depth={0} expanded={expanded} toggle={toggle} />
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <Table
+              bare
+              columns={[
+                {
+                  key: 'code',
+                  header: 'الرمز',
+                  ltr: true,
+                  cell: ({ node, depth: rowDepth }) => (
+                    <span style={{ paddingInlineStart: rowDepth * 20, display: 'inline-flex', gap: 6 }}>
+                      {node.children.length > 0 ? (
+                        <button
+                          className="btn sm"
+                          type="button"
+                          onClick={() => toggle(node.id)}
+                          aria-expanded={expanded.has(node.id)}
+                        >
+                          {expanded.has(node.id) ? '−' : '+'}
+                        </button>
+                      ) : (
+                        <span style={{ display: 'inline-block', width: 22 }} />
+                      )}
+                      <span dir="ltr">{node.code}</span>
+                    </span>
+                  ),
+                },
+                { key: 'name', header: 'الاسم', cell: ({ node }) => nameOf(node) },
+                {
+                  key: 'type',
+                  header: 'النوع',
+                  cell: ({ node }) => ACCOUNT_TYPE_LABELS[typeOf(node)] ?? typeOf(node),
+                },
+                {
+                  key: 'postable',
+                  header: 'الحالة',
+                  cell: ({ node }) =>
+                    postableOf(node) ? (
+                      <span className="badge active">ترحيل</span>
+                    ) : (
+                      <span className="badge">تجميعي</span>
+                    ),
+                },
+                {
+                  key: 'children',
+                  header: 'فروع',
+                  numeric: true,
+                  cell: ({ node }) => node.children.length || '',
+                },
+                {
+                  key: 'balance',
+                  header: 'الرصيد',
+                  numeric: true,
+                  ltr: true,
+                  cell: ({ node }) => money(balanceOf(node).toFixed(4)),
+                },
+              ]}
+              rows={visible}
+              rowKey={({ node }) => node.id}
+            />
           </Panel>
         ))}
     </Screen>

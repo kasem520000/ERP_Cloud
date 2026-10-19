@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { X } from 'lucide-react';
 import { Panel, Tabs } from '@erp/ui';
 import { useSubmissionKey } from '@erp/web-core/use-submission-key';
@@ -417,6 +417,47 @@ type DashboardData = {
   documents: VanDocument[];
   movements: StockMovement[];
 };
+
+/**
+ * مصفوفة الصلاحيات — محتوى سياسي لا بيانات: الأدوار الأربعة في المصنع وما يملكه كل دور.
+ * مكتوبة كصفوفة بيانات حتى تُعرض بالجدول المشترك نفسه الذي تعرض به بقية الشاشة جداولها.
+ */
+const ROLE_MATRIX: Array<{ role: ReactNode; production: ReactNode; pricing: ReactNode; closing: ReactNode }> =
+  [
+    {
+      role: <strong>صاحب المصنع (Factory Owner)</strong>,
+      production: 'اطلاع كامل على لوحة صاحب المصنع، تكلفة الإنتاج، وهوامش الربح لكل صنف ومندوب وعميل.',
+      pricing: 'تحديد وتثبيت شرائح الأسعار (6 / 6.5 / 7 ريال) واعتماد الخصومات الاستثنائية وتجاوز البونص.',
+      closing: 'اعتماد نهائي لإغلاق الورديات، مراجعة سجل التدقيق الكامل، واستلام التنبيهات الفورية.',
+    },
+    {
+      role: <strong>المحاسب (Accountant)</strong>,
+      production: 'مطابقة أرصدة المستودع الرئيسي وعهد المناديب والقيود المحاسبية وتكلفة البضاعة المباعة.',
+      pricing: 'مراجعة الفواتير الضريبية (ZATCA) والعادية، ومراقبة السقوف الائتمانية والتحصيل.',
+      closing: (
+        <strong>
+          مراجعة إغلاقات الورديات المعلقة، تأكيد الفحص الفعلي للتالف، تصفير العهد، وقيد العجز خصماً على راتب
+          المندوب.
+        </strong>
+      ),
+    },
+    {
+      role: <strong>أمين المستودع (Warehouse Keeper)</strong>,
+      production: 'تسجيل دفعات الإنتاج اليومية، صرف أوامر التحميل للمناديب، واستلام المرتجع السليم.',
+      pricing: 'لا يملك صلاحية تعديل أسعار العملاء أو منح خصومات مالية.',
+      closing: 'المشاركة في الفحص الفعلي للكميات التالفة والجرد الدوري المفاجئ لسيارات المناديب.',
+    },
+    {
+      role: <strong>المندوب (Sales Rep)</strong>,
+      production: 'استلام العهدة المحددة بأمر التحميل فقط (يُمنع بيع أي كمية تتجاوز دفعة المخبز المستلمة).',
+      pricing: 'البيع بالسعر المثبّت للعميل تلقائياً، وتسجيل سبب البونص ضمن السقف المسموح فقط.',
+      closing: (
+        <strong>
+          تقديم طلب إغلاق الوردية اليومي في نهاية الدوام (تبقى الحالة معلقة حتى يعتمدها المحاسب).
+        </strong>
+      ),
+    },
+  ];
 
 const MOVEMENT_TYPE_AR: Record<string, string> = {
   production_in: 'إنتاج يومي للمستودع الرئيسي',
@@ -1370,48 +1411,56 @@ export default function VanSalesPage() {
             </b>
           ) : null}
         </div>
-        <div className="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>المستودع</th>
-                <th>الصنف</th>
-                <th>البطاقة</th>
-                <th align="left">الرصيد الرسمي</th>
-                <th align="left">متوسط التكلفة</th>
-                <th align="left">قيمة الرصيد</th>
-              </tr>
-            </thead>
-            <tbody>
-              {(data?.officialStock ?? []).map((row) => (
-                <tr key={`${row.warehouseId}-${row.itemId}`}>
-                  <td>
-                    {row.warehouseName}
-                    {row.warehouseId === data?.mainWarehouseId ? ' (رئيسي)' : ''}
-                  </td>
-                  <td>{row.itemName}</td>
-                  <td dir="ltr">{row.sku}</td>
-                  <td align="left" dir="ltr">
-                    {row.quantity}
-                  </td>
-                  <td align="left" dir="ltr">
-                    {row.averageCost}
-                  </td>
-                  <td align="left" dir="ltr">
-                    {row.value}
-                  </td>
-                </tr>
-              ))}
-              {(data?.officialStock ?? []).length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="muted">
-                    لا توجد أرصدة رسمية بعد — سجّل دفعة إنتاج وستظهر هنا وفي شاشة المخزون معًا.
-                  </td>
-                </tr>
-              ) : null}
-            </tbody>
-          </table>
-        </div>
+        <Table
+          bare
+          empty={<>لا توجد أرصدة رسمية بعد — سجّل دفعة إنتاج وستظهر هنا وفي شاشة المخزون معًا.</>}
+          columns={[
+            {
+              key: 'c0',
+              header: 'المستودع',
+              cell: (row) => (
+                <>
+                  {row.warehouseName}
+                  {row.warehouseId === data?.mainWarehouseId ? ' (رئيسي)' : ''}
+                </>
+              ),
+            },
+            {
+              key: 'c1',
+              header: 'الصنف',
+              cell: (row) => row.itemName,
+            },
+            {
+              key: 'c2',
+              header: 'البطاقة',
+              ltr: true,
+              cell: (row) => row.sku,
+            },
+            {
+              key: 'c3',
+              header: 'الرصيد الرسمي',
+              numeric: true,
+              ltr: true,
+              cell: (row) => row.quantity,
+            },
+            {
+              key: 'c4',
+              header: 'متوسط التكلفة',
+              numeric: true,
+              ltr: true,
+              cell: (row) => row.averageCost,
+            },
+            {
+              key: 'c5',
+              header: 'قيمة الرصيد',
+              numeric: true,
+              ltr: true,
+              cell: (row) => row.value,
+            },
+          ]}
+          rows={data?.officialStock ?? []}
+          rowKey={(row) => `${row.warehouseId}-${row.itemId}`}
+        />
       </Panel>
 
       {/* بضاعة تحت التحويل — الكمية التي لا هي في المستودع ولا في السيارة */}
@@ -1505,93 +1554,110 @@ export default function VanSalesPage() {
               </button>
             }
           >
-            <div className="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>المندوب</th>
-                    <th>المستلم (كجم)</th>
-                    <th>المباع (كجم)</th>
-                    <th>البونص (كجم)</th>
-                    <th>مرتجع سليم</th>
-                    <th>تالف مفحوص</th>
-                    <th>عجز على المندوب</th>
-                    <th>خصم الراتب (SAR)</th>
-                    <th>العهدة المتبقية</th>
-                    <th>المبيعات (SAR)</th>
-                    <th>المحصّل</th>
-                    <th>مديونية العملاء</th>
-                    <th>صافي الربح</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {(data?.repPerformance ?? []).map((rep) => (
-                    <tr key={rep.salesmanId}>
-                      <td>
-                        <strong>{rep.salesmanName}</strong>
-                        {rep.pendingClosings > 0 && (
-                          <div>
-                            <span className="badge warn">إغلاق معلق ({rep.pendingClosings})</span>
-                          </div>
-                        )}
-                      </td>
-                      <td dir="ltr">{rep.loadedKg}</td>
-                      <td dir="ltr" style={{ color: 'var(--ok)', fontWeight: 700 }}>
-                        {rep.soldKg}
-                      </td>
-                      <td dir="ltr" style={{ color: 'var(--warn)' }}>
-                        {rep.bonusKg}
-                      </td>
-                      <td dir="ltr">{rep.returnedKg}</td>
-                      <td dir="ltr">{rep.damagedKg}</td>
-                      <td
-                        dir="ltr"
-                        style={{
-                          color: Number(rep.shortageKg) > 0 ? 'var(--danger)' : undefined,
-                          fontWeight: 700,
-                        }}
-                      >
-                        {rep.shortageKg} kg
-                      </td>
-                      <td
-                        dir="ltr"
-                        style={{
-                          color: Number(rep.shortageSar) > 0 ? 'var(--danger)' : undefined,
-                          fontWeight: 700,
-                        }}
-                      >
-                        {rep.shortageSar} SAR
-                      </td>
-                      <td dir="ltr">
-                        <span className={`badge ${Number(rep.custodyRemainingKg) === 0 ? 'ok' : 'warn'}`}>
-                          {rep.custodyRemainingKg} kg
-                        </span>
-                      </td>
-                      <td dir="ltr">
-                        <strong>{rep.revenueSar}</strong>
-                      </td>
-                      <td dir="ltr">{rep.collectedSar}</td>
-                      <td
-                        dir="ltr"
-                        style={{ color: Number(rep.creditDebtSar) > 0 ? 'var(--warn)' : undefined }}
-                      >
-                        {rep.creditDebtSar}
-                      </td>
-                      <td dir="ltr" style={{ color: 'var(--ok)', fontWeight: 700 }}>
-                        {rep.netProfitSar} SAR
-                      </td>
-                    </tr>
-                  ))}
-                  {(data?.repPerformance ?? []).length === 0 && (
-                    <tr>
-                      <td colSpan={13} className="muted" style={{ textAlign: 'center', padding: 18 }}>
-                        لا توجد حركات مناديب بعد — ابدأ بتسجيل دفعة إنتاج أو أمر تحميل للمندوب.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
+            <Table
+              bare
+              empty={<>لا توجد حركات مناديب بعد — ابدأ بتسجيل دفعة إنتاج أو أمر تحميل للمندوب.</>}
+              columns={[
+                {
+                  key: 'c0',
+                  header: 'المندوب',
+                  cell: (rep) => (
+                    <>
+                      <strong>{rep.salesmanName}</strong>
+                      {rep.pendingClosings > 0 && (
+                        <div>
+                          <span className="badge warn">إغلاق معلق ({rep.pendingClosings})</span>
+                        </div>
+                      )}
+                    </>
+                  ),
+                },
+                {
+                  key: 'c1',
+                  header: 'المستلم (كجم)',
+                  ltr: true,
+                  cell: (rep) => rep.loadedKg,
+                },
+                {
+                  key: 'c2',
+                  header: 'المباع (كجم)',
+                  ltr: true,
+                  cell: (rep) => rep.soldKg,
+                },
+                {
+                  key: 'c3',
+                  header: 'البونص (كجم)',
+                  ltr: true,
+                  cell: (rep) => rep.bonusKg,
+                },
+                {
+                  key: 'c4',
+                  header: 'مرتجع سليم',
+                  ltr: true,
+                  cell: (rep) => rep.returnedKg,
+                },
+                {
+                  key: 'c5',
+                  header: 'تالف مفحوص',
+                  ltr: true,
+                  cell: (rep) => rep.damagedKg,
+                },
+                {
+                  key: 'c6',
+                  header: 'عجز على المندوب',
+                  ltr: true,
+                  cell: (rep) => <>{rep.shortageKg} kg</>,
+                },
+                {
+                  key: 'c7',
+                  header: 'خصم الراتب (SAR)',
+                  ltr: true,
+                  cell: (rep) => <>{rep.shortageSar} SAR</>,
+                },
+                {
+                  key: 'c8',
+                  header: 'العهدة المتبقية',
+                  ltr: true,
+                  cell: (rep) => (
+                    <>
+                      <span className={`badge ${Number(rep.custodyRemainingKg) === 0 ? 'ok' : 'warn'}`}>
+                        {rep.custodyRemainingKg} kg
+                      </span>
+                    </>
+                  ),
+                },
+                {
+                  key: 'c9',
+                  header: 'المبيعات (SAR)',
+                  ltr: true,
+                  cell: (rep) => (
+                    <>
+                      <strong>{rep.revenueSar}</strong>
+                    </>
+                  ),
+                },
+                {
+                  key: 'c10',
+                  header: 'المحصّل',
+                  ltr: true,
+                  cell: (rep) => rep.collectedSar,
+                },
+                {
+                  key: 'c11',
+                  header: 'مديونية العملاء',
+                  ltr: true,
+                  cell: (rep) => rep.creditDebtSar,
+                },
+                {
+                  key: 'c12',
+                  header: 'صافي الربح',
+                  ltr: true,
+                  cell: (rep) => <>{rep.netProfitSar} SAR</>,
+                },
+              ]}
+              rows={data?.repPerformance ?? []}
+              rowKey={(rep) => rep.salesmanId}
+            />
           </Panel>
         </div>
       )}
@@ -1830,91 +1896,128 @@ export default function VanSalesPage() {
                 totalsClause: DASHBOARD_TOTALS_CLAUSE,
               })}
             </div>
-            <div className="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>رقم دفعة الإنتاج</th>
-                    <th>التاريخ</th>
-                    <th>الصنف</th>
-                    <th>الكمية المنتجة</th>
-                    <th>المصروف للمناديب</th>
-                    <th>المرتجع السليم</th>
-                    <th>التالف المعتمد</th>
-                    <th>الرصيد المتاح بالمستودع</th>
-                    <th>تكلفة الكيلو</th>
-                    <th>الربط الرسمي</th>
-                    <th>إجمالي تكلفة الدفعة</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {(data?.productionBatches ?? []).map((b) => (
-                    <tr key={b.id}>
-                      <td dir="ltr">
-                        <strong>{b.batchNo}</strong>
-                      </td>
-                      <td dir="ltr">{b.productionDate}</td>
-                      <td>{b.itemName}</td>
-                      <td dir="ltr">
-                        <strong>{b.producedQty} kg</strong>
-                      </td>
-                      <td dir="ltr">{b.issuedQty} kg</td>
-                      <td dir="ltr" style={{ color: 'var(--ok)' }}>
-                        {b.returnedGoodQty} kg
-                      </td>
-                      <td dir="ltr" style={{ color: 'var(--danger)' }}>
-                        {b.damagedQty} kg
-                      </td>
-                      <td dir="ltr">
-                        <span className="badge ok">{b.availableWarehouseQty} kg</span>
-                      </td>
-                      <td dir="ltr">
-                        {b.unitCost} SAR
-                        <div className="muted small">
-                          {b.costBasis === 'manufacturing_order'
-                            ? 'تكلفة فعلية من أمر تصنيع رسمي'
-                            : 'تكلفة مدخلة أو من بطاقة الصنف — ليست تكلفة أمر تصنيع'}
+            <Table
+              bare
+              empty={<>لم يتم تسجيل دفعة إنتاج بعد.</>}
+              columns={[
+                {
+                  key: 'c0',
+                  header: 'رقم دفعة الإنتاج',
+                  ltr: true,
+                  cell: (b) => (
+                    <>
+                      <strong>{b.batchNo}</strong>
+                    </>
+                  ),
+                },
+                {
+                  key: 'c1',
+                  header: 'التاريخ',
+                  ltr: true,
+                  cell: (b) => b.productionDate,
+                },
+                {
+                  key: 'c2',
+                  header: 'الصنف',
+                  cell: (b) => b.itemName,
+                },
+                {
+                  key: 'c3',
+                  header: 'الكمية المنتجة',
+                  ltr: true,
+                  cell: (b) => (
+                    <>
+                      <strong>{b.producedQty} kg</strong>
+                    </>
+                  ),
+                },
+                {
+                  key: 'c4',
+                  header: 'المصروف للمناديب',
+                  ltr: true,
+                  cell: (b) => <>{b.issuedQty} kg</>,
+                },
+                {
+                  key: 'c5',
+                  header: 'المرتجع السليم',
+                  ltr: true,
+                  cell: (b) => <>{b.returnedGoodQty} kg</>,
+                },
+                {
+                  key: 'c6',
+                  header: 'التالف المعتمد',
+                  ltr: true,
+                  cell: (b) => <>{b.damagedQty} kg</>,
+                },
+                {
+                  key: 'c7',
+                  header: 'الرصيد المتاح بالمستودع',
+                  ltr: true,
+                  cell: (b) => (
+                    <>
+                      <span className="badge ok">{b.availableWarehouseQty} kg</span>
+                    </>
+                  ),
+                },
+                {
+                  key: 'c8',
+                  header: 'تكلفة الكيلو',
+                  ltr: true,
+                  cell: (b) => (
+                    <>
+                      {b.unitCost} SAR
+                      <div className="muted small">
+                        {b.costBasis === 'manufacturing_order'
+                          ? 'تكلفة فعلية من أمر تصنيع رسمي'
+                          : 'تكلفة مدخلة أو من بطاقة الصنف — ليست تكلفة أمر تصنيع'}
+                      </div>
+                      {Number(b.scrapQty ?? 0) > 0 ? (
+                        <div
+                          className="muted small"
+                          style={{ color: b.scrapCostLoaded ? undefined : 'var(--warn)' }}
+                        >
+                          فاقد {b.scrapQty} كجم بقيمة {b.scrapValue} SAR —{' '}
+                          {b.scrapCostLoaded
+                            ? 'محمّلة على تكلفة المنتج الجيد'
+                            : 'غير محمّلة على المنتج الجيد — أمر الإنتاج يُنتج الكمية الصالحة وحدها فلا تُصرف مواد للفاقد (تحميله قرار تسعير تكلفة لم يُعتمد بعد)'}
                         </div>
-                        {Number(b.scrapQty ?? 0) > 0 ? (
-                          <div
-                            className="muted small"
-                            style={{ color: b.scrapCostLoaded ? undefined : 'var(--warn)' }}
-                          >
-                            فاقد {b.scrapQty} كجم بقيمة {b.scrapValue} SAR —{' '}
-                            {b.scrapCostLoaded
-                              ? 'محمّلة على تكلفة المنتج الجيد'
-                              : 'غير محمّلة على المنتج الجيد — أمر الإنتاج يُنتج الكمية الصالحة وحدها فلا تُصرف مواد للفاقد (تحميله قرار تسعير تكلفة لم يُعتمد بعد)'}
-                          </div>
-                        ) : null}
-                      </td>
-                      <td>
-                        {b.productionOrderId ? (
-                          <span className="badge ok">أمر إنتاج رسمي</span>
-                        ) : b.manufacturingOrderId ? (
-                          <span className="badge ok">أمر تصنيع رسمي</span>
-                        ) : (
-                          <span className="badge warn">دفعة قديمة بلا أمر رسمي</span>
-                        )}
-                        <div className="muted small">
-                          {b.inventoryTransactionId ? 'حركة مخزون رسمية ' : 'بلا حركة رسمية مربوطة'}
-                          {b.lotId ? ' · دفعة ناتج (لوت) ' : ''}
-                        </div>
-                      </td>
-                      <td dir="ltr">
-                        <strong>{b.totalCost} SAR</strong>
-                      </td>
-                    </tr>
-                  ))}
-                  {(data?.productionBatches ?? []).length === 0 && (
-                    <tr>
-                      <td colSpan={11} className="muted" style={{ textAlign: 'center', padding: 16 }}>
-                        لم يتم تسجيل دفعة إنتاج بعد.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
+                      ) : null}
+                    </>
+                  ),
+                },
+                {
+                  key: 'c9',
+                  header: 'الربط الرسمي',
+                  cell: (b) => (
+                    <>
+                      {b.productionOrderId ? (
+                        <span className="badge ok">أمر إنتاج رسمي</span>
+                      ) : b.manufacturingOrderId ? (
+                        <span className="badge ok">أمر تصنيع رسمي</span>
+                      ) : (
+                        <span className="badge warn">دفعة قديمة بلا أمر رسمي</span>
+                      )}
+                      <div className="muted small">
+                        {b.inventoryTransactionId ? 'حركة مخزون رسمية ' : 'بلا حركة رسمية مربوطة'}
+                        {b.lotId ? ' · دفعة ناتج (لوت) ' : ''}
+                      </div>
+                    </>
+                  ),
+                },
+                {
+                  key: 'c10',
+                  header: 'إجمالي تكلفة الدفعة',
+                  ltr: true,
+                  cell: (b) => (
+                    <>
+                      <strong>{b.totalCost} SAR</strong>
+                    </>
+                  ),
+                },
+              ]}
+              rows={data?.productionBatches ?? []}
+              rowKey={(b) => b.id}
+            />
           </Panel>
 
           <Panel title="سجل الرقابة على حركة البضاعة والتدقيق (من نفذ العملية ومن اعتمدها)" flush>
@@ -2007,124 +2110,140 @@ export default function VanSalesPage() {
             }
             flush
           >
-            <div className="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>المندوب</th>
-                    <th>الموظف المرتبط</th>
-                    <th>حساب الدخول</th>
-                    <th>مستودع السيارة / اللوحة</th>
-                    <th align="left">العهدة الحالية</th>
-                    <th align="left">نقد مستحق</th>
-                    <th>الحالة والجهوزية</th>
-                    <th>إجراءات</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {vanSalesmen.map((rep) => (
-                    <tr key={rep.id}>
-                      <td>
-                        <b>{rep.name}</b>
-                        {!rep.active ? <span className="muted small"> (موقوف)</span> : null}
-                        {rep.mobile ? (
-                          <div className="muted small" dir="ltr">
-                            {rep.mobile}
-                          </div>
-                        ) : null}
-                      </td>
-                      <td>
-                        {rep.employeeName ? (
-                          <>
-                            {rep.employeeName}
-                            <div className="muted small" dir="ltr">
-                              {rep.employeeNo}
-                            </div>
-                          </>
-                        ) : (
-                          <span className="muted small">بلا بطاقة موظف</span>
-                        )}
-                      </td>
-                      <td>
-                        {rep.userEmail ? (
-                          <>
-                            <span dir="ltr">{rep.userEmail}</span>
-                            <div className="muted small">
-                              {rep.membershipStatus === 'active'
-                                ? ' فعّال'
-                                : `${rep.membershipStatus ?? 'مدعو'}`}
-                              {rep.roleCount ? ` · ${rep.roleCount} دور` : ''}
-                            </div>
-                          </>
-                        ) : (
-                          <span className="muted small">بلا حساب دخول</span>
-                        )}
-                      </td>
-                      <td>
-                        {rep.warehouseName ? (
-                          <>
-                            {rep.warehouseName}
-                            <div className="muted small" dir="ltr">
-                              {rep.warehouseCode}
-                            </div>
-                            {rep.vehiclePlate ? <div className="muted small">{rep.vehiclePlate}</div> : null}
-                          </>
-                        ) : (
-                          <span className="muted small">بلا مستودع سيارة</span>
-                        )}
-                      </td>
-                      <td align="left" dir="ltr">
-                        {rep.custody.custodyQty} kg
+            <Table
+              bare
+              empty={<>لا يوجد مندوبون — أنشئ بطاقة المندوب من شاشة المبيعات المندوبين ثم اربطها هنا.</>}
+              columns={[
+                {
+                  key: 'c0',
+                  header: 'المندوب',
+                  cell: (rep) => (
+                    <>
+                      <b>{rep.name}</b>
+                      {!rep.active ? <span className="muted small"> (موقوف)</span> : null}
+                      {rep.mobile ? (
+                        <div className="muted small" dir="ltr">
+                          {rep.mobile}
+                        </div>
+                      ) : null}
+                    </>
+                  ),
+                },
+                {
+                  key: 'c1',
+                  header: 'الموظف المرتبط',
+                  cell: (rep) =>
+                    rep.employeeName ? (
+                      <>
+                        {rep.employeeName}
+                        <div className="muted small" dir="ltr">
+                          {rep.employeeNo}
+                        </div>
+                      </>
+                    ) : (
+                      <span className="muted small">بلا بطاقة موظف</span>
+                    ),
+                },
+                {
+                  key: 'c2',
+                  header: 'حساب الدخول',
+                  cell: (rep) =>
+                    rep.userEmail ? (
+                      <>
+                        <span dir="ltr">{rep.userEmail}</span>
                         <div className="muted small">
-                          {rep.custody.openLoadOrders} أمر · {rep.custody.pendingReceipts} بانتظار الاستلام
+                          {rep.membershipStatus === 'active' ? ' فعّال' : `${rep.membershipStatus ?? 'مدعو'}`}
+                          {rep.roleCount ? ` · ${rep.roleCount} دور` : ''}
                         </div>
-                      </td>
-                      <td align="left" dir="ltr">
-                        {rep.custody.outstandingCash}
-                      </td>
-                      <td>
+                      </>
+                    ) : (
+                      <span className="muted small">بلا حساب دخول</span>
+                    ),
+                },
+                {
+                  key: 'c3',
+                  header: 'مستودع السيارة / اللوحة',
+                  cell: (rep) =>
+                    rep.warehouseName ? (
+                      <>
+                        {rep.warehouseName}
+                        <div className="muted small" dir="ltr">
+                          {rep.warehouseCode}
+                        </div>
+                        {rep.vehiclePlate ? <div className="muted small">{rep.vehiclePlate}</div> : null}
+                      </>
+                    ) : (
+                      <span className="muted small">بلا مستودع سيارة</span>
+                    ),
+                },
+                {
+                  key: 'c4',
+                  header: 'العهدة الحالية',
+                  numeric: true,
+                  ltr: true,
+                  cell: (rep) => (
+                    <>
+                      {rep.custody.custodyQty} kg
+                      <div className="muted small">
+                        {rep.custody.openLoadOrders} أمر · {rep.custody.pendingReceipts} بانتظار الاستلام
+                      </div>
+                    </>
+                  ),
+                },
+                {
+                  key: 'c5',
+                  header: 'نقد مستحق',
+                  numeric: true,
+                  ltr: true,
+                  cell: (rep) => rep.custody.outstandingCash,
+                },
+                {
+                  key: 'c6',
+                  header: 'الحالة والجهوزية',
+                  cell: (rep) => (
+                    <>
+                      <div className="muted small">
+                        {rep.readiness.hasEmployee ? 'موظف مرتبط' : 'بلا موظف'} ·{' '}
+                        {rep.readiness.hasLoginAccount ? 'حساب دخول' : 'بلا حساب دخول'} ·{' '}
+                        {rep.readiness.hasVanWarehouse ? 'مستودع مخصّص' : 'بلا مستودع'} ·{' '}
+                        {rep.readiness.hasVanSalesPermissions ? 'صلاحيات توزيع' : 'بلا صلاحيات توزيع'}
+                      </div>
+                      {rep.custody.items.length ? (
                         <div className="muted small">
-                          {rep.readiness.hasEmployee ? 'موظف مرتبط' : 'بلا موظف'} ·{' '}
-                          {rep.readiness.hasLoginAccount ? 'حساب دخول' : 'بلا حساب دخول'} ·{' '}
-                          {rep.readiness.hasVanWarehouse ? 'مستودع مخصّص' : 'بلا مستودع'} ·{' '}
-                          {rep.readiness.hasVanSalesPermissions ? 'صلاحيات توزيع' : 'بلا صلاحيات توزيع'}
+                          {rep.custody.items.map((row) => `${row.itemName}: ${row.quantity}`).join(' · ')}
                         </div>
-                        {rep.custody.items.length ? (
-                          <div className="muted small">
-                            {rep.custody.items.map((row) => `${row.itemName}: ${row.quantity}`).join(' · ')}
-                          </div>
-                        ) : null}
-                      </td>
-                      <td>
-                        <div className="row" style={{ gap: 6, flexWrap: 'wrap' }}>
-                          <button
-                            type="button"
-                            className="btn sm"
-                            onClick={() => {
-                              setRepTarget(rep);
-                              setRepEmail(rep.userEmail ?? rep.email ?? '');
-                              setRepFullName(rep.employeeName ?? rep.name);
-                            }}
-                          >
-                            {rep.membershipId ? 'إعادة ربط الحساب' : 'ربط حساب دخول'}
-                          </button>
-                          <a className="btn sm" href="/sales/salesmen">
-                            بطاقة المندوب
-                          </a>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                  {vanSalesmen.length === 0 ? (
-                    <tr>
-                      <td colSpan={8} className="muted">
-                        لا يوجد مندوبون — أنشئ بطاقة المندوب من شاشة المبيعات المندوبين ثم اربطها هنا.
-                      </td>
-                    </tr>
-                  ) : null}
-                </tbody>
-              </table>
-            </div>
+                      ) : null}
+                    </>
+                  ),
+                },
+                {
+                  key: 'c7',
+                  header: 'إجراءات',
+                  cell: (rep) => (
+                    <>
+                      <div className="row" style={{ gap: 6, flexWrap: 'wrap' }}>
+                        <button
+                          type="button"
+                          className="btn sm"
+                          onClick={() => {
+                            setRepTarget(rep);
+                            setRepEmail(rep.userEmail ?? rep.email ?? '');
+                            setRepFullName(rep.employeeName ?? rep.name);
+                          }}
+                        >
+                          {rep.membershipId ? 'إعادة ربط الحساب' : 'ربط حساب دخول'}
+                        </button>
+                        <a className="btn sm" href="/sales/salesmen">
+                          بطاقة المندوب
+                        </a>
+                      </div>
+                    </>
+                  ),
+                },
+              ]}
+              rows={vanSalesmen}
+              rowKey={(rep) => rep.id}
+            />
           </Panel>
 
           {repTarget ? (
@@ -3294,54 +3413,50 @@ export default function VanSalesPage() {
                   totalsClause: DASHBOARD_TOTALS_CLAUSE,
                 })}
               </div>
-              <div className="table-wrap">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>الرقم</th>
-                      <th>العميل</th>
-                      <th>المباع / البونص</th>
-                      <th>الإجمالي</th>
-                      <th>المدفوع</th>
-                      <th>تحصيل</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {(data?.documents ?? []).slice(0, 12).map((d) => {
+              <Table
+                bare
+                columns={[
+                  {
+                    key: 'number',
+                    header: 'الرقم',
+                    ltr: true,
+                    cell: (d) => <strong>{d.number}</strong>,
+                  },
+                  { key: 'customer', header: 'العميل', cell: (d) => d.customerName },
+                  {
+                    key: 'qty',
+                    header: 'المباع / البونص',
+                    ltr: true,
+                    cell: (d) => `${d.soldQty} + ${d.bonusQty} kg`,
+                  },
+                  { key: 'total', header: 'الإجمالي', ltr: true, cell: (d) => d.total },
+                  { key: 'paid', header: 'المدفوع', ltr: true, cell: (d) => d.paidAmount },
+                  {
+                    key: 'collect',
+                    header: 'تحصيل',
+                    cell: (d) => {
                       const unpaid = Math.max(0, Number(d.total) - Number(d.paidAmount));
-                      return (
-                        <tr key={d.id} onClick={() => setSelectedDoc(d)} style={{ cursor: 'pointer' }}>
-                          <td dir="ltr">
-                            <strong>{d.number}</strong>
-                          </td>
-                          <td>{d.customerName}</td>
-                          <td dir="ltr">
-                            {d.soldQty} + {d.bonusQty} kg
-                          </td>
-                          <td dir="ltr">{d.total}</td>
-                          <td dir="ltr">{d.paidAmount}</td>
-                          <td>
-                            {unpaid > 0.01 ? (
-                              <button
-                                type="button"
-                                className="btn sm primary"
-                                onClick={(ev) => {
-                                  ev.stopPropagation();
-                                  void handleCollectDebt(d);
-                                }}
-                              >
-                                تحصيل ({unpaid.toFixed(2)})
-                              </button>
-                            ) : (
-                              <span className="badge ok">مسددة</span>
-                            )}
-                          </td>
-                        </tr>
+                      return unpaid > 0.01 ? (
+                        <button
+                          type="button"
+                          className="btn sm primary"
+                          onClick={(ev) => {
+                            ev.stopPropagation();
+                            void handleCollectDebt(d);
+                          }}
+                        >
+                          تحصيل ({unpaid.toFixed(2)})
+                        </button>
+                      ) : (
+                        <span className="badge ok">مسددة</span>
                       );
-                    })}
-                  </tbody>
-                </table>
-              </div>
+                    },
+                  },
+                ]}
+                rows={(data?.documents ?? []).slice(0, 12)}
+                rowKey={(d) => d.id}
+                onRowClick={(d) => setSelectedDoc(d)}
+              />
             </Panel>
           </aside>
         </div>
@@ -3716,73 +3831,25 @@ export default function VanSalesPage() {
           </Panel>
 
           <Panel title="مصفوفة الصلاحيات والأمان للأدوار الأربعة في المصنع" flush>
-            <div className="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>الدور الوظيفي</th>
-                    <th>صلاحيات الإنتاج والمستودع</th>
-                    <th>صلاحيات الأسعار والخصومات والبونص</th>
-                    <th>صلاحيات إغلاق الوردية والتالف والعجز</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td>
-                      <strong>صاحب المصنع (Factory Owner)</strong>
-                    </td>
-                    <td>
-                      اطلاع كامل على لوحة صاحب المصنع، تكلفة الإنتاج، وهوامش الربح لكل صنف ومندوب وعميل.
-                    </td>
-                    <td>
-                      تحديد وتثبيت شرائح الأسعار (6 / 6.5 / 7 ريال) واعتماد الخصومات الاستثنائية وتجاوز
-                      البونص.
-                    </td>
-                    <td>
-                      اعتماد نهائي لإغلاق الورديات، مراجعة سجل التدقيق الكامل، واستلام التنبيهات الفورية.
-                    </td>
-                  </tr>
-                  <tr>
-                    <td>
-                      <strong>المحاسب (Accountant)</strong>
-                    </td>
-                    <td>
-                      مطابقة أرصدة المستودع الرئيسي وعهد المناديب والقيود المحاسبية وتكلفة البضاعة المباعة.
-                    </td>
-                    <td>مراجعة الفواتير الضريبية (ZATCA) والعادية، ومراقبة السقوف الائتمانية والتحصيل.</td>
-                    <td>
-                      <strong>
-                        مراجعة إغلاقات الورديات المعلقة، تأكيد الفحص الفعلي للتالف، تصفير العهد، وقيد العجز
-                        خصماً على راتب المندوب.
-                      </strong>
-                    </td>
-                  </tr>
-                  <tr>
-                    <td>
-                      <strong>أمين المستودع (Warehouse Keeper)</strong>
-                    </td>
-                    <td>تسجيل دفعات الإنتاج اليومية، صرف أوامر التحميل للمناديب، واستلام المرتجع السليم.</td>
-                    <td>لا يملك صلاحية تعديل أسعار العملاء أو منح خصومات مالية.</td>
-                    <td>المشاركة في الفحص الفعلي للكميات التالفة والجرد الدوري المفاجئ لسيارات المناديب.</td>
-                  </tr>
-                  <tr>
-                    <td>
-                      <strong>المندوب (Sales Rep)</strong>
-                    </td>
-                    <td>
-                      استلام العهدة المحددة بأمر التحميل فقط (يُمنع بيع أي كمية تتجاوز دفعة المخبز المستلمة).
-                    </td>
-                    <td>البيع بالسعر المثبّت للعميل تلقائياً، وتسجيل سبب البونص ضمن السقف المسموح فقط.</td>
-                    <td>
-                      <strong>
-                        تقديم طلب إغلاق الوردية اليومي في نهاية الدوام (تبقى الحالة معلقة حتى يعتمدها
-                        المحاسب).
-                      </strong>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
+            <Table
+              bare
+              columns={[
+                { key: 'role', header: 'الدور الوظيفي', cell: (row) => row.role },
+                { key: 'production', header: 'صلاحيات الإنتاج والمستودع', cell: (row) => row.production },
+                {
+                  key: 'pricing',
+                  header: 'صلاحيات الأسعار والخصومات والبونص',
+                  cell: (row) => row.pricing,
+                },
+                {
+                  key: 'closing',
+                  header: 'صلاحيات إغلاق الوردية والتالف والعجز',
+                  cell: (row) => row.closing,
+                },
+              ]}
+              rows={ROLE_MATRIX}
+              rowKey={(_, index) => String(index)}
+            />
           </Panel>
         </div>
       )}

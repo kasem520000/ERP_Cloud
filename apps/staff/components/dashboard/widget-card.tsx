@@ -5,6 +5,7 @@ import { GripVertical, Minus, TrendingDown, TrendingUp, X } from 'lucide-react';
 
 import { money } from '../../lib/lookups';
 import type { WidgetFigure } from '../../lib/bi-dashboards';
+import { Table } from '../ui/table';
 
 function figureText(widget: WidgetFigure): string {
   if (widget.error) return '—';
@@ -129,27 +130,17 @@ function formatCell(cell: string): string {
 function Rows({ columns, rows }: { columns: string[]; rows: string[][] }) {
   if (rows.length === 0) return <p className="m-0 text-[13px] text-muted">لا توجد بيانات</p>;
   return (
-    <table className="w-full border-collapse text-[12px]">
-      <thead>
-        <tr className="text-muted">
-          {columns.map((column) => (
-            <th key={column} className="pb-1 text-start font-medium">
-              {column}
-            </th>
-          ))}
-        </tr>
-      </thead>
-      <tbody>
-        {rows.map((row, index) => (
-          <tr key={index} className="border-t border-line text-ink-2">
-            {row.map((cell, cellIndex) => (
-              <td key={cellIndex} className="py-1 pe-2">
-                {formatCell(cell)}
-              </td>
-            ))}
-          </tr>
-        ))}
-      </tbody>
-    </table>
+    <Table
+      bare
+      dense
+      empty={<>لا توجد بيانات</>}
+      columns={columns.map((column, index) => ({
+        key: String(index),
+        header: column,
+        cell: (row: string[]) => formatCell(row[index] ?? ''),
+      }))}
+      rows={rows}
+      rowKey={(_, index) => String(index)}
+    />
   );
 }

@@ -8,6 +8,7 @@ import { useEffect, useMemo, useState } from 'react';
 
 import { Forbidden, Loading, Screen } from '../../../components/screen';
 import { Input, Select } from '../../../components/ui/input';
+import { Table } from '../../../components/ui/table';
 import {
   createCustomReport,
   customReportFields,
@@ -404,26 +405,16 @@ export default function CustomReportBuilderPage() {
                 <p className="m-0 mt-2 text-center text-xs text-muted">{firstSeries.label}</p>
               </div>
             ) : null}
-            <div className="table-wrap">
-              <table className="table">
-                <thead>
-                  <tr>
-                    {result.columns.map((column) => (
-                      <th key={column.key}>{column.label}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {result.rows.slice(0, 200).map((row, index) => (
-                    <tr key={index}>
-                      {result.columns.map((column) => (
-                        <td key={column.key}>{String(row[column.key] ?? '')}</td>
-                      ))}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <Table
+              bare
+              columns={result.columns.map((column) => ({
+                key: column.key,
+                header: column.label,
+                cell: (row: Record<string, unknown>) => String(row[column.key] ?? ''),
+              }))}
+              rows={result.rows}
+              rowKey={(_, index) => String(index)}
+            />
           </Panel>
         ) : null}
       </Split>

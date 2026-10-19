@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState } from 'react';
 
 import { Notice } from '../../../components/data-view';
 import { Screen } from '../../../components/screen';
+import { Table } from '../../../components/ui/table';
 import {
   REPORT_GROUP_LABELS,
   REPORT_GROUP_ORDER,
@@ -411,28 +412,18 @@ export default function ReportDesignerPage() {
 
       {preview && (
         <Panel flush title={`معاينة: ${preview.titleAr}`} hint={`${preview.rowCount} سطراً`}>
-          <div className="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  {preview.columns.map((column) => (
-                    <th key={column.key}>{column.labelAr}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {preview.rows.slice(0, 15).map((row, index) => (
-                  <tr key={`${preview.key}-${index}`}>
-                    {preview.columns.map((column) => (
-                      <td key={column.key} className={isNumericColumn(column) ? 'num' : undefined}>
-                        {formatCell(row[column.key] ?? '', column.type)}
-                      </td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <Table
+            bare
+            empty={<>لا توجد سطور مطابقة للمعايير الحالية.</>}
+            columns={preview.columns.map((column) => ({
+              key: column.key,
+              header: column.labelAr,
+              numeric: isNumericColumn(column),
+              cell: (row: Record<string, string>) => formatCell(row[column.key] ?? '', column.type),
+            }))}
+            rows={preview.rows.slice(0, 15)}
+            rowKey={(_, index) => `${preview.key}-${index}`}
+          />
         </Panel>
       )}
     </Screen>

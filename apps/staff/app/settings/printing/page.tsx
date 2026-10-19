@@ -467,53 +467,49 @@ export default function PrintingSettingsPage() {
 
         {linkNotice ? <Notice notice={linkNotice} /> : null}
 
-        <div className="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>النطاق</th>
-                <th>اسم الطباعة</th>
-                <th>الطابعة</th>
-                <th>مسار التقرير</th>
-                <th>اسم الملف</th>
-                <th>إجراء</th>
-              </tr>
-            </thead>
-            <tbody>
-              {(printerLinks.data ?? []).length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="small muted" style={{ textAlign: 'center' }}>
-                    لا توجد روابط محفوظة — أضف واحداً أعلاه (كما في DgvName · DgvPrinterName · DgvReport).
-                  </td>
-                </tr>
-              ) : (
-                (printerLinks.data ?? []).map((link) => (
-                  <tr key={link.id}>
-                    <td>
-                      {link.scopeLabelAr}{' '}
-                      <span dir="ltr" className="small muted">
-                        ({link.scope})
-                      </span>
-                    </td>
-                    <td>{link.printName}</td>
-                    <td>{link.printerName}</td>
-                    <td dir="ltr" className="small">
-                      {link.rptUrl || '—'}
-                    </td>
-                    <td dir="ltr" className="small">
-                      {link.rptName || '—'}
-                    </td>
-                    <td>
-                      <button className="btn" disabled={linkBusy} onClick={() => void removeLink(link.id)}>
-                        حذف
-                      </button>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+        <Table
+          bare
+          empty={<>لا توجد روابط محفوظة — أضف واحداً أعلاه (كما في DgvName · DgvPrinterName · DgvReport).</>}
+          columns={[
+            {
+              key: 'scope',
+              header: 'النطاق',
+              cell: (link) => (
+                <>
+                  {link.scopeLabelAr}{' '}
+                  <span dir="ltr" className="small muted">
+                    ({link.scope})
+                  </span>
+                </>
+              ),
+            },
+            { key: 'printName', header: 'اسم الطباعة', cell: (link) => link.printName },
+            { key: 'printer', header: 'الطابعة', cell: (link) => link.printerName },
+            {
+              key: 'rptUrl',
+              header: 'مسار التقرير',
+              ltr: true,
+              cell: (link) => <span className="small">{link.rptUrl || '—'}</span>,
+            },
+            {
+              key: 'rptName',
+              header: 'اسم الملف',
+              ltr: true,
+              cell: (link) => <span className="small">{link.rptName || '—'}</span>,
+            },
+            {
+              key: 'actions',
+              header: 'إجراء',
+              cell: (link) => (
+                <button className="btn" disabled={linkBusy} onClick={() => void removeLink(link.id)}>
+                  حذف
+                </button>
+              ),
+            },
+          ]}
+          rows={printerLinks.data ?? []}
+          rowKey={(link) => link.id}
+        />
       </Panel>
 
       {scope === 'reports' && (

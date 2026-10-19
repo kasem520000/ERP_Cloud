@@ -753,35 +753,47 @@ function MarinaBookings() {
                 </div>
                 {card.additions.length > 0 && (
                   <div className="table-wrap" style={{ marginTop: 8 }}>
-                    <table>
-                      <thead>
-                        <tr>
-                          <th>الإضافة</th>
-                          <th>الوصف</th>
-                          <th className="num">العدد</th>
-                          <th className="num">السعر</th>
-                          <th className="num">الإجمالي</th>
-                          <th />
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {card.additions.map((row, index) => (
-                          <tr key={`${row.description}-${index}`}>
-                            <td dir="ltr">
-                              {(definitions.data ?? []).find((item) => item.id === row.additionId)?.number ??
-                                '—'}
-                            </td>
-                            <td>{row.description}</td>
-                            <td className="num" dir="ltr">
-                              {row.quantity}
-                            </td>
-                            <td className="num" dir="ltr">
-                              {row.unitPrice}
-                            </td>
-                            <td className="num" dir="ltr">
-                              {fmt(num(row.quantity) * num(row.unitPrice))}
-                            </td>
-                            <td>
+                    <Table
+                      columns={[
+                        {
+                          key: 'c0',
+                          header: 'الإضافة',
+                          ltr: true,
+                          cell: (row) =>
+                            (definitions.data ?? []).find((item) => item.id === row.additionId)?.number ??
+                            '—',
+                        },
+                        {
+                          key: 'c1',
+                          header: 'الوصف',
+                          cell: (row) => row.description,
+                        },
+                        {
+                          key: 'c2',
+                          header: 'العدد',
+                          numeric: true,
+                          ltr: true,
+                          cell: (row) => row.quantity,
+                        },
+                        {
+                          key: 'c3',
+                          header: 'السعر',
+                          numeric: true,
+                          ltr: true,
+                          cell: (row) => row.unitPrice,
+                        },
+                        {
+                          key: 'c4',
+                          header: 'الإجمالي',
+                          numeric: true,
+                          ltr: true,
+                          cell: (row) => fmt(num(row.quantity) * num(row.unitPrice)),
+                        },
+                        {
+                          key: 'c5',
+                          header: '',
+                          cell: (_, index) => (
+                            <>
                               <button
                                 className="btn sm danger"
                                 type="button"
@@ -794,11 +806,13 @@ function MarinaBookings() {
                               >
                                 حذف
                               </button>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                            </>
+                          ),
+                        },
+                      ]}
+                      rows={card.additions}
+                      rowKey={(row, index) => `${row.description}-${index}`}
+                    />
                   </div>
                 )}
               </FormSection>
