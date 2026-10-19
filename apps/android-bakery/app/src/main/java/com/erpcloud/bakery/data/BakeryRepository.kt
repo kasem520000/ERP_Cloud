@@ -25,6 +25,7 @@ import com.erpcloud.bakery.data.api.AdjustmentTypeDto
 import com.erpcloud.bakery.data.api.BomDto
 import com.erpcloud.bakery.data.api.BranchDto
 import com.erpcloud.bakery.data.api.CashLocationDto
+import com.erpcloud.bakery.data.api.CatalogItemDto
 import com.erpcloud.bakery.data.api.CategoryDto
 import com.erpcloud.bakery.data.api.CatalogItemDto
 import com.erpcloud.bakery.data.api.DepartmentDto
@@ -159,6 +160,13 @@ class BakeryRepository(
         response.body() ?: emptyList()
     }
 
+    /** أصنافُ الكتالوج كاملةً (شاشةُ الكتالوج) — نفس المسار برؤيةٍ أوسع. */
+    suspend fun catalogItemsFull(): List<CatalogItemDto> = withContext(Dispatchers.IO) {
+        val response = api.catalogItemsFull()
+        if (!response.isSuccessful) throw response.toApiException()
+        response.body() ?: emptyList()
+    }
+
     suspend fun parties(kind: String = "customer"): List<PartyDto> = withContext(Dispatchers.IO) {
         val response = api.parties(kind = kind)
         if (!response.isSuccessful) throw response.toApiException()
@@ -181,7 +189,7 @@ class BakeryRepository(
             val response = api.notifications(
                 limit = 50,
                 offset = 0,
-                filterRead = if (unreadOnly) "false" else null,
+                read = if (unreadOnly) "false" else null,
             )
             if (!response.isSuccessful) throw response.toApiException()
             response.body() ?: NotificationListResponse()
@@ -303,7 +311,7 @@ class BakeryRepository(
     // ============================================================ وحدات «الطاقم»
 
     /** قائمةٌ خام تُفكّ تسلسلها من الاستجابة — الغلافُ إن وُجد يُتجاوز. */
-    private inline fun <reified T> rawList(call: () -> Response<List<T>>): List<T> =
+    private suspend inline fun <reified T> rawList(crossinline call: () -> Response<List<T>>): List<T> =
         withContext(Dispatchers.IO) {
             val response = call()
             if (!response.isSuccessful) throw response.toApiException()

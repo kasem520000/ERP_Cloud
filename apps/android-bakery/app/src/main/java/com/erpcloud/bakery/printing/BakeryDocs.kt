@@ -60,7 +60,7 @@ private class DocCanvas(widthPx: Int) {
         tp: TextPaint,
         w: Int,
         align: Layout.Alignment = Layout.Alignment.ALIGN_CENTER,
-    ): StaticLayout = StaticLayout.Builder.obtain(text, 0, text.length, w.coerceAtLeast(1))
+    ): StaticLayout = StaticLayout.Builder.obtain(text, 0, text.length, w.coerceAtLeast(1), tp)
         .setAlignment(align)
         .setLineSpacing(0f, 1.15f)
         .build()
@@ -149,10 +149,10 @@ private class DocCanvas(widthPx: Int) {
                     for (box in op.boxes) {
                         val boxRect = RectF(x, y, x + boxW, y + op.height)
                         canvas.drawRect(boxRect, framePaint)
-                        canvas.withTranslation(
-                            x + (boxW - box.width) / 2f,
-                            y + op.height - box.height - 6f,
-                        ) { box.draw(this) }
+                        canvas.save()
+                        canvas.translate(x + (boxW - box.width) / 2f, y + op.height - box.height - 6f)
+                        box.draw(canvas)
+                        canvas.restore()
                         x += boxW + gap
                     }
                     y += op.height + 8f

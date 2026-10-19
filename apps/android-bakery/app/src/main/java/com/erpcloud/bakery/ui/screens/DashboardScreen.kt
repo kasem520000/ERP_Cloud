@@ -59,6 +59,7 @@ import com.erpcloud.bakery.util.Dec
  * تُحسب)، وشاراتُ الانتظار (استلام/إقفال/تسوية/قرار عبور) هي صراخُ اليوم:
  * ما يحتاجُ قرارك الآن.
  */
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
 fun DashboardScreen(
     vm: AppViewModel,

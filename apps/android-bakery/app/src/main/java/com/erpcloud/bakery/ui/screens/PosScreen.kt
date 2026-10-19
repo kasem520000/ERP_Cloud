@@ -35,6 +35,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.erpcloud.bakery.data.api.PosCheckoutReceiptDto
 import com.erpcloud.bakery.data.api.PosItemDto
+import com.erpcloud.bakery.printing.posReceipt
 import com.erpcloud.bakery.ui.AppViewModel
 import com.erpcloud.bakery.ui.components.CenterLoading
 import com.erpcloud.bakery.ui.components.ChipTone

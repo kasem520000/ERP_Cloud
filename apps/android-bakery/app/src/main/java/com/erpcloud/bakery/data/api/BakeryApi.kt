@@ -163,6 +163,10 @@ interface BakeryApi {
     @GET("organization/catalog/items")
     suspend fun catalogItems(): Response<List<ItemOptionDto>>
 
+    /** أصنافُ الكتالوج كاملةً — لشاشةِ الكتالوج (أعمدةُ الأسعار والتتبّع). */
+    @GET("organization/catalog/items")
+    suspend fun catalogItemsFull(): Response<List<CatalogItemDto>>
+
     /** العملاء — مصفوفةٌ خام بلا غلاف (كما في تطبيق المندوب). */
     @GET("parties")
     suspend fun parties(@Query("kind") kind: String = "customer"): Response<List<PartyDto>>

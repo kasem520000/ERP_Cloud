@@ -185,8 +185,7 @@ fun ChangePasswordScreen(vm: AppViewModel, onBack: () -> Unit) {
                         when (result) {
                             is ActionResult.Synced -> done = true
                             is ActionResult.Refused -> localError = result.messageAr
-                            is ActionResult.Blocked -> localError = result.reasonsAr.joinToString(" · ")
-                            is ActionResult.StoredOffline -> localError = result.messageAr
+                            is ActionResult.Offline -> localError = result.messageAr
                         }
                     }
                 },
