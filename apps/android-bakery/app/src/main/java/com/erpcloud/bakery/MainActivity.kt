@@ -37,6 +37,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.erpcloud.bakery.ui.screens.AdjustmentsScreen
+import com.erpcloud.bakery.ui.screens.CountAdjustmentsScreen
 import com.erpcloud.bakery.ui.screens.CatalogScreen
 import com.erpcloud.bakery.ui.screens.EmployeeAccountScreen
 import com.erpcloud.bakery.ui.screens.EmployeesScreen
@@ -46,6 +47,7 @@ import com.erpcloud.bakery.ui.screens.PurchasesScreen
 import com.erpcloud.bakery.ui.screens.RolesScreen
 import com.erpcloud.bakery.ui.screens.SalesRegistryScreen
 import com.erpcloud.bakery.ui.screens.SystemReportsScreen
+import com.erpcloud.bakery.ui.screens.TreasuryScreen
 import com.erpcloud.bakery.ui.screens.UsersScreen
 import com.erpcloud.bakery.ui.screens.VouchersScreen
 import kotlinx.coroutines.launch
@@ -55,6 +57,8 @@ import com.erpcloud.bakery.ui.screens.ChangePasswordScreen
 import com.erpcloud.bakery.ui.screens.CollectionScreen
 import com.erpcloud.bakery.ui.screens.CustodyScreen
 import com.erpcloud.bakery.ui.screens.DashboardScreen
+import com.erpcloud.bakery.ui.screens.InventoryScreen
+import com.erpcloud.bakery.ui.screens.PartiesScreen
 import com.erpcloud.bakery.ui.screens.DistributionScreen
 import com.erpcloud.bakery.ui.screens.LoginScreen
 import com.erpcloud.bakery.ui.screens.NotificationsScreen
@@ -118,6 +122,11 @@ private object Routes {
     const val PAYROLL = "payroll"
     const val EMPLOYEE_ACCOUNT = "employee-account"
     const val SYSTEM_REPORTS = "system-reports"
+    // الفجواتُ التشغيليّة اليوميّة: الخزينة والمخزون والجرد والأطراف
+    const val TREASURY = "treasury"
+    const val INVENTORY = "inventory"
+    const val COUNTS = "counts"
+    const val PARTIES = "parties"
 }
 
 /** بندُ درجٍ — مسارٌ + عنوانٌ + إذنُ الدخول (الدخولُ بلا إذنٍ يُخفي البندَ لا أكثر). */
@@ -244,6 +253,10 @@ fun AppRoot(vm: AppViewModel) {
             composable(Routes.SYSTEM_REPORTS) {
                 SystemReportsScreen(vm, onBack = { navController.popBackStack() })
             }
+            composable(Routes.TREASURY) { TreasuryScreen(vm, onBack = { navController.popBackStack() }) }
+            composable(Routes.INVENTORY) { InventoryScreen(vm, onBack = { navController.popBackStack() }) }
+            composable(Routes.COUNTS) { CountAdjustmentsScreen(vm, onBack = { navController.popBackStack() }) }
+            composable(Routes.PARTIES) { PartiesScreen(vm, onBack = { navController.popBackStack() }) }
             }
         }
     }
@@ -267,6 +280,10 @@ private fun drawerEntries(can: (String) -> Boolean): List<DrawerEntry> =
         add(Routes.CATALOG, "الأصناف والمجموعات", "catalog.item.view")
         add(Routes.PURCHASES, "المشتريات", "purchase.view")
         add(Routes.VOUCHERS, "السندات المخزنيّة", "inventory.view")
+        add(Routes.INVENTORY, "المخزون والأرصدة", "inventory.view")
+        add(Routes.COUNTS, "تسويةُ الجرد", "inventory.view")
+        add(Routes.TREASURY, "الخزينة والمصروفات", "treasury.view")
+        add(Routes.PARTIES, "العملاء والموردون", "parties.view")
         add(Routes.POS, "نقطة البيع", "pos.view")
         add(Routes.EMPLOYEES, "الموظفون", "hrm.view")
         add(Routes.ADJUSTMENTS, "المنصرفات", "hrm.view")

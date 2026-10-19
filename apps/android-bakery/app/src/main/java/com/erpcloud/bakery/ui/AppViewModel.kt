@@ -146,6 +146,17 @@ data class StaffState(
     // نتيجةُ آخر كشف حساب موظف / تشغيل تقرير (تُقرأ عند الطلب)
     val employeeStatement: EmployeeStatementDto? = null,
     val reportResult: ReportResultDto? = null,
+    // الخزينة والمصروفات
+    val vouchers: List<TreasuryVoucherDto> = emptyList(),
+    val accounts: List<AccountDto> = emptyList(),
+    // المخزون والأرصدة
+    val stockLevels: List<StockLevelDto> = emptyList(),
+    val stockMovements: List<StockMovementDto> = emptyList(),
+    val itemCard: ItemCardDto? = null,
+    val countAdjustments: List<StockAdjustmentDto> = emptyList(),
+    // الأطراف (عملاء/موردون حسب المرشّح)
+    val parties: List<PartyDto> = emptyList(),
+    val partyBalance: PartyBalanceDto? = null,
     // حالةُ التحميل والخطأ المشتركة (شاشةٌ تُحمَّل في كلّ مرة تُفتح)
     val loadingKey: String? = null,
     val error: String? = null,
@@ -699,6 +710,75 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     /** تشغيلُ تقريرٍ بمدخلاته — النتيجةُ في `staff.reportResult` والخطأُ في `staff.error`. */
     fun runReport(key: String, params: JsonObject) = loadStaff("report-$key") { s ->
         s.copy(reportResult = repo.runReport(key, params))
+    }
+
+    // ---------------------------------------------- الخزينة والمصروفات
+
+    fun loadTreasury() = loadStaff("treasury") { s ->
+        s.copy(
+            vouchers = repo.treasuryVouchers(),
+            cashLocations = if (s.cashLocations.isEmpty()) repo.cashLocations() else s.cashLocations,
+            branches = if (s.branches.isEmpty()) repo.branches() else s.branches,
+        )
+    }
+
+    fun loadAccounts() = loadStaff("accounts") { s ->
+        s.copy(accounts = repo.accounts())
+    }
+
+    fun createTreasuryVoucher(body: JsonObject, onDone: (ActionResult) -> Unit) {
+        staffAction("voucher", { repo.createTreasuryVoucher(body) }, onDone)
+    }
+
+    fun postTreasuryVoucher(id: String, body: JsonObject, onDone: (ActionResult) -> Unit) {
+        staffAction("voucher-post", { repo.postTreasuryVoucher(id, body) }, onDone)
+    }
+
+    // ---------------------------------------------- المخزون والأرصدة
+
+    fun loadStockLevels(warehouseId: String? = null) = loadStaff("levels") { s ->
+        s.copy(stockLevels = repo.stockLevels(warehouseId))
+    }
+
+    fun loadStockMovements(itemId: String?, warehouseId: String?, from: String?, to: String?) =
+        loadStaff("movements") { s ->
+            s.copy(stockMovements = repo.stockMovements(itemId, warehouseId, from, to))
+        }
+
+    fun loadItemCard(itemId: String, warehouseId: String?, from: String?, to: String?) =
+        loadStaff("item-card") { s ->
+            s.copy(itemCard = repo.itemCard(itemId, warehouseId, from, to))
+        }
+
+    fun loadCountAdjustments() = loadStaff("counts") { s ->
+        s.copy(
+            countAdjustments = repo.stockAdjustments(),
+            branches = if (s.branches.isEmpty()) repo.branches() else s.branches,
+        )
+    }
+
+    fun createStockAdjustment(body: JsonObject, onDone: (ActionResult) -> Unit) {
+        staffAction("count", { repo.createStockAdjustment(body) }, onDone)
+    }
+
+    fun postStockAdjustment(id: String, body: JsonObject, onDone: (ActionResult) -> Unit) {
+        staffAction("count-post", { repo.postStockAdjustment(id, body) }, onDone)
+    }
+
+    // ---------------------------------------------- الأطراف وكشوفها
+
+    /** قائمةُ الأطراف — kind: customer أو supplier. */
+    fun loadParties(kind: String = "customer") = loadStaff("parties") { s ->
+        s.copy(parties = repo.parties(kind))
+    }
+
+    /** رصيدُ طرفٍ وقيودُه المفتوحة — عند الطلب (لمرةٍ لكلّ طرفٍ مفتوح). */
+    fun loadPartyBalance(partyId: String) = loadStaff("party-balance") { s ->
+        s.copy(partyBalance = repo.partyBalance(partyId))
+    }
+
+    fun createParty(body: JsonObject, onDone: (ActionResult) -> Unit) {
+        staffAction("party", { repo.createParty(body) }, onDone)
     }
 
     // ------------------------------------------------------------ الإشعارات

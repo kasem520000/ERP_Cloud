@@ -174,6 +174,49 @@ object Labels {
         else -> status to ChipTone.NEUTRAL
     }
 
+    /** نوعُ سند الخزينة — قبضٌ أم صرف. */
+    fun voucherFlow(kind: String): Pair<String, ChipTone> = when (kind) {
+        "receipt" -> "سند قبض" to ChipTone.OK
+        "payment" -> "سند صرف" to ChipTone.WARN
+        else -> kind to ChipTone.NEUTRAL
+    }
+
+    /** تصنيفُ سند الخزينة — من أين/إلى أين المال. */
+    fun voucherSubtype(subtype: String): String = when (subtype) {
+        "customer" -> "عميل"
+        "supplier" -> "مورّد"
+        "expense" -> "مصروف"
+        "account" -> "حساب"
+        "salary" -> "راتب"
+        "vat" -> "ضريبة"
+        "other" -> "أخرى"
+        else -> subtype
+    }
+
+    /** طريقةُ السند — نفسَ طرق الدفع مع الشيك والتحويل. */
+    fun voucherMethod(method: String?): String = when (method) {
+        "bank_transfer" -> "تحويل بنكي"
+        "cheque" -> "شيك"
+        else -> payMethod(method)
+    }
+
+    /** مستندُ حركة المخزون — كما في `docType` عند الخادم. */
+    fun movementDoc(docType: String?): String = when (docType) {
+        "purchase_invoice" -> "فاتورة مشتريات"
+        "purchase_return" -> "مردود مشتريات"
+        "sales_invoice" -> "فاتورة مبيعات"
+        "sales_return" -> "مردود مبيعات"
+        "pos_sale" -> "بيعة نقطة بيع"
+        "stock_voucher" -> "سند مخزني"
+        "production" -> "إنتاج"
+        "production_order" -> "أمر إنتاج"
+        "load_order" -> "أمر تحميل"
+        "transfer" -> "تحويل مستودع"
+        "adjustment" -> "تسوية جرد"
+        "allocation" -> "تخصيص"
+        else -> docType ?: "—"
+    }
+
     /** مجموعةُ التقرير كما في فهرس التقارير. */
     fun reportGroup(group: String): String = when (group) {
         "sales" -> "المبيعات"

@@ -190,6 +190,25 @@
 - `GET /hrm/employee-statement?employee_id=&from=&to=&branch_id=&full_period=` (إذن `hrm.view`) — `{data: {employee{id, employeeNo, name, accountCode, accountName}, branchId?, from?, to?, fullPeriod, summary{totalDebit, totalCredit, balanceDebit, balanceCredit}, rows[{seq, date, entryId?, entryNumber?, description?, debit, credit, runningBalance?, balanceStatus?, branchName?, entryType?}]}}`.
 - `GET /hrm/salary-payments?employee_id=` (إذن `hrm.view`) — `{data: [{id, number, employeeId, employeeName?, branchName?, yearMonth, paymentDate, method, cashLocationName?, net, voucherNumber?, voucherStatus?, notes?, createdAt?}]}`.
 
+### الخزينة والمصروفات
+- `GET /vouchers?from=&to=&q=` (إذن `treasury.view`) — مصفوفةٌ خام (آخر 500): `{id, branchId, kind: receipt|payment, subtype: customer|supplier|expense|account|salary|vat|other, number, date, partyId?, counterAccountId?, cashLocationId?, method: cash|cheque|bank_transfer|card, amount, vatAmount?, netAmount?, currency?, chequeNo?, chequeState?, referenceNo?, recipient?, description?, voucherTime?, status: draft|posted|void, postedAt?, createdByName?}`.
+- `POST /vouchers` (إذن `treasury.voucher.create`) — `{branchId, kind, subtype, date, partyId?, counterAccountId?, cashLocationId, method, amount, description?, voucherTime?, idempotencyKey?}` — الحسابُ المقابل يُحسم من الطرف أو ملفّ الترحيل، وإلا 422 `COUNTER_ACCOUNT_REQUIRED`.
+- `POST /vouchers/{id}/post` (إذن `treasury.voucher.post`) — `{fiscalPeriodId?, journalLines?, allocations?}`.
+- `GET /accounts` (إذن `accounting.account.view`) — `{data: [{id, code, nameAr?, type?, isPostable?…}]}` (للحساب المقابل اختياريًّا).
+
+### المخزون والأرصدة
+- `GET /inventory/levels?warehouse_id=&item_id=` (إذن `inventory.view`) — مصفوفةُ `stock_balances` خامًا: `{itemId, warehouseId, quantity, value, averageCost, updatedAt}` (بلا أسماء — تُجلبُ محليًّا من الكتالوج).
+- `GET /inventory/movements?item_id=&warehouse_id=&from=&to=&limit=` — مصفوفةٌ خام: `{id, itemId, sku, itemNameAr, warehouseId?, warehouseNameAr?, direction: in|out, qty, baseQty, unitNameAr?, unitCost?, totalCost?, docType, occurredAt}`.
+- `GET /inventory/item-card?item_id=&warehouse_id=&from=&to=` — كائنٌ خام: `{itemId, sku, nameAr, opening{quantity,value}, totals{inQty,inValue,outQty,outValue}, closing{quantity,value}, rows[…movement + balanceQty, balanceValue, averageCost]}` — الرصيدُ الجاري كميّةً وقيمةً.
+- `GET /inventory/adjustments?status=` — مصفوفةٌ خام مع السطور: `{id, number, branchId, warehouseId, reason, status: draft|posted, createdAt?, lines[{itemId, expectedQty, countedQty, unitCost?, varianceQty?, varianceValue}]}`.
+- `POST /inventory/adjustments` (إذن `inventory.adjust`) — `{branchId, warehouseId, reason, lines[{itemId, countedQty, unitId?, unitCost?, batchNo?, note?}]}` — **countedQty الكميّةُ المعدودةُ المطلقة** والخادمُ يحسبُ التباين من الدفتر.
+- `POST /inventory/adjustments/{id}/post` (إذن `inventory.adjust`) — `{approved?, fiscalPeriodId?, counterAccountId?, allowNegative?}` — فرقُ العجز/الفائض يُقيَّد على حساب الفرق.
+
+### الأطراف وكشوفها
+- `GET /parties?kind=customer|supplier` (إذن `parties.view`) — مصفوفةٌ خام: `{id, code, kind, name, legalName?, taxNo?, phone?, creditLimit?, address?}`.
+- `POST /parties` (إذن `parties.manage`) — `{kind, name, taxNo?, phone?, creditLimit?}`.
+- `GET /parties/{id}/balance?asOf=` (إذن `parties.view`) — كائنٌ خام: `{receivable, payable, open[{entryId, accountId, date, debit, credit, allocated}]}` — من القيود **المرحّلة** فقط.
+
 ### المنظّمة والأدوار
 - `GET /sales/salesmen` (إذن `sales.view`) — مصفوفةٌ خام: `{id, name, active, employeeId?, commissionRate, collectionCommissionRate, profitCommissionRate, tel?, mobile?, notes?}`.
 - `POST /sales/salesmen` (إذن `sales.salesman.manage`) — `{name, employeeId?, active?, commissionRate?, collectionCommissionRate?, profitCommissionRate?, tel?, mobile?, notes?}`.

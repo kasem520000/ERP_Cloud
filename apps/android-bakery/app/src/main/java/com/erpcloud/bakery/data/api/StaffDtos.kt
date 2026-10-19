@@ -462,6 +462,176 @@ data class SalaryPaymentDto(
     val createdAt: String? = null,
 )
 
+// ------------------------------------------------------------ الخزينة والمصروفات
+
+/** صفُّ سند قبض/صرف — `GET /vouchers` (مصفوفة drizzle خام، آخر 500). */
+@Serializable
+data class TreasuryVoucherDto(
+    val id: String = "",
+    val branchId: String? = null,
+    /** receipt = قبض · payment = صرف. */
+    val kind: String = "receipt",
+    /** customer · supplier · expense · account · salary · vat · other. */
+    val subtype: String = "customer",
+    val number: String = "",
+    val date: String? = null,
+    val partyId: String? = null,
+    val counterAccountId: String? = null,
+    val cashLocationId: String? = null,
+    /** cash · cheque · bank_transfer · card. */
+    val method: String = "cash",
+    val amount: String? = null,
+    val vatAmount: String? = null,
+    val netAmount: String? = null,
+    val currency: String? = null,
+    val chequeNo: String? = null,
+    val chequeDate: String? = null,
+    val bankName: String? = null,
+    val chequeState: String? = null,
+    val referenceNo: String? = null,
+    val recipient: String? = null,
+    val description: String? = null,
+    val voucherTime: String? = null,
+    val status: String = "draft",
+    val postedAt: String? = null,
+    val voidedAt: String? = null,
+    val createdAt: String? = null,
+    val createdByName: String? = null,
+)
+
+/** صفُّ حسابٍ من دليل الحسابات — `GET /accounts` (`{data}`) للسند ذي الحساب المقابل. */
+@Serializable
+data class AccountDto(
+    val id: String = "",
+    val code: String = "",
+    val nameAr: String? = null,
+    val nameEn: String? = null,
+    val nameArLegacy: String? = null,
+    val type: String? = null,
+    val accountType: String? = null,
+    val isPostable: Boolean? = null,
+    val isPostableLegacy: Boolean? = null,
+) {
+    val label: String get() = nameAr ?: nameArLegacy ?: nameEn ?: code
+    val postable: Boolean get() = isPostable ?: isPostableLegacy ?: false
+}
+
+// ------------------------------------------------------------ المخزون والأرصدة
+
+/** صفُّ رصيدٍ — `GET /inventory/levels` (مصفوفة stock_balances خام؛ الأسماء تُجلب محليًّا). */
+@Serializable
+data class StockLevelDto(
+    val itemId: String = "",
+    val warehouseId: String = "",
+    val quantity: String = "0",
+    val value: String = "0",
+    val averageCost: String = "0",
+    val updatedAt: String? = null,
+)
+
+/** صفُّ حركةٍ — `GET /inventory/movements` (مصفوفة خام). */
+@Serializable
+data class StockMovementDto(
+    val id: String = "",
+    val itemId: String = "",
+    val sku: String? = null,
+    val itemNameAr: String? = null,
+    val warehouseId: String? = null,
+    val warehouseNameAr: String? = null,
+    /** in = وارد · out = صادر. */
+    val direction: String = "in",
+    val qty: String = "0",
+    val baseQty: String = "0",
+    val unitId: String? = null,
+    val unitNameAr: String? = null,
+    val unitCost: String? = null,
+    val totalCost: String? = null,
+    val docType: String? = null,
+    val occurredAt: String? = null,
+    /** في بطاقة الصنف فقط — الرصيدُ الجاري بعد الحركة. */
+    val balanceQty: String? = null,
+    val balanceValue: String? = null,
+    val averageCost: String? = null,
+)
+
+/** بطاقةُ صنفٍ — `GET /inventory/item-card` (كائنٌ خام مع مجاميعٍ ورصيدٍ جارٍ). */
+@Serializable
+data class ItemCardDto(
+    val itemId: String = "",
+    val sku: String? = null,
+    val nameAr: String? = null,
+    val warehouseId: String? = null,
+    val from: String? = null,
+    val to: String? = null,
+    val opening: ItemCardTotalsDto = ItemCardTotalsDto(),
+    val totals: ItemCardFlowDto = ItemCardFlowDto(),
+    val closing: ItemCardTotalsDto = ItemCardTotalsDto(),
+    val rows: List<StockMovementDto> = emptyList(),
+)
+
+@Serializable
+data class ItemCardTotalsDto(
+    val quantity: String = "0",
+    val value: String = "0",
+)
+
+@Serializable
+data class ItemCardFlowDto(
+    val inQty: String = "0",
+    val inValue: String = "0",
+    val outQty: String = "0",
+    val outValue: String = "0",
+)
+
+/** سطرُ تسوية جرد. */
+@Serializable
+data class StockAdjustmentLineDto(
+    val adjustmentId: String = "",
+    val lineNo: Int = 0,
+    val itemId: String = "",
+    val expectedQty: String = "0",
+    val countedQty: String = "0",
+    val unitId: String? = null,
+    val unitCost: String? = null,
+    val varianceQty: String? = null,
+    val varianceValue: String = "0",
+    val note: String? = null,
+)
+
+/** صفُّ تسوية جرد — `GET /inventory/adjustments` (مصفوفةٌ خام مع السطور). */
+@Serializable
+data class StockAdjustmentDto(
+    val id: String = "",
+    val number: String = "",
+    val branchId: String? = null,
+    val warehouseId: String? = null,
+    val reason: String = "",
+    val status: String = "draft",
+    val approvedAt: String? = null,
+    val createdAt: String? = null,
+    val lines: List<StockAdjustmentLineDto> = emptyList(),
+)
+
+// ------------------------------------------------------------ الأطراف وكشوفها
+
+/** رصيدُ طرفٍ وقيودُه المفتوحة — `GET /parties/{id}/balance` (كائنٌ خام). */
+@Serializable
+data class PartyBalanceDto(
+    val receivable: String = "0",
+    val payable: String = "0",
+    val open: List<PartyOpenRowDto> = emptyList(),
+)
+
+@Serializable
+data class PartyOpenRowDto(
+    val entryId: String = "",
+    val accountId: String = "",
+    val date: String? = null,
+    val debit: String = "0",
+    val credit: String = "0",
+    val allocated: String = "0",
+)
+
 // ------------------------------------------------------------ المنظّمة والأدوار
 
 /** صفُّ مندوب مبيعات — `GET /sales/salesmen` (سجلّ المندوبين الرسميّ). */

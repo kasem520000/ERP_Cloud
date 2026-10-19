@@ -357,6 +357,78 @@ interface BakeryApi {
     @POST("hrm/salary-payments")
     suspend fun createSalaryPayment(@Body body: JsonObject): Response<JsonElement>
 
+    // ------------------------------------------------------ الخزينة والمصروفات
+
+    /** سنداتُ القبض والصرف — إذن `treasury.view` (مصفوفةٌ خام، آخر 500). */
+    @GET("vouchers")
+    suspend fun treasuryVouchers(
+        @Query("from") from: String? = null,
+        @Query("to") to: String? = null,
+    ): Response<List<TreasuryVoucherDto>>
+
+    /** إنشاءُ سند قبض/صرف (مسودّة) — إذن `treasury.voucher.create`. */
+    @POST("vouchers")
+    suspend fun createTreasuryVoucher(@Body body: JsonObject): Response<JsonElement>
+
+    /** ترحيلُ السند — إذن `treasury.voucher.post`. */
+    @POST("vouchers/{id}/post")
+    suspend fun postTreasuryVoucher(
+        @Path("id") id: String,
+        @Body body: JsonObject,
+    ): Response<JsonElement>
+
+    /** دليلُ الحسابات — إذن `accounting.account.view` (`{data}`؛ للحساب المقابل اختياريًّا). */
+    @GET("accounts")
+    suspend fun accounts(): Response<ApiEnvelope<List<AccountDto>>>
+
+    // ------------------------------------------------------ المخزون والأرصدة
+
+    /** أرصدةُ المخزون — إذن `inventory.view` (مصفوفة stock_balances خام). */
+    @GET("inventory/levels")
+    suspend fun stockLevels(
+        @Query("warehouse_id") warehouseId: String? = null,
+        @Query("item_id") itemId: String? = null,
+    ): Response<List<StockLevelDto>>
+
+    /** حركةُ المخزون — إذن `inventory.view` (مصفوفةٌ خام). */
+    @GET("inventory/movements")
+    suspend fun stockMovements(
+        @Query("item_id") itemId: String? = null,
+        @Query("warehouse_id") warehouseId: String? = null,
+        @Query("from") from: String? = null,
+        @Query("to") to: String? = null,
+    ): Response<List<StockMovementDto>>
+
+    /** بطاقةُ صنفٍ — إذن `inventory.view` (كائنٌ خام بمجاميعٍ ورصيدٍ جارٍ). */
+    @GET("inventory/item-card")
+    suspend fun itemCard(
+        @Query("item_id") itemId: String,
+        @Query("warehouse_id") warehouseId: String? = null,
+        @Query("from") from: String? = null,
+        @Query("to") to: String? = null,
+    ): Response<ItemCardDto>
+
+    /** تسوياتُ الجرد — إذن `inventory.view` (مصفوفةٌ خام مع السطور). */
+    @GET("inventory/adjustments")
+    suspend fun stockAdjustments(@Query("status") status: String? = null): Response<List<StockAdjustmentDto>>
+
+    /** إنشاءُ تسوية جرد (مسودّة) — إذن `inventory.adjust`. */
+    @POST("inventory/adjustments")
+    suspend fun createStockAdjustment(@Body body: JsonObject): Response<JsonElement>
+
+    /** ترحيلُ التسوية — إذن `inventory.adjust` (الفرقُ يُقيَّد على حساب الفرق). */
+    @POST("inventory/adjustments/{id}/post")
+    suspend fun postStockAdjustment(
+        @Path("id") id: String,
+        @Body body: JsonObject,
+    ): Response<JsonElement>
+
+    // ------------------------------------------------------------ الأطراف
+
+    /** رصيدُ طرفٍ وقيودُه المفتوحة — إذن `parties.view` (كائنٌ خام). */
+    @GET("parties/{id}/balance")
+    suspend fun partyBalance(@Path("id") id: String): Response<PartyBalanceDto>
+
     // ---------------------------------------------------- المنظّمة والأدوار
 
     /** سجلُّ مناديب المبيعات — إذن `sales.view` (مصفوفةٌ خام). */

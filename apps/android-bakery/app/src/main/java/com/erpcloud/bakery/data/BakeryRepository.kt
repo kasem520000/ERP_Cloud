@@ -450,6 +450,63 @@ class BakeryRepository(
     suspend fun createSalaryPayment(body: JsonObject): ActionResult =
         submitDirect("تسجيل إذن صرف الراتب") { api.createSalaryPayment(body) }
 
+    // ------------------------------------------------------ الخزينة والمصروفات
+
+    suspend fun treasuryVouchers(from: String? = null, to: String? = null): List<TreasuryVoucherDto> =
+        rawList { api.treasuryVouchers(from, to) }
+
+    suspend fun createTreasuryVoucher(body: JsonObject): ActionResult =
+        submitDirect("إنشاء السند") { api.createTreasuryVoucher(body) }
+
+    suspend fun postTreasuryVoucher(id: String, body: JsonObject): ActionResult =
+        submitDirect("ترحيل السند") { api.postTreasuryVoucher(id, body) }
+
+    /** دليلُ الحسابات — للحسابِ المقابلِ في السند (اختياريٌّ). */
+    suspend fun accounts(): List<AccountDto> = withContext(Dispatchers.IO) {
+        val response = api.accounts()
+        unwrapEnvelope(response) ?: emptyList()
+    }
+
+    // ------------------------------------------------------ المخزون والأرصدة
+
+    suspend fun stockLevels(warehouseId: String? = null): List<StockLevelDto> =
+        rawList { api.stockLevels(warehouseId = warehouseId) }
+
+    suspend fun stockMovements(
+        itemId: String? = null,
+        warehouseId: String? = null,
+        from: String? = null,
+        to: String? = null,
+    ): List<StockMovementDto> = rawList { api.stockMovements(itemId, warehouseId, from, to) }
+
+    suspend fun itemCard(
+        itemId: String,
+        warehouseId: String? = null,
+        from: String? = null,
+        to: String? = null,
+    ): ItemCardDto = withContext(Dispatchers.IO) {
+        val response = api.itemCard(itemId, warehouseId, from, to)
+        if (!response.isSuccessful) throw response.toApiException()
+        response.body() ?: throw ApiException(ProblemDto(title = "Empty item card"), response.code())
+    }
+
+    suspend fun stockAdjustments(status: String? = null): List<StockAdjustmentDto> =
+        rawList { api.stockAdjustments(status) }
+
+    suspend fun createStockAdjustment(body: JsonObject): ActionResult =
+        submitDirect("إنشاء تسوية الجرد") { api.createStockAdjustment(body) }
+
+    suspend fun postStockAdjustment(id: String, body: JsonObject): ActionResult =
+        submitDirect("ترحيل تسوية الجرد") { api.postStockAdjustment(id, body) }
+
+    // ------------------------------------------------------------ الأطراف
+
+    suspend fun partyBalance(partyId: String): PartyBalanceDto = withContext(Dispatchers.IO) {
+        val response = api.partyBalance(partyId)
+        if (!response.isSuccessful) throw response.toApiException()
+        response.body() ?: throw ApiException(ProblemDto(title = "Empty party balance"), response.code())
+    }
+
     // ---------------------------------------------------- المنظّمة والأدوار
 
     suspend fun salesRegistry(): List<SalesRegistryDto> = rawList { api.salesRegistry() }
