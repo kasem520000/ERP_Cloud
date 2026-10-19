@@ -362,10 +362,14 @@ export default function ContractorContractPage() {
       </Panel>
 
       {current && (
-        <div className="card">
-          <h3>
-            {current.number} — {current.title}
-          </h3>
+        <Panel
+          title={
+            <>
+              {current.number} — {current.title}
+            </>
+          }
+          flush
+        >
           <div className="ui-kpi-strip">
             <div className="ui-kpi-cell">
               <span className="ui-kpi-label">قيمة العقد</span>
@@ -470,7 +474,7 @@ export default function ContractorContractPage() {
               ]}
             />
           )}
-        </div>
+        </Panel>
       )}
     </Screen>
   );

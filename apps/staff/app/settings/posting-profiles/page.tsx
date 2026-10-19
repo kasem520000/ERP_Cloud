@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { Panel } from '@erp/ui';
 
 import { Notice } from '../../../components/data-view';
 import { Screen } from '../../../components/screen';
@@ -50,10 +51,17 @@ export default function PostingProfilesPage() {
   const [notice, setNotice] = useState<{ kind: 'ok' | 'danger' | 'info'; text: string } | undefined>();
 
   const postable = (accounts.data ?? []).filter((account) => postableOf(account));
-  const existing = (profiles.data ?? []).find((row) => (row.branchId ?? '') === branchId && row.docType === docType);
+  const existing = (profiles.data ?? []).find(
+    (row) => (row.branchId ?? '') === branchId && row.docType === docType,
+  );
   const current: Record<string, string> = touched
     ? draft
-    : Object.fromEntries(KEYS.map((key) => [key, String((existing?.mapping as Record<string, unknown> | undefined)?.[key] ?? '')]));
+    : Object.fromEntries(
+        KEYS.map((key) => [
+          key,
+          String((existing?.mapping as Record<string, unknown> | undefined)?.[key] ?? ''),
+        ]),
+      );
 
   async function save() {
     setBusy(true);
@@ -61,7 +69,8 @@ export default function PostingProfilesPage() {
     try {
       const mapping: Record<string, unknown> = { version: 1 };
       for (const key of KEYS) if (current[key]) mapping[key] = current[key];
-      if (Object.keys(mapping).length === 1) throw new ApiError(422, 'VALIDATION_FAILED', 'حدّد حساباً واحداً على الأقل.');
+      if (Object.keys(mapping).length === 1)
+        throw new ApiError(422, 'VALIDATION_FAILED', 'حدّد حساباً واحداً على الأقل.');
       await apiPost('/branch-posting-profiles', { branchId: branchId || null, docType, mapping });
       setNotice({ kind: 'ok', text: 'تم حفظ الربط المحاسبي.' });
       setTouched(false);
@@ -74,15 +83,15 @@ export default function PostingProfilesPage() {
   }
 
   return (
- <Screen
+    <Screen
       title="الربط المحاسبي"
       subtitle="أي حساب يستقبل كل نوع مستند. الفرع يتقدّم على الافتراضي العام، والمستند المحدد يتقدّم على «الافتراضي لكل المستندات»."
       crumbs={['الإعدادات', 'المحاسبة']}
     >
- <div className="card toolbar">
- <label className="field">
- <span>النطاق</span>
- <select
+      <div className="card toolbar">
+        <label className="field">
+          <span>النطاق</span>
+          <select
             className="input"
             value={branchId}
             onChange={(event) => {
@@ -90,17 +99,17 @@ export default function PostingProfilesPage() {
               setTouched(false);
             }}
           >
- <option value="">افتراضي المنشأة (كل الفروع)</option>
+            <option value="">افتراضي المنشأة (كل الفروع)</option>
             {branchOptions(branches.data ?? []).map((option) => (
- <option key={option.id} value={option.id}>
+              <option key={option.id} value={option.id}>
                 {option.label}
- </option>
+              </option>
             ))}
- </select>
- </label>
- <label className="field">
- <span>نوع المستند</span>
- <select
+          </select>
+        </label>
+        <label className="field">
+          <span>نوع المستند</span>
+          <select
             className="input"
             value={docType}
             onChange={(event) => {
@@ -109,21 +118,20 @@ export default function PostingProfilesPage() {
             }}
           >
             {DOC_TYPES.map((entry) => (
- <option key={entry.id} value={entry.id}>
+              <option key={entry.id} value={entry.id}>
                 {entry.label}
- </option>
+              </option>
             ))}
- </select>
- </label>
- </div>
+          </select>
+        </label>
+      </div>
 
- <div className="card">
- <h2>{existing ? 'تعديل الربط' : 'ربط جديد'}</h2>
- <div className="form-grid">
+      <Panel title={<>{existing ? 'تعديل الربط' : 'ربط جديد'}</>}>
+        <div className="form-grid">
           {KEYS.map((key) => (
- <label className="field" key={key}>
- <span>{POSTING_ACCOUNT_LABELS[key]}</span>
- <select
+            <label className="field" key={key}>
+              <span>{POSTING_ACCOUNT_LABELS[key]}</span>
+              <select
                 className="input"
                 value={current[key] ?? ''}
                 disabled={!can('organization.postingprofile.manage')}
@@ -132,26 +140,26 @@ export default function PostingProfilesPage() {
                   setDraft({ ...current, [key]: event.target.value });
                 }}
               >
- <option value="">— بدون —</option>
+                <option value="">— بدون —</option>
                 {postable.map((account) => (
- <option key={account.id} value={account.id}>
+                  <option key={account.id} value={account.id}>
                     {accountLabel(account)}
- </option>
+                  </option>
                 ))}
- </select>
- </label>
+              </select>
+            </label>
           ))}
- </div>
+        </div>
 
- <Notice notice={notice} />
+        <Notice notice={notice} />
         {can('organization.postingprofile.manage') ? (
- <button className="btn primary" type="button" disabled={busy} onClick={save}>
+          <button className="btn primary" type="button" disabled={busy} onClick={save}>
             {busy ? 'جارٍ الحفظ…' : 'حفظ الربط'}
- </button>
+          </button>
         ) : (
- <p className="muted">لا تملك صلاحية تعديل الربط المحاسبي.</p>
+          <p className="muted">لا تملك صلاحية تعديل الربط المحاسبي.</p>
         )}
- </div>
- </Screen>
+      </Panel>
+    </Screen>
   );
 }

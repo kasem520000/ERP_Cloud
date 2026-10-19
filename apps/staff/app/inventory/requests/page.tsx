@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { Panel } from '@erp/ui';
 
 import { DataTable, Notice, QueryView } from '../../../components/data-view';
 import { Screen } from '../../../components/screen';
@@ -361,9 +362,11 @@ export default function GoodsRequestsPage() {
       )}
 
       {decision && (
-        <div className="card">
-          <h2>قرار الطلب {decision.number}</h2>
-          <p className="muted">اعتمد الكميات كما هي أو خفِّضها بما يسمح به رصيد المستودع المورِّد.</p>
+        <Panel
+          title={<>قرار الطلب {decision.number}</>}
+          hint={<>اعتمد الكميات كما هي أو خفِّضها بما يسمح به رصيد المستودع المورِّد.</>}
+          flush
+        >
           <div className="form-grid">
             <label className="field">
               <span>المستودع المورِّد *</span>
@@ -434,7 +437,7 @@ export default function GoodsRequestsPage() {
               إغلاق
             </button>
           </div>
-        </div>
+        </Panel>
       )}
 
       <StatTiles>

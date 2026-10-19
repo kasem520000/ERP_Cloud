@@ -129,8 +129,7 @@ export default function PayrollPage() {
       </Panel>
 
       {preview && (
-        <div className="card">
-          <h2>معاينة {yearMonth}</h2>
+        <Panel title={<>معاينة {yearMonth}</>} flush>
           {preview.lines.length === 0 ? (
             <p className="muted">لا يوجد موظفون نشطون لاحتساب رواتبهم.</p>
           ) : (
@@ -159,7 +158,7 @@ export default function PayrollPage() {
               </dl>
             </>
           )}
-        </div>
+        </Panel>
       )}
 
       <QueryView

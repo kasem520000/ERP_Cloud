@@ -532,12 +532,7 @@ export default function ProductionOrdersPage() {
       </div>
 
       {open && (
-        <div className="card">
-          <div className="section-title">
-            <h3 dir="ltr">{open.number}</h3>
-            <span className="badge">{STATUS_LABELS[open.status] ?? statusLabel(open.status)}</span>
-          </div>
-
+        <Panel title={<>{open.number}</>} flush>
           <StatusTrack
             steps={['مسودة', 'مُنفَّذ', 'مُلغى']}
             current={open.status === 'draft' ? 0 : open.status === 'completed' ? 1 : 2}
@@ -606,7 +601,7 @@ export default function ProductionOrdersPage() {
           />
 
           {open.status === 'draft' && <p className="muted">التكاليف تظهر أصفاراً حتى يُنفَّذ الأمر.</p>}
-        </div>
+        </Panel>
       )}
     </Screen>
   );

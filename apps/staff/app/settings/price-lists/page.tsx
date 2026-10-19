@@ -179,13 +179,17 @@ export default function PriceListsPage() {
       <Notice notice={notice} />
 
       {currentList ? (
-        <div className="card">
-          <h3>أسعار «{currentList.name}» — واعية بالوحدات</h3>
-          <p className="muted" style={{ fontSize: '0.9em' }}>
-            المصدر: <code>SmartAuditERP/Class/ItemPrices.cs</code> يحمل <code>UnitID</code> — فالسعر لكل وحدة
-            (علبة/حبة). في السحابة <code>item_units.sale_price</code> + <code>price_list_items.unit_id</code>{' '}
-            (R19).
-          </p>
+        <Panel
+          title={<>أسعار « {currentList.name} » — واعية بالوحدات</>}
+          hint={
+            <>
+              المصدر: <code>SmartAuditERP/Class/ItemPrices.cs</code> يحمل <code>UnitID</code> — فالسعر لكل
+              وحدة (علبة/حبة). في السحابة <code>item_units.sale_price</code> +{' '}
+              <code>price_list_items.unit_id</code> (R19).
+            </>
+          }
+          flush
+        >
           <form
             className="toolbar"
             onSubmit={(event) => {
@@ -293,7 +297,7 @@ export default function PriceListsPage() {
               />
             )}
           </QueryView>
-        </div>
+        </Panel>
       ) : null}
     </Screen>
   );

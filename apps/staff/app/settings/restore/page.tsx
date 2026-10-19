@@ -130,8 +130,7 @@ export default function RestorePage() {
       </div>
 
       {tables.length > 0 && (
-        <section className="card">
-          <h3>تفاصيل {result?.mode === 'apply' ? 'التنفيذ' : 'الفحص'}</h3>
+        <Panel title={<>تفاصيل {result?.mode === 'apply' ? 'التنفيذ' : 'الفحص'}</>} flush>
           <DataTable
             columns={[
               {
@@ -163,7 +162,7 @@ export default function RestorePage() {
             rows={tables}
             rowKey={(row) => row.table}
           />
-        </section>
+        </Panel>
       )}
 
       <QueryView

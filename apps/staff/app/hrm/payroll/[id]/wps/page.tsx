@@ -185,10 +185,14 @@ export default function PayrollWpsPage() {
       </div>
 
       {preview && (
-        <div className="card">
-          <h2>
-            معاينة {preview.yearMonth} — {preview.employeeCount} موظف — {money(preview.totalNet)}
-          </h2>
+        <Panel
+          title={
+            <>
+              معاينة {preview.yearMonth} — {preview.employeeCount} موظف — {money(preview.totalNet)}
+            </>
+          }
+          flush
+        >
           {!preview.ready && <p className="alert warn">الملف غير جاهز للتصدير حتى تكتمل الهوية والآيبان.</p>}
           <DataTable
             rows={preview.rows}
@@ -201,7 +205,7 @@ export default function PayrollWpsPage() {
               { key: 'errors', header: 'ملاحظات', cell: (row) => row.errors.join(' · ') || '—' },
             ]}
           />
-        </div>
+        </Panel>
       )}
 
       <Panel title="الملفات المصدّرة" flush>

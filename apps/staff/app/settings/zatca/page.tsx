@@ -465,8 +465,10 @@ export default function ZatcaSettingsPage() {
           )}
 
           {view.onboarding.lastComplianceCheck && (
-            <div className="card">
-              <h3>آخر اختبار ربط — {view.onboarding.lastComplianceCheck.passed ? 'تم بنجاح' : 'فشل'}</h3>
+            <Panel
+              title={<>آخر اختبار ربط — {view.onboarding.lastComplianceCheck.passed ? 'تم بنجاح' : 'فشل'}</>}
+              flush
+            >
               <DataTable
                 rows={view.onboarding.lastComplianceCheck.checks}
                 rowKey={(row) => row.key}
@@ -479,7 +481,7 @@ export default function ZatcaSettingsPage() {
                   { key: 'messages', header: 'الملاحظات', cell: (row) => row.messages.join(' · ') || '—' },
                 ]}
               />
-            </div>
+            </Panel>
           )}
         </>
       )}

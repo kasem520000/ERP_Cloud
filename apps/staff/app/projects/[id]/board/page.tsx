@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
+import { Panel } from '@erp/ui';
 import { useEffect, useState } from 'react';
 
 import { Notice } from '../../../../components/data-view';
@@ -37,14 +38,20 @@ export default function ProjectBoardPage() {
   }
 
   useEffect(() => {
-    void reload().catch((reason: unknown) => setError(reason instanceof ApiError ? reason.message : String(reason)));
+    void reload().catch((reason: unknown) =>
+      setError(reason instanceof ApiError ? reason.message : String(reason)),
+    );
   }, [projectId]);
 
   async function addTask() {
     setBusy(true);
     setNotice(undefined);
     try {
-      await createTask(projectId, { title, stageId: stageId || undefined, assigneeId: assigneeId || undefined });
+      await createTask(projectId, {
+        title,
+        stageId: stageId || undefined,
+        assigneeId: assigneeId || undefined,
+      });
       setTitle('');
       setNotice({ kind: 'ok', text: 'أُضيفت المهمة إلى العمود.' });
       await reload();
@@ -99,9 +106,15 @@ export default function ProjectBoardPage() {
       crumbs={['إدارة المشاريع', board.project.code]}
       actions={
         <>
-          <Link className="btn" href={`/projects/${projectId}/gantt`}>جانت</Link>
-          <Link className="btn" href={`/projects/${projectId}/time`}>الوقت</Link>
-          <Link className="btn" href={`/projects/${projectId}/cost`}>التكلفة</Link>
+          <Link className="btn" href={`/projects/${projectId}/gantt`}>
+            جانت
+          </Link>
+          <Link className="btn" href={`/projects/${projectId}/time`}>
+            الوقت
+          </Link>
+          <Link className="btn" href={`/projects/${projectId}/cost`}>
+            التكلفة
+          </Link>
         </>
       }
     >
@@ -121,36 +134,53 @@ export default function ProjectBoardPage() {
           <div className="grid gap-3 md:grid-cols-3">
             <label className="field">
               <span>المهمة</span>
-              <input className="input" value={title} onChange={(event) => setTitle(event.target.value)} placeholder="صب القواعد" />
+              <input
+                className="input"
+                value={title}
+                onChange={(event) => setTitle(event.target.value)}
+                placeholder="صب القواعد"
+              />
             </label>
             <label className="field">
               <span>العمود</span>
               <select className="input" value={stageId} onChange={(event) => setStageId(event.target.value)}>
                 {board.stages.map((stage) => (
-                  <option key={stage.id} value={stage.id}>{stage.name}</option>
+                  <option key={stage.id} value={stage.id}>
+                    {stage.name}
+                  </option>
                 ))}
               </select>
             </label>
             <label className="field">
               <span>المكلّف</span>
-              <select className="input" value={assigneeId} onChange={(event) => setAssigneeId(event.target.value)}>
+              <select
+                className="input"
+                value={assigneeId}
+                onChange={(event) => setAssigneeId(event.target.value)}
+              >
                 <option value="">بدون</option>
                 {board.assignees.map((person) => (
-                  <option key={person.id} value={person.id}>{person.name}</option>
+                  <option key={person.id} value={person.id}>
+                    {person.name}
+                  </option>
                 ))}
               </select>
             </label>
           </div>
-          <button className="btn primary" type="button" disabled={busy || !title.trim()} onClick={() => void addTask()}>
+          <button
+            className="btn primary"
+            type="button"
+            disabled={busy || !title.trim()}
+            onClick={() => void addTask()}
+          >
             إضافة مهمة
           </button>
         </div>
       ) : null}
       <div className="grid gap-3 md:grid-cols-3">
         {board.stages.map((stage) => (
-          <section
+          <div
             key={stage.id}
-            className="card"
             onDragOver={(event) => event.preventDefault()}
             onDrop={(event) => {
               event.preventDefault();
@@ -159,25 +189,39 @@ export default function ProjectBoardPage() {
               if (task) void drop(task, stage.id);
             }}
           >
-            <h3>{stage.name}</h3>
-            {board.tasks
-              .filter((task) => task.stageId === stage.id)
-              .sort((left, right) => left.sortOrder - right.sortOrder)
-              .map((task) => (
-                <article
-                  key={task.id}
-                  className="border-t py-2"
-                  draggable={can('projects.tasks.manage') && !busy}
-                  onDragStart={(event) => event.dataTransfer.setData('text/plain', task.id)}
-                >
-                  <Link href={`/projects/${projectId}/tasks/${task.id}`}>{task.title}</Link>
-                  <p className="muted">
-                    {task.assigneeName ?? 'بلا مكلّف'} · {task.dueDate ?? 'بلا استحقاق'} · {task.actualHours} / {task.estimatedHours} س
-                  </p>
-                  <p className="muted">{taskStatusLabel[task.status] ?? task.status} · {priorityLabel[task.priority] ?? task.priority}</p>
-                </article>
-              ))}
-          </section>
+            <Panel
+              title={
+                <>
+                  {stage.name}
+                  <span className="badge neutral" style={{ marginInlineStart: 8 }}>
+                    {board.tasks.filter((task) => task.stageId === stage.id).length}
+                  </span>
+                </>
+              }
+            >
+              {board.tasks
+                .filter((task) => task.stageId === stage.id)
+                .sort((left, right) => left.sortOrder - right.sortOrder)
+                .map((task) => (
+                  <article
+                    key={task.id}
+                    className="border-t py-2"
+                    draggable={can('projects.tasks.manage') && !busy}
+                    onDragStart={(event) => event.dataTransfer.setData('text/plain', task.id)}
+                  >
+                    <Link href={`/projects/${projectId}/tasks/${task.id}`}>{task.title}</Link>
+                    <p className="muted">
+                      {task.assigneeName ?? 'بلا مكلّف'} · {task.dueDate ?? 'بلا استحقاق'} ·{' '}
+                      {task.actualHours} / {task.estimatedHours} س
+                    </p>
+                    <p className="muted">
+                      {taskStatusLabel[task.status] ?? task.status} ·{' '}
+                      {priorityLabel[task.priority] ?? task.priority}
+                    </p>
+                  </article>
+                ))}
+            </Panel>
+          </div>
         ))}
       </div>
     </Screen>

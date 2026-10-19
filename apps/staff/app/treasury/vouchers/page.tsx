@@ -863,8 +863,7 @@ function VouchersScreen() {
       </QueryView>
 
       {docVoucherId && (
-        <div className="card">
-          <h3>مرفقات السند — `ReceiptOper.insertDocument` — {docVoucherId.slice(0, 8)}…</h3>
+        <Panel title={<>مرفقات السند — `ReceiptOper.insertDocument` — {docVoucherId.slice(0, 8)} …</>} flush>
           <div className="toolbar">
             <input
               className="input"
@@ -955,7 +954,7 @@ function VouchersScreen() {
               </table>
             </div>
           )}
-        </div>
+        </Panel>
       )}
 
       {/**

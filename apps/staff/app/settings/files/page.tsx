@@ -294,8 +294,7 @@ export default function FilesPage() {
         />
       </StatTiles>
 
-      <section className="card">
-        <h2>{CARD_TITLE}</h2>
+      <Panel title={<>{CARD_TITLE}</>} flush>
         <div className="filters no-print">
           <label className="field">
             <span>بحث في الاسم</span>
@@ -442,7 +441,7 @@ export default function FilesPage() {
             الحذف يحتاج صلاحية <span dir="ltr">tenant.file.manage</span> — وهي غير ممنوحة لدورك.
           </p>
         )}
-      </section>
+      </Panel>
 
       <Panel
         title="اختيار المرفقات"

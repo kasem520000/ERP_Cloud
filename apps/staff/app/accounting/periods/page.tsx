@@ -174,8 +174,7 @@ export default function FiscalPeriodsPage() {
     >
       {message && <p className={`alert ${message.kind}`}>{message.text}</p>}
 
-      <section className="card">
-        <h2>{editing ? `تعديل — ${form.name}` : 'إضافة فترة محاسبية'}</h2>
+      <Panel title={<>{editing ? `تعديل — ${form.name}` : 'إضافة فترة محاسبية'}</>}>
         <form className="form-grid" onSubmit={submit}>
           <label className="field">
             <span>رقم الفترة</span>
@@ -248,7 +247,7 @@ export default function FiscalPeriodsPage() {
             </div>
           )}
         </form>
-      </section>
+      </Panel>
 
       <Panel title="الفترات المحاسبية" flush>
         {periods.status === 'loading' && <Loading rows={3} />}

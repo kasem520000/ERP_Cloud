@@ -209,10 +209,13 @@ export default function ContractorPaymentPage() {
       </div>
 
       {header && (
-        <div className="card">
-          <h3>
-            {header.number} — {header.title}
-          </h3>
+        <Panel
+          title={
+            <>
+              {header.number} — {header.title}
+            </>
+          }
+        >
           <div className="ui-kpi-strip">
             <div className="ui-kpi-cell">
               <span className="ui-kpi-label">قيمة العقد</span>
@@ -231,7 +234,7 @@ export default function ContractorPaymentPage() {
               <span className="ui-kpi-value">{money(header.advanceOutstanding)}</span>
             </div>
           </div>
-        </div>
+        </Panel>
       )}
 
       {can('projects.manage') && (

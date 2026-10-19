@@ -401,9 +401,7 @@ export default function EmployeesPage() {
 
       {canManage ? (
         <form onSubmit={submit}>
-          <section className="card">
-            <h2>{editing ? `تعديل — ${form.name}` : 'إضافة جديد'}</h2>
-
+          <Panel title={<>{editing ? `تعديل — ${form.name}` : 'إضافة جديد'}</>}>
             <h3>بيانات الموظف الأساسية</h3>
             <div className="form-grid">
               <label className="field">
@@ -826,7 +824,7 @@ export default function EmployeesPage() {
             <p className="hint">
               اضغط Enter في خانة البحث للبحث عن موظف بالاسم — «اسم الموظف:» في نافذة الديسكتوب.
             </p>
-          </section>
+          </Panel>
         </form>
       ) : (
         <section className="card">

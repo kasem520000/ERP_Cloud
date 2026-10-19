@@ -6,7 +6,7 @@ import { REP_TOTALS_CLAUSE, windowNote, type DashboardWindows } from '@erp/web-v
 import { Panel } from '@erp/ui';
 
 import { Notice } from '../../../components/data-view';
-import { Screen } from '../../../components/screen';
+import { Empty, Screen } from '../../../components/screen';
 import { ApiError, apiData, apiPost } from '../../../lib/api';
 import { listParties, type Party } from '../../../lib/lookups';
 import { useSession } from '../../../lib/session';
@@ -305,7 +305,9 @@ export default function VanSalesRepPage() {
       {notice ? <Notice notice={notice} /> : null}
 
       {data && !data.isRep ? (
-        <Panel title="حسابك غير مرتبط ببطاقة مندوب" hint={<>{data.message}</>}></Panel>
+        <Panel title="بطاقة المندوب">
+          <Empty title="حسابك غير مرتبط ببطاقة مندوب" detail={data.message} />
+        </Panel>
       ) : null}
 
       {data?.isRep ? (
@@ -397,12 +399,16 @@ export default function VanSalesRepPage() {
           ) : null}
 
           {/* التوريدات بانتظار تأكيدك */}
-          <div className="card">
-            <h2>توريدات بانتظار تأكيد استلامك ({data.pendingReceipts.length})</h2>
-            <p className="muted small" style={{ margin: 0 }}>
-              البضاعة المصروفة لك تبقى رسميًّا «تحت التحويل» ولا تدخل رصيد سيارتك إلا بعد تأكيدك. إن وصلك أقل
-              من المصروف، سجّل الفرق وسيراجعه المحاسب.
-            </p>
+          <Panel
+            title={<>توريدات بانتظار تأكيد استلامك ( {data.pendingReceipts.length} )</>}
+            hint={
+              <>
+                البضاعة المصروفة لك تبقى رسميًّا «تحت التحويل» ولا تدخل رصيد سيارتك إلا بعد تأكيدك. إن وصلك
+                أقل من المصروف، سجّل الفرق وسيراجعه المحاسب.
+              </>
+            }
+            flush
+          >
             <div className="table-wrap">
               <table>
                 <thead>
@@ -455,7 +461,7 @@ export default function VanSalesRepPage() {
                 </tbody>
               </table>
             </div>
-          </div>
+          </Panel>
 
           {/* أرصدة سيارتك الرسمية */}
           <Panel title="أرصدة أصناف سيارتك (من دفتر المخزون الرسمي)" flush>
@@ -883,12 +889,17 @@ export default function VanSalesRepPage() {
       {/* نافذة تأكيد الاستلام */}
       {receiptTarget ? (
         <div role="dialog" aria-modal="true" className="modal-backdrop" style={backdropStyle}>
-          <div className="card" style={dialogStyle}>
-            <h2>تأكيد استلام التوريد {receiptTarget.number}</h2>
-            <p className="muted small" style={{ marginTop: 0 }}>
-              المصروف من المستودع الرئيسي: <b dir="ltr">{receiptTarget.loadedQty} kg</b> — الصنف:{' '}
-              {receiptTarget.itemName}. أكّد الكمية التي استلمتها فعلًا؛ أي فرق يُسجَّل ويصل المحاسب للمراجعة.
-            </p>
+          <Panel
+            title={<>تأكيد استلام التوريد {receiptTarget.number}</>}
+            hint={
+              <>
+                المصروف من المستودع الرئيسي: <b dir="ltr">{receiptTarget.loadedQty} kg</b> — الصنف:{' '}
+                {receiptTarget.itemName}. أكّد الكمية التي استلمتها فعلًا؛ أي فرق يُسجَّل ويصل المحاسب
+                للمراجعة.
+              </>
+            }
+            style={dialogStyle}
+          >
             <div className="form-grid">
               <label className="field">
                 <span>الكمية المستلمة فعلًا *</span>
@@ -965,7 +976,7 @@ export default function VanSalesRepPage() {
               الرفض يُقفل المناقلة الرسمية بوضع «الإرجاع»: تعود الكمية إلى المستودع المصدر ولا تدخل عهدتك،
               ويصل المحاسبَ إشعار بسبب الرفض.
             </p>
-          </div>
+          </Panel>
         </div>
       ) : null}
 
@@ -1024,12 +1035,16 @@ export default function VanSalesRepPage() {
       {/* نافذة إغلاق الوردية */}
       {closingTarget ? (
         <div role="dialog" aria-modal="true" className="modal-backdrop" style={backdropStyle}>
-          <div className="card" style={dialogStyle}>
-            <h2>تقديم إغلاق وردية ({closingTarget.number})</h2>
-            <p className="muted small" style={{ marginTop: 0 }}>
-              سجّل ما عاد معك سالمًا وما تلف والنقد المحصّل؛ يحسب النظام الفرق بين الرصيد المتوقع والجرد
-              الفعلي ويحيل الطلب إلى المحاسب للاعتماد. لا يُغلق الطلب مرتين ولا يُعتمد من قِبل مقدّمه.
-            </p>
+          <Panel
+            title={<>تقديم إغلاق وردية ( {closingTarget.number} )</>}
+            hint={
+              <>
+                سجّل ما عاد معك سالمًا وما تلف والنقد المحصّل؛ يحسب النظام الفرق بين الرصيد المتوقع والجرد
+                الفعلي ويحيل الطلب إلى المحاسب للاعتماد. لا يُغلق الطلب مرتين ولا يُعتمد من قِبل مقدّمه.
+              </>
+            }
+            style={dialogStyle}
+          >
             <div className="form-grid">
               <label className="field">
                 <span>مرتجع سليم للمستودع</span>
@@ -1127,7 +1142,7 @@ export default function VanSalesRepPage() {
                 إلغاء
               </button>
             </div>
-          </div>
+          </Panel>
         </div>
       ) : null}
     </Screen>

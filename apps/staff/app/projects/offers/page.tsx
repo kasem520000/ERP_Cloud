@@ -387,10 +387,14 @@ export default function ProjectOffersPage() {
       </Panel>
 
       {openOffer && (
-        <div className="card">
-          <h3>
-            {openOffer.number} — {openOffer.title}
-          </h3>
+        <Panel
+          title={
+            <>
+              {openOffer.number} — {openOffer.title}
+            </>
+          }
+          flush
+        >
           <div className="chips">
             <span className="chip">{`الحالة: ${STATUS_LABELS[openOffer.status] ?? statusLabel(openOffer.status)}`}</span>
             <span className="chip">{`الإجمالي: ${money(openOffer.totalValue)}`}</span>
@@ -410,7 +414,7 @@ export default function ProjectOffersPage() {
               { key: 'value', header: 'القيمة', align: 'num', cell: (row) => money(row.lineValue) },
             ]}
           />
-        </div>
+        </Panel>
       )}
     </Screen>
   );

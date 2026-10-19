@@ -109,10 +109,13 @@ export default function ProjectFollowupPage() {
 
       {project && (
         <>
-          <div className="card">
-            <h2>
-              {project.code} — {project.name}
-            </h2>
+          <Panel
+            title={
+              <>
+                {project.code} — {project.name}
+              </>
+            }
+          >
             <div className="ui-kpi-strip">
               <div className="ui-kpi-cell">
                 <span className="ui-kpi-label">قيمة العقد</span>
@@ -150,7 +153,7 @@ export default function ProjectFollowupPage() {
                 قيمة المستخلصات تجاوزت قيمة العقد — راجع أوامر التغيير قبل ترحيل مستخلص جديد.
               </p>
             )}
-          </div>
+          </Panel>
 
           <Panel title="المراحل" flush>
             {project.stages.length === 0 ? (

@@ -191,8 +191,7 @@ export default function BoqPage() {
         <QueryView query={detail} empty="لا توجد بيانات">
           {() => (
             <>
-              <div className="card">
-                <h3>{editingId ? `تعديل البند` : 'بند جديد'}</h3>
+              <Panel title={<>{editingId ? `تعديل البند` : 'بند جديد'}</>}>
                 <div className="form-grid">
                   <label className="field">
                     <span>الرقم</span>
@@ -271,7 +270,7 @@ export default function BoqPage() {
                     </button>
                   )}
                 </div>
-              </div>
+              </Panel>
 
               <div className="toolbar">
                 <button

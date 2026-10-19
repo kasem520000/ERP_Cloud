@@ -238,8 +238,7 @@ export default function CompanyProfilePage() {
       )}
 
       {profile.status === 'success' && editing && canManage && (
-        <section className="card">
-          <h2>{profile.data ? 'تعديل البيانات القانونية' : 'إضافة بيانات المنشأة'}</h2>
+        <Panel title={<>{profile.data ? 'تعديل البيانات القانونية' : 'إضافة بيانات المنشأة'}</>}>
           {notice && <p className={`alert ${notice.kind}`}>{notice.text}</p>}
           <form className="form-grid" onSubmit={(event) => void save(event)}>
             <label className="field">
@@ -403,7 +402,7 @@ export default function CompanyProfilePage() {
               )}
             </div>
           </form>
-        </section>
+        </Panel>
       )}
     </Screen>
   );
