@@ -1818,6 +1818,35 @@ a.ui-kpi-cell:hover {
   gap: 8px;
 }
 
+/* البلاطة: عنصرٌ متكرّر داخل لوحة (تطبيق، رفّ، مسار). سطحٌ مسطّح بلا ظل،
+   لأن اللوحة هي السطح والتكرار لا يضيف طبقةً ثانية. */
+.ui-tile {
+  display: grid;
+  gap: 8px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+  text-align: start;
+  font: inherit;
+  color: inherit;
+}
+.ui-tile.is-active {
+  border-color: var(--brand-line);
+  background: var(--brand-soft);
+}
+.ui-tile-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ink);
+}
+.ui-tile-note {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
 /* داخل لوحة أو بطاقة، الحالة الفارغة ليست بطاقةً ثانية — تُسطَّح إلى كتلةٍ مركزيّة. */
 .ui-panel-body .ui-empty,
 .ui-card-bare .ui-empty,
