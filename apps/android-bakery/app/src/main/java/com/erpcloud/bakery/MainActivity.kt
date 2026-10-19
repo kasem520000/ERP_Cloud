@@ -138,20 +138,6 @@ fun AppRoot(vm: AppViewModel) {
     val notice by vm.notice.collectAsState()
     val navController = rememberNavController()
 
-    // الدخولُ والخروجُ يقودان التوجيه.
-    LaunchedEffect(state.session.loggedIn) {
-        val current = navController.currentBackStackEntry?.destination?.route
-        if (state.session.loggedIn && current == Routes.LOGIN) {
-            navController.navigate(Routes.HOME) {
-                popUpTo(Routes.LOGIN) { inclusive = true }
-            }
-        } else if (!state.session.loggedIn && current != Routes.LOGIN) {
-            navController.navigate(Routes.LOGIN) {
-                popUpTo(0) { inclusive = true }
-            }
-        }
-    }
-
     if (!state.sessionLoaded) {
         Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             CircularProgressIndicator()
@@ -257,6 +243,23 @@ fun AppRoot(vm: AppViewModel) {
             composable(Routes.INVENTORY) { InventoryScreen(vm, onBack = { navController.popBackStack() }) }
             composable(Routes.COUNTS) { CountAdjustmentsScreen(vm, onBack = { navController.popBackStack() }) }
             composable(Routes.PARTIES) { PartiesScreen(vm, onBack = { navController.popBackStack() }) }
+            }
+
+            // الدخولُ والخروجُ يقودان التوجيه — **بعد** تركيبِ NavHost لا قبله:
+            // في الإقلاعِ البارد sessionLoaded=false فلا يُركَّبُ NavHost أصلًا،
+            // وكان الـLaunchedEffectُ القديمُ (فوق الحاجز) يستدعي navigate() قبل
+            // ضبطِ رسمِ الملاحة فينهارُ التطبيقُ عند كلّ تشغيل.
+            LaunchedEffect(state.session.loggedIn) {
+                val current = navController.currentBackStackEntry?.destination?.route
+                if (state.session.loggedIn && current == Routes.LOGIN) {
+                    navController.navigate(Routes.HOME) {
+                        popUpTo(Routes.LOGIN) { inclusive = true }
+                    }
+                } else if (!state.session.loggedIn && current != Routes.LOGIN) {
+                    navController.navigate(Routes.LOGIN) {
+                        popUpTo(0) { inclusive = true }
+                    }
+                }
             }
         }
     }
