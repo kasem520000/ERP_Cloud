@@ -286,7 +286,7 @@ export default function CostCentersPage() {
           )}
         </Panel>
 
-        <section className="card tight">
+        <Panel className="tight">
           <div className="row" style={{ justifyContent: 'space-between' }}>
             <h2 style={{ margin: 0 }}>شجرة مراكز التكلفة</h2>
             <button className="btn sm" type="button" onClick={() => setOpen(!open)}>
@@ -303,7 +303,7 @@ export default function CostCentersPage() {
               manage={manage}
             />
           </div>
-        </section>
+        </Panel>
       </div>
     </Screen>
   );

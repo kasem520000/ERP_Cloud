@@ -441,7 +441,7 @@ export default function ProductionOrdersPage() {
         </Panel>
       )}
 
-      <div className="card">
+      <Panel>
         <div className="toolbar">
           <label className="field">
             <span>الحالة</span>
@@ -529,7 +529,7 @@ export default function ProductionOrdersPage() {
             />
           )}
         </QueryView>
-      </div>
+      </Panel>
 
       {open && (
         <Panel title={<>{open.number}</>} flush>

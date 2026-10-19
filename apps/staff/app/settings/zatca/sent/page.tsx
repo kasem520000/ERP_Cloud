@@ -208,7 +208,7 @@ export default function SentEinvoicesPage() {
       <Notice notice={notice} />
 
       {/* ═══ Toolbar — خيارات البحث ═══ */}
-      <div className="card">
+      <Panel>
         <div className="toolbar">
           <label className="field">
             <span>حجم الصفحة:</span>
@@ -261,7 +261,7 @@ export default function SentEinvoicesPage() {
             عرض
           </button>
         </div>
-      </div>
+      </Panel>
 
       {/* ═══ The grid ═══ */}
       <Panel title="قائمة الفواتير المرفوعة" flush>

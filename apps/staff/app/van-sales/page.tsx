@@ -1495,19 +1495,15 @@ export default function VanSalesPage() {
             </div>
           </div>
 
-          <div className="card">
-            <div className="card-head">
-              <div>
-                <h2>ملخص رقابة المناديب والعهد والربحية والعجز المخصوم من الراتب</h2>
-                <p className="muted small" style={{ margin: 0 }}>
-                  مقارنة شاملة لكل مندوب: المستلم، المباع، البونص، التالف، العجز المحسوب على المندوب، التحصيل،
-                  المديونيات، وصافي الربح.
-                </p>
-              </div>
+          <Panel
+            title="ملخص رقابة المناديب والعهد والربحية والعجز المخصوم من الراتب"
+            hint="مقارنة شاملة لكل مندوب: المستلم، المباع، البونص، التالف، العجز المحسوب على المندوب، التحصيل، المديونيات، وصافي الربح."
+            actions={
               <button type="button" className="btn sm primary" onClick={() => setTab('loads')}>
                 تحميل عهدة / إغلاق وردية
               </button>
-            </div>
+            }
+          >
             <div className="table-wrap">
               <table>
                 <thead>
@@ -1595,7 +1591,7 @@ export default function VanSalesPage() {
                 </tbody>
               </table>
             </div>
-          </div>
+          </Panel>
         </div>
       )}
 
@@ -2537,7 +2533,7 @@ export default function VanSalesPage() {
                 padding: 16,
               }}
             >
-              <div className="card" style={{ width: '100%', maxWidth: 680, display: 'grid', gap: 12 }}>
+              <Panel style={{ width: '100%', maxWidth: 680, display: 'grid', gap: 12 }}>
                 <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
                   <h2>
                     إغلاق وردية المندوب ({closingTarget.salesmanName}) — أمر رقم {closingTarget.number}
@@ -2820,7 +2816,7 @@ export default function VanSalesPage() {
                     </button>
                   </div>
                 </div>
-              </div>
+              </Panel>
             </div>
           )}
         </div>
@@ -3095,7 +3091,7 @@ export default function VanSalesPage() {
 
           <aside className="ui-split-rail">
             {/* Printing: one official document, two copies (customer + rep) and an 80mm receipt */}
-            <div className="card" style={{ display: 'grid', gap: 12, alignContent: 'start' }}>
+            <Panel style={{ display: 'grid', gap: 12, alignContent: 'start' }}>
               <div className="row" style={{ justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
                 <h3 style={{ margin: 0 }}>طباعة مستند البيع — نسختان من فاتورة رسمية واحدة</h3>
                 {selectedDoc && (
@@ -3265,7 +3261,7 @@ export default function VanSalesPage() {
                   </tbody>
                 </table>
               </div>
-            </div>
+            </Panel>
           </aside>
         </div>
       )}
@@ -3482,9 +3478,9 @@ export default function VanSalesPage() {
       {/* TAB 6: BONUS RADAR & ROLE PERMISSIONS MATRIX (Pillar 3 & 10) */}
       {tab === 'audit' && (
         <div style={{ display: 'grid', gap: 16 }}>
-          <div className="card">
-            <div className="card-head">
-              <h2>فحص توافق البيانات السابقة وربطها بالنواة (Dry-Run)</h2>
+          <Panel
+            title="فحص توافق البيانات السابقة وربطها بالنواة (Dry-Run)"
+            actions={
               <button
                 type="button"
                 className="btn primary"
@@ -3493,7 +3489,8 @@ export default function VanSalesPage() {
               >
                 تشغيل فحص التوافق الآمن (Dry-Run)
               </button>
-            </div>
+            }
+          >
             {reconciliationPreview ? (
               <div className="form-grid">
                 <div>
@@ -3519,7 +3516,7 @@ export default function VanSalesPage() {
                 البيانات.
               </p>
             )}
-          </div>
+          </Panel>
 
           <Panel title="رادار الرقابة على الكميات المجانية (البونص) والعينات والخصومات" flush>
             <div className="table-wrap">

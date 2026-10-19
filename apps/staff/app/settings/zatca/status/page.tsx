@@ -200,7 +200,7 @@ export default function ZatcaSyncStatusPage() {
       <Notice notice={notice ?? undefined} />
 
       {/* ═══ خيارات البحث ═══ */}
-      <div className="card">
+      <Panel>
         <div className="toolbar">
           <span className="chip">خيارات البحث</span>
 
@@ -279,12 +279,12 @@ export default function ZatcaSyncStatusPage() {
             عرض النتائج
           </button>
         </div>
-      </div>
+      </Panel>
 
       {error ? <p className="alert danger">{error}</p> : null}
 
       {/* ═══ The grid ═══ */}
-      <div className="card">
+      <Panel>
         {loading && !report ? (
           <Loading rows={5} />
         ) : rows.length === 0 ? (
@@ -418,7 +418,7 @@ export default function ZatcaSyncStatusPage() {
             خروج
           </Link>
         </div>
-      </div>
+      </Panel>
 
       {/* ═══ What مزامنة ZATCA answered, row by row ═══ */}
       {lastSync ? (

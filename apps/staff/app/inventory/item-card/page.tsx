@@ -83,11 +83,11 @@ export default function ItemCardPage() {
       </FilterBar>
 
       {!applied ? (
-        <div className="card">
+        <Panel>
           <p className="muted">
             اختر صنفاً وفترة لعرض بطاقته. ترك الفترة فارغاً يعرض كل الحركات منذ أول حركة للصنف.
           </p>
-        </div>
+        </Panel>
       ) : (
         <QueryView
           query={card}
@@ -219,7 +219,7 @@ export default function ItemCardPage() {
                   ]}
                 />
 
-                <div className="card">
+                <Panel>
                   <Totals
                     items={[
                       { label: 'إجمالي الكميات', value: quantity(data.totals.inQty) },
@@ -229,12 +229,12 @@ export default function ItemCardPage() {
                       { label: 'قيمة الرصيد', value: money(data.closing.value) },
                     ]}
                   />
-                </div>
+                </Panel>
               </>
             ) : (
-              <div className="card">
+              <Panel>
                 <p className="muted">—</p>
-              </div>
+              </Panel>
             )
           }
         </QueryView>

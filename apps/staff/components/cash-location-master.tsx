@@ -1,16 +1,11 @@
 'use client';
 
+import { FormSection, Panel } from '@erp/ui';
 import { useMemo, useState } from 'react';
 
 import { accountLabel, listAccounts, postableOf, type Account } from '../lib/accounts';
 import { ApiError, apiDelete, apiList, apiPatch, apiPost } from '../lib/api';
-import {
-  branchOptions,
-  listBranches,
-  listEmployees,
-  type Branch,
-  type Employee,
-} from '../lib/lookups';
+import { branchOptions, listBranches, listEmployees, type Branch, type Employee } from '../lib/lookups';
 import { useSession } from '../lib/session';
 import { useQuery } from '../lib/use-query';
 
@@ -107,8 +102,7 @@ export function CashLocationMaster({ kind }: { kind: 'safe' | 'bank' }) {
   const employeeRows = employees.data ?? [];
   const selected = rows.find((row) => row.id === selectedId);
   const effectiveBranch = form.branchId || branchRows[0]?.id || '';
-  const employeeName = (id: string) =>
-    employeeRows.find((row) => row.id === id)?.name ?? id.slice(0, 8);
+  const employeeName = (id: string) => employeeRows.find((row) => row.id === id)?.name ?? id.slice(0, 8);
 
   const stats = useMemo(
     () => ({
@@ -162,24 +156,27 @@ export function CashLocationMaster({ kind }: { kind: 'safe' | 'bank' }) {
 
   async function create(event: React.FormEvent) {
     event.preventDefault();
-    await run(async () => {
-      await apiPost('/cash-locations', {
-        branchId: effectiveBranch,
-        kind,
-        name: form.name.trim(),
-        accountId: form.accountId || undefined,
-        currencyCode: form.currency || undefined,
-        isDefault: form.isDefault,
-        isActive: form.isActive,
-        changeInPos: isBank ? form.changeInPos : undefined,
-        bank: bankBlock(),
-        notes: notes.trim() || undefined,
-        custodianIds: custodians,
-      });
-      setForm({ ...BLANK, branchId: form.branchId });
-      setCustodians([]);
-      setNotes('');
-    }, isBank ? 'تم حفظ البنك.' : 'تم حفظ الخزينة.');
+    await run(
+      async () => {
+        await apiPost('/cash-locations', {
+          branchId: effectiveBranch,
+          kind,
+          name: form.name.trim(),
+          accountId: form.accountId || undefined,
+          currencyCode: form.currency || undefined,
+          isDefault: form.isDefault,
+          isActive: form.isActive,
+          changeInPos: isBank ? form.changeInPos : undefined,
+          bank: bankBlock(),
+          notes: notes.trim() || undefined,
+          custodianIds: custodians,
+        });
+        setForm({ ...BLANK, branchId: form.branchId });
+        setCustodians([]);
+        setNotes('');
+      },
+      isBank ? 'تم حفظ البنك.' : 'تم حفظ الخزينة.',
+    );
   }
 
   async function saveSelected() {
@@ -199,240 +196,245 @@ export function CashLocationMaster({ kind }: { kind: 'safe' | 'bank' }) {
   }
 
   return (
- <Screen
- title={isBank ? 'تعريف البنوك' : 'تعريف الخزينة'}
+    <Screen
+      title={isBank ? 'تعريف البنوك' : 'تعريف الخزينة'}
       subtitle={
         isBank
- ? 'تعريف البنوك — كما في frmBanks: اسم البنك، الدولة والمدينة، الحساب والآيبان، ونسبة الاقتطاع.'
- : 'تعريف الخزن — كما في frmTreasury: بيانات الصندوق، مسئولوه، وملاحظاته.'
+          ? 'تعريف البنوك — كما في frmBanks: اسم البنك، الدولة والمدينة، الحساب والآيبان، ونسبة الاقتطاع.'
+          : 'تعريف الخزن — كما في frmTreasury: بيانات الصندوق، مسئولوه، وملاحظاته.'
       }
       crumbs={['الخزينة', 'تعاريف']}
     >
- <StatTiles>
- <StatTile label="عدد الصناديق" value={stats.all} />
- <StatTile label="نشط" value={stats.active} tone="ok" />
- <StatTile label="مغلق" value={stats.closed} tone="warn" />
- <StatTile label="الافتراضي" value={stats.defaultName} />
- <StatTile
- label="بلا مسئول"
+      <StatTiles>
+        <StatTile label="عدد الصناديق" value={stats.all} />
+        <StatTile label="نشط" value={stats.active} tone="ok" />
+        <StatTile label="مغلق" value={stats.closed} tone="warn" />
+        <StatTile label="الافتراضي" value={stats.defaultName} />
+        <StatTile
+          label="بلا مسئول"
           value={stats.unsigned}
           hint={isBank ? 'مسموح للبنك' : 'الصندوق يحتاج مسئولاً'}
           tone={stats.unsigned > 0 && !isBank ? 'warn' : undefined}
         />
- </StatTiles>
+      </StatTiles>
 
- <Tabs
+      <Tabs
         items={[
- { id: 'data' as const, label: isBank ? 'بيانات البنوك' : 'بيانات الصناديق' },
- { id: 'custodians' as const, label: 'مسئولي الصندوق' },
- { id: 'notes' as const, label: 'ملاحظات' },
+          { id: 'data' as const, label: isBank ? 'بيانات البنوك' : 'بيانات الصناديق' },
+          { id: 'custodians' as const, label: 'مسئولي الصندوق' },
+          { id: 'notes' as const, label: 'ملاحظات' },
         ]}
         value={tab}
         onChange={setTab}
       />
 
       {tab === 'data' && (
- <form className="card" onSubmit={create}>
- <DocHead>
- <DocField label="الرقم">
- <span className="muted">تلقائي</span>
- </DocField>
- <DocField label={isBank ? 'اسم البنك *' : 'اسم الصندوق *'}>
- <input
-                className="input"
-                value={form.name}
-                onChange={(event) => set('name', event.target.value)}
-                required
-              />
- </DocField>
- <DocField label="الفرع *">
- <select
-                className="input"
-                value={effectiveBranch}
-                onChange={(event) => set('branchId', event.target.value)}
-                required
-              >
-                {branchOptions(branchRows).map((option) => (
- <option key={option.id} value={option.id}>
-                    {option.label}
- </option>
-                ))}
- </select>
- </DocField>
- <DocField label="حالة الصندوق">
- <select
-                className="input"
-                value={form.isActive ? 'active' : 'closed'}
-                onChange={(event) => set('isActive', event.target.value === 'active')}
-              >
- <option value="active">نشط</option>
- <option value="closed">مغلق</option>
- </select>
- </DocField>
- <DocField label="الافتراضي">
- <label className="row">
- <input
-                  type="checkbox"
-                  checked={form.isDefault}
-                  onChange={(event) => set('isDefault', event.target.checked)}
+        <form onSubmit={create}>
+          <Panel
+            title={isBank ? 'بيانات البنك' : 'بيانات الصندوق'}
+            hint="الاسم والفرع والحالة والحساب المرتبط؛ الحفظ يبقي القيود على حسابها الصحيح."
+            footer={
+              manage ? (
+                <ActionBar>
+                  <button className="btn primary" type="submit" disabled={busy}>
+                    {busy ? 'جارٍ الحفظ…' : 'حفظ'}
+                  </button>
+                </ActionBar>
+              ) : null
+            }
+          >
+            <DocHead>
+              <DocField label="الرقم">
+                <span className="muted">تلقائي</span>
+              </DocField>
+              <DocField label={isBank ? 'اسم البنك *' : 'اسم الصندوق *'}>
+                <input
+                  className="input"
+                  value={form.name}
+                  onChange={(event) => set('name', event.target.value)}
+                  required
                 />
- <span className="muted small">يجعله الصندوق الافتراضي لهذا النوع</span>
- </label>
- </DocField>
- <DocField label="العملة">
- <select
-                className="input"
-                value={form.currency}
-                onChange={(event) => set('currency', event.target.value)}
-              >
- <option value="SAR">ريال سعودي</option>
- <option value="USD">دولار</option>
- <option value="YER">ريال يمني</option>
- <option value="EUR">يورو</option>
- </select>
- </DocField>
- <DocField label="الحساب المرتبط">
- <select
-                className="input"
-                value={form.accountId}
-                onChange={(event) => set('accountId', event.target.value)}
-              >
- <option value="">— بلا حساب —</option>
-                {accountRows.map((account) => (
- <option key={account.id} value={account.id}>
-                    {accountLabel(account)}
- </option>
-                ))}
- </select>
- </DocField>
- </DocHead>
+              </DocField>
+              <DocField label="الفرع *">
+                <select
+                  className="input"
+                  value={effectiveBranch}
+                  onChange={(event) => set('branchId', event.target.value)}
+                  required
+                >
+                  {branchOptions(branchRows).map((option) => (
+                    <option key={option.id} value={option.id}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </DocField>
+              <DocField label="حالة الصندوق">
+                <select
+                  className="input"
+                  value={form.isActive ? 'active' : 'closed'}
+                  onChange={(event) => set('isActive', event.target.value === 'active')}
+                >
+                  <option value="active">نشط</option>
+                  <option value="closed">مغلق</option>
+                </select>
+              </DocField>
+              <DocField label="الافتراضي">
+                <label className="row">
+                  <input
+                    type="checkbox"
+                    checked={form.isDefault}
+                    onChange={(event) => set('isDefault', event.target.checked)}
+                  />
+                  <span className="muted small">يجعله الصندوق الافتراضي لهذا النوع</span>
+                </label>
+              </DocField>
+              <DocField label="العملة">
+                <select
+                  className="input"
+                  value={form.currency}
+                  onChange={(event) => set('currency', event.target.value)}
+                >
+                  <option value="SAR">ريال سعودي</option>
+                  <option value="USD">دولار</option>
+                  <option value="YER">ريال يمني</option>
+                  <option value="EUR">يورو</option>
+                </select>
+              </DocField>
+              <DocField label="الحساب المرتبط">
+                <select
+                  className="input"
+                  value={form.accountId}
+                  onChange={(event) => set('accountId', event.target.value)}
+                >
+                  <option value="">— بلا حساب —</option>
+                  {accountRows.map((account) => (
+                    <option key={account.id} value={account.id}>
+                      {accountLabel(account)}
+                    </option>
+                  ))}
+                </select>
+              </DocField>
+            </DocHead>
 
-          {isBank && (
- <div className="card">
- <h4>بيانات البنك</h4>
- <div className="form-grid">
- <label className="field">
- <span>اسم البنك *</span>
- <input
-                    className="input"
-                    value={form.bankName}
-                    onChange={(event) => set('bankName', event.target.value)}
-                    required
-                  />
- </label>
- <label className="field">
- <span>رقم الحساب</span>
- <input
-                    className="input"
-                    dir="ltr"
-                    value={form.accountNo}
-                    onChange={(event) => set('accountNo', event.target.value)}
-                  />
- </label>
- <label className="field">
- <span>الآيبان</span>
- <input
-                    className="input"
-                    dir="ltr"
-                    placeholder="SA0380000000608010167519"
-                    value={form.iban}
-                    onChange={(event) => set('iban', event.target.value)}
-                  />
- </label>
- <label className="field">
- <span>سويفت</span>
- <input
-                    className="input"
-                    dir="ltr"
-                    value={form.swift}
-                    onChange={(event) => set('swift', event.target.value)}
-                  />
- </label>
- <label className="field">
- <span>الدولة</span>
- <input
-                    className="input"
-                    value={form.country}
-                    onChange={(event) => set('country', event.target.value)}
-                  />
- </label>
- <label className="field">
- <span>المدينة</span>
- <input
-                    className="input"
-                    value={form.city}
-                    onChange={(event) => set('city', event.target.value)}
-                  />
- </label>
- <label className="field">
- <span>المنطقة</span>
- <input
-                    className="input"
-                    value={form.region}
-                    onChange={(event) => set('region', event.target.value)}
-                  />
- </label>
- <label className="field">
- <span>تليفون</span>
- <input
-                    className="input"
-                    dir="ltr"
-                    value={form.phone}
-                    onChange={(event) => set('phone', event.target.value)}
-                  />
- </label>
- <label className="field">
- <span>موبايل</span>
- <input
-                    className="input"
-                    dir="ltr"
-                    value={form.mobile}
-                    onChange={(event) => set('mobile', event.target.value)}
-                  />
- </label>
- <label className="field">
- <span>نسبة الاقتطاع %</span>
- <input
-                    className="input"
-                    dir="ltr"
-                    inputMode="decimal"
-                    placeholder="0"
-                    value={form.deductionPct}
-                    onChange={(event) => set('deductionPct', event.target.value)}
-                  />
- </label>
- <label className="field">
- <span>تغيير في نقطة البيع</span>
- <label className="row">
- <input
-                      type="checkbox"
-                      checked={form.changeInPos}
-                      onChange={(event) => set('changeInPos', event.target.checked)}
+            {isBank && (
+              <FormSection title="بيانات البنك" hint="الاسم التجاري والحساب والآيبان كما في كشف البنك.">
+                <div className="form-grid">
+                  <label className="field">
+                    <span>اسم البنك *</span>
+                    <input
+                      className="input"
+                      value={form.bankName}
+                      onChange={(event) => set('bankName', event.target.value)}
+                      required
                     />
- <span className="muted small">يسمح للكاشير بأخذ الباقي منه</span>
- </label>
- </label>
- </div>
- </div>
-          )}
+                  </label>
+                  <label className="field">
+                    <span>رقم الحساب</span>
+                    <input
+                      className="input"
+                      dir="ltr"
+                      value={form.accountNo}
+                      onChange={(event) => set('accountNo', event.target.value)}
+                    />
+                  </label>
+                  <label className="field">
+                    <span>الآيبان</span>
+                    <input
+                      className="input"
+                      dir="ltr"
+                      placeholder="SA0380000000608010167519"
+                      value={form.iban}
+                      onChange={(event) => set('iban', event.target.value)}
+                    />
+                  </label>
+                  <label className="field">
+                    <span>سويفت</span>
+                    <input
+                      className="input"
+                      dir="ltr"
+                      value={form.swift}
+                      onChange={(event) => set('swift', event.target.value)}
+                    />
+                  </label>
+                  <label className="field">
+                    <span>الدولة</span>
+                    <input
+                      className="input"
+                      value={form.country}
+                      onChange={(event) => set('country', event.target.value)}
+                    />
+                  </label>
+                  <label className="field">
+                    <span>المدينة</span>
+                    <input
+                      className="input"
+                      value={form.city}
+                      onChange={(event) => set('city', event.target.value)}
+                    />
+                  </label>
+                  <label className="field">
+                    <span>المنطقة</span>
+                    <input
+                      className="input"
+                      value={form.region}
+                      onChange={(event) => set('region', event.target.value)}
+                    />
+                  </label>
+                  <label className="field">
+                    <span>تليفون</span>
+                    <input
+                      className="input"
+                      dir="ltr"
+                      value={form.phone}
+                      onChange={(event) => set('phone', event.target.value)}
+                    />
+                  </label>
+                  <label className="field">
+                    <span>موبايل</span>
+                    <input
+                      className="input"
+                      dir="ltr"
+                      value={form.mobile}
+                      onChange={(event) => set('mobile', event.target.value)}
+                    />
+                  </label>
+                  <label className="field">
+                    <span>نسبة الاقتطاع %</span>
+                    <input
+                      className="input"
+                      dir="ltr"
+                      inputMode="decimal"
+                      placeholder="0"
+                      value={form.deductionPct}
+                      onChange={(event) => set('deductionPct', event.target.value)}
+                    />
+                  </label>
+                  <label className="field">
+                    <span>تغيير في نقطة البيع</span>
+                    <label className="row">
+                      <input
+                        type="checkbox"
+                        checked={form.changeInPos}
+                        onChange={(event) => set('changeInPos', event.target.checked)}
+                      />
+                      <span className="muted small">يسمح للكاشير بأخذ الباقي منه</span>
+                    </label>
+                  </label>
+                </div>
+              </FormSection>
+            )}
 
- <Notice notice={notice} />
-          {manage && (
- <ActionBar>
- <button className="btn primary" type="submit" disabled={busy}>
- {busy ? 'جارٍ الحفظ…' : 'حفظ'}
- </button>
- </ActionBar>
-          )}
- </form>
+            <Notice notice={notice} />
+          </Panel>
+        </form>
       )}
 
       {tab === 'custodians' && (
- <div className="card">
- <h4>مسئولي الصندوق</h4>
- <label className="field">
- <span>{isBank ? 'البنك' : 'الصندوق'}</span>
- <select
+        <Panel title="مسئولي الصندوق" hint="من يستلم الصندوق ومن يوقّع على حركته.">
+          <label className="field">
+            <span>{isBank ? 'البنك' : 'الصندوق'}</span>
+            <select
               className="input"
               value={selectedId}
               onChange={(event) => {
@@ -441,20 +443,20 @@ export function CashLocationMaster({ kind }: { kind: 'safe' | 'bank' }) {
                 else setSelectedId('');
               }}
             >
- <option value="">— اختر —</option>
+              <option value="">— اختر —</option>
               {rows.map((row) => (
- <option key={row.id} value={row.id}>
+                <option key={row.id} value={row.id}>
                   {row.name}
- </option>
+                </option>
               ))}
- </select>
- </label>
+            </select>
+          </label>
           {selected ? (
- <>
- <div className="form-grid">
+            <>
+              <div className="form-grid">
                 {employeeRows.map((employee) => (
- <label className="row" key={employee.id}>
- <input
+                  <label className="row" key={employee.id}>
+                    <input
                       type="checkbox"
                       checked={custodians.includes(employee.id)}
                       onChange={(event) =>
@@ -465,35 +467,39 @@ export function CashLocationMaster({ kind }: { kind: 'safe' | 'bank' }) {
                         )
                       }
                     />
- <span>
+                    <span>
                       {employee.name}
- <span className="muted small"> · {employee.employeeNo}</span>
- </span>
- </label>
+                      <span className="muted small"> · {employee.employeeNo}</span>
+                    </span>
+                  </label>
                 ))}
- </div>
+              </div>
               {employeeRows.length === 0 && <p className="muted">لا يوجد موظفون بعد.</p>}
- <Notice notice={notice} />
+              <Notice notice={notice} />
               {manage && (
- <ActionBar>
- <button className="btn primary" type="button" disabled={busy} onClick={() => void saveSelected()}>
- حفظ المسئولين
- </button>
- </ActionBar>
+                <ActionBar>
+                  <button
+                    className="btn primary"
+                    type="button"
+                    disabled={busy}
+                    onClick={() => void saveSelected()}
+                  >
+                    حفظ المسئولين
+                  </button>
+                </ActionBar>
               )}
- </>
+            </>
           ) : (
- <p className="muted">اختر صندوقاً لتحديد مسئوليه.</p>
+            <p className="muted">اختر صندوقاً لتحديد مسئوليه.</p>
           )}
- </div>
+        </Panel>
       )}
 
       {tab === 'notes' && (
- <div className="card">
- <h4>ملاحظات</h4>
- <label className="field">
- <span>{isBank ? 'البنك' : 'الصندوق'}</span>
- <select
+        <Panel title="ملاحظات" hint="تظهر لمن يستلم الصندوق في شاشة الحركة.">
+          <label className="field">
+            <span>{isBank ? 'البنك' : 'الصندوق'}</span>
+            <select
               className="input"
               value={selectedId}
               onChange={(event) => {
@@ -502,91 +508,99 @@ export function CashLocationMaster({ kind }: { kind: 'safe' | 'bank' }) {
                 else setSelectedId('');
               }}
             >
- <option value="">— اختر —</option>
+              <option value="">— اختر —</option>
               {rows.map((row) => (
- <option key={row.id} value={row.id}>
+                <option key={row.id} value={row.id}>
                   {row.name}
- </option>
+                </option>
               ))}
- </select>
- </label>
+            </select>
+          </label>
           {selected ? (
- <>
- <label className="field">
- <span>ملاحظات</span>
- <textarea
+            <>
+              <label className="field">
+                <span>ملاحظات</span>
+                <textarea
                   className="input"
                   rows={4}
                   value={notes}
                   onChange={(event) => setNotes(event.target.value)}
                 />
- </label>
- <Notice notice={notice} />
+              </label>
+              <Notice notice={notice} />
               {manage && (
- <ActionBar>
- <button className="btn primary" type="button" disabled={busy} onClick={() => void saveSelected()}>
- حفظ الملاحظات
- </button>
- </ActionBar>
+                <ActionBar>
+                  <button
+                    className="btn primary"
+                    type="button"
+                    disabled={busy}
+                    onClick={() => void saveSelected()}
+                  >
+                    حفظ الملاحظات
+                  </button>
+                </ActionBar>
               )}
- </>
+            </>
           ) : (
- <p className="muted">اختر صندوقاً لكتابة ملاحظاته.</p>
+            <p className="muted">اختر صندوقاً لكتابة ملاحظاته.</p>
           )}
- </div>
+        </Panel>
       )}
 
- <QueryView
+      <QueryView
+        panel={isBank ? 'البنوك المسجّلة' : 'الصناديق المسجّلة'}
         query={locations}
         isEmpty={() => rows.length === 0}
         empty={isBank ? 'لا توجد بنوك' : 'لا توجد صناديق'}
         emptyDetail={isBank ? 'أضف بنكاً لتبدأ.' : 'أضف صندوقاً لتبدأ.'}
       >
         {() => (
- <div className="table-wrap">
- <table className="zebra">
- <thead>
- <tr>
- <th>#</th>
- <th>{isBank ? 'اسم البنك' : 'اسم الصندوق'}</th>
- <th>الفرع</th>
- <th>الموظف المسئول</th>
- <th>الحساب</th>
- <th>حالة الصندوق</th>
- <th><span className="sr-only">إجراءات</span></th>
- <th />
- </tr>
- </thead>
- <tbody>
+          <div className="table-wrap">
+            <table className="zebra">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>{isBank ? 'اسم البنك' : 'اسم الصندوق'}</th>
+                  <th>الفرع</th>
+                  <th>الموظف المسئول</th>
+                  <th>الحساب</th>
+                  <th>حالة الصندوق</th>
+                  <th>
+                    <span className="sr-only">إجراءات</span>
+                  </th>
+                  <th />
+                </tr>
+              </thead>
+              <tbody>
                 {rows.map((row, index) => (
- <tr key={row.id}>
- <td className="num">{index + 1}</td>
- <td>
- <button className="btn sm" type="button" onClick={() => select(row)}>
+                  <tr key={row.id}>
+                    <td className="num">{index + 1}</td>
+                    <td>
+                      <button className="btn sm" type="button" onClick={() => select(row)}>
                         {row.name}
- </button>
- </td>
- <td>{branchRows.find((entry) => entry.id === row.branchId)?.nameAr ?? '—'}</td>
- <td>
+                      </button>
+                    </td>
+                    <td>{branchRows.find((entry) => entry.id === row.branchId)?.nameAr ?? '—'}</td>
+                    <td>
                       {(row.custodianIds ?? []).length
                         ? (row.custodianIds ?? []).map(employeeName).join(' · ')
                         : '—'}
- </td>
- <td>
+                    </td>
+                    <td>
                       {row.accountId
                         ? accountLabel(
                             (accounts.data ?? []).find((entry) => entry.id === row.accountId) ??
                               ({ id: row.accountId, code: '—' } as Account),
                           )
                         : '—'}
- </td>
- <td>
- <span className="badge">{row.isActive === false ? 'مغلق' : 'نشط'}</span>
- </td>
- <td>{row.isDefault ? <span className="badge ok">افتراضي</span> : null}</td>
- <td>
+                    </td>
+                    <td>
+                      <span className="badge">{row.isActive === false ? 'مغلق' : 'نشط'}</span>
+                    </td>
+                    <td>{row.isDefault ? <span className="badge ok">افتراضي</span> : null}</td>
+                    <td>
                       {manage && !row.isDefault && (
- <button
+                        <button
                           className="btn sm danger"
                           type="button"
                           disabled={busy}
@@ -596,18 +610,16 @@ export function CashLocationMaster({ kind }: { kind: 'safe' | 'bank' }) {
                               isBank ? 'تم حذف البنك.' : 'تم حذف الصندوق.',
                             )
                           }
-                        >
-
- </button>
+                        ></button>
                       )}
- </td>
- </tr>
+                    </td>
+                  </tr>
                 ))}
- </tbody>
- </table>
- </div>
+              </tbody>
+            </table>
+          </div>
         )}
- </QueryView>
- </Screen>
+      </QueryView>
+    </Screen>
   );
 }

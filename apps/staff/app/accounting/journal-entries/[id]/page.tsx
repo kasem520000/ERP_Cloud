@@ -182,7 +182,7 @@ export default function JournalEntryPage() {
         </>
       }
     >
-      <div className="card tight">
+      <Panel className="tight">
         {/*
  — `FrmNewEntry.xaml` L428–431 بترتيبها ونصوصها. وزرٌّ بلا جارٍ يُعطَّل
  ولا يُخفى (فالنافذة المكتبية تُبقي الأزرار الأربعة دائماً).
@@ -216,7 +216,7 @@ export default function JournalEntryPage() {
             {positionLabel(neighbours.data)}
           </span>
         </div>
-      </div>
+      </Panel>
 
       <div className="grid cols-2">
         <Panel title="بيانات القيد">

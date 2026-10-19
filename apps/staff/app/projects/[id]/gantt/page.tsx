@@ -86,60 +86,65 @@ export default function ProjectGanttPage() {
       }
     >
       <Notice notice={notice} />
-      <div className="card" dir="ltr" style={{ overflowX: 'auto' }}>
-        <svg width={span * DAY} height={Math.max(48, tasks.length * 36)} role="img" aria-label="مخطط جانت">
-          {edges.map((edge) => {
-            const from = tasks.findIndex((task) => task.id === edge.dependsOnTaskId);
-            const to = tasks.findIndex((task) => task.id === edge.taskId);
-            if (from < 0 || to < 0) return null;
-            const fromTask = tasks[from];
-            const toTask = tasks[to];
-            if (!fromTask || !toTask) return null;
-            const x1 = (dayIndex(origin, fromTask.dueDate ?? fromTask.startDate ?? origin) + 1) * DAY;
-            const x2 = dayIndex(origin, toTask.startDate ?? origin) * DAY;
-            return (
-              <line
-                key={edge.id}
-                x1={x1}
-                y1={from * 36 + 18}
-                x2={x2}
-                y2={to * 36 + 18}
-                stroke="var(--muted)"
-              />
-            );
-          })}
-        </svg>
-        <div style={{ marginTop: -Math.max(48, tasks.length * 36) }}>
-          {tasks.map((task) => {
-            const left = dayIndex(origin, task.startDate ?? origin) * DAY;
-            const width = Math.max(DAY, duration(task) * DAY);
-            const marked = critical.includes(task.id);
-            return (
-              <div key={task.id} style={{ height: 36, position: 'relative' }}>
-                <button
-                  type="button"
-                  title={marked ? 'مسار حرج' : task.title}
-                  onPointerDown={(event) => drag(task, event)}
-                  style={{
-                    position: 'absolute',
-                    left,
-                    width,
-                    height: 24,
-                    top: 6,
-                    background: marked ? 'var(--warn)' : 'var(--ok)',
-                    color: 'var(--on-accent)',
-                    border: 0,
-                    borderRadius: 4,
-                    cursor: 'ew-resize',
-                  }}
-                >
-                  {task.title}
-                </button>
-              </div>
-            );
-          })}
+      <Panel
+        title="المخطط الزمني"
+        hint="اسحب الشريط لتغيير تاريخ البداية؛ الخطوط الرمادية تمثّل الاعتماديات."
+      >
+        <div dir="ltr" style={{ overflowX: 'auto' }}>
+          <svg width={span * DAY} height={Math.max(48, tasks.length * 36)} role="img" aria-label="مخطط جانت">
+            {edges.map((edge) => {
+              const from = tasks.findIndex((task) => task.id === edge.dependsOnTaskId);
+              const to = tasks.findIndex((task) => task.id === edge.taskId);
+              if (from < 0 || to < 0) return null;
+              const fromTask = tasks[from];
+              const toTask = tasks[to];
+              if (!fromTask || !toTask) return null;
+              const x1 = (dayIndex(origin, fromTask.dueDate ?? fromTask.startDate ?? origin) + 1) * DAY;
+              const x2 = dayIndex(origin, toTask.startDate ?? origin) * DAY;
+              return (
+                <line
+                  key={edge.id}
+                  x1={x1}
+                  y1={from * 36 + 18}
+                  x2={x2}
+                  y2={to * 36 + 18}
+                  stroke="var(--muted)"
+                />
+              );
+            })}
+          </svg>
+          <div style={{ marginTop: -Math.max(48, tasks.length * 36) }}>
+            {tasks.map((task) => {
+              const left = dayIndex(origin, task.startDate ?? origin) * DAY;
+              const width = Math.max(DAY, duration(task) * DAY);
+              const marked = critical.includes(task.id);
+              return (
+                <div key={task.id} style={{ height: 36, position: 'relative' }}>
+                  <button
+                    type="button"
+                    title={marked ? 'مسار حرج' : task.title}
+                    onPointerDown={(event) => drag(task, event)}
+                    style={{
+                      position: 'absolute',
+                      left,
+                      width,
+                      height: 24,
+                      top: 6,
+                      background: marked ? 'var(--warn)' : 'var(--ok)',
+                      color: 'var(--on-accent)',
+                      border: 0,
+                      borderRadius: 4,
+                      cursor: 'ew-resize',
+                    }}
+                  >
+                    {task.title}
+                  </button>
+                </div>
+              );
+            })}
+          </div>
         </div>
-      </div>
+      </Panel>
       <Panel title="الاعتمادات">
         {edges.length === 0 ? <p className="muted">لا اعتمادات. تُضاف من بطاقة المهمة.</p> : null}
         {edges.map((edge) => (

@@ -74,34 +74,36 @@ export default function QuotationEsignPage() {
         </p>
       ) : null}
 
-      <form className="card" onSubmit={send}>
-        <div className="form-grid">
-          <label className="field">
-            <span>بريد الموقّع *</span>
-            <input
-              className="input"
-              type="email"
-              value={signerEmail}
-              onChange={(event) => setSignerEmail(event.target.value)}
-              required
-            />
-          </label>
-          <label className="field">
-            <span>اسم الموقّع</span>
-            <input
-              className="input"
-              value={signerName}
-              onChange={(event) => setSignerName(event.target.value)}
-            />
-          </label>
-          <label className="field">
-            <span>رسالة</span>
-            <input className="input" value={message} onChange={(event) => setMessage(event.target.value)} />
-          </label>
-        </div>
-        <button className="btn primary" type="submit" disabled={busy || row?.status !== 'draft'}>
-          {busy ? 'جارٍ الإرسال…' : 'إرسال الرابط'}
-        </button>
+      <form onSubmit={send}>
+        <Panel title="إرسال عرض السعر للتوقيع">
+          <div className="form-grid">
+            <label className="field">
+              <span>بريد الموقّع *</span>
+              <input
+                className="input"
+                type="email"
+                value={signerEmail}
+                onChange={(event) => setSignerEmail(event.target.value)}
+                required
+              />
+            </label>
+            <label className="field">
+              <span>اسم الموقّع</span>
+              <input
+                className="input"
+                value={signerName}
+                onChange={(event) => setSignerName(event.target.value)}
+              />
+            </label>
+            <label className="field">
+              <span>رسالة</span>
+              <input className="input" value={message} onChange={(event) => setMessage(event.target.value)} />
+            </label>
+          </div>
+          <button className="btn primary" type="submit" disabled={busy || row?.status !== 'draft'}>
+            {busy ? 'جارٍ الإرسال…' : 'إرسال الرابط'}
+          </button>
+        </Panel>
       </form>
 
       {issued ? (

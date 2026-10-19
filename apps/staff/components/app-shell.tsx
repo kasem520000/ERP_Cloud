@@ -724,7 +724,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
               {profileMenuOpen && (
  <div
-                  className="card menu-pop"
+                  className="ui-popover menu-pop"
                   role="menu"
                   aria-label="قائمة الحساب"
                   style={{

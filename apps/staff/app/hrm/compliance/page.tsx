@@ -1,5 +1,6 @@
 'use client';
 
+import { Panel } from '@erp/ui';
 import Link from 'next/link';
 import { useState } from 'react';
 
@@ -40,7 +41,7 @@ export default function HrmCompliancePage() {
         </Link>
       }
     >
-      <div className="card">
+      <Panel>
         <label className="field">
           <span>خلال (يوم)</span>
           <input
@@ -50,7 +51,7 @@ export default function HrmCompliancePage() {
             onChange={(event) => setWithinDays(event.target.value)}
           />
         </label>
-      </div>
+      </Panel>
       <QueryView
         panel="تنبيهات الالتزام"
         query={alerts}

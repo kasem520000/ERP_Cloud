@@ -22,6 +22,7 @@ export function QueryView<T>({
   wrapEmpty,
   panel,
   panelHint,
+  panelActions,
   children,
 }: {
   query: QueryState<T>;
@@ -43,6 +44,8 @@ export function QueryView<T>({
   panel?: ReactNode;
   /** A sentence under the panel title — what the current mode/list means. */
   panelHint?: ReactNode;
+  /** Controls that belong to the list itself (a bulk quantity, an export, a link). */
+  panelActions?: ReactNode;
   children: (data: T) => ReactNode;
 }) {
   const render = (): ReactNode => {
@@ -62,7 +65,7 @@ export function QueryView<T>({
   const body = render();
   if (panel === undefined) return <>{body}</>;
   return (
-    <Panel title={panel} hint={panelHint} flush>
+    <Panel title={panel} hint={panelHint} actions={panelActions} flush>
       {body}
     </Panel>
   );

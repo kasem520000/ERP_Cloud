@@ -84,7 +84,7 @@ export default function BackupPage() {
         </Link>
       }
     >
-      <div className="card">
+      <Panel>
         <p className="alert info">
           هذه نسخة منطقية للبيانات وليست نسخة كاملة لقاعدة البيانات. تصلح للاحتفاظ بلقطة قبل عملية كبيرة أو
           لنقل البيانات، ولا تغني عن نسخة الخادم (pg_dump) في حالات تلف القرص. لا تتضمن النسخة المستخدمين ولا
@@ -105,7 +105,7 @@ export default function BackupPage() {
           </button>
         </div>
         <Notice notice={notice} />
-      </div>
+      </Panel>
 
       <QueryView
         panel="النسخ المحفوظة"

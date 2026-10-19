@@ -253,15 +253,19 @@ export default function MarinaRotaPage() {
               ]}
             />
             {rows.map((plan) => (
-              <div className="card" key={plan.id}>
-                <div className="card-head">
-                  <h3>
+              <Panel
+                key={plan.id}
+                title={
+                  <>
                     {plan.name} — {shortDate(plan.planDate)} — {groupName(plan.groupId)}
-                  </h3>
+                  </>
+                }
+                actions={
                   <button className="btn sm" type="button" onClick={() => recalcTrips(plan)}>
                     إعادة احتساب الرحلات
                   </button>
-                </div>
+                }
+              >
                 <div className="table-wrap">
                   <table>
                     <thead>
@@ -300,7 +304,7 @@ export default function MarinaRotaPage() {
                   </table>
                 </div>
                 {tripCount !== null && <p className="hint">إجمالي الرحلات المحتسبة: {tripCount}</p>}
-              </div>
+              </Panel>
             ))}
           </>
         )}

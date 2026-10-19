@@ -1,5 +1,6 @@
 'use client';
 
+import { Panel } from '@erp/ui';
 import { useState } from 'react';
 
 import { DataTable, Notice, QueryView } from '../../../components/data-view';
@@ -234,7 +235,7 @@ export default function TenantUsersPage() {
     >
       <Notice notice={notice} />
 
-      <section className="card">
+      <Panel>
         <div className="row">
           {/* «قائمة المستخدمين» — `frmAddUsers.xaml` س325. */}
           <h2>قائمة المستخدمين ({(memberships.data ?? []).length})</h2>
@@ -407,10 +408,10 @@ export default function TenantUsersPage() {
             />
           )}
         />
-      </section>
+      </Panel>
 
       {editing && (
-        <section className="card">
+        <Panel>
           <div className="row">
             <h2>تعديل: {editing.displayName}</h2>
             <button type="button" className="btn sm" onClick={() => setEditingId(null)}>
@@ -578,7 +579,7 @@ export default function TenantUsersPage() {
               حفظ
             </button>
           </div>
-        </section>
+        </Panel>
       )}
     </Screen>
   );

@@ -361,7 +361,7 @@ export default function SerialsPage() {
       </QueryView>
 
       {trace && (
-        <div className="card">
+        <Panel>
           <div className="section-title">
             <h4>{`مسار الرقم ${trace.serial.serialNo}`}</h4>
             <button className="btn sm" type="button" onClick={() => setTrace(undefined)}>
@@ -394,7 +394,7 @@ export default function SerialsPage() {
               </table>
             </div>
           )}
-        </div>
+        </Panel>
       )}
 
       {manage && (

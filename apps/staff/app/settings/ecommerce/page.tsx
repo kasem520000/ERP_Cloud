@@ -197,7 +197,7 @@ export default function EcommerceSettingsPage() {
         ) : (
           <div className="stack">
             {stores.map((store) => (
-              <div className="card inset" key={store.id}>
+              <Panel key={store.id} className="inset">
                 <div className="toolbar">
                   <div>
                     <strong>
@@ -243,7 +243,7 @@ export default function EcommerceSettingsPage() {
                     حذف الربط
                   </button>
                 </div>
-              </div>
+              </Panel>
             ))}
           </div>
         )}

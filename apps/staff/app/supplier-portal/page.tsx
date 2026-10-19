@@ -222,7 +222,7 @@ export default function SupplierPortalPage() {
         <Panel title="طلبات عروض الأسعار">
           {quotes.length === 0 ? <p className="muted">لا توجد طلبات مفتوحة.</p> : null}
           {quotes.map((row) => (
-            <article key={row.id} className="card tight">
+            <Panel key={row.id} className="tight">
               <strong>
                 {row.number} — {row.title}
               </strong>
@@ -268,7 +268,7 @@ export default function SupplierPortalPage() {
                   {row.responseNote ? `— ${row.responseNote}` : ''}
                 </p>
               )}
-            </article>
+            </Panel>
           ))}
         </Panel>
 

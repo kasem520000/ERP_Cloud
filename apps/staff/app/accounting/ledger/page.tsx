@@ -435,7 +435,7 @@ export default function AccountStatementPage() {
             />
           </StatTiles>
 
-          <div className="card tight">
+          <Panel className="tight">
             <dl className="kv">
               <dt>الحساب</dt>
               <dd>
@@ -457,7 +457,7 @@ export default function AccountStatementPage() {
                   : (branchRows.find((branch) => branch.id === applied.branchId)?.nameAr ?? applied.branchId)}
               </dd>
             </dl>
-          </div>
+          </Panel>
 
           <Panel title="حركة الحساب" flush>
             {rows.length === 0 ? (

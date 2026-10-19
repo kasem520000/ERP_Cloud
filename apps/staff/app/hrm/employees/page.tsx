@@ -827,11 +827,11 @@ export default function EmployeesPage() {
           </Panel>
         </form>
       ) : (
-        <section className="card">
+        <Panel>
           <p className="hint">
             عرض البيانات متاح لكل من يملك صلاحية العرض؛ التحرير يتطلب صلاحية إدارة الموظفين.
           </p>
-        </section>
+        </Panel>
       )}
 
       <Panel title="قائمة الموظفين" flush>

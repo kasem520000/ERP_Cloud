@@ -88,7 +88,7 @@ export default function DataRotationPage() {
       subtitle="تنظيف السجلات التشغيلية القديمة. المستندات المالية لا تُحذف من هنا إطلاقاً."
       crumbs={['الإعدادات', 'إعدادات إدارية']}
     >
-      <div className="card">
+      <Panel>
         <p className="alert warn">
           التدوير يحذف السجلات التشغيلية فقط (الإشعارات، مهام الإرسال، مفاتيح منع التكرار). الفواتير والقيود
           والسندات وحركات المخزون تبقى كما هي — إذا كان المطلوب بداية دفترية جديدة فاستخدم «إنشاء ملف».
@@ -117,7 +117,7 @@ export default function DataRotationPage() {
           </button>
         </div>
         <Notice notice={notice} />
-      </div>
+      </Panel>
 
       {preview && (
         <div className="grid cols-2">

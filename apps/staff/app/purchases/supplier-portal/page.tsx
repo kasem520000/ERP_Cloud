@@ -106,11 +106,11 @@ export default function SupplierPortalAdminPage() {
     >
       <Notice notice={notice} />
       {issued ? (
-        <div className="card">
+        <Panel>
           <strong>كلمة المرور تُعرض مرة واحدة</strong>
           <p>{issued}</p>
           <p className="muted small">انسخها الآن. البريد في وضع التطوير لا يطبع نص الرسالة.</p>
-        </div>
+        </Panel>
       ) : null}
 
       {manage ? (

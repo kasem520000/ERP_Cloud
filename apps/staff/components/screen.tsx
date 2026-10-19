@@ -106,7 +106,18 @@ export function Forbidden() {
  * `bare` لفراغٍ يسكن بطاقةً أو لوحةً: البطاقة نفسها هي السطح، فلا نضع بطاقةً
  * داخل بطاقة — يبقى الرسمُ والنصّ ويذهب الإطار والظل.
  */
-export function Empty({ title, detail, bare = false }: { title: string; detail?: string; bare?: boolean }) {
+export function Empty({
+  title,
+  detail,
+  action,
+  bare = false,
+}: {
+  title: string;
+  detail?: string;
+  /** A way out of the empty state — «أضف الأول» أو «افتح الشاشة». */
+  action?: ReactNode;
+  bare?: boolean;
+}) {
   return (
     <div
       className={cn(
@@ -121,6 +132,7 @@ export function Empty({ title, detail, bare = false }: { title: string; detail?:
       </span>
       <p className="m-0 text-[15px] font-bold text-ink">{title}</p>
       {detail ? <p className="m-0 text-[13px] text-muted max-w-md">{detail}</p> : null}
+      {action ? <div className="mt-1">{action}</div> : null}
     </div>
   );
 }

@@ -314,14 +314,14 @@ export default function VanSalesRepPage() {
         <div className="grid gap-4">
           {/* البطاقة والعهدات */}
           <div className="grid gap-3" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))' }}>
-            <div className="card">
+            <Panel>
               <div className="muted small">المندوب</div>
               <strong>{data.salesmanName}</strong>
               <div className="muted small">
                 {data.vehiclePlate ? `${data.vehiclePlate}` : 'بلا لوحة مسجّلة'}
               </div>
-            </div>
-            <div className="card">
+            </Panel>
+            <Panel>
               <div className="muted small">رصيد سيارتك الرسمي</div>
               <strong style={{ fontSize: 21 }} dir="ltr">
                 {data.custodyKg} kg
@@ -329,8 +329,8 @@ export default function VanSalesRepPage() {
               <div className="muted small" dir="ltr">
                 قيمة: {data.custodyValue} SAR
               </div>
-            </div>
-            <div className="card">
+            </Panel>
+            <Panel>
               {/**
                * العنوانُ كان «مبيعات اليوم (إجمالي)» وكلا الوصفين غيرُ صحيح: فالرقمُ ليس
                * لليوم (إنّما هو جدولُ المندوب كلّه) وليس إجماليًّا (إنّما صافٍ من
@@ -347,8 +347,8 @@ export default function VanSalesRepPage() {
                   ? ` − مرتجعات ${data.totals.returns} وضريبتُها ${data.totals.returnsVat}`
                   : ''}
               </div>
-            </div>
-            <div className="card">
+            </Panel>
+            <Panel>
               <div className="muted small">المحصّل / المتبقي على العملاء</div>
               <strong style={{ fontSize: 21 }} dir="ltr">
                 {data.totals.collected}
@@ -364,8 +364,8 @@ export default function VanSalesRepPage() {
                     : ''}
                 </div>
               ) : null}
-            </div>
-            <div className="card">
+            </Panel>
+            <Panel>
               <div className="muted small">حالة العهدة</div>
               <strong style={{ fontSize: 21 }} dir="ltr">
                 {data.custody?.expectedKg ?? '0.0000'} kg
@@ -375,7 +375,7 @@ export default function VanSalesRepPage() {
                   ? `${data.custody.pendingClosings} إغلاق بانتظار المحاسب`
                   : 'لا يوجد إغلاق معلّق'}
               </div>
-            </div>
+            </Panel>
           </div>
 
           {/* إشعارات التوريد */}

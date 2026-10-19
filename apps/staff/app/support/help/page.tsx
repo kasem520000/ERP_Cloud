@@ -264,7 +264,7 @@ export default function HelpPage() {
           )}
         </Panel>
 
-        <div className="card split-detail">
+        <Panel className="split-detail">
           {!selected ? (
             <p className="muted">
               <Empty bare title="لم يُختَر بعد" detail="اختر تذكرة من القائمة لعرض المحادثة والردود." />
@@ -335,7 +335,7 @@ export default function HelpPage() {
               )}
             </div>
           )}
-        </div>
+        </Panel>
       </div>
     </Screen>
   );

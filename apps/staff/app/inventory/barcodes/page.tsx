@@ -67,7 +67,7 @@ export default function BarcodesPage() {
         </button>
       }
     >
-      <div className="card no-print">
+      <Panel className="no-print">
         <div className="toolbar">
           <label className="field">
             <span>بحث عن صنف</span>
@@ -142,7 +142,7 @@ export default function BarcodesPage() {
             </tbody>
           </table>
         </div>
-      </div>
+      </Panel>
 
       {labels.length > 0 ? (
         <Panel title="معاينة الورقة">

@@ -1,5 +1,6 @@
 'use client';
 
+import { Panel } from '@erp/ui';
 import Link from 'next/link';
 import { use, useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
@@ -17,11 +18,31 @@ import { apiFetch } from '../../../../lib/api';
  * application.
  */
 const DOCS: Record<string, { path: string; title: string; back: string; backLabel: string }> = {
-  'sales-invoice': { path: 'invoices', title: 'طباعة فاتورة المبيعات', back: '/sales/invoices', backLabel: 'فواتير المبيعات' },
-  'purchase-invoice': { path: 'purchase-invoices', title: 'طباعة فاتورة المشتريات', back: '/purchases/invoices', backLabel: 'فواتير المشتريات' },
+  'sales-invoice': {
+    path: 'invoices',
+    title: 'طباعة فاتورة المبيعات',
+    back: '/sales/invoices',
+    backLabel: 'فواتير المبيعات',
+  },
+  'purchase-invoice': {
+    path: 'purchase-invoices',
+    title: 'طباعة فاتورة المشتريات',
+    back: '/purchases/invoices',
+    backLabel: 'فواتير المشتريات',
+  },
   voucher: { path: 'vouchers', title: 'طباعة السند', back: '/treasury/vouchers', backLabel: 'السندات' },
-  'journal-entry': { path: 'journal-entries', title: 'طباعة سند القيد', back: '/accounting/journal-entries', backLabel: 'القيود' },
-  shift: { path: 'shifts', title: 'طباعة إغلاق اليومية', back: '/sales/shifts', backLabel: 'إغلاقات اليومية' },
+  'journal-entry': {
+    path: 'journal-entries',
+    title: 'طباعة سند القيد',
+    back: '/accounting/journal-entries',
+    backLabel: 'القيود',
+  },
+  shift: {
+    path: 'shifts',
+    title: 'طباعة إغلاق اليومية',
+    back: '/sales/shifts',
+    backLabel: 'إغلاقات اليومية',
+  },
 };
 
 export default function PrintPage({ params }: { params: Promise<{ doc: string; id: string }> }) {
@@ -74,19 +95,19 @@ export default function PrintPage({ params }: { params: Promise<{ doc: string; i
 
   if (!spec) {
     return (
- <Screen title="طباعة" crumbs={['التقارير']}>
- <ErrorBox message={`نوع المستند «${doc}» غير معروف.`} />
- </Screen>
+      <Screen title="طباعة" crumbs={['التقارير']}>
+        <ErrorBox message={`نوع المستند «${doc}» غير معروف.`} />
+      </Screen>
     );
   }
 
   return (
- <Screen
+    <Screen
       title={spec.title}
       crumbs={['التقارير', 'الطباعة']}
       actions={
- <>
- <button
+        <>
+          <button
             className="btn primary"
             type="button"
             disabled={!html}
@@ -96,9 +117,9 @@ export default function PrintPage({ params }: { params: Promise<{ doc: string; i
               view?.print();
             }}
           >
- طباعة
- </button>
- <button
+            طباعة
+          </button>
+          <button
             className="btn"
             type="button"
             disabled={!html}
@@ -114,21 +135,27 @@ export default function PrintPage({ params }: { params: Promise<{ doc: string; i
               URL.revokeObjectURL(url);
             }}
           >
- حفظ نسخة
- </button>
- <Link className="btn" href={spec.back}>
+            حفظ نسخة
+          </button>
+          <Link className="btn" href={spec.back}>
             {spec.backLabel}
- </Link>
- </>
+          </Link>
+        </>
       }
     >
       {error && <ErrorBox message={error} />}
       {!html && !error && <Loading />}
       {html && (
- <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
- <iframe ref={frame} title={spec.title} srcDoc={html} sandbox="allow-same-origin allow-modals" style={{ width: '100%', height: '80vh', border: 0, background: 'var(--surface)' }} />
- </div>
+        <Panel style={{ padding: 0, overflow: 'hidden' }}>
+          <iframe
+            ref={frame}
+            title={spec.title}
+            srcDoc={html}
+            sandbox="allow-same-origin allow-modals"
+            style={{ width: '100%', height: '80vh', border: 0, background: 'var(--surface)' }}
+          />
+        </Panel>
       )}
- </Screen>
+    </Screen>
   );
 }

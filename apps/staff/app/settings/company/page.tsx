@@ -179,7 +179,7 @@ export default function CompanyProfilePage() {
       {profile.status === 'forbidden' && <Forbidden />}
       {profile.status === 'error' && <ErrorBox message={profile.error} onRetry={profile.reload} />}
       {profile.status === 'success' && !editing && (
-        <section className="card">
+        <Panel>
           <div className="row">
             <h2>البيانات القانونية</h2>
             {canManage && (
@@ -234,7 +234,7 @@ export default function CompanyProfilePage() {
               <dd dir="ltr">{profile.data.countryCode ?? '—'}</dd>
             </dl>
           )}
-        </section>
+        </Panel>
       )}
 
       {profile.status === 'success' && editing && canManage && (

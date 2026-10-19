@@ -101,7 +101,7 @@ export default function PayrollWpsPage() {
       }
     >
       <Notice notice={notice} />
-      <div className="card">
+      <Panel>
         <div className="form-grid">
           <label className="field">
             <span>رمز البنك</span>
@@ -182,7 +182,7 @@ export default function PayrollWpsPage() {
             </button>
           </div>
         )}
-      </div>
+      </Panel>
 
       {preview && (
         <Panel

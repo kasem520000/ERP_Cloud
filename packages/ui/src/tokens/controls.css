@@ -1664,6 +1664,41 @@ a.ui-kpi-cell:hover {
   top: 16px;
 }
 
+/* --------------------------------------------------------------- popover */
+/*
+ * سطحٌ عائم — قائمة الحساب، الإشعارات، درج المساعد: نفسُ الحدّ والظلّ في كل
+ * مكان. ليس بديلاً للوحة على الصفحة؛ المستوى العائم وحده يستعمله.
+ */
+.ui-popover {
+  min-inline-size: 0;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-3);
+}
+
+/* ------------------------------------------------------------ field group */
+/*
+ * مجموعةُ حقولٍ صغيرة داخل نموذجٍ أو نافذة (عينٌ يمنى/يسرى، ملاحظات، …):
+ * إطارٌ رقيقٌ على سطحٍ ثانويٍّ بلا ظلّ — تجمع الحقول ولا تنافس اللوحةَ التي تسكنها.
+ * لا تُستعمل بدل اللوحة على مستوى الصفحة؛ للصفحة `Panel` وللنموذج `FormSection`.
+ */
+.ui-field-group {
+  margin: 0;
+  min-width: 0;
+  padding: 12px 14px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
+}
+.ui-field-group > legend,
+.ui-field-group-title {
+  padding-inline: 6px;
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--text);
+}
+
 /* ------------------------------------------------------------------ form */
 .ui-form-section,
 .form-section {

@@ -331,7 +331,7 @@ function TailoringMeasurements() {
                 </p>
               )}
 
-              <fieldset className="card tight" style={{ margin: 0 }}>
+              <FormSection title="بيانات صاحب القياس">
                 <div className="form-grid">
                   <label className="field">
                     <span>اسم صاحب القياس *</span>
@@ -351,7 +351,7 @@ function TailoringMeasurements() {
                     />
                   </label>
                 </div>
-              </fieldset>
+              </FormSection>
 
               <FormSection title="قيم القياسات">
                 {activeAttributes.length === 0 ? (
@@ -386,7 +386,7 @@ function TailoringMeasurements() {
                 )}
               </FormSection>
 
-              <fieldset className="card tight" style={{ margin: 0 }}>
+              <FormSection title="ملاحظات">
                 <label className="field" style={{ margin: 0 }}>
                   <span>ملاحظات</span>
                   <textarea
@@ -396,7 +396,7 @@ function TailoringMeasurements() {
                     onChange={(event) => setField({ notes: event.target.value })}
                   />
                 </label>
-              </fieldset>
+              </FormSection>
             </div>
             <div className="modal-foot">
               <button className="btn primary" type="button" onClick={save} disabled={busy}>

@@ -88,7 +88,7 @@ export default function UsageSettingsPage() {
 
       {allowed && snapshot.status === 'success' && data && (
         <>
-          <div className="card">
+          <Panel>
             <dl className="kv">
               <dt>المنشأة</dt>
               <dd>
@@ -108,7 +108,7 @@ export default function UsageSettingsPage() {
               الأرقام تُقرأ لحظة السؤال من جداول منشأتك (الفروع · الأصناف · المستخدمون · الفواتير · التخزين ·
               الرسائل)، ومن عدّادٍ يزيده الطلب نفسه للاستدعاءات والبريد — لا نسخةً ثانية تتخلّف عن الأصل.
             </p>
-          </div>
+          </Panel>
 
           {data.metrics
             .filter((metric) => metric.state === 'hard' && metric.enforced)

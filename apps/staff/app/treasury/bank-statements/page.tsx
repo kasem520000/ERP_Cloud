@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useMemo, useState } from 'react';
+import { Panel } from '@erp/ui';
 
 import { DataTable, Notice, QueryView } from '../../../components/data-view';
 import { Screen } from '../../../components/screen';
@@ -125,71 +126,72 @@ export default function BankStatementsPage() {
     >
       <Notice notice={notice} />
       {manage ? (
-        <form className="card grid gap-3 mb-4" onSubmit={importStatement}>
-          <div>
-            <h2 className="m-0 text-[16px] font-bold text-ink">معالج استيراد كشف الحساب</h2>
-            <p className="m-0 mt-1 text-[12px] text-muted">
-              الخطوة 1 رفع الملف · الخطوة 2 تأكيد الحساب · الخطوة 3 مراجعة الحركات.
-            </p>
-          </div>
-          <FilterBar>
+        <form onSubmit={importStatement}>
+          <Panel
+            title="معالج استيراد كشف الحساب"
+            hint="الخطوة 1 رفع الملف · الخطوة 2 تأكيد الحساب · الخطوة 3 مراجعة الحركات."
+            footer={
+              <>
+                <span className="text-[12px] text-muted">
+                  {csv ? `${csv.split(/\r?\n/).filter(Boolean).length - 1} سطر تقريباً` : 'لم يُرفع ملف بعد'}
+                </span>
+                <button className="btn primary" disabled={busy} type="submit">
+                  {busy ? 'جارٍ الاستيراد…' : 'رفع ومراجعة الكشف'}
+                </button>
+              </>
+            }
+          >
+            <FilterBar>
+              <label className="field">
+                <span>الحساب البنكي</span>
+                <select
+                  className="input"
+                  required
+                  value={bankAccountId}
+                  onChange={(event) => setBankAccountId(event.target.value)}
+                >
+                  <option value="">اختر الحساب</option>
+                  {(accounts.data ?? []).map((account) => (
+                    <option key={account.id} value={account.id}>
+                      {account.bankName} — {account.accountNo ?? account.iban ?? account.id.slice(0, 8)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="field">
+                <span>ملف CSV</span>
+                <input
+                  className="input"
+                  style={{ blockSize: 'auto', paddingBlock: 6, maxWidth: 320 }}
+                  type="file"
+                  accept=".csv,text/csv,text/plain"
+                  onChange={chooseFile}
+                />
+              </label>
+              <label className="field">
+                <span>رصيد بداية الكشف، اختياري</span>
+                <input
+                  className="input"
+                  dir="ltr"
+                  inputMode="decimal"
+                  value={openingBalance}
+                  onChange={(event) => setOpeningBalance(event.target.value)}
+                  placeholder="0.00"
+                />
+              </label>
+            </FilterBar>
             <label className="field">
-              <span>الحساب البنكي</span>
-              <select
-                className="input"
-                required
-                value={bankAccountId}
-                onChange={(event) => setBankAccountId(event.target.value)}
-              >
-                <option value="">اختر الحساب</option>
-                {(accounts.data ?? []).map((account) => (
-                  <option key={account.id} value={account.id}>
-                    {account.bankName} — {account.accountNo ?? account.iban ?? account.id.slice(0, 8)}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="field">
-              <span>ملف CSV</span>
-              <input
-                className="input"
-                style={{ blockSize: 'auto', paddingBlock: 6, maxWidth: 320 }}
-                type="file"
-                accept=".csv,text/csv,text/plain"
-                onChange={chooseFile}
-              />
-            </label>
-            <label className="field">
-              <span>رصيد بداية الكشف، اختياري</span>
-              <input
+              <span>المحتوى — للمعاينة أو اللصق اليدوي</span>
+              <textarea
                 className="input"
                 dir="ltr"
-                inputMode="decimal"
-                value={openingBalance}
-                onChange={(event) => setOpeningBalance(event.target.value)}
-                placeholder="0.00"
+                rows={5}
+                value={csv}
+                onChange={(event) => setCsv(event.target.value)}
+                placeholder="Date,Description,Amount,Balance"
               />
             </label>
-          </FilterBar>
-          <label className="field">
-            <span>المحتوى — للمعاينة أو اللصق اليدوي</span>
-            <textarea
-              className="input"
-              dir="ltr"
-              rows={5}
-              value={csv}
-              onChange={(event) => setCsv(event.target.value)}
-              placeholder="Date,Description,Amount,Balance"
-            />
-          </label>
-          <div className="flex items-center justify-between gap-3">
-            <span className="text-[12px] text-muted">
-              {csv ? `${csv.split(/\r?\n/).filter(Boolean).length - 1} سطر تقريباً` : 'لم يُرفع ملف بعد'}
-            </span>
-            <button className="btn primary" disabled={busy} type="submit">
-              {busy ? 'جارٍ الاستيراد…' : 'رفع ومراجعة الكشف'}
-            </button>
-          </div>
+          </Panel>
         </form>
       ) : null}
 

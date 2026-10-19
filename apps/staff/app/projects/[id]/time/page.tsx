@@ -1,5 +1,6 @@
 'use client';
 
+import { Panel } from '@erp/ui';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -10,7 +11,13 @@ import { ApiError } from '../../../../lib/api';
 import { loadTime, logTaskTime, type TimeLog } from '../../../../lib/project-kanban';
 import { useSession } from '../../../../lib/session';
 
-type TimeTask = { id: string; title: string; estimatedHours: string; actualHours: string; varianceHours: string };
+type TimeTask = {
+  id: string;
+  title: string;
+  estimatedHours: string;
+  actualHours: string;
+  varianceHours: string;
+};
 
 export default function ProjectTimePage() {
   const params = useParams<{ id: string }>();
@@ -35,7 +42,9 @@ export default function ProjectTimePage() {
   }
 
   useEffect(() => {
-    void reload().catch((reason: unknown) => setError(reason instanceof ApiError ? reason.message : String(reason)));
+    void reload().catch((reason: unknown) =>
+      setError(reason instanceof ApiError ? reason.message : String(reason)),
+    );
   }, [projectId]);
 
   async function save() {
@@ -62,16 +71,27 @@ export default function ProjectTimePage() {
   if (!ready) return <Loading />;
 
   return (
-    <Screen title="تتبع الوقت" subtitle="الساعات الفعلية مجموع التسجيلات. التكلفة تُحسب من معدل الموظف." crumbs={['إدارة المشاريع']} actions={<Link className="btn" href={`/projects/${projectId}/cost`}>التكلفة</Link>}>
+    <Screen
+      title="تتبع الوقت"
+      subtitle="الساعات الفعلية مجموع التسجيلات. التكلفة تُحسب من معدل الموظف."
+      crumbs={['إدارة المشاريع']}
+      actions={
+        <Link className="btn" href={`/projects/${projectId}/cost`}>
+          التكلفة
+        </Link>
+      }
+    >
       <Notice notice={notice} />
       {can('projects.time_logs.manage') ? (
-        <div className="card">
+        <Panel>
           <div className="grid gap-3 md:grid-cols-3">
             <label className="field">
               <span>المهمة</span>
               <select className="input" value={taskId} onChange={(event) => setTaskId(event.target.value)}>
                 {tasks.map((task) => (
-                  <option key={task.id} value={task.id}>{task.title}</option>
+                  <option key={task.id} value={task.id}>
+                    {task.title}
+                  </option>
                 ))}
               </select>
             </label>
@@ -84,12 +104,17 @@ export default function ProjectTimePage() {
               <input className="input" value={note} onChange={(event) => setNote(event.target.value)} />
             </label>
           </div>
-          <button className="btn primary" type="button" disabled={busy || !taskId} onClick={() => void save()}>
+          <button
+            className="btn primary"
+            type="button"
+            disabled={busy || !taskId}
+            onClick={() => void save()}
+          >
             تسجيل
           </button>
-        </div>
+        </Panel>
       ) : null}
-      <div className="card">
+      <Panel>
         <table>
           <thead>
             <tr>
@@ -102,7 +127,9 @@ export default function ProjectTimePage() {
           <tbody>
             {tasks.map((task) => (
               <tr key={task.id}>
-                <td><Link href={`/projects/${projectId}/tasks/${task.id}`}>{task.title}</Link></td>
+                <td>
+                  <Link href={`/projects/${projectId}/tasks/${task.id}`}>{task.title}</Link>
+                </td>
                 <td>{task.estimatedHours}</td>
                 <td>{task.actualHours}</td>
                 <td>{task.varianceHours}</td>
@@ -111,9 +138,11 @@ export default function ProjectTimePage() {
           </tbody>
         </table>
         {logs.map((entry) => (
-          <p key={entry.id} className="muted">{entry.logDate} · {entry.hours} س · {entry.note ?? ''}</p>
+          <p key={entry.id} className="muted">
+            {entry.logDate} · {entry.hours} س · {entry.note ?? ''}
+          </p>
         ))}
-      </div>
+      </Panel>
     </Screen>
   );
 }

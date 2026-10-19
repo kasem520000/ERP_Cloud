@@ -2,10 +2,10 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
-import { Panel } from '@erp/ui';
+import { KpiStrip, Panel } from '@erp/ui';
 
 import { Notice } from '../../../components/data-view';
-import { Screen } from '../../../components/screen';
+import { Empty, Screen } from '../../../components/screen';
 import { removeOfflineInvoice, listOfflineInvoices, type OfflineQueueRecord } from '../../../lib/offline-db';
 import { retryOfflineConflict, startOfflineAutoSync, syncOfflineInvoices } from '../../../lib/sync-engine';
 
@@ -107,33 +107,36 @@ export default function OfflineQueuePage() {
       }
     >
       {notice ? <Notice notice={notice} /> : null}
-      <div className="grid cols-3">
-        <div className="stat-card">
-          <span>معلقة</span>
-          <strong>{pending.length}</strong>
-          <small>تنتظر الاتصال</small>
-        </div>
-        <div className="stat-card">
-          <span>تعارض</span>
-          <strong className="text-danger">{conflicts.length}</strong>
-          <small>تحتاج حلاً قبل الترحيل</small>
-        </div>
-        <div className="stat-card">
-          <span>مُرحّلة</span>
-          <strong className="text-ok">{synced.length}</strong>
-          <small>تحمل رقماً حقيقياً</small>
-        </div>
-      </div>
+      <KpiStrip
+        items={[
+          {
+            label: 'معلقة',
+            value: pending.length,
+            hint: 'تنتظر الاتصال',
+            tone: pending.length ? 'warn' : 'neutral',
+          },
+          {
+            label: 'تعارض',
+            value: conflicts.length,
+            hint: 'تحتاج حلاً قبل الترحيل',
+            tone: conflicts.length ? 'down' : 'neutral',
+          },
+          { label: 'مُرحّلة', value: synced.length, hint: 'تحمل رقماً حقيقياً', tone: 'up' },
+        ]}
+      />
 
       <Panel title="الفواتير المحلية" flush>
         {!rows.length ? (
-          <div className="state">
-            <strong>الطابور فارغ</strong>
-            <span>الفواتير التي تنشئها دون شبكة ستظهر هنا.</span>
-            <Link className="btn" href="/pos/offline">
-              فتح POS أوفلاين
-            </Link>
-          </div>
+          <Empty
+            bare
+            title="الطابور فارغ"
+            detail="الفواتير التي تنشئها دون شبكة ستظهر هنا."
+            action={
+              <Link className="btn" href="/pos/offline">
+                فتح POS أوفلاين
+              </Link>
+            }
+          />
         ) : (
           <div className="table-wrap">
             <table>
@@ -214,13 +217,13 @@ export default function OfflineQueuePage() {
           </div>
         )}
       </Panel>
-      <div className="card subtle">
+      <Panel className="subtle">
         <strong>حل التعارض</strong>
         <p className="muted">
           عند نفاد المخزون يظهر الرمز STOCK_INSUFFICIENT. صحّح الكمية أو حدّث حزمة المخزون ثم اضغط «إعادة
           المحاولة». لا يتأثر باقي الطابور.
         </p>
-      </div>
+      </Panel>
     </Screen>
   );
 }

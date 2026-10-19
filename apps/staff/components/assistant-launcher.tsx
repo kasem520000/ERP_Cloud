@@ -18,7 +18,7 @@ export function AssistantLauncher() {
   return (
  <>
       {open ? (
- <aside className="assistant-drawer card" aria-label="المساعد المحاسبي">
+ <aside className="assistant-drawer ui-popover" aria-label="المساعد المحاسبي">
  <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
  <strong>المساعد المحاسبي</strong>
  <div className="row">

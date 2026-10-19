@@ -141,7 +141,7 @@ export default function ZatcaSettingsPage() {
     >
       <Notice notice={notice} />
       {loading && (
-        <div className="card grid" aria-busy="true">
+        <div className="grid" aria-busy="true">
           <p className="muted">جارٍ التحميل…</p>
         </div>
       )}

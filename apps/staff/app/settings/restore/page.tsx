@@ -85,7 +85,7 @@ export default function RestorePage() {
         </Link>
       }
     >
-      <div className="card">
+      <Panel>
         <p className="alert warn">
           الإستعادة تضيف السجلات المفقودة فقط. إذا كان الهدف بدء سجلات جديدة تماماً فالمطلوب «إنشاء ملف» جديد
           وليس الإستعادة فوق ملف يعمل.
@@ -127,7 +127,7 @@ export default function RestorePage() {
           </button>
         </div>
         <Notice notice={notice} />
-      </div>
+      </Panel>
 
       {tables.length > 0 && (
         <Panel title={<>تفاصيل {result?.mode === 'apply' ? 'التنفيذ' : 'الفحص'}</>} flush>

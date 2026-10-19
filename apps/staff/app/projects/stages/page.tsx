@@ -313,7 +313,7 @@ export default function ProjectStagesPage() {
                 </button>
               </div>
 
-              <div className="card">
+              <Panel>
                 <div className="chips">
                   <span className="chip">{`${project.code} — ${project.name}`}</span>
                   <span className="chip">{`المراحل: ${stages.length}`}</span>
@@ -392,7 +392,7 @@ export default function ProjectStagesPage() {
                     },
                   ]}
                 />
-              </div>
+              </Panel>
 
               <p className="muted">
                 حالة المشروع: {statusLabel(project.status)}. الترتيب يُحفظ بالتزحيف داخل معاملة واحدة، فيبقى

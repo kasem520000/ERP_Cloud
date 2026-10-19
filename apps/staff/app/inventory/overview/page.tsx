@@ -137,7 +137,7 @@ export default function InventoryOverviewPage() {
       <Panel title="إجراءات سريعة">
         <div className="grid cols">
           {QUICK.map((item) => (
-            <Link key={item.href} className="card tight" href={item.href}>
+            <Link key={item.href} className="ui-tile" href={item.href}>
               <span style={{ fontSize: 20 }}>{item.icon}</span>
               <strong>{item.label}</strong>
             </Link>

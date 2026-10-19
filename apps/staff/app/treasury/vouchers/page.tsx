@@ -380,307 +380,309 @@ function VouchersScreen() {
       </FilterBand>
 
       {open && (
-        <form className="card" onSubmit={create}>
-          <DocHead>
-            <DocField label="الرقم">
-              <span className="muted">يُرقَّم تلقائياً عند الترحيل</span>
-            </DocField>
-            <DocField label="التاريخ">
-              <input
-                className="input"
-                type="date"
-                dir="ltr"
-                value={form.date}
-                onChange={(event) => set('date', event.target.value)}
-                required
-              />
-            </DocField>
-            <DocField label="الوقت">
-              <input
-                className="input"
-                dir="ltr"
-                inputMode="numeric"
-                placeholder="09:05"
-                value={form.voucherTime}
-                onChange={(event) => set('voucherTime', event.target.value)}
-              />
-            </DocField>
-            <DocField label="الفرع">
-              <select
-                className="input"
-                value={effectiveBranch}
-                onChange={(event) => set('branchId', event.target.value)}
-                required
-              >
-                {branchOptions(branchRows).map((option) => (
-                  <option key={option.id} value={option.id}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </DocField>
-            <DocField label={kind === 'receipt' ? 'حساب العميل' : 'المورد'}>
-              <select
-                className="input"
-                value={form.partyId}
-                onChange={(event) => set('partyId', event.target.value)}
-              >
-                <option value="">— بدون —</option>
-                {(parties.data ?? []).map((row) => (
-                  <option key={row.id} value={row.id}>
-                    {partyLabel(row)}
-                  </option>
-                ))}
-              </select>
-            </DocField>
-            <DocField label="الجهة">
-              <select
-                className="input"
-                value={form.subtype}
-                onChange={(event) => set('subtype', event.target.value)}
-              >
-                {filteredSubtypes.map((entry) => (
-                  <option key={entry.id} value={entry.id}>
-                    {entry.label}
-                  </option>
-                ))}
-              </select>
-            </DocField>
-          </DocHead>
-
-          <div className="form-grid">
-            <label className="field">
-              <span>قيمة السند *</span>
-              <input
-                className="input"
-                dir="ltr"
-                inputMode="decimal"
-                value={form.amountText}
-                onChange={(event) => set('amountText', event.target.value)}
-                required
-              />
-            </label>
-            <label className="field">
-              <span>العملة</span>
-              <select
-                className="input"
-                value={form.currency}
-                onChange={(event) => set('currency', event.target.value)}
-              >
-                <option value="SAR">ريال سعودي</option>
-                <option value="USD">دولار</option>
-                <option value="YER">ريال يمني</option>
-                <option value="EUR">يورو</option>
-              </select>
-            </label>
-            {form.currency !== 'SAR' && (
-              <label className="field">
-                <span>القيمة بالعملة</span>
+        <form onSubmit={create}>
+          <Panel title="سند جديد">
+            <DocHead>
+              <DocField label="الرقم">
+                <span className="muted">يُرقَّم تلقائياً عند الترحيل</span>
+              </DocField>
+              <DocField label="التاريخ">
+                <input
+                  className="input"
+                  type="date"
+                  dir="ltr"
+                  value={form.date}
+                  onChange={(event) => set('date', event.target.value)}
+                  required
+                />
+              </DocField>
+              <DocField label="الوقت">
                 <input
                   className="input"
                   dir="ltr"
-                  inputMode="decimal"
-                  value={form.foreignAmountText}
-                  onChange={(event) => set('foreignAmountText', event.target.value)}
+                  inputMode="numeric"
+                  placeholder="09:05"
+                  value={form.voucherTime}
+                  onChange={(event) => set('voucherTime', event.target.value)}
                 />
-                <span className="muted small">كما كُتبت في السند؛ المبلغ الأساسي يبقى بالريال.</span>
-              </label>
-            )}
-            {isTransfer ? (
-              /**
-               * اختر طريقة الدفع (تحويل بنكي) — the desktop's tile window. A transfer
-               * that lands in "the default bank" is a transfer nobody chose, so the
-               * voucher names the bank before it is saved.
-               */
-              <div className="card tight">
-                <div className="card-head">البنوك المتاحة</div>
-                <div className="row" style={{ alignItems: 'center', justifyContent: 'space-between' }}>
-                  <span>
-                    {form.cashLocationId
-                      ? cashLocationLabel(
-                          cashRows.find((row) => row.id === form.cashLocationId) ?? ({} as CashLocation),
-                        )
-                      : 'لم يُختر بنك'}
-                  </span>
-                  <button type="button" className="btn primary" onClick={() => setPickingBank(true)}>
-                    اختر البنك
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <label className="field">
-                <span>{kind === 'receipt' ? 'يودع في حساب *' : 'يصرف من حساب *'}</span>
+              </DocField>
+              <DocField label="الفرع">
                 <select
                   className="input"
-                  value={form.cashLocationId}
-                  onChange={(event) => set('cashLocationId', event.target.value)}
+                  value={effectiveBranch}
+                  onChange={(event) => set('branchId', event.target.value)}
                   required
                 >
-                  <option value="">— اختر —</option>
-                  {cashRows.map((row) => (
-                    <option key={row.id} value={row.id}>
-                      {cashLocationLabel(row)}
+                  {branchOptions(branchRows).map((option) => (
+                    <option key={option.id} value={option.id}>
+                      {option.label}
                     </option>
                   ))}
                 </select>
-              </label>
-            )}
-            <label className="field">
-              <span>دفعة لحساب</span>
-              <select
-                className="input"
-                value={form.counterAccountId}
-                onChange={(event) => set('counterAccountId', event.target.value)}
-              >
-                <option value="">— حساب الطرف —</option>
-                {postable.map((account) => (
-                  <option key={account.id} value={account.id}>
-                    {accountLabel(account)}
-                  </option>
-                ))}
-              </select>
-              <span className="muted small">
-                إن تركته فارغاً استُخدم حساب الطرف، ثم حساب التعيين في إعدادات الترحيل.
-              </span>
-            </label>
-          </div>
-
-          {/* تفاصيل الدفع — `frmSandQ`'s group box, with the cheque block behind it. */}
-          <Panel title="تفاصيل الدفع">
-            <div className="form-grid">
-              <label className="field">
-                <span>نوع الدفع</span>
+              </DocField>
+              <DocField label={kind === 'receipt' ? 'حساب العميل' : 'المورد'}>
                 <select
                   className="input"
-                  value={form.method}
-                  onChange={(event) => set('method', event.target.value)}
+                  value={form.partyId}
+                  onChange={(event) => set('partyId', event.target.value)}
                 >
-                  {METHODS.map((entry) => (
+                  <option value="">— بدون —</option>
+                  {(parties.data ?? []).map((row) => (
+                    <option key={row.id} value={row.id}>
+                      {partyLabel(row)}
+                    </option>
+                  ))}
+                </select>
+              </DocField>
+              <DocField label="الجهة">
+                <select
+                  className="input"
+                  value={form.subtype}
+                  onChange={(event) => set('subtype', event.target.value)}
+                >
+                  {filteredSubtypes.map((entry) => (
                     <option key={entry.id} value={entry.id}>
                       {entry.label}
                     </option>
                   ))}
                 </select>
+              </DocField>
+            </DocHead>
+
+            <div className="form-grid">
+              <label className="field">
+                <span>قيمة السند *</span>
+                <input
+                  className="input"
+                  dir="ltr"
+                  inputMode="decimal"
+                  value={form.amountText}
+                  onChange={(event) => set('amountText', event.target.value)}
+                  required
+                />
               </label>
-              {isBank && (
-                <>
-                  <label className="field">
-                    <span>مسحوب على بنك</span>
-                    <input
-                      className="input"
-                      value={form.bankName}
-                      onChange={(event) => set('bankName', event.target.value)}
-                    />
-                  </label>
-                  {form.method === 'cheque' && (
-                    <>
-                      <label className="field">
-                        <span>رقم الشيك *</span>
-                        <input
-                          className="input"
-                          dir="ltr"
-                          value={form.chequeNo}
-                          onChange={(event) => set('chequeNo', event.target.value)}
-                          required
-                        />
-                      </label>
-                      <label className="field">
-                        <span>تاريخ استحقاق (شيك)</span>
-                        <input
-                          className="input"
-                          type="date"
-                          dir="ltr"
-                          value={form.chequeDate}
-                          onChange={(event) => set('chequeDate', event.target.value)}
-                        />
-                      </label>
-                    </>
-                  )}
-                </>
+              <label className="field">
+                <span>العملة</span>
+                <select
+                  className="input"
+                  value={form.currency}
+                  onChange={(event) => set('currency', event.target.value)}
+                >
+                  <option value="SAR">ريال سعودي</option>
+                  <option value="USD">دولار</option>
+                  <option value="YER">ريال يمني</option>
+                  <option value="EUR">يورو</option>
+                </select>
+              </label>
+              {form.currency !== 'SAR' && (
+                <label className="field">
+                  <span>القيمة بالعملة</span>
+                  <input
+                    className="input"
+                    dir="ltr"
+                    inputMode="decimal"
+                    value={form.foreignAmountText}
+                    onChange={(event) => set('foreignAmountText', event.target.value)}
+                  />
+                  <span className="muted small">كما كُتبت في السند؛ المبلغ الأساسي يبقى بالريال.</span>
+                </label>
+              )}
+              {isTransfer ? (
+                /**
+                 * اختر طريقة الدفع (تحويل بنكي) — the desktop's tile window. A transfer
+                 * that lands in "the default bank" is a transfer nobody chose, so the
+                 * voucher names the bank before it is saved.
+                 */
+                <div className="ui-field-group">
+                  <div className="ui-field-group-title">البنوك المتاحة</div>
+                  <div className="row" style={{ alignItems: 'center', justifyContent: 'space-between' }}>
+                    <span>
+                      {form.cashLocationId
+                        ? cashLocationLabel(
+                            cashRows.find((row) => row.id === form.cashLocationId) ?? ({} as CashLocation),
+                          )
+                        : 'لم يُختر بنك'}
+                    </span>
+                    <button type="button" className="btn primary" onClick={() => setPickingBank(true)}>
+                      اختر البنك
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <label className="field">
+                  <span>{kind === 'receipt' ? 'يودع في حساب *' : 'يصرف من حساب *'}</span>
+                  <select
+                    className="input"
+                    value={form.cashLocationId}
+                    onChange={(event) => set('cashLocationId', event.target.value)}
+                    required
+                  >
+                    <option value="">— اختر —</option>
+                    {cashRows.map((row) => (
+                      <option key={row.id} value={row.id}>
+                        {cashLocationLabel(row)}
+                      </option>
+                    ))}
+                  </select>
+                </label>
               )}
               <label className="field">
-                <span>تاريخ المرجع</span>
-                <input
-                  className="input"
-                  type="date"
-                  dir="ltr"
-                  value={form.referenceDate}
-                  onChange={(event) => set('referenceDate', event.target.value)}
-                />
-              </label>
-              <label className="field">
-                <span>رقم المرجع</span>
-                <input
-                  className="input"
-                  dir="ltr"
-                  value={form.referenceNo}
-                  onChange={(event) => set('referenceNo', event.target.value)}
-                />
-              </label>
-              <label className="field">
-                <span>مركز التكلفة</span>
+                <span>دفعة لحساب</span>
                 <select
                   className="input"
-                  value={form.costCenterId}
-                  onChange={(event) => set('costCenterId', event.target.value)}
+                  value={form.counterAccountId}
+                  onChange={(event) => set('counterAccountId', event.target.value)}
                 >
-                  <option value="">— بدون —</option>
-                  {(costCenters.data ?? []).map((row) => (
-                    <option key={row.id} value={row.id}>
-                      {row.nameAr ?? row.name_ar ?? row.code}
+                  <option value="">— حساب الطرف —</option>
+                  {postable.map((account) => (
+                    <option key={account.id} value={account.id}>
+                      {accountLabel(account)}
                     </option>
                   ))}
                 </select>
-              </label>
-              <label className="field">
-                <span>المندوب</span>
-                <select
-                  className="input"
-                  value={form.salesmanId}
-                  onChange={(event) => set('salesmanId', event.target.value)}
-                >
-                  <option value="">— بدون —</option>
-                  {(employees.data ?? []).map((row) => (
-                    <option key={row.id} value={row.id}>
-                      {row.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="field">
-                <span>{kind === 'receipt' ? 'المستلم منه' : 'المستلم'}</span>
-                <input
-                  className="input"
-                  value={form.recipient}
-                  onChange={(event) => set('recipient', event.target.value)}
-                />
-              </label>
-              <label className="field">
-                <span>البيان</span>
-                <input
-                  className="input"
-                  value={form.description}
-                  onChange={(event) => set('description', event.target.value)}
-                />
-                <span className="muted small">ينتقل إلى سطر القيد كما فيReceipts.Notes.</span>
+                <span className="muted small">
+                  إن تركته فارغاً استُخدم حساب الطرف، ثم حساب التعيين في إعدادات الترحيل.
+                </span>
               </label>
             </div>
-          </Panel>
 
-          <Notice notice={notice} />
-          <ActionBar>
-            <button className="btn primary" type="submit" disabled={busy}>
-              {busy ? 'جارٍ الحفظ…' : 'حفظ'}
-            </button>
-          </ActionBar>
+            {/* تفاصيل الدفع — `frmSandQ`'s group box, with the cheque block behind it. */}
+            <Panel title="تفاصيل الدفع">
+              <div className="form-grid">
+                <label className="field">
+                  <span>نوع الدفع</span>
+                  <select
+                    className="input"
+                    value={form.method}
+                    onChange={(event) => set('method', event.target.value)}
+                  >
+                    {METHODS.map((entry) => (
+                      <option key={entry.id} value={entry.id}>
+                        {entry.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                {isBank && (
+                  <>
+                    <label className="field">
+                      <span>مسحوب على بنك</span>
+                      <input
+                        className="input"
+                        value={form.bankName}
+                        onChange={(event) => set('bankName', event.target.value)}
+                      />
+                    </label>
+                    {form.method === 'cheque' && (
+                      <>
+                        <label className="field">
+                          <span>رقم الشيك *</span>
+                          <input
+                            className="input"
+                            dir="ltr"
+                            value={form.chequeNo}
+                            onChange={(event) => set('chequeNo', event.target.value)}
+                            required
+                          />
+                        </label>
+                        <label className="field">
+                          <span>تاريخ استحقاق (شيك)</span>
+                          <input
+                            className="input"
+                            type="date"
+                            dir="ltr"
+                            value={form.chequeDate}
+                            onChange={(event) => set('chequeDate', event.target.value)}
+                          />
+                        </label>
+                      </>
+                    )}
+                  </>
+                )}
+                <label className="field">
+                  <span>تاريخ المرجع</span>
+                  <input
+                    className="input"
+                    type="date"
+                    dir="ltr"
+                    value={form.referenceDate}
+                    onChange={(event) => set('referenceDate', event.target.value)}
+                  />
+                </label>
+                <label className="field">
+                  <span>رقم المرجع</span>
+                  <input
+                    className="input"
+                    dir="ltr"
+                    value={form.referenceNo}
+                    onChange={(event) => set('referenceNo', event.target.value)}
+                  />
+                </label>
+                <label className="field">
+                  <span>مركز التكلفة</span>
+                  <select
+                    className="input"
+                    value={form.costCenterId}
+                    onChange={(event) => set('costCenterId', event.target.value)}
+                  >
+                    <option value="">— بدون —</option>
+                    {(costCenters.data ?? []).map((row) => (
+                      <option key={row.id} value={row.id}>
+                        {row.nameAr ?? row.name_ar ?? row.code}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="field">
+                  <span>المندوب</span>
+                  <select
+                    className="input"
+                    value={form.salesmanId}
+                    onChange={(event) => set('salesmanId', event.target.value)}
+                  >
+                    <option value="">— بدون —</option>
+                    {(employees.data ?? []).map((row) => (
+                      <option key={row.id} value={row.id}>
+                        {row.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="field">
+                  <span>{kind === 'receipt' ? 'المستلم منه' : 'المستلم'}</span>
+                  <input
+                    className="input"
+                    value={form.recipient}
+                    onChange={(event) => set('recipient', event.target.value)}
+                  />
+                </label>
+                <label className="field">
+                  <span>البيان</span>
+                  <input
+                    className="input"
+                    value={form.description}
+                    onChange={(event) => set('description', event.target.value)}
+                  />
+                  <span className="muted small">ينتقل إلى سطر القيد كما فيReceipts.Notes.</span>
+                </label>
+              </div>
+            </Panel>
+
+            <Notice notice={notice} />
+            <ActionBar>
+              <button className="btn primary" type="submit" disabled={busy}>
+                {busy ? 'جارٍ الحفظ…' : 'حفظ'}
+              </button>
+            </ActionBar>
+          </Panel>
         </form>
       )}
 
       {!open && <Notice notice={notice} />}
       {highlightedId && (
         <div
-          className="card tight"
-          style={{ background: 'var(--warn-soft)', borderColor: 'var(--warn-line)' }}
+          className="alert warn"
+          style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}
         >
           <span>
             تم فتح السند <code dir="ltr">{highlightedId}</code> من تقرير آخر — الصف المميز أدناه هو المطلوب.

@@ -78,7 +78,7 @@ export default function NewCompanyFilePage() {
       subtitle="ملف منشأة جديد بدفاتر مستقلة تماماً، لنفس المالك، يمكن نسخ البيانات الأساسية إليه."
       crumbs={['الإعدادات', 'إعدادات إدارية']}
     >
-      <div className="card">
+      <Panel>
         <p className="alert info">
           الملف الجديد منفصل بالكامل: لا أرصدة ولا فواتير ولا قيود تنتقل إليه، والمنقول اختيارياً هو البيانات
           التعريفية فقط. يبدأ الملف بدون ترخيص ويُسجَّل طلب تفعيل تلقائياً لدى مزوّد الخدمة.
@@ -131,7 +131,7 @@ export default function NewCompanyFilePage() {
           </button>
         </div>
         <Notice notice={notice} />
-      </div>
+      </Panel>
 
       <Panel title="الملفات المُنشأة من هنا" flush>
         {(files.data ?? []).length === 0 ? (

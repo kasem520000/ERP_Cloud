@@ -162,7 +162,7 @@ export function NotificationBell({ label }: { label: string }) {
 
       {open && (
  <div
-          className="card menu-pop"
+          className="ui-popover menu-pop"
           style={{
             position: 'absolute',
             insetInlineEnd: 0,

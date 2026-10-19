@@ -214,13 +214,10 @@ function OpticsPrescriptions() {
       {error && <p className="alert danger">{error}</p>}
       {notice && <p className="alert ok">{notice}</p>}
       {lineIdFilter && (
-        <div
-          className="card tight"
-          style={{ background: 'var(--warn-soft)', borderColor: 'var(--warn-line)' }}
-        >
-          تم فتح بيانات النظارات للسطر <code dir="ltr">{lineIdFilter}</code> من فاتورة المبيعات (Alt+G) —
-          الوصفات المرتبطة بهذا السطر مميزة أدناه.
-        </div>
+        <Panel style={{ background: 'var(--warn-soft)', borderColor: 'var(--warn-line)' }} className="tight">
+          <code dir="ltr">{lineIdFilter}</code> من فاتورة المبيعات (Alt+G) — الوصفات المرتبطة بهذا السطر مميزة
+          أدناه.
+        </Panel>
       )}
 
       <FilterBand className="no-print">
@@ -411,12 +408,10 @@ function OpticsPrescriptions() {
               ].map((column) => (
                 <fieldset
                   key={column.side}
-                  className="card tight"
-                  style={{ margin: 0, background: column.background }}
+                  className="ui-field-group"
+                  style={{ background: column.background }}
                 >
-                  <legend className="group-label" style={{ margin: 0 }}>
-                    {column.title}
-                  </legend>
+                  <legend className="group-label">{column.title}</legend>
                   <div className="form-grid">
                     {column.captions.map((caption) => (
                       <label key={caption.key} className="field" style={{ margin: 0 }}>

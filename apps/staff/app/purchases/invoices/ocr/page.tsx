@@ -1,5 +1,6 @@
 'use client';
 
+import { Panel } from '@erp/ui';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useState, type ChangeEvent, type FormEvent } from 'react';
@@ -274,51 +275,52 @@ export default function OcrPurchaseInvoicePage() {
     >
       <Notice notice={notice} />
 
-      <form className="card" onSubmit={startOcr}>
-        <div className="form-grid">
-          <label className="field" style={{ gridColumn: '1 / -1' }}>
-            <span>المستند (PDF أو صورة) *</span>
-            <input
-              className="input"
-              type="file"
-              accept="application/pdf,image/png,image/jpeg,image/webp,image/gif"
-              onChange={chooseFile}
-            />
-            <span className="muted small">
-              تتم معالجة الصفحة الأولى من PDF متعدد الصفحات، وتبقى البايتات في التخزين الكائني.
-            </span>
-          </label>
-        </div>
-        <div className="actions">
-          <button className="btn primary" type="submit" disabled={busy || !selectedFile}>
-            {busy ? 'جارٍ الرفع…' : 'رفع وبدء القراءة'}
-          </button>
-          {job && (
-            <span className="badge">
-              {job.status === 'queued'
-                ? 'في الانتظار'
-                : job.status === 'processing'
-                  ? 'جارٍ الاستخراج'
-                  : job.status === 'done'
-                    ? 'اكتمل'
-                    : 'فشل'}
-            </span>
-          )}
-        </div>
+      <form onSubmit={startOcr}>
+        <Panel title="رفع مستند للمسح">
+          <div className="form-grid">
+            <label className="field" style={{ gridColumn: '1 / -1' }}>
+              <span>المستند (PDF أو صورة) *</span>
+              <input
+                className="input"
+                type="file"
+                accept="application/pdf,image/png,image/jpeg,image/webp,image/gif"
+                onChange={chooseFile}
+              />
+              <span className="muted small">
+                تتم معالجة الصفحة الأولى من PDF متعدد الصفحات، وتبقى البايتات في التخزين الكائني.
+              </span>
+            </label>
+          </div>
+          <div className="actions">
+            <button className="btn primary" type="submit" disabled={busy || !selectedFile}>
+              {busy ? 'جارٍ الرفع…' : 'رفع وبدء القراءة'}
+            </button>
+            {job && (
+              <span className="badge">
+                {job.status === 'queued'
+                  ? 'في الانتظار'
+                  : job.status === 'processing'
+                    ? 'جارٍ الاستخراج'
+                    : job.status === 'done'
+                      ? 'اكتمل'
+                      : 'فشل'}
+              </span>
+            )}
+          </div>
+        </Panel>
       </form>
 
       {job && (
         <div className="ocr-review-grid">
-          <section className="card">
-            <div className="section-heading">
-              <div>
-                <h3>المستند</h3>
-                <p className="muted small">{job.file.name}</p>
-              </div>
+          <Panel
+            title="المستند"
+            hint={job.file.name}
+            actions={
               <a className="btn sm" href={job.file.downloadUrl} target="_blank" rel="noreferrer">
                 فتح المستند
               </a>
-            </div>
+            }
+          >
             <div className="ocr-document-preview">
               {job.file.mime === 'application/pdf' ? (
                 <iframe title="معاينة الفاتورة" src={job.file.downloadUrl} />
@@ -326,16 +328,13 @@ export default function OcrPurchaseInvoicePage() {
                 <img alt="معاينة فاتورة الشراء" src={job.file.downloadUrl} />
               )}
             </div>
-          </section>
+          </Panel>
 
-          <section className="card">
-            <div className="section-heading">
-              <div>
-                <h3>الحقول المستخرجة</h3>
-                <p className="muted small">الأخضر فوق 90%، الأصفر من 70% إلى 90%، والأحمر تحت 70%.</p>
-              </div>
-              <Confidence score={job.confidence ?? job.extracted.confidence} />
-            </div>
+          <Panel
+            title="الحقول المستخرجة"
+            hint="الأخضر فوق 90%، الأصفر من 70% إلى 90%، والأحمر تحت 70%."
+            actions={<Confidence score={job.confidence ?? job.extracted.confidence} />}
+          >
             {job.status === 'failed' && (
               <div className="notice danger">تعذر إكمال OCR: {job.error ?? 'خطأ غير معروف'}</div>
             )}
@@ -369,7 +368,7 @@ export default function OcrPurchaseInvoicePage() {
                 ))}
               </div>
             )}
-          </section>
+          </Panel>
         </div>
       )}
 
@@ -381,114 +380,120 @@ export default function OcrPurchaseInvoicePage() {
       )}
 
       {job?.status === 'done' && canCreateInvoice && (
-        <form className="card" onSubmit={createDraft}>
-          <div className="section-heading">
-            <div>
-              <h3>مراجعة المسودة</h3>
-              <p className="muted small">
-                اختر المورد واربط البنود بالأصناف. إذا لم تربط أي بند، تُنشأ مسودة رأسية بالقيم المستخرجة
-                لإكمالها لاحقاً.
-              </p>
+        <form onSubmit={createDraft}>
+          <Panel title="مراجعة المسودة">
+            <div className="section-heading">
+              <div>
+                <h3>مراجعة المسودة</h3>
+                <p className="muted small">
+                  اختر المورد واربط البنود بالأصناف. إذا لم تربط أي بند، تُنشأ مسودة رأسية بالقيم المستخرجة
+                  لإكمالها لاحقاً.
+                </p>
+              </div>
             </div>
-          </div>
-          <div className="form-grid">
-            <label className="field">
-              <span>الفرع *</span>
-              <select
-                className="input"
-                value={effectiveBranch}
-                onChange={(event) => setBranchId(event.target.value)}
-                required
-              >
-                <option value="">— اختر —</option>
-                {branchOptions(branches.data ?? []).map((option) => (
-                  <option key={option.id} value={option.id}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="field">
-              <span>المستودع</span>
-              <select
-                className="input"
-                value={warehouseId}
-                onChange={(event) => setWarehouseId(event.target.value)}
-              >
-                <option value="">— بدون حركة مخزنية —</option>
-                {filteredWarehouses.map((row) => (
-                  <option key={row.id} value={row.id}>
-                    {arabicName(row)}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="field">
-              <span>المورد</span>
-              <select className="input" value={partyId} onChange={(event) => setPartyId(event.target.value)}>
-                <option value="">— مطابقة تلقائية بالاسم —</option>
-                {(suppliers.data ?? []).map((row) => (
-                  <option key={row.id} value={row.id}>
-                    {partyLabel(row)}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </div>
-
-          {job.extracted.lines.length > 0 && (
-            <div className="table-wrap">
-              <table className="zebra compact">
-                <thead>
-                  <tr>
-                    <th>الوصف</th>
-                    <th>الكمية</th>
-                    <th>السعر</th>
-                    <th>الثقة</th>
-                    <th>الصنف</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {job.extracted.lines.map((line, index) => (
-                    <tr key={`${line.description}-${index}`}>
-                      <td>{line.description}</td>
-                      <td dir="ltr">{line.quantity ?? '1'}</td>
-                      <td dir="ltr">{line.unitPrice ?? line.total ?? '—'}</td>
-                      <td>
-                        <Confidence score={line.confidence} />
-                      </td>
-                      <td>
-                        <select
-                          className="input"
-                          value={mappedItems[index] ?? ''}
-                          onChange={(event) =>
-                            setMappedItems((current) => ({ ...current, [index]: event.target.value }))
-                          }
-                        >
-                          <option value="">— مسودة رأس فقط —</option>
-                          {(items.data ?? []).map((item) => (
-                            <option key={item.id} value={item.id}>
-                              {item.sku} · {item.nameAr ?? item.nameEn ?? item.sku}
-                            </option>
-                          ))}
-                        </select>
-                      </td>
-                    </tr>
+            <div className="form-grid">
+              <label className="field">
+                <span>الفرع *</span>
+                <select
+                  className="input"
+                  value={effectiveBranch}
+                  onChange={(event) => setBranchId(event.target.value)}
+                  required
+                >
+                  <option value="">— اختر —</option>
+                  {branchOptions(branches.data ?? []).map((option) => (
+                    <option key={option.id} value={option.id}>
+                      {option.label}
+                    </option>
                   ))}
-                </tbody>
-              </table>
+                </select>
+              </label>
+              <label className="field">
+                <span>المستودع</span>
+                <select
+                  className="input"
+                  value={warehouseId}
+                  onChange={(event) => setWarehouseId(event.target.value)}
+                >
+                  <option value="">— بدون حركة مخزنية —</option>
+                  {filteredWarehouses.map((row) => (
+                    <option key={row.id} value={row.id}>
+                      {arabicName(row)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="field">
+                <span>المورد</span>
+                <select
+                  className="input"
+                  value={partyId}
+                  onChange={(event) => setPartyId(event.target.value)}
+                >
+                  <option value="">— مطابقة تلقائية بالاسم —</option>
+                  {(suppliers.data ?? []).map((row) => (
+                    <option key={row.id} value={row.id}>
+                      {partyLabel(row)}
+                    </option>
+                  ))}
+                </select>
+              </label>
             </div>
-          )}
-          <div className="actions">
-            <button className="btn primary" type="submit" disabled={busy}>
-              {busy ? 'جارٍ الإنشاء…' : 'إنشاء مسودة فاتورة'}
-            </button>
-            {job.draftInvoiceId && (
-              <Link className="btn" href={`/purchases/invoices/${job.draftInvoiceId}`}>
-                فتح المسودة الحالية
-              </Link>
+
+            {job.extracted.lines.length > 0 && (
+              <div className="table-wrap">
+                <table className="zebra compact">
+                  <thead>
+                    <tr>
+                      <th>الوصف</th>
+                      <th>الكمية</th>
+                      <th>السعر</th>
+                      <th>الثقة</th>
+                      <th>الصنف</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {job.extracted.lines.map((line, index) => (
+                      <tr key={`${line.description}-${index}`}>
+                        <td>{line.description}</td>
+                        <td dir="ltr">{line.quantity ?? '1'}</td>
+                        <td dir="ltr">{line.unitPrice ?? line.total ?? '—'}</td>
+                        <td>
+                          <Confidence score={line.confidence} />
+                        </td>
+                        <td>
+                          <select
+                            className="input"
+                            value={mappedItems[index] ?? ''}
+                            onChange={(event) =>
+                              setMappedItems((current) => ({ ...current, [index]: event.target.value }))
+                            }
+                          >
+                            <option value="">— مسودة رأس فقط —</option>
+                            {(items.data ?? []).map((item) => (
+                              <option key={item.id} value={item.id}>
+                                {item.sku} · {item.nameAr ?? item.nameEn ?? item.sku}
+                              </option>
+                            ))}
+                          </select>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             )}
-          </div>
+            <div className="actions">
+              <button className="btn primary" type="submit" disabled={busy}>
+                {busy ? 'جارٍ الإنشاء…' : 'إنشاء مسودة فاتورة'}
+              </button>
+              {job.draftInvoiceId && (
+                <Link className="btn" href={`/purchases/invoices/${job.draftInvoiceId}`}>
+                  فتح المسودة الحالية
+                </Link>
+              )}
+            </div>
+          </Panel>
         </form>
       )}
     </Screen>

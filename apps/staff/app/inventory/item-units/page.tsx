@@ -216,12 +216,12 @@ export default function ItemUnitsPage() {
       )}
 
       {!itemId ? (
-        <div className="card">
+        <Panel>
           <p className="muted">
             اختر صنفاً لتحديد وحداته (علبة، كرتون، عبوة…) وباركوداته الإضافية. الكمية التي تدخلها في أي مستند
             تُضرب بمعامل التحويل لتُخزَّن بالوحدة الأساسية.
           </p>
-        </div>
+        </Panel>
       ) : (
         <>
           <Panel title="وحدات القياس" flush>

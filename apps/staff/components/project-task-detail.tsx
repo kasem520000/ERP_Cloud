@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { Panel } from '@erp/ui';
 import { useEffect, useState } from 'react';
 
 import { ApiError } from '../lib/api';
@@ -25,7 +26,9 @@ import { ErrorBox, Loading, Screen } from './screen';
 
 export function ProjectTaskDetail({ taskId, projectId }: { taskId: string; projectId?: string }) {
   const { can } = useSession();
-  const [task, setTask] = useState<(ProjectTask & { logs: TimeLog[]; dependencies: TaskDependency[] }) | null>(null);
+  const [task, setTask] = useState<
+    (ProjectTask & { logs: TimeLog[]; dependencies: TaskDependency[] }) | null
+  >(null);
   const [board, setBoard] = useState<ProjectBoard>();
   const [hours, setHours] = useState('2');
   const [note, setNote] = useState('');
@@ -41,7 +44,9 @@ export function ProjectTaskDetail({ taskId, projectId }: { taskId: string; proje
   }
 
   useEffect(() => {
-    void reload(projectId).catch((reason: unknown) => setError(reason instanceof ApiError ? reason.message : String(reason)));
+    void reload(projectId).catch((reason: unknown) =>
+      setError(reason instanceof ApiError ? reason.message : String(reason)),
+    );
   }, [taskId, projectId]);
 
   async function save(patch: Record<string, unknown>, ok: string) {
@@ -81,82 +86,139 @@ export function ProjectTaskDetail({ taskId, projectId }: { taskId: string; proje
       title={task.title}
       subtitle={`${taskStatusLabel[task.status] ?? task.status} · ${task.assigneeName ?? 'بلا مكلّف'}`}
       crumbs={['إدارة المشاريع']}
-      actions={<Link className="btn" href={`/projects/${task.projectId}/board`}>اللوحة</Link>}
+      actions={
+        <Link className="btn" href={`/projects/${task.projectId}/board`}>
+          اللوحة
+        </Link>
+      }
     >
       <Notice notice={notice} />
       {can('projects.tasks.manage') ? (
-        <div className="card grid gap-3 md:grid-cols-2">
-          <label className="field">
-            <span>الحالة</span>
-            <select className="input" value={task.status} onChange={(event) => void save({ status: event.target.value }, 'تغيّرت الحالة.')}>
-              {Object.entries(taskStatusLabel).map(([value, label]) => (
-                <option key={value} value={value}>{label}</option>
-              ))}
-            </select>
-          </label>
-          <label className="field">
-            <span>الأولوية</span>
-            <select className="input" value={task.priority} onChange={(event) => void save({ priority: event.target.value }, 'تغيّرت الأولوية.')}>
-              {Object.entries(priorityLabel).map(([value, label]) => (
-                <option key={value} value={value}>{label}</option>
-              ))}
-            </select>
-          </label>
-          <label className="field">
-            <span>البداية</span>
-            <input className="input" type="date" value={task.startDate ?? ''} onChange={(event) => void save({ startDate: event.target.value }, 'تغيّر التاريخ.')} />
-          </label>
-          <label className="field">
-            <span>الاستحقاق</span>
-            <input className="input" type="date" value={task.dueDate ?? ''} onChange={(event) => void save({ dueDate: event.target.value }, 'تغيّر التاريخ.')} />
-          </label>
-          <label className="field">
-            <span>ساعات مخططة</span>
-            <input className="input" defaultValue={task.estimatedHours} onBlur={(event) => void save({ estimatedHours: event.target.value }, 'تغيّر المخطط.')} />
-          </label>
-          <label className="field">
-            <span>مصاريف المهمة</span>
-            <input className="input" defaultValue={task.expenseValue} onBlur={(event) => void save({ expenseValue: event.target.value }, 'تغيّرت المصاريف.')} />
-          </label>
-          <label className="field">
-            <span>بند جدول الكميات</span>
-            <select className="input" value={task.boqTermId ?? ''} onChange={(event) => void save({ boqTermId: event.target.value }, 'رُبط البند.')}>
-              <option value="">بدون</option>
-              {(board?.boq ?? []).map((term) => (
-                <option key={term.id} value={term.id}>{term.code} — {term.description}</option>
-              ))}
-            </select>
-          </label>
-          <label className="field">
-            <span>تعتمد على</span>
-            <select className="input" value={dependsOn} onChange={(event) => setDependsOn(event.target.value)}>
-              <option value="">اختر مهمة</option>
-              {siblings.map((item) => (
-                <option key={item.id} value={item.id}>{item.title}</option>
-              ))}
-            </select>
-          </label>
-          <button
-            className="btn"
-            type="button"
-            disabled={busy || !dependsOn}
-            onClick={() =>
-              void addDependency(task.id, dependsOn)
-                .then(() => reload())
-                .then(() => setNotice({ kind: 'ok', text: 'أُضيف الاعتماد.' }))
-                .catch((reason: unknown) => setNotice({ kind: 'danger', text: reason instanceof ApiError ? reason.message : String(reason) }))
-            }
-          >
-            إضافة اعتماد
-          </button>
-        </div>
+        <Panel title="إعدادات المهمة" hint="كل تعديل هنا يُحفظ فور خروجه من الحقل.">
+          <div className="grid gap-3 md:grid-cols-2">
+            <label className="field">
+              <span>الحالة</span>
+              <select
+                className="input"
+                value={task.status}
+                onChange={(event) => void save({ status: event.target.value }, 'تغيّرت الحالة.')}
+              >
+                {Object.entries(taskStatusLabel).map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="field">
+              <span>الأولوية</span>
+              <select
+                className="input"
+                value={task.priority}
+                onChange={(event) => void save({ priority: event.target.value }, 'تغيّرت الأولوية.')}
+              >
+                {Object.entries(priorityLabel).map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="field">
+              <span>البداية</span>
+              <input
+                className="input"
+                type="date"
+                value={task.startDate ?? ''}
+                onChange={(event) => void save({ startDate: event.target.value }, 'تغيّر التاريخ.')}
+              />
+            </label>
+            <label className="field">
+              <span>الاستحقاق</span>
+              <input
+                className="input"
+                type="date"
+                value={task.dueDate ?? ''}
+                onChange={(event) => void save({ dueDate: event.target.value }, 'تغيّر التاريخ.')}
+              />
+            </label>
+            <label className="field">
+              <span>ساعات مخططة</span>
+              <input
+                className="input"
+                defaultValue={task.estimatedHours}
+                onBlur={(event) => void save({ estimatedHours: event.target.value }, 'تغيّر المخطط.')}
+              />
+            </label>
+            <label className="field">
+              <span>مصاريف المهمة</span>
+              <input
+                className="input"
+                defaultValue={task.expenseValue}
+                onBlur={(event) => void save({ expenseValue: event.target.value }, 'تغيّرت المصاريف.')}
+              />
+            </label>
+            <label className="field">
+              <span>بند جدول الكميات</span>
+              <select
+                className="input"
+                value={task.boqTermId ?? ''}
+                onChange={(event) => void save({ boqTermId: event.target.value }, 'رُبط البند.')}
+              >
+                <option value="">بدون</option>
+                {(board?.boq ?? []).map((term) => (
+                  <option key={term.id} value={term.id}>
+                    {term.code} — {term.description}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="field">
+              <span>تعتمد على</span>
+              <select
+                className="input"
+                value={dependsOn}
+                onChange={(event) => setDependsOn(event.target.value)}
+              >
+                <option value="">اختر مهمة</option>
+                {siblings.map((item) => (
+                  <option key={item.id} value={item.id}>
+                    {item.title}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <button
+              className="btn"
+              type="button"
+              disabled={busy || !dependsOn}
+              onClick={() =>
+                void addDependency(task.id, dependsOn)
+                  .then(() => reload())
+                  .then(() => setNotice({ kind: 'ok', text: 'أُضيف الاعتماد.' }))
+                  .catch((reason: unknown) =>
+                    setNotice({
+                      kind: 'danger',
+                      text: reason instanceof ApiError ? reason.message : String(reason),
+                    }),
+                  )
+              }
+            >
+              إضافة اعتماد
+            </button>
+          </div>
+        </Panel>
       ) : null}
-      <div className="card">
-        <p>فعلي {task.actualHours} ساعة من {task.estimatedHours} مخططة.</p>
+      <Panel title="الوقت المسجَّل" hint={`فعلي ${task.actualHours} ساعة من ${task.estimatedHours} مخططة.`}>
         {can('projects.time_logs.manage') ? (
           <div className="grid gap-3 md:grid-cols-3">
             <input className="input" value={hours} onChange={(event) => setHours(event.target.value)} />
-            <input className="input" value={note} onChange={(event) => setNote(event.target.value)} placeholder="ملاحظة" />
+            <input
+              className="input"
+              value={note}
+              onChange={(event) => setNote(event.target.value)}
+              placeholder="ملاحظة"
+            />
             <button
               className="btn primary"
               type="button"
@@ -164,7 +226,12 @@ export function ProjectTaskDetail({ taskId, projectId }: { taskId: string; proje
               onClick={() =>
                 void logTaskTime(task.id, { hours, note })
                   .then(() => reload())
-                  .catch((reason: unknown) => setNotice({ kind: 'danger', text: reason instanceof ApiError ? reason.message : String(reason) }))
+                  .catch((reason: unknown) =>
+                    setNotice({
+                      kind: 'danger',
+                      text: reason instanceof ApiError ? reason.message : String(reason),
+                    }),
+                  )
               }
             >
               تسجيل وقت
@@ -172,9 +239,11 @@ export function ProjectTaskDetail({ taskId, projectId }: { taskId: string; proje
           </div>
         ) : null}
         {task.logs.map((entry) => (
-          <p key={entry.id} className="muted">{entry.logDate} · {entry.hours} س · {entry.note ?? ''}</p>
+          <p key={entry.id} className="muted">
+            {entry.logDate} · {entry.hours} س · {entry.note ?? ''}
+          </p>
         ))}
-      </div>
+      </Panel>
       <CommentsPanel entityType="project_task" entityId={task.id} />
     </Screen>
   );

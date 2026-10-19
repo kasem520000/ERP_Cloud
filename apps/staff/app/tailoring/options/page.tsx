@@ -1,5 +1,6 @@
 'use client';
 
+import { Panel } from '@erp/ui';
 import { Suspense, useState } from 'react';
 
 import { Empty, ErrorBox, Forbidden, Loading, Screen } from '../../../components/screen';
@@ -146,7 +147,7 @@ function TailoringOptions() {
       {categories.status === 'success' && (
         <div className="grid cols-2">
           {/* التصنيفات (الأنواع) */}
-          <section className="card">
+          <Panel>
             <p className="group-label">التصنيفات (الأنواع)</p>
             {rows.length === 0 ? (
               <Empty title="لا توجد تصنيفات" detail="أضف تصنيفاً واحداً على الأقل قبل إضافة خيارات." />
@@ -240,10 +241,10 @@ function TailoringOptions() {
                 </div>
               </>
             )}
-          </section>
+          </Panel>
 
           {/* الخيارات المتاحة */}
-          <section className="card">
+          <Panel>
             <p className="group-label">الخيارات المتاحة{selected ? ` — ${selected.nameAr}` : ''}</p>
             {!selected ? (
               <Empty
@@ -354,7 +355,7 @@ function TailoringOptions() {
                 </div>
               </>
             )}
-          </section>
+          </Panel>
         </div>
       )}
     </Screen>

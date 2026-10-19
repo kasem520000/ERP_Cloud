@@ -320,7 +320,7 @@ export default function BoqPage() {
                 )}
               </div>
 
-              <div className="card">
+              <Panel>
                 <div className="chips">
                   <span className="chip">{`${project.code} — ${project.name}`}</span>
                   <span className="chip">{`عدد البنود: ${terms.length}`}</span>
@@ -404,7 +404,7 @@ export default function BoqPage() {
                     '',
                   ]}
                 />
-              </div>
+              </Panel>
 
               <p className="muted">
                 «المفوتر سابقاً» يُكتب من المستخلصات المرحَّلة، ولا يُحرَّر من هذه الشاشة — كما في النافذة:

@@ -71,7 +71,6 @@ export default function WarehouseBinsPage() {
     >
       <Notice notice={notice} />
       <form
-        className="card"
         onSubmit={(event) => {
           event.preventDefault();
           void apiPost('/inventory/bins', { warehouseId, code, zone, aisle, rack, level })
@@ -80,68 +79,70 @@ export default function WarehouseBinsPage() {
             .catch(fail);
         }}
       >
-        <div className="form-grid">
-          <label className="field">
-            <span>المستودع</span>
-            <select
-              className="input"
-              value={warehouseId}
-              onChange={(event) => setWarehouseId(event.target.value)}
-              required
-            >
-              <option value="">اختر</option>
-              {warehouseRows.map((row) => (
-                <option key={row.id} value={row.id}>
-                  {arabicName(row)}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="field">
-            <span>رمز الرف</span>
-            <input
-              className="input"
-              dir="ltr"
-              value={code}
-              onChange={(event) => setCode(event.target.value)}
-              required
-            />
-          </label>
-          <label className="field">
-            <span>المنطقة</span>
-            <input className="input" value={zone} onChange={(event) => setZone(event.target.value)} />
-          </label>
-          <label className="field">
-            <span>الممر</span>
-            <input
-              className="input"
-              dir="ltr"
-              value={aisle}
-              onChange={(event) => setAisle(event.target.value)}
-            />
-          </label>
-          <label className="field">
-            <span>الرف</span>
-            <input
-              className="input"
-              dir="ltr"
-              value={rack}
-              onChange={(event) => setRack(event.target.value)}
-            />
-          </label>
-          <label className="field">
-            <span>المستوى</span>
-            <input
-              className="input"
-              dir="ltr"
-              value={level}
-              onChange={(event) => setLevel(event.target.value)}
-            />
-          </label>
-        </div>
-        <button className="btn primary" type="submit">
-          إنشاء رف
-        </button>
+        <Panel title="رفّ جديد">
+          <div className="form-grid">
+            <label className="field">
+              <span>المستودع</span>
+              <select
+                className="input"
+                value={warehouseId}
+                onChange={(event) => setWarehouseId(event.target.value)}
+                required
+              >
+                <option value="">اختر</option>
+                {warehouseRows.map((row) => (
+                  <option key={row.id} value={row.id}>
+                    {arabicName(row)}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="field">
+              <span>رمز الرف</span>
+              <input
+                className="input"
+                dir="ltr"
+                value={code}
+                onChange={(event) => setCode(event.target.value)}
+                required
+              />
+            </label>
+            <label className="field">
+              <span>المنطقة</span>
+              <input className="input" value={zone} onChange={(event) => setZone(event.target.value)} />
+            </label>
+            <label className="field">
+              <span>الممر</span>
+              <input
+                className="input"
+                dir="ltr"
+                value={aisle}
+                onChange={(event) => setAisle(event.target.value)}
+              />
+            </label>
+            <label className="field">
+              <span>الرف</span>
+              <input
+                className="input"
+                dir="ltr"
+                value={rack}
+                onChange={(event) => setRack(event.target.value)}
+              />
+            </label>
+            <label className="field">
+              <span>المستوى</span>
+              <input
+                className="input"
+                dir="ltr"
+                value={level}
+                onChange={(event) => setLevel(event.target.value)}
+              />
+            </label>
+          </div>
+          <button className="btn primary" type="submit">
+            إنشاء رف
+          </button>
+        </Panel>
       </form>
 
       <Panel title="الرفوف" hint={`${binRows.length} رف`}>
@@ -169,7 +170,7 @@ export default function WarehouseBinsPage() {
         ) : null}
       </Panel>
 
-      <section className="card">
+      <Panel title="مواقع الرفّ" hint="اختر رفاً ومادة لتحديث موضعها داخل المستودع.">
         <div className="form-grid">
           <label className="field">
             <span>الرف</span>
@@ -226,7 +227,7 @@ export default function WarehouseBinsPage() {
         >
           تفعيل / إيقاف
         </button>
-      </section>
+      </Panel>
     </Screen>
   );
 }

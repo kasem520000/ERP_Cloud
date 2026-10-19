@@ -1,8 +1,9 @@
 'use client';
 
+import { Panel } from '@erp/ui';
 import { useState } from 'react';
 
-import { DataTable, Notice } from '../../../components/data-view';
+import { DataTable, Notice, QueryView } from '../../../components/data-view';
 import { Screen } from '../../../components/screen';
 import { ApiError, apiList, apiPost } from '../../../lib/api';
 import { itemLabel, listItems, quantity, type Item } from '../../../lib/lookups';
@@ -41,7 +42,6 @@ export default function BomsPage() {
     >
       <Notice notice={notice} />
       <form
-        className="card"
         onSubmit={(event) => {
           event.preventDefault();
           void apiPost('/manufacturing/boms', {
@@ -51,58 +51,132 @@ export default function BomsPage() {
           })
             .then(() => cards.reload())
             .then(() => setNotice({ kind: 'ok', text: 'حُفظت قائمة المواد.' }))
-            .catch((error: unknown) => setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : 'تعذر الحفظ' }));
+            .catch((error: unknown) =>
+              setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : 'تعذر الحفظ' }),
+            );
         }}
       >
-        <div className="form-grid">
-          <label className="field"><span>الاسم</span><input className="input" value={name} onChange={(event) => setName(event.target.value)} required /></label>
-          <label className="field">
-            <span>المنتج النهائي</span>
-            <select className="input" value={productItemId} onChange={(event) => setProductItemId(event.target.value)} required>
-              <option value="">اختر</option>
-              {itemRows.map((row) => <option key={row.id} value={row.id}>{itemLabel(row)}</option>)}
-            </select>
-          </label>
-        </div>
-        {lines.map((line, index) => (
-          <div className="form-grid" key={index}>
+        <Panel title="قائمة مواد جديدة">
+          <div className="form-grid">
             <label className="field">
-              <span>مكوّن {index + 1}</span>
+              <span>الاسم</span>
+              <input
+                className="input"
+                value={name}
+                onChange={(event) => setName(event.target.value)}
+                required
+              />
+            </label>
+            <label className="field">
+              <span>المنتج النهائي</span>
               <select
                 className="input"
-                value={line.componentItemId}
-                onChange={(event) => setLines((current) => current.map((entry, at) => at === index ? { ...entry, componentItemId: event.target.value } : entry))}
+                value={productItemId}
+                onChange={(event) => setProductItemId(event.target.value)}
+                required
               >
                 <option value="">اختر</option>
-                {itemRows.map((row) => <option key={row.id} value={row.id}>{itemLabel(row)}</option>)}
+                {itemRows.map((row) => (
+                  <option key={row.id} value={row.id}>
+                    {itemLabel(row)}
+                  </option>
+                ))}
               </select>
             </label>
-            <label className="field">
-              <span>الكمية</span>
-              <input className="input" dir="ltr" value={line.qty} onChange={(event) => setLines((current) => current.map((entry, at) => at === index ? { ...entry, qty: event.target.value } : entry))} />
-            </label>
-            <label className="field">
-              <span>هدر %</span>
-              <input className="input" dir="ltr" value={line.scrapPercent} onChange={(event) => setLines((current) => current.map((entry, at) => at === index ? { ...entry, scrapPercent: event.target.value } : entry))} />
-            </label>
           </div>
-        ))}
-        <button className="btn" type="button" onClick={() => setLines((current) => [...current, emptyLine()])}>مكوّن آخر</button>
-        <button className="btn primary" type="submit">حفظ القائمة</button>
+          {lines.map((line, index) => (
+            <div className="form-grid" key={index}>
+              <label className="field">
+                <span>مكوّن {index + 1}</span>
+                <select
+                  className="input"
+                  value={line.componentItemId}
+                  onChange={(event) =>
+                    setLines((current) =>
+                      current.map((entry, at) =>
+                        at === index ? { ...entry, componentItemId: event.target.value } : entry,
+                      ),
+                    )
+                  }
+                >
+                  <option value="">اختر</option>
+                  {itemRows.map((row) => (
+                    <option key={row.id} value={row.id}>
+                      {itemLabel(row)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="field">
+                <span>الكمية</span>
+                <input
+                  className="input"
+                  dir="ltr"
+                  value={line.qty}
+                  onChange={(event) =>
+                    setLines((current) =>
+                      current.map((entry, at) =>
+                        at === index ? { ...entry, qty: event.target.value } : entry,
+                      ),
+                    )
+                  }
+                />
+              </label>
+              <label className="field">
+                <span>هدر %</span>
+                <input
+                  className="input"
+                  dir="ltr"
+                  value={line.scrapPercent}
+                  onChange={(event) =>
+                    setLines((current) =>
+                      current.map((entry, at) =>
+                        at === index ? { ...entry, scrapPercent: event.target.value } : entry,
+                      ),
+                    )
+                  }
+                />
+              </label>
+            </div>
+          ))}
+          <button
+            className="btn"
+            type="button"
+            onClick={() => setLines((current) => [...current, emptyLine()])}
+          >
+            مكوّن آخر
+          </button>
+          <button className="btn primary" type="submit">
+            حفظ القائمة
+          </button>
+        </Panel>
       </form>
-      <DataTable
-        rows={cards.data ?? []}
-        rowKey={(row) => row.id}
-        columns={[
-          { key: 'name', header: 'القائمة', cell: (row) => `${row.name} · v${row.version}` },
-          { key: 'product', header: 'المنتج', cell: (row) => nameOf(row.productItemId) },
-          {
-            key: 'lines',
-            header: 'المكوّنات',
-            cell: (row) => row.lines.map((line) => `${nameOf(line.componentItemId)} × ${quantity(line.qty)}`).join(' + '),
-          },
-        ]}
-      />
+      <QueryView
+        panel="قوائم المواد"
+        panelHint="كل قائمة بإصدارها والمكوّنات التي تُخصم عند التنفيذ."
+        query={cards}
+        empty="لا توجد قوائم مواد"
+        emptyDetail="أنشئ قائمة من النموذج أعلاه؛ سطرٌ واحد لكل مكوّن."
+      >
+        {(rows) => (
+          <DataTable
+            rows={rows}
+            rowKey={(row) => row.id}
+            columns={[
+              { key: 'name', header: 'القائمة', cell: (row) => `${row.name} · v${row.version}` },
+              { key: 'product', header: 'المنتج', cell: (row) => nameOf(row.productItemId) },
+              {
+                key: 'lines',
+                header: 'المكوّنات',
+                cell: (row) =>
+                  row.lines
+                    .map((line) => `${nameOf(line.componentItemId)} × ${quantity(line.qty)}`)
+                    .join(' + '),
+              },
+            ]}
+          />
+        )}
+      </QueryView>
     </Screen>
   );
 }

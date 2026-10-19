@@ -120,17 +120,17 @@ export default function ProjectBoardPage() {
     >
       <Notice notice={notice} />
       {board.stages.length === 0 ? (
-        <div className="card">
+        <Panel>
           <p>لا مراحل بعد. الأعمدة الثلاثة تُنشأ من مراحل المشروع.</p>
           {can('projects.manage') ? (
             <button className="btn primary" type="button" disabled={busy} onClick={() => void addColumns()}>
               إنشاء الأعمدة الثلاثة
             </button>
           ) : null}
-        </div>
+        </Panel>
       ) : null}
       {can('projects.tasks.manage') && board.stages.length > 0 ? (
-        <div className="card">
+        <Panel>
           <div className="grid gap-3 md:grid-cols-3">
             <label className="field">
               <span>المهمة</span>
@@ -175,7 +175,7 @@ export default function ProjectBoardPage() {
           >
             إضافة مهمة
           </button>
-        </div>
+        </Panel>
       ) : null}
       <div className="grid gap-3 md:grid-cols-3">
         {board.stages.map((stage) => (
