@@ -4,6 +4,7 @@ import { Panel } from '@erp/ui';
 import { useState } from 'react';
 
 import { Empty, ErrorBox, Forbidden, Loading, Screen } from '../../components/screen';
+import { Table, type Column } from '../../components/ui/table';
 import { apiData } from '../../lib/api';
 import { useSession } from '../../lib/session';
 import { useQuery } from '../../lib/use-query';
@@ -198,6 +199,115 @@ export default function DataRequestsPage() {
     }
   }
 
+  const columns: Array<Column<DataRequestRow>> = [
+    {
+      key: 'created',
+      header: 'فُتح',
+      ltr: true,
+      cell: (row) => new Date(row.createdAt).toLocaleString('ar-SA-u-ca-gregory-nu-latn'),
+    },
+    {
+      key: 'kind',
+      header: 'النوع',
+      cell: (row) => (
+        <span className={`badge ${row.kind === 'erase' ? 'failed' : 'pending'}`}>
+          {KIND_LABEL[row.kind] ?? row.kind}
+        </span>
+      ),
+    },
+    { key: 'tenant', header: 'العميل', ltr: true, cell: (row) => row.tenantCode ?? row.tenantId.slice(0, 8) },
+    {
+      key: 'subject',
+      header: 'صاحب البيانات',
+      ltr: true,
+      cell: (row) => (
+        <>
+          {row.subjectEmail}
+          {row.result?.subjectRef && (
+            <div className="muted small" dir="ltr">
+              {row.result.subjectRef}
+            </div>
+          )}
+        </>
+      ),
+    },
+    {
+      key: 'status',
+      header: 'الحالة',
+      cell: (row) => (
+        <>
+          <span className={`badge ${STATUS_CLASS[row.status] ?? 'pending'}`}>
+            {STATUS_LABEL[row.status] ?? row.status}
+          </span>
+          {row.decisionNote && <div className="muted small">{row.decisionNote}</div>}
+        </>
+      ),
+    },
+    {
+      key: 'result',
+      header: 'النتيجة',
+      cell: (row) =>
+        row.result?.anonymisedUsers ? (
+          <>
+            أُخفي {row.result.anonymisedUsers} مستخدماً ({row.result.anonymisedFields?.length ?? 0} حقلاً)
+            <div className="muted small">
+              سُحبت {row.result.suspendedMemberships ?? 0} عضوية · أُبطلت {row.result.revokedSessions ?? 0}{' '}
+              جلسة · بقي {row.result.retainedAuditRows ?? 0} صفّ تدقيق
+            </div>
+          </>
+        ) : row.result?.rows ? (
+          <>
+            {row.result.rows} صفاً في {row.result.tables ?? 0} جدولاً
+            <div className="muted small" dir="ltr">
+              {row.result.bytes ? formatBytes(row.result.bytes) : ''} · {row.result.checksum?.slice(0, 12)}…
+            </div>
+          </>
+        ) : (
+          '—'
+        ),
+    },
+    {
+      key: 'actions',
+      header: 'إجراء',
+      hideOnPrint: true,
+      cell: (row) => (
+        <div className="row" style={{ gap: 6, flexWrap: 'wrap' }}>
+          {row.status === 'pending' && (
+            <>
+              <button
+                className="btn small"
+                type="button"
+                disabled={!reasonReady || busy === row.id}
+                title={reasonReady ? 'قبول' : 'اكتب سبب القرار أولاً'}
+                onClick={() => void decide(row, 'approve')}
+              >
+                اقبل
+              </button>
+              <button
+                className="btn small danger"
+                type="button"
+                disabled={!reasonReady || busy === row.id}
+                onClick={() => void decide(row, 'reject')}
+              >
+                ارفض
+              </button>
+            </>
+          )}
+          {row.status === 'approved' && (
+            <button
+              className="btn small primary"
+              type="button"
+              disabled={busy === row.id}
+              onClick={() => void execute(row)}
+            >
+              {row.kind === 'erase' ? 'نفّذ المحو' : 'نفّذ التصدير'}
+            </button>
+          )}
+        </div>
+      ),
+    },
+  ];
+
   return (
     <Screen
       title="طلبات البيانات"
@@ -305,108 +415,7 @@ export default function DataRequestsPage() {
                   {rows.length} من {requests.data?.meta.total ?? rows.length} طلباً
                 </p>
                 <Panel flush title="طلبات البيانات">
-                  <div className="table-wrap">
-                    <table>
-                      <thead>
-                        <tr>
-                          <th>فُتح</th>
-                          <th>النوع</th>
-                          <th>العميل</th>
-                          <th>صاحب البيانات</th>
-                          <th>الحالة</th>
-                          <th>النتيجة</th>
-                          <th className="no-print">إجراء</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {rows.map((row) => (
-                          <tr key={row.id}>
-                            <td dir="ltr">
-                              {new Date(row.createdAt).toLocaleString('ar-SA-u-ca-gregory-nu-latn')}
-                            </td>
-                            <td>
-                              <span className={`badge ${row.kind === 'erase' ? 'failed' : 'pending'}`}>
-                                {KIND_LABEL[row.kind] ?? row.kind}
-                              </span>
-                            </td>
-                            <td dir="ltr">{row.tenantCode ?? row.tenantId.slice(0, 8)}</td>
-                            <td dir="ltr">
-                              {row.subjectEmail}
-                              {row.result?.subjectRef && (
-                                <div className="muted small" dir="ltr">
-                                  {row.result.subjectRef}
-                                </div>
-                              )}
-                            </td>
-                            <td>
-                              <span className={`badge ${STATUS_CLASS[row.status] ?? 'pending'}`}>
-                                {STATUS_LABEL[row.status] ?? row.status}
-                              </span>
-                              {row.decisionNote && <div className="muted small">{row.decisionNote}</div>}
-                            </td>
-                            <td className="small">
-                              {row.result?.anonymisedUsers ? (
-                                <>
-                                  أُخفي {row.result.anonymisedUsers} مستخدماً (
-                                  {row.result.anonymisedFields?.length ?? 0} حقلاً)
-                                  <div className="muted small">
-                                    سُحبت {row.result.suspendedMemberships ?? 0} عضوية · أُبطلت{' '}
-                                    {row.result.revokedSessions ?? 0} جلسة · بقي{' '}
-                                    {row.result.retainedAuditRows ?? 0} صفّ تدقيق
-                                  </div>
-                                </>
-                              ) : row.result?.rows ? (
-                                <>
-                                  {row.result.rows} صفاً في {row.result.tables ?? 0} جدولاً
-                                  <div className="muted small" dir="ltr">
-                                    {row.result.bytes ? formatBytes(row.result.bytes) : ''} ·{' '}
-                                    {row.result.checksum?.slice(0, 12)}…
-                                  </div>
-                                </>
-                              ) : (
-                                '—'
-                              )}
-                            </td>
-                            <td className="no-print">
-                              <div className="row" style={{ gap: 6, flexWrap: 'wrap' }}>
-                                {row.status === 'pending' && (
-                                  <>
-                                    <button
-                                      className="btn small"
-                                      type="button"
-                                      disabled={!reasonReady || busy === row.id}
-                                      title={reasonReady ? 'قبول' : 'اكتب سبب القرار أولاً'}
-                                      onClick={() => void decide(row, 'approve')}
-                                    >
-                                      اقبل
-                                    </button>
-                                    <button
-                                      className="btn small danger"
-                                      type="button"
-                                      disabled={!reasonReady || busy === row.id}
-                                      onClick={() => void decide(row, 'reject')}
-                                    >
-                                      ارفض
-                                    </button>
-                                  </>
-                                )}
-                                {row.status === 'approved' && (
-                                  <button
-                                    className="btn small primary"
-                                    type="button"
-                                    disabled={busy === row.id}
-                                    onClick={() => void execute(row)}
-                                  >
-                                    {row.kind === 'erase' ? 'نفّذ المحو' : 'نفّذ التصدير'}
-                                  </button>
-                                )}
-                              </div>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                  <Table bare columns={columns} rows={rows} rowKey={(row) => row.id} />
                 </Panel>
               </>
             ))}

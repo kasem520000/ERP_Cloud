@@ -20,7 +20,7 @@ import { Reveal } from '../../components/ui/count-up';
 import { Select } from '../../components/ui/input';
 import { MetricCard } from '../../components/ui/metric-card';
 import { SkeletonRows } from '../../components/ui/skeleton';
-import { Table } from '../../components/ui/table';
+import { Table, type Column } from '../../components/ui/table';
 import { ApiError, apiData, apiPost, downloadFile } from '../../lib/api';
 import { useSession } from '../../lib/session';
 import { useQuery } from '../../lib/use-query';
@@ -177,6 +177,38 @@ export default function AnalyticsPage() {
       setSendingReport(false);
     }
   }
+
+  const cohortCellMonths = cohorts.data?.rows.at(-1)?.cells ?? [];
+  const cohortColumns: Array<Column<AnalyticsCohorts['rows'][number]>> = cohortCellMonths.length
+    ? [
+        { key: 'cohort', header: 'الفوج', cell: (row) => monthText(row.cohort) },
+        { key: 'size', header: 'الحجم', numeric: true, cell: (row) => row.size },
+        ...cohortCellMonths.map((cell) => ({
+          key: `month-${cell.month}`,
+          header: monthText(cell.month),
+          numeric: true,
+          cellStyle: (row: AnalyticsCohorts['rows'][number]) => ({
+            background: heatColor(
+              row.cells.find((item) => item.month === cell.month)?.contractedRate ?? null,
+            ),
+          }),
+          cell: (row: AnalyticsCohorts['rows'][number]) => {
+            const hit = row.cells.find((item) => item.month === cell.month);
+            if (!hit) return '—';
+            return (
+              <span className="block whitespace-nowrap">
+                <span className="block font-mono font-bold" dir="ltr">
+                  {hit.contracted}/{row.size}
+                </span>
+                <span className="block font-mono text-[10.5px] text-muted" dir="ltr">
+                  {hit.active}/{row.size} · {percent(hit.contractedRate)}
+                </span>
+              </span>
+            );
+          },
+        })),
+      ]
+    : [];
 
   return (
     <Screen
@@ -548,57 +580,13 @@ export default function AnalyticsPage() {
               {cohorts.status === 'loading' && <SkeletonRows rows={5} />}
               {cohorts.status === 'error' && <ErrorBox message={cohorts.error} onRetry={cohorts.reload} />}
               {cohorts.status === 'success' && cohorts.data && (
-                <div className="overflow-x-auto">
-                  <table className="w-full border-collapse text-[12px]">
-                    <thead>
-                      <tr>
-                        <th className="border-b border-line px-2 py-2 text-start font-bold text-muted">
-                          الفوج
-                        </th>
-                        <th className="border-b border-line px-2 py-2 text-end font-bold text-muted">
-                          الحجم
-                        </th>
-                        {cohorts.data.rows.at(-1)?.cells.map((cell) => (
-                          <th
-                            key={cell.month}
-                            className="border-b border-line px-2 py-2 text-end font-bold text-muted"
-                          >
-                            {monthText(cell.month)}
-                          </th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {cohorts.data.rows.map((row) => (
-                        <tr key={row.cohort}>
-                          <td className="border-b border-line px-2 py-2 font-semibold text-ink-2">
-                            {monthText(row.cohort)}
-                          </td>
-                          <td
-                            className="border-b border-line px-2 py-2 text-end font-mono font-bold text-ink-2"
-                            dir="ltr"
-                          >
-                            {row.size}
-                          </td>
-                          {row.cells.map((cell) => (
-                            <td
-                              key={cell.month}
-                              className="border-b border-line px-2 py-1.5 text-end"
-                              style={{ background: heatColor(cell.contractedRate) }}
-                            >
-                              <span className="block font-mono text-[12px] font-bold" dir="ltr">
-                                {cell.contracted}/{row.size}
-                              </span>
-                              <span className="block font-mono text-[10.5px] text-muted" dir="ltr">
-                                {cell.active}/{row.size} · {percent(cell.contractedRate)}
-                              </span>
-                            </td>
-                          ))}
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                <Table
+                  bare
+                  dense
+                  columns={cohortColumns}
+                  rows={cohorts.data.rows}
+                  rowKey={(row) => row.cohort}
+                />
               )}
             </Panel>
           </Reveal>

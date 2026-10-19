@@ -1,7 +1,7 @@
 'use client';
 
 import { ChevronDown, ChevronUp, ChevronsUpDown, Inbox } from 'lucide-react';
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { Fragment, useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 
 import { Badge, type BadgeTone } from './badge';
 import { Skeleton } from './skeleton';
@@ -22,6 +22,13 @@ export type Column<T> = {
   grow?: boolean;
   width?: number | string;
   sortable?: boolean;
+  /**
+   * تنسيق خلية العمود من الصف نفسه — لخرائط الحرارة (خلفيةٌ تتدرّج مع القيمة)
+   * ولأي عمودٍ يحتاج لوناً محسوباً. التنسيق البنيوي يبقى للجدول.
+   */
+  cellStyle?: (row: T, index: number) => CSSProperties | undefined;
+  /** عمودُ إجراءاتٍ لا معنى له على الورق: يُخفى عند الطباعة. */
+  hideOnPrint?: boolean;
 };
 
 export type SortState = { key: string; dir: 'asc' | 'desc' } | null;
@@ -45,6 +52,12 @@ type TableProps<T> = {
   sortable?: boolean;
   sort?: SortState;
   onSortChange?: (sort: SortState) => void;
+  /**
+   * صفٌّ ينفتح تحت صاحبه (تفاصيل التدقيق مثلاً): مفتاح الصفّ المنفتح ودالّة
+   * محتواه. البنيةُ هي بنيةُ الجدول نفسه — بلا جدولٍ ثانٍ داخل الخليّة.
+   */
+  expandedKey?: string | null;
+  renderExpanded?: (row: T) => ReactNode;
   /** Per-row 3-dot menu. */
   actions?: (row: T) => Array<{ label: string; icon?: ReactNode; onClick: () => void; danger?: boolean }>;
   dense?: boolean;
@@ -72,6 +85,8 @@ export function Table<T>({
   sortable = false,
   sort,
   onSortChange,
+  expandedKey,
+  renderExpanded,
   actions,
   dense = false,
   zebra = true,
@@ -139,7 +154,7 @@ export function Table<T>({
                 style={col.width ? { width: col.width } : undefined}
                 className={`sticky top-0 z-10 bg-surface-2 font-bold text-xs tracking-wide text-muted whitespace-nowrap ${cellPad} ${
                   col.numeric ? 'text-end' : 'text-start'
-                } ${col.grow ? 'w-full' : ''}`}
+                } ${col.grow ? 'w-full' : ''} ${col.hideOnPrint ? 'no-print' : ''}`}
               >
                 {col.sortable && sortable ? (
                   <button
@@ -209,56 +224,68 @@ export function Table<T>({
                   const selected = selectedKeys?.has(key) ?? false;
                   const active = activeKey !== undefined && activeKey === key;
                   return (
-                    <tr
-                      key={key}
-                      onClick={onRowClick ? () => onRowClick(row) : undefined}
-                      className={[
-                        'transition-colors duration-150',
-                        zebra && index % 2 === 1 ? 'bg-surface-2' : '',
-                        onRowClick ? 'cursor-pointer' : '',
-                        active ? '!bg-info-soft shadow-[inset_0_0_0_1.5px_var(--brand-line)]' : '',
-                        selected ? '!bg-info-soft' : '',
-                      ]
-                        .filter(Boolean)
-                        .join(' ')}
-                    >
-                      {selectable ? (
-                        <td className={cellPad} onClick={(event) => event.stopPropagation()}>
-                          <input
-                            type="checkbox"
-                            className="size-4 accent-brand-600 cursor-pointer"
-                            checked={selected}
-                            onChange={() => toggleOne(key)}
-                            aria-label="تحديد الصف"
-                          />
-                        </td>
+                    <Fragment key={key}>
+                      <tr
+                        onClick={onRowClick ? () => onRowClick(row) : undefined}
+                        className={[
+                          'transition-colors duration-150',
+                          zebra && index % 2 === 1 ? 'bg-surface-2' : '',
+                          onRowClick ? 'cursor-pointer' : '',
+                          active ? '!bg-info-soft shadow-[inset_0_0_0_1.5px_var(--brand-line)]' : '',
+                          selected ? '!bg-info-soft' : '',
+                        ]
+                          .filter(Boolean)
+                          .join(' ')}
+                      >
+                        {selectable ? (
+                          <td className={cellPad} onClick={(event) => event.stopPropagation()}>
+                            <input
+                              type="checkbox"
+                              className="size-4 accent-brand-600 cursor-pointer"
+                              checked={selected}
+                              onChange={() => toggleOne(key)}
+                              aria-label="تحديد الصف"
+                            />
+                          </td>
+                        ) : null}
+                        {columns.map((col) => (
+                          <td
+                            key={col.key}
+                            className={`${cellPad} align-middle ${col.numeric ? 'text-end' : 'text-start'} ${
+                              col.ltr ? 'ltr' : ''
+                            }`}
+                            style={{
+                              ...(col.numeric
+                                ? { fontVariantNumeric: 'tabular-nums', direction: 'ltr' as const }
+                                : col.ltr
+                                  ? { direction: 'ltr' as const }
+                                  : {}),
+                              ...col.cellStyle?.(row, index),
+                            }}
+                          >
+                            {col.cell(row, index)}
+                          </td>
+                        ))}
+                        {actions ? (
+                          <td
+                            className={`${cellPad} text-center`}
+                            onClick={(event) => event.stopPropagation()}
+                          >
+                            <RowActions
+                              items={actions(row)}
+                              labels={{ open: 'فتح القائمة', close: 'إغلاق القائمة' }}
+                            />
+                          </td>
+                        ) : null}
+                      </tr>
+                      {renderExpanded && expandedKey === key ? (
+                        <tr>
+                          <td colSpan={colSpan} className="bg-surface-2/60 border-b border-line">
+                            {renderExpanded(row)}
+                          </td>
+                        </tr>
                       ) : null}
-                      {columns.map((col) => (
-                        <td
-                          key={col.key}
-                          className={`${cellPad} align-middle ${col.numeric ? 'text-end' : 'text-start'} ${
-                            col.ltr ? 'ltr' : ''
-                          }`}
-                          style={
-                            col.numeric
-                              ? { fontVariantNumeric: 'tabular-nums', direction: 'ltr' }
-                              : col.ltr
-                                ? { direction: 'ltr' }
-                                : undefined
-                          }
-                        >
-                          {col.cell(row, index)}
-                        </td>
-                      ))}
-                      {actions ? (
-                        <td className={`${cellPad} text-center`} onClick={(event) => event.stopPropagation()}>
-                          <RowActions
-                            items={actions(row)}
-                            labels={{ open: 'فتح القائمة', close: 'إغلاق القائمة' }}
-                          />
-                        </td>
-                      ) : null}
-                    </tr>
+                    </Fragment>
                   );
                 })}
         </tbody>

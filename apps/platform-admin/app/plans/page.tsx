@@ -66,6 +66,24 @@ function valueText(entry: Entitlement): string {
   return String(entry.value);
 }
 
+const entitlementColumns: Array<Column<Entitlement>> = [
+  { key: 'kind', header: 'النوع', cell: (entry) => <span className="chip">{KIND_LABEL[entry.kind]}</span> },
+  {
+    key: 'label',
+    header: 'الحقّ',
+    grow: true,
+    cell: (entry) => (
+      <>
+        {entry.labelAr}
+        <div className="muted small" dir="ltr">
+          {entry.key}
+        </div>
+      </>
+    ),
+  },
+  { key: 'value', header: 'القيمة', cell: (entry) => valueText(entry) },
+];
+
 export default function PlansPage() {
   const plans = useQuery<Plan[]>(() => apiData<Plan[]>('/platform/plans'), []);
   const keys = useQuery<EntitlementKey[]>(
@@ -212,31 +230,13 @@ export default function PlansPage() {
               {plan.entitlements.length === 0 ? (
                 <p className="muted small">لا حقوق بعد — الباقة تبيع السعر وحده.</p>
               ) : (
-                <table>
-                  <thead>
-                    <tr>
-                      <th>النوع</th>
-                      <th>الحقّ</th>
-                      <th>القيمة</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {plan.entitlements.map((entry) => (
-                      <tr key={entry.key}>
-                        <td>
-                          <span className="chip">{KIND_LABEL[entry.kind]}</span>
-                        </td>
-                        <td>
-                          {entry.labelAr}
-                          <div className="muted small" dir="ltr">
-                            {entry.key}
-                          </div>
-                        </td>
-                        <td>{valueText(entry)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                <Table
+                  bare
+                  dense
+                  columns={entitlementColumns}
+                  rows={plan.entitlements}
+                  rowKey={(entry) => entry.key}
+                />
               )}
             </Panel>
           ))}

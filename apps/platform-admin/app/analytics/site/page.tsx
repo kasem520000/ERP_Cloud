@@ -5,6 +5,7 @@ import { type SiteAnalytics } from '@erp/contracts';
 import { Panel } from '@erp/ui';
 
 import { Empty, ErrorBox, Loading, Screen } from '../../../components/screen';
+import { Table, type Column } from '../../../components/ui/table';
 import { apiData } from '../../../lib/api';
 import { useQuery } from '../../../lib/use-query';
 
@@ -51,6 +52,66 @@ export default function SiteAnalyticsPage() {
   );
 
   const data = query.data;
+
+  const goalColumns: Array<Column<SiteAnalytics['goals'][number]>> = [
+    { key: 'goal', header: 'الهدف', grow: true, cell: (goal) => goal.labelAr },
+    { key: 'visitors', header: 'زوّار', numeric: true, cell: (goal) => count(goal.visitors) },
+    { key: 'events', header: 'أحداث', numeric: true, cell: (goal) => count(goal.events) },
+    {
+      key: 'rate',
+      header: 'النسبة من زوّار النافذة',
+      numeric: true,
+      cell: (goal) =>
+        goal.visitors === 0
+          ? '—'
+          : `${goal.ratePct.toLocaleString('ar-SA-u-ca-gregory-nu-latn', { maximumFractionDigits: 1 })}٪`,
+    },
+  ];
+
+  const seriesColumns: Array<Column<SiteAnalytics['series'][number]>> = [
+    { key: 'day', header: 'اليوم', cell: (point) => dayText(point.day) },
+    { key: 'visitors', header: 'زوّار', numeric: true, cell: (point) => count(point.visitors) },
+    { key: 'views', header: 'مشاهدات', numeric: true, cell: (point) => count(point.views) },
+  ];
+
+  const sourceColumns: Array<Column<SiteAnalytics['sources'][number]>> = [
+    { key: 'host', header: 'المصدر', ltr: true, grow: true, cell: (source) => source.host },
+    { key: 'visitors', header: 'زوّار', numeric: true, cell: (source) => count(source.visitors) },
+  ];
+
+  const pathColumns: Array<Column<SiteAnalytics['paths'][number]>> = [
+    { key: 'path', header: 'المسار', ltr: true, grow: true, cell: (row) => row.path },
+    { key: 'visitors', header: 'زوّار', numeric: true, cell: (row) => count(row.visitors) },
+    { key: 'views', header: 'مشاهدات', numeric: true, cell: (row) => count(row.views) },
+  ];
+
+  const experimentColumns: Array<
+    Column<SiteAnalytics['experiments'][number]['variants'][number] & { experiment: string }>
+  > = [
+    { key: 'experiment', header: 'التجربة', ltr: true, cell: (variant) => variant.experiment },
+    { key: 'key', header: 'النسخة', cell: (variant) => variant.key },
+    { key: 'exposures', header: 'رأوا', numeric: true, cell: (variant) => count(variant.exposures) },
+    {
+      key: 'converters',
+      header: 'بدأوا اشتراكاً',
+      numeric: true,
+      cell: (variant) => count(variant.converters),
+    },
+    {
+      key: 'rate',
+      header: 'التحويل',
+      numeric: true,
+      cell: (variant) =>
+        variant.exposures === 0
+          ? '—'
+          : `${((variant.converters / variant.exposures) * 100).toLocaleString('ar-SA-u-ca-gregory-nu-latn', { maximumFractionDigits: 1 })}٪`,
+    },
+  ];
+
+  const definitionColumns: Array<Column<SiteAnalytics['definitions'][number]>> = [
+    { key: 'label', header: 'الرقم', grow: true, cell: (definition) => definition.labelAr },
+    { key: 'meaning', header: 'ما يعنيه', cell: (definition) => definition.definitionAr },
+  ];
 
   return (
     <Screen
@@ -108,143 +169,51 @@ export default function SiteAnalyticsPage() {
 
       {data ? (
         <>
-          <Panel title="القمع — الأهداف الأربعة">
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>الهدف</th>
-                  <th>زوّار</th>
-                  <th>أحداث</th>
-                  <th>النسبة من زوّار النافذة</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.goals.map((goal) => (
-                  <tr key={goal.name}>
-                    <td>{goal.labelAr}</td>
-                    <td>{count(goal.visitors)}</td>
-                    <td>{count(goal.events)}</td>
-                    <td>
-                      {goal.visitors === 0
-                        ? '—'
-                        : `${goal.ratePct.toLocaleString('ar-SA-u-ca-gregory-nu-latn', { maximumFractionDigits: 1 })}٪`}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <Panel flush title="القمع — الأهداف الأربعة">
+            <Table bare columns={goalColumns} rows={data.goals} rowKey={(goal) => goal.name} />
             <p className="small muted">
               الزوّار مميّزون: زائرٌ ينقر الزرّ ثلاث مرّات يُحسب واحداً — وفرقُ «أحداث − زوّار» هو عدد النقرات
               المتكرّرة.
             </p>
           </Panel>
 
-          <Panel title="المنحنى اليومي">
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>اليوم</th>
-                  <th>زوّار</th>
-                  <th>مشاهدات</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.series.map((point) => (
-                  <tr key={point.day}>
-                    <td>{dayText(point.day)}</td>
-                    <td>{count(point.visitors)}</td>
-                    <td>{count(point.views)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <Panel flush title="المنحنى اليومي">
+            <Table bare columns={seriesColumns} rows={data.series} rowKey={(point) => point.day} />
           </Panel>
 
           <section className="grid cols-2">
-            <Panel title="المصادر">
+            <Panel flush title="المصادر">
               {data.sources.length === 0 ? (
                 <p className="muted">لا زياراتٍ في النافذة بعد.</p>
               ) : (
-                <table className="table">
-                  <thead>
-                    <tr>
-                      <th>المصدر</th>
-                      <th>زوّار</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {data.sources.map((source) => (
-                      <tr key={source.host}>
-                        <td>{source.host}</td>
-                        <td>{count(source.visitors)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                <Table bare columns={sourceColumns} rows={data.sources} rowKey={(source) => source.host} />
               )}
             </Panel>
 
-            <Panel title="أكثر الصفحات">
+            <Panel flush title="أكثر الصفحات">
               {data.paths.length === 0 ? (
                 <p className="muted">لا صفحاتٍ في النافذة بعد.</p>
               ) : (
-                <table className="table">
-                  <thead>
-                    <tr>
-                      <th>المسار</th>
-                      <th>زوّار</th>
-                      <th>مشاهدات</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {data.paths.map((row) => (
-                      <tr key={row.path}>
-                        <td dir="ltr">{row.path}</td>
-                        <td>{count(row.visitors)}</td>
-                        <td>{count(row.views)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                <Table bare columns={pathColumns} rows={data.paths} rowKey={(row) => row.path} />
               )}
             </Panel>
           </section>
 
-          <Panel title="تجارب أ/ب">
+          <Panel flush title="تجارب أ/ب">
             {data.experiments.length === 0 ? (
               <p className="muted">
                 لا تجربة جارية. تُنشأ من «المحتوى»: صفحةٌ أصلية، ثم صفحةٌ ثانية تُربط بها كنسخة بحرف (a أو b)
                 فتُعلَن للزوّار ويقيسها هذا الجدول.
               </p>
             ) : (
-              <table className="table">
-                <thead>
-                  <tr>
-                    <th>التجربة</th>
-                    <th>النسخة</th>
-                    <th>رأوا</th>
-                    <th>بدأوا اشتراكاً</th>
-                    <th>التحويل</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {data.experiments.flatMap((experiment) =>
-                    experiment.variants.map((variant) => (
-                      <tr key={`${experiment.experiment}-${variant.key}`}>
-                        <td dir="ltr">{experiment.experiment}</td>
-                        <td>{variant.key}</td>
-                        <td>{count(variant.exposures)}</td>
-                        <td>{count(variant.converters)}</td>
-                        <td>
-                          {variant.exposures === 0
-                            ? '—'
-                            : `${variant.ratePct.toLocaleString('ar-SA-u-ca-gregory-nu-latn', { maximumFractionDigits: 1 })}٪`}
-                        </td>
-                      </tr>
-                    )),
-                  )}
-                </tbody>
-              </table>
+              <Table
+                bare
+                columns={experimentColumns}
+                rows={data.experiments.flatMap((experiment) =>
+                  experiment.variants.map((variant) => ({ ...variant, experiment: experiment.experiment })),
+                )}
+                rowKey={(variant) => `${variant.experiment}-${variant.key}`}
+              />
             )}
           </Panel>
 
@@ -274,23 +243,13 @@ export default function SiteAnalyticsPage() {
             </p>
           </Panel>
 
-          <Panel title="تعريف كل رقم">
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>الرقم</th>
-                  <th>ما يعنيه</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.definitions.map((definition) => (
-                  <tr key={definition.key}>
-                    <td>{definition.labelAr}</td>
-                    <td>{definition.definitionAr}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <Panel flush title="تعريف كل رقم">
+            <Table
+              bare
+              columns={definitionColumns}
+              rows={data.definitions}
+              rowKey={(definition) => definition.key}
+            />
             <p className="small muted">
               آخر قراءة: {new Date(data.generatedAt).toLocaleString('ar-SA-u-ca-gregory-nu-latn')} — والشاشة
               تقرأ ما جمعه الخادم لحظة الطلب، بلا تخزينٍ وسيط.

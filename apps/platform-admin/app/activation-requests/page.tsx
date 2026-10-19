@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { Panel } from '@erp/ui';
 
 import { Empty, ErrorBox, Loading, Screen } from '../../components/screen';
+import { Table, type Column } from '../../components/ui/table';
 import { ApiError, apiData, apiPost } from '../../lib/api';
 import { useQuery } from '../../lib/use-query';
 import { dateText } from '../../lib/format';
@@ -49,6 +50,65 @@ export default function ActivationRequestsPage() {
 
   const rows = requests.data ?? [];
 
+  const columns: Array<Column<Request>> = [
+    {
+      key: 'tenant',
+      header: 'المنشأة',
+      grow: true,
+      cell: (row) => (
+        <>
+          <strong>{row.tenant_name}</strong>
+          <div className="muted small" dir="ltr">
+            {row.tenant_code}
+          </div>
+        </>
+      ),
+    },
+    {
+      key: 'requester',
+      header: 'مقدم الطلب',
+      ltr: true,
+      cell: (row) => <span className="small">{row.requested_by_email ?? '—'}</span>,
+    },
+    { key: 'plan', header: 'الباقة', cell: (row) => row.plan_name ?? '—' },
+    {
+      key: 'amount',
+      header: 'القيمة',
+      numeric: true,
+      cell: (row) =>
+        row.amount
+          ? `${Number(row.amount).toLocaleString('ar-SA-u-ca-gregory-nu-latn', { minimumFractionDigits: 2 })} ${row.currency ?? ''}`
+          : '—',
+    },
+    { key: 'created', header: 'التاريخ', ltr: true, cell: (row) => dateText(row.created_at) },
+    { key: 'notes', header: 'ملاحظات', cell: (row) => <span className="small">{row.notes ?? '—'}</span> },
+    {
+      key: 'actions',
+      header: '',
+      cell: (row) =>
+        row.status === 'pending' ? (
+          <div className="row">
+            <button
+              className="btn sm primary"
+              type="button"
+              disabled={busy === row.id}
+              onClick={() => void review(row.id, true)}
+            >
+              اعتماد
+            </button>
+            <button
+              className="btn sm danger"
+              type="button"
+              disabled={busy === row.id}
+              onClick={() => void review(row.id, false)}
+            >
+              رفض
+            </button>
+          </div>
+        ) : null,
+    },
+  ];
+
   return (
     <Screen
       title="طلبات التفعيل"
@@ -75,66 +135,7 @@ export default function ActivationRequestsPage() {
           <Empty title="لا توجد طلبات" detail="ستظهر هنا طلبات العملاء من صفحة الاشتراك في بوابة العملاء." />
         ) : (
           <Panel flush title="طلبات التفعيل">
-            <div className="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>المنشأة</th>
-                    <th>مقدم الطلب</th>
-                    <th>الباقة</th>
-                    <th className="num">القيمة</th>
-                    <th>التاريخ</th>
-                    <th>ملاحظات</th>
-                    <th />
-                  </tr>
-                </thead>
-                <tbody>
-                  {rows.map((row) => (
-                    <tr key={row.id}>
-                      <td>
-                        <strong>{row.tenant_name}</strong>
-                        <div className="muted small" dir="ltr">
-                          {row.tenant_code}
-                        </div>
-                      </td>
-                      <td dir="ltr" className="small">
-                        {row.requested_by_email ?? '—'}
-                      </td>
-                      <td>{row.plan_name ?? '—'}</td>
-                      <td className="num">
-                        {row.amount
-                          ? `${Number(row.amount).toLocaleString('ar-SA-u-ca-gregory-nu-latn', { minimumFractionDigits: 2 })} ${row.currency ?? ''}`
-                          : '—'}
-                      </td>
-                      <td dir="ltr">{dateText(row.created_at)}</td>
-                      <td className="small">{row.notes ?? '—'}</td>
-                      <td>
-                        {row.status === 'pending' && (
-                          <div className="row">
-                            <button
-                              className="btn sm primary"
-                              type="button"
-                              disabled={busy === row.id}
-                              onClick={() => void review(row.id, true)}
-                            >
-                              اعتماد
-                            </button>
-                            <button
-                              className="btn sm danger"
-                              type="button"
-                              disabled={busy === row.id}
-                              onClick={() => void review(row.id, false)}
-                            >
-                              رفض
-                            </button>
-                          </div>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <Table bare columns={columns} rows={rows} rowKey={(row) => row.id} />
           </Panel>
         ))}
     </Screen>

@@ -4,6 +4,7 @@ import { Panel } from '@erp/ui';
 import { useMemo, useState } from 'react';
 
 import { Empty, ErrorBox, Forbidden, Loading, Screen } from '../../components/screen';
+import { Table, type Column } from '../../components/ui/table';
 import { useSession } from '../../lib/session';
 import { useQuery } from '../../lib/use-query';
 
@@ -33,6 +34,19 @@ type OpenApiDocument = {
 
 const METHODS = ['get', 'post', 'put', 'patch', 'delete'] as const;
 
+type OperationRow = { path: string; method: string; summary: string; group: string };
+
+const operationColumns: Array<Column<OperationRow>> = [
+  {
+    key: 'method',
+    header: 'الطريقة',
+    width: 90,
+    cell: (row) => <code className="badge ltr">{row.method}</code>,
+  },
+  { key: 'path', header: 'المسار', ltr: true, grow: true, cell: (row) => <code>{row.path}</code> },
+  { key: 'summary', header: 'الوصف', cell: (row) => <span className="small">{row.summary}</span> },
+];
+
 export default function ApiExplorerPage() {
   const { canConsole } = useSession();
   const [query, setQuery] = useState('');
@@ -48,7 +62,7 @@ export default function ApiExplorerPage() {
   const groups = useMemo(() => {
     const paths = document.data?.paths ?? {};
     const needle = query.trim().toLowerCase();
-    const rows: Array<{ path: string; method: string; summary: string; group: string }> = [];
+    const rows: OperationRow[] = [];
 
     for (const [path, operations] of Object.entries(paths)) {
       for (const method of METHODS) {
@@ -65,7 +79,7 @@ export default function ApiExplorerPage() {
       }
     }
 
-    const byGroup = new Map<string, typeof rows>();
+    const byGroup = new Map<string, OperationRow[]>();
     for (const row of rows) {
       byGroup.set(row.group, [...(byGroup.get(row.group) ?? []), row]);
     }
@@ -127,30 +141,13 @@ export default function ApiExplorerPage() {
             <strong>{group}</strong>
             <span className="badge">{rows.length}</span>
           </div>
-          <div className="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>الطريقة</th>
-                  <th>المسار</th>
-                  <th>الوصف</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.slice(0, 60).map((row) => (
-                  <tr key={`${row.method} ${row.path}`}>
-                    <td>
-                      <code>{row.method}</code>
-                    </td>
-                    <td>
-                      <code>{row.path}</code>
-                    </td>
-                    <td className="small">{row.summary}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <Table
+            bare
+            dense
+            columns={operationColumns}
+            rows={rows.slice(0, 60)}
+            rowKey={(row) => `${row.method} ${row.path}`}
+          />
           {rows.length > 60 && (
             <p className="muted">…و{rows.length - 60} عملية أخرى — استعمل البحث لتصفيتها.</p>
           )}

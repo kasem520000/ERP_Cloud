@@ -10,6 +10,7 @@ import {
 import { Panel } from '@erp/ui';
 
 import { Empty, ErrorBox, Forbidden, Loading, Screen } from '../../components/screen';
+import { Table, type Column } from '../../components/ui/table';
 import { ApiError, apiData, apiDelete, apiPost } from '../../lib/api';
 import { useQuery } from '../../lib/use-query';
 
@@ -122,6 +123,49 @@ export default function ImpersonationPage() {
 
   const ready = tenantId.length > 0 && reason.trim().length >= 10;
 
+  const sessionColumns: Array<Column<ImpersonationSession>> = [
+    {
+      key: 'tenant',
+      header: 'المنشأة',
+      grow: true,
+      cell: (session) => (
+        <>
+          {session.tenantName ?? '—'}
+          <p className="muted" style={{ margin: 0, fontSize: 12 }}>
+            {session.tenantCode ?? ''} · باسم {session.asUserLabel ?? '—'}
+          </p>
+        </>
+      ),
+    },
+    {
+      key: 'operator',
+      header: 'المشغّل',
+      cell: (session) => session.operatorLabel ?? session.operatorUserId,
+    },
+    { key: 'reason', header: 'السبب', cell: (session) => session.reason },
+    { key: 'started', header: 'البداية', cell: (session) => dateTime(session.startedAt) },
+    { key: 'end', header: 'النهاية', cell: (session) => dateTime(session.endedAt ?? session.expiresAt) },
+    {
+      key: 'status',
+      header: 'الحالة',
+      cell: (session) => (
+        <span className={`chip${session.status === 'active' ? ' on' : ''}`}>
+          {STATUS_LABEL[session.status]}
+        </span>
+      ),
+    },
+    {
+      key: 'action',
+      header: '',
+      cell: (session) =>
+        session.status === 'active' ? (
+          <button className="btn danger" type="button" disabled={busy} onClick={() => void end(session)}>
+            إنهاء
+          </button>
+        ) : null,
+    },
+  ];
+
   return (
     <Screen
       title="الدخول المؤقّت"
@@ -219,54 +263,7 @@ export default function ImpersonationPage() {
           <Empty title="لا جلسات بعد" detail="كل دخولٍ مؤقّت يُكتب هنا بمن دخله وسببه ومدّته." />
         )}
         {sessions.status === 'success' && (sessions.data?.length ?? 0) > 0 && (
-          <div className="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>المنشأة</th>
-                  <th>المشغّل</th>
-                  <th>السبب</th>
-                  <th>البداية</th>
-                  <th>النهاية</th>
-                  <th>الحالة</th>
-                  <th />
-                </tr>
-              </thead>
-              <tbody>
-                {(sessions.data ?? []).map((session) => (
-                  <tr key={session.id}>
-                    <td>
-                      {session.tenantName ?? '—'}
-                      <p className="muted" style={{ margin: 0, fontSize: 12 }}>
-                        {session.tenantCode ?? ''} · باسم {session.asUserLabel ?? '—'}
-                      </p>
-                    </td>
-                    <td>{session.operatorLabel ?? session.operatorUserId}</td>
-                    <td>{session.reason}</td>
-                    <td>{dateTime(session.startedAt)}</td>
-                    <td>{dateTime(session.endedAt ?? session.expiresAt)}</td>
-                    <td>
-                      <span className={`chip${session.status === 'active' ? ' on' : ''}`}>
-                        {STATUS_LABEL[session.status]}
-                      </span>
-                    </td>
-                    <td>
-                      {session.status === 'active' && (
-                        <button
-                          className="btn danger"
-                          type="button"
-                          disabled={busy}
-                          onClick={() => void end(session)}
-                        >
-                          إنهاء
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <Table bare columns={sessionColumns} rows={sessions.data ?? []} rowKey={(session) => session.id} />
         )}
       </Panel>
     </Screen>

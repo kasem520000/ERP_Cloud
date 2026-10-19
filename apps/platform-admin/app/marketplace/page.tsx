@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { Panel } from '@erp/ui';
 
 import { Screen } from '../../components/screen';
+import { Table, type Column } from '../../components/ui/table';
 import { ApiError, apiData, apiPost, apiPut } from '../../lib/api';
 import { useSession } from '../../lib/session';
 
@@ -210,6 +211,169 @@ export default function PlatformMarketplacePage() {
 
   const pendingCount = requests.filter((r) => r.status === 'pending').length;
 
+  const requestColumns: Array<Column<AddonRequestRow>> = [
+    {
+      key: 'tenant',
+      header: 'المنشأة',
+      cell: (req) => (
+        <>
+          <strong>{req.tenantName}</strong>
+          <div className="muted" style={{ fontSize: 12 }} dir="ltr">
+            {req.tenantCode}
+          </div>
+        </>
+      ),
+    },
+    {
+      key: 'app',
+      header: 'الباقة المطلوبة',
+      cell: (req) => (
+        <>
+          <strong>
+            {req.appIcon} {req.appNameAr}
+          </strong>
+          <div className="muted" style={{ fontSize: 12 }} dir="ltr">
+            {req.appCode} · {Number(req.monthlyPrice).toFixed(2)} SAR
+          </div>
+        </>
+      ),
+    },
+    { key: 'requester', header: 'مقدم الطلب', cell: (req) => req.requesterLabel },
+    { key: 'note', header: 'ملاحظة العميل', cell: (req) => req.note || '—' },
+    {
+      key: 'status',
+      header: 'الحالة',
+      cell: (req) => (
+        <span className={`chip${req.status === 'pending' ? ' on' : ''}`}>
+          {req.status === 'pending'
+            ? 'بانتظار الموافقة'
+            : req.status === 'approved'
+              ? 'تمت الموافقة'
+              : 'مرفوض'}
+        </span>
+      ),
+    },
+    {
+      key: 'decision',
+      header: 'رد/ملاحظة المنصة',
+      cell: (req) => (
+        <input
+          className="input"
+          placeholder="ملاحظة للعميل (اختياري)…"
+          value={decisionNotes[req.id] ?? req.decisionNote ?? ''}
+          onChange={(event) => setDecisionNotes((curr) => ({ ...curr, [req.id]: event.target.value }))}
+        />
+      ),
+    },
+    {
+      key: 'actions',
+      header: 'الإجراء',
+      cell: (req) => (
+        <div className="row" style={{ gap: 6 }}>
+          <button
+            className="btn primary"
+            type="button"
+            disabled={!canWrite || busy === req.id}
+            onClick={() => void decide(req, 'approved')}
+          >
+            موافقة وتفعيل
+          </button>
+          <button
+            className="btn"
+            type="button"
+            disabled={!canWrite || busy === req.id}
+            onClick={() => void decide(req, 'rejected')}
+          >
+            رفض
+          </button>
+        </div>
+      ),
+    },
+  ];
+
+  const usageColumns: Array<Column<UnlicensedUsageRow>> = [
+    {
+      key: 'tenant',
+      header: 'المنشأة',
+      grow: true,
+      cell: (row) => (
+        <>
+          <strong>{row.tenantName}</strong>
+          <div className="muted" style={{ fontSize: 12 }} dir="ltr">
+            {row.tenantCode} · {row.tenantStatus}
+          </div>
+          <div className="muted" style={{ fontSize: 12 }} dir="ltr">
+            {row.requiredApps.join(' | ')}
+          </div>
+        </>
+      ),
+    },
+    {
+      key: 'licence',
+      header: 'الترخيص الآن',
+      cell: (row) => licenceLabel(row.licence.state, row.licence.enabledApps),
+    },
+    { key: 'writes', header: 'كتاباتٌ مقاسة', numeric: true, cell: (row) => row.writes },
+    { key: 'actors', header: 'مستخدمون', numeric: true, cell: (row) => row.actors },
+    {
+      key: 'window',
+      header: 'أول / آخر قياس',
+      cell: (row) => (
+        <span style={{ fontSize: 12 }}>
+          {whenText(row.firstAt)}
+          <div className="muted">{whenText(row.lastAt)}</div>
+        </span>
+      ),
+    },
+    {
+      key: 'footprint',
+      header: 'حجم العمل الحقيقي (كلّ الوقت)',
+      cell: (row) => (
+        <span style={{ fontSize: 12 }}>
+          أوامر تحميل {row.footprint.loadOrders} · مستندات {row.footprint.documents} · دفعات إنتاج{' '}
+          {row.footprint.productionBatches}
+          <div className="muted">
+            حركات سيارة {row.footprint.stockMovements} · آخر نشاط {whenText(row.footprint.lastActivityAt)}
+          </div>
+        </span>
+      ),
+    },
+    {
+      key: 'paths',
+      header: 'المسارات',
+      ltr: true,
+      cell: (row) => (
+        <span style={{ fontSize: 12 }}>
+          {row.topPaths.map((pathRow) => (
+            <div key={`${pathRow.method} ${pathRow.path}`}>
+              {pathRow.method} {pathRow.path.replace('/api/v1', '')} ×{pathRow.writes}
+            </div>
+          ))}
+        </span>
+      ),
+    },
+    {
+      key: 'pending',
+      header: 'طلب تفعيل',
+      cell: (row) => (
+        <span style={{ fontSize: 12 }}>
+          {row.pendingRequest ? (
+            <>
+              <span dir="ltr">{row.pendingRequest.appCode}</span>
+              <div className="muted">
+                {row.pendingRequest.status === 'pending'
+                  ? `معلّق منذ ${whenText(row.pendingRequest.createdAt)}`
+                  : `${row.pendingRequest.status} · ${whenText(row.pendingRequest.createdAt)}`}
+              </div>
+            </>
+          ) : (
+            <span className="muted">لم تطلب</span>
+          )}
+        </span>
+      ),
+    },
+  ];
+
   return (
     <Screen
       title="سوق الإضافات وطلبات التفعيل"
@@ -257,82 +421,7 @@ export default function PlatformMarketplacePage() {
           {requests.length === 0 ? (
             <p className="muted">لا توجد طلبات تفعيل باقات حالياً.</p>
           ) : (
-            <div className="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>المنشأة</th>
-                    <th>الباقة المطلوبة</th>
-                    <th>مقدم الطلب</th>
-                    <th>ملاحظة العميل</th>
-                    <th>الحالة</th>
-                    <th>رد/ملاحظة المنصة</th>
-                    <th>الإجراء</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {requests.map((req) => (
-                    <tr key={req.id}>
-                      <td>
-                        <strong>{req.tenantName}</strong>
-                        <div className="muted" style={{ fontSize: 12 }} dir="ltr">
-                          {req.tenantCode}
-                        </div>
-                      </td>
-                      <td>
-                        <strong>
-                          {req.appIcon} {req.appNameAr}
-                        </strong>
-                        <div className="muted" style={{ fontSize: 12 }} dir="ltr">
-                          {req.appCode} · {Number(req.monthlyPrice).toFixed(2)} SAR
-                        </div>
-                      </td>
-                      <td>{req.requesterLabel}</td>
-                      <td>{req.note || '—'}</td>
-                      <td>
-                        <span className={`chip${req.status === 'pending' ? ' on' : ''}`}>
-                          {req.status === 'pending'
-                            ? 'بانتظار الموافقة'
-                            : req.status === 'approved'
-                              ? 'تمت الموافقة'
-                              : 'مرفوض'}
-                        </span>
-                      </td>
-                      <td>
-                        <input
-                          className="input"
-                          placeholder="ملاحظة للعميل (اختياري)…"
-                          value={decisionNotes[req.id] ?? req.decisionNote ?? ''}
-                          onChange={(event) =>
-                            setDecisionNotes((curr) => ({ ...curr, [req.id]: event.target.value }))
-                          }
-                        />
-                      </td>
-                      <td>
-                        <div className="row" style={{ gap: 6 }}>
-                          <button
-                            className="btn primary"
-                            type="button"
-                            disabled={!canWrite || busy === req.id}
-                            onClick={() => void decide(req, 'approved')}
-                          >
-                            موافقة وتفعيل
-                          </button>
-                          <button
-                            className="btn"
-                            type="button"
-                            disabled={!canWrite || busy === req.id}
-                            onClick={() => void decide(req, 'rejected')}
-                          >
-                            رفض
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <Table bare columns={requestColumns} rows={requests} rowKey={(req) => req.id} />
           )}
         </Panel>
       )}
@@ -465,75 +554,13 @@ export default function PlatformMarketplacePage() {
                   لم يكتب على السطح منذ {usage.observedDays} يوماً.
                 </p>
               ) : (
-                <div className="table-wrap">
-                  <table>
-                    <thead>
-                      <tr>
-                        <th>المنشأة</th>
-                        <th>الترخيص الآن</th>
-                        <th>كتاباتٌ مقاسة</th>
-                        <th>مستخدمون</th>
-                        <th>أول / آخر قياس</th>
-                        <th>حجم العمل الحقيقي (كلّ الوقت)</th>
-                        <th>المسارات</th>
-                        <th>طلب تفعيل</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {usage.tenants.map((row) => (
-                        <tr key={`${row.tenantId}:${row.requiredApps.join('|')}`}>
-                          <td>
-                            <strong>{row.tenantName}</strong>
-                            <div className="muted" style={{ fontSize: 12 }} dir="ltr">
-                              {row.tenantCode} · {row.tenantStatus}
-                            </div>
-                            <div className="muted" style={{ fontSize: 12 }} dir="ltr">
-                              {row.requiredApps.join(' | ')}
-                            </div>
-                          </td>
-                          <td>{licenceLabel(row.licence.state, row.licence.enabledApps)}</td>
-                          <td>
-                            <strong>{row.writes}</strong>
-                          </td>
-                          <td>{row.actors}</td>
-                          <td style={{ fontSize: 12 }}>
-                            {whenText(row.firstAt)}
-                            <div className="muted">{whenText(row.lastAt)}</div>
-                          </td>
-                          <td style={{ fontSize: 12 }}>
-                            أوامر تحميل {row.footprint.loadOrders} · مستندات {row.footprint.documents} · دفعات
-                            إنتاج {row.footprint.productionBatches}
-                            <div className="muted">
-                              حركات سيارة {row.footprint.stockMovements} · آخر نشاط{' '}
-                              {whenText(row.footprint.lastActivityAt)}
-                            </div>
-                          </td>
-                          <td style={{ fontSize: 12 }} dir="ltr">
-                            {row.topPaths.map((pathRow) => (
-                              <div key={`${pathRow.method} ${pathRow.path}`}>
-                                {pathRow.method} {pathRow.path.replace('/api/v1', '')} ×{pathRow.writes}
-                              </div>
-                            ))}
-                          </td>
-                          <td style={{ fontSize: 12 }}>
-                            {row.pendingRequest ? (
-                              <>
-                                <span dir="ltr">{row.pendingRequest.appCode}</span>
-                                <div className="muted">
-                                  {row.pendingRequest.status === 'pending'
-                                    ? `معلّق منذ ${whenText(row.pendingRequest.createdAt)}`
-                                    : `${row.pendingRequest.status} · ${whenText(row.pendingRequest.createdAt)}`}
-                                </div>
-                              </>
-                            ) : (
-                              <span className="muted">لم تطلب</span>
-                            )}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                <Table
+                  bare
+                  dense
+                  columns={usageColumns}
+                  rows={usage.tenants}
+                  rowKey={(row) => `${row.tenantId}:${row.requiredApps.join('|')}`}
+                />
               )}
 
               <p className="muted small" style={{ margin: 0 }}>
