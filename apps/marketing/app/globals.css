@@ -2848,3 +2848,20 @@ body {
   vertical-align: -3px;
   margin-inline-end: 6px;
 }
+
+/* ==========================================================================
+ * Header at 390px — the wordmark + action cluster (theme, language, menu)
+ * needed two pixels more than the viewport, so the header — not the page —
+ * produced the horizontal scrollbar on the English home. Tighten the header's
+ * own gaps; every other block keeps its rhythm.
+ * ======================================================================== */
+
+@media (max-width: 480px) {
+  .header-inner {
+    gap: 12px;
+  }
+
+  .header-actions {
+    gap: 6px;
+  }
+}
