@@ -39,9 +39,10 @@ async function unsubscribe(token: string): Promise<{ status: number; data: ApiOu
       cache: 'no-store',
       headers: { accept: 'application/json' },
     });
-    const payload = (await response.json().catch(() => null)) as
-      | { data?: ApiOutcome; detail?: string }
-      | null;
+    const payload = (await response.json().catch(() => null)) as {
+      data?: ApiOutcome;
+      detail?: string;
+    } | null;
     return { status: response.status, data: payload?.data ?? null };
   } catch {
     // الشبكة سقطت: «تعذّر» لا «أُلغي» — ولا يُكذب على صاحب العنوان.
@@ -65,10 +66,12 @@ export default async function UnsubscribePage({
   const already = outcome.state === 'done' && wasAlreadyUnsubscribed(result.data?.message);
 
   return (
-    <section className="card hero-card">
+    <section className="card hero-card page-narrow">
       <h1>{outcome.headingAr}</h1>
       <p className={outcome.tone === 'danger' ? 'muted' : undefined}>
-        {already ? 'هذا العنوان مُلغى الاشتراك من قبل — لا شيء يُغيَّر، ولن تصلك رسائلنا التسويقية.' : outcome.bodyAr}
+        {already
+          ? 'هذا العنوان مُلغى الاشتراك من قبل — لا شيء يُغيَّر، ولن تصلك رسائلنا التسويقية.'
+          : outcome.bodyAr}
       </p>
       {outcome.state === 'done' ? (
         <>
