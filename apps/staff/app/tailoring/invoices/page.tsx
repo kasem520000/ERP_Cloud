@@ -1,5 +1,6 @@
 'use client';
 
+import { Panel } from '@erp/ui';
 import { Suspense, useState } from 'react';
 
 import { Empty, ErrorBox, Forbidden, Loading, Screen } from '../../../components/screen';
@@ -104,9 +105,9 @@ type Draft = {
 };
 
 const GROUPS: Array<{ key: MeasurementField['group']; title: string }> = [
- { key: 'measurements', title: 'المقاسات' },
- { key: 'shapes', title: 'الأشكال والتفاصيل' },
- { key: 'extra', title: 'مقاسات إضافية' },
+  { key: 'measurements', title: 'المقاسات' },
+  { key: 'shapes', title: 'الأشكال والتفاصيل' },
+  { key: 'extra', title: 'مقاسات إضافية' },
 ];
 
 const METHODS: Array<{ value: string; label: string }> = [
@@ -172,7 +173,10 @@ function TailoringInvoices() {
 
   const statuses = useQuery<Status[]>(() => apiList<Status>('/tailoring/order-statuses'), []);
   const garments = useQuery<GarmentType[]>(() => apiList<GarmentType>('/tailoring/garment-types'), []);
-  const fields = useQuery<MeasurementField[]>(() => apiList<MeasurementField>('/tailoring/measurement-fields'), []);
+  const fields = useQuery<MeasurementField[]>(
+    () => apiList<MeasurementField>('/tailoring/measurement-fields'),
+    [],
+  );
   const customers = useQuery<Party[]>(() => listParties('customer'), []);
   const branches = useQuery<Branch[]>(() => listBranches(), []);
   const safes = useQuery<CashLocation[]>(() => listCashLocations(), []);
@@ -190,7 +194,8 @@ function TailoringInvoices() {
   const firstStatus = (statuses.data ?? [])[0]?.id ?? '';
   const firstGarment = (garments.data ?? [])[0]?.id ?? '';
 
-  const setField = (patch: Partial<Draft>) => setDraft((current) => (current ? { ...current, ...patch } : current));
+  const setField = (patch: Partial<Draft>) =>
+    setDraft((current) => (current ? { ...current, ...patch } : current));
 
   const totalOf = (current: Draft | null) => Number(current?.unitPrice || 0) * Number(current?.quantity || 1);
   // الصافي (مع الضريبة) — `CreateInvoice` L419 `txtTotVAT = الإجمالي × 0.05`.
@@ -284,7 +289,11 @@ function TailoringInvoices() {
   async function remove(invoice: Invoice) {
     // «هل أنت متأكد من حذف هذه الفاتورة؟» — the delete is the only button in the desktop
     // that does not confirm, and it is the only one that cannot be undone.
-    if (!window.confirm(`هل أنت متأكد من حذف هذه الفاتورة؟\nسيتم حذف جميع الدفعات المرتبطة بها\n\n${invoice.number}`)) {
+    if (
+      !window.confirm(
+        `هل أنت متأكد من حذف هذه الفاتورة؟\nسيتم حذف جميع الدفعات المرتبطة بها\n\n${invoice.number}`,
+      )
+    ) {
       return;
     }
     setBusy(true);
@@ -310,23 +319,25 @@ function TailoringInvoices() {
       remaining: invoice.remainingAmount,
       amount: Number(invoice.remainingAmount).toString(),
       date: today(),
-      cashLocationId: (safes.data ?? []).find((safe) => safe.isDefault)?.id ?? (safes.data ?? [])[0]?.id ?? '',
-      branchId: (branches.data ?? []).find((branch) => branch.isDefault)?.id ?? (branches.data ?? [])[0]?.id ?? '',
+      cashLocationId:
+        (safes.data ?? []).find((safe) => safe.isDefault)?.id ?? (safes.data ?? [])[0]?.id ?? '',
+      branchId:
+        (branches.data ?? []).find((branch) => branch.isDefault)?.id ?? (branches.data ?? [])[0]?.id ?? '',
       method: 'cash',
       // «تم استلام دفعة من عملية رقم {code}» (`AddNewSizes` L683).
       note: `تم استلام دفعة من عملية رقم ${invoice.number}`,
     });
 
   return (
- <Screen
- title="فواتير التفصيل"
+    <Screen
+      title="فواتير التفصيل"
       subtitle="ما يُفصَّل ويُحاسب عليه: بيانات الثوب ومقاساته وإجماليه بضريبته، وما قُبض منه وما بقي، وحالته من «مستلم» إلى «تم التسليم»."
       crumbs={['التفصيل', 'الفواتير']}
       actions={
         canManage ? (
- <button className="btn primary" type="button" onClick={openNew}>
- فاتورة جديدة
- </button>
+          <button className="btn primary" type="button" onClick={openNew}>
+            فاتورة جديدة
+          </button>
         ) : null
       }
     >
@@ -334,282 +345,276 @@ function TailoringInvoices() {
       {notice && <p className="alert ok">{notice}</p>}
 
       {/* `txtPhoneNum` — searched as you type, as `txtPhoneNum_TextChanged` does. */}
- <div className="card tight no-print">
- <div className="row" style={{ flexWrap: 'wrap', alignItems: 'flex-end' }}>
- <label className="field" style={{ margin: 0, minWidth: 280, flex: 1 }}>
- <span>الهاتف أو اسم العميل...</span>
- <input
+      <div className="card tight no-print">
+        <div className="row" style={{ flexWrap: 'wrap', alignItems: 'flex-end' }}>
+          <label className="field" style={{ margin: 0, minWidth: 280, flex: 1 }}>
+            <span>الهاتف أو اسم العميل...</span>
+            <input
               className="input"
               value={search}
- placeholder="الهاتف أو اسم العميل..."
+              placeholder="الهاتف أو اسم العميل..."
               onChange={(event) => {
                 setSearch(event.target.value);
                 setApplied(event.target.value);
               }}
             />
- </label>
- </div>
- </div>
+          </label>
+        </div>
+      </div>
 
       {invoices.status === 'loading' && <Loading rows={6} />}
       {invoices.status === 'forbidden' && <Forbidden />}
       {invoices.status === 'error' && <ErrorBox message={invoices.error} onRetry={invoices.reload} />}
       {invoices.status === 'success' && (
- <>
- <div className="row" style={{ justifyContent: 'space-between', alignItems: 'baseline' }}>
- <span className="group-label" style={{ margin: 0 }}>الفواتير</span>
-            {/* «النتائج: {n}» — `lblResultCount`. */}
- <span className="muted">النتائج: {invoices.data?.total ?? rows.length}</span>
- </div>
-          {rows.length === 0 ? (
- <Empty
-              title="لا توجد فواتير"
- detail={applied ? `لا فاتورة تطابق «${applied}».` : 'ابدأ بـ «فاتورة جديدة».'}
-            />
-          ) : (
- <div className="table-wrap">
- <table>
- <thead>
- <tr>
- <th>رقم الفاتورة</th>
- <th>الاسم</th>
- <th>الجوال</th>
- <th>التاريخ</th>
- <th>نوع الثوب</th>
- <th className="num">الإجمالي</th>
- <th className="num">المدفوع</th>
- <th className="num">الباقي</th>
- <th>الحالة</th>
- <th>عرض</th>
-                    {canManage && <th>إجراءات</th>}
- </tr>
- </thead>
- <tbody>
-                  {rows.map((row) => (
- <tr key={row.id}>
- <td dir="ltr">{row.number}</td>
- <td>{row.customerName}</td>
- <td dir="ltr">{row.phone || '—'}</td>
- <td dir="ltr">{row.invoiceDate}</td>
- <td>{row.garmentTypeName ?? '—'}</td>
-                      {/* الإجمالي في الشبكة هو الصافي بضريبته (L88). */}
- <td className="num">{money(row.totalWithTax)}</td>
- <td className="num">{money(row.paidAmount)}</td>
- <td
-                        className="num"
-                        style={{
-                          fontWeight: 700,
-                          color: Number(row.remainingAmount) <= 0 ? 'var(--ok, #0a7a3d)' : '#E35656',
-                        }}
-                      >
-                        {money(row.remainingAmount)}
- </td>
- <td>
- <span className="badge">{row.statusName}</span>
-                        {row.billed && <span className="badge"> مُحوَّلة</span>}
- </td>
- <td>
- <button className="btn sm" type="button" onClick={() => setViewing(row)}>
- عرض
- </button>
- </td>
-                      {canManage && (
- <td>
- <div className="row" style={{ gap: 4 }}>
- <button
-                              className="btn sm"
-                              type="button"
-                              onClick={() => setDraft(draftOf(row))}
-                            >
- تعديل
- </button>
- <button
-                              className="btn sm"
-                              type="button"
-                              onClick={() => setStatusOf({ id: row.id, number: row.number, statusId: row.statusId })}
-                            >
- تغيير الحالة
- </button>
- <button className="btn sm" type="button" onClick={() => openPayment(row)}>
- إستلام دفعة
- </button>
- <button className="btn sm danger" type="button" onClick={() => remove(row)}>
- حذف
- </button>
- </div>
- </td>
-                      )}
- </tr>
-                  ))}
- </tbody>
- </table>
- </div>
-          )}
- </>
+        <>
+          <Panel title="الفواتير" hint={<>النتائج: {invoices.data?.total ?? rows.length}</>} flush>
+            {rows.length === 0 ? (
+              <Empty
+                bare
+                title="لا توجد فواتير"
+                detail={applied ? `لا فاتورة تطابق «${applied}».` : 'ابدأ بـ «فاتورة جديدة».'}
+              />
+            ) : (
+              <div className="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>رقم الفاتورة</th>
+                      <th>الاسم</th>
+                      <th>الجوال</th>
+                      <th>التاريخ</th>
+                      <th>نوع الثوب</th>
+                      <th className="num">الإجمالي</th>
+                      <th className="num">المدفوع</th>
+                      <th className="num">الباقي</th>
+                      <th>الحالة</th>
+                      <th>عرض</th>
+                      {canManage && <th>إجراءات</th>}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {rows.map((row) => (
+                      <tr key={row.id}>
+                        <td dir="ltr">{row.number}</td>
+                        <td>{row.customerName}</td>
+                        <td dir="ltr">{row.phone || '—'}</td>
+                        <td dir="ltr">{row.invoiceDate}</td>
+                        <td>{row.garmentTypeName ?? '—'}</td>
+                        {/* الإجمالي في الشبكة هو الصافي بضريبته (L88). */}
+                        <td className="num">{money(row.totalWithTax)}</td>
+                        <td className="num">{money(row.paidAmount)}</td>
+                        <td
+                          className="num"
+                          style={{
+                            fontWeight: 700,
+                            color: Number(row.remainingAmount) <= 0 ? 'var(--ok, #0a7a3d)' : '#E35656',
+                          }}
+                        >
+                          {money(row.remainingAmount)}
+                        </td>
+                        <td>
+                          <span className="badge">{row.statusName}</span>
+                          {row.billed && <span className="badge"> مُحوَّلة</span>}
+                        </td>
+                        <td>
+                          <button className="btn sm" type="button" onClick={() => setViewing(row)}>
+                            عرض
+                          </button>
+                        </td>
+                        {canManage && (
+                          <td>
+                            <div className="row" style={{ gap: 4 }}>
+                              <button className="btn sm" type="button" onClick={() => setDraft(draftOf(row))}>
+                                تعديل
+                              </button>
+                              <button
+                                className="btn sm"
+                                type="button"
+                                onClick={() =>
+                                  setStatusOf({ id: row.id, number: row.number, statusId: row.statusId })
+                                }
+                              >
+                                تغيير الحالة
+                              </button>
+                              <button className="btn sm" type="button" onClick={() => openPayment(row)}>
+                                إستلام دفعة
+                              </button>
+                              <button className="btn sm danger" type="button" onClick={() => remove(row)}>
+                                حذف
+                              </button>
+                            </div>
+                          </td>
+                        )}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </Panel>
+        </>
       )}
 
       {viewing && (
- <div className="modal-backdrop" role="dialog" aria-modal="true">
- <div className="modal-card" style={{ maxWidth: 900 }}>
- <div className="modal-head">
- <span className="modal-title">
- عرض — <span dir="ltr">{viewing.number}</span>
- </span>
- <button className="btn sm" type="button" onClick={() => setViewing(null)}>
- إغلاق
- </button>
- </div>
- <div style={{ padding: 16, display: 'grid', gap: 12, maxHeight: '70vh', overflow: 'auto' }}>
- <div className="form-grid">
- <div className="field">
- <span>الاسم</span>
- <output className="input">{viewing.customerName}</output>
- </div>
- <div className="field">
- <span>رقم الجوال</span>
- <output className="input" dir="ltr">
+        <div className="modal-backdrop" role="dialog" aria-modal="true">
+          <div className="modal-card" style={{ maxWidth: 900 }}>
+            <div className="modal-head">
+              <span className="modal-title">
+                عرض — <span dir="ltr">{viewing.number}</span>
+              </span>
+              <button className="btn sm" type="button" onClick={() => setViewing(null)}>
+                إغلاق
+              </button>
+            </div>
+            <div style={{ padding: 16, display: 'grid', gap: 12, maxHeight: '70vh', overflow: 'auto' }}>
+              <div className="form-grid">
+                <div className="field">
+                  <span>الاسم</span>
+                  <output className="input">{viewing.customerName}</output>
+                </div>
+                <div className="field">
+                  <span>رقم الجوال</span>
+                  <output className="input" dir="ltr">
                     {viewing.phone || '—'}
- </output>
- </div>
- <div className="field">
- <span>التاريخ</span>
- <output className="input" dir="ltr">
+                  </output>
+                </div>
+                <div className="field">
+                  <span>التاريخ</span>
+                  <output className="input" dir="ltr">
                     {viewing.invoiceDate}
- </output>
- </div>
- <div className="field">
- <span>نوع الثوب</span>
- <output className="input">{viewing.garmentTypeName ?? '—'}</output>
- </div>
- <div className="field">
- <span>العدد</span>
- <output className="input">{Number(viewing.quantity).toString()}</output>
- </div>
- <div className="field">
- <span>السعر</span>
- <output className="input">{money(viewing.unitPrice)}</output>
- </div>
- <div className="field">
- <span>الإجمالي</span>
- <output className="input">{money(viewing.total)}</output>
- </div>
- <div className="field">
- <span>الصافي (مع الضريبة)</span>
- <output className="input">{money(viewing.totalWithTax)}</output>
- </div>
- <div className="field">
- <span>المدفوع</span>
- <output className="input">{money(viewing.paidAmount)}</output>
- </div>
- <div className="field">
- <span>الباقي</span>
- <output className="input" style={{ fontWeight: 700 }}>
+                  </output>
+                </div>
+                <div className="field">
+                  <span>نوع الثوب</span>
+                  <output className="input">{viewing.garmentTypeName ?? '—'}</output>
+                </div>
+                <div className="field">
+                  <span>العدد</span>
+                  <output className="input">{Number(viewing.quantity).toString()}</output>
+                </div>
+                <div className="field">
+                  <span>السعر</span>
+                  <output className="input">{money(viewing.unitPrice)}</output>
+                </div>
+                <div className="field">
+                  <span>الإجمالي</span>
+                  <output className="input">{money(viewing.total)}</output>
+                </div>
+                <div className="field">
+                  <span>الصافي (مع الضريبة)</span>
+                  <output className="input">{money(viewing.totalWithTax)}</output>
+                </div>
+                <div className="field">
+                  <span>المدفوع</span>
+                  <output className="input">{money(viewing.paidAmount)}</output>
+                </div>
+                <div className="field">
+                  <span>الباقي</span>
+                  <output className="input" style={{ fontWeight: 700 }}>
                     {money(viewing.remainingAmount)}
- </output>
- </div>
- <div className="field">
- <span>الحالة</span>
- <output className="input">
- <span className="badge">{viewing.statusName}</span>
- </output>
- </div>
- </div>
+                  </output>
+                </div>
+                <div className="field">
+                  <span>الحالة</span>
+                  <output className="input">
+                    <span className="badge">{viewing.statusName}</span>
+                  </output>
+                </div>
+              </div>
 
               {GROUPS.map((group) => {
                 const groupFields = (fields.data ?? []).filter((field) => field.group === group.key);
                 const filled = groupFields.filter((field) => viewing.measurements?.[field.key]);
                 if (!filled.length) return null;
                 return (
- <fieldset className="card tight" key={group.key} style={{ margin: 0 }}>
- <legend className="group-label">{group.title}</legend>
- <div className="form-grid">
+                  <fieldset className="card tight" key={group.key} style={{ margin: 0 }}>
+                    <legend className="group-label">{group.title}</legend>
+                    <div className="form-grid">
                       {filled.map((field) => (
- <div className="field" key={field.key}>
- <span>{field.label}</span>
- <output className="input">
+                        <div className="field" key={field.key}>
+                          <span>{field.label}</span>
+                          <output className="input">
                             {field.kind === 'flag'
                               ? viewing.measurements[field.key] === 'true'
- ? ''
+                                ? ''
                                 : '—'
                               : viewing.measurements[field.key]}
- </output>
- </div>
+                          </output>
+                        </div>
                       ))}
- </div>
- </fieldset>
+                    </div>
+                  </fieldset>
                 );
               })}
 
               {viewing.notes && (
- <fieldset className="card tight" style={{ margin: 0 }}>
- <legend className="group-label">ملاحظات</legend>
- <p style={{ margin: 0, whiteSpace: 'pre-wrap' }}>{viewing.notes}</p>
- </fieldset>
+                <fieldset className="card tight" style={{ margin: 0 }}>
+                  <legend className="group-label">ملاحظات</legend>
+                  <p style={{ margin: 0, whiteSpace: 'pre-wrap' }}>{viewing.notes}</p>
+                </fieldset>
               )}
 
               {viewing.payments.length > 0 && (
- <fieldset className="card tight" style={{ margin: 0 }}>
- <legend className="group-label">إستلام دفعة</legend>
- <div className="table-wrap">
- <table>
- <thead>
- <tr>
- <th>التاريخ</th>
- <th className="num">المبلغ</th>
- <th>ملاحظات</th>
- <th>سند القبض</th>
- </tr>
- </thead>
- <tbody>
+                <fieldset className="card tight" style={{ margin: 0 }}>
+                  <legend className="group-label">إستلام دفعة</legend>
+                  <div className="table-wrap">
+                    <table>
+                      <thead>
+                        <tr>
+                          <th>التاريخ</th>
+                          <th className="num">المبلغ</th>
+                          <th>ملاحظات</th>
+                          <th>سند القبض</th>
+                        </tr>
+                      </thead>
+                      <tbody>
                         {viewing.payments.map((payment) => (
- <tr key={payment.id}>
- <td dir="ltr">{payment.paidAt}</td>
- <td className="num">{money(payment.amount)}</td>
- <td>{payment.note ?? '—'}</td>
- <td>{payment.voucherId ? '' : '—'}</td>
- </tr>
+                          <tr key={payment.id}>
+                            <td dir="ltr">{payment.paidAt}</td>
+                            <td className="num">{money(payment.amount)}</td>
+                            <td>{payment.note ?? '—'}</td>
+                            <td>{payment.voucherId ? '' : '—'}</td>
+                          </tr>
                         ))}
- </tbody>
- </table>
- </div>
- </fieldset>
+                      </tbody>
+                    </table>
+                  </div>
+                </fieldset>
               )}
- </div>
- <div className="modal-foot">
- <button className="btn" type="button" onClick={() => window.print()}>
- طباعه
- </button>
+            </div>
+            <div className="modal-foot">
+              <button className="btn" type="button" onClick={() => window.print()}>
+                طباعه
+              </button>
               {canManage && (
- <button className="btn primary" type="button" onClick={() => setDraft(draftOf(viewing))}>
- تعديل
- </button>
+                <button className="btn primary" type="button" onClick={() => setDraft(draftOf(viewing))}>
+                  تعديل
+                </button>
               )}
- <button className="btn danger" type="button" onClick={() => setViewing(null)}>
- إغلاق
- </button>
- </div>
- </div>
- </div>
+              <button className="btn danger" type="button" onClick={() => setViewing(null)}>
+                إغلاق
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {draft && (
- <div className="modal-backdrop" role="dialog" aria-modal="true">
- <div className="modal-card" style={{ maxWidth: 1000 }}>
- <div className="modal-head">
- <span className="modal-title">
- {draft.id ? 'تعديل فاتورة تفصيل' : 'إضافة مقاس جديد'}
- </span>
- <button className="btn sm" type="button" onClick={() => setDraft(null)}>
- إغلاق
- </button>
- </div>
- <div style={{ padding: 16, display: 'grid', gap: 12, maxHeight: '70vh', overflow: 'auto' }}>
- <fieldset className="card tight" style={{ margin: 0 }}>
- <legend className="group-label">البيانات الأساسية</legend>
- <div className="form-grid">
- <label className="field">
- <span>اسم العميل</span>
- <select
+        <div className="modal-backdrop" role="dialog" aria-modal="true">
+          <div className="modal-card" style={{ maxWidth: 1000 }}>
+            <div className="modal-head">
+              <span className="modal-title">{draft.id ? 'تعديل فاتورة تفصيل' : 'إضافة مقاس جديد'}</span>
+              <button className="btn sm" type="button" onClick={() => setDraft(null)}>
+                إغلاق
+              </button>
+            </div>
+            <div style={{ padding: 16, display: 'grid', gap: 12, maxHeight: '70vh', overflow: 'auto' }}>
+              <fieldset className="card tight" style={{ margin: 0 }}>
+                <legend className="group-label">البيانات الأساسية</legend>
+                <div className="form-grid">
+                  <label className="field">
+                    <span>اسم العميل</span>
+                    <select
                       className="input"
                       value={draft.partyId}
                       onChange={(event) => {
@@ -622,50 +627,50 @@ function TailoringInvoices() {
                         });
                       }}
                     >
- <option value="">اختر العميل...</option>
+                      <option value="">اختر العميل...</option>
                       {(customers.data ?? []).map((party) => (
- <option key={party.id} value={party.id}>
+                        <option key={party.id} value={party.id}>
                           {party.name}
- </option>
+                        </option>
                       ))}
- </select>
- </label>
- <label className="field">
- <span>رقم الجوال</span>
- <input
+                    </select>
+                  </label>
+                  <label className="field">
+                    <span>رقم الجوال</span>
+                    <input
                       className="input"
                       dir="ltr"
                       value={draft.phone}
                       onChange={(event) => setField({ phone: event.target.value })}
                     />
- </label>
- <label className="field">
- <span>نوع الثوب</span>
- <select
+                  </label>
+                  <label className="field">
+                    <span>نوع الثوب</span>
+                    <select
                       className="input"
                       value={draft.garmentTypeId}
                       onChange={(event) => setField({ garmentTypeId: event.target.value })}
                     >
- <option value="">—</option>
+                      <option value="">—</option>
                       {(garments.data ?? []).map((garment) => (
- <option key={garment.id} value={garment.id}>
+                        <option key={garment.id} value={garment.id}>
                           {garment.nameAr}
- </option>
+                        </option>
                       ))}
- </select>
- </label>
- <label className="field">
- <span>التاريخ</span>
- <input
+                    </select>
+                  </label>
+                  <label className="field">
+                    <span>التاريخ</span>
+                    <input
                       className="input"
                       type="date"
                       value={draft.invoiceDate}
                       onChange={(event) => setField({ invoiceDate: event.target.value })}
                     />
- </label>
- <label className="field">
- <span>العدد</span>
- <input
+                  </label>
+                  <label className="field">
+                    <span>العدد</span>
+                    <input
                       className="input"
                       type="number"
                       min="0"
@@ -673,10 +678,10 @@ function TailoringInvoices() {
                       value={draft.quantity}
                       onChange={(event) => setField({ quantity: event.target.value })}
                     />
- </label>
- <label className="field">
- <span>السعر</span>
- <input
+                  </label>
+                  <label className="field">
+                    <span>السعر</span>
+                    <input
                       className="input"
                       type="number"
                       min="0"
@@ -684,47 +689,47 @@ function TailoringInvoices() {
                       value={draft.unitPrice}
                       onChange={(event) => setField({ unitPrice: event.target.value })}
                     />
- </label>
- <div className="field">
- <span>الإجمالي</span>
- <output className="input" style={{ fontWeight: 700 }}>
+                  </label>
+                  <div className="field">
+                    <span>الإجمالي</span>
+                    <output className="input" style={{ fontWeight: 700 }}>
                       {money(String(totalOf(draft)))}
- </output>
- </div>
- <div className="field">
- <span>الصافي (مع الضريبة)</span>
- <output className="input">{money(String(withTaxOf(totalOf(draft))))}</output>
- </div>
- <label className="field">
- <span>الحالة</span>
- <select
+                    </output>
+                  </div>
+                  <div className="field">
+                    <span>الصافي (مع الضريبة)</span>
+                    <output className="input">{money(String(withTaxOf(totalOf(draft))))}</output>
+                  </div>
+                  <label className="field">
+                    <span>الحالة</span>
+                    <select
                       className="input"
                       value={draft.statusId}
                       onChange={(event) => setField({ statusId: event.target.value })}
                     >
                       {(statuses.data ?? []).map((status) => (
- <option key={status.id} value={status.id}>
+                        <option key={status.id} value={status.id}>
                           {status.nameAr}
- </option>
+                        </option>
                       ))}
- </select>
- </label>
- </div>
- </fieldset>
+                    </select>
+                  </label>
+                </div>
+              </fieldset>
 
               {GROUPS.map((group) => (
- <fieldset className="card tight" key={group.key} style={{ margin: 0 }}>
- <legend className="group-label">{group.title}</legend>
- <div className="form-grid">
+                <fieldset className="card tight" key={group.key} style={{ margin: 0 }}>
+                  <legend className="group-label">{group.title}</legend>
+                  <div className="form-grid">
                     {(fields.data ?? [])
                       .filter((field) => field.group === group.key)
                       .map((field) => {
                         const value = draft.measurements[field.key] ?? '';
                         if (field.kind === 'flag') {
                           return (
- <label className="field" key={field.key}>
- <span>{field.label}</span>
- <input
+                            <label className="field" key={field.key}>
+                              <span>{field.label}</span>
+                              <input
                                 type="checkbox"
                                 checked={value === 'true'}
                                 onChange={(event) => {
@@ -734,14 +739,14 @@ function TailoringInvoices() {
                                   setField({ measurements: next });
                                 }}
                               />
- </label>
+                            </label>
                           );
                         }
                         if (field.kind === 'select') {
                           return (
- <label className="field" key={field.key}>
- <span>{field.label}</span>
- <select
+                            <label className="field" key={field.key}>
+                              <span>{field.label}</span>
+                              <select
                                 className="input"
                                 value={value}
                                 onChange={(event) => {
@@ -751,20 +756,20 @@ function TailoringInvoices() {
                                   setField({ measurements: next });
                                 }}
                               >
- <option value="">—</option>
+                                <option value="">—</option>
                                 {(field.options ?? []).map((option) => (
- <option key={option} value={option}>
+                                  <option key={option} value={option}>
                                     {option}
- </option>
+                                  </option>
                                 ))}
- </select>
- </label>
+                              </select>
+                            </label>
                           );
                         }
                         return (
- <label className="field" key={field.key}>
- <span>{field.label}</span>
- <input
+                          <label className="field" key={field.key}>
+                            <span>{field.label}</span>
+                            <input
                               className="input"
                               type={field.kind === 'number' ? 'number' : 'text'}
                               step="0.01"
@@ -776,102 +781,102 @@ function TailoringInvoices() {
                                 setField({ measurements: next });
                               }}
                             />
- </label>
+                          </label>
                         );
                       })}
                     {group.key === 'extra' && (
- <label className="field" style={{ gridColumn: '1 / -1' }}>
- <span>ملاحظات</span>
- <textarea
+                      <label className="field" style={{ gridColumn: '1 / -1' }}>
+                        <span>ملاحظات</span>
+                        <textarea
                           className="input"
                           rows={2}
                           value={draft.notes}
                           onChange={(event) => setField({ notes: event.target.value })}
                         />
- </label>
+                      </label>
                     )}
- </div>
- </fieldset>
+                  </div>
+                </fieldset>
               ))}
- </div>
- <div className="modal-foot">
- <button className="btn primary" type="button" onClick={save} disabled={busy}>
- حفظ
- </button>
+            </div>
+            <div className="modal-foot">
+              <button className="btn primary" type="button" onClick={save} disabled={busy}>
+                حفظ
+              </button>
               {draft.id && (
                 // «مكرر» — the same فاتورة with no number yet, as the desktop's button does.
- <button
+                <button
                   className="btn"
                   type="button"
                   onClick={() => setDraft({ ...draft, id: undefined, version: undefined })}
                 >
- مكرر
- </button>
+                  مكرر
+                </button>
               )}
- <button className="btn" type="button" onClick={() => window.print()}>
- طباعه
- </button>
- <button className="btn danger" type="button" onClick={() => setDraft(null)} disabled={busy}>
- إغلاق
- </button>
- </div>
- </div>
- </div>
+              <button className="btn" type="button" onClick={() => window.print()}>
+                طباعه
+              </button>
+              <button className="btn danger" type="button" onClick={() => setDraft(null)} disabled={busy}>
+                إغلاق
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {statusOf && (
- <div className="modal-backdrop" role="dialog" aria-modal="true">
- <div className="modal-card" style={{ maxWidth: 420 }}>
- <div className="modal-head">
- <span className="modal-title">تغيير حالة الفاتورة</span>
- </div>
- <div style={{ padding: 16, display: 'grid', gap: 12 }}>
- <label className="field" style={{ margin: 0 }}>
- <span>الحالة الجديدة:</span>
- <select
+        <div className="modal-backdrop" role="dialog" aria-modal="true">
+          <div className="modal-card" style={{ maxWidth: 420 }}>
+            <div className="modal-head">
+              <span className="modal-title">تغيير حالة الفاتورة</span>
+            </div>
+            <div style={{ padding: 16, display: 'grid', gap: 12 }}>
+              <label className="field" style={{ margin: 0 }}>
+                <span>الحالة الجديدة:</span>
+                <select
                   className="input"
                   value={statusOf.statusId}
                   onChange={(event) => setStatusOf({ ...statusOf, statusId: event.target.value })}
                 >
                   {(statuses.data ?? []).map((status) => (
- <option key={status.id} value={status.id}>
+                    <option key={status.id} value={status.id}>
                       {status.nameAr}
- </option>
+                    </option>
                   ))}
- </select>
- </label>
- <p className="muted" style={{ margin: 0 }}>
- الفاتورة رقم <span dir="ltr">{statusOf.number}</span>
- </p>
- </div>
- <div className="modal-foot">
- <button className="btn primary" type="button" onClick={saveStatus} disabled={busy}>
- تغيير
- </button>
- <button className="btn danger" type="button" onClick={() => setStatusOf(null)} disabled={busy}>
- إلغاء
- </button>
- </div>
- </div>
- </div>
+                </select>
+              </label>
+              <p className="muted" style={{ margin: 0 }}>
+                الفاتورة رقم <span dir="ltr">{statusOf.number}</span>
+              </p>
+            </div>
+            <div className="modal-foot">
+              <button className="btn primary" type="button" onClick={saveStatus} disabled={busy}>
+                تغيير
+              </button>
+              <button className="btn danger" type="button" onClick={() => setStatusOf(null)} disabled={busy}>
+                إلغاء
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {paying && (
- <div className="modal-backdrop" role="dialog" aria-modal="true">
- <div className="modal-card" style={{ maxWidth: 520 }}>
- <div className="modal-head">
+        <div className="modal-backdrop" role="dialog" aria-modal="true">
+          <div className="modal-card" style={{ maxWidth: 520 }}>
+            <div className="modal-head">
               {/* «إستلام دفعة» — `frmSandQ` opened with `ISTailor = true` (L664). */}
- <span className="modal-title">إستلام دفعة</span>
- </div>
- <div style={{ padding: 16, display: 'grid', gap: 12 }}>
- <p style={{ margin: 0, fontWeight: 700 }}>
- الفاتورة رقم <span dir="ltr">{paying.number}</span> — المتبقي{' '}
- <span dir="ltr">{money(paying.remaining)}</span>
- </p>
- <div className="form-grid">
- <label className="field">
- <span>المبلغ:</span>
- <input
+              <span className="modal-title">إستلام دفعة</span>
+            </div>
+            <div style={{ padding: 16, display: 'grid', gap: 12 }}>
+              <p style={{ margin: 0, fontWeight: 700 }}>
+                الفاتورة رقم <span dir="ltr">{paying.number}</span> — المتبقي{' '}
+                <span dir="ltr">{money(paying.remaining)}</span>
+              </p>
+              <div className="form-grid">
+                <label className="field">
+                  <span>المبلغ:</span>
+                  <input
                     className="input"
                     type="number"
                     min="0"
@@ -879,90 +884,90 @@ function TailoringInvoices() {
                     value={paying.amount}
                     onChange={(event) => setPaying({ ...paying, amount: event.target.value })}
                   />
- </label>
- <label className="field">
- <span>التاريخ:</span>
- <input
+                </label>
+                <label className="field">
+                  <span>التاريخ:</span>
+                  <input
                     className="input"
                     type="date"
                     value={paying.date}
                     onChange={(event) => setPaying({ ...paying, date: event.target.value })}
                   />
- </label>
- <label className="field">
- <span>طريقة الدفع:</span>
- <select
+                </label>
+                <label className="field">
+                  <span>طريقة الدفع:</span>
+                  <select
                     className="input"
                     value={paying.method}
                     onChange={(event) => setPaying({ ...paying, method: event.target.value })}
                   >
                     {METHODS.map((method) => (
- <option key={method.value} value={method.value}>
+                      <option key={method.value} value={method.value}>
                         {method.label}
- </option>
+                      </option>
                     ))}
- </select>
- </label>
- <label className="field">
- <span>الصندوق:</span>
- <select
+                  </select>
+                </label>
+                <label className="field">
+                  <span>الصندوق:</span>
+                  <select
                     className="input"
                     value={paying.cashLocationId}
                     onChange={(event) => setPaying({ ...paying, cashLocationId: event.target.value })}
                   >
                     {/* No صندوق means the دفعة is recorded on the فاتورة without a سند قبض. */}
- <option value="">— بلا سند قبض —</option>
+                    <option value="">— بلا سند قبض —</option>
                     {(safes.data ?? []).map((safe) => (
- <option key={safe.id} value={safe.id}>
+                      <option key={safe.id} value={safe.id}>
                         {cashLocationLabel(safe)}
- </option>
+                      </option>
                     ))}
- </select>
- </label>
- <label className="field">
- <span>الفرع:</span>
- <select
+                  </select>
+                </label>
+                <label className="field">
+                  <span>الفرع:</span>
+                  <select
                     className="input"
                     value={paying.branchId}
                     onChange={(event) => setPaying({ ...paying, branchId: event.target.value })}
                   >
- <option value="">—</option>
+                    <option value="">—</option>
                     {(branches.data ?? []).map((branch) => (
- <option key={branch.id} value={branch.id}>
+                      <option key={branch.id} value={branch.id}>
                         {arabicName(branch) || branch.code || branch.id}
- </option>
+                      </option>
                     ))}
- </select>
- </label>
- <label className="field" style={{ gridColumn: '1 / -1' }}>
- <span>ملاحظات:</span>
- <input
+                  </select>
+                </label>
+                <label className="field" style={{ gridColumn: '1 / -1' }}>
+                  <span>ملاحظات:</span>
+                  <input
                     className="input"
                     value={paying.note}
                     onChange={(event) => setPaying({ ...paying, note: event.target.value })}
                   />
- </label>
- </div>
- </div>
- <div className="modal-foot">
- <button className="btn primary" type="button" onClick={pay} disabled={busy}>
- إستلام
- </button>
- <button className="btn danger" type="button" onClick={() => setPaying(null)} disabled={busy}>
- إلغاء
- </button>
- </div>
- </div>
- </div>
+                </label>
+              </div>
+            </div>
+            <div className="modal-foot">
+              <button className="btn primary" type="button" onClick={pay} disabled={busy}>
+                إستلام
+              </button>
+              <button className="btn danger" type="button" onClick={() => setPaying(null)} disabled={busy}>
+                إلغاء
+              </button>
+            </div>
+          </div>
+        </div>
       )}
- </Screen>
+    </Screen>
   );
 }
 
 export default function Page() {
   return (
- <Suspense fallback={<Loading rows={6} />}>
- <TailoringInvoices />
- </Suspense>
+    <Suspense fallback={<Loading rows={6} />}>
+      <TailoringInvoices />
+    </Suspense>
   );
 }

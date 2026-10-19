@@ -11,7 +11,15 @@ import { useQuery } from '../../../lib/use-query';
 
 type Vessel = { id: string; code: string; name: string };
 type Marina = { groups: Array<{ id: string; name: string }>; vessels: Vessel[] };
-type Booking = { id: string; vesselId: string; partyId: string; startsAt: string; endsAt: string; insuranceAmount: string; status: string };
+type Booking = {
+  id: string;
+  vesselId: string;
+  partyId: string;
+  startsAt: string;
+  endsAt: string;
+  insuranceAmount: string;
+  status: string;
+};
 type RentalInvoice = {
   id: string;
   bookingId: string;
@@ -70,21 +78,28 @@ export default function MarinaLinkInvoicesPage() {
     const booking = (bookings.data ?? []).find((row) => row.id === bookingId);
     return booking ? vesselName(booking.vesselId) : '—';
   };
-  const chosen = Object.entries(selected).filter(([, on]) => on).map(([id]) => id);
+  const chosen = Object.entries(selected)
+    .filter(([, on]) => on)
+    .map(([id]) => id);
 
   async function link() {
     setBusy(true);
     setNotice(undefined);
     try {
       if (chosen.length === 0) throw new ApiError(422, 'VALIDATION_FAILED', 'اختر حجزاً واحداً على الأقل.');
-      const result = await apiPost<{ linked: Array<{ bookingId: string }>; failed: Array<{ bookingId: string; message: string }> }>('/marina/rental-invoices/link', {
+      const result = await apiPost<{
+        linked: Array<{ bookingId: string }>;
+        failed: Array<{ bookingId: string; message: string }>;
+      }>('/marina/rental-invoices/link', {
         bookingIds: chosen,
       });
       const linked = result.linked.length;
       const failed = result.failed.length;
       setNotice({
         kind: failed ? 'info' : 'ok',
-        text: failed ? `تم ربط ${linked} حجزاً، وتعذّر ربط ${failed}: ${result.failed.map((row) => row.message).join(' / ')}` : `تم ربط ${linked} حجزاً بفواتير تأجير.`,
+        text: failed
+          ? `تم ربط ${linked} حجزاً، وتعذّر ربط ${failed}: ${result.failed.map((row) => row.message).join(' / ')}`
+          : `تم ربط ${linked} حجزاً بفواتير تأجير.`,
       });
       setSelected({});
       rentals.reload();
@@ -98,25 +113,25 @@ export default function MarinaLinkInvoicesPage() {
   }
 
   return (
- <Screen
+    <Screen
       title="ربط الفواتير"
       subtitle="إصدار فاتورة التأجير للحجوزات التي لم تُفوتر بعد، وعرض ارتباط كل فاتورة تأجير بفاتورة المبيعات المقابلة."
       crumbs={['إدارة المراسي', 'العمليات']}
       actions={
         can('marina.invoice') ? (
- <button className="btn primary" type="button" onClick={link} disabled={busy || chosen.length === 0}>
+          <button className="btn primary" type="button" onClick={link} disabled={busy || chosen.length === 0}>
             {busy ? 'جارٍ الربط…' : `ربط المحدد (${chosen.length})`}
- </button>
+          </button>
         ) : null
       }
     >
- <Notice notice={notice} />
+      <Notice notice={notice} />
 
- <div className="card">
- <h2>حجوزات بلا فاتورة تأجير</h2>
- <QueryView query={uninvoiced} empty="كل الحجوزات مفوترة" emptyDetail="لا يوجد حجز بدون فاتورة تأجير.">
+      <div className="card">
+        <h2>حجوزات بلا فاتورة تأجير</h2>
+        <QueryView query={uninvoiced} empty="كل الحجوزات مفوترة" emptyDetail="لا يوجد حجز بدون فاتورة تأجير.">
           {(rows) => (
- <DataTable
+            <DataTable
               rows={rows}
               rowKey={(row) => row.id}
               columns={[
@@ -124,10 +139,12 @@ export default function MarinaLinkInvoicesPage() {
                   key: 'pick',
                   header: '',
                   cell: (row) => (
- <input
+                    <input
                       type="checkbox"
                       checked={Boolean(selected[row.id])}
-                      onChange={(event) => setSelected((current) => ({ ...current, [row.id]: event.target.checked }))}
+                      onChange={(event) =>
+                        setSelected((current) => ({ ...current, [row.id]: event.target.checked }))
+                      }
                       aria-label="تحديد الحجز"
                     />
                   ),
@@ -136,47 +153,74 @@ export default function MarinaLinkInvoicesPage() {
                 { key: 'customer', header: 'العميل', cell: (row) => customerName(row.partyId) },
                 { key: 'from', header: 'من', align: 'ltr', cell: (row) => dateTime(row.startsAt) },
                 { key: 'to', header: 'إلى', align: 'ltr', cell: (row) => dateTime(row.endsAt) },
-                { key: 'insurance', header: 'التأمين', align: 'num', cell: (row) => money(row.insuranceAmount) },
-                { key: 'status', header: 'الحالة', cell: (row) => <span className="badge">{statusLabel(row.status)}</span> },
+                {
+                  key: 'insurance',
+                  header: 'التأمين',
+                  align: 'num',
+                  cell: (row) => money(row.insuranceAmount),
+                },
+                {
+                  key: 'status',
+                  header: 'الحالة',
+                  cell: (row) => <span className="badge">{statusLabel(row.status)}</span>,
+                },
               ]}
             />
           )}
- </QueryView>
- </div>
+        </QueryView>
+      </div>
 
- {/* «خيارات البحث» — `Form_WPF/frmInvoiceRentSrch.xaml` («بحث الفواتير»). */}
- <div className="card tight no-print">
- <div className="row" style={{ flexWrap: 'wrap', alignItems: 'flex-end' }}>
- <label className="field" style={{ margin: 0, minWidth: 200 }}>
- <span>العميل</span>
- <input
+      {/* «خيارات البحث» — `Form_WPF/frmInvoiceRentSrch.xaml` («بحث الفواتير»). */}
+      <div className="card tight no-print">
+        <div className="row" style={{ flexWrap: 'wrap', alignItems: 'flex-end' }}>
+          <label className="field" style={{ margin: 0, minWidth: 200 }}>
+            <span>العميل</span>
+            <input
               className="input"
               value={filters.customer}
- placeholder="الاسم أو الجوال..."
+              placeholder="الاسم أو الجوال..."
               onChange={(event) => setFilters({ ...filters, customer: event.target.value })}
             />
- </label>
- <label className="field" style={{ margin: 0, minWidth: 150 }}>
- <span>التاريخ من</span>
- <input className="input" type="date" value={filters.from} onChange={(event) => setFilters({ ...filters, from: event.target.value })} />
- </label>
- <label className="field" style={{ margin: 0, minWidth: 150 }}>
- <span>إلى</span>
- <input className="input" type="date" value={filters.to} onChange={(event) => setFilters({ ...filters, to: event.target.value })} />
- </label>
- <label className="field" style={{ margin: 0, minWidth: 120 }}>
- <span>الصافي من</span>
- <input className="input numeric" value={filters.minNet} onChange={(event) => setFilters({ ...filters, minNet: event.target.value })} />
- </label>
- <label className="field" style={{ margin: 0, minWidth: 120 }}>
- <span>إلى</span>
- <input className="input numeric" value={filters.maxNet} onChange={(event) => setFilters({ ...filters, maxNet: event.target.value })} />
- </label>
- <button className="btn primary" type="button" onClick={() => setApplied(filters)}>
- بحث
- </button>
+          </label>
+          <label className="field" style={{ margin: 0, minWidth: 150 }}>
+            <span>التاريخ من</span>
+            <input
+              className="input"
+              type="date"
+              value={filters.from}
+              onChange={(event) => setFilters({ ...filters, from: event.target.value })}
+            />
+          </label>
+          <label className="field" style={{ margin: 0, minWidth: 150 }}>
+            <span>إلى</span>
+            <input
+              className="input"
+              type="date"
+              value={filters.to}
+              onChange={(event) => setFilters({ ...filters, to: event.target.value })}
+            />
+          </label>
+          <label className="field" style={{ margin: 0, minWidth: 120 }}>
+            <span>الصافي من</span>
+            <input
+              className="input numeric"
+              value={filters.minNet}
+              onChange={(event) => setFilters({ ...filters, minNet: event.target.value })}
+            />
+          </label>
+          <label className="field" style={{ margin: 0, minWidth: 120 }}>
+            <span>إلى</span>
+            <input
+              className="input numeric"
+              value={filters.maxNet}
+              onChange={(event) => setFilters({ ...filters, maxNet: event.target.value })}
+            />
+          </label>
+          <button className="btn primary" type="button" onClick={() => setApplied(filters)}>
+            بحث
+          </button>
           {applied && (
- <button
+            <button
               className="btn"
               type="button"
               onClick={() => {
@@ -184,39 +228,58 @@ export default function MarinaLinkInvoicesPage() {
                 setApplied(null);
               }}
             >
- تصفية الحقول
- </button>
+              تصفية الحقول
+            </button>
           )}
- </div>
- </div>
+        </div>
+      </div>
 
       {/* « قائمة الفواتير» — الرقم · التاريخ · العميل · الصافي · الجوال.
           `Form_WPF/frmInvoiceRentSrch.xaml` («بحث الفواتير»). */}
- <QueryView query={rentals} empty="لا توجد فواتير تأجير" emptyDetail="أصدر فاتورة تأجير من الحجوزات أعلاه.">
+      <QueryView
+        panel="فواتير التأجير"
+        query={rentals}
+        empty="لا توجد فواتير تأجير"
+        emptyDetail="أصدر فاتورة تأجير من الحجوزات أعلاه."
+      >
         {(rows) => (
- <DataTable
+          <DataTable
             rows={rows}
             rowKey={(row) => row.id}
             columns={[
               { key: 'number', header: 'الرقم', align: 'ltr', cell: (row) => row.number ?? '—' },
- { key: 'date', header: 'التاريخ', align: 'ltr', cell: (row) => row.documentDate },
- { key: 'customer', header: 'العميل', cell: (row) => row.customerName || customerName(row.bookingId) },
+              { key: 'date', header: 'التاريخ', align: 'ltr', cell: (row) => row.documentDate },
+              {
+                key: 'customer',
+                header: 'العميل',
+                cell: (row) => row.customerName || customerName(row.bookingId),
+              },
               { key: 'vessel', header: 'المركب', cell: (row) => bookingVessel(row.bookingId) },
               { key: 'period', header: 'قيمة الفترة', align: 'num', cell: (row) => money(row.periodAmount) },
-              { key: 'additions', header: 'الإضافات', align: 'num', cell: (row) => money(row.additionsAmount) },
+              {
+                key: 'additions',
+                header: 'الإضافات',
+                align: 'num',
+                cell: (row) => money(row.additionsAmount),
+              },
               { key: 'total', header: 'الإجمالي', align: 'num', cell: (row) => money(row.total) },
               { key: 'tax', header: 'الضريبة', align: 'num', cell: (row) => money(row.taxAmount) },
- { key: 'net', header: 'الصافي', align: 'num', cell: (row) => money(row.netAmount) },
- { key: 'phone', header: 'الجوال', align: 'ltr', cell: (row) => row.customerPhone || '—' },
+              { key: 'net', header: 'الصافي', align: 'num', cell: (row) => money(row.netAmount) },
+              { key: 'phone', header: 'الجوال', align: 'ltr', cell: (row) => row.customerPhone || '—' },
               {
                 key: 'sales',
                 header: 'فاتورة المبيعات',
-                cell: (row) => (row.salesInvoiceId ? <span className="badge">مرتبطة</span> : <span className="badge">غير مرتبطة</span>),
+                cell: (row) =>
+                  row.salesInvoiceId ? (
+                    <span className="badge">مرتبطة</span>
+                  ) : (
+                    <span className="badge">غير مرتبطة</span>
+                  ),
               },
             ]}
           />
         )}
- </QueryView>
- </Screen>
+      </QueryView>
+    </Screen>
   );
 }

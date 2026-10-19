@@ -1,5 +1,6 @@
 'use client';
 
+import { Panel } from '@erp/ui';
 import { useMemo, useState } from 'react';
 
 import { DataTable, Notice, QueryView } from '../../../components/data-view';
@@ -22,7 +23,13 @@ import {
 import { useSession } from '../../../lib/session';
 import { useQuery } from '../../../lib/use-query';
 
-type OutstandingLine = { itemId: string; description: string | null; invoicedQty: string; deliveredQty: string; remainingQty: string };
+type OutstandingLine = {
+  itemId: string;
+  description: string | null;
+  invoicedQty: string;
+  deliveredQty: string;
+  remainingQty: string;
+};
 type OutstandingInvoice = {
   id: string;
   number: string | null;
@@ -47,12 +54,19 @@ type Delivery = {
   lines: DeliveryLine[];
 };
 
-const STATUS_LABELS: Record<string, string> = { draft: 'قيد التجهيز', delivered: 'مُسلَّم', cancelled: 'ملغى' };
+const STATUS_LABELS: Record<string, string> = {
+  draft: 'قيد التجهيز',
+  delivered: 'مُسلَّم',
+  cancelled: 'ملغى',
+};
 
 export default function StockDeliveriesPage() {
   const { can } = useSession();
   const deliveries = useQuery<Delivery[]>(() => apiList<Delivery>('/inventory/deliveries'), []);
-  const outstanding = useQuery<OutstandingInvoice[]>(() => apiList<OutstandingInvoice>('/inventory/deliveries/outstanding'), []);
+  const outstanding = useQuery<OutstandingInvoice[]>(
+    () => apiList<OutstandingInvoice>('/inventory/deliveries/outstanding'),
+    [],
+  );
   const warehouses = useQuery<Warehouse[]>(() => listWarehouses(), []);
   const items = useQuery<Item[]>(() => listItems(), []);
   const warehouseRows = warehouses.data ?? [];
@@ -112,7 +126,8 @@ export default function StockDeliveriesPage() {
       const lines = invoice.lines
         .map((line) => ({ itemId: line.itemId, qty: quantities[line.itemId] ?? '0' }))
         .filter((line) => Number(line.qty) > 0);
-      if (lines.length === 0) throw new ApiError(422, 'VALIDATION_FAILED', 'أدخل كمية تسليم واحدة على الأقل.');
+      if (lines.length === 0)
+        throw new ApiError(422, 'VALIDATION_FAILED', 'أدخل كمية تسليم واحدة على الأقل.');
       await apiPost('/inventory/deliveries', {
         invoiceId: invoice.id,
         warehouseId: warehouseId || undefined,
@@ -162,7 +177,12 @@ export default function StockDeliveriesPage() {
         <StatTile label="الكمية المتبقية" value={quantity(pendingQty)} hint="لم تُسلَّم بعد" tone="brand" />
         <StatTile label="قيمة الفواتير المعلقة" value={money(pendingValue)} hint="إجمالي المستحق تسليمه" />
         <StatTile label="سندات التوصيل" value={deliveryRows.length} hint="سند مسجّل" />
-        <StatTile label="الكمية المسلَّمة" value={quantity(deliveredQty)} hint="مجموع سندات التوصيل" tone="ok" />
+        <StatTile
+          label="الكمية المسلَّمة"
+          value={quantity(deliveredQty)}
+          hint="مجموع سندات التوصيل"
+          tone="ok"
+        />
       </StatTiles>
 
       {can('inventory.delivery.manage') && (
@@ -171,7 +191,12 @@ export default function StockDeliveriesPage() {
           <div className="form-grid">
             <label className="field wide">
               <span>الفاتورة (مرحَّلة وعليها كميات لم تُسلَّم) *</span>
-              <select className="input" value={invoiceId} onChange={(event) => pickInvoice(event.target.value)} required>
+              <select
+                className="input"
+                value={invoiceId}
+                onChange={(event) => pickInvoice(event.target.value)}
+                required
+              >
                 <option value="">— اختر —</option>
                 {outstandingRows.map((row) => (
                   <option key={row.id} value={row.id}>
@@ -182,7 +207,12 @@ export default function StockDeliveriesPage() {
             </label>
             <label className="field">
               <span>المستودع *</span>
-              <select className="input" value={warehouseId} onChange={(event) => setWarehouseId(event.target.value)} required>
+              <select
+                className="input"
+                value={warehouseId}
+                onChange={(event) => setWarehouseId(event.target.value)}
+                required
+              >
                 <option value="">— اختر —</option>
                 {warehouseRows.map((row) => (
                   <option key={row.id} value={row.id}>
@@ -193,15 +223,30 @@ export default function StockDeliveriesPage() {
             </label>
             <label className="field">
               <span>تاريخ التسليم</span>
-              <input className="input" dir="ltr" type="date" value={deliveredOn} onChange={(event) => setDeliveredOn(event.target.value)} />
+              <input
+                className="input"
+                dir="ltr"
+                type="date"
+                value={deliveredOn}
+                onChange={(event) => setDeliveredOn(event.target.value)}
+              />
             </label>
             <label className="field">
               <span>المستلِم</span>
-              <input className="input" value={recipientName} onChange={(event) => setRecipient(event.target.value)} placeholder="اسم من استلم البضاعة" />
+              <input
+                className="input"
+                value={recipientName}
+                onChange={(event) => setRecipient(event.target.value)}
+                placeholder="اسم من استلم البضاعة"
+              />
             </label>
             <label className="field">
               <span>السائق / المندوب</span>
-              <input className="input" value={driverName} onChange={(event) => setDriver(event.target.value)} />
+              <input
+                className="input"
+                value={driverName}
+                onChange={(event) => setDriver(event.target.value)}
+              />
             </label>
             <label className="field wide">
               <span>ملاحظات</span>
@@ -236,7 +281,9 @@ export default function StockDeliveriesPage() {
                             dir="ltr"
                             inputMode="decimal"
                             value={quantities[line.itemId] ?? ''}
-                            onChange={(event) => setQuantities((current) => ({ ...current, [line.itemId]: event.target.value }))}
+                            onChange={(event) =>
+                              setQuantities((current) => ({ ...current, [line.itemId]: event.target.value }))
+                            }
                           />
                         </td>
                       </tr>
@@ -256,9 +303,12 @@ export default function StockDeliveriesPage() {
 
       {!can('inventory.delivery.manage') && <Notice notice={notice} />}
 
-      <div className="card">
-        <h2>فواتير لم تُسلَّم بالكامل</h2>
-        <QueryView query={outstanding} empty="لا توجد فواتير معلقة" emptyDetail="كل الفواتير المرحَّلة سُلِّمت بالكامل.">
+      <Panel title="فواتير لم تُسلَّم بالكامل" flush>
+        <QueryView
+          query={outstanding}
+          empty="لا توجد فواتير معلقة"
+          emptyDetail="كل الفواتير المرحَّلة سُلِّمت بالكامل."
+        >
           {(rows) => (
             <DataTable
               rows={rows}
@@ -268,49 +318,90 @@ export default function StockDeliveriesPage() {
                 { key: 'customer', header: 'العميل', cell: (row) => row.cashCustomerName ?? 'عميل مسجَّل' },
                 { key: 'total', header: 'الإجمالي', align: 'num', cell: (row) => money(row.total) },
                 { key: 'items', header: 'أصناف معلقة', align: 'num', cell: (row) => row.lines.length },
-                { key: 'remaining', header: 'الكمية المتبقية', align: 'num', cell: (row) => quantity(row.lines.reduce((sum, line) => sum + Number(line.remainingQty), 0)) },
+                {
+                  key: 'remaining',
+                  header: 'الكمية المتبقية',
+                  align: 'num',
+                  cell: (row) =>
+                    quantity(row.lines.reduce((sum, line) => sum + Number(line.remainingQty), 0)),
+                },
               ]}
             />
           )}
         </QueryView>
-      </div>
+      </Panel>
 
-      <QueryView query={deliveries} empty="لا توجد سندات توصيل" emptyDetail="أنشئ سند توصيل مقابل فاتورة مبيعات مرحَّلة.">
-        {(rows) => (
-          <DataTable
-            rows={rows}
-            rowKey={(row) => row.id}
-            columns={[
-              { key: 'number', header: 'الرقم', align: 'ltr', cell: (row) => row.number },
-              { key: 'invoice', header: 'الفاتورة', align: 'ltr', cell: (row) => row.invoiceNumber ?? '—' },
-              { key: 'warehouse', header: 'المستودع', cell: (row) => nameOfWarehouse(row.warehouseId) },
-              { key: 'date', header: 'التاريخ', align: 'ltr', cell: (row) => shortDate(row.deliveredOn) },
-              { key: 'recipient', header: 'المستلِم', cell: (row) => row.recipientName ?? '—' },
-              { key: 'driver', header: 'السائق', cell: (row) => row.driverName ?? '—' },
-              { key: 'qty', header: 'الكمية', align: 'num', cell: (row) => quantity(row.lines.reduce((sum, line) => sum + Number(line.qty), 0)) },
-              { key: 'status', header: 'الحالة', cell: (row) => <span className="badge">{STATUS_LABELS[row.status] ?? statusLabel(row.status)}</span> },
-              {
-                key: 'actions',
-                header: '',
-                cell: (row) => (
-                  <span className="row">
-                    {row.status === 'draft' && can('inventory.delivery.manage') && (
-                      <button className="btn sm primary" type="button" onClick={() => act(() => apiPost(`/inventory/deliveries/${row.id}/deliver`, {}), 'تم تأكيد التسليم.')}>
-                        تأكيد التسليم
-                      </button>
-                    )}
-                    {row.status !== 'cancelled' && can('inventory.delivery.manage') && (
-                      <button className="btn sm danger" type="button" onClick={() => act(() => apiPost(`/inventory/deliveries/${row.id}/cancel`, {}), 'أُلغي السند وعادت الكمية للمتبقي على الفاتورة.')}>
-                        إلغاء
-                      </button>
-                    )}
-                  </span>
-                ),
-              },
-            ]}
-          />
-        )}
-      </QueryView>
+      <Panel title="سندات التوصيل" flush>
+        <QueryView
+          query={deliveries}
+          empty="لا توجد سندات توصيل"
+          emptyDetail="أنشئ سند توصيل مقابل فاتورة مبيعات مرحَّلة."
+        >
+          {(rows) => (
+            <DataTable
+              rows={rows}
+              rowKey={(row) => row.id}
+              columns={[
+                { key: 'number', header: 'الرقم', align: 'ltr', cell: (row) => row.number },
+                { key: 'invoice', header: 'الفاتورة', align: 'ltr', cell: (row) => row.invoiceNumber ?? '—' },
+                { key: 'warehouse', header: 'المستودع', cell: (row) => nameOfWarehouse(row.warehouseId) },
+                { key: 'date', header: 'التاريخ', align: 'ltr', cell: (row) => shortDate(row.deliveredOn) },
+                { key: 'recipient', header: 'المستلِم', cell: (row) => row.recipientName ?? '—' },
+                { key: 'driver', header: 'السائق', cell: (row) => row.driverName ?? '—' },
+                {
+                  key: 'qty',
+                  header: 'الكمية',
+                  align: 'num',
+                  cell: (row) => quantity(row.lines.reduce((sum, line) => sum + Number(line.qty), 0)),
+                },
+                {
+                  key: 'status',
+                  header: 'الحالة',
+                  cell: (row) => (
+                    <span className="badge">{STATUS_LABELS[row.status] ?? statusLabel(row.status)}</span>
+                  ),
+                },
+                {
+                  key: 'actions',
+                  header: '',
+                  cell: (row) => (
+                    <span className="row">
+                      {row.status === 'draft' && can('inventory.delivery.manage') && (
+                        <button
+                          className="btn sm primary"
+                          type="button"
+                          onClick={() =>
+                            act(
+                              () => apiPost(`/inventory/deliveries/${row.id}/deliver`, {}),
+                              'تم تأكيد التسليم.',
+                            )
+                          }
+                        >
+                          تأكيد التسليم
+                        </button>
+                      )}
+                      {row.status !== 'cancelled' && can('inventory.delivery.manage') && (
+                        <button
+                          className="btn sm danger"
+                          type="button"
+                          onClick={() =>
+                            act(
+                              () => apiPost(`/inventory/deliveries/${row.id}/cancel`, {}),
+                              'أُلغي السند وعادت الكمية للمتبقي على الفاتورة.',
+                            )
+                          }
+                        >
+                          إلغاء
+                        </button>
+                      )}
+                    </span>
+                  ),
+                },
+              ]}
+            />
+          )}
+        </QueryView>
+      </Panel>
     </Screen>
   );
 }

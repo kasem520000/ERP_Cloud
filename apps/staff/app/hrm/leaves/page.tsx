@@ -46,10 +46,12 @@ export default function HrmLeavesPage() {
           <p className="muted m-0">جارٍ التحميل…</p>
         </Panel>
       ) : rows.length === 0 ? (
-        <Empty
-          title="لا إجازات معتمدة"
-          detail="تُضاف الإجازة إلى هذه القائمة بعد موافقة المدير على الطلب من تطبيق الموظف."
-        />
+        <Panel title="الإجازات المعتمدة" flush>
+          <Empty
+            title="لا إجازات معتمدة"
+            detail="تُضاف الإجازة إلى هذه القائمة بعد موافقة المدير على الطلب من تطبيق الموظف."
+          />
+        </Panel>
       ) : (
         <Panel title="الإجازات المعتمدة" hint={`${rows.length} طلباً`} flush>
           <div className="table-wrap">

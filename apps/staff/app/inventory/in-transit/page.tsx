@@ -151,6 +151,7 @@ export default function InTransitPage() {
       <Tabs items={BUCKETS} value={bucket} onChange={setBucket} />
 
       <QueryView
+        panel="البضاعة في الطريق"
         query={rows}
         empty="لا توجد بضاعة في الطريق"
         emptyDetail="كل المناقلات إما استُلمت كاملة أو أُلغيت."

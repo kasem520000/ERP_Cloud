@@ -10,7 +10,14 @@ import { ApiError, apiData, apiPatch, apiPost } from '../../../lib/api';
 import { arabicName, dateTime, listBranches, type Branch } from '../../../lib/lookups';
 import { useQuery } from '../../../lib/use-query';
 
-type Device = { id: string; name: string; branchId: string; status: string; lastSeenAt: string | null; createdAt: string };
+type Device = {
+  id: string;
+  name: string;
+  branchId: string;
+  status: string;
+  lastSeenAt: string | null;
+  createdAt: string;
+};
 
 /**
  * Device registry for the Android/desktop clients.
@@ -34,7 +41,10 @@ export default function SyncDevicesPage() {
     setNotice(undefined);
     setIssuedKey(null);
     try {
-      const created = await apiPost<{ apiKey?: string; data?: { apiKey: string } }>('/compat/devices', { name: String(values.name), branchId: String(values.branchId) });
+      const created = await apiPost<{ apiKey?: string; data?: { apiKey: string } }>('/compat/devices', {
+        name: String(values.name),
+        branchId: String(values.branchId),
+      });
       setIssuedKey(created.apiKey ?? created.data?.apiKey ?? null);
       setValues({ name: '', branchId: String(values.branchId) });
       setNotice({ kind: 'ok', text: 'تم إنشاء الجهاز. انسخ المفتاح الآن — لن يُعرض مرة أخرى.' });
@@ -70,7 +80,13 @@ export default function SyncDevicesPage() {
         <FormFields
           fields={[
             { name: 'name', label: 'اسم الجهاز', required: true, placeholder: 'كاشير الفرع الرئيسي' },
-            { name: 'branchId', label: 'الفرع', type: 'select', required: true, options: branchRows.map((row) => ({ id: row.id, label: arabicName(row) })) },
+            {
+              name: 'branchId',
+              label: 'الفرع',
+              type: 'select',
+              required: true,
+              options: branchRows.map((row) => ({ id: row.id, label: arabicName(row) })),
+            },
           ]}
           values={values}
           onChange={setValues}
@@ -86,14 +102,36 @@ export default function SyncDevicesPage() {
         ) : null}
       </form>
 
-      <QueryView query={devices} empty="لا توجد أجهزة" emptyDetail="أنشئ جهازاً لتتمكن تطبيقات الكاشير من المزامنة.">
+      <QueryView
+        wrapEmpty={(node) => (
+          <Panel title="الأجهزة المرتبطة" flush>
+            {node}
+          </Panel>
+        )}
+        query={devices}
+        empty="لا توجد أجهزة"
+        emptyDetail="أنشئ جهازاً لتتمكن تطبيقات الكاشير من المزامنة."
+      >
         {(rows) => (
-          <Panel title="الأجهزة المسجَّلة" hint="يُعرض المفتاح مرة واحدة عند الإنشاء؛ إيقاف الجهاز يمنع المزامنة فوراً." flush>
+          <Panel
+            title="الأجهزة المسجَّلة"
+            hint="يُعرض المفتاح مرة واحدة عند الإنشاء؛ إيقاف الجهاز يمنع المزامنة فوراً."
+            flush
+          >
             <DataTable
               columns={[
                 { key: 'name', header: 'الجهاز', cell: (row: Device) => row.name },
-                { key: 'branch', header: 'الفرع', cell: (row: Device) => arabicName(branchRows.find((branch) => branch.id === row.branchId) ?? { code: '—' }) },
-                { key: 'status', header: 'الحالة', cell: (row: Device) => (row.status === 'active' ? 'نشط' : 'موقوف') },
+                {
+                  key: 'branch',
+                  header: 'الفرع',
+                  cell: (row: Device) =>
+                    arabicName(branchRows.find((branch) => branch.id === row.branchId) ?? { code: '—' }),
+                },
+                {
+                  key: 'status',
+                  header: 'الحالة',
+                  cell: (row: Device) => (row.status === 'active' ? 'نشط' : 'موقوف'),
+                },
                 { key: 'seen', header: 'آخر اتصال', cell: (row: Device) => dateTime(row.lastSeenAt) },
                 { key: 'created', header: 'تاريخ الإنشاء', cell: (row: Device) => dateTime(row.createdAt) },
                 {
@@ -101,7 +139,12 @@ export default function SyncDevicesPage() {
                   header: '',
                   cell: (row: Device) =>
                     row.status === 'active' ? (
-                      <button type="button" className="btn sm danger" disabled={busy} onClick={() => revoke(row)}>
+                      <button
+                        type="button"
+                        className="btn sm danger"
+                        disabled={busy}
+                        onClick={() => revoke(row)}
+                      >
                         إيقاف
                       </button>
                     ) : (

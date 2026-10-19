@@ -1,7 +1,6 @@
 'use client';
 
-import { FilterBand } from '@erp/ui';
-import Link from 'next/link';
+import { FilterBand } from '@erp/ui';import Link from 'next/link';
 import Decimal from 'decimal.js';
 import { useSearchParams } from 'next/navigation';
 import { Suspense, useMemo, useState } from 'react';
@@ -693,6 +692,7 @@ function VouchersScreen() {
       )}
 
       <QueryView
+        panel="السندات"
         query={vouchers}
         isEmpty={() => rows.length === 0}
         empty="لا توجد سندات"

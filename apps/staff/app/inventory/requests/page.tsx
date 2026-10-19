@@ -24,7 +24,13 @@ import {
 import { useSession } from '../../../lib/session';
 import { useQuery } from '../../../lib/use-query';
 
-type RequestLine = { lineNo: number; itemId: string; qty: string; approvedQty: string | null; note: string | null };
+type RequestLine = {
+  lineNo: number;
+  itemId: string;
+  qty: string;
+  approvedQty: string | null;
+  note: string | null;
+};
 type GoodsRequest = {
   id: string;
   number: string;
@@ -64,7 +70,10 @@ const emptyLine = (): DraftLine => ({ itemId: '', qtyText: '', note: '' });
 export default function GoodsRequestsPage() {
   const { can } = useSession();
   const [status, setStatus] = useState('');
-  const requests = useQuery<GoodsRequest[]>(() => apiList<GoodsRequest>(`/inventory/requests${status ? `?status=${status}` : ''}`), [status]);
+  const requests = useQuery<GoodsRequest[]>(
+    () => apiList<GoodsRequest>(`/inventory/requests${status ? `?status=${status}` : ''}`),
+    [status],
+  );
   const warehouses = useQuery<Warehouse[]>(() => listWarehouses(), []);
   const branches = useQuery<Branch[]>(() => listBranches(), []);
   const items = useQuery<Item[]>(() => listItems(), []);
@@ -102,7 +111,9 @@ export default function GoodsRequestsPage() {
   };
 
   function updateLine(index: number, patch: Partial<DraftLine>) {
-    setLines((current) => current.map((line, position) => (position === index ? { ...line, ...patch } : line)));
+    setLines((current) =>
+      current.map((line, position) => (position === index ? { ...line, ...patch } : line)),
+    );
   }
 
   async function act(action: () => Promise<unknown>, okText: string) {
@@ -122,14 +133,19 @@ export default function GoodsRequestsPage() {
     setNotice(undefined);
     try {
       const filled = lines.filter((line) => line.itemId && Number(line.qtyText) > 0);
-      if (filled.length === 0) throw new ApiError(422, 'VALIDATION_FAILED', 'أضف سطراً واحداً على الأقل بكمية أكبر من صفر.');
+      if (filled.length === 0)
+        throw new ApiError(422, 'VALIDATION_FAILED', 'أضف سطراً واحداً على الأقل بكمية أكبر من صفر.');
       await apiPost('/inventory/requests', {
         branchId: currentBranch,
         toWarehouseId,
         fromWarehouseId: fromWarehouseId || undefined,
         neededBy: neededBy || undefined,
         notes: notes || undefined,
-        lines: filled.map((line) => ({ itemId: line.itemId, qty: line.qtyText, note: line.note || undefined })),
+        lines: filled.map((line) => ({
+          itemId: line.itemId,
+          qty: line.qtyText,
+          note: line.note || undefined,
+        })),
       });
       setNotice({ kind: 'ok', text: 'تم حفظ الطلب كمسودة. أرسِله للاعتماد ليراه المستودع المورِّد.' });
       setLines([emptyLine()]);
@@ -156,7 +172,10 @@ export default function GoodsRequestsPage() {
       () =>
         apiPost(`/inventory/requests/${decision.id}/approve`, {
           fromWarehouseId: decisionSource || undefined,
-          lines: decision.lines.map((line) => ({ lineNo: line.lineNo, approvedQty: approvedQty[line.lineNo] ?? line.qty })),
+          lines: decision.lines.map((line) => ({
+            lineNo: line.lineNo,
+            approvedQty: approvedQty[line.lineNo] ?? line.qty,
+          })),
         }),
       'تم اعتماد الطلب. نفِّذه بمناقلة لتحويل الكميات المعتمدة.',
     );
@@ -165,7 +184,10 @@ export default function GoodsRequestsPage() {
 
   async function reject() {
     if (!decision) return;
-    await act(() => apiPost(`/inventory/requests/${decision.id}/reject`, { reason: rejectReason }), 'تم رفض الطلب.');
+    await act(
+      () => apiPost(`/inventory/requests/${decision.id}/reject`, { reason: rejectReason }),
+      'تم رفض الطلب.',
+    );
     setDecision(null);
   }
 
@@ -179,7 +201,7 @@ export default function GoodsRequestsPage() {
   return (
     <Screen
       title="طلب بضاعة"
- subtitle="طلب داخلي من فرع أو مستودع: مسودة اعتماد (بكميات قد تقل عن المطلوب) تنفيذ بمناقلة. الطلب نفسه لا يحرّك المخزون."
+      subtitle="طلب داخلي من فرع أو مستودع: مسودة اعتماد (بكميات قد تقل عن المطلوب) تنفيذ بمناقلة. الطلب نفسه لا يحرّك المخزون."
       crumbs={['المستودعات', 'العمليات']}
       actions={
         can('inventory.request.manage') ? (
@@ -195,7 +217,12 @@ export default function GoodsRequestsPage() {
           <div className="form-grid">
             <label className="field">
               <span>الفرع *</span>
-              <select className="input" value={currentBranch} onChange={(event) => setBranchId(event.target.value)} required>
+              <select
+                className="input"
+                value={currentBranch}
+                onChange={(event) => setBranchId(event.target.value)}
+                required
+              >
                 <option value="">— اختر —</option>
                 {branchChoices.map((option) => (
                   <option key={option.id} value={option.id}>
@@ -206,7 +233,12 @@ export default function GoodsRequestsPage() {
             </label>
             <label className="field">
               <span>المستودع الطالب *</span>
-              <select className="input" value={toWarehouseId} onChange={(event) => setTo(event.target.value)} required>
+              <select
+                className="input"
+                value={toWarehouseId}
+                onChange={(event) => setTo(event.target.value)}
+                required
+              >
                 <option value="">— اختر —</option>
                 {warehouseRows.map((row) => (
                   <option key={row.id} value={row.id}>
@@ -217,22 +249,39 @@ export default function GoodsRequestsPage() {
             </label>
             <label className="field">
               <span>المستودع المورِّد</span>
-              <select className="input" value={fromWarehouseId} onChange={(event) => setFrom(event.target.value)}>
+              <select
+                className="input"
+                value={fromWarehouseId}
+                onChange={(event) => setFrom(event.target.value)}
+              >
                 <option value="">— يُحدَّد عند الاعتماد —</option>
-                {warehouseRows.filter((row) => row.id !== toWarehouseId).map((row) => (
-                  <option key={row.id} value={row.id}>
-                    {arabicName(row)}
-                  </option>
-                ))}
+                {warehouseRows
+                  .filter((row) => row.id !== toWarehouseId)
+                  .map((row) => (
+                    <option key={row.id} value={row.id}>
+                      {arabicName(row)}
+                    </option>
+                  ))}
               </select>
             </label>
             <label className="field">
               <span>مطلوب بتاريخ</span>
-              <input className="input" dir="ltr" type="date" value={neededBy} onChange={(event) => setNeededBy(event.target.value)} />
+              <input
+                className="input"
+                dir="ltr"
+                type="date"
+                value={neededBy}
+                onChange={(event) => setNeededBy(event.target.value)}
+              />
             </label>
             <label className="field wide">
               <span>ملاحظات</span>
-              <input className="input" value={notes} onChange={(event) => setNotes(event.target.value)} placeholder="سبب الطلب أو تفاصيل النواقص" />
+              <input
+                className="input"
+                value={notes}
+                onChange={(event) => setNotes(event.target.value)}
+                placeholder="سبب الطلب أو تفاصيل النواقص"
+              />
             </label>
           </div>
 
@@ -251,7 +300,11 @@ export default function GoodsRequestsPage() {
                 {lines.map((line, index) => (
                   <tr key={index}>
                     <td>
-                      <select className="input" value={line.itemId} onChange={(event) => updateLine(index, { itemId: event.target.value })}>
+                      <select
+                        className="input"
+                        value={line.itemId}
+                        onChange={(event) => updateLine(index, { itemId: event.target.value })}
+                      >
                         <option value="">— اختر —</option>
                         {itemRows.map((row) => (
                           <option key={row.id} value={row.id}>
@@ -261,13 +314,29 @@ export default function GoodsRequestsPage() {
                       </select>
                     </td>
                     <td>
-                      <input className="input" dir="ltr" inputMode="decimal" value={line.qtyText} onChange={(event) => updateLine(index, { qtyText: event.target.value })} />
+                      <input
+                        className="input"
+                        dir="ltr"
+                        inputMode="decimal"
+                        value={line.qtyText}
+                        onChange={(event) => updateLine(index, { qtyText: event.target.value })}
+                      />
                     </td>
                     <td>
-                      <input className="input" value={line.note} onChange={(event) => updateLine(index, { note: event.target.value })} />
+                      <input
+                        className="input"
+                        value={line.note}
+                        onChange={(event) => updateLine(index, { note: event.target.value })}
+                      />
                     </td>
                     <td>
-                      <button className="btn sm" type="button" onClick={() => setLines((current) => current.filter((_, position) => position !== index))}>
+                      <button
+                        className="btn sm"
+                        type="button"
+                        onClick={() =>
+                          setLines((current) => current.filter((_, position) => position !== index))
+                        }
+                      >
                         حذف
                       </button>
                     </td>
@@ -276,7 +345,11 @@ export default function GoodsRequestsPage() {
               </tbody>
             </table>
           </div>
-          <button className="btn sm" type="button" onClick={() => setLines((current) => [...current, emptyLine()])}>
+          <button
+            className="btn sm"
+            type="button"
+            onClick={() => setLines((current) => [...current, emptyLine()])}
+          >
             + سطر
           </button>
 
@@ -294,13 +367,20 @@ export default function GoodsRequestsPage() {
           <div className="form-grid">
             <label className="field">
               <span>المستودع المورِّد *</span>
-              <select className="input" value={decisionSource} onChange={(event) => setDecisionSource(event.target.value)} required>
+              <select
+                className="input"
+                value={decisionSource}
+                onChange={(event) => setDecisionSource(event.target.value)}
+                required
+              >
                 <option value="">— اختر —</option>
-                {warehouseRows.filter((row) => row.id !== decision.toWarehouseId).map((row) => (
-                  <option key={row.id} value={row.id}>
-                    {arabicName(row)}
-                  </option>
-                ))}
+                {warehouseRows
+                  .filter((row) => row.id !== decision.toWarehouseId)
+                  .map((row) => (
+                    <option key={row.id} value={row.id}>
+                      {arabicName(row)}
+                    </option>
+                  ))}
               </select>
             </label>
           </div>
@@ -324,7 +404,9 @@ export default function GoodsRequestsPage() {
                         dir="ltr"
                         inputMode="decimal"
                         value={approvedQty[line.lineNo] ?? line.qty}
-                        onChange={(event) => setApprovedQty((current) => ({ ...current, [line.lineNo]: event.target.value }))}
+                        onChange={(event) =>
+                          setApprovedQty((current) => ({ ...current, [line.lineNo]: event.target.value }))
+                        }
                       />
                     </td>
                   </tr>
@@ -334,7 +416,12 @@ export default function GoodsRequestsPage() {
           </div>
           <label className="field wide">
             <span>سبب الرفض (عند الرفض فقط)</span>
-            <input className="input" value={rejectReason} onChange={(event) => setRejectReason(event.target.value)} placeholder="مثال: لا يوجد رصيد كافٍ" />
+            <input
+              className="input"
+              value={rejectReason}
+              onChange={(event) => setRejectReason(event.target.value)}
+              placeholder="مثال: لا يوجد رصيد كافٍ"
+            />
           </label>
           <div className="row">
             <button className="btn primary" type="button" onClick={approve}>
@@ -372,7 +459,12 @@ export default function GoodsRequestsPage() {
 
       {!open && !decision && <Notice notice={notice} />}
 
-      <QueryView query={requests} empty="لا توجد طلبات بضاعة" emptyDetail="أنشئ طلباً ليعتمده المستودع المورِّد ثم يُنفَّذ بمناقلة.">
+      <QueryView
+        panel="طلبات البضاعة"
+        query={requests}
+        empty="لا توجد طلبات بضاعة"
+        emptyDetail="أنشئ طلباً ليعتمده المستودع المورِّد ثم يُنفَّذ بمناقلة."
+      >
         {(rows) => (
           <DataTable
             rows={rows}
@@ -382,14 +474,27 @@ export default function GoodsRequestsPage() {
               { key: 'to', header: 'المستودع الطالب', cell: (row) => nameOfWarehouse(row.toWarehouseId) },
               { key: 'from', header: 'المورِّد', cell: (row) => nameOfWarehouse(row.fromWarehouseId) },
               { key: 'lines', header: 'الأصناف', align: 'num', cell: (row) => row.lines.length },
-              { key: 'qty', header: 'المطلوب', align: 'num', cell: (row) => quantity(row.lines.reduce((sum, line) => sum + Number(line.qty), 0)) },
+              {
+                key: 'qty',
+                header: 'المطلوب',
+                align: 'num',
+                cell: (row) => quantity(row.lines.reduce((sum, line) => sum + Number(line.qty), 0)),
+              },
               {
                 key: 'approved',
                 header: 'المعتمد',
                 align: 'num',
-                cell: (row) => (row.lines.some((line) => line.approvedQty !== null) ? quantity(row.lines.reduce((sum, line) => sum + Number(line.approvedQty ?? 0), 0)) : '—'),
+                cell: (row) =>
+                  row.lines.some((line) => line.approvedQty !== null)
+                    ? quantity(row.lines.reduce((sum, line) => sum + Number(line.approvedQty ?? 0), 0))
+                    : '—',
               },
-              { key: 'needed', header: 'مطلوب بتاريخ', align: 'ltr', cell: (row) => (row.neededBy ? shortDate(row.neededBy) : '—') },
+              {
+                key: 'needed',
+                header: 'مطلوب بتاريخ',
+                align: 'ltr',
+                cell: (row) => (row.neededBy ? shortDate(row.neededBy) : '—'),
+              },
               {
                 key: 'status',
                 header: 'الحالة',
@@ -405,7 +510,16 @@ export default function GoodsRequestsPage() {
                 cell: (row) => (
                   <span className="row">
                     {row.status === 'draft' && can('inventory.request.manage') && (
-                      <button className="btn sm primary" type="button" onClick={() => act(() => apiPost(`/inventory/requests/${row.id}/submit`, {}), 'تم إرسال الطلب للاعتماد.')}>
+                      <button
+                        className="btn sm primary"
+                        type="button"
+                        onClick={() =>
+                          act(
+                            () => apiPost(`/inventory/requests/${row.id}/submit`, {}),
+                            'تم إرسال الطلب للاعتماد.',
+                          )
+                        }
+                      >
                         إرسال للاعتماد
                       </button>
                     )}
@@ -415,15 +529,31 @@ export default function GoodsRequestsPage() {
                       </button>
                     )}
                     {row.status === 'approved' && can('inventory.request.approve') && (
-                      <button className="btn sm primary" type="button" onClick={() => act(() => apiPost(`/inventory/requests/${row.id}/fulfil`, {}), 'أُنشئت مناقلة مسودة بالكميات المعتمدة.')}>
+                      <button
+                        className="btn sm primary"
+                        type="button"
+                        onClick={() =>
+                          act(
+                            () => apiPost(`/inventory/requests/${row.id}/fulfil`, {}),
+                            'أُنشئت مناقلة مسودة بالكميات المعتمدة.',
+                          )
+                        }
+                      >
                         تنفيذ بمناقلة
                       </button>
                     )}
-                    {['draft', 'submitted', 'approved'].includes(row.status) && can('inventory.request.manage') && (
-                      <button className="btn sm danger" type="button" onClick={() => act(() => apiPost(`/inventory/requests/${row.id}/cancel`, {}), 'تم إلغاء الطلب.')}>
-                        إلغاء
-                      </button>
-                    )}
+                    {['draft', 'submitted', 'approved'].includes(row.status) &&
+                      can('inventory.request.manage') && (
+                        <button
+                          className="btn sm danger"
+                          type="button"
+                          onClick={() =>
+                            act(() => apiPost(`/inventory/requests/${row.id}/cancel`, {}), 'تم إلغاء الطلب.')
+                          }
+                        >
+                          إلغاء
+                        </button>
+                      )}
                     {row.transferId && (
                       <a className="btn sm" href="/inventory/transfers">
                         المناقلة

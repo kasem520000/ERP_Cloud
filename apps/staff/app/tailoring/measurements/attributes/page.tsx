@@ -1,5 +1,6 @@
 'use client';
 
+import { Panel } from '@erp/ui';
 import Link from 'next/link';
 import { Suspense, useState } from 'react';
 
@@ -87,7 +88,10 @@ function TailoringMeasurementAttributes() {
 
   async function deactivate(row: Attribute) {
     // «هل أنت متأكد من تعطيل هذه الخاصية؟\nسيتم إخفاؤها من القياسات الجديدة»
-    if (!window.confirm(`هل أنت متأكد من تعطيل هذه الخاصية؟\nسيتم إخفاؤها من القياسات الجديدة\n\n${row.nameAr}`)) return;
+    if (
+      !window.confirm(`هل أنت متأكد من تعطيل هذه الخاصية؟\nسيتم إخفاؤها من القياسات الجديدة\n\n${row.nameAr}`)
+    )
+      return;
     setBusy(true);
     setError('');
     setNotice('');
@@ -117,17 +121,17 @@ function TailoringMeasurementAttributes() {
   }
 
   return (
- <Screen
- title="إدارة خصائص القياسات"
+    <Screen
+      title="إدارة خصائص القياسات"
       subtitle="ما يُقاس: الخاصية وترتيبها وحالتها. والترتيب هو ترتيب الصناديق في بطاقة القياس — و«معطل» تعني أنها تختفي من القياسات الجديدة، لا أنها تُمحى."
       crumbs={['التفصيل', 'القياسات', 'خصائص القياسات']}
       actions={
- <div className="row" style={{ gap: 6 }}>
- <Link className="btn" href="/tailoring/measurements">
- قياسات العملاء
- </Link>
+        <div className="row" style={{ gap: 6 }}>
+          <Link className="btn" href="/tailoring/measurements">
+            قياسات العملاء
+          </Link>
           {canManage && (
- <button
+            <button
               className="btn primary"
               type="button"
               onClick={() =>
@@ -140,10 +144,10 @@ function TailoringMeasurementAttributes() {
                 })
               }
             >
- إضافة
- </button>
+              إضافة
+            </button>
           )}
- </div>
+        </div>
       }
     >
       {error && <p className="alert danger">{error}</p>}
@@ -153,120 +157,114 @@ function TailoringMeasurementAttributes() {
       {attributes.status === 'forbidden' && <Forbidden />}
       {attributes.status === 'error' && <ErrorBox message={attributes.error} onRetry={reload} />}
       {attributes.status === 'success' && (
- <>
- <div className="row" style={{ justifyContent: 'space-between', alignItems: 'baseline' }}>
- <span className="group-label" style={{ margin: 0 }}>خصائص القياسات</span>
- <span className="muted">عدد السجلات: {rows.length}</span>
- </div>
-          {rows.length === 0 ? (
- <Empty title="لا توجد خصائص" detail="ابدأ بـ «إضافة» — «الطول» مثالاً كما في الديسكتوب." />
-          ) : (
- <div className="table-wrap">
- <table>
- <thead>
- <tr>
- <th>اسم الخاصية</th>
- <th className="num">الترتيب</th>
- <th>الحالة</th>
-                    {canManage && <th>إجراءات</th>}
- </tr>
- </thead>
- <tbody>
-                  {rows.map((row) => (
- <tr key={row.id} style={row.active ? undefined : { opacity: 0.65 }}>
- <td>{row.nameAr}</td>
- <td className="num">{row.displayOrder}</td>
- <td>
- <span className={`badge${row.active ? '' : ' danger'}`}>{row.statusText}</span>
- </td>
-                      {canManage && (
- <td>
- <div className="row" style={{ gap: 4 }}>
- <button
-                              className="btn sm"
-                              type="button"
-                              onClick={() =>
-                                // «تعديل اسم الخاصية:» — `PromptInput` in the desktop.
-                                setPrompt({
-                                  id: row.id,
-                                  title: 'تعديل',
-                                  question: 'تعديل اسم الخاصية:',
-                                  value: row.nameAr,
-                                  kind: 'edit',
-                                })
-                              }
-                            >
- تعديل
- </button>
-                            {row.active && (
- <button className="btn sm" type="button" onClick={() => deactivate(row)}>
- تعطيل
- </button>
-                            )}
- <button
-                              className="btn sm"
-                              type="button"
-                              title="تحريك للأعلى"
-                              disabled={rows[0]?.id === row.id}
-                              onClick={() => move(row, 'up')}
-                            >
- 
- </button>
- <button
-                              className="btn sm"
-                              type="button"
-                              title="تحريك للأسفل"
-                              disabled={rows[rows.length - 1]?.id === row.id}
-                              onClick={() => move(row, 'down')}
-                            >
- 
- </button>
- </div>
- </td>
-                      )}
- </tr>
-                  ))}
- </tbody>
- </table>
- </div>
-          )}
- </>
+        <>
+          <Panel title="خصائص القياسات" hint={<>عدد السجلات: {rows.length}</>} flush>
+            {rows.length === 0 ? (
+              <Empty bare title="لا توجد خصائص" detail="ابدأ بـ «إضافة» — «الطول» مثالاً كما في الديسكتوب." />
+            ) : (
+              <div className="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>اسم الخاصية</th>
+                      <th className="num">الترتيب</th>
+                      <th>الحالة</th>
+                      {canManage && <th>إجراءات</th>}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {rows.map((row) => (
+                      <tr key={row.id} style={row.active ? undefined : { opacity: 0.65 }}>
+                        <td>{row.nameAr}</td>
+                        <td className="num">{row.displayOrder}</td>
+                        <td>
+                          <span className={`badge${row.active ? '' : ' danger'}`}>{row.statusText}</span>
+                        </td>
+                        {canManage && (
+                          <td>
+                            <div className="row" style={{ gap: 4 }}>
+                              <button
+                                className="btn sm"
+                                type="button"
+                                onClick={() =>
+                                  // «تعديل اسم الخاصية:» — `PromptInput` in the desktop.
+                                  setPrompt({
+                                    id: row.id,
+                                    title: 'تعديل',
+                                    question: 'تعديل اسم الخاصية:',
+                                    value: row.nameAr,
+                                    kind: 'edit',
+                                  })
+                                }
+                              >
+                                تعديل
+                              </button>
+                              {row.active && (
+                                <button className="btn sm" type="button" onClick={() => deactivate(row)}>
+                                  تعطيل
+                                </button>
+                              )}
+                              <button
+                                className="btn sm"
+                                type="button"
+                                title="تحريك للأعلى"
+                                disabled={rows[0]?.id === row.id}
+                                onClick={() => move(row, 'up')}
+                              ></button>
+                              <button
+                                className="btn sm"
+                                type="button"
+                                title="تحريك للأسفل"
+                                disabled={rows[rows.length - 1]?.id === row.id}
+                                onClick={() => move(row, 'down')}
+                              ></button>
+                            </div>
+                          </td>
+                        )}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </Panel>
+        </>
       )}
 
       {prompt && (
         // `InputDialog` — «✔ موافق» و«✖ إلغاء» around one box, as the desktop builds it.
- <div className="modal-backdrop" role="dialog" aria-modal="true">
- <div className="modal-card" style={{ maxWidth: 440 }}>
- <div className="modal-head">
- <span className="modal-title">{prompt.title}</span>
- </div>
- <div style={{ padding: 16, display: 'grid', gap: 10 }}>
- <p style={{ margin: 0, fontWeight: 700 }}>{prompt.question}</p>
- <input
+        <div className="modal-backdrop" role="dialog" aria-modal="true">
+          <div className="modal-card" style={{ maxWidth: 440 }}>
+            <div className="modal-head">
+              <span className="modal-title">{prompt.title}</span>
+            </div>
+            <div style={{ padding: 16, display: 'grid', gap: 10 }}>
+              <p style={{ margin: 0, fontWeight: 700 }}>{prompt.question}</p>
+              <input
                 className="input"
                 value={prompt.value}
                 onChange={(event) => setPrompt({ ...prompt, value: event.target.value })}
               />
- </div>
- <div className="modal-foot">
- <button className="btn primary" type="button" onClick={submit} disabled={busy}>
- موافق
- </button>
- <button className="btn danger" type="button" onClick={() => setPrompt(null)} disabled={busy}>
- إلغاء
- </button>
- </div>
- </div>
- </div>
+            </div>
+            <div className="modal-foot">
+              <button className="btn primary" type="button" onClick={submit} disabled={busy}>
+                موافق
+              </button>
+              <button className="btn danger" type="button" onClick={() => setPrompt(null)} disabled={busy}>
+                إلغاء
+              </button>
+            </div>
+          </div>
+        </div>
       )}
- </Screen>
+    </Screen>
   );
 }
 
 export default function Page() {
   return (
- <Suspense fallback={<Loading rows={5} />}>
- <TailoringMeasurementAttributes />
- </Suspense>
+    <Suspense fallback={<Loading rows={5} />}>
+      <TailoringMeasurementAttributes />
+    </Suspense>
   );
 }

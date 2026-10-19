@@ -46,16 +46,31 @@ type StoreProduct = {
   currency: string;
   syncedAt: string;
 };
-type ExportLog = { id: string; itemId: string | null; action: string; status: string; error: string | null; createdAt: string };
+type ExportLog = {
+  id: string;
+  itemId: string | null;
+  action: string;
+  status: string;
+  error: string | null;
+  createdAt: string;
+};
 type PullResult = { data: StoreProduct[]; count: number; message: string };
 type PushResult = { data: { itemId: string; remoteId: string }; message: string };
 
-const STATUS_LABELS: Record<string, string> = { synced: 'مطابق', changed: 'يحتاج تصدير', pending: 'لم يُصدَّر', failed: 'فشل' };
+const STATUS_LABELS: Record<string, string> = {
+  synced: 'مطابق',
+  changed: 'يحتاج تصدير',
+  pending: 'لم يُصدَّر',
+  failed: 'فشل',
+};
 const FLAG_LABELS: Record<string, string> = { name: 'الاسم', price: 'السعر', cost: 'التكلفة', qty: 'الكمية' };
 
 /** `{ data, count, message }` — the sentence is part of the answer, so it is read raw. */
 async function callRaw<T>(path: string, init: { method: string; body?: unknown }): Promise<T> {
-  return apiFetch<T>(path, { method: init.method, body: init.body === undefined ? undefined : JSON.stringify(init.body) }) as Promise<T>;
+  return apiFetch<T>(path, {
+    method: init.method,
+    body: init.body === undefined ? undefined : JSON.stringify(init.body),
+  }) as Promise<T>;
 }
 
 export default function SallaProductsPage() {
@@ -63,7 +78,10 @@ export default function SallaProductsPage() {
   const canManage = can('salla.integration.manage');
 
   const products = useQuery<Product[]>(() => apiData<Product[]>('/integrations/salla/products'), []);
-  const connections = useQuery<Connection[]>(() => apiData<Connection[]>('/integrations/salla/connections'), []);
+  const connections = useQuery<Connection[]>(
+    () => apiData<Connection[]>('/integrations/salla/connections'),
+    [],
+  );
   const logs = useQuery<ExportLog[]>(() => apiData<ExportLog[]>('/integrations/salla/export-log'), []);
   const catalog = useQuery<StoreProduct[]>(() => apiData<StoreProduct[]>('/integrations/salla/catalog'), []);
   const [connectionId, setConnectionId] = useState('');
@@ -92,7 +110,10 @@ export default function SallaProductsPage() {
   /** «📦 جلب المنتجات» — what the store has, mirrored here. */
   function pull() {
     return run(async () => {
-      const result = await callRaw<PullResult>('/integrations/salla/products/pull', { method: 'POST', body: { connectionId: activeConnection } });
+      const result = await callRaw<PullResult>('/integrations/salla/products/pull', {
+        method: 'POST',
+        body: { connectionId: activeConnection },
+      });
       setNotice({ kind: 'ok', text: result.message });
     }, '');
   }
@@ -109,173 +130,257 @@ export default function SallaProductsPage() {
   }
 
   function queue(row: Product) {
-    return run(() => apiPost('/integrations/salla/export-queue', { connectionId: activeConnection, itemId: row.itemId, action: 'update' }), `تمت إضافة ${row.nameAr} إلى طابور التصدير.`);
+    return run(
+      () =>
+        apiPost('/integrations/salla/export-queue', {
+          connectionId: activeConnection,
+          itemId: row.itemId,
+          action: 'update',
+        }),
+      `تمت إضافة ${row.nameAr} إلى طابور التصدير.`,
+    );
   }
 
   return (
- <Screen
- title="منتجات متجر سلة"
- subtitle="«جلب المنتجات» و«إضافة منتج» من `FrmSallah`: ما في المتجر، وما يحتاج تصديراً من أصنافك."
+    <Screen
+      title="منتجات متجر سلة"
+      subtitle="«جلب المنتجات» و«إضافة منتج» من `FrmSallah`: ما في المتجر، وما يحتاج تصديراً من أصنافك."
       crumbs={['المستودعات', 'متجر سلة']}
       actions={
- <div className="row" style={{ gap: 6 }}>
+        <div className="row" style={{ gap: 6 }}>
           {canManage && (
- <button type="button" className="btn primary" disabled={busy || !activeConnection} onClick={pull}>
- جلب المنتجات
- </button>
+            <button type="button" className="btn primary" disabled={busy || !activeConnection} onClick={pull}>
+              جلب المنتجات
+            </button>
           )}
- <button
+          <button
             type="button"
             className="btn"
             disabled={busy || !activeConnection}
-            onClick={() => run(() => apiPost('/integrations/salla/export-next', {}), 'تم تنفيذ أول عملية في طابور التصدير.')}
+            onClick={() =>
+              run(
+                () => apiPost('/integrations/salla/export-next', {}),
+                'تم تنفيذ أول عملية في طابور التصدير.',
+              )
+            }
           >
- تنفيذ التصدير التالي
- </button>
- </div>
+            تنفيذ التصدير التالي
+          </button>
+        </div>
       }
     >
- <div className="ui-filter-bar no-print">
- <div className="ui-filter-fields">
- <label className="field">
- <span>المتجر</span>
- <select className="input" value={activeConnection} onChange={(event) => setConnectionId(event.target.value)}>
-            {connectionRows.length === 0 ? <option value="">لا يوجد متجر مرتبط</option> : null}
-            {connectionRows.map((row) => (
- <option key={row.id} value={row.id}>
-                {row.storeId}
- </option>
-            ))}
- </select>
- </label>
- </div>
- <p className="ui-filter-hint">المنتجات تُجلب من المتجر، والأصناف تُصدَّر إليه — وكل محاولة تُسجَّل في سجل التصدير أسفل الشاشة.</p>
- </div>
- <Notice notice={notice} />
+      <div className="ui-filter-bar no-print">
+        <div className="ui-filter-fields">
+          <label className="field">
+            <span>المتجر</span>
+            <select
+              className="input"
+              value={activeConnection}
+              onChange={(event) => setConnectionId(event.target.value)}
+            >
+              {connectionRows.length === 0 ? <option value="">لا يوجد متجر مرتبط</option> : null}
+              {connectionRows.map((row) => (
+                <option key={row.id} value={row.id}>
+                  {row.storeId}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+        <p className="ui-filter-hint">
+          المنتجات تُجلب من المتجر، والأصناف تُصدَّر إليه — وكل محاولة تُسجَّل في سجل التصدير أسفل الشاشة.
+        </p>
+      </div>
+      <Notice notice={notice} />
 
- <QueryView query={products} empty="لا توجد أصناف" emptyDetail="أضف أصنافاً من دليل المواد أولاً.">
+      <QueryView
+        wrapEmpty={(node) => (
+          <Panel title="الأصناف محلياً" flush>
+            {node}
+          </Panel>
+        )}
+        query={products}
+        empty="لا توجد أصناف"
+        emptyDetail="أضف أصنافاً من دليل المواد أولاً."
+      >
         {(rows) => (
- <Panel title="الأصناف محلياً" hint={`عدد السجلات: ${products.data?.length ?? 0} — تُصدَّر إلى المتجر من زر التصدير أعلاه.`} flush>
- <DataTable
+          <Panel
+            title="الأصناف محلياً"
+            hint={`عدد السجلات: ${products.data?.length ?? 0} — تُصدَّر إلى المتجر من زر التصدير أعلاه.`}
+            flush
+          >
+            <DataTable
               columns={[
                 { key: 'sku', header: 'الرمز', align: 'ltr', cell: (row: Product) => row.sku },
                 { key: 'name', header: 'الصنف', cell: (row: Product) => row.nameAr },
                 { key: 'category', header: 'المجموعة', cell: (row: Product) => row.categoryName ?? '—' },
-                { key: 'price', header: 'سعر البيع', align: 'num', cell: (row: Product) => money(row.salePrice) },
-                { key: 'status', header: 'حالة المزامنة', cell: (row: Product) => STATUS_LABELS[row.status ?? 'pending'] ?? row.status },
+                {
+                  key: 'price',
+                  header: 'سعر البيع',
+                  align: 'num',
+                  cell: (row: Product) => money(row.salePrice),
+                },
+                {
+                  key: 'status',
+                  header: 'حالة المزامنة',
+                  cell: (row: Product) => STATUS_LABELS[row.status ?? 'pending'] ?? row.status,
+                },
                 {
                   key: 'diff',
                   header: 'التغييرات',
-                  cell: (row: Product) => (row.diffFlags?.length ? row.diffFlags.map((flag) => FLAG_LABELS[flag] ?? flag).join('، ') : '—'),
+                  cell: (row: Product) =>
+                    row.diffFlags?.length
+                      ? row.diffFlags.map((flag) => FLAG_LABELS[flag] ?? flag).join('، ')
+                      : '—',
                 },
-                { key: 'remote', header: 'رقمه في المتجر', align: 'ltr', cell: (row: Product) => row.remoteId ?? '—' },
+                {
+                  key: 'remote',
+                  header: 'رقمه في المتجر',
+                  align: 'ltr',
+                  cell: (row: Product) => row.remoteId ?? '—',
+                },
                 { key: 'synced', header: 'آخر مزامنة', cell: (row: Product) => dateTime(row.syncedAt) },
                 {
                   key: 'actions',
                   header: '',
                   cell: (row: Product) => (
- <div className="row" style={{ gap: 4 }}>
+                    <div className="row" style={{ gap: 4 }}>
                       {canManage && (
- <button type="button" className="btn sm" disabled={busy || !activeConnection} onClick={() => push(row)}>
- إضافة منتج
- </button>
+                        <button
+                          type="button"
+                          className="btn sm"
+                          disabled={busy || !activeConnection}
+                          onClick={() => push(row)}
+                        >
+                          إضافة منتج
+                        </button>
                       )}
- <button type="button" className="btn sm" disabled={busy || !activeConnection} onClick={() => queue(row)}>
- أضف للطابور
- </button>
+                      <button
+                        type="button"
+                        className="btn sm"
+                        disabled={busy || !activeConnection}
+                        onClick={() => queue(row)}
+                      >
+                        أضف للطابور
+                      </button>
                       {canManage && row.remoteId && (
- <>
- <button
+                        <>
+                          <button
                             type="button"
                             className="btn sm"
                             disabled={busy || !activeConnection}
                             onClick={() =>
-                              run(
-                                async () => {
-                                  const result = await callRaw<PushResult>(`/integrations/salla/products/${row.remoteId}`, {
+                              run(async () => {
+                                const result = await callRaw<PushResult>(
+                                  `/integrations/salla/products/${row.remoteId}`,
+                                  {
                                     method: 'PUT',
                                     body: { connectionId: activeConnection, itemId: row.itemId },
-                                  });
-                                  setNotice({ kind: 'ok', text: result.message });
-                                },
-                                '',
-                              )
+                                  },
+                                );
+                                setNotice({ kind: 'ok', text: result.message });
+                              }, '')
                             }
                           >
- تحديث
- </button>
- <button
+                            تحديث
+                          </button>
+                          <button
                             type="button"
                             className="btn sm danger"
                             disabled={busy || !activeConnection}
                             onClick={() =>
-                              run(
-                                async () => {
-                                  const result = await callRaw<{ message: string }>(
-                                    `/integrations/salla/products/${row.remoteId}?connectionId=${activeConnection}&itemId=${row.itemId}`,
-                                    { method: 'DELETE' },
-                                  );
-                                  setNotice({ kind: 'ok', text: result.message });
-                                },
-                                '',
-                              )
+                              run(async () => {
+                                const result = await callRaw<{ message: string }>(
+                                  `/integrations/salla/products/${row.remoteId}?connectionId=${activeConnection}&itemId=${row.itemId}`,
+                                  { method: 'DELETE' },
+                                );
+                                setNotice({ kind: 'ok', text: result.message });
+                              }, '')
                             }
                           >
- احذف من المتجر
- </button>
- </>
+                            احذف من المتجر
+                          </button>
+                        </>
                       )}
- </div>
+                    </div>
                   ),
                 },
               ]}
               rows={rows}
               rowKey={(row) => row.itemId}
             />
- </Panel>
+          </Panel>
         )}
- </QueryView>
+      </QueryView>
 
- <QueryView
+      <QueryView
+        wrapEmpty={(node) => (
+          <Panel title="منتجات المتجر" flush>
+            {node}
+          </Panel>
+        )}
         query={catalog}
         empty="لم تُجلب منتجات المتجر بعد"
- emptyDetail="اضغط «جلب المنتجات» ليجلبها `ProductsManager.GetProducts()` ويحفظها هنا."
+        emptyDetail="اضغط «جلب المنتجات» ليجلبها `ProductsManager.GetProducts()` ويحفظها هنا."
       >
         {(rows) => (
- <Panel title="منتجات المتجر" hint={`عدد السجلات: ${catalog.data?.length ?? 0} — آخر جلب من سلة.`} flush>
- <DataTable
+          <Panel
+            title="منتجات المتجر"
+            hint={`عدد السجلات: ${catalog.data?.length ?? 0} — آخر جلب من سلة.`}
+            flush
+          >
+            <DataTable
               columns={[
                 { key: 'remote', header: 'الرقم', align: 'ltr', cell: (row: StoreProduct) => row.remoteId },
                 { key: 'sku', header: 'الرمز', align: 'ltr', cell: (row: StoreProduct) => row.sku || '—' },
                 { key: 'name', header: 'المنتج', cell: (row: StoreProduct) => row.name },
-                { key: 'price', header: 'السعر', align: 'num', cell: (row: StoreProduct) => money(row.price) },
-                { key: 'qty', header: 'الكمية', align: 'num', cell: (row: StoreProduct) => money(row.quantity) },
+                {
+                  key: 'price',
+                  header: 'السعر',
+                  align: 'num',
+                  cell: (row: StoreProduct) => money(row.price),
+                },
+                {
+                  key: 'qty',
+                  header: 'الكمية',
+                  align: 'num',
+                  cell: (row: StoreProduct) => money(row.quantity),
+                },
                 { key: 'status', header: 'الحالة', cell: (row: StoreProduct) => row.status || '—' },
                 { key: 'synced', header: 'وقت الجلب', cell: (row: StoreProduct) => dateTime(row.syncedAt) },
               ]}
               rows={rows}
               rowKey={(row) => row.id}
             />
- </Panel>
+          </Panel>
         )}
- </QueryView>
+      </QueryView>
 
- <Panel title="سجل التصدير" hint="كل محاولة إرسال إلى المتجر — الناجحة والفاشلة." flush>
- <QueryView query={logs} empty="لا توجد عمليات تصدير بعد">
+      <Panel title="سجل التصدير" hint="كل محاولة إرسال إلى المتجر — الناجحة والفاشلة." flush>
+        <QueryView query={logs} empty="لا توجد عمليات تصدير بعد">
           {(rows) => (
- <DataTable
+            <DataTable
               columns={[
                 { key: 'created', header: 'الوقت', cell: (row: ExportLog) => dateTime(row.createdAt) },
                 { key: 'action', header: 'العملية', cell: (row: ExportLog) => row.action },
-                { key: 'status', header: 'الحالة', cell: (row: ExportLog) => (row.status === 'sent' ? 'تم الإرسال' : row.status === 'queued' ? 'في الطابور' : row.status) },
+                {
+                  key: 'status',
+                  header: 'الحالة',
+                  cell: (row: ExportLog) =>
+                    row.status === 'sent'
+                      ? 'تم الإرسال'
+                      : row.status === 'queued'
+                        ? 'في الطابور'
+                        : row.status,
+                },
                 { key: 'error', header: 'الخطأ', cell: (row: ExportLog) => row.error ?? '—' },
               ]}
               rows={rows}
               rowKey={(row) => row.id}
             />
           )}
- </QueryView>
- </Panel>
- </Screen>
+        </QueryView>
+      </Panel>
+    </Screen>
   );
 }

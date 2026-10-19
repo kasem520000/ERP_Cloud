@@ -1,11 +1,11 @@
 'use client';
 
+import { Panel } from '@erp/ui';
 import { Fragment, type ReactNode } from 'react';
 
 import type { QueryState } from '../lib/use-query';
 
 import { Empty, ErrorBox, Forbidden, Loading } from './screen';
-
 
 /**
  * Renders the four states of a query in one place.
@@ -20,6 +20,7 @@ export function QueryView<T>({
   emptyDetail,
   isEmpty,
   wrapEmpty,
+  panel,
   children,
 }: {
   query: QueryState<T>;
@@ -33,19 +34,35 @@ export function QueryView<T>({
    * of replacing it with a bare card.
    */
   wrapEmpty?: (empty: ReactNode) => ReactNode;
+  /**
+   * Wraps the whole result — the table or the empty state — in a titled `Panel`.
+   * A section that is a direct child of the screen must be a panel like every
+   * other section; otherwise its heading disappears when the list is empty.
+   */
+  panel?: ReactNode;
   children: (data: T) => ReactNode;
 }) {
-  if (query.status === 'loading') return <Loading />;
-  if (query.status === 'forbidden') return <Forbidden />;
-  if (query.status === 'error') return <ErrorBox message={query.error} onRetry={query.reload} />;
+  const render = (): ReactNode => {
+    if (query.status === 'loading') return <Loading />;
+    if (query.status === 'forbidden') return <Forbidden />;
+    if (query.status === 'error') return <ErrorBox message={query.error} onRetry={query.reload} />;
 
-  const data = query.data as T;
-  const blank = isEmpty ? isEmpty(data) : Array.isArray(data) && data.length === 0;
-  if (blank) {
-    const node = <Empty title={empty ?? 'لا توجد بيانات'} detail={emptyDetail} />;
-    return <>{wrapEmpty ? wrapEmpty(node) : node}</>;
-  }
-  return <>{children(data)}</>;
+    const data = query.data as T;
+    const blank = isEmpty ? isEmpty(data) : Array.isArray(data) && data.length === 0;
+    if (blank) {
+      const node = <Empty title={empty ?? 'لا توجد بيانات'} detail={emptyDetail} />;
+      return <>{wrapEmpty ? wrapEmpty(node) : node}</>;
+    }
+    return <>{children(data)}</>;
+  };
+
+  const body = render();
+  if (panel === undefined) return <>{body}</>;
+  return (
+    <Panel title={panel} flush>
+      {body}
+    </Panel>
+  );
 }
 
 export type Column<T> = {
@@ -90,7 +107,9 @@ export function DataTable<T>({
 }) {
   return (
     <div className="table-wrap">
-      <table className={[zebra ? 'zebra' : '', compact ? 'compact' : ''].filter(Boolean).join(' ') || undefined}>
+      <table
+        className={[zebra ? 'zebra' : '', compact ? 'compact' : ''].filter(Boolean).join(' ') || undefined}
+      >
         <thead>
           <tr>
             {columns.map((column) => (
@@ -114,7 +133,10 @@ export function DataTable<T>({
             return (
               <Fragment key={key}>
                 <tr
-                  className={[onRowClick ? 'clickable' : '', active ? 'row-active' : ''].filter(Boolean).join(' ') || undefined}
+                  className={
+                    [onRowClick ? 'clickable' : '', active ? 'row-active' : ''].filter(Boolean).join(' ') ||
+                    undefined
+                  }
                   onClick={onRowClick ? () => onRowClick(row) : undefined}
                 >
                   {columns.map((column) => (
@@ -129,7 +151,10 @@ export function DataTable<T>({
                 </tr>
                 {expanded ? (
                   <tr>
-                    <td colSpan={columns.length} style={{ background: 'var(--surface-2)', padding: '8px 12px' }}>
+                    <td
+                      colSpan={columns.length}
+                      style={{ background: 'var(--surface-2)', padding: '8px 12px' }}
+                    >
                       {expanded(row)}
                     </td>
                   </tr>
@@ -142,7 +167,10 @@ export function DataTable<T>({
           <tfoot>
             <tr>
               {footer.map((cell, index) => (
-                <td key={columns[index]?.key ?? index} className={columns[index]?.align === 'num' ? 'num' : undefined}>
+                <td
+                  key={columns[index]?.key ?? index}
+                  className={columns[index]?.align === 'num' ? 'num' : undefined}
+                >
                   {cell}
                 </td>
               ))}

@@ -10,7 +10,7 @@ import { accountLabel, listAccounts, type Account } from '../../../lib/accounts'
 import { useSession } from '../../../lib/session';
 import { useQuery } from '../../../lib/use-query';
 
- type BankAccount = {
+type BankAccount = {
   id: string;
   bankName: string;
   accountNo: string | null;
@@ -56,38 +56,101 @@ export default function BankAccountsPage() {
   }
 
   return (
- <Screen
- title="الحسابات البنكية"
+    <Screen
+      title="الحسابات البنكية"
       subtitle="تعريف الحسابات التي تستقبل كشوف البنك وتربطها بحساب دفتر الأستاذ."
       crumbs={['الخزينة', 'التغذية البنكية']}
       actions={
- <>
- <Link className="btn sm" href="/treasury/bank-statements">كشوف الحساب</Link>
- <Link className="btn sm" href="/treasury/bank-reconciliation">التسوية البنكية</Link>
- </>
+        <>
+          <Link className="btn sm" href="/treasury/bank-statements">
+            كشوف الحساب
+          </Link>
+          <Link className="btn sm" href="/treasury/bank-reconciliation">
+            التسوية البنكية
+          </Link>
+        </>
       }
     >
- <Notice notice={notice} />
+      <Notice notice={notice} />
       {manage ? (
- <form className="card grid gap-3 mb-4" onSubmit={create}>
- <div>
- <h2 className="m-0 text-[16px] font-bold text-ink">إضافة حساب بنكي</h2>
- <p className="m-0 mt-1 text-[12px] text-muted">ابدأ بحساب واحد ثم اربطه بحساب الأستاذ لمقارنة الرصيدين.</p>
- </div>
- <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
- <label className="field"><span>اسم البنك</span><input className="input" required value={form.bankName} onChange={(event) => setForm({ ...form, bankName: event.target.value })} placeholder="مصرف الراجحي" /></label>
- <label className="field"><span>رقم الحساب</span><input className="input" value={form.accountNo} onChange={(event) => setForm({ ...form, accountNo: event.target.value })} /></label>
- <label className="field"><span>IBAN</span><input className="input" dir="ltr" value={form.iban} onChange={(event) => setForm({ ...form, iban: event.target.value })} placeholder="SA..." /></label>
- <label className="field"><span>الرصيد الافتتاحي</span><input className="input" dir="ltr" inputMode="decimal" value={form.openingBalance} onChange={(event) => setForm({ ...form, openingBalance: event.target.value })} /></label>
- <label className="field"><span>حساب دفتر الأستاذ</span><select className="input" value={form.accountId} onChange={(event) => setForm({ ...form, accountId: event.target.value })}><option value="">بدون ربط الآن</option>{(ledgerAccounts.data ?? []).map((account) => <option key={account.id} value={account.id}>{accountLabel(account)}</option>)}</select></label>
- </div>
- <div className="flex justify-end"><button className="btn primary" disabled={busy} type="submit">{busy ? 'جارٍ الحفظ…' : 'إضافة الحساب'}</button></div>
- </form>
+        <form className="card grid gap-3 mb-4" onSubmit={create}>
+          <div>
+            <h2 className="m-0 text-[16px] font-bold text-ink">إضافة حساب بنكي</h2>
+            <p className="m-0 mt-1 text-[12px] text-muted">
+              ابدأ بحساب واحد ثم اربطه بحساب الأستاذ لمقارنة الرصيدين.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+            <label className="field">
+              <span>اسم البنك</span>
+              <input
+                className="input"
+                required
+                value={form.bankName}
+                onChange={(event) => setForm({ ...form, bankName: event.target.value })}
+                placeholder="مصرف الراجحي"
+              />
+            </label>
+            <label className="field">
+              <span>رقم الحساب</span>
+              <input
+                className="input"
+                value={form.accountNo}
+                onChange={(event) => setForm({ ...form, accountNo: event.target.value })}
+              />
+            </label>
+            <label className="field">
+              <span>IBAN</span>
+              <input
+                className="input"
+                dir="ltr"
+                value={form.iban}
+                onChange={(event) => setForm({ ...form, iban: event.target.value })}
+                placeholder="SA..."
+              />
+            </label>
+            <label className="field">
+              <span>الرصيد الافتتاحي</span>
+              <input
+                className="input"
+                dir="ltr"
+                inputMode="decimal"
+                value={form.openingBalance}
+                onChange={(event) => setForm({ ...form, openingBalance: event.target.value })}
+              />
+            </label>
+            <label className="field">
+              <span>حساب دفتر الأستاذ</span>
+              <select
+                className="input"
+                value={form.accountId}
+                onChange={(event) => setForm({ ...form, accountId: event.target.value })}
+              >
+                <option value="">بدون ربط الآن</option>
+                {(ledgerAccounts.data ?? []).map((account) => (
+                  <option key={account.id} value={account.id}>
+                    {accountLabel(account)}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+          <div className="flex justify-end">
+            <button className="btn primary" disabled={busy} type="submit">
+              {busy ? 'جارٍ الحفظ…' : 'إضافة الحساب'}
+            </button>
+          </div>
+        </form>
       ) : null}
 
- <QueryView query={accounts} empty="لا توجد حسابات بنكية" emptyDetail="أضف الحساب البنكي الأول من النموذج أعلاه.">
+      <QueryView
+        panel="الحسابات البنكية"
+        query={accounts}
+        empty="لا توجد حسابات بنكية"
+        emptyDetail="أضف الحساب البنكي الأول من النموذج أعلاه."
+      >
         {(rows) => (
- <DataTable
+          <DataTable
             rows={rows}
             rowKey={(row) => row.id}
             columns={[
@@ -95,12 +158,25 @@ export default function BankAccountsPage() {
               { key: 'accountNo', header: 'رقم الحساب', cell: (row) => row.accountNo ?? '—', align: 'ltr' },
               { key: 'iban', header: 'IBAN', cell: (row) => row.iban ?? '—', align: 'ltr' },
               { key: 'opening', header: 'الرصيد الافتتاحي', align: 'num', cell: (row) => row.openingBalance },
-              { key: 'ledger', header: 'حساب الأستاذ', cell: (row) => ledgerAccounts.data?.find((account) => account.id === row.accountId)?.code ?? 'غير مربوط' },
-              { key: 'actions', header: 'إجراءات', cell: (row) => <Link className="btn sm" href={`/treasury/bank-statements?bank_account_id=${row.id}`}>الكشوف</Link> },
+              {
+                key: 'ledger',
+                header: 'حساب الأستاذ',
+                cell: (row) =>
+                  ledgerAccounts.data?.find((account) => account.id === row.accountId)?.code ?? 'غير مربوط',
+              },
+              {
+                key: 'actions',
+                header: 'إجراءات',
+                cell: (row) => (
+                  <Link className="btn sm" href={`/treasury/bank-statements?bank_account_id=${row.id}`}>
+                    الكشوف
+                  </Link>
+                ),
+              },
             ]}
           />
         )}
- </QueryView>
- </Screen>
+      </QueryView>
+    </Screen>
   );
 }

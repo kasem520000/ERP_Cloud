@@ -125,22 +125,26 @@ export default function BelowMinimumPage() {
       </StatTiles>
 
       <FilterBar
-        actions={<span className="small muted">{data.length === 0 ? 'لا عجز' : `${data.length} صنفاً بحاجة تغطية`}</span>}
+        actions={
+          <span className="small muted">
+            {data.length === 0 ? 'لا عجز' : `${data.length} صنفاً بحاجة تغطية`}
+          </span>
+        }
       >
         <label className="field">
           <span>المستودع</span>
           <select
-              className="input"
-              value={effectiveWarehouse}
-              onChange={(event) => setWarehouseId(event.target.value)}
-            >
-              <option value="">— كل المستودعات —</option>
-              {warehouseRows.map((row) => (
-                <option key={row.id} value={row.id}>
-                  {arabicName(row)}
-                </option>
-              ))}
-            </select>
+            className="input"
+            value={effectiveWarehouse}
+            onChange={(event) => setWarehouseId(event.target.value)}
+          >
+            <option value="">— كل المستودعات —</option>
+            {warehouseRows.map((row) => (
+              <option key={row.id} value={row.id}>
+                {arabicName(row)}
+              </option>
+            ))}
+          </select>
         </label>
         <label className="field">
           <span>الفرع (لسند التغطية)</span>
@@ -159,6 +163,7 @@ export default function BelowMinimumPage() {
       <Notice notice={notice} />
 
       <QueryView
+        panel="الأصناف تحت حد الطلب"
         query={rows}
         empty="لا توجد أصناف تحت حد الطلب"
         emptyDetail="كل الأصناف أعلى من حد الطلب، أو أن بطاقات الأصناف لم يُحدَّد لها حد بعد."

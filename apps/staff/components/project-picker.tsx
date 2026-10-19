@@ -38,7 +38,9 @@ export function ProjectPicker({
       ) : null}
       {projects.status === 'success' ? (
         rows.length === 0 ? (
-          <Empty title="لا مشاريع بعد" detail="أنشئ مشروعاً من شاشة المشاريع ثم عُد إلى هذه اللوحة." />
+          <Panel title="المشاريع" flush>
+            <Empty title="لا مشاريع بعد" detail="أنشئ مشروعاً من شاشة المشاريع ثم عُد إلى هذه اللوحة." />
+          </Panel>
         ) : (
           <Panel title="المشاريع" hint={`${rows.length} مشروعاً`} flush>
             <div className="table-wrap">

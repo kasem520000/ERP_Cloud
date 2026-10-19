@@ -1,6 +1,7 @@
 'use client';
 
 import { useSearchParams } from 'next/navigation';
+import { Panel } from '@erp/ui';
 import { Suspense, useState } from 'react';
 
 import { Empty, ErrorBox, Forbidden, Loading, Screen } from '../../../components/screen';
@@ -60,7 +61,14 @@ type Employee = {
 type Branch = { id: string; nameAr?: string; name?: string };
 
 type Envelope = {
-  employee: { id: string; employeeNo: string; name: string; accountId: string | null; accountCode: string | null; accountName: string | null } | null;
+  employee: {
+    id: string;
+    employeeNo: string;
+    name: string;
+    accountId: string | null;
+    accountCode: string | null;
+    accountName: string | null;
+  } | null;
   branchId: string | null;
   from: string | null;
   to: string | null;
@@ -83,8 +91,14 @@ const EMPTY_SUMMARY: Summary = { totalDebit: '0', totalCredit: '0', balanceDebit
 
 function EmployeeStatement() {
   const search = useSearchParams();
-  const employees = useQuery<Employee[]>(() => apiFetch<{ data: Employee[] }>('/hrm/employees').then((body) => body.data), []);
-  const branches = useQuery<Branch[]>(() => apiFetch<{ data: Branch[] }>('/branches').then((body) => body.data), []);
+  const employees = useQuery<Employee[]>(
+    () => apiFetch<{ data: Employee[] }>('/hrm/employees').then((body) => body.data),
+    [],
+  );
+  const branches = useQuery<Branch[]>(
+    () => apiFetch<{ data: Branch[] }>('/branches').then((body) => body.data),
+    [],
+  );
 
   const [employeeId, setEmployeeId] = useState(search.get('employee') ?? '');
   const [branchId, setBranchId] = useState('');
@@ -104,7 +118,16 @@ function EmployeeStatement() {
   });
 
   const statement = useQuery<Envelope>(() => {
-    if (!applied.employeeId) return Promise.resolve({ employee: null, branchId: null, from: null, to: null, fullPeriod: true, summary: EMPTY_SUMMARY, rows: [] });
+    if (!applied.employeeId)
+      return Promise.resolve({
+        employee: null,
+        branchId: null,
+        from: null,
+        to: null,
+        fullPeriod: true,
+        summary: EMPTY_SUMMARY,
+        rows: [],
+      });
     const params = new URLSearchParams({ employee_id: applied.employeeId });
     if (applied.from) params.set('from', applied.from);
     if (applied.to) params.set('to', applied.to);
@@ -112,7 +135,9 @@ function EmployeeStatement() {
     if (applied.fullPeriod) params.set('full_period', '1');
     if (applied.hidePrevious) params.set('hide_previous_balance', '1');
     if (applied.detailed) params.set('detailed', '1');
-    return apiFetch<{ data: Envelope }>(`/hrm/employee-statement?${params.toString()}`).then((body) => body.data);
+    return apiFetch<{ data: Envelope }>(`/hrm/employee-statement?${params.toString()}`).then(
+      (body) => body.data,
+    );
   }, [applied]);
 
   const rows = statement.data?.rows ?? [];
@@ -123,27 +148,39 @@ function EmployeeStatement() {
   const withAccount = (employees.data ?? []).filter((row) => row.accountCode);
 
   return (
- <Screen
+    <Screen
       title="كشف حساب موظف"
       subtitle={
         reported
           ? `${reported.employeeNo} — ${reported.name} · الحساب ${reported.accountCode ?? '—'} ${reported.accountName ?? ''}`.trim()
- : 'حركة حساب الموظف من القيود المرحّلة فقط — سلفة، صرف راتب، واستحقاق.'
+          : 'حركة حساب الموظف من القيود المرحّلة فقط — سلفة، صرف راتب، واستحقاق.'
       }
       crumbs={['الموظفين والرواتب', 'التقارير']}
       actions={
- <>
- <button className="btn" type="button" onClick={() => window.print()} disabled={rows.length === 0}>
- طباعة
- </button>
- <button
+        <>
+          <button className="btn" type="button" onClick={() => window.print()} disabled={rows.length === 0}>
+            طباعة
+          </button>
+          <button
             className="btn"
             type="button"
             disabled={rows.length === 0}
             onClick={() =>
               downloadCsv(
                 `employee-statement-${reported?.employeeNo ?? 'report'}.csv`,
-                ['م', 'التاريخ', 'النوع', 'رقم القيد', 'الفرع', 'الموظف', 'البيان', 'مدين', 'دائن', 'الرصيد', 'الحالة'],
+                [
+                  'م',
+                  'التاريخ',
+                  'النوع',
+                  'رقم القيد',
+                  'الفرع',
+                  'الموظف',
+                  'البيان',
+                  'مدين',
+                  'دائن',
+                  'الرصيد',
+                  'الحالة',
+                ],
                 rows.map((row) => [
                   row.seq,
                   row.date,
@@ -160,148 +197,205 @@ function EmployeeStatement() {
               )
             }
           >
- تصدير CSV
- </button>
- </>
+            تصدير CSV
+          </button>
+        </>
       }
     >
- <div className="card tight no-print">
- <div className="row" style={{ flexWrap: 'wrap', alignItems: 'flex-end' }}>
- <label className="field" style={{ margin: 0, minWidth: 260, flex: 1 }}>
- <span>اسم الموظف *</span>
- <select className="input" value={employeeId} onChange={(event) => setEmployeeId(event.target.value)}>
- <option value="">اختر الموظف...</option>
+      <div className="card tight no-print">
+        <div className="row" style={{ flexWrap: 'wrap', alignItems: 'flex-end' }}>
+          <label className="field" style={{ margin: 0, minWidth: 260, flex: 1 }}>
+            <span>اسم الموظف *</span>
+            <select
+              className="input"
+              value={employeeId}
+              onChange={(event) => setEmployeeId(event.target.value)}
+            >
+              <option value="">اختر الموظف...</option>
               {withAccount.map((row) => (
- <option key={row.id} value={row.id}>
+                <option key={row.id} value={row.id}>
                   {row.employeeNo} — {row.name} ({row.accountCode})
- </option>
+                </option>
               ))}
- </select>
- </label>
- <label className="field" style={{ margin: 0, minWidth: 200 }}>
- <span>الفرع</span>
- <select className="input" value={branchId} onChange={(event) => setBranchId(event.target.value)}>
- <option value="">كل الفروع</option>
+            </select>
+          </label>
+          <label className="field" style={{ margin: 0, minWidth: 200 }}>
+            <span>الفرع</span>
+            <select className="input" value={branchId} onChange={(event) => setBranchId(event.target.value)}>
+              <option value="">كل الفروع</option>
               {(branches.data ?? []).map((branch) => (
- <option key={branch.id} value={branch.id}>
+                <option key={branch.id} value={branch.id}>
                   {branch.nameAr ?? branch.name ?? branch.id}
- </option>
+                </option>
               ))}
- </select>
- </label>
- <label className="field" style={{ margin: 0, width: 160 }}>
- <span>من:</span>
- <input className="input" type="date" value={from} onChange={(event) => setFrom(event.target.value)} disabled={fullPeriod} />
- </label>
- <label className="field" style={{ margin: 0, width: 160 }}>
- <span>إلى:</span>
- <input className="input" type="date" value={to} onChange={(event) => setTo(event.target.value)} disabled={fullPeriod} />
- </label>
- <button
+            </select>
+          </label>
+          <label className="field" style={{ margin: 0, width: 160 }}>
+            <span>من:</span>
+            <input
+              className="input"
+              type="date"
+              value={from}
+              onChange={(event) => setFrom(event.target.value)}
+              disabled={fullPeriod}
+            />
+          </label>
+          <label className="field" style={{ margin: 0, width: 160 }}>
+            <span>إلى:</span>
+            <input
+              className="input"
+              type="date"
+              value={to}
+              onChange={(event) => setTo(event.target.value)}
+              disabled={fullPeriod}
+            />
+          </label>
+          <button
             className="btn primary"
             type="button"
             disabled={!employeeId}
             onClick={() => setApplied({ employeeId, branchId, from, to, fullPeriod, hidePrevious, detailed })}
           >
- عرض كشف الحساب
- </button>
- </div>
- <div className="row" style={{ flexWrap: 'wrap', marginTop: 8 }}>
- <span className="group-label">الفترة الزمنية</span>
- <label className="check">
- <input type="checkbox" checked={fullPeriod} onChange={(event) => setFullPeriod(event.target.checked)} />
- فترة كاملة
- </label>
- <label className="check">
- <input type="checkbox" checked={hidePrevious} onChange={(event) => setHidePrevious(event.target.checked)} />
- عدم إظهار الرصيد السابق
- </label>
- <span className="group-label" style={{ marginInlineStart: 12 }}>
- نوع التقرير
- </span>
- <button type="button" className={`btn sm${detailed ? '' : ' primary'}`} onClick={() => setDetailed(false)}>
- تجميعي
- </button>
- <button type="button" className={`btn sm${detailed ? ' primary' : ''}`} onClick={() => setDetailed(true)}>
- تفصيلي
- </button>
- </div>
- </div>
+            عرض كشف الحساب
+          </button>
+        </div>
+        <div className="row" style={{ flexWrap: 'wrap', marginTop: 8 }}>
+          <span className="group-label">الفترة الزمنية</span>
+          <label className="check">
+            <input
+              type="checkbox"
+              checked={fullPeriod}
+              onChange={(event) => setFullPeriod(event.target.checked)}
+            />
+            فترة كاملة
+          </label>
+          <label className="check">
+            <input
+              type="checkbox"
+              checked={hidePrevious}
+              onChange={(event) => setHidePrevious(event.target.checked)}
+            />
+            عدم إظهار الرصيد السابق
+          </label>
+          <span className="group-label" style={{ marginInlineStart: 12 }}>
+            نوع التقرير
+          </span>
+          <button
+            type="button"
+            className={`btn sm${detailed ? '' : ' primary'}`}
+            onClick={() => setDetailed(false)}
+          >
+            تجميعي
+          </button>
+          <button
+            type="button"
+            className={`btn sm${detailed ? ' primary' : ''}`}
+            onClick={() => setDetailed(true)}
+          >
+            تفصيلي
+          </button>
+        </div>
+      </div>
 
-      {!applied.employeeId && <Empty title="اختر الموظف" detail="«اختر موظف» — لا يظهر في القائمة إلا من له حساب في دليل الحسابات." />}
+      {!applied.employeeId && (
+        <Panel title="كشف حساب الموظف" flush>
+          <Empty
+            title="اختر الموظف"
+            detail="«اختر موظف» — لا يظهر في القائمة إلا من له حساب في دليل الحسابات."
+          />
+        </Panel>
+      )}
       {applied.employeeId && statement.status === 'loading' && <Loading />}
       {applied.employeeId && statement.status === 'forbidden' && <Forbidden />}
-      {applied.employeeId && statement.status === 'error' && <ErrorBox message={statement.error} onRetry={statement.reload} />}
-      {applied.employeeId && statement.status === 'success' && (
- <>
- <StatTiles>
- <StatTile label="إجمالي المدين" value={money(totals.totalDebit)} tone="ok" />
- <StatTile label="إجمالي الدائن" value={money(totals.totalCredit)} tone="brand" />
- <StatTile label="الرصيد المدين" value={money(totals.balanceDebit)} />
- <StatTile label="الرصيد الدائن" value={money(totals.balanceCredit)} />
- </StatTiles>
-
-          {rows.length === 0 ? (
- <Empty title="لا توجد حركة على حساب هذا الموظف" detail="تأكد من الفترة، أو أن القيود التي تحمل حساب الموظف مرحّلة." />
-          ) : (
- <div className="table-wrap">
- <table>
- <thead>
- <tr>
- <th>م</th>
- <th>تاريخ القيد</th>
- <th>رقم القيد</th>
- <th>الفرع</th>
- <th>الموظف</th>
- <th>البيان</th>
- <th>تفاصيل</th>
- <th className="num">مدين</th>
- <th className="num">دائن</th>
- <th className="num">الرصيد</th>
- <th>الحالة</th>
- </tr>
- </thead>
- <tbody>
-                  {rows.map((row) => (
- <tr key={`${row.seq}-${row.entryId ?? 'opening'}`} className={row.entryId === null ? 'opening' : undefined}>
- <td dir="ltr">{row.seq}</td>
- <td dir="ltr">{row.date}</td>
- <td dir="ltr" title={row.entryId ?? ''}>
-                        {row.entryNumber ?? '—'}
- </td>
- <td>{row.branchName ?? '—'}</td>
- <td>{row.employee ?? '—'}</td>
- <td>{row.description ?? '—'}</td>
- <td>{row.entryType}</td>
- <td className="num">{money(row.debit)}</td>
- <td className="num">{money(row.credit)}</td>
- <td className="num">{money(row.runningBalance ?? '')}</td>
- <td>{row.balanceStatus ?? '—'}</td>
- </tr>
-                  ))}
- </tbody>
- <tfoot>
- <tr>
- <th colSpan={7}>الإجمالي</th>
- <th className="num">{money(totals.totalDebit)}</th>
- <th className="num">{money(totals.totalCredit)}</th>
- <th className="num">{money(Number(totals.balanceDebit) > 0 ? totals.balanceDebit : totals.balanceCredit)}</th>
- <th>{Number(totals.balanceDebit) > 0 ? 'مدين' : Number(totals.balanceCredit) > 0 ? 'دائن' : '—'}</th>
- </tr>
- </tfoot>
- </table>
- </div>
-          )}
- </>
+      {applied.employeeId && statement.status === 'error' && (
+        <ErrorBox message={statement.error} onRetry={statement.reload} />
       )}
- </Screen>
+      {applied.employeeId && statement.status === 'success' && (
+        <>
+          <StatTiles>
+            <StatTile label="إجمالي المدين" value={money(totals.totalDebit)} tone="ok" />
+            <StatTile label="إجمالي الدائن" value={money(totals.totalCredit)} tone="brand" />
+            <StatTile label="الرصيد المدين" value={money(totals.balanceDebit)} />
+            <StatTile label="الرصيد الدائن" value={money(totals.balanceCredit)} />
+          </StatTiles>
+
+          <Panel title="حركة الحساب" flush>
+            {rows.length === 0 ? (
+              <Empty
+                title="لا توجد حركة على حساب هذا الموظف"
+                detail="تأكد من الفترة، أو أن القيود التي تحمل حساب الموظف مرحّلة."
+              />
+            ) : (
+              <div className="table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>م</th>
+                      <th>تاريخ القيد</th>
+                      <th>رقم القيد</th>
+                      <th>الفرع</th>
+                      <th>الموظف</th>
+                      <th>البيان</th>
+                      <th>تفاصيل</th>
+                      <th className="num">مدين</th>
+                      <th className="num">دائن</th>
+                      <th className="num">الرصيد</th>
+                      <th>الحالة</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {rows.map((row) => (
+                      <tr
+                        key={`${row.seq}-${row.entryId ?? 'opening'}`}
+                        className={row.entryId === null ? 'opening' : undefined}
+                      >
+                        <td dir="ltr">{row.seq}</td>
+                        <td dir="ltr">{row.date}</td>
+                        <td dir="ltr" title={row.entryId ?? ''}>
+                          {row.entryNumber ?? '—'}
+                        </td>
+                        <td>{row.branchName ?? '—'}</td>
+                        <td>{row.employee ?? '—'}</td>
+                        <td>{row.description ?? '—'}</td>
+                        <td>{row.entryType}</td>
+                        <td className="num">{money(row.debit)}</td>
+                        <td className="num">{money(row.credit)}</td>
+                        <td className="num">{money(row.runningBalance ?? '')}</td>
+                        <td>{row.balanceStatus ?? '—'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  <tfoot>
+                    <tr>
+                      <th colSpan={7}>الإجمالي</th>
+                      <th className="num">{money(totals.totalDebit)}</th>
+                      <th className="num">{money(totals.totalCredit)}</th>
+                      <th className="num">
+                        {money(Number(totals.balanceDebit) > 0 ? totals.balanceDebit : totals.balanceCredit)}
+                      </th>
+                      <th>
+                        {Number(totals.balanceDebit) > 0
+                          ? 'مدين'
+                          : Number(totals.balanceCredit) > 0
+                            ? 'دائن'
+                            : '—'}
+                      </th>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            )}
+          </Panel>
+        </>
+      )}
+    </Screen>
   );
 }
 
 export default function Page() {
   return (
- <Suspense fallback={<Loading rows={6} />}>
- <EmployeeStatement />
- </Suspense>
+    <Suspense fallback={<Loading rows={6} />}>
+      <EmployeeStatement />
+    </Suspense>
   );
 }

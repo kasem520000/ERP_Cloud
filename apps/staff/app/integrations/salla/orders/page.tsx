@@ -37,7 +37,13 @@ type Order = {
   paymentStatus: string;
   createdAt: string;
 };
-type PullResult = { data: Array<Record<string, unknown>>; count: number; created: number; skipped: string[]; message: string };
+type PullResult = {
+  data: Array<Record<string, unknown>>;
+  count: number;
+  created: number;
+  skipped: string[];
+  message: string;
+};
 
 const REMOTE_STATUS_LABELS: Record<string, string> = {
   pending: 'قيد المراجعة',
@@ -49,7 +55,10 @@ const REMOTE_STATUS_LABELS: Record<string, string> = {
 
 /** `{ data, count, message }` — read raw, so the window's sentence reaches the operator. */
 async function callRaw<T>(path: string, method: string, body?: unknown): Promise<T> {
-  return apiFetch<T>(path, { method, body: body === undefined ? undefined : JSON.stringify(body) }) as Promise<T>;
+  return apiFetch<T>(path, {
+    method,
+    body: body === undefined ? undefined : JSON.stringify(body),
+  }) as Promise<T>;
 }
 
 export default function SallaOrdersPage() {
@@ -57,7 +66,10 @@ export default function SallaOrdersPage() {
   const canManage = can('salla.integration.manage');
 
   const orders = useQuery<Order[]>(() => apiData<Order[]>('/integrations/salla/orders'), []);
-  const connections = useQuery<Connection[]>(() => apiData<Connection[]>('/integrations/salla/connections'), []);
+  const connections = useQuery<Connection[]>(
+    () => apiData<Connection[]>('/integrations/salla/connections'),
+    [],
+  );
   const [connectionId, setConnectionId] = useState('');
   const [status, setStatus] = useState('delivered');
   const [busy, setBusy] = useState(false);
@@ -83,69 +95,109 @@ export default function SallaOrdersPage() {
   /** «📋 جلب الطلبات» — one فاتورة for every طلب that is not here yet. */
   function pull() {
     return run(async () => {
-      const result = await callRaw<PullResult>('/integrations/salla/orders/pull', 'POST', { connectionId: activeConnection });
-      setNotice({ kind: 'ok', text: `${result.message} أُنشئ: ${result.created} · مُتجاوَز: ${result.skipped?.length ?? 0}` });
+      const result = await callRaw<PullResult>('/integrations/salla/orders/pull', 'POST', {
+        connectionId: activeConnection,
+      });
+      setNotice({
+        kind: 'ok',
+        text: `${result.message} أُنشئ: ${result.created} · مُتجاوَز: ${result.skipped?.length ?? 0}`,
+      });
     }, '');
   }
 
   function remove(row: Order) {
-    if (!window.confirm(`سيُحذف الطلب ${row.remoteId ?? row.number ?? ''} ومعه فاتورته المسوّدة.\n\nهل أنت متأكد؟`)) return;
+    if (
+      !window.confirm(
+        `سيُحذف الطلب ${row.remoteId ?? row.number ?? ''} ومعه فاتورته المسوّدة.\n\nهل أنت متأكد؟`,
+      )
+    )
+      return;
     return run(() => apiDelete(`/integrations/salla/orders/${row.orderId}`), 'تم حذف الطلب');
   }
 
   return (
- <Screen
- title="إدارة طلبات سلة"
- subtitle="«جلب الطلبات» من `FrmSallah`: كل طلبٍ وارد يصبح فاتورة مبيعات — رقمه عند المتجر هو ما يمنع استيراده مرّتين."
+    <Screen
+      title="إدارة طلبات سلة"
+      subtitle="«جلب الطلبات» من `FrmSallah`: كل طلبٍ وارد يصبح فاتورة مبيعات — رقمه عند المتجر هو ما يمنع استيراده مرّتين."
       crumbs={['المستودعات', 'متجر سلة']}
       actions={
         canManage ? (
- <button type="button" className="btn primary" disabled={busy || !activeConnection} onClick={pull}>
- جلب الطلبات
- </button>
+          <button type="button" className="btn primary" disabled={busy || !activeConnection} onClick={pull}>
+            جلب الطلبات
+          </button>
         ) : undefined
       }
     >
       {canManage && (
- <div className="ui-filter-bar no-print">
- <div className="ui-filter-fields">
- <label className="field">
- <span>المتجر</span>
- <select className="input" value={activeConnection} onChange={(event) => setConnectionId(event.target.value)}>
-              {connectionRows.length === 0 ? <option value="">لا يوجد متجر مرتبط</option> : null}
-              {connectionRows.map((row) => (
- <option key={row.id} value={row.id}>
-                  {row.storeId}
- </option>
-              ))}
- </select>
- </label>
- <label className="field">
- <span>الحالة المُرسَلة إلى المتجر</span>
- <select className="input" value={status} onChange={(event) => setStatus(event.target.value)}>
- <option value="delivered">تم التسليم</option>
- <option value="processing">قيد التجهيز</option>
- <option value="canceled">مُلغى</option>
- </select>
- </label>
+        <div className="ui-filter-bar no-print">
+          <div className="ui-filter-fields">
+            <label className="field">
+              <span>المتجر</span>
+              <select
+                className="input"
+                value={activeConnection}
+                onChange={(event) => setConnectionId(event.target.value)}
+              >
+                {connectionRows.length === 0 ? <option value="">لا يوجد متجر مرتبط</option> : null}
+                {connectionRows.map((row) => (
+                  <option key={row.id} value={row.id}>
+                    {row.storeId}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="field">
+              <span>الحالة المُرسَلة إلى المتجر</span>
+              <select className="input" value={status} onChange={(event) => setStatus(event.target.value)}>
+                <option value="delivered">تم التسليم</option>
+                <option value="processing">قيد التجهيز</option>
+                <option value="canceled">مُلغى</option>
+              </select>
+            </label>
           </div>
-          <p className="ui-filter-hint">تغيير الحالة يُرسَل إلى المتجر عبر واجهة سلة مباشرة بعد نجاح الطلب هنا.</p>
+          <p className="ui-filter-hint">
+            تغيير الحالة يُرسَل إلى المتجر عبر واجهة سلة مباشرة بعد نجاح الطلب هنا.
+          </p>
         </div>
       )}
       {notice && <p className={notice.kind === 'ok' ? 'alert ok' : 'alert danger'}>{notice.text}</p>}
 
- <QueryView
+      <QueryView
+        wrapEmpty={(node) => (
+          <Panel title="الطلبات الواردة" flush>
+            {node}
+          </Panel>
+        )}
         query={orders}
         empty="لا توجد طلبات واردة"
- emptyDetail="سجّل عنوان الويب هوك في لوحة سلة، أو اضغط «جلب الطلبات» ليستوردها النظام من المتجر."
+        emptyDetail="سجّل عنوان الويب هوك في لوحة سلة، أو اضغط «جلب الطلبات» ليستوردها النظام من المتجر."
       >
         {(rows) => (
- <Panel title="الطلبات الواردة" hint="كل طلب استورده النظام أو وصل عبر الويب هوك؛ الحالة عند المتجر منفصلة عن حالة الفاتورة." flush>
- <DataTable
+          <Panel
+            title="الطلبات الواردة"
+            hint="كل طلب استورده النظام أو وصل عبر الويب هوك؛ الحالة عند المتجر منفصلة عن حالة الفاتورة."
+            flush
+          >
+            <DataTable
               columns={[
-                { key: 'number', header: 'رقم الفاتورة', align: 'ltr', cell: (row: Order) => row.number ?? 'مسودة' },
-                { key: 'remote', header: 'رقم الطلب', align: 'ltr', cell: (row: Order) => row.remoteId ?? '—' },
-                { key: 'remoteStatus', header: 'الحالة عند المتجر', cell: (row: Order) => REMOTE_STATUS_LABELS[row.remoteStatus ?? ''] ?? row.remoteStatus ?? '—' },
+                {
+                  key: 'number',
+                  header: 'رقم الفاتورة',
+                  align: 'ltr',
+                  cell: (row: Order) => row.number ?? 'مسودة',
+                },
+                {
+                  key: 'remote',
+                  header: 'رقم الطلب',
+                  align: 'ltr',
+                  cell: (row: Order) => row.remoteId ?? '—',
+                },
+                {
+                  key: 'remoteStatus',
+                  header: 'الحالة عند المتجر',
+                  cell: (row: Order) =>
+                    REMOTE_STATUS_LABELS[row.remoteStatus ?? ''] ?? row.remoteStatus ?? '—',
+                },
                 { key: 'created', header: 'وقت الطلب', cell: (row: Order) => dateTime(row.createdAt) },
                 { key: 'customer', header: 'العميل', cell: (row: Order) => row.customer ?? '—' },
                 { key: 'mobile', header: 'الجوال', align: 'ltr', cell: (row: Order) => row.mobile ?? '—' },
@@ -156,35 +208,45 @@ export default function SallaOrdersPage() {
                   key: 'actions',
                   header: '',
                   cell: (row: Order) => (
- <div className="row" style={{ gap: 4 }}>
- <Link className="btn sm" href={`/sales/invoices/${row.id}`}>
- فتح الفاتورة
- </Link>
+                    <div className="row" style={{ gap: 4 }}>
+                      <Link className="btn sm" href={`/sales/invoices/${row.id}`}>
+                        فتح الفاتورة
+                      </Link>
                       {canManage && row.orderId && (
- <>
- <button
+                        <>
+                          <button
                             type="button"
                             className="btn sm"
                             disabled={busy}
-                            onClick={() => run(() => apiPut(`/integrations/salla/orders/${row.orderId}/status`, { status }), 'تم تحديث حالة الطلب')}
+                            onClick={() =>
+                              run(
+                                () => apiPut(`/integrations/salla/orders/${row.orderId}/status`, { status }),
+                                'تم تحديث حالة الطلب',
+                              )
+                            }
                           >
- تحديث الحالة
- </button>
- <button type="button" className="btn sm danger" disabled={busy} onClick={() => remove(row)}>
- حذف
- </button>
- </>
+                            تحديث الحالة
+                          </button>
+                          <button
+                            type="button"
+                            className="btn sm danger"
+                            disabled={busy}
+                            onClick={() => remove(row)}
+                          >
+                            حذف
+                          </button>
+                        </>
                       )}
- </div>
+                    </div>
                   ),
                 },
               ]}
               rows={rows}
               rowKey={(row) => row.id}
             />
- </Panel>
+          </Panel>
         )}
- </QueryView>
- </Screen>
+      </QueryView>
+    </Screen>
   );
 }

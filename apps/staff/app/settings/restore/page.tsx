@@ -16,7 +16,11 @@ type RestoreRun = {
   status: string;
   insertedRows: number;
   skippedRows: number;
-  summary: { tables?: Record<string, { rows: number; inserted: number; skipped: number; error?: string }>; unresolved?: string[]; existingRows?: Record<string, number> };
+  summary: {
+    tables?: Record<string, { rows: number; inserted: number; skipped: number; error?: string }>;
+    unresolved?: string[];
+    existingRows?: Record<string, number>;
+  };
   createdAt: string;
 };
 
@@ -54,7 +58,10 @@ export default function RestorePage() {
       setNotice(
         mode === 'dry_run'
           ? { kind: 'info', text: 'فحص تجريبي فقط — لم تُكتب أي بيانات.' }
-          : { kind: 'ok', text: `تمت الإضافة: ${restored.insertedRows} سجلاً، وتُخطي ${restored.skippedRows} سجلاً موجوداً مسبقاً.` },
+          : {
+              kind: 'ok',
+              text: `تمت الإضافة: ${restored.insertedRows} سجلاً، وتُخطي ${restored.skippedRows} سجلاً موجوداً مسبقاً.`,
+            },
       );
       runs.reload();
     } catch (error) {
@@ -79,8 +86,8 @@ export default function RestorePage() {
     >
       <div className="card">
         <p className="alert warn">
-          الإستعادة تضيف السجلات المفقودة فقط. إذا كان الهدف بدء سجلات جديدة تماماً فالمطلوب «إنشاء ملف»
-          جديد وليس الإستعادة فوق ملف يعمل.
+          الإستعادة تضيف السجلات المفقودة فقط. إذا كان الهدف بدء سجلات جديدة تماماً فالمطلوب «إنشاء ملف» جديد
+          وليس الإستعادة فوق ملف يعمل.
         </p>
         <div className="toolbar">
           <label className="field wide">
@@ -101,9 +108,20 @@ export default function RestorePage() {
         <div className="toolbar">
           <label className="field">
             <span>اكتب رمز الملف للتأكيد</span>
-            <input className="input" dir="ltr" value={confirmCode} onChange={(event) => setConfirmCode(event.target.value)} placeholder="demo" />
+            <input
+              className="input"
+              dir="ltr"
+              value={confirmCode}
+              onChange={(event) => setConfirmCode(event.target.value)}
+              placeholder="demo"
+            />
           </label>
-          <button type="button" className="btn danger" disabled={!backupId || !confirmCode.trim() || busy} onClick={() => run('apply')}>
+          <button
+            type="button"
+            className="btn danger"
+            disabled={!backupId || !confirmCode.trim() || busy}
+            onClick={() => run('apply')}
+          >
             تنفيذ الإستعادة
           </button>
         </div>
@@ -115,10 +133,30 @@ export default function RestorePage() {
           <h3>تفاصيل {result?.mode === 'apply' ? 'التنفيذ' : 'الفحص'}</h3>
           <DataTable
             columns={[
-              { key: 'table', header: 'الجدول', align: 'ltr', cell: (row: (typeof tables)[number]) => row.table },
-              { key: 'rows', header: 'في النسخة', align: 'num', cell: (row: (typeof tables)[number]) => String(row.rows) },
-              { key: 'inserted', header: 'أُضيف', align: 'num', cell: (row: (typeof tables)[number]) => String(row.inserted) },
-              { key: 'skipped', header: 'موجود مسبقاً', align: 'num', cell: (row: (typeof tables)[number]) => String(row.skipped) },
+              {
+                key: 'table',
+                header: 'الجدول',
+                align: 'ltr',
+                cell: (row: (typeof tables)[number]) => row.table,
+              },
+              {
+                key: 'rows',
+                header: 'في النسخة',
+                align: 'num',
+                cell: (row: (typeof tables)[number]) => String(row.rows),
+              },
+              {
+                key: 'inserted',
+                header: 'أُضيف',
+                align: 'num',
+                cell: (row: (typeof tables)[number]) => String(row.inserted),
+              },
+              {
+                key: 'skipped',
+                header: 'موجود مسبقاً',
+                align: 'num',
+                cell: (row: (typeof tables)[number]) => String(row.skipped),
+              },
               { key: 'error', header: 'ملاحظة', cell: (row: (typeof tables)[number]) => row.error ?? '—' },
             ]}
             rows={tables}
@@ -127,16 +165,35 @@ export default function RestorePage() {
         </section>
       )}
 
-      <QueryView query={runs} empty="لا توجد عمليات إستعادة سابقة" emptyDetail="ابدأ بفحص تجريبي لنسخة محفوظة.">
+      <QueryView
+        panel="عمليات الاستعادة السابقة"
+        query={runs}
+        empty="لا توجد عمليات إستعادة سابقة"
+        emptyDetail="ابدأ بفحص تجريبي لنسخة محفوظة."
+      >
         {(rows) => (
           <section className="card">
             <h3>سجل عمليات الإستعادة</h3>
             <DataTable
               columns={[
                 { key: 'createdAt', header: 'التاريخ', cell: (row: RestoreRun) => dateTime(row.createdAt) },
-                { key: 'mode', header: 'النوع', cell: (row: RestoreRun) => (row.mode === 'apply' ? 'تنفيذ' : 'فحص تجريبي') },
-                { key: 'inserted', header: 'أُضيف', align: 'num', cell: (row: RestoreRun) => String(row.insertedRows) },
-                { key: 'skipped', header: 'تُخطي', align: 'num', cell: (row: RestoreRun) => String(row.skippedRows) },
+                {
+                  key: 'mode',
+                  header: 'النوع',
+                  cell: (row: RestoreRun) => (row.mode === 'apply' ? 'تنفيذ' : 'فحص تجريبي'),
+                },
+                {
+                  key: 'inserted',
+                  header: 'أُضيف',
+                  align: 'num',
+                  cell: (row: RestoreRun) => String(row.insertedRows),
+                },
+                {
+                  key: 'skipped',
+                  header: 'تُخطي',
+                  align: 'num',
+                  cell: (row: RestoreRun) => String(row.skippedRows),
+                },
               ]}
               rows={rows}
               rowKey={(row) => row.id}

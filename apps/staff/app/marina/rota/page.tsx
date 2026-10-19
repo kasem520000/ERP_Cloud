@@ -229,6 +229,7 @@ export default function MarinaRotaPage() {
       {!can('marina.manage') && <Notice notice={notice} />}
 
       <QueryView
+        panel="خطط الدور"
         query={plans}
         empty="لا توجد خطط دور"
         emptyDetail="أنشئ خطة لترتيب دور المراكب على فترات اليوم."
