@@ -725,6 +725,13 @@ tbody tr:hover {
 
 /* هاتف: الشريطُ العلويّ كان يبلغ 245px عند 390px (أربعة صفوف) — ثلثُ الشاشة قبل
  * أوّل سطر. يُطوى نصُّ البحث إلى أيقونةٍ (وظيفته باقية)، ويُسقَط بريدُ الحساب. */
+@media (max-width: 1000px) {
+  /* كما في المخابز: درجٌ مغلقٌ خارج الشاشة يجب ألّا يُنتج تمريرًا أفقيًّا للصفحة. */
+  html {
+    overflow-x: clip;
+  }
+}
+
 @media (max-width: 640px) {
   .topbar { padding: 8px 10px; gap: 6px; border-radius: 12px; margin-bottom: 12px; }
   .topbar .row { gap: 6px; }
@@ -746,8 +753,15 @@ tbody tr:hover {
     height: 100vh;
     overflow: auto;
     z-index: 40;
-    inset-inline-start: -288px;
+    inset-inline-start: 0;
+    transform: translateX(100%);
     width: 272px;
+    /* مُغلقًا لا يُرسم أصلًا — لا تمريرَ أفقيًّا فارغًا على الهاتف. */
+    display: none;
+  }
+  .side.open {
+    display: flex;
+    transform: none;
   }
   .side.open {
     inset-inline-start: 0;

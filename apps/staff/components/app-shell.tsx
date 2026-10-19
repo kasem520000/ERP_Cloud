@@ -668,7 +668,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               className="btn only-mobile"
               type="button"
               onClick={() => setMobileOpen(!mobileOpen)}
-              aria-label={t('nav.searchPlaceholder')}
+              aria-label={lang === 'ar' ? 'إظهار القائمة الجانبية' : 'Open sidebar'}
+              aria-expanded={mobileOpen}
             >
  <Menu size={17} />
  </button>

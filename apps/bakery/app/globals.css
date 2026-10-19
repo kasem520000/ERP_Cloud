@@ -985,6 +985,15 @@ body {
 }
 
 @media (max-width: 1000px) {
+  /*
+   * لا تمريرَ أفقيًّا للصفحة على الهاتف: الدرجُ المغلق خارج الشاشة يُحسب في
+   * `scrollWidth` (445px مقابل 390) فيظهر شريطُ تمريرٍ أفقيّ لا يقود إلى شيء.
+   * القصّ هنا على مستوى الصفحة، والتمريرُ الأفقيُّ داخل الجداول باقٍ في
+   * `.table-wrap` — فهو عنصرٌ له تمريرُه الخاص.
+   */
+  html {
+    overflow-x: clip;
+  }
   .bak-shell {
     grid-template-columns: 1fr;
   }
@@ -997,14 +1006,19 @@ body {
   .bak-side {
     position: fixed;
     inset-block: 0;
+    inset-inline-start: 0;
+    transform: translateX(100%);
     height: 100vh;
     overflow: auto;
     z-index: 50;
-    inset-inline-start: -300px;
     width: 268px;
+    /* مُغلقًا لا يُرسم أصلًا: عنصرٌ خارج الشاشة يُوسّع `scrollWidth` فيظهر تمريرٌ
+       أفقيٌّ فارغ. الفتحُ فوريّ — والحركةُ الانزلاقيّة كانت تُخفي هذا العيب. */
+    display: none;
   }
   .bak-side.open {
-    inset-inline-start: 0;
+    display: flex;
+    transform: none;
   }
   .bak-main {
     padding: 14px 14px 36px;

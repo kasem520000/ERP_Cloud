@@ -2803,6 +2803,12 @@ tr.total td,
 }
 
 @media (max-width: 1000px) {
+  /* لا تمريرَ أفقيًّا للصفحة: الدرجُ المغلق كان يُحسب في `scrollWidth` (448–531px
+   * مقابل 390) فيظهر شريطُ تمريرٍ لا يقود إلى شيء. والتمريرُ داخل الجداول باقٍ
+   * في `.table-wrap`. */
+  html {
+    overflow-x: clip;
+  }
   .shell {
     grid-template-columns: 1fr;
   }
@@ -2810,6 +2816,11 @@ tr.total td,
     width: 288px;
     inset-inline-start: -300px;
     box-shadow: 0 30px 80px -20px rgb(0 0 0 / 0.7);
+    /* مُغلقًا لا يُرسم أصلًا — والفتحُ فوريّ. */
+    display: none;
+  }
+  .side.open {
+    display: flex;
   }
   .side-backdrop {
     background: rgb(4 13 23 / 0.62);
