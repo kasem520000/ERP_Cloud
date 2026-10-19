@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 import type { PermissionDto, PlatformDirectoryUser, PlatformRoleMatrixEntry } from '@erp/contracts';
+import { Panel } from '@erp/ui';
 
 import { Empty, ErrorBox, Loading, Screen } from '../../components/screen';
 import { ApiError, apiData, apiPut } from '../../lib/api';
@@ -112,7 +113,9 @@ export default function PlatformRolesPage() {
   const session = useSession();
   const canManage = session.canConsole('console.users.manage');
 
-  const roles = useQuery<PlatformRoleMatrixEntry[]>(() => apiData<PlatformRoleMatrixEntry[]>('/platform/roles'));
+  const roles = useQuery<PlatformRoleMatrixEntry[]>(() =>
+    apiData<PlatformRoleMatrixEntry[]>('/platform/roles'),
+  );
   const permissions = useQuery<PermissionDto[]>(() => apiData<PermissionDto[]>('/platform/permissions'));
 
   const [draft, setDraft] = useState<Draft>({});
@@ -206,13 +209,22 @@ export default function PlatformRolesPage() {
                         }`}
                       >
                         <span className="flex w-full items-center justify-between gap-2">
-                          <span className={`text-[13.5px] ${active ? 'font-extrabold text-[var(--brand)]' : 'font-bold'}`}>
+                          <span
+                            className={`text-[13.5px] ${active ? 'font-extrabold text-[var(--brand)]' : 'font-bold'}`}
+                          >
                             {ROLE_NAME_AR[role.code] ?? role.nameAr}
                           </span>
-                          {pending ? <span className="size-1.5 flex-none rounded-full bg-[var(--warn)]" aria-label="تغييرات غير محفوظة" /> : null}
+                          {pending ? (
+                            <span
+                              className="size-1.5 flex-none rounded-full bg-[var(--warn)]"
+                              aria-label="تغييرات غير محفوظة"
+                            />
+                          ) : null}
                         </span>
                         <span className="flex w-full items-center justify-between gap-2 text-[11.5px] text-muted">
-                          <span dir="ltr" className="truncate">{role.code}</span>
+                          <span dir="ltr" className="truncate">
+                            {role.code}
+                          </span>
                           <span className="flex-none tabular-nums">
                             {role.permissions.length}/{codes.length}
                           </span>
@@ -256,7 +268,9 @@ export default function PlatformRolesPage() {
                     if (groupCodes.length === 0) return null;
                     return (
                       <div key={group.key}>
-                        <p className="m-0 mb-1.5 text-xs font-bold uppercase tracking-[0.06em] text-muted">{group.label}</p>
+                        <p className="m-0 mb-1.5 text-xs font-bold uppercase tracking-[0.06em] text-muted">
+                          {group.label}
+                        </p>
                         <ul className="m-0 grid list-none gap-x-4 gap-y-0 p-0 sm:grid-cols-2">
                           {groupCodes.map((code) => {
                             const on = (draft[selected.code] ?? []).includes(code);
@@ -272,11 +286,15 @@ export default function PlatformRolesPage() {
                                     disabled={!canManage || busy === selected.code}
                                     onChange={(event) => toggle(selected.code, code, event.target.checked)}
                                   />
-                                  <span className={`min-w-0 flex-1 truncate text-[12.5px] ${on ? 'font-semibold text-[var(--text)]' : 'text-muted'}`}>
+                                  <span
+                                    className={`min-w-0 flex-1 truncate text-[12.5px] ${on ? 'font-semibold text-[var(--text)]' : 'text-muted'}`}
+                                  >
                                     {CONSOLE_PERM_AR[code] ?? code.replace('console.', '')}
                                   </span>
                                   {override ? (
-                                    <span className={`tag flex-none ${on ? 'tenant' : 'danger'}`}>{on ? '+ تجاوز' : '− عن الفهرس'}</span>
+                                    <span className={`tag flex-none ${on ? 'tenant' : 'danger'}`}>
+                                      {on ? '+ تجاوز' : '− عن الفهرس'}
+                                    </span>
                                   ) : null}
                                   <span className="flex-none text-[10.5px] text-muted" dir="ltr" title={code}>
                                     {code.replace('console.', '')}
@@ -316,13 +334,16 @@ export default function PlatformRolesPage() {
                       disabled={busy === selected.code}
                       onClick={() => {
                         // Restoring the catalogue is itself a write: it clears the override row.
-                        for (const code of codes) toggle(selected.code, code, selected.catalogPermissions.includes(code));
+                        for (const code of codes)
+                          toggle(selected.code, code, selected.catalogPermissions.includes(code));
                         setReason('إرجاع إلى الفهرس');
                       }}
                     >
                       إرجاع إلى الفهرس
                     </button>
-                    {!dirty(selected) ? <span className="text-[12px] text-muted">لا تغييرات غير محفوظة</span> : null}
+                    {!dirty(selected) ? (
+                      <span className="text-[12px] text-muted">لا تغييرات غير محفوظة</span>
+                    ) : null}
                   </div>
                 ) : (
                   <p className="m-0 mt-3 border-t border-[var(--line)] pt-3 text-[12px] text-muted">
@@ -345,8 +366,7 @@ function UsersAndHolders() {
   const rows = (users.data ?? []).filter((row) => row.platformRoles.length > 0 || row.isPlatformAdmin);
 
   return (
-    <div className="card">
-      <h2 style={{ marginTop: 0 }}>الحائزون</h2>
+    <Panel title="الحائزون" flush>
       {users.status === 'loading' && <Loading />}
       {users.status === 'error' && <ErrorBox message={users.error} onRetry={users.reload} />}
       {users.status === 'success' &&
@@ -375,7 +395,9 @@ function UsersAndHolders() {
                           {ROLE_NAME_AR[code] ?? code}
                         </span>
                       ))}
-                      {row.platformRoles.length === 0 && row.isPlatformAdmin && <span className="badge active">مالك المنصة</span>}
+                      {row.platformRoles.length === 0 && row.isPlatformAdmin && (
+                        <span className="badge active">مالك المنصة</span>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -383,6 +405,6 @@ function UsersAndHolders() {
             </table>
           </div>
         ))}
-    </div>
+    </Panel>
   );
 }

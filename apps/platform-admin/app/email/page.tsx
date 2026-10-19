@@ -17,6 +17,7 @@ import {
   type EmailTemplateListResponse,
   type EmailTestResult,
 } from '@erp/contracts';
+import { Panel } from '@erp/ui';
 
 import { Empty, ErrorBox, Forbidden, Loading, Screen } from '../../components/screen';
 import { SourceTag, Tabs } from '../../components/ui';
@@ -210,7 +211,11 @@ function TemplatesTab() {
         <div className="row">
           <label>
             الحدث
-            <select className="input" value={event} onChange={(change) => setEvent(change.target.value as EmailEvent | '')}>
+            <select
+              className="input"
+              value={event}
+              onChange={(change) => setEvent(change.target.value as EmailEvent | '')}
+            >
               <option value="">كل الأحداث ({emailEvents.length})</option>
               {emailEvents.map((key) => (
                 <option key={key} value={key}>
@@ -221,7 +226,11 @@ function TemplatesTab() {
           </label>
           <label>
             اللغة
-            <select className="input" value={locale} onChange={(change) => setLocale(change.target.value as EmailLocale)}>
+            <select
+              className="input"
+              value={locale}
+              onChange={(change) => setLocale(change.target.value as EmailLocale)}
+            >
               {emailLocales.map((value) => (
                 <option key={value} value={value}>
                   {LOCALE_LABEL[value]}
@@ -231,7 +240,11 @@ function TemplatesTab() {
           </label>
           <label>
             العميل (لتجاوزٍ بعينه)
-            <select className="input" value={tenantId} onChange={(change) => setTenantId(change.target.value)}>
+            <select
+              className="input"
+              value={tenantId}
+              onChange={(change) => setTenantId(change.target.value)}
+            >
               <option value="">قالب المنصة</option>
               {(tenants.data ?? []).map((tenant) => (
                 <option key={tenant.id} value={tenant.id}>
@@ -315,20 +328,28 @@ function TemplatesTab() {
       )}
 
       {editing && (
-        <div className="card">
-          <h2 style={{ marginTop: 0 }}>
-            {editing.labelAr} — {LOCALE_LABEL[editing.locale]}
-          </h2>
-          <p className="muted">
-            المتغيّرات المعلَنة: {editing.variables.map((name) => `{{${name}}}`).join(' · ') || 'لا شيء'}
-          </p>
+        <Panel
+          title={
+            <>
+              {editing.labelAr} — {LOCALE_LABEL[editing.locale]}
+            </>
+          }
+          hint={
+            <>المتغيّرات المعلَنة: {editing.variables.map((name) => `{{${name}}}`).join(' · ') || 'لا شيء'}</>
+          }
+        >
           <label>
             الموضوع
             <input className="input" value={subject} onChange={(change) => setSubject(change.target.value)} />
           </label>
           <label>
             النصّ
-            <textarea className="input" rows={10} value={body} onChange={(change) => setBody(change.target.value)} />
+            <textarea
+              className="input"
+              rows={10}
+              value={body}
+              onChange={(change) => setBody(change.target.value)}
+            />
           </label>
           <label>
             سبب التعديل (يُسجَّل في التدقيق)
@@ -340,7 +361,8 @@ function TemplatesTab() {
             </button>
             <label>
               فحص إلى عنوان
-              <input className="input"
+              <input
+                className="input"
                 value={probeTo}
                 placeholder="ops@example.com"
                 onChange={(change) => setProbeTo(change.target.value)}
@@ -362,7 +384,7 @@ function TemplatesTab() {
             متغيّرٌ خارج فهرس الحدث يُرفض عند الحفظ (400) — والاختبار يملأ المتغيّرات بقيمٍ تجريبية ليخرج
             النصّ كاملاً.
           </p>
-        </div>
+        </Panel>
       )}
     </div>
   );
@@ -428,7 +450,11 @@ function MessagesTab() {
         <div className="row">
           <label>
             العميل
-            <select className="input" value={tenantId} onChange={(change) => setTenantId(change.target.value)}>
+            <select
+              className="input"
+              value={tenantId}
+              onChange={(change) => setTenantId(change.target.value)}
+            >
               <option value="">كل العملاء</option>
               {(tenants.data ?? []).map((tenant) => (
                 <option key={tenant.id} value={tenant.id}>
@@ -637,12 +663,12 @@ function SettingsTab() {
 
   return (
     <div className="grid">
-      <div className="card">
-        <h2 style={{ marginTop: 0 }}>المُرسِل والمزوّد</h2>
+      <Panel title="المُرسِل والمزوّد">
         <div className="row">
           <label>
             المزوّد
-            <select className="input"
+            <select
+              className="input"
               value={value('provider') ?? 'console'}
               onChange={(change) =>
                 setDraft({ ...draft, provider: change.target.value as EmailSettings['provider'] })
@@ -656,21 +682,24 @@ function SettingsTab() {
           </label>
           <label>
             اسم المُرسِل (عربي مسموح وهو الأفضل)
-            <input className="input"
+            <input
+              className="input"
               value={value('fromName') ?? ''}
               onChange={(change) => setDraft({ ...draft, fromName: change.target.value })}
             />
           </label>
           <label>
             عنوان المُرسِل
-            <input className="input"
+            <input
+              className="input"
               value={value('fromEmail') ?? ''}
               onChange={(change) => setDraft({ ...draft, fromEmail: change.target.value })}
             />
           </label>
           <label>
             ردّ إلى (اختياري)
-            <input className="input"
+            <input
+              className="input"
               value={value('replyTo') ?? ''}
               onChange={(change) => setDraft({ ...draft, replyTo: change.target.value })}
             />
@@ -679,7 +708,8 @@ function SettingsTab() {
         <div className="row">
           <label>
             نطاق الإرسال المُتحقَّق منه
-            <input className="input"
+            <input
+              className="input"
               value={value('sendingDomain') ?? ''}
               placeholder="mail.example.com"
               onChange={(change) => setDraft({ ...draft, sendingDomain: change.target.value })}
@@ -687,7 +717,8 @@ function SettingsTab() {
           </label>
           <label>
             سقف يومي (حماية مزوّد)
-            <input className="input"
+            <input
+              className="input"
               type="number"
               min={1}
               value={value('dailyLimit') ?? ''}
@@ -701,7 +732,8 @@ function SettingsTab() {
           </label>
           <label>
             سقف شهري
-            <input className="input"
+            <input
+              className="input"
               type="number"
               min={1}
               value={value('monthlyLimit') ?? ''}
@@ -723,7 +755,8 @@ function SettingsTab() {
           <div className="row">
             <label style={{ flex: 2 }}>
               {selectedProvider === 'resend' ? 'مفتاح Resend API Key' : 'مفتاح المصادقة (Bearer API Key)'}
-              <input className="input"
+              <input
+                className="input"
                 type="password"
                 dir="ltr"
                 value={apiKeyDraft ?? ''}
@@ -741,7 +774,8 @@ function SettingsTab() {
               {selectedProvider === 'resend'
                 ? 'رابط Resend API (اختياري)'
                 : 'رابط نقطة النهاية (HTTP Webhook URL)'}
-              <input className="input"
+              <input
+                className="input"
                 dir="ltr"
                 value={value('apiEndpoint') ?? ''}
                 placeholder={
@@ -759,7 +793,8 @@ function SettingsTab() {
           <div className="row">
             <label>
               مُضيف SMTP (Host)
-              <input className="input"
+              <input
+                className="input"
                 dir="ltr"
                 value={value('smtpHost') ?? ''}
                 placeholder="smtp.resend.com"
@@ -768,7 +803,8 @@ function SettingsTab() {
             </label>
             <label>
               المنفذ (Port)
-              <input className="input"
+              <input
+                className="input"
                 type="number"
                 dir="ltr"
                 value={value('smtpPort') ?? 587}
@@ -782,7 +818,8 @@ function SettingsTab() {
             </label>
             <label>
               اسم مستخدم SMTP
-              <input className="input"
+              <input
+                className="input"
                 dir="ltr"
                 value={value('smtpUser') ?? ''}
                 placeholder="resend"
@@ -791,7 +828,8 @@ function SettingsTab() {
             </label>
             <label>
               كلمة مرور SMTP
-              <input className="input"
+              <input
+                className="input"
                 type="password"
                 dir="ltr"
                 value={smtpPasswordDraft ?? ''}
@@ -808,7 +846,8 @@ function SettingsTab() {
           </button>
           <label>
             فحص الاتصال إلى
-            <input className="input"
+            <input
+              className="input"
               value={probeTo}
               placeholder="ops@example.com"
               onChange={(change) => setProbeTo(change.target.value)}
@@ -829,12 +868,11 @@ function SettingsTab() {
             ? ''
             : ' ولا اعتماد (SMTP_USER/SMTP_PASS) — الإرسال الفعلي عبر smtp سيفشل.'}
         </p>
-      </div>
+      </Panel>
 
       {notice && <p className={`alert ${notice.kind}`}>{notice.text}</p>}
 
-      <div className="card">
-        <h2 style={{ marginTop: 0 }}>التسليم: SPF وDKIM وDMARC</h2>
+      <Panel title="التسليم: SPF وDKIM وDMARC">
         <ul className="muted">
           <li>
             <strong>SPF</strong> — سجلّ TXT على النطاق يسمح بخوادمنا:{' '}
@@ -853,7 +891,7 @@ function SettingsTab() {
           لا فحص DNS آليّاً بعد: الشاشة تشرح ما يجب نشره ولا تدّعي أنه نُشر. حين يُضاف مزوّد ويب
           (SendGrid/Resend/SES) خلف المهايئ نفسه، يصير التحقّق من النطاق خطوةً في هذا التبويب.
         </p>
-      </div>
+      </Panel>
     </div>
   );
 }
@@ -910,7 +948,8 @@ function SuppressionsTab() {
         <div className="row">
           <label>
             العنوان
-            <input className="input"
+            <input
+              className="input"
               value={email}
               placeholder="blocked@example.com"
               onChange={(change) => setEmail(change.target.value)}
@@ -918,7 +957,8 @@ function SuppressionsTab() {
           </label>
           <label>
             السبب
-            <select className="input"
+            <select
+              className="input"
               value={reason}
               onChange={(change) =>
                 setReason(change.target.value as (typeof emailSuppressionReasons)[number])

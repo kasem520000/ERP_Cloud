@@ -37,6 +37,7 @@ import {
   type CampaignStatus,
   type CampaignView,
 } from '@erp/contracts';
+import { Panel } from '@erp/ui';
 
 import { Empty, ErrorBox, Forbidden, Loading, Screen } from '../../components/screen';
 import { Tabs } from '../../components/ui';
@@ -85,19 +86,25 @@ export default function CampaignsPage() {
 // ═══════════════════════════════════════════════════ الشرائح
 
 function Segments() {
-  const segments = useQuery<CampaignSegmentInfo[]>(() => apiData<CampaignSegmentInfo[]>('/platform/campaigns/segments'), []);
+  const segments = useQuery<CampaignSegmentInfo[]>(
+    () => apiData<CampaignSegmentInfo[]>('/platform/campaigns/segments'),
+    [],
+  );
 
   if (segments.status === 'loading') return <Loading rows={4} />;
   if (segments.status === 'forbidden') return <Forbidden />;
   if (segments.status === 'error') return <ErrorBox message={segments.error} onRetry={segments.reload} />;
 
   return (
-    <section className="card">
-      <h2 style={{ marginTop: 0 }}>الشرائح وأعدادها الآن</h2>
-      <p className="muted">
-        الأعداد تُقرأ من الجداول لحظة العرض — لا تقدير. و«أشخاص» تعني موافقةً تسويقية صريحة
-        (استمارةٌ موافقة أو اشتراكٌ مؤكَّد)، و«حسابات» تعني أصحاب تراخيص تُرسَل إليهم رسالة خدمة.
-      </p>
+    <Panel
+      title="الشرائح وأعدادها الآن"
+      hint={
+        <>
+          الأعداد تُقرأ من الجداول لحظة العرض — لا تقدير. و«أشخاص» تعني موافقةً تسويقية صريحة (استمارةٌ موافقة
+          أو اشتراكٌ مؤكَّد)، و«حسابات» تعني أصحاب تراخيص تُرسَل إليهم رسالة خدمة.
+        </>
+      }
+    >
       <table className="table">
         <thead>
           <tr>
@@ -125,7 +132,7 @@ function Segments() {
           ))}
         </tbody>
       </table>
-    </section>
+    </Panel>
   );
 }
 
@@ -146,8 +153,14 @@ function Campaigns({ canManage }: { canManage: boolean }) {
     return value ? `?${value}` : '';
   }, [status, applied]);
 
-  const list = useQuery<ListPayload>(() => apiData<ListPayload>(`/platform/campaigns${queryString}`), [queryString]);
-  const segments = useQuery<CampaignSegmentInfo[]>(() => apiData<CampaignSegmentInfo[]>('/platform/campaigns/segments'), []);
+  const list = useQuery<ListPayload>(
+    () => apiData<ListPayload>(`/platform/campaigns${queryString}`),
+    [queryString],
+  );
+  const segments = useQuery<CampaignSegmentInfo[]>(
+    () => apiData<CampaignSegmentInfo[]>('/platform/campaigns/segments'),
+    [],
+  );
 
   if (list.status === 'loading') return <Loading rows={5} />;
   if (list.status === 'forbidden') return <Forbidden />;
@@ -159,7 +172,11 @@ function Campaigns({ canManage }: { canManage: boolean }) {
     <>
       <section className="card grid">
         <div className="toolbar">
-          <select className="input" value={status} onChange={(event) => setStatus(event.target.value as CampaignStatus | '')}>
+          <select
+            className="input"
+            value={status}
+            onChange={(event) => setStatus(event.target.value as CampaignStatus | '')}
+          >
             <option value="">كل الحالات</option>
             {campaignStatuses.map((key) => (
               <option key={key} value={key}>
@@ -224,7 +241,11 @@ function Campaigns({ canManage }: { canManage: boolean }) {
       {payload.data.length === 0 ? (
         <Empty
           title="لا حملات بهذه المرشّحات"
-          detail={canManage ? 'ابدأ بحملة جديدة: نصٌّ وشريحة، ثم جدولة أو إرسالٌ الآن.' : 'حملات المنصّة تُدار بصلاحية الإرسال.'}
+          detail={
+            canManage
+              ? 'ابدأ بحملة جديدة: نصٌّ وشريحة، ثم جدولة أو إرسالٌ الآن.'
+              : 'حملات المنصّة تُدار بصلاحية الإرسال.'
+          }
         />
       ) : (
         <section className="card">
@@ -261,7 +282,11 @@ function Campaigns({ canManage }: { canManage: boolean }) {
                   <td>{campaign.totals.clicked}</td>
                   <td>{campaign.totals.unsubscribed}</td>
                   <td>
-                    <button className="btn sm" type="button" onClick={() => setOpenId(openId === campaign.id ? null : campaign.id)}>
+                    <button
+                      className="btn sm"
+                      type="button"
+                      onClick={() => setOpenId(openId === campaign.id ? null : campaign.id)}
+                    >
                       {openId === campaign.id ? 'إغلاق' : 'التقرير'}
                     </button>
                   </td>
@@ -321,7 +346,7 @@ function Composer({
       });
       onCreated(created);
     } catch (failure) {
-      setError(failure instanceof ApiError ? failure.detail ?? failure.message : 'تعذّر إنشاء الحملة');
+      setError(failure instanceof ApiError ? (failure.detail ?? failure.message) : 'تعذّر إنشاء الحملة');
     } finally {
       setBusy(false);
     }
@@ -339,23 +364,40 @@ function Composer({
       <div className="grid cols-2">
         <label className="field">
           <span>اسم الحملة (داخلي)</span>
-          <input className="input" value={name} onChange={(event) => setName(event.target.value)} placeholder="مثال: عرض أكتوبر" />
+          <input
+            className="input"
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+            placeholder="مثال: عرض أكتوبر"
+          />
         </label>
         <label className="field">
           <span>عنوان الرسالة (كما يقرأه المستلم)</span>
-          <input className="input" value={subject} onChange={(event) => setSubject(event.target.value)} placeholder="أهلاً {{name}} — عرضٌ لفروعك" />
+          <input
+            className="input"
+            value={subject}
+            onChange={(event) => setSubject(event.target.value)}
+            placeholder="أهلاً {{name}} — عرضٌ لفروعك"
+          />
         </label>
       </div>
 
       <label className="field">
-        <span>النصّ — المتغيّرات: {'{{name}}'} و{'{{company}}'} و{'{{email}}'}، والروابط: https://… أو [عنوان](https://…)</span>
+        <span>
+          النصّ — المتغيّرات: {'{{name}}'} و{'{{company}}'} و{'{{email}}'}، والروابط: https://… أو
+          [عنوان](https://…)
+        </span>
         <textarea className="input" rows={8} value={body} onChange={(event) => setBody(event.target.value)} />
       </label>
 
       <div className="grid cols-2">
         <label className="field">
           <span>الشريحة</span>
-          <select className="input" value={segment} onChange={(event) => setSegment(event.target.value as CampaignSegment)}>
+          <select
+            className="input"
+            value={segment}
+            onChange={(event) => setSegment(event.target.value as CampaignSegment)}
+          >
             {campaignSegments.map((key) => {
               const info = segments.find((entry) => entry.segment === key);
               return (
@@ -368,7 +410,11 @@ function Composer({
         </label>
         <label className="field">
           <span>لغة الرسالة</span>
-          <select className="input" value={locale} onChange={(event) => setLocale(event.target.value as CampaignLocale)}>
+          <select
+            className="input"
+            value={locale}
+            onChange={(event) => setLocale(event.target.value as CampaignLocale)}
+          >
             <option value="ar">العربية</option>
             <option value="en">English</option>
           </select>
@@ -383,12 +429,17 @@ function Composer({
       ) : null}
 
       <p className="muted">
-        رابط إلغاء الاشتراك يُضاف تلقائياً في كل رسالة (`List-Unsubscribe` وزرُّ نقرةٍ واحدة)،
-        ولا يُمكن أن يُرسل نصٌّ بلا طريقٍ للخروج.
+        رابط إلغاء الاشتراك يُضاف تلقائياً في كل رسالة (`List-Unsubscribe` وزرُّ نقرةٍ واحدة)، ولا يُمكن أن
+        يُرسل نصٌّ بلا طريقٍ للخروج.
       </p>
 
       <div className="toolbar">
-        <button className="btn" type="button" disabled={busy || name.trim().length < 3 || subject.trim().length < 3} onClick={submit}>
+        <button
+          className="btn"
+          type="button"
+          disabled={busy || name.trim().length < 3 || subject.trim().length < 3}
+          onClick={submit}
+        >
           {busy ? '…جارٍ الحفظ' : 'احفظ المسوّدة'}
         </button>
         <button className="btn sm" type="button" onClick={onCancel}>
@@ -419,7 +470,10 @@ function CampaignCard({
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState({ subject: '', body: '' });
 
-  const report = useQuery<CampaignReport>(() => apiData<CampaignReport>(`/platform/campaigns/${campaignId}/report`), [campaignId]);
+  const report = useQuery<CampaignReport>(
+    () => apiData<CampaignReport>(`/platform/campaigns/${campaignId}/report`),
+    [campaignId],
+  );
 
   const refresh = useCallback(() => {
     report.reload();
@@ -431,7 +485,8 @@ function CampaignCard({
   if (report.status === 'error') return <ErrorBox message={report.error} onRetry={report.reload} />;
 
   const { campaign, totals, messages, events, links } = report.data!;
-  const locked = campaign.status === 'sent' || campaign.status === 'canceled' || campaign.status === 'sending';
+  const locked =
+    campaign.status === 'sent' || campaign.status === 'canceled' || campaign.status === 'sending';
 
   const act = async (run: () => Promise<unknown>, done?: string) => {
     setBusy(true);
@@ -442,7 +497,7 @@ function CampaignCard({
       setNotice(done ?? null);
       refresh();
     } catch (failure) {
-      setError(failure instanceof ApiError ? failure.detail ?? failure.message : 'تعذّر تنفيذ الطلب');
+      setError(failure instanceof ApiError ? (failure.detail ?? failure.message) : 'تعذّر تنفيذ الطلب');
     } finally {
       setBusy(false);
     }
@@ -468,8 +523,7 @@ function CampaignCard({
       {campaign.canceledReason ? <p className="muted">سبب الإلغاء: {campaign.canceledReason}</p> : null}
 
       <div className="grid cols-2">
-        <div className="card">
-          <h3>النصّ كما سيخرج</h3>
+        <Panel title="النصّ كما سيخرج">
           <pre className="muted" style={{ whiteSpace: 'pre-wrap', margin: 0 }}>
             {campaign.body}
           </pre>
@@ -486,10 +540,9 @@ function CampaignCard({
                   </span>
                 ))}
           </p>
-        </div>
+        </Panel>
 
-        <div className="card">
-          <h3>الأرقام</h3>
+        <Panel title="الأرقام">
           <dl className="kv">
             <dt>المستلمون</dt>
             <dd>{totals.recipients}</dd>
@@ -507,15 +560,14 @@ function CampaignCard({
             <dd>{totals.unsubscribed}</dd>
           </dl>
           <p className="muted">
-            الفتح يُقاس ببكسلٍ في نسخة HTML، ومن يُغلق تحميل الصور لا يُحتسب — فالرقم حدٌّ أدنى
-            لا حدٌّ أعلى. والنقر أدقّ منه: يمرّ بنا كل من ضغط.
+            الفتح يُقاس ببكسلٍ في نسخة HTML، ومن يُغلق تحميل الصور لا يُحتسب — فالرقم حدٌّ أدنى لا حدٌّ أعلى.
+            والنقر أدقّ منه: يمرّ بنا كل من ضغط.
           </p>
-        </div>
+        </Panel>
       </div>
 
       {canManage ? (
-        <div className="card grid">
-          <h3>الإرسال</h3>
+        <Panel title="الإرسال" bodyClassName="grid">
           {locked ? (
             <p className="muted">
               {campaign.status === 'sent'
@@ -529,7 +581,12 @@ function CampaignCard({
               <div className="toolbar">
                 <label className="field">
                   <span>موعد الإرسال (اتركه فارغاً للإرسال الآن)</span>
-                  <input className="input" type="datetime-local" value={at} onChange={(event) => setAt(event.target.value)} />
+                  <input
+                    className="input"
+                    type="datetime-local"
+                    value={at}
+                    onChange={(event) => setAt(event.target.value)}
+                  />
                 </label>
                 <button
                   className="btn"
@@ -625,14 +682,22 @@ function CampaignCard({
               <div className="toolbar">
                 <label className="field">
                   <span>سبب الإلغاء (مطلوب للإلغاء)</span>
-                  <input className="input" value={reason} onChange={(event) => setReason(event.target.value)} placeholder="مثال: تغيّر العرض" />
+                  <input
+                    className="input"
+                    value={reason}
+                    onChange={(event) => setReason(event.target.value)}
+                    placeholder="مثال: تغيّر العرض"
+                  />
                 </label>
                 <button
                   className="btn sm"
                   type="button"
                   disabled={busy || reason.trim().length < 3}
                   onClick={() =>
-                    act(() => apiPost(`/platform/campaigns/${campaign.id}/cancel`, { reason: reason.trim() }), 'أُلغيت الحملة.')
+                    act(
+                      () => apiPost(`/platform/campaigns/${campaign.id}/cancel`, { reason: reason.trim() }),
+                      'أُلغيت الحملة.',
+                    )
                   }
                 >
                   إلغاء الحملة
@@ -641,20 +706,24 @@ function CampaignCard({
                   className="btn sm"
                   type="button"
                   disabled={busy}
-                  onClick={() => act(() => apiPost(`/platform/campaigns/${campaign.id}/dispatch`, {}), 'نُفِّذت دفعة إرسال.')}
+                  onClick={() =>
+                    act(
+                      () => apiPost(`/platform/campaigns/${campaign.id}/dispatch`, {}),
+                      'نُفِّذت دفعة إرسال.',
+                    )
+                  }
                 >
                   دفعة إرسال (استئناف)
                 </button>
               </div>
             </>
           )}
-        </div>
+        </Panel>
       ) : (
         <p className="muted">قراءةٌ فقط: الكتابة والإرسال والإلغاء تحتاج `console.campaigns.manage`.</p>
       )}
 
-      <div className="card">
-        <h3>الروابط المُتتبَّعة</h3>
+      <Panel title="الروابط المُتتبَّعة">
         {links.length === 0 ? (
           <p className="muted">لا نقرةَ مسجّلة بعد.</p>
         ) : (
@@ -677,12 +746,13 @@ function CampaignCard({
             </tbody>
           </table>
         )}
-      </div>
+      </Panel>
 
-      <div className="card">
-        <h3>المستلمون ({messages.length})</h3>
+      <Panel title={<>المستلمون ( {messages.length} )</>}>
         {messages.length === 0 ? (
-          <p className="muted">{campaign.status === 'scheduled' ? 'لم يُرسل بعد — الرسائل تُنشأ لحظة الإرسال.' : 'لا مستلمين.'}</p>
+          <p className="muted">
+            {campaign.status === 'scheduled' ? 'لم يُرسل بعد — الرسائل تُنشأ لحظة الإرسال.' : 'لا مستلمين.'}
+          </p>
         ) : (
           <table className="table">
             <thead>
@@ -705,7 +775,15 @@ function CampaignCard({
                   </td>
                   <td>{message.fullName ?? message.companyName ?? '—'}</td>
                   <td>
-                    <span className={message.status === 'sent' ? 'tag ok' : message.status === 'failed' ? 'tag danger' : 'tag'}>
+                    <span
+                      className={
+                        message.status === 'sent'
+                          ? 'tag ok'
+                          : message.status === 'failed'
+                            ? 'tag danger'
+                            : 'tag'
+                      }
+                    >
                       {message.statusLabelAr}
                     </span>
                   </td>
@@ -719,17 +797,17 @@ function CampaignCard({
             </tbody>
           </table>
         )}
-      </div>
+      </Panel>
 
-      <div className="card">
-        <h3>الأثر</h3>
+      <Panel title="الأثر">
         {events.length === 0 ? (
           <p className="muted">لا أحداث بعد.</p>
         ) : (
           <ol className="timeline">
             {events.map((event) => (
               <li key={event.id}>
-                <span className="tag">{event.kindLabelAr}</span> {event.email ? <bdi>{event.email}</bdi> : null}{' '}
+                <span className="tag">{event.kindLabelAr}</span>{' '}
+                {event.email ? <bdi>{event.email}</bdi> : null}{' '}
                 {event.url ? <bdi className="muted">{event.url}</bdi> : null}
                 {event.detail ? <span className="muted"> — {event.detail}</span> : null}
                 <span className="muted"> · {formatDate(event.at)}</span>
@@ -737,7 +815,7 @@ function CampaignCard({
             ))}
           </ol>
         )}
-      </div>
+      </Panel>
     </section>
   );
 }
@@ -746,5 +824,8 @@ function formatDate(value: string | null): string {
   if (!value) return '—';
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return '—';
-  return new Intl.DateTimeFormat('ar-SA-u-ca-gregory-nu-latn', { dateStyle: 'medium', timeStyle: 'short' }).format(date);
+  return new Intl.DateTimeFormat('ar-SA-u-ca-gregory-nu-latn', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  }).format(date);
 }

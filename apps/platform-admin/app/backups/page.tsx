@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { Panel } from '@erp/ui';
 
 import { Empty, ErrorBox, Forbidden, Loading, Screen } from '../../components/screen';
 import { apiData } from '../../lib/api';
@@ -422,8 +423,7 @@ export default function BackupsPage() {
             ))}
 
           {verify && (
-            <div className="card">
-              <h3 style={{ marginTop: 0 }}>نتيجة التحقّق — استعادة تجريبية</h3>
+            <Panel title="نتيجة التحقّق — استعادة تجريبية">
               <p className={verify.verified ? '' : 'danger'}>
                 {verify.verified ? 'الملف مطابقٌ لبصمته، وعدّاداته مقروءة.' : verify.detail}
               </p>
@@ -457,12 +457,11 @@ export default function BackupsPage() {
                 الاستعادة التجريبية تقرأ وتطابق ولا تكتب: الكتابة فوق بياناتٍ حيّة تحتاج نافذة صيانة، وهي خارج
                 نطاق هذا الجزء. الظاهر هنا أقوى ما يمكن إثباته بلا كتابة.
               </p>
-            </div>
+</Panel>
           )}
 
           {retention.status === 'success' && retention.data && (
-            <div className="card">
-              <h3 style={{ marginTop: 0 }}>سياسة الاحتفاظ</h3>
+            <Panel title="سياسة الاحتفاظ">
               <div className="row" style={{ flexWrap: 'wrap', alignItems: 'flex-end' }}>
                 {WINDOWS.map((window) => (
                   <label className="field" key={window.key} style={{ minWidth: 200 }}>
@@ -542,7 +541,7 @@ export default function BackupsPage() {
                   طبّق الآن
                 </button>
               </div>
-            </div>
+</Panel>
           )}
         </>
       )}

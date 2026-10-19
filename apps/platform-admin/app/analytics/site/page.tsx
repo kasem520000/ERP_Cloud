@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { type SiteAnalytics } from '@erp/contracts';
+import { Panel } from '@erp/ui';
 
 import { Empty, ErrorBox, Loading, Screen } from '../../../components/screen';
 import { apiData } from '../../../lib/api';
@@ -35,9 +36,11 @@ function count(value: number | undefined): string {
 }
 
 function dayText(value: string): string {
-  return new Intl.DateTimeFormat('ar-SA-u-ca-gregory-nu-latn', { day: 'numeric', month: 'short', timeZone: 'UTC' }).format(
-    new Date(`${value}T00:00:00.000Z`),
-  );
+  return new Intl.DateTimeFormat('ar-SA-u-ca-gregory-nu-latn', {
+    day: 'numeric',
+    month: 'short',
+    timeZone: 'UTC',
+  }).format(new Date(`${value}T00:00:00.000Z`));
 }
 
 export default function SiteAnalyticsPage() {
@@ -82,7 +85,11 @@ export default function SiteAnalyticsPage() {
         <div className="row">
           <label className="field">
             <span>النافذة</span>
-            <select className="input" value={windowDays} onChange={(event) => setWindowDays(event.target.value)}>
+            <select
+              className="input"
+              value={windowDays}
+              onChange={(event) => setWindowDays(event.target.value)}
+            >
               {WINDOWS.map((option) => (
                 <option key={option.value} value={option.value}>
                   {option.label}
@@ -101,8 +108,7 @@ export default function SiteAnalyticsPage() {
 
       {data ? (
         <>
-          <section className="card">
-            <h2>القمع — الأهداف الأربعة</h2>
+          <Panel title="القمع — الأهداف الأربعة">
             <table className="table">
               <thead>
                 <tr>
@@ -118,19 +124,22 @@ export default function SiteAnalyticsPage() {
                     <td>{goal.labelAr}</td>
                     <td>{count(goal.visitors)}</td>
                     <td>{count(goal.events)}</td>
-                    <td>{goal.visitors === 0 ? '—' : `${goal.ratePct.toLocaleString('ar-SA-u-ca-gregory-nu-latn', { maximumFractionDigits: 1 })}٪`}</td>
+                    <td>
+                      {goal.visitors === 0
+                        ? '—'
+                        : `${goal.ratePct.toLocaleString('ar-SA-u-ca-gregory-nu-latn', { maximumFractionDigits: 1 })}٪`}
+                    </td>
                   </tr>
                 ))}
               </tbody>
             </table>
             <p className="small muted">
-              الزوّار مميّزون: زائرٌ ينقر الزرّ ثلاث مرّات يُحسب واحداً — وفرقُ «أحداث − زوّار» هو
-              عدد النقرات المتكرّرة.
+              الزوّار مميّزون: زائرٌ ينقر الزرّ ثلاث مرّات يُحسب واحداً — وفرقُ «أحداث − زوّار» هو عدد النقرات
+              المتكرّرة.
             </p>
-          </section>
+          </Panel>
 
-          <section className="card">
-            <h2>المنحنى اليومي</h2>
+          <Panel title="المنحنى اليومي">
             <table className="table">
               <thead>
                 <tr>
@@ -149,7 +158,7 @@ export default function SiteAnalyticsPage() {
                 ))}
               </tbody>
             </table>
-          </section>
+          </Panel>
 
           <section className="grid cols-2">
             <article className="card">
@@ -203,12 +212,11 @@ export default function SiteAnalyticsPage() {
             </article>
           </section>
 
-          <section className="card">
-            <h2>تجارب أ/ب</h2>
+          <Panel title="تجارب أ/ب">
             {data.experiments.length === 0 ? (
               <p className="muted">
-                لا تجربة جارية. تُنشأ من «المحتوى»: صفحةٌ أصلية، ثم صفحةٌ ثانية تُربط بها كنسخة
-                بحرف (a أو b) فتُعلَن للزوّار ويقيسها هذا الجدول.
+                لا تجربة جارية. تُنشأ من «المحتوى»: صفحةٌ أصلية، ثم صفحةٌ ثانية تُربط بها كنسخة بحرف (a أو b)
+                فتُعلَن للزوّار ويقيسها هذا الجدول.
               </p>
             ) : (
               <table className="table">
@@ -229,17 +237,20 @@ export default function SiteAnalyticsPage() {
                         <td>{variant.key}</td>
                         <td>{count(variant.exposures)}</td>
                         <td>{count(variant.converters)}</td>
-                        <td>{variant.exposures === 0 ? '—' : `${variant.ratePct.toLocaleString('ar-SA-u-ca-gregory-nu-latn', { maximumFractionDigits: 1 })}٪`}</td>
+                        <td>
+                          {variant.exposures === 0
+                            ? '—'
+                            : `${variant.ratePct.toLocaleString('ar-SA-u-ca-gregory-nu-latn', { maximumFractionDigits: 1 })}٪`}
+                        </td>
                       </tr>
                     )),
                   )}
                 </tbody>
               </table>
             )}
-          </section>
+          </Panel>
 
-          <section className="card">
-            <h2>ماذا يُقاس وماذا لا يُقاس</h2>
+          <Panel title="ماذا يُقاس وماذا لا يُقاس">
             <p>{data.privacy.noteAr}</p>
             <div className="grid cols">
               <div>
@@ -260,13 +271,12 @@ export default function SiteAnalyticsPage() {
               </div>
             </div>
             <p className="small muted">
-              مدة الاحتفاظ: {count(data.privacy.retentionDays)} يوماً — الصفوف الأقدم تُحذف آلياً،
-              ولا صفّ خامٌ أبديّ.
+              مدة الاحتفاظ: {count(data.privacy.retentionDays)} يوماً — الصفوف الأقدم تُحذف آلياً، ولا صفّ
+              خامٌ أبديّ.
             </p>
-          </section>
+          </Panel>
 
-          <section className="card">
-            <h2>تعريف كل رقم</h2>
+          <Panel title="تعريف كل رقم">
             <table className="table">
               <thead>
                 <tr>
@@ -284,10 +294,10 @@ export default function SiteAnalyticsPage() {
               </tbody>
             </table>
             <p className="small muted">
-              آخر قراءة: {new Date(data.generatedAt).toLocaleString('ar-SA-u-ca-gregory-nu-latn')} — والشاشة تقرأ ما
-              جمعه الخادم لحظة الطلب، بلا تخزينٍ وسيط.
+              آخر قراءة: {new Date(data.generatedAt).toLocaleString('ar-SA-u-ca-gregory-nu-latn')} — والشاشة
+              تقرأ ما جمعه الخادم لحظة الطلب، بلا تخزينٍ وسيط.
             </p>
-          </section>
+          </Panel>
         </>
       ) : null}
     </Screen>

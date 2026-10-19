@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { Panel } from '@erp/ui';
 
 import { Empty, ErrorBox, Loading, Screen } from '../../components/screen';
 import { ApiError, apiData, apiPost } from '../../lib/api';
@@ -124,7 +125,12 @@ export default function DunningPage() {
       crumbs={['المنصة', 'العملاء والتراخيص']}
       actions={
         <>
-          <select className="input" style={{ maxWidth: 150 }} value={channel} onChange={(event) => setChannel(event.target.value as Channel)}>
+          <select
+            className="input"
+            style={{ maxWidth: 150 }}
+            value={channel}
+            onChange={(event) => setChannel(event.target.value as Channel)}
+          >
             {(Object.keys(CHANNEL_LABEL) as Channel[]).map((key) => (
               <option key={key} value={key}>
                 {CHANNEL_LABEL[key]}
@@ -160,8 +166,7 @@ export default function DunningPage() {
             </p>
           </div>
 
-          <section className="card">
-            <h2>الجدول — ما سيُنفَّذ</h2>
+          <Panel title="الجدول — ما سيُنفَّذ" flush>
             {schedule.length === 0 ? (
               <Empty title="لا فاتورة متأخّرة" detail="كل فاتورة صادرة إمّا مدفوعة أو لم يحن استحقاقها." />
             ) : (
@@ -192,7 +197,10 @@ export default function DunningPage() {
                         <td dir="ltr">{dateText(row.dueDate)}</td>
                         <td className="num">{row.daysOverdue} يوماً</td>
                         <td className="num">
-                          {Number(row.remaining).toLocaleString('ar-SA-u-ca-gregory-nu-latn', { minimumFractionDigits: 2 })} {row.currency}
+                          {Number(row.remaining).toLocaleString('ar-SA-u-ca-gregory-nu-latn', {
+                            minimumFractionDigits: 2,
+                          })}{' '}
+                          {row.currency}
                         </td>
                         <td className="num">
                           {row.attemptsMade} / {data.maxAttempts}
@@ -225,10 +233,9 @@ export default function DunningPage() {
                 </table>
               </div>
             )}
-          </section>
+          </Panel>
 
-          <section className="card">
-            <h2>المحاولات والرسائل</h2>
+          <Panel title="المحاولات والرسائل" flush>
             {attempts.length === 0 ? (
               <Empty title="لا محاولات بعد" detail="شغّل المتابعة من الجدول أعلاه." />
             ) : (
@@ -264,7 +271,7 @@ export default function DunningPage() {
                 </table>
               </div>
             )}
-          </section>
+          </Panel>
         </>
       )}
     </Screen>

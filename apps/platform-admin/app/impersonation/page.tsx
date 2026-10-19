@@ -7,6 +7,7 @@ import {
   type ImpersonationSession,
   type ImpersonationStartResult,
 } from '@erp/contracts';
+import { Panel } from '@erp/ui';
 
 import { Empty, ErrorBox, Forbidden, Loading, Screen } from '../../components/screen';
 import { ApiError, apiData, apiDelete, apiPost } from '../../lib/api';
@@ -136,8 +137,7 @@ export default function ImpersonationPage() {
         </section>
       )}
 
-      <section className="card grid">
-        <h2 style={{ marginTop: 0 }}>جلسةٌ جديدة</h2>
+      <Panel title="جلسةٌ جديدة" bodyClassName="grid">
         <div className="row" style={{ flexWrap: 'wrap' }}>
           <label>
             المنشأة
@@ -152,7 +152,8 @@ export default function ImpersonationPage() {
           </label>
           <label>
             المدّة (دقائق)
-            <input className="input"
+            <input
+              className="input"
               type="number"
               min={IMPERSONATION_MIN_MINUTES}
               max={IMPERSONATION_MAX_MINUTES}
@@ -163,7 +164,12 @@ export default function ImpersonationPage() {
         </div>
         <label>
           السبب (يُقرأ للعميل في سجلّه، ويُقيَّد في التدقيق)
-          <textarea className="input" rows={3} value={reason} onChange={(event) => setReason(event.target.value)} />
+          <textarea
+            className="input"
+            rows={3}
+            value={reason}
+            onChange={(event) => setReason(event.target.value)}
+          />
         </label>
         <div className="row">
           <button className="btn" type="button" disabled={!ready || busy} onClick={() => void start()}>
@@ -203,10 +209,9 @@ export default function ImpersonationPage() {
             </div>
           </div>
         )}
-      </section>
+      </Panel>
 
-      <section className="card">
-        <h2 style={{ marginTop: 0 }}>سجلّ الجلسات</h2>
+      <Panel title="سجلّ الجلسات" flush>
         {sessions.status === 'loading' && <Loading rows={3} />}
         {sessions.status === 'forbidden' && <Forbidden />}
         {sessions.status === 'error' && <ErrorBox message={sessions.error} onRetry={sessions.reload} />}
@@ -263,7 +268,7 @@ export default function ImpersonationPage() {
             </table>
           </div>
         )}
-      </section>
+      </Panel>
     </Screen>
   );
 }

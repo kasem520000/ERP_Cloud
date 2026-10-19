@@ -10,6 +10,7 @@ import {
   type TicketPriority,
   type TicketStatus,
 } from '@erp/contracts';
+import { Panel } from '@erp/ui';
 
 import { ErrorBox, Forbidden, Loading, Screen } from '../../../components/screen';
 import { ApiError, apiData } from '../../../lib/api';
@@ -172,8 +173,7 @@ function TicketBody({ ticket, onChanged }: { ticket: TicketDetail; onChanged: ()
         </div>
       </section>
 
-      <section className="card">
-        <h2 style={{ marginTop: 0 }}>المحادثة</h2>
+      <Panel title="المحادثة">
         <ul className="thread">
           {ticket.messages.map((message) => (
             <li key={message.id} className={message.isInternal ? 'note' : message.authorKind}>
@@ -192,11 +192,10 @@ function TicketBody({ ticket, onChanged }: { ticket: TicketDetail; onChanged: ()
             </li>
           ))}
         </ul>
-      </section>
+      </Panel>
 
       {ticket.status !== 'closed' && (
-        <section className="card grid">
-          <h2 style={{ marginTop: 0 }}>ردّ</h2>
+        <Panel title="ردّ" bodyClassName="grid">
           <div className="row" style={{ flexWrap: 'wrap' }}>
             {CANNED_REPLIES.map((reply) => (
               <button key={reply.id} className="btn" type="button" onClick={() => setBody(reply.body)}>
@@ -206,7 +205,12 @@ function TicketBody({ ticket, onChanged }: { ticket: TicketDetail; onChanged: ()
           </div>
           <label>
             النصّ
-            <textarea className="input" rows={4} value={body} onChange={(event) => setBody(event.target.value)} />
+            <textarea
+              className="input"
+              rows={4}
+              value={body}
+              onChange={(event) => setBody(event.target.value)}
+            />
           </label>
           <div className="row">
             <label className="row" style={{ gap: 6, alignItems: 'center' }}>
@@ -230,15 +234,15 @@ function TicketBody({ ticket, onChanged }: { ticket: TicketDetail; onChanged: ()
               {internal ? 'قيّد الملاحظة' : 'أرسل الردّ'}
             </button>
           </div>
-        </section>
+        </Panel>
       )}
 
-      <section className="card grid">
-        <h2 style={{ marginTop: 0 }}>إجراءات التذكرة</h2>
+      <Panel title="إجراءات التذكرة" bodyClassName="grid">
         <div className="row" style={{ flexWrap: 'wrap' }}>
           <label>
             الحالة
-            <select className="input"
+            <select
+              className="input"
               value=""
               disabled={busy}
               onChange={(event) =>
@@ -264,7 +268,8 @@ function TicketBody({ ticket, onChanged }: { ticket: TicketDetail; onChanged: ()
           </label>
           <label>
             الأولوية
-            <select className="input"
+            <select
+              className="input"
               value=""
               disabled={busy}
               onChange={(event) =>
@@ -309,7 +314,7 @@ function TicketBody({ ticket, onChanged }: { ticket: TicketDetail; onChanged: ()
             {notice.text}
           </p>
         )}
-      </section>
+      </Panel>
     </div>
   );
 }
