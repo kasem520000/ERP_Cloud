@@ -150,7 +150,7 @@ export default function SupplierPortalPage() {
           <header className="row public-head">
             <span className="logo-mark">م</span>
             <div>
-              <strong>بوابة الموردين</strong>
+              <h1 className="public-title">بوابة الموردين</h1>
               <p className="muted small">
                 فواتيرك ومدفوعاتك وطلبات عروض الأسعار. الدخول لا يفتح شاشات الموظفين.
               </p>
@@ -216,7 +216,7 @@ export default function SupplierPortalPage() {
           <span className="row" style={{ gap: 10 }}>
             <span className="logo-mark">م</span>
             <div>
-              <strong>بوابة الموردين</strong>
+              <h1 className="public-title">بوابة الموردين</h1>
               <p className="muted small">فواتيرك ومدفوعاتك وطلبات عروض الأسعار — بلا شاشات داخلية.</p>
             </div>
           </span>

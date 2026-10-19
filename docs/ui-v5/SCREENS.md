@@ -21,7 +21,7 @@
 | ✔ | الشاشة | المسار | الملف | المعالجة | ملاحظة |
 | :-: | --- | --- | --- | :-: | --- |
 | [x] | أنشطة المبيعات | `/crm/activities` | `crm/activities/page.tsx` | R | هيكلة v5.2: إطار Page/PageHead + شريط مؤشرات + تصفية موحّدة · تحقق في المتصفح 1440 |
-| [x] | صفقة (تفاصيل) | `/crm/deals/[id]` | `crm/deals/[id]/page.tsx` | R | تحقق بسجل حقيقي في المتصفح 1440 |
+| [x] | صفقة (تفاصيل) | `/crm/deals/[id]` | `crm/deals/[id]/page.tsx` | R | فُتح بسجل صفقة حقيقي في المتصفح 1440 (صفقة + نشاط) |
 | [x] | تنبؤ المبيعات | `/crm/forecast` | `crm/forecast/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
 | [x] | مسار المبيعات | `/crm/pipelines` | `crm/pipelines/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
 
@@ -130,7 +130,7 @@
 | ✔ | الشاشة | المسار | الملف | المعالجة | ملاحظة |
 | :-: | --- | --- | --- | :-: | --- |
 | [x] | مركز التقارير (كل التقارير) | `/reports` | `reports/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
-| [x] | تقرير | `/reports/[key]` | `reports/[key]/page.tsx` | R | تحقق بسجل حقيقي في المتصفح 1440 |
+| [x] | تقرير | `/reports/[key]` | `reports/[key]/page.tsx` | R | فُتح بمفاتيح تقارير حقيقية (sales-invoices · net-sales) — 1440 |
 | [x] | منشئ التقارير المخصص | `/reports/builder` | `reports/builder/page.tsx` | R | تحقق بمتصفح — حقول الطبقة المشتركة وأزرار موحدة |
 | [x] | التقارير المحفوظة | `/reports/custom` | `reports/custom/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
 
@@ -154,7 +154,7 @@
 
 | ✔ | الشاشة | المسار | الملف | المعالجة | ملاحظة |
 | :-: | --- | --- | --- | :-: | --- |
-| [x] | توقيع إلكتروني | `/esign/[token]` | `esign/[token]/page.tsx` | R | تحقق برابط توقيع حقيقي — صفحة عامة برأسها |
+| [x] | توقيع إلكتروني | `/esign/[token]` | `esign/[token]/page.tsx` | R | فُتح برمز توقيع حقيقي صادر من عرض سعر — 1440 |
 
 ### الجوال
 
@@ -200,7 +200,7 @@
 
 | ✔ | الشاشة | المسار | الملف | المعالجة | ملاحظة |
 | :-: | --- | --- | --- | :-: | --- |
-| [x] | طباعة مستند | `/print/[doc]/[id]` | `print/[doc]/[id]/page.tsx` | R | تحقق بسجل حقيقي في المتصفح 1440 |
+| [x] | طباعة مستند | `/print/[doc]/[id]` | `print/[doc]/[id]/page.tsx` | R | فُتح بفاتورة مبيعات مرحّلة — 1440 |
 
 ### المبيعات
 
@@ -282,12 +282,12 @@
 | ✔ | الشاشة | المسار | الملف | المعالجة | ملاحظة |
 | :-: | --- | --- | --- | :-: | --- |
 | [x] | عقد عميل | `/projects` | `projects/page.tsx` | R | هيكلة v5.2: إطار Page/PageHead + شريط مؤشرات + تصفية موحّدة · تحقق في المتصفح 1440 |
-| [x] | مشروع | `/projects/[id]` | `projects/[id]/page.tsx` | R | تحقق بسجل حقيقي في المتصفح 1440 |
-| [x] | لوحة المشروع | `/projects/[id]/board` | `projects/[id]/board/page.tsx` | R | تحقق بسجل حقيقي في المتصفح 1440 |
-| [x] | تكلفة المشروع | `/projects/[id]/cost` | `projects/[id]/cost/page.tsx` | R | تحقق بسجل حقيقي في المتصفح 1440 |
-| [x] | مخطط المشروع الزمني | `/projects/[id]/gantt` | `projects/[id]/gantt/page.tsx` | R | تحقق بسجل حقيقي في المتصفح 1440 |
-| [x] | مهمة مشروع | `/projects/[id]/tasks/[taskId]` | `projects/[id]/tasks/[taskId]/page.tsx` | R | تحقق بسجل حقيقي في المتصفح 1440 |
-| [x] | أوقات المشروع | `/projects/[id]/time` | `projects/[id]/time/page.tsx` | R | تحقق بسجل حقيقي في المتصفح 1440 |
+| [x] | مشروع | `/projects/[id]` | `projects/[id]/page.tsx` | R | فُتح بمشروع حقيقي بعد إنشاء مراحل ومهمة — 1440/390 |
+| [x] | لوحة المشروع | `/projects/[id]/board` | `projects/[id]/board/page.tsx` | R | فُتح بمشروع حقيقي (مرحلتان) — 1440 |
+| [x] | تكلفة المشروع | `/projects/[id]/cost` | `projects/[id]/cost/page.tsx` | R | فُتح بمشروع حقيقي — 1440 |
+| [x] | مخطط المشروع الزمني | `/projects/[id]/gantt` | `projects/[id]/gantt/page.tsx` | R | فُتح بمشروع حقيقي — 1440 |
+| [x] | مهمة مشروع | `/projects/[id]/tasks/[taskId]` | `projects/[id]/tasks/[taskId]/page.tsx` | R | فُتح بمهمة حقيقية داخل مشروع — 1440 |
+| [x] | أوقات المشروع | `/projects/[id]/time` | `projects/[id]/time/page.tsx` | R | فُتح بمشروع حقيقي — 1440 |
 | [x] | لوحة كانبان | `/projects/board` | `projects/board/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
 | [x] | بطاقة بند | `/projects/boq` | `projects/boq/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
 | [x] | مرتجع مقاولات | `/projects/contracting-return` | `projects/contracting-return/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
@@ -307,7 +307,7 @@
 | :-: | --- | --- | --- | :-: | --- |
 | [x] | المشتريات (تحويل) | `/purchases` | `purchases/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
 | [x] | فاتورة المشتريات | `/purchases/invoices` | `purchases/invoices/page.tsx` | R | هيكلة v5.2: إطار Page/PageHead + شريط مؤشرات + تصفية موحّدة · تحقق في المتصفح 1440 |
-| [x] | فاتورة مشتريات (تفاصيل) | `/purchases/invoices/[id]` | `purchases/invoices/[id]/page.tsx` | R | تحقق بسجل حقيقي — فاتورة مشتريات مسودة |
+| [x] | فاتورة مشتريات (تفاصيل) | `/purchases/invoices/[id]` | `purchases/invoices/[id]/page.tsx` | R | فُتح بفاتورة مشتريات مسودة حقيقية — 1440 |
 | [x] | فاتورة إدخال | `/purchases/invoices/new` | `purchases/invoices/new/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
 | [x] | قراءة فاتورة بالـ OCR | `/purchases/invoices/ocr` | `purchases/invoices/ocr/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
 | [x] | إشعار مشتريات | `/purchases/notes/[kind]` | `purchases/notes/[kind]/page.tsx` | R | تحقق بسجل حقيقي في المتصفح 1440 |
@@ -328,8 +328,8 @@
 | [x] | الوظائف | `/hrm/jobs` | `hrm/jobs/page.tsx` | R | هيكلة v5.2: إطار Page/PageHead + شريط مؤشرات + تصفية موحّدة · تحقق في المتصفح 1440 |
 | [x] | إجازات الموظفين | `/hrm/leaves` | `hrm/leaves/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
 | [x] | إستحقاق وصرف الرواتب | `/hrm/payroll` | `hrm/payroll/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
-| [x] | مسير رواتب | `/hrm/payroll/[id]` | `hrm/payroll/[id]/page.tsx` | R | تحقق بسجل حقيقي — مسيّر رواتب مسودة |
-| [x] | ملف حماية الأجور | `/hrm/payroll/[id]/wps` | `hrm/payroll/[id]/wps/page.tsx` | R | تحقق بسجل حقيقي — ملف حماية الأجور |
+| [x] | مسير رواتب | `/hrm/payroll/[id]` | `hrm/payroll/[id]/page.tsx` | R | فُتح بمسيّر رواتب حقيقي (draft) — 1440 |
+| [x] | ملف حماية الأجور | `/hrm/payroll/[id]/wps` | `hrm/payroll/[id]/wps/page.tsx` | R | فُتح بمسيّر رواتب حقيقي (draft) — 1440 |
 | [x] | دفع الرواتب | `/hrm/salary-payments` | `hrm/salary-payments/page.tsx` | R | هيكلة v5.2: إطار Page/PageHead + شريط مؤشرات + تصفية موحّدة · تحقق في المتصفح 1440 |
 | [x] | تقرير الرواتب | `/hrm/salary-report` | `hrm/salary-report/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
 
@@ -398,7 +398,7 @@
 | [x] | صحة النظام | `/health` | `health/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
 | [x] | الدخول المؤقّت | `/impersonation` | `impersonation/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
 | [x] | فواتير المنصة | `/invoices` | `invoices/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
-| [x] | طباعة فاتورة المنصة | `/invoices/[id]/print` | `invoices/[id]/print/page.tsx` | R | تحقق بفاتورة منصة حقيقية (مسودة) — ورقة طباعة داخل إطار |
+| [x] | طباعة فاتورة المنصة | `/invoices/[id]/print` | `invoices/[id]/print/page.tsx` | R | فُتح بفاتورة اشتراك (مسودة) — 1440 |
 | [x] | المهام والطوابير | `/jobs` | `jobs/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
 | [x] | العملاء المتوقّعون | `/leads` | `leads/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
 | [x] | سوق الإضافات | `/marketplace` | `marketplace/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
@@ -411,7 +411,7 @@
 | [x] | ملف المستأجر | `/tenants/[id]` | `tenants/[id]/page.tsx` | R | تحقق بسجل حقيقي في المتصفح 1440 |
 | [x] | مستأجر جديد | `/tenants/new` | `tenants/new/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
 | [x] | مكتب الدعم | `/tickets` | `tickets/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
-| [x] | تذكرة دعم | `/tickets/[id]` | `tickets/[id]/page.tsx` | R | تحقق بتذكرة حقيقية |
+| [x] | تذكرة دعم | `/tickets/[id]` | `tickets/[id]/page.tsx` | R | فُتح بتذكرة دعم حقيقية من لوحة المنصة — 1440 |
 | [x] | الاستخدام والحصص | `/usage` | `usage/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
 | [x] | مستخدمو المنصة | `/users` | `users/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
 | [x] | ملف مستخدم | `/users/[id]` | `users/[id]/page.tsx` | R | تحقق بسجل حقيقي في المتصفح 1440 |

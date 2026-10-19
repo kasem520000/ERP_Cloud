@@ -762,9 +762,12 @@ th.num {
   justify-content: space-between;
   gap: 12px;
 }
-.public-head strong {
+.public-head strong,
+.public-head .public-title {
   display: block;
+  margin: 0;
   font-size: 17px;
+  font-weight: 700;
   line-height: 1.4;
 }
 .public-head p {

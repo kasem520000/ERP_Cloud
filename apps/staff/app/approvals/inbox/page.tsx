@@ -4,7 +4,7 @@ import { Panel } from '@erp/ui';
 import { useEffect, useState } from 'react';
 
 import { Notice } from '../../../components/data-view';
-import { Forbidden, Screen } from '../../../components/screen';
+import { Empty, Forbidden, Screen } from '../../../components/screen';
 import { ApiError } from '../../../lib/api';
 import { approvalInbox, decideApproval, type ApprovalRequest } from '../../../lib/approvals';
 import { useSession } from '../../../lib/session';
@@ -68,7 +68,18 @@ export default function ApprovalInboxPage() {
     >
       <Notice notice={notice} />
       {requests.length === 0 ? (
-        <Panel></Panel>
+        <Panel flush>
+          <Empty
+            bare
+            title="لا شيء بانتظارك"
+            detail="كل الطلبات التي وصلت خطوتك عولجت. سيظهر هنا أي طلب جديد يُوجَّه إليك."
+            action={
+              <a className="btn" href="/approvals/history">
+                سجل الموافقات
+              </a>
+            }
+          />
+        </Panel>
       ) : (
         <div className="grid gap-3">
           {requests.map((request) => (
