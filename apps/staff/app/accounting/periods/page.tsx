@@ -7,6 +7,7 @@ import { Empty, ErrorBox, Forbidden, Loading, Screen } from '../../../components
 import { apiData, apiDelete, apiPatch, apiPost, ApiError } from '../../../lib/api';
 import { useSession } from '../../../lib/session';
 import { useQuery } from '../../../lib/use-query';
+import { Table } from '../../../components/ui/table';
 
 /**
  * إدارة الفترات المحاسبية — `Form_WPF/FrmAccountingPeriods.xaml`.
@@ -257,102 +258,133 @@ export default function FiscalPeriodsPage() {
           (rows.length === 0 ? (
             <Empty title="لا توجد فترات محاسبية" detail="أنشئ فترة ليُعرف أين تُرحَّل القيود." />
           ) : (
-            <div className="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>الرقم</th>
-                    <th>اسم الفترة</th>
-                    <th>السنة</th>
-                    <th>تاريخ البداية</th>
-                    <th>تاريخ النهاية</th>
-                    <th>نشطة</th>
-                    <th>مغلقة</th>
-                    <th>أغلقت بواسطة</th>
-                    <th>تاريخ الإغلاق</th>
-                    <th>ملاحظات</th>
-                    <th />
-                  </tr>
-                </thead>
-                <tbody>
-                  {rows.map((period) => (
-                    <tr key={period.id}>
-                      <td dir="ltr">{period.number}</td>
-                      <td>{period.name}</td>
-                      <td dir="ltr">{period.yearName ?? '—'}</td>
-                      <td dir="ltr">{period.startDate}</td>
-                      <td dir="ltr">{period.endDate}</td>
-                      <td>{period.isActive ? '' : '—'}</td>
-                      <td>{period.status === 'closed' ? '' : '—'}</td>
-                      <td>{period.closedByName ?? '—'}</td>
-                      <td dir="ltr">{stamp(period.closedAt)}</td>
-                      <td>{period.notes ?? '—'}</td>
-                      <td>
-                        <div className="row" style={{ gap: 4, flexWrap: 'wrap' }}>
-                          {canManage && period.status !== 'closed' && (
-                            <>
-                              <button
-                                className="btn sm"
-                                type="button"
-                                disabled={busy === period.id}
-                                onClick={() => {
-                                  setForm({
-                                    id: period.id,
-                                    name: period.name,
-                                    startDate: period.startDate,
-                                    endDate: period.endDate,
-                                    isActive: period.isActive,
-                                    notes: period.notes ?? '',
-                                  });
-                                }}
-                              >
-                                تعديل
-                              </button>
-                              {!period.isActive && (
-                                <button
-                                  className="btn sm"
-                                  type="button"
-                                  disabled={busy === period.id}
-                                  onClick={() => void act(period, 'activate')}
-                                >
-                                  تفعيل
-                                </button>
-                              )}
-                              <button
-                                className="btn sm"
-                                type="button"
-                                disabled={busy === period.id}
-                                onClick={() => void act(period, 'close')}
-                              >
-                                إغلاق الفترة
-                              </button>
-                              <button
-                                className="btn sm"
-                                type="button"
-                                disabled={busy === period.id}
-                                onClick={() => void act(period, 'delete')}
-                              >
-                                حذف
-                              </button>
-                            </>
-                          )}
-                          {can('accounting.period.reopen') && period.status === 'closed' && (
+            <Table
+              bare
+              columns={[
+                {
+                  key: 'c0',
+                  header: 'الرقم',
+                  ltr: true,
+                  cell: (period) => period.number,
+                },
+                {
+                  key: 'c1',
+                  header: 'اسم الفترة',
+                  cell: (period) => period.name,
+                },
+                {
+                  key: 'c2',
+                  header: 'السنة',
+                  ltr: true,
+                  cell: (period) => period.yearName ?? '—',
+                },
+                {
+                  key: 'c3',
+                  header: 'تاريخ البداية',
+                  ltr: true,
+                  cell: (period) => period.startDate,
+                },
+                {
+                  key: 'c4',
+                  header: 'تاريخ النهاية',
+                  ltr: true,
+                  cell: (period) => period.endDate,
+                },
+                {
+                  key: 'c5',
+                  header: 'نشطة',
+                  cell: (period) => (period.isActive ? '' : '—'),
+                },
+                {
+                  key: 'c6',
+                  header: 'مغلقة',
+                  cell: (period) => (period.status === 'closed' ? '' : '—'),
+                },
+                {
+                  key: 'c7',
+                  header: 'أغلقت بواسطة',
+                  cell: (period) => period.closedByName ?? '—',
+                },
+                {
+                  key: 'c8',
+                  header: 'تاريخ الإغلاق',
+                  ltr: true,
+                  cell: (period) => stamp(period.closedAt),
+                },
+                {
+                  key: 'c9',
+                  header: 'ملاحظات',
+                  cell: (period) => period.notes ?? '—',
+                },
+                {
+                  key: 'c10',
+                  header: '',
+                  cell: (period) => (
+                    <div className="row" style={{ gap: 4, flexWrap: 'wrap' }}>
+                      {canManage && period.status !== 'closed' && (
+                        <>
+                          <button
+                            className="btn sm"
+                            type="button"
+                            disabled={busy === period.id}
+                            onClick={() => {
+                              setForm({
+                                id: period.id,
+                                name: period.name,
+                                startDate: period.startDate,
+                                endDate: period.endDate,
+                                isActive: period.isActive,
+                                notes: period.notes ?? '',
+                              });
+                            }}
+                          >
+                            تعديل
+                          </button>
+                          {!period.isActive && (
                             <button
                               className="btn sm"
                               type="button"
                               disabled={busy === period.id}
-                              onClick={() => void act(period, 'reopen')}
+                              onClick={() => void act(period, 'activate')}
                             >
-                              إعادة فتح
+                              تفعيل
                             </button>
                           )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                          <button
+                            className="btn sm"
+                            type="button"
+                            disabled={busy === period.id}
+                            onClick={() => void act(period, 'close')}
+                          >
+                            إغلاق الفترة
+                          </button>
+                          <button
+                            className="btn sm"
+                            type="button"
+                            disabled={busy === period.id}
+                            onClick={() => void act(period, 'delete')}
+                          >
+                            حذف
+                          </button>
+                        </>
+                      )}
+                      {can('accounting.period.reopen') && period.status === 'closed' && (
+                        <button
+                          className="btn sm"
+                          type="button"
+                          disabled={busy === period.id}
+                          onClick={() => void act(period, 'reopen')}
+                        >
+                          إعادة فتح
+                        </button>
+                      )}
+                    </div>
+                  ),
+                },
+              ]}
+              rows={rows}
+              rowKey={(period) => period.id}
+            />
           ))}
       </Panel>
 
@@ -363,30 +395,39 @@ export default function FiscalPeriodsPage() {
             <p className="muted">لا توجد سنة مالية بعد — أضف فترة لتبدأ، وستُفتح سنتها وحدها.</p>
           ) : (
             <div className="table-wrap" style={{ maxHeight: 240 }}>
-              <table>
-                <thead>
-                  <tr>
-                    <th>الاسم</th>
-                    <th>من</th>
-                    <th>إلى</th>
-                    <th>الحالة</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {(years.data ?? []).map((year) => (
-                    <tr key={year.id}>
-                      <td>{year.name}</td>
-                      <td dir="ltr">{year.startDate}</td>
-                      <td dir="ltr">{year.endDate}</td>
-                      <td>
-                        <span className={`badge ${year.status === 'open' ? 'active' : ''}`}>
-                          {year.status === 'open' ? 'مفتوحة' : 'مغلقة'}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              <Table
+                bare
+                columns={[
+                  {
+                    key: 'c0',
+                    header: 'الاسم',
+                    cell: (year) => year.name,
+                  },
+                  {
+                    key: 'c1',
+                    header: 'من',
+                    ltr: true,
+                    cell: (year) => year.startDate,
+                  },
+                  {
+                    key: 'c2',
+                    header: 'إلى',
+                    ltr: true,
+                    cell: (year) => year.endDate,
+                  },
+                  {
+                    key: 'c3',
+                    header: 'الحالة',
+                    cell: (year) => (
+                      <span className={`badge ${year.status === 'open' ? 'active' : ''}`}>
+                        {year.status === 'open' ? 'مفتوحة' : 'مغلقة'}
+                      </span>
+                    ),
+                  },
+                ]}
+                rows={years.data ?? []}
+                rowKey={(year) => year.id}
+              />
             </div>
           ))}
       </Panel>

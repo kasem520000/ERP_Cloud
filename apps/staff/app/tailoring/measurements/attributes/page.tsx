@@ -8,6 +8,7 @@ import { Empty, ErrorBox, Forbidden, Loading, Screen } from '../../../../compone
 import { apiList, apiPatch, apiPost } from '../../../../lib/api';
 import { useSession } from '../../../../lib/session';
 import { useQuery } from '../../../../lib/use-query';
+import { Table } from '../../../../components/ui/table';
 
 /**
  * إدارة خصائص القياسات — `Form_WPF/frmMeasurementAttributes.xaml`
@@ -162,26 +163,33 @@ function TailoringMeasurementAttributes() {
             {rows.length === 0 ? (
               <Empty bare title="لا توجد خصائص" detail="ابدأ بـ «إضافة» — «الطول» مثالاً كما في الديسكتوب." />
             ) : (
-              <div className="table-wrap">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>اسم الخاصية</th>
-                      <th className="num">الترتيب</th>
-                      <th>الحالة</th>
-                      {canManage && <th>إجراءات</th>}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {rows.map((row) => (
-                      <tr key={row.id} style={row.active ? undefined : { opacity: 0.65 }}>
-                        <td>{row.nameAr}</td>
-                        <td className="num">{row.displayOrder}</td>
-                        <td>
-                          <span className={`badge${row.active ? '' : ' danger'}`}>{row.statusText}</span>
-                        </td>
-                        {canManage && (
-                          <td>
+              <Table
+                bare
+                columns={[
+                  {
+                    key: 'c0',
+                    header: 'اسم الخاصية',
+                    cell: (row) => row.nameAr,
+                  },
+                  {
+                    key: 'c1',
+                    header: 'الترتيب',
+                    numeric: true,
+                    cell: (row) => row.displayOrder,
+                  },
+                  {
+                    key: 'c2',
+                    header: 'الحالة',
+                    cell: (row) => (
+                      <span className={`badge${row.active ? '' : ' danger'}`}>{row.statusText}</span>
+                    ),
+                  },
+                  ...(canManage
+                    ? [
+                        {
+                          key: 'c3',
+                          header: 'إجراءات',
+                          cell: (row: Attribute) => (
                             <div className="row" style={{ gap: 4 }}>
                               <button
                                 className="btn sm"
@@ -219,13 +227,14 @@ function TailoringMeasurementAttributes() {
                                 onClick={() => move(row, 'down')}
                               ></button>
                             </div>
-                          </td>
-                        )}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                          ),
+                        },
+                      ]
+                    : []),
+                ]}
+                rows={rows}
+                rowKey={(row) => row.id}
+              />
             )}
           </Panel>
         </>

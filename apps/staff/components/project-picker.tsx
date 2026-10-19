@@ -7,6 +7,7 @@ import { apiList } from '../lib/api';
 import { useQuery } from '../lib/use-query';
 
 import { Empty, ErrorBox, Loading, Screen } from './screen';
+import { Table } from './ui/table';
 
 type ProjectRow = { id: string; code: string; name: string; status: string };
 
@@ -43,34 +44,38 @@ export function ProjectPicker({
           </Panel>
         ) : (
           <Panel title="المشاريع" hint={`${rows.length} مشروعاً`} flush>
-            <div className="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>الكود</th>
-                    <th>المشروع</th>
-                    <th>الحالة</th>
-                    <th />
-                  </tr>
-                </thead>
-                <tbody>
-                  {rows.map((project) => (
-                    <tr key={project.id}>
-                      <td dir="ltr">{project.code}</td>
-                      <td>{project.name}</td>
-                      <td>
-                        <span className={`badge ${project.status}`}>{project.status}</span>
-                      </td>
-                      <td>
-                        <Link className="btn sm" href={`/projects/${project.id}/${segment}`}>
-                          فتح
-                        </Link>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <Table
+              bare
+              columns={[
+                {
+                  key: 'c0',
+                  header: 'الكود',
+                  ltr: true,
+                  cell: (project) => project.code,
+                },
+                {
+                  key: 'c1',
+                  header: 'المشروع',
+                  cell: (project) => project.name,
+                },
+                {
+                  key: 'c2',
+                  header: 'الحالة',
+                  cell: (project) => <span className={`badge ${project.status}`}>{project.status}</span>,
+                },
+                {
+                  key: 'c3',
+                  header: '',
+                  cell: (project) => (
+                    <Link className="btn sm" href={`/projects/${project.id}/${segment}`}>
+                      فتح
+                    </Link>
+                  ),
+                },
+              ]}
+              rows={rows}
+              rowKey={(project) => project.id}
+            />
           </Panel>
         )
       ) : null}

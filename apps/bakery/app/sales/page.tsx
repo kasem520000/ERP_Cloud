@@ -42,6 +42,7 @@ import {
   type ReturnDraft,
   type SalesDashboard,
 } from '../../lib/sales-screen';
+import { Table } from '@erp/ui';
 
 /** الصلاحيات كما يفرضها الخادم على كلّ مسارٍ تستعمله هذه الشاشة (`@RequiresPermission`). */
 const VIEW_PERMISSION = 'van_sales.view';
@@ -823,29 +824,13 @@ export default function SalesPage() {
               </p>
             ) : (
               <div className="bak-table-wrap">
-                <table className="bak-table">
-                  <thead>
-                    <tr>
-                      <th>المستند</th>
-                      <th>النوع</th>
-                      <th>العميل</th>
-                      <th>المندوب</th>
-                      <th>الصنف</th>
-                      <th>مبيع</th>
-                      <th>مجانيّ</th>
-                      <th>السعر</th>
-                      <th>الإجمالي</th>
-                      <th>المدفوع</th>
-                      <th>المتبقي</th>
-                      <th>الدفع</th>
-                      <th>الفاتورة الرسمية</th>
-                      <th>إجراء</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {documents.map((row) => (
-                      <tr key={row.id}>
-                        <td>
+                <Table
+                  columns={[
+                    {
+                      key: 'c0',
+                      header: 'المستند',
+                      cell: (row) => (
+                        <>
                           <button
                             className="m-0 border-0 bg-transparent p-0 text-[12.5px] font-bold text-ink underline decoration-dotted"
                             onClick={() => setSelectedId(row.id)}
@@ -856,35 +841,91 @@ export default function SalesPage() {
                           <div className="text-xs text-muted" dir="ltr">
                             {row.docDate}
                           </div>
-                        </td>
-                        <td>{documentKindLabel(row.documentKind)}</td>
-                        <td>{numberText(row.customerName)}</td>
-                        <td>{numberText(row.salesmanName)}</td>
-                        <td>{numberText(row.itemName)}</td>
-                        <td className="num" dir="ltr">
-                          {numberText(row.soldQty)}
-                        </td>
-                        <td className="num" dir="ltr">
-                          {numberText(row.bonusQty)}
-                        </td>
-                        <td className="num" dir="ltr">
-                          {numberText(row.unitPrice)}
-                        </td>
-                        <td className="num" dir="ltr">
-                          {numberText(row.total)}
-                        </td>
-                        <td className="num" dir="ltr">
-                          {numberText(row.paidAmount)}
-                        </td>
-                        <td className="num" dir="ltr">
-                          {documentRemainingText(row)}
-                        </td>
-                        <td>{paymentMethodLabel(row.paymentMethod)}</td>
-                        <td>
+                        </>
+                      ),
+                    },
+                    {
+                      key: 'c1',
+                      header: 'النوع',
+                      cell: (row) => documentKindLabel(row.documentKind),
+                    },
+                    {
+                      key: 'c2',
+                      header: 'العميل',
+                      cell: (row) => numberText(row.customerName),
+                    },
+                    {
+                      key: 'c3',
+                      header: 'المندوب',
+                      cell: (row) => numberText(row.salesmanName),
+                    },
+                    {
+                      key: 'c4',
+                      header: 'الصنف',
+                      cell: (row) => numberText(row.itemName),
+                    },
+                    {
+                      key: 'c5',
+                      header: 'مبيع',
+                      numeric: true,
+                      ltr: true,
+                      cell: (row) => numberText(row.soldQty),
+                    },
+                    {
+                      key: 'c6',
+                      header: 'مجانيّ',
+                      numeric: true,
+                      ltr: true,
+                      cell: (row) => numberText(row.bonusQty),
+                    },
+                    {
+                      key: 'c7',
+                      header: 'السعر',
+                      numeric: true,
+                      ltr: true,
+                      cell: (row) => numberText(row.unitPrice),
+                    },
+                    {
+                      key: 'c8',
+                      header: 'الإجمالي',
+                      numeric: true,
+                      ltr: true,
+                      cell: (row) => numberText(row.total),
+                    },
+                    {
+                      key: 'c9',
+                      header: 'المدفوع',
+                      numeric: true,
+                      ltr: true,
+                      cell: (row) => numberText(row.paidAmount),
+                    },
+                    {
+                      key: 'c10',
+                      header: 'المتبقي',
+                      numeric: true,
+                      ltr: true,
+                      cell: (row) => documentRemainingText(row),
+                    },
+                    {
+                      key: 'c11',
+                      header: 'الدفع',
+                      cell: (row) => paymentMethodLabel(row.paymentMethod),
+                    },
+                    {
+                      key: 'c12',
+                      header: 'الفاتورة الرسمية',
+                      cell: (row) => (
+                        <>
                           <span dir="ltr">{numberText(row.invoiceNumber)}</span>
                           <div className="text-xs text-muted">{invoiceStatusLabel(row.invoiceStatus)}</div>
-                        </td>
-                        <td>
+                        </>
+                      ),
+                    },
+                    {
+                      key: 'c13',
+                      header: 'إجراء',
+                      cell: (row) => (
+                        <>
                           <div className="flex flex-wrap gap-1">
                             <Button
                               onClick={() => setSelectedId(row.id)}
@@ -921,11 +962,13 @@ export default function SalesPage() {
                               {anomalyNote(row)}
                             </p>
                           ) : null}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                        </>
+                      ),
+                    },
+                  ]}
+                  rows={documents}
+                  rowKey={(row) => row.id}
+                />
               </div>
             )}
           </CardBody>

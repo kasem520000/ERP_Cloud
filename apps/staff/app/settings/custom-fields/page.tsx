@@ -14,6 +14,7 @@ import {
   type CustomFieldType,
 } from '../../../lib/custom-fields';
 import { useSession } from '../../../lib/session';
+import { Table } from '../../../components/ui/table';
 
 const entities: Array<{ value: CustomFieldEntity; label: string }> = [
   { value: 'party', label: 'العملاء والموردون' },
@@ -209,45 +210,54 @@ export default function CustomFieldsSettingsPage() {
           ) : fields.length === 0 ? (
             <p className="text-sm text-muted p-5 m-0">لا توجد حقول لهذا الكيان بعد.</p>
           ) : (
-            <div className="table-wrap">
-              <table className="table">
-                <thead>
-                  <tr>
-                    <th>الاسم</th>
-                    <th>المفتاح</th>
-                    <th>النوع</th>
-                    <th>مطلوب</th>
-                    <th>الحالة</th>
-                    <th />
-                  </tr>
-                </thead>
-                <tbody>
-                  {fields.map((field) => (
-                    <tr key={field.id}>
-                      <td className="font-semibold">{field.label}</td>
-                      <td className="font-mono text-xs" dir="ltr">
-                        {field.key}
-                      </td>
-                      <td>{types.find((option) => option.value === field.type)?.label ?? field.type}</td>
-                      <td>{field.required ? 'نعم' : 'لا'}</td>
-                      <td>{field.active ? 'نشط' : 'متوقف'}</td>
-                      <td className="text-start">
-                        {can('custom_fields.manage') && field.active ? (
-                          <button
-                            className="text-danger hover:underline"
-                            type="button"
-                            disabled={busy}
-                            onClick={() => void remove(field)}
-                          >
-                            إيقاف
-                          </button>
-                        ) : null}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <Table
+              bare
+              columns={[
+                {
+                  key: 'c0',
+                  header: 'الاسم',
+                  cell: (field) => field.label,
+                },
+                {
+                  key: 'c1',
+                  header: 'المفتاح',
+                  ltr: true,
+                  cell: (field) => field.key,
+                },
+                {
+                  key: 'c2',
+                  header: 'النوع',
+                  cell: (field) => types.find((option) => option.value === field.type)?.label ?? field.type,
+                },
+                {
+                  key: 'c3',
+                  header: 'مطلوب',
+                  cell: (field) => (field.required ? 'نعم' : 'لا'),
+                },
+                {
+                  key: 'c4',
+                  header: 'الحالة',
+                  cell: (field) => (field.active ? 'نشط' : 'متوقف'),
+                },
+                {
+                  key: 'c5',
+                  header: '',
+                  cell: (field) =>
+                    can('custom_fields.manage') && field.active ? (
+                      <button
+                        className="text-danger hover:underline"
+                        type="button"
+                        disabled={busy}
+                        onClick={() => void remove(field)}
+                      >
+                        إيقاف
+                      </button>
+                    ) : null,
+                },
+              ]}
+              rows={fields}
+              rowKey={(field) => field.id}
+            />
           )}
         </Panel>
       </Split>

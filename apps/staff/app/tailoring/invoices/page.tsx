@@ -18,6 +18,7 @@ import {
 } from '../../../lib/lookups';
 import { useSession } from '../../../lib/session';
 import { useQuery } from '../../../lib/use-query';
+import { Table } from '../../../components/ui/table';
 
 /**
  * فواتير التفصيل — `Form_WPF/frmViewOrders.xaml` («عرض الطلبات - ViewOrders») with the
@@ -375,81 +376,121 @@ function TailoringInvoices() {
                 detail={applied ? `لا فاتورة تطابق «${applied}».` : 'ابدأ بـ «فاتورة جديدة».'}
               />
             ) : (
-              <div className="table-wrap">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>رقم الفاتورة</th>
-                      <th>الاسم</th>
-                      <th>الجوال</th>
-                      <th>التاريخ</th>
-                      <th>نوع الثوب</th>
-                      <th className="num">الإجمالي</th>
-                      <th className="num">المدفوع</th>
-                      <th className="num">الباقي</th>
-                      <th>الحالة</th>
-                      <th>عرض</th>
-                      {canManage && <th>إجراءات</th>}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {rows.map((row) => (
-                      <tr key={row.id}>
-                        <td dir="ltr">{row.number}</td>
-                        <td>{row.customerName}</td>
-                        <td dir="ltr">{row.phone || '—'}</td>
-                        <td dir="ltr">{row.invoiceDate}</td>
-                        <td>{row.garmentTypeName ?? '—'}</td>
+              <Table
+                bare
+                columns={[
+                  {
+                    key: 'c0',
+                    header: 'رقم الفاتورة',
+                    ltr: true,
+                    cell: (row) => row.number,
+                  },
+                  {
+                    key: 'c1',
+                    header: 'الاسم',
+                    cell: (row) => row.customerName,
+                  },
+                  {
+                    key: 'c2',
+                    header: 'الجوال',
+                    ltr: true,
+                    cell: (row) => row.phone || '—',
+                  },
+                  {
+                    key: 'c3',
+                    header: 'التاريخ',
+                    ltr: true,
+                    cell: (row) => row.invoiceDate,
+                  },
+                  {
+                    key: 'c4',
+                    header: 'نوع الثوب',
+                    cell: (row) => row.garmentTypeName ?? '—',
+                  },
+                  {
+                    key: 'c5',
+                    header: 'الإجمالي',
+                    numeric: true,
+                    cell: (row) => (
+                      <>
                         {/* الإجمالي في الشبكة هو الصافي بضريبته (L88). */}
-                        <td className="num">{money(row.totalWithTax)}</td>
-                        <td className="num">{money(row.paidAmount)}</td>
-                        <td
-                          className="num"
-                          style={{
-                            fontWeight: 700,
-                            color: Number(row.remainingAmount) <= 0 ? 'var(--ok, #0a7a3d)' : '#E35656',
-                          }}
-                        >
-                          {money(row.remainingAmount)}
-                        </td>
-                        <td>
-                          <span className="badge">{row.statusName}</span>
-                          {row.billed && <span className="badge"> مُحوَّلة</span>}
-                        </td>
-                        <td>
-                          <button className="btn sm" type="button" onClick={() => setViewing(row)}>
-                            عرض
-                          </button>
-                        </td>
-                        {canManage && (
-                          <td>
-                            <div className="row" style={{ gap: 4 }}>
-                              <button className="btn sm" type="button" onClick={() => setDraft(draftOf(row))}>
-                                تعديل
-                              </button>
-                              <button
-                                className="btn sm"
-                                type="button"
-                                onClick={() =>
-                                  setStatusOf({ id: row.id, number: row.number, statusId: row.statusId })
-                                }
-                              >
-                                تغيير الحالة
-                              </button>
-                              <button className="btn sm" type="button" onClick={() => openPayment(row)}>
-                                إستلام دفعة
-                              </button>
-                              <button className="btn sm danger" type="button" onClick={() => remove(row)}>
-                                حذف
-                              </button>
-                            </div>
-                          </td>
-                        )}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                        {money(row.totalWithTax)}
+                      </>
+                    ),
+                  },
+                  {
+                    key: 'c6',
+                    header: 'المدفوع',
+                    numeric: true,
+                    cell: (row) => money(row.paidAmount),
+                  },
+                  {
+                    key: 'c7',
+                    header: 'الباقي',
+                    numeric: true,
+                    cell: (row) => money(row.remainingAmount),
+                  },
+                  {
+                    key: 'c8',
+                    header: 'الحالة',
+                    cell: (row) => (
+                      <>
+                        <span className="badge">{row.statusName}</span>
+                        {row.billed && <span className="badge"> مُحوَّلة</span>}
+                      </>
+                    ),
+                  },
+                  {
+                    key: 'c9',
+                    header: 'عرض',
+                    cell: (row) => (
+                      <>
+                        <button className="btn sm" type="button" onClick={() => setViewing(row)}>
+                          عرض
+                        </button>
+                      </>
+                    ),
+                  },
+                  ...(canManage
+                    ? [
+                        {
+                          key: 'c10',
+                          header: 'إجراءات',
+                          cell: (row: Invoice) => (
+                            <>
+                              <div className="row" style={{ gap: 4 }}>
+                                <button
+                                  className="btn sm"
+                                  type="button"
+                                  onClick={() => setDraft(draftOf(row))}
+                                >
+                                  تعديل
+                                </button>
+                                <button
+                                  className="btn sm"
+                                  type="button"
+                                  onClick={() =>
+                                    setStatusOf({ id: row.id, number: row.number, statusId: row.statusId })
+                                  }
+                                >
+                                  تغيير الحالة
+                                </button>
+                                <button className="btn sm" type="button" onClick={() => openPayment(row)}>
+                                  إستلام دفعة
+                                </button>
+                                <button className="btn sm danger" type="button" onClick={() => remove(row)}>
+                                  حذف
+                                </button>
+                              </div>
+                            </>
+                          ),
+                        },
+                      ]
+                    : []),
+                ]}
+                rows={rows}
+                rowKey={(row) => row.id}
+              />
             )}
           </Panel>
         </>
@@ -554,28 +595,34 @@ function TailoringInvoices() {
 
               {viewing.payments.length > 0 && (
                 <FormSection title="إستلام دفعة">
-                  <div className="table-wrap">
-                    <table>
-                      <thead>
-                        <tr>
-                          <th>التاريخ</th>
-                          <th className="num">المبلغ</th>
-                          <th>ملاحظات</th>
-                          <th>سند القبض</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {viewing.payments.map((payment) => (
-                          <tr key={payment.id}>
-                            <td dir="ltr">{payment.paidAt}</td>
-                            <td className="num">{money(payment.amount)}</td>
-                            <td>{payment.note ?? '—'}</td>
-                            <td>{payment.voucherId ? '' : '—'}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
+                  <Table
+                    columns={[
+                      {
+                        key: 'c0',
+                        header: 'التاريخ',
+                        ltr: true,
+                        cell: (payment) => payment.paidAt,
+                      },
+                      {
+                        key: 'c1',
+                        header: 'المبلغ',
+                        numeric: true,
+                        cell: (payment) => money(payment.amount),
+                      },
+                      {
+                        key: 'c2',
+                        header: 'ملاحظات',
+                        cell: (payment) => payment.note ?? '—',
+                      },
+                      {
+                        key: 'c3',
+                        header: 'سند القبض',
+                        cell: (payment) => (payment.voucherId ? '' : '—'),
+                      },
+                    ]}
+                    rows={viewing.payments}
+                    rowKey={(payment) => payment.id}
+                  />
                 </FormSection>
               )}
             </div>

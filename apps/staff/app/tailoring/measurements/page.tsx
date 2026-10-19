@@ -9,6 +9,7 @@ import { apiDelete, apiFetch, apiList, apiPatch, apiPost } from '../../../lib/ap
 import { type Party } from '../../../lib/lookups';
 import { useSession } from '../../../lib/session';
 import { useQuery } from '../../../lib/use-query';
+import { Table } from '../../../components/ui/table';
 
 /**
  * إدارة قياسات العملاء — `Form_WPF/frmMeasurements.xaml` («إدارة قياسات العملاء»)
@@ -272,28 +273,42 @@ function TailoringMeasurements() {
                 }
               />
             ) : (
-              <div className="table-wrap">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>اسم صاحب القياس</th>
-                      <th>التاريخ</th>
-                      <th>الملاحظات</th>
-                      <th className="num">عدد المقاسات</th>
-                      <th>العميل</th>
-                      {canManage && <th>إجراءات</th>}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {rows.map((row) => (
-                      <tr key={row.id} onDoubleClick={() => canManage && setDraft(draftOf(row))}>
-                        <td>{row.displayName}</td>
-                        <td dir="ltr">{row.measurementDate}</td>
-                        <td>{row.notes ?? '—'}</td>
-                        <td className="num">{row.measurementCount}</td>
-                        <td>{row.customerName}</td>
-                        {canManage && (
-                          <td>
+              <Table
+                bare
+                columns={[
+                  {
+                    key: 'c0',
+                    header: 'اسم صاحب القياس',
+                    cell: (row) => row.displayName,
+                  },
+                  {
+                    key: 'c1',
+                    header: 'التاريخ',
+                    ltr: true,
+                    cell: (row) => row.measurementDate,
+                  },
+                  {
+                    key: 'c2',
+                    header: 'الملاحظات',
+                    cell: (row) => row.notes ?? '—',
+                  },
+                  {
+                    key: 'c3',
+                    header: 'عدد المقاسات',
+                    numeric: true,
+                    cell: (row) => row.measurementCount,
+                  },
+                  {
+                    key: 'c4',
+                    header: 'العميل',
+                    cell: (row) => row.customerName,
+                  },
+                  ...(canManage
+                    ? [
+                        {
+                          key: 'c5',
+                          header: 'إجراءات',
+                          cell: (row: Measurement) => (
                             <div className="row" style={{ gap: 4 }}>
                               <button className="btn sm" type="button" onClick={() => setDraft(draftOf(row))}>
                                 تعديل القياس
@@ -302,13 +317,14 @@ function TailoringMeasurements() {
                                 حذف القياس
                               </button>
                             </div>
-                          </td>
-                        )}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                          ),
+                        },
+                      ]
+                    : []),
+                ]}
+                rows={rows}
+                rowKey={(row) => row.id}
+              />
             )}
           </Panel>
         </>

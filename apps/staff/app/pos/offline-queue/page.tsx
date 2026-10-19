@@ -8,6 +8,7 @@ import { Notice } from '../../../components/data-view';
 import { Empty, Screen } from '../../../components/screen';
 import { removeOfflineInvoice, listOfflineInvoices, type OfflineQueueRecord } from '../../../lib/offline-db';
 import { retryOfflineConflict, startOfflineAutoSync, syncOfflineInvoices } from '../../../lib/sync-engine';
+import { Table } from '../../../components/ui/table';
 
 const money = (value: string | number | undefined) =>
   Number(value ?? 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -138,83 +139,93 @@ export default function OfflineQueuePage() {
             }
           />
         ) : (
-          <div className="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>المعرّف المؤقت</th>
-                  <th>التسلسل</th>
-                  <th>الأصناف</th>
-                  <th>الإجمالي</th>
-                  <th>الحالة</th>
-                  <th>التفصيل / الإجراء</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((row) => (
-                  <tr key={row.offlineId}>
-                    <td dir="ltr">
-                      <strong>{row.offlineId}</strong>
-                      <br />
-                      <span className="muted small">{new Date(row.createdAt).toLocaleString('ar')}</span>
-                    </td>
-                    <td dir="ltr">{row.sequenceNo}</td>
-                    <td>{row.payload.lines.length}</td>
-                    <td>
-                      {money(
-                        row.payload.lines.reduce(
-                          (sum, line) => sum + Number(line.unitPrice) * Number(line.quantity),
-                          0,
-                        ),
-                      )}
-                    </td>
-                    <td>
-                      <span
-                        className={`badge ${row.status === 'synced' ? 'posted' : row.status === 'conflict' ? 'danger' : 'draft'}`}
-                      >
-                        {row.status === 'synced'
-                          ? `مُرحّلة ${row.number ?? ''}`
-                          : row.status === 'conflict'
-                            ? 'تعارض'
-                            : 'معلقة'}
+          <Table
+            bare
+            columns={[
+              {
+                key: 'c0',
+                header: 'المعرّف المؤقت',
+                ltr: true,
+                cell: (row) => (
+                  <>
+                    <strong>{row.offlineId}</strong>
+                    <br />
+                    <span className="muted small">{new Date(row.createdAt).toLocaleString('ar')}</span>
+                  </>
+                ),
+              },
+              {
+                key: 'c1',
+                header: 'التسلسل',
+                ltr: true,
+                cell: (row) => row.sequenceNo,
+              },
+              {
+                key: 'c2',
+                header: 'الأصناف',
+                cell: (row) => row.payload.lines.length,
+              },
+              {
+                key: 'c3',
+                header: 'الإجمالي',
+                cell: (row) =>
+                  money(
+                    row.payload.lines.reduce(
+                      (sum, line) => sum + Number(line.unitPrice) * Number(line.quantity),
+                      0,
+                    ),
+                  ),
+              },
+              {
+                key: 'c4',
+                header: 'الحالة',
+                cell: (row) => (
+                  <>
+                    <span
+                      className={`badge ${row.status === 'synced' ? 'posted' : row.status === 'conflict' ? 'danger' : 'draft'}`}
+                    >
+                      {row.status === 'synced'
+                        ? `مُرحّلة ${row.number ?? ''}`
+                        : row.status === 'conflict'
+                          ? 'تعارض'
+                          : 'معلقة'}
+                    </span>
+                  </>
+                ),
+              },
+              {
+                key: 'c5',
+                header: 'التفصيل / الإجراء',
+                cell: (row) =>
+                  row.status === 'conflict' ? (
+                    <>
+                      <span className="text-danger-ink">
+                        {row.message ?? row.errorCode ?? 'تحتاج مراجعة'}
                       </span>
-                    </td>
-                    <td>
-                      {row.status === 'conflict' ? (
-                        <>
-                          <span className="text-danger-ink">
-                            {row.message ?? row.errorCode ?? 'تحتاج مراجعة'}
-                          </span>
-                          <div className="toolbar" style={{ marginTop: 6 }}>
-                            <button
-                              className="btn sm primary"
-                              type="button"
-                              disabled={busy || !online}
-                              onClick={() => retry(row)}
-                            >
-                              إعادة المحاولة
-                            </button>
-                            <button
-                              className="btn sm"
-                              type="button"
-                              disabled={busy}
-                              onClick={() => discard(row)}
-                            >
-                              حذف المحلية
-                            </button>
-                          </div>
-                        </>
-                      ) : row.status === 'synced' ? (
-                        <span className="text-ok-ink">تم الترحيل بنجاح</span>
-                      ) : (
-                        <span className="muted">ستتم المحاولة تلقائياً</span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                      <div className="toolbar" style={{ marginTop: 6 }}>
+                        <button
+                          className="btn sm primary"
+                          type="button"
+                          disabled={busy || !online}
+                          onClick={() => retry(row)}
+                        >
+                          إعادة المحاولة
+                        </button>
+                        <button className="btn sm" type="button" disabled={busy} onClick={() => discard(row)}>
+                          حذف المحلية
+                        </button>
+                      </div>
+                    </>
+                  ) : row.status === 'synced' ? (
+                    <span className="text-ok-ink">تم الترحيل بنجاح</span>
+                  ) : (
+                    <span className="muted">ستتم المحاولة تلقائياً</span>
+                  ),
+              },
+            ]}
+            rows={rows}
+            rowKey={(row) => row.offlineId}
+          />
         )}
       </Panel>
       <Panel className="subtle">

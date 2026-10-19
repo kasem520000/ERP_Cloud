@@ -10,6 +10,7 @@ import { Empty, Screen } from '../../../components/screen';
 import { ApiError, apiData, apiPost } from '../../../lib/api';
 import { listParties, type Party } from '../../../lib/lookups';
 import { useSession } from '../../../lib/session';
+import { Table } from '../../../components/ui/table';
 
 /**
  * تطبيق المندوب — the rep's own workspace.
@@ -789,94 +790,124 @@ export default function VanSalesRepPage() {
                 totalsClause: REP_TOTALS_CLAUSE,
               })}
             </div>
-            <div className="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>الأمر</th>
-                    <th>الحالة</th>
-                    <th>استلمت</th>
-                    <th>بعت</th>
-                    <th>مجاني</th>
-                    <th>متبقٍ بالعهدة</th>
-                    <th>نقد متوقع / محصّل</th>
-                    <th>إجراء</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {data.loadOrders.map((row) => (
-                    <tr key={row.id}>
-                      <td dir="ltr">
-                        <b>{row.number}</b>
-                      </td>
-                      <td>
-                        {LOAD_STATUS_AR[row.status] ?? row.status}
-                        {row.stockSettlementStatus && row.stockSettlementStatus !== 'not_required' ? (
-                          <div className="muted small">
-                            {SETTLEMENT_STATUS_AR[row.stockSettlementStatus] ?? row.stockSettlementStatus}
-                            {row.remainingAction
-                              ? ` · المتبقي: ${
-                                  row.remainingAction === 'return_to_main'
-                                    ? 'أُعيد للمستودع الرئيسي'
-                                    : 'بقي عهدة الوردية التالية'
-                                }`
-                              : ''}
-                          </div>
-                        ) : null}
-                      </td>
-                      <td dir="ltr">{row.receivedQty}</td>
-                      <td dir="ltr">{row.soldQty}</td>
-                      <td dir="ltr">{row.bonusQty}</td>
-                      <td dir="ltr">
-                        {Number(row.expectedRemainingQty).toFixed(2)}
-                        {Number(row.actualRemainingQty) > 0 || row.status === 'settled' ? (
-                          <span className="muted small">
-                            {' '}
-                            / جرد {Number(row.actualRemainingQty).toFixed(2)}
-                          </span>
-                        ) : null}
-                      </td>
-                      <td dir="ltr">
-                        {row.expectedCash} / {row.collectedCash}
-                      </td>
-                      <td>
-                        {['loaded', 'in_route'].includes(row.status) ? (
-                          <button
-                            type="button"
-                            className="btn sm primary"
-                            disabled={busy || !can('van_sales.closing.submit')}
-                            onClick={() => {
-                              setClosingTarget(row);
-                              setClosingReturned('0');
-                              setClosingDamaged('0');
-                              setClosingDamageReason('');
-                              setClosingCash(row.collectedCash);
-                              // لا يُملأ الجرد الفعلي برقم المستندات: فالمندوب يكتب ما عدّه بيده.
-                              setClosingActualRemaining('');
-                              setClosingNotes('');
-                            }}
-                          >
-                            تقديم إغلاق الوردية
-                          </button>
-                        ) : (
-                          <span className="muted small">
-                            {row.status === 'pending_closing'
-                              ? 'بانتظار اعتماد المحاسب'
-                              : row.status === 'pending_stock_settlement'
-                                ? 'اعتُمدت كمياتك وبانتظار تسوية المخزون الرسمية — عهدتك لم تُغلق بعد'
-                                : row.status === 'rejected'
-                                  ? 'رفضتَ استلامه وأُعيدت الكمية رسمياً'
-                                  : row.status === 'canceled'
-                                    ? 'أُلغي وأُعيدت كميته إلى المستودع'
-                                    : '—'}
-                          </span>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <Table
+              bare
+              columns={[
+                {
+                  key: 'c0',
+                  header: 'الأمر',
+                  ltr: true,
+                  cell: (row) => (
+                    <>
+                      <b>{row.number}</b>
+                    </>
+                  ),
+                },
+                {
+                  key: 'c1',
+                  header: 'الحالة',
+                  cell: (row) => (
+                    <>
+                      {LOAD_STATUS_AR[row.status] ?? row.status}
+                      {row.stockSettlementStatus && row.stockSettlementStatus !== 'not_required' ? (
+                        <div className="muted small">
+                          {SETTLEMENT_STATUS_AR[row.stockSettlementStatus] ?? row.stockSettlementStatus}
+                          {row.remainingAction
+                            ? ` · المتبقي: ${
+                                row.remainingAction === 'return_to_main'
+                                  ? 'أُعيد للمستودع الرئيسي'
+                                  : 'بقي عهدة الوردية التالية'
+                              }`
+                            : ''}
+                        </div>
+                      ) : null}
+                    </>
+                  ),
+                },
+                {
+                  key: 'c2',
+                  header: 'استلمت',
+                  ltr: true,
+                  cell: (row) => row.receivedQty,
+                },
+                {
+                  key: 'c3',
+                  header: 'بعت',
+                  ltr: true,
+                  cell: (row) => row.soldQty,
+                },
+                {
+                  key: 'c4',
+                  header: 'مجاني',
+                  ltr: true,
+                  cell: (row) => row.bonusQty,
+                },
+                {
+                  key: 'c5',
+                  header: 'متبقٍ بالعهدة',
+                  ltr: true,
+                  cell: (row) => (
+                    <>
+                      {Number(row.expectedRemainingQty).toFixed(2)}
+                      {Number(row.actualRemainingQty) > 0 || row.status === 'settled' ? (
+                        <span className="muted small">
+                          {' '}
+                          / جرد {Number(row.actualRemainingQty).toFixed(2)}
+                        </span>
+                      ) : null}
+                    </>
+                  ),
+                },
+                {
+                  key: 'c6',
+                  header: 'نقد متوقع / محصّل',
+                  ltr: true,
+                  cell: (row) => (
+                    <>
+                      {row.expectedCash} / {row.collectedCash}
+                    </>
+                  ),
+                },
+                {
+                  key: 'c7',
+                  header: 'إجراء',
+                  cell: (row) =>
+                    ['loaded', 'in_route'].includes(row.status) ? (
+                      <button
+                        type="button"
+                        className="btn sm primary"
+                        disabled={busy || !can('van_sales.closing.submit')}
+                        onClick={() => {
+                          setClosingTarget(row);
+                          setClosingReturned('0');
+                          setClosingDamaged('0');
+                          setClosingDamageReason('');
+                          setClosingCash(row.collectedCash);
+                          // لا يُملأ الجرد الفعلي برقم المستندات: فالمندوب يكتب ما عدّه بيده.
+                          setClosingActualRemaining('');
+                          setClosingNotes('');
+                        }}
+                      >
+                        تقديم إغلاق الوردية
+                      </button>
+                    ) : (
+                      <span className="muted small">
+                        {row.status === 'pending_closing'
+                          ? 'بانتظار اعتماد المحاسب'
+                          : row.status === 'pending_stock_settlement'
+                            ? 'اعتُمدت كمياتك وبانتظار تسوية المخزون الرسمية — عهدتك لم تُغلق بعد'
+                            : row.status === 'rejected'
+                              ? 'رفضتَ استلامه وأُعيدت الكمية رسمياً'
+                              : row.status === 'canceled'
+                                ? 'أُلغي وأُعيدت كميته إلى المستودع'
+                                : '—'}
+                      </span>
+                    ),
+                },
+              ]}
+              rows={data.loadOrders}
+              rowKey={(row) => row.id}
+            />
           </Panel>
         </div>
       ) : null}

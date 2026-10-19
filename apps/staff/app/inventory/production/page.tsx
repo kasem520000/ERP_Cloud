@@ -25,6 +25,7 @@ import {
 } from '../../../lib/lookups';
 import { useSession } from '../../../lib/session';
 import { useQuery } from '../../../lib/use-query';
+import { Table } from '../../../components/ui/table';
 
 type Component = { lineNo: number; itemId: string; qty: string; unitCost: string; lineCost: string };
 type ProductionOrder = {
@@ -344,40 +345,55 @@ export default function ProductionOrdersPage() {
                 <p className="muted small">
                   {`المكوّنات تُقرأ من بطاقة الصنف وتُضرب في الكمية المنتجة (${builtQty}) عند الحفظ.`}
                 </p>
-                <div className="table-wrap">
-                  <table className="zebra">
-                    <thead>
-                      <tr>
-                        <th>رمز الصنف</th>
-                        <th>الصنف</th>
-                        <th>الكمية الأساسية</th>
-                        <th>الوحدة</th>
-                        <th>الكمية</th>
-                        <th>المتوفرة</th>
-                        <th>المستودع</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {cardRows.map((row) => (
-                        <tr key={row.componentItemId}>
-                          <td dir="ltr">{row.sku}</td>
-                          <td>{row.nameAr ?? '—'}</td>
-                          <td dir="ltr" className="num">
-                            {quantity(row.qty)}
-                          </td>
-                          <td>{row.unitNameAr ?? row.unitCode}</td>
-                          <td dir="ltr" className="num">
-                            <strong>{quantity(Number(row.qty) * builtQty)}</strong>
-                          </td>
-                          <td dir="ltr" className="num">
-                            {quantity(onHand(row.componentItemId))}
-                          </td>
-                          <td>{row.warehouseName ?? '—'}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                <Table
+                  bare
+                  columns={[
+                    {
+                      key: 'c0',
+                      header: 'رمز الصنف',
+                      ltr: true,
+                      cell: (row) => row.sku,
+                    },
+                    {
+                      key: 'c1',
+                      header: 'الصنف',
+                      cell: (row) => row.nameAr ?? '—',
+                    },
+                    {
+                      key: 'c2',
+                      header: 'الكمية الأساسية',
+                      numeric: true,
+                      ltr: true,
+                      cell: (row) => quantity(row.qty),
+                    },
+                    {
+                      key: 'c3',
+                      header: 'الوحدة',
+                      cell: (row) => row.unitNameAr ?? row.unitCode,
+                    },
+                    {
+                      key: 'c4',
+                      header: 'الكمية',
+                      numeric: true,
+                      ltr: true,
+                      cell: (row) => <strong>{quantity(Number(row.qty) * builtQty)}</strong>,
+                    },
+                    {
+                      key: 'c5',
+                      header: 'المتوفرة',
+                      numeric: true,
+                      ltr: true,
+                      cell: (row) => quantity(onHand(row.componentItemId)),
+                    },
+                    {
+                      key: 'c6',
+                      header: 'المستودع',
+                      cell: (row) => row.warehouseName ?? '—',
+                    },
+                  ]}
+                  rows={cardRows}
+                  rowKey={(row) => row.componentItemId}
+                />
               </>
             )
           ) : (

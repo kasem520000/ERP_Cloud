@@ -14,6 +14,7 @@ import {
   type DashboardSummary,
 } from '../../lib/bi-dashboards';
 import { useSession } from '../../lib/session';
+import { Table } from '../../components/ui/table';
 
 export default function DashboardsPage() {
   const { can } = useSession();
@@ -84,54 +85,62 @@ export default function DashboardsPage() {
         </Panel>
       ) : (
         <Panel flush title="لوحاتي" hint={`${boards.length} لوحة`}>
-          <div className="table-wrap">
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>اللوحة</th>
-                  <th>المؤشرات</th>
-                  <th>الحالة</th>
-                  <th />
-                </tr>
-              </thead>
-              <tbody>
-                {boards.map((board) => (
-                  <tr key={board.id}>
-                    <td className="font-semibold">
-                      <Link className="text-brand-700 hover:underline" href={`/dashboards/${board.id}`}>
-                        {board.name}
+          <Table
+            bare
+            columns={[
+              {
+                key: 'c0',
+                header: 'اللوحة',
+                cell: (board) => (
+                  <>
+                    <Link className="text-brand-700 hover:underline" href={`/dashboards/${board.id}`}>
+                      {board.name}
+                    </Link>
+                  </>
+                ),
+              },
+              {
+                key: 'c1',
+                header: 'المؤشرات',
+                cell: (board) => board.widgetCount,
+              },
+              {
+                key: 'c2',
+                header: 'الحالة',
+                cell: (board) =>
+                  board.isDefault ? (
+                    <span className="badge ok">افتراضية</span>
+                  ) : (
+                    <span className="text-muted">—</span>
+                  ),
+              },
+              {
+                key: 'c3',
+                header: '',
+                cell: (board) => (
+                  <>
+                    <div className="flex flex-wrap items-center justify-end gap-2">
+                      <Link href={`/dashboards/${board.id}`} className="btn primary">
+                        فتح
                       </Link>
-                    </td>
-                    <td>{board.widgetCount}</td>
-                    <td>
-                      {board.isDefault ? (
-                        <span className="badge ok">افتراضية</span>
-                      ) : (
-                        <span className="text-muted">—</span>
-                      )}
-                    </td>
-                    <td>
-                      <div className="flex flex-wrap items-center justify-end gap-2">
-                        <Link href={`/dashboards/${board.id}`} className="btn primary">
-                          فتح
-                        </Link>
-                        {manage && !board.isDefault ? (
-                          <button type="button" className="btn" onClick={() => void makeDefault(board.id)}>
-                            <Star size={14} aria-hidden /> اجعلها افتراضية
-                          </button>
-                        ) : null}
-                        {manage && boards.length > 1 ? (
-                          <button type="button" className="btn danger" onClick={() => void remove(board.id)}>
-                            <Trash2 size={14} aria-hidden /> حذف
-                          </button>
-                        ) : null}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                      {manage && !board.isDefault ? (
+                        <button type="button" className="btn" onClick={() => void makeDefault(board.id)}>
+                          <Star size={14} aria-hidden /> اجعلها افتراضية
+                        </button>
+                      ) : null}
+                      {manage && boards.length > 1 ? (
+                        <button type="button" className="btn danger" onClick={() => void remove(board.id)}>
+                          <Trash2 size={14} aria-hidden /> حذف
+                        </button>
+                      ) : null}
+                    </div>
+                  </>
+                ),
+              },
+            ]}
+            rows={boards}
+            rowKey={(board) => board.id}
+          />
         </Panel>
       )}
 

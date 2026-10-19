@@ -47,6 +47,7 @@ import {
   paymentMethodLabel,
   type DocumentRow,
 } from '../../lib/sales-screen';
+import { Table } from '@erp/ui';
 
 /** الصلاحيات كما يفرضها الخادم على المسارات الثلاثة التي تستعملها هذه الشاشة. */
 const VIEW_PERMISSION = 'van_sales.view';
@@ -598,62 +599,97 @@ export default function CollectionPage() {
               </p>
             ) : (
               <div className="bak-table-wrap">
-                <table className="bak-table">
-                  <thead>
-                    <tr>
-                      <th>الفاتورة</th>
-                      <th>التاريخ</th>
-                      <th>عمر الدين</th>
-                      <th>العميل</th>
-                      <th>المندوب</th>
-                      <th>الإجمالي</th>
-                      <th>المدفوع</th>
-                      <th>المتبقي</th>
-                      <th>الفاتورة الرسمية</th>
-                      <th>سند قبضٍ سابق</th>
-                      <th>إجراء</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {receivables.map((row) => (
-                      <tr key={row.id}>
-                        <td dir="ltr">{row.number}</td>
-                        <td dir="ltr">{row.docDate}</td>
-                        <td>{ageDays(row) === null ? '—' : `${ageDays(row)} يومًا`}</td>
-                        <td>{numberText(row.customerName)}</td>
-                        <td>{numberText(row.salesmanName)}</td>
-                        <td className="num" dir="ltr">
-                          {numberText(row.total)}
-                        </td>
-                        <td className="num" dir="ltr">
-                          {numberText(row.paidAmount)}
-                        </td>
-                        <td className="num" dir="ltr">
+                <Table
+                  columns={[
+                    {
+                      key: 'c0',
+                      header: 'الفاتورة',
+                      ltr: true,
+                      cell: (row) => row.number,
+                    },
+                    {
+                      key: 'c1',
+                      header: 'التاريخ',
+                      ltr: true,
+                      cell: (row) => row.docDate,
+                    },
+                    {
+                      key: 'c2',
+                      header: 'عمر الدين',
+                      cell: (row) => (ageDays(row) === null ? '—' : `${ageDays(row)} يومًا`),
+                    },
+                    {
+                      key: 'c3',
+                      header: 'العميل',
+                      cell: (row) => numberText(row.customerName),
+                    },
+                    {
+                      key: 'c4',
+                      header: 'المندوب',
+                      cell: (row) => numberText(row.salesmanName),
+                    },
+                    {
+                      key: 'c5',
+                      header: 'الإجمالي',
+                      numeric: true,
+                      ltr: true,
+                      cell: (row) => numberText(row.total),
+                    },
+                    {
+                      key: 'c6',
+                      header: 'المدفوع',
+                      numeric: true,
+                      ltr: true,
+                      cell: (row) => numberText(row.paidAmount),
+                    },
+                    {
+                      key: 'c7',
+                      header: 'المتبقي',
+                      numeric: true,
+                      ltr: true,
+                      cell: (row) => (
+                        <>
                           <strong>{documentRemainingText(row)}</strong>
-                        </td>
-                        <td>
+                        </>
+                      ),
+                    },
+                    {
+                      key: 'c8',
+                      header: 'الفاتورة الرسمية',
+                      cell: (row) => (
+                        <>
                           <span dir="ltr">{numberText(row.invoiceNumber)}</span>
                           <div className="text-xs text-muted">{invoiceStatusLabel(row.invoiceStatus)}</div>
-                        </td>
-                        <td dir="ltr">{numberText(row.receiptVoucherId)}</td>
-                        <td>
-                          {canCollect ? (
-                            <Button
-                              onClick={() => pickDocument(row)}
-                              size="sm"
-                              type="button"
-                              variant="secondary"
-                            >
-                              تحصيل
-                            </Button>
-                          ) : (
-                            <span className="text-[11.5px] text-muted">بلا صلاحية تحصيل</span>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                        </>
+                      ),
+                    },
+                    {
+                      key: 'c9',
+                      header: 'سند قبضٍ سابق',
+                      ltr: true,
+                      cell: (row) => numberText(row.receiptVoucherId),
+                    },
+                    {
+                      key: 'c10',
+                      header: 'إجراء',
+                      cell: (row) =>
+                        canCollect ? (
+                          <Button
+                            onClick={() => pickDocument(row)}
+                            size="sm"
+                            type="button"
+                            variant="secondary"
+                          >
+                            تحصيل
+                          </Button>
+                        ) : (
+                          <span className="text-[11.5px] text-muted">بلا صلاحية تحصيل</span>
+                        ),
+                    },
+                  ]}
+                  rows={receivables}
+                  rowKey={(row) => row.id}
+                />
               </div>
             )}
           </CardBody>
@@ -805,28 +841,40 @@ export default function CollectionPage() {
                         <p className="m-0 p-3 pb-0 text-[12.5px] font-bold text-ink">
                           خطةُ الأداة ({reconResult.plan.length} بندًا):
                         </p>
-                        <table className="bak-table bak-table--dense">
-                          <thead>
-                            <tr>
-                              <th>الكيان</th>
-                              <th>الرقم</th>
-                              <th>الإجراء</th>
-                              <th>يُستكمل بأمان؟</th>
-                              <th>مانع</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {reconResult.plan.map((item) => (
-                              <tr key={`${item.entityType}-${item.entityId}-${item.action}`}>
-                                <td>{item.entityType}</td>
-                                <td dir="ltr">{numberText(item.number)}</td>
-                                <td dir="ltr">{item.action}</td>
-                                <td>{item.canBackfillSafely ? 'نعم' : 'لا — يُتخطّى'}</td>
-                                <td dir="ltr">{numberText(item.blockingReason)}</td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
+                        <Table
+                          columns={[
+                            {
+                              key: 'c0',
+                              header: 'الكيان',
+                              cell: (item) => item.entityType,
+                            },
+                            {
+                              key: 'c1',
+                              header: 'الرقم',
+                              ltr: true,
+                              cell: (item) => numberText(item.number),
+                            },
+                            {
+                              key: 'c2',
+                              header: 'الإجراء',
+                              ltr: true,
+                              cell: (item) => item.action,
+                            },
+                            {
+                              key: 'c3',
+                              header: 'يُستكمل بأمان؟',
+                              cell: (item) => (item.canBackfillSafely ? 'نعم' : 'لا — يُتخطّى'),
+                            },
+                            {
+                              key: 'c4',
+                              header: 'مانع',
+                              ltr: true,
+                              cell: (item) => numberText(item.blockingReason),
+                            },
+                          ]}
+                          rows={reconResult.plan}
+                          rowKey={(item) => `${item.entityType}-${item.entityId}-${item.action}`}
+                        />
                       </div>
                     ) : null}
 
@@ -855,38 +903,58 @@ export default function CollectionPage() {
             />
             <CardBody flush>
               <div className="bak-table-wrap">
-                <table className="bak-table">
-                  <thead>
-                    <tr>
-                      <th>النوع</th>
-                      <th>العميل</th>
-                      <th>المندوب</th>
-                      <th>كمية</th>
-                      <th>قيمة</th>
-                      <th>السبب كما كتبه الخادم</th>
-                      <th>سند</th>
-                      <th>متى</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {dashboard.movements.slice(0, 25).map((row) => (
-                      <tr key={row.id}>
-                        <td>{movementTypeLabel(row.movementType)}</td>
-                        <td>{numberText(row.customerName)}</td>
-                        <td>{numberText(row.salesmanName)}</td>
-                        <td className="num" dir="ltr">
-                          {numberText(row.qty)}
-                        </td>
-                        <td className="num" dir="ltr">
-                          {numberText(row.amount)}
-                        </td>
-                        <td>{numberText(row.reason)}</td>
-                        <td dir="ltr">{numberText(row.voucherId)}</td>
-                        <td dir="ltr">{numberText(row.createdAt)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                <Table
+                  columns={[
+                    {
+                      key: 'c0',
+                      header: 'النوع',
+                      cell: (row) => movementTypeLabel(row.movementType),
+                    },
+                    {
+                      key: 'c1',
+                      header: 'العميل',
+                      cell: (row) => numberText(row.customerName),
+                    },
+                    {
+                      key: 'c2',
+                      header: 'المندوب',
+                      cell: (row) => numberText(row.salesmanName),
+                    },
+                    {
+                      key: 'c3',
+                      header: 'كمية',
+                      numeric: true,
+                      ltr: true,
+                      cell: (row) => numberText(row.qty),
+                    },
+                    {
+                      key: 'c4',
+                      header: 'قيمة',
+                      numeric: true,
+                      ltr: true,
+                      cell: (row) => numberText(row.amount),
+                    },
+                    {
+                      key: 'c5',
+                      header: 'السبب كما كتبه الخادم',
+                      cell: (row) => numberText(row.reason),
+                    },
+                    {
+                      key: 'c6',
+                      header: 'سند',
+                      ltr: true,
+                      cell: (row) => numberText(row.voucherId),
+                    },
+                    {
+                      key: 'c7',
+                      header: 'متى',
+                      ltr: true,
+                      cell: (row) => numberText(row.createdAt),
+                    },
+                  ]}
+                  rows={dashboard.movements.slice(0, 25)}
+                  rowKey={(row) => row.id}
+                />
               </div>
             </CardBody>
           </Card>

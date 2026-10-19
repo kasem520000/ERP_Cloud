@@ -11,6 +11,7 @@ import { apiData, apiFetch } from '../../../../lib/api';
 import { navTargets, positionLabel, type JournalNeighbours } from '../../../../lib/journal-nav';
 import { sourceTypeLabel } from '../../../../lib/lookups';
 import { useQuery } from '../../../../lib/use-query';
+import { Table } from '../../../../components/ui/table';
 
 /**
  * القيد — نافذة القيد المكتبية في نسختها السحابيّة للقراءة.
@@ -279,32 +280,46 @@ export default function JournalEntryPage() {
         {doc.lines.length === 0 ? (
           <Empty title="لا سطور لهذا القيد" detail="القيد المُعلَن عناصرُه." />
         ) : (
-          <div className="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>#</th>
-                  <th>رمز الحساب</th>
-                  <th>اسم الحساب</th>
-                  <th className="num">مدين</th>
-                  <th className="num">دائن</th>
-                  <th>الشرح</th>
-                </tr>
-              </thead>
-              <tbody>
-                {doc.lines.map((line) => (
-                  <tr key={line.lineNo}>
-                    <td>{line.lineNo}</td>
-                    <td dir="ltr">{line.accountCode ?? '—'}</td>
-                    <td>{line.accountNameAr ?? '—'}</td>
-                    <td className="num">{money(line.debit)}</td>
-                    <td className="num">{money(line.credit)}</td>
-                    <td>{line.description ?? '—'}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <Table
+            bare
+            columns={[
+              {
+                key: 'c0',
+                header: '#',
+                cell: (line) => line.lineNo,
+              },
+              {
+                key: 'c1',
+                header: 'رمز الحساب',
+                ltr: true,
+                cell: (line) => line.accountCode ?? '—',
+              },
+              {
+                key: 'c2',
+                header: 'اسم الحساب',
+                cell: (line) => line.accountNameAr ?? '—',
+              },
+              {
+                key: 'c3',
+                header: 'مدين',
+                numeric: true,
+                cell: (line) => money(line.debit),
+              },
+              {
+                key: 'c4',
+                header: 'دائن',
+                numeric: true,
+                cell: (line) => money(line.credit),
+              },
+              {
+                key: 'c5',
+                header: 'الشرح',
+                cell: (line) => line.description ?? '—',
+              },
+            ]}
+            rows={doc.lines}
+            rowKey={(line) => String(line.lineNo)}
+          />
         )}
         {/*
  عمود «حذف» على كل سطر — `FrmNewEntry.xaml` L378-397 `BtnDeleteRow_Click`

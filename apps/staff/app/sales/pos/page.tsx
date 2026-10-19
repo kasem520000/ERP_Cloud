@@ -39,6 +39,7 @@ import { CashCustomerPicker } from '../../../components/cash-customer-picker';
 import { ZatcaQrSvg, printThermalReceipt80mm } from '../../../components/zatca-qr-svg';
 import { useSession } from '../../../lib/session';
 import { useQuery } from '../../../lib/use-query';
+import { Table } from '../../../components/ui/table';
 
 type Ticket = { line: LineDraft; item: Item };
 
@@ -1229,39 +1230,41 @@ export default function PosPage() {
       )}
 
       <Panel title="آخر مبيعات نقطة البيع" flush>
-        <div className="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>الرقم</th>
-                <th>الإجمالي</th>
-                <th>الحالة</th>
-                <th />
-              </tr>
-            </thead>
-            <tbody>
-              {(recent.data ?? [])
-                .filter((row) => row.orderType === 'pos')
-                .slice(0, 8)
-                .map((row) => (
-                  <tr key={row.id}>
-                    <td>{row.number ?? '—'}</td>
-                    <td>{money(row.total)}</td>
-                    <td>
-                      <span className={`badge ${row.status === 'posted' ? 'posted' : row.status}`}>
-                        {row.status}
-                      </span>
-                    </td>
-                    <td>
-                      <Link className="btn sm" href={`/sales/invoices/${row.id}`}>
-                        فتح
-                      </Link>
-                    </td>
-                  </tr>
-                ))}
-            </tbody>
-          </table>
-        </div>
+        <Table
+          bare
+          columns={[
+            {
+              key: 'c0',
+              header: 'الرقم',
+              cell: (row) => row.number ?? '—',
+            },
+            {
+              key: 'c1',
+              header: 'الإجمالي',
+              cell: (row) => money(row.total),
+            },
+            {
+              key: 'c2',
+              header: 'الحالة',
+              cell: (row) => (
+                <span className={`badge ${row.status === 'posted' ? 'posted' : row.status}`}>
+                  {row.status}
+                </span>
+              ),
+            },
+            {
+              key: 'c3',
+              header: '',
+              cell: (row) => (
+                <Link className="btn sm" href={`/sales/invoices/${row.id}`}>
+                  فتح
+                </Link>
+              ),
+            },
+          ]}
+          rows={(recent.data ?? []).filter((row) => row.orderType === 'pos').slice(0, 8)}
+          rowKey={(row) => row.id}
+        />
       </Panel>
 
       {/**

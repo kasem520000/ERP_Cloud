@@ -9,6 +9,7 @@ import { ErrorBox, Loading, Screen } from '../../../../components/screen';
 import { ApiError } from '../../../../lib/api';
 import { loadCost } from '../../../../lib/project-kanban';
 import { money } from '../../../../lib/lookups';
+import { Table } from '../../../../components/ui/table';
 
 type CostLine = {
   termId: string;
@@ -73,28 +74,38 @@ export default function ProjectCostPage() {
         <p>الفعلي الكلي: {money(report.actualValue)}</p>
       </Panel>
       <Panel>
-        <table>
-          <thead>
-            <tr>
-              <th>البند</th>
-              <th>مخطط</th>
-              <th>فعلي</th>
-              <th>الفرق</th>
-              <th>
-                <span className="sr-only">إجراءات</span>
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {report.lines.map((line) => (
-              <tr key={line.termId}>
-                <td>
+        <Table
+          bare
+          columns={[
+            {
+              key: 'c0',
+              header: 'البند',
+              cell: (line) => (
+                <>
                   {line.code} — {line.description}
-                </td>
-                <td>{money(line.plannedValue)}</td>
-                <td>{money(line.actualValue)}</td>
-                <td>{money(line.varianceValue)}</td>
-                <td>
+                </>
+              ),
+            },
+            {
+              key: 'c1',
+              header: 'مخطط',
+              cell: (line) => money(line.plannedValue),
+            },
+            {
+              key: 'c2',
+              header: 'فعلي',
+              cell: (line) => money(line.actualValue),
+            },
+            {
+              key: 'c3',
+              header: 'الفرق',
+              cell: (line) => money(line.varianceValue),
+            },
+            {
+              key: 'c4',
+              header: <span className="sr-only">إجراءات</span>,
+              cell: (line) => (
+                <>
                   <span
                     style={{
                       display: 'inline-block',
@@ -112,11 +123,13 @@ export default function ProjectCostPage() {
                       marginInlineStart: 4,
                     }}
                   />
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                </>
+              ),
+            },
+          ]}
+          rows={report.lines}
+          rowKey={(line) => line.termId}
+        />
         {report.lines.length === 0 ? <p className="muted">لا بنود في جدول الكميات.</p> : null}
       </Panel>
     </Screen>

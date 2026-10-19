@@ -7,6 +7,7 @@ import { Empty, ErrorBox, Forbidden, Loading, Screen } from '../../../components
 import { ApiError, apiDelete, apiFetch, apiList, apiPatch, apiPost } from '../../../lib/api';
 import { useSession } from '../../../lib/session';
 import { useQuery } from '../../../lib/use-query';
+import { Table } from '../../../components/ui/table';
 
 /**
  * إضافات — `Form_WPF/frmAdditions.xaml` (« إضافات» — لوحتها « إدارة الإضافات»).
@@ -175,30 +176,40 @@ export default function MarinaAdditionsPage() {
                 detail="ابدأ بـ «جديد»: اسم الإضافة وقيمتها، فتظهر في «الإضافات» داخل الحجز."
               />
             ) : (
-              <div className="table-wrap">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>الرقم</th>
-                      <th>الاسم</th>
-                      <th className="num">القيمة</th>
-                      <th className="num">الاستخدام</th>
-                      {canManage && <th>إجراءات</th>}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {rows.map((row) => (
-                      <tr key={row.id} onDoubleClick={() => canManage && setCard(cardOf(row))}>
-                        <td dir="ltr">{row.number}</td>
-                        <td>{row.name}</td>
-                        <td className="num" dir="ltr">
-                          {fmt(row.salePrice)}
-                        </td>
-                        <td className="num" dir="ltr">
-                          {row.usageCount}
-                        </td>
-                        {canManage && (
-                          <td>
+              <Table
+                bare
+                columns={[
+                  {
+                    key: 'c0',
+                    header: 'الرقم',
+                    ltr: true,
+                    cell: (row) => row.number,
+                  },
+                  {
+                    key: 'c1',
+                    header: 'الاسم',
+                    cell: (row) => row.name,
+                  },
+                  {
+                    key: 'c2',
+                    header: 'القيمة',
+                    numeric: true,
+                    ltr: true,
+                    cell: (row) => fmt(row.salePrice),
+                  },
+                  {
+                    key: 'c3',
+                    header: 'الاستخدام',
+                    numeric: true,
+                    ltr: true,
+                    cell: (row) => row.usageCount,
+                  },
+                  ...(canManage
+                    ? [
+                        {
+                          key: 'c4',
+                          header: 'إجراءات',
+                          cell: (row: Addition) => (
                             <div className="row" style={{ gap: 4 }}>
                               <button className="btn sm" type="button" onClick={() => setCard(cardOf(row))}>
                                 تعديل
@@ -207,13 +218,14 @@ export default function MarinaAdditionsPage() {
                                 حذف
                               </button>
                             </div>
-                          </td>
-                        )}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                          ),
+                        },
+                      ]
+                    : []),
+                ]}
+                rows={rows}
+                rowKey={(row) => row.id}
+              />
             )}
           </Panel>
         </>

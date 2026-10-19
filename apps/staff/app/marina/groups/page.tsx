@@ -8,6 +8,7 @@ import { Empty, ErrorBox, Forbidden, Loading, Screen } from '../../../components
 import { ApiError, apiDelete, apiFetch, apiList, apiPatch, apiPost, apiPut } from '../../../lib/api';
 import { useSession } from '../../../lib/session';
 import { useQuery } from '../../../lib/use-query';
+import { Table } from '../../../components/ui/table';
 
 /**
  * بطاقة فئة — `Form_WPF/frmGroupM.xaml` (« بطاقة فئة») و`Form_WPF/frmAddPeriod.xaml`
@@ -276,42 +277,66 @@ export default function MarinaGroupCardsPage() {
                 detail="ابدأ بـ «جديد»: رمز الفئة واسمها، ثم قيمة الساعة وقيمة النصف ساعة."
               />
             ) : (
-              <div className="table-wrap">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>رقم الفئة</th>
-                      <th>رمز الفئة</th>
-                      <th>اسم الفئة</th>
-                      <th>اسم الفئة (EN)</th>
-                      <th className="num">قيمة الساعة</th>
-                      <th className="num">قيمة النصف ساعة</th>
-                      <th className="num">الفترات</th>
-                      <th className="num">المراكب</th>
-                      {canManage && <th>إجراءات</th>}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {rows.map((row) => (
-                      <tr key={row.id} onDoubleClick={() => canManage && setCard(cardOf(row))}>
-                        <td dir="ltr">{row.number ?? '—'}</td>
-                        <td dir="ltr">{row.code || '—'}</td>
-                        <td>{row.name}</td>
-                        <td dir="ltr">{row.nameEn || '—'}</td>
-                        <td className="num" dir="ltr">
-                          {fmt(row.hourPrice)}
-                        </td>
-                        <td className="num" dir="ltr">
-                          {fmt(row.halfHourPrice)}
-                        </td>
-                        <td className="num" dir="ltr">
-                          {row.periods.length}
-                        </td>
-                        <td className="num" dir="ltr">
-                          {row.vesselCount}
-                        </td>
-                        {canManage && (
-                          <td>
+              <Table
+                bare
+                columns={[
+                  {
+                    key: 'c0',
+                    header: 'رقم الفئة',
+                    ltr: true,
+                    cell: (row) => row.number ?? '—',
+                  },
+                  {
+                    key: 'c1',
+                    header: 'رمز الفئة',
+                    ltr: true,
+                    cell: (row) => row.code || '—',
+                  },
+                  {
+                    key: 'c2',
+                    header: 'اسم الفئة',
+                    cell: (row) => row.name,
+                  },
+                  {
+                    key: 'c3',
+                    header: 'اسم الفئة (EN)',
+                    ltr: true,
+                    cell: (row) => row.nameEn || '—',
+                  },
+                  {
+                    key: 'c4',
+                    header: 'قيمة الساعة',
+                    numeric: true,
+                    ltr: true,
+                    cell: (row) => fmt(row.hourPrice),
+                  },
+                  {
+                    key: 'c5',
+                    header: 'قيمة النصف ساعة',
+                    numeric: true,
+                    ltr: true,
+                    cell: (row) => fmt(row.halfHourPrice),
+                  },
+                  {
+                    key: 'c6',
+                    header: 'الفترات',
+                    numeric: true,
+                    ltr: true,
+                    cell: (row) => row.periods.length,
+                  },
+                  {
+                    key: 'c7',
+                    header: 'المراكب',
+                    numeric: true,
+                    ltr: true,
+                    cell: (row) => row.vesselCount,
+                  },
+                  ...(canManage
+                    ? [
+                        {
+                          key: 'c8',
+                          header: 'إجراءات',
+                          cell: (row: GroupCard) => (
                             <div className="row" style={{ gap: 4 }}>
                               <button className="btn sm" type="button" onClick={() => setCard(cardOf(row))}>
                                 تعديل
@@ -329,13 +354,14 @@ export default function MarinaGroupCardsPage() {
                                 حذف
                               </button>
                             </div>
-                          </td>
-                        )}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                          ),
+                        },
+                      ]
+                    : []),
+                ]}
+                rows={rows}
+                rowKey={(row) => row.id}
+              />
             )}
           </Panel>
         </>

@@ -10,6 +10,7 @@ import { ErrorBox, Loading, Screen } from '../../../../components/screen';
 import { ApiError } from '../../../../lib/api';
 import { loadTime, logTaskTime, type TimeLog } from '../../../../lib/project-kanban';
 import { useSession } from '../../../../lib/session';
+import { Table } from '../../../../components/ui/table';
 
 type TimeTask = {
   id: string;
@@ -115,28 +116,33 @@ export default function ProjectTimePage() {
         </Panel>
       ) : null}
       <Panel>
-        <table>
-          <thead>
-            <tr>
-              <th>المهمة</th>
-              <th>مخطط</th>
-              <th>فعلي</th>
-              <th>الفرق</th>
-            </tr>
-          </thead>
-          <tbody>
-            {tasks.map((task) => (
-              <tr key={task.id}>
-                <td>
-                  <Link href={`/projects/${projectId}/tasks/${task.id}`}>{task.title}</Link>
-                </td>
-                <td>{task.estimatedHours}</td>
-                <td>{task.actualHours}</td>
-                <td>{task.varianceHours}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <Table
+          bare
+          columns={[
+            {
+              key: 'c0',
+              header: 'المهمة',
+              cell: (task) => <Link href={`/projects/${projectId}/tasks/${task.id}`}>{task.title}</Link>,
+            },
+            {
+              key: 'c1',
+              header: 'مخطط',
+              cell: (task) => task.estimatedHours,
+            },
+            {
+              key: 'c2',
+              header: 'فعلي',
+              cell: (task) => task.actualHours,
+            },
+            {
+              key: 'c3',
+              header: 'الفرق',
+              cell: (task) => task.varianceHours,
+            },
+          ]}
+          rows={tasks}
+          rowKey={(task) => task.id}
+        />
         {logs.map((entry) => (
           <p key={entry.id} className="muted">
             {entry.logDate} · {entry.hours} س · {entry.note ?? ''}

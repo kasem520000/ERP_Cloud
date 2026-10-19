@@ -9,6 +9,7 @@ import { apiData } from '../../../lib/api';
 import { downloadCsv } from '../../../lib/accounts';
 import { sourceTypeLabel } from '../../../lib/lookups';
 import { useQuery } from '../../../lib/use-query';
+import { Table } from '../../../components/ui/table';
 
 type Entry = {
   id: string;
@@ -63,16 +64,19 @@ export default function JournalRegisterPage() {
 
   const rows = entries.data ?? [];
   /** نطاق السجل ينتقل إلى شاشة القيد كما هو (فترة · حالة). */
-  const scopeSuffix = applied.from || applied.to || applied.status
-    ? `?${new URLSearchParams(
-        Object.entries({ from: applied.from, to: applied.to, status: applied.status }).filter(([, value]) => Boolean(value)) as Array<[string, string]>,
-      ).toString()}`
-    : '';
+  const scopeSuffix =
+    applied.from || applied.to || applied.status
+      ? `?${new URLSearchParams(
+          Object.entries({ from: applied.from, to: applied.to, status: applied.status }).filter(([, value]) =>
+            Boolean(value),
+          ) as Array<[string, string]>,
+        ).toString()}`
+      : '';
   const totalDebit = rows.reduce((sum, row) => sum + Number(row.totalDebit || 0), 0);
   const totalCredit = rows.reduce((sum, row) => sum + Number(row.totalCredit || 0), 0);
 
   return (
- <Screen
+    <Screen
       title="القيود اليومية"
       subtitle="سجل كل القيود المرحّلة خلال الفترة المحددة."
       crumbs={['المحاسبة', 'تقارير محاسبية']}
@@ -88,116 +92,150 @@ export default function JournalRegisterPage() {
         },
       ]}
       actions={
- <>
- <button className="btn" type="button" onClick={() => window.print()}>
- طباعة
- </button>
- <button
+        <>
+          <button className="btn" type="button" onClick={() => window.print()}>
+            طباعة
+          </button>
+          <button
             className="btn"
             type="button"
             onClick={() =>
               downloadCsv(
                 'journal-entries.csv',
                 ['الرقم', 'التاريخ', 'البيان', 'مدين', 'دائن', 'الحالة'],
-                rows.map((row) => [row.number ?? '', row.date, row.description ?? '', row.totalDebit, row.totalCredit, row.status]),
+                rows.map((row) => [
+                  row.number ?? '',
+                  row.date,
+                  row.description ?? '',
+                  row.totalDebit,
+                  row.totalCredit,
+                  row.status,
+                ]),
               )
             }
           >
- تصدير CSV
- </button>
- </>
+            تصدير CSV
+          </button>
+        </>
       }
     >
- <div className="ui-filter-bar no-print">
- <div className="ui-filter-fields">
- <label className="field" style={{ marginBottom: 0 }}>
- <span>من تاريخ</span>
- <input className="input" type="date" value={from} onChange={(event) => setFrom(event.target.value)} />
- </label>
- <label className="field" style={{ marginBottom: 0 }}>
- <span>إلى تاريخ</span>
- <input className="input" type="date" value={to} onChange={(event) => setTo(event.target.value)} />
- </label>
- <label className="field" style={{ marginBottom: 0 }}>
- <span>الحالة</span>
- <select className="input" value={status} onChange={(event) => setStatus(event.target.value)}>
- <option value="">الكل</option>
- <option value="posted">مرحّل</option>
- <option value="draft">مسودة</option>
- <option value="void">ملغي</option>
- </select>
- </label>
- </div>
- <div className="ui-filter-actions">
- <span className="ui-filter-summary">{rows.length} قيد</span>
- <button className="btn primary" type="button" onClick={() => setApplied({ from, to, status })}>
- عرض
- </button>
- </div>
- </div>
+      <div className="ui-filter-bar no-print">
+        <div className="ui-filter-fields">
+          <label className="field" style={{ marginBottom: 0 }}>
+            <span>من تاريخ</span>
+            <input
+              className="input"
+              type="date"
+              value={from}
+              onChange={(event) => setFrom(event.target.value)}
+            />
+          </label>
+          <label className="field" style={{ marginBottom: 0 }}>
+            <span>إلى تاريخ</span>
+            <input className="input" type="date" value={to} onChange={(event) => setTo(event.target.value)} />
+          </label>
+          <label className="field" style={{ marginBottom: 0 }}>
+            <span>الحالة</span>
+            <select className="input" value={status} onChange={(event) => setStatus(event.target.value)}>
+              <option value="">الكل</option>
+              <option value="posted">مرحّل</option>
+              <option value="draft">مسودة</option>
+              <option value="void">ملغي</option>
+            </select>
+          </label>
+        </div>
+        <div className="ui-filter-actions">
+          <span className="ui-filter-summary">{rows.length} قيد</span>
+          <button className="btn primary" type="button" onClick={() => setApplied({ from, to, status })}>
+            عرض
+          </button>
+        </div>
+      </div>
 
       {entries.status === 'loading' && <Loading />}
       {entries.status === 'forbidden' && <Forbidden />}
       {entries.status === 'error' && <ErrorBox message={entries.error} onRetry={entries.reload} />}
       {entries.status === 'success' &&
         (rows.length === 0 ? (
- <Empty title="لا توجد قيود في هذه الفترة" detail="جرّب توسيع المدى الزمني أو أنشئ سند قيد جديد." />
+          <Empty title="لا توجد قيود في هذه الفترة" detail="جرّب توسيع المدى الزمني أو أنشئ سند قيد جديد." />
         ) : (
- <>
- <div className="ui-panel">
- <div className="ui-panel-body" style={{ padding: 0 }}>
- <div className="table-wrap">
- <table>
- <thead>
- <tr>
- <th>الرقم</th>
- <th>التاريخ</th>
- <th>النوع</th>
- <th>البيان</th>
- <th className="num">مدين</th>
- <th className="num">دائن</th>
- <th>الحالة</th>
- <th />
- </tr>
- </thead>
- <tbody>
-                  {rows.map((row) => (
- <tr key={row.id}>
- <td dir="ltr">{row.number ?? '—'}</td>
- <td dir="ltr">{row.date}</td>
- <td>{row.kind === 'reversal' ? 'عكسي' : sourceTypeLabel(row.sourceType)}</td>
- <td>{row.description ?? '—'}</td>
- <td className="num">{money(row.totalDebit)}</td>
- <td className="num">{money(row.totalCredit)}</td>
- <td>
- <span className={`badge ${row.status}`}>
+          <>
+            <div className="ui-panel">
+              <div className="ui-panel-body" style={{ padding: 0 }}>
+                <Table
+                  columns={[
+                    {
+                      key: 'c0',
+                      header: 'الرقم',
+                      ltr: true,
+                      cell: (row) => row.number ?? '—',
+                    },
+                    {
+                      key: 'c1',
+                      header: 'التاريخ',
+                      ltr: true,
+                      cell: (row) => row.date,
+                    },
+                    {
+                      key: 'c2',
+                      header: 'النوع',
+                      cell: (row) => (row.kind === 'reversal' ? 'عكسي' : sourceTypeLabel(row.sourceType)),
+                    },
+                    {
+                      key: 'c3',
+                      header: 'البيان',
+                      cell: (row) => row.description ?? '—',
+                    },
+                    {
+                      key: 'c4',
+                      header: 'مدين',
+                      numeric: true,
+                      cell: (row) => money(row.totalDebit),
+                    },
+                    {
+                      key: 'c5',
+                      header: 'دائن',
+                      numeric: true,
+                      cell: (row) => money(row.totalCredit),
+                    },
+                    {
+                      key: 'c6',
+                      header: 'الحالة',
+                      cell: (row) => (
+                        <span className={`badge ${row.status}`}>
                           {row.status === 'posted' ? 'مرحّل' : row.status === 'void' ? 'ملغي' : 'مسودة'}
- </span>
- </td>
- <td>
- <span className="row">
+                        </span>
+                      ),
+                    },
+                    {
+                      key: 'c7',
+                      header: '',
+                      cell: (row) => (
+                        <span className="row">
                           {/*
-                            «تفاصيل» صارت باباً إلى شاشة القيد (R10) — في الرابط
- نطاقُ السجل نفسه، فيبقى المتنقّل داخل الفترة المعروضة.
-                          */}
- <Link className="btn sm" href={`/accounting/journal-entries/${row.id}${scopeSuffix}`}>
- تفاصيل
- </Link>
- <Link className="btn sm" href={`/print/journal-entry/${row.id}`}>
- طباعة
- </Link>
- </span>
- </td>
- </tr>
-                  ))}
- </tbody>
- </table>
- </div>
- </div>
- </div>
-
- </>
+                                    «تفاصيل» صارت باباً إلى شاشة القيد (R10) — في الرابط
+         نطاقُ السجل نفسه، فيبقى المتنقّل داخل الفترة المعروضة.
+                                  */}
+                          <Link
+                            className="btn sm"
+                            href={`/accounting/journal-entries/${row.id}${scopeSuffix}`}
+                          >
+                            تفاصيل
+                          </Link>
+                          <Link className="btn sm" href={`/print/journal-entry/${row.id}`}>
+                            طباعة
+                          </Link>
+                        </span>
+                      ),
+                    },
+                  ]}
+                  rows={rows}
+                  rowKey={(row) => row.id}
+                />
+              </div>
+            </div>
+          </>
         ))}
- </Screen>
+    </Screen>
   );
 }

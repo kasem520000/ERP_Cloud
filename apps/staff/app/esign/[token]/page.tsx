@@ -6,6 +6,7 @@ import { Panel } from '@erp/ui';
 
 import { money } from '../../../lib/lookups';
 import { SupplierError, supplierFetch } from '../../../lib/supplier-portal';
+import { Table } from '../../../components/ui/table';
 
 type Line = { lineNo: number; description: string; quantity: string; total: string };
 type View = {
@@ -170,24 +171,29 @@ export default function EsignPage() {
               </h1>
               {view.signerName ? <p>إلى: {view.signerName}</p> : null}
               {view.message ? <p>{view.message}</p> : null}
-              <table className="sign-table">
-                <thead>
-                  <tr>
-                    <th>البيان</th>
-                    <th className="num">الكمية</th>
-                    <th className="num">الإجمالي</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {(view.document?.lines ?? []).map((line) => (
-                    <tr key={line.lineNo}>
-                      <td>{line.description || 'بند'}</td>
-                      <td className="num">{line.quantity}</td>
-                      <td className="num">{money(line.total, view.document?.currency)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              <Table
+                columns={[
+                  {
+                    key: 'c0',
+                    header: 'البيان',
+                    cell: (line) => line.description || 'بند',
+                  },
+                  {
+                    key: 'c1',
+                    header: 'الكمية',
+                    numeric: true,
+                    cell: (line) => line.quantity,
+                  },
+                  {
+                    key: 'c2',
+                    header: 'الإجمالي',
+                    numeric: true,
+                    cell: (line) => money(line.total, view.document?.currency),
+                  },
+                ]}
+                rows={view.document?.lines ?? []}
+                rowKey={(line) => String(line.lineNo)}
+              />
               {view.document ? (
                 <p>
                   <strong>الإجمالي {money(view.document.total, view.document.currency)}</strong>

@@ -9,6 +9,7 @@ import { apiDelete, apiFetch, apiList, apiPatch, apiPost } from '../../../lib/ap
 import { listBranches, listParties, type Branch, type Party } from '../../../lib/lookups';
 import { useSession } from '../../../lib/session';
 import { useQuery } from '../../../lib/use-query';
+import { Table } from '../../../components/ui/table';
 
 /**
  * الحجوزات — `Form_WPF/frmBookingM.xaml` («الحجوزات»).
@@ -389,80 +390,127 @@ function MarinaBookings() {
                 detail="ابدأ بـ «حجز جديد»: مركب وعميل وقيمة ومدة — والمدة شرط الحفظ."
               />
             ) : (
-              <div className="table-wrap">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>الرقم</th>
-                      <th>التاريخ</th>
-                      <th>العميل</th>
-                      <th>المركب</th>
-                      <th>نوع الحجز</th>
-                      <th className="num">المدة</th>
-                      <th className="num">القيمة</th>
-                      <th className="num">الإضافات</th>
-                      <th className="num">الإجمالي</th>
-                      <th className="num">الصافي</th>
-                      <th>حالة الحجز</th>
-                      {(canManage || canInvoice) && <th>إجراءات</th>}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {rows.map((row) => (
-                      <tr key={row.id} onDoubleClick={() => canManage && setCard(cardOf(row))}>
-                        <td dir="ltr">{row.number ?? '—'}</td>
-                        <td dir="ltr">{row.documentDate}</td>
-                        <td>{row.customerName}</td>
-                        <td>
-                          {row.vesselCode} — {row.vesselName}
-                        </td>
-                        <td>{row.bookingType}</td>
-                        <td className="num" dir="ltr">
-                          {row.periodHours}س {row.periodMinutes}د
-                        </td>
-                        <td className="num" dir="ltr">
-                          {fmt(Number(row.rentalAmount))}
-                        </td>
-                        <td className="num" dir="ltr">
-                          {fmt(Number(row.additionsTotal))}
-                        </td>
-                        <td className="num" dir="ltr">
-                          {fmt(Number(row.total))}
-                        </td>
-                        <td className="num" dir="ltr">
-                          {fmt(Number(row.netAmount))}
-                        </td>
-                        <td>
-                          <span className={`badge${row.statusText === 'مؤكد' ? '' : ' danger'}`}>
-                            {row.statusText}
-                          </span>
-                        </td>
-                        {(canManage || canInvoice) && (
-                          <td>
-                            <div className="row" style={{ gap: 4 }}>
-                              {canManage && (
-                                <button className="btn sm" type="button" onClick={() => setCard(cardOf(row))}>
-                                  تعديل
-                                </button>
-                              )}
-                              {canInvoice && (
-                                <button className="btn sm" type="button" onClick={() => invoice(row)}>
-                                  فاتورة
-                                </button>
-                              )}
-                              {canManage && (
-                                <button className="btn sm danger" type="button" onClick={() => remove(row)}>
-                                  حذف
-                                </button>
-                              )}
-                            </div>
-                          </td>
-                        )}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <Table
+                bare
+                columns={[
+                  {
+                    key: 'c0',
+                    header: 'الرقم',
+                    ltr: true,
+                    cell: (row) => row.number ?? '—',
+                  },
+                  {
+                    key: 'c1',
+                    header: 'التاريخ',
+                    ltr: true,
+                    cell: (row) => row.documentDate,
+                  },
+                  {
+                    key: 'c2',
+                    header: 'العميل',
+                    cell: (row) => row.customerName,
+                  },
+                  {
+                    key: 'c3',
+                    header: 'المركب',
+                    cell: (row) => (
+                      <>
+                        {row.vesselCode} — {row.vesselName}
+                      </>
+                    ),
+                  },
+                  {
+                    key: 'c4',
+                    header: 'نوع الحجز',
+                    cell: (row) => row.bookingType,
+                  },
+                  {
+                    key: 'c5',
+                    header: 'المدة',
+                    numeric: true,
+                    ltr: true,
+                    cell: (row) => (
+                      <>
+                        {row.periodHours}س {row.periodMinutes}د
+                      </>
+                    ),
+                  },
+                  {
+                    key: 'c6',
+                    header: 'القيمة',
+                    numeric: true,
+                    ltr: true,
+                    cell: (row) => fmt(Number(row.rentalAmount)),
+                  },
+                  {
+                    key: 'c7',
+                    header: 'الإضافات',
+                    numeric: true,
+                    ltr: true,
+                    cell: (row) => fmt(Number(row.additionsTotal)),
+                  },
+                  {
+                    key: 'c8',
+                    header: 'الإجمالي',
+                    numeric: true,
+                    ltr: true,
+                    cell: (row) => fmt(Number(row.total)),
+                  },
+                  {
+                    key: 'c9',
+                    header: 'الصافي',
+                    numeric: true,
+                    ltr: true,
+                    cell: (row) => fmt(Number(row.netAmount)),
+                  },
+                  {
+                    key: 'c10',
+                    header: 'حالة الحجز',
+                    cell: (row) => (
+                      <>
+                        <span className={`badge${row.statusText === 'مؤكد' ? '' : ' danger'}`}>
+                          {row.statusText}
+                        </span>
+                      </>
+                    ),
+                  },
+                  ...(canManage || canInvoice
+                    ? [
+                        {
+                          key: 'c11',
+                          header: 'إجراءات',
+                          cell: (row: Booking) => (
+                            <>
+                              <div className="row" style={{ gap: 4 }}>
+                                {canManage && (
+                                  <button
+                                    className="btn sm"
+                                    type="button"
+                                    onClick={() => setCard(cardOf(row))}
+                                  >
+                                    تعديل
+                                  </button>
+                                )}
+                                {canInvoice && (
+                                  <button className="btn sm" type="button" onClick={() => invoice(row)}>
+                                    فاتورة
+                                  </button>
+                                )}
+                                {canManage && (
+                                  <button className="btn sm danger" type="button" onClick={() => remove(row)}>
+                                    حذف
+                                  </button>
+                                )}
+                              </div>
+                            </>
+                          ),
+                        },
+                      ]
+                    : []),
+                ]}
+                rows={rows}
+                rowKey={(row) => row.id}
+              />
             )}
           </Panel>
         </>

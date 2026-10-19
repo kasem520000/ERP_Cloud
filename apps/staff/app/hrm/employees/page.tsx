@@ -10,6 +10,7 @@ import { apiDelete, apiList, apiPatch, apiPost, ApiError } from '../../../lib/ap
 import { branchOptions, listBranches, money, shortDate, type Branch } from '../../../lib/lookups';
 import { useSession } from '../../../lib/session';
 import { useQuery } from '../../../lib/use-query';
+import { Table } from '../../../components/ui/table';
 
 /**
  * تعريف موظف — `Form_WPF/frmEmployees.xaml` («تعريف موظف»).
@@ -873,49 +874,77 @@ export default function EmployeesPage() {
               detail={term ? 'لا نتائج للبحث الحالي.' : 'أضف بطاقات الموظفين ليمكن احتساب الرواتب.'}
             />
           ) : (
-            <div className="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>الرقم</th>
-                    <th>الاسم</th>
-                    <th>إجمالي المرتب</th>
-                    <th>الإدارة</th>
-                    <th>القسم</th>
-                    <th>الوظيفة</th>
-                    <th>رقم الحساب</th>
-                    <th>الموبايل</th>
-                    <th>التعيين</th>
-                    <th>الحالة</th>
-                    <th />
-                  </tr>
-                </thead>
-                <tbody>
-                  {rows.map((row) => (
-                    <tr
-                      key={row.id}
-                      style={row.id === form.id ? { background: 'var(--surface-2, #f6f7fb)' } : undefined}
-                    >
-                      <td dir="ltr">{row.employeeNo}</td>
-                      <td>{row.name}</td>
-                      <td dir="ltr">{money(row.totalSalary ?? '0')}</td>
-                      <td>{row.managementName ?? '—'}</td>
-                      <td>{row.sectionName ?? '—'}</td>
-                      <td>{row.jobName ?? '—'}</td>
-                      <td dir="ltr">{row.accountCode ?? '—'}</td>
-                      <td dir="ltr">{row.mobile ?? '—'}</td>
-                      <td dir="ltr">{shortDate(row.hireDate)}</td>
-                      <td>{row.statusLabel ?? statusLabel(row.status)}</td>
-                      <td>
-                        <button className="btn small" type="button" onClick={() => openCard(row)}>
-                          <ContactRound size={14} />
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <Table
+              bare
+              columns={[
+                {
+                  key: 'c0',
+                  header: 'الرقم',
+                  ltr: true,
+                  cell: (row) => row.employeeNo,
+                },
+                {
+                  key: 'c1',
+                  header: 'الاسم',
+                  cell: (row) => row.name,
+                },
+                {
+                  key: 'c2',
+                  header: 'إجمالي المرتب',
+                  ltr: true,
+                  cell: (row) => money(row.totalSalary ?? '0'),
+                },
+                {
+                  key: 'c3',
+                  header: 'الإدارة',
+                  cell: (row) => row.managementName ?? '—',
+                },
+                {
+                  key: 'c4',
+                  header: 'القسم',
+                  cell: (row) => row.sectionName ?? '—',
+                },
+                {
+                  key: 'c5',
+                  header: 'الوظيفة',
+                  cell: (row) => row.jobName ?? '—',
+                },
+                {
+                  key: 'c6',
+                  header: 'رقم الحساب',
+                  ltr: true,
+                  cell: (row) => row.accountCode ?? '—',
+                },
+                {
+                  key: 'c7',
+                  header: 'الموبايل',
+                  ltr: true,
+                  cell: (row) => row.mobile ?? '—',
+                },
+                {
+                  key: 'c8',
+                  header: 'التعيين',
+                  ltr: true,
+                  cell: (row) => shortDate(row.hireDate),
+                },
+                {
+                  key: 'c9',
+                  header: 'الحالة',
+                  cell: (row) => row.statusLabel ?? statusLabel(row.status),
+                },
+                {
+                  key: 'c10',
+                  header: '',
+                  cell: (row) => (
+                    <button className="btn small" type="button" onClick={() => openCard(row)}>
+                      <ContactRound size={14} />
+                    </button>
+                  ),
+                },
+              ]}
+              rows={rows}
+              rowKey={(row) => row.id}
+            />
           ))}
       </Panel>
     </Screen>

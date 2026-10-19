@@ -10,6 +10,7 @@ import {
   readPunchQueue,
   type OfflinePunch,
 } from '../../../lib/employee-offline';
+import { Table } from '../../../components/ui/table';
 
 type TodayRow = { id: string; type: string; status: string; at: string; distance_meters?: number | null };
 
@@ -136,36 +137,38 @@ export default function AttendancePage() {
         {today.length === 0 ? (
           <p className="m-0 p-5 text-sm text-muted">لم تُسجَّل أي حركة حضور أو انصراف اليوم بعد.</p>
         ) : (
-          <div className="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>الحركة</th>
-                  <th>الوقت</th>
-                  <th>النطاق الجغرافي</th>
-                </tr>
-              </thead>
-              <tbody>
-                {today.map((row) => (
-                  <tr key={row.id}>
-                    <td>
-                      <span className={`badge ${row.type === 'check_in' ? 'ok' : 'neutral'}`}>
-                        {row.type === 'check_in' ? 'حضور' : 'انصراف'}
-                      </span>
-                    </td>
-                    <td dir="ltr">
-                      {row.at ? new Date(row.at).toLocaleTimeString('ar-SA-u-ca-gregory-nu-latn') : '—'}
-                    </td>
-                    <td>
-                      <span className={`badge ${row.status === 'valid' ? 'ok' : 'warn'}`}>
-                        {row.status === 'valid' ? 'داخل النطاق' : 'خارج النطاق'}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <Table
+            bare
+            columns={[
+              {
+                key: 'c0',
+                header: 'الحركة',
+                cell: (row) => (
+                  <span className={`badge ${row.type === 'check_in' ? 'ok' : 'neutral'}`}>
+                    {row.type === 'check_in' ? 'حضور' : 'انصراف'}
+                  </span>
+                ),
+              },
+              {
+                key: 'c1',
+                header: 'الوقت',
+                ltr: true,
+                cell: (row) =>
+                  row.at ? new Date(row.at).toLocaleTimeString('ar-SA-u-ca-gregory-nu-latn') : '—',
+              },
+              {
+                key: 'c2',
+                header: 'النطاق الجغرافي',
+                cell: (row) => (
+                  <span className={`badge ${row.status === 'valid' ? 'ok' : 'warn'}`}>
+                    {row.status === 'valid' ? 'داخل النطاق' : 'خارج النطاق'}
+                  </span>
+                ),
+              },
+            ]}
+            rows={today}
+            rowKey={(row) => row.id}
+          />
         )}
       </Panel>
     </Page>

@@ -7,7 +7,6 @@ import {
   emailEvents,
   emailMessageStatuses,
   type EmailLocale,
-  type EmailMessage,
   type EmailMessageListResponse,
   type EmailSettings,
   type EmailTemplate,
@@ -20,6 +19,7 @@ import { Tabs } from '../../../components/ui';
 import { ApiError, apiData } from '../../../lib/api';
 import { useQuery } from '../../../lib/use-query';
 import { useSession } from '../../../lib/session';
+import { Table } from '../../../components/ui/table';
 
 /**
  * البريد — سطح منشأتك (P-C6، `docs/roadmap/PLATFORM_CONSOLE_PLAN.md` §7.3).
@@ -178,43 +178,60 @@ function TemplatesTab() {
         title="نصوص الرسائل"
         hint="«أعِد نصّ المنصة» يكتب نصّ المنصة في الحقل، وإن أعَدت الحقلين معاً حُذف تجاوزك وعاد الحدث إلى نصّها بالكامل."
       >
-        <div className="table-wrap">
-          <table className="table">
-            <thead>
-              <tr>
-                <th>الحدث</th>
-                <th>الموضوع</th>
-                <th>النصّ</th>
-                <th>المصدر</th>
-                <th>المتغيّرات</th>
-                <th />
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((row) => (
-                <tr key={row.event}>
-                  <td>{row.labelAr}</td>
-                  <td className="muted">{row.subject}</td>
-                  <td className="muted">
-                    {row.body.split('\n')[0]?.slice(0, 60)}
-                    {row.body.length > 60 ? '…' : ''}
-                  </td>
-                  <td>
-                    <span className={`chip ${row.source === 'tenant' ? 'on' : ''}`}>
-                      {row.source === 'tenant' ? 'نصّنا' : 'نصّ المنصة'}
-                    </span>
-                  </td>
-                  <td className="muted">{row.variables.map((name) => `{{${name}}}`).join(' ')}</td>
-                  <td>
-                    <button className="btn sm" type="button" onClick={() => open(row)}>
-                      تحرير
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <Table
+          bare
+          columns={[
+            {
+              key: 'c0',
+              header: 'الحدث',
+              cell: (row) => row.labelAr,
+            },
+            {
+              key: 'c1',
+              header: 'الموضوع',
+              cell: (row) => row.subject,
+            },
+            {
+              key: 'c2',
+              header: 'النصّ',
+              cell: (row) => (
+                <>
+                  {row.body.split('\n')[0]?.slice(0, 60)}
+                  {row.body.length > 60 ? '…' : ''}
+                </>
+              ),
+            },
+            {
+              key: 'c3',
+              header: 'المصدر',
+              cell: (row) => (
+                <>
+                  <span className={`chip ${row.source === 'tenant' ? 'on' : ''}`}>
+                    {row.source === 'tenant' ? 'نصّنا' : 'نصّ المنصة'}
+                  </span>
+                </>
+              ),
+            },
+            {
+              key: 'c4',
+              header: 'المتغيّرات',
+              cell: (row) => row.variables.map((name) => `{{${name}}}`).join(' '),
+            },
+            {
+              key: 'c5',
+              header: '',
+              cell: (row) => (
+                <>
+                  <button className="btn sm" type="button" onClick={() => open(row)}>
+                    تحرير
+                  </button>
+                </>
+              ),
+            },
+          ]}
+          rows={rows}
+          rowKey={(row) => row.event}
+        />
       </Panel>
 
       {editing && (
@@ -327,39 +344,56 @@ function MessagesTab() {
         hint="كل محاولة إرسال وحالتها وآخر خطأ — للرسائل التي تخصّ منشأتك وحدها."
       >
         <div className="table-wrap">
-          <table className="table">
-            <thead>
-              <tr>
-                <th>الوقت</th>
-                <th>إلى</th>
-                <th>الحدث</th>
-                <th>الحالة</th>
-                <th>المحاولات</th>
-                <th>آخر خطأ</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((row: EmailMessage) => (
-                <tr key={row.id}>
-                  <td>{dateTime(row.sentAt ?? row.queuedAt)}</td>
-                  <td>
+          <Table
+            bare
+            columns={[
+              {
+                key: 'c0',
+                header: 'الوقت',
+                cell: (row) => dateTime(row.sentAt ?? row.queuedAt),
+              },
+              {
+                key: 'c1',
+                header: 'إلى',
+                cell: (row) => (
+                  <>
                     {row.toEmail}
                     {row.isTest && <span className="chip">اختبار</span>}
-                  </td>
-                  <td>{row.eventLabelAr}</td>
-                  <td>
+                  </>
+                ),
+              },
+              {
+                key: 'c2',
+                header: 'الحدث',
+                cell: (row) => row.eventLabelAr,
+              },
+              {
+                key: 'c3',
+                header: 'الحالة',
+                cell: (row) => (
+                  <>
                     <span
                       className={`chip ${row.status === 'sent' ? 'on' : row.status === 'failed' ? 'off' : ''}`}
                     >
                       {STATUS_LABEL[row.status]}
                     </span>
-                  </td>
-                  <td>{row.attempts}</td>
-                  <td className="muted">{row.lastError ?? '—'}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                  </>
+                ),
+              },
+              {
+                key: 'c4',
+                header: 'المحاولات',
+                cell: (row) => row.attempts,
+              },
+              {
+                key: 'c5',
+                header: 'آخر خطأ',
+                cell: (row) => row.lastError ?? '—',
+              },
+            ]}
+            rows={rows}
+            rowKey={(row) => row.id}
+          />
           {rows.length === 0 && (
             <Empty
               title="لا رسائل بعد"

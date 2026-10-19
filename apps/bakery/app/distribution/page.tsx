@@ -36,6 +36,7 @@ import {
   type ItemOption,
   type WarehouseOption,
 } from '../../lib/lookups';
+import { Table } from '@erp/ui';
 
 /** الصلاحية التي يفرضها الخادم على `POST /van-sales/load-orders` وعلى `…/cancel`. */
 const LOAD_PERMISSION = 'van_sales.load.manage';
@@ -669,46 +670,79 @@ export default function DistributionPage() {
               </p>
             ) : (
               <div className="bak-table-wrap">
-                <table className="bak-table">
-                  <thead>
-                    <tr>
-                      <th>رقم الأمر</th>
-                      <th>التاريخ</th>
-                      <th>المندوب</th>
-                      <th>الصنف</th>
-                      <th>الدفعة</th>
-                      <th>مصروف</th>
-                      <th>مستلم</th>
-                      <th>الفرق</th>
-                      <th>المتبقي</th>
-                      <th>الحالة</th>
-                      <th>تسوية المخزون</th>
-                      <th>إجراء</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {loadOrders.map((row) => (
-                      <tr key={row.id ?? `${row.number ?? 'load'}-${row.loadDate ?? ''}`}>
-                        <td dir="ltr">{row.number ?? '—'}</td>
-                        <td dir="ltr">{row.loadDate ?? '—'}</td>
-                        <td>{row.salesmanName ?? '—'}</td>
-                        <td>{row.itemName ?? '—'}</td>
-                        <td dir="ltr">{batchCellText(row)}</td>
-                        <td className="num" dir="ltr">
-                          {numberText(row.loadedQty)}
-                        </td>
-                        <td className="num" dir="ltr">
-                          {numberText(row.receivedQty)}
-                        </td>
-                        <td className="num" dir="ltr">
-                          {numberText(row.discrepancyQty)}
-                        </td>
-                        <td className="num" dir="ltr">
-                          {numberText(row.remainingQty)}
-                        </td>
-                        <td></td>
-                        <td>{stockSettlementStatusLabel(row.stockSettlementStatus ?? '')}</td>
-                        <td>
+                <Table
+                  columns={[
+                    {
+                      key: 'c0',
+                      header: 'رقم الأمر',
+                      ltr: true,
+                      cell: (row) => row.number ?? '—',
+                    },
+                    {
+                      key: 'c1',
+                      header: 'التاريخ',
+                      ltr: true,
+                      cell: (row) => row.loadDate ?? '—',
+                    },
+                    {
+                      key: 'c2',
+                      header: 'المندوب',
+                      cell: (row) => row.salesmanName ?? '—',
+                    },
+                    {
+                      key: 'c3',
+                      header: 'الصنف',
+                      cell: (row) => row.itemName ?? '—',
+                    },
+                    {
+                      key: 'c4',
+                      header: 'الدفعة',
+                      ltr: true,
+                      cell: (row) => batchCellText(row),
+                    },
+                    {
+                      key: 'c5',
+                      header: 'مصروف',
+                      numeric: true,
+                      ltr: true,
+                      cell: (row) => numberText(row.loadedQty),
+                    },
+                    {
+                      key: 'c6',
+                      header: 'مستلم',
+                      numeric: true,
+                      ltr: true,
+                      cell: (row) => numberText(row.receivedQty),
+                    },
+                    {
+                      key: 'c7',
+                      header: 'الفرق',
+                      numeric: true,
+                      ltr: true,
+                      cell: (row) => numberText(row.discrepancyQty),
+                    },
+                    {
+                      key: 'c8',
+                      header: 'المتبقي',
+                      numeric: true,
+                      ltr: true,
+                      cell: (row) => numberText(row.remainingQty),
+                    },
+                    {
+                      key: 'c9',
+                      header: 'الحالة',
+                      cell: () => null,
+                    },
+                    {
+                      key: 'c10',
+                      header: 'تسوية المخزون',
+                      cell: (row) => stockSettlementStatusLabel(row.stockSettlementStatus ?? ''),
+                    },
+                    {
+                      key: 'c11',
+                      header: 'إجراء',
+                      cell: (row) => (
+                        <>
                           <div className="flex flex-wrap gap-1">
                             {canConfirmReceipt(row) ? (
                               <Button onClick={() => openAction(row, 'confirm')} size="sm" variant="ghost">
@@ -726,11 +760,13 @@ export default function DistributionPage() {
                               </Button>
                             ) : null}
                           </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                        </>
+                      ),
+                    },
+                  ]}
+                  rows={loadOrders}
+                  rowKey={(row) => row.id ?? `${row.number ?? 'load'}-${row.loadDate ?? ''}`}
+                />
               </div>
             )}
             {!loading && pendingReceipt.length > 0 ? (

@@ -5,6 +5,7 @@ import { Panel } from '@erp/ui';
 import { Empty, ErrorBox, Forbidden, Loading, Screen } from '../../../components/screen';
 import { apiData } from '../../../lib/api';
 import { useQuery } from '../../../lib/use-query';
+import { Table } from '../../../components/ui/table';
 
 type AuditRow = {
   id: string;
@@ -50,38 +51,46 @@ export default function TenantAuditPage() {
           <Empty title="لا توجد سجلات بعد" />
         ) : (
           <Panel flush title="سجل التدقيق">
-            <div className="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>الوقت</th>
-                    <th>الإجراء</th>
-                    <th>الكيان</th>
-                    <th>المعرف</th>
-                    <th>المستخدم</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {rows.map((row) => (
-                    <tr key={row.id}>
-                      <td dir="ltr">
-                        {new Date(row.occurredAt ?? row.occurred_at ?? Date.now()).toLocaleString(
-                          'ar-SA-u-ca-gregory-nu-latn',
-                        )}
-                      </td>
-                      <td dir="ltr">{row.action}</td>
-                      <td dir="ltr">{row.entityType ?? row.entity_type}</td>
-                      <td dir="ltr" className="small">
-                        {(row.entityId ?? row.entity_id ?? '').slice(0, 8)}
-                      </td>
-                      <td dir="ltr" className="small">
-                        {(row.actorUserId ?? row.actor_user_id ?? '—').slice(0, 8)}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <Table
+              bare
+              columns={[
+                {
+                  key: 'c0',
+                  header: 'الوقت',
+                  ltr: true,
+                  cell: (row) =>
+                    new Date(row.occurredAt ?? row.occurred_at ?? Date.now()).toLocaleString(
+                      'ar-SA-u-ca-gregory-nu-latn',
+                    ),
+                },
+                {
+                  key: 'c1',
+                  header: 'الإجراء',
+                  ltr: true,
+                  cell: (row) => row.action,
+                },
+                {
+                  key: 'c2',
+                  header: 'الكيان',
+                  ltr: true,
+                  cell: (row) => row.entityType ?? row.entity_type,
+                },
+                {
+                  key: 'c3',
+                  header: 'المعرف',
+                  ltr: true,
+                  cell: (row) => (row.entityId ?? row.entity_id ?? '').slice(0, 8),
+                },
+                {
+                  key: 'c4',
+                  header: 'المستخدم',
+                  ltr: true,
+                  cell: (row) => (row.actorUserId ?? row.actor_user_id ?? '—').slice(0, 8),
+                },
+              ]}
+              rows={rows}
+              rowKey={(row) => row.id}
+            />
           </Panel>
         ))}
     </Screen>

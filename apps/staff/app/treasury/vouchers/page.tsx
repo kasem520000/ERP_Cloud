@@ -34,6 +34,7 @@ import {
 } from '../../../lib/lookups';
 import { useSession } from '../../../lib/session';
 import { useQuery } from '../../../lib/use-query';
+import { Table } from '../../../components/ui/table';
 
 /**
  * سند قبض عميل / سند صرف لمورد — and the four siblings the desktop keeps beside them.
@@ -893,68 +894,79 @@ function VouchersScreen() {
             <p className="hint">لا توجد مرفقات — `frmshowdocument.xaml` «لا يوجد وثائق.»</p>
           )}
           {voucherFiles.status === 'success' && (voucherFiles.data?.data?.length ?? 0) > 0 && (
-            <div className="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>اسم الملف</th>
-                    <th>النوع</th>
-                    <th>الحجم</th>
-                    <th>التاريخ</th>
-                    <th />
-                  </tr>
-                </thead>
-                <tbody>
-                  {(voucherFiles.data?.data ?? []).map((file) => (
-                    <tr key={file.id}>
-                      <td>{file.name}</td>
-                      <td dir="ltr">{file.mime}</td>
-                      <td dir="ltr">{file.sizeBytes}</td>
-                      <td dir="ltr">{shortDate(file.createdAt)}</td>
-                      <td>
-                        <span className="row">
-                          <button
-                            className="btn sm"
-                            type="button"
-                            onClick={async () => {
-                              try {
-                                const link = await apiData<{ url: string }>(`/files/${file.id}/download`);
-                                window.open(link.url, '_blank');
-                              } catch (e) {
-                                setNotice({
-                                  kind: 'danger',
-                                  text: e instanceof ApiError ? e.message : String(e),
-                                });
-                              }
-                            }}
-                          >
-                            تنزيل
-                          </button>
-                          <button
-                            className="btn sm danger"
-                            type="button"
-                            onClick={async () => {
-                              if (!window.confirm(`هل أنت متأكد من حذف ${file.name}؟`)) return;
-                              try {
-                                await apiDelete(`/files/${file.id}`);
-                                voucherFiles.reload();
-                              } catch (e) {
-                                setNotice({
-                                  kind: 'danger',
-                                  text: e instanceof ApiError ? e.message : String(e),
-                                });
-                              }
-                            }}
-                          >
-                            حذف
-                          </button>
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <Table
+              bare
+              columns={[
+                {
+                  key: 'c0',
+                  header: 'اسم الملف',
+                  cell: (file) => file.name,
+                },
+                {
+                  key: 'c1',
+                  header: 'النوع',
+                  ltr: true,
+                  cell: (file) => file.mime,
+                },
+                {
+                  key: 'c2',
+                  header: 'الحجم',
+                  ltr: true,
+                  cell: (file) => file.sizeBytes,
+                },
+                {
+                  key: 'c3',
+                  header: 'التاريخ',
+                  ltr: true,
+                  cell: (file) => shortDate(file.createdAt),
+                },
+                {
+                  key: 'c4',
+                  header: '',
+                  cell: (file) => (
+                    <span className="row">
+                      <button
+                        className="btn sm"
+                        type="button"
+                        onClick={async () => {
+                          try {
+                            const link = await apiData<{ url: string }>(`/files/${file.id}/download`);
+                            window.open(link.url, '_blank');
+                          } catch (e) {
+                            setNotice({
+                              kind: 'danger',
+                              text: e instanceof ApiError ? e.message : String(e),
+                            });
+                          }
+                        }}
+                      >
+                        تنزيل
+                      </button>
+                      <button
+                        className="btn sm danger"
+                        type="button"
+                        onClick={async () => {
+                          if (!window.confirm(`هل أنت متأكد من حذف ${file.name}؟`)) return;
+                          try {
+                            await apiDelete(`/files/${file.id}`);
+                            voucherFiles.reload();
+                          } catch (e) {
+                            setNotice({
+                              kind: 'danger',
+                              text: e instanceof ApiError ? e.message : String(e),
+                            });
+                          }
+                        }}
+                      >
+                        حذف
+                      </button>
+                    </span>
+                  ),
+                },
+              ]}
+              rows={voucherFiles.data?.data ?? []}
+              rowKey={(file) => file.id}
+            />
           )}
         </Panel>
       )}

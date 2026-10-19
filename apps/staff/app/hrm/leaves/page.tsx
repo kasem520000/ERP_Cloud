@@ -5,6 +5,7 @@ import { useEffect, useState } from 'react';
 
 import { Empty, Screen } from '../../../components/screen';
 import { ApiError, apiData } from '../../../lib/api';
+import { Table } from '../../../components/ui/table';
 
 type Leave = {
   id: string;
@@ -54,28 +55,35 @@ export default function HrmLeavesPage() {
         </Panel>
       ) : (
         <Panel title="الإجازات المعتمدة" hint={`${rows.length} طلباً`} flush>
-          <div className="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>الموظف</th>
-                  <th>من</th>
-                  <th>إلى</th>
-                  <th>السبب</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((row) => (
-                  <tr key={row.id}>
-                    <td>{row.employee_name}</td>
-                    <td dir="ltr">{row.starts_on ?? '—'}</td>
-                    <td dir="ltr">{row.ends_on ?? '—'}</td>
-                    <td>{row.reason || '—'}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <Table
+            bare
+            columns={[
+              {
+                key: 'c0',
+                header: 'الموظف',
+                cell: (row) => row.employee_name,
+              },
+              {
+                key: 'c1',
+                header: 'من',
+                ltr: true,
+                cell: (row) => row.starts_on ?? '—',
+              },
+              {
+                key: 'c2',
+                header: 'إلى',
+                ltr: true,
+                cell: (row) => row.ends_on ?? '—',
+              },
+              {
+                key: 'c3',
+                header: 'السبب',
+                cell: (row) => row.reason || '—',
+              },
+            ]}
+            rows={rows}
+            rowKey={(row) => row.id}
+          />
         </Panel>
       )}
     </Screen>

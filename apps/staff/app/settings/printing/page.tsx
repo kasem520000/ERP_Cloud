@@ -20,6 +20,7 @@ import {
   type PrinterLink,
 } from '../../../lib/reports';
 import { useQuery } from '../../../lib/use-query';
+import { Table } from '../../../components/ui/table';
 
 const EMPTY: PrintSettings = {
   scope: 'default',
@@ -526,30 +527,33 @@ export default function PrintingSettingsPage() {
           }
           flush
         >
-          <div className="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>التقرير</th>
-                  <th>المفتاح</th>
-                  <th>الإعدادات</th>
-                </tr>
-              </thead>
-              <tbody>
-                {reports.slice(0, 12).map((report) => (
-                  <tr key={report.key}>
-                    <td>
-                      <Link href={`/reports/${report.key}`}>{report.titleAr}</Link>
-                    </td>
-                    <td dir="ltr" className="small">
-                      report:{report.key}
-                    </td>
-                    <td className="small">من «تقارير» ثم «الافتراضي»</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <Table
+            bare
+            columns={[
+              {
+                key: 'c0',
+                header: 'التقرير',
+                cell: (report) => (
+                  <>
+                    <Link href={`/reports/${report.key}`}>{report.titleAr}</Link>
+                  </>
+                ),
+              },
+              {
+                key: 'c1',
+                header: 'المفتاح',
+                ltr: true,
+                cell: (report) => <>report:{report.key}</>,
+              },
+              {
+                key: 'c2',
+                header: 'الإعدادات',
+                cell: () => 'من «تقارير» ثم «الافتراضي»',
+              },
+            ]}
+            rows={reports.slice(0, 12)}
+            rowKey={(report) => report.key}
+          />
         </Panel>
       )}
     </Screen>

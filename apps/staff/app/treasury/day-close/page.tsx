@@ -21,6 +21,7 @@ import {
 } from '../../../lib/lookups';
 import { useSession } from '../../../lib/session';
 import { useQuery } from '../../../lib/use-query';
+import { Table } from '../../../components/ui/table';
 
 /**
  * إغلاقات اليومية — `Form_WPF/frmCloseShift.xaml` («عرض وإدارة إغلاقات وردية
@@ -529,39 +530,43 @@ export default function DayClosePage() {
                     الملاحظات المعدودة ({detail.counts.length}) · سطور الملخّص ({detail.lines.length})
                   </p>
                   {detail.counts.length > 0 && (
-                    <table className="compact">
-                      <thead>
-                        <tr>
-                          <th>الفئة</th>
-                          <th>العدد</th>
-                          <th>الإجمالي</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {detail.counts.map((line) => (
-                          <tr key={line.denomination}>
-                            <td>{line.denomination}</td>
-                            <td>{line.count}</td>
-                            <td>{money(line.total)}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                    <Table
+                      bare
+                      columns={[
+                        {
+                          key: 'c0',
+                          header: 'الفئة',
+                          cell: (line) => line.denomination,
+                        },
+                        {
+                          key: 'c1',
+                          header: 'العدد',
+                          cell: (line) => line.count,
+                        },
+                        {
+                          key: 'c2',
+                          header: 'الإجمالي',
+                          cell: (line) => money(line.total),
+                        },
+                      ]}
+                      rows={detail.counts}
+                      rowKey={(line) => line.denomination}
+                    />
                   )}
                   {detail.lines.length > 0 && (
-                    <table className="compact">
-                      <thead>
-                        <tr>
-                          <th>النوع</th>
-                          <th>الطريقة</th>
-                          <th>المبلغ</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {detail.lines.map((line, index) => (
-                          <tr key={`${line.kind}-${index}`}>
-                            <td>{KIND_LABELS[line.kind] ?? line.kind}</td>
-                            <td>
+                    <Table
+                      bare
+                      columns={[
+                        {
+                          key: 'c0',
+                          header: 'النوع',
+                          cell: (line) => KIND_LABELS[line.kind] ?? line.kind,
+                        },
+                        {
+                          key: 'c1',
+                          header: 'الطريقة',
+                          cell: (line) => (
+                            <>
                               {/**
                                * 🏦 a named transfer names its bank — the whole point of
                                * `frmPayBank`, and the reason the line exists at all.
@@ -569,12 +574,18 @@ export default function DayClosePage() {
                               {line.kind === 'bank-transfer' && line.metadata?.name
                                 ? line.metadata.name
                                 : (METHOD_LABELS[line.method ?? ''] ?? line.method ?? '—')}
-                            </td>
-                            <td>{money(line.amount)}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                            </>
+                          ),
+                        },
+                        {
+                          key: 'c2',
+                          header: 'المبلغ',
+                          cell: (line) => money(line.amount),
+                        },
+                      ]}
+                      rows={detail.lines}
+                      rowKey={(line, index) => `${line.kind}-${index}`}
+                    />
                   )}
                 </div>
               ) : null

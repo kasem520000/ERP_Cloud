@@ -9,6 +9,7 @@ import { apiDelete, apiFetch, apiList, apiPatch, apiPost } from '../../../lib/ap
 import { listParties, type Party } from '../../../lib/lookups';
 import { useSession } from '../../../lib/session';
 import { useQuery } from '../../../lib/use-query';
+import { Table } from '../../../components/ui/table';
 
 /**
  * المخالفات — `Form_WPF/frmViolationM.xaml` («المخالفات»).
@@ -255,38 +256,58 @@ function MarinaViolations() {
             {rows.length === 0 ? (
               <Empty bare title="لا توجد مخالفات" detail="ابدأ بـ «جديد»: مركب، ونوع، ومدة بالأيام." />
             ) : (
-              <div className="table-wrap">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>الرقم</th>
-                      <th>المركب</th>
-                      <th>الحالة</th>
-                      <th>التاريخ</th>
-                      <th>نوع المخالفة</th>
-                      <th className="num">مدة المخالفة (يوم)</th>
-                      <th>ملاحظة</th>
-                      {canManage && <th>إجراءات</th>}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {rows.map((row) => (
-                      <tr key={row.id} onDoubleClick={() => canManage && setDraft(draftOf(row))}>
-                        <td dir="ltr">{row.number ?? '—'}</td>
-                        <td>{row.vesselName || '—'}</td>
-                        <td>
-                          <span className={`badge${row.statusText === 'مفتوحة' ? '' : ' danger'}`}>
-                            {row.statusText}
-                          </span>
-                        </td>
-                        <td dir="ltr">{row.violationDate}</td>
-                        <td>{row.violationType ?? '—'}</td>
-                        <td className="num" dir="ltr">
-                          {row.periodDays ? Number(row.periodDays).toString() : '—'}
-                        </td>
-                        <td>{row.description || '—'}</td>
-                        {canManage && (
-                          <td>
+              <Table
+                bare
+                columns={[
+                  {
+                    key: 'c0',
+                    header: 'الرقم',
+                    ltr: true,
+                    cell: (row) => row.number ?? '—',
+                  },
+                  {
+                    key: 'c1',
+                    header: 'المركب',
+                    cell: (row) => row.vesselName || '—',
+                  },
+                  {
+                    key: 'c2',
+                    header: 'الحالة',
+                    cell: (row) => (
+                      <span className={`badge${row.statusText === 'مفتوحة' ? '' : ' danger'}`}>
+                        {row.statusText}
+                      </span>
+                    ),
+                  },
+                  {
+                    key: 'c3',
+                    header: 'التاريخ',
+                    ltr: true,
+                    cell: (row) => row.violationDate,
+                  },
+                  {
+                    key: 'c4',
+                    header: 'نوع المخالفة',
+                    cell: (row) => row.violationType ?? '—',
+                  },
+                  {
+                    key: 'c5',
+                    header: 'مدة المخالفة (يوم)',
+                    numeric: true,
+                    ltr: true,
+                    cell: (row) => (row.periodDays ? Number(row.periodDays).toString() : '—'),
+                  },
+                  {
+                    key: 'c6',
+                    header: 'ملاحظة',
+                    cell: (row) => row.description || '—',
+                  },
+                  ...(canManage
+                    ? [
+                        {
+                          key: 'c7',
+                          header: 'إجراءات',
+                          cell: (row: Violation) => (
                             <div className="row" style={{ gap: 4 }}>
                               <button className="btn sm" type="button" onClick={() => setDraft(draftOf(row))}>
                                 تعديل
@@ -295,13 +316,14 @@ function MarinaViolations() {
                                 حذف
                               </button>
                             </div>
-                          </td>
-                        )}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                          ),
+                        },
+                      ]
+                    : []),
+                ]}
+                rows={rows}
+                rowKey={(row) => row.id}
+              />
             )}
           </Panel>
         </>

@@ -9,6 +9,7 @@ import { apiDelete, apiList, apiPatch, apiPost, ApiError } from '../../../lib/ap
 import { branchOptions, listBranches, type Branch } from '../../../lib/lookups';
 import { useSession } from '../../../lib/session';
 import { useQuery } from '../../../lib/use-query';
+import { Table } from '../../../components/ui/table';
 
 /**
  * الإدارات والأقسام — `Form_WPF/frmManagement.xaml` («الإدارات») and
@@ -208,54 +209,67 @@ export default function DepartmentsPage() {
           {managements.length === 0 ? (
             <Empty title="لا توجد إدارات" detail="الإدارة هي المستوى الأعلى الذي تُبنى عليه الأقسام." />
           ) : (
-            <div className="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>الرقم</th>
-                    <th>اسم الإدارة</th>
-                    <th>الأقسام</th>
-                    <th>الموظفون</th>
-                    <th />
-                  </tr>
-                </thead>
-                <tbody>
-                  {managements.map((row) => (
-                    <tr key={row.id}>
-                      <td dir="ltr">{row.code}</td>
-                      <td>{row.name}</td>
-                      <td dir="ltr">{row.sectionCount ?? 0}</td>
-                      <td dir="ltr">{row.employeeCount ?? 0}</td>
-                      <td>
-                        <button
-                          className="btn small"
-                          type="button"
-                          onClick={() =>
-                            setManagementForm({
-                              id: row.id,
-                              code: row.code,
-                              name: row.name,
-                              branchId: row.branchId ?? '',
-                              parentId: '',
-                            })
-                          }
-                        >
-                          <Pencil size={13} />
-                        </button>{' '}
-                        <button
-                          className="btn small danger"
-                          type="button"
-                          disabled={busy}
-                          onClick={() => void remove(row)}
-                        >
-                          <Trash2 size={13} />
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <Table
+              bare
+              columns={[
+                {
+                  key: 'c0',
+                  header: 'الرقم',
+                  ltr: true,
+                  cell: (row) => row.code,
+                },
+                {
+                  key: 'c1',
+                  header: 'اسم الإدارة',
+                  cell: (row) => row.name,
+                },
+                {
+                  key: 'c2',
+                  header: 'الأقسام',
+                  ltr: true,
+                  cell: (row) => row.sectionCount ?? 0,
+                },
+                {
+                  key: 'c3',
+                  header: 'الموظفون',
+                  ltr: true,
+                  cell: (row) => row.employeeCount ?? 0,
+                },
+                {
+                  key: 'c4',
+                  header: '',
+                  cell: (row) => (
+                    <>
+                      <button
+                        className="btn small"
+                        type="button"
+                        onClick={() =>
+                          setManagementForm({
+                            id: row.id,
+                            code: row.code,
+                            name: row.name,
+                            branchId: row.branchId ?? '',
+                            parentId: '',
+                          })
+                        }
+                      >
+                        <Pencil size={13} />
+                      </button>{' '}
+                      <button
+                        className="btn small danger"
+                        type="button"
+                        disabled={busy}
+                        onClick={() => void remove(row)}
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    </>
+                  ),
+                },
+              ]}
+              rows={managements}
+              rowKey={(row) => row.id}
+            />
           )}
         </Panel>
       )}
@@ -314,52 +328,64 @@ export default function DepartmentsPage() {
           {sections.length === 0 ? (
             <Empty title="لا توجد أقسام" detail="القسم يُضاف تحت إدارة قائمة." />
           ) : (
-            <div className="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>الرقم</th>
-                    <th>اسم القسم</th>
-                    <th>اسم الإدارة التابع لها</th>
-                    <th>الموظفون</th>
-                    <th />
-                  </tr>
-                </thead>
-                <tbody>
-                  {sections.map((row) => (
-                    <tr key={row.id}>
-                      <td dir="ltr">{row.code}</td>
-                      <td>{row.name}</td>
-                      <td>{row.parentName ?? '—'}</td>
-                      <td dir="ltr">{row.employeeCount ?? 0}</td>
-                      <td>
-                        <button
-                          className="btn small"
-                          type="button"
-                          onClick={() =>
-                            setSectionForm({
-                              id: row.id,
-                              code: row.code,
-                              name: row.name,
-                              branchId: row.branchId ?? '',
-                              parentId: row.parentId ?? '',
-                            })
-                          }
-                        ></button>{' '}
-                        <button
-                          className="btn small danger"
-                          type="button"
-                          disabled={busy}
-                          onClick={() => void remove(row)}
-                        >
-                          <Trash2 size={13} />
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <Table
+              bare
+              columns={[
+                {
+                  key: 'c0',
+                  header: 'الرقم',
+                  ltr: true,
+                  cell: (row) => row.code,
+                },
+                {
+                  key: 'c1',
+                  header: 'اسم القسم',
+                  cell: (row) => row.name,
+                },
+                {
+                  key: 'c2',
+                  header: 'اسم الإدارة التابع لها',
+                  cell: (row) => row.parentName ?? '—',
+                },
+                {
+                  key: 'c3',
+                  header: 'الموظفون',
+                  ltr: true,
+                  cell: (row) => row.employeeCount ?? 0,
+                },
+                {
+                  key: 'c4',
+                  header: '',
+                  cell: (row) => (
+                    <>
+                      <button
+                        className="btn small"
+                        type="button"
+                        onClick={() =>
+                          setSectionForm({
+                            id: row.id,
+                            code: row.code,
+                            name: row.name,
+                            branchId: row.branchId ?? '',
+                            parentId: row.parentId ?? '',
+                          })
+                        }
+                      ></button>{' '}
+                      <button
+                        className="btn small danger"
+                        type="button"
+                        disabled={busy}
+                        onClick={() => void remove(row)}
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    </>
+                  ),
+                },
+              ]}
+              rows={sections}
+              rowKey={(row) => row.id}
+            />
           )}
         </Panel>
       )}
@@ -369,28 +395,35 @@ export default function DepartmentsPage() {
           {rows.length === 0 ? (
             <Empty bare title="لا توجد إدارات أو أقسام" detail="أنشئ إدارة لتبدأ هيكل الأقسام." />
           ) : (
-            <div className="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>الرقم</th>
-                    <th>الاسم</th>
-                    <th>اسم الإدارة التابع لها</th>
-                    <th>الموظفون</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {rows.map((row) => (
-                    <tr key={row.id}>
-                      <td dir="ltr">{row.code}</td>
-                      <td>{row.name}</td>
-                      <td>{row.parentName ?? (row.kind === 'management' ? '— إدارة —' : '—')}</td>
-                      <td dir="ltr">{row.employeeCount ?? 0}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <Table
+              bare
+              columns={[
+                {
+                  key: 'c0',
+                  header: 'الرقم',
+                  ltr: true,
+                  cell: (row) => row.code,
+                },
+                {
+                  key: 'c1',
+                  header: 'الاسم',
+                  cell: (row) => row.name,
+                },
+                {
+                  key: 'c2',
+                  header: 'اسم الإدارة التابع لها',
+                  cell: (row) => row.parentName ?? (row.kind === 'management' ? '— إدارة —' : '—'),
+                },
+                {
+                  key: 'c3',
+                  header: 'الموظفون',
+                  ltr: true,
+                  cell: (row) => row.employeeCount ?? 0,
+                },
+              ]}
+              rows={rows}
+              rowKey={(row) => row.id}
+            />
           )}
         </Panel>
       )}

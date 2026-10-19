@@ -31,6 +31,7 @@ import {
   type Salesman,
   type Warehouse,
 } from '../../lib/lookups';
+import { Table } from '../../components/ui/table';
 
 /**
  * صف من الرصيد الرسمي — one row of `stock_balances`, the ledger the item card and the
@@ -1922,44 +1923,71 @@ export default function VanSalesPage() {
                 totalsClause: DASHBOARD_TOTALS_CLAUSE,
               })}
             </div>
-            <div className="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>الوقت</th>
-                    <th>نوع الحركة</th>
-                    <th>دفعة الإنتاج</th>
-                    <th>المندوب</th>
-                    <th>العميل</th>
-                    <th>الكمية (كجم)</th>
-                    <th>المبلغ (SAR)</th>
-                    <th>البيان والسبب</th>
-                    <th>منفّذ العملية</th>
-                    <th>المعتمد</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {(data?.movements ?? []).map((m) => (
-                    <tr key={m.id}>
-                      <td dir="ltr" className="small">
-                        {new Date(m.createdAt).toLocaleString('ar-SA-u-ca-gregory-nu-latn')}
-                      </td>
-                      <td>
-                        <strong>{MOVEMENT_TYPE_AR[m.movementType] ?? m.movementType}</strong>
-                      </td>
-                      <td dir="ltr">{m.batchNo || '—'}</td>
-                      <td>{m.salesmanName}</td>
-                      <td>{m.customerName}</td>
-                      <td dir="ltr">{m.qty} kg</td>
-                      <td dir="ltr">{m.amount} SAR</td>
-                      <td>{m.reason}</td>
-                      <td>{m.actorLabel}</td>
-                      <td>{m.approvedByLabel || '—'}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <Table
+              bare
+              columns={[
+                {
+                  key: 'c0',
+                  header: 'الوقت',
+                  ltr: true,
+                  cell: (m) => new Date(m.createdAt).toLocaleString('ar-SA-u-ca-gregory-nu-latn'),
+                },
+                {
+                  key: 'c1',
+                  header: 'نوع الحركة',
+                  cell: (m) => (
+                    <>
+                      <strong>{MOVEMENT_TYPE_AR[m.movementType] ?? m.movementType}</strong>
+                    </>
+                  ),
+                },
+                {
+                  key: 'c2',
+                  header: 'دفعة الإنتاج',
+                  ltr: true,
+                  cell: (m) => m.batchNo || '—',
+                },
+                {
+                  key: 'c3',
+                  header: 'المندوب',
+                  cell: (m) => m.salesmanName,
+                },
+                {
+                  key: 'c4',
+                  header: 'العميل',
+                  cell: (m) => m.customerName,
+                },
+                {
+                  key: 'c5',
+                  header: 'الكمية (كجم)',
+                  ltr: true,
+                  cell: (m) => <>{m.qty} kg</>,
+                },
+                {
+                  key: 'c6',
+                  header: 'المبلغ (SAR)',
+                  ltr: true,
+                  cell: (m) => <>{m.amount} SAR</>,
+                },
+                {
+                  key: 'c7',
+                  header: 'البيان والسبب',
+                  cell: (m) => m.reason,
+                },
+                {
+                  key: 'c8',
+                  header: 'منفّذ العملية',
+                  cell: (m) => m.actorLabel,
+                },
+                {
+                  key: 'c9',
+                  header: 'المعتمد',
+                  cell: (m) => m.approvedByLabel || '—',
+                },
+              ]}
+              rows={data?.movements ?? []}
+              rowKey={(m) => m.id}
+            />
           </Panel>
         </div>
       )}
@@ -2293,229 +2321,282 @@ export default function VanSalesPage() {
                 totalsClause: DASHBOARD_TOTALS_CLAUSE,
               })}
             </div>
-            <div className="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>رقم الأمر</th>
-                    <th>المندوب</th>
-                    <th>دفعة الإنتاج</th>
-                    <th>المصروف من المستودع</th>
-                    <th>أكّد المندوب استلامه</th>
-                    <th>المباع</th>
-                    <th>البونص</th>
-                    <th>مرتجع سليم</th>
-                    <th>تالف للفحص</th>
-                    <th>العجز على المندوب</th>
-                    <th>المتبقي (متوقع / جرد فعلي)</th>
-                    <th>النقد المتوقع / المسلم</th>
-                    <th>الحالة</th>
-                    <th>إجراء الإغلاق والاعتماد</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {(data?.loadOrders ?? []).map((l) => (
-                    <tr key={l.id}>
-                      <td dir="ltr">
-                        <strong>{l.number}</strong>
-                      </td>
-                      <td>
-                        <strong>{l.salesmanName}</strong>
-                      </td>
-                      <td dir="ltr">{l.productionBatchNo}</td>
-                      <td dir="ltr">
-                        <strong>{l.loadedQty} kg</strong>
-                      </td>
-                      <td dir="ltr">
-                        {l.awaitingReceipt ? (
-                          <div className="row" style={{ gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
-                            <span className="badge warn">{l.loadedQty} kg</span>
+            <Table
+              bare
+              columns={[
+                {
+                  key: 'c0',
+                  header: 'رقم الأمر',
+                  ltr: true,
+                  cell: (l) => (
+                    <>
+                      <strong>{l.number}</strong>
+                    </>
+                  ),
+                },
+                {
+                  key: 'c1',
+                  header: 'المندوب',
+                  cell: (l) => (
+                    <>
+                      <strong>{l.salesmanName}</strong>
+                    </>
+                  ),
+                },
+                {
+                  key: 'c2',
+                  header: 'دفعة الإنتاج',
+                  ltr: true,
+                  cell: (l) => l.productionBatchNo,
+                },
+                {
+                  key: 'c3',
+                  header: 'المصروف من المستودع',
+                  ltr: true,
+                  cell: (l) => (
+                    <>
+                      <strong>{l.loadedQty} kg</strong>
+                    </>
+                  ),
+                },
+                {
+                  key: 'c4',
+                  header: 'أكّد المندوب استلامه',
+                  ltr: true,
+                  cell: (l) =>
+                    l.awaitingReceipt ? (
+                      <div className="row" style={{ gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
+                        <span className="badge warn">{l.loadedQty} kg</span>
+                        <button
+                          type="button"
+                          className="btn sm primary"
+                          disabled={busy}
+                          onClick={() => void confirmLoadReceipt(l.id, l.loadedQty)}
+                        >
+                          تأكيد الاستلام نيابةً عن المندوب
+                        </button>
+                      </div>
+                    ) : (
+                      <>
+                        <strong>{l.receivedQty ?? '0.00'} kg</strong>
+                        {Number(l.discrepancyQty ?? 0) > 0 ? (
+                          <div className="muted small" style={{ color: 'var(--danger)' }}>
+                            فرق {l.discrepancyQty} kg
+                            {l.discrepancyNotes ? ` — ${l.discrepancyNotes}` : ''}
+                          </div>
+                        ) : null}
+                      </>
+                    ),
+                },
+                {
+                  key: 'c5',
+                  header: 'المباع',
+                  ltr: true,
+                  cell: (l) => <>{l.soldQty} kg</>,
+                },
+                {
+                  key: 'c6',
+                  header: 'البونص',
+                  ltr: true,
+                  cell: (l) => <>{l.bonusQty} kg</>,
+                },
+                {
+                  key: 'c7',
+                  header: 'مرتجع سليم',
+                  ltr: true,
+                  cell: (l) => <>{l.returnedQty} kg</>,
+                },
+                {
+                  key: 'c8',
+                  header: 'تالف للفحص',
+                  ltr: true,
+                  cell: (l) => (
+                    <>
+                      {l.damagedQty} kg
+                      {l.damageInspected && Number(l.damagedQty) > 0 ? ' (مفحوص)' : ''}
+                    </>
+                  ),
+                },
+                {
+                  key: 'c9',
+                  header: 'العجز على المندوب',
+                  ltr: true,
+                  cell: (l) => (
+                    <>
+                      {l.shortageQty} kg
+                      {Number(l.shortageValue) > 0 ? ` (${l.shortageValue} SAR)` : ''}
+                    </>
+                  ),
+                },
+                {
+                  key: 'c10',
+                  header: 'المتبقي (متوقع / جرد فعلي)',
+                  ltr: true,
+                  cell: (l) => (
+                    <>
+                      <strong>{l.remainingQty} kg</strong>
+                      <div className="muted small">
+                        متوقع {l.expectedRemainingQty ?? '0.00'} / جرد {l.actualRemainingQty ?? '0.00'}
+                      </div>
+                      {Number(l.countVarianceQty ?? 0) !== 0 ? (
+                        <div
+                          className="muted small"
+                          style={{
+                            color: Number(l.countVarianceQty ?? 0) > 0 ? 'var(--danger)' : 'var(--ok)',
+                          }}
+                        >
+                          {Number(l.countVarianceQty ?? 0) > 0
+                            ? `عجز جرد ${l.countVarianceQty} kg`
+                            : `فائض جرد ${Math.abs(Number(l.countVarianceQty ?? 0)).toFixed(2)} kg`}
+                          {l.countVarianceCostValue
+                            ? ` ≈ ${l.countVarianceCostValue} ريال على أساس التكلفة`
+                            : ''}
+                          {l.countDocumentVarianceValue
+                            ? ` (مستند الجرد الرسمي: ${l.countDocumentVarianceValue} ريال)`
+                            : ' (مستند الجرد لم يُرحَّل بعد)'}
+                          <br />
+                          قيمة تسوية مخزنية — <b>ليست ديناً على المندوب</b>: المسؤولية المالية تبقى معلّقة حتى
+                          تعتمد السياسة.
+                        </div>
+                      ) : null}
+                    </>
+                  ),
+                },
+                {
+                  key: 'c11',
+                  header: 'النقد المتوقع / المسلم',
+                  ltr: true,
+                  cell: (l) => (
+                    <>
+                      {l.expectedCash} / {l.collectedCash} SAR
+                    </>
+                  ),
+                },
+                {
+                  key: 'c12',
+                  header: 'الحالة',
+                  cell: (l) => (
+                    <>
+                      <span
+                        className={`badge ${
+                          l.status === 'settled' || l.status === 'reconciled'
+                            ? 'ok'
+                            : l.status === 'pending_closing' || l.status === 'pending_stock_settlement'
+                              ? 'warn'
+                              : l.status === 'rejected' || l.status === 'canceled'
+                                ? 'neutral'
+                                : 'neutral'
+                        }`}
+                      >
+                        {LOAD_STATUS_AR[l.status] ?? l.status}
+                      </span>
+                      {l.stockSettlementStatus && l.stockSettlementStatus !== 'not_required' ? (
+                        <div
+                          className="muted small"
+                          style={{
+                            color:
+                              l.awaitingStockSettlement || l.awaitingTransitDecision
+                                ? 'var(--danger)'
+                                : undefined,
+                          }}
+                        >
+                          {SETTLEMENT_STATUS_AR[l.stockSettlementStatus] ?? l.stockSettlementStatus}
+                          {l.remainingAction
+                            ? ` · المتبقي: ${
+                                l.remainingAction === 'return_to_main'
+                                  ? 'إرجاع للمستودع الرئيسي'
+                                  : 'عهدة الوردية التالية'
+                              }`
+                            : ''}
+                          {l.stockSettlementNote ? ` — ${l.stockSettlementNote}` : ''}
+                        </div>
+                      ) : null}
+                    </>
+                  ),
+                },
+                {
+                  key: 'c13',
+                  header: 'إجراء الإغلاق والاعتماد',
+                  cell: (l) => (
+                    <>
+                      <div className="row" style={{ gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+                        {l.awaitingStockSettlement ? (
+                          <>
                             <button
                               type="button"
                               className="btn sm primary"
                               disabled={busy}
-                              onClick={() => void confirmLoadReceipt(l.id, l.loadedQty)}
+                              onClick={() => void handleSettleLoadOrderStock(l, true)}
                             >
-                              تأكيد الاستلام نيابةً عن المندوب
+                              استكمال تسوية المخزون وترحيل مستند الجرد
                             </button>
-                          </div>
-                        ) : (
-                          <>
-                            <strong>{l.receivedQty ?? '0.00'} kg</strong>
-                            {Number(l.discrepancyQty ?? 0) > 0 ? (
-                              <div className="muted small" style={{ color: 'var(--danger)' }}>
-                                فرق {l.discrepancyQty} kg
-                                {l.discrepancyNotes ? ` — ${l.discrepancyNotes}` : ''}
-                              </div>
-                            ) : null}
-                          </>
-                        )}
-                      </td>
-                      <td dir="ltr" style={{ color: 'var(--ok)', fontWeight: 700 }}>
-                        {l.soldQty} kg
-                      </td>
-                      <td dir="ltr" style={{ color: 'var(--warn)' }}>
-                        {l.bonusQty} kg
-                      </td>
-                      <td dir="ltr">{l.returnedQty} kg</td>
-                      <td dir="ltr" style={{ color: Number(l.damagedQty) > 0 ? 'var(--warn)' : undefined }}>
-                        {l.damagedQty} kg
-                        {l.damageInspected && Number(l.damagedQty) > 0 ? ' (مفحوص)' : ''}
-                      </td>
-                      <td
-                        dir="ltr"
-                        style={{
-                          color: Number(l.shortageQty) > 0 ? 'var(--danger)' : undefined,
-                          fontWeight: 700,
-                        }}
-                      >
-                        {l.shortageQty} kg
-                        {Number(l.shortageValue) > 0 ? ` (${l.shortageValue} SAR)` : ''}
-                      </td>
-                      <td dir="ltr">
-                        <strong>{l.remainingQty} kg</strong>
-                        <div className="muted small">
-                          متوقع {l.expectedRemainingQty ?? '0.00'} / جرد {l.actualRemainingQty ?? '0.00'}
-                        </div>
-                        {Number(l.countVarianceQty ?? 0) !== 0 ? (
-                          <div
-                            className="muted small"
-                            style={{
-                              color: Number(l.countVarianceQty ?? 0) > 0 ? 'var(--danger)' : 'var(--ok)',
-                            }}
-                          >
-                            {Number(l.countVarianceQty ?? 0) > 0
-                              ? `عجز جرد ${l.countVarianceQty} kg`
-                              : `فائض جرد ${Math.abs(Number(l.countVarianceQty ?? 0)).toFixed(2)} kg`}
-                            {l.countVarianceCostValue
-                              ? ` ≈ ${l.countVarianceCostValue} ريال على أساس التكلفة`
-                              : ''}
-                            {l.countDocumentVarianceValue
-                              ? ` (مستند الجرد الرسمي: ${l.countDocumentVarianceValue} ريال)`
-                              : ' (مستند الجرد لم يُرحَّل بعد)'}
-                            <br />
-                            قيمة تسوية مخزنية — <b>ليست ديناً على المندوب</b>: المسؤولية المالية تبقى معلّقة
-                            حتى تعتمد السياسة.
-                          </div>
-                        ) : null}
-                      </td>
-                      <td dir="ltr">
-                        {l.expectedCash} / {l.collectedCash} SAR
-                      </td>
-                      <td>
-                        <span
-                          className={`badge ${
-                            l.status === 'settled' || l.status === 'reconciled'
-                              ? 'ok'
-                              : l.status === 'pending_closing' || l.status === 'pending_stock_settlement'
-                                ? 'warn'
-                                : l.status === 'rejected' || l.status === 'canceled'
-                                  ? 'neutral'
-                                  : 'neutral'
-                          }`}
-                        >
-                          {LOAD_STATUS_AR[l.status] ?? l.status}
-                        </span>
-                        {l.stockSettlementStatus && l.stockSettlementStatus !== 'not_required' ? (
-                          <div
-                            className="muted small"
-                            style={{
-                              color:
-                                l.awaitingStockSettlement || l.awaitingTransitDecision
-                                  ? 'var(--danger)'
-                                  : undefined,
-                            }}
-                          >
-                            {SETTLEMENT_STATUS_AR[l.stockSettlementStatus] ?? l.stockSettlementStatus}
-                            {l.remainingAction
-                              ? ` · المتبقي: ${
-                                  l.remainingAction === 'return_to_main'
-                                    ? 'إرجاع للمستودع الرئيسي'
-                                    : 'عهدة الوردية التالية'
-                                }`
-                              : ''}
-                            {l.stockSettlementNote ? ` — ${l.stockSettlementNote}` : ''}
-                          </div>
-                        ) : null}
-                      </td>
-                      <td>
-                        <div className="row" style={{ gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
-                          {l.awaitingStockSettlement ? (
-                            <>
-                              <button
-                                type="button"
-                                className="btn sm primary"
-                                disabled={busy}
-                                onClick={() => void handleSettleLoadOrderStock(l, true)}
-                              >
-                                استكمال تسوية المخزون وترحيل مستند الجرد
-                              </button>
-                              <button
-                                type="button"
-                                className="btn sm"
-                                disabled={busy}
-                                onClick={() => openClosingModal(l)}
-                              >
-                                مراجعة الأرقام
-                              </button>
-                            </>
-                          ) : l.status !== 'settled' && l.status !== 'reconciled' ? (
-                            <button
-                              type="button"
-                              className={`btn sm ${l.status === 'pending_closing' ? 'primary' : ''}`}
-                              disabled={l.status === 'rejected' || l.status === 'canceled'}
-                              onClick={() => openClosingModal(l)}
-                            >
-                              {l.status === 'pending_closing'
-                                ? 'مراجعة واعتماد المحاسب'
-                                : 'إغلاق الوردية وتصفية العهدة'}
-                            </button>
-                          ) : (
-                            <span className="muted small">
-                              معتمد ومسوّى {l.approvedByLabel ? `بواسطة ${l.approvedByLabel}` : ''}
-                            </span>
-                          )}
-
-                          {/* فرق استلام بلا قرار — the quantity is still officially in transit */}
-                          {l.awaitingTransitDecision ? (
-                            <>
-                              <button
-                                type="button"
-                                className="btn sm"
-                                disabled={busy}
-                                onClick={() => void handleCloseTransitDifference(l, 'return')}
-                              >
-                                إرجاع الفرق إلى المصدر
-                              </button>
-                              <button
-                                type="button"
-                                className="btn sm"
-                                disabled={busy}
-                                onClick={() => void handleCloseTransitDifference(l, 'shortage')}
-                              >
-                                اعتباره عجز تحويل
-                              </button>
-                            </>
-                          ) : null}
-
-                          {/* إلغاء توريد لم يُستلَم بعد */}
-                          {l.status === 'pending_receipt' ? (
                             <button
                               type="button"
                               className="btn sm"
                               disabled={busy}
-                              onClick={() => void handleCancelLoadOrder(l)}
+                              onClick={() => openClosingModal(l)}
                             >
-                              إلغاء التوريد
+                              مراجعة الأرقام
                             </button>
-                          ) : null}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                          </>
+                        ) : l.status !== 'settled' && l.status !== 'reconciled' ? (
+                          <button
+                            type="button"
+                            className={`btn sm ${l.status === 'pending_closing' ? 'primary' : ''}`}
+                            disabled={l.status === 'rejected' || l.status === 'canceled'}
+                            onClick={() => openClosingModal(l)}
+                          >
+                            {l.status === 'pending_closing'
+                              ? 'مراجعة واعتماد المحاسب'
+                              : 'إغلاق الوردية وتصفية العهدة'}
+                          </button>
+                        ) : (
+                          <span className="muted small">
+                            معتمد ومسوّى {l.approvedByLabel ? `بواسطة ${l.approvedByLabel}` : ''}
+                          </span>
+                        )}
+
+                        {/* فرق استلام بلا قرار — the quantity is still officially in transit */}
+                        {l.awaitingTransitDecision ? (
+                          <>
+                            <button
+                              type="button"
+                              className="btn sm"
+                              disabled={busy}
+                              onClick={() => void handleCloseTransitDifference(l, 'return')}
+                            >
+                              إرجاع الفرق إلى المصدر
+                            </button>
+                            <button
+                              type="button"
+                              className="btn sm"
+                              disabled={busy}
+                              onClick={() => void handleCloseTransitDifference(l, 'shortage')}
+                            >
+                              اعتباره عجز تحويل
+                            </button>
+                          </>
+                        ) : null}
+
+                        {/* إلغاء توريد لم يُستلَم بعد */}
+                        {l.status === 'pending_receipt' ? (
+                          <button
+                            type="button"
+                            className="btn sm"
+                            disabled={busy}
+                            onClick={() => void handleCancelLoadOrder(l)}
+                          >
+                            إلغاء التوريد
+                          </button>
+                        ) : null}
+                      </div>
+                    </>
+                  ),
+                },
+              ]}
+              rows={data?.loadOrders ?? []}
+              rowKey={(l) => l.id}
+            />
           </Panel>
 
           {/* Shift Closing & Accountant Approval Modal */}
@@ -3397,44 +3478,73 @@ export default function VanSalesPage() {
           </form>
 
           <Panel title="قائمة أسعار وسياسات العملاء المعتمدة" flush>
-            <div className="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>العميل</th>
-                    <th>الشريحة</th>
-                    <th>سعر الكيلو</th>
-                    <th>تثبيت السعر</th>
-                    <th>سقف الائتمان</th>
-                    <th>أقصى بونص</th>
-                    <th>أقصى خصم</th>
-                    <th>نوع الفاتورة</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {(data?.customerPrices ?? []).map((cp) => (
-                    <tr key={cp.id}>
-                      <td>
-                        <strong>{cp.partyName}</strong>
-                      </td>
-                      <td>{cp.priceTierLabel}</td>
-                      <td dir="ltr">
-                        <strong>{cp.unitPrice} SAR</strong>
-                      </td>
-                      <td>{cp.lockPrice ? <span className="badge ok">مثبّت</span> : 'مرن'}</td>
-                      <td dir="ltr">
-                        {cp.creditLimit} SAR ({cp.paymentTermsDays} يوم)
-                      </td>
-                      <td dir="ltr">
-                        {cp.maxBonusKgPerInvoice} kg ({cp.maxBonusPct}%)
-                      </td>
-                      <td dir="ltr">{cp.maxDiscountPct}%</td>
-                      <td>{cp.preferredInvoiceMode === 'zatca_tax' ? 'ضريبية ZATCA' : 'توزيع عادية'}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <Table
+              bare
+              columns={[
+                {
+                  key: 'c0',
+                  header: 'العميل',
+                  cell: (cp) => (
+                    <>
+                      <strong>{cp.partyName}</strong>
+                    </>
+                  ),
+                },
+                {
+                  key: 'c1',
+                  header: 'الشريحة',
+                  cell: (cp) => cp.priceTierLabel,
+                },
+                {
+                  key: 'c2',
+                  header: 'سعر الكيلو',
+                  ltr: true,
+                  cell: (cp) => (
+                    <>
+                      <strong>{cp.unitPrice} SAR</strong>
+                    </>
+                  ),
+                },
+                {
+                  key: 'c3',
+                  header: 'تثبيت السعر',
+                  cell: (cp) => (cp.lockPrice ? <span className="badge ok">مثبّت</span> : 'مرن'),
+                },
+                {
+                  key: 'c4',
+                  header: 'سقف الائتمان',
+                  ltr: true,
+                  cell: (cp) => (
+                    <>
+                      {cp.creditLimit} SAR ({cp.paymentTermsDays} يوم)
+                    </>
+                  ),
+                },
+                {
+                  key: 'c5',
+                  header: 'أقصى بونص',
+                  ltr: true,
+                  cell: (cp) => (
+                    <>
+                      {cp.maxBonusKgPerInvoice} kg ({cp.maxBonusPct}%)
+                    </>
+                  ),
+                },
+                {
+                  key: 'c6',
+                  header: 'أقصى خصم',
+                  ltr: true,
+                  cell: (cp) => <>{cp.maxDiscountPct}%</>,
+                },
+                {
+                  key: 'c7',
+                  header: 'نوع الفاتورة',
+                  cell: (cp) => (cp.preferredInvoiceMode === 'zatca_tax' ? 'ضريبية ZATCA' : 'توزيع عادية'),
+                },
+              ]}
+              rows={data?.customerPrices ?? []}
+              rowKey={(cp) => cp.id}
+            />
           </Panel>
 
           <Panel title="سجل تدقيق وتاريخ تعديلات أسعار العملاء" flush>
@@ -3443,34 +3553,51 @@ export default function VanSalesPage() {
                 totalsClause: DASHBOARD_TOTALS_CLAUSE,
               })}
             </div>
-            <div className="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>السعر السابق</th>
-                    <th>السعر الجديد</th>
-                    <th>بداية السريان</th>
-                    <th>تثبيت السعر</th>
-                    <th>سبب التعديل</th>
-                    <th>تاريخ التسجيل</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {(data?.customerPriceHistory ?? []).map((h) => (
-                    <tr key={h.id}>
-                      <td dir="ltr">{h.previousUnitPrice ? `${h.previousUnitPrice} SAR` : '—'}</td>
-                      <td dir="ltr">
-                        <strong>{h.newUnitPrice} SAR</strong>
-                      </td>
-                      <td dir="ltr">{h.effectiveFrom}</td>
-                      <td>{h.lockPrice ? 'مثبّت' : 'مرن'}</td>
-                      <td>{h.changeReason || '—'}</td>
-                      <td dir="ltr">{new Date(h.changedAt).toLocaleString('ar-SA-u-ca-gregory-nu-latn')}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <Table
+              bare
+              columns={[
+                {
+                  key: 'c0',
+                  header: 'السعر السابق',
+                  ltr: true,
+                  cell: (h) => (h.previousUnitPrice ? `${h.previousUnitPrice} SAR` : '—'),
+                },
+                {
+                  key: 'c1',
+                  header: 'السعر الجديد',
+                  ltr: true,
+                  cell: (h) => (
+                    <>
+                      <strong>{h.newUnitPrice} SAR</strong>
+                    </>
+                  ),
+                },
+                {
+                  key: 'c2',
+                  header: 'بداية السريان',
+                  ltr: true,
+                  cell: (h) => h.effectiveFrom,
+                },
+                {
+                  key: 'c3',
+                  header: 'تثبيت السعر',
+                  cell: (h) => (h.lockPrice ? 'مثبّت' : 'مرن'),
+                },
+                {
+                  key: 'c4',
+                  header: 'سبب التعديل',
+                  cell: (h) => h.changeReason || '—',
+                },
+                {
+                  key: 'c5',
+                  header: 'تاريخ التسجيل',
+                  ltr: true,
+                  cell: (h) => new Date(h.changedAt).toLocaleString('ar-SA-u-ca-gregory-nu-latn'),
+                },
+              ]}
+              rows={data?.customerPriceHistory ?? []}
+              rowKey={(h) => h.id}
+            />
           </Panel>
         </div>
       )}
@@ -3519,50 +3646,73 @@ export default function VanSalesPage() {
           </Panel>
 
           <Panel title="رادار الرقابة على الكميات المجانية (البونص) والعينات والخصومات" flush>
-            <div className="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>رقم الفاتورة</th>
-                    <th>المندوب</th>
-                    <th>العميل</th>
-                    <th>المباع</th>
-                    <th>البونص المجاني</th>
-                    <th>سبب البونص</th>
-                    <th>الخصم</th>
-                    <th>تأكيد العميل</th>
-                    <th>التنبيه الرقابي</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {(data?.documents ?? [])
-                    .filter((d) => Number(d.bonusQty) > 0 || Number(d.discountAmount) > 0 || d.bonusAnomaly)
-                    .map((d) => (
-                      <tr key={d.id}>
-                        <td dir="ltr">
-                          <strong>{d.number}</strong>
-                        </td>
-                        <td>{d.salesmanName}</td>
-                        <td>{d.customerName}</td>
-                        <td dir="ltr">{d.soldQty} kg</td>
-                        <td dir="ltr" style={{ color: 'var(--warn)', fontWeight: 700 }}>
-                          {d.bonusQty} kg
-                        </td>
-                        <td>{d.bonusReason || '—'}</td>
-                        <td dir="ltr">{d.discountAmount} SAR</td>
-                        <td>{d.customerBonusConfirmed ? 'مؤكد' : 'غير مؤكد'}</td>
-                        <td>
-                          {d.bonusAnomaly ? (
-                            <span className="badge danger">{d.anomalyReason || 'تجاوز سقف البونص'}</span>
-                          ) : (
-                            <span className="badge ok">ضمن السياسة المعتمدة</span>
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                </tbody>
-              </table>
-            </div>
+            <Table
+              bare
+              columns={[
+                {
+                  key: 'c0',
+                  header: 'رقم الفاتورة',
+                  ltr: true,
+                  cell: (d) => (
+                    <>
+                      <strong>{d.number}</strong>
+                    </>
+                  ),
+                },
+                {
+                  key: 'c1',
+                  header: 'المندوب',
+                  cell: (d) => d.salesmanName,
+                },
+                {
+                  key: 'c2',
+                  header: 'العميل',
+                  cell: (d) => d.customerName,
+                },
+                {
+                  key: 'c3',
+                  header: 'المباع',
+                  ltr: true,
+                  cell: (d) => <>{d.soldQty} kg</>,
+                },
+                {
+                  key: 'c4',
+                  header: 'البونص المجاني',
+                  ltr: true,
+                  cell: (d) => <>{d.bonusQty} kg</>,
+                },
+                {
+                  key: 'c5',
+                  header: 'سبب البونص',
+                  cell: (d) => d.bonusReason || '—',
+                },
+                {
+                  key: 'c6',
+                  header: 'الخصم',
+                  ltr: true,
+                  cell: (d) => <>{d.discountAmount} SAR</>,
+                },
+                {
+                  key: 'c7',
+                  header: 'تأكيد العميل',
+                  cell: (d) => (d.customerBonusConfirmed ? 'مؤكد' : 'غير مؤكد'),
+                },
+                {
+                  key: 'c8',
+                  header: 'التنبيه الرقابي',
+                  cell: (d) =>
+                    d.bonusAnomaly ? (
+                      <span className="badge danger">{d.anomalyReason || 'تجاوز سقف البونص'}</span>
+                    ) : (
+                      <span className="badge ok">ضمن السياسة المعتمدة</span>
+                    ),
+                },
+              ]}
+              rows={(data?.documents ?? []).filter(
+                (d) => Number(d.bonusQty) > 0 || Number(d.discountAmount) > 0 || d.bonusAnomaly,
+              )}
+              rowKey={(d) => d.id}
+            />
           </Panel>
 
           <Panel title="مصفوفة الصلاحيات والأمان للأدوار الأربعة في المصنع" flush>

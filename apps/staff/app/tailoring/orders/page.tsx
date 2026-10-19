@@ -8,6 +8,7 @@ import { apiDelete, apiFetch, apiList, apiPatch, apiPost } from '../../../lib/ap
 import { listParties, money, type Party } from '../../../lib/lookups';
 import { useSession } from '../../../lib/session';
 import { useQuery } from '../../../lib/use-query';
+import { Table } from '../../../components/ui/table';
 
 /**
  * إدارة طلبات التفصيل — `Form_WPF/frmOrders.xaml` («إدارة طلبات التفصيل») with the
@@ -340,82 +341,114 @@ function TailoringOrders() {
                 detail="ابدأ بـ «إضافة طلب جديد»، أو وسّع الفترة، أو اختر «الكل» في الحالة."
               />
             ) : (
-              <div className="table-wrap">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>رقم الطلب</th>
-                      <th>العميل</th>
-                      <th>الجوال</th>
-                      <th>القياس</th>
-                      <th>نوع التفصيل</th>
-                      <th>الحالة</th>
-                      <th>تاريخ الطلب</th>
-                      <th>موعد التسليم</th>
-                      <th className="num">السعر</th>
-                      <th className="num">المدفوع</th>
-                      <th className="num">المتبقي</th>
-                      {canManage && <th>إجراءات</th>}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {rows.map((row) => (
-                      <tr
-                        key={row.id}
-                        // ⌛ متأخّر — the desktop paints the row `#FFE4E4` with dark-red text.
-                        style={
-                          row.isDelayed ? { background: '#FFE4E4', color: 'var(--danger-ink)' } : undefined
-                        }
-                        onDoubleClick={() => canManage && openEdit(row)}
-                      >
-                        <td dir="ltr">{row.number}</td>
-                        <td>{row.customerName}</td>
-                        <td dir="ltr">{row.customerPhone || '—'}</td>
-                        <td>{row.measurementName ?? '—'}</td>
-                        <td>{row.typeName}</td>
-                        <td>
-                          <span className="badge">{row.statusName}</span>
-                          {row.isDelayed && <span className="badge danger"> متأخّر</span>}
-                        </td>
-                        <td dir="ltr">{row.orderDate}</td>
-                        <td dir="ltr">{row.deliveryDate ?? '—'}</td>
-                        <td className="num">{money(row.price)}</td>
-                        <td className="num">{money(row.paidAmount)}</td>
+              <Table
+                bare
+                columns={[
+                  {
+                    key: 'c0',
+                    header: 'رقم الطلب',
+                    ltr: true,
+                    cell: (row) => row.number,
+                  },
+                  {
+                    key: 'c1',
+                    header: 'العميل',
+                    cell: (row) => row.customerName,
+                  },
+                  {
+                    key: 'c2',
+                    header: 'الجوال',
+                    ltr: true,
+                    cell: (row) => row.customerPhone || '—',
+                  },
+                  {
+                    key: 'c3',
+                    header: 'القياس',
+                    cell: (row) => row.measurementName ?? '—',
+                  },
+                  {
+                    key: 'c4',
+                    header: 'نوع التفصيل',
+                    cell: (row) => row.typeName,
+                  },
+                  {
+                    key: 'c5',
+                    header: 'الحالة',
+                    cell: (row) => (
+                      <>
+                        <span className="badge">{row.statusName}</span>
+                        {row.isDelayed && <span className="badge danger"> متأخّر</span>}
+                      </>
+                    ),
+                  },
+                  {
+                    key: 'c6',
+                    header: 'تاريخ الطلب',
+                    ltr: true,
+                    cell: (row) => row.orderDate,
+                  },
+                  {
+                    key: 'c7',
+                    header: 'موعد التسليم',
+                    ltr: true,
+                    cell: (row) => row.deliveryDate ?? '—',
+                  },
+                  {
+                    key: 'c8',
+                    header: 'السعر',
+                    numeric: true,
+                    cell: (row) => money(row.price),
+                  },
+                  {
+                    key: 'c9',
+                    header: 'المدفوع',
+                    numeric: true,
+                    cell: (row) => money(row.paidAmount),
+                  },
+                  {
+                    key: 'c10',
+                    header: 'المتبقي',
+                    numeric: true,
+                    cell: (row) => (
+                      <>
                         {/* A negative remaining is green in the desktop, never refused. */}
-                        <td
-                          className="num"
-                          style={{
-                            color: Number(row.remainingAmount) < 0 ? 'var(--ok, #0a7a3d)' : undefined,
-                          }}
-                        >
-                          {money(row.remainingAmount)}
-                        </td>
-                        {canManage && (
-                          <td>
-                            <div className="row" style={{ gap: 4 }}>
-                              <button className="btn sm" type="button" onClick={() => openEdit(row)}>
-                                تعديل
-                              </button>
-                              <button
-                                className="btn sm"
-                                type="button"
-                                onClick={() =>
-                                  setStatusOf({ id: row.id, number: row.number, statusId: row.statusId })
-                                }
-                              >
-                                تغيير الحالة
-                              </button>
-                              <button className="btn sm danger" type="button" onClick={() => remove(row)}>
-                                حذف
-                              </button>
-                            </div>
-                          </td>
-                        )}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                        {money(row.remainingAmount)}
+                      </>
+                    ),
+                  },
+                  ...(canManage
+                    ? [
+                        {
+                          key: 'c11',
+                          header: 'إجراءات',
+                          cell: (row: Order) => (
+                            <>
+                              <div className="row" style={{ gap: 4 }}>
+                                <button className="btn sm" type="button" onClick={() => openEdit(row)}>
+                                  تعديل
+                                </button>
+                                <button
+                                  className="btn sm"
+                                  type="button"
+                                  onClick={() =>
+                                    setStatusOf({ id: row.id, number: row.number, statusId: row.statusId })
+                                  }
+                                >
+                                  تغيير الحالة
+                                </button>
+                                <button className="btn sm danger" type="button" onClick={() => remove(row)}>
+                                  حذف
+                                </button>
+                              </div>
+                            </>
+                          ),
+                        },
+                      ]
+                    : []),
+                ]}
+                rows={rows}
+                rowKey={(row) => row.id}
+              />
             )}
           </Panel>
         </>
