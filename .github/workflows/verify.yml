@@ -39,3 +39,27 @@ jobs:
           CI: 'true'
           NODE_ENV: test
         run: pnpm run verify
+
+  android:
+    name: Android (compile bakery & rep)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: gradle
+
+      - name: Build android-bakery (assembleDebug)
+        working-directory: apps/android-bakery
+        run: ./gradlew assembleDebug --no-daemon --stacktrace
+
+      - name: Build android-rep (assembleDebug)
+        working-directory: apps/android-rep
+        run: ./gradlew assembleDebug --no-daemon --stacktrace
