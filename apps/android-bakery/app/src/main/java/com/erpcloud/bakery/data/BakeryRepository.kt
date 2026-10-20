@@ -276,8 +276,8 @@ class BakeryRepository(
             }
         } catch (error: java.io.IOException) {
             ActionResult.Offline(
-                "لم تصل العمليّةُ إلى الخادم — تطبيقُ الإدارة يعمل متصلًا: " +
-                    "تحقّق من الشبكة ثم أعد المحاولة."
+                "لم تصل العمليّةُ إلى الخادم — أعد المحاولة عند عودة الاتصال " +
+                    "(البياناتُ المعروضةُ آخرُ ما حُفِظ)."
             )
         } catch (error: Exception) {
             ActionResult.Refused(error.message ?: "تعذّر إكمال الطلب")
@@ -550,6 +550,12 @@ class BakeryRepository(
 
     suspend fun createRole(body: JsonObject): ActionResult =
         submitDirect("إنشاء الدور") { api.createRole(body) }
+
+    suspend fun updateRolePermissions(id: String, body: JsonObject): ActionResult =
+        submitDirect("تحديث أذونات الدور") { api.updateRolePermissions(id, body) }
+
+    suspend fun updateMembership(id: String, body: JsonObject): ActionResult =
+        submitDirect("تحديث العضويّة") { api.updateMembership(id, body) }
 
     suspend fun permissions(): List<PermissionDto> = withContext(Dispatchers.IO) {
         val response = api.permissions()

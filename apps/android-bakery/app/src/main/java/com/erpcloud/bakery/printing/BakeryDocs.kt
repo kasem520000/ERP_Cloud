@@ -9,6 +9,7 @@ import android.text.Layout
 import android.text.StaticLayout
 import android.text.TextPaint
 import com.erpcloud.bakery.data.api.LoadOrderDto
+import com.erpcloud.bakery.data.api.PrintViewDto
 import com.erpcloud.bakery.data.api.ProductionBatchDto
 import com.erpcloud.bakery.util.Dec
 
@@ -37,6 +38,10 @@ private sealed class Op {
     data object Dash : Op()
     data class Kv(val row: KvRow) : Op()
     data class Signatures(val height: Int, val boxes: List<StaticLayout>, val boxWidth: Int) : Op()
+
+    /** صفُّ أعمدةٍ (أسطرُ الفاتورة) — يُرسمُ من اليمين: أوّلُ خليّةٍ أقصى اليمين. */
+    data class Cell(val weight: Float, val block: StaticLayout)
+    data class Columns(val cells: List<Cell>, val header: Boolean = false) : Op()
 }
 
 /** سياقُ الرسم المشترك بين المستندات — القياسُ والرسمُ بمسارٍ واحد. */
@@ -83,6 +88,7 @@ private class DocCanvas(widthPx: Int) {
                 is Op.Dash -> 14
                 is Op.Kv -> kvRowHeight(op.row, bodyPaint, boldPaint) + (if (op.row.boxed) pad / 2 else 0)
                 is Op.Signatures -> pad / 2 + op.height + (op.boxes.maxOfOrNull { it.height } ?: 0) + 8
+                is Op.Columns -> (op.cells.maxOfOrNull { it.block.height } ?: 0) + (if (op.header) 4 else 6)
             }
         }
         height += pad
@@ -139,6 +145,19 @@ private class DocCanvas(widthPx: Int) {
                     value.draw(canvas)
                     canvas.restore()
                     y += rowH + (if (row.boxed) pad / 4 else 0)
+                }
+                is Op.Columns -> {
+                    val rowH = (op.cells.maxOfOrNull { it.block.height } ?: 0).toFloat()
+                    var xRight = (width - pad).toFloat()
+                    for (cell in op.cells) {
+                        val w = innerWidth * cell.weight
+                        canvas.save()
+                        canvas.translate(xRight - w, y)
+                        cell.block.draw(canvas)
+                        canvas.restore()
+                        xRight -= w
+                    }
+                    y += rowH + (if (op.header) 4 else 6)
                 }
                 is Op.Signatures -> {
                     y += pad / 4f
@@ -354,4 +373,145 @@ private fun Labels_receipt(receipt: com.erpcloud.bakery.data.api.PosCheckoutRece
     "credit" -> "آجل"
     "split" -> "متعدّد"
     else -> receipt.method ?: "—"
+}
+
+/**
+ * فاتورةُ البيع الرسميّة — من `GET /van-sales/documents/{id}/print-view`:
+ * نسختان في صورةٍ واحدة (العميلُ ثمّ المندوبُ بخانةِ توقيعه)، بترويسةِ المنشأة
+ * وضريبتها، وسطورِ الأصناف أعمدةً (الصنف/الكميّة/السعر/الإجمالي)، والإجمالياتُ
+ * في إطار — كما تُطبعُ من نافذة الويب نفسها.
+ */
+fun saleInvoice(view: PrintViewDto, widthPx: Int = 576): Bitmap {
+    val doc = DocCanvas(widthPx)
+    val titlePaint = doc.paint(doc.titleSize, bold = true)
+    val bodyPaint = doc.paint(doc.bodySize)
+    val boldPaint = doc.paint(doc.bodySize, bold = true)
+    val smallPaint = doc.paint(doc.smallSize, color = Color.DKGRAY)
+    val center = Layout.Alignment.ALIGN_CENTER
+
+    val ops = mutableListOf<Op>()
+
+    fun kv(label: String, value: String, bold: Boolean = false, boxed: Boolean = false) {
+        ops += Op.Kv(KvRow(label, value, bold, boxed))
+    }
+
+    fun columns(cells: List<Pair<Float, String>>, paint: TextPaint, header: Boolean = false) {
+        ops += Op.Columns(
+            cells.map { (weight, text) ->
+                Op.Cell(weight, doc.layout(text, paint, (doc.innerWidth * weight).toInt().coerceAtLeast(1)))
+            },
+            header,
+        )
+    }
+
+    val copies = view.copies.ifEmpty { listOf(view.toDefaultCopy()) }
+    copies.forEachIndexed { index, copy ->
+        if (index > 0) {
+            ops += Op.Section(doc.layout(" ", smallPaint, doc.innerWidth, center), topGap = 18)
+            ops += Op.Dash
+        }
+
+        // ------------------------------------------------ ترويسة المنشأة
+        ops += Op.Section(doc.layout(view.companyName.ifBlank { "مؤسسة" }, titlePaint, doc.innerWidth, center))
+        if (view.companyTaxNo.isNotBlank()) {
+            ops += Op.Section(doc.layout("الرقمُ الضريبيّ: ${view.companyTaxNo}", smallPaint, doc.innerWidth, center))
+        }
+        if (view.companyPhones.isNotEmpty()) {
+            ops += Op.Section(doc.layout(view.companyPhones.joinToString(" · "), smallPaint, doc.innerWidth, center))
+        }
+        ops += Op.Section(doc.layout(copy.copyLabel.ifBlank { "نسخة" }, boldPaint, doc.innerWidth, center))
+        ops += Op.Dash
+
+        // ------------------------------------------------ بيانات المستند
+        kv("رقمُ المستند", copy.documentNumber.ifBlank { view.documentNumber })
+        view.invoiceNumber?.let { kv("رقمُ الفاتورة", it) }
+        kv("التاريخ", view.saleDate.ifBlank { "—" })
+        if (view.customerName.isNotBlank()) kv("العميل", view.customerName)
+        if (view.customerTaxNo.isNotBlank()) kv("الرقمُ الضريبيّ للعميل", view.customerTaxNo)
+        if (view.salesmanName.isNotBlank()) kv("المندوب", view.salesmanName)
+        kv("طريقةُ الدفع", paymentMethodAr(view.paymentMethod))
+        kv("نوعُ المستند", if (view.isZatca) "فاتورة ضريبيّة (فاتورة)" else "تسليم داخليّ")
+        ops += Op.Dash
+
+        // ------------------------------------------------ سطور الأصناف
+        columns(
+            listOf(
+                0.42f to "الصنف",
+                0.14f to "الكميّة",
+                0.18f to "السعر",
+                0.26f to "الإجماليّ",
+            ),
+            smallPaint, header = true,
+        )
+        for (line in view.lines) {
+            val label = when (line.kind) {
+                "bonus" -> "${line.itemName} (مجاني)"
+                "return" -> "${line.itemName} (مرتجع)"
+                else -> line.itemName
+            }
+            columns(
+                listOf(
+                    0.42f to label,
+                    0.14f to Dec.kg(line.quantity),
+                    0.18f to Dec.money(line.unitPrice),
+                    0.26f to Dec.money(line.lineTotal),
+                ),
+                bodyPaint,
+            )
+        }
+        ops += Op.Dash
+
+        // ------------------------------------------------ الإجماليات
+        kv("المجموعُ قبل الضريبة", Dec.money(view.subtotal) + " ر.س")
+        if (Dec.isPositive(view.discountTotal)) kv("الخصم", "−" + Dec.money(view.discountTotal) + " ر.س")
+        kv("ضريبةُ القيمة المضافة", Dec.money(view.vatTotal) + " ر.س")
+        kv("الإجماليُّ المستحقّ", Dec.money(copy.grandTotal.ifBlank { view.grandTotal }) + " ر.س", bold = true, boxed = true)
+        kv("المدفوع", Dec.money(copy.paidAmount.ifBlank { view.paidAmount }) + " ر.س")
+        val outstanding = Dec.parse(copy.grandTotal.ifBlank { view.grandTotal })
+            ?.subtract(Dec.orZero(copy.paidAmount.ifBlank { view.paidAmount }))
+        if (outstanding != null && outstanding.signum() > 0) {
+            kv("المتبقّي", Dec.money(outstanding.toPlainString()) + " ر.س", bold = true)
+        }
+        if (view.notes.isNotBlank()) kv("ملاحظات", view.notes)
+        if (copy.requiresCustomerSignature) {
+            val labels = copy.signatureBlock
+            ops += Op.Signatures(
+                height = 56,
+                boxes = listOf(
+                    doc.layout(labels?.customerSignatureLabel ?: "توقيعُ العميل", smallPaint, doc.innerWidth / 2, center),
+                    doc.layout(labels?.repSignatureLabel ?: "توقيعُ المندوب", smallPaint, doc.innerWidth / 2, center),
+                ),
+                boxWidth = doc.innerWidth / 2,
+            )
+        }
+        ops += Op.Section(
+            doc.layout(
+                "طُبعت ${view.printedAt.ifBlank { "—" }} — هذه الوثيقة صادرة من نظام إدارة المخابز",
+                smallPaint, doc.innerWidth, center,
+            ),
+            topGap = 6,
+        )
+    }
+    return doc.render(ops)
+}
+
+/** نسخةٌ افتراضيّةٌ إن لم يرسل الخادمُ تفاصيلَ النسخ (توافقٌ مع الاستجابات القديمة). */
+private fun PrintViewDto.toDefaultCopy(): com.erpcloud.bakery.data.api.PrintCopyDto =
+    com.erpcloud.bakery.data.api.PrintCopyDto(
+        copyIndex = 1,
+        kind = "customer",
+        copyLabel = "نسخةُ العميل",
+        documentNumber = documentNumber,
+        grandTotal = grandTotal,
+        vatTotal = vatTotal,
+        paidAmount = paidAmount,
+    )
+
+/** طريقةُ الدفع بالعربيّة — كما في فاتورة الويب. */
+private fun paymentMethodAr(method: String): String = when (method) {
+    "cash" -> "نقديّ"
+    "card" -> "شبكة"
+    "bank" -> "تحويل بنكيّ"
+    "credit" -> "آجل"
+    else -> method.ifBlank { "—" }
 }

@@ -48,6 +48,12 @@ import com.erpcloud.bakery.ui.components.KeyValue
 import com.erpcloud.bakery.ui.components.SectionCard
 import com.erpcloud.bakery.ui.components.StatusChip
 import com.erpcloud.bakery.util.Dec
+import com.erpcloud.bakery.printing.BakeryDocs
+import com.erpcloud.bakery.printing.EscPos
+import com.erpcloud.bakery.printing.PrintKit
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.put
 
 /**
@@ -115,11 +121,14 @@ fun CollectionScreen(vm: AppViewModel, onBack: () -> Unit) {
     }
 }
 
-/** مستندٌ واحد — عرضُه، وتحصيلٌ إن كان آجلًا وبقيت فيه ذمّة. */
+/** مستندٌ واحد — عرضُه، وتحصيلٌ إن كان آجلًا وبقيت فيه ذمّة، وطباعةُ فاتورته. */
 @Composable
 private fun DocumentCard(vm: AppViewModel, doc: DocumentDto) {
     val state by vm.uiState.collectAsState()
     var showCollect by remember { mutableStateOf(false) }
+    var printing by remember { mutableStateOf(false) }
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
+    val context = androidx.compose.ui.platform.LocalContext.current
 
     val (kindText, kindTone) = Labels.documentKind(doc.documentKind)
     val outstanding = outstandingAmount(doc)
@@ -149,6 +158,67 @@ private fun DocumentCard(vm: AppViewModel, doc: DocumentDto) {
         ) {
             Spacer(Modifier.height(8.dp))
             OutlinedButton(onClick = { showCollect = true }) { Text("تحصيلٌ على الفاتورة") }
+        }
+
+        Spacer(Modifier.height(8.dp))
+        androidx.compose.foundation.layout.Row(horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)) {
+            androidx.compose.material3.OutlinedButton(
+                onClick = {
+                    if (printing) return@OutlinedButton
+                    printing = true
+                    vm.fetchInvoiceForPrint(doc.id) { view ->
+                        if (view == null) {
+                            printing = false
+                            return@fetchInvoiceForPrint
+                        }
+                        scope.launch {
+                            try {
+                                val bitmap = withContext(Dispatchers.IO) { BakeryDocs.saleInvoice(view) }
+                                val mac = state.session.printerMac
+                                val width = state.session.printerWidthDots
+                                if (mac.isNotBlank()) {
+                                    withContext(Dispatchers.IO) { EscPos.printBitmap(context, mac, width, bitmap) }
+                                } else {
+                                    PrintKit.printViaSystem(context, bitmap, "فاتورة ${doc.number}")
+                                }
+                            } catch (error: Exception) {
+                                vm.showPrintError(error.message ?: "تعذّرت الطباعة")
+                            } finally {
+                                printing = false
+                            }
+                        }
+                    }
+                },
+                enabled = !printing,
+                modifier = Modifier.weight(1f),
+            ) { Text(if (printing) "جارٍ الطباعة…" else "طباعةُ الفاتورة") }
+            androidx.compose.material3.OutlinedButton(
+                onClick = {
+                    if (printing) return@OutlinedButton
+                    printing = true
+                    vm.fetchInvoiceForPrint(doc.id) { view ->
+                        if (view == null) {
+                            printing = false
+                            return@fetchInvoiceForPrint
+                        }
+                        scope.launch {
+                            try {
+                                val bitmap = withContext(Dispatchers.IO) { BakeryDocs.saleInvoice(view) }
+                                val shared = withContext(Dispatchers.IO) {
+                                    PrintKit.shareImage(context, bitmap, "فاتورة-${doc.number.ifBlank { doc.id.takeLast(6) }}.png")
+                                }
+                                if (!shared) vm.showPrintError("تعذّرت المشاركة — لا تطبيقُ مشاركةٍ متاح.")
+                            } catch (error: Exception) {
+                                vm.showPrintError(error.message ?: "تعذّرت المشاركة")
+                            } finally {
+                                printing = false
+                            }
+                        }
+                    }
+                },
+                enabled = !printing,
+                modifier = Modifier.weight(1f),
+            ) { Text("مشاركة") }
         }
     }
 

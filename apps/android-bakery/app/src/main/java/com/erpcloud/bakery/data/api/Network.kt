@@ -163,7 +163,11 @@ class AuthAuthenticator(
 }
 
 /** بناءُ عميلِ الشبكة كاملًا — مرةً واحدة في دورة حياة التطبيق. */
-class NetworkFactory(private val sessionStore: SessionStore, private val events: SessionEvents) {
+class NetworkFactory(
+    private val sessionStore: SessionStore,
+    private val events: SessionEvents,
+    private val snapshotCache: com.erpcloud.bakery.data.offline.SnapshotCache,
+) {
 
     val api: BakeryApi by lazy {
         val bare = OkHttpClient.Builder()
@@ -173,6 +177,10 @@ class NetworkFactory(private val sessionStore: SessionStore, private val events:
             .build()
 
         val authed = bare.newBuilder()
+            // أوّلًا وبلا استثناء: لقطاتُ عدم الاتصال تغلُفُ كلَّ ما بعدها
+            // (إعادة التوجيه، الحمل، حتى تجديد الرمز) — فأيُّ فشلٍ شبكيٍّ
+            // يُخدَم من آخرِ قراءةٍ ناجحة.
+            .addInterceptor(com.erpcloud.bakery.data.offline.SnapshotCacheInterceptor(snapshotCache))
             .addInterceptor(HostSelectionInterceptor(sessionStore))
             .addInterceptor(AuthInterceptor(sessionStore))
             .authenticator(AuthAuthenticator(sessionStore, events, bare))

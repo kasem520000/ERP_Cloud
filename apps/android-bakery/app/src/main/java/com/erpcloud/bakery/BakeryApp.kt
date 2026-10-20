@@ -17,7 +17,11 @@ class AppContainer(context: Context) {
     val sessionStore = SessionStore(context)
     val sessionEvents = SessionEvents()
     val credentialStore = CredentialStore(context)
-    private val network = NetworkFactory(sessionStore, sessionEvents)
+    private val network = NetworkFactory(
+        sessionStore,
+        sessionEvents,
+        com.erpcloud.bakery.data.offline.SnapshotCache(context),
+    )
     val repository = BakeryRepository(network.api, sessionStore)
 }
 

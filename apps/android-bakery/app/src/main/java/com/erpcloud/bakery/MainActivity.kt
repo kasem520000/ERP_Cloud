@@ -24,6 +24,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material.icons.filled.CloudOff
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material.icons.filled.WarningAmber
@@ -166,6 +167,7 @@ private data class DrawerEntry(val route: String, val titleAr: String, val permi
 fun AppRoot(vm: AppViewModel) {
     val state by vm.uiState.collectAsState()
     val notice by vm.notice.collectAsState()
+    val serverOffline by com.erpcloud.bakery.data.offline.ServerConnectivity.offline.collectAsState()
     val navController = rememberNavController()
 
     if (!state.sessionLoaded) {
@@ -211,8 +213,14 @@ fun AppRoot(vm: AppViewModel) {
         },
     ) {
         Box(Modifier.fillMaxSize()) {
+            Column(Modifier.fillMaxSize()) {
+                // شريطُ انقطاعِ الخادم — يظهرُ أعلى الشاشة كلَّما كان غيرَ متصل،
+                // والتطبيقُ يعملُ على آخرِ لقطةٍ محفوظةٍ لكلّ شاشة.
+                if (serverOffline || !state.online) {
+                    OfflineBar()
+                }
             NavHost(
-                modifier = Modifier.fillMaxSize(),
+                modifier = Modifier.fillMaxSize().weight(1f),
                 navController = navController,
                 startDestination = if (state.session.loggedIn) Routes.HOME else Routes.LOGIN,
             ) {
@@ -294,6 +302,38 @@ fun AppRoot(vm: AppViewModel) {
 
             // رسائلُ الخادم — بطاقةٌ عائمةٌ من أسفل الشاشة (v3) بدلَ الشريط الأعلىّ البدائيّ.
             ServerNoticeOverlay(notice = notice, onConsume = { vm.consumeNotice() })
+            }
+        }
+    }
+}
+
+/**
+ * شريطُ انقطاعِ الخادم — رفيعٌ دائمُ الظهور أعلى الشاشة: آخرُ البياناتِ المحفوظة
+ * تُعرض، والكتاباتُ تُخبرُ بصدقٍ أنّها لم تصل حتى يعود الاتصال.
+ */
+@Composable
+private fun OfflineBar() {
+    Surface(
+        color = BakeryColors.WarnBg,
+        modifier = Modifier.fillMaxWidth(),
+    ) {
+        Row(
+            Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                Icons.Default.CloudOff,
+                contentDescription = null,
+                tint = BakeryColors.Warn,
+                modifier = Modifier.size(18.dp),
+            )
+            Spacer(Modifier.width(8.dp))
+            Text(
+                "السيرفر غير متصل — تعمل على آخر بيانات محفوظة",
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.Bold,
+                color = BakeryColors.Warn,
+            )
         }
     }
 }

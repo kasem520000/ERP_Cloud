@@ -5,6 +5,7 @@ import kotlinx.serialization.json.JsonObject
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.GET
+import retrofit2.http.PATCH
 import retrofit2.http.POST
 import retrofit2.http.PUT
 import retrofit2.http.Path
@@ -462,6 +463,14 @@ interface BakeryApi {
     /** إنشاءُ دور — إذن `tenant.role.manage`. */
     @POST("roles")
     suspend fun createRole(@Body body: JsonObject): Response<JsonElement>
+
+    /** استبدالُ أذونات دورٍ قائم — إذن `tenant.role.manage`. */
+    @POST("roles/{id}/permissions")
+    suspend fun updateRolePermissions(@Path("id") id: String, @Body body: JsonObject): Response<JsonElement>
+
+    /** تعديلُ عضويّة (الحالة/الأدوار/النطاق) — إذن `tenant.membership.manage`. */
+    @PATCH("memberships/{id}")
+    suspend fun updateMembership(@Path("id") id: String, @Body body: JsonObject): Response<JsonElement>
 
     /** سجلُّ الأذونات — عامٌّ للهويّة (`{data}`). */
     @GET("permissions")

@@ -452,6 +452,19 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
     fun collectCustomerDebt(body: JsonObject, onDone: (ActionResult) -> Unit = {}) =
         runAction({ repo.collectCustomerDebt(body) }, onDone = onDone)
 
+    /** جلبُ فاتورةِ البيع للطباعة — نسختا العميل والمندوب كما في نافذة الويب. */
+    fun fetchInvoiceForPrint(documentId: String, onReady: (com.erpcloud.bakery.data.api.PrintViewDto?) -> Unit) {
+        viewModelScope.launch {
+            val view = try {
+                repo.printView(documentId)
+            } catch (error: Exception) {
+                _notice.value = Notice.danger(friendly(error))
+                null
+            }
+            onReady(view)
+        }
+    }
+
     fun confirmReceipt(loadOrderId: String, body: JsonObject, onDone: (ActionResult) -> Unit = {}) =
         runAction({ repo.confirmReceipt(loadOrderId, body) }, refreshSalesmen = true, onDone = onDone)
 
@@ -707,6 +720,16 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     fun createRole(body: JsonObject, onDone: (ActionResult) -> Unit) {
         staffAction("role", { repo.createRole(body) }, onDone)
+    }
+
+    /** استبدالُ أذونات دورٍ قائم — `POST /roles/{id}/permissions`. */
+    fun updateRolePermissions(roleId: String, body: JsonObject, onDone: (ActionResult) -> Unit) {
+        staffAction("role-permissions", { repo.updateRolePermissions(roleId, body) }, onDone)
+    }
+
+    /** تعديلُ عضويّة (تفعيل/تعطيل) — `PATCH /memberships/{id}`. */
+    fun updateMembership(membershipId: String, body: JsonObject, onDone: (ActionResult) -> Unit) {
+        staffAction("membership-update", { repo.updateMembership(membershipId, body) }, onDone)
     }
 
     /** كشفُ حساب موظف — يُحمَّل في `staff.employeeStatement` (الفترةُ الكاملة تجعلُ من/إلى تُهملان). */

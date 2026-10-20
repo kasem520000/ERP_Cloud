@@ -18,6 +18,7 @@ import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -49,10 +50,10 @@ import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 
 /**
- * شاشةُ المستخدمين — عضويّاتُ المنشأة ودعوةُ مستخدمٍ جديد (من تطبيق الطاقم):
- * `GET /organization/memberships` (صفحة `{data,meta}`) و
- * `POST /organization/memberships` بإذن `iam.membership.manage`
- * (email + fullName + roleIds≥1 + نطاقُ الفروع branchScope).
+ * شاشةُ المستخدمين — عضويّاتُ المنشأة ودعوةُ مستخدمٍ جديد:
+ * `GET/POST /memberships` بإذن `tenant.membership.manage`
+ * (email + fullName + roleIds≥1 + نطاقُ الفروع branchScope)，
+ * وتفعيل/تعطيلُ عضويّةٍ عبر `PATCH /memberships/{id}`.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -72,7 +73,7 @@ fun UsersScreen(vm: AppViewModel, onBack: () -> Unit) {
             )
         },
         floatingActionButton = {
-            if (!showInvite && state.can("iam.membership.manage")) {
+            if (!showInvite && state.can("tenant.membership.manage")) {
                 FloatingActionButton(onClick = { showInvite = true }) {
                     Icon(Icons.Default.Add, contentDescription = "دعوة مستخدم")
                 }
@@ -105,7 +106,11 @@ fun UsersScreen(vm: AppViewModel, onBack: () -> Unit) {
                 ) {
                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         StatusChip(statusText, tone)
-                        membership.kind?.let { StatusChip(if (it == "user") "مستخدم" else it, ChipTone.NEUTRAL) }
+                        when (membership.kind) {
+                            "user" -> StatusChip("مستخدمُ دخول", ChipTone.NEUTRAL)
+                            "staff" -> StatusChip("موظفُ إدارة", ChipTone.NEUTRAL)
+                            "rep" -> StatusChip("مندوب ميدانيّ", ChipTone.INFO)
+                        }
                     }
                     Spacer(Modifier.height(6.dp))
                     if (membership.roles.isNotEmpty()) {
@@ -115,6 +120,26 @@ fun UsersScreen(vm: AppViewModel, onBack: () -> Unit) {
                         val names = scope.mapNotNull { id -> state.staff.branches.firstOrNull { it.id == id }?.nameAr }
                         KeyValue("نطاقُ الفروع", if (names.isEmpty()) "كلُّ الفروع" else names.joinToString(" · "))
                     } ?: KeyValue("نطاقُ الفروع", "كلُّ الفروع")
+                    if (state.can("tenant.membership.manage") && !membership.isOwner) {
+                        Spacer(Modifier.height(8.dp))
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            if (membership.status == "suspended") {
+                                OutlinedButton(onClick = {
+                                    vm.updateMembership(
+                                        membership.id,
+                                        kotlinx.serialization.json.buildJsonObject { put("status", "active") },
+                                    ) { if (it is ActionResult.Synced) vm.loadUsers() }
+                                }) { Text("تفعيل") }
+                            } else if (membership.status == "active") {
+                                OutlinedButton(onClick = {
+                                    vm.updateMembership(
+                                        membership.id,
+                                        kotlinx.serialization.json.buildJsonObject { put("status", "suspended") },
+                                    ) { if (it is ActionResult.Synced) vm.loadUsers() }
+                                }) { Text("تعطيل") }
+                            }
+                        }
+                    }
                 }
             }
         }

@@ -16,6 +16,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.outlined.BakeryDining
 import androidx.compose.material.icons.outlined.Inventory2
 import androidx.compose.material.icons.outlined.LocalShipping
@@ -38,6 +39,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -46,11 +48,15 @@ import androidx.compose.ui.unit.dp
 import com.erpcloud.bakery.ui.AppViewModel
 import com.erpcloud.bakery.ui.components.BadgeCount
 import com.erpcloud.bakery.ui.components.ChipTone
+import com.erpcloud.bakery.ui.components.MiniBarChart
+import com.erpcloud.bakery.ui.components.ShareBarRow
+import com.erpcloud.bakery.ui.components.dayLabelAr
 import com.erpcloud.bakery.ui.components.EmptyState
 import com.erpcloud.bakery.ui.components.CenterLoading
 import com.erpcloud.bakery.ui.components.SectionCard
 import com.erpcloud.bakery.ui.components.StatTile
 import com.erpcloud.bakery.ui.components.StatusChip
+import com.erpcloud.bakery.ui.theme.BakeryColors
 import com.erpcloud.bakery.util.Dec
 
 /**
@@ -91,6 +97,9 @@ fun DashboardScreen(
                     }
                 },
                 actions = {
+                    IconButton(onClick = { vm.bootstrap() }) {
+                        Icon(Icons.Default.Refresh, contentDescription = "تحديث البيانات")
+                    }
                     if (state.can("tenant.notification.view")) {
                         IconButton(onClick = onNotifications) {
                             BadgeCount(count = state.notificationsUnread)
@@ -141,12 +150,50 @@ fun DashboardScreen(
                     }
                     if (!state.online) {
                         Spacer(Modifier.height(6.dp))
-                        StatusChip("لا اتصال بالشبكة — التطبيقُ متصلٌ دائمًا: القراراتُ تنتظر الشبكة", ChipTone.DANGER)
+                        StatusChip("وضعُ عدم الاتصال — تُعرض آخرُ بياناتٍ محفوظة، والكتاباتُ تنتظرُ عودةَ الشبكة", ChipTone.WARN)
                     }
                     if (state.mustChangePassword) {
                         Spacer(Modifier.height(6.dp))
                         StatusChip("الخادمُ يطلب تغييرَ كلمة مرورك", ChipTone.WARN)
                         OutlinedButton(onClick = onChangePassword) { Text("تغيير كلمة المرور الآن") }
+                    }
+                }
+            }
+
+            // ------------------------------------------------ رسم مبيعات الأسبوع
+            item(span = { androidx.compose.foundation.lazy.grid.GridItemSpan(2) }) {
+                val daily = remember(dash?.documents) {
+                    val docs = dash?.documents.orEmpty()
+                        .filter { it.documentKind != "sale_return" }
+                    docs.groupBy { it.docDate.take(10) }
+                        .map { (day, list) ->
+                            day to list.sumOf { Dec.parse(it.total)?.toDouble() ?: 0.0 }
+                        }
+                        .sortedBy { it.first }
+                        .takeLast(7)
+                        .map { (day, total) -> dayLabelAr(day) to total.toFloat() }
+                }
+                if (daily.size >= 2) {
+                    SectionCard(title = "مبيعاتُ آخر ${daily.size} أيّام", subtitle = "من مستندات البيع في نافذة اللوحة (ر.س)") {
+                        MiniBarChart(points = daily, formatValue = { String.format(java.util.Locale.US, "%.0f", it) })
+                    }
+                }
+            }
+
+            // ------------------------------------------------ توزيع الإيراد
+            item(span = { androidx.compose.foundation.lazy.grid.GridItemSpan(2) }) {
+                val docs = dash?.documents.orEmpty()
+                val revenue = Dec.parse(summary?.totalRevenueSar)?.toDouble() ?: 0.0
+                if (revenue > 0 && docs.isNotEmpty()) {
+                    fun share(method: String) =
+                        docs.filter { it.paymentMethod == method }.sumOf { Dec.parse(it.total)?.toDouble() ?: 0.0 }
+                    val cash = share("cash")
+                    val card = share("card")
+                    val credit = share("credit")
+                    SectionCard(title = "توزيعُ الإيراد حسب الدفع", subtitle = "من مستندات نافذة اللوحة") {
+                        ShareBarRow("نقديّ", Dec.money(cash.toBigDecimal().toPlainString()) + " ر.س", (cash / revenue).toFloat(), BakeryColors.Ok)
+                        ShareBarRow("شبكة", Dec.money(card.toBigDecimal().toPlainString()) + " ر.س", (card / revenue).toFloat(), BakeryColors.Info)
+                        ShareBarRow("آجل", Dec.money(credit.toBigDecimal().toPlainString()) + " ر.س", (credit / revenue).toFloat(), BakeryColors.Warn)
                     }
                 }
             }
