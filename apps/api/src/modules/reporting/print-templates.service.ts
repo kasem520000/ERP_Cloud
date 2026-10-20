@@ -1032,7 +1032,9 @@ export class PrintTemplatesService {
   .doc-head { display: flex; justify-content: space-between; gap: 16px; border-bottom: 2px solid #111; padding-bottom: 10px; margin-bottom: 12px; }
   .company .en { color: #555; font-size: 12px; }
   .company .meta { margin-top: 4px; color: #333; display: flex; gap: 12px; flex-wrap: wrap; }
-  .doc { text-align: left; min-width: 210px; }
+  /* كتلةُ المستند على يسار الترويسة: نصُّها عربيٌّ فتُحاذى يميناً مع عناوين
+     جدول doc-meta — وكانت left فتنقطع «فاتورة مبيعات» عن سطرها الأوّل. */
+  .doc { text-align: right; min-width: 210px; }
   .doc-title { font-size: 16px; font-weight: 700; }
   .doc-title-en { color: #666; font-size: 11px; margin-bottom: 6px; }
   .doc-meta { border-collapse: collapse; width: 100%; }
