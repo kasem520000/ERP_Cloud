@@ -299,10 +299,11 @@ fun AppRoot(vm: AppViewModel) {
                     }
                 }
             }
+            }
 
             // رسائلُ الخادم — بطاقةٌ عائمةٌ من أسفل الشاشة (v3) بدلَ الشريط الأعلىّ البدائيّ.
+            // فوقَ عمودِ المحتوى داخل الصندوق — فتنبثقُ من أسفلِ الشاشة كلِّها.
             ServerNoticeOverlay(notice = notice, onConsume = { vm.consumeNotice() })
-            }
         }
     }
 }
