@@ -160,6 +160,67 @@ export const SECTOR_ADDON_APPS = [
     ] as const,
   },
   {
+    /**
+     * 📊 باقة التقارير — تُرخَّص السطوح **التحليلية** وحدها (باني التقارير، التقارير المحفوظة،
+     * مصمّمها)، ولا تلمس مركز التقارير: تقريرٌ واحد يفتحه كل مستخدمٍ منذ أول يوم ليس بضاعةً
+     * جديدة تُباع، وإنما الشاشات التي تُنشئ تقاريرَ لم تكن موجودة.
+     *
+     * و`custom-reports` (خلف هذه الشاشات) يحمل الحارس في وضع `observe`: كتاباتُ منشأةٍ بلا
+     * ترخيص تُقاس في `audit_log` ولا تُرفض، فالقرار في الفرض يُتخذ على بياناتٍ لا على تقدير.
+     */
+    code: 'reports_pro',
+    nameAr: 'مركز التقارير والتحليلات',
+    nameEn: 'Reports & Analytics',
+    descriptionAr:
+      'باني التقارير من حقولك الأصلية والمخصّصة، حفظُ التقارير المشتركة وإعادة تشغيلها، مصمّم أعمدة التقارير، والتصدير إلى Excel وCSV وPDF.',
+    icon: '📊',
+    version: '1.0.0',
+    monthlyPrice: '79.0000',
+    isCore: false,
+    category: 'sector' as const,
+    screens: ['/reports/builder', '/reports/custom', '/support/report-designer'] as const,
+  },
+  {
+    /**
+     * ✉️ قناة البريد الإلكتروني — باقةٌ تُرخَّص لأن القناة نفسها هي السطح: مزوّد SMTP وحصةُ
+     * إرسالٍ تكلّف المنصة مالاً لكل رسالة. لا شاشة تُحجب هنا (`screens` فارغة): شاشة
+     * `/settings/email` تبقى لكل منشأة، والحارس يقيس الكتابات في `observe` بدل أن يقطع
+     * الإرسال عن منشأةٍ تعمل اليوم.
+     *
+     * والقياس هو ما يجعل الباقة قابلةً للفرض لاحقاً: `email_pro` ككودٍ في `tenant_apps`
+     * تعني «هذه المنشأة اشترت القناة»، وسطر `sector_licence.unlicensed_use` يعني «هذه
+     * منشأة تستعملها بلا شراء» — وعلى البيانات يُبنى قرار الفرض.
+     */
+    code: 'email_pro',
+    nameAr: 'قناة البريد الإلكتروني',
+    nameEn: 'Email Channel',
+    descriptionAr:
+      'إرسال الفواتير والكشوف وتنبيهات النظام عبر SMTP الخاصّ بمنشأتك أو مزوّد المنصة، مع قوالب عربية/إنجليزية لكل حدثٍ وسجلٍّ للرسائل.',
+    icon: '✉️',
+    version: '1.0.0',
+    monthlyPrice: '39.0000',
+    isCore: false,
+    category: 'sector' as const,
+    screens: [] as readonly string[],
+  },
+  {
+    /**
+     * 💬 قناة واتساب — نفس المنطق: الرقم والرمز ورسوم المحادثات على المنصة، فالترخيص يعني
+     * «هذه المنشأة تملك قناةً» لا «هذه الشاشة مخفيّة». الإرسال يبقى عاملاً في وضع القياس.
+     */
+    code: 'whatsapp',
+    nameAr: 'قناة واتساب للأعمال',
+    nameEn: 'WhatsApp Business',
+    descriptionAr:
+      'إرسال الفواتير وروابط الدفع وتذكيرات التحصيل على واتساب من رقم المنشأة عبر WhatsApp Cloud API، مع سجلّ الرسائل وحالتها.',
+    icon: '💬',
+    version: '1.0.0',
+    monthlyPrice: '49.0000',
+    isCore: false,
+    category: 'sector' as const,
+    screens: [] as readonly string[],
+  },
+  {
     code: 'employee_app',
     nameAr: 'تطبيق الموظف الذاتي',
     nameEn: 'Employee Self-Service App',

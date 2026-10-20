@@ -19,6 +19,7 @@ import {
 import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe.js';
 import { getTenantContext } from '../platform/context/tenant-context.js';
 import { RequiresPermission } from '../platform/decorators/requires-permission.decorator.js';
+import { RequiresSectorApp } from '../platform/decorators/requires-sector-app.decorator.js';
 
 import { EmailService } from './email.service.js';
 import { EmailSettingsService } from './email-settings.service.js';
@@ -37,6 +38,12 @@ import { EmailTemplatesService } from './email-templates.service.js';
  */
 @ApiTags('email')
 @ApiBearerAuth()
+/**
+ * ✉️ قناة البريد باقةٌ مرخّصة (`email_pro`) — الحارس في وضع `observe`: كل كتابةٍ من منشأةٍ
+ * بلا ترخيص تُترك في `audit_log` ولا تُرفض. فالقناة تعمل اليوم لكل منشأة كما كانت، والقياس
+ * وحده هو الجديد — منه يُتخذ قرار الفرض لا من تقدير.
+ */
+@RequiresSectorApp({ apps: ['email_pro'], mode: 'observe' })
 @Controller('email')
 export class EmailController {
   constructor(

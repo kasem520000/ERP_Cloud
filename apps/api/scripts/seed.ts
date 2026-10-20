@@ -28,7 +28,8 @@
  *   DEMO_CASHIER_EMAIL / DEMO_CASHIER_NAME / DEMO_CASHIER_PASSWORD
  *   DEMO_REP_EMAIL / DEMO_REP_NAME / DEMO_REP_PASSWORD / DEMO_REP_EMPLOYEE_NO /
  *   DEMO_REP_WAREHOUSE_CODE / DEMO_REP_WAREHOUSE_NAME / DEMO_REP_VEHICLE_PLATE
- *   DEMO_SECTOR_APPS (comma-separated app codes; default `bakery_distribution`)
+ *   DEMO_SECTOR_APPS (comma-separated app codes; default `bakery_distribution,reports_pro,email_pro,whatsapp`
+ *   — المنشأة التجريبية تعرض كل سطحٍ في السوق، والمنح في الإنتاج قرارُ منصّةٍ لكل منشأة)
  *   SEED_DEMO_DATA (default true) / DEMO_FISCAL_YEAR / DEMO_PLAN_CODE /
  *   DEMO_SUBSCRIPTION_MONTHS / DEMO_OPENING_ENTRY (default true)
  */
@@ -75,7 +76,7 @@ function flag(name: string, fallback: boolean): boolean {
  */
 function sectorAppsFromEnv(): DemoSectorAppSpec[] {
   const raw = process.env.DEMO_SECTOR_APPS;
-  const codes = (raw === undefined ? 'bakery_distribution' : raw)
+  const codes = (raw === undefined ? 'bakery_distribution,reports_pro,email_pro,whatsapp' : raw)
     .split(',')
     .map((code) => code.trim())
     .filter(Boolean);

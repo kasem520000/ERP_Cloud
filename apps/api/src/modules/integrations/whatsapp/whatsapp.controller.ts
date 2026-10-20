@@ -2,6 +2,7 @@ import { Body, Controller, Get, Post, Put, Query } from '@nestjs/common';
 
 import { getTenantContext } from '../../platform/context/tenant-context.js';
 import { RequiresPermission } from '../../platform/decorators/requires-permission.decorator.js';
+import { RequiresSectorApp } from '../../platform/decorators/requires-sector-app.decorator.js';
 
 import { WhatsappService, type SendInput, type WhatsappSettingsInput } from './whatsapp.service.js';
 
@@ -16,6 +17,12 @@ import { WhatsappService, type SendInput, type WhatsappSettingsInput } from './w
  * token), and `sales.view` decides *who may send an invoice*: exactly who may open the
  * invoice window the desktop's menu item lived in.
  */
+/**
+ * 💬 قناة واتساب باقةٌ مرخّصة (`whatsapp`) — ووضع `observe` مقصود: الرسائل تُرسل اليوم،
+ * وقطعها عن منشأةٍ في منتصف الشهر لأن باقةً عُرضت في السوق ليس قراراً تقنياً. ما يُقاس هنا
+ * هو الكتابة (إعدادات أو إرسال) من منشأةٍ بلا ترخيص، ويُكتب سطراً في `audit_log`.
+ */
+@RequiresSectorApp({ apps: ['whatsapp'], mode: 'observe' })
 @Controller()
 export class WhatsappController {
   constructor(private readonly whatsapp: WhatsappService) {}
