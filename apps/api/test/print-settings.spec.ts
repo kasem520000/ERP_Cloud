@@ -170,6 +170,96 @@ describe('إعدادات الطباعة — frmSettings «خيارات الطب�
     expect(String(JSON.stringify(badUrl.body))).toContain('stampImageUrl');
   });
 
+  it('🎨 مصمّم القوالب: يحفظ القالب واللون والخط والمقياس ويعيدها', async () => {
+    const defaults = await get(scope('contracts'));
+    expect(defaults.body).toMatchObject({
+      template: 'classic',
+      accentColor: '',
+      fontFamily: 'segoe',
+      fontScale: 100,
+      showSignatures: true,
+    });
+
+    const saved = await put(scope('contracts'), {
+      template: 'modern',
+      accentColor: '#0f766e',
+      fontFamily: 'naskh',
+      fontScale: 115,
+      showSignatures: false,
+    });
+    expect(saved.status).toBe(200);
+    expect(data(saved.body)).toMatchObject({
+      template: 'modern',
+      accentColor: '#0f766e',
+      fontFamily: 'naskh',
+      fontScale: 115,
+      showSignatures: false,
+      saved: true,
+    });
+
+    // ولونٌ فارغ يعني «وراثة هوية المنشأة» لا «أسود» — يُحفظ NULL ويُقرأ ''.
+    const inherited = await put(scope('contracts'), { accentColor: '' });
+    expect(data(inherited.body).accentColor).toBe('');
+  });
+
+  it('🎨 يرفض قالباً أو خطاً مجهولاً، ولوناً ليس #RRGGBB، ومقياساً خارج 85..130', async () => {
+    const template = await put(scope('sales'), { template: 'fancy' });
+    expect(template.status).toBe(400);
+    const font = await put(scope('sales'), { fontFamily: 'comic-sans' });
+    expect(font.status).toBe(400);
+    // اللون يُحقن في <style>: نصٌّ حرّ هنا مدخلُ CSS injection على ورقة العميل.
+    for (const value of ['red', '#12345', '#1234567', 'expression(alert(1))']) {
+      const colour = await put(scope('sales'), { accentColor: value });
+      expect(colour.status, value).toBe(400);
+    }
+    for (const scale of [84, 131]) {
+      const fontSize = await put(scope('sales'), { fontScale: scale });
+      expect(fontSize.status, String(scale)).toBe(400);
+    }
+    // الصفّ السابق لم يتغيّر من المحاولات الفاشلة.
+    const read = await get(scope('sales'));
+    expect(read.body.template).toBe('classic');
+    expect(read.body.accentColor).toBe('');
+  });
+
+  it('🖨️ الورقة تحمل القالب واللون والمقياس، ومنشأةٌ بلا لونٍ تملكه من هويتها', async () => {
+    await put(scope('reports'), { template: 'modern', accentColor: '#0f766e', fontScale: 110 });
+
+    const response = await get('/reports/print/sales-invoices?from=2000-01-01&to=2099-12-31');
+    expect(response.status).toBe(200);
+    const html = String(response.body.html ?? '');
+    expect(html).toContain('class="tpl-modern"');
+    expect(html).toContain('--accent:#0f766e');
+    expect(html).toContain('--scale:1.10');
+    // القالب يغيّر الشكل لا المحتوى: العنوان والجدول كما هما.
+    expect(html).toContain('class="doc-title"');
+    expect(html).toContain('table class="lines report"');
+    // الوسم نفسه سليم: لا اقتباس مزدوج داخل style يكسر السمة ويرمي بقيّة الأنماط خارجها،
+    // وحينها لا يُطبَّق المقياس ولا الخطّ على الورقة رغم قبول الطلب.
+    const styleAttr = /style="([^"]*)"/.exec(/<body[^>]*>/.exec(html)![0])![1]!;
+    expect(styleAttr).toMatch(/^--scale:1\.10;--accent:#0f766e;font-family:.+serif$/);
+
+    // بلا لونٍ صريح: يسقط إلى لون هوية المنشأة إن وُجد، وإلا إلى أسود الورقة.
+    await put(scope('reports'), { template: 'minimal', accentColor: '' });
+    const minimal = String((await get('/reports/print/sales-invoices?from=2000-01-01&to=2099-12-31')).body.html ?? '');
+    expect(minimal).toContain('class="tpl-minimal"');
+    // اللون الفارغ لا يترك متغيّراً معلّقاً: إمّا لون هوية المنشأة أو أسود الورقة (#111).
+    expect(minimal).toMatch(/--accent:#(111|[0-9a-fA-F]{6})/);
+  });
+
+  it('✒️ سطر التوقيعات يتبعه المصمّم: يُطفأ بطلبٍ ويُعاد بطلبه', async () => {
+    // `customer-balances` يطلب توقيعاً (`signature: true` في الكتالوج)، فغياب السطر بعد
+    // الإطفاء يعني أن المصمّم هو من أطفأه لا أن التقرير لم يطلبه.
+    await put(scope('report:customer-balances'), { showSignatures: false });
+    const hidden = String((await get('/reports/print/customer-balances')).body.html ?? '');
+    expect(hidden).not.toContain('class="signatures"');
+
+    await put(scope('report:customer-balances'), { showSignatures: true });
+    const shown = String((await get('/reports/print/customer-balances')).body.html ?? '');
+    expect(shown).toContain('class="signatures"');
+    expect(shown).toContain('أعده');
+  });
+
   it('يعيد الحذف إلى إعدادات الديسكتوب الافتراضية', async () => {
     await put(scope('rental'), { printNo: 7, note: 'تأجير' });
     const removed = await del(scope('rental'));

@@ -67,6 +67,20 @@ export const printSettings = pgTable(
     footerImageUrl: text('footer_image_url'),
     /** 🔖 الخــتـم — `StampImage`. */
     stampImageUrl: text('stamp_image_url'),
+    /**
+     * 🎨 القالب — كيف تبدو الورقة لا ماذا تحمل: `classic` (الشكل الذي كان) · `modern`
+     * (شريط لونٍ وحدود ناعمة) · `minimal` (خطوط رفيعة بلا تعبئة). التفصيل في
+     * `print-templates.service.ts`؛ والقيد في القاعدة (`0137`).
+     */
+    template: text('template').notNull().default('classic'),
+    /** 🖌️ لون التمييز `#RRGGBB`، وفارغه يعني «لون هوية المنشأة ثم أسود الورقة». */
+    accentColor: text('accent_color'),
+    /** ✍️ عائلة الخط: `segoe` · `naskh` · `sans` — خطوطُ النظام، لا تحميلَ من الشبكة. */
+    fontFamily: text('font_family').notNull().default('segoe'),
+    /** 🔎 مقياس الخط 85..130 (بالنسبة المئوية). */
+    fontScale: integer('font_scale').notNull().default(100),
+    /** ✒️ سطر التوقيعات في التقارير. */
+    showSignatures: boolean('show_signatures').notNull().default(true),
     ...baseAuditColumns(),
   },
   (table) => ({

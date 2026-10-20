@@ -10,7 +10,12 @@ import { DATABASE_HANDLE } from '../../database/database.module.js';
 import { buildQrPayload } from '../einvoicing/zatca/qr.js';
 import { signedContentUrl } from '../platform-services/files/download-token.js';
 
-import { PrintSettingsService, type PrintSettings } from './print-settings.service.js';
+import {
+  PrintSettingsService,
+  type PrintFont,
+  type PrintSettings,
+  type PrintTemplate,
+} from './print-settings.service.js';
 import { amountInArabicWords } from './tafqeet.js';
 
 /**
@@ -29,6 +34,45 @@ export type ReportPrintOptions = {
   copies: number;
   /** 📄 نوع الورقة — 1 «📄 ورقة A4» · 2 «🧾 ورق صغير», overridable by `?paper=`. */
   paper: 'a4' | 'small';
+};
+
+/**
+ * 🎨 الأسلوب الفعلي — كل ما يحوّل «إعدادات» إلى «ورقة».
+ *
+ * اللون يُحسم هنا لا في القالب: `accentColor` إن كُتب، ثم لون هوية المنشأة، ثم أسود
+ * الورقة. ولا يمرّ إلى `<style>` إلا بعد فحص الصيغة مرّةً أخرى — القيمة تصل من القاعدة
+ * (وقيدها يضمن `#RRGGBB`) لكن الورقة لا تعتمد على مصدرٍ واحدٍ لسلامتها.
+ */
+export type PrintStyle = {
+  template: PrintTemplate;
+  accent: string | null;
+  fontFamily: PrintFont;
+  /** 👁️ مضاعف الحجم — 0.85 .. 1.30 */
+  scale: number;
+};
+
+const HEX_COLOUR = /^#[0-9a-fA-F]{6}$/;
+
+export function printStyle(settings: PrintSettings | undefined, brandColour?: string | null): PrintStyle {
+  const accent = settings?.accentColor?.trim() ?? '';
+  const brand = (brandColour ?? '').trim();
+  return {
+    template: settings?.template ?? 'classic',
+    accent: HEX_COLOUR.test(accent) ? accent : HEX_COLOUR.test(brand) ? brand : null,
+    fontFamily: settings?.fontFamily ?? 'segoe',
+    scale: Math.min(1.3, Math.max(0.85, (settings?.fontScale ?? 100) / 100)),
+  };
+}
+
+/**
+ * ⚠️ علامات التنصيص **مفردة**: هذه القيمة تُكتب داخل `style="…"`، فاقتباسٌ مزدوج في اسم
+ * خطٍّ يغلق السمة ويُلقي بقيّة الأنماط نصًّا خارجها (شوهد فعلاً: `font-family:"Segoe UI"…`
+ * يقطع `style` عند أول خطّ). والمتصفّحان يقبلان الاثنين في CSS.
+ */
+const FONT_STACKS: Record<PrintFont, string> = {
+  segoe: "'Segoe UI', Tahoma, 'Noto Naskh Arabic', sans-serif",
+  naskh: "'Noto Naskh Arabic', 'Traditional Arabic', 'Times New Roman', serif",
+  sans: "system-ui, -apple-system, 'Segoe UI', Arial, sans-serif",
 };
 
 /**
@@ -568,6 +612,8 @@ export class PrintTemplatesService {
     const showFooter = settings?.printFooter === true;
     /** 🔖 طباعة الختم — the stamp image under the signatures. */
     const stamp = settings?.printStamp === false ? '' : (settings?.stampImageUrl ?? '');
+    /** ✒️ سطر التوقيعات — يُخفى بطلبٍ صريح من مصمّم القوالب. */
+    const showSignatures = settings?.showSignatures !== false;
     /** 📝 ملاحظات التقرير — `txtNote`, printed under the grid. */
     const note = (settings?.note ?? '').trim();
     const image = (src: string, alt: string) =>
@@ -615,7 +661,7 @@ export class PrintTemplatesService {
         }
         ${note ? `<div class="doc-note"><b>ملاحظات التقرير:</b> ${escapeHtml(note).replace(/\n/g, '<br />')}</div>` : ''}
         ${
-          report.signature
+          report.signature && showSignatures
             ? `<table class="signatures"><tr><td>أعده</td><td>راجعه</td><td>المدير</td></tr><tr><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr></table>`
             : ''
         }
@@ -645,6 +691,7 @@ export class PrintTemplatesService {
       landscape: true,
       paper,
       toolbar,
+      style: printStyle(settings, company.brandColor),
       body: sheets,
     });
   }
@@ -950,6 +997,7 @@ export class PrintTemplatesService {
       landscape: page.landscape,
       paper,
       toolbar,
+      style: printStyle(print, company.brandColor),
       body: copies === 1 ? body : Array.from({ length: copies }, () => body).join(''),
     });
   }
@@ -1007,12 +1055,15 @@ export class PrintTemplatesService {
     landscape,
     paper = 'a4',
     toolbar,
+    style,
   }: {
     title: string;
     body: string;
     landscape?: boolean;
     /** 🖨️ A note beside the print button — the saved printer names, hidden when printing. */
     toolbar?: string;
+    /** 🎨 القالب واللون والخط — غيابها يعني الشكل الكلاسيكي الذي كان. */
+    style?: PrintStyle;
     /**
      * 📄 نوع الورقة — `printType` of `SettingPrint`: 1 «📄 ورقة A4» · 2 «🧾 ورق صغير»,
      * the two radios of `frmInvRptType.xaml` «🖨️ افتراضي طباعة الفواتير».
@@ -1028,14 +1079,16 @@ export class PrintTemplatesService {
 <style>
   @page { size: ${paper === 'small' ? '80mm auto' : `A4${landscape ? ' landscape' : ''}`}; margin: ${paper === 'small' ? '3mm' : '12mm'}; }
   * { box-sizing: border-box; }
-  body { font-family: "Segoe UI", Tahoma, "Noto Naskh Arabic", sans-serif; color: #111; margin: 0; padding: 16px; background: #f4f5f7; font-size: 12px; }
+  /* 🔎 كل المقاسات نسبية إلى «--scale» (مصمّم القوالب) — تكبيرُ الخط يكبّر الورقة كلها
+     لا الفقرات وحدها، فلا يختلّ التوازن بين العنوان والجدول والإجماليات. */
+  body { font-family: inherit; color: #111; margin: 0; padding: 16px; background: #f4f5f7; font-size: calc(12px * var(--scale)); }
   .sheet { background: #fff; max-width: ${paper === 'small' ? '80mm' : landscape ? '297mm' : '210mm'}; margin: 0 auto; padding: ${paper === 'small' ? '3mm 4mm' : '16mm 14mm'}; box-shadow: 0 1px 8px rgba(0,0,0,.12); }
   /* 🧾 ورق صغير — 80mm thermal: one column, no shadows, smaller type. */
-  .sheet.small { font-size: 10px; }
-  .sheet.small table.report { font-size: 9px; }
+  .sheet.small { font-size: 0.85em; }
+  .sheet.small table.report { font-size: 0.9em; }
   .sheet.small .doc-head { display: block; }
   .sheet.small .doc { text-align: right; }
-  .sheet.small .totals-strip { flex-direction: column; gap: 4px; font-size: 11px; }
+  .sheet.small .totals-strip { flex-direction: column; gap: 0.3em; font-size: 0.95em; }
   /* 🔢 عدد النسخ — every copy starts on its own sheet, the way Printing() loops. */
   .copy + .copy { page-break-before: always; }
   .brand-logo { max-height: 56px; max-width: 160px; object-fit: contain; display: block; margin-bottom: 6px; }
@@ -1043,72 +1096,97 @@ export class PrintTemplatesService {
   .doc-images img { max-height: 90px; max-width: 100%; }
   .doc-stamp { position: relative; display: inline-block; }
   .doc-stamp img { max-height: 110px; max-width: 100%; }
-  .doc-note { margin-top: 10px; border: 1px dashed #bbb; padding: 6px 8px; color: #333; }
-  .doc-foot { margin-top: 10px; border-top: 1px solid #999; padding-top: 6px; color: #444; font-size: 11px; text-align: center; }
+  .doc-note { margin-top: 0.85em; border: 1px dashed #bbb; padding: 0.5em 0.7em; color: #333; }
+  .doc-foot { margin-top: 0.85em; border-top: 1px solid #999; padding-top: 0.5em; color: #444; font-size: 0.92em; text-align: center; }
   .doc-foot img { max-height: 70px; max-width: 100%; display: block; margin: 4px auto 0; }
-  h1 { font-size: 18px; margin: 0 0 2px; }
-  h2 { font-size: 13px; margin: 0 0 6px; }
-  .doc-head { display: flex; justify-content: space-between; gap: 16px; border-bottom: 2px solid #111; padding-bottom: 10px; margin-bottom: 12px; }
-  .company .en { color: #555; font-size: 12px; }
-  .company .meta { margin-top: 4px; color: #333; display: flex; gap: 12px; flex-wrap: wrap; }
+  h1 { font-size: 1.5em; margin: 0 0 0.15em; }
+  h2 { font-size: 1.08em; margin: 0 0 0.5em; }
+  .doc-head { display: flex; justify-content: space-between; gap: 16px; border-bottom: 2px solid var(--accent); padding-bottom: 0.85em; margin-bottom: 1em; }
+  .company .en { color: #555; font-size: 1em; }
+  .company .meta { margin-top: 0.3em; color: #333; display: flex; gap: 12px; flex-wrap: wrap; }
   /* كتلةُ المستند على يسار الترويسة: نصُّها عربيٌّ فتُحاذى يميناً مع عناوين
      جدول doc-meta — وكانت left فتنقطع «فاتورة مبيعات» عن سطرها الأوّل. */
   .doc { text-align: right; min-width: 210px; }
-  .doc-title { font-size: 16px; font-weight: 700; }
-  .doc-title-en { color: #666; font-size: 11px; margin-bottom: 6px; }
+  .doc-title { font-size: 1.33em; font-weight: 700; }
+  .doc-title-en { color: #666; font-size: 0.92em; margin-bottom: 0.5em; }
   .doc-meta { border-collapse: collapse; width: 100%; }
   .doc-meta th { text-align: right; color: #555; font-weight: 500; padding: 1px 6px 1px 0; white-space: nowrap; }
   .doc-meta td { text-align: left; font-weight: 600; padding: 1px 0; }
-  .party { border: 1px solid #ddd; border-radius: 6px; padding: 8px 10px; margin-bottom: 10px; }
+  .party { border: 1px solid #ddd; border-radius: 6px; padding: 0.7em 0.85em; margin-bottom: 0.85em; }
   .party-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px 12px; }
   .party-grid .wide { grid-column: 1 / -1; }
   .party-grid span { color: #666; margin-inline-end: 6px; }
-  table.lines { width: 100%; border-collapse: collapse; margin-bottom: 10px; }
-  table.lines th, table.lines td { border: 1px solid #ccc; padding: 4px 6px; }
+  table.lines { width: 100%; border-collapse: collapse; margin-bottom: 0.85em; }
+  table.lines th, table.lines td { border: 1px solid #ccc; padding: 0.35em 0.5em; }
   table.lines thead th { background: #f0f1f4; font-weight: 600; }
   table.lines tfoot th { background: #f0f1f4; }
   /* 💰 إجمالي المبيعات — the one number frmRptSalesInPeriod prints under the grid. */
-  .totals-strip { display: flex; gap: 24px; flex-wrap: wrap; margin-top: 8px; padding: 6px 10px; border: 2px solid #111; font-size: 14px; }
+  .totals-strip { display: flex; gap: 24px; flex-wrap: wrap; margin-top: 0.7em; padding: 0.5em 0.85em; border: 2px solid var(--accent); font-size: 1.17em; }
   .totals-strip span { direction: ltr; }
   /* أعده · راجعه · المدير — the signature strip of RptSalesInPeriod1/2.repx. */
-  table.signatures { width: 100%; border-collapse: collapse; margin-top: 18px; page-break-inside: avoid; }
-  table.signatures td { border: 1px solid #ccc; padding: 14px 6px 6px; text-align: center; width: 33%; color: #555; }
+  table.signatures { width: 100%; border-collapse: collapse; margin-top: 1.5em; page-break-inside: avoid; }
+  table.signatures td { border: 1px solid #ccc; padding: 1.2em 0.5em 0.5em; text-align: center; width: 33%; color: #555; }
   .num { text-align: left; font-variant-numeric: tabular-nums; direction: ltr; }
-  .sku { display: block; color: #777; font-size: 10px; }
+  .sku { display: block; color: #777; font-size: 0.9em; }
   .totals { display: flex; gap: 16px; align-items: flex-start; justify-content: space-between; }
   .totals-side { flex: 1; }
   .totals-table { border-collapse: collapse; min-width: 260px; }
   .totals-table th { text-align: right; padding: 3px 8px; color: #333; font-weight: 500; }
   .totals-table td { padding: 3px 8px; border-bottom: 1px solid #eee; }
-  .totals-table .grand th, .totals-table .grand td { font-size: 14px; font-weight: 700; border-top: 2px solid #111; border-bottom: 2px solid #111; }
-  table.pay { border-collapse: collapse; margin-top: 8px; }
+  .totals-table .grand th, .totals-table .grand td { font-size: 1.17em; font-weight: 700; border-top: 2px solid var(--accent); border-bottom: 2px solid var(--accent); }
+  table.pay { border-collapse: collapse; margin-top: 0.7em; }
   table.pay th, table.pay td { border: 1px solid #ddd; padding: 3px 8px; }
-  .words { background: #f6f6f8; border-inline-start: 3px solid #111; padding: 6px 8px; margin: 0 0 8px; }
-  .panel { border: 1px solid #ddd; border-radius: 6px; padding: 10px 12px; margin-bottom: 12px; }
+  .words { background: #f6f6f8; border-inline-start: 3px solid var(--accent); padding: 0.5em 0.7em; margin: 0 0 0.7em; }
+  .panel { border: 1px solid #ddd; border-radius: 6px; padding: 0.85em 1em; margin-bottom: 1em; }
   .panel .kv { display: flex; gap: 8px; padding: 4px 0; border-bottom: 1px dashed #e5e5e5; }
   .panel .kv:last-child { border-bottom: 0; }
   .panel .kv span { color: #666; min-width: 150px; }
-  .qr { margin-top: 10px; display: inline-flex; flex-direction: column; align-items: center; gap: 2px; }
+  .qr { margin-top: 0.85em; display: inline-flex; flex-direction: column; align-items: center; gap: 2px; }
   .qr svg { width: 110px; height: 110px; }
-  .qr span, .qr-empty { font-size: 10px; color: #666; }
-  .qr-empty { display: block; margin-top: 10px; }
+  .qr span, .qr-empty { font-size: 0.9em; color: #666; }
+  .qr-empty { display: block; margin-top: 0.85em; }
   .warn { color: #a4400a; }
-  .empty { color: #666; padding: 12px; border: 1px dashed #ccc; text-align: center; }
-  .signs { display: flex; gap: 24px; margin-top: 28px; }
+  .empty { color: #666; padding: 1em; border: 1px dashed #ccc; text-align: center; }
+  .signs { display: flex; gap: 24px; margin-top: 2em; }
   .signs div { flex: 1; text-align: center; color: #555; }
-  .signs i { display: block; border-top: 1px solid #999; margin-top: 34px; }
+  .signs i { display: block; border-top: 1px solid #999; margin-top: 2.5em; }
   .toolbar { max-width: 210mm; margin: 0 auto 10px; display: flex; gap: 8px; }
   .toolbar button { font: inherit; padding: 6px 14px; border: 1px solid #111; background: #111; color: #fff; border-radius: 6px; cursor: pointer; }
   .toolbar-note { align-self: center; color: #555; }
-  table.report { font-size: 11px; }
+  table.report { font-size: 0.92em; }
   table.report thead { display: table-header-group; }
   table.report tbody tr { page-break-inside: avoid; }
   table.report tbody tr:nth-child(even) { background: #fafafa; }
-  table.report td.empty { text-align: center; color: #666; padding: 18px; border: 1px solid #ccc; }
-  @media print { body { background: #fff; padding: 0; } .sheet { box-shadow: none; padding: 0; max-width: none; } .toolbar { display: none; } }
+  table.report td.empty { text-align: center; color: #666; padding: 1.5em; border: 1px solid #ccc; }
+  .rep-qr svg { width: 46px; height: 46px; }
+  /* ─────────────────────────────────────────── 🎨 القوالب الثلاثة
+     القالب لا يحذف شيئاً ولا يضيف حقلاً: يغيّر الحدود والتعبئة والعناوين فقط. الألوان
+     تأتي من «--accent»، وأي غيابٍ له يسقط إلى أسود الورقة (انظر «printStyle»). */
+  body.tpl-modern .sheet { border-top: 5px solid var(--accent); padding-top: 12mm; }
+  body.tpl-modern .doc-head { border-bottom: 1px solid #e5e7eb; }
+  body.tpl-modern h1, body.tpl-modern .doc-title { color: var(--accent); }
+  body.tpl-modern table.lines th, body.tpl-modern table.lines td { border: 0; border-bottom: 1px solid #e5e7eb; }
+  body.tpl-modern table.lines thead th { background: var(--accent); color: #fff; }
+  body.tpl-modern table.report tbody tr:nth-child(even) { background: #fbfbfd; }
+  body.tpl-modern .party { border-color: #eef0f4; background: #fafbfe; }
+  body.tpl-modern .totals-strip { border: 0; border-top: 2px solid var(--accent); background: #fafbfe; }
+  body.tpl-modern .doc-foot { border-top-color: #e5e7eb; }
+  body.tpl-minimal .sheet { box-shadow: none; border: 1px solid #eee; }
+  body.tpl-minimal .doc-head { border-bottom: 1px solid #111; }
+  body.tpl-minimal table.lines th, body.tpl-minimal table.lines td { border: 0; border-bottom: 1px solid #e5e5e5; }
+  body.tpl-minimal table.lines thead th, body.tpl-minimal table.lines tfoot th { background: #fff; font-weight: 700; }
+  body.tpl-minimal .party { border: 0; border-bottom: 1px solid #e5e5e5; border-radius: 0; padding-inline: 0; }
+  body.tpl-minimal .totals-strip { border: 0; border-top: 2px solid #111; border-bottom: 1px solid #111; padding-inline: 0; }
+  body.tpl-minimal .words, body.tpl-minimal .panel { background: #fff; }
+  body.tpl-minimal .panel { border: 0; border-bottom: 1px solid #eee; border-radius: 0; padding-inline: 0; }
+  body.tpl-minimal table.signatures td { border: 0; border-top: 1px solid #ccc; }
 </style>
 </head>
-<body>
+<body class="tpl-${escapeHtml(style?.template ?? 'classic')}" style="${[
+      `--scale:${(style?.scale ?? 1).toFixed(2)}`,
+      style?.accent ? `--accent:${escapeHtml(style.accent)}` : '--accent:#111',
+      `font-family:${FONT_STACKS[style?.fontFamily ?? 'segoe']}`,
+    ].join(';')}">
   <div class="toolbar"><button type="button" onclick="window.print()">طباعة</button>${toolbar ? `<span class="toolbar-note">${toolbar}</span>` : ''}</div>
   <div class="sheet${paper === 'small' ? ' small' : ''}">${body}</div>
 </body>

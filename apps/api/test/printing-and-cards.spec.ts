@@ -64,6 +64,8 @@ describe('document printing and master-data editing', () => {
         'treasury.voucher.post',
         'treasury.expensetype.manage',
         'reporting.view',
+        // 🎨 مصمّم القوالب يكتب إعدادات الطباعة (`reporting.layout.manage`) لا يقرؤها فقط.
+        'reporting.layout.manage',
         'reporting.export.execute',
       ],
     });
@@ -137,6 +139,32 @@ describe('document printing and master-data editing', () => {
     // والوسوم الخمسة نفسها مقيسةٌ في `zatca/zatca.spec.ts`؛ هنا يكفي أن الورقة تحمل رمزًا
     // موسومًا بمرحلته بدل فراغٍ أو ادّعاء إرسالٍ لم يحدث.
     expect(html).not.toContain('لم تُصدر بعد');
+  });
+
+  it('🎨 مصمّم القوالب يغيّر شكل الفاتورة لا محتواها', async () => {
+    const saved = await api(ctx.server, 'put', '/api/v1/reports/print-settings/sales', {
+      token: actor.token,
+      body: { template: 'modern', accentColor: '#0f766e', fontFamily: 'naskh', fontScale: 110 },
+    });
+    expect(saved.status).toBe(200);
+
+    const printed = await api(ctx.server, 'get', `/api/v1/reports/print/invoices/${invoiceId}`, { token: actor.token });
+    expect(printed.status).toBe(200);
+    const html = (printed.body as { html: string }).html;
+
+    expect(html).toContain('class="tpl-modern"');
+    expect(html).toContain('--accent:#0f766e');
+    expect(html).toContain('--scale:1.10');
+    expect(html).toContain('Noto Naskh Arabic');
+    // والقاعدة الذهبية: القالب زينةٌ لا محتوى — كل ما تحمله الورقة قبل التغيير يبقى بعدة.
+    expect(html).toContain('مؤسسة الأفق للتجارة');
+    expect(html).toContain('310000000000003');
+    expect(html).toContain('مؤسسة النخبة');
+    expect(html).toContain('أرز بسمتي ٥ كجم');
+    expect(html).toMatch(/فقط .* لا غير/);
+
+    // إعادة النطاق إلى الافتراضي حتى لا يتأثّر اختبارٌ لاحق بالشكل الجديد.
+    await api(ctx.server, 'delete', '/api/v1/reports/print-settings/sales', { token: actor.token });
   });
 
   it('prints a receipt voucher and its journal entry', async () => {

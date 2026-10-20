@@ -14,6 +14,7 @@ import {
   RateLimitGuard,
   SectorLicenceGuard,
   TenantGuard,
+  TenantRateLimitGuard,
 } from './modules/platform/index.js';
 import { AuditInterceptor } from './modules/platform-services/index.js';
 import { ImpersonationGuard } from './modules/support/impersonation.guard.js';
@@ -42,6 +43,11 @@ describe('AppModule', () => {
     // readable once authentication has published the context, and a break-glass token must be
     // limited on **every** route it can reach. The five guards above keep their frozen order.
     //
+    // 🛡️ `TenantRateLimitGuard` sits immediately after `TenantGuard` and **after** the IP
+    // bucket: the tenant is only known once the token is verified, and a flood spread over
+    // many addresses must still land in one bucket. Moving it earlier would bucket anonymous
+    // traffic as "no tenant" — i.e. one shared bucket for every signed-out request.
+    //
     // 🏪 `SectorLicenceGuard` is appended, never inserted: authorisation («may this user act»)
     // is settled before licensing («did this tenant buy the surface»), and the licence check
     // reads `enabledApps` from the context `TenantGuard` published — so it cannot run earlier.
@@ -50,6 +56,7 @@ describe('AppModule', () => {
       AuthGuard,
       ImpersonationGuard,
       TenantGuard,
+      TenantRateLimitGuard,
       BranchScopeGuard,
       PermissionsGuard,
       SectorLicenceGuard,

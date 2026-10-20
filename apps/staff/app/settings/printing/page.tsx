@@ -13,11 +13,15 @@ import {
   fetchPrinterLinks,
   createPrinterLink,
   deletePrinterLink,
+  PRINT_FONT_OPTIONS,
   PRINT_SCOPES,
+  PRINT_TEMPLATE_OPTIONS,
   resetPrintSettings,
   savePrintSettings,
+  type PrintFont,
   type PrintSettings,
   type PrinterLink,
+  type PrintTemplate,
 } from '../../../lib/reports';
 import { useQuery } from '../../../lib/use-query';
 import { Table } from '../../../components/ui/table';
@@ -42,8 +46,131 @@ const EMPTY: PrintSettings = {
   headerImageUrl: '',
   footerImageUrl: '',
   stampImageUrl: '',
+  template: 'classic',
+  accentColor: '',
+  fontFamily: 'segoe',
+  fontScale: 100,
+  showSignatures: true,
   saved: false,
 };
+
+/**
+ * 🎨 معاينة المصمّم.
+ *
+ * ترسم نفس بنية الورقة التي يبنيها الخادم (ترويسة، جدول بنود، إجماليات) وتستعمل نفس
+ * متغيّري `--accent` و`--scale` ونفس أصناف القوالب — فما تراه هنا هو ما يخرج من الطابعة،
+ * لا صورةً تسويقيةً تفترق عن الورقة بعد أول تغيير في الخادم.
+ */
+function SheetPreview({ settings }: { settings: PrintSettings }) {
+  const accent = /^#[0-9a-fA-F]{6}$/.test(settings.accentColor) ? settings.accentColor : '#111';
+  const fontFamily =
+    settings.fontFamily === 'naskh'
+      ? '"Noto Naskh Arabic", "Traditional Arabic", serif'
+      : settings.fontFamily === 'sans'
+        ? 'system-ui, Arial, sans-serif'
+        : '"Segoe UI", Tahoma, sans-serif';
+  const scale = Math.min(1.3, Math.max(0.85, settings.fontScale / 100));
+  const modern = settings.template === 'modern';
+  const minimal = settings.template === 'minimal';
+  const cellBorder = modern ? '0' : minimal ? '0' : '1px solid #ccc';
+  const rowBorder = modern || minimal ? '1px solid #e7e7ea' : 'none';
+
+  return (
+    <div
+      dir="rtl"
+      aria-label="معاينة الورقة"
+      style={{
+        background: '#fff',
+        border: minimal ? '1px solid #eee' : 'none',
+        borderTop: modern ? `5px solid ${accent}` : 'none',
+        borderRadius: 10,
+        boxShadow: minimal ? 'none' : '0 1px 10px rgba(0,0,0,.10)',
+        padding: '14px 16px',
+        fontFamily,
+        fontSize: `${12 * scale}px`,
+        color: '#111',
+      }}
+    >
+      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, borderBottom: modern ? '1px solid #e5e7eb' : '2px solid ' + accent, paddingBottom: 8 }}>
+        <div>
+          <div style={{ fontSize: '1.5em', fontWeight: 700, color: modern ? accent : '#111' }}>مؤسسة الأفق للتجارة</div>
+          <div style={{ color: '#555', fontSize: '.9em' }}>Al Ofoq Trading</div>
+          <div style={{ color: '#333', fontSize: '.9em', marginTop: 2 }}>الرقم الضريبي: 310000000000003</div>
+        </div>
+        <div style={{ textAlign: 'right' }}>
+          <div style={{ fontSize: '1.33em', fontWeight: 700, color: modern ? accent : '#111' }}>فاتورة مبيعات</div>
+          <div style={{ color: '#666', fontSize: '.85em' }}>SALES INVOICE</div>
+          <div style={{ fontSize: '.9em', marginTop: 2 }}>رقم المستند: INV-1042</div>
+          <div style={{ fontSize: '.9em' }}>التاريخ: 2026/10/20</div>
+        </div>
+      </div>
+      <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: 10, fontSize: '.95em' }}>
+        <thead>
+          <tr>
+            {['#', 'الصنف', 'الكمية', 'السعر', 'الإجمالي'].map((label) => (
+              <th
+                key={label}
+                style={{
+                  border: cellBorder,
+                  borderBottom: rowBorder,
+                  padding: '4px 6px',
+                  textAlign: label === 'الصنف' ? 'right' : 'left',
+                  background: modern ? accent : minimal ? '#fff' : '#f0f1f4',
+                  color: modern ? '#fff' : '#111',
+                  fontWeight: 600,
+                }}
+              >
+                {label}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {[
+            ['1', 'أرز بسمتي ٥ كجم', '12', '27.50', '330.00'],
+            ['2', 'زيت زيتون ١ لتر', '6', '42.00', '252.00'],
+          ].map((row) => (
+            <tr key={row[0]}>
+              {row.map((cell, index) => (
+                <td key={index} style={{ border: cellBorder, borderBottom: rowBorder, padding: '4px 6px', textAlign: index === 1 ? 'right' : 'left' }}>
+                  {cell}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <div
+        style={{
+          marginTop: 8,
+          padding: '5px 9px',
+          border: modern ? '0' : '2px solid ' + accent,
+          borderTop: modern ? `2px solid ${accent}` : undefined,
+          background: modern ? '#fafbfe' : undefined,
+          fontSize: '1.15em',
+          display: 'flex',
+          gap: 18,
+        }}
+      >
+        <span>الإجمالي: <b>669.90</b></span>
+        <span>الضريبة: <b>87.38</b></span>
+      </div>
+      {settings.showSignatures ? (
+        <table style={{ width: '100%', marginTop: 12, borderCollapse: 'collapse', fontSize: '.9em' }}>
+          <tbody>
+            <tr>
+              {['أعده', 'راجعه', 'المدير'].map((label) => (
+                <td key={label} style={{ border: minimal ? 0 : '1px solid #ccc', borderTop: minimal ? '1px solid #ccc' : undefined, padding: '12px 4px 4px', textAlign: 'center', color: '#555' }}>
+                  {label}
+                </td>
+              ))}
+            </tr>
+          </tbody>
+        </table>
+      ) : null}
+    </div>
+  );
+}
 
 export default function PrintingSettingsPage() {
   const settings = useQuery<PrintSettings[]>(() => fetchPrintSettings(), []);
@@ -69,7 +196,19 @@ export default function PrintingSettingsPage() {
   useEffect(() => {
     setForm({ ...EMPTY, ...current, scope });
     setNotice(undefined);
-  }, [scope, current.printNo, current.note, current.saved, current.printType, current.casherPrinter]);
+  }, [
+    scope,
+    current.printNo,
+    current.note,
+    current.saved,
+    current.printType,
+    current.casherPrinter,
+    current.template,
+    current.accentColor,
+    current.fontFamily,
+    current.fontScale,
+    current.showSignatures,
+  ]);
 
   const reports = useMemo(() => (catalog.data ?? []).slice(0, 200), [catalog.data]);
 
@@ -100,6 +239,11 @@ export default function PrintingSettingsPage() {
         headerImageUrl: form.headerImageUrl,
         footerImageUrl: form.footerImageUrl,
         stampImageUrl: form.stampImageUrl,
+        template: form.template,
+        accentColor: form.accentColor,
+        fontFamily: form.fontFamily,
+        fontScale: Number(form.fontScale) || 100,
+        showSignatures: form.showSignatures,
       });
       setForm(saved);
       setNotice({ kind: 'ok', text: 'تم حفظ إعدادات الطباعة.' });
@@ -343,6 +487,99 @@ export default function PrintingSettingsPage() {
               <span>طباعة make pay</span>
             </label>
           </div>
+
+          <h3>مصمّم القوالب — شكل الورقة</h3>
+          <p className="small muted">
+            القالب لا يحذف حقلاً ولا بنداً: يغيّر الحدود والتعبئة والعناوين فقط. الورقة تُفتح
+            للطباعة في بيئةٍ قد لا تصل إلى الإنترنت، لذلك الخطوط كلها خطوط نظام.
+          </p>
+          <div className="form-grid">
+            <div className="field wide">
+              <span>القالب</span>
+              <div className="toolbar" style={{ gap: 8, flexWrap: 'wrap' }}>
+                {PRINT_TEMPLATE_OPTIONS.map((option) => (
+                  <label
+                    key={option.value}
+                    className="check"
+                    title={option.hintAr}
+                    style={{
+                      border: `1px solid ${form.template === option.value ? 'var(--brand, #111)' : '#d7d7df'}`,
+                      borderRadius: 8,
+                      padding: '6px 10px',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <input
+                      type="radio"
+                      name="print-template"
+                      checked={form.template === option.value}
+                      onChange={() => set('template', option.value as PrintTemplate)}
+                    />
+                    <span>{option.labelAr}</span>
+                  </label>
+                ))}
+              </div>
+              <span className="small muted">
+                {PRINT_TEMPLATE_OPTIONS.find((option) => option.value === form.template)?.hintAr}
+              </span>
+            </div>
+            <label className="field">
+              <span>لون التمييز</span>
+              <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                <input
+                  type="color"
+                  aria-label="لون التمييز"
+                  value={/^#[0-9a-fA-F]{6}$/.test(form.accentColor) ? form.accentColor : '#111111'}
+                  onChange={(event) => set('accentColor', event.target.value)}
+                  style={{ width: 44, height: 34, padding: 2 }}
+                />
+                <input
+                  className="input"
+                  dir="ltr"
+                  value={form.accentColor}
+                  onChange={(event) => set('accentColor', event.target.value)}
+                  placeholder="فارغ = لون هوية المنشأة"
+                />
+              </div>
+            </label>
+            <label className="field">
+              <span>الخط</span>
+              <select
+                className="input"
+                value={form.fontFamily}
+                onChange={(event) => set('fontFamily', event.target.value as PrintFont)}
+              >
+                {PRINT_FONT_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.labelAr}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className="field">
+              <span>حجم الخط: {form.fontScale}%</span>
+              <input
+                type="range"
+                min={85}
+                max={130}
+                step={5}
+                value={form.fontScale}
+                onChange={(event) => set('fontScale', Number(event.target.value))}
+              />
+              <span className="small muted">85٪ إلى 130٪ — يكبّر الورقة كلها لا الفقرات وحدها.</span>
+            </label>
+            <label className="check">
+              <input
+                type="checkbox"
+                checked={form.showSignatures}
+                onChange={(event) => set('showSignatures', event.target.checked)}
+              />
+              <span>طباعة سطر التوقيعات في التقارير</span>
+            </label>
+          </div>
+
+          <h3>معاينة</h3>
+          <SheetPreview settings={form} />
 
           <h3>الصور — الترويـسة · التـذيـيـل · الخـتـم</h3>
           <p className="small muted">

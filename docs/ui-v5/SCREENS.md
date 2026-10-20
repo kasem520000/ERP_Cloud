@@ -79,7 +79,7 @@
 | [x] | روابط الدفع — ميسر | `/settings/payments` | `settings/payments/page.tsx` | R | عنوان الويب هوك يعرضه إعداد الدفع |
 | [x] | الربط المحاسبي | `/settings/posting-profiles` | `settings/posting-profiles/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
 | [x] | إعدادات الأسعار | `/settings/price-lists` | `settings/price-lists/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
-| [x] | إعدادات الطباعة | `/settings/printing` | `settings/printing/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
+| [x] | إعدادات الطباعة | `/settings/printing` | `settings/printing/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة · 🎨 مصمّم القوالب: قالبٌ ولونٌ وخطٌّ ومقياسٌ وسطرُ توقيعات مع معاينةٍ حيّة |
 | [x] | إستعادة البيانات | `/settings/restore` | `settings/restore/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
 | [x] | صلاحيات المستخدمين | `/settings/roles` | `settings/roles/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
 | [x] | مزامنة البيانات | `/settings/sync` | `settings/sync/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |

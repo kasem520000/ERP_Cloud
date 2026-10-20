@@ -39,6 +39,35 @@ export function reportScope(key: string): string {
 }
 
 /**
+ * 🎨 القوالب — «كيف تبدو الورقة» بثلاث لغاتٍ بصرية، لا بثلاث نسخٍ من الـHTML.
+ *
+ * القالب صنفٌ واحد على `.sheet` يغيّر الحدود والتعبئة والشريط العلوي؛ ومحتوى الورقة
+ * (الترويسة، البنود، الإجماليات، QR) واحدٌ في الثلاثة. وهذا مقصود: مستندٌ يفقد بنداً أو
+ * رقماً ضريبيّاً لأن «قالبه» مختلف أسوأ من ألّا تُختار القوالب أصلاً.
+ */
+export const PRINT_TEMPLATES = ['classic', 'modern', 'minimal'] as const;
+export type PrintTemplate = (typeof PRINT_TEMPLATES)[number];
+export const PRINT_TEMPLATE_LABELS: Record<PrintTemplate, string> = {
+  classic: 'كلاسيكي',
+  modern: 'عصري',
+  minimal: 'مختصر',
+};
+export const PRINT_TEMPLATE_HINTS: Record<PrintTemplate, string> = {
+  classic: 'الشكل الذي كان: جدولٌ بحدودٍ رمادية وعناوين مظلّلة.',
+  modern: 'شريطُ لونٍ أعلى الورقة وحدودٌ ناعمة وترويسةُ جدولٍ بلون التمييز.',
+  minimal: 'خطوطٌ رفيعة بلا تعبئة — ورقٌ هادئ للقراءة والتوقيع.',
+};
+
+/** ✍️ عائلات الخطوط المتاحة — كلها خطوط نظام، فالورقة تُطبع بلا شبكة. */
+export const PRINT_FONTS = ['segoe', 'naskh', 'sans'] as const;
+export type PrintFont = (typeof PRINT_FONTS)[number];
+export const PRINT_FONT_LABELS: Record<PrintFont, string> = {
+  segoe: 'Segoe UI — الافتراضي',
+  naskh: 'Noto Naskh Arabic — نسخي',
+  sans: 'خط النظام — حديث',
+};
+
+/**
  * 📝 الحقول — the settings of one scope.
  *
  * The defaults are the ones `Class/Print.cs` L54-L64 builds when the desktop finds no
@@ -67,6 +96,16 @@ export type PrintSettings = {
   headerImageUrl: string;
   footerImageUrl: string;
   stampImageUrl: string;
+  /** 🎨 القالب — `classic` · `modern` · `minimal`. */
+  template: PrintTemplate;
+  /** 🖌️ `#RRGGBB`، أو `''` لوراثة لون هوية المنشأة. */
+  accentColor: string;
+  /** ✍️ عائلة الخط. */
+  fontFamily: PrintFont;
+  /** 🔎 مقياس الخط 85..130. */
+  fontScale: number;
+  /** ✒️ سطر التوقيعات في التقارير. */
+  showSignatures: boolean;
   /** False when the row was read from the defaults rather than the database. */
   saved: boolean;
 };
@@ -91,12 +130,29 @@ const defaults = (scope: string): PrintSettings => ({
   headerImageUrl: '',
   footerImageUrl: '',
   stampImageUrl: '',
+  template: 'classic',
+  accentColor: '',
+  fontFamily: 'segoe',
+  fontScale: 100,
+  showSignatures: true,
   saved: false,
 });
 
 /** 🌐 URL or nothing — the platform has no byte store, so images are links, not files. */
 const url = z.string().trim().max(600).refine((value) => value === '' || /^https?:\/\/\S+$/i.test(value), { message: 'must be an http(s) URL' });
 const shortText = z.string().trim().max(120);
+
+/**
+ * 🖌️ اللون — ستّة أرقام سادسة عشر وبس. هذا ليس تشدّداً في الشكل: القيمة تُحقن في
+ * `<style>`، وأيُّ نصٍّ آخر مدخلُ CSS injection على ورقةٍ يطبعها العميل.
+ */
+export const printAccentColor = z
+  .string()
+  .trim()
+  .max(7)
+  .refine((value) => value === '' || /^#[0-9a-fA-F]{6}$/.test(value), {
+    message: 'must be a #RRGGBB colour or empty',
+  });
 
 export const printSettingsInputSchema = z.object({
   printType: z.coerce.number().int().min(1).max(2).optional(),
@@ -117,6 +173,11 @@ export const printSettingsInputSchema = z.object({
   headerImageUrl: url.optional(),
   footerImageUrl: url.optional(),
   stampImageUrl: url.optional(),
+  template: z.enum(PRINT_TEMPLATES).optional(),
+  accentColor: printAccentColor.optional(),
+  fontFamily: z.enum(PRINT_FONTS).optional(),
+  fontScale: z.coerce.number().int().min(85).max(130).optional(),
+  showSignatures: z.coerce.boolean().optional(),
 });
 
 export type PrintSettingsInput = z.infer<typeof printSettingsInputSchema>;
@@ -187,6 +248,11 @@ export class PrintSettingsService {
       headerImageUrl: base.headerImageUrl,
       footerImageUrl: base.footerImageUrl,
       stampImageUrl: base.stampImageUrl,
+      template: base.template,
+      accentColor: base.accentColor === '' ? null : base.accentColor,
+      fontFamily: base.fontFamily,
+      fontScale: base.fontScale,
+      showSignatures: base.showSignatures,
       updatedAt: new Date(),
       updatedBy: tryGetAuthContext()?.userId ?? null,
     };
@@ -252,6 +318,15 @@ export class PrintSettingsService {
       headerImageUrl: row.headerImageUrl ?? '',
       footerImageUrl: row.footerImageUrl ?? '',
       stampImageUrl: row.stampImageUrl ?? '',
+      template: (PRINT_TEMPLATES as readonly string[]).includes(row.template)
+        ? (row.template as PrintTemplate)
+        : 'classic',
+      accentColor: row.accentColor ?? '',
+      fontFamily: (PRINT_FONTS as readonly string[]).includes(row.fontFamily)
+        ? (row.fontFamily as PrintFont)
+        : 'segoe',
+      fontScale: row.fontScale,
+      showSignatures: row.showSignatures,
       saved: true,
     };
   }
