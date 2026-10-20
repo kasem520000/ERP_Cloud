@@ -6,13 +6,12 @@ import { env } from '@erp/config';
 import { DomainError } from '@erp/contracts';
 import { brandMark, withTenantTx, type DatabaseHandle } from '@erp/database';
 
-import { buildQrPayload } from '../einvoicing/zatca/qr.js';
-
 import { DATABASE_HANDLE } from '../../database/database.module.js';
+import { buildQrPayload } from '../einvoicing/zatca/qr.js';
 import { signedContentUrl } from '../platform-services/files/download-token.js';
 
-import { amountInArabicWords } from './tafqeet.js';
 import { PrintSettingsService, type PrintSettings } from './print-settings.service.js';
+import { amountInArabicWords } from './tafqeet.js';
 
 /**
  * 🖨️ كيف تُطبع هذه الورقة — the part of `SettingPrint` the browser can honour.

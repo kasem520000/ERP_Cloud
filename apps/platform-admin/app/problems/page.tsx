@@ -1,5 +1,11 @@
 'use client';
 
+import {
+  platformProblemSourceLabels,
+  type PlatformProblemRow,
+  type PlatformProblemSource,
+  type PlatformProblemsResponse,
+} from '@erp/contracts';
 import { Panel } from '@erp/ui';
 import {
   AlertTriangle,
@@ -21,12 +27,6 @@ import { Select } from '../../components/ui/input';
 import { Table, type Column } from '../../components/ui/table';
 import { apiData } from '../../lib/api';
 import { useQuery } from '../../lib/use-query';
-import {
-  platformProblemSourceLabels,
-  type PlatformProblemRow,
-  type PlatformProblemSource,
-  type PlatformProblemsResponse,
-} from '@erp/contracts';
 
 /**
  * سجلّ المشاكل — البند 20 من قائمة العيوب.
@@ -64,7 +64,7 @@ export default function ProblemsPage() {
 
   const rows = problems.data?.rows ?? [];
   const counts = problems.data?.counts;
-  const total = counts?.total ?? 0;
+  const problemCount = counts?.total ?? 0;
 
   const columns: Array<Column<PlatformProblemRow>> = [
     {
@@ -173,9 +173,9 @@ export default function ProblemsPage() {
       kpis={[
         {
           label: 'إجمالي المشاكل',
-          value: total,
+          value: problemCount,
           icon: <AlertTriangle size={14} />,
-          tone: total > 0 ? 'warn' : 'neutral',
+          tone: problemCount > 0 ? 'warn' : 'neutral',
           hint: counts?.oldestAt
             ? `أقدمها: ${new Date(counts.oldestAt).toLocaleString('ar-SA-u-ca-gregory-nu-latn')}`
             : 'لا شيء يفشل الآن',

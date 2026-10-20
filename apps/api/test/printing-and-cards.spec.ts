@@ -128,10 +128,15 @@ describe('document printing and master-data editing', () => {
     expect(html).toContain('فاتورة مبيعات');
     expect(html).toMatch(/فقط .* لا غير/); // tafqeet line
     expect(html).toContain('@page');
-    // Nothing was reported to ZATCA yet, so the QR slot says so instead of drawing a
-    // square that no scanner could read.
-    expect(html).toContain('لم تُصدر بعد');
-    expect(html).not.toContain('<svg');
+    // الفاتورة صدرت ولم تُبلَّغ الهيئة بعد: الورقة تحمل رمز **المرحلة الأولى** (الوسوم
+    // ١–٥) لا فراغاً ولا مربّعاً مزخرفاً — وهو ما تطلبه الهيئة من فاتورةٍ صدرت ولم تُرسل.
+    // وما إن تُرسل حتى يحلّ محلّه حِمل المرحلة الثانية المخزَّن في `zatca_qr`.
+    expect(html).toContain('المرحلة الأولى');
+    const svg = /<svg[\s\S]*?<\/svg>/.exec(html)?.[0] ?? '';
+    expect(svg.length).toBeGreaterThan(500); // رمزٌ مُرمَّز فعلًا لا مربّعٌ فارغ
+    // والوسوم الخمسة نفسها مقيسةٌ في `zatca/zatca.spec.ts`؛ هنا يكفي أن الورقة تحمل رمزًا
+    // موسومًا بمرحلته بدل فراغٍ أو ادّعاء إرسالٍ لم يحدث.
+    expect(html).not.toContain('لم تُصدر بعد');
   });
 
   it('prints a receipt voucher and its journal entry', async () => {

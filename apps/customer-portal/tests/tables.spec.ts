@@ -32,8 +32,9 @@ describe('portal table anatomy', () => {
   });
 
   it('routes every portal table through the shared PortalTable', () => {
+    // `total` اسمٌ ماليّ في حرس المال (`no-restricted-syntax`) — والعدّاد هنا ليس مالاً.
     const uses = sources().reduce(
-      (total, source) => total + (source.code.match(/<PortalTable/g)?.length ?? 0),
+      (count, source) => count + (source.code.match(/<PortalTable/g)?.length ?? 0),
       0,
     );
     expect(uses).toBeGreaterThan(7);

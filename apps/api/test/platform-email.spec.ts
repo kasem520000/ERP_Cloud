@@ -602,7 +602,8 @@ describe('platform e-mail service (P-C6)', () => {
 
     // رسالة اختبار المنصة لا تُحتسب على السقف: المُختبَر هو الاتصال لا الاستهلاك.
     const test = await platformPost('/platform/email/settings/test', { to: 'probe@mail.test' });
-    expect(test.status).toBe(201);
+    // فحصُ اتصالٍ لا يُنشئ مورداً: 200 كما في سطح العميل، لا 201.
+    expect(test.status).toBe(200);
     expect((test.body.data as EmailTestResult).status).toBe('sent');
 
     const cleared = await platformPut('/platform/email/settings', {

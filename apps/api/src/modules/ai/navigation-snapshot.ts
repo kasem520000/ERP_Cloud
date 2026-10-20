@@ -276,7 +276,7 @@ export const NAVIGATION_SNAPSHOT: readonly HelpArticle[] = [
   },
   {
     "id": "nav:cc-balances",
-    "title": "📊 كشف مركز الكلفة",
+    "title": "كشف مركز الكلفة",
     "href": "/accounting/cost-center-statement",
     "keywords": [
       "كشف",
@@ -290,7 +290,7 @@ export const NAVIGATION_SNAPSHOT: readonly HelpArticle[] = [
       "center"
     ],
     "steps": [
-      "افتح «📊 كشف مركز الكلفة» من قائمة النظام.",
+      "افتح «كشف مركز الكلفة» من قائمة النظام.",
       "أدخل البيانات ثم احفظ. أي ترحيل يتم من الشاشة بعد المراجعة، لا من المساعد."
     ],
     "source": "navigation"
@@ -854,19 +854,19 @@ export const NAVIGATION_SNAPSHOT: readonly HelpArticle[] = [
   },
   {
     "id": "nav:goods-out",
-    "title": "فاتورة إخراج",
-    "href": "/sales/invoices/new",
+    "title": "صرف مخزني",
+    "href": "/inventory/vouchers?kind=issue",
     "keywords": [
-      "فاتورة",
-      "إخراج",
+      "صرف",
+      "مخزني",
       "Goods",
       "issue",
-      "sales",
-      "invoices",
-      "new"
+      "inventory",
+      "vouchers",
+      "kind"
     ],
     "steps": [
-      "افتح «فاتورة إخراج» من قائمة النظام.",
+      "افتح «صرف مخزني» من قائمة النظام.",
       "أدخل البيانات ثم احفظ. أي ترحيل يتم من الشاشة بعد المراجعة، لا من المساعد."
     ],
     "source": "navigation"
@@ -1887,7 +1887,7 @@ export const NAVIGATION_SNAPSHOT: readonly HelpArticle[] = [
   },
   {
     "id": "nav:cash-customer",
-    "title": "👤 عميل نقدي",
+    "title": "عميل نقدي",
     "href": "/sales/cash-customers",
     "keywords": [
       "عميل",
@@ -1899,7 +1899,46 @@ export const NAVIGATION_SNAPSHOT: readonly HelpArticle[] = [
       "customers"
     ],
     "steps": [
-      "افتح «👤 عميل نقدي» من قائمة النظام.",
+      "افتح «عميل نقدي» من قائمة النظام.",
+      "أدخل البيانات ثم احفظ. أي ترحيل يتم من الشاشة بعد المراجعة، لا من المساعد."
+    ],
+    "source": "navigation"
+  },
+  {
+    "id": "nav:van-sales",
+    "title": "توزيع المناديب والمخابز",
+    "href": "/van-sales",
+    "keywords": [
+      "توزيع",
+      "المناديب",
+      "والمخابز",
+      "Van",
+      "sales",
+      "bakery",
+      "distribution",
+      "van"
+    ],
+    "steps": [
+      "افتح «توزيع المناديب والمخابز» من قائمة النظام.",
+      "أدخل البيانات ثم احفظ. أي ترحيل يتم من الشاشة بعد المراجعة، لا من المساعد."
+    ],
+    "source": "navigation"
+  },
+  {
+    "id": "nav:van-sales-rep",
+    "title": "تطبيق المندوب",
+    "href": "/van-sales/rep",
+    "keywords": [
+      "تطبيق",
+      "المندوب",
+      "Van",
+      "rep",
+      "portal",
+      "van",
+      "sales"
+    ],
+    "steps": [
+      "افتح «تطبيق المندوب» من قائمة النظام.",
       "أدخل البيانات ثم احفظ. أي ترحيل يتم من الشاشة بعد المراجعة، لا من المساعد."
     ],
     "source": "navigation"
@@ -2632,7 +2671,7 @@ export const NAVIGATION_SNAPSHOT: readonly HelpArticle[] = [
   },
   {
     "id": "nav:salesman-commissions",
-    "title": "📋 طباعة فواتير مندوب وعمولاتهم",
+    "title": "طباعة فواتير مندوب وعمولاتهم",
     "href": "/sales/salesman-commissions",
     "keywords": [
       "طباعة",
@@ -2645,7 +2684,7 @@ export const NAVIGATION_SNAPSHOT: readonly HelpArticle[] = [
       "salesman"
     ],
     "steps": [
-      "افتح «📋 طباعة فواتير مندوب وعمولاتهم» من قائمة النظام.",
+      "افتح «طباعة فواتير مندوب وعمولاتهم» من قائمة النظام.",
       "أدخل البيانات ثم احفظ. أي ترحيل يتم من الشاشة بعد المراجعة، لا من المساعد."
     ],
     "source": "navigation"
@@ -3433,24 +3472,6 @@ export const NAVIGATION_SNAPSHOT: readonly HelpArticle[] = [
     "source": "navigation"
   },
   {
-    "id": "nav:user-logs",
-    "title": "سجلات المستخدمين",
-    "href": "/settings/audit",
-    "keywords": [
-      "سجلات",
-      "المستخدمين",
-      "User",
-      "logs",
-      "settings",
-      "audit"
-    ],
-    "steps": [
-      "افتح «سجلات المستخدمين» من قائمة النظام.",
-      "أدخل البيانات ثم احفظ. أي ترحيل يتم من الشاشة بعد المراجعة، لا من المساعد."
-    ],
-    "source": "navigation"
-  },
-  {
     "id": "nav:marina-group",
     "title": "بطاقة الفئة وفترات التأجير",
     "href": "/marina/groups",
@@ -3844,6 +3865,76 @@ export const NAVIGATION_SNAPSHOT: readonly HelpArticle[] = [
     ],
     "steps": [
       "افتح «سند دفع لمقاول» من قائمة النظام.",
+      "أدخل البيانات ثم احفظ. أي ترحيل يتم من الشاشة بعد المراجعة، لا من المساعد."
+    ],
+    "source": "navigation"
+  },
+  {
+    "id": "nav:audit-log",
+    "title": "سجل التدقيق",
+    "href": "/settings/audit",
+    "keywords": [
+      "سجل",
+      "التدقيق",
+      "Audit",
+      "log",
+      "settings",
+      "audit"
+    ],
+    "steps": [
+      "افتح «سجل التدقيق» من قائمة النظام.",
+      "أدخل البيانات ثم احفظ. أي ترحيل يتم من الشاشة بعد المراجعة، لا من المساعد."
+    ],
+    "source": "navigation"
+  },
+  {
+    "id": "nav:approval-inbox",
+    "title": "وارد الموافقات",
+    "href": "/approvals/inbox",
+    "keywords": [
+      "وارد",
+      "الموافقات",
+      "Approval",
+      "inbox",
+      "approvals"
+    ],
+    "steps": [
+      "افتح «وارد الموافقات» من قائمة النظام.",
+      "أدخل البيانات ثم احفظ. أي ترحيل يتم من الشاشة بعد المراجعة، لا من المساعد."
+    ],
+    "source": "navigation"
+  },
+  {
+    "id": "nav:approval-history",
+    "title": "سجل الموافقات",
+    "href": "/approvals/history",
+    "keywords": [
+      "سجل",
+      "الموافقات",
+      "Approval",
+      "history",
+      "approvals"
+    ],
+    "steps": [
+      "افتح «سجل الموافقات» من قائمة النظام.",
+      "أدخل البيانات ثم احفظ. أي ترحيل يتم من الشاشة بعد المراجعة، لا من المساعد."
+    ],
+    "source": "navigation"
+  },
+  {
+    "id": "nav:usage",
+    "title": "الاستخدام والحصص",
+    "href": "/settings/usage",
+    "keywords": [
+      "الاستخدام",
+      "والحصص",
+      "Usage",
+      "quotas",
+      "settings",
+      "usage"
+    ],
+    "steps": [
+      "افتح «الاستخدام والحصص» من قائمة النظام.",
       "أدخل البيانات ثم احفظ. أي ترحيل يتم من الشاشة بعد المراجعة، لا من المساعد."
     ],
     "source": "navigation"
@@ -4451,58 +4542,6 @@ export const NAVIGATION_SNAPSHOT: readonly HelpArticle[] = [
     "source": "navigation"
   },
   {
-    "id": "nav:approval-inbox",
-    "title": "وارد الموافقات",
-    "href": "/approvals/inbox",
-    "keywords": [
-      "وارد",
-      "الموافقات",
-      "Approval",
-      "inbox",
-      "approvals"
-    ],
-    "steps": [
-      "افتح «وارد الموافقات» من قائمة النظام.",
-      "أدخل البيانات ثم احفظ. أي ترحيل يتم من الشاشة بعد المراجعة، لا من المساعد."
-    ],
-    "source": "navigation"
-  },
-  {
-    "id": "nav:approval-history",
-    "title": "سجل الموافقات",
-    "href": "/approvals/history",
-    "keywords": [
-      "سجل",
-      "الموافقات",
-      "Approval",
-      "history",
-      "approvals"
-    ],
-    "steps": [
-      "افتح «سجل الموافقات» من قائمة النظام.",
-      "أدخل البيانات ثم احفظ. أي ترحيل يتم من الشاشة بعد المراجعة، لا من المساعد."
-    ],
-    "source": "navigation"
-  },
-  {
-    "id": "nav:usage",
-    "title": "الاستخدام والحصص",
-    "href": "/settings/usage",
-    "keywords": [
-      "الاستخدام",
-      "والحصص",
-      "Usage",
-      "quotas",
-      "settings",
-      "usage"
-    ],
-    "steps": [
-      "افتح «الاستخدام والحصص» من قائمة النظام.",
-      "أدخل البيانات ثم احفظ. أي ترحيل يتم من الشاشة بعد المراجعة، لا من المساعد."
-    ],
-    "source": "navigation"
-  },
-  {
     "id": "nav:printing-settings",
     "title": "إعدادات الطباعة",
     "href": "/settings/printing",
@@ -4775,7 +4814,7 @@ export const NAVIGATION_SNAPSHOT: readonly HelpArticle[] = [
   },
   {
     "id": "nav:help",
-    "title": "🆘 إطلب المساعدة",
+    "title": "إطلب المساعدة",
     "href": "/support/help",
     "keywords": [
       "إطلب",
@@ -4785,14 +4824,14 @@ export const NAVIGATION_SNAPSHOT: readonly HelpArticle[] = [
       "support"
     ],
     "steps": [
-      "افتح «🆘 إطلب المساعدة» من قائمة النظام.",
+      "افتح «إطلب المساعدة» من قائمة النظام.",
       "أدخل البيانات ثم احفظ. أي ترحيل يتم من الشاشة بعد المراجعة، لا من المساعد."
     ],
     "source": "navigation"
   },
   {
     "id": "nav:safe-card",
-    "title": "🏦 تعريف الخزينة",
+    "title": "تعريف الخزينة",
     "href": "/treasury/safes",
     "keywords": [
       "تعريف",
@@ -4802,14 +4841,14 @@ export const NAVIGATION_SNAPSHOT: readonly HelpArticle[] = [
       "safes"
     ],
     "steps": [
-      "افتح «🏦 تعريف الخزينة» من قائمة النظام.",
+      "افتح «تعريف الخزينة» من قائمة النظام.",
       "أدخل البيانات ثم احفظ. أي ترحيل يتم من الشاشة بعد المراجعة، لا من المساعد."
     ],
     "source": "navigation"
   },
   {
     "id": "nav:bank-def",
-    "title": "🏦 تعريف البنوك",
+    "title": "تعريف البنوك",
     "href": "/treasury/banks",
     "keywords": [
       "تعريف",
@@ -4819,14 +4858,14 @@ export const NAVIGATION_SNAPSHOT: readonly HelpArticle[] = [
       "banks"
     ],
     "steps": [
-      "افتح «🏦 تعريف البنوك» من قائمة النظام.",
+      "افتح «تعريف البنوك» من قائمة النظام.",
       "أدخل البيانات ثم احفظ. أي ترحيل يتم من الشاشة بعد المراجعة، لا من المساعد."
     ],
     "source": "navigation"
   },
   {
     "id": "nav:expense-card",
-    "title": "📒 بطاقة حساب المصاريف",
+    "title": "بطاقة حساب المصاريف",
     "href": "/accounting/expenses",
     "keywords": [
       "بطاقة",
@@ -4838,7 +4877,7 @@ export const NAVIGATION_SNAPSHOT: readonly HelpArticle[] = [
       "expenses"
     ],
     "steps": [
-      "افتح «📒 بطاقة حساب المصاريف» من قائمة النظام.",
+      "افتح «بطاقة حساب المصاريف» من قائمة النظام.",
       "أدخل البيانات ثم احفظ. أي ترحيل يتم من الشاشة بعد المراجعة، لا من المساعد."
     ],
     "source": "navigation"
@@ -4900,7 +4939,7 @@ export const NAVIGATION_SNAPSHOT: readonly HelpArticle[] = [
   },
   {
     "id": "nav:receipt-voucher",
-    "title": "📄 سند قبض",
+    "title": "سند قبض",
     "href": "/treasury/vouchers?kind=receipt",
     "keywords": [
       "سند",
@@ -4913,14 +4952,14 @@ export const NAVIGATION_SNAPSHOT: readonly HelpArticle[] = [
       "receipt"
     ],
     "steps": [
-      "افتح «📄 سند قبض» من قائمة النظام.",
+      "افتح «سند قبض» من قائمة النظام.",
       "أدخل البيانات ثم احفظ. أي ترحيل يتم من الشاشة بعد المراجعة، لا من المساعد."
     ],
     "source": "navigation"
   },
   {
     "id": "nav:payment-voucher",
-    "title": "📄 سند صرف",
+    "title": "سند صرف",
     "href": "/treasury/vouchers?kind=payment",
     "keywords": [
       "سند",
@@ -4933,14 +4972,14 @@ export const NAVIGATION_SNAPSHOT: readonly HelpArticle[] = [
       "payment"
     ],
     "steps": [
-      "افتح «📄 سند صرف» من قائمة النظام.",
+      "افتح «سند صرف» من قائمة النظام.",
       "أدخل البيانات ثم احفظ. أي ترحيل يتم من الشاشة بعد المراجعة، لا من المساعد."
     ],
     "source": "navigation"
   },
   {
     "id": "nav:day-close",
-    "title": "📊 إغلاق اليومية",
+    "title": "إغلاق اليومية",
     "href": "/treasury/day-close",
     "keywords": [
       "إغلاق",
@@ -4951,7 +4990,7 @@ export const NAVIGATION_SNAPSHOT: readonly HelpArticle[] = [
       "day"
     ],
     "steps": [
-      "افتح «📊 إغلاق اليومية» من قائمة النظام.",
+      "افتح «إغلاق اليومية» من قائمة النظام.",
       "أدخل البيانات ثم احفظ. أي ترحيل يتم من الشاشة بعد المراجعة، لا من المساعد."
     ],
     "source": "navigation"
@@ -4975,7 +5014,7 @@ export const NAVIGATION_SNAPSHOT: readonly HelpArticle[] = [
   },
   {
     "id": "nav:cheques",
-    "title": "🏦 كشف الشيكات",
+    "title": "كشف الشيكات",
     "href": "/treasury/cheques",
     "keywords": [
       "كشف",
@@ -4986,14 +5025,14 @@ export const NAVIGATION_SNAPSHOT: readonly HelpArticle[] = [
       "cheques"
     ],
     "steps": [
-      "افتح «🏦 كشف الشيكات» من قائمة النظام.",
+      "افتح «كشف الشيكات» من قائمة النظام.",
       "أدخل البيانات ثم احفظ. أي ترحيل يتم من الشاشة بعد المراجعة، لا من المساعد."
     ],
     "source": "navigation"
   },
   {
     "id": "nav:safe-movement",
-    "title": "🏦 حركة الصندوق",
+    "title": "حركة الصندوق",
     "href": "/treasury/movements",
     "keywords": [
       "حركة",
@@ -5004,7 +5043,7 @@ export const NAVIGATION_SNAPSHOT: readonly HelpArticle[] = [
       "movements"
     ],
     "steps": [
-      "افتح «🏦 حركة الصندوق» من قائمة النظام.",
+      "افتح «حركة الصندوق» من قائمة النظام.",
       "أدخل البيانات ثم احفظ. أي ترحيل يتم من الشاشة بعد المراجعة، لا من المساعد."
     ],
     "source": "navigation"

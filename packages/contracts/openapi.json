@@ -5854,6 +5854,76 @@
         ]
       }
     },
+    "/api/v1/platform/problems": {
+      "get": {
+        "operationId": "PlatformConsoleController_problems",
+        "parameters": [
+          {
+            "name": "filter[to]",
+            "required": false,
+            "in": "query",
+            "description": "ISO-8601 upper bound",
+            "schema": {}
+          },
+          {
+            "name": "filter[from]",
+            "required": false,
+            "in": "query",
+            "description": "ISO-8601 lower bound",
+            "schema": {}
+          },
+          {
+            "name": "filter[severity]",
+            "required": false,
+            "in": "query",
+            "description": "error | warning",
+            "schema": {}
+          },
+          {
+            "name": "filter[tenantId]",
+            "required": false,
+            "in": "query",
+            "schema": {}
+          },
+          {
+            "name": "filter[source]",
+            "required": false,
+            "in": "query",
+            "description": "email | einvoice | webhook | outbox | backup",
+            "schema": {}
+          },
+          {
+            "name": "offset",
+            "required": false,
+            "in": "query",
+            "schema": {}
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Problem page with per-source counts"
+          },
+          "403": {
+            "description": "console.health.view is required"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Everything that is failing right now, across sources",
+        "tags": [
+          "platform-console"
+        ]
+      }
+    },
     "/api/v1/platform/settings": {
       "get": {
         "operationId": "PlatformConsoleController_settings",
@@ -7234,6 +7304,12 @@
                     "format": "uuid",
                     "nullable": true
                   },
+                  "logoDataUrl": {
+                    "type": "string",
+                    "maxLength": 700000,
+                    "pattern": "^data:image\\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$",
+                    "nullable": true
+                  },
                   "address": {
                     "type": "object",
                     "properties": {
@@ -7262,6 +7338,14 @@
                         "maxLength": 200
                       },
                       "postal": {
+                        "type": "string",
+                        "maxLength": 20
+                      },
+                      "additional": {
+                        "type": "string",
+                        "maxLength": 20
+                      },
+                      "unit": {
                         "type": "string",
                         "maxLength": 20
                       },
@@ -7451,6 +7535,14 @@
                         "type": "string",
                         "maxLength": 20
                       },
+                      "additional": {
+                        "type": "string",
+                        "maxLength": 20
+                      },
+                      "unit": {
+                        "type": "string",
+                        "maxLength": 20
+                      },
                       "countryCode": {
                         "type": "string"
                       }
@@ -7580,6 +7672,14 @@
                         "maxLength": 200
                       },
                       "postal": {
+                        "type": "string",
+                        "maxLength": 20
+                      },
+                      "additional": {
+                        "type": "string",
+                        "maxLength": 20
+                      },
+                      "unit": {
                         "type": "string",
                         "maxLength": 20
                       },
