@@ -83,7 +83,7 @@
 | [x] | إستعادة البيانات | `/settings/restore` | `settings/restore/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
 | [x] | صلاحيات المستخدمين | `/settings/roles` | `settings/roles/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
 | [x] | مزامنة البيانات | `/settings/sync` | `settings/sync/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
-| [x] | مزامنة كيان | `/settings/sync/[entity]` | `settings/sync/[entity]/page.tsx` | R | تحقق بسجل حقيقي في المتصفح 1440 |
+| [x] | مزامنة كيان | `/settings/sync/[entity]` | `settings/sync/[entity]/page.tsx` | R | فُتح بمفاتيح المزامنة الأربعة؛ invoices = حالة فارغة سليمة — 1440 |
 | [x] | إدارة المزامنة | `/settings/sync/manage` | `settings/sync/manage/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
 | [x] | مزامنة الفواتير Zatca | `/settings/sync/zatca` | `settings/sync/zatca/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
 | [x] | التحقق بخطوتين | `/settings/two-factor` | `settings/two-factor/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
@@ -194,7 +194,7 @@
 
 | ✔ | الشاشة | المسار | الملف | المعالجة | ملاحظة |
 | :-: | --- | --- | --- | :-: | --- |
-| [x] | شاشة مسجّلة | `/s/[...slug]` | `s/[...slug]/page.tsx` | R | تحقق بسجل حقيقي في المتصفح 1440 |
+| [x] | شاشة مسجّلة | `/s/[...slug]` | `s/[...slug]/page.tsx` | R | فُتح بمسار غير منفَّذ (settings/prep-device): شاشة «غير متاحة في نسختك» + زر عودة مضبوط — 1440 |
 
 ### الطباعة
 
@@ -210,14 +210,14 @@
 | [x] | بطاقة عميل | `/sales/customers` | `sales/customers/page.tsx` | R | هيكلة v5.2: إطار Page/PageHead + شريط مؤشرات + تصفية موحّدة · تحقق في المتصفح 1440 |
 | [x] | طلبات المتجر الإلكتروني | `/sales/ecommerce-orders` | `sales/ecommerce-orders/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
 | [x] | فاتورة مبيعات | `/sales/invoices` | `sales/invoices/page.tsx` | R | هيكلة v5.2: إطار Page/PageHead + شريط مؤشرات + تصفية موحّدة · تحقق في المتصفح 1440 |
-| [x] | فاتورة مبيعات (تفاصيل) | `/sales/invoices/[id]` | `sales/invoices/[id]/page.tsx` | R | تحقق بسجل حقيقي في المتصفح 1440 |
+| [x] | فاتورة مبيعات (تفاصيل) | `/sales/invoices/[id]` | `sales/invoices/[id]/page.tsx` | R | فُتح بفاتورة مبيعات مسودة 030003 (بنود · ملخص مالي · خطوة الحالة · روابط دفع) — 1440 |
 | [x] | فاتورة إخراج | `/sales/invoices/new` | `sales/invoices/new/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
-| [x] | إشعار مبيعات | `/sales/notes/[kind]` | `sales/notes/[kind]/page.tsx` | R | تحقق بسجل حقيقي في المتصفح 1440 |
+| [x] | إشعار مبيعات | `/sales/notes/[kind]` | `sales/notes/[kind]/page.tsx` | R | فُتح بـ self-credit و debit-credit (نموذج + حالة فارغة) — 1440 |
 | [x] | وصول العملاء للبوابة | `/sales/portal-access` | `sales/portal-access/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
 | [x] | نقطة البيع | `/sales/pos` | `sales/pos/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
 | [x] | عرض سعر | `/sales/quotations` | `sales/quotations/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
-| [x] | عرض سعر (تفاصيل) | `/sales/quotations/[id]` | `sales/quotations/[id]/page.tsx` | R | تحقق بسجل حقيقي في المتصفح 1440 |
-| [x] | توقيع عرض السعر | `/sales/quotations/[id]/esign` | `sales/quotations/[id]/esign/page.tsx` | R | تحقق بسجل حقيقي في المتصفح 1440 |
+| [x] | عرض سعر (تفاصيل) | `/sales/quotations/[id]` | `sales/quotations/[id]/page.tsx` | R | فُتح بعرض سعر حقيقي (بيانات العرض · الأسطر · التوقيع الإلكتروني) — 1440 |
+| [x] | توقيع عرض السعر | `/sales/quotations/[id]/esign` | `sales/quotations/[id]/esign/page.tsx` | R | فُتح بنموذج الإرسال للتوقيع بعد تحويله إلى FormSection بشريط إجراءات — 1440 |
 | [x] | مردود المبيعات | `/sales/returns` | `sales/returns/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
 | [x] | 📋 طباعة فواتير مندوب وعمولاتهم | `/sales/salesman-commissions` | `sales/salesman-commissions/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
 | [x] | بطاقة مندوب | `/sales/salesmen` | `sales/salesmen/page.tsx` | R | هيكلة v5.2: إطار Page/PageHead + شريط مؤشرات + تصفية موحّدة · تحقق في المتصفح 1440 |
@@ -236,7 +236,7 @@
 | [x] | 📒 بطاقة حساب المصاريف | `/accounting/expenses` | `accounting/expenses/page.tsx` | R | هيكلة v5.2: إطار Page/PageHead + شريط مؤشرات + تصفية موحّدة · تحقق في المتصفح 1440 |
 | [x] | أرباح وخسائر حسابات رئيسية | `/accounting/income-statement` | `accounting/income-statement/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
 | [x] | القيود اليومية | `/accounting/journal-entries` | `accounting/journal-entries/page.tsx` | R | هيكلة v5.2: إطار Page/PageHead + شريط مؤشرات + تصفية موحّدة · تحقق في المتصفح 1440 |
-| [x] | قيد يومية | `/accounting/journal-entries/[id]` | `accounting/journal-entries/[id]/page.tsx` | R | تحقق بسجل حقيقي في المتصفح 1440 |
+| [x] | قيد يومية | `/accounting/journal-entries/[id]` | `accounting/journal-entries/[id]/page.tsx` | R | فُتح بقيد يومية JE-000011 مرحّل (بيانات · أسطر · الملخص) — 1440 |
 | [x] | سند قيد | `/accounting/journal-entries/new` | `accounting/journal-entries/new/page.tsx` | R | هيكلة v5.2: إطار Page/PageHead + شريط مؤشرات + تصفية موحّدة · تحقق في المتصفح 1440 |
 | [x] | كشف حساب | `/accounting/ledger` | `accounting/ledger/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
 | [x] | طرق الدفع | `/accounting/payment-methods` | `accounting/payment-methods/page.tsx` | R | هيكلة v5.2: إطار Page/PageHead + شريط مؤشرات + تصفية موحّدة · تحقق في المتصفح 1440 |
@@ -298,7 +298,7 @@
 | [x] | مخطط جانت | `/projects/gantt` | `projects/gantt/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
 | [x] | عروض | `/projects/offers` | `projects/offers/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
 | [x] | مراحل مشروع | `/projects/stages` | `projects/stages/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
-| [x] | مهمة | `/projects/tasks/[taskId]` | `projects/tasks/[taskId]/page.tsx` | R | تحقق بسجل حقيقي في المتصفح 1440 |
+| [x] | مهمة | `/projects/tasks/[taskId]` | `projects/tasks/[taskId]/page.tsx` | R | فُتح بمهمة حقيقية؛ ضُبطت الساعات والمصاريف بـ quantity() لمنع 0.0000 — 1440 |
 | [x] | تتبع الوقت | `/projects/time` | `projects/time/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
 
 ### المشتريات
@@ -310,7 +310,7 @@
 | [x] | فاتورة مشتريات (تفاصيل) | `/purchases/invoices/[id]` | `purchases/invoices/[id]/page.tsx` | R | فُتح بفاتورة مشتريات مسودة حقيقية — 1440 |
 | [x] | فاتورة إدخال | `/purchases/invoices/new` | `purchases/invoices/new/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
 | [x] | قراءة فاتورة بالـ OCR | `/purchases/invoices/ocr` | `purchases/invoices/ocr/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
-| [x] | إشعار مشتريات | `/purchases/notes/[kind]` | `purchases/notes/[kind]/page.tsx` | R | تحقق بسجل حقيقي في المتصفح 1440 |
+| [x] | إشعار مشتريات | `/purchases/notes/[kind]` | `purchases/notes/[kind]/page.tsx` | R | فُتح بـ debit (نموذج مطابق لإشعارات المبيعات + حالة فارغة) — 1440 |
 | [x] | بوابة الموردين | `/purchases/supplier-portal` | `purchases/supplier-portal/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
 | [x] | بطاقة مورد | `/purchases/suppliers` | `purchases/suppliers/page.tsx` | R | هيكلة v5.2: إطار Page/PageHead + شريط مؤشرات + تصفية موحّدة · تحقق في المتصفح 1440 |
 
@@ -357,7 +357,7 @@
 | ✔ | الشاشة | المسار | الملف | المعالجة | ملاحظة |
 | :-: | --- | --- | --- | :-: | --- |
 | [x] | لوحات المؤشرات | `/dashboards` | `dashboards/page.tsx` | R | هيكلة v5.2: إطار Page/PageHead + شريط مؤشرات + تصفية موحّدة · تحقق في المتصفح 1440 |
-| [x] | لوحة مؤشرات | `/dashboards/[id]` | `dashboards/[id]/page.tsx` | R | تحقق بسجل حقيقي في المتصفح 1440 |
+| [x] | لوحة مؤشرات | `/dashboards/[id]` | `dashboards/[id]/page.tsx` | R | فُتح بلوحة «لوحتي» (٣ ودجات + كتالوج) — 1440 |
 
 ### نظام التصميم
 

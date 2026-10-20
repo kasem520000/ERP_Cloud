@@ -156,10 +156,12 @@ export function ScreenScaffold({ href }: { href: string }) {
       <Empty
         title="هذه الصفحة غير متاحة في نسختك"
         detail="إن وصلت إلى هنا من رابط قديم، فارجع إلى القائمة الجانبية أو تواصل مع مسؤول الحساب لتفعيل الوحدة."
+        action={
+          <Link className="btn" href="/">
+            العودة إلى الرئيسية
+          </Link>
+        }
       />
-      <Link className="btn" href="/">
-        العودة إلى الرئيسية
-      </Link>
     </Screen>
   );
 }

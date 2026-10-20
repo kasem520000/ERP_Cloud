@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useState } from 'react';
-import { Panel } from '@erp/ui';
+import { FormSection, Panel } from '@erp/ui';
 
 import { Notice } from '../../../../../components/data-view';
 import { Screen } from '../../../../../components/screen';
@@ -75,7 +75,15 @@ export default function QuotationEsignPage() {
       ) : null}
 
       <form onSubmit={send}>
-        <Panel title="إرسال عرض السعر للتوقيع">
+        <FormSection
+          title="إرسال عرض السعر للتوقيع"
+          hint="البريد إلزامي، والاسم والرسالة اختياريان؛ الرسالة تظهر للعميل في صفحة التوقيع."
+          actions={
+            <button className="btn primary" type="submit" disabled={busy || row?.status !== 'draft'}>
+              {busy ? 'جارٍ الإرسال…' : 'إرسال الرابط'}
+            </button>
+          }
+        >
           <div className="form-grid">
             <label className="field">
               <span>بريد الموقّع *</span>
@@ -100,10 +108,7 @@ export default function QuotationEsignPage() {
               <input className="input" value={message} onChange={(event) => setMessage(event.target.value)} />
             </label>
           </div>
-          <button className="btn primary" type="submit" disabled={busy || row?.status !== 'draft'}>
-            {busy ? 'جارٍ الإرسال…' : 'إرسال الرابط'}
-          </button>
-        </Panel>
+        </FormSection>
       </form>
 
       {issued ? (

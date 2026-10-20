@@ -18,6 +18,7 @@ import {
   type TaskDependency,
   type TimeLog,
 } from '../lib/project-kanban';
+import { quantity } from '../lib/lookups';
 import { useSession } from '../lib/session';
 
 import { CommentsPanel } from './comments-panel';
@@ -146,7 +147,7 @@ export function ProjectTaskDetail({ taskId, projectId }: { taskId: string; proje
               <span>ساعات مخططة</span>
               <input
                 className="input"
-                defaultValue={task.estimatedHours}
+                defaultValue={quantity(task.estimatedHours)}
                 onBlur={(event) => void save({ estimatedHours: event.target.value }, 'تغيّر المخطط.')}
               />
             </label>
@@ -154,7 +155,7 @@ export function ProjectTaskDetail({ taskId, projectId }: { taskId: string; proje
               <span>مصاريف المهمة</span>
               <input
                 className="input"
-                defaultValue={task.expenseValue}
+                defaultValue={quantity(task.expenseValue)}
                 onBlur={(event) => void save({ expenseValue: event.target.value }, 'تغيّرت المصاريف.')}
               />
             </label>
@@ -209,7 +210,10 @@ export function ProjectTaskDetail({ taskId, projectId }: { taskId: string; proje
           </div>
         </Panel>
       ) : null}
-      <Panel title="الوقت المسجَّل" hint={`فعلي ${task.actualHours} ساعة من ${task.estimatedHours} مخططة.`}>
+      <Panel
+        title="الوقت المسجَّل"
+        hint={`فعلي ${quantity(task.actualHours)} ساعة من ${quantity(task.estimatedHours)} مخططة.`}
+      >
         {can('projects.time_logs.manage') ? (
           <div className="grid gap-3 md:grid-cols-3">
             <input className="input" value={hours} onChange={(event) => setHours(event.target.value)} />
