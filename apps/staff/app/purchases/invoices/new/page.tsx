@@ -1,6 +1,6 @@
 'use client';
 
-import { Panel } from '@erp/ui';
+import { FormActions, Panel } from '@erp/ui';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
@@ -191,7 +191,7 @@ export default function NewPurchaseInvoicePage() {
       crumbs={['المشتريات', 'العمليات']}
     >
       <form onSubmit={save}>
-        <Panel title="بيانات الفاتورة">
+        <Panel title="بيانات الفاتورة" hint="مَن نشتري منه، ومن أي فرعٍ ومستودعٍ تدخل البضاعة، ونوع المستند.">
           <section className="form-section">
             <div className="form-section-head">
               <h3 className="form-section-title">الطرف والفرع</h3>
@@ -303,13 +303,12 @@ export default function NewPurchaseInvoicePage() {
               </label>
             </div>
           </section>
+        </Panel>
+        <Panel
+          title="التكلفة والتحميل"
+          hint="مركز التكلفة وتوزيع المصاريف الإضافية على الأسطر، والأسعار الشاملة، والتسلسلي."
+        >
           <section className="form-section">
-            <div className="form-section-head">
-              <h3 className="form-section-title">التكلفة والتحميل</h3>
-              <span className="form-section-hint">
-                مركز التكلفة وتوزيع المصاريف الإضافية على الأسطر، والأسعار الشاملة، والتسلسلي.
-              </span>
-            </div>
             <div className="form-grid">
               {/* «مركز التكلفة» — `frmInvPurch.xaml` L467 (بلا نقطتين، كما في نافذة الشراء). */}
               <label className="field">
@@ -375,7 +374,12 @@ export default function NewPurchaseInvoicePage() {
               </label>
             </div>
           </section>
-          <h2>الأصناف</h2>
+        </Panel>
+        <Panel
+          title="الأصناف"
+          hint="أضف سطراً لكل صنف؛ الحقول المحسوبة (المجموع والضريبة والصافي) تُحدَّث فوراً."
+          flush
+        >
           <InvoiceLines
             lines={lines}
             onChange={setLines}
@@ -385,29 +389,37 @@ export default function NewPurchaseInvoicePage() {
             withNumbers
             costCenters={costCenters.data ?? []}
           />
-
-          <h2>الإجماليات</h2>
-          <TotalsPanel totals={totals} variant="purchase" />
-
-          <Notice notice={notice} />
-          <div className="row">
-            {/* «حفظ» L1428 و«حفظ مع طباعة» L1424 في `frmInvPurch.xaml`. */}
-            <button className="btn primary" type="submit" disabled={busy}>
-              {busy ? 'جارٍ الحفظ والترحيل…' : 'حفظ وترحيل'}
-            </button>
-            <button className="btn" type="button" disabled={busy} onClick={(event) => void save(event, true)}>
-              {busy ? 'جارٍ الحفظ…' : 'حفظ وترحيل + طباعة'}
-            </button>
-            <button
-              className="btn"
-              type="button"
-              disabled={busy}
-              onClick={(event) => void save(event, false, false)}
-            >
-              حفظ كمسودة
-            </button>
-          </div>
         </Panel>
+
+        <Panel title="الإجماليات" hint="تُحتسب من الأسطر أعلاه — لا تُحرَّر يدوياً.">
+          <TotalsPanel totals={totals} variant="purchase" />
+        </Panel>
+
+        <Notice notice={notice} />
+
+        <FormActions
+          note={
+            kind === 'purchase_return'
+              ? 'الترحيل يُخرج البضاعة من المستودع ويقيّد مردود المورد — لا يُعاد الترحيل مرتين.'
+              : 'الترحيل يُدخل البضاعة إلى المستودع ويقيّد المورد — لا يُعاد الترحيل مرتين.'
+          }
+        >
+          {/* «حفظ» L1428 و«حفظ مع طباعة» L1424 في `frmInvPurch.xaml`. */}
+          <button className="btn primary" type="submit" disabled={busy}>
+            {busy ? 'جارٍ الحفظ والترحيل…' : 'حفظ وترحيل'}
+          </button>
+          <button className="btn" type="button" disabled={busy} onClick={(event) => void save(event, true)}>
+            {busy ? 'جارٍ الحفظ…' : 'حفظ وترحيل + طباعة'}
+          </button>
+          <button
+            className="btn"
+            type="button"
+            disabled={busy}
+            onClick={(event) => void save(event, false, false)}
+          >
+            حفظ كمسودة
+          </button>
+        </FormActions>
       </form>
     </Screen>
   );
