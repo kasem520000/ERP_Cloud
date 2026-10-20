@@ -66,6 +66,8 @@ export type ZatcaView = {
   };
   checklist: ChecklistRow[];
   link: { active: boolean; canToggle: boolean };
+  /** 🚦 إلى أين تذهب الفاتورة القادمة — محاكاة أم ساندبوكس أم الهيئة. */
+  filing: { hasProductionCredential: boolean; goesToAuthority: boolean; warning: string | null };
 };
 
 export type SettingsInput = {

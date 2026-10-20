@@ -1,7 +1,7 @@
 import { createCipheriv, createDecipheriv, createHash, randomBytes } from 'node:crypto';
 
 import { Inject, Injectable, Logger } from '@nestjs/common';
-import { and, asc, desc, eq, gte, lte, or, sql } from 'drizzle-orm';
+import { and, asc, desc, eq, gte, inArray, lte, or, sql } from 'drizzle-orm';
 import { dataEncryptionKey } from '@erp/config';
 import { DomainError, newId } from '@erp/contracts';
 import { branches, einvoiceChain, einvoiceCredentials, einvoiceSettings, einvoiceSubmissions, parties, salesInvoiceLines, salesInvoices, users, withTenantTx, type DatabaseHandle, type DrizzleTx } from '@erp/database';
@@ -12,8 +12,10 @@ import { WebhookPublisher } from '../developer/webhook-publisher.service.js';
 
 import { ZatcaOnboardingService, type FilingContext } from './zatca-onboarding.service.js';
 import { fileInvoice } from './zatca/filing.js';
-import { buildQrPayload, decodeQrPayload, hashInvoiceXml, signInvoiceHash } from './zatca/qr.js';
-import { GENESIS_PIH, buildInvoiceXml, type ZatcaLine, type ZatcaParty } from './zatca/ubl.js';
+import { buildQrPayload, decodeQrPayload, hashInvoiceXml } from './zatca/qr.js';
+import { signInvoiceXml } from './zatca/xades.js';
+import { normalizeVatNumber } from './zatca/validation.js';
+import { GENESIS_PIH, buildInvoiceXml, type ZatcaInvoiceInput, type ZatcaLine, type ZatcaParty } from './zatca/ubl.js';
 
 export type CredentialInput = { authority: 'zatca' | 'eta'; environment: 'simulation' | 'production'; csr?: string; privateKey?: string; csid?: string; secret?: string; org?: Record<string, unknown>; validFrom?: string; validTo?: string };
 
@@ -108,7 +110,13 @@ export class EinvoicingService {
   listCredentials(tenantId: string) { return withTenantTx(this.database.db, tenantId, async (tx) => (await tx.select().from(einvoiceCredentials).where(eq(einvoiceCredentials.tenantId, tenantId))).map((row) => this.maskCredential(row))); }
   /** The ledger as a flat list — kept for the screens that page client-side. */
   submissions(tenantId: string, status?: string) { return withTenantTx(this.database.db, tenantId, (tx) => tx.select().from(einvoiceSubmissions).where(and(eq(einvoiceSubmissions.tenantId, tenantId), status ? eq(einvoiceSubmissions.status, status) : undefined)).orderBy(desc(einvoiceSubmissions.createdAt)).limit(100)); }
-  health(tenantId: string) { return withTenantTx(this.database.db, tenantId, async (tx) => ({ status: 'ok', credentials: (await tx.select().from(einvoiceCredentials).where(eq(einvoiceCredentials.tenantId, tenantId))).length })); }
+  async health(tenantId: string) {
+    const credentials = await withTenantTx(this.database.db, tenantId, (tx) => tx.select().from(einvoiceCredentials).where(eq(einvoiceCredentials.tenantId, tenantId)));
+    // ⏰ `overdue` = مستندات لم تُقبل وقاربت مهلة الإبلاغ (٢٤ ساعة) — رقمٌ واحد يكفي
+    // لشاشة الحالة كي تُنبّه بدل أن تنتظر تقرير الهيئة.
+    const overdue = await this.overdueCount(tenantId);
+    return { status: 'ok', credentials: credentials.length, overdue };
+  }
 
   // ── 🧾 الإرسال والتوقيع والسلسلة ────────────────────────────────────────────────────────
 
@@ -264,23 +272,43 @@ export class EinvoicingService {
 
       const document = await this.buildDocument(tx, tenantId, invoice, authority, context.environment);
       const privateKey = context.privateKey;
-      const signed = privateKey ? signInvoiceHash(document.invoiceHash, privateKey) : null;
+      /**
+       * 🧾 التوقيع: البصمة تُحسب على المستند قبل التوقيع، ثم يُبنى `ext:UBLExtensions` وQR،
+       * ثم **يُعاد بناء المستند** بهما. `context.csid` هو شهادة الجهاز — وبلا شهادةٍ حقيقية
+       * (بوابة المحاكاة) يبقى الختم والوسوم ٦–٨ صادقة، ولا تُدّعى كتلة توقيع.
+       */
+      const signed = privateKey
+        ? signInvoiceXml({
+            xml: document.xml,
+            material: { privateKeyPem: privateKey, certificate: context.csid ?? '' },
+            qr: {
+              sellerName: document.seller.nameAr,
+              vatNo: document.seller.vatNo ?? '',
+              timestamp: document.issuedAt.toISOString().replace(/\.\d{3}Z$/, 'Z'),
+              grandTotal: Number(invoice.total ?? 0).toFixed(2),
+              vatTotal: Number(invoice.taxTotal ?? 0).toFixed(2),
+            },
+            signingTime: document.issuedAt,
+          })
+        : null;
       if (privateKey && !signed) this.logger.warn(`ZATCA private key for tenant ${tenantId} (${context.environment}) could not sign — filing unsigned`);
 
-      const qrPayload = buildQrPayload({
+      const phaseOneQr = buildQrPayload({
         sellerName: document.seller.nameAr,
         vatNo: document.seller.vatNo ?? '',
         timestamp: document.issuedAt.toISOString().replace(/\.\d{3}Z$/, 'Z'),
         grandTotal: Number(invoice.total ?? 0).toFixed(2),
         vatTotal: Number(invoice.taxTotal ?? 0).toFixed(2),
-        invoiceHash: signed ? document.invoiceHash : undefined,
-        signature: signed?.signature,
-        publicKeyDer: signed?.publicKeyDer,
       });
+      const qrPayload = signed?.qrPayload ?? phaseOneQr;
+      const xml = signed
+        ? buildInvoiceXml({ ...document.input, qrPayload: signed.qrPayload, extensionBlock: signed.extensionBlock ?? undefined })
+        : document.xml;
+      const invoiceHash = signed?.invoiceHash ?? document.invoiceHash;
 
       const status = signed ? 'signed' : 'prepared';
       const submissionUuid = newId();
-      const requestPayload: Record<string, unknown> = { xml: document.xml, counter: document.counter, profile: document.profile };
+      const requestPayload: Record<string, unknown> = { xml, counter: document.counter, profile: document.profile };
       if (document.referenceNumber) requestPayload.referenceNumber = document.referenceNumber;
       const [submission] = await tx
         .insert(einvoiceSubmissions)
@@ -295,7 +323,7 @@ export class EinvoicingService {
           environment: context.environment,
           status,
           uuid: submissionUuid,
-          hash: document.invoiceHash,
+          hash: invoiceHash,
           previousHash: document.previousHash,
           chainIndex: document.counter,
           qrPayload,
@@ -303,8 +331,10 @@ export class EinvoicingService {
           response: {
             submitted: false,
             signed: Boolean(signed),
+            // هل يحمل المستند كتلة XAdES فعلاً؟ المحاكاة: لا، فشهادتها ليست X.509.
+            xades: Boolean(signed?.extensionBlock),
             curve: signed?.curve ?? null,
-            phase1Qr: true,
+            phase1Qr: !signed,
             gateway: context.gateway.kind,
             credential: context.credentialKind,
           },
@@ -315,10 +345,10 @@ export class EinvoicingService {
 
       await tx
         .update(salesInvoices)
-        .set({ zatcaUuid: submissionUuid, zatcaHash: document.invoiceHash, zatcaQr: qrPayload, zatcaStatus: status, updatedAt: new Date() })
+        .set({ zatcaUuid: submissionUuid, zatcaHash: invoiceHash, zatcaQr: qrPayload, zatcaStatus: status, updatedAt: new Date() })
         .where(and(eq(salesInvoices.tenantId, tenantId), eq(salesInvoices.id, invoiceId)));
 
-      return { submission, xml: document.xml, profile: document.profile };
+      return { submission, xml, profile: document.profile };
     });
 
     return this.fileWithAuthority(tenantId, prepared.submission, prepared.xml, prepared.profile, context);
@@ -376,6 +406,9 @@ export class EinvoicingService {
       qr: outcome.qr,
       environment: context.environment,
       response: {
+        // يُحفظ ما قيل عن المستند وقت بنائه (موقَّع؟ XAdES؟) — بدونه تنسى إعادة الإرسال
+        // أنّ المستند كان بلا توقيع، فتُعيده بلا توقيع إلى الأبد.
+        ...(submission.response ?? {}),
         submitted: true,
         gateway: context.gateway.kind,
         endpoint: outcome.endpoint,
@@ -459,6 +492,11 @@ export class EinvoicingService {
     invoice: typeof salesInvoices.$inferSelect,
     authority: string,
     environment: string,
+    /**
+     * عند إعادة بناء مستندٍ أُرسل سابقاً: نأخذ رقمه وPIH من صفّ الإرسال ولا نحرّك السلسلة،
+     * وإلا استهلكت إعادة التوقيع رقماً جديداً وفسد ترتيب ICV.
+     */
+    slot?: { counter: number; previousHash: string },
   ) {
     const lines = await tx.select().from(salesInvoiceLines).where(and(eq(salesInvoiceLines.tenantId, tenantId), eq(salesInvoiceLines.invoiceId, invoice.id))).orderBy(asc(salesInvoiceLines.lineNo));
     const names = await tx.execute(sql`
@@ -473,7 +511,7 @@ export class EinvoicingService {
 
     const seller = await this.sellerParty(tx, tenantId);
     const buyer = await this.buyerParty(tx, tenantId, invoice);
-    const { previousHash, counter } = await this.nextChainSlot(tx, tenantId, authority, environment);
+    const { previousHash, counter } = slot ?? (await this.nextChainSlot(tx, tenantId, authority, environment));
     // A credit or debit note has to name the invoice it corrects, or ZATCA cannot match it
     // to the original — the desktop's `billingReference.InvoiceDocumentReferenceID = ReffNo`.
     const referenceNumber = await this.referenceNumber(tx, tenantId, invoice);
@@ -490,9 +528,21 @@ export class EinvoicingService {
       taxRate: line.taxRate,
     }));
 
-    const profile: 'standard' | 'simplified' = buyer?.vatNo ? 'standard' : 'simplified';
+    // 🧾 BR-KSA-44: فاتورةٌ معيارية (B2B) لا تُقبل برقم مشتري ناقص أو غير مطابق للنمط
+    // (١٥ خانة تبدأ وتنتهي بـ٣)، والمخططات البديلة المسجَّلة عند الهيئة (CRN/MOM/MLS/SAG/OTH)
+    // تُقبل بدلاً منه. الفحص قبل بناء المستند، لأن مستنداً برقمٍ خاطئ يُرفض عند الهيئة
+    // ويستهلك رقم السلسلة (ICV) بلا فائدة.
+    const buyerVat = normalizeVatNumber(buyer?.vatNo);
+    if (buyer?.vatNo && !buyerVat) {
+      throw new DomainError(
+        'EINVOICE_BUYER_VAT_INVALID',
+        'الرقم الضريبي للعميل غير صحيح — يجب أن يكون ١٥ خانة ويبدأ وينتهي بالرقم ٣، أو أن يكون العميل بلا رقم ضريبي (فاتورة مبسّطة).',
+        422,
+      );
+    }
+    const profile: 'standard' | 'simplified' = buyerVat ? 'standard' : 'simplified';
     const issuedAt = invoice.postedAt ?? invoice.createdAt ?? new Date();
-    const xml = buildInvoiceXml({
+    const input = {
       number: invoice.number ?? invoice.id,
       uuid: invoice.id,
       issuedAt,
@@ -510,15 +560,19 @@ export class EinvoicingService {
       counter,
       previousHash,
       referenceNumber,
-    });
+    } satisfies ZatcaInvoiceInput;
+    const xml = buildInvoiceXml(input);
     const invoiceHash = hashInvoiceXml(xml);
     // The chain moves forward only once the document exists: the next invoice's PIH is this
-    // hash, and its ICV is this counter plus one.
-    await tx
-      .update(einvoiceChain)
-      .set({ lastHash: invoiceHash, counter, updatedAt: new Date() })
-      .where(and(eq(einvoiceChain.tenantId, tenantId), eq(einvoiceChain.authority, authority), eq(einvoiceChain.environment, environment)));
-    return { xml, invoiceHash, previousHash, counter, profile, seller, buyer, issuedAt, referenceNumber };
+    // hash, and its ICV is this counter plus one. Rebuilding an already-filed document (`slot`
+    // given) must not move it again.
+    if (!slot) {
+      await tx
+        .update(einvoiceChain)
+        .set({ lastHash: invoiceHash, counter, updatedAt: new Date() })
+        .where(and(eq(einvoiceChain.tenantId, tenantId), eq(einvoiceChain.authority, authority), eq(einvoiceChain.environment, environment)));
+    }
+    return { xml, input, invoiceHash, previousHash, counter, profile, seller, buyer, issuedAt, referenceNumber };
   }
 
   private async sellerParty(tx: DrizzleTx, tenantId: string): Promise<ZatcaParty> {
@@ -561,6 +615,11 @@ export class EinvoicingService {
    * taken under `FOR UPDATE` so two invoices filed at once cannot share an ICV.
    */
   private async nextChainSlot(tx: DrizzleTx, tenantId: string, authority: string, environment: string) {
+    // 🔒 قفل السلسلة: عدّادان متساويان في إرسالين متزامنين يعني فجوةً في ICV وسلسلة PIH
+    // مكسورة. `FOR UPDATE` يحمي القراءة لكنه لا يمنع صفّين من القراءة المتزامنة قبل
+    // الكتابة؛ القفل الاستشاري على مستوى المعاملة يُسلسل الفتحتين تماماً، ويُحرَّر تلقائياً
+    // عند الالتزام أو التراجع.
+    await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext(${`einvoice-chain:${tenantId}:${authority}:${environment}`}))`);
     await this.reserveChain(tx, tenantId, authority, environment);
     const [chain] = await tx.select().from(einvoiceChain).where(and(eq(einvoiceChain.tenantId, tenantId), eq(einvoiceChain.authority, authority), eq(einvoiceChain.environment, environment))).for('update');
     return { previousHash: chain?.lastHash || GENESIS_PIH, counter: Number(chain?.counter ?? 0) + 1 };
@@ -590,10 +649,119 @@ export class EinvoicingService {
     // Re-filed with the link as it is *now*, not as it was when the document was built: a
     // tenant that fixed its settings and pressed إعادة الإرسال expects the fixed settings.
     const filingContext = await this.onboarding.filingContext(tenantId, context.authority);
-    const xml = String((context.requestPayload as Record<string, unknown>).xml ?? '');
+    let xml = String((context.requestPayload as Record<string, unknown>).xml ?? '');
     if (!xml) throw new DomainError('EINVOICE_SUBMISSION_NOT_FOUND', 'Submission has no stored document to re-file', 409);
     const profile = String((context.requestPayload as Record<string, unknown>).profile ?? 'simplified');
-    return this.fileWithAuthority(tenantId, context, xml, profile, filingContext);
+
+    /**
+     * 🧾 فاتورةٌ أُرسلت قبل وجود الشهادة تُخزَّن بلا توقيع. إعادة إرسالها كما هي تُبقيها
+     * غير موقَّعة إلى الأبد — فتُعاد هنا بالشهادة الحالية، بنفس رقم السلسلة وPIH المخزَّنين،
+     * ثم تُكتب على صفّ الإرسال والفاتورة. هذا ما يجعل «ما فات» يُشفى تلقائياً.
+     */
+    let submission = context;
+    const wasSigned = Boolean((context.response as Record<string, unknown> | null)?.signed);
+    if (!wasSigned && !xml.includes('<ext:UBLExtensions') && filingContext.privateKey && filingContext.csid) {
+      const resigned = await withTenantTx(this.database.db, tenantId, async (tx) => {
+        const [invoice] = await tx.select().from(salesInvoices).where(and(eq(salesInvoices.tenantId, tenantId), eq(salesInvoices.id, context.invoiceId)));
+        if (!invoice) return null;
+        const document = await this.buildDocument(tx, tenantId, invoice, context.authority, context.environment, {
+          counter: Number(context.chainIndex ?? 1),
+          previousHash: String(context.previousHash ?? GENESIS_PIH),
+        });
+        const signed = signInvoiceXml({
+          xml: document.xml,
+          material: { privateKeyPem: filingContext.privateKey!, certificate: filingContext.csid! },
+          qr: {
+            sellerName: document.seller.nameAr,
+            vatNo: document.seller.vatNo ?? '',
+            timestamp: document.issuedAt.toISOString().replace(/\.\d{3}Z$/, 'Z'),
+            grandTotal: Number(invoice.total ?? 0).toFixed(2),
+            vatTotal: Number(invoice.taxTotal ?? 0).toFixed(2),
+          },
+          signingTime: document.issuedAt,
+        });
+        if (!signed) return null;
+        const signedXml = buildInvoiceXml({ ...document.input, qrPayload: signed.qrPayload, extensionBlock: signed.extensionBlock ?? undefined });
+        const [row] = await tx
+          .update(einvoiceSubmissions)
+          .set({
+            status: 'signed',
+            hash: signed.invoiceHash,
+            qrPayload: signed.qrPayload,
+            requestPayload: { ...(context.requestPayload as Record<string, unknown>), xml: signedXml, profile: document.profile },
+            response: { ...(context.response as Record<string, unknown>), signed: true, xades: Boolean(signed.extensionBlock) },
+            updatedAt: new Date(),
+          })
+          .where(and(eq(einvoiceSubmissions.tenantId, tenantId), eq(einvoiceSubmissions.id, context.id)))
+          .returning();
+        await tx
+          .update(salesInvoices)
+          .set({ zatcaHash: signed.invoiceHash, zatcaQr: signed.qrPayload, zatcaStatus: 'signed', updatedAt: new Date() })
+          .where(and(eq(salesInvoices.tenantId, tenantId), eq(salesInvoices.id, invoice.id)));
+        return row ? { row, xml: signedXml } : null;
+      });
+      if (resigned) {
+        submission = resigned.row;
+        xml = resigned.xml;
+      }
+    }
+    return this.fileWithAuthority(tenantId, submission, xml, profile, filingContext);
+  }
+
+  /**
+   * 🔁 ما فات — إعادة إرسالٍ دورية لما لم تُقبله الهيئة.
+   *
+   * التلقائي بعد الترحيل يغطي اللحظة، لكنه لا يغطي انقطاع الشبكة ولا فاتورةً رُحِّلت
+   * والشهادة غائبة. هذه الدالة تمرّ على إرسالات آخر ٢٤ ساعة (مهلة BR-KSA-98 للمبسّطة)،
+   * تعيد ما لم يُقبل، وتُرجع عدّاد **المتأخر** (قارب المهلة ولم يُقبل) لينبّه عليه السطح.
+   */
+  async retryPending(tenantId: string, options: { windowHours?: number; maxAttempts?: number; limit?: number } = {}) {
+    const windowHours = options.windowHours ?? 24;
+    const maxAttempts = options.maxAttempts ?? 5;
+    const limit = options.limit ?? 25;
+    const rows = await withTenantTx(this.database.db, tenantId, (tx) =>
+      tx
+        .select()
+        .from(einvoiceSubmissions)
+        .where(
+          and(
+            eq(einvoiceSubmissions.tenantId, tenantId),
+            inArray(einvoiceSubmissions.status, ['prepared', 'signed', 'failed']),
+            gte(einvoiceSubmissions.createdAt, new Date(Date.now() - windowHours * 3_600_000)),
+            sql`COALESCE(${einvoiceSubmissions.attempts}, '0')::int < ${maxAttempts}`,
+          ),
+        )
+        .orderBy(asc(einvoiceSubmissions.createdAt))
+        .limit(limit),
+    );
+    let retried = 0;
+    const failures: string[] = [];
+    for (const row of rows) {
+      try {
+        await this.retry(tenantId, row.id);
+        retried += 1;
+      } catch (error) {
+        if (error instanceof DomainError && error.code === 'EINVOICE_ALREADY_ACCEPTED') continue;
+        failures.push(`${row.id}: ${error instanceof Error ? error.message : String(error)}`);
+      }
+    }
+    const overdue = await this.overdueCount(tenantId, 20);
+    return { retried, failed: failures.length, failures, overdue };
+  }
+
+  /** عدد الإرسالات غير المقبولة التي قاربت مهلة الـ٢٤ ساعة (افتراضياً بعد ٢٠ ساعة). */
+  async overdueCount(tenantId: string, afterHours = 20): Promise<number> {
+    const result = await withTenantTx(this.database.db, tenantId, (tx) =>
+      tx.execute(sql`
+        SELECT count(*)::int AS total FROM einvoice_submissions
+         WHERE tenant_id = ${tenantId}
+           AND status IN ('prepared', 'signed', 'failed')
+           AND created_at >= now() - interval '24 hours'
+           AND created_at <= now() - (${afterHours}::text || ' hours')::interval
+      `),
+    );
+    const rows = Array.isArray(result) ? (result as Array<{ total?: number }>) : ((result as { rows?: Array<{ total?: number }> }).rows ?? []);
+    return Number(rows[0]?.total ?? 0);
   }
 
   // ── 📊 حالة المزامنة — `frmInvsSyncStatusZatca.xaml` ──────────────────────────────────────

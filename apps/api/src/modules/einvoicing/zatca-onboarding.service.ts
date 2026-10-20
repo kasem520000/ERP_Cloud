@@ -7,6 +7,8 @@ import { DATABASE_HANDLE } from '../../database/database.module.js';
 
 import { decryptSecret, encryptSecret } from './einvoicing.service.js';
 import { buildComplianceDocuments, failureLine, rowOf, type ComplianceCheckRow } from './zatca/compliance-check.js';
+import { buildInvoiceXml } from './zatca/ubl.js';
+import { signInvoiceXml } from './zatca/xades.js';
 import { defaultSerialNumber, generateCsr, type CsrProperties } from './zatca/csr.js';
 import { resolveGateway, type ZatcaGateway } from './zatca/gateway.js';
 
@@ -485,7 +487,30 @@ export class ZatcaOnboardingService {
     const csid = decryptSecret(context.credential.productionCsidEnc ?? context.credential.csidEnc!);
     const secret = decryptSecret(context.credential.productionSecretEnc ?? context.credential.secretEnc!);
 
-    const documents = buildComplianceDocuments(context.seller, 1);
+    // 🧾 كل مستند اختبار يُوقَّع قبل إرساله متى وُجد مفتاح وشهادة — والهيئة الحقيقية ترفض
+    // مستنداً غير موقَّع، فاختبارٌ بمستندٍ بلا توقيع كان سيفشل في الإنتاج لا في المحاكاة.
+    const privateKey = context.credential.privateKeyEnc ? decryptSecret(context.credential.privateKeyEnc) : null;
+    const documents = buildComplianceDocuments(context.seller, 1).map((document) => {
+      if (!privateKey) return document;
+      const signed = signInvoiceXml({
+        xml: document.xml,
+        material: { privateKeyPem: privateKey, certificate: csid },
+        qr: {
+          sellerName: context.seller.nameAr,
+          vatNo: context.seller.vatNo ?? '',
+          timestamp: document.input.issuedAt.toISOString().replace(/\.\d{3}Z$/, 'Z'),
+          grandTotal: '4.60',
+          vatTotal: '0.60',
+        },
+        signingTime: document.input.issuedAt,
+      });
+      if (!signed) return document;
+      return {
+        ...document,
+        xml: buildInvoiceXml({ ...document.input, qrPayload: signed.qrPayload, extensionBlock: signed.extensionBlock ?? undefined }),
+        hash: signed.invoiceHash,
+      };
+    });
     const checks: ComplianceCheckRow[] = [];
     for (const document of documents) {
       const verdict = await this.callGateway(() =>
@@ -667,6 +692,25 @@ export class ZatcaOnboardingService {
       },
       checklist: CHECKLIST.map((item) => ({ key: item.key, labelAr: item.labelAr, done: done[item.key] ?? false, at: at[item.key] ?? null })),
       link: { active: settings.active, canToggle: Boolean(credential) },
+      /**
+       * 🚦 أين ستذهب الفاتورة القادمة؟
+       *
+       * شهادة الإنتاج قد تكون صادرة والربط ما زال على «بيئة الامتثال»: كل فاتورةٍ تُبلَّغ
+       * عندها تذهب إلى الساندبوكس وتعود «مقبولة» بينما الهيئة لم ترها. هذا الفخّ كان
+       * صامتاً؛ الآن يُقال بالنصّ في الشاشة.
+       */
+      filing: (() => {
+        const hasProduction = Boolean(credential?.productionCsidEnc);
+        const goesToAuthority = hasProduction && settings.environment === 'production' && !settings.simulation;
+        const warning = !hasProduction
+          ? null
+          : settings.simulation
+            ? 'وضع المحاكاة مفعّل — الفواتير لا تصل الهيئة. أطفئه من «خيارات التشغيل» بعد إصدار شهادة الإنتاج.'
+            : settings.environment !== 'production'
+              ? 'شهادة الإنتاج صادرة لكن نوع الربط ما زال «بيئة الامتثال» — الفواتير تذهب إلى الساندبوكس ولا تصل الهيئة. بدّل إلى «ربط فعلي (Production)».'
+              : null;
+        return { hasProductionCredential: hasProduction, goesToAuthority, warning };
+      })(),
     };
   }
 

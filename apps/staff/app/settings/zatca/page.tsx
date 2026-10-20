@@ -141,6 +141,26 @@ export default function ZatcaSettingsPage() {
       }
     >
       <Notice notice={notice} />
+      {view?.filing?.warning && (
+        <div className="card" data-testid="zatca-filing-warning" role="alert">
+          <div className="card-body">
+            <strong>⚠️ إلى أين تذهب الفاتورة؟</strong>
+            <p className="muted small" style={{ marginTop: 6 }}>
+              {view.filing.warning}
+            </p>
+          </div>
+        </div>
+      )}
+      {view?.filing?.goesToAuthority && (
+        <div className="card" data-testid="zatca-filing-ready">
+          <div className="card-body">
+            <strong>✅ الربط جاهز للإرسال الفعلي</strong>
+            <p className="muted small" style={{ marginTop: 6 }}>
+              الفواتير والمرتجعات المرحّلة تُرسل الآن إلى هيئة الزكاة والضريبة والجمارك تلقائياً بعد الترحيل.
+            </p>
+          </div>
+        </div>
+      )}
       {loading && (
         <div className="grid" aria-busy="true">
           <p className="muted">جارٍ التحميل…</p>

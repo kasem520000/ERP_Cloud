@@ -9,7 +9,9 @@
  * private key that pairs with their ZATCA certificate; a QR that claims to be signed when it
  * is not would fail the first inspection it meets.
  */
-import { createHash, createSign, createPublicKey, createPrivateKey, type KeyObject } from 'node:crypto';
+import { createSign, createPublicKey, createPrivateKey, type KeyObject } from 'node:crypto';
+
+import { hashCanonicalInvoice } from './canonical.js';
 
 export type QrInput = {
   sellerName: string;
@@ -42,6 +44,7 @@ export function buildQrPayload(input: QrInput): string {
     tlv(5, Buffer.from(input.vatTotal, 'utf8')),
   ];
   if (input.invoiceHash) parts.push(tlv(6, Buffer.from(input.invoiceHash, 'utf8')));
+  // الوسم ٧ هو **نصّ** التوقيع base64 كما تطلبه المواصفة، لا بايتاته الخام.
   if (input.signature) parts.push(tlv(7, input.signature));
   if (input.publicKeyDer) parts.push(tlv(8, input.publicKeyDer));
   if (input.certificateSignature) parts.push(tlv(9, input.certificateSignature));
@@ -63,15 +66,15 @@ export function decodeQrPayload(payload: string): Array<{ tag: number; value: Bu
 }
 
 /**
- * ZATCA's invoice hash: base64 of the SHA-256 digest of the invoice XML.
+ * ZATCA's invoice hash: base64 of the SHA-256 digest of the **canonical** invoice with the
+ * signature, the QR reference and `UBLExtensions` removed.
  *
- * The specification hashes the canonicalised document with the signature, QR and
- * `UBLExtensions` nodes removed. Our generator never writes those three nodes, so the
- * document as produced *is* the hashed form; when the XAdES step is added, the canonicaliser
- * has to strip them before calling this.
+ * كان التنفيذ السابق يجزّئ النصّ كما كتبناه، فيخرج صحيحاً لأنفسنا فقط: الهيئة تُطبّع
+ * المستند قبل التجزئة (C14N 1.1)، فأي اختلاف في المسافات أو ترتيب السمات يغيّر البصمة.
+ * الآن يمرّ الحساب على `canonical.ts`، فيتطابق ما نحسبه مع ما تحسبه الهيئة.
  */
 export function hashInvoiceXml(xml: string): string {
-  return createHash('sha256').update(Buffer.from(xml, 'utf8')).digest('base64');
+  return hashCanonicalInvoice(xml);
 }
 
 export type SignedHash = { signature: Buffer; publicKeyDer: Buffer; curve: string };

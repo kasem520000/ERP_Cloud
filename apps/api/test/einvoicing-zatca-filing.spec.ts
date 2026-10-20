@@ -97,7 +97,7 @@ describe('zatca filing — الإرسال والتوقيع والسلسلة', ()
     const unitId = body(await call('post', '/organization/catalog/units', { token: actor.token, body: { code: 'PCE', nameAr: 'حبة' } })).id;
     const categoryId = body(await call('post', '/organization/catalog/categories', { token: actor.token, body: { code: 'GEN', nameAr: 'عام' } })).id;
     itemId = body(await call('post', '/organization/catalog/items', { token: actor.token, body: { sku: 'RICE-5', nameAr: 'أرز بسمتي ٥ كجم', categoryId, baseUnitId: unitId, kind: 'stock', salePrice: '27.5' } })).id;
-    partyId = body(await call('post', '/parties', { token: actor.token, body: { kind: 'customer', name: 'مؤسسة النخبة', taxNo: '310000000000012' } })).id;
+    partyId = body(await call('post', '/parties', { token: actor.token, body: { kind: 'customer', name: 'مؤسسة النخبة', taxNo: '311111111111113' } })).id;
 
     const profile = await call('put', '/company-profile', {
       token: actor.token,

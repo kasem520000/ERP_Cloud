@@ -105,12 +105,12 @@ describe('ZATCA UBL document', () => {
         profile: 'standard',
         kind: 'return',
         referenceNumber: 'SI-000006',
-        buyer: { nameAr: 'مؤسسة النخبة', vatNo: '310000000000012' },
+        buyer: { nameAr: 'مؤسسة النخبة', vatNo: '311111111111113' },
       }),
     );
     expect(xml).toContain('<cbc:InvoiceTypeCode name="0100000">381</cbc:InvoiceTypeCode>');
     expect(xml).toContain('<cac:BillingReference>');
-    expect(xml).toContain('310000000000012');
+    expect(xml).toContain('311111111111113');
   });
 
   it('closes the monetary arithmetic when a document discount is applied', () => {

@@ -7,11 +7,11 @@
  * previous invoice, one `cac:TaxSubtotal` per VAT vatRate, and `cac:LegalMonetaryTotal` whose
  * arithmetic has to close. This module builds exactly that document from our own tables.
  *
- * What is deliberately *not* here: the XAdES enveloped signature and the `UBLExtensions`
- * block that carries it. That step needs a production CSID issued by ZATCA against a CSR
- * generated on the customer's own device; until the tenant uploads one there is nothing to
- * sign with, and shipping a fake signature would be worse than shipping none. Everything the
- * signature wraps — the document, its hash and the QR — is produced here and is real.
+ * التوقيع هنا لا يُبنى: يُمرَّر ككتلة `ext:UBLExtensions` جاهزة (انظر `xades.ts`) لأن
+ * بناءه يحتاج شهادة CSID ومفتاحاً لم يُصدرا بعد عند بناء المستند لأول مرة. المستند يبقى
+ * صالحاً ومُجزَّأً بلا توقيع، ثم يُعاد بناؤه بالكتلة وQR بعد التوقيع. هذا الفصل مقصود:
+ * بصمة الفاتورة تُحسب على المستند **قبل** إدخال التوقيع وQR، وإدخالهما بعد الحساب هو ما
+ * يجعل البصمة قابلة للتحقق عند الهيئة.
  */
 
 import { Decimal } from 'decimal.js';
@@ -68,6 +68,16 @@ export type ZatcaInvoiceInput = {
   previousHash: string;
   /** Number of the invoice being corrected — mandatory on a credit note. */
   referenceNumber?: string;
+  /**
+   * 🧾 رمز QR للمرحلة الثانية (وسوم ١–٩) — يُدرَج داخل المستند نفسه كما تطلبه الهيئة،
+   * لا على الورق فقط. غيابه يعني مستنداً صدر ولم يُبلَّغ بعد، فلا يُكتب مرجع QR أصلاً.
+   */
+  qrPayload?: string;
+  /**
+   * 🧾 كتلة `ext:UBLExtensions` التي تحمل التوقيع — تُدرَج قبل `cbc:ProfileID` تماماً كما
+   * في مستندات الهيئة المرجعية. غيابها يعني مستنداً بلا شهادة، وهو ما لا يُدّعى أنه موقَّع.
+   */
+  extensionBlock?: string;
 };
 
 /** ZATCA's genesis PIH: base64 SHA-256 of the single character "0". */
@@ -264,9 +274,16 @@ export function buildInvoiceXml(input: ZatcaInvoiceInput): string {
       ? `<cac:BillingReference><cac:InvoiceDocumentReference><cbc:ID>${escapeXml(input.referenceNumber)}</cbc:ID></cac:InvoiceDocumentReference></cac:BillingReference>\n  `
       : '';
 
+  const qrReference = input.qrPayload
+    ? `<cac:AdditionalDocumentReference>
+    <cbc:ID>QR</cbc:ID>
+    <cac:Attachment><cbc:EmbeddedDocumentBinaryObject mimeCode="text/plain">${escapeXml(input.qrPayload)}</cbc:EmbeddedDocumentBinaryObject></cac:Attachment>
+  </cac:AdditionalDocumentReference>`
+    : '';
+
   return `<?xml version="1.0" encoding="UTF-8"?>
 <Invoice xmlns="urn:oasis:names:specification:ubl:schema:xsd:Invoice-2" xmlns:cac="urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2" xmlns:cbc="urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2" xmlns:ext="urn:oasis:names:specification:ubl:schema:xsd:CommonExtensionComponents-2">
-  <cbc:ProfileID>reporting:1.0</cbc:ProfileID>
+  ${input.extensionBlock ?? ''}<cbc:ProfileID>reporting:1.0</cbc:ProfileID>
   <cbc:ID>${escapeXml(input.number)}</cbc:ID>
   <cbc:UUID>${escapeXml(input.uuid)}</cbc:UUID>
   <cbc:IssueDate>${issued.slice(0, 10)}</cbc:IssueDate>
@@ -282,6 +299,7 @@ export function buildInvoiceXml(input: ZatcaInvoiceInput): string {
     <cbc:ID>PIH</cbc:ID>
     <cac:Attachment><cbc:EmbeddedDocumentBinaryObject mimeCode="text/plain">${escapeXml(input.previousHash || GENESIS_PIH)}</cbc:EmbeddedDocumentBinaryObject></cac:Attachment>
   </cac:AdditionalDocumentReference>
+  ${qrReference}
   <cac:AccountingSupplierParty>
     ${partyBlock(input.seller)}
   </cac:AccountingSupplierParty>
