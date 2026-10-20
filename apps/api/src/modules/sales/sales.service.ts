@@ -1,10 +1,11 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { Decimal } from 'decimal.js';
 import { and, asc, desc, eq, gte, ilike, inArray, isNotNull, isNull, lte, sql } from 'drizzle-orm';
 import { calculateInvoiceTotals, DomainError, errorCodes, newId } from '@erp/contracts';
 import {
   accounts,
   branches,
+  einvoiceCredentials,
   einvoiceSettings,
   employees,
   inventoryTransactions,
@@ -42,6 +43,7 @@ import { isUniqueViolation } from '../organization/shared/org-support.js';
 import { tryGetAuthContext } from '../platform/context/tenant-context.js';
 import { SequencesService } from '../platform-services/index.js';
 import { ApprovalService } from '../approvals/approvals.service.js';
+import { EinvoicingService } from '../einvoicing/einvoicing.service.js';
 
 /**
  * 🔢 الأرقام التسلسلية كما يكتبها المُدخِل: نصٌّ مقصوص، بلا فراغات ولا تكرار — فالسطر
@@ -52,6 +54,13 @@ function cleanSerialNos(values?: string[]): string[] {
   if (!values?.length) return [];
   return [...new Set(values.map((value) => String(value).trim()).filter(Boolean))];
 }
+
+/**
+ * المستندات التي تُرسل تلقائياً إلى الهيئة من هذه الوحدة: فاتورةُ البيع ومرتجعُها — وهما
+ * اللذان يحملان `id` فاتورةِ بيعٍ يقرأه مُرسِل الفوترة. أمّا إشعارات التسوية فتُرسل من
+ * شاشة «مزامنة الفواتير - ZATCA» لأنها ليست صفوفاً في `sales_invoices`.
+ */
+const AUTO_FILE_KINDS = new Set(['sale', 'sale_return']);
 
 export type SalesLineInput = {
   itemId?: string;
@@ -240,7 +249,11 @@ export class SalesService {
     private readonly webhooks: WebhookPublisher,
     private readonly domainEvents: DomainEventsService,
     private readonly approvals: ApprovalService,
+    // 🧾 الإرسال التلقائي إلى هيئة الزكاة — يُحقن كالويب هوك: المبيعات تُعلن، والفوترة تُرسل.
+    private readonly einvoicing: EinvoicingService,
   ) {}
+
+  private readonly logger = new Logger(SalesService.name);
 
   async list(tenantId: string) {
     const rows = await withTenantTx(this.database.db, tenantId, (tx) =>
@@ -748,6 +761,49 @@ export class SalesService {
           })),
       },
     });
+    // 🧾 وبعد أن يُثبَّت الترحيل، يُرسل المستند إلى الهيئة متى كان الربط الضريبي مفعّلاً
+    // و«مزامنة يدوية» مطفأة. الفشل هنا لا يُسقط الفاتورة: يُكتب على صفّ الإرسال ويُعاد
+    // من شاشة «مزامنة الفواتير - ZATCA» — نفس قاعدة الديسكتوب.
+    this.autoFileToAuthority(tenantId, invoice.id, invoice.kind);
+  }
+
+  /**
+   * 🧾 الإرسال التلقائي بعد الترحيل — `SettingZatca.SyncManual = false` في الديسكتوب.
+   *
+   * كان مفتاح «مزامنة يدوية» يُحفظ ويُعرض ولا يقرأه أحد: كل فاتورةٍ تُرحَّل تبقى «لم
+   * تُرسل» حتى يفتح المستخدم شاشة المزامنة ويؤشّرها بيده. الآن المفتاح يعني ما يقول:
+   * مطفأً = الإرسال تلقائيٌّ بعد الترحيل، ومُشعلاً = لا إرسال إلا من شاشة المزامنة.
+   */
+  private autoFileToAuthority(tenantId: string, invoiceId: string, kind: string): void {
+    if (!AUTO_FILE_KINDS.has(kind)) return;
+    void (async () => {
+      try {
+        // لا صفَّ إعداداتٍ ولا شهادةَ جهاز = منشأةٌ لم تُكمل الربط، فلا يُنشأ لها صفّ إرسال
+        // ولا تُكتب حالةٌ على الفاتورة. والقراءة هنا **لا تُنشئ** الصفّ الافتراضي الذي
+        // ينشئه `settingsFor` عند أول فتحٍ لشاشة الربط.
+        const [ready] = await withTenantTx(this.database.db, tenantId, (tx) =>
+          tx
+            .select({ active: einvoiceSettings.active, syncManual: einvoiceSettings.syncManual, hasKey: isNotNull(einvoiceCredentials.privateKeyEnc) })
+            .from(einvoiceSettings)
+            .innerJoin(
+              einvoiceCredentials,
+              and(
+                eq(einvoiceCredentials.tenantId, einvoiceSettings.tenantId),
+                eq(einvoiceCredentials.authority, einvoiceSettings.authority),
+              ),
+            )
+            .where(and(eq(einvoiceSettings.tenantId, tenantId), eq(einvoiceSettings.authority, 'zatca')))
+            .limit(1),
+        );
+        if (!ready?.active || ready.syncManual || !ready.hasKey) return;
+        await this.einvoicing.submitSalesInvoice(tenantId, invoiceId, 'zatca');
+      } catch (error) {
+        if (error instanceof DomainError && error.code === 'EINVOICE_ALREADY_ACCEPTED') return;
+        this.logger.warn(
+          `ZATCA auto-filing failed for invoice ${invoiceId}: ${error instanceof Error ? error.message : String(error)}`,
+        );
+      }
+    })();
   }
 
   /**

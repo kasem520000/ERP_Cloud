@@ -58,10 +58,16 @@ describe('zatca e-invoicing', () => {
         'sales.invoice.post',
         'accounting.period.close',
         'einvoice.view',
+        'einvoice.manage',
         'einvoice.submit',
         'einvoice.credentials.manage',
       ],
     });
+
+    // ⏸ «مزامنة يدوية» مُشعَلة: المجموعة كلها تقيس الإرسال بيد المستخدم، لا الإرسال التلقائي
+    // بعد الترحيل، فلا يُترك سباقٌ بين الاثنين على الفاتورة الواحدة.
+    const manualOnly = await api(ctx.server, 'put', '/api/v1/einvoice/settings', { token: actor.token, body: { syncManual: true } });
+    expect(manualOnly.status).toBe(200);
 
 
     const defaults = await ctx.app.get(OrgProvisioningService).provisionOrgDefaults(actor.tenantId);

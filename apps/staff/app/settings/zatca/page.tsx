@@ -201,6 +201,11 @@ export default function ZatcaSettingsPage() {
                     />
                     <span>مزامنة يدوية</span>
                   </label>
+                  <span className="muted small" data-testid="sync-manual-hint">
+                    مطفأةً: تُرسَل فاتورة البيع ومرتجعها تلقائياً إلى الهيئة بعد الترحيل (المبسّطة تُبلَّغ فوراً
+                    ضمن مهلة الـ24 ساعة). مُشعَلةً: لا يُرسَل شيء حتى تؤشّر الفواتير في «مزامنة الفواتير -
+                    ZATCA». وفشل الإرسال لا يُلغي الترحيل — يُسجَّل على الفاتورة ويُعاد من شاشة المزامنة.
+                  </span>
                   <label className="check">
                     <input
                       type="checkbox"

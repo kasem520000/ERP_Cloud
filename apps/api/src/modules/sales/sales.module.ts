@@ -7,13 +7,14 @@ import { DomainEventsModule } from '../../events/domain-events.module.js';
 import { InventoryModule } from '../inventory/inventory.module.js';
 import { OrganizationModule } from '../organization/organization.module.js';
 import { DeveloperModule } from '../developer/developer.module.js';
+import { EinvoicingModule } from '../einvoicing/einvoicing.module.js';
 
 import { SalesApprovalHandler } from './sales-approval.handler.js';
 import { SalesController } from './sales.controller.js';
 import { SalesService } from './sales.service.js';
 
 @Module({
-  imports: [ApprovalModule, AccountingModule, CustomFieldsModule, InventoryModule, OrganizationModule, DeveloperModule, DomainEventsModule],
+  imports: [ApprovalModule, AccountingModule, CustomFieldsModule, InventoryModule, OrganizationModule, DeveloperModule, DomainEventsModule, EinvoicingModule],
   controllers: [SalesController],
   providers: [SalesService, SalesApprovalHandler],
   exports: [SalesService],

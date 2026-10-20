@@ -146,7 +146,8 @@ describe('zatca sync status — 📊 حالة المزامنة', () => {
     });
 
     const ladder: Array<[string, { status: number; body: Record<string, unknown> }]> = [];
-    ladder.push(['settings', await call('put', '/einvoice/settings', { token: actor.token, body: { simulation: true, active: true, environment: 'compliance' } })]);
+    ladder.push(['settings', await call('put', '/einvoice/settings', { token: actor.token, // ⏸ «مزامنة يدوية» مُشعَلة: هذه المجموعة تثبت مسار الإرسال اليدوي، فتُعزله عن الإرسال التلقائي.
+    body: { simulation: true, active: true, environment: 'compliance', syncManual: true } })]);
     ladder.push(['fill', await call('post', '/einvoice/settings/fill-from-company', { token: actor.token, body: {} })]);
     ladder.push(['industry', await call('put', '/einvoice/settings', { token: actor.token, body: { csr: { industry: 'تجارة التجزئة' } } })]);
     ladder.push(['csr', await call('post', '/einvoice/csr/generate', { token: actor.token, body: {} })]);

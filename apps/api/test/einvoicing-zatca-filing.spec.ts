@@ -111,7 +111,8 @@ describe('zatca filing — الإرسال والتوقيع والسلسلة', ()
 
     // The whole onboarding ladder, offline: 🧪 simulation answers every gateway call.
     const ladder: Array<[string, { status: number; body: Record<string, unknown> }]> = [];
-    ladder.push(['settings', await call('put', '/einvoice/settings', { token: actor.token, body: { simulation: true, active: true, environment: 'compliance' } })]);
+    ladder.push(['settings', await call('put', '/einvoice/settings', { token: actor.token, // ⏸ «مزامنة يدوية» مُشعَلة: هذه المجموعة تثبت مسار الإرسال اليدوي، فتُعزله عن الإرسال التلقائي.
+    body: { simulation: true, active: true, environment: 'compliance', syncManual: true } })]);
     ladder.push(['fill', await call('post', '/einvoice/settings/fill-from-company', { token: actor.token, body: {} })]);
     // 🏗️ Industry (النشاط التجاري) has no column on the cloud company card — the desktop
     // keeps it on the CSR properties row — so it is typed once here, as a user would.
