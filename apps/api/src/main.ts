@@ -6,7 +6,12 @@ import { assertRuntimeEnv, describeEnvSources, env, envIssues } from '@erp/confi
 import { runMigrations } from '@erp/database';
 
 import { AppModule } from './app.module.js';
-import { applyHttpConfiguration, buildOpenApiDocument, registerOpenApi } from './bootstrap.js';
+import {
+  applyHttpConfiguration,
+  applyServerTimeouts,
+  buildOpenApiDocument,
+  registerOpenApi,
+} from './bootstrap.js';
 import { RequestIdMiddleware } from './common/middleware/request-id.middleware.js';
 import { installProcessProblemHandlers } from './modules/platform/admin/process-problems.js';
 import { WorkerRunner } from './modules/platform-services/index.js';
@@ -68,6 +73,9 @@ async function bootstrap(): Promise<void> {
 
   registerOpenApi(app, buildOpenApiDocument(app));
 
+  // مهل المقبس وحدود الاتصال — تُضبط **قبل** الاستماع فلا توجد نافذةٌ بلا حماية.
+  // التفصيل في `applyServerTimeouts` (bootstrap.ts).
+  applyServerTimeouts(app.getHttpServer() as Parameters<typeof applyServerTimeouts>[0]);
   await app.listen(env.PORT, env.API_HOST);
 
   console.log(`erp-api listening on http://${env.API_HOST}:${env.PORT} (${env.NODE_ENV})`);

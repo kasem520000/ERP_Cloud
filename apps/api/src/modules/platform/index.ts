@@ -12,6 +12,7 @@ export { BranchScopeGuard } from './guards/branch-scope.guard.js';
 export { PermissionsGuard } from './guards/permissions.guard.js';
 export { PlatformAdminGuard } from './guards/platform-admin.guard.js';
 export { RateLimitGuard } from './guards/rate-limit.guard.js';
+export { TenantRateLimitGuard } from './guards/tenant-rate-limit.guard.js';
 export { SectorLicenceGuard } from './guards/sector-licence.guard.js';
 export { RateLimiterService } from './rate-limit/rate-limiter.service.js';
 

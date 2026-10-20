@@ -19,6 +19,7 @@ import {
   RateLimitGuard,
   SectorLicenceGuard,
   TenantGuard,
+  TenantRateLimitGuard,
 } from './modules/platform/index.js';
 import { PlatformBackupsModule } from './modules/backups/platform-backups.module.js';
 import { CampaignsModule } from './modules/campaigns/campaigns.module.js';
@@ -179,6 +180,9 @@ import { OpsModule } from './ops/ops.module.js';
     // frozen pipeline above keeps its meaning and its cost.
     { provide: APP_GUARD, useClass: ImpersonationGuard },
     { provide: APP_GUARD, useClass: TenantGuard },
+    // 🛡️ دلو المنشأة بعد تثبيت هويّتها: هجومٌ موزّع بعشرات العناوين يسقط كلّه في دلوٍ واحد
+    // (`RATE_LIMIT_TENANT_PER_MINUTE`)، بينما دلو الـIP وحده يرى عنواناً واحداً في كل مرة.
+    { provide: APP_GUARD, useClass: TenantRateLimitGuard },
     { provide: APP_GUARD, useClass: BranchScopeGuard },
     { provide: APP_GUARD, useClass: PermissionsGuard },
     // 🏪 الترخيص القطاعي بعد الصلاحيات: «هل يجوز لهذا المستخدم» قبل «هل اشترت منشأته السطح».

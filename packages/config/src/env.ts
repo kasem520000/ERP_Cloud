@@ -88,6 +88,32 @@ const envSchema = z.object({
   // يمنع تحويل نقطة القياس إلى قناة كتابةٍ مفتوحة — ودلوٌ مستقلّ عن الاستمارات والتحقّق
   // لأن سيلَ أحداثٍ لا يجوز أن يُغلق بابَ التعاقد.
   RATE_LIMIT_PUBLIC_EVENTS_PER_MINUTE: z.coerce.number().int().positive().default(120),
+  /**
+   * سقفٌ لكل **منشأة** لا لكل عنوان IP — الحماية من إغراقٍ موزّع.
+   *
+   * دلوُ الـIP (600/دقيقة) يحمي من سكربتٍ من جهازٍ واحد، ولا يحمي من عميلٍ يملك شبكة
+   * عناوين أو من هجومٍ موزّع: كل عنوانٍ يبقى تحت سقفه، والمجموع يغرق القاعدة. هذا الدلو
+   * يعدّ الطلبات **بعد** المصادقة على معرّف المنشأة، فالسقف يخصّ كل عميل؛ تجاوزه 429.
+   * والقيمة أعلى من دلو الـIP لأنها تشمل مستخدمي المنشأة جميعاً في الدقيقة.
+   */
+  RATE_LIMIT_TENANT_PER_MINUTE: z.coerce.number().int().positive().default(3_000),
+
+  /**
+   * `app.set('trust proxy')` — يُضبط فقط حين يقف الـAPI خلف وكيلٍ موثوق (Nginx/ALB).
+   * بلا ضبطٍ يبقى `req.ip` عنوان المقبس، فلا يستطيع عميلٌ تزوير `X-Forwarded-For` للتهرّب
+   * من دلو الـIP أو لإيهام الخادم بعنوانٍ آخر. القيم: `false` · `true` · رقم (عدد الوكلاء)
+   * · قائمة CIDR مفصولة بفواصل.
+   */
+  TRUST_PROXY: z.string().trim().default(''),
+
+  /** سقف جسم الطلب (JSON/نموذج) بالبايت — 1 م.ب افتراضاً، والزيادة 413 صريحة. */
+  BODY_LIMIT_BYTES: z.coerce.number().int().positive().default(1_048_576),
+  /** سقف طول الرابط — حمايةٌ من روابط ضخمة تُستهلك في التحليل قبل أي تحقّق. */
+  MAX_URL_LENGTH: z.coerce.number().int().positive().default(4_096),
+  /** مهلة الطلب الكاملة على مستوى مقبس HTTP (slowloris) وتشمل قراءة الجسم. */
+  HTTP_REQUEST_TIMEOUT_MS: z.coerce.number().int().positive().default(30_000),
+  /** مهلة استلام الترويسات وحدها — أضيق من مهلة الطلب لقطع اليد المبطئة مبكراً. */
+  HTTP_HEADERS_TIMEOUT_MS: z.coerce.number().int().positive().default(20_000),
 
   /** Public self-service signup (POST /api/v1/signup). Turn it off for private deployments. */
   SIGNUP_ENABLED: booleanish.default(true),

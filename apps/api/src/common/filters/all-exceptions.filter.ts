@@ -8,6 +8,7 @@ import {
 } from '@nestjs/common';
 import type { Response } from 'express';
 import { ZodError } from 'zod';
+import { env } from '@erp/config';
 import {
   DomainError,
   REQUEST_ID_HEADER,
@@ -114,6 +115,12 @@ export class AllExceptionsFilter implements ExceptionFilter {
       return problemFromZodError(exception, traceId);
     }
 
+    // 📦 أخطاء محلّلي الجسم (`body-parser`) ليست `HttpException` ولا `DomainError`، فكانت
+    // تسقط إلى الفرع الأخير وتخرج **500** — أي أن طلباً أكبر من السقف يبدو عطلاً في الخادم.
+    // وهي في الحقيقة طلبٌ معطوب: 413 للحجم و400 للصيغة و415 للترميز.
+    const bodyProblem = problemFromBodyParserError(exception, traceId);
+    if (bodyProblem) return bodyProblem;
+
     if (exception instanceof DomainError) {
       return createProblemDetails(exception, traceId);
     }
@@ -141,6 +148,74 @@ export class AllExceptionsFilter implements ExceptionFilter {
       traceId,
     );
   }
+}
+
+/**
+ * يحوّل أخطاء `http-errors` التي يرميها `body-parser` إلى العقد الموحّد.
+ *
+ * تُعرَف بحقل `type` النصّي ('entity.too.large', 'entity.parse.failed', …) وبحقل
+ * `status`, لا بـ`instanceof`. والرسالة العامة مقصودة: لا نُعيد للمهاجم محتوى جسمه ولا
+ * تفاصيل المحلّل، ولا نُسجّل الطلب في `platform_problem_events` لأنه ليس عطلاً داخلياً.
+ */
+export function problemFromBodyParserError(exception: unknown, traceId: string): ProblemDetails | null {
+  if (!exception || typeof exception !== 'object') return null;
+  const candidate = exception as { type?: unknown; status?: unknown; statusCode?: unknown };
+  const type = typeof candidate.type === 'string' ? candidate.type : '';
+  const status =
+    typeof candidate.status === 'number'
+      ? candidate.status
+      : typeof candidate.statusCode === 'number'
+        ? candidate.statusCode
+        : null;
+
+  if (type === 'entity.too.large' || status === HttpStatus.PAYLOAD_TOO_LARGE) {
+    return createProblemDetails(
+      new DomainError(
+        errorCodes.PAYLOAD_TOO_LARGE,
+        `Request body exceeds the ${env.BODY_LIMIT_BYTES}-byte limit`,
+        HttpStatus.PAYLOAD_TOO_LARGE,
+      ),
+      traceId,
+    );
+  }
+
+  if (status === HttpStatus.URI_TOO_LONG) {
+    return createProblemDetails(
+      new DomainError(
+        errorCodes.URI_TOO_LONG,
+        `Request URL exceeds the ${env.MAX_URL_LENGTH}-character limit`,
+        HttpStatus.URI_TOO_LONG,
+      ),
+      traceId,
+    );
+  }
+
+  if (type === 'entity.parse.failed') {
+    return createProblemDetails(
+      new DomainError(errorCodes.VALIDATION_FAILED, 'Request body is not valid JSON', HttpStatus.BAD_REQUEST),
+      traceId,
+    );
+  }
+
+  if (type === 'encoding.unsupported') {
+    return createProblemDetails(
+      new DomainError(
+        errorCodes.VALIDATION_FAILED,
+        'Request body encoding is not supported',
+        HttpStatus.UNSUPPORTED_MEDIA_TYPE,
+      ),
+      traceId,
+    );
+  }
+
+  if (type === 'request.aborted' || type === 'request.size.invalid') {
+    return createProblemDetails(
+      new DomainError(errorCodes.VALIDATION_FAILED, 'Request body was interrupted or incomplete', HttpStatus.BAD_REQUEST),
+      traceId,
+    );
+  }
+
+  return null;
 }
 
 /** Maps a Nest `HttpException` status onto the stable registry (API_CONTRACT §0). */

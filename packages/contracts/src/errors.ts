@@ -36,6 +36,10 @@ export const errorCodes = {
   EINVOICE_GATEWAY_UNREACHABLE: 'EINVOICE_GATEWAY_UNREACHABLE',
   MIGRATION_CONFLICT: 'MIGRATION_CONFLICT',
   RATE_LIMITED: 'RATE_LIMITED',
+  /** طلبٌ أكبر من السقف المسموح به للجسم — يُرفض قبل أن يُقرأ كاملاً في الذاكرة. */
+  PAYLOAD_TOO_LARGE: 'PAYLOAD_TOO_LARGE',
+  /** رابطٌ أطول من السقف — يُقطع قبل تحليل الاستعلام. */
+  URI_TOO_LONG: 'URI_TOO_LONG',
   INTERNAL: 'INTERNAL',
   // PHASE_04 — a draft was accepted but must wait for the configured approval chain.
   APPROVAL_REQUIRED: 'APPROVAL_REQUIRED',
@@ -272,6 +276,8 @@ export const errorStatus: Record<ErrorCode, number> = {
   EINVOICE_GATEWAY_UNREACHABLE: 502,
   MIGRATION_CONFLICT: 409,
   RATE_LIMITED: 429,
+  PAYLOAD_TOO_LARGE: 413,
+  URI_TOO_LONG: 414,
   INTERNAL: 500,
   APPROVAL_REQUIRED: 202,
   ADDON_REQUIRES_PLATFORM_APPROVAL: 403,
@@ -380,6 +386,8 @@ export const errorTitle: Record<ErrorCode, string> = {
   EINVOICE_GATEWAY_UNREACHABLE: 'ZATCA gateway unreachable',
   MIGRATION_CONFLICT: 'Migration conflict',
   RATE_LIMITED: 'Rate limited',
+  PAYLOAD_TOO_LARGE: 'Payload too large',
+  URI_TOO_LONG: 'URI too long',
   INTERNAL: 'Internal error',
   APPROVAL_REQUIRED: 'Approval required',
   ADDON_REQUIRES_PLATFORM_APPROVAL: 'This add-on is licensed by the platform — request activation',
