@@ -67,7 +67,7 @@ const screen = (
 // ---------------------------------------------------------------------------
 const accounting: ModuleNode = {
   key: 'accounting',
- icon: '',
+  icon: '',
   labelAr: 'المحاسبة',
   labelEn: 'Accounting',
   href: '/accounting/accounts',
@@ -162,7 +162,7 @@ const accounting: ModuleNode = {
         }),
         screen(
           'cc-balances',
- 'كشف مركز الكلفة',
+          'كشف مركز الكلفة',
           'Cost-centre statement',
           '/accounting/cost-center-statement',
           'ready',
@@ -308,7 +308,7 @@ const accounting: ModuleNode = {
 // ---------------------------------------------------------------------------
 const inventory: ModuleNode = {
   key: 'inventory',
- icon: '',
+  icon: '',
   labelAr: 'المستودعات',
   labelEn: 'Inventory',
   href: '/inventory/overview',
@@ -571,7 +571,7 @@ const inventory: ModuleNode = {
 // ---------------------------------------------------------------------------
 const purchases: ModuleNode = {
   key: 'purchases',
- icon: '',
+  icon: '',
   labelAr: 'المشتريات',
   labelEn: 'Purchases',
   href: '/purchases/invoices',
@@ -640,18 +640,10 @@ const purchases: ModuleNode = {
       ],
     },
     {
-      key: 'purchases-reports',
-      labelAr: 'التقارير',
-      labelEn: 'Reports',
+      key: 'purchases-reports-invoices',
+      labelAr: 'تقارير الفواتير',
+      labelEn: 'Invoice reports',
       items: [
-        screen(
-          'supplier-statement',
-          'كشف مورد',
-          'Supplier statement',
-          '/sales/statements?kind=supplier',
-          'ready',
-          { permission: 'parties.view', endpoint: '/parties/{id}/statement' },
-        ),
         screen(
           'purchase-invoices-report',
           'تقرير فواتير المشتريات',
@@ -669,28 +661,12 @@ const purchases: ModuleNode = {
           { permission: 'reporting.view' },
         ),
         screen(
-          'items-purchases-summary',
-          'مشتريات الأصناف تجميعي',
-          'Item purchases summary',
-          '/reports/items-purchases-summary',
-          'ready',
-          { permission: 'reporting.view', endpoint: '/reports/items-purchases-summary' },
-        ),
-        screen(
           'purchase-invoices-details',
           'تفاصيل فواتير المشتريات',
           'Purchase invoices details',
           '/reports/purchase-invoices-details',
           'ready',
           { permission: 'reporting.view', endpoint: '/reports/purchase-invoices-details' },
-        ),
-        screen(
-          'items-profit-details',
-          'أرباح المواد تفصيلي',
-          'Item profit details',
-          '/reports/items-profit-details',
-          'ready',
-          { permission: 'reporting.view', endpoint: '/reports/items-profit-details' },
         ),
         screen('net-purchases', 'صافي المشتريات', 'Net purchases', '/reports/net-purchases', 'ready', {
           permission: 'reporting.view',
@@ -704,12 +680,58 @@ const purchases: ModuleNode = {
           { permission: 'reporting.view' },
         ),
         screen(
+          'invoices-by-supplier',
+          'الفواتير بحسب الموردين',
+          'Invoices by supplier',
+          '/reports/invoices-by-supplier',
+          'ready',
+          { permission: 'reporting.view' },
+        ),
+      ],
+    },
+    {
+      key: 'purchases-reports-items',
+      labelAr: 'الأصناف والأرباح',
+      labelEn: 'Items & profit',
+      items: [
+        screen(
+          'items-purchases-summary',
+          'مشتريات الأصناف تجميعي',
+          'Item purchases summary',
+          '/reports/items-purchases-summary',
+          'ready',
+          { permission: 'reporting.view', endpoint: '/reports/items-purchases-summary' },
+        ),
+        screen(
           'purchases-items',
           'مشتريات الأصناف تجميعي',
           'Purchases by item',
           '/reports/purchases-by-item',
           'ready',
           { permission: 'reporting.view' },
+        ),
+        screen(
+          'items-profit-details',
+          'أرباح المواد تفصيلي',
+          'Item profit details',
+          '/reports/items-profit-details',
+          'ready',
+          { permission: 'reporting.view', endpoint: '/reports/items-profit-details' },
+        ),
+      ],
+    },
+    {
+      key: 'purchases-reports-suppliers',
+      labelAr: 'الموردون والتحصيل',
+      labelEn: 'Suppliers & collection',
+      items: [
+        screen(
+          'supplier-statement',
+          'كشف مورد',
+          'Supplier statement',
+          '/sales/statements?kind=supplier',
+          'ready',
+          { permission: 'parties.view', endpoint: '/parties/{id}/statement' },
         ),
         screen(
           'supplier-balances',
@@ -735,14 +757,6 @@ const purchases: ModuleNode = {
           'ready',
           { permission: 'reporting.view' },
         ),
-        screen(
-          'invoices-by-supplier',
-          'الفواتير بحسب الموردين',
-          'Invoices by supplier',
-          '/reports/invoices-by-supplier',
-          'ready',
-          { permission: 'reporting.view' },
-        ),
       ],
     },
     {
@@ -764,7 +778,7 @@ const purchases: ModuleNode = {
 // ---------------------------------------------------------------------------
 const sales: ModuleNode = {
   key: 'sales',
- icon: '',
+  icon: '',
   labelAr: 'المبيعات',
   labelEn: 'Sales',
   href: '/sales/invoices',
@@ -790,13 +804,20 @@ const sales: ModuleNode = {
         screen('sales-invoice', 'فاتورة مبيعات', 'Sales invoice', '/sales/invoices', 'ready', {
           endpoint: '/sales/invoices',
         }),
- screen('cash-customer', 'عميل نقدي', 'Cash customer', '/sales/cash-customers', 'ready', {
+        screen('cash-customer', 'عميل نقدي', 'Cash customer', '/sales/cash-customers', 'ready', {
           endpoint: '/sales/cash-customers',
         }),
-        screen('van-sales', 'توزيع المناديب والمخابز', 'Van sales & bakery distribution', '/van-sales', 'ready', {
-          permission: 'van_sales.view',
-          endpoint: 'GET /van-sales/dashboard',
-        }),
+        screen(
+          'van-sales',
+          'توزيع المناديب والمخابز',
+          'Van sales & bakery distribution',
+          '/van-sales',
+          'ready',
+          {
+            permission: 'van_sales.view',
+            endpoint: 'GET /van-sales/dashboard',
+          },
+        ),
         screen('van-sales-rep', 'تطبيق المندوب', 'Van rep portal', '/van-sales/rep', 'ready', {
           permission: 'van_sales.view',
           endpoint: 'GET /van-sales/me',
@@ -845,9 +866,9 @@ const sales: ModuleNode = {
       ],
     },
     {
-      key: 'sales-reports',
-      labelAr: 'التقارير',
-      labelEn: 'Reports',
+      key: 'sales-reports-invoices',
+      labelAr: 'تقارير الفواتير',
+      labelEn: 'Invoice reports',
       items: [
         screen(
           'sales-invoices-report',
@@ -864,49 +885,6 @@ const sales: ModuleNode = {
           '/reports/sales-returns',
           'ready',
           { permission: 'reporting.view' },
-        ),
-        screen(
-          'sales-movement-items',
-          'إجمالي حركة المواد',
-          'Sales item movement',
-          '/reports/sales-movement-items',
-          'ready',
-          { permission: 'reporting.view', endpoint: '/reports/sales-movement-items' },
-        ),
-        screen(
-          'sales-movement-invoices',
-          'عرض الفواتير',
-          'Sales invoice movement',
-          '/reports/sales-movement-invoices',
-          'ready',
-          { permission: 'reporting.view', endpoint: '/reports/sales-movement-invoices' },
-        ),
-        screen('net-sales', 'صافي المبيعات', 'Net sales', '/reports/net-sales', 'ready', {
-          permission: 'reporting.view',
-        }),
-        screen(
-          'items-sales-summary',
-          'مبيعات الأصناف تجميعي',
-          'Item sales summary',
-          '/reports/items-sales-summary',
-          'ready',
-          { permission: 'reporting.view', endpoint: '/reports/items-sales-summary' },
-        ),
-        screen(
-          'items-pos-sales-summary',
-          'مبيعات الأصناف تجميعي - نقطة البيع',
-          'POS item sales summary',
-          '/reports/items-pos-sales-summary',
-          'ready',
-          { permission: 'reporting.view', endpoint: '/reports/items-pos-sales-summary' },
-        ),
-        screen(
-          'items-profit-summary',
-          'أرباح المواد تجميعي',
-          'Item profit summary',
-          '/reports/items-profit-summary',
-          'ready',
-          { permission: 'reporting.view', endpoint: '/reports/items-profit-summary' },
         ),
         screen(
           'sales-invoices-details',
@@ -932,6 +910,14 @@ const sales: ModuleNode = {
           'ready',
           { permission: 'reporting.view', endpoint: '/reports/sales-notifications' },
         ),
+        screen(
+          'invoices-by-customer',
+          'الفواتير بحسب العملاء',
+          'Invoices by customer',
+          '/reports/invoices-by-customer',
+          'ready',
+          { permission: 'reporting.view' },
+        ),
         screen('daily-sales', 'تقرير مبيعات حسب اليوم', 'Daily sales', '/reports/daily-sales', 'ready', {
           permission: 'reporting.view',
           endpoint: '/reports/daily-sales',
@@ -944,6 +930,18 @@ const sales: ModuleNode = {
           'ready',
           { permission: 'reporting.view', endpoint: '/reports/daily-process' },
         ),
+        screen('sales-detail', 'مبيعات تفصيلية', 'Detailed sales', '/reports/sales-detail', 'ready', {
+          permission: 'reporting.view',
+        }),
+        screen('sales-movement', 'حركة المبيعات', 'Sales movement', '/reports/sales-by-day', 'ready', {
+          permission: 'reporting.view',
+        }),
+        screen('sales-chart', 'تقرير بياني', 'Chart report', '/reports/monthly-sales', 'ready', {
+          permission: 'reporting.view',
+        }),
+        screen('net-sales', 'صافي المبيعات', 'Net sales', '/reports/net-sales', 'ready', {
+          permission: 'reporting.view',
+        }),
         screen(
           'sales-inv-analysis',
           'تقرير تحليل المبيعات',
@@ -952,7 +950,61 @@ const sales: ModuleNode = {
           'ready',
           { permission: 'reporting.view', endpoint: '/reports/sales-inv-analysis' },
         ),
-        // 📚 الجزء الرابع — تقارير المخزون والأرقام التسلسلية
+        screen(
+          'contracting-invoices-report',
+          'تقرير فواتير المقاولات',
+          'Contracting invoices',
+          '/reports/project-bills',
+          'ready',
+          { permission: 'reporting.view' },
+        ),
+      ],
+    },
+    {
+      key: 'sales-reports-items',
+      labelAr: 'الأصناف والمخزون',
+      labelEn: 'Items & stock',
+      items: [
+        screen(
+          'items-sales-summary',
+          'مبيعات الأصناف تجميعي',
+          'Item sales summary',
+          '/reports/items-sales-summary',
+          'ready',
+          { permission: 'reporting.view', endpoint: '/reports/items-sales-summary' },
+        ),
+        screen(
+          'items-pos-sales-summary',
+          'مبيعات الأصناف تجميعي - نقطة البيع',
+          'POS item sales summary',
+          '/reports/items-pos-sales-summary',
+          'ready',
+          { permission: 'reporting.view', endpoint: '/reports/items-pos-sales-summary' },
+        ),
+        screen(
+          'items-profit-summary',
+          'أرباح المواد تجميعي',
+          'Item profit summary',
+          '/reports/items-profit-summary',
+          'ready',
+          { permission: 'reporting.view', endpoint: '/reports/items-profit-summary' },
+        ),
+        screen(
+          'sales-movement-items',
+          'إجمالي حركة المواد',
+          'Sales item movement',
+          '/reports/sales-movement-items',
+          'ready',
+          { permission: 'reporting.view', endpoint: '/reports/sales-movement-items' },
+        ),
+        screen(
+          'sales-movement-invoices',
+          'عرض الفواتير',
+          'Sales invoice movement',
+          '/reports/sales-movement-invoices',
+          'ready',
+          { permission: 'reporting.view', endpoint: '/reports/sales-movement-invoices' },
+        ),
         screen(
           'inventory-documents',
           'تقرير مستندات المخزون',
@@ -1025,9 +1077,6 @@ const sales: ModuleNode = {
           'ready',
           { permission: 'reporting.view', endpoint: '/reports/category-sales-by-day' },
         ),
-        screen('sales-detail', 'مبيعات تفصيلية', 'Detailed sales', '/reports/sales-detail', 'ready', {
-          permission: 'reporting.view',
-        }),
         screen('sales-items', 'مبيعات الأصناف تجميعي', 'Sales by item', '/reports/sales-by-item', 'ready', {
           permission: 'reporting.view',
         }),
@@ -1039,6 +1088,13 @@ const sales: ModuleNode = {
           'ready',
           { permission: 'reporting.view' },
         ),
+      ],
+    },
+    {
+      key: 'sales-reports-profit',
+      labelAr: 'الأرباح والعمولات',
+      labelEn: 'Profit & commissions',
+      items: [
         screen(
           'sales-invoice-profit',
           'أرباح الفواتير',
@@ -1063,7 +1119,7 @@ const sales: ModuleNode = {
         }),
         screen(
           'salesman-commissions',
- 'طباعة فواتير مندوب وعمولاتهم',
+          'طباعة فواتير مندوب وعمولاتهم',
           'Salesman commissions',
           '/sales/salesman-commissions',
           'ready',
@@ -1081,6 +1137,13 @@ const sales: ModuleNode = {
         screen('employee-sales', 'مبيعات موظف', 'Sales by employee', '/reports/sales-by-employee', 'ready', {
           permission: 'reporting.view',
         }),
+      ],
+    },
+    {
+      key: 'sales-reports-customers',
+      labelAr: 'العملاء والتحصيل',
+      labelEn: 'Customers & collection',
+      items: [
         screen('customer-statement', 'كشف عميل', 'Customer statement', '/sales/statements', 'ready', {
           permission: 'parties.view',
           endpoint: '/parties/{id}/statement',
@@ -1106,28 +1169,6 @@ const sales: ModuleNode = {
           'سداد العملاء',
           'Customer settlements',
           '/reports/customer-settlements',
-          'ready',
-          { permission: 'reporting.view' },
-        ),
-        screen(
-          'invoices-by-customer',
-          'الفواتير بحسب العملاء',
-          'Invoices by customer',
-          '/reports/invoices-by-customer',
-          'ready',
-          { permission: 'reporting.view' },
-        ),
-        screen('sales-movement', 'حركة المبيعات', 'Sales movement', '/reports/sales-by-day', 'ready', {
-          permission: 'reporting.view',
-        }),
-        screen('sales-chart', 'تقرير بياني', 'Chart report', '/reports/monthly-sales', 'ready', {
-          permission: 'reporting.view',
-        }),
-        screen(
-          'contracting-invoices-report',
-          'تقرير فواتير المقاولات',
-          'Contracting invoices',
-          '/reports/project-bills',
           'ready',
           { permission: 'reporting.view' },
         ),
@@ -1226,7 +1267,7 @@ const sales: ModuleNode = {
  */
 const tailoring: ModuleNode = {
   key: 'tailoring',
- icon: '',
+  icon: '',
   labelAr: 'التفصيل',
   labelEn: 'Tailoring',
   href: '/tailoring/orders',
@@ -1316,7 +1357,7 @@ const tailoring: ModuleNode = {
 // ---------------------------------------------------------------------------
 const optics: ModuleNode = {
   key: 'optics',
- icon: '',
+  icon: '',
   labelAr: 'النظارات',
   labelEn: 'Optics',
   href: '/optics/prescriptions',
@@ -1361,7 +1402,7 @@ const optics: ModuleNode = {
 // ---------------------------------------------------------------------------
 const hrm: ModuleNode = {
   key: 'hrm',
- icon: '',
+  icon: '',
   labelAr: 'الموظفين والرواتب',
   labelEn: 'HR & Payroll',
   href: '/hrm/employees',
@@ -1395,10 +1436,17 @@ const hrm: ModuleNode = {
         screen('payroll-run', 'إستحقاق وصرف الرواتب', 'Payroll run and payment', '/hrm/payroll', 'ready', {
           endpoint: '/hrm/payroll/runs',
         }),
-        screen('hrm-compliance', 'تنبيهات الإقامة والتأمين', 'Iqama and insurance alerts', '/hrm/compliance', 'ready', {
-          permission: 'hrm.view',
-          endpoint: 'GET /hrm/compliance/alerts',
-        }),
+        screen(
+          'hrm-compliance',
+          'تنبيهات الإقامة والتأمين',
+          'Iqama and insurance alerts',
+          '/hrm/compliance',
+          'ready',
+          {
+            permission: 'hrm.view',
+            endpoint: 'GET /hrm/compliance/alerts',
+          },
+        ),
         screen('hrm-leaves', 'إجازات الموظفين', 'Approved leave', '/hrm/leaves', 'ready', {
           permission: 'hrm.view',
           endpoint: 'GET /hrm/employee-leaves',
@@ -1474,7 +1522,7 @@ const hrm: ModuleNode = {
 // ---------------------------------------------------------------------------
 const marina: ModuleNode = {
   key: 'marina',
- icon: '',
+  icon: '',
   labelAr: 'إدارة المراسي',
   labelEn: 'Marina',
   href: '/marina/vessels',
@@ -1575,7 +1623,7 @@ const marina: ModuleNode = {
 // ---------------------------------------------------------------------------
 const projects: ModuleNode = {
   key: 'projects',
- icon: '',
+  icon: '',
   labelAr: 'إدارة المشاريع',
   labelEn: 'Projects',
   href: '/projects',
@@ -1654,7 +1702,7 @@ const projects: ModuleNode = {
 // ---------------------------------------------------------------------------
 const settings: ModuleNode = {
   key: 'settings',
- icon: '',
+  icon: '',
   labelAr: 'الإعدادات',
   labelEn: 'Settings',
   href: '/settings/company',
@@ -1744,10 +1792,18 @@ const settings: ModuleNode = {
             endpoint: 'GET /payment-gateways · PUT · POST /:provider/test · POST /:provider/sale',
           },
         ),
-        screen('online-payments', 'روابط الدفع — ميسر', 'Online payment links', '/settings/payments', 'ready', {
-          permission: 'payments.links.manage',
-          endpoint: 'GET/POST /payments/providers · POST /payments/links · POST /payments/webhooks/:provider',
-        }),
+        screen(
+          'online-payments',
+          'روابط الدفع — ميسر',
+          'Online payment links',
+          '/settings/payments',
+          'ready',
+          {
+            permission: 'payments.links.manage',
+            endpoint:
+              'GET/POST /payments/providers · POST /payments/links · POST /payments/webhooks/:provider',
+          },
+        ),
         screen('whatsapp', 'واتساب — إرسال الفواتير', 'WhatsApp', '/settings/whatsapp', 'ready', {
           permission: 'tenant.settings.manage',
           endpoint:
@@ -1775,7 +1831,8 @@ const settings: ModuleNode = {
         ),
         screen('marketplace', 'سوق الإضافات', 'Marketplace', '/settings/marketplace', 'ready', {
           permission: 'tenant.apps.manage',
-          endpoint: 'GET /marketplace/apps · POST /marketplace/apps/:code/install · DELETE /marketplace/apps/:code',
+          endpoint:
+            'GET /marketplace/apps · POST /marketplace/apps/:code/install · DELETE /marketplace/apps/:code',
         }),
         screen('white-label', 'الدومين والشعار', 'White label', '/settings/white-label', 'ready', {
           permission: 'tenant.apps.manage',
@@ -1812,7 +1869,7 @@ const settings: ModuleNode = {
           permission: 'tenant.file.upload',
           endpoint: 'GET /files · POST /files/presign · DELETE /files/:id',
           description:
- 'frmshowdocument.xaml («الوثائق» · «الوثائق المرفقة») — المخزن الكامل: بحثٌ وترشيحٌ بالحالة وبالمستند المرتبط، وتنزيلٌ برابطٍ موقّع قصير العمر، ورفعٌ مباشر إلى التخزين الكائني (بلا مرور البايتات بالـAPI)، وحذفٌ ناعم برمزه `tenant.file.manage`.',
+            'frmshowdocument.xaml («الوثائق» · «الوثائق المرفقة») — المخزن الكامل: بحثٌ وترشيحٌ بالحالة وبالمستند المرتبط، وتنزيلٌ برابطٍ موقّع قصير العمر، ورفعٌ مباشر إلى التخزين الكائني (بلا مرور البايتات بالـAPI)، وحذفٌ ناعم برمزه `tenant.file.manage`.',
         }),
         screen('backup', 'النسخ الإحتياطي', 'Backup', '/settings/backup', 'ready', {
           permission: 'settings.backup.manage',
@@ -2000,7 +2057,7 @@ const settings: ModuleNode = {
 // ---------------------------------------------------------------------------
 const support: ModuleNode = {
   key: 'support',
- icon: '',
+  icon: '',
   labelAr: 'الدعم الفني',
   labelEn: 'Support',
   href: '/support/license',
@@ -2023,7 +2080,7 @@ const support: ModuleNode = {
           'ready',
           { permission: 'reporting.layout.manage', endpoint: '/reports/layouts' },
         ),
- screen('help', 'إطلب المساعدة', 'Request help', '/support/help', 'ready'),
+        screen('help', 'إطلب المساعدة', 'Request help', '/support/help', 'ready'),
       ],
     },
   ],
@@ -2039,7 +2096,7 @@ const support: ModuleNode = {
 // ---------------------------------------------------------------------------
 const treasury: ModuleNode = {
   key: 'treasury',
- icon: '',
+  icon: '',
   labelAr: 'الخزينة',
   labelEn: 'Treasury',
   href: '/treasury/vouchers',
@@ -2050,15 +2107,15 @@ const treasury: ModuleNode = {
       labelAr: 'تعاريف',
       labelEn: 'Definitions',
       items: [
- screen('safe-card', 'تعريف الخزينة', 'Safes', '/treasury/safes', 'ready', {
+        screen('safe-card', 'تعريف الخزينة', 'Safes', '/treasury/safes', 'ready', {
           permission: 'organization.cashlocation.view',
           endpoint: '/cash-locations?filter[kind]=safe',
         }),
- screen('bank-def', 'تعريف البنوك', 'Banks', '/treasury/banks', 'ready', {
+        screen('bank-def', 'تعريف البنوك', 'Banks', '/treasury/banks', 'ready', {
           permission: 'organization.cashlocation.view',
           endpoint: '/cash-locations?filter[kind]=bank',
         }),
- screen('expense-card', 'بطاقة حساب المصاريف', 'Expense card', '/accounting/expenses', 'ready', {
+        screen('expense-card', 'بطاقة حساب المصاريف', 'Expense card', '/accounting/expenses', 'ready', {
           permission: 'treasury.view',
           endpoint: '/expense-types',
         }),
@@ -2102,29 +2159,15 @@ const treasury: ModuleNode = {
       labelAr: 'العمليات',
       labelEn: 'Operations',
       items: [
-        screen(
-          'receipt-voucher',
- 'سند قبض',
-          'Receipt voucher',
-          '/treasury/vouchers?kind=receipt',
-          'ready',
-          {
-            permission: 'treasury.view',
-            endpoint: '/vouchers',
-          },
-        ),
-        screen(
-          'payment-voucher',
- 'سند صرف',
-          'Payment voucher',
-          '/treasury/vouchers?kind=payment',
-          'ready',
-          {
-            permission: 'treasury.view',
-            endpoint: '/vouchers',
-          },
-        ),
- screen('day-close', 'إغلاق اليومية', 'Day close', '/treasury/day-close', 'ready', {
+        screen('receipt-voucher', 'سند قبض', 'Receipt voucher', '/treasury/vouchers?kind=receipt', 'ready', {
+          permission: 'treasury.view',
+          endpoint: '/vouchers',
+        }),
+        screen('payment-voucher', 'سند صرف', 'Payment voucher', '/treasury/vouchers?kind=payment', 'ready', {
+          permission: 'treasury.view',
+          endpoint: '/vouchers',
+        }),
+        screen('day-close', 'إغلاق اليومية', 'Day close', '/treasury/day-close', 'ready', {
           permission: 'treasury.view',
           endpoint: '/shift-closes/day-closes',
         }),
@@ -2139,11 +2182,11 @@ const treasury: ModuleNode = {
       labelAr: 'الشيكات',
       labelEn: 'Cheques',
       items: [
- screen('cheques', 'كشف الشيكات', 'Cheque register', '/treasury/cheques', 'ready', {
+        screen('cheques', 'كشف الشيكات', 'Cheque register', '/treasury/cheques', 'ready', {
           permission: 'treasury.view',
           endpoint: '/vouchers?filter[method]=cheque',
           description:
- 'frmSandQ / frmPaymentVoucher — تحت التحصيل/محصّل/مرتجع مع تحصيل بقيد أوراق القبضصندوق وارتجاع بقيد عكسي',
+            'frmSandQ / frmPaymentVoucher — تحت التحصيل/محصّل/مرتجع مع تحصيل بقيد أوراق القبضصندوق وارتجاع بقيد عكسي',
         }),
       ],
     },
@@ -2152,7 +2195,7 @@ const treasury: ModuleNode = {
       labelAr: 'التقارير',
       labelEn: 'Reports',
       items: [
- screen('safe-movement', 'حركة الصندوق', 'Safe movement', '/treasury/movements', 'ready', {
+        screen('safe-movement', 'حركة الصندوق', 'Safe movement', '/treasury/movements', 'ready', {
           permission: 'treasury.view',
           endpoint: '/cash-locations/:id/movements',
         }),
@@ -2163,7 +2206,7 @@ const treasury: ModuleNode = {
 
 const employeeApp: ModuleNode = {
   key: 'employee-app',
- icon: '',
+  icon: '',
   labelAr: 'تطبيق الموظف',
   labelEn: 'Employee app',
   href: '/m',
@@ -2207,7 +2250,7 @@ const employeeApp: ModuleNode = {
 
 const manufacturing: ModuleNode = {
   key: 'manufacturing',
- icon: '',
+  icon: '',
   labelAr: 'التصنيع',
   labelEn: 'Manufacturing',
   href: '/manufacturing/orders',
@@ -2222,10 +2265,17 @@ const manufacturing: ModuleNode = {
           permission: 'manufacturing.view',
           endpoint: 'GET/POST /manufacturing/boms',
         }),
-        screen('manufacturing-orders', 'أوامر التصنيع', 'Manufacturing orders', '/manufacturing/orders', 'ready', {
-          permission: 'manufacturing.view',
-          endpoint: 'POST /manufacturing/orders/:id/produce',
-        }),
+        screen(
+          'manufacturing-orders',
+          'أوامر التصنيع',
+          'Manufacturing orders',
+          '/manufacturing/orders',
+          'ready',
+          {
+            permission: 'manufacturing.view',
+            endpoint: 'POST /manufacturing/orders/:id/produce',
+          },
+        ),
       ],
     },
   ],
@@ -2233,7 +2283,7 @@ const manufacturing: ModuleNode = {
 
 const dashboards: ModuleNode = {
   key: 'dashboards',
- icon: '',
+  icon: '',
   labelAr: 'لوحات المؤشرات',
   labelEn: 'Dashboards',
   href: '/dashboards',

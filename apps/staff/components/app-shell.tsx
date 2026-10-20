@@ -162,7 +162,13 @@ function normalizeModuleGroups(module: ModuleNode): ScreenGroup[] {
 
   const defs: ScreenItem[] = [];
   const ops: ScreenItem[] = [];
-  const reports: ScreenItem[] = [];
+  /**
+   * 🔢 التقارير تبقى في حاوياتها الأصلية. كانت تُجمَع كلها في «التقارير» الواحدة
+   * فتصير المبيعات 41 رابطاً في صندوقٍ واحد — وهو أصل شكوى «الوصول للشاشة بطيء».
+   * الآن تُحفظ المجموعة الأم (تقارير الفواتير / الأصناف / الأرباح / التحصيل…) فتُقرأ
+   * كفهرس، ويُدمج ما كان مجموعةً واحدةً فعلاً في «التقارير» كما كان.
+   */
+  const reports = new Map<string, ScreenGroup>();
 
   for (const group of module.groups) {
     const gk = group.key.toLowerCase();
@@ -192,7 +198,14 @@ function normalizeModuleGroups(module: ModuleNode): ScreenGroup[] {
         item.labelAr.includes('المستودعات');
 
       if (isReport) {
-        reports.push(item);
+        const bucket = reports.get(group.key) ?? {
+          key: group.key.startsWith(module.key) ? group.key : `${module.key}-${group.key}`,
+          labelAr: group.labelAr,
+          labelEn: group.labelEn,
+          items: [],
+        };
+        bucket.items.push(item);
+        reports.set(group.key, bucket);
       } else if (isDef) {
         defs.push(item);
       } else {
@@ -232,15 +245,80 @@ function normalizeModuleGroups(module: ModuleNode): ScreenGroup[] {
       items: ops,
     });
   }
-  if (reports.length > 0) {
+  const reportBuckets = [...reports.values()];
+  if (reportBuckets.length === 1) {
     result.push({
       key: `${module.key}-reports`,
       labelAr: 'التقارير',
       labelEn: 'Reports',
-      items: reports,
+      items: reportBuckets[0]?.items ?? [],
     });
+  } else {
+    for (const bucket of reportBuckets) {
+      result.push(bucket);
+    }
   }
   return result;
+}
+
+/**
+ * 🗂️ حاويةُ مجموعةٍ في القائمة الجانبية — البند 14.
+ *
+ * القائمة كانت تعرض كل شاشات الوحدة مفتوحةً في ثلاث حاوياتٍ عريضة: «التقارير» وحدها
+ * 41 شاشةً في المبيعات. الآن كلُّ حاويةٍ رأسٌ بعدّادها، تُفتح عند الطلب وتُطوى، وتُفتح
+ * تلقائياً **فقط** إذا كانت تحتوي الشاشة الحالية أو كان البحث فعّالاً. النتيجة: القائمة
+ * تُقرأ كفهرسٍ لا كجدولٍ طويل، ويظل كلُّ رابطٍ في مكانه (لا شاشة فُقدت).
+ */
+function NavGroupBlock({
+  group,
+  pathname,
+  lang,
+  forceOpen,
+  holdsActive,
+  onNavigate,
+}: {
+  group: ScreenGroup;
+  pathname: string;
+  lang: Lang;
+  forceOpen: boolean;
+  holdsActive: boolean;
+  onNavigate?: () => void;
+}) {
+  const [open, setOpen] = useState(holdsActive);
+  useEffect(() => {
+    if (holdsActive) setOpen(true);
+  }, [holdsActive]);
+  const expanded = forceOpen || open;
+
+  return (
+    <div className={`nav-group ${expanded ? 'open' : ''}`} data-group={group.key}>
+      <button
+        type="button"
+        className="nav-group-title"
+        onClick={() => setOpen(!expanded)}
+        aria-expanded={expanded}
+      >
+        <span>{label(lang, group)}</span>
+        <span className="nav-group-count">{group.items.length}</span>
+        <ChevronDown size={11} strokeWidth={2.4} className={`chev ${expanded ? 'open' : ''}`} aria-hidden />
+      </button>
+      {expanded && (
+        <div className="nav-group-items">
+          {group.items.map((item: ScreenItem) => (
+            <Link
+              key={item.key}
+              href={item.href}
+              onClick={onNavigate}
+              title={item.description}
+              className={pathname === item.href.split('?')[0] ? 'nav-link active' : 'nav-link'}
+            >
+              <span>{label(lang, item)}</span>
+            </Link>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 }
 
 function ModuleBlock({
@@ -302,21 +380,21 @@ function ModuleBlock({
       </button>
       {expanded && (
         <div className="nav-groups">
-          {groups.map((group) => (
-            <div className="nav-group" key={group.key}>
-              <p className="nav-group-title">{label(lang, group)}</p>
-              {group.items.map((item: ScreenItem) => (
-                <Link
-                  key={item.key}
-                  href={item.href}
-                  onClick={onNavigate}
-                  className={pathname === item.href.split('?')[0] ? 'nav-link active' : 'nav-link'}
-                >
-                  <span>{label(lang, item)}</span>
-                </Link>
-              ))}
-            </div>
-          ))}
+          {groups.map((group) => {
+            const holdsActive = group.items.some((item) => pathname === item.href.split('?')[0]);
+            return (
+              <NavGroupBlock
+                key={group.key}
+                group={group}
+                pathname={pathname}
+                lang={lang}
+                // البحث يفتح كل ما طابق: نتيجةٌ مطويّةٌ ليست نتيجة.
+                forceOpen={Boolean(filter)}
+                holdsActive={holdsActive}
+                onNavigate={onNavigate}
+              />
+            );
+          })}
         </div>
       )}
     </div>

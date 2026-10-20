@@ -26,7 +26,8 @@ const DOCS: Record<string, { path: string; title: string; back: string; backLabe
   },
   'purchase-invoice': {
     path: 'purchase-invoices',
-    title: 'طباعة فاتورة المشتريات',
+    // المستند نفسه يقول نوعه (فاتورة أو مردود)؛ العنوان خارج الورقة لا يجزم بما ليس فيه.
+    title: 'طباعة مستند المشتريات',
     back: '/purchases/invoices',
     backLabel: 'فواتير المشتريات',
   },

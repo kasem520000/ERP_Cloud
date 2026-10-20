@@ -2247,14 +2247,65 @@ h4 {
   margin-bottom: 6px;
 }
 .nav-group-title {
-  margin: 8px 12px 3px;
+  /* 🗂️ صار عنوان المجموعة زرّ فتح/طيّ (البند 14): فاصلٌ يُقرأ كسطرٍ في الفهرس،
+     والعدّاد يقول كم شاشةً بداخله قبل أن تفتحه. */
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  inline-size: calc(100% - 8px);
+  margin: 6px 4px 2px;
+  padding: 4px 8px;
+  border: 0;
+  border-radius: 7px;
   /* Arabic is a joined script: tracking it apart looks like broken kerning. Hierarchy
      comes from weight and colour instead of 0.12em of letter-space. */
   font-size: 11px;
   letter-spacing: 0;
   color: var(--side-accent);
-  opacity: 0.78;
+  opacity: 0.85;
   font-weight: 700;
+  background: transparent;
+  cursor: pointer;
+  text-align: start;
+  font-family: inherit;
+}
+.nav-group-title > span:first-child {
+  flex: 1 1 auto;
+  min-inline-size: 0;
+}
+.nav-group-title .nav-group-count {
+  flex: 0 0 auto;
+  min-inline-size: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--side-line);
+  color: var(--side-muted);
+  font-size: 10px;
+  font-weight: 600;
+  text-align: center;
+  line-height: 16px;
+  font-variant-numeric: tabular-nums;
+}
+.nav-group-title .chev {
+  flex: 0 0 auto;
+  transition: transform var(--dur-fast) var(--ease-out);
+}
+.nav-group-title .chev.open {
+  transform: rotate(180deg);
+}
+.nav-group-title:hover,
+.nav-group-title:focus-visible {
+  background: var(--side-line);
+  opacity: 1;
+}
+.nav-group.open > .nav-group-title {
+  opacity: 1;
+}
+.nav-group-items {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding-inline-start: 6px;
 }
 
 .nav-link {
