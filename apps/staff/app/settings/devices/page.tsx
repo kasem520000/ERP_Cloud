@@ -6,7 +6,7 @@ import { Panel } from '@erp/ui';
 import { DataTable, Notice, QueryView } from '../../../components/data-view';
 import { FormFields, type FormValues } from '../../../components/directory';
 import { Screen } from '../../../components/screen';
-import { ApiError, apiData, apiPatch, apiPost } from '../../../lib/api';
+import { apiData, apiErrorText, apiPatch, apiPost } from '../../../lib/api';
 import { arabicName, dateTime, listBranches, type Branch } from '../../../lib/lookups';
 import { useQuery } from '../../../lib/use-query';
 
@@ -50,7 +50,7 @@ export default function SyncDevicesPage() {
       setNotice({ kind: 'ok', text: 'تم إنشاء الجهاز. انسخ المفتاح الآن — لن يُعرض مرة أخرى.' });
       devices.reload();
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
     } finally {
       setBusy(false);
     }
@@ -63,7 +63,7 @@ export default function SyncDevicesPage() {
       setNotice({ kind: 'ok', text: `تم إيقاف الجهاز ${device.name}.` });
       devices.reload();
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
     } finally {
       setBusy(false);
     }

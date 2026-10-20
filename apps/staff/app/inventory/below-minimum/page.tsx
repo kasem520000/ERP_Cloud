@@ -5,7 +5,7 @@ import { useState } from 'react';
 import { DataTable, Notice, QueryView } from '../../../components/data-view';
 import { Screen } from '../../../components/screen';
 import { FilterBar, StatTile, StatTiles } from '../../../components/ui';
-import { ApiError, apiList, apiPost } from '../../../lib/api';
+import { apiErrorText, apiList, apiPost } from '../../../lib/api';
 import {
   arabicName,
   defaultOf,
@@ -75,7 +75,7 @@ export default function BelowMinimumPage() {
         text: `أُنشئ سند إدخال ${created.number} لتغطية العجز. حدّد التكلفة ثم رحّله.`,
       });
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
     } finally {
       setBusy('');
     }

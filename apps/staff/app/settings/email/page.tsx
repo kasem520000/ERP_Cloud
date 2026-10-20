@@ -16,7 +16,7 @@ import {
 import { Notice } from '../../../components/data-view';
 import { Empty, ErrorBox, Forbidden, Loading, Screen } from '../../../components/screen';
 import { Tabs } from '../../../components/ui';
-import { ApiError, apiData } from '../../../lib/api';
+import { ApiError, apiData, apiErrorText } from '../../../lib/api';
 import { useQuery } from '../../../lib/use-query';
 import { useSession } from '../../../lib/session';
 import { Table } from '../../../components/ui/table';
@@ -767,5 +767,5 @@ function messageOf(error: unknown): string {
     if (error.isForbidden) return 'تحتاج صلاحية «إدارة قوالب البريد» لهذا الإجراء.';
     return error.message;
   }
-  return error instanceof Error ? error.message : String(error);
+  return apiErrorText(error);
 }

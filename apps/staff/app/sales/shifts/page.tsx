@@ -6,7 +6,7 @@ import { useState } from 'react';
 
 import { DataTable, Notice, QueryView } from '../../../components/data-view';
 import { Screen } from '../../../components/screen';
-import { ApiError, apiData, apiList, apiPost } from '../../../lib/api';
+import { apiData, apiErrorText, apiList, apiPost } from '../../../lib/api';
 import {
   branchOptions,
   dateTime,
@@ -86,7 +86,7 @@ export default function ShiftsPage() {
       shifts.reload();
       current.reload();
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
     } finally {
       setBusy(false);
     }

@@ -7,7 +7,7 @@ import { FormSection, Panel } from '@erp/ui';
 
 import { Notice } from '../../../../../components/data-view';
 import { Screen } from '../../../../../components/screen';
-import { ApiError, apiData, apiPost } from '../../../../../lib/api';
+import { apiData, apiErrorText, apiPost } from '../../../../../lib/api';
 import { money } from '../../../../../lib/lookups';
 import { useQuery } from '../../../../../lib/use-query';
 
@@ -47,7 +47,7 @@ export default function QuotationEsignPage() {
       setIssued({ href, previewOtp: created.previewOtp });
       setNotice({ kind: 'ok', text: 'أُنشئ طلب التوقيع وأُرسل الرابط بالبريد إن كان الإرسال متاحاً.' });
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
     } finally {
       setBusy(false);
     }

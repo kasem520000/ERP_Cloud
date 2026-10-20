@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { Panel } from '@erp/ui';
 
 import { Empty, ErrorBox, Forbidden, Loading, Screen } from '../../../components/screen';
-import { apiData, apiDelete, apiPatch, apiPost, ApiError } from '../../../lib/api';
+import { apiData, apiDelete, apiErrorText, apiPatch, apiPost } from '../../../lib/api';
 import { useSession } from '../../../lib/session';
 import { useQuery } from '../../../lib/use-query';
 import { Table } from '../../../components/ui/table';
@@ -68,10 +68,9 @@ export default function FiscalPeriodsPage() {
   };
 
   const fail = (error: unknown) => {
-    const caught = error instanceof ApiError ? error : undefined;
     setMessage({
       kind: 'danger',
-      text: caught ? `${caught.message}${caught.detail ? ` — ${caught.detail}` : ''}` : String(error),
+      text: apiErrorText(error),
     });
   };
 

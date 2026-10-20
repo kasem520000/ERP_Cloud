@@ -4,7 +4,7 @@ import { FormSection, Panel, TableFrame } from '@erp/ui';
 import { useMemo, useState } from 'react';
 
 import { accountLabel, listAccounts, postableOf, type Account } from '../lib/accounts';
-import { ApiError, apiDelete, apiList, apiPatch, apiPost } from '../lib/api';
+import { apiDelete, apiErrorText, apiList, apiPatch, apiPost } from '../lib/api';
 import { branchOptions, listBranches, listEmployees, type Branch, type Employee } from '../lib/lookups';
 import { useSession } from '../lib/session';
 import { useQuery } from '../lib/use-query';
@@ -126,7 +126,7 @@ export function CashLocationMaster({ kind }: { kind: 'safe' | 'bank' }) {
       setNotice({ kind: 'ok', text: okText });
       locations.reload();
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
     } finally {
       setBusy(false);
     }

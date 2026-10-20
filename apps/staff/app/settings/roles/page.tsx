@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from 'react';
 
 import { Notice, QueryView } from '../../../components/data-view';
 import { Forbidden, Screen } from '../../../components/screen';
-import { ApiError, apiList, apiPost, apiPut } from '../../../lib/api';
+import { apiErrorText, apiList, apiPost, apiPut } from '../../../lib/api';
 import { useSession } from '../../../lib/session';
 import { useQuery } from '../../../lib/use-query';
 import { PERMISSION_MODULE_AR, describePermissionAr } from '../../../lib/permissions-ar';
@@ -174,7 +174,7 @@ export default function RolesPage() {
       roles.reload();
       pickRole(created);
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
     } finally {
       setBusy(false);
     }
@@ -197,7 +197,7 @@ export default function RolesPage() {
       roles.reload();
       pickRole(created);
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
     } finally {
       setBusy(false);
     }
@@ -229,7 +229,7 @@ export default function RolesPage() {
       });
       roles.reload();
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
     } finally {
       setBusy(false);
     }

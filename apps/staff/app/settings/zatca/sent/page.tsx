@@ -5,7 +5,7 @@ import { Panel } from '@erp/ui';
 
 import { DataTable, Notice } from '../../../../components/data-view';
 import { Screen } from '../../../../components/screen';
-import { ApiError } from '../../../../lib/api';
+import { apiErrorText } from '../../../../lib/api';
 import {
   filingDetail,
   filingsPage,
@@ -136,7 +136,7 @@ export default function SentEinvoicesPage() {
       setPages(page.pages);
       setChain(await zatcaChain());
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
     } finally {
       setLoading(false);
     }
@@ -153,7 +153,7 @@ export default function SentEinvoicesPage() {
     try {
       setDetail(await filingDetail(row.id));
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
     } finally {
       setBusy('');
     }
@@ -173,7 +173,7 @@ export default function SentEinvoicesPage() {
       setDetail(undefined);
       await load();
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
     } finally {
       setBusy('');
     }

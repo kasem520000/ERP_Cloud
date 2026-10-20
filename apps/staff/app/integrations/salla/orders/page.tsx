@@ -6,7 +6,7 @@ import { Panel } from '@erp/ui';
 
 import { DataTable, QueryView } from '../../../../components/data-view';
 import { Screen } from '../../../../components/screen';
-import { ApiError, apiData, apiDelete, apiFetch, apiPut } from '../../../../lib/api';
+import { apiData, apiDelete, apiErrorText, apiFetch, apiPut } from '../../../../lib/api';
 import { dateTime, money, statusLabel } from '../../../../lib/lookups';
 import { useSession } from '../../../../lib/session';
 import { useQuery } from '../../../../lib/use-query';
@@ -86,7 +86,7 @@ export default function SallaOrdersPage() {
       setNotice({ kind: 'ok', text: okText });
       orders.reload();
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
     } finally {
       setBusy(false);
     }

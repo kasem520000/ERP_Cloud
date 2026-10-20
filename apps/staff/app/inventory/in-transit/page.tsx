@@ -6,7 +6,7 @@ import { DataTable, Notice, QueryView } from '../../../components/data-view';
 import { WarehousePicker } from '../../../components/inventory-filters';
 import { Screen } from '../../../components/screen';
 import { FilterBar, StatTile, StatTiles, Tabs } from '../../../components/ui';
-import { ApiError } from '../../../lib/api';
+import { apiErrorText } from '../../../lib/api';
 import {
   closeTransfer,
   inTransitReport,
@@ -88,7 +88,7 @@ export default function InTransitPage() {
       });
       rows.reload();
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
     } finally {
       setBusy('');
     }

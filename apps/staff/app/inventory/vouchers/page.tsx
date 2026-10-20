@@ -17,7 +17,7 @@ import {
   Totals,
 } from '../../../components/ui';
 import { accountLabel, listAccounts, postableOf, type Account } from '../../../lib/accounts';
-import { ApiError, apiData, apiList, apiPost } from '../../../lib/api';
+import { ApiError, apiData, apiErrorText, apiList, apiPost } from '../../../lib/api';
 import {
   amountLabel,
   arabicName,
@@ -268,7 +268,7 @@ export default function VouchersPage() {
         text: `${found.nameAr}${found.unitNameAr ? ` — ${found.unitNameAr}` : ''} (×${Number(found.factor).toLocaleString('ar-EG')})`,
       });
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
     } finally {
       setBusy(false);
     }
@@ -353,7 +353,7 @@ export default function VouchersPage() {
       setOpen(false);
       await reload();
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
     } finally {
       setBusy(false);
     }
@@ -371,7 +371,7 @@ export default function VouchersPage() {
       setNotice({ kind: 'ok', text: okText });
       await reload();
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
     }
   }
 

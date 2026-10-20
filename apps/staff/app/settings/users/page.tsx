@@ -5,7 +5,7 @@ import { useState } from 'react';
 
 import { DataTable, Notice, QueryView } from '../../../components/data-view';
 import { Forbidden, Screen } from '../../../components/screen';
-import { apiDelete, apiList, apiPatch, apiPost } from '../../../lib/api';
+import { apiDelete, apiErrorText, apiList, apiPatch, apiPost } from '../../../lib/api';
 import {
   branchOptions,
   listBranches,
@@ -166,7 +166,7 @@ export default function TenantUsersPage() {
       await work();
       setNotice({ kind: 'ok', text: label });
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof Error ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
     } finally {
       setBusy(false);
     }

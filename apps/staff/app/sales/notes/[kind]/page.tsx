@@ -7,7 +7,7 @@ import { Panel } from '@erp/ui';
 import { DataTable, Notice, QueryView } from '../../../../components/data-view';
 import { FormFields, type FormValues } from '../../../../components/directory';
 import { Screen } from '../../../../components/screen';
-import { ApiError, apiList, apiPost } from '../../../../lib/api';
+import { apiErrorText, apiList, apiPost } from '../../../../lib/api';
 import { money, shortDate, statusLabel } from '../../../../lib/lookups';
 import { useQuery } from '../../../../lib/use-query';
 
@@ -81,7 +81,7 @@ export default function SalesNotePage({ params }: { params: Promise<{ kind: stri
       setValues({ invoiceId: '', reason: '', amountText: '' });
       notes.reload();
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
     } finally {
       setBusy(false);
     }
@@ -94,7 +94,7 @@ export default function SalesNotePage({ params }: { params: Promise<{ kind: stri
       setNotice({ kind: 'ok', text: 'تم ترحيل الإشعار.' });
       notes.reload();
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
     } finally {
       setBusy(false);
     }

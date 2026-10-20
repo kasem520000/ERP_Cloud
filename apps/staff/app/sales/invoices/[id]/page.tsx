@@ -28,7 +28,7 @@ import { Input, Labeled } from '../../../../components/ui/input';
 import { Modal } from '../../../../components/ui/modal';
 import { SkeletonCard } from '../../../../components/ui/skeleton';
 import { Table } from '../../../../components/ui/table';
-import { ApiError, apiData, apiList, apiPatch, apiPost } from '../../../../lib/api';
+import { ApiError, apiData, apiErrorText, apiList, apiPatch, apiPost } from '../../../../lib/api';
 import { readCompanyProfile, receiptIdentity } from '../../../../lib/company-profile';
 import {
   arabicName,
@@ -761,7 +761,7 @@ export default function SalesInvoiceDetailPage() {
                                 .catch((error: unknown) =>
                                   setNotice({
                                     kind: 'danger',
-                                    text: error instanceof ApiError ? error.message : String(error),
+                                    text: apiErrorText(error),
                                   }),
                                 )
                                 .finally(() => setWaBusy(false));

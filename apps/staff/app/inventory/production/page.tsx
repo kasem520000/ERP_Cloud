@@ -7,7 +7,7 @@ import { DataTable, Notice, QueryView } from '../../../components/data-view';
 import { Screen } from '../../../components/screen';
 import { DocField, DocHead, StatTile, StatTiles, StatusTrack, Totals } from '../../../components/ui';
 import { listItemComponents, type ItemComponent } from '../../../lib/lookups';
-import { ApiError, apiList, apiPost } from '../../../lib/api';
+import { ApiError, apiErrorText, apiList, apiPost } from '../../../lib/api';
 import {
   arabicName,
   itemLabel,
@@ -162,7 +162,7 @@ export default function ProductionOrdersPage() {
       setNotes('');
       orders.reload();
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
     } finally {
       setBusy(false);
     }
@@ -182,7 +182,7 @@ export default function ProductionOrdersPage() {
       });
       orders.reload();
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
     } finally {
       setBusy(false);
     }

@@ -24,6 +24,7 @@ import { CountUp, Reveal } from '../components/ui/count-up';
 import { EmptyState } from '../components/ui/empty-state';
 import { SkeletonCard } from '../components/ui/skeleton';
 import { Badge } from '../components/ui/badge';
+import { apiErrorText } from '../lib/api';
 import { useSession } from '../lib/session';
 import { money, quantity, shortDate } from '../lib/lookups';
 import { computeStats, fetchDashboardData, partyName, type DashboardData } from '../lib/dashboard';
@@ -42,11 +43,7 @@ function useDashboardData() {
     setState({ status: 'loading' });
     fetchDashboardData()
       .then((data) => !cancelled && setState({ status: 'success', data }))
-      .catch(
-        (error) =>
-          !cancelled &&
-          setState({ status: 'error', error: error instanceof Error ? error.message : String(error) }),
-      );
+      .catch((error) => !cancelled && setState({ status: 'error', error: apiErrorText(error) }));
     return () => {
       cancelled = true;
     };

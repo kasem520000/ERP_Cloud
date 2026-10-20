@@ -5,7 +5,7 @@ import { usePathname } from 'next/navigation';
 import { Bell } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { apiData } from '../lib/api';
+import { apiData, apiErrorText } from '../lib/api';
 import { useQuery } from '../lib/use-query';
 
 type Notification = {
@@ -17,26 +17,31 @@ type Notification = {
 };
 
 const TYPE_LABEL_AR: Record<string, string> = {
- support_ticket_reply: 'رد الدعم الفني',
- marketplace_addon_approved: 'تفعيل باقة إضافية',
- marketplace_addon_rejected: 'تحديث طلب باقة',
- van_sales_closing_request: 'طلب إغلاق وردية مندوب',
- van_sales_closing_approved: 'اعتماد إغلاق الوردية',
- announcement: 'إعلان المنصة',
- 'comment.mention': 'إشارة في تعليق',
+  support_ticket_reply: 'رد الدعم الفني',
+  marketplace_addon_approved: 'تفعيل باقة إضافية',
+  marketplace_addon_rejected: 'تحديث طلب باقة',
+  van_sales_closing_request: 'طلب إغلاق وردية مندوب',
+  van_sales_closing_approved: 'اعتماد إغلاق الوردية',
+  announcement: 'إعلان المنصة',
+  'comment.mention': 'إشارة في تعليق',
 };
 
 function text(value: unknown, fallback = ''): string {
   return typeof value === 'string' && value.length > 0 ? value : fallback;
 }
 
-function notificationText(item: Notification, locale: 'ar' | 'en'): { title: string; body: string; href: string | null } {
+function notificationText(
+  item: Notification,
+  locale: 'ar' | 'en',
+): { title: string; body: string; href: string | null } {
   const payload = item.payload ?? {};
   const href = typeof payload.href === 'string' && payload.href.length > 0 ? payload.href : null;
   if (item.type === 'announcement') {
     return {
-      title: locale === 'ar' ? text(payload.titleAr, 'إعلان من المنصة') : text(payload.titleEn, 'Announcement'),
-      body: locale === 'ar' ? text(payload.bodyAr, text(payload.body)) : text(payload.bodyEn, text(payload.body)),
+      title:
+        locale === 'ar' ? text(payload.titleAr, 'إعلان من المنصة') : text(payload.titleEn, 'Announcement'),
+      body:
+        locale === 'ar' ? text(payload.bodyAr, text(payload.body)) : text(payload.bodyEn, text(payload.body)),
       href,
     };
   }
@@ -48,10 +53,7 @@ function notificationText(item: Notification, locale: 'ar' | 'en'): { title: str
     };
   }
   return {
-    title: text(
-      payload.title,
-      locale === 'ar' ? (TYPE_LABEL_AR[item.type] ?? 'إشعار جديد') : item.type,
-    ),
+    title: text(payload.title, locale === 'ar' ? (TYPE_LABEL_AR[item.type] ?? 'إشعار جديد') : item.type),
     body: text(payload.body, text(payload.message)),
     href,
   };
@@ -143,8 +145,8 @@ export function NotificationBell({ label }: { label: string }) {
   }
 
   return (
- <div ref={containerRef} style={{ position: 'relative' }}>
- <button
+    <div ref={containerRef} style={{ position: 'relative' }}>
+      <button
         type="button"
         className="btn bell"
         title={label}
@@ -156,12 +158,12 @@ export function NotificationBell({ label }: { label: string }) {
           if (next) void refresh();
         }}
       >
- <Bell size={17} strokeWidth={1.8} aria-hidden />
+        <Bell size={17} strokeWidth={1.8} aria-hidden />
         {unread > 0 && <span className="bell-count">{unread}</span>}
- </button>
+      </button>
 
       {open && (
- <div
+        <div
           className="ui-popover menu-pop"
           style={{
             position: 'absolute',
@@ -178,35 +180,35 @@ export function NotificationBell({ label }: { label: string }) {
             boxShadow: 'var(--shadow-4)',
           }}
         >
- <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
- <strong>الإشعارات والتنبيهات ({unread} غير مقروء)</strong>
- <div className="row" style={{ gap: 6 }}>
+          <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+            <strong>الإشعارات والتنبيهات ({unread} غير مقروء)</strong>
+            <div className="row" style={{ gap: 6 }}>
               {unread > 0 && (
- <button
+                <button
                   type="button"
                   className="btn sm"
                   disabled={busyId === 'all'}
                   onClick={() => void markAllRead()}
                 >
- قراءة الكل
- </button>
+                  قراءة الكل
+                </button>
               )}
- <Link className="btn sm" href="/notifications" onClick={() => setOpen(false)}>
- الكل
- </Link>
- </div>
- </div>
+              <Link className="btn sm" href="/notifications" onClick={() => setOpen(false)}>
+                الكل
+              </Link>
+            </div>
+          </div>
 
           {items.length === 0 ? (
- <p className="muted small" style={{ margin: '8px 0', textAlign: 'center' }}>
- لا توجد إشعارات جديدة حالياً.
- </p>
+            <p className="muted small" style={{ margin: '8px 0', textAlign: 'center' }}>
+              لا توجد إشعارات جديدة حالياً.
+            </p>
           ) : (
- <div style={{ display: 'grid', gap: 8 }}>
+            <div style={{ display: 'grid', gap: 8 }}>
               {items.map((item) => {
                 const info = notificationText(item, 'ar');
                 return (
- <div
+                  <div
                     key={item.id}
                     style={{
                       padding: 10,
@@ -217,30 +219,36 @@ export function NotificationBell({ label }: { label: string }) {
                       gap: 4,
                     }}
                   >
- <div className="row" style={{ justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
- <strong style={{ fontSize: 13 }}>{info.title}</strong>
+                    <div
+                      className="row"
+                      style={{ justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}
+                    >
+                      <strong style={{ fontSize: 13 }}>{info.title}</strong>
                       {!item.readAt && (
- <button
+                        <button
                           type="button"
                           className="btn sm"
                           disabled={busyId === item.id}
                           onClick={() => void markOneRead(item.id)}
                         >
- مقروء
- </button>
+                          مقروء
+                        </button>
                       )}
- </div>
+                    </div>
                     {info.body && (
- <p className="muted small" style={{ margin: 0, lineHeight: 1.5 }}>
+                      <p className="muted small" style={{ margin: 0, lineHeight: 1.5 }}>
                         {info.body}
- </p>
+                      </p>
                     )}
- <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center', marginTop: 2 }}>
- <span className="muted" style={{ fontSize: 11 }} dir="ltr">
+                    <div
+                      className="row"
+                      style={{ justifyContent: 'space-between', alignItems: 'center', marginTop: 2 }}
+                    >
+                      <span className="muted" style={{ fontSize: 11 }} dir="ltr">
                         {new Date(item.createdAt).toLocaleString('ar-SA-u-ca-gregory-nu-latn')}
- </span>
+                      </span>
                       {info.href && (
- <Link
+                        <Link
                           href={info.href}
                           className="small"
                           style={{ fontWeight: 700, color: 'var(--brand)' }}
@@ -249,18 +257,18 @@ export function NotificationBell({ label }: { label: string }) {
                             setOpen(false);
                           }}
                         >
- فتح والانتقال 
- </Link>
+                          فتح والانتقال
+                        </Link>
                       )}
- </div>
- </div>
+                    </div>
+                  </div>
                 );
               })}
- </div>
+            </div>
           )}
- </div>
+        </div>
       )}
- </div>
+    </div>
   );
 }
 
@@ -287,7 +295,7 @@ export function NotificationInbox({ locale }: { locale: 'ar' | 'en' }) {
       await apiData(`/notifications/${id}/read`, { method: 'POST' });
       inbox.reload();
     } catch (error) {
-      setNotice(error instanceof Error ? error.message : String(error));
+      setNotice(apiErrorText(error));
     } finally {
       setBusyId(null);
     }
@@ -305,7 +313,7 @@ export function NotificationInbox({ locale }: { locale: 'ar' | 'en' }) {
       setNotice(unread.length === 0 ? 'لا غيرَ مقروء.' : `وُسم ${unread.length} إشعاراً مقروءاً.`);
       inbox.reload();
     } catch (error) {
-      setNotice(error instanceof Error ? error.message : String(error));
+      setNotice(apiErrorText(error));
     } finally {
       setBusyId(null);
     }
@@ -315,70 +323,72 @@ export function NotificationInbox({ locale }: { locale: 'ar' | 'en' }) {
   const unreadCount = inbox.data?.meta?.unread ?? rows.filter((item) => !item.readAt).length;
 
   return (
- <div className="grid">
- <div className="toolbar">
- <span className="chip">
+    <div className="grid">
+      <div className="toolbar">
+        <span className="chip">
           {locale === 'ar' ? 'غير مقروء' : 'Unread'}: {unreadCount}
- </span>
- <label className="row" style={{ gap: 6, alignItems: 'center' }}>
- <input
+        </span>
+        <label className="row" style={{ gap: 6, alignItems: 'center' }}>
+          <input
             type="checkbox"
             checked={onlyUnread}
             onChange={(event) => setOnlyUnread(event.target.checked)}
           />
- <span>{locale === 'ar' ? 'غير المقروء فقط' : 'Unread only'}</span>
- </label>
- <button className="btn" type="button" disabled={busyId === 'all'} onClick={() => void markAllRead()}>
+          <span>{locale === 'ar' ? 'غير المقروء فقط' : 'Unread only'}</span>
+        </label>
+        <button className="btn" type="button" disabled={busyId === 'all'} onClick={() => void markAllRead()}>
           {locale === 'ar' ? 'قراءة الكل' : 'Mark all read'}
- </button>
- <button className="btn" type="button" onClick={inbox.reload}>
+        </button>
+        <button className="btn" type="button" onClick={inbox.reload}>
           {locale === 'ar' ? 'تحديث' : 'Refresh'}
- </button>
- </div>
+        </button>
+      </div>
 
       {notice && <p className="notice">{notice}</p>}
       {inbox.status === 'loading' && <p className="muted">…</p>}
       {inbox.status === 'error' && <p className="error">{inbox.error}</p>}
       {inbox.status === 'success' && rows.length === 0 && (
- <p className="muted">{locale === 'ar' ? 'لا جديد.' : 'Nothing new.'}</p>
+        <p className="muted">{locale === 'ar' ? 'لا جديد.' : 'Nothing new.'}</p>
       )}
 
- <ul className="inbox">
+      <ul className="inbox">
         {rows.map((item) => {
           const info = notificationText(item, locale);
           return (
- <li key={item.id} className={item.readAt ? 'read' : 'unread'}>
- <div className="row" style={{ justifyContent: 'space-between', gap: 12 }}>
- <div>
- <strong>{info.title}</strong>
- <p className="muted" style={{ margin: '4px 0 0' }}>
+            <li key={item.id} className={item.readAt ? 'read' : 'unread'}>
+              <div className="row" style={{ justifyContent: 'space-between', gap: 12 }}>
+                <div>
+                  <strong>{info.title}</strong>
+                  <p className="muted" style={{ margin: '4px 0 0' }}>
                     {info.body}
- </p>
+                  </p>
                   {info.href ? (
- <Link href={info.href} style={{ fontWeight: 700 }}>
- فتح المستند 
- </Link>
+                    <Link href={info.href} style={{ fontWeight: 700 }}>
+                      فتح المستند
+                    </Link>
                   ) : null}
- <p className="muted" style={{ margin: '6px 0 0', fontSize: 12 }}>
-                    {new Date(item.createdAt).toLocaleString(locale === 'ar' ? 'ar-SA-u-ca-gregory-nu-latn' : 'en-GB')} ·{' '}
-                    {TYPE_LABEL_AR[item.type] ?? item.type}
- </p>
- </div>
+                  <p className="muted" style={{ margin: '6px 0 0', fontSize: 12 }}>
+                    {new Date(item.createdAt).toLocaleString(
+                      locale === 'ar' ? 'ar-SA-u-ca-gregory-nu-latn' : 'en-GB',
+                    )}{' '}
+                    · {TYPE_LABEL_AR[item.type] ?? item.type}
+                  </p>
+                </div>
                 {!item.readAt && (
- <button
+                  <button
                     className="btn"
                     type="button"
                     disabled={busyId === item.id}
                     onClick={() => void markRead(item.id)}
                   >
                     {locale === 'ar' ? 'تحديد كمقروء' : 'Mark read'}
- </button>
+                  </button>
                 )}
- </div>
- </li>
+              </div>
+            </li>
           );
         })}
- </ul>
- </div>
+      </ul>
+    </div>
   );
 }

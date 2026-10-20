@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 
 import { Notice } from '../../../components/data-view';
 import { Forbidden, Screen } from '../../../components/screen';
-import { ApiError, apiList } from '../../../lib/api';
+import { apiErrorText, apiList } from '../../../lib/api';
 import {
   deactivateApprovalWorkflow,
   listApprovalWorkflows,
@@ -81,9 +81,7 @@ export default function ApprovalSettingsPage() {
   const reload = async (): Promise<void> => setWorkflows(await listApprovalWorkflows());
 
   useEffect(() => {
-    void reload().catch((error: unknown) =>
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) }),
-    );
+    void reload().catch((error: unknown) => setNotice({ kind: 'danger', text: apiErrorText(error) }));
   }, []);
 
   if (!can('approval.manage')) {
@@ -150,7 +148,7 @@ export default function ApprovalSettingsPage() {
       reset();
       setNotice({ kind: 'ok', text: 'تم حفظ مسار الموافقات.' });
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
     } finally {
       setBusy(false);
     }
@@ -163,7 +161,7 @@ export default function ApprovalSettingsPage() {
       await reload();
       setNotice({ kind: 'ok', text: 'تم إيقاف المسار مع إبقاء سجله.' });
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
     } finally {
       setBusy(false);
     }

@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 
 import { Notice } from '../../../components/data-view';
 import { Forbidden, Screen } from '../../../components/screen';
-import { ApiError } from '../../../lib/api';
+import { apiErrorText } from '../../../lib/api';
 import { approvalHistory, type ApprovalRequest } from '../../../lib/approvals';
 import { useSession } from '../../../lib/session';
 import { Table } from '../../../components/ui/table';
@@ -26,9 +26,7 @@ export default function ApprovalHistoryPage() {
   useEffect(() => {
     void approvalHistory()
       .then(setRequests)
-      .catch((error: unknown) =>
-        setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) }),
-      );
+      .catch((error: unknown) => setNotice({ kind: 'danger', text: apiErrorText(error) }));
   }, []);
 
   if (!can('approval.approve')) {

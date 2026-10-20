@@ -8,7 +8,7 @@ import { Panel } from '@erp/ui';
 import { DataTable, Notice } from '../../../../components/data-view';
 import { ErrorBox, Loading, Screen } from '../../../../components/screen';
 import { accountLabel, listAccounts, postableOf, type Account } from '../../../../lib/accounts';
-import { ApiError, apiData, apiList, apiPost } from '../../../../lib/api';
+import { ApiError, apiData, apiErrorText, apiList, apiPost } from '../../../../lib/api';
 import {
   branchOptions,
   cashLocationLabel,
@@ -85,7 +85,7 @@ export default function PayrollRunPage() {
       setNotice({ kind: 'ok', text: okText });
       runQuery.reload();
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
     } finally {
       setBusy(false);
     }

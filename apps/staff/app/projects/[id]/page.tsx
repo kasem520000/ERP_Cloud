@@ -9,7 +9,7 @@ import { CommentsPanel } from '../../../components/comments-panel';
 import { DataTable, Notice } from '../../../components/data-view';
 import { Empty, ErrorBox, Loading, Screen } from '../../../components/screen';
 import { accountLabel, listAccounts, postableOf, type Account } from '../../../lib/accounts';
-import { ApiError, apiData, apiList, apiPost } from '../../../lib/api';
+import { ApiError, apiData, apiErrorText, apiList, apiPost } from '../../../lib/api';
 import { money, percent, quantity, shortDate, statusLabel, today } from '../../../lib/lookups';
 import { periodForDate } from '../../../lib/posting';
 import { useSession } from '../../../lib/session';
@@ -84,7 +84,7 @@ export default function ProjectDetailPage() {
       project.reload();
       bills.reload();
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
     } finally {
       setBusy(false);
     }

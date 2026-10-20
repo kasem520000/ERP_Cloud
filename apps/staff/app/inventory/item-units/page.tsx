@@ -6,7 +6,7 @@ import { Panel } from '@erp/ui';
 import { DataTable, Notice, QueryView } from '../../../components/data-view';
 import { Screen } from '../../../components/screen';
 import { FilterBar, StatTile, StatTiles } from '../../../components/ui';
-import { ApiError } from '../../../lib/api';
+import { apiErrorText } from '../../../lib/api';
 import {
   addItemBarcode,
   arabicName,
@@ -93,7 +93,7 @@ export default function ItemUnitsPage() {
       setDefaultSale(false);
       setUnitId('');
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
     } finally {
       setBusy(false);
     }
@@ -107,7 +107,7 @@ export default function ItemUnitsPage() {
       await removeItemUnit(itemId, row.unitId);
       setNotice({ kind: 'ok', text: 'تم حذف الوحدة من الصنف.' });
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
     } finally {
       setBusy(false);
     }
@@ -124,7 +124,7 @@ export default function ItemUnitsPage() {
       setLabel('');
       setLabelUnit('');
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
     } finally {
       setBusy(false);
     }
@@ -139,7 +139,7 @@ export default function ItemUnitsPage() {
       await removeItemBarcode(itemId, row.barcode);
       setNotice({ kind: 'ok', text: 'تمت إزالة الباركود.' });
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
     } finally {
       setBusy(false);
     }

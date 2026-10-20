@@ -6,7 +6,7 @@ import { Panel, TableFrame } from '@erp/ui';
 import { DataTable, Notice, QueryView } from '../../../components/data-view';
 import { Screen } from '../../../components/screen';
 import { StatTile, StatTiles, Tabs } from '../../../components/ui';
-import { ApiError, apiList, apiPost } from '../../../lib/api';
+import { ApiError, apiErrorText, apiList, apiPost } from '../../../lib/api';
 import {
   arabicName,
   branchOptions,
@@ -124,7 +124,7 @@ export default function GoodsRequestsPage() {
       setNotice({ kind: 'ok', text: okText });
       requests.reload();
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
     }
   }
 
@@ -154,7 +154,7 @@ export default function GoodsRequestsPage() {
       setNeededBy('');
       requests.reload();
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
     } finally {
       setBusy(false);
     }

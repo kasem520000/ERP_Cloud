@@ -20,7 +20,7 @@ import {
   type GeneratedCsr,
   type ZatcaView,
 } from '../../../lib/einvoice';
-import { ApiError } from '../../../lib/api';
+import { apiErrorText } from '../../../lib/api';
 
 /**
  * إعدادات الربط الضريبي - زاتكا ZATCA — the window, ported from
@@ -104,7 +104,7 @@ export default function ZatcaSettingsPage() {
   useEffect(() => {
     reload().catch((error: unknown) => {
       setLoading(false);
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
     });
   }, []);
 
@@ -117,7 +117,7 @@ export default function ZatcaSettingsPage() {
       await reload();
       return result;
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
       return undefined;
     } finally {
       setBusy('');
@@ -212,8 +212,8 @@ export default function ZatcaSettingsPage() {
                     <span>منع الحفظ عند الربط الضريبي</span>
                   </label>
                   <span className="muted small">
-                    عند التفعيل لا تُحفظ فاتورة المبيعات كمسودة ما دام الربط مفعّلاً؛ تُرحَّل
-                    فوراً بـ«حفظ وترحيل». المسودّات القديمة تبقى قابلة للترحيل.
+                    عند التفعيل لا تُحفظ فاتورة المبيعات كمسودة ما دام الربط مفعّلاً؛ تُرحَّل فوراً بـ«حفظ
+                    وترحيل». المسودّات القديمة تبقى قابلة للترحيل.
                   </span>
                 </div>
                 <div className="field">

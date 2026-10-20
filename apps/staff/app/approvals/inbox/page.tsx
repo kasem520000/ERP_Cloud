@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 
 import { Notice } from '../../../components/data-view';
 import { Empty, Forbidden, Screen } from '../../../components/screen';
-import { ApiError } from '../../../lib/api';
+import { apiErrorText } from '../../../lib/api';
 import { approvalInbox, decideApproval, type ApprovalRequest } from '../../../lib/approvals';
 import { useSession } from '../../../lib/session';
 
@@ -26,9 +26,7 @@ export default function ApprovalInboxPage() {
 
   const reload = async (): Promise<void> => setRequests(await approvalInbox());
   useEffect(() => {
-    void reload().catch((error: unknown) =>
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) }),
-    );
+    void reload().catch((error: unknown) => setNotice({ kind: 'danger', text: apiErrorText(error) }));
   }, []);
 
   if (!can('approval.approve')) {
@@ -53,7 +51,7 @@ export default function ApprovalInboxPage() {
             : 'تم الرفض وبقي المستند مسودة.',
       });
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
     } finally {
       setBusy(undefined);
     }

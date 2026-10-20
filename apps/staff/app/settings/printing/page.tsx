@@ -6,7 +6,7 @@ import Link from 'next/link';
 
 import { Notice } from '../../../components/data-view';
 import { Screen } from '../../../components/screen';
-import { ApiError } from '../../../lib/api';
+import { apiErrorText } from '../../../lib/api';
 import {
   fetchReportCatalog,
   fetchPrintSettings,
@@ -105,7 +105,7 @@ export default function PrintingSettingsPage() {
       setNotice({ kind: 'ok', text: 'تم حفظ إعدادات الطباعة.' });
       settings.reload();
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
     } finally {
       setBusy(false);
     }
@@ -120,7 +120,7 @@ export default function PrintingSettingsPage() {
       setNotice({ kind: 'info', text: 'عادت الإعدادات إلى إعدادات الديسكتوب الافتراضية.' });
       settings.reload();
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
     } finally {
       setBusy(false);
     }
@@ -146,7 +146,7 @@ export default function PrintingSettingsPage() {
       setLinkNotice({ kind: 'ok', text: 'تم حفظ ربط الطابعة.' });
       printerLinks.reload();
     } catch (error) {
-      setLinkNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) });
+      setLinkNotice({ kind: 'danger', text: apiErrorText(error) });
     } finally {
       setLinkBusy(false);
     }
@@ -158,7 +158,7 @@ export default function PrintingSettingsPage() {
       await deletePrinterLink(id);
       printerLinks.reload();
     } catch (error) {
-      setLinkNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) });
+      setLinkNotice({ kind: 'danger', text: apiErrorText(error) });
     } finally {
       setLinkBusy(false);
     }

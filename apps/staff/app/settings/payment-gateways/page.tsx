@@ -17,7 +17,7 @@ import {
   type GatewayView,
   type TransactionRow,
 } from '../../../lib/payment-gateways';
-import { ApiError } from '../../../lib/api';
+import { apiErrorText } from '../../../lib/api';
 
 /**
  * بوابات الدفع — the tab «إعدادات جيديا» of
@@ -94,7 +94,7 @@ export default function PaymentGatewaysPage() {
   useEffect(() => {
     reload().catch((error: unknown) => {
       setLoading(false);
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
     });
   }, []);
 
@@ -105,7 +105,7 @@ export default function PaymentGatewaysPage() {
       await action();
       await reload();
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
     } finally {
       setBusy('');
     }

@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from 'react';
 
 import { Notice } from '../../../components/data-view';
 import { Empty, Screen } from '../../../components/screen';
-import { ApiError } from '../../../lib/api';
+import { apiErrorText } from '../../../lib/api';
 import { useQuery } from '../../../lib/use-query';
 import { branchOptions, listBranches, type Branch } from '../../../lib/lookups';
 import {
@@ -41,9 +41,7 @@ export default function EcommerceSettingsPage() {
   }
 
   useEffect(() => {
-    void reload().catch((error: unknown) =>
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) }),
-    );
+    void reload().catch((error: unknown) => setNotice({ kind: 'danger', text: apiErrorText(error) }));
   }, []);
 
   async function run(label: string, action: () => Promise<void>) {
@@ -53,7 +51,7 @@ export default function EcommerceSettingsPage() {
       await action();
       await reload();
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
     } finally {
       setBusy('');
     }

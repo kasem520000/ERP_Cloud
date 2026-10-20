@@ -6,7 +6,7 @@ import { Panel } from '@erp/ui';
 
 import { DataTable, Notice, QueryView } from '../../../components/data-view';
 import { Screen } from '../../../components/screen';
-import { ApiError, apiData, apiList, apiPost } from '../../../lib/api';
+import { apiData, apiErrorText, apiList, apiPost } from '../../../lib/api';
 import { listPeriods, money, periodRange, statusLabel, type FiscalPeriod } from '../../../lib/lookups';
 import { useSession } from '../../../lib/session';
 import { useQuery } from '../../../lib/use-query';
@@ -51,7 +51,7 @@ export default function PayrollPage() {
       setNotice({ kind: 'ok', text: okText });
       runs.reload();
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
     } finally {
       setBusy(false);
     }

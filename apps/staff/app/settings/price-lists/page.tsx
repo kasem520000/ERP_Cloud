@@ -6,7 +6,7 @@ import { Panel } from '@erp/ui';
 import { DataTable, Notice, QueryView } from '../../../components/data-view';
 import { FormFields, type FormValues } from '../../../components/directory';
 import { Screen } from '../../../components/screen';
-import { ApiError, apiList, apiPost } from '../../../lib/api';
+import { apiErrorText, apiList, apiPost } from '../../../lib/api';
 import {
   itemLabel,
   listItems,
@@ -65,7 +65,7 @@ export default function PriceListsPage() {
       await action();
       setNotice({ kind: 'ok', text });
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
     } finally {
       setBusy(false);
     }

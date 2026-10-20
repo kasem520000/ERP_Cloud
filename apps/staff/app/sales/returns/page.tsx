@@ -6,7 +6,7 @@ import { useState } from 'react';
 
 import { Notice } from '../../../components/data-view';
 import { Screen } from '../../../components/screen';
-import { ApiError, apiData, apiList, apiPost } from '../../../lib/api';
+import { ApiError, apiData, apiErrorText, apiList, apiPost } from '../../../lib/api';
 import { itemLabel, listItems, money, quantity, shortDate, type Item } from '../../../lib/lookups';
 import { useSession } from '../../../lib/session';
 import { useQuery } from '../../../lib/use-query';
@@ -85,7 +85,7 @@ export default function SalesReturnsPage() {
       });
       router.push(`/sales/invoices/${created.id}`);
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
       setBusy(false);
     }
   }

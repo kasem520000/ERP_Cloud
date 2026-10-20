@@ -6,7 +6,7 @@ import { Panel } from '@erp/ui';
 import { DataTable, Notice, QueryView } from '../../../../components/data-view';
 import { FormFields, type FormValues } from '../../../../components/directory';
 import { Screen } from '../../../../components/screen';
-import { ApiError, apiList, apiPost } from '../../../../lib/api';
+import { apiErrorText, apiList, apiPost } from '../../../../lib/api';
 import { listParties, money, partyLabel, shortDate, statusLabel, type Party } from '../../../../lib/lookups';
 import { useQuery } from '../../../../lib/use-query';
 
@@ -85,7 +85,7 @@ export default function PurchaseNotePage({ params }: { params: Promise<{ kind: s
       setValues({ invoiceId: '', reason: '', amountText: '' });
       notes.reload();
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
     } finally {
       setBusy(false);
     }
@@ -98,7 +98,7 @@ export default function PurchaseNotePage({ params }: { params: Promise<{ kind: s
       setNotice({ kind: 'ok', text: 'تم ترحيل الإشعار.' });
       notes.reload();
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
     } finally {
       setBusy(false);
     }

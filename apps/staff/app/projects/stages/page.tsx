@@ -6,7 +6,7 @@ import { Panel } from '@erp/ui';
 
 import { DataTable, Notice, QueryView } from '../../../components/data-view';
 import { Screen } from '../../../components/screen';
-import { apiData, apiDelete, apiList, apiPatch, apiPost } from '../../../lib/api';
+import { apiData, apiDelete, apiErrorText, apiList, apiPatch, apiPost } from '../../../lib/api';
 import { shortDate, statusLabel } from '../../../lib/lookups';
 import {
   STAGE_REFUSALS,
@@ -78,7 +78,7 @@ export default function ProjectStagesPage() {
     try {
       await action();
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof Error ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
     } finally {
       setBusy(false);
     }

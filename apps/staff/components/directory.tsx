@@ -3,7 +3,7 @@
 import { useState, type ReactNode } from 'react';
 import { Panel, type KpiItem } from '@erp/ui';
 
-import { ApiError } from '../lib/api';
+import { apiErrorText } from '../lib/api';
 import type { QueryState } from '../lib/use-query';
 
 import { DataTable, Notice, QueryView, type Column } from './data-view';
@@ -155,7 +155,7 @@ export function Directory<T>({
       reset();
       query.reload();
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
     } finally {
       setBusy(false);
     }
@@ -177,7 +177,7 @@ export function Directory<T>({
     } catch (error) {
       // The API refuses to delete anything that documents already point at, and the
       // reason it gives ("used on invoices", "has sub-accounts") is the useful part.
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
     } finally {
       setBusy(false);
     }

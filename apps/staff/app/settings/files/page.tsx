@@ -6,7 +6,7 @@ import { Panel } from '@erp/ui';
 import { DataTable, Notice, QueryView } from '../../../components/data-view';
 import { Screen } from '../../../components/screen';
 import { StatTile, StatTiles } from '../../../components/ui';
-import { ApiError, apiDelete, apiData, apiFetch, apiPost } from '../../../lib/api';
+import { ApiError, apiData, apiDelete, apiErrorText, apiFetch, apiPost } from '../../../lib/api';
 import { useQuery } from '../../../lib/use-query';
 import { useSession } from '../../../lib/session';
 
@@ -112,7 +112,7 @@ function dateTime(value: string): string {
 }
 
 /** «خطأ في الحذف: » (`frmshowdocument.xaml.cs:114`) — النصّ كما هو، والسبب يُلحق به. */
-const failure = (error: unknown): string => (error instanceof Error ? error.message : String(error));
+const failure = (error: unknown): string => apiErrorText(error);
 
 export default function FilesPage() {
   const session = useSession();

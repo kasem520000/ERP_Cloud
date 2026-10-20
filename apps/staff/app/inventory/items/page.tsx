@@ -6,7 +6,7 @@ import { Panel } from '@erp/ui';
 import { DataTable, Notice, QueryView } from '../../../components/data-view';
 import { Empty, Screen } from '../../../components/screen';
 import { DocField, DocHead, FilterBar, StatTile, StatTiles, Tabs, Totals } from '../../../components/ui';
-import { ApiError, apiDelete, apiList, apiPatch, apiPost } from '../../../lib/api';
+import { apiDelete, apiErrorText, apiList, apiPatch, apiPost } from '../../../lib/api';
 import {
   arabicName,
   listCategories,
@@ -180,7 +180,7 @@ export default function ItemsPage() {
       }
       items.reload();
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
     } finally {
       setBusy(false);
     }
@@ -201,7 +201,7 @@ export default function ItemsPage() {
       if (editing?.id === row.id) cancelEdit();
       items.reload();
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
     } finally {
       setBusy(false);
     }
@@ -275,7 +275,7 @@ export default function ItemsPage() {
       setComponentDraft({ ...componentDraft, componentItemId: '', qty: '1', unitId: '' });
       components.reload();
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
     } finally {
       setComponentBusy(false);
     }
@@ -288,7 +288,7 @@ export default function ItemsPage() {
       await saveCustomFieldValues('item', selected.id, customDraft);
       setNotice({ kind: 'ok', text: 'تم حفظ الحقول الإضافية للصنف.' });
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
     } finally {
       setCustomBusy(false);
     }
@@ -304,7 +304,7 @@ export default function ItemsPage() {
       setNotice({ kind: 'ok', text: 'أُزيل المكوّن من البطاقة.' });
       components.reload();
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
     } finally {
       setComponentBusy(false);
     }

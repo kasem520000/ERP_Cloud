@@ -5,7 +5,7 @@ import { Panel } from '@erp/ui';
 
 import { DataTable, Notice } from '../../../components/data-view';
 import { Screen } from '../../../components/screen';
-import { apiPost } from '../../../lib/api';
+import { apiErrorText, apiPost } from '../../../lib/api';
 import { dateTime, money, shortDate } from '../../../lib/lookups';
 
 type Mismatch = {
@@ -76,7 +76,7 @@ export default function InvoiceMaintenancePage() {
           : { kind: 'info', text: 'فحص فقط — لم يُعدّل أي مستند.' },
       );
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof Error ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
     } finally {
       setBusy(false);
     }

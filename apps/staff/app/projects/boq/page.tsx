@@ -6,7 +6,7 @@ import { Panel } from '@erp/ui';
 
 import { DataTable, Notice, QueryView } from '../../../components/data-view';
 import { Screen } from '../../../components/screen';
-import { apiData, apiDelete, apiList, apiPatch, apiPost } from '../../../lib/api';
+import { apiData, apiDelete, apiErrorText, apiList, apiPatch, apiPost } from '../../../lib/api';
 import { money } from '../../../lib/lookups';
 import { STAGE_REFUSALS, boqLineValue, boqSum, missingBoqField } from '../../../lib/project-definitions';
 import { useQuery } from '../../../lib/use-query';
@@ -86,7 +86,7 @@ export default function BoqPage() {
     try {
       await action();
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof Error ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
     } finally {
       setBusy(false);
     }

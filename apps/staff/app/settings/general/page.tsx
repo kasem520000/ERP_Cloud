@@ -9,7 +9,7 @@ import { Button } from '../../../components/ui/button';
 import { Labeled } from '../../../components/ui/input';
 import { Table } from '../../../components/ui/table';
 import { Toggle } from '../../../components/ui/toggle';
-import { ApiError, apiData, apiPut } from '../../../lib/api';
+import { apiData, apiErrorText, apiPut } from '../../../lib/api';
 import { listUnits, type Unit } from '../../../lib/lookups';
 import { useQuery } from '../../../lib/use-query';
 
@@ -92,7 +92,7 @@ export default function GeneralSettingsPage() {
       setNotice({ kind: 'ok', text: 'تم حفظ إعدادات الكاشير.' });
       settings.reload();
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
     } finally {
       setBusy(false);
     }

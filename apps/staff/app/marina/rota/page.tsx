@@ -5,7 +5,7 @@ import { useState } from 'react';
 
 import { DataTable, Notice, QueryView } from '../../../components/data-view';
 import { Screen } from '../../../components/screen';
-import { ApiError, apiData, apiList, apiPost } from '../../../lib/api';
+import { ApiError, apiData, apiErrorText, apiList, apiPost } from '../../../lib/api';
 import { shortDate, today } from '../../../lib/lookups';
 import { useSession } from '../../../lib/session';
 import { useQuery } from '../../../lib/use-query';
@@ -74,7 +74,7 @@ export default function MarinaRotaPage() {
       setLines([{ vesselId: '', periodLabel: PERIODS[0] ?? '' }]);
       plans.reload();
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
     } finally {
       setBusy(false);
     }

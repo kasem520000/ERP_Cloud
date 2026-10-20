@@ -5,7 +5,7 @@ import { Panel } from '@erp/ui';
 
 import { DataTable, Notice, QueryView } from '../../../../components/data-view';
 import { Screen } from '../../../../components/screen';
-import { ApiError, apiData, apiFetch, apiPost } from '../../../../lib/api';
+import { apiData, apiErrorText, apiFetch, apiPost } from '../../../../lib/api';
 import { dateTime, money } from '../../../../lib/lookups';
 import { useSession } from '../../../../lib/session';
 import { useQuery } from '../../../../lib/use-query';
@@ -101,7 +101,7 @@ export default function SallaProductsPage() {
       catalog.reload();
       logs.reload();
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
     } finally {
       setBusy(false);
     }

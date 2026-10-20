@@ -5,7 +5,7 @@ import { Building2, ImagePlus, Trash2 } from 'lucide-react';
 import { Panel } from '@erp/ui';
 
 import { Empty, ErrorBox, Forbidden, Loading, Screen } from '../../../components/screen';
-import { ApiError, apiData, apiPut } from '../../../lib/api';
+import { ApiError, apiData, apiErrorText, apiPut } from '../../../lib/api';
 import { useSession } from '../../../lib/session';
 import { useQuery } from '../../../lib/use-query';
 
@@ -89,22 +89,33 @@ const LABELS = {
  * رقم المبنى، الشارع، الحي، المدينة، الرمز البريدي، الرقم الإضافي، ثم رقم الوحدة.
  * (كانت الحقول مرتّبة بترتيبٍ عشوائي فتظهر «مختلطة» في البطاقة وفي الطباعة.)
  */
-const ADDRESS_FIELDS: Array<{ key: AddressKey; label: string; hint?: string; dir?: 'ltr'; wide?: boolean }> = [
-  { key: 'building', label: 'رقم المبنى', hint: '٤ خانات', dir: 'ltr' },
-  { key: 'street', label: 'الشارع' },
-  { key: 'district', label: 'الحي' },
-  { key: 'city', label: 'المدينة' },
-  { key: 'postal', label: 'الرمز البريدي', hint: '٥ خانات', dir: 'ltr' },
-  { key: 'additional', label: 'الرقم الإضافي', hint: '٤ خانات', dir: 'ltr' },
-  { key: 'unit', label: 'رقم الوحدة', dir: 'ltr' },
-  { key: 'plot', label: 'الرقم الفرعي', dir: 'ltr' },
-  { key: 'addStreet', label: 'الشارع الإضافي', wide: true },
-];
+const ADDRESS_FIELDS: Array<{ key: AddressKey; label: string; hint?: string; dir?: 'ltr'; wide?: boolean }> =
+  [
+    { key: 'building', label: 'رقم المبنى', hint: '٤ خانات', dir: 'ltr' },
+    { key: 'street', label: 'الشارع' },
+    { key: 'district', label: 'الحي' },
+    { key: 'city', label: 'المدينة' },
+    { key: 'postal', label: 'الرمز البريدي', hint: '٥ خانات', dir: 'ltr' },
+    { key: 'additional', label: 'الرقم الإضافي', hint: '٤ خانات', dir: 'ltr' },
+    { key: 'unit', label: 'رقم الوحدة', dir: 'ltr' },
+    { key: 'plot', label: 'الرقم الفرعي', dir: 'ltr' },
+    { key: 'addStreet', label: 'الشارع الإضافي', wide: true },
+  ];
 
 /** سطر العنوان كما يُطبع: الصيغة نفسها التي يبنيها قالب الطباعة. */
 function addressLine(address: Address | null | undefined): string {
   if (!address) return '';
-  const order: AddressKey[] = ['building', 'street', 'addStreet', 'district', 'city', 'postal', 'additional', 'unit', 'plot'];
+  const order: AddressKey[] = [
+    'building',
+    'street',
+    'addStreet',
+    'district',
+    'city',
+    'postal',
+    'additional',
+    'unit',
+    'plot',
+  ];
   const labels: Partial<Record<AddressKey, string>> = {
     building: 'مبنى',
     street: 'شارع',
@@ -223,7 +234,7 @@ export default function CompanyProfilePage() {
       setDraft((current) => ({ ...current, logoDataUrl }));
       setNotice({ kind: 'ok', text: 'تم تجهيز الشعار — احفظ البيانات لتثبيته على المنشأة.' });
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof Error ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
     } finally {
       setLogoBusy(false);
       if (logoInput.current) logoInput.current.value = '';
@@ -255,11 +266,14 @@ export default function CompanyProfilePage() {
         einvoiceFlags: profile.data?.einvoiceFlags ?? {},
         ...(profile.data ? { version: profile.data.version } : {}),
       });
-      setNotice({ kind: 'ok', text: 'تم حفظ بيانات المنشأة، وسيظهر الشعار والعنوان على كل التقارير والفواتير.' });
+      setNotice({
+        kind: 'ok',
+        text: 'تم حفظ بيانات المنشأة، وسيظهر الشعار والعنوان على كل التقارير والفواتير.',
+      });
       setEditing(false);
       profile.reload();
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof Error ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
     } finally {
       setBusy(false);
     }
@@ -452,8 +466,8 @@ export default function CompanyProfilePage() {
               </div>
               <div className="stack-sm">
                 <p className="muted small">
-                  صورة مربّعة أو أفقية بخلفية فاتحة. تُصغَّر إلى ٥١٢ بكسل وتُحفظ مع الوثيقة، فتظهر
-                  في كل الفواتير والتقارير المطبوعة وملفات PDF.
+                  صورة مربّعة أو أفقية بخلفية فاتحة. تُصغَّر إلى ٥١٢ بكسل وتُحفظ مع الوثيقة، فتظهر في كل
+                  الفواتير والتقارير المطبوعة وملفات PDF.
                 </p>
                 <div className="row">
                   <button
@@ -462,7 +476,8 @@ export default function CompanyProfilePage() {
                     disabled={logoBusy || busy}
                     onClick={() => logoInput.current?.click()}
                   >
-                    <ImagePlus size={15} aria-hidden /> {logoBusy ? 'جارٍ التجهيز…' : logo ? 'استبدال الشعار' : 'رفع شعار'}
+                    <ImagePlus size={15} aria-hidden />{' '}
+                    {logoBusy ? 'جارٍ التجهيز…' : logo ? 'استبدال الشعار' : 'رفع شعار'}
                   </button>
                   {logo && (
                     <button
@@ -492,7 +507,11 @@ export default function CompanyProfilePage() {
             </p>
             <div className="form-grid">
               {ADDRESS_FIELDS.map((field) => (
-                <label className="field" key={field.key} style={field.wide ? { gridColumn: '1 / -1' } : undefined}>
+                <label
+                  className="field"
+                  key={field.key}
+                  style={field.wide ? { gridColumn: '1 / -1' } : undefined}
+                >
                   <span>{field.label}</span>
                   <input
                     className="input"

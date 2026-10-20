@@ -5,7 +5,7 @@ import { Panel, TableFrame } from '@erp/ui';
 
 import { DataTable, Notice, QueryView } from '../../../components/data-view';
 import { Screen } from '../../../components/screen';
-import { ApiError, apiList, apiPost } from '../../../lib/api';
+import { ApiError, apiErrorText, apiList, apiPost } from '../../../lib/api';
 import {
   listParties,
   money,
@@ -111,7 +111,7 @@ export default function ProjectOffersPage() {
       setLines([emptyLine(), emptyLine(), emptyLine()]);
       offers.reload();
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
     } finally {
       setBusy(false);
     }
@@ -147,7 +147,7 @@ export default function ProjectOffersPage() {
       }
       offers.reload();
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
     } finally {
       setBusy(false);
     }

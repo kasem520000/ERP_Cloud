@@ -15,7 +15,7 @@ import {
   type LineDraft,
 } from '../../../components/invoice-editor';
 import { Screen } from '../../../components/screen';
-import { ApiError, apiList, apiPost } from '../../../lib/api';
+import { ApiError, apiErrorText, apiList, apiPost } from '../../../lib/api';
 import {
   arabicName,
   branchOptions,
@@ -124,7 +124,7 @@ export default function QuotationsPage() {
       setOpen(false);
       quotations.reload();
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
     } finally {
       setBusy(false);
     }
@@ -137,7 +137,7 @@ export default function QuotationsPage() {
       const invoice = await apiPost<{ id: string }>(`/sales/quotations/${row.id}/convert`, {});
       router.push(`/sales/invoices/${invoice.id}`);
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
       setBusy(false);
     }
   }

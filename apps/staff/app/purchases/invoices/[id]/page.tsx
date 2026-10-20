@@ -9,7 +9,7 @@ import { CommentsPanel } from '../../../../components/comments-panel';
 import { DataTable, Notice } from '../../../../components/data-view';
 import { ErrorBox, Loading, Screen } from '../../../../components/screen';
 import { Badge } from '../../../../components/ui/badge';
-import { ApiError, apiData, apiPost } from '../../../../lib/api';
+import { ApiError, apiData, apiErrorText, apiPost } from '../../../../lib/api';
 import { accountLabel, listAccounts, postableOf, typeOf, type Account } from '../../../../lib/accounts';
 import { type ApprovalRequest } from '../../../../lib/approvals';
 import {
@@ -146,7 +146,7 @@ export default function PurchaseInvoiceDetailPage() {
       setNotice({ kind: 'ok', text: okText });
       invoice.reload();
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
     } finally {
       setBusy(false);
     }

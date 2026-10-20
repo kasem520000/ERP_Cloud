@@ -8,7 +8,7 @@ import { DataTable, Notice, QueryView } from '../../../components/data-view';
 import { Screen } from '../../../components/screen';
 import type { SerialTrace } from '../../../lib/lookups';
 import { FilterBar, StatTile, StatTiles, Tabs } from '../../../components/ui';
-import { ApiError, apiPost } from '../../../lib/api';
+import { apiErrorText, apiPost } from '../../../lib/api';
 import {
   arabicName,
   consumeSerials,
@@ -130,7 +130,7 @@ export default function SerialsPage() {
     try {
       setTrace(await traceSerial(row.id));
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
     } finally {
       setBusy(false);
     }
@@ -145,7 +145,7 @@ export default function SerialsPage() {
       setSelected([]);
       serials.reload();
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
     } finally {
       setBusy(false);
     }

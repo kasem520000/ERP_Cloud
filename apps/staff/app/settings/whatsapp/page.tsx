@@ -5,7 +5,7 @@ import { Panel } from '@erp/ui';
 
 import { Notice } from '../../../components/data-view';
 import { Screen } from '../../../components/screen';
-import { ApiError } from '../../../lib/api';
+import { apiErrorText } from '../../../lib/api';
 import {
   saveWhatsappSettings,
   testWhatsapp,
@@ -77,7 +77,7 @@ export default function WhatsappSettingsPage() {
   useEffect(() => {
     void reload().catch((error: unknown) => {
       setLoading(false);
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
     });
   }, []);
 
@@ -88,7 +88,7 @@ export default function WhatsappSettingsPage() {
       await action();
       await reload();
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
     } finally {
       setBusy('');
     }

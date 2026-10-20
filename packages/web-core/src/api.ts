@@ -53,7 +53,21 @@ export class ApiError extends Error {
  * فيكفي العنوان العامّ.
  */
 export function apiErrorText(error: unknown, fallback = 'تعذر إكمال الطلب'): string {
-  if (!(error instanceof ApiError)) return fallback;
+  /*
+   * 🔌 ما ليس `ApiError` ليس جملةً للمستخدم: انقطاعُ الشبكة يصل `TypeError: Failed to fetch`
+   * وفشلُ `fetch` في سفاري `Load failed` — وكانت الشاشات تطبعه كما هو. نُسمّي السبب
+   * بالعربية بدل تمرير نصّ المتصفح.
+   */
+  if (!(error instanceof ApiError)) {
+    const raw = error instanceof Error ? `${error.name}: ${error.message}` : String(error ?? '');
+    if (/failed to fetch|networkerror|load failed|network request failed/i.test(raw)) {
+      return 'تعذّر الوصول إلى الخادم — تحقّق من الاتصال ثم أعد المحاولة.';
+    }
+    if (/timeout|timed out|aborted/i.test(raw)) {
+      return 'انتهت مهلة الطلب قبل وصول الرد — أعد المحاولة.';
+    }
+    return fallback;
+  }
   const detail = error.status < 500 ? (error.detail ?? '').trim() : '';
   /*
    * رمز آليّ لا جملة: بلا حرف عربيّ، وشكله شكل المفاتيح (`PERMISSION_DENIED`،

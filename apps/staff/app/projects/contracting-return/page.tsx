@@ -5,7 +5,7 @@ import { Panel, TableFrame } from '@erp/ui';
 
 import { DataTable, Notice, QueryView } from '../../../components/data-view';
 import { Screen } from '../../../components/screen';
-import { ApiError, apiData, apiList, apiPost } from '../../../lib/api';
+import { ApiError, apiData, apiErrorText, apiList, apiPost } from '../../../lib/api';
 import { money, shortDate, statusLabel, today } from '../../../lib/lookups';
 import { useSession } from '../../../lib/session';
 import { useQuery } from '../../../lib/use-query';
@@ -122,7 +122,7 @@ export default function ContractingReturnPage() {
       returns.reload();
       returnable.reload();
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
     } finally {
       setBusy(false);
     }
@@ -144,7 +144,7 @@ export default function ContractingReturnPage() {
       returnable.reload();
       bills.reload();
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
     } finally {
       setBusy(false);
     }

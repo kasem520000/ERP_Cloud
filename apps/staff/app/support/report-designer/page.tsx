@@ -7,6 +7,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Notice } from '../../../components/data-view';
 import { Screen } from '../../../components/screen';
 import { Table } from '../../../components/ui/table';
+import { apiErrorText } from '../../../lib/api';
 import {
   REPORT_GROUP_LABELS,
   REPORT_GROUP_ORDER,
@@ -125,7 +126,7 @@ export default function ReportDesignerPage() {
       setNotice({ kind: 'ok', text: `تم حفظ التصميم «${saved.name}».` });
       layouts.reload();
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof Error ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
     } finally {
       setBusy(false);
     }
@@ -140,7 +141,7 @@ export default function ReportDesignerPage() {
       setNotice({ kind: 'ok', text: `تم حذف التصميم «${layout.name}».` });
       layouts.reload();
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof Error ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
     } finally {
       setBusy(false);
     }
@@ -156,7 +157,7 @@ export default function ReportDesignerPage() {
     try {
       setPreview(await runReport(reportKey, { ...filters, layout: editing.id }));
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof Error ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
     } finally {
       setBusy(false);
     }

@@ -9,7 +9,7 @@ import type { CompanyProfileDto } from '@erp/contracts';
 import { Notice } from '../../../components/data-view';
 import { Empty, Screen } from '../../../components/screen';
 import { computeTotals, emptyLine, type LineDraft } from '../../../components/invoice-editor';
-import { ApiError, apiData, apiList, apiPost } from '../../../lib/api';
+import { ApiError, apiData, apiErrorText, apiList, apiPost } from '../../../lib/api';
 import { readCompanyProfile, receiptIdentity } from '../../../lib/company-profile';
 import { issuedQrPayload } from '../../../lib/invoice-qr';
 import {
@@ -324,7 +324,7 @@ export default function PosPage() {
       setNotice({ kind: 'ok', text: 'تم فتح الوردية — أصبحت مبيعاتك النقدية تُنسب إليها.' });
       shift.reload();
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
     } finally {
       setBusy(false);
     }
@@ -461,7 +461,7 @@ export default function PosPage() {
       setTenders([]);
       recent.reload();
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
     } finally {
       setBusy(false);
     }
@@ -504,7 +504,7 @@ export default function PosPage() {
       setTendered('');
       holds.reload();
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
     } finally {
       setBusy(false);
     }
@@ -541,7 +541,7 @@ export default function PosPage() {
       await apiPost(`/pos/holds/${hold.id}/release`, {});
       holds.reload();
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
     }
   }
 

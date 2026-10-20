@@ -16,7 +16,7 @@ import {
   type LineDraft,
 } from '../../../../components/invoice-editor';
 import { Empty, Screen } from '../../../../components/screen';
-import { ApiError, apiData, apiList, apiPost } from '../../../../lib/api';
+import { ApiError, apiData, apiErrorText, apiList, apiPost } from '../../../../lib/api';
 import {
   arabicName,
   branchOptions,
@@ -139,7 +139,7 @@ export default function NewPurchaseInvoicePage() {
       setSerialQuery('');
     } catch (error) {
       const text =
-        error instanceof ApiError && error.status === 403 ? SERIAL_MESSAGES.forbidden : String(error);
+        error instanceof ApiError && error.status === 403 ? SERIAL_MESSAGES.forbidden : apiErrorText(error);
       setNotice({ kind: 'warn', text });
     }
   }
@@ -167,7 +167,7 @@ export default function NewPurchaseInvoicePage() {
       });
       router.push(print ? `/print/purchase-invoice/${invoice.id}` : `/purchases/invoices/${invoice.id}`);
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
       setBusy(false);
     }
   }
@@ -306,7 +306,9 @@ export default function NewPurchaseInvoicePage() {
           <section className="form-section">
             <div className="form-section-head">
               <h3 className="form-section-title">التكلفة والتحميل</h3>
-              <span className="form-section-hint">مركز التكلفة وتوزيع المصاريف الإضافية على الأسطر، والأسعار الشاملة، والتسلسلي.</span>
+              <span className="form-section-hint">
+                مركز التكلفة وتوزيع المصاريف الإضافية على الأسطر، والأسعار الشاملة، والتسلسلي.
+              </span>
             </div>
             <div className="form-grid">
               {/* «مركز التكلفة» — `frmInvPurch.xaml` L467 (بلا نقطتين، كما في نافذة الشراء). */}
@@ -393,12 +395,7 @@ export default function NewPurchaseInvoicePage() {
             <button className="btn primary" type="submit" disabled={busy}>
               {busy ? 'جارٍ الحفظ والترحيل…' : 'حفظ وترحيل'}
             </button>
-            <button
-              className="btn"
-              type="button"
-              disabled={busy}
-              onClick={(event) => void save(event, true)}
-            >
+            <button className="btn" type="button" disabled={busy} onClick={(event) => void save(event, true)}>
               {busy ? 'جارٍ الحفظ…' : 'حفظ وترحيل + طباعة'}
             </button>
             <button

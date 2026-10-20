@@ -5,7 +5,7 @@ import { Pencil, Trash2 } from 'lucide-react';
 import { Panel } from '@erp/ui';
 
 import { Empty, ErrorBox, Forbidden, Loading, Screen } from '../../../components/screen';
-import { apiDelete, apiList, apiPatch, apiPost, ApiError } from '../../../lib/api';
+import { apiDelete, apiErrorText, apiList, apiPatch, apiPost } from '../../../lib/api';
 import { branchOptions, listBranches, type Branch } from '../../../lib/lookups';
 import { useSession } from '../../../lib/session';
 import { useQuery } from '../../../lib/use-query';
@@ -55,10 +55,9 @@ export default function DepartmentsPage() {
   const canManage = can('hrm.manage');
 
   const fail = (error: unknown) => {
-    const caught = error instanceof ApiError ? error : undefined;
     setMessage({
       kind: 'danger',
-      text: caught ? `${caught.message}${caught.detail ? ` — ${caught.detail}` : ''}` : String(error),
+      text: apiErrorText(error),
     });
   };
 

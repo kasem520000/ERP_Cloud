@@ -7,7 +7,7 @@ import { useEffect, useMemo, useState, type ChangeEvent, type FormEvent } from '
 
 import { Notice } from '../../../../components/data-view';
 import { Empty, Screen } from '../../../../components/screen';
-import { ApiError, apiData, apiPost } from '../../../../lib/api';
+import { apiData, apiErrorText, apiPost } from '../../../../lib/api';
 import {
   arabicName,
   branchOptions,
@@ -131,9 +131,7 @@ export default function OcrPurchaseInvoicePage() {
     if (!existingJobId || job) return undefined;
     void apiData<OcrJob>(`/ocr/jobs/${existingJobId}`)
       .then(setJob)
-      .catch((error: unknown) =>
-        setNotice({ kind: 'danger', text: error instanceof Error ? error.message : String(error) }),
-      );
+      .catch((error: unknown) => setNotice({ kind: 'danger', text: apiErrorText(error) }));
     return undefined;
   }, [job, searchParams]);
 
@@ -157,9 +155,7 @@ export default function OcrPurchaseInvoicePage() {
     const timer = setInterval(() => {
       void apiData<OcrJob>(`/ocr/jobs/${job.id}`)
         .then(setJob)
-        .catch((error: unknown) =>
-          setNotice({ kind: 'danger', text: error instanceof Error ? error.message : String(error) }),
-        );
+        .catch((error: unknown) => setNotice({ kind: 'danger', text: apiErrorText(error) }));
     }, 2_000);
     return () => clearInterval(timer);
   }, [job]);
@@ -200,7 +196,7 @@ export default function OcrPurchaseInvoicePage() {
       setJob(created);
       setNotice({ kind: 'ok', text: 'تم رفع المستند. يجري استخراج الحقول الآن.' });
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
     } finally {
       setBusy(false);
     }
@@ -244,7 +240,7 @@ export default function OcrPurchaseInvoicePage() {
       });
       router.push(`/purchases/invoices/${invoice.id}?ocrJobId=${encodeURIComponent(job.id)}`);
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
       setBusy(false);
     }
   }

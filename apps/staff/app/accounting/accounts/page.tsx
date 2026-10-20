@@ -21,7 +21,7 @@ import { useMemo, useState } from 'react';
  * `frmAccountSrch`), not the page the browser happens to have loaded.
  */
 import { Empty, ErrorBox, Forbidden, Loading, Screen } from '../../../components/screen';
-import { ApiError, apiData, apiDelete, apiPatch, apiPost } from '../../../lib/api';
+import { apiData, apiDelete, apiErrorText, apiPatch, apiPost } from '../../../lib/api';
 import {
   ACCOUNT_TYPE_LABELS,
   balanceOf,
@@ -179,7 +179,7 @@ export default function ChartOfAccountsPage() {
     } catch (error) {
       // The API refuses to delete an account that carries entries or sub-accounts, and
       // says which of the two it is — that message is more useful than a generic failure.
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
     }
   }
 
@@ -575,10 +575,7 @@ function AccountForm({
     } catch (error) {
       setMessage({
         kind: 'danger',
-        text:
-          error instanceof ApiError
-            ? `${error.message}${error.detail ? ` — ${error.detail}` : ''}`
-            : String(error),
+        text: apiErrorText(error),
       });
     } finally {
       setBusy(false);

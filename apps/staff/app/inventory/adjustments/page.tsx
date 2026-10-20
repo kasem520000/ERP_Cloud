@@ -15,7 +15,7 @@ import {
   Tabs,
   Totals,
 } from '../../../components/ui';
-import { ApiError, apiData, apiList, apiPost } from '../../../lib/api';
+import { ApiError, apiData, apiErrorText, apiList, apiPost } from '../../../lib/api';
 import {
   arabicName,
   dateTime,
@@ -239,7 +239,7 @@ export default function StockAdjustmentsPage() {
       setOpen(false);
       await reload();
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
     } finally {
       setBusy(false);
     }
@@ -256,7 +256,7 @@ export default function StockAdjustmentsPage() {
       await reload();
       if (selected?.id === row.id) setSelected(await apiData<Adjustment>(`/inventory/adjustments/${row.id}`));
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
     }
   }
 

@@ -6,7 +6,7 @@ import { FilterBand, Panel } from '@erp/ui';
 import { Notice } from '../../../components/data-view';
 import { Screen } from '../../../components/screen';
 import { accountLabel, listAccounts, postableOf, type Account } from '../../../lib/accounts';
-import { ApiError, apiList, apiPost } from '../../../lib/api';
+import { ApiError, apiErrorText, apiList, apiPost } from '../../../lib/api';
 import { branchOptions, listBranches, type Branch } from '../../../lib/lookups';
 import { POSTING_ACCOUNT_LABELS, type PostingProfile } from '../../../lib/posting';
 import { useSession } from '../../../lib/session';
@@ -76,7 +76,7 @@ export default function PostingProfilesPage() {
       setTouched(false);
       profiles.reload();
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
     } finally {
       setBusy(false);
     }

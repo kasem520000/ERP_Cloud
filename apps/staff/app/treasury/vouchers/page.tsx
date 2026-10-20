@@ -11,7 +11,7 @@ import { DataTable, Notice, QueryView } from '../../../components/data-view';
 import { Screen } from '../../../components/screen';
 import { ActionBar, DocField, DocHead, StatTile, StatTiles, StatusTrack, Tabs } from '../../../components/ui';
 import { accountLabel, listAccounts, postableOf, type Account } from '../../../lib/accounts';
-import { ApiError, apiDelete, apiFetch, apiList, apiPost, apiData } from '../../../lib/api';
+import { ApiError, apiData, apiDelete, apiErrorText, apiFetch, apiList, apiPost } from '../../../lib/api';
 import {
   branchOptions,
   cashLocationLabel,
@@ -222,7 +222,7 @@ function VouchersScreen() {
       setNotice({ kind: 'ok', text: okText });
       vouchers.reload();
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
     } finally {
       setBusy(false);
     }
@@ -284,7 +284,7 @@ function VouchersScreen() {
       voucherFiles.reload();
       setNotice({ kind: 'ok', text: 'تم إرفاق المستند' });
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
     } finally {
       setDocBusy(false);
     }

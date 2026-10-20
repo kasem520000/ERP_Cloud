@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 
 import { Notice } from '../../../components/data-view';
 import { Screen } from '../../../components/screen';
-import { ApiError, apiList, apiPost } from '../../../lib/api';
+import { apiErrorText, apiList, apiPost } from '../../../lib/api';
 import { cashLocationLabel, listCashLocations, type CashLocation } from '../../../lib/lookups';
 
 type Provider = 'moyasar' | 'hyperpay' | 'tap';
@@ -78,9 +78,7 @@ export default function PaymentSettingsPage() {
   }
 
   useEffect(() => {
-    void reload().catch((error: unknown) =>
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) }),
-    );
+    void reload().catch((error: unknown) => setNotice({ kind: 'danger', text: apiErrorText(error) }));
   }, []);
 
   return (
@@ -123,7 +121,7 @@ export default function PaymentSettingsPage() {
                   .catch((error: unknown) =>
                     setNotice({
                       kind: 'danger',
-                      text: error instanceof ApiError ? error.message : String(error),
+                      text: apiErrorText(error),
                     }),
                   )
                   .finally(() => setBusy(''));

@@ -5,7 +5,7 @@ import { Panel } from '@erp/ui';
 
 import { DataTable, Notice } from '../../../components/data-view';
 import { Screen } from '../../../components/screen';
-import { apiData, apiPost } from '../../../lib/api';
+import { apiData, apiErrorText, apiPost } from '../../../lib/api';
 import { dateTime } from '../../../lib/lookups';
 import { useQuery } from '../../../lib/use-query';
 
@@ -66,7 +66,7 @@ export default function NewCompanyFilePage() {
       });
       files.reload();
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof Error ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
     } finally {
       setBusy(false);
     }

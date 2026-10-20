@@ -6,7 +6,7 @@ import { Panel } from '@erp/ui';
 
 import { CommentsPanel } from '../../../components/comments-panel';
 import { Empty, ErrorBox, Forbidden, Loading, Screen } from '../../../components/screen';
-import { apiDelete, apiList, apiPatch, apiPost, ApiError } from '../../../lib/api';
+import { apiDelete, apiErrorText, apiList, apiPatch, apiPost } from '../../../lib/api';
 import { branchOptions, listBranches, money, shortDate, type Branch } from '../../../lib/lookups';
 import { useSession } from '../../../lib/session';
 import { useQuery } from '../../../lib/use-query';
@@ -182,10 +182,9 @@ export default function EmployeesPage() {
   };
 
   const fail = (error: unknown) => {
-    const caught = error instanceof ApiError ? error : undefined;
     setMessage({
       kind: 'danger',
-      text: caught ? `${caught.message}${caught.detail ? ` — ${caught.detail}` : ''}` : String(error),
+      text: apiErrorText(error),
     });
   };
 

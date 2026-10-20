@@ -3,7 +3,7 @@
 import { Panel } from '@erp/ui';
 import { useEffect, useState } from 'react';
 
-import { ApiError } from '../lib/api';
+import { apiErrorText } from '../lib/api';
 import {
   createComment,
   deleteComment,
@@ -38,9 +38,7 @@ export function CommentsPanel({ entityType, entityId }: { entityType: string; en
 
   useEffect(() => {
     if (!entityId || !canRead) return;
-    void reload().catch((error: unknown) =>
-      setNotice(error instanceof ApiError ? error.message : String(error)),
-    );
+    void reload().catch((error: unknown) => setNotice(apiErrorText(error)));
   }, [entityType, entityId, openOnly, canRead]);
 
   useEffect(() => {
@@ -73,7 +71,7 @@ export function CommentsPanel({ entityType, entityId }: { entityType: string; en
       setEditing(null);
       await reload();
     } catch (error) {
-      setNotice(error instanceof ApiError ? error.message : String(error));
+      setNotice(apiErrorText(error));
     } finally {
       setBusy(false);
     }
@@ -111,12 +109,12 @@ export function CommentsPanel({ entityType, entityId }: { entityType: string; en
           onResolve={() =>
             void resolveComment(comment.id)
               .then(reload)
-              .catch((error: unknown) => setNotice(error instanceof Error ? error.message : String(error)))
+              .catch((error: unknown) => setNotice(apiErrorText(error)))
           }
           onDelete={() =>
             void deleteComment(comment.id)
               .then(reload)
-              .catch((error: unknown) => setNotice(error instanceof Error ? error.message : String(error)))
+              .catch((error: unknown) => setNotice(apiErrorText(error)))
           }
         />
       ))}

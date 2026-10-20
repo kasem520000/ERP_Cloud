@@ -5,7 +5,7 @@ import { Panel } from '@erp/ui';
 
 import { Notice } from '../../../components/data-view';
 import { Directory } from '../../../components/directory';
-import { apiList, apiPost } from '../../../lib/api';
+import { apiErrorText, apiList, apiPost } from '../../../lib/api';
 import { itemLabel, listItems, money, quantity, shortDate, today, type Item } from '../../../lib/lookups';
 import { useQuery } from '../../../lib/use-query';
 
@@ -56,7 +56,7 @@ export default function OffersPage() {
       });
       setResult(evaluation);
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof Error ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
     }
   }
 

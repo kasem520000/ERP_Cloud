@@ -16,7 +16,7 @@ import {
   type LineDraft,
 } from '../../../../components/invoice-editor';
 import { Empty, Screen } from '../../../../components/screen';
-import { ApiError, apiData, apiPost } from '../../../../lib/api';
+import { ApiError, apiData, apiErrorText, apiPost } from '../../../../lib/api';
 import {
   arabicName,
   branchOptions,
@@ -157,7 +157,7 @@ export default function NewSalesInvoicePage() {
       setSerialQuery('');
     } catch (error) {
       const text =
-        error instanceof ApiError && error.status === 403 ? SERIAL_MESSAGES.forbidden : String(error);
+        error instanceof ApiError && error.status === 403 ? SERIAL_MESSAGES.forbidden : apiErrorText(error);
       setNotice({ kind: 'warn', text });
     }
   }
@@ -193,7 +193,7 @@ export default function NewSalesInvoicePage() {
       });
       router.push(print ? `/print/sales-invoice/${invoice.id}` : `/sales/invoices/${invoice.id}`);
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
       setBusy(false);
     }
   }

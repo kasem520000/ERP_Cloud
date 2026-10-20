@@ -8,7 +8,7 @@ import { Panel } from '@erp/ui';
 import { DataTable, Notice, QueryView } from '../../../components/data-view';
 import { Screen } from '../../../components/screen';
 import { FilterBar } from '../../../components/ui';
-import { apiList, apiPost } from '../../../lib/api';
+import { apiErrorText, apiList, apiPost } from '../../../lib/api';
 import { useSession } from '../../../lib/session';
 import { useQuery } from '../../../lib/use-query';
 
@@ -87,7 +87,7 @@ export default function BankStatementsPage() {
       statements.reload();
       setNotice({ kind: 'ok', text: `تم استيراد ${result.importedLines} حركة بنكية. راجعها قبل المطابقة.` });
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof Error ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
     } finally {
       setBusy(false);
     }
@@ -107,7 +107,7 @@ export default function BankStatementsPage() {
         text: `اكتملت المطابقة: ${result.matched} حركات مطابقة و${result.suggested} اقتراح قاعدة.`,
       });
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof Error ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
     } finally {
       setBusy(false);
     }

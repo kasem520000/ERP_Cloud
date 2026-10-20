@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 
 import { Notice } from '../../../components/data-view';
 import { Screen } from '../../../components/screen';
-import { ApiError, apiData, apiPost, apiPut } from '../../../lib/api';
+import { apiData, apiErrorText, apiPost, apiPut } from '../../../lib/api';
 
 type Settings = {
   enabled: boolean;
@@ -65,9 +65,7 @@ export default function AiSettingsPage() {
   }
 
   useEffect(() => {
-    void reload().catch((error: unknown) =>
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) }),
-    );
+    void reload().catch((error: unknown) => setNotice({ kind: 'danger', text: apiErrorText(error) }));
   }, []);
 
   async function testConnection() {
@@ -90,7 +88,7 @@ export default function AiSettingsPage() {
     } catch (error) {
       setNotice({
         kind: 'danger',
-        text: error instanceof ApiError ? error.message : String(error),
+        text: apiErrorText(error),
       });
     } finally {
       setTesting(false);
@@ -113,7 +111,7 @@ export default function AiSettingsPage() {
       await reload();
       setNotice({ kind: 'info', text: 'تم حذف مفتاح API الخاص بالمنشأة.' });
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
     } finally {
       setBusy(false);
     }
@@ -179,7 +177,7 @@ export default function AiSettingsPage() {
             .catch((error: unknown) =>
               setNotice({
                 kind: 'danger',
-                text: error instanceof ApiError ? error.message : String(error),
+                text: apiErrorText(error),
               }),
             )
             .finally(() => setBusy(false));

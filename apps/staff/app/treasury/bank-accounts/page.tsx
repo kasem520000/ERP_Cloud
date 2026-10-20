@@ -6,7 +6,7 @@ import { Panel } from '@erp/ui';
 
 import { DataTable, Notice, QueryView } from '../../../components/data-view';
 import { Screen } from '../../../components/screen';
-import { apiList, apiPost } from '../../../lib/api';
+import { apiErrorText, apiList, apiPost } from '../../../lib/api';
 import { accountLabel, listAccounts, type Account } from '../../../lib/accounts';
 import { useSession } from '../../../lib/session';
 import { useQuery } from '../../../lib/use-query';
@@ -50,7 +50,7 @@ export default function BankAccountsPage() {
       accounts.reload();
       setNotice({ kind: 'ok', text: 'تمت إضافة الحساب البنكي.' });
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof Error ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
     } finally {
       setBusy(false);
     }

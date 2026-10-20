@@ -4,7 +4,7 @@ import { Panel } from '@erp/ui';
 import { useState } from 'react';
 
 import { Screen } from '../../../components/screen';
-import { ApiError, apiFetch } from '../../../lib/api';
+import { ApiError, apiErrorText, apiFetch } from '../../../lib/api';
 import { useSession } from '../../../lib/session';
 
 export default function ChangePasswordPage() {
@@ -36,7 +36,7 @@ export default function ChangePasswordPage() {
         text:
           error instanceof ApiError
             ? `${error.message}${error.detail ? ` — ${error.detail}` : ''}`
-            : String(error),
+            : apiErrorText(error),
       });
     } finally {
       setBusy(false);

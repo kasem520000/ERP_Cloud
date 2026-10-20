@@ -8,7 +8,7 @@ import { useMemo, useState } from 'react';
 import { DataTable, Notice, QueryView } from '../../../components/data-view';
 import { Screen } from '../../../components/screen';
 import { DocField, DocHead, FilterBar, StatTile, StatTiles } from '../../../components/ui';
-import { apiData, apiDelete, apiList, apiPost } from '../../../lib/api';
+import { apiData, apiDelete, apiErrorText, apiList, apiPost } from '../../../lib/api';
 import { today } from '../../../lib/lookups';
 import { useSession } from '../../../lib/session';
 import { useQuery } from '../../../lib/use-query';
@@ -115,7 +115,7 @@ export default function BankReconciliationPage() {
       statements.reload();
       setNotice({ kind: 'ok', text: message });
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof Error ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
     } finally {
       setBusy(false);
     }

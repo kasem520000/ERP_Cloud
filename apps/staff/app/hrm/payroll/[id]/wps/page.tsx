@@ -7,7 +7,7 @@ import { Panel } from '@erp/ui';
 
 import { DataTable, Notice } from '../../../../../components/data-view';
 import { Screen } from '../../../../../components/screen';
-import { ApiError, apiData, apiList, apiPost } from '../../../../../lib/api';
+import { apiData, apiErrorText, apiList, apiPost } from '../../../../../lib/api';
 import { money } from '../../../../../lib/lookups';
 import { useSession } from '../../../../../lib/session';
 import { useQuery } from '../../../../../lib/use-query';
@@ -83,7 +83,7 @@ export default function PayrollWpsPage() {
     try {
       await action();
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
     } finally {
       setBusy(false);
     }

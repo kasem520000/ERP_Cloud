@@ -16,7 +16,7 @@ import {
   Tabs,
   Totals,
 } from '../../../components/ui';
-import { ApiError, apiList, apiPost } from '../../../lib/api';
+import { ApiError, apiErrorText, apiList, apiPost } from '../../../lib/api';
 import {
   arabicName,
   dateTime,
@@ -247,7 +247,7 @@ export default function TransfersPage() {
       ]);
       transfers.reload();
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
     } finally {
       setBusy(false);
     }
@@ -260,7 +260,7 @@ export default function TransfersPage() {
       setNotice({ kind: 'ok', text: okText });
       transfers.reload();
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
     }
   }
 

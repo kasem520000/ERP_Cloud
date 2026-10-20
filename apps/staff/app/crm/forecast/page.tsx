@@ -5,7 +5,7 @@ import { Panel } from '@erp/ui';
 
 import { DataTable, Notice } from '../../../components/data-view';
 import { Screen } from '../../../components/screen';
-import { ApiError } from '../../../lib/api';
+import { apiErrorText } from '../../../lib/api';
 import { forecast, type CrmDeal, type CrmForecast } from '../../../lib/crm';
 
 export default function CrmForecastPage() {
@@ -15,7 +15,7 @@ export default function CrmForecastPage() {
   useEffect(() => {
     void forecast()
       .then(setSummary)
-      .catch((error: unknown) => setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) }));
+      .catch((error: unknown) => setNotice({ kind: 'danger', text: apiErrorText(error) }));
   }, []);
 
   return (
@@ -25,7 +25,11 @@ export default function CrmForecastPage() {
       crumbs={['المبيعات', 'التنبؤ']}
       kpis={[
         { label: 'القيمة المرجّحة', value: summary?.weighted ?? '0.0000', hint: 'القيمة × احتمال الإغلاق' },
-        { label: 'صفقات مفتوحة', value: summary?.openCount ?? summary?.count ?? 0, hint: 'الرابحة والخاسرة مستثناة' },
+        {
+          label: 'صفقات مفتوحة',
+          value: summary?.openCount ?? summary?.count ?? 0,
+          hint: 'الرابحة والخاسرة مستثناة',
+        },
       ]}
     >
       <Notice notice={notice} />

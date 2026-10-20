@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react';
 
 import { Notice } from '../../../components/data-view';
 import { Screen } from '../../../components/screen';
-import { ApiError } from '../../../lib/api';
+import { apiErrorText } from '../../../lib/api';
 import { listMentions, markMentionRead, type MentionRow } from '../../../lib/comments';
 
 export default function CommentMentionsPage() {
@@ -18,7 +18,7 @@ export default function CommentMentionsPage() {
     try {
       setRows(await listMentions(unreadOnly));
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
     }
   }
 

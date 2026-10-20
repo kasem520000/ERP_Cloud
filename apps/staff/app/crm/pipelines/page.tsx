@@ -6,7 +6,7 @@ import { useEffect, useState } from 'react';
 
 import { Notice } from '../../../components/data-view';
 import { Screen } from '../../../components/screen';
-import { ApiError } from '../../../lib/api';
+import { apiErrorText } from '../../../lib/api';
 import {
   createDeal,
   listDeals,
@@ -38,7 +38,7 @@ export default function CrmPipelinesPage() {
       setParties(nextParties);
       setDeals(await listDeals(nextPipelines[0]?.id));
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
     } finally {
       setBusy(false);
     }
@@ -63,7 +63,7 @@ export default function CrmPipelinesPage() {
       setNotice({ kind: 'ok', text: 'أُنشئت الصفقة في المرحلة الأولى.' });
       setDeals(await listDeals(pipeline.id));
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
     } finally {
       setBusy(false);
     }
@@ -76,7 +76,7 @@ export default function CrmPipelinesPage() {
       await moveDeal(deal.id, stageId);
       setDeals(await listDeals(pipeline.id));
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
     } finally {
       setBusy(false);
     }

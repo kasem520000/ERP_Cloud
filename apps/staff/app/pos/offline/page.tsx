@@ -7,7 +7,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { Empty, Screen } from '../../../components/screen';
 import { Notice } from '../../../components/data-view';
-import { ApiError } from '../../../lib/api';
+import { ApiError, apiErrorText } from '../../../lib/api';
 import {
   getOrCreateDeviceId,
   listOfflineInvoices,
@@ -271,7 +271,7 @@ export default function OfflinePosPage() {
       setCatalog(await refreshOfflineCatalog());
       setNotice({ kind: 'ok', text: 'تم تحديث الأصناف والأسعار والعملاء محلياً.' });
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
     } finally {
       setBusy(false);
     }
@@ -338,7 +338,7 @@ export default function OfflinePosPage() {
         }
       }
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
     } finally {
       setBusy(false);
     }

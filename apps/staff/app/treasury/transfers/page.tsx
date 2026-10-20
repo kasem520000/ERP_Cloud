@@ -6,7 +6,7 @@ import { Panel } from '@erp/ui';
 import { DataTable, Notice } from '../../../components/data-view';
 import { Empty, Screen } from '../../../components/screen';
 import { FilterBar, StatTile, StatTiles, Tabs } from '../../../components/ui';
-import { ApiError, apiList, apiPost } from '../../../lib/api';
+import { apiErrorText, apiList, apiPost } from '../../../lib/api';
 import {
   branchOptions,
   cashLocationLabel,
@@ -165,7 +165,7 @@ export default function CashTransfersPage() {
       setAmountText('');
       transfers.reload();
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
     } finally {
       setBusy(false);
     }

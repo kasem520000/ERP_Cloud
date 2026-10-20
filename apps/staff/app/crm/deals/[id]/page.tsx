@@ -7,7 +7,7 @@ import { Panel } from '@erp/ui';
 
 import { Notice } from '../../../../components/data-view';
 import { Screen } from '../../../../components/screen';
-import { ApiError } from '../../../../lib/api';
+import { apiErrorText } from '../../../../lib/api';
 import {
   addActivity,
   closeDeal,
@@ -45,7 +45,7 @@ export default function CrmDealPage() {
       setDeal(next);
       setTemplates(nextTemplates);
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
     } finally {
       setBusy(false);
     }
@@ -62,7 +62,7 @@ export default function CrmDealPage() {
       setNotice({ kind: 'ok', text: ok });
       setDeal(await getDeal(params.id));
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
     } finally {
       setBusy(false);
     }

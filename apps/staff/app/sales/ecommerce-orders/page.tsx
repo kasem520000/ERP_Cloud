@@ -5,7 +5,7 @@ import { useEffect, useState } from 'react';
 
 import { DataTable, Notice } from '../../../components/data-view';
 import { Screen } from '../../../components/screen';
-import { ApiError } from '../../../lib/api';
+import { apiErrorText } from '../../../lib/api';
 import { ecommerceOrders, type EcommerceOrder } from '../../../lib/ecommerce';
 
 const providerLabels = { salla: 'سلة', zid: 'زد', shopify: 'Shopify' } as const;
@@ -21,7 +21,7 @@ export default function EcommerceOrdersPage() {
     try {
       setOrders(await ecommerceOrders(status ? { status } : {}));
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
     } finally {
       setBusy(false);
     }

@@ -5,7 +5,7 @@ import { Panel } from '@erp/ui';
 
 import { DataTable, Notice } from '../../../components/data-view';
 import { ErrorBox, Loading, Screen } from '../../../components/screen';
-import { ApiError, apiData, apiPost } from '../../../lib/api';
+import { apiData, apiErrorText, apiPost } from '../../../lib/api';
 import { listParties, partyLabel, type Party } from '../../../lib/lookups';
 import { useSession } from '../../../lib/session';
 import { useQuery } from '../../../lib/use-query';
@@ -58,7 +58,7 @@ export default function MarinaVesselsPage() {
       setNotice({ kind: 'ok', text: okText });
       marina.reload();
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
     } finally {
       setBusy(false);
     }
