@@ -109,9 +109,11 @@ describe('platform backups contracts (P-C10)', () => {
   });
 
   describe('backupAuditActions', () => {
-    it('تسعة أفعال، كلّها في فضاء `platform.` وبلا تكرار', () => {
+    it('عشرة أفعال، كلّها في فضاء `platform.` وبلا تكرار', () => {
       const actions = Object.values(backupAuditActions);
-      expect(actions).toHaveLength(9);
+      // تسعة أفعال P-C10 الأصلية + `platform.backup.restore` (بند «استعادة النسخة»
+      // في لوحة المنصّة) — والقائمة تُقاس هنا كي لا يُضاف فعلٌ بلا تدقيقٍ مقابل.
+      expect(actions).toHaveLength(10);
       expect(actions.every((action) => action.startsWith('platform.'))).toBe(true);
       expect(new Set(actions).size).toBe(actions.length);
     });
