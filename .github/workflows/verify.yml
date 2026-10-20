@@ -108,3 +108,49 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           PR_NUMBER: ${{ github.event.number }}
+
+      # روابطُ تنزيلِ الـAPK تعلَّقُ على الـPR وتُحدَّثُ مع كلّ بناءٍ ناجح —
+      # تعليقٌ واحدٌ بوسمٍ ثابت (marker) يُعدَّل، فلا يتكدّسُ الـPR تعليقاتٍ مكرّرة.
+      - name: Comment APK download links on the PR (on success)
+        if: success()
+        run: |
+          set -e
+          OWNER="${GITHUB_REPOSITORY%/*}"
+          REPO="${GITHUB_REPOSITORY#*/}"
+          PR_NUMBER="${PR_NUMBER_EVENT}"
+          if [ -z "$PR_NUMBER" ]; then
+            PR_NUMBER=$(gh pr list --repo "$GITHUB_REPOSITORY" --head "$GITHUB_REF_NAME" --json number --jq '.[0].number' 2>/dev/null || echo "")
+          fi
+          [ -n "$PR_NUMBER" ] || { echo "لا PR على هذا الفرع — تخطّي التعليق."; exit 0; }
+
+          artifacts() { gh api "repos/$OWNER/$REPO/actions/runs/$GITHUB_RUN_ID/artifacts" --jq '.artifacts'; }
+          ARTIFACTS=$(artifacts || echo "")
+          if [ -z "$ARTIFACTS" ] || [ "$ARTIFACTS" = "[]" ]; then
+            sleep 10
+            ARTIFACTS=$(artifacts || echo "")
+          fi
+          BAKERY_ID=$(echo "$ARTIFACTS" | jq -r '.[] | select(.name=="android-bakery-debug") | .id' | head -1)
+          REP_ID=$(echo "$ARTIFACTS" | jq -r '.[] | select(.name=="android-rep-debug") | .id' | head -1)
+          {
+            echo "<!-- apk-links -->"
+            echo "## 📦 روابطُ تنزيل الـAPK — البناء ${GITHUB_SHA::7}"
+            if [ -n "$BAKERY_ID" ]; then
+              echo "- **تطبيقُ المخبز (android-bakery):** [تنزيلٌ مباشر](https://github.com/$OWNER/$REPO/actions/runs/$GITHUB_RUN_ID/artifacts/$BAKERY_ID)"
+            fi
+            if [ -n "$REP_ID" ]; then
+              echo "- **تطبيقُ المندوب (android-rep):** [تنزيلٌ مباشر](https://github.com/$OWNER/$REPO/actions/runs/$GITHUB_RUN_ID/artifacts/$REP_ID)"
+            fi
+            echo ""
+            echo "_يتحدّثُ هذا التعليقُ تلقائيًّا مع كلّ بناءٍ ناجح. التنزيلُ يتطلّبُ دخولَ GitHub._"
+          } > /tmp/apk.md
+
+          COMMENT_ID=$(gh api "repos/$OWNER/$REPO/issues/$PR_NUMBER/comments" --jq '.[] | select(.body | contains("<!-- apk-links -->")) | .id' | head -1 || true)
+          if [ -n "$COMMENT_ID" ]; then
+            gh api -X PATCH "repos/$OWNER/$REPO/issues/comments/$COMMENT_ID" -f body="$(cat /tmp/apk.md)" \
+              || gh pr comment "$PR_NUMBER" --body-file /tmp/apk.md || true
+          else
+            gh pr comment "$PR_NUMBER" --body-file /tmp/apk.md || true
+          fi
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER_EVENT: ${{ github.event.number }}
