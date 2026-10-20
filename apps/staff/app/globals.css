@@ -485,6 +485,20 @@ textarea.input {
   gap: 10px;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
 }
+/* حقولٌ تحتاج ضعفَ العرض: إدخالٌ وزرُّه، أو عنوانٌ طويل لا يُقرأ مقطوعاً. */
+.form-grid > .span-2 {
+  grid-column: span 2;
+}
+@media (max-width: 720px) {
+  .form-grid > .span-2 {
+    grid-column: auto;
+  }
+}
+/* التلميح نصٌّ مساعد لا عنوان: لا يرث وزن عنوان الحقل. */
+.field > span.muted,
+.field > span.small {
+  font-weight: 500;
+}
 
 /* ------------------------------------------------------------------ tables */
 table {
