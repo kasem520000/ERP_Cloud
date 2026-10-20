@@ -71,7 +71,8 @@ export type ZatcaInvoiceInput = {
 };
 
 /** ZATCA's genesis PIH: base64 SHA-256 of the single character "0". */
-export const GENESIS_PIH = 'NWZlY2ViNjZmZmM4NmYzOGQ5NTI3ODZjNmQ2OTZjNzljMmRiYzIzOWRkNGU5MWI0NjcyOWQ3M2EyN2ZiNTdlOQ==';
+export const GENESIS_PIH =
+  'NWZlY2ViNjZmZmM4NmYzOGQ5NTI3ODZjNmQ2OTZjNzljMmRiYzIzOWRkNGU5MWI0NjcyOWQ3M2EyN2ZiNTdlOQ==';
 
 /**
  * The invoice type code, and — above it — the desktop's own vocabulary.
@@ -163,9 +164,20 @@ function partyBlock(party: ZatcaParty): string {
   const taxScheme = party.vatNo
     ? `<cac:PartyTaxScheme><cbc:CompanyID>${escapeXml(party.vatNo)}</cbc:CompanyID><cac:TaxScheme><cbc:ID>VAT</cbc:ID></cac:TaxScheme></cac:PartyTaxScheme>\n      `
     : '';
+  /*
+   * 🧾 `cbc:RegistrationName` = **الاسم النظامي العربي كما هو مسجَّل في هيئة الزكاة**
+   * (BT-27 / BR-06). كان الكود يفضّل الاسم الإنجليزي متى وُجد، والهيئة تقارن هذا العنصر
+   * حرفاً بحرف بسجلّها الضريبي (BR-KSA-08/BR-06 في دليل البيانات) فترفض الفاتورة لا
+   * لأن اسماً ناقصاً بل لأن الاسمان مختلفان. والاسم الإنجليزي مكانه `cac:PartyName`
+   * (BT-28 الاسم التجاري) — وهو عنصرٌ مستقلّ، لا بديل.
+   */
+  const legalName = party.nameAr || party.nameEn || 'N/A';
+  const tradingName = party.nameEn
+    ? `<cac:PartyName><cbc:Name>${escapeXml(party.nameEn)}</cbc:Name></cac:PartyName>\n      `
+    : '';
   return `<cac:Party>
-      ${identification}${postalAddress(party)}
-      ${taxScheme}<cac:PartyLegalEntity><cbc:RegistrationName>${escapeXml(party.nameEn || party.nameAr)}</cbc:RegistrationName></cac:PartyLegalEntity>
+      ${identification}${tradingName}${postalAddress(party)}
+      ${taxScheme}<cac:PartyLegalEntity><cbc:RegistrationName>${escapeXml(legalName)}</cbc:RegistrationName></cac:PartyLegalEntity>
     </cac:Party>`;
 }
 
@@ -244,7 +256,9 @@ export function buildInvoiceXml(input: ZatcaInvoiceInput): string {
   // code; the tax document states what is owed.
   const discount = decimalOf(input.invoiceDiscount);
   const instruction = INSTRUCTION_NOTES[typeCode];
-  const instructionNote = instruction ? `<cbc:InstructionNote>${escapeXml(instruction)}</cbc:InstructionNote>` : '';
+  const instructionNote = instruction
+    ? `<cbc:InstructionNote>${escapeXml(instruction)}</cbc:InstructionNote>`
+    : '';
   const billingReference =
     typeCode !== '388' && input.referenceNumber
       ? `<cac:BillingReference><cac:InvoiceDocumentReference><cbc:ID>${escapeXml(input.referenceNumber)}</cbc:ID></cac:InvoiceDocumentReference></cac:BillingReference>\n  `
