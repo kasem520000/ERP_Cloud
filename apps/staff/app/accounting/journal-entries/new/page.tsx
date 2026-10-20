@@ -4,7 +4,7 @@ import { Decimal } from 'decimal.js';
 import { Trash2 } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { Suspense, useMemo, useState } from 'react';
-import { Panel } from '@erp/ui';
+import { Panel, TableFrame } from '@erp/ui';
 
 import { ErrorBox, Forbidden, Loading, Screen } from '../../../../components/screen';
 import { ApiError, apiData, apiPost } from '../../../../lib/api';
@@ -339,147 +339,143 @@ function JournalEntryForm() {
         </Panel>
 
         <Panel title="تفاصيل القيد" flush>
-          <div className="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th style={{ width: 46 }}>#</th>
-                  <th style={{ minWidth: 130 }}>رمز الحساب</th>
-                  <th style={{ minWidth: 200 }}>اسم الحساب</th>
-                  <th style={{ minWidth: 110 }} className="num">
-                    مدين
-                  </th>
-                  <th style={{ minWidth: 110 }} className="num">
-                    دائن
-                  </th>
-                  <th style={{ minWidth: 150 }}>مركز تكلفة</th>
-                  <th style={{ minWidth: 180 }}>الشرح</th>
-                  <th style={{ minWidth: 140 }}>المندوب</th>
-                  <th style={{ width: 64 }}>حذف</th>
-                </tr>
-              </thead>
-              <tbody>
-                {lines.map((line, index) => {
-                  const account = line.accountId
-                    ? postable.find((entry) => entry.id === line.accountId)
-                    : resolve(line.code.trim());
-                  return (
-                    <tr key={line.key}>
-                      <td dir="ltr">{index + 1}</td>
-                      <td>
-                        <input
-                          className="input"
-                          dir="ltr"
-                          list="account-codes"
-                          value={line.code}
-                          placeholder="1101"
-                          onChange={(event) =>
-                            patch(line.key, {
-                              code: event.target.value,
-                              accountId: resolve(event.target.value)?.id ?? '',
-                            })
-                          }
-                          onBlur={(event) => {
-                            const found = resolve(event.target.value.trim());
-                            if (found) patch(line.key, { code: found.code, accountId: found.id });
-                          }}
-                        />
-                      </td>
-                      <td className={account ? undefined : 'muted'}>
-                        {account ? nameOf(account) : line.code ? '— غير موجود —' : '—'}
-                      </td>
-                      <td>
-                        <input
-                          className="input"
-                          inputMode="decimal"
-                          dir="ltr"
-                          value={line.debit}
-                          onChange={(event) => patch(line.key, { debit: event.target.value, credit: '0.00' })}
-                          onBlur={(event) =>
-                            patch(line.key, { debit: decimal(event.target.value).toFixed(2) })
-                          }
-                        />
-                      </td>
-                      <td>
-                        <input
-                          className="input"
-                          inputMode="decimal"
-                          dir="ltr"
-                          value={line.credit}
-                          onChange={(event) => patch(line.key, { credit: event.target.value, debit: '0.00' })}
-                          onBlur={(event) =>
-                            patch(line.key, { credit: decimal(event.target.value).toFixed(2) })
-                          }
-                        />
-                      </td>
-                      <td>
-                        <select
-                          className="input"
-                          value={line.costCenterId}
-                          onChange={(event) => patch(line.key, { costCenterId: event.target.value })}
-                        >
-                          <option value="">—</option>
-                          {(costCenters.data ?? []).map((center) => (
-                            <option key={center.id} value={center.id}>
-                              {center.code ? `${center.code} — ` : ''}
-                              {center.nameAr ?? center.name_ar ?? center.id}
-                            </option>
-                          ))}
-                        </select>
-                      </td>
-                      <td>
-                        <input
-                          className="input"
-                          value={line.description}
-                          onChange={(event) => patch(line.key, { description: event.target.value })}
-                        />
-                      </td>
-                      <td>
-                        <select
-                          className="input"
-                          value={line.salesmanId}
-                          onChange={(event) => patch(line.key, { salesmanId: event.target.value })}
-                        >
-                          <option value="">—</option>
-                          {(employees.data ?? []).map((employee) => (
-                            <option key={employee.id} value={employee.id}>
-                              {employee.employeeNo ? `${employee.employeeNo} — ` : ''}
-                              {employee.name ?? employee.id}
-                            </option>
-                          ))}
-                        </select>
-                      </td>
-                      <td>
-                        <button
-                          className="btn sm danger"
-                          type="button"
-                          onClick={() => removeLine(line.key)}
-                          aria-label="حذف السطر"
-                        >
-                          <Trash2 size={13} />
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-              <tfoot>
-                <tr>
-                  <th colSpan={3}>
-                    <span className="row" style={{ gap: 12, justifyContent: 'flex-start' }}>
-                      <span>مجموع المدين:</span>
-                      <span dir="ltr">{money(totals.debit.toFixed(2))}</span>
-                      <span>مجموع الدائن:</span>
-                      <span dir="ltr">{money(totals.credit.toFixed(2))}</span>
-                    </span>
-                  </th>
-                  <th className="num">{money(totals.debit.toFixed(2))}</th>
-                  <th className="num">{money(totals.credit.toFixed(2))}</th>
-                  <th colSpan={4} />
-                </tr>
-              </tfoot>
-            </table>
-          </div>
+          <TableFrame>
+            <thead>
+              <tr>
+                <th style={{ width: 46 }}>#</th>
+                <th style={{ minWidth: 130 }}>رمز الحساب</th>
+                <th style={{ minWidth: 200 }}>اسم الحساب</th>
+                <th style={{ minWidth: 110 }} className="num">
+                  مدين
+                </th>
+                <th style={{ minWidth: 110 }} className="num">
+                  دائن
+                </th>
+                <th style={{ minWidth: 150 }}>مركز تكلفة</th>
+                <th style={{ minWidth: 180 }}>الشرح</th>
+                <th style={{ minWidth: 140 }}>المندوب</th>
+                <th style={{ width: 64 }}>حذف</th>
+              </tr>
+            </thead>
+            <tbody>
+              {lines.map((line, index) => {
+                const account = line.accountId
+                  ? postable.find((entry) => entry.id === line.accountId)
+                  : resolve(line.code.trim());
+                return (
+                  <tr key={line.key}>
+                    <td dir="ltr">{index + 1}</td>
+                    <td>
+                      <input
+                        className="input"
+                        dir="ltr"
+                        list="account-codes"
+                        value={line.code}
+                        placeholder="1101"
+                        onChange={(event) =>
+                          patch(line.key, {
+                            code: event.target.value,
+                            accountId: resolve(event.target.value)?.id ?? '',
+                          })
+                        }
+                        onBlur={(event) => {
+                          const found = resolve(event.target.value.trim());
+                          if (found) patch(line.key, { code: found.code, accountId: found.id });
+                        }}
+                      />
+                    </td>
+                    <td className={account ? undefined : 'muted'}>
+                      {account ? nameOf(account) : line.code ? '— غير موجود —' : '—'}
+                    </td>
+                    <td>
+                      <input
+                        className="input"
+                        inputMode="decimal"
+                        dir="ltr"
+                        value={line.debit}
+                        onChange={(event) => patch(line.key, { debit: event.target.value, credit: '0.00' })}
+                        onBlur={(event) => patch(line.key, { debit: decimal(event.target.value).toFixed(2) })}
+                      />
+                    </td>
+                    <td>
+                      <input
+                        className="input"
+                        inputMode="decimal"
+                        dir="ltr"
+                        value={line.credit}
+                        onChange={(event) => patch(line.key, { credit: event.target.value, debit: '0.00' })}
+                        onBlur={(event) =>
+                          patch(line.key, { credit: decimal(event.target.value).toFixed(2) })
+                        }
+                      />
+                    </td>
+                    <td>
+                      <select
+                        className="input"
+                        value={line.costCenterId}
+                        onChange={(event) => patch(line.key, { costCenterId: event.target.value })}
+                      >
+                        <option value="">—</option>
+                        {(costCenters.data ?? []).map((center) => (
+                          <option key={center.id} value={center.id}>
+                            {center.code ? `${center.code} — ` : ''}
+                            {center.nameAr ?? center.name_ar ?? center.id}
+                          </option>
+                        ))}
+                      </select>
+                    </td>
+                    <td>
+                      <input
+                        className="input"
+                        value={line.description}
+                        onChange={(event) => patch(line.key, { description: event.target.value })}
+                      />
+                    </td>
+                    <td>
+                      <select
+                        className="input"
+                        value={line.salesmanId}
+                        onChange={(event) => patch(line.key, { salesmanId: event.target.value })}
+                      >
+                        <option value="">—</option>
+                        {(employees.data ?? []).map((employee) => (
+                          <option key={employee.id} value={employee.id}>
+                            {employee.employeeNo ? `${employee.employeeNo} — ` : ''}
+                            {employee.name ?? employee.id}
+                          </option>
+                        ))}
+                      </select>
+                    </td>
+                    <td>
+                      <button
+                        className="btn sm danger"
+                        type="button"
+                        onClick={() => removeLine(line.key)}
+                        aria-label="حذف السطر"
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+            <tfoot>
+              <tr>
+                <th colSpan={3}>
+                  <span className="row" style={{ gap: 12, justifyContent: 'flex-start' }}>
+                    <span>مجموع المدين:</span>
+                    <span dir="ltr">{money(totals.debit.toFixed(2))}</span>
+                    <span>مجموع الدائن:</span>
+                    <span dir="ltr">{money(totals.credit.toFixed(2))}</span>
+                  </span>
+                </th>
+                <th className="num">{money(totals.debit.toFixed(2))}</th>
+                <th className="num">{money(totals.credit.toFixed(2))}</th>
+                <th colSpan={4} />
+              </tr>
+            </tfoot>
+          </TableFrame>
           <datalist id="account-codes">
             {postable.map((account) => (
               <option key={account.id} value={account.code}>

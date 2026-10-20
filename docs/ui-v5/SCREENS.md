@@ -21,7 +21,7 @@
 | ✔ | الشاشة | المسار | الملف | المعالجة | ملاحظة |
 | :-: | --- | --- | --- | :-: | --- |
 | [x] | أنشطة المبيعات | `/crm/activities` | `crm/activities/page.tsx` | R | هيكلة v5.2: إطار Page/PageHead + شريط مؤشرات + تصفية موحّدة · تحقق في المتصفح 1440 |
-| [x] | صفقة (تفاصيل) | `/crm/deals/[id]` | `crm/deals/[id]/page.tsx` | R | فُتح بسجل صفقة حقيقي في المتصفح 1440 (صفقة + نشاط) |
+| [x] | صفقة (تفاصيل) | `/crm/deals/[id]` | `crm/deals/[id]/page.tsx` | R | فُتح بسجل صفقة حقيقي في المتصفح 1440 (صفقة + نشاط) · أُعيد الفتح 1440/390 بعد الهيكلة |
 | [x] | تنبؤ المبيعات | `/crm/forecast` | `crm/forecast/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
 | [x] | مسار المبيعات | `/crm/pipelines` | `crm/pipelines/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
 
@@ -83,7 +83,7 @@
 | [x] | إستعادة البيانات | `/settings/restore` | `settings/restore/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
 | [x] | صلاحيات المستخدمين | `/settings/roles` | `settings/roles/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
 | [x] | مزامنة البيانات | `/settings/sync` | `settings/sync/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
-| [x] | مزامنة كيان | `/settings/sync/[entity]` | `settings/sync/[entity]/page.tsx` | R | فُتح بمفاتيح المزامنة الأربعة؛ invoices = حالة فارغة سليمة — 1440 |
+| [x] | مزامنة كيان | `/settings/sync/[entity]` | `settings/sync/[entity]/page.tsx` | R | فُتح بمفاتيح المزامنة الأربعة؛ invoices = حالة فارغة سليمة — 1440 · أُعيد الفتح 1440/390 بعد الهيكلة |
 | [x] | إدارة المزامنة | `/settings/sync/manage` | `settings/sync/manage/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
 | [x] | مزامنة الفواتير Zatca | `/settings/sync/zatca` | `settings/sync/zatca/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
 | [x] | التحقق بخطوتين | `/settings/two-factor` | `settings/two-factor/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
@@ -119,7 +119,7 @@
 | ✔ | الشاشة | المسار | الملف | المعالجة | ملاحظة |
 | :-: | --- | --- | --- | :-: | --- |
 | [x] | فواتير التفصيل | `/tailoring/invoices` | `tailoring/invoices/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
-| [x] | قياسات العملاء | `/tailoring/measurements` | `tailoring/measurements/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
+| [x] | قياسات العملاء | `/tailoring/measurements` | `tailoring/measurements/page.tsx` | R | فُتح؛ نفس إصلاح البحث (404 عميل غير موجود → حالة فارغة) — 1440 |
 | [x] | خصائص القياسات | `/tailoring/measurements/attributes` | `tailoring/measurements/attributes/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
 | [x] | إدارة الخيارات الجاهزة | `/tailoring/options` | `tailoring/options/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
 | [x] | إدارة طلبات التفصيل | `/tailoring/orders` | `tailoring/orders/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
@@ -130,7 +130,7 @@
 | ✔ | الشاشة | المسار | الملف | المعالجة | ملاحظة |
 | :-: | --- | --- | --- | :-: | --- |
 | [x] | مركز التقارير (كل التقارير) | `/reports` | `reports/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
-| [x] | تقرير | `/reports/[key]` | `reports/[key]/page.tsx` | R | فُتح بمفاتيح تقارير حقيقية (sales-invoices · net-sales) — 1440 |
+| [x] | تقرير | `/reports/[key]` | `reports/[key]/page.tsx` | R | فُتح بمفاتيح تقارير حقيقية (sales-invoices · net-sales) — 1440 · أُعيد الفتح 1440/390 بعد الهيكلة |
 | [x] | منشئ التقارير المخصص | `/reports/builder` | `reports/builder/page.tsx` | R | تحقق بمتصفح — حقول الطبقة المشتركة وأزرار موحدة |
 | [x] | التقارير المحفوظة | `/reports/custom` | `reports/custom/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
 
@@ -140,7 +140,7 @@
 | :-: | --- | --- | --- | :-: | --- |
 | [x] | إدارة الطلبات | `/integrations/salla/orders` | `integrations/salla/orders/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
 | [x] | المنتجات | `/integrations/salla/products` | `integrations/salla/products/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
-| [x] | إعدادات ربط سلة | `/integrations/salla/settings` | `integrations/salla/settings/page.tsx` | R | هيكلة v5.2: إطار Page/PageHead + شريط مؤشرات + تصفية موحّدة · تحقق في المتصفح 1440 |
+| [x] | إعدادات ربط سلة | `/integrations/salla/settings` | `integrations/salla/settings/page.tsx` | R | فُتح بعد إصلاح لوحة «عنوان الويب هوك» (عنوان جاهز للنسخ لكل متجر أو حالة فارغة) — 1440 |
 | [x] | ربط المستودعات | `/integrations/salla/warehouses` | `integrations/salla/warehouses/page.tsx` | R | هيكلة v5.2: إطار Page/PageHead + شريط مؤشرات + تصفية موحّدة · تحقق في المتصفح 1440 |
 
 ### التوزيع (فان)
@@ -154,7 +154,7 @@
 
 | ✔ | الشاشة | المسار | الملف | المعالجة | ملاحظة |
 | :-: | --- | --- | --- | :-: | --- |
-| [x] | توقيع إلكتروني | `/esign/[token]` | `esign/[token]/page.tsx` | R | فُتح برمز توقيع حقيقي صادر من عرض سعر — 1440 |
+| [x] | توقيع إلكتروني | `/esign/[token]` | `esign/[token]/page.tsx` | R | فُتح برمز توقيع حقيقي صادر من عرض سعر — 1440 · أُعيد الفتح 1440/390 بعد الهيكلة |
 
 ### الجوال
 
@@ -185,7 +185,7 @@
 
 | ✔ | الشاشة | المسار | الملف | المعالجة | ملاحظة |
 | :-: | --- | --- | --- | :-: | --- |
-| [x] | عن البرنامج | `/support/about` | `support/about/page.tsx` | R | تحقق في المتصفح 1440 — أُزيلت معلومات الـendpoint |
+| [x] | عن البرنامج | `/support/about` | `support/about/page.tsx` | R | فُتح بعد إصلاح لوحة «التحديثات والنسخ الاحتياطي» التي كانت عنواناً بلا جسم — 1440 |
 | [x] | 🆘 إطلب المساعدة | `/support/help` | `support/help/page.tsx` | R | اسم المنشأة وبريد المستخدم في نموذج الدعم |
 | [x] | الترخيص | `/support/license` | `support/license/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
 | [x] | فتح المصمم لتصميم التقارير | `/support/report-designer` | `support/report-designer/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
@@ -194,13 +194,13 @@
 
 | ✔ | الشاشة | المسار | الملف | المعالجة | ملاحظة |
 | :-: | --- | --- | --- | :-: | --- |
-| [x] | شاشة مسجّلة | `/s/[...slug]` | `s/[...slug]/page.tsx` | R | فُتح بمسار غير منفَّذ (settings/prep-device): شاشة «غير متاحة في نسختك» + زر عودة مضبوط — 1440 |
+| [x] | شاشة مسجّلة | `/s/[...slug]` | `s/[...slug]/page.tsx` | R | فُتح بمسار غير منفَّذ (settings/prep-device): شاشة «غير متاحة في نسختك» + زر عودة مضبوط — 1440 · أُعيد الفتح 1440/390 بعد الهيكلة |
 
 ### الطباعة
 
 | ✔ | الشاشة | المسار | الملف | المعالجة | ملاحظة |
 | :-: | --- | --- | --- | :-: | --- |
-| [x] | طباعة مستند | `/print/[doc]/[id]` | `print/[doc]/[id]/page.tsx` | R | فُتح بفاتورة مبيعات مرحّلة — 1440 |
+| [x] | طباعة مستند | `/print/[doc]/[id]` | `print/[doc]/[id]/page.tsx` | R | فُتح بفاتورة مبيعات مرحّلة — 1440 · أُعيد الفتح 1440/390 بعد الهيكلة |
 
 ### المبيعات
 
@@ -210,14 +210,14 @@
 | [x] | بطاقة عميل | `/sales/customers` | `sales/customers/page.tsx` | R | هيكلة v5.2: إطار Page/PageHead + شريط مؤشرات + تصفية موحّدة · تحقق في المتصفح 1440 |
 | [x] | طلبات المتجر الإلكتروني | `/sales/ecommerce-orders` | `sales/ecommerce-orders/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
 | [x] | فاتورة مبيعات | `/sales/invoices` | `sales/invoices/page.tsx` | R | هيكلة v5.2: إطار Page/PageHead + شريط مؤشرات + تصفية موحّدة · تحقق في المتصفح 1440 |
-| [x] | فاتورة مبيعات (تفاصيل) | `/sales/invoices/[id]` | `sales/invoices/[id]/page.tsx` | R | فُتح بفاتورة مبيعات مسودة 030003 (بنود · ملخص مالي · خطوة الحالة · روابط دفع) — 1440 |
+| [x] | فاتورة مبيعات (تفاصيل) | `/sales/invoices/[id]` | `sales/invoices/[id]/page.tsx` | R | فُتح بفاتورة مبيعات مسودة 030003 (بنود · ملخص مالي · خطوة الحالة · روابط دفع) — 1440 · أُعيد الفتح 1440/390 بعد الهيكلة |
 | [x] | فاتورة إخراج | `/sales/invoices/new` | `sales/invoices/new/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
-| [x] | إشعار مبيعات | `/sales/notes/[kind]` | `sales/notes/[kind]/page.tsx` | R | فُتح بـ self-credit و debit-credit (نموذج + حالة فارغة) — 1440 |
+| [x] | إشعار مبيعات | `/sales/notes/[kind]` | `sales/notes/[kind]/page.tsx` | R | أُعيد الفتح بالأنواع الصحيحة credit وdebit مع إشعار مسودّة ظاهر في الجدول — 1440/390 |
 | [x] | وصول العملاء للبوابة | `/sales/portal-access` | `sales/portal-access/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
 | [x] | نقطة البيع | `/sales/pos` | `sales/pos/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
 | [x] | عرض سعر | `/sales/quotations` | `sales/quotations/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
-| [x] | عرض سعر (تفاصيل) | `/sales/quotations/[id]` | `sales/quotations/[id]/page.tsx` | R | فُتح بعرض سعر حقيقي (بيانات العرض · الأسطر · التوقيع الإلكتروني) — 1440 |
-| [x] | توقيع عرض السعر | `/sales/quotations/[id]/esign` | `sales/quotations/[id]/esign/page.tsx` | R | فُتح بنموذج الإرسال للتوقيع بعد تحويله إلى FormSection بشريط إجراءات — 1440 |
+| [x] | عرض سعر (تفاصيل) | `/sales/quotations/[id]` | `sales/quotations/[id]/page.tsx` | R | فُتح بعرض سعر حقيقي (بيانات العرض · الأسطر · التوقيع الإلكتروني) — 1440 · أُعيد الفتح 1440/390 بعد الهيكلة |
+| [x] | توقيع عرض السعر | `/sales/quotations/[id]/esign` | `sales/quotations/[id]/esign/page.tsx` | R | فُتح بنموذج الإرسال للتوقيع بعد تحويله إلى FormSection بشريط إجراءات — 1440 · أُعيد الفتح 1440/390 بعد الهيكلة |
 | [x] | مردود المبيعات | `/sales/returns` | `sales/returns/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
 | [x] | 📋 طباعة فواتير مندوب وعمولاتهم | `/sales/salesman-commissions` | `sales/salesman-commissions/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
 | [x] | بطاقة مندوب | `/sales/salesmen` | `sales/salesmen/page.tsx` | R | هيكلة v5.2: إطار Page/PageHead + شريط مؤشرات + تصفية موحّدة · تحقق في المتصفح 1440 |
@@ -236,7 +236,7 @@
 | [x] | 📒 بطاقة حساب المصاريف | `/accounting/expenses` | `accounting/expenses/page.tsx` | R | هيكلة v5.2: إطار Page/PageHead + شريط مؤشرات + تصفية موحّدة · تحقق في المتصفح 1440 |
 | [x] | أرباح وخسائر حسابات رئيسية | `/accounting/income-statement` | `accounting/income-statement/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
 | [x] | القيود اليومية | `/accounting/journal-entries` | `accounting/journal-entries/page.tsx` | R | هيكلة v5.2: إطار Page/PageHead + شريط مؤشرات + تصفية موحّدة · تحقق في المتصفح 1440 |
-| [x] | قيد يومية | `/accounting/journal-entries/[id]` | `accounting/journal-entries/[id]/page.tsx` | R | فُتح بقيد يومية JE-000011 مرحّل (بيانات · أسطر · الملخص) — 1440 |
+| [x] | قيد يومية | `/accounting/journal-entries/[id]` | `accounting/journal-entries/[id]/page.tsx` | R | فُتح بقيد يومية JE-000011 مرحّل (بيانات · أسطر · الملخص) — 1440 · أُعيد الفتح 1440/390 بعد الهيكلة |
 | [x] | سند قيد | `/accounting/journal-entries/new` | `accounting/journal-entries/new/page.tsx` | R | هيكلة v5.2: إطار Page/PageHead + شريط مؤشرات + تصفية موحّدة · تحقق في المتصفح 1440 |
 | [x] | كشف حساب | `/accounting/ledger` | `accounting/ledger/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
 | [x] | طرق الدفع | `/accounting/payment-methods` | `accounting/payment-methods/page.tsx` | R | هيكلة v5.2: إطار Page/PageHead + شريط مؤشرات + تصفية موحّدة · تحقق في المتصفح 1440 |
@@ -282,12 +282,12 @@
 | ✔ | الشاشة | المسار | الملف | المعالجة | ملاحظة |
 | :-: | --- | --- | --- | :-: | --- |
 | [x] | عقد عميل | `/projects` | `projects/page.tsx` | R | هيكلة v5.2: إطار Page/PageHead + شريط مؤشرات + تصفية موحّدة · تحقق في المتصفح 1440 |
-| [x] | مشروع | `/projects/[id]` | `projects/[id]/page.tsx` | R | فُتح بمشروع حقيقي بعد إنشاء مراحل ومهمة — 1440/390 |
-| [x] | لوحة المشروع | `/projects/[id]/board` | `projects/[id]/board/page.tsx` | R | فُتح بمشروع حقيقي (مرحلتان) — 1440 |
-| [x] | تكلفة المشروع | `/projects/[id]/cost` | `projects/[id]/cost/page.tsx` | R | فُتح بمشروع حقيقي — 1440 |
-| [x] | مخطط المشروع الزمني | `/projects/[id]/gantt` | `projects/[id]/gantt/page.tsx` | R | فُتح بمشروع حقيقي — 1440 |
-| [x] | مهمة مشروع | `/projects/[id]/tasks/[taskId]` | `projects/[id]/tasks/[taskId]/page.tsx` | R | فُتح بمهمة حقيقية داخل مشروع — 1440 |
-| [x] | أوقات المشروع | `/projects/[id]/time` | `projects/[id]/time/page.tsx` | R | فُتح بمشروع حقيقي — 1440 |
+| [x] | مشروع | `/projects/[id]` | `projects/[id]/page.tsx` | R | أُعيد الفتح بمشروع ومرحلة ومهمة؛ حالة فارغة للمستخلصات ونموذج مرحلة داخل panel-foot — 1440/390 |
+| [x] | لوحة المشروع | `/projects/[id]/board` | `projects/[id]/board/page.tsx` | R | فُتح بمشروع حقيقي (مرحلتان) — 1440 · أُعيد الفتح 1440/390 بعد الهيكلة |
+| [x] | تكلفة المشروع | `/projects/[id]/cost` | `projects/[id]/cost/page.tsx` | R | فُتح بمشروع حقيقي — 1440 · أُعيد الفتح 1440/390 بعد الهيكلة |
+| [x] | مخطط المشروع الزمني | `/projects/[id]/gantt` | `projects/[id]/gantt/page.tsx` | R | فُتح بمشروع حقيقي — 1440 · أُعيد الفتح 1440/390 بعد الهيكلة |
+| [x] | مهمة مشروع | `/projects/[id]/tasks/[taskId]` | `projects/[id]/tasks/[taskId]/page.tsx` | R | فُتح بمهمة حقيقية داخل مشروع — 1440 · أُعيد الفتح 1440/390 بعد الهيكلة |
+| [x] | أوقات المشروع | `/projects/[id]/time` | `projects/[id]/time/page.tsx` | R | فُتح بمشروع حقيقي — 1440 · أُعيد الفتح 1440/390 بعد الهيكلة |
 | [x] | لوحة كانبان | `/projects/board` | `projects/board/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
 | [x] | بطاقة بند | `/projects/boq` | `projects/boq/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
 | [x] | مرتجع مقاولات | `/projects/contracting-return` | `projects/contracting-return/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
@@ -298,7 +298,7 @@
 | [x] | مخطط جانت | `/projects/gantt` | `projects/gantt/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
 | [x] | عروض | `/projects/offers` | `projects/offers/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
 | [x] | مراحل مشروع | `/projects/stages` | `projects/stages/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
-| [x] | مهمة | `/projects/tasks/[taskId]` | `projects/tasks/[taskId]/page.tsx` | R | فُتح بمهمة حقيقية؛ ضُبطت الساعات والمصاريف بـ quantity() لمنع 0.0000 — 1440 |
+| [x] | مهمة | `/projects/tasks/[taskId]` | `projects/tasks/[taskId]/page.tsx` | R | فُتح بمهمة حقيقية؛ ضُبطت الساعات والمصاريف بـ quantity() لمنع 0.0000 — 1440 · أُعيد الفتح 1440/390 بعد الهيكلة |
 | [x] | تتبع الوقت | `/projects/time` | `projects/time/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
 
 ### المشتريات
@@ -307,10 +307,10 @@
 | :-: | --- | --- | --- | :-: | --- |
 | [x] | المشتريات (تحويل) | `/purchases` | `purchases/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
 | [x] | فاتورة المشتريات | `/purchases/invoices` | `purchases/invoices/page.tsx` | R | هيكلة v5.2: إطار Page/PageHead + شريط مؤشرات + تصفية موحّدة · تحقق في المتصفح 1440 |
-| [x] | فاتورة مشتريات (تفاصيل) | `/purchases/invoices/[id]` | `purchases/invoices/[id]/page.tsx` | R | فُتح بفاتورة مشتريات مسودة حقيقية — 1440 |
+| [x] | فاتورة مشتريات (تفاصيل) | `/purchases/invoices/[id]` | `purchases/invoices/[id]/page.tsx` | R | فُتح بفاتورة مشتريات مسودة حقيقية — 1440 · أُعيد الفتح 1440/390 بعد الهيكلة |
 | [x] | فاتورة إدخال | `/purchases/invoices/new` | `purchases/invoices/new/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
 | [x] | قراءة فاتورة بالـ OCR | `/purchases/invoices/ocr` | `purchases/invoices/ocr/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
-| [x] | إشعار مشتريات | `/purchases/notes/[kind]` | `purchases/notes/[kind]/page.tsx` | R | فُتح بـ debit (نموذج مطابق لإشعارات المبيعات + حالة فارغة) — 1440 |
+| [x] | إشعار مشتريات | `/purchases/notes/[kind]` | `purchases/notes/[kind]/page.tsx` | R | أُعيد الفتح بـ debit؛ إشعارُ المشتريات يتطلّب فاتورةً مرحّلة (PURCHASE_INVOICE_NOT_POSTED) فالحالة الفارغة سليمة — 1440/390 |
 | [x] | بوابة الموردين | `/purchases/supplier-portal` | `purchases/supplier-portal/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
 | [x] | بطاقة مورد | `/purchases/suppliers` | `purchases/suppliers/page.tsx` | R | هيكلة v5.2: إطار Page/PageHead + شريط مؤشرات + تصفية موحّدة · تحقق في المتصفح 1440 |
 
@@ -328,8 +328,8 @@
 | [x] | الوظائف | `/hrm/jobs` | `hrm/jobs/page.tsx` | R | هيكلة v5.2: إطار Page/PageHead + شريط مؤشرات + تصفية موحّدة · تحقق في المتصفح 1440 |
 | [x] | إجازات الموظفين | `/hrm/leaves` | `hrm/leaves/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
 | [x] | إستحقاق وصرف الرواتب | `/hrm/payroll` | `hrm/payroll/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
-| [x] | مسير رواتب | `/hrm/payroll/[id]` | `hrm/payroll/[id]/page.tsx` | R | فُتح بمسيّر رواتب حقيقي (draft) — 1440 |
-| [x] | ملف حماية الأجور | `/hrm/payroll/[id]/wps` | `hrm/payroll/[id]/wps/page.tsx` | R | فُتح بمسيّر رواتب حقيقي (draft) — 1440 |
+| [x] | مسير رواتب | `/hrm/payroll/[id]` | `hrm/payroll/[id]/page.tsx` | R | فُتح بمسيّر رواتب حقيقي (draft) — 1440 · أُعيد الفتح 1440/390 بعد الهيكلة |
+| [x] | ملف حماية الأجور | `/hrm/payroll/[id]/wps` | `hrm/payroll/[id]/wps/page.tsx` | R | فُتح بمسيّر رواتب حقيقي (draft) — 1440 · أُعيد الفتح 1440/390 بعد الهيكلة |
 | [x] | دفع الرواتب | `/hrm/salary-payments` | `hrm/salary-payments/page.tsx` | R | هيكلة v5.2: إطار Page/PageHead + شريط مؤشرات + تصفية موحّدة · تحقق في المتصفح 1440 |
 | [x] | تقرير الرواتب | `/hrm/salary-report` | `hrm/salary-report/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
 
@@ -338,7 +338,7 @@
 | ✔ | الشاشة | المسار | الملف | المعالجة | ملاحظة |
 | :-: | --- | --- | --- | :-: | --- |
 | [x] | أسماء الحقول | `/optics/field-labels` | `optics/field-labels/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
-| [x] | بيانات النظارات | `/optics/prescriptions` | `optics/prescriptions/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
+| [x] | بيانات النظارات | `/optics/prescriptions` | `optics/prescriptions/page.tsx` | R | فُتح؛ بحثٌ لا يطابق عميلاً صار حالةً فارغة تسمّي النص لا ErrorBox، والبحث الفارغ يعرض الكل — 1440 |
 
 ### بوابة الموردين
 
@@ -357,7 +357,7 @@
 | ✔ | الشاشة | المسار | الملف | المعالجة | ملاحظة |
 | :-: | --- | --- | --- | :-: | --- |
 | [x] | لوحات المؤشرات | `/dashboards` | `dashboards/page.tsx` | R | هيكلة v5.2: إطار Page/PageHead + شريط مؤشرات + تصفية موحّدة · تحقق في المتصفح 1440 |
-| [x] | لوحة مؤشرات | `/dashboards/[id]` | `dashboards/[id]/page.tsx` | R | فُتح بلوحة «لوحتي» (٣ ودجات + كتالوج) — 1440 |
+| [x] | لوحة مؤشرات | `/dashboards/[id]` | `dashboards/[id]/page.tsx` | R | فُتح بلوحة «لوحتي» (٣ ودجات + كتالوج) — 1440 · أُعيد الفتح 1440/390 بعد الهيكلة |
 
 ### نظام التصميم
 
@@ -423,7 +423,7 @@
 
 | ✔ | الشاشة | المسار | الملف | المعالجة | ملاحظة |
 | :-: | --- | --- | --- | :-: | --- |
-| [x] | الدخول | `/` | `page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
+| [x] | الدخول | `/` | `page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة · جداول PortalTable مشتركة (لا <table> يدوي) · تحقق في المتصفح 1440 و390 |
 | [x] | تغيير كلمة المرور | `/auth/change-password` | `auth/change-password/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
 | [x] | استعادة كلمة المرور | `/auth/forgot` | `auth/forgot/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
 | [x] | تسجيل الدخول | `/auth/login` | `auth/login/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
@@ -432,13 +432,13 @@
 
 | ✔ | الشاشة | المسار | الملف | المعالجة | ملاحظة |
 | :-: | --- | --- | --- | :-: | --- |
-| [x] | بوابة العميل | `/portal` | `portal/page.tsx` | R | هيكلة v5.2: شريط مؤشرات + لوحة برأسٍ واحد · تحقق في المتصفح 1440 |
-| [x] | فواتيري | `/portal/invoices` | `portal/invoices/page.tsx` | R | هيكلة v5.2: شريط مؤشرات + لوحة برأسٍ واحد · تحقق في المتصفح 1440 |
-| [x] | تفاصيل الفاتورة | `/portal/invoices/[id]` | `portal/invoices/[id]/page.tsx` | R | تحقق بحساب بوابة حقيقي — فاتورة 030003 |
-| [x] | سداد الفاتورة | `/portal/invoices/[id]/pay` | `portal/invoices/[id]/pay/page.tsx` | R | تحقق بحساب بوابة حقيقي — صفحة الدفع |
-| [x] | المدفوعات | `/portal/payments` | `portal/payments/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
-| [x] | ملفي | `/portal/profile` | `portal/profile/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
-| [x] | كشف الحساب | `/portal/statement` | `portal/statement/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة |
+| [x] | بوابة العميل | `/portal` | `portal/page.tsx` | R | هيكلة v5.2: شريط مؤشرات + لوحة برأسٍ واحد · تحقق في المتصفح 1440 · جداول PortalTable مشتركة (لا <table> يدوي) · تحقق في المتصفح 1440 و390 |
+| [x] | فواتيري | `/portal/invoices` | `portal/invoices/page.tsx` | R | هيكلة v5.2: شريط مؤشرات + لوحة برأسٍ واحد · تحقق في المتصفح 1440 · جداول PortalTable مشتركة (لا <table> يدوي) · تحقق في المتصفح 1440 و390 |
+| [x] | تفاصيل الفاتورة | `/portal/invoices/[id]` | `portal/invoices/[id]/page.tsx` | R | تحقق بحساب بوابة حقيقي — فاتورة 030003 · جداول PortalTable مشتركة (لا <table> يدوي) · تحقق في المتصفح 1440 و390 |
+| [x] | سداد الفاتورة | `/portal/invoices/[id]/pay` | `portal/invoices/[id]/pay/page.tsx` | R | تحقق بحساب بوابة حقيقي — صفحة الدفع · جداول PortalTable مشتركة (لا <table> يدوي) · تحقق في المتصفح 1440 و390 |
+| [x] | المدفوعات | `/portal/payments` | `portal/payments/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة · جداول PortalTable مشتركة (لا <table> يدوي) · تحقق في المتصفح 1440 و390 |
+| [x] | ملفي | `/portal/profile` | `portal/profile/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة · جداول PortalTable مشتركة (لا <table> يدوي) · تحقق في المتصفح 1440 و390 |
+| [x] | كشف الحساب | `/portal/statement` | `portal/statement/page.tsx` | R | تحقق في المتصفح 1440 · ضوابط مشتركة · جداول PortalTable مشتركة (لا <table> يدوي) · تحقق في المتصفح 1440 و390 |
 
 ## الموقع التسويقي · marketing
 
@@ -494,14 +494,14 @@
 
 | ✔ | الشاشة | المسار | الملف | المعالجة | ملاحظة |
 | :-: | --- | --- | --- | :-: | --- |
-| [x] | الرئيسية | `/` | `page.tsx` | R | تحقق في المتصفح 1440 · لوحات Panel + شريط KpiStrip · بلا بطاقات عائمة |
-| [x] | المحاسبة | `/accounting` | `accounting/page.tsx` | R | تحقق في المتصفح 1440 · لوحات Panel + شريط KpiStrip · بلا بطاقات عائمة |
-| [x] | التحصيل | `/collection` | `collection/page.tsx` | R | تحقق في المتصفح 1440 · لوحات Panel + شريط KpiStrip · بلا بطاقات عائمة |
-| [x] | العهدة | `/custody` | `custody/page.tsx` | R | تحقق في المتصفح 1440 · لوحات Panel + شريط KpiStrip · بلا بطاقات عائمة |
-| [x] | التوزيع | `/distribution` | `distribution/page.tsx` | R | تحقق في المتصفح 1440 · لوحات Panel + شريط KpiStrip · بلا بطاقات عائمة |
-| [x] | الإنتاج | `/production` | `production/page.tsx` | R | تحقق في المتصفح 1440 · لوحات Panel + شريط KpiStrip · بلا بطاقات عائمة |
-| [x] | شاشة المندوب | `/rep` | `rep/page.tsx` | R | تحقق في المتصفح 1440 · لوحات Panel + شريط KpiStrip · بلا بطاقات عائمة |
-| [x] | التقارير | `/reports` | `reports/page.tsx` | R | تحقق في المتصفح 1440 · لوحات Panel + شريط KpiStrip · بلا بطاقات عائمة |
-| [x] | المناديب | `/reps` | `reps/page.tsx` | R | تحقق في المتصفح 1440 · لوحات Panel + شريط KpiStrip · بلا بطاقات عائمة |
-| [x] | المبيعات | `/sales` | `sales/page.tsx` | R | تحقق في المتصفح 1440 · لوحات Panel + شريط KpiStrip · بلا بطاقات عائمة |
-| [x] | الخزينة | `/treasury` | `treasury/page.tsx` | R | تحقق في المتصفح 1440 · لوحات Panel + شريط KpiStrip · بلا بطاقات عائمة |
+| [x] | الرئيسية | `/` | `page.tsx` | R | تحقق في المتصفح 1440 · لوحات Panel + شريط KpiStrip · بلا بطاقات عائمة · جدول Table مشترك داخل اللوحات · تحقق في المتصفح 1440 و390 |
+| [x] | المحاسبة | `/accounting` | `accounting/page.tsx` | R | تحقق في المتصفح 1440 · لوحات Panel + شريط KpiStrip · بلا بطاقات عائمة · جدول Table مشترك داخل اللوحات · تحقق في المتصفح 1440 و390 |
+| [x] | التحصيل | `/collection` | `collection/page.tsx` | R | تحقق في المتصفح 1440 · لوحات Panel + شريط KpiStrip · بلا بطاقات عائمة · جدول Table مشترك داخل اللوحات · تحقق في المتصفح 1440 و390 |
+| [x] | العهدة | `/custody` | `custody/page.tsx` | R | تحقق في المتصفح 1440 · لوحات Panel + شريط KpiStrip · بلا بطاقات عائمة · جدول Table مشترك داخل اللوحات · تحقق في المتصفح 1440 و390 |
+| [x] | التوزيع | `/distribution` | `distribution/page.tsx` | R | تحقق في المتصفح 1440 · لوحات Panel + شريط KpiStrip · بلا بطاقات عائمة · جدول Table مشترك داخل اللوحات · تحقق في المتصفح 1440 و390 |
+| [x] | الإنتاج | `/production` | `production/page.tsx` | R | تحقق في المتصفح 1440 · لوحات Panel + شريط KpiStrip · بلا بطاقات عائمة · جدول Table مشترك داخل اللوحات · تحقق في المتصفح 1440 و390 |
+| [x] | شاشة المندوب | `/rep` | `rep/page.tsx` | R | تحقق في المتصفح 1440 · لوحات Panel + شريط KpiStrip · بلا بطاقات عائمة · جدول Table مشترك داخل اللوحات · تحقق في المتصفح 1440 و390 |
+| [x] | التقارير | `/reports` | `reports/page.tsx` | R | تحقق في المتصفح 1440 · لوحات Panel + شريط KpiStrip · بلا بطاقات عائمة · جدول Table مشترك داخل اللوحات · تحقق في المتصفح 1440 و390 |
+| [x] | المناديب | `/reps` | `reps/page.tsx` | R | تحقق في المتصفح 1440 · لوحات Panel + شريط KpiStrip · بلا بطاقات عائمة · جدول Table مشترك داخل اللوحات · تحقق في المتصفح 1440 و390 |
+| [x] | المبيعات | `/sales` | `sales/page.tsx` | R | تحقق في المتصفح 1440 · لوحات Panel + شريط KpiStrip · بلا بطاقات عائمة · جدول Table مشترك داخل اللوحات · تحقق في المتصفح 1440 و390 |
+| [x] | الخزينة | `/treasury` | `treasury/page.tsx` | R | تحقق في المتصفح 1440 · لوحات Panel + شريط KpiStrip · بلا بطاقات عائمة · جدول Table مشترك داخل اللوحات · تحقق في المتصفح 1440 و390 |

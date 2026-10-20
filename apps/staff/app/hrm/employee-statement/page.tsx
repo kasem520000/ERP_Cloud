@@ -1,7 +1,7 @@
 'use client';
 
 import { useSearchParams } from 'next/navigation';
-import { FilterBand, Panel } from '@erp/ui';
+import { FilterBand, Panel, TableFrame } from '@erp/ui';
 import { Suspense, useState } from 'react';
 
 import { Empty, ErrorBox, Forbidden, Loading, Screen } from '../../../components/screen';
@@ -326,64 +326,62 @@ function EmployeeStatement() {
                 detail="تأكد من الفترة، أو أن القيود التي تحمل حساب الموظف مرحّلة."
               />
             ) : (
-              <div className="table-wrap">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>م</th>
-                      <th>تاريخ القيد</th>
-                      <th>رقم القيد</th>
-                      <th>الفرع</th>
-                      <th>الموظف</th>
-                      <th>البيان</th>
-                      <th>تفاصيل</th>
-                      <th className="num">مدين</th>
-                      <th className="num">دائن</th>
-                      <th className="num">الرصيد</th>
-                      <th>الحالة</th>
+              <TableFrame>
+                <thead>
+                  <tr>
+                    <th>م</th>
+                    <th>تاريخ القيد</th>
+                    <th>رقم القيد</th>
+                    <th>الفرع</th>
+                    <th>الموظف</th>
+                    <th>البيان</th>
+                    <th>تفاصيل</th>
+                    <th className="num">مدين</th>
+                    <th className="num">دائن</th>
+                    <th className="num">الرصيد</th>
+                    <th>الحالة</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map((row) => (
+                    <tr
+                      key={`${row.seq}-${row.entryId ?? 'opening'}`}
+                      className={row.entryId === null ? 'opening' : undefined}
+                    >
+                      <td dir="ltr">{row.seq}</td>
+                      <td dir="ltr">{row.date}</td>
+                      <td dir="ltr" title={row.entryId ?? ''}>
+                        {row.entryNumber ?? '—'}
+                      </td>
+                      <td>{row.branchName ?? '—'}</td>
+                      <td>{row.employee ?? '—'}</td>
+                      <td>{row.description ?? '—'}</td>
+                      <td>{row.entryType}</td>
+                      <td className="num">{money(row.debit)}</td>
+                      <td className="num">{money(row.credit)}</td>
+                      <td className="num">{money(row.runningBalance ?? '')}</td>
+                      <td>{row.balanceStatus ?? '—'}</td>
                     </tr>
-                  </thead>
-                  <tbody>
-                    {rows.map((row) => (
-                      <tr
-                        key={`${row.seq}-${row.entryId ?? 'opening'}`}
-                        className={row.entryId === null ? 'opening' : undefined}
-                      >
-                        <td dir="ltr">{row.seq}</td>
-                        <td dir="ltr">{row.date}</td>
-                        <td dir="ltr" title={row.entryId ?? ''}>
-                          {row.entryNumber ?? '—'}
-                        </td>
-                        <td>{row.branchName ?? '—'}</td>
-                        <td>{row.employee ?? '—'}</td>
-                        <td>{row.description ?? '—'}</td>
-                        <td>{row.entryType}</td>
-                        <td className="num">{money(row.debit)}</td>
-                        <td className="num">{money(row.credit)}</td>
-                        <td className="num">{money(row.runningBalance ?? '')}</td>
-                        <td>{row.balanceStatus ?? '—'}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                  <tfoot>
-                    <tr>
-                      <th colSpan={7}>الإجمالي</th>
-                      <th className="num">{money(totals.totalDebit)}</th>
-                      <th className="num">{money(totals.totalCredit)}</th>
-                      <th className="num">
-                        {money(Number(totals.balanceDebit) > 0 ? totals.balanceDebit : totals.balanceCredit)}
-                      </th>
-                      <th>
-                        {Number(totals.balanceDebit) > 0
-                          ? 'مدين'
-                          : Number(totals.balanceCredit) > 0
-                            ? 'دائن'
-                            : '—'}
-                      </th>
-                    </tr>
-                  </tfoot>
-                </table>
-              </div>
+                  ))}
+                </tbody>
+                <tfoot>
+                  <tr>
+                    <th colSpan={7}>الإجمالي</th>
+                    <th className="num">{money(totals.totalDebit)}</th>
+                    <th className="num">{money(totals.totalCredit)}</th>
+                    <th className="num">
+                      {money(Number(totals.balanceDebit) > 0 ? totals.balanceDebit : totals.balanceCredit)}
+                    </th>
+                    <th>
+                      {Number(totals.balanceDebit) > 0
+                        ? 'مدين'
+                        : Number(totals.balanceCredit) > 0
+                          ? 'دائن'
+                          : '—'}
+                    </th>
+                  </tr>
+                </tfoot>
+              </TableFrame>
             )}
           </Panel>
         </>

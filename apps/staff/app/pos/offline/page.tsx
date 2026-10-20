@@ -1,6 +1,6 @@
 'use client';
 
-import { Panel } from '@erp/ui';
+import { Panel, TableFrame } from '@erp/ui';
 import Link from 'next/link';
 import Decimal from 'decimal.js';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -501,64 +501,62 @@ export default function OfflinePosPage() {
             {!cart.length ? (
               <p className="muted">اضغط على صنف لإضافته إلى الفاتورة المؤقتة.</p>
             ) : (
-              <div className="table-wrap">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>الصنف</th>
-                      <th>الكمية</th>
-                      <th>السعر</th>
-                      <th>الإجمالي</th>
-                      <th />
+              <TableFrame>
+                <thead>
+                  <tr>
+                    <th>الصنف</th>
+                    <th>الكمية</th>
+                    <th>السعر</th>
+                    <th>الإجمالي</th>
+                    <th />
+                  </tr>
+                </thead>
+                <tbody>
+                  {cart.map((line) => (
+                    <tr key={line.item.id}>
+                      <td>{line.item.nameAr ?? line.item.sku}</td>
+                      <td>
+                        <input
+                          className="input"
+                          dir="ltr"
+                          inputMode="decimal"
+                          value={line.quantity}
+                          onChange={(event) =>
+                            setCart((current) =>
+                              current.map((row) =>
+                                row.item.id === line.item.id
+                                  ? {
+                                      ...row,
+                                      quantity: Decimal.max(
+                                        decimalValue(event.target.value),
+                                        new Decimal(1),
+                                      ).toFixed(4),
+                                    }
+                                  : row,
+                              ),
+                            )
+                          }
+                        />
+                      </td>
+                      <td>{formatMoney(defaultPrice(catalog, line.item))}</td>
+                      <td>
+                        {formatMoney(new Decimal(defaultPrice(catalog, line.item)).times(line.quantity))}
+                      </td>
+                      <td>
+                        <button
+                          className="btn sm"
+                          type="button"
+                          onClick={() =>
+                            setCart((current) => current.filter((row) => row.item.id !== line.item.id))
+                          }
+                        >
+                          حذف
+                        </button>
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody>
-                    {cart.map((line) => (
-                      <tr key={line.item.id}>
-                        <td>{line.item.nameAr ?? line.item.sku}</td>
-                        <td>
-                          <input
-                            className="input"
-                            dir="ltr"
-                            inputMode="decimal"
-                            value={line.quantity}
-                            onChange={(event) =>
-                              setCart((current) =>
-                                current.map((row) =>
-                                  row.item.id === line.item.id
-                                    ? {
-                                        ...row,
-                                        quantity: Decimal.max(
-                                          decimalValue(event.target.value),
-                                          new Decimal(1),
-                                        ).toFixed(4),
-                                      }
-                                    : row,
-                                ),
-                              )
-                            }
-                          />
-                        </td>
-                        <td>{formatMoney(defaultPrice(catalog, line.item))}</td>
-                        <td>
-                          {formatMoney(new Decimal(defaultPrice(catalog, line.item)).times(line.quantity))}
-                        </td>
-                        <td>
-                          <button
-                            className="btn sm"
-                            type="button"
-                            onClick={() =>
-                              setCart((current) => current.filter((row) => row.item.id !== line.item.id))
-                            }
-                          >
-                            حذف
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                  ))}
+                </tbody>
+              </TableFrame>
             )}
             <dl className="kv" style={{ marginTop: 12 }}>
               <dt>الإجمالي</dt>

@@ -1,6 +1,6 @@
 'use client';
 
-import { Panel } from '@erp/ui';
+import { Panel, TableFrame } from '@erp/ui';
 import { useState } from 'react';
 
 import { DataTable, Notice, QueryView } from '../../../components/data-view';
@@ -139,63 +139,61 @@ export default function MarinaRotaPage() {
             </div>
 
             <h3>ترتيب الدور</h3>
-            <div className="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>#</th>
-                    <th>المركب</th>
-                    <th>الفترة</th>
-                    <th />
+            <TableFrame>
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>المركب</th>
+                  <th>الفترة</th>
+                  <th />
+                </tr>
+              </thead>
+              <tbody>
+                {lines.map((line, index) => (
+                  <tr key={index}>
+                    <td className="num">{index + 1}</td>
+                    <td>
+                      <select
+                        className="input"
+                        value={line.vesselId}
+                        onChange={(event) => updateLine(index, { vesselId: event.target.value })}
+                      >
+                        <option value="">— اختر —</option>
+                        {vessels.map((row) => (
+                          <option key={row.id} value={row.id}>
+                            {`${row.code} — ${row.name}`}
+                          </option>
+                        ))}
+                      </select>
+                    </td>
+                    <td>
+                      <select
+                        className="input"
+                        value={line.periodLabel}
+                        onChange={(event) => updateLine(index, { periodLabel: event.target.value })}
+                      >
+                        {PERIODS.map((period) => (
+                          <option key={period} value={period}>
+                            {period}
+                          </option>
+                        ))}
+                      </select>
+                    </td>
+                    <td>
+                      <button
+                        className="btn sm"
+                        type="button"
+                        onClick={() =>
+                          setLines((current) => current.filter((_, position) => position !== index))
+                        }
+                      >
+                        حذف
+                      </button>
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {lines.map((line, index) => (
-                    <tr key={index}>
-                      <td className="num">{index + 1}</td>
-                      <td>
-                        <select
-                          className="input"
-                          value={line.vesselId}
-                          onChange={(event) => updateLine(index, { vesselId: event.target.value })}
-                        >
-                          <option value="">— اختر —</option>
-                          {vessels.map((row) => (
-                            <option key={row.id} value={row.id}>
-                              {`${row.code} — ${row.name}`}
-                            </option>
-                          ))}
-                        </select>
-                      </td>
-                      <td>
-                        <select
-                          className="input"
-                          value={line.periodLabel}
-                          onChange={(event) => updateLine(index, { periodLabel: event.target.value })}
-                        >
-                          {PERIODS.map((period) => (
-                            <option key={period} value={period}>
-                              {period}
-                            </option>
-                          ))}
-                        </select>
-                      </td>
-                      <td>
-                        <button
-                          className="btn sm"
-                          type="button"
-                          onClick={() =>
-                            setLines((current) => current.filter((_, position) => position !== index))
-                          }
-                        >
-                          حذف
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                ))}
+              </tbody>
+            </TableFrame>
             <button
               className="btn sm"
               type="button"
@@ -266,43 +264,41 @@ export default function MarinaRotaPage() {
                   </button>
                 }
               >
-                <div className="table-wrap">
-                  <table>
-                    <thead>
-                      <tr>
-                        <th>رقم الدور</th>
-                        <th>المركب</th>
-                        <th>الفترة</th>
-                        <th>حضور/غياب</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {plan.lines.map((line) => {
-                        const key = `${plan.id}:${line.lineNo}`;
-                        const present = attendance[key] !== false;
-                        return (
-                          <tr key={line.lineNo}>
-                            <td className="num">{line.lineNo}</td>
-                            <td>{vesselName(line.vesselId)}</td>
-                            <td>{line.periodLabel ?? '—'}</td>
-                            <td>
-                              <label className="check">
-                                <input
-                                  type="checkbox"
-                                  checked={present}
-                                  onChange={(e) =>
-                                    setAttendance((prev) => ({ ...prev, [key]: e.target.checked }))
-                                  }
-                                />
-                                <span>{present ? 'حضور' : 'غياب'}</span>
-                              </label>
-                            </td>
-                          </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
-                </div>
+                <TableFrame>
+                  <thead>
+                    <tr>
+                      <th>رقم الدور</th>
+                      <th>المركب</th>
+                      <th>الفترة</th>
+                      <th>حضور/غياب</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {plan.lines.map((line) => {
+                      const key = `${plan.id}:${line.lineNo}`;
+                      const present = attendance[key] !== false;
+                      return (
+                        <tr key={line.lineNo}>
+                          <td className="num">{line.lineNo}</td>
+                          <td>{vesselName(line.vesselId)}</td>
+                          <td>{line.periodLabel ?? '—'}</td>
+                          <td>
+                            <label className="check">
+                              <input
+                                type="checkbox"
+                                checked={present}
+                                onChange={(e) =>
+                                  setAttendance((prev) => ({ ...prev, [key]: e.target.checked }))
+                                }
+                              />
+                              <span>{present ? 'حضور' : 'غياب'}</span>
+                            </label>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </TableFrame>
                 {tripCount !== null && <p className="hint">إجمالي الرحلات المحتسبة: {tripCount}</p>}
               </Panel>
             ))}

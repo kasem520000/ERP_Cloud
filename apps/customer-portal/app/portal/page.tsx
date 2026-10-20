@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Decimal } from 'decimal.js';
 
 import { Empty } from '../../components/card';
+import { PortalTable } from '../../components/table';
 import { PortalShell, usePortalProfile } from '../../components/portal-shell';
 import { fetchInvoices, fetchPayments } from '../../lib/api';
 import { dateText, moneyText } from '../../lib/format';
@@ -88,36 +89,46 @@ function Dashboard() {
         ) : rows.length === 0 ? (
           <Empty bare title="لم تصدر لك فواتير بعد" detail="ستظهر هنا أول فاتورة مرحّلة باسمك." />
         ) : (
-          <div className="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>الرقم</th>
-                  <th>التاريخ</th>
-                  <th>الإجمالي</th>
-                  <th>المسدد</th>
-                  <th>الحالة</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.slice(0, 5).map((invoice) => (
-                  <tr key={invoice.id}>
-                    <td>
-                      <Link href={`/portal/invoices/${invoice.id}`}>{invoice.number ?? '—'}</Link>
-                    </td>
-                    <td>{dateText(invoice.posted_at ?? invoice.created_at)}</td>
-                    <td>{moneyText(invoice.total)}</td>
-                    <td>{moneyText(invoice.paid_total)}</td>
-                    <td>
-                      <span className={`badge ${invoice.payment_status === 'paid' ? 'paid' : 'open'}`}>
-                        {STATUS_AR[invoice.payment_status] ?? invoice.payment_status}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <PortalTable
+            bare
+            columns={[
+              {
+                key: 'number',
+                header: 'الرقم',
+                cell: (invoice) => (
+                  <Link href={`/portal/invoices/${invoice.id}`}>{invoice.number ?? '—'}</Link>
+                ),
+              },
+              {
+                key: 'date',
+                header: 'التاريخ',
+                cell: (invoice) => dateText(invoice.posted_at ?? invoice.created_at),
+              },
+              {
+                key: 'total',
+                header: 'الإجمالي',
+                numeric: true,
+                cell: (invoice) => moneyText(invoice.total),
+              },
+              {
+                key: 'paid',
+                header: 'المسدد',
+                numeric: true,
+                cell: (invoice) => moneyText(invoice.paid_total),
+              },
+              {
+                key: 'status',
+                header: 'الحالة',
+                cell: (invoice) => (
+                  <span className={`badge ${invoice.payment_status === 'paid' ? 'paid' : 'open'}`}>
+                    {STATUS_AR[invoice.payment_status] ?? invoice.payment_status}
+                  </span>
+                ),
+              },
+            ]}
+            rows={rows.slice(0, 5)}
+            rowKey={(invoice) => invoice.id}
+          />
         )}
       </Panel>
     </>

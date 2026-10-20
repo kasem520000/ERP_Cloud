@@ -189,7 +189,7 @@ export default function SalesNotePage({ params }: { params: Promise<{ kind: stri
                 { key: 'created', header: 'التاريخ', cell: (row: Note) => shortDate(row.createdAt) },
                 {
                   key: 'actions',
-                  header: '',
+                  header: 'إجراء',
                   cell: (row: Note) =>
                     row.status === 'draft' ? (
                       <button

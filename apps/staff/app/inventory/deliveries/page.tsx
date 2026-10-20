@@ -1,6 +1,6 @@
 'use client';
 
-import { Panel } from '@erp/ui';
+import { Panel, TableFrame } from '@erp/ui';
 import { useMemo, useState } from 'react';
 
 import { DataTable, Notice, QueryView } from '../../../components/data-view';
@@ -257,43 +257,41 @@ export default function StockDeliveriesPage() {
             {invoice && (
               <>
                 <h3>الأصناف</h3>
-                <div className="table-wrap">
-                  <table>
-                    <thead>
-                      <tr>
-                        <th>المادة</th>
-                        <th>بالفاتورة</th>
-                        <th>سُلِّم سابقاً</th>
-                        <th>المتبقي</th>
-                        <th>كمية هذا السند</th>
+                <TableFrame>
+                  <thead>
+                    <tr>
+                      <th>المادة</th>
+                      <th>بالفاتورة</th>
+                      <th>سُلِّم سابقاً</th>
+                      <th>المتبقي</th>
+                      <th>كمية هذا السند</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {invoice.lines.map((line) => (
+                      <tr key={line.itemId}>
+                        <td>{nameOfItem(line.itemId, line.description)}</td>
+                        <td className="num">{quantity(line.invoicedQty)}</td>
+                        <td className="num">{quantity(line.deliveredQty)}</td>
+                        <td className="num">{quantity(line.remainingQty)}</td>
+                        <td>
+                          <input
+                            className="input"
+                            dir="ltr"
+                            inputMode="decimal"
+                            value={quantities[line.itemId] ?? ''}
+                            onChange={(event) =>
+                              setQuantities((current) => ({
+                                ...current,
+                                [line.itemId]: event.target.value,
+                              }))
+                            }
+                          />
+                        </td>
                       </tr>
-                    </thead>
-                    <tbody>
-                      {invoice.lines.map((line) => (
-                        <tr key={line.itemId}>
-                          <td>{nameOfItem(line.itemId, line.description)}</td>
-                          <td className="num">{quantity(line.invoicedQty)}</td>
-                          <td className="num">{quantity(line.deliveredQty)}</td>
-                          <td className="num">{quantity(line.remainingQty)}</td>
-                          <td>
-                            <input
-                              className="input"
-                              dir="ltr"
-                              inputMode="decimal"
-                              value={quantities[line.itemId] ?? ''}
-                              onChange={(event) =>
-                                setQuantities((current) => ({
-                                  ...current,
-                                  [line.itemId]: event.target.value,
-                                }))
-                              }
-                            />
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                    ))}
+                  </tbody>
+                </TableFrame>
               </>
             )}
 

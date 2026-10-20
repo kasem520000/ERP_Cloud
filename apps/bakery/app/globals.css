@@ -1039,10 +1039,14 @@ body {
     gap: 8px;
     padding: 8px 10px;
   }
-  .bak-topbar > div {
+  .bak-topbar > div:first-child {
+    /* Takes the leftover width after the fixed action cluster; the crumbs
+     * truncate with an ellipsis instead of pushing the logout button offscreen. */
+    flex: 1 1 0;
     min-width: 0;
   }
   .bak-topbar > div:last-child {
+    flex: 0 0 auto;
     flex-wrap: nowrap;
     gap: 6px;
   }
@@ -1052,6 +1056,10 @@ body {
     display: none;
   }
   .bak-crumbs {
+    /* A flex item whose text is `nowrap` keeps its full min-content width unless
+     * told otherwise — which held the logout button 32px off the 390px screen. */
+    flex: 1 1 auto;
+    min-width: 0;
     overflow: hidden;
     white-space: nowrap;
     text-overflow: ellipsis;

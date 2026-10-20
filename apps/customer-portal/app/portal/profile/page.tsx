@@ -3,6 +3,7 @@
 import { PageHead, Panel } from '@erp/ui';
 
 import { PortalShell, usePortalProfile } from '../../../components/portal-shell';
+import { PortalTable } from '../../../components/table';
 import { moneyText } from '../../../lib/format';
 
 function Details() {
@@ -19,87 +20,55 @@ function Details() {
 
       <div className="grid cols">
         <Panel title="بطاقتي لدى المورد" flush>
-          <div className="table-wrap">
-            <table>
-              <tbody>
-                <tr>
-                  <td className="muted">الاسم</td>
-                  <td>{party?.name ?? '—'}</td>
-                </tr>
-                <tr>
-                  <td className="muted">رقم العميل</td>
-                  <td>{party?.code ?? '—'}</td>
-                </tr>
-                <tr>
-                  <td className="muted">الرقم الضريبي</td>
-                  <td>
-                    <bdi dir="ltr">{party?.taxNo || '—'}</bdi>
-                  </td>
-                </tr>
-                <tr>
-                  <td className="muted">الجوال</td>
-                  <td>
-                    <bdi dir="ltr">{party?.phone || '—'}</bdi>
-                  </td>
-                </tr>
-                <tr>
-                  <td className="muted">البريد</td>
-                  <td>
-                    <bdi dir="ltr">{party?.email || '—'}</bdi>
-                  </td>
-                </tr>
-                <tr>
-                  <td className="muted">حد الائتمان</td>
-                  <td>{moneyText(party?.creditLimit ?? '0')}</td>
-                </tr>
-                <tr>
-                  <td className="muted">الرصيد الحالي</td>
-                  <td>
-                    <strong>{moneyText(profile?.balance ?? '0')}</strong>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+          <PortalTable
+            bare
+            headless
+            columns={[
+              { key: 'label', header: '', cell: (row) => <span className="muted">{row.label}</span> },
+              { key: 'value', header: '', cell: (row) => row.value },
+            ]}
+            rows={[
+              { label: 'الاسم', value: party?.name ?? '—' },
+              { label: 'رقم العميل', value: <bdi dir="ltr">{party?.code ?? '—'}</bdi> },
+              { label: 'الرقم الضريبي', value: <bdi dir="ltr">{party?.taxNo || '—'}</bdi> },
+              { label: 'الجوال', value: <bdi dir="ltr">{party?.phone || '—'}</bdi> },
+              { label: 'البريد', value: party?.email ? <bdi dir="ltr">{party.email}</bdi> : '—' },
+              { label: 'حد الائتمان', value: moneyText(party?.creditLimit ?? '0') },
+              { label: 'الرصيد الحالي', value: <strong>{moneyText(profile?.balance ?? '0')}</strong> },
+            ]}
+            rowKey={(row) => row.label}
+          />
         </Panel>
 
         <Panel title="بيانات المورد" flush>
-          <div className="table-wrap">
-            <table>
-              <tbody>
-                <tr>
-                  <td className="muted">المنشأة</td>
-                  <td>{company?.nameAr || '—'}</td>
-                </tr>
-                <tr>
-                  <td className="muted">Company</td>
-                  <td>{company?.nameEn || '—'}</td>
-                </tr>
-                <tr>
-                  <td className="muted">الرقم الضريبي</td>
-                  <td>
-                    <bdi dir="ltr">{company?.taxNo || '—'}</bdi>
-                  </td>
-                </tr>
-                <tr>
-                  <td className="muted">البريد</td>
-                  <td>
-                    {company?.email ? (
-                      <a href={`mailto:${company.email}`}>
-                        <bdi dir="ltr">{company.email}</bdi>
-                      </a>
-                    ) : (
-                      '—'
-                    )}
-                  </td>
-                </tr>
-                <tr>
-                  <td className="muted">الهواتف</td>
-                  <td>{company?.phones?.length ? <bdi dir="ltr">{company.phones.join(' · ')}</bdi> : '—'}</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+          <PortalTable
+            bare
+            headless
+            columns={[
+              { key: 'label', header: '', cell: (row) => <span className="muted">{row.label}</span> },
+              { key: 'value', header: '', cell: (row) => row.value },
+            ]}
+            rows={[
+              { label: 'المنشأة', value: company?.nameAr || '—' },
+              { label: 'الاسم الإنجليزي', value: company?.nameEn || '—' },
+              { label: 'الرقم الضريبي', value: <bdi dir="ltr">{company?.taxNo || '—'}</bdi> },
+              {
+                label: 'البريد',
+                value: company?.email ? (
+                  <a href={`mailto:${company.email}`}>
+                    <bdi dir="ltr">{company.email}</bdi>
+                  </a>
+                ) : (
+                  '—'
+                ),
+              },
+              {
+                label: 'الهواتف',
+                value: company?.phones?.length ? <bdi dir="ltr">{company.phones.join(' · ')}</bdi> : '—',
+              },
+            ]}
+            rowKey={(row) => row.label}
+          />
         </Panel>
       </div>
     </>

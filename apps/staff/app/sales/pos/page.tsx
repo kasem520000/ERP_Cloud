@@ -1,6 +1,6 @@
 'use client';
 
-import { Panel } from '@erp/ui';
+import { Panel, TableFrame } from '@erp/ui';
 import Link from 'next/link';
 import { Trash2 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
@@ -677,75 +677,71 @@ export default function PosPage() {
             {ticket.length === 0 ? (
               <p className="muted">اضغط على صنف لإضافته.</p>
             ) : (
-              <div className="table-wrap">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>الصنف</th>
-                      <th>الكمية</th>
-                      <th>السعر</th>
-                      <th>خصم %</th>
-                      <th>الإجمالي</th>
-                      <th />
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {ticket.map((entry) => {
-                      const line = computeTotals([entry.line], { priceIncludesVat }).lines[0];
-                      return (
-                        <tr key={entry.item.id}>
-                          <td>{arabicName(entry.item)}</td>
-                          <td>
-                            <input
-                              className="input"
-                              dir="ltr"
-                              inputMode="decimal"
-                              value={entry.line.quantityText}
-                              onChange={(event) => patch(entry.item.id, { quantityText: event.target.value })}
-                            />
-                          </td>
-                          <td>
-                            <input
-                              className="input"
-                              dir="ltr"
-                              inputMode="decimal"
-                              value={entry.line.unitPriceText}
-                              readOnly={!canOverridePrice}
-                              title={canOverridePrice ? undefined : 'لا يمكن تعديل السعر'}
-                              onChange={(event) =>
-                                patch(entry.item.id, { unitPriceText: event.target.value })
-                              }
-                            />
-                          </td>
-                          <td>
-                            <input
-                              className="input"
-                              dir="ltr"
-                              inputMode="decimal"
-                              value={entry.line.discountRateText}
-                              onChange={(event) =>
-                                patch(entry.item.id, { discountRateText: event.target.value })
-                              }
-                            />
-                          </td>
-                          <td>{money(line?.total ?? '0')}</td>
-                          <td>
-                            <button
-                              className="btn sm"
-                              type="button"
-                              onClick={() =>
-                                setTicket((current) => current.filter((row) => row.item.id !== entry.item.id))
-                              }
-                            >
-                              حذف
-                            </button>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
+              <TableFrame>
+                <thead>
+                  <tr>
+                    <th>الصنف</th>
+                    <th>الكمية</th>
+                    <th>السعر</th>
+                    <th>خصم %</th>
+                    <th>الإجمالي</th>
+                    <th />
+                  </tr>
+                </thead>
+                <tbody>
+                  {ticket.map((entry) => {
+                    const line = computeTotals([entry.line], { priceIncludesVat }).lines[0];
+                    return (
+                      <tr key={entry.item.id}>
+                        <td>{arabicName(entry.item)}</td>
+                        <td>
+                          <input
+                            className="input"
+                            dir="ltr"
+                            inputMode="decimal"
+                            value={entry.line.quantityText}
+                            onChange={(event) => patch(entry.item.id, { quantityText: event.target.value })}
+                          />
+                        </td>
+                        <td>
+                          <input
+                            className="input"
+                            dir="ltr"
+                            inputMode="decimal"
+                            value={entry.line.unitPriceText}
+                            readOnly={!canOverridePrice}
+                            title={canOverridePrice ? undefined : 'لا يمكن تعديل السعر'}
+                            onChange={(event) => patch(entry.item.id, { unitPriceText: event.target.value })}
+                          />
+                        </td>
+                        <td>
+                          <input
+                            className="input"
+                            dir="ltr"
+                            inputMode="decimal"
+                            value={entry.line.discountRateText}
+                            onChange={(event) =>
+                              patch(entry.item.id, { discountRateText: event.target.value })
+                            }
+                          />
+                        </td>
+                        <td>{money(line?.total ?? '0')}</td>
+                        <td>
+                          <button
+                            className="btn sm"
+                            type="button"
+                            onClick={() =>
+                              setTicket((current) => current.filter((row) => row.item.id !== entry.item.id))
+                            }
+                          >
+                            حذف
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </TableFrame>
             )}
 
             <dl className="kv" style={{ marginTop: 10 }}>

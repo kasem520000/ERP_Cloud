@@ -3,11 +3,11 @@
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useState } from 'react';
-import { Panel } from '@erp/ui';
+import { Panel, TableFrame } from '@erp/ui';
 
 import { CommentsPanel } from '../../../components/comments-panel';
 import { DataTable, Notice } from '../../../components/data-view';
-import { ErrorBox, Loading, Screen } from '../../../components/screen';
+import { Empty, ErrorBox, Loading, Screen } from '../../../components/screen';
 import { accountLabel, listAccounts, postableOf, type Account } from '../../../lib/accounts';
 import { ApiError, apiData, apiList, apiPost } from '../../../lib/api';
 import { money, percent, quantity, shortDate, statusLabel, today } from '../../../lib/lookups';
@@ -126,7 +126,7 @@ export default function ProjectDetailPage() {
       <div className="grid cols-2">
         <Panel title="مراحل المشروع" flush>
           {doc.stages.length === 0 ? (
-            <p className="muted">لا توجد مراحل.</p>
+            <Empty bare title="لا مراحل بعد" detail="مراحل المشروع تُرتَّب وتُتابَع من هنا." />
           ) : (
             <DataTable
               rows={doc.stages}
@@ -139,17 +139,16 @@ export default function ProjectDetailPage() {
             />
           )}
           {can('projects.manage') && (
-            <>
-              <label className="field">
-                <span>مرحلة جديدة</span>
-                <input
-                  className="input"
-                  value={stageName}
-                  onChange={(event) => setStageName(event.target.value)}
-                />
-              </label>
+            <div className="panel-foot">
+              <input
+                className="input"
+                aria-label="اسم المرحلة الجديدة"
+                placeholder="اسم المرحلة الجديدة"
+                value={stageName}
+                onChange={(event) => setStageName(event.target.value)}
+              />
               <button
-                className="btn sm"
+                className="btn sm primary"
                 type="button"
                 disabled={busy || !stageName.trim()}
                 onClick={() =>
@@ -161,7 +160,7 @@ export default function ProjectDetailPage() {
               >
                 إضافة مرحلة
               </button>
-            </>
+            </div>
           )}
         </Panel>
 
@@ -234,47 +233,49 @@ export default function ProjectDetailPage() {
 
       <Panel title="جدول الكميات (BOQ)" flush>
         {doc.boq.length === 0 ? (
-          <p className="muted">لا توجد بنود بعد.</p>
+          <Empty
+            bare
+            title="جدول الكميات فارغ"
+            detail="أضف بنداً أعلاه (رمزٌ ووصفٌ وسعر وحدة) ليُصرف عليه المستخلص."
+          />
         ) : (
           <>
-            <div className="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>الرمز</th>
-                    <th>الوصف</th>
-                    <th>الكمية</th>
-                    <th>سعر الوحدة</th>
-                    <th>القيمة</th>
-                    <th>المستخلص سابقاً</th>
-                    <th>نسبة هذا المستخلص %</th>
+            <TableFrame>
+              <thead>
+                <tr>
+                  <th>الرمز</th>
+                  <th>الوصف</th>
+                  <th>الكمية</th>
+                  <th>سعر الوحدة</th>
+                  <th>القيمة</th>
+                  <th>المستخلص سابقاً</th>
+                  <th>نسبة هذا المستخلص %</th>
+                </tr>
+              </thead>
+              <tbody>
+                {doc.boq.map((entry) => (
+                  <tr key={entry.id}>
+                    <td dir="ltr">{entry.code}</td>
+                    <td>{entry.description}</td>
+                    <td className="num">{quantity(entry.qty)}</td>
+                    <td className="num">{money(entry.unitValue)}</td>
+                    <td className="num">{money(entry.totalValue)}</td>
+                    <td className="num">{money(entry.billedValue)}</td>
+                    <td>
+                      <input
+                        className="input"
+                        dir="ltr"
+                        inputMode="decimal"
+                        value={billPercents[entry.id] ?? ''}
+                        onChange={(event) =>
+                          setBillPercents((current) => ({ ...current, [entry.id]: event.target.value }))
+                        }
+                      />
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {doc.boq.map((entry) => (
-                    <tr key={entry.id}>
-                      <td dir="ltr">{entry.code}</td>
-                      <td>{entry.description}</td>
-                      <td className="num">{quantity(entry.qty)}</td>
-                      <td className="num">{money(entry.unitValue)}</td>
-                      <td className="num">{money(entry.totalValue)}</td>
-                      <td className="num">{money(entry.billedValue)}</td>
-                      <td>
-                        <input
-                          className="input"
-                          dir="ltr"
-                          inputMode="decimal"
-                          value={billPercents[entry.id] ?? ''}
-                          onChange={(event) =>
-                            setBillPercents((current) => ({ ...current, [entry.id]: event.target.value }))
-                          }
-                        />
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                ))}
+              </tbody>
+            </TableFrame>
 
             {can('projects.manage') && (
               <div className="row">
@@ -341,6 +342,7 @@ export default function ProjectDetailPage() {
         <DataTable
           rows={bills.data ?? []}
           rowKey={(row) => row.id}
+          empty="لا مستخلصات بعد — تُنشأ المستخلصات من بنود جدول الكميات."
           columns={[
             { key: 'number', header: 'الرقم', align: 'ltr', cell: (row) => row.number ?? 'مسودة' },
             { key: 'date', header: 'التاريخ', align: 'ltr', cell: (row) => shortDate(row.billDate) },

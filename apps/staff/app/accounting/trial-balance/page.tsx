@@ -1,6 +1,6 @@
 'use client';
 
-import { FilterBand, Panel } from '@erp/ui';
+import { FilterBand, Panel, TableFrame } from '@erp/ui';
 import { useState } from 'react';
 
 import { Empty, ErrorBox, Forbidden, Loading, Screen } from '../../../components/screen';
@@ -286,77 +286,75 @@ export default function TrialBalancePage() {
             <Empty title="لا توجد حركة مرحّلة" detail="سجّل قيداً واحداً على الأقل ليظهر ميزان المراجعة." />
           ) : (
             <Panel flush title="أرصدة الحسابات">
-              <div className="table-wrap">
-                <table>
-                  <thead>
-                    <tr>
-                      <th rowSpan={2}>الحساب</th>
-                      <th rowSpan={2}>اسم الحساب</th>
-                      <th colSpan={2} className="num">
-                        افتتاحي
-                      </th>
-                      <th colSpan={2} className="num">
-                        خلال الفترة المحددة
-                      </th>
-                      <th colSpan={2} className="num">
-                        الرصيد
-                      </th>
-                      <th colSpan={2} className="num">
-                        ختامي
-                      </th>
-                      <th rowSpan={2}>الحالة</th>
-                      <th rowSpan={2} className="no-print" />
+              <TableFrame>
+                <thead>
+                  <tr>
+                    <th rowSpan={2}>الحساب</th>
+                    <th rowSpan={2}>اسم الحساب</th>
+                    <th colSpan={2} className="num">
+                      افتتاحي
+                    </th>
+                    <th colSpan={2} className="num">
+                      خلال الفترة المحددة
+                    </th>
+                    <th colSpan={2} className="num">
+                      الرصيد
+                    </th>
+                    <th colSpan={2} className="num">
+                      ختامي
+                    </th>
+                    <th rowSpan={2}>الحالة</th>
+                    <th rowSpan={2} className="no-print" />
+                  </tr>
+                  <tr>
+                    <th className="num">مدين</th>
+                    <th className="num">دائن</th>
+                    <th className="num">مدين</th>
+                    <th className="num">دائن</th>
+                    <th className="num">مدين</th>
+                    <th className="num">دائن</th>
+                    <th className="num">مدين</th>
+                    <th className="num">دائن</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map((row) => (
+                    <tr key={row.accountId}>
+                      <td dir="ltr">{row.code}</td>
+                      <td>{row.name}</td>
+                      <td className="num">{money(row.openingDebit)}</td>
+                      <td className="num">{money(row.openingCredit)}</td>
+                      <td className="num">{money(row.debit)}</td>
+                      <td className="num">{money(row.credit)}</td>
+                      <td className="num">{money(row.balanceDebit)}</td>
+                      <td className="num">{money(row.balanceCredit)}</td>
+                      <td className="num">{money(row.closingDebit)}</td>
+                      <td className="num">{money(row.closingCredit)}</td>
+                      <td>{statusLabel(row.status)}</td>
+                      <td className="no-print">
+                        <a className="btn sm" href={`/accounting/ledger?account=${row.accountId}`}>
+                          تفاصيل
+                        </a>
+                      </td>
                     </tr>
-                    <tr>
-                      <th className="num">مدين</th>
-                      <th className="num">دائن</th>
-                      <th className="num">مدين</th>
-                      <th className="num">دائن</th>
-                      <th className="num">مدين</th>
-                      <th className="num">دائن</th>
-                      <th className="num">مدين</th>
-                      <th className="num">دائن</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {rows.map((row) => (
-                      <tr key={row.accountId}>
-                        <td dir="ltr">{row.code}</td>
-                        <td>{row.name}</td>
-                        <td className="num">{money(row.openingDebit)}</td>
-                        <td className="num">{money(row.openingCredit)}</td>
-                        <td className="num">{money(row.debit)}</td>
-                        <td className="num">{money(row.credit)}</td>
-                        <td className="num">{money(row.balanceDebit)}</td>
-                        <td className="num">{money(row.balanceCredit)}</td>
-                        <td className="num">{money(row.closingDebit)}</td>
-                        <td className="num">{money(row.closingCredit)}</td>
-                        <td>{statusLabel(row.status)}</td>
-                        <td className="no-print">
-                          <a className="btn sm" href={`/accounting/ledger?account=${row.accountId}`}>
-                            تفاصيل
-                          </a>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                  <tfoot>
-                    <tr>
-                      <th colSpan={2}>المجموع</th>
-                      <th className="num">{money(totals.openingDebit)}</th>
-                      <th className="num">{money(totals.openingCredit)}</th>
-                      <th className="num">{money(totals.debit)}</th>
-                      <th className="num">{money(totals.credit)}</th>
-                      <th className="num">{money(totals.balanceDebit)}</th>
-                      <th className="num">{money(totals.balanceCredit)}</th>
-                      <th className="num">{money(totals.closingDebit)}</th>
-                      <th className="num">{money(totals.closingCredit)}</th>
-                      <th>{totals.status || '—'}</th>
-                      <th className="no-print" />
-                    </tr>
-                  </tfoot>
-                </table>
-              </div>
+                  ))}
+                </tbody>
+                <tfoot>
+                  <tr>
+                    <th colSpan={2}>المجموع</th>
+                    <th className="num">{money(totals.openingDebit)}</th>
+                    <th className="num">{money(totals.openingCredit)}</th>
+                    <th className="num">{money(totals.debit)}</th>
+                    <th className="num">{money(totals.credit)}</th>
+                    <th className="num">{money(totals.balanceDebit)}</th>
+                    <th className="num">{money(totals.balanceCredit)}</th>
+                    <th className="num">{money(totals.closingDebit)}</th>
+                    <th className="num">{money(totals.closingCredit)}</th>
+                    <th>{totals.status || '—'}</th>
+                    <th className="no-print" />
+                  </tr>
+                </tfoot>
+              </TableFrame>
             </Panel>
           )}
         </>

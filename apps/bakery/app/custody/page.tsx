@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Button, Card, CardBody, CardHeader, Input } from '@erp/ui';
+import { Button, Card, CardBody, CardHeader, Input, Table } from '@erp/ui';
 import { apiData, apiErrorText, apiPost, apiPut } from '@erp/web-core/api';
 import { useSession } from '@erp/web-core/session';
 import { stockSettlementStatusLabel } from '@erp/web-van/distribution';
@@ -493,86 +493,112 @@ export default function CustodyPage() {
               </p>
             ) : (
               <div className="bak-table-wrap">
-                <table className="bak-table">
-                  <thead>
-                    <tr>
-                      <th>الأمر</th>
-                      <th>الحالة</th>
-                      <th>العهدة</th>
-                      <th>متوقع</th>
-                      <th>فعلي</th>
-                      <th>فرق الجرد</th>
-                      <th>مرتجع</th>
-                      <th>تالف</th>
-                      <th>عجز</th>
-                      <th>متبقٍ</th>
-                      <th>تسوية المخزون</th>
-                      <th>سياسة العجز</th>
-                      <th>إجراء</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {pending.map((row) => {
-                      const split = fourWaySeparation(row);
-                      return (
-                        <tr key={row.id ?? row.number ?? custodyLabel(row)}>
-                          <td>{custodyLabel(row)}</td>
-                          <td dir="ltr">{row.status ?? '—'}</td>
-                          <td className="num" dir="ltr">
-                            {numberText(row.receivedQty)} / {numberText(row.loadedQty)}
-                          </td>
-                          <td className="num" dir="ltr">
-                            {split.expectedRemaining}
-                          </td>
-                          <td className="num" dir="ltr">
-                            {split.actualRemaining}
-                          </td>
-                          <td className="num" dir="ltr">
-                            {split.countVariance}
-                          </td>
-                          <td className="num" dir="ltr">
-                            {split.returned}
-                          </td>
-                          <td className="num" dir="ltr">
-                            {split.damaged}
-                          </td>
-                          <td className="num" dir="ltr">
-                            {split.shortage}
-                          </td>
-                          <td className="num" dir="ltr">
-                            {split.surplus}
-                          </td>
-                          <td>{stockSettlementStatusLabel(row.stockSettlementStatus ?? '')}</td>
-                          <td>{shortagePolicyStatusLabel(row.shortagePolicyStatus ?? null)}</td>
-                          <td>
-                            <div className="flex flex-wrap gap-1">
-                              {canSubmitClosing(row) && canSubmit ? (
-                                <Button onClick={() => pick(row, 'submit')} size="sm" variant="secondary">
-                                  تقديم إقفال
-                                </Button>
-                              ) : null}
-                              {canApproveClosing(row) && canApprove ? (
-                                <Button onClick={() => pick(row, 'approve')} size="sm">
-                                  اعتماد
-                                </Button>
-                              ) : null}
-                              {canSettleStock(row) && canApprove ? (
-                                <Button onClick={() => pick(row, 'settle')} size="sm" variant="secondary">
-                                  استكمال التسوية
-                                </Button>
-                              ) : null}
-                              {canCloseTransitDifference(row) && canManageLoad ? (
-                                <Button onClick={() => pick(row, 'transit')} size="sm" variant="secondary">
-                                  فرق العبور
-                                </Button>
-                              ) : null}
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+                <Table
+                  columns={[
+                    { key: 'label', header: 'الأمر', cell: (row) => custodyLabel(row) },
+                    { key: 'status', header: 'الحالة', ltr: true, cell: (row) => row.status ?? '—' },
+                    {
+                      key: 'custody',
+                      header: 'العهدة',
+                      numeric: true,
+                      ltr: true,
+                      cell: (row) => (
+                        <>
+                          {numberText(row.receivedQty)} / {numberText(row.loadedQty)}
+                        </>
+                      ),
+                    },
+                    {
+                      key: 'expected',
+                      header: 'متوقع',
+                      numeric: true,
+                      ltr: true,
+                      cell: (row) => fourWaySeparation(row).expectedRemaining,
+                    },
+                    {
+                      key: 'actual',
+                      header: 'فعلي',
+                      numeric: true,
+                      ltr: true,
+                      cell: (row) => fourWaySeparation(row).actualRemaining,
+                    },
+                    {
+                      key: 'variance',
+                      header: 'فرق الجرد',
+                      numeric: true,
+                      ltr: true,
+                      cell: (row) => fourWaySeparation(row).countVariance,
+                    },
+                    {
+                      key: 'returned',
+                      header: 'مرتجع',
+                      numeric: true,
+                      ltr: true,
+                      cell: (row) => fourWaySeparation(row).returned,
+                    },
+                    {
+                      key: 'damaged',
+                      header: 'تالف',
+                      numeric: true,
+                      ltr: true,
+                      cell: (row) => fourWaySeparation(row).damaged,
+                    },
+                    {
+                      key: 'shortage',
+                      header: 'عجز',
+                      numeric: true,
+                      ltr: true,
+                      cell: (row) => fourWaySeparation(row).shortage,
+                    },
+                    {
+                      key: 'surplus',
+                      header: 'متبقٍ',
+                      numeric: true,
+                      ltr: true,
+                      cell: (row) => fourWaySeparation(row).surplus,
+                    },
+                    {
+                      key: 'settlement',
+                      header: 'تسوية المخزون',
+                      cell: (row) => stockSettlementStatusLabel(row.stockSettlementStatus ?? ''),
+                    },
+                    {
+                      key: 'policy',
+                      header: 'سياسة العجز',
+                      cell: (row) => shortagePolicyStatusLabel(row.shortagePolicyStatus ?? null),
+                    },
+                    {
+                      key: 'actions',
+                      header: 'إجراء',
+                      cell: (row) => (
+                        <div className="flex flex-wrap gap-1">
+                          {canSubmitClosing(row) && canSubmit ? (
+                            <Button onClick={() => pick(row, 'submit')} size="sm" variant="secondary">
+                              تقديم إقفال
+                            </Button>
+                          ) : null}
+                          {canApproveClosing(row) && canApprove ? (
+                            <Button onClick={() => pick(row, 'approve')} size="sm">
+                              اعتماد
+                            </Button>
+                          ) : null}
+                          {canSettleStock(row) && canApprove ? (
+                            <Button onClick={() => pick(row, 'settle')} size="sm" variant="secondary">
+                              استكمال التسوية
+                            </Button>
+                          ) : null}
+                          {canCloseTransitDifference(row) && canManageLoad ? (
+                            <Button onClick={() => pick(row, 'transit')} size="sm" variant="secondary">
+                              فرق العبور
+                            </Button>
+                          ) : null}
+                        </div>
+                      ),
+                    },
+                  ]}
+                  rows={pending}
+                  rowKey={(row) => row.id ?? row.number ?? custodyLabel(row)}
+                />
               </div>
             )}
             <p className="m-0 mt-2 text-[12px] text-muted">
@@ -590,48 +616,50 @@ export default function CustodyPage() {
           />
           <CardBody flush>
             <div className="bak-table-wrap">
-              <table className="bak-table">
-                <thead>
-                  <tr>
-                    <th>الأمر</th>
-                    <th>الحالة</th>
-                    <th>سياسة العجز</th>
-                    <th>علم التحميل</th>
-                    <th>العجز</th>
-                    <th>المبلغ المُرحَّل</th>
-                    <th>الأساس الفعلي</th>
-                    <th>القيد</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {rows.slice(0, 20).map((row) => {
-                    const proof = chargeEvidence(row);
-                    return (
-                      <tr key={row.id ?? row.number ?? custodyLabel(row)}>
-                        <td>{custodyLabel(row)}</td>
-                        <td dir="ltr">{row.status ?? '—'}</td>
-                        <td>{shortagePolicyStatusLabel(row.shortagePolicyStatus ?? null)}</td>
-                        <td>{row.salaryDeductionApproved === true ? 'معتمد صراحةً' : 'لم يُعتمد'}</td>
-                        <td className="num" dir="ltr">
-                          {numberText(row.shortageQty)}
-                        </td>
-                        <td className="num" dir="ltr">
-                          {proof ? proof.amount : '—'}
-                        </td>
-                        <td>{proof ? proof.basisText : '—'}</td>
-                        <td dir="ltr">{proof ? proof.journalEntryId.slice(0, 8) : '—'}</td>
-                      </tr>
-                    );
-                  })}
-                  {rows.length === 0 ? (
-                    <tr>
-                      <td className="border-b border-line p-2 text-muted" colSpan={8}>
-                        لا صفوف في اللوحة بعد {loading ? '(جارٍ القراءة…)' : ''}
-                      </td>
-                    </tr>
-                  ) : null}
-                </tbody>
-              </table>
+              <Table
+                empty={<>لا صفوف في اللوحة بعد.</>}
+                columns={[
+                  { key: 'label', header: 'الأمر', cell: (row) => custodyLabel(row) },
+                  { key: 'status', header: 'الحالة', ltr: true, cell: (row) => row.status ?? '—' },
+                  {
+                    key: 'policy',
+                    header: 'سياسة العجز',
+                    cell: (row) => shortagePolicyStatusLabel(row.shortagePolicyStatus ?? null),
+                  },
+                  {
+                    key: 'approved',
+                    header: 'علم التحميل',
+                    cell: (row) => (row.salaryDeductionApproved === true ? 'معتمد صراحةً' : 'لم يُعتمد'),
+                  },
+                  {
+                    key: 'shortage',
+                    header: 'العجز',
+                    numeric: true,
+                    ltr: true,
+                    cell: (row) => numberText(row.shortageQty),
+                  },
+                  {
+                    key: 'amount',
+                    header: 'المبلغ المُرحَّل',
+                    numeric: true,
+                    ltr: true,
+                    cell: (row) => chargeEvidence(row)?.amount ?? '—',
+                  },
+                  {
+                    key: 'basis',
+                    header: 'الأساس الفعلي',
+                    cell: (row) => chargeEvidence(row)?.basisText ?? '—',
+                  },
+                  {
+                    key: 'journal',
+                    header: 'القيد',
+                    ltr: true,
+                    cell: (row) => chargeEvidence(row)?.journalEntryId.slice(0, 8) ?? '—',
+                  },
+                ]}
+                rows={rows.slice(0, 20)}
+                rowKey={(row) => row.id ?? row.number ?? custodyLabel(row)}
+              />
             </div>
           </CardBody>
         </Card>
@@ -649,44 +677,56 @@ export default function CustodyPage() {
               </p>
             ) : (
               <div className="bak-table-wrap">
-                <table className="bak-table">
-                  <thead>
-                    <tr>
-                      <th className="border-b border-line p-2 text-right font-bold">الأمر</th>
-                      <th className="border-b border-line p-2 text-right font-bold">
-                        رصيد السيارة عند الترحيل
-                      </th>
-                      <th className="border-b border-line p-2 text-right font-bold">فرق المستند (كمية)</th>
-                      <th className="border-b border-line p-2 text-right font-bold">قيمته</th>
-                      <th className="border-b border-line p-2 text-right font-bold">فرق الاعتماد</th>
-                      <th className="border-b border-line p-2 text-right font-bold">الممتصّ خارج الأمر</th>
-                      <th className="border-b border-line p-2 text-right font-bold">ملاحظة الخادم</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {absorbedAudits.map(({ row, audit }) => (
-                      <tr key={row.id}>
-                        <td>{custodyLabel(row)}</td>
-                        <td className="num" dir="ltr">
-                          {audit.documentExpectedText}
-                        </td>
-                        <td className="num" dir="ltr">
-                          {audit.documentVarianceQtyText}
-                        </td>
-                        <td className="num" dir="ltr">
-                          {audit.documentVarianceValueText}
-                        </td>
-                        <td className="num" dir="ltr">
-                          {audit.approvedVarianceText}
-                        </td>
-                        <td className="border-b border-line p-2 num font-extrabold text-warn-ink" dir="ltr">
-                          {audit.absorbedQtyText}
-                        </td>
-                        <td className="border-b border-line p-2 text-muted">{audit.noteText ?? '—'}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                <Table
+                  columns={[
+                    { key: 'label', header: 'الأمر', cell: ({ row }) => custodyLabel(row) },
+                    {
+                      key: 'expected',
+                      header: 'رصيد السيارة عند الترحيل',
+                      numeric: true,
+                      ltr: true,
+                      cell: ({ audit }) => audit.documentExpectedText,
+                    },
+                    {
+                      key: 'qty',
+                      header: 'فرق المستند (كمية)',
+                      numeric: true,
+                      ltr: true,
+                      cell: ({ audit }) => audit.documentVarianceQtyText,
+                    },
+                    {
+                      key: 'value',
+                      header: 'قيمته',
+                      numeric: true,
+                      ltr: true,
+                      cell: ({ audit }) => audit.documentVarianceValueText,
+                    },
+                    {
+                      key: 'approved',
+                      header: 'فرق الاعتماد',
+                      numeric: true,
+                      ltr: true,
+                      cell: ({ audit }) => audit.approvedVarianceText,
+                    },
+                    {
+                      key: 'absorbed',
+                      header: 'الممتصّ خارج الأمر',
+                      numeric: true,
+                      ltr: true,
+                      cellStyle: () => ({ fontWeight: 800 }),
+                      cell: ({ audit }) => (
+                        <span className="font-extrabold text-warn-ink">{audit.absorbedQtyText}</span>
+                      ),
+                    },
+                    {
+                      key: 'note',
+                      header: 'ملاحظة الخادم',
+                      cell: ({ audit }) => <span className="text-muted">{audit.noteText ?? '—'}</span>,
+                    },
+                  ]}
+                  rows={absorbedAudits}
+                  rowKey={({ row }) => row.id ?? custodyLabel(row)}
+                />
               </div>
             )}
           </CardBody>

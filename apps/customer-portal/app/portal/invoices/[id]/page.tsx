@@ -6,6 +6,7 @@ import { use, useState } from 'react';
 
 import { Empty } from '../../../../components/card';
 import { PortalShell } from '../../../../components/portal-shell';
+import { PortalTable } from '../../../../components/table';
 import { fetchInvoice, fetchInvoiceHtml, openPrintWindow } from '../../../../lib/api';
 import { dateText, moneyText } from '../../../../lib/format';
 import { useAsync } from '../../../../lib/use-async';
@@ -86,104 +87,86 @@ function InvoiceDetail({ id }: { id: string }) {
         }
       />
 
-      <Panel title="بنود الفاتورة" hint={`${lines.length} بند`} flush>
+      <Panel title="بنود الفاتورة" hint={`عدد البنود: ${lines.length}`} flush>
         {printError ? (
           <p className="panel-state" role="alert">
             {printError}
           </p>
         ) : null}
-        <div className="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>#</th>
-                <th>الصنف</th>
-                <th>الوحدة</th>
-                <th>الكمية</th>
-                <th>السعر</th>
-                <th>الخصم</th>
-                <th>الصافي</th>
-                <th>الضريبة</th>
-                <th>الإجمالي</th>
-              </tr>
-            </thead>
-            <tbody>
-              {lines.map((line) => (
-                <tr key={line.line_no}>
-                  <td>{line.line_no}</td>
-                  <td>{line.name}</td>
-                  <td>{line.unit ?? '—'}</td>
-                  <td>{line.quantity}</td>
-                  <td>{moneyText(line.unit_price)}</td>
-                  <td>{moneyText(line.discount_amount)}</td>
-                  <td>{moneyText(line.net)}</td>
-                  <td>{moneyText(line.tax)}</td>
-                  <td>
-                    <strong>{moneyText(line.total)}</strong>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <PortalTable
+          bare
+          empty={<>لا بنود في هذه الفاتورة.</>}
+          columns={[
+            { key: 'line', header: '#', ltr: true, cell: (line) => line.line_no },
+            { key: 'name', header: 'الصنف', cell: (line) => line.name },
+            { key: 'unit', header: 'الوحدة', cell: (line) => line.unit ?? '—' },
+            {
+              key: 'qty',
+              header: 'الكمية',
+              numeric: true,
+              ltr: true,
+              cell: (line) => line.quantity,
+            },
+            { key: 'price', header: 'السعر', numeric: true, cell: (line) => moneyText(line.unit_price) },
+            {
+              key: 'discount',
+              header: 'الخصم',
+              numeric: true,
+              cell: (line) => moneyText(line.discount_amount),
+            },
+            { key: 'net', header: 'الصافي', numeric: true, cell: (line) => moneyText(line.net) },
+            { key: 'tax', header: 'الضريبة', numeric: true, cell: (line) => moneyText(line.tax) },
+            {
+              key: 'total',
+              header: 'الإجمالي',
+              numeric: true,
+              cell: (line) => <strong>{moneyText(line.total)}</strong>,
+            },
+          ]}
+          rows={lines}
+          rowKey={(line) => String(line.line_no)}
+        />
       </Panel>
 
       <div className="grid cols">
         <Panel title="الإجماليات" flush>
-          <div className="table-wrap">
-            <table>
-              <tbody>
-                <tr>
-                  <td>الصافي قبل الضريبة</td>
-                  <td>{moneyText(invoice.subtotal)}</td>
-                </tr>
-                <tr>
-                  <td>ضريبة القيمة المضافة</td>
-                  <td>{moneyText(invoice.tax_total)}</td>
-                </tr>
-                <tr>
-                  <td>
-                    <strong>الإجمالي</strong>
-                  </td>
-                  <td>
-                    <strong>{moneyText(invoice.total)}</strong>
-                  </td>
-                </tr>
-                <tr>
-                  <td>المسدد</td>
-                  <td>{moneyText(invoice.paid_total)}</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+          <PortalTable
+            bare
+            headless
+            columns={[
+              { key: 'label', header: '', cell: (row) => row.label },
+              { key: 'value', header: '', cell: (row) => row.value },
+            ]}
+            rows={[
+              { label: 'الصافي قبل الضريبة', value: moneyText(invoice.subtotal) },
+              { label: 'ضريبة القيمة المضافة', value: moneyText(invoice.tax_total) },
+              { label: <strong>الإجمالي</strong>, value: <strong>{moneyText(invoice.total)}</strong> },
+              { label: 'المسدد', value: moneyText(invoice.paid_total) },
+            ]}
+            rowKey={(row, index) => `${index}`}
+          />
         </Panel>
 
         <Panel title="الدفعات على الفاتورة" flush>
           {payments.length === 0 ? (
             <Empty bare title="لم تُسجَّل دفعات" detail="تظهر هنا كل دفعة تُسجَّل على هذه الفاتورة." />
           ) : (
-            <div className="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>التاريخ</th>
-                    <th>الطريقة</th>
-                    <th>المبلغ</th>
-                    <th>المرجع</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {payments.map((payment, index) => (
-                    <tr key={`${payment.created_at}-${index}`}>
-                      <td>{dateText(payment.created_at ?? '')}</td>
-                      <td>{payment.method}</td>
-                      <td>{moneyText(payment.amount ?? '0')}</td>
-                      <td>{payment.reference ?? '—'}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <PortalTable
+              bare
+              columns={[
+                { key: 'date', header: 'التاريخ', cell: (payment) => dateText(payment.created_at ?? '') },
+                { key: 'method', header: 'الطريقة', cell: (payment) => payment.method },
+                {
+                  key: 'amount',
+                  header: 'المبلغ',
+                  numeric: true,
+                  cell: (payment) => moneyText(payment.amount ?? '0'),
+                },
+                { key: 'reference', header: 'المرجع', cell: (payment) => payment.reference ?? '—' },
+              ]}
+              rows={payments}
+              rowKey={(payment, index) => `${payment.created_at}-${index}`}
+            />
           )}
         </Panel>
       </div>

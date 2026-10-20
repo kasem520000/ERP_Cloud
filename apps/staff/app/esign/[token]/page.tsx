@@ -4,7 +4,7 @@ import { useParams } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 import { Panel } from '@erp/ui';
 
-import { money } from '../../../lib/lookups';
+import { money, quantity } from '../../../lib/lookups';
 import { SupplierError, supplierFetch } from '../../../lib/supplier-portal';
 import { Table } from '../../../components/ui/table';
 
@@ -176,13 +176,13 @@ export default function EsignPage() {
                   {
                     key: 'c0',
                     header: 'البيان',
-                    cell: (line) => line.description || 'بند',
+                    cell: (line) => line.description || (line.lineNo ? `بند ${line.lineNo}` : 'بند بلا وصف'),
                   },
                   {
                     key: 'c1',
                     header: 'الكمية',
                     numeric: true,
-                    cell: (line) => line.quantity,
+                    cell: (line) => quantity(line.quantity),
                   },
                   {
                     key: 'c2',

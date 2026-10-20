@@ -2162,14 +2162,16 @@ h4 {
   border: 1px solid var(--side-line);
   color: var(--side-ink);
   border-radius: 10px;
-  padding: 9px 12px 9px 34px;
+  /* الحقلُ يعرف اتجاهه: 34px على جهة بداية السطر ليتّسع لأيقونة البحث، و12px
+   * على جهة نهايته. كان الحشو فيزيائياً فبدأ النصّ من فوق الأيقونة في RTL. */
+  padding-block: 9px;
+  padding-inline: 34px 12px;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%2393a8bb' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='m20 20-3.2-3.2'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 12px center;
   font-size: 12.5px;
 }
 [dir='ltr'] .nav-search {
-  padding: 9px 12px 9px 34px;
   background-position: left 12px center;
 }
 [dir='rtl'] .nav-search {

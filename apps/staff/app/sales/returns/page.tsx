@@ -1,7 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { FormActions, FormGrid, Panel } from '@erp/ui';
+import { FormActions, FormGrid, Panel, TableFrame } from '@erp/ui';
 import { useState } from 'react';
 
 import { Notice } from '../../../components/data-view';
@@ -134,44 +134,42 @@ export default function SalesReturnsPage() {
           </FormGrid>
 
           {source.data ? (
-            <div className="table-wrap">
-              <table className="w-full">
-                <thead>
-                  <tr>
-                    <th>المادة</th>
-                    <th>الكمية المباعة</th>
-                    <th>السعر</th>
-                    <th>الكمية المرتجعة</th>
+            <TableFrame tableClassName="w-full">
+              <thead>
+                <tr>
+                  <th>المادة</th>
+                  <th>الكمية المباعة</th>
+                  <th>السعر</th>
+                  <th>الكمية المرتجعة</th>
+                </tr>
+              </thead>
+              <tbody>
+                {source.data.lines.map((line) => (
+                  <tr key={line.id}>
+                    <td>
+                      {(() => {
+                        const item = (items.data ?? []).find((entry) => entry.id === line.itemId);
+                        return item ? itemLabel(item) : (line.description ?? '—');
+                      })()}
+                    </td>
+                    <td className="num">{quantity(line.quantity)}</td>
+                    <td className="num">{money(line.unitPrice)}</td>
+                    <td>
+                      <input
+                        className="input"
+                        dir="ltr"
+                        inputMode="decimal"
+                        disabled={!line.itemId}
+                        value={quantities[line.id] ?? ''}
+                        onChange={(event) =>
+                          setQuantities((current) => ({ ...current, [line.id]: event.target.value }))
+                        }
+                      />
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {source.data.lines.map((line) => (
-                    <tr key={line.id}>
-                      <td>
-                        {(() => {
-                          const item = (items.data ?? []).find((entry) => entry.id === line.itemId);
-                          return item ? itemLabel(item) : (line.description ?? '—');
-                        })()}
-                      </td>
-                      <td className="num">{quantity(line.quantity)}</td>
-                      <td className="num">{money(line.unitPrice)}</td>
-                      <td>
-                        <input
-                          className="input"
-                          dir="ltr"
-                          inputMode="decimal"
-                          disabled={!line.itemId}
-                          value={quantities[line.id] ?? ''}
-                          onChange={(event) =>
-                            setQuantities((current) => ({ ...current, [line.id]: event.target.value }))
-                          }
-                        />
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                ))}
+              </tbody>
+            </TableFrame>
           ) : (
             <p className="m-0 text-[12.5px] text-muted">اختر فاتورةً لعرض أسطرها وتحديد الكميات المرتجعة.</p>
           )}

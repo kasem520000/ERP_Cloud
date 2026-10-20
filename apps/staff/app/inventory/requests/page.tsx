@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Panel } from '@erp/ui';
+import { Panel, TableFrame } from '@erp/ui';
 
 import { DataTable, Notice, QueryView } from '../../../components/data-view';
 import { Screen } from '../../../components/screen';
@@ -287,65 +287,63 @@ export default function GoodsRequestsPage() {
             </div>
 
             <h3>الأصناف المطلوبة</h3>
-            <div className="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>المادة</th>
-                    <th>الكمية</th>
-                    <th>ملاحظة</th>
-                    <th />
+            <TableFrame>
+              <thead>
+                <tr>
+                  <th>المادة</th>
+                  <th>الكمية</th>
+                  <th>ملاحظة</th>
+                  <th />
+                </tr>
+              </thead>
+              <tbody>
+                {lines.map((line, index) => (
+                  <tr key={index}>
+                    <td>
+                      <select
+                        className="input"
+                        value={line.itemId}
+                        onChange={(event) => updateLine(index, { itemId: event.target.value })}
+                      >
+                        <option value="">— اختر —</option>
+                        {itemRows.map((row) => (
+                          <option key={row.id} value={row.id}>
+                            {itemLabel(row)}
+                          </option>
+                        ))}
+                      </select>
+                    </td>
+                    <td>
+                      <input
+                        className="input"
+                        dir="ltr"
+                        inputMode="decimal"
+                        value={line.qtyText}
+                        onChange={(event) => updateLine(index, { qtyText: event.target.value })}
+                      />
+                    </td>
+                    <td>
+                      <input
+                        className="input"
+                        value={line.note}
+                        onChange={(event) => updateLine(index, { note: event.target.value })}
+                      />
+                    </td>
+                    <td>
+                      <button
+                        className="btn sm"
+                        type="button"
+                        onClick={() =>
+                          setLines((current) => current.filter((_, position) => position !== index))
+                        }
+                      >
+                        حذف
+                      </button>
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {lines.map((line, index) => (
-                    <tr key={index}>
-                      <td>
-                        <select
-                          className="input"
-                          value={line.itemId}
-                          onChange={(event) => updateLine(index, { itemId: event.target.value })}
-                        >
-                          <option value="">— اختر —</option>
-                          {itemRows.map((row) => (
-                            <option key={row.id} value={row.id}>
-                              {itemLabel(row)}
-                            </option>
-                          ))}
-                        </select>
-                      </td>
-                      <td>
-                        <input
-                          className="input"
-                          dir="ltr"
-                          inputMode="decimal"
-                          value={line.qtyText}
-                          onChange={(event) => updateLine(index, { qtyText: event.target.value })}
-                        />
-                      </td>
-                      <td>
-                        <input
-                          className="input"
-                          value={line.note}
-                          onChange={(event) => updateLine(index, { note: event.target.value })}
-                        />
-                      </td>
-                      <td>
-                        <button
-                          className="btn sm"
-                          type="button"
-                          onClick={() =>
-                            setLines((current) => current.filter((_, position) => position !== index))
-                          }
-                        >
-                          حذف
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                ))}
+              </tbody>
+            </TableFrame>
             <button
               className="btn sm"
               type="button"
@@ -388,36 +386,34 @@ export default function GoodsRequestsPage() {
               </select>
             </label>
           </div>
-          <div className="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>المادة</th>
-                  <th>المطلوب</th>
-                  <th>المعتمد</th>
+          <TableFrame>
+            <thead>
+              <tr>
+                <th>المادة</th>
+                <th>المطلوب</th>
+                <th>المعتمد</th>
+              </tr>
+            </thead>
+            <tbody>
+              {decision.lines.map((line) => (
+                <tr key={line.lineNo}>
+                  <td>{nameOfItem(line.itemId)}</td>
+                  <td className="num">{quantity(line.qty)}</td>
+                  <td>
+                    <input
+                      className="input"
+                      dir="ltr"
+                      inputMode="decimal"
+                      value={approvedQty[line.lineNo] ?? line.qty}
+                      onChange={(event) =>
+                        setApprovedQty((current) => ({ ...current, [line.lineNo]: event.target.value }))
+                      }
+                    />
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {decision.lines.map((line) => (
-                  <tr key={line.lineNo}>
-                    <td>{nameOfItem(line.itemId)}</td>
-                    <td className="num">{quantity(line.qty)}</td>
-                    <td>
-                      <input
-                        className="input"
-                        dir="ltr"
-                        inputMode="decimal"
-                        value={approvedQty[line.lineNo] ?? line.qty}
-                        onChange={(event) =>
-                          setApprovedQty((current) => ({ ...current, [line.lineNo]: event.target.value }))
-                        }
-                      />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+              ))}
+            </tbody>
+          </TableFrame>
           <label className="field wide">
             <span>سبب الرفض (عند الرفض فقط)</span>
             <input

@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { FilterBand, Panel } from '@erp/ui';
+import { FilterBand, Panel, TableFrame } from '@erp/ui';
 import { useEffect, useMemo, useState } from 'react';
 
 import { Empty, ErrorBox, Forbidden, Loading, Screen } from '../../../components/screen';
@@ -463,73 +463,68 @@ export default function AccountStatementPage() {
             {rows.length === 0 ? (
               <Empty title="لا توجد حركات على هذا الحساب في المدى المحدد" />
             ) : (
-              <div className="table-wrap">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>م</th>
-                      <th>التاريخ</th>
-                      <th>النوع</th>
-                      <th>رقم السند</th>
-                      <th>الرقم العام</th>
-                      <th>الفرع</th>
-                      <th>البيان</th>
-                      {descendants && <th>رمز الحساب</th>}
-                      {descendants && <th>الحساب</th>}
-                      {showDebit && <th className="num">مدين</th>}
-                      {showCredit && <th className="num">دائن</th>}
-                      {!descendants && <th className="num">الرصيد</th>}
-                      {!descendants && <th>الحالة</th>}
-                      <th>تفاصيل</th>
+              <TableFrame>
+                <thead>
+                  <tr>
+                    <th>م</th>
+                    <th>التاريخ</th>
+                    <th>النوع</th>
+                    <th>رقم السند</th>
+                    <th>الرقم العام</th>
+                    <th>الفرع</th>
+                    <th>البيان</th>
+                    {descendants && <th>رمز الحساب</th>}
+                    {descendants && <th>الحساب</th>}
+                    {showDebit && <th className="num">مدين</th>}
+                    {showCredit && <th className="num">دائن</th>}
+                    {!descendants && <th className="num">الرصيد</th>}
+                    {!descendants && <th>الحالة</th>}
+                    <th>تفاصيل</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map((row) => (
+                    <tr
+                      key={`${row.rank}-${row.entryId ?? 'opening'}`}
+                      className={row.rank === 0 ? 'opening' : undefined}
+                    >
+                      <td dir="ltr">{row.rank === 0 ? '' : row.rank}</td>
+                      <td dir="ltr">{row.date}</td>
+                      <td>{row.entryType}</td>
+                      <td dir="ltr">{row.number ?? '—'}</td>
+                      <td dir="ltr" title={row.entryId ?? ''}>
+                        {row.entryId ? row.entryId.slice(0, 8) : '—'}
+                      </td>
+                      <td>{row.branchName ?? '—'}</td>
+                      <td>{row.description ?? '—'}</td>
+                      {descendants && <td dir="ltr">{row.accountCode ?? '—'}</td>}
+                      {descendants && <td>{row.accountName ?? '—'}</td>}
+                      {showDebit && <td className="num">{money(row.debit)}</td>}
+                      {showCredit && <td className="num">{money(row.credit)}</td>}
+                      {!descendants && <td className="num">{money(row.runningBalance ?? '')}</td>}
+                      {!descendants && <td>{row.balanceStatus ?? '—'}</td>}
+                      <td>
+                        {/* — يفتح القيد في شاشته (R10)، حيث متنقّل وطباعته. */}
+                        {row.entryId ? (
+                          <Link className="btn sm" href={`/accounting/journal-entries/${row.entryId}`}></Link>
+                        ) : (
+                          '—'
+                        )}
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody>
-                    {rows.map((row) => (
-                      <tr
-                        key={`${row.rank}-${row.entryId ?? 'opening'}`}
-                        className={row.rank === 0 ? 'opening' : undefined}
-                      >
-                        <td dir="ltr">{row.rank === 0 ? '' : row.rank}</td>
-                        <td dir="ltr">{row.date}</td>
-                        <td>{row.entryType}</td>
-                        <td dir="ltr">{row.number ?? '—'}</td>
-                        <td dir="ltr" title={row.entryId ?? ''}>
-                          {row.entryId ? row.entryId.slice(0, 8) : '—'}
-                        </td>
-                        <td>{row.branchName ?? '—'}</td>
-                        <td>{row.description ?? '—'}</td>
-                        {descendants && <td dir="ltr">{row.accountCode ?? '—'}</td>}
-                        {descendants && <td>{row.accountName ?? '—'}</td>}
-                        {showDebit && <td className="num">{money(row.debit)}</td>}
-                        {showCredit && <td className="num">{money(row.credit)}</td>}
-                        {!descendants && <td className="num">{money(row.runningBalance ?? '')}</td>}
-                        {!descendants && <td>{row.balanceStatus ?? '—'}</td>}
-                        <td>
-                          {/* — يفتح القيد في شاشته (R10)، حيث متنقّل وطباعته. */}
-                          {row.entryId ? (
-                            <Link
-                              className="btn sm"
-                              href={`/accounting/journal-entries/${row.entryId}`}
-                            ></Link>
-                          ) : (
-                            '—'
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                  <tfoot>
-                    <tr>
-                      <th colSpan={descendants ? 8 : 7}>الإجمالي</th>
-                      {showDebit && <th className="num">{money(totals.debit)}</th>}
-                      {showCredit && <th className="num">{money(totals.credit)}</th>}
-                      {!descendants && <th className="num">{money(totals.closing)}</th>}
-                      {!descendants && <th>{totals.closingStatus ?? '—'}</th>}
-                      <th />
-                    </tr>
-                  </tfoot>
-                </table>
-              </div>
+                  ))}
+                </tbody>
+                <tfoot>
+                  <tr>
+                    <th colSpan={descendants ? 8 : 7}>الإجمالي</th>
+                    {showDebit && <th className="num">{money(totals.debit)}</th>}
+                    {showCredit && <th className="num">{money(totals.credit)}</th>}
+                    {!descendants && <th className="num">{money(totals.closing)}</th>}
+                    {!descendants && <th>{totals.closingStatus ?? '—'}</th>}
+                    <th />
+                  </tr>
+                </tfoot>
+              </TableFrame>
             )}
           </Panel>
         </>

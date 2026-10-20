@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { Panel } from '@erp/ui';
+import { Panel, TableFrame } from '@erp/ui';
 
 import { Screen } from '../../../components/screen';
 import { code128Bars, sanitizeBarcode } from '../../../lib/barcode';
@@ -98,50 +98,48 @@ export default function BarcodesPage() {
           <div className="alert warn">بعض الأصناف المختارة بلا باركود أو رمز صنف، ولن تُطبع لها ملصقات.</div>
         ) : null}
 
-        <div className="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>الصنف</th>
-                <th>الباركود</th>
-                <th>السعر</th>
-                <th>عدد الملصقات</th>
+        <TableFrame>
+          <thead>
+            <tr>
+              <th>الصنف</th>
+              <th>الباركود</th>
+              <th>السعر</th>
+              <th>عدد الملصقات</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filtered.map((item) => (
+              <tr key={item.id}>
+                <td>{itemLabel(item)}</td>
+                <td dir="ltr">{barcodeOf(item) || '—'}</td>
+                <td className="num">{money(item.salePrice ?? item.sale_price ?? '0')}</td>
+                <td>
+                  <input
+                    className="input"
+                    dir="ltr"
+                    type="number"
+                    min={0}
+                    max={60}
+                    value={copies[item.id] ?? 0}
+                    onChange={(event) =>
+                      setCopies({
+                        ...copies,
+                        [item.id]: Math.max(0, Math.min(60, Number(event.target.value) || 0)),
+                      })
+                    }
+                  />
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {filtered.map((item) => (
-                <tr key={item.id}>
-                  <td>{itemLabel(item)}</td>
-                  <td dir="ltr">{barcodeOf(item) || '—'}</td>
-                  <td className="num">{money(item.salePrice ?? item.sale_price ?? '0')}</td>
-                  <td>
-                    <input
-                      className="input"
-                      dir="ltr"
-                      type="number"
-                      min={0}
-                      max={60}
-                      value={copies[item.id] ?? 0}
-                      onChange={(event) =>
-                        setCopies({
-                          ...copies,
-                          [item.id]: Math.max(0, Math.min(60, Number(event.target.value) || 0)),
-                        })
-                      }
-                    />
-                  </td>
-                </tr>
-              ))}
-              {filtered.length === 0 ? (
-                <tr>
-                  <td colSpan={4} className="muted">
-                    لا توجد أصناف مطابقة.
-                  </td>
-                </tr>
-              ) : null}
-            </tbody>
-          </table>
-        </div>
+            ))}
+            {filtered.length === 0 ? (
+              <tr>
+                <td colSpan={4} className="muted">
+                  لا توجد أصناف مطابقة.
+                </td>
+              </tr>
+            ) : null}
+          </tbody>
+        </TableFrame>
       </Panel>
 
       {labels.length > 0 ? (

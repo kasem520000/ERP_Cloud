@@ -1,6 +1,6 @@
 'use client';
 
-import { FilterBand, Panel } from '@erp/ui';
+import { FilterBand, Panel, TableFrame } from '@erp/ui';
 import { Suspense, useState } from 'react';
 
 import { Empty, ErrorBox, Forbidden, Loading, Screen } from '../../../components/screen';
@@ -213,57 +213,55 @@ function SalaryReport() {
                 detail="أوقف «كل الفترة» وحدّد شهراً وسنة، أو أنشئ إذن صرف من شاشة «دفع الرواتب»."
               />
             ) : (
-              <div className="table-wrap">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>م</th>
-                      <th>رقم السند</th>
-                      <th>الموظف</th>
-                      <th>الشهر</th>
-                      <th>السنة</th>
-                      <th className="num">الراتب الأساسي</th>
-                      <th className="num">بدل سكن</th>
-                      <th className="num">بدل مواصلات</th>
-                      <th className="num">الحوافز</th>
-                      <th className="num">الإجمالي</th>
-                      <th className="num">الخصومات</th>
-                      <th className="num">صافي الراتب</th>
+              <TableFrame>
+                <thead>
+                  <tr>
+                    <th>م</th>
+                    <th>رقم السند</th>
+                    <th>الموظف</th>
+                    <th>الشهر</th>
+                    <th>السنة</th>
+                    <th className="num">الراتب الأساسي</th>
+                    <th className="num">بدل سكن</th>
+                    <th className="num">بدل مواصلات</th>
+                    <th className="num">الحوافز</th>
+                    <th className="num">الإجمالي</th>
+                    <th className="num">الخصومات</th>
+                    <th className="num">صافي الراتب</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map((row) => (
+                    <tr key={row.id}>
+                      <td dir="ltr">{row.seq}</td>
+                      <td dir="ltr">{row.number}</td>
+                      <td>
+                        {row.employeeNo ? `${row.employeeNo} — ` : ''}
+                        {row.employeeName}
+                        {/* «إذنٌ بلا صرف» — the window reads every `SalaryPay` with `IS_Deleted=0`. */}
+                        {row.posted ? '' : ' (بلا سند)'}
+                      </td>
+                      <td dir="ltr">{row.month}</td>
+                      <td dir="ltr">{row.year}</td>
+                      <td className="num">{money(row.basic)}</td>
+                      <td className="num">{money(row.housing)}</td>
+                      <td className="num">{money(row.transport)}</td>
+                      <td className="num">{money(row.additions)}</td>
+                      <td className="num">{money(row.gross)}</td>
+                      <td className="num">{money(row.deductions)}</td>
+                      <td className="num">{money(row.net)}</td>
                     </tr>
-                  </thead>
-                  <tbody>
-                    {rows.map((row) => (
-                      <tr key={row.id}>
-                        <td dir="ltr">{row.seq}</td>
-                        <td dir="ltr">{row.number}</td>
-                        <td>
-                          {row.employeeNo ? `${row.employeeNo} — ` : ''}
-                          {row.employeeName}
-                          {/* «إذنٌ بلا صرف» — the window reads every `SalaryPay` with `IS_Deleted=0`. */}
-                          {row.posted ? '' : ' (بلا سند)'}
-                        </td>
-                        <td dir="ltr">{row.month}</td>
-                        <td dir="ltr">{row.year}</td>
-                        <td className="num">{money(row.basic)}</td>
-                        <td className="num">{money(row.housing)}</td>
-                        <td className="num">{money(row.transport)}</td>
-                        <td className="num">{money(row.additions)}</td>
-                        <td className="num">{money(row.gross)}</td>
-                        <td className="num">{money(row.deductions)}</td>
-                        <td className="num">{money(row.net)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                  <tfoot>
-                    <tr>
-                      <th colSpan={9}>إجمالي الرواتب</th>
-                      <th className="num">{money(totals.gross)}</th>
-                      <th className="num">{money(totals.deductions)}</th>
-                      <th className="num">{money(totals.total)}</th>
-                    </tr>
-                  </tfoot>
-                </table>
-              </div>
+                  ))}
+                </tbody>
+                <tfoot>
+                  <tr>
+                    <th colSpan={9}>إجمالي الرواتب</th>
+                    <th className="num">{money(totals.gross)}</th>
+                    <th className="num">{money(totals.deductions)}</th>
+                    <th className="num">{money(totals.total)}</th>
+                  </tr>
+                </tfoot>
+              </TableFrame>
             )}
           </Panel>
         </>

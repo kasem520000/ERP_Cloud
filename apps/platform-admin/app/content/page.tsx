@@ -1273,120 +1273,140 @@ function MenusTab() {
                 لا عناصر — القائمة تُبنى من الموقع الافتراضي حين تكون فارغة.
               </p>
             ) : (
-              <div className="table-wrap">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>المفتاح</th>
-                      <th>الرابط</th>
-                      <th>التسمية بالعربية</th>
-                      <th>بالإنجليزية</th>
-                      <th>وسم</th>
-                      <th />
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {items.map((row, index) => (
-                      <tr key={`${position}-${index}`}>
-                        <td>
-                          <input
-                            className="input"
-                            value={row.key}
-                            onChange={(event) => {
-                              const next = [...items];
-                              next[index] = { ...row, key: event.target.value };
-                              setItems(position, next);
-                            }}
-                          />
-                        </td>
-                        <td>
-                          <input
-                            className="input"
-                            value={row.href}
-                            onChange={(event) => {
-                              const next = [...items];
-                              next[index] = { ...row, href: event.target.value };
-                              setItems(position, next);
-                            }}
-                          />
-                        </td>
-                        <td>
-                          <input
-                            className="input"
-                            value={row.labelAr}
-                            onChange={(event) => {
-                              const next = [...items];
-                              next[index] = { ...row, labelAr: event.target.value };
-                              setItems(position, next);
-                            }}
-                          />
-                        </td>
-                        <td>
-                          <input
-                            className="input"
-                            value={row.labelEn ?? ''}
-                            onChange={(event) => {
-                              const next = [...items];
-                              next[index] = { ...row, labelEn: orNull(event.target.value) };
-                              setItems(position, next);
-                            }}
-                          />
-                        </td>
-                        <td>
-                          <input
-                            className="input"
-                            value={row.badgeAr ?? ''}
-                            placeholder="جديد"
-                            onChange={(event) => {
-                              const next = [...items];
-                              next[index] = { ...row, badgeAr: orNull(event.target.value) };
-                              setItems(position, next);
-                            }}
-                          />
-                        </td>
-                        <td>
-                          <div className="row">
-                            <button
-                              type="button"
-                              className="btn sm"
-                              disabled={index === 0}
-                              onClick={() => {
-                                const next = [...items];
-                                const [moved] = next.splice(index, 1);
-                                if (moved) next.splice(index - 1, 0, moved);
-                                setItems(position, next);
-                              }}
-                            ></button>
-                            <button
-                              type="button"
-                              className="btn sm"
-                              disabled={index === items.length - 1}
-                              onClick={() => {
-                                const next = [...items];
-                                const [moved] = next.splice(index, 1);
-                                if (moved) next.splice(index + 1, 0, moved);
-                                setItems(position, next);
-                              }}
-                            ></button>
-                            <button
-                              type="button"
-                              className="btn sm danger"
-                              onClick={() =>
-                                setItems(
-                                  position,
-                                  items.filter((_, at) => at !== index),
-                                )
-                              }
-                            >
-                              حذف
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <Table
+                bare
+                dense
+                rowKey={(row, index) => `${position}-${index}`}
+                rows={items}
+                columns={[
+                  {
+                    key: 'key',
+                    header: 'المفتاح',
+                    cell: (row, index) => (
+                      <input
+                        className="input"
+                        value={row.key}
+                        onChange={(event) => {
+                          const next = [...items];
+                          next[index] = { ...row, key: event.target.value };
+                          setItems(position, next);
+                        }}
+                      />
+                    ),
+                  },
+                  {
+                    key: 'href',
+                    header: 'الرابط',
+                    cell: (row, index) => (
+                      <input
+                        className="input"
+                        dir="ltr"
+                        value={row.href}
+                        onChange={(event) => {
+                          const next = [...items];
+                          next[index] = { ...row, href: event.target.value };
+                          setItems(position, next);
+                        }}
+                      />
+                    ),
+                  },
+                  {
+                    key: 'labelAr',
+                    header: 'التسمية بالعربية',
+                    cell: (row, index) => (
+                      <input
+                        className="input"
+                        value={row.labelAr}
+                        onChange={(event) => {
+                          const next = [...items];
+                          next[index] = { ...row, labelAr: event.target.value };
+                          setItems(position, next);
+                        }}
+                      />
+                    ),
+                  },
+                  {
+                    key: 'labelEn',
+                    header: 'بالإنجليزية',
+                    cell: (row, index) => (
+                      <input
+                        className="input"
+                        dir="ltr"
+                        value={row.labelEn ?? ''}
+                        onChange={(event) => {
+                          const next = [...items];
+                          next[index] = { ...row, labelEn: orNull(event.target.value) };
+                          setItems(position, next);
+                        }}
+                      />
+                    ),
+                  },
+                  {
+                    key: 'badge',
+                    header: 'وسم',
+                    cell: (row, index) => (
+                      <input
+                        className="input"
+                        value={row.badgeAr ?? ''}
+                        placeholder="جديد"
+                        onChange={(event) => {
+                          const next = [...items];
+                          next[index] = { ...row, badgeAr: orNull(event.target.value) };
+                          setItems(position, next);
+                        }}
+                      />
+                    ),
+                  },
+                  {
+                    key: 'actions',
+                    header: '',
+                    cell: (row, index) => (
+                      <div className="row">
+                        <button
+                          type="button"
+                          className="btn sm"
+                          aria-label="أعلى"
+                          disabled={index === 0}
+                          onClick={() => {
+                            const next = [...items];
+                            const [moved] = next.splice(index, 1);
+                            if (moved) next.splice(index - 1, 0, moved);
+                            setItems(position, next);
+                          }}
+                        >
+                          ↑
+                        </button>
+                        <button
+                          type="button"
+                          className="btn sm"
+                          aria-label="أسفل"
+                          disabled={index === items.length - 1}
+                          onClick={() => {
+                            const next = [...items];
+                            const [moved] = next.splice(index, 1);
+                            if (moved) next.splice(index + 1, 0, moved);
+                            setItems(position, next);
+                          }}
+                        >
+                          ↓
+                        </button>
+                        <button
+                          type="button"
+                          className="btn sm danger"
+                          onClick={() =>
+                            setItems(
+                              position,
+                              items.filter((_, at) => at !== index),
+                            )
+                          }
+                        >
+                          حذف
+                        </button>
+                      </div>
+                    ),
+                  },
+                ]}
+              />
             )}
             <p className="muted small" style={{ margin: 0 }}>
               آخر تحديث: {dateTime(byPosition.get(position)?.updatedAt)} — الرابط يبدأ بـ`/` أو `https://` أو

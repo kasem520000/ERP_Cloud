@@ -5,6 +5,7 @@ import { Decimal } from 'decimal.js';
 
 import { Empty } from '../../../components/card';
 import { PortalShell } from '../../../components/portal-shell';
+import { PortalTable } from '../../../components/table';
 import { fetchPayments } from '../../../lib/api';
 import { dateText, moneyText } from '../../../lib/format';
 import { useAsync } from '../../../lib/use-async';
@@ -53,38 +54,32 @@ function Payments() {
         ) : rows.length === 0 ? (
           <Empty bare title="لم تُسجَّل سندات بعد" detail="يظهر هنا كل سند قبض مرحّل على حسابك لدى المورد." />
         ) : (
-          <div className="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>الرقم</th>
-                  <th>التاريخ</th>
-                  <th>النوع</th>
-                  <th>طريقة الدفع</th>
-                  <th>المبلغ</th>
-                  <th>المرجع</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((row) => (
-                  <tr key={row.id}>
-                    <td>{row.number ?? '—'}</td>
-                    <td>{dateText(row.day)}</td>
-                    <td>{KIND_AR[row.kind] ?? row.kind}</td>
-                    <td>{METHOD_AR[row.method] ?? row.method}</td>
-                    <td>
-                      <strong>{moneyText(row.amount)}</strong>
-                    </td>
-                    <td>
-                      {(row as unknown as Record<string, string>).reference_no ??
-                        (row as unknown as Record<string, string>).cheque_no ??
-                        '—'}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <PortalTable
+            bare
+            columns={[
+              { key: 'number', header: 'الرقم', cell: (row) => row.number ?? '—' },
+              { key: 'date', header: 'التاريخ', cell: (row) => dateText(row.day) },
+              { key: 'kind', header: 'النوع', cell: (row) => KIND_AR[row.kind] ?? row.kind },
+              { key: 'method', header: 'طريقة الدفع', cell: (row) => METHOD_AR[row.method] ?? row.method },
+              {
+                key: 'amount',
+                header: 'المبلغ',
+                numeric: true,
+                cell: (row) => <strong>{moneyText(row.amount)}</strong>,
+              },
+              {
+                key: 'reference',
+                header: 'المرجع',
+                ltr: true,
+                cell: (row) =>
+                  (row as unknown as Record<string, string>).reference_no ??
+                  (row as unknown as Record<string, string>).cheque_no ??
+                  '—',
+              },
+            ]}
+            rows={rows}
+            rowKey={(row) => row.id}
+          />
         )}
       </Panel>
     </>

@@ -3,7 +3,8 @@
 import { Panel } from '@erp/ui';
 
 import { Directory } from '../../../../components/directory';
-import { apiData, apiPost } from '../../../../lib/api';
+import { Empty } from '../../../../components/screen';
+import { apiBaseUrl, apiData, apiPost } from '../../../../lib/api';
 import { dateTime } from '../../../../lib/lookups';
 import { useQuery } from '../../../../lib/use-query';
 
@@ -24,6 +25,13 @@ type Connection = {
  * Tokens are written once and never read back — the API returns masked values only, so
  * this screen can show the connection health without ever holding a live credential.
  */
+
+/** عنوان الويب هوك كما يراه متجر سلة: منشأ الصفحة + مسار الـAPI كما هو مضبوط. */
+function webhookUrl(storeId: string): string {
+  const base = apiBaseUrl.startsWith('http') ? apiBaseUrl : `${window.location.origin}${apiBaseUrl}`;
+  return `${base}/integrations/salla/webhooks/${storeId}/orders`;
+}
+
 export default function SallaSettingsPage() {
   const connections = useQuery<Connection[]>(
     () => apiData<Connection[]>('/integrations/salla/connections'),
@@ -86,12 +94,48 @@ export default function SallaSettingsPage() {
         title="عنوان الويب هوك"
         hint={
           <>
-            سجّل هذا العنوان في لوحة سلة لاستقبال الطلبات:{' '}
-            <code dir="ltr">POST /api/v1/integrations/salla/webhooks/&lt;storeId&gt;/orders</code> مع ترويسة
-            <code dir="ltr"> x-salla-signature</code>. كل طلب وارد يُنشئ فاتورة مبيعات مباشرة.
+            سجّل هذا العنوان في لوحة سلة لاستقبال الطلبات، مع ترويسة <code dir="ltr">x-salla-signature</code>.
+            كل طلب وارد يُنشئ فاتورة مبيعات مباشرة.
           </>
         }
-      ></Panel>
+      >
+        {(connections.data ?? []).length === 0 ? (
+          <Empty
+            bare
+            title="لا عنوان بعد"
+            detail="اربط متجراً أولاً، ثم يظهر عنوان الويب هوك الخاص به هنا جاهزاً للنسخ إلى لوحة سلة."
+          />
+        ) : (
+          <div className="grid gap-3">
+            {(connections.data ?? []).map((connection) => {
+              const url = webhookUrl(connection.storeId);
+              return (
+                <label className="field" key={connection.id}>
+                  <span>
+                    المتجر <bdi dir="ltr">{connection.storeId}</bdi>
+                  </span>
+                  <span className="row" style={{ gap: 8 }}>
+                    <input
+                      className="input"
+                      dir="ltr"
+                      readOnly
+                      value={url}
+                      onFocus={(e) => e.currentTarget.select()}
+                    />
+                    <button
+                      className="btn"
+                      type="button"
+                      onClick={() => void navigator.clipboard?.writeText(url)}
+                    >
+                      نسخ
+                    </button>
+                  </span>
+                </label>
+              );
+            })}
+          </div>
+        )}
+      </Panel>
     </Directory>
   );
 }

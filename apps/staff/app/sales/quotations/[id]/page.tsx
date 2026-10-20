@@ -7,7 +7,7 @@ import { Panel } from '@erp/ui';
 import { DataTable, QueryView } from '../../../../components/data-view';
 import { Screen } from '../../../../components/screen';
 import { apiData, apiList } from '../../../../lib/api';
-import { listParties, money, partyLabel, shortDate, type Party } from '../../../../lib/lookups';
+import { listParties, money, partyLabel, quantity, shortDate, type Party } from '../../../../lib/lookups';
 import { useSession } from '../../../../lib/session';
 import { useQuery } from '../../../../lib/use-query';
 
@@ -131,7 +131,12 @@ export default function QuotationDetailPage() {
                   columns={[
                     { key: 'line', header: '#', cell: (line: Line) => line.lineNo },
                     { key: 'description', header: 'البيان', cell: (line: Line) => line.description || '—' },
-                    { key: 'quantity', header: 'الكمية', align: 'num', cell: (line: Line) => line.quantity },
+                    {
+                      key: 'quantity',
+                      header: 'الكمية',
+                      align: 'num',
+                      cell: (line: Line) => quantity(line.quantity),
+                    },
                     {
                       key: 'unit',
                       header: 'سعر الوحدة',

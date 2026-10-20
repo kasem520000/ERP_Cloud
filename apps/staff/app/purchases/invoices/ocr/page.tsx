@@ -1,6 +1,6 @@
 'use client';
 
-import { Panel } from '@erp/ui';
+import { Panel, TableFrame } from '@erp/ui';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useMemo, useState, type ChangeEvent, type FormEvent } from 'react';
@@ -441,47 +441,45 @@ export default function OcrPurchaseInvoicePage() {
             </div>
 
             {job.extracted.lines.length > 0 && (
-              <div className="table-wrap">
-                <table className="zebra compact">
-                  <thead>
-                    <tr>
-                      <th>الوصف</th>
-                      <th>الكمية</th>
-                      <th>السعر</th>
-                      <th>الثقة</th>
-                      <th>الصنف</th>
+              <TableFrame tableClassName="zebra compact">
+                <thead>
+                  <tr>
+                    <th>الوصف</th>
+                    <th>الكمية</th>
+                    <th>السعر</th>
+                    <th>الثقة</th>
+                    <th>الصنف</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {job.extracted.lines.map((line, index) => (
+                    <tr key={`${line.description}-${index}`}>
+                      <td>{line.description}</td>
+                      <td dir="ltr">{line.quantity ?? '1'}</td>
+                      <td dir="ltr">{line.unitPrice ?? line.total ?? '—'}</td>
+                      <td>
+                        <Confidence score={line.confidence} />
+                      </td>
+                      <td>
+                        <select
+                          className="input"
+                          value={mappedItems[index] ?? ''}
+                          onChange={(event) =>
+                            setMappedItems((current) => ({ ...current, [index]: event.target.value }))
+                          }
+                        >
+                          <option value="">— مسودة رأس فقط —</option>
+                          {(items.data ?? []).map((item) => (
+                            <option key={item.id} value={item.id}>
+                              {item.sku} · {item.nameAr ?? item.nameEn ?? item.sku}
+                            </option>
+                          ))}
+                        </select>
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody>
-                    {job.extracted.lines.map((line, index) => (
-                      <tr key={`${line.description}-${index}`}>
-                        <td>{line.description}</td>
-                        <td dir="ltr">{line.quantity ?? '1'}</td>
-                        <td dir="ltr">{line.unitPrice ?? line.total ?? '—'}</td>
-                        <td>
-                          <Confidence score={line.confidence} />
-                        </td>
-                        <td>
-                          <select
-                            className="input"
-                            value={mappedItems[index] ?? ''}
-                            onChange={(event) =>
-                              setMappedItems((current) => ({ ...current, [index]: event.target.value }))
-                            }
-                          >
-                            <option value="">— مسودة رأس فقط —</option>
-                            {(items.data ?? []).map((item) => (
-                              <option key={item.id} value={item.id}>
-                                {item.sku} · {item.nameAr ?? item.nameEn ?? item.sku}
-                              </option>
-                            ))}
-                          </select>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                  ))}
+                </tbody>
+              </TableFrame>
             )}
             <div className="actions">
               <button className="btn primary" type="submit" disabled={busy}>

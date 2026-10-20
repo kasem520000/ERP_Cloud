@@ -5,6 +5,7 @@ import { useState } from 'react';
 
 import { Empty } from '../../../components/card';
 import { PortalShell, usePortalProfile } from '../../../components/portal-shell';
+import { PortalTable } from '../../../components/table';
 import { fetchStatement } from '../../../lib/api';
 import { dateText, moneyText } from '../../../lib/format';
 import { useAsync } from '../../../lib/use-async';
@@ -121,46 +122,45 @@ function Statement() {
             detail="وسّع الفترة أو تواصل مع المنشأة إن كنت تتوقع حركة ناقصة."
           />
         ) : (
-          <div className="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>التاريخ</th>
-                  <th>المستند</th>
-                  <th>الرقم</th>
-                  <th>البيان</th>
-                  <th>مدين</th>
-                  <th>دائن</th>
-                  <th>الرصيد</th>
-                </tr>
-              </thead>
-              <tbody>
-                {lines.map((line) => (
-                  <tr key={`${line.document_id}-${line.doc_type}`}>
-                    <td>{dateText(line.day)}</td>
-                    <td>{DOC_AR[line.doc_type] ?? line.doc_type}</td>
-                    <td>{line.number}</td>
-                    <td>{line.description}</td>
-                    <td>{Number(line.debit) ? moneyText(line.debit) : '—'}</td>
-                    <td>{Number(line.credit) ? moneyText(line.credit) : '—'}</td>
-                    <td>
-                      <strong>{moneyText(line.running)}</strong>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-              <tfoot>
-                <tr>
-                  <td colSpan={6}>
-                    <strong>رصيد آخر المدة</strong>
-                  </td>
-                  <td>
-                    <strong>{moneyText(statement.data?.closing ?? '0')}</strong>
-                  </td>
-                </tr>
-              </tfoot>
-            </table>
-          </div>
+          <PortalTable
+            bare
+            empty={<>لا حركات في هذه الفترة.</>}
+            columns={[
+              { key: 'date', header: 'التاريخ', cell: (line) => dateText(line.day) },
+              { key: 'doc', header: 'المستند', cell: (line) => DOC_AR[line.doc_type] ?? line.doc_type },
+              { key: 'number', header: 'الرقم', ltr: true, cell: (line) => line.number },
+              { key: 'description', header: 'البيان', cell: (line) => line.description },
+              {
+                key: 'debit',
+                header: 'مدين',
+                numeric: true,
+                cell: (line) => (Number(line.debit) ? moneyText(line.debit) : '—'),
+              },
+              {
+                key: 'credit',
+                header: 'دائن',
+                numeric: true,
+                cell: (line) => (Number(line.credit) ? moneyText(line.credit) : '—'),
+              },
+              {
+                key: 'running',
+                header: 'الرصيد',
+                numeric: true,
+                cell: (line) => <strong>{moneyText(line.running)}</strong>,
+              },
+            ]}
+            rows={lines}
+            rowKey={(line) => `${line.document_id}-${line.doc_type}`}
+            footer={[
+              <strong key="label">رصيد آخر المدة</strong>,
+              <span key="blank-1" />,
+              <span key="blank-2" />,
+              <span key="blank-3" />,
+              <span key="blank-4" />,
+              <span key="blank-5" />,
+              <strong key="closing">{moneyText(statement.data?.closing ?? '0')}</strong>,
+            ]}
+          />
         )}
       </Panel>
     </>

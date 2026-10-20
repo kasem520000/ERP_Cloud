@@ -321,17 +321,6 @@ export default function JournalEntryPage() {
             rowKey={(line) => String(line.lineNo)}
           />
         )}
-        {/*
- عمود «حذف» على كل سطر — `FrmNewEntry.xaml` L378-397 `BtnDeleteRow_Click`
-          (L532) + `DeleteCurrentRow` L552 + `GridControl1_KeyDown` L482 (Delete key).
- في الديسكتوب يحذف السطر قبل الحفظ (`EntryAccList.Remove` + `ReIndexRows`).
- في السحابة القيد المرحّل لا يُعدَّل أصلاً، والشاشة قراءة — فالعمود غير موجود،
- ويُعلَن هنا حيث يُتوقّعه من يقرأ الشبكة.
-        */}
-        <p className="muted small" style={{ marginTop: 8 }}>
-          حذف السطر () في `FrmNewEntry.xaml:378-397` كان قبل الحفظ فقط — القيد المرحّل لا يُعدَّل، فالشبكة هنا
-          قراءة.
-        </p>
       </Panel>
 
       {/*
@@ -352,7 +341,7 @@ export default function JournalEntryPage() {
             title="عكس القيد"
             hint={
               <>
-                العكس ينشئ قيداً مرآةً (مدين دائن) بنفس الأبعاد (مركز التكلفة · الفرع · المندوب) — ترحيل 0047.
+                العكس يُنشئ قيداً مرآةً (مدين/دائن) بالأبعاد نفسها: مركز التكلفة والفرع والمندوب.
                 {doc.kind === 'reversal' ? ' هذا القيد نفسه عكسي.' : ''}
               </>
             }

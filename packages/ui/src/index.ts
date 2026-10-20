@@ -117,6 +117,7 @@ export { ToastProvider, useToast, type Toast as ToastMessage, type ToastTone } f
 export { Tooltip, type TooltipProps } from './components/tooltip';
 export {
   Table,
+  TableFrame,
   type Column as TableColumn,
   type SortState as TableSortState,
 } from './components/table';

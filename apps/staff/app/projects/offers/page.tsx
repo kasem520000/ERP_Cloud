@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Panel } from '@erp/ui';
+import { Panel, TableFrame } from '@erp/ui';
 
 import { DataTable, Notice, QueryView } from '../../../components/data-view';
 import { Screen } from '../../../components/screen';
@@ -220,57 +220,55 @@ export default function ProjectOffersPage() {
           </div>
 
           <h4>بنود العرض</h4>
-          <div className="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>الرمز</th>
-                  <th>الوصف</th>
-                  <th>الكمية</th>
-                  <th>سعر الوحدة</th>
-                  <th>القيمة</th>
+          <TableFrame>
+            <thead>
+              <tr>
+                <th>الرمز</th>
+                <th>الوصف</th>
+                <th>الكمية</th>
+                <th>سعر الوحدة</th>
+                <th>القيمة</th>
+              </tr>
+            </thead>
+            <tbody>
+              {lines.map((line, index) => (
+                <tr key={index}>
+                  <td>
+                    <input
+                      className="input"
+                      value={line.code}
+                      onChange={(event) => setLine(index, { code: event.target.value })}
+                      placeholder="تلقائي"
+                    />
+                  </td>
+                  <td>
+                    <input
+                      className="input"
+                      value={line.description}
+                      onChange={(event) => setLine(index, { description: event.target.value })}
+                    />
+                  </td>
+                  <td>
+                    <input
+                      className="input"
+                      value={line.qty}
+                      onChange={(event) => setLine(index, { qty: event.target.value })}
+                      inputMode="decimal"
+                    />
+                  </td>
+                  <td>
+                    <input
+                      className="input"
+                      value={line.unitValue}
+                      onChange={(event) => setLine(index, { unitValue: event.target.value })}
+                      inputMode="decimal"
+                    />
+                  </td>
+                  <td className="num">{money(lineValue(line))}</td>
                 </tr>
-              </thead>
-              <tbody>
-                {lines.map((line, index) => (
-                  <tr key={index}>
-                    <td>
-                      <input
-                        className="input"
-                        value={line.code}
-                        onChange={(event) => setLine(index, { code: event.target.value })}
-                        placeholder="تلقائي"
-                      />
-                    </td>
-                    <td>
-                      <input
-                        className="input"
-                        value={line.description}
-                        onChange={(event) => setLine(index, { description: event.target.value })}
-                      />
-                    </td>
-                    <td>
-                      <input
-                        className="input"
-                        value={line.qty}
-                        onChange={(event) => setLine(index, { qty: event.target.value })}
-                        inputMode="decimal"
-                      />
-                    </td>
-                    <td>
-                      <input
-                        className="input"
-                        value={line.unitValue}
-                        onChange={(event) => setLine(index, { unitValue: event.target.value })}
-                        inputMode="decimal"
-                      />
-                    </td>
-                    <td className="num">{money(lineValue(line))}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+              ))}
+            </tbody>
+          </TableFrame>
           <div className="toolbar">
             <button
               className="btn sm"

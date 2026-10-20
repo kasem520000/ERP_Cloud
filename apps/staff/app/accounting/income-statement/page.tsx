@@ -1,6 +1,6 @@
 'use client';
 
-import { FilterBand, Panel } from '@erp/ui';
+import { FilterBand, Panel, TableFrame } from '@erp/ui';
 import { useState } from 'react';
 
 import { Empty, ErrorBox, Forbidden, Loading, Screen } from '../../../components/screen';
@@ -222,41 +222,39 @@ export default function IncomeStatementPage() {
             />
           ) : (
             <Panel flush title="بنود قائمة الدخل">
-              <div className="table-wrap">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>الحساب</th>
-                      <th>اسم الحساب</th>
-                      <th className="num">رصيد مدين</th>
-                      <th className="num">رصيد دائن</th>
-                      <th>الحالة</th>
+              <TableFrame>
+                <thead>
+                  <tr>
+                    <th>الحساب</th>
+                    <th>اسم الحساب</th>
+                    <th className="num">رصيد مدين</th>
+                    <th className="num">رصيد دائن</th>
+                    <th>الحالة</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map((row, index) => (
+                    <tr
+                      key={`${row.kind}-${row.code ?? index}`}
+                      className={row.kind === 'profit' ? 'opening' : undefined}
+                    >
+                      <td dir="ltr">{row.code ?? '—'}</td>
+                      <td>{row.name}</td>
+                      <td className="num">{money(row.balanceDebit)}</td>
+                      <td className="num">{money(row.balanceCredit)}</td>
+                      <td>{statusLabel(row.status)}</td>
                     </tr>
-                  </thead>
-                  <tbody>
-                    {rows.map((row, index) => (
-                      <tr
-                        key={`${row.kind}-${row.code ?? index}`}
-                        className={row.kind === 'profit' ? 'opening' : undefined}
-                      >
-                        <td dir="ltr">{row.code ?? '—'}</td>
-                        <td>{row.name}</td>
-                        <td className="num">{money(row.balanceDebit)}</td>
-                        <td className="num">{money(row.balanceCredit)}</td>
-                        <td>{statusLabel(row.status)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                  <tfoot>
-                    <tr>
-                      <th colSpan={2}>المجموع</th>
-                      <th className="num">{money(totals.debit)}</th>
-                      <th className="num">{money(totals.credit)}</th>
-                      <th>{totals.balanced ? totals.balancedLabel : '—'}</th>
-                    </tr>
-                  </tfoot>
-                </table>
-              </div>
+                  ))}
+                </tbody>
+                <tfoot>
+                  <tr>
+                    <th colSpan={2}>المجموع</th>
+                    <th className="num">{money(totals.debit)}</th>
+                    <th className="num">{money(totals.credit)}</th>
+                    <th>{totals.balanced ? totals.balancedLabel : '—'}</th>
+                  </tr>
+                </tfoot>
+              </TableFrame>
             </Panel>
           )}
         </>

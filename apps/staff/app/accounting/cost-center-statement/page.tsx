@@ -1,7 +1,7 @@
 'use client';
 
 import { useSearchParams } from 'next/navigation';
-import { FilterBand, Panel } from '@erp/ui';
+import { FilterBand, Panel, TableFrame } from '@erp/ui';
 import { Suspense, useState } from 'react';
 
 import { Empty, ErrorBox, Forbidden, Loading, Screen } from '../../../components/screen';
@@ -402,60 +402,58 @@ function CostCentreStatement() {
                 detail="تأكد من الفترة، أو أن القيود التي تحمل هذا المركز مرحّلة."
               />
             ) : (
-              <div className="table-wrap">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>م</th>
-                      <th>التاريخ</th>
-                      <th>النوع</th>
-                      <th>رقم السند</th>
-                      <th>الرقم العام</th>
-                      <th>الفرع</th>
-                      <th>البيان</th>
-                      <th>رمز الحساب</th>
-                      <th>اسم الحساب</th>
-                      {showDebit && <th className="num">مدين</th>}
-                      {showCredit && <th className="num">دائن</th>}
-                      <th className="num">الرصيد</th>
-                      <th>الحالة</th>
+              <TableFrame>
+                <thead>
+                  <tr>
+                    <th>م</th>
+                    <th>التاريخ</th>
+                    <th>النوع</th>
+                    <th>رقم السند</th>
+                    <th>الرقم العام</th>
+                    <th>الفرع</th>
+                    <th>البيان</th>
+                    <th>رمز الحساب</th>
+                    <th>اسم الحساب</th>
+                    {showDebit && <th className="num">مدين</th>}
+                    {showCredit && <th className="num">دائن</th>}
+                    <th className="num">الرصيد</th>
+                    <th>الحالة</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map((row) => (
+                    <tr
+                      key={`${row.rank}-${row.entryId ?? 'opening'}`}
+                      className={row.rank === 0 ? 'opening' : undefined}
+                    >
+                      <td dir="ltr">{row.rank === 0 ? '' : row.rank}</td>
+                      <td dir="ltr">{row.date}</td>
+                      <td>{row.entryType}</td>
+                      <td dir="ltr">{row.number ?? '—'}</td>
+                      <td dir="ltr" title={row.entryId ?? ''}>
+                        {row.entryId ? row.entryId.slice(0, 8) : '—'}
+                      </td>
+                      <td>{row.branchName ?? '—'}</td>
+                      <td>{row.description ?? '—'}</td>
+                      <td dir="ltr">{row.accountCode ?? '—'}</td>
+                      <td>{row.accountName ?? '—'}</td>
+                      {showDebit && <td className="num">{money(row.debit)}</td>}
+                      {showCredit && <td className="num">{money(row.credit)}</td>}
+                      <td className="num">{money(row.runningBalance ?? '')}</td>
+                      <td>{row.balanceStatus ?? '—'}</td>
                     </tr>
-                  </thead>
-                  <tbody>
-                    {rows.map((row) => (
-                      <tr
-                        key={`${row.rank}-${row.entryId ?? 'opening'}`}
-                        className={row.rank === 0 ? 'opening' : undefined}
-                      >
-                        <td dir="ltr">{row.rank === 0 ? '' : row.rank}</td>
-                        <td dir="ltr">{row.date}</td>
-                        <td>{row.entryType}</td>
-                        <td dir="ltr">{row.number ?? '—'}</td>
-                        <td dir="ltr" title={row.entryId ?? ''}>
-                          {row.entryId ? row.entryId.slice(0, 8) : '—'}
-                        </td>
-                        <td>{row.branchName ?? '—'}</td>
-                        <td>{row.description ?? '—'}</td>
-                        <td dir="ltr">{row.accountCode ?? '—'}</td>
-                        <td>{row.accountName ?? '—'}</td>
-                        {showDebit && <td className="num">{money(row.debit)}</td>}
-                        {showCredit && <td className="num">{money(row.credit)}</td>}
-                        <td className="num">{money(row.runningBalance ?? '')}</td>
-                        <td>{row.balanceStatus ?? '—'}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                  <tfoot>
-                    <tr>
-                      <th colSpan={8}>الإجمالي</th>
-                      {showDebit && <th className="num">{money(totals.debit)}</th>}
-                      {showCredit && <th className="num">{money(totals.credit)}</th>}
-                      <th className="num">{money(totals.closing)}</th>
-                      <th>{totals.closingStatus ?? '—'}</th>
-                    </tr>
-                  </tfoot>
-                </table>
-              </div>
+                  ))}
+                </tbody>
+                <tfoot>
+                  <tr>
+                    <th colSpan={8}>الإجمالي</th>
+                    {showDebit && <th className="num">{money(totals.debit)}</th>}
+                    {showCredit && <th className="num">{money(totals.credit)}</th>}
+                    <th className="num">{money(totals.closing)}</th>
+                    <th>{totals.closingStatus ?? '—'}</th>
+                  </tr>
+                </tfoot>
+              </TableFrame>
             )}
           </Panel>
         </>

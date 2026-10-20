@@ -343,64 +343,62 @@ function MessagesTab() {
         title="سجلّ الرسائل"
         hint="كل محاولة إرسال وحالتها وآخر خطأ — للرسائل التي تخصّ منشأتك وحدها."
       >
-        <div className="table-wrap">
-          <Table
-            bare
-            columns={[
-              {
-                key: 'c0',
-                header: 'الوقت',
-                cell: (row) => dateTime(row.sentAt ?? row.queuedAt),
-              },
-              {
-                key: 'c1',
-                header: 'إلى',
-                cell: (row) => (
-                  <>
-                    {row.toEmail}
-                    {row.isTest && <span className="chip">اختبار</span>}
-                  </>
-                ),
-              },
-              {
-                key: 'c2',
-                header: 'الحدث',
-                cell: (row) => row.eventLabelAr,
-              },
-              {
-                key: 'c3',
-                header: 'الحالة',
-                cell: (row) => (
-                  <>
-                    <span
-                      className={`chip ${row.status === 'sent' ? 'on' : row.status === 'failed' ? 'off' : ''}`}
-                    >
-                      {STATUS_LABEL[row.status]}
-                    </span>
-                  </>
-                ),
-              },
-              {
-                key: 'c4',
-                header: 'المحاولات',
-                cell: (row) => row.attempts,
-              },
-              {
-                key: 'c5',
-                header: 'آخر خطأ',
-                cell: (row) => row.lastError ?? '—',
-              },
-            ]}
-            rows={rows}
-            rowKey={(row) => row.id}
+        <Table
+          bare
+          columns={[
+            {
+              key: 'c0',
+              header: 'الوقت',
+              cell: (row) => dateTime(row.sentAt ?? row.queuedAt),
+            },
+            {
+              key: 'c1',
+              header: 'إلى',
+              cell: (row) => (
+                <>
+                  {row.toEmail}
+                  {row.isTest && <span className="chip">اختبار</span>}
+                </>
+              ),
+            },
+            {
+              key: 'c2',
+              header: 'الحدث',
+              cell: (row) => row.eventLabelAr,
+            },
+            {
+              key: 'c3',
+              header: 'الحالة',
+              cell: (row) => (
+                <>
+                  <span
+                    className={`chip ${row.status === 'sent' ? 'on' : row.status === 'failed' ? 'off' : ''}`}
+                  >
+                    {STATUS_LABEL[row.status]}
+                  </span>
+                </>
+              ),
+            },
+            {
+              key: 'c4',
+              header: 'المحاولات',
+              cell: (row) => row.attempts,
+            },
+            {
+              key: 'c5',
+              header: 'آخر خطأ',
+              cell: (row) => row.lastError ?? '—',
+            },
+          ]}
+          rows={rows}
+          rowKey={(row) => row.id}
+        />
+        {rows.length === 0 && (
+          <Empty
+            title="لا رسائل بعد"
+            detail="سينبني السجلّ تلقائياً حين يرسل النظام أول رسالةٍ باسم منشأتك (دعوة · فاتورة · تنبيه)."
           />
-          {rows.length === 0 && (
-            <Empty
-              title="لا رسائل بعد"
-              detail="سينبني السجلّ تلقائياً حين يرسل النظام أول رسالةٍ باسم منشأتك (دعوة · فاتورة · تنبيه)."
-            />
-          )}
-        </div>
+        )}
       </Panel>
     </div>
   );

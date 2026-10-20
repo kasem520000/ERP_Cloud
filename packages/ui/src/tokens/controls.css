@@ -821,6 +821,11 @@ table td {
   align-items: center;
   gap: 8px;
   flex: none;
+  /* A toolbar of 150px selects cannot shrink by default, so on a 390px screen it
+   * pushed the whole page sideways. Cap it to the header width and let its own
+   * flex-wrap stack the controls. */
+  min-width: 0;
+  max-width: 100%;
 }
 .ui-page-meta {
   flex-basis: 100%;
@@ -1184,8 +1189,14 @@ table td {
 .ui-kpi-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(172px, 1fr));
-  gap: 1px;
-  background: var(--line);
+  /*
+   * الخطوط الفاصلة داخليّةٌ في الخلايا لا خلفيّةً للشبكة: صفٌّ أخيرٌ ناقص
+   * (٨ مؤشرات في ٧ أعمدة) كان يُظهر فراغاً رمادياً بحجم الخلايا الناقصة،
+   * والفراغ الرمادي يُقرأ كبياناتٍ لم تُحمَّل. الآن يُرسم الفاصل داخل كل خلية
+   * على حافّتها، فيبقى الفاصل بين خليتين ويذوب الفراغ في سطح اللوحة.
+   */
+  gap: 0;
+  background: var(--surface);
   border: 1px solid var(--line);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-1);
@@ -1200,6 +1211,14 @@ table td {
 .ui-kpi-grid > .ui-kpi-cell {
   background: var(--surface);
   border-inline-start: 0;
+  box-shadow:
+    inset 1px 0 0 var(--line),
+    inset 0 1px 0 var(--line);
+}
+[dir='rtl'] .ui-kpi-grid > .ui-kpi-cell {
+  box-shadow:
+    inset -1px 0 0 var(--line),
+    inset 0 1px 0 var(--line);
 }
 @media (max-width: 900px) {
   .ui-kpi-grid {
@@ -1642,17 +1661,33 @@ a.ui-kpi-cell:hover {
 .ui-filter-fields > .field {
   margin-block-end: 0;
 }
+/* Below 640px a 165–260px field cannot pair with anything: give each filter its
+ * own row, then let the checkbox and the primary action share the last one. */
+@media (max-width: 640px) {
+  .ui-filter-fields > .field,
+  .ui-filter-fields > .field.wide {
+    flex: 1 1 100%;
+    max-inline-size: none;
+  }
+}
 .ui-filter-actions {
   display: flex;
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
+  /* The action cluster and its summary sentence must shrink with the band:
+   * `nowrap` on a long Arabic summary used to push a 390px page 137px sideways. */
+  min-width: 0;
+  max-width: 100%;
 }
 .ui-filter-summary {
   font-size: 12px;
   font-weight: 700;
   color: var(--muted);
-  white-space: nowrap;
+  min-width: 0;
+  max-width: 100%;
+  line-height: 1.55;
+  white-space: normal;
 }
 /* A sentence under the fields explaining what the chosen mode does. */
 .ui-filter-hint {
@@ -1923,7 +1958,10 @@ a.ui-kpi-cell:hover {
 
 /* ------------------------------------------------------------- responsive */
 @media (max-width: 1180px) {
-  .ui-split {
+  /* `is-rail-wide` (420px) outranks `.ui-split` by specificity, so it must be
+   * reset here too — otherwise the POS rail stayed 420px on a 390px screen. */
+  .ui-split,
+  .ui-split.is-rail-wide {
     grid-template-columns: minmax(0, 1fr);
   }
   .ui-split-rail {

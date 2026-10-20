@@ -402,14 +402,8 @@ export default function PrintingSettingsPage() {
 
       {/* شبكة ربط الطابعات — `PrinterSettings` L2163-L2180 (`Inv_Id, PrintName, Printer, RptUrl, RptName`) */}
       <Panel
-        title="ربط الطابعات بالتقارير — PrinterSettings (Inv_Id, PrintName, Printer, RptUrl, RptName)"
-        hint={
-          <>
-            الديسكتوب يحفظ في <code>PrinterSettings</code> ربط كل تقرير بطابعة واسم ملف <code>RptName</code>{' '}
-            ومسار <code>RptUrl</code> (txtRptPath المشترك). السحابة تحفظ نفس الحقول في{' '}
-            <code>printer_report_links</code> وتظهرها بجانب زر الطباعة — الطابعة الفعلية يختارها المتصفح.
-          </>
-        }
+        title="ربط الطابعات بالتقارير"
+        hint="حدّد لكل تقرير أو شاشة اسم الطباعة والطابعة ومسار ملف التقرير؛ تظهر هذه الروابط بجانب زر الطباعة، والطابعة الفعلية يختارها المتصفح."
         flush
       >
         <form className="toolbar" onSubmit={addLink} style={{ flexWrap: 'wrap', gap: 8, marginBottom: 12 }}>
@@ -432,21 +426,21 @@ export default function PrintingSettingsPage() {
           </select>
           <input
             className="input"
-            placeholder="اسم الطباعة (PrintName)"
+            placeholder="اسم الطباعة"
             value={linkForm.printName}
             onChange={(e) => setLinkForm((p) => ({ ...p, printName: e.target.value }))}
             style={{ minWidth: 140 }}
           />
           <input
             className="input"
-            placeholder="اسم الطابعة (Printer)"
+            placeholder="اسم الطابعة"
             value={linkForm.printerName}
             onChange={(e) => setLinkForm((p) => ({ ...p, printerName: e.target.value }))}
             style={{ minWidth: 140 }}
           />
           <input
             className="input"
-            placeholder="مسار التقرير (RptUrl)"
+            placeholder="مسار التقرير"
             dir="ltr"
             value={linkForm.rptUrl}
             onChange={(e) => setLinkForm((p) => ({ ...p, rptUrl: e.target.value }))}
@@ -454,7 +448,7 @@ export default function PrintingSettingsPage() {
           />
           <input
             className="input"
-            placeholder="اسم الملف (RptName)"
+            placeholder="اسم الملف"
             dir="ltr"
             value={linkForm.rptName}
             onChange={(e) => setLinkForm((p) => ({ ...p, rptName: e.target.value }))}
@@ -469,7 +463,7 @@ export default function PrintingSettingsPage() {
 
         <Table
           bare
-          empty={<>لا توجد روابط محفوظة — أضف واحداً أعلاه (كما في DgvName · DgvPrinterName · DgvReport).</>}
+          empty="لا روابط محفوظة — اختر نطاقاً واسم طباعة ثم أضف الربط أعلاه."
           columns={[
             {
               key: 'scope',

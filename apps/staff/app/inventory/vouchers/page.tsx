@@ -1,6 +1,6 @@
 'use client';
 
-import { Panel } from '@erp/ui';
+import { Panel, TableFrame } from '@erp/ui';
 import { useSearchParams } from 'next/navigation';
 import { useState } from 'react';
 
@@ -504,202 +504,200 @@ export default function VouchersPage() {
               </button>
             </div>
 
-            <div className="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>المادة</th>
-                    <th>الكمية</th>
-                    <th>الوحدة</th>
-                    {!isIssue && <th>تكلفة الوحدة</th>}
-                    <th>رقم الدفعة</th>
-                    <th>تاريخ الإنتاج</th>
-                    <th>تاريخ الانتهاء</th>
-                    <th>رقم تسلسلي</th>
-                    <th>ملاحظة</th>
-                    <th />
-                  </tr>
-                </thead>
-                <tbody>
-                  {lines.map((line, index) => {
-                    const item = itemOf(line.itemId);
-                    return (
-                      <tr key={index}>
-                        <td>
-                          <select
-                            className="input"
-                            value={line.itemId}
-                            onChange={(event) => {
-                              const picked = itemOf(event.target.value);
-                              const defaultCost = String(
-                                picked?.purchasePrice ?? picked?.purchase_price ?? line.costText ?? '',
-                              );
-                              updateLine(index, {
-                                itemId: event.target.value,
-                                costText: line.costText || defaultCost,
-                                batchNo: '',
-                                productionDate: '',
-                                expiryDate: '',
-                                serialNos: '',
-                              });
-                            }}
-                          >
-                            <option value="">— اختر —</option>
-                            {itemRows.map((row) => (
-                              <option key={row.id} value={row.id}>
-                                {itemLabel(row)}
+            <TableFrame>
+              <thead>
+                <tr>
+                  <th>المادة</th>
+                  <th>الكمية</th>
+                  <th>الوحدة</th>
+                  {!isIssue && <th>تكلفة الوحدة</th>}
+                  <th>رقم الدفعة</th>
+                  <th>تاريخ الإنتاج</th>
+                  <th>تاريخ الانتهاء</th>
+                  <th>رقم تسلسلي</th>
+                  <th>ملاحظة</th>
+                  <th />
+                </tr>
+              </thead>
+              <tbody>
+                {lines.map((line, index) => {
+                  const item = itemOf(line.itemId);
+                  return (
+                    <tr key={index}>
+                      <td>
+                        <select
+                          className="input"
+                          value={line.itemId}
+                          onChange={(event) => {
+                            const picked = itemOf(event.target.value);
+                            const defaultCost = String(
+                              picked?.purchasePrice ?? picked?.purchase_price ?? line.costText ?? '',
+                            );
+                            updateLine(index, {
+                              itemId: event.target.value,
+                              costText: line.costText || defaultCost,
+                              batchNo: '',
+                              productionDate: '',
+                              expiryDate: '',
+                              serialNos: '',
+                            });
+                          }}
+                        >
+                          <option value="">— اختر —</option>
+                          {itemRows.map((row) => (
+                            <option key={row.id} value={row.id}>
+                              {itemLabel(row)}
+                            </option>
+                          ))}
+                        </select>
+                      </td>
+                      <td>
+                        <input
+                          className="input"
+                          dir="ltr"
+                          inputMode="decimal"
+                          value={line.qtyText}
+                          onChange={(event) => updateLine(index, { qtyText: event.target.value })}
+                        />
+                      </td>
+                      <td>
+                        <select
+                          className="input"
+                          value={line.unitId}
+                          onChange={(event) => updateLine(index, { unitId: event.target.value })}
+                          disabled={!line.itemId}
+                        >
+                          <option value="">الوحدة الأساسية</option>
+                          {unitsOf(line.itemId)
+                            .filter(
+                              (unit) =>
+                                unit.unitId !==
+                                (itemOf(line.itemId)?.baseUnitId ?? itemOf(line.itemId)?.base_unit_id),
+                            )
+                            .map((unit) => (
+                              <option key={unit.unitId} value={unit.unitId}>
+                                {`${unit.unitNameAr ?? ''} (×${Number(unit.ratio).toLocaleString('ar-EG')})`}
                               </option>
                             ))}
-                          </select>
-                        </td>
+                        </select>
+                        {line.unitId && Number(line.qtyText) > 0 && (
+                          <span className="muted small" dir="ltr">
+                            {`= ${(Number(line.qtyText) * factorOf(line)).toLocaleString('ar-EG')} `}
+                          </span>
+                        )}
+                      </td>
+                      {!isIssue && (
                         <td>
                           <input
                             className="input"
                             dir="ltr"
                             inputMode="decimal"
-                            value={line.qtyText}
-                            onChange={(event) => updateLine(index, { qtyText: event.target.value })}
+                            value={line.costText}
+                            onChange={(event) => updateLine(index, { costText: event.target.value })}
                           />
                         </td>
-                        <td>
-                          <select
-                            className="input"
-                            value={line.unitId}
-                            onChange={(event) => updateLine(index, { unitId: event.target.value })}
-                            disabled={!line.itemId}
-                          >
-                            <option value="">الوحدة الأساسية</option>
-                            {unitsOf(line.itemId)
-                              .filter(
-                                (unit) =>
-                                  unit.unitId !==
-                                  (itemOf(line.itemId)?.baseUnitId ?? itemOf(line.itemId)?.base_unit_id),
-                              )
-                              .map((unit) => (
-                                <option key={unit.unitId} value={unit.unitId}>
-                                  {`${unit.unitNameAr ?? ''} (×${Number(unit.ratio).toLocaleString('ar-EG')})`}
-                                </option>
-                              ))}
-                          </select>
-                          {line.unitId && Number(line.qtyText) > 0 && (
-                            <span className="muted small" dir="ltr">
-                              {`= ${(Number(line.qtyText) * factorOf(line)).toLocaleString('ar-EG')} `}
-                            </span>
-                          )}
-                        </td>
-                        {!isIssue && (
-                          <td>
-                            <input
-                              className="input"
-                              dir="ltr"
-                              inputMode="decimal"
-                              value={line.costText}
-                              onChange={(event) => updateLine(index, { costText: event.target.value })}
-                            />
-                          </td>
-                        )}
-                        <td>
-                          {/*
+                      )}
+                      <td>
+                        {/*
  الديسكتوب يكتب رقم الدفعة على السطر ولا يطلب اختيارها من قائمة
                           (`InvoiceItemDetail.BatchNo`, `frmInvSale.xaml:876`). فنُبقي الكتابة
  ممكنةً للدفعة الجديدة، ونعرض الدفعات المسجَّلة اقتراحاً لمن يريد
  الاصطفاف على دفعةٍ قائمة.
                         */}
-                          <input
-                            className="input"
-                            dir="ltr"
-                            list={`lots-${index}`}
-                            placeholder={item?.trackLot ? 'LOT-1' : '—'}
-                            value={line.batchNo}
-                            disabled={!item || !item.trackLot}
-                            onChange={(event) => updateLine(index, { batchNo: event.target.value })}
-                          />
-                          <datalist id={`lots-${index}`}>
-                            {lotRows
-                              .filter((lot) => lot.itemId === line.itemId)
-                              .map((lot) => (
-                                <option key={lot.id} value={lot.lotNo}>
-                                  {lot.expiryDate ? shortDate(lot.expiryDate) : ''}
-                                </option>
-                              ))}
-                          </datalist>
-                        </td>
-                        <td>
-                          <input
-                            className="input"
-                            type="date"
-                            dir="ltr"
-                            value={line.productionDate}
-                            disabled={!item || !item.trackLot}
-                            onChange={(event) => updateLine(index, { productionDate: event.target.value })}
-                          />
-                        </td>
-                        <td>
-                          <input
-                            className="input"
-                            type="date"
-                            dir="ltr"
-                            value={line.expiryDate}
-                            disabled={!item || !item.trackLot}
-                            onChange={(event) => updateLine(index, { expiryDate: event.target.value })}
-                          />
-                        </td>
-                        <td>
-                          {item?.trackSerial ? (
-                            <>
-                              <textarea
-                                className="input"
-                                rows={2}
-                                dir="ltr"
-                                placeholder={isIssue ? 'A-1 A-2' : 'A-1 A-2 A-3'}
-                                value={line.serialNos}
-                                onChange={(event) => updateLine(index, { serialNos: event.target.value })}
-                              />
-                              <span
-                                className={`chip ${
-                                  splitSerials(line.serialNos).length > 0 &&
-                                  splitSerials(line.serialNos).length !== Number(line.qtyText || '0')
-                                    ? 'warn'
-                                    : ''
-                                }`}
-                              >
-                                {`${splitSerials(line.serialNos).length} من ${line.qtyText || '—'}`}
+                        <input
+                          className="input"
+                          dir="ltr"
+                          list={`lots-${index}`}
+                          placeholder={item?.trackLot ? 'LOT-1' : '—'}
+                          value={line.batchNo}
+                          disabled={!item || !item.trackLot}
+                          onChange={(event) => updateLine(index, { batchNo: event.target.value })}
+                        />
+                        <datalist id={`lots-${index}`}>
+                          {lotRows
+                            .filter((lot) => lot.itemId === line.itemId)
+                            .map((lot) => (
+                              <option key={lot.id} value={lot.lotNo}>
+                                {lot.expiryDate ? shortDate(lot.expiryDate) : ''}
+                              </option>
+                            ))}
+                        </datalist>
+                      </td>
+                      <td>
+                        <input
+                          className="input"
+                          type="date"
+                          dir="ltr"
+                          value={line.productionDate}
+                          disabled={!item || !item.trackLot}
+                          onChange={(event) => updateLine(index, { productionDate: event.target.value })}
+                        />
+                      </td>
+                      <td>
+                        <input
+                          className="input"
+                          type="date"
+                          dir="ltr"
+                          value={line.expiryDate}
+                          disabled={!item || !item.trackLot}
+                          onChange={(event) => updateLine(index, { expiryDate: event.target.value })}
+                        />
+                      </td>
+                      <td>
+                        {item?.trackSerial ? (
+                          <>
+                            <textarea
+                              className="input"
+                              rows={2}
+                              dir="ltr"
+                              placeholder={isIssue ? 'A-1 A-2' : 'A-1 A-2 A-3'}
+                              value={line.serialNos}
+                              onChange={(event) => updateLine(index, { serialNos: event.target.value })}
+                            />
+                            <span
+                              className={`chip ${
+                                splitSerials(line.serialNos).length > 0 &&
+                                splitSerials(line.serialNos).length !== Number(line.qtyText || '0')
+                                  ? 'warn'
+                                  : ''
+                              }`}
+                            >
+                              {`${splitSerials(line.serialNos).length} من ${line.qtyText || '—'}`}
+                            </span>
+                            {!isIssue && serialRows.some((serial) => serial.itemId === line.itemId) && (
+                              <span className="muted small">
+                                {' '}
+                                رقم جديد لكل قطعة — أو ألصق أرقاماً مولَّدة من شاشة الأرقام التسلسلية.
                               </span>
-                              {!isIssue && serialRows.some((serial) => serial.itemId === line.itemId) && (
-                                <span className="muted small">
-                                  {' '}
-                                  رقم جديد لكل قطعة — أو ألصق أرقاماً مولَّدة من شاشة الأرقام التسلسلية.
-                                </span>
-                              )}
-                            </>
-                          ) : (
-                            <span className="muted">—</span>
-                          )}
-                        </td>
-                        <td>
-                          <input
-                            className="input"
-                            value={line.note}
-                            onChange={(event) => updateLine(index, { note: event.target.value })}
-                          />
-                        </td>
-                        <td>
-                          <button
-                            className="btn sm"
-                            type="button"
-                            onClick={() =>
-                              setLines((current) => current.filter((_, position) => position !== index))
-                            }
-                          >
-                            حذف
-                          </button>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
+                            )}
+                          </>
+                        ) : (
+                          <span className="muted">—</span>
+                        )}
+                      </td>
+                      <td>
+                        <input
+                          className="input"
+                          value={line.note}
+                          onChange={(event) => updateLine(index, { note: event.target.value })}
+                        />
+                      </td>
+                      <td>
+                        <button
+                          className="btn sm"
+                          type="button"
+                          onClick={() =>
+                            setLines((current) => current.filter((_, position) => position !== index))
+                          }
+                        >
+                          حذف
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </TableFrame>
             <div className="row" style={{ gap: 8 }}>
               <button
                 className="btn sm"

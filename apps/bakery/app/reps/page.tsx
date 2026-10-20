@@ -1,7 +1,7 @@
 'use client';
 
-import { Fragment, useCallback, useEffect, useMemo, useState } from 'react';
-import { Button, Card, CardBody, CardHeader, Input } from '@erp/ui';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Button, Card, CardBody, CardHeader, Input, Table } from '@erp/ui';
 import { apiErrorText, apiList, apiPost } from '@erp/web-core/api';
 import { useSession } from '@erp/web-core/session';
 
@@ -338,160 +338,180 @@ export default function RepsPage() {
 
               {visible.length > 0 ? (
                 <div className="bak-table-wrap">
-                  <table className="bak-table">
-                    <thead>
-                      <tr>
-                        <th>المندوب</th>
-                        <th>بطاقة الموظف</th>
-                        <th>حساب الدخول</th>
-                        <th>مستودع السيارة</th>
-                        <th>النِّسب</th>
-                        <th>العهدة الحيّة</th>
-                        <th>ما ينقصه</th>
-                        <th>إجراء</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {visible.map((row) => {
-                        const notes = readinessNotes(row);
-                        const expanded = expandedId === row.id;
-                        return (
-                          <Fragment key={row.id}>
-                            <tr>
-                              <td>
-                                <div className="font-bold text-ink">{numberText(row.name)}</div>
-                                <div className="text-xs text-muted" dir="ltr">
-                                  {row.id}
-                                </div>
-                                {row.vehiclePlate ? (
-                                  <div className="text-xs text-muted">لوحة {row.vehiclePlate}</div>
-                                ) : null}
-                                {row.active === false ? (
-                                  <span className="bak-badge mt-1 inline-block">بطاقة موقوفة</span>
-                                ) : null}
-                              </td>
-                              <td>
-                                {row.employeeId ? (
-                                  <>
-                                    <div className="font-semibold text-ink">
-                                      {numberText(row.employeeName)}
-                                    </div>
-                                    <div className="text-xs text-muted">
-                                      رقم {numberText(row.employeeNo)} — {numberText(row.employeeStatus)}
-                                    </div>
-                                  </>
-                                ) : (
-                                  <span className={`bak-badge ${TONE_CLASSES.danger}`}>بلا بطاقة موظف</span>
-                                )}
-                                {row.employeeRef ? (
-                                  <div className="text-xs text-muted" dir="ltr">
-                                    {row.employeeRef}
-                                  </div>
-                                ) : null}
-                              </td>
-                              <td>
-                                {row.membershipId ? (
-                                  <>
-                                    <div className="text-[12px]" dir="ltr">
-                                      {numberText(row.userEmail)}
-                                    </div>
-                                    <div className="text-xs text-muted">
-                                      العضوية: {membershipStatusLabel(row.membershipStatus)} — المستخدم:{' '}
-                                      {membershipStatusLabel(row.userStatus)} — {row.roleCount} دور
-                                    </div>
-                                  </>
-                                ) : (
-                                  <span className={`bak-badge ${TONE_CLASSES.danger}`}>بلا حساب دخول</span>
-                                )}
-                              </td>
-                              <td>
-                                {row.warehouseId ? (
-                                  <>
-                                    <div className="font-semibold text-ink">
-                                      {numberText(row.warehouseName)}
-                                    </div>
-                                    <div className="text-xs text-muted" dir="ltr">
-                                      {numberText(row.warehouseCode)}
-                                    </div>
-                                  </>
-                                ) : (
-                                  <span className={`bak-badge ${TONE_CLASSES.danger}`}>بلا مستودع سيارة</span>
-                                )}
-                              </td>
-                              <td dir="ltr">
-                                <div>بيع {ratePercentText(row.commissionRate)}</div>
-                                <div>تحصيل {ratePercentText(row.collectionCommissionRate)}</div>
-                                <div>ربح {ratePercentText(row.profitCommissionRate)}</div>
-                              </td>
-                              <td>
-                                <div className="text-[12px]">{custodyHeadline(row)}</div>
-                                {row.custody?.items?.length ? (
-                                  <button
-                                    className="mt-1 rounded-[6px] border border-line bg-surface px-2 py-0.5 text-xs font-bold text-ink"
-                                    onClick={() => setExpandedId(expanded ? undefined : row.id)}
-                                    type="button"
-                                  >
-                                    {expanded
-                                      ? 'إخفاء الأصناف'
-                                      : `أصنافُ العهدة (${row.custody.items.length})`}
-                                  </button>
-                                ) : null}
-                              </td>
-                              <td>
-                                <ul className="m-0 grid list-none gap-1 p-0">
-                                  {notes.map((note) => (
-                                    <li
-                                      className={`rounded-[8px] border px-2 py-1 text-[11.5px] font-semibold ${TONE_CLASSES[note.tone]}`}
-                                      key={note.text}
-                                    >
-                                      {note.text}
-                                    </li>
-                                  ))}
-                                </ul>
-                              </td>
-                              <td>
-                                <Button onClick={() => pickRep(row)} size="sm" variant="secondary">
-                                  اختيارٌ للربط
-                                </Button>
-                              </td>
-                            </tr>
-                            {expanded && row.custody?.items?.length ? (
-                              <tr>
-                                <td className="border-b border-line bg-surface p-2" colSpan={8}>
-                                  <p className="m-0 text-[12px] font-bold text-ink">
-                                    أصنافُ عهدته من <span dir="ltr">stock_balances</span> مستودع سيارته (كميةٌ
-                                    وقيمةٌ كما خزّنهما الخادم):
-                                  </p>
-                                  <div className="mt-2 bak-table-wrap">
-                                    <table className="bak-table bak-table--dense">
-                                      <thead>
-                                        <tr>
-                                          <th>الصنف</th>
-                                          <th>المستودع</th>
-                                          <th>الكمية</th>
-                                          <th>القيمة</th>
-                                        </tr>
-                                      </thead>
-                                      <tbody>
-                                        {row.custody.items.map((item) => (
-                                          <tr key={`${row.id}-${item.itemId}`}>
-                                            <td>{numberText(item.itemName)}</td>
-                                            <td>{numberText(item.warehouseName)}</td>
-                                            <td dir="ltr">{numberText(item.quantity)}</td>
-                                            <td dir="ltr">{numberText(item.value)}</td>
-                                          </tr>
-                                        ))}
-                                      </tbody>
-                                    </table>
-                                  </div>
-                                </td>
-                              </tr>
+                  <Table
+                    columns={[
+                      {
+                        key: 'rep',
+                        header: 'المندوب',
+                        cell: (row) => (
+                          <>
+                            <div className="font-bold text-ink">{numberText(row.name)}</div>
+                            <div className="text-xs text-muted" dir="ltr">
+                              {row.id}
+                            </div>
+                            {row.vehiclePlate ? (
+                              <div className="text-xs text-muted">لوحة {row.vehiclePlate}</div>
                             ) : null}
-                          </Fragment>
-                        );
-                      })}
-                    </tbody>
-                  </table>
+                            {row.active === false ? (
+                              <span className="bak-badge mt-1 inline-block">بطاقة موقوفة</span>
+                            ) : null}
+                          </>
+                        ),
+                      },
+                      {
+                        key: 'employee',
+                        header: 'بطاقة الموظف',
+                        cell: (row) =>
+                          row.employeeId ? (
+                            <>
+                              <div className="font-semibold text-ink">{numberText(row.employeeName)}</div>
+                              <div className="text-xs text-muted">
+                                رقم {numberText(row.employeeNo)} — {numberText(row.employeeStatus)}
+                              </div>
+                              {row.employeeRef ? (
+                                <div className="text-xs text-muted" dir="ltr">
+                                  {row.employeeRef}
+                                </div>
+                              ) : null}
+                            </>
+                          ) : (
+                            <span className={`bak-badge ${TONE_CLASSES.danger}`}>بلا بطاقة موظف</span>
+                          ),
+                      },
+                      {
+                        key: 'account',
+                        header: 'حساب الدخول',
+                        cell: (row) =>
+                          row.membershipId ? (
+                            <>
+                              <div className="text-[12px]" dir="ltr">
+                                {numberText(row.userEmail)}
+                              </div>
+                              <div className="text-xs text-muted">
+                                العضوية: {membershipStatusLabel(row.membershipStatus)} — المستخدم:{' '}
+                                {membershipStatusLabel(row.userStatus)} — {row.roleCount} دور
+                              </div>
+                            </>
+                          ) : (
+                            <span className={`bak-badge ${TONE_CLASSES.danger}`}>بلا حساب دخول</span>
+                          ),
+                      },
+                      {
+                        key: 'warehouse',
+                        header: 'مستودع السيارة',
+                        cell: (row) =>
+                          row.warehouseId ? (
+                            <>
+                              <div className="font-semibold text-ink">{numberText(row.warehouseName)}</div>
+                              <div className="text-xs text-muted" dir="ltr">
+                                {numberText(row.warehouseCode)}
+                              </div>
+                            </>
+                          ) : (
+                            <span className={`bak-badge ${TONE_CLASSES.danger}`}>بلا مستودع سيارة</span>
+                          ),
+                      },
+                      {
+                        key: 'rates',
+                        header: 'النِّسب',
+                        ltr: true,
+                        cell: (row) => (
+                          <>
+                            <div>بيع {ratePercentText(row.commissionRate)}</div>
+                            <div>تحصيل {ratePercentText(row.collectionCommissionRate)}</div>
+                            <div>ربح {ratePercentText(row.profitCommissionRate)}</div>
+                          </>
+                        ),
+                      },
+                      {
+                        key: 'custody',
+                        header: 'العهدة الحيّة',
+                        cell: (row) => (
+                          <>
+                            <div className="text-[12px]">{custodyHeadline(row)}</div>
+                            {row.custody?.items?.length ? (
+                              <button
+                                className="mt-1 rounded-[6px] border border-line bg-surface px-2 py-0.5 text-xs font-bold text-ink"
+                                onClick={() => setExpandedId(expandedId === row.id ? undefined : row.id)}
+                                type="button"
+                              >
+                                {expandedId === row.id
+                                  ? 'إخفاء الأصناف'
+                                  : `أصنافُ العهدة (${row.custody.items.length})`}
+                              </button>
+                            ) : null}
+                          </>
+                        ),
+                      },
+                      {
+                        key: 'needs',
+                        header: 'ما ينقصه',
+                        cell: (row) => (
+                          <ul className="m-0 grid list-none gap-1 p-0">
+                            {readinessNotes(row).map((note) => (
+                              <li
+                                className={`rounded-[8px] border px-2 py-1 text-[11.5px] font-semibold ${TONE_CLASSES[note.tone]}`}
+                                key={note.text}
+                              >
+                                {note.text}
+                              </li>
+                            ))}
+                          </ul>
+                        ),
+                      },
+                      {
+                        key: 'actions',
+                        header: 'إجراء',
+                        cell: (row) => (
+                          <Button onClick={() => pickRep(row)} size="sm" variant="secondary">
+                            اختيارٌ للربط
+                          </Button>
+                        ),
+                      },
+                    ]}
+                    rows={visible}
+                    rowKey={(row) => row.id}
+                    expandedKey={expandedId}
+                    renderExpanded={(row) => (
+                      <div className="p-2">
+                        <p className="m-0 text-[12px] font-bold text-ink">
+                          أصنافُ عهدته من <span dir="ltr">stock_balances</span> مستودع سيارته (كميةٌ وقيمةٌ
+                          كما خزّنهما الخادم):
+                        </p>
+                        <div className="mt-2">
+                          <Table
+                            dense
+                            bare
+                            empty={<>لا أصناف في عهدته.</>}
+                            columns={[
+                              { key: 'item', header: 'الصنف', cell: (item) => numberText(item.itemName) },
+                              {
+                                key: 'warehouse',
+                                header: 'المستودع',
+                                cell: (item) => numberText(item.warehouseName),
+                              },
+                              {
+                                key: 'qty',
+                                header: 'الكمية',
+                                numeric: true,
+                                ltr: true,
+                                cell: (item) => numberText(item.quantity),
+                              },
+                              {
+                                key: 'value',
+                                header: 'القيمة',
+                                numeric: true,
+                                ltr: true,
+                                cell: (item) => numberText(item.value),
+                              },
+                            ]}
+                            rows={row.custody?.items ?? []}
+                            rowKey={(item) => `${row.id}-${item.itemId}`}
+                          />
+                        </div>
+                      </div>
+                    )}
+                  />
                 </div>
               ) : null}
             </CardBody>

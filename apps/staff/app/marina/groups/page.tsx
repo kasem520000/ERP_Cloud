@@ -1,6 +1,6 @@
 'use client';
 
-import { Panel } from '@erp/ui';
+import { Panel, TableFrame } from '@erp/ui';
 import { useEffect, useState } from 'react';
 import { Plus } from 'lucide-react';
 
@@ -560,106 +560,104 @@ export default function MarinaGroupCardsPage() {
               </button>
             </div>
             <div style={{ padding: 16, display: 'grid', gap: 12, maxHeight: '70vh', overflow: 'auto' }}>
-              <div className="table-wrap">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>المدة</th>
-                      <th className="num">السعر</th>
-                      <th className="num">العرض</th>
-                      <th>
-                        <span className="sr-only">إجراءات</span>
-                      </th>
+              <TableFrame>
+                <thead>
+                  <tr>
+                    <th>المدة</th>
+                    <th className="num">السعر</th>
+                    <th className="num">العرض</th>
+                    <th>
+                      <span className="sr-only">إجراءات</span>
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {editingPeriods.rows.map((row, index) => (
+                    <tr key={index}>
+                      <td>
+                        <select
+                          className="input"
+                          value={row.periodId}
+                          onChange={(event) =>
+                            setEditingPeriods((current) =>
+                              current
+                                ? {
+                                    ...current,
+                                    rows: current.rows.map((line, at) =>
+                                      at === index ? { ...line, periodId: event.target.value } : line,
+                                    ),
+                                  }
+                                : current,
+                            )
+                          }
+                        >
+                          {durations.length === 0 && <option value={row.periodId}>{row.periodId}</option>}
+                          {durations.map((duration) => (
+                            <option key={duration.id} value={String(duration.id)}>
+                              {duration.name}
+                            </option>
+                          ))}
+                        </select>
+                      </td>
+                      <td>
+                        <input
+                          className="input"
+                          dir="ltr"
+                          inputMode="decimal"
+                          value={row.price}
+                          onChange={(event) =>
+                            setEditingPeriods((current) =>
+                              current
+                                ? {
+                                    ...current,
+                                    rows: current.rows.map((line, at) =>
+                                      at === index ? { ...line, price: event.target.value } : line,
+                                    ),
+                                  }
+                                : current,
+                            )
+                          }
+                        />
+                      </td>
+                      <td>
+                        <input
+                          className="input"
+                          dir="ltr"
+                          inputMode="numeric"
+                          value={row.offerMinutes}
+                          onChange={(event) =>
+                            setEditingPeriods((current) =>
+                              current
+                                ? {
+                                    ...current,
+                                    rows: current.rows.map((line, at) =>
+                                      at === index ? { ...line, offerMinutes: event.target.value } : line,
+                                    ),
+                                  }
+                                : current,
+                            )
+                          }
+                        />
+                      </td>
+                      <td>
+                        <button
+                          className="btn sm danger"
+                          type="button"
+                          onClick={() =>
+                            setEditingPeriods((current) =>
+                              current
+                                ? { ...current, rows: current.rows.filter((_, at) => at !== index) }
+                                : current,
+                            )
+                          }
+                        >
+                          حذف
+                        </button>
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody>
-                    {editingPeriods.rows.map((row, index) => (
-                      <tr key={index}>
-                        <td>
-                          <select
-                            className="input"
-                            value={row.periodId}
-                            onChange={(event) =>
-                              setEditingPeriods((current) =>
-                                current
-                                  ? {
-                                      ...current,
-                                      rows: current.rows.map((line, at) =>
-                                        at === index ? { ...line, periodId: event.target.value } : line,
-                                      ),
-                                    }
-                                  : current,
-                              )
-                            }
-                          >
-                            {durations.length === 0 && <option value={row.periodId}>{row.periodId}</option>}
-                            {durations.map((duration) => (
-                              <option key={duration.id} value={String(duration.id)}>
-                                {duration.name}
-                              </option>
-                            ))}
-                          </select>
-                        </td>
-                        <td>
-                          <input
-                            className="input"
-                            dir="ltr"
-                            inputMode="decimal"
-                            value={row.price}
-                            onChange={(event) =>
-                              setEditingPeriods((current) =>
-                                current
-                                  ? {
-                                      ...current,
-                                      rows: current.rows.map((line, at) =>
-                                        at === index ? { ...line, price: event.target.value } : line,
-                                      ),
-                                    }
-                                  : current,
-                              )
-                            }
-                          />
-                        </td>
-                        <td>
-                          <input
-                            className="input"
-                            dir="ltr"
-                            inputMode="numeric"
-                            value={row.offerMinutes}
-                            onChange={(event) =>
-                              setEditingPeriods((current) =>
-                                current
-                                  ? {
-                                      ...current,
-                                      rows: current.rows.map((line, at) =>
-                                        at === index ? { ...line, offerMinutes: event.target.value } : line,
-                                      ),
-                                    }
-                                  : current,
-                              )
-                            }
-                          />
-                        </td>
-                        <td>
-                          <button
-                            className="btn sm danger"
-                            type="button"
-                            onClick={() =>
-                              setEditingPeriods((current) =>
-                                current
-                                  ? { ...current, rows: current.rows.filter((_, at) => at !== index) }
-                                  : current,
-                              )
-                            }
-                          >
-                            حذف
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                  ))}
+                </tbody>
+              </TableFrame>
 
               <div className="row" style={{ gap: 6 }}>
                 <button

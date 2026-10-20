@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import { FilterBand, Panel } from '@erp/ui';
+import { FilterBand, Panel, TableFrame } from '@erp/ui';
 import { Suspense, useState } from 'react';
 
 import { Empty, ErrorBox, Forbidden, Loading, Screen } from '../../../components/screen';
@@ -291,55 +291,53 @@ function EmployeeMovements() {
                 detail="تأكد من التاريخين، أو أن فواتير الموظف مرحَّلة."
               />
             ) : (
-              <div className="table-wrap">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>م</th>
-                      <th>نوع الحركة</th>
-                      <th>التاريخ</th>
-                      <th>رقم الفاتورة</th>
-                      <th>الفرع</th>
-                      <th>الصنف</th>
-                      <th className="num">الكمية</th>
-                      <th className="num">السعر</th>
-                      <th className="num">إضافات</th>
-                      <th className="num">الإجمالي</th>
-                      <th>عرض</th>
+              <TableFrame>
+                <thead>
+                  <tr>
+                    <th>م</th>
+                    <th>نوع الحركة</th>
+                    <th>التاريخ</th>
+                    <th>رقم الفاتورة</th>
+                    <th>الفرع</th>
+                    <th>الصنف</th>
+                    <th className="num">الكمية</th>
+                    <th className="num">السعر</th>
+                    <th className="num">إضافات</th>
+                    <th className="num">الإجمالي</th>
+                    <th>عرض</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map((row) => (
+                    <tr key={`${row.invoiceId}-${row.seq}`}>
+                      <td dir="ltr">{row.seq}</td>
+                      <td>{row.movementType}</td>
+                      <td dir="ltr">{row.date}</td>
+                      <td dir="ltr">{row.number ?? '—'}</td>
+                      <td>{row.branchName ?? '—'}</td>
+                      <td>{row.itemName}</td>
+                      <td className="num">{money(row.quantity)}</td>
+                      <td className="num">{money(row.unitPrice)}</td>
+                      <td className="num">{money(row.additions)}</td>
+                      <td className="num">{money(row.lineTotal)}</td>
+                      <td>
+                        <Link className="btn sm" href={`/sales/invoices/${row.invoiceId}`}>
+                          عرض
+                        </Link>
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody>
-                    {rows.map((row) => (
-                      <tr key={`${row.invoiceId}-${row.seq}`}>
-                        <td dir="ltr">{row.seq}</td>
-                        <td>{row.movementType}</td>
-                        <td dir="ltr">{row.date}</td>
-                        <td dir="ltr">{row.number ?? '—'}</td>
-                        <td>{row.branchName ?? '—'}</td>
-                        <td>{row.itemName}</td>
-                        <td className="num">{money(row.quantity)}</td>
-                        <td className="num">{money(row.unitPrice)}</td>
-                        <td className="num">{money(row.additions)}</td>
-                        <td className="num">{money(row.lineTotal)}</td>
-                        <td>
-                          <Link className="btn sm" href={`/sales/invoices/${row.invoiceId}`}>
-                            عرض
-                          </Link>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                  <tfoot>
-                    <tr>
-                      <th colSpan={9}>الإجمالي</th>
-                      <th className="num">{money(totals.total)}</th>
-                      <th>
-                        <span className="sr-only">إجراءات</span>
-                      </th>
-                    </tr>
-                  </tfoot>
-                </table>
-              </div>
+                  ))}
+                </tbody>
+                <tfoot>
+                  <tr>
+                    <th colSpan={9}>الإجمالي</th>
+                    <th className="num">{money(totals.total)}</th>
+                    <th>
+                      <span className="sr-only">إجراءات</span>
+                    </th>
+                  </tr>
+                </tfoot>
+              </TableFrame>
             )}
           </Panel>
         </>

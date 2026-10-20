@@ -57,6 +57,11 @@ type TableProps<T> = {
    */
   expandedKey?: string | null;
   renderExpanded?: (row: T) => ReactNode;
+  /**
+   * صفُّ تفاصيلَ يتبع **كلَّ** صفّ (رأس مستند المناقلة تحت سطره، مثلاً) — لا
+   * صفَّ واحداً منفتحاً. من يريد فتحاً عند الطلب يستعمل `expandedKey/renderExpanded`.
+   */
+  renderRowDetail?: (row: T) => ReactNode;
   /** Per-row 3-dot menu. */
   actions?: (row: T) => Array<{ label: string; icon?: ReactNode; onClick: () => void; danger?: boolean }>;
   dense?: boolean;
@@ -73,6 +78,11 @@ type TableProps<T> = {
    * scroll box with no way to know where you are.
    */
   pageSize?: number;
+  /**
+   * سقفُ ارتفاعٍ بالبكسل لمنطقة التمرير — للجدول الصغير داخل بطاقةٍ لا يجوز أن
+   * يبتلع الشاشة. الغياب يعني السقف الافتراضي (70vh).
+   */
+  maxHeight?: number;
 };
 
 export function Table<T>({
@@ -94,10 +104,12 @@ export function Table<T>({
   actions,
   expandedKey,
   renderExpanded,
+  renderRowDetail,
   dense = false,
   zebra = true,
   bare = false,
   pageSize,
+  maxHeight,
 }: TableProps<T>) {
   const [page, setPage] = useState(0);
   const pageCount = pageSize ? Math.max(1, Math.ceil(rows.length / pageSize)) : 1;
@@ -158,7 +170,7 @@ export function Table<T>({
       }
     >
       {/* Only the rows scroll; the pager below stays reachable at the bottom of the frame. */}
-      <div className="max-h-[70vh] overflow-auto">
+      <div className="max-h-[70vh] overflow-auto" style={maxHeight ? { maxHeight } : undefined}>
         <table className="w-full border-collapse text-[13px]">
           <thead>
             <tr>
@@ -314,6 +326,13 @@ export function Table<T>({
                             </td>
                           </tr>
                         ) : null}
+                        {renderRowDetail ? (
+                          <tr>
+                            <td colSpan={colSpan} className="bg-surface-2/60 border-b border-line">
+                              {renderRowDetail(row)}
+                            </td>
+                          </tr>
+                        ) : null}
                       </Fragment>
                     );
                   })}
@@ -367,6 +386,31 @@ export function Table<T>({
           </div>
         </div>
       ) : null}
+    </div>
+  );
+}
+
+/**
+ * إطارُ الجدول — للجداول التي تبني رأسها بنفسها.
+ *
+ * بعضُ تقارير المحاسبة رأسُها مجموعتان فوق عمودين (`rowSpan`/`colSpan`) أو صفُّ
+ * مجاميعَ وسط الجسم؛ فلا تنطبق عليها واجهةُ `columns`. لكن السطحَ والتمريرَ
+ * والحشوَ يجب أن تبقى واحدة: هذا المكوّن يعطيها `.table-wrap` المشتركة بـ
+ * `<table>` واحدة، ويترك `<thead>`/`<tbody>` بيد الشاشة. أي جدولٍ خامٍ في أي
+ * تطبيقٍ يمرّ من هنا — لا `<div className="table-wrap">` مكتوبةٌ في الصفحة.
+ */
+export function TableFrame({
+  children,
+  className,
+  tableClassName,
+}: {
+  children: ReactNode;
+  className?: string;
+  tableClassName?: string;
+}) {
+  return (
+    <div className={`table-wrap${className ? ` ${className}` : ''}`}>
+      <table className={tableClassName}>{children}</table>
     </div>
   );
 }

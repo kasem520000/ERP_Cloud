@@ -133,6 +133,10 @@ export function ProjectTaskDetail({ taskId, projectId }: { taskId: string; proje
                 value={task.startDate ?? ''}
                 onChange={(event) => void save({ startDate: event.target.value }, 'تغيّر التاريخ.')}
               />
+              {/* التقويم الأصلي يعرض الصيغة بلغة المتصفح؛ السطر يثبّت المعنى بصيغةٍ واحدة. */}
+              <small className="muted" dir={task.startDate ? 'ltr' : undefined}>
+                {task.startDate || 'لم يُحدَّد'}
+              </small>
             </label>
             <label className="field">
               <span>الاستحقاق</span>
@@ -142,6 +146,9 @@ export function ProjectTaskDetail({ taskId, projectId }: { taskId: string; proje
                 value={task.dueDate ?? ''}
                 onChange={(event) => void save({ dueDate: event.target.value }, 'تغيّر التاريخ.')}
               />
+              <small className="muted" dir={task.dueDate ? 'ltr' : undefined}>
+                {task.dueDate || 'لم يُحدَّد'}
+              </small>
             </label>
             <label className="field">
               <span>ساعات مخططة</span>

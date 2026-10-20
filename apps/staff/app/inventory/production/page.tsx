@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Panel } from '@erp/ui';
+import { Panel, TableFrame } from '@erp/ui';
 
 import { DataTable, Notice, QueryView } from '../../../components/data-view';
 import { Screen } from '../../../components/screen';
@@ -397,44 +397,42 @@ export default function ProductionOrdersPage() {
               </>
             )
           ) : (
-            <div className="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>الصنف</th>
-                    <th>الكمية المستهلكة</th>
+            <TableFrame>
+              <thead>
+                <tr>
+                  <th>الصنف</th>
+                  <th>الكمية المستهلكة</th>
+                </tr>
+              </thead>
+              <tbody>
+                {components.map((component, index) => (
+                  <tr key={index}>
+                    <td>
+                      <select
+                        className="input"
+                        value={component.itemId}
+                        onChange={(event) => setComponent(index, { itemId: event.target.value })}
+                      >
+                        <option value="">— اختر —</option>
+                        {(items.data ?? []).map((row) => (
+                          <option key={row.id} value={row.id}>
+                            {itemLabel(row)}
+                          </option>
+                        ))}
+                      </select>
+                    </td>
+                    <td>
+                      <input
+                        className="input"
+                        value={component.qty}
+                        onChange={(event) => setComponent(index, { qty: event.target.value })}
+                        inputMode="decimal"
+                      />
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {components.map((component, index) => (
-                    <tr key={index}>
-                      <td>
-                        <select
-                          className="input"
-                          value={component.itemId}
-                          onChange={(event) => setComponent(index, { itemId: event.target.value })}
-                        >
-                          <option value="">— اختر —</option>
-                          {(items.data ?? []).map((row) => (
-                            <option key={row.id} value={row.id}>
-                              {itemLabel(row)}
-                            </option>
-                          ))}
-                        </select>
-                      </td>
-                      <td>
-                        <input
-                          className="input"
-                          value={component.qty}
-                          onChange={(event) => setComponent(index, { qty: event.target.value })}
-                          inputMode="decimal"
-                        />
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                ))}
+              </tbody>
+            </TableFrame>
           )}
           <div className="toolbar">
             {!fromCard && (

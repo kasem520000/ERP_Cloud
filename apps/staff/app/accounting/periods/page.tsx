@@ -394,41 +394,40 @@ export default function FiscalPeriodsPage() {
           ((years.data ?? []).length === 0 ? (
             <p className="muted">لا توجد سنة مالية بعد — أضف فترة لتبدأ، وستُفتح سنتها وحدها.</p>
           ) : (
-            <div className="table-wrap" style={{ maxHeight: 240 }}>
-              <Table
-                bare
-                columns={[
-                  {
-                    key: 'c0',
-                    header: 'الاسم',
-                    cell: (year) => year.name,
-                  },
-                  {
-                    key: 'c1',
-                    header: 'من',
-                    ltr: true,
-                    cell: (year) => year.startDate,
-                  },
-                  {
-                    key: 'c2',
-                    header: 'إلى',
-                    ltr: true,
-                    cell: (year) => year.endDate,
-                  },
-                  {
-                    key: 'c3',
-                    header: 'الحالة',
-                    cell: (year) => (
-                      <span className={`badge ${year.status === 'open' ? 'active' : ''}`}>
-                        {year.status === 'open' ? 'مفتوحة' : 'مغلقة'}
-                      </span>
-                    ),
-                  },
-                ]}
-                rows={years.data ?? []}
-                rowKey={(year) => year.id}
-              />
-            </div>
+            <Table
+              bare
+              maxHeight={240}
+              columns={[
+                {
+                  key: 'c0',
+                  header: 'الاسم',
+                  cell: (year) => year.name,
+                },
+                {
+                  key: 'c1',
+                  header: 'من',
+                  ltr: true,
+                  cell: (year) => year.startDate,
+                },
+                {
+                  key: 'c2',
+                  header: 'إلى',
+                  ltr: true,
+                  cell: (year) => year.endDate,
+                },
+                {
+                  key: 'c3',
+                  header: 'الحالة',
+                  cell: (year) => (
+                    <span className={`badge ${year.status === 'open' ? 'active' : ''}`}>
+                      {year.status === 'open' ? 'مفتوحة' : 'مغلقة'}
+                    </span>
+                  ),
+                },
+              ]}
+              rows={years.data ?? []}
+              rowKey={(year) => year.id}
+            />
           ))}
       </Panel>
     </Screen>

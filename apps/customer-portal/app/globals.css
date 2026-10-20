@@ -489,6 +489,20 @@ body {
 .table-wrap > table {
   min-width: max-content;
 }
+/* جدولٌ خارج لوحة (نظير `Table` بلا `bare`): إطارُ البطاقة نفسُه. */
+.table-wrap-card {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-1);
+}
+/* حالةُ «لا صفوف» داخل الجسم — تُقرأ كحالةٍ لا كصفٍّ ناقص. */
+table td.table-blank {
+  padding: 22px 12px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 13px;
+}
 table {
   width: 100%;
   border-collapse: collapse;
@@ -518,6 +532,16 @@ tbody tr:hover {
 }
 tbody tr:last-child td {
   border-bottom: 0;
+}
+/* الأرقام: تُحاذى إلى نهاية السطر بخطٍّ ثابت العرض — نفس قاعدة `@erp/ui`،
+ * وإلا اختلطت محاذاةُ الأعمدة المالية بمحاذاة النصوص. */
+table td.num,
+table th.num {
+  text-align: end;
+  font-variant-numeric: tabular-nums;
+  font-family: var(--font-num);
+  direction: ltr;
+  unicode-bidi: isolate;
 }
 
 .badge {

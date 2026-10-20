@@ -1,7 +1,7 @@
 'use client';
 
 import { useMemo, useState } from 'react';
-import { Panel } from '@erp/ui';
+import { Panel, TableFrame } from '@erp/ui';
 
 import { DataTable, Notice, QueryView } from '../../../components/data-view';
 import { Screen } from '../../../components/screen';
@@ -216,42 +216,40 @@ export default function ContractingReturnPage() {
             isEmpty={(data) => !data || data.lines.length === 0}
           >
             {(data) => (
-              <div className="table-wrap">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>البند</th>
-                      <th>الوصف</th>
-                      <th>المستخلَص</th>
-                      <th>أُرجع سابقاً</th>
-                      <th>القابل للإرجاع</th>
-                      <th>قيمة المرتجع</th>
+              <TableFrame>
+                <thead>
+                  <tr>
+                    <th>البند</th>
+                    <th>الوصف</th>
+                    <th>المستخلَص</th>
+                    <th>أُرجع سابقاً</th>
+                    <th>القابل للإرجاع</th>
+                    <th>قيمة المرتجع</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {data!.lines.map((line) => (
+                    <tr key={line.termId}>
+                      <td className="ltr">{line.code}</td>
+                      <td>{line.description}</td>
+                      <td className="num">{money(line.billedValue)}</td>
+                      <td className="num">{money(line.returnedValue)}</td>
+                      <td className="num">{money(line.returnableValue)}</td>
+                      <td>
+                        <input
+                          className="input"
+                          value={amounts[line.termId] ?? ''}
+                          onChange={(event) =>
+                            setAmounts((current) => ({ ...current, [line.termId]: event.target.value }))
+                          }
+                          inputMode="decimal"
+                          disabled={Number(line.returnableValue) <= 0}
+                        />
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody>
-                    {data!.lines.map((line) => (
-                      <tr key={line.termId}>
-                        <td className="ltr">{line.code}</td>
-                        <td>{line.description}</td>
-                        <td className="num">{money(line.billedValue)}</td>
-                        <td className="num">{money(line.returnedValue)}</td>
-                        <td className="num">{money(line.returnableValue)}</td>
-                        <td>
-                          <input
-                            className="input"
-                            value={amounts[line.termId] ?? ''}
-                            onChange={(event) =>
-                              setAmounts((current) => ({ ...current, [line.termId]: event.target.value }))
-                            }
-                            inputMode="decimal"
-                            disabled={Number(line.returnableValue) <= 0}
-                          />
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                  ))}
+                </tbody>
+              </TableFrame>
             )}
           </QueryView>
 

@@ -1,7 +1,7 @@
 'use client';
 
-import { Panel } from '@erp/ui';
-import { Fragment, type ReactNode } from 'react';
+import { Panel, Table } from '@erp/ui';
+import type { ReactNode } from 'react';
 
 import type { QueryState } from '../lib/use-query';
 
@@ -79,11 +79,14 @@ export type Column<T> = {
   cell: (row: T, index: number) => ReactNode;
 };
 
-/** Plain, dense table. No sorting or pagination magic — the API decides the order. */
 /**
- * Dense table with the extras a document screen needs: zebra rows, clickable rows,
- * an expandable detail row and a totals footer. Every option is opt-in, so the
- * thirteen screens already calling it keep working unchanged.
+ * جدولُ المكتب — **غلافٌ رقيق** حول `Table` المشتركة، لا نسخةٌ ثانية منها.
+ *
+ * كان هذا الملف جدولاً كاملاً مكتوباً بخطّ اليد (`<table>` + `thead` + `tbody`)، بينما
+ * 44 شاشةً أخرى تستعمل `Table` من `@erp/ui`؛ فيختلف الحشو والزبرا والحالة الفارغة
+ * بين شاشتين تعرضان الشيء نفسه. الآن كلاهما واحد: هذه الدالّة تُترجم أسماء الخصائص
+ * القديمة (`align`, `compact`, `expanded`) إلى خصائص الجدول المشترك، فتبقى 111
+ * نقطةَ استدعاء كما هي بلا تعديل.
  */
 export function DataTable<T>({
   columns,
@@ -112,79 +115,25 @@ export function DataTable<T>({
   empty?: string;
 }) {
   return (
-    <div className="table-wrap">
-      <table
-        className={[zebra ? 'zebra' : '', compact ? 'compact' : ''].filter(Boolean).join(' ') || undefined}
-      >
-        <thead>
-          <tr>
-            {columns.map((column) => (
-              <th key={column.key} className={column.align === 'num' ? 'num' : undefined}>
-                {column.header}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {rows.length === 0 && empty ? (
-            <tr>
-              <td colSpan={columns.length} className="table-blank">
-                {empty}
-              </td>
-            </tr>
-          ) : null}
-          {rows.map((row, index) => {
-            const key = rowKey(row, index);
-            const active = activeKey !== undefined && activeKey === key;
-            return (
-              <Fragment key={key}>
-                <tr
-                  className={
-                    [onRowClick ? 'clickable' : '', active ? 'row-active' : ''].filter(Boolean).join(' ') ||
-                    undefined
-                  }
-                  onClick={onRowClick ? () => onRowClick(row) : undefined}
-                >
-                  {columns.map((column) => (
-                    <td
-                      key={column.key}
-                      className={column.align === 'num' ? 'num' : undefined}
-                      dir={column.align === 'ltr' ? 'ltr' : undefined}
-                    >
-                      {column.cell(row, index)}
-                    </td>
-                  ))}
-                </tr>
-                {expanded ? (
-                  <tr>
-                    <td
-                      colSpan={columns.length}
-                      style={{ background: 'var(--surface-2)', padding: '8px 12px' }}
-                    >
-                      {expanded(row)}
-                    </td>
-                  </tr>
-                ) : null}
-              </Fragment>
-            );
-          })}
-        </tbody>
-        {footer ? (
-          <tfoot>
-            <tr>
-              {footer.map((cell, index) => (
-                <td
-                  key={columns[index]?.key ?? index}
-                  className={columns[index]?.align === 'num' ? 'num' : undefined}
-                >
-                  {cell}
-                </td>
-              ))}
-            </tr>
-          </tfoot>
-        ) : null}
-      </table>
-    </div>
+    <Table
+      bare
+      zebra={zebra}
+      dense={compact}
+      rows={rows}
+      rowKey={rowKey}
+      onRowClick={onRowClick}
+      activeKey={activeKey}
+      footer={footer}
+      renderRowDetail={expanded}
+      empty={empty}
+      columns={columns.map((column) => ({
+        key: column.key,
+        header: column.header,
+        cell: column.cell,
+        numeric: column.align === 'num',
+        ltr: column.align === 'ltr',
+      }))}
+    />
   );
 }
 

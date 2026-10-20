@@ -1,6 +1,6 @@
 'use client';
 
-import { Panel } from '@erp/ui';
+import { Panel, TableFrame } from '@erp/ui';
 import { Suspense, useState } from 'react';
 
 import { Empty, ErrorBox, Forbidden, Loading, Screen } from '../../../components/screen';
@@ -152,47 +152,45 @@ function TailoringOptions() {
             {rows.length === 0 ? (
               <Empty title="لا توجد تصنيفات" detail="أضف تصنيفاً واحداً على الأقل قبل إضافة خيارات." />
             ) : (
-              <div className="table-wrap">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>التصنيف</th>
-                      <th className="num">الترتيب</th>
+              <TableFrame>
+                <thead>
+                  <tr>
+                    <th>التصنيف</th>
+                    <th className="num">الترتيب</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map((row) => (
+                    <tr
+                      key={row.id}
+                      className={row.id === categoryId ? 'active' : undefined}
+                      onClick={() => {
+                        setCategoryId(row.id);
+                        setEditingValue(null);
+                      }}
+                      style={{ cursor: 'pointer' }}
+                    >
+                      <td>
+                        {editingCategory === row.id ? (
+                          <input
+                            className="input"
+                            value={categoryName}
+                            onChange={(event) => setCategoryName(event.target.value)}
+                          />
+                        ) : (
+                          <>
+                            {row.nameAr}
+                            {!row.active && <span className="badge"> موقوف</span>}
+                          </>
+                        )}
+                      </td>
+                      <td className="num" dir="ltr">
+                        {row.displayOrder}
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody>
-                    {rows.map((row) => (
-                      <tr
-                        key={row.id}
-                        className={row.id === categoryId ? 'active' : undefined}
-                        onClick={() => {
-                          setCategoryId(row.id);
-                          setEditingValue(null);
-                        }}
-                        style={{ cursor: 'pointer' }}
-                      >
-                        <td>
-                          {editingCategory === row.id ? (
-                            <input
-                              className="input"
-                              value={categoryName}
-                              onChange={(event) => setCategoryName(event.target.value)}
-                            />
-                          ) : (
-                            <>
-                              {row.nameAr}
-                              {!row.active && <span className="badge"> موقوف</span>}
-                            </>
-                          )}
-                        </td>
-                        <td className="num" dir="ltr">
-                          {row.displayOrder}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                  ))}
+                </tbody>
+              </TableFrame>
             )}
             {canManage && (
               <>
@@ -258,45 +256,43 @@ function TailoringOptions() {
                 detail="أضف خياراً واحداً على الأقل ليظهر على بطاقة الطلب."
               />
             ) : (
-              <div className="table-wrap">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>الخيار</th>
-                      <th className="num">الترتيب</th>
-                      <th>الافتراضي</th>
+              <TableFrame>
+                <thead>
+                  <tr>
+                    <th>الخيار</th>
+                    <th className="num">الترتيب</th>
+                    <th>الافتراضي</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {values.map((value) => (
+                    <tr
+                      key={value.id}
+                      onClick={() => setEditingValue(value.id)}
+                      style={{ cursor: 'pointer' }}
+                    >
+                      <td>
+                        {editingValue === value.id ? (
+                          <input
+                            className="input"
+                            value={valueName}
+                            onChange={(event) => setValueName(event.target.value)}
+                          />
+                        ) : (
+                          <>
+                            {value.nameAr}
+                            {!value.active && <span className="badge"> موقوف</span>}
+                          </>
+                        )}
+                      </td>
+                      <td className="num" dir="ltr">
+                        {value.displayOrder}
+                      </td>
+                      <td>{value.isDefault ? 'افتراضي' : '—'}</td>
                     </tr>
-                  </thead>
-                  <tbody>
-                    {values.map((value) => (
-                      <tr
-                        key={value.id}
-                        onClick={() => setEditingValue(value.id)}
-                        style={{ cursor: 'pointer' }}
-                      >
-                        <td>
-                          {editingValue === value.id ? (
-                            <input
-                              className="input"
-                              value={valueName}
-                              onChange={(event) => setValueName(event.target.value)}
-                            />
-                          ) : (
-                            <>
-                              {value.nameAr}
-                              {!value.active && <span className="badge"> موقوف</span>}
-                            </>
-                          )}
-                        </td>
-                        <td className="num" dir="ltr">
-                          {value.displayOrder}
-                        </td>
-                        <td>{value.isDefault ? 'افتراضي' : '—'}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                  ))}
+                </tbody>
+              </TableFrame>
             )}
             {canManage && selected && (
               <>

@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { FilterBand, Panel } from '@erp/ui';
+import { FilterBand, Panel, TableFrame } from '@erp/ui';
 import { Suspense, useState } from 'react';
 
 import { Empty, ErrorBox, Forbidden, Loading, Screen } from '../../../components/screen';
@@ -329,76 +329,74 @@ function SalesmanCommissions() {
             />
           ) : (
             <Panel flush hint="القيمة بإشارتها: المرتجع وإشعار المدين ينقصان." title="حركات المندوب">
-              <div className="table-wrap">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>م</th>
-                      <th>نوع الحركة</th>
-                      <th>التاريخ</th>
-                      <th>رقم السند</th>
-                      <th>رقم المرجع</th>
-                      <th>المندوب</th>
-                      <th>الفرع</th>
-                      <th className="num">القيمة</th>
-                      <th className="num">عمولة المبيعات</th>
-                      <th className="num">عمولة التحصيل</th>
-                      <th className="num">عمولة الربح</th>
-                      <th>عرض</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {rows.map((row) => {
-                      const isInvoice = row.movementType.includes('فاتورة');
-                      const isNote = row.movementType.includes('إشعار');
-                      const isReceipt = row.movementType.includes('سند قبض');
-                      let href = '';
-                      if (isInvoice) href = `/sales/invoices/${row.documentId}`;
-                      else if (isNote) href = `/sales/notes/debit?id=${row.documentId}`;
-                      else if (isReceipt) href = `/treasury/vouchers?kind=receipt&id=${row.documentId}`;
-                      return (
-                        <tr key={`${row.documentId}-${row.seq}`}>
-                          <td dir="ltr">{row.seq}</td>
-                          <td>{row.movementType}</td>
-                          <td dir="ltr">{row.date ?? '—'}</td>
-                          <td dir="ltr">{row.number ?? '—'}</td>
-                          <td dir="ltr">{row.refNumber ?? '—'}</td>
-                          <td>{row.salesmanName}</td>
-                          <td>{row.branchName ?? '—'}</td>
-                          {/* «القيمة» تُعرض بإشارتها: المرتجع وإشعار المدين ينقصان. */}
-                          <td className="num">{money(String(Number(row.value) * row.isPlus))}</td>
-                          <td className="num">{money(String(Number(row.salesCommission) * row.isPlus))}</td>
-                          <td className="num">
-                            {money(String(Number(row.collectionCommission) * row.isPlus))}
-                          </td>
-                          <td className="num">{money(String(Number(row.profitCommission) * row.isPlus))}</td>
-                          <td>
-                            {href ? (
-                              <Link className="btn sm" href={href}>
-                                عرض
-                              </Link>
-                            ) : (
-                              <span className="muted">—</span>
-                            )}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                  <tfoot>
-                    <tr>
-                      <th colSpan={7}>الإجمالي</th>
-                      <th className="num">{money(totals.totalValue)}</th>
-                      <th className="num">{money(totals.salesCommission)}</th>
-                      <th className="num">{money(totals.collectionCommission)}</th>
-                      <th className="num">{money(totals.profitCommission)}</th>
-                      <th>
-                        <span className="sr-only">إجراءات</span>
-                      </th>
-                    </tr>
-                  </tfoot>
-                </table>
-              </div>
+              <TableFrame>
+                <thead>
+                  <tr>
+                    <th>م</th>
+                    <th>نوع الحركة</th>
+                    <th>التاريخ</th>
+                    <th>رقم السند</th>
+                    <th>رقم المرجع</th>
+                    <th>المندوب</th>
+                    <th>الفرع</th>
+                    <th className="num">القيمة</th>
+                    <th className="num">عمولة المبيعات</th>
+                    <th className="num">عمولة التحصيل</th>
+                    <th className="num">عمولة الربح</th>
+                    <th>عرض</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map((row) => {
+                    const isInvoice = row.movementType.includes('فاتورة');
+                    const isNote = row.movementType.includes('إشعار');
+                    const isReceipt = row.movementType.includes('سند قبض');
+                    let href = '';
+                    if (isInvoice) href = `/sales/invoices/${row.documentId}`;
+                    else if (isNote) href = `/sales/notes/debit?id=${row.documentId}`;
+                    else if (isReceipt) href = `/treasury/vouchers?kind=receipt&id=${row.documentId}`;
+                    return (
+                      <tr key={`${row.documentId}-${row.seq}`}>
+                        <td dir="ltr">{row.seq}</td>
+                        <td>{row.movementType}</td>
+                        <td dir="ltr">{row.date ?? '—'}</td>
+                        <td dir="ltr">{row.number ?? '—'}</td>
+                        <td dir="ltr">{row.refNumber ?? '—'}</td>
+                        <td>{row.salesmanName}</td>
+                        <td>{row.branchName ?? '—'}</td>
+                        {/* «القيمة» تُعرض بإشارتها: المرتجع وإشعار المدين ينقصان. */}
+                        <td className="num">{money(String(Number(row.value) * row.isPlus))}</td>
+                        <td className="num">{money(String(Number(row.salesCommission) * row.isPlus))}</td>
+                        <td className="num">
+                          {money(String(Number(row.collectionCommission) * row.isPlus))}
+                        </td>
+                        <td className="num">{money(String(Number(row.profitCommission) * row.isPlus))}</td>
+                        <td>
+                          {href ? (
+                            <Link className="btn sm" href={href}>
+                              عرض
+                            </Link>
+                          ) : (
+                            <span className="muted">—</span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+                <tfoot>
+                  <tr>
+                    <th colSpan={7}>الإجمالي</th>
+                    <th className="num">{money(totals.totalValue)}</th>
+                    <th className="num">{money(totals.salesCommission)}</th>
+                    <th className="num">{money(totals.collectionCommission)}</th>
+                    <th className="num">{money(totals.profitCommission)}</th>
+                    <th>
+                      <span className="sr-only">إجراءات</span>
+                    </th>
+                  </tr>
+                </tfoot>
+              </TableFrame>
             </Panel>
           )}
         </>

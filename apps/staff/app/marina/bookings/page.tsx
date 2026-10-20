@@ -752,7 +752,7 @@ function MarinaBookings() {
                   ></button>
                 </div>
                 {card.additions.length > 0 && (
-                  <div className="table-wrap" style={{ marginTop: 8 }}>
+                  <div style={{ marginTop: 8 }}>
                     <Table
                       columns={[
                         {

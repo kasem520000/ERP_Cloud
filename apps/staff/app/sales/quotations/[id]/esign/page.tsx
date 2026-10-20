@@ -75,40 +75,46 @@ export default function QuotationEsignPage() {
       ) : null}
 
       <form onSubmit={send}>
-        <FormSection
-          title="إرسال عرض السعر للتوقيع"
-          hint="البريد إلزامي، والاسم والرسالة اختياريان؛ الرسالة تظهر للعميل في صفحة التوقيع."
-          actions={
-            <button className="btn primary" type="submit" disabled={busy || row?.status !== 'draft'}>
-              {busy ? 'جارٍ الإرسال…' : 'إرسال الرابط'}
-            </button>
-          }
-        >
-          <div className="form-grid">
-            <label className="field">
-              <span>بريد الموقّع *</span>
-              <input
-                className="input"
-                type="email"
-                value={signerEmail}
-                onChange={(event) => setSignerEmail(event.target.value)}
-                required
-              />
-            </label>
-            <label className="field">
-              <span>اسم الموقّع</span>
-              <input
-                className="input"
-                value={signerName}
-                onChange={(event) => setSignerName(event.target.value)}
-              />
-            </label>
-            <label className="field">
-              <span>رسالة</span>
-              <input className="input" value={message} onChange={(event) => setMessage(event.target.value)} />
-            </label>
-          </div>
-        </FormSection>
+        <Panel>
+          <FormSection
+            title="إرسال عرض السعر للتوقيع"
+            hint="البريد إلزامي، والاسم والرسالة اختياريان؛ الرسالة تظهر للعميل في صفحة التوقيع."
+            actions={
+              <button className="btn primary" type="submit" disabled={busy || row?.status !== 'draft'}>
+                {busy ? 'جارٍ الإرسال…' : 'إرسال الرابط'}
+              </button>
+            }
+          >
+            <div className="form-grid">
+              <label className="field">
+                <span>بريد الموقّع *</span>
+                <input
+                  className="input"
+                  type="email"
+                  value={signerEmail}
+                  onChange={(event) => setSignerEmail(event.target.value)}
+                  required
+                />
+              </label>
+              <label className="field">
+                <span>اسم الموقّع</span>
+                <input
+                  className="input"
+                  value={signerName}
+                  onChange={(event) => setSignerName(event.target.value)}
+                />
+              </label>
+              <label className="field">
+                <span>رسالة</span>
+                <input
+                  className="input"
+                  value={message}
+                  onChange={(event) => setMessage(event.target.value)}
+                />
+              </label>
+            </div>
+          </FormSection>
+        </Panel>
       </form>
 
       {issued ? (

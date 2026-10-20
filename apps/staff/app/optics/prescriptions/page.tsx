@@ -1,12 +1,12 @@
 'use client';
 
-import { FilterBand, Panel } from '@erp/ui';
+import { FilterBand, Panel, TableFrame } from '@erp/ui';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { Suspense, useState } from 'react';
 
 import { Empty, ErrorBox, Forbidden, Loading, Screen } from '../../../components/screen';
-import { apiData, apiDelete, apiFetch, apiPatch, apiPost } from '../../../lib/api';
+import { ApiError, apiData, apiDelete, apiFetch, apiPatch, apiPost } from '../../../lib/api';
 import { type Party } from '../../../lib/lookups';
 import { useSession } from '../../../lib/session';
 import { useQuery } from '../../../lib/use-query';
@@ -113,17 +113,32 @@ function OpticsPrescriptions() {
     [],
   );
 
-  const prescriptions = useQuery<{ rows: Prescription[]; total: number; customer: Party | null }>(() => {
+  const prescriptions = useQuery<{
+    rows: Prescription[];
+    total: number;
+    customer: Party | null;
+    /** نصّ البحث الذي لم يطابق عميلاً — نتيجةٌ فارغة لا خطأ شاشة. */
+    notFound: string | null;
+  }>(() => {
     const params = new URLSearchParams();
     if (applied !== null) params.set('search', applied);
     const query = params.toString();
     return apiFetch<{ data: Prescription[]; meta: { total: number; customer: Party | null } }>(
       `/optics/prescriptions${query ? `?${query}` : ''}`,
-    ).then((body) => ({
-      rows: body.data ?? [],
-      total: body.meta?.total ?? (body.data ?? []).length,
-      customer: body.meta?.customer ?? null,
-    }));
+    )
+      .then((body) => ({
+        rows: body.data ?? [],
+        total: body.meta?.total ?? (body.data ?? []).length,
+        customer: body.meta?.customer ?? null,
+        notFound: null,
+      }))
+      .catch((cause: unknown) => {
+        // «لم يتم العثور على عميل» جوابُ بحثٍ لا عطل: يُعرض كحالةٍ فارغة تسمّي ما بُحث عنه.
+        if (applied !== null && cause instanceof ApiError && cause.status === 404) {
+          return { rows: [], total: 0, customer: null, notFound: applied };
+        }
+        throw cause;
+      });
   }, [applied]);
 
   const rows = prescriptions.data?.rows ?? [];
@@ -179,7 +194,11 @@ function OpticsPrescriptions() {
     }
   }
 
-  const searchNow = () => setApplied(search);
+  /** البحث الفارغ يعني «كل السجلات» لا طلباً فارغاً يرفضه الخادم (422 SEARCH_REQUIRED). */
+  const searchNow = () => {
+    const term = search.trim();
+    setApplied(term === '' ? null : term);
+  };
   const showAll = () => {
     setSearch('');
     setApplied(null);
@@ -268,91 +287,87 @@ function OpticsPrescriptions() {
                 bare
                 title="لا توجد وصفات"
                 detail={
-                  prescriptions.data?.customer
-                    ? `لا وصفة محفوظة لـ«${prescriptions.data.customer.name}». ابدأ بـ «وصفة جديدة».`
-                    : 'ابحث بجوال عميل أو اسمه لعرض وصفاته، أو أضف وصفة من «كل الوصفات».'
+                  prescriptions.data?.notFound
+                    ? `لا عميل مطابق لـ«${prescriptions.data.notFound}». جرّب جزءاً من الاسم أو رقم الجوال، أو اعرض كل الوصفات.`
+                    : prescriptions.data?.customer
+                      ? `لا وصفة محفوظة لـ«${prescriptions.data.customer.name}». ابدأ بـ «وصفة جديدة».`
+                      : 'ابحث بجوال عميل أو اسمه لعرض وصفاته، أو أضف وصفة جديدة من الزر أعلى الشاشة.'
                 }
               />
             ) : (
-              <div className="table-wrap">
-                <table>
-                  <thead>
-                    {/* «العين اليمنى (RE)» و«العين اليسرى (LE)» — the two columns of the card. */}
-                    <tr>
-                      <th rowSpan={2}>العميل</th>
-                      <th rowSpan={2}>التاريخ</th>
-                      <th colSpan={5} style={{ background: 'var(--brand-soft)' }}>
-                        العين اليمنى (RE)
+              <TableFrame>
+                <thead>
+                  {/* «العين اليمنى (RE)» و«العين اليسرى (LE)» — the two columns of the card. */}
+                  <tr>
+                    <th rowSpan={2}>العميل</th>
+                    <th rowSpan={2}>التاريخ</th>
+                    <th colSpan={5} style={{ background: 'var(--brand-soft)' }}>
+                      العين اليمنى (RE)
+                    </th>
+                    <th colSpan={5} style={{ background: 'var(--ok-soft)' }}>
+                      العين اليسرى (LE)
+                    </th>
+                    <th rowSpan={2}>الملاحظات</th>
+                    {canManage && <th rowSpan={2}>إجراءات</th>}
+                  </tr>
+                  <tr>
+                    {rightLabels.map((label) => (
+                      <th key={`r-${label.key}`} style={{ background: 'var(--brand-soft)' }}>
+                        {label.label}
                       </th>
-                      <th colSpan={5} style={{ background: 'var(--ok-soft)' }}>
-                        العين اليسرى (LE)
+                    ))}
+                    {leftLabels.map((label) => (
+                      <th key={`l-${label.key}`} style={{ background: 'var(--ok-soft)' }}>
+                        {label.label}
                       </th>
-                      <th rowSpan={2}>الملاحظات</th>
-                      {canManage && <th rowSpan={2}>إجراءات</th>}
-                    </tr>
-                    <tr>
-                      {rightLabels.map((label) => (
-                        <th key={`r-${label.key}`} style={{ background: 'var(--brand-soft)' }}>
-                          {label.label}
-                        </th>
-                      ))}
-                      {leftLabels.map((label) => (
-                        <th key={`l-${label.key}`} style={{ background: 'var(--ok-soft)' }}>
-                          {label.label}
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {rows
-                      .filter(
-                        (row) =>
-                          !lineIdFilter || row.invoiceLineId === lineIdFilter || row.id === highlightedId,
-                      )
-                      .map((row) => (
-                        <tr
-                          key={row.id}
-                          onDoubleClick={() => canManage && setDraft(draftOf(row))}
-                          className={
-                            row.id === highlightedId || row.invoiceLineId === lineIdFilter
-                              ? 'row-active'
-                              : undefined
-                          }
-                        >
-                          <td>{row.customerName}</td>
-                          <td dir="ltr">{row.createdAt.slice(0, 10)}</td>
-                          {rightLabels.map((label) => (
-                            <td key={`r-${label.key}`} dir="ltr">
-                              {row.rightEye[label.key as keyof EyeValues] ?? '—'}
-                            </td>
-                          ))}
-                          {leftLabels.map((label) => (
-                            <td key={`l-${label.key}`} dir="ltr">
-                              {row.leftEye[label.key as keyof EyeValues] ?? '—'}
-                            </td>
-                          ))}
-                          <td>{row.notes ?? '—'}</td>
-                          {canManage && (
-                            <td>
-                              <div className="row" style={{ gap: 4 }}>
-                                <button
-                                  className="btn sm"
-                                  type="button"
-                                  onClick={() => setDraft(draftOf(row))}
-                                >
-                                  تعديل
-                                </button>
-                                <button className="btn sm danger" type="button" onClick={() => remove(row)}>
-                                  حذف
-                                </button>
-                              </div>
-                            </td>
-                          )}
-                        </tr>
-                      ))}
-                  </tbody>
-                </table>
-              </div>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows
+                    .filter(
+                      (row) =>
+                        !lineIdFilter || row.invoiceLineId === lineIdFilter || row.id === highlightedId,
+                    )
+                    .map((row) => (
+                      <tr
+                        key={row.id}
+                        onDoubleClick={() => canManage && setDraft(draftOf(row))}
+                        className={
+                          row.id === highlightedId || row.invoiceLineId === lineIdFilter
+                            ? 'row-active'
+                            : undefined
+                        }
+                      >
+                        <td>{row.customerName}</td>
+                        <td dir="ltr">{row.createdAt.slice(0, 10)}</td>
+                        {rightLabels.map((label) => (
+                          <td key={`r-${label.key}`} dir="ltr">
+                            {row.rightEye[label.key as keyof EyeValues] ?? '—'}
+                          </td>
+                        ))}
+                        {leftLabels.map((label) => (
+                          <td key={`l-${label.key}`} dir="ltr">
+                            {row.leftEye[label.key as keyof EyeValues] ?? '—'}
+                          </td>
+                        ))}
+                        <td>{row.notes ?? '—'}</td>
+                        {canManage && (
+                          <td>
+                            <div className="row" style={{ gap: 4 }}>
+                              <button className="btn sm" type="button" onClick={() => setDraft(draftOf(row))}>
+                                تعديل
+                              </button>
+                              <button className="btn sm danger" type="button" onClick={() => remove(row)}>
+                                حذف
+                              </button>
+                            </div>
+                          </td>
+                        )}
+                      </tr>
+                    ))}
+                </tbody>
+              </TableFrame>
             )}
           </Panel>
         </>

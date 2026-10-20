@@ -1,6 +1,6 @@
 'use client';
 
-import { Panel } from '@erp/ui';
+import { Panel, TableFrame } from '@erp/ui';
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
 
@@ -342,71 +342,67 @@ export default function ReportDesignerPage() {
 
       {entry && (
         <Panel flush title="الأعمدة" hint={`${visibleCount} ظاهر من ${columns.length}`}>
-          <div className="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>ظاهر</th>
-                  <th>العمود</th>
-                  <th>عنوان بديل</th>
-                  <th>الترتيب</th>
-                </tr>
-              </thead>
-              <tbody>
-                {columns.map((column, index) => {
-                  const source = entry.columns.find((entryColumn) => entryColumn.key === column.key);
-                  return (
-                    <tr key={column.key}>
-                      <td>
-                        <input
-                          type="checkbox"
-                          checked={column.visible}
-                          onChange={(event) =>
-                            setColumns((current) =>
-                              current.map((row, position) =>
-                                position === index ? { ...row, visible: event.target.checked } : row,
-                              ),
-                            )
-                          }
-                        />
-                      </td>
-                      <td>{source?.labelAr ?? column.key}</td>
-                      <td>
-                        <input
-                          className="input"
-                          value={column.labelAr ?? ''}
-                          placeholder={source?.labelAr ?? ''}
-                          onChange={(event) =>
-                            setColumns((current) =>
-                              current.map((row, position) =>
-                                position === index
-                                  ? { ...row, labelAr: event.target.value || undefined }
-                                  : row,
-                              ),
-                            )
-                          }
-                        />
-                      </td>
-                      <td className="row">
-                        <button
-                          type="button"
-                          className="btn sm"
-                          disabled={index === 0}
-                          onClick={() => move(index, -1)}
-                        ></button>
-                        <button
-                          type="button"
-                          className="btn sm"
-                          disabled={index === columns.length - 1}
-                          onClick={() => move(index, 1)}
-                        ></button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+          <TableFrame>
+            <thead>
+              <tr>
+                <th>ظاهر</th>
+                <th>العمود</th>
+                <th>عنوان بديل</th>
+                <th>الترتيب</th>
+              </tr>
+            </thead>
+            <tbody>
+              {columns.map((column, index) => {
+                const source = entry.columns.find((entryColumn) => entryColumn.key === column.key);
+                return (
+                  <tr key={column.key}>
+                    <td>
+                      <input
+                        type="checkbox"
+                        checked={column.visible}
+                        onChange={(event) =>
+                          setColumns((current) =>
+                            current.map((row, position) =>
+                              position === index ? { ...row, visible: event.target.checked } : row,
+                            ),
+                          )
+                        }
+                      />
+                    </td>
+                    <td>{source?.labelAr ?? column.key}</td>
+                    <td>
+                      <input
+                        className="input"
+                        value={column.labelAr ?? ''}
+                        placeholder={source?.labelAr ?? ''}
+                        onChange={(event) =>
+                          setColumns((current) =>
+                            current.map((row, position) =>
+                              position === index ? { ...row, labelAr: event.target.value || undefined } : row,
+                            ),
+                          )
+                        }
+                      />
+                    </td>
+                    <td className="row">
+                      <button
+                        type="button"
+                        className="btn sm"
+                        disabled={index === 0}
+                        onClick={() => move(index, -1)}
+                      ></button>
+                      <button
+                        type="button"
+                        className="btn sm"
+                        disabled={index === columns.length - 1}
+                        onClick={() => move(index, 1)}
+                      ></button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </TableFrame>
         </Panel>
       )}
 

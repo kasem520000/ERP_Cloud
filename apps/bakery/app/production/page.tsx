@@ -1,7 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Button, Card, CardBody, CardHeader, Input } from '@erp/ui';
+import { Button, Card, CardBody, CardHeader, Input, Table } from '@erp/ui';
 import { apiData, apiErrorText, apiList, apiPost } from '@erp/web-core/api';
 import { useSession } from '@erp/web-core/session';
 import { useSubmissionKey } from '@erp/web-core/use-submission-key';
@@ -504,49 +504,55 @@ export default function ProductionPage() {
               </p>
             ) : (
               <div className="bak-table-wrap">
-                <table className="bak-table">
-                  <thead>
-                    <tr>
-                      <th>رقم الدفعة</th>
-                      <th>التاريخ</th>
-                      <th>الصنف</th>
-                      <th>المستودع</th>
-                      <th>المنتج</th>
-                      <th>الفاقد</th>
-                      <th>تكلفة الوحدة</th>
-                      <th>أساس التكلفة</th>
-                      <th>الحالة</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {batches.map((row, index) => {
-                      const basis = costBasisLabel(row.costBasis);
-                      return (
-                        <tr key={row.id ?? `${row.batchNo ?? 'batch'}-${index}`}>
-                          <td dir="ltr">{row.batchNo ?? '—'}</td>
-                          <td dir="ltr">{row.productionDate ?? '—'}</td>
-                          <td>{row.itemName ?? '—'}</td>
-                          <td>{warehouseName(row.warehouseId)}</td>
-                          <td className="num" dir="ltr">
-                            {numberText(row.producedQty)}
-                          </td>
-                          <td className="num" dir="ltr">
-                            {numberText(row.scrapQty)}
-                          </td>
-                          <td className="num" dir="ltr">
-                            {numberText(row.unitCost)}
-                          </td>
-                          <td>
-                            <span className={`bak-badge ${basis.tone === 'ok' ? 'ok' : 'warn'}`}>
-                              {basis.text}
-                            </span>
-                          </td>
-                          <td>{batchStatusLabel(row.status)}</td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+                <Table
+                  columns={[
+                    { key: 'batchNo', header: 'رقم الدفعة', ltr: true, cell: (row) => row.batchNo ?? '—' },
+                    {
+                      key: 'productionDate',
+                      header: 'التاريخ',
+                      ltr: true,
+                      cell: (row) => row.productionDate ?? '—',
+                    },
+                    { key: 'item', header: 'الصنف', cell: (row) => row.itemName ?? '—' },
+                    { key: 'warehouse', header: 'المستودع', cell: (row) => warehouseName(row.warehouseId) },
+                    {
+                      key: 'produced',
+                      header: 'المنتج',
+                      numeric: true,
+                      ltr: true,
+                      cell: (row) => numberText(row.producedQty),
+                    },
+                    {
+                      key: 'scrap',
+                      header: 'الفاقد',
+                      numeric: true,
+                      ltr: true,
+                      cell: (row) => numberText(row.scrapQty),
+                    },
+                    {
+                      key: 'unitCost',
+                      header: 'تكلفة الوحدة',
+                      numeric: true,
+                      ltr: true,
+                      cell: (row) => numberText(row.unitCost),
+                    },
+                    {
+                      key: 'basis',
+                      header: 'أساس التكلفة',
+                      cell: (row) => {
+                        const basis = costBasisLabel(row.costBasis);
+                        return (
+                          <span className={`bak-badge ${basis.tone === 'ok' ? 'ok' : 'warn'}`}>
+                            {basis.text}
+                          </span>
+                        );
+                      },
+                    },
+                    { key: 'status', header: 'الحالة', cell: (row) => batchStatusLabel(row.status) },
+                  ]}
+                  rows={batches}
+                  rowKey={(row, index) => row.id ?? `${row.batchNo ?? 'batch'}-${index}`}
+                />
               </div>
             )}
           </CardBody>

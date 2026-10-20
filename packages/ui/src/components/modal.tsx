@@ -3,6 +3,7 @@
 import { AnimatePresence, motion } from 'framer-motion';
 import { X } from 'lucide-react';
 import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 
 import { cn } from '../lib/cn';
 
@@ -108,7 +109,12 @@ export function Modal({
   const titleId = useId();
   const panelRef = useOverlay(open, onClose, persistent);
 
-  return (
+  /**
+   * البوّابة تُرسم في `document.body` لا داخل شجرة الصفحة: أيُّ جدٍّ فيه
+   * `transform` أو `will-change` يصير «كتلةً حاوية» للعنصر `fixed`، فينزلق
+   * الغطاء إلى إطار المحتوى بدل الشاشة (وهو ما كان يحدث داخل انتقال الصفحة).
+   */
+  const overlay = (
     <AnimatePresence>
       {open ? (
         <div className="fixed inset-0 z-50 grid place-items-center overflow-y-auto p-4">
@@ -165,6 +171,8 @@ export function Modal({
       ) : null}
     </AnimatePresence>
   );
+
+  return typeof document === 'undefined' ? null : createPortal(overlay, document.body);
 }
 
 export type DrawerProps = {
@@ -200,7 +208,7 @@ export function Drawer({
   const titleId = useId();
   const panelRef = useOverlay(open, onClose, persistent);
 
-  return (
+  const overlay = (
     <AnimatePresence>
       {open ? (
         <div className="fixed inset-0 z-50">
@@ -259,6 +267,8 @@ export function Drawer({
       ) : null}
     </AnimatePresence>
   );
+
+  return typeof document === 'undefined' ? null : createPortal(overlay, document.body);
 }
 
 /**

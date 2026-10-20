@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { Suspense, useState } from 'react';
 
 import { Empty, ErrorBox, Forbidden, Loading, Screen } from '../../../components/screen';
-import { apiDelete, apiFetch, apiList, apiPatch, apiPost } from '../../../lib/api';
+import { ApiError, apiDelete, apiFetch, apiList, apiPatch, apiPost } from '../../../lib/api';
 import { type Party } from '../../../lib/lookups';
 import { useSession } from '../../../lib/session';
 import { useQuery } from '../../../lib/use-query';
@@ -111,17 +111,32 @@ function TailoringMeasurements() {
   const attributes = useQuery<Attribute[]>(() => apiList<Attribute>('/tailoring/measurement-attributes'), []);
   const customers = useQuery<Party[]>(() => apiList<Party>('/parties?kind=customer'), []);
 
-  const measurements = useQuery<{ rows: Measurement[]; total: number; customer: Party | null }>(() => {
+  const measurements = useQuery<{
+    rows: Measurement[];
+    total: number;
+    customer: Party | null;
+    /** نصّ البحث الذي لم يطابق عميلاً — نتيجةٌ فارغة لا خطأ شاشة. */
+    notFound: string | null;
+  }>(() => {
     const params = new URLSearchParams();
     if (applied !== null) params.set('search', applied);
     const query = params.toString();
     return apiFetch<{ data: Measurement[]; meta: { total: number; customer: Party | null } }>(
       `/tailoring/measurements${query ? `?${query}` : ''}`,
-    ).then((body) => ({
-      rows: body.data ?? [],
-      total: body.meta?.total ?? (body.data ?? []).length,
-      customer: body.meta?.customer ?? null,
-    }));
+    )
+      .then((body) => ({
+        rows: body.data ?? [],
+        total: body.meta?.total ?? (body.data ?? []).length,
+        customer: body.meta?.customer ?? null,
+        notFound: null,
+      }))
+      .catch((cause: unknown) => {
+        // «لم يتم العثور على عميل» جوابُ بحثٍ لا عطل: يُعرض كحالةٍ فارغة تسمّي ما بُحث عنه.
+        if (applied !== null && cause instanceof ApiError && cause.status === 404) {
+          return { rows: [], total: 0, customer: null, notFound: applied };
+        }
+        throw cause;
+      });
   }, [applied]);
 
   const rows = measurements.data?.rows ?? [];
@@ -179,7 +194,11 @@ function TailoringMeasurements() {
     }
   }
 
-  const searchNow = () => setApplied(search);
+  /** البحث الفارغ يعني «كل السجلات» لا طلباً فارغاً يرفضه الخادم (422 SEARCH_REQUIRED). */
+  const searchNow = () => {
+    const term = search.trim();
+    setApplied(term === '' ? null : term);
+  };
   const showAll = () => {
     setSearch('');
     setApplied(null);
@@ -267,9 +286,11 @@ function TailoringMeasurements() {
                 bare
                 title="لا توجد قياسات"
                 detail={
-                  measurements.data?.customer
-                    ? `لا قياس محفوظ لـ«${measurements.data.customer.name}». ابدأ بـ «إضافة قياس جديد».`
-                    : 'ابحث بجوال عميل أو اسمه لعرض قياساته، أو أضف قياساً من «كل القياسات».'
+                  measurements.data?.notFound
+                    ? `لا عميل مطابق لـ«${measurements.data.notFound}». جرّب جزءاً من الاسم أو رقم الجوال، أو اعرض كل القياسات.`
+                    : measurements.data?.customer
+                      ? `لا قياس محفوظ لـ«${measurements.data.customer.name}». ابدأ بـ «إضافة قياس جديد».`
+                      : 'ابحث بجوال عميل أو اسمه لعرض قياساته، أو أضف قياساً جديداً من الزر أعلى الشاشة.'
                 }
               />
             ) : (

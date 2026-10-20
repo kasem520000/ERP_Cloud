@@ -361,10 +361,11 @@ export default function ReportsPage() {
         ) : null}
 
         {canView && !asked && !loading ? (
-          <p className="m-0 text-[13px] text-muted">
-            {REPORTS_MESSAGES.pickPeriod} وقد يبلغ العرضُ سقفَ الصفوف في منشأةٍ كبيرة، ويُقال حينها إنّ
-            القائمة مقصوصة.
-          </p>
+          <EmptyState
+            description={`${REPORTS_MESSAGES.pickPeriod} وقد يبلغ العرضُ سقفَ الصفوف في منشأةٍ كبيرة، ويُقال حينها إنّ القائمة مقصوصة.`}
+            icon={<span aria-hidden>📈</span>}
+            title="لم يُعرض تقرير بعد"
+          />
         ) : null}
 
         {canView && payload ? (

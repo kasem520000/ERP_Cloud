@@ -325,7 +325,7 @@ export default function DataRequestsPage() {
         <>
           <Panel className="tight no-print">
             <div className="row" style={{ flexWrap: 'wrap', alignItems: 'flex-end' }}>
-              <label className="field" style={{ minWidth: 160 }}>
+              <label className="field" style={{ flex: '0 1 160px', minWidth: 0 }}>
                 <span>نوع الطلب</span>
                 <select
                   className="input"
@@ -336,7 +336,7 @@ export default function DataRequestsPage() {
                   <option value="erase">محو بيانات (إخفاء هوية)</option>
                 </select>
               </label>
-              <label className="field" style={{ minWidth: 320, flex: 1 }}>
+              <label className="field" style={{ flex: '1 1 220px', minWidth: 0 }}>
                 <span>معرّف المستأجر (uuid)</span>
                 <input
                   className="input"
@@ -345,7 +345,7 @@ export default function DataRequestsPage() {
                   onChange={(event) => setTenant(event.target.value)}
                 />
               </label>
-              <label className="field" style={{ minWidth: 260, flex: 1 }}>
+              <label className="field" style={{ flex: '1 1 200px', minWidth: 0 }}>
                 <span>بريد صاحب البيانات</span>
                 <input
                   className="input"
@@ -354,7 +354,7 @@ export default function DataRequestsPage() {
                   onChange={(event) => setEmail(event.target.value)}
                 />
               </label>
-              <label className="field" style={{ minWidth: 220, flex: 1 }}>
+              <label className="field" style={{ flex: '1 1 180px', minWidth: 0 }}>
                 <span>ملاحظة (اختياري)</span>
                 <input className="input" value={note} onChange={(event) => setNote(event.target.value)} />
               </label>
@@ -376,7 +376,7 @@ export default function DataRequestsPage() {
 
           <Panel className="tight no-print">
             <div className="row" style={{ flexWrap: 'wrap', alignItems: 'flex-end' }}>
-              <label className="field" style={{ minWidth: 380, flex: 1 }}>
+              <label className="field" style={{ flex: '1 1 260px', minWidth: 0 }}>
                 <span>سبب القرار / سبب التنفيذ (5 محارف على الأقل)</span>
                 <input
                   className="input"
@@ -385,7 +385,7 @@ export default function DataRequestsPage() {
                   placeholder="مثال: طلبٌ موثّق من صاحب البيانات بتاريخ …"
                 />
               </label>
-              <label className="field" style={{ minWidth: 300, flex: 1 }}>
+              <label className="field" style={{ flex: '1 1 240px', minWidth: 0 }}>
                 <span>تأكيد المحو — اكتب البريد كما هو</span>
                 <input
                   className="input"

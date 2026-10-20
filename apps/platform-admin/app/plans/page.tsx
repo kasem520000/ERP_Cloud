@@ -463,74 +463,77 @@ function EntitlementForm({
         title={<>حقوق «{plan.name}»</>}
         hint="اختر ما تفتحه هذه الباقة: الوحدة تُفتح، والحدّ يُقاس برقم، والراية تُفعَّل. الحفظ يستبدل المجموعة كاملة."
       >
-        <div className="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th />
-                <th>النوع</th>
-                <th>الحقّ</th>
-                <th>القيمة</th>
-              </tr>
-            </thead>
-            <tbody>
-              {keys.map((definition) => {
-                const chosen = definition.key in selected;
-                return (
-                  <tr key={definition.key}>
-                    <td>
-                      <input
-                        type="checkbox"
-                        checked={chosen}
-                        onChange={() => toggleKey(definition)}
-                        aria-label={definition.labelAr}
-                      />
-                    </td>
-                    <td>
-                      <span className="chip">{KIND_LABEL[definition.kind]}</span>
-                    </td>
-                    <td>
-                      {definition.labelAr}
-                      <div className="muted small" dir="ltr">
-                        {definition.key}
-                      </div>
-                    </td>
-                    <td>
-                      {!chosen ? (
-                        <span className="muted small">—</span>
-                      ) : definition.valueKind === 'boolean' ? (
-                        <select
-                          className="input"
-                          value={selected[definition.key] === true ? 'on' : 'off'}
-                          onChange={(event) =>
-                            setSelected((current) => ({
-                              ...current,
-                              [definition.key]: event.target.value === 'on',
-                            }))
-                          }
-                        >
-                          <option value="on">مُفعَّلة</option>
-                          <option value="off">مُطفأة</option>
-                        </select>
-                      ) : (
-                        <input
-                          className="input"
-                          dir="ltr"
-                          type={definition.valueKind === 'number' ? 'number' : 'text'}
-                          max={definition.max}
-                          value={String(selected[definition.key] ?? '')}
-                          onChange={(event) =>
-                            setSelected((current) => ({ ...current, [definition.key]: event.target.value }))
-                          }
-                        />
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
+        <Table
+          bare
+          dense
+          rowKey={(definition) => definition.key}
+          rows={keys}
+          columns={[
+            {
+              key: 'chosen',
+              header: '',
+              width: 40,
+              cell: (definition) => (
+                <input
+                  type="checkbox"
+                  checked={definition.key in selected}
+                  onChange={() => toggleKey(definition)}
+                  aria-label={definition.labelAr}
+                />
+              ),
+            },
+            {
+              key: 'kind',
+              header: 'النوع',
+              cell: (definition) => <span className="chip">{KIND_LABEL[definition.kind]}</span>,
+            },
+            {
+              key: 'label',
+              header: 'الحقّ',
+              cell: (definition) => (
+                <>
+                  {definition.labelAr}
+                  <div className="muted small" dir="ltr">
+                    {definition.key}
+                  </div>
+                </>
+              ),
+            },
+            {
+              key: 'value',
+              header: 'القيمة',
+              cell: (definition) =>
+                !(definition.key in selected) ? (
+                  <span className="muted small">—</span>
+                ) : definition.valueKind === 'boolean' ? (
+                  <select
+                    className="input"
+                    value={selected[definition.key] === true ? 'on' : 'off'}
+                    onChange={(event) =>
+                      setSelected((current) => ({
+                        ...current,
+                        [definition.key]: event.target.value === 'on',
+                      }))
+                    }
+                  >
+                    <option value="on">مُفعَّلة</option>
+                    <option value="off">مُطفأة</option>
+                  </select>
+                ) : (
+                  <input
+                    className="input"
+                    dir="ltr"
+                    type={definition.valueKind === 'number' ? 'number' : 'text'}
+                    max={definition.max}
+                    value={String(selected[definition.key] ?? '')}
+                    onChange={(event) =>
+                      setSelected((current) => ({ ...current, [definition.key]: event.target.value }))
+                    }
+                  />
+                ),
+            },
+          ]}
+        />
         <div className="form-grid">
           <label className="field">
             <span>سبب التغيير *</span>

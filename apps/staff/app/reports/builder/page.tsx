@@ -301,14 +301,13 @@ export default function CustomReportBuilderPage() {
                   (column) => column.source === field.source && column.key === field.key,
                 );
                 return (
-                  <label key={`${field.source}:${field.key}`} className="check">
+                  <label
+                    key={`${field.source}:${field.key}`}
+                    className="check"
+                    title={`${field.source}:${field.key}`}
+                  >
                     <input type="checkbox" checked={checked} onChange={() => toggleColumn(field)} />
-                    <span>
-                      {field.label}
-                      <span className="ms-1 text-[10px] text-muted" dir="ltr">
-                        {field.source}:{field.key}
-                      </span>
-                    </span>
+                    <span>{field.label}</span>
                   </label>
                 );
               })}
