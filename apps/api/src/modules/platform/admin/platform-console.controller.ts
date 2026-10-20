@@ -2,9 +2,11 @@ import { Body, Controller, Get, Put, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
 import {
   platformAuditQuerySchema,
+  platformProblemQuerySchema,
   platformSettingsUpdateSchema,
   platformTenantSearchQuerySchema,
   type PlatformAuditQueryDto,
+  type PlatformProblemQueryDto,
   type PlatformSettingsResponse,
   type PlatformTenantSearchQueryDto,
   type PlatformTenantSearchResult,
@@ -59,6 +61,32 @@ export class PlatformConsoleController {
   }
 
   // --------------------------------------------------------------- settings
+
+  // --------------------------------------------------------------- problem log
+
+  /**
+   * البند 20 — سجلّ الأخطاء: كل ما يفشل الآن في مكانٍ واحد، بمصدره وبعميله وبموضعه.
+   *
+   * `console.health.view` (لا `console.audit.view`): الصفحة تشخيصُ صحةٍ لا سجلُّ أفعال،
+   * ومن يحمل رخصة القراءة هذه يرى الأعطال بلا أن يرى من غيّر ماذا.
+   */
+  @Get('problems')
+  @RequiresPlatformRole('console.health.view')
+  @ApiQuery({ name: 'limit', required: false })
+  @ApiQuery({ name: 'offset', required: false })
+  @ApiQuery({ name: 'filter[source]', required: false, description: 'email | einvoice | webhook | outbox | backup' })
+  @ApiQuery({ name: 'filter[tenantId]', required: false })
+  @ApiQuery({ name: 'filter[severity]', required: false, description: 'error | warning' })
+  @ApiQuery({ name: 'filter[from]', required: false, description: 'ISO-8601 lower bound' })
+  @ApiQuery({ name: 'filter[to]', required: false, description: 'ISO-8601 upper bound' })
+  @ApiOperation({ summary: 'Everything that is failing right now, across sources' })
+  @ApiResponse({ status: 200, description: 'Problem page with per-source counts' })
+  @ApiResponse({ status: 403, description: 'console.health.view is required' })
+  async problems(
+    @Query(new ZodValidationPipe(platformProblemQuerySchema)) query: PlatformProblemQueryDto,
+  ) {
+    return { data: await this.console.listProblems(query) };
+  }
 
   @Get('settings')
   @RequiresPlatformRole('console.tenants.view')

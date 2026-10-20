@@ -485,16 +485,25 @@ function SenderTab({ canEdit }: { canEdit: boolean }) {
     setBusy(true);
     setNotice(undefined);
     try {
-      const result = await apiData<{ status: string; provider: string; to: string }>('/email/settings/test', {
+      const result = await apiData<{
+        status: string;
+        provider: string;
+        to: string;
+        error?: string | null;
+      }>('/email/settings/test', {
         method: 'POST',
         body: JSON.stringify({ to: probeTo.trim(), locale: 'ar' }),
       });
+      // سبب الفشل من المزوّد يُعرض هنا: بدونه يرى المستخدم «تعذر التسليم» ولا يعرف
+      // هل الخلل في المفتاح أم في النطاق أم في الشبكة.
       setNotice({
         kind: result.status === 'sent' ? 'ok' : 'danger',
         text:
           result.status === 'sent'
             ? `تم إرسال الرسالة التجريبية عبر «${result.provider}» إلى ${result.to}.`
-            : `تعذر تسليم الرسالة التجريبية (${result.status}).`,
+            : result.error
+              ? `تعذر تسليم الرسالة التجريبية عبر «${result.provider}»: ${result.error}.`
+              : `تعذر تسليم الرسالة التجريبية (${result.status}).`,
       });
     } catch (error) {
       setNotice({ kind: 'danger', text: messageOf(error) });

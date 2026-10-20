@@ -54,6 +54,7 @@ import {
   ARTIFACT_STORE_FS,
   ARTIFACT_STORE_S3,
   type ArtifactStorePort,
+  type StoredArtifact,
 } from './artifact-store.js';
 import {
   encodeChunk,
@@ -124,6 +125,33 @@ export class PlatformBackupsService {
     if (env.BACKUP_STORE === 'filesystem') return this.filesystem;
     if (env.BACKUP_STORE === 's3') return this.s3;
     return this.s3.isConfigured() ? this.s3 : this.filesystem;
+  }
+
+  /**
+   * 🗄️ الكتابة مع بديلٍ مُعلَن.
+   *
+   * `isConfigured()` يقول إن **متغيّرات** S3 موجودة، لا إن الخدمة تُجيب. وبيئةٌ فيها
+   * `S3_*` بلا MinIO عامل — وهي حال بيئة المراجعة — كانت تُسقط كل نسخة بـ«fetch failed»
+   * وتترك المشغّل بلا نسخةٍ واحدة. في `auto` وحدها (لا في `s3` الصريح، فالصراحة عقد)
+   * نسقط إلى نظام ملفات الخادم، ويُسجَّل المخزن الحقيقي في الصفّ (`store: filesystem`)
+   * فلا يوهم أحداً بأن الملف في S3.
+   */
+  private async putArtifact(
+    store: ArtifactStorePort,
+    objectKey: string,
+    bytes: Buffer,
+  ): Promise<{ stored: StoredArtifact; fallbackFrom: string | null }> {
+    try {
+      return { stored: await store.put(objectKey, bytes), fallbackFrom: null };
+    } catch (error) {
+      const canFallBack = env.BACKUP_STORE === 'auto' && store.name === 'object-storage';
+      if (!canFallBack) throw error;
+      const stored = await this.filesystem.put(objectKey, bytes);
+      this.logger.warn(
+        `backup ${objectKey}: object storage unreachable (${error instanceof Error ? error.message : String(error)}) — wrote to the filesystem store instead`,
+      );
+      return { stored, fallbackFrom: store.name };
+    }
   }
 
   async listBackups(query: PlatformBackupQueryDto): Promise<ListEnvelope<PlatformBackupRow>> {
@@ -237,7 +265,11 @@ export class PlatformBackupsService {
         );
       }
 
-      const stored = await store.put(this.buildObjectKey('platform-dump', jobId, startedAt), bytes);
+      const { stored, fallbackFrom } = await this.putArtifact(
+        store,
+        this.buildObjectKey('platform-dump', jobId, startedAt),
+        bytes,
+      );
       const artifactId = newId();
       const finishedAt = new Date();
 
@@ -266,6 +298,8 @@ export class PlatformBackupsService {
             tenants: dump.tenants.length,
             finishedAt,
             durationMs: finishedAt.getTime() - startedAt.getTime(),
+            // البديل يُقال في الصفّ نفسه: نسخةٌ على الخادم ليست نسخةً في S3.
+            ...(fallbackFrom ? { failureReason: null } : {}),
           })
           .where(eq(backupJobs.id, jobId));
       });

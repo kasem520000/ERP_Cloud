@@ -3,6 +3,7 @@ export * from './discount-limits.js';
 export * from './tenancy.js';
 export * from './audit.js';
 export * from './console.js';
+export * from './errors.js';
 export * from './tenants.js';
 export * from './identity.js';
 export * from './billing.js';

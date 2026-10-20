@@ -920,6 +920,13 @@ export const emailTestResultSchema = z.object({
   status: z.enum(emailMessageStatuses),
   /** إن مُنع الإرسال بالحجر: السبب — إذ لا يُبتلع سبب الفشل في اختبار الاتصال. */
   suppressionReason: z.enum(emailSuppressionReasons).nullable(),
+  /**
+   * سبب الفشل كما قاله المزوّد — يُعرض في شاشة الاختبار.
+   *
+   * كان الاختبار يُعيد `queued` بلا سبب (لأن صفّ المحاولة يُعاد جدولته)، فيرى المشغّل
+   * «لم تخرج الرسالة» ولا يعرف هل الخطأ في المفتاح أو النطاق أو الشبكة.
+   */
+  error: z.string().nullable().optional(),
 });
 export type EmailTestResult = z.infer<typeof emailTestResultSchema>;
 

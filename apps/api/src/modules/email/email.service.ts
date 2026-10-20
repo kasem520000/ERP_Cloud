@@ -516,6 +516,9 @@ export class EmailService {
 
     const delivered = await this.deliver(message.id, 'inline');
     return {
+      // `queued` بعد محاولة فاشلة يعني «أُعيدت جدولتها»، والسبب في `last_error` — وهو ما
+      // يحتاجه المشغّل في شاشة الاختبار بدل انتظار محاولةٍ لن تأتي في بيئةٍ بلا طابور.
+      ...(delivered.status === 'queued' && delivered.lastError ? { error: delivered.lastError } : {}),
       messageId: delivered.id,
       provider: this.asProvider(delivered.provider),
       to: delivered.toEmail,

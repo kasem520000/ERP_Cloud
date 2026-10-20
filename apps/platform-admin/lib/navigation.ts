@@ -187,6 +187,18 @@ export const consoleGroups: readonly ConsoleGroup[] = [
       // والرمز `console.jobs.manage` (جديد في هذا الجزء) هو ما يفصل من يقرأ الطابور عمّن
       // يشغّله — والمدقّق يحمل `console.jobs.view` وحده فيبقى على الحياد.
       item('jobs', 'المهام والطوابير', 'Jobs', '/jobs', 'console.jobs.view', 'GET /platform/jobs'),
+      // البند 20 — «سجل المشاكل»: شاشةٌ واحدة تُجيب «ما الذي يفشل الآن؟» عبر خمسة مصادر.
+      // ولذلك محلها التشغيل بجانب الصحة لا داخل التدقيق: التدقيق يحكي ما جرى، وهذه تحكي
+      // ما **يزال** يحتاج إصلاحاً — ويقود إليها رمز قراءة الصحة نفسه، فلا يفتحها إلا من
+      // يملك النظر في أعطال المنصة.
+      item(
+        'problems',
+        'سجل المشاكل',
+        'Problem log',
+        '/problems',
+        'console.health.view',
+        'GET /platform/problems',
+      ),
       item('health', 'الصحة', 'Health', '/health', 'console.health.view', 'GET /platform/health/detailed'),
       item('files', 'الملفات', 'Files', '/files', 'console.jobs.view', 'GET /platform/files'),
       // P-C10 — «البيانات والاسترجاع»: نسخةٌ لها حجمٌ وبصمة ومكان، وسياسةُ احتفاظٍ تُنفَّذ،

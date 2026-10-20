@@ -181,7 +181,7 @@ function TemplatesTab() {
         text:
           result.status === 'sent'
             ? `خرجت رسالة الاختبار عبر «${result.provider}» إلى ${result.to} (${dateTime(result.deliveredAt)}).`
-            : `لم تخرج: الحالة «${STATUS_LABEL[result.status]}»${result.suppressionReason ? ` — السبب: ${REASON_LABEL[result.suppressionReason]}` : ''}.`,
+            : `لم تخرج: الحالة «${STATUS_LABEL[result.status]}»${result.suppressionReason ? ` — السبب: ${REASON_LABEL[result.suppressionReason]}` : ''}${result.error ? ` — ردّ المزوّد: ${result.error}` : ''}.`,
       });
       templates.reload();
     } catch (error) {
@@ -655,11 +655,13 @@ function SettingsTab() {
         body: JSON.stringify({ to: probeTo, locale: 'ar' }),
       });
       setNotice({
-        kind: result.status === 'sent' ? 'ok' : 'warn',
+        kind: result.status === 'sent' ? 'ok' : 'danger',
         text:
           result.status === 'sent'
             ? `خرجت رسالة الفحص عبر «${result.provider}» إلى ${result.to}.`
-            : `لم تخرج رسالة الفحص: ${STATUS_LABEL[result.status]}.`,
+            : result.error
+              ? `فشلت محاولة الفحص عبر «${result.provider}»: ${result.error} — أُعيدت الرسالة إلى الطابور، فصحّح بيانات المزوّد ثم أعد المحاولة.`
+              : `لم تخرج رسالة الفحص: الحالة «${STATUS_LABEL[result.status]}». صحّح بيانات المزوّد ثم أعد المحاولة.`,
       });
     } catch (error) {
       setNotice({ kind: 'danger', text: apiMessage(error) });
