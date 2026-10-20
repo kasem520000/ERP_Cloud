@@ -550,7 +550,9 @@ export class EinvoicingService {
       profile,
       currency: invoice.currency || 'SAR',
       seller,
-      buyer: buyer ?? undefined,
+      // الرقم الضريبي يُكتب بأرقامه وحدها: شرطةٌ أو مسافة في البطاقة لا تعني رقماً مختلفاً،
+      // لكن المستند برقمٍ غير مطابق يرفضه BR-KSA-44.
+      buyer: buyer ? { ...buyer, vatNo: buyerVat ?? undefined } : undefined,
       lines: documentLines,
       invoiceDiscount: invoice.invoiceDiscount,
       subtotal: invoice.subtotal,
