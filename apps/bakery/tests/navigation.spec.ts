@@ -35,7 +35,7 @@ function declaredPages(dir: string, prefix = ''): string[] {
 }
 
 describe('خريطة وحدات واجهة المخابز', () => {
-  it('«مبنيّة» ⇔ صفحةٌ فعلًا: لا إعلان بلا بناء، ولا بناء بلا إعلان', () => {
+ it('«مبنيّة» صفحةٌ فعلًا: لا إعلان بلا بناء، ولا بناء بلا إعلان', () => {
     for (const module of BAKERY_MODULES) {
       const href = module.href;
       if (module.status === 'ready') {
@@ -300,16 +300,15 @@ describe('نصُّ العميل — لا مساراتٌ ولا أسماءُ مل
     }
   });
 
-  it('السجلُّ الهندسيّ يبقى — لكن داخل مطويّة «التفاصيل التقنية»', () => {
-    const detailsAt = pageSource.indexOf('<details className="bak-tech">');
-    const detailsEnd = pageSource.indexOf('</details>', detailsAt);
+  it('لا سجلَّ هندسيًّا في الشاشة: الوصفُ فقط، والمساراتُ وأسماءُ الشرائح خارج الواجهة', () => {
     const summaryAt = pageSource.indexOf('{module.summaryAr}');
-    const planAt = pageSource.indexOf('{module.planAr}');
     expect(summaryAt, 'الصفحةُ لا تعرض وصفَ العميل').toBeGreaterThan(-1);
-    expect(detailsAt, 'لا مطويّةَ «التفاصيل التقنية» في الصفحة').toBeGreaterThan(-1);
-    expect(planAt, 'السجلُّ الهندسيّ يجب أن يبقى معروضًا — مطويًّا').toBeGreaterThan(detailsAt);
-    expect(planAt, 'السجلُّ الهندسيّ خرج من المطويّة').toBeLessThan(detailsEnd);
-    expect(pageSource.indexOf('module.endpoints.map'), 'مساراتُ API خارج المطويّة').toBeGreaterThan(detailsAt);
+    // كان السجلُّ الهندسيُّ مطويًّا في «التفاصيل التقنية»؛ وقد أُزيل من الواجهة كلها:
+    // فالمطويّةُ تبقى بياناتِ مهندسٍ في صفحةِ عميل، والعقدُ أن الشاشة لا تحمل مسارًا ولا رمزًا.
+    expect(pageSource.includes('<details'), 'ما زالت هناك مطويّةُ تفاصيل في الشاشة').toBe(false);
+    expect(pageSource.includes('{module.planAr}'), 'السجلُّ الهندسيُّ ما زال معروضًا').toBe(false);
+    expect(pageSource.includes('module.endpoints.map'), 'مساراتُ API ما زالت معروضة').toBe(false);
+    expect(pageSource.includes('module.permission'), 'رموزُ الصلاحيات ما زالت معروضة').toBe(false);
   });
 
   it('الشريطُ الجانبيّ يقول `summaryAr` ولا يهمس بالسجلّ الهندسيّ في التلميح', () => {

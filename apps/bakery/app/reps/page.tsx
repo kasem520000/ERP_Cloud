@@ -1,7 +1,7 @@
 'use client';
 
-import { Fragment, useCallback, useEffect, useMemo, useState } from 'react';
-import { Button, Card, CardBody, CardHeader, Input } from '@erp/ui';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Button, Card, CardBody, CardHeader, Input, Table } from '@erp/ui';
 import { apiErrorText, apiList, apiPost } from '@erp/web-core/api';
 import { useSession } from '@erp/web-core/session';
 
@@ -22,7 +22,6 @@ import {
   REPS_VIEW_PERMISSION,
   repsSummary,
   salesmanLabel,
-  STAFF_SALESMEN_PATH,
   type LinkAccountDraft,
   type LinkAccountReceipt,
   type NoteTone,
@@ -43,7 +42,7 @@ const TONE_CLASSES: Record<NoteTone, string> = {
   warn: 'border-warn-line bg-warn-soft text-warn-ink',
 };
 
-const selectClass = 'w-full rounded-[8px] border border-line bg-surface px-3 py-2 text-[13px] text-ink';
+const selectClass = 'ui-select';
 
 type FilterKey = 'all' | 'incomplete' | 'ready' | 'custody';
 
@@ -55,7 +54,7 @@ const FILTERS: Array<{ key: FilterKey; labelAr: string }> = [
 ];
 
 /**
- * 🧑‍💼 شاشة «المناديب» — البطاقة الرسمية، بطاقةُ الموظف، حسابُ الدخول، ومستودعُ السيارة.
+ * ‍ شاشة «المناديب» — البطاقة الرسمية، بطاقةُ الموظف، حسابُ الدخول، ومستودعُ السيارة.
  *
  * السلسلةُ التي تُقاس هنا: **مندوبٌ بلا موظفٍ وبلا حسابِ دخولٍ وبلا مستودع سيارة لا يعمل**،
  * وكلُّ حلقةٍ ناقصة تُعطّل شيئًا مُسمًّى: فبلا بطاقة موظف يرفض الخادم تحميلَ النقص على
@@ -173,535 +172,553 @@ export default function RepsPage() {
   }
 
   return (
-    <section className="grid gap-4">
-      <header className="flex flex-wrap items-end justify-between gap-3">
-        <div className="min-w-0">
-          <h1 className="m-0 text-[22px] font-extrabold leading-tight tracking-tight text-ink">
-            المناديب
-          </h1>
-          <p className="m-0 mt-1 text-[13px] text-muted">
-            بطاقةُ المندوب الرسمية بما ينقصها قبل أن يعمل: موظفٌ وحسابُ دخولٍ نشط ومستودعُ
-            سيارة وصلاحياتُ الخطّ. والكتابةُ الوحيدة هنا ربطُ حساب الدخول عبر كتّاب المنصّة —
-            أمّا البطاقة نفسها فتُنشأ وتُعدَّل في <span dir="ltr">apps/staff</span> على{' '}
-            <span dir="ltr">{STAFF_SALESMEN_PATH}</span>.
+    <section className="ui-page">
+      <header className="ui-page-head">
+        <div className="ui-page-head-copy">
+          <h1 className="ui-page-title">المناديب</h1>
+          <p className="ui-page-sub">
+            بطاقةُ المندوب الرسمية بما ينقصها قبل أن يعمل: موظفٌ وحسابُ دخولٍ نشط ومستودعُ سيارة وصلاحياتُ
+            الخطّ. والكتابةُ الوحيدة هنا ربطُ حساب الدخول عبر كتّاب المنصّة — أمّا البطاقة نفسها فتُنشأ
+            وتُعدَّل في <span dir="ltr">apps/staff</span> على .
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="bak-badge">GET /van-sales/salesmen</span>
-          <span className="bak-badge">POST /van-sales/salesmen/:id/account</span>
+        <div className="ui-page-actions">
           <Button disabled={loading || !canView} onClick={() => void load()} size="sm">
             تحديث
           </Button>
         </div>
       </header>
-
-      {!canView ? (
-        <Card>
-          <CardBody>
-            <p className={`m-0 rounded-[10px] border px-4 py-2.5 text-[13px] font-semibold ${NOTICE_CLASSES.warn}`}>
-              🔒 لا تملك <span dir="ltr">{REPS_VIEW_PERMISSION}</span> — والخادم يرفض قراءة
-              البطاقات (<span dir="ltr">{REPS_MESSAGES.viewForbidden}</span>). ولم يُرسل هذا
-              التطبيق طلبًا سيُرفض حتمًا، ولا عرض بطاقاتٍ من المتصفّح بدلها.
-            </p>
-          </CardBody>
-        </Card>
-      ) : null}
-
-      {loadError ? (
-        <Card>
-          <CardBody>
-            <p
-              className={`m-0 rounded-[10px] border px-4 py-2.5 text-[13px] font-semibold ${NOTICE_CLASSES.danger}`}
-              role="alert"
-            >
-              تعذّر تحميل بطاقات المندوبين: {loadError}
-            </p>
-            <p className="m-0 mt-2 text-[12.5px] text-muted">
-              السبب المعتاد: لا تملك <span dir="ltr">{REPS_VIEW_PERMISSION}</span>، أو أنّ الـAPI
-              غير متاح من هذه الواجهة. ولا تُعرض بطاقاتٌ بديلة من المتصفّح.
-            </p>
-            <Button className="mt-3" onClick={() => void load()} size="sm">
-              إعادة المحاولة
-            </Button>
-          </CardBody>
-        </Card>
-      ) : null}
-
-      {notice ? (
-        <p
-          className={`m-0 rounded-[10px] border px-4 py-2.5 text-[13px] font-semibold ${NOTICE_CLASSES[notice.kind]}`}
-          role={notice.kind === 'danger' ? 'alert' : 'status'}
-        >
-          {notice.text}
-        </p>
-      ) : null}
-
-      {canView ? (
-        <Card>
-          <CardHeader
-            subtitle="القائمة كلّ بطاقات المنشأة (بلا LIMIT في استعلام الخادم) — فليست هذه مجاميعَ نافذةٍ كأرقام لوحة البيع."
-            title="المناديب بأرقام الخادم"
-          />
-          <CardBody>
-            <dl className="m-0 grid gap-3 sm:grid-cols-3 lg:grid-cols-4">
-              <div className="rounded-[10px] border border-line bg-surface p-3">
-                <dt className="m-0 text-[11.5px] font-bold text-muted">بطاقات المندوبين</dt>
-                <dd className="m-0 mt-1 text-[18px] font-extrabold text-ink" dir="ltr">
-                  {summary.total}
-                </dd>
-                <dd className="m-0 text-[11px] text-muted">
-                  {summary.inactiveCards > 0 ? `${summary.inactiveCards} بطاقة موقوفة` : 'كلّها نشطة'}
-                </dd>
-              </div>
-              <div className="rounded-[10px] border border-line bg-surface p-3">
-                <dt className="m-0 text-[11.5px] font-bold text-muted">جاهزٌ للعمل فعليًّا</dt>
-                <dd className="m-0 mt-1 text-[18px] font-extrabold text-ink" dir="ltr">
-                  {summary.readyToWork} / {summary.total}
-                </dd>
-                <dd className="m-0 text-[11px] text-muted">
-                  موظف + حساب نشط + مستودع سيارة + صلاحيات الخطّ
-                </dd>
-              </div>
-              <div className="rounded-[10px] border border-line bg-surface p-3">
-                <dt className="m-0 text-[11.5px] font-bold text-muted">بلا حساب دخول</dt>
-                <dd className="m-0 mt-1 text-[18px] font-extrabold text-ink" dir="ltr">
-                  {summary.missingLogin}
-                </dd>
-                <dd className="m-0 text-[11px] text-muted">
-                  {summary.loginNotActive > 0 ? `و${summary.loginNotActive} حسابُه غير نشط` : '—'}
-                </dd>
-              </div>
-              <div className="rounded-[10px] border border-line bg-surface p-3">
-                <dt className="m-0 text-[11.5px] font-bold text-muted">بلا بطاقة موظف</dt>
-                <dd className="m-0 mt-1 text-[18px] font-extrabold text-ink" dir="ltr">
-                  {summary.missingEmployee}
-                </dd>
-                <dd className="m-0 text-[11px] text-muted">تحميلُ النقص على المديونية مرفوض ٤٢٢</dd>
-              </div>
-              <div className="rounded-[10px] border border-line bg-surface p-3">
-                <dt className="m-0 text-[11.5px] font-bold text-muted">بلا مستودع سيارة</dt>
-                <dd className="m-0 mt-1 text-[18px] font-extrabold text-ink" dir="ltr">
-                  {summary.missingVanWarehouse}
-                </dd>
-                <dd className="m-0 text-[11px] text-muted">لا عهدةَ تُقاس ولا نطاقَ للدخول</dd>
-              </div>
-              <div className="rounded-[10px] border border-line bg-surface p-3">
-                <dt className="m-0 text-[11.5px] font-bold text-muted">بلا صلاحيات الخطّ</dt>
-                <dd className="m-0 mt-1 text-[18px] font-extrabold text-ink" dir="ltr">
-                  {summary.missingPermissions}
-                </dd>
-                <dd className="m-0 text-[11px] text-muted">يرفضهم الحارس ٤٠٣</dd>
-              </div>
-              <div className="rounded-[10px] border border-line bg-surface p-3">
-                <dt className="m-0 text-[11.5px] font-bold text-muted">عهدٌ مفتوحة (كجم)</dt>
-                <dd className="m-0 mt-1 text-[18px] font-extrabold text-ink" dir="ltr">
-                  {summary.custodyQtyTotal.toFixed(4)}
-                </dd>
-                <dd className="m-0 text-[11px] text-muted">
-                  على {summary.withOpenCustody} مندوب — من أوامر التحميل غير المُصفّاة
-                </dd>
-              </div>
-              <div className="rounded-[10px] border border-line bg-surface p-3">
-                <dt className="m-0 text-[11.5px] font-bold text-muted">نقدٌ متوقّع لم يُحصّل (ريال)</dt>
-                <dd className="m-0 mt-1 text-[18px] font-extrabold text-ink" dir="ltr">
-                  {summary.outstandingCashTotal.toFixed(4)}
-                </dd>
-                <dd className="m-0 text-[11px] text-muted">
-                  ‏expected_cash − collected_cash على الأوامر المفتوحة
-                </dd>
-              </div>
-            </dl>
-          </CardBody>
-        </Card>
-      ) : null}
-
-      {canView ? (
-        <Card>
-          <CardHeader
-            subtitle="الأعمدةُ حقولُ الخادم كما رجعت — والنِّسبُ مئويةٌ قصّها الخادم بين 0 و100 بأربعة كسور."
-            title={`البطاقات (${visible.length} من ${reps.length})`}
-          />
-          <CardBody>
-            <div className="mb-3 flex flex-wrap gap-2">
-              {FILTERS.map((entry) => (
-                <Button
-                  key={entry.key}
-                  onClick={() => setFilter(entry.key)}
-                  size="sm"
-                  variant={filter === entry.key ? 'primary' : 'secondary'}
-                >
-                  {entry.labelAr}
-                </Button>
-              ))}
-            </div>
-
-            {loading && reps.length === 0 ? (
-              <p className="m-0 text-[13px] text-muted">يُقرأ المندوبون من الخادم…</p>
-            ) : null}
-
-            {!loading && visible.length === 0 ? (
-              <p className="m-0 text-[13px] text-muted">
-                لا بطاقة في هذا التصريف. والقائمةُ من الخادم وحده، فلا تُعرض بطاقاتٌ مخزّنة في
-                المتصفّح.
+      <div className="ui-screen-body">
+        {!canView ? (
+          <Card>
+            <CardBody>
+              <p
+                className={`m-0 rounded-[10px] border px-4 py-2.5 text-[13px] font-semibold ${NOTICE_CLASSES.warn}`}
+              >
+                لا تملك صلاحيةَ هذا القسم — والخادم يرفض قراءة البطاقات (
+                <span dir="ltr">{REPS_MESSAGES.viewForbidden}</span>). ولم يُرسل هذا التطبيق طلبًا سيُرفض
+                حتمًا، ولا عرض بطاقاتٍ من المتصفّح بدلها.
               </p>
-            ) : null}
+            </CardBody>
+          </Card>
+        ) : null}
 
-            {visible.length > 0 ? (
-              <div className="bak-table-wrap">
-                <table className="bak-table">
-                  <thead>
-                    <tr className="text-muted">
-                      <th className="border-b border-line p-2 text-start font-bold">المندوب</th>
-                      <th className="border-b border-line p-2 text-start font-bold">بطاقة الموظف</th>
-                      <th className="border-b border-line p-2 text-start font-bold">حساب الدخول</th>
-                      <th className="border-b border-line p-2 text-start font-bold">مستودع السيارة</th>
-                      <th className="border-b border-line p-2 text-start font-bold">النِّسب</th>
-                      <th className="border-b border-line p-2 text-start font-bold">العهدة الحيّة</th>
-                      <th className="border-b border-line p-2 text-start font-bold">ما ينقصه</th>
-                      <th className="border-b border-line p-2 text-start font-bold">إجراء</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {visible.map((row) => {
-                      const notes = readinessNotes(row);
-                      const expanded = expandedId === row.id;
-                      return (
-                        <Fragment key={row.id}>
-                          <tr>
-                            <td className="border-b border-line p-2">
-                              <div className="font-bold text-ink">{numberText(row.name)}</div>
-                              <div className="text-[11px] text-muted" dir="ltr">
-                                {row.id}
-                              </div>
-                              {row.vehiclePlate ? (
-                                <div className="text-[11px] text-muted">لوحة {row.vehiclePlate}</div>
-                              ) : null}
-                              {row.active === false ? (
-                                <span className="bak-badge mt-1 inline-block">بطاقة موقوفة</span>
-                              ) : null}
-                            </td>
-                            <td className="border-b border-line p-2">
-                              {row.employeeId ? (
-                                <>
-                                  <div className="font-semibold text-ink">
-                                    {numberText(row.employeeName)}
-                                  </div>
-                                  <div className="text-[11px] text-muted">
-                                    رقم {numberText(row.employeeNo)} — {numberText(row.employeeStatus)}
-                                  </div>
-                                </>
-                              ) : (
-                                <span className={`bak-badge ${TONE_CLASSES.danger}`}>بلا بطاقة موظف</span>
-                              )}
-                              {row.employeeRef ? (
-                                <div className="text-[11px] text-muted" dir="ltr">
-                                  {row.employeeRef}
-                                </div>
-                              ) : null}
-                            </td>
-                            <td className="border-b border-line p-2">
-                              {row.membershipId ? (
-                                <>
-                                  <div className="text-[12px]" dir="ltr">
-                                    {numberText(row.userEmail)}
-                                  </div>
-                                  <div className="text-[11px] text-muted">
-                                    العضوية: {membershipStatusLabel(row.membershipStatus)} — المستخدم:{' '}
-                                    {membershipStatusLabel(row.userStatus)} — {row.roleCount} دور
-                                  </div>
-                                </>
-                              ) : (
-                                <span className={`bak-badge ${TONE_CLASSES.danger}`}>بلا حساب دخول</span>
-                              )}
-                            </td>
-                            <td className="border-b border-line p-2">
-                              {row.warehouseId ? (
-                                <>
-                                  <div className="font-semibold text-ink">{numberText(row.warehouseName)}</div>
-                                  <div className="text-[11px] text-muted" dir="ltr">
-                                    {numberText(row.warehouseCode)}
-                                  </div>
-                                </>
-                              ) : (
-                                <span className={`bak-badge ${TONE_CLASSES.danger}`}>بلا مستودع سيارة</span>
-                              )}
-                            </td>
-                            <td className="border-b border-line p-2" dir="ltr">
-                              <div>بيع {ratePercentText(row.commissionRate)}</div>
-                              <div>تحصيل {ratePercentText(row.collectionCommissionRate)}</div>
-                              <div>ربح {ratePercentText(row.profitCommissionRate)}</div>
-                            </td>
-                            <td className="border-b border-line p-2">
-                              <div className="text-[12px]">{custodyHeadline(row)}</div>
-                              {row.custody?.items?.length ? (
-                                <button
-                                  className="mt-1 rounded-[6px] border border-line bg-surface px-2 py-0.5 text-[11px] font-bold text-ink"
-                                  onClick={() => setExpandedId(expanded ? undefined : row.id)}
-                                  type="button"
-                                >
-                                  {expanded ? 'إخفاء الأصناف' : `أصنافُ العهدة (${row.custody.items.length})`}
-                                </button>
-                              ) : null}
-                            </td>
-                            <td className="border-b border-line p-2">
-                              <ul className="m-0 grid list-none gap-1 p-0">
-                                {notes.map((note) => (
-                                  <li
-                                    className={`rounded-[8px] border px-2 py-1 text-[11.5px] font-semibold ${TONE_CLASSES[note.tone]}`}
-                                    key={note.text}
-                                  >
-                                    {note.text}
-                                  </li>
-                                ))}
-                              </ul>
-                            </td>
-                            <td className="border-b border-line p-2">
-                              <Button onClick={() => pickRep(row)} size="sm" variant="secondary">
-                                اختيارٌ للربط
-                              </Button>
-                            </td>
-                          </tr>
-                          {expanded && row.custody?.items?.length ? (
-                            <tr>
-                              <td className="border-b border-line bg-surface p-2" colSpan={8}>
-                                <p className="m-0 text-[12px] font-bold text-ink">
-                                  أصنافُ عهدته من <span dir="ltr">stock_balances</span> مستودع سيارته
-                                  (كميةٌ وقيمةٌ كما خزّنهما الخادم):
-                                </p>
-                                <div className="mt-2 bak-table-wrap">
-                                  <table className="bak-table bak-table--dense">
-                                    <thead>
-                                      <tr className="text-muted">
-                                        <th className="border-b border-line p-2 text-start font-bold">الصنف</th>
-                                        <th className="border-b border-line p-2 text-start font-bold">المستودع</th>
-                                        <th className="border-b border-line p-2 text-start font-bold">الكمية</th>
-                                        <th className="border-b border-line p-2 text-start font-bold">القيمة</th>
-                                      </tr>
-                                    </thead>
-                                    <tbody>
-                                      {row.custody.items.map((item) => (
-                                        <tr key={`${row.id}-${item.itemId}`}>
-                                          <td className="border-b border-line p-2">
-                                            {numberText(item.itemName)}
-                                          </td>
-                                          <td className="border-b border-line p-2">
-                                            {numberText(item.warehouseName)}
-                                          </td>
-                                          <td className="border-b border-line p-2" dir="ltr">
-                                            {numberText(item.quantity)}
-                                          </td>
-                                          <td className="border-b border-line p-2" dir="ltr">
-                                            {numberText(item.value)}
-                                          </td>
-                                        </tr>
-                                      ))}
-                                    </tbody>
-                                  </table>
-                                </div>
-                              </td>
-                            </tr>
-                          ) : null}
-                        </Fragment>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            ) : null}
-          </CardBody>
-        </Card>
-      ) : null}
-
-      {canView ? (
-        <Card>
-          <CardHeader
-            subtitle={`محميّ بـ${LINK_ACCOUNT_PERMISSION} — والخادم يرفض المندوب نفسه ٤٠٣ على هذا المسار (مقيسٌ في مواصفة القبول).`}
-            title="ربطُ حساب دخول بمندوب"
-          />
-          <CardBody>
-            {!canLink ? (
-              <p className={`m-0 mb-3 rounded-[10px] border px-4 py-2.5 text-[13px] font-semibold ${NOTICE_CLASSES.warn}`}>
-                🔒 لا تملك <span dir="ltr">{LINK_ACCOUNT_PERMISSION}</span> — والخادم يرفض بـ
-                <span dir="ltr">{REPS_MESSAGES.linkForbidden}</span>. وربطُ الحسابات عملُ مكتبٍ
-                خلفيّ لا يملكه المندوب.
+        {loadError ? (
+          <Card>
+            <CardBody>
+              <p
+                className={`m-0 rounded-[10px] border px-4 py-2.5 text-[13px] font-semibold ${NOTICE_CLASSES.danger}`}
+                role="alert"
+              >
+                تعذّر تحميل بطاقات المندوبين: {loadError}
               </p>
-            ) : null}
+              <p className="m-0 mt-2 text-[12.5px] text-muted">
+                تحقّق من اتصالك بالشبكة ومن صلاحيتك على المناديب، ثمّ أعد المحاولة — لا تُعرض هنا بطاقاتٌ
+                محسوبة في المتصفّح.
+              </p>
+              <Button className="mt-3" onClick={() => void load()} size="sm">
+                إعادة المحاولة
+              </Button>
+            </CardBody>
+          </Card>
+        ) : null}
 
-            <form
-              className="grid gap-3"
-              onSubmit={(event) => {
-                event.preventDefault();
-                void submitLink();
-              }}
-            >
-              <label className="grid gap-1 text-[12.5px] font-bold text-ink">
-                المندوب
-                <select
-                  className={selectClass}
-                  disabled={busy || !canLink}
-                  onChange={(event) => {
-                    const next = reps.find((row) => row.id === event.target.value) ?? null;
-                    if (next) pickRep(next);
-                    else setDraft((current) => ({ ...current, salesmanId: '' }));
-                  }}
-                  value={draft.salesmanId}
-                >
-                  <option value="">— اختر بطاقة مندوب —</option>
-                  {reps.map((row) => (
-                    <option key={row.id} value={row.id}>
-                      {salesmanLabel(row)}
-                      {row.membershipId ? ' (له حساب قائم)' : ''}
-                    </option>
-                  ))}
-                </select>
-                <span className="text-[11.5px] font-normal text-muted">
-                  البطاقة نفسها تُنشأ وتُعدَّل في <span dir="ltr">apps/staff</span> — لا نسخةَ كتابةٍ
-                  ثانية هنا.
-                </span>
-              </label>
+        {notice ? (
+          <p
+            className={`m-0 rounded-[10px] border px-4 py-2.5 text-[13px] font-semibold ${NOTICE_CLASSES[notice.kind]}`}
+            role={notice.kind === 'danger' ? 'alert' : 'status'}
+          >
+            {notice.text}
+          </p>
+        ) : null}
 
-              {picked ? (
-                <p className={`m-0 rounded-[10px] border px-4 py-2.5 text-[12.5px] font-semibold ${TONE_CLASSES[isReadyToWork(picked) ? 'ok' : 'warn']}`}>
-                  {custodyHeadline(picked)} — {isReadyToWork(picked) ? 'البطاقة جاهزة للعمل' : 'البطاقة ناقصة (انظر «ما ينقصه» أعلاه)'}
+        {canView ? (
+          <Card>
+            <CardHeader subtitle="القائمة كلّ بطاقات المنشأة — لا عيّنةً من نافذة." title="بطاقات المناديب" />
+            <CardBody>
+              <dl className="ui-kpi-grid">
+                <div className="ui-kpi-cell">
+                  <dt className="ui-kpi-label">بطاقات المندوبين</dt>
+                  <dd className="m-0 mt-1 text-[18px] font-extrabold text-ink" dir="ltr">
+                    {summary.total}
+                  </dd>
+                  <dd className="m-0 text-xs text-muted">
+                    {summary.inactiveCards > 0 ? `${summary.inactiveCards} بطاقة موقوفة` : 'كلّها نشطة'}
+                  </dd>
+                </div>
+                <div className="ui-kpi-cell">
+                  <dt className="ui-kpi-label">جاهزٌ للعمل فعليًّا</dt>
+                  <dd className="m-0 mt-1 text-[18px] font-extrabold text-ink" dir="ltr">
+                    {summary.readyToWork} / {summary.total}
+                  </dd>
+                  <dd className="m-0 text-xs text-muted">موظف + حساب نشط + مستودع سيارة + صلاحيات الخطّ</dd>
+                </div>
+                <div className="ui-kpi-cell">
+                  <dt className="ui-kpi-label">بلا حساب دخول</dt>
+                  <dd className="m-0 mt-1 text-[18px] font-extrabold text-ink" dir="ltr">
+                    {summary.missingLogin}
+                  </dd>
+                  <dd className="m-0 text-xs text-muted">
+                    {summary.loginNotActive > 0 ? `و${summary.loginNotActive} حسابُه غير نشط` : '—'}
+                  </dd>
+                </div>
+                <div className="ui-kpi-cell">
+                  <dt className="ui-kpi-label">بلا بطاقة موظف</dt>
+                  <dd className="m-0 mt-1 text-[18px] font-extrabold text-ink" dir="ltr">
+                    {summary.missingEmployee}
+                  </dd>
+                  <dd className="m-0 text-xs text-muted">تحميلُ النقص على المديونية مرفوض ٤٢٢</dd>
+                </div>
+                <div className="ui-kpi-cell">
+                  <dt className="ui-kpi-label">بلا مستودع سيارة</dt>
+                  <dd className="m-0 mt-1 text-[18px] font-extrabold text-ink" dir="ltr">
+                    {summary.missingVanWarehouse}
+                  </dd>
+                  <dd className="m-0 text-xs text-muted">لا عهدةَ تُقاس ولا نطاقَ للدخول</dd>
+                </div>
+                <div className="ui-kpi-cell">
+                  <dt className="ui-kpi-label">بلا صلاحيات الخطّ</dt>
+                  <dd className="m-0 mt-1 text-[18px] font-extrabold text-ink" dir="ltr">
+                    {summary.missingPermissions}
+                  </dd>
+                  <dd className="m-0 text-xs text-muted">يرفضهم الحارس ٤٠٣</dd>
+                </div>
+                <div className="ui-kpi-cell">
+                  <dt className="ui-kpi-label">عهدٌ مفتوحة (كجم)</dt>
+                  <dd className="m-0 mt-1 text-[18px] font-extrabold text-ink" dir="ltr">
+                    {summary.custodyQtyTotal.toFixed(4)}
+                  </dd>
+                  <dd className="m-0 text-xs text-muted">
+                    على {summary.withOpenCustody} مندوب — من أوامر التحميل غير المُصفّاة
+                  </dd>
+                </div>
+                <div className="ui-kpi-cell">
+                  <dt className="ui-kpi-label">نقدٌ متوقّع لم يُحصّل (ريال)</dt>
+                  <dd className="m-0 mt-1 text-[18px] font-extrabold text-ink" dir="ltr">
+                    {summary.outstandingCashTotal.toFixed(4)}
+                  </dd>
+                  <dd className="m-0 text-xs text-muted">
+                    ‏expected_cash − collected_cash على الأوامر المفتوحة
+                  </dd>
+                </div>
+              </dl>
+            </CardBody>
+          </Card>
+        ) : null}
+
+        {canView ? (
+          <Card>
+            <CardHeader
+              subtitle="بياناتُ البطاقة كما هي في النظام — والنِّسبُ مئويةٌ بين 0 و100."
+              title={`البطاقات (${visible.length} من ${reps.length})`}
+            />
+            <CardBody>
+              <div className="mb-3 flex flex-wrap gap-2">
+                {FILTERS.map((entry) => (
+                  <Button
+                    key={entry.key}
+                    onClick={() => setFilter(entry.key)}
+                    size="sm"
+                    variant={filter === entry.key ? 'primary' : 'secondary'}
+                  >
+                    {entry.labelAr}
+                  </Button>
+                ))}
+              </div>
+
+              {loading && reps.length === 0 ? (
+                <p className="m-0 text-[13px] text-muted">يُقرأ المندوبون من الخادم…</p>
+              ) : null}
+
+              {!loading && visible.length === 0 ? (
+                <p className="m-0 text-[13px] text-muted">
+                  لا بطاقة في هذا التصريف. والقائمةُ من الخادم وحده، فلا تُعرض بطاقاتٌ مخزّنة في المتصفّح.
                 </p>
               ) : null}
 
-              <div className="grid gap-3 sm:grid-cols-2">
-                <Input
-                  dir="ltr"
-                  hint="يقصّه الخادم ويُصغّره. وإن كانت بطاقة الموظف تملك عضويةً فالحسابُ القائم يُعاد استعماله وقد يختلف بريدُه الفعليّ عمّا تكتبه — ويُردّ عليك في الإيصال."
-                  label="بريد حساب الدخول"
-                  onChange={(event) => setDraft((current) => ({ ...current, email: event.target.value }))}
-                  placeholder="rep@bakery.test"
-                  value={draft.email}
-                />
-                <Input
-                  hint="اتركه فارغًا فيأخذ الخادم اسمَ بطاقة الموظف أو اسمَ المندوب — ولا يُخترع اسمٌ هنا."
-                  label="الاسم المعروض (اختياري)"
-                  onChange={(event) => setDraft((current) => ({ ...current, fullName: event.target.value }))}
-                  placeholder="الاسم كما في بطاقة الموظف"
-                  value={draft.fullName}
-                />
-              </div>
+              {visible.length > 0 ? (
+                <div className="bak-table-wrap">
+                  <Table
+                    columns={[
+                      {
+                        key: 'rep',
+                        header: 'المندوب',
+                        cell: (row) => (
+                          <>
+                            <div className="font-bold text-ink">{numberText(row.name)}</div>
+                            <div className="text-xs text-muted" dir="ltr">
+                              {row.id}
+                            </div>
+                            {row.vehiclePlate ? (
+                              <div className="text-xs text-muted">لوحة {row.vehiclePlate}</div>
+                            ) : null}
+                            {row.active === false ? (
+                              <span className="bak-badge mt-1 inline-block">بطاقة موقوفة</span>
+                            ) : null}
+                          </>
+                        ),
+                      },
+                      {
+                        key: 'employee',
+                        header: 'بطاقة الموظف',
+                        cell: (row) =>
+                          row.employeeId ? (
+                            <>
+                              <div className="font-semibold text-ink">{numberText(row.employeeName)}</div>
+                              <div className="text-xs text-muted">
+                                رقم {numberText(row.employeeNo)} — {numberText(row.employeeStatus)}
+                              </div>
+                              {row.employeeRef ? (
+                                <div className="text-xs text-muted" dir="ltr">
+                                  {row.employeeRef}
+                                </div>
+                              ) : null}
+                            </>
+                          ) : (
+                            <span className={`bak-badge ${TONE_CLASSES.danger}`}>بلا بطاقة موظف</span>
+                          ),
+                      },
+                      {
+                        key: 'account',
+                        header: 'حساب الدخول',
+                        cell: (row) =>
+                          row.membershipId ? (
+                            <>
+                              <div className="text-[12px]" dir="ltr">
+                                {numberText(row.userEmail)}
+                              </div>
+                              <div className="text-xs text-muted">
+                                العضوية: {membershipStatusLabel(row.membershipStatus)} — المستخدم:{' '}
+                                {membershipStatusLabel(row.userStatus)} — {row.roleCount} دور
+                              </div>
+                            </>
+                          ) : (
+                            <span className={`bak-badge ${TONE_CLASSES.danger}`}>بلا حساب دخول</span>
+                          ),
+                      },
+                      {
+                        key: 'warehouse',
+                        header: 'مستودع السيارة',
+                        cell: (row) =>
+                          row.warehouseId ? (
+                            <>
+                              <div className="font-semibold text-ink">{numberText(row.warehouseName)}</div>
+                              <div className="text-xs text-muted" dir="ltr">
+                                {numberText(row.warehouseCode)}
+                              </div>
+                            </>
+                          ) : (
+                            <span className={`bak-badge ${TONE_CLASSES.danger}`}>بلا مستودع سيارة</span>
+                          ),
+                      },
+                      {
+                        key: 'rates',
+                        header: 'النِّسب',
+                        ltr: true,
+                        cell: (row) => (
+                          <>
+                            <div>بيع {ratePercentText(row.commissionRate)}</div>
+                            <div>تحصيل {ratePercentText(row.collectionCommissionRate)}</div>
+                            <div>ربح {ratePercentText(row.profitCommissionRate)}</div>
+                          </>
+                        ),
+                      },
+                      {
+                        key: 'custody',
+                        header: 'العهدة الحيّة',
+                        cell: (row) => (
+                          <>
+                            <div className="text-[12px]">{custodyHeadline(row)}</div>
+                            {row.custody?.items?.length ? (
+                              <button
+                                className="mt-1 rounded-[6px] border border-line bg-surface px-2 py-0.5 text-xs font-bold text-ink"
+                                onClick={() => setExpandedId(expandedId === row.id ? undefined : row.id)}
+                                type="button"
+                              >
+                                {expandedId === row.id
+                                  ? 'إخفاء الأصناف'
+                                  : `أصنافُ العهدة (${row.custody.items.length})`}
+                              </button>
+                            ) : null}
+                          </>
+                        ),
+                      },
+                      {
+                        key: 'needs',
+                        header: 'ما ينقصه',
+                        cell: (row) => (
+                          <ul className="m-0 grid list-none gap-1 p-0">
+                            {readinessNotes(row).map((note) => (
+                              <li
+                                className={`rounded-[8px] border px-2 py-1 text-[11.5px] font-semibold ${TONE_CLASSES[note.tone]}`}
+                                key={note.text}
+                              >
+                                {note.text}
+                              </li>
+                            ))}
+                          </ul>
+                        ),
+                      },
+                      {
+                        key: 'actions',
+                        header: 'إجراء',
+                        cell: (row) => (
+                          <Button onClick={() => pickRep(row)} size="sm" variant="secondary">
+                            اختيارٌ للربط
+                          </Button>
+                        ),
+                      },
+                    ]}
+                    rows={visible}
+                    rowKey={(row) => row.id}
+                    expandedKey={expandedId}
+                    renderExpanded={(row) => (
+                      <div className="p-2">
+                        <p className="m-0 text-[12px] font-bold text-ink">
+                          أصنافُ عهدته من <span dir="ltr">stock_balances</span> مستودع سيارته (كميةٌ وقيمةٌ
+                          كما خزّنهما الخادم):
+                        </p>
+                        <div className="mt-2">
+                          <Table
+                            dense
+                            bare
+                            empty={<>لا أصناف في عهدته.</>}
+                            columns={[
+                              { key: 'item', header: 'الصنف', cell: (item) => numberText(item.itemName) },
+                              {
+                                key: 'warehouse',
+                                header: 'المستودع',
+                                cell: (item) => numberText(item.warehouseName),
+                              },
+                              {
+                                key: 'qty',
+                                header: 'الكمية',
+                                numeric: true,
+                                ltr: true,
+                                cell: (item) => numberText(item.quantity),
+                              },
+                              {
+                                key: 'value',
+                                header: 'القيمة',
+                                numeric: true,
+                                ltr: true,
+                                cell: (item) => numberText(item.value),
+                              },
+                            ]}
+                            rows={row.custody?.items ?? []}
+                            rowKey={(item) => `${row.id}-${item.itemId}`}
+                          />
+                        </div>
+                      </div>
+                    )}
+                  />
+                </div>
+              ) : null}
+            </CardBody>
+          </Card>
+        ) : null}
 
-              <label className="flex items-start gap-2 text-[12.5px] font-bold text-ink">
-                <input
-                  checked={draft.restrictToVanWarehouse}
-                  className="mt-1"
-                  disabled={busy || !canLink}
-                  onChange={(event) =>
-                    setDraft((current) => ({ ...current, restrictToVanWarehouse: event.target.checked }))
-                  }
-                  type="checkbox"
-                />
-                <span>
-                  حصرُ الحساب بمستودع سيارة المندوب
-                  <span className="block text-[11.5px] font-normal text-muted">
-                    افتراضيُّ الخادم هو الحصر (يُطبَّق نطاق <span dir="ltr">warehouse</span> على
-                    العضوية). وإلغاءُه توسيعُ وصولٍ مقصود، ولا يُطبَّق أصلًا إن كانت البطاقة بلا
-                    مستودع سيارة.
+        {canView ? (
+          <Card>
+            <CardHeader
+              subtitle="محميٌّ بصلاحية ربط الحساب؛ والخادم يرفض على هذا المسار حسابَ المندوب نفسه."
+              title="ربطُ حساب دخول بمندوب"
+            />
+            <CardBody>
+              {!canLink ? (
+                <p
+                  className={`m-0 mb-3 rounded-[10px] border px-4 py-2.5 text-[13px] font-semibold ${NOTICE_CLASSES.warn}`}
+                >
+                  لا تملك صلاحيةَ هذا القسم — والخادم يرفض بـ
+                  <span dir="ltr">{REPS_MESSAGES.linkForbidden}</span>. وربطُ الحسابات عملُ مكتبٍ خلفيّ لا
+                  يملكه المندوب.
+                </p>
+              ) : null}
+
+              <form
+                className="grid gap-3"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  void submitLink();
+                }}
+              >
+                <label className="field">
+                  <span>المندوب</span>
+                  <select
+                    className={selectClass}
+                    disabled={busy || !canLink}
+                    onChange={(event) => {
+                      const next = reps.find((row) => row.id === event.target.value) ?? null;
+                      if (next) pickRep(next);
+                      else setDraft((current) => ({ ...current, salesmanId: '' }));
+                    }}
+                    value={draft.salesmanId}
+                  >
+                    <option value="">— اختر بطاقة مندوب —</option>
+                    {reps.map((row) => (
+                      <option key={row.id} value={row.id}>
+                        {salesmanLabel(row)}
+                        {row.membershipId ? ' (له حساب قائم)' : ''}
+                      </option>
+                    ))}
+                  </select>
+                  <span className="text-[11.5px] font-normal text-muted">
+                    البطاقة نفسها تُنشأ وتُعدَّل في <span dir="ltr">apps/staff</span> — لا نسخةَ كتابةٍ ثانية
+                    هنا.
                   </span>
-                </span>
-              </label>
+                </label>
 
-              {verdict.blocked.length > 0 ? (
-                <ul className="m-0 grid list-none gap-1 p-0">
-                  {verdict.blocked.map((text) => (
-                    <li
-                      className={`rounded-[8px] border px-3 py-2 text-[12.5px] font-semibold ${NOTICE_CLASSES.danger}`}
-                      key={text}
-                    >
-                      ⛔ {text}
-                    </li>
-                  ))}
-                </ul>
-              ) : null}
+                {picked ? (
+                  <p
+                    className={`m-0 rounded-[10px] border px-4 py-2.5 text-[12.5px] font-semibold ${TONE_CLASSES[isReadyToWork(picked) ? 'ok' : 'warn']}`}
+                  >
+                    {custodyHeadline(picked)} —{' '}
+                    {isReadyToWork(picked) ? 'البطاقة جاهزة للعمل' : 'البطاقة ناقصة (انظر «ما ينقصه» أعلاه)'}
+                  </p>
+                ) : null}
 
-              {verdict.warnings.length > 0 ? (
-                <ul className="m-0 grid list-none gap-1 p-0">
-                  {verdict.warnings.map((text) => (
-                    <li
-                      className={`rounded-[8px] border px-3 py-2 text-[12.5px] font-semibold ${NOTICE_CLASSES.warn}`}
-                      key={text}
-                    >
-                      ⚠️ {text}
-                    </li>
-                  ))}
-                </ul>
-              ) : null}
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <Input
+                    dir="ltr"
+                    hint="يقصّه الخادم ويُصغّره. وإن كانت بطاقة الموظف تملك عضويةً فالحسابُ القائم يُعاد استعماله وقد يختلف بريدُه الفعليّ عمّا تكتبه — ويُردّ عليك في الإيصال."
+                    label="بريد حساب الدخول"
+                    onChange={(event) => setDraft((current) => ({ ...current, email: event.target.value }))}
+                    placeholder="rep@bakery.test"
+                    value={draft.email}
+                  />
+                  <Input
+                    hint="اتركه فارغًا فيأخذ الخادم اسمَ بطاقة الموظف أو اسمَ المندوب — ولا يُخترع اسمٌ هنا."
+                    label="الاسم المعروض (اختياري)"
+                    onChange={(event) =>
+                      setDraft((current) => ({ ...current, fullName: event.target.value }))
+                    }
+                    placeholder="الاسم كما في بطاقة الموظف"
+                    value={draft.fullName}
+                  />
+                </div>
 
-              <div className="flex flex-wrap items-center gap-2">
-                <Button disabled={busy || !canLink} loading={busy} type="submit">
-                  ربطُ حساب الدخول
-                </Button>
-                <span className="text-[11.5px] text-muted">
-                  لا يُرسل مفتاحُ عدم تكرار: المسار لا يقبله. والزرُّ معطَّلٌ أثناء الطلب، والخادم
-                  يُعيد استعمال العضوية القائمة فلا يُنشئ حسابًا ثانيًا عند إعادة الإرسال.
-                </span>
-              </div>
-            </form>
-          </CardBody>
-        </Card>
-      ) : null}
+                <label className="flex items-start gap-2 text-[12.5px] font-bold text-ink">
+                  <input
+                    checked={draft.restrictToVanWarehouse}
+                    className="mt-1"
+                    disabled={busy || !canLink}
+                    onChange={(event) =>
+                      setDraft((current) => ({ ...current, restrictToVanWarehouse: event.target.checked }))
+                    }
+                    type="checkbox"
+                  />
+                  <span>
+                    حصرُ الحساب بمستودع سيارة المندوب
+                    <span className="block text-[11.5px] font-normal text-muted">
+                      افتراضيُّ الخادم هو الحصر (يُطبَّق نطاق <span dir="ltr">warehouse</span> على العضوية).
+                      وإلغاءُه توسيعُ وصولٍ مقصود، ولا يُطبَّق أصلًا إن كانت البطاقة بلا مستودع سيارة.
+                    </span>
+                  </span>
+                </label>
 
-      {outcome ? (
-        <Card>
-          <CardHeader
-            subtitle="من إيصال الخادم لا من «نجح الطلب»: فعضويةٌ أُنشئت بلا تفعيلٍ ليست دخولًا جاهزًا، وحسابٌ غير مقيَّد بمستودع ليس حساب مندوب."
-            title="نتيجةُ الربط"
-          />
-          <CardBody>
-            <p className={`m-0 rounded-[10px] border px-4 py-2.5 text-[13px] font-bold ${NOTICE_CLASSES[outcome.tone]}`}>
-              {outcome.headline}
-            </p>
-            <ul className="m-0 mt-3 grid list-none gap-2 p-0">
-              {outcome.notes.map((text) => (
-                <li className="rounded-[8px] border border-line bg-surface px-3 py-2 text-[12.5px]" key={text}>
-                  {text}
+                {verdict.blocked.length > 0 ? (
+                  <ul className="m-0 grid list-none gap-1 p-0">
+                    {verdict.blocked.map((text) => (
+                      <li
+                        className={`rounded-[8px] border px-3 py-2 text-[12.5px] font-semibold ${NOTICE_CLASSES.danger}`}
+                        key={text}
+                      >
+                        {text}
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+
+                {verdict.warnings.length > 0 ? (
+                  <ul className="m-0 grid list-none gap-1 p-0">
+                    {verdict.warnings.map((text) => (
+                      <li
+                        className={`rounded-[8px] border px-3 py-2 text-[12.5px] font-semibold ${NOTICE_CLASSES.warn}`}
+                        key={text}
+                      >
+                        {text}
+                      </li>
+                    ))}
+                  </ul>
+                ) : null}
+
+                <div className="ui-form-actions">
+                  <Button disabled={busy || !canLink} loading={busy} type="submit">
+                    ربطُ حساب الدخول
+                  </Button>
+                  <span className="text-[11.5px] text-muted">
+                    لا يُرسل مفتاحُ عدم تكرار: المسار لا يقبله. والزرُّ معطَّلٌ أثناء الطلب، والخادم يُعيد
+                    استعمال العضوية القائمة فلا يُنشئ حسابًا ثانيًا عند إعادة الإرسال.
+                  </span>
+                </div>
+              </form>
+            </CardBody>
+          </Card>
+        ) : null}
+
+        {outcome ? (
+          <Card>
+            <CardHeader
+              subtitle="من إيصال النظام لا من «نجح الطلب»: عضويةٌ بلا تفعيلٍ ليست دخولاً جاهزاً، وحسابٌ غير مقيَّدٍ بمستودع ليس حساب مندوب."
+              title="نتيجةُ الربط"
+            />
+            <CardBody>
+              <p
+                className={`m-0 rounded-[10px] border px-4 py-2.5 text-[13px] font-bold ${NOTICE_CLASSES[outcome.tone]}`}
+              >
+                {outcome.headline}
+              </p>
+              <ul className="m-0 mt-3 grid list-none gap-2 p-0">
+                {outcome.notes.map((text) => (
+                  <li
+                    className="rounded-[8px] border border-line bg-surface px-3 py-2 text-[12.5px]"
+                    key={text}
+                  >
+                    {text}
+                  </li>
+                ))}
+              </ul>
+              <p className="m-0 mt-3 text-[12px] text-muted">
+                الدور: {numberText(receipt?.roleName)} — وحالة العضوية:{' '}
+                {membershipStatusLabel(receipt?.status ?? null)}. والصلاحياتُ تُمنح من شاشة الأدوار في{' '}
+                <span dir="ltr">apps/staff</span>، لا من هنا.
+              </p>
+            </CardBody>
+          </Card>
+        ) : null}
+
+        {canView ? (
+          <Card>
+            <CardHeader subtitle="حدودٌ تُقال ولا تُخفى." title="ما ليس في هذه الشاشة" />
+            <CardBody>
+              <ul className="m-0 grid list-none gap-2 p-0 text-[12.5px] text-muted">
+                <li>
+                  إنشاءُ بطاقة مندوب أو تعديلُها أو حذفُها ونِسبُ العمولة وربطُ الموظف يدويًّا:{' '}
+                  <span dir="ltr">POST/PATCH /sales/salesmen</span> في <span dir="ltr">apps/staff</span> عند —
+                  كاتبٌ واحد للبطاقة.
                 </li>
-              ))}
-            </ul>
-            <p className="m-0 mt-3 text-[12px] text-muted">
-              الدور: {numberText(receipt?.roleName)} — وحالة العضوية:{' '}
-              {membershipStatusLabel(receipt?.status ?? null)}. والصلاحياتُ تُمنح من شاشة الأدوار في{' '}
-              <span dir="ltr">apps/staff</span>، لا من هنا.
-            </p>
-          </CardBody>
-        </Card>
-      ) : null}
-
-      {canView ? (
-        <Card>
-          <CardHeader subtitle="حدودٌ تُقال ولا تُخفى." title="ما ليس في هذه الشاشة" />
-          <CardBody>
-            <ul className="m-0 grid list-none gap-2 p-0 text-[12.5px] text-muted">
-              <li>
-                إنشاءُ بطاقة مندوب أو تعديلُها أو حذفُها ونِسبُ العمولة وربطُ الموظف يدويًّا:{' '}
-                <span dir="ltr">POST/PATCH /sales/salesmen</span> في <span dir="ltr">apps/staff</span>{' '}
-                عند <span dir="ltr">{STAFF_SALESMEN_PATH}</span> — كاتبٌ واحد للبطاقة.
-              </li>
-              <li>
-                نطاقُ الفروع على العضوية غير معروض: الخادم يُطبّقه عند <strong>إنشاء</strong> العضوية
-                فقط ويتجاهله عند إعادة استعمال حسابٍ قائم، فعرضُه وعدٌ بشيءٍ لا يفعله في الحالة
-                الشائعة.
-              </li>
-              <li>
-                لا كلمةُ مرور تُنشأ ولا تُصفَّر هنا: الحسابُ الجديد <span dir="ltr">invited</span> بلا
-                كلمة مرور، ورابطُ التفعيل من منصّة الهويّة — وربطُ الأجهزة وتسليمُ الجلسة في المرحلة
-                ٤ (واجهة المندوب المحمولة).
-              </li>
-              <li>
-                النِّسبُ المعروضة هي ما خزّنه الخادم على البطاقة؛ أمّا حسابُ مبالغ العمولة فرهنٌ
-                بالرواتب والمبيعات في <span dir="ltr">apps/staff</span> ولا يُحسب هنا.
-              </li>
-              <li>
-                الأدوارُ وصلاحياتها تُمنح من شاشة الأدوار في <span dir="ltr">apps/staff</span>؛ وهذه
-                الشاشة تقرأ ما اجتمع للعضوية من صلاحياتٍ (<span dir="ltr">permissions</span>) ولا تمنح شيئًا.
-              </li>
-            </ul>
-          </CardBody>
-        </Card>
-      ) : null}
+                <li>
+                  نطاقُ الفروع على العضوية غير معروض: الخادم يُطبّقه عند <strong>إنشاء</strong> العضوية فقط
+                  ويتجاهله عند إعادة استعمال حسابٍ قائم، فعرضُه وعدٌ بشيءٍ لا يفعله في الحالة الشائعة.
+                </li>
+                <li>
+                  لا كلمةُ مرور تُنشأ ولا تُصفَّر هنا: الحسابُ الجديد <span dir="ltr">invited</span> بلا كلمة
+                  مرور، ورابطُ التفعيل من منصّة الهويّة — وربطُ الأجهزة وتسليمُ الجلسة في المرحلة ٤ (واجهة
+                  المندوب المحمولة).
+                </li>
+                <li>
+                  النِّسبُ المعروضة هي ما خزّنه الخادم على البطاقة؛ أمّا حسابُ مبالغ العمولة فرهنٌ بالرواتب
+                  والمبيعات في <span dir="ltr">apps/staff</span> ولا يُحسب هنا.
+                </li>
+                <li>
+                  الأدوارُ وصلاحياتها تُمنح من شاشة الأدوار في <span dir="ltr">apps/staff</span>؛ وهذه الشاشة
+                  تقرأ ما اجتمع للعضوية من صلاحياتٍ (<span dir="ltr">permissions</span>) ولا تمنح شيئًا.
+                </li>
+              </ul>
+            </CardBody>
+          </Card>
+        ) : null}
+      </div>
     </section>
   );
 }

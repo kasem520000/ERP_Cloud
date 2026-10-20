@@ -37,80 +37,193 @@
 @source '../../../packages/ui/src';
 
 /* ------------------------------------------------------------------ shell */
-.bak-shell { display: grid; grid-template-columns: 264px 1fr; min-height: 100vh; }
+.bak-shell {
+  display: grid;
+  grid-template-columns: 264px 1fr;
+  min-height: 100vh;
+}
 .bak-side {
   background: linear-gradient(180deg, var(--bg) 0%, var(--inset) 100%);
   color: var(--text);
   padding: 18px 12px 14px;
-  position: sticky; top: 0; height: 100vh; overflow: auto;
-  display: flex; flex-direction: column; gap: 12px;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
   border-inline-end: 1px solid var(--line);
 }
-.bak-brand { display: flex; gap: 10px; align-items: center; font-weight: 800; font-size: 15px; padding: 0 6px; }
-.bak-brand small { display: block; font-weight: 400; font-size: 11px; color: var(--muted); }
+.bak-brand {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  font-weight: 800;
+  font-size: 15px;
+  padding: 0 6px;
+}
+.bak-brand small {
+  display: block;
+  font-weight: 400;
+  font-size: 12px;
+  color: var(--muted);
+}
 .bak-logo {
-  width: 36px; height: 36px; border-radius: 10px; flex: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  flex: none;
   background: linear-gradient(135deg, var(--color-brand-600), var(--color-brand-400));
-  display: grid; place-items: center; font-size: 17px; color: var(--brand-ink);
+  display: grid;
+  place-items: center;
+  font-size: 17px;
+  color: var(--brand-ink);
 }
-.bak-nav { display: flex; flex-direction: column; gap: 3px; flex: 1; }
+.bak-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 1;
+}
 .bak-nav-title {
-  margin: 10px 8px 4px; font-size: 10px; letter-spacing: .08em;
-  color: var(--muted); text-transform: uppercase; font-weight: 700;
+  margin: 10px 8px 4px;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: var(--muted);
+  text-transform: uppercase;
+  font-weight: 700;
 }
-.bak-nav-link, .bak-nav-item {
-  display: flex; align-items: center; gap: 8px;
-  padding: 7px 10px; border-radius: 8px; font-size: 12.5px;
-  color: var(--ink-2, var(--muted-2)); text-decoration: none;
+.bak-nav-link,
+.bak-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  border-radius: 8px;
+  font-size: 12.5px;
+  color: var(--ink-2, var(--muted-2));
+  text-decoration: none;
   border-inline-start: 2px solid transparent;
 }
-.bak-nav-link:hover { background: var(--surface-3); color: var(--text); }
+.bak-nav-link:hover {
+  background: var(--surface-3);
+  color: var(--text);
+}
 .bak-nav-link.active {
-  background: linear-gradient(90deg, rgb(37 99 235 / 0.18), transparent);
-  color: var(--brand-ink); border-inline-start-color: var(--brand-2); font-weight: 700;
+  background: linear-gradient(90deg, rgb(11 122 99 / 0.18), transparent);
+  color: var(--brand-ink);
+  border-inline-start-color: var(--brand-2);
+  font-weight: 700;
 }
 /* المخطَّط ليس رابطاً: لا href لشاشةٍ لم تُبنَ (الرابط الميت كذب). */
-.bak-nav-item { cursor: default; opacity: .82; }
-.bak-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--line-raised); flex: none; }
-.bak-dot.ready { background: var(--color-chart-3); }
-.bak-dot.planned { background: var(--muted); }
+.bak-nav-item {
+  cursor: default;
+  opacity: 0.82;
+}
+.bak-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--line-raised);
+  flex: none;
+}
+.bak-dot.ready {
+  background: var(--color-chart-3);
+}
+.bak-dot.planned {
+  background: var(--muted);
+}
 .bak-legend {
-  display: flex; gap: 10px; flex-wrap: wrap; font-size: 10.5px; color: var(--muted);
-  padding: 8px 6px 0; border-top: 1px solid var(--line);
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  font-size: 10.5px;
+  color: var(--muted);
+  padding: 8px 6px 0;
+  border-top: 1px solid var(--line);
 }
-.bak-legend span { display: inline-flex; align-items: center; gap: 4px; }
+.bak-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
 
-.bak-main { padding: 20px 24px 44px; min-width: 0; }
-.bak-topbar {
-  background: var(--surface); border: 1px solid var(--line);
-  border-radius: var(--radius); padding: 10px 14px; margin-bottom: 16px;
-  display: flex; justify-content: space-between; gap: 12px; align-items: center; flex-wrap: wrap;
+.bak-main {
+  padding: 20px 24px 44px;
+  min-width: 0;
 }
-.bak-crumbs { font-size: 12px; color: var(--muted); display: flex; align-items: center; gap: 6px; }
-.bak-only-mobile { display: none; }
+.bak-topbar {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  margin-bottom: 16px;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.bak-crumbs {
+  font-size: 12px;
+  color: var(--muted);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.bak-only-mobile {
+  display: none;
+}
 
 /* --------------------------------------------------------------- statuses */
 .bak-badge {
-  display: inline-flex; align-items: center; gap: 6px;
-  border-radius: 999px; padding: 3px 10px; font-size: 11.5px; font-weight: 700;
-  border: 1px solid var(--line); background: var(--surface-2); color: var(--muted-2);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border-radius: 999px;
+  padding: 3px 10px;
+  font-size: 11.5px;
+  font-weight: 700;
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  color: var(--muted-2);
 }
-.bak-badge.ok { border-color: var(--success-line, var(--line)); background: var(--success-soft, var(--surface-2)); color: var(--success-ink, var(--text)); }
-.bak-badge.bad { border-color: var(--danger-line, var(--line)); background: var(--danger-soft, var(--surface-2)); color: var(--danger-ink, var(--text)); }
-.bak-badge.warn { border-color: var(--warn-line, var(--line)); background: var(--warn-soft, var(--surface-2)); color: var(--warn-ink, var(--text)); }
+.bak-badge.ok {
+  border-color: var(--success-line, var(--line));
+  background: var(--success-soft, var(--surface-2));
+  color: var(--success-ink, var(--text));
+}
+.bak-badge.bad {
+  border-color: var(--danger-line, var(--line));
+  background: var(--danger-soft, var(--surface-2));
+  color: var(--danger-ink, var(--text));
+}
+.bak-badge.warn {
+  border-color: var(--warn-line, var(--line));
+  background: var(--warn-soft, var(--surface-2));
+  color: var(--warn-ink, var(--text));
+}
 
 .bak-wall {
-  min-height: 100vh; display: grid; place-items: center; padding: 24px;
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
   /* غسلةُ علامةٍ خلف بطاقة الدخول: تدرّجٌ من رمزٍ موجود، لا صورةٌ ولا مكتبةُ أيقونات.
      ولماذا CSS صريحٌ لا `bg-gradient-to-b`: فاسمُ المرافق تغيّر بين إصدارات Tailwind
      (‏`bg-linear-to-b` في v4)، والقاعدةُ هنا لا يجوز أن تسكت إن تغيّر الاسم. */
-  background:
-    radial-gradient(1100px 400px at 50% -150px, var(--brand-soft), transparent 72%),
-    var(--bg);
+  background: radial-gradient(1100px 400px at 50% -150px, var(--brand-soft), transparent 72%), var(--bg);
 }
 /* علامةُ الدخول: `.bak-logo` نفسها بحجمٍ أكبر. والتعديلُ صنفٌ لا مرفقُ Tailwind،
    لأنّ قواعد هذا الملف بلا طبقةٍ فتغلب المرافقَ (وهذا مقصودٌ وموثّقٌ أدناه). */
-.bak-logo-lg { width: 56px; height: 56px; border-radius: 16px; font-size: 26px; box-shadow: var(--shadow-3); }
+.bak-logo-lg {
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  font-size: 26px;
+  box-shadow: var(--shadow-3);
+}
 
 /* ------------------------------------------------------------------ autofill
  * ملءُ المتصفح التلقائيّ: ‏Chrome وSafari يصبغان الحقلَ أصفرَ/أزرقَ ويُجبران لونَ
@@ -128,11 +241,20 @@ select:-webkit-autofill {
   box-shadow: 0 0 0 1000px var(--surface) inset;
   transition: background-color 9999s ease-in-out 0s;
 }
-.bak-endpoints { display: flex; flex-wrap: wrap; gap: 6px; }
+.bak-endpoints {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
 .bak-endpoint {
-  font-family: var(--font-mono); font-size: 11px; direction: ltr;
-  border: 1px solid var(--line); border-radius: 6px; padding: 2px 6px;
-  background: var(--inset); color: var(--muted-2);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  direction: ltr;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 2px 6px;
+  background: var(--inset);
+  color: var(--muted-2);
 }
 
 /*
@@ -143,31 +265,73 @@ select:-webkit-autofill {
  * خريطةَ الوحدات جدارَ نصٍّ — قِيس من لصقة صاحبِ العمل (٢٠٢٦-١٠-١٧) حيث طغى النصُّ
  * الهندسيّ على الصفحة كلّها. وبلا رموزِ لونٍ ستّ عشرية: رموزُ النظام فقط (قاعدةُ ١٨).
  */
-.bak-tech { border-top: 1px dashed var(--line); padding-top: 8px; }
-.bak-tech > summary {
-  cursor: pointer; list-style: none; user-select: none;
-  display: inline-flex; align-items: center; gap: 6px; min-height: 28px;
-  font-size: 12px; font-weight: 700; color: var(--muted-2);
+.bak-tech {
+  border-top: 1px dashed var(--line);
+  padding-top: 8px;
 }
-.bak-tech > summary::-webkit-details-marker { display: none; }
-.bak-tech > summary::before { content: '▸'; font-size: 10px; transition: transform 120ms ease; }
-.bak-tech[open] > summary::before { transform: rotate(90deg); }
-.bak-tech > summary:hover, .bak-tech > summary:focus-visible { color: var(--text); }
-.bak-tech[open] { display: grid; gap: 8px; }
-.bak-tech .bak-endpoints { padding-bottom: 2px; }
+.bak-tech > summary {
+  cursor: pointer;
+  list-style: none;
+  user-select: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 28px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--muted-2);
+}
+.bak-tech > summary::-webkit-details-marker {
+  display: none;
+}
+.bak-tech > summary::before {
+  content: '▸';
+  font-size: 10px;
+  transition: transform 120ms ease;
+}
+.bak-tech[open] > summary::before {
+  transform: rotate(90deg);
+}
+.bak-tech > summary:hover,
+.bak-tech > summary:focus-visible {
+  color: var(--text);
+}
+.bak-tech[open] {
+  display: grid;
+  gap: 8px;
+}
+.bak-tech .bak-endpoints {
+  padding-bottom: 2px;
+}
 
 /* وسيلةُ «مخطَّط» تُستبدل بقولٍ صريحٍ حين لا يكون ثمّة مخطَّط (فلا تناقضَ مع «١١ من ١١»). */
-.bak-legend-note { font-size: 11.5px; color: var(--muted-2); }
+.bak-legend-note {
+  font-size: 11.5px;
+  color: var(--muted-2);
+}
 
 @media (max-width: 900px) {
-  .bak-shell { grid-template-columns: 1fr; }
-  .bak-side {
-    position: fixed; inset-block: 0; inset-inline-start: 0; width: min(84vw, 300px);
-    z-index: 50; transform: translateX(100%); transition: transform var(--dur-fast) var(--ease-out);
+  .bak-shell {
+    grid-template-columns: 1fr;
   }
-  .bak-side.open { transform: translateX(0); }
-  .bak-only-mobile { display: inline-flex; }
-  .bak-main { padding: 14px 12px 32px; }
+  .bak-side {
+    position: fixed;
+    inset-block: 0;
+    inset-inline-start: 0;
+    width: min(84vw, 300px);
+    z-index: 50;
+    transform: translateX(100%);
+    transition: transform var(--dur-fast) var(--ease-out);
+  }
+  .bak-side.open {
+    transform: translateX(0);
+  }
+  .bak-only-mobile {
+    display: inline-flex;
+  }
+  .bak-main {
+    padding: 14px 12px 32px;
+  }
 }
 
 /* --------------------------------------------------------------------------
@@ -192,6 +356,8 @@ select:-webkit-autofill {
 .rep-page {
   display: grid;
   gap: 12px;
+  /* شريطُ الحالة يمتدّ إلى الحوافّ بmargin سالب: نقصُّه أفقيًّا هنا يمنع تمريرًا وهميًّا. */
+  overflow-x: clip;
   padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 16px);
 }
 
@@ -211,9 +377,20 @@ select:-webkit-autofill {
   backdrop-filter: blur(8px);
   border-bottom: 1px solid var(--line);
 }
-.rep-statusbar-id { min-width: 0; }
-.rep-statusbar-id strong { display: block; font-size: 15px; font-weight: 800; color: var(--text); }
-.rep-statusbar-id small { display: block; font-size: 11.5px; color: var(--muted); }
+.rep-statusbar-id {
+  min-width: 0;
+}
+.rep-statusbar-id strong {
+  display: block;
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--text);
+}
+.rep-statusbar-id small {
+  display: block;
+  font-size: 11.5px;
+  color: var(--muted);
+}
 
 .rep-pill {
   display: inline-flex;
@@ -229,54 +406,29 @@ select:-webkit-autofill {
   color: var(--text);
   white-space: nowrap;
 }
-button.rep-pill { cursor: pointer; font: inherit; }
-button.rep-pill:disabled { opacity: .55; cursor: not-allowed; }
-.rep-pill[data-tone='ok'] { border-color: var(--ok-line); background: var(--ok-soft); color: var(--ok-ink); }
-.rep-pill[data-tone='warn'] { border-color: var(--warn-line); background: var(--warn-soft); color: var(--warn-ink); }
-.rep-pill[data-tone='danger'] { border-color: var(--danger-line); background: var(--danger-soft); color: var(--danger-ink); }
-
-/* البطاقاتُ والأرقام */
-.rep-card {
-  border: 1px solid var(--line);
-  border-radius: var(--radius-xl);
-  background: var(--surface);
-  box-shadow: var(--shadow-1);
-  padding: 14px;
-  display: grid;
-  gap: 10px;
+button.rep-pill {
+  cursor: pointer;
+  font: inherit;
 }
-.rep-card-title { margin: 0; font-size: 15.5px; font-weight: 800; color: var(--text); }
-.rep-card-sub { margin: 0; font-size: 12px; line-height: 1.7; color: var(--muted); }
-
-.rep-tiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
-@media (min-width: 768px) {
-  .rep-tiles { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+button.rep-pill:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
 }
-.rep-tile {
-  border: 1px solid var(--line);
-  border-radius: var(--radius-lg);
-  background: var(--inset);
-  padding: 12px;
-  display: grid;
-  gap: 4px;
-  min-width: 0;
+.rep-pill[data-tone='ok'] {
+  border-color: var(--ok-line);
+  background: var(--ok-soft);
+  color: var(--ok-ink);
 }
-.rep-tile-label { font-size: 11.5px; font-weight: 700; color: var(--muted); }
-.rep-tile-value {
-  font-family: var(--font-num);
-  font-size: 24px;
-  font-weight: 800;
-  line-height: 1.15;
-  color: var(--text);
-  font-variant-numeric: tabular-nums;
-  direction: ltr;
-  unicode-bidi: isolate;
-  overflow-wrap: anywhere;
+.rep-pill[data-tone='warn'] {
+  border-color: var(--warn-line);
+  background: var(--warn-soft);
+  color: var(--warn-ink);
 }
-@media (min-width: 768px) {
-  .rep-tile-value { font-size: 27px; }
+.rep-pill[data-tone='danger'] {
+  border-color: var(--danger-line);
+  background: var(--danger-soft);
+  color: var(--danger-ink);
 }
-.rep-tile-hint { font-size: 11.5px; line-height: 1.6; color: var(--muted); }
 
 /* أرقامُ المال أينما وقعت */
 .rep-num {
@@ -288,13 +440,18 @@ button.rep-pill:disabled { opacity: .55; cursor: not-allowed; }
 }
 
 /* صفوفٌ بطاقيةٌ بدل الجدول */
-.rep-rows { display: grid; gap: 8px; }
+.rep-rows {
+  display: grid;
+  gap: 8px;
+}
 @media (min-width: 900px) {
-  .rep-rows { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .rep-rows {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 .rep-row {
   border: 1px solid var(--line);
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-xl);
   background: var(--surface);
   padding: 12px;
   display: grid;
@@ -319,15 +476,32 @@ button.rep-pill:disabled { opacity: .55; cursor: not-allowed; }
   line-height: 1.6;
   color: var(--muted);
 }
-.rep-row-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.rep-row-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
 
 /* النماذج: هدفُ لمسٍ وخطٌّ لا يُكبّر iOS */
-.rep-fields { display: grid; gap: 10px; }
-@media (min-width: 768px) {
-  .rep-fields { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.rep-fields {
+  display: grid;
+  gap: 10px;
 }
-.rep-field { display: grid; gap: 4px; min-width: 0; }
-.rep-field > span { font-size: 12.5px; font-weight: 700; color: var(--muted); }
+@media (min-width: 768px) {
+  .rep-fields {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+.rep-field {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+.rep-field > span {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--muted);
+}
 /**
  * ارتفاعُ الحقل `max(--control-h, 46px)`: فارتفاعُ النظام ٣٦px وهو صحيحٌ لفأرة، والمطلوبُ
  * هنا هدفُ إبهام — والـ`max()` تقول «رفعتُ ارتفاعَ النظام» بدل أن تُنشئ رقمًا موازيًا له.
@@ -370,22 +544,42 @@ button.rep-pill:disabled { opacity: .55; cursor: not-allowed; }
   gap: 8px;
   width: 100%;
   cursor: pointer;
-  transition: transform var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out);
+  transition:
+    transform var(--dur-fast) var(--ease-out),
+    box-shadow var(--dur-fast) var(--ease-out);
 }
-.rep-btn:active:not(:disabled) { transform: scale(.985); }
+.rep-btn:active:not(:disabled) {
+  transform: scale(0.985);
+}
 @media (min-width: 768px) {
-  .rep-btn { width: auto; }
+  .rep-btn {
+    width: auto;
+  }
 }
-.rep-btn:disabled { opacity: .55; cursor: not-allowed; }
+.rep-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
 .rep-btn[data-variant='primary'] {
   background: linear-gradient(135deg, var(--color-brand-600), var(--color-brand-400));
   border-color: transparent;
   color: var(--brand-ink);
 }
-.rep-btn[data-variant='danger'] { background: var(--danger-soft); border-color: var(--danger-line); color: var(--danger-ink); }
-.rep-actions { display: grid; gap: 8px; }
+.rep-btn[data-variant='danger'] {
+  background: var(--danger-soft);
+  border-color: var(--danger-line);
+  color: var(--danger-ink);
+}
+.rep-actions {
+  display: grid;
+  gap: 8px;
+}
 @media (min-width: 768px) {
-  .rep-actions { grid-auto-flow: column; grid-auto-columns: max-content; justify-content: start; }
+  .rep-actions {
+    grid-auto-flow: column;
+    grid-auto-columns: max-content;
+    justify-content: start;
+  }
 }
 
 /* أسطرُ الأحكام والتحذيرات — مقروءةٌ في الشمس */
@@ -399,16 +593,38 @@ button.rep-pill:disabled { opacity: .55; cursor: not-allowed; }
   line-height: 1.75;
   color: var(--text);
 }
-.rep-note[data-tone='ok'] { border-color: var(--ok-line); background: var(--ok-soft); color: var(--ok-ink); }
-.rep-note[data-tone='warn'] { border-color: var(--warn-line); background: var(--warn-soft); color: var(--warn-ink); }
-.rep-note[data-tone='danger'] { border-color: var(--danger-line); background: var(--danger-soft); color: var(--danger-ink); }
+.rep-note[data-tone='ok'] {
+  border-color: var(--ok-line);
+  background: var(--ok-soft);
+  color: var(--ok-ink);
+}
+.rep-note[data-tone='warn'] {
+  border-color: var(--warn-line);
+  background: var(--warn-soft);
+  color: var(--warn-ink);
+}
+.rep-note[data-tone='danger'] {
+  border-color: var(--danger-line);
+  background: var(--danger-soft);
+  color: var(--danger-ink);
+}
 
-.rep-empty { margin: 0; font-size: 13px; color: var(--muted); }
+.rep-empty {
+  margin: 0;
+  font-size: 13px;
+  color: var(--muted);
+}
 
 /* الطباعة: تطبيقُ المندوب لا يُطبع — فالسندُ يُطبع من شاشة المستندات بنسختيه. */
 @media print {
-  .rep-statusbar, .rep-actions, .rep-btn { display: none !important; }
-  .rep-page { padding-bottom: 0; }
+  .rep-statusbar,
+  .rep-actions,
+  .rep-btn {
+    display: none !important;
+  }
+  .rep-page {
+    padding-bottom: 0;
+  }
 }
 
 /* --------------------------------------------------------------------------
@@ -433,7 +649,9 @@ button.rep-pill:disabled { opacity: .55; cursor: not-allowed; }
   .bak-main {
     padding: 12px 10px calc(env(safe-area-inset-bottom, 0px) + 24px);
   }
-  .bak-main h1 { font-size: 19px; }
+  .bak-main h1 {
+    font-size: 19px;
+  }
 
   /* أهدافُ اللمس — ويُستثنى وسمُ الحالة في تطبيق المندوب (‏`.rep-pill`) فحجمُه مقصودٌ هناك. */
   .bak-main button:not(.rep-pill),
@@ -458,7 +676,9 @@ button.rep-pill:disabled { opacity: .55; cursor: not-allowed; }
 
   /* وبطاقاتُ المكتب تضيق حشوتُها كي لا يضيع نصفُ العرض في الحوافّ. */
   .bak-main .p-4,
-  .bak-main .p-5 { padding: 12px; }
+  .bak-main .p-5 {
+    padding: 12px;
+  }
 }
 
 /* --------------------------------------------------------------------------
@@ -472,10 +692,11 @@ button.rep-pill:disabled { opacity: .55; cursor: not-allowed; }
  *
  * فلهذه الجداول طبقةٌ تطابق تشريحَ المكوّن قياسًا لا تقليدًا (الأرقامُ من
  * `packages/ui/src/components/data-table.tsx`):
- *   • الغلاف: ‏`overflow-auto rounded-lg border border-line bg-surface shadow-1`
+ *   • الغلاف: ‏`overflow-auto rounded-xl border border-line bg-surface shadow-1`
  *   • الجدول: ‏`w-full border-collapse text-[13px]`
- *   • الرأس: ‏`sticky top-0 z-10 bg-surface-2 font-bold text-[11px] tracking-wide
- *     text-muted whitespace-nowrap` وحشو `px-3 py-2.5`
+ *   • الرأس: ‏`sticky top-0 z-10 border-b border-line bg-surface-2 font-bold
+ *     text-[10.5px] uppercase tracking-[0.055em] text-muted whitespace-nowrap`
+ *     وحشو `px-3 py-2.5`
  *   • الصفوف: ‏`transition-colors duration-150` وتظليلٌ `bg-surface-2` على `index % 2 === 1`
  *     (أي الزوجية بترقيم CSS) — وبلا `hover` لأنّ المكوّن لا يضعه، فالمطابقةُ أولى من الإضافة
  *   • الحشو الكثيف: ‏`px-2.5 py-1.5` (‏`dense` في المكوّن)
@@ -485,38 +706,56 @@ button.rep-pill:disabled { opacity: .55; cursor: not-allowed; }
  * الطبقةُ المكوّنَ ولو بقيت في الخلايا مرافقُ قديمة (`p-2`, `text-[12.5px]`) من البناء
  * اليدويّ، ولا يلزم تحريرُ كلّ خليةٍ في ستّ شاشات.
  * ------------------------------------------------------------------------ */
+/*
+ * تشريحُ الجدول — مطابقٌ لطبقة `controls.css` المشتركة (`table th` / `table td`)
+ * ولِما يبنيه `DataTable` فوقها: نفسُ الحشو ونفسُ الرأس ونفسُ الغلاف. لا تشريحَ ثانٍ.
+ */
 .bak-table-wrap {
   width: 100%;
+  max-inline-size: 100%;
   overflow: auto;
   border: 1px solid var(--line);
   border-radius: var(--radius-lg);
   background: var(--surface);
   box-shadow: var(--shadow-1);
 }
-.bak-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+/* نفسُ ترويسة الجدول وتباعد خلاياه في كلّ الأسطح — لا نسخةً ثانية هنا. */
+.bak-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 13px;
+}
 .bak-table thead th {
   position: sticky;
   top: 0;
-  z-index: 10;
+  inset-block-start: 0;
+  z-index: 2;
   background: var(--surface-2);
   font-weight: 700;
-  font-size: 11px;
+  font-size: 11.5px;
   letter-spacing: 0.02em;
   color: var(--muted);
   white-space: nowrap;
   text-align: start;
-  padding: 10px 12px;
-  border-bottom: 1px solid var(--line);
+  padding: 9px 12px;
+  border-block-end: 1px solid var(--line);
 }
 .bak-table tbody td {
   padding: 10px 12px;
-  border-bottom: 1px solid var(--line);
-  vertical-align: top;
+  border-block-end: 1px solid var(--line);
+  vertical-align: middle;
+  font-size: 13px;
 }
-.bak-table tbody tr { transition: background-color var(--dur-fast) var(--ease-out); }
-.bak-table tbody tr:nth-child(even) { background: var(--surface-2); }
-.bak-table tbody tr:last-child td { border-bottom: 0; }
-/** الأرقامُ حيث وُضعت `dir="ltr"` في الخلية: منازلُ ثابتةٌ وعزلُ اتّجاه، بلا تحرير الخلايا. */
+.bak-table tbody tr:nth-child(even) td {
+  background: var(--surface-2);
+}
+.bak-table tbody tr:last-child td {
+  border-block-end: 0;
+}
+.bak-table tbody tr:hover td {
+  background: var(--surface-2);
+}
 .bak-table td[dir='ltr'],
 .bak-table .num {
   font-variant-numeric: tabular-nums;
@@ -524,16 +763,424 @@ button.rep-pill:disabled { opacity: .55; cursor: not-allowed; }
   font-weight: 600;
 }
 .bak-table--dense thead th,
-.bak-table--dense tbody td { padding: 6px 10px; }
+.bak-table--dense tbody td {
+  padding: 6px 10px;
+}
 @media (max-width: 640px) {
-  .bak-table { font-size: 12.5px; }
+  .bak-table {
+    font-size: 12.5px;
+  }
   .bak-table thead th,
-  .bak-table tbody td { padding: 8px 10px; }
+  .bak-table tbody td {
+    padding: 8px 10px;
+  }
 }
 
 /* الطباعة: سندٌ واحد بنسختين — لا تُطبع القشرة ولا يُطبع شريطٌ علويّ. */
 @media print {
-  .bak-side, .bak-topbar, .bak-legend { display: none !important; }
-  .bak-shell { grid-template-columns: 1fr; }
-  .bak-main { padding: 0; }
+  .bak-side,
+  .bak-topbar,
+  .bak-legend {
+    display: none !important;
+  }
+  .bak-shell {
+    grid-template-columns: 1fr;
+  }
+  .bak-main {
+    padding: 0;
+  }
+}
+
+/* ==========================================================================
+ * EXECUTIVE FINANCE — Design System v4 layer (bakery)
+ * Presentation only: the same rail, top bar, statuses and cards, repainted.
+ * ======================================================================== */
+
+body {
+  background:
+    radial-gradient(70rem 40rem at 100% -10%, rgb(11 122 99 / 0.045), transparent 55%),
+    radial-gradient(50rem 32rem at -8% 110%, rgb(201 162 39 / 0.04), transparent 52%), var(--bg);
+}
+
+.bak-shell {
+  grid-template-columns: 268px minmax(0, 1fr);
+}
+
+.bak-side {
+  background:
+    radial-gradient(24rem 17rem at 50% -6%, rgb(16 185 129 / 0.12), transparent 62%),
+    linear-gradient(180deg, var(--side-bg) 0%, var(--side-bg-2) 100%);
+  border-inline-end: 1px solid var(--side-line);
+  color: var(--side-ink);
+  padding: 18px 14px 14px;
+  position: relative;
+  box-shadow: 18px 0 44px -32px rgb(0 0 0 / 0.55);
+}
+.bak-side::before {
+  content: '';
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline: 12%;
+  height: 1px;
+  background: var(--gradient-hairline);
+  opacity: 0.55;
+}
+
+.bak-brand {
+  color: var(--side-ink);
+  padding: 0 4px 12px;
+  border-bottom: 1px solid var(--side-line);
+  margin-bottom: 4px;
+}
+.bak-brand small {
+  color: var(--side-muted);
+}
+
+.bak-logo {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background:
+    linear-gradient(145deg, rgb(255 255 255 / 0.16), transparent 45%),
+    linear-gradient(145deg, var(--color-brand-500), var(--color-brand-700) 68%, #063d31);
+  border: 1px solid rgb(255 255 255 / 0.16);
+  box-shadow:
+    0 10px 24px -12px rgb(0 0 0 / 0.75),
+    inset 0 1px 0 rgb(255 255 255 / 0.22);
+  font-size: 16px;
+  color: #fff;
+}
+.bak-logo-lg {
+  width: 64px;
+  height: 64px;
+  border-radius: 18px;
+  font-size: 28px;
+}
+
+.bak-nav-title {
+  color: var(--side-accent);
+  opacity: 0.8;
+  letter-spacing: 0.12em;
+}
+.bak-nav-link,
+.bak-nav-item {
+  color: var(--side-muted);
+  border-inline-start: 2px solid transparent;
+  font-size: 12.5px;
+  transition:
+    background var(--dur-fast) var(--ease-out),
+    color var(--dur-fast) var(--ease-out),
+    border-color var(--dur-fast) var(--ease-out);
+}
+.bak-nav-link:hover {
+  background: var(--side-hover);
+  color: var(--side-ink);
+}
+.bak-nav-link.active {
+  background: linear-gradient(90deg, var(--side-active), transparent 88%);
+  color: #f4fbf8;
+  border-inline-start-color: var(--side-accent);
+  box-shadow: inset 0 0 0 1px rgb(210 173 69 / 0.1);
+}
+.bak-dot {
+  background: rgb(255 255 255 / 0.28);
+}
+.bak-dot.ready {
+  background: var(--color-brand-400);
+  box-shadow: 0 0 0 3px rgb(52 211 153 / 0.12);
+}
+.bak-dot.planned {
+  background: rgb(255 255 255 / 0.32);
+}
+.bak-legend {
+  border-top-color: var(--side-line);
+  color: var(--side-muted);
+}
+
+.bak-main {
+  padding: 22px 26px 48px;
+}
+
+.bak-topbar {
+  position: sticky;
+  inset-block-start: 12px;
+  z-index: 30;
+  background: color-mix(in srgb, var(--surface) 84%, transparent);
+  -webkit-backdrop-filter: saturate(1.25) blur(16px);
+  backdrop-filter: saturate(1.25) blur(16px);
+  border: 1px solid color-mix(in srgb, var(--line) 82%, transparent);
+  border-radius: 14px;
+  box-shadow:
+    0 1px 2px rgb(11 31 51 / 0.04),
+    0 12px 30px -26px rgb(11 31 51 / 0.35);
+  margin-bottom: 20px;
+}
+
+.bak-wall {
+  background:
+    radial-gradient(60rem 34rem at 100% -10%, rgb(16 185 129 / 0.22), transparent 58%),
+    radial-gradient(44rem 26rem at -12% 108%, rgb(210 173 69 / 0.13), transparent 58%),
+    var(--gradient-executive);
+  color: #f2f7fb;
+}
+.bak-wall .card {
+  background: var(--surface);
+  color: var(--text);
+  border-radius: 20px;
+  border-color: var(--line);
+  box-shadow: 0 40px 80px -40px rgb(0 0 0 / 0.65);
+}
+.bak-wall h1,
+.bak-wall h2 {
+  color: var(--text);
+}
+
+.bak-badge {
+  border-radius: 7px;
+  padding: 3px 9px;
+}
+.bak-badge.ok {
+  border-color: var(--ok-line);
+  background: var(--ok-soft);
+  color: var(--ok-ink);
+}
+.bak-badge.bad {
+  border-color: var(--danger-line);
+  background: var(--danger-soft);
+  color: var(--danger-ink);
+}
+.bak-badge.warn {
+  border-color: var(--warn-line);
+  background: var(--warn-soft);
+  color: var(--warn-ink);
+}
+
+.rep-btn {
+  border-radius: 9px;
+  font-weight: 600;
+  box-shadow: var(--shadow-1);
+  transition:
+    transform var(--dur-fast) var(--ease-out),
+    background var(--dur-fast) var(--ease-out),
+    border-color var(--dur-fast) var(--ease-out),
+    box-shadow var(--dur-fast) var(--ease-out);
+}
+.rep-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-2);
+}
+.rep-btn:active:not(:disabled) {
+  transform: translateY(0) scale(0.985);
+}
+.rep-btn[data-variant='primary'] {
+  background: linear-gradient(180deg, rgb(255 255 255 / 0.14), transparent 55%), var(--gradient-brand);
+  border-color: color-mix(in srgb, var(--color-brand-700) 80%, black);
+  color: #fff;
+  box-shadow:
+    0 1px 2px rgb(11 31 51 / 0.16),
+    0 10px 22px -12px rgb(11 122 99 / 0.6),
+    inset 0 1px 0 rgb(255 255 255 / 0.18);
+}
+
+@media (max-width: 1000px) {
+  /*
+   * لا تمريرَ أفقيًّا للصفحة على الهاتف: الدرجُ المغلق خارج الشاشة يُحسب في
+   * `scrollWidth` (445px مقابل 390) فيظهر شريطُ تمريرٍ أفقيّ لا يقود إلى شيء.
+   * القصّ هنا على مستوى الصفحة، والتمريرُ الأفقيُّ داخل الجداول باقٍ في
+   * `.table-wrap` — فهو عنصرٌ له تمريرُه الخاص.
+   */
+  html {
+    overflow-x: clip;
+  }
+  .bak-shell {
+    grid-template-columns: 1fr;
+  }
+  /*
+   * درجٌ لا عمود: على الجوال يخرج الشريطُ من التخطيط تمامًا (`fixed`) ويُفتح بزرّ
+   * القائمة. وبدون `fixed` هنا يغلب `position: relative` اللاحق (طبقة v4) قاعدةَ
+   * الـ900px، فيحتلّ الشريطُ الشاشةَ الأولى كاملةً ويبدأ المحتوى بعدها — عيبٌ ظهر
+   * في /rep عند 390px: صفحةٌ بيضاء بطول 844px قبل أوّل سطر.
+   */
+  .bak-side {
+    position: fixed;
+    inset-block: 0;
+    inset-inline-start: 0;
+    transform: translateX(100%);
+    height: 100vh;
+    overflow: auto;
+    z-index: 50;
+    width: 268px;
+    /* مُغلقًا لا يُرسم أصلًا: عنصرٌ خارج الشاشة يُوسّع `scrollWidth` فيظهر تمريرٌ
+       أفقيٌّ فارغ. الفتحُ فوريّ — والحركةُ الانزلاقيّة كانت تُخفي هذا العيب. */
+    display: none;
+  }
+  .bak-side.open {
+    display: flex;
+    transform: none;
+  }
+  .bak-main {
+    padding: 14px 14px 36px;
+  }
+  .bak-topbar {
+    inset-block-start: 8px;
+  }
+}
+
+/*
+ * سطرٌ واحد على الهاتف: الشريطُ العلويّ يلتفّ إلى ثلاثة صفوف عند 390px (الباقة،
+ * التبديل، الحساب، الخروج) فيأكل 190px من شاشةٍ طولها 844. تُسقَط الزخارف
+ * الثانوية (شارة الباقة، اسم المستخدم) ويبقى: القائمة، الموقع، التبديل، الخروج.
+ */
+@media (max-width: 640px) {
+  .bak-topbar {
+    flex-wrap: nowrap;
+    gap: 8px;
+    padding: 8px 10px;
+  }
+  .bak-topbar > div:first-child {
+    /* Takes the leftover width after the fixed action cluster; the crumbs
+     * truncate with an ellipsis instead of pushing the logout button offscreen. */
+    flex: 1 1 0;
+    min-width: 0;
+  }
+  .bak-topbar > div:last-child {
+    flex: 0 0 auto;
+    flex-wrap: nowrap;
+    gap: 6px;
+  }
+  /* `.bak-badge.ok` لاحقٌ بنفس الوزن فيغلب قاعدةَ الإخفاء — فالاختيار هنا بثلاثة أصناف. */
+  .bak-topbar .bak-badge.ok,
+  .bak-topbar .bak-topbar-user {
+    display: none;
+  }
+  .bak-crumbs {
+    /* A flex item whose text is `nowrap` keeps its full min-content width unless
+     * told otherwise — which held the logout button 32px off the 390px screen. */
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+}
+
+/* A 220 ms CSS-only route entrance — bakery ships no motion library. */
+.page-enter {
+  animation: page-enter 220ms var(--ease-out) both;
+}
+@keyframes page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .page-enter {
+    animation: none;
+  }
+}
+
+/* The active-nav wash must begin at the inline-start edge in both directions. */
+[dir='rtl'] .nav-link.active,
+[dir='rtl'] .bak-nav-link.active {
+  background: linear-gradient(270deg, var(--side-active), transparent 88%);
+}
+
+/* Icons: one line weight everywhere, gold only where it marks activity. */
+.bak-logo svg {
+  display: block;
+}
+.bak-nav-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 20px;
+  flex: none;
+  color: var(--side-accent);
+  opacity: 0.9;
+}
+.bak-nav-link.active .bak-nav-icon,
+.bak-nav-item:hover .bak-nav-icon {
+  color: #e3c46e;
+  opacity: 1;
+}
+/* خريطة الوحدات: قائمةٌ مقسومةٌ بخطٍّ شعريّ داخل لوحةٍ واحدة، لا بطاقاتٌ عائمة */
+.bak-module-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+}
+@media (min-width: 900px) {
+  .bak-module-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+.bak-module-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: 10px;
+  background: var(--surface);
+  border-block-start: 1px solid var(--line);
+  padding: 14px 16px;
+}
+.bak-module-row:first-child {
+  border-block-start: 0;
+}
+@media (min-width: 900px) {
+  /* الصفُّ الثاني في العمود الآخر يشارك الأوّلَ خطَّه الأعلى، والفرديّةُ تفصل العمودين */
+  .bak-module-row:nth-child(2) {
+    border-block-start: 0;
+  }
+  .bak-module-row:nth-child(even) {
+    border-inline-start: 1px solid var(--line);
+  }
+}
+.bak-module-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  flex: none;
+  border-radius: 9px;
+  border: 1px solid var(--brand-line);
+  background: var(--brand-soft);
+  color: var(--brand);
+}
+.bak-wall-mark {
+  display: inline-grid;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  border-radius: 13px;
+  background:
+    linear-gradient(145deg, rgb(255 255 255 / 0.18), transparent 48%),
+    linear-gradient(145deg, var(--color-brand-500), var(--color-brand-700));
+  border: 1px solid rgb(255 255 255 / 0.18);
+  color: #fff;
+  box-shadow: 0 12px 24px -14px rgb(0 0 0 / 0.55);
+}
+.bak-topbar .btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.bak-badge.ok {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-weight: 700;
+}
+
+/* Scroll-triggered reveals must never hide content from print. */
+@media print {
+  .reveal,
+  [data-reveal] {
+    opacity: 1 !important;
+    transform: none !important;
+  }
 }

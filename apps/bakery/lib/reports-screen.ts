@@ -268,7 +268,7 @@ export const PERIOD_CARD_GROUPS: readonly PeriodCardGroup[] = [
   {
     key: 'money',
     labelAr: 'مالُ الفترة',
-    noteAr: 'مجموعُ المستندات المصفّاة بالمدى — من SUM على الجدول، لا من جمع الصفوف المعروضة.',
+    noteAr: 'مجاميعُ المستندات داخل المدى، محسوبةً على الخادم — لا بجمع الصفوف المعروضة.',
     cards: [
       { key: 'revenueSar', labelAr: 'إيرادُ الفترة (صافي المرتجعات)' },
       { key: 'salesGrossSar', labelAr: 'إجماليُّ المبيعات قبل المرتجعات' },
@@ -302,7 +302,7 @@ export const PERIOD_CARD_GROUPS: readonly PeriodCardGroup[] = [
   {
     key: 'counts',
     labelAr: 'عداداتُ الفترة',
-    noteAr: '‏COUNT(*) على المدى — فلا يُنقصها سقفُ الصفوف المعروضة.',
+    noteAr: 'عدُّ المستندات على المدى نفسه — لا يتأثّر بسقف الصفوف المعروضة.',
     cards: [
       { key: 'loadOrderCount', labelAr: 'أوامر التحميل' },
       { key: 'documentCount', labelAr: 'مستندات البيع' },
@@ -343,27 +343,27 @@ export const BALANCE_CARDS: readonly PeriodCard[] = [
   {
     key: 'totalRevenueSar',
     labelAr: 'إيرادُ المنشأة (كلّ السجلّ)',
-    hintAr: 'من summary: كلّ المستندات لا المصفّاة.',
+    hintAr: 'مجموعُ المنشأة كلّها، لا نطاقَ الفترة.',
   },
   {
     key: 'totalCreditReceivablesSar',
     labelAr: 'ذممُ المنشأة (كلّ السجلّ)',
-    hintAr: 'من summary: كلّ المستندات لا المصفّاة، وبعد خصم الإشعارات الدائنة.',
+    hintAr: 'مجموعُ المنشأة كلّها بعد خصم الإشعارات الدائنة.',
   },
   {
     key: 'totalSalesGrossSar',
     labelAr: 'إجماليُّ المبيعات (كلّ السجلّ)',
-    hintAr: 'من summary: قبل المرتجعات — والإيرادُ المعروض أعلاه صافٍ منها.',
+    hintAr: 'قبل المرتجعات — والإيرادُ المعروض أعلاه صافٍ منها.',
   },
   {
     key: 'totalReturnsSar',
     labelAr: 'مردودات المبيعات (كلّ السجلّ)',
-    hintAr: 'من summary: تُخصم من الإيراد والوعاء، وتُخصم قيمتُها الكاملة من ذمّة العميل.',
+    hintAr: 'تُخصم من الإيراد والوعاء، وقيمتُها الكاملة تُخصم من ذمّة العميل.',
   },
   {
     key: 'totalReturnsVatSar',
     labelAr: 'ضريبةُ المرتجعات المعكوسة',
-    hintAr: 'من summary: ما يُخصم من وعاء الضريبة مع المرتجعات (رجلُ Dr «ض.ق.م» في القيد).',
+    hintAr: 'ما يُخصم من وعاء الضريبة مع المرتجعات.',
   },
 ];
 

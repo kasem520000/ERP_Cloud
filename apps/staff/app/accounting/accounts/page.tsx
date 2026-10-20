@@ -1,16 +1,17 @@
 'use client';
 
+import { Panel } from '@erp/ui';
 import { useMemo, useState } from 'react';
 
 /**
- * 📂 دليل الحسابات — `Form_WPF/frmAccountsDirectory.xaml` («دليل الحسابات»).
+ * دليل الحسابات — `Form_WPF/frmAccountsDirectory.xaml` («دليل الحسابات»).
  *
  * The window is two things at once, and so is this screen:
  *
- *   📂 شجرة الحسابات — every node carries `trBalance` (`.xaml.cs` L149 `LoadTreeView`,
+ * شجرة الحسابات — every node carries `trBalance` (`.xaml.cs` L149 `LoadTreeView`,
  *      `BuildTreeHierarchy` joining `trParentCode`), with `مستويات التوسعة` and `الكل`
  *      (L26 `MaxLevel = 3`, L308–L323 `ExpandToLevel(0..3)`);
- *   📋 تفاصيل الحسابات — the grid filled from the selected node, columns
+ * تفاصيل الحسابات — the grid filled from the selected node, columns
  *      `الحساب الرئيسي` · `رمز الحساب` · `اسم الحساب` · `الفرع` · `الرصيد` ·
  *      `كشف حساب` · `تعديل`.
  *
@@ -20,7 +21,6 @@ import { useMemo, useState } from 'react';
  * `frmAccountSrch`), not the page the browser happens to have loaded.
  */
 import { Empty, ErrorBox, Forbidden, Loading, Screen } from '../../../components/screen';
-import { StatTile, StatTiles } from '../../../components/ui';
 import { ApiError, apiData, apiDelete, apiPatch, apiPost } from '../../../lib/api';
 import {
   ACCOUNT_TYPE_LABELS,
@@ -36,6 +36,7 @@ import {
 import { money } from '../../../lib/lookups';
 import { useSession } from '../../../lib/session';
 import { useQuery } from '../../../lib/use-query';
+import { Table } from '../../../components/ui/table';
 
 type TreeNode = Account & { children: TreeNode[] };
 
@@ -67,7 +68,7 @@ function buildTree(accounts: Account[]): TreeNode[] {
 }
 
 /**
- * One node of 📂 شجرة الحسابات. The desktop binds `trAccount` and `trBalance` on every
+ * One node of شجرة الحسابات. The desktop binds `trAccount` and `trBalance` on every
  * row; the balance here is the rolled-up one, so a parent reads as the sum of its branch.
  */
 function TreeNodes({
@@ -139,7 +140,7 @@ function TreeNodes({
 
 export default function ChartOfAccountsPage() {
   const { can } = useSession();
-  // 🔍 معايير البحث — sent to the server, like the window's own search form.
+  // معايير البحث — sent to the server, like the window's own search form.
   const [search, setSearch] = useState('');
   const [type, setType] = useState('');
   const [branchId, setBranchId] = useState('');
@@ -152,7 +153,10 @@ export default function ChartOfAccountsPage() {
     () => listAccountDirectory({ q: applied.search, type: applied.type, branchId: applied.branchId }),
     [applied.search, applied.type, applied.branchId],
   );
-  const branches = useQuery<Array<{ id: string; nameAr?: string; name?: string }>>(() => apiData('/branches'), []);
+  const branches = useQuery<Array<{ id: string; nameAr?: string; name?: string }>>(
+    () => apiData('/branches'),
+    [],
+  );
   const branchRows = branches.data ?? [];
   const [creating, setCreating] = useState(false);
   const [editing, setEditing] = useState<Account | undefined>();
@@ -210,7 +214,7 @@ export default function ChartOfAccountsPage() {
     return ids;
   }, [tree, level, manual]);
 
-  /** 📋 تفاصيل الحسابات — the selected node and everything beneath it. */
+  /** تفاصيل الحسابات — the selected node and everything beneath it. */
   const details = useMemo(() => {
     if (!selected) return rows;
     const under = new Set<string>([selected.id]);
@@ -244,6 +248,17 @@ export default function ChartOfAccountsPage() {
       title="دليل الحسابات"
       subtitle="كل حسابات المنشأة مع النوع وقابلية الترحيل."
       crumbs={['المحاسبة', 'تعاريف']}
+      kpis={[
+        { label: 'عدد الحسابات', value: totals.count, hint: 'في نتيجة البحث الحالية' },
+        { label: 'مجموع الأرصدة المدينة', value: money(totals.debit.toFixed(4)), tone: 'up' },
+        { label: 'مجموع الأرصدة الدائنة', value: money(totals.credit.toFixed(4)) },
+        {
+          label: 'حسابات بلا حركة',
+          value: totals.count - totals.balances,
+          hint: 'رصيدها صفر',
+          tone: totals.count - totals.balances > 0 ? 'warn' : 'up',
+        },
+      ]}
       actions={
         <>
           {can('accounting.account.manage') && (
@@ -277,6 +292,54 @@ export default function ChartOfAccountsPage() {
         </>
       }
     >
+      {notice && <p className={`alert ${notice.kind}`}>{notice.text}</p>}
+
+      <div className="ui-filter-bar">
+        <div className="ui-filter-fields">
+          <label className="field" style={{ marginBottom: 0 }}>
+            <span>بحث</span>
+            <input
+              className="input"
+              placeholder="بحث بالرمز أو الاسم"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+            />
+          </label>
+          <label className="field" style={{ marginBottom: 0 }}>
+            <span>النوع</span>
+            <select className="input" value={type} onChange={(event) => setType(event.target.value)}>
+              <option value="">كل الأنواع</option>
+              {Object.entries(ACCOUNT_TYPE_LABELS).map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="field" style={{ marginBottom: 0 }}>
+            <span>الفرع</span>
+            <select className="input" value={branchId} onChange={(event) => setBranchId(event.target.value)}>
+              <option value="">كل الفروع</option>
+              {branchRows.map((branch) => (
+                <option key={branch.id} value={branch.id}>
+                  {branch.nameAr ?? branch.name ?? branch.id}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+        <div className="ui-filter-actions">
+          <span className="ui-filter-summary">{rows.length} حساب</span>
+          <button
+            className="btn primary"
+            type="button"
+            onClick={() => setApplied({ search, type, branchId })}
+          >
+            عرض البيانات
+          </button>
+        </div>
+      </div>
+
       {creating && (
         <AccountForm
           key={editing?.id ?? 'new'}
@@ -294,156 +357,154 @@ export default function ChartOfAccountsPage() {
         />
       )}
 
-      {notice && <p className={`alert ${notice.kind}`}>{notice.text}</p>}
-
-      <StatTiles>
-        <StatTile label="📊 عدد الحسابات" value={totals.count} hint="في نتيجة البحث الحالية" />
-        <StatTile label="📈 مجموع الأرصدة المدينة" value={money(totals.debit.toFixed(4))} tone="ok" />
-        <StatTile label="📉 مجموع الأرصدة الدائنة" value={money(totals.credit.toFixed(4))} tone="brand" />
-        <StatTile label="💰 حسابات بلا حركة" value={totals.count - totals.balances} hint="رصيدها صفر" />
-      </StatTiles>
-
-      <div className="card tight">
-        <div className="row">
-          <input
-            className="input"
-            style={{ maxWidth: 260 }}
-            placeholder="🔍 بحث بالرمز أو الاسم"
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-          />
-          <select className="input" style={{ maxWidth: 180 }} value={type} onChange={(event) => setType(event.target.value)}>
-            <option value="">كل الأنواع</option>
-            {Object.entries(ACCOUNT_TYPE_LABELS).map(([value, label]) => (
-              <option key={value} value={value}>
-                {label}
-              </option>
-            ))}
-          </select>
-          <select className="input" style={{ maxWidth: 200 }} value={branchId} onChange={(event) => setBranchId(event.target.value)}>
-            <option value="">كل الفروع</option>
-            {branchRows.map((branch) => (
-              <option key={branch.id} value={branch.id}>
-                {branch.nameAr ?? branch.name ?? branch.id}
-              </option>
-            ))}
-          </select>
-          <button
-            className="btn primary"
-            type="button"
-            onClick={() => setApplied({ search, type, branchId })}
-          >
-            🚀 عرض البيانات
-          </button>
-          <span className="muted" style={{ alignSelf: 'center' }}>
-            {rows.length} حساب
-          </span>
+      {/* شجرة الحسابات — `frmAccountsDirectory`: every node carries its balance. */}
+      <div className="ui-panel">
+        <div className="ui-panel-head">
+          <div className="ui-panel-copy">
+            <h2 className="ui-panel-title">شجرة الحسابات</h2>
+            <p className="ui-panel-hint">كل مستوى يعرض رصيده المجمّع — افتح المستوى للتفصيل.</p>
+          </div>
+          <div className="ui-panel-actions">
+            <span className="row" style={{ gap: 6 }}>
+              <span className="muted small" style={{ alignSelf: 'center' }}>
+                مستويات التوسعة:
+              </span>
+              {LEVELS.map((entry) => (
+                <button
+                  key={entry.id}
+                  type="button"
+                  className={`btn sm${level === entry.id ? ' primary' : ''}`}
+                  onClick={() => setLevel(entry.id)}
+                >
+                  {entry.label}
+                </button>
+              ))}
+              {selected ? (
+                <button className="btn sm" type="button" onClick={() => setSelectedId('')}>
+                  كل الدليل
+                </button>
+              ) : null}
+            </span>
+          </div>
         </div>
-      </div>
-
-      {/* 📂 شجرة الحسابات — `frmAccountsDirectory`: every node carries its balance. */}
-      <div className="card tight">
-        <div className="row" style={{ justifyContent: 'space-between' }}>
-          <h2 style={{ margin: 0 }}>📂 شجرة الحسابات</h2>
-          <span className="row" style={{ gap: 6 }}>
-            <span className="muted small" style={{ alignSelf: 'center' }}>مستويات التوسعة:</span>
-            {LEVELS.map((entry) => (
-              <button
-                key={entry.id}
-                type="button"
-                className={`btn sm${level === entry.id ? ' primary' : ''}`}
-                onClick={() => setLevel(entry.id)}
-              >
-                {entry.label}
-              </button>
-            ))}
-            {selected ? (
-              <button className="btn sm" type="button" onClick={() => setSelectedId('')}>
-                ✖ كل الدليل
-              </button>
-            ) : null}
-          </span>
-        </div>
-        <div className="tree" style={{ marginTop: 8 }}>
-          <TreeNodes
-            nodes={tree}
-            depth={0}
-            open={open}
-            selectedId={selectedId}
-            onToggle={(id) =>
-              setManual((current) => {
-                const next = new Set(current);
-                if (next.has(id)) next.delete(id);
-                else next.add(id);
-                return next;
-              })
-            }
-            onSelect={setSelectedId}
-          />
+        <div className="ui-panel-body">
+          <div className="tree">
+            <TreeNodes
+              nodes={tree}
+              depth={0}
+              open={open}
+              selectedId={selectedId}
+              onToggle={(id) =>
+                setManual((current) => {
+                  const next = new Set(current);
+                  if (next.has(id)) next.delete(id);
+                  else next.add(id);
+                  return next;
+                })
+              }
+              onSelect={setSelectedId}
+            />
+          </div>
         </div>
       </div>
 
       {accounts.status === 'loading' && <Loading />}
       {accounts.status === 'forbidden' && <Forbidden />}
       {accounts.status === 'error' && <ErrorBox message={accounts.error} onRetry={accounts.reload} />}
-      {/* 📋 تفاصيل الحسابات — filled from the node selected in the tree. */}
+      {/* تفاصيل الحسابات — filled from the node selected in the tree. */}
       {accounts.status === 'success' && selected ? (
         <p className="muted small">
-          📋 تفاصيل الحسابات — <strong>{selected.code} {nameOf(selected)}</strong> وما تحته ({details.length} حساب).
+          تفاصيل الحسابات —{' '}
+          <strong>
+            {selected.code} {nameOf(selected)}
+          </strong>{' '}
+          وما تحته ({details.length} حساب).
         </p>
       ) : null}
 
       {accounts.status === 'success' &&
         (rows.length === 0 ? (
-          <Empty title="لا توجد حسابات" detail="ابدأ بإنشاء دليل الحسابات أو استوردها من النظام القديم عبر أداة الهجرة." />
+          <Empty
+            title="لا توجد حسابات"
+            detail="ابدأ بإنشاء دليل الحسابات أو استوردها من النظام القديم عبر أداة الهجرة."
+          />
         ) : (
-          <div className="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>الحساب الرئيسي</th>
-                  <th>رمز الحساب</th>
-                  <th>اسم الحساب</th>
-                  <th>الفرع</th>
-                  <th>الرصيد</th>
-                  <th>كشف حساب</th>
-                  {can('accounting.account.manage') && <th>تعديل</th>}
-                </tr>
-              </thead>
-              <tbody>
-                {details.map((account) => (
-                  <tr key={account.id}>
-                    <td>{account.parentName ?? '— رئيسي —'}</td>
-                    <td dir="ltr">{account.code}</td>
-                    <td>{nameOf(account)}</td>
-                    <td>
-                      {account.branchId
-                        ? (branchRows.find((branch) => branch.id === account.branchId)?.nameAr ?? account.branchId)
-                        : '—'}
-                    </td>
-                    <td className="num" dir="ltr">{money(balanceOf(account).toFixed(4))}</td>
-                    <td>
+          <Panel flush title="دليل الحسابات">
+            <Table
+              bare
+              columns={[
+                {
+                  key: 'c0',
+                  header: 'الحساب الرئيسي',
+                  cell: (account) => account.parentName ?? '— رئيسي —',
+                },
+                {
+                  key: 'c1',
+                  header: 'رمز الحساب',
+                  ltr: true,
+                  cell: (account) => account.code,
+                },
+                {
+                  key: 'c2',
+                  header: 'اسم الحساب',
+                  cell: (account) => nameOf(account),
+                },
+                {
+                  key: 'c3',
+                  header: 'الفرع',
+                  cell: (account) =>
+                    account.branchId
+                      ? (branchRows.find((branch) => branch.id === account.branchId)?.nameAr ??
+                        account.branchId)
+                      : '—',
+                },
+                {
+                  key: 'c4',
+                  header: 'الرصيد',
+                  numeric: true,
+                  ltr: true,
+                  cell: (account) => money(balanceOf(account).toFixed(4)),
+                },
+                {
+                  key: 'c5',
+                  header: 'كشف حساب',
+                  cell: (account) => (
+                    <>
                       <a className="btn sm" href={`/accounting/ledger?account=${account.id}`}>
                         كشف حساب
                       </a>
-                    </td>
-                    {can('accounting.account.manage') && (
-                      <td>
-                        <span className="row">
-                          <button className="btn sm" type="button" onClick={() => startEdit(account)}>
-                            تعديل
-                          </button>
-                          <button className="btn sm danger" type="button" onClick={() => void remove(account)}>
-                            حذف
-                          </button>
-                        </span>
-                      </td>
-                    )}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                    </>
+                  ),
+                },
+                ...(can('accounting.account.manage')
+                  ? [
+                      {
+                        key: 'c6',
+                        header: 'تعديل',
+                        cell: (account: Account) => (
+                          <>
+                            <span className="row">
+                              <button className="btn sm" type="button" onClick={() => startEdit(account)}>
+                                تعديل
+                              </button>
+                              <button
+                                className="btn sm danger"
+                                type="button"
+                                onClick={() => void remove(account)}
+                              >
+                                حذف
+                              </button>
+                            </span>
+                          </>
+                        ),
+                      },
+                    ]
+                  : []),
+              ]}
+              rows={details}
+              rowKey={(account) => account.id}
+            />
+          </Panel>
         ))}
     </Screen>
   );
@@ -471,7 +532,7 @@ function AccountForm({
   const [type, setType] = useState(editing ? typeOf(editing) || 'asset' : 'asset');
   const [parentId, setParentId] = useState(editing ? (parentOf(editing) ?? '') : '');
   const [isPostable, setIsPostable] = useState(editing ? postableOf(editing) : true);
-  /** ⚖️ طبيعة الحساب · 📅 تاريخ فتح الحساب · 💰 الرصيد الافتتاحي · 📊 مركز التكلفة. */
+  /** طبيعة الحساب · تاريخ فتح الحساب · الرصيد الافتتاحي · مركز التكلفة. */
   const [normalBalance, setNormalBalance] = useState(editing?.normalBalance ?? '');
   const [openedAt, setOpenedAt] = useState(String(editing?.openedAt ?? '').slice(0, 10));
   const [openingBalance, setOpeningBalance] = useState(editing?.openingBalance ?? '0');
@@ -514,7 +575,10 @@ function AccountForm({
     } catch (error) {
       setMessage({
         kind: 'danger',
-        text: error instanceof ApiError ? `${error.message}${error.detail ? ` — ${error.detail}` : ''}` : String(error),
+        text:
+          error instanceof ApiError
+            ? `${error.message}${error.detail ? ` — ${error.detail}` : ''}`
+            : String(error),
       });
     } finally {
       setBusy(false);
@@ -522,98 +586,128 @@ function AccountForm({
   }
 
   return (
-    <form className="card" onSubmit={submit}>
-      <h2>{editing ? `تعديل الحساب ${editing.code}` : 'حساب جديد'}</h2>
-      <div className="form-grid">
-        <label className="field">
-          <span>الرمز *</span>
-          <input className="input" dir="ltr" value={code} onChange={(event) => setCode(event.target.value)} required />
-        </label>
-        <label className="field">
-          <span>الاسم بالعربية *</span>
-          <input className="input" value={nameAr} onChange={(event) => setNameAr(event.target.value)} required />
-        </label>
-        <label className="field">
-          <span>الاسم بالإنجليزية</span>
-          <input className="input" dir="ltr" value={nameEn} onChange={(event) => setNameEn(event.target.value)} />
-        </label>
-        <label className="field">
-          <span>النوع *</span>
-          <select className="input" value={type} onChange={(event) => setType(event.target.value)}>
-            {Object.entries(ACCOUNT_TYPE_LABELS).map(([value, label]) => (
-              <option key={value} value={value}>
-                {label}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="field">
-          <span>الحساب الأب</span>
-          <select className="input" value={parentId} onChange={(event) => setParentId(event.target.value)}>
-            <option value="">— بدون (حساب رئيسي)</option>
-            {accounts
-              .filter((account) => account.id !== editing?.id)
-              .map((account) => (
-                <option key={account.id} value={account.id}>
-                  {account.code} — {nameOf(account)}
+    <form onSubmit={submit}>
+      <Panel title={<>{editing ? `تعديل الحساب ${editing.code}` : 'حساب جديد'}</>}>
+        <div className="form-grid">
+          <label className="field">
+            <span>الرمز *</span>
+            <input
+              className="input"
+              dir="ltr"
+              value={code}
+              onChange={(event) => setCode(event.target.value)}
+              required
+            />
+          </label>
+          <label className="field">
+            <span>الاسم بالعربية *</span>
+            <input
+              className="input"
+              value={nameAr}
+              onChange={(event) => setNameAr(event.target.value)}
+              required
+            />
+          </label>
+          <label className="field">
+            <span>الاسم بالإنجليزية</span>
+            <input
+              className="input"
+              dir="ltr"
+              value={nameEn}
+              onChange={(event) => setNameEn(event.target.value)}
+            />
+          </label>
+          <label className="field">
+            <span>النوع *</span>
+            <select className="input" value={type} onChange={(event) => setType(event.target.value)}>
+              {Object.entries(ACCOUNT_TYPE_LABELS).map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
                 </option>
               ))}
-          </select>
-        </label>
-        <label className="field">
-          <span>⚖️ طبيعة الحساب</span>
-          <select className="input" value={normalBalance} onChange={(event) => setNormalBalance(event.target.value)}>
-            <option value="">حسب النوع</option>
-            <option value="debit">📈 مدين</option>
-            <option value="credit">📉 دائن</option>
-          </select>
-        </label>
-        <label className="field">
-          <span>📅 تاريخ فتح الحساب</span>
-          <input className="input" type="date" value={openedAt} onChange={(event) => setOpenedAt(event.target.value)} />
-        </label>
-        <label className="field">
-          <span>💰 الرصيد الافتتاحي</span>
-          <input
-            className="input"
-            dir="ltr"
-            inputMode="decimal"
-            value={openingBalance}
-            onChange={(event) => setOpeningBalance(event.target.value)}
-          />
-        </label>
-        <label className="field">
-          <span>📊 مركز التكلفة</span>
-          <select className="input" value={costCenterId} onChange={(event) => setCostCenterId(event.target.value)}>
-            <option value="">— بدون —</option>
-            {(costCenters.data ?? []).map((center) => (
-              <option key={center.id} value={center.id}>
-                {center.nameAr ?? center.name ?? center.code ?? center.id}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="field">
-          <span>قابل للترحيل</span>
-          <select
-            className="input"
-            value={isPostable ? '1' : '0'}
-            onChange={(event) => setIsPostable(event.target.value === '1')}
-          >
-            <option value="1">نعم — تُرحّل عليه القيود</option>
-            <option value="0">لا — حساب تجميعي</option>
-          </select>
-        </label>
-      </div>
-      {message && <p className={`alert ${message.kind}`}>{message.text}</p>}
-      <div className="toolbar">
-        <button className="btn primary" type="submit" disabled={busy}>
-          {busy ? 'جارٍ الحفظ…' : editing ? 'حفظ التعديل' : 'حفظ'}
-        </button>
-        <button className="btn" type="button" onClick={onCancel} disabled={busy}>
-          إلغاء
-        </button>
-      </div>
+            </select>
+          </label>
+          <label className="field">
+            <span>الحساب الأب</span>
+            <select className="input" value={parentId} onChange={(event) => setParentId(event.target.value)}>
+              <option value="">— بدون (حساب رئيسي)</option>
+              {accounts
+                .filter((account) => account.id !== editing?.id)
+                .map((account) => (
+                  <option key={account.id} value={account.id}>
+                    {account.code} — {nameOf(account)}
+                  </option>
+                ))}
+            </select>
+          </label>
+          <label className="field">
+            <span>طبيعة الحساب</span>
+            <select
+              className="input"
+              value={normalBalance}
+              onChange={(event) => setNormalBalance(event.target.value)}
+            >
+              <option value="">حسب النوع</option>
+              <option value="debit">مدين</option>
+              <option value="credit">دائن</option>
+            </select>
+          </label>
+          <label className="field">
+            <span>تاريخ فتح الحساب</span>
+            <input
+              className="input"
+              type="date"
+              value={openedAt}
+              onChange={(event) => setOpenedAt(event.target.value)}
+            />
+          </label>
+          <label className="field">
+            <span>الرصيد الافتتاحي</span>
+            <input
+              className="input"
+              dir="ltr"
+              inputMode="decimal"
+              value={openingBalance}
+              onChange={(event) => setOpeningBalance(event.target.value)}
+            />
+          </label>
+          <label className="field">
+            <span>مركز التكلفة</span>
+            <select
+              className="input"
+              value={costCenterId}
+              onChange={(event) => setCostCenterId(event.target.value)}
+            >
+              <option value="">— بدون —</option>
+              {(costCenters.data ?? []).map((center) => (
+                <option key={center.id} value={center.id}>
+                  {center.nameAr ?? center.name ?? center.code ?? center.id}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="field">
+            <span>قابل للترحيل</span>
+            <select
+              className="input"
+              value={isPostable ? '1' : '0'}
+              onChange={(event) => setIsPostable(event.target.value === '1')}
+            >
+              <option value="1">نعم — تُرحّل عليه القيود</option>
+              <option value="0">لا — حساب تجميعي</option>
+            </select>
+          </label>
+        </div>
+        {message && <p className={`alert ${message.kind}`}>{message.text}</p>}
+        <div className="toolbar">
+          <button className="btn primary" type="submit" disabled={busy}>
+            {busy ? 'جارٍ الحفظ…' : editing ? 'حفظ التعديل' : 'حفظ'}
+          </button>
+          <button className="btn" type="button" onClick={onCancel} disabled={busy}>
+            إلغاء
+          </button>
+        </div>
+      </Panel>
     </form>
   );
 }

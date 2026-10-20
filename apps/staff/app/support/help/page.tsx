@@ -1,11 +1,13 @@
 'use client';
 
+import { Panel } from '@erp/ui';
 import { useEffect, useState } from 'react';
 
 import { Notice } from '../../../components/data-view';
-import { Screen } from '../../../components/screen';
+import { Empty, Screen } from '../../../components/screen';
 import { ApiError, apiData, apiPost } from '../../../lib/api';
 import { useSession } from '../../../lib/session';
+import { dateText } from '../../../lib/format';
 
 type SupportTicket = {
   id: string;
@@ -140,82 +142,92 @@ export default function HelpPage() {
 
   return (
     <Screen
-      title="🛟 طلب المساعدة والدعم الفني"
+      title="طلب المساعدة والدعم الفني"
       subtitle="تواصل مباشر مع إدارة المنصة — أرسل استفسارك أو مشكلتك وسيظهر إشعار فوري لمدير المنصة، وعند الرد يصلك إشعار في جرس التنبيهات."
       crumbs={['طلب المساعدة']}
       actions={
         <button className="btn primary" type="button" onClick={() => setCreating(!creating)}>
-          {creating ? 'إغلاق النموذج' : '➕ فتح طلب مساعدة جديد'}
+          {creating ? 'إغلاق النموذج' : 'فتح طلب مساعدة جديد'}
         </button>
       }
     >
       {notice ? <Notice notice={notice} /> : null}
 
       {(creating || tickets.length === 0) && (
-        <form className="card" onSubmit={submitNewTicket} style={{ display: 'grid', gap: 12 }}>
-          <h2 style={{ margin: 0 }}>📩 إرسال رسالة / تذكرة جديدة لمدير المنصة</h2>
-          <p className="muted" style={{ margin: 0 }}>
-            المنشأة: <strong>{me?.membership.tenantName}</strong> (<span dir="ltr">{me?.membership.tenantCode}</span>) · المستخدم:{' '}
-            <span dir="ltr">{me?.user.email}</span>
-          </p>
-          <div className="form-grid">
+        <form onSubmit={submitNewTicket} style={{ display: 'grid', gap: 12 }}>
+          <Panel title="إرسال رسالة / تذكرة جديدة لمدير المنصة">
+            <p className="muted" style={{ margin: 0 }}>
+              المنشأة: <strong>{me?.membership.tenantName}</strong> (
+              <span dir="ltr">{me?.membership.tenantCode}</span>) · المستخدم:{' '}
+              <span dir="ltr">{me?.user.email}</span>
+            </p>
+            <div className="form-grid">
+              <label className="field">
+                <span>عنوان الطلب *</span>
+                <input
+                  className="input"
+                  required
+                  minLength={3}
+                  value={subject}
+                  onChange={(event) => setSubject(event.target.value)}
+                  placeholder="مثال: استفسار حول تفعيل باقة التوزيع أو إعداد ضريبة القيمة المضافة"
+                />
+              </label>
+              <label className="field">
+                <span>القسم / التصنيف</span>
+                <select
+                  className="input"
+                  value={category}
+                  onChange={(event) => setCategory(event.target.value)}
+                >
+                  {CATEGORIES.map((cat) => (
+                    <option key={cat} value={cat}>
+                      {cat}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="field">
+                <span>الأولوية</span>
+                <select
+                  className="input"
+                  value={priority}
+                  onChange={(event) => setPriority(event.target.value as SupportTicket['priority'])}
+                >
+                  <option value="low">منخفضة</option>
+                  <option value="normal">عادية</option>
+                  <option value="high">عالية</option>
+                  <option value="urgent">عاجلة</option>
+                </select>
+              </label>
+            </div>
             <label className="field">
-              <span>عنوان الطلب *</span>
-              <input
+              <span>تفاصيل المشكلة أو الطلب *</span>
+              <textarea
                 className="input"
+                rows={4}
                 required
                 minLength={3}
-                value={subject}
-                onChange={(event) => setSubject(event.target.value)}
-                placeholder="مثال: استفسار حول تفعيل باقة التوزيع أو إعداد ضريبة القيمة المضافة"
+                value={body}
+                onChange={(event) => setBody(event.target.value)}
+                placeholder="اشرح ما تحتاجه بالتفصيل ليتمكن فريق المنصة من خدمتك فوراً…"
               />
             </label>
-            <label className="field">
-              <span>القسم / التصنيف</span>
-              <select className="input" value={category} onChange={(event) => setCategory(event.target.value)}>
-                {CATEGORIES.map((cat) => (
-                  <option key={cat} value={cat}>
-                    {cat}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="field">
-              <span>الأولوية</span>
-              <select
-                className="input"
-                value={priority}
-                onChange={(event) => setPriority(event.target.value as SupportTicket['priority'])}
+            <div className="row" style={{ gap: 8 }}>
+              <button
+                className="btn primary"
+                type="submit"
+                disabled={busy || subject.trim().length < 3 || body.trim().length < 3}
               >
-                <option value="low">منخفضة</option>
-                <option value="normal">عادية</option>
-                <option value="high">عالية</option>
-                <option value="urgent">عاجلة</option>
-              </select>
-            </label>
-          </div>
-          <label className="field">
-            <span>تفاصيل المشكلة أو الطلب *</span>
-            <textarea
-              className="input"
-              rows={4}
-              required
-              minLength={3}
-              value={body}
-              onChange={(event) => setBody(event.target.value)}
-              placeholder="اشرح ما تحتاجه بالتفصيل ليتمكن فريق المنصة من خدمتك فوراً…"
-            />
-          </label>
-          <div className="row" style={{ gap: 8 }}>
-            <button className="btn primary" type="submit" disabled={busy || subject.trim().length < 3 || body.trim().length < 3}>
-              {busy ? 'جارٍ الإرسال…' : '🚀 إرسال إلى إدارة المنصة'}
-            </button>
-          </div>
+                {busy ? 'جارٍ الإرسال…' : 'إرسال إلى إدارة المنصة'}
+              </button>
+            </div>
+          </Panel>
         </form>
       )}
 
       <div className="split">
-        <div className="card tight split-list">
+        <Panel flush bodyClassName="split-list">
           <div style={{ padding: '12px 14px', borderBottom: '1px solid var(--line)' }}>
             <strong>سجل تذاكر الدعم ({tickets.length})</strong>
           </div>
@@ -235,16 +247,12 @@ export default function HelpPage() {
               >
                 <span className="list-title">{ticket.subject}</span>
                 <span className="list-sub">
-                  {ticket.category ?? 'عام'} · {new Date(ticket.createdAt).toLocaleDateString('ar-SA')}
+                  {ticket.category ?? 'عام'} · {dateText(ticket.createdAt)}
                 </span>
                 <span className="row" style={{ justifyContent: 'space-between', marginTop: 4 }}>
                   <span
                     className={`badge ${
-                      ticket.status === 'pending'
-                        ? 'ok'
-                        : ticket.status === 'open'
-                          ? 'warn'
-                          : 'neutral'
+                      ticket.status === 'pending' ? 'ok' : ticket.status === 'open' ? 'warn' : 'neutral'
                     }`}
                   >
                     {STATUS_LABELS[ticket.status]}
@@ -254,11 +262,13 @@ export default function HelpPage() {
               </button>
             ))
           )}
-        </div>
+        </Panel>
 
-        <div className="card split-detail">
+        <Panel className="split-detail">
           {!selected ? (
-            <p className="muted">اختر تذكرة من القائمة لعرض المحادثة والردود.</p>
+            <p className="muted">
+              <Empty bare title="لم يُختَر بعد" detail="اختر تذكرة من القائمة لعرض المحادثة والردود." />
+            </p>
           ) : (
             <div style={{ display: 'grid', gap: 14 }}>
               <div className="row" style={{ justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
@@ -266,7 +276,7 @@ export default function HelpPage() {
                   <h2 style={{ margin: 0 }}>{selected.subject}</h2>
                   <p className="muted" style={{ margin: '4px 0 0', fontSize: 13 }}>
                     {selected.category ?? 'عام'} · الأولوية: {PRIORITY_LABELS[selected.priority]} · فُتحت في:{' '}
-                    {new Date(selected.createdAt).toLocaleString('ar-SA')}
+                    {new Date(selected.createdAt).toLocaleString('ar-SA-u-ca-gregory-nu-latn')}
                   </p>
                 </div>
                 <span
@@ -292,11 +302,11 @@ export default function HelpPage() {
                     <div className="row" style={{ justifyContent: 'space-between', marginBottom: 6 }}>
                       <strong>
                         {msg.authorKind === 'operator'
-                          ? `👨‍💻 دعم المنصة (${msg.authorLabel ?? 'الإدارة'})`
-                          : `👤 أنت (${msg.authorLabel ?? me?.user.fullName ?? 'العميل'})`}
+                          ? `دعم المنصة (${msg.authorLabel ?? 'الإدارة'})`
+                          : `أنت (${msg.authorLabel ?? me?.user.fullName ?? 'العميل'})`}
                       </strong>
                       <span className="muted small" dir="ltr">
-                        {new Date(msg.createdAt).toLocaleString('ar-SA')}
+                        {new Date(msg.createdAt).toLocaleString('ar-SA-u-ca-gregory-nu-latn')}
                       </span>
                     </div>
                     <p style={{ margin: 0, whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>{msg.body}</p>
@@ -325,7 +335,7 @@ export default function HelpPage() {
               )}
             </div>
           )}
-        </div>
+        </Panel>
       </div>
     </Screen>
   );

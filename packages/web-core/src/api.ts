@@ -14,6 +14,8 @@
  *     session token and transparently retries once after a refresh on 401.
  */
 
+import { arabicErrorText } from '@erp/contracts';
+
 const configuredBase = (process.env.NEXT_PUBLIC_API_BASE_URL ?? '').trim().replace(/\/+$/, '');
 export const apiBaseUrl = configuredBase.length > 0 ? configuredBase : '/api/v1';
 
@@ -53,6 +55,26 @@ export class ApiError extends Error {
 export function apiErrorText(error: unknown, fallback = 'تعذر إكمال الطلب'): string {
   if (!(error instanceof ApiError)) return fallback;
   const detail = error.status < 500 ? (error.detail ?? '').trim() : '';
+  /*
+   * رمز آليّ لا جملة: بلا حرف عربيّ، وشكله شكل المفاتيح (`PERMISSION_DENIED`،
+   * `not_found`) أو كلمتان بلا مسافات داخلهما تنتهيان بـ required
+   * (`permission parties.view required`). الجملة الإنجليزيّة الكاملة تبقى كما هي.
+   */
+  const codeShape =
+    (!/[\u0600-\u06FF]/.test(detail) && /^[\w.-]{1,60}$/.test(detail)) ||
+    (/^[^\u0600-\u06FF]+$/.test(detail) &&
+      /^[\w.]+(\s+[\w.]+)*\s+required$/i.test(detail) &&
+      detail.length <= 80);
+  if (codeShape) return fallback;
+  /*
+   * العنوانُ العامّ في `application/problem+json` («Request failed» / «Not found»)
+   * يقول إنّ شيئًا فشل ولا يقول ماذا — فالشاشة تقول ما تعذّر بلغتها بدل ترجمته.
+   */
+  const genericTitle =
+    /^(request failed|not found|forbidden|unauthorized|bad request|internal server error)$/i.test(
+      (error.message ?? '').trim(),
+    );
+  if (!detail && genericTitle) return fallback;
   return detail || error.message || fallback;
 }
 
@@ -192,9 +214,16 @@ async function toError(response: Response): Promise<ApiError> {
   const code =
     problem.code ??
     (response.status === 401 ? 'UNAUTHENTICATED' : response.status === 403 ? 'FORBIDDEN' : 'HTTP_ERROR');
-  const message =
-    problem.title ?? problem.message ?? problem.detail ?? `${response.status} ${response.statusText}`;
-  return new ApiError(response.status, code, message, problem.detail);
+  /*
+   * كل ما يصل إلى الشاشة عربي: تفصيلٌ عربي من الخادم يُعرض كما هو، وإلا فترجمة الرمز،
+   * وإلا جملةٌ بحسب حالة HTTP. وكان العنوان الإنجليزي («Insufficient stock») يظهر
+   * حرفياً في تنبيهات الشاشات — وهو ما لا يقبله مستخدم عربي.
+   */
+  const detail = problem.detail;
+  if (detail && /[\u0600-\u06FF]/.test(detail)) {
+    return new ApiError(response.status, code, detail, undefined);
+  }
+  return new ApiError(response.status, code, arabicErrorText(code, response.status), undefined);
 }
 
 let refreshInFlight: Promise<StoredSession | undefined> | undefined;
@@ -253,7 +282,8 @@ export async function apiOpen(path: string, init: RequestInit = {}): Promise<Res
   const session = readSession();
   const call = async (token?: string): Promise<Response> => {
     const headers = new Headers(init.headers ?? {});
-    if (!headers.has('content-type') && init.body !== undefined) headers.set('content-type', 'application/json');
+    if (!headers.has('content-type') && init.body !== undefined)
+      headers.set('content-type', 'application/json');
     if (token) headers.set('authorization', `Bearer ${token}`);
     return fetch(`${apiBaseUrl}${path}`, { ...init, headers });
   };

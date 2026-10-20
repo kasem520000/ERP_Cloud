@@ -3,6 +3,8 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { BellRing, LogOut, Menu, Search, X } from 'lucide-react';
+import { Panel } from '@erp/ui';
 import { ThemeToggle } from '@erp/ui/theme';
 import type { SupportTicket } from '@erp/contracts';
 
@@ -11,6 +13,7 @@ import { groupForPath, visibleConsoleGroups, type ConsoleItem } from '../lib/nav
 import { useSession } from '../lib/session';
 import { useQuery } from '../lib/use-query';
 
+import { PageTransition } from './page-transition';
 import { Forbidden } from './screen';
 
 type AddonPendingRequest = {
@@ -105,7 +108,7 @@ export function PlatformGuard({ children }: { children: React.ReactNode }) {
               onClick={() => setDrawerOpen(false)}
               aria-label="إغلاق القائمة"
             >
-              ✕
+              <X size={14} />
             </button>
           )}
         </div>
@@ -117,7 +120,8 @@ export function PlatformGuard({ children }: { children: React.ReactNode }) {
                 {group.icon} {group.labelAr}
               </p>
               {group.items.map((entry) => {
-                const active = pathname === entry.href || (entry.href !== '/' && pathname.startsWith(entry.href));
+                const active =
+                  pathname === entry.href || (entry.href !== '/' && pathname.startsWith(entry.href));
                 return (
                   <Link
                     key={entry.key}
@@ -153,18 +157,26 @@ export function PlatformGuard({ children }: { children: React.ReactNode }) {
               onClick={() => setDrawerOpen((open) => !open)}
               aria-label="إظهار القائمة"
             >
-              ☰
+              <Menu size={16} />
             </button>
             <nav className="crumbs" aria-label="موقعك في اللوحة">
               <Link href="/">المنصة</Link>
-              {activeGroup ? ` ← ${activeGroup.labelAr}` : ''}
+              {activeGroup ? ` ${activeGroup.labelAr}` : ''}
             </nav>
           </div>
 
           <div className="row" style={{ alignItems: 'center' }}>
             <ThemeToggle compact />
-            <button className="btn sm" type="button" onClick={() => setPaletteOpen(true)}>
-              🔍 بحث شامل <span className="muted small">Ctrl+K</span>
+            <button
+              className="btn sm"
+              type="button"
+              onClick={() => setPaletteOpen(true)}
+              aria-label="بحث شامل"
+              title="بحث شامل (Ctrl+K)"
+            >
+              <Search size={14} aria-hidden />
+              <span className="topbar-search-label">بحث شامل</span>
+              <span className="muted small topbar-search-label">Ctrl+K</span>
             </button>
             <Bell
               pendingActivations={overview.data?.pendingActivations ?? 0}
@@ -177,18 +189,18 @@ export function PlatformGuard({ children }: { children: React.ReactNode }) {
                 {environment.labelAr}
               </span>
             )}
-            <span className="muted small">
+            <span className="muted small topbar-user">
               {me?.user.fullName} · {me?.user.email}
             </span>
             <button className="btn sm" type="button" onClick={() => void signOut()}>
-              تسجيل الخروج
+              <LogOut size={14} aria-hidden /> تسجيل الخروج
             </button>
           </div>
         </header>
 
         {paletteOpen && <Omnibox onClose={() => setPaletteOpen(false)} />}
 
-        {children}
+        <PageTransition>{children}</PageTransition>
       </div>
     </div>
   );
@@ -218,7 +230,9 @@ function Bell({
 
   const loadNotifications = useCallback(async () => {
     const [ticketsRes, addonsRes] = await Promise.all([
-      apiData<SupportTicket[]>('/platform/tickets?filter[status]=open&limit=10').catch(() => [] as SupportTicket[]),
+      apiData<SupportTicket[]>('/platform/tickets?filter[status]=open&limit=10').catch(
+        () => [] as SupportTicket[],
+      ),
       apiData<AddonPendingRequest[]>('/platform/marketplace/requests?status=pending').catch(
         () => [] as AddonPendingRequest[],
       ),
@@ -280,11 +294,11 @@ function Bell({
           if (next) void loadNotifications();
         }}
       >
-        🔔 الإشعارات {totalCount > 0 ? `(${totalCount})` : '(0)'}
+        <BellRing size={14} aria-hidden /> الإشعارات {totalCount > 0 ? `(${totalCount})` : '(0)'}
       </button>
       {open && (
         <div
-          className="card"
+          className="ui-popover menu-pop"
           style={{
             position: 'absolute',
             insetInlineEnd: 0,
@@ -300,7 +314,7 @@ function Bell({
           }}
         >
           <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
-            <strong>🔔 مركز إشعارات وطلبات المنصة ({totalCount})</strong>
+            <strong>مركز إشعارات وطلبات المنصة ({totalCount})</strong>
             <button type="button" className="btn sm" onClick={() => void loadNotifications()}>
               تحديث
             </button>
@@ -309,9 +323,9 @@ function Bell({
           {/* 1. Open Support Tickets from Customers */}
           <div style={{ borderTop: '1px solid var(--line)', paddingTop: 8 }}>
             <div className="row" style={{ justifyContent: 'space-between', marginBottom: 6 }}>
-              <strong style={{ fontSize: 13 }}>🛟 طلبات المساعدة والدعم الفني ({openTickets.length})</strong>
+              <strong style={{ fontSize: 13 }}>طلبات المساعدة والدعم الفني ({openTickets.length})</strong>
               <Link href="/tickets" className="small" onClick={() => setOpen(false)}>
-                فتح الصندوق ←
+                فتح الصندوق
               </Link>
             </div>
             {openTickets.length === 0 ? (
@@ -343,7 +357,7 @@ function Bell({
                     </div>
                     <div className="muted small" style={{ marginTop: 2 }}>
                       المنشأة: {t.tenantName ?? t.tenantCode ?? 'عميل'} ·{' '}
-                      {new Date(t.createdAt).toLocaleString('ar-SA')}
+                      {new Date(t.createdAt).toLocaleString('ar-SA-u-ca-gregory-nu-latn')}
                     </div>
                   </Link>
                 ))}
@@ -354,9 +368,9 @@ function Bell({
           {/* 2. Pending Marketplace Add-on Requests */}
           <div style={{ borderTop: '1px solid var(--line)', paddingTop: 8 }}>
             <div className="row" style={{ justifyContent: 'space-between', marginBottom: 6 }}>
-              <strong style={{ fontSize: 13 }}>🛒 طلبات تفعيل الباقات القطاعية ({addonRequests.length})</strong>
+              <strong style={{ fontSize: 13 }}>طلبات تفعيل الباقات القطاعية ({addonRequests.length})</strong>
               <Link href="/marketplace" className="small" onClick={() => setOpen(false)}>
-                إدارة الباقات ←
+                إدارة الباقات
               </Link>
             </div>
             {addonRequests.length === 0 ? (
@@ -392,7 +406,9 @@ function Bell({
 
           {/* 3. System / Subscription Counters */}
           <div style={{ borderTop: '1px solid var(--line)', paddingTop: 8 }}>
-            <strong style={{ fontSize: 13, display: 'block', marginBottom: 6 }}>⚙️ تنبيهات التشغيل والتراخيص</strong>
+            <strong style={{ fontSize: 13, display: 'block', marginBottom: 6 }}>
+              تنبيهات التشغيل والتراخيص
+            </strong>
             <ul style={{ margin: 0, paddingInlineStart: 18, display: 'grid', gap: 4, fontSize: 13 }}>
               <li>
                 <Link href="/activation-requests" onClick={() => setOpen(false)}>
@@ -466,7 +482,7 @@ function Omnibox({ onClose }: { onClose: () => void }) {
   }, [term, search]);
 
   return (
-    <div className="card" role="dialog" aria-label="البحث الشامل" style={{ marginBottom: 16 }}>
+    <Panel title="البحث الشامل" aria-label="البحث الشامل" style={{ marginBottom: 16 }}>
       <div className="row">
         <input
           className="input"
@@ -493,12 +509,7 @@ function Omnibox({ onClose }: { onClose: () => void }) {
           <h3>العملاء</h3>
           <div className="chips">
             {tenants.map((hit) => (
-              <Link
-                key={hit.id}
-                className="chip"
-                href={`/tenants/${hit.id}`}
-                onClick={onClose}
-              >
+              <Link key={hit.id} className="chip" href={`/tenants/${hit.id}`} onClick={onClose}>
                 {hit.name} <span className="muted">({hit.code})</span>
               </Link>
             ))}
@@ -518,7 +529,7 @@ function Omnibox({ onClose }: { onClose: () => void }) {
           </div>
         </>
       )}
-    </div>
+    </Panel>
   );
 }
 

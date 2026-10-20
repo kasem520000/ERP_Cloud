@@ -42,7 +42,8 @@ export default function LotsPage() {
   }
 
   return (
-    <Directory<Lot>
+ <Directory<Lot>
+      listTitle="الدفعات"
       title="صلاحية المواد (الدفعات)"
       subtitle="دفعات الإنتاج وتواريخ انتهاء الصلاحية المرتبطة بالمواد."
       crumbs={['المستودعات', 'تقارير مستودعية']}
@@ -52,11 +53,11 @@ export default function LotsPage() {
       blocked={itemRows.length === 0 ? 'أضف مادة واحدة على الأقل من «دليل المواد».' : undefined}
       fields={[
         { name: 'itemId', label: 'المادة', type: 'select', required: true, options: itemRows.map((row) => ({ id: row.id, label: itemLabel(row) })) },
-        { name: 'lotNo', label: '📁 رقم الدفعة', required: true, ltr: true },
-        { name: 'productionDate', label: '📅 تاريخ الإنتاج', type: 'date' },
-        { name: 'expiryDate', label: '⏳ تاريخ الانتهاء', type: 'date' },
+ { name: 'lotNo', label: 'رقم الدفعة', required: true, ltr: true },
+ { name: 'productionDate', label: 'تاريخ الإنتاج', type: 'date' },
+ { name: 'expiryDate', label: 'تاريخ الانتهاء', type: 'date' },
         // تاريخ الاستلام كان يُكتب باسم «📅 تاريخ الإنتاج» — وهو عنوانٌ لا يصف العمود (R5).
-        { name: 'receivedAt', label: '📥 تاريخ الاستلام', type: 'date' },
+ { name: 'receivedAt', label: 'تاريخ الاستلام', type: 'date' },
       ]}
       onCreate={(values) =>
         apiPost('/inventory/lots', {
@@ -96,32 +97,32 @@ export default function LotsPage() {
       ]}
       empty="لا توجد دفعات"
       children={
-        <>
+ <>
           {notice ? <Notice notice={notice} /> : null}
-          <FilterBar>
-          <label className="field">
-            <span>المادة</span>
-            <select className="input" value={itemId} onChange={(event) => setItemId(event.target.value)}>
-              <option value="">كل المواد</option>
+ <FilterBar>
+ <label className="field">
+ <span>المادة</span>
+ <select className="input" value={itemId} onChange={(event) => setItemId(event.target.value)}>
+ <option value="">كل المواد</option>
               {itemRows.map((row) => (
-                <option key={row.id} value={row.id}>
+ <option key={row.id} value={row.id}>
                   {itemLabel(row)}
-                </option>
+ </option>
               ))}
-            </select>
-          </label>
-          <label className="field">
-            <span>بحث برقم الدفعة</span>
-            <input
+ </select>
+ </label>
+ <label className="field">
+ <span>بحث برقم الدفعة</span>
+ <input
               className="input"
               dir="ltr"
               placeholder="LOT-1"
               value={search}
               onChange={(event) => setSearch(event.target.value)}
             />
-          </label>
-          </FilterBar>
-        </>
+ </label>
+ </FilterBar>
+ </>
       }
       columns={[
         {
@@ -132,19 +133,19 @@ export default function LotsPage() {
             return item ? itemLabel(item) : row.itemId;
           },
         },
-        { key: 'lot', header: '📁 رقم الدفعة', align: 'ltr', cell: (row) => row.lotNo },
-        { key: 'produced', header: '📅 تاريخ الإنتاج', align: 'ltr', cell: (row) => shortDate(row.productionDate) },
-        { key: 'expiry', header: '⏳ تاريخ الانتهاء', align: 'ltr', cell: (row) => shortDate(row.expiryDate) },
-        { key: 'received', header: '📥 تاريخ الاستلام', align: 'ltr', cell: (row) => shortDate(row.receivedAt) },
+ { key: 'lot', header: 'رقم الدفعة', align: 'ltr', cell: (row) => row.lotNo },
+ { key: 'produced', header: 'تاريخ الإنتاج', align: 'ltr', cell: (row) => shortDate(row.productionDate) },
+ { key: 'expiry', header: 'تاريخ الانتهاء', align: 'ltr', cell: (row) => shortDate(row.expiryDate) },
+ { key: 'received', header: 'تاريخ الاستلام', align: 'ltr', cell: (row) => shortDate(row.receivedAt) },
         ...(manage
           ? [
               {
                 key: 'actions',
                 header: '',
                 cell: (row: Lot) => (
-                  <button className="btn sm danger" type="button" disabled={busy} onClick={() => void drop(row)}>
-                    حذف
-                  </button>
+ <button className="btn sm danger" type="button" disabled={busy} onClick={() => void drop(row)}>
+ حذف
+ </button>
                 ),
               },
             ]

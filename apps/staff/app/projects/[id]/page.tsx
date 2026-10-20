@@ -3,10 +3,11 @@
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useState } from 'react';
+import { Panel, TableFrame } from '@erp/ui';
 
 import { CommentsPanel } from '../../../components/comments-panel';
 import { DataTable, Notice } from '../../../components/data-view';
-import { ErrorBox, Loading, Screen } from '../../../components/screen';
+import { Empty, ErrorBox, Loading, Screen } from '../../../components/screen';
 import { accountLabel, listAccounts, postableOf, type Account } from '../../../lib/accounts';
 import { ApiError, apiData, apiList, apiPost } from '../../../lib/api';
 import { money, percent, quantity, shortDate, statusLabel, today } from '../../../lib/lookups';
@@ -15,7 +16,15 @@ import { useSession } from '../../../lib/session';
 import { useQuery } from '../../../lib/use-query';
 
 type Stage = { id: string; name: string; stageOrder: number; status: string };
-type BoqTerm = { id: string; code: string; description: string; qty: string; unitValue: string; totalValue: string; billedValue: string };
+type BoqTerm = {
+  id: string;
+  code: string;
+  description: string;
+  qty: string;
+  unitValue: string;
+  totalValue: string;
+  billedValue: string;
+};
 type Project = {
   id: string;
   code: string;
@@ -27,7 +36,15 @@ type Project = {
   stages: Stage[];
   boq: BoqTerm[];
 };
-type Bill = { id: string; number: string | null; billDate: string; status: string; grossValue: string; retentionValue: string; netValue: string };
+type Bill = {
+  id: string;
+  number: string | null;
+  billDate: string;
+  status: string;
+  grossValue: string;
+  retentionValue: string;
+  netValue: string;
+};
 
 export default function ProjectDetailPage() {
   const params = useParams<{ id: string }>();
@@ -77,7 +94,8 @@ export default function ProjectDetailPage() {
     const lines = doc.boq
       .filter((entry) => Number(billPercents[entry.id] ?? 0) > 0)
       .map((entry) => ({ termId: entry.id, billPct: billPercents[entry.id] }));
-    if (lines.length === 0) throw new ApiError(422, 'VALIDATION_FAILED', 'حدّد نسبة إنجاز لبند واحد على الأقل.');
+    if (lines.length === 0)
+      throw new ApiError(422, 'VALIDATION_FAILED', 'حدّد نسبة إنجاز لبند واحد على الأقل.');
     await apiPost(`/projects/${doc.id}/progress-bills`, { billDate, lines });
     setBillPercents({});
   }
@@ -106,10 +124,9 @@ export default function ProjectDetailPage() {
       <Notice notice={notice} />
 
       <div className="grid cols-2">
-        <div className="card">
-          <h2>مراحل المشروع</h2>
+        <Panel title="مراحل المشروع" flush>
           {doc.stages.length === 0 ? (
-            <p className="muted">لا توجد مراحل.</p>
+            <Empty bare title="لا مراحل بعد" detail="مراحل المشروع تُرتَّب وتُتابَع من هنا." />
           ) : (
             <DataTable
               rows={doc.stages}
@@ -122,13 +139,16 @@ export default function ProjectDetailPage() {
             />
           )}
           {can('projects.manage') && (
-            <>
-              <label className="field">
-                <span>مرحلة جديدة</span>
-                <input className="input" value={stageName} onChange={(event) => setStageName(event.target.value)} />
-              </label>
+            <div className="panel-foot">
+              <input
+                className="input"
+                aria-label="اسم المرحلة الجديدة"
+                placeholder="اسم المرحلة الجديدة"
+                value={stageName}
+                onChange={(event) => setStageName(event.target.value)}
+              />
               <button
-                className="btn sm"
+                className="btn sm primary"
                 type="button"
                 disabled={busy || !stageName.trim()}
                 onClick={() =>
@@ -140,30 +160,50 @@ export default function ProjectDetailPage() {
               >
                 إضافة مرحلة
               </button>
-            </>
+            </div>
           )}
-        </div>
+        </Panel>
 
-        <div className="card">
-          <h2>بند جديد في جدول الكميات</h2>
+        <Panel title="بند جديد في جدول الكميات">
           {can('projects.manage') ? (
             <>
               <div className="form-grid">
                 <label className="field">
                   <span>الرمز</span>
-                  <input className="input" dir="ltr" value={term.code} onChange={(event) => setTerm({ ...term, code: event.target.value })} />
+                  <input
+                    className="input"
+                    dir="ltr"
+                    value={term.code}
+                    onChange={(event) => setTerm({ ...term, code: event.target.value })}
+                  />
                 </label>
                 <label className="field">
                   <span>الوصف</span>
-                  <input className="input" value={term.description} onChange={(event) => setTerm({ ...term, description: event.target.value })} />
+                  <input
+                    className="input"
+                    value={term.description}
+                    onChange={(event) => setTerm({ ...term, description: event.target.value })}
+                  />
                 </label>
                 <label className="field">
                   <span>الكمية</span>
-                  <input className="input" dir="ltr" inputMode="decimal" value={term.qty} onChange={(event) => setTerm({ ...term, qty: event.target.value })} />
+                  <input
+                    className="input"
+                    dir="ltr"
+                    inputMode="decimal"
+                    value={term.qty}
+                    onChange={(event) => setTerm({ ...term, qty: event.target.value })}
+                  />
                 </label>
                 <label className="field">
                   <span>سعر الوحدة</span>
-                  <input className="input" dir="ltr" inputMode="decimal" value={term.unitValue} onChange={(event) => setTerm({ ...term, unitValue: event.target.value })} />
+                  <input
+                    className="input"
+                    dir="ltr"
+                    inputMode="decimal"
+                    value={term.unitValue}
+                    onChange={(event) => setTerm({ ...term, unitValue: event.target.value })}
+                  />
                 </label>
               </div>
               <button
@@ -188,74 +228,91 @@ export default function ProjectDetailPage() {
           ) : (
             <p className="muted">لا تملك صلاحية تعديل المشروع.</p>
           )}
-        </div>
+        </Panel>
       </div>
 
-      <div className="card">
-        <h2>جدول الكميات (BOQ)</h2>
+      <Panel title="جدول الكميات (BOQ)" flush>
         {doc.boq.length === 0 ? (
-          <p className="muted">لا توجد بنود بعد.</p>
+          <Empty
+            bare
+            title="جدول الكميات فارغ"
+            detail="أضف بنداً أعلاه (رمزٌ ووصفٌ وسعر وحدة) ليُصرف عليه المستخلص."
+          />
         ) : (
           <>
-            <div className="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>الرمز</th>
-                    <th>الوصف</th>
-                    <th>الكمية</th>
-                    <th>سعر الوحدة</th>
-                    <th>القيمة</th>
-                    <th>المستخلص سابقاً</th>
-                    <th>نسبة هذا المستخلص %</th>
+            <TableFrame>
+              <thead>
+                <tr>
+                  <th>الرمز</th>
+                  <th>الوصف</th>
+                  <th>الكمية</th>
+                  <th>سعر الوحدة</th>
+                  <th>القيمة</th>
+                  <th>المستخلص سابقاً</th>
+                  <th>نسبة هذا المستخلص %</th>
+                </tr>
+              </thead>
+              <tbody>
+                {doc.boq.map((entry) => (
+                  <tr key={entry.id}>
+                    <td dir="ltr">{entry.code}</td>
+                    <td>{entry.description}</td>
+                    <td className="num">{quantity(entry.qty)}</td>
+                    <td className="num">{money(entry.unitValue)}</td>
+                    <td className="num">{money(entry.totalValue)}</td>
+                    <td className="num">{money(entry.billedValue)}</td>
+                    <td>
+                      <input
+                        className="input"
+                        dir="ltr"
+                        inputMode="decimal"
+                        value={billPercents[entry.id] ?? ''}
+                        onChange={(event) =>
+                          setBillPercents((current) => ({ ...current, [entry.id]: event.target.value }))
+                        }
+                      />
+                    </td>
                   </tr>
-                </thead>
-                <tbody>
-                  {doc.boq.map((entry) => (
-                    <tr key={entry.id}>
-                      <td dir="ltr">{entry.code}</td>
-                      <td>{entry.description}</td>
-                      <td className="num">{quantity(entry.qty)}</td>
-                      <td className="num">{money(entry.unitValue)}</td>
-                      <td className="num">{money(entry.totalValue)}</td>
-                      <td className="num">{money(entry.billedValue)}</td>
-                      <td>
-                        <input
-                          className="input"
-                          dir="ltr"
-                          inputMode="decimal"
-                          value={billPercents[entry.id] ?? ''}
-                          onChange={(event) => setBillPercents((current) => ({ ...current, [entry.id]: event.target.value }))}
-                        />
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                ))}
+              </tbody>
+            </TableFrame>
 
             {can('projects.manage') && (
               <div className="row">
                 <label className="field">
                   <span>تاريخ المستخلص</span>
-                  <input className="input" type="date" dir="ltr" value={billDate} onChange={(event) => setBillDate(event.target.value)} />
+                  <input
+                    className="input"
+                    type="date"
+                    dir="ltr"
+                    value={billDate}
+                    onChange={(event) => setBillDate(event.target.value)}
+                  />
                 </label>
-                <button className="btn primary" type="button" disabled={busy} onClick={() => run(createBill, 'تم إنشاء المستخلص كمسودة.')}>
+                <button
+                  className="btn primary"
+                  type="button"
+                  disabled={busy}
+                  onClick={() => run(createBill, 'تم إنشاء المستخلص كمسودة.')}
+                >
                   إنشاء مستخلص
                 </button>
               </div>
             )}
           </>
         )}
-      </div>
+      </Panel>
 
-      <div className="card">
-        <h2>المستخلصات</h2>
+      <Panel title="المستخلصات" flush>
         {can('projects.bill.post') && (
           <div className="form-grid">
             <label className="field">
               <span>حساب الإيراد</span>
-              <select className="input" value={revenueAccountId} onChange={(event) => setRevenueAccountId(event.target.value)}>
+              <select
+                className="input"
+                value={revenueAccountId}
+                onChange={(event) => setRevenueAccountId(event.target.value)}
+              >
                 <option value="">— افتراضي الربط المحاسبي —</option>
                 {postable.map((account) => (
                   <option key={account.id} value={account.id}>
@@ -266,7 +323,11 @@ export default function ProjectDetailPage() {
             </label>
             <label className="field">
               <span>حساب المدينين</span>
-              <select className="input" value={receivableAccountId} onChange={(event) => setReceivableAccountId(event.target.value)}>
+              <select
+                className="input"
+                value={receivableAccountId}
+                onChange={(event) => setReceivableAccountId(event.target.value)}
+              >
                 <option value="">— افتراضي الربط المحاسبي —</option>
                 {postable.map((account) => (
                   <option key={account.id} value={account.id}>
@@ -281,20 +342,30 @@ export default function ProjectDetailPage() {
         <DataTable
           rows={bills.data ?? []}
           rowKey={(row) => row.id}
+          empty="لا مستخلصات بعد — تُنشأ المستخلصات من بنود جدول الكميات."
           columns={[
             { key: 'number', header: 'الرقم', align: 'ltr', cell: (row) => row.number ?? 'مسودة' },
             { key: 'date', header: 'التاريخ', align: 'ltr', cell: (row) => shortDate(row.billDate) },
             { key: 'gross', header: 'الإجمالي', align: 'num', cell: (row) => money(row.grossValue) },
             { key: 'retention', header: 'المحتجز', align: 'num', cell: (row) => money(row.retentionValue) },
             { key: 'net', header: 'الصافي', align: 'num', cell: (row) => money(row.netValue) },
-            { key: 'status', header: 'الحالة', cell: (row) => <span className="badge">{statusLabel(row.status)}</span> },
+            {
+              key: 'status',
+              header: 'الحالة',
+              cell: (row) => <span className="badge">{statusLabel(row.status)}</span>,
+            },
             {
               key: 'actions',
               header: '',
               cell: (row) => (
                 <span className="row">
                   {row.status === 'draft' && can('projects.bill.post') && (
-                    <button className="btn sm primary" type="button" disabled={busy} onClick={() => run(() => postBill(row.id), 'تم ترحيل المستخلص.')}>
+                    <button
+                      className="btn sm primary"
+                      type="button"
+                      disabled={busy}
+                      onClick={() => run(() => postBill(row.id), 'تم ترحيل المستخلص.')}
+                    >
                       ترحيل
                     </button>
                   )}
@@ -303,7 +374,15 @@ export default function ProjectDetailPage() {
                       className="btn sm"
                       type="button"
                       disabled={busy}
-                      onClick={() => run(() => apiPost(`/projects/progress-bills/${row.id}/release-retention`, { branchId: doc.branchId ?? undefined }), 'تم الإفراج عن المحتجز.')}
+                      onClick={() =>
+                        run(
+                          () =>
+                            apiPost(`/projects/progress-bills/${row.id}/release-retention`, {
+                              branchId: doc.branchId ?? undefined,
+                            }),
+                          'تم الإفراج عن المحتجز.',
+                        )
+                      }
                     >
                       الإفراج عن المحتجز
                     </button>
@@ -313,12 +392,20 @@ export default function ProjectDetailPage() {
             },
           ]}
         />
-      </div>
+      </Panel>
       <div className="toolbar">
-        <Link className="btn" href={`/projects/${projectId}/board`}>لوحة كانبان</Link>
-        <Link className="btn" href={`/projects/${projectId}/gantt`}>جانت</Link>
-        <Link className="btn" href={`/projects/${projectId}/time`}>الوقت</Link>
-        <Link className="btn" href={`/projects/${projectId}/cost`}>التكلفة</Link>
+        <Link className="btn" href={`/projects/${projectId}/board`}>
+          لوحة كانبان
+        </Link>
+        <Link className="btn" href={`/projects/${projectId}/gantt`}>
+          جانت
+        </Link>
+        <Link className="btn" href={`/projects/${projectId}/time`}>
+          الوقت
+        </Link>
+        <Link className="btn" href={`/projects/${projectId}/cost`}>
+          التكلفة
+        </Link>
       </div>
       <CommentsPanel entityType="project" entityId={projectId} />
     </Screen>

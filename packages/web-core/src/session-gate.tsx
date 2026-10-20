@@ -75,10 +75,24 @@ export function SessionGate(props: SessionGateProps) {
 
   if (status === 'loading') return <>{boot ?? <BootCard />}</>;
 
-  if (status === 'anonymous') return <>{login({ initialError: error })}</>;
+  /*
+   * ⚠️ تُرسم القشور كعناصر `<Shell />` ولا تُنادى كدوالّ `shell({ children })`.
+   *
+   * النداء المباشر كان يُنفّذ خطّافات القشرة (usePathname · useState · useQuery …) داخل
+   * شجرة `SessionGate` نفسها، فيرى React قائمة خطّافاتٍ تتغيّر بين شاشة الدخول والقشرة:
+   * «Rendered more/fewer hooks than expected» ثم انهيار الشاشة بالكامل بعد أول دخول.
+   * وهذا هو الخطأ الذي كان يُبلَّغ عنه عند `platform-guard.tsx:36` — موضع `usePathname`
+   * أول خطّافٍ في القشرة، لا عطبه.
+   */
+  const Login = login;
+  if (status === 'anonymous') return <Login initialError={error} />;
 
   // AUD-13 — قشرة الموظف على مساره وحده: `/marina` و`/migration` ليستا تطبيق الموظف.
-  if (employeeShell && policy?.isEmployeeSurface(pathname)) return <>{employeeShell({ children })}</>;
+  if (employeeShell && policy?.isEmployeeSurface(pathname)) {
+    const EmployeeShell = employeeShell;
+    return <EmployeeShell>{children}</EmployeeShell>;
+  }
 
-  return <>{shell({ children })}</>;
+  const Shell = shell;
+  return <Shell>{children}</Shell>;
 }

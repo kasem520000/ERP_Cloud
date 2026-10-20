@@ -10,7 +10,8 @@ import { countryCodeSchema, nationalAddressSchema, phoneListSchema, versionSchem
  *
  * Exactly one row per tenant: the table is keyed by `tenant_id`, so the endpoint is an
  * upsert, not a collection. `logoFileId` points at a **finalised** row of the PHASE_04
- * `files` table — the bytes live in object storage, never in this table.
+ * `files` table for deployments that have object storage; `logoDataUrl` carries the same
+ * mark inline so a printed document stays self-contained (no session, no expiring URL).
  */
 
 export const einvoiceFlagsSchema = z
@@ -29,6 +30,7 @@ export const companyProfileDtoSchema = z.object({
   taxNo: z.string().nullable(),
   crNo: z.string().nullable(),
   logoFileId: uuidSchema.nullable(),
+  logoDataUrl: z.string().nullable(),
   address: nationalAddressSchema.nullable(),
   phones: z.array(z.string()),
   email: z.string().nullable(),
@@ -57,6 +59,13 @@ export const companyProfilePutSchema = z
       .optional(),
     crNo: z.string().trim().max(20).nullable().optional(),
     logoFileId: uuidSchema.nullable().optional(),
+    /** Inline logo — `data:image/(png|jpeg|webp);base64,…`, at most 700 KB of text. */
+    logoDataUrl: z
+      .string()
+      .max(700_000, 'الشعار أكبر من الحدّ المسموح (700 كيلوبايت)')
+      .regex(/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/, 'الشعار يجب أن يكون صورة PNG أو JPEG أو WebP')
+      .nullable()
+      .optional(),
     address: nationalAddressSchema.nullable().optional(),
     phones: phoneListSchema.optional(),
     email: z.string().trim().email().max(320).nullable().optional(),

@@ -71,7 +71,7 @@ describe('شاشة الإنتاج — الترجمة بين الخادم وال�
     });
     expect(estimate.totalValue).toBe('250.00'); // ‏2.5×100 + 0×10
     expect(estimate.perKg).toBe('2.2727');
-    expect(estimate.unvalued).toBe(1); // ‏السكر بلا قيمة ⇒ الخادم يرفض قبل الصرف
+ expect(estimate.unvalued).toBe(1); // ‏السكر بلا قيمة الخادم يرفض قبل الصرف
     expect(mapOfficialStock(undefined)).toEqual([]);
     expect(mapOfficialStock(null)).toEqual([]);
   });

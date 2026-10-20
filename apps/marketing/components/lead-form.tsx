@@ -91,7 +91,7 @@ export function LeadForm({ kind, presetPlan }: { kind: LeadFormKind; presetPlan?
     const success = leadSuccessMessage(accepted.reference);
     return (
       <section className="card lead-success">
-        <h2>{success.titleAr}</h2>
+        <h1>{success.titleAr}</h1>
         <p className="muted">{success.bodyAr}</p>
         <p className="lead-reference">
           <span className="muted">رقم الطلب</span>{' '}
@@ -105,7 +105,7 @@ export function LeadForm({ kind, presetPlan }: { kind: LeadFormKind; presetPlan?
 
   return (
     <section className="card">
-      <h2>{config.headingAr}</h2>
+      <h1>{config.headingAr}</h1>
       <p className="muted">{config.introAr}</p>
 
       <form className="form lead-form" onSubmit={submit} noValidate>

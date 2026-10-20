@@ -2,9 +2,18 @@
 
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+import { Panel } from '@erp/ui';
 
 import { DataTable, Notice, QueryView } from '../../../components/data-view';
-import { InvoiceLines, TotalsPanel, computeTotals, emptyLine, filledLines, toApiLines, type LineDraft } from '../../../components/invoice-editor';
+import {
+  InvoiceLines,
+  TotalsPanel,
+  computeTotals,
+  emptyLine,
+  filledLines,
+  toApiLines,
+  type LineDraft,
+} from '../../../components/invoice-editor';
 import { Screen } from '../../../components/screen';
 import { ApiError, apiList, apiPost } from '../../../lib/api';
 import {
@@ -79,7 +88,10 @@ export default function QuotationsPage() {
   const branchRows = branches.data ?? [];
   const warehouseRows = warehouses.data ?? [];
   const effectiveBranch = branchId || defaultOf(branchRows)?.id || '';
-  const effectiveWarehouse = warehouseId || defaultOf(warehouseRows.filter((row) => !effectiveBranch || row.branchId === effectiveBranch))?.id || '';
+  const effectiveWarehouse =
+    warehouseId ||
+    defaultOf(warehouseRows.filter((row) => !effectiveBranch || row.branchId === effectiveBranch))?.id ||
+    '';
   const totals = computeTotals(lines, { priceIncludesVat: includesVat });
 
   const customerOf = (row: Quotation) => {
@@ -93,8 +105,10 @@ export default function QuotationsPage() {
     setBusy(true);
     setNotice(undefined);
     try {
-      if (filledLines(lines).length === 0) throw new ApiError(422, 'VALIDATION_FAILED', 'أضف سطراً واحداً على الأقل.');
-      if (!partyId && !cashName.trim()) throw new ApiError(422, 'VALIDATION_FAILED', 'اختر عميلاً أو اكتب اسم العميل.');
+      if (filledLines(lines).length === 0)
+        throw new ApiError(422, 'VALIDATION_FAILED', 'أضف سطراً واحداً على الأقل.');
+      if (!partyId && !cashName.trim())
+        throw new ApiError(422, 'VALIDATION_FAILED', 'اختر عميلاً أو اكتب اسم العميل.');
       const quotation = await apiPost<Quotation>('/sales/quotations', {
         branchId: effectiveBranch,
         warehouseId: effectiveWarehouse || undefined,
@@ -142,103 +156,194 @@ export default function QuotationsPage() {
       }
     >
       {open ? (
-        <form className="card" onSubmit={save}>
-          <div className="form-grid">
-            <label className="field">
-              <span>الفرع *</span>
-              <select className="input" value={effectiveBranch} onChange={(event) => setBranchId(event.target.value)} required>
-                {branchOptions(branchRows).map((option) => (
-                  <option key={option.id} value={option.id}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="field">
-              <span>المستودع</span>
-              <select className="input" value={effectiveWarehouse} onChange={(event) => setWarehouseId(event.target.value)}>
-                <option value="">— بدون —</option>
-                {warehouseRows.map((row) => (
-                  <option key={row.id} value={row.id}>
-                    {arabicName(row)}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="field">
-              <span>العميل</span>
-              <select className="input" value={partyId} onChange={(event) => setPartyId(event.target.value)}>
-                <option value="">— عميل نقدي —</option>
-                {(parties.data ?? []).map((row) => (
-                  <option key={row.id} value={row.id}>
-                    {partyLabel(row)}
-                  </option>
-                ))}
-              </select>
-            </label>
-            {!partyId && (
+        <form onSubmit={save}>
+          <Panel title="عرض سعر جديد">
+            <p className="ui-panel-hint">
+              صالح حتى تاريخ محدد؛ لا يؤثر على المخزون أو المحاسبة حتى يتحوّل إلى فاتورة.
+            </p>
+            <div className="form-grid">
               <label className="field">
-                <span>اسم العميل *</span>
-                <input className="input" value={cashName} onChange={(event) => setCashName(event.target.value)} required />
+                <span>الفرع *</span>
+                <select
+                  className="input"
+                  value={effectiveBranch}
+                  onChange={(event) => setBranchId(event.target.value)}
+                  required
+                >
+                  {branchOptions(branchRows).map((option) => (
+                    <option key={option.id} value={option.id}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
               </label>
-            )}
-            <label className="field">
-              <span>صالح حتى</span>
-              <input className="input" type="date" value={validUntil} min={today()} onChange={(event) => setValidUntil(event.target.value)} />
-            </label>
-            <label className="field">
-              <span>الأسعار شاملة الضريبة</span>
-              <span className="row">
-                <input type="checkbox" checked={includesVat} onChange={(event) => setIncludesVat(event.target.checked)} />
-                <span className="muted small">تُستخرج الضريبة من السعر بدل إضافتها إليه.</span>
+              <label className="field">
+                <span>المستودع</span>
+                <select
+                  className="input"
+                  value={effectiveWarehouse}
+                  onChange={(event) => setWarehouseId(event.target.value)}
+                >
+                  <option value="">— بدون —</option>
+                  {warehouseRows.map((row) => (
+                    <option key={row.id} value={row.id}>
+                      {arabicName(row)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="field">
+                <span>العميل</span>
+                <select
+                  className="input"
+                  value={partyId}
+                  onChange={(event) => setPartyId(event.target.value)}
+                >
+                  <option value="">— عميل نقدي —</option>
+                  {(parties.data ?? []).map((row) => (
+                    <option key={row.id} value={row.id}>
+                      {partyLabel(row)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              {!partyId && (
+                <label className="field">
+                  <span>اسم العميل *</span>
+                  <input
+                    className="input"
+                    value={cashName}
+                    onChange={(event) => setCashName(event.target.value)}
+                    required
+                  />
+                </label>
+              )}
+              <label className="field">
+                <span>صالح حتى</span>
+                <input
+                  className="input"
+                  type="date"
+                  value={validUntil}
+                  min={today()}
+                  onChange={(event) => setValidUntil(event.target.value)}
+                />
+              </label>
+              <label className="field">
+                <span>الأسعار شاملة الضريبة</span>
+                <span className="row">
+                  <input
+                    type="checkbox"
+                    checked={includesVat}
+                    onChange={(event) => setIncludesVat(event.target.checked)}
+                  />
+                  <span className="muted small">تُستخرج الضريبة من السعر بدل إضافتها إليه.</span>
+                </span>
+              </label>
+            </div>
+
+            <h3>الأصناف</h3>
+            <InvoiceLines
+              lines={lines}
+              onChange={setLines}
+              items={items.data ?? []}
+              taxGroups={taxGroups.data ?? []}
+              priceField="salePrice"
+            />
+
+            <h3>الإجماليات</h3>
+            <TotalsPanel totals={totals} />
+
+            <div className="ui-form-actions">
+              <span className="ui-form-actions-note">
+                يُحفَظ العرض مسعّراً ويمكن تحويله لفاتورة من الجدول.
               </span>
-            </label>
-          </div>
-
-          <h2>الأصناف</h2>
-          <InvoiceLines lines={lines} onChange={setLines} items={items.data ?? []} taxGroups={taxGroups.data ?? []} priceField="salePrice" />
-
-          <h2>الإجماليات</h2>
-          <TotalsPanel totals={totals} />
-
-          <button className="btn primary" type="submit" disabled={busy}>
-            {busy ? 'جارٍ الحفظ…' : 'إصدار عرض السعر'}
-          </button>
+              <div className="ui-form-actions-buttons">
+                <button className="btn primary" type="submit" disabled={busy}>
+                  {busy ? 'جارٍ الحفظ…' : 'إصدار عرض السعر'}
+                </button>
+              </div>
+            </div>
+          </Panel>
         </form>
       ) : null}
 
       <Notice notice={notice} />
 
-      <QueryView query={quotations} empty="لا توجد عروض أسعار" emptyDetail="أصدر عرضاً مسعّراً للعميل، وحوّله إلى فاتورة عند الموافقة.">
+      <QueryView
+        query={quotations}
+        empty="لا توجد عروض أسعار"
+        emptyDetail="أصدر عرضاً مسعّراً للعميل، وحوّله إلى فاتورة عند الموافقة."
+        wrapEmpty={(node) => (
+          <Panel title="عروض الأسعار" hint="العرض لا يُنشئ قيداً؛ التحويل إلى فاتورة هو ما يُرحَّل." flush>
+            {node}
+          </Panel>
+        )}
+      >
         {(rows) => (
-          <div className="card">
+          <Panel title="عروض الأسعار" hint="العرض لا يُنشئ قيداً؛ التحويل إلى فاتورة هو ما يُرحَّل." flush>
             <DataTable
               columns={[
-                { key: 'number', header: 'رقم العرض', align: 'ltr', cell: (row: Quotation) => row.number ?? '—' },
+                {
+                  key: 'number',
+                  header: 'رقم العرض',
+                  align: 'ltr',
+                  cell: (row: Quotation) => row.number ?? '—',
+                },
                 { key: 'party', header: 'العميل', cell: (row: Quotation) => customerOf(row) },
-                { key: 'total', header: 'الإجمالي', align: 'num', cell: (row: Quotation) => money(row.total) },
-                { key: 'validUntil', header: 'صالح حتى', cell: (row: Quotation) => (row.validUntil ? shortDate(row.validUntil) : 'غير محدّد') },
+                {
+                  key: 'total',
+                  header: 'الإجمالي',
+                  align: 'num',
+                  cell: (row: Quotation) => money(row.total),
+                },
+                {
+                  key: 'validUntil',
+                  header: 'صالح حتى',
+                  cell: (row: Quotation) => (row.validUntil ? shortDate(row.validUntil) : 'غير محدّد'),
+                },
                 { key: 'created', header: 'التاريخ', cell: (row: Quotation) => shortDate(row.createdAt) },
-                { key: 'status', header: 'الحالة', cell: (row: Quotation) => STATUS_LABELS[row.status] ?? row.status },
+                {
+                  key: 'status',
+                  header: 'الحالة',
+                  cell: (row: Quotation) => STATUS_LABELS[row.status] ?? row.status,
+                },
                 {
                   key: 'actions',
                   header: '',
                   cell: (row: Quotation) => (
                     <span className="row">
-                      <button type="button" className="btn sm" onClick={() => router.push(`/sales/quotations/${row.id}`)}>
+                      <button
+                        type="button"
+                        className="btn sm"
+                        onClick={() => router.push(`/sales/quotations/${row.id}`)}
+                      >
                         فتح
                       </button>
                       {row.status === 'draft' && can('esign.manage') ? (
-                        <button type="button" className="btn sm" disabled={busy} onClick={() => router.push(`/sales/quotations/${row.id}/esign`)}>
+                        <button
+                          type="button"
+                          className="btn sm"
+                          disabled={busy}
+                          onClick={() => router.push(`/sales/quotations/${row.id}/esign`)}
+                        >
                           إرسال للتوقيع
                         </button>
                       ) : null}
                       {row.status === 'converted' && row.convertedInvoiceId ? (
-                        <button type="button" className="btn sm" onClick={() => router.push(`/sales/invoices/${row.convertedInvoiceId}`)}>
+                        <button
+                          type="button"
+                          className="btn sm"
+                          onClick={() => router.push(`/sales/invoices/${row.convertedInvoiceId}`)}
+                        >
                           الفاتورة
                         </button>
                       ) : row.status === 'draft' && can('sales.invoice.create') ? (
-                        <button type="button" className="btn sm primary" disabled={busy} onClick={() => convert(row)}>
+                        <button
+                          type="button"
+                          className="btn sm primary"
+                          disabled={busy}
+                          onClick={() => convert(row)}
+                        >
                           تحويل إلى فاتورة
                         </button>
                       ) : row.status !== 'draft' ? (
@@ -251,7 +356,7 @@ export default function QuotationsPage() {
               rows={rows}
               rowKey={(row) => row.id}
             />
-          </div>
+          </Panel>
         )}
       </QueryView>
     </Screen>

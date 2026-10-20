@@ -24,3 +24,6 @@ backups/
 !deploy/.env.example
 logs/
 deploy/jwt-*.pem
+
+# أدوات تطوير محلية (codemods/تجارب) لا تدخل المستودع
+.scratch/

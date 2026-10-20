@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useState } from 'react';
+import { FormSection, Panel } from '@erp/ui';
 
 import { Notice } from '../../../../../components/data-view';
 import { Screen } from '../../../../../components/screen';
@@ -68,37 +69,67 @@ export default function QuotationEsignPage() {
       <Notice notice={notice} />
       {row && row.kind === 'quotation' ? (
         <p className="muted">
-          {row.number ?? 'عرض سعر'} — {money(row.total, row.currency)} — {row.status === 'draft' ? 'مفتوح' : row.status}
+          {row.number ?? 'عرض سعر'} — {money(row.total, row.currency)} —{' '}
+          {row.status === 'draft' ? 'مفتوح' : row.status}
         </p>
       ) : null}
 
-      <form className="card" onSubmit={send}>
-        <div className="form-grid">
-          <label className="field">
-            <span>بريد الموقّع *</span>
-            <input className="input" type="email" value={signerEmail} onChange={(event) => setSignerEmail(event.target.value)} required />
-          </label>
-          <label className="field">
-            <span>اسم الموقّع</span>
-            <input className="input" value={signerName} onChange={(event) => setSignerName(event.target.value)} />
-          </label>
-          <label className="field">
-            <span>رسالة</span>
-            <input className="input" value={message} onChange={(event) => setMessage(event.target.value)} />
-          </label>
-        </div>
-        <button className="btn primary" type="submit" disabled={busy || row?.status !== 'draft'}>
-          {busy ? 'جارٍ الإرسال…' : 'إرسال الرابط'}
-        </button>
+      <form onSubmit={send}>
+        <Panel>
+          <FormSection
+            title="إرسال عرض السعر للتوقيع"
+            hint="البريد إلزامي، والاسم والرسالة اختياريان؛ الرسالة تظهر للعميل في صفحة التوقيع."
+            actions={
+              <button className="btn primary" type="submit" disabled={busy || row?.status !== 'draft'}>
+                {busy ? 'جارٍ الإرسال…' : 'إرسال الرابط'}
+              </button>
+            }
+          >
+            <div className="form-grid">
+              <label className="field">
+                <span>بريد الموقّع *</span>
+                <input
+                  className="input"
+                  type="email"
+                  value={signerEmail}
+                  onChange={(event) => setSignerEmail(event.target.value)}
+                  required
+                />
+              </label>
+              <label className="field">
+                <span>اسم الموقّع</span>
+                <input
+                  className="input"
+                  value={signerName}
+                  onChange={(event) => setSignerName(event.target.value)}
+                />
+              </label>
+              <label className="field">
+                <span>رسالة</span>
+                <input
+                  className="input"
+                  value={message}
+                  onChange={(event) => setMessage(event.target.value)}
+                />
+              </label>
+            </div>
+          </FormSection>
+        </Panel>
       </form>
 
       {issued ? (
-        <section className="card">
-          <h2>الرابط</h2>
-          <p className="muted small">انسخه إذا لم يصل البريد. في وضع التطوير يظهر الرمز هنا لأن نص الرسالة لا يُطبع.</p>
-          <input className="input" readOnly value={issued.href} onFocus={(event) => event.currentTarget.select()} />
+        <Panel
+          title="الرابط"
+          hint={<>انسخه إذا لم يصل البريد. في وضع التطوير يظهر الرمز هنا لأن نص الرسالة لا يُطبع.</>}
+        >
+          <input
+            className="input"
+            readOnly
+            value={issued.href}
+            onFocus={(event) => event.currentTarget.select()}
+          />
           {issued.previewOtp ? <p>رمز التحقق: {issued.previewOtp}</p> : null}
-        </section>
+        </Panel>
       ) : null}
     </Screen>
   );

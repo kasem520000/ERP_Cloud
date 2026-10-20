@@ -1,10 +1,12 @@
 'use client';
 
 import { useState } from 'react';
+import { Panel } from '@erp/ui';
 
 import { ApiError, apiData, apiPost } from '../../../lib/api';
 import { ErrorBox, Loading, Screen } from '../../../components/screen';
 import { useQuery } from '../../../lib/use-query';
+import { dateText } from '../../../lib/format';
 
 type Subscription = {
   status: string;
@@ -47,9 +49,11 @@ export default function LicensePage() {
   return (
     <Screen title="الترخيص" subtitle="حالة اشتراك منشأتك في الخدمة." crumbs={['الدعم الفني']}>
       {subscription.status === 'loading' && <Loading rows={3} />}
-      {subscription.status === 'error' && <ErrorBox message={subscription.error} onRetry={subscription.reload} />}
+      {subscription.status === 'error' && (
+        <ErrorBox message={subscription.error} onRetry={subscription.reload} />
+      )}
       {subscription.status === 'success' && (
-        <section className="card">
+        <Panel title="بيانات الترخيص">
           {!subscription.data ? (
             <p className="alert warn">لا يوجد ترخيص فعّال لهذه المنشأة.</p>
           ) : (
@@ -68,22 +72,21 @@ export default function LicensePage() {
               <dd>{subscription.data.provider === 'stripe' ? 'Stripe' : 'تفعيل يدوي'}</dd>
               <dt>تاريخ التفعيل</dt>
               <dd dir="ltr">
-                {subscription.data.activated_at ? new Date(subscription.data.activated_at).toLocaleDateString('ar-SA') : '—'}
+                {subscription.data.activated_at ? dateText(subscription.data.activated_at) : '—'}
               </dd>
               <dt>ينتهي في</dt>
               <dd dir="ltr">
-                {subscription.data.current_period_end
-                  ? new Date(subscription.data.current_period_end).toLocaleDateString('ar-SA')
-                  : '—'}
+                {subscription.data.current_period_end ? dateText(subscription.data.current_period_end) : '—'}
               </dd>
             </dl>
           )}
-        </section>
+        </Panel>
       )}
 
-      <section className="card" style={{ marginTop: 18 }}>
-        <h2>طلب تفعيل</h2>
-        <p className="muted">اختر باقة وأرسل طلب تفعيل يدوي — تعتمده إدارة المنصة من لوحة التحكم.</p>
+      <Panel
+        title="طلب تفعيل"
+        hint={<>اختر باقة وأرسل طلب تفعيل يدوي — تعتمده إدارة المنصة من لوحة التحكم.</>}
+      >
         {plans.status === 'loading' && <Loading rows={2} />}
         {plans.status === 'error' && <ErrorBox message={plans.error} onRetry={plans.reload} />}
         {plans.status === 'success' &&
@@ -97,7 +100,11 @@ export default function LicensePage() {
             <div className="grid">
               <label className="field">
                 <span>الباقة</span>
-                <select className="input" value={selected} onChange={(event) => setSelected(event.target.value)}>
+                <select
+                  className="input"
+                  value={selected}
+                  onChange={(event) => setSelected(event.target.value)}
+                >
                   <option value="">— اختر باقة —</option>
                   {planList.map((plan) => (
                     <option key={plan.id} value={plan.id}>
@@ -121,13 +128,18 @@ export default function LicensePage() {
                 </p>
               )}
               <div>
-                <button className="btn primary" type="button" disabled={!selected || busy} onClick={() => void requestActivation()}>
+                <button
+                  className="btn primary"
+                  type="button"
+                  disabled={!selected || busy}
+                  onClick={() => void requestActivation()}
+                >
                   {busy ? 'جارٍ الإرسال…' : 'إرسال طلب التفعيل'}
                 </button>
               </div>
             </div>
           ))}
-      </section>
+      </Panel>
     </Screen>
   );
 }

@@ -31,17 +31,15 @@ describe('theme resolution', () => {
     expect(THEME_STORAGE_KEY).toBe('erp.theme');
   });
 
-  it('resolves system against the OS preference', () => {
-    expect(resolveTheme('system', true)).toBe('dark');
-    expect(resolveTheme('system', false)).toBe('light');
-    expect(resolveTheme('light', true)).toBe('light');
-    expect(resolveTheme('dark', false)).toBe('dark');
+  it('paints exactly the chosen appearance', () => {
+    expect(resolveTheme('light')).toBe('light');
+    expect(resolveTheme('dark')).toBe('dark');
   });
 
-  it('cycles light → dark → system', () => {
+  it('offers two appearances only — the OS-following option is retired', () => {
     expect(nextThemeChoice('light')).toBe('dark');
-    expect(nextThemeChoice('dark')).toBe('system');
-    expect(nextThemeChoice('system')).toBe('light');
+    expect(nextThemeChoice('dark')).toBe('light');
+    expect(isThemeChoice('system')).toBe(false);
   });
 
   it('rejects an unknown stored value instead of trusting it', () => {

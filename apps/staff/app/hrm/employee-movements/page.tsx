@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
+import { FilterBand, Panel, TableFrame } from '@erp/ui';
 import { Suspense, useState } from 'react';
 
 import { Empty, ErrorBox, Forbidden, Loading, Screen } from '../../../components/screen';
@@ -12,12 +13,12 @@ import { money } from '../../../lib/lookups';
 import { useQuery } from '../../../lib/use-query';
 
 /**
- * 📈 حركات الموظف — `Form_WPF/frmEmpInvs.xaml` («مبيعات ومشتريات موظف خلال الفترة»).
+ * حركات الموظف — `Form_WPF/frmEmpInvs.xaml` («مبيعات ومشتريات موظف خلال الفترة»).
  *
  * The window's filters are `👤 الموظف` («اختر الموظف...», with `الكل` beside it) ·
  * `🔄 نوع الحركة` (`مبيعات` · `مرتجع`, with `الكل` checked) · `📅 من تاريخ` ·
- * `📅 إلى تاريخ` · `🔍 عرض`, its grid is «📋 بيانات الحركات» — `نوع الحركة · 📅 التاريخ ·
- * رقم الفاتورة · 📦 الصنف · الكمية · 💵 السعر · إضافات · 💰 الإجمالي` — and its footer is
+ * ` إلى تاريخ` · ` عرض`, its grid is « بيانات الحركات» — `نوع الحركة · التاريخ ·
+ * رقم الفاتورة · الصنف · الكمية · السعر · إضافات · الإجمالي` — and its footer is
  * `💰 الإجمالي` (`txtSum`). `ShowResult` (L226) reads `Inv ⋈ Inv_Sub` on
  * `Inv.sales_emp` — the employee who made the sale — one row per line.
  *
@@ -76,8 +77,14 @@ const today = () => new Date().toISOString().slice(0, 10);
 
 function EmployeeMovements() {
   const search = useSearchParams();
-  const employees = useQuery<Employee[]>(() => apiFetch<{ data: Employee[] }>('/hrm/employees').then((body) => body.data), []);
-  const branches = useQuery<Branch[]>(() => apiFetch<{ data: Branch[] }>('/branches').then((body) => body.data), []);
+  const employees = useQuery<Employee[]>(
+    () => apiFetch<{ data: Employee[] }>('/hrm/employees').then((body) => body.data),
+    [],
+  );
+  const branches = useQuery<Branch[]>(
+    () => apiFetch<{ data: Branch[] }>('/branches').then((body) => body.data),
+    [],
+  );
 
   const [employeeId, setEmployeeId] = useState(search.get('employee') ?? '');
   const [allEmployees, setAllEmployees] = useState(false);
@@ -96,13 +103,28 @@ function EmployeeMovements() {
 
   const movements = useQuery<Envelope>(() => {
     if (!applied.employeeId && !applied.allEmployees) {
-      return Promise.resolve({ employeeId: null, allEmployees: false, branchId: null, from: applied.from, to: applied.to, movementType: applied.movementType, summary: EMPTY, rows: [] });
+      return Promise.resolve({
+        employeeId: null,
+        allEmployees: false,
+        branchId: null,
+        from: applied.from,
+        to: applied.to,
+        movementType: applied.movementType,
+        summary: EMPTY,
+        rows: [],
+      });
     }
-    const params = new URLSearchParams({ from: applied.from, to: applied.to, movement_type: applied.movementType });
+    const params = new URLSearchParams({
+      from: applied.from,
+      to: applied.to,
+      movement_type: applied.movementType,
+    });
     if (applied.employeeId) params.set('employee_id', applied.employeeId);
     if (applied.allEmployees) params.set('all_employees', '1');
     if (applied.branchId) params.set('branch_id', applied.branchId);
-    return apiFetch<{ data: Envelope }>(`/hrm/employee-movements?${params.toString()}`).then((body) => body.data);
+    return apiFetch<{ data: Envelope }>(`/hrm/employee-movements?${params.toString()}`).then(
+      (body) => body.data,
+    );
   }, [applied]);
 
   const rows = movements.data?.rows ?? [];
@@ -111,12 +133,12 @@ function EmployeeMovements() {
   return (
     <Screen
       title="حركات الموظف"
-      subtitle="📈 مبيعات ومشتريات موظف خلال الفترة — ما باعه الموظف، سطراً بسطر، من الفواتير المرحَّلة وحدها."
+      subtitle="مبيعات ومشتريات موظف خلال الفترة — ما باعه الموظف، سطراً بسطر، من الفواتير المرحَّلة وحدها."
       crumbs={['الموظفين والرواتب', 'التقارير']}
       actions={
         <>
           <button className="btn" type="button" onClick={() => window.print()} disabled={rows.length === 0}>
-            🖨️ طباعة
+            طباعة
           </button>
           <button
             className="btn"
@@ -125,7 +147,18 @@ function EmployeeMovements() {
             onClick={() =>
               downloadCsv(
                 `employee-movements-${applied.employeeId || 'all'}.csv`,
-                ['م', 'نوع الحركة', 'التاريخ', 'رقم الفاتورة', 'الفرع', 'الصنف', 'الكمية', 'السعر', 'إضافات', 'الإجمالي'],
+                [
+                  'م',
+                  'نوع الحركة',
+                  'التاريخ',
+                  'رقم الفاتورة',
+                  'الفرع',
+                  'الصنف',
+                  'الكمية',
+                  'السعر',
+                  'إضافات',
+                  'الإجمالي',
+                ],
                 rows.map((row) => [
                   row.seq,
                   row.movementType,
@@ -141,15 +174,15 @@ function EmployeeMovements() {
               )
             }
           >
-            📊 تصدير CSV
+            تصدير CSV
           </button>
         </>
       }
     >
-      <div className="card tight no-print">
+      <FilterBand className="no-print">
         <div className="row" style={{ flexWrap: 'wrap', alignItems: 'flex-end' }}>
           <label className="field" style={{ margin: 0, minWidth: 240, flex: 1 }}>
-            <span>👤 الموظف</span>
+            <span>الموظف</span>
             <select
               className="input"
               value={employeeId}
@@ -165,11 +198,15 @@ function EmployeeMovements() {
             </select>
           </label>
           <label className="check" style={{ margin: 0 }}>
-            <input type="checkbox" checked={allEmployees} onChange={(event) => setAllEmployees(event.target.checked)} />
+            <input
+              type="checkbox"
+              checked={allEmployees}
+              onChange={(event) => setAllEmployees(event.target.checked)}
+            />
             الكل
           </label>
           <label className="field" style={{ margin: 0, minWidth: 200 }}>
-            <span>🏢 الفرع</span>
+            <span>الفرع</span>
             <select className="input" value={branchId} onChange={(event) => setBranchId(event.target.value)}>
               <option value="">كل الفروع</option>
               {(branches.data ?? []).map((branch) => (
@@ -180,11 +217,16 @@ function EmployeeMovements() {
             </select>
           </label>
           <label className="field" style={{ margin: 0, width: 160 }}>
-            <span>📅 من تاريخ</span>
-            <input className="input" type="date" value={from} onChange={(event) => setFrom(event.target.value)} />
+            <span>من تاريخ</span>
+            <input
+              className="input"
+              type="date"
+              value={from}
+              onChange={(event) => setFrom(event.target.value)}
+            />
           </label>
           <label className="field" style={{ margin: 0, width: 160 }}>
-            <span>📅 إلى تاريخ</span>
+            <span>إلى تاريخ</span>
             <input className="input" type="date" value={to} onChange={(event) => setTo(event.target.value)} />
           </label>
           <button
@@ -193,25 +235,39 @@ function EmployeeMovements() {
             disabled={!employeeId && !allEmployees}
             onClick={() => setApplied({ employeeId, allEmployees, branchId, from, to, movementType })}
           >
-            🔍 عرض
+            عرض
           </button>
         </div>
         <div className="row" style={{ flexWrap: 'wrap', marginTop: 8 }}>
-          <span className="group-label">🔄 نوع الحركة</span>
-          <button type="button" className={`btn sm${movementType === 'all' ? ' primary' : ''}`} onClick={() => setMovementType('all')}>
+          <span className="group-label">نوع الحركة</span>
+          <button
+            type="button"
+            className={`btn sm${movementType === 'all' ? ' primary' : ''}`}
+            onClick={() => setMovementType('all')}
+          >
             الكل
           </button>
-          <button type="button" className={`btn sm${movementType === 'sales' ? ' primary' : ''}`} onClick={() => setMovementType('sales')}>
+          <button
+            type="button"
+            className={`btn sm${movementType === 'sales' ? ' primary' : ''}`}
+            onClick={() => setMovementType('sales')}
+          >
             مبيعات
           </button>
-          <button type="button" className={`btn sm${movementType === 'returns' ? ' primary' : ''}`} onClick={() => setMovementType('returns')}>
+          <button
+            type="button"
+            className={`btn sm${movementType === 'returns' ? ' primary' : ''}`}
+            onClick={() => setMovementType('returns')}
+          >
             مرتجع
           </button>
         </div>
-      </div>
+      </FilterBand>
 
       {!applied.employeeId && !applied.allEmployees && (
-        <Empty title="اختر موظف" detail="«الكل» يعرض حركات كل موظف له مبيعات في الفترة." />
+        <Panel title="حركة الموظف" flush>
+          <Empty title="اختر موظف" detail="«الكل» يعرض حركات كل موظف له مبيعات في الفترة." />
+        </Panel>
       )}
       {(applied.employeeId || applied.allEmployees) && movements.status === 'loading' && <Loading />}
       {(applied.employeeId || applied.allEmployees) && movements.status === 'forbidden' && <Forbidden />}
@@ -221,18 +277,21 @@ function EmployeeMovements() {
       {(applied.employeeId || applied.allEmployees) && movements.status === 'success' && (
         <>
           <StatTiles>
-            <StatTile label="💰 الإجمالي" value={money(totals.total)} tone="ok" hint="المبيعات − المرتجع" />
+            <StatTile label="الإجمالي" value={money(totals.total)} tone="ok" hint="المبيعات − المرتجع" />
             <StatTile label="مبيعات" value={money(totals.salesTotal)} tone="brand" />
             <StatTile label="مرتجع" value={money(totals.returnsTotal)} />
             <StatTile label="عدد الفواتير" value={String(totals.invoices)} />
             <StatTile label="عدد الأسطر" value={String(totals.lines)} />
           </StatTiles>
 
-          {rows.length === 0 ? (
-            <Empty title="لا توجد حركات في هذه الفترة" detail="تأكد من التاريخين، أو أن فواتير الموظف مرحَّلة." />
-          ) : (
-            <div className="table-wrap">
-              <table>
+          <Panel title="حركات الفترة" flush>
+            {rows.length === 0 ? (
+              <Empty
+                title="لا توجد حركات في هذه الفترة"
+                detail="تأكد من التاريخين، أو أن فواتير الموظف مرحَّلة."
+              />
+            ) : (
+              <TableFrame>
                 <thead>
                   <tr>
                     <th>م</th>
@@ -245,7 +304,7 @@ function EmployeeMovements() {
                     <th className="num">السعر</th>
                     <th className="num">إضافات</th>
                     <th className="num">الإجمالي</th>
-                    <th>👁️ عرض</th>
+                    <th>عرض</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -263,7 +322,7 @@ function EmployeeMovements() {
                       <td className="num">{money(row.lineTotal)}</td>
                       <td>
                         <Link className="btn sm" href={`/sales/invoices/${row.invoiceId}`}>
-                          👁️ عرض
+                          عرض
                         </Link>
                       </td>
                     </tr>
@@ -271,14 +330,16 @@ function EmployeeMovements() {
                 </tbody>
                 <tfoot>
                   <tr>
-                    <th colSpan={9}>💰 الإجمالي</th>
+                    <th colSpan={9}>الإجمالي</th>
                     <th className="num">{money(totals.total)}</th>
-                    <th></th>
+                    <th>
+                      <span className="sr-only">إجراءات</span>
+                    </th>
                   </tr>
                 </tfoot>
-              </table>
-            </div>
-          )}
+              </TableFrame>
+            )}
+          </Panel>
         </>
       )}
     </Screen>

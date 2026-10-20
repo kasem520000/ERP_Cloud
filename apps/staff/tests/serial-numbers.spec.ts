@@ -9,7 +9,7 @@ import { SERIAL_MESSAGES, decideSerial, type SerialLookup } from '../lib/serial-
  * **بحروفها** كما في `frmInvSale.xaml.cs` (L733 · L769 · L780)، فيكون النقل مقيساً
  * لا موعوداً.
  */
-describe('serial search (🔢 التسلسلي)', () => {
+describe('serial search (التسلسلي)', () => {
   const available = (serialNo: string): SerialLookup => ({
     found: true,
     serialNo,

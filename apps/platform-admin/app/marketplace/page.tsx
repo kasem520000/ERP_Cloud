@@ -1,8 +1,10 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { Panel } from '@erp/ui';
 
 import { Screen } from '../../components/screen';
+import { Table, type Column } from '../../components/ui/table';
 import { ApiError, apiData, apiPost, apiPut } from '../../lib/api';
 import { useSession } from '../../lib/session';
 
@@ -43,7 +45,7 @@ type TenantRow = {
 };
 
 /**
- * 📊 قياسُ الاستعمال غير المرخّص كما يرجعه `GET /platform/marketplace/unlicensed-usage`.
+ * قياسُ الاستعمال غير المرخّص كما يرجعه `GET /platform/marketplace/unlicensed-usage`.
  * الشكل مرآةُ `UnlicensedUsageView` في `apps/api/src/modules/marketplace/marketplace.service.ts`
  * — فلو تغيّر عقدُ الخادم ظهر الفرق هنا في أول قراءة (‏`undefined` لا جدولٌ فارغ يوهم أنّ أحداً
  * لا يستعمل السطح).
@@ -61,7 +63,11 @@ type UnlicensedUsageRow = {
   firstAt: string | null;
   lastAt: string | null;
   topPaths: UnlicensedUsagePath[];
-  licence: { state: 'unlicensed' | 'disabled' | 'licensed'; enabledApps: string[]; installedAt: string | null };
+  licence: {
+    state: 'unlicensed' | 'disabled' | 'licensed';
+    enabledApps: string[];
+    installedAt: string | null;
+  };
   pendingRequest: { appCode: string; status: string; createdAt: string } | null;
   /** أعدادٌ بلا نافذة (كلُّ ما في جداول المنشأة) — بخلاف `writes` المقيّدة بـ`observedDays`. */
   footprint: {
@@ -205,6 +211,169 @@ export default function PlatformMarketplacePage() {
 
   const pendingCount = requests.filter((r) => r.status === 'pending').length;
 
+  const requestColumns: Array<Column<AddonRequestRow>> = [
+    {
+      key: 'tenant',
+      header: 'المنشأة',
+      cell: (req) => (
+        <>
+          <strong>{req.tenantName}</strong>
+          <div className="muted" style={{ fontSize: 12 }} dir="ltr">
+            {req.tenantCode}
+          </div>
+        </>
+      ),
+    },
+    {
+      key: 'app',
+      header: 'الباقة المطلوبة',
+      cell: (req) => (
+        <>
+          <strong>
+            {req.appIcon} {req.appNameAr}
+          </strong>
+          <div className="muted" style={{ fontSize: 12 }} dir="ltr">
+            {req.appCode} · {Number(req.monthlyPrice).toFixed(2)} SAR
+          </div>
+        </>
+      ),
+    },
+    { key: 'requester', header: 'مقدم الطلب', cell: (req) => req.requesterLabel },
+    { key: 'note', header: 'ملاحظة العميل', cell: (req) => req.note || '—' },
+    {
+      key: 'status',
+      header: 'الحالة',
+      cell: (req) => (
+        <span className={`chip${req.status === 'pending' ? ' on' : ''}`}>
+          {req.status === 'pending'
+            ? 'بانتظار الموافقة'
+            : req.status === 'approved'
+              ? 'تمت الموافقة'
+              : 'مرفوض'}
+        </span>
+      ),
+    },
+    {
+      key: 'decision',
+      header: 'رد/ملاحظة المنصة',
+      cell: (req) => (
+        <input
+          className="input"
+          placeholder="ملاحظة للعميل (اختياري)…"
+          value={decisionNotes[req.id] ?? req.decisionNote ?? ''}
+          onChange={(event) => setDecisionNotes((curr) => ({ ...curr, [req.id]: event.target.value }))}
+        />
+      ),
+    },
+    {
+      key: 'actions',
+      header: 'الإجراء',
+      cell: (req) => (
+        <div className="row" style={{ gap: 6 }}>
+          <button
+            className="btn primary"
+            type="button"
+            disabled={!canWrite || busy === req.id}
+            onClick={() => void decide(req, 'approved')}
+          >
+            موافقة وتفعيل
+          </button>
+          <button
+            className="btn"
+            type="button"
+            disabled={!canWrite || busy === req.id}
+            onClick={() => void decide(req, 'rejected')}
+          >
+            رفض
+          </button>
+        </div>
+      ),
+    },
+  ];
+
+  const usageColumns: Array<Column<UnlicensedUsageRow>> = [
+    {
+      key: 'tenant',
+      header: 'المنشأة',
+      grow: true,
+      cell: (row) => (
+        <>
+          <strong>{row.tenantName}</strong>
+          <div className="muted" style={{ fontSize: 12 }} dir="ltr">
+            {row.tenantCode} · {row.tenantStatus}
+          </div>
+          <div className="muted" style={{ fontSize: 12 }} dir="ltr">
+            {row.requiredApps.join(' | ')}
+          </div>
+        </>
+      ),
+    },
+    {
+      key: 'licence',
+      header: 'الترخيص الآن',
+      cell: (row) => licenceLabel(row.licence.state, row.licence.enabledApps),
+    },
+    { key: 'writes', header: 'كتاباتٌ مقاسة', numeric: true, cell: (row) => row.writes },
+    { key: 'actors', header: 'مستخدمون', numeric: true, cell: (row) => row.actors },
+    {
+      key: 'window',
+      header: 'أول / آخر قياس',
+      cell: (row) => (
+        <span style={{ fontSize: 12 }}>
+          {whenText(row.firstAt)}
+          <div className="muted">{whenText(row.lastAt)}</div>
+        </span>
+      ),
+    },
+    {
+      key: 'footprint',
+      header: 'حجم العمل الحقيقي (كلّ الوقت)',
+      cell: (row) => (
+        <span style={{ fontSize: 12 }}>
+          أوامر تحميل {row.footprint.loadOrders} · مستندات {row.footprint.documents} · دفعات إنتاج{' '}
+          {row.footprint.productionBatches}
+          <div className="muted">
+            حركات سيارة {row.footprint.stockMovements} · آخر نشاط {whenText(row.footprint.lastActivityAt)}
+          </div>
+        </span>
+      ),
+    },
+    {
+      key: 'paths',
+      header: 'المسارات',
+      ltr: true,
+      cell: (row) => (
+        <span style={{ fontSize: 12 }}>
+          {row.topPaths.map((pathRow) => (
+            <div key={`${pathRow.method} ${pathRow.path}`}>
+              {pathRow.method} {pathRow.path.replace('/api/v1', '')} ×{pathRow.writes}
+            </div>
+          ))}
+        </span>
+      ),
+    },
+    {
+      key: 'pending',
+      header: 'طلب تفعيل',
+      cell: (row) => (
+        <span style={{ fontSize: 12 }}>
+          {row.pendingRequest ? (
+            <>
+              <span dir="ltr">{row.pendingRequest.appCode}</span>
+              <div className="muted">
+                {row.pendingRequest.status === 'pending'
+                  ? `معلّق منذ ${whenText(row.pendingRequest.createdAt)}`
+                  : `${row.pendingRequest.status} · ${whenText(row.pendingRequest.createdAt)}`}
+              </div>
+            </>
+          ) : (
+            <span className="muted">لم تطلب</span>
+          )}
+        </span>
+      ),
+    },
+  ];
+
   return (
     <Screen
       title="سوق الإضافات وطلبات التفعيل"
@@ -219,21 +388,21 @@ export default function PlatformMarketplacePage() {
           className={tab === 'requests' ? 'btn primary' : 'btn'}
           onClick={() => setTab('requests')}
         >
-          📩 طلبات التفعيل من المنشآت ({pendingCount} بانتظار الموافقة)
+          طلبات التفعيل من المنشآت ({pendingCount} بانتظار الموافقة)
         </button>
         <button
           type="button"
           className={tab === 'tenant_direct' ? 'btn primary' : 'btn'}
           onClick={() => setTab('tenant_direct')}
         >
-          🏢 تفعيل/إيقاف مباشر لمنشأة
+          تفعيل/إيقاف مباشر لمنشأة
         </button>
         <button
           type="button"
           className={tab === 'catalog' ? 'btn primary' : 'btn'}
           onClick={() => setTab('catalog')}
         >
-          💰 كتالوج وأسعار الباقات ({apps.length})
+          كتالوج وأسعار الباقات ({apps.length})
         </button>
         <button
           type="button"
@@ -243,99 +412,22 @@ export default function PlatformMarketplacePage() {
             if (!usage) void loadUsage(usageDays);
           }}
         >
-          📊 الاستعمال بلا ترخيص ({usage?.summary.stillUnlicensed ?? '…'})
+          الاستعمال بلا ترخيص ({usage?.summary.stillUnlicensed ?? '…'})
         </button>
       </div>
 
       {tab === 'requests' && (
-        <section className="card">
-          <h2 style={{ marginTop: 0 }}>طلبات تفعيل الإضافات والباقات القطاعية</h2>
+        <Panel title="طلبات تفعيل الإضافات والباقات القطاعية" flush>
           {requests.length === 0 ? (
             <p className="muted">لا توجد طلبات تفعيل باقات حالياً.</p>
           ) : (
-            <div className="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>المنشأة</th>
-                    <th>الباقة المطلوبة</th>
-                    <th>مقدم الطلب</th>
-                    <th>ملاحظة العميل</th>
-                    <th>الحالة</th>
-                    <th>رد/ملاحظة المنصة</th>
-                    <th>الإجراء</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {requests.map((req) => (
-                    <tr key={req.id}>
-                      <td>
-                        <strong>{req.tenantName}</strong>
-                        <div className="muted" style={{ fontSize: 12 }} dir="ltr">
-                          {req.tenantCode}
-                        </div>
-                      </td>
-                      <td>
-                        <strong>
-                          {req.appIcon} {req.appNameAr}
-                        </strong>
-                        <div className="muted" style={{ fontSize: 12 }} dir="ltr">
-                          {req.appCode} · {Number(req.monthlyPrice).toFixed(2)} SAR
-                        </div>
-                      </td>
-                      <td>{req.requesterLabel}</td>
-                      <td>{req.note || '—'}</td>
-                      <td>
-                        <span className={`chip${req.status === 'pending' ? ' on' : ''}`}>
-                          {req.status === 'pending'
-                            ? 'بانتظار الموافقة'
-                            : req.status === 'approved'
-                              ? 'تمت الموافقة'
-                              : 'مرفوض'}
-                        </span>
-                      </td>
-                      <td>
-                        <input
-                          className="input"
-                          placeholder="ملاحظة للعميل (اختياري)…"
-                          value={decisionNotes[req.id] ?? req.decisionNote ?? ''}
-                          onChange={(event) =>
-                            setDecisionNotes((curr) => ({ ...curr, [req.id]: event.target.value }))
-                          }
-                        />
-                      </td>
-                      <td>
-                        <div className="row" style={{ gap: 6 }}>
-                          <button
-                            className="btn primary"
-                            type="button"
-                            disabled={!canWrite || busy === req.id}
-                            onClick={() => void decide(req, 'approved')}
-                          >
-                            موافقة وتفعيل
-                          </button>
-                          <button
-                            className="btn"
-                            type="button"
-                            disabled={!canWrite || busy === req.id}
-                            onClick={() => void decide(req, 'rejected')}
-                          >
-                            رفض
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <Table bare columns={requestColumns} rows={requests} rowKey={(req) => req.id} />
           )}
-        </section>
+        </Panel>
       )}
 
       {tab === 'tenant_direct' && (
-        <section className="card" style={{ display: 'grid', gap: 12 }}>
-          <h2 style={{ marginTop: 0 }}>تفعيل أو إيقاف باقة مباشرة لأي منشأة</h2>
+        <Panel title="تفعيل أو إيقاف باقة مباشرة لأي منشأة" style={{ display: 'grid', gap: 12 }}>
           <label className="field" style={{ maxWidth: 420 }}>
             <span>اختر المنشأة</span>
             <select
@@ -350,13 +442,16 @@ export default function PlatformMarketplacePage() {
               ))}
             </select>
           </label>
-          <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 10 }}>
+          <div
+            className="grid"
+            style={{ gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: 10 }}
+          >
             {apps
               .filter((app) => !app.isCore)
               .map((app) => (
-                <article key={app.code} className="card" style={{ display: 'grid', gap: 8 }}>
+                <Panel key={app.code} style={{ display: 'grid', gap: 8 }}>
                   <strong>
-                    {app.icon ?? '📦'} {app.nameAr} <span dir="ltr">({app.code})</span>
+                    {app.icon ?? ''} {app.nameAr} <span dir="ltr">({app.code})</span>
                   </strong>
                   <p className="muted" style={{ margin: 0, fontSize: 12 }}>
                     {app.descriptionAr}
@@ -379,23 +474,27 @@ export default function PlatformMarketplacePage() {
                       إيقاف
                     </button>
                   </div>
-                </article>
+                </Panel>
               ))}
           </div>
-        </section>
+        </Panel>
       )}
 
       {tab === 'usage' && (
-        <section className="card" style={{ display: 'grid', gap: 12 }}>
-          <h2 style={{ marginTop: 0 }}>📊 مَنْ يستعمل سطحاً قطاعياً بلا باقة — القياس قبل قرار الفرض</h2>
-          <p className="muted" style={{ margin: 0 }}>
-            المصدر <code dir="ltr">audit_log</code>: حارسُ الترخيص يكتب سطراً لكلّ <strong>كتابةٍ</strong> من
-            منشأةٍ بلا باقة (ولا يكتب للقراءات، فلوحةٌ تُستطلع كل ثلاثين ثانية ليست استعمالاً جديداً).
-            والجدول يجمع لكلّ منشأة: كم مرّةً كتبت، ومَن كتب، ومتى، وأيَّ مساراتٍ بلغت — ثمّ يسأل
-            المنشأة في سياقها عن حجم العمل الحقيقي في جداول التوزيع، لأنّ «كم عملاً سيقف لو فُرض
-            الترخيص غداً» هو الرقم التجاري، لا عدد الطلبات.
-          </p>
-
+        <Panel
+          title="مَنْ يستعمل سطحاً قطاعياً بلا باقة — القياس قبل قرار الفرض"
+          hint={
+            <>
+              المصدر <code dir="ltr">audit_log</code>: حارسُ الترخيص يكتب سطراً لكلّ <strong>كتابةٍ</strong>{' '}
+              من منشأةٍ بلا باقة (ولا يكتب للقراءات، فلوحةٌ تُستطلع كل ثلاثين ثانية ليست استعمالاً جديداً).
+              والجدول يجمع لكلّ منشأة: كم مرّةً كتبت، ومَن كتب، ومتى، وأيَّ مساراتٍ بلغت — ثمّ يسأل المنشأة في
+              سياقها عن حجم العمل الحقيقي في جداول التوزيع، لأنّ «كم عملاً سيقف لو فُرض الترخيص غداً» هو الرقم
+              التجاري، لا عدد الطلبات.
+            </>
+          }
+          flush
+          style={{ display: 'grid', gap: 12 }}
+        >
           <div className="row" style={{ gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
             <span className="muted">نافذة القياس:</span>
             {USAGE_WINDOWS.map((days) => (
@@ -412,15 +511,13 @@ export default function PlatformMarketplacePage() {
               </button>
             ))}
             <button type="button" className="btn sm" onClick={() => void loadUsage(usageDays)}>
-              🔄 إعادة القراءة
+              إعادة القراءة
             </button>
           </div>
 
           {usageError ? <p className="alert danger">تعذّر قراءة القياس: {usageError}</p> : null}
 
-          {!usage && !usageError ? (
-            <p className="muted">جارٍ قراءة القياس…</p>
-          ) : null}
+          {!usage && !usageError ? <p className="muted">جارٍ قراءة القياس…</p> : null}
 
           {usage ? (
             <>
@@ -435,12 +532,9 @@ export default function PlatformMarketplacePage() {
                 <span>
                   منها <strong>بلا باقة الآن</strong>: {usage.summary.stillUnlicensed}
                 </span>
+                <span>فعّلت بعدها: {usage.summary.licensedSince}</span>
                 <span>
-                  فعّلت بعدها: {usage.summary.licensedSince}
-                </span>
-                <span>
-                  كتاباتٌ مقاسة: <strong>{usage.summary.writes}</strong> من{' '}
-                  {usage.summary.actors} مستخدماً
+                  كتاباتٌ مقاسة: <strong>{usage.summary.writes}</strong> من {usage.summary.actors} مستخدماً
                 </span>
                 <span>
                   أقدم قياس: {whenText(usage.summary.oldestAt)} · أحدثه: {whenText(usage.summary.newestAt)}
@@ -449,107 +543,44 @@ export default function PlatformMarketplacePage() {
 
               {usage.truncated ? (
                 <p className="alert warn">
-                  القائمة مفصّلةٌ لأحدث {usage.summary.listedTenants} منشأةً مقاسة، والملخّص أعلاه
-                  يعدّ الكلّ ({usage.summary.measuredTenants}) — فاقرأ «كتاباتٌ مقاسة» من الملخّص لا من
-                  مجموع الصفوف.
+                  القائمة مفصّلةٌ لأحدث {usage.summary.listedTenants} منشأةً مقاسة، والملخّص أعلاه يعدّ الكلّ
+                  ({usage.summary.measuredTenants}) — فاقرأ «كتاباتٌ مقاسة» من الملخّص لا من مجموع الصفوف.
                 </p>
               ) : null}
 
               {usage.tenants.length === 0 ? (
                 <p className="muted">
-                  لا استعمالَ غير مرخّص في هذه النافذة — إمّا أنّ كلّ المنشآت المستعملة مرخّصة، أو أنّ
-                  أحداً لم يكتب على السطح منذ {usage.observedDays} يوماً.
+                  لا استعمالَ غير مرخّص في هذه النافذة — إمّا أنّ كلّ المنشآت المستعملة مرخّصة، أو أنّ أحداً
+                  لم يكتب على السطح منذ {usage.observedDays} يوماً.
                 </p>
               ) : (
-                <div className="table-wrap">
-                  <table>
-                    <thead>
-                      <tr>
-                        <th>المنشأة</th>
-                        <th>الترخيص الآن</th>
-                        <th>كتاباتٌ مقاسة</th>
-                        <th>مستخدمون</th>
-                        <th>أول / آخر قياس</th>
-                        <th>حجم العمل الحقيقي (كلّ الوقت)</th>
-                        <th>المسارات</th>
-                        <th>طلب تفعيل</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {usage.tenants.map((row) => (
-                        <tr key={`${row.tenantId}:${row.requiredApps.join('|')}`}>
-                          <td>
-                            <strong>{row.tenantName}</strong>
-                            <div className="muted" style={{ fontSize: 12 }} dir="ltr">
-                              {row.tenantCode} · {row.tenantStatus}
-                            </div>
-                            <div className="muted" style={{ fontSize: 12 }} dir="ltr">
-                              {row.requiredApps.join(' | ')}
-                            </div>
-                          </td>
-                          <td>{licenceLabel(row.licence.state, row.licence.enabledApps)}</td>
-                          <td>
-                            <strong>{row.writes}</strong>
-                          </td>
-                          <td>{row.actors}</td>
-                          <td style={{ fontSize: 12 }}>
-                            {whenText(row.firstAt)}
-                            <div className="muted">{whenText(row.lastAt)}</div>
-                          </td>
-                          <td style={{ fontSize: 12 }}>
-                            أوامر تحميل {row.footprint.loadOrders} · مستندات {row.footprint.documents} ·
-                            دفعات إنتاج {row.footprint.productionBatches}
-                            <div className="muted">
-                              حركات سيارة {row.footprint.stockMovements} · آخر نشاط{' '}
-                              {whenText(row.footprint.lastActivityAt)}
-                            </div>
-                          </td>
-                          <td style={{ fontSize: 12 }} dir="ltr">
-                            {row.topPaths.map((pathRow) => (
-                              <div key={`${pathRow.method} ${pathRow.path}`}>
-                                {pathRow.method} {pathRow.path.replace('/api/v1', '')} ×{pathRow.writes}
-                              </div>
-                            ))}
-                          </td>
-                          <td style={{ fontSize: 12 }}>
-                            {row.pendingRequest ? (
-                              <>
-                                <span dir="ltr">{row.pendingRequest.appCode}</span>
-                                <div className="muted">
-                                  {row.pendingRequest.status === 'pending'
-                                    ? `معلّق منذ ${whenText(row.pendingRequest.createdAt)}`
-                                    : `${row.pendingRequest.status} · ${whenText(row.pendingRequest.createdAt)}`}
-                                </div>
-                              </>
-                            ) : (
-                              <span className="muted">لم تطلب</span>
-                            )}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                <Table
+                  bare
+                  dense
+                  columns={usageColumns}
+                  rows={usage.tenants}
+                  rowKey={(row) => `${row.tenantId}:${row.requiredApps.join('|')}`}
+                />
               )}
 
               <p className="muted small" style={{ margin: 0 }}>
                 هذه الشاشة <strong>قياسٌ لا قرار</strong>: لا تُغيّر وضع الحارس. القلبُ من{' '}
-                <code dir="ltr">observe</code> إلى <code dir="ltr">enforce</code> تعديلٌ في
-                الزخرفة <code dir="ltr">@RequiresSectorApp</code> على وحدة <code dir="ltr">van-sales</code>{' '}
-                في الـ API، وهو قرارُ مالكٍ يحتاج تحصينَ المنشآت القائمة (أو لا يحتاج) — وأمّا الترخيص
-                لمنشأةٍ بعينها فزرُّه في تبويب «تفعيل/إيقاف مباشر لمنشأة» أعلاه.
+                <code dir="ltr">observe</code> إلى <code dir="ltr">enforce</code> تعديلٌ في الزخرفة{' '}
+                <code dir="ltr">@RequiresSectorApp</code> على وحدة <code dir="ltr">van-sales</code> في الـ
+                API، وهو قرارُ مالكٍ يحتاج تحصينَ المنشآت القائمة (أو لا يحتاج) — وأمّا الترخيص لمنشأةٍ بعينها
+                فزرُّه في تبويب «تفعيل/إيقاف مباشر لمنشأة» أعلاه.
               </p>
             </>
           ) : null}
-        </section>
+        </Panel>
       )}
 
       {tab === 'catalog' && (
         <div className="grid" style={{ gap: 12 }}>
           {apps.map((app) => (
-            <article key={app.code} className="card" style={{ display: 'grid', gap: 8 }}>
+            <Panel key={app.code} style={{ display: 'grid', gap: 8 }}>
               <strong>
-                {app.icon ?? '📦'} {app.nameAr} <span dir="ltr">({app.code})</span>
+                {app.icon ?? ''} {app.nameAr} <span dir="ltr">({app.code})</span>
               </strong>
               <p className="muted" style={{ margin: 0 }}>
                 {app.descriptionAr}
@@ -583,7 +614,7 @@ export default function PlatformMarketplacePage() {
                   {app.isActive ? 'إيقاف البيع' : 'إعادة البيع'}
                 </button>
               </span>
-            </article>
+            </Panel>
           ))}
         </div>
       )}
@@ -595,7 +626,7 @@ export default function PlatformMarketplacePage() {
 function whenText(value: string | null): string {
   if (!value) return '—';
   const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? value : date.toLocaleString('ar-SA');
+  return Number.isNaN(date.getTime()) ? value : date.toLocaleString('ar-SA-u-ca-gregory-nu-latn');
 }
 
 /**
@@ -603,9 +634,9 @@ function whenText(value: string | null): string {
  * محض، و«باقةٌ مُطفأة» تعني أنّ قراراً اتُّخذ ثمّ أُوقف، و«لم تطلب» تعني أنّ أحداً لم يطرق الباب.
  */
 function licenceLabel(state: UnlicensedUsageRow['licence']['state'], enabledApps: string[]): string {
-  if (state === 'licensed') return `✅ مُرخّصة الآن (${enabledApps.join(', ')}) — القياس تاريخ`;
-  if (state === 'disabled') return '⏸️ باقةٌ مثبّتة لكنها مُطفأة';
-  return '⛔ بلا باقة مفعّلة';
+  if (state === 'licensed') return `مُرخّصة الآن (${enabledApps.join(', ')}) — القياس تاريخ`;
+  if (state === 'disabled') return 'باقةٌ مثبّتة لكنها مُطفأة';
+  return 'بلا باقة مفعّلة';
 }
 
 function messageOf(error: unknown): string {

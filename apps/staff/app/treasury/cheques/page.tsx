@@ -1,5 +1,6 @@
 'use client';
 
+import { FilterBand } from '@erp/ui';
 import Link from 'next/link';
 import Decimal from 'decimal.js';
 import { useMemo, useState } from 'react';
@@ -8,12 +9,20 @@ import { DataTable, Notice, QueryView } from '../../../components/data-view';
 import { Screen } from '../../../components/screen';
 import { StatTile, StatTiles } from '../../../components/ui';
 import { ApiError, apiList, apiPost } from '../../../lib/api';
-import { cashLocationLabel, money, partyLabel, shortDate, statusLabel, type CashLocation, type Party } from '../../../lib/lookups';
+import {
+  cashLocationLabel,
+  money,
+  partyLabel,
+  shortDate,
+  statusLabel,
+  type CashLocation,
+  type Party,
+} from '../../../lib/lookups';
 import { listCashLocations, listParties } from '../../../lib/lookups';
 import { useQuery } from '../../../lib/use-query';
 
 /**
- * 🏦 كشف الشيكات — `frmSandQ` / `frmPaymentVoucher` كما يراها أمين الصندوق.
+ * كشف الشيكات — `frmSandQ` / `frmPaymentVoucher` كما يراها أمين الصندوق.
  *
  * الديسكتوب يعرض الشيكات في نفس شبكة السندات لكن بفلتر «شيك»:
  * `frmSandQD` / `frmSandSD` + `frmPaymentVoucher` (حالة الشيك: تحت التحصيل/محصّل/مرتجع).
@@ -108,30 +117,36 @@ export default function ChequesPage() {
 
   return (
     <Screen
-      title="🏦 كشف الشيكات"
+      title="كشف الشيكات"
       subtitle="شيكات تحت التحصيل — `frmSandQ` / `frmPaymentVoucher`: رقم الشيك وتاريخ الاستحقاق والبنك وحالة التحصيل، مع تحصيل/إرجاع بقيد حقيقي."
       crumbs={['الخزينة', 'الشيكات']}
     >
       <StatTiles>
-        <StatTile label="📋 الشيكات" value={totals.count} hint="في الفترة" />
-        <StatTile label="🏦 تحت التحصيل" value={totals.pending} tone="warn" />
-        <StatTile label="✅ محصّلة" value={totals.collected} tone="ok" />
-        <StatTile label="↩️ مرتجعة" value={totals.bounced} />
-        <StatTile label="💰 قيمة تحت التحصيل" value={money(totals.pendingTotal.toFixed(4))} />
-        <StatTile label="💰 قيمة محصّلة" value={money(totals.collectedTotal.toFixed(4))} />
+        <StatTile label="الشيكات" value={totals.count} hint="في الفترة" />
+        <StatTile label="تحت التحصيل" value={totals.pending} tone="warn" />
+        <StatTile label="محصّلة" value={totals.collected} tone="ok" />
+        <StatTile label="مرتجعة" value={totals.bounced} />
+        <StatTile label="قيمة تحت التحصيل" value={money(totals.pendingTotal.toFixed(4))} />
+        <StatTile label="قيمة محصّلة" value={money(totals.collectedTotal.toFixed(4))} />
       </StatTiles>
 
-      <div className="card toolbar">
+      <FilterBand>
         <label className="field">
-          <span>📅 من تاريخ</span>
-          <input className="input" type="date" dir="ltr" value={from} onChange={(e) => setFrom(e.target.value)} />
+          <span>من تاريخ</span>
+          <input
+            className="input"
+            type="date"
+            dir="ltr"
+            value={from}
+            onChange={(e) => setFrom(e.target.value)}
+          />
         </label>
         <label className="field">
-          <span>📅 إلى تاريخ</span>
+          <span>إلى تاريخ</span>
           <input className="input" type="date" dir="ltr" value={to} onChange={(e) => setTo(e.target.value)} />
         </label>
         <label className="field">
-          <span>📋 حالة الشيك</span>
+          <span>حالة الشيك</span>
           <select className="input" value={state} onChange={(e) => setState(e.target.value)}>
             <option value="">الكل</option>
             <option value="pending">تحت التحصيل</option>
@@ -141,17 +156,37 @@ export default function ChequesPage() {
           </select>
         </label>
         <label className="field">
-          <span>🔍 البحث</span>
-          <input className="input" value={q} placeholder="رقم الشيك · البنك · البيان" onChange={(e) => setQ(e.target.value)} />
+          <span>البحث</span>
+          <input
+            className="input"
+            value={q}
+            placeholder="رقم الشيك · البنك · البيان"
+            onChange={(e) => setQ(e.target.value)}
+          />
         </label>
-        <button className="btn sm" type="button" onClick={() => { setFrom(''); setTo(''); setQ(''); setState(''); }}>
-          📋 كل الفترة
+        <button
+          className="btn sm"
+          type="button"
+          onClick={() => {
+            setFrom('');
+            setTo('');
+            setQ('');
+            setState('');
+          }}
+        >
+          كل الفترة
         </button>
-      </div>
+      </FilterBand>
 
       <Notice notice={notice} />
 
-      <QueryView query={vouchers} isEmpty={() => rows.length === 0} empty="لا توجد شيكات" emptyDetail="الشيكات هي سندات قبض/صرف بطريقة دفع شيك.">
+      <QueryView
+        panel="الشيكات"
+        query={vouchers}
+        isEmpty={() => rows.length === 0}
+        empty="لا توجد شيكات"
+        emptyDetail="الشيكات هي سندات قبض/صرف بطريقة دفع شيك."
+      >
         {() => (
           <DataTable
             rows={rows}
@@ -169,24 +204,29 @@ export default function ChequesPage() {
               '',
             ]}
             columns={[
-              { key: 'number', header: '🔢 الرقم', align: 'ltr', cell: (r) => r.number ?? 'مسودة' },
-              { key: 'date', header: '📅 التاريخ', align: 'ltr', cell: (r) => shortDate(r.date) },
-              { key: 'time', header: '⏰ الوقت', align: 'ltr', cell: (r) => r.voucherTime?.slice(0, 5) ?? '—' },
+              { key: 'number', header: 'الرقم', align: 'ltr', cell: (r) => r.number ?? 'مسودة' },
+              { key: 'date', header: 'التاريخ', align: 'ltr', cell: (r) => shortDate(r.date) },
+              { key: 'time', header: 'الوقت', align: 'ltr', cell: (r) => r.voucherTime?.slice(0, 5) ?? '—' },
               {
                 key: 'party',
-                header: '👤 الطرف',
+                header: 'الطرف',
                 cell: (r) => {
                   const p = partyOf(r.partyId);
                   return p ? partyLabel(p) : (r.recipient ?? '—');
                 },
               },
-              { key: 'chequeNo', header: '🔢 رقم الشيك', align: 'ltr', cell: (r) => r.chequeNo ?? '—' },
-              { key: 'chequeDate', header: '📅 استحقاق', align: 'ltr', cell: (r) => (r.chequeDate ? shortDate(r.chequeDate) : '—') },
-              { key: 'bank', header: '🏦 البنك', cell: (r) => r.bankName ?? '—' },
-              { key: 'amount', header: '💰 المبلغ', align: 'num', cell: (r) => money(r.amount) },
+              { key: 'chequeNo', header: 'رقم الشيك', align: 'ltr', cell: (r) => r.chequeNo ?? '—' },
+              {
+                key: 'chequeDate',
+                header: 'استحقاق',
+                align: 'ltr',
+                cell: (r) => (r.chequeDate ? shortDate(r.chequeDate) : '—'),
+              },
+              { key: 'bank', header: 'البنك', cell: (r) => r.bankName ?? '—' },
+              { key: 'amount', header: 'المبلغ', align: 'num', cell: (r) => money(r.amount) },
               {
                 key: 'cash',
-                header: '🏦 الصندوق',
+                header: 'الصندوق',
                 cell: (r) => {
                   const loc = cashRows.find((x) => x.id === r.cashLocationId);
                   return loc ? cashLocationLabel(loc) : '—';
@@ -194,8 +234,12 @@ export default function ChequesPage() {
               },
               {
                 key: 'status',
-                header: '📋 الحالة',
-                cell: (r) => <span className="badge">{r.chequeState ? (CHEQUE_STATES[r.chequeState] ?? r.chequeState) : statusLabel(r.status)}</span>,
+                header: 'الحالة',
+                cell: (r) => (
+                  <span className="badge">
+                    {r.chequeState ? (CHEQUE_STATES[r.chequeState] ?? r.chequeState) : statusLabel(r.status)}
+                  </span>
+                ),
               },
               {
                 key: 'actions',
@@ -203,18 +247,38 @@ export default function ChequesPage() {
                 cell: (r) => (
                   <span className="row">
                     <Link className="btn sm" href={`/print/voucher/${r.id}`}>
-                      🖨️ طباعة
+                      طباعة
                     </Link>
                     <Link className="btn sm" href={`/treasury/vouchers?id=${r.id}`}>
-                      📄 عرض السند
+                      عرض السند
                     </Link>
                     {r.status === 'posted' && r.chequeState === 'pending' && (
                       <>
-                        <button className="btn sm" type="button" disabled={busy} onClick={() => run(() => apiPost(`/vouchers/${r.id}/cheque`, { action: 'clear' }), 'تم تحصيل الشيك — انتقل من أوراق القبض إلى الصندوق بقيد.')}>
-                          💰 تحصيل
+                        <button
+                          className="btn sm"
+                          type="button"
+                          disabled={busy}
+                          onClick={() =>
+                            run(
+                              () => apiPost(`/vouchers/${r.id}/cheque`, { action: 'clear' }),
+                              'تم تحصيل الشيك — انتقل من أوراق القبض إلى الصندوق بقيد.',
+                            )
+                          }
+                        >
+                          تحصيل
                         </button>
-                        <button className="btn sm danger" type="button" disabled={busy} onClick={() => run(() => apiPost(`/vouchers/${r.id}/cheque`, { action: 'bounce' }), 'تم إرجاع الشيك — عاد الدين على الطرف بقيد عكسي.')}>
-                          ↩️ إرجاع
+                        <button
+                          className="btn sm danger"
+                          type="button"
+                          disabled={busy}
+                          onClick={() =>
+                            run(
+                              () => apiPost(`/vouchers/${r.id}/cheque`, { action: 'bounce' }),
+                              'تم إرجاع الشيك — عاد الدين على الطرف بقيد عكسي.',
+                            )
+                          }
+                        >
+                          إرجاع
                         </button>
                       </>
                     )}

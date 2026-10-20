@@ -25,7 +25,7 @@ describe('ترخيص باقة المخابز', () => {
    * الشكّ مغلق: حقلٌ غائب (خادم أقدم من الواجهة) ليس ترخيصاً. والفشل المفتوح هنا يعني أنّ
    * منشأةً بلا باقة تعمل على شاشةٍ قطاعية لأنّ الخادم نسي حقلاً.
    */
-  it('الاتجاه عند الشكّ مغلق: `enabledApps` غائب ⇒ «تعذّر التأكّد» لا «مرخَّص»', () => {
+ it('الاتجاه عند الشكّ مغلق: `enabledApps` غائب «تعذّر التأكّد» لا «مرخَّص»', () => {
     expect(licenceVerdict({ authenticated: true })).toBe('unknown');
     expect(licenceVerdict({ authenticated: true, enabledApps: null })).toBe('unknown');
   });

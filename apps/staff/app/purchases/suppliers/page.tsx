@@ -5,6 +5,11 @@ import Link from 'next/link';
 import { Directory } from '../../../components/directory';
 import { apiDelete, apiPost, apiPut } from '../../../lib/api';
 import { listParties, type Party } from '../../../lib/lookups';
+import {
+  NATIONAL_ADDRESS_FIELDS,
+  addressToForm,
+  formToAddress,
+} from '../../../lib/national-address';
 import { useSession } from '../../../lib/session';
 import { useQuery } from '../../../lib/use-query';
 
@@ -14,6 +19,7 @@ export default function SuppliersPage() {
 
   return (
     <Directory<Party>
+      listTitle="الموردون"
       title="بطاقة مورد"
       subtitle="ملف المورد المستخدم في فواتير المشتريات وسندات الصرف وكشف الحساب."
       crumbs={['المشتريات', 'التعاريف']}
@@ -25,6 +31,12 @@ export default function SuppliersPage() {
         { name: 'name', label: 'الاسم', required: true },
         { name: 'phone', label: 'الجوال', ltr: true },
         { name: 'taxNo', label: 'الرقم الضريبي', ltr: true },
+        ...NATIONAL_ADDRESS_FIELDS.map((field) => ({
+          name: field.name,
+          label: field.label,
+          hint: field.hint,
+          ltr: field.ltr,
+        })),
       ]}
       onCreate={(values) =>
         apiPost('/parties', {
@@ -33,17 +45,25 @@ export default function SuppliersPage() {
           name: String(values.name).trim(),
           phone: String(values.phone).trim() || undefined,
           taxNo: String(values.taxNo).trim() || undefined,
+          address: formToAddress(values),
         })
       }
       edit={
         can('parties.manage')
           ? {
-              toForm: (row) => ({ code: row.code ?? '', name: row.name, phone: row.phone ?? '', taxNo: row.taxNo ?? row.tax_no ?? '' }),
+              toForm: (row) => ({
+                code: row.code ?? '',
+                name: row.name,
+                phone: row.phone ?? '',
+                taxNo: row.taxNo ?? row.tax_no ?? '',
+                ...addressToForm(row.address),
+              }),
               onUpdate: (row, values) =>
                 apiPut(`/parties/${row.id}`, {
                   name: String(values.name).trim(),
                   phone: String(values.phone).trim() || undefined,
                   taxNo: String(values.taxNo).trim() || undefined,
+                  address: formToAddress(values),
                 }),
             }
           : undefined

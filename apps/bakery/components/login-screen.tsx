@@ -56,30 +56,30 @@ export function LoginScreen({ initialError }: { initialError?: string }) {
   }
 
   return (
-    <main className="bak-wall">
-      <Card className="w-full max-w-md shadow-4">
-        <CardBody className="grid gap-5">
-          <header className="grid justify-items-center gap-3 text-center">
-            <span aria-hidden="true" className="bak-logo bak-logo-lg">
-              🥖
-            </span>
-            <div className="grid gap-1">
-              <h1 className="m-0 text-[21px] font-extrabold tracking-tight text-ink">واجهة المخابز</h1>
-              <p className="m-0 text-[12.5px] text-muted">الإنتاج والتوزيع والمناديب والتحصيل</p>
-            </div>
-          </header>
+ <main className="bak-wall">
+ <Card className="w-full max-w-md shadow-4">
+ <CardBody className="grid gap-5">
+ <header className="grid justify-items-center gap-3 text-center">
+ <span aria-hidden="true" className="bak-logo bak-logo-lg">
+
+ </span>
+ <div className="grid gap-1">
+ <h1 className="m-0 text-[21px] font-extrabold tracking-tight text-ink">واجهة المخابز</h1>
+ <p className="m-0 text-[12.5px] text-muted">الإنتاج والتوزيع والمناديب والتحصيل</p>
+ </div>
+ </header>
 
           {error ? (
-            <p
+ <p
               className="m-0 rounded-[10px] border border-danger-line bg-danger-soft px-4 py-2.5 text-[13px] font-semibold text-danger-ink"
               role="alert"
             >
               {error}
-            </p>
+ </p>
           ) : null}
 
-          <form className="grid gap-3.5" onSubmit={(event) => void submit(event)}>
-            <Input
+ <form className="grid gap-3.5" onSubmit={(event) => void submit(event)}>
+ <Input
               autoComplete="organization"
               dir="rtl"
               hint="رمز المنشأة كما يظهر في لوحة التحكم"
@@ -88,7 +88,7 @@ export function LoginScreen({ initialError }: { initialError?: string }) {
               required
               value={tenantCode}
             />
-            <Input
+ <Input
               autoComplete="username"
               dir="ltr"
               label="البريد الإلكتروني"
@@ -97,7 +97,7 @@ export function LoginScreen({ initialError }: { initialError?: string }) {
               type="email"
               value={email}
             />
-            <Input
+ <Input
               autoComplete="current-password"
               dir="ltr"
               label="كلمة المرور"
@@ -107,7 +107,7 @@ export function LoginScreen({ initialError }: { initialError?: string }) {
               value={password}
             />
             {needsMfa ? (
-              <Input
+ <Input
                 autoComplete="one-time-code"
                 dir="ltr"
                 hint="الخطوةُ الثانية ليست خطأً: ما كُتب أعلاه محفوظ"
@@ -118,18 +118,18 @@ export function LoginScreen({ initialError }: { initialError?: string }) {
               />
             ) : null}
 
-            <Button block className="mt-1 h-11 text-[14px]" disabled={busy} loading={busy} type="submit" variant="primary">
-              تسجيل الدخول
-            </Button>
-          </form>
+ <Button block className="mt-1 h-11 text-[14px]" disabled={busy} loading={busy} type="submit" variant="primary">
+ تسجيل الدخول
+ </Button>
+ </form>
 
-          <p className="m-0 rounded-[10px] border border-line bg-surface-2 px-3.5 py-3 text-[12px] leading-relaxed text-muted">
-            الجلسة والخادم واحدان مع لوحة التحكم: الدخول هنا هو الدخول نفسه بصلاحياتك
-            الممنوحة، ولا تُنشئ هذه الواجهة حسابات ولا تمنح صلاحيات. وتحتاج المنشأة باقةً
-            قطاعية مرخَّصة (`bakery_distribution`) لتعمل الشاشات — وإلّا ظهر الرفض صريحاً.
-          </p>
-        </CardBody>
-      </Card>
-    </main>
+ <p className="m-0 rounded-[10px] border border-line bg-surface-2 px-3.5 py-3 text-[12px] leading-relaxed text-muted">
+ الجلسة والخادم واحدان مع لوحة التحكم: الدخول هنا هو الدخول نفسه بصلاحياتك
+ الممنوحة، ولا تُنشئ هذه الواجهة حسابات ولا تمنح صلاحيات. وتحتاج المنشأة باقةً
+ قطاعية مرخَّصة (`bakery_distribution`) لتعمل الشاشات — وإلّا ظهر الرفض صريحاً.
+ </p>
+ </CardBody>
+ </Card>
+ </main>
   );
 }

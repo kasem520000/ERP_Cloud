@@ -3,6 +3,7 @@
  * zod DTOs, the stable error-code registry, permission codes, pagination and id rules.
  */
 export { errorCodes, errorStatus, errorTitle, isErrorCode, statusForCode, titleForCode } from './errors.js';
+export { arabicErrorHint, arabicErrorText, arabicErrorTextForCode } from './errors-ar.js';
 export type { ErrorCode } from './errors.js';
 
 export { DomainError, createProblemDetails, problemFromZodError } from './problem.js';

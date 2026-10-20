@@ -24,12 +24,15 @@ import {
   type PlatformTenantSubscription,
   type PlatformTenantUsageResponse,
   type TenantBrandingResponse,
+  type TenantFlagView,
   type TenantFlagsResponse,
   type TenantNotesResponse,
   type TenantSettingsResponse,
 } from '@erp/contracts';
+import { Panel } from '@erp/ui';
 
 import { Empty, ErrorBox, Loading, Screen } from '../../../components/screen';
+import { Table, type Column } from '../../../components/ui/table';
 import { Badge } from '../../../components/ui/badge';
 import { Button } from '../../../components/ui/button';
 import { Tabs as TabsBar } from '../../../components/ui/tabs';
@@ -116,7 +119,7 @@ function noticeFrom(error: unknown): Notice {
 
 function when(value: string | null | undefined): string {
   if (!value) return '—';
-  return new Date(value).toLocaleString('ar-SA');
+  return new Date(value).toLocaleString('ar-SA-u-ca-gregory-nu-latn');
 }
 
 function money(text: string | null, code: string | null): string {
@@ -151,7 +154,9 @@ export default function TenantCardPage() {
       actions={
         <>
           <Link href="/tenants">
-            <Button variant="secondary" icon={<ArrowLeft size={14} />}>رجوع إلى العملاء</Button>
+            <Button variant="secondary" icon={<ArrowLeft size={14} />}>
+              رجوع إلى العملاء
+            </Button>
           </Link>
           <Button variant="secondary" icon={<RefreshCw size={14} />} onClick={card.reload}>
             تحديث
@@ -167,7 +172,10 @@ export default function TenantCardPage() {
         <>
           {/* identity strip */}
           <div className="flex flex-wrap items-center gap-x-5 gap-y-3 rounded-[10px] border border-line bg-surface px-4 py-3 shadow-1">
-            <span className="grid size-11 flex-none place-items-center rounded-xl bg-inverse font-mono text-[14px] font-bold text-on-accent" dir="ltr">
+            <span
+              className="grid size-11 flex-none place-items-center rounded-xl bg-inverse font-mono text-[14px] font-bold text-on-accent"
+              dir="ltr"
+            >
               {tenant.code.slice(0, 2).toUpperCase()}
             </span>
             <span className="min-w-0">
@@ -177,17 +185,31 @@ export default function TenantCardPage() {
               </span>
             </span>
             <span className="ms-auto flex flex-wrap items-center gap-2">
-              <Badge tone={tenant.status === 'active' ? 'green' : tenant.status === 'suspended' ? 'red' : 'neutral'} dot>
+              <Badge
+                tone={
+                  tenant.status === 'active' ? 'green' : tenant.status === 'suspended' ? 'red' : 'neutral'
+                }
+                dot
+              >
                 {STATUS_LABEL[tenant.status] ?? tenant.status}
               </Badge>
               <span className="text-[12px] font-semibold text-muted">
-                أُنشئ {when(tenant.createdAt)} · آخر نشاط {when(tenant.lastActivityAt)} · آخر دخول {when(tenant.lastLoginAt)}
+                أُنشئ {when(tenant.createdAt)} · آخر نشاط {when(tenant.lastActivityAt)} · آخر دخول{' '}
+                {when(tenant.lastLoginAt)}
               </span>
             </span>
           </div>
 
           <TabsBar
-            items={TABS.map((entry) => ({ key: entry.id, label: <span className="inline-flex items-center gap-1.5">{entry.icon}{entry.label}</span> }))}
+            items={TABS.map((entry) => ({
+              key: entry.id,
+              label: (
+                <span className="inline-flex items-center gap-1.5">
+                  {entry.icon}
+                  {entry.label}
+                </span>
+              ),
+            }))}
             value={tab}
             onChange={(key) => setTab(key as TabId)}
           />
@@ -195,7 +217,9 @@ export default function TenantCardPage() {
           {notice ? (
             <div
               className={`flex items-center gap-2 rounded-[10px] border px-4 py-2.5 text-[13px] font-semibold ${
-                notice.kind === 'ok' ? 'border-ok-line bg-ok-soft text-ok-ink' : 'border-danger-line bg-danger-soft text-danger-ink'
+                notice.kind === 'ok'
+                  ? 'border-ok-line bg-ok-soft text-ok-ink'
+                  : 'border-danger-line bg-danger-soft text-danger-ink'
               }`}
             >
               {notice.text}
@@ -294,7 +318,10 @@ function OverviewTab({
       });
       onNotice({
         kind: 'ok',
-        text: status === 'active' ? 'أُعيد تنشيط العميل، والسبب محفوظ في تدقيقه.' : 'حُدِّثت حالة العميل، والسبب محفوظ في تدقيقه.',
+        text:
+          status === 'active'
+            ? 'أُعيد تنشيط العميل، والسبب محفوظ في تدقيقه.'
+            : 'حُدِّثت حالة العميل، والسبب محفوظ في تدقيقه.',
       });
       setStatusReason('');
       onChanged();
@@ -308,8 +335,7 @@ function OverviewTab({
   return (
     <div className="grid">
       <div className="grid cols">
-        <div className="card">
-          <h2>الحالة</h2>
+        <Panel title="الحالة">
           <p>
             <span className={`chip ${tenant.status}`}>{STATUS_LABEL[tenant.status] ?? tenant.status}</span>
           </p>
@@ -326,25 +352,39 @@ function OverviewTab({
           </label>
           <div className="row" style={{ gap: 8, marginTop: 8 }}>
             {tenant.status !== 'active' && (
-              <button className="btn primary" type="button" disabled={!canManage || busy} onClick={() => void changeStatus('active')}>
+              <button
+                className="btn primary"
+                type="button"
+                disabled={!canManage || busy}
+                onClick={() => void changeStatus('active')}
+              >
                 إعادة تنشيط
               </button>
             )}
             {tenant.status !== 'suspended' && (
-              <button className="btn danger" type="button" disabled={!canManage || busy} onClick={() => void changeStatus('suspended')}>
+              <button
+                className="btn danger"
+                type="button"
+                disabled={!canManage || busy}
+                onClick={() => void changeStatus('suspended')}
+              >
                 تعليق
               </button>
             )}
             {tenant.status !== 'archived' && (
-              <button className="btn" type="button" disabled={!canManage || busy} onClick={() => void changeStatus('archived')}>
+              <button
+                className="btn"
+                type="button"
+                disabled={!canManage || busy}
+                onClick={() => void changeStatus('archived')}
+              >
                 أرشفة
               </button>
             )}
           </div>
-        </div>
+        </Panel>
 
-        <div className="card">
-          <h2>الأعداد</h2>
+        <Panel title="الأعداد">
           <div className="kv">
             <div>
               <span className="muted">المستخدمون</span>
@@ -371,36 +411,71 @@ function OverviewTab({
               <strong>{tenant.baseCurrency}</strong>
             </div>
           </div>
-        </div>
+        </Panel>
       </div>
 
-      <div className="card">
-        <h2>المالك والبيانات الأساسية</h2>
-        <p className="muted">
-          المالك الحالي: {tenant.owner ? `${tenant.owner.displayName} — ${tenant.owner.email}` : 'لا يوجد مالك نشط لهذه المنشأة.'}
-        </p>
+      <Panel
+        title="المالك والبيانات الأساسية"
+        hint={
+          <>
+            المالك الحالي:{' '}
+            {tenant.owner
+              ? `${tenant.owner.displayName} — ${tenant.owner.email}`
+              : 'لا يوجد مالك نشط لهذه المنشأة.'}
+          </>
+        }
+      >
         <div className="form-grid">
           <label className="field">
             <span>اسم المنشأة</span>
-            <input className="input" value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} disabled={!canManage} />
+            <input
+              className="input"
+              value={form.name}
+              onChange={(event) => setForm({ ...form, name: event.target.value })}
+              disabled={!canManage}
+            />
           </label>
           <label className="field">
             <span>الرمز</span>
-            <input className="input" dir="ltr" value={form.code} onChange={(event) => setForm({ ...form, code: event.target.value })} disabled={!canManage} />
+            <input
+              className="input"
+              dir="ltr"
+              value={form.code}
+              onChange={(event) => setForm({ ...form, code: event.target.value })}
+              disabled={!canManage}
+            />
           </label>
           <label className="field">
             <span>المنطقة الزمنية</span>
-            <input className="input" dir="ltr" value={form.timezone} onChange={(event) => setForm({ ...form, timezone: event.target.value })} disabled={!canManage} />
+            <input
+              className="input"
+              dir="ltr"
+              value={form.timezone}
+              onChange={(event) => setForm({ ...form, timezone: event.target.value })}
+              disabled={!canManage}
+            />
           </label>
           <label className="field">
             <span>العملة</span>
-            <input className="input" dir="ltr" value={form.currency} onChange={(event) => setForm({ ...form, currency: event.target.value })} disabled={!canManage} />
+            <input
+              className="input"
+              dir="ltr"
+              value={form.currency}
+              onChange={(event) => setForm({ ...form, currency: event.target.value })}
+              disabled={!canManage}
+            />
           </label>
         </div>
-        <button className="btn primary" type="button" style={{ marginTop: 8 }} disabled={!canManage || busy} onClick={() => void save()}>
+        <button
+          className="btn primary"
+          type="button"
+          style={{ marginTop: 8 }}
+          disabled={!canManage || busy}
+          onClick={() => void save()}
+        >
           {busy ? 'جارٍ الحفظ…' : 'حفظ البيانات'}
         </button>
-      </div>
+      </Panel>
 
       <BrandingSection tenantId={tenantId} canSettings={canSettings} onNotice={onNotice} />
     </div>
@@ -446,8 +521,7 @@ function BrandingSection({
   }
 
   return (
-    <div className="card">
-      <h2>الشعار والألوان واسم المُرسِل</h2>
+    <Panel title="الشعار والألوان واسم المُرسِل">
       {branding.status === 'loading' && <Loading rows={2} />}
       {branding.status === 'error' && <ErrorBox message={branding.error} onRetry={branding.reload} />}
       {branding.status === 'success' && value && (
@@ -486,12 +560,17 @@ function BrandingSection({
           <p className="muted small">
             آخر تعديل: {when(value.updatedAt)} — والقيمة تُحفظ في إعدادات المنصة كتجاوزٍ يخصّ هذا العميل وحده.
           </p>
-          <button className="btn primary" type="button" disabled={!canSettings || busy || !draft} onClick={() => void save()}>
+          <button
+            className="btn primary"
+            type="button"
+            disabled={!canSettings || busy || !draft}
+            onClick={() => void save()}
+          >
             {busy ? 'جارٍ الحفظ…' : 'حفظ الهوية'}
           </button>
         </>
       )}
-    </div>
+    </Panel>
   );
 }
 
@@ -499,46 +578,29 @@ function BrandingSection({
 
 function SubscriptionTab({ card }: { card: PlatformTenantDetailResponse }) {
   const rows: PlatformTenantSubscription[] = card.subscriptions;
+  const columns: Array<Column<PlatformTenantSubscription>> = [
+    { key: 'plan', header: 'الباقة', grow: true, cell: (row) => row.planName ?? row.planCode ?? '—' },
+    { key: 'status', header: 'الحالة', cell: (row) => SUBSCRIPTION_LABEL[row.status] ?? row.status },
+    { key: 'amount', header: 'القيمة', ltr: true, cell: (row) => money(row.amount, row.currency) },
+    { key: 'start', header: 'بداية الفترة', ltr: true, cell: (row) => when(row.startedAt) },
+    { key: 'end', header: 'نهاية الفترة', ltr: true, cell: (row) => when(row.currentPeriodEnd) },
+    { key: 'cancelled', header: 'أُلغيت في', ltr: true, cell: (row) => when(row.cancelledAt) },
+  ];
+
   return (
-    <div className="card">
-      <h2>الاشتراك والتراخيص</h2>
+    <Panel title="الاشتراك والتراخيص" flush>
       {rows.length === 0 ? (
         <Empty
           title="لا يوجد اشتراك لهذا العميل"
           detail="يمكن إصدار ترخيص من صفحة «التراخيص» أو من قائمة العملاء."
         />
       ) : (
-        <div className="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>الباقة</th>
-                <th>الحالة</th>
-                <th>القيمة</th>
-                <th>بداية الفترة</th>
-                <th>نهاية الفترة</th>
-                <th>أُلغيت في</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((row) => (
-                <tr key={row.id}>
-                  <td>{row.planName ?? row.planCode ?? '—'}</td>
-                  <td>{SUBSCRIPTION_LABEL[row.status] ?? row.status}</td>
-                  <td dir="ltr">{money(row.amount, row.currency)}</td>
-                  <td dir="ltr">{when(row.startedAt)}</td>
-                  <td dir="ltr">{when(row.currentPeriodEnd)}</td>
-                  <td dir="ltr">{when(row.cancelledAt)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <Table bare columns={columns} rows={rows} rowKey={(row) => row.id} />
       )}
       <p className="muted small" style={{ marginTop: 8 }}>
-        <Link href="/subscriptions">إدارة التراخيص في القائمة الكاملة ←</Link>
+        <Link href="/subscriptions">إدارة التراخيص في القائمة الكاملة </Link>
       </p>
-    </div>
+    </Panel>
   );
 }
 
@@ -584,47 +646,39 @@ function UsersTab({
     }
   }
 
+  const memberColumns: Array<Column<PlatformTenantMember>> = [
+    { key: 'name', header: 'الاسم', grow: true, cell: (member) => member.fullName },
+    { key: 'email', header: 'البريد', ltr: true, cell: (member) => member.email },
+    { key: 'status', header: 'الحالة', cell: (member) => STATUS_LABEL[member.status] ?? member.status },
+    {
+      key: 'membership',
+      header: 'العضوية',
+      cell: (member) => STATUS_LABEL[member.membershipStatus] ?? member.membershipStatus,
+    },
+    { key: 'roles', header: 'الأدوار', numeric: true, cell: (member) => member.roleCount },
+    { key: 'login', header: 'آخر دخول', ltr: true, cell: (member) => when(member.lastLoginAt) },
+    { key: 'owner', header: 'المالك', cell: (member) => (member.isOwner ? 'مالك' : '—') },
+  ];
+
   return (
     <div className="grid">
-      <div className="card">
-        <h2>مستخدمو المنشأة ({members.length})</h2>
-        <div className="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>الاسم</th>
-                <th>البريد</th>
-                <th>الحالة</th>
-                <th>العضوية</th>
-                <th>الأدوار</th>
-                <th>آخر دخول</th>
-                <th>المالك</th>
-              </tr>
-            </thead>
-            <tbody>
-              {members.map((member) => (
-                <tr key={member.membershipId}>
-                  <td>{member.fullName}</td>
-                  <td dir="ltr">{member.email}</td>
-                  <td>{STATUS_LABEL[member.status] ?? member.status}</td>
-                  <td>{STATUS_LABEL[member.membershipStatus] ?? member.membershipStatus}</td>
-                  <td>{member.roleCount}</td>
-                  <td dir="ltr">{when(member.lastLoginAt)}</td>
-                  <td>{member.isOwner ? '✔' : '—'}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      <Panel title={<>مستخدمو المنشأة ( {members.length} )</>} flush>
+        <Table bare columns={memberColumns} rows={members} rowKey={(member) => member.membershipId} />
+      </Panel>
 
-      <div className="card">
-        <h2>نقل الملكية</h2>
-        <p className="muted small">المالك هو من يحمل صلاحيات المنشأة كلها؛ والنقل يقع على عضو قائم داخل المنشأة.</p>
+      <Panel
+        title="نقل الملكية"
+        hint={<>المالك هو من يحمل صلاحيات المنشأة كلها؛ والنقل يقع على عضو قائم داخل المنشأة.</>}
+      >
         <div className="form-grid">
           <label className="field">
             <span>العضو الجديد</span>
-            <select className="input" value={transferTo} onChange={(event) => setTransferTo(event.target.value)} disabled={!canManage}>
+            <select
+              className="input"
+              value={transferTo}
+              onChange={(event) => setTransferTo(event.target.value)}
+              disabled={!canManage}
+            >
               <option value="">— اختر عضواً —</option>
               {members
                 .filter((member) => !member.isOwner)
@@ -637,13 +691,23 @@ function UsersTab({
           </label>
           <label className="field">
             <span>السبب</span>
-            <input className="input" value={reason} onChange={(event) => setReason(event.target.value)} disabled={!canManage} />
+            <input
+              className="input"
+              value={reason}
+              onChange={(event) => setReason(event.target.value)}
+              disabled={!canManage}
+            />
           </label>
         </div>
-        <button className="btn primary" type="button" disabled={!canManage || busy || transferTo === ''} onClick={() => void transfer()}>
+        <button
+          className="btn primary"
+          type="button"
+          disabled={!canManage || busy || transferTo === ''}
+          onClick={() => void transfer()}
+        >
           {busy ? 'جارٍ النقل…' : 'نقل الملكية'}
         </button>
-      </div>
+      </Panel>
     </div>
   );
 }
@@ -685,7 +749,13 @@ function UsageTab({
         // An empty box removes the override and hands the customer back to the platform value.
         value: trimmed.length === 0 ? null : Number(trimmed),
       });
-      onNotice({ kind: 'ok', text: trimmed.length === 0 ? 'أُزيل التجاوز، ورجع العميل إلى الحدّ الافتراضي.' : 'حُفظ تجاوز الحدّ لهذا العميل.' });
+      onNotice({
+        kind: 'ok',
+        text:
+          trimmed.length === 0
+            ? 'أُزيل التجاوز، ورجع العميل إلى الحدّ الافتراضي.'
+            : 'حُفظ تجاوز الحدّ لهذا العميل.',
+      });
       usage.reload();
       settings.reload();
     } catch (error) {
@@ -695,74 +765,82 @@ function UsageTab({
     }
   }
 
+  const metricColumns: Array<Column<PlatformTenantUsageResponse['metrics'][number]>> = [
+    {
+      key: 'label',
+      header: 'البند',
+      grow: true,
+      cell: (metric) => (
+        <>
+          {metric.labelAr}
+          <div className="muted small">{metric.unitAr ?? ''}</div>
+        </>
+      ),
+    },
+    { key: 'used', header: 'المستخدم', numeric: true, cell: (metric) => metric.used },
+    { key: 'limit', header: 'الحدّ', numeric: true, cell: (metric) => metric.limit ?? 'بلا حدّ' },
+    {
+      key: 'ratio',
+      header: 'النسبة',
+      cell: (metric) => (
+        <>
+          <MeterBar
+            ratio={metric.limit === null ? 0 : metric.used / Math.max(metric.limit, 1)}
+            tone={
+              metric.limit === null
+                ? 'ok'
+                : metric.used >= metric.limit
+                  ? 'danger'
+                  : metric.used / metric.limit >= 0.8
+                    ? 'warn'
+                    : 'ok'
+            }
+          />
+          <span className="muted small">{metric.percentUsed === null ? '—' : `${metric.percentUsed}%`}</span>
+          {metric.state && (
+            <span
+              className={`badge ${metric.state === 'ok' ? 'ready' : metric.state}`}
+              style={{ marginInlineStart: 6 }}
+            >
+              {USAGE_STATE_LABEL[metric.state]}
+            </span>
+          )}
+        </>
+      ),
+    },
+    {
+      key: 'source',
+      header: 'من أين جاء الحدّ؟',
+      cell: (metric) => (
+        <>
+          <SourceTag source={metric.limitSource} />
+          {metric.enforced !== undefined && (
+            <div className="muted small">{metric.enforced ? 'يُطبَّق' : 'يُبلَّغ عنه فقط'}</div>
+          )}
+        </>
+      ),
+    },
+    {
+      key: 'override',
+      header: 'تجاوز خاص بالعميل',
+      cell: (metric) => (
+        <LimitEditor
+          metricKey={metric.key}
+          current={metric.limitSource === 'tenant' ? metric.limit : null}
+          disabled={!canSettings || busy}
+          onSave={(raw) => void setLimit(metric.key, raw)}
+        />
+      ),
+    },
+  ];
+
   return (
     <div className="grid">
       {usage.status === 'loading' && <Loading rows={3} />}
       {usage.status === 'error' && <ErrorBox message={usage.error} onRetry={usage.reload} />}
       {usage.status === 'success' && (
-        <div className="card">
-          <h2>الاستهلاك مقابل الحدود</h2>
-          <div className="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>البند</th>
-                  <th>المستخدم</th>
-                  <th>الحدّ</th>
-                  <th>النسبة</th>
-                  <th>من أين جاء الحدّ؟</th>
-                  <th>تجاوز خاص بالعميل</th>
-                </tr>
-              </thead>
-              <tbody>
-                {metrics.map((metric) => (
-                  <tr key={metric.key}>
-                    <td>
-                      {metric.labelAr}
-                      <div className="muted small">{metric.unitAr ?? ''}</div>
-                    </td>
-                    <td>{metric.used}</td>
-                    <td>{metric.limit ?? 'بلا حدّ'}</td>
-                    <td>
-                      <MeterBar
-                        ratio={metric.limit === null ? 0 : metric.used / Math.max(metric.limit, 1)}
-                        tone={
-                          metric.limit === null
-                            ? 'ok'
-                            : metric.used >= metric.limit
-                              ? 'danger'
-                              : metric.used / metric.limit >= 0.8
-                                ? 'warn'
-                                : 'ok'
-                        }
-                      />
-                      <span className="muted small">{metric.percentUsed === null ? '—' : `${metric.percentUsed}%`}</span>
-                      {metric.state && (
-                        <span className={`badge ${metric.state === 'ok' ? 'ready' : metric.state}`} style={{ marginInlineStart: 6 }}>
-                          {USAGE_STATE_LABEL[metric.state]}
-                        </span>
-                      )}
-                    </td>
-                    <td>
-                      <SourceTag source={metric.limitSource} />
-                      {/* المغلّف الافتراضي يُبلَّغ عنه ولا يمنع — والعمود يقول أيّهما هذا. */}
-                      {metric.enforced !== undefined && (
-                        <div className="muted small">{metric.enforced ? 'يُطبَّق' : 'يُبلَّغ عنه فقط'}</div>
-                      )}
-                    </td>
-                    <td>
-                      <LimitEditor
-                        metricKey={metric.key}
-                        current={metric.limitSource === 'tenant' ? metric.limit : null}
-                        disabled={!canSettings || busy}
-                        onSave={(raw) => void setLimit(metric.key, raw)}
-                      />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+        <Panel title="الاستهلاك مقابل الحدود" flush>
+          <Table bare columns={metricColumns} rows={metrics} rowKey={(metric) => metric.key} />
           {metrics
             .filter((metric) => metric.noticeAr && metric.state !== 'ok' && metric.state !== 'unlimited')
             .map((metric) => (
@@ -775,14 +853,13 @@ function UsageTab({
               </p>
             ))}
           {metricNote(metrics)}
-        </div>
+        </Panel>
       )}
 
       {settings.status === 'success' && <AllSettingsCard settings={settings.data?.settings ?? []} />}
 
       {usage.status === 'success' && (
-        <div className="card">
-          <h2>فواتير آخر ٣٠ يوماً</h2>
+        <Panel title="فواتير آخر ٣٠ يوماً">
           <div className="day-bars" dir="ltr">
             {(usage.data?.invoicesPerDay ?? []).map((day) => {
               const max = Math.max(1, ...(usage.data?.invoicesPerDay ?? []).map((entry) => entry.count));
@@ -797,11 +874,10 @@ function UsageTab({
             })}
           </div>
           <p className="muted small">
-            إجمالي الفترة:{' '}
-            {(usage.data?.invoicesPerDay ?? []).reduce((sum, day) => sum + day.count, 0)} فاتورة · أحدث توليد{' '}
-            {when(usage.data?.generatedAt)}
+            إجمالي الفترة: {(usage.data?.invoicesPerDay ?? []).reduce((sum, day) => sum + day.count, 0)}{' '}
+            فاتورة · أحدث توليد {when(usage.data?.generatedAt)}
           </p>
-        </div>
+        </Panel>
       )}
     </div>
   );
@@ -822,8 +898,8 @@ function metricNote(metrics: PlatformTenantUsageResponse['metrics']) {
     <>
       {atCeiling.length > 0 && (
         <p className="alert danger" style={{ marginTop: 8 }}>
-          بلغ الحدّ ويُرفض التجاوز: {atCeiling.map((metric) => metric.labelAr).join(' · ')} — ارفع الحدّ من العمود
-          الأخير أو اتّفق مع العميل على باقةٍ أوسع.
+          بلغ الحدّ ويُرفض التجاوز: {atCeiling.map((metric) => metric.labelAr).join(' · ')} — ارفع الحدّ من
+          العمود الأخير أو اتّفق مع العميل على باقةٍ أوسع.
         </p>
       )}
       {approaching.length > 0 && (
@@ -833,8 +909,8 @@ function metricNote(metrics: PlatformTenantUsageResponse['metrics']) {
       )}
       {reportedOnly.length > 0 && (
         <p className="muted small" style={{ marginTop: 8 }}>
-          عند مغلّف الفهرس بلا تجاوز مكتوب: {reportedOnly.map((metric) => metric.labelAr).join(' · ')} — يُبلَّغ عنه ولا
-          يمنع، لأن الفهرس يصف منشأةً جديدة لا عميلاً قائماً.
+          عند مغلّف الفهرس بلا تجاوز مكتوب: {reportedOnly.map((metric) => metric.labelAr).join(' · ')} —
+          يُبلَّغ عنه ولا يمنع، لأن الفهرس يصف منشأةً جديدة لا عميلاً قائماً.
         </p>
       )}
       {atCeiling.length === 0 && approaching.length === 0 && reportedOnly.length === 0 && (
@@ -878,38 +954,26 @@ function LimitEditor({
 /** The keys the customer card may change: the tenant-scoped ones, exactly as the API sends them. */
 function AllSettingsCard({ settings }: { settings: PlatformSettingView[] }) {
   const rows = settings.filter((setting) => setting.key.startsWith('limits.'));
+  const settingColumns: Array<Column<PlatformSettingView>> = [
+    { key: 'label', header: 'المفتاح', grow: true, cell: (row) => row.labelAr },
+    { key: 'value', header: 'القيمة الفعّالة', ltr: true, cell: (row) => String(row.value) },
+    { key: 'source', header: 'المصدر', cell: (row) => <SourceTag source={row.source} /> },
+    { key: 'updated', header: 'آخر تعديل', ltr: true, cell: (row) => when(row.updatedAt) },
+  ];
+
   return (
-    <div className="card">
-      <h2>الحدود الافتراضية للتطبيق</h2>
-      <p className="muted small">
-        هذه هي القيم الفعّالة لهذا العميل (`GET /platform/tenants/:id/settings`): تجاوزٌ خاص، أو حدّ المنصّة، أو
-        القيمة الافتراضية للفهرس.
-      </p>
-      <div className="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>المفتاح</th>
-              <th>القيمة الفعّالة</th>
-              <th>المصدر</th>
-              <th>آخر تعديل</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((row) => (
-              <tr key={row.key}>
-                <td>{row.labelAr}</td>
-                <td dir="ltr">{String(row.value)}</td>
-                <td>
-                  <SourceTag source={row.source} />
-                </td>
-                <td dir="ltr">{when(row.updatedAt)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
+    <Panel
+      title="الحدود الافتراضية للتطبيق"
+      hint={
+        <>
+          هذه هي القيم الفعّالة لهذا العميل (`GET /platform/tenants/:id/settings`): تجاوزٌ خاص، أو حدّ
+          المنصّة، أو القيمة الافتراضية للفهرس.
+        </>
+      }
+      flush
+    >
+      <Table bare columns={settingColumns} rows={rows} rowKey={(row) => row.key} />
+    </Panel>
   );
 }
 
@@ -948,7 +1012,10 @@ function FlagsTab({
     onNotice(undefined);
     try {
       await apiPut(`/platform/tenants/${tenantId}/flags`, { values: { [key]: enabled } });
-      onNotice({ kind: 'ok', text: enabled ? 'فُتحت الحزمة لهذا العميل.' : 'أُعيدت الحزمة إلى الوضع الافتراضي.' });
+      onNotice({
+        kind: 'ok',
+        text: enabled ? 'فُتحت الحزمة لهذا العميل.' : 'أُعيدت الحزمة إلى الوضع الافتراضي.',
+      });
       flags.reload();
     } catch (error) {
       onNotice(noticeFrom(error));
@@ -976,127 +1043,130 @@ function FlagsTab({
 
   const CORE_DEFAULT_OPEN = new Set(['feature.pos', 'feature.hrm']);
 
+  const flagColumns: Array<Column<TenantFlagView>> = [
+    { key: 'label', header: 'الحزمة', grow: true, cell: (flag) => <strong>{flag.labelAr}</strong> },
+    {
+      key: 'description',
+      header: 'الوصف',
+      cell: (flag) => <span className="muted small">{flag.descriptionAr}</span>,
+    },
+    {
+      key: 'state',
+      header: 'الحالة الفعلية للعميل',
+      cell: (flag) => {
+        const isCore = CORE_DEFAULT_OPEN.has(flag.key);
+        const effectivelyOpen = flag.enabled || (isCore && flag.isDefault);
+        return effectivelyOpen ? (
+          <span className="badge active">
+            {flag.enabled ? 'مفتوحة (مثبّتة)' : 'مفعّلة ضمن النظام الأساسي'}
+          </span>
+        ) : (
+          <span className="badge">اختيارية — تُفعّل حسب الطلب</span>
+        );
+      },
+    },
+    {
+      key: 'source',
+      header: 'المصدر',
+      cell: (flag) => (flag.isDefault ? 'النظام الأساسي الافتراضي' : 'مضبوطة خصيصاً لهذا العميل'),
+    },
+    { key: 'updated', header: 'آخر تغيير', ltr: true, cell: (flag) => when(flag.updatedAt) },
+    {
+      key: 'action',
+      header: '',
+      cell: (flag) => (
+        <button
+          className="btn"
+          type="button"
+          disabled={!canSettings || busy}
+          onClick={() => void toggle(flag.key, !flag.enabled)}
+        >
+          {flag.enabled ? 'إرجاع للافتراضي' : 'تثبيت الفتح'}
+        </button>
+      ),
+    },
+  ];
+
+  const addonColumns: Array<Column<TenantAddonRow>> = [
+    { key: 'name', header: 'الباقة / الإضافة', grow: true, cell: (app) => <strong>{app.nameAr}</strong> },
+    {
+      key: 'category',
+      header: 'الفئة',
+      cell: (app) => (app.category === 'sector_addon' ? 'باقة قطاعية' : 'تكامل سحابي'),
+    },
+    { key: 'price', header: 'الاشتراك الشهري', ltr: true, cell: (app) => `${app.priceMonthlySar} SAR` },
+    {
+      key: 'enabled',
+      header: 'الحالة لدى العميل',
+      cell: (app) => (
+        <span className={`badge ${app.enabled ? 'active' : ''}`}>
+          {app.enabled ? 'مفعّلة للعميل' : 'غير مفعّلة'}
+        </span>
+      ),
+    },
+    {
+      key: 'request',
+      header: 'طلب العميل',
+      cell: (app) =>
+        app.latestRequestStatus === 'pending' ? (
+          <span className="badge pending">طلب تفعيل معلق</span>
+        ) : app.latestRequestStatus === 'approved' ? (
+          <span className="badge active">تمت الموافقة</span>
+        ) : (
+          '—'
+        ),
+    },
+    {
+      key: 'action',
+      header: 'الإجراء',
+      cell: (app) => (
+        <button
+          className={`btn sm ${app.enabled ? '' : 'primary'}`}
+          type="button"
+          disabled={busy}
+          onClick={() => void toggleAddon(app.code, !app.enabled)}
+        >
+          {app.enabled ? 'إيقاف الباقة' : 'تفعيل للعميل'}
+        </button>
+      ),
+    },
+  ];
+
   return (
     <div className="grid">
-      <div className="card">
-        <h2>حِزم المزايا الأساسية (الرايات)</h2>
-        <p className="muted small">
-          الخدمات الأساسية للعميل (نقطة البيع POS والموارد البشرية HRM) <strong>مفعّلة ومفتوحة افتراضياً</strong> لجميع العملاء دون تقييد.
-        </p>
+      <Panel
+        title="حِزم المزايا الأساسية (الرايات)"
+        hint={
+          <>
+            الخدمات الأساسية للعميل (نقطة البيع POS والموارد البشرية HRM){' '}
+            <strong>مفعّلة ومفتوحة افتراضياً</strong> لجميع العملاء دون تقييد.
+          </>
+        }
+        flush
+      >
         {flags.status === 'loading' && <Loading rows={3} />}
         {flags.status === 'error' && <ErrorBox message={flags.error} onRetry={flags.reload} />}
         {flags.status === 'success' && (
-          <div className="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>الحزمة</th>
-                  <th>الوصف</th>
-                  <th>الحالة الفعلية للعميل</th>
-                  <th>المصدر</th>
-                  <th>آخر تغيير</th>
-                  <th />
-                </tr>
-              </thead>
-              <tbody>
-                {(flags.data?.flags ?? []).map((flag) => {
-                  const isCore = CORE_DEFAULT_OPEN.has(flag.key);
-                  const effectivelyOpen = flag.enabled || (isCore && flag.isDefault);
-                  return (
-                    <tr key={flag.key}>
-                      <td>
-                        <strong>{flag.labelAr}</strong>
-                      </td>
-                      <td className="muted small">{flag.descriptionAr}</td>
-                      <td>
-                        {effectivelyOpen ? (
-                          <span className="badge active">
-                            {flag.enabled ? 'مفتوحة (مثبّتة)' : 'مفعّلة ضمن النظام الأساسي'}
-                          </span>
-                        ) : (
-                          <span className="badge">اختيارية — تُفعّل حسب الطلب</span>
-                        )}
-                      </td>
-                      <td>{flag.isDefault ? 'النظام الأساسي الافتراضي' : 'مضبوطة خصيصاً لهذا العميل'}</td>
-                      <td dir="ltr">{when(flag.updatedAt)}</td>
-                      <td>
-                        <button
-                          className="btn"
-                          type="button"
-                          disabled={!canSettings || busy}
-                          onClick={() => void toggle(flag.key, !flag.enabled)}
-                        >
-                          {flag.enabled ? 'إرجاع للافتراضي' : 'تثبيت الفتح'}
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+          <Table bare columns={flagColumns} rows={flags.data?.flags ?? []} rowKey={(flag) => flag.key} />
         )}
-      </div>
+      </Panel>
 
-      <div className="card">
-        <h2>🛒 الباقات والأنظمة القطاعية للعميل (سوق الإضافات)</h2>
-        <p className="muted small">
-          تحكّم مباشر في تفعيل أو إيقاف الباقات القطاعية والتكاملات السحابية الخاصة بهذا العميل (مثل توزيع المناديب والمخابز، التصنيع، تطبيق الموظف، والمشاريع).
-        </p>
+      <Panel
+        title="الباقات والأنظمة القطاعية للعميل (سوق الإضافات)"
+        hint={
+          <>
+            تحكّم مباشر في تفعيل أو إيقاف الباقات القطاعية والتكاملات السحابية الخاصة بهذا العميل (مثل توزيع
+            المناديب والمخابز، التصنيع، تطبيق الموظف، والمشاريع).
+          </>
+        }
+        flush
+      >
         {addons.status === 'loading' && <Loading rows={3} />}
         {addons.status === 'error' && <ErrorBox message={addons.error} onRetry={addons.reload} />}
         {addons.status === 'success' && (
-          <div className="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>الباقة / الإضافة</th>
-                  <th>الفئة</th>
-                  <th>الاشتراك الشهري</th>
-                  <th>الحالة لدى العميل</th>
-                  <th>طلب العميل</th>
-                  <th>الإجراء</th>
-                </tr>
-              </thead>
-              <tbody>
-                {(addons.data?.apps ?? []).map((app) => (
-                  <tr key={app.code}>
-                    <td>
-                      <strong>{app.nameAr}</strong>
-                    </td>
-                    <td>{app.category === 'sector_addon' ? 'باقة قطاعية' : 'تكامل سحابي'}</td>
-                    <td dir="ltr">{app.priceMonthlySar} SAR</td>
-                    <td>
-                      <span className={`badge ${app.enabled ? 'active' : ''}`}>
-                        {app.enabled ? 'مفعّلة للعميل' : 'غير مفعّلة'}
-                      </span>
-                    </td>
-                    <td>
-                      {app.latestRequestStatus === 'pending' ? (
-                        <span className="badge pending">طلب تفعيل معلق</span>
-                      ) : app.latestRequestStatus === 'approved' ? (
-                        <span className="badge active">تمت الموافقة</span>
-                      ) : (
-                        '—'
-                      )}
-                    </td>
-                    <td>
-                      <button
-                        className={`btn sm ${app.enabled ? '' : 'primary'}`}
-                        type="button"
-                        disabled={busy}
-                        onClick={() => void toggleAddon(app.code, !app.enabled)}
-                      >
-                        {app.enabled ? 'إيقاف الباقة' : 'تفعيل للعميل'}
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <Table bare columns={addonColumns} rows={addons.data?.apps ?? []} rowKey={(app) => app.code} />
         )}
-      </div>
+      </Panel>
     </div>
   );
 }
@@ -1134,11 +1204,39 @@ function CustomerTicketsTab({ tenantId }: { tenantId: string }) {
   );
   const rows = Array.isArray(tickets.data) ? tickets.data : [];
 
+  const columns: Array<Column<CustomerTicketRow>> = [
+    { key: 'subject', header: 'الموضوع', grow: true, cell: (t) => <strong>{t.subject}</strong> },
+    { key: 'category', header: 'التصنيف', cell: (t) => t.category ?? 'عام' },
+    {
+      key: 'status',
+      header: 'الحالة',
+      cell: (t) => (
+        <span
+          className={`badge ${t.status === 'open' ? 'pending' : t.status === 'resolved' ? 'active' : ''}`}
+        >
+          {TICKET_STATUS_AR[t.status] ?? t.status}
+        </span>
+      ),
+    },
+    { key: 'priority', header: 'الأولوية', cell: (t) => TICKET_PRIORITY_AR[t.priority] ?? t.priority },
+    { key: 'messages', header: 'عدد الرسائل', numeric: true, cell: (t) => t.messageCount },
+    { key: 'created', header: 'تاريخ الفتح', ltr: true, cell: (t) => when(t.createdAt) },
+    {
+      key: 'open',
+      header: '',
+      cell: (t) => (
+        <Link className="btn sm primary" href={`/tickets/${t.id}`}>
+          فتح والرد
+        </Link>
+      ),
+    },
+  ];
+
   return (
-    <div className="card">
+    <Panel>
       <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
-          <h2 style={{ margin: 0 }}>🛟 تذاكر الدعم وطلبات المساعدة من هذا العميل ({rows.length})</h2>
+          <h2 style={{ margin: 0 }}>تذاكر الدعم وطلبات المساعدة من هذا العميل ({rows.length})</h2>
           <p className="muted small">جميع طلبات المساعدة والرسائل المرسلة من المنشأة إلى إدارة المنصة.</p>
         </div>
         <button className="btn" type="button" onClick={tickets.reload}>
@@ -1151,46 +1249,9 @@ function CustomerTicketsTab({ tenantId }: { tenantId: string }) {
         <Empty title="لا توجد تذاكر دعم لهذا العميل" detail="عند إرسال العميل لطلب مساعدة سيظهر هنا فوراً." />
       )}
       {tickets.status === 'success' && rows.length > 0 && (
-        <div className="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>الموضوع</th>
-                <th>التصنيف</th>
-                <th>الحالة</th>
-                <th>الأولوية</th>
-                <th>عدد الرسائل</th>
-                <th>تاريخ الفتح</th>
-                <th>الإجراء</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((t) => (
-                <tr key={t.id}>
-                  <td>
-                    <strong>{t.subject}</strong>
-                  </td>
-                  <td>{t.category ?? 'عام'}</td>
-                  <td>
-                    <span className={`badge ${t.status === 'open' ? 'pending' : t.status === 'resolved' ? 'active' : ''}`}>
-                      {TICKET_STATUS_AR[t.status] ?? t.status}
-                    </span>
-                  </td>
-                  <td>{TICKET_PRIORITY_AR[t.priority] ?? t.priority}</td>
-                  <td className="num">{t.messageCount}</td>
-                  <td dir="ltr">{when(t.createdAt)}</td>
-                  <td>
-                    <Link className="btn sm primary" href={`/tickets/${t.id}`}>
-                      فتح والرد ←
-                    </Link>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <Table bare columns={columns} rows={rows} rowKey={(t) => t.id} />
       )}
-    </div>
+    </Panel>
   );
 }
 
@@ -1209,21 +1270,19 @@ function HealthTab({ tenantId }: { tenantId: string }) {
       {health.status === 'success' && health.data && (
         <>
           <div className="grid cols">
-            <div className="card">
-              <h2>الحالة العامة</h2>
+            <Panel title="الحالة العامة">
               <p>
                 <strong>{HEALTH_LABEL[health.data.status] ?? health.data.status}</strong>
               </p>
               <p className="muted small">
-                الاشتراك: {SUBSCRIPTION_LABEL[health.data.subscriptionState] ?? health.data.subscriptionState} · نهاية الفترة:{' '}
-                {when(health.data.currentPeriodEnd)}
+                الاشتراك: {SUBSCRIPTION_LABEL[health.data.subscriptionState] ?? health.data.subscriptionState}{' '}
+                · نهاية الفترة: {when(health.data.currentPeriodEnd)}
               </p>
               <p className="muted small">
                 آخر نشاط: {when(health.data.lastActivityAt)} · آخر دخول: {when(health.data.lastLoginAt)}
               </p>
-            </div>
-            <div className="card">
-              <h2>طابور المهام</h2>
+            </Panel>
+            <Panel title="طابور المهام">
               <div className="kv">
                 <div>
                   <span className="muted">بالانتظار</span>
@@ -1242,23 +1301,25 @@ function HealthTab({ tenantId }: { tenantId: string }) {
                   <strong dir="ltr">{when(health.data.outbox.lastFailureAt)}</strong>
                 </div>
               </div>
-            </div>
+            </Panel>
           </div>
 
-          <div className="card">
-            <h2>ما يستحق الانتباه</h2>
+          <Panel title="ما يستحق الانتباه">
             {health.data.findings.length === 0 ? (
               <p className="muted">لا ملاحظات: كل ما تقيسه اللوحة داخل الحدّ.</p>
             ) : (
               <ul>
                 {health.data.findings.map((finding, index) => (
-                  <li key={index} className={`alert ${finding.severity === 'info' ? 'ok' : finding.severity}`}>
+                  <li
+                    key={index}
+                    className={`alert ${finding.severity === 'info' ? 'ok' : finding.severity}`}
+                  >
                     {finding.text}
                   </li>
                 ))}
               </ul>
             )}
-          </div>
+          </Panel>
         </>
       )}
     </div>
@@ -1285,56 +1346,59 @@ function AuditTab({ tenantId }: { tenantId: string }) {
     return apiData<{ items: AuditRow[]; total: number }>(`/platform/audit?${params.toString()}`);
   }, [tenantId]);
 
+  const columns: Array<Column<AuditRow>> = [
+    { key: 'time', header: 'الوقت', ltr: true, cell: (row) => when(row.createdAt) },
+    { key: 'action', header: 'الإجراء', cell: (row) => ACTION_LABEL[row.action] ?? row.action },
+    {
+      key: 'entity',
+      header: 'الكيان',
+      cell: (row) => (
+        <>
+          {row.entity}
+          <br />
+          <span className="muted small" dir="ltr">
+            {row.entityId ?? ''}
+          </span>
+        </>
+      ),
+    },
+    { key: 'actor', header: 'المستخدم', cell: (row) => row.actorLabel ?? '—' },
+    {
+      key: 'before',
+      header: 'قبل',
+      ltr: true,
+      cell: (row) => <span className="muted small">{row.before ? JSON.stringify(row.before) : '—'}</span>,
+    },
+    {
+      key: 'after',
+      header: 'بعد',
+      ltr: true,
+      cell: (row) => <span className="muted small">{row.after ? JSON.stringify(row.after) : '—'}</span>,
+    },
+    {
+      key: 'reason',
+      header: 'السبب',
+      cell: (row) => (typeof row.meta?.reason === 'string' ? row.meta.reason : '—'),
+    },
+  ];
+
   return (
-    <div className="card">
-      <h2>تدقيق هذا العميل</h2>
-      <p className="muted small">
-        كل عملية مؤثّرة على هذه المنشأة — من فعلها، وماذا تغيّر، ولماذا. للسجل نفسه في اللوحة الكاملة:{' '}
-        <Link href="/audit">التدقيق</Link>.
-      </p>
+    <Panel
+      title="تدقيق هذا العميل"
+      hint={
+        <>
+          كل عملية مؤثّرة على هذه المنشأة — من فعلها، وماذا تغيّر، ولماذا. للسجل نفسه في اللوحة الكاملة:{' '}
+          <Link href="/audit">التدقيق</Link>.
+        </>
+      }
+      flush
+    >
       {audit.status === 'loading' && <Loading rows={4} />}
       {audit.status === 'error' && <ErrorBox message={audit.error} onRetry={audit.reload} />}
       {audit.status === 'success' && (
-        <div className="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>الوقت</th>
-                <th>الإجراء</th>
-                <th>الكيان</th>
-                <th>المستخدم</th>
-                <th>قبل</th>
-                <th>بعد</th>
-                <th>السبب</th>
-              </tr>
-            </thead>
-            <tbody>
-              {(audit.data?.items ?? []).map((row) => (
-                <tr key={row.id}>
-                  <td dir="ltr">{when(row.createdAt)}</td>
-                  <td>{ACTION_LABEL[row.action] ?? row.action}</td>
-                  <td>
-                    {row.entity}
-                    <br />
-                    <span className="muted small" dir="ltr">
-                      {row.entityId ?? ''}
-                    </span>
-                  </td>
-                  <td>{row.actorLabel ?? '—'}</td>
-                  <td dir="ltr" className="muted small">
-                    {row.before ? JSON.stringify(row.before) : '—'}
-                  </td>
-                  <td dir="ltr" className="muted small">
-                    {row.after ? JSON.stringify(row.after) : '—'}
-                  </td>
-                  <td>{typeof row.meta?.reason === 'string' ? row.meta.reason : '—'}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <Table bare columns={columns} rows={audit.data?.items ?? []} rowKey={(row) => row.id} />
       )}
-    </div>
+    </Panel>
   );
 }
 
@@ -1391,9 +1455,10 @@ function NotesTab({
 
   return (
     <div className="grid">
-      <div className="card">
-        <h2>ملاحظة جديدة</h2>
-        <p className="muted small">ما لا تحتمله الحقول: ما قيل في المكالمة، وما وُعد به العميل، ولماذا استثنينا حالة.</p>
+      <Panel
+        title="ملاحظة جديدة"
+        hint={<>ما لا تحتمله الحقول: ما قيل في المكالمة، وما وُعد به العميل، ولماذا استثنينا حالة.</>}
+      >
         <textarea
           className="input"
           rows={3}
@@ -1402,13 +1467,18 @@ function NotesTab({
           disabled={!canManage}
           placeholder="اكتب الملاحظة…"
         />
-        <button className="btn primary" type="button" style={{ marginTop: 8 }} disabled={!canManage || busy} onClick={() => void add()}>
+        <button
+          className="btn primary"
+          type="button"
+          style={{ marginTop: 8 }}
+          disabled={!canManage || busy}
+          onClick={() => void add()}
+        >
           {busy ? 'جارٍ الحفظ…' : 'إضافة الملاحظة'}
         </button>
-      </div>
+      </Panel>
 
-      <div className="card">
-        <h2>الملاحظات المسجّلة ({notes.data?.total ?? 0})</h2>
+      <Panel title={<>الملاحظات المسجّلة ( {notes.data?.total ?? 0} )</>}>
         {notes.status === 'loading' && <Loading rows={2} />}
         {notes.status === 'error' && <ErrorBox message={notes.error} onRetry={notes.reload} />}
         {notes.status === 'success' &&
@@ -1417,14 +1487,19 @@ function NotesTab({
           ) : (
             <ul className="grid">
               {(notes.data?.items ?? []).map((note) => (
-                <li key={note.id} className="card tight">
+                <li key={note.id} className="ui-field-group">
                   <p style={{ margin: 0 }}>{note.body}</p>
                   <p className="muted small" style={{ margin: '6px 0 0' }}>
                     {note.authorLabel || 'مشغّل'} · <span dir="ltr">{when(note.createdAt)}</span>
                     {canManage && (
                       <>
                         {' · '}
-                        <button className="btn" type="button" disabled={busy} onClick={() => void remove(note.id)}>
+                        <button
+                          className="btn"
+                          type="button"
+                          disabled={busy}
+                          onClick={() => void remove(note.id)}
+                        >
                           حذف
                         </button>
                       </>
@@ -1434,7 +1509,7 @@ function NotesTab({
               ))}
             </ul>
           ))}
-      </div>
+      </Panel>
     </div>
   );
 }

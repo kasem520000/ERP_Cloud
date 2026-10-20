@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
+import { Panel } from '@erp/ui';
 
 import { DataTable, Notice, QueryView } from '../../../components/data-view';
 import { Screen } from '../../../components/screen';
@@ -44,7 +45,10 @@ export default function BackupPage() {
     try {
       const created = await apiPost<BackupRun>('/settings/backups', { note: note.trim() || undefined });
       setNote('');
-      setNotice({ kind: 'ok', text: `تم أخذ نسخة تحتوي ${created.totalRows} سجلاً من ${created.tables.length} جدولاً.` });
+      setNotice({
+        kind: 'ok',
+        text: `تم أخذ نسخة تحتوي ${created.totalRows} سجلاً من ${created.tables.length} جدولاً.`,
+      });
       backups.reload();
     } catch (error) {
       setNotice({ kind: 'danger', text: error instanceof Error ? error.message : String(error) });
@@ -80,7 +84,7 @@ export default function BackupPage() {
         </Link>
       }
     >
-      <div className="card">
+      <Panel>
         <p className="alert info">
           هذه نسخة منطقية للبيانات وليست نسخة كاملة لقاعدة البيانات. تصلح للاحتفاظ بلقطة قبل عملية كبيرة أو
           لنقل البيانات، ولا تغني عن نسخة الخادم (pg_dump) في حالات تلف القرص. لا تتضمن النسخة المستخدمين ولا
@@ -89,27 +93,51 @@ export default function BackupPage() {
         <div className="toolbar">
           <label className="field wide">
             <span>ملاحظة (اختياري)</span>
-            <input className="input" value={note} onChange={(event) => setNote(event.target.value)} placeholder="قبل ترحيل بيانات المخزون" />
+            <input
+              className="input"
+              value={note}
+              onChange={(event) => setNote(event.target.value)}
+              placeholder="قبل ترحيل بيانات المخزون"
+            />
           </label>
           <button type="button" className="btn primary" onClick={take} disabled={busy}>
             {busy ? 'جارٍ أخذ النسخة…' : 'أخذ نسخة الآن'}
           </button>
         </div>
         <Notice notice={notice} />
-      </div>
+      </Panel>
 
-      <QueryView query={backups} empty="لا توجد نسخ محفوظة" emptyDetail="اضغط «أخذ نسخة الآن» لإنشاء أول نسخة.">
+      <QueryView
+        panel="النسخ المحفوظة"
+        query={backups}
+        empty="لا توجد نسخ محفوظة"
+        emptyDetail="اضغط «أخذ نسخة الآن» لإنشاء أول نسخة."
+      >
         {(rows) => (
-          <section className="card">
-            <h3>النسخ المحفوظة</h3>
+          <Panel title="النسخ المحفوظة" flush>
             <DataTable
               columns={[
                 { key: 'createdAt', header: 'التاريخ', cell: (row: BackupRun) => dateTime(row.createdAt) },
                 { key: 'note', header: 'الملاحظة', cell: (row: BackupRun) => row.note ?? '—' },
-                { key: 'tables', header: 'الجداول', align: 'num', cell: (row: BackupRun) => String(row.tables.length) },
-                { key: 'rows', header: 'السجلات', align: 'num', cell: (row: BackupRun) => String(row.totalRows) },
+                {
+                  key: 'tables',
+                  header: 'الجداول',
+                  align: 'num',
+                  cell: (row: BackupRun) => String(row.tables.length),
+                },
+                {
+                  key: 'rows',
+                  header: 'السجلات',
+                  align: 'num',
+                  cell: (row: BackupRun) => String(row.totalRows),
+                },
                 { key: 'size', header: 'الحجم', align: 'num', cell: (row: BackupRun) => kb(row.sizeBytes) },
-                { key: 'checksum', header: 'البصمة', align: 'ltr', cell: (row: BackupRun) => row.checksum.slice(0, 12) },
+                {
+                  key: 'checksum',
+                  header: 'البصمة',
+                  align: 'ltr',
+                  cell: (row: BackupRun) => row.checksum.slice(0, 12),
+                },
                 {
                   key: 'download',
                   header: '',
@@ -123,7 +151,7 @@ export default function BackupPage() {
               rows={rows}
               rowKey={(row) => row.id}
             />
-          </section>
+          </Panel>
         )}
       </QueryView>
     </Screen>

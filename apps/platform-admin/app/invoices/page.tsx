@@ -1,5 +1,6 @@
 'use client';
 
+import { Panel } from '@erp/ui';
 import Link from 'next/link';
 import { FilePlus2 } from 'lucide-react';
 import { useState } from 'react';
@@ -8,9 +9,10 @@ import { Empty, ErrorBox, Loading, Screen } from '../../components/screen';
 import { Badge } from '../../components/ui/badge';
 import { Button } from '../../components/ui/button';
 import { Select } from '../../components/ui/input';
-import { Table } from '../../components/ui/table';
+import { Table, type Column } from '../../components/ui/table';
 import { ApiError, apiData, apiPost } from '../../lib/api';
 import { useQuery } from '../../lib/use-query';
+import { dateText } from '../../lib/format';
 
 const INVOICE_STATUS_TONE: Record<InvoiceStatus, 'blue' | 'purple' | 'green' | 'neutral'> = {
   draft: 'blue',
@@ -81,7 +83,15 @@ type Payment = {
   note: string | null;
 };
 
-type Invoice = InvoiceSummary & { lines: InvoiceLine[]; payments: Payment[]; voidReason: string | null; note: string | null; periodStart: string | null; periodEnd: string | null; subscriptionId: string | null };
+type Invoice = InvoiceSummary & {
+  lines: InvoiceLine[];
+  payments: Payment[];
+  voidReason: string | null;
+  note: string | null;
+  periodStart: string | null;
+  periodEnd: string | null;
+  subscriptionId: string | null;
+};
 
 type Subscription = {
   id: string;
@@ -112,11 +122,7 @@ const METHOD_LABEL: Record<PaymentMethod, string> = {
 };
 
 function money(value: string, currency: string): string {
-  return `${Number(value).toLocaleString('ar-SA', { minimumFractionDigits: 2 })} ${currency}`;
-}
-
-function dateText(value: string | null): string {
-  return value ? new Date(value).toLocaleDateString('ar-SA') : '—';
+  return `${Number(value).toLocaleString('ar-SA-u-ca-gregory-nu-latn', { minimumFractionDigits: 2 })} ${currency}`;
 }
 
 export default function InvoicesPage() {
@@ -197,7 +203,10 @@ export default function InvoicesPage() {
         <CreateForm
           onDone={(created) => {
             setCreating(false);
-            setMessage({ kind: 'ok', text: `أُنشئت المسودّة ${created.number ?? ''} — أصدرها لتخصيص رقم ضريبي.` });
+            setMessage({
+              kind: 'ok',
+              text: `أُنشئت المسودّة ${created.number ?? ''} — أصدرها لتخصيص رقم ضريبي.`,
+            });
             invoices.reload();
             void openDetail(created.id);
           }}
@@ -223,7 +232,10 @@ export default function InvoicesPage() {
             setPayTarget(undefined);
             setMessage({
               kind: 'ok',
-              text: settled.status === 'paid' ? 'اكتمل سداد الفاتورة.' : `سُجِّلت الدفعة، والمتبقّي ${settled.remaining} ${settled.currency}.`,
+              text:
+                settled.status === 'paid'
+                  ? 'اكتمل سداد الفاتورة.'
+                  : `سُجِّلت الدفعة، والمتبقّي ${settled.remaining} ${settled.currency}.`,
             });
             invoices.reload();
             void openDetail(settled.id);
@@ -245,7 +257,9 @@ export default function InvoicesPage() {
       {message && (
         <div
           className={`mb-4 flex items-center gap-2 rounded-[10px] border px-4 py-2.5 text-[13px] font-semibold ${
-            message.kind === 'ok' ? 'border-ok-line bg-ok-soft text-ok-ink' : 'border-danger-line bg-danger-soft text-danger-ink'
+            message.kind === 'ok'
+              ? 'border-ok-line bg-ok-soft text-ok-ink'
+              : 'border-danger-line bg-danger-soft text-danger-ink'
           }`}
         >
           {message.text}
@@ -262,76 +276,165 @@ export default function InvoicesPage() {
             <div className="mb-4 grid grid-cols-2 gap-3 xl:grid-cols-4">
               {[
                 { label: 'عدد المستندات', value: String(rows.length), cls: 'text-ink' },
-                { label: 'المفوتر', value: totals.billed.toLocaleString('en-US', { minimumFractionDigits: 2 }), cls: 'text-ink' },
-                { label: 'المحصَّل', value: totals.paid.toLocaleString('en-US', { minimumFractionDigits: 2 }), cls: 'text-ok' },
-                { label: 'المتبقّي', value: totals.remaining.toLocaleString('en-US', { minimumFractionDigits: 2 }), cls: 'text-warn' },
+                {
+                  label: 'المفوتر',
+                  value: totals.billed.toLocaleString('en-US', { minimumFractionDigits: 2 }),
+                  cls: 'text-ink',
+                },
+                {
+                  label: 'المحصَّل',
+                  value: totals.paid.toLocaleString('en-US', { minimumFractionDigits: 2 }),
+                  cls: 'text-ok',
+                },
+                {
+                  label: 'المتبقّي',
+                  value: totals.remaining.toLocaleString('en-US', { minimumFractionDigits: 2 }),
+                  cls: 'text-warn',
+                },
               ].map((stat) => (
-                <div key={stat.label} className="rounded-[10px] border border-line bg-surface px-4 py-3 shadow-1">
+                <div
+                  key={stat.label}
+                  className="rounded-[10px] border border-line bg-surface px-4 py-3 shadow-1"
+                >
                   <p className="m-0 text-[12px] font-bold text-muted">{stat.label}</p>
-                  <p className={`m-0 mt-1 font-mono text-[19px] font-bold ${stat.cls}`} dir="ltr">{stat.value}</p>
+                  <p className={`m-0 mt-1 font-mono text-[19px] font-bold ${stat.cls}`} dir="ltr">
+                    {stat.value}
+                  </p>
                 </div>
               ))}
             </div>
-            <div className="overflow-hidden rounded-[10px] border border-line bg-surface shadow-1">
+            <Panel flush title="الفواتير">
               <Table
+                bare
                 rows={rows}
                 rowKey={(row) => row.id}
                 dense
                 columns={[
-                  { key: 'number', header: 'الرقم', ltr: true, cell: (row) => <span className="font-mono text-[12px]">{row.number ?? '—'}</span> },
+                  {
+                    key: 'number',
+                    header: 'الرقم',
+                    ltr: true,
+                    cell: (row) => <span className="font-mono text-[12px]">{row.number ?? '—'}</span>,
+                  },
                   {
                     key: 'tenant',
                     header: 'العميل',
                     cell: (row) => (
                       <span className="block">
                         <span className="block text-[13px] font-bold text-ink">{row.tenantName}</span>
-                        <span className="block font-mono text-[11px] text-muted" dir="ltr">{row.tenantCode}</span>
+                        <span className="block font-mono text-xs text-muted" dir="ltr">
+                          {row.tenantCode}
+                        </span>
                       </span>
                     ),
                   },
-                  { key: 'kind', header: 'النوع', cell: (row) => <span className="text-[12.5px] text-muted">{KIND_LABEL[row.kind]}</span> },
+                  {
+                    key: 'kind',
+                    header: 'النوع',
+                    cell: (row) => <span className="text-[12.5px] text-muted">{KIND_LABEL[row.kind]}</span>,
+                  },
                   {
                     key: 'status',
                     header: 'الحالة',
                     cell: (row) => (
                       <span className="block">
-                        <Badge tone={INVOICE_STATUS_TONE[row.status]} dot>{STATUS_LABEL[row.status]}</Badge>
+                        <Badge tone={INVOICE_STATUS_TONE[row.status]} dot>
+                          {STATUS_LABEL[row.status]}
+                        </Badge>
                         {row.daysOverdue > 0 && row.status === 'issued' && (
-                          <span className="mt-0.5 block text-[11px] font-semibold text-danger">متأخّرة {row.daysOverdue} يوماً</span>
+                          <span className="mt-0.5 block text-xs font-semibold text-danger">
+                            متأخّرة {row.daysOverdue} يوماً
+                          </span>
                         )}
                       </span>
                     ),
                   },
-                  { key: 'issue', header: 'الإصدار', ltr: true, cell: (row) => <span className="font-mono text-[11.5px] text-muted">{dateText(row.issueDate)}</span> },
-                  { key: 'due', header: 'الاستحقاق', ltr: true, cell: (row) => <span className="font-mono text-[11.5px] text-muted">{dateText(row.dueDate)}</span> },
-                  { key: 'total', header: 'الإجمالي', numeric: true, ltr: true, cell: (row) => <span className="font-mono text-[12px] font-bold">{money(row.total, row.currency)}</span> },
-                  { key: 'paid', header: 'المدفوع', numeric: true, ltr: true, cell: (row) => <span className="font-mono text-[12px] text-ok-ink">{money(row.paidAmount, row.currency)}</span> },
-                  { key: 'remaining', header: 'المتبقّي', numeric: true, ltr: true, cell: (row) => <span className={`font-mono text-[12px] ${Number(row.remaining) > 0 ? 'font-bold text-warn-ink' : 'text-muted'}`}>{money(row.remaining, row.currency)}</span> },
+                  {
+                    key: 'issue',
+                    header: 'الإصدار',
+                    ltr: true,
+                    cell: (row) => (
+                      <span className="font-mono text-[11.5px] text-muted">{dateText(row.issueDate)}</span>
+                    ),
+                  },
+                  {
+                    key: 'due',
+                    header: 'الاستحقاق',
+                    ltr: true,
+                    cell: (row) => (
+                      <span className="font-mono text-[11.5px] text-muted">{dateText(row.dueDate)}</span>
+                    ),
+                  },
+                  {
+                    key: 'total',
+                    header: 'الإجمالي',
+                    numeric: true,
+                    ltr: true,
+                    cell: (row) => (
+                      <span className="font-mono text-[12px] font-bold">
+                        {money(row.total, row.currency)}
+                      </span>
+                    ),
+                  },
+                  {
+                    key: 'paid',
+                    header: 'المدفوع',
+                    numeric: true,
+                    ltr: true,
+                    cell: (row) => (
+                      <span className="font-mono text-[12px] text-ok-ink">
+                        {money(row.paidAmount, row.currency)}
+                      </span>
+                    ),
+                  },
+                  {
+                    key: 'remaining',
+                    header: 'المتبقّي',
+                    numeric: true,
+                    ltr: true,
+                    cell: (row) => (
+                      <span
+                        className={`font-mono text-[12px] ${Number(row.remaining) > 0 ? 'font-bold text-warn-ink' : 'text-muted'}`}
+                      >
+                        {money(row.remaining, row.currency)}
+                      </span>
+                    ),
+                  },
                   {
                     key: 'actions',
                     header: '',
                     numeric: true,
                     cell: (row) => (
                       <span className="flex flex-wrap items-center justify-end gap-1.5">
-                        <Button variant="secondary" size="sm" onClick={() => void openDetail(row.id)}>تفاصيل</Button>
+                        <Button variant="secondary" size="sm" onClick={() => void openDetail(row.id)}>
+                          تفاصيل
+                        </Button>
                         {row.status === 'draft' && (
-                          <Button variant="secondary" size="sm" onClick={() => setIssueTarget(row)}>إصدار</Button>
+                          <Button variant="secondary" size="sm" onClick={() => setIssueTarget(row)}>
+                            إصدار
+                          </Button>
                         )}
                         {row.status === 'issued' && row.kind === 'invoice' && (
-                          <Button variant="secondary" size="sm" onClick={() => setPayTarget(row)}>تحصيل</Button>
+                          <Button variant="secondary" size="sm" onClick={() => setPayTarget(row)}>
+                            تحصيل
+                          </Button>
                         )}
                         {(row.status === 'draft' || row.status === 'issued') && (
-                          <Button variant="danger" size="sm" onClick={() => setVoidTarget(row)}>إلغاء</Button>
+                          <Button variant="danger" size="sm" onClick={() => setVoidTarget(row)}>
+                            إلغاء
+                          </Button>
                         )}
                         <Link href={`/invoices/${row.id}/print`}>
-                          <Button variant="secondary" size="sm">طباعة</Button>
+                          <Button variant="secondary" size="sm">
+                            طباعة
+                          </Button>
                         </Link>
                       </span>
                     ),
                   },
                 ]}
               />
-            </div>
+            </Panel>
           </>
         ))}
 
@@ -341,8 +444,56 @@ export default function InvoicesPage() {
 }
 
 function DetailCard({ invoice, onClose }: { invoice: Invoice; onClose: () => void }) {
+  const lineColumns: Array<Column<InvoiceLine>> = [
+    { key: 'no', header: '#', numeric: true, cell: (line) => line.lineNo },
+    { key: 'description', header: 'البند', grow: true, cell: (line) => line.description },
+    { key: 'quantity', header: 'الكمية', numeric: true, cell: (line) => line.quantity },
+    {
+      key: 'price',
+      header: 'السعر',
+      numeric: true,
+      cell: (line) =>
+        Number(line.unitPrice).toLocaleString('ar-SA-u-ca-gregory-nu-latn', { minimumFractionDigits: 2 }),
+    },
+    {
+      key: 'amount',
+      header: 'المبلغ',
+      numeric: true,
+      cell: (line) =>
+        Number(line.amount).toLocaleString('ar-SA-u-ca-gregory-nu-latn', { minimumFractionDigits: 2 }),
+    },
+  ];
+
+  const paymentColumns: Array<Column<Payment>> = [
+    { key: 'date', header: 'التاريخ', ltr: true, cell: (payment) => payment.receivedAt.slice(0, 10) },
+    {
+      key: 'method',
+      header: 'الطريقة',
+      cell: (payment) => (
+        <>
+          {METHOD_LABEL[payment.method]}
+          {payment.gateway && <span className="muted small"> · {payment.gateway}</span>}
+        </>
+      ),
+    },
+    { key: 'reference', header: 'المرجع', ltr: true, cell: (payment) => payment.reference ?? '—' },
+    {
+      key: 'receipt',
+      header: 'الإيصال',
+      ltr: true,
+      cell: (payment) => <span className="small">{payment.receiptFileId ?? '—'}</span>,
+    },
+    {
+      key: 'amount',
+      header: 'المبلغ',
+      numeric: true,
+      cell: (payment) => money(payment.amount, invoice.currency),
+    },
+    { key: 'by', header: 'سجّلها', cell: (payment) => payment.recordedByLabel ?? '—' },
+  ];
+
   return (
-    <section className="card">
+    <Panel>
       <div className="row" style={{ justifyContent: 'space-between', alignItems: 'baseline' }}>
         <h2>
           {KIND_LABEL[invoice.kind]} <span dir="ltr">{invoice.number ?? '— مسودّة —'}</span>
@@ -359,17 +510,21 @@ function DetailCard({ invoice, onClose }: { invoice: Invoice; onClose: () => voi
       <dl className="kv">
         <dt>العميل</dt>
         <dd>
-          {invoice.tenantName} <span className="muted small" dir="ltr">{invoice.tenantCode}</span>
+          {invoice.tenantName}{' '}
+          <span className="muted small" dir="ltr">
+            {invoice.tenantCode}
+          </span>
         </dd>
         <dt>الفترة</dt>
         <dd dir="ltr">
-          {dateText(invoice.periodStart)} ← {dateText(invoice.periodEnd)}
+          {dateText(invoice.periodStart)} {dateText(invoice.periodEnd)}
         </dd>
         <dt>الرقم الضريبي للمشتري</dt>
         <dd dir="ltr">{invoice.buyerTaxNumber ?? '—'}</dd>
         <dt>الإجمالي قبل الضريبة</dt>
         <dd>
-          {money(invoice.subtotal, invoice.currency)} · الضريبة ({Number(invoice.taxRate)}٪) {money(invoice.taxAmount, invoice.currency)}
+          {money(invoice.subtotal, invoice.currency)} · الضريبة ({Number(invoice.taxRate)}٪){' '}
+          {money(invoice.taxAmount, invoice.currency)}
         </dd>
         <dt>الإجمالي</dt>
         <dd>{money(invoice.total, invoice.currency)}</dd>
@@ -385,70 +540,26 @@ function DetailCard({ invoice, onClose }: { invoice: Invoice; onClose: () => voi
         )}
       </dl>
 
-      <table>
-        <thead>
-          <tr>
-            <th>#</th>
-            <th>البند</th>
-            <th className="num">الكمية</th>
-            <th className="num">السعر</th>
-            <th className="num">المبلغ</th>
-          </tr>
-        </thead>
-        <tbody>
-          {invoice.lines.map((line) => (
-            <tr key={line.lineNo}>
-              <td>{line.lineNo}</td>
-              <td>{line.description}</td>
-              <td className="num">{line.quantity}</td>
-              <td className="num">{Number(line.unitPrice).toLocaleString('ar-SA', { minimumFractionDigits: 2 })}</td>
-              <td className="num">{Number(line.amount).toLocaleString('ar-SA', { minimumFractionDigits: 2 })}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      <Table bare columns={lineColumns} rows={invoice.lines} rowKey={(line) => String(line.lineNo)} />
 
       {invoice.payments.length > 0 && (
         <>
           <h2>الدفعات</h2>
-          <table>
-            <thead>
-              <tr>
-                <th>التاريخ</th>
-                <th>الطريقة</th>
-                <th>المرجع</th>
-                <th>الإيصال</th>
-                <th className="num">المبلغ</th>
-                <th>سجّلها</th>
-              </tr>
-            </thead>
-            <tbody>
-              {invoice.payments.map((payment) => (
-                <tr key={payment.id}>
-                  <td dir="ltr">{payment.receivedAt.slice(0, 10)}</td>
-                  <td>
-                    {METHOD_LABEL[payment.method]}
-                    {payment.gateway && <span className="muted small"> · {payment.gateway}</span>}
-                  </td>
-                  <td dir="ltr">{payment.reference ?? '—'}</td>
-                  <td dir="ltr" className="small">
-                    {payment.receiptFileId ?? '—'}
-                  </td>
-                  <td className="num">{money(payment.amount, invoice.currency)}</td>
-                  <td>{payment.recordedByLabel ?? '—'}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <Table bare columns={paymentColumns} rows={invoice.payments} rowKey={(payment) => payment.id} />
         </>
       )}
-    </section>
+    </Panel>
   );
 }
 
 function CreateForm({ onDone, onCancel }: { onDone: (invoice: Invoice) => void; onCancel: () => void }) {
-  const subscriptions = useQuery<Subscription[]>(() => apiData<Subscription[]>('/platform/subscriptions'), []);
-  const live = (subscriptions.data ?? []).filter((row) => ['trialing', 'active', 'past_due'].includes(row.status));
+  const subscriptions = useQuery<Subscription[]>(
+    () => apiData<Subscription[]>('/platform/subscriptions'),
+    [],
+  );
+  const live = (subscriptions.data ?? []).filter((row) =>
+    ['trialing', 'active', 'past_due'].includes(row.status),
+  );
   const [subscriptionId, setSubscriptionId] = useState('');
   const [periodStart, setPeriodStart] = useState('');
   const [periodEnd, setPeriodEnd] = useState('');
@@ -483,73 +594,84 @@ function CreateForm({ onDone, onCancel }: { onDone: (invoice: Invoice) => void; 
   }
 
   return (
-    <form className="card" onSubmit={submit}>
-      <h2>فاتورة اشتراك — مسودّة</h2>
-      <p className="muted small">
-        تُنشأ مسودّة بلا رقم: الرقم الضريبي يُخصَّص عند الإصدار. والمبلغ يأتي من باقة الترخيص، والضريبة تُحسب لكل سطر
-        ثم تُجمع — فلا يفترق مجموع السطور عن إجمالي الفاتورة.
-      </p>
-      <div className="form-grid">
-        <label className="field">
-          <span>الترخيص *</span>
-          <select className="input" value={chosen} onChange={(event) => setSubscriptionId(event.target.value)} required>
-            <option value="">اختر ترخيصاً…</option>
-            {live.map((row) => (
-              <option key={row.id} value={row.id}>
-                {row.tenantName} — {row.planName}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="field">
-          <span>من تاريخ</span>
-          <input
-            className="input"
-            dir="ltr"
-            type="date"
-            value={periodStart || (chosenRow?.currentPeriodStart?.slice(0, 10) ?? '')}
-            onChange={(event) => setPeriodStart(event.target.value)}
-          />
-        </label>
-        <label className="field">
-          <span>إلى تاريخ</span>
-          <input
-            className="input"
-            dir="ltr"
-            type="date"
-            value={periodEnd || (chosenRow?.currentPeriodEnd?.slice(0, 10) ?? '')}
-            onChange={(event) => setPeriodEnd(event.target.value)}
-          />
-        </label>
-        <label className="field">
-          <span>الرقم الضريبي للمشتري (15 رقماً، اختياري)</span>
-          <input
-            className="input"
-            dir="ltr"
-            inputMode="numeric"
-            value={buyerTaxNumber}
-            onChange={(event) => setBuyerTaxNumber(event.target.value)}
-            placeholder="300000000000003"
-          />
-        </label>
-        <label className="field">
-          <span>ملاحظة (اختياري)</span>
-          <input className="input" value={note} onChange={(event) => setNote(event.target.value)} />
-        </label>
-        <label className="field">
-          <span>السبب *</span>
-          <input className="input" value={reason} onChange={(event) => setReason(event.target.value)} required minLength={3} />
-        </label>
-      </div>
-      {error && <p className="alert danger">{error}</p>}
-      <div className="row">
-        <button className="btn primary" type="submit" disabled={busy || !chosen}>
-          {busy ? 'جارٍ الإنشاء…' : 'إنشاء المسودّة'}
-        </button>
-        <button className="btn" type="button" onClick={onCancel}>
-          إلغاء
-        </button>
-      </div>
+    <form onSubmit={submit}>
+      <Panel
+        title="فاتورة اشتراك — مسودّة"
+        hint="تُنشأ مسودّة بلا رقم: الرقم الضريبي يُخصَّص عند الإصدار. والمبلغ يأتي من باقة الترخيص، والضريبة تُحسب لكل سطر ثم تُجمع — فلا يفترق مجموع السطور عن إجمالي الفاتورة."
+      >
+        <div className="form-grid">
+          <label className="field">
+            <span>الترخيص *</span>
+            <select
+              className="input"
+              value={chosen}
+              onChange={(event) => setSubscriptionId(event.target.value)}
+              required
+            >
+              <option value="">اختر ترخيصاً…</option>
+              {live.map((row) => (
+                <option key={row.id} value={row.id}>
+                  {row.tenantName} — {row.planName}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="field">
+            <span>من تاريخ</span>
+            <input
+              className="input"
+              dir="ltr"
+              type="date"
+              value={periodStart || (chosenRow?.currentPeriodStart?.slice(0, 10) ?? '')}
+              onChange={(event) => setPeriodStart(event.target.value)}
+            />
+          </label>
+          <label className="field">
+            <span>إلى تاريخ</span>
+            <input
+              className="input"
+              dir="ltr"
+              type="date"
+              value={periodEnd || (chosenRow?.currentPeriodEnd?.slice(0, 10) ?? '')}
+              onChange={(event) => setPeriodEnd(event.target.value)}
+            />
+          </label>
+          <label className="field">
+            <span>الرقم الضريبي للمشتري (15 رقماً، اختياري)</span>
+            <input
+              className="input"
+              dir="ltr"
+              inputMode="numeric"
+              value={buyerTaxNumber}
+              onChange={(event) => setBuyerTaxNumber(event.target.value)}
+              placeholder="300000000000003"
+            />
+          </label>
+          <label className="field">
+            <span>ملاحظة (اختياري)</span>
+            <input className="input" value={note} onChange={(event) => setNote(event.target.value)} />
+          </label>
+          <label className="field">
+            <span>السبب *</span>
+            <input
+              className="input"
+              value={reason}
+              onChange={(event) => setReason(event.target.value)}
+              required
+              minLength={3}
+            />
+          </label>
+        </div>
+        {error && <p className="alert danger">{error}</p>}
+        <div className="row">
+          <button className="btn primary" type="submit" disabled={busy || !chosen}>
+            {busy ? 'جارٍ الإنشاء…' : 'إنشاء المسودّة'}
+          </button>
+          <button className="btn" type="button" onClick={onCancel}>
+            إلغاء
+          </button>
+        </div>
+      </Panel>
     </form>
   );
 }
@@ -588,43 +710,50 @@ function IssueForm({
   }
 
   return (
-    <form className="card" onSubmit={submit}>
-      <h2>إصدار الفاتورة — {invoice.tenantName}</h2>
-      <p className="muted small">
-        الإصدار يخصّص الرقم التالي في تسلسل المنصة ويحدّد تاريخ الاستحقاق. المسودّة بلا رقم؛ وبعد الإصدار لا يُعاد
-        الرقم ولا يُحذف المستند — يُلغى بسببٍ مكتوب.
-      </p>
-      <div className="form-grid">
-        <label className="field">
-          <span>تاريخ الإصدار *</span>
-          <input className="input" dir="ltr" type="date" value={issueDate} onChange={(event) => setIssueDate(event.target.value)} required />
-        </label>
-        <label className="field">
-          <span>مهلة السداد (أيام)</span>
-          <input
-            className="input"
-            dir="ltr"
-            type="number"
-            min={0}
-            max={180}
-            value={dueInDays}
-            onChange={(event) => setDueInDays(Number(event.target.value))}
-          />
-        </label>
-        <label className="field">
-          <span>ملاحظة (اختياري)</span>
-          <input className="input" value={note} onChange={(event) => setNote(event.target.value)} />
-        </label>
-      </div>
-      {error && <p className="alert danger">{error}</p>}
-      <div className="row">
-        <button className="btn primary" type="submit" disabled={busy}>
-          {busy ? 'جارٍ الإصدار…' : `إصدار ${money(invoice.total, invoice.currency)}`}
-        </button>
-        <button className="btn" type="button" onClick={onCancel}>
-          إلغاء
-        </button>
-      </div>
+    <form onSubmit={submit}>
+      <Panel
+        title={<>إصدار الفاتورة — {invoice.tenantName}</>}
+        hint="الإصدار يخصّص الرقم التالي في تسلسل المنصة ويحدّد تاريخ الاستحقاق. المسودّة بلا رقم؛ وبعد الإصدار لا يُعاد الرقم ولا يُحذف المستند — يُلغى بسببٍ مكتوب."
+      >
+        <div className="form-grid">
+          <label className="field">
+            <span>تاريخ الإصدار *</span>
+            <input
+              className="input"
+              dir="ltr"
+              type="date"
+              value={issueDate}
+              onChange={(event) => setIssueDate(event.target.value)}
+              required
+            />
+          </label>
+          <label className="field">
+            <span>مهلة السداد (أيام)</span>
+            <input
+              className="input"
+              dir="ltr"
+              type="number"
+              min={0}
+              max={180}
+              value={dueInDays}
+              onChange={(event) => setDueInDays(Number(event.target.value))}
+            />
+          </label>
+          <label className="field">
+            <span>ملاحظة (اختياري)</span>
+            <input className="input" value={note} onChange={(event) => setNote(event.target.value)} />
+          </label>
+        </div>
+        {error && <p className="alert danger">{error}</p>}
+        <div className="row">
+          <button className="btn primary" type="submit" disabled={busy}>
+            {busy ? 'جارٍ الإصدار…' : `إصدار ${money(invoice.total, invoice.currency)}`}
+          </button>
+          <button className="btn" type="button" onClick={onCancel}>
+            إلغاء
+          </button>
+        </div>
+      </Panel>
     </form>
   );
 }
@@ -669,62 +798,89 @@ function PayForm({
   }
 
   return (
-    <form className="card" onSubmit={submit}>
-      <h2>تحصيل — {invoice.number ?? invoice.tenantName}</h2>
-      <p className="muted small">
-        المتبقّي {money(invoice.remaining, invoice.currency)}. الدفعة الجزئية مسموحة، وما يزيد على المتبقّي مرفوض —
-        تحصيلٌ مزدوج لنفس التحويل البنكي يضاعف المدفوع ولا يصحّح نفسه.
-      </p>
-      <div className="form-grid">
-        <label className="field">
-          <span>طريقة الدفع *</span>
-          <select className="input" value={method} onChange={(event) => setMethod(event.target.value as PaymentMethod)}>
-            {(Object.keys(METHOD_LABEL) as PaymentMethod[]).map((key) => (
-              <option key={key} value={key}>
-                {METHOD_LABEL[key]}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="field">
-          <span>المبلغ *</span>
-          <input
-            className="input"
-            dir="ltr"
-            inputMode="decimal"
-            value={valueText}
-            onChange={(event) => setValueText(event.target.value)}
-            required
-          />
-        </label>
-        <label className="field">
-          <span>المرجع (رقم الحوالة/الإيصال)</span>
-          <input className="input" dir="ltr" value={reference} onChange={(event) => setReference(event.target.value)} />
-        </label>
-        <label className="field">
-          <span>مرفق الإيصال (معرّف ملف، اختياري)</span>
-          <input className="input" dir="ltr" value={receiptFileId} onChange={(event) => setReceiptFileId(event.target.value)} />
-        </label>
-        <label className="field">
-          <span>ملاحظة (اختياري)</span>
-          <input className="input" value={note} onChange={(event) => setNote(event.target.value)} />
-        </label>
-      </div>
-      {overpaid && <p className="alert warn">المبلغ يتجاوز المتبقّي — سيُرفض في الخادم.</p>}
-      {error && <p className="alert danger">{error}</p>}
-      <div className="row">
-        <button className="btn primary" type="submit" disabled={busy || overpaid}>
-          {busy ? 'جارٍ التسجيل…' : 'تسجيل الدفعة'}
-        </button>
-        <button className="btn" type="button" onClick={onCancel}>
-          إلغاء
-        </button>
-      </div>
+    <form onSubmit={submit}>
+      <Panel
+        title={<>تحصيل — {invoice.number ?? invoice.tenantName}</>}
+        hint={
+          <>
+            المتبقّي {money(invoice.remaining, invoice.currency)}. الدفعة الجزئية مسموحة، وما يزيد على
+            المتبقّي مرفوض — تحصيلٌ مزدوج لنفس التحويل البنكي يضاعف المدفوع ولا يصحّح نفسه.
+          </>
+        }
+      >
+        <div className="form-grid">
+          <label className="field">
+            <span>طريقة الدفع *</span>
+            <select
+              className="input"
+              value={method}
+              onChange={(event) => setMethod(event.target.value as PaymentMethod)}
+            >
+              {(Object.keys(METHOD_LABEL) as PaymentMethod[]).map((key) => (
+                <option key={key} value={key}>
+                  {METHOD_LABEL[key]}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="field">
+            <span>المبلغ *</span>
+            <input
+              className="input"
+              dir="ltr"
+              inputMode="decimal"
+              value={valueText}
+              onChange={(event) => setValueText(event.target.value)}
+              required
+            />
+          </label>
+          <label className="field">
+            <span>المرجع (رقم الحوالة/الإيصال)</span>
+            <input
+              className="input"
+              dir="ltr"
+              value={reference}
+              onChange={(event) => setReference(event.target.value)}
+            />
+          </label>
+          <label className="field">
+            <span>مرفق الإيصال (معرّف ملف، اختياري)</span>
+            <input
+              className="input"
+              dir="ltr"
+              value={receiptFileId}
+              onChange={(event) => setReceiptFileId(event.target.value)}
+            />
+          </label>
+          <label className="field">
+            <span>ملاحظة (اختياري)</span>
+            <input className="input" value={note} onChange={(event) => setNote(event.target.value)} />
+          </label>
+        </div>
+        {overpaid && <p className="alert warn">المبلغ يتجاوز المتبقّي — سيُرفض في الخادم.</p>}
+        {error && <p className="alert danger">{error}</p>}
+        <div className="row">
+          <button className="btn primary" type="submit" disabled={busy || overpaid}>
+            {busy ? 'جارٍ التسجيل…' : 'تسجيل الدفعة'}
+          </button>
+          <button className="btn" type="button" onClick={onCancel}>
+            إلغاء
+          </button>
+        </div>
+      </Panel>
     </form>
   );
 }
 
-function VoidForm({ invoice, onDone, onCancel }: { invoice: InvoiceSummary; onDone: () => void; onCancel: () => void }) {
+function VoidForm({
+  invoice,
+  onDone,
+  onCancel,
+}: {
+  invoice: InvoiceSummary;
+  onDone: () => void;
+  onCancel: () => void;
+}) {
   const [reason, setReason] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | undefined>();
@@ -744,28 +900,39 @@ function VoidForm({ invoice, onDone, onCancel }: { invoice: InvoiceSummary; onDo
   }
 
   return (
-    <form className="card" onSubmit={submit}>
-      <h2>إلغاء المستند — {invoice.number ?? 'مسودّة'}</h2>
-      <p className="muted small">
-        {invoice.status === 'paid'
-          ? 'الفاتورة مدفوعة: تُردّ دفعاتها ولا تُلغى.'
-          : 'الإلغاء بسببٍ مكتوب. الرقم المتسلسل يبقى محفوظاً — المدقق يقرأه، والإلغاء ليس حذفاً.'}
-      </p>
-      <div className="form-grid">
-        <label className="field">
-          <span>السبب *</span>
-          <input className="input" value={reason} onChange={(event) => setReason(event.target.value)} required minLength={3} />
-        </label>
-      </div>
-      {error && <p className="alert danger">{error}</p>}
-      <div className="row">
-        <button className="btn danger" type="submit" disabled={busy}>
-          {busy ? 'جارٍ الإلغاء…' : 'إلغاء المستند'}
-        </button>
-        <button className="btn" type="button" onClick={onCancel}>
-          إغلاق
-        </button>
-      </div>
+    <form onSubmit={submit}>
+      <Panel
+        title={<>إلغاء المستند — {invoice.number ?? 'مسودّة'}</>}
+        hint={
+          <>
+            {invoice.status === 'paid'
+              ? 'الفاتورة مدفوعة: تُردّ دفعاتها ولا تُلغى.'
+              : 'الإلغاء بسببٍ مكتوب. الرقم المتسلسل يبقى محفوظاً — المدقق يقرأه، والإلغاء ليس حذفاً.'}
+          </>
+        }
+      >
+        <div className="form-grid">
+          <label className="field">
+            <span>السبب *</span>
+            <input
+              className="input"
+              value={reason}
+              onChange={(event) => setReason(event.target.value)}
+              required
+              minLength={3}
+            />
+          </label>
+        </div>
+        {error && <p className="alert danger">{error}</p>}
+        <div className="row">
+          <button className="btn danger" type="submit" disabled={busy}>
+            {busy ? 'جارٍ الإلغاء…' : 'إلغاء المستند'}
+          </button>
+          <button className="btn" type="button" onClick={onCancel}>
+            إغلاق
+          </button>
+        </div>
+      </Panel>
     </form>
   );
 }

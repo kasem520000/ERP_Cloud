@@ -1,11 +1,17 @@
 'use client';
 
 import Link from 'next/link';
+import { Panel } from '@erp/ui';
 
 import { DataTable, QueryView } from '../../../../components/data-view';
 import { Screen } from '../../../../components/screen';
 import { dateTime } from '../../../../lib/lookups';
-import { SYNC_DOCUMENT_ENTITIES, SYNC_ENTITY_LABELS, fetchSyncOverview, type SyncOverview } from '../../../../lib/sync';
+import {
+  SYNC_DOCUMENT_ENTITIES,
+  SYNC_ENTITY_LABELS,
+  fetchSyncOverview,
+  type SyncOverview,
+} from '../../../../lib/sync';
 import { useQuery } from '../../../../lib/use-query';
 
 /**
@@ -31,8 +37,7 @@ export default function SyncManagePage() {
       <QueryView query={overview} isEmpty={() => false}>
         {(data) => (
           <>
-            <section className="card">
-              <h3>حالة الاستقبال</h3>
+            <Panel title="حالة الاستقبال">
               <div className="row">
                 {data.inbound.map((row) => (
                   <Link key={row.entity} className="chip" href={`/settings/sync/${row.entity}`}>
@@ -40,34 +45,46 @@ export default function SyncManagePage() {
                   </Link>
                 ))}
               </div>
-            </section>
+            </Panel>
 
-            <section className="card">
-              <h3>مؤشرات السحب لكل جهاز</h3>
+            <Panel title="مؤشرات السحب لكل جهاز" flush>
               {data.devices.length === 0 ? (
                 <p className="muted">
-                  لا يوجد جهاز مرتبط بعد — أنشئ واحداً من <Link href="/settings/devices">الأجهزة المرتبطة</Link>.
+                  لا يوجد جهاز مرتبط بعد — أنشئ واحداً من{' '}
+                  <Link href="/settings/devices">الأجهزة المرتبطة</Link>.
                 </p>
               ) : (
                 <DataTable
                   columns={[
-                    { key: 'name', header: 'الجهاز', cell: (row: SyncOverview['devices'][number]) => row.name },
-                    { key: 'branch', header: 'الفرع', cell: (row: SyncOverview['devices'][number]) => row.branchName ?? '—' },
-                    { key: 'seen', header: 'آخر اتصال', cell: (row: SyncOverview['devices'][number]) => dateTime(row.lastSeenAt) },
+                    {
+                      key: 'name',
+                      header: 'الجهاز',
+                      cell: (row: SyncOverview['devices'][number]) => row.name,
+                    },
+                    {
+                      key: 'branch',
+                      header: 'الفرع',
+                      cell: (row: SyncOverview['devices'][number]) => row.branchName ?? '—',
+                    },
+                    {
+                      key: 'seen',
+                      header: 'آخر اتصال',
+                      cell: (row: SyncOverview['devices'][number]) => dateTime(row.lastSeenAt),
+                    },
                     ...['items', 'parties', 'accounts', 'tax-groups'].map((entity) => ({
                       key: entity,
                       header: SYNC_ENTITY_LABELS[entity] ?? entity,
-                      cell: (row: SyncOverview['devices'][number]) => dateTime(row.cursors?.[entity]?.updatedAt ?? null),
+                      cell: (row: SyncOverview['devices'][number]) =>
+                        dateTime(row.cursors?.[entity]?.updatedAt ?? null),
                     })),
                   ]}
                   rows={data.devices}
                   rowKey={(row) => row.id}
                 />
               )}
-            </section>
+            </Panel>
 
-            <section className="card">
-              <h3>سجلات المستندات</h3>
+            <Panel title="سجلات المستندات">
               <div className="row">
                 {SYNC_DOCUMENT_ENTITIES.map((entity) => (
                   <Link key={entity} className="btn sm" href={`/settings/sync/${entity}`}>
@@ -75,7 +92,7 @@ export default function SyncManagePage() {
                   </Link>
                 ))}
               </div>
-            </section>
+            </Panel>
           </>
         )}
       </QueryView>

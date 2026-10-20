@@ -100,8 +100,27 @@ export {
   type MoneyFieldProps,
   type SelectProps,
 } from './components/input';
+export {
+  FilterBand,
+  FormActions,
+  FormGrid,
+  FormSection,
+  KpiStrip,
+  Page,
+  PageHead,
+  Panel,
+  Section,
+  Split,
+  type KpiItem,
+} from './components/layout';
 export { ToastProvider, useToast, type Toast as ToastMessage, type ToastTone } from './components/toast';
 export { Tooltip, type TooltipProps } from './components/tooltip';
+export {
+  Table,
+  TableFrame,
+  type Column as TableColumn,
+  type SortState as TableSortState,
+} from './components/table';
 export { Skeleton, SkeletonCard, SkeletonRows } from './components/skeleton';
 export { EmptyState, type EmptyStateProps, type EmptyStateTone } from './components/empty-state';
 export { Avatar, initials, type AvatarProps, type AvatarSize } from './components/avatar';

@@ -2,7 +2,15 @@
 
 import { calculateInvoiceTotals, type InvoiceTotals } from '@erp/contracts';
 
-import { arabicName, itemLabel, money, type CostCenter, type Item, type TaxGroup, type Unit } from '../lib/lookups';
+import {
+  arabicName,
+  itemLabel,
+  money,
+  type CostCenter,
+  type Item,
+  type TaxGroup,
+  type Unit,
+} from '../lib/lookups';
 
 /**
  * The line grid shared by the sales invoice, the purchase invoice and the POS ticket.
@@ -27,19 +35,37 @@ export type LineDraft = {
   batchNo: string;
   serialText: string;
   /**
-   * R9 — 📊 مركز التكلفة على السطر (`Inv_Sub.ItemCostCenter`). الفراغ يعني «مركز رأس
+   * R9 — مركز التكلفة على السطر (`Inv_Sub.ItemCostCenter`). الفراغ يعني «مركز رأس
    * الفاتورة» — تماماً كما في الديسكتوب: القائمة في الرأس تحكم، والسطر يستطيع أن يخالفها.
    */
   costCenterId: string;
 };
 
 export function emptyLine(taxRateText = '15'): LineDraft {
-  return { itemId: '', description: '', quantityText: '1', unitPriceText: '', discountRateText: '', taxRateText, taxGroupId: '', batchNo: '', serialText: '', costCenterId: '' };
+  return {
+    itemId: '',
+    description: '',
+    quantityText: '1',
+    unitPriceText: '',
+    discountRateText: '',
+    taxRateText,
+    taxGroupId: '',
+    batchNo: '',
+    serialText: '',
+    costCenterId: '',
+  };
 }
 
 /** الأرقام التسلسلية المكتوبة في خانةٍ واحدة: واحدٌ في كل سطر أو مفصولةٌ بفاصلة. */
 export function serialList(text: string): string[] {
-  return [...new Set(text.split(/[\n,،;]+/).map((value) => value.trim()).filter(Boolean))];
+  return [
+    ...new Set(
+      text
+        .split(/[\n,،;]+/)
+        .map((value) => value.trim())
+        .filter(Boolean),
+    ),
+  ];
 }
 
 const numeric = (value: string) => (value.trim() === '' || Number.isNaN(Number(value)) ? '0' : value.trim());
@@ -48,7 +74,10 @@ export function filledLines(lines: LineDraft[]): LineDraft[] {
   return lines.filter((line) => (line.itemId || line.description.trim()) && Number(line.quantityText) > 0);
 }
 
-export function computeTotals(lines: LineDraft[], options: { priceIncludesVat?: boolean; invoiceDiscount?: string } = {}): InvoiceTotals {
+export function computeTotals(
+  lines: LineDraft[],
+  options: { priceIncludesVat?: boolean; invoiceDiscount?: string } = {},
+): InvoiceTotals {
   return calculateInvoiceTotals({
     lines: filledLines(lines).map((line) => ({
       quantity: numeric(line.quantityText),
@@ -120,7 +149,7 @@ export function InvoiceLines({
    */
   withNumbers?: boolean;
   /**
-   * R9 — 📊 مراكز التكلفة: عند تمرير القائمة يظهر عمود «📊 مركز التكلفة» على السطر
+   * R9 — مراكز التكلفة: عند تمرير القائمة يظهر عمود « مركز التكلفة» على السطر
    * (`Inv_Sub.ItemCostCenter`). والخيار الفارغ يعني «مركز رأس الفاتورة» لا «بلا مركز» —
    * وهي علاقة الميراث نفسها التي في الديسكتوب (L2432 ثم L2461).
    */
@@ -143,7 +172,7 @@ export function InvoiceLines({
     const pieces = Number(line.quantityText || '0');
     if (!written) return 'عدد الأرقام = عدد القطع';
     return written === pieces
-      ? `${written} من ${pieces} ✓`
+      ? `${written} من ${pieces} `
       : `${written} من ${pieces} — العدد لا يطابق الكمية`;
   }
 
@@ -153,13 +182,18 @@ export function InvoiceLines({
 
   function pickItem(index: number, itemId: string) {
     const item = items.find((row) => row.id === itemId);
-    const catalogue = item ? ((priceField === 'salePrice' ? item.salePrice ?? item.sale_price : item.purchasePrice ?? item.purchase_price) ?? '') : '';
+    const catalogue = item
+      ? ((priceField === 'salePrice'
+          ? (item.salePrice ?? item.sale_price)
+          : (item.purchasePrice ?? item.purchase_price)) ?? '')
+      : '';
     const group = item?.taxGroupId ? taxGroups.find((row) => row.id === item.taxGroupId) : undefined;
     update(index, {
       itemId,
       unitPriceText: lines[index]?.unitPriceText || String(catalogue ?? ''),
       taxGroupId: group?.id ?? lines[index]?.taxGroupId ?? '',
-      taxRateText: group ? String(Number(group.rate) * 100) : (lines[index]?.taxRateText ?? '15'),
+      // `tax_groups.rate` is already a percentage (numeric(7,4), 0–100) — never scale it.
+      taxRateText: group ? String(Number(group.rate)) : (lines[index]?.taxRateText ?? '15'),
     });
   }
 
@@ -169,15 +203,15 @@ export function InvoiceLines({
         <table>
           <thead>
             <tr>
-              <th style={{ minWidth: '14rem' }}>📦 الصنف</th>
+              <th style={{ minWidth: '14rem' }}>الصنف</th>
               <th>الوحدة</th>
               <th>الكمية</th>
               <th>السعر</th>
               <th>خصم %</th>
               <th>ضريبة %</th>
-              {withNumbers && <th>📁 رقم الدفعة</th>}
-              {withNumbers && <th>🔢 التسلسلي</th>}
-              {costCenters.length > 0 && <th>📊 مركز التكلفة</th>}
+              {withNumbers && <th>رقم الدفعة</th>}
+              {withNumbers && <th>التسلسلي</th>}
+              {costCenters.length > 0 && <th>مركز التكلفة</th>}
               <th>المجموع</th>
               <th>الخصم</th>
               <th>الإجمالي</th>
@@ -192,7 +226,11 @@ export function InvoiceLines({
               return (
                 <tr key={index}>
                   <td>
-                    <select className="input" value={line.itemId} onChange={(event) => pickItem(index, event.target.value)}>
+                    <select
+                      className="input table-input"
+                      value={line.itemId}
+                      onChange={(event) => pickItem(index, event.target.value)}
+                    >
                       <option value="">— بند حر —</option>
                       {items.map((row) => (
                         <option key={row.id} value={row.id}>
@@ -202,7 +240,7 @@ export function InvoiceLines({
                     </select>
                     {!line.itemId && (
                       <input
-                        className="input"
+                        className="input table-input"
                         placeholder="وصف البند"
                         value={line.description}
                         onChange={(event) => update(index, { description: event.target.value })}
@@ -211,21 +249,45 @@ export function InvoiceLines({
                   </td>
                   <td>{unitOf(line)}</td>
                   <td>
-                    <input className="input" dir="ltr" inputMode="decimal" value={line.quantityText} onChange={(event) => update(index, { quantityText: event.target.value })} />
+                    <input
+                      className="input table-input"
+                      dir="ltr"
+                      inputMode="decimal"
+                      value={line.quantityText}
+                      onChange={(event) => update(index, { quantityText: event.target.value })}
+                    />
                   </td>
                   <td>
-                    <input className="input" dir="ltr" inputMode="decimal" value={line.unitPriceText} onChange={(event) => update(index, { unitPriceText: event.target.value })} />
+                    <input
+                      className="input table-input"
+                      dir="ltr"
+                      inputMode="decimal"
+                      value={line.unitPriceText}
+                      onChange={(event) => update(index, { unitPriceText: event.target.value })}
+                    />
                   </td>
                   <td>
-                    <input className="input" dir="ltr" inputMode="decimal" value={line.discountRateText} onChange={(event) => update(index, { discountRateText: event.target.value })} />
+                    <input
+                      className="input table-input"
+                      dir="ltr"
+                      inputMode="decimal"
+                      value={line.discountRateText}
+                      onChange={(event) => update(index, { discountRateText: event.target.value })}
+                    />
                   </td>
                   <td>
-                    <input className="input" dir="ltr" inputMode="decimal" value={line.taxRateText} onChange={(event) => update(index, { taxRateText: event.target.value })} />
+                    <input
+                      className="input table-input"
+                      dir="ltr"
+                      inputMode="decimal"
+                      value={line.taxRateText}
+                      onChange={(event) => update(index, { taxRateText: event.target.value })}
+                    />
                   </td>
                   {withNumbers && (
                     <td>
                       <input
-                        className="input"
+                        className="input table-input"
                         dir="ltr"
                         placeholder="رقم الدفعة"
                         value={line.batchNo}
@@ -236,7 +298,7 @@ export function InvoiceLines({
                   {withNumbers && (
                     <td>
                       <input
-                        className="input"
+                        className="input table-input"
                         dir="ltr"
                         placeholder="رقم في كل سطر"
                         value={line.serialText}
@@ -244,7 +306,13 @@ export function InvoiceLines({
                         title={serialHint(line)}
                       />
                       {serialList(line.serialText).length > 0 && (
-                        <span className={serialList(line.serialText).length === Number(line.quantityText || '0') ? 'badge ready' : 'badge draft'}>
+                        <span
+                          className={
+                            serialList(line.serialText).length === Number(line.quantityText || '0')
+                              ? 'badge ready'
+                              : 'badge draft'
+                          }
+                        >
                           {serialHint(line)}
                         </span>
                       )}
@@ -253,7 +321,7 @@ export function InvoiceLines({
                   {costCenters.length > 0 && (
                     <td>
                       <select
-                        className="input"
+                        className="input table-input"
                         value={line.costCenterId}
                         onChange={(event) => update(index, { costCenterId: event.target.value })}
                         title="اتركه فارغاً ليأخذ مركز رأس الفاتورة"
@@ -269,12 +337,18 @@ export function InvoiceLines({
                   )}
                   {/* ترتيب أعمدة الديسكتوب: المجموع · الخصم · الإجمالي · الضريبة · الصافي */}
                   <td className="num">{computed ? money(computed.gross) : '—'}</td>
-                  <td className="num">{computed ? money(Number(computed.discount) + Number(computed.headerDiscountShare)) : '—'}</td>
+                  <td className="num">
+                    {computed ? money(Number(computed.discount) + Number(computed.headerDiscountShare)) : '—'}
+                  </td>
                   <td className="num">{computed ? money(computed.net) : '—'}</td>
                   <td className="num">{computed ? money(computed.tax) : '—'}</td>
                   <td className="num">{computed ? money(computed.total) : '—'}</td>
                   <td>
-                    <button className="btn sm" type="button" onClick={() => onChange(lines.filter((_, position) => position !== index))}>
+                    <button
+                      className="btn sm"
+                      type="button"
+                      onClick={() => onChange(lines.filter((_, position) => position !== index))}
+                    >
                       حذف
                     </button>
                   </td>
@@ -301,11 +375,11 @@ export function InvoiceLines({
  */
 const TOTALS_LABELS = {
   sales: {
-    sum: '📊 المجموع:',
-    discount: '🔻 الخصم:',
-    net: '💵 الإجمالي:',
-    tax: '🧾 الضريبة:',
-    total: '✅ الصافي:',
+    sum: 'المجموع:',
+    discount: 'الخصم:',
+    net: 'الإجمالي:',
+    tax: 'الضريبة:',
+    total: 'الصافي:',
   },
   purchase: {
     sum: 'المجموع :',
@@ -328,9 +402,12 @@ export function TotalsPanel({
 }) {
   const labels = TOTALS_LABELS[variant];
   const grossSum = totals.lines.reduce((sum, line) => sum + Number(line.gross), 0);
-  const discountSum = totals.lines.reduce((sum, line) => sum + Number(line.discount) + Number(line.headerDiscountShare), 0);
+  const discountSum = totals.lines.reduce(
+    (sum, line) => sum + Number(line.discount) + Number(line.headerDiscountShare),
+    0,
+  );
   return (
-    <dl className="kv">
+    <dl className="ui-totals">
       <dt>{labels.sum}</dt>
       <dd>{money(grossSum, currency)}</dd>
       <dt>{labels.discount}</dt>

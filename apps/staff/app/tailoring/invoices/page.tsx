@@ -1,5 +1,6 @@
 'use client';
 
+import { FilterBand, FormSection, Panel } from '@erp/ui';
 import { Suspense, useState } from 'react';
 
 import { Empty, ErrorBox, Forbidden, Loading, Screen } from '../../../components/screen';
@@ -17,9 +18,10 @@ import {
 } from '../../../lib/lookups';
 import { useSession } from '../../../lib/session';
 import { useQuery } from '../../../lib/use-query';
+import { Table } from '../../../components/ui/table';
 
 /**
- * 🧾 فواتير التفصيل — `Form_WPF/frmViewOrders.xaml` («عرض الطلبات - ViewOrders») with the
+ * فواتير التفصيل — `Form_WPF/frmViewOrders.xaml` («عرض الطلبات - ViewOrders») with the
  * card of `Form_WPF/AddNewSizes.xaml` («إضافة مقاس جديد») behind «👁️ عرض».
  *
  * `frmViewOrders` is one search box over one grid:
@@ -27,12 +29,12 @@ import { useQuery } from '../../../lib/use-query';
  *   • `txtPhoneNum` — «🔍 الهاتف أو اسم العميل...», searched as you type
  *     (`txtPhoneNum_TextChanged`), matching `phone_num LIKE @search OR name LIKE @search`
  *     (`SearchInData` L64).
- *   • the grid — `📋 رقم الفاتورة · 👤 الاسم · 📱 الجوال · 📅 التاريخ · 💰 الإجمالي ·
- *     ✅ المدفوع · ⏳ الباقي · 📌 الحالة · 👁️ عرض`, counted by «النتائج: {n}»
+ *   • the grid — ` رقم الفاتورة · الاسم · الجوال · التاريخ · الإجمالي ·
+ * المدفوع · ⏳ الباقي · الحالة · عرض`, counted by «النتائج: {n}»
  *     (`lblResultCount`).
- *   • 💰 الإجمالي is **not** the stored price: `sale_price + sale_price * 5.0 / 100.0`
+ *   • الإجمالي is **not** the stored price: `sale_price + sale_price * 5.0 / 100.0`
  *     (L88) — the same 5% `AddNewSizes.CreateInvoice` L419 hands to the point of sale.
- *   • ⏳ الباقي = الإجمالي بالضريبة − ✅ المدفوع (L90), and المدفوع is the running
+ *   • ⏳ الباقي = الإجمالي بالضريبة − المدفوع (L90), and المدفوع is the running
  *     `Inv_Sub_Tailor.paid` (L130).
  *
  * The card is `AddNewSizes`: «📋 البيانات الأساسية» (`👤 اسم العميل` · `📞 رقم الجوال` ·
@@ -50,7 +52,7 @@ import { useQuery } from '../../../lib/use-query';
  * phase does not build, so the button is not offered rather than offered and dead; the
  * API still carries the `bill` flag it would set.
  *
- * `CalculateTotalPrice` L860 is 💵 الإجمالي = 💰 السعر × 🔢 العدد, and the two refusals
+ * `CalculateTotalPrice` L860 is الإجمالي = السعر × العدد, and the two refusals
  * of `btnSave_Click` L191 — «برجاء اختيار العميل» و«يرجي إدخال السعر» — are the API's.
  */
 type Status = { id: string; code: string; nameAr: string; displayOrder: number; isFinal: boolean };
@@ -104,9 +106,9 @@ type Draft = {
 };
 
 const GROUPS: Array<{ key: MeasurementField['group']; title: string }> = [
-  { key: 'measurements', title: '📐 المقاسات' },
-  { key: 'shapes', title: '✨ الأشكال والتفاصيل' },
-  { key: 'extra', title: '📏 مقاسات إضافية' },
+  { key: 'measurements', title: 'المقاسات' },
+  { key: 'shapes', title: 'الأشكال والتفاصيل' },
+  { key: 'extra', title: 'مقاسات إضافية' },
 ];
 
 const METHODS: Array<{ value: string; label: string }> = [
@@ -172,7 +174,10 @@ function TailoringInvoices() {
 
   const statuses = useQuery<Status[]>(() => apiList<Status>('/tailoring/order-statuses'), []);
   const garments = useQuery<GarmentType[]>(() => apiList<GarmentType>('/tailoring/garment-types'), []);
-  const fields = useQuery<MeasurementField[]>(() => apiList<MeasurementField>('/tailoring/measurement-fields'), []);
+  const fields = useQuery<MeasurementField[]>(
+    () => apiList<MeasurementField>('/tailoring/measurement-fields'),
+    [],
+  );
   const customers = useQuery<Party[]>(() => listParties('customer'), []);
   const branches = useQuery<Branch[]>(() => listBranches(), []);
   const safes = useQuery<CashLocation[]>(() => listCashLocations(), []);
@@ -190,10 +195,11 @@ function TailoringInvoices() {
   const firstStatus = (statuses.data ?? [])[0]?.id ?? '';
   const firstGarment = (garments.data ?? [])[0]?.id ?? '';
 
-  const setField = (patch: Partial<Draft>) => setDraft((current) => (current ? { ...current, ...patch } : current));
+  const setField = (patch: Partial<Draft>) =>
+    setDraft((current) => (current ? { ...current, ...patch } : current));
 
   const totalOf = (current: Draft | null) => Number(current?.unitPrice || 0) * Number(current?.quantity || 1);
-  // 💳 الصافي (مع الضريبة) — `CreateInvoice` L419 `txtTotVAT = الإجمالي × 0.05`.
+  // الصافي (مع الضريبة) — `CreateInvoice` L419 `txtTotVAT = الإجمالي × 0.05`.
   const withTaxOf = (gross: number) => gross + gross * 0.05;
 
   async function save() {
@@ -284,7 +290,11 @@ function TailoringInvoices() {
   async function remove(invoice: Invoice) {
     // «هل أنت متأكد من حذف هذه الفاتورة؟» — the delete is the only button in the desktop
     // that does not confirm, and it is the only one that cannot be undone.
-    if (!window.confirm(`هل أنت متأكد من حذف هذه الفاتورة؟\nسيتم حذف جميع الدفعات المرتبطة بها\n\n${invoice.number}`)) {
+    if (
+      !window.confirm(
+        `هل أنت متأكد من حذف هذه الفاتورة؟\nسيتم حذف جميع الدفعات المرتبطة بها\n\n${invoice.number}`,
+      )
+    ) {
       return;
     }
     setBusy(true);
@@ -310,8 +320,10 @@ function TailoringInvoices() {
       remaining: invoice.remainingAmount,
       amount: Number(invoice.remainingAmount).toString(),
       date: today(),
-      cashLocationId: (safes.data ?? []).find((safe) => safe.isDefault)?.id ?? (safes.data ?? [])[0]?.id ?? '',
-      branchId: (branches.data ?? []).find((branch) => branch.isDefault)?.id ?? (branches.data ?? [])[0]?.id ?? '',
+      cashLocationId:
+        (safes.data ?? []).find((safe) => safe.isDefault)?.id ?? (safes.data ?? [])[0]?.id ?? '',
+      branchId:
+        (branches.data ?? []).find((branch) => branch.isDefault)?.id ?? (branches.data ?? [])[0]?.id ?? '',
       method: 'cash',
       // «تم استلام دفعة من عملية رقم {code}» (`AddNewSizes` L683).
       note: `تم استلام دفعة من عملية رقم ${invoice.number}`,
@@ -319,13 +331,13 @@ function TailoringInvoices() {
 
   return (
     <Screen
-      title="🧾 فواتير التفصيل"
+      title="فواتير التفصيل"
       subtitle="ما يُفصَّل ويُحاسب عليه: بيانات الثوب ومقاساته وإجماليه بضريبته، وما قُبض منه وما بقي، وحالته من «مستلم» إلى «تم التسليم»."
       crumbs={['التفصيل', 'الفواتير']}
       actions={
         canManage ? (
           <button className="btn primary" type="button" onClick={openNew}>
-            ➕ فاتورة جديدة
+            فاتورة جديدة
           </button>
         ) : null
       }
@@ -334,14 +346,14 @@ function TailoringInvoices() {
       {notice && <p className="alert ok">{notice}</p>}
 
       {/* `txtPhoneNum` — searched as you type, as `txtPhoneNum_TextChanged` does. */}
-      <div className="card tight no-print">
+      <FilterBand className="no-print">
         <div className="row" style={{ flexWrap: 'wrap', alignItems: 'flex-end' }}>
           <label className="field" style={{ margin: 0, minWidth: 280, flex: 1 }}>
-            <span>🔍 الهاتف أو اسم العميل...</span>
+            <span>الهاتف أو اسم العميل...</span>
             <input
               className="input"
               value={search}
-              placeholder="🔍 الهاتف أو اسم العميل..."
+              placeholder="الهاتف أو اسم العميل..."
               onChange={(event) => {
                 setSearch(event.target.value);
                 setApplied(event.target.value);
@@ -349,102 +361,138 @@ function TailoringInvoices() {
             />
           </label>
         </div>
-      </div>
+      </FilterBand>
 
       {invoices.status === 'loading' && <Loading rows={6} />}
       {invoices.status === 'forbidden' && <Forbidden />}
       {invoices.status === 'error' && <ErrorBox message={invoices.error} onRetry={invoices.reload} />}
       {invoices.status === 'success' && (
         <>
-          <div className="row" style={{ justifyContent: 'space-between', alignItems: 'baseline' }}>
-            <span className="group-label" style={{ margin: 0 }}>📋 الفواتير</span>
-            {/* «النتائج: {n}» — `lblResultCount`. */}
-            <span className="muted">النتائج: {invoices.data?.total ?? rows.length}</span>
-          </div>
-          {rows.length === 0 ? (
-            <Empty
-              title="لا توجد فواتير"
-              detail={applied ? `لا فاتورة تطابق «${applied}».` : 'ابدأ بـ «➕ فاتورة جديدة».'}
-            />
-          ) : (
-            <div className="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>📋 رقم الفاتورة</th>
-                    <th>👤 الاسم</th>
-                    <th>📱 الجوال</th>
-                    <th>📅 التاريخ</th>
-                    <th>👔 نوع الثوب</th>
-                    <th className="num">💰 الإجمالي</th>
-                    <th className="num">✅ المدفوع</th>
-                    <th className="num">⏳ الباقي</th>
-                    <th>📌 الحالة</th>
-                    <th>👁️ عرض</th>
-                    {canManage && <th>إجراءات</th>}
-                  </tr>
-                </thead>
-                <tbody>
-                  {rows.map((row) => (
-                    <tr key={row.id}>
-                      <td dir="ltr">{row.number}</td>
-                      <td>{row.customerName}</td>
-                      <td dir="ltr">{row.phone || '—'}</td>
-                      <td dir="ltr">{row.invoiceDate}</td>
-                      <td>{row.garmentTypeName ?? '—'}</td>
-                      {/* 💰 الإجمالي في الشبكة هو الصافي بضريبته (L88). */}
-                      <td className="num">{money(row.totalWithTax)}</td>
-                      <td className="num">{money(row.paidAmount)}</td>
-                      <td
-                        className="num"
-                        style={{
-                          fontWeight: 700,
-                          color: Number(row.remainingAmount) <= 0 ? 'var(--ok, #0a7a3d)' : '#E35656',
-                        }}
-                      >
-                        {money(row.remainingAmount)}
-                      </td>
-                      <td>
+          <Panel title="الفواتير" hint={<>النتائج: {invoices.data?.total ?? rows.length}</>} flush>
+            {rows.length === 0 ? (
+              <Empty
+                bare
+                title="لا توجد فواتير"
+                detail={applied ? `لا فاتورة تطابق «${applied}».` : 'ابدأ بـ «فاتورة جديدة».'}
+              />
+            ) : (
+              <Table
+                bare
+                columns={[
+                  {
+                    key: 'c0',
+                    header: 'رقم الفاتورة',
+                    ltr: true,
+                    cell: (row) => row.number,
+                  },
+                  {
+                    key: 'c1',
+                    header: 'الاسم',
+                    cell: (row) => row.customerName,
+                  },
+                  {
+                    key: 'c2',
+                    header: 'الجوال',
+                    ltr: true,
+                    cell: (row) => row.phone || '—',
+                  },
+                  {
+                    key: 'c3',
+                    header: 'التاريخ',
+                    ltr: true,
+                    cell: (row) => row.invoiceDate,
+                  },
+                  {
+                    key: 'c4',
+                    header: 'نوع الثوب',
+                    cell: (row) => row.garmentTypeName ?? '—',
+                  },
+                  {
+                    key: 'c5',
+                    header: 'الإجمالي',
+                    numeric: true,
+                    cell: (row) => (
+                      <>
+                        {/* الإجمالي في الشبكة هو الصافي بضريبته (L88). */}
+                        {money(row.totalWithTax)}
+                      </>
+                    ),
+                  },
+                  {
+                    key: 'c6',
+                    header: 'المدفوع',
+                    numeric: true,
+                    cell: (row) => money(row.paidAmount),
+                  },
+                  {
+                    key: 'c7',
+                    header: 'الباقي',
+                    numeric: true,
+                    cell: (row) => money(row.remainingAmount),
+                  },
+                  {
+                    key: 'c8',
+                    header: 'الحالة',
+                    cell: (row) => (
+                      <>
                         <span className="badge">{row.statusName}</span>
                         {row.billed && <span className="badge"> مُحوَّلة</span>}
-                      </td>
-                      <td>
+                      </>
+                    ),
+                  },
+                  {
+                    key: 'c9',
+                    header: 'عرض',
+                    cell: (row) => (
+                      <>
                         <button className="btn sm" type="button" onClick={() => setViewing(row)}>
-                          👁️ عرض
+                          عرض
                         </button>
-                      </td>
-                      {canManage && (
-                        <td>
-                          <div className="row" style={{ gap: 4 }}>
-                            <button
-                              className="btn sm"
-                              type="button"
-                              onClick={() => setDraft(draftOf(row))}
-                            >
-                              ✏️ تعديل
-                            </button>
-                            <button
-                              className="btn sm"
-                              type="button"
-                              onClick={() => setStatusOf({ id: row.id, number: row.number, statusId: row.statusId })}
-                            >
-                              🔄 تغيير الحالة
-                            </button>
-                            <button className="btn sm" type="button" onClick={() => openPayment(row)}>
-                              💵 إستلام دفعة
-                            </button>
-                            <button className="btn sm danger" type="button" onClick={() => remove(row)}>
-                              🗑️ حذف
-                            </button>
-                          </div>
-                        </td>
-                      )}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+                      </>
+                    ),
+                  },
+                  ...(canManage
+                    ? [
+                        {
+                          key: 'c10',
+                          header: 'إجراءات',
+                          cell: (row: Invoice) => (
+                            <>
+                              <div className="row" style={{ gap: 4 }}>
+                                <button
+                                  className="btn sm"
+                                  type="button"
+                                  onClick={() => setDraft(draftOf(row))}
+                                >
+                                  تعديل
+                                </button>
+                                <button
+                                  className="btn sm"
+                                  type="button"
+                                  onClick={() =>
+                                    setStatusOf({ id: row.id, number: row.number, statusId: row.statusId })
+                                  }
+                                >
+                                  تغيير الحالة
+                                </button>
+                                <button className="btn sm" type="button" onClick={() => openPayment(row)}>
+                                  إستلام دفعة
+                                </button>
+                                <button className="btn sm danger" type="button" onClick={() => remove(row)}>
+                                  حذف
+                                </button>
+                              </div>
+                            </>
+                          ),
+                        },
+                      ]
+                    : []),
+                ]}
+                rows={rows}
+                rowKey={(row) => row.id}
+              />
+            )}
+          </Panel>
         </>
       )}
 
@@ -453,62 +501,62 @@ function TailoringInvoices() {
           <div className="modal-card" style={{ maxWidth: 900 }}>
             <div className="modal-head">
               <span className="modal-title">
-                👁️ عرض — <span dir="ltr">{viewing.number}</span>
+                عرض — <span dir="ltr">{viewing.number}</span>
               </span>
               <button className="btn sm" type="button" onClick={() => setViewing(null)}>
-                ✖ إغلاق
+                إغلاق
               </button>
             </div>
             <div style={{ padding: 16, display: 'grid', gap: 12, maxHeight: '70vh', overflow: 'auto' }}>
               <div className="form-grid">
                 <div className="field">
-                  <span>👤 الاسم</span>
+                  <span>الاسم</span>
                   <output className="input">{viewing.customerName}</output>
                 </div>
                 <div className="field">
-                  <span>📞 رقم الجوال</span>
+                  <span>رقم الجوال</span>
                   <output className="input" dir="ltr">
                     {viewing.phone || '—'}
                   </output>
                 </div>
                 <div className="field">
-                  <span>📅 التاريخ</span>
+                  <span>التاريخ</span>
                   <output className="input" dir="ltr">
                     {viewing.invoiceDate}
                   </output>
                 </div>
                 <div className="field">
-                  <span>👔 نوع الثوب</span>
+                  <span>نوع الثوب</span>
                   <output className="input">{viewing.garmentTypeName ?? '—'}</output>
                 </div>
                 <div className="field">
-                  <span>🔢 العدد</span>
+                  <span>العدد</span>
                   <output className="input">{Number(viewing.quantity).toString()}</output>
                 </div>
                 <div className="field">
-                  <span>💰 السعر</span>
+                  <span>السعر</span>
                   <output className="input">{money(viewing.unitPrice)}</output>
                 </div>
                 <div className="field">
-                  <span>💵 الإجمالي</span>
+                  <span>الإجمالي</span>
                   <output className="input">{money(viewing.total)}</output>
                 </div>
                 <div className="field">
-                  <span>💳 الصافي (مع الضريبة)</span>
+                  <span>الصافي (مع الضريبة)</span>
                   <output className="input">{money(viewing.totalWithTax)}</output>
                 </div>
                 <div className="field">
-                  <span>💵 المدفوع</span>
+                  <span>المدفوع</span>
                   <output className="input">{money(viewing.paidAmount)}</output>
                 </div>
                 <div className="field">
-                  <span>💰 الباقي</span>
+                  <span>الباقي</span>
                   <output className="input" style={{ fontWeight: 700 }}>
                     {money(viewing.remainingAmount)}
                   </output>
                 </div>
                 <div className="field">
-                  <span>✅ الحالة</span>
+                  <span>الحالة</span>
                   <output className="input">
                     <span className="badge">{viewing.statusName}</span>
                   </output>
@@ -520,8 +568,7 @@ function TailoringInvoices() {
                 const filled = groupFields.filter((field) => viewing.measurements?.[field.key]);
                 if (!filled.length) return null;
                 return (
-                  <fieldset className="card tight" key={group.key} style={{ margin: 0 }}>
-                    <legend className="group-label">{group.title}</legend>
+                  <FormSection key={group.key} title={<>{group.title}</>}>
                     <div className="form-grid">
                       {filled.map((field) => (
                         <div className="field" key={field.key}>
@@ -529,63 +576,67 @@ function TailoringInvoices() {
                           <output className="input">
                             {field.kind === 'flag'
                               ? viewing.measurements[field.key] === 'true'
-                                ? '✔'
+                                ? ''
                                 : '—'
                               : viewing.measurements[field.key]}
                           </output>
                         </div>
                       ))}
                     </div>
-                  </fieldset>
+                  </FormSection>
                 );
               })}
 
               {viewing.notes && (
-                <fieldset className="card tight" style={{ margin: 0 }}>
-                  <legend className="group-label">ملاحظات</legend>
+                <FormSection title="ملاحظات">
                   <p style={{ margin: 0, whiteSpace: 'pre-wrap' }}>{viewing.notes}</p>
-                </fieldset>
+                </FormSection>
               )}
 
               {viewing.payments.length > 0 && (
-                <fieldset className="card tight" style={{ margin: 0 }}>
-                  <legend className="group-label">💵 إستلام دفعة</legend>
-                  <div className="table-wrap">
-                    <table>
-                      <thead>
-                        <tr>
-                          <th>📅 التاريخ</th>
-                          <th className="num">المبلغ</th>
-                          <th>ملاحظات</th>
-                          <th>سند القبض</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {viewing.payments.map((payment) => (
-                          <tr key={payment.id}>
-                            <td dir="ltr">{payment.paidAt}</td>
-                            <td className="num">{money(payment.amount)}</td>
-                            <td>{payment.note ?? '—'}</td>
-                            <td>{payment.voucherId ? '✔' : '—'}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </fieldset>
+                <FormSection title="إستلام دفعة">
+                  <Table
+                    columns={[
+                      {
+                        key: 'c0',
+                        header: 'التاريخ',
+                        ltr: true,
+                        cell: (payment) => payment.paidAt,
+                      },
+                      {
+                        key: 'c1',
+                        header: 'المبلغ',
+                        numeric: true,
+                        cell: (payment) => money(payment.amount),
+                      },
+                      {
+                        key: 'c2',
+                        header: 'ملاحظات',
+                        cell: (payment) => payment.note ?? '—',
+                      },
+                      {
+                        key: 'c3',
+                        header: 'سند القبض',
+                        cell: (payment) => (payment.voucherId ? '' : '—'),
+                      },
+                    ]}
+                    rows={viewing.payments}
+                    rowKey={(payment) => payment.id}
+                  />
+                </FormSection>
               )}
             </div>
             <div className="modal-foot">
               <button className="btn" type="button" onClick={() => window.print()}>
-                🖨️ طباعه
+                طباعه
               </button>
               {canManage && (
                 <button className="btn primary" type="button" onClick={() => setDraft(draftOf(viewing))}>
-                  ✏️ تعديل
+                  تعديل
                 </button>
               )}
               <button className="btn danger" type="button" onClick={() => setViewing(null)}>
-                ✖ إغلاق
+                إغلاق
               </button>
             </div>
           </div>
@@ -596,19 +647,16 @@ function TailoringInvoices() {
         <div className="modal-backdrop" role="dialog" aria-modal="true">
           <div className="modal-card" style={{ maxWidth: 1000 }}>
             <div className="modal-head">
-              <span className="modal-title">
-                {draft.id ? '✏️ تعديل فاتورة تفصيل' : '➕ إضافة مقاس جديد'}
-              </span>
+              <span className="modal-title">{draft.id ? 'تعديل فاتورة تفصيل' : 'إضافة مقاس جديد'}</span>
               <button className="btn sm" type="button" onClick={() => setDraft(null)}>
-                ✖ إغلاق
+                إغلاق
               </button>
             </div>
             <div style={{ padding: 16, display: 'grid', gap: 12, maxHeight: '70vh', overflow: 'auto' }}>
-              <fieldset className="card tight" style={{ margin: 0 }}>
-                <legend className="group-label">📋 البيانات الأساسية</legend>
+              <FormSection title="البيانات الأساسية">
                 <div className="form-grid">
                   <label className="field">
-                    <span>👤 اسم العميل</span>
+                    <span>اسم العميل</span>
                     <select
                       className="input"
                       value={draft.partyId}
@@ -631,7 +679,7 @@ function TailoringInvoices() {
                     </select>
                   </label>
                   <label className="field">
-                    <span>📞 رقم الجوال</span>
+                    <span>رقم الجوال</span>
                     <input
                       className="input"
                       dir="ltr"
@@ -640,7 +688,7 @@ function TailoringInvoices() {
                     />
                   </label>
                   <label className="field">
-                    <span>👔 نوع الثوب</span>
+                    <span>نوع الثوب</span>
                     <select
                       className="input"
                       value={draft.garmentTypeId}
@@ -655,7 +703,7 @@ function TailoringInvoices() {
                     </select>
                   </label>
                   <label className="field">
-                    <span>📅 التاريخ</span>
+                    <span>التاريخ</span>
                     <input
                       className="input"
                       type="date"
@@ -664,7 +712,7 @@ function TailoringInvoices() {
                     />
                   </label>
                   <label className="field">
-                    <span>🔢 العدد</span>
+                    <span>العدد</span>
                     <input
                       className="input"
                       type="number"
@@ -675,7 +723,7 @@ function TailoringInvoices() {
                     />
                   </label>
                   <label className="field">
-                    <span>💰 السعر</span>
+                    <span>السعر</span>
                     <input
                       className="input"
                       type="number"
@@ -686,17 +734,17 @@ function TailoringInvoices() {
                     />
                   </label>
                   <div className="field">
-                    <span>💵 الإجمالي</span>
+                    <span>الإجمالي</span>
                     <output className="input" style={{ fontWeight: 700 }}>
                       {money(String(totalOf(draft)))}
                     </output>
                   </div>
                   <div className="field">
-                    <span>💳 الصافي (مع الضريبة)</span>
+                    <span>الصافي (مع الضريبة)</span>
                     <output className="input">{money(String(withTaxOf(totalOf(draft))))}</output>
                   </div>
                   <label className="field">
-                    <span>✅ الحالة</span>
+                    <span>الحالة</span>
                     <select
                       className="input"
                       value={draft.statusId}
@@ -710,11 +758,10 @@ function TailoringInvoices() {
                     </select>
                   </label>
                 </div>
-              </fieldset>
+              </FormSection>
 
               {GROUPS.map((group) => (
-                <fieldset className="card tight" key={group.key} style={{ margin: 0 }}>
-                  <legend className="group-label">{group.title}</legend>
+                <FormSection key={group.key} title={<>{group.title}</>}>
                   <div className="form-grid">
                     {(fields.data ?? [])
                       .filter((field) => field.group === group.key)
@@ -791,12 +838,12 @@ function TailoringInvoices() {
                       </label>
                     )}
                   </div>
-                </fieldset>
+                </FormSection>
               ))}
             </div>
             <div className="modal-foot">
               <button className="btn primary" type="button" onClick={save} disabled={busy}>
-                💾 حفظ
+                حفظ
               </button>
               {draft.id && (
                 // «مكرر» — the same فاتورة with no number yet, as the desktop's button does.
@@ -809,10 +856,10 @@ function TailoringInvoices() {
                 </button>
               )}
               <button className="btn" type="button" onClick={() => window.print()}>
-                🖨️ طباعه
+                طباعه
               </button>
               <button className="btn danger" type="button" onClick={() => setDraft(null)} disabled={busy}>
-                ✖ إغلاق
+                إغلاق
               </button>
             </div>
           </div>
@@ -846,10 +893,10 @@ function TailoringInvoices() {
             </div>
             <div className="modal-foot">
               <button className="btn primary" type="button" onClick={saveStatus} disabled={busy}>
-                ✔ تغيير
+                تغيير
               </button>
               <button className="btn danger" type="button" onClick={() => setStatusOf(null)} disabled={busy}>
-                ✖ إلغاء
+                إلغاء
               </button>
             </div>
           </div>
@@ -861,7 +908,7 @@ function TailoringInvoices() {
           <div className="modal-card" style={{ maxWidth: 520 }}>
             <div className="modal-head">
               {/* «إستلام دفعة» — `frmSandQ` opened with `ISTailor = true` (L664). */}
-              <span className="modal-title">💵 إستلام دفعة</span>
+              <span className="modal-title">إستلام دفعة</span>
             </div>
             <div style={{ padding: 16, display: 'grid', gap: 12 }}>
               <p style={{ margin: 0, fontWeight: 700 }}>
@@ -881,7 +928,7 @@ function TailoringInvoices() {
                   />
                 </label>
                 <label className="field">
-                  <span>📅 التاريخ:</span>
+                  <span>التاريخ:</span>
                   <input
                     className="input"
                     type="date"
@@ -904,7 +951,7 @@ function TailoringInvoices() {
                   </select>
                 </label>
                 <label className="field">
-                  <span>💵 الصندوق:</span>
+                  <span>الصندوق:</span>
                   <select
                     className="input"
                     value={paying.cashLocationId}
@@ -920,7 +967,7 @@ function TailoringInvoices() {
                   </select>
                 </label>
                 <label className="field">
-                  <span>🏢 الفرع:</span>
+                  <span>الفرع:</span>
                   <select
                     className="input"
                     value={paying.branchId}
@@ -946,10 +993,10 @@ function TailoringInvoices() {
             </div>
             <div className="modal-foot">
               <button className="btn primary" type="button" onClick={pay} disabled={busy}>
-                ✔ إستلام
+                إستلام
               </button>
               <button className="btn danger" type="button" onClick={() => setPaying(null)} disabled={busy}>
-                ✖ إلغاء
+                إلغاء
               </button>
             </div>
           </div>

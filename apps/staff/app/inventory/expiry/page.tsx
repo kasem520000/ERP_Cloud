@@ -63,30 +63,57 @@ export default function ExpiryPage() {
         <StatTile
           label="منتهية"
           value={expired.length}
-          hint={expired.length > 0 ? quantity(expired.reduce((sum, row) => sum + Number(row.quantity), 0)) : 'لا شيء منتهٍ'}
+          hint={
+            expired.length > 0
+              ? quantity(expired.reduce((sum, row) => sum + Number(row.quantity), 0))
+              : 'لا شيء منتهٍ'
+          }
           tone={expired.length > 0 ? 'danger' : 'ok'}
         />
         <StatTile
           label="خلال أسبوع"
           value={inWeek.length}
-          hint={inWeek.length > 0 ? quantity(inWeek.reduce((sum, row) => sum + Number(row.quantity), 0)) : 'مطمئن'}
+          hint={
+            inWeek.length > 0 ? quantity(inWeek.reduce((sum, row) => sum + Number(row.quantity), 0)) : 'مطمئن'
+          }
           tone={inWeek.length > 0 ? 'warn' : 'default'}
         />
         <StatTile
           label="خلال شهر"
           value={inMonth.length}
-          hint={inMonth.length > 0 ? quantity(inMonth.reduce((sum, row) => sum + Number(row.quantity), 0)) : 'مطمئن'}
+          hint={
+            inMonth.length > 0
+              ? quantity(inMonth.reduce((sum, row) => sum + Number(row.quantity), 0))
+              : 'مطمئن'
+          }
         />
-        <StatTile label="إجمالي الدفعات" value={data.length} hint={`خلال ${HORIZONS.find((h) => h.days === days)?.label}`} />
-        <StatTile label="إجمالي الكمية" value={quantity(totalQty)} hint="مجموع أرصدة الدفعات المعروضة" tone="brand" />
+        <StatTile
+          label="إجمالي الدفعات"
+          value={data.length}
+          hint={`خلال ${HORIZONS.find((h) => h.days === days)?.label}`}
+        />
+        <StatTile
+          label="إجمالي الكمية"
+          value={quantity(totalQty)}
+          hint="مجموع أرصدة الدفعات المعروضة"
+          tone="brand"
+        />
       </StatTiles>
 
       <FilterBar
-        actions={<span className="small muted">{data.length === 0 ? 'لا دفعات في هذه المدة' : `${data.length} دفعة`}</span>}
+        actions={
+          <span className="small muted">
+            {data.length === 0 ? 'لا دفعات في هذه المدة' : `${data.length} دفعة`}
+          </span>
+        }
       >
         <label className="field">
           <span>خلال</span>
-          <select className="input" value={String(days)} onChange={(event) => setDays(Number(event.target.value))}>
+          <select
+            className="input"
+            value={String(days)}
+            onChange={(event) => setDays(Number(event.target.value))}
+          >
             {HORIZONS.map((horizon) => (
               <option key={horizon.days} value={horizon.days}>
                 {horizon.label}
@@ -105,6 +132,7 @@ export default function ExpiryPage() {
       <Tabs items={BUCKETS} value={bucket} onChange={setBucket} />
 
       <QueryView
+        panel="الدفعات القريبة من الانتهاء"
         query={rows}
         empty="لا توجد دفعات قاربت على الانتهاء"
         emptyDetail="لم تُسجَّل أي دفعة بتاريخ صلاحية داخل هذه المدة. أنشئ الدفعات من شاشة الدفعات عند الاستلام."
@@ -125,14 +153,22 @@ export default function ExpiryPage() {
               { key: 'lot', header: 'رقم الدفعة', align: 'ltr', cell: (row) => row.lotNo },
               { key: 'sku', header: 'الرمز', align: 'ltr', cell: (row) => row.sku },
               { key: 'item', header: 'المادة', cell: (row) => row.nameAr },
-              { key: 'expiry', header: 'تاريخ الانتهاء', align: 'ltr', cell: (row) => shortDate(row.expiryDate) },
+              {
+                key: 'expiry',
+                header: 'تاريخ الانتهاء',
+                align: 'ltr',
+                cell: (row) => shortDate(row.expiryDate),
+              },
               {
                 key: 'left',
                 header: 'المتبقي',
                 align: 'num',
                 cell: (row) =>
                   row.expired ? (
-                    <span className="badge failed" dir="ltr">{`انتهت منذ ${Math.abs(row.daysLeft)} يوم`}</span>
+                    <span
+                      className="badge failed"
+                      dir="ltr"
+                    >{`انتهت منذ ${Math.abs(row.daysLeft)} يوم`}</span>
                   ) : (
                     <span dir="ltr">{`${row.daysLeft} يوم`}</span>
                   ),

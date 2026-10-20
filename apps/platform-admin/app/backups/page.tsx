@@ -1,8 +1,10 @@
 'use client';
 
 import { useState } from 'react';
+import { Panel } from '@erp/ui';
 
 import { Empty, ErrorBox, Forbidden, Loading, Screen } from '../../components/screen';
+import { Table, type Column } from '../../components/ui/table';
 import { apiData } from '../../lib/api';
 import { useSession } from '../../lib/session';
 import { useQuery } from '../../lib/use-query';
@@ -199,7 +201,7 @@ export default function BackupsPage() {
       window.open(link.url, '_blank', 'noopener');
       setNotice({
         kind: 'ok',
-        text: `رابطٌ موقّع صالح حتى ${new Date(link.expiresAt).toLocaleString('ar-SA')}.`,
+        text: `رابطٌ موقّع صالح حتى ${new Date(link.expiresAt).toLocaleString('ar-SA-u-ca-gregory-nu-latn')}.`,
       });
     } catch (error) {
       setNotice({ kind: 'danger', text: apiMessage(error) });
@@ -263,6 +265,96 @@ export default function BackupsPage() {
     }
   }
 
+  const columns: Array<Column<BackupRow>> = [
+    {
+      key: 'started',
+      header: 'بدأت',
+      ltr: true,
+      cell: (row) => new Date(row.startedAt).toLocaleString('ar-SA-u-ca-gregory-nu-latn'),
+    },
+    {
+      key: 'scope',
+      header: 'النطاق',
+      cell: (row) => (
+        <>
+          {row.scope === 'platform' ? 'المنصّة' : `مستأجر: ${row.tenantCode ?? row.tenantId?.slice(0, 8)}`}
+          <div className="muted small">{row.tenants} مستأجراً في النسخة</div>
+        </>
+      ),
+    },
+    {
+      key: 'status',
+      header: 'الحالة',
+      cell: (row) => (
+        <>
+          <span className={`badge ${STATUS_CLASS[row.status] ?? 'pending'}`}>
+            {STATUS_LABEL[row.status] ?? row.status}
+          </span>
+          {row.prunedAt && <div className="muted small">حُذفت بايتاتها بالاحتفاظ</div>}
+        </>
+      ),
+    },
+    {
+      key: 'bytes',
+      header: 'الحجم',
+      numeric: true,
+      cell: (row) => (row.bytes === null ? '—' : formatBytes(row.bytes)),
+    },
+    {
+      key: 'content',
+      header: 'المحتوى',
+      numeric: true,
+      cell: (row) => (
+        <>
+          {row.tables} جدولاً · {row.rows} صفاً
+          <div className="muted small">{row.durationMs ?? 0} م.ث</div>
+        </>
+      ),
+    },
+    { key: 'store', header: 'الوجهة', cell: (row) => (row.store ? STORE_LABEL[row.store] : '—') },
+    {
+      key: 'checksum',
+      header: 'البصمة',
+      ltr: true,
+      cell: (row) => <span className="small">{row.checksum ? `${row.checksum.slice(0, 12)}…` : '—'}</span>,
+    },
+    {
+      key: 'verify',
+      header: 'تحقّق',
+      cell: (row) =>
+        row.verifiedAt ? (
+          <span className="badge active">فُحصت</span>
+        ) : (
+          <span className="badge pending">لم تُفحص</span>
+        ),
+    },
+    {
+      key: 'actions',
+      header: 'إجراء',
+      hideOnPrint: true,
+      cell: (row) => (
+        <div className="row" style={{ gap: 6 }}>
+          <button
+            className="btn small"
+            type="button"
+            disabled={busy === row.id || !row.artifactId || Boolean(row.prunedAt)}
+            onClick={() => void verifyRun(row)}
+          >
+            تحقّق
+          </button>
+          <button
+            className="btn small"
+            type="button"
+            disabled={busy === row.id || !row.artifactId || Boolean(row.prunedAt)}
+            onClick={() => void download(row)}
+          >
+            تنزيل
+          </button>
+        </div>
+      ),
+    },
+  ];
+
   return (
     <Screen
       title="البيانات والاسترجاع"
@@ -278,7 +370,7 @@ export default function BackupsPage() {
         <Forbidden />
       ) : (
         <>
-          <div className="card tight no-print">
+          <Panel className="tight no-print">
             <div className="row" style={{ flexWrap: 'wrap', alignItems: 'flex-end' }}>
               <label className="field" style={{ minWidth: 180 }}>
                 <span>نطاق النسخة</span>
@@ -326,7 +418,7 @@ export default function BackupsPage() {
               (`app.tenant_id`)، وجداول المنصّة في سياق المنصّة. والملف NDJSON مشفّر بـAES-256-GCM ومكتوبٌ مع
               ترويسته، والصفّ يسجّل حجمه وبصمته بعد قراءتهما من المخزن.
             </p>
-          </div>
+          </Panel>
 
           {notice && <div className={`alert ${notice.kind === 'ok' ? '' : 'danger'}`}>{notice.text}</div>}
 
@@ -341,89 +433,14 @@ export default function BackupsPage() {
                 <p className="muted small">
                   {rows.length} من {runs.data?.meta.total ?? rows.length} نسخة
                 </p>
-                <div className="table-wrap">
-                  <table>
-                    <thead>
-                      <tr>
-                        <th>بدأت</th>
-                        <th>النطاق</th>
-                        <th>الحالة</th>
-                        <th>الحجم</th>
-                        <th>المحتوى</th>
-                        <th>الوجهة</th>
-                        <th>البصمة</th>
-                        <th>تحقّق</th>
-                        <th className="no-print">إجراء</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {rows.map((row) => (
-                        <tr key={row.id}>
-                          <td dir="ltr">{new Date(row.startedAt).toLocaleString('ar-SA')}</td>
-                          <td>
-                            {row.scope === 'platform'
-                              ? 'المنصّة'
-                              : `مستأجر: ${row.tenantCode ?? row.tenantId?.slice(0, 8)}`}
-                            <div className="muted small">{row.tenants} مستأجراً في النسخة</div>
-                          </td>
-                          <td>
-                            <span className={`badge ${STATUS_CLASS[row.status] ?? 'pending'}`}>
-                              {STATUS_LABEL[row.status] ?? row.status}
-                            </span>
-                            {row.prunedAt && <div className="muted small">حُذفت بايتاتها بالاحتفاظ</div>}
-                          </td>
-                          <td className="num">{row.bytes === null ? '—' : formatBytes(row.bytes)}</td>
-                          <td className="num small">
-                            {row.tables} جدولاً · {row.rows} صفاً
-                            <div className="muted small">{row.durationMs ?? 0} م.ث</div>
-                          </td>
-                          <td>{row.store ? STORE_LABEL[row.store] : '—'}</td>
-                          <td dir="ltr" className="small">
-                            {row.checksum ? `${row.checksum.slice(0, 12)}…` : '—'}
-                          </td>
-                          <td className="small">
-                            {row.verifiedAt ? (
-                              <span className="badge active">فُحصت</span>
-                            ) : (
-                              <span className="badge pending">لم تُفحص</span>
-                            )}
-                          </td>
-                          <td className="no-print">
-                            <div className="row" style={{ gap: 6 }}>
-                              <button
-                                className="btn small"
-                                type="button"
-                                disabled={busy === row.id || !row.artifactId || Boolean(row.prunedAt)}
-                                onClick={() => void verifyRun(row)}
-                              >
-                                تحقّق
-                              </button>
-                              <button
-                                className="btn small"
-                                type="button"
-                                disabled={busy === row.id || !row.artifactId || Boolean(row.prunedAt)}
-                                onClick={() => void download(row)}
-                              >
-                                تنزيل
-                              </button>
-                            </div>
-                            {row.failureReason && (
-                              <div className="muted small" dir="ltr">
-                                {row.failureReason}
-                              </div>
-                            )}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                <Panel flush title="النسخ الاحتياطية">
+                  <Table bare columns={columns} rows={rows} rowKey={(row) => row.id} />
+                </Panel>
               </>
             ))}
 
           {verify && (
-            <div className="card">
-              <h3 style={{ marginTop: 0 }}>نتيجة التحقّق — استعادة تجريبية</h3>
+            <Panel title="نتيجة التحقّق — استعادة تجريبية">
               <p className={verify.verified ? '' : 'danger'}>
                 {verify.verified ? 'الملف مطابقٌ لبصمته، وعدّاداته مقروءة.' : verify.detail}
               </p>
@@ -457,12 +474,11 @@ export default function BackupsPage() {
                 الاستعادة التجريبية تقرأ وتطابق ولا تكتب: الكتابة فوق بياناتٍ حيّة تحتاج نافذة صيانة، وهي خارج
                 نطاق هذا الجزء. الظاهر هنا أقوى ما يمكن إثباته بلا كتابة.
               </p>
-            </div>
+            </Panel>
           )}
 
           {retention.status === 'success' && retention.data && (
-            <div className="card">
-              <h3 style={{ marginTop: 0 }}>سياسة الاحتفاظ</h3>
+            <Panel title="سياسة الاحتفاظ">
               <div className="row" style={{ flexWrap: 'wrap', alignItems: 'flex-end' }}>
                 {WINDOWS.map((window) => (
                   <label className="field" key={window.key} style={{ minWidth: 200 }}>
@@ -542,7 +558,7 @@ export default function BackupsPage() {
                   طبّق الآن
                 </button>
               </div>
-            </div>
+            </Panel>
           )}
         </>
       )}

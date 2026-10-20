@@ -1,5 +1,6 @@
 'use client';
 
+import { Panel } from '@erp/ui';
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import {
@@ -14,6 +15,7 @@ import {
 } from '@erp/contracts';
 
 import { Empty, ErrorBox, Forbidden, Loading, Screen } from '../../components/screen';
+import { Table, type Column } from '../../components/ui/table';
 import { Tabs } from '../../components/ui';
 import { ApiError, apiData, apiPost } from '../../lib/api';
 import { useQuery } from '../../lib/use-query';
@@ -48,7 +50,7 @@ const PRIORITY_LABEL: Record<TicketPriority, string> = {
 const SLA_HOURS: Record<TicketPriority, number> = { urgent: 1, high: 4, normal: 24, low: 72 };
 
 function dateTime(value: string | null | undefined): string {
-  return value ? new Date(value).toLocaleString('ar-SA') : '—';
+  return value ? new Date(value).toLocaleString('ar-SA-u-ca-gregory-nu-latn') : '—';
 }
 
 /** المتبقّي من المهلة بالدقائق — سالبٌ يعني تجاوزاً. */
@@ -127,12 +129,92 @@ function InboxTab() {
     };
   }, [tickets.reload]);
 
+  /** أعمدةُ صندوق التذاكر — `Table` المشترك. */
+  const columns: Array<Column<SupportTicket>> = [
+    {
+      key: 'subject',
+      header: 'الموضوع',
+      grow: true,
+      cell: (ticket) => (
+        <>
+          <strong>{ticket.subject}</strong>
+          <p className="muted" style={{ margin: '2px 0 0', fontSize: 12 }}>
+            {ticket.category ?? 'بلا بابٍ محدّد'}
+          </p>
+        </>
+      ),
+    },
+    {
+      key: 'tenant',
+      header: 'العميل',
+      cell: (ticket) => (
+        <>
+          {ticket.tenantName ?? '—'}
+          <p className="muted" style={{ margin: 0, fontSize: 12 }}>
+            {ticket.tenantCode ?? ''}
+          </p>
+        </>
+      ),
+    },
+    {
+      key: 'status',
+      header: 'الحالة',
+      cell: (ticket) => (
+        <span className={`chip${ticket.status === 'open' ? ' on' : ''}`}>{STATUS_LABEL[ticket.status]}</span>
+      ),
+    },
+    {
+      key: 'priority',
+      header: 'الأولوية',
+      cell: (ticket) => (
+        <>
+          <span className={`chip${ticket.priority === 'urgent' ? ' on' : ''}`}>
+            {PRIORITY_LABEL[ticket.priority]}
+          </span>
+          <p className="muted" style={{ margin: 0, fontSize: 12 }}>
+            مهلة {SLA_HOURS[ticket.priority]} ساعة
+          </p>
+        </>
+      ),
+    },
+    {
+      key: 'sla',
+      header: 'المهلة',
+      cell: (ticket) => {
+        const remaining = slaMinutesRemaining(ticket);
+        return (
+          <span className={remaining !== null && remaining <= 0 ? 'danger-text' : undefined}>
+            {slaText(remaining)}
+            <p className="muted" style={{ margin: 0, fontSize: 12 }}>
+              {ticket.firstResponseAt ? `أول ردّ: ${dateTime(ticket.firstResponseAt)}` : 'بلا ردٍّ بعد'}
+            </p>
+          </span>
+        );
+      },
+    },
+    { key: 'assigned', header: 'المكلَّف', cell: (ticket) => ticket.assignedToLabel ?? 'بلا إسناد' },
+    { key: 'messages', header: 'الرسائل', numeric: true, cell: (ticket) => ticket.messageCount },
+    {
+      key: 'open',
+      header: '',
+      cell: (ticket) => (
+        <Link className="btn" href={`/tickets/${ticket.id}`}>
+          فتح
+        </Link>
+      ),
+    },
+  ];
+
   return (
     <>
       <div className="toolbar">
         <label>
           الحالة
-          <select value={status} onChange={(event) => setStatus(event.target.value as TicketStatus | '')}>
+          <select
+            className="input"
+            value={status}
+            onChange={(event) => setStatus(event.target.value as TicketStatus | '')}
+          >
             <option value="">الكل</option>
             {ticketStatuses.map((value) => (
               <option key={value} value={value}>
@@ -144,6 +226,7 @@ function InboxTab() {
         <label>
           الأولوية
           <select
+            className="input"
             value={priority}
             onChange={(event) => setPriority(event.target.value as TicketPriority | '')}
           >
@@ -168,7 +251,7 @@ function InboxTab() {
         </button>
       </div>
 
-      <section className="card">
+      <Panel>
         {tickets.status === 'loading' && <Loading rows={3} />}
         {tickets.status === 'forbidden' && <Forbidden />}
         {tickets.status === 'error' && <ErrorBox message={tickets.error} onRetry={tickets.reload} />}
@@ -183,73 +266,9 @@ function InboxTab() {
           />
         )}
         {tickets.status === 'success' && (tickets.data?.length ?? 0) > 0 && (
-          <div className="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>الموضوع</th>
-                  <th>العميل</th>
-                  <th>الحالة</th>
-                  <th>الأولوية</th>
-                  <th>المهلة</th>
-                  <th>المكلَّف</th>
-                  <th>الرسائل</th>
-                  <th />
-                </tr>
-              </thead>
-              <tbody>
-                {(tickets.data ?? []).map((ticket) => {
-                  const remaining = slaMinutesRemaining(ticket);
-                  return (
-                    <tr key={ticket.id}>
-                      <td>
-                        <strong>{ticket.subject}</strong>
-                        <p className="muted" style={{ margin: '2px 0 0', fontSize: 12 }}>
-                          {ticket.category ?? 'بلا بابٍ محدّد'}
-                        </p>
-                      </td>
-                      <td>
-                        {ticket.tenantName ?? '—'}
-                        <p className="muted" style={{ margin: 0, fontSize: 12 }}>
-                          {ticket.tenantCode ?? ''}
-                        </p>
-                      </td>
-                      <td>
-                        <span className={`chip${ticket.status === 'open' ? ' on' : ''}`}>
-                          {STATUS_LABEL[ticket.status]}
-                        </span>
-                      </td>
-                      <td>
-                        <span className={`chip${ticket.priority === 'urgent' ? ' on' : ''}`}>
-                          {PRIORITY_LABEL[ticket.priority]}
-                        </span>
-                        <p className="muted" style={{ margin: 0, fontSize: 12 }}>
-                          مهلة {SLA_HOURS[ticket.priority]} ساعة
-                        </p>
-                      </td>
-                      <td className={remaining !== null && remaining <= 0 ? 'danger-text' : undefined}>
-                        {slaText(remaining)}
-                        <p className="muted" style={{ margin: 0, fontSize: 12 }}>
-                          {ticket.firstResponseAt
-                            ? `أول ردّ: ${dateTime(ticket.firstResponseAt)}`
-                            : 'بلا ردٍّ بعد'}
-                        </p>
-                      </td>
-                      <td>{ticket.assignedToLabel ?? 'بلا إسناد'}</td>
-                      <td>{ticket.messageCount}</td>
-                      <td>
-                        <Link className="btn" href={`/tickets/${ticket.id}`}>
-                          فتح
-                        </Link>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
+          <Table bare columns={columns} rows={tickets.data ?? []} rowKey={(ticket) => ticket.id} />
         )}
-      </section>
+      </Panel>
     </>
   );
 }
@@ -306,7 +325,7 @@ function NewTicketTab({ onCreated }: { onCreated: () => void }) {
     tenantId.length > 0 && subject.trim().length >= 3 && body.trim().length >= 5 && reason.trim().length >= 3;
 
   return (
-    <section className="card grid">
+    <Panel bodyClassName="grid">
       <p className="muted" style={{ marginTop: 0 }}>
         اكتب ما قاله العميل بنفسه في «الرسالة الأولى»، والسبب سطرٌ داخلي يُقيَّد في التدقيق ويشرح لماذا فُتحت
         التذكرة.
@@ -314,7 +333,7 @@ function NewTicketTab({ onCreated }: { onCreated: () => void }) {
       <div className="row">
         <label>
           العميل
-          <select value={tenantId} onChange={(event) => setTenantId(event.target.value)}>
+          <select className="input" value={tenantId} onChange={(event) => setTenantId(event.target.value)}>
             <option value="">اختر منشأة…</option>
             {(tenants.data ?? []).map((tenant) => (
               <option key={tenant.id} value={tenant.id}>
@@ -325,7 +344,11 @@ function NewTicketTab({ onCreated }: { onCreated: () => void }) {
         </label>
         <label>
           الأولوية
-          <select value={priority} onChange={(event) => setPriority(event.target.value as TicketPriority)}>
+          <select
+            className="input"
+            value={priority}
+            onChange={(event) => setPriority(event.target.value as TicketPriority)}
+          >
             {ticketPriorities.map((value) => (
               <option key={value} value={value}>
                 {PRIORITY_LABEL[value]} · مهلة {SLA_HOURS[value]} ساعة
@@ -336,6 +359,7 @@ function NewTicketTab({ onCreated }: { onCreated: () => void }) {
         <label>
           الباب (اختياري)
           <input
+            className="input"
             value={category}
             onChange={(event) => setCategory(event.target.value)}
             placeholder="طباعة · فواتير · صلاحيات"
@@ -344,15 +368,16 @@ function NewTicketTab({ onCreated }: { onCreated: () => void }) {
       </div>
       <label>
         الموضوع
-        <input value={subject} onChange={(event) => setSubject(event.target.value)} />
+        <input className="input" value={subject} onChange={(event) => setSubject(event.target.value)} />
       </label>
       <label>
         الرسالة الأولى (ما قاله العميل)
-        <textarea rows={4} value={body} onChange={(event) => setBody(event.target.value)} />
+        <textarea className="input" rows={4} value={body} onChange={(event) => setBody(event.target.value)} />
       </label>
       <label>
         السبب الداخلي
         <input
+          className="input"
           value={reason}
           onChange={(event) => setReason(event.target.value)}
           placeholder="مكالمة هاتفية · بريد · زيارة"
@@ -378,6 +403,6 @@ function NewTicketTab({ onCreated }: { onCreated: () => void }) {
           {notice.text}
         </p>
       )}
-    </section>
+    </Panel>
   );
 }

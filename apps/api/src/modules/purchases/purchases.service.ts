@@ -68,6 +68,8 @@ export type PurchaseInvoiceInput = {
   extraTax?: string;
   withholding?: string;
   landedCostAlloc?: 'qty' | 'value';
+  /** «حفظ وترحيل»: create and post in one request, the way the desktop save button did. */
+  autoPost?: boolean;
   /** OCR may create an incomplete header draft before the reviewer maps item lines. */
   headerTotals?: { subtotal: string; tax: string; total: string };
   lines: PurchaseLineInput[];
@@ -223,6 +225,9 @@ export class PurchasesService {
         );
       }
     });
+    // «حفظ وترحيل» — the invoice must reach the ledgers in the same action that creates
+    // it, otherwise the operator prints a draft that the posting screen may never accept.
+    if (input.autoPost) return this.post(tenantId, id);
     return this.get(tenantId, id);
   }
 

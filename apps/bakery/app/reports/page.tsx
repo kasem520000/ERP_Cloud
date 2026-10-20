@@ -1,18 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import {
-  Button,
-  Card,
-  CardBody,
-  CardHeader,
-  DataTable,
-  EmptyState,
-  Input,
-  Kpi,
-  type SortState,
-  type TableState,
-} from '@erp/ui';
+import { Button, DataTable, EmptyState, Input, Kpi, Panel, type SortState, type TableState } from '@erp/ui';
 import { apiData, apiErrorText, apiList } from '@erp/web-core/api';
 import { useSession } from '@erp/web-core/session';
 
@@ -49,7 +38,7 @@ import {
   type ReportsPayload,
   type Verdict,
 } from '../../lib/reports-screen';
-import { STAFF_SALESMEN_PATH, type SalesmanCard } from '../../lib/reps-screen';
+import { type SalesmanCard } from '../../lib/reps-screen';
 import { listState, rowKeyFrom, tableColumns } from '../../lib/ui-kit';
 
 type Notice = { kind: 'ok' | 'danger' | 'warn'; text: string };
@@ -60,8 +49,7 @@ const NOTICE_CLASSES: Record<Notice['kind'], string> = {
   warn: 'border-warn-line bg-warn-soft text-warn-ink',
 };
 
-const selectClass =
-  'w-full rounded-[8px] border border-line bg-surface px-3 py-2 text-[13px] text-ink';
+const selectClass = 'ui-select';
 
 /**
  * جدولٌ واحد من جداول التقرير — على `DataTable` من نظام التصميم لا على `<table>` يدويّ.
@@ -96,12 +84,8 @@ function ReportTable({
       dense
       empty={
         /** ‏`icon` مطلوبٌ في `EmptyState`، و`lucide-react` ليست من اعتمادات هذه الواجهة —
-          * فالرمزُ التعبيريّ لغةُ التطبيق القائمة ولا يُضاف اعتمادٌ لأجل أيقونة. */
-        <EmptyState
-          description={emptyAr}
-          icon={<span aria-hidden>📄</span>}
-          title="لا صفوف في هذا الجدول"
-        />
+         * فالرمزُ التعبيريّ لغةُ التطبيق القائمة ولا يُضاف اعتمادٌ لأجل أيقونة. */
+        <EmptyState description={emptyAr} icon={<span aria-hidden>📄</span>} title="لا صفوف في هذا الجدول" />
       }
       onSortChange={setSort}
       pageSize={25}
@@ -180,33 +164,30 @@ export default function ReportsPage() {
     };
   }, [canView]);
 
-  const runReport = useCallback(
-    async (next: ReportRangeDraft): Promise<void> => {
-      const gate = rangeVerdict(next);
-      if (gate.blocked.length > 0) {
-        setNotice({ kind: 'danger', text: gate.blocked[0] ?? 'مدى الفترة غير صالح' });
-        return;
-      }
-      setLoading(true);
-      setLoadError(undefined);
-      setNotice(undefined);
-      setAsked(true);
-      try {
-        const data = await apiData<ReportsPayload>(`/van-sales/reports${reportsQuery(next)}`);
-        setPayload(data);
-        setNotice({
-          kind: isAnyListTruncated(data) ? 'warn' : 'ok',
-          text: `${REPORTS_MESSAGES.loaded} المطبَّق: ${filterHeadline(data)}`,
-        });
-      } catch (caught) {
-        setPayload(null);
-        setLoadError(apiErrorText(caught, 'تعذّر تحميل التقرير'));
-      } finally {
-        setLoading(false);
-      }
-    },
-    [],
-  );
+  const runReport = useCallback(async (next: ReportRangeDraft): Promise<void> => {
+    const gate = rangeVerdict(next);
+    if (gate.blocked.length > 0) {
+      setNotice({ kind: 'danger', text: gate.blocked[0] ?? 'مدى الفترة غير صالح' });
+      return;
+    }
+    setLoading(true);
+    setLoadError(undefined);
+    setNotice(undefined);
+    setAsked(true);
+    try {
+      const data = await apiData<ReportsPayload>(`/van-sales/reports${reportsQuery(next)}`);
+      setPayload(data);
+      setNotice({
+        kind: isAnyListTruncated(data) ? 'warn' : 'ok',
+        text: `${REPORTS_MESSAGES.loaded} المطبَّق: ${filterHeadline(data)}`,
+      });
+    } catch (caught) {
+      setPayload(null);
+      setLoadError(apiErrorText(caught, 'تعذّر تحميل التقرير'));
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   function apply(next: ReportRangeDraft) {
     setDraft(next);
@@ -214,242 +195,203 @@ export default function ReportsPage() {
   }
 
   return (
-    <section className="grid gap-4">
-      <header className="flex flex-wrap items-end justify-between gap-3">
-        <div className="min-w-0">
-          <h1 className="m-0 text-[22px] font-extrabold leading-tight tracking-tight text-ink">
-            تقارير الخطّ
-          </h1>
-          <p className="m-0 mt-1 text-[13px] text-muted">
-            مبيعاتُ المندوب ومرتجعُه وهالكُه وتحصيلُه في فترةٍ تختارها — من محرّك التقارير نفسه
-            (<span dir="ltr">GET /van-sales/reports</span>) لا من حسابٍ موازٍ في المتصفح.
-            والتواريخُ تواريخُ العمل: <span dir="ltr">load_date</span> و
-            <span dir="ltr"> doc_date</span> و<span dir="ltr"> production_date</span>.
+    <section className="ui-page">
+      <header className="ui-page-head">
+        <div className="ui-page-head-copy">
+          <h1 className="ui-page-title">تقارير الخطّ</h1>
+          <p className="ui-page-sub">
+            مبيعاتُ المندوب ومرتجعُه وهالكُه وتحصيلُه في فترةٍ تختارها — الأرقامُ من محرّك تقارير الخادم نفسه،
+            وتواريخُ العمل هي تاريخ التحميل وتاريخ المستند وتاريخ الإنتاج.
           </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="bak-badge">GET /van-sales/reports</span>
-          <span className="bak-badge">GET /van-sales/dashboard</span>
         </div>
       </header>
 
-      {!canView ? (
-        <Card>
-          <CardBody>
-            <p
-              className={`m-0 rounded-[10px] border px-4 py-2.5 text-[13px] font-semibold ${NOTICE_CLASSES.warn}`}
-            >
-              🔒 لا تملك <span dir="ltr">{REPORTS_PERMISSION}</span> — والخادم يرفض قراءة التقرير
-              (الحارسُ يفرض الرموز قبل أيّ منطق). ولم يُرسل هذا التطبيق طلبًا سيُرفض حتمًا، ولا
-              عرض أرقامًا من المتصفح بدلها.
-            </p>
-          </CardBody>
-        </Card>
-      ) : null}
+      <div className="ui-screen-body">
+        {!canView ? (
+          <p
+            className={`m-0 rounded-[10px] border px-4 py-2.5 text-[13px] font-semibold ${NOTICE_CLASSES.warn}`}
+          >
+            لا تملك صلاحيةَ قراءة تقارير الخطّ — اطلبها من مسؤول الصلاحيات في منشأتك.
+          </p>
+        ) : null}
 
-      {canView ? (
-        <Card>
-          <CardHeader
-            subtitle="المدى يُطبَّق على الصفوف وعلى المجاميع معًا. والفحصُ المسبق هنا مرآةُ قاعدة الخادم (الصيغة، ووجودُ التاريخ، والترتيب) — والحكمُ النهائيّ للخادم."
-            title="الفترة والمرشِّحات"
-          />
-          <CardBody>
-            <div className="grid gap-3 sm:grid-cols-3">
-              <label className="m-0 grid gap-1.5">
-                <span className="text-[12px] font-bold text-muted">{FROM_LABEL}</span>
-                <Input
-                  onChange={(event) =>
-                    setDraft((current) => ({ ...current, fromDate: event.target.value }))
-                  }
-                  type="date"
-                  value={draft.fromDate}
-                />
-              </label>
-              <label className="m-0 grid gap-1.5">
-                <span className="text-[12px] font-bold text-muted">{TO_LABEL}</span>
-                <Input
-                  onChange={(event) =>
-                    setDraft((current) => ({ ...current, toDate: event.target.value }))
-                  }
-                  type="date"
-                  value={draft.toDate}
-                />
-              </label>
-              <label className="m-0 grid gap-1.5">
-                <span className="text-[12px] font-bold text-muted">المندوب</span>
-                <select
-                  className={selectClass}
-                  onChange={(event) =>
-                    setDraft((current) => ({ ...current, salesmanId: event.target.value }))
-                  }
-                  value={draft.salesmanId}
+        {canView ? (
+          <>
+            <div className="ui-filter-bar no-print">
+              <div className="ui-filter-fields">
+                <div className="grid w-full gap-3 sm:grid-cols-3">
+                  <label className="field">
+                    <span>{FROM_LABEL}</span>
+                    <Input
+                      onChange={(event) =>
+                        setDraft((current) => ({ ...current, fromDate: event.target.value }))
+                      }
+                      type="date"
+                      value={draft.fromDate}
+                    />
+                  </label>
+                  <label className="field">
+                    <span>{TO_LABEL}</span>
+                    <Input
+                      onChange={(event) =>
+                        setDraft((current) => ({ ...current, toDate: event.target.value }))
+                      }
+                      type="date"
+                      value={draft.toDate}
+                    />
+                  </label>
+                  <label className="field">
+                    <span>المندوب</span>
+                    <select
+                      className={selectClass}
+                      onChange={(event) =>
+                        setDraft((current) => ({ ...current, salesmanId: event.target.value }))
+                      }
+                      value={draft.salesmanId}
+                    >
+                      <option value="">كلّ المناديب</option>
+                      {salesmen.map((row) => (
+                        <option key={row.id} value={row.id}>
+                          {row.name}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
+
+                {salesmenError ? (
+                  <p
+                    className={`m-0 rounded-[10px] border px-4 py-2.5 text-[12.5px] font-semibold ${NOTICE_CLASSES.warn}`}
+                  >
+                    قائمةُ المناديب لم تُحمَّل الآن — يعمل التقرير بمرشّح «كلّ المناديب» حتى تُعاد المحاولة.
+                  </p>
+                ) : null}
+              </div>
+
+              <div className="ui-filter-actions">
+                <Button
+                  disabled={loading || verdict.blocked.length > 0}
+                  onClick={() => void runReport(draft)}
+                  size="sm"
                 >
-                  <option value="">كلّ المناديب</option>
-                  {salesmen.map((row) => (
-                    <option key={row.id} value={row.id}>
-                      {row.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            </div>
-
-            {salesmenError ? (
-              <p
-                className={`m-0 mt-3 rounded-[10px] border px-4 py-2.5 text-[12.5px] font-semibold ${NOTICE_CLASSES.warn}`}
-              >
-                قائمةُ المناديب لم تُحمَّل ({salesmenError}) — فيبقى المرشِّح «كلّ المناديب»،
-                والتقريرُ نفسه يعمل بلا مرشِّح مندوب.
-              </p>
-            ) : null}
-
-            <div className="mt-3 flex flex-wrap items-center gap-2">
-              <Button
-                disabled={loading || verdict.blocked.length > 0}
-                onClick={() => void runReport(draft)}
-                size="sm"
-              >
-                {loading ? 'يُحمَّل التقرير…' : 'اعرض التقرير'}
-              </Button>
-              <Button
-                disabled={loading}
-                onClick={() => apply(currentMonthDraft())}
-                size="sm"
-                variant="secondary"
-              >
-                هذا الشهر
-              </Button>
-              <Button
-                disabled={loading}
-                onClick={() => apply(emptyRangeDraft())}
-                size="sm"
-                variant="secondary"
-              >
-                كلّ السجلّ
-              </Button>
-              <Button
-                disabled={loading}
-                onClick={() => {
-                  setDraft(emptyRangeDraft());
-                  setPayload(null);
-                  setAsked(false);
-                  setNotice(undefined);
-                  setLoadError(undefined);
-                }}
-                size="sm"
-                variant="ghost"
-              >
-                امسح
-              </Button>
+                  {loading ? 'يُحمَّل التقرير…' : 'اعرض التقرير'}
+                </Button>
+                <Button
+                  disabled={loading}
+                  onClick={() => apply(currentMonthDraft())}
+                  size="sm"
+                  variant="secondary"
+                >
+                  هذا الشهر
+                </Button>
+                <Button
+                  disabled={loading}
+                  onClick={() => apply(emptyRangeDraft())}
+                  size="sm"
+                  variant="secondary"
+                >
+                  كلّ السجلّ
+                </Button>
+                <Button
+                  disabled={loading}
+                  onClick={() => {
+                    setDraft(emptyRangeDraft());
+                    setPayload(null);
+                    setAsked(false);
+                    setNotice(undefined);
+                    setLoadError(undefined);
+                  }}
+                  size="sm"
+                  variant="ghost"
+                >
+                  امسح
+                </Button>
+              </div>
             </div>
 
             {verdict.blocked.length > 0 ? (
-              <ul className="m-0 mt-3 grid gap-1.5">
+              <ul className="m-0 grid list-none gap-1.5 p-0">
                 {verdict.blocked.map((line) => (
                   <li
                     className={`rounded-[10px] border px-4 py-2 text-[12.5px] font-semibold ${NOTICE_CLASSES.danger}`}
                     key={line}
                   >
-                    ⛔ {line}
+                    {line}
                   </li>
                 ))}
               </ul>
             ) : null}
+
             {verdict.warnings.length > 0 ? (
-              <ul className="m-0 mt-3 grid gap-1.5">
+              <ul className="m-0 grid list-none gap-1.5 p-0">
                 {verdict.warnings.map((line) => (
                   <li
                     className={`rounded-[10px] border px-4 py-2 text-[12.5px] ${NOTICE_CLASSES.warn}`}
                     key={line}
                   >
-                    ⚠️ {line}
+                    {line}
                   </li>
                 ))}
               </ul>
             ) : null}
-          </CardBody>
-        </Card>
-      ) : null}
+          </>
+        ) : null}
 
-      {loadError ? (
-        <Card>
-          <CardBody>
+        {loadError ? (
+          <>
             <p
               className={`m-0 rounded-[10px] border px-4 py-2.5 text-[13px] font-semibold ${NOTICE_CLASSES.danger}`}
               role="alert"
             >
               تعذّر تحميل التقرير: {loadError}
             </p>
-            <p className="m-0 mt-2 text-[12.5px] text-muted">
-              الأسبابُ المعتادة: مدىً رفضه الخادم (٤٢٢ بنصّه أعلاه)، أو مندوبٌ ليس من هذه
-              المنشأة (٤٠٤ «المندوب غير موجود»)، أو لا تملك{' '}
-              <span dir="ltr">{REPORTS_PERMISSION}</span> (٤٠٣). ولا تُعرض أرقامٌ بديلة من
-              المتصفح.
+            <p className="m-0 text-[12.5px] text-muted">
+              راجع المدى والمندوب ثمّ أعد المحاولة — ولا تُعرض أرقامٌ بديلة من المتصفح.
             </p>
-          </CardBody>
-        </Card>
-      ) : null}
+          </>
+        ) : null}
 
-      {notice ? (
-        <p
-          className={`m-0 rounded-[10px] border px-4 py-2.5 text-[13px] font-semibold ${NOTICE_CLASSES[notice.kind]}`}
-          role={notice.kind === 'danger' ? 'alert' : 'status'}
-        >
-          {notice.text}
-        </p>
-      ) : null}
+        {notice ? (
+          <p
+            className={`m-0 rounded-[10px] border px-4 py-2.5 text-[13px] font-semibold ${NOTICE_CLASSES[notice.kind]}`}
+            role={notice.kind === 'danger' ? 'alert' : 'status'}
+          >
+            {notice.text}
+          </p>
+        ) : null}
 
-      {canView && !asked && !loading ? (
-        <Card>
-          <CardBody>
-            <p className="m-0 text-[13px] text-muted">{REPORTS_MESSAGES.pickPeriod}</p>
-            <p className="m-0 mt-2 text-[12.5px] text-muted">
-              «هذا الشهر» يملأ أولَ الشهر الجاري وآخرَه بتقويم المتصفح ثمّ يطلب التقرير؛ و«كلّ
-              السجلّ» يرسل بلا مدىً — وقد يبلغ سقفَ الصفوف في منشأةٍ كبيرة، والقصُّ يُقال ولا
-              يُخفى. والأستاذُ والتقاريرُ المحاسبية الرسمية في لوحة الموظفين (
-              <span dir="ltr">apps/staff</span>) وتُفتح بتسليم جلسة.
+        {canView && !asked && !loading ? (
+          <EmptyState
+            description={`${REPORTS_MESSAGES.pickPeriod} وقد يبلغ العرضُ سقفَ الصفوف في منشأةٍ كبيرة، ويُقال حينها إنّ القائمة مقصوصة.`}
+            icon={<span aria-hidden>📈</span>}
+            title="لم يُعرض تقرير بعد"
+          />
+        ) : null}
+
+        {canView && payload ? (
+          <>
+            <p className="m-0 text-[12.5px] text-muted">
+              المدى المطبَّق: {filterHeadline(payload)}
+              {stamped ? ` — وُلِّد في ${stamped}` : ''}
             </p>
-          </CardBody>
-        </Card>
-      ) : null}
 
-      {canView && payload ? (
-        <>
-          <Card>
-            <CardHeader
-              subtitle={
-                stamped
-                  ? `المطبَّق: ${filterHeadline(payload)} — وُلِّد في ${stamped}`
-                  : `المطبَّق: ${filterHeadline(payload)}`
-              }
-              title="الفترة كما طبّقها الخادم"
-            />
-            <CardBody>
-              <p className="m-0 text-[12.5px] text-muted">
-                هذه حقولُ <span dir="ltr">filters</span> التي أرجعها الخادم، لا ما كُتب في الحقول
-                أعلاه فحسب: فتاريخٌ مرفوضٌ يُرفض (٤٢٢) ولا يُهمل بصمت.
-              </p>
-              {screenVerdict.warnings.length > 0 ? (
-                <ul className="m-0 mt-3 grid gap-1.5">
-                  {screenVerdict.warnings.map((line) => (
-                    <li
-                      className={`rounded-[10px] border px-4 py-2 text-[12.5px] ${NOTICE_CLASSES.warn}`}
-                      key={line}
-                    >
-                      ⚠️ {line}
-                    </li>
-                  ))}
-                </ul>
-              ) : null}
-            </CardBody>
-          </Card>
+            {screenVerdict.warnings.length > 0 ? (
+              <ul className="m-0 grid list-none gap-1.5 p-0">
+                {screenVerdict.warnings.map((line) => (
+                  <li
+                    className={`rounded-[10px] border px-4 py-2 text-[12.5px] ${NOTICE_CLASSES.warn}`}
+                    key={line}
+                  >
+                    {line}
+                  </li>
+                ))}
+              </ul>
+            ) : null}
 
-          {PERIOD_CARD_GROUPS.map((group) => (
-            <Card key={group.key}>
-              <CardHeader subtitle={group.noteAr} title={group.labelAr} />
-              <CardBody>
+            {PERIOD_CARD_GROUPS.map((group) => (
+              <Panel hint={group.noteAr} key={group.key} title={group.labelAr}>
                 {hasPeriodTotals(payload) ? (
-                  <div className="m-0 grid gap-3 sm:grid-cols-3 lg:grid-cols-4">
+                  <div className="ui-kpi-grid">
                     {group.cards.map((card) => (
                       <Kpi
                         hint={card.hintAr}
@@ -461,21 +403,17 @@ export default function ReportsPage() {
                   </div>
                 ) : (
                   <p className="m-0 text-[12.5px] text-muted">
-                    لم يرجع الخادم <span dir="ltr">periodTotals</span> في هذه الحمولة — ولا تُحسب
-                    مجاميعُ بديلة في المتصفح.
+                    لم تُرجع هذه الفترة مجاميع — ولا تُحسب بدائل في المتصفح.
                   </p>
                 )}
-              </CardBody>
-            </Card>
-          ))}
+              </Panel>
+            ))}
 
-          <Card>
-            <CardHeader
-              subtitle="من summary (لوحة الخطّ): أرقامُ المنشأة كلّها وأرصدتُها في لحظتها — ليست مجاميعَ الفترة أعلاه."
+            <Panel
+              hint="أرقامُ المنشأة وأرصدتُها في لحظتها — ليست مجاميعَ الفترة أعلاه."
               title="أرصدةُ اللحظة وكلُّ السجلّ"
-            />
-            <CardBody>
-              <div className="m-0 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            >
+              <div className="ui-kpi-grid">
                 {BALANCE_CARDS.map((card) => (
                   <Kpi
                     hint={card.hintAr}
@@ -485,95 +423,86 @@ export default function ReportsPage() {
                   />
                 ))}
               </div>
-            </CardBody>
-          </Card>
+            </Panel>
 
-          <Card>
-            <CardHeader
-              subtitle="‏repCustodyReport من الخادم على المدى نفسه — لا من نافذة اللوحة ولا بجمعٍ في المتصفح."
+            <Panel
+              flush
+              hint="عهدُ المناديب على المدى نفسه."
               title={`أداءُ المندوبين (${(payload.repCustodyReport ?? []).length})`}
-            />
-            <CardBody>
+            >
               <ReportTable
                 columns={REP_COLUMNS}
-                state={tableState}
-                storageKey="reps"
                 emptyAr="لا مندوبَ له حركةٌ في هذه الفترة."
                 rows={payload.repCustodyReport ?? []}
+                state={tableState}
+                storageKey="reps"
               />
-            </CardBody>
-          </Card>
+            </Panel>
 
-          <Card>
-            <CardHeader
-              subtitle={`مجموعُ الصفوف المعروضة: مُحمَّل ${sums.transfersLoadedKg} كجم · متبقٍّ في العهدة ${sums.transfersRemainingKg} كجم — ومجاميعُ الفترة في البطاقات أعلاه هي الحكم.`}
+            <Panel
+              flush
+              hint={`المعروض من الصفوف: مُحمَّل ${sums.transfersLoadedKg} كجم · متبقٍّ في العهدة ${sums.transfersRemainingKg} كجم — ومجاميعُ الفترة أعلاه هي المرجع.`}
               title={`${REPORT_LIST_LABELS.transfersReport} (${(payload.transfersReport ?? []).length})`}
-            />
-            <CardBody>
+            >
               <ReportTable
                 columns={TRANSFER_COLUMNS}
-                state={tableState}
-                storageKey="transfers"
                 emptyAr="لا أمرَ تحميل في هذه الفترة."
                 rows={payload.transfersReport ?? []}
+                state={tableState}
+                storageKey="transfers"
               />
-            </CardBody>
-          </Card>
+            </Panel>
 
-          <Card>
-            <CardHeader
-              subtitle={`مجموعُ الصفوف المعروضة: إجماليّ ${sums.collectionsGrandSar} ريال · متبقٍّ ${sums.collectionsOutstandingSar} ريال — وذممُ الفترة في البطاقات أعلاه.`}
+            <Panel
+              flush
+              hint={`المعروض من الصفوف: إجماليّ ${sums.collectionsGrandSar} ريال · متبقٍّ ${sums.collectionsOutstandingSar} ريال — وذممُ الفترة أعلاه هي المرجع.`}
               title={`${REPORT_LIST_LABELS.collectionsReport} (${(payload.collectionsReport ?? []).length})`}
-            />
-            <CardBody>
+            >
               <ReportTable
                 columns={COLLECTION_COLUMNS}
-                state={tableState}
-                storageKey="collections"
                 emptyAr="لا مستندَ بيعٍ في هذه الفترة."
                 rows={payload.collectionsReport ?? []}
+                state={tableState}
+                storageKey="collections"
               />
-            </CardBody>
-          </Card>
+            </Panel>
 
-          <Card>
-            <CardHeader
-              subtitle={`مجموعُ الصفوف المعروضة: مُنتَج ${sums.productionProducedKg} كجم — والإنتاجُ لا يُنسب إلى مندوب فلا يقصّه مرشِّحُ المندوب (ويقول الخادم ذلك في filterNotes).`}
+            <Panel
+              flush
+              hint={`المعروض من الصفوف: مُنتَج ${sums.productionProducedKg} كجم — والإنتاجُ لا يُنسب إلى مندوب، فلا يقصّه مرشِّحُ المندوب.`}
               title={`${REPORT_LIST_LABELS.productionReport} (${(payload.productionReport ?? []).length})`}
-            />
-            <CardBody>
+            >
               <ReportTable
                 columns={PRODUCTION_COLUMNS}
-                state={tableState}
-                storageKey="production"
                 emptyAr="لا دفعةَ إنتاج في هذه الفترة."
                 rows={payload.productionReport ?? []}
+                state={tableState}
+                storageKey="production"
               />
-            </CardBody>
-          </Card>
+            </Panel>
 
-          <Card>
-            <CardHeader
-              subtitle="سجلُّ تغيير أسعار العملاء — بلا تاريخِ عملٍ في الجدول فيُصفّى بتاريخ الإنشاء، ويُقال ذلك في filterNotes."
+            <Panel
+              flush
+              footer={
+                <span>
+                  تقريرُ قراءةٍ فقط: لا يُنشئ قيدًا ولا يُحمِّل نقصًا على أحد. والتقاريرُ المحاسبية الرسمية في
+                  لوحة الموظفين.
+                </span>
+              }
+              hint="سجلُّ تغيير أسعار العملاء — يُصفّى بتاريخ الإنشاء لأنّ الجدول بلا تاريخ عمل."
               title={`${REPORT_LIST_LABELS.customerPriceAuditReport} (${(payload.customerPriceAuditReport ?? []).length})`}
-            />
-            <CardBody>
+            >
               <ReportTable
                 columns={PRICE_COLUMNS}
-                state={tableState}
-                storageKey="prices"
                 emptyAr="لا تغييرَ تسعير في هذه الفترة."
                 rows={payload.customerPriceAuditReport ?? []}
+                state={tableState}
+                storageKey="prices"
               />
-              <p className="m-0 mt-3 text-[12px] text-muted">
-                بطاقةُ المندوب الرسمية في لوحة الموظفين: <span dir="ltr">{STAFF_SALESMEN_PATH}</span>{' '}
-                (تُفتح بتسليم جلسة). والتقريرُ قراءةٌ فقط: لا يُنشئ قيدًا ولا يُحمِّل نقصًا على
-                أحد.
-              </p>
-            </CardBody>
-          </Card>
-        </>
-      ) : null}
+            </Panel>
+          </>
+        ) : null}
+      </div>
     </section>
   );
 }

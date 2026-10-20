@@ -1,6 +1,7 @@
 'use client';
 
 import { use } from 'react';
+import { Panel } from '@erp/ui';
 
 import { DataTable, QueryView } from '../../../../components/data-view';
 import { Screen } from '../../../../components/screen';
@@ -28,13 +29,13 @@ export default function SyncDocumentsPage({ params }: { params: Promise<{ entity
       {known ? null : <p className="alert warn">نوع غير معروف. الأنواع المتاحة: الفواتير، السندات، القيود، المخزون.</p>}
       <QueryView query={documents} empty="لم يصل أي مستند بعد" emptyDetail="سيظهر هنا كل مستند يدفعه جهاز مرتبط عبر بوابة التوافق.">
         {(rows) => (
-          <div className="card">
+          <Panel title="المستندات الواردة" hint="كل مستند بمعرّفه القديم — للمطابقة مع تطبيق سطح المكتب." flush>
             <DataTable
               columns={columnsFor(entity)}
               rows={rows}
               rowKey={(row) => row.id}
             />
-          </div>
+          </Panel>
         )}
       </QueryView>
     </Screen>

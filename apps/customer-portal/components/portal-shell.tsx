@@ -1,8 +1,10 @@
 'use client';
 
+import { Panel } from '@erp/ui';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
+import { Decimal } from 'decimal.js';
 
 import { fetchProfile, logout, readToken, type PortalProfile } from '../lib/api';
 import { moneyText } from '../lib/format';
@@ -31,52 +33,69 @@ export function PortalShell({ children }: { children: ReactNode }) {
       .finally(() => setChecked(true));
   }, []);
 
-  if (!checked) return <div className="card">جارٍ فتح البوابة…</div>;
+  if (!checked)
+    return (
+      <Panel>
+        <p className="panel-state">جارٍ فتح البوابة…</p>
+      </Panel>
+    );
 
   // An account that exists but is not linked to a customer gets a plain explanation instead of
   // a shell full of endpoints that will all fail the same way.
   if (!state.profile) {
     return (
-      <section className="card">
-        <h1>لا يمكن فتح البوابة</h1>
-        <p className="muted">{state.error || 'تعذّر تحميل بيانات الحساب.'}</p>
-        <button className="btn" type="button" onClick={logout}>
-          تسجيل الخروج
-        </button>
-      </section>
+      <Panel title="لا يمكن فتح البوابة">
+        <p className="panel-state">{state.error || 'تعذّر تحميل بيانات الحساب.'}</p>
+        <div className="toolbar" style={{ paddingInline: 20, paddingBlockEnd: 20 }}>
+          <button className="btn" type="button" onClick={logout}>
+            تسجيل الخروج
+          </button>
+        </div>
+      </Panel>
     );
   }
 
   const { party, company } = state.profile;
   const dueBalance = state.profile.balance;
+  const credit = new Decimal(dueBalance || '0').isNegative();
 
   return (
     <ProfileContext.Provider value={state}>
       <div className="portal">
-        <aside className="card side">
-          <strong>{party?.name ?? 'بوابة العملاء'}</strong>
-          <p className="muted" style={{ margin: '4px 0 12px' }}>
-            <small>{company.nameAr || 'المورد'}</small>
-          </p>
-          {portalRoutes.map((route) => (
-            <Link href={route.href} key={route.key} style={pathname === route.href ? { background: '#eff6ff', color: 'var(--brand)' } : undefined}>
-              {route.labelAr}
-              <br />
-              <small>{route.labelEn}</small>
-            </Link>
-          ))}
-          <hr style={{ border: 0, borderTop: '1px solid var(--line)', margin: '12px 0' }} />
-          <p className="muted">
-            <small>الرصيد المستحق</small>
-          </p>
-          <div className="kpi" style={{ fontSize: 20 }}>
-            {moneyText(dueBalance)}
+        <aside className="ui-panel side">
+          <div className="ui-panel-body">
+            <div className="portal-identity">
+              <span className="portal-avatar" aria-hidden>
+                {(party?.name ?? 'ع').trim().slice(0, 1)}
+              </span>
+              <div>
+                <strong>{party?.name ?? 'بوابة العملاء'}</strong>
+                <small>{company.nameAr || 'المورد'}</small>
+              </div>
+            </div>
+            <nav className="portal-nav" aria-label="أقسام البوابة">
+              {portalRoutes.map((route) => (
+                <Link
+                  href={route.href}
+                  key={route.key}
+                  className={pathname === route.href ? 'active' : undefined}
+                >
+                  <span>
+                    {route.labelAr}
+                    <small>{route.labelEn}</small>
+                  </span>
+                </Link>
+              ))}
+            </nav>
+            <div className="portal-balance">
+              <small>{credit ? 'رصيد دائن لكم' : 'الرصيد المستحق'}</small>
+              <div className="ui-kpi-value" style={{ fontSize: 22 }}>
+                {moneyText(credit ? new Decimal(dueBalance).abs().toFixed(2) : dueBalance)}
+              </div>
+            </div>
           </div>
-          <button className="btn" type="button" onClick={logout} style={{ marginTop: 12, width: '100%' }}>
-            تسجيل الخروج
-          </button>
         </aside>
-        <section className="grid">{children}</section>
+        <section className="grid portal-body">{children}</section>
       </div>
     </ProfileContext.Provider>
   );

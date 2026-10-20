@@ -1,5 +1,6 @@
 'use client';
 
+import { Panel } from '@erp/ui';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -8,8 +9,16 @@ import { ErrorBox, Loading, Screen } from '../../../../components/screen';
 import { ApiError } from '../../../../lib/api';
 import { loadCost } from '../../../../lib/project-kanban';
 import { money } from '../../../../lib/lookups';
+import { Table } from '../../../../components/ui/table';
 
-type CostLine = { termId: string; code: string; description: string; plannedValue: string; actualValue: string; varianceValue: string };
+type CostLine = {
+  termId: string;
+  code: string;
+  description: string;
+  plannedValue: string;
+  actualValue: string;
+  varianceValue: string;
+};
 type CostReport = {
   lines: CostLine[];
   laborValue: string;
@@ -39,43 +48,90 @@ export default function ProjectCostPage() {
     );
   }
   if (!report) return <Loading />;
-  const max = Math.max(1, ...report.lines.map((line) => Number(line.plannedValue)), ...report.lines.map((line) => Number(line.actualValue)));
+  const max = Math.max(
+    1,
+    ...report.lines.map((line) => Number(line.plannedValue)),
+    ...report.lines.map((line) => Number(line.actualValue)),
+  );
 
   return (
-    <Screen title="مخطط مقابل فعلي" subtitle="الفعلي = ساعات المكلّف × معدله + مصاريف المهمة. سندات المقاول المعتمدة تظهر كمصاريف مرتبطة." crumbs={['إدارة المشاريع']} actions={<Link className="btn" href={`/projects/${projectId}/board`}>اللوحة</Link>}>
-      <div className="card">
+    <Screen
+      title="مخطط مقابل فعلي"
+      subtitle="الفعلي = ساعات المكلّف × معدله + مصاريف المهمة. سندات المقاول المعتمدة تظهر كمصاريف مرتبطة."
+      crumbs={['إدارة المشاريع']}
+      actions={
+        <Link className="btn" href={`/projects/${projectId}/board`}>
+          اللوحة
+        </Link>
+      }
+    >
+      <Panel>
         <p>مخطط البنود: {money(report.plannedValue)}</p>
-        <p>أجور: {money(report.laborValue)} · مصاريف المهام: {money(report.expenseValue)} · سندات المقاول: {money(report.relatedExpenses)}</p>
+        <p>
+          أجور: {money(report.laborValue)} · مصاريف المهام: {money(report.expenseValue)} · سندات المقاول:{' '}
+          {money(report.relatedExpenses)}
+        </p>
         <p>الفعلي الكلي: {money(report.actualValue)}</p>
-      </div>
-      <div className="card">
-        <table>
-          <thead>
-            <tr>
-              <th>البند</th>
-              <th>مخطط</th>
-              <th>فعلي</th>
-              <th>الفرق</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            {report.lines.map((line) => (
-              <tr key={line.termId}>
-                <td>{line.code} — {line.description}</td>
-                <td>{money(line.plannedValue)}</td>
-                <td>{money(line.actualValue)}</td>
-                <td>{money(line.varianceValue)}</td>
-                <td>
-                  <span style={{ display: 'inline-block', width: `${(Number(line.plannedValue) / max) * 80}px`, height: 8, background: 'var(--muted)' }} />
-                  <span style={{ display: 'inline-block', width: `${(Number(line.actualValue) / max) * 80}px`, height: 8, background: 'var(--ok)', marginInlineStart: 4 }} />
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      </Panel>
+      <Panel>
+        <Table
+          bare
+          columns={[
+            {
+              key: 'c0',
+              header: 'البند',
+              cell: (line) => (
+                <>
+                  {line.code} — {line.description}
+                </>
+              ),
+            },
+            {
+              key: 'c1',
+              header: 'مخطط',
+              cell: (line) => money(line.plannedValue),
+            },
+            {
+              key: 'c2',
+              header: 'فعلي',
+              cell: (line) => money(line.actualValue),
+            },
+            {
+              key: 'c3',
+              header: 'الفرق',
+              cell: (line) => money(line.varianceValue),
+            },
+            {
+              key: 'c4',
+              header: <span className="sr-only">إجراءات</span>,
+              cell: (line) => (
+                <>
+                  <span
+                    style={{
+                      display: 'inline-block',
+                      width: `${(Number(line.plannedValue) / max) * 80}px`,
+                      height: 8,
+                      background: 'var(--muted)',
+                    }}
+                  />
+                  <span
+                    style={{
+                      display: 'inline-block',
+                      width: `${(Number(line.actualValue) / max) * 80}px`,
+                      height: 8,
+                      background: 'var(--ok)',
+                      marginInlineStart: 4,
+                    }}
+                  />
+                </>
+              ),
+            },
+          ]}
+          rows={report.lines}
+          rowKey={(line) => line.termId}
+        />
         {report.lines.length === 0 ? <p className="muted">لا بنود في جدول الكميات.</p> : null}
-      </div>
+      </Panel>
     </Screen>
   );
 }

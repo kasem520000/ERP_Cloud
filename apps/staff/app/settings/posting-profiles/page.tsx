@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { FilterBand, Panel } from '@erp/ui';
 
 import { Notice } from '../../../components/data-view';
 import { Screen } from '../../../components/screen';
@@ -24,7 +25,7 @@ const DOC_TYPES: Array<{ id: string; label: string }> = [
   { id: 'payroll_run', label: 'مسيّر رواتب' },
   { id: 'progress_bill', label: 'مستخلص مشروع' },
   { id: 'rent_invoice', label: 'فاتورة تأجير' },
-  // 🏭 الإنتاج (PHASE_E) — نوعا المستند الرسميان اللذان يربط عليهما المخبز/المصنع حسابَي المواد الخام والمنتج التام.
+  // الإنتاج (PHASE_E) — نوعا المستند الرسميان اللذان يربط عليهما المخبز/المصنع حسابَي المواد الخام والمنتج التام.
   { id: 'manufacturing_order', label: 'أمر تصنيع (BOM)' },
   { id: 'production_order', label: 'أمر إنتاج (مكوّنات)' },
 ];
@@ -50,10 +51,17 @@ export default function PostingProfilesPage() {
   const [notice, setNotice] = useState<{ kind: 'ok' | 'danger' | 'info'; text: string } | undefined>();
 
   const postable = (accounts.data ?? []).filter((account) => postableOf(account));
-  const existing = (profiles.data ?? []).find((row) => (row.branchId ?? '') === branchId && row.docType === docType);
+  const existing = (profiles.data ?? []).find(
+    (row) => (row.branchId ?? '') === branchId && row.docType === docType,
+  );
   const current: Record<string, string> = touched
     ? draft
-    : Object.fromEntries(KEYS.map((key) => [key, String((existing?.mapping as Record<string, unknown> | undefined)?.[key] ?? '')]));
+    : Object.fromEntries(
+        KEYS.map((key) => [
+          key,
+          String((existing?.mapping as Record<string, unknown> | undefined)?.[key] ?? ''),
+        ]),
+      );
 
   async function save() {
     setBusy(true);
@@ -61,7 +69,8 @@ export default function PostingProfilesPage() {
     try {
       const mapping: Record<string, unknown> = { version: 1 };
       for (const key of KEYS) if (current[key]) mapping[key] = current[key];
-      if (Object.keys(mapping).length === 1) throw new ApiError(422, 'VALIDATION_FAILED', 'حدّد حساباً واحداً على الأقل.');
+      if (Object.keys(mapping).length === 1)
+        throw new ApiError(422, 'VALIDATION_FAILED', 'حدّد حساباً واحداً على الأقل.');
       await apiPost('/branch-posting-profiles', { branchId: branchId || null, docType, mapping });
       setNotice({ kind: 'ok', text: 'تم حفظ الربط المحاسبي.' });
       setTouched(false);
@@ -79,7 +88,7 @@ export default function PostingProfilesPage() {
       subtitle="أي حساب يستقبل كل نوع مستند. الفرع يتقدّم على الافتراضي العام، والمستند المحدد يتقدّم على «الافتراضي لكل المستندات»."
       crumbs={['الإعدادات', 'المحاسبة']}
     >
-      <div className="card toolbar">
+      <FilterBand>
         <label className="field">
           <span>النطاق</span>
           <select
@@ -115,10 +124,9 @@ export default function PostingProfilesPage() {
             ))}
           </select>
         </label>
-      </div>
+      </FilterBand>
 
-      <div className="card">
-        <h2>{existing ? 'تعديل الربط' : 'ربط جديد'}</h2>
+      <Panel title={<>{existing ? 'تعديل الربط' : 'ربط جديد'}</>}>
         <div className="form-grid">
           {KEYS.map((key) => (
             <label className="field" key={key}>
@@ -151,7 +159,7 @@ export default function PostingProfilesPage() {
         ) : (
           <p className="muted">لا تملك صلاحية تعديل الربط المحاسبي.</p>
         )}
-      </div>
+      </Panel>
     </Screen>
   );
 }

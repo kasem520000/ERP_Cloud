@@ -7,7 +7,16 @@ import { Screen } from '../../../components/screen';
 import { FilterBar, StatTile, StatTiles } from '../../../components/ui';
 import { apiList } from '../../../lib/api';
 import { downloadCsv } from '../../../lib/accounts';
-import { arabicName, itemLabel, listItems, listWarehouses, money, quantity, type Item, type Warehouse } from '../../../lib/lookups';
+import {
+  arabicName,
+  itemLabel,
+  listItems,
+  listWarehouses,
+  money,
+  quantity,
+  type Item,
+  type Warehouse,
+} from '../../../lib/lookups';
 import { useQuery } from '../../../lib/use-query';
 
 type Level = { itemId: string; warehouseId: string; quantity: string; value: string; averageCost: string };
@@ -55,7 +64,13 @@ export default function StockLevelsPage() {
             downloadCsv(
               'stock-levels.csv',
               ['المادة', 'المستودع', 'الكمية', 'متوسط التكلفة', 'القيمة'],
-              (levels.data ?? []).map((row) => [nameOfItem(row.itemId), nameOfWarehouse(row.warehouseId), row.quantity, row.averageCost, row.value]),
+              (levels.data ?? []).map((row) => [
+                nameOfItem(row.itemId),
+                nameOfWarehouse(row.warehouseId),
+                row.quantity,
+                row.averageCost,
+                row.value,
+              ]),
             )
           }
         >
@@ -81,11 +96,19 @@ export default function StockLevelsPage() {
       </StatTiles>
 
       <FilterBar
-        actions={<span className="small muted">{levelRows.length === 0 ? 'لا أرصدة' : `${levelRows.length} صف رصيد`}</span>}
+        actions={
+          <span className="small muted">
+            {levelRows.length === 0 ? 'لا أرصدة' : `${levelRows.length} صف رصيد`}
+          </span>
+        }
       >
         <label className="field">
           <span>المستودع</span>
-          <select className="input" value={warehouseId} onChange={(event) => setWarehouseId(event.target.value)}>
+          <select
+            className="input"
+            value={warehouseId}
+            onChange={(event) => setWarehouseId(event.target.value)}
+          >
             <option value="">كل المستودعات</option>
             {warehouseRows.map((row) => (
               <option key={row.id} value={row.id}>
@@ -107,7 +130,13 @@ export default function StockLevelsPage() {
         </label>
       </FilterBar>
 
-      <QueryView query={levels} empty="لا توجد أرصدة" emptyDetail="لم تُسجَّل أي حركة مخزنية بعد.">
+      <QueryView
+        panel="أرصدة المواد"
+        panelHint="الكمية ومتوسط التكلفة والقيمة لكل مادة في كل مستودع."
+        query={levels}
+        empty="لا توجد أرصدة"
+        emptyDetail="لم تُسجَّل أي حركة مخزنية بعد."
+      >
         {(rows) => (
           <DataTable
             rows={rows}

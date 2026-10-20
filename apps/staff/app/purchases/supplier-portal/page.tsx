@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { Panel } from '@erp/ui';
 
 import { DataTable, Notice, QueryView } from '../../../components/data-view';
 import { Screen } from '../../../components/screen';
@@ -10,8 +11,25 @@ import { useSession } from '../../../lib/session';
 import { useQuery } from '../../../lib/use-query';
 
 type PortalUser = { id: string; partyId: string; email: string; isActive: boolean; createdAt: string };
-type Rfq = { id: string; number: string; partyId: string; title: string; status: string; offer: string | null; responseNote: string | null; createdAt: string };
-type Upload = { id: string; partyId: string; referenceNo: string; declaredTotal: string; note: string; status: string; createdAt: string };
+type Rfq = {
+  id: string;
+  number: string;
+  partyId: string;
+  title: string;
+  status: string;
+  offer: string | null;
+  responseNote: string | null;
+  createdAt: string;
+};
+type Upload = {
+  id: string;
+  partyId: string;
+  referenceNo: string;
+  declaredTotal: string;
+  note: string;
+  status: string;
+  createdAt: string;
+};
 
 const RFQ_STATUS: Record<string, string> = { open: 'مفتوح', responded: 'تم الرد', closed: 'مغلق' };
 
@@ -41,10 +59,13 @@ export default function SupplierPortalAdminPage() {
     setNotice(undefined);
     setIssued(undefined);
     try {
-      const created = await apiPost<{ email: string; temporaryPassword: string | null }>('/supplier-portal/users', {
-        partyId,
-        email: email.trim(),
-      });
+      const created = await apiPost<{ email: string; temporaryPassword: string | null }>(
+        '/supplier-portal/users',
+        {
+          partyId,
+          email: email.trim(),
+        },
+      );
       setEmail('');
       users.reload();
       if (created.temporaryPassword) setIssued(`${created.email} — ${created.temporaryPassword}`);
@@ -61,7 +82,11 @@ export default function SupplierPortalAdminPage() {
     setBusy(true);
     setNotice(undefined);
     try {
-      const created = await apiPost<{ number: string }>('/supplier-portal/rfqs', { partyId, title: title.trim(), note });
+      const created = await apiPost<{ number: string }>('/supplier-portal/rfqs', {
+        partyId,
+        title: title.trim(),
+        note,
+      });
       setTitle('');
       setNote('');
       rfqs.reload();
@@ -81,110 +106,188 @@ export default function SupplierPortalAdminPage() {
     >
       <Notice notice={notice} />
       {issued ? (
-        <div className="card">
+        <Panel>
           <strong>كلمة المرور تُعرض مرة واحدة</strong>
           <p>{issued}</p>
           <p className="muted small">انسخها الآن. البريد في وضع التطوير لا يطبع نص الرسالة.</p>
-        </div>
+        </Panel>
       ) : null}
 
       {manage ? (
-        <form className="card" onSubmit={invite}>
-          <h2>دعوة مورد</h2>
-          <div className="form-grid">
-            <label className="field">
-              <span>المورد *</span>
-              <select className="input" value={partyId} onChange={(event) => setPartyId(event.target.value)} required>
-                <option value="">— اختر —</option>
-                {(suppliers.data ?? []).map((row) => (
-                  <option key={row.id} value={row.id}>
-                    {partyLabel(row)}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="field">
-              <span>البريد *</span>
-              <input className="input" type="email" value={email} onChange={(event) => setEmail(event.target.value)} required />
-            </label>
-          </div>
-          <button className="btn primary" type="submit" disabled={busy}>
-            {busy ? 'جارٍ الحفظ…' : 'إنشاء الدخول'}
-          </button>
+        <form onSubmit={invite}>
+          <Panel title="دعوة مورد">
+            <div className="form-grid">
+              <label className="field">
+                <span>المورد *</span>
+                <select
+                  className="input"
+                  value={partyId}
+                  onChange={(event) => setPartyId(event.target.value)}
+                  required
+                >
+                  <option value="">— اختر —</option>
+                  {(suppliers.data ?? []).map((row) => (
+                    <option key={row.id} value={row.id}>
+                      {partyLabel(row)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="field">
+                <span>البريد *</span>
+                <input
+                  className="input"
+                  type="email"
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
+                  required
+                />
+              </label>
+            </div>
+            <div className="ui-form-actions">
+              <span className="ui-form-actions-note">كلمة المرور تُعرض مرة واحدة بعد الإنشاء.</span>
+              <div className="ui-form-actions-buttons">
+                <button className="btn primary" type="submit" disabled={busy}>
+                  {busy ? 'جارٍ الحفظ…' : 'إنشاء الدخول'}
+                </button>
+              </div>
+            </div>
+          </Panel>
         </form>
       ) : null}
 
-      <QueryView query={users} empty="لا توجد دعوات">
+      <QueryView
+        wrapEmpty={(node) => (
+          <Panel title="دعوات الموردين" flush>
+            {node}
+          </Panel>
+        )}
+        query={users}
+        empty="لا توجد دعوات"
+      >
         {(rows) => (
-          <div className="card">
+          <Panel title="دعوات الموردين" hint="الحساب الموقوف يمنع الدخول دون حذف السجل." flush>
             <DataTable
               columns={[
                 { key: 'party', header: 'المورد', cell: (row: PortalUser) => partyOf(row.partyId) },
                 { key: 'email', header: 'البريد', cell: (row: PortalUser) => row.email },
-                { key: 'active', header: 'الحالة', cell: (row: PortalUser) => (row.isActive ? 'نشط' : 'موقوف') },
+                {
+                  key: 'active',
+                  header: 'الحالة',
+                  cell: (row: PortalUser) => (row.isActive ? 'نشط' : 'موقوف'),
+                },
                 { key: 'created', header: 'التاريخ', cell: (row: PortalUser) => shortDate(row.createdAt) },
               ]}
               rows={rows}
               rowKey={(row) => row.id}
             />
-          </div>
+          </Panel>
         )}
       </QueryView>
 
       {manage ? (
-        <form className="card" onSubmit={createRfq}>
-          <h2>طلب عرض سعر</h2>
-          <div className="form-grid">
-            <label className="field">
-              <span>العنوان *</span>
-              <input className="input" value={title} onChange={(event) => setTitle(event.target.value)} required maxLength={160} />
-            </label>
-            <label className="field">
-              <span>ملاحظة</span>
-              <input className="input" value={note} onChange={(event) => setNote(event.target.value)} />
-            </label>
-          </div>
-          <button className="btn" type="submit" disabled={busy || !partyId}>
-            إرسال الطلب للمورد المختار
-          </button>
+        <form onSubmit={createRfq}>
+          <Panel title="طلب عرض سعر">
+            <div className="form-grid">
+              <label className="field">
+                <span>العنوان *</span>
+                <input
+                  className="input"
+                  value={title}
+                  onChange={(event) => setTitle(event.target.value)}
+                  required
+                  maxLength={160}
+                />
+              </label>
+              <label className="field">
+                <span>ملاحظة</span>
+                <input className="input" value={note} onChange={(event) => setNote(event.target.value)} />
+              </label>
+            </div>
+            <div className="ui-form-actions">
+              <span className="ui-form-actions-note">يُرسَل الطلب إلى المورد المختار أعلاه.</span>
+              <div className="ui-form-actions-buttons">
+                <button className="btn" type="submit" disabled={busy || !partyId}>
+                  إرسال الطلب للمورد المختار
+                </button>
+              </div>
+            </div>
+          </Panel>
         </form>
       ) : null}
 
-      <QueryView query={rfqs} empty="لا توجد طلبات">
+      <QueryView
+        wrapEmpty={(node) => (
+          <Panel title="طلبات عروض الأسعار" flush>
+            {node}
+          </Panel>
+        )}
+        query={rfqs}
+        empty="لا توجد طلبات"
+      >
         {(rows) => (
-          <div className="card">
+          <Panel
+            title="طلبات عروض الأسعار"
+            hint="الطلب يصل إلى المورد في بوابته؛ العرض والملاحظة يعودان هنا."
+            flush
+          >
             <DataTable
               columns={[
                 { key: 'number', header: 'الرقم', cell: (row: Rfq) => row.number },
                 { key: 'party', header: 'المورد', cell: (row: Rfq) => partyOf(row.partyId) },
                 { key: 'title', header: 'العنوان', cell: (row: Rfq) => row.title },
                 { key: 'status', header: 'الحالة', cell: (row: Rfq) => RFQ_STATUS[row.status] ?? row.status },
-                { key: 'offer', header: 'العرض', align: 'num', cell: (row: Rfq) => (row.offer ? money(row.offer) : '—') },
+                {
+                  key: 'offer',
+                  header: 'العرض',
+                  align: 'num',
+                  cell: (row: Rfq) => (row.offer ? money(row.offer) : '—'),
+                },
                 { key: 'response', header: 'الملاحظة', cell: (row: Rfq) => row.responseNote ?? '—' },
               ]}
               rows={rows}
               rowKey={(row) => row.id}
             />
-          </div>
+          </Panel>
         )}
       </QueryView>
 
-      <h2>فواتير رفعها الموردون</h2>
-      <QueryView query={uploads} empty="لا توجد فواتير مرفوعة">
+      <QueryView
+        wrapEmpty={(node) => (
+          <Panel title="فواتير رفعها الموردون" flush>
+            {node}
+          </Panel>
+        )}
+        query={uploads}
+        empty="لا توجد فواتير مرفوعة"
+      >
         {(rows) => (
-          <div className="card">
+          <Panel
+            title="فواتير رفعها الموردون"
+            hint="لا تُقيَّد تلقائياً — تُراجَع هنا قبل إنشاء فاتورة الشراء."
+            flush
+          >
             <DataTable
               columns={[
                 { key: 'party', header: 'المورد', cell: (row: Upload) => partyOf(row.partyId) },
                 { key: 'ref', header: 'الرقم', cell: (row: Upload) => row.referenceNo },
-                { key: 'declared', header: 'الإجمالي', align: 'num', cell: (row: Upload) => money(row.declaredTotal) },
-                { key: 'status', header: 'الحالة', cell: (row: Upload) => (row.status === 'submitted' ? 'بانتظار القيد' : row.status) },
+                {
+                  key: 'declared',
+                  header: 'الإجمالي',
+                  align: 'num',
+                  cell: (row: Upload) => money(row.declaredTotal),
+                },
+                {
+                  key: 'status',
+                  header: 'الحالة',
+                  cell: (row: Upload) => (row.status === 'submitted' ? 'بانتظار القيد' : row.status),
+                },
                 { key: 'created', header: 'التاريخ', cell: (row: Upload) => shortDate(row.createdAt) },
               ]}
               rows={rows}
               rowKey={(row) => row.id}
             />
-          </div>
+          </Panel>
         )}
       </QueryView>
     </Screen>

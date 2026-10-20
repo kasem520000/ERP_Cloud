@@ -164,7 +164,7 @@ export function changelogByMonth<T extends { publishedAt: string }>(
   entries: T[],
   locale: Locale,
 ): Array<{ key: string; label: string; entries: T[] }> {
-  const formatter = new Intl.DateTimeFormat(locale === 'en' ? 'en-US' : 'ar-SA-u-ca-gregory', {
+  const formatter = new Intl.DateTimeFormat(locale === 'en' ? 'en-US' : 'ar-SA-u-ca-gregory-nu-latn', {
     month: 'long',
     year: 'numeric',
   });

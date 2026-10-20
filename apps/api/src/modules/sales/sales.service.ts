@@ -5,6 +5,7 @@ import { calculateInvoiceTotals, DomainError, errorCodes, newId } from '@erp/con
 import {
   accounts,
   branches,
+  einvoiceSettings,
   employees,
   inventoryTransactions,
   invoicePayments,
@@ -424,6 +425,7 @@ export class SalesService {
   async create(tenantId: string, input: SalesInvoiceInput) {
     // P-C5: فواتير الشهر مقياسٌ محدود — والعدّ في القاعدة لا في الذاكرة.
     await this.usage.assertWithinLimit(tenantId, 'invoices_per_month');
+    await this.assertSaveAllowed(tenantId, input);
     if (input.autoPost) {
       return this.createAndPost(tenantId, input, {
         settlement: input.settlement,
@@ -440,6 +442,33 @@ export class SalesService {
    * committed until the invoice, its stock movement, its journal and its
    * settlement payment have all succeeded.
    */
+  /**
+   * «منع الحفظ عند الربط الضريبي» — reads the one e-invoice row of the tenant.
+   *
+   * The switch lives on the ZATCA settings window and defaults to off. When an operator
+   * turns it on while the link is active, a sales invoice can no longer be parked as a
+   * draft: it must be saved and posted in the same action («حفظ وترحيل»), so every local
+   * invoice gets a number and a QR instead of waiting in a drawer nobody files.
+   * Posting an *existing* draft stays allowed — the rule forbids new drafts, it does not
+   * strand old ones.
+   */
+  private async assertSaveAllowed(tenantId: string, input: SalesInvoiceInput): Promise<void> {
+    if (input.autoPost) return;
+    const [settings] = await withTenantTx(this.database.db, tenantId, (tx) =>
+      tx
+        .select({ active: einvoiceSettings.active, block: einvoiceSettings.blockSaveWhenLinked })
+        .from(einvoiceSettings)
+        .where(and(eq(einvoiceSettings.tenantId, tenantId), eq(einvoiceSettings.authority, 'zatca')))
+        .limit(1),
+    );
+    if (!settings?.active || !settings.block) return;
+    throw new DomainError(
+      'EINVOICE_SAVE_BLOCKED_BY_LINK',
+      'الربط الضريبي مفعّل وخيار «منع الحفظ عند الربط الضريبي» مُشغَّل: لا تُحفظ فاتورة المبيعات كمسودة. استخدم «حفظ وترحيل» لترحيلها فوراً.',
+      409,
+    );
+  }
+
   async createAndPost(tenantId: string, input: SalesInvoiceInput, posting: PostingInput = {}) {
     // Keep the POS checkout atomic when no approval applies.  When a workflow does
     // apply, the draft must commit before the request can be created; otherwise the

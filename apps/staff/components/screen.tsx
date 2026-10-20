@@ -1,57 +1,60 @@
 'use client';
 
 import Link from 'next/link';
+import { KpiStrip, Page, PageHead, cn, type KpiItem } from '@erp/ui';
+import { FolderOpen, LockKeyhole } from 'lucide-react';
 import type { ReactNode } from 'react';
 
 import { findScreenByHref } from '../lib/navigation';
 
 /**
- * Standard page chrome — v2: breadcrumbs + 24px title + subtitle + actions,
- * matching the redesigned pages (dashboard / invoices / reports).
+ * إطار الشاشة — صار من `@erp/ui` كي تتشاركه كل الأسطح.
+ *
+ * الشاشات هنا تُركَّب على `Page` + `PageHead`: مسار، ثم عنوان، ثم شرح، ثم
+ * إجراءات — بمسافاتٍ واحدة مهما كانت الشاشة. من احتاج ترتيباً مختلفاً رتّب
+ * الأقسام داخل الإطار، ولم يغيّر الإطار.
  */
 export function Screen({
   title,
   subtitle,
   crumbs,
   actions,
+  kpis,
+  filters,
+  chips,
+  meta,
   children,
 }: {
   title: string;
   subtitle?: string;
   crumbs?: string[];
   actions?: ReactNode;
+  /** شريط المؤشرات — سطرٌ واحد فوق التصفية، لا بطاقاتٌ عائمة. */
+  kpis?: KpiItem[];
+  /** شريط التصفية الموحّد (`ui-filter-bar`). */
+  filters?: ReactNode;
+  /** صفّ حالات/شرائح (`ui-chip-row`) تحت التصفية. */
+  chips?: ReactNode;
+  /** سياق صغير في رأس الصفحة (الفترة، الفرع، الحالة). */
+  meta?: ReactNode;
   children: ReactNode;
 }) {
   return (
-    <div className="grid gap-4">
-      <section className="flex flex-wrap items-end justify-between gap-3">
-        <div className="min-w-0">
-          {crumbs && crumbs.length > 0 ? (
-            <nav className="flex flex-wrap items-center gap-1.5 text-[12px] font-bold text-muted" aria-label="المسار">
-              {crumbs.map((crumb, i) => (
-                <span key={`${crumb}-${i}`} className="flex items-center gap-1.5">
-                  {i > 0 ? <span aria-hidden>‹</span> : null}
-                  <span className={i === crumbs.length - 1 ? 'text-ink-2' : undefined}>{crumb}</span>
-                </span>
-              ))}
-            </nav>
-          ) : null}
-          <h1 className="m-0 mt-1 text-[24px] font-bold text-ink tracking-tight leading-tight">{title}</h1>
-          {subtitle ? <p className="m-0 mt-1 text-[13px] text-muted">{subtitle}</p> : null}
-        </div>
-        {actions ? <div className="flex flex-wrap items-center gap-2 no-print">{actions}</div> : null}
-      </section>
-      {children}
-    </div>
+    <Page>
+      <PageHead title={title} description={subtitle} breadcrumbs={crumbs} actions={actions} meta={meta} />
+      <div className="ui-screen-body">
+        {kpis && kpis.length > 0 ? <KpiStrip items={kpis} /> : null}
+        {filters}
+        {chips}
+        {children}
+      </div>
+    </Page>
   );
 }
 
 export function Loading({ rows = 4 }: { rows?: number }) {
   return (
-    <div
-      className="rounded-xl border border-line bg-surface p-4 shadow-1 grid gap-3"
-      aria-busy="true"
-    >
+    <div className="rounded-xl border border-line bg-surface p-4 shadow-1 grid gap-3" aria-busy="true">
       {Array.from({ length: rows }).map((_, index) => (
         <div
           key={index}
@@ -85,8 +88,10 @@ export function ErrorBox({ message, onRetry }: { message?: string; onRetry?: () 
 
 export function Forbidden() {
   return (
-    <div className="rounded-xl border border-line bg-surface p-8 shadow-1 grid place-items-center text-center gap-2">
-      <span className="grid place-items-center size-12 rounded-2xl bg-warn-soft text-warn">🔒</span>
+    <div className="ui-empty rounded-xl border border-line bg-surface p-8 shadow-1 grid place-items-center text-center gap-2">
+      <span className="grid place-items-center size-12 rounded-2xl bg-warn-soft text-warn">
+        <LockKeyhole size={22} strokeWidth={1.7} aria-hidden />
+      </span>
       <p className="m-0 text-[15px] font-bold text-ink">لا تملك صلاحية الوصول</p>
       <p className="m-0 text-[13px] text-muted max-w-md">
         اطلب من مالك الحساب منحك الصلاحية المطلوبة من «صلاحيات المستخدمين».
@@ -95,83 +100,68 @@ export function Forbidden() {
   );
 }
 
-export function Empty({ title, detail }: { title: string; detail?: string }) {
+/**
+ * حالة الفراغ.
+ *
+ * `bare` لفراغٍ يسكن بطاقةً أو لوحةً: البطاقة نفسها هي السطح، فلا نضع بطاقةً
+ * داخل بطاقة — يبقى الرسمُ والنصّ ويذهب الإطار والظل.
+ */
+export function Empty({
+  title,
+  detail,
+  action,
+  bare = false,
+}: {
+  title: string;
+  detail?: string;
+  /** A way out of the empty state — «أضف الأول» أو «افتح الشاشة». */
+  action?: ReactNode;
+  bare?: boolean;
+}) {
   return (
-    <div className="rounded-xl border border-line bg-surface p-8 shadow-1 grid place-items-center text-center gap-2">
-      <span className="grid place-items-center size-12 rounded-2xl bg-surface-3 text-muted">🗂️</span>
+    <div
+      className={cn(
+        'ui-empty grid place-items-center text-center gap-2',
+        bare
+          ? 'border-0 bg-transparent shadow-none p-6'
+          : 'rounded-xl border border-line bg-surface p-8 shadow-1',
+      )}
+    >
+      <span className="grid place-items-center size-12 rounded-2xl bg-surface-3 text-muted">
+        <FolderOpen size={22} strokeWidth={1.7} aria-hidden />
+      </span>
       <p className="m-0 text-[15px] font-bold text-ink">{title}</p>
       {detail ? <p className="m-0 text-[13px] text-muted max-w-md">{detail}</p> : null}
+      {action ? <div className="mt-1">{action}</div> : null}
     </div>
   );
 }
 
 /**
- * Placeholder for a screen that exists in the menu tree but is not built yet.
- * It never fakes data: it states the status and names the endpoint it will consume,
- * so the roadmap is visible instead of hidden behind a dummy table.
+ * A route that exists in the menu tree but has no screen behind it yet.
+ *
+ * Production rule: it renders a plain, customer-facing "not available" state —
+ * no API path, no permission code, no roadmap wording, no «قيد التطوير». Those
+ * belong in the repository, not in front of an accountant. In development the
+ * same state is kept; the engineering detail is available in the code and in
+ * `docs/ui-v5/SCREENS.md` instead.
  */
 export function ScreenScaffold({ href }: { href: string }) {
   const item = findScreenByHref(href);
-
-  if (!item) {
-    return (
-      <Screen title="شاشة غير معروفة" subtitle={href}>
-        <Empty title="هذه الشاشة غير مسجلة في شجرة النظام" detail="تحقق من الرابط أو ارجع للرئيسية." />
-        <Link className="btn" href="/">
-          الرئيسية
-        </Link>
-      </Screen>
-    );
-  }
-
   return (
     <Screen
-      title={item.labelAr}
-      subtitle={item.labelEn}
-      crumbs={[item.moduleLabelAr, item.groupLabelAr]}
-      actions={
-        <Link className="btn" href="/">
-          الرئيسية
-        </Link>
-      }
+      title={item?.labelAr ?? 'صفحة غير متاحة'}
+      crumbs={item ? [item.moduleLabelAr, item.groupLabelAr] : undefined}
     >
-      <div className="rounded-xl border border-line bg-surface p-4 shadow-1">
-        <div className="flex items-center gap-2" style={{ marginBottom: 10 }}>
-          <span
-            className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[12px] font-bold ${
-              item.status === 'api' ? 'bg-ok-soft text-ok-ink' : 'bg-warn-soft text-warn-ink'
-            }`}
-          >
-            {item.status === 'api' ? 'الواجهة البرمجية جاهزة — الشاشة قيد التنفيذ' : 'قيد التطوير'}
-          </span>
-        </div>
-        {item.status === 'api' ? (
-          <p className="m-0 text-[13.5px] text-ink-2">
-            منطق هذه الشاشة موجود بالفعل في الخادم ويمكن استدعاؤه الآن عبر المسار أدناه؛ ما ينقص هو واجهة
-            الإدخال والعرض.
-          </p>
-        ) : (
-          <p className="m-0 text-[13.5px] text-ink-2">
-            هذه الشاشة مدرجة في خطة النظام ولم تُنفذ بعد، لا في الواجهة ولا في الخادم.
-          </p>
-        )}
-        {item.endpoint ? (
-          <dl className="grid gap-1.5 mt-3 text-[13px]">
-            <dt className="text-muted font-bold">المسار البرمجي</dt>
-            <dd className="m-0 font-bold text-ink" dir="ltr">
-              {item.endpoint}
-            </dd>
-            {item.permission ? (
-              <>
-                <dt className="text-muted font-bold">الصلاحية</dt>
-                <dd className="m-0 font-bold text-ink" dir="ltr">
-                  {item.permission}
-                </dd>
-              </>
-            ) : null}
-          </dl>
-        ) : null}
-      </div>
+      <Empty
+        title="هذه الصفحة غير متاحة في نسختك"
+        detail="إن وصلت إلى هنا من رابط قديم، فارجع إلى القائمة الجانبية أو تواصل مع مسؤول الحساب لتفعيل الوحدة."
+        action={
+          <Link className="btn" href="/">
+            العودة إلى الرئيسية
+          </Link>
+        }
+      />
     </Screen>
   );
 }

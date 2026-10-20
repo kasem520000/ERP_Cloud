@@ -2,9 +2,11 @@
 
 import { useParams } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
+import { Panel } from '@erp/ui';
 
-import { money } from '../../../lib/lookups';
+import { money, quantity } from '../../../lib/lookups';
 import { SupplierError, supplierFetch } from '../../../lib/supplier-portal';
+import { Table } from '../../../components/ui/table';
 
 type Line = { lineNo: number; description: string; quantity: string; total: string };
 type View = {
@@ -131,6 +133,7 @@ export default function EsignPage() {
     }
   }
 
+  const docLabel = view?.document?.kind === 'quotation' ? 'عرض سعر' : 'مستند';
   const mark = (view?.companyName || 'ت').slice(0, 1);
 
   return (
@@ -145,15 +148,13 @@ export default function EsignPage() {
         </header>
 
         {status === 410 ? (
-          <section className="card">
-            <h1>انتهت صلاحية الرابط</h1>
-            <p>اطلب من المُرسِل رابطاً جديداً. هذا الرابط لم يعد يقبل توقيعاً.</p>
-          </section>
+          <Panel title="انتهت صلاحية الرابط">
+            <p className="muted">اطلب من المُرسِل رابطاً جديداً. هذا الرابط لم يعد يقبل توقيعاً.</p>
+          </Panel>
         ) : error && !view ? (
-          <section className="card">
-            <h1>تعذّر فتح المستند</h1>
-            <p>{error}</p>
-          </section>
+          <Panel title="تعذّر فتح المستند">
+            <p className="muted">{error}</p>
+          </Panel>
         ) : view ? (
           <>
             <article className="sign-sheet">
@@ -162,28 +163,37 @@ export default function EsignPage() {
                   <span className="logo-mark">{mark}</span>
                   <strong>{view.companyName || 'المنشأة'}</strong>
                 </span>
-                <span className="muted small">{view.document?.number ?? 'مستند'}</span>
+                <span className="muted small">{view.document?.number ?? docLabel}</span>
               </header>
+              <h1 className="sign-title">
+                توقيع {docLabel}
+                {view.document?.number ? <span className="muted"> {view.document.number}</span> : null}
+              </h1>
               {view.signerName ? <p>إلى: {view.signerName}</p> : null}
               {view.message ? <p>{view.message}</p> : null}
-              <table className="sign-table">
-                <thead>
-                  <tr>
-                    <th>البيان</th>
-                    <th className="num">الكمية</th>
-                    <th className="num">الإجمالي</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {(view.document?.lines ?? []).map((line) => (
-                    <tr key={line.lineNo}>
-                      <td>{line.description || 'بند'}</td>
-                      <td className="num">{line.quantity}</td>
-                      <td className="num">{money(line.total, view.document?.currency)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              <Table
+                columns={[
+                  {
+                    key: 'c0',
+                    header: 'البيان',
+                    cell: (line) => line.description || (line.lineNo ? `بند ${line.lineNo}` : 'بند بلا وصف'),
+                  },
+                  {
+                    key: 'c1',
+                    header: 'الكمية',
+                    numeric: true,
+                    cell: (line) => quantity(line.quantity),
+                  },
+                  {
+                    key: 'c2',
+                    header: 'الإجمالي',
+                    numeric: true,
+                    cell: (line) => money(line.total, view.document?.currency),
+                  },
+                ]}
+                rows={view.document?.lines ?? []}
+                rowKey={(line) => String(line.lineNo)}
+              />
               {view.document ? (
                 <p>
                   <strong>الإجمالي {money(view.document.total, view.document.currency)}</strong>
@@ -194,35 +204,42 @@ export default function EsignPage() {
             </article>
 
             {done || view.status === 'signed' ? (
-              <section className="card">
-                <h2>تم التوقيع</h2>
+              <Panel title="تم التوقيع">
                 <p>حُفظت نسخة PDF موقّعة، وتغيّرت حالة عرض السعر إن كان مفتوحاً.</p>
                 <a className="btn primary" href={`/api/v1/esign/${token}/pdf`}>
                   تنزيل PDF
                 </a>
-              </section>
+              </Panel>
             ) : (
-              <form className="card" onSubmit={sign}>
-                <h2>التوقيع</h2>
-                {error ? <p className="alert danger">{error}</p> : null}
-                <canvas
-                  ref={canvasRef}
-                  className="sign-pad"
-                  onPointerDown={start}
-                  onPointerMove={move}
-                  onPointerUp={stop}
-                  onPointerLeave={stop}
-                />
-                <button className="btn sm" type="button" onClick={clearPad}>
-                  مسح الرسم
-                </button>
-                <label className="field">
-                  <span>رمز التحقق من البريد</span>
-                  <input className="input" inputMode="numeric" autoComplete="one-time-code" value={otp} onChange={(event) => setOtp(event.target.value)} required />
-                </label>
-                <button className="btn primary" type="submit" disabled={busy}>
-                  {busy ? 'جارٍ الحفظ…' : 'توقيع المستند'}
-                </button>
+              <form onSubmit={sign}>
+                <Panel title="التوقيع">
+                  {error ? <p className="alert danger">{error}</p> : null}
+                  <canvas
+                    ref={canvasRef}
+                    className="sign-pad"
+                    onPointerDown={start}
+                    onPointerMove={move}
+                    onPointerUp={stop}
+                    onPointerLeave={stop}
+                  />
+                  <button className="btn sm" type="button" onClick={clearPad}>
+                    مسح الرسم
+                  </button>
+                  <label className="field">
+                    <span>رمز التحقق من البريد</span>
+                    <input
+                      className="input"
+                      inputMode="numeric"
+                      autoComplete="one-time-code"
+                      value={otp}
+                      onChange={(event) => setOtp(event.target.value)}
+                      required
+                    />
+                  </label>
+                  <button className="btn primary" type="submit" disabled={busy}>
+                    {busy ? 'جارٍ الحفظ…' : 'توقيع المستند'}
+                  </button>
+                </Panel>
               </form>
             )}
           </>

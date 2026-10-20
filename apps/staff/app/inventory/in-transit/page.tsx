@@ -14,6 +14,7 @@ import {
   money,
   quantity,
   shortDate,
+  statusLabel,
   type InTransitRow,
   type Warehouse,
 } from '../../../lib/lookups';
@@ -62,7 +63,8 @@ export default function InTransitPage() {
 
   const names = useMemo(() => {
     const map = new Map<string, string>();
-    for (const warehouse of warehouses.data ?? []) map.set(warehouse.id, warehouse.nameAr ?? warehouse.code ?? '');
+    for (const warehouse of warehouses.data ?? [])
+      map.set(warehouse.id, warehouse.nameAr ?? warehouse.code ?? '');
     return map;
   }, [warehouses.data]);
 
@@ -108,7 +110,11 @@ export default function InTransitPage() {
       <StatTiles>
         <StatTile label="أصناف معلّقة" value={data.length} hint="سطر مناقلة لم يُستلم" tone="brand" />
         <StatTile label="الكمية المعلّقة" value={quantity(totalQty)} hint="بوحدات الإرسال" />
-        <StatTile label="قيمة البضاعة المعلّقة" value={money(totalValue)} hint="مرصودة في حساب بضاعة تحت التحويل" />
+        <StatTile
+          label="قيمة البضاعة المعلّقة"
+          value={money(totalValue)}
+          hint="مرصودة في حساب بضاعة تحت التحويل"
+        />
         <StatTile
           label="متأخرة (٣ أيام فأكثر)"
           value={stale}
@@ -130,15 +136,13 @@ export default function InTransitPage() {
           </span>
         }
       >
-        <div className="field">
-          <span>المستودع</span>
-          <WarehousePicker value={warehouseId} onChange={setWarehouseId} includeAll />
-        </div>
+        <WarehousePicker value={warehouseId} onChange={setWarehouseId} includeAll />
       </FilterBar>
 
       {stale > 0 && (
         <p className="alert warn">
-          توجد أصناف في الطريق منذ ثلاثة أيام أو أكثر. راجعها: إما أن تُستلم، أو تُعاد إلى مصدرها، أو تُقفل كعجز.
+          توجد أصناف في الطريق منذ ثلاثة أيام أو أكثر. راجعها: إما أن تُستلم، أو تُعاد إلى مصدرها، أو تُقفل
+          كعجز.
         </p>
       )}
 
@@ -147,6 +151,7 @@ export default function InTransitPage() {
       <Tabs items={BUCKETS} value={bucket} onChange={setBucket} />
 
       <QueryView
+        panel="البضاعة في الطريق"
         query={rows}
         empty="لا توجد بضاعة في الطريق"
         emptyDetail="كل المناقلات إما استُلمت كاملة أو أُلغيت."
@@ -167,7 +172,7 @@ export default function InTransitPage() {
                 </div>
                 <div className="doc-field">
                   <span>حالة المناقلة</span>
-                  <b>{row.status}</b>
+                  <b>{statusLabel(row.status)}</b>
                 </div>
                 <div className="doc-field">
                   <span>سطر</span>

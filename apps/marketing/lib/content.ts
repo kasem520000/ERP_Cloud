@@ -288,7 +288,7 @@ export function summaryFor(page: Pick<ContentPageSummary, 'summaryAr' | 'summary
 export function formatDate(value: string, locale: Locale): string {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return '';
-  return new Intl.DateTimeFormat(locale === 'ar' ? 'ar-SA-u-ca-gregory' : 'en-GB', {
+  return new Intl.DateTimeFormat(locale === 'ar' ? 'ar-SA-u-ca-gregory-nu-latn' : 'en-GB', {
     year: 'numeric',
     month: 'long',
     day: 'numeric',

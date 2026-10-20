@@ -1,6 +1,7 @@
 'use client';
 
 import { useRef, useState } from 'react';
+import { Panel } from '@erp/ui';
 
 import { DataTable, Notice, QueryView } from '../../../components/data-view';
 import { Screen } from '../../../components/screen';
@@ -10,7 +11,7 @@ import { useQuery } from '../../../lib/use-query';
 import { useSession } from '../../../lib/session';
 
 /**
- * 📄 مدير الملفات — R7 (`docs/roadmap/INCOMPLETE_INVENTORY.md` §7-1: «مدير ملفات في staff
+ * مدير الملفات — R7 (`docs/roadmap/INCOMPLETE_INVENTORY.md` §7-1: «مدير ملفات في staff
  * (الخلفية جاهزة)»).
  *
  * الخلفية كانت قائمةً وحدها: `POST /files/presign` → رفعٌ مباشر إلى التخزين الكائني →
@@ -64,7 +65,7 @@ type Presign = {
 };
 
 /** `frmshowdocument.xaml:66` — عنوان النافذة المكتبية، وهو عنوان البطاقة هنا. */
-const CARD_TITLE = '📄 الوثائق المرفقة';
+const CARD_TITLE = 'الوثائق المرفقة';
 
 /**
  * «م» (`frmshowdocument.xaml:99`) · «📄 اسم الملف» (:115) · «🗑️ حذف» (:135) — بحروفها.
@@ -156,7 +157,7 @@ export default function FilesPage() {
   /** عدد الصفوف المطابقة للفلاتر في القاعدة (من `meta.total`) — يُقرأ للعرض وللتنقّل. */
   const matchCount = files.data?.meta.total ?? 0;
 
-  /** ⬇️ تنزيل — رابطٌ موقّع قصير العمر يُفتح في تبويبٍ جديد (`GET /files/{id}/download`). */
+  /** تنزيل — رابطٌ موقّع قصير العمر يُفتح في تبويبٍ جديد (`GET /files/{id}/download`). */
   async function download(row: FileRow) {
     setNotice(undefined);
     setBusyId(row.id);
@@ -177,7 +178,7 @@ export default function FilesPage() {
     }
   }
 
-  /** 🗑️ حذف — بنصّ التأكيد المكتبيّ نفسه (`frmshowdocument.xaml.cs:93`). */
+  /** حذف — بنصّ التأكيد المكتبيّ نفسه (`frmshowdocument.xaml.cs:93`). */
   async function remove(row: FileRow) {
     if (!window.confirm('هل أنت متأكد من الحذف؟')) return;
     setBusyId(row.id);
@@ -203,7 +204,7 @@ export default function FilesPage() {
   }
 
   /**
-   * 📎 الرفع — ثلاث خطوات كما يفرضها العقد: presign ⇒ PUT إلى التخزين ⇒ finalize.
+   * الرفع — ثلاث خطوات كما يفرضها العقد: presign ⇒ PUT إلى التخزين ⇒ finalize.
    * والخطوة الوسطى هي التي لا يراها الـAPI؛ فإن أخفقت فالصفّ يبقى `pending` ويظهر في
    * الشاشة بذلك، ويُنظّفه جامع الأيتام بعد `FILES_ORPHAN_GC_HOURS`.
    */
@@ -273,7 +274,7 @@ export default function FilesPage() {
             counts.reload();
           }}
         >
-          🔄 تحديث
+          تحديث
         </button>
       }
     >
@@ -293,8 +294,7 @@ export default function FilesPage() {
         />
       </StatTiles>
 
-      <section className="card">
-        <h2>{CARD_TITLE}</h2>
+      <Panel title={<>{CARD_TITLE}</>} flush>
         <div className="filters no-print">
           <label className="field">
             <span>بحث في الاسم</span>
@@ -355,7 +355,7 @@ export default function FilesPage() {
               <DataTable
                 columns={[
                   { key: 'no', header: 'م', align: 'num', cell: (_row, index) => String(offset + index + 1) },
-                  { key: 'name', header: '📄 اسم الملف', cell: (row) => row.name },
+                  { key: 'name', header: 'اسم الملف', cell: (row) => row.name },
                   { key: 'mime', header: 'النوع', cell: (row) => row.mime, align: 'ltr' },
                   { key: 'size', header: 'الحجم', align: 'num', cell: (row) => size(row.sizeBytes) },
                   {
@@ -390,7 +390,7 @@ export default function FilesPage() {
                           }
                           onClick={() => download(row)}
                         >
-                          ⬇️ تنزيل
+                          تنزيل
                         </button>{' '}
                         <button
                           type="button"
@@ -401,7 +401,7 @@ export default function FilesPage() {
                           }
                           onClick={() => remove(row)}
                         >
-                          🗑️ حذف
+                          حذف
                         </button>
                       </>
                     ),
@@ -441,17 +441,22 @@ export default function FilesPage() {
             الحذف يحتاج صلاحية <span dir="ltr">tenant.file.manage</span> — وهي غير ممنوحة لدورك.
           </p>
         )}
-      </section>
+      </Panel>
 
-      <section className="card">
-        <h3>📎 اختيار المرفقات</h3>
-        <p className="muted small" style={{ marginTop: 0 }}>
-          الملفّ يُدفع من هذا المتصفّح إلى التخزين الكائني مباشرةً برابطٍ موقّع، ثم يُثبَّت الصفّ — فلا تمرّ
-          البايتات بالـAPI. والنوع والحجم يحكمهما الخادم؛ رفضُهما يظهر نصّه هنا كما هو.
-        </p>
+      <Panel
+        title="اختيار المرفقات"
+        hint={
+          <>
+            الملفّ يُدفع من هذا المتصفّح إلى التخزين الكائني مباشرةً برابطٍ موقّع، ثم يُثبَّت الصفّ — فلا تمرّ
+            البايتات بالـAPI. والنوع والحجم يحكمهما الخادم؛ رفضُهما يظهر نصّه هنا كما هو.
+          </>
+        }
+      >
         <div className="toolbar">
           <input
             ref={input}
+            className="input"
+            style={{ blockSize: 'auto', paddingBlock: 6, maxWidth: 320 }}
             type="file"
             disabled={uploading}
             onChange={(event) => {
@@ -460,11 +465,11 @@ export default function FilesPage() {
             }}
           />
           <span className="muted small">
-            {uploading ? 'جارٍ الرفع والتثبيت…' : 'اختر ملفاً واحداً — والحذف من عمود «🗑️ حذف».'}
+            {uploading ? 'جارٍ الرفع والتثبيت…' : 'اختر ملفاً واحداً — والحذف من عمود «حذف».'}
           </span>
         </div>
         <Notice notice={notice} />
-      </section>
+      </Panel>
     </Screen>
   );
 }

@@ -58,7 +58,7 @@ export const BAKERY_MODULES: readonly BakeryModule[] = [
   {
     key: 'overview',
     labelAr: 'نظرة اليوم',
-    icon: '🥖',
+ icon: '',
     status: 'ready',
     href: '/',
     phaseAr: 'المرحلة 2 — مبنيّة',
@@ -71,7 +71,7 @@ export const BAKERY_MODULES: readonly BakeryModule[] = [
   {
     key: 'production',
     labelAr: 'الإنتاج',
-    icon: '🏭',
+ icon: '',
     status: 'ready',
     href: '/production',
     phaseAr: 'المرحلة 3 — مبنيّة',
@@ -86,7 +86,7 @@ export const BAKERY_MODULES: readonly BakeryModule[] = [
   {
     key: 'distribution',
     labelAr: 'التوزيع والأحمال',
-    icon: '🚚',
+ icon: '',
     status: 'ready',
     href: '/distribution',
     phaseAr: 'المرحلة 3 — مبنيّة',
@@ -110,7 +110,7 @@ export const BAKERY_MODULES: readonly BakeryModule[] = [
   {
     key: 'reps',
     labelAr: 'المناديب',
-    icon: '🧑\u200d💼',
+ icon: '\u200d',
     status: 'ready',
     href: '/reps',
     phaseAr: 'المرحلة 3 — مبنيّة',
@@ -118,14 +118,14 @@ export const BAKERY_MODULES: readonly BakeryModule[] = [
     summaryAr:
       'بطاقاتُ المناديب بعهدة كلّ منهم الحيّة وجاهزيته (موظفٌ وحسابُ دخول ومستودعُ سيارة)، وربطُ حساب الدخول لبطاقةٍ بلا حساب.',
     planAr:
-      'المناديب كما يرجعهم الخادم: البطاقة الرسمية مع بطاقة موظفها وحساب دخولها ومستودع سيارتها ونِسَبها وعهدتها الحيّة (stock_balances مستودع السيارة وأوامر التحميل المفتوحة)، وreadiness الذي حسبه الخادم معروضًا بأثر كلّ نقص لا بأيقونة: بلا موظف ⇒ تحميل النقص على مديونيته مرفوض ٤٢٢، وبلا عضوية ⇒ لا مساحة عمل له (GET /van-sales/me تُشتقّ من عضويّته هو)، وبلا مستودع سيارة ⇒ لا عهدة تُقاس ولا نطاق يحصر دخوله، وبلا van_sales.* ⇒ يرفضه الحارس ٤٠٣. والقائمة كلّ بطاقات المنشأة (استعلام الخادم بلا LIMIT) فمجاميعُها مجاميعُ الكلّ لا تقديرَ نافذة. والكتابة الوحيدة ربطُ حساب الدخول (POST /van-sales/salesmen/:id/account بصلاحية sales.salesman.manage): يمرّ بكتّاب المنصّة (العضويات والأدوار) فلا تُخترع كلمةُ مرور (الحساب الجديد invited ويصله رابطُ التفعيل الرسميّ) ولا حسابٌ ثانٍ للشخص الواحد (العضوية القائمة تُعاد استعمالها ويُقال إنّ البريد الفعليّ قد يختلف عن المطلوب) ولا دورٌ موازٍ («مندوب توزيع» يُبحث باسمه ويُنشأ مرّة)، والنطاقُ على مستودع السيارة افتراضيُّ الخادم وإلغاؤه يُقال توسيعَ وصولٍ مقصودًا. والمسار لا يقبل مفتاحَ عدم تكرار فلا يُرسل إليه مفتاحٌ مخترع. وما ليس هنا: إنشاءُ البطاقة أو تعديلُها ونِسبُ العمولة وربطُ الموظف يدويًّا (POST/PATCH /sales/salesmen في staff)، ونطاقُ الفروع على العضوية (يُطبّقه الخادم عند الإنشاء فقط ويتجاهله عند إعادة الاستعمال)، والأدوارُ وكلماتُ المرور وربطُ الأجهزة (شاشة الأدوار ومنصّة الهويّة، والأجهزة في المرحلة ٤)، وحسابُ مبالغ العمولة (الرواتب في staff).',
+ 'المناديب كما يرجعهم الخادم: البطاقة الرسمية مع بطاقة موظفها وحساب دخولها ومستودع سيارتها ونِسَبها وعهدتها الحيّة (stock_balances مستودع السيارة وأوامر التحميل المفتوحة)، وreadiness الذي حسبه الخادم معروضًا بأثر كلّ نقص لا بأيقونة: بلا موظف تحميل النقص على مديونيته مرفوض ٤٢٢، وبلا عضوية لا مساحة عمل له (GET /van-sales/me تُشتقّ من عضويّته هو)، وبلا مستودع سيارة لا عهدة تُقاس ولا نطاق يحصر دخوله، وبلا van_sales.* يرفضه الحارس ٤٠٣. والقائمة كلّ بطاقات المنشأة (استعلام الخادم بلا LIMIT) فمجاميعُها مجاميعُ الكلّ لا تقديرَ نافذة. والكتابة الوحيدة ربطُ حساب الدخول (POST /van-sales/salesmen/:id/account بصلاحية sales.salesman.manage): يمرّ بكتّاب المنصّة (العضويات والأدوار) فلا تُخترع كلمةُ مرور (الحساب الجديد invited ويصله رابطُ التفعيل الرسميّ) ولا حسابٌ ثانٍ للشخص الواحد (العضوية القائمة تُعاد استعمالها ويُقال إنّ البريد الفعليّ قد يختلف عن المطلوب) ولا دورٌ موازٍ («مندوب توزيع» يُبحث باسمه ويُنشأ مرّة)، والنطاقُ على مستودع السيارة افتراضيُّ الخادم وإلغاؤه يُقال توسيعَ وصولٍ مقصودًا. والمسار لا يقبل مفتاحَ عدم تكرار فلا يُرسل إليه مفتاحٌ مخترع. وما ليس هنا: إنشاءُ البطاقة أو تعديلُها ونِسبُ العمولة وربطُ الموظف يدويًّا (POST/PATCH /sales/salesmen في staff)، ونطاقُ الفروع على العضوية (يُطبّقه الخادم عند الإنشاء فقط ويتجاهله عند إعادة الاستعمال)، والأدوارُ وكلماتُ المرور وربطُ الأجهزة (شاشة الأدوار ومنصّة الهويّة، والأجهزة في المرحلة ٤)، وحسابُ مبالغ العمولة (الرواتب في staff).',
     companyScope: true,
     endpoints: ['GET /van-sales/salesmen', 'POST /van-sales/salesmen/:id/account'],
   },
   {
     key: 'sales',
     labelAr: 'فواتير الخطّ',
-    icon: '🧾',
+ icon: '',
     status: 'ready',
     href: '/sales',
     phaseAr: 'المرحلة 3 — مبنيّة',
@@ -147,7 +147,7 @@ export const BAKERY_MODULES: readonly BakeryModule[] = [
   {
     key: 'collection',
     labelAr: 'التحصيل',
-    icon: '💵',
+ icon: '',
     status: 'ready',
     href: '/collection',
     phaseAr: 'المرحلة 3 — مبنيّة',
@@ -168,7 +168,7 @@ export const BAKERY_MODULES: readonly BakeryModule[] = [
   {
     key: 'custody',
     labelAr: 'إقفال العهدة',
-    icon: '📋',
+ icon: '',
     status: 'ready',
     href: '/custody',
     phaseAr: 'المرحلة 3 — مبنيّة',
@@ -191,7 +191,7 @@ export const BAKERY_MODULES: readonly BakeryModule[] = [
   {
     key: 'treasury',
     labelAr: 'الخزينة',
-    icon: '🏦',
+ icon: '',
     status: 'ready',
     href: '/treasury',
     phaseAr: 'المرحلة 3 — مبنيّة',
@@ -212,7 +212,7 @@ export const BAKERY_MODULES: readonly BakeryModule[] = [
   {
     key: 'reports',
     labelAr: 'تقارير الخطّ',
-    icon: '📈',
+ icon: '',
     status: 'ready',
     href: '/reports',
     phaseAr: 'المرحلة 3 — مبنيّة',
@@ -227,7 +227,7 @@ export const BAKERY_MODULES: readonly BakeryModule[] = [
   {
     key: 'accounting',
     labelAr: 'المحاسبة التفصيلية (في اللوحة)',
-    icon: '🔗',
+ icon: '',
     status: 'ready',
     href: '/accounting',
     phaseAr: 'المرحلة 3 — مبنيّة',
@@ -247,7 +247,7 @@ export const BAKERY_MODULES: readonly BakeryModule[] = [
   {
     key: 'rep-app',
     labelAr: 'تطبيق المندوب',
-    icon: '📱',
+ icon: '',
     status: 'ready',
     href: '/rep',
     phaseAr: 'المرحلة 4 — مبنيّة',

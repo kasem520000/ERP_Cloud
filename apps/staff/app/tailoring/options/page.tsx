@@ -1,5 +1,6 @@
 'use client';
 
+import { Panel, TableFrame } from '@erp/ui';
 import { Suspense, useState } from 'react';
 
 import { Empty, ErrorBox, Forbidden, Loading, Screen } from '../../../components/screen';
@@ -8,10 +9,10 @@ import { useSession } from '../../../lib/session';
 import { useQuery } from '../../../lib/use-query';
 
 /**
- * ⚙️ إدارة الخيارات الجاهزة — `Form_WPF/frmOptions.xaml`.
+ * إدارة الخيارات الجاهزة — `Form_WPF/frmOptions.xaml`.
  *
  * Two panels, exactly as the window has them: «📂 التصنيفات (الأنواع)» on the right and
- * «🔧 الخيارات المتاحة» on the left, each with `➕ إضافة · ✏️ تعديل · 🗑️ حذف`, and the
+ * « الخيارات المتاحة» on the left, each with ` إضافة · تعديل · حذف`, and the
  * options panel carrying `⭐ تعيين افتراضي` as well. The category grid is
  * `التصنيف · الترتيب` (L52–54) and the values grid is the same two columns plus the
  * default flag.
@@ -21,7 +22,7 @@ import { useQuery } from '../../../lib/use-query';
  *   • DisplayOrder is `ISNULL(MAX(DisplayOrder),0)+1` (L136/L232) — a new row goes last.
  *   • حذف is a soft `IsActive=0` (L198/L298), after
  *     «هل أنت متأكد من حذف هذا التصنيف وجميع خياراته؟» / «هل أنت متأكد من حذف هذا الخيار؟».
- *   • ⭐ تعيين افتراضي clears the category first and then sets the chosen value
+ *   • تعيين افتراضي clears the category first and then sets the chosen value
  *     (L323 `SET IsDefault=0 WHERE CategoryID=@CatID`, L330 `SET IsDefault=1`).
  *   • the refusals are «الرجاء اختيار تصنيف للتعديل» · «الرجاء اختيار تصنيف للحذف» ·
  *     «الرجاء اختيار خيار للتعديل» · «الرجاء اختيار خيار للحذف» · «الرجاء اختيار خيار».
@@ -30,7 +31,13 @@ import { useQuery } from '../../../lib/use-query';
  * order card: one value per category (`selectedOptions[catId] = valId`).
  */
 type OptionValue = { id: string; nameAr: string; displayOrder: number; isDefault: boolean; active: boolean };
-type OptionCategory = { id: string; nameAr: string; displayOrder: number; active: boolean; values: OptionValue[] };
+type OptionCategory = {
+  id: string;
+  nameAr: string;
+  displayOrder: number;
+  active: boolean;
+  values: OptionValue[];
+};
 
 function TailoringOptions() {
   const { can } = useSession();
@@ -45,7 +52,10 @@ function TailoringOptions() {
   const [notice, setNotice] = useState('');
   const [busy, setBusy] = useState(false);
 
-  const categories = useQuery<OptionCategory[]>(() => apiList<OptionCategory>('/tailoring/option-categories?activeOnly=0'), []);
+  const categories = useQuery<OptionCategory[]>(
+    () => apiList<OptionCategory>('/tailoring/option-categories?activeOnly=0'),
+    [],
+  );
 
   const rows = categories.data ?? [];
   const selected = rows.find((row) => row.id === categoryId) ?? null;
@@ -125,7 +135,7 @@ function TailoringOptions() {
   return (
     <Screen
       title="إدارة الخيارات الجاهزة"
-      subtitle="📂 التصنيفات (الأنواع) و🔧 الخيارات المتاحة التي يختار منها الطلب: ياقة، جيب، قماش… وخيار واحد افتراضي لكل تصنيف."
+      subtitle="التصنيفات (الأنواع) والخيارات المتاحة التي يختار منها الطلب: ياقة، جيب، قماش… وخيار واحد افتراضي لكل تصنيف."
       crumbs={['التفصيل', 'الخيارات']}
     >
       {error && <p className="alert danger">{error}</p>}
@@ -136,53 +146,51 @@ function TailoringOptions() {
       {categories.status === 'error' && <ErrorBox message={categories.error} onRetry={categories.reload} />}
       {categories.status === 'success' && (
         <div className="grid cols-2">
-          {/* 📂 التصنيفات (الأنواع) */}
-          <section className="card">
-            <p className="group-label">📂 التصنيفات (الأنواع)</p>
+          {/* التصنيفات (الأنواع) */}
+          <Panel>
+            <p className="group-label">التصنيفات (الأنواع)</p>
             {rows.length === 0 ? (
               <Empty title="لا توجد تصنيفات" detail="أضف تصنيفاً واحداً على الأقل قبل إضافة خيارات." />
             ) : (
-              <div className="table-wrap">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>التصنيف</th>
-                      <th className="num">الترتيب</th>
+              <TableFrame>
+                <thead>
+                  <tr>
+                    <th>التصنيف</th>
+                    <th className="num">الترتيب</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {rows.map((row) => (
+                    <tr
+                      key={row.id}
+                      className={row.id === categoryId ? 'active' : undefined}
+                      onClick={() => {
+                        setCategoryId(row.id);
+                        setEditingValue(null);
+                      }}
+                      style={{ cursor: 'pointer' }}
+                    >
+                      <td>
+                        {editingCategory === row.id ? (
+                          <input
+                            className="input"
+                            value={categoryName}
+                            onChange={(event) => setCategoryName(event.target.value)}
+                          />
+                        ) : (
+                          <>
+                            {row.nameAr}
+                            {!row.active && <span className="badge"> موقوف</span>}
+                          </>
+                        )}
+                      </td>
+                      <td className="num" dir="ltr">
+                        {row.displayOrder}
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody>
-                    {rows.map((row) => (
-                      <tr
-                        key={row.id}
-                        className={row.id === categoryId ? 'active' : undefined}
-                        onClick={() => {
-                          setCategoryId(row.id);
-                          setEditingValue(null);
-                        }}
-                        style={{ cursor: 'pointer' }}
-                      >
-                        <td>
-                          {editingCategory === row.id ? (
-                            <input
-                              className="input"
-                              value={categoryName}
-                              onChange={(event) => setCategoryName(event.target.value)}
-                            />
-                          ) : (
-                            <>
-                              {row.nameAr}
-                              {!row.active && <span className="badge"> موقوف</span>}
-                            </>
-                          )}
-                        </td>
-                        <td className="num" dir="ltr">
-                          {row.displayOrder}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                  ))}
+                </tbody>
+              </TableFrame>
             )}
             {canManage && (
               <>
@@ -197,11 +205,16 @@ function TailoringOptions() {
                 <div className="toolbar" style={{ marginTop: 8 }}>
                   {editingCategory ? (
                     <button className="btn primary" type="button" onClick={editCategory} disabled={busy}>
-                      ✔ حفظ التعديل
+                      حفظ التعديل
                     </button>
                   ) : (
-                    <button className="btn primary" type="button" onClick={addCategory} disabled={busy || !categoryName.trim()}>
-                      ➕ إضافة
+                    <button
+                      className="btn primary"
+                      type="button"
+                      onClick={addCategory}
+                      disabled={busy || !categoryName.trim()}
+                    >
+                      إضافة
                     </button>
                   )}
                   <button
@@ -213,59 +226,73 @@ function TailoringOptions() {
                       setCategoryName(selected?.nameAr ?? '');
                     }}
                   >
-                    ✏️ تعديل
+                    تعديل
                   </button>
-                  <button className="btn danger" type="button" onClick={deleteCategory} disabled={busy || !categoryId}>
-                    🗑️ حذف
+                  <button
+                    className="btn danger"
+                    type="button"
+                    onClick={deleteCategory}
+                    disabled={busy || !categoryId}
+                  >
+                    حذف
                   </button>
                 </div>
               </>
             )}
-          </section>
+          </Panel>
 
-          {/* 🔧 الخيارات المتاحة */}
-          <section className="card">
-            <p className="group-label">🔧 الخيارات المتاحة{selected ? ` — ${selected.nameAr}` : ''}</p>
+          {/* الخيارات المتاحة */}
+          <Panel>
+            <p className="group-label">الخيارات المتاحة{selected ? ` — ${selected.nameAr}` : ''}</p>
             {!selected ? (
-              <Empty title="اختر تصنيفاً" detail="الخيار يتبع تصنيفاً؛ اختر تصنيفاً من القائمة الأولى." />
+              <Empty
+                bare
+                title="اختر تصنيفاً"
+                detail="الخيار يتبع تصنيفاً؛ اختر تصنيفاً من القائمة الأولى."
+              />
             ) : values.length === 0 ? (
-              <Empty title="لا توجد خيارات في هذا التصنيف" detail="أضف خياراً واحداً على الأقل ليظهر على بطاقة الطلب." />
+              <Empty
+                title="لا توجد خيارات في هذا التصنيف"
+                detail="أضف خياراً واحداً على الأقل ليظهر على بطاقة الطلب."
+              />
             ) : (
-              <div className="table-wrap">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>الخيار</th>
-                      <th className="num">الترتيب</th>
-                      <th>الافتراضي</th>
+              <TableFrame>
+                <thead>
+                  <tr>
+                    <th>الخيار</th>
+                    <th className="num">الترتيب</th>
+                    <th>الافتراضي</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {values.map((value) => (
+                    <tr
+                      key={value.id}
+                      onClick={() => setEditingValue(value.id)}
+                      style={{ cursor: 'pointer' }}
+                    >
+                      <td>
+                        {editingValue === value.id ? (
+                          <input
+                            className="input"
+                            value={valueName}
+                            onChange={(event) => setValueName(event.target.value)}
+                          />
+                        ) : (
+                          <>
+                            {value.nameAr}
+                            {!value.active && <span className="badge"> موقوف</span>}
+                          </>
+                        )}
+                      </td>
+                      <td className="num" dir="ltr">
+                        {value.displayOrder}
+                      </td>
+                      <td>{value.isDefault ? 'افتراضي' : '—'}</td>
                     </tr>
-                  </thead>
-                  <tbody>
-                    {values.map((value) => (
-                      <tr key={value.id} onClick={() => setEditingValue(value.id)} style={{ cursor: 'pointer' }}>
-                        <td>
-                          {editingValue === value.id ? (
-                            <input
-                              className="input"
-                              value={valueName}
-                              onChange={(event) => setValueName(event.target.value)}
-                            />
-                          ) : (
-                            <>
-                              {value.nameAr}
-                              {!value.active && <span className="badge"> موقوف</span>}
-                            </>
-                          )}
-                        </td>
-                        <td className="num" dir="ltr">
-                          {value.displayOrder}
-                        </td>
-                        <td>{value.isDefault ? '⭐ افتراضي' : '—'}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                  ))}
+                </tbody>
+              </TableFrame>
             )}
             {canManage && selected && (
               <>
@@ -280,11 +307,16 @@ function TailoringOptions() {
                 <div className="toolbar" style={{ marginTop: 8 }}>
                   {editingValue ? (
                     <button className="btn primary" type="button" onClick={editValue} disabled={busy}>
-                      ✔ حفظ التعديل
+                      حفظ التعديل
                     </button>
                   ) : (
-                    <button className="btn primary" type="button" onClick={addValue} disabled={busy || !valueName.trim()}>
-                      ➕ إضافة
+                    <button
+                      className="btn primary"
+                      type="button"
+                      onClick={addValue}
+                      disabled={busy || !valueName.trim()}
+                    >
+                      إضافة
                     </button>
                   )}
                   <button
@@ -298,18 +330,28 @@ function TailoringOptions() {
                       setValueName(value.nameAr);
                     }}
                   >
-                    ✏️ تعديل
+                    تعديل
                   </button>
-                  <button className="btn danger" type="button" onClick={deleteValue} disabled={busy || !editingValue}>
-                    🗑️ حذف
+                  <button
+                    className="btn danger"
+                    type="button"
+                    onClick={deleteValue}
+                    disabled={busy || !editingValue}
+                  >
+                    حذف
                   </button>
-                  <button className="btn" type="button" onClick={() => setDefault(editingValue ?? values[0]?.id ?? '')} disabled={busy || !values.length}>
-                    ⭐ تعيين افتراضي
+                  <button
+                    className="btn"
+                    type="button"
+                    onClick={() => setDefault(editingValue ?? values[0]?.id ?? '')}
+                    disabled={busy || !values.length}
+                  >
+                    تعيين افتراضي
                   </button>
                 </div>
               </>
             )}
-          </section>
+          </Panel>
         </div>
       )}
     </Screen>

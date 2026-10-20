@@ -6,6 +6,8 @@ import { env } from '@erp/config';
 import { DomainError } from '@erp/contracts';
 import { brandMark, withTenantTx, type DatabaseHandle } from '@erp/database';
 
+import { buildQrPayload } from '../einvoicing/zatca/qr.js';
+
 import { DATABASE_HANDLE } from '../../database/database.module.js';
 import { signedContentUrl } from '../platform-services/files/download-token.js';
 
@@ -96,6 +98,29 @@ export class PrintTemplatesService {
           str(invoice.party_code) !== 'CUST-GEN',
       );
       const taxClassificationLabel = hasCustomerTaxNo ? 'فاتورة ضريبية' : 'فاتورة ضريبية مبسطة';
+      /**
+       * 🧾 رمز الفاتورة.
+       *
+       * المسودة لا تحمل رمزاً: لم تصدر بعد. الفاتورة المرحّلة وغير المُرسلة تحمل رمز
+       * المرحلة الأولى (الوسوم ١–٥) المبني هنا من بياناتها نفسها — وهو ما تطلبه الهيئة من
+       * فاتورةٍ صدرت ولم تُبلَّغ. وما إن تُرسل حتى يحلّ محلّه الحِمل المخزَّن في
+       * `zatca_qr` (الوسوم ٦–٩ مع البصمة والتوقيع)، فلا يُنتحل توقيعٌ لم يُصدر.
+       */
+      const postedAt = invoice.posted_at ?? invoice.created_at;
+      const stamps = (value: unknown): string =>
+        value instanceof Date
+          ? value.toISOString().replace(/\.\d{3}Z$/, 'Z')
+          : new Date(String(value)).toISOString().replace(/\.\d{3}Z$/, 'Z');
+      const phaseOneQr =
+        str(invoice.status) === 'posted'
+          ? buildQrPayload({
+              sellerName: company.nameAr,
+              vatNo: company.taxNo,
+              timestamp: stamps(postedAt),
+              grandTotal: Number(str(invoice.total) || 0).toFixed(2),
+              vatTotal: Number(str(invoice.tax_total) || 0).toFixed(2),
+            })
+          : '';
       const title =
         str(invoice.kind) === 'sale'
           ? `${taxClassificationLabel} — ${kindTitle}`
@@ -126,7 +151,10 @@ export class PrintTemplatesService {
             code: str(invoice.party_code),
             taxNo: str(invoice.party_tax_no),
             phone: str(invoice.party_phone) || str(invoice.cash_customer_mobile),
-            address: invoice.party_address,
+            // A simplified invoice (no buyer VAT number) must not carry the buyer's
+            // national address: it is not a required field and the customer never
+            // supplied it for tax purposes. Standard invoices print it.
+            address: hasCustomerTaxNo ? invoice.party_address : null,
           })}
           ${this.linesTable(lines)}
           ${this.totalsBlock({
@@ -142,7 +170,7 @@ export class PrintTemplatesService {
             // الحمولة التي كتبتها وحدة الفوترة الإلكترونية فعلًا (`einvoicing.service`) —
             // ولا تُختَرَع حمولةٌ عند غيابها: المربّع المرسوم من TLV بلا توقيع يفشل أيَّ
             // ماسح، ووجوده على وثيقة رسمية ادّعاءٌ بأنّ الفاتورة أُصدرت وهي لم تُصدر.
-            qr: str(invoice.zatca_qr),
+            qr: str(invoice.zatca_qr) || phaseOneQr,
             zatcaStatus: str(invoice.zatca_status),
           })}
           ${this.signatures(['المستلم', 'المحاسب', 'الختم'])}
@@ -571,9 +599,15 @@ export class PrintTemplatesService {
   // -------------------------------------------------------------------- pieces
 
   private async company(tx: Tx, tenantId: string) {
-    const profile = first(await tx.execute(sql`SELECT name_ar, name_en, tax_no, cr_no, address, phones, email FROM company_profiles WHERE tenant_id = ${tenantId}`));
+    const profile = first(
+      await tx.execute(sql`SELECT name_ar, name_en, tax_no, cr_no, address, phones, email, logo_data_url FROM company_profiles WHERE tenant_id = ${tenantId}`),
+    );
     const tenant = first(await tx.execute(sql`SELECT name FROM tenants WHERE id = ${tenantId}`));
     const brand = await this.brand(tx, tenantId);
+    const address = (profile?.address ?? null) as Record<string, string> | null;
+    // الشعار: المرفوع في «بطاقة المنشأة» أولاً (data URL يسافر داخل الوثيقة)، ثم ملف
+    // التخزين الموقّع، ثم شعار المتجر. كلها زينة: غيابها لا يُسقط الطباعة.
+    const inlineLogo = str(profile?.logo_data_url);
     return {
       nameAr: str(profile?.name_ar) || str(tenant?.name) || 'المنشأة',
       nameEn: str(profile?.name_en),
@@ -581,8 +615,9 @@ export class PrintTemplatesService {
       crNo: str(profile?.cr_no),
       email: str(profile?.email),
       phones: Array.isArray(profile?.phones) ? (profile?.phones as string[]) : [],
-      address: profile?.address,
-      logoHtml: brand.logoHtml,
+      address,
+      nationalAddress: nationalAddressText(address),
+      logoHtml: inlineLogo ? brandMark(inlineLogo, brand.color).logoHtml : brand.logoHtml,
       brandColor: brand.color,
     };
   }
@@ -624,6 +659,7 @@ export class PrintTemplatesService {
             ${company.crNo ? `<span>السجل التجاري: <b dir="ltr">${escapeHtml(company.crNo)}</b></span>` : ''}
           </div>
           ${contact ? `<div class="meta">${escapeHtml(contact)}</div>` : ''}
+          ${company.nationalAddress ? `<div class="meta" data-national-address>العنوان الوطني: ${escapeHtml(company.nationalAddress)}</div>` : ''}
         </div>` : ''}
         <div class="doc">
           <div class="doc-title">${escapeHtml(doc.docTitle)}</div>
@@ -639,7 +675,11 @@ export class PrintTemplatesService {
     `;
   }
 
-  private partyBlock(title: string, party: { name: string; code: string; taxNo: string; phone: string; address: unknown }) {
+  private partyBlock(
+    title: string,
+    party: { name: string; code: string; taxNo: string; phone: string; address: unknown },
+  ) {
+    const address = addressText(party.address);
     return `
       <section class="party">
         <h2>${escapeHtml(title)}</h2>
@@ -648,7 +688,7 @@ export class PrintTemplatesService {
           ${party.code ? `<div><span>الرمز</span><b dir="ltr">${escapeHtml(party.code)}</b></div>` : ''}
           ${party.taxNo ? `<div><span>الرقم الضريبي</span><b dir="ltr">${escapeHtml(party.taxNo)}</b></div>` : ''}
           ${party.phone ? `<div><span>الهاتف</span><b dir="ltr">${escapeHtml(party.phone)}</b></div>` : ''}
-          ${addressText(party.address) ? `<div class="wide"><span>العنوان</span><b>${escapeHtml(addressText(party.address))}</b></div>` : ''}
+          ${address ? `<div class="wide" data-national-address><span>العنوان الوطني</span><b>${escapeHtml(address)}</b></div>` : ''}
         </div>
       </section>
     `;
@@ -736,7 +776,7 @@ export class PrintTemplatesService {
    * instead of a decorative square that would fail any scan.
    */
   private qrBlock(payload?: string, status?: string) {
-    const label = ZATCA_STATUS_LABELS[status ?? ''];
+    const label = status ? ZATCA_STATUS_LABELS[status] : 'رمز الاستجابة السريعة (المرحلة الأولى)';
     if (!payload) {
       return `<div class="qr-empty">لم تُصدر بعد بيانات الفاتورة الإلكترونية (QR) لهذا المستند.${label ? ` الحالة: ${escapeHtml(label)}.` : ''}</div>`;
     }
@@ -982,11 +1022,55 @@ function dateTimeText(value: unknown): string {
 function shortId(value: string): string {
   return value ? value.slice(0, 8).toUpperCase() : '—';
 }
+/**
+ * العنوان الوطني — the same `address` jsonb is written by the company card and the party
+ * card, with short keys (`building`, `street`, `postal`…). Older rows carried the long
+ * ZATCA spellings, so both are read: a printed address that silently disappears because
+ * a key was renamed is exactly the defect this function exists to prevent.
+ */
 function addressText(address: unknown): string {
   if (!address || typeof address !== 'object') return '';
-  const parts = ['buildingNumber', 'street', 'additionalStreet', 'district', 'city', 'postalCode', 'country']
-    .map((key) => (address as Record<string, unknown>)[key])
-    .filter((value) => typeof value === 'string' && value.trim() !== '');
+  const record = address as Record<string, unknown>;
+  const keys = [
+    'building',
+    'buildingNumber',
+    'street',
+    'addStreet',
+    'additionalStreet',
+    'district',
+    'city',
+    'postal',
+    'postalCode',
+    'additional',
+    'unit',
+    'country',
+    'countryCode',
+    'plot',
+  ];
+  return keys
+    .map((key) => record[key])
+    .filter((value): value is string => typeof value === 'string' && value.trim() !== '')
+    .join('، ');
+}
+
+/** The labelled form used under the establishment's name — «مبنى ٧٢٣٤، شارع …». */
+function nationalAddressText(address: Record<string, string> | null | undefined): string {
+  if (!address) return '';
+  const value = (key: string): string => (typeof address[key] === 'string' ? address[key]!.trim() : '');
+  const parts: string[] = [];
+  const push = (label: string, key: string) => {
+    const item = value(key);
+    if (item) parts.push(label ? `${label} ${item}` : item);
+  };
+  push('مبنى', 'building');
+  push('شارع', 'street');
+  push('', 'addStreet');
+  push('حي', 'district');
+  push('', 'city');
+  push('الرمز البريدي', 'postal');
+  push('الرقم الإضافي', 'additional');
+  push('الوحدة', 'unit');
+  push('الرقم الفرعي', 'plot');
   return parts.join('، ');
 }
 /** Numbers get thousands separators; text is printed as it came out of the query. */

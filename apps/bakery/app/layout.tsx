@@ -1,4 +1,5 @@
 import './globals.css';
+import '@erp/ui/controls.css';
 
 import type { Metadata, Viewport } from 'next';
 import type { ReactNode } from 'react';
@@ -12,9 +13,9 @@ import { ServiceWorkerRegister } from '../components/service-worker-register';
 export const metadata: Metadata = {
   title: 'المخابز: الإنتاج والتوزيع — Cloud ERP',
   description:
-    'واجهة المخابز: دفعة الإنتاج، حمولة التوزيع، المناديب، التحصيل وإقفال العهدة. تعمل على apps/api نفسها وبصلاحياتها، ومرخَّصة بباقة bakery_distribution.',
+    'واجهة المخابز: دفعة الإنتاج، وحمولة التوزيع، والمناديب، والتحصيل، وإقفال العهدة — كلّها على بيانات منشأتك وصلاحياتها.',
   /**
-   * 📱 قابليةُ التثبيت على الهاتف (تطبيقُ المندوب `/rep`): ‏`start_url` في الملفّ `/rep`
+   * قابليةُ التثبيت على الهاتف (تطبيقُ المندوب `/rep`): ‏`start_url` في الملفّ `/rep`
    * و`display: standalone`. ويُقال صريحًا ما لا يفعله هذا: فالعاملُ يُخزِّن **القشرة** لا
    * المال (`/api/` لا تُمسّ في `public/sw.js`)، والعملُ منقطعًا من طابور IndexedDB.
    */
@@ -47,10 +48,10 @@ export default function RootLayout({ children }: Readonly<{ children: ReactNode 
   return (
     <html lang="ar" dir="rtl" suppressHydrationWarning>
       <head>
-        <ThemeScript defaultChoice="system" />
+        <ThemeScript defaultChoice="light" />
       </head>
       <body>
-        <ThemeProvider defaultChoice="system">
+        <ThemeProvider defaultChoice="light">
           <SessionProvider>
             <TokenBridge />
             <ServiceWorkerRegister />

@@ -44,8 +44,10 @@ import {
   type SubscriberStatus,
   type SubscriberView,
 } from '@erp/contracts';
+import { Panel } from '@erp/ui';
 
 import { Empty, ErrorBox, Forbidden, Loading, Screen } from '../../components/screen';
+import { Table, type Column } from '../../components/ui/table';
 import { Tabs } from '../../components/ui';
 import { ApiError, apiData, apiFetch, apiPatch, apiPost } from '../../lib/api';
 import { useSession } from '../../lib/session';
@@ -107,7 +109,10 @@ function Queue({ canManage }: { canManage: boolean }) {
     return value ? `?${value}` : '';
   }, [status, source, scope, applied]);
 
-  const queue = useQuery<QueuePayload>(() => apiData<QueuePayload>(`/platform/leads${queryString}`), [queryString]);
+  const queue = useQuery<QueuePayload>(
+    () => apiData<QueuePayload>(`/platform/leads${queryString}`),
+    [queryString],
+  );
 
   if (queue.status === 'loading') return <Loading rows={5} />;
   if (queue.status === 'forbidden') return <Forbidden />;
@@ -115,11 +120,53 @@ function Queue({ canManage }: { canManage: boolean }) {
 
   const payload = queue.data!;
 
+  const leadColumns: Array<Column<LeadView>> = [
+    { key: 'reference', header: 'المرجع', ltr: true, cell: (lead) => <bdi>{lead.reference}</bdi> },
+    {
+      key: 'request',
+      header: 'الطلب',
+      grow: true,
+      cell: (lead) => (
+        <>
+          {lead.fullName ?? '—'}
+          {lead.companyName ? <div className="muted">{lead.companyName}</div> : null}
+        </>
+      ),
+    },
+    { key: 'email', header: 'البريد', ltr: true, cell: (lead) => <bdi>{lead.email}</bdi> },
+    { key: 'branches', header: 'الفروع', numeric: true, cell: (lead) => lead.branchCount ?? '—' },
+    { key: 'source', header: 'المصدر', cell: (lead) => lead.sourceLabelAr },
+    {
+      key: 'status',
+      header: 'الحالة',
+      cell: (lead) => <span className={STATUS_TONE[lead.status]}>{lead.statusLabelAr}</span>,
+    },
+    { key: 'owner', header: 'المسؤول', cell: (lead) => lead.assignedToName ?? '—' },
+    { key: 'created', header: 'وصل في', cell: (lead) => formatDate(lead.createdAt) },
+    {
+      key: 'details',
+      header: '',
+      cell: (lead) => (
+        <button
+          className="btn sm"
+          type="button"
+          onClick={() => setOpenId(openId === lead.id ? null : lead.id)}
+        >
+          {openId === lead.id ? 'إغلاق' : 'تفاصيل'}
+        </button>
+      ),
+    },
+  ];
+
   return (
     <>
-      <section className="card grid">
+      <Panel bodyClassName="grid">
         <div className="toolbar">
-          <select className="input" value={status} onChange={(event) => setStatus(event.target.value as LeadStatus | '')}>
+          <select
+            className="input"
+            value={status}
+            onChange={(event) => setStatus(event.target.value as LeadStatus | '')}
+          >
             <option value="">كل الحالات</option>
             {leadStatuses.map((key) => (
               <option key={key} value={key}>
@@ -127,7 +174,11 @@ function Queue({ canManage }: { canManage: boolean }) {
               </option>
             ))}
           </select>
-          <select className="input" value={source} onChange={(event) => setSource(event.target.value as LeadSource | '')}>
+          <select
+            className="input"
+            value={source}
+            onChange={(event) => setSource(event.target.value as LeadSource | '')}
+          >
             <option value="">كل المصادر</option>
             {leadSources.map((key) => (
               <option key={key} value={key}>
@@ -135,7 +186,11 @@ function Queue({ canManage }: { canManage: boolean }) {
               </option>
             ))}
           </select>
-          <select className="input" value={scope} onChange={(event) => setScope(event.target.value as '' | 'unassigned' | 'mine')}>
+          <select
+            className="input"
+            value={scope}
+            onChange={(event) => setScope(event.target.value as '' | 'unassigned' | 'mine')}
+          >
             <option value="">الكل</option>
             <option value="unassigned">غير المُسنَد ({payload.unassigned})</option>
             <option value="mine">طلباتي</option>
@@ -172,58 +227,18 @@ function Queue({ canManage }: { canManage: boolean }) {
               {leadStatusLabelsAr[key]}: {payload.counts[key] ?? 0}
             </span>
           ))}
-          <span className="muted">المعروض: {payload.data.length} من {payload.meta.total}</span>
+          <span className="muted">
+            المعروض: {payload.data.length} من {payload.meta.total}
+          </span>
         </div>
-      </section>
+      </Panel>
 
       {payload.data.length === 0 ? (
         <Empty title="لا طلبات بهذه المرشّحات" detail="جرّب توسيع الحالة أو المصدر، أو امسح البحث." />
       ) : (
-        <section className="card">
-          <table className="table">
-            <thead>
-              <tr>
-                <th>المرجع</th>
-                <th>الطلب</th>
-                <th>البريد</th>
-                <th>الفروع</th>
-                <th>المصدر</th>
-                <th>الحالة</th>
-                <th>المسؤول</th>
-                <th>وصل في</th>
-                <th />
-              </tr>
-            </thead>
-            <tbody>
-              {payload.data.map((lead) => (
-                <tr key={lead.id}>
-                  <td>
-                    <bdi>{lead.reference}</bdi>
-                  </td>
-                  <td>
-                    {lead.fullName ?? '—'}
-                    {lead.companyName ? <div className="muted">{lead.companyName}</div> : null}
-                  </td>
-                  <td>
-                    <bdi>{lead.email}</bdi>
-                  </td>
-                  <td>{lead.branchCount ?? '—'}</td>
-                  <td>{lead.sourceLabelAr}</td>
-                  <td>
-                    <span className={STATUS_TONE[lead.status]}>{lead.statusLabelAr}</span>
-                  </td>
-                  <td>{lead.assignedToName ?? '—'}</td>
-                  <td>{formatDate(lead.createdAt)}</td>
-                  <td>
-                    <button className="btn sm" type="button" onClick={() => setOpenId(openId === lead.id ? null : lead.id)}>
-                      {openId === lead.id ? 'إغلاق' : 'تفاصيل'}
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </section>
+        <Panel flush title="الطلبات">
+          <Table bare columns={leadColumns} rows={payload.data} rowKey={(lead) => lead.id} />
+        </Panel>
       )}
 
       {openId ? (
@@ -241,14 +256,25 @@ function Queue({ canManage }: { canManage: boolean }) {
 
 // ═══════════════════════════════════════════════════ بطاقة الطلب
 
-function LeadCard({ leadId, canManage, onChanged }: { leadId: string; canManage: boolean; onChanged: () => void }) {
+function LeadCard({
+  leadId,
+  canManage,
+  onChanged,
+}: {
+  leadId: string;
+  canManage: boolean;
+  onChanged: () => void;
+}) {
   const [note, setNote] = useState('');
   const [reason, setReason] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [converted, setConverted] = useState<LeadConversion | null>(null);
 
-  const detail = useQuery<LeadDetailResponse>(() => apiData<LeadDetailResponse>(`/platform/leads/${leadId}`), [leadId]);
+  const detail = useQuery<LeadDetailResponse>(
+    () => apiData<LeadDetailResponse>(`/platform/leads/${leadId}`),
+    [leadId],
+  );
   const operators = useQuery<Operator[]>(() => apiData<Operator[]>('/platform/users'), []);
   const plans = useQuery<PlatformPlan[]>(() => apiData<PlatformPlan[]>('/platform/plans'), []);
 
@@ -271,37 +297,38 @@ function LeadCard({ leadId, canManage, onChanged }: { leadId: string; canManage:
       await run();
       refresh();
     } catch (failure) {
-      setError(failure instanceof ApiError ? failure.detail ?? failure.message : 'تعذّر تنفيذ الطلب');
+      setError(failure instanceof ApiError ? (failure.detail ?? failure.message) : 'تعذّر تنفيذ الطلب');
     } finally {
       setBusy(false);
     }
   };
 
   return (
-    <section className="card grid" aria-label={`طلب ${lead.reference}`}>
-      <header className="section-title">
-        <div>
-          <h2 style={{ margin: 0 }}>
-            <bdi>{lead.reference}</bdi> · {lead.fullName ?? lead.email}
-          </h2>
-          <p className="muted" style={{ margin: '4px 0 0' }}>
-            {lead.sourceLabelAr} · {formatDate(lead.createdAt)} ·{' '}
-            <span className={STATUS_TONE[lead.status]}>{lead.statusLabelAr}</span>
-            {lead.convertedTenantCode ? (
-              <>
-                {' '}
-                · منشأة: <bdi>{lead.convertedTenantCode}</bdi>
-              </>
-            ) : null}
-          </p>
-        </div>
-      </header>
-
+    <Panel
+      title={
+        <>
+          <bdi>{lead.reference}</bdi> · {lead.fullName ?? lead.email}
+        </>
+      }
+      hint={
+        <>
+          {lead.sourceLabelAr} · {formatDate(lead.createdAt)} ·{' '}
+          <span className={STATUS_TONE[lead.status]}>{lead.statusLabelAr}</span>
+          {lead.convertedTenantCode ? (
+            <>
+              {' '}
+              · منشأة: <bdi>{lead.convertedTenantCode}</bdi>
+            </>
+          ) : null}
+        </>
+      }
+      bodyClassName="grid"
+      aria-label={`طلب ${lead.reference}`}
+    >
       {error ? <p className="alert danger">{error}</p> : null}
 
       <div className="grid cols-2">
-        <div className="card">
-          <h3>الرسالة</h3>
+        <Panel title="الرسالة">
           <p>{lead.message}</p>
           <dl className="kv">
             <dt>البريد</dt>
@@ -319,10 +346,9 @@ function LeadCard({ leadId, canManage, onChanged }: { leadId: string; canManage:
             <dt>موافقة الرسائل</dt>
             <dd>{lead.acceptsMarketing ? 'نعم' : 'لا'}</dd>
           </dl>
-        </div>
+        </Panel>
 
-        <div className="card">
-          <h3>الحملة</h3>
+        <Panel title="الحملة">
           {lead.utm ? (
             <dl className="kv">
               <dt>المصدر</dt>
@@ -341,11 +367,10 @@ function LeadCard({ leadId, canManage, onChanged }: { leadId: string; canManage:
           ) : (
             <p className="muted">وصل الطلب بلا وسوم حملة (زيارة مباشرة أو من رابط بلا UTM).</p>
           )}
-        </div>
+        </Panel>
       </div>
 
-      <div className="card grid">
-        <h3>المتابعة</h3>
+      <Panel title="المتابعة" bodyClassName="grid">
         {!canManage ? (
           <p className="muted">قراءةٌ فقط: الإسناد وتغيير الحالة والتحويل تحتاج `console.leads.manage`.</p>
         ) : (
@@ -369,14 +394,19 @@ function LeadCard({ leadId, canManage, onChanged }: { leadId: string; canManage:
                       )
                     }
                   >
-                    → {leadStatusLabelsAr[next]}
+                    {leadStatusLabelsAr[next]}
                   </button>
                 ))
               )}
             </div>
             <label className="field">
               <span>سبب التغيير (يُسجَّل في الأثر)</span>
-              <input className="input" value={reason} onChange={(event) => setReason(event.target.value)} placeholder="مثال: خارج نطاقنا الجغرافي حالياً" />
+              <input
+                className="input"
+                value={reason}
+                onChange={(event) => setReason(event.target.value)}
+                placeholder="مثال: خارج نطاقنا الجغرافي حالياً"
+              />
             </label>
 
             <label className="field">
@@ -386,7 +416,9 @@ function LeadCard({ leadId, canManage, onChanged }: { leadId: string; canManage:
                 value={lead.assignedTo ?? ''}
                 disabled={busy || operators.status !== 'success'}
                 onChange={(event) =>
-                  act(() => apiPatch(`/platform/leads/${lead.id}`, { assignedTo: event.target.value || null }))
+                  act(() =>
+                    apiPatch(`/platform/leads/${lead.id}`, { assignedTo: event.target.value || null }),
+                  )
                 }
               >
                 <option value="">بلا مسؤول</option>
@@ -416,11 +448,10 @@ function LeadCard({ leadId, canManage, onChanged }: { leadId: string; canManage:
             />
           </>
         )}
-      </div>
+      </Panel>
 
       <div className="grid cols-2">
-        <div className="card">
-          <h3>الملاحظات</h3>
+        <Panel title="الملاحظات">
           {canManage ? (
             <div className="grid">
               <textarea
@@ -446,10 +477,9 @@ function LeadCard({ leadId, canManage, onChanged }: { leadId: string; canManage:
             </div>
           ) : null}
           <Notes notes={detail.data!.notes} />
-        </div>
+        </Panel>
 
-        <div className="card">
-          <h3>الأثر</h3>
+        <Panel title="الأثر">
           <ul className="timeline">
             {detail.data!.events.map((event) => (
               <li key={event.id}>
@@ -461,9 +491,9 @@ function LeadCard({ leadId, canManage, onChanged }: { leadId: string; canManage:
               </li>
             ))}
           </ul>
-        </div>
+        </Panel>
       </div>
-    </section>
+    </Panel>
   );
 }
 
@@ -503,23 +533,28 @@ function ConvertPanel({
 
   if (lead.convertedTenantId) {
     return (
-      <div className="card">
-        <h4>حُوّل إلى منشأة</h4>
-        <p className="muted">
-          <bdi>{lead.convertedTenantCode}</bdi> · {formatDate(lead.convertedAt ?? '')}
-        </p>
-      </div>
+      <Panel
+        title="حُوّل إلى منشأة"
+        hint={
+          <>
+            <bdi>{lead.convertedTenantCode}</bdi> · {formatDate(lead.convertedAt ?? '')}
+          </>
+        }
+      ></Panel>
     );
   }
 
   return (
-    <div className="card grid">
-      <h4>التحويل إلى منشأة</h4>
-      <p className="muted">
-        يُنشئ المنشأة والمدير ودليل الحسابات، ويمنح ترخيصاً بحالة «تجربة»، ثم يُغلق الطلب. وكلمة المرور
-        المؤقتة تُعرض هنا <b>مرّةً واحدة</b>.
-      </p>
-
+    <Panel
+      title="التحويل إلى منشأة"
+      hint={
+        <>
+          يُنشئ المنشأة والمدير ودليل الحسابات، ويمنح ترخيصاً بحالة «تجربة»، ثم يُغلق الطلب. وكلمة المرور
+          المؤقتة تُعرض هنا <b>مرّةً واحدة</b>.
+        </>
+      }
+      bodyClassName="grid"
+    >
       {converted ? (
         <div className="alert ok">
           <p>
@@ -581,7 +616,7 @@ function ConvertPanel({
           حوّل إلى عميل
         </button>
       </div>
-    </div>
+    </Panel>
   );
 }
 
@@ -605,18 +640,68 @@ function Subscribers({ canManage }: { canManage: boolean }) {
   const setSubscriber = async (id: string, next: SubscriberStatus) => {
     setError(null);
     try {
-      await apiFetch(`/platform/leads/subscribers/${id}`, { method: 'PATCH', body: JSON.stringify({ status: next }) });
+      await apiFetch(`/platform/leads/subscribers/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ status: next }),
+      });
       list.reload();
     } catch (failure) {
-      setError(failure instanceof ApiError ? failure.detail ?? failure.message : 'تعذّر التحديث');
+      setError(failure instanceof ApiError ? (failure.detail ?? failure.message) : 'تعذّر التحديث');
     }
   };
 
+  const subscriberColumns: Array<Column<SubscriberView>> = [
+    { key: 'email', header: 'البريد', ltr: true, cell: (row) => <bdi>{row.email}</bdi> },
+    { key: 'status', header: 'الحالة', cell: (row) => <span className="tag">{row.statusLabelAr}</span> },
+    { key: 'locale', header: 'اللغة', cell: (row) => (row.locale === 'ar' ? 'العربية' : 'English') },
+    { key: 'source', header: 'المصدر', cell: (row) => leadSourceLabelsAr[row.source] },
+    { key: 'created', header: 'اشترك في', cell: (row) => formatDate(row.createdAt) },
+    {
+      key: 'confirmed',
+      header: 'أكّد في',
+      cell: (row) => (row.confirmedAt ? formatDate(row.confirmedAt) : '—'),
+    },
+    ...(canManage
+      ? [
+          {
+            key: 'action',
+            header: 'إجراء',
+            cell: (row: SubscriberView) => (
+              <div className="toolbar">
+                {row.status !== 'confirmed' ? (
+                  <button
+                    className="btn sm"
+                    type="button"
+                    onClick={() => void setSubscriber(row.id, 'confirmed')}
+                  >
+                    تأكيد
+                  </button>
+                ) : null}
+                {row.status !== 'unsubscribed' ? (
+                  <button
+                    className="btn sm"
+                    type="button"
+                    onClick={() => void setSubscriber(row.id, 'unsubscribed')}
+                  >
+                    إلغاء
+                  </button>
+                ) : null}
+              </div>
+            ),
+          },
+        ]
+      : []),
+  ];
+
   return (
     <>
-      <section className="card grid">
+      <Panel bodyClassName="grid">
         <div className="toolbar">
-          <select className="input" value={status} onChange={(event) => setStatus(event.target.value as SubscriberStatus | '')}>
+          <select
+            className="input"
+            value={status}
+            onChange={(event) => setStatus(event.target.value as SubscriberStatus | '')}
+          >
             <option value="">كل الحالات</option>
             {subscriberStatuses.map((key) => (
               <option key={key} value={key}>
@@ -624,62 +709,23 @@ function Subscribers({ canManage }: { canManage: boolean }) {
               </option>
             ))}
           </select>
-          <span className="muted">المعروض: {payload.data.length} من {payload.meta.total}</span>
+          <span className="muted">
+            المعروض: {payload.data.length} من {payload.meta.total}
+          </span>
           {!canManage ? <span className="muted">قراءةٌ فقط</span> : null}
         </div>
         {error ? <p className="alert danger">{error}</p> : null}
-      </section>
+      </Panel>
 
       {payload.data.length === 0 ? (
-        <Empty title="لا مشتركين بهذه الحالة" detail="الاشتراك يبدأ من تذييل الموقع، ويُؤكَّد من رابط البريد." />
+        <Empty
+          title="لا مشتركين بهذه الحالة"
+          detail="الاشتراك يبدأ من تذييل الموقع، ويُؤكَّد من رابط البريد."
+        />
       ) : (
-        <section className="card">
-          <table className="table">
-            <thead>
-              <tr>
-                <th>البريد</th>
-                <th>الحالة</th>
-                <th>اللغة</th>
-                <th>المصدر</th>
-                <th>اشترك في</th>
-                <th>أكّد في</th>
-                {canManage ? <th>إجراء</th> : null}
-              </tr>
-            </thead>
-            <tbody>
-              {payload.data.map((row) => (
-                <tr key={row.id}>
-                  <td>
-                    <bdi>{row.email}</bdi>
-                  </td>
-                  <td>
-                    <span className="tag">{row.statusLabelAr}</span>
-                  </td>
-                  <td>{row.locale === 'ar' ? 'العربية' : 'English'}</td>
-                  <td>{leadSourceLabelsAr[row.source]}</td>
-                  <td>{formatDate(row.createdAt)}</td>
-                  <td>{row.confirmedAt ? formatDate(row.confirmedAt) : '—'}</td>
-                  {canManage ? (
-                    <td>
-                      <div className="toolbar">
-                        {row.status !== 'confirmed' ? (
-                          <button className="btn sm" type="button" onClick={() => void setSubscriber(row.id, 'confirmed')}>
-                            تأكيد
-                          </button>
-                        ) : null}
-                        {row.status !== 'unsubscribed' ? (
-                          <button className="btn sm" type="button" onClick={() => void setSubscriber(row.id, 'unsubscribed')}>
-                            إلغاء
-                          </button>
-                        ) : null}
-                      </div>
-                    </td>
-                  ) : null}
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </section>
+        <Panel flush title="المشتركون">
+          <Table bare columns={subscriberColumns} rows={payload.data} rowKey={(row) => row.id} />
+        </Panel>
       )}
     </>
   );
@@ -706,5 +752,8 @@ function formatDate(value: string): string {
   if (!value) return '—';
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return '—';
-  return new Intl.DateTimeFormat('ar-SA', { dateStyle: 'medium', timeStyle: 'short' }).format(date);
+  return new Intl.DateTimeFormat('ar-SA-u-ca-gregory-nu-latn', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  }).format(date);
 }

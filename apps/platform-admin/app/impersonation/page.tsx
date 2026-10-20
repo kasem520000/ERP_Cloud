@@ -7,8 +7,10 @@ import {
   type ImpersonationSession,
   type ImpersonationStartResult,
 } from '@erp/contracts';
+import { Panel } from '@erp/ui';
 
 import { Empty, ErrorBox, Forbidden, Loading, Screen } from '../../components/screen';
+import { Table, type Column } from '../../components/ui/table';
 import { ApiError, apiData, apiDelete, apiPost } from '../../lib/api';
 import { useQuery } from '../../lib/use-query';
 
@@ -36,7 +38,7 @@ const STATUS_LABEL: Record<ImpersonationSession['status'], string> = {
 };
 
 function dateTime(value: string | null | undefined): string {
-  return value ? new Date(value).toLocaleString('ar-SA') : '—';
+  return value ? new Date(value).toLocaleString('ar-SA-u-ca-gregory-nu-latn') : '—';
 }
 
 function apiMessage(error: unknown): string {
@@ -121,6 +123,49 @@ export default function ImpersonationPage() {
 
   const ready = tenantId.length > 0 && reason.trim().length >= 10;
 
+  const sessionColumns: Array<Column<ImpersonationSession>> = [
+    {
+      key: 'tenant',
+      header: 'المنشأة',
+      grow: true,
+      cell: (session) => (
+        <>
+          {session.tenantName ?? '—'}
+          <p className="muted" style={{ margin: 0, fontSize: 12 }}>
+            {session.tenantCode ?? ''} · باسم {session.asUserLabel ?? '—'}
+          </p>
+        </>
+      ),
+    },
+    {
+      key: 'operator',
+      header: 'المشغّل',
+      cell: (session) => session.operatorLabel ?? session.operatorUserId,
+    },
+    { key: 'reason', header: 'السبب', cell: (session) => session.reason },
+    { key: 'started', header: 'البداية', cell: (session) => dateTime(session.startedAt) },
+    { key: 'end', header: 'النهاية', cell: (session) => dateTime(session.endedAt ?? session.expiresAt) },
+    {
+      key: 'status',
+      header: 'الحالة',
+      cell: (session) => (
+        <span className={`chip${session.status === 'active' ? ' on' : ''}`}>
+          {STATUS_LABEL[session.status]}
+        </span>
+      ),
+    },
+    {
+      key: 'action',
+      header: '',
+      cell: (session) =>
+        session.status === 'active' ? (
+          <button className="btn danger" type="button" disabled={busy} onClick={() => void end(session)}>
+            إنهاء
+          </button>
+        ) : null,
+    },
+  ];
+
   return (
     <Screen
       title="الدخول المؤقّت"
@@ -128,20 +173,19 @@ export default function ImpersonationPage() {
       crumbs={['الدعم']}
     >
       {active && (
-        <section className="card tight">
+        <Panel className="tight">
           <p className="alert danger" style={{ margin: 0 }}>
             جلسةٌ نشطة الآن على «{active.tenantName ?? active.tenantId}» ({active.operatorLabel ?? '—'}) —
             تنتهي {dateTime(active.expiresAt)}. أنهِها إن لم تكن قيد العمل.
           </p>
-        </section>
+        </Panel>
       )}
 
-      <section className="card grid">
-        <h2 style={{ marginTop: 0 }}>جلسةٌ جديدة</h2>
+      <Panel title="جلسةٌ جديدة" bodyClassName="grid">
         <div className="row" style={{ flexWrap: 'wrap' }}>
           <label>
             المنشأة
-            <select value={tenantId} onChange={(event) => setTenantId(event.target.value)}>
+            <select className="input" value={tenantId} onChange={(event) => setTenantId(event.target.value)}>
               <option value="">اختر منشأة…</option>
               {(tenants.data ?? []).map((tenant) => (
                 <option key={tenant.id} value={tenant.id}>
@@ -153,6 +197,7 @@ export default function ImpersonationPage() {
           <label>
             المدّة (دقائق)
             <input
+              className="input"
               type="number"
               min={IMPERSONATION_MIN_MINUTES}
               max={IMPERSONATION_MAX_MINUTES}
@@ -163,7 +208,12 @@ export default function ImpersonationPage() {
         </div>
         <label>
           السبب (يُقرأ للعميل في سجلّه، ويُقيَّد في التدقيق)
-          <textarea rows={3} value={reason} onChange={(event) => setReason(event.target.value)} />
+          <textarea
+            className="input"
+            rows={3}
+            value={reason}
+            onChange={(event) => setReason(event.target.value)}
+          />
         </label>
         <div className="row">
           <button className="btn" type="button" disabled={!ready || busy} onClick={() => void start()}>
@@ -179,7 +229,7 @@ export default function ImpersonationPage() {
           </p>
         )}
         {started && (
-          <div className="card tight">
+          <Panel className="tight">
             <p style={{ margin: 0 }}>
               الرمز صالحٌ حتى {dateTime(started.session.expiresAt)} ({started.expiresIn} ثانية)، ولا يُجدَّد.
             </p>
@@ -201,12 +251,11 @@ export default function ImpersonationPage() {
               </button>
               <span className="muted">الرمز يمرّ في جزء العنوان، ولا يُرسل إلى أي خادم.</span>
             </div>
-          </div>
+          </Panel>
         )}
-      </section>
+      </Panel>
 
-      <section className="card">
-        <h2 style={{ marginTop: 0 }}>سجلّ الجلسات</h2>
+      <Panel title="سجلّ الجلسات" flush>
         {sessions.status === 'loading' && <Loading rows={3} />}
         {sessions.status === 'forbidden' && <Forbidden />}
         {sessions.status === 'error' && <ErrorBox message={sessions.error} onRetry={sessions.reload} />}
@@ -214,56 +263,9 @@ export default function ImpersonationPage() {
           <Empty title="لا جلسات بعد" detail="كل دخولٍ مؤقّت يُكتب هنا بمن دخله وسببه ومدّته." />
         )}
         {sessions.status === 'success' && (sessions.data?.length ?? 0) > 0 && (
-          <div className="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>المنشأة</th>
-                  <th>المشغّل</th>
-                  <th>السبب</th>
-                  <th>البداية</th>
-                  <th>النهاية</th>
-                  <th>الحالة</th>
-                  <th />
-                </tr>
-              </thead>
-              <tbody>
-                {(sessions.data ?? []).map((session) => (
-                  <tr key={session.id}>
-                    <td>
-                      {session.tenantName ?? '—'}
-                      <p className="muted" style={{ margin: 0, fontSize: 12 }}>
-                        {session.tenantCode ?? ''} · باسم {session.asUserLabel ?? '—'}
-                      </p>
-                    </td>
-                    <td>{session.operatorLabel ?? session.operatorUserId}</td>
-                    <td>{session.reason}</td>
-                    <td>{dateTime(session.startedAt)}</td>
-                    <td>{dateTime(session.endedAt ?? session.expiresAt)}</td>
-                    <td>
-                      <span className={`chip${session.status === 'active' ? ' on' : ''}`}>
-                        {STATUS_LABEL[session.status]}
-                      </span>
-                    </td>
-                    <td>
-                      {session.status === 'active' && (
-                        <button
-                          className="btn danger"
-                          type="button"
-                          disabled={busy}
-                          onClick={() => void end(session)}
-                        >
-                          إنهاء
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <Table bare columns={sessionColumns} rows={sessions.data ?? []} rowKey={(session) => session.id} />
         )}
-      </section>
+      </Panel>
     </Screen>
   );
 }

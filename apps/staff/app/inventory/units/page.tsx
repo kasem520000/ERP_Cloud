@@ -13,6 +13,7 @@ export default function UnitsPage() {
 
   return (
     <Directory<Unit>
+      listTitle="وحدات القياس"
       title="بطاقة وحدة"
       subtitle="وحدات القياس الأساسية للمواد (حبة، كرتون، كيلوجرام…)."
       crumbs={['المستودعات', 'التعاريف']}

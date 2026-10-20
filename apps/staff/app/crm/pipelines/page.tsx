@@ -1,5 +1,6 @@
 'use client';
 
+import { FormGrid, Panel } from '@erp/ui';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
@@ -93,26 +94,35 @@ export default function CrmPipelinesPage() {
       }
     >
       <Notice notice={notice} />
-      <div className="card">
-        <div className="toolbar">
-          <h3>صفقة جديدة</h3>
-        </div>
-        <div className="grid gap-3 md:grid-cols-4">
+      <Panel title="صفقة جديدة" hint="تُنشأ الصفقة في المرحلة الأولى ثم تُنقل مرحلةً بمرحلة.">
+        <FormGrid>
           <label className="field">
             <span>العنوان</span>
-            <input value={title} onChange={(event) => setTitle(event.target.value)} placeholder="توريد أجهزة" />
+            <input
+              className="input"
+              value={title}
+              onChange={(event) => setTitle(event.target.value)}
+              placeholder="توريد أجهزة"
+            />
           </label>
           <label className="field">
             <span>القيمة</span>
-            <input value={value} onChange={(event) => setValue(event.target.value)} />
+            <input className="input" value={value} onChange={(event) => setValue(event.target.value)} />
           </label>
           <label className="field">
             <span>الاحتمال %</span>
-            <input type="number" min={0} max={100} value={probability} onChange={(event) => setProbability(Number(event.target.value))} />
+            <input
+              className="input"
+              type="number"
+              min={0}
+              max={100}
+              value={probability}
+              onChange={(event) => setProbability(Number(event.target.value))}
+            />
           </label>
           <label className="field">
             <span>العميل</span>
-            <select value={partyId} onChange={(event) => setPartyId(event.target.value)}>
+            <select className="input" value={partyId} onChange={(event) => setPartyId(event.target.value)}>
               <option value="">بدون عميل</option>
               {parties.map((party) => (
                 <option key={party.id} value={party.id}>
@@ -121,42 +131,75 @@ export default function CrmPipelinesPage() {
               ))}
             </select>
           </label>
-        </div>
-        <button className="btn primary" type="button" disabled={busy || !title.trim()} onClick={() => void addDeal()}>
+        </FormGrid>
+        <button
+          className="btn primary"
+          type="button"
+          disabled={busy || !title.trim()}
+          onClick={() => void addDeal()}
+        >
           إنشاء في المرحلة الأولى
         </button>
-      </div>
-      <div className="grid gap-3 md:grid-cols-4">
-        {(pipeline?.stages ?? []).map((stage) => (
-          <section
-            key={stage.id}
-            className="card"
-            onDragOver={(event) => event.preventDefault()}
-            onDrop={(event) => {
-              event.preventDefault();
-              const dealId = event.dataTransfer.getData('text/plain');
-              const deal = deals.find((item) => item.id === dealId);
-              if (deal) void shift(deal, stage.id);
-            }}
-          >
-            <h3 style={{ color: stage.color }}>{stage.name}</h3>
-            {deals
-              .filter((deal) => deal.stageId === stage.id)
-              .map((deal) => (
-                <article
-                  key={deal.id}
-                  className="border-t py-2"
-                  draggable={deal.status === 'open' && !busy}
-                  onDragStart={(event) => event.dataTransfer.setData('text/plain', deal.id)}
-                >
-                  <Link href={`/crm/deals/${deal.id}`}>{deal.title}</Link>
-                  <p className="muted">
-                    {deal.value} · {deal.probability}% · {deal.status === 'open' ? 'مفتوحة' : deal.status === 'won' ? 'رابحة' : 'خاسرة'}
-                  </p>
-                </article>
-              ))}
-          </section>
-        ))}
+      </Panel>
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        {(pipeline?.stages ?? []).map((stage) => {
+          const stageDeals = deals.filter((deal) => deal.stageId === stage.id);
+          return (
+            <div
+              key={stage.id}
+              onDragOver={(event) => event.preventDefault()}
+              onDrop={(event) => {
+                event.preventDefault();
+                const dealId = event.dataTransfer.getData('text/plain');
+                const deal = deals.find((item) => item.id === dealId);
+                if (deal) void shift(deal, stage.id);
+              }}
+            >
+              <Panel
+                title={
+                  <span className="inline-flex items-center gap-2">
+                    <span
+                      aria-hidden
+                      style={{
+                        display: 'inline-block',
+                        inlineSize: 8,
+                        blockSize: 8,
+                        borderRadius: 999,
+                        background: stage.color,
+                      }}
+                    />
+                    {stage.name}
+                  </span>
+                }
+                actions={<span className="badge">{stageDeals.length}</span>}
+              >
+                {stageDeals.length === 0 ? (
+                  <p className="muted small m-0">لا صفقات في هذه المرحلة — اسحب بطاقة إلى هنا.</p>
+                ) : (
+                  stageDeals.map((deal) => (
+                    <article
+                      key={deal.id}
+                      draggable={deal.status === 'open' && !busy}
+                      onDragStart={(event) => event.dataTransfer.setData('text/plain', deal.id)}
+                      style={{
+                        display: 'grid',
+                        gap: 2,
+                        paddingBlock: 8,
+                        borderBlockStart: '1px solid var(--line)',
+                      }}
+                    >
+                      <Link href={`/crm/deals/${deal.id}`}>{deal.title}</Link>
+                      <span className="muted small">
+                        {deal.value} · {deal.probability}% ·{' '}
+                        {deal.status === 'open' ? 'مفتوحة' : deal.status === 'won' ? 'رابحة' : 'خاسرة'}
+                      </span>
+                    </article>
+                  ))
+                )}
+              </Panel>
+            </div>
+          );
+        })}
       </div>
     </Screen>
   );

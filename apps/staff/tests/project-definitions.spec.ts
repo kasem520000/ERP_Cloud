@@ -132,17 +132,17 @@ describe('الشاشات الثلاث صارت مساراتٍ حقيقية', () 
 
   it('وتسميات المصدر المكتبي محفوظةٌ في ملف الشاشة (الرقم والاسم والحالة)', () => {
     const boq = readFileSync(join(repoRoot, 'apps/staff/app/projects/boq/page.tsx'), 'utf8');
-    expect(boq).toContain('🔢 الرقم');
-    expect(boq).toContain('📝 الاسم');
-    expect(boq).toContain('💾 حفظ');
+ expect(boq).toContain('الرقم');
+ expect(boq).toContain('الاسم');
+ expect(boq).toContain('حفظ');
     expect(boq).toContain('frmTermsPM.xaml');
 
     const stages = readFileSync(join(repoRoot, 'apps/staff/app/projects/stages/page.tsx'), 'utf8');
-    expect(stages).toContain('🗂️ المجموعة');
-    expect(stages).toContain('➕ إضافة حالة');
-    expect(stages).toContain('⬆️ لأعلى');
-    expect(stages).toContain('⬇️ لأسفل');
-    expect(stages).toContain('🖨️ طباعة');
+ expect(stages).toContain('المجموعة');
+ expect(stages).toContain('إضافة حالة');
+ expect(stages).toContain('لأعلى');
+ expect(stages).toContain('لأسفل');
+ expect(stages).toContain('طباعة');
     expect(stages).toContain('frmProjectStagesPM.xaml');
 
     const types = readFileSync(join(repoRoot, 'apps/staff/app/tailoring/types/page.tsx'), 'utf8');

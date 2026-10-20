@@ -53,7 +53,9 @@ export const companyProfiles = pgTable(
     taxNo: text('tax_no'),
     crNo: text('cr_no'),
     logoFileId: uuid('logo_file_id').references(() => files.id, { onDelete: 'set null' }),
-    /** ZATCA national address (plot, building, street, addStreet, district, city, postal). */
+    /** الشعار كـ data URL: يسافر داخل وثيقة الطباعة المكتفية بذاتها. */
+    logoDataUrl: text('logo_data_url'),
+    /** ZATCA national address (building, street, additional, unit, district, city, postal). */
     address: jsonb('address').$type<Record<string, unknown>>(),
     phones: jsonb('phones').$type<string[]>().notNull().default([]),
     email: text('email'),

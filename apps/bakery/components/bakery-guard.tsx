@@ -11,6 +11,7 @@ import { BAKERY_APP_CODE, licenceVerdict } from '../lib/licence';
 import { BAKERY_MODULES, isRepScoped, moduleForPath, visibleModules } from '../lib/navigation';
 
 import { LicenceWall } from './licence-wall';
+import { BakeryLogoMark, BakeryModuleIcon } from './module-icon';
 
 /**
  * قشرة واجهة المخابز **وبوابةُ ترخيصها** في آن: لا تُرسم الشاشة ولا يُعرض التنقّل قبل أن
@@ -97,7 +98,7 @@ export function BakeryGuard({ children }: { children: React.ReactNode }) {
       <aside className={`bak-side no-print ${drawerOpen ? 'open' : ''}`}>
         <div className="bak-brand">
           <span aria-hidden="true" className="bak-logo">
-            🥖
+            <BakeryLogoMark size={22} />
           </span>
           <span>
             المخابز
@@ -113,7 +114,9 @@ export function BakeryGuard({ children }: { children: React.ReactNode }) {
               return (
                 <span className="bak-nav-item" key={module.key} title={`${module.phaseAr} — ${module.summaryAr}`}>
                   <span aria-hidden="true" className={`bak-dot ${module.status}`} />
-                  <span aria-hidden="true">{module.icon}</span>
+                  <span aria-hidden="true" className="bak-nav-icon">
+                    <BakeryModuleIcon moduleKey={module.key} />
+                  </span>
                   {module.labelAr}
                 </span>
               );
@@ -128,7 +131,9 @@ export function BakeryGuard({ children }: { children: React.ReactNode }) {
                 title={module.summaryAr}
               >
                 <span aria-hidden="true" className={`bak-dot ${module.status}`} />
-                <span aria-hidden="true">{module.icon}</span>
+                <span aria-hidden="true" className="bak-nav-icon">
+                  <BakeryModuleIcon moduleKey={module.key} />
+                </span>
                 {module.labelAr}
               </Link>
             );
@@ -161,11 +166,13 @@ export function BakeryGuard({ children }: { children: React.ReactNode }) {
               onClick={() => setDrawerOpen((open) => !open)}
               size="sm"
             >
-              ☰
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" aria-hidden>
+                <path d="M4 7h16M4 12h16M4 17h16" />
+              </svg>
             </Button>
             <nav aria-label="موقعك في الواجهة" className="bak-crumbs">
               <Link href="/">المخابز</Link>
-              {active && active.href !== '/' ? ` ← ${active.labelAr}` : ''}
+ {active && active.href !== '/' ? ` ${active.labelAr}` : ''}
             </nav>
           </div>
 
@@ -174,10 +181,14 @@ export function BakeryGuard({ children }: { children: React.ReactNode }) {
               className="bak-badge ok"
               title={`الباقة القطاعية ${BAKERY_APP_CODE} مفعَّلة لهذه المنشأة (تُقرأ من جلسة دخولك)`}
             >
-              🔓 الباقة مرخَّصة
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                <rect x="5" y="11" width="14" height="9" rx="2" />
+                <path d="M8 11V8a4 4 0 0 1 7.8-1.2" />
+              </svg>
+              الباقة مرخَّصة
             </span>
             <ThemeToggle compact />
-            <span className="text-[12px] text-muted">
+            <span className="bak-topbar-user text-[12px] text-muted">
               {me?.user.fullName} · {me?.membership.tenantCode}
             </span>
             <Button onClick={() => void signOut()} size="sm">
@@ -186,7 +197,9 @@ export function BakeryGuard({ children }: { children: React.ReactNode }) {
           </div>
         </header>
 
-        {children}
+        <div key={pathname} className="page-enter">
+          {children}
+        </div>
       </div>
     </div>
   );

@@ -5,6 +5,7 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useState,
   type ReactNode,
@@ -14,7 +15,6 @@ import {
   applyTheme,
   readThemeChoice,
   resolveTheme,
-  systemPrefersDark,
   THEME_EVENT,
   THEME_STORAGE_KEY,
   themeInitScript,
@@ -24,7 +24,7 @@ import {
 } from './theme';
 
 type ThemeContextValue = {
-  /** What the visitor asked for (`system` follows the OS). */
+  /** What the visitor asked for — always exactly what is painted. */
   choice: ThemeChoice;
   /** What is painted right now. */
   resolved: ResolvedTheme;
@@ -35,10 +35,13 @@ type ThemeContextValue = {
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
+/** `useLayoutEffect` on the client, `useEffect` on the server (where layout does not exist). */
+const useIsomorphicLayoutEffect = typeof window === 'undefined' ? useEffect : useLayoutEffect;
+
 export type ThemeProviderProps = {
   children: ReactNode;
   /**
-   * The choice used when nothing is stored yet. `system` for staff and
+   * The choice used when nothing is stored yet. `light` for staff and
    * marketing, `dark` for the platform console (Design v3 §2.1).
    */
   defaultChoice?: ThemeChoice;
@@ -47,25 +50,24 @@ export type ThemeProviderProps = {
 /**
  * Owns the single `erp.theme` value for a whole surface.
  *
- * It listens to three things so the answer can never drift between tabs or
- * between the pre-hydration script and React: the `erp:theme-change` event,
- * the `storage` event (another tab), and the OS `prefers-color-scheme`
- * change that matters while the choice is `system`.
+ * It listens to two things so the answer can never drift between tabs or
+ * between the pre-hydration script and React: the `erp:theme-change` event
+ * and the `storage` event (another tab). The OS preference is consulted once,
+ * only to migrate a legacy `system` value.
  */
-export function ThemeProvider({ children, defaultChoice = 'system' }: ThemeProviderProps) {
-  const [choice, setChoiceState] = useState<ThemeChoice>(() => readThemeChoice(defaultChoice));
-  const [prefersDark, setPrefersDark] = useState<boolean>(() => systemPrefersDark());
+export function ThemeProvider({ children, defaultChoice = 'light' }: ThemeProviderProps) {
+  // First render must be identical on the server and in the browser. Reading
+  // `localStorage`/`matchMedia` in the initialiser does the opposite: the server
+  // has neither, so a returning visitor with a stored theme hydrated a different
+  // tree than the one that was painted (React 418) on every page. The stored
+  // answer is applied in a layout effect — before paint, after hydration.
+  const [choice, setChoiceState] = useState<ThemeChoice>(defaultChoice);
 
-  // Keep the OS listener in sync; only meaningful while choice === 'system'.
-  useEffect(() => {
-    if (typeof window === 'undefined' || !window.matchMedia) return;
-    const query = window.matchMedia('(prefers-color-scheme: dark)');
-    const onChange = (event: MediaQueryListEvent) => setPrefersDark(event.matches);
-    query.addEventListener('change', onChange);
-    return () => query.removeEventListener('change', onChange);
-  }, []);
+  useIsomorphicLayoutEffect(() => {
+    setChoiceState(readThemeChoice(defaultChoice));
+  }, [defaultChoice]);
 
-  const resolved = resolveTheme(choice, prefersDark);
+  const resolved = resolveTheme(choice);
 
   useEffect(() => {
     applyTheme(resolved);
@@ -76,7 +78,7 @@ export function ThemeProvider({ children, defaultChoice = 'system' }: ThemeProvi
     if (typeof window === 'undefined') return;
     const onThemeEvent = (event: Event) => {
       const detail = (event as CustomEvent<ThemeChoice>).detail;
-      if (detail === 'light' || detail === 'dark' || detail === 'system') setChoiceState(detail);
+      if (detail === 'light' || detail === 'dark') setChoiceState(detail);
     };
     const onStorage = (event: StorageEvent) => {
       if (event.key !== null && event.key !== THEME_STORAGE_KEY) return;
@@ -121,7 +123,7 @@ export function useTheme(): ThemeContextValue {
 /**
  * The blocking `<head>` script. Rendered once per surface, before hydration.
  */
-export function ThemeScript({ defaultChoice = 'system' }: { defaultChoice?: ThemeChoice }) {
+export function ThemeScript({ defaultChoice = 'light' }: { defaultChoice?: ThemeChoice }) {
   return (
     // A static, build-time string with no user input in it — the whole point of
     // the pre-hydration script is that it is a fixed few hundred bytes.

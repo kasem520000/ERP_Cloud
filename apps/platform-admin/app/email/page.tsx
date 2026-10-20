@@ -17,8 +17,10 @@ import {
   type EmailTemplateListResponse,
   type EmailTestResult,
 } from '@erp/contracts';
+import { Panel } from '@erp/ui';
 
 import { Empty, ErrorBox, Forbidden, Loading, Screen } from '../../components/screen';
+import { Table, type Column } from '../../components/ui/table';
 import { SourceTag, Tabs } from '../../components/ui';
 import { ApiError, apiData, apiFetch } from '../../lib/api';
 import { useQuery } from '../../lib/use-query';
@@ -60,7 +62,7 @@ const REASON_LABEL: Record<(typeof emailSuppressionReasons)[number], string> = {
 const LOCALE_LABEL: Record<EmailLocale, string> = { ar: 'العربية', en: 'English' };
 
 function dateTime(value: string | null | undefined): string {
-  return value ? new Date(value).toLocaleString('ar-SA') : '—';
+  return value ? new Date(value).toLocaleString('ar-SA-u-ca-gregory-nu-latn') : '—';
 }
 
 type TabId = 'templates' | 'messages' | 'settings' | 'suppressions';
@@ -204,13 +206,64 @@ function TemplatesTab() {
     }
   }
 
+  const templateColumns: Array<Column<EmailTemplateListResponse['data'][number]>> = [
+    { key: 'event', header: 'الحدث', grow: true, cell: (template) => template.labelAr },
+    { key: 'locale', header: 'اللغة', cell: (template) => LOCALE_LABEL[template.locale] },
+    {
+      key: 'subject',
+      header: 'الموضوع',
+      cell: (template) => <span className="muted">{template.subject}</span>,
+    },
+    {
+      key: 'source',
+      header: 'المصدر',
+      cell: (template) => <SourceTag source={template.source === 'seed' ? 'default' : template.source} />,
+    },
+    { key: 'version', header: 'النسخة', numeric: true, cell: (template) => template.version },
+    {
+      key: 'missing',
+      header: 'متغيّرات ناقصة',
+      cell: (template) =>
+        template.missingVariables.length === 0 ? (
+          '—'
+        ) : (
+          <span className="tag warn">{template.missingVariables.join(' · ')}</span>
+        ),
+    },
+    {
+      key: 'actions',
+      header: '',
+      cell: (template) => (
+        <div className="row">
+          <button className="btn sm" type="button" onClick={() => openEditor(template)}>
+            تحرير
+          </button>
+          {template.id && template.source === 'tenant' && (
+            <button
+              className="btn sm danger"
+              type="button"
+              disabled={busy}
+              onClick={() => clearOverride(template)}
+            >
+              مسح التجاوز
+            </button>
+          )}
+        </div>
+      ),
+    },
+  ];
+
   return (
     <div className="grid">
-      <div className="card tight">
+      <Panel className="tight">
         <div className="row">
           <label>
             الحدث
-            <select value={event} onChange={(change) => setEvent(change.target.value as EmailEvent | '')}>
+            <select
+              className="input"
+              value={event}
+              onChange={(change) => setEvent(change.target.value as EmailEvent | '')}
+            >
               <option value="">كل الأحداث ({emailEvents.length})</option>
               {emailEvents.map((key) => (
                 <option key={key} value={key}>
@@ -221,7 +274,11 @@ function TemplatesTab() {
           </label>
           <label>
             اللغة
-            <select value={locale} onChange={(change) => setLocale(change.target.value as EmailLocale)}>
+            <select
+              className="input"
+              value={locale}
+              onChange={(change) => setLocale(change.target.value as EmailLocale)}
+            >
               {emailLocales.map((value) => (
                 <option key={value} value={value}>
                   {LOCALE_LABEL[value]}
@@ -231,7 +288,11 @@ function TemplatesTab() {
           </label>
           <label>
             العميل (لتجاوزٍ بعينه)
-            <select value={tenantId} onChange={(change) => setTenantId(change.target.value)}>
+            <select
+              className="input"
+              value={tenantId}
+              onChange={(change) => setTenantId(change.target.value)}
+            >
               <option value="">قالب المنصة</option>
               {(tenants.data ?? []).map((tenant) => (
                 <option key={tenant.id} value={tenant.id}>
@@ -248,7 +309,7 @@ function TemplatesTab() {
           التجاوز نصٌّ لا كود: العميل يكتب نصّه، والحدث ومتغيّراته من الفهرس في الكود. و«متغيّرات ناقصة» تعني
           متغيّراً معلناً للحدث لم يستعمله النصّ — تحذيرٌ لا خطأ.
         </p>
-      </div>
+      </Panel>
 
       {notice && <p className={`alert ${notice.kind}`}>{notice.text}</p>}
 
@@ -259,80 +320,44 @@ function TemplatesTab() {
       ) : templates.status === 'error' ? (
         <ErrorBox message={templates.error} onRetry={templates.reload} />
       ) : (
-        <div className="card">
-          <table className="table">
-            <thead>
-              <tr>
-                <th>الحدث</th>
-                <th>اللغة</th>
-                <th>الموضوع</th>
-                <th>المصدر</th>
-                <th>النسخة</th>
-                <th>متغيّرات ناقصة</th>
-                <th />
-              </tr>
-            </thead>
-            <tbody>
-              {(templates.data?.data ?? []).map((template) => (
-                <tr key={`${template.event}-${template.locale}-${template.id ?? 'seed'}`}>
-                  <td>{template.labelAr}</td>
-                  <td>{LOCALE_LABEL[template.locale]}</td>
-                  <td className="muted">{template.subject}</td>
-                  <td>
-                    <SourceTag source={template.source === 'seed' ? 'default' : template.source} />
-                  </td>
-                  <td>{template.version}</td>
-                  <td>
-                    {template.missingVariables.length === 0 ? (
-                      '—'
-                    ) : (
-                      <span className="tag warn">{template.missingVariables.join(' · ')}</span>
-                    )}
-                  </td>
-                  <td>
-                    <div className="row">
-                      <button className="btn sm" type="button" onClick={() => openEditor(template)}>
-                        تحرير
-                      </button>
-                      {template.id && template.source === 'tenant' && (
-                        <button
-                          className="btn sm danger"
-                          type="button"
-                          disabled={busy}
-                          onClick={() => clearOverride(template)}
-                        >
-                          مسح التجاوز
-                        </button>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <Panel flush title="القوالب">
+          <Table
+            bare
+            columns={templateColumns}
+            rows={templates.data?.data ?? []}
+            rowKey={(template) => `${template.event}-${template.locale}-${template.id ?? 'seed'}`}
+          />
           {(templates.data?.data ?? []).length === 0 && <Empty title="لا قوالب بهذا المرشّح" />}
-        </div>
+        </Panel>
       )}
 
       {editing && (
-        <div className="card">
-          <h2 style={{ marginTop: 0 }}>
-            {editing.labelAr} — {LOCALE_LABEL[editing.locale]}
-          </h2>
-          <p className="muted">
-            المتغيّرات المعلَنة: {editing.variables.map((name) => `{{${name}}}`).join(' · ') || 'لا شيء'}
-          </p>
+        <Panel
+          title={
+            <>
+              {editing.labelAr} — {LOCALE_LABEL[editing.locale]}
+            </>
+          }
+          hint={
+            <>المتغيّرات المعلَنة: {editing.variables.map((name) => `{{${name}}}`).join(' · ') || 'لا شيء'}</>
+          }
+        >
           <label>
             الموضوع
-            <input value={subject} onChange={(change) => setSubject(change.target.value)} />
+            <input className="input" value={subject} onChange={(change) => setSubject(change.target.value)} />
           </label>
           <label>
             النصّ
-            <textarea rows={10} value={body} onChange={(change) => setBody(change.target.value)} />
+            <textarea
+              className="input"
+              rows={10}
+              value={body}
+              onChange={(change) => setBody(change.target.value)}
+            />
           </label>
           <label>
             سبب التعديل (يُسجَّل في التدقيق)
-            <input value={reason} onChange={(change) => setReason(change.target.value)} />
+            <input className="input" value={reason} onChange={(change) => setReason(change.target.value)} />
           </label>
           <div className="row">
             <button className="btn" type="button" disabled={busy || reason.trim().length < 3} onClick={save}>
@@ -341,6 +366,7 @@ function TemplatesTab() {
             <label>
               فحص إلى عنوان
               <input
+                className="input"
                 value={probeTo}
                 placeholder="ops@example.com"
                 onChange={(change) => setProbeTo(change.target.value)}
@@ -362,7 +388,7 @@ function TemplatesTab() {
             متغيّرٌ خارج فهرس الحدث يُرفض عند الحفظ (400) — والاختبار يملأ المتغيّرات بقيمٍ تجريبية ليخرج
             النصّ كاملاً.
           </p>
-        </div>
+        </Panel>
       )}
     </div>
   );
@@ -422,13 +448,81 @@ function MessagesTab() {
   const rows = messages.data?.data ?? [];
   const counts = messages.data?.counts ?? {};
 
+  const messageColumns: Array<Column<EmailMessageListResponse['data'][number]>> = [
+    { key: 'when', header: 'الوقت', cell: (row) => dateTime(row.sentAt ?? row.queuedAt) },
+    {
+      key: 'to',
+      header: 'إلى',
+      ltr: true,
+      cell: (row) => (
+        <>
+          {row.toEmail}
+          {row.isTest && <span className="tag">اختبار</span>}
+        </>
+      ),
+    },
+    { key: 'event', header: 'الحدث', cell: (row) => row.eventLabelAr },
+    {
+      key: 'status',
+      header: 'الحالة',
+      cell: (row) => (
+        <span className={`chip ${row.status === 'sent' ? 'on' : row.status === 'failed' ? 'off' : ''}`}>
+          {STATUS_LABEL[row.status]}
+        </span>
+      ),
+    },
+    { key: 'provider', header: 'المزوّد', cell: (row) => row.provider },
+    {
+      key: 'attempts',
+      header: 'المحاولات',
+      numeric: true,
+      cell: (row) => (
+        <>
+          {row.attempts}
+          {row.status === 'queued' && <span className="muted"> (ستُعاد)</span>}
+        </>
+      ),
+    },
+    { key: 'tenant', header: 'العميل', cell: (row) => row.tenantCode ?? 'المنصة' },
+    {
+      key: 'error',
+      header: 'آخر خطأ',
+      cell: (row) => {
+        const blocked = (suppressions.data?.data ?? []).some(
+          (entry) =>
+            entry.email === row.toEmail && (entry.tenantId === null || entry.tenantId === row.tenantId),
+        );
+        return (
+          <span className="muted">
+            {row.lastError ?? '—'}
+            {blocked && <span className="tag warn">محجوب الآن</span>}
+          </span>
+        );
+      },
+    },
+    {
+      key: 'retry',
+      header: '',
+      cell: (row) =>
+        row.status !== 'sent' && row.status !== 'suppressed' ? (
+          <button className="btn sm" type="button" disabled={busy} onClick={() => retry(row)}>
+            إعادة محاولة
+          </button>
+        ) : null,
+    },
+  ];
+
   return (
     <div className="grid">
-      <div className="card tight">
+      <Panel className="tight">
         <div className="row">
           <label>
             العميل
-            <select value={tenantId} onChange={(change) => setTenantId(change.target.value)}>
+            <select
+              className="input"
+              value={tenantId}
+              onChange={(change) => setTenantId(change.target.value)}
+            >
               <option value="">كل العملاء</option>
               {(tenants.data ?? []).map((tenant) => (
                 <option key={tenant.id} value={tenant.id}>
@@ -439,7 +533,7 @@ function MessagesTab() {
           </label>
           <label>
             الحدث
-            <select value={event} onChange={(change) => setEvent(change.target.value)}>
+            <select className="input" value={event} onChange={(change) => setEvent(change.target.value)}>
               <option value="">كل الأحداث</option>
               {emailEvents.map((key) => (
                 <option key={key} value={key}>
@@ -450,7 +544,7 @@ function MessagesTab() {
           </label>
           <label>
             الحالة
-            <select value={status} onChange={(change) => setStatus(change.target.value)}>
+            <select className="input" value={status} onChange={(change) => setStatus(change.target.value)}>
               <option value="">كل الحالات</option>
               {emailMessageStatuses.map((value) => (
                 <option key={value} value={value}>
@@ -461,7 +555,7 @@ function MessagesTab() {
           </label>
           <label>
             بحث (إلى أو الموضوع)
-            <input value={search} onChange={(change) => setSearch(change.target.value)} />
+            <input className="input" value={search} onChange={(change) => setSearch(change.target.value)} />
           </label>
           <button className="btn" type="button" onClick={messages.reload}>
             تحديث
@@ -471,7 +565,7 @@ function MessagesTab() {
           الحالات:{' '}
           {emailMessageStatuses.map((value) => `${STATUS_LABEL[value]} ${counts[value] ?? 0}`).join(' · ')}
         </p>
-      </div>
+      </Panel>
 
       {notice && <p className={`alert ${notice.kind}`}>{notice.text}</p>}
 
@@ -482,69 +576,12 @@ function MessagesTab() {
       ) : messages.status === 'error' ? (
         <ErrorBox message={messages.error} onRetry={messages.reload} />
       ) : (
-        <div className="card">
-          <table className="table">
-            <thead>
-              <tr>
-                <th>الوقت</th>
-                <th>إلى</th>
-                <th>الحدث</th>
-                <th>الحالة</th>
-                <th>المزوّد</th>
-                <th>المحاولات</th>
-                <th>العميل</th>
-                <th>آخر خطأ</th>
-                <th />
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((row) => {
-                const blocked = (suppressions.data?.data ?? []).some(
-                  (entry) =>
-                    entry.email === row.toEmail &&
-                    (entry.tenantId === null || entry.tenantId === row.tenantId),
-                );
-                return (
-                  <tr key={row.id}>
-                    <td>{dateTime(row.sentAt ?? row.queuedAt)}</td>
-                    <td>
-                      {row.toEmail}
-                      {row.isTest && <span className="tag">اختبار</span>}
-                    </td>
-                    <td>{row.eventLabelAr}</td>
-                    <td>
-                      <span
-                        className={`chip ${row.status === 'sent' ? 'on' : row.status === 'failed' ? 'off' : ''}`}
-                      >
-                        {STATUS_LABEL[row.status]}
-                      </span>
-                    </td>
-                    <td>{row.provider}</td>
-                    <td>
-                      {row.attempts}
-                      {row.status === 'queued' && <span className="muted"> (ستُعاد)</span>}
-                    </td>
-                    <td>{row.tenantCode ?? 'المنصة'}</td>
-                    <td className="muted">
-                      {row.lastError ?? '—'}
-                      {blocked && <span className="tag warn">محجوب الآن</span>}
-                    </td>
-                    <td>
-                      {row.status !== 'sent' && row.status !== 'suppressed' && (
-                        <button className="btn sm" type="button" disabled={busy} onClick={() => retry(row)}>
-                          إعادة محاولة
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+        <Panel flush title="سجلّ الرسائل">
+          <Table bare columns={messageColumns} rows={rows} rowKey={(row) => row.id} />
           {rows.length === 0 && (
             <Empty title="لا رسائل بهذه المرشّحات" detail="جرّب توسيع الفترة أو إزالة المرشّح." />
           )}
-        </div>
+        </Panel>
       )}
     </div>
   );
@@ -637,12 +674,12 @@ function SettingsTab() {
 
   return (
     <div className="grid">
-      <div className="card">
-        <h2 style={{ marginTop: 0 }}>المُرسِل والمزوّد</h2>
+      <Panel title="المُرسِل والمزوّد">
         <div className="row">
           <label>
             المزوّد
             <select
+              className="input"
               value={value('provider') ?? 'console'}
               onChange={(change) =>
                 setDraft({ ...draft, provider: change.target.value as EmailSettings['provider'] })
@@ -657,6 +694,7 @@ function SettingsTab() {
           <label>
             اسم المُرسِل (عربي مسموح وهو الأفضل)
             <input
+              className="input"
               value={value('fromName') ?? ''}
               onChange={(change) => setDraft({ ...draft, fromName: change.target.value })}
             />
@@ -664,6 +702,7 @@ function SettingsTab() {
           <label>
             عنوان المُرسِل
             <input
+              className="input"
               value={value('fromEmail') ?? ''}
               onChange={(change) => setDraft({ ...draft, fromEmail: change.target.value })}
             />
@@ -671,6 +710,7 @@ function SettingsTab() {
           <label>
             ردّ إلى (اختياري)
             <input
+              className="input"
               value={value('replyTo') ?? ''}
               onChange={(change) => setDraft({ ...draft, replyTo: change.target.value })}
             />
@@ -680,6 +720,7 @@ function SettingsTab() {
           <label>
             نطاق الإرسال المُتحقَّق منه
             <input
+              className="input"
               value={value('sendingDomain') ?? ''}
               placeholder="mail.example.com"
               onChange={(change) => setDraft({ ...draft, sendingDomain: change.target.value })}
@@ -688,6 +729,7 @@ function SettingsTab() {
           <label>
             سقف يومي (حماية مزوّد)
             <input
+              className="input"
               type="number"
               min={1}
               value={value('dailyLimit') ?? ''}
@@ -702,6 +744,7 @@ function SettingsTab() {
           <label>
             سقف شهري
             <input
+              className="input"
               type="number"
               min={1}
               value={value('monthlyLimit') ?? ''}
@@ -715,7 +758,7 @@ function SettingsTab() {
           </label>
           <label>
             سبب التعديل (تدقيق)
-            <input value={reason} onChange={(change) => setReason(change.target.value)} />
+            <input className="input" value={reason} onChange={(change) => setReason(change.target.value)} />
           </label>
         </div>
 
@@ -724,6 +767,7 @@ function SettingsTab() {
             <label style={{ flex: 2 }}>
               {selectedProvider === 'resend' ? 'مفتاح Resend API Key' : 'مفتاح المصادقة (Bearer API Key)'}
               <input
+                className="input"
                 type="password"
                 dir="ltr"
                 value={apiKeyDraft ?? ''}
@@ -742,6 +786,7 @@ function SettingsTab() {
                 ? 'رابط Resend API (اختياري)'
                 : 'رابط نقطة النهاية (HTTP Webhook URL)'}
               <input
+                className="input"
                 dir="ltr"
                 value={value('apiEndpoint') ?? ''}
                 placeholder={
@@ -760,6 +805,7 @@ function SettingsTab() {
             <label>
               مُضيف SMTP (Host)
               <input
+                className="input"
                 dir="ltr"
                 value={value('smtpHost') ?? ''}
                 placeholder="smtp.resend.com"
@@ -769,6 +815,7 @@ function SettingsTab() {
             <label>
               المنفذ (Port)
               <input
+                className="input"
                 type="number"
                 dir="ltr"
                 value={value('smtpPort') ?? 587}
@@ -783,6 +830,7 @@ function SettingsTab() {
             <label>
               اسم مستخدم SMTP
               <input
+                className="input"
                 dir="ltr"
                 value={value('smtpUser') ?? ''}
                 placeholder="resend"
@@ -792,6 +840,7 @@ function SettingsTab() {
             <label>
               كلمة مرور SMTP
               <input
+                className="input"
                 type="password"
                 dir="ltr"
                 value={smtpPasswordDraft ?? ''}
@@ -809,6 +858,7 @@ function SettingsTab() {
           <label>
             فحص الاتصال إلى
             <input
+              className="input"
               value={probeTo}
               placeholder="ops@example.com"
               onChange={(change) => setProbeTo(change.target.value)}
@@ -829,12 +879,11 @@ function SettingsTab() {
             ? ''
             : ' ولا اعتماد (SMTP_USER/SMTP_PASS) — الإرسال الفعلي عبر smtp سيفشل.'}
         </p>
-      </div>
+      </Panel>
 
       {notice && <p className={`alert ${notice.kind}`}>{notice.text}</p>}
 
-      <div className="card">
-        <h2 style={{ marginTop: 0 }}>التسليم: SPF وDKIM وDMARC</h2>
+      <Panel title="التسليم: SPF وDKIM وDMARC">
         <ul className="muted">
           <li>
             <strong>SPF</strong> — سجلّ TXT على النطاق يسمح بخوادمنا:{' '}
@@ -853,7 +902,7 @@ function SettingsTab() {
           لا فحص DNS آليّاً بعد: الشاشة تشرح ما يجب نشره ولا تدّعي أنه نُشر. حين يُضاف مزوّد ويب
           (SendGrid/Resend/SES) خلف المهايئ نفسه، يصير التحقّق من النطاق خطوةً في هذا التبويب.
         </p>
-      </div>
+      </Panel>
     </div>
   );
 }
@@ -904,13 +953,31 @@ function SuppressionsTab() {
     }
   }
 
+  const suppressionColumns: Array<Column<EmailSuppression>> = [
+    { key: 'email', header: 'العنوان', ltr: true, cell: (row) => row.email },
+    { key: 'scope', header: 'النطاق', cell: (row) => row.tenantId ?? 'كل العملاء' },
+    { key: 'reason', header: 'السبب', cell: (row) => REASON_LABEL[row.reason] },
+    { key: 'note', header: 'ملاحظة', cell: (row) => <span className="muted">{row.note ?? '—'}</span> },
+    { key: 'created', header: 'أُضيف', cell: (row) => dateTime(row.createdAt) },
+    {
+      key: 'action',
+      header: '',
+      cell: (row) => (
+        <button className="btn sm" type="button" disabled={busy} onClick={() => remove(row)}>
+          رفع الحجر
+        </button>
+      ),
+    },
+  ];
+
   return (
     <div className="grid">
-      <div className="card tight">
+      <Panel className="tight">
         <div className="row">
           <label>
             العنوان
             <input
+              className="input"
               value={email}
               placeholder="blocked@example.com"
               onChange={(change) => setEmail(change.target.value)}
@@ -919,6 +986,7 @@ function SuppressionsTab() {
           <label>
             السبب
             <select
+              className="input"
               value={reason}
               onChange={(change) =>
                 setReason(change.target.value as (typeof emailSuppressionReasons)[number])
@@ -933,7 +1001,7 @@ function SuppressionsTab() {
           </label>
           <label>
             ملاحظة
-            <input value={note} onChange={(change) => setNote(change.target.value)} />
+            <input className="input" value={note} onChange={(change) => setNote(change.target.value)} />
           </label>
           <button className="btn" type="button" disabled={busy || !email.includes('@')} onClick={add}>
             إضافة حجر
@@ -943,7 +1011,7 @@ function SuppressionsTab() {
           الحجر بلا نطاق يمنع كل العملاء، وبعميلٍ يمنعه وحده. وسبب «ارتداد» أو «شكوى» يُوسم آخر رسالةٍ أُرسلت
           لذلك العنوان بـ«ارتدّت» — لأن الحجر بلا أثرٍ في السجلّ يترك السؤال معلّقاً.
         </p>
-      </div>
+      </Panel>
 
       {notice && <p className={`alert ${notice.kind}`}>{notice.text}</p>}
 
@@ -954,39 +1022,12 @@ function SuppressionsTab() {
       ) : list.status === 'error' ? (
         <ErrorBox message={list.error} onRetry={list.reload} />
       ) : (
-        <div className="card">
-          <table className="table">
-            <thead>
-              <tr>
-                <th>العنوان</th>
-                <th>النطاق</th>
-                <th>السبب</th>
-                <th>ملاحظة</th>
-                <th>أُضيف</th>
-                <th />
-              </tr>
-            </thead>
-            <tbody>
-              {(list.data?.data ?? []).map((row) => (
-                <tr key={row.id}>
-                  <td>{row.email}</td>
-                  <td>{row.tenantId ?? 'كل العملاء'}</td>
-                  <td>{REASON_LABEL[row.reason]}</td>
-                  <td className="muted">{row.note ?? '—'}</td>
-                  <td>{dateTime(row.createdAt)}</td>
-                  <td>
-                    <button className="btn sm" type="button" disabled={busy} onClick={() => remove(row)}>
-                      رفع الحجر
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <Panel flush title="قائمة الحجر">
+          <Table bare columns={suppressionColumns} rows={list.data?.data ?? []} rowKey={(row) => row.id} />
           {(list.data?.data ?? []).length === 0 && (
             <Empty title="لا عناوين محجوبة" detail="الحجر يمنع الإرسال قبل الطابور، فلا تُستهلك محاولة." />
           )}
-        </div>
+        </Panel>
       )}
     </div>
   );

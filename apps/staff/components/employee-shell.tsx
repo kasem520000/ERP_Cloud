@@ -13,11 +13,11 @@ import { ImpersonationBanner } from './impersonation-banner';
 type Notice = { id: string; title: string; body: string };
 
 const NAV_ITEMS = [
-  { href: '/m', label: '🏠 الرئيسية' },
-  { href: '/m/attendance', label: '⏱️ الحضور والانصراف' },
-  { href: '/m/requests/new', label: '📝 طلب جديد' },
-  { href: '/m/approvals', label: '✅ موافقات الفريق' },
-  { href: '/m/profile', label: '👤 راتبي وإجازاتي' },
+ { href: '/m', label: 'الرئيسية' },
+ { href: '/m/attendance', label: 'الحضور والانصراف' },
+ { href: '/m/requests/new', label: 'طلب جديد' },
+ { href: '/m/approvals', label: 'موافقات الفريق' },
+ { href: '/m/profile', label: 'راتبي وإجازاتي' },
 ];
 
 export function EmployeeShell({ children }: { children: ReactNode }) {
@@ -53,34 +53,34 @@ export function EmployeeShell({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <div className="employee-app">
-      <header className="employee-bar">
-        <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
-          <div>
-            <strong style={{ fontSize: 18 }}>📱 تطبيق الموظف الذاتي</strong>
-            <p className="muted" style={{ margin: '2px 0 0', fontSize: 12 }}>
+ <div className="employee-app">
+ <header className="employee-bar">
+ <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 10 }}>
+ <div>
+ <strong style={{ fontSize: 18 }}>تطبيق الموظف الذاتي</strong>
+ <p className="muted" style={{ margin: '2px 0 0', fontSize: 12 }}>
               {me?.membership.tenantName ?? 'المنشأة'} · {me?.user.fullName || me?.user.email || ''}
-            </p>
-          </div>
-          <Link className="btn sm" href="/">
-            ↩ العودة للنظام الرئيسي
-          </Link>
-        </div>
-        <nav>
+ </p>
+ </div>
+ <Link className="btn sm" href="/">
+ العودة للنظام الرئيسي
+ </Link>
+ </div>
+ <nav>
           {NAV_ITEMS.map((item) => (
-            <Link
+ <Link
               key={item.href}
               href={item.href}
               className={pathname === item.href ? 'btn primary sm' : 'btn sm'}
             >
               {item.label}
-            </Link>
+ </Link>
           ))}
-        </nav>
-      </header>
-      <ImpersonationBanner impersonation={me?.impersonation} lang={lang} />
+ </nav>
+ </header>
+ <ImpersonationBanner impersonation={me?.impersonation} lang={lang} />
       {notice ? <p className="alert warn">{notice.title}: {notice.body}</p> : null}
-      <main style={{ maxWidth: 860, margin: '0 auto', width: '100%' }}>{children}</main>
-    </div>
+ <main style={{ maxWidth: 860, margin: '0 auto', width: '100%' }}>{children}</main>
+ </div>
   );
 }

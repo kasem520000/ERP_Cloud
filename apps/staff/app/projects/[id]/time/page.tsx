@@ -1,5 +1,6 @@
 'use client';
 
+import { Panel } from '@erp/ui';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -9,8 +10,15 @@ import { ErrorBox, Loading, Screen } from '../../../../components/screen';
 import { ApiError } from '../../../../lib/api';
 import { loadTime, logTaskTime, type TimeLog } from '../../../../lib/project-kanban';
 import { useSession } from '../../../../lib/session';
+import { Table } from '../../../../components/ui/table';
 
-type TimeTask = { id: string; title: string; estimatedHours: string; actualHours: string; varianceHours: string };
+type TimeTask = {
+  id: string;
+  title: string;
+  estimatedHours: string;
+  actualHours: string;
+  varianceHours: string;
+};
 
 export default function ProjectTimePage() {
   const params = useParams<{ id: string }>();
@@ -35,7 +43,9 @@ export default function ProjectTimePage() {
   }
 
   useEffect(() => {
-    void reload().catch((reason: unknown) => setError(reason instanceof ApiError ? reason.message : String(reason)));
+    void reload().catch((reason: unknown) =>
+      setError(reason instanceof ApiError ? reason.message : String(reason)),
+    );
   }, [projectId]);
 
   async function save() {
@@ -62,58 +72,83 @@ export default function ProjectTimePage() {
   if (!ready) return <Loading />;
 
   return (
-    <Screen title="تتبع الوقت" subtitle="الساعات الفعلية مجموع التسجيلات. التكلفة تُحسب من معدل الموظف." crumbs={['إدارة المشاريع']} actions={<Link className="btn" href={`/projects/${projectId}/cost`}>التكلفة</Link>}>
+    <Screen
+      title="تتبع الوقت"
+      subtitle="الساعات الفعلية مجموع التسجيلات. التكلفة تُحسب من معدل الموظف."
+      crumbs={['إدارة المشاريع']}
+      actions={
+        <Link className="btn" href={`/projects/${projectId}/cost`}>
+          التكلفة
+        </Link>
+      }
+    >
       <Notice notice={notice} />
       {can('projects.time_logs.manage') ? (
-        <div className="card">
+        <Panel>
           <div className="grid gap-3 md:grid-cols-3">
             <label className="field">
               <span>المهمة</span>
-              <select value={taskId} onChange={(event) => setTaskId(event.target.value)}>
+              <select className="input" value={taskId} onChange={(event) => setTaskId(event.target.value)}>
                 {tasks.map((task) => (
-                  <option key={task.id} value={task.id}>{task.title}</option>
+                  <option key={task.id} value={task.id}>
+                    {task.title}
+                  </option>
                 ))}
               </select>
             </label>
             <label className="field">
               <span>الساعات</span>
-              <input value={hours} onChange={(event) => setHours(event.target.value)} />
+              <input className="input" value={hours} onChange={(event) => setHours(event.target.value)} />
             </label>
             <label className="field">
               <span>ملاحظة</span>
-              <input value={note} onChange={(event) => setNote(event.target.value)} />
+              <input className="input" value={note} onChange={(event) => setNote(event.target.value)} />
             </label>
           </div>
-          <button className="btn primary" type="button" disabled={busy || !taskId} onClick={() => void save()}>
+          <button
+            className="btn primary"
+            type="button"
+            disabled={busy || !taskId}
+            onClick={() => void save()}
+          >
             تسجيل
           </button>
-        </div>
+        </Panel>
       ) : null}
-      <div className="card">
-        <table>
-          <thead>
-            <tr>
-              <th>المهمة</th>
-              <th>مخطط</th>
-              <th>فعلي</th>
-              <th>الفرق</th>
-            </tr>
-          </thead>
-          <tbody>
-            {tasks.map((task) => (
-              <tr key={task.id}>
-                <td><Link href={`/projects/${projectId}/tasks/${task.id}`}>{task.title}</Link></td>
-                <td>{task.estimatedHours}</td>
-                <td>{task.actualHours}</td>
-                <td>{task.varianceHours}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+      <Panel>
+        <Table
+          bare
+          columns={[
+            {
+              key: 'c0',
+              header: 'المهمة',
+              cell: (task) => <Link href={`/projects/${projectId}/tasks/${task.id}`}>{task.title}</Link>,
+            },
+            {
+              key: 'c1',
+              header: 'مخطط',
+              cell: (task) => task.estimatedHours,
+            },
+            {
+              key: 'c2',
+              header: 'فعلي',
+              cell: (task) => task.actualHours,
+            },
+            {
+              key: 'c3',
+              header: 'الفرق',
+              cell: (task) => task.varianceHours,
+            },
+          ]}
+          rows={tasks}
+          rowKey={(task) => task.id}
+        />
         {logs.map((entry) => (
-          <p key={entry.id} className="muted">{entry.logDate} · {entry.hours} س · {entry.note ?? ''}</p>
+          <p key={entry.id} className="muted">
+            {entry.logDate} · {entry.hours} س · {entry.note ?? ''}
+          </p>
         ))}
-      </div>
+      </Panel>
     </Screen>
   );
 }

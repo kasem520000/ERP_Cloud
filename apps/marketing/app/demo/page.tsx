@@ -1,5 +1,3 @@
-import Link from 'next/link';
-
 import { LeadForm } from '../../components/lead-form';
 
 /**
@@ -11,20 +9,11 @@ import { LeadForm } from '../../components/lead-form';
  */
 export const metadata = {
   title: 'اطلب عرضاً',
-  description: 'عرضٌ مباشر على بياناتك أو على بيانات تجريبية — بلا التزام، وبجلسةٍ واحدة.',
+  description: 'عرضٌ مباشر على بياناتك أو على نموذجٍ معدّ للعرض — بلا التزام، وبجلسةٍ واحدة.',
 };
 
 export default function DemoPage() {
-  return (
-    <>
-      <section className="card hero-card">
-        <h1>اطلب عرضاً</h1>
-        <p className="muted">
-          الجلسة نصف ساعة: نبني منشأتك أمامك، نُصدر فاتورةً ضريبية، ونُراجع المخزون والتقارير. وإن
-          أردت، تبدأ تجربةً بنفسك من <Link href="/onboarding">صفحة الاشتراك</Link> قبل العرض.
-        </p>
-      </section>
-      <LeadForm kind="demo" />
-    </>
-  );
+  // البطاقة الرأسية القديمة كانت تُكرّر عنوان الاستمارة نفسها (`اطلب عرضاً` مرّتين)؛
+  // فصارت الجملة التعريفية أوّل سطرٍ داخل الاستمارة، وعنوانها هو عنوان الصفحة الوحيد.
+  return <LeadForm kind="demo" />;
 }

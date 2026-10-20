@@ -1,5 +1,6 @@
 'use client';
 
+import { Panel } from '@erp/ui';
 import { useState } from 'react';
 
 import { DataTable, Notice, QueryView } from '../../../components/data-view';
@@ -11,7 +12,15 @@ import { useQuery } from '../../../lib/use-query';
 
 type Vessel = { id: string; code: string; name: string };
 type Marina = { groups: Array<{ id: string; name: string }>; vessels: Vessel[] };
-type Booking = { id: string; vesselId: string; partyId: string; startsAt: string; endsAt: string; companions: number | null; status: string };
+type Booking = {
+  id: string;
+  vesselId: string;
+  partyId: string;
+  startsAt: string;
+  endsAt: string;
+  companions: number | null;
+  status: string;
+};
 type Preparation = {
   id: string;
   bookingId: string;
@@ -30,7 +39,10 @@ const STATUS_LABELS: Record<string, string> = { prepared: 'جاهز / بالخا
 export default function MarinaPreparationPage() {
   const { can } = useSession();
   const [day, setDay] = useState(today());
-  const preparations = useQuery<Preparation[]>(() => apiList<Preparation>(`/marina/preparations${day ? `?date=${day}` : ''}`), [day]);
+  const preparations = useQuery<Preparation[]>(
+    () => apiList<Preparation>(`/marina/preparations${day ? `?date=${day}` : ''}`),
+    [day],
+  );
   const bookings = useQuery<Booking[]>(() => apiList<Booking>('/marina/bookings'), []);
   const marina = useQuery<Marina>(() => apiData<Marina>('/marina'), []);
   const vessels = marina.data?.vessels ?? [];
@@ -49,7 +61,9 @@ export default function MarinaPreparationPage() {
   };
   const booking = bookingRows.find((row) => row.id === bookingId);
   const preparedIds = new Set((preparations.data ?? []).map((row) => row.bookingId));
-  const pending = bookingRows.filter((row) => !preparedIds.has(row.id) && !['returned', 'cancelled'].includes(row.status));
+  const pending = bookingRows.filter(
+    (row) => !preparedIds.has(row.id) && !['returned', 'cancelled'].includes(row.status),
+  );
 
   function reload() {
     preparations.reload();
@@ -98,53 +112,81 @@ export default function MarinaPreparationPage() {
       crumbs={['إدارة المراسي', 'العمليات']}
     >
       {can('marina.manage') && (
-        <form className="card" onSubmit={prepare}>
-          <h2>تحضير حجز</h2>
-          <div className="form-grid">
-            <label className="field wide">
-              <span>الحجز *</span>
-              <select className="input" value={bookingId} onChange={(event) => setBookingId(event.target.value)} required>
-                <option value="">— اختر حجزاً لم يُحضَّر بعد —</option>
-                {pending.map((row) => (
-                  <option key={row.id} value={row.id}>
-                    {`${vesselName(row.vesselId)} — ${dateTime(row.startsAt)} — مرافقون: ${row.companions ?? 0}`}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="field">
-              <span>تاريخ التحضير</span>
-              <input className="input" dir="ltr" type="date" value={day} onChange={(event) => setDay(event.target.value)} />
-            </label>
-            <label className="field">
-              <span>مستوى الوقود</span>
-              <select className="input" value={fuelLevel} onChange={(event) => setFuel(event.target.value)}>
-                <option value="full">ممتلئ</option>
-                <option value="three_quarters">¾</option>
-                <option value="half">نصف</option>
-                <option value="quarter">¼</option>
-                <option value="empty">فارغ</option>
-              </select>
-            </label>
-            <label className="field">
-              <span>سترات النجاة{booking ? ` (المطلوب ${booking.companions ?? 0})` : ''}</span>
-              <input className="input" dir="ltr" inputMode="numeric" value={lifeJackets} onChange={(event) => setJackets(event.target.value)} />
-            </label>
-            <label className="field wide">
-              <span>ملاحظات</span>
-              <input className="input" value={notes} onChange={(event) => setNotes(event.target.value)} placeholder="أعطال، نواقص، ملاحظات السلامة" />
-            </label>
-          </div>
-          <Notice notice={notice} />
-          <button className="btn primary" type="submit" disabled={busy}>
-            {busy ? 'جارٍ الحفظ…' : 'تسجيل التحضير'}
-          </button>
+        <form onSubmit={prepare}>
+          <Panel title="تحضير حجز">
+            <div className="form-grid">
+              <label className="field wide">
+                <span>الحجز *</span>
+                <select
+                  className="input"
+                  value={bookingId}
+                  onChange={(event) => setBookingId(event.target.value)}
+                  required
+                >
+                  <option value="">— اختر حجزاً لم يُحضَّر بعد —</option>
+                  {pending.map((row) => (
+                    <option key={row.id} value={row.id}>
+                      {`${vesselName(row.vesselId)} — ${dateTime(row.startsAt)} — مرافقون: ${row.companions ?? 0}`}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="field">
+                <span>تاريخ التحضير</span>
+                <input
+                  className="input"
+                  dir="ltr"
+                  type="date"
+                  value={day}
+                  onChange={(event) => setDay(event.target.value)}
+                />
+              </label>
+              <label className="field">
+                <span>مستوى الوقود</span>
+                <select className="input" value={fuelLevel} onChange={(event) => setFuel(event.target.value)}>
+                  <option value="full">ممتلئ</option>
+                  <option value="three_quarters">¾</option>
+                  <option value="half">نصف</option>
+                  <option value="quarter">¼</option>
+                  <option value="empty">فارغ</option>
+                </select>
+              </label>
+              <label className="field">
+                <span>سترات النجاة{booking ? ` (المطلوب ${booking.companions ?? 0})` : ''}</span>
+                <input
+                  className="input"
+                  dir="ltr"
+                  inputMode="numeric"
+                  value={lifeJackets}
+                  onChange={(event) => setJackets(event.target.value)}
+                />
+              </label>
+              <label className="field wide">
+                <span>ملاحظات</span>
+                <input
+                  className="input"
+                  value={notes}
+                  onChange={(event) => setNotes(event.target.value)}
+                  placeholder="أعطال، نواقص، ملاحظات السلامة"
+                />
+              </label>
+            </div>
+            <Notice notice={notice} />
+            <button className="btn primary" type="submit" disabled={busy}>
+              {busy ? 'جارٍ الحفظ…' : 'تسجيل التحضير'}
+            </button>
+          </Panel>
         </form>
       )}
 
       {!can('marina.manage') && <Notice notice={notice} />}
 
-      <QueryView query={preparations} empty="لا توجد تحضيرات في هذا اليوم" emptyDetail="اختر تاريخاً آخر أو سجِّل تحضيراً جديداً.">
+      <QueryView
+        panel="تحضيرات اليوم"
+        query={preparations}
+        empty="لا توجد تحضيرات في هذا اليوم"
+        emptyDetail="اختر تاريخاً آخر أو سجِّل تحضيراً جديداً."
+      >
         {(rows) => (
           <DataTable
             rows={rows}
@@ -155,15 +197,40 @@ export default function MarinaPreparationPage() {
               { key: 'fuel', header: 'الوقود', cell: (row) => row.fuelLevel ?? '—' },
               { key: 'jackets', header: 'سترات النجاة', align: 'num', cell: (row) => row.lifeJackets },
               { key: 'notes', header: 'ملاحظات', cell: (row) => row.notes ?? '—' },
-              { key: 'prepared', header: 'وقت التحضير', align: 'ltr', cell: (row) => dateTime(row.preparedAt) },
-              { key: 'returned', header: 'وقت العودة', align: 'ltr', cell: (row) => (row.returnedAt ? dateTime(row.returnedAt) : '—') },
-              { key: 'status', header: 'الحالة', cell: (row) => <span className="badge">{STATUS_LABELS[row.status] ?? statusLabel(row.status)}</span> },
+              {
+                key: 'prepared',
+                header: 'وقت التحضير',
+                align: 'ltr',
+                cell: (row) => dateTime(row.preparedAt),
+              },
+              {
+                key: 'returned',
+                header: 'وقت العودة',
+                align: 'ltr',
+                cell: (row) => (row.returnedAt ? dateTime(row.returnedAt) : '—'),
+              },
+              {
+                key: 'status',
+                header: 'الحالة',
+                cell: (row) => (
+                  <span className="badge">{STATUS_LABELS[row.status] ?? statusLabel(row.status)}</span>
+                ),
+              },
               {
                 key: 'actions',
                 header: '',
                 cell: (row) =>
                   row.status === 'prepared' && can('marina.manage') ? (
-                    <button className="btn sm primary" type="button" onClick={() => act(() => apiPost(`/marina/preparations/${row.id}/return`, {}), 'تم تسجيل عودة المركب.')}>
+                    <button
+                      className="btn sm primary"
+                      type="button"
+                      onClick={() =>
+                        act(
+                          () => apiPost(`/marina/preparations/${row.id}/return`, {}),
+                          'تم تسجيل عودة المركب.',
+                        )
+                      }
+                    >
                       تسجيل العودة
                     </button>
                   ) : null,

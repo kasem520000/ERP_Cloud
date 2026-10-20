@@ -1,10 +1,11 @@
 'use client';
 
+import { Panel, TableFrame } from '@erp/ui';
 import Link from 'next/link';
 import Decimal from 'decimal.js';
 import { useEffect, useMemo, useRef, useState } from 'react';
 
-import { Screen } from '../../../components/screen';
+import { Empty, Screen } from '../../../components/screen';
 import { Notice } from '../../../components/data-view';
 import { ApiError } from '../../../lib/api';
 import {
@@ -25,7 +26,7 @@ import {
 } from '../../../lib/sync-engine';
 
 const formatMoney = (raw: Decimal.Value) =>
-  new Decimal(raw).toDecimalPlaces(2).toNumber().toLocaleString('ar-SA', {
+  new Decimal(raw).toDecimalPlaces(2).toNumber().toLocaleString('en-US', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   });
@@ -382,7 +383,7 @@ export default function OfflinePosPage() {
           <span
             className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[12px] font-bold ${online ? 'bg-ok-soft text-ok-ink' : 'bg-danger-soft text-danger-ink'}`}
           >
-            {online ? '🟢 متصل' : '🔴 أوفلاين'}
+            {online ? 'متصل' : 'أوفلاين'}
           </span>
           <Link className="btn sm" href="/sales/pos">
             POS الرئيسي
@@ -400,29 +401,33 @@ export default function OfflinePosPage() {
       }
     >
       {notice ? <Notice notice={notice} /> : null}
-      {loading ? <div className="card state">جارٍ فتح التخزين المحلي…</div> : null}
+      {loading ? <p className="muted">جارٍ فتح التخزين المحلي…</p> : null}
       {!catalog && !loading ? (
-        <div className="card state">
-          <strong>لا توجد حزمة بيانات على هذا الجهاز</strong>
-          <span>اتصل بالشبكة واضغط «تحديث البيانات» قبل مغادرة الفرع.</span>
-          <button className="btn primary" type="button" onClick={downloadCatalog} disabled={busy || !online}>
-            تحميل حزمة الأوفلاين
-          </button>
-        </div>
+        <>
+          <Empty
+            title="لا توجد حزمة بيانات على هذا الجهاز"
+            detail="اتصل بالشبكة واضغط «تحديث البيانات» قبل مغادرة الفرع."
+          />
+          <div className="toolbar" style={{ justifyContent: 'center' }}>
+            <button
+              className="btn primary"
+              type="button"
+              onClick={downloadCatalog}
+              disabled={busy || !online}
+            >
+              تحميل حزمة الأوفلاين
+            </button>
+          </div>
+        </>
       ) : null}
 
       {catalog ? (
         <div className="grid cols-2">
-          <section className="card">
-            <div className="card-head">
-              <div>
-                <h2>الأصناف المحلية</h2>
-                <p className="muted small">
-                  آخر تحديث: {catalog.generatedAt ? new Date(catalog.generatedAt).toLocaleString('ar') : '—'}
-                </p>
-              </div>
-              <span className="badge draft">{catalog.items.length} صنف</span>
-            </div>
+          <Panel
+            title="الأصناف المحلية"
+            hint={`آخر تحديث: ${catalog.generatedAt ? new Date(catalog.generatedAt).toLocaleString('ar') : '—'}`}
+            actions={<span className="badge draft">{catalog.items.length} صنف</span>}
+          >
             <div className="toolbar" style={{ marginBottom: 8 }}>
               <input
                 className="input"
@@ -444,7 +449,7 @@ export default function OfflinePosPage() {
                 إضافة
               </button>
               <button className="btn" type="button" onClick={() => setScannerOpen((open) => !open)}>
-                {scannerOpen ? 'إغلاق الكاميرا' : '📷 مسح'}
+                {scannerOpen ? 'إغلاق الكاميرا' : 'مسح'}
               </button>
             </div>
             {scannerOpen ? (
@@ -487,74 +492,71 @@ export default function OfflinePosPage() {
               ))}
             </div>
             {!visibleItems.length ? <p className="muted">لا توجد أصناف مطابقة.</p> : null}
-          </section>
+          </Panel>
 
-          <section className="card">
-            <div className="card-head">
-              <h2>سلة نقدية أوفلاين</h2>
-              <span className="badge posted">{cart.length} أصناف</span>
-            </div>
+          <Panel
+            title="سلة نقدية أوفلاين"
+            actions={<span className="badge posted">{cart.length} أصناف</span>}
+          >
             {!cart.length ? (
               <p className="muted">اضغط على صنف لإضافته إلى الفاتورة المؤقتة.</p>
             ) : (
-              <div className="table-wrap">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>الصنف</th>
-                      <th>الكمية</th>
-                      <th>السعر</th>
-                      <th>الإجمالي</th>
-                      <th />
+              <TableFrame>
+                <thead>
+                  <tr>
+                    <th>الصنف</th>
+                    <th>الكمية</th>
+                    <th>السعر</th>
+                    <th>الإجمالي</th>
+                    <th />
+                  </tr>
+                </thead>
+                <tbody>
+                  {cart.map((line) => (
+                    <tr key={line.item.id}>
+                      <td>{line.item.nameAr ?? line.item.sku}</td>
+                      <td>
+                        <input
+                          className="input"
+                          dir="ltr"
+                          inputMode="decimal"
+                          value={line.quantity}
+                          onChange={(event) =>
+                            setCart((current) =>
+                              current.map((row) =>
+                                row.item.id === line.item.id
+                                  ? {
+                                      ...row,
+                                      quantity: Decimal.max(
+                                        decimalValue(event.target.value),
+                                        new Decimal(1),
+                                      ).toFixed(4),
+                                    }
+                                  : row,
+                              ),
+                            )
+                          }
+                        />
+                      </td>
+                      <td>{formatMoney(defaultPrice(catalog, line.item))}</td>
+                      <td>
+                        {formatMoney(new Decimal(defaultPrice(catalog, line.item)).times(line.quantity))}
+                      </td>
+                      <td>
+                        <button
+                          className="btn sm"
+                          type="button"
+                          onClick={() =>
+                            setCart((current) => current.filter((row) => row.item.id !== line.item.id))
+                          }
+                        >
+                          حذف
+                        </button>
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody>
-                    {cart.map((line) => (
-                      <tr key={line.item.id}>
-                        <td>{line.item.nameAr ?? line.item.sku}</td>
-                        <td>
-                          <input
-                            className="input"
-                            dir="ltr"
-                            inputMode="decimal"
-                            value={line.quantity}
-                            onChange={(event) =>
-                              setCart((current) =>
-                                current.map((row) =>
-                                  row.item.id === line.item.id
-                                    ? {
-                                        ...row,
-                                        quantity: Decimal.max(
-                                          decimalValue(event.target.value),
-                                          new Decimal(1),
-                                        ).toFixed(4),
-                                      }
-                                    : row,
-                                ),
-                              )
-                            }
-                          />
-                        </td>
-                        <td>{formatMoney(defaultPrice(catalog, line.item))}</td>
-                        <td>
-                          {formatMoney(new Decimal(defaultPrice(catalog, line.item)).times(line.quantity))}
-                        </td>
-                        <td>
-                          <button
-                            className="btn sm"
-                            type="button"
-                            onClick={() =>
-                              setCart((current) => current.filter((row) => row.item.id !== line.item.id))
-                            }
-                          >
-                            حذف
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                  ))}
+                </tbody>
+              </TableFrame>
             )}
             <dl className="kv" style={{ marginTop: 12 }}>
               <dt>الإجمالي</dt>
@@ -610,7 +612,7 @@ export default function OfflinePosPage() {
                 حفظ فاتورة نقدية أوفلاين
               </button>
               <button className="btn" type="button" disabled={!lastReceipt} onClick={printReceipt}>
-                🖨️ إيصال 80mm
+                إيصال 80mm
               </button>
               <button
                 className="btn"
@@ -625,7 +627,7 @@ export default function OfflinePosPage() {
               الأوفلاين لا يقبل الشبكة أو التحويل أو الآجل. رقم الفاتورة يبدأ بـ OFFLINE- ثم يأخذ رقماً
               حقيقياً عند المزامنة.
             </p>
-          </section>
+          </Panel>
         </div>
       ) : null}
 

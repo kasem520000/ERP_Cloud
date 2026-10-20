@@ -1,14 +1,8 @@
 'use client';
 
 import { useState } from 'react';
-import {
-  Activity,
-  Ban,
-  RefreshCw,
-  RotateCcw,
-  Server,
-  Wifi,
-} from 'lucide-react';
+import { Panel } from '@erp/ui';
+import { Activity, Ban, RefreshCw, RotateCcw, Server, Wifi } from 'lucide-react';
 
 import { Empty, ErrorBox, Forbidden, Screen } from '../../components/screen';
 import { Badge } from '../../components/ui/badge';
@@ -84,7 +78,9 @@ export default function JobsPage() {
 
   async function act(row: JobRow, action: 'retry' | 'cancel') {
     const verb = action === 'retry' ? 'إعادة' : 'إلغاء';
-    if (!window.confirm(`${verb} المهمّة «${row.type}» للعميل ${row.tenantCode ?? row.tenantId.slice(0, 8)}؟`)) {
+    if (
+      !window.confirm(`${verb} المهمّة «${row.type}» للعميل ${row.tenantCode ?? row.tenantId.slice(0, 8)}؟`)
+    ) {
       return;
     }
     setBusyId(row.id);
@@ -121,8 +117,12 @@ export default function JobsPage() {
       crumbs={['المنصة', 'التشغيل']}
       actions={
         <>
-          <Button variant="secondary" icon={<RefreshCw size={14} />} onClick={jobs.reload}>تحديث</Button>
-          <Button variant="secondary" icon={<Activity size={14} />} onClick={heartbeat.reload}>نبض العامل</Button>
+          <Button variant="secondary" icon={<RefreshCw size={14} />} onClick={jobs.reload}>
+            تحديث
+          </Button>
+          <Button variant="secondary" icon={<Activity size={14} />} onClick={heartbeat.reload}>
+            نبض العامل
+          </Button>
         </>
       }
     >
@@ -131,8 +131,12 @@ export default function JobsPage() {
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-[10px] border border-line bg-surface px-4 py-3 shadow-1 no-print">
           <span className="flex items-center gap-2 text-[13px] font-bold">
             <span className="relative flex size-2.5">
-              {running && <span className="absolute inline-flex size-full animate-ping rounded-full bg-ok opacity-60" />}
-              <span className={`relative inline-flex size-2.5 rounded-full ${running ? 'bg-ok' : 'bg-line-raised'}`} />
+              {running && (
+                <span className="absolute inline-flex size-full animate-ping rounded-full bg-ok opacity-60" />
+              )}
+              <span
+                className={`relative inline-flex size-2.5 rounded-full ${running ? 'bg-ok' : 'bg-line-raised'}`}
+              />
             </span>
             <span className={running ? 'text-ok-ink' : 'text-muted'}>
               {running ? 'عاملٌ يعمل' : 'لا عامل يعمل (WORKER=0)'}
@@ -162,7 +166,13 @@ export default function JobsPage() {
               <option value="dead">ميتة</option>
             </Select>
           </div>
-          <Input label="معرّف العميل (اختياري)" dir="ltr" placeholder="uuid" value={onlyTenant} onChange={(e) => setOnlyTenant(e.target.value)} />
+          <Input
+            label="معرّف العميل (اختياري)"
+            dir="ltr"
+            placeholder="uuid"
+            value={onlyTenant}
+            onChange={(e) => setOnlyTenant(e.target.value)}
+          />
           <Input
             label={canManage ? 'سبب الفعل (يُسجَّل في التدقيق — 5 محارف على الأقل)' : 'ملاحظاتك'}
             placeholder="مثال: مزوّد البريد عاد للعمل بعد انقطاع"
@@ -181,7 +191,9 @@ export default function JobsPage() {
       {notice ? (
         <div
           className={`mt-3 flex items-center gap-2 rounded-[10px] border px-4 py-2.5 text-[13px] font-semibold ${
-            notice.kind === 'ok' ? 'border-ok-line bg-ok-soft text-ok-ink' : 'border-danger-line bg-danger-soft text-danger-ink'
+            notice.kind === 'ok'
+              ? 'border-ok-line bg-ok-soft text-ok-ink'
+              : 'border-danger-line bg-danger-soft text-danger-ink'
           }`}
         >
           {notice.text}
@@ -198,15 +210,19 @@ export default function JobsPage() {
         <ErrorBox message={jobs.error} onRetry={jobs.reload} />
       ) : rows.length === 0 ? (
         <div className="mt-3 rounded-[10px] border border-line bg-surface p-8 shadow-1">
-          <Empty title="لا توجد مهام بهذا المرشّح" detail="هذا هو الوضع الطبيعي عندما يعمل العامل ولا توجد مهام فاشلة." />
+          <Empty
+            title="لا توجد مهام بهذا المرشّح"
+            detail="هذا هو الوضع الطبيعي عندما يعمل العامل ولا توجد مهام فاشلة."
+          />
         </div>
       ) : (
         <>
           <p className="mt-3 mb-2 text-[12px] font-semibold text-muted">
             {rows.length} من {jobs.data?.meta.total ?? rows.length} مهمّة
           </p>
-          <div className="overflow-hidden rounded-[10px] border border-line bg-surface shadow-1">
+          <Panel flush title="المهام">
             <Table
+              bare
               rows={rows}
               rowKey={(row) => row.id}
               dense
@@ -215,15 +231,39 @@ export default function JobsPage() {
                   key: 'runAt',
                   header: 'الاستحقاق',
                   ltr: true,
-                  cell: (row) => <span className="font-mono text-[11.5px] text-muted">{new Date(row.runAt).toLocaleString('en-GB', { timeZone: 'UTC' })} UTC</span>,
+                  cell: (row) => (
+                    <span className="font-mono text-[11.5px] text-muted">
+                      {new Date(row.runAt).toLocaleString('en-GB', { timeZone: 'UTC' })} UTC
+                    </span>
+                  ),
                 },
                 {
                   key: 'tenant',
                   header: 'العميل',
-                  cell: (row) => <span className="font-mono text-[12px] font-semibold text-ink-2" dir="ltr">{row.tenantCode ?? row.tenantId.slice(0, 8)}</span>,
+                  cell: (row) => (
+                    <span className="font-mono text-[12px] font-semibold text-ink-2" dir="ltr">
+                      {row.tenantCode ?? row.tenantId.slice(0, 8)}
+                    </span>
+                  ),
                 },
-                { key: 'queue', header: 'الطابور', cell: (row) => <span className="font-mono text-[11.5px] text-muted" dir="ltr">{row.queue}</span> },
-                { key: 'type', header: 'النوع', cell: (row) => <span className="font-mono text-[11.5px] text-ink-2" dir="ltr">{row.type}</span> },
+                {
+                  key: 'queue',
+                  header: 'الطابور',
+                  cell: (row) => (
+                    <span className="font-mono text-[11.5px] text-muted" dir="ltr">
+                      {row.queue}
+                    </span>
+                  ),
+                },
+                {
+                  key: 'type',
+                  header: 'النوع',
+                  cell: (row) => (
+                    <span className="font-mono text-[11.5px] text-ink-2" dir="ltr">
+                      {row.type}
+                    </span>
+                  ),
+                },
                 {
                   key: 'status',
                   header: 'الحالة',
@@ -237,9 +277,13 @@ export default function JobsPage() {
                         <Server size={11} /> {STATUS_LABEL[row.status]}
                       </span>
                     ) : row.status === 'dead' ? (
-                      <Badge tone="red" dot>{STATUS_LABEL[row.status]}</Badge>
+                      <Badge tone="red" dot>
+                        {STATUS_LABEL[row.status]}
+                      </Badge>
                     ) : (
-                      <Badge tone="green" dot>{STATUS_LABEL[row.status]}</Badge>
+                      <Badge tone="green" dot>
+                        {STATUS_LABEL[row.status]}
+                      </Badge>
                     ),
                 },
                 {
@@ -247,7 +291,13 @@ export default function JobsPage() {
                   header: 'المحاولات',
                   numeric: true,
                   ltr: true,
-                  cell: (row) => <span className={`font-mono text-[12px] font-bold ${row.attempts > 3 ? 'text-danger' : 'text-ink-2'}`}>{row.attempts}</span>,
+                  cell: (row) => (
+                    <span
+                      className={`font-mono text-[12px] font-bold ${row.attempts > 3 ? 'text-danger' : 'text-ink-2'}`}
+                    >
+                      {row.attempts}
+                    </span>
+                  ),
                 },
                 {
                   key: 'payload',
@@ -258,7 +308,10 @@ export default function JobsPage() {
                     ) : (
                       <span className="flex flex-wrap gap-1" dir="ltr">
                         {row.payloadKeys.map((key) => (
-                          <span key={key} className="rounded-md border border-line bg-surface-2 px-1.5 py-0.5 font-mono text-[10.5px] text-muted">
+                          <span
+                            key={key}
+                            className="rounded-md border border-line bg-surface-2 px-1.5 py-0.5 font-mono text-[10.5px] text-muted"
+                          >
                             {key}
                           </span>
                         ))}
@@ -270,7 +323,11 @@ export default function JobsPage() {
                   header: 'آخر خطأ',
                   cell: (row) =>
                     row.lastError ? (
-                      <span className="block max-w-[260px] truncate font-mono text-[11px] text-danger" dir="ltr" title={row.lastError}>
+                      <span
+                        className="block max-w-[260px] truncate font-mono text-xs text-danger"
+                        dir="ltr"
+                        title={row.lastError}
+                      >
                         {row.lastError}
                       </span>
                     ) : (
@@ -313,7 +370,7 @@ export default function JobsPage() {
                   : []),
               ]}
             />
-          </div>
+          </Panel>
         </>
       )}
     </Screen>

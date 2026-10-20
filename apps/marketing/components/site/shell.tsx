@@ -17,6 +17,8 @@ import { NewsletterForm } from '../newsletter-form';
 import { ConsentStatusLine } from './consent-banner';
 import { HeaderScroll } from './header-scroll';
 import { LocaleSwitch } from './locale-switch';
+import { MobileNav } from './mobile-nav';
+import { NavMore } from './nav-more';
 
 function menuItems(items: MenuItem[], locale: Locale) {
   return items.map((item) => (
@@ -30,14 +32,20 @@ function menuItems(items: MenuItem[], locale: Locale) {
 export function SiteHeader({ shell, locale }: { shell: SiteShell; locale: Locale }) {
   const cmsMenu = shell.menus.header ?? [];
   // قائمة الرأس من نظام المحتوى إن وُجدت؛ وإلا فالافتراضية من `lib/navigation.ts`.
-  const nav =
+  // The same items feed the desktop nav and the mobile panel — one source.
+  const items: Array<{ key: string; href: string; label: string }> =
     cmsMenu.length > 0
-      ? menuItems(cmsMenu, locale)
-      : siteNavLinks(locale).map((link) => (
-          <Link key={link.key} href={link.href}>
-            {link.label}
-          </Link>
-        ));
+      ? cmsMenu.map((item) => ({
+          key: item.key,
+          href: item.href,
+          label: locale === 'en' ? (item.labelEn ?? item.labelAr) : item.labelAr,
+        }))
+      : siteNavLinks(locale);
+  // Five core destinations stay in the strip; the rest live in «المزيد» so the
+  // header never wraps (9 links need ~1 295px inside a 1 180px container).
+  const PRIMARY = new Set(['features', 'pricing', 'cases', 'blog', 'contact']);
+  const primaryItems = items.filter((item) => PRIMARY.has(item.key));
+  const moreItems = items.filter((item) => !PRIMARY.has(item.key));
 
   return (
     <header className="site-header">
@@ -49,7 +57,12 @@ export function SiteHeader({ shell, locale }: { shell: SiteShell; locale: Locale
           <span className="brand-name">{shell.brandName}</span>
         </Link>
         <nav className="site-nav" aria-label={locale === 'ar' ? 'التنقّل الرئيسي' : 'Main navigation'}>
-          {nav}
+          {primaryItems.map((link) => (
+            <Link key={link.key} href={link.href}>
+              {link.label}
+            </Link>
+          ))}
+          <NavMore items={moreItems} label={locale === 'ar' ? 'المزيد' : 'More'} />
         </nav>
         <div className="header-actions">
           {/* Design v3 §2.1 — the site follows the OS by default and offers the
@@ -63,6 +76,14 @@ export function SiteHeader({ shell, locale }: { shell: SiteShell; locale: Locale
           <Link className="btn primary" href="/onboarding">
             {t(locale, 'cta.start')}
           </Link>
+          <MobileNav
+            items={items}
+            loginHref="/login"
+            loginLabel={t(locale, 'cta.login')}
+            startHref="/onboarding"
+            startLabel={t(locale, 'cta.start')}
+            label={locale === 'ar' ? 'القائمة' : 'Menu'}
+          />
         </div>
       </div>
     </header>
@@ -143,12 +164,12 @@ export function SiteFooter({ shell, locale }: { shell: SiteShell; locale: Locale
         <NewsletterForm locale={locale} compact />
 
         {legalItems.length > 0 ? (
-          <nav className="footer-group" aria-label={t(locale, 'footer.legal')}>
+          <nav className="footer-group footer-group-legal" aria-label={t(locale, 'footer.legal')}>
             <h2>{t(locale, 'footer.legal')}</h2>
             {menuItems(legalItems, locale)}
           </nav>
         ) : (
-          <nav className="footer-group" aria-label={t(locale, 'footer.legal')}>
+          <nav className="footer-group footer-group-legal" aria-label={t(locale, 'footer.legal')}>
             <h2>{t(locale, 'footer.legal')}</h2>
             <Link href={locale === 'ar' ? '/legal/terms' : '/en/legal/terms'}>
               {locale === 'ar' ? 'شروط الاستخدام' : 'Terms of use'}

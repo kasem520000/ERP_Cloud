@@ -103,13 +103,13 @@ export function ToastProvider({ children }: { children: ReactNode }) {
               transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
               role={toast.tone === 'danger' ? 'alert' : 'status'}
               className={cn(
-                'pointer-events-auto flex w-full max-w-sm items-start gap-2.5 rounded-lg border p-3 shadow-4 backdrop-blur',
+                'pointer-events-auto flex w-full max-w-sm items-start gap-2.5 rounded-xl border p-3.5 shadow-5 backdrop-blur-md',
                 TONE_STYLE[toast.tone].box,
               )}
             >
               <span className="mt-px flex-none">{TONE_STYLE[toast.tone].icon}</span>
               <div className="min-w-0 flex-1">
-                <p className="m-0 text-[13px] font-bold">{toast.title}</p>
+                <p className="m-0 text-[13px] font-bold tracking-[-0.01em]">{toast.title}</p>
                 {toast.description ? (
                   <p className="m-0 mt-0.5 text-[12px] leading-relaxed opacity-90">
                     {toast.description}

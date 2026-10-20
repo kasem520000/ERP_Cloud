@@ -1,5 +1,6 @@
 'use client';
 
+import { Panel } from '@erp/ui';
 import { useEffect, useState } from 'react';
 
 import { Notice } from '../../../components/data-view';
@@ -132,27 +133,34 @@ export default function AiSettingsPage() {
         <p className="alert warn">أوقف مشغّل المنصة المساعد لهذه المنشأة.</p>
       ) : null}
 
-      <div className="kpi-grid">
-        <div className="kpi">
-          <span>حالة المساعد</span>
-          <strong>{enabled ? 'مفعّل' : 'متوقف'}</strong>
+      <div className="ui-kpi-strip">
+        <div className="ui-kpi-cell">
+          <span className="ui-kpi-label">حالة المساعد</span>
+          <span className="ui-kpi-value">{enabled ? 'مفعّل' : 'متوقف'}</span>
+          <span className="ui-kpi-hint">حسب إعداد المنشأة</span>
         </div>
-        <div className="kpi">
-          <span>المزوّد الفعّال</span>
-          <strong dir="ltr">{settings?.effectiveProvider ?? 'local'}</strong>
+        <div className="ui-kpi-cell">
+          <span className="ui-kpi-label">المزوّد الفعّال</span>
+          <span className="ui-kpi-value" dir="ltr">
+            {settings?.effectiveProvider ?? 'local'}
+          </span>
+          <span className="ui-kpi-hint">المزوّد الذي يخدم الطلبات الآن</span>
         </div>
-        <div className="kpi">
-          <span>النموذج الفعّال</span>
-          <strong dir="ltr">{settings?.effectiveModel ?? 'local-grounded'}</strong>
+        <div className="ui-kpi-cell">
+          <span className="ui-kpi-label">النموذج الفعّال</span>
+          <span className="ui-kpi-value" dir="ltr">
+            {settings?.effectiveModel ?? 'local-grounded'}
+          </span>
+          <span className="ui-kpi-hint">يُستبدل تلقائياً عند تعذّر الأصل</span>
         </div>
-        <div className="kpi">
-          <span>استهلاك الشهر ({settings?.usage.period ?? '—'})</span>
-          <strong>{(settings?.usage.tokens ?? 0).toLocaleString('ar-SA')} توكن</strong>
+        <div className="ui-kpi-cell">
+          <span className="ui-kpi-label">استهلاك الشهر ({settings?.usage.period ?? '—'})</span>
+          <span className="ui-kpi-value">{(settings?.usage.tokens ?? 0).toLocaleString('en-US')} توكن</span>
+          <span className="ui-kpi-hint">يُعاد ضبطه أول كل شهر</span>
         </div>
       </div>
 
       <form
-        className="card"
         onSubmit={(event) => {
           event.preventDefault();
           setBusy(true);
@@ -177,144 +185,145 @@ export default function AiSettingsPage() {
             .finally(() => setBusy(false));
         }}
       >
-        <h3 style={{ marginTop: 0 }}>إعدادات مزوّد الذكاء الاصطناعي (AI API)</h3>
-        <div className="form-grid">
-          <label className="field">
-            <span>تفعيل المساعد في المنشأة</span>
-            <select
-              className="input"
-              value={enabled ? 'on' : 'off'}
-              onChange={(event) => setEnabled(event.target.value === 'on')}
-            >
-              <option value="on">مفعّل</option>
-              <option value="off">متوقف</option>
-            </select>
-          </label>
+        <Panel title="إعدادات مزوّد الذكاء الاصطناعي (AI API)">
+          <div className="form-grid">
+            <label className="field">
+              <span>تفعيل المساعد في المنشأة</span>
+              <select
+                className="input"
+                value={enabled ? 'on' : 'off'}
+                onChange={(event) => setEnabled(event.target.value === 'on')}
+              >
+                <option value="on">مفعّل</option>
+                <option value="off">متوقف</option>
+              </select>
+            </label>
 
-          <label className="field">
-            <span>مزوّد الذكاء الاصطناعي (Provider)</span>
-            <select
-              className="input"
-              value={provider}
-              onChange={(event) => setProvider(event.target.value)}
-            >
-              <option value="">وراثة إعداد المنصة الافتراضي</option>
-              <option value="openai">OpenAI (GPT-4o / GPT-4.1)</option>
-              <option value="anthropic">Anthropic (Claude 3.5 Sonnet / Haiku)</option>
-              <option value="gemini">Google Gemini API</option>
-              <option value="custom">مزوّد متوافق مع OpenAI API (OpenRouter / Groq / vLLM)</option>
-              <option value="local">محلي مدمج — إجابات محاسبية مباشرة من مجاميع المنشأة</option>
-            </select>
-          </label>
+            <label className="field">
+              <span>مزوّد الذكاء الاصطناعي (Provider)</span>
+              <select
+                className="input"
+                value={provider}
+                onChange={(event) => setProvider(event.target.value)}
+              >
+                <option value="">وراثة إعداد المنصة الافتراضي</option>
+                <option value="openai">OpenAI (GPT-4o / GPT-4.1)</option>
+                <option value="anthropic">Anthropic (Claude 3.5 Sonnet / Haiku)</option>
+                <option value="gemini">Google Gemini API</option>
+                <option value="custom">مزوّد متوافق مع OpenAI API (OpenRouter / Groq / vLLM)</option>
+                <option value="local">محلي مدمج — إجابات محاسبية مباشرة من مجاميع المنشأة</option>
+              </select>
+            </label>
 
-          <label className="field">
-            <span>اسم النموذج (Model)</span>
-            <input
-              className="input mono"
-              dir="ltr"
-              list="ai-models-list"
-              value={model}
-              onChange={(event) => setModel(event.target.value)}
-              placeholder={settings?.effectiveModel || 'gpt-4o-mini'}
-            />
-            <datalist id="ai-models-list">
-              {suggestedModels.map((item) => (
-                <option key={item} value={item} />
-              ))}
-            </datalist>
-          </label>
+            <label className="field">
+              <span>اسم النموذج (Model)</span>
+              <input
+                className="input mono"
+                dir="ltr"
+                list="ai-models-list"
+                value={model}
+                onChange={(event) => setModel(event.target.value)}
+                placeholder={settings?.effectiveModel || 'gpt-4o-mini'}
+              />
+              <datalist id="ai-models-list">
+                {suggestedModels.map((item) => (
+                  <option key={item} value={item} />
+                ))}
+              </datalist>
+            </label>
 
-          <label className="field">
-            <span>مفتاح API السري (API Key)</span>
-            <input
-              className="input mono"
-              type="password"
-              dir="ltr"
-              value={apiKey}
-              onChange={(event) => setApiKey(event.target.value)}
-              placeholder={
-                settings?.apiKeyMasked
-                  ? `محفوظ (${settings.apiKeyMasked}) — اتركه فارغاً للإبقاء عليه`
-                  : 'sk-... أو claude-... أو AIza...'
-              }
-            />
-          </label>
+            <label className="field">
+              <span>مفتاح API السري (API Key)</span>
+              <input
+                className="input mono"
+                type="password"
+                dir="ltr"
+                value={apiKey}
+                onChange={(event) => setApiKey(event.target.value)}
+                placeholder={
+                  settings?.apiKeyMasked
+                    ? `محفوظ (${settings.apiKeyMasked}) — اتركه فارغاً للإبقاء عليه`
+                    : 'sk-... أو claude-... أو AIza...'
+                }
+              />
+            </label>
 
-          <label className="field">
-            <span>رابط نقطة النهاية المخصّص (Base URL — اختياري)</span>
-            <input
-              className="input mono"
-              dir="ltr"
-              value={baseUrl}
-              onChange={(event) => setBaseUrl(event.target.value)}
-              placeholder={
-                provider === 'anthropic'
-                  ? 'https://api.anthropic.com'
-                  : provider === 'gemini'
-                    ? 'https://generativelanguage.googleapis.com/v1beta/openai'
-                    : 'https://api.openai.com'
-              }
-            />
-          </label>
+            <label className="field">
+              <span>رابط نقطة النهاية المخصّص (Base URL — اختياري)</span>
+              <input
+                className="input mono"
+                dir="ltr"
+                value={baseUrl}
+                onChange={(event) => setBaseUrl(event.target.value)}
+                placeholder={
+                  provider === 'anthropic'
+                    ? 'https://api.anthropic.com'
+                    : provider === 'gemini'
+                      ? 'https://generativelanguage.googleapis.com/v1beta/openai'
+                      : 'https://api.openai.com'
+                }
+              />
+            </label>
 
-          <label className="field">
-            <span>حد التوكنز الشهري</span>
-            <input
-              className="input"
-              dir="ltr"
-              inputMode="numeric"
-              value={tokenLimit}
-              placeholder="200000"
-              onChange={(event) => setTokenLimit(event.target.value)}
-            />
-          </label>
+            <label className="field">
+              <span>حد التوكنز الشهري</span>
+              <input
+                className="input"
+                dir="ltr"
+                inputMode="numeric"
+                value={tokenLimit}
+                placeholder="200000"
+                onChange={(event) => setTokenLimit(event.target.value)}
+              />
+            </label>
 
-          <label className="field">
-            <span>سقف التكلفة الشهري (USD)</span>
-            <input
-              className="input"
-              dir="ltr"
-              value={costLimit}
-              placeholder="25.00"
-              onChange={(event) => setCostLimit(event.target.value)}
-            />
-          </label>
-        </div>
+            <label className="field">
+              <span>سقف التكلفة الشهري (USD)</span>
+              <input
+                className="input"
+                dir="ltr"
+                value={costLimit}
+                placeholder="25.00"
+                onChange={(event) => setCostLimit(event.target.value)}
+              />
+            </label>
+          </div>
 
-        <p className="muted" style={{ marginTop: 12 }}>
-          الاستهلاك هذا الشهر ({settings?.usage.period ?? '—'}):{' '}
-          <strong>{settings?.usage.tokens ?? 0}</strong> توكن · التكلفة التقديرية:{' '}
-          <strong>${settings?.usage.spent ?? '0.00'}</strong>.{' '}
-          {settings?.hasTenantApiKey
-            ? `مفتاح API خاص بالمنشأة محفوظ ومشفّر (${settings.apiKeyMasked ?? '••••'}).`
-            : settings?.hasPlatformKey
-              ? 'يستخدم مفتاح المنصة السحابي المشترك.'
-              : 'لا يوجد مفتاح API خارجي حالياً — يعمل بالمحرك المحاسبي المحلي المدمج.'}
-        </p>
+          <p className="muted" style={{ marginTop: 12 }}>
+            الاستهلاك هذا الشهر ({settings?.usage.period ?? '—'}):{' '}
+            <strong>{settings?.usage.tokens ?? 0}</strong> توكن · التكلفة التقديرية:{' '}
+            <strong>${settings?.usage.spent ?? '0.00'}</strong>.{' '}
+            {settings?.hasTenantApiKey
+              ? `مفتاح API خاص بالمنشأة محفوظ ومشفّر (${settings.apiKeyMasked ?? '••••'}).`
+              : settings?.hasPlatformKey
+                ? 'يستخدم مفتاح المنصة السحابي المشترك.'
+                : 'لا يوجد مفتاح API خارجي حالياً — يعمل بالمحرك المحاسبي المحلي المدمج.'}
+          </p>
 
-        <div className="toolbar" style={{ marginTop: 14 }}>
-          <button className="btn primary" type="submit" disabled={busy}>
-            {busy ? 'جارٍ الحفظ…' : 'حفظ إعدادات المساعد'}
-          </button>
-          <button
-            className="btn"
-            type="button"
-            disabled={busy || testing}
-            onClick={() => void testConnection()}
-          >
-            {testing ? 'جارٍ الاختبار…' : 'فحص الاتصال بـ AI API'}
-          </button>
-          {settings?.hasTenantApiKey ? (
-            <button
-              className="btn danger"
-              type="button"
-              disabled={busy}
-              onClick={() => void clearSavedKey()}
-            >
-              مسح مفتاح API المحفوظ
+          <div className="toolbar" style={{ marginTop: 14 }}>
+            <button className="btn primary" type="submit" disabled={busy}>
+              {busy ? 'جارٍ الحفظ…' : 'حفظ إعدادات المساعد'}
             </button>
-          ) : null}
-        </div>
+            <button
+              className="btn"
+              type="button"
+              disabled={busy || testing}
+              onClick={() => void testConnection()}
+            >
+              {testing ? 'جارٍ الاختبار…' : 'فحص الاتصال بـ AI API'}
+            </button>
+            {settings?.hasTenantApiKey ? (
+              <button
+                className="btn danger"
+                type="button"
+                disabled={busy}
+                onClick={() => void clearSavedKey()}
+              >
+                مسح مفتاح API المحفوظ
+              </button>
+            ) : null}
+          </div>
+        </Panel>
       </form>
     </Screen>
   );

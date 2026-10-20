@@ -1,7 +1,8 @@
 'use client';
 
+import { Panel } from '@erp/ui';
 import { motion } from 'framer-motion';
-import { Check, Languages } from 'lucide-react';
+import { Check } from 'lucide-react';
 
 import { Screen } from '../../../components/screen';
 import { useLang, type Lang } from '../../../lib/i18n';
@@ -17,7 +18,7 @@ import { useLang, type Lang } from '../../../lib/i18n';
 export default function LanguagePage() {
   const { lang, setLang, dir } = useLang();
 
-  const option = (value: Lang, titleAr: string, titleEn: string, detail: string, flag: string) => {
+  const option = (value: Lang, titleAr: string, titleEn: string, detail: string) => {
     const active = lang === value;
     return (
       <motion.button
@@ -38,7 +39,12 @@ export default function LanguagePage() {
           </span>
         ) : null}
         <div className="flex items-center gap-3">
-          <span className="grid place-items-center size-11 rounded-xl bg-surface-3 text-2xl flex-none">{flag}</span>
+          <span
+            className="grid place-items-center size-11 rounded-xl bg-surface-3 text-[12px] font-bold tracking-wide text-ink-2 flex-none"
+            dir="ltr"
+          >
+            {value.toUpperCase()}
+          </span>
           <div className="min-w-0">
             <p className="m-0 text-[15px] font-bold text-ink">
               {titleAr} <span className="text-muted font-semibold">· {titleEn}</span>
@@ -52,21 +58,24 @@ export default function LanguagePage() {
 
   return (
     <Screen title="اللغة" subtitle="Language" crumbs={['الإعدادات', 'عامة']}>
-      <section className="rounded-xl border border-line bg-surface p-4 shadow-1">
-        <div className="flex items-center gap-2 mb-3">
-          <span className="grid place-items-center size-8 rounded-lg bg-brand-50 text-brand-600">
-            <Languages size={16} />
-          </span>
-          <h3 className="m-0 text-[15px] font-bold text-ink">اختر لغة الواجهة</h3>
-        </div>
+      <Panel title="لغة الواجهة" hint="يُطبَّق الاختيار على القوائم والتنقل وشاشة الدخول.">
         <div className="grid gap-3 sm:grid-cols-2">
-          {option('ar', 'العربية', 'Arabic', 'اتجاه الكتابة من اليمين إلى اليسار (RTL). هذا هو الوضع الافتراضي للنظام.', '🇸🇦')}
-          {option('en', 'الإنجليزية', 'English', 'Left-to-right (LTR). Shell, menus and the login screen switch; screen content stays Arabic-first.', '🇬🇧')}
+          {option(
+            'ar',
+            'العربية',
+            'Arabic',
+            'اتجاه الكتابة من اليمين إلى اليسار (RTL). هذا هو الوضع الافتراضي للنظام.',
+          )}
+          {option(
+            'en',
+            'الإنجليزية',
+            'English',
+            'Left-to-right (LTR). Shell, menus and the login screen switch; screen content stays Arabic-first.',
+          )}
         </div>
-      </section>
+      </Panel>
 
-      <section className="rounded-xl border border-line bg-surface p-4 shadow-1">
-        <h3 className="m-0 text-[15px] font-bold text-ink mb-2">{lang === 'ar' ? 'معاينة' : 'Preview'}</h3>
+      <Panel title={lang === 'ar' ? 'معاينة' : 'Preview'}>
         <p className="m-0 text-[13.5px] text-ink-2">
           {lang === 'ar'
             ? 'هكذا تظهر النصوص العامة في النظام: الرئيسية، تسجيل الخروج، رسائل الدخول، وحالات الشاشات.'
@@ -80,7 +89,7 @@ export default function LanguagePage() {
             ? 'تنطبق اللغة على واجهة النظام العامة وقوائم التنقل وشاشة الدخول، بينما تبقى بيانات المستندات والتقارير بلغتها الأصلية.'
             : 'The preference applies to the shared chrome, navigation and login screen; document and report content keeps its original language.'}
         </p>
-      </section>
+      </Panel>
     </Screen>
   );
 }

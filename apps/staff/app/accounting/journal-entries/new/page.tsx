@@ -1,8 +1,10 @@
 'use client';
 
 import { Decimal } from 'decimal.js';
+import { Trash2 } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
 import { Suspense, useMemo, useState } from 'react';
+import { Panel, TableFrame } from '@erp/ui';
 
 import { ErrorBox, Forbidden, Loading, Screen } from '../../../../components/screen';
 import { ApiError, apiData, apiPost } from '../../../../lib/api';
@@ -12,13 +14,13 @@ import { useSession } from '../../../../lib/session';
 import { useQuery } from '../../../../lib/use-query';
 
 /**
- * 📒 إنشاء قيد يومية — `Form_WPF/FrmNewEntry.xaml` («إنشاء قيد يومية»).
+ * إنشاء قيد يومية — `Form_WPF/FrmNewEntry.xaml` («إنشاء قيد يومية»).
  *
  * The card above the grid is laid out exactly as the window lays it out:
- * `رقم القيد` (read-only, allocated by `LoadResNo` on save) · `📅 التاريخ` · `⏰ الوقت`
+ * `رقم القيد` (read-only, allocated by `LoadResNo` on save) · ` التاريخ` · `⏰ الوقت`
  * · `🔑 الرقم العام` (read-only) · `✅ قيد ضريبي` · `📝 الملاحظة`. The grid is
  * `📋 تفاصيل القيد` with the window's own columns
- * `# · رمز الحساب · اسم الحساب · مدين · دائن · مركز تكلفة · الشرح · المندوب · 🗑️ حذف`,
+ * `# · رمز الحساب · اسم الحساب · مدين · دائن · مركز تكلفة · الشرح · المندوب · حذف`,
  * `الفرق=` in its header — gold, and green only when the two sides are equal
  * (`.xaml.cs` L1236–L1246) — and `مجموع المدين:` / `مجموع الدائن:` in its footer.
  *
@@ -79,7 +81,10 @@ function JournalEntryForm() {
   const accounts = useQuery<Account[]>(() => apiData<Account[]>('/accounts'), []);
   const branches = useQuery<Branch[]>(() => apiData<Branch[]>('/branches'), []);
   const periods = useQuery<Period[]>(() => apiData<Period[]>('/fiscal-periods'), []);
-  const costCenters = useQuery<CostCenter[]>(() => apiData<CostCenter[]>('/cost-centers').catch(() => [] as CostCenter[]), []);
+  const costCenters = useQuery<CostCenter[]>(
+    () => apiData<CostCenter[]>('/cost-centers').catch(() => [] as CostCenter[]),
+    [],
+  );
   // المندوب هنا موظفٌ من HRM: `journal_entry_lines.salesman_id` مفتاحٌ أجنبي إلى `employees(id)`
   // (packages/database/src/schema/accounting.ts:168). المسار الصحيح `GET /hrm/employees` — وكان
   // هذا الموضع ينادي `/employees` غير الموجود (404) فيبتلعه `.catch` وتبقى القائمة فارغة دائماً.
@@ -98,7 +103,10 @@ function JournalEntryForm() {
   /** `رقم القيد` و`🔑 الرقم العام` — allocated by the server, shown once it answers. */
   const [posted, setPosted] = useState<{ number?: string; id?: string } | undefined>();
 
-  const byCode = useMemo(() => new Map((accounts.data ?? []).map((account) => [account.code, account])), [accounts.data]);
+  const byCode = useMemo(
+    () => new Map((accounts.data ?? []).map((account) => [account.code, account])),
+    [accounts.data],
+  );
   const postable = useMemo(() => (accounts.data ?? []).filter(postableOf), [accounts.data]);
   const openPeriods = useMemo(
     () => (periods.data ?? []).filter((period) => (period.status ?? 'open') === 'open'),
@@ -129,7 +137,9 @@ function JournalEntryForm() {
     if (entered.length === 0) return 'لا يوجد بيانات';
     const nameless = entered.findIndex((line) => !(line.accountId || resolve(line.code.trim())));
     if (nameless >= 0) return 'يجب إدخال اسم ورقم الحساب';
-    const valueless = entered.findIndex((line) => decimal(line.debit).isZero() && decimal(line.credit).isZero());
+    const valueless = entered.findIndex(
+      (line) => decimal(line.debit).isZero() && decimal(line.credit).isZero(),
+    );
     if (valueless >= 0) return `يوجد بند رقم ${valueless + 1} بدون قيمة، يجب إدخال القيمة أو حذفه`;
     if (!balanced) return 'لا يمكن حفظ قيد غير متوازن';
     return undefined;
@@ -212,7 +222,8 @@ function JournalEntryForm() {
   }
 
   if (!can('accounting.journal.post')) return <Forbidden />;
-  if (accounts.status === 'loading' || branches.status === 'loading' || periods.status === 'loading') return <Loading rows={6} />;
+  if (accounts.status === 'loading' || branches.status === 'loading' || periods.status === 'loading')
+    return <Loading rows={6} />;
   if (accounts.status === 'forbidden') return <Forbidden />;
   if (accounts.status === 'error') return <ErrorBox message={accounts.error} onRetry={accounts.reload} />;
 
@@ -220,21 +231,26 @@ function JournalEntryForm() {
 
   return (
     <Screen
-      title={isOpening ? 'قيد إفتتاحي' : '📒 إنشاء قيد يومية'}
+      title={isOpening ? 'قيد إفتتاحي' : 'إنشاء قيد يومية'}
       subtitle="القيد المزدوج: كل سطر إما مدين أو دائن، والمجموعان يجب أن يتساويا قبل الترحيل."
       crumbs={['المحاسبة', 'العمليات']}
       actions={
         <button className="btn" type="button" onClick={() => window.print()}>
-          🖨️ طباعة
+          طباعة
         </button>
       }
     >
-      <form className="grid" onSubmit={submit}>
-        <section className="card">
+      <form className="grid ui-doc-form" onSubmit={submit}>
+        <Panel title="بيانات القيد">
           <div className="form-grid">
             <label className="field">
               <span>الفرع *</span>
-              <select className="input" value={branchId} onChange={(event) => setBranchId(event.target.value)} required>
+              <select
+                className="input"
+                value={branchId}
+                onChange={(event) => setBranchId(event.target.value)}
+                required
+              >
                 <option value="">— اختر الفرع</option>
                 {(branches.data ?? []).map((branch) => (
                   <option key={branch.id} value={branch.id}>
@@ -246,7 +262,12 @@ function JournalEntryForm() {
             </label>
             <label className="field">
               <span>الفترة المحاسبية *</span>
-              <select className="input" value={periodId} onChange={(event) => setPeriodId(event.target.value)} required>
+              <select
+                className="input"
+                value={periodId}
+                onChange={(event) => setPeriodId(event.target.value)}
+                required
+              >
                 <option value="">— اختر الفترة</option>
                 {openPeriods.map((period) => (
                   <option key={period.id} value={period.id}>
@@ -258,26 +279,50 @@ function JournalEntryForm() {
             {/* رقم القيد — `FrmNewEntry` allocates it on save, so it is read-only here. */}
             <label className="field">
               <span>رقم القيد</span>
-              <input className="input" dir="ltr" value={posted?.number ?? ''} readOnly placeholder="يُولَّد عند الحفظ" />
+              <input
+                className="input"
+                dir="ltr"
+                value={posted?.number ?? ''}
+                readOnly
+                placeholder="يُولَّد عند الحفظ"
+              />
             </label>
             <label className="field">
-              <span>📅 التاريخ *</span>
-              <input className="input" type="date" value={date} onChange={(event) => setDate(event.target.value)} required />
+              <span>التاريخ *</span>
+              <input
+                className="input"
+                type="date"
+                value={date}
+                onChange={(event) => setDate(event.target.value)}
+                required
+              />
             </label>
             <label className="field">
-              <span>⏰ الوقت</span>
-              <input className="input" type="time" dir="ltr" value={time} onChange={(event) => setTime(event.target.value)} />
+              <span>الوقت</span>
+              <input
+                className="input"
+                type="time"
+                dir="ltr"
+                value={time}
+                onChange={(event) => setTime(event.target.value)}
+              />
             </label>
             <label className="field">
-              <span>🔑 الرقم العام</span>
-              <input className="input" dir="ltr" value={posted?.id ?? ''} readOnly placeholder="يُولَّد عند الحفظ" />
+              <span>الرقم العام</span>
+              <input
+                className="input"
+                dir="ltr"
+                value={posted?.id ?? ''}
+                readOnly
+                placeholder="يُولَّد عند الحفظ"
+              />
             </label>
             <label className="check" style={{ alignSelf: 'end', marginBottom: 10 }}>
               <input type="checkbox" checked={isVat} onChange={(event) => setIsVat(event.target.checked)} />
-              ✅ قيد ضريبي
+              قيد ضريبي
             </label>
             <label className="field" style={{ gridColumn: '1 / -1' }}>
-              <span>📝 الملاحظة</span>
+              <span>الملاحظة</span>
               <input
                 className="input"
                 value={description}
@@ -287,153 +332,150 @@ function JournalEntryForm() {
             </label>
           </div>
           {openPeriods.length === 0 && (
-            <p className="alert warn">لا توجد فترة محاسبية مفتوحة. افتح فترة من شاشة «الفترات المحاسبية» أولاً.</p>
+            <p className="alert warn">
+              لا توجد فترة محاسبية مفتوحة. افتح فترة من شاشة «الفترات المحاسبية» أولاً.
+            </p>
           )}
-        </section>
+        </Panel>
 
-        <section className="card tight">
-          <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
-            <h2 style={{ margin: 0 }}>📋 تفاصيل القيد</h2>
-            {/* الفرق= — gold, and only green when the two sides are equal. */}
-            <span className="row" style={{ gap: 4 }}>
-              <span className="diff-label" style={{ color: balanced ? 'var(--ok)' : '#e2543a' }}>
-                الفرق=
-              </span>
-              <span className="diff-value" style={{ color: balanced ? 'var(--ok)' : '#e2543a' }} dir="ltr">
-                {money(totals.difference.toFixed(2))}
-              </span>
-            </span>
-          </div>
-          <div className="table-wrap" style={{ marginTop: 10 }}>
-            <table>
-              <thead>
-                <tr>
-                  <th style={{ width: 46 }}>#</th>
-                  <th style={{ minWidth: 130 }}>رمز الحساب</th>
-                  <th style={{ minWidth: 200 }}>اسم الحساب</th>
-                  <th style={{ minWidth: 110 }} className="num">مدين</th>
-                  <th style={{ minWidth: 110 }} className="num">دائن</th>
-                  <th style={{ minWidth: 150 }}>مركز تكلفة</th>
-                  <th style={{ minWidth: 180 }}>الشرح</th>
-                  <th style={{ minWidth: 140 }}>المندوب</th>
-                  <th style={{ width: 64 }}>🗑️ حذف</th>
-                </tr>
-              </thead>
-              <tbody>
-                {lines.map((line, index) => {
-                  const account = line.accountId
-                    ? postable.find((entry) => entry.id === line.accountId)
-                    : resolve(line.code.trim());
-                  return (
-                    <tr key={line.key}>
-                      <td dir="ltr">{index + 1}</td>
-                      <td>
-                        <input
-                          className="input"
-                          dir="ltr"
-                          list="account-codes"
-                          value={line.code}
-                          placeholder="1101"
-                          onChange={(event) =>
-                            patch(line.key, { code: event.target.value, accountId: resolve(event.target.value)?.id ?? '' })
-                          }
-                          onBlur={(event) => {
-                            const found = resolve(event.target.value.trim());
-                            if (found) patch(line.key, { code: found.code, accountId: found.id });
-                          }}
-                        />
-                      </td>
-                      <td className={account ? undefined : 'muted'}>
-                        {account ? nameOf(account) : line.code ? '— غير موجود —' : '—'}
-                      </td>
-                      <td>
-                        <input
-                          className="input"
-                          inputMode="decimal"
-                          dir="ltr"
-                          value={line.debit}
-                          onChange={(event) => patch(line.key, { debit: event.target.value, credit: '0.00' })}
-                          onBlur={(event) => patch(line.key, { debit: decimal(event.target.value).toFixed(2) })}
-                        />
-                      </td>
-                      <td>
-                        <input
-                          className="input"
-                          inputMode="decimal"
-                          dir="ltr"
-                          value={line.credit}
-                          onChange={(event) => patch(line.key, { credit: event.target.value, debit: '0.00' })}
-                          onBlur={(event) => patch(line.key, { credit: decimal(event.target.value).toFixed(2) })}
-                        />
-                      </td>
-                      <td>
-                        <select
-                          className="input"
-                          value={line.costCenterId}
-                          onChange={(event) => patch(line.key, { costCenterId: event.target.value })}
-                        >
-                          <option value="">—</option>
-                          {(costCenters.data ?? []).map((center) => (
-                            <option key={center.id} value={center.id}>
-                              {center.code ? `${center.code} — ` : ''}
-                              {center.nameAr ?? center.name_ar ?? center.id}
-                            </option>
-                          ))}
-                        </select>
-                      </td>
-                      <td>
-                        <input
-                          className="input"
-                          value={line.description}
-                          onChange={(event) => patch(line.key, { description: event.target.value })}
-                        />
-                      </td>
-                      <td>
-                        <select
-                          className="input"
-                          value={line.salesmanId}
-                          onChange={(event) => patch(line.key, { salesmanId: event.target.value })}
-                        >
-                          <option value="">—</option>
-                          {(employees.data ?? []).map((employee) => (
-                            <option key={employee.id} value={employee.id}>
-                              {employee.employeeNo ? `${employee.employeeNo} — ` : ''}
-                              {employee.name ?? employee.id}
-                            </option>
-                          ))}
-                        </select>
-                      </td>
-                      <td>
-                        <button
-                          className="btn sm danger"
-                          type="button"
-                          onClick={() => removeLine(line.key)}
-                          aria-label="حذف السطر"
-                        >
-                          🗑️
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-              <tfoot>
-                <tr>
-                  <th colSpan={3}>
-                    <span className="row" style={{ gap: 12, justifyContent: 'flex-start' }}>
-                      <span>مجموع المدين:</span>
-                      <span dir="ltr">{money(totals.debit.toFixed(2))}</span>
-                      <span>مجموع الدائن:</span>
-                      <span dir="ltr">{money(totals.credit.toFixed(2))}</span>
-                    </span>
-                  </th>
-                  <th className="num">{money(totals.debit.toFixed(2))}</th>
-                  <th className="num">{money(totals.credit.toFixed(2))}</th>
-                  <th colSpan={4} />
-                </tr>
-              </tfoot>
-            </table>
-          </div>
+        <Panel title="تفاصيل القيد" flush>
+          <TableFrame>
+            <thead>
+              <tr>
+                <th style={{ width: 46 }}>#</th>
+                <th style={{ minWidth: 130 }}>رمز الحساب</th>
+                <th style={{ minWidth: 200 }}>اسم الحساب</th>
+                <th style={{ minWidth: 110 }} className="num">
+                  مدين
+                </th>
+                <th style={{ minWidth: 110 }} className="num">
+                  دائن
+                </th>
+                <th style={{ minWidth: 150 }}>مركز تكلفة</th>
+                <th style={{ minWidth: 180 }}>الشرح</th>
+                <th style={{ minWidth: 140 }}>المندوب</th>
+                <th style={{ width: 64 }}>حذف</th>
+              </tr>
+            </thead>
+            <tbody>
+              {lines.map((line, index) => {
+                const account = line.accountId
+                  ? postable.find((entry) => entry.id === line.accountId)
+                  : resolve(line.code.trim());
+                return (
+                  <tr key={line.key}>
+                    <td dir="ltr">{index + 1}</td>
+                    <td>
+                      <input
+                        className="input"
+                        dir="ltr"
+                        list="account-codes"
+                        value={line.code}
+                        placeholder="1101"
+                        onChange={(event) =>
+                          patch(line.key, {
+                            code: event.target.value,
+                            accountId: resolve(event.target.value)?.id ?? '',
+                          })
+                        }
+                        onBlur={(event) => {
+                          const found = resolve(event.target.value.trim());
+                          if (found) patch(line.key, { code: found.code, accountId: found.id });
+                        }}
+                      />
+                    </td>
+                    <td className={account ? undefined : 'muted'}>
+                      {account ? nameOf(account) : line.code ? '— غير موجود —' : '—'}
+                    </td>
+                    <td>
+                      <input
+                        className="input"
+                        inputMode="decimal"
+                        dir="ltr"
+                        value={line.debit}
+                        onChange={(event) => patch(line.key, { debit: event.target.value, credit: '0.00' })}
+                        onBlur={(event) => patch(line.key, { debit: decimal(event.target.value).toFixed(2) })}
+                      />
+                    </td>
+                    <td>
+                      <input
+                        className="input"
+                        inputMode="decimal"
+                        dir="ltr"
+                        value={line.credit}
+                        onChange={(event) => patch(line.key, { credit: event.target.value, debit: '0.00' })}
+                        onBlur={(event) =>
+                          patch(line.key, { credit: decimal(event.target.value).toFixed(2) })
+                        }
+                      />
+                    </td>
+                    <td>
+                      <select
+                        className="input"
+                        value={line.costCenterId}
+                        onChange={(event) => patch(line.key, { costCenterId: event.target.value })}
+                      >
+                        <option value="">—</option>
+                        {(costCenters.data ?? []).map((center) => (
+                          <option key={center.id} value={center.id}>
+                            {center.code ? `${center.code} — ` : ''}
+                            {center.nameAr ?? center.name_ar ?? center.id}
+                          </option>
+                        ))}
+                      </select>
+                    </td>
+                    <td>
+                      <input
+                        className="input"
+                        value={line.description}
+                        onChange={(event) => patch(line.key, { description: event.target.value })}
+                      />
+                    </td>
+                    <td>
+                      <select
+                        className="input"
+                        value={line.salesmanId}
+                        onChange={(event) => patch(line.key, { salesmanId: event.target.value })}
+                      >
+                        <option value="">—</option>
+                        {(employees.data ?? []).map((employee) => (
+                          <option key={employee.id} value={employee.id}>
+                            {employee.employeeNo ? `${employee.employeeNo} — ` : ''}
+                            {employee.name ?? employee.id}
+                          </option>
+                        ))}
+                      </select>
+                    </td>
+                    <td>
+                      <button
+                        className="btn sm danger"
+                        type="button"
+                        onClick={() => removeLine(line.key)}
+                        aria-label="حذف السطر"
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+            <tfoot>
+              <tr>
+                <th colSpan={3}>
+                  <span className="row" style={{ gap: 12, justifyContent: 'flex-start' }}>
+                    <span>مجموع المدين:</span>
+                    <span dir="ltr">{money(totals.debit.toFixed(2))}</span>
+                    <span>مجموع الدائن:</span>
+                    <span dir="ltr">{money(totals.credit.toFixed(2))}</span>
+                  </span>
+                </th>
+                <th className="num">{money(totals.debit.toFixed(2))}</th>
+                <th className="num">{money(totals.credit.toFixed(2))}</th>
+                <th colSpan={4} />
+              </tr>
+            </tfoot>
+          </TableFrame>
           <datalist id="account-codes">
             {postable.map((account) => (
               <option key={account.id} value={account.code}>
@@ -446,17 +488,26 @@ function JournalEntryForm() {
               + سطر
             </button>
           </div>
-        </section>
+        </Panel>
 
         {result && <p className={`alert ${result.kind}`}>{result.text}</p>}
 
-        <div className="toolbar">
-          <button className="btn primary" type="submit" disabled={busy || blocked || !branchId || !periodId}>
-            💾 حفظ
-          </button>
-          <button className="btn" type="button" onClick={reset} disabled={busy}>
-            ➕ جديد
-          </button>
+        <div className="ui-form-actions">
+          <span className="ui-form-actions-note">
+            المجموعان يجب أن يتساويا قبل الترحيل — يُولَّد رقم القيد عند الحفظ.
+          </span>
+          <div className="ui-form-actions-buttons">
+            <button className="btn" type="button" onClick={reset} disabled={busy}>
+              جديد
+            </button>
+            <button
+              className="btn primary"
+              type="submit"
+              disabled={busy || blocked || !branchId || !periodId}
+            >
+              حفظ
+            </button>
+          </div>
         </div>
       </form>
     </Screen>

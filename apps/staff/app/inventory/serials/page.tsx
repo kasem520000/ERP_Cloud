@@ -1,6 +1,8 @@
 'use client';
 
 import { useState } from 'react';
+import { Waypoints } from 'lucide-react';
+import { Panel } from '@erp/ui';
 
 import { DataTable, Notice, QueryView } from '../../../components/data-view';
 import { Screen } from '../../../components/screen';
@@ -29,6 +31,7 @@ import {
 } from '../../../lib/lookups';
 import { useSession } from '../../../lib/session';
 import { useQuery } from '../../../lib/use-query';
+import { Table } from '../../../components/ui/table';
 
 /**
  * الأرقام التسلسلية — `frmItemSerialNo.xaml` split the world in two: `📋 الأرقام المتاحة`
@@ -72,18 +75,33 @@ export default function SerialsPage() {
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<{ kind: 'ok' | 'danger' | 'info'; text: string } | undefined>();
 
-  // The generator: one prefix, a starting number, a count — the desktop's ⚙️ توليد.
-  const [draft, setDraft] = useState({ itemId: '', prefix: 'SN-', startAt: '1', count: '10', warehouseId: '', lotId: '' });
+  // The generator: one prefix, a starting number, a count — the desktop's توليد.
+  const [draft, setDraft] = useState({
+    itemId: '',
+    prefix: 'SN-',
+    startAt: '1',
+    count: '10',
+    warehouseId: '',
+    lotId: '',
+  });
   const [single, setSingle] = useState({ itemId: '', serialNo: '', warehouseId: '' });
   const [trace, setTrace] = useState<SerialTrace | undefined>();
 
   const serials = useQuery<Serial[]>(
-    () => listSerials({ itemId: itemId || undefined, warehouseId: warehouseId || undefined, q: search.trim() || undefined }),
+    () =>
+      listSerials({
+        itemId: itemId || undefined,
+        warehouseId: warehouseId || undefined,
+        q: search.trim() || undefined,
+      }),
     [itemId, warehouseId, search],
   );
   const items = useQuery<Item[]>(() => listItems(), []);
   const warehouses = useQuery<Warehouse[]>(() => listWarehouses(), []);
-  const lots = useQuery<Lot[]>(() => (draft.itemId ? listLots({ itemId: draft.itemId }) : Promise.resolve([])), [draft.itemId]);
+  const lots = useQuery<Lot[]>(
+    () => (draft.itemId ? listLots({ itemId: draft.itemId }) : Promise.resolve([])),
+    [draft.itemId],
+  );
 
   const allRows = serials.data ?? [];
   const rows = allRows.filter((row) => TAB_STATUSES[tab].includes(row.status));
@@ -190,8 +208,12 @@ export default function SerialsPage() {
                 type="button"
                 disabled={busy || checked.length === 0}
                 onClick={() => {
-                  if (!window.confirm(`حذف ${checked.length} رقم تسلسلي؟ الأرقام غير المتاحة لا تُحذف.`)) return;
-                  void act(() => Promise.all(checked.map((id) => deleteSerial(id))), 'حُذفت الأرقام المحددة.');
+                  if (!window.confirm(`حذف ${checked.length} رقم تسلسلي؟ الأرقام غير المتاحة لا تُحذف.`))
+                    return;
+                  void act(
+                    () => Promise.all(checked.map((id) => deleteSerial(id))),
+                    'حُذفت الأرقام المحددة.',
+                  );
                 }}
               >
                 حذف
@@ -213,7 +235,11 @@ export default function SerialsPage() {
         </label>
         <label className="field">
           <span>المستودع</span>
-          <select className="input" value={warehouseId} onChange={(event) => setWarehouseId(event.target.value)}>
+          <select
+            className="input"
+            value={warehouseId}
+            onChange={(event) => setWarehouseId(event.target.value)}
+          >
             <option value="">كل المستودعات</option>
             {(warehouses.data ?? []).map((row) => (
               <option key={row.id} value={row.id}>
@@ -238,8 +264,8 @@ export default function SerialsPage() {
 
       <Tabs<TabId>
         items={[
-          { id: 'available', label: `📋 الأرقام المتاحة (${count('available') + count('reserved')})` },
-          { id: 'sold', label: `📤 الأرقام المباعة (${count('sold') + count('returned')})` },
+          { id: 'available', label: `الأرقام المتاحة (${count('available') + count('reserved')})` },
+          { id: 'sold', label: `الأرقام المباعة (${count('sold') + count('returned')})` },
         ]}
         value={tab}
         onChange={(next) => {
@@ -249,12 +275,11 @@ export default function SerialsPage() {
       />
 
       <QueryView
+        panel="الأرقام التسلسلية"
         query={serials}
         empty={tab === 'available' ? 'لا توجد أرقام متاحة' : 'لا توجد أرقام مباعة'}
         emptyDetail={
-          manage
-            ? 'استخدم «توليد» لإنتاج دفعة من الأرقام، أو «إدراج» لإضافة رقم واحد.'
-            : undefined
+          manage ? 'استخدم «توليد» لإنتاج دفعة من الأرقام، أو «إدراج» لإضافة رقم واحد.' : undefined
         }
       >
         {() => (
@@ -266,9 +291,7 @@ export default function SerialsPage() {
                 <input
                   type="checkbox"
                   checked={allChecked}
-                  onChange={(event) =>
-                    setSelected(event.target.checked ? rows.map((row) => row.id) : [])
-                  }
+                  onChange={(event) => setSelected(event.target.checked ? rows.map((row) => row.id) : [])}
                   aria-label="تحديد الكل"
                 />
               </>,
@@ -289,9 +312,7 @@ export default function SerialsPage() {
                     checked={selected.includes(row.id)}
                     onChange={(event) =>
                       setSelected((current) =>
-                        event.target.checked
-                          ? [...current, row.id]
-                          : current.filter((id) => id !== row.id),
+                        event.target.checked ? [...current, row.id] : current.filter((id) => id !== row.id),
                       )
                     }
                     aria-label={`تحديد ${row.serialNo}`}
@@ -300,7 +321,7 @@ export default function SerialsPage() {
               },
               {
                 key: 'serial',
-                header: '🔢 الرقم التسلسلي',
+                header: 'الرقم التسلسلي',
                 align: 'ltr',
                 cell: (row) => row.serialNo,
               },
@@ -311,14 +332,20 @@ export default function SerialsPage() {
                 key: 'trace',
                 header: '',
                 cell: (row) => (
-                  <button className="btn sm" type="button" disabled={busy} onClick={() => void showTrace(row)}>
-                    🔍
+                  <button
+                    className="btn sm"
+                    type="button"
+                    disabled={busy}
+                    onClick={() => void showTrace(row)}
+                    title="تتبع"
+                  >
+                    <Waypoints size={14} />
                   </button>
                 ),
               },
               {
                 key: 'status',
-                header: '⚙️ الحالة',
+                header: 'الحالة',
                 cell: (row) => (
                   <span
                     className={`badge ${
@@ -335,9 +362,9 @@ export default function SerialsPage() {
       </QueryView>
 
       {trace && (
-        <div className="card">
+        <Panel>
           <div className="section-title">
-            <h4>{`🔍 مسار الرقم ${trace.serial.serialNo}`}</h4>
+            <h4>{`مسار الرقم ${trace.serial.serialNo}`}</h4>
             <button className="btn sm" type="button" onClick={() => setTrace(undefined)}>
               إغلاق
             </button>
@@ -345,35 +372,42 @@ export default function SerialsPage() {
           {trace.documents.length === 0 ? (
             <p className="muted">لم يتحرك هذا الرقم على أي مستند بعد.</p>
           ) : (
-            <div className="table-wrap">
-              <table className="zebra">
-                <thead>
-                  <tr>
-                    <th>#</th>
-                    <th>المستند</th>
-                    <th>السطر</th>
-                    <th>التاريخ</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {trace.documents.map((row, index) => (
-                    <tr key={`${row.docId}-${row.lineNo}`}>
-                      <td className="num">{index + 1}</td>
-                      <td>{DOC_LABELS[row.docType] ?? row.docType}</td>
-                      <td className="num">{row.lineNo}</td>
-                      <td dir="ltr">{shortDate(row.createdAt)}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <Table
+              bare
+              columns={[
+                {
+                  key: 'c0',
+                  header: '#',
+                  numeric: true,
+                  cell: (_, index) => index + 1,
+                },
+                {
+                  key: 'c1',
+                  header: 'المستند',
+                  cell: (row) => DOC_LABELS[row.docType] ?? row.docType,
+                },
+                {
+                  key: 'c2',
+                  header: 'السطر',
+                  numeric: true,
+                  cell: (row) => row.lineNo,
+                },
+                {
+                  key: 'c3',
+                  header: 'التاريخ',
+                  ltr: true,
+                  cell: (row) => shortDate(row.createdAt),
+                },
+              ]}
+              rows={trace.documents}
+              rowKey={(row) => `${row.docId}-${row.lineNo}`}
+            />
           )}
-        </div>
+        </Panel>
       )}
 
       {manage && (
-        <div className="card">
-          <h4>⚙️ توليد — دفعة أرقام من بادئة واحدة</h4>
+        <Panel title="توليد — دفعة أرقام من بادئة واحدة">
           <form
             className="form-grid"
             onSubmit={(event) => {
@@ -471,12 +505,12 @@ export default function SerialsPage() {
             </label>
             <div className="row">
               <button className="btn primary" type="submit" disabled={busy || !draft.itemId}>
-                {busy ? 'جارٍ التوليد…' : '⚙️ توليد'}
+                {busy ? 'جارٍ التوليد…' : 'توليد'}
               </button>
             </div>
           </form>
 
-          <h4>✅ إدراج — رقم واحد</h4>
+          <h4>إدراج — رقم واحد</h4>
           <form
             className="form-grid"
             onSubmit={(event) => {
@@ -535,7 +569,11 @@ export default function SerialsPage() {
               </select>
             </label>
             <div className="row">
-              <button className="btn" type="submit" disabled={busy || !single.itemId || !single.serialNo.trim()}>
+              <button
+                className="btn"
+                type="submit"
+                disabled={busy || !single.itemId || !single.serialNo.trim()}
+              >
                 إدراج
               </button>
             </div>
@@ -543,7 +581,7 @@ export default function SerialsPage() {
           <p className="muted small">
             {`الأرقام غير المتاحة (محجوزة أو مباعة) لا تُحذف — أعدها إلى المخزون أولاً. ${shortDate(new Date().toISOString())}`}
           </p>
-        </div>
+        </Panel>
       )}
     </Screen>
   );

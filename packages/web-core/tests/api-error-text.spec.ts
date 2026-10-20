@@ -22,7 +22,11 @@ describe('api error text (📣 نصّ الرفض)', () => {
   });
 
   it('falls back to the title when the server sent no detail, and to the fallback outside ApiError', () => {
-    expect(apiErrorText(new ApiError(404, 'NOT_FOUND', 'Not found'))).toBe('Not found');
+    // ‏«Not found» عنوانٌ عامّ لا سبب — يُستبدل بنصّ الشاشة (سبيكٌ أدناه يثبّت ذلك).
+    expect(apiErrorText(new ApiError(404, 'NOT_FOUND', 'Not found'), 'تعذّر الحفظ')).toBe('تعذّر الحفظ');
+    expect(apiErrorText(new ApiError(422, 'VALIDATION', 'Tax number is invalid'))).toBe(
+      'Tax number is invalid',
+    );
     expect(apiErrorText(new Error('boom'), 'تعذر الحفظ')).toBe('تعذر الحفظ');
     expect(apiErrorText('plain string', 'تعذر الحفظ')).toBe('تعذر الحفظ');
   });
@@ -36,6 +40,36 @@ describe('api error text (📣 نصّ الرفض)', () => {
     );
     expect(apiErrorText(error)).toBe('Internal error');
     expect(apiErrorText(error)).not.toContain('ECONNREFUSED');
+  });
+
+  it('hides machine codes and shows the screen fallback instead', () => {
+    expect(
+      apiErrorText(
+        new ApiError(403, 'FORBIDDEN', 'Forbidden', 'permission parties.view required'),
+        'تعذّر قراءة بطاقات العملاء',
+      ),
+    ).toBe('تعذّر قراءة بطاقات العملاء');
+    expect(
+      apiErrorText(new ApiError(403, 'FORBIDDEN', 'Forbidden', 'PERMISSION_DENIED'), 'تعذّر الحفظ'),
+    ).toBe('تعذّر الحفظ');
+  });
+
+  it('keeps a real English sentence even when the screen has a fallback', () => {
+    expect(
+      apiErrorText(
+        new ApiError(422, 'CREDIT_LIMIT', 'Unprocessable', 'Customer credit limit exceeded by 1200.00 SAR'),
+        'تعذّر الحفظ',
+      ),
+    ).toContain('credit limit exceeded');
+  });
+
+  it('never shows a generic English title as the reason', () => {
+    expect(apiErrorText(new ApiError(404, 'NOT_FOUND', 'Request failed'), 'تعذّر تحميل الفاتورة')).toBe(
+      'تعذّر تحميل الفاتورة',
+    );
+    expect(apiErrorText(new ApiError(500, 'INTERNAL', 'Internal server error'), 'تعذّر الحفظ')).toBe(
+      'تعذّر الحفظ',
+    );
   });
 
   it('ignores a blank detail instead of showing an empty notice', () => {

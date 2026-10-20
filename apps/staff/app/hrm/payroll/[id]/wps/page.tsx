@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useState } from 'react';
+import { Panel } from '@erp/ui';
 
 import { DataTable, Notice } from '../../../../../components/data-view';
 import { Screen } from '../../../../../components/screen';
@@ -23,11 +24,33 @@ type WpsRow = {
   net: string;
   errors: string[];
 };
-type Preview = { yearMonth: string; bankCode: string; establishmentId: string; employeeCount: number; ready: boolean; totalNet: string; rows: WpsRow[]; csv: string };
-type FileRow = { id: string; fileName: string; status: string; employeeCount: number; totalNet: string; bankResponse: string | null; createdAt: string };
+type Preview = {
+  yearMonth: string;
+  bankCode: string;
+  establishmentId: string;
+  employeeCount: number;
+  ready: boolean;
+  totalNet: string;
+  rows: WpsRow[];
+  csv: string;
+};
+type FileRow = {
+  id: string;
+  fileName: string;
+  status: string;
+  employeeCount: number;
+  totalNet: string;
+  bankResponse: string | null;
+  createdAt: string;
+};
 type Settings = { establishmentId: string; bankCode: string; gosiEstablishmentNo: string };
 
-const statusLabel: Record<string, string> = { generated: 'مُصدَّر', uploaded: 'مرفوع', accepted: 'مقبول', rejected: 'مرفوض' };
+const statusLabel: Record<string, string> = {
+  generated: 'مُصدَّر',
+  uploaded: 'مرفوع',
+  accepted: 'مقبول',
+  rejected: 'مرفوض',
+};
 
 function download(name: string, csv: string) {
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
@@ -71,50 +94,105 @@ export default function PayrollWpsPage() {
       title="حماية الأجور والتأمينات"
       subtitle="تصدير ملف مدد/البنك وملف التأمينات، ثم تحديث الحالة بعد الرفع اليدوي."
       crumbs={['الموظفين والرواتب', 'المسيّر']}
-      actions={<Link className="btn" href={`/hrm/payroll/${runId}`}>رجوع للمسيّر</Link>}
+      actions={
+        <Link className="btn" href={`/hrm/payroll/${runId}`}>
+          رجوع للمسيّر
+        </Link>
+      }
     >
       <Notice notice={notice} />
-      <div className="card">
+      <Panel>
         <div className="form-grid">
           <label className="field">
             <span>رمز البنك</span>
-            <input className="input" dir="ltr" value={bank} onChange={(event) => setBankCode(event.target.value.toUpperCase())} />
+            <input
+              className="input"
+              dir="ltr"
+              value={bank}
+              onChange={(event) => setBankCode(event.target.value.toUpperCase())}
+            />
           </label>
           <label className="field">
             <span>رقم منشأة مدد</span>
-            <input className="input" dir="ltr" value={establishment} onChange={(event) => setEstablishmentId(event.target.value)} />
+            <input
+              className="input"
+              dir="ltr"
+              value={establishment}
+              onChange={(event) => setEstablishmentId(event.target.value)}
+            />
           </label>
         </div>
         {can('payroll.wps.export') && (
           <div className="row">
-            <button className="btn" type="button" disabled={busy} onClick={() => void run(async () => {
-              await apiPost('/hrm/payroll/compliance-settings', { bankCode: bank, establishmentId: establishment, gosiEstablishmentNo: settings.data?.gosiEstablishmentNo });
-              setPreview(await apiData<Preview>(`/hrm/payroll/runs/${runId}/wps-preview?bank_code=${encodeURIComponent(bank)}&establishment_id=${encodeURIComponent(establishment)}`));
-            })}>
+            <button
+              className="btn"
+              type="button"
+              disabled={busy}
+              onClick={() =>
+                void run(async () => {
+                  await apiPost('/hrm/payroll/compliance-settings', {
+                    bankCode: bank,
+                    establishmentId: establishment,
+                    gosiEstablishmentNo: settings.data?.gosiEstablishmentNo,
+                  });
+                  setPreview(
+                    await apiData<Preview>(
+                      `/hrm/payroll/runs/${runId}/wps-preview?bank_code=${encodeURIComponent(bank)}&establishment_id=${encodeURIComponent(establishment)}`,
+                    ),
+                  );
+                })
+              }
+            >
               معاينة الملف
             </button>
-            <button className="btn primary" type="button" disabled={busy} onClick={() => void run(async () => {
-              const exported = await apiPost<FileRow & { csv: string }>(`/hrm/payroll/runs/${runId}/wps-export`, { bankCode: bank, establishmentId: establishment });
-              download(exported.fileName, exported.csv);
-              setNotice({ kind: 'ok', text: `تم إنشاء الملف ${exported.fileName}` });
-              files.reload();
-            })}>
+            <button
+              className="btn primary"
+              type="button"
+              disabled={busy}
+              onClick={() =>
+                void run(async () => {
+                  const exported = await apiPost<FileRow & { csv: string }>(
+                    `/hrm/payroll/runs/${runId}/wps-export`,
+                    { bankCode: bank, establishmentId: establishment },
+                  );
+                  download(exported.fileName, exported.csv);
+                  setNotice({ kind: 'ok', text: `تم إنشاء الملف ${exported.fileName}` });
+                  files.reload();
+                })
+              }
+            >
               تصدير حماية الأجور
             </button>
-            <button className="btn" type="button" disabled={busy} onClick={() => void run(async () => {
-              const exported = await apiPost<{ fileName: string; csv: string }>(`/hrm/payroll/runs/${runId}/gosi-export`, {});
-              download(exported.fileName, exported.csv);
-              setNotice({ kind: 'ok', text: `تم إنشاء ${exported.fileName}` });
-            })}>
+            <button
+              className="btn"
+              type="button"
+              disabled={busy}
+              onClick={() =>
+                void run(async () => {
+                  const exported = await apiPost<{ fileName: string; csv: string }>(
+                    `/hrm/payroll/runs/${runId}/gosi-export`,
+                    {},
+                  );
+                  download(exported.fileName, exported.csv);
+                  setNotice({ kind: 'ok', text: `تم إنشاء ${exported.fileName}` });
+                })
+              }
+            >
               تصدير التأمينات
             </button>
           </div>
         )}
-      </div>
+      </Panel>
 
       {preview && (
-        <div className="card">
-          <h2>معاينة {preview.yearMonth} — {preview.employeeCount} موظف — {money(preview.totalNet)}</h2>
+        <Panel
+          title={
+            <>
+              معاينة {preview.yearMonth} — {preview.employeeCount} موظف — {money(preview.totalNet)}
+            </>
+          }
+          flush
+        >
           {!preview.ready && <p className="alert warn">الملف غير جاهز للتصدير حتى تكتمل الهوية والآيبان.</p>}
           <DataTable
             rows={preview.rows}
@@ -127,11 +205,10 @@ export default function PayrollWpsPage() {
               { key: 'errors', header: 'ملاحظات', cell: (row) => row.errors.join(' · ') || '—' },
             ]}
           />
-        </div>
+        </Panel>
       )}
 
-      <div className="card">
-        <h2>الملفات المصدّرة</h2>
+      <Panel title="الملفات المصدّرة" flush>
         <DataTable
           rows={files.data ?? []}
           rowKey={(row) => row.id}
@@ -144,10 +221,18 @@ export default function PayrollWpsPage() {
               key: 'actions',
               header: '',
               cell: (row) => (
-                <button className="btn" type="button" onClick={() => void run(async () => {
-                  const full = await apiData<{ fileName: string; csv: string }>(`/hrm/payroll/wps/${row.id}`);
-                  download(full.fileName, full.csv);
-                })}>
+                <button
+                  className="btn"
+                  type="button"
+                  onClick={() =>
+                    void run(async () => {
+                      const full = await apiData<{ fileName: string; csv: string }>(
+                        `/hrm/payroll/wps/${row.id}`,
+                      );
+                      download(full.fileName, full.csv);
+                    })
+                  }
+                >
                   تنزيل
                 </button>
               ),
@@ -157,17 +242,28 @@ export default function PayrollWpsPage() {
         {(files.data ?? [])[0] && can('payroll.wps.export') && (
           <div className="row">
             {(['uploaded', 'accepted', 'rejected'] as const).map((status) => (
-              <button key={status} className="btn" type="button" disabled={busy} onClick={() => void run(async () => {
-                await apiPost(`/hrm/payroll/wps/${files.data?.[0]?.id}/status`, { status, bankResponse: status === 'rejected' ? 'مرفوض من البنك' : 'تم الرفع يدوياً' });
-                setNotice({ kind: 'ok', text: 'تم تحديث حالة آخر ملف' });
-                files.reload();
-              })}>
+              <button
+                key={status}
+                className="btn"
+                type="button"
+                disabled={busy}
+                onClick={() =>
+                  void run(async () => {
+                    await apiPost(`/hrm/payroll/wps/${files.data?.[0]?.id}/status`, {
+                      status,
+                      bankResponse: status === 'rejected' ? 'مرفوض من البنك' : 'تم الرفع يدوياً',
+                    });
+                    setNotice({ kind: 'ok', text: 'تم تحديث حالة آخر ملف' });
+                    files.reload();
+                  })
+                }
+              >
                 {statusLabel[status]}
               </button>
             ))}
           </div>
         )}
-      </div>
+      </Panel>
     </Screen>
   );
 }

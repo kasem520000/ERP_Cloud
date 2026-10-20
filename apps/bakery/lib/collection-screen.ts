@@ -235,10 +235,10 @@ export function voucherPostState(reason: string | null | undefined): VoucherPost
 }
 
 export const VOUCHER_POST_LABELS: Record<VoucherPostState, string> = {
-  posted: '✅ سند القبض مُرحَّل — المال في الصندوق وفي الأستاذ',
-  draft: '⚠️ سند القبض مسجّل وغير مُرحَّل — يلزم حساب ذمم العملاء',
-  none: '⚠️ تحصيلٌ بلا سند خزينة — لم يُنشأ سند قبض لهذه الحركة',
-  unknown: '❓ حالة السند غير مقروءة من سبب الحركة — اقرأ السبب كما كتبه الخادم',
+ posted: 'سند القبض مُرحَّل — المال في الصندوق وفي الأستاذ',
+ draft: 'سند القبض مسجّل وغير مُرحَّل — يلزم حساب ذمم العملاء',
+ none: 'تحصيلٌ بلا سند خزينة — لم يُنشأ سند قبض لهذه الحركة',
+ unknown: 'حالة السند غير مقروءة من سبب الحركة — اقرأ السبب كما كتبه الخادم',
 };
 
 /** جملةُ الشاشة بعد التحصيل: نصُّ الخادم كما هو، ثمّ حالته كما فُهمت من كلماته. */
@@ -372,14 +372,14 @@ export function reconciliationHeadline(result: ReconciliationResult): string {
 
 export function movementTypeLabel(kind: string): string {
   const labels: Record<string, string> = {
-    collection_receipt: '💵 سند قبض وتحصيل مديونية',
-    van_sale: '🧾 بيع فعلي لعميل',
-    van_bonus: '🎁 كمية مجانية / عينات',
-    van_return: '↩️ إرجاع سليم للمستودع',
-    van_damage: '⚠️ تالف مفحوص ومعتمد',
-    van_shortage: '🔴 عجز عهدة',
-    van_load: '🚚 صرف وتحميل عهدة مندوب',
-    production_in: '🏭 إنتاج يومي للمستودع الرئيسي',
+ collection_receipt: 'سند قبض وتحصيل مديونية',
+ van_sale: 'بيع فعلي لعميل',
+ van_bonus: 'كمية مجانية / عينات',
+ van_return: 'إرجاع سليم للمستودع',
+ van_damage: 'تالف مفحوص ومعتمد',
+ van_shortage: 'عجز عهدة',
+ van_load: 'صرف وتحميل عهدة مندوب',
+ production_in: 'إنتاج يومي للمستودع الرئيسي',
   };
   return labels[kind] ?? kind; // ‏النوع غير المعروف يُعرض خاماً.
 }

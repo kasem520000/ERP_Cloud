@@ -82,13 +82,19 @@ describe('تصميمُ تطبيق المندوب للجوال: قراراتٌ م
 
   it('أرقامُ المال: منازلُ ثابتةٌ واتّجاهٌ معزولٌ وخطُّ النظام الرقمي', async () => {
     const { repCss, page } = await read();
-    for (const rule of ['.rep-num', '.rep-tile-value']) {
+    for (const rule of ['.rep-num']) {
       const block = repCss.slice(repCss.indexOf(`${rule} {`));
       const body = block.slice(0, block.indexOf('}'));
       expect(body, `${rule}: بلا منازلَ ثابتة`).toContain('font-variant-numeric: tabular-nums');
       expect(body, `${rule}: بلا عزلِ اتّجاه`).toContain('unicode-bidi: isolate');
       expect(body, `${rule}: بلا خطٍّ رقميّ`).toContain('var(--font-num)');
     }
+
+    // ‏والبطاقاتُ الأربع صارت شريطًا واحدًا (KpiStrip) — والقيمةُ فيه تحمل `.rep-num` نفسَها
+    // ‏فلا صنفٌ ثانٍ للأرقام، ولا بطاقةٌ عائمةٌ لكلّ مؤشّر.
+    expect(page).toContain('<KpiStrip');
+    expect(page).toContain('className="rep-num"');
+    expect(page).not.toContain('rep-tile');
     expect(repCss).toContain('direction: ltr');
     // ‏والصفحةُ تستعمل الصنفَ على الأرقام المعروضة (لا أنّ القاعدةَ زينة).
     expect((page.match(/className="rep-num"/g) ?? []).length).toBeGreaterThanOrEqual(10);
@@ -120,7 +126,7 @@ describe('تصميمُ تطبيق المندوب للجوال: قراراتٌ م
     const { repCss, page } = await read();
     const bar = repCss.slice(repCss.indexOf('.rep-statusbar {'));
     expect(bar.slice(0, bar.indexOf('}'))).toContain('position: sticky');
-    expect(page).toContain("online ? '🟢 متصل' : '📴 دون اتصال'");
+    expect(page).toContain("online ? 'متصل' : 'دون اتصال'");
     // ‏وعددُ المعلّق والمرفوض ظاهران بلا تمرير.
     expect(page).toContain('{counts.pending}');
     expect(page).toContain('مرفوض');
@@ -144,7 +150,8 @@ describe('تصميمُ تطبيق المندوب للجوال: قراراتٌ م
      */
     const repLayer = css.slice(css.indexOf('تطبيقُ المندوب (`/rep`)'));
     const printBlock = repLayer.slice(repLayer.indexOf('@media print'));
-    expect(printBlock).toContain('.rep-statusbar, .rep-actions, .rep-btn');
+    // ‏التنسيقُ قد يلفّ قائمةَ المحدِّدات على أسطر — فالمقارنةُ تُطبِّع المسافات.
+    expect(printBlock.replace(/\s+/g, ' ')).toContain('.rep-statusbar, .rep-actions, .rep-btn');
     expect(printBlock).toContain('display: none !important');
   });
 });

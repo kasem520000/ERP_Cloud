@@ -72,6 +72,8 @@ export type SettingsInput = {
   active?: boolean;
   /** Sync manual */
   syncManual?: boolean;
+  /** «منع الحفظ عند الربط الضريبي» — refuses sales drafts while the link is active. */
+  blockSaveWhenLinked?: boolean;
   /** 📅 التاريخ — `YYYY-MM-DD`. The end date is always one year later. */
   startDate?: string;
   /** 📋 خصائص شهادة CSR */
@@ -171,6 +173,7 @@ export class ZatcaOnboardingService {
         simulation: input.simulation ?? current.simulation,
         active: input.active ?? current.active,
         syncManual: input.syncManual ?? current.syncManual,
+        blockSaveWhenLinked: input.blockSaveWhenLinked ?? current.blockSaveWhenLinked,
         startDate,
         endDate: endDateOf(startDate),
         commonName: input.csr?.commonName !== undefined ? clean(input.csr.commonName) : current.commonName,
@@ -633,6 +636,7 @@ export class ZatcaOnboardingService {
         simulation: settings.simulation,
         active: settings.active,
         syncManual: settings.syncManual,
+        blockSaveWhenLinked: settings.blockSaveWhenLinked,
         startDate: settings.startDate,
         endDate: settings.endDate,
       },

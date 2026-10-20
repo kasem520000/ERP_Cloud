@@ -1,10 +1,12 @@
 'use client';
 
+import { Panel } from '@erp/ui';
 import Link from 'next/link';
 import { useState } from 'react';
 import type { PlatformDirectoryUser } from '@erp/contracts';
 
 import { Empty, ErrorBox, Loading, Screen } from '../../components/screen';
+import { Table, type Column } from '../../components/ui/table';
 import { ApiError, apiData, apiPost } from '../../lib/api';
 import { useSession } from '../../lib/session';
 import { useQuery } from '../../lib/use-query';
@@ -33,7 +35,13 @@ type InviteState = {
   reason: string;
 };
 
-const EMPTY_INVITE: InviteState = { email: '', fullName: '', roleCode: 'platform_operations', temporaryPassword: '', reason: '' };
+const EMPTY_INVITE: InviteState = {
+  email: '',
+  fullName: '',
+  roleCode: 'platform_operations',
+  temporaryPassword: '',
+  reason: '',
+};
 
 const USER_STATUS_AR: Record<string, string> = {
   active: 'نشط',
@@ -55,7 +63,10 @@ export default function PlatformUsersPage() {
   const [applied, setApplied] = useState('');
   const [scopeFilter, setScopeFilter] = useState<'customers' | 'operators' | 'all'>('customers');
   const users = useQuery<PlatformDirectoryUser[]>(
-    () => apiData<PlatformDirectoryUser[]>(`/platform/users${applied ? `?search=${encodeURIComponent(applied)}` : ''}`),
+    () =>
+      apiData<PlatformDirectoryUser[]>(
+        `/platform/users${applied ? `?search=${encodeURIComponent(applied)}` : ''}`,
+      ),
     [applied],
   );
   const canManage = session.canConsole('console.users.manage');
@@ -105,10 +116,97 @@ export default function PlatformUsersPage() {
     return true;
   });
 
+  const columns: Array<Column<PlatformDirectoryUser>> = [
+    {
+      key: 'name',
+      header: 'الاسم',
+      grow: true,
+      cell: (row) => <Link href={`/users/${row.id}`}>{row.fullName}</Link>,
+    },
+    { key: 'email', header: 'البريد', ltr: true, cell: (row) => row.email },
+    {
+      key: 'tenant',
+      header: 'المنشأة',
+      cell: (row) => {
+        const customerTenants = row.tenants.filter(
+          (tenant) => !['platform', 'platform-ops'].includes(tenant.code.toLowerCase()),
+        );
+        if (customerTenants.length === 0) {
+          return <span className="tag platform">مشغّل منصة داخلي</span>;
+        }
+        return customerTenants.map((tenant) => (
+          <span key={tenant.id} style={{ marginInlineEnd: 6 }}>
+            {tenant.name}
+            {tenant.isOwner && (
+              <span className="tag tenant" style={{ marginInlineStart: 4 }}>
+                مالك
+              </span>
+            )}
+          </span>
+        ));
+      },
+    },
+    {
+      key: 'status',
+      header: 'الحالة',
+      cell: (row) => (
+        <>
+          <span className={`badge ${row.status}`}>{USER_STATUS_AR[row.status] ?? row.status}</span>
+          {row.mustChangePassword && (
+            <span className="badge pending" style={{ marginInlineStart: 4 }}>
+              تغيير كلمة المرور
+            </span>
+          )}
+        </>
+      ),
+    },
+    {
+      key: 'mfa',
+      header: '2FA',
+      cell: (row) =>
+        row.mfaEnabled ? (
+          <span className="tag platform">مُفعَّلة</span>
+        ) : (
+          <span className="tag default">غير مُفعَّلة</span>
+        ),
+    },
+    {
+      key: 'lastLogin',
+      header: 'آخر دخول',
+      ltr: true,
+      cell: (row) =>
+        row.lastLoginAt ? new Date(row.lastLoginAt).toLocaleString('ar-SA-u-ca-gregory-nu-latn') : '—',
+    },
+    { key: 'sessions', header: 'جلسات', numeric: true, cell: (row) => row.activeSessionCount },
+    {
+      key: 'roles',
+      header: 'أدوار المنصة',
+      cell: (row) =>
+        row.platformRoles.length > 0 ? (
+          row.platformRoles.map((code) => (
+            <span key={code} className="badge active" style={{ marginInlineEnd: 4 }}>
+              {PLATFORM_ROLE_AR[code] ?? code}
+            </span>
+          ))
+        ) : row.isPlatformAdmin ? (
+          <span className="badge active">مالك المنصة</span>
+        ) : (
+          '—'
+        ),
+    },
+  ];
+
   return (
-    <Screen title="مستخدمو المنصة والعملاء" subtitle="افصل بين مستخدمي منشآت العملاء وبين مشغّلي المنصة الداخليين، مع إدارة الدعوات والأدوار." crumbs={['المنصة', 'التشغيل']}>
-      <div className="card tight no-print">
-        <div className="row" style={{ justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: 8 }}>
+    <Screen
+      title="مستخدمو المنصة والعملاء"
+      subtitle="افصل بين مستخدمي منشآت العملاء وبين مشغّلي المنصة الداخليين، مع إدارة الدعوات والأدوار."
+      crumbs={['المنصة', 'التشغيل']}
+    >
+      <Panel className="tight no-print">
+        <div
+          className="row"
+          style={{ justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: 8 }}
+        >
           <div className="row" style={{ flexWrap: 'wrap', gap: 8 }}>
             <input
               className="input"
@@ -149,10 +247,17 @@ export default function PlatformUsersPage() {
           )}
         </div>
 
-        {invited && <p className="alert ok" style={{ marginTop: 8 }}>{invited}</p>}
+        {invited && (
+          <p className="alert ok" style={{ marginTop: 8 }}>
+            {invited}
+          </p>
+        )}
 
         {inviteOpen && canManage && (
-          <form onSubmit={submitInvite} style={{ marginTop: 12, borderTop: '1px solid var(--line)', paddingTop: 12 }}>
+          <form
+            onSubmit={submitInvite}
+            style={{ marginTop: 12, borderTop: '1px solid var(--line)', paddingTop: 12 }}
+          >
             <div className="row" style={{ flexWrap: 'wrap', gap: 8 }}>
               <label className="field">
                 <span>البريد</span>
@@ -210,13 +315,18 @@ export default function PlatformUsersPage() {
               </button>
             </div>
             <p className="muted" style={{ marginTop: 8 }}>
-              بلا كلمة مرور مؤقّتة يُنشأ الحساب <span dir="ltr">invited</span> ولا يستطيع الدخول حتى يصل رابط التفعيل.
+              بلا كلمة مرور مؤقّتة يُنشأ الحساب <span dir="ltr">invited</span> ولا يستطيع الدخول حتى يصل رابط
+              التفعيل.
             </p>
           </form>
         )}
 
-        {inviteError && <p className="alert danger" style={{ marginTop: 8 }}>{inviteError}</p>}
-      </div>
+        {inviteError && (
+          <p className="alert danger" style={{ marginTop: 8 }}>
+            {inviteError}
+          </p>
+        )}
+      </Panel>
 
       {users.status === 'loading' && <Loading />}
       {users.status === 'error' && <ErrorBox message={users.error} onRetry={users.reload} />}
@@ -224,76 +334,9 @@ export default function PlatformUsersPage() {
         (rows.length === 0 ? (
           <Empty title="لا توجد نتائج" />
         ) : (
-          <div className="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>الاسم</th>
-                  <th>البريد</th>
-                  <th>المنشأة</th>
-                  <th>الحالة</th>
-                  <th>2FA</th>
-                  <th>آخر دخول</th>
-                  <th className="num">جلسات</th>
-                  <th>أدوار المنصة</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((row) => (
-                  <tr key={row.id}>
-                    <td>
-                      <Link href={`/users/${row.id}`}>{row.fullName}</Link>
-                    </td>
-                    <td dir="ltr">{row.email}</td>
-                    <td>
-                      {(() => {
-                        const customerTenants = row.tenants.filter(
-                          (t) => !['platform', 'platform-ops'].includes(t.code.toLowerCase()),
-                        );
-                        if (customerTenants.length === 0) {
-                          return <span className="tag platform">مشغّل منصة داخلي</span>;
-                        }
-                        return customerTenants.map((tenant) => (
-                          <span key={tenant.id} style={{ marginInlineEnd: 6 }}>
-                            {tenant.name}
-                            {tenant.isOwner && <span className="tag tenant" style={{ marginInlineStart: 4 }}>مالك</span>}
-                          </span>
-                        ));
-                      })()}
-                    </td>
-                    <td>
-                      <span className={`badge ${row.status}`}>{USER_STATUS_AR[row.status] ?? row.status}</span>
-                      {row.mustChangePassword && (
-                        <span className="badge pending" style={{ marginInlineStart: 4 }}>تغيير كلمة المرور</span>
-                      )}
-                    </td>
-                    <td>
-                      {row.mfaEnabled ? (
-                        <span className="tag platform">مُفعَّلة</span>
-                      ) : (
-                        <span className="tag default">غير مُفعَّلة</span>
-                      )}
-                    </td>
-                    <td dir="ltr">{row.lastLoginAt ? new Date(row.lastLoginAt).toLocaleString('ar-SA') : '—'}</td>
-                    <td className="num">{row.activeSessionCount}</td>
-                    <td>
-                      {row.platformRoles.length > 0 ? (
-                        row.platformRoles.map((code) => (
-                          <span key={code} className="badge active" style={{ marginInlineEnd: 4 }}>
-                            {PLATFORM_ROLE_AR[code] ?? code}
-                          </span>
-                        ))
-                      ) : row.isPlatformAdmin ? (
-                        <span className="badge active">مالك المنصة</span>
-                      ) : (
-                        '—'
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <Panel flush title="المستخدمون">
+            <Table bare columns={columns} rows={rows} rowKey={(row) => row.id} />
+          </Panel>
         ))}
     </Screen>
   );
