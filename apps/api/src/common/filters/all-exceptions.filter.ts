@@ -17,7 +17,8 @@ import {
   type ProblemDetails,
 } from '@erp/contracts';
 
-import { getTraceId } from '../../request-context/request-context.js';
+import { getRequestContext, getTraceId } from '../../request-context/request-context.js';
+import { recordServerProblem } from '../../modules/platform/admin/problem-recorder.js';
 import { ZodValidationException } from '../pipes/zod-validation.pipe.js';
 
 /**
@@ -34,7 +35,12 @@ export class AllExceptionsFilter implements ExceptionFilter {
   catch(exception: unknown, host: ArgumentsHost): void {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
-    const request = ctx.getRequest<{ headers?: Record<string, string | string[] | undefined> }>();
+    const request = ctx.getRequest<{
+      headers?: Record<string, string | string[] | undefined>;
+      method?: string;
+      originalUrl?: string;
+      url?: string;
+    }>();
     const headerTraceId = request?.headers?.[REQUEST_ID_HEADER];
     const traceId = getTraceId() !== 'local-request' ? getTraceId() : String(headerTraceId ?? 'unknown');
 
@@ -50,6 +56,33 @@ export class AllExceptionsFilter implements ExceptionFilter {
         },
         'Unhandled exception',
       );
+
+      /**
+       * البند 3 — «أي خطأ من جانب السيرفر يُسجَّل». كان هذا السطر يذهب إلى stdout
+       * وحده، فيضيع مع دوران السجلّات. الآن يُكتب صفٌّ في `platform_problem_events`
+       * يقرأه سجلّ المشاكل في لوحة المنصّة: المصدر، والرمز، والمسار، والبصمة، والمكدّس
+       * المختصر. والكتابة بلا انتظار — فشلُ تسجيل خطأٍ لا يجوز أن يُسقط الاستجابة.
+       */
+      const context = safeContext();
+      void recordServerProblem({
+        source: 'api',
+        severity: 'error',
+        code: problem.code,
+        message:
+          exception instanceof Error ? exception.message : String(exception ?? 'unknown exception'),
+        path: request?.originalUrl ?? request?.url ?? null,
+        method: request?.method ?? null,
+        status: problem.status,
+        traceId,
+        tenantId: context.tenantId,
+        actorUserId: context.userId,
+        meta: {
+          ...(exception instanceof Error && exception.stack
+            ? { stack: exception.stack.split('\n').slice(0, 8).join('\n') }
+            : {}),
+          userAgent: context.userAgent,
+        },
+      });
     }
 
     response.status(problem.status).type('application/problem+json').send(JSON.stringify(problem));
@@ -155,4 +188,19 @@ export function isPostgresUuidSyntaxError(exception: unknown): boolean {
     current = candidate.cause;
   }
   return false;
+}
+
+
+/** سياق الطلب قد يكون غائباً خارج دورة HTTP (تقرير عطلٍ في الإقلاع مثلاً). */
+function safeContext(): { tenantId: string | null; userId: string | null; userAgent: string | null } {
+  try {
+    const context = getRequestContext();
+    return {
+      tenantId: context.tenant?.tenantId ?? null,
+      userId: context.auth?.userId ?? null,
+      userAgent: context.userAgent ?? null,
+    };
+  } catch {
+    return { tenantId: null, userId: null, userAgent: null };
+  }
 }

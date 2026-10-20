@@ -109,11 +109,15 @@ describe('zatca onboarding — إعدادات الربط الضريبي', () => 
     const filled = envelope(await call('post', '/einvoice/settings/fill-from-company', { token: actor.token }));
     expect(filled.message).toBe('تم تعبئة البيانات من بطاقة المنشأة');
     // `CommonName = $"{nameA}-{bsnNo}-{taxNo}"`, OrganizationUnitName = the English name.
-    expect(filled.settings.commonName).toBe('مؤسسة الأفق للتجارة-1010000000-310000000000003');
-    expect(filled.settings.organizationIdentifier).toBe('310000000000003');
-    expect(filled.settings.organizationName).toBe('مؤسسة الأفق للتجارة');
-    expect(filled.settings.organizationUnitName).toBe('Al Ofoq Trading');
-    expect(filled.settings.serialNumber).toMatch(/^1-CloudERP\|2-.+\|3-[0-9a-f-]+$/);
+    // 🐞 الردّ شكلُ العرض نفسه الذي تُرجعه `GET /einvoice/settings` — لا صفُّ القاعدة.
+    // (الشاشة كانت تقرأ `settings.settings.startDate` فتنهار على صفٍّ خام.)
+    expect(filled.settings.settings.startDate).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+    expect(filled.settings.csr.commonName).toBe('مؤسسة الأفق للتجارة-1010000000-310000000000003');
+    expect(filled.settings.csr.organizationIdentifier).toBe('310000000000003');
+    expect(filled.settings.csr.organizationName).toBe('مؤسسة الأفق للتجارة');
+    expect(filled.settings.csr.organizationUnitName).toBe('Al Ofoq Trading');
+    expect(filled.settings.csr.serialNumber).toMatch(/^1-CloudERP\|2-.+\|3-[0-9a-f-]+$/);
+    expect(Array.isArray(filled.settings.checklist)).toBe(true);
     expect(filled.warnings[0]).toContain('النشاط التجاري'); // the cloud card has no activity column
   });
 

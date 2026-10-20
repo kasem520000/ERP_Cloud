@@ -46,8 +46,9 @@ const STATE_LABEL: Record<UsageMetricState, string> = {
   unlimited: 'بلا حدّ',
 };
 
-const SOURCE_LABEL: Record<'tenant' | 'platform' | 'default', string> = {
+const SOURCE_LABEL: Record<'tenant' | 'plan' | 'platform' | 'default', string> = {
   tenant: 'تجاوز العميل',
+  plan: 'حدّ الباقة',
   platform: 'افتراض المنصة',
   default: 'مغلّف الفهرس',
 };

@@ -1,4 +1,5 @@
 export * from './platform.js';
+export * from './problems.js';
 export * from './tenancy.js';
 export * from './operations.js';
 export * from './backups.js';

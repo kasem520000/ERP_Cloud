@@ -16,7 +16,7 @@ import { uuidSchema } from '../ids.js';
  * ولا صفَّ يُصنع من فراغ: مصدرٌ لا صفوف له يظهر بصفرٍ في العدّادات ولا يظهر بصفٍّ وهمي.
  */
 
-export const platformProblemSources = ['email', 'einvoice', 'webhook', 'outbox', 'backup'] as const;
+export const platformProblemSources = ['email', 'einvoice', 'webhook', 'outbox', 'backup', 'server'] as const;
 export type PlatformProblemSource = (typeof platformProblemSources)[number];
 
 /** العربي هو المعروض؛ والرمز يبقى للاختبار والفلترة. */
@@ -26,6 +26,7 @@ export const platformProblemSourceLabels: Record<PlatformProblemSource, string> 
   webhook: 'الويب هوك',
   outbox: 'الطابور',
   backup: 'النسخ الاحتياطي',
+  server: 'أخطاء السيرفر',
 };
 
 export const platformProblemSeverities = ['error', 'warning'] as const;
@@ -37,6 +38,7 @@ export const platformProblemSourceLabelsEn: Record<PlatformProblemSource, string
   webhook: 'Webhook',
   outbox: 'Queue',
   backup: 'Backup',
+  server: 'Server errors',
 };
 
 export const platformProblemRowSchema = z.object({

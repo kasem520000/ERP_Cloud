@@ -8,6 +8,7 @@ import { runMigrations } from '@erp/database';
 import { AppModule } from './app.module.js';
 import { applyHttpConfiguration, buildOpenApiDocument, registerOpenApi } from './bootstrap.js';
 import { RequestIdMiddleware } from './common/middleware/request-id.middleware.js';
+import { installProcessProblemHandlers } from './modules/platform/admin/process-problems.js';
 import { WorkerRunner } from './modules/platform-services/index.js';
 
 /**
@@ -43,6 +44,8 @@ async function bootstrap(): Promise<void> {
   // Say out loud where the configuration came from — the single most common support
   // question was "the API does not see my .env".
   console.log(`erp-api env sources: ${describeEnvSources()}`);
+  // البند 3: استثناءٌ لم يلتقطه أحد يُسجَّل قبل أن يسقط العملية — لا في stdout وحده.
+  installProcessProblemHandlers('api');
   if (envIssues.length > 0) console.warn(`erp-api env warnings: ${envIssues.join('; ')}`);
 
   // PHASE_02 §8: fail fast on a missing runtime variable instead of degrading silently.

@@ -243,6 +243,17 @@ export default function ZatcaSettingsPage() {
                 </div>
                 <div className="field">
                   <span>نوع الربط</span>
+                  {/*
+                    البند 8 — «Server connection failed» ليست عطلاً في الشاشة: الخادم لا يصل
+                    إلى `gw-fatoora.zatca.gov.sa`. نقولها هنا صراحةً مع المخرجين الممكنين،
+                    فلا يبحث المستخدم في السجلات عن سببٍ هو في شبكته.
+                  */}
+                  <p className="small muted">
+                    إن ظهرت رسالة «تعذّر الاتصال ببوابة الهيئة» فالخادم لا يصل إلى
+                    <span dir="ltr"> gw-fatoora.zatca.gov.sa </span>
+                    (منفذ 443). أمامك: تفعيل «Simulation تجريبي» لاختبار الشاشة بلا اتصال خارجي، أو
+                    فتح المنفذ الخارجي على الخادم.
+                  </p>
                   <label className="check">
                     <input
                       type="radio"

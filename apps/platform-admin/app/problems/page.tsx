@@ -15,6 +15,7 @@ import {
   Mail,
   RefreshCw,
   ReceiptText,
+  ServerCrash,
   Webhook,
 } from 'lucide-react';
 import Link from 'next/link';
@@ -47,6 +48,7 @@ const SOURCE_ICON: Record<PlatformProblemSource, React.ReactNode> = {
   webhook: <Webhook size={14} />,
   outbox: <FlaskConical size={14} />,
   backup: <DatabaseBackup size={14} />,
+  server: <ServerCrash size={14} />,
 };
 
 export default function ProblemsPage() {

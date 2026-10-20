@@ -222,7 +222,12 @@ export class ReportingService {
       tenantId,
       {
         titleAr: report.titleAr,
-        columns: report.columns.map((column) => ({ key: column.key, labelAr: column.labelAr, numeric: isNumericColumn(column) })),
+        columns: report.columns.map((column) => ({
+          key: column.key,
+          labelAr: column.labelAr,
+          numeric: isNumericColumn(column),
+          qr: column.type === 'qr',
+        })),
         rows: report.rows,
         totals: report.totals,
         grandTotal: report.grandTotal,
@@ -286,7 +291,12 @@ export class ReportingService {
     if (format === 'pdf') {
       const html = await this.print.reportSheet(tenantId, {
         titleAr: report.titleAr,
-        columns: report.columns.map((column) => ({ key: column.key, labelAr: column.labelAr, numeric: isNumericColumn(column) })),
+        columns: report.columns.map((column) => ({
+          key: column.key,
+          labelAr: column.labelAr,
+          numeric: isNumericColumn(column),
+          qr: column.type === 'qr',
+        })),
         rows: report.rows,
         totals: report.totals,
         grandTotal: report.grandTotal,

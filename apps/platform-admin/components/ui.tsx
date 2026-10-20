@@ -54,8 +54,14 @@ export function MeterBar({ ratio, tone = 'ok' }: { ratio: number; tone?: 'ok' | 
  * vocabulary (`default | platform | tenant`): the usage limits and the settings tab must not
  * answer that question in two languages.
  */
-export function SourceTag({ source }: { source: 'default' | 'platform' | 'tenant' }) {
+export function SourceTag({ source }: { source: 'default' | 'plan' | 'platform' | 'tenant' }) {
   const label =
-    source === 'tenant' ? 'تجاوزٌ خاص بالعميل' : source === 'platform' ? 'من إعدادات المنصّة' : 'القيمة الافتراضية';
+    source === 'tenant'
+      ? 'تجاوزٌ خاص بالعميل'
+      : source === 'plan'
+        ? 'حدٌّ من باقة الاشتراك'
+        : source === 'platform'
+          ? 'من إعدادات المنصّة'
+          : 'القيمة الافتراضية';
   return <span className={`tag ${source}`}>{label}</span>;
 }

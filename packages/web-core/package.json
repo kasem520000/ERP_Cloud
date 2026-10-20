@@ -18,6 +18,7 @@
     "./sync-engine": "./src/sync-engine.ts",
     "./sync": "./src/sync.ts",
     "./token-bridge": "./src/token-bridge.tsx",
+    "./problem-report": "./src/problem-report.ts",
     "./package.json": "./package.json"
   },
   "dependencies": {

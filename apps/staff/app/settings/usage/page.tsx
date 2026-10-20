@@ -40,6 +40,7 @@ const STATE_LABEL: Record<string, string> = {
 
 const SOURCE_LABEL: Record<string, string> = {
   tenant: 'حدٌّ خصّت به المنصّة منشأتك',
+  plan: 'حدٌّ من باقة اشتراكك',
   platform: 'حدّ عام على المنصّة',
   default: 'افتراض الفهرس',
 };

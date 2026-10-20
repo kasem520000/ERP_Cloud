@@ -169,7 +169,26 @@ type AuthorityError = { code: string; detail: string };
 export function httpGateway(baseUrl: string): ZatcaGateway {
   /** The three shapes the four ZATCA calls take; typed inline because the API has no DOM lib. */
   const call = async (path: string, init: { method: 'POST'; headers: Record<string, string>; body: string }): Promise<Record<string, unknown>> => {
-    const response = await fetch(`${baseUrl}${path}`, { ...init, signal: AbortSignal.timeout(20_000) });
+    /**
+     * البند 8 — «Server connection failed» في شاشة الإعدادات.
+     *
+     * فشلُ الشبكة (`fetch` نفسها ترفض) كان يصل رسالةً إنجليزية قصيرةً من undici
+     * (`fetch failed`) أو من المتصفح، فتُعرض كما هي. هنا يُقال السبب بعربيةٍ واضحة:
+     * الخادم لم يصل إلى بوابات الهيئة — لا أن الطلب «فشل».
+     */
+    let response: Response;
+    try {
+      response = await fetch(`${baseUrl}${path}`, { ...init, signal: AbortSignal.timeout(20_000) });
+    } catch (error) {
+      const raw = error instanceof Error ? `${error.name}: ${error.message}` : String(error);
+      const timedOut = /timeout|timed out|aborted/i.test(raw);
+      throw Object.assign(new Error('ZATCA gateway unreachable'), {
+        code: 'ZATCA_GATEWAY_ERROR',
+        detail: timedOut
+          ? 'انتهت مهلة الاتصال ببوابات الهيئة (٢٠ ثانية) — تحقّق من اتصال الخادم بالإنترنت.'
+          : 'تعذّر الوصول إلى بوابات الهيئة من هذا الخادم — تحقّق من الشبكة/الجدار الناري، أو فعّل «Simulation تجريبي» للاختبار بلا اتصال خارجي.',
+      }) as AuthorityError & Error;
+    }
     const payload = (await response.json().catch(() => ({}))) as Record<string, unknown>;
     if (!response.ok) {
       const messages = Array.isArray((payload.validationResults as Record<string, unknown> | undefined)?.errorMessages)

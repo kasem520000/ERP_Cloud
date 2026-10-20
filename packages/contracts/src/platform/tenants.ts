@@ -137,7 +137,7 @@ export const platformTenantUsageMetricSchema = z.object({
    * (`PlatformSettingView.source`): the customer's own override, the platform-wide row, or
    * the catalogue default. `limit === null` stays possible: "no limit configured".
    */
-  limitSource: z.enum(['tenant', 'platform', 'default']),
+  limitSource: z.enum(['tenant', 'plan', 'platform', 'default']),
   /** `used / limit` as a percentage, rounded — NULL when there is no limit. */
   percentUsed: z.number().int().nullable(),
   periodStart: z.string().nullable(),

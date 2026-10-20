@@ -9,6 +9,8 @@ import { apiData } from '../../lib/api';
 import { useSession } from '../../lib/session';
 import { useQuery } from '../../lib/use-query';
 
+import { ReadinessPanel, RestoreHistory, RestorePanel } from './restore-panel';
+
 /**
  * البيانات والاسترجاع — النسخ وسياسة الاحتفاظ (P-C10).
  *
@@ -135,6 +137,8 @@ export default function BackupsPage() {
   const [verify, setVerify] = useState<VerifyResult | undefined>(undefined);
   const [notice, setNotice] = useState<{ kind: 'ok' | 'danger'; text: string } | undefined>(undefined);
   const [busy, setBusy] = useState<string | null>(null);
+  const [restoreJob, setRestoreJob] = useState<BackupRow | undefined>(undefined);
+  const [historyKey, setHistoryKey] = useState(0);
 
   const runs = useQuery<BackupPage>(() => apiData<BackupPage>('/platform/backups?limit=50'), []);
   const retention = useQuery<Retention>(() => apiData<Retention>('/platform/retention'), []);
@@ -350,6 +354,15 @@ export default function BackupsPage() {
           >
             تنزيل
           </button>
+          <button
+            className="btn small primary"
+            type="button"
+            disabled={!row.artifactId || Boolean(row.prunedAt) || row.status !== 'succeeded'}
+            title={'استعادة إضافية: تُدرج الصفوف الغائبة ولا تدهس موجوداً'}
+            onClick={() => setRestoreJob(row)}
+          >
+            استعادة
+          </button>
         </div>
       ),
     },
@@ -422,6 +435,19 @@ export default function BackupsPage() {
 
           {notice && <div className={`alert ${notice.kind === 'ok' ? '' : 'danger'}`}>{notice.text}</div>}
 
+          <ReadinessPanel key={historyKey} />
+
+          {restoreJob && (
+            <RestorePanel
+              job={restoreJob}
+              onClose={() => setRestoreJob(undefined)}
+              onRestored={() => {
+                setHistoryKey((value) => value + 1);
+                runs.reload();
+              }}
+            />
+          )}
+
           {runs.status === 'loading' && <Loading />}
           {runs.status === 'forbidden' && <Forbidden />}
           {runs.status === 'error' && <ErrorBox message={runs.error} onRetry={runs.reload} />}
@@ -438,6 +464,8 @@ export default function BackupsPage() {
                 </Panel>
               </>
             ))}
+
+          <RestoreHistory reloadKey={historyKey} />
 
           {verify && (
             <Panel title="نتيجة التحقّق — استعادة تجريبية">
@@ -471,8 +499,8 @@ export default function BackupsPage() {
                 </p>
               )}
               <p className="muted small" style={{ marginBottom: 0 }}>
-                الاستعادة التجريبية تقرأ وتطابق ولا تكتب: الكتابة فوق بياناتٍ حيّة تحتاج نافذة صيانة، وهي خارج
-                نطاق هذا الجزء. الظاهر هنا أقوى ما يمكن إثباته بلا كتابة.
+                هذا تحقّقٌ لا كتابة. أمّا الاستعادة الفعلية فمن زرّ «استعادة» في صفّ النسخة أعلاه: تُدرج الصفوف
+                الغائبة داخل سياق كل مستأجر، وتتخطّى الموجود، وتُسجَّل محاولةً لها بصمتها وسببها.
               </p>
             </Panel>
           )}

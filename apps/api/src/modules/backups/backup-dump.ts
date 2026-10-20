@@ -124,6 +124,80 @@ export function readTableSql(table: string, tenantId: string | null, hasTenantCo
   return sql`SELECT to_jsonb(t) AS row FROM ${target} t`;
 }
 
+export type DumpChunk = {
+  table: string;
+  tenantId: string | null;
+  rows: Array<Record<string, unknown>>;
+};
+
+/**
+ * إعادة بناء الدفعات من الملف — للاستعادة، لا للعدّ.
+ *
+ * `parseDump` يقول «كم صفاً»؛ وهذه تقول «أي صفوف» و«لأي مستأجر». وتُقرأ الدفعة كما كُتبت
+ * (`tenantId` معها) لأن الاستعادة تحتاج السياق الصحيح لكل صفٍّ، لا مجموعاً واحداً.
+ */
+export function parseDumpChunks(text: string): DumpChunk[] {
+  const chunks: DumpChunk[] = [];
+  for (const line of text.split('\n')) {
+    if (line.length === 0) continue;
+    let parsed: Record<string, unknown>;
+    try {
+      parsed = JSON.parse(line) as Record<string, unknown>;
+    } catch {
+      continue; // سطرٌ تالف رفضه `parseDump` أصلاً، والاستعادة لا تبدأ على ملفٍّ غير مكتمل.
+    }
+    if (typeof parsed.table !== 'string' || !Array.isArray(parsed.rows)) continue;
+    chunks.push({
+      table: parsed.table,
+      tenantId: typeof parsed.tenantId === 'string' ? parsed.tenantId : null,
+      rows: (parsed.rows as unknown[]).filter(
+        (row): row is Record<string, unknown> => typeof row === 'object' && row !== null,
+      ),
+    });
+  }
+  return chunks;
+}
+
+/**
+ * إدراج دفعةٍ من صفوف JSON في جدولٍ حقيقي — إضافةً فقط.
+ *
+ * `jsonb_populate_record` تحوّل الصفّ إلى نوع الجدول نفسه، فتُحترم الأنواع والأعمدة
+ * الافتراضية دون بناء قائمة قيمٍ يدوياً؛ و`ON CONFLICT DO NOTHING` هو «لا تدهس موجوداً».
+ * والأعمدة تُرشَّح من الكتالوج (لا من الصفّ) حتى لا يمرّ عمودٌ مُولَّد أو identity يرفضه
+ * PostgreSQL.
+ */
+export function insertRowsSql(
+  table: string,
+  columns: string[],
+  rows: Array<Record<string, unknown>>,
+) {
+  const target = sql.identifier(table);
+  const columnList = sql.join(
+    columns.map((column) => sql.identifier(column)),
+    sql`, `,
+  );
+  const values = sql.join(
+    rows.map((row) => {
+      const projected = Object.fromEntries(
+        columns.filter((column) => row[column] !== undefined).map((column) => [column, row[column]]),
+      );
+      return sql`(${JSON.stringify(projected)}::jsonb)`;
+    }),
+    sql`, `,
+  );
+  const selectList = sql.join(
+    columns.map((column) => sql`r.${sql.identifier(column)}`),
+    sql`, `,
+  );
+  return sql`
+    INSERT INTO ${target} (${columnList})
+    SELECT ${selectList}
+    FROM (VALUES ${values}) AS batch(payload)
+    CROSS JOIN LATERAL jsonb_populate_record(NULL::${target}, batch.payload) AS r
+    ON CONFLICT DO NOTHING
+  `;
+}
+
 export function encodeHeader(input: {
   scope: 'platform' | 'tenant';
   tenantId: string | null;

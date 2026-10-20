@@ -241,10 +241,20 @@ function identityFromAuthResponse(body: unknown): {
   const user = (data as { user?: { id?: unknown; email?: unknown; fullName?: unknown } }).user;
   const memberships = (data as { memberships?: Array<{ tenantId?: unknown }> }).memberships;
 
+  /**
+   * البند 6 — «من دخل؟» يُجاب بالاسم لا بالبريد وحده.
+   *
+   * كان `actorLabel` بريدَ الداخل، فقرأ المشغّل `owner@demo.test` ولم يعرف صاحب الحساب.
+   * والاسم الكامل يُقدَّم حين يصل، ويبقى البريد بين قوسين لأنه المعرّف الذي لا يتكرّر.
+   */
+  const name = typeof user?.fullName === 'string' ? user.fullName.trim() : '';
+  const email = typeof user?.email === 'string' ? user.email : null;
+  const label = name.length > 0 && email ? `${name} — ${email}` : (name || email);
+
   return {
     userId: typeof user?.id === 'string' ? user.id : null,
     tenantId: typeof memberships?.[0]?.tenantId === 'string' ? memberships[0].tenantId : null,
-    label: typeof user?.email === 'string' ? user.email : null,
+    label,
   };
 }
 

@@ -24,6 +24,7 @@ import { EmptyState } from '../../../components/ui/empty-state';
 import { Labeled } from '../../../components/ui/input';
 import { SkeletonCard } from '../../../components/ui/skeleton';
 import { Table, type SortState } from '../../../components/ui/table';
+import { renderQrSvgMarkup } from '../../../components/zatca-qr-svg';
 import {
   arabicName,
   itemLabel,
@@ -516,11 +517,14 @@ function SortableReportTable({ result }: { result: ReportResult }) {
         header: column.labelAr,
         numeric: isNumericColumn(column),
         sortable: true,
-        cell: (row: Record<string, string>) => (
-          <span style={isNumericColumn(column) ? { fontVariantNumeric: 'tabular-nums' } : undefined}>
-            {formatCell(row[column.key] ?? '', column.type)}
-          </span>
-        ),
+        cell: (row: Record<string, string>) =>
+          column.type === 'qr' ? (
+            <QrCell payload={row[column.key] ?? ''} />
+          ) : (
+            <span style={isNumericColumn(column) ? { fontVariantNumeric: 'tabular-nums' } : undefined}>
+              {formatCell(row[column.key] ?? '', column.type)}
+            </span>
+          ),
       }))}
     />
   );
@@ -594,5 +598,25 @@ function FilterField({
         ))}
       </select>
     </Labeled>
+  );
+}
+
+
+/**
+ * 🧾 خلية رمز QR في جدول التقرير — البند 10.
+ *
+ * الرمز يُرسم بمُرمِّز `@erp/web-van/qr` نفسه الذي يرسمه الورق (لا مكتبة ثانية)، وحجمه
+ * صغيرٌ ليقرأه الورق لا ليستهلك الصفّ. والحمولة إمّا TLV المرحلة الثانية من
+ * `sales_invoices.zatca_qr` أو حمولةٌ نصّية بسيطة بناها استعلام التقرير حين لا ربط ضريبي.
+ */
+function QrCell({ payload }: { payload: string }) {
+  if (!payload.trim()) return <span className="muted small">—</span>;
+  return (
+    <span
+      className="report-qr"
+      title={payload}
+      // المُصيِّر يُعيد SVG من حمولةٍ نصّية آمنة (يرمّزها بنفسه)؛ لا HTML خارجي هنا.
+      dangerouslySetInnerHTML={{ __html: renderQrSvgMarkup(payload, 54) }}
+    />
   );
 }

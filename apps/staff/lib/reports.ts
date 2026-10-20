@@ -27,7 +27,7 @@ export type ReportParamKind =
   | 'cashLocation'
   | 'vesselGroup'
   | 'year';
-export type ReportColumnType = 'text' | 'money' | 'qty' | 'int' | 'date' | 'percent';
+export type ReportColumnType = 'text' | 'money' | 'qty' | 'int' | 'date' | 'percent' | 'qr';
 
 export type ReportParam = { name: string; labelAr: string; kind: ReportParamKind; options?: Array<{ value: string; labelAr: string }> };
 export type ReportColumn = { key: string; labelAr: string; type: ReportColumnType; hidden?: boolean };
@@ -250,6 +250,9 @@ export function formatCell(value: string, type: ReportColumnType): string {
       return Number.isFinite(Number(value)) ? `${Number(value).toFixed(2)}%` : value;
     case 'date':
       return shortDate(value);
+    case 'qr':
+      // الرمز يُرسم لا يُنسخ؛ والتصدير النصّي يحمل الحمولة الخام كما هي.
+      return value;
     default:
       return value;
   }

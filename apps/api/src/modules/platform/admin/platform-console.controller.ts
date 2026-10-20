@@ -74,7 +74,7 @@ export class PlatformConsoleController {
   @RequiresPlatformRole('console.health.view')
   @ApiQuery({ name: 'limit', required: false })
   @ApiQuery({ name: 'offset', required: false })
-  @ApiQuery({ name: 'filter[source]', required: false, description: 'email | einvoice | webhook | outbox | backup' })
+  @ApiQuery({ name: 'filter[source]', required: false, description: 'email | einvoice | webhook | outbox | backup | server' })
   @ApiQuery({ name: 'filter[tenantId]', required: false })
   @ApiQuery({ name: 'filter[severity]', required: false, description: 'error | warning' })
   @ApiQuery({ name: 'filter[from]', required: false, description: 'ISO-8601 lower bound' })

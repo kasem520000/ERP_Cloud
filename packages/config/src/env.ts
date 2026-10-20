@@ -148,6 +148,11 @@ const envSchema = z.object({
    * ولا يُحوَّل فشلُ الرفع إلى نجاحٍ على القرص بصمت في أي حال.
    */
   BACKUP_STORE: z.enum(['auto', 's3', 'filesystem']).default('auto'),
+  /**
+   * رمزٌ مشترك لاستقبال تقارير أخطاء سيرفرات Next (`POST /platform/problems/ingest`).
+   * غيابه يُغلق المسار (404) — لا يُفتح باب كتابةٍ في السجلّ لمجرّد وجودِ الكود.
+   */
+  PROBLEM_REPORT_TOKEN: z.string().min(16).optional(),
 
   /** PHASE_04 jobs — BullMQ is only wired up when a Redis URL is present. */
   WORKER: booleanish.default(false),

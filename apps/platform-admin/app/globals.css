@@ -843,3 +843,12 @@ tbody tr:hover {
     transform: none !important;
   }
 }
+
+/* جاهزية النسخ — صفٌّ لكل فحص؛ اللون يقول النتيجة والنصّ يقول السبب. */
+.backup-checks { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.backup-checks li { display: flex; gap: 8px; align-items: flex-start; padding: 8px 10px; border-radius: 8px; background: var(--surface-2, rgba(0,0,0,.03)); }
+.backup-checks li svg { margin-top: 2px; flex: none; }
+.backup-checks li.ok svg { color: var(--success, #178a4b); }
+.backup-checks li.bad svg { color: var(--danger, #c0392b); }
+.backup-checks li strong { display: block; font-weight: 600; font-size: 13px; }
+.backup-checks li span { display: block; }

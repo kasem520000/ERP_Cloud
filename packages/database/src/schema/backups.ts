@@ -1,4 +1,4 @@
-import { index, integer, jsonb, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
+import { boolean, index, integer, jsonb, pgTable, text, timestamp, uuid } from 'drizzle-orm/pg-core';
 
 import { tenants, users } from './platform.js';
 
@@ -80,6 +80,46 @@ export const dataRequests = pgTable(
   (table) => ({ statusIdx: index('data_requests_status_idx').on(table.status, table.createdAt) }),
 );
 
+/**
+ * `backup_restores` — كل محاولة استعادةٍ فعلية (migration `0135_platform_backup_restores.sql`).
+ *
+ * والصفّ يقول أكثر من «نجحت»: `inserted`/`skipped`/`failed` من التنفيذ، و`summary` جدولاً
+ * بجدول. و`checksum` يُثبّت **أيَّ ملف** استُعيد، لأن صفّ النسخة قد يُحقَن بملفٍّ آخر بعد
+ * أن يُخفَّف ضغطُ التخزين.
+ */
+export const backupRestores = pgTable(
+  'backup_restores',
+  {
+    id: uuid('id').primaryKey(),
+    jobId: uuid('job_id')
+      .notNull()
+      .references(() => backupJobs.id, { onDelete: 'cascade' }),
+    artifactId: uuid('artifact_id').references(() => backupArtifacts.id, { onDelete: 'set null' }),
+    mode: text('mode').notNull().default('dry_run'),
+    status: text('status').notNull().default('dry_run'),
+    scope: text('scope').notNull().default('platform'),
+    tenantId: uuid('tenant_id').references(() => tenants.id, { onDelete: 'set null' }),
+    checksum: text('checksum').notNull(),
+    verified: boolean('verified').notNull().default(false),
+    tables: integer('tables').notNull().default(0),
+    inserted: integer('inserted').notNull().default(0),
+    skipped: integer('skipped').notNull().default(0),
+    failed: integer('failed').notNull().default(0),
+    summary: jsonb('summary').$type<Record<string, unknown>>().notNull().default({}),
+    failureReason: text('failure_reason'),
+    reason: text('reason'),
+    startedAt: timestamp('started_at', { withTimezone: true }).notNull().defaultNow(),
+    finishedAt: timestamp('finished_at', { withTimezone: true }),
+    durationMs: integer('duration_ms'),
+    requestedBy: uuid('requested_by').references(() => users.id, { onDelete: 'set null' }),
+  },
+  (table) => ({
+    jobIdx: index('backup_restores_job_idx').on(table.jobId, table.startedAt),
+    startedIdx: index('backup_restores_started_idx').on(table.startedAt),
+  }),
+);
+
 export type BackupArtifact = typeof backupArtifacts.$inferSelect;
 export type BackupJob = typeof backupJobs.$inferSelect;
+export type BackupRestore = typeof backupRestores.$inferSelect;
 export type DataRequest = typeof dataRequests.$inferSelect;

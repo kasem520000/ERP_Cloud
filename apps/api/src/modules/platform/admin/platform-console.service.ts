@@ -79,6 +79,7 @@ const PROBLEM_HINTS: Record<PlatformProblemSource, string> = {
   webhook: 'لم يُسلَّم الحدث إلى نقطة الويب هوك: تحقّق من العنوان والمفتاح ثم أعد المحاولة.',
   outbox: 'مهمةٌ نفدت محاولاتها: أصلح السبب ثم أعد تشغيلها من شاشة المهام والطوابير.',
   backup: 'فشلت النسخة: تحقّق من المخزن ثم أعد تشغيلها من شاشة البيانات والنسخ.',
+  server: 'خطأٌ من جانب الخادم: اقرأ الرمز والمسار أدناه، ثم افتح أثر الطلب بالبصمة نفسها في سجلّ النظام.',
 };
 
 /** الشاشة التي يُصلَح فيها الصفّ — لا رابط عام، بل موضع الفعل. */
@@ -88,6 +89,7 @@ const PROBLEM_HREFS: Record<PlatformProblemSource, string> = {
   webhook: '/webhooks',
   outbox: '/jobs',
   backup: '/backups',
+  server: '/problems?filter[source]=server',
 };
 
 @Injectable()
@@ -538,12 +540,31 @@ export class PlatformConsoleService {
         `)
       ).rows as unknown as RawProblem[];
 
+      /**
+       * البند 3 — أخطاء السيرفرات نفسها. تُقرأ من `platform_problem_events` (سياسة منصّة)،
+       * وهي المصدر الوحيد هنا الذي لا صفَّ فشلٍ في جدولٍ آخر وراءه: استثناءٌ في مسارٍ لا
+       * يملك صفّاً. تُعرض بجانب بقية المصادر حتى يظلّ الجواب واحداً: «ما الذي يفشل الآن؟».
+       */
+      const server = (
+        await tx.execute(sql`
+          SELECT id, tenant_id, NULL::int AS attempts, severity,
+                 'خطأ سيرفر (' || source || '): ' || COALESCE(NULLIF(code, ''), left(message, 80)) AS title,
+                 btrim(COALESCE(path, '') || ' — ' || message) AS detail,
+                 occurred_at
+            FROM platform_problem_events
+           WHERE ${window(sql`occurred_at`)}
+           ORDER BY occurred_at DESC
+           LIMIT 500
+        `)
+      ).rows as unknown as RawProblem[];
+
       const tenantMap = await this.tenantNames(tx);
       return [
         ...email.map((row) => this.toProblem('email', row, tenantMap)),
         ...webhooks.map((row) => this.toProblem('webhook', row, tenantMap)),
         ...outbox.map((row) => this.toProblem('outbox', row, tenantMap)),
         ...backups.map((row) => this.toProblem('backup', row, tenantMap)),
+        ...server.map((row) => this.toProblem('server', row, tenantMap)),
       ];
     });
   }

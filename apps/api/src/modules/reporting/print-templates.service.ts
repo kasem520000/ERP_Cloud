@@ -506,7 +506,7 @@ export class PrintTemplatesService {
     tenantId: string,
     report: {
       titleAr: string;
-      columns: Array<{ key: string; labelAr: string; numeric: boolean }>;
+      columns: Array<{ key: string; labelAr: string; numeric: boolean; qr?: boolean }>;
       rows: Array<Record<string, string>>;
       totals: Record<string, string>;
       /**
@@ -537,9 +537,10 @@ export class PrintTemplatesService {
           .map(
             (row, index) =>
               `<tr><td class="num">${index + 1}</td>${report.columns
-                .map(
-                  (column) =>
-                    `<td${column.numeric ? ' class="num"' : ''}>${escapeHtml(cellText(row[column.key] ?? '', column.numeric))}</td>`,
+                .map((column) =>
+                  column.qr
+                    ? `<td class="qr-cell">${this.reportQr(row[column.key] ?? '')}</td>`
+                    : `<td${column.numeric ? ' class="num"' : ''}>${escapeHtml(cellText(row[column.key] ?? '', column.numeric))}</td>`,
                 )
                 .join('')}</tr>`,
           )
@@ -550,7 +551,9 @@ export class PrintTemplatesService {
       ? `<tfoot><tr><th>الإجمالي</th>${report.columns
           .map(
             (column) =>
-              `<th class="num">${report.totals[column.key] ? escapeHtml(money(report.totals[column.key]!)) : ''}</th>`,
+              column.qr
+                ? '<th></th>'
+                : `<th class="num">${report.totals[column.key] ? escapeHtml(money(report.totals[column.key]!)) : ''}</th>`,
           )
           .join('')}</tr></tfoot>`
       : '';
@@ -881,6 +884,22 @@ export class PrintTemplatesService {
     qr.addData(payload);
     qr.make();
     return `<div class="qr">${qr.createSvgTag({ cellSize: 3, margin: 0, scalable: true })}<span>${escapeHtml(drawnLabel)}</span></div>`;
+  }
+
+  /**
+   * 🧾 رمز QR داخل جدول تقرير — البند 10.
+   *
+   * الحمولة تأتي من `sales_invoices.zatca_qr` (المرحلة الثانية) أو من حمولةٍ نصّيةٍ بسيطة
+   * يبنيها استعلام التقرير حين لا يكون للفاتورة ربطٌ ضريبي. والرسم هنا بمُرمِّز واحد
+   * (`qrcode-generator`) هو نفسه الذي يرسم رمز وثيقة الفاتورة — فالورق لا يختلف عن الورق.
+   */
+  private reportQr(payload: string): string {
+    const value = payload.trim();
+    if (!value) return '';
+    const qr = qrcode(0, 'M');
+    qr.addData(value);
+    qr.make();
+    return `<div class="rep-qr">${qr.createSvgTag({ cellSize: 2, margin: 0, scalable: true })}</div>`;
   }
 
   private signatures(labels: string[]) {

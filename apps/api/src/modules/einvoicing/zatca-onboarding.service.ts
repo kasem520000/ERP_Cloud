@@ -217,7 +217,7 @@ export class ZatcaOnboardingService {
    * a warning and left as it was.
    */
   async fillFromCompany(tenantId: string, authority = 'zatca') {
-    return withTenantTx(this.database.db, tenantId, async (tx) => {
+    const warnings = await withTenantTx(this.database.db, tenantId, async (tx) => {
       const [profile] = await tx.select().from(companyProfiles).where(eq(companyProfiles.tenantId, tenantId));
       const nameAr = profile?.nameAr ? String(profile.nameAr) : '';
       const taxNo = profile?.taxNo ? String(profile.taxNo) : '';
@@ -275,12 +275,22 @@ export class ZatcaOnboardingService {
         .returning();
       if (!row) throw new DomainError('EINVOICE_SETTINGS_SAVE_FAILED', 'تعذّر تعبئة خصائص الشهادة', 500);
 
-      return {
-        settings: row,
-        warnings: row.industry ? [] : ['يرجى تعبئة النشاط التجاري — بطاقة المنشأة في السحابة لا تحوي حقلاً له'],
-        message: 'تم تعبئة البيانات من بطاقة المنشأة',
-      };
+      return row.industry ? [] : ['يرجى تعبئة النشاط التجاري — بطاقة المنشأة في السحابة لا تحوي حقلاً له'];
     });
+
+    /**
+     * 🐞 الردّ كان صفَّ قاعدة البيانات الخام (`settings: row`) بينما الشاشة تقرأ
+     * `settings.settings.startDate` و`settings.csr` — أي شكل «العرض». فكان كل ضغطٍ على
+     * «تعبئة من بيانات المنشأة» يرمي `Cannot read properties of undefined (reading
+     * 'startDate')` عند السطر ٢٩٢ من الصفحة، بعد أن تنجح التعبئة في الخادم فعلاً.
+     * الردّ الآن هو نفسه الذي تُرجعه `GET /einvoice/settings` — شكلٌ واحد لا شكلان.
+     */
+    const view = await this.view(tenantId, authority);
+    return {
+      settings: view,
+      warnings,
+      message: 'تم تعبئة البيانات من بطاقة المنشأة',
+    };
   }
 
   // ── ⚡ توليد — Generate ───────────────────────────────────────────────────────────────
@@ -634,6 +644,12 @@ export class ZatcaOnboardingService {
     try {
       return await operation();
     } catch (error) {
+      /*
+       * ليس كلُّ خطأٍ عطبَ اتصال: «يجب إنشاء CSR أولاً» و«OTP غير صالح» قراراتٌ يقولها
+       * الخادم قبل أن يمسّ الشبكة. كانت هذه الدالة تُحوّلها جميعاً إلى 502، فتقرأ الشاشة
+       * «تعذّر الاتصال» على مشكلةٍ ليست اتصالاً.
+       */
+      if (error instanceof DomainError) throw error;
       const detail = (error as { detail?: string }).detail ?? (error instanceof Error ? error.message : String(error));
       throw new DomainError('EINVOICE_GATEWAY_UNREACHABLE', `تعذّر الاتصال ببوابة هيئة الزكاة والضريبة: ${detail}`, 502);
     }

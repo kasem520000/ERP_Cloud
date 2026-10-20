@@ -1,4 +1,5 @@
 import { createCipheriv, createDecipheriv, createHash, randomBytes } from 'node:crypto';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 
@@ -77,14 +78,94 @@ export function parseArtifactHeader(
   return { iv, plaintextBytes: Number(bytes), body: buffer.subarray(newlineAt + 1) };
 }
 
-function artifactKey(): Buffer {
-  const secret = env.DATA_ENC_KEY ?? env.FILE_URL_SIGNING_SECRET;
-  if (!secret || secret.length < 16) {
+/**
+ * 🔑 من أين يأتي مفتاح النسخة — والجواب يُقرأ في الشاشة لا في السجلّ وحده.
+ *
+ * كان السلوك السابق: مفتاحٌ غائب ⇒ `BACKUP_KEY_MISSING` 500 ⇒ **لا نسخةً واحدة**، وهي
+ * أشنع نتيجة ممكنة: المنشأة التي لم تضبط `DATA_ENC_KEY` تكتشف ذلك في اليوم الذي تحتاج
+ * فيه النسخة. الآن المفتاح يُشتقّ من المصادر بالترتيب:
+ *
+ *   1. `DATA_ENC_KEY` (مفتاح المنصّة، وهو المفضَّل لأن نسخته تُدار مع بقية الأسرار)،
+ *   2. `FILE_URL_SIGNING_SECRET` (بديلٌ قائم في كل تنصيب)،
+ *   3. ملفٌّ محليٌّ `BACKUP_ARTIFACT_DIR/.artifact-key` بصلاحية 0600 — يُولَّد مرّةً عند
+ *      أول نسخة ويبقى، فلا تفقد النسخةَ القديمة لأن أحداً نسي متغيّر بيئة.
+ *
+ * والملف المحلي **ليس سرّاً سحرياً**: من يقرأ القرص يقرأ المفتاح، ولذلك الشاشة تقول
+ * `BACKUP_KEY_FILE` بصراحة وتوصي بضبط `DATA_ENC_KEY`. لكنه أفضل من «لا نسخة».
+ */
+export type ArtifactKeySource = 'DATA_ENC_KEY' | 'FILE_URL_SIGNING_SECRET' | 'BACKUP_KEY_FILE';
+
+const KEY_FILE_NAME = '.artifact-key';
+const keyLogger = new Logger('BackupArtifactKey');
+
+export function artifactKeyFilePath(): string {
+  return join(resolve(env.BACKUP_ARTIFACT_DIR), KEY_FILE_NAME);
+}
+
+function envSecret(): { value: string; source: ArtifactKeySource } | null {
+  if (env.DATA_ENC_KEY && env.DATA_ENC_KEY.length >= 16) {
+    return { value: env.DATA_ENC_KEY, source: 'DATA_ENC_KEY' };
+  }
+  if (env.FILE_URL_SIGNING_SECRET && env.FILE_URL_SIGNING_SECRET.length >= 16) {
+    return { value: env.FILE_URL_SIGNING_SECRET, source: 'FILE_URL_SIGNING_SECRET' };
+  }
+  return null;
+}
+
+/** مصدر المفتاح الحالي بلا توليد — للفحص المسبق وللعرض في الشاشة. */
+export function artifactKeySource(): ArtifactKeySource | 'missing' {
+  const fromEnv = envSecret();
+  if (fromEnv) return fromEnv.source;
+  try {
+    const existing = readFileSync(artifactKeyFilePath(), 'utf8').trim();
+    if (existing.length >= 32) return 'BACKUP_KEY_FILE';
+  } catch {
+    // لا ملف — سيُولَّد عند أول استخدام.
+  }
+  return 'missing';
+}
+
+/**
+ * يضمن وجود مفتاحٍ قابلٍ للاستعمال، ويولّد الملف المحلي عند الحاجة.
+ * يُرمى `BACKUP_KEY_MISSING` فقط إذا تعذّر كلُّ ذلك (مجلدٌ غير قابلٍ للكتابة مثلاً).
+ */
+export function ensureArtifactKey(): ArtifactKeySource {
+  const fromEnv = envSecret();
+  if (fromEnv) return fromEnv.source;
+
+  const path = artifactKeyFilePath();
+  try {
+    const existing = readFileSync(path, 'utf8').trim();
+    if (existing.length >= 32) return 'BACKUP_KEY_FILE';
+  } catch {
+    // لم يُولَّد بعد.
+  }
+
+  const created = randomBytes(32).toString('base64');
+  try {
+    mkdirSync(dirname(path), { recursive: true });
+    writeFileSync(path, created, { mode: 0o600 });
+  } catch (error) {
     throw new DomainError(
       'BACKUP_KEY_MISSING',
-      'DATA_ENC_KEY (or FILE_URL_SIGNING_SECRET) is required to encrypt a backup artifact',
+      `No DATA_ENC_KEY and the artifact directory is not writable (${path}): ${
+        error instanceof Error ? error.message : String(error)
+      }`,
       500,
     );
+  }
+  keyLogger.warn(
+    `backup encryption key generated at ${path} (0600) — set DATA_ENC_KEY in production so the key travels with your secrets, not with the disk`,
+  );
+  return 'BACKUP_KEY_FILE';
+}
+
+function artifactKey(): Buffer {
+  const source = ensureArtifactKey();
+  const secret =
+    source === 'BACKUP_KEY_FILE' ? readFileSync(artifactKeyFilePath(), 'utf8').trim() : envSecret()!.value;
+  if (!secret || secret.length < 16) {
+    throw new DomainError('BACKUP_KEY_MISSING', 'The backup encryption key is unusable', 500);
   }
   return createHash('sha256').update(secret).digest();
 }

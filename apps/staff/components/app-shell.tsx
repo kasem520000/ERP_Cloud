@@ -11,6 +11,7 @@ import {
   Factory,
   Glasses,
   HardHat,
+  Handshake,
   Headset,
   Home,
   Landmark,
@@ -24,6 +25,7 @@ import {
   ShoppingCart,
   Smartphone,
   ReceiptText,
+  Truck,
   Users,
   Wallet,
   X,
@@ -401,6 +403,70 @@ function ModuleBlock({
   );
 }
 
+/**
+ * الأقسام الستة — البند 9 من قائمة 20 أكتوبر.
+ *
+ * القائمة الجانبية كانت مقسّمة بحسب **الوحدة** (محاسبة، مستودعات، مبيعات…)، والمستخدم
+ * يبحث بحسب **الشغل**: «أين العملاء؟ أين المناديب؟». هذه شرائحُ اختصارٍ فوق الوحدات، كلٌّ
+ * منها يفتح الشاشة الأم لذلك الشغل — لا شجرةً ثانية ولا نسخةً من الروابط. والصلاحية تحكمها
+ * كما تحكم الشاشة نفسها: من لا يملك `parties.view` لا يرى «عملاء».
+ */
+const QUICK_SECTIONS: Array<{
+  key: string;
+  labelAr: string;
+  labelEn: string;
+  href: string;
+  prefix: string;
+  permission?: string;
+  icon: LucideIcon;
+}> = [
+  { key: 'qs-sales', labelAr: 'مبيعات', labelEn: 'Sales', href: '/sales/invoices', prefix: '/sales/invoices', permission: 'sales.view', icon: ReceiptText },
+  { key: 'qs-pos', labelAr: 'نقاط البيع', labelEn: 'POS', href: '/sales/pos', prefix: '/sales/pos', permission: 'sales.invoice.create', icon: ShoppingCart },
+  { key: 'qs-customers', labelAr: 'عملاء', labelEn: 'Customers', href: '/sales/customers', prefix: '/sales/customers', permission: 'parties.view', icon: Users },
+  { key: 'qs-suppliers', labelAr: 'موردين', labelEn: 'Suppliers', href: '/purchases/suppliers', prefix: '/purchases/suppliers', permission: 'parties.view', icon: Truck },
+  { key: 'qs-salesmen', labelAr: 'مناديب', labelEn: 'Sales reps', href: '/sales/salesmen', prefix: '/sales/salesmen', permission: 'sales.view', icon: Handshake },
+  { key: 'qs-reports', labelAr: 'التقارير', labelEn: 'Reports', href: '/reports', prefix: '/reports', permission: 'reporting.view', icon: BarChart3 },
+];
+
+function QuickSections({
+  pathname,
+  permissions,
+  lang,
+  onNavigate,
+}: {
+  pathname: string;
+  permissions: string[];
+  lang: Lang;
+  onNavigate: () => void;
+}) {
+  const granted = new Set(permissions);
+  const visible = QUICK_SECTIONS.filter(
+    (section) => !section.permission || granted.has('*') || granted.has(section.permission),
+  );
+  if (visible.length === 0) return null;
+
+  return (
+    <div className="nav-quick" role="navigation" aria-label={lang === 'ar' ? 'الأقسام' : 'Sections'}>
+      {visible.map((section) => {
+        const Icon = section.icon;
+        const active = pathname === section.prefix || pathname.startsWith(`${section.prefix}/`);
+        return (
+          <Link
+            key={section.key}
+            href={section.href}
+            onClick={onNavigate}
+            className={`nav-quick-item ${active ? 'active' : ''}`}
+            title={lang === 'ar' ? section.labelAr : section.labelEn}
+          >
+            <Icon size={14} strokeWidth={1.9} aria-hidden />
+            <span>{lang === 'ar' ? section.labelAr : section.labelEn}</span>
+          </Link>
+        );
+      })}
+    </div>
+  );
+}
+
 type AppGate = {
   gatedHrefs: string[];
   enabledHrefs: string[];
@@ -673,6 +739,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             aria-label={t('nav.searchPlaceholder')}
           />
         </label>
+
+        <QuickSections
+          pathname={pathname}
+          permissions={me?.permissions ?? []}
+          lang={lang}
+          onNavigate={() => setMobileOpen(false)}
+        />
 
         <nav className="nav" aria-label={t('nav.searchPlaceholder')}>
           {tree.map((module) => (

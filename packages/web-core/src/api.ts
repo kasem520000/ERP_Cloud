@@ -60,7 +60,11 @@ export function apiErrorText(error: unknown, fallback = 'تعذر إكمال ا�
    */
   if (!(error instanceof ApiError)) {
     const raw = error instanceof Error ? `${error.name}: ${error.message}` : String(error ?? '');
-    if (/failed to fetch|networkerror|load failed|network request failed/i.test(raw)) {
+    if (
+      /failed to fetch|networkerror|load failed|network request failed|fetch failed|econnrefused|econnreset|enotfound|getaddrinfo|bad gateway/i.test(
+        raw,
+      )
+    ) {
       return 'تعذّر الوصول إلى الخادم — تحقّق من الاتصال ثم أعد المحاولة.';
     }
     if (/timeout|timed out|aborted/i.test(raw)) {

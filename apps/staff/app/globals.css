@@ -3783,3 +3783,21 @@ a:focus-visible {
 .stack-sm p {
   margin: 0;
 }
+
+/* سجلّ التدقيق — الجملة العربية هي المعلومة، والشارة تقول النتيجة. */
+.audit-sentence { display: inline-flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.audit-sentence .badge { font-size: 10.5px; }
+.audit-detail-head { display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; border-radius: 10px; background: var(--surface-2, rgba(0,0,0,.03)); margin-bottom: 10px; }
+.audit-detail-head svg { color: var(--accent, #0b6bcb); margin-top: 2px; }
+.audit-detail-sentence { margin: 0 0 2px; font-weight: 600; font-size: 14px; }
+
+/* الأقسام الستة فوق الوحدات — اختصارٌ للشغل لا شجرةٌ ثانية. */
+.nav-quick { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; margin: 4px 0 10px; }
+.nav-quick-item { display: inline-flex; align-items: center; gap: 6px; padding: 7px 9px; border-radius: 9px; border: 1px solid var(--line); background: var(--surface-2, rgba(0,0,0,.025)); color: inherit; text-decoration: none; font-size: 12px; font-weight: 600; line-height: 1; }
+.nav-quick-item:hover { border-color: var(--accent, #0b6bcb); }
+.nav-quick-item.active { border-color: var(--accent, #0b6bcb); background: color-mix(in srgb, var(--accent, #0b6bcb) 12%, transparent); }
+.nav-quick-item svg { flex: none; opacity: .85; }
+
+/* رمز الفاتورة داخل جدول التقرير — صغيرٌ ليُقرأ على الورق. */
+.report-qr { display: inline-flex; width: 54px; height: 54px; background: #fff; padding: 2px; border-radius: 4px; }
+.report-qr svg { width: 100%; height: 100%; }
