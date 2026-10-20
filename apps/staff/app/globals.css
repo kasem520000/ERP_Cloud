@@ -967,17 +967,33 @@ button.chip:hover {
   cursor: default;
 }
 .kv {
+  /* 📇 بطاقة المنشأة (البند 2): عمود `1fr` كان يمدّ القيمة إلى آخر اللوحة فتُقرأ
+     منفصلةً عن عنوانها في سطرٍ أبيض طويل — «حقولٌ مبعثرة». نُقيّد عرض القائمة ونُثبّت
+     عمود العنوان، فتبقى كل قيمةٍ ملاصقةً لعنوانها ومقروءةً كسطرِ بيانات. */
   display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 6px 14px;
+  grid-template-columns: minmax(7.5rem, max-content) minmax(0, 1fr);
+  gap: 8px 18px;
   font-size: 13px;
+  max-inline-size: 46rem;
+  align-items: baseline;
 }
 .kv dt {
   color: var(--muted);
+  white-space: nowrap;
 }
 .kv dd {
   margin: 0;
   font-weight: 600;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 560px) {
+  .kv {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 2px 0;
+  }
+  .kv dd {
+    margin-bottom: 8px;
+  }
 }
 
 .label-sheet {
