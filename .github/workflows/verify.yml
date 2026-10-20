@@ -1,0 +1,156 @@
+name: Verify
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main, 'arena/**']
+
+concurrency:
+  group: verify-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    name: Verify (Typecheck, Lint, Build, Test & OpenAPI)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.0
+
+      - name: Setup Node.js 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Run full verification pipeline (pnpm verify)
+        env:
+          CI: 'true'
+          NODE_ENV: test
+        run: pnpm run verify
+
+  android:
+    name: Android (compile bakery & rep)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+      pull-requests: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: gradle
+
+      - name: Build android-bakery (assembleDebug)
+        working-directory: apps/android-bakery
+        run: |
+          set -o pipefail
+          ./gradlew assembleDebug --no-daemon --stacktrace 2>&1 | tee /tmp/bakery-build.log
+
+      - name: Upload bakery APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-bakery-debug
+          path: apps/android-bakery/app/build/outputs/apk/debug/
+          if-no-files-found: error
+
+      - name: Build android-rep (assembleDebug)
+        working-directory: apps/android-rep
+        run: |
+          set -o pipefail
+          ./gradlew assembleDebug --no-daemon --stacktrace 2>&1 | tee /tmp/rep-build.log
+
+      - name: Upload rep APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-rep-debug
+          path: apps/android-rep/app/build/outputs/apk/debug/
+          if-no-files-found: error
+
+      # سجلُّ الوظيفة يُخزَّنُ خارج github.com؛ هذا التعليقُ يجعلُ أخطاءَ الترجمة
+      # قابلةً للقراءة عبر واجهة API من بيئاتٍ محدودةِ المضيفات.
+      - name: Report build errors on the PR (on failure)
+        if: failure() && github.event_name == 'pull_request'
+        run: |
+          {
+            echo "## Android build errors — ${GITHUB_SHA::7}"
+            for f in /tmp/bakery-build.log /tmp/rep-build.log; do
+              [ -f "$f" ] || continue
+              echo "### $f"
+              echo '```'
+              if grep -qE '^e: |error: |What went wrong' "$f"; then
+                grep -E '^e: |error: |What went wrong|Caused by' "$f" | head -c 55000
+              else
+                tail -n 100 "$f"
+              fi
+              echo '```'
+            done
+          } > /tmp/errors.md
+          gh pr comment "$PR_NUMBER" --body-file /tmp/errors.md || true
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER: ${{ github.event.number }}
+
+      # روابطُ تنزيلِ الـAPK تعلَّقُ على الـPR وتُحدَّثُ مع كلّ بناءٍ ناجح —
+      # تعليقٌ واحدٌ بوسمٍ ثابت (marker) يُعدَّل، فلا يتكدّسُ الـPR تعليقاتٍ مكرّرة.
+      - name: Comment APK download links on the PR (on success)
+        if: success()
+        run: |
+          set -e
+          OWNER="${GITHUB_REPOSITORY%/*}"
+          REPO="${GITHUB_REPOSITORY#*/}"
+          PR_NUMBER="${PR_NUMBER_EVENT}"
+          if [ -z "$PR_NUMBER" ]; then
+            PR_NUMBER=$(gh pr list --repo "$GITHUB_REPOSITORY" --head "$GITHUB_REF_NAME" --json number --jq '.[0].number' 2>/dev/null || echo "")
+          fi
+          [ -n "$PR_NUMBER" ] || { echo "لا PR على هذا الفرع — تخطّي التعليق."; exit 0; }
+
+          artifacts() { gh api "repos/$OWNER/$REPO/actions/runs/$GITHUB_RUN_ID/artifacts" --jq '.artifacts'; }
+          ARTIFACTS=$(artifacts || echo "")
+          if [ -z "$ARTIFACTS" ] || [ "$ARTIFACTS" = "[]" ]; then
+            sleep 10
+            ARTIFACTS=$(artifacts || echo "")
+          fi
+          BAKERY_ID=$(echo "$ARTIFACTS" | jq -r '.[] | select(.name=="android-bakery-debug") | .id' | head -1)
+          REP_ID=$(echo "$ARTIFACTS" | jq -r '.[] | select(.name=="android-rep-debug") | .id' | head -1)
+          {
+            echo "<!-- apk-links -->"
+            echo "## 📦 روابطُ تنزيل الـAPK — البناء ${GITHUB_SHA::7}"
+            if [ -n "$BAKERY_ID" ]; then
+              echo "- **تطبيقُ المخبز (android-bakery):** [تنزيلٌ مباشر](https://github.com/$OWNER/$REPO/actions/runs/$GITHUB_RUN_ID/artifacts/$BAKERY_ID)"
+            fi
+            if [ -n "$REP_ID" ]; then
+              echo "- **تطبيقُ المندوب (android-rep):** [تنزيلٌ مباشر](https://github.com/$OWNER/$REPO/actions/runs/$GITHUB_RUN_ID/artifacts/$REP_ID)"
+            fi
+            echo ""
+            echo "_يتحدّثُ هذا التعليقُ تلقائيًّا مع كلّ بناءٍ ناجح. التنزيلُ يتطلّبُ دخولَ GitHub._"
+          } > /tmp/apk.md
+
+          COMMENT_ID=$(gh api "repos/$OWNER/$REPO/issues/$PR_NUMBER/comments" --jq '.[] | select(.body | contains("<!-- apk-links -->")) | .id' | head -1 || true)
+          if [ -n "$COMMENT_ID" ]; then
+            gh api -X PATCH "repos/$OWNER/$REPO/issues/comments/$COMMENT_ID" -f body="$(cat /tmp/apk.md)" \
+              || gh pr comment "$PR_NUMBER" --body-file /tmp/apk.md || true
+          else
+            gh pr comment "$PR_NUMBER" --body-file /tmp/apk.md || true
+          fi
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_NUMBER_EVENT: ${{ github.event.number }}

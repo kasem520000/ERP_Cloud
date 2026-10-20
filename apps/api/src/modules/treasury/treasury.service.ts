@@ -28,6 +28,7 @@ import {
   type DrizzleTx,
 } from '@erp/database';
 
+import { FROM_TO_LABELS_AR, validateDayFilters } from '../../common/date-param.js';
 import { DATABASE_HANDLE } from '../../database/database.module.js';
 import { tryGetAuthContext } from '../../request-context/request-context.js';
 import { AccountingService, type JournalLineInput } from '../accounting/accounting.service.js';
@@ -200,6 +201,9 @@ export class TreasuryService implements OnModuleInit {
    * 🔢 الرقم or رقم المرجع (`ReceiptOper.LoadReceipts`, `Class/ReceiptOper.cs:496`).
    */
   vouchers(tenantId: string, filters: { from?: string; to?: string; q?: string } = {}) {
+    /** 📅 مرشّحا التاريخ يُتحقَّق منهما قبل SQL — فقبل هذا كان نصٌّ فاسدٌ يرجع ٥٠٠ «خطأً داخليًّا» (قِيس ٢٠٢٦-١٠-١٦). */
+    validateDayFilters(filters as Record<string, unknown>, FROM_TO_LABELS_AR, 'TREASURY_DATE_INVALID');
+
     const q = filters.q?.trim();
     return withTenantTx(this.database.db, tenantId, async (tx) => {
       const rows = await tx
@@ -325,6 +329,15 @@ export class TreasuryService implements OnModuleInit {
   }
 
   async createVoucher(tenantId: string, input: VoucherInput) {
+    return withTenantTx(this.database.db, tenantId, (tx) => this.createVoucherInTx(tx, tenantId, input));
+  }
+
+  /**
+   * AUD-10 — نسخةٌ تنفيذية داخل معاملةٍ قائمة. مسيّر الرواتب يحتاجها لينشئ سند الصرف،
+   * ويرحّله، ويحدّث حالة المسيّر في **معاملة واحدة**: لا سندٌ يتيم إن فشل تحديث المسيّر،
+   * ولا مسيّر «مدفوع» بلا سند إن فشل الإدراج.
+   */
+  async createVoucherInTx(tx: DrizzleTx, tenantId: string, input: VoucherInput) {
     const amount = money(input.amount);
     if (!amount.isFinite() || amount.lte(0))
       throw new DomainError('VOUCHER_AMOUNT_INVALID', 'Voucher amount must be positive', 422);
@@ -342,47 +355,45 @@ export class TreasuryService implements OnModuleInit {
       // عند الديسكتوب (يُحسب من `val1 × exchange_price` في `frmInvBySalesMen` L254).
       fxRate = amount.div(foreign).toFixed(6);
     }
-    if (input.salesmanId) await this.assertSalesman(tenantId, input.salesmanId);
+    if (input.salesmanId) await this.assertSalesmanInTx(tx, tenantId, input.salesmanId);
     const id = newId();
     const actorId = tryGetAuthContext()?.userId ?? null;
-    const [row] = await withTenantTx(this.database.db, tenantId, (tx) =>
-      tx
-        .insert(vouchers)
-        .values({
-          id,
-          tenantId,
-          branchId: input.branchId,
-          kind: input.kind,
-          subtype: input.subtype,
-          date: input.date,
-          partyId: input.partyId,
-          counterAccountId: input.counterAccountId,
-          cashLocationId: input.cashLocationId,
-          method: input.method,
-          amount: input.amount,
-          vatAmount: input.vatAmount ?? '0',
-          netAmount: input.netAmount ?? input.amount,
-          currency: input.currency ?? 'SAR',
-          fxRate,
-          chequeNo: input.chequeNo,
-          chequeDate: input.chequeDate,
-          bankName: input.bankName,
-          chequeState: input.method === 'cheque' ? 'pending' : null,
-          costCenterId: input.costCenterId,
-          referenceNo: input.referenceNo,
-          referenceDate: input.referenceDate,
-          recipient: input.recipient,
-          description: input.description?.trim() || null,
-          voucherTime,
-          salesmanId: input.salesmanId ?? null,
-          foreignAmount: input.foreignAmount ?? null,
-          fiscalPeriodId: input.fiscalPeriodId,
-          idempotencyKey: input.idempotencyKey,
-          createdBy: actorId,
-          updatedBy: actorId,
-        })
-        .returning(),
-    );
+    const [row] = await tx
+      .insert(vouchers)
+      .values({
+        id,
+        tenantId,
+        branchId: input.branchId,
+        kind: input.kind,
+        subtype: input.subtype,
+        date: input.date,
+        partyId: input.partyId,
+        counterAccountId: input.counterAccountId,
+        cashLocationId: input.cashLocationId,
+        method: input.method,
+        amount: input.amount,
+        vatAmount: input.vatAmount ?? '0',
+        netAmount: input.netAmount ?? input.amount,
+        currency: input.currency ?? 'SAR',
+        fxRate,
+        chequeNo: input.chequeNo,
+        chequeDate: input.chequeDate,
+        bankName: input.bankName,
+        chequeState: input.method === 'cheque' ? 'pending' : null,
+        costCenterId: input.costCenterId,
+        referenceNo: input.referenceNo,
+        referenceDate: input.referenceDate,
+        recipient: input.recipient,
+        description: input.description?.trim() || null,
+        voucherTime,
+        salesmanId: input.salesmanId ?? null,
+        foreignAmount: input.foreignAmount ?? null,
+        fiscalPeriodId: input.fiscalPeriodId,
+        idempotencyKey: input.idempotencyKey,
+        createdBy: actorId,
+        updatedBy: actorId,
+      })
+      .returning();
     return row;
   }
 
@@ -463,13 +474,15 @@ export class TreasuryService implements OnModuleInit {
 
   /** 👔 المندوب has to be one of *this* tenant's employees, or the commission is fiction. */
   private async assertSalesman(tenantId: string, salesmanId: string): Promise<void> {
-    const [row] = await withTenantTx(this.database.db, tenantId, (tx) =>
-      tx
-        .select({ id: employees.id })
-        .from(employees)
-        .where(and(eq(employees.tenantId, tenantId), eq(employees.id, salesmanId), isNull(employees.deletedAt)))
-        .limit(1),
-    );
+    await withTenantTx(this.database.db, tenantId, (tx) => this.assertSalesmanInTx(tx, tenantId, salesmanId));
+  }
+
+  private async assertSalesmanInTx(tx: DrizzleTx, tenantId: string, salesmanId: string): Promise<void> {
+    const [row] = await tx
+      .select({ id: employees.id })
+      .from(employees)
+      .where(and(eq(employees.tenantId, tenantId), eq(employees.id, salesmanId), isNull(employees.deletedAt)))
+      .limit(1);
     if (!row)
       throw new DomainError('SALESMAN_NOT_FOUND', 'That employee does not belong to this tenant', 422, {
         field: 'salesmanId',
@@ -711,94 +724,110 @@ export class TreasuryService implements OnModuleInit {
   }
 
   async postVoucher(tenantId: string, id: string, input: VoucherPostInput = {}) {
-    const voucher = await this.getVoucher(tenantId, id);
-    if (voucher.status === 'posted') return voucher;
-    if (voucher.status !== 'draft')
+    return withTenantTx(this.database.db, tenantId, (tx) => this.postVoucherInTx(tx, tenantId, id, input)).then(() =>
+      this.getVoucher(tenantId, id),
+    );
+  }
+
+  /**
+   * AUD-10 — ترحيل سند داخل معاملةٍ قائمة: ينشئ مسيّر الرواتب السند ويرحّله ويحدّث حالة
+   * المسيّر في معاملة واحدة. ودلالة إعادة المحاولة مقصودة:
+   *
+   *   • سندٌ **مرحّل** يُعاد كما هو — لا ترحيل ثانٍ ولا قيد ثانٍ؛
+   *   • سندٌ غير موجود ⇒ 404، وسندٌ في حالة غير `draft` ⇒ 409؛
+   *   • القفل الفعلي هو `status = 'draft'` في القراءة داخل المعاملة، فطلبان متزامنان
+   *     لا يمرّان معاً: الثاني يرى الحالة بعد الأول.
+   */
+  async postVoucherInTx(tx: DrizzleTx, tenantId: string, id: string, input: VoucherPostInput = {}) {
+    const [existing] = await tx
+      .select()
+      .from(vouchers)
+      .where(and(eq(vouchers.tenantId, tenantId), eq(vouchers.id, id)));
+    if (!existing) throw new DomainError('VOUCHER_NOT_FOUND', 'Voucher was not found', 404);
+    if (existing.status === 'posted') return existing;
+    if (existing.status !== 'draft')
       throw new DomainError('VOUCHER_INVALID_STATUS', 'Only draft vouchers can be posted', 409);
-    if (!input.journalLines?.length && !input.fiscalPeriodId && !voucher.fiscalPeriodId) {
-      // Nothing to post into until we know the period — checked here so the failure is a
-      // 422 on the request, not a half-written transaction.
-      await withTenantTx(this.database.db, tenantId, (tx) =>
-        this.accounting.openPeriodForDateInTx(tx, tenantId, voucher.date),
-      );
-    }
-    if (input.journalLines?.length && !input.fiscalPeriodId && !voucher.fiscalPeriodId)
+    if (input.journalLines?.length && !input.fiscalPeriodId && !existing.fiscalPeriodId)
       throw new DomainError(
         'VOUCHER_FISCAL_PERIOD_REQUIRED',
         'A fiscal period is required for voucher journals',
         422,
       );
-    await withTenantTx(this.database.db, tenantId, async (tx) => {
-      const [locked] = await tx
-        .select()
-        .from(vouchers)
-        .where(and(eq(vouchers.tenantId, tenantId), eq(vouchers.id, id), eq(vouchers.status, 'draft')));
-      if (!locked) throw new DomainError('VOUCHER_INVALID_STATUS', 'Only draft vouchers can be posted', 409);
-      const allocated = await this.sequences.next(
-        { tenantId, branchId: locked.branchId, docType: `${locked.kind}_voucher` },
+    if (!input.journalLines?.length && !input.fiscalPeriodId && !existing.fiscalPeriodId) {
+      // Nothing to post into until we know the period — checked before any write so the
+      // failure is a 422 on the request, not a half-written transaction.
+      await this.accounting.openPeriodForDateInTx(tx, tenantId, existing.date);
+    }
+    const [locked] = await tx
+      .select()
+      .from(vouchers)
+      .where(and(eq(vouchers.tenantId, tenantId), eq(vouchers.id, id), eq(vouchers.status, 'draft')));
+    if (!locked) throw new DomainError('VOUCHER_INVALID_STATUS', 'Only draft vouchers can be posted', 409);
+    const allocated = await this.sequences.next(
+      { tenantId, branchId: locked.branchId, docType: `${locked.kind}_voucher` },
+      tx,
+      { prefix: locked.kind === 'receipt' ? 'RV-' : 'PV-', padding: 6 },
+    );
+    let journalEntryId: string | null = null;
+    const lines = input.journalLines?.length
+      ? input.journalLines
+      : await this.defaultJournalLines(tx, tenantId, locked);
+    if (lines.length) {
+      const journal = await this.accounting.postJournalInTx(tx, tenantId, {
+        branchId: locked.branchId,
+        fiscalPeriodId:
+          input.fiscalPeriodId ??
+          locked.fiscalPeriodId ??
+          (await this.accounting.openPeriodForDateInTx(tx, tenantId, locked.date)),
+        date: locked.date,
+        description:
+          locked.description?.trim() ||
+          `${locked.kind === 'receipt' ? 'سند قبض' : 'سند صرف'} ${allocated.display}`,
+        lines,
+        sourceType: 'voucher',
+        sourceId: id,
+      });
+      journalEntryId = journal?.id ?? null;
+    }
+    if (locked.method !== 'cheque')
+      await this.bumpBalance(
         tx,
-        { prefix: locked.kind === 'receipt' ? 'RV-' : 'PV-', padding: 6 },
+        tenantId,
+        locked.cashLocationId,
+        locked.currency,
+        locked.kind === 'receipt' ? locked.amount : `-${locked.amount}`,
       );
-      let journalEntryId: string | null = null;
-      const lines = input.journalLines?.length
-        ? input.journalLines
-        : await this.defaultJournalLines(tx, tenantId, locked);
-      if (lines.length) {
-        const journal = await this.accounting.postJournalInTx(tx, tenantId, {
-          branchId: locked.branchId,
-          fiscalPeriodId:
-            input.fiscalPeriodId ??
-            locked.fiscalPeriodId ??
-            (await this.accounting.openPeriodForDateInTx(tx, tenantId, locked.date)),
-          date: locked.date,
-          description:
-            locked.description?.trim() ||
-            `${locked.kind === 'receipt' ? 'سند قبض' : 'سند صرف'} ${allocated.display}`,
-          lines,
-          sourceType: 'voucher',
-          sourceId: id,
-        });
-        journalEntryId = journal?.id ?? null;
-      }
-      if (locked.method !== 'cheque')
-        await this.bumpBalance(
-          tx,
-          tenantId,
-          locked.cashLocationId,
-          locked.currency,
-          locked.kind === 'receipt' ? locked.amount : `-${locked.amount}`,
+    for (const allocation of input.allocations ?? []) {
+      if (money(allocation.amount).lte(0) || money(allocation.amount).gt(money(locked.amount)))
+        throw new DomainError(
+          'ALLOCATION_AMOUNT_INVALID',
+          'Allocation amount is outside voucher bounds',
+          422,
         );
-      for (const allocation of input.allocations ?? []) {
-        if (money(allocation.amount).lte(0) || money(allocation.amount).gt(money(locked.amount)))
-          throw new DomainError(
-            'ALLOCATION_AMOUNT_INVALID',
-            'Allocation amount is outside voucher bounds',
-            422,
-          );
-        await tx
-          .insert(paymentAllocations)
-          .values({
-            id: newId(),
-            tenantId,
-            partyId: allocation.partyId,
-            voucherId: id,
-            invoiceKind: allocation.invoiceKind,
-            invoiceId: allocation.invoiceId,
-            amount: allocation.amount,
-          });
-      }
       await tx
-        .update(vouchers)
-        .set({
-          status: 'posted',
-          number: allocated.display,
-          journalEntryId,
-          postedAt: new Date(),
-          updatedAt: new Date(),
-        })
-        .where(and(eq(vouchers.tenantId, tenantId), eq(vouchers.id, id)));
-    });
-    return this.getVoucher(tenantId, id);
+        .insert(paymentAllocations)
+        .values({
+          id: newId(),
+          tenantId,
+          partyId: allocation.partyId,
+          voucherId: id,
+          invoiceKind: allocation.invoiceKind,
+          invoiceId: allocation.invoiceId,
+          amount: allocation.amount,
+        });
+    }
+    await tx
+      .update(vouchers)
+      .set({
+        status: 'posted',
+        number: allocated.display,
+        journalEntryId,
+        postedAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .where(and(eq(vouchers.tenantId, tenantId), eq(vouchers.id, id)));
+    // Same shape the caller would read back — no second read needed inside the transaction.
+    return { ...existing, status: 'posted' as const, number: allocated.display, journalEntryId };
   }
 
   async voidVoucher(tenantId: string, id: string, reason: string) {
@@ -952,6 +981,9 @@ export class TreasuryService implements OnModuleInit {
     tenantId: string,
     filters: { status?: string; number?: string; from?: string; to?: string } = {},
   ) {
+    /** 📅 مرشّحا التاريخ يُتحقَّق منهما قبل SQL — فقبل هذا كان نصٌّ فاسدٌ يرجع ٥٠٠ «خطأً داخليًّا» (قِيس ٢٠٢٦-١٠-١٦). */
+    validateDayFilters(filters as Record<string, unknown>, FROM_TO_LABELS_AR, 'TREASURY_DATE_INVALID');
+
     const fromSide = alias(cashLocations, 'from_side');
     const toSide = alias(cashLocations, 'to_side');
     return withTenantTx(this.database.db, tenantId, (tx) =>
@@ -1500,6 +1532,9 @@ export class TreasuryService implements OnModuleInit {
     tenantId: string,
     filters: { from?: string; to?: string; userId?: string; membershipId?: string; branchId?: string } = {},
   ) {
+    /** 📅 مرشّحا التاريخ يُتحقَّق منهما قبل SQL — فقبل هذا كان نصٌّ فاسدٌ يرجع ٥٠٠ «خطأً داخليًّا» (قِيس ٢٠٢٦-١٠-١٦). */
+    validateDayFilters(filters as Record<string, unknown>, FROM_TO_LABELS_AR, 'TREASURY_DATE_INVALID');
+
     // نفس سبب `currentShift`: معرّفٌ ليس معرّفاً يعني «لا صفوف»، لا استعلاماً ينفجر.
     if (filters.branchId && !isUuid(filters.branchId)) return [];
     return withTenantTx(this.database.db, tenantId, async (tx) => {

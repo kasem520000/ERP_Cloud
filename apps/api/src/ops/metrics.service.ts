@@ -1,4 +1,8 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable, Optional } from '@nestjs/common';
+import { sql } from 'drizzle-orm';
+import { outboxJobs, withPlatformAdminTx, type DatabaseHandle } from '@erp/database';
+
+import { DATABASE_HANDLE } from '../database/database.tokens.js';
 
 type RouteKey = `${string} ${string}`;
 
@@ -7,6 +11,12 @@ type RouteMetric = {
   errors: number;
   totalMs: number;
   buckets: Map<number, number>;
+};
+
+export type OutboxDepthSnapshot = {
+  pending: number;
+  published: number;
+  dead: number;
 };
 
 const latencyBuckets = [5, 10, 25, 50, 100, 250, 500, 1_000, 2_500, 5_000, Number.POSITIVE_INFINITY];
@@ -18,6 +28,8 @@ export class MetricsService {
   private readonly routes = new Map<RouteKey, RouteMetric>();
   private einvoiceFailures = 0;
   private migrationImportedRows = 0;
+
+  constructor(@Optional() @Inject(DATABASE_HANDLE) private readonly database?: DatabaseHandle) {}
 
   observeHttp(method: string, route: string, statusCode: number, durationMs: number): void {
     const key = `${method.toUpperCase()} ${route}` as RouteKey;
@@ -76,7 +88,40 @@ export class MetricsService {
     this.migrationImportedRows += rows;
   }
 
-  renderPrometheus(): string {
+  /**
+   * O-02 — عمق طابور `outbox_jobs` الفعلي حسب الحالة، يُقرأ ضمن `withPlatformAdminTx`
+   * (سياسة `platform_admin_plane` على `outbox_jobs`) بدل الـplaceholder الثابت عند صفر.
+   * لا يسرّب معرّفات المستأجرين، وإن تعذّرت القراءة أو لم يُحقن الاتصال في اختبار وحدة
+   * يعود إلى صفر بأمان دون إسقاط `/metrics`.
+   */
+  async readOutboxDepth(): Promise<OutboxDepthSnapshot> {
+    if (!this.database) return { pending: 0, published: 0, dead: 0 };
+    try {
+      return await withPlatformAdminTx(this.database.db, async (tx) => {
+        const [counts] = await tx
+          .select({
+            pending: sql<number>`count(*) filter (where ${outboxJobs.status} = 'pending')::int`,
+            published: sql<number>`count(*) filter (where ${outboxJobs.status} = 'published')::int`,
+            dead: sql<number>`count(*) filter (where ${outboxJobs.status} = 'dead')::int`,
+          })
+          .from(outboxJobs);
+        return {
+          pending: counts?.pending ?? 0,
+          published: counts?.published ?? 0,
+          dead: counts?.dead ?? 0,
+        };
+      });
+    } catch {
+      return { pending: 0, published: 0, dead: 0 };
+    }
+  }
+
+  async scrapePrometheus(): Promise<string> {
+    const depth = await this.readOutboxDepth();
+    return this.renderPrometheus(depth);
+  }
+
+  renderPrometheus(depth: OutboxDepthSnapshot = { pending: 0, published: 0, dead: 0 }): string {
     const lines = [
       '# HELP erp_up Process liveness gauge.',
       '# TYPE erp_up gauge',
@@ -107,10 +152,12 @@ export class MetricsService {
         );
     }
     lines.push(
-      '# HELP erp_queue_depth Outbox queue depth placeholder by queue/status; tenant-scoped counts are exposed via /jobs/health.',
+      '# HELP erp_queue_depth Outbox queue depth by queue and status (aggregated across tenants).',
     );
     lines.push('# TYPE erp_queue_depth gauge');
-    lines.push('erp_queue_depth{queue="outbox",status="pending"} 0');
+    lines.push(`erp_queue_depth{queue="outbox",status="pending"} ${depth.pending}`);
+    lines.push(`erp_queue_depth{queue="outbox",status="published"} ${depth.published}`);
+    lines.push(`erp_queue_depth{queue="outbox",status="dead"} ${depth.dead}`);
     lines.push('# HELP erp_einvoice_failures_total E-invoice submission failures recorded by adapters.');
     lines.push('# TYPE erp_einvoice_failures_total counter');
     lines.push(`erp_einvoice_failures_total ${this.einvoiceFailures}`);

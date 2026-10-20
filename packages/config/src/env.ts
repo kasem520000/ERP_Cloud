@@ -209,6 +209,8 @@ const envSchema = z.object({
   DATA_ENC_KEY: z.string().optional(),
   /** HMAC secret for app-signed file download URLs; derived from DATA_ENC_KEY when unset. */
   FILE_URL_SIGNING_SECRET: z.string().optional(),
+  /** AUD-09 — pepper for the legacy compatibility gateway's device-key hashes. */
+  COMPAT_KEY_PEPPER: z.string().optional(),
 });
 
 export type AppEnv = z.infer<typeof envSchema>;
@@ -235,7 +237,54 @@ function readEnv(source: Record<string, string | undefined>): { value: AppEnv; i
 
 const parsed = readEnv(process.env);
 
-export const env: AppEnv = parsed.value;
+/**
+ * Test-only at-rest encryption key (AUD-16). The name is deliberately unusable in
+ * production: it exists so spec runs can exercise sealed columns without planting a
+ * repository-known default that a deployment could silently inherit. It is only ever
+ * injected when `NODE_ENV === 'test'`.
+ */
+export const TEST_DATA_ENC_KEY = 'erp-test-only-data-encryption-key';
+
+/**
+ * Resolves the key behind every AES-256-GCM envelope (secret-box, provider credentials,
+ * Salla/e-invoicing/payments/e-commerce secrets) — AUD-16.
+ *
+ * Before this, each module defaulted to the repository-known string
+ * `local-development-data-key` whenever `NODE_ENV !== 'production'`, so a staging process
+ * (or any non-production deployment) could encrypt real secrets under a public key.
+ * Resolution order — explicit argument, runtime `process.env`, validated `env` — then a
+ * **fail-closed** error outside tests instead of a known fallback.
+ */
+export function decideDataEncryptionKey(key: string | undefined | null, nodeEnv: string): string {
+  const configured = (key ?? '').trim();
+  if (configured.length > 0) return configured;
+  if (nodeEnv === 'test') return TEST_DATA_ENC_KEY;
+  throw new Error(
+    'DATA_ENC_KEY is required to encrypt or decrypt stored secrets (AUD-16). ' +
+      'Run `pnpm env:setup` at the repository root or set DATA_ENC_KEY in the environment; ' +
+      'the built-in fallback exists for tests only.',
+  );
+}
+
+export function resolveDataEncryptionKey(
+  candidate?: { DATA_ENC_KEY?: string },
+  nodeEnv: string = process.env.NODE_ENV ?? parsed.value.NODE_ENV,
+): string {
+  return decideDataEncryptionKey(
+    candidate?.DATA_ENC_KEY ?? process.env.DATA_ENC_KEY ?? parsed.value.DATA_ENC_KEY,
+    nodeEnv,
+  );
+}
+
+/** Convenience wrapper for call sites that do not accept a key argument. */
+export function dataEncryptionKey(): string {
+  return resolveDataEncryptionKey();
+}
+
+export const env: AppEnv =
+  parsed.value.NODE_ENV === 'test' && !parsed.value.DATA_ENC_KEY
+    ? { ...parsed.value, DATA_ENC_KEY: TEST_DATA_ENC_KEY }
+    : parsed.value;
 
 /** Human-readable list of variables that failed validation and were ignored. */
 export const envIssues: readonly string[] = parsed.issues;
@@ -261,6 +310,8 @@ export function assertRuntimeEnv(candidate: AppEnv = env): AppEnv {
   if (!normalisePem(candidate.JWT_PRIVATE_KEY)) missing.push('JWT_PRIVATE_KEY');
   if (!normalisePem(candidate.JWT_PUBLIC_KEY)) missing.push('JWT_PUBLIC_KEY');
   if (candidate.NODE_ENV === 'production' && !candidate.DATA_ENC_KEY) missing.push('DATA_ENC_KEY');
+  // AUD-09: بدون الـpepper تُبصم مفاتيح الأجهزة بسرٍّ معروف — الإنتاج لا يُقلع بلا قيمة.
+  if (candidate.NODE_ENV === 'production' && !candidate.COMPAT_KEY_PEPPER) missing.push('COMPAT_KEY_PEPPER');
 
   if (missing.length > 0 || parsed.issues.length > 0) {
     const lines = ['Invalid environment.'];

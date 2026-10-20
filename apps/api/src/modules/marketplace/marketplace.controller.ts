@@ -27,6 +27,13 @@ export class MarketplaceController {
     return { data: await this.marketplace.install(tenantId, userId, code) };
   }
 
+  @Post('marketplace/apps/:code/request')
+  @RequiresPermission('tenant.view')
+  async requestActivation(@Param('code') code: string, @Body() body: { note?: string }) {
+    const { tenantId, userId } = getTenantContext();
+    return { data: await this.marketplace.requestActivation(tenantId, userId, code, body?.note) };
+  }
+
   @Delete('marketplace/apps/:code')
   @RequiresPermission('tenant.apps.manage')
   async uninstall(@Param('code') code: string) {

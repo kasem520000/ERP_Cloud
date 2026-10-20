@@ -13,6 +13,16 @@ export class MetricsInterceptor implements NestInterceptor {
     const started = performance.now();
     const request = context.switchToHttp().getRequest<Request>();
     const response = context.switchToHttp().getResponse<Response>();
-    return next.handle().pipe(tap({ finalize: () => this.metrics.observeHttp(request.method, request.route?.path ?? request.path, response.statusCode, performance.now() - started) }));
+    return next.handle().pipe(
+      tap({
+        finalize: () =>
+          this.metrics.observeHttp(
+            request.method,
+            request.route?.path ?? 'UNMATCHED',
+            response.statusCode,
+            performance.now() - started,
+          ),
+      }),
+    );
   }
 }

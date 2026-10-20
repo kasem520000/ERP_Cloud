@@ -1,20 +1,25 @@
-import { DomainError, errorCodes } from '@erp/contracts';
+import { DomainError, TENANT_WIDE_SCOPE_ID, errorCodes } from '@erp/contracts';
 
 import type { RoleScopeValue } from '../../../request-context/request-context.js';
 
 /**
- * Per-role scope enforcement (2026-09 RBAC reorganisation).
+ * Per-role scope enforcement (2026-09 RBAC reorganisation + AUD-03).
  *
- * Semantics: a `(membership, role)` grant restricted by `membership_role_scopes`
- * rows authorises an operation only when at least one row matches the operation's
- * scope. Grants WITHOUT any scope row stay tenant-wide — scopes restrict, they
- * never widen. A membership holding several roles is authorised when ANY of its
- * grants covers the operation (UNION semantics, DATABASE_DESIGN §2).
- *
- * `TenantGuard` publishes the caller's scopes on the request context; endpoints
- * opt in by calling `assertScope` with the resource they are about to touch.
+ * Semantics:
+ * - Tenant-wide access for a `scopeType` (`branch` | `warehouse` | `cash_location` | `pos_terminal`)
+ *   is granted **ONLY** when at least one held role is explicitly configured with
+ *   `scopeId === TENANT_WIDE_SCOPE_ID` (`00000000-0000-0000-0000-000000000000`).
+ * - A `(membership, role)` grant with NO rows for `scopeType` is **unconfigured** for that
+ *   scope dimension: it grants zero scopes (`[]`) and never implies tenant-wide access or
+ *   widens restrictions on another held role.
+ * - Across multiple held roles, explicit `scopeId` grants combine via **UNION** (`W1 ∪ W2`).
+ * - Legacy/existing baseline role grants are migrated via `0117_explicit_tenant_wide_role_scopes.sql`
+ *   to carry explicit `TENANT_WIDE_SCOPE_ID` rows, while newly created/assigned roles remain
+ *   unconfigured until explicitly granted specific scopes or `TENANT_WIDE_SCOPE_ID`.
  */
 export type ScopeType = RoleScopeValue['scopeType'];
+
+export { TENANT_WIDE_SCOPE_ID };
 
 export function scopeAuthorises(
   scopes: readonly RoleScopeValue[],
@@ -22,16 +27,8 @@ export function scopeAuthorises(
   scopeType: ScopeType,
   scopeId: string,
 ): boolean {
-  const held = new Set(roleIds);
-  for (const roleId of held) {
-    const restrictions = scopes.filter(
-      (scope) => scope.roleId === roleId && scope.scopeType === scopeType,
-    );
-    // No restriction rows for this (role, scope type) → tenant-wide grant.
-    if (restrictions.length === 0) return true;
-    if (restrictions.some((scope) => scope.scopeId === scopeId)) return true;
-  }
-  return false;
+  const allowed = allowedScopeIds(scopes, roleIds, scopeType);
+  return allowed === undefined || allowed.includes(scopeId);
 }
 
 /** Throws `FORBIDDEN` when none of the caller's grants covers the scope. */
@@ -49,4 +46,38 @@ export function assertScope(
       { field: 'scope', message: `${scopeType}:${scopeId}` },
     );
   }
+}
+
+/**
+ * AUD-03 — Allowed resource IDs for `scopeType` across the caller's held roles.
+ *
+ * - Returns `undefined` (tenant-wide access) **ONLY** when at least one held role is
+ *   explicitly configured with `scopeId === TENANT_WIDE_SCOPE_ID`.
+ * - Otherwise returns the deduplicated **UNION** of explicit `scopeId`s configured on the
+ *   held roles. When no held role has any `scopeType` rows, returns `[]` (no access —
+ *   missing scope settings never grant implicit tenant-wide access).
+ */
+export function allowedScopeIds(
+  scopes: readonly RoleScopeValue[],
+  roleIds: readonly string[],
+  scopeType: ScopeType,
+): string[] | undefined {
+  const held = Array.from(new Set(roleIds));
+  if (held.length === 0) return [];
+
+  const union = new Set<string>();
+
+  for (const roleId of held) {
+    const restrictions = scopes.filter(
+      (scope) => scope.roleId === roleId && scope.scopeType === scopeType,
+    );
+    for (const row of restrictions) {
+      if (row.scopeId === TENANT_WIDE_SCOPE_ID) {
+        return undefined;
+      }
+      union.add(row.scopeId);
+    }
+  }
+
+  return Array.from(union);
 }

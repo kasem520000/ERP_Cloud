@@ -1,0 +1,51 @@
+# قواعدُ التنبيه — ومبنيّةٌ على مقاييسَ من kube-state-metrics وblackbox-exporter فقط
+# (لا مقاييسَ تطبيقية: فالـAPI لا يعرض `/metrics` — قِيس: لا `prom-client` في `apps/api/src`،
+# وما فيها `ops/metrics.*` مقاييسُ مخزّنةٌ تُقرأ بصلاحيةٍ لا نقطةُ كشط). فمن أراد مقاييسَ
+# تطبيقيةً فذلك عملٌ في الـAPI لا في هذه الطبقة.
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: erp-rules
+  namespace: erp
+  labels: { app.kubernetes.io/component: monitoring, app.kubernetes.io/part-of: erp }
+spec:
+  groups:
+    - name: erp.availability
+      rules:
+        - alert: ErpApiHealthProbeDown
+          expr: probe_success{service="erp-api"} == 0
+          for: 5m
+          labels: { severity: critical, team: platform }
+          annotations:
+            summary: 'فحصُ جاهزية الـAPI يفشل (‏/health/ready أو /health/live)'
+            description: '‏{{ $labels.instance }} لم يُجب ٢٠٠ لخمس دقائق — فالعملاء لا يدخلون.'
+        - alert: ErpHealthcheckJobFailing
+          expr: kube_job_status_failed{namespace="erp", job_name=~"erp-healthcheck.*"} > 0
+          for: 10m
+          labels: { severity: warning, team: platform }
+          annotations:
+            summary: 'مهمّةُ الفحص الداخليّة `erp-healthcheck` فشلت'
+    - name: erp.backups
+      rules:
+        # نسخةٌ يوميةٌ لم تُنفَّذ: `next_schedule_time` صار في الماضي بأكثر من ٢٦ ساعة.
+        - alert: ErpDailyBackupMissed
+          expr: (time() - kube_cronjob_next_schedule_time{namespace="erp", cronjob="erp-db-backup"}) > 93600
+          for: 10m
+          labels: { severity: critical, team: platform }
+          annotations:
+            summary: 'النسخةُ الاحتياطية اليومية لم تُنفَّذ منذ أكثر من ٢٦ ساعة'
+            description: '‏CronJob ‏`erp-db-backup` لم يُجدول — فبياناتُ العملاء بلا نسخة.'
+        - alert: ErpBackupJobFailed
+          expr: kube_job_status_failed{namespace="erp", job_name=~"erp-db-backup.*"} > 0
+          for: 5m
+          labels: { severity: critical, team: platform }
+          annotations:
+            summary: 'مهمّةُ النسخ `erp-db-backup` فشلت (‏pg_dump أو تحقّقُ الأرشيف)'
+            description: 'الفشلُ يعني أنّ `pg_restore --list` رفض الأرشيفَ أو أنّ التفريغَ انقطع — فلا نسخةَ صالحة اليوم.'
+        - alert: ErpRestoreJobRan
+          expr: kube_job_status_succeeded{namespace="erp", job_name=~"erp-db-restore.*"} > 0
+          for: 1m
+          labels: { severity: warning, team: platform }
+          annotations:
+            summary: 'استعادةُ قاعدةٍ نُفِّذت في بيئة الإنتاج'
+            description: '‏`erp-db-restore-template` أُخرجت من `suspend` ونجحت — فتحقّق أنّ ذلك كان مقصودًا وأنّ ما قبلها نُسخ.'

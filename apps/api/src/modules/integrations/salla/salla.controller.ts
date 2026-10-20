@@ -2,6 +2,7 @@ import { Body, Controller, Delete, Get, Headers, Param, Post, Put, Query, Req } 
 import type { Request } from 'express';
 
 import { getTenantContext } from '../../platform/context/tenant-context.js';
+import { Public } from '../../platform/decorators/public.decorator.js';
 import { RequiresPermission } from '../../platform/decorators/requires-permission.decorator.js';
 
 import { SallaService } from './salla.service.js';
@@ -172,14 +173,21 @@ export class SallaController {
 
   // ─────────────────────────────── الويب هوك ───────────────────────────────
 
-  /** No permission: the signature is the credential. */
+  /**
+   * AUD-04 — بلا صلاحية: التوقيع هو بيانات الاعتماد، والمسار **عامّ** لأنه يأتي من متجر
+   * سلة لا من مستخدمٍ داخل المنشأة. المستأجر يُشتقّ في الخدمة من صفّ الاتصال الموقَّع،
+   * لا من سياق الطلب — و`rawBody` هو ما وقّعه المزود بالبايت، لا `JSON.stringify(body)`
+   * (إعادة التسلسل قد تغيّر المسافات أو ترتيب المفاتيح فيفشل التحقّق على جسمٍ صحيح).
+   */
+  @Public()
   @Post('webhooks/:storeId/orders')
   webhook(
     @Param('storeId') storeId: string,
-    @Headers('x-salla-signature') signature: string,
+    @Headers('x-salla-signature') signature: string | undefined,
     @Req() req: Request,
     @Body() body: { event?: string; data?: { customer?: { name?: string; mobile?: string }; items?: Array<{ name?: string; quantity?: string; amount?: string }>; branchId?: string } },
   ) {
-    return this.salla.webhook(this.tenantId, storeId, JSON.stringify(req.body), signature, body);
+    const rawBody = (req as Request & { rawBody?: Buffer }).rawBody ?? Buffer.from(JSON.stringify(req.body ?? {}), 'utf8');
+    return this.salla.webhook(storeId, rawBody, signature, body);
   }
 }

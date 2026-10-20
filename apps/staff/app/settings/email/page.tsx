@@ -349,12 +349,15 @@ function MessagesTab() {
   );
 }
 
-// ───────────────────────────────────────────────────── هوية المُرسِل
+// ───────────────────────────────────────────────────── هوية المُرسِل ومزوّد البريد
 
 function SenderTab({ canEdit }: { canEdit: boolean }) {
   const settings = useQuery<EmailSettings>(() => apiData<EmailSettings>('/email/settings'), []);
   const [draft, setDraft] = useState<Partial<EmailSettings>>({});
+  const [apiKeyDraft, setApiKeyDraft] = useState<string | undefined>(undefined);
+  const [smtpPasswordDraft, setSmtpPasswordDraft] = useState<string | undefined>(undefined);
   const [reason, setReason] = useState('');
+  const [probeTo, setProbeTo] = useState('');
   const [notice, setNotice] = useState<{ kind: 'ok' | 'danger'; text: string } | undefined>();
   const [busy, setBusy] = useState(false);
 
@@ -366,24 +369,81 @@ function SenderTab({ canEdit }: { canEdit: boolean }) {
   const value = <K extends keyof EmailSettings>(key: K): EmailSettings[K] | undefined =>
     draft[key] ?? current?.[key];
 
+  const selectedProvider = value('provider') ?? 'console';
+
   async function save() {
     setBusy(true);
     setNotice(undefined);
     try {
-      const updated = await apiData<EmailSettings>('/email/settings', {
+      const payload: Record<string, unknown> = {
+        provider: selectedProvider,
+        fromName: value('fromName'),
+        fromEmail: value('fromEmail'),
+        replyTo: value('replyTo') || null,
+        sendingDomain: value('sendingDomain') || null,
+        ...(reason.trim().length >= 3 ? { reason } : {}),
+      };
+      if (apiKeyDraft !== undefined) {
+        payload.apiKey = apiKeyDraft.trim() || null;
+      }
+      if (draft.apiEndpoint !== undefined) {
+        payload.apiEndpoint = draft.apiEndpoint?.trim() || null;
+      }
+      if (draft.smtpHost !== undefined) {
+        payload.smtpHost = draft.smtpHost?.trim() || null;
+      }
+      if (draft.smtpPort !== undefined) {
+        payload.smtpPort = draft.smtpPort || null;
+      }
+      if (draft.smtpUser !== undefined) {
+        payload.smtpUser = draft.smtpUser?.trim() || null;
+      }
+      if (smtpPasswordDraft !== undefined) {
+        payload.smtpPassword = smtpPasswordDraft || null;
+      }
+      if (draft.smtpSecure !== undefined) {
+        payload.smtpSecure = draft.smtpSecure;
+      }
+
+      const updated = await apiData<EmailSettings>('/email/settings/provider', {
         method: 'PUT',
-        body: JSON.stringify({
-          fromName: value('fromName'),
-          fromEmail: value('fromEmail'),
-          replyTo: value('replyTo') ?? null,
-          sendingDomain: value('sendingDomain') ?? null,
-          ...(reason.trim().length >= 3 ? { reason } : {}),
-        }),
+        body: JSON.stringify(payload),
       });
       setDraft({});
+      setApiKeyDraft(undefined);
+      setSmtpPasswordDraft(undefined);
       setReason('');
-      setNotice({ kind: 'ok', text: `حُفظت هويّة المُرسِل: ${updated.fromName} <${updated.fromEmail}>.` });
+      setNotice({
+        kind: 'ok',
+        text: `حُفظت إعدادات البريد — المزوّد الفعّال «${updated.provider}» والمُرسِل ${updated.fromName} <${updated.fromEmail}>.`,
+      });
       settings.reload();
+    } catch (error) {
+      setNotice({ kind: 'danger', text: messageOf(error) });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function sendTest() {
+    if (!probeTo.includes('@')) return;
+    setBusy(true);
+    setNotice(undefined);
+    try {
+      const result = await apiData<{ status: string; provider: string; to: string }>(
+        '/email/settings/test',
+        {
+          method: 'POST',
+          body: JSON.stringify({ to: probeTo.trim(), locale: 'ar' }),
+        },
+      );
+      setNotice({
+        kind: result.status === 'sent' ? 'ok' : 'danger',
+        text:
+          result.status === 'sent'
+            ? `تم إرسال الرسالة التجريبية عبر «${result.provider}» إلى ${result.to}.`
+            : `تعذر تسليم الرسالة التجريبية (${result.status}).`,
+      });
     } catch (error) {
       setNotice({ kind: 'danger', text: messageOf(error) });
     } finally {
@@ -394,8 +454,28 @@ function SenderTab({ canEdit }: { canEdit: boolean }) {
   return (
     <div className="grid">
       <div className="card">
-        <h2 style={{ marginTop: 0 }}>باسم مَن تخرج رسائلنا؟</h2>
+        <h2 style={{ marginTop: 0 }}>مزوّد البريد الإلكتروني وهوية المُرسِل</h2>
+        <p className="muted">
+          يمكنك الربط المباشر مع <strong>Resend</strong> أو خادم <strong>SMTP</strong> مخصّص أو بوابة{' '}
+          <strong>HTTP Webhook / API</strong> لإرسال الفواتير واستعادة كلمات المرور والإشعارات.
+        </p>
+
         <div className="row">
+          <label>
+            مزوّد خدمة البريد
+            <select
+              value={selectedProvider}
+              disabled={!canEdit}
+              onChange={(change) =>
+                setDraft({ ...draft, provider: change.target.value as EmailSettings['provider'] })
+              }
+            >
+              <option value="resend">Resend API (موصى به للسحابة)</option>
+              <option value="smtp">SMTP — خادم بريد قياسي (TLS / STARTTLS)</option>
+              <option value="http">HTTP API / Webhook — مزوّد بريد خارجي مخصّص</option>
+              <option value="console">Console — سجلّ النظام الداخلي</option>
+            </select>
+          </label>
           <label>
             اسم المُرسِل
             <input
@@ -405,49 +485,181 @@ function SenderTab({ canEdit }: { canEdit: boolean }) {
             />
           </label>
           <label>
-            عنوان المُرسِل
+            عنوان البريد المُرسِل
             <input
               value={value('fromEmail') ?? ''}
               disabled={!canEdit}
+              dir="ltr"
+              placeholder="noreply@yourdomain.com"
               onChange={(change) => setDraft({ ...draft, fromEmail: change.target.value })}
             />
           </label>
           <label>
-            ردّ إلى (اختياري)
+            ردّ إلى (Reply-To)
             <input
               value={value('replyTo') ?? ''}
               disabled={!canEdit}
+              dir="ltr"
+              placeholder="support@yourdomain.com"
               onChange={(change) => setDraft({ ...draft, replyTo: change.target.value })}
             />
           </label>
           <label>
-            نطاق الإرسال
+            نطاق الإرسال (Sending Domain)
             <input
               value={value('sendingDomain') ?? ''}
               disabled={!canEdit}
+              dir="ltr"
               placeholder="mail.example.com"
               onChange={(change) => setDraft({ ...draft, sendingDomain: change.target.value })}
             />
           </label>
         </div>
-        <div className="row">
+
+        {(selectedProvider === 'resend' || selectedProvider === 'http') && (
+          <div className="row" style={{ marginTop: 12 }}>
+            <label style={{ flex: 2 }}>
+              {selectedProvider === 'resend'
+                ? 'مفتاح Resend API Key'
+                : 'مفتاح المصادقة (Bearer API Key)'}
+              <input
+                type="password"
+                dir="ltr"
+                disabled={!canEdit}
+                value={apiKeyDraft ?? ''}
+                placeholder={
+                  current?.apiKeyMasked
+                    ? `محفوظ حالياً (${current.apiKeyMasked}) — اتركه فارغاً للإبقاء عليه`
+                    : selectedProvider === 'resend'
+                      ? 're_123456789...'
+                      : 'Bearer token...'
+                }
+                onChange={(change) => setApiKeyDraft(change.target.value)}
+              />
+            </label>
+            <label style={{ flex: 2 }}>
+              {selectedProvider === 'resend'
+                ? 'رابط Resend API (اختياري — الافتراضي https://api.resend.com/emails)'
+                : 'رابط نقطة النهاية (HTTP Webhook URL)'}
+              <input
+                dir="ltr"
+                disabled={!canEdit}
+                value={value('apiEndpoint') ?? ''}
+                placeholder={
+                  selectedProvider === 'resend'
+                    ? 'https://api.resend.com/emails'
+                    : 'https://api.provider.com/v1/send'
+                }
+                onChange={(change) => setDraft({ ...draft, apiEndpoint: change.target.value })}
+              />
+            </label>
+          </div>
+        )}
+
+        {selectedProvider === 'smtp' && (
+          <div className="row" style={{ marginTop: 12 }}>
+            <label>
+              مُضيف SMTP (Host)
+              <input
+                dir="ltr"
+                disabled={!canEdit}
+                value={value('smtpHost') ?? ''}
+                placeholder="smtp.resend.com أو smtp.office365.com"
+                onChange={(change) => setDraft({ ...draft, smtpHost: change.target.value })}
+              />
+            </label>
+            <label>
+              المنفذ (Port)
+              <input
+                type="number"
+                dir="ltr"
+                disabled={!canEdit}
+                value={value('smtpPort') ?? 587}
+                onChange={(change) =>
+                  setDraft({
+                    ...draft,
+                    smtpPort: change.target.value ? Number(change.target.value) : null,
+                  })
+                }
+              />
+            </label>
+            <label>
+              اسم مستخدم SMTP
+              <input
+                dir="ltr"
+                disabled={!canEdit}
+                value={value('smtpUser') ?? ''}
+                placeholder="resend أو user@domain.com"
+                onChange={(change) => setDraft({ ...draft, smtpUser: change.target.value })}
+              />
+            </label>
+            <label>
+              كلمة مرور SMTP
+              <input
+                type="password"
+                dir="ltr"
+                disabled={!canEdit}
+                value={smtpPasswordDraft ?? ''}
+                placeholder={current?.smtpConfigured ? '•••••••• (محفوظة)' : 'كلمة المرور أو مفتاح SMTP'}
+                onChange={(change) => setSmtpPasswordDraft(change.target.value)}
+              />
+            </label>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 8, paddingTop: 22 }}>
+              <input
+                type="checkbox"
+                disabled={!canEdit}
+                checked={Boolean(value('smtpSecure'))}
+                onChange={(change) => setDraft({ ...draft, smtpSecure: change.target.checked })}
+              />
+              اتصال TLS مباشر (منفذ 465)
+            </label>
+          </div>
+        )}
+
+        <div className="row" style={{ marginTop: 14 }}>
           <label>
-            سبب التعديل (تدقيق)
+            سبب التعديل (تدقيق اختياري)
             <input value={reason} disabled={!canEdit} onChange={(change) => setReason(change.target.value)} />
           </label>
-          <button className="btn" type="button" disabled={!canEdit || busy} onClick={save}>
-            حفظ
+          <button className="btn primary" type="button" disabled={!canEdit || busy} onClick={save}>
+            حفظ الإعدادات
           </button>
           <button className="btn" type="button" onClick={settings.reload}>
             استرجاع
           </button>
         </div>
+
+        <hr style={{ margin: '18px 0', border: 0, borderTop: '1px solid var(--line, #e2e8f0)' }} />
+
+        <div className="row">
+          <label style={{ flex: 1 }}>
+            إرسال بريد تجريبي للتحقق من الاتصال
+            <input
+              type="email"
+              dir="ltr"
+              value={probeTo}
+              disabled={!canEdit}
+              placeholder="test@yourdomain.com"
+              onChange={(change) => setProbeTo(change.target.value)}
+            />
+          </label>
+          <button
+            className="btn"
+            type="button"
+            disabled={!canEdit || busy || !probeTo.includes('@')}
+            onClick={sendTest}
+          >
+            إرسال رسالة اختبار
+          </button>
+        </div>
+
         {!canEdit && (
-          <p className="alert warn">قراءةٌ فقط: تعديل هويّة المُرسِل يحتاج صلاحية «إدارة قوالب البريد».</p>
+          <p className="alert warn">قراءةٌ فقط: تعديل إعدادات البريد يحتاج صلاحية «إدارة قوالب البريد».</p>
         )}
         <p className="muted">
-          المزوّد الفعّال: <strong>{current?.provider}</strong> — يختاره المشغّل من لوحة المنصة (اعتمادات
-          الإرسال في بيئته، لا في جدول). آخر تعديل: {dateTime(current?.updatedAt ?? null)}.
+          المزوّد الفعّال حالياً: <strong>{current?.provider}</strong>
+          {current?.apiKeyMasked ? ` · مفتاح API: ${current.apiKeyMasked}` : ''} — آخر تعديل:{' '}
+          {dateTime(current?.updatedAt ?? null)}.
         </p>
       </div>
 

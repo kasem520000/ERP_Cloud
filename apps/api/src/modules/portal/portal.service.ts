@@ -3,6 +3,7 @@ import { and, eq, sql } from 'drizzle-orm';
 import { env } from '@erp/config';
 import { DomainError, newId } from '@erp/contracts';
 import { companyProfiles, memberships, membershipRoles, parties, paymentLinks, portalAccounts, roles, salesInvoices, users, withTenantTx, type DatabaseHandle, type DrizzleTx } from '@erp/database';
+import { Decimal } from 'decimal.js';
 
 import { DATABASE_HANDLE } from '../../database/database.module.js';
 import { PasswordService } from '../platform/auth/password.service.js';
@@ -291,7 +292,9 @@ export class PortalService {
         .where(and(eq(paymentLinks.tenantId, tenantId), eq(paymentLinks.invoiceId, invoiceId)));
       const ranked = [...links].sort((left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime());
       const link = ranked.find((row) => row.status === 'pending') ?? ranked[0] ?? null;
-      const remaining = Number(invoice.total) - Number(invoice.paidTotal ?? 0);
+      // AUD-17 — الرصيد المتبقّي يُحسب عشريًّا (كان `Number()`): الفرق `numeric(18,4)`
+      // بين المبلغ والمسدَّد لا يمرّ بالعائم، فيبقى عرض العميل مطابقًا لدفتره.
+      const remaining = new Decimal(invoice.total).minus(invoice.paidTotal ?? 0);
       return {
         companyName: company?.nameAr || company?.nameEn || '',
         invoice: {

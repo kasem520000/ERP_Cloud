@@ -5,6 +5,7 @@ import { BRANCH_ID_HEADER, DomainError, errorCodes, isUuid } from '@erp/contract
 
 import { getRequestContext, setBranchId } from '../../../request-context/request-context.js';
 import { IS_PUBLIC_KEY } from '../decorators/public.decorator.js';
+import { scopeAuthorises } from '../scopes/scope-policy.js';
 
 type ScopedRequest = Request & { branchId?: string };
 
@@ -37,11 +38,26 @@ export class BranchScopeGuard implements CanActivate {
       });
     }
 
-    const scope = getRequestContext().tenant?.branchScope;
+    const tenant = getRequestContext().tenant;
+    const scope = tenant?.branchScope;
     if (Array.isArray(scope) && !scope.includes(branchId)) {
       throw new DomainError(
         errorCodes.FORBIDDEN,
         'Membership branch scope does not include the requested branch',
+        403,
+        { field: BRANCH_ID_HEADER },
+      );
+    }
+
+    if (
+      tenant &&
+      !tenant.isOwner &&
+      Array.isArray(tenant.roleIds) &&
+      !scopeAuthorises(tenant.scopes, tenant.roleIds, 'branch', branchId)
+    ) {
+      throw new DomainError(
+        errorCodes.FORBIDDEN,
+        'Role branch scope does not include the requested branch',
         403,
         { field: BRANCH_ID_HEADER },
       );

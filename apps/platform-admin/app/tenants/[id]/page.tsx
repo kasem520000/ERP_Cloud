@@ -69,12 +69,19 @@ const TABS = [
   { id: 'health', label: 'الصحة', icon: <ShieldCheck size={15} /> },
   { id: 'audit', label: 'التدقيق', icon: <History size={15} /> },
   { id: 'notes', label: 'الملاحظات', icon: <ScrollText size={15} /> },
+  { id: 'tickets', label: 'تذاكر الدعم', icon: <ScrollText size={15} /> },
 ] as const;
 
 type TabId = (typeof TABS)[number]['id'];
 
 /** The status words the customers list already uses (`app/tenants/page.tsx`), verbatim. */
-const STATUS_LABEL: Record<string, string> = { active: 'نشط', suspended: 'موقوف', archived: 'مؤرشف' };
+const STATUS_LABEL: Record<string, string> = {
+  active: 'نشط',
+  suspended: 'موقوف',
+  archived: 'مؤرشف',
+  invited: 'مدعو',
+  pending: 'قيد الانتظار',
+};
 
 /** Audit action → its Arabic name. The four names the plan's tests name are here. */
 const ACTION_LABEL: Record<string, string> = {
@@ -217,6 +224,7 @@ export default function TenantCardPage() {
           )}
           {tab === 'usage' && <UsageTab tenantId={tenantId} canSettings={canSettings} onNotice={setNotice} />}
           {tab === 'flags' && <FlagsTab tenantId={tenantId} canSettings={canSettings} onNotice={setNotice} />}
+          {tab === 'tickets' && <CustomerTicketsTab tenantId={tenantId} />}
           {tab === 'health' && <HealthTab tenantId={tenantId} />}
           {tab === 'audit' && <AuditTab tenantId={tenantId} />}
           {tab === 'notes' && <NotesTab tenantId={tenantId} canManage={canManage} onNotice={setNotice} />}
@@ -598,8 +606,8 @@ function UsersTab({
                 <tr key={member.membershipId}>
                   <td>{member.fullName}</td>
                   <td dir="ltr">{member.email}</td>
-                  <td>{member.status}</td>
-                  <td>{member.membershipStatus}</td>
+                  <td>{STATUS_LABEL[member.status] ?? member.status}</td>
+                  <td>{STATUS_LABEL[member.membershipStatus] ?? member.membershipStatus}</td>
                   <td>{member.roleCount}</td>
                   <td dir="ltr">{when(member.lastLoginAt)}</td>
                   <td>{member.isOwner ? '✔' : '—'}</td>
@@ -907,6 +915,15 @@ function AllSettingsCard({ settings }: { settings: PlatformSettingView[] }) {
 
 // ---------------------------------------------------------------------- الرايات
 
+type TenantAddonRow = {
+  code: string;
+  nameAr: string;
+  category: string;
+  priceMonthlySar: number;
+  enabled: boolean;
+  latestRequestStatus: string | null;
+};
+
 function FlagsTab({
   tenantId,
   canSettings,
@@ -920,6 +937,10 @@ function FlagsTab({
     () => apiData<TenantFlagsResponse>(`/platform/tenants/${tenantId}/flags`),
     [tenantId],
   );
+  const addons = useQuery<{ apps: TenantAddonRow[] }>(
+    () => apiData<{ apps: TenantAddonRow[] }>(`/platform/marketplace/tenants/${tenantId}/apps`),
+    [tenantId],
+  );
   const [busy, setBusy] = useState(false);
 
   async function toggle(key: string, enabled: boolean) {
@@ -927,7 +948,7 @@ function FlagsTab({
     onNotice(undefined);
     try {
       await apiPut(`/platform/tenants/${tenantId}/flags`, { values: { [key]: enabled } });
-      onNotice({ kind: 'ok', text: enabled ? 'فُتحت الحزمة لهذا العميل.' : 'أُغلقت الحزمة لهذا العميل.' });
+      onNotice({ kind: 'ok', text: enabled ? 'فُتحت الحزمة لهذا العميل.' : 'أُعيدت الحزمة إلى الوضع الافتراضي.' });
       flags.reload();
     } catch (error) {
       onNotice(noticeFrom(error));
@@ -936,44 +957,232 @@ function FlagsTab({
     }
   }
 
+  async function toggleAddon(code: string, enabled: boolean) {
+    setBusy(true);
+    onNotice(undefined);
+    try {
+      await apiPut(`/platform/marketplace/tenants/${tenantId}/apps/${code}`, { enabled });
+      onNotice({
+        kind: 'ok',
+        text: enabled ? 'تم تفعيل الباقة القطاعية للعميل فوراً.' : 'تم إيقاف الباقة القطاعية عن العميل.',
+      });
+      addons.reload();
+    } catch (error) {
+      onNotice(noticeFrom(error));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const CORE_DEFAULT_OPEN = new Set(['feature.pos', 'feature.hrm']);
+
+  return (
+    <div className="grid">
+      <div className="card">
+        <h2>حِزم المزايا الأساسية (الرايات)</h2>
+        <p className="muted small">
+          الخدمات الأساسية للعميل (نقطة البيع POS والموارد البشرية HRM) <strong>مفعّلة ومفتوحة افتراضياً</strong> لجميع العملاء دون تقييد.
+        </p>
+        {flags.status === 'loading' && <Loading rows={3} />}
+        {flags.status === 'error' && <ErrorBox message={flags.error} onRetry={flags.reload} />}
+        {flags.status === 'success' && (
+          <div className="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>الحزمة</th>
+                  <th>الوصف</th>
+                  <th>الحالة الفعلية للعميل</th>
+                  <th>المصدر</th>
+                  <th>آخر تغيير</th>
+                  <th />
+                </tr>
+              </thead>
+              <tbody>
+                {(flags.data?.flags ?? []).map((flag) => {
+                  const isCore = CORE_DEFAULT_OPEN.has(flag.key);
+                  const effectivelyOpen = flag.enabled || (isCore && flag.isDefault);
+                  return (
+                    <tr key={flag.key}>
+                      <td>
+                        <strong>{flag.labelAr}</strong>
+                      </td>
+                      <td className="muted small">{flag.descriptionAr}</td>
+                      <td>
+                        {effectivelyOpen ? (
+                          <span className="badge active">
+                            {flag.enabled ? 'مفتوحة (مثبّتة)' : 'مفعّلة ضمن النظام الأساسي'}
+                          </span>
+                        ) : (
+                          <span className="badge">اختيارية — تُفعّل حسب الطلب</span>
+                        )}
+                      </td>
+                      <td>{flag.isDefault ? 'النظام الأساسي الافتراضي' : 'مضبوطة خصيصاً لهذا العميل'}</td>
+                      <td dir="ltr">{when(flag.updatedAt)}</td>
+                      <td>
+                        <button
+                          className="btn"
+                          type="button"
+                          disabled={!canSettings || busy}
+                          onClick={() => void toggle(flag.key, !flag.enabled)}
+                        >
+                          {flag.enabled ? 'إرجاع للافتراضي' : 'تثبيت الفتح'}
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      <div className="card">
+        <h2>🛒 الباقات والأنظمة القطاعية للعميل (سوق الإضافات)</h2>
+        <p className="muted small">
+          تحكّم مباشر في تفعيل أو إيقاف الباقات القطاعية والتكاملات السحابية الخاصة بهذا العميل (مثل توزيع المناديب والمخابز، التصنيع، تطبيق الموظف، والمشاريع).
+        </p>
+        {addons.status === 'loading' && <Loading rows={3} />}
+        {addons.status === 'error' && <ErrorBox message={addons.error} onRetry={addons.reload} />}
+        {addons.status === 'success' && (
+          <div className="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>الباقة / الإضافة</th>
+                  <th>الفئة</th>
+                  <th>الاشتراك الشهري</th>
+                  <th>الحالة لدى العميل</th>
+                  <th>طلب العميل</th>
+                  <th>الإجراء</th>
+                </tr>
+              </thead>
+              <tbody>
+                {(addons.data?.apps ?? []).map((app) => (
+                  <tr key={app.code}>
+                    <td>
+                      <strong>{app.nameAr}</strong>
+                    </td>
+                    <td>{app.category === 'sector_addon' ? 'باقة قطاعية' : 'تكامل سحابي'}</td>
+                    <td dir="ltr">{app.priceMonthlySar} SAR</td>
+                    <td>
+                      <span className={`badge ${app.enabled ? 'active' : ''}`}>
+                        {app.enabled ? 'مفعّلة للعميل' : 'غير مفعّلة'}
+                      </span>
+                    </td>
+                    <td>
+                      {app.latestRequestStatus === 'pending' ? (
+                        <span className="badge pending">طلب تفعيل معلق</span>
+                      ) : app.latestRequestStatus === 'approved' ? (
+                        <span className="badge active">تمت الموافقة</span>
+                      ) : (
+                        '—'
+                      )}
+                    </td>
+                    <td>
+                      <button
+                        className={`btn sm ${app.enabled ? '' : 'primary'}`}
+                        type="button"
+                        disabled={busy}
+                        onClick={() => void toggleAddon(app.code, !app.enabled)}
+                      >
+                        {app.enabled ? 'إيقاف الباقة' : 'تفعيل للعميل'}
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ----------------------------------------------------------------- تذاكر الدعم
+
+type CustomerTicketRow = {
+  id: string;
+  subject: string;
+  status: string;
+  priority: string;
+  category: string | null;
+  messageCount: number;
+  createdAt: string;
+};
+
+const TICKET_STATUS_AR: Record<string, string> = {
+  open: 'مفتوحة — بانتظار الرد',
+  pending: 'تم الرد — بانتظار العميل',
+  resolved: 'محلولة',
+  closed: 'مغلقة',
+};
+
+const TICKET_PRIORITY_AR: Record<string, string> = {
+  urgent: 'عاجلة',
+  high: 'عالية',
+  normal: 'عادية',
+  low: 'منخفضة',
+};
+
+function CustomerTicketsTab({ tenantId }: { tenantId: string }) {
+  const tickets = useQuery<CustomerTicketRow[]>(
+    () => apiData<CustomerTicketRow[]>(`/platform/tenants/${tenantId}/tickets`),
+    [tenantId],
+  );
+  const rows = Array.isArray(tickets.data) ? tickets.data : [];
+
   return (
     <div className="card">
-      <h2>حِزم المزايا</h2>
-      <p className="muted small">
-        الراية تفتح وحدةً كاملة في منتج العميل، وهي مفتاح `feature.*` في إعدادات المنشأة — لا مخزن ثانٍ للرايات.
-      </p>
-      {flags.status === 'loading' && <Loading rows={3} />}
-      {flags.status === 'error' && <ErrorBox message={flags.error} onRetry={flags.reload} />}
-      {flags.status === 'success' && (
+      <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+        <div>
+          <h2 style={{ margin: 0 }}>🛟 تذاكر الدعم وطلبات المساعدة من هذا العميل ({rows.length})</h2>
+          <p className="muted small">جميع طلبات المساعدة والرسائل المرسلة من المنشأة إلى إدارة المنصة.</p>
+        </div>
+        <button className="btn" type="button" onClick={tickets.reload}>
+          تحديث
+        </button>
+      </div>
+      {tickets.status === 'loading' && <Loading rows={3} />}
+      {tickets.status === 'error' && <ErrorBox message={tickets.error} onRetry={tickets.reload} />}
+      {tickets.status === 'success' && rows.length === 0 && (
+        <Empty title="لا توجد تذاكر دعم لهذا العميل" detail="عند إرسال العميل لطلب مساعدة سيظهر هنا فوراً." />
+      )}
+      {tickets.status === 'success' && rows.length > 0 && (
         <div className="table-wrap">
           <table>
             <thead>
               <tr>
-                <th>الحزمة</th>
-                <th>الوصف</th>
+                <th>الموضوع</th>
+                <th>التصنيف</th>
                 <th>الحالة</th>
-                <th>من أين جاءت؟</th>
-                <th>آخر تغيير</th>
-                <th />
+                <th>الأولوية</th>
+                <th>عدد الرسائل</th>
+                <th>تاريخ الفتح</th>
+                <th>الإجراء</th>
               </tr>
             </thead>
             <tbody>
-              {(flags.data?.flags ?? []).map((flag) => (
-                <tr key={flag.key}>
-                  <td>{flag.labelAr}</td>
-                  <td className="muted small">{flag.descriptionAr}</td>
-                  <td>{flag.enabled ? 'مفتوحة' : 'مغلقة'}</td>
-                  <td>{flag.isDefault ? 'القيمة الافتراضية' : 'مضبوطة لهذا العميل'}</td>
-                  <td dir="ltr">{when(flag.updatedAt)}</td>
+              {rows.map((t) => (
+                <tr key={t.id}>
                   <td>
-                    <button
-                      className="btn"
-                      type="button"
-                      disabled={!canSettings || busy}
-                      onClick={() => void toggle(flag.key, !flag.enabled)}
-                    >
-                      {flag.enabled ? 'إغلاق' : 'فتح'}
-                    </button>
+                    <strong>{t.subject}</strong>
+                  </td>
+                  <td>{t.category ?? 'عام'}</td>
+                  <td>
+                    <span className={`badge ${t.status === 'open' ? 'pending' : t.status === 'resolved' ? 'active' : ''}`}>
+                      {TICKET_STATUS_AR[t.status] ?? t.status}
+                    </span>
+                  </td>
+                  <td>{TICKET_PRIORITY_AR[t.priority] ?? t.priority}</td>
+                  <td className="num">{t.messageCount}</td>
+                  <td dir="ltr">{when(t.createdAt)}</td>
+                  <td>
+                    <Link className="btn sm primary" href={`/tickets/${t.id}`}>
+                      فتح والرد ←
+                    </Link>
                   </td>
                 </tr>
               ))}

@@ -289,6 +289,10 @@ export const salesmen = pgTable(
     profitCommissionRate: numeric('profit_commission_rate', percent).notNull().default('0'),
     /** بطاقة الموظف — the employee card this مندوب is, when he has one. */
     employeeId: uuid('employee_id').references(() => employees.id, { onDelete: 'set null' }),
+    /** 🚐 مستودع المندوب / السيارة المخصص لتوزيع المندوب. */
+    warehouseId: uuid('warehouse_id').references(() => warehouses.id, { onDelete: 'set null' }),
+    /** رقم لوحة سيارة التوزيع */
+    vehiclePlate: text('vehicle_plate'),
     /** 📞 الهاتف */
     tel: text('tel'),
     /** 📱 الجوال */

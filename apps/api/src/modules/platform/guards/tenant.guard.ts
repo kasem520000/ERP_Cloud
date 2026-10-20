@@ -8,8 +8,10 @@ import {
   membershipRoles,
   memberships,
   rolePermissions,
+  tenantApps,
   roles,
   tenants,
+  users,
   withTenantTx,
   withTx,
   type DatabaseHandle,
@@ -78,6 +80,7 @@ export class TenantGuard implements CanActivate {
           id: memberships.id,
           tenantId: memberships.tenantId,
           userId: memberships.userId,
+          userStatus: users.status,
           status: memberships.status,
           branchScope: memberships.branchScope,
           isOwner: memberships.isOwner,
@@ -86,6 +89,7 @@ export class TenantGuard implements CanActivate {
           maxDiscountAmount: memberships.maxDiscountAmount,
         })
         .from(memberships)
+        .innerJoin(users, eq(users.id, memberships.userId))
         .where(
           and(
             eq(memberships.id, auth.membershipId),
@@ -104,9 +108,24 @@ export class TenantGuard implements CanActivate {
         403,
       );
     }
+    if (membership.userStatus !== 'active') {
+      throw new DomainError(
+        errorCodes.UNAUTHENTICATED,
+        `User account is ${membership.userStatus}`,
+        401,
+      );
+    }
     if (membership.status !== 'active') {
       throw new DomainError(errorCodes.FORBIDDEN, `Membership is ${membership.status}`, 403);
     }
+
+    const roleGrantRows = await withTenantTx(this.database.db, tenant.id, async (tx) => {
+      return tx
+        .selectDistinct({ roleId: membershipRoles.roleId })
+        .from(membershipRoles)
+        .innerJoin(roles, eq(roles.id, membershipRoles.roleId))
+        .where(and(eq(membershipRoles.membershipId, membership.id), isNull(roles.deletedAt)));
+    });
 
     const permissionRows = await withTenantTx(this.database.db, tenant.id, async (tx) => {
       return tx
@@ -115,6 +134,15 @@ export class TenantGuard implements CanActivate {
         .innerJoin(roles, eq(roles.id, membershipRoles.roleId))
         .innerJoin(rolePermissions, eq(rolePermissions.roleId, membershipRoles.roleId))
         .where(and(eq(membershipRoles.membershipId, membership.id), isNull(roles.deletedAt)));
+    });
+
+    // 🏪 الترخيص القطاعي يُحمَّل هنا لا في `SectorLicenceGuard`: استعلامٌ واحد لكل طلب بدل
+    // استعلامٍ لكل نقطة نهاية، والجدول معزولٌ بسياسة المنشأة فنقرأه داخل سياقها.
+    const appRows = await withTenantTx(this.database.db, tenant.id, async (tx) => {
+      return tx
+        .select({ appCode: tenantApps.appCode })
+        .from(tenantApps)
+        .where(and(eq(tenantApps.tenantId, tenant.id), eq(tenantApps.isEnabled, true)));
     });
 
     const scopeRows = await withTenantTx(this.database.db, tenant.id, async (tx) => {
@@ -134,10 +162,12 @@ export class TenantGuard implements CanActivate {
       tenantStatus: tenant.status,
       membershipId: membership.id,
       userId: membership.userId,
+      roleIds: roleGrantRows.map((row) => row.roleId),
       permissions: permissionRows.map((row) => row.code),
       branchScope: (membership.branchScope as string[] | null) ?? null,
       isOwner: membership.isOwner,
       kind: membership.kind === 'portal' ? 'portal' : 'staff',
+      enabledApps: appRows.map((row) => row.appCode),
       maxDiscountPct: membership.maxDiscountPct,
       maxDiscountAmount: membership.maxDiscountAmount,
       scopes: scopeRows.map((row) => ({

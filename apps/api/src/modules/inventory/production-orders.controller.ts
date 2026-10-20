@@ -28,9 +28,22 @@ export class ProductionOrdersController {
     return this.production.get(getTenantContext().tenantId, id).then((data) => ({ data }));
   }
 
+  /**
+   * إكمال الأمر = صرف المكوّنات واستلام الناتج. `outputLotNo` يسمّي دفعة الناتج (اللوت) حين
+   * يكون الصنف يُتتبَّع بالدفعات، وإلا كان رقم الأمر هو الدفعة.
+   */
   @Post(':id/complete') @RequiresPermission('inventory.production.complete')
-  complete(@Param('id') id: string) {
-    return this.production.complete(getTenantContext().tenantId, id).then((data) => ({ data }));
+  complete(
+    @Param('id') id: string,
+    @Body() body?: { outputLotNo?: string | null; outputProductionDate?: string | null },
+  ) {
+    const lotNo = typeof body?.outputLotNo === 'string' ? body.outputLotNo.trim() : '';
+    const productionDate = typeof body?.outputProductionDate === 'string' ? body.outputProductionDate.trim() : '';
+    return this.production
+      .complete(getTenantContext().tenantId, id, {
+        outputLot: lotNo || productionDate ? { lotNo: lotNo || null, productionDate: productionDate || null } : null,
+      })
+      .then((data) => ({ data }));
   }
 
   @Post(':id/cancel') @RequiresPermission('inventory.production.manage')

@@ -7,12 +7,14 @@ import {
   timingSafeEqual,
 } from 'node:crypto';
 
+import { dataEncryptionKey } from '@erp/config';
+
 /**
- * AES-256-GCM envelope shared by all provider credentials. Deployments should set
- * DATA_ENC_KEY from the secret manager; the development fallback only keeps local demos
- * usable. The key is never returned by an API and never enters a job payload.
+ * AES-256-GCM envelope shared by all provider credentials. Deployments set DATA_ENC_KEY
+ * from the secret manager; AUD-16 removed the repository-known fallback — resolution is
+ * fail-closed outside tests (`@erp/config`). The key never leaves this module.
  */
-function keyBytes(secret = process.env.DATA_ENC_KEY ?? 'local-development-data-key'): Buffer {
+function keyBytes(secret = dataEncryptionKey()): Buffer {
   return createHash('sha256').update(secret).digest();
 }
 

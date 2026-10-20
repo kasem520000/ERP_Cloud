@@ -15,8 +15,10 @@ import {
   Wallet,
 } from 'lucide-react';
 import { useState } from 'react';
+import type { CompanyProfileDto } from '@erp/contracts';
 
 import { CommentsPanel } from '../../../../components/comments-panel';
+import { ZatcaQrSvg, printThermalReceipt80mm } from '../../../../components/zatca-qr-svg';
 import { Badge } from '../../../../components/ui/badge';
 import { Button } from '../../../../components/ui/button';
 import { DonutCardChart } from '../../../../components/ui/chart';
@@ -27,6 +29,7 @@ import { Modal } from '../../../../components/ui/modal';
 import { SkeletonCard } from '../../../../components/ui/skeleton';
 import { Table } from '../../../../components/ui/table';
 import { ApiError, apiData, apiList, apiPatch, apiPost } from '../../../../lib/api';
+import { readCompanyProfile, receiptIdentity } from '../../../../lib/company-profile';
 import {
   arabicName,
   cashLocationLabel,
@@ -96,6 +99,11 @@ type Invoice = {
   paymentStatus: string;
   createdAt: string;
   postedAt: string | null;
+  qrCode?: string | null;
+  taxInvoiceType?: 'standard' | 'simplified';
+  taxInvoiceTypeLabelAr?: string;
+  partyName?: string | null;
+  partyTaxNo?: string | null;
   lines: InvoiceLine[];
   payments: Payment[];
 };
@@ -151,6 +159,8 @@ export default function SalesInvoiceDetailPage() {
   const cashLocations = useQuery<CashLocation[]>(() => listCashLocations(), []);
   const units = useQuery<Unit[]>(() => listUnits(), []);
   const costCenters = useQuery<CostCenter[]>(() => listCostCenters(), []);
+  // هويّة المنشأة الحقيقية للإيصال — `null` إن لم يملك المستخدم الصلاحية أو لم يُسجَّل ملفّ.
+  const company = useQuery<CompanyProfileDto | null>(() => readCompanyProfile(), []);
 
   const [settlement, setSettlement] = useState<'credit' | 'cash' | 'bank'>('credit');
   const [settleLocationId, setSettleLocationId] = useState('');
@@ -221,7 +231,21 @@ export default function SalesInvoiceDetailPage() {
   const invoiceCenter = (costCenters.data ?? []).find((row) => row.id === doc.costCenterId);
   const costCenterLabel = invoiceCenter ? `${invoiceCenter.code} — ${arabicName(invoiceCenter)}` : '';
   const party = (parties.data ?? []).find((row) => row.id === doc.partyId);
-  const partyName = party ? partyLabel(party) : (doc.cashCustomerName ?? '—');
+  const partyName = party
+    ? partyLabel(party)
+    : ((doc as { partyName?: string | null }).partyName ?? doc.cashCustomerName ?? 'عميل عام');
+  const partyTaxNo = String(
+    party?.taxNo ?? party?.tax_no ?? (doc as { partyTaxNo?: string | null }).partyTaxNo ?? '',
+  ).trim();
+  const isStandardTaxInvoice = Boolean(
+    partyTaxNo &&
+      party?.name !== 'عميل عام' &&
+      party?.code !== 'CUST-GEN' &&
+      (doc as { partyName?: string | null }).partyName !== 'عميل عام',
+  );
+  const taxInvoiceTypeLabel =
+    (doc as { taxInvoiceTypeLabelAr?: string }).taxInvoiceTypeLabelAr ??
+    (isStandardTaxInvoice ? 'فاتورة ضريبية' : 'فاتورة ضريبية مبسطة');
   const referenceNumber = (doc as { customerReference?: string | null }).customerReference ?? null;
   const invoiceDiscountValue = Number(doc.invoiceDiscount ?? 0) || 0;
   const grossTotal = Number(doc.subtotal) + invoiceDiscountValue;
@@ -317,7 +341,7 @@ export default function SalesInvoiceDetailPage() {
                     {doc.number ?? 'مسودة'}
                   </h1>
                   <Badge tone={doc.kind === 'quotation' ? 'purple' : 'blue'} dot>
-                    {doc.kind === 'quotation' ? 'عرض أسعار' : 'فاتورة مبيعات'}
+                    {doc.kind === 'quotation' ? 'عرض أسعار' : taxInvoiceTypeLabel}
                   </Badge>
                   <Badge tone={doc.status === 'posted' ? 'green' : doc.status === 'voided' ? 'red' : 'amber'} dot>
                     {doc.status === 'posted' ? 'مرحّلة' : doc.status === 'voided' ? 'ملغاة' : 'مسودة'}
@@ -499,6 +523,53 @@ export default function SalesInvoiceDetailPage() {
                 <span className="text-[28px] font-bold text-ink tracking-tight" style={{ fontVariantNumeric: 'tabular-nums' }}>
                   {money(doc.total, doc.currency)}
                 </span>
+              </div>
+
+              <div className="mt-4 pt-3 border-t border-line flex flex-col items-center gap-2">
+                <ZatcaQrSvg
+                  payload={doc.qrCode ?? null}
+                  missingText={
+                    doc.qrCode
+                      ? undefined
+                      : 'لم تُصدر بعد بيانات الفاتورة الإلكترونية (QR) — أرسل الفاتورة لوحدة الفوترة الإلكترونية ليظهر الرمز الصادق.'
+                  }
+                  size={136}
+                  label={doc.taxInvoiceTypeLabelAr ? `باركود ${doc.taxInvoiceTypeLabelAr} (ZATCA QR)` : 'باركود الفاتورة الضريبية (ZATCA QR)'}
+                />
+                <button
+                  type="button"
+                  className="btn sm"
+                  onClick={() => {
+                    const identity = receiptIdentity(company.data ?? null, 'المنشأة');
+                    printThermalReceipt80mm({
+                      companyName: identity.companyName,
+                      taxNo: identity.taxNo,
+                      invoiceNumber: doc.number ?? doc.id.slice(0, 8),
+                      invoiceTypeLabel: doc.taxInvoiceTypeLabelAr || 'فاتورة ضريبية مبسطة',
+                      issuedAt: dateTime(doc.postedAt ?? doc.createdAt),
+                      customerName: party ? partyLabel(party) : doc.cashCustomerName || 'عميل عام',
+                      paymentMethodLabel: doc.paymentStatus === 'paid' ? 'مدفوعة' : 'آجل',
+                      lines: doc.lines.map((line) => {
+                        const foundItem = (items.data ?? []).find((entry) => entry.id === line.itemId);
+                        return {
+                          name: line.description || (foundItem ? itemLabel(foundItem) : 'صنف'),
+                          quantity: line.quantity,
+                          unitPrice: line.unitPrice,
+                          total: line.total,
+                        };
+                      }),
+                      subtotal: doc.subtotal,
+                      discount: doc.invoiceDiscount ?? '0',
+                      taxTotal: doc.taxTotal,
+                      total: doc.total,
+                      paidAmount: doc.paidTotal,
+                      // الحمولة الصادرة فعلًا أو لا شيء — الإيصال يقول «لم تُصدر بعد» بدل رمزٍ زائف.
+                      qrPayload: doc.qrCode ?? null,
+                    });
+                  }}
+                >
+                  🧾 طباعة إيصال كاشير حراري (80mm)
+                </button>
               </div>
 
               {Number(doc.taxTotal) > 0 || Number(doc.subtotal) > 0 ? (

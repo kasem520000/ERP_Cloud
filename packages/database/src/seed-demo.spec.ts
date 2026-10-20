@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { DEMO_CHART_OF_ACCOUNTS, DEMO_PLANS, DEMO_POSTING_PROFILE } from './seed-demo.js';
+import { DEMO_CHART_OF_ACCOUNTS, DEMO_PLANS, DEMO_POSTING_PROFILE, DEMO_TAX_GROUPS } from './seed-demo.js';
 
 /**
  * The demo seed inserts the chart of accounts in a single pass and derives each account's
@@ -100,5 +100,51 @@ describe('DEMO_PLANS', () => {
       expect(['month', 'year']).toContain(plan.interval);
       expect(plan.currency).toHaveLength(3);
     }
+  });
+});
+
+/**
+ * نسبةُ الضريبة في البذرة — ومحورُها «مئوية» لا «كسر».
+ *
+ * العيبُ الذي يُقفل هنا قِيس على منشأة العرض (‏2026-10-17): البذرةُ كتبت `0.1500` بتعليقٍ
+ * يقول «كسر»، والمحرّك يحسب `subtotal × rate / 100`، فخرجت فاتورةُ ٦٠٠٫٠٠ بضريبة **٠٫٩٠**
+ * (‏٠٫١٥٪) وإجمالي ٦٠٠٫٩٠ بدل ٦٩٠٫٠٠. والنسبةُ تُقفل بعد أوّل استعمال
+ * (‏`TAX_GROUP_RATE_LOCKED`)، فالخطأ في البذرة يصير خطأً دائمًا في المنشأة.
+ */
+describe('DEMO_TAX_GROUPS', () => {
+  /** الرقمُ في الاسم هو العقد: «ضريبة القيمة المضافة 15%» ⇒ ‏`rate` = ١٥ (مئوية). */
+  const percentInLabel = (group: { nameAr?: string; nameEn?: string }): number | null => {
+    const label = `${group.nameAr ?? ''} ${group.nameEn ?? ''}`;
+    const said = label.match(/(\d+(?:[.٫]\d+)?)\s*%/);
+    return said ? Number(said[1].replace('٫', '.')) : null;
+  };
+
+  it('يكتب النسبةَ التي يقولها الاسم — والاسمُ يقول ١٥٪ لا ٠٫١٥٪', () => {
+    for (const group of DEMO_TAX_GROUPS) {
+      const percent = Number(group.rate);
+      const said = percentInLabel(group);
+      if (said === null) {
+        expect(percent, `«${group.nameAr}» بلا نسبةٍ في الاسم فلا نسبةَ في الرقم`).toBe(0);
+      } else {
+        expect(percent, `الاسمُ يقول ${said}% والرقمُ المكتوب ${group.rate}`).toBe(said);
+      }
+      expect(percent, 'نسبةٌ مئوية محصورة — فالكسرُ (٠٫١٥) يعني ٠٫١٥٪ عند المحرّك').toBeLessThanOrEqual(100);
+    }
+  });
+
+  it('فاتورةُ ٦٠٠ تخرج بضريبة ٩٠ لا ٠٫٩٠ (صيغةُ المحرّك نفسها: rate/100)', () => {
+    const vat = DEMO_TAX_GROUPS.find((group) => (group.nameAr ?? '').includes('القيمة المضافة'));
+    expect(vat, 'مجموعةُ ضريبة القيمة المضافة في البذرة').toBeDefined();
+    expect(vat?.rate).toBe('15.0000');
+    // ‏`van-sales.service.ts:4627` — ‏`subtotal.mul(taxRate.div(100))`.
+    const vatOnSixHundred = (600 * Number(vat?.rate)) / 100;
+    expect(vatOnSixHundred).toBe(90);
+    expect(vatOnSixHundred, 'ولو عاد الكسرُ لكان الناتج ٠٫٩٠').not.toBe(0.9);
+  });
+
+  it('مجموعةُ الإعفاء صفرٌ — فلا ضريبةَ على المعفى باسمٍ يقول «معفاة»', () => {
+    const exempt = DEMO_TAX_GROUPS.find((group) => (group.nameAr ?? '').includes('معفاة'));
+    expect(exempt?.rate).toBe('0.0000');
+    expect(exempt?.vatAccountCode, 'ومعفاةٌ بلا حساب ضريبة').toBeUndefined();
   });
 });

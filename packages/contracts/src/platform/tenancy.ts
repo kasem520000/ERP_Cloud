@@ -126,6 +126,14 @@ export const membershipScopeTypeSchema = z.enum(['branch', 'warehouse', 'cash_lo
 
 export type MembershipScopeType = z.infer<typeof membershipScopeTypeSchema>;
 
+/**
+ * Sentinel UUID stored in `membership_role_scopes.scope_id` when a `(membership, role)`
+ * grant is explicitly configured as tenant-wide ("all scopes") for a given `scopeType`.
+ * An unconfigured role (zero rows for `scopeType`) does NOT override restrictions placed on
+ * other held roles; only this explicit sentinel (or specific `scopeId` rows) widens the union.
+ */
+export const TENANT_WIDE_SCOPE_ID = '00000000-0000-0000-0000-000000000000' as const;
+
 export const membershipScopesSchema = z
   .object({
     scopes: z.array(

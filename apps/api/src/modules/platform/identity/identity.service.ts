@@ -134,6 +134,19 @@ export class IdentityService {
         throw new DomainError(errorCodes.FORBIDDEN, 'Membership not found', 403);
       }
 
+      /**
+       * الباقات المفعَّلة تُقرأ في معاملة العميل نفسها (RLS على `tenant_apps` بـ
+       * `tenant_id`)، فلا نداء ثانٍ ولا صلاحية إضافية: أيّ عضوٍ مُصادَق يعرف هل باقةُ
+       * تطبيقه مرخَّصة لمنشأته. والقائمة صفوف `tenant_apps` وحدها — الباقات الأساسية
+       * (`isCore`) مشحونة مع النظام ولا صفّ لها ولا حاجة لها في الترخيص.
+       */
+      const appRows = await tx.execute(sql`
+        SELECT app_code FROM tenant_apps
+        WHERE tenant_id = ${auth.claimedTenantId}::uuid AND is_enabled = true
+        ORDER BY app_code
+      `);
+      const enabledApps = (appRows.rows as Array<{ app_code: string }>).map((row) => String(row.app_code));
+
       const permissionRows = await tx
         .selectDistinct({ code: rolePermissions.permissionCode })
         .from(membershipRoles)
@@ -147,6 +160,7 @@ export class IdentityService {
         permissions: permissionRows.map((row) => row.code).sort(),
         platformPermissions: [...platformPermissions].sort(),
         branchScope: (membership.branchScope as string[] | null) ?? null,
+        enabledApps,
         impersonation,
       };
     });

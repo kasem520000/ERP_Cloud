@@ -56,7 +56,9 @@ export async function createTestApp(
 
   // `TEST_LOGS=1` يُظهر سجلّ التطبيق — يُستعمل عند تشخيص فشلٍ لا يقول الجسم سببه
   // (المعالج العام يحوّل 500 إلى نصٍّ عام). والافتراضي صامت كما كان.
-  const app = moduleRef.createNestApplication({ logger: process.env.TEST_LOGS === '1' });
+  // `rawBody: true` mirrors `main.ts`: provider webhooks (Stripe · Salla) verify their HMAC
+  // over the exact bytes the provider signed, so tests must exercise the same parser.
+  const app = moduleRef.createNestApplication({ logger: process.env.TEST_LOGS === '1', rawBody: true });
   app.use(RequestIdMiddleware);
   applyHttpConfiguration(app);
   await app.init();

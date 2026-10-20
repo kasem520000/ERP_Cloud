@@ -2,41 +2,45 @@
 
 import { Suspense } from 'react';
 import { usePathname } from 'next/navigation';
+import { SessionGate } from '@erp/web-core/session-gate';
 
 import { useSession } from '../lib/session';
+import { SURFACE_POLICY } from '../lib/surface-routing';
 
 import { AppShell } from './app-shell';
 import { EmployeeShell } from './employee-shell';
 import { LoginScreen } from './login-screen';
 
 /**
- * Everything behind this component requires a session. The admin panel used to be fully
- * public — anybody who could reach port 3001 saw the whole back office.
+ * كل ما وراء هذا المكوّن يحتاج جلسة — وكانت اللوحة كلها عامة: من وصل إلى المنفذ 3001 رأى
+ * الإدارة كاملة.
+ *
+ * وترتيب القرار في `@erp/web-core/session-gate` (سطحٌ عام ← فحص الجلسة ← مجهول ← قشرة
+ * الموظف ← اللوحة)، وهنا **الربط وحده**: سياسة أسطح هذه الواجهة (`SURFACE_POLICY`)
+ * وقشراتها وشاشة دخولها. والقراءة من `useSession` في التطبيق لا في الحزمة حتى يبقى مزوّد
+ * الجلسة قرار الواجهة (§7.2 من تقرير المرحلة 0).
  */
 export function AuthGate({ children }: { children: React.ReactNode }) {
   const { status, error } = useSession();
   const pathname = usePathname() ?? '';
-  // The supplier portal and the public signature page authenticate themselves.
-  if (pathname.startsWith('/supplier-portal') || pathname.startsWith('/esign')) return children;
 
-  if (status === 'loading') {
-    return (
-      <div className="boot">
-        <div className="boot-card">
-          <span className="logo">ERP</span>
-          <p>جارٍ التحقق من الجلسة…</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (status === 'anonymous')
-    return (
-      <Suspense>
-        <LoginScreen initialError={error} />
-      </Suspense>
-    );
-
-  if (pathname.startsWith('/m')) return <EmployeeShell>{children}</EmployeeShell>;
-  return <AppShell>{children}</AppShell>;
+  return (
+    <SessionGate
+      status={status}
+      error={error}
+      pathname={pathname}
+      policy={SURFACE_POLICY}
+      // ‏`LoginScreen` تقرأ الاستعلام (`useSearchParams`) فتحتاج حدّ `Suspense` عند
+      // التصيير المسبق — والحدّ عند من يستعمل الاستعلام لا عند البوابة.
+      login={(props) => (
+        <Suspense>
+          <LoginScreen {...props} />
+        </Suspense>
+      )}
+      employeeShell={EmployeeShell}
+      shell={AppShell}
+    >
+      {children}
+    </SessionGate>
+  );
 }

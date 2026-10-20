@@ -42,6 +42,51 @@ type AuditPageResult = { items: AuditRow[]; total: number; limit: number; offset
 
 const PAGE_SIZE = 100;
 
+const AUDIT_ACTION_AR: Record<string, string> = {
+  create: 'إنشاء',
+  update: 'تعديل',
+  delete: 'حذف',
+  post: 'ترحيل محاسبي',
+  'auth.login': 'تسجيل دخول',
+  'auth.logout': 'تسجيل خروج',
+  'tenant.status': 'تغيير حالة العميل',
+  'tenant.owner_transfer': 'نقل ملكية المنشأة',
+  'tenant.flag': 'تغيير راية ميزة',
+  'tenant.note': 'إضافة/حذف ملاحظة عميل',
+  'tenant.setting': 'تعديل إعداد عميل',
+  'platform.setting': 'تعديل إعداد المنصة',
+  'platform.break_glass.access': 'دخول تشغيلي على مستوى المنصة',
+  'support.ticket.create': 'فتح تذكرة مساعدة/دعم',
+  'support.ticket.update': 'تحديث تذكرة دعم',
+  'support.ticket.reply': 'رد على تذكرة دعم',
+  'support.impersonate.start': 'بدء دخول مؤقّت لحساب عميل',
+  'support.impersonate.end': 'إنهاء دخول مؤقّت',
+  'operator.session.revoke': 'إبطال جلسة مستخدم',
+  'operator.mfa.reset': 'إعادة ضبط التحقق بخطوتين (2FA)',
+  'operator.role.grant': 'منح دور منصّي',
+  'operator.role.revoke': 'سحب دور منصّي',
+  'operator.role.permissions': 'تعديل صلاحيات دور منصّي',
+};
+
+const AUDIT_ENTITY_AR: Record<string, string> = {
+  tenant: 'منشأة عميل',
+  tenant_setting: 'إعداد منشأة',
+  tenant_flag: 'راية ميزة',
+  tenant_note: 'ملاحظة عميل',
+  platform_setting: 'إعداد المنصة',
+  platform_admin_plane: 'لوحة تحكم المنصة',
+  support_ticket: 'تذكرة دعم فني',
+  support_session: 'جلسة دخول مؤقّت',
+  sales_invoices: 'فواتير المبيعات',
+  purchase_invoices: 'فواتير المشتريات',
+  journal_entries: 'قيود اليومية',
+  vouchers: 'سندات القبض والصرف',
+  items: 'الأصناف والمخزون',
+  parties: 'العملاء والموردون',
+  users: 'المستخدمون',
+  roles: 'الأدوار والصلاحيات',
+};
+
 export default function AuditPage() {
   const [filters, setFilters] = useState({ tenant: '', action: '', entity: '', from: '', to: '' });
   const [applied, setApplied] = useState(filters);
@@ -184,8 +229,14 @@ export default function AuditPage() {
                             <span className="muted">المنصة</span>
                           )}
                         </td>
-                        <td dir="ltr">{row.action}</td>
-                        <td dir="ltr">{row.entity}</td>
+                        <td>
+                          <strong>{AUDIT_ACTION_AR[row.action] ?? row.action}</strong>
+                          <div className="muted small" dir="ltr">{row.action}</div>
+                        </td>
+                        <td>
+                          <strong>{AUDIT_ENTITY_AR[row.entity] ?? row.entity}</strong>
+                          <div className="muted small" dir="ltr">{row.entity}</div>
+                        </td>
                         <td dir="ltr" className="small">
                           {row.entityId ? row.entityId.slice(0, 12) : '—'}
                         </td>

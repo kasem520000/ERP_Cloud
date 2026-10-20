@@ -14,6 +14,8 @@
  * signature wraps — the document, its hash and the QR — is produced here and is real.
  */
 
+import { Decimal } from 'decimal.js';
+
 export type ZatcaParty = {
   nameAr: string;
   nameEn?: string;
@@ -108,20 +110,39 @@ export function escapeXml(value: unknown): string {
     .replaceAll("'", '&apos;');
 }
 
+/**
+ * AUD-17 — الحساب المالي في مستند الضريبة يمرّ بـ`Decimal` لا بـ`Number`.
+ *
+ * كان `Number(value).toFixed(2)` يقرّب *نصف القيمة* تقريبًا ثنائيًا، فيخرج
+ * `15.075 → 15.07` و`2.675 → 2.67` و`1.0000005 → 1.000000`؛ أي هللةً ناقصة في
+ * `cbc:TaxAmount` لمستندٍ رسمي (ضريبة 15% على 100.50 = 15.075) — وهي القيم التي
+ * تُخزَّن أصلًا `numeric(18,4)`. التقريب الآن نصفٌ إلى الأعلى على العشريّ
+ * (`ROUND_HALF_UP` = البُعد عن الصفر)، وهو تقريب ZATCA التجاري المعروف.
+ */
+function decimalOf(value: string | number | Decimal | null | undefined): Decimal {
+  if (value === null || value === undefined) return new Decimal(0);
+  const text = typeof value === 'string' ? value.trim() : value;
+  if (text === '') return new Decimal(0);
+  try {
+    const parsed = new Decimal(text as string | number | Decimal);
+    return parsed.isFinite() ? parsed : new Decimal(0);
+  } catch {
+    return new Decimal(0);
+  }
+}
+
 /** ZATCA compares amounts to two decimals; anything else is a validation warning. */
-function amountOf(value: string | number | null | undefined): string {
-  const parsed = Number(value ?? 0);
-  return (Number.isFinite(parsed) ? parsed : 0).toFixed(2);
+function amountOf(value: string | number | Decimal | null | undefined): string {
+  return decimalOf(value).toDecimalPlaces(2, Decimal.ROUND_HALF_UP).toFixed(2);
 }
 
-function quantityOf(value: string | number | null | undefined): string {
-  const parsed = Number(value ?? 0);
-  return String(Number.isFinite(parsed) ? Number(parsed.toFixed(6)) : 0);
+function quantityOf(value: string | number | Decimal | null | undefined): string {
+  // `toString()` already drops trailing zeros, keeping the previous output shape ("2", not "2.000000").
+  return decimalOf(value).toDecimalPlaces(6, Decimal.ROUND_HALF_UP).toString();
 }
 
-function rateOf(value: string | number | null | undefined): string {
-  const parsed = Number(value ?? 0);
-  return (Number.isFinite(parsed) ? parsed : 0).toFixed(2);
+function rateOf(value: string | number | Decimal | null | undefined): string {
+  return decimalOf(value).toDecimalPlaces(2, Decimal.ROUND_HALF_UP).toFixed(2);
 }
 
 function postalAddress(party: ZatcaParty): string {
@@ -150,12 +171,12 @@ function partyBlock(party: ZatcaParty): string {
 
 /** One `cac:TaxSubtotal` per VAT rate, which is how ZATCA wants mixed-rate invoices declared. */
 function taxSubtotals(lines: ZatcaLine[], currency: string): string {
-  const byRate = new Map<string, { taxable: number; tax: number }>();
+  const byRate = new Map<string, { taxable: Decimal; tax: Decimal }>();
   for (const line of lines) {
     const vatRate = rateOf(line.taxRate);
-    const bucket = byRate.get(vatRate) ?? { taxable: 0, tax: 0 };
-    bucket.taxable += Number(line.net ?? 0);
-    bucket.tax += Number(line.tax ?? 0);
+    const bucket = byRate.get(vatRate) ?? { taxable: new Decimal(0), tax: new Decimal(0) };
+    bucket.taxable = bucket.taxable.plus(decimalOf(line.net));
+    bucket.tax = bucket.tax.plus(decimalOf(line.tax));
     byRate.set(vatRate, bucket);
   }
   return [...byRate.entries()]
@@ -164,7 +185,7 @@ function taxSubtotals(lines: ZatcaLine[], currency: string): string {
       <cbc:TaxableAmount currencyID="${escapeXml(currency)}">${amountOf(bucket.taxable)}</cbc:TaxableAmount>
       <cbc:TaxAmount currencyID="${escapeXml(currency)}">${amountOf(bucket.tax)}</cbc:TaxAmount>
       <cac:TaxCategory>
-        <cbc:ID schemeID="UN/ECE 5305" schemeAgencyID="6">${Number(vatRate) > 0 ? 'S' : 'Z'}</cbc:ID>
+        <cbc:ID schemeID="UN/ECE 5305" schemeAgencyID="6">${decimalOf(vatRate).gt(0) ? 'S' : 'Z'}</cbc:ID>
         <cbc:Percent>${vatRate}</cbc:Percent>
         <cac:TaxScheme><cbc:ID schemeID="UN/ECE 5153" schemeAgencyID="6">VAT</cbc:ID></cac:TaxScheme>
       </cac:TaxCategory>
@@ -175,8 +196,8 @@ function taxSubtotals(lines: ZatcaLine[], currency: string): string {
 
 function invoiceLine(line: ZatcaLine, currency: string): string {
   const vatRate = rateOf(line.taxRate);
-  const lineTotal = Number(line.net ?? 0) + Number(line.tax ?? 0);
-  const discount = Number(line.discount ?? 0);
+  const lineTotal = decimalOf(line.net).plus(decimalOf(line.tax));
+  const discount = decimalOf(line.discount);
   return `<cac:InvoiceLine>
     <cbc:ID>${line.lineNo}</cbc:ID>
     <cbc:InvoicedQuantity unitCode="${escapeXml(line.unitCode || 'PCE')}">${quantityOf(line.quantity)}</cbc:InvoicedQuantity>
@@ -188,7 +209,7 @@ function invoiceLine(line: ZatcaLine, currency: string): string {
     <cac:Item>
       <cbc:Name>${escapeXml(line.name)}</cbc:Name>
       <cac:ClassifiedTaxCategory>
-        <cbc:ID>${Number(vatRate) > 0 ? 'S' : 'Z'}</cbc:ID>
+        <cbc:ID>${decimalOf(vatRate).gt(0) ? 'S' : 'Z'}</cbc:ID>
         <cbc:Percent>${vatRate}</cbc:Percent>
         <cac:TaxScheme><cbc:ID>VAT</cbc:ID></cac:TaxScheme>
       </cac:ClassifiedTaxCategory>
@@ -196,7 +217,7 @@ function invoiceLine(line: ZatcaLine, currency: string): string {
     <cac:Price>
       <cbc:PriceAmount currencyID="${escapeXml(currency)}">${amountOf(line.unitPrice)}</cbc:PriceAmount>
       ${
-        discount > 0
+        discount.gt(0)
           ? `<cac:AllowanceCharge><cbc:ChargeIndicator>false</cbc:ChargeIndicator><cbc:AllowanceChargeReason>discount</cbc:AllowanceChargeReason><cbc:Amount currencyID="${escapeXml(currency)}">${amountOf(discount)}</cbc:Amount></cac:AllowanceCharge>`
           : ''
       }
@@ -221,7 +242,7 @@ export function buildInvoiceXml(input: ZatcaInvoiceInput): string {
   // TaxInclusiveAmount − PrepaidAmount, so a fully-paid sale would then have to declare a
   // payable amount of zero. The settlement lives in the treasury and in the payment-means
   // code; the tax document states what is owed.
-  const discount = Number(input.invoiceDiscount ?? 0);
+  const discount = decimalOf(input.invoiceDiscount);
   const instruction = INSTRUCTION_NOTES[typeCode];
   const instructionNote = instruction ? `<cbc:InstructionNote>${escapeXml(instruction)}</cbc:InstructionNote>` : '';
   const billingReference =
@@ -256,7 +277,7 @@ export function buildInvoiceXml(input: ZatcaInvoiceInput): string {
   <cac:Delivery><cbc:ActualDeliveryDate>${issued.slice(0, 10)}</cbc:ActualDeliveryDate></cac:Delivery>
   <cac:PaymentMeans><cbc:PaymentMeansCode>${escapeXml(input.paymentMeansCode || '10')}</cbc:PaymentMeansCode>${instructionNote}</cac:PaymentMeans>
   ${
-    discount > 0
+    discount.gt(0)
       ? `<cac:AllowanceCharge>
     <cbc:ChargeIndicator>false</cbc:ChargeIndicator>
     <cbc:AllowanceChargeReason>discount</cbc:AllowanceChargeReason>
@@ -269,7 +290,7 @@ export function buildInvoiceXml(input: ZatcaInvoiceInput): string {
   </cac:TaxTotal>
   <cac:LegalMonetaryTotal>
     <cbc:LineExtensionAmount currencyID="${escapeXml(currency)}">${amountOf(input.subtotal)}</cbc:LineExtensionAmount>
-    <cbc:TaxExclusiveAmount currencyID="${escapeXml(currency)}">${amountOf(Number(input.subtotal) - discount)}</cbc:TaxExclusiveAmount>
+    <cbc:TaxExclusiveAmount currencyID="${escapeXml(currency)}">${amountOf(decimalOf(input.subtotal).minus(discount))}</cbc:TaxExclusiveAmount>
     <cbc:TaxInclusiveAmount currencyID="${escapeXml(currency)}">${amountOf(input.total)}</cbc:TaxInclusiveAmount>
     <cbc:AllowanceTotalAmount currencyID="${escapeXml(currency)}">${amountOf(discount)}</cbc:AllowanceTotalAmount>
     <cbc:PrepaidAmount currencyID="${escapeXml(currency)}">0.00</cbc:PrepaidAmount>

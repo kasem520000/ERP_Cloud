@@ -11,6 +11,11 @@ coverage/
 .DS_Store
 .generated-types.json
 .pg-embedded/
+# نسخُ أداةِ الإصلاح الاحتياطية (`pnpm db:demo-repair --apply`) — بياناتٌ ولا تُودَع
+.demo-repair/
+
+# نسخُ القاعدة (`pnpm db:backup` / `db:drill`) — بياناتُ منشآتٍ ولا تُودَع في Git
+backups/
 
 # TypeScript incremental build metadata
 *.tsbuildinfo

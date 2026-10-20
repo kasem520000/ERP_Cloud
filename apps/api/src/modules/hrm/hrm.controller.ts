@@ -1,4 +1,5 @@
 import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from '@nestjs/common';
+import { DomainError } from '@erp/contracts';
 
 import { getTenantContext } from '../platform/context/tenant-context.js';
 import { RequiresPermission } from '../platform/decorators/requires-permission.decorator.js';
@@ -102,7 +103,22 @@ export class HrmController {
     @Query('movement_type') movementType?: string,
     @Query('branch_id') branchId?: string,
   ) {
-    const type = movementType === 'sales' || movementType === 'returns' ? movementType : 'all';
+    /**
+     * 🔄 «نوعُ الحركة»: الفراغُ يعني «الكل» (وهو الافتراضيّ في النافذة)، وأمّا قيمةٌ
+     * مجهولةٌ فتُرفض ٤٢٢. وكانت تُطبَّع **بصمتٍ** إلى «الكلّ»
+     * (‏`movementType === 'sales' || … ? … : 'all'`)، فـ`movement_type=sale` (بلا s) كان
+     * يُعيد الفواتيرَ **والمرتجعات** معًا والقارئُ يظنّ أنّه صفّى — وإدخالٌ فاسدٌ يُقال
+     * ولا يُهمل.
+     */
+    const rawMovementType = (movementType ?? '').trim();
+    const type = rawMovementType === '' || rawMovementType === 'all' ? 'all' : rawMovementType;
+    if (type !== 'all' && type !== 'sales' && type !== 'returns')
+      throw new DomainError(
+        'HRM_MOVEMENTS_TYPE_UNKNOWN',
+        `«نوعُ الحركة» غير معروف: «${rawMovementType}» — المسموح: all (الكل)، sales (فواتير)، returns (مرتجعات).`,
+        422,
+        { field: 'movement_type' },
+      );
     return this.hrm.employeeMovements(getTenantContext().tenantId, {
       employeeId,
       allEmployees: flag(allEmployees),

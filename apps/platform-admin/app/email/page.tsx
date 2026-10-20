@@ -555,6 +555,8 @@ function MessagesTab() {
 function SettingsTab() {
   const settings = useQuery<EmailSettings>(() => apiData<EmailSettings>('/platform/email/settings'), []);
   const [draft, setDraft] = useState<Partial<EmailSettings>>({});
+  const [apiKeyDraft, setApiKeyDraft] = useState<string | undefined>(undefined);
+  const [smtpPasswordDraft, setSmtpPasswordDraft] = useState<string | undefined>(undefined);
   const [reason, setReason] = useState('');
   const [probeTo, setProbeTo] = useState('');
   const [notice, setNotice] = useState<{ kind: 'ok' | 'warn' | 'danger'; text: string } | undefined>();
@@ -564,24 +566,37 @@ function SettingsTab() {
   const value = <K extends keyof EmailSettings>(key: K): EmailSettings[K] | undefined =>
     draft[key] ?? current?.[key];
 
+  const selectedProvider = value('provider') ?? 'console';
+
   async function save() {
     setBusy(true);
     setNotice(undefined);
     try {
+      const payload: Record<string, unknown> = {
+        provider: selectedProvider,
+        fromName: value('fromName'),
+        fromEmail: value('fromEmail'),
+        replyTo: value('replyTo') || null,
+        sendingDomain: value('sendingDomain') || null,
+        dailyLimit: value('dailyLimit') ?? null,
+        monthlyLimit: value('monthlyLimit') ?? null,
+        ...(reason.trim().length >= 3 ? { reason } : {}),
+      };
+      if (apiKeyDraft !== undefined) payload.apiKey = apiKeyDraft.trim() || null;
+      if (draft.apiEndpoint !== undefined) payload.apiEndpoint = draft.apiEndpoint?.trim() || null;
+      if (draft.smtpHost !== undefined) payload.smtpHost = draft.smtpHost?.trim() || null;
+      if (draft.smtpPort !== undefined) payload.smtpPort = draft.smtpPort || null;
+      if (draft.smtpUser !== undefined) payload.smtpUser = draft.smtpUser?.trim() || null;
+      if (smtpPasswordDraft !== undefined) payload.smtpPassword = smtpPasswordDraft || null;
+      if (draft.smtpSecure !== undefined) payload.smtpSecure = draft.smtpSecure;
+
       const updated = await apiData<EmailSettings>('/platform/email/settings', {
         method: 'PUT',
-        body: JSON.stringify({
-          provider: value('provider'),
-          fromName: value('fromName'),
-          fromEmail: value('fromEmail'),
-          replyTo: value('replyTo') ?? null,
-          sendingDomain: value('sendingDomain') ?? null,
-          dailyLimit: value('dailyLimit') ?? null,
-          monthlyLimit: value('monthlyLimit') ?? null,
-          ...(reason.trim().length >= 3 ? { reason } : {}),
-        }),
+        body: JSON.stringify(payload),
       });
       setDraft({});
+      setApiKeyDraft(undefined);
+      setSmtpPasswordDraft(undefined);
       setReason('');
       setNotice({
         kind: 'ok',
@@ -633,8 +648,10 @@ function SettingsTab() {
                 setDraft({ ...draft, provider: change.target.value as EmailSettings['provider'] })
               }
             >
-              <option value="console">console — يطبع في السجلّ (تطوير)</option>
-              <option value="smtp">smtp — عميل SMTP على node:net</option>
+              <option value="resend">resend — خدمة Resend API السحابية</option>
+              <option value="smtp">smtp — خادم SMTP قياسي (TLS / STARTTLS)</option>
+              <option value="http">http — بوابة HTTP Webhook / API مخصّصة</option>
+              <option value="console">console — يطبع في السجلّ (محلي)</option>
             </select>
           </label>
           <label>
@@ -701,6 +718,90 @@ function SettingsTab() {
             <input value={reason} onChange={(change) => setReason(change.target.value)} />
           </label>
         </div>
+
+        {(selectedProvider === 'resend' || selectedProvider === 'http') && (
+          <div className="row">
+            <label style={{ flex: 2 }}>
+              {selectedProvider === 'resend' ? 'مفتاح Resend API Key' : 'مفتاح المصادقة (Bearer API Key)'}
+              <input
+                type="password"
+                dir="ltr"
+                value={apiKeyDraft ?? ''}
+                placeholder={
+                  current?.apiKeyMasked
+                    ? `محفوظ (${current.apiKeyMasked}) — اتركه فارغاً للإبقاء عليه`
+                    : selectedProvider === 'resend'
+                      ? 're_123456789...'
+                      : 'Bearer token...'
+                }
+                onChange={(change) => setApiKeyDraft(change.target.value)}
+              />
+            </label>
+            <label style={{ flex: 2 }}>
+              {selectedProvider === 'resend'
+                ? 'رابط Resend API (اختياري)'
+                : 'رابط نقطة النهاية (HTTP Webhook URL)'}
+              <input
+                dir="ltr"
+                value={value('apiEndpoint') ?? ''}
+                placeholder={
+                  selectedProvider === 'resend'
+                    ? 'https://api.resend.com/emails'
+                    : 'https://api.provider.com/v1/send'
+                }
+                onChange={(change) => setDraft({ ...draft, apiEndpoint: change.target.value })}
+              />
+            </label>
+          </div>
+        )}
+
+        {selectedProvider === 'smtp' && (
+          <div className="row">
+            <label>
+              مُضيف SMTP (Host)
+              <input
+                dir="ltr"
+                value={value('smtpHost') ?? ''}
+                placeholder="smtp.resend.com"
+                onChange={(change) => setDraft({ ...draft, smtpHost: change.target.value })}
+              />
+            </label>
+            <label>
+              المنفذ (Port)
+              <input
+                type="number"
+                dir="ltr"
+                value={value('smtpPort') ?? 587}
+                onChange={(change) =>
+                  setDraft({
+                    ...draft,
+                    smtpPort: change.target.value ? Number(change.target.value) : null,
+                  })
+                }
+              />
+            </label>
+            <label>
+              اسم مستخدم SMTP
+              <input
+                dir="ltr"
+                value={value('smtpUser') ?? ''}
+                placeholder="resend"
+                onChange={(change) => setDraft({ ...draft, smtpUser: change.target.value })}
+              />
+            </label>
+            <label>
+              كلمة مرور SMTP
+              <input
+                type="password"
+                dir="ltr"
+                value={smtpPasswordDraft ?? ''}
+                placeholder={current?.smtpConfigured ? '•••••••• (محفوظة)' : 'كلمة المرور'}
+                onChange={(change) => setSmtpPasswordDraft(change.target.value)}
+              />
+            </label>
+          </div>
+        )}
+
         <div className="row">
           <button className="btn" type="button" disabled={busy} onClick={save}>
             حفظ

@@ -97,6 +97,13 @@ export const tenantSettingsRegistry: readonly TenantSettingDefinition[] = [
     false,
   ),
   define(
+    'sales.saveAsDraft',
+    'sales',
+    'When true, new sales invoices default to draft mode instead of immediate posting.',
+    z.boolean(),
+    false,
+  ),
+  define(
     'vat.default_rate_percent',
     'accounting',
     'Default VAT percentage applied when a line has no tax group.',

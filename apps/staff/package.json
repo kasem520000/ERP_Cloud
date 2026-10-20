@@ -6,6 +6,8 @@
   "dependencies": {
     "@erp/contracts": "workspace:*",
     "@erp/ui": "workspace:*",
+    "@erp/web-core": "workspace:*",
+    "@erp/web-van": "workspace:*",
     "@fontsource-variable/inter": "^5",
     "@fontsource/tajawal": "^5",
     "@tanstack/react-query": "^5.90.2",
@@ -13,6 +15,7 @@
     "framer-motion": "^11.15.0",
     "lucide-react": "^0.400.0",
     "next": "^15.5.4",
+    "qrcode-generator": "^2.0.4",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
     "react-hook-form": "^7.62.0",
@@ -32,6 +35,7 @@
     "build": "next build",
     "lint": "eslint app components lib tests next.config.mjs --config ../../eslint.config.mjs",
     "test": "vitest run",
-    "start": "node ../../scripts/next-run.mjs staff start"
+    "start": "node ../../scripts/next-run.mjs staff start",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
   }
 }

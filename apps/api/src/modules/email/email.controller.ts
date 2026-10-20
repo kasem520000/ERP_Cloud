@@ -1,16 +1,19 @@
-import { Body, Controller, Get, Param, Put, Query } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Param, Post, Put, Query } from '@nestjs/common';
 import { ApiBearerAuth, ApiOkResponse, ApiOperation, ApiQuery, ApiTags } from '@nestjs/swagger';
 import {
   DomainError,
   emailLocaleSchema,
   emailMessageListQuerySchema,
   emailSettingsUpdateSchema,
+  emailTestSendSchema,
   errorCodes,
   isEmailEvent,
   tenantEmailTemplateUpdateSchema,
   type EmailMessageListResponse,
   type EmailSettings,
   type EmailTemplateListResponse,
+  type EmailTestResult,
+  type EmailTestSend,
 } from '@erp/contracts';
 
 import { ZodValidationPipe } from '../../common/pipes/zod-validation.pipe.js';
@@ -138,6 +141,43 @@ export class EmailController {
         patch as Parameters<EmailSettingsService['update']>[1],
         reason,
       ),
+    };
+  }
+
+  @Put('settings/provider')
+  @RequiresPermission('tenant.email.template.manage')
+  @ApiOperation({ summary: 'تكوين مزوّد البريد الخاص بالمنشأة (Resend / SMTP / HTTP / Console)' })
+  @ApiOkResponse({ description: 'Tenant email provider settings updated' })
+  async updateProviderSettings(
+    @Body(new ZodValidationPipe(emailSettingsUpdateSchema))
+    body: Record<string, unknown> & { reason?: string },
+  ): Promise<{ data: EmailSettings }> {
+    const { reason, ...patch } = body;
+    const tenant = getTenantContext();
+    return {
+      data: await this.settings.update(
+        tenant.tenantId,
+        patch as Parameters<EmailSettingsService['update']>[1],
+        reason,
+      ),
+    };
+  }
+
+  @Post('settings/test')
+  @HttpCode(200)
+  @RequiresPermission('tenant.email.template.manage')
+  @ApiOperation({ summary: 'إرسال رسالة بريد تجريبية للتحقق من إعدادات المزوّد' })
+  @ApiOkResponse({ description: 'Test email sent or queued' })
+  async sendTestEmail(
+    @Body(new ZodValidationPipe(emailTestSendSchema)) body: EmailTestSend,
+  ): Promise<{ data: EmailTestResult }> {
+    const tenant = getTenantContext();
+    return {
+      data: await this.email.testSettings({
+        to: body.to,
+        locale: body.locale ?? 'ar',
+        tenantId: tenant.tenantId,
+      }),
     };
   }
 }

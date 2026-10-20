@@ -9,6 +9,8 @@ import {
 } from '@erp/contracts';
 import { newId, withPlatformAdminTx, withTenantTx } from '@erp/database';
 
+import { OBJECT_STORAGE } from '../src/modules/platform-services/index.js';
+
 import {
   ALL_ORGANIZATION_PERMISSIONS,
   ALL_TENANT_PERMISSIONS,
@@ -16,6 +18,7 @@ import {
   type Actor,
   type ActorOptions,
 } from './fixtures.js';
+import { FakeObjectStorage } from './fakes.js';
 import { api } from './http.js';
 import { createTestApp, type TestApp } from './test-app.js';
 
@@ -93,7 +96,10 @@ describe('platform usage & quotas (P-C5)', () => {
     );
 
   beforeAll(async () => {
-    ctx = await createTestApp('platform-usage');
+    const storage = new FakeObjectStorage();
+    ctx = await createTestApp('platform-usage', (builder) =>
+      builder.overrideProvider(OBJECT_STORAGE).useValue(storage),
+    );
     const { UsageService } = await import('../src/modules/usage/usage.service.js');
     usage = ctx.app.get(UsageService);
 

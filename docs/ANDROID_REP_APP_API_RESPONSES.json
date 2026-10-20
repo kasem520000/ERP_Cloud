@@ -1,0 +1,1436 @@
+{
+  "meta": {
+    "title": "تطبيق المندوب (أندرويد) — أشكال استجابات API الرسمية الكاملة",
+    "purpose": "المصدر الوحيد للحقيقة لإصلاح تطبيق المندوب: لكل مسارٍ الجسمُ المطلوب وشكلُ الاستجابة الحقيقي كما يكتبه الخادم",
+    "baseUrl": "https://<host>/api/v1",
+    "devBaseUrlExample": "http://192.168.1.10:3000/api/v1",
+    "verifiedAgainst": "2026-10-18",
+    "companionDoc": "docs/ANDROID_REP_APP_API_REFERENCE.md",
+    "generatedFrom": [
+      "apps/api/src/modules/van-sales/van-sales.controller.ts",
+      "apps/api/src/modules/van-sales/van-sales.service.ts",
+      "packages/contracts/src/platform/auth.ts",
+      "packages/web-van/src/rep-workspace.ts",
+      "apps/api/src/modules/parties/parties.controller.ts"
+    ]
+  },
+
+  "conventions": {
+    "authHeader": "Authorization: Bearer <accessToken> — في كل الطلبات ما عدا auth/login و auth/refresh",
+    "contentType": "application/json",
+    "successEnvelope": "كل المسارات تلفّ النتيجة في { \"data\": ... } — ما عدا الاستثناء التالي",
+    "exception": "GET /parties ترجع مصفوفةً خامًا بلا غلاف data",
+    "postSuccessStatus": 201,
+    "getSuccessStatus": 200,
+    "numbersAreStrings": true,
+    "numbersNote": "كل الكميات والقيم المالية نصوص (string) لأنها numeric من PostgreSQL: الكميات غالبًا 4 خانات عشرية (مثل \"12.5000\") والقيم المالية خانتان (مثل \"92.00\"). استعمل BigDecimal ولا تحوّل إلى double",
+    "countsAreNumbers": "العدّادات والمقارنات أعدادٌ حقيقية (int/boolean) مثل returnCount و pendingClosings و stockLedgerAgrees",
+    "on401": "جرّب POST /auth/refresh مرة واحدة ثم أعد الطلب الأصلي؛ إن فشل التجديد فالجلسة منتهية → شاشة الدخول",
+    "offlineQueue": "idempotencyKey في الجسم فقط لمسارات documents/returns/collections (قابل للحفظ دون اتصال). confirm-receipt و submit-closing بلا مفتاح ولا يُحفظان في طابور",
+    "noBulkSyncEndpoint": true,
+    "noBulkSyncNote": "لا يوجد POST /van-sales/offline-sync — كل نيّة معلّقة تُعاد إلى مسارها الرسمي نفسه"
+  },
+
+  "errorResponse": {
+    "contentType": "application/problem+json",
+    "appliesTo": "كل الأخطاء في كل المسارات",
+    "example": {
+      "type": "about:blank",
+      "title": "Validation failed",
+      "status": 422,
+      "code": "VALIDATION_FAILED",
+      "detail": "أدخل الكمية المباعة بالكيلو",
+      "traceId": "8f14e45fceea167a5a36dedd4bea2543",
+      "errors": [
+        { "field": "soldQty", "message": "…" }
+      ]
+    },
+    "types": {
+      "type": "string",
+      "title": "string",
+      "status": "number",
+      "code": "string",
+      "detail": "string — النص العربي المعروض للمستخدم كما هو",
+      "traceId": "string",
+      "errors": [
+        { "field": "string", "message": "string" }
+      ]
+    },
+    "handlingRules": [
+      "5xx أو انقطاع شبكة ⇒ الطلب لم يصل: أعد المحاولة لاحقًا (وبالطابور إن كان قابلًا للحفظ)",
+      "4xx ⇒ مرفوض: اعرض detail ولا تُعِد تلقائيًّا",
+      "401 ⇒ جرّب refresh مرة واحدة ثم أعد الطلب"
+    ],
+    "codes": [
+      { "code": "UNAUTHENTICATED", "http": 401, "when": "رمز مفقود/منتهٍ — جرّب refresh ثم خروج" },
+      { "code": "FORBIDDEN", "http": 403, "when": "نقص صلاحية — نص الخادم: permission <code> required" },
+      { "code": "VAN_SALES_COMPANY_SCOPE_REQUIRED", "http": 403, "when": "نداء مسار مكتبي من حساب مندوب (مثل /van-sales/dashboard)" },
+      { "code": "VAN_SALES_NOT_YOUR_LOAD", "http": 403, "when": "أمر التحميل مسند إلى مندوب آخر" },
+      { "code": "VAN_SALES_NOT_YOUR_DOCUMENT", "http": 403, "when": "المستند لمندوب آخر (مرتجع/تحصيل/طباعة)" },
+      { "code": "VAN_LOAD_ORDER_NOT_RECEIVED", "http": 409, "when": "بيع من توريد لم يؤكَّد استلامه بعد — أكِّد الاستلام أولًا" },
+      { "code": "VAN_LOAD_ORDER_NOT_AWAITING_RECEIPT", "http": 409, "when": "الاستلام مؤكَّد مسبقًا (أو الأمر ما زال مسودة)" },
+      { "code": "VAN_LOAD_ORDER_ALREADY_SETTLED", "http": 409, "when": "الوردية مُصفّاة مسبقًا" },
+      { "code": "INVOICE_ALREADY_PAID", "http": 409, "when": "تحصيل على فاتورة مسددة بالكامل" },
+      { "code": "IDEMPOTENCY_REPLAY", "http": 409, "when": "المفتاح نفسه استُعمل بحمولة مختلفة — نيّة عُدِّلت بعد حفظها: تحتاج قرارًا لا إعادة عمياء" },
+      { "code": "VAN_WAREHOUSE_UNDER_SETTLEMENT", "http": 409, "when": "السيارة قيد تسوية جرد — ممنوع البيع/الاستلام حتى انتهائه" },
+      { "code": "VALIDATION_FAILED", "http": 422, "when": "كل أخطاء الحقول — اقرأ errors[].field و detail" },
+      { "code": "PARTY_CREDIT_LIMIT_EXCEEDED", "http": 422, "when": "بيع آجل فوق سقف ائتمان العميل" },
+      { "code": "STOCK_INSUFFICIENT", "http": 422, "when": "الرصيد الرسمي في سيارة المندوب لا يكفي" },
+      { "code": "VAN_ZATCA_SELLER_IDENTITY_REQUIRED", "http": 422, "when": "بيانات البائع الضريبية ناقصة عند المنشأة (وضع zatca_tax)" },
+      { "code": "VAN_SALES_INTERNAL_DELIVERY_POLICY_REQUIRED", "http": 422, "when": "وضع التسليم الداخلي غير مسموح بسياسة المنشأة" },
+      { "code": "VAN_VEHICLE_COUNT_INVALID", "http": 422, "when": "عدد المركبة غير رقمي عند الإقفال" },
+      { "code": "VAN_VEHICLE_COUNT_BELOW_OTHER_CUSTODY", "http": 422, "when": "عدد المركبة أقل من عهدة الأوامر الأخرى في السيارة نفسها" },
+      { "code": "VAN_VEHICLE_COUNT_CONFLICTS_WITH_ORDER_COUNT", "http": 422, "when": "أُعلن عدد المركبة وعدد الأمر معًا" },
+      { "code": "NOT_FOUND", "http": 404, "when": "معرّف غير موجود (أمر/مستند) أو مسار خاطئ" },
+      { "code": "RATE_LIMITED", "http": 429, "when": "تجاوز حد المعدل (الدخول خصوصًا)" },
+      { "code": "TENANT_SUSPENDED", "http": 423, "when": "المنشأة موقوفة" }
+    ]
+  },
+
+  "sharedShapes": {
+    "lineDashboardResponse": {
+      "description": "استجابة كل مسارات POST في van-sales (documents / returns / collections / confirm-receipt / submit-closing) هي لوحة الخطّ الكاملة نفسها — وليست بطاقة العمل المنفَّذ. القاعدة الصحيحة: أي 2xx = نجاح، ثم أعد نداء GET /van-sales/me وحدّث الشاشة منه",
+      "httpStatus": 201,
+      "example": {
+        "data": {
+          "policy": {
+            "allowInternalDeliveryWithoutTax": false,
+            "preventSelfApproval": true,
+            "shortageValuationBasis": "unit_cost",
+            "zatcaSeller": { "ready": true, "missingFields": [], "refusalDetail": null }
+          },
+          "officialStock": [
+            {
+              "itemId": "it-01", "itemName": "خبز صامولي", "sku": "BREAD-01",
+              "warehouseId": "w-01", "warehouseName": "المستودع الرئيسي",
+              "warehouseCode": "MAIN", "branchId": "br-01",
+              "quantity": "450.0000", "value": "1710.0000", "averageCost": "3.8000"
+            }
+          ],
+          "mainWarehouseId": "w-01",
+          "postingReadiness": {
+            "branchId": "br-01",
+            "salesInvoice": true,
+            "stockTransfer": true,
+            "receiptVoucher": true,
+            "message": null
+          },
+          "windows": {
+            "productionBatches": { "returned": 50, "total": 61, "limit": 50 },
+            "loadOrders": { "returned": 60, "total": 63, "limit": 60 },
+            "documents": { "returned": 120, "total": 214, "limit": 120 },
+            "movements": { "returned": 80, "total": 95, "limit": 80 },
+            "customerPriceHistory": { "returned": 50, "total": 50, "limit": 50 }
+          },
+          "summary": {
+            "totalProducedKg": "1200.00",
+            "totalScrapKg": "30.00",
+            "mainWarehouseBalanceKg": "450.00",
+            "vanWarehousesBalanceKg": "120.00",
+            "derivedMainWarehouseBalanceKg": "450.00",
+            "stockLedgerAgrees": true,
+            "inTransitKg": "80.00",
+            "inTransitValueSar": "304.00",
+            "inTransitTransfersCount": 1,
+            "totalProductionCostSar": "4560.00",
+            "totalLoadedKg": "1000.00",
+            "totalSoldKg": "700.00",
+            "totalBonusKg": "50.00",
+            "totalReturnedKg": "40.00",
+            "totalDamagedKg": "10.00",
+            "totalShortageKg": "5.00",
+            "totalShortageSar": "19.00",
+            "remainingInVansKg": "120.00",
+            "totalZatcaSalesSar": "2500.00",
+            "totalInternalSalesSar": "300.00",
+            "totalRevenueSar": "2800.00",
+            "totalSalesGrossSar": "3000.00",
+            "totalReturnsSar": "180.00",
+            "totalReturnsVatSar": "20.00",
+            "returnDocumentCount": 2,
+            "returnsWithoutCostCount": 0,
+            "totalCollectedCashSar": "2400.00",
+            "totalCreditReceivablesSar": "400.00",
+            "totalNetProfitSar": "950.00",
+            "anomalyCount": 0,
+            "pendingClosingsCount": 1,
+            "pendingReceiptsCount": 1,
+            "pendingStockSettlementsCount": 0,
+            "pendingTransitDecisionsCount": 0
+          },
+          "productionBatches": [
+            {
+              "id": "b-120", "batchNo": "BAT-000120", "productionDate": "2026-10-18",
+              "itemId": "it-01", "warehouseId": "w-01",
+              "productionOrderId": null, "manufacturingOrderId": "mo-09",
+              "lotId": "lot-31", "inventoryTransactionId": "ix-77",
+              "itemName": "خبز صامولي",
+              "producedQty": "200.00", "scrapQty": "5.00", "issuedQty": "150.00",
+              "returnedGoodQty": "0.00", "damagedQty": "2.00",
+              "availableWarehouseQty": "43.00",
+              "unitCost": "3.80", "totalCost": "760.00",
+              "costBasis": "manufacturing_order",
+              "scrapValue": "19.00",
+              "scrapCostLoaded": false,
+              "status": "active",
+              "supervisorName": "سالم",
+              "notes": ""
+            }
+          ],
+          "repPerformance": [
+            {
+              "salesmanId": "5c6f-01", "salesmanName": "أحمد المندوب",
+              "loadedKg": "100.00", "soldKg": "60.00", "bonusKg": "5.00",
+              "returnedKg": "2.00", "damagedKg": "1.00", "shortageKg": "0.00",
+              "shortageSar": "0.00", "custodyRemainingKg": "32.00",
+              "revenueSar": "250.00", "salesGrossSar": "280.00",
+              "returnsSar": "20.00", "returnsVatSar": "2.50",
+              "collectedSar": "230.00", "creditDebtSar": "50.00",
+              "netProfitSar": "95.00",
+              "pendingClosings": 1
+            }
+          ],
+          "loadOrders": [
+            {
+              "id": "lo-05", "number": "VLO-000005", "loadDate": "2026-10-17",
+              "productionBatchNo": "BAT-000118", "vehiclePlate": "أ ب ج 123",
+              "status": "loaded",
+              "salesmanId": "5c6f-01", "salesmanName": "أحمد المندوب",
+              "warehouseId": "w-01", "vanWarehouseId": "w-77",
+              "stockTransferId": "st-28", "returnTransferId": null,
+              "damageVoucherId": null, "approvalRequestId": null,
+              "shortagePolicyStatus": "policy_configured",
+              "itemId": "it-01", "itemName": "خبز صامولي",
+              "loadedQty": "100.00", "receivedQty": "100.00",
+              "discrepancyQty": "0.00", "discrepancyNotes": "",
+              "receivedAt": "2026-10-17T06:30:00.000Z",
+              "awaitingReceipt": false,
+              "soldQty": "60.00", "bonusQty": "5.00",
+              "returnedQty": "2.00", "damagedQty": "1.00",
+              "shortageQty": "0.00", "shortageValue": "0.00",
+              "remainingQty": "32.00", "actualRemainingQty": "0.00",
+              "vehicleCountQty": null, "otherCustodyQty": null,
+              "expectedRemainingQty": "32.00", "countVarianceQty": "32.00",
+              "stockAdjustmentId": null, "remainingAction": null,
+              "remainingInventoryTxId": null,
+              "countVarianceCostValue": "121.60",
+              "countDocumentVarianceValue": null, "countDocumentVarianceQty": null,
+              "vanOfficialQty": "120.00", "otherCustodyInVanQty": "88.00",
+              "vanStockShortOfCustodyQty": "0.00",
+              "countDocumentExpectedQty": null,
+              "stockSettlementStatus": "not_required", "stockSettlementNote": "",
+              "damageJournalEntryId": null, "shortageJournalEntryId": null,
+              "shortageChargeBasis": null, "shortageChargeAmount": null,
+              "awaitingStockSettlement": false, "awaitingTransitDecision": false,
+              "maxBonusQty": "10.00", "maxBonusPct": "5.00",
+              "expectedCash": "300.00", "collectedCash": "280.00", "cashVariance": "-20.00",
+              "damageReason": "", "damageInspected": false, "salaryDeductionApproved": false,
+              "closingNotes": "", "closingSubmittedAt": null, "approvedAt": null,
+              "approvedByLabel": "", "notes": ""
+            }
+          ],
+          "customerPrices": [
+            {
+              "id": "cp-01", "partyId": "p-01", "partyName": "بقالة النور",
+              "partyCode": "CUST-101", "partyTaxNo": "3009876543",
+              "itemId": "it-01", "itemName": "خبز صامولي",
+              "priceTierLabel": "تجزئة",
+              "unitPrice": "4.00", "maxBonusPct": "5.00", "maxBonusKgPerInvoice": "10.00",
+              "preferredInvoiceMode": "zatca_tax",
+              "creditLimit": "1000.00", "paymentTermsDays": 15,
+              "lockPrice": true, "maxDiscountPct": "3.00",
+              "effectiveFrom": "2026-10-01", "effectiveTo": null,
+              "changeReason": "تحديث فصلي", "notes": ""
+            }
+          ],
+          "customerPriceHistory": [
+            {
+              "id": "ph-01", "customerPriceId": "cp-01",
+              "partyId": "p-01", "partyName": "بقالة النور",
+              "itemId": "it-01", "itemName": "خبز صامولي",
+              "previousUnitPrice": "3.80", "newUnitPrice": "4.00",
+              "maxBonusPct": "5.00", "maxBonusKgPerInvoice": "10.00",
+              "maxDiscountPct": "3.00", "lockPrice": true,
+              "effectiveFrom": "2026-10-01", "effectiveTo": null,
+              "changeReason": "تحديث فصلي", "changedByLabel": "مدير الخط",
+              "createdAt": "2026-10-01T09:00:00.000Z"
+            }
+          ],
+          "documents": [
+            {
+              "id": "vd-21", "number": "VSD-000021", "docDate": "2026-10-17",
+              "invoiceMode": "zatca_tax", "taxPolicyStatus": "standard_vat",
+              "paymentMethod": "cash", "documentKind": "sale",
+              "referenceDocumentId": null,
+              "invoiceNumber": "INV-000101", "invoiceStatus": "posted",
+              "productionBatchNo": "BAT-000118", "loadOrderId": "lo-05",
+              "salesInvoiceId": "si-88", "receiptVoucherId": "rv-12",
+              "stockDeliveryId": "sd-44",
+              "salesmanId": "5c6f-01", "salesmanName": "أحمد المندوب",
+              "partyId": "p-01", "customerName": "بقالة النور", "customerTaxNo": "3009876543",
+              "itemId": "it-01", "itemName": "خبز صامولي",
+              "soldQty": "20.00", "bonusQty": "2.00", "bonusReason": "اتفاق ترويجي",
+              "unitPrice": "4.00", "discountAmount": "0.00", "discountReason": "",
+              "subtotal": "80.00", "taxRate": "15.00", "taxTotal": "12.00", "total": "92.00",
+              "paidAmount": "92.00", "unitCost": "3.80", "netProfit": "8.40",
+              "customerBonusConfirmed": true, "customerConfirmationCode": "4321",
+              "bonusAnomaly": false, "anomalyReason": "",
+              "qrPayload": "QRpW…TLV…",
+              "notes": "", "createdAt": "2026-10-17T10:15:00.000Z"
+            }
+          ],
+          "movements": [
+            {
+              "id": "mv-40", "movementType": "collection_receipt",
+              "batchNo": "VSD-000021", "qty": "0.00", "unitPrice": "0.00",
+              "amount": "50.00", "reason": "تحصيل دفعة من فاتورة آجلة",
+              "inventoryTransactionId": null, "voucherId": "vv-12",
+              "salesmanName": "أحمد المندوب", "customerName": "بقالة النور",
+              "actorLabel": "أحمد المندوب", "approvedByLabel": "",
+              "createdAt": "2026-10-17T12:30:05.000Z"
+            }
+          ]
+        }
+      },
+      "types": {
+        "data": {
+          "policy": {
+            "allowInternalDeliveryWithoutTax": "boolean",
+            "preventSelfApproval": "boolean",
+            "shortageValuationBasis": "string (enum: unconfigured|unit_cost|selling_price)",
+            "zatcaSeller": {
+              "ready": "boolean",
+              "missingFields": ["string"],
+              "refusalDetail": "string|null"
+            }
+          },
+          "officialStock": [
+            {
+              "itemId": "string", "itemName": "string", "sku": "string",
+              "warehouseId": "string", "warehouseName": "string",
+              "warehouseCode": "string", "branchId": "string|null",
+              "quantity": "string", "value": "string", "averageCost": "string"
+            }
+          ],
+          "mainWarehouseId": "string|null",
+          "postingReadiness": {
+            "branchId": "string|null",
+            "salesInvoice": "boolean",
+            "stockTransfer": "boolean",
+            "receiptVoucher": "boolean",
+            "message": "string|null"
+          },
+          "windows": {
+            "productionBatches": { "returned": "number", "total": "number", "limit": "number" },
+            "loadOrders": { "returned": "number", "total": "number", "limit": "number" },
+            "documents": { "returned": "number", "total": "number", "limit": "number" },
+            "movements": { "returned": "number", "total": "number", "limit": "number" },
+            "customerPriceHistory": { "returned": "number", "total": "number", "limit": "number" }
+          },
+          "summary": {
+            "totalProducedKg": "string", "totalScrapKg": "string",
+            "mainWarehouseBalanceKg": "string", "vanWarehousesBalanceKg": "string",
+            "derivedMainWarehouseBalanceKg": "string", "stockLedgerAgrees": "boolean",
+            "inTransitKg": "string", "inTransitValueSar": "string", "inTransitTransfersCount": "number",
+            "totalProductionCostSar": "string", "totalLoadedKg": "string", "totalSoldKg": "string",
+            "totalBonusKg": "string", "totalReturnedKg": "string", "totalDamagedKg": "string",
+            "totalShortageKg": "string", "totalShortageSar": "string", "remainingInVansKg": "string",
+            "totalZatcaSalesSar": "string", "totalInternalSalesSar": "string", "totalRevenueSar": "string",
+            "totalSalesGrossSar": "string", "totalReturnsSar": "string", "totalReturnsVatSar": "string",
+            "returnDocumentCount": "number", "returnsWithoutCostCount": "number",
+            "totalCollectedCashSar": "string", "totalCreditReceivablesSar": "string",
+            "totalNetProfitSar": "string",
+            "anomalyCount": "number", "pendingClosingsCount": "number",
+            "pendingReceiptsCount": "number", "pendingStockSettlementsCount": "number",
+            "pendingTransitDecisionsCount": "number"
+          },
+          "productionBatches": [
+            {
+              "id": "string", "batchNo": "string", "productionDate": "string (YYYY-MM-DD)",
+              "itemId": "string|null", "warehouseId": "string|null",
+              "productionOrderId": "string|null", "manufacturingOrderId": "string|null",
+              "lotId": "string|null", "inventoryTransactionId": "string|null",
+              "itemName": "string",
+              "producedQty": "string", "scrapQty": "string", "issuedQty": "string",
+              "returnedGoodQty": "string", "damagedQty": "string",
+              "availableWarehouseQty": "string",
+              "unitCost": "string", "totalCost": "string",
+              "costBasis": "string (enum: manufacturing_order|manual_input_or_item_cost)",
+              "scrapValue": "string", "scrapCostLoaded": "boolean",
+              "status": "string", "supervisorName": "string", "notes": "string"
+            }
+          ],
+          "repPerformance": [
+            {
+              "salesmanId": "string", "salesmanName": "string",
+              "loadedKg": "string", "soldKg": "string", "bonusKg": "string",
+              "returnedKg": "string", "damagedKg": "string", "shortageKg": "string",
+              "shortageSar": "string", "custodyRemainingKg": "string",
+              "revenueSar": "string", "salesGrossSar": "string",
+              "returnsSar": "string", "returnsVatSar": "string",
+              "collectedSar": "string", "creditDebtSar": "string",
+              "netProfitSar": "string", "pendingClosings": "number"
+            }
+          ],
+          "loadOrders": [
+            {
+              "id": "string", "number": "string", "loadDate": "string (YYYY-MM-DD)",
+              "productionBatchNo": "string", "vehiclePlate": "string",
+              "status": "string (enum: draft|pending_receipt|loaded|in_route|pending_closing|pending_stock_settlement|settled|canceled|rejected)",
+              "salesmanId": "string", "salesmanName": "string",
+              "warehouseId": "string|null", "vanWarehouseId": "string|null",
+              "stockTransferId": "string|null", "returnTransferId": "string|null",
+              "damageVoucherId": "string|null", "approvalRequestId": "string|null",
+              "shortagePolicyStatus": "string",
+              "itemId": "string|null", "itemName": "string",
+              "loadedQty": "string", "receivedQty": "string",
+              "discrepancyQty": "string", "discrepancyNotes": "string (فارغ '' عند لا ملاحظة)",
+              "receivedAt": "string (ISO)|null", "awaitingReceipt": "boolean",
+              "soldQty": "string", "bonusQty": "string",
+              "returnedQty": "string", "damagedQty": "string",
+              "shortageQty": "string", "shortageValue": "string",
+              "remainingQty": "string", "actualRemainingQty": "string",
+              "vehicleCountQty": "string|null", "otherCustodyQty": "string|null",
+              "expectedRemainingQty": "string", "countVarianceQty": "string",
+              "stockAdjustmentId": "string|null", "remainingAction": "string (enum: return_to_main|carry_over)|null",
+              "remainingInventoryTxId": "string|null",
+              "countVarianceCostValue": "string",
+              "countDocumentVarianceValue": "string|null", "countDocumentVarianceQty": "string|null",
+              "vanOfficialQty": "string|null", "otherCustodyInVanQty": "string|null",
+              "vanStockShortOfCustodyQty": "string|null",
+              "countDocumentExpectedQty": "string|null",
+              "stockSettlementStatus": "string (enum: not_required|pending_transit_decision|pending_count_decision|blocked_missing_accounts|settled|settled_officially)",
+              "stockSettlementNote": "string",
+              "damageJournalEntryId": "string|null", "shortageJournalEntryId": "string|null",
+              "shortageChargeBasis": "string|null", "shortageChargeAmount": "string|null",
+              "awaitingStockSettlement": "boolean", "awaitingTransitDecision": "boolean",
+              "maxBonusQty": "string", "maxBonusPct": "string",
+              "expectedCash": "string", "collectedCash": "string", "cashVariance": "string",
+              "damageReason": "string", "damageInspected": "boolean", "salaryDeductionApproved": "boolean",
+              "closingNotes": "string",
+              "closingSubmittedAt": "string (ISO)|null", "approvedAt": "string (ISO)|null",
+              "approvedByLabel": "string", "notes": "string"
+            }
+          ],
+          "customerPrices": [
+            {
+              "id": "string", "partyId": "string", "partyName": "string",
+              "partyCode": "string", "partyTaxNo": "string",
+              "itemId": "string|null", "itemName": "string",
+              "priceTierLabel": "string",
+              "unitPrice": "string", "maxBonusPct": "string", "maxBonusKgPerInvoice": "string",
+              "preferredInvoiceMode": "string (enum: zatca_tax|internal_delivery)",
+              "creditLimit": "string", "paymentTermsDays": "number",
+              "lockPrice": "boolean", "maxDiscountPct": "string",
+              "effectiveFrom": "string (YYYY-MM-DD)", "effectiveTo": "string (YYYY-MM-DD)|null",
+              "changeReason": "string", "notes": "string"
+            }
+          ],
+          "customerPriceHistory": [
+            {
+              "id": "string", "customerPriceId": "string",
+              "partyId": "string", "partyName": "string",
+              "itemId": "string|null", "itemName": "string",
+              "previousUnitPrice": "string|null", "newUnitPrice": "string",
+              "maxBonusPct": "string", "maxBonusKgPerInvoice": "string",
+              "maxDiscountPct": "string", "lockPrice": "boolean",
+              "effectiveFrom": "string (YYYY-MM-DD)", "effectiveTo": "string (YYYY-MM-DD)|null",
+              "changeReason": "string", "changedByLabel": "string",
+              "createdAt": "string (ISO)"
+            }
+          ],
+          "documents": [
+            {
+              "id": "string", "number": "string", "docDate": "string (YYYY-MM-DD)",
+              "invoiceMode": "string (enum: zatca_tax|internal_delivery)",
+              "taxPolicyStatus": "string",
+              "paymentMethod": "string (enum: cash|card|credit)",
+              "documentKind": "string (enum: sale|return)",
+              "referenceDocumentId": "string|null",
+              "invoiceNumber": "string|null", "invoiceStatus": "string|null",
+              "productionBatchNo": "string", "loadOrderId": "string|null",
+              "salesInvoiceId": "string|null", "receiptVoucherId": "string|null",
+              "stockDeliveryId": "string|null",
+              "salesmanId": "string|null", "salesmanName": "string",
+              "partyId": "string|null", "customerName": "string", "customerTaxNo": "string",
+              "itemId": "string|null", "itemName": "string",
+              "soldQty": "string", "bonusQty": "string", "bonusReason": "string",
+              "unitPrice": "string", "discountAmount": "string", "discountReason": "string",
+              "subtotal": "string", "taxRate": "string", "taxTotal": "string", "total": "string",
+              "paidAmount": "string", "unitCost": "string", "netProfit": "string",
+              "customerBonusConfirmed": "boolean", "customerConfirmationCode": "string",
+              "bonusAnomaly": "boolean", "anomalyReason": "string",
+              "qrPayload": "string", "notes": "string",
+              "createdAt": "string (ISO)"
+            }
+          ],
+          "movements": [
+            {
+              "id": "string", "movementType": "string", "batchNo": "string",
+              "qty": "string", "unitPrice": "string", "amount": "string",
+              "reason": "string",
+              "inventoryTransactionId": "string|null", "voucherId": "string|null",
+              "salesmanName": "string", "customerName": "string",
+              "actorLabel": "string", "approvedByLabel": "string",
+              "createdAt": "string (ISO)"
+            }
+          ]
+        }
+      },
+      "notesAr": [
+        "لا تقرأ «المستند الذي أُنشئ» من هذا الرد — اعتبر أي 2xx نجاحًا ثم أعد نداء GET /van-sales/me",
+        "هذا الرد هو نفسه ما يرجعه GET /van-sales/dashboard للمكتب الخلفي"
+      ]
+    }
+  },
+
+  "endpoints": [
+    {
+      "id": "auth-login",
+      "method": "POST",
+      "path": "/auth/login",
+      "auth": "public",
+      "permission": null,
+      "successStatus": 200,
+      "requestExample": {
+        "email": "rep@example.com",
+        "password": "••••••••••••",
+        "tenantCode": "BAKERY1",
+        "mfaCode": "123456"
+      },
+      "requestNotesAr": [
+        "mfaCode اختياري — يرسل فقط إن كان التحقق الثنائي مفعلًا (6 أرقام TOTP أو كود استرجاع XXXX-XXXX)"
+      ],
+      "response": {
+        "example": {
+          "data": {
+            "accessToken": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9…",
+            "refreshToken": "d8f1c0a9b2e4…",
+            "tokenType": "Bearer",
+            "expiresIn": 900,
+            "user": {
+              "id": "0f9c1e2a-3b4d-5e6f-8a9b-0c1d2e3f4a5b",
+              "email": "rep@example.com",
+              "fullName": "أحمد المندوب",
+              "phone": null,
+              "status": "active",
+              "isPlatformAdmin": false,
+              "platformRoles": [],
+              "mustChangePassword": false,
+              "lastLoginAt": "2026-10-17T08:14:03.120Z"
+            },
+            "memberships": [
+              {
+                "id": "3a1b2c3d-…",
+                "tenantId": "9d2e1f0a-…",
+                "tenantCode": "BAKERY1",
+                "tenantName": "مخبز النور",
+                "displayName": "أحمد المندوب",
+                "status": "active",
+                "isOwner": false,
+                "branchScope": null,
+                "roles": [
+                  { "id": "r-01", "name": "مندوب توزيع", "description": null, "isSystem": true }
+                ],
+                "kind": "staff",
+                "scopes": [],
+                "maxDiscountPct": null,
+                "maxDiscountAmount": null
+              }
+            ]
+          }
+        },
+        "types": {
+          "data": {
+            "accessToken": "string",
+            "refreshToken": "string",
+            "tokenType": "string (ثابت: Bearer)",
+            "expiresIn": "number (ثوانٍ — عادة 900)",
+            "user": {
+              "id": "string (uuid)",
+              "email": "string",
+              "fullName": "string",
+              "phone": "string|null",
+              "status": "string (enum: active|invited|suspended)",
+              "isPlatformAdmin": "boolean",
+              "platformRoles": ["string"],
+              "mustChangePassword": "boolean",
+              "lastLoginAt": "string (ISO)|null"
+            },
+            "memberships": [
+              {
+                "id": "string (uuid)",
+                "tenantId": "string (uuid)",
+                "tenantCode": "string",
+                "tenantName": "string",
+                "displayName": "string",
+                "status": "string (enum: active|invited|suspended)",
+                "isOwner": "boolean",
+                "branchScope": ["string (uuid)"] ,
+                "roles": [
+                  {
+                    "id": "string (uuid)",
+                    "name": "string",
+                    "description": "string|null",
+                    "isSystem": "boolean"
+                  }
+                ],
+                "kind": "string (enum: staff|portal)",
+                "scopes": [
+                  {
+                    "roleId": "string (uuid)",
+                    "scopeType": "string (enum: branch|warehouse|cash_location|pos_terminal)",
+                    "scopeId": "string (uuid)"
+                  }
+                ],
+                "maxDiscountPct": "string|null",
+                "maxDiscountAmount": "string|null"
+              }
+            ]
+          }
+        }
+      },
+      "errors": [
+        { "http": 401, "code": "UNAUTHENTICATED", "when": "بيانات دخول خاطئة" },
+        { "http": 423, "code": "TENANT_SUSPENDED", "when": "المنشأة موقوفة" },
+        { "http": 429, "code": "RATE_LIMITED", "when": "تجاوز حد المحاولات أو قفل الحساب" }
+      ]
+    },
+
+    {
+      "id": "auth-refresh",
+      "method": "POST",
+      "path": "/auth/refresh",
+      "auth": "public",
+      "permission": null,
+      "successStatus": 200,
+      "requestExample": { "refreshToken": "d8f1c0a9b2e4…" },
+      "response": { "sameShapeAs": "auth-login" },
+      "notesAr": [
+        "التجديد يستهلك الرمز القديم — احفظ الرمزين الجديدين واستبدل القديمين",
+        "الفشل (401) = الجلسة منتهية → خروج لشاشة الدخول"
+      ]
+    },
+
+    {
+      "id": "auth-logout",
+      "method": "POST",
+      "path": "/auth/logout",
+      "auth": "bearer",
+      "permission": null,
+      "successStatus": 204,
+      "requestExample": {},
+      "response": { "body": null, "note": "204 بلا جسم — احذف الرمزين محليًا حتى لو فشل النداء" }
+    },
+
+    {
+      "id": "identity-me",
+      "method": "GET",
+      "path": "/me",
+      "auth": "bearer",
+      "permission": null,
+      "successStatus": 200,
+      "requestExample": null,
+      "response": {
+        "example": {
+          "data": {
+            "user": {
+              "id": "0f9c1e2a-…",
+              "email": "rep@example.com",
+              "fullName": "أحمد المندوب",
+              "phone": null,
+              "status": "active",
+              "isPlatformAdmin": false,
+              "platformRoles": [],
+              "mustChangePassword": false,
+              "lastLoginAt": "2026-10-17T08:14:03.120Z"
+            },
+            "membership": {
+              "id": "3a1b2c3d-…",
+              "tenantId": "9d2e1f0a-…",
+              "tenantCode": "BAKERY1",
+              "tenantName": "مخبز النور",
+              "displayName": "أحمد المندوب",
+              "status": "active",
+              "isOwner": false,
+              "branchScope": null,
+              "roles": [
+                { "id": "r-01", "name": "مندوب توزيع", "description": null, "isSystem": true }
+              ],
+              "kind": "staff",
+              "scopes": [],
+              "maxDiscountPct": null,
+              "maxDiscountAmount": null
+            },
+            "permissions": [
+              "van_sales.view",
+              "van_sales.invoice.create",
+              "van_sales.collection.create",
+              "van_sales.closing.submit",
+              "parties.view"
+            ],
+            "platformPermissions": [],
+            "impersonation": null,
+            "branchScope": null,
+            "enabledApps": ["van_sales", "bakery_distribution"]
+          }
+        },
+        "types": {
+          "data": {
+            "user": "نفس شكل user في auth-login (انظر endpoints[auth-login].response.types.data.user)",
+            "membership": "نفس شكل صفّ memberships في auth-login",
+            "permissions": ["string — أساس إظهار/إخفاء الأزرار، والخادم هو الحارس"],
+            "platformPermissions": ["string"],
+            "impersonation": {
+              "sessionId": "string",
+              "operatorUserId": "string",
+              "operatorLabel": "string|null",
+              "reason": "string",
+              "startedAt": "string (ISO)",
+              "expiresAt": "string (ISO)"
+            },
+            "branchScope": ["string (uuid)"] ,
+            "enabledApps": ["string"]
+          }
+        },
+        "nullablePaths": ["data.impersonation"]
+      },
+      "notesAr": [
+        "impersonation غير null فقط في جلسات الدعم المؤقتة"
+      ]
+    },
+
+    {
+      "id": "van-sales-me",
+      "method": "GET",
+      "path": "/van-sales/me",
+      "auth": "bearer",
+      "permission": "van_sales.view",
+      "successStatus": 200,
+      "requestExample": null,
+      "notesAr": [
+        "الخادم يشتق المندوب من عضوية المتصل — لا يوجد ولا يقبل معامل salesmanId",
+        "هذا المسار الوحيد الذي تُبنى منه الشاشة: بعد أي إجراء ناجح أعد نداءه"
+      ],
+      "response": {
+        "variants": [
+          {
+            "condition": "الحساب مرتبط ببطاقة مندوب (isRep = true)",
+            "example": {
+              "data": {
+                "isRep": true,
+                "salesmanId": "5c6f-01",
+                "salesmanName": "أحمد المندوب",
+                "employeeId": "1d2e-99",
+                "warehouseId": "w-77",
+                "vehiclePlate": "أ ب ج 123",
+                "active": true,
+                "custodyKg": "120.0000",
+                "custodyValue": "456.0000",
+                "balances": [
+                  {
+                    "itemId": "it-01", "itemName": "خبز صامولي", "sku": "BREAD-01",
+                    "warehouseId": "w-77", "warehouseName": "سيارة أ ب ج 123",
+                    "warehouseCode": "VAN-01", "branchId": "br-01",
+                    "quantity": "120.0000", "value": "456.0000", "averageCost": "3.8000"
+                  }
+                ],
+                "pendingReceipts": [
+                  {
+                    "id": "lo-09", "number": "VLO-000009", "loadDate": "2026-10-18",
+                    "status": "pending_receipt",
+                    "loadedQty": "80.0000", "receivedQty": "0.0000",
+                    "productionBatchNo": "BAT-000120", "stockTransferId": "st-31",
+                    "itemName": "خبز صامولي", "fromWarehouseName": "المستودع الرئيسي"
+                  }
+                ],
+                "loadOrders": [
+                  {
+                    "id": "lo-05", "number": "VLO-000005", "loadDate": "2026-10-17",
+                    "status": "loaded",
+                    "itemName": "خبز صامولي", "productionBatchNo": "BAT-000118",
+                    "loadedQty": "100.0000", "receivedQty": "100.0000",
+                    "soldQty": "60.0000", "bonusQty": "5.0000",
+                    "returnedQty": "2.0000", "damagedQty": "1.0000",
+                    "shortageQty": "0.0000", "shortageValue": "0.0000",
+                    "expectedCash": "300.0000", "collectedCash": "280.0000", "outstandingCash": "20.0000",
+                    "expectedRemainingQty": "32.0000",
+                    "actualRemainingQty": "0.0000",
+                    "discrepancyQty": "0.0000", "discrepancyNotes": "",
+                    "stockSettlementStatus": "not_required", "stockSettlementNote": "",
+                    "remainingAction": null,
+                    "closingSubmittedAt": null, "approvedAt": null
+                  }
+                ],
+                "documents": [
+                  {
+                    "id": "vd-21", "number": "VSD-000021", "docDate": "2026-10-17",
+                    "documentKind": "sale",
+                    "invoiceMode": "zatca_tax",
+                    "paymentMethod": "cash",
+                    "customerName": "بقالة النور",
+                    "itemName": "خبز صامولي",
+                    "soldQty": "20.0000", "bonusQty": "2.0000", "unitPrice": "4.0000",
+                    "subtotal": "80.00", "taxTotal": "12.00", "total": "92.00",
+                    "paidAmount": "92.00", "outstanding": "0.00",
+                    "salesInvoiceId": "si-88", "invoiceNumber": "INV-000101", "invoiceStatus": "posted"
+                  }
+                ],
+                "collections": [
+                  {
+                    "id": "mv-40", "collectedAt": "2026-10-17T12:30:05.000Z",
+                    "amount": "50.00", "reason": "تحصيل دفعة من فاتورة آجلة",
+                    "voucherId": "vv-12", "voucherNumber": "RV-000007", "voucherStatus": "posted"
+                  }
+                ],
+                "totals": {
+                  "revenue": "1500.00",
+                  "salesGross": "1700.00",
+                  "cashSales": "1200.00",
+                  "creditSales": "500.00",
+                  "collected": "400.00",
+                  "outstanding": "100.00",
+                  "returns": "180.00",
+                  "returnsVat": "20.00",
+                  "returnCount": 2,
+                  "returnsWithoutCostCount": 0
+                },
+                "custody": {
+                  "expectedKg": "120.0000",
+                  "officialKg": "120.0000",
+                  "pendingClosings": 1
+                },
+                "windows": {
+                  "loadOrders": { "returned": 50, "total": 63, "limit": 50 },
+                  "documents": { "returned": 100, "total": 214, "limit": 100 },
+                  "collections": { "returned": 50, "total": 50, "limit": 50 },
+                  "notifications": { "returned": 20, "total": 34, "limit": 20 }
+                },
+                "notifications": [
+                  {
+                    "id": "n-01",
+                    "type": "van_sales_closing_request",
+                    "read": false,
+                    "createdAt": "2026-10-17T14:02:11.000Z",
+                    "payload": { "title": "طلب اعتماد إغلاق وردية", "body": "…", "href": "/van-sales?tab=loads" }
+                  }
+                ]
+              }
+            },
+            "types": {
+              "data": {
+                "isRep": "boolean (هنا true)",
+                "salesmanId": "string",
+                "salesmanName": "string",
+                "employeeId": "string|null",
+                "warehouseId": "string|null",
+                "vehiclePlate": "string|null",
+                "active": "boolean",
+                "custodyKg": "string — الرصيد الرسمي في السيارة الآن (مجموع balances)",
+                "custodyValue": "string",
+                "balances": [
+                  {
+                    "itemId": "string", "itemName": "string", "sku": "string",
+                    "warehouseId": "string", "warehouseName": "string",
+                    "warehouseCode": "string", "branchId": "string|null",
+                    "quantity": "string", "value": "string", "averageCost": "string"
+                  }
+                ],
+                "pendingReceipts": [
+                  {
+                    "id": "string", "number": "string", "loadDate": "string (YYYY-MM-DD)",
+                    "status": "string (دائمًا pending_receipt في هذه القائمة)",
+                    "loadedQty": "string", "receivedQty": "string",
+                    "productionBatchNo": "string", "stockTransferId": "string|null",
+                    "itemName": "string", "fromWarehouseName": "string"
+                  }
+                ],
+                "loadOrders": [
+                  {
+                    "id": "string", "number": "string", "loadDate": "string (YYYY-MM-DD)",
+                    "status": "string (enum: draft|pending_receipt|loaded|in_route|pending_closing|pending_stock_settlement|settled|canceled|rejected)",
+                    "itemName": "string", "productionBatchNo": "string",
+                    "loadedQty": "string", "receivedQty": "string",
+                    "soldQty": "string", "bonusQty": "string",
+                    "returnedQty": "string", "damagedQty": "string",
+                    "shortageQty": "string", "shortageValue": "string",
+                    "expectedCash": "string", "collectedCash": "string", "outstandingCash": "string",
+                    "expectedRemainingQty": "string — ما يجب أن يبقى حسب المستندات (منه سقف البيع)",
+                    "actualRemainingQty": "string — ما أعلنه المندوب عند الإقفال",
+                    "discrepancyQty": "string — نقص الاستلام max(0, loaded − received) وليس فرق الجرد",
+                    "discrepancyNotes": "string (فارغ '' عند لا ملاحظة)",
+                    "stockSettlementStatus": "string (enum: not_required|pending_transit_decision|pending_count_decision|blocked_missing_accounts|settled|settled_officially)",
+                    "stockSettlementNote": "string (فارغ '' عند لا ملاحظة)",
+                    "remainingAction": "string (enum: return_to_main|carry_over)|null",
+                    "closingSubmittedAt": "string (ISO)|null",
+                    "approvedAt": "string (ISO)|null"
+                  }
+                ],
+                "documents": [
+                  {
+                    "id": "string", "number": "string", "docDate": "string (YYYY-MM-DD)",
+                    "documentKind": "string (enum: sale|return)",
+                    "invoiceMode": "string (enum: zatca_tax|internal_delivery)",
+                    "paymentMethod": "string (enum: cash|card|credit)",
+                    "customerName": "string",
+                    "itemName": "string",
+                    "soldQty": "string", "bonusQty": "string", "unitPrice": "string",
+                    "subtotal": "string", "taxTotal": "string", "total": "string",
+                    "paidAmount": "string", "outstanding": "string",
+                    "salesInvoiceId": "string|null",
+                    "invoiceNumber": "string|null",
+                    "invoiceStatus": "string|null"
+                  }
+                ],
+                "collections": [
+                  {
+                    "id": "string",
+                    "collectedAt": "string (ISO)",
+                    "amount": "string",
+                    "reason": "string",
+                    "voucherId": "string|null",
+                    "voucherNumber": "string|null",
+                    "voucherStatus": "string|null"
+                  }
+                ],
+                "totals": {
+                  "revenue": "string — = salesGross − returns − returnsVat",
+                  "salesGross": "string",
+                  "cashSales": "string — paymentMethod = cash",
+                  "creditSales": "string — كل ما ليس cash (ومنه card)",
+                  "collected": "string",
+                  "outstanding": "string — بعد خصم الإشعارات الدائنة",
+                  "returns": "string",
+                  "returnsVat": "string",
+                  "returnCount": "number",
+                  "returnsWithoutCostCount": "number"
+                },
+                "custody": {
+                  "expectedKg": "string",
+                  "officialKg": "string — نفس custodyKg",
+                  "pendingClosings": "number"
+                },
+                "windows": {
+                  "loadOrders": { "returned": "number", "total": "number", "limit": "number (50)" },
+                  "documents": { "returned": "number", "total": "number", "limit": "number (100)" },
+                  "collections": { "returned": "number", "total": "number", "limit": "number (50)" },
+                  "notifications": { "returned": "number", "total": "number", "limit": "number (20)" }
+                },
+                "notifications": [
+                  {
+                    "id": "string",
+                    "type": "string",
+                    "read": "boolean",
+                    "createdAt": "string (ISO)",
+                    "payload": "object"
+                  }
+                ]
+              }
+            }
+          },
+          {
+            "condition": "الحساب غير مرتبط ببطاقة مندوب (isRep = false)",
+            "example": {
+              "data": {
+                "isRep": false,
+                "salesmanId": null,
+                "salesmanName": null,
+                "warehouseId": null,
+                "vehiclePlate": null,
+                "balances": [],
+                "pendingReceipts": [],
+                "loadOrders": [],
+                "documents": [],
+                "collections": [],
+                "custody": null,
+                "notifications": [],
+                "message": "حسابك غير مرتبط ببطاقة مندوب توزيع — اطلب من المحاسب ربطك من شاشة المندوبين"
+              }
+            },
+            "types": {
+              "data": {
+                "isRep": "boolean (هنا false)",
+                "salesmanId": "null",
+                "salesmanName": "null",
+                "warehouseId": "null",
+                "vehiclePlate": "null",
+                "balances": "array (فارغة)",
+                "pendingReceipts": "array (فارغة)",
+                "loadOrders": "array (فارغة)",
+                "documents": "array (فارغة)",
+                "collections": "array (فارغة)",
+                "custody": "null",
+                "notifications": "array (فارغة)",
+                "message": "string"
+              }
+            },
+            "missingFieldsNote": "في هذه الحالة لا توجد أصلًا حقول: totals و windows و custodyKg و custodyValue و employeeId و active — غيابها معنويّ فلا تعوّضها بصفر"
+          }
+        ]
+      }
+    },
+
+    {
+      "id": "parties-customers",
+      "method": "GET",
+      "path": "/parties?kind=customer",
+      "auth": "bearer",
+      "permission": "parties.view",
+      "successStatus": 200,
+      "requestExample": null,
+      "criticalNote": "الاستجابة مصفوفة خام بلا غلاف data — على عكس كل المسارات الأخرى",
+      "response": {
+        "example": [
+          {
+            "id": "p-01",
+            "tenantId": "9d2e1f0a-…",
+            "code": "CUST-GEN",
+            "kind": "customer",
+            "name": "عميل عام",
+            "legalName": "عميل عام",
+            "taxNo": "3001234567",
+            "nationalId": null,
+            "address": { "country": "YE", "city": "المكلا", "street": "شارع الكلتكس" },
+            "phone": "777123456",
+            "email": null,
+            "receivableAccountId": "acc-01",
+            "payableAccountId": null,
+            "creditLimit": "0",
+            "isOwner": false,
+            "isContractor": false,
+            "branchId": null,
+            "paymentMethodId": null,
+            "createdAt": "2026-09-01T10:00:00.000Z",
+            "createdBy": null,
+            "updatedAt": null,
+            "updatedBy": null,
+ "version": 1,
+            "deletedAt": null,
+            "customFields": {}
+          },
+          {
+            "id": "p-02",
+            "tenantId": "9d2e1f0a-…",
+            "code": "CUST-101",
+            "kind": "customer",
+            "name": "بقالة النور",
+            "legalName": "مؤسسة بقالة النور التجارية",
+            "taxNo": "3009876543",
+            "nationalId": null,
+            "address": null,
+            "phone": "733445566",
+            "email": null,
+            "receivableAccountId": "acc-02",
+            "payableAccountId": null,
+            "creditLimit": "1000.0000",
+            "isOwner": false,
+            "isContractor": false,
+            "branchId": null,
+            "paymentMethodId": null,
+            "createdAt": "2026-09-02T12:30:00.000Z",
+            "createdBy": "u-01",
+            "updatedAt": "2026-10-01T09:00:00.000Z",
+            "updatedBy": "u-01",
+            "version": 3,
+            "deletedAt": null,
+            "customFields": {}
+          }
+        ],
+        "types": [
+          {
+            "id": "string (uuid)",
+            "tenantId": "string (uuid)",
+            "code": "string",
+            "kind": "string (enum: customer|supplier|…)",
+            "name": "string — الاسم المعروض (لا يوجد حقل nameAr)",
+            "legalName": "string|null",
+            "taxNo": "string|null",
+            "nationalId": "string|null",
+            "address": "object|null (مفاتيح: country, city, district, street, building, postalCode, additionalNumber)",
+            "phone": "string|null",
+            "email": "string|null",
+            "receivableAccountId": "string|null",
+            "payableAccountId": "string|null",
+            "creditLimit": "string",
+            "isOwner": "boolean",
+            "isContractor": "boolean",
+            "branchId": "string|null",
+            "paymentMethodId": "string|null",
+            "createdAt": "string (ISO)",
+            "createdBy": "string|null",
+            "updatedAt": "string (ISO)|null",
+            "updatedBy": "string|null",
+            "version": "number",
+            "deletedAt": "null (دائمًا للمرتجعة)",
+            "customFields": "object (أزواج مفتاح/قيمة من الحقول المخصصة)"
+          }
+        ],
+        "notesAr": [
+          "الحد الأقصى 100 صف مرتبة من الأحدث إلى الأقدم",
+          "مصفوفة فارغة [] استجابة صحيحة وليست خطأ",
+          "المرشِّح kind=customer إلزامي لتقييد القائمة بالعملاء"
+        ]
+      }
+    },
+
+    {
+      "id": "van-sales-create-document",
+      "method": "POST",
+      "path": "/van-sales/documents",
+      "auth": "bearer",
+      "permission": "van_sales.invoice.create",
+      "successStatus": 201,
+      "requestExample": {
+        "loadOrderId": "lo-05",
+        "partyId": "p-01",
+        "customerName": "محل تجزئة نقدي",
+        "invoiceMode": "zatca_tax",
+        "paymentMethod": "cash",
+        "cashLocationId": "cl-01",
+        "soldQty": "20.00",
+        "bonusQty": "2.00",
+        "bonusReason": "اتفاق ترويجي",
+        "unitPrice": "4.00",
+        "discountAmount": "0.00",
+        "discountReason": "خصم كمية",
+        "customerBonusConfirmed": true,
+        "customerConfirmationCode": "4321",
+        "notes": "ملاحظة",
+        "idempotencyKey": "rep-document:a1b2c3d4:9f8e7d6c5b4a3210"
+      },
+      "requestRulesAr": [
+        "loadOrderId إلزامي — البيع من أمر تحميل المندوب نفسه فقط",
+        "partyId (عميل ببطاقة) أو customerName (عميل نقدي حر) — أرسل أحدهما؛ مع partyId يهمل customerName",
+        "soldQty إلزامي > 0 (أو bonusQty > 0)",
+        "bonusQty و discountAmount أرسلهما دومًا (\"0\" إن لا شيء)",
+        "unitPrice إن لم يرسل يسعَّر من التدرج: سعر العميل+الصنف ← سعر العميل العام ← قائمة الأسعار الافتراضية ← بطاقة الصنف",
+        "allowPriceDiscountOverride و allowBonusOverride لا ترسلهما من حساب المندوب — تتطلبان van_sales.override.approve وإلا 403",
+        "idempotencyKey إلزامي عمليًا للطابور: بنية <prefix>:<بصمة الحمولة>:<nonce> وبطول أقصى 120 حرفًا (البادئات: rep-document / rep-return / rep-collection)؛ يبنى مرة عند حفظ النية ويستعمل في كل إعادة"
+      ],
+      "response": { "shapeRef": "sharedShapes.lineDashboardResponse" },
+      "errors": [
+        { "http": 409, "code": "VAN_LOAD_ORDER_NOT_RECEIVED", "when": "التوريد لم يؤكَّد استلامه — أكِّد الاستلام أولًا" },
+        { "http": 422, "code": "VALIDATION_FAILED", "when": "بلا loadOrderId أو soldQty ≤ 0 أو تجاوز المتبقي في السيارة أو الرصيد الرسمي لا يكفي" },
+        { "http": 403, "code": "VAN_SALES_NOT_YOUR_LOAD", "when": "أمر التحميل لمنديب آخر" },
+        { "http": 422, "code": "VAN_ZATCA_SELLER_IDENTITY_REQUIRED", "when": "بيانات البائع الضريبية ناقصة" },
+        { "http": 422, "code": "VAN_SALES_INTERNAL_DELIVERY_POLICY_REQUIRED", "when": "التسليم الداخلي غير مسموح" },
+        { "http": 422, "code": "PARTY_CREDIT_LIMIT_EXCEEDED", "when": "آجل فوق سقف الائتمان" },
+        { "http": 404, "code": "NOT_FOUND", "when": "أمر التحميل غير موجود" }
+      ]
+    },
+
+    {
+      "id": "van-sales-create-return",
+      "method": "POST",
+      "path": "/van-sales/documents/{id}/returns",
+      "pathParams": { "id": "معرّف مستند البيع الأصلي (documents[].id وليس رقمه)" },
+      "auth": "bearer",
+      "permission": "van_sales.invoice.create",
+      "successStatus": 201,
+      "requestExample": {
+        "returnedQty": "3.00",
+        "reason": "خبز متيبس",
+        "notes": "أُرجع غدًا صباحًا",
+        "idempotencyKey": "rep-return:b2c3d4e5:1a2b3c4d5e6f7080"
+      },
+      "requestRulesAr": [
+        "returnedQty إلزامي > 0",
+        "المستند المصدر يجب أن يكون documentKind = sale (لا يُرجَّع مرتجع)",
+        "إجمالي المرتجع (مع كل مرتجعات المستند السابقة) يجب ألا يتجاوز soldQty + bonusQty للمستند الأصلي"
+      ],
+      "response": { "shapeRef": "sharedShapes.lineDashboardResponse" },
+      "errors": [
+        { "http": 422, "code": "VALIDATION_FAILED", "when": "بلا مستند أو كمية ≤ 0 أو إرجاع مرتجع أو تجاوز سقف الكمية" },
+        { "http": 403, "code": "VAN_SALES_NOT_YOUR_DOCUMENT", "when": "المستند لمنديب آخر" },
+        { "http": 404, "code": "NOT_FOUND", "when": "مستند البيع غير موجود" }
+      ]
+    },
+
+    {
+      "id": "van-sales-collect",
+      "method": "POST",
+      "path": "/van-sales/collections",
+      "auth": "bearer",
+      "permission": "van_sales.collection.create",
+      "successStatus": 201,
+      "requestExample": {
+        "documentId": "vd-22",
+        "collectedAmount": "50.0000",
+        "cashLocationId": "cl-01",
+        "offsetAccountId": "acc-02",
+        "notes": "دفعة أولى",
+        "idempotencyKey": "rep-collection:c3d4e5f6:2b3c4d5e6f708190"
+      },
+      "requestRulesAr": [
+        "documentId = مستند بيع آجل غير مسدد (documents حيث outstanding > 0 و documentKind = sale)",
+        "collectedAmount إلزامي > 0 ولا يتجاوز المتبقي على الفاتورة",
+        "cashLocationId اختياري — الصندوق الذي يستقر فيه النقد"
+      ],
+      "response": { "shapeRef": "sharedShapes.lineDashboardResponse" },
+      "errors": [
+        { "http": 409, "code": "INVOICE_ALREADY_PAID", "when": "الفاتورة مسددة بالكامل" },
+        { "http": 422, "code": "VALIDATION_FAILED", "when": "بلا مستند أو مبلغ ≤ 0 أو تجاوز المتبقي" },
+        { "http": 403, "code": "VAN_SALES_NOT_YOUR_DOCUMENT", "when": "المستند لمنديب آخر" },
+        { "http": 404, "code": "NOT_FOUND", "when": "الفاتورة غير موجودة" }
+      ]
+    },
+
+    {
+      "id": "van-sales-confirm-receipt",
+      "method": "POST",
+      "path": "/van-sales/load-orders/{id}/confirm-receipt",
+      "pathParams": { "id": "معرّف أمر التحميل من pendingReceipts[].id" },
+      "auth": "bearer",
+      "permission": "van_sales.view",
+      "successStatus": 201,
+      "requestExample": { "receivedQty": "78.00", "notes": "نقص كرتونين عند التحميل" },
+      "requestRulesAr": [
+        "receivedQty اختياري: إن أهمل أو أرسل فارغًا يعتمد الخادم الكمية المحمَّلة كاملة",
+        "لا يوجد idempotencyKey في هذا المسار — لا يحفظ في طابور دون اتصال: أرسله لحظة عودة الشبكة فقط"
+      ],
+      "response": { "shapeRef": "sharedShapes.lineDashboardResponse" },
+      "errors": [
+        { "http": 409, "code": "VAN_LOAD_ORDER_NOT_AWAITING_RECEIPT", "when": "الاستلام مؤكد مسبقًا (أو الأمر مسودة)" },
+        { "http": 422, "code": "VALIDATION_FAILED", "when": "الكمية سالبة أو تتجاوز المحمَّل" },
+        { "http": 409, "code": "VAN_WAREHOUSE_UNDER_SETTLEMENT", "when": "السيارة قيد تسوية جرد" },
+        { "http": 403, "code": "FORBIDDEN", "when": "تأكيد عهدة مندوب آخر" },
+        { "http": 404, "code": "NOT_FOUND", "when": "أمر التحميل غير موجود" }
+      ]
+    },
+
+    {
+      "id": "van-sales-submit-closing",
+      "method": "POST",
+      "path": "/van-sales/load-orders/{id}/submit-closing",
+      "pathParams": { "id": "معرّف أمر التحميل المُقفَل" },
+      "auth": "bearer",
+      "permission": "van_sales.closing.submit",
+      "successStatus": 201,
+      "requestExample": {
+        "returnedQty": "2.00",
+        "damagedQty": "1.00",
+        "damageReason": "تالف أثناء النقل",
+        "collectedCash": "280.0000",
+        "actualRemainingQty": "31.50",
+        "vehicleCountQty": "45.00",
+        "closingNotes": "وردية عادية"
+      },
+      "requestRulesAr": [
+        "damageReason إلزامي إذا damagedQty > 0",
+        "actualRemainingQty: المتبقي بهذا الأمر بالجرد — إن لم يرسل يعامل صفرًا (كل غير المحسوب عجز)",
+        "vehicleCountQty: عدد المركبة كلها — بديل عن actualRemainingQty لا رفيق له (لا ترسلهما معًا)؛ الخادم يشتق نصيب هذا الأمر بعد طرح عهدة الأوامر الأخرى",
+        "لا يوجد idempotencyKey — لا يحفظ في طابور: إعادة الإرسال الأعمى تعيد كتابة إعلان الجرد ما دام الأمر pending_closing"
+      ],
+      "response": { "shapeRef": "sharedShapes.lineDashboardResponse" },
+      "errors": [
+        { "http": 409, "code": "VAN_LOAD_ORDER_ALREADY_SETTLED", "when": "الوردية مصفاة مسبقًا (يرفض فقط إذا صارت settled)" },
+        { "http": 422, "code": "VALIDATION_FAILED", "when": "مجموع الكميات يتجاوز العهدة أو بلا سبب تلف" },
+        { "http": 422, "code": "VAN_VEHICLE_COUNT_INVALID", "when": "عدد المركبة غير صالح" },
+        { "http": 422, "code": "VAN_VEHICLE_COUNT_BELOW_OTHER_CUSTODY", "when": "عدد المركبة أقل من عهدة الأوامر الأخرى" },
+        { "http": 422, "code": "VAN_VEHICLE_COUNT_CONFLICTS_WITH_ORDER_COUNT", "when": "أُعلن عدد المركبة وعدد الأمر معًا" },
+        { "http": 403, "code": "VAN_SALES_NOT_YOUR_LOAD", "when": "الأمر لمنديب آخر" },
+        { "http": 404, "code": "NOT_FOUND", "when": "أمر التحميل غير موجود" }
+      ]
+    },
+
+    {
+      "id": "van-sales-print-view",
+      "method": "GET",
+      "path": "/van-sales/documents/{id}/print-view?copies=2",
+      "pathParams": { "id": "معرّف مستند البيع" },
+      "queryParams": { "copies": "عدد النسخ 1..6 — الافتراضي 2 (نسخة العميل + نسخة المندوب)" },
+      "auth": "bearer",
+      "permission": "van_sales.view",
+      "successStatus": 200,
+      "requestExample": null,
+      "response": {
+        "example": {
+          "data": {
+            "documentId": "vd-21",
+            "documentNumber": "VSD-000021",
+            "invoiceNumber": "INV-000101",
+            "invoiceStatus": "posted",
+            "saleDate": "2026-10-17",
+            "companyName": "مخبز النور",
+            "companyNameEn": "Al-Noor Bakery",
+            "companyTaxNo": "3001234567",
+            "companyCrNo": "10-123",
+            "companyEmail": "info@alnoor.example",
+            "companyPhones": ["777000111"],
+            "companyAddress": { "city": "المكلا", "street": "شارع الكلتكس" },
+            "customerName": "بقالة النور",
+            "customerTaxNo": "3009876543",
+            "customerPhone": "733445566",
+            "customerMobile": "",
+            "salesmanName": "أحمد المندوب",
+            "salesmanMobile": "777111222",
+            "vanWarehouseName": "سيارة أ ب ج 123",
+            "loadOrderNumber": "VLO-000005",
+            "productionBatchNo": "BAT-000118",
+            "invoiceMode": "zatca_tax",
+            "taxPolicyStatus": "standard_vat",
+            "paymentMethod": "cash",
+            "lines": [
+              { "kind": "sale", "itemName": "خبز صامولي", "sku": "BREAD-01", "quantity": "20.000", "unitPrice": "4.00", "discount": "0.00", "lineTotal": "80.00" },
+              { "kind": "bonus", "itemName": "خبز صامولي — كمية مجانية (بونص)", "sku": "BREAD-01", "quantity": "2.000", "unitPrice": "0.00", "discount": "0.00", "lineTotal": "0.00", "reason": "ترويجي" }
+            ],
+            "subtotal": "80.00",
+            "discountTotal": "0.00",
+            "vatRate": "15.00",
+            "vatTotal": "12.00",
+            "grandTotal": "92.00",
+            "paidAmount": "92.00",
+            "outstandingAmount": "0.00",
+            "bonusQtyTotal": "2.000",
+            "qrPayload": "UXJX…TLV-base64…",
+            "notes": "",
+            "printedAt": "2026-10-18T09:00:00.000Z",
+            "copies": [
+              {
+                "copyIndex": 1,
+                "kind": "customer",
+                "copyLabel": "نسخة العميل",
+                "requiresCustomerSignature": false,
+                "signatureBlock": null,
+                "documentId": "vd-21",
+                "documentNumber": "VSD-000021",
+                "invoiceNumber": "INV-000101",
+                "invoiceStatus": "posted",
+                "saleDate": "2026-10-17",
+                "companyName": "مخبز النور",
+                "grandTotal": "92.00",
+                "vatTotal": "12.00",
+                "subtotal": "80.00",
+                "lines": "…نفس مصفوفة lines…",
+                "qrPayload": "UXJX…TLV-base64…",
+                "printedAt": "2026-10-18T09:00:00.000Z"
+              },
+              {
+                "copyIndex": 2,
+                "kind": "rep",
+                "copyLabel": "نسخة المندوب (تُعاد موقّعة من العميل إلى المحاسب)",
+                "requiresCustomerSignature": true,
+                "signatureBlock": {
+                  "customerSignatureLabel": "توقيع العميل / المستلم",
+                  "repSignatureLabel": "توقيع المندوب",
+                  "accountantNote": "تُعاد هذه النسخة موقّعة من العميل إلى المحاسب مع إغلاق الوردية"
+                },
+                "documentId": "vd-21",
+                "documentNumber": "VSD-000021",
+                "invoiceNumber": "INV-000101",
+                "invoiceStatus": "posted",
+                "saleDate": "2026-10-17",
+                "companyName": "مخبز النور",
+                "grandTotal": "92.00",
+                "vatTotal": "12.00",
+                "subtotal": "80.00",
+                "lines": "…نفس مصفوفة lines…",
+                "qrPayload": "UXJX…TLV-base64…",
+                "printedAt": "2026-10-18T09:00:00.000Z"
+              }
+            ],
+            "copiesCount": 2
+          }
+        },
+        "types": {
+          "data": {
+            "documentId": "string",
+            "documentNumber": "string",
+            "invoiceNumber": "string|null",
+            "invoiceStatus": "string|null",
+            "saleDate": "string (YYYY-MM-DD)",
+            "companyName": "string",
+            "companyNameEn": "string",
+            "companyTaxNo": "string",
+            "companyCrNo": "string",
+            "companyEmail": "string",
+            "companyPhones": ["string"],
+            "companyAddress": "object|null",
+            "customerName": "string",
+            "customerTaxNo": "string",
+            "customerPhone": "string",
+            "customerMobile": "string",
+            "salesmanName": "string",
+            "salesmanMobile": "string",
+            "vanWarehouseName": "string",
+            "loadOrderNumber": "string",
+            "productionBatchNo": "string",
+            "invoiceMode": "string (enum: zatca_tax|internal_delivery)",
+            "taxPolicyStatus": "string",
+            "paymentMethod": "string (enum: cash|card|credit)",
+            "lines": [
+              {
+                "kind": "string (enum: sale|bonus)",
+                "itemName": "string",
+                "sku": "string",
+                "quantity": "string (3 خانات)",
+                "unitPrice": "string",
+                "discount": "string",
+                "lineTotal": "string",
+                "reason": "string — موجود في سطور البونص فقط"
+              }
+            ],
+            "subtotal": "string",
+            "discountTotal": "string",
+            "vatRate": "string — 0.00 إن كان invoiceMode غير zatca_tax",
+            "vatTotal": "string — 0.00 إن كان invoiceMode غير zatca_tax",
+            "grandTotal": "string",
+            "paidAmount": "string",
+            "outstandingAmount": "string",
+            "bonusQtyTotal": "string",
+            "qrPayload": "string — يبنى على الخادم، لا تولّده في التطبيق",
+            "notes": "string",
+            "printedAt": "string (ISO) — لحظة توليد النسخة لا تاريخ البيع",
+            "copies": [
+              {
+                "copyIndex": "number",
+                "kind": "string (enum: customer|rep)",
+                "copyLabel": "string",
+                "requiresCustomerSignature": "boolean",
+                "signatureBlock": {
+                  "customerSignatureLabel": "string",
+                  "repSignatureLabel": "string",
+                  "accountantNote": "string"
+                },
+                "…": "بقية حقول المستند نفسها مكررة داخل كل نسخة (documentId, documentNumber, lines, totals, qrPayload, …)"
+              }
+            ],
+            "copiesCount": "number"
+          }
+        },
+        "nullablePaths": [
+          "data.invoiceNumber",
+          "data.invoiceStatus",
+          "data.companyAddress",
+          "data.copies[].signatureBlock"
+        ]
+      },
+      "errors": [
+        { "http": 404, "code": "NOT_FOUND", "when": "مستند البيع غير موجود" },
+        { "http": 403, "code": "VAN_SALES_NOT_YOUR_DOCUMENT", "when": "طباعة مستند مندوب آخر" }
+      ]
+    }
+  ],
+
+  "notForRepApp": {
+    "description": "مسارات مكتبية لا يستعملها تطبيق المندوب — سيرفض معظمها الخادم لحساب المندوب (403)",
+    "paths": [
+      "GET /van-sales/dashboard",
+      "GET /van-sales/reports",
+      "GET /van-sales/salesmen",
+      "POST /van-sales/salesmen/{id}/account",
+      "POST /van-sales/load-orders",
+      "POST /van-sales/production-batches",
+      "POST /van-sales/customer-prices",
+      "GET /van-sales/policy",
+      "PUT /van-sales/policy",
+      "POST /van-sales/load-orders/{id}/approve-closing",
+      "POST /van-sales/load-orders/{id}/settle",
+      "POST /van-sales/load-orders/{id}/settle-stock",
+      "POST /van-sales/load-orders/{id}/close-transit-difference",
+      "POST /van-sales/load-orders/{id}/cancel",
+      "POST /van-sales/load-orders/{id}/reject-receipt",
+      "POST /van-sales/legacy-reconciliation"
+    ]
+  }
+}

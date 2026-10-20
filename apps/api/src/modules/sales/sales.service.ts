@@ -10,8 +10,8 @@ import {
   invoicePayments,
   items,
   journalEntries,
-  journalEntryLines,
   offers,
+  parties,
   salesAdjustmentNotes,
   salesInvoiceLines,
   salesInvoices,
@@ -19,13 +19,16 @@ import {
   shiftCloses,
   stockBalances,
   vouchers,
+  warehouses,
   withTenantTx,
   type DatabaseHandle,
   type DrizzleTx,
 } from '@erp/database';
 
+import { FROM_TO_LABELS_AR, validateDayFilters } from '../../common/date-param.js';
 import { assertDiscountWithinLimit, sumDiscount, sumLineGross } from '../../common/discount-limit.js';
 import { DATABASE_HANDLE } from '../../database/database.module.js';
+import { getRequestContext } from '../../request-context/request-context.js';
 import { CustomFieldsService } from '../custom-fields/custom-fields.service.js';
 import { DomainEventsService } from '../../events/domain-events.service.js';
 import { WebhookPublisher } from '../developer/webhook-publisher.service.js';
@@ -74,6 +77,7 @@ export type SalesLineInput = {
    * ويسبق مركز الرأس عند وسم القيد؛ ومن لم يذكر مركزاً يأخذ مركز الفاتورة إن وُجد.
    */
   costCenterId?: string;
+  metadata?: Record<string, unknown>;
 };
 export type SalesInvoiceInput = {
   branchId: string;
@@ -97,6 +101,9 @@ export type SalesInvoiceInput = {
   shiftId?: string;
   /** R4 — الكاشير الذي قبض: `cashier_id`، ويُملأ من نقطة البيع لا من الشاشات المكتبية. */
   cashierId?: string;
+  /** ترحيل فوري للفاتورة عند الحفظ (الخيار الافتراضي في الواجهة السحابية ما لم يُفعَّل خيار المسودة). */
+  autoPost?: boolean;
+  settlement?: 'credit' | 'cash' | 'card' | 'bank';
 };
 export type PaymentInput = {
   method: 'cash' | 'card' | 'bank' | 'credit' | 'split';
@@ -162,6 +169,16 @@ export type SalesmanInput = {
   email?: string | null;
   /** ملاحظات */
   notes?: string | null;
+  /**
+   * 🚐 مستودع المندوب / سيارة التوزيع — the warehouse that holds his custody.
+   *
+   * Distribution needs a real warehouse per rep: it is the destination of the official
+   * stock transfer that supplies him, the source the sales engine relieves when he sells,
+   * and the balance his own workspace reads. Without it a supply has nowhere to land.
+   */
+  warehouseId?: string | null;
+  /** رقم لوحة سيارة التوزيع */
+  vehiclePlate?: string | null;
 };
 
 /**
@@ -251,7 +268,39 @@ export class SalesService {
       .select()
       .from(invoicePayments)
       .where(and(eq(invoicePayments.tenantId, tenantId), eq(invoicePayments.invoiceId, id)));
-    return { ...invoice, lines, payments };
+    let partyName: string | null = null;
+    let partyTaxNo: string | null = null;
+    let partyCode: string | null = null;
+    if (invoice.partyId) {
+      const [party] = await tx
+        .select({ name: parties.name, taxNo: parties.taxNo, code: parties.code })
+        .from(parties)
+        .where(and(eq(parties.tenantId, tenantId), eq(parties.id, invoice.partyId)));
+      partyName = party?.name ?? null;
+      partyTaxNo = party?.taxNo ?? null;
+      partyCode = party?.code ?? null;
+    }
+    const isStandardTaxInvoice = Boolean(
+      partyTaxNo &&
+        partyTaxNo.trim().length > 0 &&
+        partyName !== 'عميل عام' &&
+        partyCode !== 'CUST-GEN',
+    );
+    // 🧾 الرمز يُعاد كما أصدرته وحدة الفوترة الإلكترونية (`zatca_qr`) فقط: حمولة TLV
+    // تُبنى محليًّا بلا توقيع ولا مفتاح عام ليست فاتورةً إلكترونية، وكانت هنا تحمل اسم
+    // بائع ورقم ضريبي ثابتين لا يخصّان المستأجر — فالأصدق أن يعود `null` وتقول الشاشة
+    // «لم تُصدر بعد» بدل رمزٍ يفشل أيُّ ماسح.
+    const qrCode = invoice.zatcaQr || null;
+    return {
+      ...invoice,
+      qrCode,
+      partyName,
+      partyTaxNo,
+      taxInvoiceType: isStandardTaxInvoice ? 'standard' : 'simplified',
+      taxInvoiceTypeLabelAr: isStandardTaxInvoice ? 'فاتورة ضريبية' : 'فاتورة ضريبية مبسطة',
+      lines,
+      payments,
+    };
   }
 
   async get(tenantId: string, id: string) {
@@ -268,7 +317,12 @@ export class SalesService {
    * movement is the one thing a cashier must never be able to produce, and three
    * separate round trips from a browser can always leave exactly that behind.
    */
-  private async createInTx(tx: DrizzleTx, tenantId: string, input: SalesInvoiceInput): Promise<string> {
+  /**
+   * AUD-11 — بوّابات الكتابة والتحقق من المجاميع، مشتركةً بين الإنشاء واستبدال سطور
+   * المسوّدة: مسارٌ واحد للحساب وحدود الخصم ومراكز الكلفة، فلا يمرّ كتابٌ من بابٍ بلا
+   * الفحوص التي يمرّ منها الباب الآخر.
+   */
+  private prepareLines(tx: DrizzleTx, tenantId: string, input: SalesInvoiceInput) {
     if (!input.lines.length)
       throw new DomainError('SALES_LINES_REQUIRED', 'At least one invoice line is required', 422);
     if (!input.partyId && !input.cashCustomerName)
@@ -288,6 +342,44 @@ export class SalesService {
       discount: sumDiscount(totals),
       field: 'invoiceDiscount',
     });
+    return totals;
+  }
+
+  /** صفوف السطور المشتقّة من المجاميع المحسوبة — مصدرٌ واحد للإنشاء والاستبدال. */
+  private lineRows(invoiceId: string, tenantId: string, input: SalesInvoiceInput, totals: ReturnType<typeof calculateInvoiceTotals>) {
+    return input.lines.map((line, index) => {
+      const calculated = totals.lines[index];
+      if (!calculated)
+        throw new DomainError('SALES_TOTALS_INVALID', 'Invoice totals do not match invoice lines', 422);
+      return {
+        id: newId(),
+        tenantId,
+        invoiceId,
+        lineNo: index + 1,
+        itemId: line.itemId,
+        description: line.description,
+        quantity: line.quantity,
+        unitPrice: line.unitPrice,
+        discountRate: line.discountRate ?? '0',
+        discountAmount: calculated.discount,
+        taxGroupId: line.taxGroupId,
+        taxRate: line.taxRate ?? '0',
+        net: calculated.net,
+        tax: calculated.tax,
+        total: calculated.total,
+        serialNos: cleanSerialNos(line.serialNos),
+        lotId: line.lotId,
+        batchNo: line.batchNo?.trim() || null,
+        productionDate: line.productionDate?.trim() || null,
+        expiryDate: line.expiryDate?.trim() || null,
+        costCenterId: line.costCenterId ?? null,
+        metadata: line.metadata ?? {},
+      };
+    });
+  }
+
+  async createInTx(tx: DrizzleTx, tenantId: string, input: SalesInvoiceInput): Promise<string> {
+    const totals = this.prepareLines(tx, tenantId, input);
     // R9 — كل مركزٍ مُسمّى (رأساً أو على سطر) يُفحَص قبل أي كتابة: مركزُ مستأجرٍ آخر ليس
     // مركزاً عندنا، والرسالة تسمّي الحقل. الفحص هنا في مسار الإنشاء الوحيد فيمرّ منه كل
     // ما يُكتب — مسودّةُ الحقل، وفاتورة الكاشير، وعرض السعر، والمردود.
@@ -325,42 +417,18 @@ export class SalesService {
         total: totals.total,
         status: 'draft',
       });
-    await tx.insert(salesInvoiceLines).values(
-      input.lines.map((line, index) => {
-        const calculated = totals.lines[index];
-        if (!calculated)
-          throw new DomainError('SALES_TOTALS_INVALID', 'Invoice totals do not match invoice lines', 422);
-        return {
-          id: newId(),
-          tenantId,
-          invoiceId: id,
-          lineNo: index + 1,
-          itemId: line.itemId,
-          description: line.description,
-          quantity: line.quantity,
-          unitPrice: line.unitPrice,
-          discountRate: line.discountRate ?? '0',
-          discountAmount: calculated.discount,
-          taxGroupId: line.taxGroupId,
-          taxRate: line.taxRate ?? '0',
-          net: calculated.net,
-          tax: calculated.tax,
-          total: calculated.total,
-          serialNos: cleanSerialNos(line.serialNos),
-          lotId: line.lotId,
-          batchNo: line.batchNo?.trim() || null,
-          productionDate: line.productionDate?.trim() || null,
-          expiryDate: line.expiryDate?.trim() || null,
-          costCenterId: line.costCenterId ?? null,
-        };
-      }),
-    );
+    await tx.insert(salesInvoiceLines).values(this.lineRows(id, tenantId, input, totals));
     return id;
   }
 
   async create(tenantId: string, input: SalesInvoiceInput) {
     // P-C5: فواتير الشهر مقياسٌ محدود — والعدّ في القاعدة لا في الذاكرة.
     await this.usage.assertWithinLimit(tenantId, 'invoices_per_month');
+    if (input.autoPost) {
+      return this.createAndPost(tenantId, input, {
+        settlement: input.settlement,
+      });
+    }
     const id = await withTenantTx(this.database.db, tenantId, (tx) => this.createInTx(tx, tenantId, input));
     return this.get(tenantId, id);
   }
@@ -415,40 +483,81 @@ export class SalesService {
     return invoice;
   }
 
+  /**
+   * AUD-11 — تعديل المسودّة كلّه في معاملة واحدة، وبهوية الفاتورة نفسها.
+   *
+   * ما كان: حذف السطور في معاملة، ثم `create()` بديل في معاملة ثانية بمعرّفٍ جديد. فشلُ
+   * الإنشاء كان يترك المسودّة **بلا سطور** (تلفُ بيانات ظاهر)، ونجاحُه كان يبدّل المعرّف
+   * فيكسر المراجع (المرفقات، سجلّ التدقيق، `referenceInvoiceId`، مفاتيح العملاء). الآن:
+   * قفل صفّ الفاتورة (`FOR UPDATE`) يمنع تعديلين متزامنين/ترحيلاً متزامناً من التسلسل
+   * الخطأ، والحذف والإدراج وتحديث المجاميع في معاملةٍ واحدة — إما كلها أو لا شيء.
+   */
   async updateDraft(tenantId: string, id: string, input: Partial<SalesInvoiceInput>) {
-    const invoice = await this.get(tenantId, id);
-    if (invoice.status !== 'draft')
-      throw new DomainError('SALES_INVOICE_IMMUTABLE', 'Only draft invoices can be changed', 409);
-    if (invoice.shiftId)
-      await withTenantTx(this.database.db, tenantId, (tx) => this.assertShiftOpen(tx, tenantId, invoice));
-    if (input.lines) {
-      await withTenantTx(this.database.db, tenantId, async (tx) => {
+    await withTenantTx(this.database.db, tenantId, async (tx) => {
+      const [locked] = await tx
+        .select()
+        .from(salesInvoices)
+        .where(and(eq(salesInvoices.tenantId, tenantId), eq(salesInvoices.id, id)))
+        .for('update');
+      if (!locked) throw new DomainError('SALES_INVOICE_NOT_FOUND', 'Sales invoice was not found', 404);
+      if (locked.status !== 'draft')
+        throw new DomainError('SALES_INVOICE_IMMUTABLE', 'Only draft invoices can be changed', 409);
+      await this.assertShiftOpen(tx, tenantId, locked);
+
+      const header = {
+        partyId: input.partyId ?? locked.partyId,
+        salesmanId: input.salesmanId ?? locked.salesmanId,
+        // R9 — مركز الرأس يُعدَّل مع بقية رأس الفاتورة (المسودّة وحدها؛ والمرحَّل لا يُعدَّل).
+        costCenterId: input.costCenterId ?? locked.costCenterId,
+        warehouseId: input.warehouseId ?? locked.warehouseId,
+        cashCustomerName: input.cashCustomerName ?? locked.cashCustomerName,
+        cashCustomerMobile: input.cashCustomerMobile ?? locked.cashCustomerMobile,
+      };
+
+      if (!input.lines) {
         await tx
-          .delete(salesInvoiceLines)
-          .where(and(eq(salesInvoiceLines.tenantId, tenantId), eq(salesInvoiceLines.invoiceId, id)));
-      });
-      const replacement = await this.create(tenantId, {
+          .update(salesInvoices)
+          .set({ ...header, updatedAt: new Date() })
+          .where(and(eq(salesInvoices.tenantId, tenantId), eq(salesInvoices.id, id)));
+        return;
+      }
+
+      const merged: SalesInvoiceInput = {
         ...input,
-        branchId: input.branchId ?? invoice.branchId,
+        branchId: input.branchId ?? locked.branchId,
         lines: input.lines,
-      } as SalesInvoiceInput);
-      return replacement;
-    }
-    await withTenantTx(this.database.db, tenantId, (tx) =>
-      tx
+        partyId: header.partyId,
+        cashCustomerName: header.cashCustomerName,
+        priceIncludesVat: input.priceIncludesVat ?? locked.priceIncludesVat,
+        invoiceDiscount: input.invoiceDiscount ?? locked.invoiceDiscount,
+        extraTax: input.extraTax ?? locked.extraTax,
+        withholding: input.withholding ?? locked.withholding,
+      } as SalesInvoiceInput;
+      const totals = this.prepareLines(tx, tenantId, merged);
+      await this.accounting.assertCostCentersInTx(tx, tenantId, [
+        merged.costCenterId,
+        ...merged.lines.map((line) => line.costCenterId),
+      ]);
+
+      await tx
+        .delete(salesInvoiceLines)
+        .where(and(eq(salesInvoiceLines.tenantId, tenantId), eq(salesInvoiceLines.invoiceId, id)));
+      await tx.insert(salesInvoiceLines).values(this.lineRows(id, tenantId, merged, totals));
+      await tx
         .update(salesInvoices)
         .set({
-          partyId: input.partyId,
-          salesmanId: input.salesmanId,
-          // R9 — مركز الرأس يُعدَّل مع بقية رأس الفاتورة (المسودّة وحدها؛ والمرحَّل لا يُعدَّل).
-          costCenterId: input.costCenterId,
-          warehouseId: input.warehouseId,
-          cashCustomerName: input.cashCustomerName,
-          cashCustomerMobile: input.cashCustomerMobile,
+          ...header,
+          priceIncludesVat: merged.priceIncludesVat ?? false,
+          invoiceDiscount: totals.discount,
+          extraTax: totals.extraTax,
+          withholding: totals.withholding,
+          subtotal: totals.subtotal,
+          taxTotal: totals.tax,
+          total: totals.total,
           updatedAt: new Date(),
         })
-        .where(and(eq(salesInvoices.tenantId, tenantId), eq(salesInvoices.id, id))),
-    );
+        .where(and(eq(salesInvoices.tenantId, tenantId), eq(salesInvoices.id, id)));
+    });
     return this.get(tenantId, id);
   }
 
@@ -644,7 +753,7 @@ export class SalesService {
    * journal and settlement. Returns `undefined` only when a concurrent caller
    * already posted the invoice, so `post()` re-reads the committed row.
    */
-  private async postInTx(tx: DrizzleTx, tenantId: string, id: string, posting: PostingInput = {}) {
+  async postInTx(tx: DrizzleTx, tenantId: string, id: string, posting: PostingInput = {}) {
     const invoice = await this.getInTx(tx, tenantId, id);
     if (invoice.status === 'posted') return invoice;
     if (invoice.status !== 'draft')
@@ -1335,6 +1444,23 @@ export class SalesService {
     // stock relieved. The cloud reverses all three legs — journal, stock and status —
     // in one transaction, so voiding can never silently unbalance the ledger.
     await withTenantTx(this.database.db, tenantId, async (tx) => {
+      /**
+       * 🔒 القفل على صف الفاتورة — كل الفحوص أعلاه قرأت الحالة **خارج** المعاملة، فطلبان
+       * متزامنان على الفاتورة نفسها كانا يمرّان معاً ويعكس كلٌّ منهما القيد والمخزون:
+       * بضاعة تعود مرتين ومرآتان لقيد واحد. القفل يُقرأ بعده الحالة المُودَعة، فيرى الثاني
+       * `voided` ويُرفض، ولا يُعكس شيء مرتين.
+       */
+      const [locked] = await tx
+        .select({ status: salesInvoices.status })
+        .from(salesInvoices)
+        .where(and(eq(salesInvoices.tenantId, tenantId), eq(salesInvoices.id, id)))
+        .for('update');
+      if (!locked || locked.status !== 'posted')
+        throw new DomainError(
+          'SALES_INVOICE_INVALID_STATUS',
+          'Only posted invoices can be voided',
+          409,
+        );
       await this.assertShiftOpen(tx, tenantId, invoice);
       const today = new Date().toISOString().slice(0, 10);
       const [entry] = await tx
@@ -1348,63 +1474,25 @@ export class SalesService {
           ),
         );
       if (entry) {
-        const [existing] = await tx
-          .select({ id: journalEntries.id })
-          .from(journalEntries)
-          .where(eq(journalEntries.reversalOf, entry.id));
-        if (!existing) {
-          const fiscalPeriodId = await this.accounting.openPeriodForDateInTx(tx, tenantId, today);
-          const entryLines = await tx
-            .select()
-            .from(journalEntryLines)
-            .where(eq(journalEntryLines.entryId, entry.id));
-          const reversalId = newId();
-          await tx.insert(journalEntries).values({
-            id: reversalId,
-            tenantId,
-            branchId: invoice.branchId,
-            fiscalPeriodId,
-            date: today,
-            kind: 'reversal',
-            status: 'posted',
-            description: `Void ${invoice.number ?? id}: ${reason}`,
-            reversalOf: entry.id,
-            sourceType: 'sales_invoice',
-            sourceId: id,
-            postedAt: new Date(),
-          });
-          /**
-           * R9 — المرآة تحمل **الأبعاد كلها** لا المبالغ وحدها. كان العكس هنا يكتب
-           * `accountId` و`debit`/`credit` و`partyId` و`description` ويسقط `costCenterId`
-           * و`salesmanId` و`branchId` والعملة والمعدّل ⇒ فاتورةٌ ملغاة يبقى مالُها في
-           * 🌳 شجرة مراكز التكلفة وفي تقرير المندوبين وإن خرج من الميزان. وهذا هو العيب
-           * نفسه الذي أُصلح في `reverseJournal` بالترحيل `0047` (اقرأ تعليقه هناك: «a
-           * reversal that drops the cost centre … leaves those reports holding money the
-           * ledger no longer has»)، وبقي في مسار الفاتورة. الأعمدة العشرة تُنقل الآن كما هي.
-           */
-          await tx.insert(journalEntryLines).values(
-            entryLines.map((line) => ({
-              entryId: reversalId,
-              lineNo: line.lineNo,
-              tenantId,
-              accountId: line.accountId,
-              debit: line.credit,
-              credit: line.debit,
-              partyId: line.partyId,
-              costCenterId: line.costCenterId,
-              salesmanId: line.salesmanId,
-              branchId: line.branchId,
-              currencyCode: line.currencyCode,
-              currencyAmount: line.currencyAmount,
-              fxRate: line.fxRate,
-              description: line.description,
-            })),
-          );
-          await tx
-            .update(journalEntries)
-            .set({ status: 'void', updatedAt: new Date() })
-            .where(eq(journalEntries.id, entry.id));
-        }
+        /**
+         * 🔁 العكس الرسمي الموحَّد — `AccountingService.reverseJournalInTx`: المرآة وحدها،
+         * والأصل **يبقى `posted`**. كان هذا المسار يُبطل الأصل ويرحّل مرآته معاً، وكل
+         * الأرصدة والتقارير تجمع `status = 'posted'` ⇒ يسقط مبلغ الفاتورة الملغاة من
+         * ميزان المراجعة ومن رصيد الحساب ويبقى عكسه معلّقاً فيه (انحراف بمقدار الفاتورة
+         * بعد كل إبطال). «لاغي» في التقارير = قيدٌ يشير إليه عكس (`reversal_of`)، فالأثر
+         * الظاهر للمستخدم واحد والسجلّ المحاسبي كامل. والأبعاد (الطرف، مركز التكلفة،
+         * المندوب، الفرع، العملة) تنقلها الآلية الموحَّدة.
+         */
+        await this.accounting.reverseJournalInTx(tx, tenantId, entry.id, {
+          reason: `إبطال الفاتورة ${invoice.number ?? id}: ${reason}`,
+          date: today,
+          branchId: invoice.branchId,
+          sourceType: 'sales_invoice',
+          sourceId: id,
+          actorId: getRequestContext().tenant?.userId ?? null,
+          // إعادة المحاولة أو طلبان متزامنان: العكس القائم يُعاد، ولا يُنشأ ثانٍ.
+          ifAlreadyReversed: 'reuse',
+        });
       }
 
       const movements = await tx
@@ -1486,6 +1574,9 @@ export class SalesService {
     let paymentId = '';
     let paymentMethod: string = input.method;
     let paymentAmount: string = input.amount;
+    /** ما كُتب فعلاً تحت القفل — لا ما كانت تقوله النسخة المقروءة قبل المعاملة. */
+    let paidTotalAfter = money(invoice.paidTotal).toFixed(4);
+    let invoiceTotal = money(invoice.total).toFixed(4);
     const result = await withTenantTx(this.database.db, tenantId, async (tx) => {
       const [existing] = await tx
         .select()
@@ -1497,9 +1588,27 @@ export class SalesService {
           ),
         );
       if (existing) return existing;
-      const paidValue = money(invoice.paidTotal).plus(paymentValue);
-      if (paidValue.gt(money(invoice.total).plus('0.0001')))
+      /**
+       * 🔒 المال يُقرأ تحت القفل — `invoice` نسخة قُرئت قبل المعاملة، فدفعتان متزامنتان
+       * كانتا تجمعان على الرصيد نفسه وتعبران السقف معاً. القفل على صف الفاتورة يجعل
+       * الثانية تنتظر، ثم تقرأ `paid_total` المُودَع فتحسب فوقه.
+       */
+      const [locked] = await tx
+        .select({
+          status: salesInvoices.status,
+          paidTotal: salesInvoices.paidTotal,
+          total: salesInvoices.total,
+        })
+        .from(salesInvoices)
+        .where(and(eq(salesInvoices.tenantId, tenantId), eq(salesInvoices.id, invoiceId)))
+        .for('update');
+      if (!locked || locked.status !== 'posted')
+        throw new DomainError('SALES_INVOICE_NOT_POSTED', 'Payments require a posted invoice', 409);
+      const paidValue = money(locked.paidTotal).plus(paymentValue);
+      if (paidValue.gt(money(locked.total).plus('0.0001')))
         throw new DomainError('PAYMENT_EXCEEDS_DUE', 'Payment exceeds invoice balance', 422);
+      paidTotalAfter = paidValue.toFixed(4);
+      invoiceTotal = money(locked.total).toFixed(4);
       const [payment] = await tx
         .insert(invoicePayments)
         .values({
@@ -1530,14 +1639,15 @@ export class SalesService {
     // `invoice.paid` تعني «سُدِّدت» لا «وصلت دفعة»: تُعلَن عند تمام السداد وحده. والدفعات
     // الجزئية مقروءةٌ من حالة الفاتورة (`partial`) — وحدثٌ يتكرّر مع كل دفعة يجعل المستلم
     // يعيد بناء حالته مراراً على معلومة ناقصة.
-    if (recorded && money(invoice.paidTotal).plus(paymentValue).gte(money(invoice.total))) {
+    if (recorded && money(paidTotalAfter).gte(money(invoiceTotal))) {
       void this.webhooks.emit('invoice.paid', tenantId, {
         invoiceId,
         paymentId,
         method: paymentMethod,
         amount: paymentAmount,
-        paidTotal: money(invoice.paidTotal).plus(paymentValue).toFixed(4),
-        total: invoice.total,
+        // ما كُتب تحت القفل — لا مجموع نسخةٍ قُرئت قبل المعاملة.
+        paidTotal: paidTotalAfter,
+        total: invoiceTotal,
         currency: invoice.currency,
         partyId: invoice.partyId,
       });
@@ -1931,6 +2041,53 @@ export class SalesService {
   }
 
   /**
+   * 🚐 بطاقة المندوب الموسّعة — the same `salesmen` card, read with the three links
+   * distribution needs: the employee card behind it, the login account (membership/user)
+   * that employee owns, and the van warehouse that holds his custody.
+   *
+   * No second salesman table and no second screen: `POST/PATCH /sales/salesmen` writes the
+   * row, this reads it joined, and the van workspace filters it to one rep.
+   */
+  async listSalesmenWithCustody(tenantId: string) {
+    return withTenantTx(this.database.db, tenantId, async (tx) => {
+      const result = await tx.execute(sql`
+        SELECT s.id::text, s.name, s.active, s.employee_ref AS "employeeRef",
+               s.commission_rate::text AS "commissionRate",
+               s.collection_commission_rate::text AS "collectionCommissionRate",
+               s.profit_commission_rate::text AS "profitCommissionRate",
+               s.employee_id::text AS "employeeId", s.tel, s.mobile, s.email, s.notes,
+               s.warehouse_id::text AS "warehouseId", s.vehicle_plate AS "vehiclePlate",
+               e.employee_no AS "employeeNo", e.name AS "employeeName", e.status AS "employeeStatus",
+               e.membership_id::text AS "membershipId",
+               m.status AS "membershipStatus", m.display_name AS "membershipDisplayName",
+               u.email AS "userEmail", u.status AS "userStatus",
+               w.name AS "warehouseName", w.code AS "warehouseCode",
+               w.branch_id::text AS "warehouseBranchId",
+               COALESCE(rc.role_count, 0)::int AS "roleCount",
+               COALESCE(rp.permissions, ARRAY[]::text[]) AS "permissions"
+        FROM salesmen s
+        LEFT JOIN employees e ON e.id = s.employee_id AND e.deleted_at IS NULL
+        LEFT JOIN memberships m ON m.id = e.membership_id AND m.deleted_at IS NULL
+        LEFT JOIN users u ON u.id = m.user_id
+        LEFT JOIN warehouses w ON w.id = s.warehouse_id AND w.deleted_at IS NULL
+        LEFT JOIN LATERAL (
+          SELECT COUNT(*)::int AS role_count
+          FROM membership_roles mr WHERE mr.membership_id = m.id
+        ) rc ON true
+        LEFT JOIN LATERAL (
+          SELECT array_agg(DISTINCT rpx.permission_code) AS permissions
+          FROM membership_roles mrx
+          JOIN role_permissions rpx ON rpx.role_id = mrx.role_id
+          WHERE mrx.membership_id = m.id
+        ) rp ON true
+        WHERE s.tenant_id = ${tenantId}::uuid
+        ORDER BY s.active DESC, s.name ASC
+      `);
+      return (result as unknown as { rows: Array<Record<string, unknown>> }).rows ?? [];
+    });
+  }
+
+  /**
    * نسبة مئوية — the three boxes are parsed by `btnSave_Click` L174 with
    * `double.TryParse(txtComm.Text, out double c) ? c : 0`, so a box that holds no
    * number is silently a zero. The cloud refuses instead: a commission of 250% pays
@@ -2007,6 +2164,7 @@ export class SalesService {
 
   async createSalesman(tenantId: string, input: SalesmanInput & { name: string }) {
     await this.assertEmployee(tenantId, input.employeeId);
+    const vanWarehouseId = await this.assertWarehouse(tenantId, input.warehouseId);
     const [row] = await withTenantTx(this.database.db, tenantId, (tx) =>
       tx
         .insert(salesmen)
@@ -2022,6 +2180,8 @@ export class SalesService {
           profitCommissionRate:
             this.rateOrThrow(input.profitCommissionRate, 'profitCommissionRate') ?? '0',
           employeeId: input.employeeId ?? null,
+          warehouseId: vanWarehouseId,
+          vehiclePlate: input.vehiclePlate ?? null,
           tel: input.tel ?? null,
           mobile: input.mobile ?? null,
           email: input.email ?? null,
@@ -2035,8 +2195,43 @@ export class SalesService {
     return row;
   }
 
+  /**
+   * 🚐 مستودع المندوب — must be an active warehouse of this tenant, because it is the
+   * destination of a real stock transfer and the balance his workspace reads. A warehouse
+   * of another tenant would hand one rep another company's custody.
+   */
+  private async assertWarehouse(
+    tenantId: string,
+    warehouseId: string | null | undefined,
+  ): Promise<string | null> {
+    if (!warehouseId) return null;
+    const [row] = await withTenantTx(this.database.db, tenantId, (tx) =>
+      tx
+        .select({ id: warehouses.id })
+        .from(warehouses)
+        .where(
+          and(
+            eq(warehouses.tenantId, tenantId),
+            eq(warehouses.id, warehouseId),
+            eq(warehouses.isActive, true),
+            isNull(warehouses.deletedAt),
+          ),
+        )
+        .limit(1),
+    );
+    if (!row)
+      throw new DomainError('SALESMAN_WAREHOUSE_INVALID', 'مستودع المندوب غير موجود أو غير مفعّل', 422, {
+        field: 'warehouseId',
+      });
+    return row.id;
+  }
+
   async updateSalesman(tenantId: string, id: string, input: SalesmanInput) {
     await this.assertEmployee(tenantId, input.employeeId, id);
+    const updatedWarehouseId =
+      input.warehouseId === undefined
+        ? undefined
+        : await this.assertWarehouse(tenantId, input.warehouseId);
     const [row] = await withTenantTx(this.database.db, tenantId, (tx) =>
       tx
         .update(salesmen)
@@ -2064,6 +2259,8 @@ export class SalesService {
                 ),
               }),
           ...(input.employeeId === undefined ? {} : { employeeId: input.employeeId }),
+          ...(input.warehouseId === undefined ? {} : { warehouseId: updatedWarehouseId }),
+          ...(input.vehiclePlate === undefined ? {} : { vehiclePlate: input.vehiclePlate }),
           ...(input.tel === undefined ? {} : { tel: input.tel }),
           ...(input.mobile === undefined ? {} : { mobile: input.mobile }),
           ...(input.email === undefined ? {} : { email: input.email }),
@@ -2137,6 +2334,9 @@ export class SalesService {
    * that grows when the goods come back would pay commission on a refund.
    */
   async salesmanCommissions(tenantId: string, query: SalesmanCommissionQuery = {}) {
+    /** 📅 مرشّحا التاريخ يُتحقَّق منهما قبل SQL — فقبل هذا كان نصٌّ فاسدٌ يرجع ٥٠٠ «خطأً داخليًّا» (قِيس ٢٠٢٦-١٠-١٦). */
+    validateDayFilters(query as Record<string, unknown>, FROM_TO_LABELS_AR, 'SALES_DATE_INVALID');
+
     // «🌐 الكل» and «كل الفترة» are both checked in the XAML (L262/L287), and the two
     // date pickers open on today (`FrmInvBySalesMen_Loaded` L58).
     /**

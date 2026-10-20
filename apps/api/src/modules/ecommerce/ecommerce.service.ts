@@ -16,6 +16,7 @@ import { DATABASE_HANDLE } from '../../database/database.module.js';
 import type { DomainEvent } from '../../events/domain-events.service.js';
 import { SalesService } from '../sales/sales.service.js';
 import { OutboxService } from '../platform-services/index.js';
+import { setAuditTenantId } from '../../request-context/request-context.js';
 
 import {
   decryptEcommerceSecret,
@@ -290,6 +291,9 @@ export class EcommerceService {
         401,
       );
     }
+
+    // AUD-14 — التوقيع أثبت أن الطلب يخصّ هذا المستأجر: يُنسب إليه سجلّ التدقيق.
+    setAuditTenantId(tenantId);
 
     const remote = normaliseIncomingOrder(body);
     if (!remote.id)

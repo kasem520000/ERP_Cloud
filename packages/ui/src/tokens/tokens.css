@@ -234,10 +234,23 @@
   /* focus — AA visible on white *and* on slate-900 (§2.2.6) */
   --focus-ring: 0 0 0 3px rgb(37 99 235 / 0.35);
   --focus-ring-thin: 0 0 0 2px rgb(37 99 235 / 0.45);
-  /* the two rings a form control alternates between, as values so a
-     `shadow-[var(--…)]` class never has to carry a literal */
+  /* ring aliases */
   --ring-brand: 0 0 0 3px rgb(37 99 235 / 0.18);
   --ring-danger: 0 0 0 3px rgb(239 68 68 / 0.18);
+
+  /* legacy & semantic aliases used across staff / platform-admin / portal stylesheets */
+  --color-primary-50: var(--brand-soft);
+  --color-primary-100: var(--brand-line);
+  --color-primary-500: var(--brand-2);
+  --color-primary-600: var(--brand);
+  --color-primary-700: #1d4ed8;
+  --color-success: var(--ok);
+  --color-success-soft: var(--ok-soft);
+  --color-success-600: var(--ok);
+  --color-warning: var(--warn);
+  --color-warning-soft: var(--warn-soft);
+  --color-warning-600: var(--warn);
+  --color-danger-600: var(--danger);
 }
 
 /* ==========================================================================

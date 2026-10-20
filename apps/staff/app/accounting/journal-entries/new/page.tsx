@@ -7,7 +7,7 @@ import { Suspense, useMemo, useState } from 'react';
 import { ErrorBox, Forbidden, Loading, Screen } from '../../../../components/screen';
 import { ApiError, apiData, apiPost } from '../../../../lib/api';
 import { nameOf, postableOf, type Account } from '../../../../lib/accounts';
-import { money } from '../../../../lib/lookups';
+import { listEmployees, money, type Employee } from '../../../../lib/lookups';
 import { useSession } from '../../../../lib/session';
 import { useQuery } from '../../../../lib/use-query';
 
@@ -34,7 +34,6 @@ import { useQuery } from '../../../../lib/use-query';
 type Branch = { id: string; code?: string; nameAr?: string; name_ar?: string; nameEn?: string };
 type Period = { id: string; code?: string; name?: string; status?: string };
 type CostCenter = { id: string; code?: string; nameAr?: string; name_ar?: string };
-type Employee = { id: string; employeeNo?: string; name?: string };
 
 type Line = {
   key: number;
@@ -81,8 +80,11 @@ function JournalEntryForm() {
   const branches = useQuery<Branch[]>(() => apiData<Branch[]>('/branches'), []);
   const periods = useQuery<Period[]>(() => apiData<Period[]>('/fiscal-periods'), []);
   const costCenters = useQuery<CostCenter[]>(() => apiData<CostCenter[]>('/cost-centers').catch(() => [] as CostCenter[]), []);
-  // المندوب comes from HRM; a tenant without it simply gets no names to choose from.
-  const employees = useQuery<Employee[]>(() => apiData<Employee[]>('/employees').catch(() => [] as Employee[]), []);
+  // المندوب هنا موظفٌ من HRM: `journal_entry_lines.salesman_id` مفتاحٌ أجنبي إلى `employees(id)`
+  // (packages/database/src/schema/accounting.ts:168). المسار الصحيح `GET /hrm/employees` — وكان
+  // هذا الموضع ينادي `/employees` غير الموجود (404) فيبتلعه `.catch` وتبقى القائمة فارغة دائماً.
+  // المنشأة بلا حزمة HRM أو المستخدم بلا `hrm.view` لا يرى أسماءً، وهذا مقبول لأن الحقل اختياري.
+  const employees = useQuery<Employee[]>(() => listEmployees().catch(() => [] as Employee[]), []);
 
   const [branchId, setBranchId] = useState('');
   const [periodId, setPeriodId] = useState('');

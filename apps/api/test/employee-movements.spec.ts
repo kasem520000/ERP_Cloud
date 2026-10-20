@@ -1,4 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { withTenantTx } from '@erp/database';
+import { sql } from 'drizzle-orm';
 
 import { OrgProvisioningService } from '../src/modules/organization/provisioning/org-provisioning.service.js';
 
@@ -44,7 +46,20 @@ describe('حركات الموظف — frmEmpInvs', () => {
   const post = (path: string, body: Record<string, unknown>) => api(ctx.server, 'post', `/api/v1${path}`, { token: actor.token, body });
   const get = (path: string) => api(ctx.server, 'get', `/api/v1${path}`, { token: actor.token });
 
-  const today = () => new Date().toISOString().slice(0, 10);
+  /**
+   * «اليوم» بتقويم **المنشأة** لا بـUTC — فالخادم يحسب يوم الأعمال بمنطقة المنشأة
+   * (‏`tenant_settings['locale.timezone']` ← `tenants.timezone` ← `'Asia/Riyadh'`، ‏AUD-17)، وهذه
+   * المنشأة لا تضبط منطقةً فيرجع خادمُها الرياض. وبـ`toISOString()` (UTC) كان هذا الحكم يسقط
+   * ثلاث ساعاتٍ في اليوم: بين ٢١:٠٠ و٢٤:٠٠ بتوقيت غرينتش تكون الرياضُ في اليوم التالي، فسقطت
+   * ثمانيةُ أحكامٍ في ٢٠٢٦-١٠-١٥ ٢١:٤٣ UTC — والخادمُ على صوابٍ والاختبارُ هو الأعمى عن المنطقة.
+   */
+  const TENANT_TIME_ZONE = 'Asia/Riyadh';
+  const today = () => new Intl.DateTimeFormat('en-CA', { timeZone: TENANT_TIME_ZONE }).format(new Date());
+  /** اليوم نفسه مزاحًا — فـ«أمس» بتقويم المنشأة أيضًا، لا بتقويم غرينتش. */
+  const dayBefore = (days: number) =>
+    new Intl.DateTimeFormat('en-CA', { timeZone: TENANT_TIME_ZONE }).format(
+      new Date(Date.now() - days * 86_400_000),
+    );
   const movements = (query: string) => get(`/hrm/employee-movements?${query}`);
   const linesOf = async (query: string) => rowsOf(data((await movements(query)).body).rows);
 
@@ -257,7 +272,7 @@ describe('حركات الموظف — frmEmpInvs', () => {
   });
 
   it('📅 من تاريخ / إلى تاريخ — اليوم الأخير داخل الفترة', async () => {
-    const yesterday = new Date(Date.now() - 24 * 3600 * 1000).toISOString().slice(0, 10);
+    const yesterday = dayBefore(1);
     const outside = await movements(`employee_id=${employeeId}&from=${yesterday}&to=${yesterday}`);
     expect(rowsOf(data(outside.body).rows)).toHaveLength(0);
 
@@ -309,6 +324,94 @@ describe('حركات الموظف — frmEmpInvs', () => {
     const after = data((await movements(`employee_id=${employeeId}`)).body);
     expect(rowsOf(after.rows).some((row) => row.invoiceId === sold.id)).toBe(false);
     expect(Number((after.summary as { total: string }).total)).toBe(Number(before.total) - Number(sold.total));
+  });
+
+  /**
+   * 📅 يومُ الأعمال بتقويم **المنشأة** — حكمٌ بتاريخٍ ثابتٍ في البذر، فلا ينجح في ساعةٍ
+   * ويسقط في أخرى.
+   *
+   * فاتورةٌ مُرحَّلة ٢٠٢٦-٠٦-١٥ ٢٢:٣٠ بتوقيت غرينتش هي ٢٠٢٦-٠٦-١٦ ٠١:٣٠ في الرياض، فيومُ
+   * أعمالها السادس عشر. وبـ`posted_at::date` (تقويمُ جلسة قاعدة البيانات، وهو UTC) كانت تُحسب
+   * في الخامس عشر: نافذةُ «اليوم» في المنشأة تُفتح ولا تجد فاتورةَ الليلة نفسها، وتجدها نافذةُ
+   * أمس. والحكمُ يقيس الاتجاهين معًا.
+   */
+  it('فاتورةُ ما بعد منتصف الليل بتوقيت المنشأة في يوم أعمالها، لا في يوم UTC', async () => {
+    const sold = await invoice({
+      branchId,
+      warehouseId,
+      salesmanId: employeeId,
+      lines: [{ itemId, quantity: '1', unitPrice: '50', taxRate: '0' }],
+    });
+    await withTenantTx(ctx.handle.db, actor.tenantId, (tx) =>
+      tx.execute(sql`
+        UPDATE sales_invoices SET posted_at = TIMESTAMPTZ '2026-06-15 22:30:00+00'
+        WHERE id = ${sold.id}::uuid
+      `),
+    );
+
+    const businessDay = data(
+      (await movements(`employee_id=${employeeId}&from=2026-06-16&to=2026-06-16`)).body,
+    );
+    const inside = rowsOf(businessDay.rows);
+    expect(inside).toHaveLength(1);
+    expect(inside[0]?.invoiceId).toBe(sold.id);
+    expect(inside[0]?.date).toBe('2026-06-16');
+    expect(businessDay.from).toBe('2026-06-16');
+
+    // ويومُ UTC نفسه (الخامس عشر) ليس يومَ أعمالها — فلا تظهر فيه.
+    const utcDay = rowsOf(
+      data((await movements(`employee_id=${employeeId}&from=2026-06-15&to=2026-06-15`)).body).rows,
+    );
+    expect(utcDay.some((row) => row.invoiceId === sold.id)).toBe(false);
+  });
+
+  /**
+   * 📅 إدخالٌ فاسدٌ يُرفض ٤٢٢ بجملةٍ مقروءة — لا ٥٠٠ من قاعدة البيانات، ولا تصفيةٌ صامتة.
+   *
+   * ما كان: ‏`from`/`to` يُرميان كما جاءا إلى `(${from}::date)::timestamp AT TIME ZONE …` في
+   * الخدمة، فنصٌّ مثل «أمس» أو `2026-2-5` ⇒ خطأُ قاعدةٍ `22P02 invalid input syntax for type
+   * date` ⇒ **٥٠٠** (بندُ ب٥ في سجلّ البنود المفتوحة). وتاريخٌ مستحيلٌ كـ`2026-02-30`
+   * تقبله القاعدةُ بقلبه إلى مارس — أي يُقرأ ولا يُرفض. و`movement_type` كان يُطبَّع في
+   * المتحكّم بصمتٍ إلى «الكلّ»، فـ`movement_type=sale` (بلا s) يُعيد الفواتيرَ **والمرتجعات**
+   * معًا والقارئُ يظنّ أنّه صفّى.
+   */
+  it('إدخالٌ فاسدٌ في المدى أو النوع يُرفض ٤٢٢ — لا ٥٠٠ ولا تصفيةٌ صامتة', async () => {
+    const badFrom = await movements(`employee_id=${employeeId}&from=${encodeURIComponent('أمس')}`);
+    expect(badFrom.status, JSON.stringify(badFrom.body).slice(0, 300)).toBe(422);
+    expect(badFrom.body.code).toBe('HRM_MOVEMENTS_DATE_INVALID');
+    expect(badFrom.body.errors?.[0]?.field).toBe('from');
+    expect(badFrom.body.detail).toContain('YYYY-MM-DD');
+
+    const badTo = await movements(`employee_id=${employeeId}&to=2026-2-5`);
+    expect(badTo.status, JSON.stringify(badTo.body).slice(0, 300)).toBe(422);
+    expect(badTo.body.code).toBe('HRM_MOVEMENTS_DATE_INVALID');
+    expect(badTo.body.errors?.[0]?.field).toBe('to');
+
+    // ‏وتاريخٌ مستحيلٌ تقبله القاعدةُ بقلبه إلى مارس — فيُرفض قبلها.
+    const impossible = await movements(`employee_id=${employeeId}&from=2026-02-30`);
+    expect(impossible.status, JSON.stringify(impossible.body).slice(0, 300)).toBe(422);
+    expect(impossible.body.detail).toContain('ليس تاريخًا حقيقيًّا');
+
+    // ‏ومدىً مقلوبٌ خطأُ إدخالٍ لا «فترةٌ بلا حركات».
+    const inverted = await movements(`employee_id=${employeeId}&from=${dayBefore(0)}&to=${dayBefore(2)}`);
+    expect(inverted.status, JSON.stringify(inverted.body).slice(0, 300)).toBe(422);
+    expect(inverted.body.code).toBe('HRM_MOVEMENTS_RANGE_INVERTED');
+
+    // ‏ونوعُ حركةٍ مجهولٌ كان يُطبَّع بصمتٍ إلى «الكلّ» فيعود أكثرُ ممّا طُلب.
+    const unknownType = await movements(`employee_id=${employeeId}&movement_type=sale`);
+    expect(unknownType.status, JSON.stringify(unknownType.body).slice(0, 300)).toBe(422);
+    expect(unknownType.body.code).toBe('HRM_MOVEMENTS_TYPE_UNKNOWN');
+    expect(unknownType.body.errors?.[0]?.field).toBe('movement_type');
+    expect(unknownType.body.detail).toContain('returns');
+
+    // ‏وما صَحّ يبقى يعمل: فالتشديدُ على الفاسد لا على السليم.
+    const valid = await movements(`employee_id=${employeeId}&from=${dayBefore(2)}&to=${dayBefore(0)}`);
+    expect(valid.status, JSON.stringify(valid.body).slice(0, 300)).toBe(200);
+    for (const type of ['sales', 'returns', 'all', ''])
+      expect(
+        (await movements(`employee_id=${employeeId}&movement_type=${type}`)).status,
+        `movement_type=${type || '(فارغ)'}`,
+      ).toBe(200);
   });
 
   it('مستأجر آخر لا يرى حركات الموظف', async () => {

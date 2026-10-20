@@ -10,5 +10,7 @@ export class MetricsController {
   constructor(private readonly metrics: MetricsService) {}
   @Get()
   @Header('Content-Type', 'text/plain; version=0.0.4; charset=utf-8')
-  scrape() { return this.metrics.renderPrometheus(); }
+  scrape() {
+    return this.metrics.scrapePrometheus();
+  }
 }

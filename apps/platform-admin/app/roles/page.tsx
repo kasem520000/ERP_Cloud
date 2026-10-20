@@ -33,6 +33,39 @@ import { useQuery } from '../../lib/use-query';
 
 type Draft = Record<string, string[]>;
 
+const CONSOLE_PERM_AR: Record<string, string> = {
+  'console.tenants.view': 'عرض العملاء والمنشآت',
+  'console.tenants.manage': 'إدارة العملاء والتعليق والتفعيل',
+  'console.plans.manage': 'إدارة الخطط والتراخيص والاشتراكات',
+  'console.users.view': 'عرض دليل المستخدمين والجلسات',
+  'console.users.manage': 'إدارة المستخدمين وأدوار المنصة و2FA',
+  'console.audit.view': 'عرض سجل التدقيق العابر للمنشآت',
+  'console.settings.manage': 'إدارة إعدادات المنصة والرايات والحدود',
+  'console.support.manage': 'مكتب الدعم الفني والدخول المؤقّت',
+  'console.email.manage': 'إدارة البريد والقوالب والحملات',
+  'console.jobs.manage': 'إدارة المهام والطوابير والنسخ الاحتياطية',
+  'console.analytics.view': 'عرض تحليلات الإيرادات والـ MRR والتسرّب',
+  'console.developer.manage': 'إدارة مفاتيح API والويبهوك',
+  'console.compliance.manage': 'إدارة الامتثال وطلبات البيانات',
+  'console.content.manage': 'إدارة المحتوى والإعلانات والصفحات',
+};
+
+const ROLE_DESC_AR: Record<string, string> = {
+  platform_owner: 'صلاحيات كاملة لإدارة المنصة والعملاء والخطط والأدوار والإعدادات الحساسة.',
+  platform_operations: 'تشغيل المنصة اليومي ومتابعة العملاء والمهام والطوابير والصحة.',
+  platform_billing: 'إدارة خطط الأسعار والاشتراكات والفواتير وطلبات التفعيل والتحصيل.',
+  platform_support: 'استقبال تذاكر الدعم والمساعدة والرد على العملاء والدخول المؤقّت المشروط بـالسبب.',
+  platform_auditor: 'صلاحيات قراءة شاملة لسجل التدقيق والعملاء والمستخدمين لأغراض الرقابة والمراجعة.',
+};
+
+const ROLE_NAME_AR: Record<string, string> = {
+  platform_owner: 'مالك المنصة',
+  platform_operations: 'تشغيل المنصة',
+  platform_billing: 'فوترة المنصة',
+  platform_support: 'دعم المنصة',
+  platform_auditor: 'مدقّق المنصة',
+};
+
 export default function PlatformRolesPage() {
   const session = useSession();
   const canManage = session.canConsole('console.users.manage');
@@ -156,7 +189,7 @@ function RoleMatrix({
           {role.overridden ? <span className="tag tenant">تجاوز مسجَّل</span> : <span className="tag default">كما في الفهرس</span>}
         </span>
       </div>
-      <p className="muted">{role.description}</p>
+      <p className="muted">{ROLE_DESC_AR[role.code] ?? role.description}</p>
 
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
         {codes.map((code) => {
@@ -166,11 +199,12 @@ function RoleMatrix({
             <label
               key={code}
               className="chip"
-              title={inCatalogue ? 'في الفهرس' : 'ليس في الفهرس'}
+              title={`${CONSOLE_PERM_AR[code] ?? code} (${code})`}
               style={{ opacity: on ? 1 : 0.6 }}
             >
               <input type="checkbox" checked={on} disabled={!canManage || busy} onChange={(event) => onToggle(code, event.target.checked)} />
-              <span dir="ltr">{code.replace('console.', '')}</span>
+              <span>{CONSOLE_PERM_AR[code] ?? code.replace('console.', '')}</span>
+              <span className="muted small" dir="ltr">({code.replace('console.', '')})</span>
               {inCatalogue !== on && <span className="muted">{inCatalogue ? '−' : '+'}</span>}
             </label>
           );
@@ -240,11 +274,11 @@ function UsersAndHolders() {
                     <td dir="ltr">{row.email}</td>
                     <td>
                       {row.platformRoles.map((code) => (
-                        <span key={code} className="badge active" style={{ marginInlineEnd: 4 }} dir="ltr">
-                          {code}
+                        <span key={code} className="badge active" style={{ marginInlineEnd: 4 }}>
+                          {ROLE_NAME_AR[code] ?? code}
                         </span>
                       ))}
-                      {row.platformRoles.length === 0 && row.isPlatformAdmin && <span className="badge pending">صلاحية قديمة</span>}
+                      {row.platformRoles.length === 0 && row.isPlatformAdmin && <span className="badge active">مالك المنصة</span>}
                     </td>
                   </tr>
                 ))}

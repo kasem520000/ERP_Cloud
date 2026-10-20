@@ -12,6 +12,7 @@ import {
   BranchScopeGuard,
   PermissionsGuard,
   RateLimitGuard,
+  SectorLicenceGuard,
   TenantGuard,
 } from './modules/platform/index.js';
 import { AuditInterceptor } from './modules/platform-services/index.js';
@@ -35,10 +36,15 @@ describe('AppModule', () => {
     const providers = providersOf(AppModule);
 
     // rate limit → AuthGuard → TenantGuard (+RLS GUC) → BranchScopeGuard → PermissionsGuard
+    //   → SectorLicenceGuard
     //
     // P-C8: `ImpersonationGuard` sits immediately after `AuthGuard` — the `imp` claim is only
     // readable once authentication has published the context, and a break-glass token must be
     // limited on **every** route it can reach. The five guards above keep their frozen order.
+    //
+    // 🏪 `SectorLicenceGuard` is appended, never inserted: authorisation («may this user act»)
+    // is settled before licensing («did this tenant buy the surface»), and the licence check
+    // reads `enabledApps` from the context `TenantGuard` published — so it cannot run earlier.
     expect(orderedTokens(providers, APP_GUARD)).toEqual([
       RateLimitGuard,
       AuthGuard,
@@ -46,6 +52,7 @@ describe('AppModule', () => {
       TenantGuard,
       BranchScopeGuard,
       PermissionsGuard,
+      SectorLicenceGuard,
     ]);
 
     expect(orderedTokens(providers, APP_FILTER)).toEqual([AllExceptionsFilter]);

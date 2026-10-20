@@ -1,0 +1,24 @@
+# فحصٌ خارجيّ (blackbox) لجاهزية الـAPI — وهو المسارُ الذي قِيس ٢٠٠ على خادمٍ قائم:
+# ‏`GET /health/ready` (و`/health/live`). والفرقُ بينه وبين `monitoring.yaml` أنّ هذا يُقاس
+# من خارج العملية، فموتُ العنقود أو الشبكة يظهر هنا ولا يظهر هناك.
+apiVersion: monitoring.coreos.com/v1
+kind: Probe
+metadata:
+  name: erp-api-health
+  namespace: erp
+  labels: { app.kubernetes.io/component: monitoring, app.kubernetes.io/part-of: erp }
+spec:
+  interval: 60s
+  scrapeTimeout: 10s
+  module: http_2xx
+  prober:
+    url: prometheus-blackbox-exporter.monitoring.svc:9115
+    scheme: http
+    path: /probe
+  targets:
+    staticConfig:
+      static:
+        - http://erp-api:3000/health/ready
+        - http://erp-api:3000/health/live
+      labels:
+        service: erp-api

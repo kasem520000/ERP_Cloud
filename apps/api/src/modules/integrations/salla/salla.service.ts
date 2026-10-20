@@ -1,10 +1,11 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { and, desc, eq, isNull } from 'drizzle-orm';
 import { DomainError, newId } from '@erp/contracts';
-import { branches, itemCategories, items, salesInvoices, sallaBranchMappings, sallaConnections, sallaExportLog, sallaItemSync, tenantSettings, warehouses, withTenantTx, type DatabaseHandle } from '@erp/database';
+import { branches, itemCategories, items, salesInvoices, sallaBranchMappings, sallaConnections, sallaExportLog, sallaItemSync, tenantSettings, warehouses, withPlatformAdminTx, withTenantTx, type DatabaseHandle } from '@erp/database';
 
 import { DATABASE_HANDLE } from '../../../database/database.module.js';
 import { SalesService } from '../../sales/sales.service.js';
+import { setAuditTenantId } from '../../../request-context/request-context.js';
 
 import { decryptSallaSecret, detectSallaDiff, encryptSallaSecret, verifySallaSignature } from './salla-utils.js';
 
@@ -30,6 +31,50 @@ export class SallaService {
   async listOrders(tenantId: string) { await this.ensureEnabled(tenantId); return { data: await withTenantTx(this.database.db, tenantId, (tx) => tx.select({ id: salesInvoices.id, number: salesInvoices.number, status: salesInvoices.status, customer: salesInvoices.cashCustomerName, mobile: salesInvoices.cashCustomerMobile, total: salesInvoices.total, paymentStatus: salesInvoices.paymentStatus, createdAt: salesInvoices.createdAt, branchId: salesInvoices.branchId }).from(salesInvoices).where(and(eq(salesInvoices.tenantId, tenantId), eq(salesInvoices.orderType, 'salla'))).orderBy(desc(salesInvoices.createdAt)).limit(200)) }; }
 
   async logs(tenantId: string) { await this.ensureEnabled(tenantId); return { data: await withTenantTx(this.database.db, tenantId, (tx) => tx.select().from(sallaExportLog).where(eq(sallaExportLog.tenantId, tenantId)).orderBy(desc(sallaExportLog.createdAt)).limit(100)) }; }
-  async webhook(tenantId: string, storeId: string, rawBody: string, signature: string, body: { event?: string; data?: { customer?: { name?: string; mobile?: string }; items?: Array<{ name?: string; quantity?: string; amount?: string }>; branchId?: string } }) { await this.ensureEnabled(tenantId); const [connection] = await withTenantTx(this.database.db, tenantId, (tx) => tx.select().from(sallaConnections).where(and(eq(sallaConnections.tenantId, tenantId), eq(sallaConnections.storeId, storeId)))); if (!connection) throw new DomainError('SALLA_CONNECTION_NOT_FOUND', 'Salla connection not found', 404); if (!verifySallaSignature(rawBody, signature, decryptSallaSecret(connection.webhookSecretEnc))) throw new DomainError('SALLA_WEBHOOK_SIGNATURE_INVALID', 'Invalid Salla webhook signature', 401); if (body.event !== 'order.created') return { ignored: true }; const lines = (body.data?.items?.length ? body.data.items : [{ name: 'Salla order', quantity: '1', amount: '0' }]).map((line) => ({ description: line.name ?? 'Salla item', quantity: line.quantity ?? '1', unitPrice: line.amount ?? '0', taxRate: '0' })); const branchId = body.data?.branchId; if (!branchId) throw new DomainError('SALLA_BRANCH_REQUIRED', 'Webhook payload must resolve a branch', 422); const invoice = await this.sales.create(tenantId, { branchId, cashCustomerName: body.data?.customer?.name ?? 'Salla customer', cashCustomerMobile: body.data?.customer?.mobile, kind: 'sale', orderType: 'salla', lines }); return { data: { invoiceId: invoice.id } }; }
+  /**
+   * AUD-04 — الويب هوك العامّ: لا رمز مستخدم ولا سياق مستأجر، والمستأجر يُشتقّ من سجلّ
+   * الاتصال لا من جسم الطلب. الخطوات بالترتيب:
+   *
+   *   1. قراءة صفوف الاتصال النشطة بـ`storeId` داخل بمعاملة **المنصّة** (سياسة 0114)، لأن
+   *      الطلب العام لا يحمل `app.tenant_id`؛
+   *   2. التحقّق من HMAC على البايتات الخام (`req.rawBody`) لكل مرشّح — والسرّ يُفكّ من صفّ
+   *      الاتصال نفسه؛
+   *   3. صفر مطابق ⇒ 401، وأكثر من مطابق (متجرٌ مرتبط بأكثر من منشأة) ⇒ 409 بلا كتابة؛
+   *   4. بعد ذلك فقط تُعالَج الطلبية داخل معاملة المستأجر المستخرج.
+   */
+  async webhook(
+    storeId: string,
+    rawBody: string | Buffer,
+    signature: string | undefined,
+    body: { event?: string; data?: { customer?: { name?: string; mobile?: string }; items?: Array<{ name?: string; quantity?: string; amount?: string }>; branchId?: string } },
+  ) {
+    const payload = typeof rawBody === 'string' ? rawBody : rawBody.toString('utf8');
+
+    const candidates = await withPlatformAdminTx(this.database.db, (tx) =>
+      tx
+        .select({ id: sallaConnections.id, tenantId: sallaConnections.tenantId, webhookSecretEnc: sallaConnections.webhookSecretEnc })
+        .from(sallaConnections)
+        .where(and(eq(sallaConnections.storeId, storeId), eq(sallaConnections.status, 'active'), isNull(sallaConnections.deletedAt))),
+    );
+    if (candidates.length === 0) throw new DomainError('SALLA_CONNECTION_NOT_FOUND', 'Salla connection not found', 404);
+    if (typeof signature !== 'string' || signature.length === 0) throw new DomainError('SALLA_WEBHOOK_SIGNATURE_INVALID', 'Missing Salla webhook signature', 401);
+
+    const verified = candidates.filter((connection) => verifySallaSignature(payload, signature, decryptSallaSecret(connection.webhookSecretEnc)));
+    if (verified.length === 0) throw new DomainError('SALLA_WEBHOOK_SIGNATURE_INVALID', 'Invalid Salla webhook signature', 401);
+    if (verified.length > 1) throw new DomainError('SALLA_STORE_AMBIGUOUS', 'This Salla store id is linked to more than one tenant', 409);
+
+    const tenantId = verified[0]!.tenantId;
+    // AUD-14 — توقيعٌ صحيحٌ وحيد هو ما يثبت المستأجر: يُنسب إليه سجلّ التدقيق.
+    setAuditTenantId(tenantId);
+    await this.ensureEnabled(tenantId);
+
+    if (body.event !== 'order.created') return { ignored: true };
+    const lines = (body.data?.items?.length ? body.data.items : [{ name: 'Salla order', quantity: '1', amount: '0' }]).map((line) => ({ description: line.name ?? 'Salla item', quantity: line.quantity ?? '1', unitPrice: line.amount ?? '0', taxRate: '0' }));
+    const branchId = body.data?.branchId;
+    if (!branchId) throw new DomainError('SALLA_BRANCH_REQUIRED', 'Webhook payload must resolve a branch', 422);
+    const invoice = await this.sales.create(tenantId, { branchId, cashCustomerName: body.data?.customer?.name ?? 'Salla customer', cashCustomerMobile: body.data?.customer?.mobile, kind: 'sale', orderType: 'salla', lines });
+    return { data: { invoiceId: invoice.id } };
+  }
+
   private mask(row: typeof sallaConnections.$inferSelect | undefined) { if (!row) return row; return { ...row, accessTokenEnc: undefined, refreshTokenEnc: undefined, webhookSecretEnc: undefined, accessTokenMasked: '****', refreshTokenMasked: row.refreshTokenEnc ? '****' : null, webhookSecretMasked: '****' }; }
 }

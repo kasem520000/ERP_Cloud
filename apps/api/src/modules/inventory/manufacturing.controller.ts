@@ -85,10 +85,19 @@ export class ManufacturingController {
   @Post('orders/:id/produce')
   @RequiresPermission('manufacturing.produce')
   produce(@Param('id') id: string, @Body() body: Payload) {
+    // 🏷️ دفعة الناتج (اللوت): صنفٌ يُتتبَّع بالدفعات لا يُستلم بلا رقم دفعة.
+    const outputLotNo = textField(pick(body, 'outputLotNo', 'output_lot_no', 'batchNo'));
+    const outputProductionDate = textField(
+      pick(body, 'outputProductionDate', 'output_production_date', 'productionDate'),
+    );
     const input: ProduceInput = {
       qty: textField(pick(body, 'qty')),
       componentBinId: optionalUuid(pick(body, 'componentBinId', 'component_bin_id'), 'componentBinId'),
       outputBinId: optionalUuid(pick(body, 'outputBinId', 'output_bin_id'), 'outputBinId'),
+      outputLot:
+        outputLotNo || outputProductionDate
+          ? { lotNo: outputLotNo || null, productionDate: outputProductionDate || null }
+          : undefined,
     };
     return this.wms.produce(getTenantContext().tenantId, requireUuid(id, 'id'), input).then((data) => ({ data }));
   }
