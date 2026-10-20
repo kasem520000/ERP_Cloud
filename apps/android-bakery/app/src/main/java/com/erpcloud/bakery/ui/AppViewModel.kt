@@ -46,6 +46,7 @@ import com.erpcloud.bakery.data.api.ReportCatalogEntryDto
 import com.erpcloud.bakery.data.api.ReportResultDto
 import com.erpcloud.bakery.data.api.RoleDto
 import com.erpcloud.bakery.data.api.SalaryPaymentDto
+import com.erpcloud.bakery.data.api.SalesInvoiceDto
 import com.erpcloud.bakery.data.api.SalesRegistryDto
 import com.erpcloud.bakery.data.api.StockAdjustmentDto
 import com.erpcloud.bakery.data.api.StockLevelDto
@@ -126,8 +127,10 @@ data class StaffState(
     val branches: List<BranchDto> = emptyList(),
     val cashLocations: List<CashLocationDto> = emptyList(),
     val suppliers: List<PartyDto> = emptyList(),
+    val customers: List<PartyDto> = emptyList(),
     // المشتريات
     val purchaseInvoices: List<PurchaseInvoiceDto> = emptyList(),
+    val salesInvoices: List<SalesInvoiceDto> = emptyList(),
     // السندات المخزنيّة
     val vouchers: List<StockVoucherDto> = emptyList(),
     // نقطة البيع
@@ -546,6 +549,31 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
         )
     }
 
+    /** قراءةُ ركائزِ المنشأة — الفروعُ والخزائنُ في «الطاقم» والمستودعاتُ في جانبِ المخابز. */
+    fun loadOrg() {
+        loadStaff("org") { s ->
+            s.copy(
+                branches = repo.branches(),
+                cashLocations = repo.cashLocations(),
+            )
+        }
+        viewModelScope.launch {
+            try {
+                _uiState.update { it.copy(warehouses = repo.warehouses()) }
+            } catch (_: Exception) {
+            }
+        }
+    }
+
+    fun loadSalesInvoices() = loadStaff("sales-invoices") { s ->
+        s.copy(
+            salesInvoices = repo.salesInvoices(),
+            customers = if (s.customers.isEmpty()) repo.parties("customer") else s.customers,
+            branches = if (s.branches.isEmpty()) repo.branches() else s.branches,
+            accounts = if (s.accounts.isEmpty()) repo.accounts() else s.accounts,
+        )
+    }
+
     fun loadVouchers(kind: String? = null) = loadStaff("vouchers") { s ->
         s.copy(
             vouchers = repo.stockVouchers(kind),
@@ -649,6 +677,34 @@ class AppViewModel(application: Application) : AndroidViewModel(application) {
 
     fun postPurchaseInvoice(id: String, body: JsonObject, onDone: (ActionResult) -> Unit) {
         staffAction("purchase-post", { repo.postPurchaseInvoice(id, body) }, onDone)
+    }
+
+    fun createSalesInvoice(body: JsonObject, onDone: (ActionResult) -> Unit) {
+        staffAction("sales-invoice", { repo.createSalesInvoice(body) }, onDone)
+    }
+
+    fun postSalesInvoice(id: String, body: JsonObject, onDone: (ActionResult) -> Unit) {
+        staffAction("sales-invoice", { repo.postSalesInvoice(id, body) }, onDone)
+    }
+
+    fun returnSalesInvoice(id: String, body: JsonObject, onDone: (ActionResult) -> Unit) {
+        staffAction("sales-invoice", { repo.returnSalesInvoice(id, body) }, onDone)
+    }
+
+    fun createBranch(body: JsonObject, onDone: (ActionResult) -> Unit) {
+        staffAction("branch", { repo.createBranch(body) }, onDone)
+    }
+
+    fun updateBranch(id: String, body: JsonObject, onDone: (ActionResult) -> Unit) {
+        staffAction("branch", { repo.updateBranch(id, body) }, onDone)
+    }
+
+    fun createWarehouse(body: JsonObject, onDone: (ActionResult) -> Unit) {
+        staffAction("warehouse", { repo.createWarehouse(body) }, onDone)
+    }
+
+    fun createCashLocation(body: JsonObject, onDone: (ActionResult) -> Unit) {
+        staffAction("cash-location", { repo.createCashLocation(body) }, onDone)
     }
 
     fun createStockVoucher(body: JsonObject, onDone: (ActionResult) -> Unit) {

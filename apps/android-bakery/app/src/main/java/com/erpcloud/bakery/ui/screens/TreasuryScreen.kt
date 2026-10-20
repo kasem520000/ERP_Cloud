@@ -41,6 +41,7 @@ import com.erpcloud.bakery.data.ActionResult
 import com.erpcloud.bakery.ui.AppViewModel
 import com.erpcloud.bakery.ui.components.ActionButton
 import com.erpcloud.bakery.ui.components.CenterLoading
+import com.erpcloud.bakery.ui.components.MissingPermissionHint
 import com.erpcloud.bakery.ui.components.ChipTone
 import com.erpcloud.bakery.ui.components.ConfirmDialog
 import com.erpcloud.bakery.ui.components.EmptyState
@@ -86,6 +87,10 @@ fun TreasuryScreen(vm: AppViewModel, onBack: () -> Unit) {
             }
         },
     ) { padding ->
+        // لا يُخفى الزرُّ بصمتًا: إن غاب الإذنُ يُشرَح السببُ بالعربية
+        if (!state.can("treasury.voucher.create")) {
+            MissingPermissionHint("إنشاء سند قبض/صرف", "treasury.voucher.create", Modifier.padding(padding))
+        }
         if (showCreate) {
             VoucherForm(vm, onDone = { showCreate = false })
             return@Scaffold

@@ -35,6 +35,7 @@ import com.erpcloud.bakery.data.ActionResult
 import com.erpcloud.bakery.ui.AppViewModel
 import com.erpcloud.bakery.ui.components.ActionButton
 import com.erpcloud.bakery.ui.components.CenterLoading
+import com.erpcloud.bakery.ui.components.MissingPermissionHint
 import com.erpcloud.bakery.ui.components.ChipTone
 import com.erpcloud.bakery.ui.components.EmptyState
 import com.erpcloud.bakery.ui.components.KeyValue
@@ -76,6 +77,10 @@ fun EmployeesScreen(vm: AppViewModel, onBack: () -> Unit) {
             }
         },
     ) { padding ->
+        // لا يُخفى الزرُّ بصمتًا: إن غاب الإذنُ يُشرَح السببُ بالعربية
+        if (!state.can("hrm.manage")) {
+            MissingPermissionHint("إضافة موظف", "hrm.manage", Modifier.padding(padding))
+        }
         if (showCreate) {
             EmployeeForm(vm, onDone = { showCreate = false })
             return@Scaffold

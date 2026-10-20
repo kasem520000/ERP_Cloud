@@ -37,6 +37,7 @@ import com.erpcloud.bakery.data.ActionResult
 import com.erpcloud.bakery.ui.AppViewModel
 import com.erpcloud.bakery.ui.components.ActionButton
 import com.erpcloud.bakery.ui.components.CenterLoading
+import com.erpcloud.bakery.ui.components.MissingPermissionHint
 import com.erpcloud.bakery.ui.components.ChipTone
 import com.erpcloud.bakery.ui.components.EmptyState
 import com.erpcloud.bakery.ui.components.KeyValue
@@ -81,6 +82,10 @@ fun PartiesScreen(vm: AppViewModel, onBack: () -> Unit) {
             }
         },
     ) { padding ->
+        // لا يُخفى الزرُّ بصمتًا: إن غاب الإذنُ يُشرَح السببُ بالعربية
+        if (!state.can("parties.manage")) {
+            MissingPermissionHint("إضافة طرف", "parties.manage", Modifier.padding(padding))
+        }
         if (showCreate) {
             PartyForm(vm, kind = if (kind == 0) "customer" else "supplier", onDone = { showCreate = false })
             return@Scaffold

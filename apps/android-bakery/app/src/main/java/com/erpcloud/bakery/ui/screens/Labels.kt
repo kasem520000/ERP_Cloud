@@ -57,8 +57,11 @@ object Labels {
 
     /** نوعُ المستند. */
     fun documentKind(kind: String): Pair<String, ChipTone> = when (kind) {
-        "sale" -> "بيع" to ChipTone.INFO
-        "sale_return" -> "مرتجع" to ChipTone.WARN
+        "sale" -> "فاتورة بيع" to ChipTone.INFO
+        "sale_return" -> "مردود مبيعات" to ChipTone.WARN
+        "credit_note" -> "إشعار دائن" to ChipTone.INFO
+        "debit_note" -> "إشعار مدين" to ChipTone.WARN
+        "quotation" -> "عرض سعر" to ChipTone.NEUTRAL
         else -> kind to ChipTone.NEUTRAL
     }
 
@@ -204,16 +207,50 @@ object Labels {
     fun movementDoc(docType: String?): String = when (docType) {
         "purchase_invoice" -> "فاتورة مشتريات"
         "purchase_return" -> "مردود مشتريات"
+        "purchase_void" -> "إبطال فاتورة مشتريات"
         "sales_invoice" -> "فاتورة مبيعات"
         "sales_return" -> "مردود مبيعات"
+        "sales_void" -> "إبطال فاتورة مبيعات"
         "pos_sale" -> "بيعة نقطة بيع"
         "stock_voucher" -> "سند مخزني"
+        "stock_voucher_void" -> "إبطال سند مخزني"
         "production" -> "إنتاج"
         "production_order" -> "أمر إنتاج"
+        "factory_production_batch" -> "دفعة إنتاج"
         "load_order" -> "أمر تحميل"
+        "van_load_order" -> "أمر تحميل مندوب"
+        "van_return" -> "مرتجع مندوب"
+        "van_sales_return_doc" -> "سند مرتجع مبيعات"
+        "van_damage_writeoff" -> "إتلاف عجز مندوب"
         "transfer" -> "تحويل مستودع"
+        "stock_transfer" -> "تحويل مخزني"
+        "stock_transfer_receipt" -> "استلام تحويل مخزني"
+        "stock_transfer_cancel" -> "إلغاء تحويل مخزني"
+        "stock_transfer_return" -> "مرتجع تحويل مخزني"
+        "stock_adjustment" -> "تسوية جرد"
         "adjustment" -> "تسوية جرد"
         "allocation" -> "تخصيص"
+        "stock_delivery" -> "تسليم مخزني"
+        "goods_request" -> "طلب بضاعة"
+        "bin_count" -> "جرد صندوق"
+        "bin_issue" -> "صرف من صندوق"
+        "bin_receipt" -> "إيداع في صندوق"
+        "cash_transfer" -> "مناقلة نقدية"
+        "journal_entry" -> "قيد يومية"
+        "shift_close" -> "إقفال وردية"
+        "quotation" -> "عرض سعر"
+        "installment_contract" -> "عقد تقسيط"
+        "contractor_contract" -> "عقد مقاول"
+        "contractor_payment" -> "دفععة مقاول"
+        "contracting_return" -> "مرتجع تعاقد"
+        "progress_bill" -> "مستخلص"
+        "project_offer" -> "عرض مشروع"
+        "supplier_rfq" -> "طلب عروض مورد"
+        "manufacturing_order" -> "أمر تصنيع"
+        "tailoring_order" -> "أمر خياطة"
+        "tailoring_invoice" -> "فاتورة خياطة"
+        "marina_booking" -> "حجز مرسى"
+        "marina_violation" -> "مخالفة مرسى"
         else -> docType ?: "—"
     }
 

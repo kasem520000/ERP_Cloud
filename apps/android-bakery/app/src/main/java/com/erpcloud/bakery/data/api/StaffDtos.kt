@@ -118,6 +118,31 @@ data class CashLocationDto(
 
 // ------------------------------------------------------------ المشتريات
 
+/** صفُّ فاتورة مبيعات — `GET /sales/invoices` (مصفوفة drizzle خام؛ الحقول كلها متسامحة). */
+@Serializable
+data class SalesInvoiceDto(
+    val id: String = "",
+    val number: String = "",
+    val invoiceDate: String? = null,
+    val partyId: String? = null,
+    val partyName: String? = null,
+    val cashCustomerName: String? = null,
+    val salesmanId: String? = null,
+    val branchId: String? = null,
+    val warehouseId: String? = null,
+    val kind: String = "sale",
+    val status: String = "draft",
+    val orderType: String? = null,
+    val subtotal: String? = null,
+    val taxTotal: String? = null,
+    val total: String? = null,
+    val paidTotal: String? = null,
+    val paymentStatus: String? = null,
+    val referenceInvoiceId: String? = null,
+    val createdAt: String? = null,
+    val notes: String? = null,
+)
+
 /** صفُّ فاتورة مشتريات — `GET /purchase-invoices` (مصفوفة drizzle خام). */
 @Serializable
 data class PurchaseInvoiceDto(

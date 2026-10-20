@@ -19,8 +19,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.paddingFromBaseline
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
@@ -41,6 +43,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -69,6 +72,11 @@ import androidx.navigation.compose.rememberNavController
 import com.erpcloud.bakery.ui.screens.AdjustmentsScreen
 import com.erpcloud.bakery.ui.screens.CountAdjustmentsScreen
 import com.erpcloud.bakery.ui.screens.CatalogScreen
+import com.erpcloud.bakery.ui.screens.CategoriesScreen
+import com.erpcloud.bakery.ui.screens.ItemsScreen
+import com.erpcloud.bakery.ui.screens.OrgScreen
+import com.erpcloud.bakery.ui.screens.SalesInvoicesScreen
+import com.erpcloud.bakery.ui.screens.UnitsScreen
 import com.erpcloud.bakery.ui.screens.EmployeeAccountScreen
 import com.erpcloud.bakery.ui.screens.EmployeesScreen
 import com.erpcloud.bakery.ui.screens.PayrollScreen
@@ -158,10 +166,25 @@ private object Routes {
     const val INVENTORY = "inventory"
     const val COUNTS = "counts"
     const val PARTIES = "parties"
+    // فواتيرُ المبيعات والمردودات + إعداداتُ المنشأة + فصلُ الكتالوج
+    const val SALES_INVOICES = "sales-invoices"
+    const val ORG = "org"
+    const val ITEMS = "items"
+    const val CATEGORIES = "categories"
+    const val UNITS = "units"
 }
 
 /** بندُ درجٍ — مسارٌ + عنوانٌ + إذنُ الدخول (الدخولُ بلا إذنٍ يُخفي البندَ لا أكثر). */
 private data class DrawerEntry(val route: String, val titleAr: String, val permission: String?)
+
+/**
+ * حاويةُ درجٍ — عنوانٌ وبنودٌ؛ الحاويةُ كلُّها تختفي إن لم يبقَ فيها بندٌ مسموحٌ
+ * (لا عناوينَ معلّقةً فوق فراغ).
+ */
+private data class DrawerGroup(val titleAr: String, val entries: List<DrawerEntry>) {
+    fun visible(can: (String) -> Boolean): List<DrawerEntry> =
+        entries.filter { it.permission == null || can(it.permission) }
+}
 
 @Composable
 fun AppRoot(vm: AppViewModel) {
@@ -180,7 +203,7 @@ fun AppRoot(vm: AppViewModel) {
     val drawer = rememberDrawerState(DrawerValue.Closed)
     val scope = rememberCoroutineScope()
     val backStack by navController.currentBackStackEntryAsState()
-    val entries = drawerEntries { state.can(it) }
+    val groups = drawerGroups { state.can(it) }
 
     ModalNavigationDrawer(
         drawerState = drawer,
@@ -192,21 +215,34 @@ fun AppRoot(vm: AppViewModel) {
                     modifier = Modifier.padding(16.dp),
                 )
                 LazyColumn {
-                    items(entries.size) { index ->
-                        val entry = entries[index]
-                        val selected = backStack?.destination?.route == entry.route
-                        Text(
-                            entry.titleAr,
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable {
-                                    scope.launch { drawer.close() }
-                                    if (!selected) navController.navigate(entry.route)
-                                }
-                                .padding(horizontal = 20.dp, vertical = 12.dp),
-                        )
+                    groups.forEach { (groupTitle, visibleEntries) ->
+                        item(key = "header-$groupTitle") {
+                            Text(
+                                groupTitle,
+                                style = MaterialTheme.typography.labelLarge,
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .paddingFromBaseline(top = 18.dp)
+                                    .padding(horizontal = 20.dp, vertical = 6.dp),
+                            )
+                        }
+                        items(visibleEntries.size, key = { g -> visibleEntries[g].route }) { index ->
+                            val entry = visibleEntries[index]
+                            val selected = backStack?.destination?.route == entry.route
+                            Text(
+                                entry.titleAr,
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        scope.launch { drawer.close() }
+                                        if (!selected) navController.navigate(entry.route)
+                                    }
+                                    .padding(horizontal = 20.dp, vertical = 12.dp),
+                            )
+                        }
                     }
                 }
             }
@@ -281,6 +317,11 @@ fun AppRoot(vm: AppViewModel) {
             composable(Routes.INVENTORY) { InventoryScreen(vm, onBack = { navController.popBackStack() }) }
             composable(Routes.COUNTS) { CountAdjustmentsScreen(vm, onBack = { navController.popBackStack() }) }
             composable(Routes.PARTIES) { PartiesScreen(vm, onBack = { navController.popBackStack() }) }
+            composable(Routes.SALES_INVOICES) { SalesInvoicesScreen(vm, onBack = { navController.popBackStack() }) }
+            composable(Routes.ORG) { OrgScreen(vm, onBack = { navController.popBackStack() }) }
+            composable(Routes.ITEMS) { ItemsScreen(vm, onBack = { navController.popBackStack() }) }
+            composable(Routes.CATEGORIES) { CategoriesScreen(vm, onBack = { navController.popBackStack() }) }
+            composable(Routes.UNITS) { UnitsScreen(vm, onBack = { navController.popBackStack() }) }
             }
 
             // الدخولُ والخروجُ يقودان التوجيه — **بعد** تركيبِ NavHost لا قبله:
@@ -367,11 +408,9 @@ private fun BoxScope.ServerNoticeOverlay(notice: Notice?, onConsume: () -> Unit)
 
     AnimatedVisibility(
         visible = shown,
-        enter = slideInVertically(initialOffsetY = { it / 2 }) + fadeIn(),
-        exit = slideOutVertically(targetOffsetY = { it / 2 }) + fadeOut(),
-        modifier = Modifier
-            .align(Alignment.BottomCenter)
-            .padding(bottom = 18.dp),
+        enter = fadeIn(),
+        exit = fadeOut(),
+        modifier = Modifier.align(Alignment.Center),
     ) {
         if (card != null) {
             val (icon, tint) = when (card.kind) {
@@ -385,43 +424,41 @@ private fun BoxScope.ServerNoticeOverlay(notice: Notice?, onConsume: () -> Unit)
                 elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
                 border = BorderStroke(1.dp, BakeryColors.Hairline),
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
+                    .widthIn(max = 420.dp)
+                    .padding(horizontal = 22.dp),
             ) {
-                Row(
-                    Modifier.padding(start = 12.dp, end = 4.dp, top = 10.dp, bottom = 10.dp),
-                    verticalAlignment = Alignment.CenterVertically,
+                Column(
+                    Modifier
+                        .fillMaxWidth()
+                        .clickable { shown = false }
+                        .padding(horizontal = 18.dp, vertical = 18.dp),
+                    horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally,
                 ) {
                     Box(
                         Modifier
-                            .size(34.dp)
+                            .size(56.dp)
                             .clip(CircleShape)
                             .background(tint.copy(alpha = 0.14f)),
                         contentAlignment = Alignment.Center,
                     ) {
-                        Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(20.dp))
+                        Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(30.dp))
                     }
-                    Spacer(Modifier.width(10.dp))
+                    Spacer(Modifier.height(12.dp))
                     Text(
                         card.text,
-                        style = MaterialTheme.typography.bodyMedium,
+                        style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.Bold,
                         color = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.weight(1f),
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center,
                     )
-                    IconButton(
+                    Spacer(Modifier.height(12.dp))
+                    TextButton(
                         onClick = {
                             shown = false
                             onConsume()
                         },
-                        modifier = Modifier.size(32.dp),
                     ) {
-                        Icon(
-                            Icons.Default.Close,
-                            contentDescription = "إغلاق",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(16.dp),
-                        )
+                        Text("حسنًا", fontWeight = FontWeight.Bold)
                     }
                 }
             }
@@ -429,38 +466,87 @@ private fun BoxScope.ServerNoticeOverlay(notice: Notice?, onConsume: () -> Unit)
     }
 }
 
-/** بنودُ الدرج — وحداتُ المخبز ثمّ وحداتُ «الطاقم» المنقولة، كلٌّ بإذنه. */
-private fun drawerEntries(can: (String) -> Boolean): List<DrawerEntry> =
-    buildList {
-        fun add(route: String, titleAr: String, permission: String? = null) {
-            if (permission == null || can(permission)) add(DrawerEntry(route, titleAr, permission))
-        }
-        add(Routes.HOME, "اللوحة")
-        add(Routes.PRODUCTION, "الإنتاج", "van_sales.view")
-        add(Routes.DISTRIBUTION, "التوزيع والمناديب", "distribution.view")
-        add(Routes.CUSTODY, "العهدة والإقفال", "distribution.view")
-        add(Routes.SALESMEN, "أوامرُ التحميل", "distribution.view")
-        add(Routes.COLLECTION, "التحصيل", "collection.view")
-        add(Routes.PRICES, "أسعارُ العملاء", "sales.price.manage")
-        add(Routes.REPORTS, "تقاريرُ التوزيع", "distribution.view")
-        add(Routes.POLICY, "سياسةُ العجز", "distribution.policy.manage")
-        add(Routes.CATALOG, "الأصناف والمجموعات", "catalog.item.view")
-        add(Routes.PURCHASES, "المشتريات", "purchase.view")
-        add(Routes.VOUCHERS, "السندات المخزنيّة", "inventory.view")
-        add(Routes.INVENTORY, "المخزون والأرصدة", "inventory.view")
-        add(Routes.COUNTS, "تسويةُ الجرد", "inventory.view")
-        add(Routes.TREASURY, "الخزينة والمصروفات", "treasury.view")
-        add(Routes.PARTIES, "العملاء والموردون", "parties.view")
-        add(Routes.POS, "نقطة البيع", "pos.view")
-        add(Routes.EMPLOYEES, "الموظفون", "hrm.view")
-        add(Routes.ADJUSTMENTS, "المنصرفات", "hrm.view")
-        add(Routes.PAYROLL, "الرواتب", "hrm.view")
-        add(Routes.EMPLOYEE_ACCOUNT, "حسابُ موظف", "hrm.view")
-        add(Routes.SALES_REGISTRY, "مناديبُ المبيعات", "sales.view")
-        add(Routes.USERS, "المستخدمون", "tenant.membership.manage")
-        add(Routes.ROLES, "الأدوار والصلاحيّات", "tenant.role.manage")
-        add(Routes.SYSTEM_REPORTS, "التقارير", "reporting.view")
-        add(Routes.NOTIFICATIONS, "الإشعارات")
-        add(Routes.PRINTERS, "الطباعة والطابعات")
-        add(Routes.CHANGE_PASSWORD, "تغييرُ كلمة المرور")
-    }
+/**
+ * بنودُ الدرج — **مجمّعةً في حاويات** كما طلب المالك (محاسبة/مستودعات/إنتاج/مبيعات/
+ * مشتريات/تقارير/موظفون/مصروفات)، وكلُّ بندٍ بإذنِه. الأكوادُ كلُّها من سجلِّ
+ * الخادم (`packages/contracts/src/permissions.ts`) — لا كودَ مُخترَعًا، فقد أثبت
+ * التدقيقُ أنّ كودًا غيرَ موجودٍ يُخفي الشاشةَ عن المالكِ نفسِه.
+ */
+private fun drawerGroups(can: (String) -> Boolean): List<Pair<String, List<DrawerEntry>>> =
+    listOf(
+        DrawerGroup("الرئيسيّة", listOf(DrawerEntry(Routes.HOME, "اللوحة"))),
+        DrawerGroup(
+            "المبيعات",
+            listOf(
+                DrawerEntry(Routes.POS, "نقطة البيع", "pos.view"),
+                DrawerEntry(Routes.SALES_INVOICES, "فواتيرُ المبيعات والمردودات", "sales.view"),
+                DrawerEntry(Routes.PRICES, "أسعارُ العملاء", "van_sales.pricing.manage"),
+                DrawerEntry(Routes.SALES_REGISTRY, "مناديبُ المبيعات", "sales.view"),
+            ),
+        ),
+        DrawerGroup(
+            "المشتريات",
+            listOf(
+                DrawerEntry(Routes.PURCHASES, "فواتيرُ المشتريات والمردودات", "purchase.view"),
+            ),
+        ),
+        DrawerGroup(
+            "المستودعات",
+            listOf(
+                DrawerEntry(Routes.INVENTORY, "المخزون والأرصدة", "inventory.view"),
+                DrawerEntry(Routes.VOUCHERS, "السندات المخزنيّة", "inventory.view"),
+                DrawerEntry(Routes.COUNTS, "تسويةُ الجرد", "inventory.view"),
+            ),
+        ),
+        DrawerGroup(
+            "التوزيع والمندوبين",
+            listOf(
+                DrawerEntry(Routes.DISTRIBUTION, "التوزيع والمناديب", "van_sales.view"),
+                DrawerEntry(Routes.SALESMEN, "أوامرُ التحميل", "van_sales.view"),
+                DrawerEntry(Routes.CUSTODY, "العهدة والإقفال", "van_sales.view"),
+                DrawerEntry(Routes.COLLECTION, "التحصيل", "van_sales.view"),
+                DrawerEntry(Routes.POLICY, "سياسةُ العجز", "distribution.policy.manage"),
+                DrawerEntry(Routes.REPORTS, "تقاريرُ التوزيع", "van_sales.view"),
+            ),
+        ),
+        DrawerGroup("الإنتاج", listOf(DrawerEntry(Routes.PRODUCTION, "الإنتاج", "van_sales.view"))),
+        DrawerGroup(
+            "المحاسبة والمصروفات",
+            listOf(DrawerEntry(Routes.TREASURY, "الخزينة والمصروفات", "treasury.view")),
+        ),
+        DrawerGroup(
+            "الكتالوج",
+            listOf(
+                DrawerEntry(Routes.ITEMS, "الأصناف", "catalog.item.view"),
+                DrawerEntry(Routes.CATEGORIES, "المجموعات", "catalog.category.view"),
+                DrawerEntry(Routes.UNITS, "وحداتُ القياس", "catalog.unit.view"),
+            ),
+        ),
+        DrawerGroup(
+            "الأطراف",
+            listOf(DrawerEntry(Routes.PARTIES, "العملاء والموردون", "parties.view")),
+        ),
+        DrawerGroup(
+            "الموظفون",
+            listOf(
+                DrawerEntry(Routes.EMPLOYEES, "الموظفون", "hrm.view"),
+                DrawerEntry(Routes.ADJUSTMENTS, "المنصرفات", "hrm.view"),
+                DrawerEntry(Routes.PAYROLL, "الرواتب", "hrm.view"),
+                DrawerEntry(Routes.EMPLOYEE_ACCOUNT, "حسابُ موظف", "hrm.view"),
+            ),
+        ),
+        DrawerGroup("التقارير", listOf(DrawerEntry(Routes.SYSTEM_REPORTS, "التقارير", "reporting.view"))),
+        DrawerGroup(
+            "الإدارة والإعدادات",
+            listOf(
+                DrawerEntry(Routes.ORG, "الفروع والمستودعات والخزائن", "organization.branch.view"),
+                DrawerEntry(Routes.USERS, "المستخدمون", "tenant.membership.manage"),
+                DrawerEntry(Routes.ROLES, "الأدوار والصلاحيّات", "tenant.role.manage"),
+                DrawerEntry(Routes.NOTIFICATIONS, "الإشعارات"),
+                DrawerEntry(Routes.PRINTERS, "الطباعة والطابعات"),
+                DrawerEntry(Routes.CHANGE_PASSWORD, "تغييرُ كلمة المرور"),
+            ),
+        ),
+    )
+    .map { group -> group.titleAr to group.visible(can) }
+    .filter { (_, visible) -> visible.isNotEmpty() }

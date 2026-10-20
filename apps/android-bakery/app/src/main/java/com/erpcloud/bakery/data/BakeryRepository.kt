@@ -44,6 +44,7 @@ import com.erpcloud.bakery.data.api.ReportCatalogEntryDto
 import com.erpcloud.bakery.data.api.ReportResultDto
 import com.erpcloud.bakery.data.api.RoleDto
 import com.erpcloud.bakery.data.api.SalaryPaymentDto
+import com.erpcloud.bakery.data.api.SalesInvoiceDto
 import com.erpcloud.bakery.data.api.SalesRegistryDto
 import com.erpcloud.bakery.data.api.StockAdjustmentDto
 import com.erpcloud.bakery.data.api.StockLevelDto
@@ -55,6 +56,8 @@ import com.erpcloud.bakery.data.offline.Idempotency
 import com.erpcloud.bakery.data.offline.SessionStore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 import retrofit2.Response
@@ -153,24 +156,13 @@ class BakeryRepository(
         response.body()?.data ?: emptyList()
     }
 
-    suspend fun catalogItems(): List<ItemOptionDto> = withContext(Dispatchers.IO) {
-        val response = api.catalogItems()
-        if (!response.isSuccessful) throw response.toApiException()
-        response.body() ?: emptyList()
-    }
+    suspend fun catalogItems(): List<ItemOptionDto> = rawList { api.catalogItems() }
 
     /** أصنافُ الكتالوج كاملةً (شاشةُ الكتالوج) — نفس المسار برؤيةٍ أوسع. */
-    suspend fun catalogItemsFull(): List<CatalogItemDto> = withContext(Dispatchers.IO) {
-        val response = api.catalogItemsFull()
-        if (!response.isSuccessful) throw response.toApiException()
-        response.body() ?: emptyList()
-    }
+    suspend fun catalogItemsFull(): List<CatalogItemDto> = rawList { api.catalogItemsFull() }
 
-    suspend fun parties(kind: String = "customer"): List<PartyDto> = withContext(Dispatchers.IO) {
-        val response = api.parties(kind = kind)
-        if (!response.isSuccessful) throw response.toApiException()
-        response.body() ?: emptyList()
-    }
+    suspend fun parties(kind: String = "customer"): List<PartyDto> =
+        rawList { api.parties(kind = kind) }
 
     /** إنشاءُ طرفٍ — مورّدٌ أو عميل (إذن parties.manage). */
     suspend fun createParty(body: JsonObject): ActionResult =
@@ -248,6 +240,41 @@ class BakeryRepository(
             )
         }
 
+    // ------------------------------------------------------ فواتير المبيعات
+
+    /** فواتيرُ المبيعات — `GET /sales/invoices` (إذن `sales.view`). */
+    suspend fun salesInvoices(): List<SalesInvoiceDto> = rawList { api.salesInvoices() }
+
+    /** إنشاءُ فاتورة مبيعات (مسودّة) — `POST /sales/invoices`. */
+    suspend fun createSalesInvoice(body: JsonObject): ActionResult =
+        submitDirect("إنشاء فاتورة المبيعات") { api.createSalesInvoice(body) }
+
+    /** ترحيلُ فاتورة مبيعات — `POST /sales/invoices/{id}/post`. */
+    suspend fun postSalesInvoice(id: String, body: JsonObject): ActionResult =
+        submitDirect("ترحيل فاتورة المبيعات") { api.postSalesInvoice(id, body) }
+
+    /** مردودُ مبيعات من فاتورةٍ مرحّلة — `POST /sales/invoices/{id}/return`. */
+    suspend fun returnSalesInvoice(id: String, body: JsonObject): ActionResult =
+        submitDirect("إنشاء مردود المبيعات") { api.returnSalesInvoice(id, body) }
+
+    // ---------------------------------------------------- الفروع والمستودعات
+
+    /** إنشاءُ فرع — `POST /branches` (zod صارم: مفاتيحُ معروفةٍ فقط). */
+    suspend fun createBranch(body: JsonObject): ActionResult =
+        submitDirect("إنشاء الفرع") { api.createBranch(body) }
+
+    /** تعديلُ فرع — `PATCH /branches/{id}`. */
+    suspend fun updateBranch(id: String, body: JsonObject): ActionResult =
+        submitDirect("تعديل الفرع") { api.updateBranch(id, body) }
+
+    /** إنشاءُ مستودع — `POST /warehouses`. */
+    suspend fun createWarehouse(body: JsonObject): ActionResult =
+        submitDirect("إنشاء المستودع") { api.createWarehouse(body) }
+
+    /** إنشاءُ خزينة — `POST /cash-locations`. */
+    suspend fun createCashLocation(body: JsonObject): ActionResult =
+        submitDirect("إنشاء الخزينة") { api.createCashLocation(body) }
+
     // ------------------------------------------------------------ أدوات داخلية
 
     /**
@@ -309,12 +336,29 @@ class BakeryRepository(
 
     // ============================================================ وحدات «الطاقم»
 
-    /** قائمةٌ خام تُفكّ تسلسلها من الاستجابة — الغلافُ إن وُجد يُتجاوز. */
-    private suspend inline fun <reified T> rawList(crossinline call: suspend () -> Response<List<T>>): List<T> =
+    /**
+     * قائمةٌ خام تُفكّ تسلسلها من الاستجابة — **بفكّ غلافٍ مزدوج** كقاعدة
+     * `web-core/api.ts` نفسها: مصفوفةٌ خام، أو `{data: [...]}`، أو `{items: [...]}`.
+     * المتحكماتُ غيرُ موحّدةٍ في هذا (بعضها يلفّ وبعضها لا)، فتقبُّلُ الشكلين
+     * هو ما يمنع انهيارَ شاشةٍ كاملةٍ لأنّ متحكمًا غيّر رأيه.
+     */
+    private suspend inline fun <reified T> rawList(crossinline call: suspend () -> Response<JsonElement>): List<T> =
         withContext(Dispatchers.IO) {
             val response = call()
             if (!response.isSuccessful) throw response.toApiException()
-            response.body() ?: emptyList()
+            val element = response.body() ?: return@withContext emptyList()
+            val payload = when (element) {
+                is JsonObject -> element["data"] ?: element["items"] ?: element
+                else -> element
+            }
+            if (payload is JsonNull || payload.toString() == "null") {
+                emptyList()
+            } else {
+                AppJson.decodeFromString(
+                    kotlinx.serialization.builtins.ListSerializer(kotlinx.serialization.serializer<T>()),
+                    payload.toString(),
+                )
+            }
         }
 
     // ------------------------------------------------------------ الكتالوج

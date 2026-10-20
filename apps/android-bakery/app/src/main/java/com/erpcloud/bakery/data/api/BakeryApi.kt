@@ -162,15 +162,15 @@ interface BakeryApi {
 
     /** أصنافُ الكتالوج — مصفوفةٌ خام (صفوف drizzle ⇒ camelCase). */
     @GET("organization/catalog/items")
-    suspend fun catalogItems(): Response<List<ItemOptionDto>>
+    suspend fun catalogItems(): Response<JsonElement>
 
     /** أصنافُ الكتالوج كاملةً — لشاشةِ الكتالوج (أعمدةُ الأسعار والتتبّع). */
     @GET("organization/catalog/items")
-    suspend fun catalogItemsFull(): Response<List<CatalogItemDto>>
+    suspend fun catalogItemsFull(): Response<JsonElement>
 
     /** العملاء — مصفوفةٌ خام بلا غلاف (كما في تطبيق المندوب). */
     @GET("parties")
-    suspend fun parties(@Query("kind") kind: String = "customer"): Response<List<PartyDto>>
+    suspend fun parties(@Query("kind") kind: String = "customer"): Response<JsonElement>
 
     /** إنشاءُ طرفٍ (مورّد/عميل) — إذن `parties.manage`. */
     @POST("parties")
@@ -194,7 +194,7 @@ interface BakeryApi {
 
     /** المجموعات — إذن `catalog.category.view` (مصفوفةٌ خام). */
     @GET("organization/catalog/categories")
-    suspend fun catalogCategories(): Response<List<CategoryDto>>
+    suspend fun catalogCategories(): Response<JsonElement>
 
     /** إنشاء مجموعة — إذن `catalog.category.manage`. */
     @POST("organization/catalog/categories")
@@ -202,7 +202,7 @@ interface BakeryApi {
 
     /** وحدات القياس — إذن `catalog.unit.view`. */
     @GET("organization/catalog/units")
-    suspend fun catalogUnits(): Response<List<UnitDto>>
+    suspend fun catalogUnits(): Response<JsonElement>
 
     /** إنشاء وحدة — إذن `catalog.unit.manage`. */
     @POST("organization/catalog/units")
@@ -214,7 +214,7 @@ interface BakeryApi {
 
     /** وحداتُ صنفٍ — إذن `catalog.item.view`. */
     @GET("organization/catalog/items/{id}/units")
-    suspend fun itemUnits(@Path("id") itemId: String): Response<List<ItemUnitDto>>
+    suspend fun itemUnits(@Path("id") itemId: String): Response<JsonElement>
 
     /** إضافةُ وحدةٍ إلى صنف — إذن `catalog.item.manage`. */
     @POST("organization/catalog/items/{id}/units")
@@ -237,7 +237,7 @@ interface BakeryApi {
 
     /** فواتيرُ المشتريات — إذن `purchase.view` (مصفوفةٌ خام). */
     @GET("purchase-invoices")
-    suspend fun purchaseInvoices(): Response<List<PurchaseInvoiceDto>>
+    suspend fun purchaseInvoices(): Response<JsonElement>
 
     /** إنشاءُ فاتورة مشتريات (مسودة) — إذن `purchase.invoice.create`. */
     @POST("purchase-invoices")
@@ -257,7 +257,7 @@ interface BakeryApi {
     suspend fun stockVouchers(
         @Query("kind") kind: String? = null,
         @Query("status") status: String? = null,
-    ): Response<List<StockVoucherDto>>
+    ): Response<JsonElement>
 
     /** إنشاءُ سندٍ — إذن `inventory.adjust`. */
     @POST("inventory/vouchers")
@@ -285,18 +285,18 @@ interface BakeryApi {
 
     /** الأقسام — إذن `hrm.view`. */
     @GET("hrm/departments")
-    suspend fun departments(): Response<List<DepartmentDto>>
+    suspend fun departments(): Response<JsonElement>
 
     /** الوظائف — إذن `hrm.view`. */
     @GET("hrm/jobs")
-    suspend fun jobs(): Response<List<JobDto>>
+    suspend fun jobs(): Response<JsonElement>
 
     /** الموظفون — إذن `hrm.view` (بطاقات drizzle خام). */
     @GET("hrm/employees")
     suspend fun employees(
         @Query("q") q: String? = null,
         @Query("status") status: String? = null,
-    ): Response<List<EmployeeDto>>
+    ): Response<JsonElement>
 
     /** إنشاءُ موظف — إذن `hrm.manage`. */
     @POST("hrm/employees")
@@ -304,7 +304,7 @@ interface BakeryApi {
 
     /** أنواعُ المنصرفات — إذن `hrm.view`. */
     @GET("hrm/adjustment-types")
-    suspend fun adjustmentTypes(): Response<List<AdjustmentTypeDto>>
+    suspend fun adjustmentTypes(): Response<JsonElement>
 
     /** المنصرفاتُ والاستقطاعات — إذن `hrm.view` (`{data}`). */
     @GET("hrm/adjustments")
@@ -369,7 +369,7 @@ interface BakeryApi {
     suspend fun treasuryVouchers(
         @Query("from") from: String? = null,
         @Query("to") to: String? = null,
-    ): Response<List<TreasuryVoucherDto>>
+    ): Response<JsonElement>
 
     /** إنشاءُ سند قبض/صرف (مسودّة) — إذن `treasury.voucher.create`. */
     @POST("vouchers")
@@ -393,7 +393,7 @@ interface BakeryApi {
     suspend fun stockLevels(
         @Query("warehouse_id") warehouseId: String? = null,
         @Query("item_id") itemId: String? = null,
-    ): Response<List<StockLevelDto>>
+    ): Response<JsonElement>
 
     /** حركةُ المخزون — إذن `inventory.view` (مصفوفةٌ خام). */
     @GET("inventory/movements")
@@ -402,7 +402,7 @@ interface BakeryApi {
         @Query("warehouse_id") warehouseId: String? = null,
         @Query("from") from: String? = null,
         @Query("to") to: String? = null,
-    ): Response<List<StockMovementDto>>
+    ): Response<JsonElement>
 
     /** بطاقةُ صنفٍ — إذن `inventory.view` (كائنٌ خام بمجاميعٍ ورصيدٍ جارٍ). */
     @GET("inventory/item-card")
@@ -415,7 +415,7 @@ interface BakeryApi {
 
     /** تسوياتُ الجرد — إذن `inventory.view` (مصفوفةٌ خام مع السطور). */
     @GET("inventory/adjustments")
-    suspend fun stockAdjustments(@Query("status") status: String? = null): Response<List<StockAdjustmentDto>>
+    suspend fun stockAdjustments(@Query("status") status: String? = null): Response<JsonElement>
 
     /** إنشاءُ تسوية جرد (مسودّة) — إذن `inventory.adjust`. */
     @POST("inventory/adjustments")
@@ -428,6 +428,42 @@ interface BakeryApi {
         @Body body: JsonObject,
     ): Response<JsonElement>
 
+    // ------------------------------------------------------ فواتير المبيعات
+
+    /** فواتيرُ المبيعات — إذن `sales.view` (مصفوفةٌ خام أو `{data}`). */
+    @GET("sales/invoices")
+    suspend fun salesInvoices(): Response<JsonElement>
+
+    /** إنشاءُ فاتورة مبيعات (مسودّة) — إذن `sales.invoice.create`. */
+    @POST("sales/invoices")
+    suspend fun createSalesInvoice(@Body body: JsonObject): Response<JsonElement>
+
+    /** ترحيلُ الفاتورة — إذن `sales.invoice.post` (`settlement: credit` آجل أو نقديّ بحساب). */
+    @POST("sales/invoices/{id}/post")
+    suspend fun postSalesInvoice(@Path("id") id: String, @Body body: JsonObject): Response<JsonElement>
+
+    /** مردودُ مبيعات من فاتورةٍ مرحّلة — إذن `sales.return.create`. */
+    @POST("sales/invoices/{id}/return")
+    suspend fun returnSalesInvoice(@Path("id") id: String, @Body body: JsonObject): Response<JsonElement>
+
+    // ---------------------------------------------------- الفروع والمستودعات
+
+    /** إنشاءُ فرع — إذن `organization.branch.manage` (zod صارم: بلا مفاتيح زائدة). */
+    @POST("branches")
+    suspend fun createBranch(@Body body: JsonObject): Response<JsonElement>
+
+    /** تعديلُ فرع — إذن `organization.branch.manage`. */
+    @PATCH("branches/{id}")
+    suspend fun updateBranch(@Path("id") id: String, @Body body: JsonObject): Response<JsonElement>
+
+    /** إنشاءُ مستودع — إذن `organization.warehouse.manage`. */
+    @POST("warehouses")
+    suspend fun createWarehouse(@Body body: JsonObject): Response<JsonElement>
+
+    /** إنشاءُ خزينة/صندوق — إذن `organization.cashlocation.manage`. */
+    @POST("cash-locations")
+    suspend fun createCashLocation(@Body body: JsonObject): Response<JsonElement>
+
     // ------------------------------------------------------------ الأطراف
 
     /** رصيدُ طرفٍ وقيودُه المفتوحة — إذن `parties.view` (كائنٌ خام). */
@@ -438,7 +474,7 @@ interface BakeryApi {
 
     /** سجلُّ مناديب المبيعات — إذن `sales.view` (مصفوفةٌ خام). */
     @GET("sales/salesmen")
-    suspend fun salesRegistry(): Response<List<SalesRegistryDto>>
+    suspend fun salesRegistry(): Response<JsonElement>
 
     /** إنشاءُ مندوب مبيعات — إذن `sales.salesman.manage`. */
     @POST("sales/salesmen")
@@ -480,7 +516,7 @@ interface BakeryApi {
 
     /** فهرسُ التقارير — إذن `reporting.view` (مصفوفةٌ خام). */
     @GET("reports")
-    suspend fun reportCatalog(): Response<List<ReportCatalogEntryDto>>
+    suspend fun reportCatalog(): Response<JsonElement>
 
     /** تشغيلُ تقريرٍ بمدخلاته — إذن `reporting.view` (كائنٌ خام). */
     @GET("reports/{key}")

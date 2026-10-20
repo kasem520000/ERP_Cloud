@@ -11,6 +11,7 @@ import android.text.TextPaint
 import com.erpcloud.bakery.data.api.LoadOrderDto
 import com.erpcloud.bakery.data.api.PrintViewDto
 import com.erpcloud.bakery.data.api.ProductionBatchDto
+import com.erpcloud.bakery.data.api.ReportResultDto
 import com.erpcloud.bakery.util.Dec
 
 /**
@@ -514,4 +515,83 @@ private fun paymentMethodAr(method: String): String = when (method) {
     "bank" -> "تحويل بنكيّ"
     "credit" -> "آجل"
     else -> method.ifBlank { "—" }
+}
+
+/**
+ * مستندُ **تقرير** — تقريرُ النظام كاملًا صورةً تُطبعُ أو تُشارَك PDF:
+ * الترويسةُ (العنوانُ والمجموعةُ ووقتُ التوليد وعددُ الصفوف)، رأسُ الأعمدة،
+ * ثمّ الصفوفُ (بحدٍّ أقصى لكلِّ صفحةِ صورةٍ طويلةٍ كي لا تنفجرَ الذاكرة)،
+ * والإجماليّاتُ في الذيل. عرضٌ أوسعُ من الفواتير (٩٠٠) لأنّ التقاريرَ عريضة.
+ *
+ * الطباعةُ عبر نظامِ أندرويد تفتحُ نافذةً فيها «حفظُ PDF»، والمشاركةُ ترسلُ
+ * الصورةَ لتطبيقاتٍ تحوِّلها PDF — فذلك هو «تصديرُ PDF» بلا مكتباتٍ خارجيّة.
+ */
+fun reportDocument(report: ReportResultDto, widthPx: Int = 900): Bitmap {
+    val doc = DocCanvas(widthPx)
+    val titlePaint = doc.paint(doc.titleSize, bold = true)
+    val smallPaint = doc.paint(doc.smallSize)
+    val smallBold = doc.paint(doc.smallSize, bold = true)
+    val ops = mutableListOf<Op>()
+
+    ops += Op.Section(doc.layout(report.titleAr, titlePaint, doc.innerWidth))
+    ops += Op.Kv(KvRow("المجموعة", Labels_reportGroup(report.group)))
+    report.generatedAt?.let { ops += Op.Kv(KvRow("وقتُ التوليد", it.take(19).replace('T', ' '))) }
+    ops += Op.Kv(KvRow("عددُ الصفوف", report.rowCount.toString()))
+    ops += Op.Dash
+
+    val visible = report.columns.filter { !it.hidden }
+    if (visible.isEmpty() || report.rows.isEmpty()) {
+        ops += Op.Kv(KvRow("النتيجة", "لا صفوفَ في النتيجة.", boxed = true))
+    } else {
+        // رأسُ الأعمدة — من اليمين بترتيبِ الخادم
+        ops += Op.Columns(
+            visible.map { column ->
+                Op.Cell(1f, doc.layout(column.labelAr, smallBold, (doc.innerWidth / visible.size) - 4))
+            },
+            header = true,
+        )
+        ops += Op.Dash
+        val maxRows = 80
+        report.rows.take(maxRows).forEach { row ->
+            ops += Op.Columns(
+                visible.map { column ->
+                    val raw = row[column.key] ?: row[column.key.replaceFirstChar { it.uppercase() }] ?: ""
+                    val text = when (column.type) {
+                        "money", "qty", "percent", "int" -> com.erpcloud.bakery.util.Dec.money(raw)
+                        else -> raw
+                    }
+                    Op.Cell(1f, doc.layout(text, smallPaint, (doc.innerWidth / visible.size) - 4))
+                },
+            )
+        }
+        if (report.rows.size > maxRows) {
+            ops += Op.Kv(KvRow("تنبيه", "عُرضت أول $maxRows صفًّا من ${report.rows.size} — صدِّر التقريرَ الكاملَ من نطاقٍ أضيق.", boxed = true))
+        }
+    }
+
+    val totals = report.totals.filterValues { it.isNotBlank() }
+    val grand = report.grandTotal
+    if (totals.isNotEmpty() || grand.isNotEmpty()) {
+        ops += Op.Dash
+        totals.forEach { (key, value) ->
+            val labelAr = report.columns.firstOrNull { it.key == key }?.labelAr ?: key
+            ops += Op.Kv(KvRow(labelAr, com.erpcloud.bakery.util.Dec.money(value), bold = true))
+        }
+        grand.forEach { card -> ops += Op.Kv(KvRow(card.labelAr, com.erpcloud.bakery.util.Dec.money(card.amount), bold = true, boxed = true)) }
+    }
+
+    return doc.render(ops)
+}
+
+/** مجموعةُ التقرير بالعربيّة — نفسَ خرائط Labels دون تكرار السجلّ كاملًا. */
+private fun Labels_reportGroup(group: String): String = when (group) {
+    "sales" -> "المبيعات"
+    "purchases" -> "المشتريات"
+    "inventory" -> "المخزون"
+    "treasury" -> "الخزينة"
+    "hrm" -> "الموارد البشريّة"
+    "accounting" -> "المحاسبة"
+    "van_sales" -> "التوزيع والمندوبين"
+    "parties" -> "الأطراف"
+    else -> group
 }

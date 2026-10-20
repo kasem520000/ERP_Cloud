@@ -44,6 +44,8 @@ import com.erpcloud.bakery.ui.components.KeyValue
 import com.erpcloud.bakery.ui.components.SectionCard
 import com.erpcloud.bakery.ui.components.StatusChip
 import com.erpcloud.bakery.util.Dec
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.put
 
@@ -228,6 +230,54 @@ private fun buildParams(branchId: String, from: String, to: String, yearMonth: S
 /** نتيجةُ التقرير — الأعمدةُ من الخادم، والصفوفُ قيمٌ نصّيّةٌ كما جاءت. */
 @Composable
 private fun ReportResult(result: ReportResultDto) {
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
+    val context = androidx.compose.ui.platform.LocalContext.current
+    var printMessage by androidx.compose.runtime.remember { androidx.compose.runtime.mutableStateOf<String?>(null) }
+
+    if (printMessage != null) {
+        StatusChip(printMessage ?: "", ChipTone.DANGER)
+        Spacer(Modifier.height(6.dp))
+    }
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        ActionButton(
+            label = "🖨 طباعة / PDF",
+            onClick = {
+                scope.launch {
+                    try {
+                        val bitmap = withContext(kotlinx.coroutines.Dispatchers.IO) {
+                            com.erpcloud.bakery.printing.reportDocument(result)
+                        }
+                        com.erpcloud.bakery.printing.PrintKit.printViaSystem(context, bitmap, result.titleAr)
+                    } catch (error: Exception) {
+                        printMessage = "تعذّر تجهيزُ التقرير للطباعة: ${error.message ?: ""}"
+                    }
+                }
+            },
+            modifier = Modifier.weight(1f),
+        )
+        ActionButton(
+            label = "📤 مشاركة",
+            onClick = {
+                scope.launch {
+                    try {
+                        val bitmap = withContext(kotlinx.coroutines.Dispatchers.IO) {
+                            com.erpcloud.bakery.printing.reportDocument(result)
+                        }
+                        val shared = com.erpcloud.bakery.printing.PrintKit.shareImage(
+                            context,
+                            bitmap,
+                            "تقرير-" + result.key + ".png",
+                        )
+                        if (!shared) printMessage = "لم تُرسل الصورة — تحقّق من تطبيق المشاركة."
+                    } catch (error: Exception) {
+                        printMessage = "تعذّر تجهيزُ التقرير للمشاركة: ${error.message ?: ""}"
+                    }
+                }
+            },
+            modifier = Modifier.weight(1f),
+        )
+    }
+    Spacer(Modifier.height(8.dp))
     LazyColumn(
         verticalArrangement = Arrangement.spacedBy(8.dp),
         contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = 20.dp),

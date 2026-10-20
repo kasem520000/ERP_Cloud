@@ -40,6 +40,7 @@ import com.erpcloud.bakery.data.ActionResult
 import com.erpcloud.bakery.ui.AppViewModel
 import com.erpcloud.bakery.ui.components.ActionButton
 import com.erpcloud.bakery.ui.components.CenterLoading
+import com.erpcloud.bakery.ui.components.MissingPermissionHint
 import com.erpcloud.bakery.ui.components.ChipTone
 import com.erpcloud.bakery.ui.components.ConfirmDialog
 import com.erpcloud.bakery.ui.components.EmptyState
@@ -87,6 +88,10 @@ fun PurchasesScreen(vm: AppViewModel, onBack: () -> Unit) {
             }
         },
     ) { padding ->
+        // لا يُخفى الزرُّ بصمتًا: إن غاب الإذنُ يُشرَح السببُ بالعربية
+        if (!state.can("purchase.invoice.create")) {
+            MissingPermissionHint("إنشاء فاتورة", "purchase.invoice.create", Modifier.padding(padding))
+        }
         if (showCreate) {
             PurchaseInvoiceForm(
                 vm = vm,
@@ -175,6 +180,7 @@ private fun PurchaseInvoiceForm(vm: AppViewModel, onDone: () -> Unit, onAddSuppl
     var warehouseId by remember { mutableStateOf("") }
     var warehouseLabel by remember { mutableStateOf("") }
     var supplierRef by remember { mutableStateOf("") }
+    var isReturn by remember { mutableStateOf(false) }
     var pickBranch by remember { mutableStateOf(false) }
     var pickParty by remember { mutableStateOf(false) }
     var pickWarehouse by remember { mutableStateOf(false) }
@@ -198,7 +204,20 @@ private fun PurchaseInvoiceForm(vm: AppViewModel, onDone: () -> Unit, onAddSuppl
         verticalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         item {
-            SectionCard(title = "فاتورةُ مشترياتٍ جديدة", subtitle = "تُنشأ مسودّةً — والترحيلُ بعد التسجيل") {
+            SectionCard(title = if (isReturn) "مردودُ مشترياتٍ جديد" else "فاتورةُ مشترياتٍ جديدة", subtitle = "تُنشأ مسودّةً — والترحيلُ بعد التسجيل") {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    androidx.compose.material3.FilterChip(
+                        selected = !isReturn,
+                        onClick = { isReturn = false },
+                        label = { Text("فاتورةُ شراء") },
+                    )
+                    androidx.compose.material3.FilterChip(
+                        selected = isReturn,
+                        onClick = { isReturn = true },
+                        label = { Text("مردودُ مشتريات") },
+                    )
+                }
+                Spacer(Modifier.height(8.dp))
                 OutlinedTextField(
                     value = branchLabel,
                     onValueChange = {},
@@ -306,6 +325,7 @@ private fun PurchaseInvoiceForm(vm: AppViewModel, onDone: () -> Unit, onAddSuppl
                             val body = buildJsonObject {
                                 put("branchId", branchId)
                                 put("partyId", partyId)
+                                if (isReturn) put("kind", "purchase_return")
                                 if (warehouseId.isNotBlank()) put("warehouseId", warehouseId)
                                 if (supplierRef.isNotBlank()) put("supplierReferenceNo", supplierRef.trim())
                                 put(

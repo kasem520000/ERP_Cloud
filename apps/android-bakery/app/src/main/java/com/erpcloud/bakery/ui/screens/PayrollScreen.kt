@@ -39,6 +39,7 @@ import com.erpcloud.bakery.data.ActionResult
 import com.erpcloud.bakery.ui.AppViewModel
 import com.erpcloud.bakery.ui.components.ActionButton
 import com.erpcloud.bakery.ui.components.CenterLoading
+import com.erpcloud.bakery.ui.components.MissingPermissionHint
 import com.erpcloud.bakery.ui.components.ChipTone
 import com.erpcloud.bakery.ui.components.ConfirmDialog
 import com.erpcloud.bakery.ui.components.EmptyState
@@ -82,13 +83,17 @@ fun PayrollScreen(vm: AppViewModel, onBack: () -> Unit) {
             )
         },
         floatingActionButton = {
-            if (!showCreate && tab == 0 && state.can("payroll.run.create")) {
+            if (!showCreate && tab == 0 && state.can("hrm.manage")) {
                 FloatingActionButton(onClick = { showCreate = true }) {
                     Icon(Icons.Default.Add, contentDescription = "مسيّرة جديدة")
                 }
             }
         },
     ) { padding ->
+        // لا يُخفى الزرُّ بصمتًا: إن غاب الإذنُ يُشرَح السببُ بالعربية
+        if (!state.can("hrm.manage")) {
+            MissingPermissionHint("إنشاء مسير رواتب", "hrm.manage", Modifier.padding(padding))
+        }
         Column(Modifier.fillMaxSize().padding(padding)) {
             SecondaryTabRow(selectedTabIndex = tab) {
                 Tab(selected = tab == 0, onClick = { tab = 0; showCreate = false }, text = { Text("المسيّرات") })
@@ -131,10 +136,10 @@ fun PayrollScreen(vm: AppViewModel, onBack: () -> Unit) {
                                 }
                                 Spacer(Modifier.height(8.dp))
                                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    if (run.status == "draft" && state.can("payroll.post")) {
+                                    if (run.status == "draft" && state.can("hrm.payroll.post")) {
                                         OutlinedButton(onClick = { postTarget = run.id }) { Text("ترحيلُ المسيّرة") }
                                     }
-                                    if (run.status == "posted" && state.can("payroll.pay")) {
+                                    if (run.status == "posted" && state.can("hrm.payroll.post")) {
                                         OutlinedButton(onClick = { payTarget = run.id }) { Text("دفعُ المسيّرة") }
                                     }
                                 }

@@ -37,6 +37,7 @@ import com.erpcloud.bakery.data.ActionResult
 import com.erpcloud.bakery.ui.AppViewModel
 import com.erpcloud.bakery.ui.components.ActionButton
 import com.erpcloud.bakery.ui.components.CenterLoading
+import com.erpcloud.bakery.ui.components.MissingPermissionHint
 import com.erpcloud.bakery.ui.components.ChipTone
 import com.erpcloud.bakery.ui.components.EmptyState
 import com.erpcloud.bakery.ui.components.KeyValue
@@ -80,6 +81,10 @@ fun UsersScreen(vm: AppViewModel, onBack: () -> Unit) {
             }
         },
     ) { padding ->
+        // لا يُخفى الزرُّ بصمتًا: إن غاب الإذنُ يُشرَح السببُ بالعربية
+        if (!state.can("tenant.membership.manage")) {
+            MissingPermissionHint("إضافة مستخدم", "tenant.membership.manage", Modifier.padding(padding))
+        }
         if (showInvite) {
             InviteUserForm(vm, onDone = { showInvite = false })
             return@Scaffold

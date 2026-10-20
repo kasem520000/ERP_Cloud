@@ -39,6 +39,7 @@ import com.erpcloud.bakery.data.ActionResult
 import com.erpcloud.bakery.ui.AppViewModel
 import com.erpcloud.bakery.ui.components.ActionButton
 import com.erpcloud.bakery.ui.components.CenterLoading
+import com.erpcloud.bakery.ui.components.MissingPermissionHint
 import com.erpcloud.bakery.ui.components.ChipTone
 import com.erpcloud.bakery.ui.components.ConfirmDialog
 import com.erpcloud.bakery.ui.components.EmptyState
@@ -86,6 +87,10 @@ fun VouchersScreen(vm: AppViewModel, onBack: () -> Unit) {
             }
         },
     ) { padding ->
+        // لا يُخفى الزرُّ بصمتًا: إن غاب الإذنُ يُشرَح السببُ بالعربية
+        if (!state.can("inventory.adjust")) {
+            MissingPermissionHint("إنشاء سند مخزني", "inventory.adjust", Modifier.padding(padding))
+        }
         if (showCreate) {
             VoucherForm(vm, onDone = { showCreate = false })
             return@Scaffold

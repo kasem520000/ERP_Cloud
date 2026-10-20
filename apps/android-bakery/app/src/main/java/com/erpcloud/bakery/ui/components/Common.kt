@@ -290,6 +290,33 @@ fun NoticeBanner(notice: Notice?, onDismiss: () -> Unit, modifier: Modifier = Mo
     }
 }
 
+
+/**
+ * تنبيهُ الصلاحية المفقودة — **لا يُخفى الزرُّ بصمتًا أبدًا**: حين لا يملك دورُ
+ * المستخدم إذنَ العملية، تُعرض هذه اللافتةُ مكانَ الزرّ، باسمِ الصلاحيةِ
+ * **بالعربية**، فيعرفُ المستخدمُ أنّ الشاشةَ موجودةٌ والعمليةَ ممكنةٌ وأنّ
+ * النقصَ في دورِه لا في التطبيق.
+ */
+@Composable
+fun MissingPermissionHint(actionAr: String, permissionCode: String, modifier: Modifier = Modifier) {
+    Surface(
+        color = BakeryColors.WarnBg,
+        shape = RoundedCornerShape(14.dp),
+        border = androidx.compose.foundation.BorderStroke(1.dp, BakeryColors.Warn.copy(alpha = 0.25f)),
+        modifier = modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 4.dp),
+    ) {
+        Text(
+            "🔒 «$actionAr» متاحٌ لمن يحملُ صلاحية «${com.erpcloud.bakery.ui.screens.Labels.permission(permissionCode)}» — " +
+                "دورُك الحاليُّ لا يملكُها. عدِّلها من شاشةِ الأدوار والصلاحيّات.",
+            color = BakeryColors.Warn,
+            style = MaterialTheme.typography.bodySmall,
+            fontWeight = FontWeight.Bold,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+        )
+    }
+}
+
 /** عنصرُ اختيارٍ في نافذةِ الانتقاء. */
 data class PickerItem(
     val id: String,
