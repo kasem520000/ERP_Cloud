@@ -175,7 +175,7 @@ private object Routes {
 }
 
 /** بندُ درجٍ — مسارٌ + عنوانٌ + إذنُ الدخول (الدخولُ بلا إذنٍ يُخفي البندَ لا أكثر). */
-private data class DrawerEntry(val route: String, val titleAr: String, val permission: String?)
+private data class DrawerEntry(val route: String, val titleAr: String, val permission: String? = null)
 
 /**
  * حاويةُ درجٍ — عنوانٌ وبنودٌ؛ الحاويةُ كلُّها تختفي إن لم يبقَ فيها بندٌ مسموحٌ
