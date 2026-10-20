@@ -48,7 +48,7 @@ import com.erpcloud.bakery.ui.components.KeyValue
 import com.erpcloud.bakery.ui.components.SectionCard
 import com.erpcloud.bakery.ui.components.StatusChip
 import com.erpcloud.bakery.util.Dec
-import com.erpcloud.bakery.printing.BakeryDocs
+import com.erpcloud.bakery.printing.saleInvoice
 import com.erpcloud.bakery.printing.EscPos
 import com.erpcloud.bakery.printing.PrintKit
 import kotlinx.coroutines.Dispatchers
@@ -173,7 +173,7 @@ private fun DocumentCard(vm: AppViewModel, doc: DocumentDto) {
                         }
                         scope.launch {
                             try {
-                                val bitmap = withContext(Dispatchers.IO) { BakeryDocs.saleInvoice(view) }
+                                val bitmap = withContext(Dispatchers.IO) { saleInvoice(view) }
                                 val mac = state.session.printerMac
                                 val width = state.session.printerWidthDots
                                 if (mac.isNotBlank()) {
@@ -203,7 +203,7 @@ private fun DocumentCard(vm: AppViewModel, doc: DocumentDto) {
                         }
                         scope.launch {
                             try {
-                                val bitmap = withContext(Dispatchers.IO) { BakeryDocs.saleInvoice(view) }
+                                val bitmap = withContext(Dispatchers.IO) { saleInvoice(view) }
                                 val shared = withContext(Dispatchers.IO) {
                                     PrintKit.shareImage(context, bitmap, "فاتورة-${doc.number.ifBlank { doc.id.takeLast(6) }}.png")
                                 }
