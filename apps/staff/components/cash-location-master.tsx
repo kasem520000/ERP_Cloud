@@ -1,6 +1,6 @@
 'use client';
 
-import { FormSection, Panel } from '@erp/ui';
+import { FormSection, Panel, TableFrame } from '@erp/ui';
 import { useMemo, useState } from 'react';
 
 import { accountLabel, listAccounts, postableOf, type Account } from '../lib/accounts';
@@ -555,69 +555,67 @@ export function CashLocationMaster({ kind }: { kind: 'safe' | 'bank' }) {
         emptyDetail={isBank ? 'أضف بنكاً لتبدأ.' : 'أضف صندوقاً لتبدأ.'}
       >
         {() => (
-          <div className="table-wrap">
-            <table className="zebra">
-              <thead>
-                <tr>
-                  <th>#</th>
-                  <th>{isBank ? 'اسم البنك' : 'اسم الصندوق'}</th>
-                  <th>الفرع</th>
-                  <th>الموظف المسئول</th>
-                  <th>الحساب</th>
-                  <th>حالة الصندوق</th>
-                  <th>
-                    <span className="sr-only">إجراءات</span>
-                  </th>
-                  <th />
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((row, index) => (
-                  <tr key={row.id}>
-                    <td className="num">{index + 1}</td>
-                    <td>
-                      <button className="btn sm" type="button" onClick={() => select(row)}>
-                        {row.name}
-                      </button>
-                    </td>
-                    <td>{branchRows.find((entry) => entry.id === row.branchId)?.nameAr ?? '—'}</td>
-                    <td>
-                      {(row.custodianIds ?? []).length
-                        ? (row.custodianIds ?? []).map(employeeName).join(' · ')
-                        : '—'}
-                    </td>
-                    <td>
-                      {row.accountId
-                        ? accountLabel(
-                            (accounts.data ?? []).find((entry) => entry.id === row.accountId) ??
-                              ({ id: row.accountId, code: '—' } as Account),
+          <TableFrame tableClassName="zebra">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>{isBank ? 'اسم البنك' : 'اسم الصندوق'}</th>
+                <th>الفرع</th>
+                <th>الموظف المسئول</th>
+                <th>الحساب</th>
+                <th>حالة الصندوق</th>
+                <th>
+                  <span className="sr-only">إجراءات</span>
+                </th>
+                <th />
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((row, index) => (
+                <tr key={row.id}>
+                  <td className="num">{index + 1}</td>
+                  <td>
+                    <button className="btn sm" type="button" onClick={() => select(row)}>
+                      {row.name}
+                    </button>
+                  </td>
+                  <td>{branchRows.find((entry) => entry.id === row.branchId)?.nameAr ?? '—'}</td>
+                  <td>
+                    {(row.custodianIds ?? []).length
+                      ? (row.custodianIds ?? []).map(employeeName).join(' · ')
+                      : '—'}
+                  </td>
+                  <td>
+                    {row.accountId
+                      ? accountLabel(
+                          (accounts.data ?? []).find((entry) => entry.id === row.accountId) ??
+                            ({ id: row.accountId, code: '—' } as Account),
+                        )
+                      : '—'}
+                  </td>
+                  <td>
+                    <span className="badge">{row.isActive === false ? 'مغلق' : 'نشط'}</span>
+                  </td>
+                  <td>{row.isDefault ? <span className="badge ok">افتراضي</span> : null}</td>
+                  <td>
+                    {manage && !row.isDefault && (
+                      <button
+                        className="btn sm danger"
+                        type="button"
+                        disabled={busy}
+                        onClick={() =>
+                          run(
+                            () => apiDelete(`/cash-locations/${row.id}`),
+                            isBank ? 'تم حذف البنك.' : 'تم حذف الصندوق.',
                           )
-                        : '—'}
-                    </td>
-                    <td>
-                      <span className="badge">{row.isActive === false ? 'مغلق' : 'نشط'}</span>
-                    </td>
-                    <td>{row.isDefault ? <span className="badge ok">افتراضي</span> : null}</td>
-                    <td>
-                      {manage && !row.isDefault && (
-                        <button
-                          className="btn sm danger"
-                          type="button"
-                          disabled={busy}
-                          onClick={() =>
-                            run(
-                              () => apiDelete(`/cash-locations/${row.id}`),
-                              isBank ? 'تم حذف البنك.' : 'تم حذف الصندوق.',
-                            )
-                          }
-                        ></button>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                        }
+                      ></button>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </TableFrame>
         )}
       </QueryView>
     </Screen>
