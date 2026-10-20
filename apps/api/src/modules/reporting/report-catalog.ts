@@ -2985,20 +2985,47 @@ const definitions: ReportDefinition[] = [
     key: 'balance-sheet',
     titleAr: 'ميزانية تحليلية',
     group: 'accounting',
+    /*
+     * صافي ربح الفترة (أو خسارتها) سطرٌ في حقوق الملكية، لأن حسابات الإيراد
+     * والمصروف لا تُقفل في هذا النظام: بلا هذا السطر تخرج الميزانية غير
+     * متوازنة بمقدار الربح نفسه (قِيس على منشأة العرض 2026-10-20:
+     * الأصول 250,379.8969 مقابل الخصوم 260 + حقوق الملكية 250,000 والفرق
+     * 119.8969 = صافي الربح الدفتري). والربح هنا **من القيود** لا من قيمة
+     * المخزون التي يضيفها تقرير «أرباح وخسائر» اقتداءً بالديسكتوب.
+     */
+    hintAr: 'الأصول في مقابل الخصوم وحقوق الملكية، ويُضاف إليها صافي ربح الفترة أو خسارتها حتى التاريخ المحدد — فالميزانية لا تُقرأ إلّا متوازنة.',
     params: [{ name: 'to', labelAr: 'حتى تاريخ', kind: 'date' }, BRANCH],
     columns: [text('section', 'القسم'), text('code', 'رقم الحساب'), text('account', 'الحساب'), money('balance', 'الرصيد')],
     totals: ['balance'],
     build: (tenantId, f) => sql`
-      SELECT CASE acc.type WHEN 'asset' THEN 'الأصول' WHEN 'liability' THEN 'الخصوم' ELSE 'حقوق الملكية' END AS section,
-             acc.code, acc.name_ar AS account,
-             CASE acc.type WHEN 'asset' THEN sum(jel.debit) - sum(jel.credit)
-                           ELSE sum(jel.credit) - sum(jel.debit) END::text AS balance
-      FROM journal_entry_lines jel
-      JOIN journal_entries je ON je.id = jel.entry_id
-      JOIN accounts acc ON acc.id = jel.account_id
-      WHERE jel.tenant_id = ${tenantId} AND je.status = 'posted' AND acc.type IN ('asset', 'liability', 'equity')
-        AND ${onDate(sql`je.date`, undefined, f.to)} AND ${eqIf(sql`je.branch_id`, f.branchId)}
-      GROUP BY acc.type, acc.code, acc.name_ar ORDER BY acc.type, acc.code`,
+      SELECT section, code, account, balance
+      FROM (
+        SELECT CASE acc.type WHEN 'asset' THEN 'الأصول' WHEN 'liability' THEN 'الخصوم' ELSE 'حقوق الملكية' END AS section,
+               acc.code, acc.name_ar AS account,
+               CASE acc.type WHEN 'asset' THEN sum(jel.debit) - sum(jel.credit)
+                             ELSE sum(jel.credit) - sum(jel.debit) END::text AS balance,
+               CASE acc.type WHEN 'asset' THEN 1 WHEN 'liability' THEN 2 ELSE 3 END AS ord
+        FROM journal_entry_lines jel
+        JOIN journal_entries je ON je.id = jel.entry_id
+        JOIN accounts acc ON acc.id = jel.account_id
+        WHERE jel.tenant_id = ${tenantId} AND je.status = 'posted' AND acc.type IN ('asset', 'liability', 'equity')
+          AND ${onDate(sql`je.date`, undefined, f.to)} AND ${eqIf(sql`je.branch_id`, f.branchId)}
+        GROUP BY acc.type, acc.code, acc.name_ar
+        UNION ALL
+        SELECT 'حقوق الملكية', '',
+               CASE WHEN result.net >= 0 THEN 'صافي ربح الفترة' ELSE 'صافي خسارة الفترة' END,
+               result.net::text, 4
+        FROM (
+          SELECT coalesce(sum(jel.credit - jel.debit), 0) AS net
+          FROM journal_entry_lines jel
+          JOIN journal_entries je ON je.id = jel.entry_id
+          JOIN accounts acc ON acc.id = jel.account_id
+          WHERE jel.tenant_id = ${tenantId} AND je.status = 'posted' AND acc.type IN ('revenue', 'expense')
+            AND ${onDate(sql`je.date`, undefined, f.to)} AND ${eqIf(sql`je.branch_id`, f.branchId)}
+        ) AS result
+        WHERE result.net <> 0
+      ) AS sheet
+      ORDER BY sheet.ord, sheet.code`,
   },
   {
     key: 'vat-return',

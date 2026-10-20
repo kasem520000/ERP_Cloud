@@ -528,6 +528,20 @@ describe('التقارير — frmRptBalances · frmRptEntries · frmRptIncomeSt
     expect(Number(cardOf(report.body, 's_count'))).toBe(2);
   });
 
+  it('📊 ميزانية تحليلية — صافي ربح الفترة في حقوق الملكية فالأصول تساوي الخصوم وحقوق الملكية', async () => {
+    const report = await juneReport('balance-sheet');
+    const rows = rowsIn(report.body);
+    // حسابات الإيراد والمصروف لا تُقفل في هذا النظام: بلا سطر النتيجة تخرج
+    // الميزانية ناقصةً بمقدار الربح نفسه، وهو ما قِيس على منشأة العرض.
+    const result = rows.find((row) => row.account === 'صافي ربح الفترة');
+    expect(result?.section).toBe('حقوق الملكية');
+    expect(money(result?.balance)).toBe('1180.00');
+
+    const section = (name: string) =>
+      rows.filter((row) => row.section === name).reduce((sum, row) => sum + Number(row.balance), 0);
+    expect(section('الأصول').toFixed(2)).toBe((section('الخصوم') + section('حقوق الملكية')).toFixed(2));
+  });
+
   it('📂 تقرير مراكز التكلفة — تجميعي: الأبناء بسطر لكل حساب', async () => {
     const rows = rowsIn(
       (await juneReport('cost-center-statement', `costCenterId=${centreParentId}&kind=summary`)).body,
