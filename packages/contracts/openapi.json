@@ -141,6 +141,112 @@
         ]
       }
     },
+    "/api/v1/platform/backups/preflight": {
+      "get": {
+        "operationId": "PlatformBackupsController_preflight",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Per-check readiness for the next run"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Diagnose the key, the artifact directory, the store and the data size",
+        "tags": [
+          "platform-backups"
+        ]
+      }
+    },
+    "/api/v1/platform/backups/restores": {
+      "get": {
+        "operationId": "PlatformBackupsController_restores",
+        "parameters": [
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Restore history"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Restore attempts (dry runs included), newest first",
+        "tags": [
+          "platform-backups"
+        ]
+      }
+    },
+    "/api/v1/platform/backups/{id}/restore": {
+      "post": {
+        "operationId": "PlatformBackupsController_restore",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "mode": {
+                    "type": "string",
+                    "enum": [
+                      "dry_run",
+                      "apply"
+                    ]
+                  },
+                  "confirmChecksum": {
+                    "type": "string"
+                  },
+                  "reason": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Per-table counts and a verdict"
+          },
+          "422": {
+            "description": "Checksum mismatch, cut-short dump, or a missing confirmation"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Restore the dump additively — dry run by default, apply needs the checksum",
+        "tags": [
+          "platform-backups"
+        ]
+      }
+    },
     "/api/v1/platform/backups/{id}/verify": {
       "post": {
         "operationId": "PlatformBackupsController_verify",
@@ -2554,6 +2660,669 @@
         ]
       }
     },
+    "/api/v1/platform/releases": {
+      "get": {
+        "operationId": "PlatformReleasesController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Release ledger"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "سجلّ حزم التحديث، والحاليّة المعروضة على المستأجرين",
+        "tags": [
+          "platform-releases"
+        ]
+      },
+      "post": {
+        "operationId": "PlatformReleasesController_upload",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": "الحزمة المقبولة، مقيسةً ومسجَّلة"
+          },
+          "409": {
+            "description": "رقم الإصدار مسجّلٌ مسبقاً على القناة نفسها"
+          },
+          "422": {
+            "description": "حزمةٌ تالفة أو تحمل ما لا يُقبل — يُسجَّل الرفض في السجلّ ويُعاد سببه"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "رفع حزمة تحديث (ZIP يحمل release.json) — تُقاس ولا تُنفَّذ",
+        "tags": [
+          "platform-releases"
+        ]
+      }
+    },
+    "/api/v1/platform/releases/{id}/promote": {
+      "post": {
+        "operationId": "PlatformReleasesController_promote",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "إعلان إصدارٍ مقبولٍ حاليّاً على قناته، بسحب العلم من سابقه",
+        "tags": [
+          "platform-releases"
+        ]
+      }
+    },
+    "/api/v1/platform/releases/{id}/revoke": {
+      "post": {
+        "operationId": "PlatformReleasesController_revoke",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "سحب إصدارٍ من العرض، وإعادة إعلان آخر مقبولٍ على قناته",
+        "tags": [
+          "platform-releases"
+        ]
+      }
+    },
+    "/api/v1/releases/current": {
+      "get": {
+        "operationId": "TenantReleaseController_current",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Current release, or null before the first accepted bundle"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "الإصدار المعروض الآن على المنصّة (كما في «حول النظام»)",
+        "tags": [
+          "releases"
+        ]
+      }
+    },
+    "/api/v1/audit-log": {
+      "get": {
+        "operationId": "AuditController_list",
+        "parameters": [
+          {
+            "name": "filter[to]",
+            "required": false,
+            "in": "query",
+            "description": "ISO-8601 upper bound",
+            "schema": {}
+          },
+          {
+            "name": "filter[from]",
+            "required": false,
+            "in": "query",
+            "description": "ISO-8601 lower bound",
+            "schema": {}
+          },
+          {
+            "name": "filter[actorUserId]",
+            "required": false,
+            "in": "query",
+            "schema": {}
+          },
+          {
+            "name": "filter[action]",
+            "required": false,
+            "in": "query",
+            "schema": {}
+          },
+          {
+            "name": "filter[entityId]",
+            "required": false,
+            "in": "query",
+            "schema": {}
+          },
+          {
+            "name": "filter[entity]",
+            "required": false,
+            "in": "query",
+            "schema": {}
+          },
+          {
+            "name": "offset",
+            "required": false,
+            "in": "query",
+            "schema": {}
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Audit page"
+          },
+          "400": {
+            "description": "Unknown filter (FILTER_NOT_ALLOWED)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Read the tenant audit trail (newest first)",
+        "tags": [
+          "platform-services"
+        ]
+      }
+    },
+    "/api/v1/files/presign": {
+      "post": {
+        "operationId": "FilesController_presign",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 255
+                  },
+                  "mime": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 160,
+                    "pattern": "^[a-z0-9][a-z0-9!#$&^_.+-]*\\/[a-z0-9][a-z0-9!#$&^_.+-]*$"
+                  },
+                  "sizeBytes": {
+                    "type": "integer",
+                    "exclusiveMinimum": true,
+                    "minimum": 0
+                  },
+                  "entity": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 80
+                  },
+                  "entityId": {
+                    "type": "string",
+                    "format": "uuid"
+                  }
+                },
+                "required": [
+                  "name",
+                  "mime",
+                  "sizeBytes"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Upload URL issued"
+          },
+          "400": {
+            "description": "Mime type or size rejected (VALIDATION_FAILED)"
+          },
+          "422": {
+            "description": "Entity cannot receive attachments"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Reserve a file row and return a pre-signed upload URL",
+        "tags": [
+          "platform-services"
+        ]
+      }
+    },
+    "/api/v1/files/{id}/finalize": {
+      "post": {
+        "operationId": "FilesController_finalize",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "checksum": {
+                    "type": "string",
+                    "minLength": 8,
+                    "maxLength": 200
+                  },
+                  "entity": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 80
+                  },
+                  "entityId": {
+                    "type": "string",
+                    "format": "uuid"
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "File finalized"
+          },
+          "404": {
+            "description": "Not found in this tenant"
+          },
+          "422": {
+            "description": "Unknown entity or missing target row"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Mark an upload complete and attach it to an entity",
+        "tags": [
+          "platform-services"
+        ]
+      }
+    },
+    "/api/v1/files": {
+      "get": {
+        "operationId": "FilesController_list",
+        "parameters": [
+          {
+            "name": "filter[entity]",
+            "required": false,
+            "in": "query",
+            "schema": {}
+          },
+          {
+            "name": "filter[status]",
+            "required": false,
+            "in": "query",
+            "schema": {}
+          },
+          {
+            "name": "q",
+            "required": false,
+            "in": "query",
+            "schema": {}
+          },
+          {
+            "name": "offset",
+            "required": false,
+            "in": "query",
+            "schema": {}
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "File page"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List the tenant files",
+        "tags": [
+          "platform-services"
+        ]
+      }
+    },
+    "/api/v1/files/{id}": {
+      "delete": {
+        "operationId": "FilesController_remove",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "File deleted"
+          },
+          "404": {
+            "description": "Not found in this tenant"
+          },
+          "503": {
+            "description": "Object storage is not configured (STORAGE_NOT_CONFIGURED)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Delete a file (soft) and ask storage to drop the object",
+        "tags": [
+          "platform-services"
+        ]
+      },
+      "get": {
+        "operationId": "FilesController_read",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "File"
+          },
+          "404": {
+            "description": "Not found in this tenant"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Read one file (404 across tenants)",
+        "tags": [
+          "platform-services"
+        ]
+      }
+    },
+    "/api/v1/files/{id}/download": {
+      "get": {
+        "operationId": "FilesController_download",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Signed URL"
+          },
+          "404": {
+            "description": "Not found in this tenant"
+          },
+          "422": {
+            "description": "Upload has not been finalized"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Mint a short-lived, app-signed download URL",
+        "tags": [
+          "platform-services"
+        ]
+      }
+    },
+    "/api/v1/files/{id}/content": {
+      "get": {
+        "operationId": "FilesController_content",
+        "parameters": [],
+        "responses": {
+          "302": {
+            "description": "Redirect to object storage"
+          },
+          "401": {
+            "description": "Signature missing, invalid or expired"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Follow an app-signed download URL (302 to object storage)",
+        "tags": [
+          "platform-services"
+        ]
+      }
+    },
+    "/api/v1/notifications": {
+      "get": {
+        "operationId": "NotificationsController_list",
+        "parameters": [
+          {
+            "name": "filter[type]",
+            "required": false,
+            "in": "query",
+            "schema": {}
+          },
+          {
+            "name": "filter[read]",
+            "required": false,
+            "in": "query",
+            "description": "true | false",
+            "schema": {}
+          },
+          {
+            "name": "offset",
+            "required": false,
+            "in": "query",
+            "schema": {}
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Notification page"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List the calling membership inbox (newest first)",
+        "tags": [
+          "platform-services"
+        ]
+      },
+      "post": {
+        "operationId": "NotificationsController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "membershipId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "type": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 80,
+                    "pattern": "^[a-z0-9]+(?:[._-][a-z0-9]+)*$"
+                  },
+                  "payload": {
+                    "type": "object",
+                    "additionalProperties": {},
+                    "default": {}
+                  }
+                },
+                "required": [
+                  "type"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Notification created"
+          },
+          "422": {
+            "description": "Unknown membership in this tenant"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create a notification for a membership of this tenant",
+        "tags": [
+          "platform-services"
+        ]
+      }
+    },
+    "/api/v1/notifications/{id}": {
+      "get": {
+        "operationId": "NotificationsController_read",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Notification"
+          },
+          "404": {
+            "description": "Not found for this membership"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Read one notification of the calling membership",
+        "tags": [
+          "platform-services"
+        ]
+      }
+    },
+    "/api/v1/notifications/{id}/read": {
+      "post": {
+        "operationId": "NotificationsController_markRead",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": "Notification"
+          },
+          "404": {
+            "description": "Not found for this membership"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Mark a notification read (idempotent)",
+        "tags": [
+          "platform-services"
+        ]
+      }
+    },
+    "/api/v1/jobs/outbox": {
+      "get": {
+        "operationId": "JobsController_outboxList",
+        "parameters": [
+          {
+            "name": "filter[type]",
+            "required": false,
+            "in": "query",
+            "schema": {}
+          },
+          {
+            "name": "filter[queue]",
+            "required": false,
+            "in": "query",
+            "schema": {}
+          },
+          {
+            "name": "filter[status]",
+            "required": false,
+            "in": "query",
+            "description": "pending | published | dead",
+            "schema": {}
+          },
+          {
+            "name": "offset",
+            "required": false,
+            "in": "query",
+            "schema": {}
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Outbox page"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List the transactional outbox of this tenant",
+        "tags": [
+          "platform-services"
+        ]
+      }
+    },
+    "/api/v1/jobs/health": {
+      "get": {
+        "operationId": "JobsController_health",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Queue health"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Queue driver state and this tenant outbox backlog",
+        "tags": [
+          "platform-services"
+        ]
+      }
+    },
     "/api/v1/platform/developer/catalogue": {
       "get": {
         "operationId": "PlatformDeveloperController_catalogue",
@@ -3416,565 +4185,6 @@
         "summary": "تقرير الحملة: الأرقام والروابط والناس والأحداث",
         "tags": [
           "platform-campaigns"
-        ]
-      }
-    },
-    "/api/v1/audit-log": {
-      "get": {
-        "operationId": "AuditController_list",
-        "parameters": [
-          {
-            "name": "filter[to]",
-            "required": false,
-            "in": "query",
-            "description": "ISO-8601 upper bound",
-            "schema": {}
-          },
-          {
-            "name": "filter[from]",
-            "required": false,
-            "in": "query",
-            "description": "ISO-8601 lower bound",
-            "schema": {}
-          },
-          {
-            "name": "filter[actorUserId]",
-            "required": false,
-            "in": "query",
-            "schema": {}
-          },
-          {
-            "name": "filter[action]",
-            "required": false,
-            "in": "query",
-            "schema": {}
-          },
-          {
-            "name": "filter[entityId]",
-            "required": false,
-            "in": "query",
-            "schema": {}
-          },
-          {
-            "name": "filter[entity]",
-            "required": false,
-            "in": "query",
-            "schema": {}
-          },
-          {
-            "name": "offset",
-            "required": false,
-            "in": "query",
-            "schema": {}
-          },
-          {
-            "name": "limit",
-            "required": false,
-            "in": "query",
-            "schema": {}
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Audit page"
-          },
-          "400": {
-            "description": "Unknown filter (FILTER_NOT_ALLOWED)"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Read the tenant audit trail (newest first)",
-        "tags": [
-          "platform-services"
-        ]
-      }
-    },
-    "/api/v1/files/presign": {
-      "post": {
-        "operationId": "FilesController_presign",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "name": {
-                    "type": "string",
-                    "minLength": 1,
-                    "maxLength": 255
-                  },
-                  "mime": {
-                    "type": "string",
-                    "minLength": 1,
-                    "maxLength": 160,
-                    "pattern": "^[a-z0-9][a-z0-9!#$&^_.+-]*\\/[a-z0-9][a-z0-9!#$&^_.+-]*$"
-                  },
-                  "sizeBytes": {
-                    "type": "integer",
-                    "exclusiveMinimum": true,
-                    "minimum": 0
-                  },
-                  "entity": {
-                    "type": "string",
-                    "minLength": 1,
-                    "maxLength": 80
-                  },
-                  "entityId": {
-                    "type": "string",
-                    "format": "uuid"
-                  }
-                },
-                "required": [
-                  "name",
-                  "mime",
-                  "sizeBytes"
-                ],
-                "additionalProperties": false
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "Upload URL issued"
-          },
-          "400": {
-            "description": "Mime type or size rejected (VALIDATION_FAILED)"
-          },
-          "422": {
-            "description": "Entity cannot receive attachments"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Reserve a file row and return a pre-signed upload URL",
-        "tags": [
-          "platform-services"
-        ]
-      }
-    },
-    "/api/v1/files/{id}/finalize": {
-      "post": {
-        "operationId": "FilesController_finalize",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "checksum": {
-                    "type": "string",
-                    "minLength": 8,
-                    "maxLength": 200
-                  },
-                  "entity": {
-                    "type": "string",
-                    "minLength": 1,
-                    "maxLength": 80
-                  },
-                  "entityId": {
-                    "type": "string",
-                    "format": "uuid"
-                  }
-                },
-                "additionalProperties": false
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "File finalized"
-          },
-          "404": {
-            "description": "Not found in this tenant"
-          },
-          "422": {
-            "description": "Unknown entity or missing target row"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Mark an upload complete and attach it to an entity",
-        "tags": [
-          "platform-services"
-        ]
-      }
-    },
-    "/api/v1/files": {
-      "get": {
-        "operationId": "FilesController_list",
-        "parameters": [
-          {
-            "name": "filter[entity]",
-            "required": false,
-            "in": "query",
-            "schema": {}
-          },
-          {
-            "name": "filter[status]",
-            "required": false,
-            "in": "query",
-            "schema": {}
-          },
-          {
-            "name": "q",
-            "required": false,
-            "in": "query",
-            "schema": {}
-          },
-          {
-            "name": "offset",
-            "required": false,
-            "in": "query",
-            "schema": {}
-          },
-          {
-            "name": "limit",
-            "required": false,
-            "in": "query",
-            "schema": {}
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "File page"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "List the tenant files",
-        "tags": [
-          "platform-services"
-        ]
-      }
-    },
-    "/api/v1/files/{id}": {
-      "delete": {
-        "operationId": "FilesController_remove",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "File deleted"
-          },
-          "404": {
-            "description": "Not found in this tenant"
-          },
-          "503": {
-            "description": "Object storage is not configured (STORAGE_NOT_CONFIGURED)"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Delete a file (soft) and ask storage to drop the object",
-        "tags": [
-          "platform-services"
-        ]
-      },
-      "get": {
-        "operationId": "FilesController_read",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "File"
-          },
-          "404": {
-            "description": "Not found in this tenant"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Read one file (404 across tenants)",
-        "tags": [
-          "platform-services"
-        ]
-      }
-    },
-    "/api/v1/files/{id}/download": {
-      "get": {
-        "operationId": "FilesController_download",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "Signed URL"
-          },
-          "404": {
-            "description": "Not found in this tenant"
-          },
-          "422": {
-            "description": "Upload has not been finalized"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Mint a short-lived, app-signed download URL",
-        "tags": [
-          "platform-services"
-        ]
-      }
-    },
-    "/api/v1/files/{id}/content": {
-      "get": {
-        "operationId": "FilesController_content",
-        "parameters": [],
-        "responses": {
-          "302": {
-            "description": "Redirect to object storage"
-          },
-          "401": {
-            "description": "Signature missing, invalid or expired"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Follow an app-signed download URL (302 to object storage)",
-        "tags": [
-          "platform-services"
-        ]
-      }
-    },
-    "/api/v1/notifications": {
-      "get": {
-        "operationId": "NotificationsController_list",
-        "parameters": [
-          {
-            "name": "filter[type]",
-            "required": false,
-            "in": "query",
-            "schema": {}
-          },
-          {
-            "name": "filter[read]",
-            "required": false,
-            "in": "query",
-            "description": "true | false",
-            "schema": {}
-          },
-          {
-            "name": "offset",
-            "required": false,
-            "in": "query",
-            "schema": {}
-          },
-          {
-            "name": "limit",
-            "required": false,
-            "in": "query",
-            "schema": {}
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Notification page"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "List the calling membership inbox (newest first)",
-        "tags": [
-          "platform-services"
-        ]
-      },
-      "post": {
-        "operationId": "NotificationsController_create",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "membershipId": {
-                    "type": "string",
-                    "format": "uuid"
-                  },
-                  "type": {
-                    "type": "string",
-                    "minLength": 1,
-                    "maxLength": 80,
-                    "pattern": "^[a-z0-9]+(?:[._-][a-z0-9]+)*$"
-                  },
-                  "payload": {
-                    "type": "object",
-                    "additionalProperties": {},
-                    "default": {}
-                  }
-                },
-                "required": [
-                  "type"
-                ],
-                "additionalProperties": false
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "Notification created"
-          },
-          "422": {
-            "description": "Unknown membership in this tenant"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Create a notification for a membership of this tenant",
-        "tags": [
-          "platform-services"
-        ]
-      }
-    },
-    "/api/v1/notifications/{id}": {
-      "get": {
-        "operationId": "NotificationsController_read",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "Notification"
-          },
-          "404": {
-            "description": "Not found for this membership"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Read one notification of the calling membership",
-        "tags": [
-          "platform-services"
-        ]
-      }
-    },
-    "/api/v1/notifications/{id}/read": {
-      "post": {
-        "operationId": "NotificationsController_markRead",
-        "parameters": [],
-        "responses": {
-          "201": {
-            "description": "Notification"
-          },
-          "404": {
-            "description": "Not found for this membership"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Mark a notification read (idempotent)",
-        "tags": [
-          "platform-services"
-        ]
-      }
-    },
-    "/api/v1/jobs/outbox": {
-      "get": {
-        "operationId": "JobsController_outboxList",
-        "parameters": [
-          {
-            "name": "filter[type]",
-            "required": false,
-            "in": "query",
-            "schema": {}
-          },
-          {
-            "name": "filter[queue]",
-            "required": false,
-            "in": "query",
-            "schema": {}
-          },
-          {
-            "name": "filter[status]",
-            "required": false,
-            "in": "query",
-            "description": "pending | published | dead",
-            "schema": {}
-          },
-          {
-            "name": "offset",
-            "required": false,
-            "in": "query",
-            "schema": {}
-          },
-          {
-            "name": "limit",
-            "required": false,
-            "in": "query",
-            "schema": {}
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Outbox page"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "List the transactional outbox of this tenant",
-        "tags": [
-          "platform-services"
-        ]
-      }
-    },
-    "/api/v1/jobs/health": {
-      "get": {
-        "operationId": "JobsController_health",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "Queue health"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Queue driver state and this tenant outbox backlog",
-        "tags": [
-          "platform-services"
         ]
       }
     },
@@ -5889,7 +6099,7 @@
             "name": "filter[source]",
             "required": false,
             "in": "query",
-            "description": "email | einvoice | webhook | outbox | backup",
+            "description": "email | einvoice | webhook | outbox | backup | server",
             "schema": {}
           },
           {
@@ -9888,6 +10098,30 @@
         ],
         "tags": [
           "support"
+        ]
+      }
+    },
+    "/api/v1/platform/problems/ingest": {
+      "post": {
+        "operationId": "ProblemIngestController_ingest",
+        "parameters": [
+          {
+            "name": "x-problem-token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": ""
+          }
+        },
+        "summary": "Accept a server-side error report from another surface",
+        "tags": [
+          "platform-problems"
         ]
       }
     },
@@ -14783,6 +15017,345 @@
         ]
       }
     },
+    "/api/v1/einvoice/settings": {
+      "get": {
+        "operationId": "EinvoicingController_settings",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Einvoicing"
+        ]
+      },
+      "put": {
+        "operationId": "EinvoicingController_saveSettings",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Einvoicing"
+        ]
+      }
+    },
+    "/api/v1/einvoice/settings/fill-from-company": {
+      "post": {
+        "operationId": "EinvoicingController_fillFromCompany",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Einvoicing"
+        ]
+      }
+    },
+    "/api/v1/einvoice/csr/generate": {
+      "post": {
+        "operationId": "EinvoicingController_generateCsr",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Einvoicing"
+        ]
+      }
+    },
+    "/api/v1/einvoice/onboarding/compliance-csid": {
+      "post": {
+        "operationId": "EinvoicingController_complianceCsid",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Einvoicing"
+        ]
+      }
+    },
+    "/api/v1/einvoice/onboarding/production-csid": {
+      "post": {
+        "operationId": "EinvoicingController_productionCsid",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Einvoicing"
+        ]
+      }
+    },
+    "/api/v1/einvoice/onboarding/renew": {
+      "post": {
+        "operationId": "EinvoicingController_renewCsid",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Einvoicing"
+        ]
+      }
+    },
+    "/api/v1/einvoice/onboarding/compliance-check": {
+      "post": {
+        "operationId": "EinvoicingController_complianceCheck",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Einvoicing"
+        ]
+      }
+    },
+    "/api/v1/einvoice/link/toggle": {
+      "post": {
+        "operationId": "EinvoicingController_toggleLink",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Einvoicing"
+        ]
+      }
+    },
+    "/api/v1/einvoice/filings": {
+      "get": {
+        "operationId": "EinvoicingController_filings",
+        "parameters": [
+          {
+            "name": "status",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "from",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "pageNo",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "pageSize",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Einvoicing"
+        ]
+      }
+    },
+    "/api/v1/einvoice/filings/{id}": {
+      "get": {
+        "operationId": "EinvoicingController_filing",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Einvoicing"
+        ]
+      }
+    },
+    "/api/v1/einvoice/chain": {
+      "get": {
+        "operationId": "EinvoicingController_chain",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Einvoicing"
+        ]
+      }
+    },
+    "/api/v1/einvoice/sync": {
+      "post": {
+        "operationId": "EinvoicingController_sync",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Einvoicing"
+        ]
+      }
+    },
+    "/api/v1/einvoice/credentials": {
+      "put": {
+        "operationId": "EinvoicingController_putCredentials",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Einvoicing"
+        ]
+      },
+      "get": {
+        "operationId": "EinvoicingController_credentials",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Einvoicing"
+        ]
+      }
+    },
+    "/api/v1/einvoice/submissions": {
+      "get": {
+        "operationId": "EinvoicingController_submissions",
+        "parameters": [
+          {
+            "name": "status",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Einvoicing"
+        ]
+      }
+    },
+    "/api/v1/einvoice/submissions/{id}/retry": {
+      "post": {
+        "operationId": "EinvoicingController_retry",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Einvoicing"
+        ]
+      }
+    },
+    "/api/v1/sales-invoices/{id}/einvoice/submit": {
+      "post": {
+        "operationId": "EinvoicingController_submitInvoice",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Einvoicing"
+        ]
+      }
+    },
+    "/api/v1/einvoice/health": {
+      "get": {
+        "operationId": "EinvoicingController_health",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Einvoicing"
+        ]
+      }
+    },
     "/api/v1/purchase-invoices": {
       "get": {
         "operationId": "PurchasesController_list",
@@ -16286,345 +16859,6 @@
         },
         "tags": [
           "BankFeeds"
-        ]
-      }
-    },
-    "/api/v1/einvoice/settings": {
-      "get": {
-        "operationId": "EinvoicingController_settings",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Einvoicing"
-        ]
-      },
-      "put": {
-        "operationId": "EinvoicingController_saveSettings",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Einvoicing"
-        ]
-      }
-    },
-    "/api/v1/einvoice/settings/fill-from-company": {
-      "post": {
-        "operationId": "EinvoicingController_fillFromCompany",
-        "parameters": [],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Einvoicing"
-        ]
-      }
-    },
-    "/api/v1/einvoice/csr/generate": {
-      "post": {
-        "operationId": "EinvoicingController_generateCsr",
-        "parameters": [],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Einvoicing"
-        ]
-      }
-    },
-    "/api/v1/einvoice/onboarding/compliance-csid": {
-      "post": {
-        "operationId": "EinvoicingController_complianceCsid",
-        "parameters": [],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Einvoicing"
-        ]
-      }
-    },
-    "/api/v1/einvoice/onboarding/production-csid": {
-      "post": {
-        "operationId": "EinvoicingController_productionCsid",
-        "parameters": [],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Einvoicing"
-        ]
-      }
-    },
-    "/api/v1/einvoice/onboarding/renew": {
-      "post": {
-        "operationId": "EinvoicingController_renewCsid",
-        "parameters": [],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Einvoicing"
-        ]
-      }
-    },
-    "/api/v1/einvoice/onboarding/compliance-check": {
-      "post": {
-        "operationId": "EinvoicingController_complianceCheck",
-        "parameters": [],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Einvoicing"
-        ]
-      }
-    },
-    "/api/v1/einvoice/link/toggle": {
-      "post": {
-        "operationId": "EinvoicingController_toggleLink",
-        "parameters": [],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Einvoicing"
-        ]
-      }
-    },
-    "/api/v1/einvoice/filings": {
-      "get": {
-        "operationId": "EinvoicingController_filings",
-        "parameters": [
-          {
-            "name": "status",
-            "required": true,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "from",
-            "required": true,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "to",
-            "required": true,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "pageNo",
-            "required": true,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "pageSize",
-            "required": true,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Einvoicing"
-        ]
-      }
-    },
-    "/api/v1/einvoice/filings/{id}": {
-      "get": {
-        "operationId": "EinvoicingController_filing",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Einvoicing"
-        ]
-      }
-    },
-    "/api/v1/einvoice/chain": {
-      "get": {
-        "operationId": "EinvoicingController_chain",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Einvoicing"
-        ]
-      }
-    },
-    "/api/v1/einvoice/sync": {
-      "post": {
-        "operationId": "EinvoicingController_sync",
-        "parameters": [],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Einvoicing"
-        ]
-      }
-    },
-    "/api/v1/einvoice/credentials": {
-      "put": {
-        "operationId": "EinvoicingController_putCredentials",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Einvoicing"
-        ]
-      },
-      "get": {
-        "operationId": "EinvoicingController_credentials",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Einvoicing"
-        ]
-      }
-    },
-    "/api/v1/einvoice/submissions": {
-      "get": {
-        "operationId": "EinvoicingController_submissions",
-        "parameters": [
-          {
-            "name": "status",
-            "required": true,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Einvoicing"
-        ]
-      }
-    },
-    "/api/v1/einvoice/submissions/{id}/retry": {
-      "post": {
-        "operationId": "EinvoicingController_retry",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Einvoicing"
-        ]
-      }
-    },
-    "/api/v1/sales-invoices/{id}/einvoice/submit": {
-      "post": {
-        "operationId": "EinvoicingController_submitInvoice",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Einvoicing"
-        ]
-      }
-    },
-    "/api/v1/einvoice/health": {
-      "get": {
-        "operationId": "EinvoicingController_health",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Einvoicing"
         ]
       }
     },

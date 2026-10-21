@@ -399,6 +399,14 @@ export const platformPermissionRegistry: readonly PermissionDefinition[] = [
     'console.backups.manage',
     'Run and verify platform backups, set the retention policy, and execute data export or erasure requests.',
   ),
+  // 🗜️ P-C13 — تحديثات المنصّة: **الرفع ليس الإعلان**. التشغيل يرفع حزمةَ الليل ويقرأ
+  // سجلّها لتشخيص تذكرة، وصاحب المنصّة وحده يقرّر أن يراها كل المستأجرين — لأن الإعلان
+  // يغيّر ما يقوله كل حسابٍ عن نفسه في شاشة «حول النظام».
+  perm('console.releases.view', 'Read the platform release ledger and the release shown to tenants.'),
+  perm(
+    'console.releases.manage',
+    'Upload a release bundle, announce a release to tenants, and revoke one. Bundles are measured, never executed.',
+  ),
   // P-C11 — بوابة المطوّر: مفتاح الـAPI هو **هويّة** تُنشأ لمستأجر، وويب هوك هو **وعدٌ
   // بتسليم**. رمزان لا رمز، لأن الأول يمنح وصولاً والثاني يُرسل بياناتٍ خارج المنصة —
   // ومن يملك الثاني لا يلزمه الأول (فريقٌ يضبط التكامل ثم يسلّم المفتاح لغيره).

@@ -22,6 +22,7 @@ import {
   TenantRateLimitGuard,
 } from './modules/platform/index.js';
 import { PlatformBackupsModule } from './modules/backups/platform-backups.module.js';
+import { ReleasesModule } from './modules/releases/releases.module.js';
 import { CampaignsModule } from './modules/campaigns/campaigns.module.js';
 import { SiteAnalyticsModule } from './modules/site-analytics/site-analytics.module.js';
 import { StatusModule } from './modules/status/status.module.js';
@@ -108,6 +109,7 @@ import { OpsModule } from './ops/ops.module.js';
     DatabaseModule,
     OpsModule,
     PlatformBackupsModule,
+    ReleasesModule,
     DeveloperModule,
     CampaignsModule,
     ContentModule,

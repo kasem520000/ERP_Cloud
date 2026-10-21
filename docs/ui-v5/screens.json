@@ -2273,6 +2273,16 @@
       },
       {
         "app": "platform-admin",
+        "route": "/login",
+        "file": "apps/platform-admin/app/login/page.tsx",
+        "title": "دخول المنصة",
+        "group": "لوحة المنصة",
+        "done": true,
+        "rebuilt": true,
+        "note": "شاشة الدخول الوحيدة للمشغّلين — بلا جلسةٍ تعمل، وعليها يقع قفل المحاولات"
+      },
+      {
+        "app": "platform-admin",
         "route": "/marketplace",
         "file": "apps/platform-admin/app/marketplace/page.tsx",
         "title": "سوق الإضافات",
@@ -2290,6 +2300,26 @@
         "done": true,
         "rebuilt": true,
         "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "platform-admin",
+        "route": "/problems",
+        "file": "apps/platform-admin/app/problems/page.tsx",
+        "title": "سجل المشاكل",
+        "group": "لوحة المنصة",
+        "done": true,
+        "rebuilt": true,
+        "note": "البند 20: خمسة مصادر في جدولٍ واحد (بريد · فاتورة إلكترونية · ويب هوك · طابور · نسخ) بلا جدول أعطالٍ منفصل"
+      },
+      {
+        "app": "platform-admin",
+        "route": "/releases",
+        "file": "apps/platform-admin/app/releases/page.tsx",
+        "title": "تحديثات المنصة",
+        "group": "لوحة المنصة",
+        "done": true,
+        "rebuilt": true,
+        "note": "حزمة ZIP تُقاس ولا تُنفَّذ: رفضُ المسار الهارب والملفّ التنفيذي والقيد المشفّر يُسجَّل، والإعلان فعلٌ منفصل عن الرفع"
       },
       {
         "app": "platform-admin",
@@ -3012,10 +3042,10 @@
   },
   "totals": {
     "staff": 201,
-    "platform-admin": 38,
+    "platform-admin": 41,
     "customer-portal": 11,
     "marketing": 36,
     "bakery": 11,
-    "all": 297
+    "all": 300
   }
 }

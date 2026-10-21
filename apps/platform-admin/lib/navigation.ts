@@ -220,6 +220,18 @@ export const consoleGroups: readonly ConsoleGroup[] = [
         'console.backups.manage',
         'GET /platform/data-requests',
       ),
+      // 🗜️ P-C13 — «تحديثات المنصة»: حزمةُ إصدارٍ تُرفع وتُقاس ثم تُعلَن. محلها التشغيل
+      // بجانب النسخ لأنها العمل نفسه: ما يُنشر وما يُستعاد. والرمز `console.releases.view`
+      // لقراءة السجلّ (التشغيل والدعم والرقابة) و`console.releases.manage` للإعلان —
+      // والمالك وحده يحمله، لأن الإعلان يغيّر ما يقوله كل حسابٍ عن نفسه.
+      item(
+        'releases',
+        'تحديثات المنصة',
+        'Platform releases',
+        '/releases',
+        'console.releases.view',
+        'GET /platform/releases',
+      ),
     ],
   },
   {

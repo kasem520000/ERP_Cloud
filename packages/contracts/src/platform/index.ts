@@ -19,6 +19,7 @@ export * from './developer.js';
 export * from './analytics.js';
 export * from './content.js';
 export * from './files.js';
+export * from './releases.js';
 export * from './operations.js';
 export * from './reports.js';
 export * from './jobs.js';
