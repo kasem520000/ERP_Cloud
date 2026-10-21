@@ -11,6 +11,7 @@
 | `deploy/vps/erp-proxy.conf` | `/etc/nginx/snippets/erp-proxy.conf` |
 | `deploy/vps/ecosystem.config.cjs` | `~/ERP_Cloud/deploy/vps/` (داخل المستودع) |
 | `deploy/vps/deploy.sh` | `~/ERP_Cloud/deploy/vps/` |
+| `deploy/vps/smoke.sh` | `~/ERP_Cloud/deploy/vps/` |
 
 خريطةُ نقلٍ سريعة (ماذا يُنسخ إلى أين) في [`deploy/vps/README.md`](../deploy/vps/README.md).
 
@@ -450,44 +451,41 @@ sudo systemctl enable --now fail2ban
 
 ---
 
-## 8. الفحص بعد النشر (لا تُعلن النجاح قبلها)
+## 8. الفحص بعد النشر
+
+الفحوص ليست قائمةً تُقرأ، بل سكربتٌ يفشل. `deploy/vps/smoke.sh` يُشغَّل على الخادم بعد كل
+نشرة، ويقارن كل ردٍّ برقمٍ متوقّع (‏`curl` بلا مقارنة يعتبر 502 نجاحاً):
 
 ```bash
-# ١) الـAPI يستجيب ويقول وضعه
-curl -s https://api.sahabaccounting.com/health/live
-curl -s https://api.sahabaccounting.com/health/ready | jq
-
-# ٢) كل واجهة تُقدّم صفحةً حقيقية (200، لا 502 ولا صفحة خطأ)
-for h in staff marketing admin portal bakery; do
-  printf '%-10s ' "$h"; curl -s -o /dev/null -w '%{http_code}\n' "https://$h.sahabaccounting.com/"
-done
-
-# ٣) الوكيل الداخلي يعمل: نفس الطلب من المتصفّح (same-origin) ومن مضيف الواجهة
-curl -s -o /dev/null -w 'via staff proxy: %{http_code}\n' \
-  https://staff.sahabaccounting.com/api/health/live
-
-# ٤) سقف الطلبات فعّال، والعنوان الحقيقي يُقرأ (يجب أن يظهر Retry-After)
-for i in $(seq 1 12); do
-  curl -s -o /dev/null -w '%{http_code} ' -X POST https://api.sahabaccounting.com/api/v1/auth/login \
-    -H 'content-type: application/json' \
-    -d '{"email":"probe@example.test","password":"wrong-password-1234","tenantCode":"demo"}'
-done; echo
-
-# ٥) المنافذ الداخلية مستمعةٌ على loopback وحدها، وغير مكشوفة من الإنترنت
-ss -ltn | grep -E ':(3000|3001|3002|3003|3004|3005|5432)\b'   # كلها 127.0.0.1
-curl -m 4 -s -o /dev/null -w '%{http_code}\n' http://79.72.9.26:3000/health/live || echo "مغلق ✓"
-
-# ٦) /metrics غير عام
-curl -s -o /dev/null -w 'metrics: %{http_code}\n' https://api.sahabaccounting.com/metrics   # 403
-
-# ٧) التوجيه يعمل بلا أي مضيف غريب
-curl -sI http://staff.sahabaccounting.com | grep -i '^location'   # https://staff.sahabaccounting.com/
+./deploy/vps/smoke.sh                     # 20 فحصاً، قراءة فقط
+./deploy/vps/smoke.sh --with-rate-limit   # + فحص سقف الدخول (يستهلك دلو عنوانك)
+SMOKE_RESOLVE_IP=79.72.9.26 ./deploy/vps/smoke.sh   # الأًصل مباشرة قبل تحويل DNS
+SMOKE_AFTER_DEPLOY=1 ./deploy/vps/deploy.sh         # الفحص يُشغَّل تلقائياً بعد النشر
 ```
 
-> في الفحص ٤: إن ظهر `429` قبل المحاولة العاشرة فغالباً `real_ip` ناقص (كل الزوار
-> في دلو واحد)، أو أن Cloudflare WAF يحدّ منك.
+ماذا يُثبت:
 
----
+| # | الفحص | الفشل يعني |
+|---|---|---|
+| 01 | `/health/live` و`/health/ready` | الـAPI ساقط أو لا يرى القاعدة |
+| 02 | الجذر `200` لكل سطح من الخمسة | سطحٌ لم يُبنَ أو منفذه لا يسمع |
+| 03 | `/api/health/live` **من داخل كل سطح** | وكيل Next يُشير إلى منفذٍ خاطئ (العطل الصامت: كل نداءات API تفشل) |
+| 04 | التوجيه: لا حلقة، والجذر ⇒ التسويق | `$` ساقطة أو `server_name` مكرَّر |
+| 05 | `/metrics` 403 و`/api/docs` 404 ومحميٌّ 401 | سطحٌ تشغيلي مكشوف أو حرّاس معطّلة |
+| 06 | `ss -ltn`: لا استماع على 0.0.0.0 لـ3000–3005/5432/6379 | النشر يتجاوز Nginx |
+| 07 | `erp-worker` في حالة `online` | الطابور بلا مستهلك: «تم الإرسال» ولا بريد |
+| 08 | `429` + `Retry-After` (اختياري) | السقف معطّل أو `real_ip` ناقص |
+
+الفحص اليدوي، إن أردت النظر بعينك:
+
+```bash
+curl -s https://api.sahabaccounting.com/health/ready | jq
+ss -ltnp | grep -E ':(3000|3001|3002|3003|3004|3005|5432)\b'   # كلها 127.0.0.1
+pm2 list
+```
+
+> إن ظهر `429` قبل المحاولة العاشرة على فحص السقف فغالباً `real_ip` ناقص (كل الزوار في
+> دلو واحد)، أو أن Cloudflare WAF يحدّ منك أولاً.
 
 ## 9. الترقية والتراجع
 
@@ -558,3 +556,4 @@ pm2 monit
 | `ECONNREFUSED 127.0.0.1:5432` | `systemctl status postgresql` | القاعدة ساقطة أو `max_connections` ممتلئ |
 | «Relation does not exist» | `pnpm db:migrate` | الهجرة لم تُطبَّق |
 | صفحات تُعاد توجيهها إلى `https://hostrequest_uri` | `nginx -T \| grep hostrequest` | نسخة قديمة من الملف: `$` ساقطة |
+| «النشر نجح» لكن سطحٌ لا يفتح | `./deploy/vps/smoke.sh` | أحد فحوص 01–05 أحمر: لا تُعلن النجاح قبله |

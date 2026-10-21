@@ -275,6 +275,58 @@ describe('سكربت النشر (deploy/vps/deploy.sh)', () => {
   });
 });
 
+describe('فحص ما بعد النشر (deploy/vps/smoke.sh)', () => {
+  const script = read('deploy/vps/smoke.sh');
+
+  it('قابل للتنفيذ ومُتحقَّقٌ صياغياً', () => {
+    expect(statSync(join(root, 'deploy/vps/smoke.sh')).mode & 0o111).not.toBe(0);
+    expect(() =>
+      execFileSync('bash', ['-n', join(root, 'deploy/vps/smoke.sh')], { stdio: 'pipe' }),
+    ).not.toThrow();
+  });
+
+  it('يفشل برمز غير صفري حين يكون الموقع ساقطاً — لا «نجاح» صامت', () => {
+    // ‏curl بلا مقارنةٍ متوقّعة يُرجع 000/502 بوصفه نجاحاً. هنا العنوان مغلقٌ عمداً.
+    const run = () => {
+      try {
+        execFileSync('bash', [join(root, 'deploy/vps/smoke.sh')], {
+          stdio: 'pipe',
+          timeout: 60_000,
+          env: {
+            ...process.env,
+            SMOKE_DOMAIN: 'invalid.example',
+            SMOKE_SCHEME: 'http',
+            SMOKE_PORT: '9',
+            SMOKE_RESOLVE_IP: '127.0.0.1',
+            SMOKE_TIMEOUT: '1',
+          },
+        });
+        return 0;
+      } catch (error) {
+        return (error as { status?: number }).status ?? 1;
+      }
+    };
+    expect(run()).not.toBe(0);
+  });
+
+  it('فحص السقف اختياري: لا يستهلك دلو تسجيل الدخول افتراضياً', () => {
+    // ‏`--with-rate-limit` وحده يُشغّل 15 محاولة دخول فاشلة على عنوان المشغّل.
+    expect(script).toContain('--with-rate-limit');
+    expect(script).toMatch(/WITH_RATE_LIMIT=0/);
+  });
+
+  it('لا يُنتج رمز «000000» عند فشل الاتصال', () => {
+    // الخطأ الذي وقع فعلاً: `-w '%{http_code}' || echo 000` يطبع 000 مرّتين.
+    // التعليقات تُستثنى: هي تشرح الخطأ وتذكره نصّاً.
+    const code = script
+      .split('\n')
+      .filter((line) => !line.trimStart().startsWith('#'))
+      .join('\n');
+    expect(code).not.toContain('|| echo "000"');
+    expect(code).not.toContain('|| echo 000');
+  });
+});
+
 describe('توثيق البيئة والبناء', () => {
   it('.env.example يشرح WEB_HOST وAPI_PROXY_TARGET', () => {
     const env = read('.env.example');

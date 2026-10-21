@@ -87,4 +87,12 @@ for entry in "staff 3001" "marketing 3002" "platform-admin 3003" "customer-porta
   fi
 done
 
-say "تمّ النشر. الفحص الخارجي: curl -I https://api.sahabaccounting.com/health/live"
+# الفحص الداخلي أعلاه يُثبت أن العمليات تسمع. أما أن المضيفات تُخدم فعلاً عبر Nginx
+# وشهادة Cloudflare فتلك طبقةٌ أخرى تسقط وحدها. يُشغَّل بطلبٍ صريح حتى لا يفشل النشر
+# على خادمٍ لم يُوجَّه إليه DNS بعد.
+if [ "${SMOKE_AFTER_DEPLOY:-0}" = "1" ]; then
+  say "الفحص الخارجي (smoke.sh)"
+  ./deploy/vps/smoke.sh
+else
+  say "تمّ النشر. الفحص الخارجي: ./deploy/vps/smoke.sh"
+fi

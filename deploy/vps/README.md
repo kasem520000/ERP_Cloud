@@ -10,6 +10,7 @@
 | `erp-proxy.conf` | `/etc/nginx/snippets/erp-proxy.conf` | ترويسات الوكيل المشتركة (`Host`, `X-Forwarded-*`, WS, مهلات) |
 | `ecosystem.config.cjs` | يبقى داخل المستودع | سبع عمليات PM2: API، worker، وخمس واجهات — كلها على loopback |
 | `deploy.sh` | يبقى داخل المستودع | نشرٌ واحد: تثبيت ← فحص بيئة ← بناء ← هجرات ← `startOrReload` ← فحص صحة |
+| `smoke.sh` | يبقى داخل المستودع | 20 فحصاً بعد النشر: الصحة، الأسطح الخمسة، الوكيل، التوجيه، العزل، worker، السقف |
 
 ## التركيب
 
@@ -44,4 +45,11 @@ chmod +x deploy/vps/deploy.sh
 
 ```bash
 pnpm --filter @erp/api exec vitest run test/deployment-artifacts.spec.ts
+```
+
+## بعد كل نشر
+
+```bash
+./deploy/vps/smoke.sh                     # 20 فحصاً — يفشل برمز غير صفري إن كان سطحٌ ساقطاً
+./deploy/vps/smoke.sh --with-rate-limit   # + سقف تسجيل الدخول (يستهلك دلو عنوانك)
 ```
