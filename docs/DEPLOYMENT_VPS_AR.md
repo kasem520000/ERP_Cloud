@@ -208,6 +208,11 @@ sudo apt -y install pgbackrest
 # /etc/pgbackrest/pgbackrest.conf → [global] repo1-path=/var/lib/pgbackrest
 #                                     [app] pg1-path=/var/lib/postgresql/16/main
 
+# أرشفة WAL: بدون هذين السطرين تبقى «الاستعادة إلى أي ثانية» وعداً بلا تنفيذ.
+sudo sed -i "s/^#\?archive_mode.*/archive_mode = on/; s|^#\?archive_command.*|archive_command = 'pgbackrest --stanza=app archive-push %p'|" \
+  /etc/postgresql/16/main/postgresql.conf
+sudo systemctl restart postgresql
+
 sudo -u postgres pgbackrest --stanza=app stanza-create
 sudo -u postgres pgbackrest --stanza=app check
 # نسخة كاملة أسبوعية + WAL مستمر ⇒ استعادة إلى أي ثانية داخل النافذة
