@@ -34,8 +34,24 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      # `tee` يُبقي السجل عند الفشل، و`pipefail` يُبقي رمز الخروج صادقاً — بلا
+      # `pipefail` يمرّ أي فشلٍ بهدوء لأن رمز `tee` هو ما يُقرأ.
       - name: Run full verification pipeline (pnpm verify)
         env:
           CI: 'true'
           NODE_ENV: test
-        run: pnpm run verify
+        shell: bash
+        run: |
+          set -o pipefail
+          pnpm run verify 2>&1 | tee verify.log
+
+      # سجلّ الفشل يُرفع كملفّ: صفحة التشغيل لا تُظهر أي اختبارٍ سقط، وكان تشخيص فشلٍ
+      # عابرٍ يحتاج إعادة تشغيلٍ كاملة لتخمينه.
+      - name: Upload verification log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: verify-log
+          path: verify.log
+          retention-days: 7
+          if-no-files-found: ignore
