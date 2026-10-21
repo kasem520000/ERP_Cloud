@@ -97,7 +97,23 @@ const envSchema = z.object({
   RATE_LIMIT_STORE: z.enum(['auto', 'memory', 'redis']).default('auto'),
   /** SECURITY_ARCHITECTURE §8 — token buckets. */
   RATE_LIMIT_DEFAULT_PER_MINUTE: z.coerce.number().int().positive().default(600),
+  /**
+   * سقفٌ **خشنٌ لكل عنوان** يُطبَّق فوق الدلاء الدقيقة، لا بدلاً منها.
+   *
+   * الحاجة إليه من الميدان: مندوبو التوزيع وتطبيقات المخابز تعمل على شبكات الجوّال،
+   * وهذه تضع مئات المشتركين خلف عنوانٍ واحد (‏CGNAT). ودلوٌ واحد للعنوان يعني أن سقف
+   * ٦٠٠/دقيقة يصير سقفاً لـ«كل المندوبين على تلك الشريحة»: عشرون مندوباً يستطلعون كل
+   * دقيقتين يُغلقون الباب على أنفسهم. فالدلو الدقيق يعدّ **العميل** (رمزُه أو حسابه)،
+   * وهذا السقف يبقى ليكبح إغراقاً من جهازٍ واحد يبدّل رموزاً أو حسابات.
+   */
+  RATE_LIMIT_IP_CEILING_PER_MINUTE: z.coerce.number().int().positive().default(6_000),
   RATE_LIMIT_LOGIN_PER_MINUTE: z.coerce.number().int().positive().default(10),
+  /**
+   * سقفُ محاولات الدخول **لكل عنوان** — أعلى من سقف الحساب لأن عنواناً واحداً قد يخدم
+   * مكتباً أو شريحة جوّال كاملة، وأقلّ بكثير من أن يسمح بتخمينٍ موزّع. الحماية الحقيقية
+   * من التخمين هي قفل الحساب (‏SH-06) ودلوُ (العنوان + الحساب) أدناه.
+   */
+  RATE_LIMIT_LOGIN_IP_PER_MINUTE: z.coerce.number().int().positive().default(120),
   RATE_LIMIT_REGISTER_PER_MINUTE: z.coerce.number().int().positive().default(5),
   /**
    * P-M6 — استمارات الموقع العامّة (تواصل · طلب عرض · نشرة). دلوٌ خاصٌّ بها لا دلو الدخول:

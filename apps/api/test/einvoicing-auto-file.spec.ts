@@ -30,15 +30,32 @@ describe('zatca auto-filing — الإرسال التلقائي بعد التر�
   const call = (method: 'get' | 'post' | 'put', path: string, options: { token: string; body?: unknown } = { token: '' }) => api(ctx.server, method, `/api/v1${path}`, options);
 
   /** الإرسال يقع بعد الرد (لا يُبطئ الترحيل) — فالتلميذ ينتظر الصفّ لا النوم. */
-  async function submissionFor(invoiceId: string) {
-    for (let attempt = 0; attempt < 100; attempt += 1) {
+  /**
+   * ينتظر **حالةً مستقرّة** لا مجرّد ظهور الصف.
+   *
+   * السبب: الإرسال التلقائي يُنشئ الصفّ بحالة `signed` ثم يُحدّثه إلى `reported` بعد
+   * نداء الهيئة. والانتظار على الظهور وحده يعيد الصفّ الوسيط، فتنجح التوقّعات أو تفشل
+   * بحسب سرعة الجهاز — وهذا ما جعل هذا الملف يفشل في تشغيلٍ كامل ثم ينجح منفرداً.
+   */
+  const SETTLED = new Set(['reported', 'cleared', 'failed', 'not_implemented']);
+  async function submissionFor(
+    invoiceId: string,
+    options: { waitMs?: number; settled?: boolean } = {},
+  ): Promise<Record<string, any> | null> {
+    const settled = options.settled ?? true;
+    const deadline = Date.now() + (options.waitMs ?? 10_000);
+    let last: Record<string, any> | null = null;
+    for (;;) {
       const response = await call('get', '/einvoice/submissions', { token: actor.token });
       const rows = ((response.body.data ?? response.body) as Array<Record<string, any>>);
-      const found = (Array.isArray(rows) ? rows : []).find((row) => row.invoiceId === invoiceId);
-      if (found) return found;
+      const found = (Array.isArray(rows) ? rows : []).find((row) => row.invoiceId === invoiceId) ?? null;
+      if (found) {
+        last = found;
+        if (!settled || SETTLED.has(String(found.status))) return found;
+      }
+      if (Date.now() >= deadline) return last;
       await new Promise((resolve) => setTimeout(resolve, 50));
     }
-    return null;
   }
 
   async function postedSale(options: { partyId?: string; cashCustomer?: string } = {}) {
@@ -161,8 +178,8 @@ describe('zatca auto-filing — الإرسال التلقائي بعد التر�
     expect((await call('put', '/einvoice/settings', { token: actor.token, body: { syncManual: true } })).status).toBe(200);
 
     const sale = await postedSale({ cashCustomer: 'عميل نقدي' });
-    await new Promise((resolve) => setTimeout(resolve, 800));
-    expect(await submissionFor(sale.id)).toBeNull();
+    // نافذةٌ قصيرة مقصودة: السؤال «هل بقي صامتاً؟» لا «هل وصل بعد دقيقة؟».
+    expect(await submissionFor(sale.id, { waitMs: 800 })).toBeNull();
     expect(body(await call('get', `/sales/invoices/${sale.id}`, { token: actor.token })).zatcaStatus).toBeNull();
 
     const synced = await call('post', '/einvoice/sync', { token: actor.token, body: { ids: [sale.id] } });

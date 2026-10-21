@@ -27,10 +27,27 @@ export type DatabaseHandle = {
 };
 
 export function createPool(connectionString?: string, max?: number): Pool {
-  return new Pool({
+  const pool = new Pool({
     connectionString: connectionString ?? env.DATABASE_URL ?? DEFAULT_DEV_DATABASE_URL,
     max: max ?? env.DATABASE_POOL_MAX,
   });
+
+  /**
+   * مستمع `error` إلزامي، وليس تنظيفاً تجميلياً.
+   *
+   * `node-postgres` يُعيد بثّ خطأ عميلٍ **خامل** عبر المجمّع. و`EventEmitter` بلا مستمعٍ
+   * لحدث `error` يرمي استثناءً غير ملتقطٍ يقتل العملية. فكل `pg_terminate_backend`
+   * (لوحة إدارة، أو `DROP DATABASE … FORCE`، أو إعادة تشغيل قاعدة، أو فشل تجاوز في
+   * عنقود) كان يُسقط الـAPI كاملاً — عطلٌ في القاعدة يصير عطلاً في الخدمة، ثم إعادة
+   * تشغيل PM2، ثم تكرار.
+   *
+   * والعلاج ليس كتم الخطأ: يُسجَّل ليظهر في `pm2 logs`، والمجمّع يستبدل العميل من نفسه.
+   */
+  pool.on('error', (error: Error) => {
+    console.error(`[db] idle client error (connection replaced): ${error.message}`);
+  });
+
+  return pool;
 }
 
 export function createDatabase(connectionString?: string, max?: number): DatabaseHandle {

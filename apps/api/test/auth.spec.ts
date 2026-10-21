@@ -138,6 +138,27 @@ describe('auth (API_CONTRACT §1)', () => {
     expect(throttled.headers['retry-after']).toBeDefined();
   });
 
+  /**
+   * ‏CGNAT: مندوبو الميدان وتطبيقات المخابز تعمل على شبكات الجوّال، ومئات المشتركين
+   * قد يخرجون من عنوانٍ واحد. الاختبار يثبت السلوك على HTTP نفسه: استهلاك حسابٍ كامل
+   * لا يُغلق باب حسابٍ آخر على العنوان ذاته — وأن الحماية باقية (الحساب الأول ما زال 429).
+   */
+  it('does not let one account exhaust the login bucket of another on the same IP (CGNAT)', async () => {
+    await actorWithPassword('cgnat', 'rep-one@cgnat.test');
+    await actorWithPassword('cgnat', 'rep-two@cgnat.test');
+
+    const attempt = (email: string) =>
+      api(ctx.server, 'post', '/api/v1/auth/login', {
+        body: { email, password: PASSWORD, tenantCode: 'cgnat' },
+      });
+
+    for (let i = 0; i < 10; i += 1) expect((await attempt('rep-one@cgnat.test')).status).toBe(200);
+    expect((await attempt('rep-one@cgnat.test')).status).toBe(429);
+
+    // نفس العنوان، حسابٌ آخر: يُخدم. ولو كان الدلو للعنوان وحده لَرُفض هذا الطلب.
+    expect((await attempt('rep-two@cgnat.test')).status).toBe(200);
+  });
+
   it('rotates the refresh token and revokes the whole family on reuse', async () => {
     await actorWithPassword('soylent', 'owner@soylent.test');
 

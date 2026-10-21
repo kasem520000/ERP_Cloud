@@ -13,4 +13,15 @@ Object.assign(process.env, {
    * `rate-limiter.service.spec.ts` على مقبسٍ حقيقي (`test/support/stub-redis.ts`).
    */
   RATE_LIMIT_STORE: process.env.RATE_LIMIT_STORE ?? 'memory',
+  /**
+   * مهل المقبس في الاختبارات أوسع منها في الإنتاج، والسبب مقيس لا تفضيلي.
+   *
+   * الإنتاج يقطع الطلب بعد ٣٠ ثانية (`HTTP_REQUEST_TIMEOUT_MS`) حمايةً من slowloris —
+   * وهذا صحيح هناك. لكن المجموعة كلها تعمل على نواةٍ واحدة وتُنفّذ معاملات ثقيلة
+   * (رواتب، مخزون) متزامنة؛ فطلبٌ ينتظر قفل صفٍّ في اختبار التزامن قد يتجاوز ٣٠ ثانية
+   * فيقطع Node المقبس ويصل الخطأ `ECONNRESET` بدل `409` المتوقّع. فيصير الاختبار
+   * معتمداً على سرعة الجهاز: ينجح منفرداً ويفشل في التشغيل الكامل.
+   */
+  HTTP_REQUEST_TIMEOUT_MS: process.env.HTTP_REQUEST_TIMEOUT_MS ?? '180000',
+  HTTP_HEADERS_TIMEOUT_MS: process.env.HTTP_HEADERS_TIMEOUT_MS ?? '60000',
 });
