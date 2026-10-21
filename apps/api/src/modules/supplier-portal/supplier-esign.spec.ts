@@ -6,6 +6,7 @@ import {
   assertSignable,
   loginDecision,
   newSecret,
+  nextOtpAttempt,
   respondToRfq,
   scopeToken,
   sha256,
@@ -76,5 +77,21 @@ describe('supplier portal and simple e-sign', () => {
     expect(() => acceptSignature({ otp: '000000', expectedOtpHash: sha256(otp), signatureData: 'data:image/png;base64,aaaa' })).toThrow(
       PortalRuleError,
     );
+  });
+
+  it('locks exactly at the cap: the fifth wrong code is the last one accepted as a guess', () => {
+    expect(nextOtpAttempt(0, 5)).toEqual({ attempts: 1, locked: false });
+    expect(nextOtpAttempt(3, 5)).toEqual({ attempts: 4, locked: false });
+    expect(nextOtpAttempt(4, 5)).toEqual({ attempts: 5, locked: true });
+    // السقف ١ يعني محاولةً واحدة: أول رمز خاطئ يقفل، ولا «صفر محاولات».
+    expect(nextOtpAttempt(0, 1)).toEqual({ attempts: 1, locked: true });
+    // عدّادٌ سالب (صفٌّ قديم) لا يمنح محاولات إضافية.
+    expect(nextOtpAttempt(-3, 2)).toEqual({ attempts: 1, locked: false });
+  });
+
+  it('a locked request is refused before the code is even compared', () => {
+    expect(() =>
+      assertSignable({ status: 'locked', expiresAt: new Date(Date.now() + 60_000).toISOString() }, new Date()),
+    ).toThrow(/Too many wrong codes/);
   });
 });

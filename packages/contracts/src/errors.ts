@@ -40,6 +40,8 @@ export const errorCodes = {
   PAYLOAD_TOO_LARGE: 'PAYLOAD_TOO_LARGE',
   /** رابطٌ أطول من السقف — يُقطع قبل تحليل الاستعلام. */
   URI_TOO_LONG: 'URI_TOO_LONG',
+  /** SH-06 — نفاد محاولات رمز التوقيع: الطلب يُقفل ويحتاج رابطاً جديداً. */
+  OTP_LOCKED: 'OTP_LOCKED',
   INTERNAL: 'INTERNAL',
   // PHASE_04 — a draft was accepted but must wait for the configured approval chain.
   APPROVAL_REQUIRED: 'APPROVAL_REQUIRED',
@@ -278,6 +280,7 @@ export const errorStatus: Record<ErrorCode, number> = {
   RATE_LIMITED: 429,
   PAYLOAD_TOO_LARGE: 413,
   URI_TOO_LONG: 414,
+  OTP_LOCKED: 423,
   INTERNAL: 500,
   APPROVAL_REQUIRED: 202,
   ADDON_REQUIRES_PLATFORM_APPROVAL: 403,
@@ -388,6 +391,7 @@ export const errorTitle: Record<ErrorCode, string> = {
   RATE_LIMITED: 'Rate limited',
   PAYLOAD_TOO_LARGE: 'Payload too large',
   URI_TOO_LONG: 'URI too long',
+  OTP_LOCKED: 'Signature attempts exhausted',
   INTERNAL: 'Internal error',
   APPROVAL_REQUIRED: 'Approval required',
   ADDON_REQUIRES_PLATFORM_APPROVAL: 'This add-on is licensed by the platform — request activation',

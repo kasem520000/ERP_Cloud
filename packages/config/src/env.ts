@@ -61,6 +61,11 @@ const envSchema = z.object({
   /** SECURITY_ARCHITECTURE §2 — exponential lockout on repeated failures. */
   AUTH_LOGIN_MAX_FAILURES: z.coerce.number().int().positive().default(5),
   AUTH_LOCKOUT_MINUTES: z.coerce.number().int().positive().default(15),
+  /**
+   * SH-06 — سقف محاولات رمز التوقيع (ستة أرقام، والرابط صالح ٧ أيام).
+   * خمس محاولات خاطئة تُقفل الطلب: احتمال التخمين 5/10^6، ويحتاج الموقّع رابطاً جديداً.
+   */
+  ESIGN_OTP_MAX_ATTEMPTS: z.coerce.number().int().positive().max(20).default(5),
 
   /**
    * SECURITY_ARCHITECTURE §2 — «فحص قائمة كلمات المرور المسرَّبة».

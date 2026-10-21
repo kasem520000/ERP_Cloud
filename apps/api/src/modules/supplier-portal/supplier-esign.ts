@@ -71,14 +71,27 @@ export function respondToRfq(
   return { status: 'responded', offer: offer.toFixed(4), note: input.note.trim() };
 }
 
-export type EsignStatus = 'sent' | 'viewed' | 'signed' | 'declined';
+export type EsignStatus = 'sent' | 'viewed' | 'signed' | 'declined' | 'locked';
 
 export function assertSignable(request: { status: EsignStatus; expiresAt: string }, now: Date): void {
   if (request.status === 'signed') throw new PortalRuleError('ALREADY_SIGNED', 'This document is already signed', 409);
   if (request.status === 'declined') throw new PortalRuleError('ESIGN_DECLINED', 'This signature request was declined', 409);
+  // نفاد المحاولات قرارٌ مختلف عن الرفض: لا يُعاد فتحه ولا يُوقَّع، ويحتاج رابطاً جديداً.
+  if (request.status === 'locked') {
+    throw new PortalRuleError('OTP_LOCKED', 'Too many wrong codes — ask for a new signature link', 423);
+  }
   if (new Date(request.expiresAt).getTime() <= now.getTime()) {
     throw new PortalRuleError('ESIGN_EXPIRED', 'This signature link has expired', 410);
   }
+}
+
+/**
+ * SH-06 — نتيجة محاولةٍ خاطئة. الدالة نقيّة كي يُقاس الحدّ بلا قاعدة بيانات:
+ * `attempts + 1` محاولة، وتُقفل عند بلوغ السقف (والسقف نفسه محاولةٌ خاطئة، لا ما بعدها).
+ */
+export function nextOtpAttempt(attempts: number, max: number): { attempts: number; locked: boolean } {
+  const next = Math.max(0, attempts) + 1;
+  return { attempts: next, locked: next >= Math.max(1, max) };
 }
 
 export function acceptSignature(input: { otp: string; expectedOtpHash: string; signatureData: string }): { status: 'signed' } {

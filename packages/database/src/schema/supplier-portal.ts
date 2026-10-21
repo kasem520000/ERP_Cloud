@@ -1,4 +1,4 @@
-import { boolean, index, numeric, pgTable, text, timestamp, uniqueIndex, uuid } from 'drizzle-orm/pg-core';
+import { boolean, index, integer, numeric, pgTable, text, timestamp, uniqueIndex, uuid } from 'drizzle-orm/pg-core';
 
 import { bytea } from '../columns.js';
 
@@ -93,6 +93,8 @@ export const esignRequests = pgTable(
     signerEmail: text('signer_email').notNull(),
     tokenHash: text('token_hash').notNull(),
     otpHash: text('otp_hash').notNull(),
+    /** SH-06 — محاولات الرمز الخاطئة؛ عند بلوغ السقف تصير الحالة `locked`. */
+    otpAttempts: integer('otp_attempts').notNull().default(0),
     status: text('status').notNull().default('sent'),
     signedFileId: uuid('signed_file_id'),
     signedPdf: bytea('signed_pdf'),
