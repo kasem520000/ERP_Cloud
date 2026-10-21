@@ -290,7 +290,7 @@ export class PlatformIdentityService {
     const roleName = role.nameAr;
 
     if (input.temporaryPassword) {
-      this.passwords.assertPolicy(input.temporaryPassword, { email: input.email });
+      await this.passwords.assertPolicy(input.temporaryPassword, { email: input.email });
     }
     const passwordHash = input.temporaryPassword
       ? await this.passwords.hash(input.temporaryPassword)

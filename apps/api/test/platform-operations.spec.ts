@@ -262,7 +262,7 @@ describe('platform operations (P-C9)', () => {
 
   // ─────────────────────────────────────────────────────────── الصحة
 
-  it('يقدّم ستّ مجسّات، ولا يسمّي «غير المهيّأ» عطلاً', async () => {
+  it('يقدّم سبعة مجسّات، ولا يسمّي «غير المهيّأ» عطلاً', async () => {
     const response = await platform('get', '/platform/health/detailed');
     expect(response.status).toBe(200);
     const health = (response.body as { data: PlatformHealth }).data;
@@ -270,6 +270,7 @@ describe('platform operations (P-C9)', () => {
     expect(health.probes.map((probe) => probe.name).sort()).toEqual([
       'database',
       'email',
+      'password_breach',
       'queue',
       'redis',
       'storage',

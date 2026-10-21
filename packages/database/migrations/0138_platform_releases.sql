@@ -60,3 +60,17 @@ CREATE UNIQUE INDEX IF NOT EXISTS platform_releases_version_channel_key
 
 CREATE INDEX IF NOT EXISTS platform_releases_uploaded_idx
   ON platform_releases (uploaded_at DESC);
+
+-- ───────────────────────────────────────────────────────────── رموز الصلاحية
+--
+-- الشاشتان تُحرَسان برمزَين في سجلّ المنصّة، والرمز الذي لا سطرَ له في جدول `permissions`
+-- لا يمنحه أيّ دور — فالمسار يبقى 403 أبدياً. والسطر هنا لا في البذرة: قاعدةٌ مُهاجَرة
+-- بـ`pnpm db:migrate` وحدها (بلا `db:seed`) يجب أن تعرف الرمز، وإلا سقط الاختبار
+-- `permission-codes.spec.ts` وسقط معه أوّل دخولٍ لشاشة الإصدارات.
+--
+-- و`ON CONFLICT … DO UPDATE` تكتب الوصف مرّةً أخرى بلا أثر: البذرة تكتب السطر نفسه،
+-- فالترتيب بينهما لا يهمّ.
+INSERT INTO permissions (code, module, description) VALUES
+  ('console.releases.view', 'console', 'Read the platform release ledger and the release shown to tenants.'),
+  ('console.releases.manage', 'console', 'Upload, promote and revoke platform releases. Archive contents are never executed.')
+ON CONFLICT (code) DO UPDATE SET module = EXCLUDED.module, description = EXCLUDED.description;

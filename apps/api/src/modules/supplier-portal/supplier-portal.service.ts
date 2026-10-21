@@ -126,7 +126,7 @@ export class SupplierPortalService {
     if (!EMAIL.test(email) || email.length > 200) throw new DomainError('EMAIL_INVALID', 'أدخل بريداً صالحاً', 422);
     const supplied = input.password?.trim() ?? '';
     const secret = supplied || temporaryPassword();
-    this.passwords.assertPolicy(secret, { email });
+    await this.passwords.assertPolicy(secret, { email });
     const passwordHash = await this.passwords.hash(secret);
     return withTenantTx(this.database.db, tenantId, async (tx) => {
       const [party] = await tx

@@ -102,7 +102,15 @@ export type WorkerHeartbeat = z.infer<typeof workerHeartbeatSchema>;
 
 // ───────────────────────────────────────────────────────────── صحة الخدمة
 
-export const healthProbeNames = ['database', 'redis', 'storage', 'email', 'queue', 'worker'] as const;
+export const healthProbeNames = [
+  'database',
+  'redis',
+  'storage',
+  'email',
+  'queue',
+  'worker',
+  'password_breach',
+] as const;
 export type HealthProbeName = (typeof healthProbeNames)[number];
 
 /** `not_configured` ليست `down`: الأولى قرارُ نشر، والثانية عطل. */

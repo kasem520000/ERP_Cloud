@@ -11,6 +11,7 @@ import { PublicPlansService } from './billing/public-plans.service.js';
 import { AuthService } from './auth/auth.service.js';
 import { MfaController } from './auth/mfa.controller.js';
 import { MfaService } from './auth/mfa.service.js';
+import { PasswordBreachChecker } from './auth/password-breach.js';
 import { PasswordService } from './auth/password.service.js';
 import { TokenService } from './auth/token.service.js';
 import { IdentityController } from './identity/identity.controller.js';
@@ -55,6 +56,7 @@ import { TenantService } from './tenancy/tenant.service.js';
     SettingsService,
     TenantService,
     MfaService,
+    PasswordBreachChecker,
     PasswordService,
     TokenService,
     RateLimiterService,
@@ -64,6 +66,7 @@ import { TenantService } from './tenancy/tenant.service.js';
     IdentityService,
     PlatformRolePermissionsService,
     MfaService,
+    PasswordBreachChecker,
     PasswordService,
     TokenService,
     RateLimiterService,

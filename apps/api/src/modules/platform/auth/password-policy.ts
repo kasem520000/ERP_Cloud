@@ -7,9 +7,12 @@ export const MIN_PASSWORD_LENGTH = 12;
 export const MAX_PASSWORD_LENGTH = 200;
 
 /**
- * Small offline deny-list. A full breached-password corpus (e.g. HaveIBeenPwned k-anonymity
- * lookup) is an external dependency and is deferred; the port is defined here so the call
- * site does not change. TODO(phase:23): wire the k-anonymity range API behind this port.
+ * القائمة المحلّية — خطّ الدفاع الأول، لا الوحيد.
+ *
+ * الفحص الحقيقي لقاعدة التسريبات يقع في `password-breach.ts` بنمط k-anonymity (يُرسَل
+ * أوّل خمسة أحرف من SHA-1 فقط)، ويُستدعى من `PasswordService.assertPolicy` **بعد** نجاح
+ * هذه القواعد. والقائمة تبقى هنا لأنها تعمل بلا شبكة ولا مهلة: لا يجوز أن تصير السلامة
+ * رهينة مزوّدٍ خارجي، ولا أن يسقط الفحص كلّه حين يسقط.
  */
 export const DENY_LIST: readonly string[] = [
   'password',

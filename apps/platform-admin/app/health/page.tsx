@@ -1,7 +1,7 @@
 'use client';
 
 import { Panel } from '@erp/ui';
-import { AlertTriangle, Database, Gauge, HardDrive, Mail, RefreshCw, Server, Timer } from 'lucide-react';
+import { AlertTriangle, Database, Gauge, HardDrive, Mail, RefreshCw, Server, ShieldCheck, Timer } from 'lucide-react';
 
 import { Screen } from '../../components/screen';
 import { Badge } from '../../components/ui/badge';
@@ -47,6 +47,7 @@ const PROBE_LABEL: Record<string, string> = {
   email: 'البريد',
   queue: 'الطابور',
   worker: 'العامل',
+  password_breach: 'فحص كلمات المرور المسرَّبة',
 };
 
 const PROBE_ICON: Record<string, React.ReactNode> = {
@@ -56,6 +57,7 @@ const PROBE_ICON: Record<string, React.ReactNode> = {
   email: <Mail size={16} />,
   queue: <Gauge size={16} />,
   worker: <Timer size={16} />,
+  password_breach: <ShieldCheck size={16} />,
 };
 
 const STATUS_LABEL: Record<string, string> = {

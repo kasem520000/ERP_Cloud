@@ -15,3 +15,8 @@
 DROP INDEX IF EXISTS platform_releases_uploaded_idx;
 DROP INDEX IF EXISTS platform_releases_one_current_idx;
 DROP TABLE IF EXISTS platform_releases;
+
+-- الرمزان يعودان مع الهجرة: سطراهما في `permissions` أُضيفا بها، وتركُهما بعد إسقاط
+-- الجدولين يترك صلاحياتٍ بلا شاشة. والتراجع لا يمسح ربطاً قائماً بهما في `role_permissions`
+-- (ذلك قرار مسؤول المنصة، لا قرار هجرة).
+DELETE FROM permissions WHERE code IN ('console.releases.view', 'console.releases.manage');

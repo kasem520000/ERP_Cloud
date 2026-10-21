@@ -62,6 +62,23 @@ const envSchema = z.object({
   AUTH_LOGIN_MAX_FAILURES: z.coerce.number().int().positive().default(5),
   AUTH_LOCKOUT_MINUTES: z.coerce.number().int().positive().default(15),
 
+  /**
+   * SECURITY_ARCHITECTURE §2 — «فحص قائمة كلمات المرور المسرَّبة».
+   *
+   * `off` = القائمة المحلية القصيرة وحدها؛ `warn` = يفحص ويسجّل ولا يمنع؛ `enforce` = يمنع.
+   * والافتراضي يُحسَب لا يُثبَّت: `enforce` في الإنتاج، و`off` في التطوير والاختبار حتى لا
+   * يدفع كلُّ اختبارٍ محلي كلفةَ نداءٍ خارجيّ لا يعنيه.
+   *
+   * والفحص بنمط k-anonymity: يُرسَل **أول خمسة أحرف** من SHA-1 فقط، فلا تخرج كلمة المرور
+   * ولا بصمتها الكاملة من الخادم. وتعذّر الوصول ليس رفضاً — يُسجَّل ويُترك للمراجعة، لأن
+   * تعطيل الدخول لأن مزوّداً خارجياً سقط عطلٌ أكبر من العيب الذي يُعالَج.
+   */
+  PASSWORD_BREACH_CHECK: z.enum(['off', 'warn', 'enforce']).optional(),
+  PASSWORD_BREACH_CHECK_URL: z.string().url().default('https://api.pwnedpasswords.com/range/'),
+  PASSWORD_BREACH_CHECK_TIMEOUT_MS: z.coerce.number().int().positive().max(10_000).default(1_500),
+  /** بعد ثلاثة إخفاقات متتالية يُفتح القاطع هذه المدة فلا يُنادَى المزوّد في كل تغييرٍ لكلمة. */
+  PASSWORD_BREACH_CHECK_CIRCUIT_SECONDS: z.coerce.number().int().positive().max(3_600).default(60),
+
   /** SECURITY_ARCHITECTURE §8 — token buckets. */
   RATE_LIMIT_DEFAULT_PER_MINUTE: z.coerce.number().int().positive().default(600),
   RATE_LIMIT_LOGIN_PER_MINUTE: z.coerce.number().int().positive().default(10),

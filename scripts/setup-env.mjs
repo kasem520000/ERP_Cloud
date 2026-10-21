@@ -90,7 +90,16 @@ const replacements = {
 
 for (const [key, value] of Object.entries(replacements)) {
   const pattern = new RegExp(`^${key}=.*$`, 'm');
-  content = pattern.test(content) ? content.replace(pattern, `${key}=${value}`) : `${content}\n${key}=${value}\n`;
+  /**
+   * دالّةٌ لا نصّ استبدال: `String.replace` يقرأ `$&` و`$'` و`$\`` داخل النصّ البديل
+   * كأنماطٍ خاصّة. وكلمات المرور المولّدة تحتوي `$` (من مجموعة الرموز)، فقد تُولَد كلمة
+   * مرورٍ تحمل `$&` فيُحقَن سطر `.env` القديم داخل السطر الجديد — وتُكتب كلمةٌ تالفة بلا
+   * خطأ. حدث هذا فعلاً: `DEMO_REP_PASSWORD=JQHX69$&…` صار سطراً مزدوجاً يحوي كلمة
+   * «PASSWORD»، فرفضته سياسة كلمة المرور (تحتوي «password») وسقط التهيئة.
+   */
+  content = pattern.test(content)
+    ? content.replace(pattern, () => `${key}=${value}`)
+    : `${content}\n${key}=${value}\n`;
 }
 
 writeFileSync(target, content, { mode: 0o600 });

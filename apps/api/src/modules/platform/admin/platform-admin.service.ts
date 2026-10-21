@@ -250,7 +250,7 @@ export class PlatformAdminService {
 
     let passwordHash: string | undefined;
     if (input.ownerPassword) {
-      this.passwords.assertPolicy(input.ownerPassword, { email: input.ownerEmail });
+      await this.passwords.assertPolicy(input.ownerPassword, { email: input.ownerEmail });
       passwordHash = await this.passwords.hash(input.ownerPassword);
     }
 

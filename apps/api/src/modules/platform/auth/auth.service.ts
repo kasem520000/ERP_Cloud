@@ -438,7 +438,7 @@ export class AuthService {
       });
     }
 
-    this.passwords.assertPolicy(input.new, { email: user.email, fullName: user.fullName });
+    await this.passwords.assertPolicy(input.new, { email: user.email, fullName: user.fullName });
     const passwordHash = await this.passwords.hash(input.new);
 
     await withTx(this.database.db, async (tx) => {
@@ -578,7 +578,7 @@ export class AuthService {
       );
     }
 
-    this.passwords.assertPolicy(input.newPassword, { email: user.email, fullName: user.fullName });
+    await this.passwords.assertPolicy(input.newPassword, { email: user.email, fullName: user.fullName });
     const passwordHash = await this.passwords.hash(input.newPassword);
 
     const updated = await withTx(this.database.db, async (tx) => {

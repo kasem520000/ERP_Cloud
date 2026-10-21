@@ -59,7 +59,7 @@ async function hashOrSkip(
     console.log(`  ${label}: no password variable set — created as invited (must set a password to sign in).`);
     return undefined;
   }
-  passwords.assertPolicy(password, { email, fullName });
+  await passwords.assertPolicy(password, { email, fullName });
   return passwords.hash(password);
 }
 
