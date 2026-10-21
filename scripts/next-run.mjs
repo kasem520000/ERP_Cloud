@@ -47,6 +47,12 @@ if (!meta) {
 }
 
 const port = process.env[meta.portEnv] || meta.defaultPort;
+/**
+ * واجهة الاستماع. الافتراضي `0.0.0.0` كي يعمل المعاينة/الشبكة المحلية بلا إعداد،
+ * وفي الإنتاج يُضبط `WEB_HOST=127.0.0.1` فلا يصل المتصفّح إلى :3001… إلا عبر Nginx
+ * (ومنفذٌ مفتوحٌ للعامة يتجاوز كل ترويسات الأمان التي يضبطها الوكيل).
+ */
+const host = process.env.WEB_HOST || '0.0.0.0';
 const appDir = path.join(repoRoot, 'apps', appName);
 
 // Locate the real `next` CLI entry file inside the app's dependency tree so we can run
@@ -62,11 +68,11 @@ try {
 }
 
 const command = mode === 'start' ? 'start' : 'dev';
-console.log(`[next-run] ${appName}: running "next ${command}" on port ${port}…`);
+console.log(`[next-run] ${appName}: running "next ${command}" on ${host}:${port}…`);
 
 const child = spawn(
   process.execPath,
-  [nextEntry, command, '--hostname', '0.0.0.0', '--port', port],
+  [nextEntry, command, '--hostname', host, '--port', port],
   { cwd: appDir, stdio: 'inherit' },
 );
 

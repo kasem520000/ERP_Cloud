@@ -2,7 +2,15 @@ import { loadEnvFiles } from '../../scripts/dotenv.mjs';
 
 loadEnvFiles(process.cwd());
 
-const apiTarget = (process.env.API_PROXY_TARGET ?? `http://127.0.0.1:${process.env.PORT ?? 3000}`).replace(/\/+$/, '');
+/**
+ * عنوان الـAPI الذي تُمرَّر إليه `/api/v1/*` من هذه الواجهة (same-origin من المتصفّح).
+ *
+ * كان الافتراضي `http://127.0.0.1:${PORT}` — ومنفذ الواجهة نفسها يأتي في `PORT` عند PM2 أو
+ * `next start`، فتوكّل الواجهة إلى **نفسها** بدل الـAPI: كل نداء يفشل بـ404 محلي، ويبدو
+ * العطل كأنه خطأ في الـAPI. الافتراضي الآن منفذ الـAPI الصريح، والقيمة تُثبَّت وقت البناء
+ * لأن `rewrites()` تُخزَّن في `.next/routes-manifest.json`.
+ */
+const apiTarget = (process.env.API_PROXY_TARGET ?? 'http://127.0.0.1:3000').replace(/\/+$/, '');
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
