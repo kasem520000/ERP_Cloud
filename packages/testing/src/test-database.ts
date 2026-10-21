@@ -3,9 +3,11 @@ import os from 'node:os';
 import path from 'node:path';
 import { randomBytes } from 'node:crypto';
 
-import { Client } from 'pg';
 import { env } from '@erp/config';
 import { runMigrations, seedPermissionRegistry } from '@erp/database';
+import { Client } from 'pg';
+
+import { detachForcedExitHook, snapshotExitListeners } from './exit-guard.js';
 
 /**
  * Test database provisioning (TESTING_STRATEGY §1: "integration (supertest +
@@ -104,6 +106,9 @@ export async function startTestDatabaseServer(options: StartOptions = {}): Promi
     };
   }
 
+  // لقطة المستمعين قبل تحميل `embedded-postgres`: مكتبته تُسجّل مستمع `beforeExit`
+  // يفرض `exit(0)`، فيُحوّل تشغيلاً فاشلاً إلى نجاح (انظر `exit-guard.ts`).
+  const listenersBefore = snapshotExitListeners();
   const { default: EmbeddedPostgres } = await import('embedded-postgres');
   const port = options.port ?? (await freePort());
   const dataDir =
@@ -116,6 +121,8 @@ export async function startTestDatabaseServer(options: StartOptions = {}): Promi
     port,
     persistent: false,
   });
+
+  detachForcedExitHook(listenersBefore);
 
   await server.initialise();
   await server.start();

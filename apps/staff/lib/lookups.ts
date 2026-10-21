@@ -65,6 +65,8 @@ export type Party = {
   taxNo?: string | null;
   tax_no?: string | null;
   creditLimit?: string | null;
+  /** العنوان الوطني as stored in `parties.address` (see `lib/national-address`). */
+  address?: Record<string, string> | null;
 };
 export type CashLocation = {
   id: string;
@@ -428,7 +430,7 @@ export function partyLabel(party: Party): string {
   return `${party.code ? `${party.code} — ` : ''}${party.name}`;
 }
 export function cashLocationLabel(location: CashLocation): string {
-  return `${location.kind === 'bank' ? '🏦' : '💵'} ${location.name}`;
+ return `${location.kind === 'bank' ? '' : ''} ${location.name}`;
 }
 
 /** The default branch/warehouse is what a single-branch tenant always wants preselected. */
@@ -463,6 +465,7 @@ export function quantity(value: string | number | null | undefined): string {
 export function percent(value: string | number | null | undefined): string {
   if (value === null || value === undefined || value === '') return '—';
   const parsed = Number(value);
+  // Takes a *fraction* (0.15 → «15%»); callers hold percentages and divide by 100.
   return Number.isFinite(parsed) ? `${plain.format(parsed * 100)}%` : String(value);
 }
 
@@ -508,4 +511,29 @@ export const DOC_STATUS_LABELS: Record<string, string> = {
 export function statusLabel(status?: string | null): string {
   if (!status) return '—';
   return DOC_STATUS_LABELS[status] ?? status;
+}
+
+/**
+ * Where a journal entry came from. The API speaks in snake_case source types
+ * (`sales_invoice`, `purchase_invoice`, …) and those used to be printed raw inside an
+ * otherwise Arabic screen. Reading, not accounting: the value itself never changes.
+ */
+export const SOURCE_TYPE_LABELS: Record<string, string> = {
+  sales_invoice: 'فاتورة مبيعات',
+  purchase_invoice: 'فاتورة مشتريات',
+  sales_return: 'مردود مبيعات',
+  purchase_return: 'مردود مشتريات',
+  payment: 'سند دفع',
+  receipt: 'سند قبض',
+  voucher: 'سند',
+  adjustment: 'تسوية',
+  opening: 'قيد افتتاحي',
+  manual: 'يدوي',
+  payroll: 'رواتب',
+  reversal: 'قيد عكسي',
+};
+
+export function sourceTypeLabel(source?: string | null): string {
+  if (!source) return 'يدوي';
+  return SOURCE_TYPE_LABELS[source] ?? source;
 }

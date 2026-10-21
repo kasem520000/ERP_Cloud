@@ -334,7 +334,14 @@ export function robotsRules(site: SiteInfo): { rules: { userAgent: string; allow
   };
 }
 
-/** المسار المطلق لصفحةٍ بحسب لغتها — يُستعمل في الروابط الداخلية. */
+/**
+ * المسار المطلق لصفحةٍ بحسب لغتها — يُستعمل في الروابط الداخلية.
+ *
+ * والمسار الذي لا نظيرَ إنجليزيَّ له (`/contact`، `/pricing`، `/verify`…) يبقى عربيًّا حتى
+ * من صفحةٍ إنجليزية: `/en/contact` ليس صفحةً بل 404، والرابط الذي يفتح صفحةً بلغةٍ أخرى
+ * أصدقُ من رابطٍ ميّت. وقرار «هل للصفحة نظير» يعيش في `BILINGUAL_PATHS` وحدها.
+ */
 export function hrefFor(path: string, locale: Locale): string {
+  if (locale === 'en' && !hasEnglishTwin(path)) return path;
   return localePath(path, locale);
 }

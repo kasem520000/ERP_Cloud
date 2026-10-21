@@ -1,6 +1,7 @@
 'use client';
 
 import { FileSearch, RefreshCw, ScanLine, ShieldAlert } from 'lucide-react';
+import { Panel } from '@erp/ui';
 import { useState } from 'react';
 
 import { Empty, ErrorBox, Forbidden, Screen } from '../../components/screen';
@@ -153,7 +154,12 @@ export default function FilesPage() {
       {/* filter bar */}
       <div className="rounded-[10px] border border-line bg-surface p-3 shadow-1 no-print">
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
-          <Input label="بحث في الاسم" placeholder="كشف" value={term} onChange={(e) => setTerm(e.target.value)} />
+          <Input
+            label="بحث في الاسم"
+            placeholder="كشف"
+            value={term}
+            onChange={(e) => setTerm(e.target.value)}
+          />
           <Select label="حالة الملف" value={status} onChange={(e) => setStatus(e.target.value)}>
             <option value="">الكل</option>
             <option value="pending">بانتظار الرفع</option>
@@ -184,7 +190,9 @@ export default function FilesPage() {
       {notice ? (
         <div
           className={`mt-3 flex items-center gap-2 rounded-[10px] border px-4 py-2.5 text-[13px] font-semibold ${
-            notice.kind === 'ok' ? 'border-ok-line bg-ok-soft text-ok-ink' : 'border-danger-line bg-danger-soft text-danger-ink'
+            notice.kind === 'ok'
+              ? 'border-ok-line bg-ok-soft text-ok-ink'
+              : 'border-danger-line bg-danger-soft text-danger-ink'
           }`}
         >
           {notice.text}
@@ -208,8 +216,9 @@ export default function FilesPage() {
           <p className="mt-3 mb-2 text-[12px] font-semibold text-muted">
             {rows.length} من {files.data?.meta.total ?? rows.length} ملفاً
           </p>
-          <div className="overflow-hidden rounded-[10px] border border-line bg-surface shadow-1">
+          <Panel flush title="الملفات">
             <Table
+              bare
               rows={rows}
               rowKey={(row) => row.id}
               dense
@@ -224,7 +233,12 @@ export default function FilesPage() {
                         <FileSearch size={14} />
                       </span>
                       <span className="block min-w-0">
-                        <span className="block truncate font-mono text-[12px] font-semibold text-ink" dir="ltr">{row.name}</span>
+                        <span
+                          className="block truncate font-mono text-[12px] font-semibold text-ink"
+                          dir="ltr"
+                        >
+                          {row.name}
+                        </span>
                         <span className="block truncate font-mono text-[10.5px] text-muted" dir="ltr">
                           {row.mime} · {row.uploadedByLabel ?? 'بلا رافع'}
                         </span>
@@ -235,19 +249,29 @@ export default function FilesPage() {
                 {
                   key: 'tenant',
                   header: 'العميل',
-                  cell: (row) => <span className="font-mono text-[12px] text-ink-2" dir="ltr">{row.tenantCode ?? row.tenantId.slice(0, 8)}</span>,
+                  cell: (row) => (
+                    <span className="font-mono text-[12px] text-ink-2" dir="ltr">
+                      {row.tenantCode ?? row.tenantId.slice(0, 8)}
+                    </span>
+                  ),
                 },
                 {
                   key: 'size',
                   header: 'الحجم',
                   numeric: true,
                   ltr: true,
-                  cell: (row) => <span className="font-mono text-[12px] text-ink-2">{formatBytes(row.sizeBytes)}</span>,
+                  cell: (row) => (
+                    <span className="font-mono text-[12px] text-ink-2">{formatBytes(row.sizeBytes)}</span>
+                  ),
                 },
                 {
                   key: 'status',
                   header: 'الحالة',
-                  cell: (row) => <Badge tone={STATUS_TONE[row.status] ?? 'neutral'} dot>{STATUS_LABEL[row.status] ?? row.status}</Badge>,
+                  cell: (row) => (
+                    <Badge tone={STATUS_TONE[row.status] ?? 'neutral'} dot>
+                      {STATUS_LABEL[row.status] ?? row.status}
+                    </Badge>
+                  ),
                 },
                 {
                   key: 'entity',
@@ -271,7 +295,8 @@ export default function FilesPage() {
                           <ScanLine size={11} /> {SCAN_LABEL[row.scan.verdict] ?? row.scan.verdict}
                         </Badge>
                         <span className="mt-0.5 block font-mono text-[10.5px] text-muted" dir="ltr">
-                          {row.scan.scanner} · {new Date(row.scan.recordedAt).toLocaleString('en-GB', { timeZone: 'UTC' })}
+                          {row.scan.scanner} ·{' '}
+                          {new Date(row.scan.recordedAt).toLocaleString('en-GB', { timeZone: 'UTC' })}
                         </span>
                       </span>
                     ) : (
@@ -282,7 +307,11 @@ export default function FilesPage() {
                   key: 'created',
                   header: 'رُفع في',
                   ltr: true,
-                  cell: (row) => <span className="font-mono text-[11.5px] text-muted">{new Date(row.createdAt).toLocaleString('en-GB', { timeZone: 'UTC' })} UTC</span>,
+                  cell: (row) => (
+                    <span className="font-mono text-[11.5px] text-muted">
+                      {new Date(row.createdAt).toLocaleString('en-GB', { timeZone: 'UTC' })} UTC
+                    </span>
+                  ),
                 },
                 ...(canManage
                   ? [
@@ -318,7 +347,7 @@ export default function FilesPage() {
                   : []),
               ]}
             />
-          </div>
+          </Panel>
         </>
       )}
     </Screen>

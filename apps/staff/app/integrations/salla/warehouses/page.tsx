@@ -28,6 +28,7 @@ export default function SallaWarehousesPage() {
 
   return (
     <Directory<Mapping>
+      listTitle="روابط المستودعات"
       title="ربط المستودعات بمتجر سلة"
       subtitle="حدّد أي فرع ومستودع يخدم كل فرع في المتجر الإلكتروني، حتى تخصم الطلبات من المخزون الصحيح."
       crumbs={['المستودعات', 'متجر سلة']}

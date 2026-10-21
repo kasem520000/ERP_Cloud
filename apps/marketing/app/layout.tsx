@@ -66,10 +66,10 @@ export default async function RootLayout({ children }: { children: ReactNode }) 
       <head>
         {/* Design v3 §2.1 — the site follows the OS by default and offers the
             switch in the navbar. One script, one `erp.theme` key. */}
-        <ThemeScript defaultChoice="system" />
+        <ThemeScript defaultChoice="light" />
       </head>
       <body>
-        <ThemeProvider defaultChoice="system">
+        <ThemeProvider defaultChoice="light">
         <a className="skip-link" href="#main">
           {locale === 'ar' ? 'تخطَّ إلى المحتوى' : 'Skip to content'}
         </a>

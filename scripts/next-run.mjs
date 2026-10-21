@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
- * Cross-platform runner for the four Next.js surfaces (`apps/staff`, `apps/marketing`,
- * `apps/platform-admin`, `apps/customer-portal`).
+ * Cross-platform runner for the five Next.js surfaces (`apps/staff`, `apps/marketing`,
+ * `apps/platform-admin`, `apps/customer-portal`, `apps/bakery`).
  *
  * The apps' npm scripts used to embed bash-isms such as `${STAFF_PORT:-3001}` and to
  * rely on pnpm putting `node_modules/.bin` shims on the PATH. Both assumptions break
@@ -19,7 +19,7 @@
  *   3. runs the real `next` CLI entry through Node directly — never through a shell or a
  *      `.bin`/`.cmd` shim — so the same code works on every OS.
  *
- * Usage: `node scripts/next-run.mjs <staff|marketing|platform-admin|customer-portal> [dev|start]`
+ * Usage: `node scripts/next-run.mjs <staff|marketing|platform-admin|customer-portal|bakery> [dev|start]`
  */
 import { spawn } from 'node:child_process';
 import { createRequire } from 'node:module';
@@ -35,6 +35,8 @@ const APP_META = {
   marketing: { portEnv: 'MARKETING_PORT', defaultPort: '3002' },
   'platform-admin': { portEnv: 'PLATFORM_ADMIN_PORT', defaultPort: '3003' },
   'customer-portal': { portEnv: 'CUSTOMER_PORTAL_PORT', defaultPort: '3004' },
+  // ‏واجهة المخابز (الإنتاج والتوزيع) — المنفذ السابع، وباقاتُ القطاع تُفتح على مضيفها.
+  bakery: { portEnv: 'BAKERY_PORT', defaultPort: '3005' },
 };
 
 const [, , appName = '', mode = 'dev'] = process.argv;
@@ -45,6 +47,12 @@ if (!meta) {
 }
 
 const port = process.env[meta.portEnv] || meta.defaultPort;
+/**
+ * واجهة الاستماع. الافتراضي `0.0.0.0` كي يعمل المعاينة/الشبكة المحلية بلا إعداد،
+ * وفي الإنتاج يُضبط `WEB_HOST=127.0.0.1` فلا يصل المتصفّح إلى :3001… إلا عبر Nginx
+ * (ومنفذٌ مفتوحٌ للعامة يتجاوز كل ترويسات الأمان التي يضبطها الوكيل).
+ */
+const host = process.env.WEB_HOST || '0.0.0.0';
 const appDir = path.join(repoRoot, 'apps', appName);
 
 // Locate the real `next` CLI entry file inside the app's dependency tree so we can run
@@ -60,11 +68,11 @@ try {
 }
 
 const command = mode === 'start' ? 'start' : 'dev';
-console.log(`[next-run] ${appName}: running "next ${command}" on port ${port}…`);
+console.log(`[next-run] ${appName}: running "next ${command}" on ${host}:${port}…`);
 
 const child = spawn(
   process.execPath,
-  [nextEntry, command, '--hostname', '0.0.0.0', '--port', port],
+  [nextEntry, command, '--hostname', host, '--port', port],
   { cwd: appDir, stdio: 'inherit' },
 );
 

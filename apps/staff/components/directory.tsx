@@ -1,17 +1,17 @@
 'use client';
 
 import { useState, type ReactNode } from 'react';
+import { Panel, type KpiItem } from '@erp/ui';
 
-import { ApiError } from '../lib/api';
+import { apiErrorText } from '../lib/api';
 import type { QueryState } from '../lib/use-query';
 
 import { DataTable, Notice, QueryView, type Column } from './data-view';
 import { Screen } from './screen';
-import { StatTiles, type Tone } from './ui';
+import type { Tone } from './ui';
 
 /** One KPI tile above the table. */
 export type Tile = { label: string; value: React.ReactNode; hint?: React.ReactNode; tone?: Tone };
-
 
 /**
  * A directory screen = a table plus an inline "new record" form.
@@ -59,6 +59,7 @@ export function Directory<T>({
   canCreate = true,
   createLabel = 'إضافة جديد',
   formTitle,
+  formHint,
   fields,
   initial,
   onCreate,
@@ -71,6 +72,8 @@ export function Directory<T>({
   blocked,
   toolbar,
   tiles,
+  listTitle = 'السجلات',
+  listHint,
   footer,
   children,
 }: {
@@ -85,6 +88,7 @@ export function Directory<T>({
   canCreate?: boolean;
   createLabel?: string;
   formTitle?: string;
+  formHint?: ReactNode;
   fields: FieldSpec[];
   initial?: FormValues;
   onCreate: (values: FormValues) => Promise<unknown>;
@@ -103,12 +107,17 @@ export function Directory<T>({
   toolbar?: ReactNode;
   /** KPI tiles rendered above the table — counts the screen can derive from its rows. */
   tiles?: Tile[];
+  /** عنوان لوحة القائمة — يظهر في رأس اللوحة فوق الجدول. */
+  listTitle?: string;
+  listHint?: ReactNode;
   /** Totals row for the table, computed from the rows on screen. */
   footer?: (rows: T[]) => ReactNode[];
   /** Extra content rendered between the form and the table. */
   children?: ReactNode;
 }) {
-  const blank: FormValues = Object.fromEntries(fields.map((field) => [field.name, field.type === 'checkbox' ? false : '']));
+  const blank: FormValues = Object.fromEntries(
+    fields.map((field) => [field.name, field.type === 'checkbox' ? false : '']),
+  );
   const [open, setOpen] = useState(false);
   const [values, setValues] = useState<FormValues>({ ...blank, ...initial });
   const [busy, setBusy] = useState(false);
@@ -146,7 +155,7 @@ export function Directory<T>({
       reset();
       query.reload();
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
     } finally {
       setBusy(false);
     }
@@ -154,7 +163,9 @@ export function Directory<T>({
 
   async function remove(row: T) {
     if (!onDelete) return;
-    const question = confirmDelete ? confirmDelete(row) : `هل تريد حذف ${rowLabel ? rowLabel(row) : 'هذا السجل'}؟`;
+    const question = confirmDelete
+      ? confirmDelete(row)
+      : `هل تريد حذف ${rowLabel ? rowLabel(row) : 'هذا السجل'}؟`;
     if (typeof window !== 'undefined' && !window.confirm(question)) return;
     setBusy(true);
     setNotice(undefined);
@@ -166,7 +177,7 @@ export function Directory<T>({
     } catch (error) {
       // The API refuses to delete anything that documents already point at, and the
       // reason it gives ("used on invoices", "has sub-accounts") is the useful part.
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
     } finally {
       setBusy(false);
     }
@@ -187,7 +198,12 @@ export function Directory<T>({
                   </button>
                 )}
                 {onDelete && (
-                  <button className="btn sm danger" type="button" onClick={() => void remove(row)} disabled={busy}>
+                  <button
+                    className="btn sm danger"
+                    type="button"
+                    onClick={() => void remove(row)}
+                    disabled={busy}
+                  >
                     {deleteLabel}
                   </button>
                 )}
@@ -202,6 +218,26 @@ export function Directory<T>({
       title={title}
       subtitle={subtitle}
       crumbs={crumbs}
+      kpis={tiles?.map<KpiItem>((tile) => ({
+        label: tile.label,
+        value: tile.value,
+        hint: tile.hint,
+        tone:
+          tile.tone === 'ok'
+            ? 'up'
+            : tile.tone === 'warn'
+              ? 'warn'
+              : tile.tone === 'danger'
+                ? 'down'
+                : 'neutral',
+      }))}
+      filters={
+        toolbar ? (
+          <div className="ui-filter-bar">
+            <div className="ui-filter-fields">{toolbar}</div>
+          </div>
+        ) : undefined
+      }
       actions={
         canCreate ? (
           <button
@@ -218,50 +254,55 @@ export function Directory<T>({
       }
     >
       {open && (
-        <form className="card" onSubmit={submit}>
-          <h2>{editing ? `تعديل ${rowLabel ? rowLabel(editing) : 'السجل'}` : (formTitle ?? createLabel)}</h2>
-          {blocked && !editing && <p className="alert warn">{blocked}</p>}
-          <FormFields fields={fields} values={values} onChange={setValues} />
-          <Notice notice={notice} />
-          <div className="row">
-            <button className="btn primary" type="submit" disabled={busy || (Boolean(blocked) && !editing)}>
-              {busy ? 'جارٍ الحفظ…' : editing ? 'حفظ التعديل' : 'حفظ'}
-            </button>
-            {editing && (
-              <button className="btn" type="button" onClick={reset} disabled={busy}>
-                إلغاء التعديل
-              </button>
-            )}
-          </div>
-        </form>
-      )}
-
-      {toolbar && <div className="card toolbar">{toolbar}</div>}
-      {children}
-      {tiles && tiles.length > 0 && (
-        <StatTiles>
-          {tiles.map((tile) => (
-            <div className={`tile${tile.tone && tile.tone !== 'default' ? ` ${tile.tone}` : ''}`} key={tile.label}>
-              <span className="tile-label">{tile.label}</span>
-              <span className="tile-value">{tile.value}</span>
-              {tile.hint ? <span className="tile-hint">{tile.hint}</span> : null}
+        <Panel
+          title={editing ? `تعديل ${rowLabel ? rowLabel(editing) : 'السجل'}` : (formTitle ?? createLabel)}
+          hint={
+            editing
+              ? 'الحفظ يُعيد قراءة القائمة من الخادم بعد نجاحه.'
+              : (formHint ?? 'الحقول المعلَّمة بـ* إلزامية، والحفظ لا يُظهر نجاحًا قبل ردّ الخادم.')
+          }
+        >
+          <form className="grid gap-4" onSubmit={submit}>
+            {blocked && !editing && <p className="alert warn">{blocked}</p>}
+            <FormFields fields={fields} values={values} onChange={setValues} />
+            <Notice notice={notice} />
+            <div className="ui-form-actions">
+              <span className="ui-form-actions-note" />
+              <div className="ui-form-actions-buttons">
+                <button
+                  className="btn primary"
+                  type="submit"
+                  disabled={busy || (Boolean(blocked) && !editing)}
+                >
+                  {busy ? 'جارٍ الحفظ…' : editing ? 'حفظ التعديل' : 'حفظ'}
+                </button>
+                {editing && (
+                  <button className="btn" type="button" onClick={reset} disabled={busy}>
+                    إلغاء التعديل
+                  </button>
+                )}
+              </div>
             </div>
-          ))}
-        </StatTiles>
+          </form>
+        </Panel>
       )}
 
       {!open && notice && <Notice notice={notice} />}
 
-      <QueryView query={query} empty={empty} emptyDetail={emptyDetail}>
-        {(rows) => (
-          <DataTable
-            rows={rows}
-            rowKey={rowKey}
-            columns={rowColumns}
-            footer={footer ? footer(rows) : undefined}
-          />
-        )}
-      </QueryView>
+      <Panel title={listTitle} hint={listHint} flush>
+        <QueryView query={query} empty={empty} emptyDetail={emptyDetail}>
+          {(rows) => (
+            <DataTable
+              rows={rows}
+              rowKey={rowKey}
+              columns={rowColumns}
+              footer={footer ? footer(rows) : undefined}
+            />
+          )}
+        </QueryView>
+      </Panel>
+
+      {children}
     </Screen>
   );
 }
@@ -287,7 +328,11 @@ export function FormFields({
             <label className="field" key={field.name}>
               <span>{field.label}</span>
               <span className="row">
-                <input type="checkbox" checked={Boolean(value)} onChange={(event) => update(field.name, event.target.checked)} />
+                <input
+                  type="checkbox"
+                  checked={Boolean(value)}
+                  onChange={(event) => update(field.name, event.target.checked)}
+                />
                 {field.hint && <span className="muted small">{field.hint}</span>}
               </span>
             </label>

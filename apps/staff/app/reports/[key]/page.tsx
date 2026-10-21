@@ -1,5 +1,6 @@
 'use client';
 
+import { FilterBand, KpiStrip, Panel } from '@erp/ui';
 import Link from 'next/link';
 import { use, useEffect, useMemo, useState } from 'react';
 import {
@@ -15,15 +16,15 @@ import {
   Timer,
 } from 'lucide-react';
 
+import { Screen } from '../../../components/screen';
 import { Badge } from '../../../components/ui/badge';
 import { Button } from '../../../components/ui/button';
 import { BarCardChart, LineCardChart } from '../../../components/ui/chart';
-import { Reveal } from '../../../components/ui/count-up';
 import { EmptyState } from '../../../components/ui/empty-state';
 import { Labeled } from '../../../components/ui/input';
-import { KpiCard } from '../../../components/ui/kpi-card';
 import { SkeletonCard } from '../../../components/ui/skeleton';
 import { Table, type SortState } from '../../../components/ui/table';
+import { renderQrSvgMarkup } from '../../../components/zatca-qr-svg';
 import {
   arabicName,
   itemLabel,
@@ -95,16 +96,46 @@ export default function ReportRunnerPage({ params }: { params: Promise<{ key: st
   );
 
   const kinds = new Set((entry?.params ?? []).map((param) => param.kind));
-  const branches = useQuery<Branch[]>(async () => (kinds.has('branch') ? listBranches() : []), [reportKey, kinds.has('branch')]);
-  const warehouses = useQuery<Warehouse[]>(async () => (kinds.has('warehouse') ? listWarehouses() : []), [reportKey, kinds.has('warehouse')]);
-  const parties = useQuery<Party[]>(async () => (kinds.has('party') ? listParties() : []), [reportKey, kinds.has('party')]);
-  const items = useQuery<Item[]>(async () => (kinds.has('item') ? listItems() : []), [reportKey, kinds.has('item')]);
-  const categories = useQuery<Category[]>(async () => (kinds.has('category') ? listCategories() : []), [reportKey, kinds.has('category')]);
-  const costCenters = useQuery<CostCenter[]>(async () => (kinds.has('costCenter') ? listCostCenters() : []), [reportKey, kinds.has('costCenter')]);
-  const salesmen = useQuery<Salesman[]>(async () => (kinds.has('salesman') ? listSalesmen() : []), [reportKey, kinds.has('salesman')]);
-  const accounts = useQuery<Account[]>(async () => (kinds.has('account') ? listAccounts() : []), [reportKey, kinds.has('account')]);
-  const cashLocations = useQuery<CashLocation[]>(async () => (kinds.has('cashLocation') ? listCashLocations() : []), [reportKey, kinds.has('cashLocation')]);
-  const vesselGroups = useQuery<VesselGroup[]>(async () => (kinds.has('vesselGroup') ? listVesselGroups() : []), [reportKey, kinds.has('vesselGroup')]);
+  const branches = useQuery<Branch[]>(
+    async () => (kinds.has('branch') ? listBranches() : []),
+    [reportKey, kinds.has('branch')],
+  );
+  const warehouses = useQuery<Warehouse[]>(
+    async () => (kinds.has('warehouse') ? listWarehouses() : []),
+    [reportKey, kinds.has('warehouse')],
+  );
+  const parties = useQuery<Party[]>(
+    async () => (kinds.has('party') ? listParties() : []),
+    [reportKey, kinds.has('party')],
+  );
+  const items = useQuery<Item[]>(
+    async () => (kinds.has('item') ? listItems() : []),
+    [reportKey, kinds.has('item')],
+  );
+  const categories = useQuery<Category[]>(
+    async () => (kinds.has('category') ? listCategories() : []),
+    [reportKey, kinds.has('category')],
+  );
+  const costCenters = useQuery<CostCenter[]>(
+    async () => (kinds.has('costCenter') ? listCostCenters() : []),
+    [reportKey, kinds.has('costCenter')],
+  );
+  const salesmen = useQuery<Salesman[]>(
+    async () => (kinds.has('salesman') ? listSalesmen() : []),
+    [reportKey, kinds.has('salesman')],
+  );
+  const accounts = useQuery<Account[]>(
+    async () => (kinds.has('account') ? listAccounts() : []),
+    [reportKey, kinds.has('account')],
+  );
+  const cashLocations = useQuery<CashLocation[]>(
+    async () => (kinds.has('cashLocation') ? listCashLocations() : []),
+    [reportKey, kinds.has('cashLocation')],
+  );
+  const vesselGroups = useQuery<VesselGroup[]>(
+    async () => (kinds.has('vesselGroup') ? listVesselGroups() : []),
+    [reportKey, kinds.has('vesselGroup')],
+  );
 
   const optionsFor = useMemo(
     () => ({
@@ -113,13 +144,30 @@ export default function ReportRunnerPage({ params }: { params: Promise<{ key: st
       party: (parties.data ?? []).map((row) => ({ value: row.id, label: partyLabel(row) })),
       item: (items.data ?? []).map((row) => ({ value: row.id, label: itemLabel(row) })),
       category: (categories.data ?? []).map((row) => ({ value: row.id, label: arabicName(row) })),
-      costCenter: (costCenters.data ?? []).map((row) => ({ value: row.id, label: `${row.code} — ${arabicName(row)}` })),
+      costCenter: (costCenters.data ?? []).map((row) => ({
+        value: row.id,
+        label: `${row.code} — ${arabicName(row)}`,
+      })),
       salesman: (salesmen.data ?? []).map((row) => ({ value: row.id, label: row.name })),
-      account: (accounts.data ?? []).map((row) => ({ value: row.id, label: `${row.code} — ${arabicName(row)}` })),
+      account: (accounts.data ?? []).map((row) => ({
+        value: row.id,
+        label: `${row.code} — ${arabicName(row)}`,
+      })),
       cashLocation: (cashLocations.data ?? []).map((row) => ({ value: row.id, label: row.name })),
       vesselGroup: (vesselGroups.data ?? []).map((row) => ({ value: row.id, label: row.name })),
     }),
-    [branches.data, warehouses.data, parties.data, items.data, categories.data, costCenters.data, salesmen.data, accounts.data, cashLocations.data, vesselGroups.data],
+    [
+      branches.data,
+      warehouses.data,
+      parties.data,
+      items.data,
+      categories.data,
+      costCenters.data,
+      salesmen.data,
+      accounts.data,
+      cashLocations.data,
+      vesselGroups.data,
+    ],
   );
 
   if (catalog.status === 'success' && !entry) {
@@ -131,7 +179,9 @@ export default function ReportRunnerPage({ params }: { params: Promise<{ key: st
         description={`لا يوجد تقرير بالمفتاح «${reportKey}». راجع مركز التقارير.`}
         action={
           <Link href="/reports">
-            <Button variant="primary" icon={<ArrowRight size={15} />}>مركز التقارير</Button>
+            <Button variant="primary" icon={<ArrowRight size={15} />}>
+              مركز التقارير
+            </Button>
           </Link>
         }
       />
@@ -147,7 +197,10 @@ export default function ReportRunnerPage({ params }: { params: Promise<{ key: st
       const produced = await exportReport(reportKey, applied, format);
       if (format === 'pdf') {
         if (!openPrintable(produced.content)) {
-          setNotice({ kind: 'warn', text: 'تعذّر فتح نافذة الطباعة — اسمح بالنوافذ المنبثقة لهذا الموقع ثم أعد المحاولة.' });
+          setNotice({
+            kind: 'warn',
+            text: 'تعذّر فتح نافذة الطباعة — اسمح بالنوافذ المنبثقة لهذا الموقع ثم أعد المحاولة.',
+          });
         }
       } else {
         saveExport(produced);
@@ -160,94 +213,103 @@ export default function ReportRunnerPage({ params }: { params: Promise<{ key: st
     }
   }
 
-  return (
-    <div className="grid gap-4">
-      {/* header */}
-      <Reveal>
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-3 min-w-0">
-            <Link href="/reports" className="grid place-items-center size-9 rounded-xl bg-surface border border-line shadow-1 text-muted hover:text-brand-600 hover:border-brand-200 transition-colors">
-              <ArrowRight size={17} />
-            </Link>
-            <div className="min-w-0">
-              <div className="flex items-center gap-2">
-                <h1 className="m-0 text-[22px] font-bold text-ink tracking-tight leading-tight truncate">{entry?.titleAr ?? 'تقرير'}</h1>
-                <Badge tone="blue" dot>
-                  {REPORT_GROUP_LABELS[entry?.group ?? ''] ?? 'تقارير'}
-                </Badge>
-              </div>
-              {entry?.hintAr ? <p className="m-0 text-[12.5px] text-muted truncate">{entry.hintAr}</p> : null}
-            </div>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <Link href="/settings/printing">
-              <Button variant="ghost" icon={<Printer size={15} />}>
-                إعدادات الطباعة
-              </Button>
-            </Link>
-            <Button variant="secondary" icon={<FileSpreadsheet size={15} />} disabled={!result || busy !== null} loading={busy === 'xlsx'} onClick={() => void download('xlsx')}>
-              Excel
-            </Button>
-            <Button variant="secondary" icon={<Download size={15} />} disabled={!result || busy !== null} loading={busy === 'csv'} onClick={() => void download('csv')}>
-              CSV
-            </Button>
-            <Button variant="primary" icon={<Printer size={15} />} disabled={!result || busy !== null} loading={busy === 'pdf'} onClick={() => void download('pdf')}>
-              طباعة / PDF
-            </Button>
-          </div>
-        </div>
-      </Reveal>
+  const pageTitle = entry?.titleAr ?? 'تقرير';
 
-      {/* filters */}
-      {entry ? (
-        <Reveal delay={0.05}>
-          <form
-            className="rounded-xl border border-line bg-surface p-4 shadow-1"
-            onSubmit={(event) => {
-              event.preventDefault();
-              setNotice(null);
-              setApplied({ ...filters });
-            }}
+  return (
+    <Screen
+      title={pageTitle}
+      subtitle={entry?.hintAr ?? undefined}
+      crumbs={['التقارير', pageTitle]}
+      meta={
+        <Badge tone="blue" dot>
+          {REPORT_GROUP_LABELS[entry?.group ?? ''] ?? 'تقارير'}
+        </Badge>
+      }
+      actions={
+        <>
+          <Link href="/settings/printing">
+            <Button variant="ghost" icon={<Printer size={15} />}>
+              إعدادات الطباعة
+            </Button>
+          </Link>
+          <Button
+            variant="secondary"
+            icon={<FileSpreadsheet size={15} />}
+            disabled={!result || busy !== null}
+            loading={busy === 'xlsx'}
+            onClick={() => void download('xlsx')}
           >
-            <div className="grid gap-3 grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 items-end">
-              {(layouts.data ?? []).length > 0 ? (
-                <Labeled label="التصميم">
-                  <select
-                    value={filters.layout ?? ''}
-                    onChange={(event) => setFilters((current) => ({ ...current, layout: event.target.value }))}
-                    className="w-full h-10 px-3 rounded-[10px] border border-line-strong bg-surface text-[13.5px] text-ink focus:outline-none focus:border-brand-600 focus:shadow-[var(--ring-brand)] transition-all duration-150"
-                  >
-                    <option value="">الافتراضي</option>
-                    {(layouts.data ?? []).map((layout) => (
-                      <option key={layout.id} value={layout.id}>
-                        {layout.name}
-                      </option>
-                    ))}
-                    <option value="none">كل الأعمدة</option>
-                  </select>
-                </Labeled>
-              ) : null}
-              {entry.params.map((param) => (
-                <FilterField
-                  key={param.name}
-                  param={param}
-                  value={filters[param.name] ?? ''}
-                  options={
-                    param.kind === 'select'
-                      ? (param.options ?? []).map((option) => ({ value: option.value, label: option.labelAr }))
-                      : optionsFor[param.kind as keyof typeof optionsFor] ?? []
-                  }
-                  onChange={(value) => setFilters((current) => ({ ...current, [param.name]: value }))}
-                />
-              ))}
-              <div className="col-span-2 sm:col-span-3 lg:col-span-4 xl:col-span-5 flex justify-end">
-                <Button type="submit" variant="primary" size="lg" icon={<Search size={16} />}>
-                  عرض التقرير
-                </Button>
-              </div>
-            </div>
-          </form>
-        </Reveal>
+            Excel
+          </Button>
+          <Button
+            variant="secondary"
+            icon={<Download size={15} />}
+            disabled={!result || busy !== null}
+            loading={busy === 'csv'}
+            onClick={() => void download('csv')}
+          >
+            CSV
+          </Button>
+          <Button
+            variant="primary"
+            icon={<Printer size={15} />}
+            disabled={!result || busy !== null}
+            loading={busy === 'pdf'}
+            onClick={() => void download('pdf')}
+          >
+            طباعة / PDF
+          </Button>
+        </>
+      }
+    >
+      {entry ? (
+        <form
+          onSubmit={(event) => {
+            event.preventDefault();
+            setNotice(null);
+            setApplied({ ...filters });
+          }}
+        >
+          <FilterBand
+            summary="الفترة والتصفية تُطبَّق على المستندات المرحّلة فقط."
+            actions={
+              <Button type="submit" variant="primary" icon={<Search size={16} />}>
+                عرض التقرير
+              </Button>
+            }
+          >
+            {(layouts.data ?? []).length > 0 ? (
+              <Labeled label="التصميم">
+                <select
+                  value={filters.layout ?? ''}
+                  onChange={(event) => setFilters((current) => ({ ...current, layout: event.target.value }))}
+                  className="input"
+                >
+                  <option value="">الافتراضي</option>
+                  {(layouts.data ?? []).map((layout) => (
+                    <option key={layout.id} value={layout.id}>
+                      {layout.name}
+                    </option>
+                  ))}
+                  <option value="none">كل الأعمدة</option>
+                </select>
+              </Labeled>
+            ) : null}
+            {entry.params.map((param) => (
+              <FilterField
+                key={param.name}
+                param={param}
+                value={filters[param.name] ?? ''}
+                options={
+                  param.kind === 'select'
+                    ? (param.options ?? []).map((option) => ({ value: option.value, label: option.labelAr }))
+                    : (optionsFor[param.kind as keyof typeof optionsFor] ?? [])
+                }
+                onChange={(value) => setFilters((current) => ({ ...current, [param.name]: value }))}
+              />
+            ))}
+          </FilterBand>
+        </form>
       ) : null}
 
       {notice ? (
@@ -264,7 +326,6 @@ export default function ReportRunnerPage({ params }: { params: Promise<{ key: st
         </div>
       ) : null}
 
-      {/* body */}
       {report.status === 'loading' ? (
         <div className="grid gap-4">
           <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
@@ -280,8 +341,12 @@ export default function ReportRunnerPage({ params }: { params: Promise<{ key: st
           tone="red"
           icon={<FileText size={30} strokeWidth={1.5} />}
           title="تعذّر تشغيل التقرير"
-          description={report.error ?? 'خطأ غير معروف'}
-          action={<Button variant="primary" onClick={report.reload}>إعادة المحاولة</Button>}
+          description={report.error}
+          action={
+            <Button variant="primary" onClick={report.reload}>
+              إعادة المحاولة
+            </Button>
+          }
         />
       ) : !result ? null : result.rows.length === 0 ? (
         <EmptyState
@@ -291,79 +356,76 @@ export default function ReportRunnerPage({ params }: { params: Promise<{ key: st
         />
       ) : (
         <>
-          {/* summary cards */}
-          <div className="grid gap-4 grid-cols-2 lg:grid-cols-4">
-            <KpiCard
-              title="عدد السطور"
-              value={result.rowCount.toLocaleString('ar-EG')}
-              icon={<Hash size={20} />}
-              tone="blue"
-              hint={`وقت الاستخراج: ${result.generatedAt.slice(0, 16).replace('T', ' ')}`}
-            />
-            {result.grandTotal.slice(0, 3).map((card, index) => (
-              <KpiCard
-                key={card.key}
-                title={card.labelAr}
-                value={formatCell(card.amount, 'money')}
-                icon={<Banknote size={20} />}
-                tone={index % 2 === 0 ? 'green' : 'amber'}
-                delay={0.06 * (index + 1)}
-              />
-            ))}
-            {result.grandTotal.length === 0
-              ? Object.entries(result.totals).slice(0, 3).map(([key, value], index) => (
-                  <KpiCard
-                    key={key}
-                    title={result.columns.find((column) => column.key === key)?.labelAr ?? key}
-                    value={formatCell(value, result.columns.find((column) => column.key === key)?.type ?? 'money')}
-                    icon={<Timer size={20} />}
-                    tone={index % 2 === 0 ? 'amber' : 'green'}
-                    delay={0.06 * (index + 1)}
-                  />
-                ))
-              : null}
-          </div>
+          <KpiStrip
+            items={[
+              {
+                label: 'عدد السطور',
+                value: result.rowCount.toLocaleString('ar-EG'),
+                icon: <Hash size={18} />,
+                hint: `وقت الاستخراج: ${result.generatedAt.slice(0, 16).replace('T', ' ')}`,
+              },
+              ...result.grandTotal.slice(0, 3).map((card) => ({
+                label: card.labelAr,
+                value: formatCell(card.amount, 'money'),
+                icon: <Banknote size={18} />,
+              })),
+              ...(result.grandTotal.length === 0
+                ? Object.entries(result.totals)
+                    .slice(0, 3)
+                    .map(([key, value]) => ({
+                      label: result.columns.find((column) => column.key === key)?.labelAr ?? key,
+                      value: formatCell(
+                        value,
+                        result.columns.find((column) => column.key === key)?.type ?? 'money',
+                      ),
+                      icon: <Timer size={18} />,
+                    }))
+                : []),
+            ]}
+          />
 
-          {/* chart */}
-          {entry?.chart && result.columns.length > 0 ? (
-            <Reveal delay={0.1}>
-              <ReportChart entry={entry} result={result} />
-            </Reveal>
-          ) : null}
+          {entry?.chart && result.columns.length > 0 ? <ReportChart entry={entry} result={result} /> : null}
 
-          {/* table */}
-          <Reveal delay={0.15}>
-            <div className="rounded-xl border border-line bg-surface shadow-1 overflow-hidden">
-              <div className="flex flex-wrap items-center justify-between gap-2 px-4 pt-4 pb-1">
-                <h3 className="m-0 text-[15px] font-bold text-ink">نتائج التقرير</h3>
-                <div className="flex flex-wrap gap-1.5">
-                  {Object.entries(result.totals).map(([key, value]) => {
-                    const column = result.columns.find((col) => col.key === key);
-                    return (
-                      <Badge key={key} tone="neutral" dot>
-                        {column?.labelAr ?? key}: {formatCell(value, column?.type ?? 'money')}
-                      </Badge>
-                    );
-                  })}
-                </div>
+          <Panel
+            flush
+            title="نتائج التقرير"
+            actions={
+              <div className="flex flex-wrap gap-1.5">
+                {Object.entries(result.totals).map(([key, value]) => {
+                  const column = result.columns.find((col) => col.key === key);
+                  return (
+                    <Badge key={key} tone="neutral" dot>
+                      {column?.labelAr ?? key}: {formatCell(value, column?.type ?? 'money')}
+                    </Badge>
+                  );
+                })}
               </div>
-              <div className="px-1 pb-1">
-                <SortableReportTable result={result} />
-              </div>
-            </div>
-          </Reveal>
+            }
+          >
+            <SortableReportTable result={result} />
+          </Panel>
         </>
       )}
-    </div>
+    </Screen>
   );
 }
 
-/** 📈 مخطط بياني تفاعلي — يعتمد أول عمود رقمي من `net`/`total`/`quantity`/`sales`/`invoices`/`count`. */
+/** مخطط بياني تفاعلي — يعتمد أول عمود رقمي من `net`/`total`/`quantity`/`sales`/`invoices`/`count`. */
 function ReportChart({ entry, result }: { entry: ReportEntry; result: ReportResult }) {
-  const numericCols = result.columns.filter((c) => c.type === 'money' || c.type === 'qty' || c.type === 'int');
-  const preferred = ['net', 'total', 'quantity', 'sales', 'invoices', 'count'].find((k) => numericCols.some((c) => c.key === k)) ?? numericCols[0]?.key ?? '';
+  const numericCols = result.columns.filter(
+    (c) => c.type === 'money' || c.type === 'qty' || c.type === 'int',
+  );
+  const preferred =
+    ['net', 'total', 'quantity', 'sales', 'invoices', 'count'].find((k) =>
+      numericCols.some((c) => c.key === k),
+    ) ??
+    numericCols[0]?.key ??
+    '';
   const labelCol =
-    result.columns.find((c) => c.type !== 'money' && c.type !== 'qty' && c.type !== 'int' && !c.hidden)?.key ?? result.columns[0]?.key ?? '';
+    result.columns.find((c) => c.type !== 'money' && c.type !== 'qty' && c.type !== 'int' && !c.hidden)
+      ?.key ??
+    result.columns[0]?.key ??
+    '';
   const valueCol = entry.columns.find((c) => c.key === preferred)?.labelAr ?? preferred;
 
   const data = useMemo(
@@ -376,25 +438,38 @@ function ReportChart({ entry, result }: { entry: ReportEntry; result: ReportResu
   );
 
   return (
-    <div className="rounded-xl border border-line bg-surface p-4 shadow-1">
-      <div className="flex items-center justify-between mb-2">
-        <h3 className="m-0 text-[15px] font-bold text-ink">
-          📈 {valueCol} — {entry.titleAr}
-        </h3>
+    <Panel
+      title={`${valueCol} — ${entry.titleAr}`}
+      actions={
         <Badge tone="blue" dot>
           {entry.chart === 'bar' ? 'أعمدة' : 'خط'}
         </Badge>
-      </div>
+      }
+    >
       {data.length > 0 ? (
         entry.chart === 'line' ? (
-          <LineCardChart data={data} xKey="name" dataKey="value" name={valueCol} height={300} formatter={(v) => formatCell(String(v), 'money')} />
+          <LineCardChart
+            data={data}
+            xKey="name"
+            dataKey="value"
+            name={valueCol}
+            height={300}
+            formatter={(v) => formatCell(String(v), 'money')}
+          />
         ) : (
-          <BarCardChart data={data} xKey="name" dataKey="value" name={valueCol} height={300} formatter={(v) => formatCell(String(v), 'money')} />
+          <BarCardChart
+            data={data}
+            xKey="name"
+            dataKey="value"
+            name={valueCol}
+            height={300}
+            formatter={(v) => formatCell(String(v), 'money')}
+          />
         )
       ) : (
         <EmptyState icon={<ListChecks size={24} strokeWidth={1.5} />} title="لا توجد قيم للرسم" />
       )}
-    </div>
+    </Panel>
   );
 }
 
@@ -442,15 +517,30 @@ function SortableReportTable({ result }: { result: ReportResult }) {
         header: column.labelAr,
         numeric: isNumericColumn(column),
         sortable: true,
-        cell: (row: Record<string, string>) => (
-          <span style={isNumericColumn(column) ? { fontVariantNumeric: 'tabular-nums' } : undefined}>{formatCell(row[column.key] ?? '', column.type)}</span>
-        ),
+        cell: (row: Record<string, string>) =>
+          column.type === 'qr' ? (
+            <QrCell payload={row[column.key] ?? ''} />
+          ) : (
+            <span style={isNumericColumn(column) ? { fontVariantNumeric: 'tabular-nums' } : undefined}>
+              {formatCell(row[column.key] ?? '', column.type)}
+            </span>
+          ),
       }))}
     />
   );
 }
 
-function FilterField({ param, value, options, onChange }: { param: ReportParam; value: string; options: Array<{ value: string; label: string }>; onChange: (value: string) => void }) {
+function FilterField({
+  param,
+  value,
+  options,
+  onChange,
+}: {
+  param: ReportParam;
+  value: string;
+  options: Array<{ value: string; label: string }>;
+  onChange: (value: string) => void;
+}) {
   if (param.kind === 'date') {
     return (
       <Labeled label={param.labelAr}>
@@ -459,12 +549,17 @@ function FilterField({ param, value, options, onChange }: { param: ReportParam; 
           dir="ltr"
           value={value}
           onChange={(event) => onChange(event.target.value)}
-          className="w-full h-10 px-3 rounded-[10px] border border-line-strong bg-surface text-[13.5px] text-ink focus:outline-none focus:border-brand-600 focus:shadow-[var(--ring-brand)] transition-all duration-150"
+          className="input"
         />
       </Labeled>
     );
   }
-  if (param.kind === 'serial' || param.kind === 'entryNo' || param.kind === 'docNo' || param.kind === 'year') {
+  if (
+    param.kind === 'serial' ||
+    param.kind === 'entryNo' ||
+    param.kind === 'docNo' ||
+    param.kind === 'year'
+  ) {
     return (
       <Labeled label={param.labelAr}>
         <input
@@ -473,7 +568,7 @@ function FilterField({ param, value, options, onChange }: { param: ReportParam; 
           value={value}
           placeholder={param.kind === 'serial' ? 'SN-0001' : param.kind === 'year' ? '2026' : 'JE-000001'}
           onChange={(event) => onChange(event.target.value)}
-          className="w-full h-10 px-3 rounded-[10px] border border-line-strong bg-surface text-[13.5px] text-ink focus:outline-none focus:border-brand-600 focus:shadow-[var(--ring-brand)] transition-all duration-150"
+          className="input"
         />
       </Labeled>
     );
@@ -487,18 +582,14 @@ function FilterField({ param, value, options, onChange }: { param: ReportParam; 
           dir="ltr"
           value={value}
           onChange={(event) => onChange(event.target.value)}
-          className="w-full h-10 px-3 rounded-[10px] border border-line-strong bg-surface text-[13.5px] text-ink focus:outline-none focus:border-brand-600 focus:shadow-[var(--ring-brand)] transition-all duration-150"
+          className="input"
         />
       </Labeled>
     );
   }
   return (
     <Labeled label={param.labelAr}>
-      <select
-        value={value}
-        onChange={(event) => onChange(event.target.value)}
-        className="w-full h-10 px-3 rounded-[10px] border border-line-strong bg-surface text-[13.5px] text-ink focus:outline-none focus:border-brand-600 focus:shadow-[var(--ring-brand)] transition-all duration-150"
-      >
+      <select value={value} onChange={(event) => onChange(event.target.value)} className="input">
         <option value="">الكل</option>
         {options.map((option) => (
           <option key={option.value} value={option.value}>
@@ -507,5 +598,25 @@ function FilterField({ param, value, options, onChange }: { param: ReportParam; 
         ))}
       </select>
     </Labeled>
+  );
+}
+
+
+/**
+ * 🧾 خلية رمز QR في جدول التقرير — البند 10.
+ *
+ * الرمز يُرسم بمُرمِّز `@erp/web-van/qr` نفسه الذي يرسمه الورق (لا مكتبة ثانية)، وحجمه
+ * صغيرٌ ليقرأه الورق لا ليستهلك الصفّ. والحمولة إمّا TLV المرحلة الثانية من
+ * `sales_invoices.zatca_qr` أو حمولةٌ نصّية بسيطة بناها استعلام التقرير حين لا ربط ضريبي.
+ */
+function QrCell({ payload }: { payload: string }) {
+  if (!payload.trim()) return <span className="muted small">—</span>;
+  return (
+    <span
+      className="report-qr"
+      title={payload}
+      // المُصيِّر يُعيد SVG من حمولةٍ نصّية آمنة (يرمّزها بنفسه)؛ لا HTML خارجي هنا.
+      dangerouslySetInnerHTML={{ __html: renderQrSvgMarkup(payload, 54) }}
+    />
   );
 }

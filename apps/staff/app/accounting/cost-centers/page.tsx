@@ -1,7 +1,9 @@
 'use client';
 
 import Link from 'next/link';
+import { Trash2 } from 'lucide-react';
 import { useMemo, useState } from 'react';
+import { Panel } from '@erp/ui';
 
 import { ErrorBox, Forbidden, Loading, Screen } from '../../../components/screen';
 import { StatTile, StatTiles } from '../../../components/ui';
@@ -11,7 +13,7 @@ import { useSession } from '../../../lib/session';
 import { useQuery } from '../../../lib/use-query';
 
 /**
- * 🌳 مراكز التكلفة — `Form_WPF/frmCostCenter.xaml` («مركز التكلفة 🏢»).
+ * مراكز التكلفة — `Form_WPF/frmCostCenter.xaml` («مركز التكلفة »).
  *
  * The window is a card beside a tree, and so is this screen:
  * `📝 بيانات مركز التكلفة` — `🔢 الرقم` · `✏️ الاسم` · `🌐 الاسم EN` · `📂 البند الرئيسي` ·
@@ -23,7 +25,7 @@ import { useQuery } from '../../../lib/use-query';
  * centres and no balances at all, so a centre could not be asked what it had spent. The
  * balance is the part-one rule applied to centres — posted entries only, and a parent
  * carrying its children — so the number on this tree and the number at the foot of
- * 📊 كشف مركز الكلفة are the same number.
+ * كشف مركز الكلفة are the same number.
  */
 type CostCenter = {
   id: string;
@@ -46,7 +48,7 @@ type CostCenter = {
 
 type Branch = { id: string; nameAr?: string; name?: string };
 
-/** One node of 🌳 شجرة مراكز التكلفة. */
+/** One node of شجرة مراكز التكلفة. */
 type Node = CostCenter & { children: Node[] };
 
 const blank = { code: '', nameAr: '', nameEn: '', parentId: '', branchId: '' };
@@ -134,7 +136,10 @@ export default function CostCentersPage() {
     } catch (error) {
       setNotice({
         kind: 'danger',
-        text: error instanceof ApiError ? `${error.message}${error.detail ? ` — ${error.detail}` : ''}` : 'تعذر الحفظ.',
+        text:
+          error instanceof ApiError
+            ? `${error.message}${error.detail ? ` — ${error.detail}` : ''}`
+            : 'تعذر الحفظ.',
       });
     } finally {
       setBusy(false);
@@ -152,7 +157,10 @@ export default function CostCentersPage() {
     } catch (error) {
       setNotice({
         kind: 'danger',
-        text: error instanceof ApiError ? `${error.message}${error.detail ? ` — ${error.detail}` : ''}` : 'تعذر الحذف.',
+        text:
+          error instanceof ApiError
+            ? `${error.message}${error.detail ? ` — ${error.detail}` : ''}`
+            : 'تعذر الحذف.',
       });
     }
   }
@@ -163,28 +171,27 @@ export default function CostCentersPage() {
 
   return (
     <Screen
-      title="مركز التكلفة 🏢"
+      title="مركز التكلفة "
       subtitle="تُستخدم لتوزيع المصروفات والإيرادات على الأنشطة والفروع، وكل مركز برصيده من القيود المرحّلة."
       crumbs={['المحاسبة', 'تعاريف']}
       actions={
         <Link className="btn" href="/reports/cost-center-balances">
-          📊 كشف مركز الكلفة
+          كشف مركز الكلفة
         </Link>
       }
     >
       <StatTiles>
-        <StatTile label="🌳 عدد المراكز" value={totals.count} />
-        <StatTile label="💸 إنفاق المراكز الرئيسية" value={money(totals.spent.toFixed(2))} tone="ok" />
-        <StatTile label="💰 أرصدة دائنة" value={money(totals.credited.toFixed(2))} tone="brand" />
-        <StatTile label="📌 مراكز عليها حركة" value={totals.used} hint="رصيدها غير صفر" />
+        <StatTile label="عدد المراكز" value={totals.count} />
+        <StatTile label="إنفاق المراكز الرئيسية" value={money(totals.spent.toFixed(2))} tone="ok" />
+        <StatTile label="أرصدة دائنة" value={money(totals.credited.toFixed(2))} tone="brand" />
+        <StatTile label="مراكز عليها حركة" value={totals.used} hint="رصيدها غير صفر" />
       </StatTiles>
 
       <div className="grid two">
-        <section className="card">
-          <h2 style={{ marginTop: 0 }}>📝 بيانات مركز التكلفة</h2>
+        <Panel title="بيانات مركز التكلفة">
           <div className="form-grid">
             <label className="field">
-              <span>🔢 الرقم *</span>
+              <span>الرقم *</span>
               <input
                 className="input"
                 dir="ltr"
@@ -193,7 +200,7 @@ export default function CostCentersPage() {
               />
             </label>
             <label className="field">
-              <span>✏️ الاسم *</span>
+              <span>الاسم *</span>
               <input
                 className="input"
                 value={form.nameAr}
@@ -201,7 +208,7 @@ export default function CostCentersPage() {
               />
             </label>
             <label className="field">
-              <span>🌐 الاسم EN</span>
+              <span>الاسم EN</span>
               <input
                 className="input"
                 dir="ltr"
@@ -210,7 +217,7 @@ export default function CostCentersPage() {
               />
             </label>
             <label className="field">
-              <span>📂 البند الرئيسي</span>
+              <span>البند الرئيسي</span>
               <select
                 className="input"
                 value={form.parentId}
@@ -227,7 +234,7 @@ export default function CostCentersPage() {
               </select>
             </label>
             <label className="field">
-              <span>🏬 الفرع</span>
+              <span>الفرع</span>
               <select
                 className="input"
                 value={form.branchId}
@@ -242,10 +249,10 @@ export default function CostCentersPage() {
               </select>
             </label>
             <div className="field">
-              <span>🏷️ النوع</span>
+              <span>النوع</span>
               <div className="row" style={{ gap: 6 }}>
                 <span className={`badge${form.parentId ? '' : ' active'}`}>
-                  {form.parentId ? '🔵 فرعي' : '🟢 رئيسي'}
+                  {form.parentId ? 'فرعي' : 'رئيسي'}
                 </span>
                 <span className="muted small">يُقرأ من «البند الرئيسي»</span>
               </div>
@@ -254,11 +261,16 @@ export default function CostCentersPage() {
           {notice && <p className={`alert ${notice.kind}`}>{notice.text}</p>}
           {manage && (
             <div className="toolbar">
-              <button className="btn primary" type="button" disabled={busy || !form.code || !form.nameAr} onClick={() => void save()}>
-                💾 حفظ
+              <button
+                className="btn primary"
+                type="button"
+                disabled={busy || !form.code || !form.nameAr}
+                onClick={() => void save()}
+              >
+                حفظ
               </button>
               <button className="btn" type="button" disabled={busy} onClick={reset}>
-                ➕ جديد
+                جديد
               </button>
               {editingId && (
                 <button
@@ -267,24 +279,31 @@ export default function CostCentersPage() {
                   disabled={busy}
                   onClick={() => void remove(rows.find((row) => row.id === editingId)!)}
                 >
-                  🗑️ حذف
+                  حذف
                 </button>
               )}
             </div>
           )}
-        </section>
+        </Panel>
 
-        <section className="card tight">
+        <Panel className="tight">
           <div className="row" style={{ justifyContent: 'space-between' }}>
-            <h2 style={{ margin: 0 }}>🌳 شجرة مراكز التكلفة</h2>
+            <h2 style={{ margin: 0 }}>شجرة مراكز التكلفة</h2>
             <button className="btn sm" type="button" onClick={() => setOpen(!open)}>
               {open ? 'طي الكل' : 'توسيع الكل'}
             </button>
           </div>
           <div className="tree" style={{ marginTop: 8 }}>
-            <Nodes nodes={tree} depth={0} open={open} onEdit={startEdit} onRemove={(row) => void remove(row)} manage={manage} />
+            <Nodes
+              nodes={tree}
+              depth={0}
+              open={open}
+              onEdit={startEdit}
+              onRemove={(row) => void remove(row)}
+              manage={manage}
+            />
           </div>
-        </section>
+        </Panel>
       </div>
     </Screen>
   );
@@ -328,23 +347,34 @@ function Nodes({
               <button className="tree-label" type="button" onClick={() => onEdit(node)}>
                 <span dir="ltr">{node.code}</span> {node.nameAr}
                 <span className="badge" style={{ marginInlineStart: 6 }}>
-                  {node.parentId ? '🔵 فرعي' : '🟢 رئيسي'}
+                  {node.parentId ? 'فرعي' : 'رئيسي'}
                 </span>
               </button>
               <span className="tree-balance num" dir="ltr">
                 {money(Number(node.balance?.balance ?? 0).toFixed(2))}
               </span>
-              <Link className="btn sm" href={`/accounting/cost-center-statement?center=${node.id}`}>
-                📊
-              </Link>
+              <Link className="btn sm" href={`/accounting/cost-center-statement?center=${node.id}`}></Link>
               {manage && (
-                <button className="btn sm danger" type="button" onClick={() => onRemove(node)} aria-label="حذف">
-                  🗑️
+                <button
+                  className="btn sm danger"
+                  type="button"
+                  onClick={() => onRemove(node)}
+                  aria-label="حذف"
+                >
+                  <Trash2 size={13} />
+                  كشف الحساب
                 </button>
               )}
             </div>
             {isOpen && node.children.length > 0 && (
-              <Nodes nodes={node.children} depth={depth + 1} open={open} onEdit={onEdit} onRemove={onRemove} manage={manage} />
+              <Nodes
+                nodes={node.children}
+                depth={depth + 1}
+                open={open}
+                onEdit={onEdit}
+                onRemove={onRemove}
+                manage={manage}
+              />
             )}
           </div>
         );

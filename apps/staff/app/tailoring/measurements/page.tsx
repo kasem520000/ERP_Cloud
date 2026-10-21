@@ -1,29 +1,31 @@
 'use client';
 
+import { FilterBand, FormSection, Panel } from '@erp/ui';
 import Link from 'next/link';
 import { Suspense, useState } from 'react';
 
 import { Empty, ErrorBox, Forbidden, Loading, Screen } from '../../../components/screen';
-import { apiDelete, apiFetch, apiList, apiPatch, apiPost } from '../../../lib/api';
+import { ApiError, apiDelete, apiFetch, apiList, apiPatch, apiPost } from '../../../lib/api';
 import { type Party } from '../../../lib/lookups';
 import { useSession } from '../../../lib/session';
 import { useQuery } from '../../../lib/use-query';
+import { Table } from '../../../components/ui/table';
 
 /**
- * 📏 إدارة قياسات العملاء — `Form_WPF/frmMeasurements.xaml` («إدارة قياسات العملاء»)
+ * إدارة قياسات العملاء — `Form_WPF/frmMeasurements.xaml` («إدارة قياسات العملاء»)
  * with the card of `Form_WPF/frmMeasurementDetails.xaml` («📏 بيانات القياس»).
  *
  * The window is a search box over one grid:
  *
  *   • «البحث برقم الجوال أو الاسم:» — `txtSearch`, watermarked «🔍 الجوال أو
- *     الاسم...», searched by «🔍 بحث» or by pressing Return (`txtSearch_KeyDown`).
+ * الاسم...», searched by « بحث» or by pressing Return (`txtSearch_KeyDown`).
  *     The search resolves a **عميل** (`mobile LIKE @Search OR name LIKE @Search`,
  *     `TOP 10 … ORDER BY name`, first row wins), shows «العميل: …» «الجوال: …»
  *     (`pnlCustomerInfo`) and lists that عميل's قياسات.
- *   • «📋 قياسات العميل» — `👤 اسم صاحب القياس · 📅 التاريخ · 📝 الملاحظات ·
- *     📐 عدد المقاسات · العميل`, sorted `MeasurementDate DESC`; a double-click on a row
+ *   • « قياسات العميل» — ` اسم صاحب القياس · التاريخ · الملاحظات ·
+ * عدد المقاسات · العميل`, sorted `MeasurementDate DESC`; a double-click on a row
  *     is «✏️ تعديل القياس» (`gridViewMeasurements_DoubleClick`).
- *   • The buttons — `➕ إضافة قياس جديد · ✏️ تعديل القياس · 🗑️ حذف القياس · ✖ إغلاق` —
+ *   • The buttons — ` إضافة قياس جديد · تعديل القياس · حذف القياس · إغلاق` —
  *     and their refusals («الرجاء البحث عن عميل أولًا» · «الرجاء اختيار قياس للتعديل» ·
  *     «الرجاء اختيار قياس للحذف» · «هل أنت متأكد من حذف هذا القياس؟») are the API's.
  *
@@ -109,24 +111,40 @@ function TailoringMeasurements() {
   const attributes = useQuery<Attribute[]>(() => apiList<Attribute>('/tailoring/measurement-attributes'), []);
   const customers = useQuery<Party[]>(() => apiList<Party>('/parties?kind=customer'), []);
 
-  const measurements = useQuery<{ rows: Measurement[]; total: number; customer: Party | null }>(() => {
+  const measurements = useQuery<{
+    rows: Measurement[];
+    total: number;
+    customer: Party | null;
+    /** نصّ البحث الذي لم يطابق عميلاً — نتيجةٌ فارغة لا خطأ شاشة. */
+    notFound: string | null;
+  }>(() => {
     const params = new URLSearchParams();
     if (applied !== null) params.set('search', applied);
     const query = params.toString();
     return apiFetch<{ data: Measurement[]; meta: { total: number; customer: Party | null } }>(
       `/tailoring/measurements${query ? `?${query}` : ''}`,
-    ).then((body) => ({
-      rows: body.data ?? [],
-      total: body.meta?.total ?? (body.data ?? []).length,
-      customer: body.meta?.customer ?? null,
-    }));
+    )
+      .then((body) => ({
+        rows: body.data ?? [],
+        total: body.meta?.total ?? (body.data ?? []).length,
+        customer: body.meta?.customer ?? null,
+        notFound: null,
+      }))
+      .catch((cause: unknown) => {
+        // «لم يتم العثور على عميل» جوابُ بحثٍ لا عطل: يُعرض كحالةٍ فارغة تسمّي ما بُحث عنه.
+        if (applied !== null && cause instanceof ApiError && cause.status === 404) {
+          return { rows: [], total: 0, customer: null, notFound: applied };
+        }
+        throw cause;
+      });
   }, [applied]);
 
   const rows = measurements.data?.rows ?? [];
   const activeAttributes = (attributes.data ?? []).filter((attribute) => attribute.active);
   const selectedCustomer = (customers.data ?? []).find((party) => party.id === (draft?.partyId ?? ''));
 
-  const setField = (patch: Partial<Draft>) => setDraft((current) => (current ? { ...current, ...patch } : current));
+  const setField = (patch: Partial<Draft>) =>
+    setDraft((current) => (current ? { ...current, ...patch } : current));
 
   async function save() {
     if (!draft) return;
@@ -176,7 +194,11 @@ function TailoringMeasurements() {
     }
   }
 
-  const searchNow = () => setApplied(search);
+  /** البحث الفارغ يعني «كل السجلات» لا طلباً فارغاً يرفضه الخادم (422 SEARCH_REQUIRED). */
+  const searchNow = () => {
+    const term = search.trim();
+    setApplied(term === '' ? null : term);
+  };
   const showAll = () => {
     setSearch('');
     setApplied(null);
@@ -184,13 +206,13 @@ function TailoringMeasurements() {
 
   return (
     <Screen
-      title="📏 إدارة قياسات العملاء"
+      title="إدارة قياسات العملاء"
       subtitle="قياس كل عميل باسمه وتاريخه وملاحظاته، وقيمه كما يحدّدها ترتيب «خصائص القياسات» — وما يُخاط اليوم يُقاس على هذا."
       crumbs={['التفصيل', 'القياسات']}
       actions={
         <div className="row" style={{ gap: 6 }}>
           <Link className="btn" href="/tailoring/measurements/attributes">
-            📏 خصائص القياسات
+            خصائص القياسات
           </Link>
           {canManage && (
             <button
@@ -205,7 +227,7 @@ function TailoringMeasurements() {
                 setDraft(emptyDraft(measurements.data.customer.id));
               }}
             >
-              ➕ إضافة قياس جديد
+              إضافة قياس جديد
             </button>
           )}
         </div>
@@ -214,14 +236,14 @@ function TailoringMeasurements() {
       {error && <p className="alert danger">{error}</p>}
       {notice && <p className="alert ok">{notice}</p>}
 
-      <div className="card tight no-print">
+      <FilterBand className="no-print">
         <div className="row" style={{ flexWrap: 'wrap', alignItems: 'flex-end' }}>
           <label className="field" style={{ margin: 0, minWidth: 260, flex: 1 }}>
             <span>البحث برقم الجوال أو الاسم:</span>
             <input
               className="input"
               value={search}
-              placeholder="🔍 الجوال أو الاسم..."
+              placeholder="الجوال أو الاسم..."
               onChange={(event) => setSearch(event.target.value)}
               onKeyDown={(event) => {
                 // `txtSearch_KeyDown` — Return searches, as «🔍 بحث» does.
@@ -230,80 +252,102 @@ function TailoringMeasurements() {
             />
           </label>
           <button className="btn primary" type="button" onClick={searchNow}>
-            🔍 بحث
+            بحث
           </button>
           {applied !== null && (
             <button className="btn" type="button" onClick={showAll}>
-              📋 كل القياسات
+              كل القياسات
             </button>
           )}
         </div>
         {measurements.data?.customer && (
           // `pnlCustomerInfo` — «العميل: …» «الجوال: …», shown only once a عميل is picked.
           <div className="row" style={{ marginTop: 8, gap: 16, fontWeight: 700 }}>
-            <span>👤 العميل: {measurements.data.customer.name}</span>
-            <span dir="ltr">📞 الجوال: {measurements.data.customer.phone || '—'}</span>
+            <span>العميل: {measurements.data.customer.name}</span>
+            <span dir="ltr">الجوال: {measurements.data.customer.phone || '—'}</span>
           </div>
         )}
-      </div>
+      </FilterBand>
 
       {measurements.status === 'loading' && <Loading rows={6} />}
       {measurements.status === 'forbidden' && <Forbidden />}
-      {measurements.status === 'error' && <ErrorBox message={measurements.error} onRetry={measurements.reload} />}
+      {measurements.status === 'error' && (
+        <ErrorBox message={measurements.error} onRetry={measurements.reload} />
+      )}
       {measurements.status === 'success' && (
         <>
-          <div className="row" style={{ justifyContent: 'space-between', alignItems: 'baseline' }}>
-            <span className="group-label" style={{ margin: 0 }}>📋 قياسات العميل</span>
-            <span className="muted">عدد السجلات: {measurements.data?.total ?? rows.length}</span>
-          </div>
-          {rows.length === 0 ? (
-            <Empty
-              title="لا توجد قياسات"
-              detail={
-                measurements.data?.customer
-                  ? `لا قياس محفوظ لـ«${measurements.data.customer.name}». ابدأ بـ «➕ إضافة قياس جديد».`
-                  : 'ابحث بجوال عميل أو اسمه لعرض قياساته، أو أضف قياساً من «كل القياسات».'
-              }
-            />
-          ) : (
-            <div className="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>👤 اسم صاحب القياس</th>
-                    <th>📅 التاريخ</th>
-                    <th>📝 الملاحظات</th>
-                    <th className="num">📐 عدد المقاسات</th>
-                    <th>العميل</th>
-                    {canManage && <th>إجراءات</th>}
-                  </tr>
-                </thead>
-                <tbody>
-                  {rows.map((row) => (
-                    <tr key={row.id} onDoubleClick={() => canManage && setDraft(draftOf(row))}>
-                      <td>{row.displayName}</td>
-                      <td dir="ltr">{row.measurementDate}</td>
-                      <td>{row.notes ?? '—'}</td>
-                      <td className="num">{row.measurementCount}</td>
-                      <td>{row.customerName}</td>
-                      {canManage && (
-                        <td>
-                          <div className="row" style={{ gap: 4 }}>
-                            <button className="btn sm" type="button" onClick={() => setDraft(draftOf(row))}>
-                              ✏️ تعديل القياس
-                            </button>
-                            <button className="btn sm danger" type="button" onClick={() => remove(row)}>
-                              🗑️ حذف القياس
-                            </button>
-                          </div>
-                        </td>
-                      )}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+          <Panel
+            title="قياسات العميل"
+            hint={<>عدد السجلات: {measurements.data?.total ?? rows.length}</>}
+            flush
+          >
+            {rows.length === 0 ? (
+              <Empty
+                bare
+                title="لا توجد قياسات"
+                detail={
+                  measurements.data?.notFound
+                    ? `لا عميل مطابق لـ«${measurements.data.notFound}». جرّب جزءاً من الاسم أو رقم الجوال، أو اعرض كل القياسات.`
+                    : measurements.data?.customer
+                      ? `لا قياس محفوظ لـ«${measurements.data.customer.name}». ابدأ بـ «إضافة قياس جديد».`
+                      : 'ابحث بجوال عميل أو اسمه لعرض قياساته، أو أضف قياساً جديداً من الزر أعلى الشاشة.'
+                }
+              />
+            ) : (
+              <Table
+                bare
+                columns={[
+                  {
+                    key: 'c0',
+                    header: 'اسم صاحب القياس',
+                    cell: (row) => row.displayName,
+                  },
+                  {
+                    key: 'c1',
+                    header: 'التاريخ',
+                    ltr: true,
+                    cell: (row) => row.measurementDate,
+                  },
+                  {
+                    key: 'c2',
+                    header: 'الملاحظات',
+                    cell: (row) => row.notes ?? '—',
+                  },
+                  {
+                    key: 'c3',
+                    header: 'عدد المقاسات',
+                    numeric: true,
+                    cell: (row) => row.measurementCount,
+                  },
+                  {
+                    key: 'c4',
+                    header: 'العميل',
+                    cell: (row) => row.customerName,
+                  },
+                  ...(canManage
+                    ? [
+                        {
+                          key: 'c5',
+                          header: 'إجراءات',
+                          cell: (row: Measurement) => (
+                            <div className="row" style={{ gap: 4 }}>
+                              <button className="btn sm" type="button" onClick={() => setDraft(draftOf(row))}>
+                                تعديل القياس
+                              </button>
+                              <button className="btn sm danger" type="button" onClick={() => remove(row)}>
+                                حذف القياس
+                              </button>
+                            </div>
+                          ),
+                        },
+                      ]
+                    : []),
+                ]}
+                rows={rows}
+                rowKey={(row) => row.id}
+              />
+            )}
+          </Panel>
         </>
       )}
 
@@ -311,23 +355,23 @@ function TailoringMeasurements() {
         <div className="modal-backdrop" role="dialog" aria-modal="true">
           <div className="modal-card" style={{ maxWidth: 620 }}>
             <div className="modal-head">
-              {/* «📏 بيانات القياس» — `frmMeasurementDetails`. */}
-              <span className="modal-title">{draft.id ? '✏️ تعديل القياس' : '📏 بيانات القياس'}</span>
+              {/* «بيانات القياس» — `frmMeasurementDetails`. */}
+              <span className="modal-title">{draft.id ? 'تعديل القياس' : 'بيانات القياس'}</span>
               <button className="btn sm" type="button" onClick={() => setDraft(null)}>
-                ✖ إغلاق
+                إغلاق
               </button>
             </div>
             <div style={{ padding: 16, display: 'grid', gap: 12, maxHeight: '70vh', overflow: 'auto' }}>
               {selectedCustomer && (
                 <p className="muted" style={{ margin: 0, fontWeight: 700 }}>
-                  👤 العميل: {selectedCustomer.name} — 📞 {selectedCustomer.phone || '—'}
+                  العميل: {selectedCustomer.name} — {selectedCustomer.phone || '—'}
                 </p>
               )}
 
-              <fieldset className="card tight" style={{ margin: 0 }}>
+              <FormSection title="بيانات صاحب القياس">
                 <div className="form-grid">
                   <label className="field">
-                    <span>👤 اسم صاحب القياس *</span>
+                    <span>اسم صاحب القياس *</span>
                     <input
                       className="input"
                       value={draft.name}
@@ -335,7 +379,7 @@ function TailoringMeasurements() {
                     />
                   </label>
                   <label className="field">
-                    <span>📅 التاريخ</span>
+                    <span>التاريخ</span>
                     <input
                       className="input"
                       type="date"
@@ -344,14 +388,13 @@ function TailoringMeasurements() {
                     />
                   </label>
                 </div>
-              </fieldset>
+              </FormSection>
 
-              <fieldset className="card tight" style={{ margin: 0 }}>
-                <legend className="group-label">📐 قيم القياسات</legend>
+              <FormSection title="قيم القياسات">
                 {activeAttributes.length === 0 ? (
                   <p className="muted" style={{ margin: 0 }}>
                     لا خصائص مفعّلة. أضف خاصية من{' '}
-                    <Link href="/tailoring/measurements/attributes">📏 إدارة خصائص القياسات</Link>.
+                    <Link href="/tailoring/measurements/attributes">إدارة خصائص القياسات</Link>.
                   </p>
                 ) : (
                   <div className="form-grid">
@@ -378,11 +421,11 @@ function TailoringMeasurements() {
                     ))}
                   </div>
                 )}
-              </fieldset>
+              </FormSection>
 
-              <fieldset className="card tight" style={{ margin: 0 }}>
+              <FormSection title="ملاحظات">
                 <label className="field" style={{ margin: 0 }}>
-                  <span>📝 ملاحظات</span>
+                  <span>ملاحظات</span>
                   <textarea
                     className="input"
                     rows={3}
@@ -390,14 +433,14 @@ function TailoringMeasurements() {
                     onChange={(event) => setField({ notes: event.target.value })}
                   />
                 </label>
-              </fieldset>
+              </FormSection>
             </div>
             <div className="modal-foot">
               <button className="btn primary" type="button" onClick={save} disabled={busy}>
-                💾 حفظ
+                حفظ
               </button>
               <button className="btn danger" type="button" onClick={() => setDraft(null)} disabled={busy}>
-                ✖ إلغاء
+                إلغاء
               </button>
             </div>
           </div>

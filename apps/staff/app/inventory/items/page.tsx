@@ -1,11 +1,12 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { Panel } from '@erp/ui';
 
 import { DataTable, Notice, QueryView } from '../../../components/data-view';
-import { Screen } from '../../../components/screen';
+import { Empty, Screen } from '../../../components/screen';
 import { DocField, DocHead, FilterBar, StatTile, StatTiles, Tabs, Totals } from '../../../components/ui';
-import { ApiError, apiDelete, apiList, apiPatch, apiPost } from '../../../lib/api';
+import { apiDelete, apiErrorText, apiList, apiPatch, apiPost } from '../../../lib/api';
 import {
   arabicName,
   listCategories,
@@ -27,7 +28,11 @@ import {
   type Unit,
   type Warehouse,
 } from '../../../lib/lookups';
-import { getCustomFieldValues, saveCustomFieldValues, type CustomFieldValue } from '../../../lib/custom-fields';
+import {
+  getCustomFieldValues,
+  saveCustomFieldValues,
+  type CustomFieldValue,
+} from '../../../lib/custom-fields';
 import { useSession } from '../../../lib/session';
 import { useQuery } from '../../../lib/use-query';
 
@@ -175,7 +180,7 @@ export default function ItemsPage() {
       }
       items.reload();
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
     } finally {
       setBusy(false);
     }
@@ -196,7 +201,7 @@ export default function ItemsPage() {
       if (editing?.id === row.id) cancelEdit();
       items.reload();
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
     } finally {
       setBusy(false);
     }
@@ -209,11 +214,24 @@ export default function ItemsPage() {
   const rows = items.data ?? [];
   const selected = rows.find((row) => row.id === selectedId);
   useEffect(() => {
-    if (!selected) { setCustomValues([]); setCustomDraft({}); return; }
-    void getCustomFieldValues('item', selected.id).then((values) => {
-      setCustomValues(values);
-      setCustomDraft(Object.fromEntries(values.map((field) => [field.key, field.value ?? (field.type === 'boolean' ? false : '')])));
-    }).catch(() => { setCustomValues([]); setCustomDraft({}); });
+    if (!selected) {
+      setCustomValues([]);
+      setCustomDraft({});
+      return;
+    }
+    void getCustomFieldValues('item', selected.id)
+      .then((values) => {
+        setCustomValues(values);
+        setCustomDraft(
+          Object.fromEntries(
+            values.map((field) => [field.key, field.value ?? (field.type === 'boolean' ? false : '')]),
+          ),
+        );
+      })
+      .catch(() => {
+        setCustomValues([]);
+        setCustomDraft({});
+      });
   }, [selectedId, selected]);
   const cardUnits = useQuery<ItemUnit[]>(
     () => (selected ? listItemUnits(selected.id) : Promise.resolve([])),
@@ -233,7 +251,8 @@ export default function ItemsPage() {
     [selectedId],
   );
   const componentUnits = useQuery<ItemUnit[]>(
-    () => (componentDraft.componentItemId ? listItemUnits(componentDraft.componentItemId) : Promise.resolve([])),
+    () =>
+      componentDraft.componentItemId ? listItemUnits(componentDraft.componentItemId) : Promise.resolve([]),
     [componentDraft.componentItemId],
   );
   const componentRows = components.data ?? [];
@@ -256,7 +275,7 @@ export default function ItemsPage() {
       setComponentDraft({ ...componentDraft, componentItemId: '', qty: '1', unitId: '' });
       components.reload();
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
     } finally {
       setComponentBusy(false);
     }
@@ -269,7 +288,7 @@ export default function ItemsPage() {
       await saveCustomFieldValues('item', selected.id, customDraft);
       setNotice({ kind: 'ok', text: 'تم حفظ الحقول الإضافية للصنف.' });
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
     } finally {
       setCustomBusy(false);
     }
@@ -285,7 +304,7 @@ export default function ItemsPage() {
       setNotice({ kind: 'ok', text: 'أُزيل المكوّن من البطاقة.' });
       components.reload();
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
     } finally {
       setComponentBusy(false);
     }
@@ -311,164 +330,6 @@ export default function ItemsPage() {
         ) : null
       }
     >
-      {open && (
-        <form className="card" onSubmit={submit}>
-          <h2>{editing ? `تعديل بطاقة المادة ${editing.sku}` : 'بطاقة مادة جديدة'}</h2>
-          {missingRefs && !editing && (
-            <p className="alert warn">
-              يلزم وجود مجموعة واحدة ووحدة قياس واحدة على الأقل. أنشئها من «بطاقة مجموعة» و«بطاقة وحدة».
-            </p>
-          )}
-          <div className="form-grid">
-            <label className="field">
-              <span>الرمز (SKU) *</span>
-              <input className="input" dir="ltr" value={form.sku} onChange={set('sku')} required />
-            </label>
-            <label className="field">
-              <span>الباركود</span>
-              <input
-                className="input"
-                dir="ltr"
-                value={form.barcode}
-                onChange={set('barcode')}
-                placeholder="يُستخدم الرمز (SKU) عند تركه فارغاً"
-              />
-            </label>
-            <label className="field">
-              <span>الاسم العربي *</span>
-              <input className="input" value={form.nameAr} onChange={set('nameAr')} required />
-            </label>
-            <label className="field">
-              <span>الاسم الإنجليزي</span>
-              <input className="input" dir="ltr" value={form.nameEn} onChange={set('nameEn')} />
-            </label>
-            <label className="field">
-              <span>المجموعة *</span>
-              <select className="input" value={form.categoryId} onChange={set('categoryId')} required>
-                <option value="">— اختر —</option>
-                {categoryRows.map((row) => (
-                  <option key={row.id} value={row.id}>{`${row.code} — ${arabicName(row)}`}</option>
-                ))}
-              </select>
-            </label>
-            <label className="field">
-              <span>وحدة القياس *</span>
-              <select
-                className="input"
-                value={form.baseUnitId}
-                onChange={set('baseUnitId')}
-                required
-                disabled={Boolean(editing)}
-              >
-                <option value="">— اختر —</option>
-                {unitRows.map((row) => (
-                  <option key={row.id} value={row.id}>{`${row.code} — ${arabicName(row)}`}</option>
-                ))}
-              </select>
-              {editing && <span className="muted small">وحدة القياس الأساسية ثابتة بعد إنشاء المادة.</span>}
-            </label>
-            <label className="field">
-              <span>النوع</span>
-              <select className="input" value={form.kind} onChange={set('kind')}>
-                <option value="stock">مخزنية</option>
-                <option value="service">خدمة</option>
-                <option value="composite">مركبة</option>
-              </select>
-            </label>
-            <label className="field">
-              <span>سعر البيع</span>
-              <input
-                className="input"
-                dir="ltr"
-                inputMode="decimal"
-                value={form.salePrice}
-                onChange={set('salePrice')}
-              />
-            </label>
-            <label className="field">
-              <span>سعر الشراء</span>
-              <input
-                className="input"
-                dir="ltr"
-                inputMode="decimal"
-                value={form.purchasePrice}
-                onChange={set('purchasePrice')}
-              />
-            </label>
-            <label className="field">
-              <span>حد الطلب (أدنى رصيد)</span>
-              <input
-                className="input"
-                dir="ltr"
-                inputMode="decimal"
-                value={form.minQty}
-                onChange={set('minQty')}
-                placeholder="0"
-              />
-            </label>
-            <label className="field">
-              <span>الحد الأقصى</span>
-              <input
-                className="input"
-                dir="ltr"
-                inputMode="decimal"
-                value={form.maxQty}
-                onChange={set('maxQty')}
-                placeholder="—"
-              />
-            </label>
-            <label className="field">
-              <span>تتبع بدفعات / تواريخ صلاحية</span>
-              <select
-                className="input"
-                value={form.trackLot ? 'yes' : 'no'}
-                onChange={(event) =>
-                  setForm((current) => ({ ...current, trackLot: event.target.value === 'yes' }))
-                }
-              >
-                <option value="no">لا</option>
-                <option value="yes">نعم</option>
-              </select>
-            </label>
-            <label className="field">
-              <span>تتبع بأرقام تسلسلية</span>
-              <select
-                className="input"
-                value={form.trackSerial ? 'yes' : 'no'}
-                onChange={(event) =>
-                  setForm((current) => ({ ...current, trackSerial: event.target.value === 'yes' }))
-                }
-              >
-                <option value="no">لا</option>
-                <option value="yes">نعم</option>
-              </select>
-            </label>
-            <label className="field">
-              <span>المجموعة الضريبية</span>
-              <select className="input" value={form.taxGroupId} onChange={set('taxGroupId')}>
-                <option value="">— بدون —</option>
-                {(taxGroups.data ?? []).map((row) => (
-                  <option key={row.id} value={row.id}>
-                    {arabicName(row)}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </div>
-          <Notice notice={notice} />
-          <div className="row">
-            <button className="btn primary" type="submit" disabled={busy || (missingRefs && !editing)}>
-              {busy ? 'جارٍ الحفظ…' : editing ? 'حفظ التعديل' : 'حفظ المادة'}
-            </button>
-            {editing && (
-              <button className="btn" type="button" onClick={cancelEdit} disabled={busy}>
-                إلغاء التعديل
-              </button>
-            )}
-          </div>
-        </form>
-      )}
-
       <StatTiles>
         <StatTile label="عدد المواد" value={rows.length} hint="بطاقة صنف مسجّلة" tone="brand" />
         <StatTile
@@ -496,7 +357,11 @@ export default function ItemsPage() {
       </StatTiles>
 
       <FilterBar
-        actions={<span className="small muted">{applied ? `نتيجة البحث عن «${applied}»` : `${rows.length} مادة`}</span>}
+        actions={
+          <span className="small muted">
+            {applied ? `نتيجة البحث عن «${applied}»` : `${rows.length} مادة`}
+          </span>
+        }
       >
         <label className="field">
           <span>بحث</span>
@@ -527,15 +392,176 @@ export default function ItemsPage() {
         )}
       </FilterBar>
 
+      {open && (
+        <form onSubmit={submit}>
+          <Panel title={<>{editing ? `تعديل بطاقة المادة ${editing.sku}` : 'بطاقة مادة جديدة'}</>}>
+            {missingRefs && !editing && (
+              <p className="alert warn">
+                يلزم وجود مجموعة واحدة ووحدة قياس واحدة على الأقل. أنشئها من «بطاقة مجموعة» و«بطاقة وحدة».
+              </p>
+            )}
+            <div className="form-grid">
+              <label className="field">
+                <span>الرمز (SKU) *</span>
+                <input className="input" dir="ltr" value={form.sku} onChange={set('sku')} required />
+              </label>
+              <label className="field">
+                <span>الباركود</span>
+                <input
+                  className="input"
+                  dir="ltr"
+                  value={form.barcode}
+                  onChange={set('barcode')}
+                  placeholder="يُستخدم الرمز (SKU) عند تركه فارغاً"
+                />
+              </label>
+              <label className="field">
+                <span>الاسم العربي *</span>
+                <input className="input" value={form.nameAr} onChange={set('nameAr')} required />
+              </label>
+              <label className="field">
+                <span>الاسم الإنجليزي</span>
+                <input className="input" dir="ltr" value={form.nameEn} onChange={set('nameEn')} />
+              </label>
+              <label className="field">
+                <span>المجموعة *</span>
+                <select className="input" value={form.categoryId} onChange={set('categoryId')} required>
+                  <option value="">— اختر —</option>
+                  {categoryRows.map((row) => (
+                    <option key={row.id} value={row.id}>{`${row.code} — ${arabicName(row)}`}</option>
+                  ))}
+                </select>
+              </label>
+              <label className="field">
+                <span>وحدة القياس *</span>
+                <select
+                  className="input"
+                  value={form.baseUnitId}
+                  onChange={set('baseUnitId')}
+                  required
+                  disabled={Boolean(editing)}
+                >
+                  <option value="">— اختر —</option>
+                  {unitRows.map((row) => (
+                    <option key={row.id} value={row.id}>{`${row.code} — ${arabicName(row)}`}</option>
+                  ))}
+                </select>
+                {editing && <span className="muted small">وحدة القياس الأساسية ثابتة بعد إنشاء المادة.</span>}
+              </label>
+              <label className="field">
+                <span>النوع</span>
+                <select className="input" value={form.kind} onChange={set('kind')}>
+                  <option value="stock">مخزنية</option>
+                  <option value="service">خدمة</option>
+                  <option value="composite">مركبة</option>
+                </select>
+              </label>
+              <label className="field">
+                <span>سعر البيع</span>
+                <input
+                  className="input"
+                  dir="ltr"
+                  inputMode="decimal"
+                  value={form.salePrice}
+                  onChange={set('salePrice')}
+                />
+              </label>
+              <label className="field">
+                <span>سعر الشراء</span>
+                <input
+                  className="input"
+                  dir="ltr"
+                  inputMode="decimal"
+                  value={form.purchasePrice}
+                  onChange={set('purchasePrice')}
+                />
+              </label>
+              <label className="field">
+                <span>حد الطلب (أدنى رصيد)</span>
+                <input
+                  className="input"
+                  dir="ltr"
+                  inputMode="decimal"
+                  value={form.minQty}
+                  onChange={set('minQty')}
+                  placeholder="0"
+                />
+              </label>
+              <label className="field">
+                <span>الحد الأقصى</span>
+                <input
+                  className="input"
+                  dir="ltr"
+                  inputMode="decimal"
+                  value={form.maxQty}
+                  onChange={set('maxQty')}
+                  placeholder="—"
+                />
+              </label>
+              <label className="field">
+                <span>تتبع بدفعات / تواريخ صلاحية</span>
+                <select
+                  className="input"
+                  value={form.trackLot ? 'yes' : 'no'}
+                  onChange={(event) =>
+                    setForm((current) => ({ ...current, trackLot: event.target.value === 'yes' }))
+                  }
+                >
+                  <option value="no">لا</option>
+                  <option value="yes">نعم</option>
+                </select>
+              </label>
+              <label className="field">
+                <span>تتبع بأرقام تسلسلية</span>
+                <select
+                  className="input"
+                  value={form.trackSerial ? 'yes' : 'no'}
+                  onChange={(event) =>
+                    setForm((current) => ({ ...current, trackSerial: event.target.value === 'yes' }))
+                  }
+                >
+                  <option value="no">لا</option>
+                  <option value="yes">نعم</option>
+                </select>
+              </label>
+              <label className="field">
+                <span>المجموعة الضريبية</span>
+                <select className="input" value={form.taxGroupId} onChange={set('taxGroupId')}>
+                  <option value="">— بدون —</option>
+                  {(taxGroups.data ?? []).map((row) => (
+                    <option key={row.id} value={row.id}>
+                      {arabicName(row)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+            <Notice notice={notice} />
+            <div className="row">
+              <button className="btn primary" type="submit" disabled={busy || (missingRefs && !editing)}>
+                {busy ? 'جارٍ الحفظ…' : editing ? 'حفظ التعديل' : 'حفظ المادة'}
+              </button>
+              {editing && (
+                <button className="btn" type="button" onClick={cancelEdit} disabled={busy}>
+                  إلغاء التعديل
+                </button>
+              )}
+            </div>
+          </Panel>
+        </form>
+      )}
+
       {!open && notice && <Notice notice={notice} />}
 
       <div className="split">
-        <div className="card tight split-list">
+        <Panel flush bodyClassName="split-list">
           <QueryView query={items} empty="لا توجد مواد" emptyDetail="ابدأ بإضافة بطاقة مادة جديدة.">
             {() => (
               <>
                 {rows.length === 0 ? (
-                  <p className="muted" style={{ padding: 12 }}>لا مواد مطابقة.</p>
+                  <p className="muted" style={{ padding: 12 }}>
+                    لا مواد مطابقة.
+                  </p>
                 ) : (
                   rows.map((row) => (
                     <button
@@ -545,12 +571,17 @@ export default function ItemsPage() {
                       onClick={() => setSelectedId(row.id)}
                     >
                       <span className="list-title">{arabicName(row)}</span>
-                      <span className="list-sub" dir="ltr">{`${row.sku}${row.barcode ? ` · ${row.barcode}` : ''}`}</span>
+                      <span
+                        className="list-sub"
+                        dir="ltr"
+                      >{`${row.sku}${row.barcode ? ` · ${row.barcode}` : ''}`}</span>
                       <span className="row" style={{ justifyContent: 'space-between' }}>
                         <span className="badge">
                           {row.kind === 'service' ? 'خدمة' : row.kind === 'composite' ? 'مركبة' : 'مخزنية'}
                         </span>
-                        <span className="list-sub" dir="ltr">{money(row.salePrice ?? row.sale_price)}</span>
+                        <span className="list-sub" dir="ltr">
+                          {money(row.salePrice ?? row.sale_price)}
+                        </span>
                       </span>
                     </button>
                   ))
@@ -558,11 +589,11 @@ export default function ItemsPage() {
               </>
             )}
           </QueryView>
-        </div>
+        </Panel>
 
-        <div className="card">
+        <Panel>
           {!selected ? (
-            <p className="muted">اختر مادة من القائمة لعرض بطاقتها بتبويباتها.</p>
+            <Empty bare title="لا توجد مادة محددة" detail="اختر مادة من القائمة لعرض بطاقتها بتبويباتها." />
           ) : (
             <>
               <div className="section-title">
@@ -587,11 +618,17 @@ export default function ItemsPage() {
                     <DocField label="الاسم الإنجليزي">{selected.nameEn ?? '—'}</DocField>
                     <DocField label="المجموعة">
                       {arabicName(
-                        categories.data?.find((row) => row.id === (selected.categoryId ?? selected.category_id)) ?? {},
+                        categories.data?.find(
+                          (row) => row.id === (selected.categoryId ?? selected.category_id),
+                        ) ?? {},
                       )}
                     </DocField>
                     <DocField label="الوحدة الأساسية">
-                      {arabicName(units.data?.find((row) => row.id === (selected.baseUnitId ?? selected.base_unit_id)) ?? {})}
+                      {arabicName(
+                        units.data?.find(
+                          (row) => row.id === (selected.baseUnitId ?? selected.base_unit_id),
+                        ) ?? {},
+                      )}
                     </DocField>
                     <DocField label="سعر البيع">
                       <span dir="ltr">{money(selected.salePrice ?? selected.sale_price)}</span>
@@ -605,25 +642,84 @@ export default function ItemsPage() {
                     <DocField label="الحد الأعلى">
                       <span dir="ltr">{quantity(selected.maxQty ?? selected.max_qty)}</span>
                     </DocField>
-                    <DocField label="تتبع الدفعات">{selected.trackLot ?? selected.track_lot ? 'نعم' : 'لا'}</DocField>
+                    <DocField label="تتبع الدفعات">
+                      {(selected.trackLot ?? selected.track_lot) ? 'نعم' : 'لا'}
+                    </DocField>
                     <DocField label="تتبع الأرقام التسلسلية">
-                      {selected.trackSerial ?? selected.track_serial ? 'نعم' : 'لا'}
+                      {(selected.trackSerial ?? selected.track_serial) ? 'نعم' : 'لا'}
                     </DocField>
                   </DocHead>
 
                   {customValues.length > 0 && (
-                    <section className="card tight" style={{ marginTop: 16 }}>
-                      <div className="section-title"><h3>الحقول الإضافية</h3><span className="muted small">قيم typed خاصة بهذا الصنف</span></div>
+                    <Panel title="الحقول الإضافية">
                       <div className="form-grid">
                         {customValues.map((field) => (
                           <label className="field" key={field.id}>
-                            <span>{field.label}{field.required ? ' *' : ''}</span>
-                            {field.type === 'select' ? <select className="input" value={String(customDraft[field.key] ?? '')} onChange={(event) => setCustomDraft((current) => ({ ...current, [field.key]: event.target.value }))}><option value="">— اختر —</option>{field.options.map((option) => <option key={option} value={option}>{option}</option>)}</select> : field.type === 'boolean' ? <input type="checkbox" checked={Boolean(customDraft[field.key])} onChange={(event) => setCustomDraft((current) => ({ ...current, [field.key]: event.target.checked }))} /> : <input className="input" type={field.type === 'number' ? 'number' : field.type === 'date' ? 'date' : 'text'} value={String(customDraft[field.key] ?? '')} onChange={(event) => setCustomDraft((current) => ({ ...current, [field.key]: field.type === 'number' ? Number(event.target.value) : event.target.value }))} />}
+                            <span>
+                              {field.label}
+                              {field.required ? ' *' : ''}
+                            </span>
+                            {field.type === 'select' ? (
+                              <select
+                                className="input"
+                                value={String(customDraft[field.key] ?? '')}
+                                onChange={(event) =>
+                                  setCustomDraft((current) => ({
+                                    ...current,
+                                    [field.key]: event.target.value,
+                                  }))
+                                }
+                              >
+                                <option value="">— اختر —</option>
+                                {field.options.map((option) => (
+                                  <option key={option} value={option}>
+                                    {option}
+                                  </option>
+                                ))}
+                              </select>
+                            ) : field.type === 'boolean' ? (
+                              <input
+                                type="checkbox"
+                                checked={Boolean(customDraft[field.key])}
+                                onChange={(event) =>
+                                  setCustomDraft((current) => ({
+                                    ...current,
+                                    [field.key]: event.target.checked,
+                                  }))
+                                }
+                              />
+                            ) : (
+                              <input
+                                className="input"
+                                type={
+                                  field.type === 'number' ? 'number' : field.type === 'date' ? 'date' : 'text'
+                                }
+                                value={String(customDraft[field.key] ?? '')}
+                                onChange={(event) =>
+                                  setCustomDraft((current) => ({
+                                    ...current,
+                                    [field.key]:
+                                      field.type === 'number'
+                                        ? Number(event.target.value)
+                                        : event.target.value,
+                                  }))
+                                }
+                              />
+                            )}
                           </label>
                         ))}
                       </div>
-                      {can('custom_fields.manage') ? <button className="btn primary no-print" type="button" disabled={customBusy} onClick={() => void saveCustomValues()}>{customBusy ? 'جارٍ الحفظ…' : 'حفظ الحقول الإضافية'}</button> : null}
-                    </section>
+                      {can('custom_fields.manage') ? (
+                        <button
+                          className="btn primary no-print"
+                          type="button"
+                          disabled={customBusy}
+                          onClick={() => void saveCustomValues()}
+                        >
+                          {customBusy ? 'جارٍ الحفظ…' : 'حفظ الحقول الإضافية'}
+                        </button>
+                      ) : null}
+                    </Panel>
                   )}
 
                   <Totals
@@ -637,10 +733,20 @@ export default function ItemsPage() {
                   <div className="toolbar no-print">
                     {can('catalog.item.manage') && (
                       <>
-                        <button className="btn" type="button" onClick={() => startEdit(selected)} disabled={busy}>
+                        <button
+                          className="btn"
+                          type="button"
+                          onClick={() => startEdit(selected)}
+                          disabled={busy}
+                        >
                           تعديل البطاقة
                         </button>
-                        <button className="btn danger" type="button" onClick={() => void remove(selected)} disabled={busy}>
+                        <button
+                          className="btn danger"
+                          type="button"
+                          onClick={() => void remove(selected)}
+                          disabled={busy}
+                        >
                           حذف
                         </button>
                       </>
@@ -653,14 +759,22 @@ export default function ItemsPage() {
               )}
 
               {tab === 'units' && (
-                <QueryView query={cardUnits} empty="لا وحدات لهذه المادة" emptyDetail="أضف وحداتها من شاشة وحدات الصنف.">
+                <QueryView
+                  query={cardUnits}
+                  empty="لا وحدات لهذه المادة"
+                  emptyDetail="أضف وحداتها من شاشة وحدات الصنف."
+                >
                   {(unitRows) => (
                     <DataTable
                       rows={unitRows}
                       rowKey={(row) => `${row.itemId}:${row.unitId}`}
                       footer={[<>{`المجموع (${unitRows.length})`}</>, '', '', '', '']}
                       columns={[
-                        { key: 'unit', header: 'الوحدة', cell: (row) => row.unitNameAr ?? row.unitCode ?? '—' },
+                        {
+                          key: 'unit',
+                          header: 'الوحدة',
+                          cell: (row) => row.unitNameAr ?? row.unitCode ?? '—',
+                        },
                         {
                           key: 'ratio',
                           header: 'معامل التحويل',
@@ -675,14 +789,27 @@ export default function ItemsPage() {
                           cell: (row) => (
                             <span dir="ltr">
                               {`1 ${row.unitNameAr ?? row.unitCode ?? ''} = ${Number(row.ratio).toLocaleString('ar-EG')} ${
-                                arabicName(units.data?.find((unit) => unit.id === (selected.baseUnitId ?? selected.base_unit_id)) ?? {}) ||
-                                'وحدة أساسية'
+                                arabicName(
+                                  units.data?.find(
+                                    (unit) => unit.id === (selected.baseUnitId ?? selected.base_unit_id),
+                                  ) ?? {},
+                                ) || 'وحدة أساسية'
                               }`}
                             </span>
                           ),
                         },
-                        { key: 'sale', header: 'سعر البيع', align: 'num', cell: (row) => money(row.salePrice) },
-                        { key: 'barcode', header: 'الباركود', align: 'ltr', cell: (row) => row.barcode ?? '—' },
+                        {
+                          key: 'sale',
+                          header: 'سعر البيع',
+                          align: 'num',
+                          cell: (row) => money(row.salePrice),
+                        },
+                        {
+                          key: 'barcode',
+                          header: 'الباركود',
+                          align: 'ltr',
+                          cell: (row) => row.barcode ?? '—',
+                        },
                       ]}
                     />
                   )}
@@ -692,8 +819,8 @@ export default function ItemsPage() {
               {tab === 'opening' && (
                 <>
                   <p className="muted">
-                    بضاعة أول المدة هي رصيد الافتتاح الذي يُقيَّد في حساب بضاعة أول المدة عند الترحيل. الرصيد الحالي
-                    لهذه المادة مبيّن أدناه؛ سجّل الافتتاح بسند من نوع «بضاعة أول المدة».
+                    بضاعة أول المدة هي رصيد الافتتاح الذي يُقيَّد في حساب بضاعة أول المدة عند الترحيل. الرصيد
+                    الحالي لهذه المادة مبيّن أدناه؛ سجّل الافتتاح بسند من نوع «بضاعة أول المدة».
                   </p>
                   <Totals
                     items={[
@@ -719,7 +846,7 @@ export default function ItemsPage() {
               {tab === 'components' && (
                 <>
                   <p className="muted">
-                    🔧 مكونات الصنف — ما يُصنع منه هذا الصنف، بالوحدة التي تُقاس بها كل كمية، والمستودع الذي
+                    مكونات الصنف — ما يُصنع منه هذا الصنف، بالوحدة التي تُقاس بها كل كمية، والمستودع الذي
                     يُصرف منه. أمر إنتاج بلا مكوّنات يُملأ تلقائياً من هذا الجدول، مضروباً في الكمية المنتجة.
                   </p>
 
@@ -840,7 +967,9 @@ export default function ItemsPage() {
                           inputMode="decimal"
                           dir="ltr"
                           value={componentDraft.qty}
-                          onChange={(event) => setComponentDraft({ ...componentDraft, qty: event.target.value })}
+                          onChange={(event) =>
+                            setComponentDraft({ ...componentDraft, qty: event.target.value })
+                          }
                           required
                         />
                       </label>
@@ -849,7 +978,9 @@ export default function ItemsPage() {
                         <select
                           className="input"
                           value={componentDraft.unitId}
-                          onChange={(event) => setComponentDraft({ ...componentDraft, unitId: event.target.value })}
+                          onChange={(event) =>
+                            setComponentDraft({ ...componentDraft, unitId: event.target.value })
+                          }
                         >
                           <option value="">الوحدة الأساسية</option>
                           {(componentUnits.data ?? []).map((row) => (
@@ -881,7 +1012,9 @@ export default function ItemsPage() {
                         <select
                           className="input"
                           value={componentDraft.kind}
-                          onChange={(event) => setComponentDraft({ ...componentDraft, kind: event.target.value })}
+                          onChange={(event) =>
+                            setComponentDraft({ ...componentDraft, kind: event.target.value })
+                          }
                         >
                           <option value="component">لا</option>
                           <option value="additive">نعم</option>
@@ -902,7 +1035,7 @@ export default function ItemsPage() {
               )}
             </>
           )}
-        </div>
+        </Panel>
       </div>
     </Screen>
   );

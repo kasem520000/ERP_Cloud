@@ -5,6 +5,8 @@
  */
 export const errorCodes = {
   UNAUTHENTICATED: 'UNAUTHENTICATED',
+  /** AUD-08 — رمز تسليم الجلسة بين الواجهات: مجهول، منتهٍ، أو مُستعمل سابقاً. */
+  HANDOFF_CODE_INVALID: 'HANDOFF_CODE_INVALID',
   FORBIDDEN: 'FORBIDDEN',
   TENANT_SUSPENDED: 'TENANT_SUSPENDED',
   TENANT_CONTEXT_MISSING: 'TENANT_CONTEXT_MISSING',
@@ -21,13 +23,40 @@ export const errorCodes = {
   DOCUMENT_NOT_DRAFT: 'DOCUMENT_NOT_DRAFT',
   PARTY_CREDIT_LIMIT_EXCEEDED: 'PARTY_CREDIT_LIMIT_EXCEEDED',
   STOCK_INSUFFICIENT: 'STOCK_INSUFFICIENT',
+  /**
+   * 🏭 رموز الإنتاج — كانت تُرمى بنصوصها بلا تسجيل، فيعود `titleForCode` بالعنوان العامّ
+   * «Request failed» وتضيع سبب الرفض الحقيقي عن أي شاشة تقرأ `title` وحده.
+   */
+  VAN_PRODUCTION_INPUT_REQUIRED: 'VAN_PRODUCTION_INPUT_REQUIRED',
+  VAN_PRODUCTION_COST_REQUIRED: 'VAN_PRODUCTION_COST_REQUIRED',
+  PRODUCTION_ACCOUNTS_INCOMPLETE: 'PRODUCTION_ACCOUNTS_INCOMPLETE',
   SEQUENCE_EXHAUSTED: 'SEQUENCE_EXHAUSTED',
   EINVOICE_REJECTED: 'EINVOICE_REJECTED',
+  /** البند 8: خادم التطبيق لا يصل إلى بوابات الهيئة (شبكة/جدار ناري/انقطاع خارجي). */
+  EINVOICE_GATEWAY_UNREACHABLE: 'EINVOICE_GATEWAY_UNREACHABLE',
   MIGRATION_CONFLICT: 'MIGRATION_CONFLICT',
   RATE_LIMITED: 'RATE_LIMITED',
+  /** طلبٌ أكبر من السقف المسموح به للجسم — يُرفض قبل أن يُقرأ كاملاً في الذاكرة. */
+  PAYLOAD_TOO_LARGE: 'PAYLOAD_TOO_LARGE',
+  /** رابطٌ أطول من السقف — يُقطع قبل تحليل الاستعلام. */
+  URI_TOO_LONG: 'URI_TOO_LONG',
+  /** SH-06 — نفاد محاولات رمز التوقيع: الطلب يُقفل ويحتاج رابطاً جديداً. */
+  OTP_LOCKED: 'OTP_LOCKED',
   INTERNAL: 'INTERNAL',
   // PHASE_04 — a draft was accepted but must wait for the configured approval chain.
   APPROVAL_REQUIRED: 'APPROVAL_REQUIRED',
+  /**
+   * 🏪 ترخيص الباقات القطاعية — `tenant.apps.manage` وحدها لا تُفعِّل باقةً تُباع بقرار
+   * المنصة (`category: 'sector'` ⇒ `requiresApproval`). إخفاء زرّ التثبيت في الشاشة ليس
+   * ضبطًا للوصول: الخادم يرفض التثبيت المباشر ويحيل على طلب التفعيل.
+   */
+  ADDON_REQUIRES_PLATFORM_APPROVAL: 'ADDON_REQUIRES_PLATFORM_APPROVAL',
+  /**
+   * 🏪 الاستعمال بلا ترخيص — المنشأة تحمل أكواد الصلاحيات لكن لا تملك أيّاً من الباقات
+   * القطاعية التي تفتح هذا السطح (`tenant_apps`). الصلاحيات وحدها ليست ترخيصاً: الترحيل
+   * 0126 منح أكواد `van_sales.*` لأدوارٍ قائمة، فبقيت الباقة تُستعمل بلا تفعيل.
+   */
+  ADDON_NOT_LICENSED: 'ADDON_NOT_LICENSED',
   // PHASE_05 §7 — no posting profile answers a (branch, doc_type) lookup.
   ACCOUNT_PROFILE_MISSING: 'ACCOUNT_PROFILE_MISSING',
   // Round 11 — credentials were valid but the user has TOTP enabled and sent no code.
@@ -203,6 +232,16 @@ export const errorCodes = {
   VOUCHER_NOT_FOUND: 'VOUCHER_NOT_FOUND',
   VOUCHER_TIME_INVALID: 'VOUCHER_TIME_INVALID',
   VOUCHER_VOID_REASON_REQUIRED: 'VOUCHER_VOID_REASON_REQUIRED',
+  // AUD-02 — دور نظامي (`is_system`) لا تُعدَّل صفوف صلاحياته من إدارة الأدوار العادية:
+  // مجموعة صلاحياته هي **العقد** الذي تُقارَن به الأدوار المخصّصة، وتعديلها من شاشة
+  // الأدوار يغيّر معنى «المالك» و«المحاسب» و«الكاشير» بصمت. 422 لأن الطلب سليم والمنع
+  // قاعدةُ عقد، لا خطأ خادم.
+  SYSTEM_ROLE_PERMISSIONS_IMMUTABLE: 'SYSTEM_ROLE_PERMISSIONS_IMMUTABLE',
+  // AUD-02 — دور المالك لا يُمنح من مسارات إدارة العضويّات: منحُه يمنح `*` كاملاً، أي
+  // تجاوزاً كاملاً على المنشأة. نقل الملكية عملية مستقلة مصرّح بها ومدقّقة في لوحة
+  // المنصّة (`POST /platform/tenants/:id/owner/transfer`). 422 لا 403: مدير العضويّات
+  // يملك فعل إدارة العضويّات، والمرفوض هو **الدور** المطلوب.
+  OWNER_ROLE_NOT_ASSIGNABLE: 'OWNER_ROLE_NOT_ASSIGNABLE',
 } as const;
 
 export type ErrorCode = (typeof errorCodes)[keyof typeof errorCodes];
@@ -214,6 +253,7 @@ export function isErrorCode(value: string): value is ErrorCode {
 /** HTTP status each stable code maps to. RFC 9457 `status` member. */
 export const errorStatus: Record<ErrorCode, number> = {
   UNAUTHENTICATED: 401,
+  HANDOFF_CODE_INVALID: 401,
   FORBIDDEN: 403,
   TENANT_SUSPENDED: 423,
   TENANT_CONTEXT_MISSING: 400,
@@ -230,12 +270,21 @@ export const errorStatus: Record<ErrorCode, number> = {
   DOCUMENT_NOT_DRAFT: 409,
   PARTY_CREDIT_LIMIT_EXCEEDED: 422,
   STOCK_INSUFFICIENT: 422,
+  VAN_PRODUCTION_INPUT_REQUIRED: 422,
+  VAN_PRODUCTION_COST_REQUIRED: 422,
+  PRODUCTION_ACCOUNTS_INCOMPLETE: 422,
   SEQUENCE_EXHAUSTED: 422,
   EINVOICE_REJECTED: 422,
+  EINVOICE_GATEWAY_UNREACHABLE: 502,
   MIGRATION_CONFLICT: 409,
   RATE_LIMITED: 429,
+  PAYLOAD_TOO_LARGE: 413,
+  URI_TOO_LONG: 414,
+  OTP_LOCKED: 423,
   INTERNAL: 500,
   APPROVAL_REQUIRED: 202,
+  ADDON_REQUIRES_PLATFORM_APPROVAL: 403,
+  ADDON_NOT_LICENSED: 403,
   ACCOUNT_PROFILE_MISSING: 422,
   MFA_REQUIRED: 401,
   USAGE_LIMIT_REACHED: 409,
@@ -308,11 +357,14 @@ export const errorStatus: Record<ErrorCode, number> = {
   VOUCHER_NOT_FOUND: 404,
   VOUCHER_TIME_INVALID: 422,
   VOUCHER_VOID_REASON_REQUIRED: 422,
+  SYSTEM_ROLE_PERMISSIONS_IMMUTABLE: 422,
+  OWNER_ROLE_NOT_ASSIGNABLE: 422,
 };
 
 /** RFC 9457 `title` member for each stable code. */
 export const errorTitle: Record<ErrorCode, string> = {
   UNAUTHENTICATED: 'Unauthenticated',
+  HANDOFF_CODE_INVALID: 'The handoff code is invalid, expired or already used',
   FORBIDDEN: 'Forbidden',
   TENANT_SUSPENDED: 'Tenant suspended',
   TENANT_CONTEXT_MISSING: 'Tenant context missing',
@@ -329,12 +381,21 @@ export const errorTitle: Record<ErrorCode, string> = {
   DOCUMENT_NOT_DRAFT: 'Document not draft',
   PARTY_CREDIT_LIMIT_EXCEEDED: 'Party credit limit exceeded',
   STOCK_INSUFFICIENT: 'Insufficient stock',
+  VAN_PRODUCTION_INPUT_REQUIRED: 'Production batch needs a material source',
+  VAN_PRODUCTION_COST_REQUIRED: 'Production materials carry no value',
+  PRODUCTION_ACCOUNTS_INCOMPLETE: 'Production accounts are half mapped',
   SEQUENCE_EXHAUSTED: 'Sequence exhausted',
   EINVOICE_REJECTED: 'E-invoice rejected',
+  EINVOICE_GATEWAY_UNREACHABLE: 'ZATCA gateway unreachable',
   MIGRATION_CONFLICT: 'Migration conflict',
   RATE_LIMITED: 'Rate limited',
+  PAYLOAD_TOO_LARGE: 'Payload too large',
+  URI_TOO_LONG: 'URI too long',
+  OTP_LOCKED: 'Signature attempts exhausted',
   INTERNAL: 'Internal error',
   APPROVAL_REQUIRED: 'Approval required',
+  ADDON_REQUIRES_PLATFORM_APPROVAL: 'This add-on is licensed by the platform — request activation',
+  ADDON_NOT_LICENSED: 'This surface belongs to a sector add-on that is not licensed for your tenant',
   ACCOUNT_PROFILE_MISSING: 'Posting profile missing',
   MFA_REQUIRED: 'Verification code required',
   USAGE_LIMIT_REACHED: 'Usage limit reached',
@@ -407,6 +468,8 @@ export const errorTitle: Record<ErrorCode, string> = {
   VOUCHER_NOT_FOUND: 'Voucher not found',
   VOUCHER_TIME_INVALID: 'Voucher time is invalid',
   VOUCHER_VOID_REASON_REQUIRED: 'Void reason is required',
+  SYSTEM_ROLE_PERMISSIONS_IMMUTABLE: 'System role permissions cannot be changed',
+  OWNER_ROLE_NOT_ASSIGNABLE: 'The owner role cannot be assigned here',
 };
 
 export function statusForCode(code: string): number {

@@ -21,9 +21,11 @@ import {
   type ContentVersion,
   type ListEnvelope,
 } from '@erp/contracts';
+import { Panel } from '@erp/ui';
 
 import { Empty, ErrorBox, Forbidden, Loading, Screen } from '../../components/screen';
 import { Tabs } from '../../components/ui';
+import { Table, type Column } from '../../components/ui/table';
 import { ApiError, apiData, apiFetch } from '../../lib/api';
 import { useSession } from '../../lib/session';
 import { useQuery } from '../../lib/use-query';
@@ -34,20 +36,20 @@ import { useQuery } from '../../lib/use-query';
  * أربعة تبويبات على الأسئلة الأربعة التي يطرحها من يحرّر موقعاً:
  *
  *   1. **الصفحات** — «ما المنشور الآن، وما المسوّدة، وما المجدول؟»: القائمة بترشيح النوع
- *      والحالة والبحث، وإنشاء صفحة، ونشرٌ فوريّ أو جدولةٌ بوقت، وسحبٌ **بسببٍ مكتوب**،
- *      وتاريخٌ يُسترجع منه.
+ * والحالة والبحث، وإنشاء صفحة، ونشرٌ فوريّ أو جدولةٌ بوقت، وسحبٌ **بسببٍ مكتوب**،
+ * وتاريخٌ يُسترجع منه.
  *   2. **الكتل** — «من ماذا تتكوّن الصفحة؟»: الكتل مرتّبة، وكل كتلةٍ حمولتها بالعربية
- *      وبالإنجليزية، وتُحقَّق بمخطّط النوع نفسه الذي يتحقّق به الـAPI قبل أي إرسال — فلا
- *      تُكتشف حمولةٌ مكسورة بعد الحفظ.
+ * وبالإنجليزية، وتُحقَّق بمخطّط النوع نفسه الذي يتحقّق به الـAPI قبل أي إرسال — فلا
+ * تُكتشف حمولةٌ مكسورة بعد الحفظ.
  *   3. **القوائم** — «ما الذي يظهر في الرأس والتذييل؟»: خمسة مواضع (رأس · تذييل · جانبي ·
- *      قانوني · تواصل)، والعناصر مرتّبة كما تُرسل.
+ * قانوني · تواصل)، والعناصر مرتّبة كما تُرسل.
  *   4. **اللافتات** — «ما الرسالة المعروضة الآن على الزوّار؟»: نصّان، ونافذة عرض، وجمهور،
- *      ووسم `live` تقوله الخدمة لا الشاشة.
+ * ووسم `live` تقوله الخدمة لا الشاشة.
  *
  * وثلاثة قرارات ظاهرة هنا:
  *
  *   * **السحب لا الحذف** — الصفحة تُسحب إلى مسوّدة بسببٍ مكتوب (وهو مُلزَم في العقد)، ويبقى
- *     تاريخها؛ لأن حذف صفحةٍ منشورة يمحو سؤال «ما كان منشوراً يوم كذا؟».
+ * تاريخها؛ لأن حذف صفحةٍ منشورة يمحو سؤال «ما كان منشوراً يوم كذا؟».
  *   * **الحفظ يُرسل الكتل البديل الكامل** — لا دمج: الدمج يجعل حذف كتلةٍ مستحيلاً من الشاشة.
  *   * **القراءة والكتابة رمزان مختلفان** — `console.content.view` يفتح الشاشة، و
  *     `console.content.manage` وحده يُظهر أزرار النشر والكتابة؛ والـAPI هو الحاكم لا الشاشة.
@@ -115,10 +117,31 @@ const BLOCK_TEMPLATE: Record<ContentBlockKind, unknown> = {
   text: { text: 'اكتب الفقرة هنا…' },
   list: { items: ['البند الأول', 'البند الثاني'], ordered: false },
   cards: {
-    items: [{ icon: '🧾', title: 'الفوترة الإلكترونية', body: 'إصدارٌ فوري متوافق مع زاتكا', href: '/features/einvoicing' }],
+    items: [
+      {
+        icon: '',
+        title: 'الفوترة الإلكترونية',
+        body: 'إصدارٌ فوري متوافق مع زاتكا',
+        href: '/features/einvoicing',
+      },
+    ],
   },
-  table: { caption: 'المقارنة', columns: ['الباقة', 'المستخدمون'], rows: [['الأساسية', '٣'], ['الاحترافية', '١٠']] },
-  faq: { items: [{ question: 'هل النظام متوافق مع زاتكا؟', answer: 'نعم، إصدارٌ فوري وربطٌ مباشر بهيئة الزكاة والضريبة.' }] },
+  table: {
+    caption: 'المقارنة',
+    columns: ['الباقة', 'المستخدمون'],
+    rows: [
+      ['الأساسية', '٣'],
+      ['الاحترافية', '١٠'],
+    ],
+  },
+  faq: {
+    items: [
+      {
+        question: 'هل النظام متوافق مع زاتكا؟',
+        answer: 'نعم، إصدارٌ فوري وربطٌ مباشر بهيئة الزكاة والضريبة.',
+      },
+    ],
+  },
   quote: { text: 'وفّرنا أسبوعاً في الإقفال الشهري.', source: 'مدير مالي', role: 'شركة تجزئة' },
   image: { url: '/brand/og.png', alt: 'لوحة تحكّم النظام' },
   video: { url: 'https://example.com/demo.mp4', title: 'جولة في النظام' },
@@ -134,7 +157,7 @@ const BLOCK_TEMPLATE: Record<ContentBlockKind, unknown> = {
 // ───────────────────────────────────────────────────────────── أدوات
 
 function dateTime(value: string | null | undefined): string {
-  return value ? new Date(value).toLocaleString('ar-SA') : '—';
+  return value ? new Date(value).toLocaleString('ar-SA-u-ca-gregory-nu-latn') : '—';
 }
 
 /** `datetime-local` بلا منطقة زمنية ⇒ تُحوَّل إلى ISO بإزاحة صريحة كما يشترط العقد. */
@@ -364,7 +387,8 @@ function PagesTab() {
               method: 'POST',
               body: JSON.stringify({ at: toIsoWithOffset(schedule.at), note: 'جدولةٌ من شاشة المحتوى' }),
             }),
-          (updated) => `جُدولت «${updated.titleAr}» إلى ${dateTime(updated.publishAt)} — مهمّة الجدولة تنشرها في وقتها.`,
+          (updated) =>
+            `جُدولت «${updated.titleAr}» إلى ${dateTime(updated.publishAt)} — مهمّة الجدولة تنشرها في وقتها.`,
         ).then(() => setSchedule(null))
       : Promise.resolve();
 
@@ -402,7 +426,8 @@ function PagesTab() {
               method: 'POST',
               body: JSON.stringify(restoreNote.trim().length >= 2 ? { note: restoreNote.trim() } : {}),
             }),
-          (page) => `استُعيدت النسخة ${version} من «${page.titleAr}» — والحالة التي كانت قائمة حُفظت نسخةً قبلها.`,
+          (page) =>
+            `استُعيدت النسخة ${version} من «${page.titleAr}» — والحالة التي كانت قائمة حُفظت نسخةً قبلها.`,
         ).then(() => setVersions(null))
       : Promise.resolve();
 
@@ -411,15 +436,138 @@ function PagesTab() {
   // في العدّ — وهو محقّ، فعدد الصفحات ليس مبلغاً.
   const pageCount = pages.data?.meta.total ?? 0;
 
+  const pageColumns: Array<Column<ContentPage>> = [
+    {
+      key: 'title',
+      header: 'العنوان',
+      cell: (page) => (
+        <>
+          <strong>{page.titleAr}</strong>
+          {page.titleEn ? <div className="muted small">{page.titleEn}</div> : null}
+        </>
+      ),
+    },
+    { key: 'kind', header: 'النوع', cell: (page) => KIND_LABEL[page.kind] },
+    {
+      key: 'status',
+      header: 'الحالة',
+      cell: (page) => (
+        <>
+          <span className={`badge ${page.status}`}>{STATUS_LABEL[page.status]}</span>
+          {page.status === 'scheduled' && page.publishAt ? (
+            <div className="muted small">تنشر {dateTime(page.publishAt)}</div>
+          ) : null}
+        </>
+      ),
+    },
+    { key: 'path', header: 'المسار', ltr: true, cell: (page) => <code>{page.path}</code> },
+    {
+      key: 'locales',
+      header: 'اللغات',
+      cell: (page) => (
+        <span className="small">
+          {page.translatedLocales.map((locale) => (locale === 'ar' ? 'ع' : 'EN')).join(' · ')}
+        </span>
+      ),
+    },
+    { key: 'blocks', header: 'الكتل', numeric: true, cell: (page) => page.blockCount },
+    {
+      key: 'updated',
+      header: 'آخر تحديث',
+      cell: (page) => <span className="small">{dateTime(page.updatedAt)}</span>,
+    },
+    {
+      key: 'actions',
+      header: '',
+      width: 200,
+      cell: (page) => (
+        <div className="row">
+          <button type="button" className="btn sm" onClick={() => void openEditor(page)} disabled={busy}>
+            تحرير
+          </button>
+          <button type="button" className="btn sm" onClick={() => void loadVersions(page)} disabled={busy}>
+            النسخ
+          </button>
+          {canManage && page.status !== 'published' && (
+            <button
+              type="button"
+              className="btn sm primary"
+              onClick={() => void publish(page)}
+              disabled={busy}
+            >
+              نشر
+            </button>
+          )}
+          {canManage && page.status !== 'published' && (
+            <button
+              type="button"
+              className="btn sm"
+              onClick={() => setSchedule({ id: page.id, at: '' })}
+              disabled={busy}
+            >
+              جدولة
+            </button>
+          )}
+          {canManage && page.status === 'published' && (
+            <button
+              type="button"
+              className="btn sm danger"
+              onClick={() => setRetract({ id: page.id, reason: '' })}
+              disabled={busy}
+            >
+              سحب
+            </button>
+          )}
+        </div>
+      ),
+    },
+  ];
+
+  const versionColumns: Array<Column<ContentVersion>> = [
+    { key: 'version', header: 'النسخة', numeric: true, cell: (row) => row.version },
+    { key: 'title', header: 'العنوان', grow: true, cell: (row) => row.titleAr },
+    {
+      key: 'status',
+      header: 'الحالة',
+      cell: (row) => <span className={`badge ${row.pageStatus}`}>{STATUS_LABEL[row.pageStatus]}</span>,
+    },
+    { key: 'blocks', header: 'الكتل', numeric: true, cell: (row) => row.blockCount },
+    { key: 'note', header: 'ملاحظة', cell: (row) => <span className="small">{row.note ?? '—'}</span> },
+    {
+      key: 'created',
+      header: 'التاريخ',
+      cell: (row) => <span className="small">{dateTime(row.createdAt)}</span>,
+    },
+    {
+      key: 'restore',
+      header: '',
+      cell: (row) =>
+        canManage ? (
+          <button
+            type="button"
+            className="btn sm"
+            disabled={busy}
+            onClick={() => void restoreVersion(row.version)}
+          >
+            استعادة
+          </button>
+        ) : null,
+    },
+  ];
+
   return (
     <div className="grid">
       {notice && <p className={`alert ${notice.kind}`}>{notice.text}</p>}
 
-      <section className="card grid">
+      <Panel bodyClassName="grid">
         <div className="toolbar">
           <label className="field" style={{ marginBottom: 0 }}>
             <span>النوع</span>
-            <select className="input" value={kind} onChange={(event) => setKind(event.target.value as ContentKind | '')}>
+            <select
+              className="input"
+              value={kind}
+              onChange={(event) => setKind(event.target.value as ContentKind | '')}
+            >
               <option value="">كل الأنواع</option>
               {contentKinds.map((value) => (
                 <option key={value} value={value}>
@@ -430,7 +578,11 @@ function PagesTab() {
           </label>
           <label className="field" style={{ marginBottom: 0 }}>
             <span>الحالة</span>
-            <select className="input" value={status} onChange={(event) => setStatus(event.target.value as ContentPage['status'] | '')}>
+            <select
+              className="input"
+              value={status}
+              onChange={(event) => setStatus(event.target.value as ContentPage['status'] | '')}
+            >
               <option value="">كل الحالات</option>
               {contentStatuses.map((value) => (
                 <option key={value} value={value}>
@@ -441,7 +593,11 @@ function PagesTab() {
           </label>
           <label className="field" style={{ marginBottom: 0 }}>
             <span>الترتيب</span>
-            <select className="input" value={sort} onChange={(event) => setSort(event.target.value as typeof sort)}>
+            <select
+              className="input"
+              value={sort}
+              onChange={(event) => setSort(event.target.value as typeof sort)}
+            >
               <option value="updated">آخر تحديث</option>
               <option value="published">آخر نشر</option>
               <option value="title">العنوان</option>
@@ -462,20 +618,25 @@ function PagesTab() {
                 {creating ? 'إغلاق النموذج' : 'صفحة جديدة'}
               </button>
             )}
-            <button type="button" className="btn" onClick={pages.reload} disabled={pages.status === 'loading'}>
+            <button
+              type="button"
+              className="btn"
+              onClick={pages.reload}
+              disabled={pages.status === 'loading'}
+            >
               تحديث
             </button>
           </div>
         </div>
         <p className="muted small" style={{ margin: 0 }}>
-          {pageCount} صفحة. تصنيفات المدوّنة المستعملة: {(categories.data?.blog ?? []).join(' · ') || 'لا شيء بعد'} — وتصنيفات
-          المساعدة: {(categories.data?.help ?? []).join(' · ') || 'لا شيء بعد'}.
+          {pageCount} صفحة. تصنيفات المدوّنة المستعملة:{' '}
+          {(categories.data?.blog ?? []).join(' · ') || 'لا شيء بعد'} — وتصنيفات المساعدة:{' '}
+          {(categories.data?.help ?? []).join(' · ') || 'لا شيء بعد'}.
         </p>
-      </section>
+      </Panel>
 
       {creating && canManage && (
-        <section className="card grid">
-          <h3 style={{ margin: 0 }}>صفحة جديدة</h3>
+        <Panel title="صفحة جديدة" bodyClassName="grid">
           <div className="form-grid">
             <Field label="المسار (slug)" hint="حروف لاتينية صغيرة وأرقام وشرطات">
               <input
@@ -516,7 +677,9 @@ function PagesTab() {
               <select
                 className="input"
                 value={create.defaultLocale}
-                onChange={(event) => setCreate({ ...create, defaultLocale: event.target.value as 'ar' | 'en' })}
+                onChange={(event) =>
+                  setCreate({ ...create, defaultLocale: event.target.value as 'ar' | 'en' })
+                }
               >
                 <option value="ar">العربية</option>
                 <option value="en">English</option>
@@ -539,15 +702,24 @@ function PagesTab() {
               onClick={() => {
                 void createPage().then(() => {
                   setCreating(false);
-                  setCreate({ slug: '', kind: 'page', titleAr: '', titleEn: '', summaryAr: '', defaultLocale: 'ar' });
+                  setCreate({
+                    slug: '',
+                    kind: 'page',
+                    titleAr: '',
+                    titleEn: '',
+                    summaryAr: '',
+                    defaultLocale: 'ar',
+                  });
                 });
               }}
             >
               أنشئ مسوّدة
             </button>
-            <span className="muted small">تُنشأ مسوّدةً دائماً — النشر قرارٌ ثانٍ لا أثرٌ جانبيّ للإنشاء.</span>
+            <span className="muted small">
+              تُنشأ مسوّدةً دائماً — النشر قرارٌ ثانٍ لا أثرٌ جانبيّ للإنشاء.
+            </span>
           </div>
-        </section>
+        </Panel>
       )}
 
       {pages.status === 'loading' && <Loading rows={5} />}
@@ -558,85 +730,13 @@ function PagesTab() {
       )}
 
       {rows.length > 0 && (
-        <div className="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>العنوان</th>
-                <th>النوع</th>
-                <th>الحالة</th>
-                <th>المسار</th>
-                <th>اللغات</th>
-                <th>الكتل</th>
-                <th>آخر تحديث</th>
-                <th />
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((page) => (
-                <tr key={page.id}>
-                  <td>
-                    <strong>{page.titleAr}</strong>
-                    {page.titleEn ? <div className="muted small">{page.titleEn}</div> : null}
-                  </td>
-                  <td>{KIND_LABEL[page.kind]}</td>
-                  <td>
-                    <span className={`badge ${page.status}`}>{STATUS_LABEL[page.status]}</span>
-                    {page.status === 'scheduled' && page.publishAt ? (
-                      <div className="muted small">تنشر {dateTime(page.publishAt)}</div>
-                    ) : null}
-                  </td>
-                  <td className="small">
-                    <code>{page.path}</code>
-                  </td>
-                  <td className="small">{page.translatedLocales.map((locale) => (locale === 'ar' ? 'ع' : 'EN')).join(' · ')}</td>
-                  <td>{page.blockCount}</td>
-                  <td className="small">{dateTime(page.updatedAt)}</td>
-                  <td>
-                    <div className="row">
-                      <button type="button" className="btn sm" onClick={() => void openEditor(page)} disabled={busy}>
-                        تحرير
-                      </button>
-                      <button type="button" className="btn sm" onClick={() => void loadVersions(page)} disabled={busy}>
-                        النسخ
-                      </button>
-                      {canManage && page.status !== 'published' && (
-                        <button type="button" className="btn sm primary" onClick={() => void publish(page)} disabled={busy}>
-                          نشر
-                        </button>
-                      )}
-                      {canManage && page.status !== 'published' && (
-                        <button
-                          type="button"
-                          className="btn sm"
-                          onClick={() => setSchedule({ id: page.id, at: '' })}
-                          disabled={busy}
-                        >
-                          جدولة
-                        </button>
-                      )}
-                      {canManage && page.status === 'published' && (
-                        <button
-                          type="button"
-                          className="btn sm danger"
-                          onClick={() => setRetract({ id: page.id, reason: '' })}
-                          disabled={busy}
-                        >
-                          سحب
-                        </button>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <Panel flush title="الصفحات">
+          <Table bare columns={pageColumns} rows={rows} rowKey={(page) => page.id} />
+        </Panel>
       )}
 
       {editor && (
-        <section className="card grid">
-          <h3 style={{ margin: 0 }}>تحرير الصفحة</h3>
+        <Panel title="تحرير الصفحة" bodyClassName="grid">
           <div className="form-grid">
             {EDITOR_FIELDS.map((field) => (
               <Field key={field.key} label={field.label} hint={field.hint}>
@@ -668,12 +768,11 @@ function PagesTab() {
               الحفظ يرفع نسخةً من الحالة القائمة — فيصير في التاريخ نقطةٌ تُسترجع، لا تعديلٌ يمحو ما قبله.
             </span>
           </div>
-        </section>
+        </Panel>
       )}
 
       {schedule && (
-        <section className="card grid">
-          <h3 style={{ margin: 0 }}>جدولة النشر</h3>
+        <Panel title="جدولة النشر" bodyClassName="grid">
           <Field label="وقت النشر" hint="بتوقيت المتصفّح، ويُرسل بإزاحته الزمنية">
             <input
               className="input"
@@ -696,12 +795,11 @@ function PagesTab() {
             </button>
             <span className="muted small">الوقت الماضي مرفوض: النشر الفوري زرّه الآخر.</span>
           </div>
-        </section>
+        </Panel>
       )}
 
       {retract && (
-        <section className="card grid">
-          <h3 style={{ margin: 0 }}>سحبٌ من النشر</h3>
+        <Panel title="سحبٌ من النشر" bodyClassName="grid">
           <Field label="سبب السحب" hint="ثلاثة أحرف على الأقل — يُحفظ في التاريخ">
             <input
               className="input"
@@ -722,69 +820,37 @@ function PagesTab() {
               إلغاء
             </button>
           </div>
-        </section>
+        </Panel>
       )}
 
       {versions && (
-        <section className="card grid">
-          <h3 style={{ margin: 0 }}>تاريخ الصفحة — {versions.rows.length} نسخة</h3>
+        <Panel title={<>تاريخ الصفحة — {versions.rows.length} نسخة</>} flush bodyClassName="grid">
           {versions.rows.length === 0 ? (
             <Empty title="لا نسخ بعد" detail="تُحفظ نسخةٌ عند كل تعديل أو نشر أو استعادة." />
           ) : (
-            <div className="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>النسخة</th>
-                    <th>العنوان</th>
-                    <th>الحالة</th>
-                    <th>الكتل</th>
-                    <th>ملاحظة</th>
-                    <th>التاريخ</th>
-                    <th />
-                  </tr>
-                </thead>
-                <tbody>
-                  {versions.rows.map((row) => (
-                    <tr key={row.id}>
-                      <td>{row.version}</td>
-                      <td>{row.titleAr}</td>
-                      <td>
-                        <span className={`badge ${row.pageStatus}`}>{STATUS_LABEL[row.pageStatus]}</span>
-                      </td>
-                      <td>{row.blockCount}</td>
-                      <td className="small">{row.note ?? '—'}</td>
-                      <td className="small">{dateTime(row.createdAt)}</td>
-                      <td>
-                        {canManage && (
-                          <button
-                            type="button"
-                            className="btn sm"
-                            disabled={busy}
-                            onClick={() => void restoreVersion(row.version)}
-                          >
-                            استعادة
-                          </button>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <Table bare dense columns={versionColumns} rows={versions.rows} rowKey={(row) => row.id} />
           )}
           <div className="row">
             <Field label="ملاحظة الاستعادة">
-              <input className="input" value={restoreNote} onChange={(event) => setRestoreNote(event.target.value)} />
+              <input
+                className="input"
+                value={restoreNote}
+                onChange={(event) => setRestoreNote(event.target.value)}
+              />
             </Field>
-            <button type="button" className="btn" onClick={() => setVersions(null)} style={{ alignSelf: 'flex-end' }}>
+            <button
+              type="button"
+              className="btn"
+              onClick={() => setVersions(null)}
+              style={{ alignSelf: 'flex-end' }}
+            >
               إغلاق
             </button>
           </div>
           <p className="muted small" style={{ margin: 0 }}>
             الاستعادة نفسها لا تُمحى: تُحفظ الحالة القائمة نسخةً قبلها.
           </p>
-        </section>
+        </Panel>
       )}
     </div>
   );
@@ -795,7 +861,10 @@ function PagesTab() {
 type BlockDraft = { kind: ContentBlockKind; ar: string; en: string };
 
 /** رقّم الكتل من الصفر بالترتيب المعروض — الترتيب هو ما يراه الزائر. */
-function toBlocksInput(drafts: BlockDraft[], content: (draft: BlockDraft, locale: 'ar' | 'en') => string): ContentBlockInput[] {
+function toBlocksInput(
+  drafts: BlockDraft[],
+  content: (draft: BlockDraft, locale: 'ar' | 'en') => string,
+): ContentBlockInput[] {
   const blocks: ContentBlockInput[] = [];
   drafts.forEach((draft, index) => {
     const payloads: Record<string, unknown> = {};
@@ -856,7 +925,10 @@ function BlocksTab() {
         detail.blocks.map((block) => ({
           kind: block.kind,
           ar: JSON.stringify(block.content.ar, null, 2),
-          en: block.content.en === null || block.content.en === undefined ? '' : JSON.stringify(block.content.en, null, 2),
+          en:
+            block.content.en === null || block.content.en === undefined
+              ? ''
+              : JSON.stringify(block.content.en, null, 2),
         })),
       );
     } catch (error) {
@@ -867,9 +939,10 @@ function BlocksTab() {
   }
 
   const errors = drafts.map((draft) =>
-    [validatePayload(draft.kind, draft.ar, 'العربية'), validatePayload(draft.kind, draft.en, 'الإنجليزية')].filter(
-      (value): value is string => value !== undefined,
-    ),
+    [
+      validatePayload(draft.kind, draft.ar, 'العربية'),
+      validatePayload(draft.kind, draft.en, 'الإنجليزية'),
+    ].filter((value): value is string => value !== undefined),
   );
   const hasErrors = errors.some((list) => list.length > 0);
 
@@ -890,7 +963,10 @@ function BlocksTab() {
         updated.blocks.map((block) => ({
           kind: block.kind,
           ar: JSON.stringify(block.content.ar, null, 2),
-          en: block.content.en === null || block.content.en === undefined ? '' : JSON.stringify(block.content.en, null, 2),
+          en:
+            block.content.en === null || block.content.en === undefined
+              ? ''
+              : JSON.stringify(block.content.en, null, 2),
         })),
       );
       setNotice({
@@ -925,7 +1001,7 @@ function BlocksTab() {
     <div className="grid">
       {notice && <p className={`alert ${notice.kind}`}>{notice.text}</p>}
 
-      <section className="card grid">
+      <Panel bodyClassName="grid">
         <div className="toolbar">
           <Field label="الصفحة">
             <select
@@ -954,10 +1030,10 @@ function BlocksTab() {
           ) : null}
         </div>
         <p className="muted small" style={{ margin: 0 }}>
-          الأحد عشر نوعاً هي ما يفهمه الموقع: {contentBlockKinds.map((kind) => BLOCK_LABEL[kind]).join(' · ')}. ولا HTML
-          حرّاً — لأن التصميم يُبنى من هذه الكتل لا من وسومٍ يكتبها المحرّر.
+          الأحد عشر نوعاً هي ما يفهمه الموقع: {contentBlockKinds.map((kind) => BLOCK_LABEL[kind]).join(' · ')}
+          . ولا HTML حرّاً — لأن التصميم يُبنى من هذه الكتل لا من وسومٍ يكتبها المحرّر.
         </p>
-      </section>
+      </Panel>
 
       {pages.status === 'forbidden' && <Forbidden />}
       {pages.status === 'error' && <ErrorBox message={pages.error} onRetry={pages.reload} />}
@@ -968,7 +1044,7 @@ function BlocksTab() {
           {drafts.length === 0 && <Empty title="لا كتل في هذه الصفحة" detail="أضف أول كتلة من الأسفل." />}
 
           {drafts.map((draft, index) => (
-            <section className="card grid" key={`${index}-${draft.kind}`}>
+            <Panel key={`${index}-${draft.kind}`} bodyClassName="grid">
               <div className="section-title">
                 <h3 style={{ margin: 0 }}>
                   {index + 1}. {BLOCK_LABEL[draft.kind]}
@@ -986,12 +1062,18 @@ function BlocksTab() {
                       </option>
                     ))}
                   </select>
-                  <button type="button" className="btn sm" onClick={() => move(index, -1)} disabled={index === 0}>
-                    ▲
-                  </button>
-                  <button type="button" className="btn sm" onClick={() => move(index, 1)} disabled={index === drafts.length - 1}>
-                    ▼
-                  </button>
+                  <button
+                    type="button"
+                    className="btn sm"
+                    onClick={() => move(index, -1)}
+                    disabled={index === 0}
+                  ></button>
+                  <button
+                    type="button"
+                    className="btn sm"
+                    onClick={() => move(index, 1)}
+                    disabled={index === drafts.length - 1}
+                  ></button>
                   <button
                     type="button"
                     className="btn sm danger"
@@ -1028,10 +1110,10 @@ function BlocksTab() {
                   الحمولة تُطابق مخطّط النوع «{BLOCK_LABEL[draft.kind]}» — والـAPI سيقبلها كما هي.
                 </p>
               )}
-            </section>
+            </Panel>
           ))}
 
-          <section className="card grid">
+          <Panel bodyClassName="grid">
             <div className="section-title">
               <h3 style={{ margin: 0 }}>إضافة كتلة</h3>
               <div className="row">
@@ -1079,9 +1161,11 @@ function BlocksTab() {
               <button type="button" className="btn" onClick={() => void load(page.id)} disabled={busy}>
                 أعِد التحميل
               </button>
-              {!canManage && <span className="muted small">القراءة متاحة، والحفظ يحتاج `console.content.manage`.</span>}
+              {!canManage && (
+                <span className="muted small">القراءة متاحة، والحفظ يحتاج `console.content.manage`.</span>
+              )}
             </div>
-          </section>
+          </Panel>
         </>
       )}
     </div>
@@ -1118,7 +1202,10 @@ function MenusTab() {
         body: JSON.stringify({ items: itemsOf(position) }),
       });
       setEdits({ ...edits, [position]: undefined });
-      setNotice({ kind: 'ok', text: `حُفظت قائمة «${MENU_LABEL[position]}» — الترتيب المعروض هو الترتيب في الموقع.` });
+      setNotice({
+        kind: 'ok',
+        text: `حُفظت قائمة «${MENU_LABEL[position]}» — الترتيب المعروض هو الترتيب في الموقع.`,
+      });
       menus.reload();
     } catch (error) {
       setNotice({ kind: 'danger', text: apiMessage(error) });
@@ -1138,7 +1225,7 @@ function MenusTab() {
         const items = itemsOf(position);
         const dirty = edits[position] !== undefined;
         return (
-          <section className="card grid" key={position}>
+          <Panel key={position} bodyClassName="grid">
             <div className="section-title">
               <h3 style={{ margin: 0 }}>
                 {MENU_LABEL[position]} <span className="muted small">({items.length} عنصراً)</span>
@@ -1160,7 +1247,12 @@ function MenusTab() {
                   </button>
                 )}
                 {canManage && dirty && (
-                  <button type="button" className="btn sm primary" disabled={busy} onClick={() => void save(position)}>
+                  <button
+                    type="button"
+                    className="btn sm primary"
+                    disabled={busy}
+                    onClick={() => void save(position)}
+                  >
                     احفظ
                   </button>
                 )}
@@ -1181,125 +1273,146 @@ function MenusTab() {
                 لا عناصر — القائمة تُبنى من الموقع الافتراضي حين تكون فارغة.
               </p>
             ) : (
-              <div className="table-wrap">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>المفتاح</th>
-                      <th>الرابط</th>
-                      <th>التسمية بالعربية</th>
-                      <th>بالإنجليزية</th>
-                      <th>وسم</th>
-                      <th />
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {items.map((row, index) => (
-                      <tr key={`${position}-${index}`}>
-                        <td>
-                          <input
-                            className="input"
-                            value={row.key}
-                            onChange={(event) => {
-                              const next = [...items];
-                              next[index] = { ...row, key: event.target.value };
-                              setItems(position, next);
-                            }}
-                          />
-                        </td>
-                        <td>
-                          <input
-                            className="input"
-                            value={row.href}
-                            onChange={(event) => {
-                              const next = [...items];
-                              next[index] = { ...row, href: event.target.value };
-                              setItems(position, next);
-                            }}
-                          />
-                        </td>
-                        <td>
-                          <input
-                            className="input"
-                            value={row.labelAr}
-                            onChange={(event) => {
-                              const next = [...items];
-                              next[index] = { ...row, labelAr: event.target.value };
-                              setItems(position, next);
-                            }}
-                          />
-                        </td>
-                        <td>
-                          <input
-                            className="input"
-                            value={row.labelEn ?? ''}
-                            onChange={(event) => {
-                              const next = [...items];
-                              next[index] = { ...row, labelEn: orNull(event.target.value) };
-                              setItems(position, next);
-                            }}
-                          />
-                        </td>
-                        <td>
-                          <input
-                            className="input"
-                            value={row.badgeAr ?? ''}
-                            placeholder="جديد"
-                            onChange={(event) => {
-                              const next = [...items];
-                              next[index] = { ...row, badgeAr: orNull(event.target.value) };
-                              setItems(position, next);
-                            }}
-                          />
-                        </td>
-                        <td>
-                          <div className="row">
-                            <button
-                              type="button"
-                              className="btn sm"
-                              disabled={index === 0}
-                              onClick={() => {
-                                const next = [...items];
-                                const [moved] = next.splice(index, 1);
-                                if (moved) next.splice(index - 1, 0, moved);
-                                setItems(position, next);
-                              }}
-                            >
-                              ▲
-                            </button>
-                            <button
-                              type="button"
-                              className="btn sm"
-                              disabled={index === items.length - 1}
-                              onClick={() => {
-                                const next = [...items];
-                                const [moved] = next.splice(index, 1);
-                                if (moved) next.splice(index + 1, 0, moved);
-                                setItems(position, next);
-                              }}
-                            >
-                              ▼
-                            </button>
-                            <button
-                              type="button"
-                              className="btn sm danger"
-                              onClick={() => setItems(position, items.filter((_, at) => at !== index))}
-                            >
-                              حذف
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+              <Table
+                bare
+                dense
+                rowKey={(row, index) => `${position}-${index}`}
+                rows={items}
+                columns={[
+                  {
+                    key: 'key',
+                    header: 'المفتاح',
+                    cell: (row, index) => (
+                      <input
+                        className="input"
+                        value={row.key}
+                        onChange={(event) => {
+                          const next = [...items];
+                          next[index] = { ...row, key: event.target.value };
+                          setItems(position, next);
+                        }}
+                      />
+                    ),
+                  },
+                  {
+                    key: 'href',
+                    header: 'الرابط',
+                    cell: (row, index) => (
+                      <input
+                        className="input"
+                        dir="ltr"
+                        value={row.href}
+                        onChange={(event) => {
+                          const next = [...items];
+                          next[index] = { ...row, href: event.target.value };
+                          setItems(position, next);
+                        }}
+                      />
+                    ),
+                  },
+                  {
+                    key: 'labelAr',
+                    header: 'التسمية بالعربية',
+                    cell: (row, index) => (
+                      <input
+                        className="input"
+                        value={row.labelAr}
+                        onChange={(event) => {
+                          const next = [...items];
+                          next[index] = { ...row, labelAr: event.target.value };
+                          setItems(position, next);
+                        }}
+                      />
+                    ),
+                  },
+                  {
+                    key: 'labelEn',
+                    header: 'بالإنجليزية',
+                    cell: (row, index) => (
+                      <input
+                        className="input"
+                        dir="ltr"
+                        value={row.labelEn ?? ''}
+                        onChange={(event) => {
+                          const next = [...items];
+                          next[index] = { ...row, labelEn: orNull(event.target.value) };
+                          setItems(position, next);
+                        }}
+                      />
+                    ),
+                  },
+                  {
+                    key: 'badge',
+                    header: 'وسم',
+                    cell: (row, index) => (
+                      <input
+                        className="input"
+                        value={row.badgeAr ?? ''}
+                        placeholder="جديد"
+                        onChange={(event) => {
+                          const next = [...items];
+                          next[index] = { ...row, badgeAr: orNull(event.target.value) };
+                          setItems(position, next);
+                        }}
+                      />
+                    ),
+                  },
+                  {
+                    key: 'actions',
+                    header: '',
+                    cell: (row, index) => (
+                      <div className="row">
+                        <button
+                          type="button"
+                          className="btn sm"
+                          aria-label="أعلى"
+                          disabled={index === 0}
+                          onClick={() => {
+                            const next = [...items];
+                            const [moved] = next.splice(index, 1);
+                            if (moved) next.splice(index - 1, 0, moved);
+                            setItems(position, next);
+                          }}
+                        >
+                          ↑
+                        </button>
+                        <button
+                          type="button"
+                          className="btn sm"
+                          aria-label="أسفل"
+                          disabled={index === items.length - 1}
+                          onClick={() => {
+                            const next = [...items];
+                            const [moved] = next.splice(index, 1);
+                            if (moved) next.splice(index + 1, 0, moved);
+                            setItems(position, next);
+                          }}
+                        >
+                          ↓
+                        </button>
+                        <button
+                          type="button"
+                          className="btn sm danger"
+                          onClick={() =>
+                            setItems(
+                              position,
+                              items.filter((_, at) => at !== index),
+                            )
+                          }
+                        >
+                          حذف
+                        </button>
+                      </div>
+                    ),
+                  },
+                ]}
+              />
             )}
             <p className="muted small" style={{ margin: 0 }}>
-              آخر تحديث: {dateTime(byPosition.get(position)?.updatedAt)} — الرابط يبدأ بـ`/` أو `https://` أو `mailto:`
-              أو `tel:`.
+              آخر تحديث: {dateTime(byPosition.get(position)?.updatedAt)} — الرابط يبدأ بـ`/` أو `https://` أو
+              `mailto:` أو `tel:`.
             </p>
-          </section>
+          </Panel>
         );
       })}
     </div>
@@ -1322,7 +1435,9 @@ function BannersTab() {
     startsAt: '',
     endsAt: '',
   });
-  const [editing, setEditing] = useState<{ id: string; textAr: string; textEn: string; href: string } | null>(null);
+  const [editing, setEditing] = useState<{ id: string; textAr: string; textEn: string; href: string } | null>(
+    null,
+  );
   const [notice, setNotice] = useState<{ kind: 'ok' | 'danger'; text: string } | undefined>(undefined);
   const [busy, setBusy] = useState(false);
 
@@ -1379,21 +1494,105 @@ function BannersTab() {
 
   const rows = banners.data ?? [];
 
+  const bannerColumns: Array<Column<ContentBanner>> = [
+    {
+      key: 'text',
+      header: 'النصّ',
+      grow: true,
+      cell: (row) => (
+        <>
+          <strong>{row.textAr}</strong>
+          {row.textEn ? <div className="muted small">{row.textEn}</div> : null}
+          {row.href ? (
+            <div className="small">
+              <code>{row.href}</code> — {row.linkLabelAr ?? row.linkLabelEn ?? 'بلا نصّ رابط'}
+            </div>
+          ) : null}
+        </>
+      ),
+    },
+    { key: 'tone', header: 'اللون', cell: (row) => TONE_LABEL[row.tone] },
+    { key: 'audience', header: 'الجمهور', cell: (row) => AUDIENCE_LABEL[row.audience] },
+    {
+      key: 'window',
+      header: 'النافذة',
+      cell: (row) => (
+        <span className="small">
+          {dateTime(row.startsAt)} {row.endsAt ? dateTime(row.endsAt) : 'بلا نهاية'}
+        </span>
+      ),
+    },
+    {
+      key: 'state',
+      header: 'الحالة',
+      cell: (row) => (
+        <span className={`badge ${row.live ? 'ok' : row.active ? 'draft' : 'archived'}`}>
+          {row.live ? 'معروضة الآن' : row.active ? 'نشطة، خارج نافذتها' : 'موقوفة'}
+        </span>
+      ),
+    },
+    {
+      key: 'actions',
+      header: '',
+      cell: (row) => (
+        <div className="row">
+          {canManage && (
+            <button
+              type="button"
+              className="btn sm"
+              disabled={busy}
+              onClick={() =>
+                void run(
+                  () =>
+                    apiData<ContentBanner>(`/platform/content/banners/${row.id}`, {
+                      method: 'PATCH',
+                      body: JSON.stringify({ active: !row.active }),
+                    }),
+                  row.active ? 'أُوقفت اللافتة — اختفت من الموقع فوراً.' : 'فُعّلت اللافتة.',
+                )
+              }
+            >
+              {row.active ? 'أوقف' : 'فعّل'}
+            </button>
+          )}
+          {canManage && (
+            <button
+              type="button"
+              className="btn sm"
+              onClick={() =>
+                setEditing({
+                  id: row.id,
+                  textAr: row.textAr,
+                  textEn: row.textEn ?? '',
+                  href: row.href ?? '',
+                })
+              }
+            >
+              تحرير
+            </button>
+          )}
+        </div>
+      ),
+    },
+  ];
+
   return (
     <div className="grid">
       {notice && <p className={`alert ${notice.kind}`}>{notice.text}</p>}
 
-      <section className="card grid">
-        <h3 style={{ margin: 0 }}>قواعد اللافتة</h3>
-        <p className="muted small" style={{ margin: 0 }}>
-          اللافتة تظهر على الموقع إذا كانت **نشطة** و**داخل نافذتها** و**جمهورها يطابق** الزائر. ووسم «معروضة» يأتي
-          من الخدمة لا من هذه الشاشة — فالشاشة لا تدّعي عرضاً لم يقع.
-        </p>
-      </section>
+      <Panel
+        title="قواعد اللافتة"
+        hint={
+          <>
+            اللافتة تظهر على الموقع إذا كانت **نشطة** و**داخل نافذتها** و**جمهورها يطابق** الزائر. ووسم
+            «معروضة» يأتي من الخدمة لا من هذه الشاشة — فالشاشة لا تدّعي عرضاً لم يقع.
+          </>
+        }
+        bodyClassName="grid"
+      ></Panel>
 
       {canManage && (
-        <section className="card grid">
-          <h3 style={{ margin: 0 }}>لافتة جديدة</h3>
+        <Panel title="لافتة جديدة" bodyClassName="grid">
           <div className="form-grid">
             <Field label="النصّ بالعربية">
               <input
@@ -1442,7 +1641,9 @@ function BannersTab() {
               <select
                 className="input"
                 value={draft.audience}
-                onChange={(event) => setDraft({ ...draft, audience: event.target.value as ContentBannerAudience })}
+                onChange={(event) =>
+                  setDraft({ ...draft, audience: event.target.value as ContentBannerAudience })
+                }
               >
                 {(Object.keys(AUDIENCE_LABEL) as ContentBannerAudience[]).map((audience) => (
                   <option key={audience} value={audience}>
@@ -1478,90 +1679,19 @@ function BannersTab() {
               أنشئ لافتة
             </button>
           </div>
-        </section>
+        </Panel>
       )}
 
       {rows.length === 0 ? (
         <Empty title="لا لافتات" detail="لا شيء معروض أعلى الموقع الآن." />
       ) : (
-        <div className="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>النصّ</th>
-                <th>اللون</th>
-                <th>الجمهور</th>
-                <th>النافذة</th>
-                <th>الحالة</th>
-                <th />
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((row) => (
-                <tr key={row.id}>
-                  <td>
-                    <strong>{row.textAr}</strong>
-                    {row.textEn ? <div className="muted small">{row.textEn}</div> : null}
-                    {row.href ? (
-                      <div className="small">
-                        <code>{row.href}</code> — {row.linkLabelAr ?? row.linkLabelEn ?? 'بلا نصّ رابط'}
-                      </div>
-                    ) : null}
-                  </td>
-                  <td>{TONE_LABEL[row.tone]}</td>
-                  <td>{AUDIENCE_LABEL[row.audience]}</td>
-                  <td className="small">
-                    {dateTime(row.startsAt)} ← {row.endsAt ? dateTime(row.endsAt) : 'بلا نهاية'}
-                  </td>
-                  <td>
-                    <span className={`badge ${row.live ? 'ok' : row.active ? 'draft' : 'archived'}`}>
-                      {row.live ? 'معروضة الآن' : row.active ? 'نشطة، خارج نافذتها' : 'موقوفة'}
-                    </span>
-                  </td>
-                  <td>
-                    <div className="row">
-                      {canManage && (
-                        <button
-                          type="button"
-                          className="btn sm"
-                          disabled={busy}
-                          onClick={() =>
-                            void run(
-                              () =>
-                                apiData<ContentBanner>(`/platform/content/banners/${row.id}`, {
-                                  method: 'PATCH',
-                                  body: JSON.stringify({ active: !row.active }),
-                                }),
-                              row.active ? 'أُوقفت اللافتة — اختفت من الموقع فوراً.' : 'فُعّلت اللافتة.',
-                            )
-                          }
-                        >
-                          {row.active ? 'أوقف' : 'فعّل'}
-                        </button>
-                      )}
-                      {canManage && (
-                        <button
-                          type="button"
-                          className="btn sm"
-                          onClick={() =>
-                            setEditing({ id: row.id, textAr: row.textAr, textEn: row.textEn ?? '', href: row.href ?? '' })
-                          }
-                        >
-                          تحرير
-                        </button>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <Panel flush title="اللافتات">
+          <Table bare columns={bannerColumns} rows={rows} rowKey={(row) => row.id} />
+        </Panel>
       )}
 
       {editing && (
-        <section className="card grid">
-          <h3 style={{ margin: 0 }}>تحرير اللافتة</h3>
+        <Panel title="تحرير اللافتة" bodyClassName="grid">
           <div className="form-grid">
             <Field label="النصّ بالعربية">
               <input
@@ -1611,7 +1741,7 @@ function BannersTab() {
               إلغاء
             </button>
           </div>
-        </section>
+        </Panel>
       )}
     </div>
   );

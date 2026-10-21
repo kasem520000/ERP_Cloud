@@ -204,6 +204,7 @@ export class MembershipsService {
       }
 
       const roleIds = await this.assertRolesExist(tx, input.roleIds);
+      await this.assertNoOwnerRoleGrant(tx, tenantId, roleIds);
 
       const membershipId = newId();
       const isProvisioned = Boolean(existingUsers[0]?.passwordHash);
@@ -243,6 +244,20 @@ export class MembershipsService {
       }
       if (input.roleIds) {
         const roleIds = await this.assertRolesExist(tx, input.roleIds);
+        // AUD-02 — أدوار عضويّة المالك لا تُدار من هنا: القائمة الحالية تحوي دور المالك
+        // نفسه، فتُرفض إعادة التشكيل (وكذلك أي محاولة لمنح دور المالك لعضو آخر).
+        // الفحص الموسَّع ضروري: منع *منح* دور المالك لا يكفي، لأن إعادة تشكيل أدوار
+        // العضويّة المالكة إلى [دورٍ مخصّص] **تنزع** دور المالك وتترك العضوية بلا
+        // تحكّم كامل (أو تعيد توزيعه بصمت). الملكية تُنقل من مسار المنصّة المخصّص فقط.
+        if (existing.isOwner) {
+          throw new DomainError(
+            errorCodes.OWNER_ROLE_NOT_ASSIGNABLE,
+            'Roles of the owner membership are managed through the platform ownership-transfer flow',
+            422,
+            { field: 'roleIds' },
+          );
+        }
+        await this.assertNoOwnerRoleGrant(tx, tenantId, roleIds);
         await tx.delete(membershipRoles).where(eq(membershipRoles.membershipId, membershipId));
         for (const roleId of roleIds) {
           await tx.insert(membershipRoles).values({ membershipId, roleId });
@@ -402,6 +417,63 @@ export class MembershipsService {
       throw new DomainError(errorCodes.NOT_FOUND, 'Membership not found', 404);
     }
     return toMembershipDto(tx, row);
+  }
+
+  /**
+   * AUD-02 — دور المالك (`owner`) لا يُمنح ولا يُعاد تشكيله من مسارات إدارة العضويّات.
+   *
+   * `MembershipsService.create()/update()` كانت تتحقق من **وجود** الأدوار فقط، ودور
+   * المالك يحمل كل الصلاحيات (`*` في البذرة، وكل الرموز الكنسية في مسار إنشاء العميل)،
+   * فكان حامل `tenant.membership.manage` يستطيع أن يمنح نفسه أو غيره تحكّماً كاملاً
+   * على المنشأة — أي تجاوزاً كاملاً لسقف صلاحياته. نقل الملكية له مسار مستقلّ مصرّح
+   * به ومدقّق في لوحة المنصّة (`POST /platform/tenants/:id/owner/transfer`).
+   *
+   * يُعرَّف دور المالك تعريفين معاً حتى لا يعتمد الحارس على اسمٍ قابل للتغيير:
+   *   1. دور نظامي (`is_system`) اسمه `Owner` — الشكل الذي تُنشئه البذرة وأدوار الأساس؛
+   *   2. أي دور تحمله عضويّةٌ `is_owner = true` فعلاً — فالعضويّة المالكة هي مصدر الحقيقة.
+   */
+  private async assertNoOwnerRoleGrant(
+    tx: DrizzleTx,
+    tenantId: string,
+    roleIds: readonly string[],
+  ): Promise<void> {
+    if (roleIds.length === 0) return;
+
+    const granted = await tx
+      .select({ id: roles.id, name: roles.name, isSystem: roles.isSystem })
+      .from(roles)
+      .where(
+        and(
+          inArray(roles.id, [...roleIds]),
+          eq(roles.tenantId, tenantId),
+          isNull(roles.deletedAt),
+        ),
+      );
+
+    const heldByOwner = await tx
+      .select({ roleId: membershipRoles.roleId })
+      .from(membershipRoles)
+      .innerJoin(memberships, eq(memberships.id, membershipRoles.membershipId))
+      .where(
+        and(
+          eq(memberships.tenantId, tenantId),
+          eq(memberships.isOwner, true),
+          isNull(memberships.deletedAt),
+        ),
+      );
+    const ownerRoleIds = new Set(heldByOwner.map((row) => row.roleId));
+
+    const offending = granted.filter(
+      (role) => ownerRoleIds.has(role.id) || (role.isSystem && role.name.toLowerCase() === 'owner'),
+    );
+    if (offending.length > 0) {
+      throw new DomainError(
+        errorCodes.OWNER_ROLE_NOT_ASSIGNABLE,
+        'The owner role is managed through the platform ownership-transfer flow, not here',
+        422,
+        { field: 'roleIds' },
+      );
+    }
   }
 
   private async assertRolesExist(tx: DrizzleTx, roleIds: readonly string[]): Promise<string[]> {

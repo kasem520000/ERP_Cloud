@@ -69,9 +69,10 @@ export default function VerifyPage() {
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify(serverInput(mode, value)),
       });
-      const payload = (await response.json().catch(() => null)) as
-        | { data?: PublicVerifyResult; code?: string }
-        | null;
+      const payload = (await response.json().catch(() => null)) as {
+        data?: PublicVerifyResult;
+        code?: string;
+      } | null;
       if (!response.ok || !payload?.data) {
         setRemoteError(serverProblemMessage(response.status, payload?.code));
         return;
@@ -93,7 +94,7 @@ export default function VerifyPage() {
 
   return (
     <div className="grid">
-      <header className="hero">
+      <header className="hero page-hero">
         <h1>{verifyCopy.titleAr}</h1>
         <p className="hero-lead">{verifyCopy.leadAr}</p>
         <p className="muted small">{verifyCopy.privacyAr}</p>
@@ -252,7 +253,8 @@ export default function VerifyPage() {
               <p>
                 <span className={toneClass(status.tone)}>{status.statusLabelAr}</span>{' '}
                 <span className="muted small">
-                  {verifyCopy.recordedAtLabelAr}: <span dir="ltr">{readableRecordedAt(status.recordedAt)}</span>
+                  {verifyCopy.recordedAtLabelAr}:{' '}
+                  <span dir="ltr">{readableRecordedAt(status.recordedAt)}</span>
                 </span>
               </p>
               <p className="muted">{status.explanationAr}</p>

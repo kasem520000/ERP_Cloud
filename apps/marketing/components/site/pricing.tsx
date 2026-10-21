@@ -22,7 +22,6 @@ import {
   amountText,
   cellText,
   comparisonRows,
-  paymentGatewaysSource,
   plansForInterval,
   pricingFaq,
   savingsFor,
@@ -152,9 +151,6 @@ export function PricingView({
             </tbody>
           </table>
         </div>
-        <p className="source-line" dir="ltr">
-          GET /public/plans · {paymentGatewaysSource}
-        </p>
       </section>
 
       {/* ── الضريبة: الرقم من إعدادات المنصة (`billing.tax_rate`) لا من نصٍّ هنا */}

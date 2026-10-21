@@ -10,6 +10,7 @@ import {
   DEMO_CHART_OF_ACCOUNTS,
   DEMO_POSTING_PROFILE,
   newId,
+  parties,
   priceLists,
   salaryAdjustmentTypes,
   tailoringGarmentTypes,
@@ -206,6 +207,66 @@ export class OrgProvisioningService {
         createdBy: actorUserId,
       });
       created = true;
+    }
+
+    const defaultCustomer = await firstId(
+      tx
+        .select({ id: parties.id })
+        .from(parties)
+        .where(
+          and(
+            eq(parties.tenantId, tenantId),
+            eq(parties.code, 'CUST-GEN'),
+            isNull(parties.deletedAt),
+          ),
+        )
+        .limit(1),
+    );
+    if (!defaultCustomer) {
+      await tx
+        .insert(parties)
+        .values({
+          id: newId(),
+          tenantId,
+          code: 'CUST-GEN',
+          kind: 'customer',
+          name: 'عميل عام',
+          legalName: 'عميل عام',
+          creditLimit: '0',
+          createdAt: now,
+          createdBy: actorUserId,
+        })
+        .onConflictDoNothing();
+    }
+
+    const defaultSupplier = await firstId(
+      tx
+        .select({ id: parties.id })
+        .from(parties)
+        .where(
+          and(
+            eq(parties.tenantId, tenantId),
+            eq(parties.code, 'SUPP-GEN'),
+            isNull(parties.deletedAt),
+          ),
+        )
+        .limit(1),
+    );
+    if (!defaultSupplier) {
+      await tx
+        .insert(parties)
+        .values({
+          id: newId(),
+          tenantId,
+          code: 'SUPP-GEN',
+          kind: 'supplier',
+          name: 'مورد عام',
+          legalName: 'مورد عام',
+          creditLimit: '0',
+          createdAt: now,
+          createdBy: actorUserId,
+        })
+        .onConflictDoNothing();
     }
 
     if (created) {

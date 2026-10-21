@@ -1,15 +1,24 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
+import { Panel } from '@erp/ui';
 
 import { DataTable, Notice } from '../../../../components/data-view';
 import { Screen } from '../../../../components/screen';
-import { ApiError } from '../../../../lib/api';
-import { filingDetail, filingsPage, retryFiling, zatcaChain, type ChainState, type FilingDetail, type FilingRow } from '../../../../lib/einvoice';
+import { apiErrorText } from '../../../../lib/api';
+import {
+  filingDetail,
+  filingsPage,
+  retryFiling,
+  zatcaChain,
+  type ChainState,
+  type FilingDetail,
+  type FilingRow,
+} from '../../../../lib/einvoice';
 import { dateTime } from '../../../../lib/lookups';
 
 /**
- * 🧾 الفواتير المرفوعة على موقع الضرائب — the window, ported from
+ * الفواتير المرفوعة على موقع الضرائب — the window, ported from
  * `Desktop_ERP/SmartAuditERP/Form_WPF/frmSentEinvoice.xaml` (358 lines) and `.xaml.cs`
  * (304 lines), with the grid columns of its ZATCA sister window
  * `Form_WPF/frmInvsSyncStatusZatca.xaml` (559 lines) — because the desktop's sent-invoice
@@ -17,25 +26,25 @@ import { dateTime } from '../../../../lib/lookups';
  *
  * The labels are the desktop's own, in its own order:
  *
- *   🧾 الفواتير المرفوعة على موقع الضرائب · حجم الصفحة · رقم الصفحة · 🔍 عرض ·
- *   📋 قائمة الفواتير المرفوعة · UUID · Public URL · 📄 بيانات الفاتورة · 🖨️ طباعة ·
- *   🔍 تفاصيل · 📌 انقر على صف لتحديد UUID والرابط العام
- *   + from `frmInvsSyncStatusZatca`: 🔄 حالة المزامنة ZATCA · ✅ مرسل · ❌ غير مرسل ·
- *     🔵 الكل · م · رقم الفاتورة · نوع الفاتورة · التاريخ · العميل · الصافي · الرسالة ·
- *     الفرع · المستخدم · «تم الترحيل zatca» / «فشل الترحيل zatca» (`frmInvSale.xaml.cs`
+ * الفواتير المرفوعة على موقع الضرائب · حجم الصفحة · رقم الصفحة · عرض ·
+ * قائمة الفواتير المرفوعة · UUID · Public URL · بيانات الفاتورة · طباعة ·
+ * تفاصيل · انقر على صف لتحديد UUID والرابط العام
+ *   + from `frmInvsSyncStatusZatca`: حالة المزامنة ZATCA · مرسل · غير مرسل ·
+ * الكل · م · رقم الفاتورة · نوع الفاتورة · التاريخ · العميل · الصافي · الرسالة ·
+ * الفرع · المستخدم · «تم الترحيل zatca» / «فشل الترحيل zatca» (`frmInvSale.xaml.cs`
  *     L1502-L1512)
  *
  * Three differences from the desktop, all of them forced by the platform:
  *   1. «Public URL» stays empty for ZATCA. The authority answers with a cleared document,
  *      not with a portal link — the field exists because the window does, and it fills
  *      itself the day an authority publishes one (ETA does, in part four).
- *   2. ❌ رفض الفاتورة and 🚫 إلغاء الفاتورة are ETA calls (`sendEinvoice.reject_invoice` /
+ *   2. رفض الفاتورة and إلغاء الفاتورة are ETA calls (`sendEinvoice.reject_invoice` /
  *      `cancel_invoice`). ZATCA has no such call: a correction is a credit note, filed as a
  *      381 that names the invoice it corrects. The correction path is therefore a link to
  *      the sales return, not a button that deletes anything at the authority.
  *   3. Paging is done by the API (رقم الصفحة / حجم الصفحة are sent as parameters) instead of
  *      being a string pasted into a URL, and the page keeps its own selection so «📄 بيانات
- *      الفاتورة» opens for the row you clicked.
+ * الفاتورة» opens for the row you clicked.
  */
 
 const STATUS_LABELS: Record<string, string> = {
@@ -68,12 +77,12 @@ const REASON_LABELS: Record<string, string> = {
   LINK_PAUSED: 'الربط موقوف — شغّله من إعدادات الربط الضريبي.',
 };
 
-/** ✅ مرسل / ❌ غير مرسل — the two states `frmInvsSyncStatusZatca` filters on. */
+/** مرسل / غير مرسل — the two states `frmInvsSyncStatusZatca` filters on. */
 const SYNC_FILTERS = [
-  { value: '', labelAr: '🔵 الكل' },
-  { value: 'cleared', labelAr: '✅ مرسل (مُصادق)' },
-  { value: 'reported', labelAr: '✅ مرسل (مُبلَّغ)' },
-  { value: 'failed', labelAr: '❌ غير مرسل' },
+  { value: '', labelAr: 'الكل' },
+  { value: 'cleared', labelAr: 'مرسل (مُصادق)' },
+  { value: 'reported', labelAr: 'مرسل (مُبلَّغ)' },
+  { value: 'failed', labelAr: 'غير مرسل' },
   { value: 'signed', labelAr: 'موقّعة (بانتظار الربط)' },
   { value: 'prepared', labelAr: 'مُجهَّزة' },
 ];
@@ -89,7 +98,7 @@ function messageOf(row: FilingRow): string {
   return '—';
 }
 
-/** 🖨️ طباعة — the document, as the tenant prints it, in a new tab. */
+/** طباعة — the document, as the tenant prints it, in a new tab. */
 function printInvoice(invoiceId: string) {
   window.open(`/print/sales-invoice/${invoiceId}`, '_blank', 'noopener,noreferrer');
 }
@@ -108,18 +117,26 @@ export default function SentEinvoicesPage() {
   const [chain, setChain] = useState<ChainState | undefined>();
   const [busy, setBusy] = useState('');
   const [loading, setLoading] = useState(true);
-  const [notice, setNotice] = useState<{ kind: 'ok' | 'danger' | 'info' | 'warn'; text: string } | undefined>();
+  const [notice, setNotice] = useState<
+    { kind: 'ok' | 'danger' | 'info' | 'warn'; text: string } | undefined
+  >();
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const page = await filingsPage({ status: status || undefined, from: from || undefined, to: to || undefined, pageNo, pageSize });
+      const page = await filingsPage({
+        status: status || undefined,
+        from: from || undefined,
+        to: to || undefined,
+        pageNo,
+        pageSize,
+      });
       setRows(page.items);
       setTotalRows(page.total);
       setPages(page.pages);
       setChain(await zatcaChain());
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
     } finally {
       setLoading(false);
     }
@@ -136,7 +153,7 @@ export default function SentEinvoicesPage() {
     try {
       setDetail(await filingDetail(row.id));
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
     } finally {
       setBusy('');
     }
@@ -147,11 +164,16 @@ export default function SentEinvoicesPage() {
     setNotice(undefined);
     try {
       const next = await retryFiling(row.id);
-      setNotice({ kind: sent(next.status) ? 'ok' : 'warn', text: sent(next.status) ? 'تم ارسال الفاتورة بنجاح' : `الحالة الآن: ${STATUS_LABELS[next.status] ?? next.status}` });
+      setNotice({
+        kind: sent(next.status) ? 'ok' : 'warn',
+        text: sent(next.status)
+          ? 'تم ارسال الفاتورة بنجاح'
+          : `الحالة الآن: ${STATUS_LABELS[next.status] ?? next.status}`,
+      });
       setDetail(undefined);
       await load();
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
     } finally {
       setBusy('');
     }
@@ -169,7 +191,7 @@ export default function SentEinvoicesPage() {
 
   return (
     <Screen
-      title="🧾 الفواتير المرفوعة على موقع الضرائب"
+      title="الفواتير المرفوعة على موقع الضرائب"
       subtitle="كل فاتورة أُرسلت إلى هيئة الزكاة والضريبة: حالتها عند الهيئة، وتجزئتها، ومكانها في السلسلة، والوثيقة التي أُرسلت والتي عادت مُصادَقة."
       crumbs={['الإعدادات', 'إعدادات الربط الضريبي', 'الفواتير المرفوعة']}
       actions={
@@ -185,12 +207,13 @@ export default function SentEinvoicesPage() {
     >
       <Notice notice={notice} />
 
-      {/* ═══ Toolbar — 🔍 خيارات البحث ═══ */}
-      <div className="card">
+      {/* ═══ Toolbar — خيارات البحث ═══ */}
+      <Panel>
         <div className="toolbar">
           <label className="field">
             <span>حجم الصفحة:</span>
             <input
+              className="input"
               type="number"
               min={1}
               max={100}
@@ -202,6 +225,7 @@ export default function SentEinvoicesPage() {
           <label className="field">
             <span>رقم الصفحة:</span>
             <input
+              className="input"
               type="number"
               min={1}
               max={pages}
@@ -211,8 +235,8 @@ export default function SentEinvoicesPage() {
             />
           </label>
           <label className="field">
-            <span>🔄 حالة المزامنة ZATCA</span>
-            <select value={status} onChange={(event) => setStatus(event.target.value)}>
+            <span>حالة المزامنة ZATCA</span>
+            <select className="input" value={status} onChange={(event) => setStatus(event.target.value)}>
               {SYNC_FILTERS.map((filter) => (
                 <option key={filter.value} value={filter.value}>
                   {filter.labelAr}
@@ -222,21 +246,25 @@ export default function SentEinvoicesPage() {
           </label>
           <label className="field">
             <span>من</span>
-            <input type="date" value={from} onChange={(event) => setFrom(event.target.value)} />
+            <input
+              className="input"
+              type="date"
+              value={from}
+              onChange={(event) => setFrom(event.target.value)}
+            />
           </label>
           <label className="field">
             <span>إلى</span>
-            <input type="date" value={to} onChange={(event) => setTo(event.target.value)} />
+            <input className="input" type="date" value={to} onChange={(event) => setTo(event.target.value)} />
           </label>
           <button type="button" className="btn primary" disabled={loading} onClick={() => void load()}>
-            🔍 عرض
+            عرض
           </button>
         </div>
-      </div>
+      </Panel>
 
       {/* ═══ The grid ═══ */}
-      <div className="card">
-        <h3>📋 قائمة الفواتير المرفوعة</h3>
+      <Panel title="قائمة الفواتير المرفوعة" flush>
         {loading && rows.length === 0 && <p className="muted">جارٍ التحميل…</p>}
         <DataTable
           rows={rows}
@@ -244,84 +272,111 @@ export default function SentEinvoicesPage() {
           columns={[
             { key: 'index', header: 'م', cell: (row, index) => (pageNo - 1) * pageSize + index + 1 },
             { key: 'number', header: 'رقم الفاتورة', cell: (row) => row.invoice?.number ?? '—' },
-            { key: 'kind', header: 'نوع الفاتورة', cell: (row) => KIND_LABELS[row.invoice?.kind ?? ''] ?? (row.invoice?.kind ?? '—') },
+            {
+              key: 'kind',
+              header: 'نوع الفاتورة',
+              cell: (row) => KIND_LABELS[row.invoice?.kind ?? ''] ?? row.invoice?.kind ?? '—',
+            },
             { key: 'date', header: 'التاريخ', cell: (row) => dateTime(row.submittedAt ?? row.createdAt) },
             { key: 'party', header: 'العميل', cell: (row) => row.invoice?.partyName ?? '—' },
             { key: 'branch', header: 'الفرع', cell: (row) => row.invoice?.branchName ?? '—' },
             { key: 'user', header: 'المستخدم', cell: (row) => row.invoice?.createdByName ?? '—' },
-            { key: 'total', header: 'الصافي', cell: (row) => (row.invoice?.total ? Number(row.invoice.total).toFixed(2) : '—') },
+            {
+              key: 'total',
+              header: 'الصافي',
+              cell: (row) => (row.invoice?.total ? Number(row.invoice.total).toFixed(2) : '—'),
+            },
             {
               key: 'status',
               header: 'حالة المزامنة',
               cell: (row) => (
                 <span className="chip">
-                  {sent(row.status) ? '✅' : row.status === 'failed' ? '❌' : '⏳'} {STATUS_LABELS[row.status] ?? row.status}
+                  {STATUS_LABELS[row.status] ?? row.status}
                   {row.chainIndex ? ` · ${row.chainIndex}` : ''}
                 </span>
               ),
             },
-            { key: 'profile', header: 'الصنف', cell: (row) => PROFILE_LABELS[String(row.response?.profile ?? '')] ?? row.response?.profile ?? '—' },
+            {
+              key: 'profile',
+              header: 'الصنف',
+              cell: (row) =>
+                PROFILE_LABELS[String(row.response?.profile ?? '')] ?? row.response?.profile ?? '—',
+            },
             { key: 'message', header: 'الرسالة', cell: (row) => messageOf(row) },
             {
               key: 'actions',
               header: 'تفاصيل',
               cell: (row) => (
                 <button type="button" className="btn" disabled={busy !== ''} onClick={() => void show(row)}>
-                  🔍 تفاصيل
+                  تفاصيل
                 </button>
               ),
             },
           ]}
         />
         <div className="toolbar">
-          <button type="button" className="btn" disabled={pageNo <= 1 || loading} onClick={() => setPageNo(pageNo - 1)}>
-            → السابق
+          <button
+            type="button"
+            className="btn"
+            disabled={pageNo <= 1 || loading}
+            onClick={() => setPageNo(pageNo - 1)}
+          >
+            السابق
           </button>
           <span className="chip">
             صفحة {pageNo} من {pages}
           </span>
-          <button type="button" className="btn" disabled={pageNo >= pages || loading} onClick={() => setPageNo(pageNo + 1)}>
-            التالي ←
+          <button
+            type="button"
+            className="btn"
+            disabled={pageNo >= pages || loading}
+            onClick={() => setPageNo(pageNo + 1)}
+          >
+            التالي
           </button>
           <button type="button" className="btn" disabled={loading} onClick={() => void load()}>
-            🔄 تحديث
+            تحديث
           </button>
         </div>
-      </div>
+      </Panel>
 
       {/* ═══ Selected row — UUID + Public URL ═══ */}
       {selected && (
-        <div className="card">
-          <h3>📄 بيانات الفاتورة</h3>
+        <Panel title="بيانات الفاتورة" flush>
           <div className="form-grid">
             <label className="field wide">
               <span>UUID</span>
-              <input readOnly dir="ltr" value={selected.uuid ?? '—'} />
+              <input className="input" readOnly dir="ltr" value={selected.uuid ?? '—'} />
             </label>
             <label className="field wide">
               <span>Public URL</span>
-              <input readOnly dir="ltr" value="—" />
+              <input className="input" readOnly dir="ltr" value="—" />
             </label>
             <label className="field">
               <span>حالة الهيئة</span>
-              <input readOnly value={selected.authorityStatus ?? '—'} />
+              <input className="input" readOnly value={selected.authorityStatus ?? '—'} />
             </label>
             <label className="field">
               <span>المحاولات</span>
-              <input readOnly value={selected.attempts} />
+              <input className="input" readOnly value={selected.attempts} />
             </label>
           </div>
           <p className="small muted">
-            📌 انقر على صف لتحديد UUID والرابط العام · الرابط العام لا تصدره هيئة الزكاة — يظهر هنا متى أصدرته الجهة
-            (الضرائب المصرية تفعل ذلك).
+            انقر على صف لتحديد UUID والرابط العام · الرابط العام لا تصدره هيئة الزكاة — يظهر هنا متى أصدرته
+            الجهة (الضرائب المصرية تفعل ذلك).
           </p>
           <div className="toolbar">
             <button type="button" className="btn" onClick={() => printInvoice(selected.invoiceId)}>
-              🖨️ طباعة
+              طباعة
             </button>
             {!sent(selected.status) && (
-              <button type="button" className="btn" disabled={busy !== ''} onClick={() => void retry(selected)}>
-                🔁 إعادة الإرسال
+              <button
+                type="button"
+                className="btn"
+                disabled={busy !== ''}
+                onClick={() => void retry(selected)}
+              >
+                إعادة الإرسال
               </button>
             )}
             {busy === 'retry' && <span className="chip">…</span>}
@@ -331,23 +386,23 @@ export default function SentEinvoicesPage() {
 
           {detail && (
             <>
-              <h3>🔗 السلسلة — مكان الفاتورة</h3>
+              <h3>السلسلة — مكان الفاتورة</h3>
               <div className="form-grid">
                 <label className="field wide">
                   <span>الرقم التسلسلي للفاتورة (ICV)</span>
-                  <input readOnly value={detail.document.counter ?? '—'} />
+                  <input className="input" readOnly value={detail.document.counter ?? '—'} />
                 </label>
                 <label className="field wide">
                   <span>تجزئة الفاتورة السابقة (PIH)</span>
-                  <input readOnly dir="ltr" value={detail.chain.previousHash ?? '—'} />
+                  <input className="input" readOnly dir="ltr" value={detail.chain.previousHash ?? '—'} />
                 </label>
                 <label className="field wide">
                   <span>تجزئة هذه الفاتورة (Hash)</span>
-                  <input readOnly dir="ltr" value={detail.chain.hash ?? '—'} />
+                  <input className="input" readOnly dir="ltr" value={detail.chain.hash ?? '—'} />
                 </label>
               </div>
 
-              <h3>🏷️ رمز الاستجابة السريعة — الوسوم الثمانية</h3>
+              <h3>رمز الاستجابة السريعة — الوسوم الثمانية</h3>
               <DataTable
                 rows={detail.qr.tags}
                 rowKey={(tag) => String(tag.tag)}
@@ -355,37 +410,68 @@ export default function SentEinvoicesPage() {
                   { key: 'tag', header: 'الوسم', cell: (tag) => tag.tag },
                   { key: 'labelAr', header: 'المحتوى', cell: (tag) => tag.labelAr },
                   { key: 'bytes', header: 'الحجم', cell: (tag) => `${tag.bytes} بايت` },
-                  { key: 'value', header: 'القيمة', cell: (tag) => <span dir="ltr">{tag.value.length > 60 ? `${tag.value.slice(0, 60)}…` : tag.value}</span> },
+                  {
+                    key: 'value',
+                    header: 'القيمة',
+                    cell: (tag) => (
+                      <span dir="ltr">
+                        {tag.value.length > 60 ? `${tag.value.slice(0, 60)}…` : tag.value}
+                      </span>
+                    ),
+                  },
                 ]}
               />
 
-              <h3>📄 الوثيقة</h3>
+              <h3>الوثيقة</h3>
               <div className="toolbar">
-                <button type="button" className="btn" onClick={() => downloadXml(`zatca-${detail.submission.uuid ?? detail.submission.id}.xml`, detail.document.xml)}>
+                <button
+                  type="button"
+                  className="btn"
+                  onClick={() =>
+                    downloadXml(
+                      `zatca-${detail.submission.uuid ?? detail.submission.id}.xml`,
+                      detail.document.xml,
+                    )
+                  }
+                >
                   تنزيل الوثيقة المرسلة (UBL)
                 </button>
                 {detail.document.clearedXml && (
-                  <button type="button" className="btn" onClick={() => downloadXml(`zatca-cleared-${detail.submission.uuid ?? detail.submission.id}.xml`, detail.document.clearedXml)}>
+                  <button
+                    type="button"
+                    className="btn"
+                    onClick={() =>
+                      downloadXml(
+                        `zatca-cleared-${detail.submission.uuid ?? detail.submission.id}.xml`,
+                        detail.document.clearedXml,
+                      )
+                    }
+                  >
                     تنزيل الوثيقة المُصادَقة
                   </button>
                 )}
               </div>
               {detail.document.clearedXml ? (
                 <p className="small muted">
-                  ✅ الفاتورة ضريبية: أعادت الهيئة وثيقة مُصادَقة، ورمز الاستجابة السريعة مقروء منها لا من وثيقتنا.
+                  الفاتورة ضريبية: أعادت الهيئة وثيقة مُصادَقة، ورمز الاستجابة السريعة مقروء منها لا من
+                  وثيقتنا.
                 </p>
               ) : (
                 <p className="small muted">الفاتورة مبسّطة: تُبلَّغ ولا تُصادَق، فلا تعود وثيقة من الهيئة.</p>
               )}
-              {detail.authority.warnings.length > 0 && <p className="alert warn">تحذيرات الهيئة: {detail.authority.warnings.join(' · ')}</p>}
-              {detail.authority.errors.length > 0 && <p className="alert danger">أخطاء الهيئة: {detail.authority.errors.join(' · ')}</p>}
+              {detail.authority.warnings.length > 0 && (
+                <p className="alert warn">تحذيرات الهيئة: {detail.authority.warnings.join(' · ')}</p>
+              )}
+              {detail.authority.errors.length > 0 && (
+                <p className="alert danger">أخطاء الهيئة: {detail.authority.errors.join(' · ')}</p>
+              )}
               <label className="field wide">
                 <span>الوثيقة المرسلة</span>
-                <textarea readOnly rows={8} dir="ltr" value={detail.document.xml ?? ''} />
+                <textarea className="input" readOnly rows={8} dir="ltr" value={detail.document.xml ?? ''} />
               </label>
             </>
           )}
-        </div>
+        </Panel>
       )}
     </Screen>
   );

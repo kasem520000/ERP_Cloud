@@ -186,6 +186,7 @@ export class PlatformEmailController {
   }
 
   @Post('settings/test')
+  @HttpCode(200) // فحصٌ لا يُنشئ مورداً جديداً: 200 لا 201
   @RequiresPlatformRole('console.email.manage')
   @ApiOperation({ summary: 'فحص اتصال: رسالةٌ واحدة بالمزوّد والإعدادات الحالية' })
   @ApiOkResponse({ description: 'Connection test result' })

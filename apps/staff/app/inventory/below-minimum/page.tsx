@@ -5,7 +5,7 @@ import { useState } from 'react';
 import { DataTable, Notice, QueryView } from '../../../components/data-view';
 import { Screen } from '../../../components/screen';
 import { FilterBar, StatTile, StatTiles } from '../../../components/ui';
-import { ApiError, apiList, apiPost } from '../../../lib/api';
+import { apiErrorText, apiList, apiPost } from '../../../lib/api';
 import {
   arabicName,
   defaultOf,
@@ -75,7 +75,7 @@ export default function BelowMinimumPage() {
         text: `أُنشئ سند إدخال ${created.number} لتغطية العجز. حدّد التكلفة ثم رحّله.`,
       });
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
     } finally {
       setBusy('');
     }
@@ -125,22 +125,26 @@ export default function BelowMinimumPage() {
       </StatTiles>
 
       <FilterBar
-        actions={<span className="small muted">{data.length === 0 ? 'لا عجز' : `${data.length} صنفاً بحاجة تغطية`}</span>}
+        actions={
+          <span className="small muted">
+            {data.length === 0 ? 'لا عجز' : `${data.length} صنفاً بحاجة تغطية`}
+          </span>
+        }
       >
         <label className="field">
           <span>المستودع</span>
           <select
-              className="input"
-              value={effectiveWarehouse}
-              onChange={(event) => setWarehouseId(event.target.value)}
-            >
-              <option value="">— كل المستودعات —</option>
-              {warehouseRows.map((row) => (
-                <option key={row.id} value={row.id}>
-                  {arabicName(row)}
-                </option>
-              ))}
-            </select>
+            className="input"
+            value={effectiveWarehouse}
+            onChange={(event) => setWarehouseId(event.target.value)}
+          >
+            <option value="">— كل المستودعات —</option>
+            {warehouseRows.map((row) => (
+              <option key={row.id} value={row.id}>
+                {arabicName(row)}
+              </option>
+            ))}
+          </select>
         </label>
         <label className="field">
           <span>الفرع (لسند التغطية)</span>
@@ -159,6 +163,8 @@ export default function BelowMinimumPage() {
       <Notice notice={notice} />
 
       <QueryView
+        panel="الأصناف تحت حد الطلب"
+        panelHint="حد الطلب يُضبط من بطاقة الصنف (دليل المواد). السند يُنشأ كمسودة — حدّد تكلفة الوحدة ثم رحّله من شاشة سندات المخزون."
         query={rows}
         empty="لا توجد أصناف تحت حد الطلب"
         emptyDetail="كل الأصناف أعلى من حد الطلب، أو أن بطاقات الأصناف لم يُحدَّد لها حد بعد."
@@ -225,11 +231,6 @@ export default function BelowMinimumPage() {
           />
         )}
       </QueryView>
-
-      <p className="muted" style={{ fontSize: 13 }}>
-        حد الطلب يُضبط من بطاقة الصنف (دليل المواد). السند يُنشأ كمسودة — حدّد تكلفة الوحدة ثم رحّله من شاشة
-        سندات المخزون.
-      </p>
     </Screen>
   );
 }

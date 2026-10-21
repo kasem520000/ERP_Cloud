@@ -133,7 +133,7 @@ describe('zatca sync status — 📊 حالة المزامنة', () => {
     const unitId = body(await call('post', '/organization/catalog/units', { token: actor.token, body: { code: 'PCE', nameAr: 'حبة' } })).id;
     const categoryId = body(await call('post', '/organization/catalog/categories', { token: actor.token, body: { code: 'GEN', nameAr: 'عام' } })).id;
     itemId = body(await call('post', '/organization/catalog/items', { token: actor.token, body: { sku: 'RICE-5', nameAr: 'أرز بسمتي ٥ كجم', categoryId, baseUnitId: unitId, kind: 'stock', salePrice: '27.5' } })).id;
-    partyId = body(await call('post', '/parties', { token: actor.token, body: { kind: 'customer', name: 'مؤسسة النخبة', taxNo: '310000000000012' } })).id;
+    partyId = body(await call('post', '/parties', { token: actor.token, body: { kind: 'customer', name: 'مؤسسة النخبة', taxNo: '311111111111113' } })).id;
 
     const profile = await call('put', '/company-profile', {
       token: actor.token,
@@ -146,7 +146,8 @@ describe('zatca sync status — 📊 حالة المزامنة', () => {
     });
 
     const ladder: Array<[string, { status: number; body: Record<string, unknown> }]> = [];
-    ladder.push(['settings', await call('put', '/einvoice/settings', { token: actor.token, body: { simulation: true, active: true, environment: 'compliance' } })]);
+    ladder.push(['settings', await call('put', '/einvoice/settings', { token: actor.token, // ⏸ «مزامنة يدوية» مُشعَلة: هذه المجموعة تثبت مسار الإرسال اليدوي، فتُعزله عن الإرسال التلقائي.
+    body: { simulation: true, active: true, environment: 'compliance', syncManual: true } })]);
     ladder.push(['fill', await call('post', '/einvoice/settings/fill-from-company', { token: actor.token, body: {} })]);
     ladder.push(['industry', await call('put', '/einvoice/settings', { token: actor.token, body: { csr: { industry: 'تجارة التجزئة' } } })]);
     ladder.push(['csr', await call('post', '/einvoice/csr/generate', { token: actor.token, body: {} })]);

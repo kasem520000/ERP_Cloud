@@ -17,6 +17,7 @@ import {
   type DrizzleTx,
 } from '@erp/database';
 
+import { FROM_TO_LABELS_AR, validateDayFilters } from '../../common/date-param.js';
 import { DATABASE_HANDLE } from '../../database/database.module.js';
 import { SequencesService } from '../platform-services/index.js';
 
@@ -229,6 +230,13 @@ export class MarinaDocumentsService {
    * الحجوزات» is one of them opened again.
    */
   async listBookings(tenantId: string, query: BookingQuery = {}): Promise<BookingRow[]> {
+    /**
+     * 📅 التاريخُ يُتحقَّق منه قبل SQL: فالنمطُ القائم `isISODate(query.from) ? … : undefined`
+     * كان **يُسقط المرشّح بصمت** — فيرجع كلّ السجلّ ٢٠٠ والقارئُ يظنّ أنّه مصفًّى (قِيس
+     * ٢٠٢٦-١٠-١٦: ‏`?from=أمس` ⇒ ٢٠٠ بكلّ الصفوف). والحرسُ القديمُ يبقى (فبعد التحقّق
+     * لا يمرّ إلا تاريخٌ صحيح) لكنّ الفاسدَ صار يُرفض ٤٢٢ باسم الحقلّ.
+     */
+    validateDayFilters(query as Record<string, unknown>, FROM_TO_LABELS_AR, 'MARINA_DATE_INVALID');
     await this.ensureEnabled(tenantId);
     const limit = Math.min(Math.max(Number(query.limit ?? 200) || 200, 1), 500);
     const offset = Math.max(Number(query.offset ?? 0) || 0, 0);
@@ -466,6 +474,13 @@ export class MarinaDocumentsService {
    * — each column under its own name — and the mistake is written down in the docs.
    */
   async listViolations(tenantId: string, query: ViolationQuery = {}): Promise<ViolationRow[]> {
+    /**
+     * 📅 التاريخُ يُتحقَّق منه قبل SQL: فالنمطُ القائم `isISODate(query.from) ? … : undefined`
+     * كان **يُسقط المرشّح بصمت** — فيرجع كلّ السجلّ ٢٠٠ والقارئُ يظنّ أنّه مصفًّى (قِيس
+     * ٢٠٢٦-١٠-١٦: ‏`?from=أمس` ⇒ ٢٠٠ بكلّ الصفوف). والحرسُ القديمُ يبقى (فبعد التحقّق
+     * لا يمرّ إلا تاريخٌ صحيح) لكنّ الفاسدَ صار يُرفض ٤٢٢ باسم الحقلّ.
+     */
+    validateDayFilters(query as Record<string, unknown>, FROM_TO_LABELS_AR, 'MARINA_DATE_INVALID');
     await this.ensureEnabled(tenantId);
     const rows = await withTenantTx(this.database.db, tenantId, (tx) =>
       tx

@@ -11,6 +11,13 @@ coverage/
 .DS_Store
 .generated-types.json
 .pg-embedded/
+# نسخُ أداةِ الإصلاح الاحتياطية (`pnpm db:demo-repair --apply`) — بياناتٌ ولا تُودَع
+.demo-repair/
+
+# نسخُ القاعدة (`pnpm db:backup` / `db:drill`) — بياناتُ منشآتٍ ولا تُودَع في Git.
+# ونمطٌ مثبَّتٌ في الجذر: `backups/` بلا شرطةٍ كان يُخفي `apps/platform-admin/app/backups/`
+# أيضاً، فاختفت لوحة الاستعادة من المستودع ولم يكتشفه إلا CI.
+/backups/
 
 # TypeScript incremental build metadata
 *.tsbuildinfo
@@ -19,3 +26,6 @@ coverage/
 !deploy/.env.example
 logs/
 deploy/jwt-*.pem
+
+# أدوات تطوير محلية (codemods/تجارب) لا تدخل المستودع
+.scratch/

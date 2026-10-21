@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { Panel } from '@erp/ui';
 
 import { DataTable, QueryView } from '../../../components/data-view';
 import {
@@ -82,11 +83,11 @@ export default function ItemCardPage() {
       </FilterBar>
 
       {!applied ? (
-        <div className="card">
+        <Panel>
           <p className="muted">
             اختر صنفاً وفترة لعرض بطاقته. ترك الفترة فارغاً يعرض كل الحركات منذ أول حركة للصنف.
           </p>
-        </div>
+        </Panel>
       ) : (
         <QueryView
           query={card}
@@ -96,17 +97,18 @@ export default function ItemCardPage() {
           {(data) =>
             data ? (
               <>
-                <div className="card">
-                  <h2>{`${data.sku ?? ''} — ${data.nameAr ?? ''}`}</h2>
+                <Panel title={<>{`${data.sku ?? ''} — ${data.nameAr ?? ''}`}</>}>
                   <DocHead>
                     <DocField label="الرمز">{data.sku ?? '—'}</DocField>
                     <DocField label="الصنف">{data.nameAr ?? '—'}</DocField>
                     <DocField label="المستودع">{data.warehouseId ? 'مستودع محدد' : 'كل المستودعات'}</DocField>
                     <DocField label="الفترة">
-                      {data.from || data.to ? `${shortDate(data.from) ?? ''} → ${shortDate(data.to) ?? ''}` : 'كل الفترات'}
+                      {data.from || data.to
+                        ? `${shortDate(data.from) ?? ''} ${shortDate(data.to) ?? ''}`
+                        : 'كل الفترات'}
                     </DocField>
                   </DocHead>
-                </div>
+                </Panel>
 
                 <StatTiles>
                   <StatTile
@@ -210,16 +212,14 @@ export default function ItemCardPage() {
                       key: 'balance',
                       header: 'الرصيد',
                       align: 'num',
-                      cell: (row) => (
-                        <strong dir="ltr">{quantity(row.balanceQty)}</strong>
-                      ),
+                      cell: (row) => <strong dir="ltr">{quantity(row.balanceQty)}</strong>,
                     },
                     { key: 'cost', header: 'التكلفة', align: 'num', cell: (row) => money(row.unitCost) },
                     { key: 'value', header: 'القيمة', align: 'num', cell: (row) => money(row.totalCost) },
                   ]}
                 />
 
-                <div className="card">
+                <Panel>
                   <Totals
                     items={[
                       { label: 'إجمالي الكميات', value: quantity(data.totals.inQty) },
@@ -229,12 +229,12 @@ export default function ItemCardPage() {
                       { label: 'قيمة الرصيد', value: money(data.closing.value) },
                     ]}
                   />
-                </div>
+                </Panel>
               </>
             ) : (
-              <div className="card">
+              <Panel>
                 <p className="muted">—</p>
-              </div>
+              </Panel>
             )
           }
         </QueryView>

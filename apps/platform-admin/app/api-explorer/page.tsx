@@ -1,8 +1,10 @@
 'use client';
 
+import { Panel } from '@erp/ui';
 import { useMemo, useState } from 'react';
 
 import { Empty, ErrorBox, Forbidden, Loading, Screen } from '../../components/screen';
+import { Table, type Column } from '../../components/ui/table';
 import { useSession } from '../../lib/session';
 import { useQuery } from '../../lib/use-query';
 
@@ -32,6 +34,19 @@ type OpenApiDocument = {
 
 const METHODS = ['get', 'post', 'put', 'patch', 'delete'] as const;
 
+type OperationRow = { path: string; method: string; summary: string; group: string };
+
+const operationColumns: Array<Column<OperationRow>> = [
+  {
+    key: 'method',
+    header: 'الطريقة',
+    width: 90,
+    cell: (row) => <code className="badge ltr">{row.method}</code>,
+  },
+  { key: 'path', header: 'المسار', ltr: true, grow: true, cell: (row) => <code>{row.path}</code> },
+  { key: 'summary', header: 'الوصف', cell: (row) => <span className="small">{row.summary}</span> },
+];
+
 export default function ApiExplorerPage() {
   const { canConsole } = useSession();
   const [query, setQuery] = useState('');
@@ -47,7 +62,7 @@ export default function ApiExplorerPage() {
   const groups = useMemo(() => {
     const paths = document.data?.paths ?? {};
     const needle = query.trim().toLowerCase();
-    const rows: Array<{ path: string; method: string; summary: string; group: string }> = [];
+    const rows: OperationRow[] = [];
 
     for (const [path, operations] of Object.entries(paths)) {
       for (const method of METHODS) {
@@ -64,7 +79,7 @@ export default function ApiExplorerPage() {
       }
     }
 
-    const byGroup = new Map<string, typeof rows>();
+    const byGroup = new Map<string, OperationRow[]>();
     for (const row of rows) {
       byGroup.set(row.group, [...(byGroup.get(row.group) ?? []), row]);
     }
@@ -89,24 +104,30 @@ export default function ApiExplorerPage() {
         </a>
       }
     >
-      <div className="card">
+      <Panel>
         <div className="form-grid">
           <label>
             بحث في المسارات والأوصاف
-            <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="integration أو invoice أو webhook" />
+            <input
+              className="input"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="integration أو invoice أو webhook"
+            />
           </label>
         </div>
         {document.data?.info && (
           <p className="muted">
             {document.data.info.title} — الإصدار <code>{document.data.info.version}</code> ·{' '}
-            {Object.keys(document.data.paths ?? {}).length} مساراً · {groups.reduce((sum, entry) => sum + entry[1].length, 0)} عملية
+            {Object.keys(document.data.paths ?? {}).length} مساراً ·{' '}
+            {groups.reduce((sum, entry) => sum + entry[1].length, 0)} عملية
           </p>
         )}
         <p className="muted">
-          سطح التكامل: <code>/api/v1/integration/v1/me</code> و<code>/invoices</code> و<code>/signature</code> —
-          تُنادى بترويسة <code>Authorization: Bearer erp_live_…</code> ونطاقات المفتاح هي سقفها.
+          سطح التكامل: <code>/api/v1/integration/v1/me</code> و<code>/invoices</code> و<code>/signature</code>{' '}
+          — تُنادى بترويسة <code>Authorization: Bearer erp_live_…</code> ونطاقات المفتاح هي سقفها.
         </p>
-      </div>
+      </Panel>
 
       {document.status === 'loading' && <Loading rows={5} />}
       {document.status === 'error' && <ErrorBox message={document.error} onRetry={() => document.reload()} />}
@@ -115,37 +136,22 @@ export default function ApiExplorerPage() {
       )}
 
       {groups.map(([group, rows]) => (
-        <div className="card" key={group}>
+        <Panel key={group}>
           <div className="row">
             <strong>{group}</strong>
             <span className="badge">{rows.length}</span>
           </div>
-          <div className="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>الطريقة</th>
-                  <th>المسار</th>
-                  <th>الوصف</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.slice(0, 60).map((row) => (
-                  <tr key={`${row.method} ${row.path}`}>
-                    <td>
-                      <code>{row.method}</code>
-                    </td>
-                    <td>
-                      <code>{row.path}</code>
-                    </td>
-                    <td className="small">{row.summary}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          {rows.length > 60 && <p className="muted">…و{rows.length - 60} عملية أخرى — استعمل البحث لتصفيتها.</p>}
-        </div>
+          <Table
+            bare
+            dense
+            columns={operationColumns}
+            rows={rows.slice(0, 60)}
+            rowKey={(row) => `${row.method} ${row.path}`}
+          />
+          {rows.length > 60 && (
+            <p className="muted">…و{rows.length - 60} عملية أخرى — استعمل البحث لتصفيتها.</p>
+          )}
+        </Panel>
       ))}
     </Screen>
   );

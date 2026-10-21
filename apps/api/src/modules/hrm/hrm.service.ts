@@ -24,12 +24,14 @@ import {
   salaryPayments,
   vouchers,
   tenantSettings,
+  tenants,
   withTenantTx,
   type DatabaseHandle,
   type DrizzleTx,
   type Employee,
 } from '@erp/database';
 
+import { FROM_TO_LABELS_AR, parseDayParam, validateDayFilters } from '../../common/date-param.js';
 import { DATABASE_HANDLE } from '../../database/database.module.js';
 import { CustomFieldsService } from '../custom-fields/custom-fields.service.js';
 import { AccountingService, defaultNormalBalance, type AccountType, type JournalLineInput } from '../accounting/accounting.service.js';
@@ -37,6 +39,7 @@ import { TreasuryService } from '../treasury/treasury.service.js';
 import { FileAttachmentRegistry } from '../platform-services/files/file-attachments.js';
 
 import { calculatePayrollLine } from './payroll-calculator.js';
+import { todayInTimezone } from './payroll-compliance.js';
 
 export type DepartmentInput = { code: string; name: string; branchId?: string; parentId?: string | null };
 export type JobInput = { code: string; name: string };
@@ -373,10 +376,21 @@ export class HrmService implements OnModuleInit {
     if (movingId && parent.id === movingId) throw new DomainError('DEPARTMENT_CYCLE', 'لا يمكن أن يكون القسم تابعاً لنفسه', 422);
     return parent;
   }
-  async listJobs(tenantId: string) { await this.ensureEnabled(tenantId); return withTenantTx(this.database.db, tenantId, (tx) => tx.select().from(jobs).where(eq(jobs.tenantId, tenantId)).orderBy(jobs.code)); }
+  /**
+   * AUD-15 — الوظيفة المحذوفة لا تظهر: الحذف هنا **ناعم** (`deletedAt`، كما يفعل
+   * `deleteDepartment` فوقه ونمط `baseSoftDeleteColumns`)، فالقائمة كانت تسرّب المحذوف.
+   */
+  async listJobs(tenantId: string) { await this.ensureEnabled(tenantId); return withTenantTx(this.database.db, tenantId, (tx) => tx.select().from(jobs).where(and(eq(jobs.tenantId, tenantId), isNull(jobs.deletedAt))).orderBy(jobs.code)); }
   async createJob(tenantId: string, input: JobInput) { await this.ensureEnabled(tenantId); const [row] = await withTenantTx(this.database.db, tenantId, (tx) => tx.insert(jobs).values({ id: newId(), tenantId, code: input.code, name: input.name }).returning()); return row; }
-  async updateJob(tenantId: string, id: string, patch: JobPatch) { await this.ensureEnabled(tenantId); const [row] = await withTenantTx(this.database.db, tenantId, (tx) => tx.update(jobs).set({ ...(patch.code === undefined ? {} : { code: patch.code }), ...(patch.name === undefined ? {} : { name: patch.name }), updatedAt: new Date() }).where(and(eq(jobs.tenantId, tenantId), eq(jobs.id, id))).returning()); if (!row) throw new DomainError('NOT_FOUND', 'Job not found', 404); return row; }
-  async deleteJob(tenantId: string, id: string) { await this.ensureEnabled(tenantId); return withTenantTx(this.database.db, tenantId, async (tx) => { const used = await tx.execute(sql`SELECT EXISTS (SELECT 1 FROM employees WHERE tenant_id = ${tenantId} AND job_id = ${id} AND deleted_at IS NULL) AS used`); if ((rowsOf(used)[0] as { used: boolean }).used) throw new DomainError('JOB_IN_USE', 'Employees are still assigned to this job title', 409); const result = await tx.delete(jobs).where(and(eq(jobs.tenantId, tenantId), eq(jobs.id, id))); if (!result.rowCount) throw new DomainError('NOT_FOUND', 'Job not found', 404); return { id, deleted: true }; }); }
+  /** AUD-15 — تعديل محذوفٍ ليس تعديلاً: الشرط `deleted_at IS NULL` يجعله 404 كغيره. */
+  async updateJob(tenantId: string, id: string, patch: JobPatch) { await this.ensureEnabled(tenantId); const [row] = await withTenantTx(this.database.db, tenantId, (tx) => tx.update(jobs).set({ ...(patch.code === undefined ? {} : { code: patch.code }), ...(patch.name === undefined ? {} : { name: patch.name }), updatedAt: new Date() }).where(and(eq(jobs.tenantId, tenantId), eq(jobs.id, id), isNull(jobs.deletedAt))).returning()); if (!row) throw new DomainError('NOT_FOUND', 'Job not found', 404); return row; }
+  /**
+   * AUD-15 — الحذف ناعم لا صلب: `delete` كان يمحو الصف ويفقد أثره (من حذف ومتى) رغم أن
+   * الجدول يحمل `deleted_at`/`deleted_by` وفهرساً فريداً جزئياً على `deleted_at IS NULL`
+   * يقصد به السماح بإعادة استعمال الرمز لاحقاً. والوظيفة المستخدمة تبقى مرفوضة (409).
+   * والحذف الثاني يعيد 404 لأن الشرط نفسه يمنع «حذف» صفٍّ محذوف.
+   */
+  async deleteJob(tenantId: string, id: string) { await this.ensureEnabled(tenantId); return withTenantTx(this.database.db, tenantId, async (tx) => { const used = await tx.execute(sql`SELECT EXISTS (SELECT 1 FROM employees WHERE tenant_id = ${tenantId} AND job_id = ${id} AND deleted_at IS NULL) AS used`); if ((rowsOf(used)[0] as { used: boolean }).used) throw new DomainError('JOB_IN_USE', 'Employees are still assigned to this job title', 409); const result = await tx.update(jobs).set({ deletedAt: new Date(), updatedAt: new Date() }).where(and(eq(jobs.tenantId, tenantId), eq(jobs.id, id), isNull(jobs.deletedAt))); if (!result.rowCount) throw new DomainError('NOT_FOUND', 'Job not found', 404); return { id, deleted: true }; }); }
 
   /**
    * 👤 قائمة الموظفين — `frmEmployees.xaml` «قائمة الموظفين» prints
@@ -610,7 +624,23 @@ export class HrmService implements OnModuleInit {
 
   async importAttendanceCsv(tenantId: string, csv: string) { await this.ensureEnabled(tenantId); const rows = parseAttendance(csv); let inserted = 0; let skipped = 0; await withTenantTx(this.database.db, tenantId, async (tx) => { for (const row of rows) { const fingerprint = attendanceFingerprint(row); const result = await tx.execute(sql`INSERT INTO attendance_logs (id, tenant_id, machine, enroll, punch_at, direction, fingerprint, payload) VALUES (${newId()}, ${tenantId}, ${row.machine}, ${row.enroll}, ${new Date(row.datetime)}, ${row.inout}, ${fingerprint}, ${JSON.stringify(row)}::jsonb) ON CONFLICT (tenant_id, fingerprint) DO NOTHING RETURNING id`); if (rowsOf(result).length) inserted += 1; else skipped += 1; } }); return { data: { inserted, skipped, parsed: rows.length } }; }
 
-  async attendanceSummary(tenantId: string, enroll: string, from: string, to: string) { await this.ensureEnabled(tenantId); const rows = await withTenantTx(this.database.db, tenantId, (tx) => tx.select().from(attendanceLogs).where(and(eq(attendanceLogs.tenantId, tenantId), eq(attendanceLogs.enroll, enroll), gte(attendanceLogs.punchAt, new Date(from)), lte(attendanceLogs.punchAt, new Date(to)))).orderBy(attendanceLogs.punchAt)); let minutes = new Decimal(0); let open: Date | undefined; for (const row of rows) { if (row.direction === 'in') open = row.punchAt; else if (row.direction === 'out' && open) { minutes = minutes.plus(new Decimal(row.punchAt.getTime() - open.getTime()).div(60_000)); open = undefined; } } return { data: { enroll, punches: rows.length, workingHours: minutes.div(60).toFixed(2), method: 'naive in/out pairing; no RC-10 evaluation engine' } }; }
+  async attendanceSummary(tenantId: string, enroll: string, from: string, to: string) {
+    await this.ensureEnabled(tenantId);
+    /**
+     * 📅 ‏`from`/`to` معاملان موضعيّان **مطلوبان** هنا (`new Date(from)` في الاستعلام): فنصٌّ
+     * فاسدٌ أو فارغٌ كان يصير `Invalid Date` ⇒ ٥٠٠. وقِيس ٢٠٢٦-١٠-١٦: ‏`GET
+     * ‏/api/v1/hrm/attendance/summary?from=أمس` ⇒ `INTERNAL`.
+     */
+    const fromDay = parseDayParam(from, { field: 'from', labelAr: '«من تاريخ»', code: 'HRM_DATE_INVALID' });
+    const toDay = parseDayParam(to, { field: 'to', labelAr: '«إلى تاريخ»', code: 'HRM_DATE_INVALID' });
+    if (!fromDay || !toDay)
+      throw new DomainError(
+        'HRM_DATE_REQUIRED',
+        '«من تاريخ» و«إلى تاريخ» مطلوبان لحساب ملخّص الحضور — وبلاهما لا فترةَ تُحسب.',
+        422,
+        { field: 'from' },
+      );
+    const rows = await withTenantTx(this.database.db, tenantId, (tx) => tx.select().from(attendanceLogs).where(and(eq(attendanceLogs.tenantId, tenantId), eq(attendanceLogs.enroll, enroll), gte(attendanceLogs.punchAt, new Date(fromDay)), lte(attendanceLogs.punchAt, new Date(toDay)))).orderBy(attendanceLogs.punchAt)); let minutes = new Decimal(0); let open: Date | undefined; for (const row of rows) { if (row.direction === 'in') open = row.punchAt; else if (row.direction === 'out' && open) { minutes = minutes.plus(new Decimal(row.punchAt.getTime() - open.getTime()).div(60_000)); open = undefined; } } return { data: { enroll, punches: rows.length, workingHours: minutes.div(60).toFixed(2), method: 'naive in/out pairing; no RC-10 evaluation engine' } }; }
 
   // ---------------------------------------------------------------------------
   // 🎁 الحوافز والجزاءات — `Form_WPF/frmEmpSalaryAddSub.xaml`
@@ -664,6 +694,9 @@ export class HrmService implements OnModuleInit {
    * that, and no name on any row.
    */
   async listAdjustments(tenantId: string, query: AdjustmentQuery = {}) {
+    /** 📅 مرشّحا التاريخ يُتحقَّق منهما قبل SQL — فقبل هذا كان نصٌّ فاسدٌ يرجع ٥٠٠ «خطأً داخليًّا» (قِيس ٢٠٢٦-١٠-١٦). */
+    validateDayFilters(query as Record<string, unknown>, FROM_TO_LABELS_AR, 'HRM_DATE_INVALID');
+
     await this.ensureEnabled(tenantId);
     const rows = await withTenantTx(this.database.db, tenantId, (tx) =>
       tx
@@ -871,6 +904,9 @@ export class HrmService implements OnModuleInit {
    * `من تاريخ`/`إلى تاريخ` unless «كل الفترة» (`chkall`) is on.
    */
   async listSalaryPayments(tenantId: string, query: SalaryPaymentQuery = {}) {
+    /** 📅 مرشّحا التاريخ يُتحقَّق منهما قبل SQL — فقبل هذا كان نصٌّ فاسدٌ يرجع ٥٠٠ «خطأً داخليًّا» (قِيس ٢٠٢٦-١٠-١٦). */
+    validateDayFilters(query as Record<string, unknown>, FROM_TO_LABELS_AR, 'HRM_DATE_INVALID');
+
     await this.ensureEnabled(tenantId);
     const responsible = alias(employees, 'responsible');
     const rows = await withTenantTx(this.database.db, tenantId, (tx) =>
@@ -1035,6 +1071,71 @@ export class HrmService implements OnModuleInit {
    * runs **per line**, so an invoice with three lines counts its total three times. The
    * footer here adds each invoice once, sales positive and returns negative.
    */
+  /**
+   * AUD-17 — تاريخ الأعمال لليوم في المنطقة الزمنية المحددة للمنشأة
+   * (`tenant_settings['locale.timezone']` ← `tenants.timezone` ← `'Asia/Riyadh'`).
+   * يمنع انزلاق التاريخ حول منتصف الليل بين UTC والتوقيت المحلي للمنشأة.
+   */
+  /**
+   * منطقةُ المنشأة الزمنية، مُتحقَّقًا منها: `tenant_settings['locale.timezone']` ←
+   * `tenants.timezone` ← `'Asia/Riyadh'`. والاسم يُرجع **منطقةً صالحة** (لا نصًّا من إعدادٍ
+   * مكتوبٍ بخطأ) لأنّ المنطقة تُستعمل في `AT TIME ZONE` داخل SQL أيضًا، ومنطقةٌ مجهولة هناك
+   * خطأُ قاعدة بيانات (‏22023) لا يومٌ ناقص.
+   */
+  private async resolveBusinessTimeZoneInTx(tx: DrizzleTx, tenantId: string): Promise<string> {
+    const [setting] = await tx
+      .select({ value: tenantSettings.value })
+      .from(tenantSettings)
+      .where(and(eq(tenantSettings.tenantId, tenantId), eq(tenantSettings.key, 'locale.timezone')))
+      .limit(1);
+    const [tenant] = await tx
+      .select({ timezone: tenants.timezone })
+      .from(tenants)
+      .where(eq(tenants.id, tenantId))
+      .limit(1);
+    const tz =
+      typeof setting?.value === 'string' && setting.value.trim()
+        ? setting.value.trim()
+        : (tenant?.timezone?.trim() || 'Asia/Riyadh');
+    try {
+      new Intl.DateTimeFormat('en-CA', { timeZone: tz }).format(new Date());
+      return tz;
+    } catch {
+      return 'Asia/Riyadh';
+    }
+  }
+
+  private async resolveBusinessTodayInTx(
+    tx: DrizzleTx,
+    tenantId: string,
+    now = new Date(),
+  ): Promise<string> {
+    return todayInTimezone(await this.resolveBusinessTimeZoneInTx(tx, tenantId), now);
+  }
+
+  /**
+   * 📅 تاريخُ «من/إلى» في حركات الموظف — يُتحقَّق منه **قبل** أن يصل إلى SQL.
+   *
+   * ما كان: النصُّ كما جاء يُرمى إلى `(${from}::date)::timestamp AT TIME ZONE …` (‏:١١٢٦)،
+   * فـ«أمس» أو `2026-2-5` أو نصٌّ فيه مسافة ⇒ خطأُ قاعدةٍ `22P02 invalid input syntax for
+   * type date` ⇒ **٥٠٠** بلا جملةٍ مقروءة — وهو خطأُ إدخالٍ يُقال ٤٢٢. وأمّا التاريخُ
+   * المستحيل (‏`2026-02-30`) فتقبله القاعدةُ بقلبه إلى مارس، أي أنّ الرقمَ يُقرأ ولا
+   * يُرفض؛ ولهذا يُقارن النصُّ بما تُنتجه `Date` من نفسها. والفراغُ يعني «اليوم» كما كان
+   * (‏`FrmEmpInvs_Loaded` L72) — فالتحقّقُ على ما كُتب لا على ما تُرك.
+   */
+  private movementDate(value: string | undefined, field: 'from' | 'to', fallback: string): string {
+    const label = field === 'from' ? '«من تاريخ»' : '«إلى تاريخ»';
+    /**
+     * والفحصُ من المسطرة المشتركة (`common/date-param.ts`) لا مكتوبٌ هنا مرّتين — وأمّا
+     * الرمزُ (`HRM_MOVEMENTS_DATE_INVALID`) والتسميةُ فخاصّان بهذا المسار كي تبقى رسائلُه
+     * وأحكامُه (‏`employee-movements.spec.ts`) كما هي.
+     */
+    return (
+      parseDayParam(value, { field, labelAr: label, code: 'HRM_MOVEMENTS_DATE_INVALID' }) ??
+      fallback
+    );
+  }
+
   async employeeMovements(tenantId: string, query: EmployeeMovementsQuery = {}) {
     await this.ensureEnabled(tenantId);
     const employeeId = query.employeeId;
@@ -1047,10 +1148,41 @@ export class HrmService implements OnModuleInit {
     }
 
     // «من تاريخ»/«إلى تاريخ» open on today (`FrmEmpInvs_Loaded` L72) and «إلى» is inside.
-    const today = new Date().toISOString().slice(0, 10);
-    const from = query.from ?? today;
-    const to = query.to ?? today;
+    const timeZone = await withTenantTx(this.database.db, tenantId, (tx) =>
+      this.resolveBusinessTimeZoneInTx(tx, tenantId),
+    );
+    const today = todayInTimezone(timeZone);
+    const from = this.movementDate(query.from, 'from', today);
+    const to = this.movementDate(query.to, 'to', today);
+    /**
+     * مدىً مقلوبٌ **يُرفض** ولا يُقرأ فارغًا: فـ«من ٢٠٢٦‑١٠‑٢٠ إلى ٢٠٢٦‑١٠‑١٠» ليس يومًا
+     * بلا حركات بل خطأُ إدخال، و«لا نتائج» جوابٌ يُخفيه — وهو الحكمُ نفسه في تقارير
+     * التوزيع (`VAN_REPORT_RANGE_INVERTED`). وتاريخا ISO يُقارنان نصيًّا فيصحّ الترتيب.
+     */
+    if (from > to)
+      throw new DomainError(
+        'HRM_MOVEMENTS_RANGE_INVERTED',
+        `مدى حركات الموظف مقلوب: «من» ${from} بعد «إلى» ${to}.`,
+        422,
+        { field: 'from' },
+      );
     const movementType = query.movementType ?? 'all';
+    /**
+     * 📅 تاريخُ الحركة **بتقويم المنشأة**، وحدّا المدى كذلك.
+     *
+     * ما كان: المدى الافتراضيّ يومُ أعمال المنشأة (‏`resolveBusinessTodayInTx`)، أمّا الصفوف
+     * فتُؤرَّخ بـ`posted_at::date` — أي بتقويم **جلسة قاعدة البيانات (UTC)**. وبين ٢١:٠٠ و٢٤:٠٠
+     * بتوقيت غرينتش (‏٠٠:٠٠–٠٣:٠٠ في الرياض) يختلف اليومان، فنافذةُ «حركات الموظف» تُفتح على
+     * غدٍ ليس فيه صفوف: فاتورةٌ مُرحَّلة الساعة ٠٠:١٥ بتوقيت المنشأة لا تظهر في كشف اليوم نفسه
+     * حتى الثالثة صباحًا. وقِيس هذا فعلًا: ‏٨ أحكامٍ في `employee-movements.spec.ts` سقطت في
+     * ٢٠٢٦-١٠-١٥ ٢١:٤٣ UTC لأنّ الخادم أرجع `2026-10-16` والصفوفُ مؤرَّخة `2026-10-15`.
+     *
+     * والحدّان `>= from 00:00` و`< to+1 00:00` بتوقيت المنشأة (لا `::date <= to`) فيبقيان
+     * الفهرسَ صالحًا للاستعمال، و«إلى» داخلَ المدى كما كانت.
+     */
+    const movementDay = sql<string>`to_char((${salesInvoices.postedAt} AT TIME ZONE ${timeZone}), 'YYYY-MM-DD')`;
+    const fromBoundary = sql`(${from}::date)::timestamp AT TIME ZONE ${timeZone}`;
+    const toBoundary = sql`((${to}::date + INTERVAL '1 day'))::timestamp AT TIME ZONE ${timeZone}`;
 
     const rows = await withTenantTx(this.database.db, tenantId, (tx) =>
       tx
@@ -1058,7 +1190,7 @@ export class HrmService implements OnModuleInit {
           invoiceId: salesInvoices.id,
           number: salesInvoices.number,
           kind: salesInvoices.kind,
-          date: sql<string>`${salesInvoices.postedAt}::date`,
+          date: movementDay,
           total: salesInvoices.total,
           isPos: sql<boolean>`(${salesInvoices.orderType} IS NOT NULL OR ${salesInvoices.shiftId} IS NOT NULL)`,
           orderType: salesInvoices.orderType,
@@ -1086,13 +1218,13 @@ export class HrmService implements OnModuleInit {
               : movementType === 'returns'
                 ? eq(salesInvoices.kind, 'sale_return')
                 : inArray(salesInvoices.kind, ['sale', 'sale_return']),
-            gte(sql`${salesInvoices.postedAt}::date`, from),
-            lte(sql`${salesInvoices.postedAt}::date`, to),
+            gte(salesInvoices.postedAt, fromBoundary),
+            lt(salesInvoices.postedAt, toBoundary),
             employeeId ? eq(salesInvoices.salesmanId, employeeId) : isNotNull(salesInvoices.salesmanId),
             query.branchId ? eq(salesInvoices.branchId, query.branchId) : undefined,
           ),
         )
-        .orderBy(asc(sql`${salesInvoices.postedAt}::date`), asc(salesInvoices.number), asc(salesInvoiceLines.lineNo)));
+        .orderBy(asc(movementDay), asc(salesInvoices.number), asc(salesInvoiceLines.lineNo)));
 
     const movements: EmployeeMovementRow[] = [];
     const seen = new Set<string>();
@@ -1415,8 +1547,133 @@ export class HrmService implements OnModuleInit {
   async createRun(tenantId: string, input: RunInput) { const preview = await this.preview(tenantId, input); const id = newId(); await withTenantTx(this.database.db, tenantId, async (tx) => { await tx.insert(payrollRuns).values({ id, tenantId, yearMonth: input.yearMonth, periodId: input.periodId, currency: input.currency ?? 'SAR', summary: { preview: preview.data } }); if (preview.data.lines.length) await tx.insert(payrollRunLines).values(preview.data.lines.map((line, index) => ({ runId: id, lineNo: index + 1, tenantId, employeeId: line.employeeId, components: line.components, additions: line.additions, deductions: line.deductions, gross: line.gross, net: line.net, status: 'draft', payslipHtml: payslipHtml(input.yearMonth, line.employeeName, line.net) }))); }); return this.readRun(tenantId, id); }
   async readRun(tenantId: string, id: string) { await this.ensureEnabled(tenantId); const [run] = await withTenantTx(this.database.db, tenantId, (tx) => tx.select().from(payrollRuns).where(and(eq(payrollRuns.tenantId, tenantId), eq(payrollRuns.id, id))).limit(1)); if (!run) throw new DomainError('NOT_FOUND', 'Payroll run not found', 404); const lines = await withTenantTx(this.database.db, tenantId, (tx) => tx.select().from(payrollRunLines).where(and(eq(payrollRunLines.tenantId, tenantId), eq(payrollRunLines.runId, id))).orderBy(payrollRunLines.lineNo)); return { data: { ...run, lines } }; }
   async listRuns(tenantId: string) { await this.ensureEnabled(tenantId); return { data: await withTenantTx(this.database.db, tenantId, (tx) => tx.select().from(payrollRuns).where(eq(payrollRuns.tenantId, tenantId)).orderBy(payrollRuns.yearMonth)) }; }
-  async postRun(tenantId: string, id: string, input: PostRunInput = {}) { await this.ensureEnabled(tenantId); const current = await this.readRun(tenantId, id); if (current.data.status !== 'draft') throw new DomainError('PAYROLL_RUN_IMMUTABLE', 'Only draft payroll runs can be posted', 409); let journalEntryId = input.journalEntryId; if (!journalEntryId && input.journalLines?.length && input.branchId && (input.fiscalPeriodId ?? current.data.periodId)) { const journal = await this.accounting.postJournal(tenantId, { branchId: input.branchId, fiscalPeriodId: input.fiscalPeriodId ?? current.data.periodId!, date: new Date().toISOString().slice(0, 10), description: `Payroll ${current.data.yearMonth}`, lines: input.journalLines }); if (!journal) throw new DomainError('INTERNAL', 'Payroll journal was not created', 500); journalEntryId = journal.id; } await withTenantTx(this.database.db, tenantId, (tx) => tx.update(payrollRuns).set({ status: 'posted', journalEntryId, postedAt: new Date(), updatedAt: new Date() }).where(and(eq(payrollRuns.tenantId, tenantId), eq(payrollRuns.id, id)))); return this.readRun(tenantId, id); }
-  async payRun(tenantId: string, id: string, input: PayRunInput) { await this.ensureEnabled(tenantId); const current = await this.readRun(tenantId, id); if (current.data.status !== 'posted') throw new DomainError('PAYROLL_RUN_NOT_POSTED', 'Only posted payroll runs can be paid', 409); const payValue = sumLines(current.data.lines.map((line) => line.net)); const voucher = await this.treasury.createVoucher(tenantId, { branchId: input.branchId, kind: 'payment', subtype: 'salary', date: new Date().toISOString().slice(0, 10), cashLocationId: input.cashLocationId, method: input.method ?? 'cash', amount: payValue, netAmount: payValue, idempotencyKey: `payroll:${id}` }); const posted = voucher?.id ? await this.treasury.postVoucher(tenantId, voucher.id, { fiscalPeriodId: input.fiscalPeriodId }) : undefined; await withTenantTx(this.database.db, tenantId, (tx) => tx.update(payrollRuns).set({ status: 'paid', voucherId: posted?.id, paidAt: new Date(), updatedAt: new Date() }).where(and(eq(payrollRuns.tenantId, tenantId), eq(payrollRuns.id, id)))); return this.readRun(tenantId, id); }
+  /**
+   * AUD-10 — ترحيل المسيّر: القيد وحالة المسيّر في **معاملة واحدة**.
+   *
+   * كان المسار يقرأ المسيّر ثم يرحّل القيد بـ`accounting.postJournal` (معاملة مستقلّة)
+   * ثم يحدّث الحالة (معاملة ثانية)، فانقطاعٌ بينهما يترك قيداً بلا مسيّر مرحّل أو العكس.
+   * الآن:
+   *
+   *   • `SELECT … FOR UPDATE` على صفّ المسيّر — طلبان متزامنان يتسلسلان، والثاني يقرأ
+   *     الحالة بعد الأول؛
+   *   • القيد يُكتب بـ`postJournalInTx` داخل المعاملة نفسها؛
+   *   • التحديث النهائي مشروط بـ`status = 'draft'`، فإن كان صفٌّ قد سُبق فالمعاملة تُلغى
+   *     كاملة (بما فيها القيد) ويُعاد 409 — لا أثر جزئي إطلاقاً؛
+   *   • `idempotencyKey` على القيد (`payroll-journal:<id>`) يبقى شبكة أمانٍ إضافية على
+   *     الفهرس الفريد، فلا يتكرّر قيد المسيّر نفسه أبداً.
+   */
+  async postRun(tenantId: string, id: string, input: PostRunInput = {}) {
+    await this.ensureEnabled(tenantId);
+    await withTenantTx(this.database.db, tenantId, async (tx) => {
+      const [run] = await tx
+        .select()
+        .from(payrollRuns)
+        .where(and(eq(payrollRuns.tenantId, tenantId), eq(payrollRuns.id, id)))
+        .limit(1)
+        .for('update');
+      if (!run) throw new DomainError('NOT_FOUND', 'Payroll run not found', 404);
+      if (run.status !== 'draft')
+        throw new DomainError('PAYROLL_RUN_IMMUTABLE', 'Only draft payroll runs can be posted', 409);
+
+      let journalEntryId = input.journalEntryId;
+      if (
+        !journalEntryId &&
+        input.journalLines?.length &&
+        input.branchId &&
+        (input.fiscalPeriodId ?? run.periodId)
+      ) {
+        const businessToday = await this.resolveBusinessTodayInTx(tx, tenantId);
+        const journal = await this.accounting.postJournalInTx(tx, tenantId, {
+          branchId: input.branchId,
+          fiscalPeriodId: input.fiscalPeriodId ?? run.periodId!,
+          date: businessToday,
+          description: `Payroll ${run.yearMonth}`,
+          lines: input.journalLines,
+          sourceType: 'payroll_run',
+          sourceId: id,
+          idempotencyKey: `payroll-journal:${id}`,
+        });
+        if (!journal) throw new DomainError('INTERNAL', 'Payroll journal was not created', 500);
+        journalEntryId = journal.id;
+      }
+
+      const claimed = await tx
+        .update(payrollRuns)
+        .set({ status: 'posted', journalEntryId, postedAt: new Date(), updatedAt: new Date() })
+        .where(and(eq(payrollRuns.tenantId, tenantId), eq(payrollRuns.id, id), eq(payrollRuns.status, 'draft')))
+        .returning({ id: payrollRuns.id });
+      if (claimed.length === 0)
+        throw new DomainError('PAYROLL_RUN_IMMUTABLE', 'Only draft payroll runs can be posted', 409);
+    });
+    return this.readRun(tenantId, id);
+  }
+
+  /**
+   * AUD-10 — صرف المسيّر: إنشاء سند الخزينة + ترحيله + حالة المسيّر في **معاملة واحدة**.
+   *
+   * كانت المراحل الثلاث معاملات منفصلة؛ وفشلٌ بينها يترك سنداً مرحّلاً بلا مسيّر «مدفوع»،
+   * وإعادة المحاولة قد تنشئ سنداً ثانياً. الآن القفل صفّ المسيّر (`FOR UPDATE`) والبحث عن
+   * سندٍ سابق بالمفتاح `payroll:<id>` داخل المعاملة: إعادة المحاولة تربط **نفس** السند
+   * ولا تنشئ أثراً ثانياً، وأي فشل يُلغي المعاملة كاملة.
+   */
+  async payRun(tenantId: string, id: string, input: PayRunInput) {
+    await this.ensureEnabled(tenantId);
+    await withTenantTx(this.database.db, tenantId, async (tx) => {
+      const [run] = await tx
+        .select()
+        .from(payrollRuns)
+        .where(and(eq(payrollRuns.tenantId, tenantId), eq(payrollRuns.id, id)))
+        .limit(1)
+        .for('update');
+      if (!run) throw new DomainError('NOT_FOUND', 'Payroll run not found', 404);
+      if (run.status !== 'posted')
+        throw new DomainError('PAYROLL_RUN_NOT_POSTED', 'Only posted payroll runs can be paid', 409);
+
+      const lines = await tx
+        .select()
+        .from(payrollRunLines)
+        .where(and(eq(payrollRunLines.tenantId, tenantId), eq(payrollRunLines.runId, id)));
+      const payValue = sumLines(lines.map((line) => line.net));
+      const idempotencyKey = `payroll:${id}`;
+
+      const [existingVoucher] = await tx
+        .select()
+        .from(vouchers)
+        .where(and(eq(vouchers.tenantId, tenantId), eq(vouchers.idempotencyKey, idempotencyKey)))
+        .limit(1);
+
+      const businessToday = await this.resolveBusinessTodayInTx(tx, tenantId);
+      const voucher =
+        existingVoucher ??
+        (await this.treasury.createVoucherInTx(tx, tenantId, {
+          branchId: input.branchId,
+          kind: 'payment',
+          subtype: 'salary',
+          date: businessToday,
+          cashLocationId: input.cashLocationId,
+          method: input.method ?? 'cash',
+          amount: payValue,
+          netAmount: payValue,
+          idempotencyKey,
+        }));
+      if (!voucher) throw new DomainError('INTERNAL', 'Payroll voucher was not created', 500);
+
+      const posted =
+        voucher.status === 'posted'
+          ? voucher
+          : await this.treasury.postVoucherInTx(tx, tenantId, voucher.id, { fiscalPeriodId: input.fiscalPeriodId });
+
+      const claimed = await tx
+        .update(payrollRuns)
+        .set({ status: 'paid', voucherId: posted.id, paidAt: new Date(), updatedAt: new Date() })
+        .where(and(eq(payrollRuns.tenantId, tenantId), eq(payrollRuns.id, id), eq(payrollRuns.status, 'posted')))
+        .returning({ id: payrollRuns.id });
+      if (claimed.length === 0)
+        throw new DomainError('PAYROLL_RUN_NOT_POSTED', 'Only posted payroll runs can be paid', 409);
+    });
+    return this.readRun(tenantId, id);
+  }
+
   async reverseRun(tenantId: string, id: string, reason: string) { await this.ensureEnabled(tenantId); if (!reason.trim()) throw new DomainError('VALIDATION_FAILED', 'Reversal reason is required', 422); const current = await this.readRun(tenantId, id); if (current.data.status !== 'posted' && current.data.status !== 'paid') throw new DomainError('PAYROLL_REVERSAL_INVALID', 'Only posted or paid runs can be reversed', 409); await withTenantTx(this.database.db, tenantId, (tx) => tx.update(payrollRuns).set({ status: 'reversed', reversedAt: new Date(), reversalReason: reason, updatedAt: new Date() }).where(and(eq(payrollRuns.tenantId, tenantId), eq(payrollRuns.id, id)))); return this.readRun(tenantId, id); }
 
   /**

@@ -7,6 +7,8 @@ import { DATABASE_HANDLE } from '../../database/database.module.js';
 
 import { decryptSecret, encryptSecret } from './einvoicing.service.js';
 import { buildComplianceDocuments, failureLine, rowOf, type ComplianceCheckRow } from './zatca/compliance-check.js';
+import { buildInvoiceXml } from './zatca/ubl.js';
+import { signInvoiceXml } from './zatca/xades.js';
 import { defaultSerialNumber, generateCsr, type CsrProperties } from './zatca/csr.js';
 import { resolveGateway, type ZatcaGateway } from './zatca/gateway.js';
 
@@ -72,6 +74,8 @@ export type SettingsInput = {
   active?: boolean;
   /** Sync manual */
   syncManual?: boolean;
+  /** «منع الحفظ عند الربط الضريبي» — refuses sales drafts while the link is active. */
+  blockSaveWhenLinked?: boolean;
   /** 📅 التاريخ — `YYYY-MM-DD`. The end date is always one year later. */
   startDate?: string;
   /** 📋 خصائص شهادة CSR */
@@ -171,6 +175,7 @@ export class ZatcaOnboardingService {
         simulation: input.simulation ?? current.simulation,
         active: input.active ?? current.active,
         syncManual: input.syncManual ?? current.syncManual,
+        blockSaveWhenLinked: input.blockSaveWhenLinked ?? current.blockSaveWhenLinked,
         startDate,
         endDate: endDateOf(startDate),
         commonName: input.csr?.commonName !== undefined ? clean(input.csr.commonName) : current.commonName,
@@ -212,7 +217,7 @@ export class ZatcaOnboardingService {
    * a warning and left as it was.
    */
   async fillFromCompany(tenantId: string, authority = 'zatca') {
-    return withTenantTx(this.database.db, tenantId, async (tx) => {
+    const warnings = await withTenantTx(this.database.db, tenantId, async (tx) => {
       const [profile] = await tx.select().from(companyProfiles).where(eq(companyProfiles.tenantId, tenantId));
       const nameAr = profile?.nameAr ? String(profile.nameAr) : '';
       const taxNo = profile?.taxNo ? String(profile.taxNo) : '';
@@ -270,12 +275,22 @@ export class ZatcaOnboardingService {
         .returning();
       if (!row) throw new DomainError('EINVOICE_SETTINGS_SAVE_FAILED', 'تعذّر تعبئة خصائص الشهادة', 500);
 
-      return {
-        settings: row,
-        warnings: row.industry ? [] : ['يرجى تعبئة النشاط التجاري — بطاقة المنشأة في السحابة لا تحوي حقلاً له'],
-        message: 'تم تعبئة البيانات من بطاقة المنشأة',
-      };
+      return row.industry ? [] : ['يرجى تعبئة النشاط التجاري — بطاقة المنشأة في السحابة لا تحوي حقلاً له'];
     });
+
+    /**
+     * 🐞 الردّ كان صفَّ قاعدة البيانات الخام (`settings: row`) بينما الشاشة تقرأ
+     * `settings.settings.startDate` و`settings.csr` — أي شكل «العرض». فكان كل ضغطٍ على
+     * «تعبئة من بيانات المنشأة» يرمي `Cannot read properties of undefined (reading
+     * 'startDate')` عند السطر ٢٩٢ من الصفحة، بعد أن تنجح التعبئة في الخادم فعلاً.
+     * الردّ الآن هو نفسه الذي تُرجعه `GET /einvoice/settings` — شكلٌ واحد لا شكلان.
+     */
+    const view = await this.view(tenantId, authority);
+    return {
+      settings: view,
+      warnings,
+      message: 'تم تعبئة البيانات من بطاقة المنشأة',
+    };
   }
 
   // ── ⚡ توليد — Generate ───────────────────────────────────────────────────────────────
@@ -482,7 +497,30 @@ export class ZatcaOnboardingService {
     const csid = decryptSecret(context.credential.productionCsidEnc ?? context.credential.csidEnc!);
     const secret = decryptSecret(context.credential.productionSecretEnc ?? context.credential.secretEnc!);
 
-    const documents = buildComplianceDocuments(context.seller, 1);
+    // 🧾 كل مستند اختبار يُوقَّع قبل إرساله متى وُجد مفتاح وشهادة — والهيئة الحقيقية ترفض
+    // مستنداً غير موقَّع، فاختبارٌ بمستندٍ بلا توقيع كان سيفشل في الإنتاج لا في المحاكاة.
+    const privateKey = context.credential.privateKeyEnc ? decryptSecret(context.credential.privateKeyEnc) : null;
+    const documents = buildComplianceDocuments(context.seller, 1).map((document) => {
+      if (!privateKey) return document;
+      const signed = signInvoiceXml({
+        xml: document.xml,
+        material: { privateKeyPem: privateKey, certificate: csid },
+        qr: {
+          sellerName: context.seller.nameAr,
+          vatNo: context.seller.vatNo ?? '',
+          timestamp: document.input.issuedAt.toISOString().replace(/\.\d{3}Z$/, 'Z'),
+          grandTotal: '4.60',
+          vatTotal: '0.60',
+        },
+        signingTime: document.input.issuedAt,
+      });
+      if (!signed) return document;
+      return {
+        ...document,
+        xml: buildInvoiceXml({ ...document.input, qrPayload: signed.qrPayload, extensionBlock: signed.extensionBlock ?? undefined }),
+        hash: signed.invoiceHash,
+      };
+    });
     const checks: ComplianceCheckRow[] = [];
     for (const document of documents) {
       const verdict = await this.callGateway(() =>
@@ -606,6 +644,12 @@ export class ZatcaOnboardingService {
     try {
       return await operation();
     } catch (error) {
+      /*
+       * ليس كلُّ خطأٍ عطبَ اتصال: «يجب إنشاء CSR أولاً» و«OTP غير صالح» قراراتٌ يقولها
+       * الخادم قبل أن يمسّ الشبكة. كانت هذه الدالة تُحوّلها جميعاً إلى 502، فتقرأ الشاشة
+       * «تعذّر الاتصال» على مشكلةٍ ليست اتصالاً.
+       */
+      if (error instanceof DomainError) throw error;
       const detail = (error as { detail?: string }).detail ?? (error instanceof Error ? error.message : String(error));
       throw new DomainError('EINVOICE_GATEWAY_UNREACHABLE', `تعذّر الاتصال ببوابة هيئة الزكاة والضريبة: ${detail}`, 502);
     }
@@ -633,6 +677,7 @@ export class ZatcaOnboardingService {
         simulation: settings.simulation,
         active: settings.active,
         syncManual: settings.syncManual,
+        blockSaveWhenLinked: settings.blockSaveWhenLinked,
         startDate: settings.startDate,
         endDate: settings.endDate,
       },
@@ -663,6 +708,25 @@ export class ZatcaOnboardingService {
       },
       checklist: CHECKLIST.map((item) => ({ key: item.key, labelAr: item.labelAr, done: done[item.key] ?? false, at: at[item.key] ?? null })),
       link: { active: settings.active, canToggle: Boolean(credential) },
+      /**
+       * 🚦 أين ستذهب الفاتورة القادمة؟
+       *
+       * شهادة الإنتاج قد تكون صادرة والربط ما زال على «بيئة الامتثال»: كل فاتورةٍ تُبلَّغ
+       * عندها تذهب إلى الساندبوكس وتعود «مقبولة» بينما الهيئة لم ترها. هذا الفخّ كان
+       * صامتاً؛ الآن يُقال بالنصّ في الشاشة.
+       */
+      filing: (() => {
+        const hasProduction = Boolean(credential?.productionCsidEnc);
+        const goesToAuthority = hasProduction && settings.environment === 'production' && !settings.simulation;
+        const warning = !hasProduction
+          ? null
+          : settings.simulation
+            ? 'وضع المحاكاة مفعّل — الفواتير لا تصل الهيئة. أطفئه من «خيارات التشغيل» بعد إصدار شهادة الإنتاج.'
+            : settings.environment !== 'production'
+              ? 'شهادة الإنتاج صادرة لكن نوع الربط ما زال «بيئة الامتثال» — الفواتير تذهب إلى الساندبوكس ولا تصل الهيئة. بدّل إلى «ربط فعلي (Production)».'
+              : null;
+        return { hasProductionCredential: hasProduction, goesToAuthority, warning };
+      })(),
     };
   }
 

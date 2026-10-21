@@ -33,6 +33,7 @@ import {
   assertSignable,
   loginDecision,
   newOtp,
+  nextOtpAttempt,
   newSecret,
   respondToRfq,
   scopeToken,
@@ -65,6 +66,8 @@ function ruleMessage(code: string, fallback: string): string {
       return 'ارسم التوقيع قبل الإرسال';
     case 'OTP_INVALID':
       return 'رمز التحقق غير صحيح';
+    case 'OTP_LOCKED':
+      return 'تجاوزت عدد المحاولات المسموح — اطلب رابط توقيع جديداً';
     default:
       return fallback;
   }
@@ -126,7 +129,7 @@ export class SupplierPortalService {
     if (!EMAIL.test(email) || email.length > 200) throw new DomainError('EMAIL_INVALID', 'أدخل بريداً صالحاً', 422);
     const supplied = input.password?.trim() ?? '';
     const secret = supplied || temporaryPassword();
-    this.passwords.assertPolicy(secret, { email });
+    await this.passwords.assertPolicy(secret, { email });
     const passwordHash = await this.passwords.hash(secret);
     return withTenantTx(this.database.db, tenantId, async (tx) => {
       const [party] = await tx
@@ -483,10 +486,44 @@ export class SupplierPortalService {
     const parsed = splitScopedToken(token);
     if (!parsed) throw new DomainError('NOT_FOUND', 'رابط التوقيع غير موجود', 404);
     if (input.signatureData.length > 150_000) throw new DomainError('SIGNATURE_TOO_LARGE', 'التوقيع أكبر من الحد المسموح', 422);
-    return withTenantTx(this.database.db, parsed.tenantId, async (tx) => {
+    /**
+     * SH-06 — الرمز يُتحقق منه تحت قفل الصفّ، والمحاولة الخاطئة تُحتسب في القاعدة.
+     *
+     * ستةُ أرقامٍ = 10^6 احتمال، والرابط سبعة أيام: بلا هذا العدّاد تبقى الحماية سقفَ
+     * IP فقط (~100 ألف محاولة في الأسبوع). وعند بلوغ السقف تصير الحالة `locked` وتسقط
+     * المحاولات التالية بـ423 قبل مقارنة الرمز أصلاً — فلا يُقاس التخمين بالزمن.
+     *
+     * والرفض يُرمى **بعد** الالتزام لا داخله: رميُ الخطأ داخل المعاملة يُلغيها، فيُمحى
+     * العدّاد الذي كُتب للتوّ ويبقى الطلب قابلاً للتخمين إلى الأبد. فتعيد المعاملة قراراً
+     * (`denied`) ثم يُرمى الخطأ خارجها بعد أن يُحفظ الأثر.
+     */
+    const outcome = await withTenantTx(this.database.db, parsed.tenantId, async (tx) => {
       const request = await this.lockEsign(tx, parsed.tenantId, parsed.secret);
       asDomain(() => assertSignable({ status: request.status, expiresAt: iso(request.expiresAt) }, new Date()));
-      asDomain(() => acceptSignature({ otp: input.otp, expectedOtpHash: request.otpHash, signatureData: input.signatureData }));
+
+      try {
+        asDomain(() => acceptSignature({ otp: input.otp, expectedOtpHash: request.otpHash, signatureData: input.signatureData }));
+      } catch (error) {
+        if (!(error instanceof DomainError) || error.code !== 'OTP_INVALID') throw error;
+        const next = nextOtpAttempt(Number(request.otpAttempts ?? 0), env.ESIGN_OTP_MAX_ATTEMPTS);
+        await tx
+          .update(esignRequests)
+          .set({ otpAttempts: next.attempts, ...(next.locked ? { status: 'locked' as const } : {}) })
+          .where(and(eq(esignRequests.tenantId, parsed.tenantId), eq(esignRequests.id, request.id)));
+        await tx.insert(esignEvents).values({
+          id: newId(),
+          tenantId: parsed.tenantId,
+          requestId: request.id,
+          event: next.locked ? 'locked' : 'otp_failed',
+          ip: ip ?? null,
+        });
+        return {
+          kind: 'denied' as const,
+          locked: next.locked,
+          remaining: Math.max(0, env.ESIGN_OTP_MAX_ATTEMPTS - next.attempts),
+        };
+      }
+
       const signedAt = new Date();
       const fileId = newId();
       const pdf = signedPdf({ number: request.entityId.slice(0, 8), signer: request.signerEmail, signedAt: signedAt.toISOString() });
@@ -524,8 +561,23 @@ export class SupplierPortalService {
           payload: { requestId: request.id, entityId: request.entityId, signerEmail: request.signerEmail },
         });
       }
-      return { status: 'signed' as const, signedFileId: fileId, signedAt: signedAt.toISOString() };
+      return {
+        kind: 'signed' as const,
+        status: 'signed' as const,
+        signedFileId: fileId,
+        signedAt: signedAt.toISOString(),
+      };
     });
+
+    if (outcome.kind === 'denied') {
+      throw new DomainError(
+        outcome.locked ? 'OTP_LOCKED' : 'OTP_INVALID',
+        outcome.locked ? ruleMessage('OTP_LOCKED', '') : ruleMessage('OTP_INVALID', ''),
+        outcome.locked ? 423 : 422,
+        { field: 'otp', message: String(outcome.remaining), remainingAttempts: outcome.remaining },
+      );
+    }
+    return { status: outcome.status, signedFileId: outcome.signedFileId, signedAt: outcome.signedAt };
   }
 
   async signedPdfOf(token: string) {
@@ -574,12 +626,14 @@ export class SupplierPortalService {
       status: EsignStatus;
       expiresAt: string | Date;
       otpHash: string;
+      otpAttempts: number;
       payload: string;
       signedPdf: Buffer | null;
       createdByMembershipId: string | null;
     }>(await tx.execute(sql`
       SELECT id, entity_type AS "entityType", entity_id AS "entityId", signer_name AS "signerName",
              signer_email AS "signerEmail", status, expires_at AS "expiresAt", otp_hash AS "otpHash",
+             otp_attempts AS "otpAttempts",
              payload, signed_pdf AS "signedPdf", created_by_membership_id AS "createdByMembershipId"
         FROM esign_requests
        WHERE tenant_id = ${tenantId}::uuid AND token_hash = ${sha256(secret)}

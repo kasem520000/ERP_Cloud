@@ -2,16 +2,32 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
+import { Panel } from '@erp/ui';
 
 import { DataTable, Notice, QueryView } from '../../../components/data-view';
 import { Screen } from '../../../components/screen';
-import { ApiError, apiData, apiList, apiPost } from '../../../lib/api';
+import { apiData, apiErrorText, apiList, apiPost } from '../../../lib/api';
 import { listPeriods, money, periodRange, statusLabel, type FiscalPeriod } from '../../../lib/lookups';
 import { useSession } from '../../../lib/session';
 import { useQuery } from '../../../lib/use-query';
 
-type Run = { id: string; yearMonth: string; status: string; currency: string; periodId: string | null; postedAt: string | null; paidAt: string | null };
-type PreviewLine = { employeeId: string; employeeName: string; gross: string; additions: string; deductions: string; net: string };
+type Run = {
+  id: string;
+  yearMonth: string;
+  status: string;
+  currency: string;
+  periodId: string | null;
+  postedAt: string | null;
+  paidAt: string | null;
+};
+type PreviewLine = {
+  employeeId: string;
+  employeeName: string;
+  gross: string;
+  additions: string;
+  deductions: string;
+  net: string;
+};
 type Preview = { lines: PreviewLine[] };
 
 const currentMonth = () => new Date().toISOString().slice(0, 7);
@@ -35,7 +51,7 @@ export default function PayrollPage() {
       setNotice({ kind: 'ok', text: okText });
       runs.reload();
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
     } finally {
       setBusy(false);
     }
@@ -49,12 +65,16 @@ export default function PayrollPage() {
       subtitle="احسب مسيّر الشهر من بطاقات الموظفين والحوافز المعتمدة، ثم رحّله واصرفه."
       crumbs={['الموظفين والرواتب', 'العمليات']}
     >
-      <div className="card">
-        <h2>مسيّر جديد</h2>
+      <Panel title="مسيّر جديد">
         <div className="form-grid">
           <label className="field">
             <span>الشهر (YYYY-MM)</span>
-            <input className="input" dir="ltr" value={yearMonth} onChange={(event) => setYearMonth(event.target.value)} />
+            <input
+              className="input"
+              dir="ltr"
+              value={yearMonth}
+              onChange={(event) => setYearMonth(event.target.value)}
+            />
           </label>
           <label className="field">
             <span>الفترة المحاسبية</span>
@@ -64,7 +84,7 @@ export default function PayrollPage() {
                 const range = periodRange(period);
                 return (
                   <option key={period.id} value={period.id}>
-                    {`${period.name} (${range.from} → ${range.to})`}
+                    {`${period.name} (${range.from} ${range.to})`}
                   </option>
                 );
               })}
@@ -80,7 +100,10 @@ export default function PayrollPage() {
             disabled={busy}
             onClick={() =>
               run(async () => {
-                const result = await apiData<Preview>('/hrm/payroll/preview', { method: 'POST', body: JSON.stringify({ yearMonth }) });
+                const result = await apiData<Preview>('/hrm/payroll/preview', {
+                  method: 'POST',
+                  body: JSON.stringify({ yearMonth }),
+                });
                 setPreview(result);
               }, 'تم احتساب المعاينة.')
             }
@@ -92,17 +115,21 @@ export default function PayrollPage() {
               className="btn primary"
               type="button"
               disabled={busy}
-              onClick={() => run(() => apiPost('/hrm/payroll/runs', { yearMonth, periodId: periodId || undefined }), 'تم إنشاء المسيّر كمسودة.')}
+              onClick={() =>
+                run(
+                  () => apiPost('/hrm/payroll/runs', { yearMonth, periodId: periodId || undefined }),
+                  'تم إنشاء المسيّر كمسودة.',
+                )
+              }
             >
               إنشاء المسيّر
             </button>
           )}
         </div>
-      </div>
+      </Panel>
 
       {preview && (
-        <div className="card">
-          <h2>معاينة {yearMonth}</h2>
+        <Panel title={<>معاينة {yearMonth}</>} flush>
           {preview.lines.length === 0 ? (
             <p className="muted">لا يوجد موظفون نشطون لاحتساب رواتبهم.</p>
           ) : (
@@ -114,7 +141,12 @@ export default function PayrollPage() {
                   { key: 'name', header: 'الموظف', cell: (row) => row.employeeName },
                   { key: 'gross', header: 'الإجمالي', align: 'num', cell: (row) => money(row.gross) },
                   { key: 'additions', header: 'الإضافات', align: 'num', cell: (row) => money(row.additions) },
-                  { key: 'deductions', header: 'الخصومات', align: 'num', cell: (row) => money(row.deductions) },
+                  {
+                    key: 'deductions',
+                    header: 'الخصومات',
+                    align: 'num',
+                    cell: (row) => money(row.deductions),
+                  },
                   { key: 'net', header: 'الصافي', align: 'num', cell: (row) => money(row.net) },
                 ]}
               />
@@ -126,21 +158,49 @@ export default function PayrollPage() {
               </dl>
             </>
           )}
-        </div>
+        </Panel>
       )}
 
-      <QueryView query={runs} empty="لا توجد مسيّرات" emptyDetail="أنشئ مسيّر الشهر لاحتساب الرواتب.">
+      <QueryView
+        panel="مسيّرات الرواتب"
+        query={runs}
+        empty="لا توجد مسيّرات"
+        emptyDetail="أنشئ مسيّر الشهر لاحتساب الرواتب."
+      >
         {(rows) => (
           <DataTable
             rows={rows}
             rowKey={(row) => row.id}
             columns={[
-              { key: 'month', header: 'الشهر', align: 'ltr', cell: (row) => <Link href={`/hrm/payroll/${row.id}`}>{row.yearMonth}</Link> },
-              { key: 'status', header: 'الحالة', cell: (row) => <span className="badge">{statusLabel(row.status)}</span> },
+              {
+                key: 'month',
+                header: 'الشهر',
+                align: 'ltr',
+                cell: (row) => <Link href={`/hrm/payroll/${row.id}`}>{row.yearMonth}</Link>,
+              },
+              {
+                key: 'status',
+                header: 'الحالة',
+                cell: (row) => <span className="badge">{statusLabel(row.status)}</span>,
+              },
               { key: 'currency', header: 'العملة', align: 'ltr', cell: (row) => row.currency },
-              { key: 'posted', header: 'مُرحّل', align: 'ltr', cell: (row) => (row.postedAt ? row.postedAt.slice(0, 10) : '—') },
-              { key: 'paid', header: 'مدفوع', align: 'ltr', cell: (row) => (row.paidAt ? row.paidAt.slice(0, 10) : '—') },
-              { key: 'wps', header: 'حماية الأجور', cell: (row) => <Link href={`/hrm/payroll/${row.id}/wps`}>تصدير</Link> },
+              {
+                key: 'posted',
+                header: 'مُرحّل',
+                align: 'ltr',
+                cell: (row) => (row.postedAt ? row.postedAt.slice(0, 10) : '—'),
+              },
+              {
+                key: 'paid',
+                header: 'مدفوع',
+                align: 'ltr',
+                cell: (row) => (row.paidAt ? row.paidAt.slice(0, 10) : '—'),
+              },
+              {
+                key: 'wps',
+                header: 'حماية الأجور',
+                cell: (row) => <Link href={`/hrm/payroll/${row.id}/wps`}>تصدير</Link>,
+              },
             ]}
           />
         )}

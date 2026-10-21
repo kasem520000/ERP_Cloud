@@ -57,9 +57,17 @@ type TenantRow = {
   platform_suspended: boolean;
   provider: string | null;
   model: string | null;
+  api_key_enc: string | null;
+  base_url: string | null;
   monthly_token_limit: number | null;
   monthly_cost_limit: string | null;
 };
+
+function maskSecretKey(raw: string | undefined): string | null {
+  if (!raw) return null;
+  if (raw.length <= 8) return '••••••••';
+  return `${raw.slice(0, 4)}••••${raw.slice(-4)}`;
+}
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const articlesCache: { value?: HelpArticle[] } = {};
@@ -72,7 +80,15 @@ function rowsOf<T>(result: unknown): T[] {
 
 function asProvider(value: unknown, allowEmpty: boolean): AiProviderName | null {
   if (value === null || value === undefined || value === '') return allowEmpty ? null : 'local';
-  if (value === 'openai' || value === 'anthropic' || value === 'local') return value;
+  if (
+    value === 'openai' ||
+    value === 'anthropic' ||
+    value === 'gemini' ||
+    value === 'custom' ||
+    value === 'local'
+  ) {
+    return value;
+  }
   throw new DomainError(errorCodes.VALIDATION_FAILED, 'مزود غير مدعوم', 422);
 }
 
@@ -225,9 +241,13 @@ export class AiService {
       effectiveProvider: gate.apiKey || gate.provider === 'local' ? gate.provider : 'local',
       model: gate.tenantModel,
       effectiveModel: gate.model,
+      baseUrl: gate.tenantBaseUrl,
+      effectiveBaseUrl: gate.baseUrl,
       monthlyTokenLimit: gate.tenantTokenLimit,
       monthlyCostLimit: gate.tenantCostLimit,
       hasPlatformKey: Boolean(gate.apiKey),
+      hasTenantApiKey: gate.hasTenantApiKey,
+      apiKeyMasked: gate.apiKeyMasked,
       usage: {
         tokens: gate.usage.tokensUsed,
         spent: gate.usage.costUsed,
@@ -242,22 +262,74 @@ export class AiService {
     const enabled = input.enabled === undefined ? true : Boolean(input.enabled);
     const provider = asProvider(input.provider, true);
     const model = input.model === null || input.model === undefined || input.model === '' ? null : String(input.model).slice(0, 80);
+    const baseUrl =
+      input.baseUrl === null || input.baseUrl === undefined || input.baseUrl === ''
+        ? null
+        : cleanBaseUrl(String(input.baseUrl));
     const monthlyTokenLimit = asLimit(input.monthlyTokenLimit);
     const monthlyCostLimit = asMoneyCap(input.monthlyCostLimit);
-    await withTenantTx(this.database.db, tenantId, (tx) =>
-      tx.execute(sql`
-        INSERT INTO ai_settings (tenant_id, enabled, provider, model, monthly_token_limit, monthly_cost_limit, updated_at)
-        VALUES (${tenantId}::uuid, ${enabled}, ${provider}, ${model}, ${monthlyTokenLimit}, ${monthlyCostLimit}, now())
+
+    await withTenantTx(this.database.db, tenantId, async (tx) => {
+      const currentRes = await tx.execute(sql`
+        SELECT api_key_enc, base_url FROM ai_settings WHERE tenant_id = ${tenantId}::uuid LIMIT 1
+      `);
+      const current = rowsOf<{ api_key_enc: string | null; base_url: string | null }>(currentRes)[0];
+      let sealedKey = current?.api_key_enc ?? null;
+      if (input.clearApiKey === true) {
+        sealedKey = null;
+      } else if (typeof input.apiKey === 'string' && input.apiKey.trim()) {
+        sealedKey = sealSecret(input.apiKey.trim());
+      }
+      const nextBaseUrl = input.baseUrl === undefined ? (current?.base_url ?? null) : baseUrl;
+
+      await tx.execute(sql`
+        INSERT INTO ai_settings (
+          tenant_id, enabled, provider, model, api_key_enc, base_url,
+          monthly_token_limit, monthly_cost_limit, updated_at
+        )
+        VALUES (
+          ${tenantId}::uuid, ${enabled}, ${provider}, ${model}, ${sealedKey}, ${nextBaseUrl},
+          ${monthlyTokenLimit}, ${monthlyCostLimit}, now()
+        )
         ON CONFLICT (tenant_id) DO UPDATE SET
           enabled = EXCLUDED.enabled,
           provider = EXCLUDED.provider,
           model = EXCLUDED.model,
+          api_key_enc = EXCLUDED.api_key_enc,
+          base_url = EXCLUDED.base_url,
           monthly_token_limit = EXCLUDED.monthly_token_limit,
           monthly_cost_limit = EXCLUDED.monthly_cost_limit,
           updated_at = now()
-      `),
-    );
+      `);
+    });
     return this.settingsView(tenantId);
+  }
+
+  async testConnection(tenantId: string) {
+    const gate = await this.gate(tenantId);
+    const startedAt = Date.now();
+    const port = createLlmPort({
+      provider: gate.apiKey || gate.provider === 'local' ? gate.provider : 'local',
+      model: gate.model,
+      apiKey: gate.apiKey,
+      baseUrl: gate.baseUrl,
+    });
+    let reply = '';
+    for await (const chunk of port.complete({
+      system: 'أنت مساعد محاسبي ذكي في نظام ERP سحابي. أجب باختصار باللغة العربية.',
+      user: 'اختبار اتصال API للمساعد الذكي.',
+      grounded: 'الاتصال بالمساعد الذكي يعمل بنجاح ومربوط ببيانات المنشأة.',
+    })) {
+      if (chunk.type === 'done') reply = chunk.text;
+    }
+    return {
+      ok: true,
+      provider: gate.apiKey || gate.provider === 'local' ? gate.provider : 'local',
+      model: gate.model,
+      hasApiKey: Boolean(gate.apiKey),
+      latencyMs: Date.now() - startedAt,
+      reply,
+    };
   }
 
   async suggest(tenantId: string) {
@@ -373,7 +445,8 @@ export class AiService {
     const platform = await this.readPlatform();
     const tenantResult = await withTenantTx(this.database.db, tenantId, (tx) =>
       tx.execute(sql`
-        SELECT enabled, platform_suspended, provider, model, monthly_token_limit, monthly_cost_limit::text
+        SELECT enabled, platform_suspended, provider, model, api_key_enc, base_url,
+               monthly_token_limit, monthly_cost_limit::text
         FROM ai_settings
         WHERE tenant_id = ${tenantId}::uuid
         LIMIT 1
@@ -390,11 +463,16 @@ export class AiService {
     const tenant = rowsOf<TenantRow>(tenantResult)[0];
     const usageRow = rowsOf<{ tokens: number; spent: string }>(usageResult)[0];
     const provider = (tenant?.provider as AiProviderName | null) || (platform?.provider as AiProviderName | undefined) || env.AI_PROVIDER || 'local';
-    const safeProvider: AiProviderName = provider === 'openai' || provider === 'anthropic' ? provider : 'local';
+    const safeProvider: AiProviderName =
+      provider === 'openai' || provider === 'anthropic' || provider === 'gemini' || provider === 'custom'
+        ? provider
+        : 'local';
     const tokenLimit = tenant?.monthly_token_limit ?? platform?.default_monthly_token_limit ?? 200000;
     const suspended = tenant?.platform_suspended === true;
     const platformEnabled = platform?.enabled !== false;
     const tenantEnabled = tenant?.enabled !== false;
+    const tenantApiKey = tenant?.api_key_enc ? openKey(tenant.api_key_enc) : undefined;
+    const effectiveApiKey = tenantApiKey ?? openKey(platform?.api_key_enc ?? null);
     let reason = '';
     if (!platformEnabled) reason = 'المساعد متوقف من المنصة.';
     else if (suspended) reason = 'أوقف مشغّل المنصة المساعد لهذه المنشأة.';
@@ -404,8 +482,11 @@ export class AiService {
       reason,
       provider: safeProvider,
       model: tenant?.model || platform?.model || env.AI_MODEL || 'local-grounded',
-      apiKey: openKey(platform?.api_key_enc ?? null),
-      baseUrl: platform?.base_url || env.AI_BASE_URL || '',
+      apiKey: effectiveApiKey,
+      hasTenantApiKey: Boolean(tenant?.api_key_enc),
+      apiKeyMasked: maskSecretKey(tenantApiKey ?? effectiveApiKey),
+      tenantBaseUrl: tenant?.base_url ?? null,
+      baseUrl: tenant?.base_url || platform?.base_url || env.AI_BASE_URL || '',
       perMillionIn: platform?.cost_per_million_in ?? '0',
       perMillionOut: platform?.cost_per_million_out ?? '0',
       tenantEnabled,

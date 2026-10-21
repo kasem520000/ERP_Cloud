@@ -1,15 +1,23 @@
 'use client';
 
 import { useState } from 'react';
+import { Panel } from '@erp/ui';
 
 import { DataTable, Notice, QueryView } from '../../../components/data-view';
 import { FormFields, type FormValues } from '../../../components/directory';
 import { Screen } from '../../../components/screen';
-import { ApiError, apiData, apiPatch, apiPost } from '../../../lib/api';
+import { apiData, apiErrorText, apiPatch, apiPost } from '../../../lib/api';
 import { arabicName, dateTime, listBranches, type Branch } from '../../../lib/lookups';
 import { useQuery } from '../../../lib/use-query';
 
-type Device = { id: string; name: string; branchId: string; status: string; lastSeenAt: string | null; createdAt: string };
+type Device = {
+  id: string;
+  name: string;
+  branchId: string;
+  status: string;
+  lastSeenAt: string | null;
+  createdAt: string;
+};
 
 /**
  * Device registry for the Android/desktop clients.
@@ -33,13 +41,16 @@ export default function SyncDevicesPage() {
     setNotice(undefined);
     setIssuedKey(null);
     try {
-      const created = await apiPost<{ data: { apiKey: string } }>('/compat/devices', { name: String(values.name), branchId: String(values.branchId) });
-      setIssuedKey(created.data.apiKey);
+      const created = await apiPost<{ apiKey?: string; data?: { apiKey: string } }>('/compat/devices', {
+        name: String(values.name),
+        branchId: String(values.branchId),
+      });
+      setIssuedKey(created.apiKey ?? created.data?.apiKey ?? null);
       setValues({ name: '', branchId: String(values.branchId) });
       setNotice({ kind: 'ok', text: 'تم إنشاء الجهاز. انسخ المفتاح الآن — لن يُعرض مرة أخرى.' });
       devices.reload();
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
     } finally {
       setBusy(false);
     }
@@ -52,7 +63,7 @@ export default function SyncDevicesPage() {
       setNotice({ kind: 'ok', text: `تم إيقاف الجهاز ${device.name}.` });
       devices.reload();
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
     } finally {
       setBusy(false);
     }
@@ -64,35 +75,64 @@ export default function SyncDevicesPage() {
       subtitle="كل جهاز يُصدر له مفتاح API خاص بفرع واحد، ويمكن إيقافه فوراً عند فقدانه."
       crumbs={['الإعدادات', 'المزامنة']}
     >
-      <form className="card" onSubmit={createDevice}>
-        <h3>جهاز جديد</h3>
-        <FormFields
-          fields={[
-            { name: 'name', label: 'اسم الجهاز', required: true, placeholder: 'كاشير الفرع الرئيسي' },
-            { name: 'branchId', label: 'الفرع', type: 'select', required: true, options: branchRows.map((row) => ({ id: row.id, label: arabicName(row) })) },
-          ]}
-          values={values}
-          onChange={setValues}
-        />
-        <button className="btn primary" type="submit" disabled={busy || !values.name || !values.branchId}>
-          {busy ? 'جارٍ الإنشاء…' : 'إنشاء وإصدار مفتاح'}
-        </button>
-        <Notice notice={notice} />
-        {issuedKey ? (
-          <p className="alert ok" dir="ltr">
-            <code>{issuedKey}</code>
-          </p>
-        ) : null}
+      <form onSubmit={createDevice}>
+        <Panel title="جهاز جديد">
+          <FormFields
+            fields={[
+              { name: 'name', label: 'اسم الجهاز', required: true, placeholder: 'كاشير الفرع الرئيسي' },
+              {
+                name: 'branchId',
+                label: 'الفرع',
+                type: 'select',
+                required: true,
+                options: branchRows.map((row) => ({ id: row.id, label: arabicName(row) })),
+              },
+            ]}
+            values={values}
+            onChange={setValues}
+          />
+          <button className="btn primary" type="submit" disabled={busy || !values.name || !values.branchId}>
+            {busy ? 'جارٍ الإنشاء…' : 'إنشاء وإصدار مفتاح'}
+          </button>
+          <Notice notice={notice} />
+          {issuedKey ? (
+            <p className="alert ok" dir="ltr">
+              <code>{issuedKey}</code>
+            </p>
+          ) : null}
+        </Panel>
       </form>
 
-      <QueryView query={devices} empty="لا توجد أجهزة" emptyDetail="أنشئ جهازاً لتتمكن تطبيقات الكاشير من المزامنة.">
+      <QueryView
+        wrapEmpty={(node) => (
+          <Panel title="الأجهزة المرتبطة" flush>
+            {node}
+          </Panel>
+        )}
+        query={devices}
+        empty="لا توجد أجهزة"
+        emptyDetail="أنشئ جهازاً لتتمكن تطبيقات الكاشير من المزامنة."
+      >
         {(rows) => (
-          <div className="card">
+          <Panel
+            title="الأجهزة المسجَّلة"
+            hint="يُعرض المفتاح مرة واحدة عند الإنشاء؛ إيقاف الجهاز يمنع المزامنة فوراً."
+            flush
+          >
             <DataTable
               columns={[
                 { key: 'name', header: 'الجهاز', cell: (row: Device) => row.name },
-                { key: 'branch', header: 'الفرع', cell: (row: Device) => arabicName(branchRows.find((branch) => branch.id === row.branchId) ?? { code: '—' }) },
-                { key: 'status', header: 'الحالة', cell: (row: Device) => (row.status === 'active' ? 'نشط' : 'موقوف') },
+                {
+                  key: 'branch',
+                  header: 'الفرع',
+                  cell: (row: Device) =>
+                    arabicName(branchRows.find((branch) => branch.id === row.branchId) ?? { code: '—' }),
+                },
+                {
+                  key: 'status',
+                  header: 'الحالة',
+                  cell: (row: Device) => (row.status === 'active' ? 'نشط' : 'موقوف'),
+                },
                 { key: 'seen', header: 'آخر اتصال', cell: (row: Device) => dateTime(row.lastSeenAt) },
                 { key: 'created', header: 'تاريخ الإنشاء', cell: (row: Device) => dateTime(row.createdAt) },
                 {
@@ -100,7 +140,12 @@ export default function SyncDevicesPage() {
                   header: '',
                   cell: (row: Device) =>
                     row.status === 'active' ? (
-                      <button type="button" className="btn sm danger" disabled={busy} onClick={() => revoke(row)}>
+                      <button
+                        type="button"
+                        className="btn sm danger"
+                        disabled={busy}
+                        onClick={() => revoke(row)}
+                      >
                         إيقاف
                       </button>
                     ) : (
@@ -111,7 +156,7 @@ export default function SyncDevicesPage() {
               rows={rows}
               rowKey={(row) => row.id}
             />
-          </div>
+          </Panel>
         )}
       </QueryView>
     </Screen>

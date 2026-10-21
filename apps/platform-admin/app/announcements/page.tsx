@@ -1,5 +1,6 @@
 'use client';
 
+import { Panel } from '@erp/ui';
 import { useState } from 'react';
 import {
   announcementAudiences,
@@ -14,6 +15,7 @@ import {
 } from '@erp/contracts';
 
 import { Empty, ErrorBox, Forbidden, Loading, Screen } from '../../components/screen';
+import { Table, type Column } from '../../components/ui/table';
 import { Tabs } from '../../components/ui';
 import { ApiError, apiData } from '../../lib/api';
 import { useQuery } from '../../lib/use-query';
@@ -55,7 +57,7 @@ const CHANNEL_LABEL: Record<AnnouncementChannel, string> = {
 };
 
 function dateTime(value: string | null | undefined): string {
-  return value ? new Date(value).toLocaleString('ar-SA') : '—';
+  return value ? new Date(value).toLocaleString('ar-SA-u-ca-gregory-nu-latn') : '—';
 }
 
 /** `datetime-local` يكتب الوقت المحلّي بلا منطقة زمنية؛ والـAPI يقرأ ISO. */
@@ -165,12 +167,91 @@ function ListTab({ onEdit }: { onEdit: (item: Announcement) => void }) {
     }
   }
 
+  const columns: Array<Column<Announcement>> = [
+    {
+      key: 'title',
+      header: 'العنوان',
+      grow: true,
+      cell: (item) => (
+        <>
+          <strong>{item.titleAr}</strong>
+          <p className="muted" style={{ margin: '2px 0 0', fontSize: 12 }}>
+            {item.titleEn}
+          </p>
+        </>
+      ),
+    },
+    {
+      key: 'status',
+      header: 'الحالة',
+      cell: (item) => (
+        <span className={`chip${item.status === 'published' ? ' on' : ''}`}>{STATUS_LABEL[item.status]}</span>
+      ),
+    },
+    {
+      key: 'audience',
+      header: 'الجمهور',
+      cell: (item) => (
+        <>
+          {AUDIENCE_LABEL[item.audience]}
+          {item.planCode ? ` · ${item.planCode}` : ''}
+          {item.tenantStatus ? ` · ${item.tenantStatus}` : ''}
+        </>
+      ),
+    },
+    {
+      key: 'channels',
+      header: 'القنوات',
+      cell: (item) => item.channels.map((channel) => CHANNEL_LABEL[channel]).join(' · '),
+    },
+    {
+      key: 'when',
+      header: 'الميعاد',
+      cell: (item) => (item.status === 'published' ? dateTime(item.publishedAt) : dateTime(item.publishAt)),
+    },
+    {
+      key: 'reach',
+      header: 'الوصول',
+      cell: (item) =>
+        `${item.stats.tenants} منشأة · ${item.stats.inApp} إشعاراً · ${item.stats.emails} بريداً · ${item.stats.reads} قراءة`,
+    },
+    {
+      key: 'actions',
+      header: '',
+      cell: (item) => (
+        <div className="row" style={{ gap: 6 }}>
+          {item.status !== 'published' && (
+            <button
+              className="btn"
+              type="button"
+              disabled={busyId === item.id}
+              onClick={() => void publish(item)}
+            >
+              نشر الآن
+            </button>
+          )}
+          {item.status !== 'published' && (
+            <button className="btn" type="button" onClick={() => onEdit(item)}>
+              تعديل
+            </button>
+          )}
+          {item.status === 'published' && (
+            <button className="btn" type="button" onClick={() => setReadsFor(item)}>
+              القراءات
+            </button>
+          )}
+        </div>
+      ),
+    },
+  ];
+
   return (
     <>
       <div className="toolbar">
         <label className="row" style={{ gap: 6, alignItems: 'center' }}>
           <span>الحالة</span>
           <select
+            className="input"
             value={status}
             onChange={(event) => setStatus(event.target.value as AnnouncementStatus | '')}
           >
@@ -185,6 +266,7 @@ function ListTab({ onEdit }: { onEdit: (item: Announcement) => void }) {
         <label className="row" style={{ gap: 6, alignItems: 'center' }}>
           <span>الجمهور</span>
           <select
+            className="input"
             value={audience}
             onChange={(event) => setAudience(event.target.value as AnnouncementAudience | '')}
           >
@@ -207,7 +289,7 @@ function ListTab({ onEdit }: { onEdit: (item: Announcement) => void }) {
         </p>
       )}
 
-      <section className="card">
+      <Panel>
         {list.status === 'loading' && <Loading rows={3} />}
         {list.status === 'forbidden' && <Forbidden />}
         {list.status === 'error' && <ErrorBox message={list.error} onRetry={list.reload} />}
@@ -215,77 +297,9 @@ function ListTab({ onEdit }: { onEdit: (item: Announcement) => void }) {
           <Empty title="لا إعلانات بعد" detail="ابدأ بـ«إعلان جديد» — النصّان (ar/en) إلزاميان قبل النشر." />
         )}
         {list.status === 'success' && (list.data?.length ?? 0) > 0 && (
-          <div className="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>العنوان</th>
-                  <th>الحالة</th>
-                  <th>الجمهور</th>
-                  <th>القنوات</th>
-                  <th>الميعاد</th>
-                  <th>الوصول</th>
-                  <th />
-                </tr>
-              </thead>
-              <tbody>
-                {(list.data ?? []).map((item) => (
-                  <tr key={item.id}>
-                    <td>
-                      <strong>{item.titleAr}</strong>
-                      <p className="muted" style={{ margin: '2px 0 0', fontSize: 12 }}>
-                        {item.titleEn}
-                      </p>
-                    </td>
-                    <td>
-                      <span className={`chip${item.status === 'published' ? ' on' : ''}`}>
-                        {STATUS_LABEL[item.status]}
-                      </span>
-                    </td>
-                    <td>
-                      {AUDIENCE_LABEL[item.audience]}
-                      {item.planCode ? ` · ${item.planCode}` : ''}
-                      {item.tenantStatus ? ` · ${item.tenantStatus}` : ''}
-                    </td>
-                    <td>{item.channels.map((channel) => CHANNEL_LABEL[channel]).join(' · ')}</td>
-                    <td>
-                      {item.status === 'published' ? dateTime(item.publishedAt) : dateTime(item.publishAt)}
-                    </td>
-                    <td>
-                      {item.stats.tenants} منشأة · {item.stats.inApp} إشعاراً · {item.stats.emails} بريداً ·{' '}
-                      {item.stats.reads} قراءة
-                    </td>
-                    <td>
-                      <div className="row" style={{ gap: 6 }}>
-                        {item.status !== 'published' && (
-                          <button
-                            className="btn"
-                            type="button"
-                            disabled={busyId === item.id}
-                            onClick={() => void publish(item)}
-                          >
-                            نشر الآن
-                          </button>
-                        )}
-                        {item.status !== 'published' && (
-                          <button className="btn" type="button" onClick={() => onEdit(item)}>
-                            تعديل
-                          </button>
-                        )}
-                        {item.status === 'published' && (
-                          <button className="btn" type="button" onClick={() => setReadsFor(item)}>
-                            القراءات
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <Table bare columns={columns} rows={list.data ?? []} rowKey={(item) => item.id} />
         )}
-      </section>
+      </Panel>
 
       {readsFor && <ReadsPanel announcement={readsFor} onClose={() => setReadsFor(null)} />}
     </>
@@ -300,8 +314,17 @@ function ReadsPanel({ announcement, onClose }: { announcement: Announcement; onC
     [announcement.id],
   );
 
+  const readColumns: Array<Column<AnnouncementReadRow>> = [
+    { key: 'tenant', header: 'المنشأة', grow: true, cell: (row) => row.tenantName },
+    { key: 'code', header: 'الرمز', ltr: true, cell: (row) => <code>{row.tenantCode}</code> },
+    { key: 'inApp', header: 'إشعارات', numeric: true, cell: (row) => row.inApp },
+    { key: 'emails', header: 'بريد', numeric: true, cell: (row) => row.emails },
+    { key: 'reads', header: 'قراءات', numeric: true, cell: (row) => row.reads },
+    { key: 'last', header: 'آخر قراءة', cell: (row) => dateTime(row.lastReadAt) },
+  ];
+
   return (
-    <section className="card">
+    <Panel>
       <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
         <h2 style={{ margin: 0 }}>القراءات — {announcement.titleAr}</h2>
         <button className="btn" type="button" onClick={onClose}>
@@ -319,36 +342,9 @@ function ReadsPanel({ announcement, onClose }: { announcement: Announcement; onC
         <Empty title="لا مستهدفين" detail="لم يطابق الاستهداف منشأةً نشطة لحظة النشر." />
       )}
       {reads.status === 'success' && (reads.data?.length ?? 0) > 0 && (
-        <div className="table-wrap">
-          <table>
-            <thead>
-              <tr>
-                <th>المنشأة</th>
-                <th>الرمز</th>
-                <th>إشعارات</th>
-                <th>بريد</th>
-                <th>قراءات</th>
-                <th>آخر قراءة</th>
-              </tr>
-            </thead>
-            <tbody>
-              {(reads.data ?? []).map((row) => (
-                <tr key={row.tenantId}>
-                  <td>{row.tenantName}</td>
-                  <td>
-                    <code>{row.tenantCode}</code>
-                  </td>
-                  <td>{row.inApp}</td>
-                  <td>{row.emails}</td>
-                  <td>{row.reads}</td>
-                  <td>{dateTime(row.lastReadAt)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <Table bare columns={readColumns} rows={reads.data ?? []} rowKey={(row) => row.tenantId} />
       )}
-    </section>
+    </Panel>
   );
 }
 
@@ -453,16 +449,22 @@ function ComposeTab({ editing, onSaved }: { editing: Announcement | null; onSave
     );
 
   return (
-    <section className="card">
+    <Panel>
       <div className="grid cols-2">
         <div className="grid">
           <label>
             العنوان (عربي)
-            <input value={titleAr} onChange={(event) => setTitleAr(event.target.value)} maxLength={200} />
+            <input
+              className="input"
+              value={titleAr}
+              onChange={(event) => setTitleAr(event.target.value)}
+              maxLength={200}
+            />
           </label>
           <label>
             Title (English)
             <input
+              className="input"
               dir="ltr"
               value={titleEn}
               onChange={(event) => setTitleEn(event.target.value)}
@@ -472,6 +474,7 @@ function ComposeTab({ editing, onSaved }: { editing: Announcement | null; onSave
           <label>
             النصّ (عربي)
             <textarea
+              className="input"
               rows={5}
               value={bodyAr}
               onChange={(event) => setBodyAr(event.target.value)}
@@ -481,6 +484,7 @@ function ComposeTab({ editing, onSaved }: { editing: Announcement | null; onSave
           <label>
             Body (English)
             <textarea
+              className="input"
               dir="ltr"
               rows={5}
               value={bodyEn}
@@ -494,6 +498,7 @@ function ComposeTab({ editing, onSaved }: { editing: Announcement | null; onSave
           <label>
             الجمهور
             <select
+              className="input"
               value={audience}
               onChange={(event) => setAudience(event.target.value as AnnouncementAudience)}
             >
@@ -509,6 +514,7 @@ function ComposeTab({ editing, onSaved }: { editing: Announcement | null; onSave
             <label>
               الباقة
               <input
+                className="input"
                 list="announcement-plans"
                 value={planCode}
                 onChange={(event) => setPlanCode(event.target.value)}
@@ -528,6 +534,7 @@ function ComposeTab({ editing, onSaved }: { editing: Announcement | null; onSave
             <label>
               حالة المنشأة
               <select
+                className="input"
                 value={tenantStatus}
                 onChange={(event) => setTenantStatus(event.target.value as AnnouncementTargetStatus)}
               >
@@ -558,6 +565,7 @@ function ComposeTab({ editing, onSaved }: { editing: Announcement | null; onSave
           <label>
             الجدولة (اتركها فارغةً للنشر اليدوي)
             <input
+              className="input"
               type="datetime-local"
               dir="ltr"
               value={publishAt}
@@ -570,7 +578,12 @@ function ComposeTab({ editing, onSaved }: { editing: Announcement | null; onSave
 
           <label>
             سبب التغيير (يُكتب في سجل التدقيق)
-            <input value={reason} onChange={(event) => setReason(event.target.value)} maxLength={300} />
+            <input
+              className="input"
+              value={reason}
+              onChange={(event) => setReason(event.target.value)}
+              maxLength={300}
+            />
           </label>
         </div>
       </div>
@@ -586,7 +599,7 @@ function ComposeTab({ editing, onSaved }: { editing: Announcement | null; onSave
         />
       </div>
 
-      <article className="card" style={{ background: 'var(--surface)' }}>
+      <Panel style={{ background: 'var(--surface)' }}>
         <strong>{preview === 'ar' ? titleAr || '—' : titleEn || '—'}</strong>
         <p dir={preview === 'ar' ? 'rtl' : 'ltr'} style={{ whiteSpace: 'pre-wrap', margin: '8px 0 0' }}>
           {preview === 'ar' ? bodyAr || '—' : bodyEn || '—'}
@@ -597,7 +610,7 @@ function ComposeTab({ editing, onSaved }: { editing: Announcement | null; onSave
           {audience === 'status' ? ` · ${tenantStatus}` : ''} ·{' '}
           {channels.map((channel) => CHANNEL_LABEL[channel]).join(' · ') || 'بلا قناة'}
         </p>
-      </article>
+      </Panel>
 
       {notice && (
         <p className={`alert ${notice.kind === 'ok' ? 'ok' : 'danger'}`} style={{ margin: 0 }}>
@@ -624,6 +637,6 @@ function ComposeTab({ editing, onSaved }: { editing: Announcement | null; onSave
           إلغاء
         </button>
       </div>
-    </section>
+    </Panel>
   );
 }

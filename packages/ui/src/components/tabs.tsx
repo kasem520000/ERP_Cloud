@@ -46,7 +46,7 @@ export function Tabs({ items, value, onChange, className = '', label = 'أقسا
               'focus-visible:ring-4 focus-visible:ring-brand/20 focus-visible:outline-none',
               'disabled:cursor-not-allowed disabled:opacity-55',
               active
-                ? 'border-brand text-brand'
+                ? 'border-gold text-ink'
                 : 'border-transparent text-muted hover:border-line-strong hover:text-ink',
             )}
           >
@@ -87,7 +87,7 @@ export function SegmentedTabs({
       role="radiogroup"
       aria-label={label}
       className={cn(
-        'inline-flex items-center gap-0.5 rounded-md border border-line bg-surface-2 p-0.5',
+        'inline-flex items-center gap-0.5 rounded-lg border border-line bg-surface-2 p-0.5 shadow-1',
         className,
       )}
     >
@@ -106,7 +106,7 @@ export function SegmentedTabs({
               'focus-visible:ring-4 focus-visible:ring-brand/20 focus-visible:outline-none',
               'disabled:cursor-not-allowed disabled:opacity-55',
               size === 'sm' ? 'h-7 px-2.5 text-[12px]' : 'h-8 px-3 text-[13px]',
-              active ? 'bg-surface text-ink shadow-1' : 'text-muted hover:text-ink',
+              active ? 'bg-surface text-ink shadow-2 ring-1 ring-line/60' : 'text-muted hover:text-ink',
             )}
           >
             {item.label}

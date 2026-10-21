@@ -20,6 +20,7 @@ import {
   type DrizzleTx,
 } from '@erp/database';
 
+import { FROM_TO_LABELS_AR, validateDayFilters } from '../../common/date-param.js';
 import { DATABASE_HANDLE } from '../../database/database.module.js';
 import { isUniqueViolation } from '../organization/shared/org-support.js';
 import { SequencesService } from '../platform-services/index.js';
@@ -1116,6 +1117,8 @@ export class TailoringService {
    * 📅 تاريخ الطلب · 📅 موعد التسليم · 💰 السعر · 💵 المدفوع · ⌛ المتبقي`.
    */
   async listOrders(tenantId: string, query: OrderQuery = {}): Promise<{ data: OrderRow[]; meta: { total: number } }> {
+    /** 📅 التاريخُ يُتحقَّق منه قبل SQL — فنصٌّ فاسدٌ كان يرجع ٥٠٠ «خطأً داخليًّا» (قِيس ٢٠٢٦-١٠-١٦). */
+    validateDayFilters(query as Record<string, unknown>, FROM_TO_LABELS_AR, 'TAILORING_DATE_INVALID');
     await this.ensureEnabled(tenantId);
     const limit = Math.min(Math.max(query.limit ?? 200, 1), 500);
     const offset = Math.max(query.offset ?? 0, 0);
@@ -1545,6 +1548,8 @@ export class TailoringService {
    * `phone_num LIKE @search OR name LIKE @search`, ordered by `code`.
    */
   async listInvoices(tenantId: string, query: InvoiceQuery = {}): Promise<{ data: InvoiceRow[]; meta: { total: number } }> {
+    /** 📅 التاريخُ يُتحقَّق منه قبل SQL — فنصٌّ فاسدٌ كان يرجع ٥٠٠ «خطأً داخليًّا» (قِيس ٢٠٢٦-١٠-١٦). */
+    validateDayFilters(query as Record<string, unknown>, FROM_TO_LABELS_AR, 'TAILORING_DATE_INVALID');
     await this.ensureEnabled(tenantId);
     const limit = Math.min(Math.max(query.limit ?? 200, 1), 500);
     const offset = Math.max(query.offset ?? 0, 0);

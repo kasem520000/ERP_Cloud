@@ -30,6 +30,8 @@ import {
 
 import { DATABASE_HANDLE } from '../../database/database.module.js';
 import { MetricsService } from '../../ops/metrics.service.js';
+import { PasswordBreachChecker } from '../platform/auth/password-breach.js';
+import { RateLimiterService } from '../platform/rate-limit/rate-limiter.service.js';
 import { AuditService } from '../platform-services/audit/audit.service.js';
 import { OBJECT_STORAGE, type ObjectStoragePort } from '../platform-services/files/object-storage.js';
 import { VIRUS_SCANNER, type VirusScannerPort } from '../platform-services/files/virus-scanner.js';
@@ -70,6 +72,8 @@ export class PlatformOperationsService {
     @Inject(VIRUS_SCANNER) private readonly scanner: VirusScannerPort,
     private readonly metrics: MetricsService,
     private readonly audit: AuditService,
+    private readonly breach: PasswordBreachChecker,
+    private readonly limiter: RateLimiterService,
   ) {}
 
   // ─────────────────────────────────────────────────────────── الطابور
@@ -299,6 +303,7 @@ export class PlatformOperationsService {
     probes.push(this.probeRedis());
     probes.push(this.probeStorage());
     probes.push(await this.probeEmail());
+    probes.push(this.probePasswordBreach());
     probes.push(this.probeQueue(worker, backlog));
     probes.push({
       name: 'worker',
@@ -354,10 +359,51 @@ export class PlatformOperationsService {
       name: 'redis',
       status: !configured ? 'not_configured' : this.queue.isEnabled() ? 'up' : 'degraded',
       detail: !configured
-        ? 'REDIS_URL غير مضبوط — الطابور في الذاكرة والصفوف تبقى معلَّقة'
-        : this.queue.isEnabled()
-          ? `سائق الطابور: ${this.queue.driver}`
-          : 'JOBS_ENABLED=false — الطابور معطَّل بقرار تكوين',
+        ? `REDIS_URL غير مضبوط — الطابور في الذاكرة والصفوف تبقى معلَّقة، وعدّاد الطلبات ${this.limiter.snapshot().shared ? 'مشترك' : 'محليٌّ لهذه العملية'}`
+        : `سائق الطابور: ${this.queue.isEnabled() ? this.queue.driver : 'معطَّل (JOBS_ENABLED=false)'}؛ ` +
+          `عدّاد الطلبات: ${this.limiter.snapshot().shared ? 'مشترك عبر Redis' : 'محليٌّ (احتياط)'}${
+            this.limiter.snapshot().fallbacks > 0 ? ` — حالات السقوط: ${this.limiter.snapshot().fallbacks}` : ''
+          }`,
+      latencyMs: null,
+    };
+  }
+
+  /**
+   * 🔐 فحص كلمات المرور المسرَّبة — مجسٌّ يقول **هل يعمل الفحص**، لا «هل الميزة مُعلَنة».
+   *
+   * ثلاث حالات مختلفة لا يجوز دمجها: `not_configured` (قرار تكوين: القائمة المحلّية وحدها)،
+   * و`degraded` (مُعلَن لكن المزوّد لا يُجيب — والقاطع مفتوح)، و`up` (نداءاتٌ ناجحة وعدّاداتها).
+   * ولو عُرضت الأولى `up` لكانت اللوحة تقول «محميّ» عن فحصٍ لم يُنفَّذ مرّة.
+   */
+  private probePasswordBreach(): HealthProbe {
+    const snapshot = this.breach.snapshot();
+    if (!snapshot.enabled) {
+      return {
+        name: 'password_breach',
+        status: 'not_configured',
+        detail: 'فحص كلمات المرور المسرَّبة متوقّف (PASSWORD_BREACH_CHECK=off) — القائمة المحلّية وحدها تعمل',
+        latencyMs: null,
+      };
+    }
+    if (snapshot.circuitOpenUntil !== null) {
+      return {
+        name: 'password_breach',
+        status: 'degraded',
+        detail:
+          `تعذّر الوصول إلى قاعدة التسريبات (${snapshot.lastError ?? 'بلا تفصيل'}) — ` +
+          `القاطع مفتوح حتى ${new Date(snapshot.circuitOpenUntil).toISOString()} بعد ` +
+          `${snapshot.consecutiveFailures} إخفاقاً متتالياً، و${snapshot.unavailable} محاولة لم تُفحص`,
+        latencyMs: null,
+      };
+    }
+    return {
+      name: 'password_breach',
+      status: 'up',
+      detail:
+        snapshot.checked === 0
+          ? `الفحص مُفعَّل (${snapshot.mode}) ولم يُجرَ فحصٌ بعد`
+          : `الفحص مُفعَّل (${snapshot.mode}) — ${snapshot.checked} فحصاً، ` +
+            `${snapshot.breached} مطابقة، ${snapshot.unavailable} تعذّر الوصول`,
       latencyMs: null,
     };
   }

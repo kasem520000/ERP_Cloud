@@ -1,11 +1,12 @@
 'use client';
 
+import { Panel } from '@erp/ui';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 
 import { Notice } from '../../../components/data-view';
 import { Screen } from '../../../components/screen';
-import { ApiError } from '../../../lib/api';
+import { apiErrorText } from '../../../lib/api';
 import { listMentions, markMentionRead, type MentionRow } from '../../../lib/comments';
 
 export default function CommentMentionsPage() {
@@ -17,7 +18,7 @@ export default function CommentMentionsPage() {
     try {
       setRows(await listMentions(unreadOnly));
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
     }
   }
 
@@ -26,13 +27,21 @@ export default function CommentMentionsPage() {
   }, [unreadOnly]);
 
   return (
-    <Screen title="إشارات التعليقات" subtitle="من أشار إليك في فاتورة أو عميل أو موظف أو مشروع." crumbs={['الإعدادات', 'الإشارات']}>
+    <Screen
+      title="إشارات التعليقات"
+      subtitle="من أشار إليك في فاتورة أو عميل أو موظف أو مشروع."
+      crumbs={['الإعدادات', 'الإشارات']}
+    >
       <Notice notice={notice} />
       <label className="field inline">
-        <input type="checkbox" checked={unreadOnly} onChange={(event) => setUnreadOnly(event.target.checked)} />
+        <input
+          type="checkbox"
+          checked={unreadOnly}
+          onChange={(event) => setUnreadOnly(event.target.checked)}
+        />
         <span>غير المقروء فقط</span>
       </label>
-      <div className="card">
+      <Panel title="الإشارات" hint={`${rows.length} إشارة`}>
         {rows.map((row) => (
           <article key={row.id} className="border-t py-2">
             <strong>{row.authorName}</strong>
@@ -42,7 +51,11 @@ export default function CommentMentionsPage() {
                 فتح المستند
               </Link>
               {!row.isRead ? (
-                <button className="btn" type="button" onClick={() => void markMentionRead(row.id).then(reload)}>
+                <button
+                  className="btn"
+                  type="button"
+                  onClick={() => void markMentionRead(row.id).then(reload)}
+                >
                   تحديد كمقروء
                 </button>
               ) : null}
@@ -50,7 +63,7 @@ export default function CommentMentionsPage() {
           </article>
         ))}
         {rows.length === 0 ? <p className="muted">لا إشارات.</p> : null}
-      </div>
+      </Panel>
     </Screen>
   );
 }

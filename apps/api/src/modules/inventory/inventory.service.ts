@@ -7,7 +7,6 @@ import {
   accounts,
   inventoryTransactions,
   journalEntries,
-  journalEntryLines,
   itemLots,
   itemSerials,
   stockDocumentSerials,
@@ -29,6 +28,7 @@ import {
   type StockBalance,
 } from '@erp/database';
 
+import { FROM_TO_LABELS_AR, validateDayFilters } from '../../common/date-param.js';
 import { DATABASE_HANDLE } from '../../database/database.module.js';
 import { tryGetAuthContext } from '../platform/context/tenant-context.js';
 import { AccountingService } from '../accounting/accounting.service.js';
@@ -148,6 +148,9 @@ export class InventoryService {
     status?: string,
     filters: { number?: string; from?: string; to?: string } = {},
   ) {
+    /** 📅 مرشّحا التاريخ يُتحقَّق منهما قبل SQL — فقبل هذا كان نصٌّ فاسدٌ يرجع ٥٠٠ «خطأً داخليًّا» (قِيس ٢٠٢٦-١٠-١٦). */
+    validateDayFilters(filters as Record<string, unknown>, FROM_TO_LABELS_AR, 'INVENTORY_DATE_INVALID');
+
     return withTenantTx(this.database.db, tenantId, async (tx) => {
       const rows = await tx
         .select()
@@ -385,6 +388,9 @@ export class InventoryService {
     tenantId: string,
     filters: { itemId?: string; warehouseId?: string; from?: string; to?: string; limit?: number } = {},
   ) {
+    /** 📅 مرشّحا التاريخ يُتحقَّق منهما قبل SQL — فقبل هذا كان نصٌّ فاسدٌ يرجع ٥٠٠ «خطأً داخليًّا» (قِيس ٢٠٢٦-١٠-١٦). */
+    validateDayFilters(filters as Record<string, unknown>, FROM_TO_LABELS_AR, 'INVENTORY_DATE_INVALID');
+
     return withTenantTx(this.database.db, tenantId, (tx) =>
       tx
         .select({
@@ -1073,11 +1079,24 @@ export class InventoryService {
     });
   }
 
-  private async loadTransfer(tx: DrizzleTx, tenantId: string, transferId: string) {
-    const [transfer] = await tx
+  /**
+   * 🔒 قراءة المناقلة — `forUpdate` لأربع عمليات الانتقال وحدها (إرسال، استلام، إقفال، إلغاء).
+   * بلا قفل كان طلبان متزامنان على المناقلة نفسها يقرآن `in_transit` معاً فيعكس كلٌّ منهما
+   * الكمية والقيد: بضاعة تعود مرتين ومرآتان لقيد واحد. القفل على صف المستند يجعل الثاني
+   * ينتظر، ثم يقرأ الحالة المُودَعة فيرفضها (`TRANSFER_INVALID_STATE`) أو يعيد استخدام
+   * العكس القائم. والقراءة العابرة (`getTransfer`) تبقى بلا قفل.
+   */
+  private async loadTransfer(
+    tx: DrizzleTx,
+    tenantId: string,
+    transferId: string,
+    options: { forUpdate?: boolean } = {},
+  ) {
+    const query = tx
       .select()
       .from(stockTransfers)
       .where(and(eq(stockTransfers.tenantId, tenantId), eq(stockTransfers.id, transferId)));
+    const [transfer] = options.forUpdate ? await query.for('update') : await query;
     if (!transfer) throw new DomainError('TRANSFER_NOT_FOUND', 'Transfer was not found', 404);
     const lines = await tx
       .select()
@@ -1098,7 +1117,7 @@ export class InventoryService {
     options: { fiscalPeriodId?: string; allowNegative?: boolean } = {},
   ) {
     return withTenantTx(this.database.db, tenantId, async (tx) => {
-      const transfer = await this.loadTransfer(tx, tenantId, transferId);
+      const transfer = await this.loadTransfer(tx, tenantId, transferId, { forUpdate: true });
       if (transfer.status !== 'draft')
         throw new DomainError('TRANSFER_INVALID_STATE', 'Only draft transfers can be sent', 409);
       if (!transfer.lines.length)
@@ -1338,7 +1357,7 @@ export class InventoryService {
     options: { fiscalPeriodId?: string } = {},
   ) {
     return withTenantTx(this.database.db, tenantId, async (tx) => {
-      const transfer = await this.loadTransfer(tx, tenantId, transferId);
+      const transfer = await this.loadTransfer(tx, tenantId, transferId, { forUpdate: true });
       if (!['in_transit', 'partially_received'].includes(transfer.status))
         throw new DomainError('TRANSFER_INVALID_STATE', 'Transfer is not awaiting receipt', 409);
       const byLine = new Map(transfer.lines.map((line) => [line.lineNo, line]));
@@ -1603,7 +1622,7 @@ export class InventoryService {
         },
       );
     return withTenantTx(this.database.db, tenantId, async (tx) => {
-      const transfer = await this.loadTransfer(tx, tenantId, transferId);
+      const transfer = await this.loadTransfer(tx, tenantId, transferId, { forUpdate: true });
       if (transfer.status === 'closed')
         throw new DomainError('TRANSFER_ALREADY_CLOSED', 'This transfer is already closed', 409);
       if (!['in_transit', 'partially_received'].includes(transfer.status))
@@ -1794,7 +1813,7 @@ export class InventoryService {
    */
   async cancelTransfer(tenantId: string, transferId: string, reason?: string) {
     return withTenantTx(this.database.db, tenantId, async (tx) => {
-      const transfer = await this.loadTransfer(tx, tenantId, transferId);
+      const transfer = await this.loadTransfer(tx, tenantId, transferId, { forUpdate: true });
       if (['received', 'cancelled'].includes(transfer.status))
         throw new DomainError('TRANSFER_INVALID_STATE', 'Transfer cannot be cancelled', 409);
       if (transfer.status === 'in_transit') {
@@ -2085,7 +2104,12 @@ export class InventoryService {
   private async assertStockable(
     tx: DrizzleTx,
     tenantId: string,
-    lines: Array<{ itemId: string; lotId?: string | null; serialId?: string | null }>,
+    lines: Array<{
+      itemId: string;
+      lotId?: string | null;
+      serialId?: string | null;
+      serialNos?: readonly string[] | null;
+    }>,
   ): Promise<
     Map<string, { kind: string; trackLot: boolean; trackSerial: boolean; purchasePrice: string | null }>
   > {
@@ -2118,7 +2142,9 @@ export class InventoryService {
         throw new DomainError('INVENTORY_LOT_REQUIRED', 'This item is tracked by lot — choose a lot', 422, {
           field: 'lotId',
         });
-      if (item.trackSerial && !line.serialId)
+      const hasSerialNos =
+        Array.isArray(line.serialNos) && line.serialNos.some((value) => String(value).trim().length > 0);
+      if (item.trackSerial && !line.serialId && !hasSerialNos)
         throw new DomainError(
           'INVENTORY_SERIAL_REQUIRED',
           'This item is tracked by serial — scan a serial',
@@ -2156,39 +2182,30 @@ export class InventoryService {
     reason: string,
   ): Promise<string | undefined> {
     const [entry] = await tx
-      .select()
+      .select({ status: journalEntries.status })
       .from(journalEntries)
       .where(and(eq(journalEntries.tenantId, tenantId), eq(journalEntries.id, entryId)));
-    if (!entry || entry.status === 'void') return undefined;
-    const lines = await tx
-      .select()
-      .from(journalEntryLines)
-      .where(and(eq(journalEntryLines.tenantId, tenantId), eq(journalEntryLines.entryId, entryId)));
-    const fiscalPeriodId = await this.accounting.openPeriodForDateInTx(
-      tx,
-      tenantId,
-      new Date().toISOString().slice(0, 10),
-    );
-    const created = await this.accounting.postJournalInTx(tx, tenantId, {
-      branchId: entry.branchId,
-      fiscalPeriodId,
-      date: new Date().toISOString().slice(0, 10),
-      description: `عكس قيد: ${reason}`,
-      lines: lines.map((line) => ({
-        accountId: line.accountId,
-        debit: line.credit,
-        credit: line.debit,
-        description: line.description ?? undefined,
-      })),
-      sourceType: entry.sourceType ?? 'reversal',
-      sourceId: entry.sourceId ?? entryId,
-      idempotencyKey: `reversal:${entryId}`,
+    /**
+     * لا يُعكس ما لم يُرحَّل — مسودةٌ تُلغى بلا عكس، وقيدٌ أُبطل قديماً (بيانات سابقة لهذا
+     * الاصطلاح) لا يُلمس. `undefined` تعني «لا عكس لازماً»، لا «فشل صامت».
+     */
+    if (!entry || entry.status !== 'posted') return undefined;
+    /**
+     * 🔁 الآلية الموحَّدة — `AccountingService.reverseJournalInTx` هي العكس الرسمي الوحيد في
+     * النظام. ما كان هنا نسخة ثانية منه، وكانت **تبطل الأصل وترحّل المرآة معاً**: وكل
+     * الأرصدة والتقارير تجمع `status = 'posted'`، فيسقط الأصل من الميزان وتبقى مرآته ⇒
+     * ينحرف رصيد الحساب بمقدار العملية الملغاة بعد كل `cancelTransfer` أو إلغاء سند.
+     * الاصطلاح المعتمد (منذ الترحيل `0047` وتقرأه `report-catalog.ts ← entryStateScope`):
+     * الأصل يبقى `posted`، والمرآة تحمل `reversalOf` وأبعاد السطر كلها، و«لاغي» = قيدٌ
+     * يشير إليه عكس. والمرآة وحدها تكفي لأن الأصل وعكسه معاً صفر.
+     */
+    const reversed = await this.accounting.reverseJournalInTx(tx, tenantId, entryId, {
+      reason,
+      actorId: getRequestContext().tenant?.userId ?? null,
+      // داخل ساغا الإلغاء: إعادة المحاولة ترجع العكس القائم ولا تنشئ ثانياً.
+      ifAlreadyReversed: 'reuse',
     });
-    await tx
-      .update(journalEntries)
-      .set({ status: 'void', updatedAt: new Date() })
-      .where(eq(journalEntries.id, entryId));
-    return created?.id;
+    return reversed.id;
   }
 
   // ── الرقم التسلسلي على سطر المستند ──────────────────────────────────────────
@@ -2647,7 +2664,7 @@ export class InventoryService {
       // pack says and the movement reads `lot_id`. Resolved before `assertStockable` so a
       // line that names a batch satisfies the lot requirement the same way a picked lot does.
       const lots = await this.resolveUploadedLots(tx, tenantId, input.lines);
-      await this.assertStockable(
+      const catalogue = await this.assertStockable(
         tx,
         tenantId,
         input.lines.map((line, index) => ({ ...line, lotId: lots.get(index)?.lotId ?? null })),
@@ -2660,6 +2677,12 @@ export class InventoryService {
         `stock_voucher:${input.kind}`,
         prefix,
       );
+      const draftTotalCost = input.lines.reduce((sum, line) => {
+        const fallbackPrice = catalogue.get(line.itemId)?.purchasePrice ?? '0';
+        const unitCost = new Decimal(line.unitCost ?? fallbackPrice ?? 0);
+        const qty = new Decimal(line.qty || 0);
+        return sum.plus(qty.mul(unitCost));
+      }, new Decimal(0));
       const [voucher] = await tx
         .insert(stockVouchers)
         .values({
@@ -2673,6 +2696,7 @@ export class InventoryService {
           voucherDate: input.voucherDate ?? new Date().toISOString().slice(0, 10),
           reason: input.reason,
           counterAccountId: input.counterAccountId ?? null,
+          totalCost: draftTotalCost.toFixed(4),
           notes: input.notes,
           createdBy: getRequestContext().tenant?.userId,
         })
@@ -2692,6 +2716,12 @@ export class InventoryService {
       await tx.insert(stockVoucherLines).values(
         input.lines.map((line, index) => {
           const lot = lots.get(index);
+          const fallbackPrice = catalogue.get(line.itemId)?.purchasePrice ?? null;
+          const resolvedUnitCost = line.unitCost ?? (input.kind !== 'stock_out' ? fallbackPrice : null);
+          const lineCost =
+            resolvedUnitCost !== null && resolvedUnitCost !== undefined
+              ? new Decimal(line.qty || 0).mul(new Decimal(resolvedUnitCost || 0)).toFixed(4)
+              : '0';
           return {
             voucherId: id,
             lineNo: index + 1,
@@ -2699,7 +2729,8 @@ export class InventoryService {
             itemId: line.itemId,
             qty: line.qty,
             unitId: line.unitId ?? null,
-            unitCost: line.unitCost ?? null,
+            unitCost: resolvedUnitCost,
+            lineCost,
             lotId: lot?.lotId ?? null,
             batchNo: lot?.batchNo ?? null,
             productionDate: lot?.productionDate ?? null,
@@ -2718,7 +2749,8 @@ export class InventoryService {
     return tx
       .select()
       .from(stockVoucherLines)
-      .where(and(eq(stockVoucherLines.tenantId, tenantId), eq(stockVoucherLines.voucherId, voucherId)));
+      .where(and(eq(stockVoucherLines.tenantId, tenantId), eq(stockVoucherLines.voucherId, voucherId)))
+      .orderBy(asc(stockVoucherLines.lineNo));
   }
 
   private async getVoucherInTx(tx: DrizzleTx, tenantId: string, id: string) {
@@ -2749,7 +2781,27 @@ export class InventoryService {
         )
         .orderBy(sql`${stockVouchers.createdAt} DESC`)
         .limit(200);
-      return rows.map((row) => ({ ...row, lines: [] as Array<unknown> }));
+      if (rows.length === 0) return [];
+      const allLines = await tx
+        .select()
+        .from(stockVoucherLines)
+        .where(
+          and(
+            eq(stockVoucherLines.tenantId, tenantId),
+            inArray(
+              stockVoucherLines.voucherId,
+              rows.map((row) => row.id),
+            ),
+          ),
+        )
+        .orderBy(asc(stockVoucherLines.lineNo));
+      const linesByVoucher = new Map<string, Array<typeof stockVoucherLines.$inferSelect>>();
+      for (const line of allLines) {
+        const list = linesByVoucher.get(line.voucherId) ?? [];
+        list.push(line);
+        linesByVoucher.set(line.voucherId, list);
+      }
+      return rows.map((row) => ({ ...row, lines: linesByVoucher.get(row.id) ?? [] }));
     });
   }
 

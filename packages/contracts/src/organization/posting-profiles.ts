@@ -35,6 +35,36 @@ export const docTypeSchema = z.enum([
   'rent_invoice',
   'installment_contract',
   'opening_balance',
+  /**
+   * **PHASE_E (مخابز وتوزيع)** — الإنتاج.
+   *
+   * كان الإنتاج **محايداً في الدفاتر** عن قصد (`production-orders.service.ts`: ما يخرج من
+   * المستودع كمكوّنات يعود إليه كمنتج بالقيمة نفسها، فلا تتحرك الميزانية ولا يلزم قيد)، وبقي
+   * كذلك لمن لا يربط شيئاً. ما كان ناقصاً هو أن منشأة تفصل «المواد الخام» عن «المنتج التام»
+   * في دفترها لا تملك نوع مستند تُعلّق عليه ربطها: المفردات كانت مغلقة ولا تحتوي الإنتاج.
+   *
+   * إضافةٌ صرفة: لا تغيّر أي ملف ترحيل قائم، وكل محرّك يستمر في الحياد ما لم تُربط الحسابات.
+   * `manufacturing_order` = `WmsBomService` (BOM و`MF-`)، و`production_order` =
+   * `ProductionOrdersService` (مكوّنات و`MO-`).
+   */
+  'manufacturing_order',
+  'production_order',
+  /**
+   * **الشريحة 4 (مخابز وتوزيع)** — عجز العهدة المحمَّل على المندوب.
+   *
+   * العجز كان **قيمةً محسوبة وعلماً مسجّلاً بلا تنفيذ**: `approveClosing` يحسب
+   * `salaryDeductionApproved` (ولا يفترضه أبداً) ويخزّنه، ولا يستهلكه شيء — فلا ذمم ولا قيد.
+   * وقرار المنشأة صار صريحاً: العجز المعتمد يقع **مديونيةً على الموظف** بقيمة **التكلفة**،
+   * وزنادُه اعتمادُ كلّ حالة. والمدين حسابُ الموظف نفسه في الدليل (`employees.employee_account_id`
+   * تحت الجذر `2241`) — وهو وعاءٌ قائم، فالاتجاه مطابقٌ لما يكتبه تعديل الراتب من نوع خصم/سلفة
+   * في `hrm.service.ts`: «debits the employee's own account … the employee now owes».
+   *
+   * والدائن من هذا الملف (`shortageChargeAccountId`، أو `inventoryAdjustmentAccountId` الذي
+   * امتصّ الفقد أولاً) — وناقصهما ⇒ 422 ولا يمرّ الاعتماد: قرارٌ ماليّ صريح لا يُتجاهل بصمت،
+   * ولا يُختلَع حساب. إضافةٌ صرفة: لا تغيّر ملفاً قائماً، وبلا علمٍ صريح لا يُرحَّل شيء إطلاقاً
+   * (لا قيود عجز تلقائية).
+   */
+  'van_shortage_charge',
 ]);
 
 export type DocType = z.infer<typeof docTypeSchema>;
@@ -72,6 +102,13 @@ export const POST_PROFILE_ACCOUNT_KEYS = [
    */
   'openingBalanceAccountId',
   'inventoryAdjustmentAccountId',
+  /**
+   * **الشريحة 4** — الدائن في قيد عجز العهدة المحمَّل على المندوب: الحساب الذي امتصّ الفقد
+   * (مصروف عجز/فقد مخزني) فينتقل منه إلى ذمّة الموظف. وإن لم يُربط يُستعمل
+   * `inventoryAdjustmentAccountId` القائم — فهو عادةً الحساب نفسه في ملفّ `*` — ولا يُختلَع
+   * حسابٌ إن غاب الاثنان (422 `VAN_SHORTAGE_ACCOUNTS_INCOMPLETE`).
+   */
+  'shortageChargeAccountId',
   'stockInTransitAccountId',
   'cashAccountId',
   'bankAccountId',
@@ -112,6 +149,33 @@ export const POST_PROFILE_ACCOUNT_KEYS = [
    * neither ⇒ 422 `CASH_TRANSFER_TRANSIT_ACCOUNT_MISSING`.
    */
   'cashInTransitAccountId',
+  /**
+   * **PHASE_E (مخابز وتوزيع)** — حسابا الإنتاج، وكلاهما **اختياري**.
+   *
+   * - `rawMaterialsAccountId`: المواد الخام التي يستهلكها الإنتاج (دقيق، سكر، خميرة، زيت).
+   * - `finishedGoodsAccountId`: المنتج التام الداخل إلى المستودع (خبز، سمبوسة، حلويات).
+   *
+   * القاعدة التي ينفّذها المحرّكان الرسميان (`WmsBomService.produce` و
+   * `ProductionOrdersService.complete`) عبر `production-posting.ts`:
+   *
+   *   • **الطرفان مربوطان** ⇒ يُرحَّل قيدٌ واحد متوازن بقيمة ما استُهلك فعلياً — وهي القيمة
+   *     نفسها التي دخل بها المنتج التام، لأن المحرّك يشتقّ تكلفة المنتج مما خرج من الرفّ لا
+   *     من رقم مُدخل: «م. منتج تام ← م. مواد خام». لا يُخترع رقم ولا يُتلف؛
+   *   • **ولا طرف مربوط** ⇒ يبقى الإنتاج محايداً في الدفاتر كما كان، فلا ينكسر مستأجر قائم؛
+   *   • **طرف واحد فقط** ⇒ رفض صريح 422 `PRODUCTION_ACCOUNTS_INCOMPLETE` يسمّي الطرف الناقص،
+   *     وتعود المعاملة كلها: لا قيد جزئي ولا حركة مخزنية؛
+   *   • **قيمة مستهلَكة صفر** ⇒ لا قيد (قيدٌ بمبلغ صفر ضجيج في الدفتر، و`postJournalInTx`
+   *     يرفضه أصلاً) ويُبلَّغ السبب في `postingBasis`.
+   *
+   * ولا يُنشأ حساب تلقائياً أبداً: الربط قرار المنشأة في «الإعدادات ← الربط المحاسبي».
+   *
+   * **وليس هنا `wipAccountId` عن قصد**: لا توجد مرحلة «تحت التشغيل» في المحرّكَيْن — الصرف
+   * والإنتاج يقعان في المعاملة نفسها، فأي قيمة تمرّ بحساب تحت التشغيل تدخله وتخرج منه في القيد
+   * نفسه وصافيها صفر. مفتاحٌ لا يقرأه شيء كذبٌ تعرضه شاشة الإعدادات على المحاسب؛ يُضاف حين
+   * يصير في النظام إنتاج على مرحلتين (صرف مكوّنات ثم إنتاج لاحق) فعلاً.
+   */
+  'rawMaterialsAccountId',
+  'finishedGoodsAccountId',
 ] as const;
 
 export type PostProfileAccountKey = (typeof POST_PROFILE_ACCOUNT_KEYS)[number];

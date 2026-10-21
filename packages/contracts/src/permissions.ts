@@ -339,6 +339,17 @@ export const permissionRegistry: readonly PermissionDefinition[] = [
   // Future enhancement 04 — sequential approval workflows.
   perm('approval.manage', 'Create and maintain tenant approval workflows.'),
   perm('approval.approve', 'Review, approve and reject assigned approval requests.'),
+
+  // Factory, Bakery & Van Sales Distribution (PHASE_E)
+  perm('van_sales.view', 'Read factory production batches, van load orders, sales documents and reports.'),
+  perm('van_sales.production.manage', 'Record daily factory and bakery production batches.'),
+  perm('van_sales.pricing.manage', 'Configure customer special price tiers, bonus caps and credit limits.'),
+  perm('van_sales.load.manage', 'Create van load orders and transfer stock to sales rep custody.'),
+  perm('van_sales.invoice.create', 'Issue van sales invoices and free bonus quantities.'),
+  perm('van_sales.collection.create', 'Record customer debt collections and receipt allocations.'),
+  perm('van_sales.closing.submit', 'Submit end-of-day rep custody shift closing for inspection.'),
+  perm('van_sales.closing.approve', 'Inspect damaged goods, approve shortage settlement and close rep custody.'),
+  perm('van_sales.override.approve', 'Override locked customer prices, discount ceilings and bonus caps.'),
 ] as const;
 
 /**
@@ -387,6 +398,14 @@ export const platformPermissionRegistry: readonly PermissionDefinition[] = [
   perm(
     'console.backups.manage',
     'Run and verify platform backups, set the retention policy, and execute data export or erasure requests.',
+  ),
+  // 🗜️ P-C13 — تحديثات المنصّة: **الرفع ليس الإعلان**. التشغيل يرفع حزمةَ الليل ويقرأ
+  // سجلّها لتشخيص تذكرة، وصاحب المنصّة وحده يقرّر أن يراها كل المستأجرين — لأن الإعلان
+  // يغيّر ما يقوله كل حسابٍ عن نفسه في شاشة «حول النظام».
+  perm('console.releases.view', 'Read the platform release ledger and the release shown to tenants.'),
+  perm(
+    'console.releases.manage',
+    'Upload a release bundle, announce a release to tenants, and revoke one. Bundles are measured, never executed.',
   ),
   // P-C11 — بوابة المطوّر: مفتاح الـAPI هو **هويّة** تُنشأ لمستأجر، وويب هوك هو **وعدٌ
   // بتسليم**. رمزان لا رمز، لأن الأول يمنح وصولاً والثاني يُرسل بياناتٍ خارج المنصة —
@@ -478,6 +497,44 @@ export function findPermission(code: string): PermissionDefinition | undefined {
 }
 
 /**
+ * 🚐 نطاق الاستنتاج بين المبيعات والتوزيع (§5 — «لا توسّع `sales.view`/`sales.invoice.create`
+ * لتعني حقوق اعتماد»).
+ *
+ * القاعدة القديمة كانت: من يملك `sales.invoice.create` ولا يملك أي كود `van_sales.*`
+ * إداري ⇒ يُمنح **كل** أكواد `van_sales.*` ضمناً، ومنها `van_sales.closing.approve`
+ * (اعتماد إغلاق العهدة وتسوية العجز) و`van_sales.override.approve` (تجاوز الأسعار
+ * المثبّتة وسقوف البونص). أي أن كاتب فاتورة يصبح — بلا قرار من المدير وبلا أثر في
+ * شاشة الأدوار — معتمِداً للتسويات. وهذا ما ترفضه سياسة الصلاحيات في المشروع.
+ *
+ * الحدّ الجديد:
+ *   • **القراءة** تبقى مستنتَجة: `sales.view` ⇒ `van_sales.view` (سطح توزيع للقراءة فقط).
+ *   • **التشغيل** يبقى مستنتَجاً حتى لا يتوقّف يوم العمل: كاتب الفواتير يصدر فاتورة
+ *     توزيع، ويحصّل مديونياته، ويقدّم إغلاق ورديته للتفتيش.
+ *   • **الاعتماد والإدارة لا تُستنتَج أبداً**: اعتماد الإغلاق/التسوية، تجاوز الأسعار
+ *     والبونص، إدارة أوامر التحميل، تسعير العملاء، وتسجيل الإنتاج — كلها تتطلّب
+ *     منحاً صريحاً من المدير في شاشة الأدوار، فتظهر في `role_permissions` وتُرى وتُسحب.
+ *
+ * الاستنتاج كله مشروطٌ بألّا يكون للدور أي كود `van_sales.*` إداري صريح: متى ضبط
+ * المدير التوزيع صراحةً، انتهت كل استنتاجات المبيعات (الإعداد الصريح هو الحاكم).
+ * الأدوار القائمة قبل هذا الضبط تُصلحها الهجرة `0126` بمنح صريح يكافئ ما كانت تملكه
+ * فعلياً، فلا يُحرم مستخدم من صلاحية كان يستعملها، وتصبح الصلاحية مرئية وقابلة للسحب.
+ */
+export const VAN_SALES_CODES_IMPLIED_BY_SALES_INVOICE: readonly string[] = [
+  'van_sales.invoice.create',
+  'van_sales.collection.create',
+  'van_sales.closing.submit',
+] as const;
+
+/** أكواد التوزيع التي لا تمنحها صلاحيات المبيعات أبداً — تُمنح صراحةً فقط. */
+export const VAN_SALES_CODES_NEVER_IMPLIED_BY_SALES: readonly string[] = [
+  'van_sales.production.manage',
+  'van_sales.pricing.manage',
+  'van_sales.load.manage',
+  'van_sales.closing.approve',
+  'van_sales.override.approve',
+] as const;
+
+/**
  * Alias-aware authorisation check shared by `PermissionsGuard` and unit tests.
  *
  * A granted code satisfies the required code when it is identical, when it is the
@@ -497,6 +554,16 @@ export function permissionGrants(granted: readonly string[], required: string): 
   for (const code of grantedSet) {
     if (canonicalizePermissionCode(code) === requiredCanonical) return true;
   }
+  if (requiredCanonical === 'van_sales.view' && grantedSet.has('sales.view')) {
+    return true;
+  }
+  if (
+    VAN_SALES_CODES_IMPLIED_BY_SALES_INVOICE.includes(requiredCanonical) &&
+    !granted.some((c) => c.startsWith('van_sales.') && c !== 'van_sales.view') &&
+    grantedSet.has('sales.invoice.create')
+  ) {
+    return true;
+  }
   return false;
 }
 
@@ -507,3 +574,83 @@ export function permissionsForModule(moduleName: string): PermissionDefinition[]
 export const permissionModules: readonly string[] = [
   ...new Set(permissionRegistry.map((entry) => entry.module)),
 ];
+
+/**
+ * 🚐 مَنْ يقرأ الخطَّ كلَّه، ومَنْ يقرأ خطَّه هو.
+ *
+ * القياسُ الذي فرض هذه القائمة: ‏`GET /van-sales/dashboard` و`/reports` و`/salesmen`
+ * كانت تتطلب `van_sales.view` وحدها، و`dashboard(tenantId)` **لا يأخذ عضويةً ولا
+ * مندوبًا** — فأيّ حاملٍ لـ`van_sales.view` يقرأ إنتاجَ المنشأة ومبيعاتها ونقدها
+ * وربحها وبطاقاتِ مناديبها. والمندوبُ مضطرٌّ إلى `van_sales.view` لأنّ `GET /van-sales/me`
+ * (مساحتَه هو) تتطلبها. فصار لزامًا فصلُ المستويين:
+ *
+ *   • `van_sales.view` + أذوناتُ المندوب الأربعة ⇒ **خطُّه هو** (‏`/me` ومستنداته
+ *     وأحماله وتحصيله وإقفاله، وملكيةُ كلّ صفٍّ تُفحص عند الكتابة).
+ *   • واحدٌ من أذونات الإدارة أدناه ⇒ **خطُّ المنشأة** (اللوحاتُ والتقاريرُ وبطاقاتُ
+ *     المناديب). وهي أذوناتُ من يُدير الخطّ فعلًا: من يُحمّل ويُنتج ويسعّر ويعتمد
+ *     الإقفال ويتجاوز السياسة.
+ *
+ * ولم يُخترع إذنٌ جديد (`van_sales.reports.view` مثلًا) عن قصد: فأيّ دورٍ مخصّصٍ بُني
+ * اليوم على `van_sales.view` وحدها كان سيخسر اللوحةَ فجأةً عند الترقية، بينما هذه
+ * القاعدةُ لا تكسر أحدًا — المالكُ (`*`) وكلُّ دورٍ إداريّ يقرآن كما كانا، والمندوبُ
+ * وحده يُحجَّم. والقائمةُ هنا في العقود لا في الخادم ولا في الواجهة كي لا تنحرف
+ * نسختان (قاعدةُ «تنفيذٌ واحد»).
+ */
+export const VAN_SALES_COMPANY_SCOPE_PERMISSIONS = [
+  'van_sales.load.manage',
+  'van_sales.production.manage',
+  'van_sales.pricing.manage',
+  'van_sales.closing.approve',
+  'van_sales.override.approve',
+] as const;
+
+/**
+ * 🚐 دورُ المندوب — تعريفٌ واحد يستورده الخادمُ والبذرة.
+ *
+ * كان الاسمُ وقائمةُ الأذونات مكتوبين حرفيًّا داخل `linkSalesmanAccount` في
+ * `van-sales.service.ts`، وبذرةُ الحساب التجريبيّ تحتاج الدورَ نفسه لتنشئ مندوبًا
+ * يُجرَّب عليه تطبيقُ `/rep`. ونسخُ الاسم والقائمة في البذرة يعني نسختين تنحرفان
+ * (وقاعدةُ البيت: تنفيذٌ واحد) — فإذا تغيّرت أذوناتُ الدور في الخادم وبقيت البذرةُ
+ * على القديمة، صار في المنشأة دوران باسمين أو دورٌ بصلاحياتٍ مختلفة عمّا يفرضه
+ * المسارُ الرسميّ. فالتعريفُ هنا، والخادمُ والبذرةُ يقرآنه.
+ *
+ * والأذوناتُ الأربعة هي **بالضبط** ما تتطلبه مساراتُ المندوب (قِيس على المتحكّم):
+ *   • `van_sales.view` — ‏`GET /me` و`/documents/:id/print-view` و`confirm-receipt` و`reject-receipt`
+ *   • `van_sales.invoice.create` — ‏`POST /documents` و`POST /documents/:id/returns`
+ *   • `van_sales.collection.create` — ‏`POST /collections`
+ *   • `van_sales.closing.submit` — ‏`POST /load-orders/:id/submit-closing`
+ * ولا إذنَ إدارةٍ فيها عن قصد: فأذوناتُ الإدارة هي نفسها مفتاحُ قراءةِ الخطّ كلّه
+ * (‏`VAN_SALES_COMPANY_SCOPE_PERMISSIONS`)، ومنحُها للمندوب يمنحه أرقامَ المنشأة.
+ */
+export const VAN_SALES_REP_ROLE = {
+  name: 'مندوب توزيع',
+  descriptionAr:
+    'دور مندوب التوزيع: رؤية عهدته، إصدار فواتيره، تحصيل مديونياته، وتقديم إغلاق ورديته',
+  permissions: [
+    'van_sales.view',
+    'van_sales.invoice.create',
+    'van_sales.collection.create',
+    'van_sales.closing.submit',
+  ],
+} as const;
+
+/**
+ * 🧾 وكالةُ المكتب الخلفي — مَنْ يتصرّف في عهدةِ مندوبٍ نيابةً عنه.
+ *
+ * هذان الإذنان هما القائمةُ نفسها التي كان `assertReceiptActorInTx` يحملها حرفيًّا داخل
+ * استعلامه في `van-sales.service.ts` (من يُؤكّد استلامَ حملِ مندوبٍ غيره: المحاسبُ
+ * المشرفُ على الأحمال أو من يعتمد الإقفالات). ونُقلت إلى العقود لسببين: (١) فحوصُ
+ * الملكية الجديدة (مستندٌ وإقفالٌ ومرتجعٌ وتحصيلٌ وطباعة) تحتاج القاعدةَ نفسها، ونسخُها
+ * ثلاثَ مراتٍ يعني انحرافًا حين تُعدَّل مرّةً واحدة؛ (٢) فالقائمةُ هنا **لا توسّع**
+ * القاعدةَ القائمة — الإذنان نفسهما، ولا تُضفى أذوناتُ الإدارة الأخرى (إنتاج/تسعير/
+ * تجاوز) على حقّ التصرف في عهدةِ الغير.
+ */
+export const VAN_SALES_REP_PROXY_PERMISSIONS = [
+  'van_sales.load.manage',
+  'van_sales.closing.approve',
+] as const;
+
+/** هل يملك المتّصلُ قراءةَ الخطّ على مستوى المنشأة (لا خطَّه هو)؟ */
+export function hasVanSalesCompanyScope(granted: readonly string[]): boolean {
+  return VAN_SALES_COMPANY_SCOPE_PERMISSIONS.some((code) => permissionGrants(granted, code));
+}

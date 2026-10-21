@@ -91,6 +91,9 @@ export const platformRoleCatalog: readonly RoleCatalogEntry[] = [
       // P-C10: the backups, the retention windows and a data-subject request are the
       // platform's own obligations — the owner answers for them.
       'console.backups.manage',
+      // 🗜️ P-C13: نشرُ إصدارٍ يجري على كل مستأجرٍ دفعةً واحدة — المالك وحده يُعلنه.
+      'console.releases.view',
+      'console.releases.manage',
       // P-C11: an integration credential and an outbound webhook are the platform's
       // standing promises to a customer — the owner answers for both.
       'console.apikeys.manage',
@@ -127,6 +130,9 @@ export const platformRoleCatalog: readonly RoleCatalogEntry[] = [
       // P-C10: running tonight's backup and keeping the retention windows are ops work.
       // The auditor and the billing/support desks do not get it: it erases bytes and identities.
       'console.backups.manage',
+      // 🗜️ P-C13: التشغيل يقرأ السجلّ ليجيب تذكرةً («أيُّ إصدارٍ يعمل عليه العميل؟»)،
+      // ولا يُعلن إصداراً: الإعلان يغيّر ما يقوله كل حسابٍ عن نفسه دفعةً واحدة.
+      'console.releases.view',
       // P-C11: تكاملُ العميل عملُ تشغيلٍ يوميّ (مفتاحٌ تعطّل، أو عنوانٌ توقّف عن الإجابة).
       // ولا يُعطى للدعم: الدعم يتكلّم مع العميل في التذكرة، لا يُنشئ له اعتماداً.
       'console.apikeys.manage',
@@ -155,6 +161,8 @@ export const platformRoleCatalog: readonly RoleCatalogEntry[] = [
       'console.email.view',
       // P-C12: التسرّب والتحصيل والقيمة الشهرية أرقامُ فوترةٍ قبل أن تكون رسوماً.
       'console.analytics.view',
+      // 🗜️ P-C13: القراءة فقط — الفوترة ترى أيُّ إصدارٍ يُعرض لعميلٍ يسأل عن فاتورته.
+      'console.releases.view',
       // P-M6: التحويل إلى منشأة قرارُ فوترة (باقةٌ وتجربةٌ وترخيص) — ومعها القراءة.
       'console.leads.view',
       'console.leads.manage',
@@ -173,6 +181,8 @@ export const platformRoleCatalog: readonly RoleCatalogEntry[] = [
       'console.email.view',
       // P-M5: الدعم يقرأ مقال المساعدة الذي يرسله للعميل في تذكرته.
       'console.content.view',
+      // 🗜️ P-C13: الدعم يقول للعميل أيُّ إصدارٍ يعمل عليه — قراءةً بلا نشر.
+      'console.releases.view',
       // P-M6: من يجيب على الاستفسار يقرأ الطلب — **قراءةً لا تصرّفاً**.
       'console.leads.view',
     ],
@@ -193,6 +203,8 @@ export const platformRoleCatalog: readonly RoleCatalogEntry[] = [
       'console.analytics.view',
       // P-M6: بياناتُ أشخاصٍ حقيقيين وصلت من الموقع — الرقابة تقرؤها ولا تُبدّلها.
       'console.leads.view',
+      // 🗜️ P-C13: سجلّ النشر أثرُ تدقيق — الرقابة تقرؤه ولا تنشر.
+      'console.releases.view',
     ],
   },
 ] as const;

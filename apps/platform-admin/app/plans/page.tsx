@@ -1,8 +1,10 @@
 'use client';
 
+import { Panel } from '@erp/ui';
 import { useState } from 'react';
 
 import { Empty, ErrorBox, Loading, Screen } from '../../components/screen';
+import { Table, type Column } from '../../components/ui/table';
 import { ApiError, apiData, apiPatch, apiPost, apiPut } from '../../lib/api';
 import { useQuery } from '../../lib/use-query';
 
@@ -64,9 +66,30 @@ function valueText(entry: Entitlement): string {
   return String(entry.value);
 }
 
+const entitlementColumns: Array<Column<Entitlement>> = [
+  { key: 'kind', header: 'النوع', cell: (entry) => <span className="chip">{KIND_LABEL[entry.kind]}</span> },
+  {
+    key: 'label',
+    header: 'الحقّ',
+    grow: true,
+    cell: (entry) => (
+      <>
+        {entry.labelAr}
+        <div className="muted small" dir="ltr">
+          {entry.key}
+        </div>
+      </>
+    ),
+  },
+  { key: 'value', header: 'القيمة', cell: (entry) => valueText(entry) },
+];
+
 export default function PlansPage() {
   const plans = useQuery<Plan[]>(() => apiData<Plan[]>('/platform/plans'), []);
-  const keys = useQuery<EntitlementKey[]>(() => apiData<EntitlementKey[]>('/platform/plans/entitlement-keys'), []);
+  const keys = useQuery<EntitlementKey[]>(
+    () => apiData<EntitlementKey[]>('/platform/plans/entitlement-keys'),
+    [],
+  );
   const [creating, setCreating] = useState(false);
   const [editing, setEditing] = useState<Plan>();
   const [entitlementTarget, setEntitlementTarget] = useState<Plan>();
@@ -86,6 +109,48 @@ export default function PlansPage() {
       setMessage({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) });
     }
   }
+
+  const planColumns: Array<Column<Plan>> = [
+    { key: 'code', header: 'الرمز', ltr: true, cell: (plan) => plan.code },
+    { key: 'name', header: 'الاسم', grow: true, cell: (plan) => plan.name },
+    {
+      key: 'amount',
+      header: 'السعر',
+      numeric: true,
+      cell: (plan) =>
+        `${Number(plan.amount).toLocaleString('ar-SA-u-ca-gregory-nu-latn', { minimumFractionDigits: 2 })} ${plan.currency}`,
+    },
+    { key: 'interval', header: 'الدورة', cell: (plan) => (plan.interval === 'year' ? 'سنوي' : 'شهري') },
+    { key: 'monthly', header: 'المكافئ الشهري', numeric: true, cell: (plan) => plan.monthlyAmount },
+    { key: 'entitlements', header: 'الحقوق', numeric: true, cell: (plan) => plan.entitlements.length },
+    { key: 'active', header: 'اشتراكات فعّالة', numeric: true, cell: (plan) => plan.activeSubscriptions },
+    {
+      key: 'status',
+      header: 'الحالة',
+      cell: (plan) => (
+        <span className={`badge ${plan.active ? 'active' : 'planned'}`}>
+          {plan.active ? 'نشطة' : 'متوقفة'}
+        </span>
+      ),
+    },
+    {
+      key: 'actions',
+      header: '',
+      cell: (plan) => (
+        <div className="row" style={{ gap: 6 }}>
+          <button className="btn sm" type="button" onClick={() => setEntitlementTarget(plan)}>
+            الحقوق
+          </button>
+          <button className="btn sm" type="button" onClick={() => setEditing(plan)}>
+            تعديل
+          </button>
+          <button className="btn sm" type="button" onClick={() => void toggle(plan)}>
+            {plan.active ? 'إيقاف' : 'تفعيل'}
+          </button>
+        </div>
+      ),
+    },
+  ];
 
   return (
     <Screen
@@ -143,95 +208,37 @@ export default function PlansPage() {
         ((plans.data ?? []).length === 0 ? (
           <Empty title="لا توجد باقات" detail="أنشئ الباقة الأولى ليتمكن العملاء من الاشتراك." />
         ) : (
-          <div className="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>الرمز</th>
-                  <th>الاسم</th>
-                  <th className="num">السعر</th>
-                  <th>الدورة</th>
-                  <th className="num">المكافئ الشهري</th>
-                  <th className="num">الحقوق</th>
-                  <th className="num">اشتراكات فعّالة</th>
-                  <th>الحالة</th>
-                  <th />
-                </tr>
-              </thead>
-              <tbody>
-                {(plans.data ?? []).map((plan) => (
-                  <tr key={plan.id}>
-                    <td dir="ltr">{plan.code}</td>
-                    <td>{plan.name}</td>
-                    <td className="num">
-                      {Number(plan.amount).toLocaleString('ar-SA', { minimumFractionDigits: 2 })} {plan.currency}
-                    </td>
-                    <td>{plan.interval === 'year' ? 'سنوي' : 'شهري'}</td>
-                    <td className="num">{plan.monthlyAmount}</td>
-                    <td className="num">{plan.entitlements.length}</td>
-                    <td className="num">{plan.activeSubscriptions}</td>
-                    <td>
-                      <span className={`badge ${plan.active ? 'active' : 'planned'}`}>
-                        {plan.active ? 'نشطة' : 'متوقفة'}
-                      </span>
-                    </td>
-                    <td>
-                      <div className="row" style={{ gap: 6 }}>
-                        <button className="btn sm" type="button" onClick={() => setEntitlementTarget(plan)}>
-                          الحقوق
-                        </button>
-                        <button className="btn sm" type="button" onClick={() => setEditing(plan)}>
-                          تعديل
-                        </button>
-                        <button className="btn sm" type="button" onClick={() => void toggle(plan)}>
-                          {plan.active ? 'إيقاف' : 'تفعيل'}
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <Panel flush title="الباقات">
+            <Table bare columns={planColumns} rows={plans.data ?? []} rowKey={(plan) => plan.id} />
+          </Panel>
         ))}
 
       {plans.status === 'success' && (plans.data ?? []).length > 0 && (
         <div className="grid cols-2">
           {(plans.data ?? []).map((plan) => (
-            <section className="card" key={`entitlements-${plan.id}`}>
-              <h2>
-                حقوق «{plan.name}» <span className="muted small" dir="ltr">{plan.code}</span>
-              </h2>
+            <Panel
+              key={`entitlements-${plan.id}`}
+              title={
+                <>
+                  "حقوق «", {plan.name}, "»",{' '}
+                  <span className="muted small" dir="ltr">
+                    {plan.code}
+                  </span>
+                </>
+              }
+            >
               {plan.entitlements.length === 0 ? (
                 <p className="muted small">لا حقوق بعد — الباقة تبيع السعر وحده.</p>
               ) : (
-                <table>
-                  <thead>
-                    <tr>
-                      <th>النوع</th>
-                      <th>الحقّ</th>
-                      <th>القيمة</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {plan.entitlements.map((entry) => (
-                      <tr key={entry.key}>
-                        <td>
-                          <span className="chip">{KIND_LABEL[entry.kind]}</span>
-                        </td>
-                        <td>
-                          {entry.labelAr}
-                          <div className="muted small" dir="ltr">
-                            {entry.key}
-                          </div>
-                        </td>
-                        <td>{valueText(entry)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                <Table
+                  bare
+                  dense
+                  columns={entitlementColumns}
+                  rows={plan.entitlements}
+                  rowKey={(entry) => entry.key}
+                />
               )}
-            </section>
+            </Panel>
           ))}
         </div>
       )}
@@ -239,15 +246,7 @@ export default function PlansPage() {
   );
 }
 
-function PlanForm({
-  plan,
-  onDone,
-  onCancel,
-}: {
-  plan?: Plan;
-  onDone: () => void;
-  onCancel?: () => void;
-}) {
+function PlanForm({ plan, onDone, onCancel }: { plan?: Plan; onDone: () => void; onCancel?: () => void }) {
   const [code, setCode] = useState(plan?.code ?? '');
   const [name, setName] = useState(plan?.name ?? '');
   const [priceText, setPriceText] = useState(plan?.amount ?? '0.00');
@@ -294,72 +293,106 @@ function PlanForm({
   }
 
   return (
-    <form className="card" onSubmit={submit}>
-      <h2>{editing ? `تعديل الباقة ${plan.code}` : 'باقة جديدة'}</h2>
-      <p className="muted small">
-        {editing
-          ? 'تعديل السعر يمسّ كل عميل على هذه الباقة، ولهذا يُطلب السبب ويُسجَّل في التدقيق.'
-          : 'الحفظ بنفس الرمز يحدّث الباقة القائمة بدل إنشاء نسخة ثانية.'}
-      </p>
-      <div className="form-grid">
-        <label className="field">
-          <span>الرمز *</span>
-          <input
-            className="input"
-            dir="ltr"
-            value={code}
-            onChange={(event) => setCode(event.target.value)}
-            placeholder="pro-monthly"
-            disabled={editing}
-            required
-          />
-        </label>
-        <label className="field">
-          <span>الاسم *</span>
-          <input className="input" value={name} onChange={(event) => setName(event.target.value)} placeholder="الباقة الاحترافية" required />
-        </label>
-        <label className="field">
-          <span>السعر *</span>
-          <input className="input" dir="ltr" inputMode="decimal" value={priceText} onChange={(event) => setPriceText(event.target.value)} required />
-        </label>
-        <label className="field">
-          <span>العملة</span>
-          <select className="input" value={currency} onChange={(event) => setCurrency(event.target.value)}>
-            <option value="SAR">SAR</option>
-            <option value="YER">YER</option>
-            <option value="AED">AED</option>
-            <option value="USD">USD</option>
-          </select>
-        </label>
-        <label className="field">
-          <span>الدورة</span>
-          <select className="input" value={interval} onChange={(event) => setInterval(event.target.value as 'month' | 'year')}>
-            <option value="month">شهرية</option>
-            <option value="year">سنوية</option>
-          </select>
-        </label>
-        <label className="field">
-          <span>معرّف سعر Stripe (اختياري)</span>
-          <input className="input" dir="ltr" value={stripePriceId} onChange={(event) => setStripePriceId(event.target.value)} placeholder="price_..." />
-        </label>
-        {editing && (
+    <form onSubmit={submit}>
+      <Panel
+        title={<>{editing ? `تعديل الباقة ${plan.code}` : 'باقة جديدة'}</>}
+        hint={
+          <>
+            {editing
+              ? 'تعديل السعر يمسّ كل عميل على هذه الباقة، ولهذا يُطلب السبب ويُسجَّل في التدقيق.'
+              : 'الحفظ بنفس الرمز يحدّث الباقة القائمة بدل إنشاء نسخة ثانية.'}
+          </>
+        }
+      >
+        <div className="form-grid">
           <label className="field">
-            <span>سبب التعديل *</span>
-            <input className="input" value={reason} onChange={(event) => setReason(event.target.value)} required minLength={3} />
+            <span>الرمز *</span>
+            <input
+              className="input"
+              dir="ltr"
+              value={code}
+              onChange={(event) => setCode(event.target.value)}
+              placeholder="pro-monthly"
+              disabled={editing}
+              required
+            />
           </label>
-        )}
-      </div>
-      {error && <p className="alert danger">{error}</p>}
-      <div className="row">
-        <button className="btn primary" type="submit" disabled={busy}>
-          {busy ? 'جارٍ الحفظ…' : 'حفظ'}
-        </button>
-        {onCancel && (
-          <button className="btn" type="button" onClick={onCancel}>
-            إلغاء
+          <label className="field">
+            <span>الاسم *</span>
+            <input
+              className="input"
+              value={name}
+              onChange={(event) => setName(event.target.value)}
+              placeholder="الباقة الاحترافية"
+              required
+            />
+          </label>
+          <label className="field">
+            <span>السعر *</span>
+            <input
+              className="input"
+              dir="ltr"
+              inputMode="decimal"
+              value={priceText}
+              onChange={(event) => setPriceText(event.target.value)}
+              required
+            />
+          </label>
+          <label className="field">
+            <span>العملة</span>
+            <select className="input" value={currency} onChange={(event) => setCurrency(event.target.value)}>
+              <option value="SAR">SAR</option>
+              <option value="YER">YER</option>
+              <option value="AED">AED</option>
+              <option value="USD">USD</option>
+            </select>
+          </label>
+          <label className="field">
+            <span>الدورة</span>
+            <select
+              className="input"
+              value={interval}
+              onChange={(event) => setInterval(event.target.value as 'month' | 'year')}
+            >
+              <option value="month">شهرية</option>
+              <option value="year">سنوية</option>
+            </select>
+          </label>
+          <label className="field">
+            <span>معرّف سعر Stripe (اختياري)</span>
+            <input
+              className="input"
+              dir="ltr"
+              value={stripePriceId}
+              onChange={(event) => setStripePriceId(event.target.value)}
+              placeholder="price_..."
+            />
+          </label>
+          {editing && (
+            <label className="field">
+              <span>سبب التعديل *</span>
+              <input
+                className="input"
+                value={reason}
+                onChange={(event) => setReason(event.target.value)}
+                required
+                minLength={3}
+              />
+            </label>
+          )}
+        </div>
+        {error && <p className="alert danger">{error}</p>}
+        <div className="row">
+          <button className="btn primary" type="submit" disabled={busy}>
+            {busy ? 'جارٍ الحفظ…' : 'حفظ'}
           </button>
-        )}
-      </div>
+          {onCancel && (
+            <button className="btn" type="button" onClick={onCancel}>
+              إلغاء
+            </button>
+          )}
+        </div>
+      </Panel>
     </form>
   );
 }
@@ -409,7 +442,10 @@ function EntitlementForm({
         entitlements: Object.entries(selected).map(([key, value]) => ({
           key,
           kind: keys.find((entry) => entry.key === key)?.kind ?? 'flag',
-          value: typeof value === 'string' && value.trim() !== '' && /^-?\d+$/.test(value.trim()) ? Number(value) : value,
+          value:
+            typeof value === 'string' && value.trim() !== '' && /^-?\d+$/.test(value.trim())
+              ? Number(value)
+              : value,
         })),
         reason: reason.trim(),
       });
@@ -422,91 +458,104 @@ function EntitlementForm({
   }
 
   return (
-    <form className="card" onSubmit={submit}>
-      <h2>حقوق «{plan.name}»</h2>
-      <p className="muted small">
-        اختر ما تفتحه هذه الباقة: الوحدة تُفتح، والحدّ يُقاس برقم، والراية تُفعَّل. الحفظ يستبدل المجموعة كاملة.
-      </p>
-      <div className="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th />
-              <th>النوع</th>
-              <th>الحقّ</th>
-              <th>القيمة</th>
-            </tr>
-          </thead>
-          <tbody>
-            {keys.map((definition) => {
-              const chosen = definition.key in selected;
-              return (
-                <tr key={definition.key}>
-                  <td>
-                    <input
-                      type="checkbox"
-                      checked={chosen}
-                      onChange={() => toggleKey(definition)}
-                      aria-label={definition.labelAr}
-                    />
-                  </td>
-                  <td>
-                    <span className="chip">{KIND_LABEL[definition.kind]}</span>
-                  </td>
-                  <td>
-                    {definition.labelAr}
-                    <div className="muted small" dir="ltr">
-                      {definition.key}
-                    </div>
-                  </td>
-                  <td>
-                    {!chosen ? (
-                      <span className="muted small">—</span>
-                    ) : definition.valueKind === 'boolean' ? (
-                      <select
-                        className="input"
-                        value={selected[definition.key] === true ? 'on' : 'off'}
-                        onChange={(event) =>
-                          setSelected((current) => ({ ...current, [definition.key]: event.target.value === 'on' }))
-                        }
-                      >
-                        <option value="on">مُفعَّلة</option>
-                        <option value="off">مُطفأة</option>
-                      </select>
-                    ) : (
-                      <input
-                        className="input"
-                        dir="ltr"
-                        type={definition.valueKind === 'number' ? 'number' : 'text'}
-                        max={definition.max}
-                        value={String(selected[definition.key] ?? '')}
-                        onChange={(event) =>
-                          setSelected((current) => ({ ...current, [definition.key]: event.target.value }))
-                        }
-                      />
-                    )}
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
-      <div className="form-grid">
-        <label className="field">
-          <span>سبب التغيير *</span>
-          <input className="input" value={reason} onChange={(event) => setReason(event.target.value)} required minLength={3} />
-        </label>
-      </div>
-      {error && <p className="alert danger">{error}</p>}
-      <div className="row">
-        <button className="btn primary" type="submit" disabled={busy}>
-          {busy ? 'جارٍ الحفظ…' : 'حفظ الحقوق'}
-        </button>
-        <button className="btn" type="button" onClick={onCancel}>
-          إلغاء
-        </button>
-      </div>
+    <form onSubmit={submit}>
+      <Panel
+        title={<>حقوق «{plan.name}»</>}
+        hint="اختر ما تفتحه هذه الباقة: الوحدة تُفتح، والحدّ يُقاس برقم، والراية تُفعَّل. الحفظ يستبدل المجموعة كاملة."
+      >
+        <Table
+          bare
+          dense
+          rowKey={(definition) => definition.key}
+          rows={keys}
+          columns={[
+            {
+              key: 'chosen',
+              header: '',
+              width: 40,
+              cell: (definition) => (
+                <input
+                  type="checkbox"
+                  checked={definition.key in selected}
+                  onChange={() => toggleKey(definition)}
+                  aria-label={definition.labelAr}
+                />
+              ),
+            },
+            {
+              key: 'kind',
+              header: 'النوع',
+              cell: (definition) => <span className="chip">{KIND_LABEL[definition.kind]}</span>,
+            },
+            {
+              key: 'label',
+              header: 'الحقّ',
+              cell: (definition) => (
+                <>
+                  {definition.labelAr}
+                  <div className="muted small" dir="ltr">
+                    {definition.key}
+                  </div>
+                </>
+              ),
+            },
+            {
+              key: 'value',
+              header: 'القيمة',
+              cell: (definition) =>
+                !(definition.key in selected) ? (
+                  <span className="muted small">—</span>
+                ) : definition.valueKind === 'boolean' ? (
+                  <select
+                    className="input"
+                    value={selected[definition.key] === true ? 'on' : 'off'}
+                    onChange={(event) =>
+                      setSelected((current) => ({
+                        ...current,
+                        [definition.key]: event.target.value === 'on',
+                      }))
+                    }
+                  >
+                    <option value="on">مُفعَّلة</option>
+                    <option value="off">مُطفأة</option>
+                  </select>
+                ) : (
+                  <input
+                    className="input"
+                    dir="ltr"
+                    type={definition.valueKind === 'number' ? 'number' : 'text'}
+                    max={definition.max}
+                    value={String(selected[definition.key] ?? '')}
+                    onChange={(event) =>
+                      setSelected((current) => ({ ...current, [definition.key]: event.target.value }))
+                    }
+                  />
+                ),
+            },
+          ]}
+        />
+        <div className="form-grid">
+          <label className="field">
+            <span>سبب التغيير *</span>
+            <input
+              className="input"
+              value={reason}
+              onChange={(event) => setReason(event.target.value)}
+              required
+              minLength={3}
+            />
+          </label>
+        </div>
+        {error && <p className="alert danger">{error}</p>}
+        <div className="row">
+          <button className="btn primary" type="submit" disabled={busy}>
+            {busy ? 'جارٍ الحفظ…' : 'حفظ الحقوق'}
+          </button>
+          <button className="btn" type="button" onClick={onCancel}>
+            إلغاء
+          </button>
+        </div>
+      </Panel>
     </form>
   );
 }

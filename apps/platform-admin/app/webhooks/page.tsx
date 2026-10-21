@@ -1,8 +1,10 @@
 'use client';
 
+import { Panel } from '@erp/ui';
 import { useMemo, useState } from 'react';
 
 import { Empty, ErrorBox, Forbidden, Loading, Screen } from '../../components/screen';
+import { Table, type Column } from '../../components/ui/table';
 import { apiData, apiList } from '../../lib/api';
 import { useSession } from '../../lib/session';
 import { useQuery } from '../../lib/use-query';
@@ -17,11 +19,11 @@ import { useQuery } from '../../lib/use-query';
  *
  * وثلاث حقائق تُقال هنا:
  *   * **السرّ يظهر مرّة واحدة** عند الإنشاء، والقاعدة تحفظه **مشفَّراً** لأن التوقيع يحتاج
- *     قراءته — بخلاف مفتاح الـAPI الذي يُقارَن ولا يُقرأ.
+ * قراءته — بخلاف مفتاح الـAPI الذي يُقارَن ولا يُقرأ.
  *   * **الاختبار يمرّ من مسار الإرسال نفسه**: توقيع، ثم POST، ثم قياس — لا زرٌّ يوهم بالسلامة.
  *   * **الإيقاف يمنع التلقائي لا اليدوي**: الأحداث الحقيقية لا يُنشأ لها صفّ تسليمٍ أبداً
- *     للعنوان الموقوف، ويبقى زرّ «اختبار» متاحاً — فمن أصلح مستقبِلَه للتوّ يقيسه قبل أن
- *     يُعيد التشغيل. والحدث الحقيقي هو ما يُقاس عليه الإيقاف، لا زرٌّ ضغطه إنسان.
+ * للعنوان الموقوف، ويبقى زرّ «اختبار» متاحاً — فمن أصلح مستقبِلَه للتوّ يقيسه قبل أن
+ * يُعيد التشغيل. والحدث الحقيقي هو ما يُقاس عليه الإيقاف، لا زرٌّ ضغطه إنسان.
  */
 
 type Tenant = { id: string; code: string; name: string; status: string };
@@ -77,7 +79,11 @@ type Attempt = {
   attempts: number;
 };
 
-type Catalogue = { events: string[]; testEvent: string; signature: { header: string; toleranceSeconds: number } };
+type Catalogue = {
+  events: string[];
+  testEvent: string;
+  signature: { header: string; toleranceSeconds: number };
+};
 
 export default function WebhooksPage() {
   const { canConsole } = useSession();
@@ -99,7 +105,8 @@ export default function WebhooksPage() {
     [tenantId],
   );
   const deliveries = useQuery(
-    () => (openId ? apiList<DeliveryRow>(`/platform/webhooks/${openId}/deliveries?limit=50`) : Promise.resolve([])),
+    () =>
+      openId ? apiList<DeliveryRow>(`/platform/webhooks/${openId}/deliveries?limit=50`) : Promise.resolve([]),
     [openId],
   );
 
@@ -152,7 +159,10 @@ export default function WebhooksPage() {
     setBusy(row.id);
     setNotice(undefined);
     try {
-      const attempt = await apiData<Attempt>(`/platform/webhooks/${row.id}/test`, { method: 'POST', body: JSON.stringify({}) });
+      const attempt = await apiData<Attempt>(`/platform/webhooks/${row.id}/test`, {
+        method: 'POST',
+        body: JSON.stringify({}),
+      });
       setNotice({
         kind: attempt.status === 'delivered' ? 'ok' : 'danger',
         text:
@@ -174,10 +184,10 @@ export default function WebhooksPage() {
     setBusy(delivery.id);
     setNotice(undefined);
     try {
-      const attempt = await apiData<Attempt>(
-        `/platform/webhooks/${row.id}/deliveries/${delivery.id}/retry`,
-        { method: 'POST', body: JSON.stringify({}) },
-      );
+      const attempt = await apiData<Attempt>(`/platform/webhooks/${row.id}/deliveries/${delivery.id}/retry`, {
+        method: 'POST',
+        body: JSON.stringify({}),
+      });
       setNotice({
         kind: attempt.status === 'delivered' ? 'ok' : 'danger',
         text: `المحاولة ${attempt.attempts}: ${attempt.responseCode ?? 'لا استجابة'} — ${attempt.error ?? 'وصل'}`,
@@ -206,6 +216,140 @@ export default function WebhooksPage() {
     }
   }
 
+  /** أعمدةُ العناوين — على `Table` المشترك، فلا جدولٌ خامٌ في شاشة. */
+  const endpointColumns: Array<Column<EndpointRow>> = [
+    {
+      key: 'url',
+      header: 'العنوان',
+      grow: true,
+      cell: (row) => (
+        <>
+          <strong>{row.url}</strong>
+          <div className="muted">
+            <code>{row.secretPrefix}</code> · {row.description ?? 'بلا وصف'}
+          </div>
+        </>
+      ),
+    },
+    {
+      key: 'events',
+      header: 'الأحداث',
+      cell: (row) =>
+        row.events.map((event) => (
+          <code key={event} className="chip">
+            {event}
+          </code>
+        )),
+    },
+    {
+      key: 'status',
+      header: 'الحالة',
+      cell: (row) => (
+        <>
+          {row.status === 'active' ? 'يعمل' : 'موقوف'}
+          {row.status !== 'active' && <div className="muted">الأحداث التلقائية متوقّفة</div>}
+        </>
+      ),
+    },
+    {
+      key: 'stats',
+      header: 'التسليمات',
+      cell: (row) => (
+        <>
+          {row.stats.delivered} / {row.stats.failed} / {row.stats.pending} …
+          {row.stats.lastError && <div className="muted">{row.stats.lastError}</div>}
+        </>
+      ),
+    },
+    {
+      key: 'lastResponse',
+      header: 'آخر ردّ',
+      cell: (row) => (
+        <>
+          {row.stats.lastResponseCode ?? '—'}
+          {row.stats.lastDeliveryAt && (
+            <div className="muted">{row.stats.lastDeliveryAt.slice(0, 19).replace('T', ' ')}</div>
+          )}
+        </>
+      ),
+    },
+    {
+      key: 'actions',
+      header: 'الإجراء',
+      cell: (row) => (
+        <div className="row">
+          <button className="btn sm" onClick={() => test(row)} disabled={busy === row.id}>
+            اختبار
+          </button>
+          <button className="btn sm" onClick={() => setOpenId(row.id === openId ? '' : row.id)}>
+            {row.id === openId ? 'إخفاء السجلّ' : 'السجلّ'}
+          </button>
+          <button className="btn sm" onClick={() => toggleStatus(row)} disabled={busy === row.id}>
+            {row.status === 'active' ? 'إيقاف' : 'تشغيل'}
+          </button>
+          <button className="btn sm danger" onClick={() => remove(row)} disabled={busy === row.id}>
+            حذف
+          </button>
+        </div>
+      ),
+    },
+  ];
+
+  /** أعمدةُ سجلّ التسليم — الحمولة بمفاتيحها لا بقيمها. */
+  const deliveryColumns: Array<Column<DeliveryRow>> = [
+    {
+      key: 'event',
+      header: 'الحدث',
+      cell: (row) => (
+        <>
+          <code>{row.event}</code>
+          <div className="muted">{row.createdAt.slice(0, 19).replace('T', ' ')}</div>
+        </>
+      ),
+    },
+    {
+      key: 'status',
+      header: 'الحالة',
+      cell: (row) => (row.status === 'delivered' ? 'وصل' : row.status === 'failed' ? 'فشل' : 'منتظر'),
+    },
+    {
+      key: 'attempts',
+      header: 'المحاولات',
+      numeric: true,
+      cell: (row) => `${row.attempts}/${row.maxAttempts}`,
+    },
+    { key: 'responseCode', header: 'رمز الاستجابة', numeric: true, cell: (row) => row.responseCode ?? '—' },
+    {
+      key: 'duration',
+      header: 'الزمن',
+      numeric: true,
+      cell: (row) => (row.durationMs === null ? '—' : `${row.durationMs} ms`),
+    },
+    {
+      key: 'payload',
+      header: 'الحمولة',
+      cell: (row) => (
+        <>
+          <code>{row.payloadKeys.join(', ')}</code>
+          <div className="muted">{row.payloadBytes} بايت</div>
+        </>
+      ),
+    },
+    { key: 'error', header: 'الخطأ', cell: (row) => <span className="small">{row.error ?? '—'}</span> },
+    {
+      key: 'action',
+      header: 'الإجراء',
+      cell: (row) =>
+        row.status === 'failed' ? (
+          <button className="btn sm" onClick={() => retry(opened!, row)} disabled={busy === row.id}>
+            إعادة الإرسال
+          </button>
+        ) : (
+          <span className="muted">—</span>
+        ),
+    },
+  ];
+
   if (!allowed) {
     return (
       <Screen title="الويب هوك" subtitle="أحداثٌ تخرج إلى أنظمة العميل بتوقيعٍ يُتحقَّق منه">
@@ -229,12 +373,12 @@ export default function WebhooksPage() {
       {notice && <p className={`alert ${notice.kind}`}>{notice.text}</p>}
 
       {secret && (
-        <div className="card">
+        <Panel>
           <strong>سرّ التوقيع يظهر مرّة واحدة</strong>
           <p className="muted">
             يُخزَّن مشفَّراً لأن الإرسال يحتاج قراءته لحظة التوقيع. الصيغة:{' '}
-            <code>{catalogue.data?.signature.header ?? 'x-erp-signature'}</code> —
-            HMAC-SHA256 على <code>&quot;&lt;الطابع&gt;.&lt;الجسم&gt;&quot;</code>، ونافذة القبول{' '}
+            <code>{catalogue.data?.signature.header ?? 'x-erp-signature'}</code> — HMAC-SHA256 على{' '}
+            <code>&quot;&lt;الطابع&gt;.&lt;الجسم&gt;&quot;</code>، ونافذة القبول{' '}
             {catalogue.data?.signature.toleranceSeconds ?? 300} ثانية.
           </p>
           <pre className="code">{secret.value}</pre>
@@ -244,13 +388,13 @@ export default function WebhooksPage() {
           <button className="btn" onClick={() => setSecret(undefined)}>
             أخفِ السرّ
           </button>
-        </div>
+        </Panel>
       )}
 
-      <div className="card grid cols-2">
+      <Panel bodyClassName="grid cols-2">
         <label>
           المنشأة
-          <select value={tenantId} onChange={(event) => setTenantId(event.target.value)}>
+          <select className="input" value={tenantId} onChange={(event) => setTenantId(event.target.value)}>
             <option value="">— اختر منشأة —</option>
             {(tenants.data ?? []).map((entry) => (
               <option key={entry.id} value={entry.id}>
@@ -263,19 +407,29 @@ export default function WebhooksPage() {
           العنوان يجب أن يكون <code>https</code>، ويُقبل <code>http</code> على <code>localhost</code> وحده —
           فالسرّ يمنع التزوير لا التنصّت.
         </div>
-      </div>
+      </Panel>
 
       {tenantId && (
-        <div className="card">
+        <Panel>
           <strong>عنوان جديد</strong>
           <div className="form-grid">
             <label>
               العنوان
-              <input value={url} onChange={(event) => setUrl(event.target.value)} placeholder="https://example.com/hooks/erp" />
+              <input
+                className="input"
+                value={url}
+                onChange={(event) => setUrl(event.target.value)}
+                placeholder="https://example.com/hooks/erp"
+              />
             </label>
             <label>
               وصف (اختياري)
-              <input value={description} onChange={(event) => setDescription(event.target.value)} placeholder="بوت المحاسبة" />
+              <input
+                className="input"
+                value={description}
+                onChange={(event) => setDescription(event.target.value)}
+                placeholder="بوت المحاسبة"
+              />
             </label>
           </div>
           <div className="form-grid">
@@ -287,7 +441,9 @@ export default function WebhooksPage() {
                   checked={events.includes(event)}
                   onChange={(change) =>
                     setEvents((current) =>
-                      change.target.checked ? [...current, event] : current.filter((entry) => entry !== event),
+                      change.target.checked
+                        ? [...current, event]
+                        : current.filter((entry) => entry !== event),
                     )
                   }
                 />
@@ -298,146 +454,41 @@ export default function WebhooksPage() {
           <button className="btn primary" onClick={create} disabled={busy === 'create'}>
             {busy === 'create' ? 'جارٍ الإضافة…' : 'أضف العنوان'}
           </button>
-        </div>
+        </Panel>
       )}
 
       {tenantId && endpoints.status === 'loading' && <Loading />}
-      {tenantId && endpoints.status === 'error' && <ErrorBox message={endpoints.error} onRetry={() => endpoints.reload()} />}
+      {tenantId && endpoints.status === 'error' && (
+        <ErrorBox message={endpoints.error} onRetry={() => endpoints.reload()} />
+      )}
       {tenantId && endpoints.status === 'success' && rows.length === 0 && (
         <Empty title="لا عناوين لهذه المنشأة" detail="أضف عنواناً واشترك بحدثٍ واحد على الأقل." />
       )}
 
       {rows.length > 0 && (
-        <div className="card">
-          <div className="table-wrap">
-            <table>
-              <thead>
-                <tr>
-                  <th>العنوان</th>
-                  <th>الأحداث</th>
-                  <th>الحالة</th>
-                  <th>التسليمات</th>
-                  <th>آخر ردّ</th>
-                  <th>الإجراء</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((row) => (
-                  <tr key={row.id}>
-                    <td>
-                      <strong>{row.url}</strong>
-                      <div className="muted">
-                        <code>{row.secretPrefix}</code> · {row.description ?? 'بلا وصف'}
-                      </div>
-                    </td>
-                    <td>
-                      <span className="chips">
-                        {row.events.map((event) => (
-                          <code key={event} className="chip">
-                            {event}
-                          </code>
-                        ))}
-                      </span>
-                    </td>
-                    <td>
-                      {row.status === 'active' ? 'يعمل' : 'موقوف'}
-                      {row.status !== 'active' && <div className="muted">الأحداث التلقائية متوقّفة</div>}
-                    </td>
-                    <td>
-                      {row.stats.delivered} ✔ / {row.stats.failed} ✖ / {row.stats.pending} …
-                      {row.stats.lastError && <div className="muted">{row.stats.lastError}</div>}
-                    </td>
-                    <td>
-                      {row.stats.lastResponseCode ?? '—'}
-                      {row.stats.lastDeliveryAt && (
-                        <div className="muted">{row.stats.lastDeliveryAt.slice(0, 19).replace('T', ' ')}</div>
-                      )}
-                    </td>
-                    <td>
-                      <div className="row">
-                        <button className="btn sm" onClick={() => test(row)} disabled={busy === row.id}>
-                          اختبار
-                        </button>
-                        <button className="btn sm" onClick={() => setOpenId(row.id === openId ? '' : row.id)}>
-                          {row.id === openId ? 'إخفاء السجلّ' : 'السجلّ'}
-                        </button>
-                        <button className="btn sm" onClick={() => toggleStatus(row)} disabled={busy === row.id}>
-                          {row.status === 'active' ? 'إيقاف' : 'تشغيل'}
-                        </button>
-                        <button className="btn sm danger" onClick={() => remove(row)} disabled={busy === row.id}>
-                          حذف
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
+        <Panel flush title="العناوين">
+          <Table bare columns={endpointColumns} rows={rows} rowKey={(row) => row.id} />
+        </Panel>
       )}
 
       {opened && (
-        <div className="card">
+        <Panel>
           <strong>سجلّ التسليم — {opened.url}</strong>
           <p className="muted">
-            الحمولة تُعرض بمفاتيحها لا بقيمها: بيانات العميل تُقرأ عنده، وهذا السجلّ يجيب «هل وصل»
-            لا «ماذا كان».
+            الحمولة تُعرض بمفاتيحها لا بقيمها: بيانات العميل تُقرأ عنده، وهذا السجلّ يجيب «هل وصل» لا «ماذا
+            كان».
           </p>
           {deliveries.status === 'loading' && <Loading rows={3} />}
-          {deliveries.status === 'error' && <ErrorBox message={deliveries.error} onRetry={() => deliveries.reload()} />}
+          {deliveries.status === 'error' && (
+            <ErrorBox message={deliveries.error} onRetry={() => deliveries.reload()} />
+          )}
           {deliveries.status === 'success' && (deliveries.data ?? []).length === 0 && (
             <Empty title="لا تسليمات بعد" detail="جرّب «اختبار» — أو انتظر حدثاً حقيقياً من المنشأة." />
           )}
           {deliveries.status === 'success' && (deliveries.data ?? []).length > 0 && (
-            <div className="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>الحدث</th>
-                    <th>الحالة</th>
-                    <th>المحاولات</th>
-                    <th>رمز الاستجابة</th>
-                    <th>الزمن</th>
-                    <th>الحمولة</th>
-                    <th>الخطأ</th>
-                    <th>الإجراء</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {(deliveries.data ?? []).map((row) => (
-                    <tr key={row.id}>
-                      <td>
-                        <code>{row.event}</code>
-                        <div className="muted">{row.createdAt.slice(0, 19).replace('T', ' ')}</div>
-                      </td>
-                      <td>{row.status === 'delivered' ? 'وصل' : row.status === 'failed' ? 'فشل' : 'منتظر'}</td>
-                      <td>
-                        {row.attempts}/{row.maxAttempts}
-                      </td>
-                      <td>{row.responseCode ?? '—'}</td>
-                      <td>{row.durationMs === null ? '—' : `${row.durationMs} ms`}</td>
-                      <td>
-                        <code>{row.payloadKeys.join(', ')}</code>
-                        <div className="muted">{row.payloadBytes} بايت</div>
-                      </td>
-                      <td className="small">{row.error ?? '—'}</td>
-                      <td>
-                        {row.status === 'failed' ? (
-                          <button className="btn sm" onClick={() => retry(opened, row)} disabled={busy === row.id}>
-                            إعادة الإرسال
-                          </button>
-                        ) : (
-                          <span className="muted">—</span>
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+            <Table bare columns={deliveryColumns} rows={deliveries.data ?? []} rowKey={(row) => row.id} />
           )}
-        </div>
+        </Panel>
       )}
     </Screen>
   );

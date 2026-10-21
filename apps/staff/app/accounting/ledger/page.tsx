@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
+import { FilterBand, Panel, TableFrame } from '@erp/ui';
 import { useEffect, useMemo, useState } from 'react';
 
 import { Empty, ErrorBox, Forbidden, Loading, Screen } from '../../../components/screen';
@@ -12,7 +13,7 @@ import { money } from '../../../lib/lookups';
 import { useQuery } from '../../../lib/use-query';
 
 /**
- * 📄 كشف الحساب — the two statement windows of the desktop on one screen.
+ * كشف الحساب — the two statement windows of the desktop on one screen.
  *
  * `Form_WPF/frmAccountBalance.xaml` («كشف حساب تفصيلي») is the model: the filters are
  * `اسم الحساب` · `رقم الحساب` · `⚖️ نوع الرصيد` (`الكل`/`مدين`/`دائن`) ·
@@ -31,7 +32,7 @@ import { useQuery } from '../../../lib/use-query';
  * What the cloud lacked was the whole left half: the endpoint answered with bare lines,
  * so the screen filtered by date *after* the fact and started every الرصيد at zero. The
  * period, the رصيد سابق row and the running total are now counted once, on the server,
- * from posted entries only — the same arithmetic 📂 شجرة الحسابات uses.
+ * from posted entries only — the same arithmetic شجرة الحسابات uses.
  */
 type StatementRow = {
   rank: number;
@@ -80,12 +81,15 @@ export default function AccountStatementPage() {
     [],
   );
   const branches = useQuery<Array<{ id: string; nameAr?: string; name?: string }>>(
-    () => apiFetch<{ data: Array<{ id: string; nameAr?: string; name?: string }> }>('/branches').then((body) => body.data),
+    () =>
+      apiFetch<{ data: Array<{ id: string; nameAr?: string; name?: string }> }>('/branches').then(
+        (body) => body.data,
+      ),
     [],
   );
   const branchRows = branches.data ?? [];
 
-  // 📂 دليل الحسابات opens this screen with `?account=<id>` from its كشف حساب column.
+  // دليل الحسابات opens this screen with `?account=<id>` from its كشف حساب column.
   const [accountId, setAccountId] = useState(search.get('account') ?? '');
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
@@ -96,10 +100,10 @@ export default function AccountStatementPage() {
   const [branchId, setBranchId] = useState('');
   const [fullPeriod, setFullPeriod] = useState(true);
   const [hidePrevious, setHidePrevious] = useState(false);
-  const [summary, setSummary] = useState(true); // 📊 طريقة العرض — تجميعي (ملخص)
+  const [summary, setSummary] = useState(true); // طريقة العرض — تجميعي (ملخص)
   const [descendants, setDescendants] = useState(false); // كشف حساب رئيسي
   const [balanceType, setBalanceType] = useState<'all' | 'debit' | 'credit'>('all');
-  // R14 — 📋 نوع القيد — `cmbEntryType` في `frmAccountBalance` L108-L127، 13 نوعاً.
+  // R14 — نوع القيد — `cmbEntryType` في `frmAccountBalance` L108-L127، 13 نوعاً.
   const [entryKind, setEntryKind] = useState('');
   const [applied, setApplied] = useState({
     accountId: search.get('account') ?? '',
@@ -197,7 +201,7 @@ export default function AccountStatementPage() {
       actions={
         <>
           <button className="btn" type="button" onClick={() => window.print()} disabled={!applied.accountId}>
-            🖨️ طباعة
+            طباعة
           </button>
           <button className="btn" type="button" onClick={exportCsv} disabled={rows.length === 0}>
             تصدير CSV
@@ -206,7 +210,7 @@ export default function AccountStatementPage() {
       }
     >
       {/* فلاتر البحث المتقدم — the header of the window's own filter panel. */}
-      <div className="card tight no-print">
+      <FilterBand className="no-print">
         <div className="row" style={{ flexWrap: 'wrap', alignItems: 'flex-end' }}>
           <label className="field" style={{ margin: 0, minWidth: 260, flex: 1 }}>
             <span>اسم الحساب</span>
@@ -247,28 +251,62 @@ export default function AccountStatementPage() {
             </select>
           </label>
           <label className="check">
-            <input type="checkbox" checked={allBranches} onChange={(event) => setAllBranches(event.target.checked)} />
+            <input
+              type="checkbox"
+              checked={allBranches}
+              onChange={(event) => setAllBranches(event.target.checked)}
+            />
             كل الفروع
           </label>
           <label className="field" style={{ margin: 0, width: 150 }}>
             <span>من تاريخ</span>
-            <input className="input" type="date" value={from} onChange={(event) => setFrom(event.target.value)} disabled={fullPeriod} />
+            <input
+              className="input"
+              type="date"
+              value={from}
+              onChange={(event) => setFrom(event.target.value)}
+              disabled={fullPeriod}
+            />
           </label>
           <label className="field" style={{ margin: 0, width: 120 }}>
             <span>من وقت</span>
-            <input className="input" type="time" value={fromTime} onChange={(event) => setFromTime(event.target.value)} disabled={fullPeriod || !from} title="⏰ الوقت — صندوق الوقت في frmAccountBalance L458-L463" />
+            <input
+              className="input"
+              type="time"
+              value={fromTime}
+              onChange={(event) => setFromTime(event.target.value)}
+              disabled={fullPeriod || !from}
+              title="الوقت — صندوق الوقت في frmAccountBalance L458-L463"
+            />
           </label>
           <label className="field" style={{ margin: 0, width: 150 }}>
             <span>إلى تاريخ</span>
-            <input className="input" type="date" value={to} onChange={(event) => setTo(event.target.value)} disabled={fullPeriod} />
+            <input
+              className="input"
+              type="date"
+              value={to}
+              onChange={(event) => setTo(event.target.value)}
+              disabled={fullPeriod}
+            />
           </label>
           <label className="field" style={{ margin: 0, width: 120 }}>
             <span>إلى وقت</span>
-            <input className="input" type="time" value={toTime} onChange={(event) => setToTime(event.target.value)} disabled={fullPeriod || !to} title="⏰ الوقت — صندوق الوقت في frmAccountBalance L458-L463" />
+            <input
+              className="input"
+              type="time"
+              value={toTime}
+              onChange={(event) => setToTime(event.target.value)}
+              disabled={fullPeriod || !to}
+              title="الوقت — صندوق الوقت في frmAccountBalance L458-L463"
+            />
           </label>
           <label className="field" style={{ margin: 0, minWidth: 180 }}>
-            <span>📋 نوع القيد</span>
-            <select className="input" value={entryKind} onChange={(event) => setEntryKind(event.target.value)}>
+            <span>نوع القيد</span>
+            <select
+              className="input"
+              value={entryKind}
+              onChange={(event) => setEntryKind(event.target.value)}
+            >
               <option value="">الكل</option>
               <option value="opening">قيد افتتاحي</option>
               <option value="sales_invoice">فاتورة مبيعات</option>
@@ -285,25 +323,31 @@ export default function AccountStatementPage() {
               <option value="reversal">قيد عكسي</option>
             </select>
           </label>
-          <button className="btn primary" type="button" onClick={() => setApplied({
-            accountId,
-            from,
-            to,
-            fromTime,
-            toTime,
-            branchId: allBranches ? '' : branchId,
-            fullPeriod,
-            hidePrevious,
-            summary,
-            descendants,
-            entryKind,
-          })}>
-            🚀 عرض البيانات
+          <button
+            className="btn primary"
+            type="button"
+            onClick={() =>
+              setApplied({
+                accountId,
+                from,
+                to,
+                fromTime,
+                toTime,
+                branchId: allBranches ? '' : branchId,
+                fullPeriod,
+                hidePrevious,
+                summary,
+                descendants,
+                entryKind,
+              })
+            }
+          >
+            عرض البيانات
           </button>
         </div>
 
         <div className="row" style={{ flexWrap: 'wrap', marginTop: 8 }}>
-          <span className="group-label">⚖️ نوع الرصيد</span>
+          <span className="group-label">نوع الرصيد</span>
           {(
             [
               { id: 'all', label: 'الكل' },
@@ -321,7 +365,7 @@ export default function AccountStatementPage() {
             </button>
           ))}
           <span className="group-label" style={{ marginInlineStart: 12 }}>
-            📊 طريقة العرض
+            طريقة العرض
           </span>
           <button
             type="button"
@@ -362,9 +406,16 @@ export default function AccountStatementPage() {
             عدم إظهار الرصيد السابق
           </label>
         </div>
-      </div>
+      </FilterBand>
 
-      {!applied.accountId && <Empty title="اختر حساباً لعرض كشفه" detail="يُفتح هذا الكشف أيضاً من 📂 دليل الحسابات بزرّ «كشف حساب»." />}
+      {!applied.accountId && (
+        <Panel title="كشف الحساب" flush>
+          <Empty
+            title="اختر حساباً لعرض كشفه"
+            detail="يُفتح هذا الكشف أيضاً من دليل الحسابات بزرّ «كشف حساب»."
+          />
+        </Panel>
+      )}
       {applied.accountId && statement.status === 'loading' && <Loading />}
       {applied.accountId && statement.status === 'forbidden' && <Forbidden />}
       {applied.accountId && statement.status === 'error' && (
@@ -384,15 +435,18 @@ export default function AccountStatementPage() {
             />
           </StatTiles>
 
-          <div className="card tight">
+          <Panel className="tight">
             <dl className="kv">
               <dt>الحساب</dt>
               <dd>
-                <span dir="ltr">{reported?.code ?? account?.code}</span> — {nameOf(account ?? (reported as Account))}
+                <span dir="ltr">{reported?.code ?? account?.code}</span> —{' '}
+                {nameOf(account ?? (reported as Account))}
               </dd>
               <dt>الفترة</dt>
               <dd dir="ltr">
-                {applied.fullPeriod ? 'من البداية' : `${applied.from || '…'}${applied.fromTime ? ` ${applied.fromTime}` : ''} → ${applied.to || '…'}${applied.toTime ? ` ${applied.toTime}` : ''}`}
+                {applied.fullPeriod
+                  ? 'من البداية'
+                  : `${applied.from || '…'}${applied.fromTime ? ` ${applied.fromTime}` : ''} ${applied.to || '…'}${applied.toTime ? ` ${applied.toTime}` : ''}`}
               </dd>
               <dt>عدد الحركات</dt>
               <dd>{rows.filter((row) => row.rank !== 0).length}</dd>
@@ -403,13 +457,13 @@ export default function AccountStatementPage() {
                   : (branchRows.find((branch) => branch.id === applied.branchId)?.nameAr ?? applied.branchId)}
               </dd>
             </dl>
-          </div>
+          </Panel>
 
-          {rows.length === 0 ? (
-            <Empty title="لا توجد حركات على هذا الحساب في المدى المحدد" />
-          ) : (
-            <div className="table-wrap">
-              <table>
+          <Panel title="حركة الحساب" flush>
+            {rows.length === 0 ? (
+              <Empty title="لا توجد حركات على هذا الحساب في المدى المحدد" />
+            ) : (
+              <TableFrame>
                 <thead>
                   <tr>
                     <th>م</th>
@@ -430,7 +484,10 @@ export default function AccountStatementPage() {
                 </thead>
                 <tbody>
                   {rows.map((row) => (
-                    <tr key={`${row.rank}-${row.entryId ?? 'opening'}`} className={row.rank === 0 ? 'opening' : undefined}>
+                    <tr
+                      key={`${row.rank}-${row.entryId ?? 'opening'}`}
+                      className={row.rank === 0 ? 'opening' : undefined}
+                    >
                       <td dir="ltr">{row.rank === 0 ? '' : row.rank}</td>
                       <td dir="ltr">{row.date}</td>
                       <td>{row.entryType}</td>
@@ -447,11 +504,9 @@ export default function AccountStatementPage() {
                       {!descendants && <td className="num">{money(row.runningBalance ?? '')}</td>}
                       {!descendants && <td>{row.balanceStatus ?? '—'}</td>}
                       <td>
-                        {/* 👁️ — يفتح القيد في شاشته (R10)، حيث متنقّل ⏮ ◀ ▶ ⏭ وطباعته. */}
+                        {/* — يفتح القيد في شاشته (R10)، حيث متنقّل وطباعته. */}
                         {row.entryId ? (
-                          <Link className="btn sm" href={`/accounting/journal-entries/${row.entryId}`}>
-                            👁️
-                          </Link>
+                          <Link className="btn sm" href={`/accounting/journal-entries/${row.entryId}`}></Link>
                         ) : (
                           '—'
                         )}
@@ -469,9 +524,9 @@ export default function AccountStatementPage() {
                     <th />
                   </tr>
                 </tfoot>
-              </table>
-            </div>
-          )}
+              </TableFrame>
+            )}
+          </Panel>
         </>
       )}
     </Screen>

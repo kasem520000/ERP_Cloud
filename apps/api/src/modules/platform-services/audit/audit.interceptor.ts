@@ -180,7 +180,9 @@ export class AuditInterceptor implements NestInterceptor {
     if (authAction) {
       const identity = identityFromAuthResponse(body);
       await this.audit.record({
-        tenantId: context.tenant?.tenantId ?? identity.tenantId ?? null,
+        // AUD-14 — مسارٌ عامّ (webhook) يستخرج المستأجر من سرّه قبل الكتابة؛
+        // `auditTenantId` هو ما يُعلنه لذلك، فيُنسب السجلّ لصاحبه لا لـnull.
+        tenantId: context.tenant?.tenantId ?? context.auditTenantId ?? identity.tenantId ?? null,
         actorUserId: context.auth?.userId ?? identity.userId ?? null,
         actorLabel: identity.label ?? null,
         membershipId: context.auth?.membershipId ?? null,
@@ -197,7 +199,7 @@ export class AuditInterceptor implements NestInterceptor {
 
     const after = extractData(body);
     await this.audit.record({
-      tenantId: context.tenant?.tenantId ?? null,
+      tenantId: context.tenant?.tenantId ?? context.auditTenantId ?? null,
       actorUserId: context.auth?.userId ?? null,
       membershipId: context.auth?.membershipId ?? null,
       action: actionForMethod(method, route),
@@ -239,10 +241,20 @@ function identityFromAuthResponse(body: unknown): {
   const user = (data as { user?: { id?: unknown; email?: unknown; fullName?: unknown } }).user;
   const memberships = (data as { memberships?: Array<{ tenantId?: unknown }> }).memberships;
 
+  /**
+   * البند 6 — «من دخل؟» يُجاب بالاسم لا بالبريد وحده.
+   *
+   * كان `actorLabel` بريدَ الداخل، فقرأ المشغّل `owner@demo.test` ولم يعرف صاحب الحساب.
+   * والاسم الكامل يُقدَّم حين يصل، ويبقى البريد بين قوسين لأنه المعرّف الذي لا يتكرّر.
+   */
+  const name = typeof user?.fullName === 'string' ? user.fullName.trim() : '';
+  const email = typeof user?.email === 'string' ? user.email : null;
+  const label = name.length > 0 && email ? `${name} — ${email}` : (name || email);
+
   return {
     userId: typeof user?.id === 'string' ? user.id : null,
     tenantId: typeof memberships?.[0]?.tenantId === 'string' ? memberships[0].tenantId : null,
-    label: typeof user?.email === 'string' ? user.email : null,
+    label,
   };
 }
 

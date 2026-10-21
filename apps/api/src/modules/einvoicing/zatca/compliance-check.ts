@@ -1,6 +1,5 @@
-import { createHash } from 'node:crypto';
-
-import { GENESIS_PIH, buildInvoiceXml, type ZatcaParty } from './ubl.js';
+import { GENESIS_PIH, buildInvoiceXml, type ZatcaInvoiceInput, type ZatcaParty } from './ubl.js';
+import { hashCanonicalInvoice } from './canonical.js';
 
 /**
  * «🧪 اختبار الربط — Test Compliance» — the six documents ZATCA wants proved before it will
@@ -70,6 +69,8 @@ export type ComplianceDocument = {
   hash: string;
   uuid: string;
   counter: number;
+  /** The input the document was built from — needed to rebuild it once signed. */
+  input: ZatcaInvoiceInput;
   /** Empty when the document is sound; otherwise the reasons it is not. */
   findings: string[];
 };
@@ -103,7 +104,7 @@ function amountBetween(xml: string, tag: string): number | null {
  */
 export function buildComplianceDocument(expectation: ComplianceExpectation, seller: ZatcaParty, counter: number): ComplianceDocument {
   const issuedAt = new Date();
-  const xml = buildInvoiceXml({
+  const input: ZatcaInvoiceInput = {
     number: SAMPLE_NUMBER,
     uuid: SAMPLE_UUID,
     issuedAt,
@@ -121,9 +122,12 @@ export function buildComplianceDocument(expectation: ComplianceExpectation, sell
     counter,
     previousHash: GENESIS_PIH,
     referenceNumber: expectation.kind === 'return' || expectation.kind === 'debit' ? SAMPLE_NUMBER : undefined,
-  });
+  };
+  const xml = buildInvoiceXml(input);
 
-  const hash = createHash('sha256').update(xml, 'utf8').digest('base64');
+  // البصمة تُحسب بالقواعد نفسها التي تُحسب بها للفاتورة الحقيقية (C14N)، وإلا اختبرنا
+  // مستنداً ببصمةٍ لا تشبه ما سيُرسل فعلاً.
+  const hash = hashCanonicalInvoice(xml);
   const findings: string[] = [];
 
   const typeCode = new RegExp(`<cbc:InvoiceTypeCode name="([^"]*)">([^<]*)</cbc:InvoiceTypeCode>`).exec(xml);
@@ -148,7 +152,7 @@ export function buildComplianceDocument(expectation: ComplianceExpectation, sell
     findings.push('الفاتورة الضريبية تتطلب رقم ضريبي للعميل');
   }
 
-  return { expectation, xml, hash, uuid: SAMPLE_UUID, counter, findings };
+  return { expectation, xml, hash, uuid: SAMPLE_UUID, counter, input, findings };
 }
 
 /** The six rows, in the desktop's order, before the authority is asked. */

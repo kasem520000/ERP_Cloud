@@ -1,16 +1,17 @@
 'use client';
 
+import { FilterBand, Panel, TableFrame } from '@erp/ui';
 import { useState } from 'react';
 
 import { Empty, ErrorBox, Forbidden, Loading, Screen } from '../../../components/screen';
 import { StatTile, StatTiles } from '../../../components/ui';
 import { apiFetch } from '../../../lib/api';
 import { downloadCsv } from '../../../lib/accounts';
-import { money } from '../../../lib/lookups';
+import { money, statusLabel } from '../../../lib/lookups';
 import { useQuery } from '../../../lib/use-query';
 
 /**
- * 📊 أرباح وخسائر حسابات رئيسية — `Form_WPF/frmRptIncomeStatement.xaml` printing
+ * أرباح وخسائر حسابات رئيسية — `Form_WPF/frmRptIncomeStatement.xaml` printing
  * `Reports/RptIncomeStatement.repx`.
  *
  * The window's filter bar is `كل الفروع` · `كل الفترة` (`من`/`إلى` and `من وقت`/`إلى وقت`)
@@ -48,16 +49,27 @@ type Totals = {
 type Envelope = { data: Row[]; totals: Totals };
 type Branch = { id: string; nameAr?: string; name?: string };
 
-const EMPTY: Totals = { debit: '0', credit: '0', stock: '0', profit: '0', profitLabel: '', balanced: true, balancedLabel: '' };
+const EMPTY: Totals = {
+  debit: '0',
+  credit: '0',
+  stock: '0',
+  profit: '0',
+  profitLabel: '',
+  balanced: true,
+  balancedLabel: '',
+};
 
 export default function IncomeStatementPage() {
-  const branches = useQuery<Branch[]>(() => apiFetch<{ data: Branch[] }>('/branches').then((body) => body.data), []);
+  const branches = useQuery<Branch[]>(
+    () => apiFetch<{ data: Branch[] }>('/branches').then((body) => body.data),
+    [],
+  );
 
   const [branchId, setBranchId] = useState('');
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
   const [allPeriod, setAllPeriod] = useState(true);
-  const [summary, setSummary] = useState(true); // 📑 تجميعي — حسابات رئيسية
+  const [summary, setSummary] = useState(true); // تجميعي — حسابات رئيسية
   const [withStock, setWithStock] = useState(true);
   const [applied, setApplied] = useState({ branchId: '', from: '', to: '', summary: true, withStock: true });
 
@@ -77,12 +89,12 @@ export default function IncomeStatementPage() {
   return (
     <Screen
       title="أرباح وخسائر حسابات رئيسية"
-      subtitle="📊 قائمة الدخل — حسابات الإيرادات والمصروفات (FinalAcc = 2)، من القيود المرحّلة فقط."
+      subtitle="قائمة الدخل — حسابات الإيرادات والمصروفات (FinalAcc = 2)، من القيود المرحّلة فقط."
       crumbs={['المحاسبة', 'تقارير محاسبية']}
       actions={
         <>
           <button className="btn" type="button" onClick={() => window.print()} disabled={rows.length === 0}>
-            🖨️ طباعة
+            طباعة
           </button>
           <button
             className="btn"
@@ -96,12 +108,12 @@ export default function IncomeStatementPage() {
               )
             }
           >
-            📊 تصدير Excel
+            تصدير Excel
           </button>
         </>
       }
     >
-      <div className="card tight no-print">
+      <FilterBand className="no-print">
         <div className="row" style={{ flexWrap: 'wrap', alignItems: 'flex-end' }}>
           <label className="field" style={{ margin: 0, minWidth: 200 }}>
             <span>الفروع</span>
@@ -116,40 +128,76 @@ export default function IncomeStatementPage() {
           </label>
           <label className="field" style={{ margin: 0, width: 160 }}>
             <span>من</span>
-            <input className="input" type="date" value={from} onChange={(event) => setFrom(event.target.value)} disabled={allPeriod} />
+            <input
+              className="input"
+              type="date"
+              value={from}
+              onChange={(event) => setFrom(event.target.value)}
+              disabled={allPeriod}
+            />
           </label>
           <label className="field" style={{ margin: 0, width: 160 }}>
             <span>إلى</span>
-            <input className="input" type="date" value={to} onChange={(event) => setTo(event.target.value)} disabled={allPeriod} />
+            <input
+              className="input"
+              type="date"
+              value={to}
+              onChange={(event) => setTo(event.target.value)}
+              disabled={allPeriod}
+            />
           </label>
           <button
             className="btn primary"
             type="button"
-            onClick={() => setApplied({ branchId, from: allPeriod ? '' : from, to: allPeriod ? '' : to, summary, withStock })}
+            onClick={() =>
+              setApplied({
+                branchId,
+                from: allPeriod ? '' : from,
+                to: allPeriod ? '' : to,
+                summary,
+                withStock,
+              })
+            }
           >
-            🔍 عرض
+            عرض
           </button>
         </div>
         <div className="row" style={{ flexWrap: 'wrap', marginTop: 8 }}>
           <label className="check">
-            <input type="checkbox" checked={allPeriod} onChange={(event) => setAllPeriod(event.target.checked)} />
+            <input
+              type="checkbox"
+              checked={allPeriod}
+              onChange={(event) => setAllPeriod(event.target.checked)}
+            />
             كل الفترة
           </label>
           <span className="group-label" style={{ marginInlineStart: 12 }}>
-            📑 نوع التقرير
+            نوع التقرير
           </span>
-          <button type="button" className={`btn sm${summary ? ' primary' : ''}`} onClick={() => setSummary(true)}>
+          <button
+            type="button"
+            className={`btn sm${summary ? ' primary' : ''}`}
+            onClick={() => setSummary(true)}
+          >
             تجميعي (حسابات رئيسية)
           </button>
-          <button type="button" className={`btn sm${summary ? '' : ' primary'}`} onClick={() => setSummary(false)}>
+          <button
+            type="button"
+            className={`btn sm${summary ? '' : ' primary'}`}
+            onClick={() => setSummary(false)}
+          >
             تفصيلي
           </button>
           <label className="check" style={{ marginInlineStart: 12 }}>
-            <input type="checkbox" checked={withStock} onChange={(event) => setWithStock(event.target.checked)} />
+            <input
+              type="checkbox"
+              checked={withStock}
+              onChange={(event) => setWithStock(event.target.checked)}
+            />
             قيمة مخزون بضاعة آخر المدة
           </label>
         </div>
-      </div>
+      </FilterBand>
 
       {statement.status === 'loading' && <Loading />}
       {statement.status === 'forbidden' && <Forbidden />}
@@ -157,7 +205,7 @@ export default function IncomeStatementPage() {
       {statement.status === 'success' && (
         <>
           <StatTiles>
-            <StatTile label="💵 رصيد مدين" value={money(totals.debit)} tone="ok" />
+            <StatTile label="رصيد مدين" value={money(totals.debit)} tone="ok" />
             <StatTile label="رصيد دائن" value={money(totals.credit)} tone="brand" />
             <StatTile label="قيمة مخزون آخر المدة" value={money(totals.stock)} />
             <StatTile
@@ -173,8 +221,8 @@ export default function IncomeStatementPage() {
               detail="القائمة تُبنى من الحسابات التي يبدأ رمزها بـ3 أو بـ4 (FinalAcc = 2)."
             />
           ) : (
-            <div className="table-wrap">
-              <table>
+            <Panel flush title="بنود قائمة الدخل">
+              <TableFrame>
                 <thead>
                   <tr>
                     <th>الحساب</th>
@@ -186,12 +234,15 @@ export default function IncomeStatementPage() {
                 </thead>
                 <tbody>
                   {rows.map((row, index) => (
-                    <tr key={`${row.kind}-${row.code ?? index}`} className={row.kind === 'profit' ? 'opening' : undefined}>
+                    <tr
+                      key={`${row.kind}-${row.code ?? index}`}
+                      className={row.kind === 'profit' ? 'opening' : undefined}
+                    >
                       <td dir="ltr">{row.code ?? '—'}</td>
                       <td>{row.name}</td>
                       <td className="num">{money(row.balanceDebit)}</td>
                       <td className="num">{money(row.balanceCredit)}</td>
-                      <td>{row.status}</td>
+                      <td>{statusLabel(row.status)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -203,8 +254,8 @@ export default function IncomeStatementPage() {
                     <th>{totals.balanced ? totals.balancedLabel : '—'}</th>
                   </tr>
                 </tfoot>
-              </table>
-            </div>
+              </TableFrame>
+            </Panel>
           )}
         </>
       )}

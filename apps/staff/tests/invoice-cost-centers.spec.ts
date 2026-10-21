@@ -14,7 +14,7 @@ import { emptyLine, toApiLines } from '../components/invoice-editor';
  *     (L2461)، ولو أُرسلت سلسلة فارغة لصار الواسم يظنّ أنّ للسطر مركزاً فارغاً؛
  *   · السطر الجديد يبدأ بلا مركز، فلا شيء يورَّث صامتاً على السطور.
  */
-describe('cost centre on invoice lines (📊 مركز التكلفة)', () => {
+describe('cost centre on invoice lines (مركز التكلفة)', () => {
   it('starts a new line with no centre — the header sets the default', () => {
     expect(emptyLine().costCenterId).toBe('');
   });

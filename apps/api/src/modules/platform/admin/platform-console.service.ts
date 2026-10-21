@@ -12,6 +12,11 @@ import {
   parseFilters,
   type PlatformAuditEntry,
   type PlatformAuditQueryDto,
+  type PlatformProblemCounts,
+  type PlatformProblemQueryDto,
+  type PlatformProblemRow,
+  type PlatformProblemSource,
+  platformProblemSourceLabels,
   type PlatformSettingView,
   type PlatformSettingsResponse,
   type PlatformTenantSearchResult,
@@ -23,7 +28,9 @@ import {
   platformSettings,
   tenants,
   withPlatformAdminTx,
+  withTenantTx,
   type DatabaseHandle,
+  type DrizzleTx,
 } from '@erp/database';
 import { env } from '@erp/config';
 
@@ -52,6 +59,37 @@ const ENVIRONMENT_LABELS: Record<string, string> = {
   development: 'تطوير',
   test: 'اختبار',
   production: 'إنتاج',
+};
+
+/** صفٌّ خام من أي مصدر — الشكل نفسه بعد التطبيع، فالشاشة لا تعرف مصادرها. */
+type RawProblem = {
+  id: string;
+  tenant_id: string | null;
+  attempts: number | null;
+  severity: string;
+  title: string | null;
+  detail: string | null;
+  occurred_at: string | Date;
+};
+
+/** ماذا يفعل المشغّل بهذا الصفّ — الشرح العربي بجانب نصّ النظام الخام. */
+const PROBLEM_HINTS: Record<PlatformProblemSource, string> = {
+  email: 'لم تخرج الرسالة: راجع اعتماد المزوّد والنطاق في شاشة البريد، ثم أعد المحاولة.',
+  einvoice: 'رفضت الهيئة الفاتورة أو تعذّر إرسالها: راجع إعدادات الربط وشاشة الفواتير الإلكترونية للمنشأة.',
+  webhook: 'لم يُسلَّم الحدث إلى نقطة الويب هوك: تحقّق من العنوان والمفتاح ثم أعد المحاولة.',
+  outbox: 'مهمةٌ نفدت محاولاتها: أصلح السبب ثم أعد تشغيلها من شاشة المهام والطوابير.',
+  backup: 'فشلت النسخة: تحقّق من المخزن ثم أعد تشغيلها من شاشة البيانات والنسخ.',
+  server: 'خطأٌ من جانب الخادم: اقرأ الرمز والمسار أدناه، ثم افتح أثر الطلب بالبصمة نفسها في سجلّ النظام.',
+};
+
+/** الشاشة التي يُصلَح فيها الصفّ — لا رابط عام، بل موضع الفعل. */
+const PROBLEM_HREFS: Record<PlatformProblemSource, string> = {
+  email: '/email',
+  einvoice: '/tenants',
+  webhook: '/webhooks',
+  outbox: '/jobs',
+  backup: '/backups',
+  server: '/problems?filter[source]=server',
 };
 
 @Injectable()
@@ -385,6 +423,220 @@ export class PlatformConsoleService {
         offset: query.offset,
       };
     });
+  }
+
+  // ------------------------------------------------------------------- problem log
+
+  /**
+   * `GET /platform/problems` — البند 20: «سجلّ الأخطاء والمشاكل» في لوحة المنصّة.
+   *
+   * المصادر أربعة صفوفٍ قائمةٍ لا جدولاً جديداً: رسائل بريدٍ لم تخرج، فواتير إلكترونية
+   * رُفضت، أحداث ويب هوكٍ لم تُسلَّم، مهام طابورٍ نفدت محاولاتها، ونسخٌ فشلت. كلها كانت
+   * موجودةً في شاشاتٍ أربع، ولم يكن أحدٌ يسأل السؤال الواحد: **ما الذي يفشل الآن؟**
+   *
+   * وقراءة `einvoice_submissions` تمرّ بسياق كل مستأجرٍ على حدة (`withTenantTx`)، لا
+   * بسياق المنصّة: الجدول محميٌّ بسياسة عزلٍ للمستأجر وحده (لا `platform_admin_plane`)،
+   * فقراءته من مستوى المنصّة كانت ستُعيد صفراً — أسوأ من خطأ، لأنه يبدو سلامة.
+   */
+  async listProblems(query: PlatformProblemQueryDto): Promise<{
+    rows: PlatformProblemRow[];
+    meta: { total: number; limit: number; offset: number };
+    counts: PlatformProblemCounts;
+  }> {
+    const filters = parseFilters(query.filter, ['source', 'tenantId', 'severity', 'from', 'to'] as const);
+    const sources = (await this.platformProblems(filters)).concat(
+      await this.einvoiceProblems(filters),
+    );
+
+    const filtered = sources
+      .filter((row) => (filters.tenantId ? row.tenantId === filters.tenantId : true))
+      .filter((row) => (filters.severity ? row.severity === filters.severity : true))
+      .filter((row) => (filters.source ? row.source === filters.source : true))
+      .sort((a, b) => b.occurredAt.localeCompare(a.occurredAt));
+
+    const bySource = Object.fromEntries(
+      Object.keys(platformProblemSourceLabels).map((key) => [key, 0]),
+    ) as Record<PlatformProblemSource, number>;
+    const bySeverity = { error: 0, warning: 0 } as PlatformProblemCounts['bySeverity'];
+    for (const row of filtered) {
+      bySource[row.source] = (bySource[row.source] ?? 0) + 1;
+      bySeverity[row.severity] = (bySeverity[row.severity] ?? 0) + 1;
+    }
+
+    const page = filtered.slice(query.offset, query.offset + query.limit);
+    return {
+      rows: page,
+      meta: { total: filtered.length, limit: query.limit, offset: query.offset },
+      counts: {
+        total: filtered.length,
+        bySource,
+        bySeverity,
+        oldestAt: filtered.length > 0 ? filtered[filtered.length - 1]!.occurredAt : null,
+      },
+    };
+  }
+
+  /** مصادرٌ مقروءةٌ من مستوى المنصّة (سياساتها تسمح بذلك صراحةً). */
+  private async platformProblems(
+    filters: Partial<Record<'from' | 'to', string>>,
+  ): Promise<PlatformProblemRow[]> {
+    const since = filters.from ? new Date(filters.from) : null;
+    const until = filters.to ? new Date(filters.to) : null;
+    const window = (column: SQL) =>
+      sql`${column} >= ${since ?? new Date(0)} AND ${column} <= ${until ?? new Date('2999-12-31')}`;
+
+    return withPlatformAdminTx(this.database.db, async (tx) => {
+      const email = (
+        await tx.execute(sql`
+          SELECT id, tenant_id, attempts,
+                 CASE WHEN status = 'failed' THEN 'error' ELSE 'warning' END AS severity,
+                 COALESCE(subject, event) AS title, last_error AS detail,
+                 COALESCE(updated_at, created_at) AS occurred_at
+            FROM email_messages
+           WHERE last_error IS NOT NULL AND status <> 'sent'
+             AND ${window(sql`COALESCE(updated_at, created_at)`)}
+           ORDER BY COALESCE(updated_at, created_at) DESC
+           LIMIT 500
+        `)
+      ).rows as unknown as RawProblem[];
+
+      const webhooks = (
+        await tx.execute(sql`
+          SELECT id, tenant_id, attempts, 'error' AS severity,
+                 'ويب هوك: ' || event AS title, error AS detail,
+                 COALESCE(next_attempt_at, created_at) AS occurred_at
+            FROM webhook_deliveries
+           WHERE (status = 'failed' OR (error IS NOT NULL AND status <> 'delivered'))
+             AND ${window(sql`COALESCE(next_attempt_at, created_at)`)}
+           ORDER BY COALESCE(next_attempt_at, created_at) DESC
+           LIMIT 500
+        `)
+      ).rows as unknown as RawProblem[];
+
+      const outbox = (
+        await tx.execute(sql`
+          SELECT id, tenant_id, attempts,
+                 CASE WHEN status = 'dead' THEN 'error' ELSE 'warning' END AS severity,
+                 'مهمة: ' || type AS title, last_error AS detail,
+                 COALESCE(processed_at, run_at, created_at) AS occurred_at
+            FROM outbox_jobs
+           WHERE (status = 'dead' OR (last_error IS NOT NULL AND status <> 'published'))
+             AND ${window(sql`COALESCE(processed_at, run_at, created_at)`)}
+           ORDER BY COALESCE(processed_at, run_at, created_at) DESC
+           LIMIT 500
+        `)
+      ).rows as unknown as RawProblem[];
+
+      const backups = (
+        await tx.execute(sql`
+          SELECT id, tenant_id, NULL::int AS attempts, 'error' AS severity,
+                 'نسخة احتياطية فاشلة' AS title, failure_reason AS detail,
+                 COALESCE(finished_at, started_at) AS occurred_at
+            FROM backup_jobs
+           WHERE status = 'failed'
+             AND ${window(sql`COALESCE(finished_at, started_at)`)}
+           ORDER BY COALESCE(finished_at, started_at) DESC
+           LIMIT 500
+        `)
+      ).rows as unknown as RawProblem[];
+
+      /**
+       * البند 3 — أخطاء السيرفرات نفسها. تُقرأ من `platform_problem_events` (سياسة منصّة)،
+       * وهي المصدر الوحيد هنا الذي لا صفَّ فشلٍ في جدولٍ آخر وراءه: استثناءٌ في مسارٍ لا
+       * يملك صفّاً. تُعرض بجانب بقية المصادر حتى يظلّ الجواب واحداً: «ما الذي يفشل الآن؟».
+       */
+      const server = (
+        await tx.execute(sql`
+          SELECT id, tenant_id, NULL::int AS attempts, severity,
+                 'خطأ سيرفر (' || source || '): ' || COALESCE(NULLIF(code, ''), left(message, 80)) AS title,
+                 btrim(COALESCE(path, '') || ' — ' || message) AS detail,
+                 occurred_at
+            FROM platform_problem_events
+           WHERE ${window(sql`occurred_at`)}
+           ORDER BY occurred_at DESC
+           LIMIT 500
+        `)
+      ).rows as unknown as RawProblem[];
+
+      const tenantMap = await this.tenantNames(tx);
+      return [
+        ...email.map((row) => this.toProblem('email', row, tenantMap)),
+        ...webhooks.map((row) => this.toProblem('webhook', row, tenantMap)),
+        ...outbox.map((row) => this.toProblem('outbox', row, tenantMap)),
+        ...backups.map((row) => this.toProblem('backup', row, tenantMap)),
+        ...server.map((row) => this.toProblem('server', row, tenantMap)),
+      ];
+    });
+  }
+
+  /**
+   * الفاتورة الإلكترونية: قراءةٌ لكل مستأجرٍ في سياقه لأن الجدول لا يملك سياسة مستوى
+   * المنصّة. الحدّ الأعلى 300 مستأجرٍ في الطلب الواحد — وهو حدُّ شاشةٍ تُقرأ بالعين لا
+   * تصديرٍ شامل، فلا يُسقط الصفّ تنبيهٌ عن مستأجرٍ بعيد.
+   */
+  private async einvoiceProblems(
+    filters: Partial<Record<'from' | 'to', string>>,
+  ): Promise<PlatformProblemRow[]> {
+    const directory = await withPlatformAdminTx(this.database.db, (tx) =>
+      tx.select({ id: tenants.id, code: tenants.code, name: tenants.name }).from(tenants).limit(300),
+    );
+    const tenantIds = directory.map((row) => row.id);
+    const tenantMap = new Map(
+      directory.map((row) => [row.id, { code: row.code, name: row.name }] as const),
+    );
+
+    const since = filters.from ? new Date(filters.from) : new Date(0);
+    const until = filters.to ? new Date(filters.to) : new Date('2999-12-31');
+    const rows: PlatformProblemRow[] = [];
+    for (const tenantId of tenantIds) {
+      const found = await withTenantTx(this.database.db, tenantId, (tx) =>
+        tx.execute(sql`
+          SELECT id, tenant_id, CASE WHEN attempts ~ '^[0-9]+$' THEN attempts::int END AS attempts,
+                 'error' AS severity,
+                 'فاتورة إلكترونية: ' || status AS title, error AS detail,
+                 COALESCE(updated_at, created_at) AS occurred_at
+            FROM einvoice_submissions
+           WHERE (status = 'failed' OR (error IS NOT NULL AND status NOT IN ('cleared', 'reported')))
+             AND COALESCE(updated_at, created_at) >= ${since}
+             AND COALESCE(updated_at, created_at) <= ${until}
+           ORDER BY COALESCE(updated_at, created_at) DESC
+           LIMIT 200
+        `),
+      );
+      for (const row of (found.rows as unknown as RawProblem[])) {
+        rows.push(this.toProblem('einvoice', row, tenantMap));
+      }
+    }
+    return rows;
+  }
+
+  private async tenantNames(
+    tx: DrizzleTx,
+  ): Promise<Map<string, { code: string | null; name: string | null }>> {
+    const rows = await tx.select({ id: tenants.id, code: tenants.code, name: tenants.name }).from(tenants);
+    return new Map(rows.map((row) => [row.id, { code: row.code, name: row.name }]));
+  }
+
+  private toProblem(
+    source: PlatformProblemSource,
+    row: RawProblem,
+    tenantMap: Map<string, { code: string | null; name: string | null }>,
+  ): PlatformProblemRow {
+    const tenant = row.tenant_id ? tenantMap.get(row.tenant_id) : undefined;
+    return {
+      key: `${source}:${row.id}`,
+      source,
+      severity: row.severity === 'error' ? 'error' : 'warning',
+      title: row.title ?? platformProblemSourceLabels[source],
+      detail: row.detail ?? null,
+      hint: PROBLEM_HINTS[source],
+      tenantId: row.tenant_id ?? null,
+      tenantCode: tenant?.code ?? null,
+      tenantName: tenant?.name ?? null,
+      attempts: row.attempts ?? null,
+      occurredAt: new Date(row.occurred_at).toISOString(),
+      href: PROBLEM_HREFS[source],
+    };
   }
 
   // ------------------------------------------------------------------- omnibox

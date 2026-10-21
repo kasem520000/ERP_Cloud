@@ -3,6 +3,7 @@ import { createCipheriv, createDecipheriv, createHash, randomBytes } from 'node:
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { and, desc, eq } from 'drizzle-orm';
 import { Decimal } from 'decimal.js';
+import { dataEncryptionKey } from '@erp/config';
 import { DomainError, newId } from '@erp/contracts';
 import { paymentGatewaySettings, paymentGatewayTransactions, withTenantTx, type DatabaseHandle } from '@erp/database';
 
@@ -105,7 +106,7 @@ export type TransactionView = {
 };
 
 /** The same AES-256-GCM envelope `einvoice_credentials` uses (SECURITY_ARCHITECTURE §9). */
-function keyBytes(secret = process.env.DATA_ENC_KEY ?? 'local-development-data-key'): Buffer {
+function keyBytes(secret = dataEncryptionKey()): Buffer {
   return createHash('sha256').update(secret).digest();
 }
 

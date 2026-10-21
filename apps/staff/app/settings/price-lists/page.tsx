@@ -1,16 +1,33 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { Panel } from '@erp/ui';
 
 import { DataTable, Notice, QueryView } from '../../../components/data-view';
 import { FormFields, type FormValues } from '../../../components/directory';
 import { Screen } from '../../../components/screen';
-import { ApiError, apiList, apiPost } from '../../../lib/api';
-import { itemLabel, listItems, listItemUnits, listUnits, money, quantity, type Item, type ItemUnit, type Unit } from '../../../lib/lookups';
+import { apiErrorText, apiList, apiPost } from '../../../lib/api';
+import {
+  itemLabel,
+  listItems,
+  listItemUnits,
+  listUnits,
+  money,
+  quantity,
+  type Item,
+  type ItemUnit,
+  type Unit,
+} from '../../../lib/lookups';
 import { useQuery } from '../../../lib/use-query';
 
 type PriceList = { id: string; name: string; currencyCode: string; isDefault: boolean; isActive: boolean };
-type PriceListItem = { id: string; itemId: string | null; unitId: string | null; unitPrice: string; minQty: string | null };
+type PriceListItem = {
+  id: string;
+  itemId: string | null;
+  unitId: string | null;
+  unitPrice: string;
+  minQty: string | null;
+};
 
 /**
  * Price lists — R19 واعية بالوحدات.
@@ -25,9 +42,17 @@ export default function PriceListsPage() {
   const items = useQuery<Item[]>(() => listItems(), []);
   const allUnits = useQuery<Unit[]>(() => listUnits(), []);
   const [selected, setSelected] = useState<string | null>(null);
-  const rows = useQuery<PriceListItem[]>(async () => (selected ? apiList<PriceListItem>(`/price-lists/${selected}/items?limit=200`) : []), [selected]);
+  const rows = useQuery<PriceListItem[]>(
+    async () => (selected ? apiList<PriceListItem>(`/price-lists/${selected}/items?limit=200`) : []),
+    [selected],
+  );
 
-  const [listForm, setListForm] = useState<FormValues>({ name: '', currencyCode: 'SAR', isDefault: false, isActive: true });
+  const [listForm, setListForm] = useState<FormValues>({
+    name: '',
+    currencyCode: 'SAR',
+    isDefault: false,
+    isActive: true,
+  });
   const [rowForm, setRowForm] = useState<FormValues>({ itemId: '', unitId: '', unitPrice: '', minQty: '' });
   const [itemUnits, setItemUnits] = useState<ItemUnit[]>([]);
   const [busy, setBusy] = useState(false);
@@ -40,7 +65,7 @@ export default function PriceListsPage() {
       await action();
       setNotice({ kind: 'ok', text });
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
     } finally {
       setBusy(false);
     }
@@ -70,10 +95,13 @@ export default function PriceListsPage() {
   }
 
   return (
-    <Screen title="مزامنة الأسعار" subtitle="قوائم الأسعار المعتمدة وأسعار الأصناف داخل كل قائمة — واعية بالوحدات (R19)." crumbs={['الإعدادات', 'المزامنة']}>
+    <Screen
+      title="مزامنة الأسعار"
+      subtitle="قوائم الأسعار المعتمدة وأسعار الأصناف داخل كل قائمة — واعية بالوحدات (R19)."
+      crumbs={['الإعدادات', 'المزامنة']}
+    >
       <div className="grid cols-2">
         <form
-          className="card"
           onSubmit={(event) => {
             event.preventDefault();
             void run(
@@ -91,31 +119,45 @@ export default function PriceListsPage() {
             );
           }}
         >
-          <h3>قائمة أسعار جديدة</h3>
-          <FormFields
-            fields={[
-              { name: 'name', label: 'اسم القائمة', required: true },
-              { name: 'currencyCode', label: 'العملة', required: true, ltr: true, placeholder: 'SAR' },
-              { name: 'isDefault', label: 'القائمة الافتراضية', type: 'checkbox' },
-              { name: 'isActive', label: 'مفعّلة', type: 'checkbox' },
-            ]}
-            values={listForm}
-            onChange={setListForm}
-          />
-          <button className="btn primary" type="submit" disabled={busy}>
-            حفظ القائمة
-          </button>
+          <Panel title="قائمة أسعار جديدة">
+            <FormFields
+              fields={[
+                { name: 'name', label: 'اسم القائمة', required: true },
+                { name: 'currencyCode', label: 'العملة', required: true, ltr: true, placeholder: 'SAR' },
+                { name: 'isDefault', label: 'القائمة الافتراضية', type: 'checkbox' },
+                { name: 'isActive', label: 'مفعّلة', type: 'checkbox' },
+              ]}
+              values={listForm}
+              onChange={setListForm}
+            />
+            <button className="btn primary" type="submit" disabled={busy}>
+              حفظ القائمة
+            </button>
+          </Panel>
         </form>
 
-        <div className="card">
-          <h3>القوائم</h3>
-          <QueryView query={lists} empty="لا توجد قوائم أسعار" emptyDetail="أنشئ قائمة واحدة على الأقل لتسعير الأصناف.">
+        <Panel title="القوائم" flush>
+          <QueryView
+            query={lists}
+            empty="لا توجد قوائم أسعار"
+            emptyDetail="أنشئ قائمة واحدة على الأقل لتسعير الأصناف."
+          >
             {(data) => (
               <DataTable
                 columns={[
                   { key: 'name', header: 'القائمة', cell: (row: PriceList) => row.name },
-                  { key: 'currency', header: 'العملة', align: 'ltr', cell: (row: PriceList) => row.currencyCode },
-                  { key: 'flags', header: 'الحالة', cell: (row: PriceList) => `${row.isActive ? 'مفعّلة' : 'موقوفة'}${row.isDefault ? ' • افتراضية' : ''}` },
+                  {
+                    key: 'currency',
+                    header: 'العملة',
+                    align: 'ltr',
+                    cell: (row: PriceList) => row.currencyCode,
+                  },
+                  {
+                    key: 'flags',
+                    header: 'الحالة',
+                    cell: (row: PriceList) =>
+                      `${row.isActive ? 'مفعّلة' : 'موقوفة'}${row.isDefault ? ' • افتراضية' : ''}`,
+                  },
                   {
                     key: 'actions',
                     header: '',
@@ -131,17 +173,23 @@ export default function PriceListsPage() {
               />
             )}
           </QueryView>
-        </div>
+        </Panel>
       </div>
 
       <Notice notice={notice} />
 
       {currentList ? (
-        <div className="card">
-          <h3>أسعار «{currentList.name}» — واعية بالوحدات</h3>
-          <p className="muted" style={{ fontSize: '0.9em' }}>
-            المصدر: <code>SmartAuditERP/Class/ItemPrices.cs</code> يحمل <code>UnitID</code> — فالسعر لكل وحدة (علبة/حبة). في السحابة <code>item_units.sale_price</code> + <code>price_list_items.unit_id</code> (R19).
-          </p>
+        <Panel
+          title={<>أسعار « {currentList.name} » — واعية بالوحدات</>}
+          hint={
+            <>
+              المصدر: <code>SmartAuditERP/Class/ItemPrices.cs</code> يحمل <code>UnitID</code> — فالسعر لكل
+              وحدة (علبة/حبة). في السحابة <code>item_units.sale_price</code> +{' '}
+              <code>price_list_items.unit_id</code> (R19).
+            </>
+          }
+          flush
+        >
           <form
             className="toolbar"
             onSubmit={(event) => {
@@ -163,7 +211,12 @@ export default function PriceListsPage() {
           >
             <label className="field">
               <span>الصنف</span>
-              <select className="input" required value={String(rowForm.itemId)} onChange={(event) => setRowForm({ ...rowForm, itemId: event.target.value, unitId: '' })}>
+              <select
+                className="input"
+                required
+                value={String(rowForm.itemId)}
+                onChange={(event) => setRowForm({ ...rowForm, itemId: event.target.value, unitId: '' })}
+              >
                 <option value="">—</option>
                 {(items.data ?? []).map((row) => (
                   <option key={row.id} value={row.id}>
@@ -174,22 +227,39 @@ export default function PriceListsPage() {
             </label>
             <label className="field">
               <span>الوحدة (R19)</span>
-              <select className="input" value={String(rowForm.unitId)} onChange={(event) => setRowForm({ ...rowForm, unitId: event.target.value })}>
+              <select
+                className="input"
+                value={String(rowForm.unitId)}
+                onChange={(event) => setRowForm({ ...rowForm, unitId: event.target.value })}
+              >
                 <option value="">الأساسية</option>
                 {itemUnits.map((iu) => (
                   <option key={iu.unitId} value={iu.unitId}>
-                    {iu.unitNameAr ?? iu.unitCode ?? iu.unitId.slice(0, 8)} {iu.ratio ? `(×${iu.ratio})` : ''} {iu.salePrice ? `— ${iu.salePrice}` : ''}
+                    {iu.unitNameAr ?? iu.unitCode ?? iu.unitId.slice(0, 8)} {iu.ratio ? `(×${iu.ratio})` : ''}{' '}
+                    {iu.salePrice ? `— ${iu.salePrice}` : ''}
                   </option>
                 ))}
               </select>
             </label>
             <label className="field">
               <span>السعر</span>
-              <input className="input" dir="ltr" required value={String(rowForm.unitPrice)} onChange={(event) => setRowForm({ ...rowForm, unitPrice: event.target.value })} />
+              <input
+                className="input"
+                dir="ltr"
+                required
+                value={String(rowForm.unitPrice)}
+                onChange={(event) => setRowForm({ ...rowForm, unitPrice: event.target.value })}
+              />
             </label>
             <label className="field">
               <span>من كمية</span>
-              <input className="input" dir="ltr" value={String(rowForm.minQty)} placeholder="0" onChange={(event) => setRowForm({ ...rowForm, minQty: event.target.value })} />
+              <input
+                className="input"
+                dir="ltr"
+                value={String(rowForm.minQty)}
+                placeholder="0"
+                onChange={(event) => setRowForm({ ...rowForm, minQty: event.target.value })}
+              />
             </label>
             <button className="btn" type="submit" disabled={busy}>
               إضافة سعر
@@ -209,15 +279,25 @@ export default function PriceListsPage() {
                     },
                   },
                   { key: 'unit', header: 'الوحدة', cell: (row: PriceListItem) => unitLabel(row.unitId) },
-                  { key: 'price', header: 'السعر', align: 'num', cell: (row: PriceListItem) => money(row.unitPrice) },
-                  { key: 'minQty', header: 'من كمية', align: 'num', cell: (row: PriceListItem) => quantity(row.minQty ?? '0') },
+                  {
+                    key: 'price',
+                    header: 'السعر',
+                    align: 'num',
+                    cell: (row: PriceListItem) => money(row.unitPrice),
+                  },
+                  {
+                    key: 'minQty',
+                    header: 'من كمية',
+                    align: 'num',
+                    cell: (row: PriceListItem) => quantity(row.minQty ?? '0'),
+                  },
                 ]}
                 rows={data}
                 rowKey={(row) => row.id}
               />
             )}
           </QueryView>
-        </div>
+        </Panel>
       ) : null}
     </Screen>
   );

@@ -1,0 +1,2027 @@
+/* ==========================================================================
+ * ERPCloud — shared control layer (v5)
+ *
+ * Every back-office surface (staff, platform-admin, customer-portal, bakery)
+ * imports this file *after* `tokens.css`. It owns the shape of a control, a
+ * field, a card, a table and a page header — once.
+ *
+ * Why a second file: v4 let each app keep its own `.input`, `.field`, `.card`
+ * and `.btn`. Four copies drifted into four different heights, radii and label
+ * weights; the same invoice form looked like a different product on the staff
+ * panel and in the console. The rule now is ADR-030 applied to CSS: an app may
+ * compose these classes and add *layout* rules, but it may not redeclare them.
+ *
+ * Everything below reads tokens only, so it flips with `.dark` and mirrors in
+ * RTL with logical properties. Nothing here is utility-specific: the classes
+ * are plain CSS so they work in the apps that do not compile Tailwind.
+ * ======================================================================== */
+
+/* ------------------------------------------------------------- page chrome */
+.page-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--space-4);
+  min-width: 0;
+}
+.page-head-copy {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+.page-head-title {
+  margin: 0;
+  font-size: 24px;
+  line-height: 1.25;
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  color: var(--text);
+}
+.page-head-sub {
+  margin: 0;
+  max-width: 68ch;
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--muted);
+}
+.page-head-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  flex: none;
+}
+
+/*
+ * الأسماءُ القديمة للوحة (`panel`, `panel-head`) تُعرَّف مع `ui-panel` نفسِها
+ * في طبقة السطح أدناه — فلا نسخةَ ثانية تفرق عنها في الحشو أو الحدّ.
+ */
+.panel-body,
+.ui-panel-body {
+  padding: 16px;
+  min-width: 0;
+}
+.panel-body.flush {
+  padding: 0;
+}
+/* `.panel-foot` تُعرَّف مع `.ui-panel-foot` أدناه. */
+
+/* --------------------------------------------------------------- controls */
+.input,
+select.input,
+textarea.input,
+.ui-input {
+  display: block;
+  inline-size: 100%;
+  min-inline-size: 0;
+  block-size: var(--control-h);
+  padding: 0 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 13.5px;
+  line-height: 1.4;
+  transition:
+    border-color var(--dur-fast) var(--ease-out),
+    box-shadow var(--dur-fast) var(--ease-out),
+    background-color var(--dur-fast) var(--ease-out);
+}
+textarea.input,
+textarea.ui-input {
+  block-size: auto;
+  min-block-size: 84px;
+  padding: 10px 12px;
+  line-height: 1.7;
+  resize: vertical;
+}
+select.input,
+select.ui-input {
+  padding-inline-end: 34px;
+  appearance: none;
+  /* One chevron, drawn with a background SVG. `background-image` also inherits
+     into `.dark` automatically because it reads `currentColor`-free tokens. */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%235c6c7e' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 12px 12px;
+  cursor: pointer;
+}
+html[dir='rtl'] select.input,
+html[dir='rtl'] select.ui-input {
+  background-position: left 12px center;
+}
+.dark select.input,
+.dark select.ui-input {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+}
+.input:hover,
+.ui-input:hover {
+  border-color: var(--line-raised);
+}
+/*
+ * قائمةُ الاختيار من نفس عائلة الحقول: نفسُ الارتفاع والحدّ والزاوية، وسهمٌ
+ * مرسومٌ بالـCSS (لا صورة) يتبع اتجاه الصفحة. كانت الشاشات تكتب صفَّ أصنافٍ
+ * محلّيًّا لكلّ قائمة، فتخرج القائمة أقصر من الحقل بجانبها.
+ */
+.ui-select {
+  display: block;
+  inline-size: 100%;
+  min-inline-size: 0;
+  block-size: var(--control-h);
+  padding: 0 34px 0 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-md);
+  background-color: var(--surface);
+  background-image:
+    linear-gradient(45deg, transparent 50%, var(--muted) 50%),
+    linear-gradient(135deg, var(--muted) 50%, transparent 50%);
+  background-position:
+    calc(100% - 15px) 50%,
+    calc(100% - 20px) 50%;
+  background-size:
+    5px 5px,
+    5px 5px;
+  background-repeat: no-repeat;
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  appearance: none;
+  cursor: pointer;
+}
+[dir='rtl'] .ui-select {
+  padding: 0 12px 0 34px;
+  background-position:
+    calc(0% + 20px) 50%,
+    calc(0% + 15px) 50%;
+}
+.ui-select:hover {
+  border-color: var(--line-raised);
+}
+.ui-select:focus,
+.ui-select:focus-visible {
+  outline: none;
+  border-color: var(--brand);
+  box-shadow: var(--focus-ring);
+}
+.ui-select:disabled {
+  background-color: var(--surface-2);
+  color: var(--muted);
+  cursor: not-allowed;
+}
+.field > .ui-select {
+  inline-size: 100%;
+}
+.input:focus,
+.input:focus-visible,
+.ui-input:focus,
+.ui-input:focus-visible {
+  outline: none;
+  border-color: var(--brand);
+  box-shadow: var(--focus-ring);
+}
+.input:disabled,
+.ui-input:disabled {
+  background: var(--surface-3);
+  border-color: var(--line);
+  color: var(--muted);
+  cursor: not-allowed;
+}
+.input[aria-invalid='true'] {
+  border-color: var(--danger);
+  box-shadow: 0 0 0 3px rgb(185 28 28 / 0.14);
+}
+.input::placeholder,
+.ui-input::placeholder {
+  color: var(--muted-2);
+}
+.input.ltr,
+.ui-input.ltr {
+  direction: ltr;
+  text-align: start;
+}
+
+/* A field is: label row, control, one line of help. Nothing else. */
+.field {
+  display: grid;
+  gap: 6px;
+  min-inline-size: 0;
+  margin: 0;
+}
+.field > span,
+.field-label {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--ink-2, var(--text));
+  letter-spacing: 0;
+}
+.field > span .req,
+.field-label .req {
+  color: var(--danger);
+  font-weight: 800;
+}
+.field-hint,
+.field > small,
+.field .hint {
+  font-size: 11.5px;
+  line-height: 1.55;
+  color: var(--muted);
+  font-weight: 500;
+}
+.field-error {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--danger-ink, var(--danger));
+}
+
+/* Explicit column counts — never auto-fit: auto-fit produced six 190px
+   columns inside a 1080px card and made every form look improvised.
+   (الشبكةُ نفسها تُعرَّف مع `.ui-form-grid` في طبقة النموذج أدناه.) */
+.form-grid > .span-2,
+.ui-form-grid > .span-2 {
+  grid-column: span 2;
+}
+.form-grid > .span-3,
+.ui-form-grid > .span-3 {
+  grid-column: span 3;
+}
+.form-grid > .span-4,
+.form-grid > .span-full,
+.ui-form-grid > .span-4,
+.ui-form-grid > .span-full {
+  grid-column: 1 / -1;
+}
+/*
+ * قسمُ النموذج: الأسماءُ القديمة (`form-section`) والكيت (`ui-form-section`)
+ * تُعرَّفان معًا أدناه — قسمٌ واحد برأسٍ rails وقسمٌ بلا رأسٍ يمتدّ على عمود واحد.
+ */
+
+/* ---------------------------------------------------------------- buttons */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  block-size: var(--control-h);
+  padding: 0 14px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  box-shadow: var(--shadow-1);
+  transition:
+    background-color var(--dur-fast) var(--ease-out),
+    border-color var(--dur-fast) var(--ease-out),
+    box-shadow var(--dur-fast) var(--ease-out),
+    transform var(--dur-fast) var(--ease-out);
+}
+.btn:hover {
+  background: var(--surface-2);
+  border-color: var(--line-raised);
+}
+.btn:active {
+  transform: translateY(1px);
+}
+.btn:focus-visible {
+  outline: none;
+  box-shadow: var(--focus-ring);
+}
+.btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  transform: none;
+}
+.btn.primary {
+  background: var(--brand);
+  border-color: var(--brand);
+  color: var(--brand-ink, #fff);
+  box-shadow:
+    var(--shadow-2),
+    inset 0 1px 0 rgb(255 255 255 / 0.14);
+}
+.btn.primary:hover {
+  background: var(--brand-700, var(--color-brand-700));
+  border-color: var(--brand-700, var(--color-brand-700));
+}
+.btn.danger {
+  background: var(--surface);
+  color: var(--danger-ink, var(--danger));
+  border-color: var(--danger-line);
+}
+.btn.danger:hover {
+  background: var(--danger-soft);
+  border-color: var(--danger);
+}
+.btn.ghost {
+  background: transparent;
+  border-color: transparent;
+  box-shadow: none;
+}
+.btn.ghost:hover {
+  background: var(--surface-2);
+}
+.btn.block {
+  inline-size: 100%;
+}
+.btn.sm {
+  block-size: 30px;
+  padding: 0 10px;
+  font-size: 12px;
+  border-radius: var(--radius-sm);
+}
+.btn.lg {
+  block-size: 44px;
+  padding: 0 20px;
+  font-size: 15px;
+}
+.btn.icon {
+  inline-size: var(--control-h);
+  padding: 0;
+}
+.btn.icon.sm {
+  inline-size: 30px;
+}
+
+/* ---------------------------------------------------------------- surfaces */
+.card,
+.panel {
+  min-inline-size: 0;
+}
+.card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  padding: var(--space-4);
+  box-shadow: var(--shadow-1);
+}
+.card > h3:first-child,
+.card > h2:first-child {
+  margin-block-start: 0;
+}
+.card h3 {
+  font-size: 14px;
+  font-weight: 800;
+}
+.card.tight {
+  padding: 12px 14px;
+}
+/*
+ * بطاقةُ الدخول: نفسُ سطح البطاقة، لكن بعرضِ نموذجٍ لا بعرض صفحة. تسكن وسط
+ * الشاشة على كل الأسطح (الموظفون، البوابة، المنصة) بدل أن تنبسط على العرض فتترك
+ * نصفها فارغاً.
+ */
+.ui-auth-card {
+  inline-size: min(460px, 100%);
+  margin-inline: auto;
+  padding: 28px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-4);
+}
+
+/* بطاقة تبدأ بعنوان: الرأس شريطٌ ممتد بعرض البطاقة، بنفس مقاس رأس اللوحة —
+   كي لا يبدو العنوان العتيق عائماً داخل الحشوة بينما اللوحات لها شريط. */
+.card > h2:first-child,
+.card > h3:first-child {
+  margin: -16px -18px 12px;
+  padding: 13px 16px;
+  border-block-end: 1px solid var(--line);
+  /* نصفُ القطر من البطاقة نفسها: كلُّ تطبيقٍ يعرّف `.card` بمقاسه، والشريط يتّبعها. */
+  border-start-start-radius: inherit;
+  border-start-end-radius: inherit;
+  background: var(--surface);
+}
+.card.tight > h2:first-child,
+.card.tight > h3:first-child {
+  margin: -12px -14px 10px;
+}
+
+/* ---------------------------------------------------------------- tables */
+.table-wrap {
+  overflow: auto;
+  max-inline-size: 100%;
+  max-block-size: 68vh;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  box-shadow: var(--shadow-1);
+  min-inline-size: 0;
+}
+.table-wrap > table {
+  inline-size: 100%;
+  min-inline-size: max-content;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+table th {
+  position: sticky;
+  inset-block-start: 0;
+  z-index: 1;
+  padding: 9px 12px;
+  background: var(--surface-2);
+  border-block-end: 1px solid var(--line);
+  color: var(--muted);
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-align: start;
+  white-space: nowrap;
+}
+table td {
+  padding: 10px 12px;
+  border-block-end: 1px solid var(--line);
+  font-size: 13px;
+  color: var(--text);
+  text-align: start;
+  vertical-align: middle;
+}
+table tbody tr:last-child td {
+  border-block-end: 0;
+}
+table tbody tr:hover td {
+  background: var(--surface-2);
+}
+/* كثافةُ صفٍّ اختيارية للجداول الطويلة — نفس الحشو في كلّ سطح. */
+.table-dense th,
+.table-dense td {
+  padding: 6px 10px;
+}
+table td.num,
+table th.num {
+  text-align: end;
+  font-variant-numeric: tabular-nums;
+  font-family: var(--font-num);
+  direction: ltr;
+  unicode-bidi: isolate;
+}
+
+/* ---------------------------------------------------------------- badges */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  block-size: 22px;
+  padding: 0 9px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  color: var(--ink-2, var(--text));
+  font-size: 11.5px;
+  font-weight: 700;
+  line-height: 1;
+  white-space: nowrap;
+}
+.badge.ok,
+.badge.active {
+  background: var(--ok-soft);
+  border-color: var(--ok-line, transparent);
+  color: var(--ok-ink);
+}
+.badge.warn {
+  background: var(--warn-soft);
+  border-color: transparent;
+  color: var(--warn-ink);
+}
+.badge.danger {
+  background: var(--danger-soft);
+  border-color: transparent;
+  color: var(--danger-ink);
+}
+.badge.brand {
+  background: var(--brand-soft);
+  border-color: transparent;
+  color: var(--brand-ink-strong, var(--color-brand-700));
+}
+.badge.neutral {
+  background: var(--surface-2);
+  color: var(--muted);
+}
+
+/* ------------------------------------------------------- toolbar + chips */
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+.toolbar .input {
+  inline-size: auto;
+}
+.toolbar-spacer {
+  flex: 1 1 auto;
+}
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  block-size: 26px;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--surface-2);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+/* التبويباتُ تُعرَّف في قسم `ui-tabs` أدناه — تعريفٌ واحد. */
+
+/* ------------------------------------------------------------- empty state */
+.state {
+  display: grid;
+  justify-items: center;
+  gap: 6px;
+  padding: 28px 20px;
+  text-align: center;
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--radius-lg);
+  background: var(--surface-2);
+  color: var(--muted);
+}
+.state strong {
+  color: var(--text);
+  font-size: 14px;
+}
+.state p {
+  margin: 0;
+  font-size: 12.5px;
+  max-inline-size: 52ch;
+  line-height: 1.7;
+}
+
+/* The control height is a token like any other: 38px is what the shared
+ * `Button`/`Input` use (`h-9` + 1px border), and a 34px local override is what
+ * made two adjacent fields look misaligned. */
+:root {
+  --control-h: 38px;
+}
+
+/* --------------------------------------------------------------------------
+ * Dense controls inside a table cell.
+ *
+ * A 14-column invoice editor with a 38px full-size control in every cell needs
+ * ~1 500px and looks like a spreadsheet of buttons. Inside a row the control is
+ * 30px, 12.5px type and 8px padding — the row height stays 46px, every financial
+ * column keeps the same baseline, and the table still scrolls horizontally when
+ * the screen is narrower than the sheet.
+ * ------------------------------------------------------------------------ */
+.table-input,
+.input.table-input,
+select.table-input,
+textarea.table-input {
+  block-size: 30px;
+  padding: 0 8px;
+  font-size: 12.5px;
+  border-radius: var(--radius-sm);
+  background-color: var(--surface);
+}
+.table-input.num,
+input.table-input[dir='ltr'] {
+  text-align: end;
+  font-variant-numeric: tabular-nums;
+}
+table td .table-input + .table-input {
+  margin-block-start: 6px;
+}
+table td .btn.sm {
+  box-shadow: none;
+}
+table td .field {
+  gap: 4px;
+}
+table th,
+table td {
+  padding-inline: 10px;
+}
+
+/* --------------------------------------------------------------------------
+ * Responsive visibility utilities.
+ *
+ * These live here, after `.btn`, because that is the whole bug: `.btn` sets
+ * `display: inline-flex`, so any `.only-mobile` declared earlier in an app
+ * sheet is silently un-hidden — the sidebar close button showed up on a
+ * 1440px desktop. One declaration point, after every control.
+ * ------------------------------------------------------------------------ */
+.only-mobile {
+  display: none;
+}
+.only-desktop {
+  display: inline-flex;
+}
+@media (max-width: 1000px) {
+  .only-mobile {
+    display: inline-flex;
+  }
+  .only-desktop {
+    display: none;
+  }
+}
+
+/* --------------------------------------------------------------------------
+ * Checkboxes and radios.
+ *
+ * These were unstyled in the shared layer, so a `<label class="check">` inside
+ * a `.form-grid` became a grid item: the box floated above its own text and
+ * every settings screen looked like an unaligned list of squares. One row
+ * layout, one focus ring, one alignment rule.
+ * ------------------------------------------------------------------------ */
+.check,
+.radio {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-block-size: var(--control-h);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  cursor: pointer;
+  user-select: none;
+}
+.check input[type='checkbox'],
+.check input[type='radio'],
+.radio input[type='checkbox'],
+.radio input[type='radio'] {
+  inline-size: 16px;
+  block-size: 16px;
+  flex: 0 0 auto;
+  margin: 0;
+  accent-color: var(--brand);
+  cursor: pointer;
+}
+.check input:focus-visible,
+.radio input:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+}
+
+/* A field that spans the full grid row (long key, CSR block, address). */
+.form-grid > .wide {
+  grid-column: 1 / -1;
+}
+
+/* Related fields stay together while the grid collapses. */
+.form-grid > .span-2 {
+  grid-column: span 2;
+}
+@media (max-width: 900px) {
+  .form-grid > .span-2 {
+    grid-column: auto;
+  }
+}
+
+/* --------------------------------------------------------------------------
+ * Checklists (onboarding steps, ZATCA qualification, setup wizards).
+ * Replaces the emoji squares that used to be the only "done" marker.
+ * ------------------------------------------------------------------------ */
+.checklist {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.checklist-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+  font-size: 13px;
+  color: var(--muted);
+  border-block-end: 1px solid var(--line);
+}
+.checklist-item:last-child {
+  border-block-end: 0;
+}
+.checklist-item svg {
+  color: var(--line-strong);
+  flex: 0 0 auto;
+}
+.checklist-item.done {
+  color: var(--text);
+  font-weight: 600;
+}
+.checklist-item.done svg {
+  color: var(--color-brand-600, var(--brand));
+}
+
+/* Public signature page: the document needs a real page title, not just a
+   letterhead row. */
+.sign-title {
+  margin: var(--space-4) 0 var(--space-2);
+  font-size: 18px;
+  font-weight: 800;
+  letter-spacing: -0.015em;
+}
+.sign-title .muted {
+  font-weight: 600;
+  font-size: 13px;
+}
+/* ==========================================================================
+ * Structural layer (v5.1) — «قالب الشاشة» لا ألوانها
+ *
+ * Every back-office screen is assembled from these blocks: page frame, section,
+ * panel, KPI strip, filter band, split (content + context rail), form section
+ * and a sticky form footer. They own *layout* only — spacing, rhythm, borders,
+ * column behaviour — and read tokens for every colour, so a theme change never
+ * moves a single box.
+ *
+ * The apps may compose these classes; they must not re-declare them. A screen
+ * that needs a different arrangement changes which blocks it uses, not what a
+ * block means.
+ * ====================================================================== */
+
+/* ------------------------------------------------------------------ page */
+.ui-page {
+  display: grid;
+  gap: 22px;
+  min-width: 0;
+}
+.ui-page-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 14px 20px;
+  padding-block-end: 16px;
+  border-block-end: 1px solid var(--line);
+  min-width: 0;
+}
+.ui-page-head-copy {
+  display: grid;
+  gap: 7px;
+  min-width: 0;
+}
+.ui-crumbs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--muted);
+}
+.ui-crumbs a {
+  color: inherit;
+  text-decoration: none;
+}
+.ui-crumbs a:hover {
+  color: var(--brand);
+}
+.ui-crumbs-sep {
+  margin-inline: 6px;
+  opacity: 0.45;
+}
+.ui-eyebrow {
+  font-size: 10.5px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--brand);
+}
+.ui-page-title {
+  margin: 0;
+  font-size: 25px;
+  line-height: 1.22;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--text);
+}
+.ui-page-sub {
+  margin: 0;
+  max-width: 74ch;
+  font-size: 13px;
+  line-height: 1.7;
+  color: var(--muted);
+}
+.ui-screen-body {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+.ui-page-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  flex: none;
+  /* A toolbar of 150px selects cannot shrink by default, so on a 390px screen it
+   * pushed the whole page sideways. Cap it to the header width and let its own
+   * flex-wrap stack the controls. */
+  min-width: 0;
+  max-width: 100%;
+}
+.ui-page-meta {
+  flex-basis: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+/* --------------------------------------------------------------- section */
+.ui-section {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+.ui-section-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 8px 16px;
+  min-width: 0;
+}
+.ui-section-copy {
+  display: grid;
+  gap: 3px;
+  min-width: 0;
+}
+.ui-section-title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: -0.015em;
+  color: var(--text);
+}
+.ui-section-hint {
+  margin: 0;
+  max-width: 80ch;
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--muted);
+}
+.ui-section-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ----------------------------------------------------------------- panel */
+/*
+ * سطحُ اللوحة الواحد. `panel`/`panel-head` أسماءٌ قديمة بقيّةٌ في شاشاتٍ كُتبت
+ * قبل الكيت: تُجمَع هنا مع `ui-panel` في تعريفٍ واحد، فلا يوجد شكلان لسطحٍ واحد
+ * ولا شاشتان تختلفان لأنّهما استعملتا الاسم الآخر.
+ */
+.ui-panel,
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-1);
+  overflow: clip;
+  min-width: 0;
+}
+.ui-panel-head,
+.panel-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+  padding: 13px 16px;
+  border-block-end: 1px solid var(--line);
+  background: var(--surface);
+}
+.ui-panel-copy,
+.panel-head > div:first-child {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.ui-panel-title,
+.panel-head h2,
+.panel-head h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.ui-panel-hint,
+.panel-head p {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--muted);
+}
+.ui-panel-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.ui-panel-body {
+  padding: 16px;
+  min-width: 0;
+}
+.ui-panel-body-flush {
+  padding: 0;
+}
+.ui-panel-body-flush > table,
+.ui-panel-body-flush > .table-wrap {
+  inline-size: 100%;
+}
+.ui-panel-body-flush > .table-wrap {
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  max-block-size: none;
+}
+/*
+ * A card whose only content is a table is a Panel without a head: drop the card's
+ * padding and the table's own border so the rows meet the card's edge — the same
+ * silhouette as `Panel flush`.
+ */
+:where(.shell, .ui-page) .card:has(> .table-wrap:only-child) {
+  padding: 0;
+  overflow: clip;
+}
+:where(.shell, .ui-page) .card > .table-wrap:only-child {
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  max-block-size: none;
+}
+
+/* The one row a table shows when the query succeeded with nothing in it. */
+.table-blank {
+  padding: 34px 16px;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+/* A table that is the last thing in a panel shares the panel's radius, not its own. */
+.ui-panel-body-flush > .table-wrap table {
+  border-collapse: separate;
+  border-spacing: 0;
+}
+.ui-panel-body-flush > .table-wrap table tbody tr:last-child td,
+.ui-panel-body-flush > .table-wrap table tbody tr:last-child th {
+  border-block-end: 0;
+}
+/*
+ * الجدولُ المباشر داخل جسم لوحة يتّسع على اللوحة كلّها ولا يطفو داخلها:
+ * نفسُ قاعدة `Panel flush` لكنها تلقائية، فالصفحات التي تُبدّل بين «يُحمَّل»
+ * و«لا صفوف» و«الجدول» تُبقي حشوَ النصّ حين يظهر النصّ وحده.
+ */
+.ui-panel-body > .table-wrap:last-child,
+.ui-panel-body > .bak-table-wrap:last-child,
+.ui-panel-body-flush > .table-wrap:last-child,
+.ui-panel-body-flush > .bak-table-wrap:last-child {
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+/*
+ * الحشوُ السالب يخصّ جسمًا بحشوٍ 16px فقط: جسم `flush` ليس فيه حشوٌ يُعوَّض،
+ * فالسالبُ يُزيح الجدول عن حدّ اللوحة ويُقصّ عمودُه الأخير تحت `overflow: clip`.
+ */
+.ui-panel-body:not(.ui-panel-body-flush) > .table-wrap:last-child,
+.ui-panel-body:not(.ui-panel-body-flush) > .bak-table-wrap:last-child {
+  margin: 0 -16px -16px;
+}
+.ui-panel-body-flush > .table-wrap,
+.ui-panel-body-flush > .bak-table-wrap {
+  margin: 0;
+}
+.ui-panel-body > .table-wrap:last-child table thead th:first-child,
+.ui-panel-body > .table-wrap:last-child table tbody td:first-child,
+.ui-panel-body > .bak-table-wrap:last-child table thead th:first-child,
+.ui-panel-body > .bak-table-wrap:last-child table tbody td:first-child {
+  padding-inline-start: 16px;
+}
+.ui-panel-body > .table-wrap:last-child table thead th:last-child,
+.ui-panel-body > .table-wrap:last-child table tbody td:last-child,
+.ui-panel-body > .bak-table-wrap:last-child table thead th:last-child,
+.ui-panel-body > .bak-table-wrap:last-child table tbody td:last-child {
+  padding-inline-end: 16px;
+}
+
+.ui-panel-foot,
+.panel-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+  padding: 10px 16px;
+  border-block-start: 1px solid var(--line);
+  background: var(--surface-2);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+/*
+ * Legacy `Card` (bakery) is a Panel: the head is a rule-separated band and the
+ * body owns the padding. `.ui-card-padded` is for cards built from raw children
+ * — no head, no body — which still need the inner gutter the panel does not add.
+ */
+.ui-card {
+  padding: 0;
+}
+.ui-card-padded:not(:has(> .ui-panel-head)):not(:has(> .ui-panel-body)) {
+  padding: 16px;
+}
+.ui-card > .table-wrap:only-child,
+.ui-card > .bak-table-wrap:only-child {
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  max-block-size: none;
+}
+
+/* ------------------------------------------------------------- callouts */
+/*
+ * نطاقُ حالة (تحذير/خطر/معلومة): سطحٌ واحد بعنوانٍ وسطرِ شرحٍ وإجراء، بدل
+ * بطاقةٍ بحدٍّ سميكٍ مصرّفٍ في كل شاشة — كلّها هنا بحجمٍ واحد وألوان التوكن.
+ */
+.ui-callout {
+  display: grid;
+  gap: 4px;
+  padding: 12px 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  font-size: 13px;
+  color: var(--text);
+}
+.ui-callout-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+}
+.ui-callout-title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.ui-callout-text {
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.65;
+  color: var(--muted);
+}
+.ui-callout.warn {
+  border-color: var(--warn-line);
+  background: var(--warn-soft);
+}
+.ui-callout.warn .ui-callout-title,
+.ui-callout.warn .ui-callout-text {
+  color: var(--warn-ink);
+}
+.ui-callout.danger {
+  border-color: var(--danger-line);
+  background: var(--danger-soft);
+}
+.ui-callout.danger .ui-callout-title,
+.ui-callout.danger .ui-callout-text {
+  color: var(--danger-ink);
+}
+.ui-callout.info {
+  border-color: var(--info-line);
+  background: var(--info-soft);
+}
+.ui-callout.info .ui-callout-title,
+.ui-callout.info .ui-callout-text {
+  color: var(--info-ink);
+}
+.ui-callout.ok {
+  border-color: var(--ok-line);
+  background: var(--ok-soft);
+}
+.ui-callout.ok .ui-callout-title,
+.ui-callout.ok .ui-callout-text {
+  color: var(--ok-ink);
+}
+
+/* --------------------------------------------------------------- totals */
+/*
+ * جدولُ إجماليات المستند: كتلةٌ واحدة بعرضٍ مقروء في الطرف الذي تبدأ منه
+ * القراءة، والوصفُ يمينًا والقيمةُ يسارًا في صفٍّ واحد — بدل سطرٍ يمدّ
+ * قيمتَه إلى آخر اللوحة فيبدو فراغًا لا رقمًا.
+ */
+.ui-totals {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 7px 24px;
+  inline-size: min(100%, 380px);
+  margin-block: 0;
+  margin-inline: 0 auto;
+  font-size: 13px;
+}
+.ui-totals dt {
+  font-weight: 600;
+  color: var(--muted);
+}
+.ui-totals dd {
+  margin: 0;
+  font-weight: 700;
+  text-align: end;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+/* الصافي هو آخر سطر: فاصلٌ رقيق يفصله كما في ورقة الفاتورة المطبوعة. */
+.ui-totals dt:last-of-type,
+.ui-totals dd:last-of-type {
+  margin-block-start: 2px;
+  padding-block-start: 9px;
+  border-block-start: 1px solid var(--line);
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--text);
+}
+
+/* ------------------------------------------------------------ kpi strip */
+.ui-kpi-strip {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-1);
+  overflow: clip;
+}
+.ui-panel-body > .ui-kpi-strip {
+  margin: -16px;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+/*
+ * شبكةُ مؤشراتٍ لعددٍ كبير (ثمانيةٌ فأكثر): نفسُ الخلية ونفسُ الحشو، لكنها
+ * تلتفّ في صفوفٍ بدل سطرٍ لا يُقرأ. الخطوطُ فجواتُ 1px على خلفية الحدّ،
+ * فلا تتضاعف الحدودُ عند الالتفاف.
+ */
+.ui-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(172px, 1fr));
+  /*
+   * الخطوط الفاصلة داخليّةٌ في الخلايا لا خلفيّةً للشبكة: صفٌّ أخيرٌ ناقص
+   * (٨ مؤشرات في ٧ أعمدة) كان يُظهر فراغاً رمادياً بحجم الخلايا الناقصة،
+   * والفراغ الرمادي يُقرأ كبياناتٍ لم تُحمَّل. الآن يُرسم الفاصل داخل كل خلية
+   * على حافّتها، فيبقى الفاصل بين خليتين ويذوب الفراغ في سطح اللوحة.
+   */
+  gap: 0;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-1);
+  overflow: clip;
+}
+.ui-panel-body > .ui-kpi-grid {
+  margin: -16px;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+.ui-kpi-grid > .ui-kpi-cell {
+  background: var(--surface);
+  border-inline-start: 0;
+  box-shadow:
+    inset 1px 0 0 var(--line),
+    inset 0 1px 0 var(--line);
+}
+[dir='rtl'] .ui-kpi-grid > .ui-kpi-cell {
+  box-shadow:
+    inset -1px 0 0 var(--line),
+    inset 0 1px 0 var(--line);
+}
+@media (max-width: 900px) {
+  .ui-kpi-grid {
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  }
+}
+.ui-kpi-cell {
+  display: grid;
+  align-content: start;
+  gap: 6px;
+  padding: 15px 18px;
+  border-inline-start: 1px solid var(--line);
+  min-width: 0;
+  color: inherit;
+  text-decoration: none;
+}
+.ui-kpi-cell:first-child {
+  border-inline-start: 0;
+}
+a.ui-kpi-cell:hover {
+  background: var(--surface-2);
+}
+/* خليّةٌ داخل لوحةٍ لها سطحها: بلا حدودٍ ولا حشو — النصُّ وحده. */
+.ui-kpi-cell-plain {
+  display: grid;
+  align-content: start;
+  gap: 6px;
+  min-width: 0;
+}
+.ui-kpi-label {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--muted);
+}
+.ui-kpi-icon {
+  display: grid;
+  place-items: center;
+  inline-size: 22px;
+  block-size: 22px;
+  border-radius: 7px;
+  background: var(--surface-2);
+  color: var(--brand);
+}
+.ui-kpi-value {
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+.ui-kpi-value.is-up {
+  color: var(--ok);
+}
+.ui-kpi-value.is-down {
+  color: var(--danger);
+}
+.ui-kpi-value.is-warn {
+  color: var(--warn);
+}
+.ui-kpi-hint {
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--muted);
+}
+/* نسبةُ التغيّر سطرٌ صغير تحت الرقم: السهم يقول الاتجاه والنسبة تقول المقدار. */
+.ui-kpi-delta {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  font-size: 11.5px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: var(--muted);
+}
+.ui-kpi-delta.is-up {
+  color: var(--ok);
+}
+.ui-kpi-delta.is-down {
+  color: var(--danger);
+}
+.ui-kpi-delta-label {
+  font-weight: 600;
+  color: var(--muted);
+}
+.ui-kpi-bar {
+  display: block;
+  block-size: 4px;
+  margin-block-start: 4px;
+  border-radius: 999px;
+  background: var(--line);
+  overflow: clip;
+}
+.ui-kpi-bar > span {
+  display: block;
+  block-size: 100%;
+  background: var(--brand);
+}
+.ui-kpi-bar.is-up > span {
+  background: var(--ok);
+}
+.ui-kpi-bar.is-warn > span {
+  background: var(--warn);
+}
+.ui-kpi-bar.is-down > span {
+  background: var(--danger);
+}
+
+/* ------------------------------------------------------------ doc form */
+/* A document form stacks sections; every section must be allowed to shrink. */
+.ui-doc-form {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+/*
+ * The legacy save bars (`<form><section/><div className="toolbar">…`) become the
+ * same sticky footer the kit's `FormActions` draws — one bar, one place, always
+ * at the end of the form, whether or not the screen was migrated by hand.
+ */
+.ui-page form > .toolbar:last-child {
+  position: sticky;
+  inset-block-end: 0;
+  z-index: 5;
+  gap: 8px;
+  padding: 10px 14px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-2);
+}
+.ui-doc-form > *,
+.ui-screen-body > * {
+  min-width: 0;
+}
+
+/* ------------------------------------------- legacy aliases (same box) */
+/*
+ * `.card`, `.filters` and `.split` predate the kit and survive in ~300 pages.
+ * They are aliases, not a second system: the rules below give them the kit's
+ * geometry — the same padding, the same header band, the same gaps — so a page
+ * that still says `card` sits on exactly the same grid as one that says
+ * `Panel`. Colour still comes from tokens in both cases.
+ */
+
+/*
+ * A heading at the top of a card is that card's *header band*: flush with the
+ * border, exactly like `.ui-panel-head`, so a legacy card and a kit Panel read
+ * as the same object. Headings lower in the card stay section labels.
+ */
+:where(.shell, .ui-page) .card > h2:first-child,
+:where(.shell, .ui-page) .card > h3:first-child,
+:where(.shell, .ui-page) .card > .section-title:first-child {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+  margin: -16px -16px 16px;
+  padding: 13px 16px;
+  border-block-end: 1px solid var(--line);
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+:where(.shell, .ui-page) .card.tight > h2:first-child,
+:where(.shell, .ui-page) .card.tight > h3:first-child,
+:where(.shell, .ui-page) .card.tight > .section-title:first-child {
+  margin: -10px -12px 10px;
+  padding: 10px 12px;
+}
+/*
+ * `.card-head` هو رأسُ البطاقة في مئات الشاشات القديمة: سطرٌ صغيرٌ بلون العلامة
+ * بدل شريطٍ ممتد. حين يتصدّر البطاقة يصير هو نفسُه الشريط — بالمقاس والحشو
+ * والحدّ — كي لا تختلف بطاقةٌ عن بطاقةٍ في الشاشة الواحدة.
+ */
+:where(.shell, .ui-page) .card > .card-head:first-child {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+  margin: -16px -16px 16px;
+  padding: 13px 16px;
+  border-block-end: 1px solid var(--line);
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--text);
+}
+:where(.shell, .ui-page) .card.tight > .card-head:first-child {
+  margin: -10px -12px 10px;
+  padding: 10px 12px;
+}
+/* العنوانُ داخل شريط `.card-head` يأخذ مقاسَ عنوان اللوحة لا مقاسَ النصّ المحيط. */
+:where(.shell, .ui-page) .card > .card-head:first-child :is(h2, h3) {
+  margin: 0;
+  font: inherit;
+  color: inherit;
+  letter-spacing: inherit;
+}
+:where(.shell, .ui-page) .card > h2:first-child > h2,
+:where(.shell, .ui-page) .card > h2:first-child > h3,
+:where(.shell, .ui-page) .card > h3:first-child > h2,
+:where(.shell, .ui-page) .card > h3:first-child > h3,
+:where(.shell, .ui-page) .card > .section-title:first-child > h2,
+:where(.shell, .ui-page) .card > .section-title:first-child > h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+:where(.shell, .ui-page) .card > .section-title h2,
+:where(.shell, .ui-page) .card > .section-title h3 {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+/*
+ * عنوانُ قسمٍ داخل سطحٍ يحمل عنوانه في رأسه: البطاقةُ العتيقة واللوحةُ الجديدة
+ * تتشاركان القاعدة نفسها — عنوانٌ صغيرٌ خفيفٌ فوق كتلته، وظهورُه أولَ عنصرٍ
+ * لا يعلوه فراغٌ زائد.
+ */
+:where(.shell, .ui-page) .card > h3,
+:where(.shell, .ui-page) .ui-panel-body > h3 {
+  margin-block: 16px 8px;
+  font-size: 12.5px;
+  font-weight: 800;
+  letter-spacing: 0;
+  color: var(--muted);
+  text-transform: none;
+}
+/* أولُ عنوانٍ في جسم اللوحة لا يعلوه فراغ؛ أمّا أولُ عنوانٍ في بطاقة فهو شريطها. */
+:where(.shell, .ui-page) .ui-panel-body > h3:first-child {
+  margin-block-start: 0;
+}
+/*
+ * بطاقةٌ قديمة تنتهي بجدول: الجدولُ يأخذ عرض البطاقة ويشاركها نصفَ قطرها،
+ * كما في `Panel flush` — وإلا ظهر جدولٌ داخل بطاقة كأنّه بطاقةٌ ثانية.
+ */
+:where(.shell, .ui-page) .card > .table-wrap:last-child {
+  margin: 0 -16px -16px;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+}
+:where(.shell, .ui-page) .card > .table-wrap:last-child table thead th:first-child,
+:where(.shell, .ui-page) .card > .table-wrap:last-child table tbody td:first-child {
+  padding-inline-start: 16px;
+}
+:where(.shell, .ui-page) .card > .table-wrap:last-child table thead th:last-child,
+:where(.shell, .ui-page) .card > .table-wrap:last-child table tbody td:last-child {
+  padding-inline-end: 16px;
+}
+/* شبكةُ النموذج تُعرَّف مرّةً واحدة في طبقة `ui-form-grid` أدناه. */
+:where(.shell, .ui-page) .filters {
+  gap: 10px 16px;
+  padding: 12px 14px;
+  border-radius: var(--radius-lg);
+}
+:where(.shell, .ui-page) .filters > .field {
+  margin-block-end: 0;
+}
+/*
+ * `.split` القديم: قائمةٌ ضيّقة (340px) أوّلًا ثم تفصيلٌ واسع — ترتيب
+ * «السيد/التفصيل» الذي تستعمله شاشات المخزون. الشاشات التي تريد العكس
+ * تستعمل `Split` من الكيت (رئيسيٌّ ثم عمود سياق).
+ */
+:where(.shell, .ui-page) .split {
+  display: grid;
+  grid-template-columns: 340px minmax(0, 1fr);
+  gap: 16px;
+  align-items: start;
+  min-width: 0;
+}
+@media (max-width: 1100px) {
+  :where(.shell, .ui-page) .split {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+:where(.shell, .ui-page) .split > * {
+  min-width: 0;
+}
+:where(.shell, .ui-page) .toolbar {
+  gap: 8px;
+}
+
+/* --------------------------------------------------------------- tabs */
+/*
+ * `.ui-tabs` بنفس شكل `Tabs` المكوّن: خطُّ سفليٌّ رفيع، والتبويبُ النشط
+ * بخطٍّ ذهبيّ لا بزرٍّ مصمت — فالشاشة لا تتقدّم بزرٍّ يبدو كإجراءٍ رئيسي.
+ */
+.ui-tabs,
+.tabs {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  margin-block-end: 14px;
+  border-block-end: 1px solid var(--line);
+  min-width: 0;
+}
+.ui-tab,
+.tab {
+  position: relative;
+  margin-block-end: -1px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border: 0;
+  border-block-end: 2px solid transparent;
+  background: none;
+  color: var(--muted);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    color var(--dur-fast) var(--ease-out),
+    border-color var(--dur-fast) var(--ease-out);
+}
+.ui-tab:hover,
+.tab:hover {
+  color: var(--text);
+  border-block-end-color: var(--line-strong);
+}
+.ui-tab.is-active,
+.tab.active {
+  color: var(--text);
+  border-block-end-color: var(--gold);
+}
+.ui-tab:focus-visible,
+.tab:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+/* الشريطُ السفلي في `.ui-tab` يكفي؛ `.tab::after` القديم كان يرسم شريطًا ثانيًا. */
+.tab::after {
+  content: none;
+}
+.ui-tab-count {
+  font-size: 11px;
+  font-weight: 700;
+  opacity: 0.8;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ------------------------------------------------------------- chip row */
+/* A status filter is one row of pills, not a second card. */
+.ui-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.ui-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  block-size: 32px;
+  padding-inline: 13px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    border-color var(--dur-fast) var(--ease-out),
+    background var(--dur-fast) var(--ease-out),
+    color var(--dur-fast) var(--ease-out);
+}
+.ui-chip:hover {
+  border-color: var(--line-raised);
+}
+.ui-chip[aria-pressed='true'] {
+  border-color: var(--brand);
+  background: var(--brand);
+  color: var(--on-accent);
+}
+.ui-chip .ui-chip-count {
+  font-size: 11px;
+  font-weight: 800;
+  opacity: 0.75;
+  font-variant-numeric: tabular-nums;
+}
+.ui-chip-spacer {
+  margin-inline-start: auto;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+/* ------------------------------------------------------------ filter bar */
+.ui-filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 10px 16px;
+  padding: 12px 14px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-1);
+  min-width: 0;
+}
+.ui-filter-fields {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  flex: 1 1 540px;
+  min-width: 0;
+  align-items: end;
+}
+.ui-filter-fields > .field {
+  flex: 1 1 165px;
+  max-inline-size: 260px;
+}
+.ui-filter-fields > .btn,
+.ui-filter-fields > button,
+.ui-filter-fields > a.btn {
+  align-self: end;
+  justify-self: start;
+  inline-size: auto;
+  white-space: nowrap;
+}
+.ui-filter-fields > .field {
+  margin-block-end: 0;
+}
+/* Below 640px a 165–260px field cannot pair with anything: give each filter its
+ * own row, then let the checkbox and the primary action share the last one. */
+@media (max-width: 640px) {
+  .ui-filter-fields > .field,
+  .ui-filter-fields > .field.wide {
+    flex: 1 1 100%;
+    max-inline-size: none;
+  }
+}
+.ui-filter-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  /* The action cluster and its summary sentence must shrink with the band:
+   * `nowrap` on a long Arabic summary used to push a 390px page 137px sideways. */
+  min-width: 0;
+  max-width: 100%;
+}
+.ui-filter-summary {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--muted);
+  min-width: 0;
+  max-width: 100%;
+  line-height: 1.55;
+  white-space: normal;
+}
+/* A sentence under the fields explaining what the chosen mode does. */
+.ui-filter-hint {
+  flex: 1 1 100%;
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+/* ----------------------------------------------------------------- split */
+.ui-split {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 16px;
+  align-items: start;
+  min-width: 0;
+}
+.ui-split-single {
+  grid-template-columns: minmax(0, 1fr);
+}
+/*
+ * عمودُ سياقٍ أوسع: تذكرةُ نقطة البيع تحتاج 420px لأزرار الدفع والمجموع،
+ * بخلاف عمود 320px المخصّص للسياق والملاحظات.
+ */
+.ui-split.is-rail-wide {
+  grid-template-columns: minmax(0, 1fr) 420px;
+}
+.ui-split-main {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+.ui-split-rail {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+  position: sticky;
+  top: 16px;
+}
+
+/* --------------------------------------------------------------- popover */
+/*
+ * سطحٌ عائم — قائمة الحساب، الإشعارات، درج المساعد: نفسُ الحدّ والظلّ في كل
+ * مكان. ليس بديلاً للوحة على الصفحة؛ المستوى العائم وحده يستعمله.
+ */
+.ui-popover {
+  min-inline-size: 0;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-3);
+}
+
+/* ------------------------------------------------------------ field group */
+/*
+ * مجموعةُ حقولٍ صغيرة داخل نموذجٍ أو نافذة (عينٌ يمنى/يسرى، ملاحظات، …):
+ * إطارٌ رقيقٌ على سطحٍ ثانويٍّ بلا ظلّ — تجمع الحقول ولا تنافس اللوحةَ التي تسكنها.
+ * لا تُستعمل بدل اللوحة على مستوى الصفحة؛ للصفحة `Panel` وللنموذج `FormSection`.
+ */
+.ui-field-group {
+  margin: 0;
+  min-width: 0;
+  padding: 12px 14px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
+}
+.ui-field-group > legend,
+.ui-field-group-title {
+  padding-inline: 6px;
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--text);
+}
+
+/* ------------------------------------------------------------------ form */
+.ui-form-section,
+.form-section {
+  display: grid;
+  grid-template-columns: 210px minmax(0, 1fr);
+  gap: 6px 24px;
+  padding-block: 18px;
+  border-block-start: 1px solid var(--line);
+}
+.ui-form-section:first-child,
+.form-section:first-child {
+  border-block-start: 0;
+  padding-block-start: 0;
+}
+/*
+ * قسمٌ بلا رأس (نموذجٌ من شبكةٍ واحدة) يجري على عرض النموذج لا على عمود الرأس،
+ * ويأخذ حشوَ 16px من نفسه لأنّه يسكن لوحةً بلا body (الاسم القديم .panel)، بينما
+ * `.ui-form-section` يأخذ هذا الحشوَ من `.ui-panel-body`. النتيجةُ المرئيّة واحدة.
+ */
+.ui-form-section.is-plain,
+.form-section:not(:has(> .ui-form-section-head, > .form-section-head)) {
+  grid-template-columns: minmax(0, 1fr);
+  padding: 16px;
+  gap: var(--space-4);
+}
+.form-section:not(:has(> .ui-form-section-head, > .form-section-head)) + .panel-head,
+.form-section:not(:has(> .ui-form-section-head, > .form-section-head)):last-child {
+  border-block-end: 0;
+}
+.ui-form-section-head,
+.form-section-head {
+  display: grid;
+  gap: 4px;
+  align-content: start;
+}
+.ui-form-section-title,
+.form-section-head h3 {
+  margin: 0;
+  font-size: 13.5px;
+  font-weight: 800;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.ui-form-section-hint,
+.form-section-head .muted {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.6;
+  color: var(--muted);
+}
+.ui-form-section-body {
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+}
+/*
+ * الحاويةُ لا النافذة: نموذجٌ داخل بطاقةٍ نصفِ العرض لا يحتمل أربعة أعمدة،
+ * والاستعلامُ على عرض الشاشة لا يرى ذلك. لذلك كلُّ سطحٍ يحمل حقولًا يصير
+ * حاويةَ عرض، والشبكةُ تُقاس عليه — تُقلَّص في البطاقة الضيّقة وتتّسع في
+ * الصفحة العريضة، بالقواعد نفسها.
+ */
+/*
+ * جسمُ اللوحة وحده يصير حاويةَ عرض. لا نضعها على `.card` القديمة: بعضُها
+ * `display: grid` بترتيب صفوفٍ صريح، و`container-type` يغيّر حساب ارتفاعها
+ * فيُخرج محتواها عن البطاقة.
+ */
+.ui-panel-body,
+.ui-panel-body-flush {
+  container-type: inline-size;
+}
+
+/*
+ * شبكةُ الحقول: اسمٌ واحد للشبكة في التطبيقات كلّها. `.form-grid` (المستعملة في
+ * السطوح القديمة) و`.ui-form-grid` (المستعملة في الكيت) تُعرَّفان هنا معًا —
+ * نفسُ الفجوة ونفسُ الأعمدة، فلا يخرج نموذجان بتباعدين مختلفين.
+ */
+.ui-form-grid,
+.form-grid {
+  display: grid;
+  gap: 14px 16px;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  min-width: 0;
+}
+.ui-form-grid-1,
+.form-grid.cols-1 {
+  grid-template-columns: minmax(0, 1fr);
+}
+.ui-form-grid-2,
+.form-grid.cols-2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.ui-form-grid-3,
+.form-grid.cols-3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.ui-form-grid-4 {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+.form-grid.cols-4 {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+.ui-form-section-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.ui-form-actions {
+  position: sticky;
+  inset-block-end: 0;
+  z-index: 5;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px 16px;
+  padding: 11px 16px;
+  border-block-start: 1px solid var(--line);
+  border-end-start-radius: var(--radius-lg);
+  border-end-end-radius: var(--radius-lg);
+  background: color-mix(in srgb, var(--surface) 92%, transparent);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+}
+/* شريطُ الحفظ آخرَ جسم اللوحة: يلتصق بالحدود لا يطفو داخل الحشو. */
+.ui-panel-body > .ui-form-actions:last-child,
+.ui-card-bare > .ui-form-actions:last-child,
+.ui-panel-body > form:last-child > .ui-form-actions:last-child {
+  margin: 12px -16px -16px;
+  border-radius: 0;
+}
+.ui-panel-foot > .ui-form-actions,
+.ui-card-bare > .ui-panel-foot > .ui-form-actions {
+  position: static;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  inline-size: 100%;
+}
+.ui-form-actions-note {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+}
+.ui-form-actions-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+/* البلاطة: عنصرٌ متكرّر داخل لوحة (تطبيق، رفّ، مسار). سطحٌ مسطّح بلا ظل،
+   لأن اللوحة هي السطح والتكرار لا يضيف طبقةً ثانية. */
+.ui-tile {
+  display: grid;
+  gap: 8px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+  text-align: start;
+  font: inherit;
+  color: inherit;
+}
+.ui-tile.is-active {
+  border-color: var(--brand-line);
+  background: var(--brand-soft);
+}
+.ui-tile-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ink);
+}
+.ui-tile-note {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+/* داخل لوحة أو بطاقة، الحالة الفارغة ليست بطاقةً ثانية — تُسطَّح إلى كتلةٍ مركزيّة. */
+.ui-panel-body .ui-empty,
+.ui-card-bare .ui-empty,
+.card .ui-empty {
+  border: 0;
+  background: none;
+  box-shadow: none;
+}
+
+/* ------------------------------------------------------------- responsive */
+@media (max-width: 1180px) {
+  /* `is-rail-wide` (420px) outranks `.ui-split` by specificity, so it must be
+   * reset here too — otherwise the POS rail stayed 420px on a 390px screen. */
+  .ui-split,
+  .ui-split.is-rail-wide {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .ui-split-rail {
+    position: static;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  }
+}
+/* أربعُ أعمدة تحت 1180px تصير ثلاثًا، ثم اثنتين — نفسُ التدرّج لكلّ شبكة. */
+@media (max-width: 1180px) {
+  .ui-form-grid,
+  .form-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+/* نفسُ التدرّج لكن على عرض الحاوية: بطاقةٌ بعرض 540px تحمل عمودين لا أربعة. */
+@container (max-width: 720px) {
+  .ui-form-grid,
+  .form-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@container (max-width: 460px) {
+  .ui-form-grid,
+  .ui-form-grid-2,
+  .ui-form-grid-3,
+  .ui-form-grid-4,
+  .form-grid,
+  .form-grid.cols-2,
+  .form-grid.cols-3,
+  .form-grid.cols-4 {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+@media (max-width: 900px) {
+  .ui-kpi-strip {
+    grid-auto-flow: row;
+    grid-auto-columns: auto;
+  }
+  .ui-kpi-cell {
+    border-inline-start: 0;
+    border-block-start: 1px solid var(--line);
+  }
+  .ui-kpi-cell:first-child {
+    border-block-start: 0;
+  }
+  .ui-form-section,
+  .form-section {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+  }
+  .ui-form-grid,
+  .form-grid,
+  .form-grid.cols-2,
+  .form-grid.cols-3,
+  .form-grid.cols-4,
+  .ui-form-grid-2,
+  .ui-form-grid-3 {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .ui-page-title {
+    font-size: 22px;
+  }
+}

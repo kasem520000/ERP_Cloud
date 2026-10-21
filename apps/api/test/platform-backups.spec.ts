@@ -1,4 +1,4 @@
-import { createHash } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -305,6 +305,111 @@ describe('platform backups and data requests (P-C10)', () => {
   });
 
   // ─────────────────────────────────────────────────────────── التخزين والصيغة
+
+  describe('الاستعادة: تُضيف الناقص ولا تدهس الموجود', () => {
+    /** صفٌّ نكتبه بأنفسنا: لا بيانات عميل، ويُحذف في نهاية الاختبار. */
+    const probeKey = 'spec.restore.probe';
+    let job: PlatformBackupRow;
+
+    const probeExists = async (): Promise<boolean> =>
+      withPlatformAdminTx(ctx.handle.db, async (tx) => {
+        const result = await tx.execute(sql`SELECT 1 FROM platform_settings WHERE key = ${probeKey} LIMIT 1`);
+        return result.rows.length > 0;
+      });
+
+    it('الفحص المسبق يسمّي الأسباب الخمسة ولا يكتب شيئاً', async () => {
+      const response = await platform('get', '/platform/backups/preflight');
+      expect(response.status).toBe(200);
+      const body = (response.body as { data: { ready: boolean; checks: Array<{ id: string; ok: boolean }> } }).data;
+      expect(body.checks.map((check) => check.id)).toEqual(['key', 'artifact-dir', 'store', 'size', 'db']);
+      expect(body.checks.every((check) => check.ok)).toBe(true);
+      expect(body.ready).toBe(true);
+    });
+
+    it('نسخةٌ تحمل صفّاً ناقصاً: التجريبية تعُدّه، والفعلية تُدخله، ثم لا تتكرّر', async () => {
+      await withPlatformAdminTx(ctx.handle.db, (tx) =>
+        tx.execute(sql`
+          INSERT INTO platform_settings (id, tenant_id, key, value)
+          VALUES (${randomUUID()}, NULL, ${probeKey}, '{"ok":true}'::jsonb)
+          ON CONFLICT DO NOTHING
+        `),
+      );
+
+      const runResponse = await platform('post', '/platform/backups/run', { note: 'نسخة اختبار الاستعادة' });
+      expect(runResponse.status).toBe(201);
+      job = (runResponse.body as { data: PlatformBackupRow }).data;
+
+      // نحذف الصفّ بعد النسخة: صار «ناقصاً» في القاعدة وموجوداً في الملف.
+      await withPlatformAdminTx(ctx.handle.db, (tx) =>
+        tx.execute(sql`DELETE FROM platform_settings WHERE key = ${probeKey}`),
+      );
+      expect(await probeExists()).toBe(false);
+
+      // 1) التجريبية افتراضية: تعدّ ولا تحتاج تأكيداً، ولا تكتب الصفّ.
+      const dry = await platform('post', `/platform/backups/${job.id}/restore`, {});
+      expect(dry.status).toBe(201);
+      const dryBody = (dry.body as { data: { mode: string; verdict: string; totals: { wouldInsert: number } } }).data;
+      expect(dryBody.mode).toBe('dry_run');
+      expect(dryBody.verdict).toBe('ready');
+      expect(dryBody.totals.wouldInsert).toBeGreaterThanOrEqual(1);
+      expect(await probeExists()).toBe(false);
+
+      // 2) الفعلية بلا سبب: 400 — والقاعدة لا تُكتب.
+      expect((await platform('post', `/platform/backups/${job.id}/restore`, { mode: 'apply' })).status).toBe(400);
+
+      // 3) البصمة الخاطئة: 422 قبل أي كتابة.
+      const wrong = await platform('post', `/platform/backups/${job.id}/restore`, {
+        mode: 'apply',
+        confirmChecksum: '000000000000',
+        reason: 'اختبار بصمة خاطئة',
+      });
+      expect(wrong.status).toBe(422);
+      expect((wrong.body as { code: string }).code).toBe('BACKUP_CONFIRM_MISMATCH');
+      expect(await probeExists()).toBe(false);
+
+      // 4) الفعلية بالبصمة والسبب: تُدخل الناقص فقط.
+      const applied = await platform('post', `/platform/backups/${job.id}/restore`, {
+        mode: 'apply',
+        confirmChecksum: job.checksum.slice(0, 12),
+        reason: 'اختبار استعادة صفّ إعدادات',
+      });
+      expect(applied.status).toBe(201);
+      const appliedBody = (applied.body as {
+        data: { status: string; verdict: string; totals: { inserted: number; failed: number } };
+      }).data;
+      expect(appliedBody.status).toBe('succeeded');
+      expect(appliedBody.verdict).toBe('applied');
+      expect(appliedBody.totals.failed).toBe(0);
+      expect(appliedBody.totals.inserted).toBeGreaterThanOrEqual(1);
+      expect(await probeExists()).toBe(true);
+
+      // 5) التكرار: لا صفّ ثانٍ ولا رفض — الاستعادة إضافية بطبعها.
+      const again = await platform('post', `/platform/backups/${job.id}/restore`, {
+        mode: 'apply',
+        confirmChecksum: job.checksum.slice(0, 12),
+        reason: 'تكرار الاستعادة للتأكّد من عدم التكرار',
+      });
+      const againBody = (again.body as { data: { verdict: string; totals: { inserted: number } } }).data;
+      expect(againBody.verdict).toBe('applied');
+      expect(againBody.totals.inserted).toBe(0);
+
+      // 6) السجلّ يرى المحاولات الثلاث (تجريبية + فعلية + تكرار)، والأحدث أولاً.
+      const history = await platform('get', '/platform/backups/restores?limit=5');
+      expect(history.status).toBe(200);
+      const rows = (history.body as { data: Array<{ jobId: string; mode: string }> }).data;
+      expect(rows.filter((row) => row.jobId === job.id).length).toBeGreaterThanOrEqual(3);
+
+      // تنظيف: الصفّ الذي أدخلته الاستعادة.
+      await withPlatformAdminTx(ctx.handle.db, (tx) =>
+        tx.execute(sql`DELETE FROM platform_settings WHERE key = ${probeKey}`),
+      );
+    });
+
+    it('استعادة نسخةٍ غير موجودة 404', async () => {
+      const response = await platform('post', '/platform/backups/11111111-2222-4333-8444-555555555555/restore', {});
+      expect(response.status).toBe(404);
+    });
+  });
 
   describe('منفذ التخزين والصيغة', () => {
     it('S3ArtifactStore يرفع WithPUT ويُنزّل بقية البايتات نفسها', async () => {

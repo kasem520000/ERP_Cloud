@@ -1,13 +1,23 @@
 'use client';
 
+import { Panel, TableFrame } from '@erp/ui';
 import { useSearchParams } from 'next/navigation';
 import { useState } from 'react';
 
 import { DataTable, Notice, QueryView } from '../../../components/data-view';
-import { Screen } from '../../../components/screen';
-import { ActionBar, DocField, DocHead, StatTile, StatTiles, StatusTrack, Tabs, Totals } from '../../../components/ui';
+import { Empty, Screen } from '../../../components/screen';
+import {
+  ActionBar,
+  DocField,
+  DocHead,
+  StatTile,
+  StatTiles,
+  StatusTrack,
+  Tabs,
+  Totals,
+} from '../../../components/ui';
 import { accountLabel, listAccounts, postableOf, type Account } from '../../../lib/accounts';
-import { ApiError, apiData, apiList, apiPost } from '../../../lib/api';
+import { ApiError, apiData, apiErrorText, apiList, apiPost } from '../../../lib/api';
 import {
   amountLabel,
   arabicName,
@@ -62,12 +72,12 @@ type VoucherLine = {
   unitCost?: string | null;
   lineCost?: string | null;
   lotId?: string | null;
-  /** 📁 رقم الدفعة وتواريخها على السطر — كما كُتبت على العبوة، وما ينشئ الدفعة (R5). */
+  /** رقم الدفعة وتواريخها على السطر — كما كُتبت على العبوة، وما ينشئ الدفعة (R5). */
   batchNo?: string | null;
   productionDate?: string | null;
   expiryDate?: string | null;
   serialId?: string | null;
-  /** 🔢 الأرقام التسلسلية — one number per piece, as `Class/InvoiceOper.cs` stores them. */
+  /** الأرقام التسلسلية — one number per piece, as `Class/InvoiceOper.cs` stores them. */
   serialNos?: string[];
   note?: string | null;
 };
@@ -120,9 +130,9 @@ export default function VouchersPage() {
       qtyText: string;
       unitId: string;
       costText: string;
-      /** 📁 رقم الدفعة كما هو على العبوة — يُبحث أو يُنشأ عند الحفظ (R5). */
+      /** رقم الدفعة كما هو على العبوة — يُبحث أو يُنشأ عند الحفظ (R5). */
       batchNo: string;
-      /** 📅 تاريخ الإنتاج المطبوع على العبوة. */
+      /** تاريخ الإنتاج المطبوع على العبوة. */
       productionDate: string;
       /** ⏳ تاريخ الانتهاء المطبوع على العبوة. */
       expiryDate: string;
@@ -199,9 +209,8 @@ export default function VouchersPage() {
   const baseOf = (line: VoucherLine) => {
     const ratio = line.unitId
       ? Number(
-          (selectedUnits.data ?? []).find(
-            (row) => row.itemId === line.itemId && row.unitId === line.unitId,
-          )?.ratio ?? 1,
+          (selectedUnits.data ?? []).find((row) => row.itemId === line.itemId && row.unitId === line.unitId)
+            ?.ratio ?? 1,
         )
       : 1;
     return Number(line.qty) * (Number.isFinite(ratio) && ratio > 0 ? ratio : 1);
@@ -259,7 +268,7 @@ export default function VouchersPage() {
         text: `${found.nameAr}${found.unitNameAr ? ` — ${found.unitNameAr}` : ''} (×${Number(found.factor).toLocaleString('ar-EG')})`,
       });
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
     } finally {
       setBusy(false);
     }
@@ -295,8 +304,7 @@ export default function VouchersPage() {
     }
   }
 
-  async function createVoucher(event: React.FormEvent) {
-    event.preventDefault();
+  async function saveVoucher(postImmediately: boolean) {
     setBusy(true);
     setNotice(undefined);
     try {
@@ -311,7 +319,7 @@ export default function VouchersPage() {
         warehouseId: effectiveWarehouse,
         kind,
         voucherDate,
-        reason: reason || undefined,
+        reason: reason || (kind === 'opening' ? 'رصيد مخزون أول المدة' : undefined),
         counterAccountId: counterAccountId || undefined,
         lines: filled.map((line) => ({
           itemId: line.itemId,
@@ -326,19 +334,34 @@ export default function VouchersPage() {
           note: line.note || undefined,
         })),
       });
-      setNotice({
-        kind: 'ok',
-        text: `حُفظ السند ${created.number} كمسودة. رحّله ليحرّك المخزون ويُنشئ القيد.`,
-      });
+      if (postImmediately) {
+        const posted = await apiPost<Voucher>(`/inventory/vouchers/${created.id}/post`, {});
+        setSelected(posted);
+        setNotice({
+          kind: 'ok',
+          text: `تم حفظ وترحيل السند ${posted.number} فوراً، وتحديث أرصدة المخزون وإنشاء القيد المحاسبي.`,
+        });
+      } else {
+        setSelected(created);
+        setNotice({
+          kind: 'ok',
+          text: `حُفظ السند ${created.number} كمسودة. يمكنك ترحيله الآن ليحرّك المخزون ويُنشئ القيد.`,
+        });
+      }
       setLines([blankLine]);
       setReason('');
       setOpen(false);
       await reload();
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
     } finally {
       setBusy(false);
     }
+  }
+
+  async function createVoucher(event: React.FormEvent) {
+    event.preventDefault();
+    await saveVoucher(true);
   }
 
   async function act(action: () => Promise<unknown>, okText: string) {
@@ -348,7 +371,7 @@ export default function VouchersPage() {
       setNotice({ kind: 'ok', text: okText });
       await reload();
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
     }
   }
 
@@ -375,122 +398,123 @@ export default function VouchersPage() {
           setNotice(undefined);
         }}
       />
-      <p className="muted" style={{ marginTop: -4 }}>
-        {KINDS.find((option) => option.id === kind)?.hint}
-      </p>
+      <p className="ui-filter-hint">{KINDS.find((option) => option.id === kind)?.hint}</p>
 
       {open && (
-        <form className="card" onSubmit={createVoucher}>
-          <h2>
-            سند {KIND_LABELS[kind]} جديد <span className="muted">({PREFIXES[kind]}…)</span>
-          </h2>
-          <div className="form-grid">
-            <label className="field">
-              <span>الفرع *</span>
-              <select
-                className="input"
-                value={effectiveBranch}
-                onChange={(event) => setBranchId(event.target.value)}
-                required
-              >
-                <option value="">— اختر —</option>
-                {branchRows.map((row) => (
-                  <option key={row.id} value={row.id}>
-                    {row.code ? `${row.code} — ` : ''}
-                    {arabicName(row)}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="field">
-              <span>المستودع *</span>
-              <select
-                className="input"
-                value={effectiveWarehouse}
-                onChange={(event) => setWarehouseId(event.target.value)}
-                required
-              >
-                <option value="">— اختر —</option>
-                {warehouseRows.map((row) => (
-                  <option key={row.id} value={row.id}>
-                    {arabicName(row)}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="field">
-              <span>التاريخ</span>
+        <form onSubmit={createVoucher}>
+          <Panel
+            title={
+              <>
+                سند {KIND_LABELS[kind]} جديد <span className="muted">({PREFIXES[kind]}…)</span>
+              </>
+            }
+          >
+            <div className="form-grid">
+              <label className="field">
+                <span>الفرع *</span>
+                <select
+                  className="input"
+                  value={effectiveBranch}
+                  onChange={(event) => setBranchId(event.target.value)}
+                  required
+                >
+                  <option value="">— اختر —</option>
+                  {branchRows.map((row) => (
+                    <option key={row.id} value={row.id}>
+                      {row.code ? `${row.code} — ` : ''}
+                      {arabicName(row)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="field">
+                <span>المستودع *</span>
+                <select
+                  className="input"
+                  value={effectiveWarehouse}
+                  onChange={(event) => setWarehouseId(event.target.value)}
+                  required
+                >
+                  <option value="">— اختر —</option>
+                  {warehouseRows.map((row) => (
+                    <option key={row.id} value={row.id}>
+                      {arabicName(row)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="field">
+                <span>التاريخ</span>
+                <input
+                  className="input"
+                  type="date"
+                  dir="ltr"
+                  value={voucherDate}
+                  onChange={(event) => setVoucherDate(event.target.value)}
+                />
+              </label>
+              <label className="field">
+                <span>السبب</span>
+                <input
+                  className="input"
+                  value={reason}
+                  onChange={(event) => setReason(event.target.value)}
+                  placeholder="تالف، هالك، عينة، افتتاح…"
+                />
+              </label>
+              <label className="field">
+                <span>الحساب المقابل (اختياري)</span>
+                <select
+                  className="input"
+                  value={counterAccountId}
+                  onChange={(event) => setCounterAccountId(event.target.value)}
+                >
+                  <option value="">— من دليل الحسابات الافتراضي —</option>
+                  {accountRows.map((row) => (
+                    <option key={row.id} value={row.id}>
+                      {accountLabel(row)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+
+            <h3>الأصناف</h3>
+            <div className="row" style={{ gap: 8 }}>
               <input
                 className="input"
-                type="date"
                 dir="ltr"
-                value={voucherDate}
-                onChange={(event) => setVoucherDate(event.target.value)}
+                placeholder="امسح باركود الصنف…"
+                value={scan}
+                onChange={(event) => setScan(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter') {
+                    event.preventDefault();
+                    void applyScan();
+                  }
+                }}
               />
-            </label>
-            <label className="field">
-              <span>السبب</span>
-              <input
-                className="input"
-                value={reason}
-                onChange={(event) => setReason(event.target.value)}
-                placeholder="تالف، هالك، عينة، افتتاح…"
-              />
-            </label>
-            <label className="field">
-              <span>الحساب المقابل (اختياري)</span>
-              <select
-                className="input"
-                value={counterAccountId}
-                onChange={(event) => setCounterAccountId(event.target.value)}
+              <button
+                className="btn sm"
+                type="button"
+                onClick={() => void applyScan()}
+                disabled={busy || !scan.trim()}
               >
-                <option value="">— من دليل الحسابات الافتراضي —</option>
-                {accountRows.map((row) => (
-                  <option key={row.id} value={row.id}>
-                    {accountLabel(row)}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </div>
+                إضافة بالباركود
+              </button>
+            </div>
 
-          <h3>الأصناف</h3>
-          <div className="row" style={{ gap: 8 }}>
-            <input
-              className="input"
-              dir="ltr"
-              placeholder="امسح باركود الصنف…"
-              value={scan}
-              onChange={(event) => setScan(event.target.value)}
-              onKeyDown={(event) => {
-                if (event.key === 'Enter') {
-                  event.preventDefault();
-                  void applyScan();
-                }
-              }}
-            />
-            <button
-              className="btn sm"
-              type="button"
-              onClick={() => void applyScan()}
-              disabled={busy || !scan.trim()}
-            >
-              إضافة بالباركود
-            </button>
-          </div>
-
-          <div className="table-wrap">
-            <table>
+            <TableFrame>
               <thead>
                 <tr>
                   <th>المادة</th>
                   <th>الكمية</th>
-                  {!isIssue && <th>تكلفة الوحدة</th>}
-                  <th>📁 رقم الدفعة</th>
-                  <th>📅 تاريخ الإنتاج</th>
-                  <th>⏳ تاريخ الانتهاء</th>
-                  <th>رقم تسلسلي</th>
                   <th>الوحدة</th>
+                  {!isIssue && <th>تكلفة الوحدة</th>}
+                  <th>رقم الدفعة</th>
+                  <th>تاريخ الإنتاج</th>
+                  <th>تاريخ الانتهاء</th>
+                  <th>رقم تسلسلي</th>
                   <th>ملاحظة</th>
                   <th />
                 </tr>
@@ -504,15 +528,20 @@ export default function VouchersPage() {
                         <select
                           className="input"
                           value={line.itemId}
-                          onChange={(event) =>
+                          onChange={(event) => {
+                            const picked = itemOf(event.target.value);
+                            const defaultCost = String(
+                              picked?.purchasePrice ?? picked?.purchase_price ?? line.costText ?? '',
+                            );
                             updateLine(index, {
                               itemId: event.target.value,
+                              costText: line.costText || defaultCost,
                               batchNo: '',
                               productionDate: '',
                               expiryDate: '',
                               serialNos: '',
-                            })
-                          }
+                            });
+                          }}
                         >
                           <option value="">— اختر —</option>
                           {itemRows.map((row) => (
@@ -554,7 +583,6 @@ export default function VouchersPage() {
                         {line.unitId && Number(line.qtyText) > 0 && (
                           <span className="muted small" dir="ltr">
                             {`= ${(Number(line.qtyText) * factorOf(line)).toLocaleString('ar-EG')} `}
-                            {arabicName(itemOf(line.itemId) ?? {}) ? '' : ''}
                           </span>
                         )}
                       </td>
@@ -571,10 +599,10 @@ export default function VouchersPage() {
                       )}
                       <td>
                         {/*
-                          الديسكتوب يكتب رقم الدفعة على السطر ولا يطلب اختيارها من قائمة
+ الديسكتوب يكتب رقم الدفعة على السطر ولا يطلب اختيارها من قائمة
                           (`InvoiceItemDetail.BatchNo`, `frmInvSale.xaml:876`). فنُبقي الكتابة
-                          ممكنةً للدفعة الجديدة، ونعرض الدفعات المسجَّلة اقتراحاً لمن يريد
-                          الاصطفاف على دفعةٍ قائمة.
+ ممكنةً للدفعة الجديدة، ونعرض الدفعات المسجَّلة اقتراحاً لمن يريد
+ الاصطفاف على دفعةٍ قائمة.
                         */}
                         <input
                           className="input"
@@ -669,30 +697,35 @@ export default function VouchersPage() {
                   );
                 })}
               </tbody>
-            </table>
-          </div>
-          <div className="row" style={{ gap: 8 }}>
-            <button
-              className="btn sm"
-              type="button"
-              onClick={() => setLines((current) => [...current, blankLine])}
-            >
-              + سطر
-            </button>
-            {!isIssue && (
-              <span className="muted">
-                الإجمالي التقديري: <strong dir="ltr">{money(amountLabel(lineTotal))}</strong>
-              </span>
-            )}
-            {isIssue && (
-              <span className="muted">يُصرف بمتوسط التكلفة — تُحسب القيمة تلقائياً عند الترحيل.</span>
-            )}
-          </div>
+            </TableFrame>
+            <div className="row" style={{ gap: 8 }}>
+              <button
+                className="btn sm"
+                type="button"
+                onClick={() => setLines((current) => [...current, blankLine])}
+              >
+                + سطر
+              </button>
+              {!isIssue && (
+                <span className="muted">
+                  الإجمالي التقديري: <strong dir="ltr">{money(amountLabel(lineTotal))}</strong>
+                </span>
+              )}
+              {isIssue && (
+                <span className="muted">يُصرف بمتوسط التكلفة — تُحسب القيمة تلقائياً عند الترحيل.</span>
+              )}
+            </div>
 
-          <Notice notice={notice} />
-          <button className="btn primary" type="submit" disabled={busy}>
-            {busy ? 'جارٍ الحفظ…' : 'حفظ كمسودة'}
-          </button>
+            <Notice notice={notice} />
+            <div className="row" style={{ gap: 8 }}>
+              <button className="btn primary" type="submit" disabled={busy}>
+                {busy ? 'جارٍ الحفظ والترحيل…' : 'حفظ وترحيل فوري'}
+              </button>
+              <button className="btn" type="button" disabled={busy} onClick={() => void saveVoucher(false)}>
+                حفظ كمسودة
+              </button>
+            </div>
+          </Panel>
         </form>
       )}
 
@@ -705,7 +738,11 @@ export default function VouchersPage() {
           hint={PREFIXES[kind]}
           tone="brand"
         />
-        <StatTile label="إجمالي القيمة" value={money(rows.reduce((sum, row) => sum + Number(row.totalCost), 0))} hint="مجموع السندات المعروضة" />
+        <StatTile
+          label="إجمالي القيمة"
+          value={money(rows.reduce((sum, row) => sum + Number(row.totalCost), 0))}
+          hint="مجموع السندات المعروضة"
+        />
         <StatTile
           label="مسودات تنتظر الترحيل"
           value={rows.filter((row) => row.status === 'draft').length}
@@ -720,27 +757,47 @@ export default function VouchersPage() {
         />
         <StatTile
           label="إجمالي الكمية"
-          value={quantity(rows.reduce((sum, row) => sum + row.lines.reduce((inner, line) => inner + Number(line.qty), 0), 0))}
+          value={quantity(
+            rows.reduce(
+              (sum, row) => sum + row.lines.reduce((inner, line) => inner + Number(line.qty), 0),
+              0,
+            ),
+          )}
           hint="بوحدات السندات"
         />
       </StatTiles>
 
       <div className="split">
-        <div className="card tight split-list">
-          <QueryView query={vouchers} empty="لا توجد سندات" emptyDetail="أنشئ سند إدخال أو إخراج لتحريك المخزون بقيد متزن.">
+        <Panel flush bodyClassName="split-list">
+          <QueryView
+            query={vouchers}
+            empty="لا توجد سندات"
+            emptyDetail="أنشئ سند إدخال أو إخراج لتحريك المخزون بقيد متزن."
+          >
             {() => (
               <>
                 {rows.length === 0 ? (
-                  <p className="muted" style={{ padding: 12 }}>لا سندات من هذا النوع.</p>
+                  <p className="muted" style={{ padding: 12 }}>
+                    لا سندات من هذا النوع.
+                  </p>
                 ) : (
                   rows.map((row) => (
                     <button
                       key={row.id}
                       type="button"
                       className={`list-row${row.id === selected?.id ? ' active' : ''}`}
-                      onClick={() => setSelected(row)}
+                      onClick={() => {
+                        setSelected(row);
+                        if (!row.lines || row.lines.length === 0) {
+                          void apiData<Voucher>(`/inventory/vouchers/${row.id}`)
+                            .then((full) => setSelected(full))
+                            .catch(() => undefined);
+                        }
+                      }}
                     >
-                      <span className="list-title" dir="ltr">{row.number}</span>
+                      <span className="list-title" dir="ltr">
+                        {row.number}
+                      </span>
                       <span className="list-sub">{`${shortDate(row.voucherDate)} · ${arabicName(
                         warehouseRows.find((warehouse) => warehouse.id === row.warehouseId) ?? {},
                       )}`}</span>
@@ -752,7 +809,9 @@ export default function VouchersPage() {
                         >
                           {statusLabel(row.status)}
                         </span>
-                        <span className="list-sub" dir="ltr">{money(row.totalCost)}</span>
+                        <span className="list-sub" dir="ltr">
+                          {money(row.totalCost)}
+                        </span>
                       </span>
                     </button>
                   ))
@@ -760,11 +819,13 @@ export default function VouchersPage() {
               </>
             )}
           </QueryView>
-        </div>
+        </Panel>
 
-        <div className="card">
+        <Panel>
           {!selected ? (
-            <p className="muted">اختر سنداً من القائمة لعرض بياناته وأسطره وأفعاله.</p>
+            <p className="muted">
+              <Empty bare title="لم يُختَر بعد" detail="اختر سنداً من القائمة لعرض بياناته وأسطره وأفعاله." />
+            </p>
           ) : (
             <>
               <div className="section-title">
@@ -810,8 +871,8 @@ export default function VouchersPage() {
                   '',
                   money(selected.totalCost),
                   '',
-                  '', // 🔢 الأرقام التسلسلية
-                  '', // 📁 رقم الدفعة
+                  '', // الأرقام التسلسلية
+                  '', // رقم الدفعة
                   '', // ملاحظة
                 ]}
                 columns={[
@@ -827,9 +888,9 @@ export default function VouchersPage() {
                     header: 'الوحدة',
                     cell: (line) =>
                       line.unitId
-                        ? (selectedUnits.data ?? []).find(
+                        ? ((selectedUnits.data ?? []).find(
                             (row) => row.itemId === line.itemId && row.unitId === line.unitId,
-                          )?.unitNameAr ?? '—'
+                          )?.unitNameAr ?? '—')
                         : 'الوحدة الأساسية',
                   },
                   {
@@ -842,7 +903,7 @@ export default function VouchersPage() {
                   { key: 'value', header: 'القيمة', align: 'num', cell: (line) => money(line.lineCost) },
                   {
                     key: 'serials',
-                    header: '🔢 الأرقام التسلسلية',
+                    header: 'الأرقام التسلسلية',
                     cell: (line) =>
                       line.serialNos?.length ? (
                         <span dir="ltr" className="small">
@@ -854,13 +915,13 @@ export default function VouchersPage() {
                   },
                   {
                     key: 'batch',
-                    header: '📁 رقم الدفعة',
+                    header: 'رقم الدفعة',
                     cell: (line) =>
                       line.batchNo ? (
                         <span dir="ltr" className="small">
                           {line.batchNo}
-                          {line.productionDate ? ` · 📅 ${shortDate(line.productionDate)}` : ''}
-                          {line.expiryDate ? ` · ⏳ ${shortDate(line.expiryDate)}` : ''}
+                          {line.productionDate ? ` · ${shortDate(line.productionDate)}` : ''}
+                          {line.expiryDate ? ` · ${shortDate(line.expiryDate)}` : ''}
                         </span>
                       ) : (
                         '—'
@@ -872,7 +933,10 @@ export default function VouchersPage() {
 
               <Totals
                 items={[
-                  { label: 'إجمالي الكمية', value: quantity(selected.lines.reduce((sum, line) => sum + Number(line.qty), 0)) },
+                  {
+                    label: 'إجمالي الكمية',
+                    value: quantity(selected.lines.reduce((sum, line) => sum + Number(line.qty), 0)),
+                  },
                   {
                     label: 'بالوحدة الأساسية',
                     value: quantity(selected.lines.reduce((sum, line) => sum + baseOf(line), 0)),
@@ -925,7 +989,7 @@ export default function VouchersPage() {
               </ActionBar>
             </>
           )}
-        </div>
+        </Panel>
       </div>
 
       {can('inventory.negative.override') && (

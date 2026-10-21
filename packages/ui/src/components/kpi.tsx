@@ -18,14 +18,6 @@ import { formatPercent } from '../lib/format';
  */
 export type KpiTone = 'brand' | 'ok' | 'warn' | 'danger' | 'neutral';
 
-const TONE_BOX: Record<KpiTone, string> = {
-  brand: 'bg-brand-soft text-brand',
-  ok: 'bg-ok-soft text-ok',
-  warn: 'bg-warn-soft text-warn',
-  danger: 'bg-danger-soft text-danger',
-  neutral: 'bg-surface-3 text-muted',
-};
-
 const TONE_SPARK: Record<KpiTone, string> = {
   brand: 'var(--brand)',
   ok: 'var(--ok)',
@@ -124,59 +116,51 @@ export function Kpi({
 }: KpiProps) {
   const direction = delta === null || delta === undefined ? 0 : Math.sign(delta);
   const positive = goodDirection === 'none' ? null : goodDirection === 'up' ? direction >= 0 : direction <= 0;
-  const arrowColor =
-    positive === null ? 'text-muted' : positive ? 'text-ok' : 'text-danger';
+  const arrowColor = positive === null ? '' : positive ? 'is-up' : 'is-down';
+  /**
+   * A cell, not a floating tile: the number sits in the same strip as every
+   * other screen's, with the same label above it and the same hint under it.
+   * `tone` colours the figure — it is not a second container.
+   */
+  const valueTone =
+    tone === 'warn' ? 'is-warn' : tone === 'danger' ? 'is-down' : tone === 'ok' ? 'is-up' : '';
 
   return (
-    <motion.article
-      initial={{ opacity: 0, y: 12 }}
+    <motion.div
+      initial={{ opacity: 0, y: 8 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: '-40px' }}
       transition={{ duration: 0.3, delay, ease: [0.16, 1, 0.3, 1] }}
-      className={cn(
-        'relative overflow-hidden rounded-lg border border-line bg-surface p-4 shadow-1',
-        'transition-[transform,box-shadow,border-color] duration-200 ease-out hover:-translate-y-0.5 hover:border-line-strong hover:shadow-3',
-        className,
-      )}
+      className={cn('ui-kpi-cell', className)}
     >
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className="m-0 flex items-center gap-1.5 text-[12.5px] font-bold text-muted">{title}</p>
-          <p className="num m-0 mt-1.5 text-[30px] leading-none font-bold tracking-tight text-ink">
-            {value}
-          </p>
-        </div>
+      <span className="ui-kpi-label">
         {icon ? (
-          <span className={cn('grid size-10 flex-none place-items-center rounded-lg', TONE_BOX[tone])}>
+          <span aria-hidden className="ui-kpi-icon">
             {icon}
           </span>
         ) : null}
-      </div>
-
-      <div className="mt-3 flex items-end justify-between gap-2">
-        <div className="min-w-0">
-          {delta !== null && delta !== undefined ? (
-            <p className={cn('m-0 flex items-center gap-1 text-[12px] font-bold', arrowColor)}>
-              {direction > 0 ? (
-                <ArrowUpRight size={14} aria-hidden />
-              ) : direction < 0 ? (
-                <ArrowDownRight size={14} aria-hidden />
-              ) : (
-                <Minus size={14} aria-hidden />
-              )}
-              <span dir="ltr">{formatPercent(delta)}</span>
-              {deltaLabel ? (
-                <span className="font-medium text-muted">{deltaLabel}</span>
-              ) : null}
-            </p>
-          ) : hint ? (
-            <p className="m-0 truncate text-[12px] font-medium text-muted">{hint}</p>
-          ) : null}
-        </div>
-        {spark && spark.length > 1 ? (
-          <Sparkline points={spark} color={TONE_SPARK[tone]} className="flex-none" />
-        ) : null}
-      </div>
-    </motion.article>
+        {title}
+      </span>
+      <span className={cn('ui-kpi-value', valueTone)}>{value}</span>
+      {delta !== null && delta !== undefined ? (
+        <span className={cn('ui-kpi-hint', arrowColor)}>
+          {direction > 0 ? (
+            <ArrowUpRight size={13} aria-hidden />
+          ) : direction < 0 ? (
+            <ArrowDownRight size={13} aria-hidden />
+          ) : (
+            <Minus size={13} aria-hidden />
+          )}
+          <span dir="ltr">{formatPercent(delta)}</span>
+          {deltaLabel ? <span> {deltaLabel}</span> : null}
+        </span>
+      ) : hint ? (
+        <span className="ui-kpi-hint">{hint}</span>
+      ) : null}
+      {spark && spark.length > 1 ? (
+        <Sparkline points={spark} color={TONE_SPARK[tone]} className="mt-1" />
+      ) : null}
+    </motion.div>
   );
 }
+

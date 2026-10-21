@@ -71,7 +71,15 @@ describe('operations contract (P-C9)', () => {
     expect(PLATFORM_JOB_FILTERS).toEqual(['status', 'queue', 'type', 'tenantId']);
     expect(PLATFORM_JOB_SORTS).toEqual(['createdAt', 'runAt']);
     expect(PLATFORM_FILE_FILTERS).toEqual(['status', 'tenantId', 'entity', 'scan']);
-    expect(healthProbeNames).toEqual(['database', 'redis', 'storage', 'email', 'queue', 'worker']);
+    expect(healthProbeNames).toEqual([
+      'database',
+      'redis',
+      'storage',
+      'email',
+      'queue',
+      'worker',
+      'password_breach',
+    ]);
     // «غير مهيّأ» حالةٌ معلَنة لا عطل: بدونها تُعلن كل بيئة تطوير حادثةً كاذبة.
     expect(healthProbeStatuses).toEqual(['up', 'degraded', 'down', 'not_configured']);
   });

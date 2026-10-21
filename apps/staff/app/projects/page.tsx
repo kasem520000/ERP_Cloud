@@ -50,6 +50,7 @@ export default function ProjectsPage() {
 
   return (
     <Directory<Project>
+      listTitle="المشاريع"
       title="المشاريع"
       subtitle="عقود العملاء والمقاولين مع قيمة العقد ونسبة المحتجز، ومنها تُصدر مستخلصات التنفيذ."
       crumbs={['إدارة المشاريع']}

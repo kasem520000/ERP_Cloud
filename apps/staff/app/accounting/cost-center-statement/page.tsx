@@ -1,6 +1,7 @@
 'use client';
 
 import { useSearchParams } from 'next/navigation';
+import { FilterBand, Panel, TableFrame } from '@erp/ui';
 import { Suspense, useState } from 'react';
 
 import { Empty, ErrorBox, Forbidden, Loading, Screen } from '../../../components/screen';
@@ -11,13 +12,13 @@ import { money } from '../../../lib/lookups';
 import { useQuery } from '../../../lib/use-query';
 
 /**
- * 📊 كشف مركز الكلفة — `Form_WPF/frmCostCenterBalance.xaml` («تقرير مركز كلفة»).
+ * كشف مركز الكلفة — `Form_WPF/frmCostCenterBalance.xaml` («تقرير مركز كلفة»).
  *
  * The window's `🔍 خيارات البحث` are `🏢 مركز الكلفة` · `📊 نوع الرصيد`
  * (`الكل`/`مدين`/`دائن`) · `اسم الحساب` · `🌿 الفرع` · `📋 نوع القيد` ·
  * `📑 نوع التقرير` (`تجميعي`/`تفصيلي`) · `عدم إظهار الرصيد السابق` · `فترة كاملة` ·
  * `📅 الفترة` (`من`/`إلى`) · `🔍 عرض`, and its grid `📊 كشف مركز الكلفة` is
- * `م · 💸 مدين · 💰 دائن · ⚖️ الرصيد · 📌 الحالة · 🔢 الرقم العام · 📄 رقم السند` plus
+ * `م · مدين · دائن · الرصيد · الحالة · الرقم العام · رقم السند` plus
  * الفرع · النوع · التاريخ · البيان (`BuildDataTable`).
  *
  * It is the account statement pointed at a cost centre: the same `رصيد سابق` row, the
@@ -62,7 +63,14 @@ type CostCenter = { id: string; code: string; nameAr: string };
 type Account = { id: string; code: string; nameAr?: string; isPostable?: boolean };
 type Branch = { id: string; nameAr?: string; name?: string };
 
-const EMPTY: Totals = { debit: '0', credit: '0', periodDebit: '0', periodCredit: '0', closing: '0', closingStatus: null };
+const EMPTY: Totals = {
+  debit: '0',
+  credit: '0',
+  periodDebit: '0',
+  periodCredit: '0',
+  closing: '0',
+  closingStatus: null,
+};
 
 function CostCentreStatement() {
   const search = useSearchParams();
@@ -70,8 +78,14 @@ function CostCentreStatement() {
     () => apiFetch<{ data: CostCenter[] }>('/cost-centers').then((body) => body.data),
     [],
   );
-  const accounts = useQuery<Account[]>(() => apiFetch<{ data: Account[] }>('/accounts').then((body) => body.data), []);
-  const branches = useQuery<Branch[]>(() => apiFetch<{ data: Branch[] }>('/branches').then((body) => body.data), []);
+  const accounts = useQuery<Account[]>(
+    () => apiFetch<{ data: Account[] }>('/accounts').then((body) => body.data),
+    [],
+  );
+  const branches = useQuery<Branch[]>(
+    () => apiFetch<{ data: Branch[] }>('/branches').then((body) => body.data),
+    [],
+  );
 
   const [centerId, setCenterId] = useState(search.get('center') ?? '');
   const [accountId, setAccountId] = useState('');
@@ -83,11 +97,23 @@ function CostCentreStatement() {
   const [toTime, setToTime] = useState('');
   const [fullPeriod, setFullPeriod] = useState(true);
   const [hidePrevious, setHidePrevious] = useState(false);
-  const [summary, setSummary] = useState(true); // 📑 نوع التقرير — تجميعي
+  const [summary, setSummary] = useState(true); // نوع التقرير — تجميعي
   const [balanceType, setBalanceType] = useState<'all' | 'debit' | 'credit'>('all');
-  // R14 — 📋 نوع القيد — the filter `cmbEntryType` offers in `frmCostCenterBalance` L108-L127.
+  // R14 — نوع القيد — the filter `cmbEntryType` offers in `frmCostCenterBalance` L108-L127.
   const [entryKind, setEntryKind] = useState('');
-  const [applied, setApplied] = useState({ centerId: search.get('center') ?? '', accountId: '', branchId: '', from: '', to: '', fromTime: '', toTime: '', fullPeriod: true, hidePrevious: false, summary: true, entryKind: '' });
+  const [applied, setApplied] = useState({
+    centerId: search.get('center') ?? '',
+    accountId: '',
+    branchId: '',
+    from: '',
+    to: '',
+    fromTime: '',
+    toTime: '',
+    fullPeriod: true,
+    hidePrevious: false,
+    summary: true,
+    entryKind: '',
+  });
 
   const statement = useQuery<Envelope>(() => {
     if (!applied.centerId) return Promise.resolve({ data: [], totals: EMPTY, costCenter: null });
@@ -115,12 +141,12 @@ function CostCentreStatement() {
   return (
     <Screen
       title="تقرير مركز كلفة"
-      subtitle="📊 كشف مركز الكلفة — حركة المركز ورصيده من القيود المرحّلة فقط."
+      subtitle="كشف مركز الكلفة — حركة المركز ورصيده من القيود المرحّلة فقط."
       crumbs={['المحاسبة', 'تقارير محاسبية']}
       actions={
         <>
           <button className="btn" type="button" onClick={() => window.print()} disabled={rows.length === 0}>
-            🖨️ طباعة
+            طباعة
           </button>
           <button
             className="btn"
@@ -129,7 +155,19 @@ function CostCentreStatement() {
             onClick={() =>
               downloadCsv(
                 `cost-center-${reported?.code ?? 'report'}.csv`,
-                ['م', 'التاريخ', 'النوع', 'رقم السند', 'الرقم العام', 'الفرع', 'البيان', 'مدين', 'دائن', 'الرصيد', 'الحالة'],
+                [
+                  'م',
+                  'التاريخ',
+                  'النوع',
+                  'رقم السند',
+                  'الرقم العام',
+                  'الفرع',
+                  'البيان',
+                  'مدين',
+                  'دائن',
+                  'الرصيد',
+                  'الحالة',
+                ],
                 rows.map((row) => [
                   row.rank,
                   row.date,
@@ -151,10 +189,10 @@ function CostCentreStatement() {
         </>
       }
     >
-      <div className="card tight no-print">
+      <FilterBand className="no-print">
         <div className="row" style={{ flexWrap: 'wrap', alignItems: 'flex-end' }}>
           <label className="field" style={{ margin: 0, minWidth: 240, flex: 1 }}>
-            <span>🏢 مركز الكلفة *</span>
+            <span>مركز الكلفة *</span>
             <select className="input" value={centerId} onChange={(event) => setCenterId(event.target.value)}>
               <option value="">— اختر مركز الكلفة</option>
               {(centers.data ?? []).map((center) => (
@@ -166,7 +204,11 @@ function CostCentreStatement() {
           </label>
           <label className="field" style={{ margin: 0, minWidth: 240 }}>
             <span>اسم الحساب</span>
-            <select className="input" value={accountId} onChange={(event) => setAccountId(event.target.value)}>
+            <select
+              className="input"
+              value={accountId}
+              onChange={(event) => setAccountId(event.target.value)}
+            >
               <option value="">الكل</option>
               {(accounts.data ?? [])
                 .filter((account) => account.isPostable ?? true)
@@ -179,7 +221,7 @@ function CostCentreStatement() {
             </select>
           </label>
           <label className="field" style={{ margin: 0, minWidth: 180 }}>
-            <span>🌿 الفرع</span>
+            <span>الفرع</span>
             <select className="input" value={branchId} onChange={(event) => setBranchId(event.target.value)}>
               <option value="">الكل</option>
               {(branches.data ?? []).map((branch) => (
@@ -191,23 +233,53 @@ function CostCentreStatement() {
           </label>
           <label className="field" style={{ margin: 0, width: 140 }}>
             <span>من</span>
-            <input className="input" type="date" value={from} onChange={(event) => setFrom(event.target.value)} disabled={fullPeriod} />
+            <input
+              className="input"
+              type="date"
+              value={from}
+              onChange={(event) => setFrom(event.target.value)}
+              disabled={fullPeriod}
+            />
           </label>
           <label className="field" style={{ margin: 0, width: 110 }}>
             <span>من وقت</span>
-            <input className="input" type="time" value={fromTime} onChange={(event) => setFromTime(event.target.value)} disabled={fullPeriod || !from} title="⏰ الوقت — frmAccountBalance L458-L463" />
+            <input
+              className="input"
+              type="time"
+              value={fromTime}
+              onChange={(event) => setFromTime(event.target.value)}
+              disabled={fullPeriod || !from}
+              title="الوقت — frmAccountBalance L458-L463"
+            />
           </label>
           <label className="field" style={{ margin: 0, width: 140 }}>
             <span>إلى</span>
-            <input className="input" type="date" value={to} onChange={(event) => setTo(event.target.value)} disabled={fullPeriod} />
+            <input
+              className="input"
+              type="date"
+              value={to}
+              onChange={(event) => setTo(event.target.value)}
+              disabled={fullPeriod}
+            />
           </label>
           <label className="field" style={{ margin: 0, width: 110 }}>
             <span>إلى وقت</span>
-            <input className="input" type="time" value={toTime} onChange={(event) => setToTime(event.target.value)} disabled={fullPeriod || !to} title="⏰ الوقت — frmAccountBalance L458-L463" />
+            <input
+              className="input"
+              type="time"
+              value={toTime}
+              onChange={(event) => setToTime(event.target.value)}
+              disabled={fullPeriod || !to}
+              title="الوقت — frmAccountBalance L458-L463"
+            />
           </label>
           <label className="field" style={{ margin: 0, minWidth: 180 }}>
-            <span>📋 نوع القيد</span>
-            <select className="input" value={entryKind} onChange={(event) => setEntryKind(event.target.value)}>
+            <span>نوع القيد</span>
+            <select
+              className="input"
+              value={entryKind}
+              onChange={(event) => setEntryKind(event.target.value)}
+            >
               <option value="">الكل</option>
               <option value="opening">قيد افتتاحي</option>
               <option value="sales_invoice">فاتورة مبيعات</option>
@@ -228,14 +300,26 @@ function CostCentreStatement() {
             className="btn primary"
             type="button"
             onClick={() =>
-              setApplied({ centerId, accountId, branchId, from, to, fromTime, toTime, fullPeriod, hidePrevious, summary, entryKind })
+              setApplied({
+                centerId,
+                accountId,
+                branchId,
+                from,
+                to,
+                fromTime,
+                toTime,
+                fullPeriod,
+                hidePrevious,
+                summary,
+                entryKind,
+              })
             }
           >
-            🔍 عرض
+            عرض
           </button>
         </div>
         <div className="row" style={{ flexWrap: 'wrap', marginTop: 8 }}>
-          <span className="group-label">📊 نوع الرصيد</span>
+          <span className="group-label">نوع الرصيد</span>
           {(
             [
               { id: 'all', label: 'الكل' },
@@ -253,27 +337,48 @@ function CostCentreStatement() {
             </button>
           ))}
           <span className="group-label" style={{ marginInlineStart: 12 }}>
-            📑 نوع التقرير
+            نوع التقرير
           </span>
-          <button type="button" className={`btn sm${summary ? ' primary' : ''}`} onClick={() => setSummary(true)}>
+          <button
+            type="button"
+            className={`btn sm${summary ? ' primary' : ''}`}
+            onClick={() => setSummary(true)}
+          >
             تجميعي
           </button>
-          <button type="button" className={`btn sm${summary ? '' : ' primary'}`} onClick={() => setSummary(false)}>
+          <button
+            type="button"
+            className={`btn sm${summary ? '' : ' primary'}`}
+            onClick={() => setSummary(false)}
+          >
             تفصيلي
           </button>
           <label className="check" style={{ marginInlineStart: 12 }}>
-            <input type="checkbox" checked={fullPeriod} onChange={(event) => setFullPeriod(event.target.checked)} />
+            <input
+              type="checkbox"
+              checked={fullPeriod}
+              onChange={(event) => setFullPeriod(event.target.checked)}
+            />
             فترة كاملة
           </label>
           <label className="check">
-            <input type="checkbox" checked={hidePrevious} onChange={(event) => setHidePrevious(event.target.checked)} />
+            <input
+              type="checkbox"
+              checked={hidePrevious}
+              onChange={(event) => setHidePrevious(event.target.checked)}
+            />
             عدم إظهار الرصيد السابق
           </label>
         </div>
-      </div>
+      </FilterBand>
 
       {!applied.centerId && (
-        <Empty title="اختر مركز كلفة لعرض كشفه" detail="يُفتح هذا الكشف أيضاً من 🌳 شجرة مراكز التكلفة بزرّ 📊." />
+        <Panel title="كشف مركز التكلفة" flush>
+          <Empty
+            title="اختر مركز كلفة لعرض كشفه"
+            detail="يُفتح هذا الكشف أيضاً من شجرة مراكز التكلفة بزرّ ."
+          />
+        </Panel>
       )}
       {applied.centerId && statement.status === 'loading' && <Loading />}
       {applied.centerId && statement.status === 'forbidden' && <Forbidden />}
@@ -283,41 +388,44 @@ function CostCentreStatement() {
       {applied.centerId && statement.status === 'success' && (
         <>
           <StatTiles>
-            <StatTile label="💸 إجمالي مدين" value={money(totals.debit)} tone="ok" />
-            <StatTile label="💰 إجمالي دائن" value={money(totals.credit)} tone="brand" />
+            <StatTile label="إجمالي مدين" value={money(totals.debit)} tone="ok" />
+            <StatTile label="إجمالي دائن" value={money(totals.credit)} tone="brand" />
             <StatTile label="رصيد الفترة (مدين)" value={money(totals.periodDebit)} />
             <StatTile label="رصيد الفترة (دائن)" value={money(totals.periodCredit)} />
-            <StatTile label="⚖️ الرصيد" value={money(totals.closing)} hint={totals.closingStatus ?? undefined} />
+            <StatTile label="الرصيد" value={money(totals.closing)} hint={totals.closingStatus ?? undefined} />
           </StatTiles>
 
-          {rows.length === 0 ? (
-            <Empty
-              title="لا توجد حركة على هذا المركز"
-              detail="تأكد من الفترة، أو أن القيود التي تحمل هذا المركز مرحّلة."
-            />
-          ) : (
-            <div className="table-wrap">
-              <table>
+          <Panel title="حركة الفترة" flush>
+            {rows.length === 0 ? (
+              <Empty
+                title="لا توجد حركة على هذا المركز"
+                detail="تأكد من الفترة، أو أن القيود التي تحمل هذا المركز مرحّلة."
+              />
+            ) : (
+              <TableFrame>
                 <thead>
                   <tr>
                     <th>م</th>
                     <th>التاريخ</th>
                     <th>النوع</th>
-                    <th>📄 رقم السند</th>
-                    <th>🔢 الرقم العام</th>
+                    <th>رقم السند</th>
+                    <th>الرقم العام</th>
                     <th>الفرع</th>
                     <th>البيان</th>
                     <th>رمز الحساب</th>
                     <th>اسم الحساب</th>
-                    {showDebit && <th className="num">💸 مدين</th>}
-                    {showCredit && <th className="num">💰 دائن</th>}
-                    <th className="num">⚖️ الرصيد</th>
-                    <th>📌 الحالة</th>
+                    {showDebit && <th className="num">مدين</th>}
+                    {showCredit && <th className="num">دائن</th>}
+                    <th className="num">الرصيد</th>
+                    <th>الحالة</th>
                   </tr>
                 </thead>
                 <tbody>
                   {rows.map((row) => (
-                    <tr key={`${row.rank}-${row.entryId ?? 'opening'}`} className={row.rank === 0 ? 'opening' : undefined}>
+                    <tr
+                      key={`${row.rank}-${row.entryId ?? 'opening'}`}
+                      className={row.rank === 0 ? 'opening' : undefined}
+                    >
                       <td dir="ltr">{row.rank === 0 ? '' : row.rank}</td>
                       <td dir="ltr">{row.date}</td>
                       <td>{row.entryType}</td>
@@ -345,9 +453,9 @@ function CostCentreStatement() {
                     <th>{totals.closingStatus ?? '—'}</th>
                   </tr>
                 </tfoot>
-              </table>
-            </div>
-          )}
+              </TableFrame>
+            )}
+          </Panel>
         </>
       )}
     </Screen>

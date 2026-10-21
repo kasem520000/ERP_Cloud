@@ -8,6 +8,7 @@ import {
 } from '@nestjs/common';
 import type { Response } from 'express';
 import { ZodError } from 'zod';
+import { env } from '@erp/config';
 import {
   DomainError,
   REQUEST_ID_HEADER,
@@ -17,7 +18,8 @@ import {
   type ProblemDetails,
 } from '@erp/contracts';
 
-import { getTraceId } from '../../request-context/request-context.js';
+import { getRequestContext, getTraceId } from '../../request-context/request-context.js';
+import { recordServerProblem } from '../../modules/platform/admin/problem-recorder.js';
 import { ZodValidationException } from '../pipes/zod-validation.pipe.js';
 
 /**
@@ -34,7 +36,12 @@ export class AllExceptionsFilter implements ExceptionFilter {
   catch(exception: unknown, host: ArgumentsHost): void {
     const ctx = host.switchToHttp();
     const response = ctx.getResponse<Response>();
-    const request = ctx.getRequest<{ headers?: Record<string, string | string[] | undefined> }>();
+    const request = ctx.getRequest<{
+      headers?: Record<string, string | string[] | undefined>;
+      method?: string;
+      originalUrl?: string;
+      url?: string;
+    }>();
     const headerTraceId = request?.headers?.[REQUEST_ID_HEADER];
     const traceId = getTraceId() !== 'local-request' ? getTraceId() : String(headerTraceId ?? 'unknown');
 
@@ -50,7 +57,44 @@ export class AllExceptionsFilter implements ExceptionFilter {
         },
         'Unhandled exception',
       );
+
+      /**
+       * البند 3 — «أي خطأ من جانب السيرفر يُسجَّل». كان هذا السطر يذهب إلى stdout
+       * وحده، فيضيع مع دوران السجلّات. الآن يُكتب صفٌّ في `platform_problem_events`
+       * يقرأه سجلّ المشاكل في لوحة المنصّة: المصدر، والرمز، والمسار، والبصمة، والمكدّس
+       * المختصر. والكتابة بلا انتظار — فشلُ تسجيل خطأٍ لا يجوز أن يُسقط الاستجابة.
+       */
+      const context = safeContext();
+      void recordServerProblem({
+        source: 'api',
+        severity: 'error',
+        code: problem.code,
+        message:
+          exception instanceof Error ? exception.message : String(exception ?? 'unknown exception'),
+        path: request?.originalUrl ?? request?.url ?? null,
+        method: request?.method ?? null,
+        status: problem.status,
+        traceId,
+        tenantId: context.tenantId,
+        actorUserId: context.userId,
+        meta: {
+          ...(exception instanceof Error && exception.stack
+            ? { stack: exception.stack.split('\n').slice(0, 8).join('\n') }
+            : {}),
+          userAgent: context.userAgent,
+        },
+      });
     }
+
+    /**
+     * `Retry-After` من الخطأ نفسه حين يعرف نافذته.
+     *
+     * حارس السقف يضبط الترويسة بنفسه، لكن القفل بعدّاد الحساب يُرمى من الخدمة ولا يملك
+     * استجابة. فبدل أن يعرف العميل المدة من نصّ الخطأ وحده، يحمل كل 429 رقميّته:
+     * `details.retryAfterSeconds` (تُرسل في `errors[]`) تصبح ترويسة قياسية.
+     */
+    const retryAfter = readRetryAfter(problem);
+    if (retryAfter !== null) response.setHeader('Retry-After', String(retryAfter));
 
     response.status(problem.status).type('application/problem+json').send(JSON.stringify(problem));
   }
@@ -81,6 +125,12 @@ export class AllExceptionsFilter implements ExceptionFilter {
       return problemFromZodError(exception, traceId);
     }
 
+    // 📦 أخطاء محلّلي الجسم (`body-parser`) ليست `HttpException` ولا `DomainError`، فكانت
+    // تسقط إلى الفرع الأخير وتخرج **500** — أي أن طلباً أكبر من السقف يبدو عطلاً في الخادم.
+    // وهي في الحقيقة طلبٌ معطوب: 413 للحجم و400 للصيغة و415 للترميز.
+    const bodyProblem = problemFromBodyParserError(exception, traceId);
+    if (bodyProblem) return bodyProblem;
+
     if (exception instanceof DomainError) {
       return createProblemDetails(exception, traceId);
     }
@@ -108,6 +158,86 @@ export class AllExceptionsFilter implements ExceptionFilter {
       traceId,
     );
   }
+}
+
+/**
+ * يحوّل أخطاء `http-errors` التي يرميها `body-parser` إلى العقد الموحّد.
+ *
+ * تُعرَف بحقل `type` النصّي ('entity.too.large', 'entity.parse.failed', …) وبحقل
+ * `status`, لا بـ`instanceof`. والرسالة العامة مقصودة: لا نُعيد للمهاجم محتوى جسمه ولا
+ * تفاصيل المحلّل، ولا نُسجّل الطلب في `platform_problem_events` لأنه ليس عطلاً داخلياً.
+ */
+export function problemFromBodyParserError(exception: unknown, traceId: string): ProblemDetails | null {
+  if (!exception || typeof exception !== 'object') return null;
+  const candidate = exception as { type?: unknown; status?: unknown; statusCode?: unknown };
+  const type = typeof candidate.type === 'string' ? candidate.type : '';
+  const status =
+    typeof candidate.status === 'number'
+      ? candidate.status
+      : typeof candidate.statusCode === 'number'
+        ? candidate.statusCode
+        : null;
+
+  if (type === 'entity.too.large' || status === HttpStatus.PAYLOAD_TOO_LARGE) {
+    return createProblemDetails(
+      new DomainError(
+        errorCodes.PAYLOAD_TOO_LARGE,
+        `Request body exceeds the ${env.BODY_LIMIT_BYTES}-byte limit`,
+        HttpStatus.PAYLOAD_TOO_LARGE,
+      ),
+      traceId,
+    );
+  }
+
+  if (status === HttpStatus.URI_TOO_LONG) {
+    return createProblemDetails(
+      new DomainError(
+        errorCodes.URI_TOO_LONG,
+        `Request URL exceeds the ${env.MAX_URL_LENGTH}-character limit`,
+        HttpStatus.URI_TOO_LONG,
+      ),
+      traceId,
+    );
+  }
+
+  if (type === 'entity.parse.failed') {
+    return createProblemDetails(
+      new DomainError(errorCodes.VALIDATION_FAILED, 'Request body is not valid JSON', HttpStatus.BAD_REQUEST),
+      traceId,
+    );
+  }
+
+  if (type === 'encoding.unsupported') {
+    return createProblemDetails(
+      new DomainError(
+        errorCodes.VALIDATION_FAILED,
+        'Request body encoding is not supported',
+        HttpStatus.UNSUPPORTED_MEDIA_TYPE,
+      ),
+      traceId,
+    );
+  }
+
+  if (type === 'request.aborted' || type === 'request.size.invalid') {
+    return createProblemDetails(
+      new DomainError(errorCodes.VALIDATION_FAILED, 'Request body was interrupted or incomplete', HttpStatus.BAD_REQUEST),
+      traceId,
+    );
+  }
+
+  return null;
+}
+
+/** يقرأ `retryAfterSeconds` من `errors[]` حين تكون 429 — رقمٌ موجب فقط. */
+function readRetryAfter(problem: ProblemDetails): number | null {
+  if (problem.status !== 429) return null;
+  const candidate = (problem.errors ?? []).find(
+    (entry) => typeof (entry as { retryAfterSeconds?: unknown }).retryAfterSeconds === 'number',
+  ) as { retryAfterSeconds?: number } | undefined;
+  const seconds = candidate?.retryAfterSeconds;
+  return typeof seconds === 'number' && Number.isFinite(seconds) && seconds > 0
+    ? Math.ceil(seconds)
+    : null;
 }
 
 /** Maps a Nest `HttpException` status onto the stable registry (API_CONTRACT §0). */
@@ -155,4 +285,19 @@ export function isPostgresUuidSyntaxError(exception: unknown): boolean {
     current = candidate.cause;
   }
   return false;
+}
+
+
+/** سياق الطلب قد يكون غائباً خارج دورة HTTP (تقرير عطلٍ في الإقلاع مثلاً). */
+function safeContext(): { tenantId: string | null; userId: string | null; userAgent: string | null } {
+  try {
+    const context = getRequestContext();
+    return {
+      tenantId: context.tenant?.tenantId ?? null,
+      userId: context.auth?.userId ?? null,
+      userAgent: context.userAgent ?? null,
+    };
+  } catch {
+    return { tenantId: null, userId: null, userAgent: null };
+  }
 }

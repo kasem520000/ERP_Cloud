@@ -1,4 +1,5 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { Client } from 'pg';
 
 import { OrgProvisioningService } from '../src/modules/organization/provisioning/org-provisioning.service.js';
 
@@ -554,10 +555,55 @@ describe('التقارير — frmRptInv* · تقارير الفواتير وا�
   it('⏰ وقت — «من وقت» و«إلى وقت» يقصّان اليوم نفسه لا الفترة كلها', async () => {
     await seed();
     const day = today.toISOString().slice(0, 10);
+
+    /**
+     * ⏰ تثبيتُ ساعةِ المثبّتة — والعيبُ فيها كان لا في المنتج (قِيس ٢٠٢٦-١٠-١٧).
+     *
+     * المرشّحان يقارنان `si.posted_at` بـ`from::date + fromTime::time`
+     * (‏`report-catalog.ts:340-341,373`)، والفواتيرُ تُرحَّل بـ`now()`. فالحكمُ «من ٢٣:٥٩
+     * لا يرجع شيئًا» صحيحٌ في كلّ ساعةٍ **إلا الدقيقة الأخيرة من اليوم UTC**، والحكمُ «إلى
+     * ٠٠:٠٠ لا يرجع شيئًا» إلا الدقيقة الأولى — وتشغيلُ المجموعة عند ٢٣:٥٩:٣٠ UTC أسقط
+     * الأولَ فعلًا (٣ صفوف بدل صفر) بلا سطرٍ واحدٍ تغيّر في الكود. وساعةُ الحائط في
+     * المثبّتة عيبٌ لا مصادفة: فالمجموعةُ الكاملة تحتاج عشر دقائق، فمن شغّلها ليلًا رأى
+     * فشلًا لا يراه من شغّلها نهارًا.
+     *
+     * والتثبيتُ **مؤقَّتٌ ومُعاد**: تُقرأ `posted_at` كما هي، وتُشدّ إلى ١٠:٠٠ من اليوم
+     * نفسه (فلا يتغيّر اليومُ على الأحكام اللاحقة التي تقرأ المدى لا الوقت)، ثم تُرجع
+     * قيمُها في `finally` — فبقيةُ أحكام الملفّ تقرأ المثبّتةَ كما وُلدت.
+     */
+    const clock = new Client({ connectionString: ctx.db.ownerUrl });
+    await clock.connect();
     const inDay = (query: string) => get(`/reports/sales-invoices-details?from=${day}&to=${day}${query}`);
-    expect(rowsIn((await inDay('&fromTime=23:59')).body)).toHaveLength(0);
-    expect(rowsIn((await inDay('&toTime=00:00')).body)).toHaveLength(0);
-    expect(rowsIn((await inDay('&fromTime=00:00&toTime=23:59')).body)).toHaveLength(3);
+    try {
+      const original = await clock.query<{ id: string; posted_at: string }>(
+        `SELECT id::text, posted_at::text FROM sales_invoices
+         WHERE tenant_id = $1::uuid AND posted_at IS NOT NULL`,
+        [actor.tenantId],
+      );
+      expect(original.rows.length, 'لا فواتيرَ مُرحَّلة — فالمثبّتةُ لم تكتب ما يُقصّ').toBeGreaterThan(0);
+
+      await clock.query(
+        `UPDATE sales_invoices SET posted_at = ($2 || 'T10:00:00Z')::timestamptz
+         WHERE tenant_id = $1::uuid AND posted_at IS NOT NULL`,
+        [actor.tenantId, day],
+      );
+
+      expect(rowsIn((await inDay('&fromTime=23:59')).body)).toHaveLength(0);
+      expect(rowsIn((await inDay('&toTime=00:00')).body)).toHaveLength(0);
+      expect(rowsIn((await inDay('&fromTime=00:00&toTime=23:59')).body)).toHaveLength(3);
+      // والدقيقةُ التي تقصّ فعلاً: من ١٠:٠١ لا يبقى شيء، وإلى ١٠:٠٠ يبقى الثلاثة.
+      expect(rowsIn((await inDay('&fromTime=10:01')).body)).toHaveLength(0);
+      expect(rowsIn((await inDay('&toTime=10:00')).body)).toHaveLength(3);
+
+      for (const row of original.rows) {
+        await clock.query(`UPDATE sales_invoices SET posted_at = $2::timestamptz WHERE id = $1::uuid`, [
+          row.id,
+          row.posted_at,
+        ]);
+      }
+    } finally {
+      await clock.end();
+    }
   });
 
   it('🧾 «تقرير مبيعات الفواتير» — `inv.inv_type = 3`: نقطة البيع وحدها', async () => {

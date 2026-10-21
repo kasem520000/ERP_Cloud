@@ -1,10 +1,11 @@
 'use client';
 
+import { FilterBand, Panel } from '@erp/ui';
 import { useEffect, useState } from 'react';
 
 import { DataTable, Notice } from '../../../components/data-view';
 import { Screen } from '../../../components/screen';
-import { ApiError } from '../../../lib/api';
+import { apiErrorText } from '../../../lib/api';
 import { ecommerceOrders, type EcommerceOrder } from '../../../lib/ecommerce';
 
 const providerLabels = { salla: 'سلة', zid: 'زد', shopify: 'Shopify' } as const;
@@ -20,7 +21,7 @@ export default function EcommerceOrdersPage() {
     try {
       setOrders(await ecommerceOrders(status ? { status } : {}));
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
     } finally {
       setBusy(false);
     }
@@ -32,29 +33,30 @@ export default function EcommerceOrdersPage() {
 
   return (
     <Screen
-      title="🧾 طلبات المتجر الإلكتروني"
+      title="طلبات المتجر الإلكتروني"
       subtitle="كل طلب من سلة أو زد أو Shopify يظهر هنا، مع حالة الاستيراد ورابط مسودة فاتورة المبيعات في ERP."
       crumbs={['المبيعات', 'طلبات المتجر الإلكتروني']}
       actions={
         <button className="btn" type="button" disabled={busy} onClick={() => void reload()}>
-          🔄 تحديث
+          {busy ? 'جارٍ التحديث…' : 'تحديث'}
         </button>
       }
-    >
-      <Notice notice={notice} />
-      <div className="card">
-        <div className="toolbar">
-          <h3>📋 طلبات المتاجر</h3>
-          <label className="field inline">
-            <span>الحالة</span>
-            <select value={status} onChange={(event) => setStatus(event.target.value)}>
+      filters={
+        <FilterBand>
+          <label className="field">
+            <span>حالة المزامنة</span>
+            <select className="ui-select" value={status} onChange={(event) => setStatus(event.target.value)}>
               <option value="">الكل</option>
               <option value="pending">قيد المعالجة</option>
               <option value="imported">مستورد</option>
               <option value="failed">فشل</option>
             </select>
           </label>
-        </div>
+        </FilterBand>
+      }
+    >
+      <Notice notice={notice} />
+      <Panel flush hint="كل طلب يبقى في سجله، ومسودة الفاتورة تُفتح من عمودها." title="طلبات المتاجر">
         <DataTable
           columns={[
             {
@@ -111,11 +113,12 @@ export default function EcommerceOrdersPage() {
           rows={orders}
           rowKey={(row) => row.id}
         />
-        {orders.length === 0 ? <p className="muted">لا توجد طلبات متجر بعد.</p> : null}
-      </div>
+        {orders.length === 0 ? (
+          <p className="m-0 p-4 text-[13px] text-muted">لا توجد طلبات متجر بعد.</p>
+        ) : null}
+      </Panel>
       {orders.some((row) => row.error) ? (
-        <div className="card">
-          <h3>⚠️ أخطاء الاستيراد</h3>
+        <Panel hint="الطلب لم يُستورد، والسبب كما رجع من المتجر." title="أخطاء الاستيراد">
           {orders
             .filter((row) => row.error)
             .map((row) => (
@@ -123,7 +126,7 @@ export default function EcommerceOrdersPage() {
                 {row.remoteOrderNo ?? row.remoteId}: {row.error}
               </p>
             ))}
-        </div>
+        </Panel>
       ) : null}
     </Screen>
   );

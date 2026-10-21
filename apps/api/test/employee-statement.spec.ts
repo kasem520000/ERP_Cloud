@@ -51,7 +51,21 @@ describe('كشف حساب موظف — frmEmpAccountGet', () => {
   const post = (path: string, body: Record<string, unknown>) => api(ctx.server, 'post', `/api/v1${path}`, { token: actor.token, body });
   const get = (path: string) => api(ctx.server, 'get', `/api/v1${path}`, { token: actor.token });
 
-  const today = () => new Date().toISOString().slice(0, 10);
+  /**
+   * «اليوم» كما يحسبه التقرير — بمنطقة المستأجر الزمنية (`tenant_settings['locale.timezone']`
+   * ← `tenants.timezone` ← `Asia/Riyadh`)، لا بـUTC. الاختبار كان يحسبها بـ`toISOString`
+   * (UTC)، فبين 21:00 و24:00 UTC يكون «اليوم» في الرياض غداً: نافذة التقرير الافتراضية
+   * تصير يوماً آخر وتخرج الفواتير منها، فيفشل كل اختبار في الملف بلا عيبٍ في السلوك.
+   */
+  const TENANT_TZ = 'Asia/Riyadh';
+  const dayAt = (offsetDays = 0) =>
+    new Intl.DateTimeFormat('en-CA', {
+      timeZone: TENANT_TZ,
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).format(new Date(Date.now() + offsetDays * 24 * 3600 * 1000));
+  const today = () => dayAt(0);
   const statement = (query: string) => get(`/hrm/employee-statement?${query}`);
   /** الحركات وحدها — the «رصيد سابق» row carries no قيد of its own. */
   const movementsOf = (body: unknown) => rows((data(body as Record<string, unknown>).rows as unknown[]) ?? []).filter((row) => row.entryId !== null);
@@ -254,7 +268,7 @@ describe('كشف حساب موظف — frmEmpAccountGet', () => {
     const inside = await statement(`employee_id=${employeeId}&from=${today()}&to=${today()}`);
     expect(movementsOf(inside.body)).toHaveLength(3);
 
-    const tomorrow = new Date(Date.now() + 24 * 3600 * 1000).toISOString().slice(0, 10);
+    const tomorrow = dayAt(1);
     const after = await statement(`employee_id=${employeeId}&from=${tomorrow}&to=${tomorrow}`);
     expect(movementsOf(after.body)).toHaveLength(0);
   });
@@ -271,7 +285,7 @@ describe('كشف حساب موظف — frmEmpAccountGet', () => {
   });
 
   it('الرصيد السابق يُرحَّل عند طلب فترة تبدأ بعد أول حركة', async () => {
-    const tomorrow = new Date(Date.now() + 24 * 3600 * 1000).toISOString().slice(0, 10);
+    const tomorrow = dayAt(1);
     const shown = data((await statement(`employee_id=${employeeId}&from=${tomorrow}&to=${tomorrow}`)).body);
     const movements = rows(shown.rows);
     // `فترة كاملة` is off because `من` is set: the رصيد سابق row carries what came before.

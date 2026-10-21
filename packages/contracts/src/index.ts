@@ -3,6 +3,7 @@
  * zod DTOs, the stable error-code registry, permission codes, pagination and id rules.
  */
 export { errorCodes, errorStatus, errorTitle, isErrorCode, statusForCode, titleForCode } from './errors.js';
+export { arabicErrorHint, arabicErrorText, arabicErrorTextForCode } from './errors-ar.js';
 export type { ErrorCode } from './errors.js';
 
 export { DomainError, createProblemDetails, problemFromZodError } from './problem.js';
@@ -33,6 +34,8 @@ export type { RequestId } from './request-id.js';
 
 export {
   ALL_PERMISSIONS,
+  VAN_SALES_CODES_IMPLIED_BY_SALES_INVOICE,
+  VAN_SALES_CODES_NEVER_IMPLIED_BY_SALES,
   canonicalPermissionCodes,
   canonicalToLegacy,
   canonicalizePermissionCode,
@@ -49,6 +52,12 @@ export {
   seedablePermissionCodes,
 } from './permissions.js';
 export type { PermissionDefinition } from './permissions.js';
+export {
+  VAN_SALES_COMPANY_SCOPE_PERMISSIONS,
+  VAN_SALES_REP_PROXY_PERMISSIONS,
+  VAN_SALES_REP_ROLE,
+  hasVanSalesCompanyScope,
+} from './permissions.js';
 
 export {
   erpFunctionalRoleCatalog,

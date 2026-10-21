@@ -2,8 +2,10 @@
 
 import { useState } from 'react';
 import { type SiteAnalytics } from '@erp/contracts';
+import { Panel } from '@erp/ui';
 
 import { Empty, ErrorBox, Loading, Screen } from '../../../components/screen';
+import { Table, type Column } from '../../../components/ui/table';
 import { apiData } from '../../../lib/api';
 import { useQuery } from '../../../lib/use-query';
 
@@ -31,13 +33,15 @@ const WINDOWS: Array<{ value: string; label: string }> = [
 ];
 
 function count(value: number | undefined): string {
-  return value === undefined ? '—' : value.toLocaleString('ar-SA');
+  return value === undefined ? '—' : value.toLocaleString('ar-SA-u-ca-gregory-nu-latn');
 }
 
 function dayText(value: string): string {
-  return new Intl.DateTimeFormat('ar-SA', { day: 'numeric', month: 'short', timeZone: 'UTC' }).format(
-    new Date(`${value}T00:00:00.000Z`),
-  );
+  return new Intl.DateTimeFormat('ar-SA-u-ca-gregory-nu-latn', {
+    day: 'numeric',
+    month: 'short',
+    timeZone: 'UTC',
+  }).format(new Date(`${value}T00:00:00.000Z`));
 }
 
 export default function SiteAnalyticsPage() {
@@ -49,16 +53,104 @@ export default function SiteAnalyticsPage() {
 
   const data = query.data;
 
+  const goalColumns: Array<Column<SiteAnalytics['goals'][number]>> = [
+    { key: 'goal', header: 'الهدف', grow: true, cell: (goal) => goal.labelAr },
+    { key: 'visitors', header: 'زوّار', numeric: true, cell: (goal) => count(goal.visitors) },
+    { key: 'events', header: 'أحداث', numeric: true, cell: (goal) => count(goal.events) },
+    {
+      key: 'rate',
+      header: 'النسبة من زوّار النافذة',
+      numeric: true,
+      cell: (goal) =>
+        goal.visitors === 0
+          ? '—'
+          : `${goal.ratePct.toLocaleString('ar-SA-u-ca-gregory-nu-latn', { maximumFractionDigits: 1 })}٪`,
+    },
+  ];
+
+  const seriesColumns: Array<Column<SiteAnalytics['series'][number]>> = [
+    { key: 'day', header: 'اليوم', cell: (point) => dayText(point.day) },
+    { key: 'visitors', header: 'زوّار', numeric: true, cell: (point) => count(point.visitors) },
+    { key: 'views', header: 'مشاهدات', numeric: true, cell: (point) => count(point.views) },
+  ];
+
+  const sourceColumns: Array<Column<SiteAnalytics['sources'][number]>> = [
+    { key: 'host', header: 'المصدر', ltr: true, grow: true, cell: (source) => source.host },
+    { key: 'visitors', header: 'زوّار', numeric: true, cell: (source) => count(source.visitors) },
+  ];
+
+  const pathColumns: Array<Column<SiteAnalytics['paths'][number]>> = [
+    { key: 'path', header: 'المسار', ltr: true, grow: true, cell: (row) => row.path },
+    { key: 'visitors', header: 'زوّار', numeric: true, cell: (row) => count(row.visitors) },
+    { key: 'views', header: 'مشاهدات', numeric: true, cell: (row) => count(row.views) },
+  ];
+
+  const experimentColumns: Array<
+    Column<SiteAnalytics['experiments'][number]['variants'][number] & { experiment: string }>
+  > = [
+    { key: 'experiment', header: 'التجربة', ltr: true, cell: (variant) => variant.experiment },
+    { key: 'key', header: 'النسخة', cell: (variant) => variant.key },
+    { key: 'exposures', header: 'رأوا', numeric: true, cell: (variant) => count(variant.exposures) },
+    {
+      key: 'converters',
+      header: 'بدأوا اشتراكاً',
+      numeric: true,
+      cell: (variant) => count(variant.converters),
+    },
+    {
+      key: 'rate',
+      header: 'التحويل',
+      numeric: true,
+      cell: (variant) =>
+        variant.exposures === 0
+          ? '—'
+          : `${((variant.converters / variant.exposures) * 100).toLocaleString('ar-SA-u-ca-gregory-nu-latn', { maximumFractionDigits: 1 })}٪`,
+    },
+  ];
+
+  const definitionColumns: Array<Column<SiteAnalytics['definitions'][number]>> = [
+    { key: 'label', header: 'الرقم', grow: true, cell: (definition) => definition.labelAr },
+    { key: 'meaning', header: 'ما يعنيه', cell: (definition) => definition.definitionAr },
+  ];
+
   return (
     <Screen
       title="تحليلات الموقع"
       subtitle="ما يُقرأ في الموقع التسويقي، وما يُطلب منه — أحداثٌ مجهولة الهوية بعد موافقة الزائر."
+      kpis={
+        data
+          ? [
+              {
+                label: 'الزوّار',
+                value: count(data.visitors.all),
+                hint: `زائرٌ مميّز · اليوم ${count(data.visitors.today)}`,
+              },
+              {
+                label: 'المشاهدات',
+                value: count(data.views.all),
+                hint: `صفحةٌ مقروءة · اليوم ${count(data.views.today)}`,
+              },
+              {
+                label: 'أعلى هدف',
+                value:
+                  data.goals
+                    .filter((goal) => goal.visitors > 0)
+                    .sort((left, right) => right.visitors - left.visitors)[0]?.labelAr ?? '—',
+                hint: 'ترتيب الأهداف بأعداد الزوّار',
+              },
+            ]
+          : undefined
+      }
     >
-      <div className="card">
+      <Panel>
         <div className="row">
           <label className="field">
             <span>النافذة</span>
-            <select value={windowDays} onChange={(event) => setWindowDays(event.target.value)}>
+            <select
+              className="input"
+              value={windowDays}
+              onChange={(event) => setWindowDays(event.target.value)}
+            >
               {WINDOWS.map((option) => (
                 <option key={option.value} value={option.value}>
                   {option.label}
@@ -67,7 +159,7 @@ export default function SiteAnalyticsPage() {
             </select>
           </label>
         </div>
-      </div>
+      </Panel>
 
       {query.status === 'loading' ? <Loading /> : null}
       {query.status === 'forbidden' ? (
@@ -77,169 +169,55 @@ export default function SiteAnalyticsPage() {
 
       {data ? (
         <>
-          <section className="grid cols-2">
-            <article className="card">
-              <h2>الزوّار</h2>
-              <p className="kpi">{count(data.visitors.all)}</p>
-              <p className="small muted">
-                زائرٌ مميّزٌ في النافذة · اليوم: {count(data.visitors.today)}
-              </p>
-            </article>
-            <article className="card">
-              <h2>المشاهدات</h2>
-              <p className="kpi">{count(data.views.all)}</p>
-              <p className="small muted">صفحةٌ مقروءة · اليوم: {count(data.views.today)}</p>
-            </article>
-            <article className="card">
-              <h2>أعلى هدف</h2>
-              <p className="kpi">
-                {data.goals
-                  .filter((goal) => goal.visitors > 0)
-                  .sort((left, right) => right.visitors - left.visitors)[0]?.labelAr ?? '—'}
-              </p>
-              <p className="small muted">من يرتّب الأهداف بأعداد الزوّار لا بالنقرات</p>
-            </article>
-          </section>
-
-          <section className="card">
-            <h2>القمع — الأهداف الأربعة</h2>
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>الهدف</th>
-                  <th>زوّار</th>
-                  <th>أحداث</th>
-                  <th>النسبة من زوّار النافذة</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.goals.map((goal) => (
-                  <tr key={goal.name}>
-                    <td>{goal.labelAr}</td>
-                    <td>{count(goal.visitors)}</td>
-                    <td>{count(goal.events)}</td>
-                    <td>{goal.visitors === 0 ? '—' : `${goal.ratePct.toLocaleString('ar-SA', { maximumFractionDigits: 1 })}٪`}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <Panel flush title="القمع — الأهداف الأربعة">
+            <Table bare columns={goalColumns} rows={data.goals} rowKey={(goal) => goal.name} />
             <p className="small muted">
-              الزوّار مميّزون: زائرٌ ينقر الزرّ ثلاث مرّات يُحسب واحداً — وفرقُ «أحداث − زوّار» هو
-              عدد النقرات المتكرّرة.
+              الزوّار مميّزون: زائرٌ ينقر الزرّ ثلاث مرّات يُحسب واحداً — وفرقُ «أحداث − زوّار» هو عدد النقرات
+              المتكرّرة.
             </p>
-          </section>
+          </Panel>
 
-          <section className="card">
-            <h2>المنحنى اليومي</h2>
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>اليوم</th>
-                  <th>زوّار</th>
-                  <th>مشاهدات</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.series.map((point) => (
-                  <tr key={point.day}>
-                    <td>{dayText(point.day)}</td>
-                    <td>{count(point.visitors)}</td>
-                    <td>{count(point.views)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </section>
+          <Panel flush title="المنحنى اليومي">
+            <Table bare columns={seriesColumns} rows={data.series} rowKey={(point) => point.day} />
+          </Panel>
 
           <section className="grid cols-2">
-            <article className="card">
-              <h2>المصادر</h2>
+            <Panel flush title="المصادر">
               {data.sources.length === 0 ? (
                 <p className="muted">لا زياراتٍ في النافذة بعد.</p>
               ) : (
-                <table className="table">
-                  <thead>
-                    <tr>
-                      <th>المصدر</th>
-                      <th>زوّار</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {data.sources.map((source) => (
-                      <tr key={source.host}>
-                        <td>{source.host}</td>
-                        <td>{count(source.visitors)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                <Table bare columns={sourceColumns} rows={data.sources} rowKey={(source) => source.host} />
               )}
-            </article>
+            </Panel>
 
-            <article className="card">
-              <h2>أكثر الصفحات</h2>
+            <Panel flush title="أكثر الصفحات">
               {data.paths.length === 0 ? (
                 <p className="muted">لا صفحاتٍ في النافذة بعد.</p>
               ) : (
-                <table className="table">
-                  <thead>
-                    <tr>
-                      <th>المسار</th>
-                      <th>زوّار</th>
-                      <th>مشاهدات</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {data.paths.map((row) => (
-                      <tr key={row.path}>
-                        <td dir="ltr">{row.path}</td>
-                        <td>{count(row.visitors)}</td>
-                        <td>{count(row.views)}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
+                <Table bare columns={pathColumns} rows={data.paths} rowKey={(row) => row.path} />
               )}
-            </article>
+            </Panel>
           </section>
 
-          <section className="card">
-            <h2>تجارب أ/ب</h2>
+          <Panel flush title="تجارب أ/ب">
             {data.experiments.length === 0 ? (
               <p className="muted">
-                لا تجربة جارية. تُنشأ من «المحتوى»: صفحةٌ أصلية، ثم صفحةٌ ثانية تُربط بها كنسخة
-                بحرف (a أو b) فتُعلَن للزوّار ويقيسها هذا الجدول.
+                لا تجربة جارية. تُنشأ من «المحتوى»: صفحةٌ أصلية، ثم صفحةٌ ثانية تُربط بها كنسخة بحرف (a أو b)
+                فتُعلَن للزوّار ويقيسها هذا الجدول.
               </p>
             ) : (
-              <table className="table">
-                <thead>
-                  <tr>
-                    <th>التجربة</th>
-                    <th>النسخة</th>
-                    <th>رأوا</th>
-                    <th>بدأوا اشتراكاً</th>
-                    <th>التحويل</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {data.experiments.flatMap((experiment) =>
-                    experiment.variants.map((variant) => (
-                      <tr key={`${experiment.experiment}-${variant.key}`}>
-                        <td dir="ltr">{experiment.experiment}</td>
-                        <td>{variant.key}</td>
-                        <td>{count(variant.exposures)}</td>
-                        <td>{count(variant.converters)}</td>
-                        <td>{variant.exposures === 0 ? '—' : `${variant.ratePct.toLocaleString('ar-SA', { maximumFractionDigits: 1 })}٪`}</td>
-                      </tr>
-                    )),
-                  )}
-                </tbody>
-              </table>
+              <Table
+                bare
+                columns={experimentColumns}
+                rows={data.experiments.flatMap((experiment) =>
+                  experiment.variants.map((variant) => ({ ...variant, experiment: experiment.experiment })),
+                )}
+                rowKey={(variant) => `${variant.experiment}-${variant.key}`}
+              />
             )}
-          </section>
+          </Panel>
 
-          <section className="card">
-            <h2>ماذا يُقاس وماذا لا يُقاس</h2>
+          <Panel title="ماذا يُقاس وماذا لا يُقاس">
             <p>{data.privacy.noteAr}</p>
             <div className="grid cols">
               <div>
@@ -260,34 +238,23 @@ export default function SiteAnalyticsPage() {
               </div>
             </div>
             <p className="small muted">
-              مدة الاحتفاظ: {count(data.privacy.retentionDays)} يوماً — الصفوف الأقدم تُحذف آلياً،
-              ولا صفّ خامٌ أبديّ.
+              مدة الاحتفاظ: {count(data.privacy.retentionDays)} يوماً — الصفوف الأقدم تُحذف آلياً، ولا صفّ
+              خامٌ أبديّ.
             </p>
-          </section>
+          </Panel>
 
-          <section className="card">
-            <h2>تعريف كل رقم</h2>
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>الرقم</th>
-                  <th>ما يعنيه</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.definitions.map((definition) => (
-                  <tr key={definition.key}>
-                    <td>{definition.labelAr}</td>
-                    <td>{definition.definitionAr}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <Panel flush title="تعريف كل رقم">
+            <Table
+              bare
+              columns={definitionColumns}
+              rows={data.definitions}
+              rowKey={(definition) => definition.key}
+            />
             <p className="small muted">
-              آخر قراءة: {new Date(data.generatedAt).toLocaleString('ar-SA')} — والشاشة تقرأ ما
-              جمعه الخادم لحظة الطلب، بلا تخزينٍ وسيط.
+              آخر قراءة: {new Date(data.generatedAt).toLocaleString('ar-SA-u-ca-gregory-nu-latn')} — والشاشة
+              تقرأ ما جمعه الخادم لحظة الطلب، بلا تخزينٍ وسيط.
             </p>
-          </section>
+          </Panel>
         </>
       ) : null}
     </Screen>

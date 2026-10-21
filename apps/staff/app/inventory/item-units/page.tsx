@@ -1,11 +1,12 @@
 'use client';
 
 import { useState } from 'react';
+import { Panel } from '@erp/ui';
 
 import { DataTable, Notice, QueryView } from '../../../components/data-view';
 import { Screen } from '../../../components/screen';
 import { FilterBar, StatTile, StatTiles } from '../../../components/ui';
-import { ApiError } from '../../../lib/api';
+import { apiErrorText } from '../../../lib/api';
 import {
   addItemBarcode,
   arabicName,
@@ -92,7 +93,7 @@ export default function ItemUnitsPage() {
       setDefaultSale(false);
       setUnitId('');
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
     } finally {
       setBusy(false);
     }
@@ -106,7 +107,7 @@ export default function ItemUnitsPage() {
       await removeItemUnit(itemId, row.unitId);
       setNotice({ kind: 'ok', text: 'تم حذف الوحدة من الصنف.' });
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
     } finally {
       setBusy(false);
     }
@@ -123,7 +124,7 @@ export default function ItemUnitsPage() {
       setLabel('');
       setLabelUnit('');
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
     } finally {
       setBusy(false);
     }
@@ -138,7 +139,7 @@ export default function ItemUnitsPage() {
       await removeItemBarcode(itemId, row.barcode);
       setNotice({ kind: 'ok', text: 'تمت إزالة الباركود.' });
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
     } finally {
       setBusy(false);
     }
@@ -187,16 +188,8 @@ export default function ItemUnitsPage() {
             hint="كل كمية في المخزون محفوظة بها"
             tone="brand"
           />
-          <StatTile
-            label="وحدات التعبئة"
-            value={(itemUnits.data ?? []).length}
-            hint="علبة · كرتون · عبوة"
-          />
-          <StatTile
-            label="باركودات إضافية"
-            value={(barcodes.data ?? []).length}
-            hint="ملصق آخر لنفس الصنف"
-          />
+          <StatTile label="وحدات التعبئة" value={(itemUnits.data ?? []).length} hint="علبة · كرتون · عبوة" />
+          <StatTile label="باركودات إضافية" value={(barcodes.data ?? []).length} hint="ملصق آخر لنفس الصنف" />
           <StatTile
             label="وحدات بلا باركود"
             value={(itemUnits.data ?? []).filter((row) => !row.barcode).length}
@@ -207,11 +200,11 @@ export default function ItemUnitsPage() {
       )}
 
       {itemId && (itemUnits.data ?? []).length > 0 && (
-        <div className="tiles">
+        <div className="ui-kpi-strip">
           {(itemUnits.data ?? []).map((row) => (
-            <div className="tile" key={row.unitId}>
-              <span className="tile-label">{row.unitNameAr ?? unitName(row.unitId)}</span>
-              <span className="tile-value" dir="ltr">
+            <div className="ui-kpi-cell" key={row.unitId}>
+              <span className="ui-kpi-label">{row.unitNameAr ?? unitName(row.unitId)}</span>
+              <span className="ui-kpi-value" dir="ltr">
                 {`1 = ${Number(row.ratio).toLocaleString('ar-EG')}`}
               </span>
               <span className="tile-hint">
@@ -223,16 +216,15 @@ export default function ItemUnitsPage() {
       )}
 
       {!itemId ? (
-        <div className="card">
+        <Panel>
           <p className="muted">
             اختر صنفاً لتحديد وحداته (علبة، كرتون، عبوة…) وباركوداته الإضافية. الكمية التي تدخلها في أي مستند
             تُضرب بمعامل التحويل لتُخزَّن بالوحدة الأساسية.
           </p>
-        </div>
+        </Panel>
       ) : (
         <>
-          <div className="card">
-            <h2>وحدات القياس</h2>
+          <Panel title="وحدات القياس" flush>
             <QueryView
               query={itemUnits}
               empty="لا توجد وحدات إضافية"
@@ -368,10 +360,9 @@ export default function ItemUnitsPage() {
                 </div>
               </form>
             )}
-          </div>
+          </Panel>
 
-          <div className="card">
-            <h2>باركودات إضافية</h2>
+          <Panel title="باركودات إضافية" flush>
             <QueryView
               query={barcodes}
               empty="لا توجد باركودات إضافية"
@@ -446,7 +437,7 @@ export default function ItemUnitsPage() {
                 </div>
               </form>
             )}
-          </div>
+          </Panel>
         </>
       )}
 

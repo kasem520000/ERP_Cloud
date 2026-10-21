@@ -1,14 +1,16 @@
 'use client';
 
 import { usageMetricRegistry, type UsageSnapshot } from '@erp/contracts';
+import { Panel } from '@erp/ui';
 
 import { Empty, ErrorBox, Forbidden, Loading, Screen } from '../../../components/screen';
+import { Table } from '../../../components/ui/table';
 import { apiData } from '../../../lib/api';
 import { useQuery } from '../../../lib/use-query';
 import { useSession } from '../../../lib/session';
 
 /**
- * 📊 الاستخدام والحصص — شاشة المستأجر التي يطلبها P-C5 («شاشة للمستأجر في staff
+ * الاستخدام والحصص — شاشة المستأجر التي يطلبها P-C5 («شاشة للمستأجر في staff
  * (`/settings/usage`)» في `docs/roadmap/PLATFORM_CONSOLE_PLAN.md` §4).
  *
  * لا يوجد مقابل لها في `Desktop_ERP`: النسخة المكتبية تخدم منشأةً واحدة على جهاز العميل،
@@ -21,9 +23,9 @@ import { useSession } from '../../../lib/session';
  *   * **من أين جاء الحدّ** — تجاوزٌ خصّته به المنصّة أو افتراضٌ في الفهرس؛ والافتراض
  *     **يُبلَّغ عنه ولا يمنع** (`enforced === false`)، فنقولها ولا نوهم العميل برفضٍ لم يقع.
  *   * **أين يقع الرفض** — نصٌّ من الفهرس (`enforcedAtAr`)، فلا يظنّ العميل أنّ كل زيادة
- *     ستُرفض في كل مكان.
+ * ستُرفض في كل مكان.
  *   * **٨٠٪ ناعم و١٠٠٪ صلب** — النسبتان مكتوبتان في العقد مرة واحدة (`usageStateFor`)
- *     وتُعرضان هنا كما هما.
+ * وتُعرضان هنا كما هما.
  *
  * وقراءة الأرقام من `withTenantTx` في الـAPI: كل منشأة ترى أرقامها وحدها بحكم سياسة
  * العزل، لا بحكم فلترةٍ في هذه الصفحة.
@@ -38,6 +40,7 @@ const STATE_LABEL: Record<string, string> = {
 
 const SOURCE_LABEL: Record<string, string> = {
   tenant: 'حدٌّ خصّت به المنصّة منشأتك',
+  plan: 'حدٌّ من باقة اشتراكك',
   platform: 'حدّ عام على المنصّة',
   default: 'افتراض الفهرس',
 };
@@ -57,6 +60,9 @@ export default function UsageSettingsPage() {
   const session = useSession();
   const snapshot = useQuery<UsageSnapshot>(() => apiData<UsageSnapshot>('/usage'), []);
   const data = snapshot.data;
+  const metricRows = (data?.metrics ?? []).filter((metric) =>
+    usageMetricRegistry.some((definition) => definition.key === metric.key),
+  );
 
   // `can` يتعامل مع `*` بنفسه (المالك يملكها)، فلا شرط ثالث هنا.
   const allowed = session.can('tenant.view');
@@ -75,22 +81,30 @@ export default function UsageSettingsPage() {
       {!allowed && <Forbidden />}
 
       {allowed && snapshot.status === 'loading' && <Loading rows={4} />}
-      {allowed && snapshot.status === 'error' && <ErrorBox message={snapshot.error} onRetry={snapshot.reload} />}
+      {allowed && snapshot.status === 'error' && (
+        <ErrorBox message={snapshot.error} onRetry={snapshot.reload} />
+      )}
       {allowed && snapshot.status === 'forbidden' && (
-        <Empty title="لا تملك صلاحية عرض الاستخدام" detail="هذه الشاشة تحتاج صلاحية عرض المنشأة (tenant.view)." />
+        <Empty
+          title="لا تملك صلاحية عرض الاستخدام"
+          detail="هذه الشاشة تحتاج صلاحية عرض المنشأة (tenant.view)."
+        />
       )}
 
       {allowed && snapshot.status === 'success' && data && (
         <>
-          <div className="card">
+          <Panel>
             <dl className="kv">
               <dt>المنشأة</dt>
               <dd>
-                {data.tenantName} <span className="muted small" dir="ltr">{data.tenantCode}</span>
+                {data.tenantName}{' '}
+                <span className="muted small" dir="ltr">
+                  {data.tenantCode}
+                </span>
               </dd>
               <dt>الفترة</dt>
               <dd dir="ltr">
-                {data.periodStart} ← {data.periodEnd}
+                {data.periodStart} {data.periodEnd}
               </dd>
               <dt>حالة الحساب</dt>
               <dd>{data.tenantStatus}</dd>
@@ -99,7 +113,7 @@ export default function UsageSettingsPage() {
               الأرقام تُقرأ لحظة السؤال من جداول منشأتك (الفروع · الأصناف · المستخدمون · الفواتير · التخزين ·
               الرسائل)، ومن عدّادٍ يزيده الطلب نفسه للاستدعاءات والبريد — لا نسخةً ثانية تتخلّف عن الأصل.
             </p>
-          </div>
+          </Panel>
 
           {data.metrics
             .filter((metric) => metric.state === 'hard' && metric.enforced)
@@ -118,66 +132,91 @@ export default function UsageSettingsPage() {
               </p>
             ))}
 
-          <div className="card">
-            <h2>المقاييس الثمانية</h2>
-            <div className="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>البند</th>
-                    <th>المستهلك</th>
-                    <th>الحدّ</th>
-                    <th>النسبة</th>
-                    <th>الحالة</th>
-                    <th>من أين جاء الحدّ؟</th>
-                    <th>أين يقع الرفض؟</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {usageMetricRegistry.map((definition) => {
-                    const metric = data.metrics.find((entry) => entry.key === definition.key);
-                    if (!metric) return null;
-                    return (
-                      <tr key={metric.key}>
-                        <td>
-                          {metric.labelAr}
-                          <div className="muted small">
-                            {metric.period === 'month' ? 'يُصفَّر كل شهر' : metric.period === 'day' ? 'يُصفَّر كل يوم' : 'تراكمي'}
-                          </div>
-                        </td>
-                        <td className="num">
-                          {metric.used.toLocaleString('ar-SA')} <span className="muted small">{metric.unitAr}</span>
-                        </td>
-                        <td className="num">{metric.limit === null ? 'بلا حدّ' : metric.limit.toLocaleString('ar-SA')}</td>
-                        <td>
-                          <span className="meter">
-                            <span
-                              className={`meter-fill ${toneOf(metric.state) === 'ok' ? '' : toneOf(metric.state)}`}
-                              style={{ width: `${Math.round(ratioOf(metric.used, metric.limit) * 100)}%` }}
-                            />
-                          </span>
-                          <span className="muted small" style={{ marginInlineStart: 6 }}>
-                            {metric.percentUsed === null ? '—' : `${metric.percentUsed}%`}
-                          </span>
-                        </td>
-                        <td>
-                          <span className={`badge ${metric.state === 'ok' ? 'ready' : metric.state}`}>
-                            {STATE_LABEL[metric.state]}
-                          </span>
-                          <div className="muted small">{metric.enforced ? 'يُطبَّق' : 'يُبلَّغ عنه فقط'}</div>
-                        </td>
-                        <td className="muted small">{SOURCE_LABEL[metric.limitSource]}</td>
-                        <td className="muted small">{metric.enforcedAtAr}</td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </div>
+          <Panel title="المقاييس الثمانية" flush>
+            <Table
+              bare
+              empty={<>لا توجد مقاييس مسجّلة لهذه المنشأة.</>}
+              columns={[
+                {
+                  key: 'metric',
+                  header: 'البند',
+                  cell: (metric) => (
+                    <>
+                      {metric.labelAr}
+                      <div className="muted small">
+                        {metric.period === 'month'
+                          ? 'يُصفَّر كل شهر'
+                          : metric.period === 'day'
+                            ? 'يُصفَّر كل يوم'
+                            : 'تراكمي'}
+                      </div>
+                    </>
+                  ),
+                },
+                {
+                  key: 'used',
+                  header: 'المستهلك',
+                  numeric: true,
+                  cell: (metric) => (
+                    <>
+                      {metric.used.toLocaleString('en-US')}{' '}
+                      <span className="muted small">{metric.unitAr}</span>
+                    </>
+                  ),
+                },
+                {
+                  key: 'limit',
+                  header: 'الحدّ',
+                  numeric: true,
+                  cell: (metric) =>
+                    metric.limit === null ? 'بلا حدّ' : metric.limit.toLocaleString('en-US'),
+                },
+                {
+                  key: 'ratio',
+                  header: 'النسبة',
+                  cell: (metric) => (
+                    <>
+                      <span className="meter">
+                        <span
+                          className={`meter-fill ${toneOf(metric.state) === 'ok' ? '' : toneOf(metric.state)}`}
+                          style={{ width: `${Math.round(ratioOf(metric.used, metric.limit) * 100)}%` }}
+                        />
+                      </span>
+                      <span className="muted small" style={{ marginInlineStart: 6 }}>
+                        {metric.percentUsed === null ? '—' : `${metric.percentUsed}%`}
+                      </span>
+                    </>
+                  ),
+                },
+                {
+                  key: 'state',
+                  header: 'الحالة',
+                  cell: (metric) => (
+                    <>
+                      <span className={`badge ${metric.state === 'ok' ? 'ready' : metric.state}`}>
+                        {STATE_LABEL[metric.state]}
+                      </span>
+                      <div className="muted small">{metric.enforced ? 'يُطبَّق' : 'يُبلَّغ عنه فقط'}</div>
+                    </>
+                  ),
+                },
+                {
+                  key: 'source',
+                  header: 'من أين جاء الحدّ؟',
+                  cell: (metric) => <span className="muted small">{SOURCE_LABEL[metric.limitSource]}</span>,
+                },
+                {
+                  key: 'rejectedAt',
+                  header: 'أين يقع الرفض؟',
+                  cell: (metric) => <span className="muted small">{metric.enforcedAtAr}</span>,
+                },
+              ]}
+              rows={metricRows}
+              rowKey={(metric) => metric.key}
+            />
+          </Panel>
 
-          <div className="card">
-            <h2>استدعاءات الـAPI — آخر ٣٠ يوماً</h2>
+          <Panel title="استدعاءات الـAPI — آخر ٣٠ يوماً">
             <div className="day-bars" dir="ltr">
               {data.apiCallsPerDay.map((day) => {
                 const max = Math.max(1, ...data.apiCallsPerDay.map((entry) => entry.count));
@@ -192,10 +231,10 @@ export default function UsageSettingsPage() {
               })}
             </div>
             <p className="muted small">
-              اليوم الحالي: {(data.apiCallsPerDay.at(-1)?.count ?? 0).toLocaleString('ar-SA')} استدعاء · أحدث توليد{' '}
-              {new Date(data.generatedAt).toLocaleString('ar-SA')}
+              اليوم الحالي: {(data.apiCallsPerDay.at(-1)?.count ?? 0).toLocaleString('en-US')} استدعاء · أحدث
+              توليد {new Date(data.generatedAt).toLocaleString('en-US')}
             </p>
-          </div>
+          </Panel>
         </>
       )}
     </Screen>

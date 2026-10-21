@@ -1,4 +1,6 @@
 import { createHash } from 'node:crypto';
+import { accessSync, constants as fsConstants, mkdirSync } from 'node:fs';
+import { resolve } from 'node:path';
 
 import { Inject, Injectable, Logger } from '@nestjs/common';
 import { and, desc, eq, inArray, isNull, sql, type SQL } from 'drizzle-orm';
@@ -12,7 +14,11 @@ import {
   parseSort,
   platformRetentionPolicySchema,
   type ListEnvelope,
+  type PlatformBackupPreflight,
   type PlatformBackupQueryDto,
+  type PlatformBackupRestoreInput,
+  type PlatformBackupRestoreRow,
+  type PlatformBackupRestoreTable,
   type PlatformBackupRow,
   type PlatformBackupRunInput,
   type PlatformBackupVerifyResult,
@@ -33,6 +39,7 @@ import { env } from '@erp/config';
 import {
   backupArtifacts,
   backupJobs,
+  backupRestores,
   dataRequests,
   files,
   newId,
@@ -50,22 +57,30 @@ import { AuditService } from '../platform-services/audit/audit.service.js';
 import { signDownloadToken } from '../platform-services/files/download-token.js';
 
 import {
+  artifactKeySource,
+  ensureArtifactKey,
   openArtifact,
   ARTIFACT_STORE_FS,
   ARTIFACT_STORE_S3,
+  type ArtifactKeySource,
   type ArtifactStorePort,
+  type StoredArtifact,
 } from './artifact-store.js';
 import {
   encodeChunk,
   encodeFooter,
   encodeHeader,
+  insertRowsSql,
   loadDumpCatalog,
+  parseDumpChunks,
+  DUMP_FORMAT,
   MAX_DUMP_BYTES,
   MAX_DUMP_ROWS,
   parseDump,
   readTableSql,
   ROWS_PER_CHUNK,
   type DumpCatalog,
+  type DumpChunk,
   type DumpTable,
 } from './backup-dump.js';
 
@@ -124,6 +139,33 @@ export class PlatformBackupsService {
     if (env.BACKUP_STORE === 'filesystem') return this.filesystem;
     if (env.BACKUP_STORE === 's3') return this.s3;
     return this.s3.isConfigured() ? this.s3 : this.filesystem;
+  }
+
+  /**
+   * 🗄️ الكتابة مع بديلٍ مُعلَن.
+   *
+   * `isConfigured()` يقول إن **متغيّرات** S3 موجودة، لا إن الخدمة تُجيب. وبيئةٌ فيها
+   * `S3_*` بلا MinIO عامل — وهي حال بيئة المراجعة — كانت تُسقط كل نسخة بـ«fetch failed»
+   * وتترك المشغّل بلا نسخةٍ واحدة. في `auto` وحدها (لا في `s3` الصريح، فالصراحة عقد)
+   * نسقط إلى نظام ملفات الخادم، ويُسجَّل المخزن الحقيقي في الصفّ (`store: filesystem`)
+   * فلا يوهم أحداً بأن الملف في S3.
+   */
+  private async putArtifact(
+    store: ArtifactStorePort,
+    objectKey: string,
+    bytes: Buffer,
+  ): Promise<{ stored: StoredArtifact; fallbackFrom: string | null }> {
+    try {
+      return { stored: await store.put(objectKey, bytes), fallbackFrom: null };
+    } catch (error) {
+      const canFallBack = env.BACKUP_STORE === 'auto' && store.name === 'object-storage';
+      if (!canFallBack) throw error;
+      const stored = await this.filesystem.put(objectKey, bytes);
+      this.logger.warn(
+        `backup ${objectKey}: object storage unreachable (${error instanceof Error ? error.message : String(error)}) — wrote to the filesystem store instead`,
+      );
+      return { stored, fallbackFrom: store.name };
+    }
   }
 
   async listBackups(query: PlatformBackupQueryDto): Promise<ListEnvelope<PlatformBackupRow>> {
@@ -237,7 +279,11 @@ export class PlatformBackupsService {
         );
       }
 
-      const stored = await store.put(this.buildObjectKey('platform-dump', jobId, startedAt), bytes);
+      const { stored, fallbackFrom } = await this.putArtifact(
+        store,
+        this.buildObjectKey('platform-dump', jobId, startedAt),
+        bytes,
+      );
       const artifactId = newId();
       const finishedAt = new Date();
 
@@ -266,6 +312,8 @@ export class PlatformBackupsService {
             tenants: dump.tenants.length,
             finishedAt,
             durationMs: finishedAt.getTime() - startedAt.getTime(),
+            // البديل يُقال في الصفّ نفسه: نسخةٌ على الخادم ليست نسخةً في S3.
+            ...(fallbackFrom ? { failureReason: null } : {}),
           })
           .where(eq(backupJobs.id, jobId));
       });
@@ -544,6 +592,706 @@ export class PlatformBackupsService {
       `);
       return new Set((result.rows as unknown as Array<{ table_name: string }>).map((row) => row.table_name));
     });
+  }
+
+  // ─────────────────────────────────────────────── الفحص المسبق والاستعادة
+
+  /**
+   * `GET /platform/backups/preflight` — «لماذا لا تعمل النسخة؟» قبل تشغيلها.
+   *
+   * لا يكتب شيئاً في القاعدة، ولا يُنشئ نسخة. يفحص أربع نقاطٍ تفشل عندها النسخ فعلاً في
+   * التنصيبات الحقيقية: مفتاح التشفير، ومجلد البايتات وصلاحيته، والمخزن المختار، وحجم
+   * البيانات مقابل السقف. والنتيجة صفوفٌ صغيرة (`checks`) تقرأها الشاشة، لا رسالةٌ واحدة.
+   */
+  async preflight(): Promise<PlatformBackupPreflight> {
+    const storeRequested = env.BACKUP_STORE;
+    const store = this.store();
+
+    let keySource: PlatformBackupPreflight['keySource'] = artifactKeySource();
+    let keyDetail = '';
+    try {
+      const ensured: ArtifactKeySource = ensureArtifactKey();
+      keySource = ensured;
+      keyDetail =
+        ensured === 'BACKUP_KEY_FILE'
+          ? 'مفتاحٌ محليٌّ في مجلد النسخ (0600). يُنصح بضبط DATA_ENC_KEY في الإنتاج.'
+          : `المفتاح مشتقٌّ من ${ensured}.`;
+    } catch (error) {
+      keySource = 'missing';
+      keyDetail = error instanceof Error ? error.message : String(error);
+    }
+
+    const dir = resolve(env.BACKUP_ARTIFACT_DIR);
+    let dirWritable = false;
+    try {
+      mkdirSync(dir, { recursive: true });
+      accessSync(dir, fsConstants.W_OK);
+      dirWritable = true;
+    } catch {
+      dirWritable = false;
+    }
+
+    const db = await withPlatformAdminTx(this.database.db, async (tx) => {
+      const tables = await tx.execute(sql`
+        SELECT count(*)::int AS tables,
+               COALESCE(sum(GREATEST(c.reltuples, 0)), 0)::bigint AS rows
+        FROM pg_class c JOIN pg_namespace n ON n.oid = c.relnamespace
+        WHERE n.nspname = 'public' AND c.relkind = 'r'
+      `);
+      const row = tables.rows[0] as { tables: number; rows: string | number } | undefined;
+      return { tables: Number(row?.tables ?? 0), rows: Number(row?.rows ?? 0) };
+    });
+
+    const s3Configured = this.s3.isConfigured();
+    const storeOk = storeRequested === 'filesystem' || store.name === 'filesystem' || s3Configured;
+    const sizeOk = db.rows <= MAX_DUMP_ROWS;
+
+    const checks: PlatformBackupPreflight['checks'] = [
+      {
+        id: 'key',
+        ok: keySource !== 'missing',
+        label: 'مفتاح تشفير النسخة',
+        detail: keyDetail,
+      },
+      {
+        id: 'artifact-dir',
+        ok: dirWritable,
+        label: 'مجلد ملفات النسخ',
+        detail: dirWritable ? `${dir} — قابل للكتابة` : `${dir} — غير قابل للكتابة`,
+      },
+      {
+        id: 'store',
+        ok: storeOk,
+        label: 'وجهة الحفظ',
+        detail:
+          store.name === 'object-storage'
+            ? `تخزين الكائنات (S3/MinIO) مُهيّأ — وإن تعذّر الوصول إليه وقت التنفيذ كُتبت النسخة على القرص (${dir}) مع تحذير.`
+            : storeRequested === 's3'
+              ? 'طُلب تخزين الكائنات لكن اعتماداته غير مكتملة — النسخة ستفشل.'
+              : `نظام ملفات الخادم (${dir}).`,
+      },
+      {
+        id: 'size',
+        ok: sizeOk,
+        label: 'حجم البيانات',
+        detail: sizeOk
+          ? `${db.tables} جدولاً، نحو ${db.rows.toLocaleString('en-US')} صفاً — تحت السقف.`
+          : `نحو ${db.rows.toLocaleString('en-US')} صفاً، فوق السقف ${MAX_DUMP_ROWS.toLocaleString('en-US')} — سترفض النسخة بدل أن تُبتر.`,
+      },
+      {
+        id: 'db',
+        ok: db.tables > 0,
+        label: 'قاعدة البيانات',
+        detail: db.tables > 0 ? `${db.tables} جدولاً مقروءاً من الكتالوج.` : 'لم يُقرأ أي جدول.',
+      },
+    ];
+
+    return {
+      ready: checks.every((check: PlatformBackupPreflight['checks'][number]) => check.ok),
+      store: store.name,
+      storeRequested,
+      keySource,
+      artifactDir: dir,
+      artifactDirWritable: dirWritable,
+      s3Configured,
+      liveTables: db.tables,
+      estimatedRows: db.rows,
+      maxRows: MAX_DUMP_ROWS,
+      maxBytes: MAX_DUMP_BYTES,
+      checks,
+      computedAt: new Date().toISOString(),
+    };
+  }
+
+  /** `GET /platform/backups/restores` — محاولات الاستعادة، الأحدث أولاً. */
+  async listRestores(limit = 20): Promise<PlatformBackupRestoreRow[]> {
+    return withPlatformAdminTx(this.database.db, async (tx) => {
+      const rows = await tx
+        .select({ restore: backupRestores, label: users.fullName })
+        .from(backupRestores)
+        .leftJoin(users, eq(users.id, backupRestores.requestedBy))
+        .orderBy(desc(backupRestores.startedAt))
+        .limit(Math.min(Math.max(limit, 1), 100));
+      return rows.map((row) => this.toRestoreRow(row.restore, row.label));
+    });
+  }
+
+  /**
+   * `POST /platform/backups/:id/restore` — الاستعادة الحقيقية.
+   *
+   * ثلاث بوّابات قبل أي كتابة: البصمة، والاكتمال، والتأكيد (في `apply`). ثم تُقرأ النسخة
+   * كما كُتبت وتُرتَّب جداولها بحسب اعتماديات المفاتيح الأجنبية (الأب قبل الابن)، وتُدرج
+   * كل دفعةٍ بـ`ON CONFLICT DO NOTHING` — أي أنّ الاستعادة **لا تدهس صفاً موجوداً أبداً**.
+   * وما ترفضه القاعدة (مفتاحٌ أجنبي، قيدٌ، جدولٌ بلا مفتاح أساسي) يُعدّ ويُسمّى، ولا يُسقِط
+   * الاستعادة كلها: صفٌّ فاشل يُقال، لا يُخفى.
+   *
+   * و`dry_run` هو الافتراضي — يقرأ ويعدّ ويكتب صفّ المحاولة وحده. أمّا `apply` فلا يبدأ
+   * إلا بعد أن يكتب المشغّل أول 12 محرفاً من البصمة وسبباً من خمسة محارف.
+   */
+  async restoreBackup(
+    jobId: string,
+    input: PlatformBackupRestoreInput,
+    actorUserId: string,
+  ): Promise<PlatformBackupRestoreRow> {
+    const artifact = await this.requireArtifact(jobId);
+    const startedAt = new Date();
+    const restoreId = newId();
+
+    const owner = artifact.store === 'object-storage' ? this.s3 : this.filesystem;
+    let plaintext: Buffer;
+    try {
+      plaintext = openArtifact(await owner.get(artifact.objectKey));
+    } catch (error) {
+      throw new DomainError(
+        'BACKUP_ARTIFACT_UNREADABLE',
+        `تعذّر فكّ ملف النسخة: ${error instanceof Error ? error.message : String(error)}`,
+        422,
+        { jobId },
+      );
+    }
+
+    const actual = createHash('sha256').update(plaintext).digest('hex');
+    if (actual !== artifact.checksum) {
+      throw new DomainError(
+        'BACKUP_CHECKSUM_MISMATCH',
+        'بصمة الملف لا تُطابق البصمة المسجّلة — الملف تغيّر بعد كتابته ولا يجوز الاستعادة منه',
+        422,
+        { jobId, expected: artifact.checksum, actual },
+      );
+    }
+
+    const text = plaintext.toString('utf8');
+    const parsed = parseDump(text);
+    if (!parsed.complete) {
+      throw new DomainError(
+        'BACKUP_DUMP_INCOMPLETE',
+        `النسخة غير مكتملة (${parsed.detail ?? 'بلا سطر ذيل'}) — استعادة نصف نسخةٍ أسوأ من الامتناع`,
+        422,
+        { jobId },
+      );
+    }
+    if (parsed.format !== DUMP_FORMAT) {
+      throw new DomainError(
+        'BACKUP_FORMAT_UNSUPPORTED',
+        `صيغة الملف «${parsed.format ?? 'مجهولة'}» غير مدعومة للاستعادة`,
+        422,
+        { jobId },
+      );
+    }
+
+    const expectedConfirm = artifact.checksum.slice(0, 12);
+    if (input.mode === 'apply' && !(input.confirmChecksum ?? '').startsWith(expectedConfirm)) {
+      throw new DomainError(
+        'BACKUP_CONFIRM_MISMATCH',
+        `للتأكيد اكتب أول 12 محرفاً من البصمة (${expectedConfirm}) — الاستعادة إضافية ولا تدهس شيئاً، لكنها تكتب في القاعدة الحيّة`,
+        422,
+        { jobId, expected: expectedConfirm },
+      );
+    }
+
+    const chunks = parseDumpChunks(text);
+    const catalog = await withPlatformAdminTx(this.database.db, (tx) => loadDumpCatalog(tx));
+    const liveTables = await this.liveTableNames();
+    const missingTables = parsed.tables.map((entry) => entry.table).filter((table) => !liveTables.has(table));
+    const columnsByTable = await withPlatformAdminTx(this.database.db, async (tx) =>
+      this.insertableColumns(tx, [...new Set(chunks.map((chunk) => chunk.table))]),
+    );
+    const primaryKeys = await withPlatformAdminTx(this.database.db, async (tx) =>
+      this.primaryKeyColumns(tx),
+    );
+    const order = await withPlatformAdminTx(this.database.db, async (tx) => this.tableOrder(tx));
+    const orderedTables = [...chunks.reduce((map, chunk) => {
+      if (!map.has(chunk.table)) map.set(chunk.table, []);
+      map.get(chunk.table)!.push(chunk);
+      return map;
+    }, new Map<string, DumpChunk[]>()).entries()].sort((a, b) => {
+      const left = order.indexOf(a[0]);
+      const right = order.indexOf(b[0]);
+      return (left < 0 ? Number.MAX_SAFE_INTEGER : left) - (right < 0 ? Number.MAX_SAFE_INTEGER : right);
+    });
+
+    const contextByTable = new Map<string, DumpTable>();
+    for (const entry of [...catalog.platformTables, ...catalog.tenantTables]) {
+      contextByTable.set(entry.table, entry);
+    }
+
+    const tableResults: PlatformBackupRestoreTable[] = [];
+    const apply = input.mode === 'apply';
+
+    for (const [table, tableChunks] of orderedTables) {
+      const rows = tableChunks.flatMap((chunk) => chunk.rows);
+      if (!liveTables.has(table)) {
+        tableResults.push({
+          table,
+          rows: rows.length,
+          inserted: 0,
+          skipped: 0,
+          failed: 0,
+          wouldInsert: 0,
+          error: 'الجدول غير موجود في القاعدة الحالية (انحراف مخطّط)',
+        });
+        continue;
+      }
+
+      const columns = columnsByTable.get(table) ?? [];
+      if (columns.length === 0) {
+        tableResults.push({
+          table,
+          rows: rows.length,
+          inserted: 0,
+          skipped: 0,
+          failed: 0,
+          wouldInsert: 0,
+          error: 'لا أعمدة قابلة للإدراج — الجدول مُولَّد بالكامل',
+        });
+        continue;
+      }
+
+      const pk = primaryKeys.get(table) ?? [];
+      const context = contextByTable.get(table);
+      const tenantScoped = context?.context === 'tenant';
+
+      if (!apply) {
+        /**
+         * الاستعادة التجريبية: تُعدّ الموجود فعلاً بمفاتيحه الأساسية — **داخل السياق نفسه
+         * الذي ستُدرج فيه**. كان العدّ في سياق المنصّة وحدها، فجداول المستأجرين تُقرأ صفراً
+         * تحت RLS فيبدو كلُّ صفٍّ «غائباً»؛ والعدّ الآن يمرّ بسياق كل مستأجر كما يمرّ الإدراج.
+         */
+        let wouldInsert = 0;
+        const groups = this.groupRowsByContext(tableChunks, rows, tenantScoped);
+        for (const [groupTenant, groupRows] of groups) {
+          if (tenantScoped && !groupTenant) {
+            wouldInsert += groupRows.length;
+            continue;
+          }
+          wouldInsert += await this.countMissing(table, pk, columns, groupRows, groupTenant);
+        }
+        tableResults.push({
+          table,
+          rows: rows.length,
+          inserted: 0,
+          skipped: Math.max(rows.length - wouldInsert, 0),
+          failed: 0,
+          wouldInsert,
+          error: pk.length === 0 ? 'الجدول بلا مفتاح أساسي — لا يمكن عدّ الموجود مسبقاً' : null,
+        });
+        continue;
+      }
+
+      if (pk.length === 0) {
+        tableResults.push({
+          table,
+          rows: rows.length,
+          inserted: 0,
+          skipped: 0,
+          failed: 0,
+          wouldInsert: 0,
+          error: 'الجدول بلا مفتاح أساسي — لم تُستعد صفوفه (الإضافية تحتاج مفتاحاً)',
+        });
+        continue;
+      }
+
+      let inserted = 0;
+      let failed = 0;
+      let error: string | null = null;
+
+      const groups = this.groupRowsByContext(tableChunks, rows, tenantScoped);
+
+      for (const [groupTenant, groupRows] of groups) {
+        if (tenantScoped && !groupTenant) {
+          failed += groupRows.length;
+          error ??= 'صفوفٌ بلا مستأجر في جدولٍ مستأجري — لم تُدرج';
+          continue;
+        }
+        try {
+          const counts = groupTenant
+            ? await withTenantTx(this.database.db, groupTenant, (tx) =>
+                this.insertRows(tx, table, columns, groupRows),
+              )
+            : await withPlatformAdminTx(this.database.db, (tx) =>
+                this.insertRows(tx, table, columns, groupRows),
+              );
+          inserted += counts.inserted;
+          failed += counts.failed;
+          error ??= counts.error;
+        } catch (exception) {
+          failed += groupRows.length;
+          error ??= exception instanceof Error ? exception.message : String(exception);
+        }
+      }
+
+      tableResults.push({
+        table,
+        rows: rows.length,
+        inserted,
+        skipped: Math.max(rows.length - inserted - failed, 0),
+        failed,
+        wouldInsert: inserted,
+        error,
+      });
+    }
+
+    const totals = tableResults.reduce(
+      (accumulator, entry) => ({
+        rows: accumulator.rows + entry.rows,
+        inserted: accumulator.inserted + entry.inserted,
+        skipped: accumulator.skipped + entry.skipped,
+        failed: accumulator.failed + entry.failed,
+        wouldInsert: accumulator.wouldInsert + entry.wouldInsert,
+      }),
+      { rows: 0, inserted: 0, skipped: 0, failed: 0, wouldInsert: 0 },
+    );
+
+    const verdict: PlatformBackupRestoreRow['verdict'] = !apply
+      ? missingTables.length > 0
+        ? 'drifted'
+        : 'ready'
+      : totals.failed === 0
+        ? 'applied'
+        : totals.inserted > 0
+          ? 'partial'
+          : 'failed';
+    const status: PlatformBackupRestoreRow['status'] = !apply
+      ? 'dry_run'
+      : verdict === 'applied'
+        ? 'succeeded'
+        : verdict === 'partial'
+          ? 'partial'
+          : 'failed';
+
+    const finishedAt = new Date();
+    const detail = !apply
+      ? `استعادة تجريبية: ${totals.wouldInsert} صفاً سيدخل، ${totals.skipped} موجودٌ سابقاً — ولم تُكتب بيانات.`
+      : totals.failed === 0
+        ? `أُدرج ${totals.inserted} صفاً وتُخطّي ${totals.skipped} موجوداً — لا شيء دُهس.`
+        : `أُدرج ${totals.inserted} وتُخطّي ${totals.skipped} وفشل ${totals.failed} — الجداول المتأثرة مسمّاة في التفصيل.`;
+
+    await withPlatformAdminTx(this.database.db, async (tx) => {
+      await tx.insert(backupRestores).values({
+        id: restoreId,
+        jobId,
+        artifactId: artifact.id,
+        mode: input.mode,
+        status,
+        scope: artifact.id ? ((parsed.scope === 'tenant' ? 'tenant' : 'platform') as 'tenant' | 'platform') : 'platform',
+        tenantId: parsed.tenantId,
+        checksum: artifact.checksum,
+        verified: true,
+        tables: tableResults.length,
+        inserted: totals.inserted,
+        skipped: totals.skipped,
+        failed: totals.failed,
+        summary: { tables: tableResults, missingTables, format: parsed.format },
+        failureReason: verdict === 'failed' || verdict === 'partial' ? detail : null,
+        reason: input.reason ?? null,
+        startedAt,
+        finishedAt,
+        durationMs: finishedAt.getTime() - startedAt.getTime(),
+        requestedBy: actorUserId,
+      });
+    });
+
+    await this.audit.record({
+      actorUserId,
+      action: backupAuditActions.restore,
+      entity: 'backup_jobs',
+      entityId: jobId,
+      after: {
+        restoreId,
+        mode: input.mode,
+        verdict,
+        inserted: totals.inserted,
+        skipped: totals.skipped,
+        failed: totals.failed,
+        tables: tableResults.length,
+      },
+      meta: { reason: input.reason ?? null, missingTables },
+    });
+
+    const saved = await withPlatformAdminTx(this.database.db, async (tx) => {
+      const rows = await tx
+        .select({ restore: backupRestores, label: users.fullName })
+        .from(backupRestores)
+        .leftJoin(users, eq(users.id, backupRestores.requestedBy))
+        .where(eq(backupRestores.id, restoreId))
+        .limit(1);
+      return rows[0];
+    });
+    if (!saved) {
+      throw new DomainError('BACKUP_RESTORE_FAILED', 'تعذّر تسجيل محاولة الاستعادة', 500, { jobId });
+    }
+    return { ...this.toRestoreRow(saved.restore, saved.label), detail };
+  }
+
+  /** أعمدةٌ قابلة للإدراج: ليست مُولَّدة ولا identity — وإلا رفضها PostgreSQL. */
+  private async insertableColumns(tx: DrizzleTx, tables: string[]): Promise<Map<string, string[]>> {
+    const result = await tx.execute(sql`
+      SELECT table_name, column_name
+      FROM information_schema.columns
+      WHERE table_schema = 'public'
+        AND is_generated = 'NEVER'
+        AND is_identity = 'NO'
+        AND table_name = ANY (ARRAY[${sql.join(
+          tables.map((table) => sql`${table}`),
+          sql`, `,
+        )}]::text[])
+      ORDER BY ordinal_position
+    `);
+    const map = new Map<string, string[]>();
+    for (const row of result.rows as unknown as Array<{ table_name: string; column_name: string }>) {
+      if (!map.has(row.table_name)) map.set(row.table_name, []);
+      map.get(row.table_name)!.push(row.column_name);
+    }
+    return map;
+  }
+
+  /** المفاتيح الأساسية — بها يُعرف «موجودٌ سابقاً» في الاستعادة التجريبية. */
+  private async primaryKeyColumns(tx: DrizzleTx): Promise<Map<string, string[]>> {
+    const result = await tx.execute(sql`
+      SELECT c.relname AS table_name, a.attname AS column_name
+      FROM pg_index i
+      JOIN pg_class c ON c.oid = i.indrelid
+      JOIN pg_namespace n ON n.oid = c.relnamespace
+      JOIN pg_attribute a ON a.attrelid = i.indrelid AND a.attnum = ANY (i.indkey)
+      WHERE n.nspname = 'public' AND i.indisprimary
+      ORDER BY c.relname, a.attnum
+    `);
+    const map = new Map<string, string[]>();
+    for (const row of result.rows as unknown as Array<{ table_name: string; column_name: string }>) {
+      if (!map.has(row.table_name)) map.set(row.table_name, []);
+      map.get(row.table_name)!.push(row.column_name);
+    }
+    return map;
+  }
+
+  /**
+   * ترتيب الجداول بحسب اعتماديات المفاتيح الأجنبية — الأب قبل الابن.
+   *
+   * الجداول التي لا تظهر في الرسم (بلا مفاتيح خارجية) تُترك للترتيب الأبجدي بعده. والدورات
+   * (`a → b → a`) لا تُكسر بعنف: تبقى كما هي ويحكم عليها الإدراج نفسه (صفٌّ فاشل يُعدّ).
+   */
+  private async tableOrder(tx: DrizzleTx): Promise<string[]> {
+    const result = await tx.execute(sql`
+      SELECT tc.table_name AS child, ccu.table_name AS parent
+      FROM information_schema.table_constraints tc
+      JOIN information_schema.constraint_column_usage ccu
+        ON ccu.constraint_name = tc.constraint_name AND ccu.table_schema = tc.table_schema
+      WHERE tc.constraint_type = 'FOREIGN KEY' AND tc.table_schema = 'public'
+        AND ccu.table_name <> tc.table_name
+    `);
+    const parents = new Map<string, Set<string>>();
+    const nodes = new Set<string>();
+    for (const row of result.rows as unknown as Array<{ child: string; parent: string }>) {
+      nodes.add(row.child);
+      nodes.add(row.parent);
+      if (!parents.has(row.child)) parents.set(row.child, new Set());
+      parents.get(row.child)!.add(row.parent);
+    }
+
+    const order: string[] = [];
+    const done = new Set<string>();
+    const visiting = new Set<string>();
+    const visit = (table: string) => {
+      if (done.has(table) || visiting.has(table)) return;
+      visiting.add(table);
+      for (const parent of parents.get(table) ?? []) visit(parent);
+      visiting.delete(table);
+      done.add(table);
+      order.push(table);
+    };
+    for (const table of [...nodes].sort()) visit(table);
+    return order;
+  }
+
+  /**
+   * تجميع الصفوف بحسب المستأجر — نفس التجميع للإدراج وللعدّ، حتى لا يختلف الحكمان.
+   *
+   * `tenant_id` في الصفّ هو الحقيقة الأولى؛ وسياق الدفعة (`chunk.tenantId`) بديلٌ للجداول
+   * التي لا تحمله (جداولٌ مرتبطة بمستأجرٍ عبر أبٍ). وجداول المنصّة تُجمع في مجموعةٍ واحدة
+   * بمفتاح `null`.
+   */
+  private groupRowsByContext(
+    chunks: DumpChunk[],
+    rows: Array<Record<string, unknown>>,
+    tenantScoped: boolean,
+  ): Map<string | null, Array<Record<string, unknown>>> {
+    const chunkTenant = new Map<Record<string, unknown>, string | null>();
+    for (const chunk of chunks) {
+      for (const row of chunk.rows) chunkTenant.set(row, chunk.tenantId);
+    }
+    const groups = new Map<string | null, Array<Record<string, unknown>>>();
+    for (const row of rows) {
+      const tenantId = typeof row.tenant_id === 'string' ? row.tenant_id : (chunkTenant.get(row) ?? null);
+      const key = tenantScoped ? tenantId : null;
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key)!.push(row);
+    }
+    return groups;
+  }
+
+  /** عدُّ الصفوف الغائبة في الاستعادة التجريبية — بمفاتيحها الأساسية وداخل سياقها. */
+  private async countMissing(
+    table: string,
+    pk: string[],
+    columns: string[],
+    rows: Array<Record<string, unknown>>,
+    tenantId: string | null,
+  ): Promise<number> {
+    const run = <T>(work: (tx: DrizzleTx) => Promise<T>): Promise<T> =>
+      tenantId
+        ? withTenantTx(this.database.db, tenantId, work)
+        : withPlatformAdminTx(this.database.db, work);
+    if (pk.length === 0) return rows.length;
+    const usable = rows.filter((row) => pk.every((column) => row[column] !== undefined));
+    if (usable.length === 0) return rows.length;
+    if (usable.length !== rows.length) {
+      // صفٌّ بلا مفتاح أساسي لا يُعرف أمقامٌ هو؛ يُعدّ داخل الاستعادة التجريبية كأنه جديد.
+      return (
+        (await this.countMissing(table, pk, columns, usable, tenantId)) + (rows.length - usable.length)
+      );
+    }
+
+    let existing = 0;
+    for (let index = 0; index < usable.length; index += ROWS_PER_CHUNK) {
+      const slice = usable.slice(index, index + ROWS_PER_CHUNK);
+      if (pk.length === 1) {
+        const ids = slice.map((row) => String(row[pk[0]!]));
+        const counted = await run((tx) =>
+          tx.execute(sql`
+            SELECT count(*)::int AS n FROM ${sql.identifier(table)}
+            WHERE ${sql.identifier(pk[0]!)}::text = ANY (ARRAY[${sql.join(
+              ids.map((id) => sql`${id}`),
+              sql`, `,
+            )}]::text[])
+          `),
+        );
+        existing += Number((counted.rows[0] as { n: number } | undefined)?.n ?? 0);
+      } else {
+        const tuples = slice.map((row) => pk.map((column) => String(row[column])));
+        const counted = await run((tx) =>
+          tx.execute(sql`
+            SELECT count(*)::int AS n FROM ${sql.identifier(table)} t
+            WHERE (${sql.join(
+              pk.map((column) => sql`t.${sql.identifier(column)}::text`),
+              sql`, `,
+            )}) IN (${sql.join(
+              tuples.map(
+                (tuple) => sql`(${sql.join(tuple.map((value) => sql`${value}::text`), sql`, `)})`,
+              ),
+              sql`, `,
+            )})
+          `),
+        );
+        existing += Number((counted.rows[0] as { n: number } | undefined)?.n ?? 0);
+      }
+    }
+    return Math.max(rows.length - existing, 0);
+  }
+
+  /**
+   * إدراج دفعة صفوفٍ إضافياً.
+   *
+   * `jsonb_populate_record` تحوّل JSON الصفّ إلى صفٍّ بالأعمدة والأنواع نفسها، فيبقى الإدراج
+   * مستقلاً عن ترتيب الأعمدة أو أنواعها. و`ON CONFLICT DO NOTHING` هو الوعد: الموجود يُتخطّى
+   * ولا يُستبدل. وإذا رفضت القاعدة الدفعة كلها (مفتاحٌ أجنبي مفقود مثلاً) تُعاد الصفوف فرداً
+   * فرداً داخل `SAVEPOINT`، فيُعرف بالضبط أيُّ صفٍّ رُفض ولماذا.
+   */
+  private async insertRows(
+    tx: DrizzleTx,
+    table: string,
+    columns: string[],
+    rows: Array<Record<string, unknown>>,
+  ): Promise<{ inserted: number; failed: number; error: string | null }> {
+    let inserted = 0;
+    let failed = 0;
+    let error: string | null = null;
+
+    for (let index = 0; index < rows.length; index += ROWS_PER_CHUNK) {
+      const slice = rows.slice(index, index + ROWS_PER_CHUNK);
+      try {
+        const count = await this.insertChunk(tx, table, columns, slice);
+        inserted += count;
+      } catch (chunkError) {
+        for (const row of slice) {
+          try {
+            inserted += await tx.transaction((inner) => this.insertChunk(inner, table, columns, [row]));
+          } catch (rowError) {
+            failed += 1;
+            error ??= rowError instanceof Error ? rowError.message.slice(0, 300) : String(rowError).slice(0, 300);
+          }
+        }
+        if (error === null) {
+          error = chunkError instanceof Error ? chunkError.message.slice(0, 300) : String(chunkError);
+        }
+      }
+    }
+
+    return { inserted, failed, error };
+  }
+
+  private async insertChunk(
+    tx: DrizzleTx,
+    table: string,
+    columns: string[],
+    rows: Array<Record<string, unknown>>,
+  ): Promise<number> {
+    const result = await tx.execute(insertRowsSql(table, columns, rows));
+    return result.rowCount ?? 0;
+  }
+
+  private toRestoreRow(
+    row: typeof backupRestores.$inferSelect,
+    label: string | null,
+  ): PlatformBackupRestoreRow {
+    const summary = (row.summary ?? {}) as {
+      tables?: PlatformBackupRestoreTable[];
+      missingTables?: string[];
+    };
+    const tables = summary.tables ?? [];
+    return {
+      id: row.id,
+      jobId: row.jobId,
+      artifactId: row.artifactId ?? null,
+      mode: row.mode === 'apply' ? 'apply' : 'dry_run',
+      status:
+        row.status === 'succeeded'
+          ? 'succeeded'
+          : row.status === 'partial'
+            ? 'partial'
+            : row.status === 'failed'
+              ? 'failed'
+              : 'dry_run',
+      scope: row.scope === 'tenant' ? 'tenant' : 'platform',
+      tenantId: row.tenantId ?? null,
+      checksum: row.checksum,
+      verified: row.verified,
+      tables,
+      totals: {
+        rows: tables.reduce((sum, entry) => sum + entry.rows, 0),
+        inserted: row.inserted,
+        skipped: row.skipped,
+        failed: row.failed,
+        wouldInsert: tables.reduce((sum, entry) => sum + entry.wouldInsert, 0),
+      },
+      missingTables: summary.missingTables ?? [],
+      verdict:
+        row.status === 'dry_run'
+          ? (summary.missingTables ?? []).length > 0
+            ? 'drifted'
+            : 'ready'
+          : row.status === 'succeeded'
+            ? 'applied'
+            : row.status === 'partial'
+              ? 'partial'
+              : 'failed',
+      detail: row.failureReason ?? null,
+      reason: row.reason ?? null,
+      startedAt: iso(row.startedAt) ?? new Date(0).toISOString(),
+      finishedAt: iso(row.finishedAt),
+      durationMs: row.durationMs ?? null,
+      requestedBy: row.requestedBy ?? null,
+      requestedByLabel: label,
+    };
   }
 
   /** `GET /platform/backups/:id/download` — رابطٌ موقّع قصير العمر، بنفس نمط الملفات. */

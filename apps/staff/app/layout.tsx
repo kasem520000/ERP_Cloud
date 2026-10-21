@@ -1,11 +1,12 @@
 import './globals.css';
+import '@erp/ui/controls.css';
 
 import type { Metadata, Viewport } from 'next';
 import type { ReactNode } from 'react';
 import { ThemeProvider, ThemeScript, ToastProvider } from '@erp/ui';
+import { TokenBridge } from '@erp/web-core/token-bridge';
 
 import { AuthGate } from '../components/auth-gate';
-import { TokenBridge } from '../components/token-bridge';
 import { LanguageProvider } from '../lib/i18n';
 import { SessionProvider } from '../lib/session';
 import { ServiceWorkerRegister } from '../components/service-worker-register';
@@ -24,10 +25,10 @@ export default function RootLayout({ children }: Readonly<{ children: ReactNode 
       <head>
         {/* Design v3 §2.2.3 — paints `html.dark` before React hydrates, so a
             visitor in dark mode never sees a white flash. */}
-        <ThemeScript defaultChoice="system" />
+        <ThemeScript defaultChoice="light" />
       </head>
       <body>
-        <ThemeProvider defaultChoice="system">
+        <ThemeProvider defaultChoice="light">
           <LanguageProvider>
           <SessionProvider>
             <TokenBridge />

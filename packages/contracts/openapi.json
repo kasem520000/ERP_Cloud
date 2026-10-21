@@ -141,6 +141,112 @@
         ]
       }
     },
+    "/api/v1/platform/backups/preflight": {
+      "get": {
+        "operationId": "PlatformBackupsController_preflight",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Per-check readiness for the next run"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Diagnose the key, the artifact directory, the store and the data size",
+        "tags": [
+          "platform-backups"
+        ]
+      }
+    },
+    "/api/v1/platform/backups/restores": {
+      "get": {
+        "operationId": "PlatformBackupsController_restores",
+        "parameters": [
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Restore history"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Restore attempts (dry runs included), newest first",
+        "tags": [
+          "platform-backups"
+        ]
+      }
+    },
+    "/api/v1/platform/backups/{id}/restore": {
+      "post": {
+        "operationId": "PlatformBackupsController_restore",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "mode": {
+                    "type": "string",
+                    "enum": [
+                      "dry_run",
+                      "apply"
+                    ]
+                  },
+                  "confirmChecksum": {
+                    "type": "string"
+                  },
+                  "reason": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Per-table counts and a verdict"
+          },
+          "422": {
+            "description": "Checksum mismatch, cut-short dump, or a missing confirmation"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Restore the dump additively — dry run by default, apply needs the checksum",
+        "tags": [
+          "platform-backups"
+        ]
+      }
+    },
     "/api/v1/platform/backups/{id}/verify": {
       "post": {
         "operationId": "PlatformBackupsController_verify",
@@ -693,6 +799,68 @@
         ]
       }
     },
+    "/api/v1/auth/handoff": {
+      "post": {
+        "operationId": "AuthController_handoff",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": "Handoff code (valid ~60s, single use)"
+          },
+          "401": {
+            "description": "User, tenant or membership is not active"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Mint a single-use login handoff code for another surface",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/auth/handoff/redeem": {
+      "post": {
+        "operationId": "AuthController_redeemHandoff",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "code": {
+                    "type": "string",
+                    "minLength": 20,
+                    "maxLength": 200
+                  }
+                },
+                "required": [
+                  "code"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Fresh access/refresh pair"
+          },
+          "401": {
+            "description": "Invalid, expired or already-redeemed code (HANDOFF_CODE_INVALID)"
+          }
+        },
+        "summary": "Redeem a handoff code for a fresh session",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
     "/api/v1/auth/logout": {
       "post": {
         "operationId": "AuthController_logout",
@@ -762,6 +930,9 @@
           },
           "400": {
             "description": "Wrong current password or policy rejection"
+          },
+          "429": {
+            "description": "Rate limit exceeded (RATE_LIMITED)"
           }
         },
         "security": [
@@ -770,6 +941,112 @@
           }
         ],
         "summary": "Change the caller password and revoke all sessions",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/auth/profile": {
+      "patch": {
+        "operationId": "AuthController_updateProfile",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Update caller profile fullName",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/auth/forgot-password": {
+      "post": {
+        "operationId": "AuthController_forgotPassword",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "format": "email",
+                    "maxLength": 320
+                  },
+                  "tenantCode": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64
+                  }
+                },
+                "required": [
+                  "email"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Reset email queued if the account exists"
+          }
+        },
+        "summary": "Request a one-time password reset token and email link",
+        "tags": [
+          "auth"
+        ]
+      }
+    },
+    "/api/v1/auth/reset-password": {
+      "post": {
+        "operationId": "AuthController_resetPassword",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "token": {
+                    "type": "string",
+                    "minLength": 16,
+                    "maxLength": 256
+                  },
+                  "newPassword": {
+                    "type": "string",
+                    "minLength": 12,
+                    "maxLength": 200
+                  }
+                },
+                "required": [
+                  "token",
+                  "newPassword"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Password reset succeeded"
+          },
+          "400": {
+            "description": "Invalid/expired token or password policy failure"
+          }
+        },
+        "summary": "Reset a user password using a valid one-time reset token",
         "tags": [
           "auth"
         ]
@@ -932,7 +1209,10 @@
         "parameters": [],
         "responses": {
           "200": {
-            "description": ""
+            "description": "Event accepted or already processed (duplicate)"
+          },
+          "401": {
+            "description": "Missing or invalid Stripe signature"
           }
         },
         "security": [
@@ -940,7 +1220,7 @@
             "bearer": []
           }
         ],
-        "summary": "Receive Stripe subscription events",
+        "summary": "Receive Stripe subscription events (signature is the credential)",
         "tags": [
           "billing"
         ]
@@ -1539,6 +1819,26 @@
         ]
       }
     },
+    "/api/v1/memberships/assignable-roles": {
+      "get": {
+        "operationId": "MembershipsController_assignableRoles",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Role identifiers and labels, without permission details"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List role choices available when managing tenant memberships",
+        "tags": [
+          "tenancy"
+        ]
+      }
+    },
     "/api/v1/memberships": {
       "get": {
         "operationId": "MembershipsController_list",
@@ -1636,6 +1936,14 @@
                       "format": "uuid"
                     },
                     "minItems": 1
+                  },
+                  "maxDiscountPct": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "maxDiscountAmount": {
+                    "type": "string",
+                    "nullable": true
                   }
                 },
                 "required": [
@@ -1736,6 +2044,14 @@
                       "format": "uuid"
                     },
                     "minItems": 1
+                  },
+                  "maxDiscountPct": {
+                    "type": "string",
+                    "nullable": true
+                  },
+                  "maxDiscountAmount": {
+                    "type": "string",
+                    "nullable": true
                   }
                 },
                 "additionalProperties": false
@@ -2301,6 +2617,709 @@
         "summary": "تعديل اسم المُرسِل وعنوانه والسقفين — بلا تبديل المزوّد",
         "tags": [
           "email"
+        ]
+      }
+    },
+    "/api/v1/email/settings/provider": {
+      "put": {
+        "operationId": "EmailController_updateProviderSettings",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Tenant email provider settings updated"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "تكوين مزوّد البريد الخاص بالمنشأة (Resend / SMTP / HTTP / Console)",
+        "tags": [
+          "email"
+        ]
+      }
+    },
+    "/api/v1/email/settings/test": {
+      "post": {
+        "operationId": "EmailController_sendTestEmail",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Test email sent or queued"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "إرسال رسالة بريد تجريبية للتحقق من إعدادات المزوّد",
+        "tags": [
+          "email"
+        ]
+      }
+    },
+    "/api/v1/platform/releases": {
+      "get": {
+        "operationId": "PlatformReleasesController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Release ledger"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "سجلّ حزم التحديث، والحاليّة المعروضة على المستأجرين",
+        "tags": [
+          "platform-releases"
+        ]
+      },
+      "post": {
+        "operationId": "PlatformReleasesController_upload",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": "الحزمة المقبولة، مقيسةً ومسجَّلة"
+          },
+          "409": {
+            "description": "رقم الإصدار مسجّلٌ مسبقاً على القناة نفسها"
+          },
+          "422": {
+            "description": "حزمةٌ تالفة أو تحمل ما لا يُقبل — يُسجَّل الرفض في السجلّ ويُعاد سببه"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "رفع حزمة تحديث (ZIP يحمل release.json) — تُقاس ولا تُنفَّذ",
+        "tags": [
+          "platform-releases"
+        ]
+      }
+    },
+    "/api/v1/platform/releases/{id}/promote": {
+      "post": {
+        "operationId": "PlatformReleasesController_promote",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "إعلان إصدارٍ مقبولٍ حاليّاً على قناته، بسحب العلم من سابقه",
+        "tags": [
+          "platform-releases"
+        ]
+      }
+    },
+    "/api/v1/platform/releases/{id}/revoke": {
+      "post": {
+        "operationId": "PlatformReleasesController_revoke",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "سحب إصدارٍ من العرض، وإعادة إعلان آخر مقبولٍ على قناته",
+        "tags": [
+          "platform-releases"
+        ]
+      }
+    },
+    "/api/v1/releases/current": {
+      "get": {
+        "operationId": "TenantReleaseController_current",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Current release, or null before the first accepted bundle"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "الإصدار المعروض الآن على المنصّة (كما في «حول النظام»)",
+        "tags": [
+          "releases"
+        ]
+      }
+    },
+    "/api/v1/audit-log": {
+      "get": {
+        "operationId": "AuditController_list",
+        "parameters": [
+          {
+            "name": "filter[to]",
+            "required": false,
+            "in": "query",
+            "description": "ISO-8601 upper bound",
+            "schema": {}
+          },
+          {
+            "name": "filter[from]",
+            "required": false,
+            "in": "query",
+            "description": "ISO-8601 lower bound",
+            "schema": {}
+          },
+          {
+            "name": "filter[actorUserId]",
+            "required": false,
+            "in": "query",
+            "schema": {}
+          },
+          {
+            "name": "filter[action]",
+            "required": false,
+            "in": "query",
+            "schema": {}
+          },
+          {
+            "name": "filter[entityId]",
+            "required": false,
+            "in": "query",
+            "schema": {}
+          },
+          {
+            "name": "filter[entity]",
+            "required": false,
+            "in": "query",
+            "schema": {}
+          },
+          {
+            "name": "offset",
+            "required": false,
+            "in": "query",
+            "schema": {}
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Audit page"
+          },
+          "400": {
+            "description": "Unknown filter (FILTER_NOT_ALLOWED)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Read the tenant audit trail (newest first)",
+        "tags": [
+          "platform-services"
+        ]
+      }
+    },
+    "/api/v1/files/presign": {
+      "post": {
+        "operationId": "FilesController_presign",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 255
+                  },
+                  "mime": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 160,
+                    "pattern": "^[a-z0-9][a-z0-9!#$&^_.+-]*\\/[a-z0-9][a-z0-9!#$&^_.+-]*$"
+                  },
+                  "sizeBytes": {
+                    "type": "integer",
+                    "exclusiveMinimum": true,
+                    "minimum": 0
+                  },
+                  "entity": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 80
+                  },
+                  "entityId": {
+                    "type": "string",
+                    "format": "uuid"
+                  }
+                },
+                "required": [
+                  "name",
+                  "mime",
+                  "sizeBytes"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Upload URL issued"
+          },
+          "400": {
+            "description": "Mime type or size rejected (VALIDATION_FAILED)"
+          },
+          "422": {
+            "description": "Entity cannot receive attachments"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Reserve a file row and return a pre-signed upload URL",
+        "tags": [
+          "platform-services"
+        ]
+      }
+    },
+    "/api/v1/files/{id}/finalize": {
+      "post": {
+        "operationId": "FilesController_finalize",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "checksum": {
+                    "type": "string",
+                    "minLength": 8,
+                    "maxLength": 200
+                  },
+                  "entity": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 80
+                  },
+                  "entityId": {
+                    "type": "string",
+                    "format": "uuid"
+                  }
+                },
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "File finalized"
+          },
+          "404": {
+            "description": "Not found in this tenant"
+          },
+          "422": {
+            "description": "Unknown entity or missing target row"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Mark an upload complete and attach it to an entity",
+        "tags": [
+          "platform-services"
+        ]
+      }
+    },
+    "/api/v1/files": {
+      "get": {
+        "operationId": "FilesController_list",
+        "parameters": [
+          {
+            "name": "filter[entity]",
+            "required": false,
+            "in": "query",
+            "schema": {}
+          },
+          {
+            "name": "filter[status]",
+            "required": false,
+            "in": "query",
+            "schema": {}
+          },
+          {
+            "name": "q",
+            "required": false,
+            "in": "query",
+            "schema": {}
+          },
+          {
+            "name": "offset",
+            "required": false,
+            "in": "query",
+            "schema": {}
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "File page"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List the tenant files",
+        "tags": [
+          "platform-services"
+        ]
+      }
+    },
+    "/api/v1/files/{id}": {
+      "delete": {
+        "operationId": "FilesController_remove",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "File deleted"
+          },
+          "404": {
+            "description": "Not found in this tenant"
+          },
+          "503": {
+            "description": "Object storage is not configured (STORAGE_NOT_CONFIGURED)"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Delete a file (soft) and ask storage to drop the object",
+        "tags": [
+          "platform-services"
+        ]
+      },
+      "get": {
+        "operationId": "FilesController_read",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "File"
+          },
+          "404": {
+            "description": "Not found in this tenant"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Read one file (404 across tenants)",
+        "tags": [
+          "platform-services"
+        ]
+      }
+    },
+    "/api/v1/files/{id}/download": {
+      "get": {
+        "operationId": "FilesController_download",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Signed URL"
+          },
+          "404": {
+            "description": "Not found in this tenant"
+          },
+          "422": {
+            "description": "Upload has not been finalized"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Mint a short-lived, app-signed download URL",
+        "tags": [
+          "platform-services"
+        ]
+      }
+    },
+    "/api/v1/files/{id}/content": {
+      "get": {
+        "operationId": "FilesController_content",
+        "parameters": [],
+        "responses": {
+          "302": {
+            "description": "Redirect to object storage"
+          },
+          "401": {
+            "description": "Signature missing, invalid or expired"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Follow an app-signed download URL (302 to object storage)",
+        "tags": [
+          "platform-services"
+        ]
+      }
+    },
+    "/api/v1/notifications": {
+      "get": {
+        "operationId": "NotificationsController_list",
+        "parameters": [
+          {
+            "name": "filter[type]",
+            "required": false,
+            "in": "query",
+            "schema": {}
+          },
+          {
+            "name": "filter[read]",
+            "required": false,
+            "in": "query",
+            "description": "true | false",
+            "schema": {}
+          },
+          {
+            "name": "offset",
+            "required": false,
+            "in": "query",
+            "schema": {}
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Notification page"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List the calling membership inbox (newest first)",
+        "tags": [
+          "platform-services"
+        ]
+      },
+      "post": {
+        "operationId": "NotificationsController_create",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "membershipId": {
+                    "type": "string",
+                    "format": "uuid"
+                  },
+                  "type": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 80,
+                    "pattern": "^[a-z0-9]+(?:[._-][a-z0-9]+)*$"
+                  },
+                  "payload": {
+                    "type": "object",
+                    "additionalProperties": {},
+                    "default": {}
+                  }
+                },
+                "required": [
+                  "type"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Notification created"
+          },
+          "422": {
+            "description": "Unknown membership in this tenant"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Create a notification for a membership of this tenant",
+        "tags": [
+          "platform-services"
+        ]
+      }
+    },
+    "/api/v1/notifications/{id}": {
+      "get": {
+        "operationId": "NotificationsController_read",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Notification"
+          },
+          "404": {
+            "description": "Not found for this membership"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Read one notification of the calling membership",
+        "tags": [
+          "platform-services"
+        ]
+      }
+    },
+    "/api/v1/notifications/{id}/read": {
+      "post": {
+        "operationId": "NotificationsController_markRead",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": "Notification"
+          },
+          "404": {
+            "description": "Not found for this membership"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Mark a notification read (idempotent)",
+        "tags": [
+          "platform-services"
+        ]
+      }
+    },
+    "/api/v1/jobs/outbox": {
+      "get": {
+        "operationId": "JobsController_outboxList",
+        "parameters": [
+          {
+            "name": "filter[type]",
+            "required": false,
+            "in": "query",
+            "schema": {}
+          },
+          {
+            "name": "filter[queue]",
+            "required": false,
+            "in": "query",
+            "schema": {}
+          },
+          {
+            "name": "filter[status]",
+            "required": false,
+            "in": "query",
+            "description": "pending | published | dead",
+            "schema": {}
+          },
+          {
+            "name": "offset",
+            "required": false,
+            "in": "query",
+            "schema": {}
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Outbox page"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "List the transactional outbox of this tenant",
+        "tags": [
+          "platform-services"
+        ]
+      }
+    },
+    "/api/v1/jobs/health": {
+      "get": {
+        "operationId": "JobsController_health",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Queue health"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Queue driver state and this tenant outbox backlog",
+        "tags": [
+          "platform-services"
         ]
       }
     },
@@ -3166,541 +4185,6 @@
         "summary": "تقرير الحملة: الأرقام والروابط والناس والأحداث",
         "tags": [
           "platform-campaigns"
-        ]
-      }
-    },
-    "/api/v1/audit-log": {
-      "get": {
-        "operationId": "AuditController_list",
-        "parameters": [
-          {
-            "name": "filter[to]",
-            "required": false,
-            "in": "query",
-            "description": "ISO-8601 upper bound",
-            "schema": {}
-          },
-          {
-            "name": "filter[from]",
-            "required": false,
-            "in": "query",
-            "description": "ISO-8601 lower bound",
-            "schema": {}
-          },
-          {
-            "name": "filter[actorUserId]",
-            "required": false,
-            "in": "query",
-            "schema": {}
-          },
-          {
-            "name": "filter[action]",
-            "required": false,
-            "in": "query",
-            "schema": {}
-          },
-          {
-            "name": "filter[entityId]",
-            "required": false,
-            "in": "query",
-            "schema": {}
-          },
-          {
-            "name": "filter[entity]",
-            "required": false,
-            "in": "query",
-            "schema": {}
-          },
-          {
-            "name": "offset",
-            "required": false,
-            "in": "query",
-            "schema": {}
-          },
-          {
-            "name": "limit",
-            "required": false,
-            "in": "query",
-            "schema": {}
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Audit page"
-          },
-          "400": {
-            "description": "Unknown filter (FILTER_NOT_ALLOWED)"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Read the tenant audit trail (newest first)",
-        "tags": [
-          "platform-services"
-        ]
-      }
-    },
-    "/api/v1/files/presign": {
-      "post": {
-        "operationId": "FilesController_presign",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "name": {
-                    "type": "string",
-                    "minLength": 1,
-                    "maxLength": 255
-                  },
-                  "mime": {
-                    "type": "string",
-                    "minLength": 1,
-                    "maxLength": 160,
-                    "pattern": "^[a-z0-9][a-z0-9!#$&^_.+-]*\\/[a-z0-9][a-z0-9!#$&^_.+-]*$"
-                  },
-                  "sizeBytes": {
-                    "type": "integer",
-                    "exclusiveMinimum": true,
-                    "minimum": 0
-                  },
-                  "entity": {
-                    "type": "string",
-                    "minLength": 1,
-                    "maxLength": 80
-                  },
-                  "entityId": {
-                    "type": "string",
-                    "format": "uuid"
-                  }
-                },
-                "required": [
-                  "name",
-                  "mime",
-                  "sizeBytes"
-                ],
-                "additionalProperties": false
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "Upload URL issued"
-          },
-          "400": {
-            "description": "Mime type or size rejected (VALIDATION_FAILED)"
-          },
-          "422": {
-            "description": "Entity cannot receive attachments"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Reserve a file row and return a pre-signed upload URL",
-        "tags": [
-          "platform-services"
-        ]
-      }
-    },
-    "/api/v1/files/{id}/finalize": {
-      "post": {
-        "operationId": "FilesController_finalize",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "checksum": {
-                    "type": "string",
-                    "minLength": 8,
-                    "maxLength": 200
-                  },
-                  "entity": {
-                    "type": "string",
-                    "minLength": 1,
-                    "maxLength": 80
-                  },
-                  "entityId": {
-                    "type": "string",
-                    "format": "uuid"
-                  }
-                },
-                "additionalProperties": false
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "File finalized"
-          },
-          "404": {
-            "description": "Not found in this tenant"
-          },
-          "422": {
-            "description": "Unknown entity or missing target row"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Mark an upload complete and attach it to an entity",
-        "tags": [
-          "platform-services"
-        ]
-      }
-    },
-    "/api/v1/files": {
-      "get": {
-        "operationId": "FilesController_list",
-        "parameters": [
-          {
-            "name": "filter[entity]",
-            "required": false,
-            "in": "query",
-            "schema": {}
-          },
-          {
-            "name": "filter[status]",
-            "required": false,
-            "in": "query",
-            "schema": {}
-          },
-          {
-            "name": "q",
-            "required": false,
-            "in": "query",
-            "schema": {}
-          },
-          {
-            "name": "offset",
-            "required": false,
-            "in": "query",
-            "schema": {}
-          },
-          {
-            "name": "limit",
-            "required": false,
-            "in": "query",
-            "schema": {}
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "File page"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "List the tenant files",
-        "tags": [
-          "platform-services"
-        ]
-      }
-    },
-    "/api/v1/files/{id}": {
-      "get": {
-        "operationId": "FilesController_read",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "File"
-          },
-          "404": {
-            "description": "Not found in this tenant"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Read one file (404 across tenants)",
-        "tags": [
-          "platform-services"
-        ]
-      }
-    },
-    "/api/v1/files/{id}/download": {
-      "get": {
-        "operationId": "FilesController_download",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "Signed URL"
-          },
-          "404": {
-            "description": "Not found in this tenant"
-          },
-          "422": {
-            "description": "Upload has not been finalized"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Mint a short-lived, app-signed download URL",
-        "tags": [
-          "platform-services"
-        ]
-      }
-    },
-    "/api/v1/files/{id}/content": {
-      "get": {
-        "operationId": "FilesController_content",
-        "parameters": [],
-        "responses": {
-          "302": {
-            "description": "Redirect to object storage"
-          },
-          "401": {
-            "description": "Signature missing, invalid or expired"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Follow an app-signed download URL (302 to object storage)",
-        "tags": [
-          "platform-services"
-        ]
-      }
-    },
-    "/api/v1/notifications": {
-      "get": {
-        "operationId": "NotificationsController_list",
-        "parameters": [
-          {
-            "name": "filter[type]",
-            "required": false,
-            "in": "query",
-            "schema": {}
-          },
-          {
-            "name": "filter[read]",
-            "required": false,
-            "in": "query",
-            "description": "true | false",
-            "schema": {}
-          },
-          {
-            "name": "offset",
-            "required": false,
-            "in": "query",
-            "schema": {}
-          },
-          {
-            "name": "limit",
-            "required": false,
-            "in": "query",
-            "schema": {}
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Notification page"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "List the calling membership inbox (newest first)",
-        "tags": [
-          "platform-services"
-        ]
-      },
-      "post": {
-        "operationId": "NotificationsController_create",
-        "parameters": [],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "membershipId": {
-                    "type": "string",
-                    "format": "uuid"
-                  },
-                  "type": {
-                    "type": "string",
-                    "minLength": 1,
-                    "maxLength": 80,
-                    "pattern": "^[a-z0-9]+(?:[._-][a-z0-9]+)*$"
-                  },
-                  "payload": {
-                    "type": "object",
-                    "additionalProperties": {},
-                    "default": {}
-                  }
-                },
-                "required": [
-                  "type"
-                ],
-                "additionalProperties": false
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "Notification created"
-          },
-          "422": {
-            "description": "Unknown membership in this tenant"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Create a notification for a membership of this tenant",
-        "tags": [
-          "platform-services"
-        ]
-      }
-    },
-    "/api/v1/notifications/{id}": {
-      "get": {
-        "operationId": "NotificationsController_read",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "Notification"
-          },
-          "404": {
-            "description": "Not found for this membership"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Read one notification of the calling membership",
-        "tags": [
-          "platform-services"
-        ]
-      }
-    },
-    "/api/v1/notifications/{id}/read": {
-      "post": {
-        "operationId": "NotificationsController_markRead",
-        "parameters": [],
-        "responses": {
-          "201": {
-            "description": "Notification"
-          },
-          "404": {
-            "description": "Not found for this membership"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Mark a notification read (idempotent)",
-        "tags": [
-          "platform-services"
-        ]
-      }
-    },
-    "/api/v1/jobs/outbox": {
-      "get": {
-        "operationId": "JobsController_outboxList",
-        "parameters": [
-          {
-            "name": "filter[type]",
-            "required": false,
-            "in": "query",
-            "schema": {}
-          },
-          {
-            "name": "filter[queue]",
-            "required": false,
-            "in": "query",
-            "schema": {}
-          },
-          {
-            "name": "filter[status]",
-            "required": false,
-            "in": "query",
-            "description": "pending | published | dead",
-            "schema": {}
-          },
-          {
-            "name": "offset",
-            "required": false,
-            "in": "query",
-            "schema": {}
-          },
-          {
-            "name": "limit",
-            "required": false,
-            "in": "query",
-            "schema": {}
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Outbox page"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "List the transactional outbox of this tenant",
-        "tags": [
-          "platform-services"
-        ]
-      }
-    },
-    "/api/v1/jobs/health": {
-      "get": {
-        "operationId": "JobsController_health",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": "Queue health"
-          }
-        },
-        "security": [
-          {
-            "bearer": []
-          }
-        ],
-        "summary": "Queue driver state and this tenant outbox backlog",
-        "tags": [
-          "platform-services"
         ]
       }
     },
@@ -5580,6 +6064,76 @@
         ]
       }
     },
+    "/api/v1/platform/problems": {
+      "get": {
+        "operationId": "PlatformConsoleController_problems",
+        "parameters": [
+          {
+            "name": "filter[to]",
+            "required": false,
+            "in": "query",
+            "description": "ISO-8601 upper bound",
+            "schema": {}
+          },
+          {
+            "name": "filter[from]",
+            "required": false,
+            "in": "query",
+            "description": "ISO-8601 lower bound",
+            "schema": {}
+          },
+          {
+            "name": "filter[severity]",
+            "required": false,
+            "in": "query",
+            "description": "error | warning",
+            "schema": {}
+          },
+          {
+            "name": "filter[tenantId]",
+            "required": false,
+            "in": "query",
+            "schema": {}
+          },
+          {
+            "name": "filter[source]",
+            "required": false,
+            "in": "query",
+            "description": "email | einvoice | webhook | outbox | backup | server",
+            "schema": {}
+          },
+          {
+            "name": "offset",
+            "required": false,
+            "in": "query",
+            "schema": {}
+          },
+          {
+            "name": "limit",
+            "required": false,
+            "in": "query",
+            "schema": {}
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Problem page with per-source counts"
+          },
+          "403": {
+            "description": "console.health.view is required"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "summary": "Everything that is failing right now, across sources",
+        "tags": [
+          "platform-console"
+        ]
+      }
+    },
     "/api/v1/platform/settings": {
       "get": {
         "operationId": "PlatformConsoleController_settings",
@@ -6960,6 +7514,12 @@
                     "format": "uuid",
                     "nullable": true
                   },
+                  "logoDataUrl": {
+                    "type": "string",
+                    "maxLength": 700000,
+                    "pattern": "^data:image\\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$",
+                    "nullable": true
+                  },
                   "address": {
                     "type": "object",
                     "properties": {
@@ -6988,6 +7548,14 @@
                         "maxLength": 200
                       },
                       "postal": {
+                        "type": "string",
+                        "maxLength": 20
+                      },
+                      "additional": {
+                        "type": "string",
+                        "maxLength": 20
+                      },
+                      "unit": {
                         "type": "string",
                         "maxLength": 20
                       },
@@ -7177,6 +7745,14 @@
                         "type": "string",
                         "maxLength": 20
                       },
+                      "additional": {
+                        "type": "string",
+                        "maxLength": 20
+                      },
+                      "unit": {
+                        "type": "string",
+                        "maxLength": 20
+                      },
                       "countryCode": {
                         "type": "string"
                       }
@@ -7306,6 +7882,14 @@
                         "maxLength": 200
                       },
                       "postal": {
+                        "type": "string",
+                        "maxLength": 20
+                      },
+                      "additional": {
+                        "type": "string",
+                        "maxLength": 20
+                      },
+                      "unit": {
                         "type": "string",
                         "maxLength": 20
                       },
@@ -8590,6 +9174,11 @@
                     "format": "uuid",
                     "nullable": true
                   },
+                  "unitId": {
+                    "type": "string",
+                    "format": "uuid",
+                    "nullable": true
+                  },
                   "unitPrice": {
                     "type": "string"
                   },
@@ -8715,7 +9304,10 @@
                           "progress_bill",
                           "rent_invoice",
                           "installment_contract",
-                          "opening_balance"
+                          "opening_balance",
+                          "manufacturing_order",
+                          "production_order",
+                          "van_shortage_charge"
                         ]
                       },
                       {
@@ -8800,6 +9392,11 @@
                         "format": "uuid",
                         "nullable": true
                       },
+                      "shortageChargeAccountId": {
+                        "type": "string",
+                        "format": "uuid",
+                        "nullable": true
+                      },
                       "stockInTransitAccountId": {
                         "type": "string",
                         "format": "uuid",
@@ -8831,6 +9428,26 @@
                         "nullable": true
                       },
                       "cashDifferenceAccountId": {
+                        "type": "string",
+                        "format": "uuid",
+                        "nullable": true
+                      },
+                      "custodyAccountId": {
+                        "type": "string",
+                        "format": "uuid",
+                        "nullable": true
+                      },
+                      "cashInTransitAccountId": {
+                        "type": "string",
+                        "format": "uuid",
+                        "nullable": true
+                      },
+                      "rawMaterialsAccountId": {
+                        "type": "string",
+                        "format": "uuid",
+                        "nullable": true
+                      },
+                      "finishedGoodsAccountId": {
                         "type": "string",
                         "format": "uuid",
                         "nullable": true
@@ -9392,6 +10009,122 @@
         ]
       }
     },
+    "/api/v1/support/tickets": {
+      "get": {
+        "operationId": "TenantSupportController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "support"
+        ]
+      },
+      "post": {
+        "operationId": "TenantSupportController_create",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "support"
+        ]
+      }
+    },
+    "/api/v1/support/tickets/{id}": {
+      "get": {
+        "operationId": "TenantSupportController_get",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "support"
+        ]
+      }
+    },
+    "/api/v1/support/tickets/{id}/reply": {
+      "post": {
+        "operationId": "TenantSupportController_reply",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "support"
+        ]
+      }
+    },
+    "/api/v1/platform/problems/ingest": {
+      "post": {
+        "operationId": "ProblemIngestController_ingest",
+        "parameters": [
+          {
+            "name": "x-problem-token",
+            "in": "header",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": ""
+          }
+        },
+        "summary": "Accept a server-side error report from another surface",
+        "tags": [
+          "platform-problems"
+        ]
+      }
+    },
     "/api/v1/usage": {
       "get": {
         "operationId": "UsageController_snapshot",
@@ -9912,6 +10645,456 @@
         },
         "tags": [
           "Catalog"
+        ]
+      }
+    },
+    "/api/v1/custom-fields": {
+      "get": {
+        "operationId": "CustomFieldsController_list",
+        "parameters": [
+          {
+            "name": "entity",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "include_inactive",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "CustomFields"
+        ]
+      },
+      "post": {
+        "operationId": "CustomFieldsController_create",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "CustomFields"
+        ]
+      }
+    },
+    "/api/v1/custom-fields/values": {
+      "put": {
+        "operationId": "CustomFieldsController_setValues",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "CustomFields"
+        ]
+      },
+      "get": {
+        "operationId": "CustomFieldsController_values",
+        "parameters": [
+          {
+            "name": "entity",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "entity_id",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "entityId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "CustomFields"
+        ]
+      }
+    },
+    "/api/v1/custom-fields/{id}": {
+      "put": {
+        "operationId": "CustomFieldsController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "CustomFields"
+        ]
+      },
+      "get": {
+        "operationId": "CustomFieldsController_get",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "CustomFields"
+        ]
+      },
+      "patch": {
+        "operationId": "CustomFieldsController_patch",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "CustomFields"
+        ]
+      },
+      "delete": {
+        "operationId": "CustomFieldsController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "CustomFields"
+        ]
+      }
+    },
+    "/api/v1/custom-fields/{id}/values": {
+      "get": {
+        "operationId": "CustomFieldsController_fieldValues",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "entity_id",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "entityId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "CustomFields"
+        ]
+      },
+      "post": {
+        "operationId": "CustomFieldsController_setFieldValue",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "CustomFields"
+        ]
+      },
+      "put": {
+        "operationId": "CustomFieldsController_updateFieldValue",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "CustomFields"
+        ]
+      }
+    },
+    "/api/v1/custom-reports": {
+      "get": {
+        "operationId": "CustomReportsController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "CustomReports"
+        ]
+      },
+      "post": {
+        "operationId": "CustomReportsController_create",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "CustomReports"
+        ]
+      }
+    },
+    "/api/v1/custom-reports/fields": {
+      "get": {
+        "operationId": "CustomReportsController_fields",
+        "parameters": [
+          {
+            "name": "base_entity",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "baseEntity",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "CustomReports"
+        ]
+      }
+    },
+    "/api/v1/custom-reports/{id}": {
+      "get": {
+        "operationId": "CustomReportsController_get",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "CustomReports"
+        ]
+      },
+      "patch": {
+        "operationId": "CustomReportsController_patch",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "CustomReports"
+        ]
+      },
+      "put": {
+        "operationId": "CustomReportsController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "CustomReports"
+        ]
+      },
+      "delete": {
+        "operationId": "CustomReportsController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "CustomReports"
+        ]
+      }
+    },
+    "/api/v1/custom-reports/{id}/run": {
+      "post": {
+        "operationId": "CustomReportsController_run",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "CustomReports"
+        ]
+      }
+    },
+    "/api/v1/custom-reports/{id}/export": {
+      "post": {
+        "operationId": "CustomReportsController_export",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "CustomReports"
         ]
       }
     },
@@ -10552,6 +11735,22 @@
             }
           },
           {
+            "name": "from_time",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "to_time",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "branch_id",
             "required": true,
             "in": "query",
@@ -10762,6 +11961,70 @@
         ]
       }
     },
+    "/api/v1/journal-entries/{id}/neighbours": {
+      "get": {
+        "operationId": "AccountingController_journalNeighbours",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "from",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "branchId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "fiscalPeriodId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "summary": "The entries around this one inside the register scope (⏮ ◀ ▶ ⏭)",
+        "tags": [
+          "accounting"
+        ]
+      }
+    },
     "/api/v1/journal-entries/{id}": {
       "get": {
         "operationId": "AccountingController_readJournalEntry",
@@ -10806,6 +12069,437 @@
         },
         "tags": [
           "accounting"
+        ]
+      }
+    },
+    "/api/v1/approval-workflows": {
+      "get": {
+        "operationId": "ApprovalController_listWorkflows[0]",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Approval"
+        ]
+      },
+      "post": {
+        "operationId": "ApprovalController_createWorkflow[0]",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Approval"
+        ]
+      }
+    },
+    "/api/v1/approvals/workflows": {
+      "get": {
+        "operationId": "ApprovalController_listWorkflows[1]",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Approval"
+        ]
+      },
+      "post": {
+        "operationId": "ApprovalController_createWorkflow[1]",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Approval"
+        ]
+      }
+    },
+    "/api/v1/approval-workflows/{id}": {
+      "get": {
+        "operationId": "ApprovalController_getWorkflow[0]",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Approval"
+        ]
+      },
+      "patch": {
+        "operationId": "ApprovalController_updateWorkflow[0]",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Approval"
+        ]
+      },
+      "delete": {
+        "operationId": "ApprovalController_deactivateWorkflow[0]",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Approval"
+        ]
+      }
+    },
+    "/api/v1/approvals/workflows/{id}": {
+      "get": {
+        "operationId": "ApprovalController_getWorkflow[1]",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Approval"
+        ]
+      },
+      "patch": {
+        "operationId": "ApprovalController_updateWorkflow[1]",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Approval"
+        ]
+      },
+      "delete": {
+        "operationId": "ApprovalController_deactivateWorkflow[1]",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Approval"
+        ]
+      }
+    },
+    "/api/v1/approval-workflows/{id}/steps": {
+      "get": {
+        "operationId": "ApprovalController_listSteps[0]",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Approval"
+        ]
+      },
+      "post": {
+        "operationId": "ApprovalController_addStep[0]",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Approval"
+        ]
+      }
+    },
+    "/api/v1/approvals/workflows/{id}/steps": {
+      "get": {
+        "operationId": "ApprovalController_listSteps[1]",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Approval"
+        ]
+      },
+      "post": {
+        "operationId": "ApprovalController_addStep[1]",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Approval"
+        ]
+      }
+    },
+    "/api/v1/approvals/inbox": {
+      "get": {
+        "operationId": "ApprovalController_inbox",
+        "parameters": [
+          {
+            "name": "status",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Approval"
+        ]
+      }
+    },
+    "/api/v1/approvals/history": {
+      "get": {
+        "operationId": "ApprovalController_history",
+        "parameters": [
+          {
+            "name": "status",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Approval"
+        ]
+      }
+    },
+    "/api/v1/sales/invoices/{id}/approval": {
+      "get": {
+        "operationId": "ApprovalController_salesApproval",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Approval"
+        ]
+      }
+    },
+    "/api/v1/purchases/invoices/{id}/approval": {
+      "get": {
+        "operationId": "ApprovalController_purchaseApproval",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Approval"
+        ]
+      }
+    },
+    "/api/v1/approvals/requests/{id}": {
+      "get": {
+        "operationId": "ApprovalController_request",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Approval"
+        ]
+      }
+    },
+    "/api/v1/approvals/requests/{id}/approve": {
+      "post": {
+        "operationId": "ApprovalController_approve",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Approval"
+        ]
+      }
+    },
+    "/api/v1/approvals/requests/{id}/reject": {
+      "post": {
+        "operationId": "ApprovalController_reject",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Approval"
         ]
       }
     },
@@ -11923,6 +13617,29 @@
         ]
       }
     },
+    "/api/v1/inventory/serials/lookup": {
+      "get": {
+        "operationId": "InventoryController_lookupSerial",
+        "parameters": [
+          {
+            "name": "serialNo",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Inventory"
+        ]
+      }
+    },
     "/api/v1/inventory/serials": {
       "get": {
         "operationId": "InventoryController_serials",
@@ -12495,6 +14212,295 @@
         ]
       }
     },
+    "/api/v1/inventory/bins": {
+      "get": {
+        "operationId": "WmsController_listBins",
+        "parameters": [
+          {
+            "name": "warehouse_id",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "warehouseId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Wms"
+        ]
+      },
+      "post": {
+        "operationId": "WmsController_createBin",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Wms"
+        ]
+      }
+    },
+    "/api/v1/inventory/bins/{id}": {
+      "patch": {
+        "operationId": "WmsController_setActive",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Wms"
+        ]
+      }
+    },
+    "/api/v1/inventory/bin-balances": {
+      "get": {
+        "operationId": "WmsController_balances",
+        "parameters": [
+          {
+            "name": "warehouse_id",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "bin_id",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "item_id",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Wms"
+        ]
+      }
+    },
+    "/api/v1/inventory/bin-transfers": {
+      "get": {
+        "operationId": "WmsController_transfers",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Wms"
+        ]
+      },
+      "post": {
+        "operationId": "WmsController_transfer",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Wms"
+        ]
+      }
+    },
+    "/api/v1/inventory/bin-counts": {
+      "post": {
+        "operationId": "WmsController_count",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Wms"
+        ]
+      }
+    },
+    "/api/v1/inventory/bins/{id}/receive": {
+      "post": {
+        "operationId": "WmsController_receive",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Wms"
+        ]
+      }
+    },
+    "/api/v1/inventory/bins/{id}/issue": {
+      "post": {
+        "operationId": "WmsController_issue",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Wms"
+        ]
+      }
+    },
+    "/api/v1/manufacturing/boms": {
+      "get": {
+        "operationId": "ManufacturingController_listBoms",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Manufacturing"
+        ]
+      },
+      "post": {
+        "operationId": "ManufacturingController_createBom",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Manufacturing"
+        ]
+      }
+    },
+    "/api/v1/manufacturing/orders": {
+      "get": {
+        "operationId": "ManufacturingController_listOrders",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Manufacturing"
+        ]
+      },
+      "post": {
+        "operationId": "ManufacturingController_createOrder",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Manufacturing"
+        ]
+      }
+    },
+    "/api/v1/manufacturing/orders/{id}": {
+      "get": {
+        "operationId": "ManufacturingController_readOrder",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Manufacturing"
+        ]
+      }
+    },
+    "/api/v1/manufacturing/orders/{id}/produce": {
+      "post": {
+        "operationId": "ManufacturingController_produce",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Manufacturing"
+        ]
+      }
+    },
     "/api/v1/sales/invoices": {
       "get": {
         "operationId": "SalesController_list",
@@ -13011,6 +15017,345 @@
         ]
       }
     },
+    "/api/v1/einvoice/settings": {
+      "get": {
+        "operationId": "EinvoicingController_settings",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Einvoicing"
+        ]
+      },
+      "put": {
+        "operationId": "EinvoicingController_saveSettings",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Einvoicing"
+        ]
+      }
+    },
+    "/api/v1/einvoice/settings/fill-from-company": {
+      "post": {
+        "operationId": "EinvoicingController_fillFromCompany",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Einvoicing"
+        ]
+      }
+    },
+    "/api/v1/einvoice/csr/generate": {
+      "post": {
+        "operationId": "EinvoicingController_generateCsr",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Einvoicing"
+        ]
+      }
+    },
+    "/api/v1/einvoice/onboarding/compliance-csid": {
+      "post": {
+        "operationId": "EinvoicingController_complianceCsid",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Einvoicing"
+        ]
+      }
+    },
+    "/api/v1/einvoice/onboarding/production-csid": {
+      "post": {
+        "operationId": "EinvoicingController_productionCsid",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Einvoicing"
+        ]
+      }
+    },
+    "/api/v1/einvoice/onboarding/renew": {
+      "post": {
+        "operationId": "EinvoicingController_renewCsid",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Einvoicing"
+        ]
+      }
+    },
+    "/api/v1/einvoice/onboarding/compliance-check": {
+      "post": {
+        "operationId": "EinvoicingController_complianceCheck",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Einvoicing"
+        ]
+      }
+    },
+    "/api/v1/einvoice/link/toggle": {
+      "post": {
+        "operationId": "EinvoicingController_toggleLink",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Einvoicing"
+        ]
+      }
+    },
+    "/api/v1/einvoice/filings": {
+      "get": {
+        "operationId": "EinvoicingController_filings",
+        "parameters": [
+          {
+            "name": "status",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "from",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "to",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "pageNo",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "pageSize",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Einvoicing"
+        ]
+      }
+    },
+    "/api/v1/einvoice/filings/{id}": {
+      "get": {
+        "operationId": "EinvoicingController_filing",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Einvoicing"
+        ]
+      }
+    },
+    "/api/v1/einvoice/chain": {
+      "get": {
+        "operationId": "EinvoicingController_chain",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Einvoicing"
+        ]
+      }
+    },
+    "/api/v1/einvoice/sync": {
+      "post": {
+        "operationId": "EinvoicingController_sync",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Einvoicing"
+        ]
+      }
+    },
+    "/api/v1/einvoice/credentials": {
+      "put": {
+        "operationId": "EinvoicingController_putCredentials",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Einvoicing"
+        ]
+      },
+      "get": {
+        "operationId": "EinvoicingController_credentials",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Einvoicing"
+        ]
+      }
+    },
+    "/api/v1/einvoice/submissions": {
+      "get": {
+        "operationId": "EinvoicingController_submissions",
+        "parameters": [
+          {
+            "name": "status",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Einvoicing"
+        ]
+      }
+    },
+    "/api/v1/einvoice/submissions/{id}/retry": {
+      "post": {
+        "operationId": "EinvoicingController_retry",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Einvoicing"
+        ]
+      }
+    },
+    "/api/v1/sales-invoices/{id}/einvoice/submit": {
+      "post": {
+        "operationId": "EinvoicingController_submitInvoice",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Einvoicing"
+        ]
+      }
+    },
+    "/api/v1/einvoice/health": {
+      "get": {
+        "operationId": "EinvoicingController_health",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Einvoicing"
+        ]
+      }
+    },
     "/api/v1/purchase-invoices": {
       "get": {
         "operationId": "PurchasesController_list",
@@ -13307,6 +15652,83 @@
         },
         "tags": [
           "PurchaseNotes"
+        ]
+      }
+    },
+    "/api/v1/ocr/presign": {
+      "post": {
+        "operationId": "OcrController_presign",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Ocr"
+        ]
+      }
+    },
+    "/api/v1/ocr/jobs": {
+      "post": {
+        "operationId": "OcrController_createJob",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Ocr"
+        ]
+      },
+      "get": {
+        "operationId": "OcrController_listJobs",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Ocr"
+        ]
+      }
+    },
+    "/api/v1/ocr/jobs/{id}": {
+      "get": {
+        "operationId": "OcrController_getJob",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Ocr"
+        ]
+      }
+    },
+    "/api/v1/purchases/invoices/from-ocr": {
+      "post": {
+        "operationId": "OcrPurchaseInvoicesController_fromOcr",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "OcrPurchaseInvoices"
         ]
       }
     },
@@ -14012,9 +16434,9 @@
         ]
       }
     },
-    "/api/v1/einvoice/settings": {
+    "/api/v1/treasury/bank-accounts": {
       "get": {
-        "operationId": "EinvoicingController_settings",
+        "operationId": "BankFeedsController_bankAccounts",
         "parameters": [],
         "responses": {
           "200": {
@@ -14022,126 +16444,321 @@
           }
         },
         "tags": [
-          "Einvoicing"
+          "BankFeeds"
         ]
       },
-      "put": {
-        "operationId": "EinvoicingController_saveSettings",
+      "post": {
+        "operationId": "BankFeedsController_createBankAccount",
         "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "BankFeeds"
+        ]
+      }
+    },
+    "/api/v1/treasury/bank-accounts/{id}": {
+      "get": {
+        "operationId": "BankFeedsController_bankAccount",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "200": {
             "description": ""
           }
         },
         "tags": [
-          "Einvoicing"
+          "BankFeeds"
         ]
-      }
-    },
-    "/api/v1/einvoice/settings/fill-from-company": {
-      "post": {
-        "operationId": "EinvoicingController_fillFromCompany",
-        "parameters": [],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Einvoicing"
-        ]
-      }
-    },
-    "/api/v1/einvoice/csr/generate": {
-      "post": {
-        "operationId": "EinvoicingController_generateCsr",
-        "parameters": [],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Einvoicing"
-        ]
-      }
-    },
-    "/api/v1/einvoice/onboarding/compliance-csid": {
-      "post": {
-        "operationId": "EinvoicingController_complianceCsid",
-        "parameters": [],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Einvoicing"
-        ]
-      }
-    },
-    "/api/v1/einvoice/onboarding/production-csid": {
-      "post": {
-        "operationId": "EinvoicingController_productionCsid",
-        "parameters": [],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Einvoicing"
-        ]
-      }
-    },
-    "/api/v1/einvoice/onboarding/renew": {
-      "post": {
-        "operationId": "EinvoicingController_renewCsid",
-        "parameters": [],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Einvoicing"
-        ]
-      }
-    },
-    "/api/v1/einvoice/onboarding/compliance-check": {
-      "post": {
-        "operationId": "EinvoicingController_complianceCheck",
-        "parameters": [],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Einvoicing"
-        ]
-      }
-    },
-    "/api/v1/einvoice/link/toggle": {
-      "post": {
-        "operationId": "EinvoicingController_toggleLink",
-        "parameters": [],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Einvoicing"
-        ]
-      }
-    },
-    "/api/v1/einvoice/filings": {
-      "get": {
-        "operationId": "EinvoicingController_filings",
+      },
+      "patch": {
+        "operationId": "BankFeedsController_updateBankAccount",
         "parameters": [
           {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "BankFeeds"
+        ]
+      },
+      "delete": {
+        "operationId": "BankFeedsController_deleteBankAccount",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "BankFeeds"
+        ]
+      }
+    },
+    "/api/v1/treasury/bank-statements": {
+      "get": {
+        "operationId": "BankFeedsController_statements",
+        "parameters": [
+          {
+            "name": "bank_account_id",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "BankFeeds"
+        ]
+      }
+    },
+    "/api/v1/treasury/bank-statements/{id}": {
+      "delete": {
+        "operationId": "BankFeedsController_deleteStatement",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "BankFeeds"
+        ]
+      },
+      "get": {
+        "operationId": "BankFeedsController_statement",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "BankFeeds"
+        ]
+      }
+    },
+    "/api/v1/treasury/bank-statements/import": {
+      "post": {
+        "operationId": "BankFeedsController_importStatement",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "BankFeeds"
+        ]
+      }
+    },
+    "/api/v1/treasury/bank-statements/{id}/lines": {
+      "get": {
+        "operationId": "BankFeedsController_lines",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "filter[status]",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
             "name": "status",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "BankFeeds"
+        ]
+      }
+    },
+    "/api/v1/treasury/bank-statements/{id}/match": {
+      "post": {
+        "operationId": "BankFeedsController_match",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "BankFeeds"
+        ]
+      }
+    },
+    "/api/v1/treasury/bank-statements/{id}/auto-match": {
+      "post": {
+        "operationId": "BankFeedsController_autoMatch",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "BankFeeds"
+        ]
+      }
+    },
+    "/api/v1/treasury/bank-statements/{id}/lines/{lineId}/ignore": {
+      "post": {
+        "operationId": "BankFeedsController_ignore",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "lineId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "BankFeeds"
+        ]
+      }
+    },
+    "/api/v1/treasury/bank-statements/{id}/lines/{lineId}/match": {
+      "delete": {
+        "operationId": "BankFeedsController_unmatch",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "lineId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "BankFeeds"
+        ]
+      }
+    },
+    "/api/v1/treasury/bank-reconciliation": {
+      "get": {
+        "operationId": "BankFeedsController_reconciliation",
+        "parameters": [
+          {
+            "name": "bank_account_id",
             "required": true,
             "in": "query",
             "schema": {
@@ -14163,22 +16780,6 @@
             "schema": {
               "type": "string"
             }
-          },
-          {
-            "name": "pageNo",
-            "required": true,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "pageSize",
-            "required": true,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
           }
         ],
         "responses": {
@@ -14187,36 +16788,13 @@
           }
         },
         "tags": [
-          "Einvoicing"
+          "BankFeeds"
         ]
       }
     },
-    "/api/v1/einvoice/filings/{id}": {
+    "/api/v1/treasury/bank-reconciliation-rules": {
       "get": {
-        "operationId": "EinvoicingController_filing",
-        "parameters": [
-          {
-            "name": "id",
-            "required": true,
-            "in": "path",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Einvoicing"
-        ]
-      }
-    },
-    "/api/v1/einvoice/chain": {
-      "get": {
-        "operationId": "EinvoicingController_chain",
+        "operationId": "BankFeedsController_rules",
         "parameters": [],
         "responses": {
           "200": {
@@ -14224,76 +16802,25 @@
           }
         },
         "tags": [
-          "Einvoicing"
-        ]
-      }
-    },
-    "/api/v1/einvoice/sync": {
-      "post": {
-        "operationId": "EinvoicingController_sync",
-        "parameters": [],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Einvoicing"
-        ]
-      }
-    },
-    "/api/v1/einvoice/credentials": {
-      "put": {
-        "operationId": "EinvoicingController_putCredentials",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Einvoicing"
+          "BankFeeds"
         ]
       },
-      "get": {
-        "operationId": "EinvoicingController_credentials",
+      "post": {
+        "operationId": "BankFeedsController_createRule",
         "parameters": [],
         "responses": {
-          "200": {
+          "201": {
             "description": ""
           }
         },
         "tags": [
-          "Einvoicing"
+          "BankFeeds"
         ]
       }
     },
-    "/api/v1/einvoice/submissions": {
-      "get": {
-        "operationId": "EinvoicingController_submissions",
-        "parameters": [
-          {
-            "name": "status",
-            "required": true,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Einvoicing"
-        ]
-      }
-    },
-    "/api/v1/einvoice/submissions/{id}/retry": {
-      "post": {
-        "operationId": "EinvoicingController_retry",
+    "/api/v1/treasury/bank-reconciliation-rules/{id}": {
+      "patch": {
+        "operationId": "BankFeedsController_updateRule",
         "parameters": [
           {
             "name": "id",
@@ -14305,18 +16832,16 @@
           }
         ],
         "responses": {
-          "201": {
+          "200": {
             "description": ""
           }
         },
         "tags": [
-          "Einvoicing"
+          "BankFeeds"
         ]
-      }
-    },
-    "/api/v1/sales-invoices/{id}/einvoice/submit": {
-      "post": {
-        "operationId": "EinvoicingController_submitInvoice",
+      },
+      "delete": {
+        "operationId": "BankFeedsController_deleteRule",
         "parameters": [
           {
             "name": "id",
@@ -14328,26 +16853,12 @@
           }
         ],
         "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Einvoicing"
-        ]
-      }
-    },
-    "/api/v1/einvoice/health": {
-      "get": {
-        "operationId": "EinvoicingController_health",
-        "parameters": [],
-        "responses": {
           "200": {
             "description": ""
           }
         },
         "tags": [
-          "Einvoicing"
+          "BankFeeds"
         ]
       }
     },
@@ -14712,6 +17223,29 @@
         ]
       }
     },
+    "/api/v1/portal/invoices/{id}/payment-link": {
+      "get": {
+        "operationId": "PortalController_paymentLink",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Portal"
+        ]
+      }
+    },
     "/api/v1/portal/statement": {
       "get": {
         "operationId": "PortalController_statement",
@@ -14929,6 +17463,76 @@
         ]
       }
     },
+    "/api/v1/reports/printer-links": {
+      "get": {
+        "operationId": "ReportingController_listPrinterLinks",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Reporting"
+        ]
+      },
+      "post": {
+        "operationId": "ReportingController_createPrinterLink",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Reporting"
+        ]
+      }
+    },
+    "/api/v1/reports/printer-links/{id}": {
+      "put": {
+        "operationId": "ReportingController_updatePrinterLink",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Reporting"
+        ]
+      },
+      "delete": {
+        "operationId": "ReportingController_deletePrinterLink",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Reporting"
+        ]
+      }
+    },
     "/api/v1/reports/print/invoices/{id}": {
       "get": {
         "operationId": "ReportingController_invoicePrint",
@@ -15110,6 +17714,1539 @@
         },
         "tags": [
           "Reporting"
+        ]
+      }
+    },
+    "/api/v1/supplier-portal/users": {
+      "post": {
+        "operationId": "SupplierPortalController_invite",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "SupplierPortal"
+        ]
+      },
+      "get": {
+        "operationId": "SupplierPortalController_users",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "SupplierPortal"
+        ]
+      }
+    },
+    "/api/v1/supplier-portal/rfqs": {
+      "post": {
+        "operationId": "SupplierPortalController_createRfq",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "SupplierPortal"
+        ]
+      },
+      "get": {
+        "operationId": "SupplierPortalController_rfqs",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "SupplierPortal"
+        ]
+      }
+    },
+    "/api/v1/supplier-portal/uploads": {
+      "get": {
+        "operationId": "SupplierPortalController_uploads",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "SupplierPortal"
+        ]
+      }
+    },
+    "/api/v1/supplier-portal/auth/login": {
+      "post": {
+        "operationId": "SupplierPortalController_login",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "SupplierPortal"
+        ]
+      }
+    },
+    "/api/v1/supplier-portal/invoices": {
+      "get": {
+        "operationId": "SupplierPortalController_invoices",
+        "parameters": [
+          {
+            "name": "authorization",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "SupplierPortal"
+        ]
+      },
+      "post": {
+        "operationId": "SupplierPortalController_upload",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "SupplierPortal"
+        ]
+      }
+    },
+    "/api/v1/supplier-portal/invoices/{id}": {
+      "get": {
+        "operationId": "SupplierPortalController_invoice",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "SupplierPortal"
+        ]
+      }
+    },
+    "/api/v1/supplier-portal/payments": {
+      "get": {
+        "operationId": "SupplierPortalController_payments",
+        "parameters": [
+          {
+            "name": "authorization",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "SupplierPortal"
+        ]
+      }
+    },
+    "/api/v1/supplier-portal/quotations": {
+      "get": {
+        "operationId": "SupplierPortalController_quotations",
+        "parameters": [
+          {
+            "name": "authorization",
+            "required": true,
+            "in": "header",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "SupplierPortal"
+        ]
+      }
+    },
+    "/api/v1/supplier-portal/quotations/{id}/respond": {
+      "post": {
+        "operationId": "SupplierPortalController_respond",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "SupplierPortal"
+        ]
+      }
+    },
+    "/api/v1/esign/requests": {
+      "post": {
+        "operationId": "EsignController_create",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Esign"
+        ]
+      },
+      "get": {
+        "operationId": "EsignController_list",
+        "parameters": [
+          {
+            "name": "entityId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Esign"
+        ]
+      }
+    },
+    "/api/v1/esign/{token}": {
+      "get": {
+        "operationId": "EsignController_view",
+        "parameters": [
+          {
+            "name": "token",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Esign"
+        ]
+      }
+    },
+    "/api/v1/esign/{token}/sign": {
+      "post": {
+        "operationId": "EsignController_sign",
+        "parameters": [
+          {
+            "name": "token",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Esign"
+        ]
+      }
+    },
+    "/api/v1/esign/{token}/pdf": {
+      "get": {
+        "operationId": "EsignController_pdf",
+        "parameters": [
+          {
+            "name": "token",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Esign"
+        ]
+      }
+    },
+    "/api/v1/dashboards/widgets/catalog": {
+      "get": {
+        "operationId": "DashboardsController_catalog",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Dashboards"
+        ]
+      }
+    },
+    "/api/v1/dashboards": {
+      "get": {
+        "operationId": "DashboardsController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Dashboards"
+        ]
+      },
+      "post": {
+        "operationId": "DashboardsController_create",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Dashboards"
+        ]
+      }
+    },
+    "/api/v1/dashboards/{id}": {
+      "get": {
+        "operationId": "DashboardsController_get",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Dashboards"
+        ]
+      },
+      "delete": {
+        "operationId": "DashboardsController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Dashboards"
+        ]
+      }
+    },
+    "/api/v1/dashboards/{id}/data": {
+      "get": {
+        "operationId": "DashboardsController_data",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Dashboards"
+        ]
+      }
+    },
+    "/api/v1/dashboards/{id}/pdf": {
+      "get": {
+        "operationId": "DashboardsController_pdf",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Dashboards"
+        ]
+      }
+    },
+    "/api/v1/dashboards/{id}/widgets": {
+      "post": {
+        "operationId": "DashboardsController_addWidget",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Dashboards"
+        ]
+      }
+    },
+    "/api/v1/dashboards/{id}/layout": {
+      "put": {
+        "operationId": "DashboardsController_layout",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Dashboards"
+        ]
+      }
+    },
+    "/api/v1/dashboards/{id}/default": {
+      "post": {
+        "operationId": "DashboardsController_setDefault",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Dashboards"
+        ]
+      }
+    },
+    "/api/v1/dashboards/{id}/widgets/{widgetId}": {
+      "delete": {
+        "operationId": "DashboardsController_removeWidget",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "widgetId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Dashboards"
+        ]
+      }
+    },
+    "/api/v1/marketplace/apps": {
+      "get": {
+        "operationId": "MarketplaceController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Marketplace"
+        ]
+      }
+    },
+    "/api/v1/marketplace/apps/{code}/install": {
+      "post": {
+        "operationId": "MarketplaceController_install",
+        "parameters": [
+          {
+            "name": "code",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Marketplace"
+        ]
+      }
+    },
+    "/api/v1/marketplace/apps/{code}/request": {
+      "post": {
+        "operationId": "MarketplaceController_requestActivation",
+        "parameters": [
+          {
+            "name": "code",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Marketplace"
+        ]
+      }
+    },
+    "/api/v1/marketplace/apps/{code}": {
+      "delete": {
+        "operationId": "MarketplaceController_uninstall",
+        "parameters": [
+          {
+            "name": "code",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Marketplace"
+        ]
+      }
+    },
+    "/api/v1/settings/white-label/domains": {
+      "get": {
+        "operationId": "MarketplaceController_domains",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Marketplace"
+        ]
+      },
+      "post": {
+        "operationId": "MarketplaceController_addDomain",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Marketplace"
+        ]
+      }
+    },
+    "/api/v1/settings/white-label/domains/{id}/verify": {
+      "post": {
+        "operationId": "MarketplaceController_verify",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Marketplace"
+        ]
+      }
+    },
+    "/api/v1/settings/white-label/domains/{id}": {
+      "delete": {
+        "operationId": "MarketplaceController_removeDomain",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Marketplace"
+        ]
+      }
+    },
+    "/api/v1/settings/white-label/branding": {
+      "get": {
+        "operationId": "MarketplaceController_branding",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Marketplace"
+        ]
+      },
+      "put": {
+        "operationId": "MarketplaceController_saveBranding",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Marketplace"
+        ]
+      }
+    },
+    "/api/v1/public/branding": {
+      "get": {
+        "operationId": "MarketplaceController_publicBrand",
+        "parameters": [
+          {
+            "name": "host",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Marketplace"
+        ]
+      }
+    },
+    "/api/v1/platform/marketplace/apps": {
+      "get": {
+        "operationId": "MarketplacePlatformController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "MarketplacePlatform"
+        ]
+      }
+    },
+    "/api/v1/platform/marketplace/apps/{code}": {
+      "put": {
+        "operationId": "MarketplacePlatformController_update",
+        "parameters": [
+          {
+            "name": "code",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "MarketplacePlatform"
+        ]
+      }
+    },
+    "/api/v1/platform/marketplace/requests": {
+      "get": {
+        "operationId": "MarketplacePlatformController_listRequests",
+        "parameters": [
+          {
+            "name": "status",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "MarketplacePlatform"
+        ]
+      }
+    },
+    "/api/v1/platform/marketplace/requests/{id}/decide": {
+      "post": {
+        "operationId": "MarketplacePlatformController_decideRequest",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "MarketplacePlatform"
+        ]
+      }
+    },
+    "/api/v1/platform/marketplace/unlicensed-usage": {
+      "get": {
+        "operationId": "MarketplacePlatformController_unlicensedUsage",
+        "parameters": [
+          {
+            "name": "days",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "MarketplacePlatform"
+        ]
+      }
+    },
+    "/api/v1/platform/marketplace/tenants/{tenantId}/apps": {
+      "get": {
+        "operationId": "MarketplacePlatformController_tenantApps",
+        "parameters": [
+          {
+            "name": "tenantId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "MarketplacePlatform"
+        ]
+      }
+    },
+    "/api/v1/platform/marketplace/tenants/{tenantId}/apps/{code}": {
+      "put": {
+        "operationId": "MarketplacePlatformController_toggleTenantApp",
+        "parameters": [
+          {
+            "name": "tenantId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "code",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "MarketplacePlatform"
+        ]
+      }
+    },
+    "/api/v1/crm/pipelines": {
+      "get": {
+        "operationId": "CrmController_pipelines",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Crm"
+        ]
+      },
+      "post": {
+        "operationId": "CrmController_createPipeline",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Crm"
+        ]
+      }
+    },
+    "/api/v1/crm/deals": {
+      "get": {
+        "operationId": "CrmController_deals",
+        "parameters": [
+          {
+            "name": "pipelineId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "pipeline_id",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "stageId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "stage_id",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "ownerId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "owner_id",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Crm"
+        ]
+      },
+      "post": {
+        "operationId": "CrmController_createDeal",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Crm"
+        ]
+      }
+    },
+    "/api/v1/crm/deals/{id}": {
+      "get": {
+        "operationId": "CrmController_deal",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Crm"
+        ]
+      }
+    },
+    "/api/v1/crm/deals/{id}/move": {
+      "put": {
+        "operationId": "CrmController_move",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Crm"
+        ]
+      }
+    },
+    "/api/v1/crm/deals/{id}/status": {
+      "put": {
+        "operationId": "CrmController_close",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Crm"
+        ]
+      }
+    },
+    "/api/v1/crm/deals/{id}/activities": {
+      "post": {
+        "operationId": "CrmController_activity",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Crm"
+        ]
+      }
+    },
+    "/api/v1/crm/deals/{id}/whatsapp": {
+      "post": {
+        "operationId": "CrmController_whatsapp",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Crm"
+        ]
+      }
+    },
+    "/api/v1/crm/activities": {
+      "get": {
+        "operationId": "CrmController_activities",
+        "parameters": [
+          {
+            "name": "dealId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Crm"
+        ]
+      }
+    },
+    "/api/v1/crm/forecast": {
+      "get": {
+        "operationId": "CrmController_forecast",
+        "parameters": [
+          {
+            "name": "pipelineId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "pipeline_id",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Crm"
+        ]
+      }
+    },
+    "/api/v1/crm/whatsapp/templates": {
+      "get": {
+        "operationId": "CrmController_templates",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Crm"
+        ]
+      },
+      "post": {
+        "operationId": "CrmController_createTemplate",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Crm"
+        ]
+      }
+    },
+    "/api/v1/crm/settings": {
+      "get": {
+        "operationId": "CrmController_settings",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Crm"
+        ]
+      }
+    },
+    "/api/v1/crm/webhooks/whatsapp": {
+      "post": {
+        "operationId": "CrmController_inbound",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Crm"
+        ]
+      }
+    },
+    "/api/v1/whatsapp/settings": {
+      "get": {
+        "operationId": "WhatsappController_settings",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Whatsapp"
+        ]
+      },
+      "put": {
+        "operationId": "WhatsappController_save",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Whatsapp"
+        ]
+      }
+    },
+    "/api/v1/whatsapp/test": {
+      "post": {
+        "operationId": "WhatsappController_test",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Whatsapp"
+        ]
+      }
+    },
+    "/api/v1/whatsapp/send": {
+      "post": {
+        "operationId": "WhatsappController_send",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Whatsapp"
+        ]
+      }
+    },
+    "/api/v1/whatsapp/messages": {
+      "get": {
+        "operationId": "WhatsappController_messages",
+        "parameters": [
+          {
+            "name": "status",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "invoiceId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "limit",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Whatsapp"
+        ]
+      }
+    },
+    "/api/v1/comments/suggest": {
+      "get": {
+        "operationId": "CommentsController_suggest",
+        "parameters": [
+          {
+            "name": "q",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Comments"
+        ]
+      }
+    },
+    "/api/v1/comments/mentions": {
+      "get": {
+        "operationId": "CommentsController_mentions",
+        "parameters": [
+          {
+            "name": "is_read",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "isRead",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Comments"
+        ]
+      }
+    },
+    "/api/v1/comments/mentions/{id}/read": {
+      "post": {
+        "operationId": "CommentsController_markRead",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Comments"
+        ]
+      }
+    },
+    "/api/v1/comments": {
+      "get": {
+        "operationId": "CommentsController_list",
+        "parameters": [
+          {
+            "name": "entity_type",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "entityType",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "entity_id",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "entityId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "open",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Comments"
+        ]
+      },
+      "post": {
+        "operationId": "CommentsController_create",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Comments"
+        ]
+      }
+    },
+    "/api/v1/comments/{id}/resolve": {
+      "put": {
+        "operationId": "CommentsController_resolve",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Comments"
+        ]
+      }
+    },
+    "/api/v1/comments/{id}": {
+      "put": {
+        "operationId": "CommentsController_update",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Comments"
+        ]
+      },
+      "delete": {
+        "operationId": "CommentsController_remove",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Comments"
         ]
       }
     },
@@ -16038,10 +20175,133 @@
         ]
       }
     },
+    "/api/v1/pos/offline-data": {
+      "get": {
+        "operationId": "PosController_offlineData",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Pos"
+        ]
+      }
+    },
+    "/api/v1/pos/offline-sync": {
+      "post": {
+        "operationId": "PosController_offlineSync",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Pos"
+        ]
+      }
+    },
     "/api/v1/pos/checkout": {
       "post": {
         "operationId": "PosController_checkout",
         "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Pos"
+        ]
+      }
+    },
+    "/api/v1/pos/settings": {
+      "get": {
+        "operationId": "PosController_settings",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Pos"
+        ]
+      }
+    },
+    "/api/v1/pos/holds": {
+      "get": {
+        "operationId": "PosController_holds",
+        "parameters": [
+          {
+            "name": "branchId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Pos"
+        ]
+      },
+      "post": {
+        "operationId": "PosController_hold",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Pos"
+        ]
+      }
+    },
+    "/api/v1/pos/holds/{id}/recall": {
+      "post": {
+        "operationId": "PosController_recallHold",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Pos"
+        ]
+      }
+    },
+    "/api/v1/pos/holds/{id}/release": {
+      "post": {
+        "operationId": "PosController_dropHold",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "responses": {
           "201": {
             "description": ""
@@ -17075,6 +21335,255 @@
         ]
       }
     },
+    "/api/v1/hrm/compliance/alerts": {
+      "get": {
+        "operationId": "HrmController_alerts",
+        "parameters": [
+          {
+            "name": "within_days",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Hrm"
+        ]
+      }
+    },
+    "/api/v1/hrm/payroll/compliance-settings": {
+      "get": {
+        "operationId": "HrmController_complianceSettings",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Hrm"
+        ]
+      },
+      "post": {
+        "operationId": "HrmController_saveComplianceSettings",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Hrm"
+        ]
+      }
+    },
+    "/api/v1/hrm/payroll/runs/{id}/wps-preview": {
+      "get": {
+        "operationId": "HrmController_wpsPreview",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "bank_code",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "establishment_id",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Hrm"
+        ]
+      }
+    },
+    "/api/v1/hrm/payroll/runs/{id}/wps-export": {
+      "post": {
+        "operationId": "HrmController_wpsExport",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Hrm"
+        ]
+      }
+    },
+    "/api/v1/hrm/payroll/runs/{id}/wps": {
+      "get": {
+        "operationId": "HrmController_wpsFiles",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Hrm"
+        ]
+      }
+    },
+    "/api/v1/hrm/payroll/wps/{fileId}": {
+      "get": {
+        "operationId": "HrmController_wpsFile",
+        "parameters": [
+          {
+            "name": "fileId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Hrm"
+        ]
+      }
+    },
+    "/api/v1/hrm/payroll/wps/{fileId}/status": {
+      "post": {
+        "operationId": "HrmController_wpsStatus",
+        "parameters": [
+          {
+            "name": "fileId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Hrm"
+        ]
+      }
+    },
+    "/api/v1/hrm/payroll/runs/{id}/gosi-preview": {
+      "get": {
+        "operationId": "HrmController_gosiPreview",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Hrm"
+        ]
+      }
+    },
+    "/api/v1/hrm/payroll/runs/{id}/gosi-export": {
+      "post": {
+        "operationId": "HrmController_gosiExport",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Hrm"
+        ]
+      }
+    },
+    "/api/v1/hrm/payroll/runs/{id}/gosi": {
+      "get": {
+        "operationId": "HrmController_gosiFiles",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Hrm"
+        ]
+      }
+    },
     "/api/v1/installments/contracts": {
       "get": {
         "operationId": "InstallmentsController_list",
@@ -17170,6 +21679,295 @@
         ]
       }
     },
+    "/api/v1/projects/{id}/tasks": {
+      "get": {
+        "operationId": "ProjectKanbanController_board",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "stage_id",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "stageId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "assignee_id",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "assigneeId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "ProjectKanban"
+        ]
+      },
+      "post": {
+        "operationId": "ProjectKanbanController_create",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "ProjectKanban"
+        ]
+      }
+    },
+    "/api/v1/projects/{id}/gantt": {
+      "get": {
+        "operationId": "ProjectKanbanController_gantt",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "ProjectKanban"
+        ]
+      }
+    },
+    "/api/v1/projects/{id}/time": {
+      "get": {
+        "operationId": "ProjectKanbanController_time",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "ProjectKanban"
+        ]
+      }
+    },
+    "/api/v1/projects/{id}/cost": {
+      "get": {
+        "operationId": "ProjectKanbanController_compare",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "ProjectKanban"
+        ]
+      }
+    },
+    "/api/v1/projects/tasks/{taskId}": {
+      "get": {
+        "operationId": "ProjectKanbanController_read",
+        "parameters": [
+          {
+            "name": "taskId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "ProjectKanban"
+        ]
+      },
+      "patch": {
+        "operationId": "ProjectKanbanController_update",
+        "parameters": [
+          {
+            "name": "taskId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "ProjectKanban"
+        ]
+      }
+    },
+    "/api/v1/projects/tasks/{taskId}/move": {
+      "put": {
+        "operationId": "ProjectKanbanController_move",
+        "parameters": [
+          {
+            "name": "taskId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "ProjectKanban"
+        ]
+      }
+    },
+    "/api/v1/projects/tasks/{taskId}/time-logs": {
+      "post": {
+        "operationId": "ProjectKanbanController_log",
+        "parameters": [
+          {
+            "name": "taskId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "ProjectKanban"
+        ]
+      }
+    },
+    "/api/v1/projects/tasks/{taskId}/dependencies": {
+      "post": {
+        "operationId": "ProjectKanbanController_depend",
+        "parameters": [
+          {
+            "name": "taskId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "ProjectKanban"
+        ]
+      }
+    },
+    "/api/v1/projects/dependencies/{dependencyId}": {
+      "delete": {
+        "operationId": "ProjectKanbanController_undepend",
+        "parameters": [
+          {
+            "name": "dependencyId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "ProjectKanban"
+        ]
+      }
+    },
     "/api/v1/projects": {
       "get": {
         "operationId": "ProjectsController_list",
@@ -17185,6 +21983,32 @@
       },
       "post": {
         "operationId": "ProjectsController_create",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Projects"
+        ]
+      }
+    },
+    "/api/v1/projects/stage-templates": {
+      "get": {
+        "operationId": "ProjectsController_templates",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Projects"
+        ]
+      },
+      "post": {
+        "operationId": "ProjectsController_template",
         "parameters": [],
         "responses": {
           "201": {
@@ -17219,20 +22043,6 @@
         ]
       }
     },
-    "/api/v1/projects/stage-templates": {
-      "post": {
-        "operationId": "ProjectsController_template",
-        "parameters": [],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Projects"
-        ]
-      }
-    },
     "/api/v1/projects/{id}/stages": {
       "post": {
         "operationId": "ProjectsController_stage",
@@ -17248,6 +22058,73 @@
         ],
         "responses": {
           "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Projects"
+        ]
+      }
+    },
+    "/api/v1/projects/stages/{stageId}/move": {
+      "post": {
+        "operationId": "ProjectsController_move",
+        "parameters": [
+          {
+            "name": "stageId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Projects"
+        ]
+      }
+    },
+    "/api/v1/projects/stages/{stageId}": {
+      "patch": {
+        "operationId": "ProjectsController_patchStage",
+        "parameters": [
+          {
+            "name": "stageId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Projects"
+        ]
+      },
+      "delete": {
+        "operationId": "ProjectsController_deleteStage",
+        "parameters": [
+          {
+            "name": "stageId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
             "description": ""
           }
         },
@@ -17294,6 +22171,50 @@
         ],
         "responses": {
           "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Projects"
+        ]
+      }
+    },
+    "/api/v1/projects/boq/{termId}": {
+      "patch": {
+        "operationId": "ProjectsController_patchBoq",
+        "parameters": [
+          {
+            "name": "termId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Projects"
+        ]
+      },
+      "delete": {
+        "operationId": "ProjectsController_deleteBoq",
+        "parameters": [
+          {
+            "name": "termId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
             "description": ""
           }
         },
@@ -20551,11 +25472,112 @@
             "schema": {
               "type": "string"
             }
-          },
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Salla"
+        ]
+      }
+    },
+    "/api/v1/ecommerce/providers": {
+      "get": {
+        "operationId": "EcommerceController_providers",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Ecommerce"
+        ]
+      }
+    },
+    "/api/v1/ecommerce/stores": {
+      "post": {
+        "operationId": "EcommerceController_createStore",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Ecommerce"
+        ]
+      },
+      "get": {
+        "operationId": "EcommerceController_stores",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Ecommerce"
+        ]
+      }
+    },
+    "/api/v1/ecommerce/stores/{id}/logs": {
+      "get": {
+        "operationId": "EcommerceController_logs",
+        "parameters": [
           {
-            "name": "x-salla-signature",
+            "name": "id",
             "required": true,
-            "in": "header",
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Ecommerce"
+        ]
+      }
+    },
+    "/api/v1/ecommerce/stores/{id}": {
+      "delete": {
+        "operationId": "EcommerceController_deleteStore",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Ecommerce"
+        ]
+      }
+    },
+    "/api/v1/ecommerce/stores/{id}/sync": {
+      "post": {
+        "operationId": "EcommerceController_sync",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
             "schema": {
               "type": "string"
             }
@@ -20567,7 +25589,61 @@
           }
         },
         "tags": [
-          "Salla"
+          "Ecommerce"
+        ]
+      }
+    },
+    "/api/v1/ecommerce/webhooks/{provider}": {
+      "post": {
+        "operationId": "EcommerceController_webhook",
+        "parameters": [
+          {
+            "name": "provider",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Ecommerce"
+        ]
+      }
+    },
+    "/api/v1/ecommerce/orders": {
+      "get": {
+        "operationId": "EcommerceController_orders",
+        "parameters": [
+          {
+            "name": "store_id",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "status",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Ecommerce"
         ]
       }
     },
@@ -20716,9 +25792,9 @@
         ]
       }
     },
-    "/api/v1/whatsapp/settings": {
+    "/api/v1/payments/providers": {
       "get": {
-        "operationId": "WhatsappController_settings",
+        "operationId": "PaymentLinksController_providers",
         "parameters": [],
         "responses": {
           "200": {
@@ -20726,25 +25802,11 @@
           }
         },
         "tags": [
-          "Whatsapp"
+          "PaymentLinks"
         ]
       },
-      "put": {
-        "operationId": "WhatsappController_save",
-        "parameters": [],
-        "responses": {
-          "200": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Whatsapp"
-        ]
-      }
-    },
-    "/api/v1/whatsapp/test": {
       "post": {
-        "operationId": "WhatsappController_test",
+        "operationId": "PaymentLinksController_save",
         "parameters": [],
         "responses": {
           "201": {
@@ -20752,46 +25814,16 @@
           }
         },
         "tags": [
-          "Whatsapp"
+          "PaymentLinks"
         ]
       }
     },
-    "/api/v1/whatsapp/send": {
-      "post": {
-        "operationId": "WhatsappController_send",
-        "parameters": [],
-        "responses": {
-          "201": {
-            "description": ""
-          }
-        },
-        "tags": [
-          "Whatsapp"
-        ]
-      }
-    },
-    "/api/v1/whatsapp/messages": {
+    "/api/v1/payments/links": {
       "get": {
-        "operationId": "WhatsappController_messages",
+        "operationId": "PaymentLinksController_list",
         "parameters": [
           {
-            "name": "status",
-            "required": true,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "invoiceId",
-            "required": true,
-            "in": "query",
-            "schema": {
-              "type": "string"
-            }
-          },
-          {
-            "name": "limit",
+            "name": "invoice_id",
             "required": true,
             "in": "query",
             "schema": {
@@ -20805,7 +25837,1141 @@
           }
         },
         "tags": [
-          "Whatsapp"
+          "PaymentLinks"
+        ]
+      },
+      "post": {
+        "operationId": "PaymentLinksController_create",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "PaymentLinks"
+        ]
+      }
+    },
+    "/api/v1/payments/links/{id}/send": {
+      "post": {
+        "operationId": "PaymentLinksController_send",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "PaymentLinks"
+        ]
+      }
+    },
+    "/api/v1/payments/links/{id}/simulate": {
+      "post": {
+        "operationId": "PaymentLinksController_simulate",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "PaymentLinks"
+        ]
+      }
+    },
+    "/api/v1/payments/webhooks/{provider}": {
+      "post": {
+        "operationId": "PaymentLinksController_webhook",
+        "parameters": [
+          {
+            "name": "provider",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "PaymentLinks"
+        ]
+      }
+    },
+    "/api/v1/ai/skills": {
+      "get": {
+        "operationId": "AiController_skills",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Ai"
+        ]
+      }
+    },
+    "/api/v1/ai/conversations": {
+      "get": {
+        "operationId": "AiController_conversations",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Ai"
+        ]
+      }
+    },
+    "/api/v1/ai/conversations/{id}": {
+      "get": {
+        "operationId": "AiController_conversation",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Ai"
+        ]
+      }
+    },
+    "/api/v1/ai/suggestions": {
+      "get": {
+        "operationId": "AiController_suggestions",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Ai"
+        ]
+      }
+    },
+    "/api/v1/ai/suggest": {
+      "post": {
+        "operationId": "AiController_suggest",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Ai"
+        ]
+      }
+    },
+    "/api/v1/ai/settings": {
+      "get": {
+        "operationId": "AiController_readSettings",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Ai"
+        ]
+      },
+      "put": {
+        "operationId": "AiController_updateSettings",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Ai"
+        ]
+      }
+    },
+    "/api/v1/ai/settings/test": {
+      "post": {
+        "operationId": "AiController_testSettings",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Ai"
+        ]
+      }
+    },
+    "/api/v1/ai/chat": {
+      "post": {
+        "operationId": "AiController_chat",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Ai"
+        ]
+      }
+    },
+    "/api/v1/platform/ai/settings": {
+      "get": {
+        "operationId": "AiPlatformController_read",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "AiPlatform"
+        ]
+      },
+      "put": {
+        "operationId": "AiPlatformController_update",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "AiPlatform"
+        ]
+      }
+    },
+    "/api/v1/platform/ai/tenants/{tenantId}/suspension": {
+      "post": {
+        "operationId": "AiPlatformController_suspension",
+        "parameters": [
+          {
+            "name": "tenantId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "AiPlatform"
+        ]
+      }
+    },
+    "/api/v1/platform/ai/tenants/{tenantId}/suggest": {
+      "post": {
+        "operationId": "AiPlatformController_suggest",
+        "parameters": [
+          {
+            "name": "tenantId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "AiPlatform"
+        ]
+      }
+    },
+    "/api/v1/employee/me": {
+      "get": {
+        "operationId": "EmployeeController_me",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Employee"
+        ]
+      }
+    },
+    "/api/v1/employee/attendance": {
+      "post": {
+        "operationId": "EmployeeController_attendance",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Employee"
+        ]
+      }
+    },
+    "/api/v1/employee/attendance/sync": {
+      "post": {
+        "operationId": "EmployeeController_sync",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Employee"
+        ]
+      }
+    },
+    "/api/v1/employee/attendance/today": {
+      "get": {
+        "operationId": "EmployeeController_today",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Employee"
+        ]
+      }
+    },
+    "/api/v1/employee/requests": {
+      "post": {
+        "operationId": "EmployeeController_createRequest",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Employee"
+        ]
+      },
+      "get": {
+        "operationId": "EmployeeController_requests",
+        "parameters": [
+          {
+            "name": "status",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Employee"
+        ]
+      }
+    },
+    "/api/v1/employee/requests/{id}/approve": {
+      "post": {
+        "operationId": "EmployeeController_approve",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Employee"
+        ]
+      }
+    },
+    "/api/v1/employee/requests/{id}/reject": {
+      "post": {
+        "operationId": "EmployeeController_reject",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Employee"
+        ]
+      }
+    },
+    "/api/v1/employee/payslips": {
+      "get": {
+        "operationId": "EmployeeController_payslips",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Employee"
+        ]
+      }
+    },
+    "/api/v1/employee/custodies": {
+      "get": {
+        "operationId": "EmployeeController_custodies",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Employee"
+        ]
+      }
+    },
+    "/api/v1/employee/leaves": {
+      "get": {
+        "operationId": "EmployeeController_leaves",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Employee"
+        ]
+      }
+    },
+    "/api/v1/employee/push-subscription": {
+      "post": {
+        "operationId": "EmployeeController_subscribe",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Employee"
+        ]
+      }
+    },
+    "/api/v1/employee/push-config": {
+      "get": {
+        "operationId": "EmployeeController_pushConfig",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Employee"
+        ]
+      }
+    },
+    "/api/v1/employee/notices": {
+      "get": {
+        "operationId": "EmployeeController_notices",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "Employee"
+        ]
+      }
+    },
+    "/api/v1/hrm/employee-leaves": {
+      "get": {
+        "operationId": "EmployeeHrmController_leaves",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "EmployeeHrm"
+        ]
+      }
+    },
+    "/api/v1/hrm/geofences": {
+      "get": {
+        "operationId": "EmployeeHrmController_geofences",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "EmployeeHrm"
+        ]
+      }
+    },
+    "/api/v1/hrm/geofences/{branchId}": {
+      "put": {
+        "operationId": "EmployeeHrmController_saveGeofence",
+        "parameters": [
+          {
+            "name": "branchId",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "tags": [
+          "EmployeeHrm"
+        ]
+      }
+    },
+    "/api/v1/van-sales/dashboard": {
+      "get": {
+        "operationId": "VanSalesController_dashboard",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "van-sales"
+        ]
+      }
+    },
+    "/api/v1/van-sales/reports": {
+      "get": {
+        "operationId": "VanSalesController_reports",
+        "parameters": [
+          {
+            "name": "salesmanId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "fromDate",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "toDate",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "van-sales"
+        ]
+      }
+    },
+    "/api/v1/van-sales/me": {
+      "get": {
+        "operationId": "VanSalesController_me",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "van-sales"
+        ]
+      }
+    },
+    "/api/v1/van-sales/salesmen": {
+      "get": {
+        "operationId": "VanSalesController_salesmen",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "van-sales"
+        ]
+      }
+    },
+    "/api/v1/van-sales/salesmen/{id}/account": {
+      "post": {
+        "operationId": "VanSalesController_linkSalesmanAccount",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "van-sales"
+        ]
+      }
+    },
+    "/api/v1/van-sales/production-batches": {
+      "post": {
+        "operationId": "VanSalesController_createProductionBatch",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "van-sales"
+        ]
+      }
+    },
+    "/api/v1/van-sales/customer-prices": {
+      "post": {
+        "operationId": "VanSalesController_upsertCustomerPrice",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "van-sales"
+        ]
+      }
+    },
+    "/api/v1/van-sales/load-orders": {
+      "post": {
+        "operationId": "VanSalesController_createLoadOrder",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "van-sales"
+        ]
+      }
+    },
+    "/api/v1/van-sales/load-orders/{id}/confirm-receipt": {
+      "post": {
+        "operationId": "VanSalesController_confirmReceipt",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "van-sales"
+        ]
+      }
+    },
+    "/api/v1/van-sales/documents/{id}/returns": {
+      "post": {
+        "operationId": "VanSalesController_createReturn",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "van-sales"
+        ]
+      }
+    },
+    "/api/v1/van-sales/documents/{id}/print-view": {
+      "get": {
+        "operationId": "VanSalesController_printView",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "copies",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "van-sales"
+        ]
+      }
+    },
+    "/api/v1/van-sales/documents": {
+      "post": {
+        "operationId": "VanSalesController_createDocument",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "van-sales"
+        ]
+      }
+    },
+    "/api/v1/van-sales/policy": {
+      "get": {
+        "operationId": "VanSalesController_policy",
+        "parameters": [
+          {
+            "name": "salesmanId",
+            "required": true,
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "van-sales"
+        ]
+      },
+      "put": {
+        "operationId": "VanSalesController_updatePolicy",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "van-sales"
+        ]
+      }
+    },
+    "/api/v1/van-sales/load-orders/{id}/submit-closing": {
+      "post": {
+        "operationId": "VanSalesController_submitClosing",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "van-sales"
+        ]
+      }
+    },
+    "/api/v1/van-sales/load-orders/{id}/approve-closing": {
+      "post": {
+        "operationId": "VanSalesController_approveClosing",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "van-sales"
+        ]
+      }
+    },
+    "/api/v1/van-sales/load-orders/{id}/settle-stock": {
+      "post": {
+        "operationId": "VanSalesController_settleLoadOrderStock",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "van-sales"
+        ]
+      }
+    },
+    "/api/v1/van-sales/load-orders/{id}/reject-receipt": {
+      "post": {
+        "operationId": "VanSalesController_rejectReceipt",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "van-sales"
+        ]
+      }
+    },
+    "/api/v1/van-sales/load-orders/{id}/close-transit-difference": {
+      "post": {
+        "operationId": "VanSalesController_closeTransitDifference",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "van-sales"
+        ]
+      }
+    },
+    "/api/v1/van-sales/load-orders/{id}/cancel": {
+      "post": {
+        "operationId": "VanSalesController_cancelLoadOrder",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "van-sales"
+        ]
+      }
+    },
+    "/api/v1/van-sales/load-orders/{id}/settle": {
+      "post": {
+        "operationId": "VanSalesController_settleLoadOrder",
+        "parameters": [
+          {
+            "name": "id",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "van-sales"
+        ]
+      }
+    },
+    "/api/v1/van-sales/collections": {
+      "post": {
+        "operationId": "VanSalesController_collectCustomerDebt",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "van-sales"
+        ]
+      }
+    },
+    "/api/v1/van-sales/legacy-reconciliation": {
+      "post": {
+        "operationId": "VanSalesController_reconcileLegacyData",
+        "parameters": [],
+        "responses": {
+          "201": {
+            "description": ""
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "van-sales"
         ]
       }
     }

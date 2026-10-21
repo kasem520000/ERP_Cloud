@@ -89,6 +89,10 @@ export class ApiKeyGuard implements CanActivate {
       branchScope: null,
       isOwner: false,
       kind: 'staff',
+      // مسارات المفاتيح (`integration.controller`) ليست سطحاً قطاعياً، فلا تُحمَّل لها
+      // باقات؛ لو فُتح سطحٌ قطاعي لمفتاح API يوماً وجب تحميل `tenant_apps` هنا، وإلا رفضه
+      // `SectorLicenceGuard` في وضع `enforce` — وهذا أولى من ترخيصه ضمناً.
+      enabledApps: [],
       // مفتاح API ليس إنساناً: لا حدّ خصم عليه، والحارس لا يمنح ما لا يملكه المفتاح.
       maxDiscountPct: null,
       maxDiscountAmount: null,

@@ -7,7 +7,7 @@ import { useSession } from '../../../lib/session';
 import { useQuery } from '../../../lib/use-query';
 
 /**
- * 🧵 أنواع التفصيل — `Form_WPF/frmOrderDetails.xaml.cs`.
+ * أنواع التفصيل — `Form_WPF/frmOrderDetails.xaml.cs`.
  *
  * الديسكتوب لا يملك نافذةً لهذا: النوع يُقرأ في بطاقة الطلب
  * (`SELECT TypeID, TypeName, DefaultPrice FROM TailoringTypes WHERE IsActive=1 ORDER BY
@@ -30,13 +30,14 @@ export default function TailoringTypesPage() {
   const rows = types.data ?? [];
 
   return (
-    <Directory<TailoringType>
+ <Directory<TailoringType>
+      listTitle="أنواع التفصيل"
       title="أنواع التفصيل"
       subtitle="أنواع التفصيل المتاحة في طلبات التفصيل، ولكلّ نوعٍ سعرُه الافتراضي. والطلب يقترح السعر ولا يفرضه."
       crumbs={['التفصيل', 'التعاريف']}
       query={types}
       canCreate={can('tailoring.manage')}
-      createLabel="➕ إضافة نوع"
+ createLabel="إضافة نوع"
       formTitle="نوع تفصيل"
       fields={[
         { name: 'nameAr', label: 'اسم النوع', required: true },

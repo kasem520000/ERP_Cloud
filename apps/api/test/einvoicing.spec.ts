@@ -58,10 +58,16 @@ describe('zatca e-invoicing', () => {
         'sales.invoice.post',
         'accounting.period.close',
         'einvoice.view',
+        'einvoice.manage',
         'einvoice.submit',
         'einvoice.credentials.manage',
       ],
     });
+
+    // ⏸ «مزامنة يدوية» مُشعَلة: المجموعة كلها تقيس الإرسال بيد المستخدم، لا الإرسال التلقائي
+    // بعد الترحيل، فلا يُترك سباقٌ بين الاثنين على الفاتورة الواحدة.
+    const manualOnly = await api(ctx.server, 'put', '/api/v1/einvoice/settings', { token: actor.token, body: { syncManual: true } });
+    expect(manualOnly.status).toBe(200);
 
 
     const defaults = await ctx.app.get(OrgProvisioningService).provisionOrgDefaults(actor.tenantId);
@@ -82,7 +88,7 @@ describe('zatca e-invoicing', () => {
         body: { sku: 'RICE-5', nameAr: 'أرز بسمتي ٥ كجم', categoryId, baseUnitId: unitId, kind: 'stock', salePrice: '27.5' },
       }),
     ).id;
-    partyId = body(await api(ctx.server, 'post', '/api/v1/parties', { token: actor.token, body: { kind: 'customer', name: 'مؤسسة النخبة', taxNo: '310000000000012' } })).id;
+    partyId = body(await api(ctx.server, 'post', '/api/v1/parties', { token: actor.token, body: { kind: 'customer', name: 'مؤسسة النخبة', taxNo: '311111111111113' } })).id;
 
     const profile = await api(ctx.server, 'put', '/api/v1/company-profile', {
       token: actor.token,
@@ -110,7 +116,7 @@ describe('zatca e-invoicing', () => {
     const xml = submission.requestPayload.xml;
     expect(xml).toContain('urn:oasis:names:specification:ubl:schema:xsd:Invoice-2');
     expect(xml).toContain('<cbc:CompanyID>310000000000003</cbc:CompanyID>'); // seller VAT from the company card
-    expect(xml).toContain('310000000000012'); // buyer VAT
+    expect(xml).toContain('311111111111113'); // buyer VAT
     expect(xml).toContain('أرز بسمتي ٥ كجم');
     expect(xml).toContain('<cbc:InvoiceTypeCode name="0100000">388</cbc:InvoiceTypeCode>'); // buyer has a VAT number -> standard
     expect(submission.requestPayload.profile).toBe('standard');

@@ -106,6 +106,7 @@ export class PlatformAdminService {
           COUNT(*) FILTER (WHERE status = 'suspended')::int          AS suspended,
           COUNT(*) FILTER (WHERE created_at > now() - interval '30 days')::int AS new_30d
         FROM tenants
+        WHERE lower(code) NOT IN ('platform', 'platform-ops')
       `);
       const subscriptions = await tx.execute(sql`
         SELECT
@@ -153,7 +154,8 @@ export class PlatformAdminService {
           LIMIT 1
         ) s ON true
         LEFT JOIN billing_plans p ON p.id = s.plan_id
-        WHERE (${like}::text IS NULL OR lower(t.code) LIKE ${like} OR lower(t.name) LIKE ${like})
+        WHERE lower(t.code) NOT IN ('platform', 'platform-ops')
+          AND (${like}::text IS NULL OR lower(t.code) LIKE ${like} OR lower(t.name) LIKE ${like})
           AND (${status ?? null}::text IS NULL OR t.status = ${status ?? null})
         ORDER BY t.created_at DESC
         LIMIT 500
@@ -248,7 +250,7 @@ export class PlatformAdminService {
 
     let passwordHash: string | undefined;
     if (input.ownerPassword) {
-      this.passwords.assertPolicy(input.ownerPassword, { email: input.ownerEmail });
+      await this.passwords.assertPolicy(input.ownerPassword, { email: input.ownerEmail });
       passwordHash = await this.passwords.hash(input.ownerPassword);
     }
 
@@ -316,6 +318,13 @@ export class PlatformAdminService {
             INSERT INTO membership_roles (membership_id, role_id) VALUES (${membershipId}, ${roleId})
             ON CONFLICT DO NOTHING
           `);
+          for (const scopeType of ['branch', 'warehouse', 'cash_location'] as const) {
+            await tx.execute(sql`
+              INSERT INTO membership_role_scopes (membership_id, role_id, scope_type, scope_id)
+              VALUES (${membershipId}, ${roleId}, ${scopeType}, '00000000-0000-0000-0000-000000000000'::uuid)
+              ON CONFLICT DO NOTHING
+            `);
+          }
         }
       }
 

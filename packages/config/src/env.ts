@@ -61,10 +61,59 @@ const envSchema = z.object({
   /** SECURITY_ARCHITECTURE §2 — exponential lockout on repeated failures. */
   AUTH_LOGIN_MAX_FAILURES: z.coerce.number().int().positive().default(5),
   AUTH_LOCKOUT_MINUTES: z.coerce.number().int().positive().default(15),
+  /**
+   * SH-06 — سقف محاولات رمز التوقيع (ستة أرقام، والرابط صالح ٧ أيام).
+   * خمس محاولات خاطئة تُقفل الطلب: احتمال التخمين 5/10^6، ويحتاج الموقّع رابطاً جديداً.
+   */
+  ESIGN_OTP_MAX_ATTEMPTS: z.coerce.number().int().positive().max(20).default(5),
 
+  /**
+   * SECURITY_ARCHITECTURE §2 — «فحص قائمة كلمات المرور المسرَّبة».
+   *
+   * `off` = القائمة المحلية القصيرة وحدها؛ `warn` = يفحص ويسجّل ولا يمنع؛ `enforce` = يمنع.
+   * والافتراضي يُحسَب لا يُثبَّت: `enforce` في الإنتاج، و`off` في التطوير والاختبار حتى لا
+   * يدفع كلُّ اختبارٍ محلي كلفةَ نداءٍ خارجيّ لا يعنيه.
+   *
+   * والفحص بنمط k-anonymity: يُرسَل **أول خمسة أحرف** من SHA-1 فقط، فلا تخرج كلمة المرور
+   * ولا بصمتها الكاملة من الخادم. وتعذّر الوصول ليس رفضاً — يُسجَّل ويُترك للمراجعة، لأن
+   * تعطيل الدخول لأن مزوّداً خارجياً سقط عطلٌ أكبر من العيب الذي يُعالَج.
+   */
+  PASSWORD_BREACH_CHECK: z.enum(['off', 'warn', 'enforce']).optional(),
+  PASSWORD_BREACH_CHECK_URL: z.string().url().default('https://api.pwnedpasswords.com/range/'),
+  PASSWORD_BREACH_CHECK_TIMEOUT_MS: z.coerce.number().int().positive().max(10_000).default(1_500),
+  /** بعد ثلاثة إخفاقات متتالية يُفتح القاطع هذه المدة فلا يُنادَى المزوّد في كل تغييرٍ لكلمة. */
+  PASSWORD_BREACH_CHECK_CIRCUIT_SECONDS: z.coerce.number().int().positive().max(3_600).default(60),
+
+  /**
+   * مهلة نداء Redis في عدّاد الطلبات. قصيرة عن قصد: هذا مسارٌ يقع في **كل** طلب،
+   * ونداءٌ لخادمٍ ميت يجب ألّا يحوّل حماية السقف إلى تعليقٍ لكل المستأجرين.
+   */
+  RATE_LIMIT_REDIS_TIMEOUT_MS: z.coerce.number().int().positive().max(5_000).default(250),
+  /**
+   * مصدر العدّاد: `auto` يستخدم Redis إن كان `REDIS_URL` مضبوطاً، و`memory` يفرض الدلو
+   * المحلي (نشرٌ بعقدةٍ واحدة، أو اختباراتٌ لا تريد نداء شبكةٍ في كل طلب)، و`redis`
+   * يفرض المشترك ويُسقَط إلى المحلي عند العطل كما في `auto`.
+   */
+  RATE_LIMIT_STORE: z.enum(['auto', 'memory', 'redis']).default('auto'),
   /** SECURITY_ARCHITECTURE §8 — token buckets. */
   RATE_LIMIT_DEFAULT_PER_MINUTE: z.coerce.number().int().positive().default(600),
+  /**
+   * سقفٌ **خشنٌ لكل عنوان** يُطبَّق فوق الدلاء الدقيقة، لا بدلاً منها.
+   *
+   * الحاجة إليه من الميدان: مندوبو التوزيع وتطبيقات المخابز تعمل على شبكات الجوّال،
+   * وهذه تضع مئات المشتركين خلف عنوانٍ واحد (‏CGNAT). ودلوٌ واحد للعنوان يعني أن سقف
+   * ٦٠٠/دقيقة يصير سقفاً لـ«كل المندوبين على تلك الشريحة»: عشرون مندوباً يستطلعون كل
+   * دقيقتين يُغلقون الباب على أنفسهم. فالدلو الدقيق يعدّ **العميل** (رمزُه أو حسابه)،
+   * وهذا السقف يبقى ليكبح إغراقاً من جهازٍ واحد يبدّل رموزاً أو حسابات.
+   */
+  RATE_LIMIT_IP_CEILING_PER_MINUTE: z.coerce.number().int().positive().default(6_000),
   RATE_LIMIT_LOGIN_PER_MINUTE: z.coerce.number().int().positive().default(10),
+  /**
+   * سقفُ محاولات الدخول **لكل عنوان** — أعلى من سقف الحساب لأن عنواناً واحداً قد يخدم
+   * مكتباً أو شريحة جوّال كاملة، وأقلّ بكثير من أن يسمح بتخمينٍ موزّع. الحماية الحقيقية
+   * من التخمين هي قفل الحساب (‏SH-06) ودلوُ (العنوان + الحساب) أدناه.
+   */
+  RATE_LIMIT_LOGIN_IP_PER_MINUTE: z.coerce.number().int().positive().default(120),
   RATE_LIMIT_REGISTER_PER_MINUTE: z.coerce.number().int().positive().default(5),
   /**
    * P-M6 — استمارات الموقع العامّة (تواصل · طلب عرض · نشرة). دلوٌ خاصٌّ بها لا دلو الدخول:
@@ -88,6 +137,32 @@ const envSchema = z.object({
   // يمنع تحويل نقطة القياس إلى قناة كتابةٍ مفتوحة — ودلوٌ مستقلّ عن الاستمارات والتحقّق
   // لأن سيلَ أحداثٍ لا يجوز أن يُغلق بابَ التعاقد.
   RATE_LIMIT_PUBLIC_EVENTS_PER_MINUTE: z.coerce.number().int().positive().default(120),
+  /**
+   * سقفٌ لكل **منشأة** لا لكل عنوان IP — الحماية من إغراقٍ موزّع.
+   *
+   * دلوُ الـIP (600/دقيقة) يحمي من سكربتٍ من جهازٍ واحد، ولا يحمي من عميلٍ يملك شبكة
+   * عناوين أو من هجومٍ موزّع: كل عنوانٍ يبقى تحت سقفه، والمجموع يغرق القاعدة. هذا الدلو
+   * يعدّ الطلبات **بعد** المصادقة على معرّف المنشأة، فالسقف يخصّ كل عميل؛ تجاوزه 429.
+   * والقيمة أعلى من دلو الـIP لأنها تشمل مستخدمي المنشأة جميعاً في الدقيقة.
+   */
+  RATE_LIMIT_TENANT_PER_MINUTE: z.coerce.number().int().positive().default(3_000),
+
+  /**
+   * `app.set('trust proxy')` — يُضبط فقط حين يقف الـAPI خلف وكيلٍ موثوق (Nginx/ALB).
+   * بلا ضبطٍ يبقى `req.ip` عنوان المقبس، فلا يستطيع عميلٌ تزوير `X-Forwarded-For` للتهرّب
+   * من دلو الـIP أو لإيهام الخادم بعنوانٍ آخر. القيم: `false` · `true` · رقم (عدد الوكلاء)
+   * · قائمة CIDR مفصولة بفواصل.
+   */
+  TRUST_PROXY: z.string().trim().default(''),
+
+  /** سقف جسم الطلب (JSON/نموذج) بالبايت — 1 م.ب افتراضاً، والزيادة 413 صريحة. */
+  BODY_LIMIT_BYTES: z.coerce.number().int().positive().default(1_048_576),
+  /** سقف طول الرابط — حمايةٌ من روابط ضخمة تُستهلك في التحليل قبل أي تحقّق. */
+  MAX_URL_LENGTH: z.coerce.number().int().positive().default(4_096),
+  /** مهلة الطلب الكاملة على مستوى مقبس HTTP (slowloris) وتشمل قراءة الجسم. */
+  HTTP_REQUEST_TIMEOUT_MS: z.coerce.number().int().positive().default(30_000),
+  /** مهلة استلام الترويسات وحدها — أضيق من مهلة الطلب لقطع اليد المبطئة مبكراً. */
+  HTTP_HEADERS_TIMEOUT_MS: z.coerce.number().int().positive().default(20_000),
 
   /** Public self-service signup (POST /api/v1/signup). Turn it off for private deployments. */
   SIGNUP_ENABLED: booleanish.default(true),
@@ -148,6 +223,11 @@ const envSchema = z.object({
    * ولا يُحوَّل فشلُ الرفع إلى نجاحٍ على القرص بصمت في أي حال.
    */
   BACKUP_STORE: z.enum(['auto', 's3', 'filesystem']).default('auto'),
+  /**
+   * رمزٌ مشترك لاستقبال تقارير أخطاء سيرفرات Next (`POST /platform/problems/ingest`).
+   * غيابه يُغلق المسار (404) — لا يُفتح باب كتابةٍ في السجلّ لمجرّد وجودِ الكود.
+   */
+  PROBLEM_REPORT_TOKEN: z.string().min(16).optional(),
 
   /** PHASE_04 jobs — BullMQ is only wired up when a Redis URL is present. */
   WORKER: booleanish.default(false),
@@ -209,6 +289,8 @@ const envSchema = z.object({
   DATA_ENC_KEY: z.string().optional(),
   /** HMAC secret for app-signed file download URLs; derived from DATA_ENC_KEY when unset. */
   FILE_URL_SIGNING_SECRET: z.string().optional(),
+  /** AUD-09 — pepper for the legacy compatibility gateway's device-key hashes. */
+  COMPAT_KEY_PEPPER: z.string().optional(),
 });
 
 export type AppEnv = z.infer<typeof envSchema>;
@@ -235,7 +317,54 @@ function readEnv(source: Record<string, string | undefined>): { value: AppEnv; i
 
 const parsed = readEnv(process.env);
 
-export const env: AppEnv = parsed.value;
+/**
+ * Test-only at-rest encryption key (AUD-16). The name is deliberately unusable in
+ * production: it exists so spec runs can exercise sealed columns without planting a
+ * repository-known default that a deployment could silently inherit. It is only ever
+ * injected when `NODE_ENV === 'test'`.
+ */
+export const TEST_DATA_ENC_KEY = 'erp-test-only-data-encryption-key';
+
+/**
+ * Resolves the key behind every AES-256-GCM envelope (secret-box, provider credentials,
+ * Salla/e-invoicing/payments/e-commerce secrets) — AUD-16.
+ *
+ * Before this, each module defaulted to the repository-known string
+ * `local-development-data-key` whenever `NODE_ENV !== 'production'`, so a staging process
+ * (or any non-production deployment) could encrypt real secrets under a public key.
+ * Resolution order — explicit argument, runtime `process.env`, validated `env` — then a
+ * **fail-closed** error outside tests instead of a known fallback.
+ */
+export function decideDataEncryptionKey(key: string | undefined | null, nodeEnv: string): string {
+  const configured = (key ?? '').trim();
+  if (configured.length > 0) return configured;
+  if (nodeEnv === 'test') return TEST_DATA_ENC_KEY;
+  throw new Error(
+    'DATA_ENC_KEY is required to encrypt or decrypt stored secrets (AUD-16). ' +
+      'Run `pnpm env:setup` at the repository root or set DATA_ENC_KEY in the environment; ' +
+      'the built-in fallback exists for tests only.',
+  );
+}
+
+export function resolveDataEncryptionKey(
+  candidate?: { DATA_ENC_KEY?: string },
+  nodeEnv: string = process.env.NODE_ENV ?? parsed.value.NODE_ENV,
+): string {
+  return decideDataEncryptionKey(
+    candidate?.DATA_ENC_KEY ?? process.env.DATA_ENC_KEY ?? parsed.value.DATA_ENC_KEY,
+    nodeEnv,
+  );
+}
+
+/** Convenience wrapper for call sites that do not accept a key argument. */
+export function dataEncryptionKey(): string {
+  return resolveDataEncryptionKey();
+}
+
+export const env: AppEnv =
+  parsed.value.NODE_ENV === 'test' && !parsed.value.DATA_ENC_KEY
+    ? { ...parsed.value, DATA_ENC_KEY: TEST_DATA_ENC_KEY }
+    : parsed.value;
 
 /** Human-readable list of variables that failed validation and were ignored. */
 export const envIssues: readonly string[] = parsed.issues;
@@ -261,6 +390,8 @@ export function assertRuntimeEnv(candidate: AppEnv = env): AppEnv {
   if (!normalisePem(candidate.JWT_PRIVATE_KEY)) missing.push('JWT_PRIVATE_KEY');
   if (!normalisePem(candidate.JWT_PUBLIC_KEY)) missing.push('JWT_PUBLIC_KEY');
   if (candidate.NODE_ENV === 'production' && !candidate.DATA_ENC_KEY) missing.push('DATA_ENC_KEY');
+  // AUD-09: بدون الـpepper تُبصم مفاتيح الأجهزة بسرٍّ معروف — الإنتاج لا يُقلع بلا قيمة.
+  if (candidate.NODE_ENV === 'production' && !candidate.COMPAT_KEY_PEPPER) missing.push('COMPAT_KEY_PEPPER');
 
   if (missing.length > 0 || parsed.issues.length > 0) {
     const lines = ['Invalid environment.'];

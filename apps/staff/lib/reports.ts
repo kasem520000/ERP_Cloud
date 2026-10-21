@@ -27,7 +27,7 @@ export type ReportParamKind =
   | 'cashLocation'
   | 'vesselGroup'
   | 'year';
-export type ReportColumnType = 'text' | 'money' | 'qty' | 'int' | 'date' | 'percent';
+export type ReportColumnType = 'text' | 'money' | 'qty' | 'int' | 'date' | 'percent' | 'qr';
 
 export type ReportParam = { name: string; labelAr: string; kind: ReportParamKind; options?: Array<{ value: string; labelAr: string }> };
 export type ReportColumn = { key: string; labelAr: string; type: ReportColumnType; hidden?: boolean };
@@ -141,9 +141,39 @@ export type PrintSettings = {
   headerImageUrl: string;
   footerImageUrl: string;
   stampImageUrl: string;
+  // ── مصمّم القوالب: كيف تبدو الورقة (البند 15)
+  /** 🎨 `classic` · `modern` · `minimal` — نفس `PRINT_TEMPLATES` في الخدمة. */
+  template: PrintTemplate;
+  /** 🖌️ `#RRGGBB`، أو `''` لوراثة لون هوية المنشأة. */
+  accentColor: string;
+  /** ✍️ عائلة الخط. */
+  fontFamily: PrintFont;
+  /** 🔎 مقياس الخط 85..130. */
+  fontScale: number;
+  /** ✒️ سطر التوقيعات في التقارير. */
+  showSignatures: boolean;
   /** False when the row is still the desktop's default rather than a saved one. */
   saved: boolean;
 };
+
+/**
+ * 🎨 نفس مفردات الخدمة (`print-settings.service.ts`) — مصدرُها واحد ولا تُخترع في الواجهة،
+ * وإلّا عرضت الشاشة قالباً يرفضه الخادم.
+ */
+export type PrintTemplate = 'classic' | 'modern' | 'minimal';
+export type PrintFont = 'segoe' | 'naskh' | 'sans';
+
+export const PRINT_TEMPLATE_OPTIONS: Array<{ value: PrintTemplate; labelAr: string; hintAr: string }> = [
+  { value: 'classic', labelAr: 'كلاسيكي', hintAr: 'جدولٌ بحدودٍ رمادية — الشكل الذي كان.' },
+  { value: 'modern', labelAr: 'عصري', hintAr: 'شريطُ لونٍ أعلى الورقة وترويسةُ جدولٍ بلون التمييز.' },
+  { value: 'minimal', labelAr: 'مختصر', hintAr: 'خطوطٌ رفيعة بلا تعبئة — ورقٌ هادئ.' },
+];
+
+export const PRINT_FONT_OPTIONS: Array<{ value: PrintFont; labelAr: string }> = [
+  { value: 'segoe', labelAr: 'Segoe UI — الافتراضي' },
+  { value: 'naskh', labelAr: 'Noto Naskh Arabic — نسخي' },
+  { value: 'sans', labelAr: 'خط النظام — حديث' },
+];
 
 export const fetchPrintSettings = () => apiData<PrintSettings[]>('/reports/print-settings');
 
@@ -250,6 +280,9 @@ export function formatCell(value: string, type: ReportColumnType): string {
       return Number.isFinite(Number(value)) ? `${Number(value).toFixed(2)}%` : value;
     case 'date':
       return shortDate(value);
+    case 'qr':
+      // الرمز يُرسم لا يُنسخ؛ والتصدير النصّي يحمل الحمولة الخام كما هي.
+      return value;
     default:
       return value;
   }

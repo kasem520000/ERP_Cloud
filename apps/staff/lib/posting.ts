@@ -35,6 +35,9 @@ export type PostingProfile = {
   openingBalanceAccountId?: string | null;
   inventoryAdjustmentAccountId?: string | null;
   stockInTransitAccountId?: string | null;
+  /** 🏭 الإنتاج (PHASE_E) — اختياريان: ربطهما معاً يُرحّل قيد «منتج تام ← مواد خام»، وتركهما يبقي الإنتاج محايداً. */
+  rawMaterialsAccountId?: string | null;
+  finishedGoodsAccountId?: string | null;
   cashAccountId?: string | null;
   bankAccountId?: string | null;
   receivableAccountId?: string | null;
@@ -56,6 +59,8 @@ export const POSTING_ACCOUNT_LABELS: Record<string, string> = {
   openingBalanceAccountId: 'بضاعة أول المدة',
   inventoryAdjustmentAccountId: 'تسويات المخزون (عجز/زيادة)',
   stockInTransitAccountId: 'بضاعة تحت التحويل',
+  rawMaterialsAccountId: 'مواد خام الإنتاج (دقيق/سكر/زيت)',
+  finishedGoodsAccountId: 'المنتج التام (خبز/حلويات)',
   cashAccountId: 'الصندوق',
   bankAccountId: 'البنك',
   receivableAccountId: 'العملاء (ذمم مدينة)',

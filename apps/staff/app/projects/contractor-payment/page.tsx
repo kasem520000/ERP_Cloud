@@ -1,11 +1,20 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import { Panel } from '@erp/ui';
 
 import { DataTable, Notice, QueryView } from '../../../components/data-view';
 import { Screen } from '../../../components/screen';
-import { ApiError, apiData, apiList, apiPost } from '../../../lib/api';
-import { cashLocationLabel, listCashLocations, money, shortDate, statusLabel, today, type CashLocation } from '../../../lib/lookups';
+import { ApiError, apiData, apiErrorText, apiList, apiPost } from '../../../lib/api';
+import {
+  cashLocationLabel,
+  listCashLocations,
+  money,
+  shortDate,
+  statusLabel,
+  today,
+  type CashLocation,
+} from '../../../lib/lookups';
 import { useSession } from '../../../lib/session';
 import { useQuery } from '../../../lib/use-query';
 
@@ -39,8 +48,18 @@ type Contract = {
   advanceAmount: string;
 };
 
-const KIND_LABELS: Record<string, string> = { advance: 'دفعة مقدمة', progress: 'مستخلص جاري', final: 'مستخلص ختامي', retention_release: 'إفراج محتجز' };
-const STATUS_LABELS: Record<string, string> = { draft: 'مسودة', approved: 'معتمد', paid: 'مدفوع', cancelled: 'ملغي' };
+const KIND_LABELS: Record<string, string> = {
+  advance: 'دفعة مقدمة',
+  progress: 'مستخلص جاري',
+  final: 'مستخلص ختامي',
+  retention_release: 'إفراج محتجز',
+};
+const STATUS_LABELS: Record<string, string> = {
+  draft: 'مسودة',
+  approved: 'معتمد',
+  paid: 'مدفوع',
+  cancelled: 'ملغي',
+};
 
 /**
  * سند دفع لمقاول. The deductions are shown before saving but are recalculated by the
@@ -52,8 +71,17 @@ export default function ContractorPaymentPage() {
   const cashLocations = useQuery<CashLocation[]>(() => listCashLocations(), []);
 
   const [contractId, setContractId] = useState('');
-  const contract = useQuery<Contract | null>(() => (contractId ? apiData<Contract>(`/contracting/contracts/${contractId}`) : Promise.resolve(null)), [contractId]);
-  const payments = useQuery<Payment[]>(() => (contractId ? apiList<Payment>(`/contracting/payments?contract_id=${contractId}`) : apiList<Payment>('/contracting/payments')), [contractId]);
+  const contract = useQuery<Contract | null>(
+    () => (contractId ? apiData<Contract>(`/contracting/contracts/${contractId}`) : Promise.resolve(null)),
+    [contractId],
+  );
+  const payments = useQuery<Payment[]>(
+    () =>
+      contractId
+        ? apiList<Payment>(`/contracting/payments?contract_id=${contractId}`)
+        : apiList<Payment>('/contracting/payments'),
+    [contractId],
+  );
 
   const [kind, setKind] = useState('progress');
   const [paymentDate, setPaymentDate] = useState(today());
@@ -68,7 +96,8 @@ export default function ContractorPaymentPage() {
   const header = contract.data ?? null;
   const preview = useMemo(() => {
     const gross = Number(grossAmount || 0);
-    const deducted = kind === 'progress' || kind === 'final' ? gross * (Number(header?.retentionPct ?? 0) / 100) : 0;
+    const deducted =
+      kind === 'progress' || kind === 'final' ? gross * (Number(header?.retentionPct ?? 0) / 100) : 0;
     const recovery = kind === 'progress' || kind === 'final' ? Number(advanceRecovery || 0) : 0;
     return { gross, retention: deducted, recovery, net: gross - deducted - recovery };
   }, [grossAmount, advanceRecovery, kind, header?.retentionPct]);
@@ -86,7 +115,10 @@ export default function ContractorPaymentPage() {
         advanceRecovery: advanceRecovery || '0',
         notes: notes.trim() || undefined,
       });
-      setNotice({ kind: 'ok', text: `تم إنشاء السند ${created.number}: إجمالي ${money(created.grossAmount)} − محتجز ${money(created.retentionAmount)} − استرداد مقدمة ${money(created.advanceRecovery)} = صافي ${money(created.netAmount)}.` });
+      setNotice({
+        kind: 'ok',
+        text: `تم إنشاء السند ${created.number}: إجمالي ${money(created.grossAmount)} − محتجز ${money(created.retentionAmount)} − استرداد مقدمة ${money(created.advanceRecovery)} = صافي ${money(created.netAmount)}.`,
+      });
       setGrossAmount('');
       setAdvanceRecovery('0');
       setNotes('');
@@ -94,7 +126,7 @@ export default function ContractorPaymentPage() {
       contract.reload();
       contracts.reload();
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
     } finally {
       setBusy(false);
     }
@@ -108,7 +140,7 @@ export default function ContractorPaymentPage() {
       setNotice({ kind: 'ok', text: `تم اعتماد السند ${payment.number}.` });
       payments.reload();
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
     } finally {
       setBusy(false);
     }
@@ -118,8 +150,12 @@ export default function ContractorPaymentPage() {
     setBusy(true);
     setNotice(undefined);
     try {
-      if (!cashLocationId) throw new ApiError(422, 'VALIDATION_FAILED', 'اختر الصندوق أو البنك الذي سيُصرف منه.');
-      const paid = await apiPost<Payment>(`/contracting/payments/${payment.id}/pay`, { cashLocationId, method });
+      if (!cashLocationId)
+        throw new ApiError(422, 'VALIDATION_FAILED', 'اختر الصندوق أو البنك الذي سيُصرف منه.');
+      const paid = await apiPost<Payment>(`/contracting/payments/${payment.id}/pay`, {
+        cashLocationId,
+        method,
+      });
       setNotice({
         kind: 'ok',
         text: `تم صرف ${money(paid.netAmount)} على السند ${payment.number}، وأُنشئ سند صرف بحالة مسودة — رحّله من شاشة السندات لقيده في الدفاتر.`,
@@ -127,7 +163,7 @@ export default function ContractorPaymentPage() {
       payments.reload();
       contract.reload();
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
     } finally {
       setBusy(false);
     }
@@ -142,7 +178,7 @@ export default function ContractorPaymentPage() {
       payments.reload();
       contract.reload();
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
     } finally {
       setBusy(false);
     }
@@ -159,7 +195,11 @@ export default function ContractorPaymentPage() {
       <div className="toolbar">
         <label className="field wide">
           <span>العقد (الساري فقط)</span>
-          <select className="input" value={contractId} onChange={(event) => setContractId(event.target.value)}>
+          <select
+            className="input"
+            value={contractId}
+            onChange={(event) => setContractId(event.target.value)}
+          >
             <option value="">— كل السندات —</option>
             {(contracts.data ?? []).map((row) => (
               <option key={row.id} value={row.id}>{`${row.number} — ${row.title}`}</option>
@@ -169,34 +209,36 @@ export default function ContractorPaymentPage() {
       </div>
 
       {header && (
-        <div className="card">
-          <h3>
-            {header.number} — {header.title}
-          </h3>
-          <div className="grid cols-2">
-            <div className="kpi">
-              <span>قيمة العقد</span>
-              <strong>{money(header.contractValue)}</strong>
+        <Panel
+          title={
+            <>
+              {header.number} — {header.title}
+            </>
+          }
+        >
+          <div className="ui-kpi-strip">
+            <div className="ui-kpi-cell">
+              <span className="ui-kpi-label">قيمة العقد</span>
+              <span className="ui-kpi-value">{money(header.contractValue)}</span>
             </div>
-            <div className="kpi">
-              <span>المتبقي للاستخلاص</span>
-              <strong>{money(header.remainingValue)}</strong>
+            <div className="ui-kpi-cell">
+              <span className="ui-kpi-label">المتبقي للاستخلاص</span>
+              <span className="ui-kpi-value">{money(header.remainingValue)}</span>
             </div>
-            <div className="kpi">
-              <span>المحتجز الحالي</span>
-              <strong>{money(header.retentionHeld)}</strong>
+            <div className="ui-kpi-cell">
+              <span className="ui-kpi-label">المحتجز الحالي</span>
+              <span className="ui-kpi-value">{money(header.retentionHeld)}</span>
             </div>
-            <div className="kpi">
-              <span>المتبقي من المقدمة</span>
-              <strong>{money(header.advanceOutstanding)}</strong>
+            <div className="ui-kpi-cell">
+              <span className="ui-kpi-label">المتبقي من المقدمة</span>
+              <span className="ui-kpi-value">{money(header.advanceOutstanding)}</span>
             </div>
           </div>
-        </div>
+        </Panel>
       )}
 
       {can('projects.manage') && (
-        <div className="card">
-          <h3>سند جديد</h3>
+        <Panel title="سند جديد">
           <div className="form-grid">
             <label className="field">
               <span>نوع السند</span>
@@ -209,11 +251,21 @@ export default function ContractorPaymentPage() {
             </label>
             <label className="field">
               <span>التاريخ</span>
-              <input className="input" type="date" value={paymentDate} onChange={(event) => setPaymentDate(event.target.value)} />
+              <input
+                className="input"
+                type="date"
+                value={paymentDate}
+                onChange={(event) => setPaymentDate(event.target.value)}
+              />
             </label>
             <label className="field">
               <span>قيمة الأعمال</span>
-              <input className="input" value={grossAmount} onChange={(event) => setGrossAmount(event.target.value)} inputMode="decimal" />
+              <input
+                className="input"
+                value={grossAmount}
+                onChange={(event) => setGrossAmount(event.target.value)}
+                inputMode="decimal"
+              />
             </label>
             <label className="field">
               <span>استرداد من المقدمة</span>
@@ -236,25 +288,32 @@ export default function ContractorPaymentPage() {
             <span className="chip">{`استرداد مقدمة: ${money(preview.recovery)}`}</span>
             <span className="chip on">{`الصافي المستحق: ${money(preview.net)}`}</span>
           </div>
-          {preview.net < 0 && <p className="alert danger">الاستقطاعات تتجاوز قيمة السند — راجع الاسترداد قبل الحفظ.</p>}
+          {preview.net < 0 && (
+            <p className="alert danger">الاستقطاعات تتجاوز قيمة السند — راجع الاسترداد قبل الحفظ.</p>
+          )}
           <div className="toolbar">
             <button className="btn primary" type="button" onClick={create} disabled={busy || !contractId}>
               {busy ? 'جارٍ الحفظ…' : 'حفظ السند'}
             </button>
           </div>
-        </div>
+        </Panel>
       )}
 
       {can('projects.contractor.pay') && (
-        <div className="card">
-          <h3>بيانات الصرف</h3>
+        <Panel title="بيانات الصرف">
           <div className="form-grid">
             <label className="field">
               <span>الصندوق / البنك</span>
-              <select className="input" value={cashLocationId} onChange={(event) => setCashLocationId(event.target.value)}>
+              <select
+                className="input"
+                value={cashLocationId}
+                onChange={(event) => setCashLocationId(event.target.value)}
+              >
                 <option value="">— اختر —</option>
                 {(cashLocations.data ?? []).map((row) => (
-                  <option key={row.id} value={row.id}>{cashLocationLabel(row)}</option>
+                  <option key={row.id} value={row.id}>
+                    {cashLocationLabel(row)}
+                  </option>
                 ))}
               </select>
             </label>
@@ -269,11 +328,10 @@ export default function ContractorPaymentPage() {
             </label>
           </div>
           <p className="muted">يُستخدم هذا الاختيار عند الضغط على «صرف» في جدول السندات أدناه.</p>
-        </div>
+        </Panel>
       )}
 
-      <div className="card">
-        <h3>السندات</h3>
+      <Panel title="السندات" flush>
         <QueryView query={payments} empty="لا توجد سندات دفع" emptyDetail="أنشئ سنداً من النموذج أعلاه.">
           {(rows) => (
             <DataTable
@@ -284,11 +342,31 @@ export default function ContractorPaymentPage() {
                 { key: 'date', header: 'التاريخ', align: 'ltr', cell: (row) => shortDate(row.paymentDate) },
                 { key: 'kind', header: 'النوع', cell: (row) => KIND_LABELS[row.kind] ?? row.kind },
                 { key: 'gross', header: 'الإجمالي', align: 'num', cell: (row) => money(row.grossAmount) },
-                { key: 'retention', header: 'المحتجز', align: 'num', cell: (row) => money(row.retentionAmount) },
-                { key: 'recovery', header: 'استرداد مقدمة', align: 'num', cell: (row) => money(row.advanceRecovery) },
+                {
+                  key: 'retention',
+                  header: 'المحتجز',
+                  align: 'num',
+                  cell: (row) => money(row.retentionAmount),
+                },
+                {
+                  key: 'recovery',
+                  header: 'استرداد مقدمة',
+                  align: 'num',
+                  cell: (row) => money(row.advanceRecovery),
+                },
                 { key: 'net', header: 'الصافي', align: 'num', cell: (row) => money(row.netAmount) },
-                { key: 'status', header: 'الحالة', cell: (row) => <span className="badge">{STATUS_LABELS[row.status] ?? statusLabel(row.status)}</span> },
-                { key: 'voucher', header: 'سند الصرف', cell: (row) => (row.voucherId ? 'مُنشأ (مسودة)' : '—') },
+                {
+                  key: 'status',
+                  header: 'الحالة',
+                  cell: (row) => (
+                    <span className="badge">{STATUS_LABELS[row.status] ?? statusLabel(row.status)}</span>
+                  ),
+                },
+                {
+                  key: 'voucher',
+                  header: 'سند الصرف',
+                  cell: (row) => (row.voucherId ? 'مُنشأ (مسودة)' : '—'),
+                },
                 {
                   key: 'actions',
                   header: '',
@@ -300,12 +378,22 @@ export default function ContractorPaymentPage() {
                         </button>
                       )}
                       {row.status === 'approved' && can('projects.contractor.pay') && (
-                        <button className="btn sm primary" type="button" disabled={busy} onClick={() => pay(row)}>
+                        <button
+                          className="btn sm primary"
+                          type="button"
+                          disabled={busy}
+                          onClick={() => pay(row)}
+                        >
                           صرف
                         </button>
                       )}
                       {(row.status === 'draft' || row.status === 'approved') && can('projects.manage') && (
-                        <button className="btn sm danger" type="button" disabled={busy} onClick={() => cancel(row)}>
+                        <button
+                          className="btn sm danger"
+                          type="button"
+                          disabled={busy}
+                          onClick={() => cancel(row)}
+                        >
                           إلغاء
                         </button>
                       )}
@@ -316,7 +404,7 @@ export default function ContractorPaymentPage() {
             />
           )}
         </QueryView>
-      </div>
+      </Panel>
     </Screen>
   );
 }

@@ -200,6 +200,10 @@ export const usageSeriesPointSchema = z.object({
 /**
  * بندٌ واحد في شبكة الاستخدام. `limitSource` هي مفردات P-C2 نفسها، و`enforced` تقول أيقع
  * الرفض عند هذا الحدّ أم أنّه مغلّفٌ افتراضي يُبلَّغ عنه فقط (القرار 2 أعلاه).
+ *
+ * و`plan` هي الحال التي يبيعها المشغّل: حدٌّ مكتوبٌ في باقة الاشتراك النشطة
+ * (`billing_plan_entitlements`)، وهو **مطبَّق** دائماً — باقةٌ تقول «5 فروع» ولا تمنع السادس
+ * ليست باقة، بل زينةٌ في شاشة. والترتيب: تجاوز العميل ← الباقة ← افتراض المنصّة ← الفهرس.
  */
 export const usageMetricUsageSchema = z.object({
   key: z.enum(usageMetricKeys),
@@ -208,7 +212,7 @@ export const usageMetricUsageSchema = z.object({
   period: z.enum(['day', 'month', 'total']),
   used: z.number().int().nonnegative(),
   limit: z.number().int().nonnegative().nullable(),
-  limitSource: z.enum(['tenant', 'platform', 'default']),
+  limitSource: z.enum(['tenant', 'plan', 'platform', 'default']),
   percentUsed: z.number().int().nonnegative().nullable(),
   state: usageMetricStateSchema,
   enforced: z.boolean(),

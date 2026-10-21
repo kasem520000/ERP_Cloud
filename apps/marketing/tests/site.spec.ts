@@ -77,7 +77,16 @@ describe('marketing site structure (P-M1)', () => {
     }
     // الإنجليزية تحت `/en` والعربية على الجذر — وهذا ما يجعل `hreflang` ممكناً.
     expect(siteNavLinks('ar').every((link) => !link.href.startsWith('/en'))).toBe(true);
-    expect(siteNavLinks('en').every((link) => link.href === '/en' || link.href.startsWith('/en/'))).toBe(true);
+    // الاستثناء المُعلن في `navigation.ts`: مسارٌ بلا نظيرٍ إنجليزي (`bilingual: false`)
+    // يبقى على شكله العربي بدل أن يفتح `/en/pricing` → 404.
+    const byKey = new Map(siteRoutes.map((route) => [route.key, route]));
+    expect(
+      siteNavLinks('en').every((link) => {
+        const route = byKey.get(link.key);
+        if (route?.bilingual === false) return !link.href.startsWith('/en');
+        return link.href === '/en' || link.href.startsWith('/en/');
+      }),
+    ).toBe(true);
   });
 });
 

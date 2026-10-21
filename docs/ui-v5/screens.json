@@ -1,0 +1,3051 @@
+{
+  "apps": {
+    "staff": [
+      {
+        "app": "staff",
+        "route": "/crm/activities",
+        "file": "apps/staff/app/crm/activities/page.tsx",
+        "title": "أنشطة المبيعات",
+        "group": "إدارة العلاقات",
+        "done": true,
+        "rebuilt": true,
+        "note": "هيكلة v5.2: إطار Page/PageHead + شريط مؤشرات + تصفية موحّدة · تحقق في المتصفح 1440"
+      },
+      {
+        "app": "staff",
+        "route": "/crm/deals/[id]",
+        "file": "apps/staff/app/crm/deals/[id]/page.tsx",
+        "title": "صفقة (تفاصيل)",
+        "group": "إدارة العلاقات",
+        "done": true,
+        "rebuilt": true,
+        "note": "فُتح بسجل صفقة حقيقي في المتصفح 1440 (صفقة + نشاط) · أُعيد الفتح 1440/390 بعد الهيكلة",
+        "verifiedAt": "2026-10-20"
+      },
+      {
+        "app": "staff",
+        "route": "/crm/forecast",
+        "file": "apps/staff/app/crm/forecast/page.tsx",
+        "title": "تنبؤ المبيعات",
+        "group": "إدارة العلاقات",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "staff",
+        "route": "/crm/pipelines",
+        "file": "apps/staff/app/crm/pipelines/page.tsx",
+        "title": "مسار المبيعات",
+        "group": "إدارة العلاقات",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "staff",
+        "route": "/marina/additions",
+        "file": "apps/staff/app/marina/additions/page.tsx",
+        "title": "الإضافات",
+        "group": "إدارة المراسي",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "staff",
+        "route": "/marina/bookings",
+        "file": "apps/staff/app/marina/bookings/page.tsx",
+        "title": "الحجوزات",
+        "group": "إدارة المراسي",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "staff",
+        "route": "/marina/day-close",
+        "file": "apps/staff/app/marina/day-close/page.tsx",
+        "title": "إغلاق اليومية",
+        "group": "إدارة المراسي",
+        "done": true,
+        "rebuilt": true,
+        "note": "هيكلة v5.2: إطار Page/PageHead + شريط مؤشرات + تصفية موحّدة · تحقق في المتصفح 1440"
+      },
+      {
+        "app": "staff",
+        "route": "/marina/groups",
+        "file": "apps/staff/app/marina/groups/page.tsx",
+        "title": "بطاقة الفئة وفترات التأجير",
+        "group": "إدارة المراسي",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "staff",
+        "route": "/marina/link-invoices",
+        "file": "apps/staff/app/marina/link-invoices/page.tsx",
+        "title": "بحث الفواتير",
+        "group": "إدارة المراسي",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "staff",
+        "route": "/marina/preparation",
+        "file": "apps/staff/app/marina/preparation/page.tsx",
+        "title": "تحضير المراكب",
+        "group": "إدارة المراسي",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "staff",
+        "route": "/marina/rota",
+        "file": "apps/staff/app/marina/rota/page.tsx",
+        "title": "خطة الدور",
+        "group": "إدارة المراسي",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "staff",
+        "route": "/marina/vessels",
+        "file": "apps/staff/app/marina/vessels/page.tsx",
+        "title": "بطاقات النماذج والمراكب والملاك",
+        "group": "إدارة المراسي",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "staff",
+        "route": "/marina/violations",
+        "file": "apps/staff/app/marina/violations/page.tsx",
+        "title": "المخالفات",
+        "group": "إدارة المراسي",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "staff",
+        "route": "/notifications",
+        "file": "apps/staff/app/notifications/page.tsx",
+        "title": "مركز الإشعارات",
+        "group": "الإشعارات",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "staff",
+        "route": "/approvals/history",
+        "file": "apps/staff/app/approvals/history/page.tsx",
+        "title": "سجل الموافقات",
+        "group": "الاعتمادات",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "staff",
+        "route": "/approvals/inbox",
+        "file": "apps/staff/app/approvals/inbox/page.tsx",
+        "title": "وارد الموافقات",
+        "group": "الاعتمادات",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "staff",
+        "route": "/settings/ai",
+        "file": "apps/staff/app/settings/ai/page.tsx",
+        "title": "إعدادات المساعد",
+        "group": "الإعدادات",
+        "done": true,
+        "rebuilt": true,
+        "note": "هيكلة v5.2: إطار Page/PageHead + شريط مؤشرات + تصفية موحّدة · تحقق في المتصفح 1440"
+      },
+      {
+        "app": "staff",
+        "route": "/settings/approvals",
+        "file": "apps/staff/app/settings/approvals/page.tsx",
+        "title": "مسارات الموافقات",
+        "group": "الإعدادات",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق بمتصفح — الأدوار والأعضاء والفروع كقوائم لا UUID"
+      },
+      {
+        "app": "staff",
+        "route": "/settings/audit",
+        "file": "apps/staff/app/settings/audit/page.tsx",
+        "title": "سجلات المستخدمين",
+        "group": "الإعدادات",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "staff",
+        "route": "/settings/backup",
+        "file": "apps/staff/app/settings/backup/page.tsx",
+        "title": "النسخ الإحتياطي",
+        "group": "الإعدادات",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "staff",
+        "route": "/settings/branches",
+        "file": "apps/staff/app/settings/branches/page.tsx",
+        "title": "بطاقة فرع",
+        "group": "الإعدادات",
+        "done": true,
+        "rebuilt": true,
+        "note": "هيكلة v5.2: إطار Page/PageHead + شريط مؤشرات + تصفية موحّدة · تحقق في المتصفح 1440"
+      },
+      {
+        "app": "staff",
+        "route": "/settings/change-password",
+        "file": "apps/staff/app/settings/change-password/page.tsx",
+        "title": "تغيير كلمة المرور",
+        "group": "الإعدادات",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "staff",
+        "route": "/settings/company",
+        "file": "apps/staff/app/settings/company/page.tsx",
+        "title": "بطاقة المنشأة",
+        "group": "الإعدادات",
+        "done": true,
+        "rebuilt": true,
+        "note": "اسم/رمز المنشأة التجريبية — بيانات لا نص واجهة"
+      },
+      {
+        "app": "staff",
+        "route": "/settings/custom-fields",
+        "file": "apps/staff/app/settings/custom-fields/page.tsx",
+        "title": "الحقول الإضافية",
+        "group": "الإعدادات",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق بمتصفح — حقول الطبقة المشتركة"
+      },
+      {
+        "app": "staff",
+        "route": "/settings/data-rotation",
+        "file": "apps/staff/app/settings/data-rotation/page.tsx",
+        "title": "تدوير البيانات",
+        "group": "الإعدادات",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "staff",
+        "route": "/settings/devices",
+        "file": "apps/staff/app/settings/devices/page.tsx",
+        "title": "أجهزة أندرويد المرتبطة",
+        "group": "الإعدادات",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "staff",
+        "route": "/settings/ecommerce",
+        "file": "apps/staff/app/settings/ecommerce/page.tsx",
+        "title": "التجارة الإلكترونية — سلة · زد · Shopify",
+        "group": "الإعدادات",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "staff",
+        "route": "/settings/email",
+        "file": "apps/staff/app/settings/email/page.tsx",
+        "title": "البريد — القوالب والسجلّ",
+        "group": "الإعدادات",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "staff",
+        "route": "/settings/files",
+        "file": "apps/staff/app/settings/files/page.tsx",
+        "title": "مدير الملفات",
+        "group": "الإعدادات",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440"
+      },
+      {
+        "app": "staff",
+        "route": "/settings/general",
+        "file": "apps/staff/app/settings/general/page.tsx",
+        "title": "إعدادات عامة",
+        "group": "الإعدادات",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق بمتصفح — وحدة افتراضية كقائمة، ومفاتيح متقدمة داخل طيّ"
+      },
+      {
+        "app": "staff",
+        "route": "/settings/invoice-maintenance",
+        "file": "apps/staff/app/settings/invoice-maintenance/page.tsx",
+        "title": "صيانة الفواتير",
+        "group": "الإعدادات",
+        "done": true,
+        "rebuilt": true,
+        "note": "هيكلة v5.2: إطار Page/PageHead + شريط مؤشرات + تصفية موحّدة · تحقق في المتصفح 1440"
+      },
+      {
+        "app": "staff",
+        "route": "/settings/language",
+        "file": "apps/staff/app/settings/language/page.tsx",
+        "title": "اللغة",
+        "group": "الإعدادات",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "staff",
+        "route": "/settings/marketplace",
+        "file": "apps/staff/app/settings/marketplace/page.tsx",
+        "title": "سوق الإضافات",
+        "group": "الإعدادات",
+        "done": true,
+        "rebuilt": true,
+        "note": "هيكلة v5.2: إطار Page/PageHead + شريط مؤشرات + تصفية موحّدة · تحقق في المتصفح 1440"
+      },
+      {
+        "app": "staff",
+        "route": "/settings/new-file",
+        "file": "apps/staff/app/settings/new-file/page.tsx",
+        "title": "إنشاء ملف",
+        "group": "الإعدادات",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "staff",
+        "route": "/settings/offers",
+        "file": "apps/staff/app/settings/offers/page.tsx",
+        "title": "العروض",
+        "group": "الإعدادات",
+        "done": true,
+        "rebuilt": true,
+        "note": "هيكلة v5.2: إطار Page/PageHead + شريط مؤشرات + تصفية موحّدة · تحقق في المتصفح 1440"
+      },
+      {
+        "app": "staff",
+        "route": "/settings/payment-gateways",
+        "file": "apps/staff/app/settings/payment-gateways/page.tsx",
+        "title": "بوابات الدفع — جيديا · NeoLeap",
+        "group": "الإعدادات",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "staff",
+        "route": "/settings/payments",
+        "file": "apps/staff/app/settings/payments/page.tsx",
+        "title": "روابط الدفع — ميسر",
+        "group": "الإعدادات",
+        "done": true,
+        "rebuilt": true,
+        "note": "عنوان الويب هوك يعرضه إعداد الدفع"
+      },
+      {
+        "app": "staff",
+        "route": "/settings/posting-profiles",
+        "file": "apps/staff/app/settings/posting-profiles/page.tsx",
+        "title": "الربط المحاسبي",
+        "group": "الإعدادات",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "staff",
+        "route": "/settings/price-lists",
+        "file": "apps/staff/app/settings/price-lists/page.tsx",
+        "title": "إعدادات الأسعار",
+        "group": "الإعدادات",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "staff",
+        "route": "/settings/printing",
+        "file": "apps/staff/app/settings/printing/page.tsx",
+        "title": "إعدادات الطباعة",
+        "group": "الإعدادات",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة · 🎨 مصمّم القوالب: قالبٌ (كلاسيكي/عصري/مختصر) ولونٌ وخطٌّ ومقياسٌ وسطرُ توقيعات مع معاينةٍ حيّة للورقة"
+      },
+      {
+        "app": "staff",
+        "route": "/settings/restore",
+        "file": "apps/staff/app/settings/restore/page.tsx",
+        "title": "إستعادة البيانات",
+        "group": "الإعدادات",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "staff",
+        "route": "/settings/roles",
+        "file": "apps/staff/app/settings/roles/page.tsx",
+        "title": "صلاحيات المستخدمين",
+        "group": "الإعدادات",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "staff",
+        "route": "/settings/sync",
+        "file": "apps/staff/app/settings/sync/page.tsx",
+        "title": "مزامنة البيانات",
+        "group": "الإعدادات",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "staff",
+        "route": "/settings/sync/[entity]",
+        "file": "apps/staff/app/settings/sync/[entity]/page.tsx",
+        "title": "مزامنة كيان",
+        "group": "الإعدادات",
+        "done": true,
+        "rebuilt": true,
+        "note": "فُتح بمفاتيح المزامنة الأربعة؛ invoices = حالة فارغة سليمة — 1440 · أُعيد الفتح 1440/390 بعد الهيكلة",
+        "verifiedAt": "2026-10-20"
+      },
+      {
+        "app": "staff",
+        "route": "/settings/sync/manage",
+        "file": "apps/staff/app/settings/sync/manage/page.tsx",
+        "title": "إدارة المزامنة",
+        "group": "الإعدادات",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "staff",
+        "route": "/settings/sync/zatca",
+        "file": "apps/staff/app/settings/sync/zatca/page.tsx",
+        "title": "مزامنة الفواتير Zatca",
+        "group": "الإعدادات",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "staff",
+        "route": "/settings/two-factor",
+        "file": "apps/staff/app/settings/two-factor/page.tsx",
+        "title": "التحقق بخطوتين",
+        "group": "الإعدادات",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "staff",
+        "route": "/settings/usage",
+        "file": "apps/staff/app/settings/usage/page.tsx",
+        "title": "الاستخدام والحصص",
+        "group": "الإعدادات",
+        "done": true,
+        "rebuilt": true,
+        "note": "اسم المنشأة في ترويسة الاستخدام"
+      },
+      {
+        "app": "staff",
+        "route": "/settings/users",
+        "file": "apps/staff/app/settings/users/page.tsx",
+        "title": "بطاقة مستخدم",
+        "group": "الإعدادات",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "staff",
+        "route": "/settings/whatsapp",
+        "file": "apps/staff/app/settings/whatsapp/page.tsx",
+        "title": "واتساب — إرسال الفواتير",
+        "group": "الإعدادات",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "staff",
+        "route": "/settings/white-label",
+        "file": "apps/staff/app/settings/white-label/page.tsx",
+        "title": "الدومين والشعار",
+        "group": "الإعدادات",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440"
+      },
+      {
+        "app": "staff",
+        "route": "/settings/zatca",
+        "file": "apps/staff/app/settings/zatca/page.tsx",
+        "title": "إعدادات الربط مع هيئة الزكاة والضريبة",
+        "group": "الإعدادات",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "staff",
+        "route": "/settings/zatca/sent",
+        "file": "apps/staff/app/settings/zatca/sent/page.tsx",
+        "title": "الفواتير المرفوعة على موقع الضرائب",
+        "group": "الإعدادات",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "staff",
+        "route": "/settings/zatca/status",
+        "file": "apps/staff/app/settings/zatca/status/page.tsx",
+        "title": "مزامنة الفواتير - ZATCA",
+        "group": "الإعدادات",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "staff",
+        "route": "/migration/runs",
+        "file": "apps/staff/app/migration/runs/page.tsx",
+        "title": "إستيراد وتصدير البيانات",
+        "group": "الترحيل",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "staff",
+        "route": "/manufacturing/boms",
+        "file": "apps/staff/app/manufacturing/boms/page.tsx",
+        "title": "قوائم المواد",
+        "group": "التصنيع",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "staff",
+        "route": "/manufacturing/orders",
+        "file": "apps/staff/app/manufacturing/orders/page.tsx",
+        "title": "أوامر التصنيع",
+        "group": "التصنيع",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "staff",
+        "route": "/comments/mentions",
+        "file": "apps/staff/app/comments/mentions/page.tsx",
+        "title": "إشارات التعليقات",
+        "group": "التعليقات",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "staff",
+        "route": "/tailoring/invoices",
+        "file": "apps/staff/app/tailoring/invoices/page.tsx",
+        "title": "فواتير التفصيل",
+        "group": "التفصيل",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "staff",
+        "route": "/tailoring/measurements",
+        "file": "apps/staff/app/tailoring/measurements/page.tsx",
+        "title": "قياسات العملاء",
+        "group": "التفصيل",
+        "done": true,
+        "rebuilt": true,
+        "note": "فُتح؛ نفس إصلاح البحث (404 عميل غير موجود → حالة فارغة) — 1440",
+        "verifiedAt": "2026-10-20"
+      },
+      {
+        "app": "staff",
+        "route": "/tailoring/measurements/attributes",
+        "file": "apps/staff/app/tailoring/measurements/attributes/page.tsx",
+        "title": "خصائص القياسات",
+        "group": "التفصيل",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "staff",
+        "route": "/tailoring/options",
+        "file": "apps/staff/app/tailoring/options/page.tsx",
+        "title": "إدارة الخيارات الجاهزة",
+        "group": "التفصيل",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "staff",
+        "route": "/tailoring/orders",
+        "file": "apps/staff/app/tailoring/orders/page.tsx",
+        "title": "إدارة طلبات التفصيل",
+        "group": "التفصيل",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "staff",
+        "route": "/tailoring/types",
+        "file": "apps/staff/app/tailoring/types/page.tsx",
+        "title": "أنواع التفصيل",
+        "group": "التفصيل",
+        "done": true,
+        "rebuilt": true,
+        "note": "هيكلة v5.2: إطار Page/PageHead + شريط مؤشرات + تصفية موحّدة · تحقق في المتصفح 1440"
+      },
+      {
+        "app": "staff",
+        "route": "/reports",
+        "file": "apps/staff/app/reports/page.tsx",
+        "title": "مركز التقارير (كل التقارير)",
+        "group": "التقارير",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "staff",
+        "route": "/reports/[key]",
+        "file": "apps/staff/app/reports/[key]/page.tsx",
+        "title": "تقرير",
+        "group": "التقارير",
+        "done": true,
+        "rebuilt": true,
+        "note": "فُتح بمفاتيح تقارير حقيقية (sales-invoices · net-sales) — 1440 · أُعيد الفتح 1440/390 بعد الهيكلة",
+        "verifiedAt": "2026-10-20"
+      },
+      {
+        "app": "staff",
+        "route": "/reports/builder",
+        "file": "apps/staff/app/reports/builder/page.tsx",
+        "title": "منشئ التقارير المخصص",
+        "group": "التقارير",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق بمتصفح — حقول الطبقة المشتركة وأزرار موحدة"
+      },
+      {
+        "app": "staff",
+        "route": "/reports/custom",
+        "file": "apps/staff/app/reports/custom/page.tsx",
+        "title": "التقارير المحفوظة",
+        "group": "التقارير",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "staff",
+        "route": "/integrations/salla/orders",
+        "file": "apps/staff/app/integrations/salla/orders/page.tsx",
+        "title": "إدارة الطلبات",
+        "group": "التكاملات",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "staff",
+        "route": "/integrations/salla/products",
+        "file": "apps/staff/app/integrations/salla/products/page.tsx",
+        "title": "المنتجات",
+        "group": "التكاملات",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "staff",
+        "route": "/integrations/salla/settings",
+        "file": "apps/staff/app/integrations/salla/settings/page.tsx",
+        "title": "إعدادات ربط سلة",
+        "group": "التكاملات",
+        "done": true,
+        "rebuilt": true,
+        "note": "فُتح بعد إصلاح لوحة «عنوان الويب هوك» (عنوان جاهز للنسخ لكل متجر أو حالة فارغة) — 1440",
+        "verifiedAt": "2026-10-20"
+      },
+      {
+        "app": "staff",
+        "route": "/integrations/salla/warehouses",
+        "file": "apps/staff/app/integrations/salla/warehouses/page.tsx",
+        "title": "ربط المستودعات",
+        "group": "التكاملات",
+        "done": true,
+        "rebuilt": true,
+        "note": "هيكلة v5.2: إطار Page/PageHead + شريط مؤشرات + تصفية موحّدة · تحقق في المتصفح 1440"
+      },
+      {
+        "app": "staff",
+        "route": "/van-sales",
+        "file": "apps/staff/app/van-sales/page.tsx",
+        "title": "نظام المصنع والتوزيع",
+        "group": "التوزيع (فان)",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "staff",
+        "route": "/van-sales/rep",
+        "file": "apps/staff/app/van-sales/rep/page.tsx",
+        "title": "شاشة مندوب التوزيع",
+        "group": "التوزيع (فان)",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "staff",
+        "route": "/esign/[token]",
+        "file": "apps/staff/app/esign/[token]/page.tsx",
+        "title": "توقيع إلكتروني",
+        "group": "التوقيع الإلكتروني",
+        "done": true,
+        "rebuilt": true,
+        "note": "فُتح برمز توقيع حقيقي صادر من عرض سعر — 1440 · أُعيد الفتح 1440/390 بعد الهيكلة",
+        "verifiedAt": "2026-10-20"
+      },
+      {
+        "app": "staff",
+        "route": "/m",
+        "file": "apps/staff/app/m/page.tsx",
+        "title": "تطبيق الموظف",
+        "group": "الجوال",
+        "done": true,
+        "rebuilt": true,
+        "note": "تطبيق الموظف المحمول برأسه الخاص"
+      },
+      {
+        "app": "staff",
+        "route": "/m/approvals",
+        "file": "apps/staff/app/m/approvals/page.tsx",
+        "title": "موافقات الفريق",
+        "group": "الجوال",
+        "done": true,
+        "rebuilt": true,
+        "note": "تطبيق الموظف المحمول برأسه الخاص"
+      },
+      {
+        "app": "staff",
+        "route": "/m/attendance",
+        "file": "apps/staff/app/m/attendance/page.tsx",
+        "title": "حضور وانصراف",
+        "group": "الجوال",
+        "done": true,
+        "rebuilt": true,
+        "note": "تطبيق الموظف المحمول برأسه الخاص"
+      },
+      {
+        "app": "staff",
+        "route": "/m/profile",
+        "file": "apps/staff/app/m/profile/page.tsx",
+        "title": "راتبي وإجازاتي",
+        "group": "الجوال",
+        "done": true,
+        "rebuilt": true,
+        "note": "تطبيق الموظف المحمول برأسه الخاص"
+      },
+      {
+        "app": "staff",
+        "route": "/m/requests/new",
+        "file": "apps/staff/app/m/requests/new/page.tsx",
+        "title": "طلب جديد",
+        "group": "الجوال",
+        "done": true,
+        "rebuilt": true,
+        "note": "تطبيق الموظف المحمول برأسه الخاص"
+      },
+      {
+        "app": "staff",
+        "route": "/treasury/bank-accounts",
+        "file": "apps/staff/app/treasury/bank-accounts/page.tsx",
+        "title": "الحسابات البنكية",
+        "group": "الخزينة",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "staff",
+        "route": "/treasury/bank-reconciliation",
+        "file": "apps/staff/app/treasury/bank-reconciliation/page.tsx",
+        "title": "التسوية البنكية",
+        "group": "الخزينة",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "staff",
+        "route": "/treasury/bank-statements",
+        "file": "apps/staff/app/treasury/bank-statements/page.tsx",
+        "title": "كشوف الحساب البنكي",
+        "group": "الخزينة",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440"
+      },
+      {
+        "app": "staff",
+        "route": "/treasury/banks",
+        "file": "apps/staff/app/treasury/banks/page.tsx",
+        "title": "🏦 تعريف البنوك",
+        "group": "الخزينة",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "staff",
+        "route": "/treasury/cheques",
+        "file": "apps/staff/app/treasury/cheques/page.tsx",
+        "title": "🏦 كشف الشيكات",
+        "group": "الخزينة",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "staff",
+        "route": "/treasury/day-close",
+        "file": "apps/staff/app/treasury/day-close/page.tsx",
+        "title": "📊 إغلاق اليومية",
+        "group": "الخزينة",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "staff",
+        "route": "/treasury/movements",
+        "file": "apps/staff/app/treasury/movements/page.tsx",
+        "title": "🏦 حركة الصندوق",
+        "group": "الخزينة",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "staff",
+        "route": "/treasury/safes",
+        "file": "apps/staff/app/treasury/safes/page.tsx",
+        "title": "🏦 تعريف الخزينة",
+        "group": "الخزينة",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "staff",
+        "route": "/treasury/transfers",
+        "file": "apps/staff/app/treasury/transfers/page.tsx",
+        "title": "مناقلة",
+        "group": "الخزينة",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "staff",
+        "route": "/treasury/vouchers",
+        "file": "apps/staff/app/treasury/vouchers/page.tsx",
+        "title": "عرض السندات",
+        "group": "الخزينة",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "staff",
+        "route": "/support/about",
+        "file": "apps/staff/app/support/about/page.tsx",
+        "title": "عن البرنامج",
+        "group": "الدعم",
+        "done": true,
+        "rebuilt": true,
+        "note": "فُتح بعد إصلاح لوحة «التحديثات والنسخ الاحتياطي» التي كانت عنواناً بلا جسم — 1440",
+        "verifiedAt": "2026-10-20"
+      },
+      {
+        "app": "staff",
+        "route": "/support/help",
+        "file": "apps/staff/app/support/help/page.tsx",
+        "title": "🆘 إطلب المساعدة",
+        "group": "الدعم",
+        "done": true,
+        "rebuilt": true,
+        "note": "اسم المنشأة وبريد المستخدم في نموذج الدعم"
+      },
+      {
+        "app": "staff",
+        "route": "/support/license",
+        "file": "apps/staff/app/support/license/page.tsx",
+        "title": "الترخيص",
+        "group": "الدعم",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "staff",
+        "route": "/support/report-designer",
+        "file": "apps/staff/app/support/report-designer/page.tsx",
+        "title": "فتح المصمم لتصميم التقارير",
+        "group": "الدعم",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "staff",
+        "route": "/s/[...slug]",
+        "file": "apps/staff/app/s/[...slug]/page.tsx",
+        "title": "شاشة مسجّلة",
+        "group": "الشاشات المسجّلة",
+        "done": true,
+        "rebuilt": true,
+        "note": "فُتح بمسار غير منفَّذ (settings/prep-device): شاشة «غير متاحة في نسختك» + زر عودة مضبوط — 1440 · أُعيد الفتح 1440/390 بعد الهيكلة",
+        "verifiedAt": "2026-10-20"
+      },
+      {
+        "app": "staff",
+        "route": "/print/[doc]/[id]",
+        "file": "apps/staff/app/print/[doc]/[id]/page.tsx",
+        "title": "طباعة مستند",
+        "group": "الطباعة",
+        "done": true,
+        "rebuilt": true,
+        "note": "فُتح بفاتورة مبيعات مرحّلة — 1440 · أُعيد الفتح 1440/390 بعد الهيكلة",
+        "verifiedAt": "2026-10-20"
+      },
+      {
+        "app": "staff",
+        "route": "/sales/cash-customers",
+        "file": "apps/staff/app/sales/cash-customers/page.tsx",
+        "title": "👤 عميل نقدي",
+        "group": "المبيعات",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "staff",
+        "route": "/sales/customers",
+        "file": "apps/staff/app/sales/customers/page.tsx",
+        "title": "بطاقة عميل",
+        "group": "المبيعات",
+        "done": true,
+        "rebuilt": true,
+        "note": "هيكلة v5.2: إطار Page/PageHead + شريط مؤشرات + تصفية موحّدة · تحقق في المتصفح 1440"
+      },
+      {
+        "app": "staff",
+        "route": "/sales/ecommerce-orders",
+        "file": "apps/staff/app/sales/ecommerce-orders/page.tsx",
+        "title": "طلبات المتجر الإلكتروني",
+        "group": "المبيعات",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "staff",
+        "route": "/sales/invoices",
+        "file": "apps/staff/app/sales/invoices/page.tsx",
+        "title": "فاتورة مبيعات",
+        "group": "المبيعات",
+        "done": true,
+        "rebuilt": true,
+        "note": "هيكلة v5.2: إطار Page/PageHead + شريط مؤشرات + تصفية موحّدة · تحقق في المتصفح 1440"
+      },
+      {
+        "app": "staff",
+        "route": "/sales/invoices/[id]",
+        "file": "apps/staff/app/sales/invoices/[id]/page.tsx",
+        "title": "فاتورة مبيعات (تفاصيل)",
+        "group": "المبيعات",
+        "done": true,
+        "rebuilt": true,
+        "note": "فُتح بفاتورة مبيعات مسودة 030003 (بنود · ملخص مالي · خطوة الحالة · روابط دفع) — 1440 · أُعيد الفتح 1440/390 بعد الهيكلة",
+        "verifiedAt": "2026-10-20"
+      },
+      {
+        "app": "staff",
+        "route": "/sales/invoices/new",
+        "file": "apps/staff/app/sales/invoices/new/page.tsx",
+        "title": "فاتورة إخراج",
+        "group": "المبيعات",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "staff",
+        "route": "/sales/notes/[kind]",
+        "file": "apps/staff/app/sales/notes/[kind]/page.tsx",
+        "title": "إشعار مبيعات",
+        "group": "المبيعات",
+        "done": true,
+        "rebuilt": true,
+        "note": "أُعيد الفتح بالأنواع الصحيحة credit وdebit مع إشعار مسودّة ظاهر في الجدول — 1440/390",
+        "verifiedAt": "2026-10-20"
+      },
+      {
+        "app": "staff",
+        "route": "/sales/portal-access",
+        "file": "apps/staff/app/sales/portal-access/page.tsx",
+        "title": "وصول العملاء للبوابة",
+        "group": "المبيعات",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "staff",
+        "route": "/sales/pos",
+        "file": "apps/staff/app/sales/pos/page.tsx",
+        "title": "نقطة البيع",
+        "group": "المبيعات",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "staff",
+        "route": "/sales/quotations",
+        "file": "apps/staff/app/sales/quotations/page.tsx",
+        "title": "عرض سعر",
+        "group": "المبيعات",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "staff",
+        "route": "/sales/quotations/[id]",
+        "file": "apps/staff/app/sales/quotations/[id]/page.tsx",
+        "title": "عرض سعر (تفاصيل)",
+        "group": "المبيعات",
+        "done": true,
+        "rebuilt": true,
+        "note": "فُتح بعرض سعر حقيقي (بيانات العرض · الأسطر · التوقيع الإلكتروني) — 1440 · أُعيد الفتح 1440/390 بعد الهيكلة",
+        "verifiedAt": "2026-10-20"
+      },
+      {
+        "app": "staff",
+        "route": "/sales/quotations/[id]/esign",
+        "file": "apps/staff/app/sales/quotations/[id]/esign/page.tsx",
+        "title": "توقيع عرض السعر",
+        "group": "المبيعات",
+        "done": true,
+        "rebuilt": true,
+        "note": "فُتح بنموذج الإرسال للتوقيع بعد تحويله إلى FormSection بشريط إجراءات — 1440 · أُعيد الفتح 1440/390 بعد الهيكلة",
+        "verifiedAt": "2026-10-20"
+      },
+      {
+        "app": "staff",
+        "route": "/sales/returns",
+        "file": "apps/staff/app/sales/returns/page.tsx",
+        "title": "مردود المبيعات",
+        "group": "المبيعات",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "staff",
+        "route": "/sales/salesman-commissions",
+        "file": "apps/staff/app/sales/salesman-commissions/page.tsx",
+        "title": "📋 طباعة فواتير مندوب وعمولاتهم",
+        "group": "المبيعات",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "staff",
+        "route": "/sales/salesmen",
+        "file": "apps/staff/app/sales/salesmen/page.tsx",
+        "title": "بطاقة مندوب",
+        "group": "المبيعات",
+        "done": true,
+        "rebuilt": true,
+        "note": "هيكلة v5.2: إطار Page/PageHead + شريط مؤشرات + تصفية موحّدة · تحقق في المتصفح 1440"
+      },
+      {
+        "app": "staff",
+        "route": "/sales/shifts",
+        "file": "apps/staff/app/sales/shifts/page.tsx",
+        "title": "ورديات المبيعات",
+        "group": "المبيعات",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "staff",
+        "route": "/sales/statements",
+        "file": "apps/staff/app/sales/statements/page.tsx",
+        "title": "كشف عميل",
+        "group": "المبيعات",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "staff",
+        "route": "/accounting/accounts",
+        "file": "apps/staff/app/accounting/accounts/page.tsx",
+        "title": "دليل الحسابات",
+        "group": "المحاسبة",
+        "done": true,
+        "rebuilt": true,
+        "note": "هيكلة v5.2: إطار Page/PageHead + شريط مؤشرات + تصفية موحّدة · تحقق في المتصفح 1440"
+      },
+      {
+        "app": "staff",
+        "route": "/accounting/accounts/tree",
+        "file": "apps/staff/app/accounting/accounts/tree/page.tsx",
+        "title": "شجرة الحسابات",
+        "group": "المحاسبة",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "staff",
+        "route": "/accounting/cash-locations",
+        "file": "apps/staff/app/accounting/cash-locations/page.tsx",
+        "title": "أماكن النقد",
+        "group": "المحاسبة",
+        "done": true,
+        "rebuilt": true,
+        "note": "هيكلة v5.2: إطار Page/PageHead + شريط مؤشرات + تصفية موحّدة · تحقق في المتصفح 1440"
+      },
+      {
+        "app": "staff",
+        "route": "/accounting/cost-center-statement",
+        "file": "apps/staff/app/accounting/cost-center-statement/page.tsx",
+        "title": "📊 كشف مركز الكلفة",
+        "group": "المحاسبة",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "staff",
+        "route": "/accounting/cost-centers",
+        "file": "apps/staff/app/accounting/cost-centers/page.tsx",
+        "title": "بطاقة مركز تكلفة",
+        "group": "المحاسبة",
+        "done": true,
+        "rebuilt": true,
+        "note": "هيكلة v5.2: إطار Page/PageHead + شريط مؤشرات + تصفية موحّدة · تحقق في المتصفح 1440"
+      },
+      {
+        "app": "staff",
+        "route": "/accounting/expenses",
+        "file": "apps/staff/app/accounting/expenses/page.tsx",
+        "title": "📒 بطاقة حساب المصاريف",
+        "group": "المحاسبة",
+        "done": true,
+        "rebuilt": true,
+        "note": "هيكلة v5.2: إطار Page/PageHead + شريط مؤشرات + تصفية موحّدة · تحقق في المتصفح 1440"
+      },
+      {
+        "app": "staff",
+        "route": "/accounting/income-statement",
+        "file": "apps/staff/app/accounting/income-statement/page.tsx",
+        "title": "أرباح وخسائر حسابات رئيسية",
+        "group": "المحاسبة",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "staff",
+        "route": "/accounting/journal-entries",
+        "file": "apps/staff/app/accounting/journal-entries/page.tsx",
+        "title": "القيود اليومية",
+        "group": "المحاسبة",
+        "done": true,
+        "rebuilt": true,
+        "note": "هيكلة v5.2: إطار Page/PageHead + شريط مؤشرات + تصفية موحّدة · تحقق في المتصفح 1440"
+      },
+      {
+        "app": "staff",
+        "route": "/accounting/journal-entries/[id]",
+        "file": "apps/staff/app/accounting/journal-entries/[id]/page.tsx",
+        "title": "قيد يومية",
+        "group": "المحاسبة",
+        "done": true,
+        "rebuilt": true,
+        "note": "فُتح بقيد يومية JE-000011 مرحّل (بيانات · أسطر · الملخص) — 1440 · أُعيد الفتح 1440/390 بعد الهيكلة",
+        "verifiedAt": "2026-10-20"
+      },
+      {
+        "app": "staff",
+        "route": "/accounting/journal-entries/new",
+        "file": "apps/staff/app/accounting/journal-entries/new/page.tsx",
+        "title": "سند قيد",
+        "group": "المحاسبة",
+        "done": true,
+        "rebuilt": true,
+        "note": "هيكلة v5.2: إطار Page/PageHead + شريط مؤشرات + تصفية موحّدة · تحقق في المتصفح 1440"
+      },
+      {
+        "app": "staff",
+        "route": "/accounting/ledger",
+        "file": "apps/staff/app/accounting/ledger/page.tsx",
+        "title": "كشف حساب",
+        "group": "المحاسبة",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "staff",
+        "route": "/accounting/payment-methods",
+        "file": "apps/staff/app/accounting/payment-methods/page.tsx",
+        "title": "طرق الدفع",
+        "group": "المحاسبة",
+        "done": true,
+        "rebuilt": true,
+        "note": "هيكلة v5.2: إطار Page/PageHead + شريط مؤشرات + تصفية موحّدة · تحقق في المتصفح 1440"
+      },
+      {
+        "app": "staff",
+        "route": "/accounting/periods",
+        "file": "apps/staff/app/accounting/periods/page.tsx",
+        "title": "الفترات المحاسبية",
+        "group": "المحاسبة",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "staff",
+        "route": "/accounting/trial-balance",
+        "file": "apps/staff/app/accounting/trial-balance/page.tsx",
+        "title": "ميزان المراجعة",
+        "group": "المحاسبة",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "staff",
+        "route": "/assistant",
+        "file": "apps/staff/app/assistant/page.tsx",
+        "title": "المساعد المحاسبي",
+        "group": "المساعد الذكي",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "staff",
+        "route": "/inventory/adjustments",
+        "file": "apps/staff/app/inventory/adjustments/page.tsx",
+        "title": "تسوية مخزنية",
+        "group": "المستودعات",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "staff",
+        "route": "/inventory/barcodes",
+        "file": "apps/staff/app/inventory/barcodes/page.tsx",
+        "title": "طباعة الباركود",
+        "group": "المستودعات",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "staff",
+        "route": "/inventory/below-minimum",
+        "file": "apps/staff/app/inventory/below-minimum/page.tsx",
+        "title": "أصناف تحت حد الطلب",
+        "group": "المستودعات",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "staff",
+        "route": "/inventory/bin-balances",
+        "file": "apps/staff/app/inventory/bin-balances/page.tsx",
+        "title": "أرصدة الرفوف",
+        "group": "المستودعات",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "staff",
+        "route": "/inventory/bins",
+        "file": "apps/staff/app/inventory/bins/page.tsx",
+        "title": "رفوف المستودع",
+        "group": "المستودعات",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "staff",
+        "route": "/inventory/categories",
+        "file": "apps/staff/app/inventory/categories/page.tsx",
+        "title": "بطاقة مجموعة",
+        "group": "المستودعات",
+        "done": true,
+        "rebuilt": true,
+        "note": "هيكلة v5.2: إطار Page/PageHead + شريط مؤشرات + تصفية موحّدة · تحقق في المتصفح 1440"
+      },
+      {
+        "app": "staff",
+        "route": "/inventory/deliveries",
+        "file": "apps/staff/app/inventory/deliveries/page.tsx",
+        "title": "توصيل مخزني",
+        "group": "المستودعات",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "staff",
+        "route": "/inventory/expiry",
+        "file": "apps/staff/app/inventory/expiry/page.tsx",
+        "title": "تواريخ الصلاحية",
+        "group": "المستودعات",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "staff",
+        "route": "/inventory/in-transit",
+        "file": "apps/staff/app/inventory/in-transit/page.tsx",
+        "title": "بضاعة بالطريق",
+        "group": "المستودعات",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "staff",
+        "route": "/inventory/item-card",
+        "file": "apps/staff/app/inventory/item-card/page.tsx",
+        "title": "بطاقة الصنف",
+        "group": "المستودعات",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "staff",
+        "route": "/inventory/item-units",
+        "file": "apps/staff/app/inventory/item-units/page.tsx",
+        "title": "وحدات الصنف والباركود",
+        "group": "المستودعات",
+        "done": true,
+        "rebuilt": true,
+        "note": "هيكلة v5.2: إطار Page/PageHead + شريط مؤشرات + تصفية موحّدة · تحقق في المتصفح 1440"
+      },
+      {
+        "app": "staff",
+        "route": "/inventory/items",
+        "file": "apps/staff/app/inventory/items/page.tsx",
+        "title": "دليل المواد وبطاقاتها",
+        "group": "المستودعات",
+        "done": true,
+        "rebuilt": true,
+        "note": "هيكلة v5.2: إطار Page/PageHead + شريط مؤشرات + تصفية موحّدة · تحقق في المتصفح 1440"
+      },
+      {
+        "app": "staff",
+        "route": "/inventory/levels",
+        "file": "apps/staff/app/inventory/levels/page.tsx",
+        "title": "جرد المواد",
+        "group": "المستودعات",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "staff",
+        "route": "/inventory/lots",
+        "file": "apps/staff/app/inventory/lots/page.tsx",
+        "title": "صلاحية المواد (الدفعات)",
+        "group": "المستودعات",
+        "done": true,
+        "rebuilt": true,
+        "note": "هيكلة v5.2: إطار Page/PageHead + شريط مؤشرات + تصفية موحّدة · تحقق في المتصفح 1440"
+      },
+      {
+        "app": "staff",
+        "route": "/inventory/movements",
+        "file": "apps/staff/app/inventory/movements/page.tsx",
+        "title": "حركة مادة تفصيلي",
+        "group": "المستودعات",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "staff",
+        "route": "/inventory/overview",
+        "file": "apps/staff/app/inventory/overview/page.tsx",
+        "title": "لوحة المخزون",
+        "group": "المستودعات",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "staff",
+        "route": "/inventory/production",
+        "file": "apps/staff/app/inventory/production/page.tsx",
+        "title": "تقرير أمر الإنتاج",
+        "group": "المستودعات",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "staff",
+        "route": "/inventory/requests",
+        "file": "apps/staff/app/inventory/requests/page.tsx",
+        "title": "طلب بضاعة",
+        "group": "المستودعات",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "staff",
+        "route": "/inventory/serials",
+        "file": "apps/staff/app/inventory/serials/page.tsx",
+        "title": "تقرير الأرقام التسلسلية",
+        "group": "المستودعات",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "staff",
+        "route": "/inventory/transfers",
+        "file": "apps/staff/app/inventory/transfers/page.tsx",
+        "title": "مناقلة",
+        "group": "المستودعات",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "staff",
+        "route": "/inventory/units",
+        "file": "apps/staff/app/inventory/units/page.tsx",
+        "title": "بطاقة وحدة",
+        "group": "المستودعات",
+        "done": true,
+        "rebuilt": true,
+        "note": "هيكلة v5.2: إطار Page/PageHead + شريط مؤشرات + تصفية موحّدة · تحقق في المتصفح 1440"
+      },
+      {
+        "app": "staff",
+        "route": "/inventory/vouchers",
+        "file": "apps/staff/app/inventory/vouchers/page.tsx",
+        "title": "سند إدخال / إخراج",
+        "group": "المستودعات",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "staff",
+        "route": "/inventory/warehouses",
+        "file": "apps/staff/app/inventory/warehouses/page.tsx",
+        "title": "بطاقة مستودع",
+        "group": "المستودعات",
+        "done": true,
+        "rebuilt": true,
+        "note": "هيكلة v5.2: إطار Page/PageHead + شريط مؤشرات + تصفية موحّدة · تحقق في المتصفح 1440"
+      },
+      {
+        "app": "staff",
+        "route": "/projects",
+        "file": "apps/staff/app/projects/page.tsx",
+        "title": "عقد عميل",
+        "group": "المشاريع",
+        "done": true,
+        "rebuilt": true,
+        "note": "هيكلة v5.2: إطار Page/PageHead + شريط مؤشرات + تصفية موحّدة · تحقق في المتصفح 1440"
+      },
+      {
+        "app": "staff",
+        "route": "/projects/[id]",
+        "file": "apps/staff/app/projects/[id]/page.tsx",
+        "title": "مشروع",
+        "group": "المشاريع",
+        "done": true,
+        "rebuilt": true,
+        "note": "أُعيد الفتح بمشروع ومرحلة ومهمة؛ حالة فارغة للمستخلصات ونموذج مرحلة داخل panel-foot — 1440/390",
+        "verifiedAt": "2026-10-20"
+      },
+      {
+        "app": "staff",
+        "route": "/projects/[id]/board",
+        "file": "apps/staff/app/projects/[id]/board/page.tsx",
+        "title": "لوحة المشروع",
+        "group": "المشاريع",
+        "done": true,
+        "rebuilt": true,
+        "note": "فُتح بمشروع حقيقي (مرحلتان) — 1440 · أُعيد الفتح 1440/390 بعد الهيكلة",
+        "verifiedAt": "2026-10-20"
+      },
+      {
+        "app": "staff",
+        "route": "/projects/[id]/cost",
+        "file": "apps/staff/app/projects/[id]/cost/page.tsx",
+        "title": "تكلفة المشروع",
+        "group": "المشاريع",
+        "done": true,
+        "rebuilt": true,
+        "note": "فُتح بمشروع حقيقي — 1440 · أُعيد الفتح 1440/390 بعد الهيكلة",
+        "verifiedAt": "2026-10-20"
+      },
+      {
+        "app": "staff",
+        "route": "/projects/[id]/gantt",
+        "file": "apps/staff/app/projects/[id]/gantt/page.tsx",
+        "title": "مخطط المشروع الزمني",
+        "group": "المشاريع",
+        "done": true,
+        "rebuilt": true,
+        "note": "فُتح بمشروع حقيقي — 1440 · أُعيد الفتح 1440/390 بعد الهيكلة",
+        "verifiedAt": "2026-10-20"
+      },
+      {
+        "app": "staff",
+        "route": "/projects/[id]/tasks/[taskId]",
+        "file": "apps/staff/app/projects/[id]/tasks/[taskId]/page.tsx",
+        "title": "مهمة مشروع",
+        "group": "المشاريع",
+        "done": true,
+        "rebuilt": true,
+        "note": "فُتح بمهمة حقيقية داخل مشروع — 1440 · أُعيد الفتح 1440/390 بعد الهيكلة",
+        "verifiedAt": "2026-10-20"
+      },
+      {
+        "app": "staff",
+        "route": "/projects/[id]/time",
+        "file": "apps/staff/app/projects/[id]/time/page.tsx",
+        "title": "أوقات المشروع",
+        "group": "المشاريع",
+        "done": true,
+        "rebuilt": true,
+        "note": "فُتح بمشروع حقيقي — 1440 · أُعيد الفتح 1440/390 بعد الهيكلة",
+        "verifiedAt": "2026-10-20"
+      },
+      {
+        "app": "staff",
+        "route": "/projects/board",
+        "file": "apps/staff/app/projects/board/page.tsx",
+        "title": "لوحة كانبان",
+        "group": "المشاريع",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "staff",
+        "route": "/projects/boq",
+        "file": "apps/staff/app/projects/boq/page.tsx",
+        "title": "بطاقة بند",
+        "group": "المشاريع",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "staff",
+        "route": "/projects/contracting-return",
+        "file": "apps/staff/app/projects/contracting-return/page.tsx",
+        "title": "مرتجع مقاولات",
+        "group": "المشاريع",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "staff",
+        "route": "/projects/contractor-contract",
+        "file": "apps/staff/app/projects/contractor-contract/page.tsx",
+        "title": "عقد مقاول",
+        "group": "المشاريع",
+        "done": true,
+        "rebuilt": true,
+        "note": "هيكلة v5.2: إطار Page/PageHead + شريط مؤشرات + تصفية موحّدة · تحقق في المتصفح 1440"
+      },
+      {
+        "app": "staff",
+        "route": "/projects/contractor-payment",
+        "file": "apps/staff/app/projects/contractor-payment/page.tsx",
+        "title": "سند دفع لمقاول",
+        "group": "المشاريع",
+        "done": true,
+        "rebuilt": true,
+        "note": "هيكلة v5.2: إطار Page/PageHead + شريط مؤشرات + تصفية موحّدة · تحقق في المتصفح 1440"
+      },
+      {
+        "app": "staff",
+        "route": "/projects/cost",
+        "file": "apps/staff/app/projects/cost/page.tsx",
+        "title": "تكلفة المشروع",
+        "group": "المشاريع",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "staff",
+        "route": "/projects/followup",
+        "file": "apps/staff/app/projects/followup/page.tsx",
+        "title": "متابعة",
+        "group": "المشاريع",
+        "done": true,
+        "rebuilt": true,
+        "note": "هيكلة v5.2: إطار Page/PageHead + شريط مؤشرات + تصفية موحّدة · تحقق في المتصفح 1440"
+      },
+      {
+        "app": "staff",
+        "route": "/projects/gantt",
+        "file": "apps/staff/app/projects/gantt/page.tsx",
+        "title": "مخطط جانت",
+        "group": "المشاريع",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "staff",
+        "route": "/projects/offers",
+        "file": "apps/staff/app/projects/offers/page.tsx",
+        "title": "عروض",
+        "group": "المشاريع",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "staff",
+        "route": "/projects/stages",
+        "file": "apps/staff/app/projects/stages/page.tsx",
+        "title": "مراحل مشروع",
+        "group": "المشاريع",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "staff",
+        "route": "/projects/tasks/[taskId]",
+        "file": "apps/staff/app/projects/tasks/[taskId]/page.tsx",
+        "title": "مهمة",
+        "group": "المشاريع",
+        "done": true,
+        "rebuilt": true,
+        "note": "فُتح بمهمة حقيقية؛ ضُبطت الساعات والمصاريف بـ quantity() لمنع 0.0000 — 1440 · أُعيد الفتح 1440/390 بعد الهيكلة",
+        "verifiedAt": "2026-10-20"
+      },
+      {
+        "app": "staff",
+        "route": "/projects/time",
+        "file": "apps/staff/app/projects/time/page.tsx",
+        "title": "تتبع الوقت",
+        "group": "المشاريع",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "staff",
+        "route": "/purchases",
+        "file": "apps/staff/app/purchases/page.tsx",
+        "title": "المشتريات (تحويل)",
+        "group": "المشتريات",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "staff",
+        "route": "/purchases/invoices",
+        "file": "apps/staff/app/purchases/invoices/page.tsx",
+        "title": "فاتورة المشتريات",
+        "group": "المشتريات",
+        "done": true,
+        "rebuilt": true,
+        "note": "هيكلة v5.2: إطار Page/PageHead + شريط مؤشرات + تصفية موحّدة · تحقق في المتصفح 1440"
+      },
+      {
+        "app": "staff",
+        "route": "/purchases/invoices/[id]",
+        "file": "apps/staff/app/purchases/invoices/[id]/page.tsx",
+        "title": "فاتورة مشتريات (تفاصيل)",
+        "group": "المشتريات",
+        "done": true,
+        "rebuilt": true,
+        "note": "فُتح بفاتورة مشتريات مسودة حقيقية — 1440 · أُعيد الفتح 1440/390 بعد الهيكلة",
+        "verifiedAt": "2026-10-20"
+      },
+      {
+        "app": "staff",
+        "route": "/purchases/invoices/new",
+        "file": "apps/staff/app/purchases/invoices/new/page.tsx",
+        "title": "فاتورة إدخال",
+        "group": "المشتريات",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "staff",
+        "route": "/purchases/invoices/ocr",
+        "file": "apps/staff/app/purchases/invoices/ocr/page.tsx",
+        "title": "قراءة فاتورة بالـ OCR",
+        "group": "المشتريات",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "staff",
+        "route": "/purchases/notes/[kind]",
+        "file": "apps/staff/app/purchases/notes/[kind]/page.tsx",
+        "title": "إشعار مشتريات",
+        "group": "المشتريات",
+        "done": true,
+        "rebuilt": true,
+        "note": "أُعيد الفتح بـ debit؛ إشعارُ المشتريات يتطلّب فاتورةً مرحّلة (PURCHASE_INVOICE_NOT_POSTED) فالحالة الفارغة سليمة — 1440/390",
+        "verifiedAt": "2026-10-20"
+      },
+      {
+        "app": "staff",
+        "route": "/purchases/supplier-portal",
+        "file": "apps/staff/app/purchases/supplier-portal/page.tsx",
+        "title": "بوابة الموردين",
+        "group": "المشتريات",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "staff",
+        "route": "/purchases/suppliers",
+        "file": "apps/staff/app/purchases/suppliers/page.tsx",
+        "title": "بطاقة مورد",
+        "group": "المشتريات",
+        "done": true,
+        "rebuilt": true,
+        "note": "هيكلة v5.2: إطار Page/PageHead + شريط مؤشرات + تصفية موحّدة · تحقق في المتصفح 1440"
+      },
+      {
+        "app": "staff",
+        "route": "/hrm/adjustments",
+        "file": "apps/staff/app/hrm/adjustments/page.tsx",
+        "title": "الحوافز والجزاءات",
+        "group": "الموظفون والرواتب",
+        "done": true,
+        "rebuilt": true,
+        "note": "هيكلة v5.2: إطار Page/PageHead + شريط مؤشرات + تصفية موحّدة · تحقق في المتصفح 1440"
+      },
+      {
+        "app": "staff",
+        "route": "/hrm/compliance",
+        "file": "apps/staff/app/hrm/compliance/page.tsx",
+        "title": "تنبيهات الإقامة والتأمين",
+        "group": "الموظفون والرواتب",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "staff",
+        "route": "/hrm/departments",
+        "file": "apps/staff/app/hrm/departments/page.tsx",
+        "title": "الإدارات والأقسام",
+        "group": "الموظفون والرواتب",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "staff",
+        "route": "/hrm/employee-movements",
+        "file": "apps/staff/app/hrm/employee-movements/page.tsx",
+        "title": "حركات الموظف",
+        "group": "الموظفون والرواتب",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "staff",
+        "route": "/hrm/employee-statement",
+        "file": "apps/staff/app/hrm/employee-statement/page.tsx",
+        "title": "كشف حساب موظف",
+        "group": "الموظفون والرواتب",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "staff",
+        "route": "/hrm/employees",
+        "file": "apps/staff/app/hrm/employees/page.tsx",
+        "title": "تعريف موظف",
+        "group": "الموظفون والرواتب",
+        "done": true,
+        "rebuilt": true,
+        "note": "هيكلة v5.2: إطار Page/PageHead + شريط مؤشرات + تصفية موحّدة · تحقق في المتصفح 1440"
+      },
+      {
+        "app": "staff",
+        "route": "/hrm/geofences",
+        "file": "apps/staff/app/hrm/geofences/page.tsx",
+        "title": "نطاق حضور الفروع",
+        "group": "الموظفون والرواتب",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "staff",
+        "route": "/hrm/jobs",
+        "file": "apps/staff/app/hrm/jobs/page.tsx",
+        "title": "الوظائف",
+        "group": "الموظفون والرواتب",
+        "done": true,
+        "rebuilt": true,
+        "note": "هيكلة v5.2: إطار Page/PageHead + شريط مؤشرات + تصفية موحّدة · تحقق في المتصفح 1440"
+      },
+      {
+        "app": "staff",
+        "route": "/hrm/leaves",
+        "file": "apps/staff/app/hrm/leaves/page.tsx",
+        "title": "إجازات الموظفين",
+        "group": "الموظفون والرواتب",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "staff",
+        "route": "/hrm/payroll",
+        "file": "apps/staff/app/hrm/payroll/page.tsx",
+        "title": "إستحقاق وصرف الرواتب",
+        "group": "الموظفون والرواتب",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "staff",
+        "route": "/hrm/payroll/[id]",
+        "file": "apps/staff/app/hrm/payroll/[id]/page.tsx",
+        "title": "مسير رواتب",
+        "group": "الموظفون والرواتب",
+        "done": true,
+        "rebuilt": true,
+        "note": "فُتح بمسيّر رواتب حقيقي (draft) — 1440 · أُعيد الفتح 1440/390 بعد الهيكلة",
+        "verifiedAt": "2026-10-20"
+      },
+      {
+        "app": "staff",
+        "route": "/hrm/payroll/[id]/wps",
+        "file": "apps/staff/app/hrm/payroll/[id]/wps/page.tsx",
+        "title": "ملف حماية الأجور",
+        "group": "الموظفون والرواتب",
+        "done": true,
+        "rebuilt": true,
+        "note": "فُتح بمسيّر رواتب حقيقي (draft) — 1440 · أُعيد الفتح 1440/390 بعد الهيكلة",
+        "verifiedAt": "2026-10-20"
+      },
+      {
+        "app": "staff",
+        "route": "/hrm/salary-payments",
+        "file": "apps/staff/app/hrm/salary-payments/page.tsx",
+        "title": "دفع الرواتب",
+        "group": "الموظفون والرواتب",
+        "done": true,
+        "rebuilt": true,
+        "note": "هيكلة v5.2: إطار Page/PageHead + شريط مؤشرات + تصفية موحّدة · تحقق في المتصفح 1440"
+      },
+      {
+        "app": "staff",
+        "route": "/hrm/salary-report",
+        "file": "apps/staff/app/hrm/salary-report/page.tsx",
+        "title": "تقرير الرواتب",
+        "group": "الموظفون والرواتب",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "staff",
+        "route": "/optics/field-labels",
+        "file": "apps/staff/app/optics/field-labels/page.tsx",
+        "title": "أسماء الحقول",
+        "group": "النظارات",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "staff",
+        "route": "/optics/prescriptions",
+        "file": "apps/staff/app/optics/prescriptions/page.tsx",
+        "title": "بيانات النظارات",
+        "group": "النظارات",
+        "done": true,
+        "rebuilt": true,
+        "note": "فُتح؛ بحثٌ لا يطابق عميلاً صار حالةً فارغة تسمّي النص لا ErrorBox، والبحث الفارغ يعرض الكل — 1440",
+        "verifiedAt": "2026-10-20"
+      },
+      {
+        "app": "staff",
+        "route": "/supplier-portal",
+        "file": "apps/staff/app/supplier-portal/page.tsx",
+        "title": "بوابة الموردين",
+        "group": "بوابة الموردين",
+        "done": true,
+        "rebuilt": true,
+        "note": "هيكلة v5.2: إطار Page/PageHead + شريط مؤشرات + تصفية موحّدة · تحقق في المتصفح 1440"
+      },
+      {
+        "app": "staff",
+        "route": "/",
+        "file": "apps/staff/app/page.tsx",
+        "title": "لوحة التحكم",
+        "group": "عام",
+        "done": true,
+        "rebuilt": true,
+        "note": "لوحة تنفيذية برأس hero خاص"
+      },
+      {
+        "app": "staff",
+        "route": "/dashboards",
+        "file": "apps/staff/app/dashboards/page.tsx",
+        "title": "لوحات المؤشرات",
+        "group": "لوحات المؤشرات",
+        "done": true,
+        "rebuilt": true,
+        "note": "هيكلة v5.2: إطار Page/PageHead + شريط مؤشرات + تصفية موحّدة · تحقق في المتصفح 1440"
+      },
+      {
+        "app": "staff",
+        "route": "/dashboards/[id]",
+        "file": "apps/staff/app/dashboards/[id]/page.tsx",
+        "title": "لوحة مؤشرات",
+        "group": "لوحات المؤشرات",
+        "done": true,
+        "rebuilt": true,
+        "note": "فُتح بلوحة «لوحتي» (٣ ودجات + كتالوج) — 1440 · أُعيد الفتح 1440/390 بعد الهيكلة",
+        "verifiedAt": "2026-10-20"
+      },
+      {
+        "app": "staff",
+        "route": "/design",
+        "file": "apps/staff/app/design/page.tsx",
+        "title": "نظام التصميم (تطوير)",
+        "group": "نظام التصميم",
+        "done": true,
+        "rebuilt": true,
+        "note": "صفحة مراجعة التصميم — لا تُبنى في الإنتاج"
+      },
+      {
+        "app": "staff",
+        "route": "/pos/offline",
+        "file": "apps/staff/app/pos/offline/page.tsx",
+        "title": "نقطة البيع أوفلاين",
+        "group": "نقاط البيع",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "staff",
+        "route": "/pos/offline-queue",
+        "file": "apps/staff/app/pos/offline-queue/page.tsx",
+        "title": "طابور POS أوفلاين",
+        "group": "نقاط البيع",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      }
+    ],
+    "platform-admin": [
+      {
+        "app": "platform-admin",
+        "route": "/",
+        "file": "apps/platform-admin/app/page.tsx",
+        "title": "لوحة المنصة",
+        "group": "لوحة المنصة",
+        "done": true,
+        "rebuilt": true,
+        "note": "هيكلة v5.2: شريط مؤشرات موحّد ولوحات برأسٍ واحد · تحقق في المتصفح 1440"
+      },
+      {
+        "app": "platform-admin",
+        "route": "/activation-requests",
+        "file": "apps/platform-admin/app/activation-requests/page.tsx",
+        "title": "طلبات التفعيل",
+        "group": "لوحة المنصة",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "platform-admin",
+        "route": "/ai",
+        "file": "apps/platform-admin/app/ai/page.tsx",
+        "title": "المساعد المحاسبي",
+        "group": "لوحة المنصة",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "platform-admin",
+        "route": "/analytics",
+        "file": "apps/platform-admin/app/analytics/page.tsx",
+        "title": "التحليلات",
+        "group": "لوحة المنصة",
+        "done": true,
+        "rebuilt": true,
+        "note": "هيكلة v5.2: شريط مؤشرات موحّد ولوحات برأسٍ واحد · تحقق في المتصفح 1440"
+      },
+      {
+        "app": "platform-admin",
+        "route": "/analytics/site",
+        "file": "apps/platform-admin/app/analytics/site/page.tsx",
+        "title": "تحليلات الموقع",
+        "group": "لوحة المنصة",
+        "done": true,
+        "rebuilt": true,
+        "note": "هيكلة v5.2: شريط مؤشرات موحّد ولوحات برأسٍ واحد · تحقق في المتصفح 1440"
+      },
+      {
+        "app": "platform-admin",
+        "route": "/announcements",
+        "file": "apps/platform-admin/app/announcements/page.tsx",
+        "title": "الإعلانات والإشعارات",
+        "group": "لوحة المنصة",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "platform-admin",
+        "route": "/api-explorer",
+        "file": "apps/platform-admin/app/api-explorer/page.tsx",
+        "title": "مستكشف الـAPI",
+        "group": "لوحة المنصة",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "platform-admin",
+        "route": "/api-keys",
+        "file": "apps/platform-admin/app/api-keys/page.tsx",
+        "title": "مفاتيح الـAPI",
+        "group": "لوحة المنصة",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "platform-admin",
+        "route": "/audit",
+        "file": "apps/platform-admin/app/audit/page.tsx",
+        "title": "سجل التدقيق",
+        "group": "لوحة المنصة",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "platform-admin",
+        "route": "/backups",
+        "file": "apps/platform-admin/app/backups/page.tsx",
+        "title": "البيانات والاسترجاع",
+        "group": "لوحة المنصة",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "platform-admin",
+        "route": "/campaigns",
+        "file": "apps/platform-admin/app/campaigns/page.tsx",
+        "title": "الحملات البريدية",
+        "group": "لوحة المنصة",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "platform-admin",
+        "route": "/content",
+        "file": "apps/platform-admin/app/content/page.tsx",
+        "title": "المحتوى",
+        "group": "لوحة المنصة",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "platform-admin",
+        "route": "/data-requests",
+        "file": "apps/platform-admin/app/data-requests/page.tsx",
+        "title": "طلبات البيانات",
+        "group": "لوحة المنصة",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "platform-admin",
+        "route": "/design",
+        "file": "apps/platform-admin/app/design/page.tsx",
+        "title": "نظام تصميم اللوحة",
+        "group": "لوحة المنصة",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "platform-admin",
+        "route": "/dunning",
+        "file": "apps/platform-admin/app/dunning/page.tsx",
+        "title": "المتابعة والتحصيل",
+        "group": "لوحة المنصة",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "platform-admin",
+        "route": "/email",
+        "file": "apps/platform-admin/app/email/page.tsx",
+        "title": "البريد",
+        "group": "لوحة المنصة",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "platform-admin",
+        "route": "/files",
+        "file": "apps/platform-admin/app/files/page.tsx",
+        "title": "الملفات",
+        "group": "لوحة المنصة",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "platform-admin",
+        "route": "/health",
+        "file": "apps/platform-admin/app/health/page.tsx",
+        "title": "صحة النظام",
+        "group": "لوحة المنصة",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "platform-admin",
+        "route": "/impersonation",
+        "file": "apps/platform-admin/app/impersonation/page.tsx",
+        "title": "الدخول المؤقّت",
+        "group": "لوحة المنصة",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "platform-admin",
+        "route": "/invoices",
+        "file": "apps/platform-admin/app/invoices/page.tsx",
+        "title": "فواتير المنصة",
+        "group": "لوحة المنصة",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "platform-admin",
+        "route": "/invoices/[id]/print",
+        "file": "apps/platform-admin/app/invoices/[id]/print/page.tsx",
+        "title": "طباعة فاتورة المنصة",
+        "group": "لوحة المنصة",
+        "done": true,
+        "rebuilt": true,
+        "note": "فُتح بفاتورة اشتراك (مسودة) — 1440",
+        "verifiedAt": "2026-10-20"
+      },
+      {
+        "app": "platform-admin",
+        "route": "/jobs",
+        "file": "apps/platform-admin/app/jobs/page.tsx",
+        "title": "المهام والطوابير",
+        "group": "لوحة المنصة",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "platform-admin",
+        "route": "/leads",
+        "file": "apps/platform-admin/app/leads/page.tsx",
+        "title": "العملاء المتوقّعون",
+        "group": "لوحة المنصة",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "platform-admin",
+        "route": "/login",
+        "file": "apps/platform-admin/app/login/page.tsx",
+        "title": "دخول المنصة",
+        "group": "لوحة المنصة",
+        "done": true,
+        "rebuilt": true,
+        "note": "شاشة الدخول الوحيدة للمشغّلين — بلا جلسةٍ تعمل، وعليها يقع قفل المحاولات"
+      },
+      {
+        "app": "platform-admin",
+        "route": "/marketplace",
+        "file": "apps/platform-admin/app/marketplace/page.tsx",
+        "title": "سوق الإضافات",
+        "group": "لوحة المنصة",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "platform-admin",
+        "route": "/plans",
+        "file": "apps/platform-admin/app/plans/page.tsx",
+        "title": "الباقات والأسعار",
+        "group": "لوحة المنصة",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "platform-admin",
+        "route": "/problems",
+        "file": "apps/platform-admin/app/problems/page.tsx",
+        "title": "سجل المشاكل",
+        "group": "لوحة المنصة",
+        "done": true,
+        "rebuilt": true,
+        "note": "البند 20: خمسة مصادر في جدولٍ واحد (بريد · فاتورة إلكترونية · ويب هوك · طابور · نسخ) بلا جدول أعطالٍ منفصل"
+      },
+      {
+        "app": "platform-admin",
+        "route": "/releases",
+        "file": "apps/platform-admin/app/releases/page.tsx",
+        "title": "تحديثات المنصة",
+        "group": "لوحة المنصة",
+        "done": true,
+        "rebuilt": true,
+        "note": "حزمة ZIP تُقاس ولا تُنفَّذ: رفضُ المسار الهارب والملفّ التنفيذي والقيد المشفّر يُسجَّل، والإعلان فعلٌ منفصل عن الرفع"
+      },
+      {
+        "app": "platform-admin",
+        "route": "/revenue",
+        "file": "apps/platform-admin/app/revenue/page.tsx",
+        "title": "الإيراد",
+        "group": "لوحة المنصة",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "platform-admin",
+        "route": "/roles",
+        "file": "apps/platform-admin/app/roles/page.tsx",
+        "title": "أدوار المنصة",
+        "group": "لوحة المنصة",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "platform-admin",
+        "route": "/settings",
+        "file": "apps/platform-admin/app/settings/page.tsx",
+        "title": "إعدادات المنصة",
+        "group": "لوحة المنصة",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "platform-admin",
+        "route": "/subscriptions",
+        "file": "apps/platform-admin/app/subscriptions/page.tsx",
+        "title": "الاشتراكات والتراخيص",
+        "group": "لوحة المنصة",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "platform-admin",
+        "route": "/tenants",
+        "file": "apps/platform-admin/app/tenants/page.tsx",
+        "title": "المستأجرون",
+        "group": "لوحة المنصة",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "platform-admin",
+        "route": "/tenants/[id]",
+        "file": "apps/platform-admin/app/tenants/[id]/page.tsx",
+        "title": "ملف المستأجر",
+        "group": "لوحة المنصة",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق بسجل حقيقي في المتصفح 1440"
+      },
+      {
+        "app": "platform-admin",
+        "route": "/tenants/new",
+        "file": "apps/platform-admin/app/tenants/new/page.tsx",
+        "title": "مستأجر جديد",
+        "group": "لوحة المنصة",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "platform-admin",
+        "route": "/tickets",
+        "file": "apps/platform-admin/app/tickets/page.tsx",
+        "title": "مكتب الدعم",
+        "group": "لوحة المنصة",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "platform-admin",
+        "route": "/tickets/[id]",
+        "file": "apps/platform-admin/app/tickets/[id]/page.tsx",
+        "title": "تذكرة دعم",
+        "group": "لوحة المنصة",
+        "done": true,
+        "rebuilt": true,
+        "note": "فُتح بتذكرة دعم حقيقية من لوحة المنصة — 1440",
+        "verifiedAt": "2026-10-20"
+      },
+      {
+        "app": "platform-admin",
+        "route": "/usage",
+        "file": "apps/platform-admin/app/usage/page.tsx",
+        "title": "الاستخدام والحصص",
+        "group": "لوحة المنصة",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "platform-admin",
+        "route": "/users",
+        "file": "apps/platform-admin/app/users/page.tsx",
+        "title": "مستخدمو المنصة",
+        "group": "لوحة المنصة",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "platform-admin",
+        "route": "/users/[id]",
+        "file": "apps/platform-admin/app/users/[id]/page.tsx",
+        "title": "ملف مستخدم",
+        "group": "لوحة المنصة",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق بسجل حقيقي في المتصفح 1440"
+      },
+      {
+        "app": "platform-admin",
+        "route": "/webhooks",
+        "file": "apps/platform-admin/app/webhooks/page.tsx",
+        "title": "الويب هوك",
+        "group": "لوحة المنصة",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      }
+    ],
+    "customer-portal": [
+      {
+        "app": "customer-portal",
+        "route": "/",
+        "file": "apps/customer-portal/app/page.tsx",
+        "title": "الدخول",
+        "group": "المصادقة",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة · جداول PortalTable مشتركة (لا <table> يدوي) · تحقق في المتصفح 1440 و390"
+      },
+      {
+        "app": "customer-portal",
+        "route": "/auth/change-password",
+        "file": "apps/customer-portal/app/auth/change-password/page.tsx",
+        "title": "تغيير كلمة المرور",
+        "group": "المصادقة",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "customer-portal",
+        "route": "/auth/forgot",
+        "file": "apps/customer-portal/app/auth/forgot/page.tsx",
+        "title": "استعادة كلمة المرور",
+        "group": "المصادقة",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "customer-portal",
+        "route": "/auth/login",
+        "file": "apps/customer-portal/app/auth/login/page.tsx",
+        "title": "تسجيل الدخول",
+        "group": "المصادقة",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "customer-portal",
+        "route": "/portal",
+        "file": "apps/customer-portal/app/portal/page.tsx",
+        "title": "بوابة العميل",
+        "group": "بوابة العميل",
+        "done": true,
+        "rebuilt": true,
+        "note": "هيكلة v5.2: شريط مؤشرات + لوحة برأسٍ واحد · تحقق في المتصفح 1440 · جداول PortalTable مشتركة (لا <table> يدوي) · تحقق في المتصفح 1440 و390"
+      },
+      {
+        "app": "customer-portal",
+        "route": "/portal/invoices",
+        "file": "apps/customer-portal/app/portal/invoices/page.tsx",
+        "title": "فواتيري",
+        "group": "بوابة العميل",
+        "done": true,
+        "rebuilt": true,
+        "note": "هيكلة v5.2: شريط مؤشرات + لوحة برأسٍ واحد · تحقق في المتصفح 1440 · جداول PortalTable مشتركة (لا <table> يدوي) · تحقق في المتصفح 1440 و390"
+      },
+      {
+        "app": "customer-portal",
+        "route": "/portal/invoices/[id]",
+        "file": "apps/customer-portal/app/portal/invoices/[id]/page.tsx",
+        "title": "تفاصيل الفاتورة",
+        "group": "بوابة العميل",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق بحساب بوابة حقيقي — فاتورة 030003 · جداول PortalTable مشتركة (لا <table> يدوي) · تحقق في المتصفح 1440 و390"
+      },
+      {
+        "app": "customer-portal",
+        "route": "/portal/invoices/[id]/pay",
+        "file": "apps/customer-portal/app/portal/invoices/[id]/pay/page.tsx",
+        "title": "سداد الفاتورة",
+        "group": "بوابة العميل",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق بحساب بوابة حقيقي — صفحة الدفع · جداول PortalTable مشتركة (لا <table> يدوي) · تحقق في المتصفح 1440 و390"
+      },
+      {
+        "app": "customer-portal",
+        "route": "/portal/payments",
+        "file": "apps/customer-portal/app/portal/payments/page.tsx",
+        "title": "المدفوعات",
+        "group": "بوابة العميل",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة · جداول PortalTable مشتركة (لا <table> يدوي) · تحقق في المتصفح 1440 و390"
+      },
+      {
+        "app": "customer-portal",
+        "route": "/portal/profile",
+        "file": "apps/customer-portal/app/portal/profile/page.tsx",
+        "title": "ملفي",
+        "group": "بوابة العميل",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة · جداول PortalTable مشتركة (لا <table> يدوي) · تحقق في المتصفح 1440 و390"
+      },
+      {
+        "app": "customer-portal",
+        "route": "/portal/statement",
+        "file": "apps/customer-portal/app/portal/statement/page.tsx",
+        "title": "كشف الحساب",
+        "group": "بوابة العميل",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة · جداول PortalTable مشتركة (لا <table> يدوي) · تحقق في المتصفح 1440 و390"
+      }
+    ],
+    "marketing": [
+      {
+        "app": "marketing",
+        "route": "/en",
+        "file": "apps/marketing/app/en/page.tsx",
+        "title": "الرئيسية (EN)",
+        "group": "الإنجليزية",
+        "done": true,
+        "rebuilt": true,
+        "note": "الإنجليزية — تحقق في المتصفح 1440"
+      },
+      {
+        "app": "marketing",
+        "route": "/en/blog",
+        "file": "apps/marketing/app/en/blog/page.tsx",
+        "title": "المدوّنة (EN)",
+        "group": "الإنجليزية",
+        "done": true,
+        "rebuilt": true,
+        "note": "الإنجليزية — تحقق في المتصفح 1440"
+      },
+      {
+        "app": "marketing",
+        "route": "/en/blog/[slug]",
+        "file": "apps/marketing/app/en/blog/[slug]/page.tsx",
+        "title": "مقال (EN)",
+        "group": "الإنجليزية",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق بسجل حقيقي في المتصفح 1440"
+      },
+      {
+        "app": "marketing",
+        "route": "/en/cases",
+        "file": "apps/marketing/app/en/cases/page.tsx",
+        "title": "دراسات الحالة (EN)",
+        "group": "الإنجليزية",
+        "done": true,
+        "rebuilt": true,
+        "note": "الإنجليزية — تحقق في المتصفح 1440"
+      },
+      {
+        "app": "marketing",
+        "route": "/en/cases/[slug]",
+        "file": "apps/marketing/app/en/cases/[slug]/page.tsx",
+        "title": "دراسة حالة (EN)",
+        "group": "الإنجليزية",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق بسجل حقيقي في المتصفح 1440"
+      },
+      {
+        "app": "marketing",
+        "route": "/en/features",
+        "file": "apps/marketing/app/en/features/page.tsx",
+        "title": "الوحدات (EN)",
+        "group": "الإنجليزية",
+        "done": true,
+        "rebuilt": true,
+        "note": "الإنجليزية — تحقق في المتصفح 1440"
+      },
+      {
+        "app": "marketing",
+        "route": "/en/features/einvoicing",
+        "file": "apps/marketing/app/en/features/einvoicing/page.tsx",
+        "title": "الفاتورة الإلكترونية (EN)",
+        "group": "الإنجليزية",
+        "done": true,
+        "rebuilt": true,
+        "note": "الإنجليزية — تحقق في المتصفح 1440"
+      },
+      {
+        "app": "marketing",
+        "route": "/en/help",
+        "file": "apps/marketing/app/en/help/page.tsx",
+        "title": "المساعدة (EN)",
+        "group": "الإنجليزية",
+        "done": true,
+        "rebuilt": true,
+        "note": "الإنجليزية — تحقق في المتصفح 1440"
+      },
+      {
+        "app": "marketing",
+        "route": "/en/help/[slug]",
+        "file": "apps/marketing/app/en/help/[slug]/page.tsx",
+        "title": "مقال مساعدة (EN)",
+        "group": "الإنجليزية",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق بسجل حقيقي في المتصفح 1440"
+      },
+      {
+        "app": "marketing",
+        "route": "/en/legal/[slug]",
+        "file": "apps/marketing/app/en/legal/[slug]/page.tsx",
+        "title": "صفحة قانونية (EN)",
+        "group": "الإنجليزية",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق بسجل حقيقي في المتصفح 1440"
+      },
+      {
+        "app": "marketing",
+        "route": "/",
+        "file": "apps/marketing/app/page.tsx",
+        "title": "الرئيسية",
+        "group": "الموقع التسويقي",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "marketing",
+        "route": "/blog",
+        "file": "apps/marketing/app/blog/page.tsx",
+        "title": "المدوّنة",
+        "group": "الموقع التسويقي",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "marketing",
+        "route": "/blog/[slug]",
+        "file": "apps/marketing/app/blog/[slug]/page.tsx",
+        "title": "مقال",
+        "group": "الموقع التسويقي",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق بسجل حقيقي في المتصفح 1440"
+      },
+      {
+        "app": "marketing",
+        "route": "/cases",
+        "file": "apps/marketing/app/cases/page.tsx",
+        "title": "دراسات الحالة",
+        "group": "الموقع التسويقي",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "marketing",
+        "route": "/cases/[slug]",
+        "file": "apps/marketing/app/cases/[slug]/page.tsx",
+        "title": "دراسة حالة",
+        "group": "الموقع التسويقي",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق بسجل حقيقي في المتصفح 1440"
+      },
+      {
+        "app": "marketing",
+        "route": "/changelog",
+        "file": "apps/marketing/app/changelog/page.tsx",
+        "title": "سجل التغييرات",
+        "group": "الموقع التسويقي",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "marketing",
+        "route": "/changelog/[slug]",
+        "file": "apps/marketing/app/changelog/[slug]/page.tsx",
+        "title": "تحديث",
+        "group": "الموقع التسويقي",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق بسجل حقيقي في المتصفح 1440"
+      },
+      {
+        "app": "marketing",
+        "route": "/contact",
+        "file": "apps/marketing/app/contact/page.tsx",
+        "title": "تواصل معنا",
+        "group": "الموقع التسويقي",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "marketing",
+        "route": "/demo",
+        "file": "apps/marketing/app/demo/page.tsx",
+        "title": "اطلب عرضاً",
+        "group": "الموقع التسويقي",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق بمتصفح — عنوان واحد للصفحة"
+      },
+      {
+        "app": "marketing",
+        "route": "/design",
+        "file": "apps/marketing/app/design/page.tsx",
+        "title": "نظام التصميم",
+        "group": "الموقع التسويقي",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "marketing",
+        "route": "/features",
+        "file": "apps/marketing/app/features/page.tsx",
+        "title": "الوحدات",
+        "group": "الموقع التسويقي",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق بمتصفح — أيقونات SVG بلا مسارات كود"
+      },
+      {
+        "app": "marketing",
+        "route": "/features/einvoicing",
+        "file": "apps/marketing/app/features/einvoicing/page.tsx",
+        "title": "الفاتورة الإلكترونية",
+        "group": "الموقع التسويقي",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "marketing",
+        "route": "/help",
+        "file": "apps/marketing/app/help/page.tsx",
+        "title": "مركز المساعدة",
+        "group": "الموقع التسويقي",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "marketing",
+        "route": "/help/[slug]",
+        "file": "apps/marketing/app/help/[slug]/page.tsx",
+        "title": "مقال مساعدة",
+        "group": "الموقع التسويقي",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق بسجل حقيقي في المتصفح 1440"
+      },
+      {
+        "app": "marketing",
+        "route": "/industries",
+        "file": "apps/marketing/app/industries/page.tsx",
+        "title": "القطاعات",
+        "group": "الموقع التسويقي",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق بمتصفح — بطاقات قطاعات بلا مسارات كود"
+      },
+      {
+        "app": "marketing",
+        "route": "/industries/[slug]",
+        "file": "apps/marketing/app/industries/[slug]/page.tsx",
+        "title": "قطاع",
+        "group": "الموقع التسويقي",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق بسجل حقيقي في المتصفح 1440"
+      },
+      {
+        "app": "marketing",
+        "route": "/legal/[slug]",
+        "file": "apps/marketing/app/legal/[slug]/page.tsx",
+        "title": "صفحة قانونية",
+        "group": "الموقع التسويقي",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق بسجل حقيقي في المتصفح 1440"
+      },
+      {
+        "app": "marketing",
+        "route": "/login",
+        "file": "apps/marketing/app/login/page.tsx",
+        "title": "دخول العملاء",
+        "group": "الموقع التسويقي",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "marketing",
+        "route": "/maintenance",
+        "file": "apps/marketing/app/maintenance/page.tsx",
+        "title": "صيانة",
+        "group": "الموقع التسويقي",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "marketing",
+        "route": "/not-found-view/[locale]",
+        "file": "apps/marketing/app/not-found-view/[locale]/page.tsx",
+        "title": "صفحة 404",
+        "group": "الموقع التسويقي",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 (ar/en)"
+      },
+      {
+        "app": "marketing",
+        "route": "/onboarding",
+        "file": "apps/marketing/app/onboarding/page.tsx",
+        "title": "الاشتراك",
+        "group": "الموقع التسويقي",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "marketing",
+        "route": "/pricing",
+        "file": "apps/marketing/app/pricing/page.tsx",
+        "title": "الباقات",
+        "group": "الموقع التسويقي",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق بمتصفح — بلا عنوان endpoint ظاهر"
+      },
+      {
+        "app": "marketing",
+        "route": "/status",
+        "file": "apps/marketing/app/status/page.tsx",
+        "title": "حالة الخدمة",
+        "group": "الموقع التسويقي",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "marketing",
+        "route": "/trust",
+        "file": "apps/marketing/app/trust/page.tsx",
+        "title": "الأمان والثقة",
+        "group": "الموقع التسويقي",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق بمتصفح — بلا ملفات مصدر ظاهرة"
+      },
+      {
+        "app": "marketing",
+        "route": "/unsubscribe",
+        "file": "apps/marketing/app/unsubscribe/page.tsx",
+        "title": "إلغاء الاشتراك",
+        "group": "الموقع التسويقي",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      },
+      {
+        "app": "marketing",
+        "route": "/verify",
+        "file": "apps/marketing/app/verify/page.tsx",
+        "title": "التحقق من فاتورة",
+        "group": "الموقع التسويقي",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · ضوابط مشتركة"
+      }
+    ],
+    "bakery": [
+      {
+        "app": "bakery",
+        "route": "/",
+        "file": "apps/bakery/app/page.tsx",
+        "title": "الرئيسية",
+        "group": "تطبيق المخابز",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · لوحات Panel + شريط KpiStrip · بلا بطاقات عائمة · جدول Table مشترك داخل اللوحات · تحقق في المتصفح 1440 و390"
+      },
+      {
+        "app": "bakery",
+        "route": "/accounting",
+        "file": "apps/bakery/app/accounting/page.tsx",
+        "title": "المحاسبة",
+        "group": "تطبيق المخابز",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · لوحات Panel + شريط KpiStrip · بلا بطاقات عائمة · جدول Table مشترك داخل اللوحات · تحقق في المتصفح 1440 و390"
+      },
+      {
+        "app": "bakery",
+        "route": "/collection",
+        "file": "apps/bakery/app/collection/page.tsx",
+        "title": "التحصيل",
+        "group": "تطبيق المخابز",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · لوحات Panel + شريط KpiStrip · بلا بطاقات عائمة · جدول Table مشترك داخل اللوحات · تحقق في المتصفح 1440 و390"
+      },
+      {
+        "app": "bakery",
+        "route": "/custody",
+        "file": "apps/bakery/app/custody/page.tsx",
+        "title": "العهدة",
+        "group": "تطبيق المخابز",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · لوحات Panel + شريط KpiStrip · بلا بطاقات عائمة · جدول Table مشترك داخل اللوحات · تحقق في المتصفح 1440 و390"
+      },
+      {
+        "app": "bakery",
+        "route": "/distribution",
+        "file": "apps/bakery/app/distribution/page.tsx",
+        "title": "التوزيع",
+        "group": "تطبيق المخابز",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · لوحات Panel + شريط KpiStrip · بلا بطاقات عائمة · جدول Table مشترك داخل اللوحات · تحقق في المتصفح 1440 و390"
+      },
+      {
+        "app": "bakery",
+        "route": "/production",
+        "file": "apps/bakery/app/production/page.tsx",
+        "title": "الإنتاج",
+        "group": "تطبيق المخابز",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · لوحات Panel + شريط KpiStrip · بلا بطاقات عائمة · جدول Table مشترك داخل اللوحات · تحقق في المتصفح 1440 و390"
+      },
+      {
+        "app": "bakery",
+        "route": "/rep",
+        "file": "apps/bakery/app/rep/page.tsx",
+        "title": "شاشة المندوب",
+        "group": "تطبيق المخابز",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · لوحات Panel + شريط KpiStrip · بلا بطاقات عائمة · جدول Table مشترك داخل اللوحات · تحقق في المتصفح 1440 و390"
+      },
+      {
+        "app": "bakery",
+        "route": "/reports",
+        "file": "apps/bakery/app/reports/page.tsx",
+        "title": "التقارير",
+        "group": "تطبيق المخابز",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · لوحات Panel + شريط KpiStrip · بلا بطاقات عائمة · جدول Table مشترك داخل اللوحات · تحقق في المتصفح 1440 و390"
+      },
+      {
+        "app": "bakery",
+        "route": "/reps",
+        "file": "apps/bakery/app/reps/page.tsx",
+        "title": "المناديب",
+        "group": "تطبيق المخابز",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · لوحات Panel + شريط KpiStrip · بلا بطاقات عائمة · جدول Table مشترك داخل اللوحات · تحقق في المتصفح 1440 و390"
+      },
+      {
+        "app": "bakery",
+        "route": "/sales",
+        "file": "apps/bakery/app/sales/page.tsx",
+        "title": "المبيعات",
+        "group": "تطبيق المخابز",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · لوحات Panel + شريط KpiStrip · بلا بطاقات عائمة · جدول Table مشترك داخل اللوحات · تحقق في المتصفح 1440 و390"
+      },
+      {
+        "app": "bakery",
+        "route": "/treasury",
+        "file": "apps/bakery/app/treasury/page.tsx",
+        "title": "الخزينة",
+        "group": "تطبيق المخابز",
+        "done": true,
+        "rebuilt": true,
+        "note": "تحقق في المتصفح 1440 · لوحات Panel + شريط KpiStrip · بلا بطاقات عائمة · جدول Table مشترك داخل اللوحات · تحقق في المتصفح 1440 و390"
+      }
+    ]
+  },
+  "totals": {
+    "staff": 201,
+    "platform-admin": 41,
+    "customer-portal": 11,
+    "marketing": 36,
+    "bakery": 11,
+    "all": 300
+  }
+}

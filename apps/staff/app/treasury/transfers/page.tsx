@@ -1,11 +1,12 @@
 'use client';
 
 import { useMemo, useState } from 'react';
+import { Panel } from '@erp/ui';
 
 import { DataTable, Notice } from '../../../components/data-view';
-import { Screen } from '../../../components/screen';
+import { Empty, Screen } from '../../../components/screen';
 import { FilterBar, StatTile, StatTiles, Tabs } from '../../../components/ui';
-import { ApiError, apiList, apiPost } from '../../../lib/api';
+import { apiErrorText, apiList, apiPost } from '../../../lib/api';
 import {
   branchOptions,
   cashLocationLabel,
@@ -27,11 +28,11 @@ import { useQuery } from '../../../lib/use-query';
  * The desktop's transfer window is `Form_WPF/frmSafesTransfer.xaml` (window title
  * `مناقلة`), and it is three tabs carrying the whole workflow:
  *
- *   📦 التحويل      «📋 إدخال بيانات التحويل» — `🔢 رقم المناقلة` · `📅 التاريخ` ·
+ * التحويل « إدخال بيانات التحويل» — ` رقم المناقلة` · ` التاريخ` ·
  *                   `🏪 من مخزن` · `🏪 إلى مخزن` · `✅ اعتماد الإرسال`
- *   📥 استلام تحويل «📥 استلام تحويل» — `🔢 رقم المناقلة` · `🏪 من مخزن` ·
+ * استلام تحويل « استلام تحويل» — ` رقم المناقلة` · ` من مخزن` ·
  *                   `🏪 إلى مخزن` · `👁️ عرض` · `✅ تأكيد الاستلام` · `📦 استلام الكل`
- *   🔍 البحث        «🔍 معايير البحث» — `🔢 رقم التحويل` · `📅 من تاريخ` ·
+ * البحث « معايير البحث» — ` رقم التحويل` · ` من تاريخ` ·
  *                   `📅 إلى تاريخ` · `📋 كل الفترة` · `🔍 بحث` over «📊 نتائج البحث»
  *
  * One honest finding, recorded before the code: the desktop's `SafesTransfer` table has
@@ -69,7 +70,7 @@ type Transfer = {
   createdAt: string;
 };
 
-/** 📋 الحالة — the four states `IsSent`/`IsReceived`/`IS_Deleted` actually produce. */
+/** الحالة — the four states `IsSent`/`IsReceived`/`IS_Deleted` actually produce. */
 const STATUS_LABELS: Record<string, string> = {
   draft: 'مسودة',
   sent: 'مُرسَلة',
@@ -86,9 +87,9 @@ const STATUS_TONE: Record<string, string> = {
 
 /** The three tabs, in the window's order and with its own words. */
 const TABS = [
-  { id: 'send', label: '📦 التحويل' },
-  { id: 'receive', label: '📥 استلام تحويل' },
-  { id: 'search', label: '🔍 البحث' },
+  { id: 'send', label: 'التحويل' },
+  { id: 'receive', label: 'استلام تحويل' },
+  { id: 'search', label: 'البحث' },
 ] as const;
 
 type TabId = (typeof TABS)[number]['id'];
@@ -104,7 +105,7 @@ export default function CashTransfersPage() {
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<{ kind: 'ok' | 'danger'; text: string } | undefined>();
 
-  // 🔍 معايير البحث
+  // معايير البحث
   const [allPeriod, setAllPeriod] = useState(true);
   const [from, setFrom] = useState(today());
   const [to, setTo] = useState(today());
@@ -112,7 +113,7 @@ export default function CashTransfersPage() {
   const [statusFilter, setStatusFilter] = useState('');
   const [searched, setSearched] = useState(true);
 
-  // 📥 استلام تحويل — the window picks `🔢 رقم المناقلة` and then reads the two sides back.
+  // استلام تحويل — the window picks ` رقم المناقلة` and then reads the two sides back.
   const [selectedId, setSelectedId] = useState('');
   const [preview, setPreview] = useState(false);
 
@@ -121,7 +122,9 @@ export default function CashTransfersPage() {
   const branchRows = branches.data ?? [];
   const drawerRows = cashLocations.data ?? [];
   const effectiveBranch = branchId || defaultOf(branchRows)?.id || '';
-  const safeRows = drawerRows.filter((row) => !effectiveBranch || !row.branchId || row.branchId === effectiveBranch);
+  const safeRows = drawerRows.filter(
+    (row) => !effectiveBranch || !row.branchId || row.branchId === effectiveBranch,
+  );
 
   const query = useMemo(() => {
     const params = new URLSearchParams();
@@ -162,7 +165,7 @@ export default function CashTransfersPage() {
       setAmountText('');
       transfers.reload();
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
     } finally {
       setBusy(false);
     }
@@ -180,27 +183,21 @@ export default function CashTransfersPage() {
       'حُفظت المناقلة كمسودة — اعتمد الإرسال ليخرج المبلغ من الخزنة.',
     );
 
-  const send = (id: string) => run(() => apiPost(`/cash-transfers/${id}/send`, {}), '✅ تم اعتماد الإرسال.');
+  const send = (id: string) => run(() => apiPost(`/cash-transfers/${id}/send`, {}), 'تم اعتماد الإرسال.');
   const receive = (id: string) =>
-    run(() => apiPost(`/cash-transfers/${id}/receive`, {}), '✅ تم تأكيد الاستلام.');
-  const cancel = (id: string) => run(() => apiPost(`/cash-transfers/${id}/cancel`, {}), '🗑️ أُلغيت المناقلة.');
+    run(() => apiPost(`/cash-transfers/${id}/receive`, {}), 'تم تأكيد الاستلام.');
+  const cancel = (id: string) => run(() => apiPost(`/cash-transfers/${id}/cancel`, {}), 'أُلغيت المناقلة.');
 
-  /** 📦 استلام الكل — the window's button: everything that is on the road lands at once. */
+  /** استلام الكل — the window's button: everything that is on the road lands at once. */
   const receiveAll = () =>
-    run(
-      async () => {
-        for (const row of inTransitRows) await apiPost(`/cash-transfers/${row.id}/receive`, {});
-      },
-      `📦 استُلمت ${inTransitRows.length} مناقلة.`,
-    );
+    run(async () => {
+      for (const row of inTransitRows) await apiPost(`/cash-transfers/${row.id}/receive`, {});
+    }, `استُلمت ${inTransitRows.length} مناقلة.`);
 
   if (!can('treasury.view')) {
     return (
       <Screen title="مناقلة الخزن" crumbs={['الخزينة']}>
-        <div className="card state">
-          <strong>لا تملك صلاحية عرض الخزينة</strong>
-          <span>تحتاج صلاحية treasury.view.</span>
-        </div>
+        <Empty title="لا تملك صلاحية عرض الخزينة" detail="اطلب من مسؤول الحساب منحك صلاحية عرض الخزينة." />
       </Screen>
     );
   }
@@ -212,28 +209,35 @@ export default function CashTransfersPage() {
       crumbs={['الخزينة', 'العمليات']}
     >
       <StatTiles>
-        <StatTile label="📊 عدد المناقلات" value={totals.count} hint="في نتيجة البحث الحالية" />
-        <StatTile label="📝 مسودات" value={totals.drafts} />
-        <StatTile label="📤 مُرسَلة" value={totals.sent} tone="warn" />
-        <StatTile label="📥 مُستلَمة" value={totals.received} tone="ok" />
+        <StatTile label="عدد المناقلات" value={totals.count} hint="في نتيجة البحث الحالية" />
+        <StatTile label="مسودات" value={totals.drafts} />
+        <StatTile label="مُرسَلة" value={totals.sent} tone="warn" />
+        <StatTile label="مُستلَمة" value={totals.received} tone="ok" />
         <StatTile
-          label="🚧 في الطريق"
+          label="في الطريق"
           value={money(totals.inTransit.toFixed(4))}
           hint="أُرسلت ولم تُستلم بعد"
           tone={totals.inTransit > 0 ? 'warn' : 'default'}
         />
       </StatTiles>
 
-      <Tabs items={TABS.map((entry) => ({ id: entry.id, label: entry.label }))} value={tab} onChange={setTab} />
+      <Tabs
+        items={TABS.map((entry) => ({ id: entry.id, label: entry.label }))}
+        value={tab}
+        onChange={setTab}
+      />
 
       {tab === 'send' ? (
-        <div className="card">
-          <h2>📋 إدخال بيانات التحويل</h2>
+        <Panel title="إدخال بيانات التحويل">
           <Notice notice={notice} />
           <div className="form-grid">
             <label className="field">
-              <span>🏢 الفرع</span>
-              <select className="input" value={effectiveBranch} onChange={(event) => setBranchId(event.target.value)}>
+              <span>الفرع</span>
+              <select
+                className="input"
+                value={effectiveBranch}
+                onChange={(event) => setBranchId(event.target.value)}
+              >
                 {branchOptions(branchRows).map((option) => (
                   <option key={option.id} value={option.id}>
                     {option.label}
@@ -242,11 +246,11 @@ export default function CashTransfersPage() {
               </select>
             </label>
             <label className="field">
-              <span>📅 التاريخ</span>
+              <span>التاريخ</span>
               <input className="input" value={today()} readOnly />
             </label>
             <label className="field">
-              <span>🏦 من خزنة</span>
+              <span>من خزنة</span>
               <select className="input" value={fromId} onChange={(event) => setFromId(event.target.value)}>
                 <option value="">— اختر —</option>
                 {safeRows.map((row) => (
@@ -257,7 +261,7 @@ export default function CashTransfersPage() {
               </select>
             </label>
             <label className="field">
-              <span>🏦 إلى خزنة</span>
+              <span>إلى خزنة</span>
               <select className="input" value={toId} onChange={(event) => setToId(event.target.value)}>
                 <option value="">— اختر —</option>
                 {safeRows.map((row) => (
@@ -268,7 +272,7 @@ export default function CashTransfersPage() {
               </select>
             </label>
             <label className="field">
-              <span>💰 المبلغ</span>
+              <span>المبلغ</span>
               <input
                 className="input"
                 dir="ltr"
@@ -279,23 +283,28 @@ export default function CashTransfersPage() {
             </label>
           </div>
           <div className="row" style={{ marginTop: 10 }}>
-            <button type="button" className="btn primary" disabled={busy || !canManage || !fromId || !toId || !amountText} onClick={createDraft}>
-              💾 حفظ كمسودة
+            <button
+              type="button"
+              className="btn primary"
+              disabled={busy || !canManage || !fromId || !toId || !amountText}
+              onClick={createDraft}
+            >
+              حفظ كمسودة
             </button>
           </div>
           <p className="muted small" style={{ marginTop: 8 }}>
-            المناقلة لا تخرج من الخزنة إلا بعد <strong>✅ اعتماد الإرسال</strong> من تبويب الاستلام أو من الشبكة أدناه.
+            المناقلة لا تخرج من الخزنة إلا بعد <strong>اعتماد الإرسال</strong> من تبويب الاستلام أو من الشبكة
+            أدناه.
           </p>
-        </div>
+        </Panel>
       ) : null}
 
       {tab === 'receive' ? (
-        <div className="card">
-          <h2>📥 استلام تحويل</h2>
+        <Panel title="استلام تحويل">
           <Notice notice={notice} />
           <div className="form-grid">
             <label className="field">
-              <span>🔢 رقم المناقلة</span>
+              <span>رقم المناقلة</span>
               <select
                 className="input"
                 value={selectedId}
@@ -310,27 +319,22 @@ export default function CashTransfersPage() {
               </select>
             </label>
             <label className="field">
-              <span>🏦 من خزنة</span>
+              <span>من خزنة</span>
               <input className="input" value={selected?.fromName ?? '—'} readOnly />
             </label>
             <label className="field">
-              <span>🏦 إلى خزنة</span>
+              <span>إلى خزنة</span>
               <input className="input" value={selected?.toName ?? '—'} readOnly />
             </label>
             <label className="field">
-              <span>💰 المبلغ</span>
+              <span>المبلغ</span>
               <input className="input" dir="ltr" value={selected ? money(selected.amount) : '—'} readOnly />
             </label>
           </div>
 
           <div className="row" style={{ marginTop: 10, gap: 8, flexWrap: 'wrap' }}>
-            <button
-              type="button"
-              className="btn"
-              disabled={!selected}
-              onClick={() => setPreview(!preview)}
-            >
-              👁️ عرض
+            <button type="button" className="btn" disabled={!selected} onClick={() => setPreview(!preview)}>
+              عرض
             </button>
             <button
               type="button"
@@ -338,7 +342,7 @@ export default function CashTransfersPage() {
               disabled={busy || !canManage || !selected || selected.status !== 'sent'}
               onClick={() => selected && receive(selected.id)}
             >
-              ✅ تأكيد الاستلام
+              تأكيد الاستلام
             </button>
             <button
               type="button"
@@ -346,7 +350,7 @@ export default function CashTransfersPage() {
               disabled={busy || !canManage || inTransitRows.length === 0}
               onClick={receiveAll}
             >
-              📦 استلام الكل ({inTransitRows.length})
+              استلام الكل ({inTransitRows.length})
             </button>
           </div>
 
@@ -359,29 +363,29 @@ export default function CashTransfersPage() {
           {preview && selected ? (
             <div className="doc-head" style={{ marginTop: 12 }}>
               <div className="doc-field">
-                <span className="muted small">🔢 رقم المناقلة</span>
+                <span className="muted small">رقم المناقلة</span>
                 <b dir="ltr">{selected.number ?? '—'}</b>
               </div>
               <div className="doc-field">
-                <span className="muted small">📅 تاريخ الإرسال</span>
+                <span className="muted small">تاريخ الإرسال</span>
                 <b>{selected.sentAt ? dateTime(selected.sentAt) : 'لم تُرسل بعد'}</b>
               </div>
               <div className="doc-field">
-                <span className="muted small">🏦 من خزنة</span>
+                <span className="muted small">من خزنة</span>
                 <b>{selected.fromName ?? '—'}</b>
               </div>
               <div className="doc-field">
-                <span className="muted small">🏦 إلى خزنة</span>
+                <span className="muted small">إلى خزنة</span>
                 <b>{selected.toName ?? '—'}</b>
               </div>
               <div className="doc-field">
-                <span className="muted small">💰 المبلغ</span>
+                <span className="muted small">المبلغ</span>
                 <b dir="ltr">
                   {money(selected.amount)} {selected.currency}
                 </b>
               </div>
               <div className="doc-field">
-                <span className="muted small">📋 الحالة</span>
+                <span className="muted small">الحالة</span>
                 <b>
                   <span className={`badge ${STATUS_TONE[selected.status] ?? ''}`}>
                     {STATUS_LABELS[selected.status] ?? selected.status}
@@ -389,12 +393,14 @@ export default function CashTransfersPage() {
                 </b>
               </div>
               <div className="doc-field">
-                <span className="muted small">📒 قيد الإرسال</span>
+                <span className="muted small">قيد الإرسال</span>
                 <b dir="ltr">{selected.sentJournalEntryId ? selected.sentJournalEntryId.slice(0, 8) : '—'}</b>
               </div>
               <div className="doc-field">
-                <span className="muted small">📒 قيد الاستلام</span>
-                <b dir="ltr">{selected.receivedJournalEntryId ? selected.receivedJournalEntryId.slice(0, 8) : '—'}</b>
+                <span className="muted small">قيد الاستلام</span>
+                <b dir="ltr">
+                  {selected.receivedJournalEntryId ? selected.receivedJournalEntryId.slice(0, 8) : '—'}
+                </b>
               </div>
             </div>
           ) : null}
@@ -404,30 +410,55 @@ export default function CashTransfersPage() {
               لا توجد مناقلات في الطريق — ما أُرسل استُلم، وما لم يُرسل ما زال مسودة.
             </p>
           ) : null}
-        </div>
+        </Panel>
       ) : null}
 
       {tab === 'search' ? (
         <FilterBar>
           <label className="field">
-            <span>🔢 رقم التحويل</span>
-            <input className="input" dir="ltr" value={numberQuery} onChange={(event) => setNumberQuery(event.target.value)} />
+            <span>رقم التحويل</span>
+            <input
+              className="input"
+              dir="ltr"
+              value={numberQuery}
+              onChange={(event) => setNumberQuery(event.target.value)}
+            />
           </label>
           <label className="field">
-            <span>📅 من تاريخ</span>
-            <input className="input" type="date" value={from} onChange={(event) => setFrom(event.target.value)} disabled={allPeriod} />
+            <span>من تاريخ</span>
+            <input
+              className="input"
+              type="date"
+              value={from}
+              onChange={(event) => setFrom(event.target.value)}
+              disabled={allPeriod}
+            />
           </label>
           <label className="field">
-            <span>📅 إلى تاريخ</span>
-            <input className="input" type="date" value={to} onChange={(event) => setTo(event.target.value)} disabled={allPeriod} />
+            <span>إلى تاريخ</span>
+            <input
+              className="input"
+              type="date"
+              value={to}
+              onChange={(event) => setTo(event.target.value)}
+              disabled={allPeriod}
+            />
           </label>
           <label className="field" style={{ justifyContent: 'center' }}>
-            <span>📋 كل الفترة</span>
-            <input type="checkbox" checked={allPeriod} onChange={(event) => setAllPeriod(event.target.checked)} />
+            <span>كل الفترة</span>
+            <input
+              type="checkbox"
+              checked={allPeriod}
+              onChange={(event) => setAllPeriod(event.target.checked)}
+            />
           </label>
           <label className="field">
-            <span>📋 الحالة</span>
-            <select className="input" value={statusFilter} onChange={(event) => setStatusFilter(event.target.value)}>
+            <span>الحالة</span>
+            <select
+              className="input"
+              value={statusFilter}
+              onChange={(event) => setStatusFilter(event.target.value)}
+            >
               <option value="">الكل</option>
               <option value="draft">مسودة</option>
               <option value="sent">مُرسَلة</option>
@@ -436,38 +467,39 @@ export default function CashTransfersPage() {
             </select>
           </label>
           <button type="button" className="btn primary" onClick={() => setSearched(!searched)}>
-            🔍 بحث
+            بحث
           </button>
         </FilterBar>
       ) : null}
 
-      <div className="card">
-        <div className="section-title">
-          <h2>📊 نتائج البحث</h2>
-          <span className="muted small">{rows.length} مناقلة</span>
-        </div>
+      <Panel title="نتائج البحث" flush>
         <DataTable
           rows={rows}
           rowKey={(row) => row.id}
           columns={[
-            { key: 'number', header: '🔢 الرقم', cell: (row) => row.number ?? '—' },
-            { key: 'date', header: '📅 التاريخ', cell: (row) => dateTime(row.createdAt) },
-            { key: 'from', header: '🏦 من خزنة', cell: (row) => row.fromName ?? '—' },
-            { key: 'to', header: '🏦 إلى خزنة', cell: (row) => row.toName ?? '—' },
-            { key: 'amount', header: '💰 المبلغ', align: 'num', cell: (row) => money(row.amount) },
+            { key: 'number', header: 'الرقم', cell: (row) => row.number ?? '—' },
+            { key: 'date', header: 'التاريخ', cell: (row) => dateTime(row.createdAt) },
+            { key: 'from', header: 'من خزنة', cell: (row) => row.fromName ?? '—' },
+            { key: 'to', header: 'إلى خزنة', cell: (row) => row.toName ?? '—' },
+            { key: 'amount', header: 'المبلغ', align: 'num', cell: (row) => money(row.amount) },
             {
               key: 'status',
-              header: '📋 الحالة',
-              cell: (row) => <span className={`badge ${STATUS_TONE[row.status] ?? ''}`}>{STATUS_LABELS[row.status] ?? row.status}</span>,
+              header: 'الحالة',
+              cell: (row) => (
+                <span className={`badge ${STATUS_TONE[row.status] ?? ''}`}>
+                  {STATUS_LABELS[row.status] ?? row.status}
+                </span>
+              ),
             },
             {
               key: 'entry',
-              header: '📒 القيد',
+              header: 'القيد',
               cell: (row) =>
                 row.sentJournalEntryId || row.receivedJournalEntryId ? (
-                  <span className="muted small" dir="ltr">
-                    {row.sentJournalEntryId ? '📤' : ''}
-                    {row.receivedJournalEntryId ? '📥' : ''}
+                  <span className="muted small">
+                    {row.sentJournalEntryId ? 'قيد الصرف مُرحَّل' : 'قيد الصرف غير مُرحَّل'}
+                    {row.sentJournalEntryId && row.receivedJournalEntryId ? ' · ' : ''}
+                    {row.receivedJournalEntryId ? 'قيد الاستلام مُرحَّل' : ''}
                   </span>
                 ) : (
                   '—'
@@ -480,17 +512,32 @@ export default function CashTransfersPage() {
                 <div className="row" style={{ gap: 6 }}>
                   {row.status === 'draft' ? (
                     <>
-                      <button type="button" className="btn sm" disabled={busy || !canManage} onClick={() => send(row.id)}>
-                        ✅ اعتماد الإرسال
+                      <button
+                        type="button"
+                        className="btn sm"
+                        disabled={busy || !canManage}
+                        onClick={() => send(row.id)}
+                      >
+                        اعتماد الإرسال
                       </button>
-                      <button type="button" className="btn sm" disabled={busy || !canManage} onClick={() => cancel(row.id)}>
-                        🗑️ حذف
+                      <button
+                        type="button"
+                        className="btn sm"
+                        disabled={busy || !canManage}
+                        onClick={() => cancel(row.id)}
+                      >
+                        حذف
                       </button>
                     </>
                   ) : null}
                   {row.status === 'sent' ? (
-                    <button type="button" className="btn sm" disabled={busy || !canManage} onClick={() => receive(row.id)}>
-                      ✅ تأكيد الاستلام
+                    <button
+                      type="button"
+                      className="btn sm"
+                      disabled={busy || !canManage}
+                      onClick={() => receive(row.id)}
+                    >
+                      تأكيد الاستلام
                     </button>
                   ) : null}
                 </div>
@@ -503,18 +550,14 @@ export default function CashTransfersPage() {
             '',
             '',
             <strong key="value">
-              {money(
-                rows
-                  .reduce((running, row) => running + Number(row.amount ?? 0), 0)
-                  .toFixed(4),
-              )}
+              {money(rows.reduce((running, row) => running + Number(row.amount ?? 0), 0).toFixed(4))}
             </strong>,
             '',
             '',
             '',
           ]}
         />
-      </div>
+      </Panel>
     </Screen>
   );
 }

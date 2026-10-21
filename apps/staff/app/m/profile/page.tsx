@@ -1,5 +1,6 @@
 'use client';
 
+import { Page, PageHead, Panel } from '@erp/ui';
 import { useEffect, useState } from 'react';
 
 import { apiData } from '../../../lib/api';
@@ -26,16 +27,62 @@ export default function EmployeeProfilePage() {
   }, []);
 
   return (
-    <section className="employee-card">
-      <h1>حسابي</h1>
-      <h2>كشف الراتب</h2>
-      {slips.length === 0 ? <p>لا كشوف بعد.</p> : slips.map((slip) => <p key={slip.period}>{slip.period}: {slip.net}</p>)}
-      <h2>إجازاتي</h2>
-      {leaves.length === 0 ? <p>لا طلبات إجازة.</p> : leaves.map((leave) => (
-        <p key={leave.id}>{leave.starts_on} — {leave.status} — {leave.reason}</p>
-      ))}
-      <h2>عهدي</h2>
-      {custodies.length === 0 ? <p>لا عهد معتمدة.</p> : custodies.map((row) => <p key={row.id}>{row.reason}</p>)}
-    </section>
+    <Page>
+      <PageHead
+        title="حسابي"
+        description="كشف الراتب والإجازات والعهد — كل ما يخصّك في مكان واحد."
+        breadcrumbs={['تطبيق الموظف', 'حسابي']}
+      />
+      <Panel title="كشف الراتب" hint="آخر الكشوف الصادرة.">
+        {slips.length === 0 ? (
+          <p className="m-0 text-sm text-muted">لا كشوف بعد.</p>
+        ) : (
+          <ul className="m-0 grid list-none gap-2 p-0">
+            {slips.map((slip) => (
+              <li
+                key={slip.period}
+                className="flex items-center justify-between gap-3 border-b border-line pb-2 last:border-0 last:pb-0"
+              >
+                <span className="font-semibold">{slip.period}</span>
+                <span className="num font-bold">{slip.net}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Panel>
+      <Panel title="إجازاتي" hint="حالة كل طلب كما يراها المدير.">
+        {leaves.length === 0 ? (
+          <p className="m-0 text-sm text-muted">لا طلبات إجازة.</p>
+        ) : (
+          <ul className="m-0 grid list-none gap-2 p-0">
+            {leaves.map((leave) => (
+              <li
+                key={leave.id}
+                className="flex flex-wrap items-center justify-between gap-3 border-b border-line pb-2 last:border-0 last:pb-0"
+              >
+                <span className="font-semibold" dir="ltr">
+                  {leave.starts_on}
+                </span>
+                <span className="badge">{leave.status}</span>
+                <span className="text-sm text-muted">{leave.reason}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Panel>
+      <Panel title="عهدي" hint="العهد المعتمدة باسمك.">
+        {custodies.length === 0 ? (
+          <p className="m-0 text-sm text-muted">لا عهد معتمدة.</p>
+        ) : (
+          <ul className="m-0 grid list-none gap-2 p-0">
+            {custodies.map((row) => (
+              <li key={row.id} className="border-b border-line pb-2 text-sm last:border-0 last:pb-0">
+                {row.reason}
+              </li>
+            ))}
+          </ul>
+        )}
+      </Panel>
+    </Page>
   );
 }

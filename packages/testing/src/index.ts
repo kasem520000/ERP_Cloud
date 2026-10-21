@@ -5,6 +5,7 @@
 export const testingWorkspace = 'erp-saas';
 
 export * from './test-database.js';
+export * from './exit-guard.js';
 export * from './isolation-suite.js';
 export * from './factories.js';
 export * from './accounting-invariants.js';

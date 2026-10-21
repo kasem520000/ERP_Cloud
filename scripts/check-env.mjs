@@ -40,7 +40,7 @@ for (const key of RECOMMENDED) {
 }
 
 console.log('\nRuntime:');
-for (const key of ['NODE_ENV', 'PORT', 'STAFF_PORT', 'MARKETING_PORT', 'PLATFORM_ADMIN_PORT', 'CUSTOMER_PORTAL_PORT', 'NEXT_PUBLIC_API_BASE_URL', 'CORS_ALLOWED_ORIGINS']) {
+for (const key of ['NODE_ENV', 'PORT', 'STAFF_PORT', 'MARKETING_PORT', 'PLATFORM_ADMIN_PORT', 'CUSTOMER_PORTAL_PORT', 'BAKERY_PORT', 'NEXT_PUBLIC_API_BASE_URL', 'CORS_ALLOWED_ORIGINS']) {
   console.log(`  ${key.padEnd(26)} ${mask(key)}`);
 }
 

@@ -1,0 +1,16 @@
+{
+  "name": "ERPCloud — تطبيق مندوب التوزيع",
+  "short_name": "مندوب ERPCloud",
+  "description": "تطبيق المندوب: عهدته وفواتيره وتحصيلاته وإغلاق ورديته، متصلًا ومنقطعًا بطابورٍ ومفاتيح عدم تكرار",
+  "lang": "ar",
+  "dir": "rtl",
+  "start_url": "/rep",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f8fafc",
+  "theme_color": "#b45309",
+  "categories": ["business", "finance"],
+  "icons": [
+    { "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}

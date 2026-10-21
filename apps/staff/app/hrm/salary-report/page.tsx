@@ -1,5 +1,6 @@
 'use client';
 
+import { FilterBand, Panel, TableFrame } from '@erp/ui';
 import { Suspense, useState } from 'react';
 
 import { Empty, ErrorBox, Forbidden, Loading, Screen } from '../../../components/screen';
@@ -10,12 +11,12 @@ import { money } from '../../../lib/lookups';
 import { useQuery } from '../../../lib/use-query';
 
 /**
- * 💼 تقرير الرواتب — `Form_WPF/frmRptSalary.xaml` («تقرير الرواتب»).
+ * تقرير الرواتب — `Form_WPF/frmRptSalary.xaml` («تقرير الرواتب»).
  *
  * The window is `الشهر:` · `السنة:` · `كل الفترة` (checked, and it disables both boxes)
  * · `🔍 عرض` · `💰 سند استلام راتب لموظف`, over a grid «💼 بيانات الرواتب» of
- * `م · SalId · رقم السند · 👤 الموظف · الراتب الأساسي · بدل سكن · بدل مواصلات · الحوافز ·
- * 💰 الإجمالي · الخصومات · 💵 صافي الراتب · 👁️ عرض`, with `💰 إجمالي الرواتب:` in the
+ * `م · SalId · رقم السند · الموظف · الراتب الأساسي · بدل سكن · بدل مواصلات · الحوافز ·
+ * الإجمالي · الخصومات · صافي الراتب · عرض`, with ` إجمالي الرواتب:` in the
  * footer. `btnShow_Click` (L58) reads `SalaryPay` — the cloud's `salary_payments`, the
  * إذن صرف of part three — with `IS_Deleted=0`, narrowed by year and month unless
  * «كل الفترة» is on.
@@ -58,7 +59,14 @@ type Row = {
 
 type Summary = { total: string; gross: string; deductions: string; count: number };
 
-type Envelope = { allPeriod: boolean; month: string | null; year: string | null; branchId: string | null; summary: Summary; rows: Row[] };
+type Envelope = {
+  allPeriod: boolean;
+  month: string | null;
+  year: string | null;
+  branchId: string | null;
+  summary: Summary;
+  rows: Row[];
+};
 
 const EMPTY: Summary = { total: '0', gross: '0', deductions: '0', count: 0 };
 
@@ -77,7 +85,9 @@ function SalaryReport() {
       params.set('all_period', 'false');
     }
     const query = params.toString();
-    return apiFetch<{ data: Envelope }>(`/hrm/reports/salary${query ? `?${query}` : ''}`).then((body) => body.data);
+    return apiFetch<{ data: Envelope }>(`/hrm/reports/salary${query ? `?${query}` : ''}`).then(
+      (body) => body.data,
+    );
   }, [applied]);
 
   const rows = report.data?.rows ?? [];
@@ -86,12 +96,12 @@ function SalaryReport() {
   return (
     <Screen
       title="تقرير الرواتب"
-      subtitle="💼 كل إذن صرف عن كل شهر — «كل الفترة» تعرضها كلها، والشهر والسنة يضيّقانها."
+      subtitle="كل إذن صرف عن كل شهر — «كل الفترة» تعرضها كلها، والشهر والسنة يضيّقانها."
       crumbs={['الموظفين والرواتب', 'التقارير']}
       actions={
         <>
           <button className="btn" type="button" onClick={() => window.print()} disabled={rows.length === 0}>
-            🖨️ طباعة
+            طباعة
           </button>
           <button
             className="btn"
@@ -100,7 +110,20 @@ function SalaryReport() {
             onClick={() =>
               downloadCsv(
                 'salary-report.csv',
-                ['م', 'رقم السند', 'الموظف', 'الشهر', 'السنة', 'الراتب الأساسي', 'بدل سكن', 'بدل مواصلات', 'الحوافز', 'الإجمالي', 'الخصومات', 'صافي الراتب'],
+                [
+                  'م',
+                  'رقم السند',
+                  'الموظف',
+                  'الشهر',
+                  'السنة',
+                  'الراتب الأساسي',
+                  'بدل سكن',
+                  'بدل مواصلات',
+                  'الحوافز',
+                  'الإجمالي',
+                  'الخصومات',
+                  'صافي الراتب',
+                ],
                 rows.map((row) => [
                   row.seq,
                   row.number,
@@ -118,12 +141,12 @@ function SalaryReport() {
               )
             }
           >
-            📊 تصدير CSV
+            تصدير CSV
           </button>
         </>
       }
     >
-      <div className="card tight no-print">
+      <FilterBand className="no-print">
         <div className="row" style={{ flexWrap: 'wrap', alignItems: 'flex-end' }}>
           <label className="field" style={{ margin: 0, width: 120 }}>
             <span>الشهر:</span>
@@ -151,7 +174,11 @@ function SalaryReport() {
             />
           </label>
           <label className="check" style={{ margin: 0 }}>
-            <input type="checkbox" checked={allPeriod} onChange={(event) => setAllPeriod(event.target.checked)} />
+            <input
+              type="checkbox"
+              checked={allPeriod}
+              onChange={(event) => setAllPeriod(event.target.checked)}
+            />
             كل الفترة
           </label>
           <button
@@ -159,13 +186,13 @@ function SalaryReport() {
             type="button"
             onClick={() => setApplied({ month, year, allPeriod })}
           >
-            🔍 عرض
+            عرض
           </button>
           <a className="btn" href="/hrm/salary-payments">
-            💰 سند استلام راتب لموظف
+            سند استلام راتب لموظف
           </a>
         </div>
-      </div>
+      </FilterBand>
 
       {report.status === 'loading' && <Loading />}
       {report.status === 'forbidden' && <Forbidden />}
@@ -173,17 +200,20 @@ function SalaryReport() {
       {report.status === 'success' && (
         <>
           <StatTiles>
-            <StatTile label="💰 إجمالي الرواتب" value={money(totals.total)} tone="ok" />
-            <StatTile label="💰 الإجمالي" value={money(totals.gross)} tone="brand" />
+            <StatTile label="إجمالي الرواتب" value={money(totals.total)} tone="ok" />
+            <StatTile label="الإجمالي" value={money(totals.gross)} tone="brand" />
             <StatTile label="الخصومات" value={money(totals.deductions)} />
             <StatTile label="عدد الإذونات" value={String(totals.count)} />
           </StatTiles>
 
-          {rows.length === 0 ? (
-            <Empty title="لا إذنات صرف في هذه الفترة" detail="أوقف «كل الفترة» وحدّد شهراً وسنة، أو أنشئ إذن صرف من شاشة «دفع الرواتب»." />
-          ) : (
-            <div className="table-wrap">
-              <table>
+          <Panel title="إذونات الصرف" flush>
+            {rows.length === 0 ? (
+              <Empty
+                title="لا إذنات صرف في هذه الفترة"
+                detail="أوقف «كل الفترة» وحدّد شهراً وسنة، أو أنشئ إذن صرف من شاشة «دفع الرواتب»."
+              />
+            ) : (
+              <TableFrame>
                 <thead>
                   <tr>
                     <th>م</th>
@@ -225,15 +255,15 @@ function SalaryReport() {
                 </tbody>
                 <tfoot>
                   <tr>
-                    <th colSpan={9}>💰 إجمالي الرواتب</th>
+                    <th colSpan={9}>إجمالي الرواتب</th>
                     <th className="num">{money(totals.gross)}</th>
                     <th className="num">{money(totals.deductions)}</th>
                     <th className="num">{money(totals.total)}</th>
                   </tr>
                 </tfoot>
-              </table>
-            </div>
-          )}
+              </TableFrame>
+            )}
+          </Panel>
         </>
       )}
     </Screen>

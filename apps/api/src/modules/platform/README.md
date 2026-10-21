@@ -39,8 +39,17 @@ one, which is the loud failure we want — it can never silently widen a query.
 ## Guards
 
 ```
-RateLimitGuard → AuthGuard → TenantGuard → BranchScopeGuard → PermissionsGuard
+RateLimitGuard → AuthGuard → TenantGuard → BranchScopeGuard → PermissionsGuard → SectorLicenceGuard
 ```
+
+`SectorLicenceGuard` (🏪 sector add-on licensing) is appended, never inserted: it answers
+«did this tenant buy this surface» only after `PermissionsGuard` answered «may this user act»,
+and it reads `enabledApps` from the context `TenantGuard` published with the membership.
+A route declares its surface with `@RequiresSectorApp({ apps: [...], mode })`; `apps` is
+any-of and `mode` defaults to **`enforce`** (403 `ADDON_NOT_LICENSED`) so a new surface fails
+closed, while a surface that was never enforced declares `observe` explicitly — it passes, and
+every **write** leaves a `sector_licence.unlicensed_use` row in `audit_log` so the switch to
+`enforce` is decided from measurement, not from guesswork.
 
 `TenantGuard` is the isolation keystone:
 
@@ -63,7 +72,10 @@ trusting a claim: the database has to agree with the token.
   deny-list check. Legacy plaintext hashes are never imported; imported users get
   `must_change_password = true`.
 - **Lockout** — `AUTH_LOGIN_MAX_FAILURES` failures ⇒ `locked_until`, surfaced as
-  429 `RATE_LIMITED`.
+  429 `RATE_LIMITED`. The credential is verified **before** the lock is applied, so the
+  lock stops guessing without locking the owner out: a correct password (plus the TOTP
+  code when enabled) still opens the session, and doing so clears the counter. Otherwise
+  anyone who knows an e-mail address could keep its owner out indefinitely.
 
 ## Deliberate decisions (recorded, not accidental)
 

@@ -1,9 +1,10 @@
 'use client';
 
+import { Panel, TableFrame } from '@erp/ui';
 import { useState } from 'react';
 
 import { DataTable, Notice, QueryView } from '../../../components/data-view';
-import { Screen } from '../../../components/screen';
+import { Empty, Screen } from '../../../components/screen';
 import {
   ActionBar,
   DocField,
@@ -15,7 +16,7 @@ import {
   Tabs,
   Totals,
 } from '../../../components/ui';
-import { ApiError, apiList, apiPost } from '../../../lib/api';
+import { ApiError, apiErrorText, apiList, apiPost } from '../../../lib/api';
 import {
   arabicName,
   dateTime,
@@ -45,9 +46,9 @@ type TransferLine = {
   qty: string;
   receivedQty: string;
   unitCost: string;
-  /** 🔢 الأرقام التسلسلية riding with the goods — one per piece. */
+  /** الأرقام التسلسلية riding with the goods — one per piece. */
   serialNos?: string[];
-  /** 📁 رقم الدفعة وتواريخها على السطر (R5). */
+  /** رقم الدفعة وتواريخها على السطر (R5). */
   batchNo?: string | null;
   productionDate?: string | null;
   expiryDate?: string | null;
@@ -99,7 +100,7 @@ const lineValue = (line: TransferLine) => Number(line.qty) * Number(line.unitCos
 export default function TransfersPage() {
   const { can } = useSession();
   /**
-   * 🔍 البحث — `frmSafesTransfer` narrows the grid by `🔢 رقم التحويل` and by a
+   * البحث — `frmSafesTransfer` narrows the grid by ` رقم التحويل` and by a
    * `📅 من تاريخ` / `📅 إلى تاريخ` window, and `📋 كل الفترة` puts the whole history
    * back. The server does the narrowing so the clerk searches a year of transfers, not
    * the one page the browser happened to have cached.
@@ -142,7 +143,7 @@ export default function TransfersPage() {
       qtyText: string;
       unitId: string;
       unitCostText: string;
-      /** 📁 رقم الدفعة — المناقلة تنقل دفعةً بعينها، فيُكتب رقمها على السطر (R5). */
+      /** رقم الدفعة — المناقلة تنقل دفعةً بعينها، فيُكتب رقمها على السطر (R5). */
       batchNo: string;
       productionDate: string;
       expiryDate: string;
@@ -246,7 +247,7 @@ export default function TransfersPage() {
       ]);
       transfers.reload();
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
     } finally {
       setBusy(false);
     }
@@ -259,7 +260,7 @@ export default function TransfersPage() {
       setNotice({ kind: 'ok', text: okText });
       transfers.reload();
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
     }
   }
 
@@ -275,12 +276,15 @@ export default function TransfersPage() {
     .reduce((sum, line) => sum + (Number(line.qty) - Number(line.receivedQty)), 0);
   const transitValue = inFlight
     .flatMap((row) => row.lines)
-    .reduce((sum, line) => sum + (Number(line.qty) - Number(line.receivedQty)) * Number(line.unitCost ?? 0), 0);
+    .reduce(
+      (sum, line) => sum + (Number(line.qty) - Number(line.receivedQty)) * Number(line.unitCost ?? 0),
+      0,
+    );
 
   return (
     <Screen
       title="مناقلة مخزنية"
-      subtitle="مسودة ← إرسال (بضاعة تحت التحويل) ← استلام (إدخال للمخزون) — المناقلة محايدة القيمة: ما يخرج من مستودع يدخل الآخر بنفس التكلفة."
+      subtitle="مسودة إرسال (بضاعة تحت التحويل) استلام (إدخال للمخزون) — المناقلة محايدة القيمة: ما يخرج من مستودع يدخل الآخر بنفس التكلفة."
       crumbs={['المستودعات', 'العمليات']}
       actions={
         can('inventory.adjust') ? (
@@ -291,75 +295,74 @@ export default function TransfersPage() {
       }
     >
       {open && (
-        <form className="card" onSubmit={createTransfer}>
-          <h2>مناقلة جديدة</h2>
-          <div className="form-grid">
-            <label className="field">
-              <span>الفرع *</span>
-              <select
-                className="input"
-                value={effectiveBranch}
-                onChange={(event) => setBranchId(event.target.value)}
-                required
-              >
-                <option value="">— اختر —</option>
-                {branchRows.map((row) => (
-                  <option key={row.id} value={row.id}>
-                    {row.code ? `${row.code} — ` : ''}
-                    {arabicName(row)}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="field">
-              <span>من مستودع *</span>
-              <select
-                className="input"
-                value={fromWarehouseId}
-                onChange={(event) => setFrom(event.target.value)}
-                required
-              >
-                <option value="">— اختر —</option>
-                {warehouseRows.map((row) => (
-                  <option key={row.id} value={row.id}>
-                    {arabicName(row)}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className="field">
-              <span>إلى مستودع *</span>
-              <select
-                className="input"
-                value={toWarehouseId}
-                onChange={(event) => setTo(event.target.value)}
-                required
-              >
-                <option value="">— اختر —</option>
-                {warehouseRows
-                  .filter((row) => row.id !== fromWarehouseId)
-                  .map((row) => (
+        <form onSubmit={createTransfer}>
+          <Panel title="مناقلة جديدة">
+            <div className="form-grid">
+              <label className="field">
+                <span>الفرع *</span>
+                <select
+                  className="input"
+                  value={effectiveBranch}
+                  onChange={(event) => setBranchId(event.target.value)}
+                  required
+                >
+                  <option value="">— اختر —</option>
+                  {branchRows.map((row) => (
+                    <option key={row.id} value={row.id}>
+                      {row.code ? `${row.code} — ` : ''}
+                      {arabicName(row)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label className="field">
+                <span>من مستودع *</span>
+                <select
+                  className="input"
+                  value={fromWarehouseId}
+                  onChange={(event) => setFrom(event.target.value)}
+                  required
+                >
+                  <option value="">— اختر —</option>
+                  {warehouseRows.map((row) => (
                     <option key={row.id} value={row.id}>
                       {arabicName(row)}
                     </option>
                   ))}
-              </select>
-            </label>
-          </div>
+                </select>
+              </label>
+              <label className="field">
+                <span>إلى مستودع *</span>
+                <select
+                  className="input"
+                  value={toWarehouseId}
+                  onChange={(event) => setTo(event.target.value)}
+                  required
+                >
+                  <option value="">— اختر —</option>
+                  {warehouseRows
+                    .filter((row) => row.id !== fromWarehouseId)
+                    .map((row) => (
+                      <option key={row.id} value={row.id}>
+                        {arabicName(row)}
+                      </option>
+                    ))}
+                </select>
+              </label>
+            </div>
 
-          <h3>الأصناف</h3>
-          <div className="table-wrap">
-            <table>
+            <h3>الأصناف</h3>
+            <TableFrame>
               <thead>
                 <tr>
                   <th>المادة</th>
                   <th>الكمية</th>
                   <th>الوحدة</th>
                   <th>تكلفة الوحدة</th>
-                  <th>📁 رقم الدفعة</th>
-                  <th>📅 تاريخ الإنتاج</th>
-                  <th>⏳ تاريخ الانتهاء</th>
-                  <th>🔢 الأرقام التسلسلية</th>
+                  <th>رقم الدفعة</th>
+                  <th>تاريخ الإنتاج</th>
+                  <th>تاريخ الانتهاء</th>
+                  <th>الأرقام التسلسلية</th>
                   <th />
                 </tr>
               </thead>
@@ -501,34 +504,34 @@ export default function TransfersPage() {
                   </tr>
                 ))}
               </tbody>
-            </table>
-          </div>
-          <button
-            className="btn sm"
-            type="button"
-            onClick={() =>
-              setLines((current) => [
-                ...current,
-                {
-                  itemId: '',
-                  qtyText: '',
-                  unitId: '',
-                  unitCostText: '',
-                  batchNo: '',
-                  productionDate: '',
-                  expiryDate: '',
-                  serialNos: '',
-                },
-              ])
-            }
-          >
-            + سطر
-          </button>
+            </TableFrame>
+            <button
+              className="btn sm"
+              type="button"
+              onClick={() =>
+                setLines((current) => [
+                  ...current,
+                  {
+                    itemId: '',
+                    qtyText: '',
+                    unitId: '',
+                    unitCostText: '',
+                    batchNo: '',
+                    productionDate: '',
+                    expiryDate: '',
+                    serialNos: '',
+                  },
+                ])
+              }
+            >
+              + سطر
+            </button>
 
-          <Notice notice={notice} />
-          <button className="btn primary" type="submit" disabled={busy}>
-            {busy ? 'جارٍ الحفظ…' : 'حفظ كمسودة'}
-          </button>
+            <Notice notice={notice} />
+            <button className="btn primary" type="submit" disabled={busy}>
+              {busy ? 'جارٍ الحفظ…' : 'حفظ كمسودة'}
+            </button>
+          </Panel>
         </form>
       )}
 
@@ -547,34 +550,36 @@ export default function TransfersPage() {
           hint="وصل بعضها وبقي بعضها"
           tone="warn"
         />
+        <StatTile label="الكمية المعلّقة" value={quantity(transitQty)} hint="لم تُستلم بعد" />
         <StatTile
-          label="الكمية المعلّقة"
-          value={quantity(transitQty)}
-          hint="لم تُستلم بعد"
+          label="قيمة ما في الطريق"
+          value={money(transitValue)}
+          hint="في حساب بضاعة تحت التحويل"
+          tone="brand"
         />
-        <StatTile label="قيمة ما في الطريق" value={money(transitValue)} hint="في حساب بضاعة تحت التحويل" tone="brand" />
-        <StatTile label="مسودات" value={rows.filter((row) => row.status === 'draft').length} hint="تنتظر الإرسال" />
+        <StatTile
+          label="مسودات"
+          value={rows.filter((row) => row.status === 'draft').length}
+          hint="تنتظر الإرسال"
+        />
       </StatTiles>
 
       <FilterBar
         actions={
           <>
-            <button
-              className="btn"
-              type="button"
-              onClick={() => setSearch({ number: '', from: '', to: '' })}
-            >
-              📋 كل الفترة
+            <button className="btn" type="button" onClick={() => setSearch({ number: '', from: '', to: '' })}>
+              كل الفترة
             </button>
             <button className="btn primary" type="button" onClick={() => transfers.reload()}>
-              🔍 بحث
+              بحث
             </button>
           </>
         }
       >
         <label className="field">
-          <span>🔢 رقم التحويل</span>
+          <span>رقم التحويل</span>
           <input
+            className="input"
             dir="ltr"
             value={search.number}
             onChange={(event) => setSearch((current) => ({ ...current, number: event.target.value }))}
@@ -582,16 +587,18 @@ export default function TransfersPage() {
           />
         </label>
         <label className="field">
-          <span>📅 من تاريخ</span>
+          <span>من تاريخ</span>
           <input
+            className="input"
             type="date"
             value={search.from}
             onChange={(event) => setSearch((current) => ({ ...current, from: event.target.value }))}
           />
         </label>
         <label className="field">
-          <span>📅 إلى تاريخ</span>
+          <span>إلى تاريخ</span>
           <input
+            className="input"
             type="date"
             value={search.to}
             onChange={(event) => setSearch((current) => ({ ...current, to: event.target.value }))}
@@ -602,12 +609,18 @@ export default function TransfersPage() {
       <Tabs items={BUCKETS} value={bucket} onChange={setBucket} />
 
       <div className="split">
-        <div className="card tight split-list">
-          <QueryView query={transfers} empty="لا توجد مناقلات" emptyDetail="أنشئ مناقلة لنقل بضاعة بين مستودعين.">
+        <Panel flush bodyClassName="split-list">
+          <QueryView
+            query={transfers}
+            empty="لا توجد مناقلات"
+            emptyDetail="أنشئ مناقلة لنقل بضاعة بين مستودعين."
+          >
             {() => (
               <>
                 {shown.length === 0 ? (
-                  <p className="muted" style={{ padding: 12 }}>لا مناقلات في هذا التبويب.</p>
+                  <p className="muted" style={{ padding: 12 }}>
+                    لا مناقلات في هذا التبويب.
+                  </p>
                 ) : (
                   shown.map((row) => (
                     <button
@@ -616,15 +629,21 @@ export default function TransfersPage() {
                       className={`list-row${row.id === selectedId ? ' active' : ''}`}
                       onClick={() => setSelectedId(row.id)}
                     >
-                      <span className="list-title" dir="ltr">{row.number}</span>
+                      <span className="list-title" dir="ltr">
+                        {row.number}
+                      </span>
                       <span className="list-sub">
-                        {`${nameOfWarehouse(row.fromWarehouseId)} ← ${nameOfWarehouse(row.toWarehouseId)}`}
+                        {`${nameOfWarehouse(row.fromWarehouseId)} ${nameOfWarehouse(row.toWarehouseId)}`}
                       </span>
                       <span className="row" style={{ justifyContent: 'space-between' }}>
-                        <span className={`badge ${row.status === 'received' ? 'ok' : row.status === 'cancelled' ? 'danger' : ''}`}>
+                        <span
+                          className={`badge ${row.status === 'received' ? 'ok' : row.status === 'cancelled' ? 'danger' : ''}`}
+                        >
                           {TRANSFER_STATUS[row.status] ?? statusLabel(row.status)}
                         </span>
-                        <span className="list-sub" dir="ltr">{dateTime(row.createdAt)}</span>
+                        <span className="list-sub" dir="ltr">
+                          {dateTime(row.createdAt)}
+                        </span>
                       </span>
                     </button>
                   ))
@@ -632,16 +651,24 @@ export default function TransfersPage() {
               </>
             )}
           </QueryView>
-        </div>
+        </Panel>
 
-        <div className="card">
+        <Panel>
           {!selected ? (
-            <p className="muted">اختر مناقلة من القائمة لعرض خطواتها وأسطرها وأفعالها.</p>
+            <p className="muted">
+              <Empty
+                bare
+                title="لم يُختَر بعد"
+                detail="اختر مناقلة من القائمة لعرض خطواتها وأسطرها وأفعالها."
+              />
+            </p>
           ) : (
             <>
               <div className="section-title">
                 <h2 dir="ltr">{selected.number}</h2>
-                <span className={`badge ${selected.status === 'received' ? 'ok' : selected.status === 'cancelled' ? 'danger' : ''}`}>
+                <span
+                  className={`badge ${selected.status === 'received' ? 'ok' : selected.status === 'cancelled' ? 'danger' : ''}`}
+                >
                   {TRANSFER_STATUS[selected.status] ?? statusLabel(selected.status)}
                 </span>
               </div>
@@ -678,7 +705,7 @@ export default function TransfersPage() {
                   ),
                   '',
                   money(selected.lines.reduce((sum, line) => sum + lineValue(line), 0)),
-                  '', // 📁 رقم الدفعة
+                  '', // رقم الدفعة
                 ]}
                 columns={[
                   {
@@ -689,7 +716,9 @@ export default function TransfersPage() {
                       return item ? (
                         itemLabel(item)
                       ) : (
-                        <span className="muted" dir="ltr">{line.itemId.slice(0, 8)}</span>
+                        <span className="muted" dir="ltr">
+                          {line.itemId.slice(0, 8)}
+                        </span>
                       );
                     },
                   },
@@ -697,7 +726,7 @@ export default function TransfersPage() {
                   { key: 'qty', header: 'الكمية', align: 'num', cell: (line) => quantity(line.qty) },
                   {
                     key: 'serials',
-                    header: '🔢 الأرقام التسلسلية',
+                    header: 'الأرقام التسلسلية',
                     cell: (line) =>
                       line.serialNos?.length ? (
                         <span dir="ltr" className="small">
@@ -709,26 +738,35 @@ export default function TransfersPage() {
                   },
                   {
                     key: 'batch',
-                    header: '📁 رقم الدفعة',
+                    header: 'رقم الدفعة',
                     cell: (line) =>
                       line.batchNo ? (
                         <span dir="ltr" className="small">
                           {line.batchNo}
-                          {line.productionDate ? ` · 📅 ${shortDate(line.productionDate)}` : ''}
-                          {line.expiryDate ? ` · ⏳ ${shortDate(line.expiryDate)}` : ''}
+                          {line.productionDate ? ` · ${shortDate(line.productionDate)}` : ''}
+                          {line.expiryDate ? ` · ${shortDate(line.expiryDate)}` : ''}
                         </span>
                       ) : (
                         '—'
                       ),
                   },
-                  { key: 'received', header: 'المُستلَم', align: 'num', cell: (line) => quantity(line.receivedQty) },
+                  {
+                    key: 'received',
+                    header: 'المُستلَم',
+                    align: 'num',
+                    cell: (line) => quantity(line.receivedQty),
+                  },
                   {
                     key: 'left',
                     header: 'المتبقي',
                     align: 'num',
                     cell: (line) => {
                       const left = Number(line.qty) - Number(line.receivedQty);
-                      return <strong dir="ltr" style={{ color: left > 0 ? 'var(--warn)' : 'var(--ok)' }}>{quantity(left)}</strong>;
+                      return (
+                        <strong dir="ltr" style={{ color: left > 0 ? 'var(--warn)' : 'var(--ok)' }}>
+                          {quantity(left)}
+                        </strong>
+                      );
                     },
                   },
                   {
@@ -748,21 +786,38 @@ export default function TransfersPage() {
                       );
                     },
                   },
-                  { key: 'value', header: 'القيمة', align: 'num', cell: (line) => money(String(lineValue(line))) },
+                  {
+                    key: 'value',
+                    header: 'القيمة',
+                    align: 'num',
+                    cell: (line) => money(String(lineValue(line))),
+                  },
                 ]}
               />
 
               <Totals
                 items={[
-                  { label: 'إجمالي الكمية', value: quantity(selected.lines.reduce((sum, line) => sum + Number(line.qty), 0)) },
-                  { label: 'المُستلَم', value: quantity(selected.lines.reduce((sum, line) => sum + Number(line.receivedQty), 0)) },
+                  {
+                    label: 'إجمالي الكمية',
+                    value: quantity(selected.lines.reduce((sum, line) => sum + Number(line.qty), 0)),
+                  },
+                  {
+                    label: 'المُستلَم',
+                    value: quantity(selected.lines.reduce((sum, line) => sum + Number(line.receivedQty), 0)),
+                  },
                   {
                     label: 'المتبقي في الطريق',
                     value: quantity(
-                      selected.lines.reduce((sum, line) => sum + (Number(line.qty) - Number(line.receivedQty)), 0),
+                      selected.lines.reduce(
+                        (sum, line) => sum + (Number(line.qty) - Number(line.receivedQty)),
+                        0,
+                      ),
                     ),
                   },
-                  { label: 'القيمة', value: money(selected.lines.reduce((sum, line) => sum + lineValue(line), 0)) },
+                  {
+                    label: 'القيمة',
+                    value: money(selected.lines.reduce((sum, line) => sum + lineValue(line), 0)),
+                  },
                 ]}
               />
 
@@ -781,28 +836,29 @@ export default function TransfersPage() {
                     إرسال
                   </button>
                 )}
-                {['in_transit', 'partially_received'].includes(selected.status) && can('inventory.adjust') && (
-                  <button
-                    className="btn primary"
-                    type="button"
-                    onClick={() =>
-                      act(
-                        () =>
-                          apiPost(`/inventory/transfers/${selected.id}/receive`, {
-                            received: selected.lines
-                              .map((line) => ({
-                                lineNo: line.lineNo,
-                                qty: String(Number(line.qty) - Number(line.receivedQty)),
-                              }))
-                              .filter((line) => Number(line.qty) > 0),
-                          }),
-                        'تم استلام المناقلة: دخلت البضاعة المخزون الهدف وخلا حساب بضاعة تحت التحويل.',
-                      )
-                    }
-                  >
-                    استلام كامل
-                  </button>
-                )}
+                {['in_transit', 'partially_received'].includes(selected.status) &&
+                  can('inventory.adjust') && (
+                    <button
+                      className="btn primary"
+                      type="button"
+                      onClick={() =>
+                        act(
+                          () =>
+                            apiPost(`/inventory/transfers/${selected.id}/receive`, {
+                              received: selected.lines
+                                .map((line) => ({
+                                  lineNo: line.lineNo,
+                                  qty: String(Number(line.qty) - Number(line.receivedQty)),
+                                }))
+                                .filter((line) => Number(line.qty) > 0),
+                            }),
+                          'تم استلام المناقلة: دخلت البضاعة المخزون الهدف وخلا حساب بضاعة تحت التحويل.',
+                        )
+                      }
+                    >
+                      استلام كامل
+                    </button>
+                  )}
                 {['draft', 'in_transit'].includes(selected.status) && can('inventory.adjust') && (
                   <button
                     className="btn danger"
@@ -835,7 +891,7 @@ export default function TransfersPage() {
               </ActionBar>
             </>
           )}
-        </div>
+        </Panel>
       </div>
     </Screen>
   );

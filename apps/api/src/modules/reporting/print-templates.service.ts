@@ -7,10 +7,16 @@ import { DomainError } from '@erp/contracts';
 import { brandMark, withTenantTx, type DatabaseHandle } from '@erp/database';
 
 import { DATABASE_HANDLE } from '../../database/database.module.js';
+import { buildQrPayload } from '../einvoicing/zatca/qr.js';
 import { signedContentUrl } from '../platform-services/files/download-token.js';
 
+import {
+  PrintSettingsService,
+  type PrintFont,
+  type PrintSettings,
+  type PrintTemplate,
+} from './print-settings.service.js';
 import { amountInArabicWords } from './tafqeet.js';
-import { PrintSettingsService, type PrintSettings } from './print-settings.service.js';
 
 /**
  * 🖨️ كيف تُطبع هذه الورقة — the part of `SettingPrint` the browser can honour.
@@ -28,6 +34,45 @@ export type ReportPrintOptions = {
   copies: number;
   /** 📄 نوع الورقة — 1 «📄 ورقة A4» · 2 «🧾 ورق صغير», overridable by `?paper=`. */
   paper: 'a4' | 'small';
+};
+
+/**
+ * 🎨 الأسلوب الفعلي — كل ما يحوّل «إعدادات» إلى «ورقة».
+ *
+ * اللون يُحسم هنا لا في القالب: `accentColor` إن كُتب، ثم لون هوية المنشأة، ثم أسود
+ * الورقة. ولا يمرّ إلى `<style>` إلا بعد فحص الصيغة مرّةً أخرى — القيمة تصل من القاعدة
+ * (وقيدها يضمن `#RRGGBB`) لكن الورقة لا تعتمد على مصدرٍ واحدٍ لسلامتها.
+ */
+export type PrintStyle = {
+  template: PrintTemplate;
+  accent: string | null;
+  fontFamily: PrintFont;
+  /** 👁️ مضاعف الحجم — 0.85 .. 1.30 */
+  scale: number;
+};
+
+const HEX_COLOUR = /^#[0-9a-fA-F]{6}$/;
+
+export function printStyle(settings: PrintSettings | undefined, brandColour?: string | null): PrintStyle {
+  const accent = settings?.accentColor?.trim() ?? '';
+  const brand = (brandColour ?? '').trim();
+  return {
+    template: settings?.template ?? 'classic',
+    accent: HEX_COLOUR.test(accent) ? accent : HEX_COLOUR.test(brand) ? brand : null,
+    fontFamily: settings?.fontFamily ?? 'segoe',
+    scale: Math.min(1.3, Math.max(0.85, (settings?.fontScale ?? 100) / 100)),
+  };
+}
+
+/**
+ * ⚠️ علامات التنصيص **مفردة**: هذه القيمة تُكتب داخل `style="…"`، فاقتباسٌ مزدوج في اسم
+ * خطٍّ يغلق السمة ويُلقي بقيّة الأنماط نصًّا خارجها (شوهد فعلاً: `font-family:"Segoe UI"…`
+ * يقطع `style` عند أول خطّ). والمتصفّحان يقبلان الاثنين في CSS.
+ */
+const FONT_STACKS: Record<PrintFont, string> = {
+  segoe: "'Segoe UI', Tahoma, 'Noto Naskh Arabic', sans-serif",
+  naskh: "'Noto Naskh Arabic', 'Traditional Arabic', 'Times New Roman', serif",
+  sans: "system-ui, -apple-system, 'Segoe UI', Arial, sans-serif",
 };
 
 /**
@@ -90,28 +135,73 @@ export class PrintTemplatesService {
       );
 
       const kindTitle = SALES_KIND_TITLES[str(invoice.kind)] ?? 'فاتورة مبيعات';
-      const title = `${kindTitle}${str(invoice.tax_total) !== '0.0000' || company.taxNo ? ' ضريبية' : ''}`;
+      const hasCustomerTaxNo = Boolean(
+        str(invoice.party_tax_no).trim() &&
+        str(invoice.party_name) !== 'عميل عام' &&
+        str(invoice.party_code) !== 'CUST-GEN',
+      );
+      const taxClassificationLabel = hasCustomerTaxNo ? 'فاتورة ضريبية' : 'فاتورة ضريبية مبسطة';
+      /**
+       * 🧾 رمز الفاتورة.
+       *
+       * المسودة لا تحمل رمزاً: لم تصدر بعد. الفاتورة المرحّلة وغير المُرسلة تحمل رمز
+       * المرحلة الأولى (الوسوم ١–٥) المبني هنا من بياناتها نفسها — وهو ما تطلبه الهيئة من
+       * فاتورةٍ صدرت ولم تُبلَّغ. وما إن تُرسل حتى يحلّ محلّه الحِمل المخزَّن في
+       * `zatca_qr` (الوسوم ٦–٩ مع البصمة والتوقيع)، فلا يُنتحل توقيعٌ لم يُصدر.
+       */
+      const postedAt = invoice.posted_at ?? invoice.created_at;
+      const stamps = (value: unknown): string =>
+        value instanceof Date
+          ? value.toISOString().replace(/\.\d{3}Z$/, 'Z')
+          : new Date(String(value)).toISOString().replace(/\.\d{3}Z$/, 'Z');
+      const phaseOneQr =
+        str(invoice.status) === 'posted'
+          ? buildQrPayload({
+              sellerName: company.nameAr,
+              vatNo: company.taxNo,
+              timestamp: stamps(postedAt),
+              grandTotal: Number(str(invoice.total) || 0).toFixed(2),
+              vatTotal: Number(str(invoice.tax_total) || 0).toFixed(2),
+            })
+          : '';
+      const title =
+        str(invoice.kind) === 'sale'
+          ? `${taxClassificationLabel} — ${kindTitle}`
+          : `${kindTitle}${str(invoice.tax_total) !== '0.0000' || company.taxNo ? ' ضريبية' : ''}`;
       return this.documentPage(print, company, {
         title: `${kindTitle} ${str(invoice.number) || ''}`.trim(),
         body: `
-          ${this.header(company, {
-            docTitle: title,
-            docTitleEn: SALES_KIND_TITLES_EN[str(invoice.kind)] ?? 'Sales Invoice',
-            number: str(invoice.number) || '—',
-            date: dateText(invoice.posted_at ?? invoice.created_at),
-            status: STATUS_LABELS[str(invoice.status)] ?? str(invoice.status),
-            extra: [
-              ['الفرع', str(invoice.branch_name)],
-              ['المستودع', str(invoice.warehouse_name)],
-              ['المندوب', str(invoice.salesman_name)],
-            ],
-          }, print.printHeader)}
+          ${this.header(
+            company,
+            {
+              docTitle: title,
+              docTitleEn:
+                str(invoice.kind) === 'sale'
+                  ? hasCustomerTaxNo
+                    ? 'Tax Invoice'
+                    : 'Simplified Tax Invoice'
+                  : (SALES_KIND_TITLES_EN[str(invoice.kind)] ?? 'Sales Invoice'),
+              number: str(invoice.number) || '—',
+              date: dateText(invoice.posted_at ?? invoice.created_at),
+              status: STATUS_LABELS[str(invoice.status)] ?? str(invoice.status),
+              extra: [
+                ['نوع الفاتورة', taxClassificationLabel],
+                ['الفرع', str(invoice.branch_name)],
+                ['المستودع', str(invoice.warehouse_name)],
+                ['المندوب', str(invoice.salesman_name)],
+              ],
+            },
+            print.printHeader,
+          )}
           ${this.partyBlock('بيانات العميل', {
-            name: str(invoice.party_name) || str(invoice.cash_customer_name) || 'عميل نقدي',
+            name: str(invoice.party_name) || str(invoice.cash_customer_name) || 'عميل عام',
             code: str(invoice.party_code),
             taxNo: str(invoice.party_tax_no),
             phone: str(invoice.party_phone) || str(invoice.cash_customer_mobile),
-            address: invoice.party_address,
+            // A simplified invoice (no buyer VAT number) must not carry the buyer's
+            // national address: it is not a required field and the customer never
+            // supplied it for tax purposes. Standard invoices print it.
+            address: hasCustomerTaxNo ? invoice.party_address : null,
           })}
           ${this.linesTable(lines)}
           ${this.totalsBlock({
@@ -123,8 +213,15 @@ export class PrintTemplatesService {
             withholding: str(invoice.withholding),
             total: str(invoice.total),
             paid: str(invoice.paid_total),
-            payments: payments.map((row) => ({ method: PAYMENT_METHODS[str(row.method)] ?? str(row.method), amount: str(row.amount), reference: str(row.reference) })),
-            qr: str(invoice.zatca_qr),
+            payments: payments.map((row) => ({
+              method: PAYMENT_METHODS[str(row.method)] ?? str(row.method),
+              amount: str(row.amount),
+              reference: str(row.reference),
+            })),
+            // الحمولة التي كتبتها وحدة الفوترة الإلكترونية فعلًا (`einvoicing.service`) —
+            // ولا تُختَرَع حمولةٌ عند غيابها: المربّع المرسوم من TLV بلا توقيع يفشل أيَّ
+            // ماسح، ووجوده على وثيقة رسمية ادّعاءٌ بأنّ الفاتورة أُصدرت وهي لم تُصدر.
+            qr: str(invoice.zatca_qr) || phaseOneQr,
             zatcaStatus: str(invoice.zatca_status),
           })}
           ${this.signatures(['المستلم', 'المحاسب', 'الختم'])}
@@ -163,22 +260,33 @@ export class PrintTemplatesService {
       );
       lines = this.sortByPrintItemType(lines, print.printItemType);
 
-      const kindTitle = str(invoice.kind) === 'return' ? 'مردود مشتريات' : 'فاتورة مشتريات';
+      /**
+       * ⚠️ `purchases.service` يحفظ النوع `purchase_return` (كما في العقد والواجهة)، وكان
+       * هذا السطر يقارنه بـ`return` فيطبع المرتجع «فاتورة مشتريات» بالعنوان الإنجليزي
+       * «Purchase Invoice» — مستندٌ رسمي بنوعٍ خاطئ. نقبل الصيغتين حتى لا يعود الخطأ إن
+       * اختصر أحدهم القيمة يومًا.
+       */
+      const isReturn = str(invoice.kind) === 'purchase_return' || str(invoice.kind) === 'return';
+      const kindTitle = isReturn ? 'مردود مشتريات' : 'فاتورة مشتريات';
       return this.documentPage(print, company, {
         title: `${kindTitle} ${str(invoice.number) || ''}`.trim(),
         body: `
-          ${this.header(company, {
-            docTitle: kindTitle,
-            docTitleEn: str(invoice.kind) === 'return' ? 'Purchase Return' : 'Purchase Invoice',
-            number: str(invoice.number) || '—',
-            date: dateText(invoice.posted_at ?? invoice.created_at),
-            status: STATUS_LABELS[str(invoice.status)] ?? str(invoice.status),
-            extra: [
-              ['الفرع', str(invoice.branch_name)],
-              ['المستودع', str(invoice.warehouse_name)],
-              ['مرجع المورد', str(invoice.supplier_reference_no)],
-            ],
-          }, print.printHeader)}
+          ${this.header(
+            company,
+            {
+              docTitle: kindTitle,
+              docTitleEn: isReturn ? 'Purchase Return' : 'Purchase Invoice',
+              number: str(invoice.number) || '—',
+              date: dateText(invoice.posted_at ?? invoice.created_at),
+              status: STATUS_LABELS[str(invoice.status)] ?? str(invoice.status),
+              extra: [
+                ['الفرع', str(invoice.branch_name)],
+                ['المستودع', str(invoice.warehouse_name)],
+                ['مرجع المورد', str(invoice.supplier_reference_no)],
+              ],
+            },
+            print.printHeader,
+          )}
           ${this.partyBlock('بيانات المورد', {
             name: str(invoice.party_name) || '—',
             code: str(invoice.party_code),
@@ -198,6 +306,9 @@ export class PrintTemplatesService {
             total: str(invoice.total),
             paid: str(invoice.paid_total),
             payments: [],
+            // 🧾 رمز الفاتورة الإلكترونية التزامٌ على **البائع**؛ وثيقة المشتريات ليست
+            // فاتورةً نصدرها، فطباعة «لم تُصدر بعد» عليها كانت خطأً لا نقصَ بيانات.
+            qrApplicable: false,
           })}
           ${this.signatures(['المورد', 'أمين المستودع', 'المحاسب'])}
         `,
@@ -236,18 +347,22 @@ export class PrintTemplatesService {
       return this.documentPage(print, company, {
         title: `${label} ${str(voucher.number) || ''}`.trim(),
         body: `
-          ${this.header(company, {
-            docTitle: label,
-            docTitleEn: isReceipt ? 'Receipt Voucher' : 'Payment Voucher',
-            number: str(voucher.number) || '—',
-            date: dateText(voucher.date),
-            status: STATUS_LABELS[str(voucher.status)] ?? str(voucher.status),
-            extra: [
-              ['الفرع', str(voucher.branch_name)],
-              ['الصندوق / البنك', str(voucher.cash_location_name)],
-              ['طريقة الدفع', PAYMENT_METHODS[str(voucher.method)] ?? str(voucher.method)],
-            ],
-          }, print.printHeader)}
+          ${this.header(
+            company,
+            {
+              docTitle: label,
+              docTitleEn: isReceipt ? 'Receipt Voucher' : 'Payment Voucher',
+              number: str(voucher.number) || '—',
+              date: dateText(voucher.date),
+              status: STATUS_LABELS[str(voucher.status)] ?? str(voucher.status),
+              extra: [
+                ['الفرع', str(voucher.branch_name)],
+                ['الصندوق / البنك', str(voucher.cash_location_name)],
+                ['طريقة الدفع', PAYMENT_METHODS[str(voucher.method)] ?? str(voucher.method)],
+              ],
+            },
+            print.printHeader,
+          )}
           <section class="panel">
             <div class="kv"><span>${isReceipt ? 'استلمنا من السيد' : 'صرفنا إلى السيد'}</span><b>${escapeHtml(counterparty)}</b></div>
             <div class="kv"><span>مبلغاً وقدره</span><b>${escapeHtml(money(voucherAmount))} ${escapeHtml(currency)}</b></div>
@@ -297,17 +412,21 @@ export class PrintTemplatesService {
       return this.documentPage(print, company, {
         title: `سند قيد ${str(entry.number) || ''}`.trim(),
         body: `
-          ${this.header(company, {
-            docTitle: 'سند قيد',
-            docTitleEn: 'Journal Voucher',
-            number: str(entry.number) || '—',
-            date: dateText(entry.date),
-            status: STATUS_LABELS[str(entry.status)] ?? str(entry.status),
-            extra: [
-              ['الفرع', str(entry.branch_name)],
-              ['البيان', str(entry.description)],
-            ],
-          }, print.printHeader)}
+          ${this.header(
+            company,
+            {
+              docTitle: 'سند قيد',
+              docTitleEn: 'Journal Voucher',
+              number: str(entry.number) || '—',
+              date: dateText(entry.date),
+              status: STATUS_LABELS[str(entry.status)] ?? str(entry.status),
+              extra: [
+                ['الفرع', str(entry.branch_name)],
+                ['البيان', str(entry.description)],
+              ],
+            },
+            print.printHeader,
+          )}
           <table class="lines">
             <thead>
               <tr><th>#</th><th>الحساب</th><th>البيان</th><th>مركز التكلفة</th><th>الجهة</th><th>مدين</th><th>دائن</th></tr>
@@ -352,25 +471,37 @@ export class PrintTemplatesService {
       );
       if (!shift) throw new DomainError('NOT_FOUND', 'Shift was not found', 404);
 
-      const counts = rows(await tx.execute(sql`SELECT currency_code, denomination, count, total FROM cash_count_lines WHERE tenant_id = ${tenantId} AND shift_close_id = ${id} ORDER BY denomination DESC`));
-      const totals = rows(await tx.execute(sql`SELECT kind, method, amount FROM shift_close_lines WHERE tenant_id = ${tenantId} AND shift_close_id = ${id} ORDER BY line_no`));
+      const counts = rows(
+        await tx.execute(
+          sql`SELECT currency_code, denomination, count, total FROM cash_count_lines WHERE tenant_id = ${tenantId} AND shift_close_id = ${id} ORDER BY denomination DESC`,
+        ),
+      );
+      const totals = rows(
+        await tx.execute(
+          sql`SELECT kind, method, amount FROM shift_close_lines WHERE tenant_id = ${tenantId} AND shift_close_id = ${id} ORDER BY line_no`,
+        ),
+      );
       const diff = new Decimal(str(shift.diff) || '0');
 
       return this.documentPage(print, company, {
         title: 'إغلاق اليومية',
         body: `
-          ${this.header(company, {
-            docTitle: 'إغلاق اليومية',
-            docTitleEn: 'Shift Close',
-            number: shortId(str(shift.id)),
-            date: dateText(shift.closed_at ?? shift.opened_at),
-            status: str(shift.status) === 'closed' ? 'مغلقة' : 'مفتوحة',
-            extra: [
-              ['الفرع', str(shift.branch_name)],
-              ['الفتح', dateTimeText(shift.opened_at)],
-              ['الإغلاق', dateTimeText(shift.closed_at)],
-            ],
-          }, print.printHeader)}
+          ${this.header(
+            company,
+            {
+              docTitle: 'إغلاق اليومية',
+              docTitleEn: 'Shift Close',
+              number: shortId(str(shift.id)),
+              date: dateText(shift.closed_at ?? shift.opened_at),
+              status: str(shift.status) === 'closed' ? 'مغلقة' : 'مفتوحة',
+              extra: [
+                ['الفرع', str(shift.branch_name)],
+                ['الفتح', dateTimeText(shift.opened_at)],
+                ['الإغلاق', dateTimeText(shift.closed_at)],
+              ],
+            },
+            print.printHeader,
+          )}
           <section class="panel">
             <div class="kv"><span>النقد المتوقع</span><b>${escapeHtml(money(str(shift.expected_cash)))}</b></div>
             <div class="kv"><span>النقد المعدود</span><b>${escapeHtml(money(str(shift.counted_cash)))}</b></div>
@@ -419,7 +550,7 @@ export class PrintTemplatesService {
     tenantId: string,
     report: {
       titleAr: string;
-      columns: Array<{ key: string; labelAr: string; numeric: boolean }>;
+      columns: Array<{ key: string; labelAr: string; numeric: boolean; qr?: boolean }>;
       rows: Array<Record<string, string>>;
       totals: Record<string, string>;
       /**
@@ -441,14 +572,20 @@ export class PrintTemplatesService {
   ) {
     const company = await withTenantTx(this.database.db, tenantId, async (tx) => this.company(tx, tenantId));
     const userName = userId ? await this.userName(tenantId, userId) : null;
-    const contact = [company.phones.join(' / '), company.email, addressText(company.address)].filter(Boolean).join(' — ');
+    const contact = [company.phones.join(' / '), company.email, addressText(company.address)]
+      .filter(Boolean)
+      .join(' — ');
     const head = report.columns.map((column) => `<th>${escapeHtml(column.labelAr)}</th>`).join('');
     const body = report.rows.length
       ? report.rows
           .map(
             (row, index) =>
               `<tr><td class="num">${index + 1}</td>${report.columns
-                .map((column) => `<td${column.numeric ? ' class="num"' : ''}>${escapeHtml(cellText(row[column.key] ?? '', column.numeric))}</td>`)
+                .map((column) =>
+                  column.qr
+                    ? `<td class="qr-cell">${this.reportQr(row[column.key] ?? '')}</td>`
+                    : `<td${column.numeric ? ' class="num"' : ''}>${escapeHtml(cellText(row[column.key] ?? '', column.numeric))}</td>`,
+                )
                 .join('')}</tr>`,
           )
           .join('')
@@ -456,7 +593,12 @@ export class PrintTemplatesService {
     const hasTotals = Object.keys(report.totals).length > 0;
     const footer = hasTotals
       ? `<tfoot><tr><th>الإجمالي</th>${report.columns
-          .map((column) => `<th class="num">${report.totals[column.key] ? escapeHtml(money(report.totals[column.key]!)) : ''}</th>`)
+          .map(
+            (column) =>
+              column.qr
+                ? '<th></th>'
+                : `<th class="num">${report.totals[column.key] ? escapeHtml(money(report.totals[column.key]!)) : ''}</th>`,
+          )
           .join('')}</tr></tfoot>`
       : '';
 
@@ -470,20 +612,27 @@ export class PrintTemplatesService {
     const showFooter = settings?.printFooter === true;
     /** 🔖 طباعة الختم — the stamp image under the signatures. */
     const stamp = settings?.printStamp === false ? '' : (settings?.stampImageUrl ?? '');
+    /** ✒️ سطر التوقيعات — يُخفى بطلبٍ صريح من مصمّم القوالب. */
+    const showSignatures = settings?.showSignatures !== false;
     /** 📝 ملاحظات التقرير — `txtNote`, printed under the grid. */
     const note = (settings?.note ?? '').trim();
-    const image = (src: string, alt: string) => (src ? `<img src="${escapeHtml(src)}" alt="${escapeHtml(alt)}" />` : '');
+    const image = (src: string, alt: string) =>
+      src ? `<img src="${escapeHtml(src)}" alt="${escapeHtml(alt)}" />` : '';
 
     const sheet = `
         <header class="doc-head">
-          ${showHeader ? `<div class="company">
+          ${
+            showHeader
+              ? `<div class="company">
             ${company.logoHtml}
             ${image(settings?.headerImageUrl ?? '', 'الترويـسة')}
             <h1${company.brandColor ? ` style="color:${company.brandColor}"` : ''}>${escapeHtml(company.nameAr)}</h1>
             ${company.nameEn ? `<div class="en">${escapeHtml(company.nameEn)}</div>` : ''}
             <div class="meta">${company.taxNo ? `<span>الرقم الضريبي: <b dir="ltr">${escapeHtml(company.taxNo)}</b></span>` : ''}${company.crNo ? `<span>السجل التجاري: <b dir="ltr">${escapeHtml(company.crNo)}</b></span>` : ''}</div>
             ${contact ? `<div class="meta">${escapeHtml(contact)}</div>` : ''}
-          </div>` : ''}
+          </div>`
+              : ''
+          }
           <div class="doc">
             <div class="doc-title">${escapeHtml(report.titleAr)}</div>
             <table class="doc-meta">
@@ -503,13 +652,16 @@ export class PrintTemplatesService {
         ${
           report.grandTotal?.length
             ? `<div class="totals-strip">${report.grandTotal
-                .map((card) => `<span><b>${escapeHtml(card.labelAr)}:</b> ${escapeHtml(money(card.amount))}</span>`)
+                .map(
+                  (card) =>
+                    `<span><b>${escapeHtml(card.labelAr)}:</b> ${escapeHtml(money(card.amount))}</span>`,
+                )
                 .join('')}</div>`
             : ''
         }
         ${note ? `<div class="doc-note"><b>ملاحظات التقرير:</b> ${escapeHtml(note).replace(/\n/g, '<br />')}</div>` : ''}
         ${
-          report.signature
+          report.signature && showSignatures
             ? `<table class="signatures"><tr><td>أعده</td><td>راجعه</td><td>المدير</td></tr><tr><td>&nbsp;</td><td>&nbsp;</td><td>&nbsp;</td></tr></table>`
             : ''
         }
@@ -518,20 +670,28 @@ export class PrintTemplatesService {
       `;
 
     // 🔢 عدد النسخ — `Printing()` loops `Print()` `printNo` times (Print.cs L201-L206).
-    const sheets = copies === 1 ? sheet : Array.from({ length: copies }, () => `<div class="copy">${sheet}</div>`).join('');
+    const sheets =
+      copies === 1
+        ? sheet
+        : Array.from({ length: copies }, () => `<div class="copy">${sheet}</div>`).join('');
     // 🖨️ الطابعات — names the operator saved; the browser's print dialog is the real picker.
-    const printers = [settings?.casherPrinter, settings?.kitchenPrinter].filter(Boolean).map((name) => escapeHtml(name!));
+    const printers = [settings?.casherPrinter, settings?.kitchenPrinter]
+      .filter(Boolean)
+      .map((name) => escapeHtml(name!));
     const toolbar = [
       printers.length ? `🖨️ ${printers.join(' · ')}` : '',
       copies > 1 ? `🔢 عدد النسخ: ${copies}` : '',
       paper === 'small' ? '🧾 ورق صغير' : '📄 ورقة A4',
-    ].filter(Boolean).join(' — ');
+    ]
+      .filter(Boolean)
+      .join(' — ');
 
     return this.page({
       title: report.titleAr,
       landscape: true,
       paper,
       toolbar,
+      style: printStyle(settings, company.brandColor),
       body: sheets,
     });
   }
@@ -541,7 +701,11 @@ export class PrintTemplatesService {
     try {
       const row = first(
         await withTenantTx(this.database.db, tenantId, async (tx) =>
-          rows(await tx.execute(sql`SELECT coalesce(full_name, email) AS name FROM users WHERE id = ${userId} LIMIT 1`)),
+          rows(
+            await tx.execute(
+              sql`SELECT coalesce(full_name, email) AS name FROM users WHERE id = ${userId} LIMIT 1`,
+            ),
+          ),
         ),
       );
       return row?.name ? str(row.name) : null;
@@ -553,9 +717,17 @@ export class PrintTemplatesService {
   // -------------------------------------------------------------------- pieces
 
   private async company(tx: Tx, tenantId: string) {
-    const profile = first(await tx.execute(sql`SELECT name_ar, name_en, tax_no, cr_no, address, phones, email FROM company_profiles WHERE tenant_id = ${tenantId}`));
+    const profile = first(
+      await tx.execute(
+        sql`SELECT name_ar, name_en, tax_no, cr_no, address, phones, email, logo_data_url FROM company_profiles WHERE tenant_id = ${tenantId}`,
+      ),
+    );
     const tenant = first(await tx.execute(sql`SELECT name FROM tenants WHERE id = ${tenantId}`));
     const brand = await this.brand(tx, tenantId);
+    const address = (profile?.address ?? null) as Record<string, string> | null;
+    // الشعار: المرفوع في «بطاقة المنشأة» أولاً (data URL يسافر داخل الوثيقة)، ثم ملف
+    // التخزين الموقّع، ثم شعار المتجر. كلها زينة: غيابها لا يُسقط الطباعة.
+    const inlineLogo = str(profile?.logo_data_url);
     return {
       nameAr: str(profile?.name_ar) || str(tenant?.name) || 'المنشأة',
       nameEn: str(profile?.name_en),
@@ -563,8 +735,9 @@ export class PrintTemplatesService {
       crNo: str(profile?.cr_no),
       email: str(profile?.email),
       phones: Array.isArray(profile?.phones) ? (profile?.phones as string[]) : [],
-      address: profile?.address,
-      logoHtml: brand.logoHtml,
+      address,
+      nationalAddress: nationalAddressText(address),
+      logoHtml: inlineLogo ? brandMark(inlineLogo, brand.color).logoHtml : brand.logoHtml,
       brandColor: brand.color,
     };
   }
@@ -572,9 +745,11 @@ export class PrintTemplatesService {
   /** الشعار زينة. غيابه أو غياب سر التوقيع لا يُسقط الطباعة. */
   private async brand(tx: Tx, tenantId: string) {
     try {
-      const row = first(await tx.execute(sql`
+      const row = first(
+        await tx.execute(sql`
         SELECT logo_file_id, primary_color FROM tenant_branding WHERE tenant_id = ${tenantId}::uuid LIMIT 1
-      `));
+      `),
+      );
       const fileId = str(row?.logo_file_id);
       const logoUrl = fileId ? signedContentUrl(fileId, tenantId, env.FILES_DOWNLOAD_URL_TTL_SECONDS) : '';
       return brandMark(logoUrl, str(row?.primary_color));
@@ -585,7 +760,14 @@ export class PrintTemplatesService {
 
   private header(
     company: Awaited<ReturnType<PrintTemplatesService['company']>>,
-    doc: { docTitle: string; docTitleEn: string; number: string; date: string; status: string; extra: Array<[string, string]> },
+    doc: {
+      docTitle: string;
+      docTitleEn: string;
+      number: string;
+      date: string;
+      status: string;
+      extra: Array<[string, string]>;
+    },
     /**
      * 🏛️ طباعة ترويسة الفاتورة — `PrintHeader`. The desktop injects `header.repx` into the
      * `headerRpt` subreport when it is on and leaves the subreport empty when it is
@@ -593,11 +775,15 @@ export class PrintTemplatesService {
      */
     showCompany = true,
   ) {
-    const contact = [company.phones.join(' / '), company.email, addressText(company.address)].filter(Boolean).join(' — ');
+    const contact = [company.phones.join(' / '), company.email, addressText(company.address)]
+      .filter(Boolean)
+      .join(' — ');
     const titleStyle = company.brandColor ? ` style="color:${company.brandColor}"` : '';
     return `
       <header class="doc-head">
-        ${showCompany ? `<div class="company">
+        ${
+          showCompany
+            ? `<div class="company">
           ${company.logoHtml}
           <h1${titleStyle}>${escapeHtml(company.nameAr)}</h1>
           ${company.nameEn ? `<div class="en">${escapeHtml(company.nameEn)}</div>` : ''}
@@ -606,7 +792,10 @@ export class PrintTemplatesService {
             ${company.crNo ? `<span>السجل التجاري: <b dir="ltr">${escapeHtml(company.crNo)}</b></span>` : ''}
           </div>
           ${contact ? `<div class="meta">${escapeHtml(contact)}</div>` : ''}
-        </div>` : ''}
+          ${company.nationalAddress ? `<div class="meta" data-national-address>العنوان الوطني: ${escapeHtml(company.nationalAddress)}</div>` : ''}
+        </div>`
+            : ''
+        }
         <div class="doc">
           <div class="doc-title">${escapeHtml(doc.docTitle)}</div>
           <div class="doc-title-en">${escapeHtml(doc.docTitleEn)}</div>
@@ -614,14 +803,21 @@ export class PrintTemplatesService {
             <tr><th>رقم المستند</th><td dir="ltr">${escapeHtml(doc.number)}</td></tr>
             <tr><th>التاريخ</th><td dir="ltr">${escapeHtml(doc.date)}</td></tr>
             <tr><th>الحالة</th><td>${escapeHtml(doc.status)}</td></tr>
-            ${doc.extra.filter(([, value]) => value).map(([label, value]) => `<tr><th>${escapeHtml(label)}</th><td>${escapeHtml(value)}</td></tr>`).join('')}
+            ${doc.extra
+              .filter(([, value]) => value)
+              .map(([label, value]) => `<tr><th>${escapeHtml(label)}</th><td>${escapeHtml(value)}</td></tr>`)
+              .join('')}
           </table>
         </div>
       </header>
     `;
   }
 
-  private partyBlock(title: string, party: { name: string; code: string; taxNo: string; phone: string; address: unknown }) {
+  private partyBlock(
+    title: string,
+    party: { name: string; code: string; taxNo: string; phone: string; address: unknown },
+  ) {
+    const address = addressText(party.address);
     return `
       <section class="party">
         <h2>${escapeHtml(title)}</h2>
@@ -630,7 +826,7 @@ export class PrintTemplatesService {
           ${party.code ? `<div><span>الرمز</span><b dir="ltr">${escapeHtml(party.code)}</b></div>` : ''}
           ${party.taxNo ? `<div><span>الرقم الضريبي</span><b dir="ltr">${escapeHtml(party.taxNo)}</b></div>` : ''}
           ${party.phone ? `<div><span>الهاتف</span><b dir="ltr">${escapeHtml(party.phone)}</b></div>` : ''}
-          ${addressText(party.address) ? `<div class="wide"><span>العنوان</span><b>${escapeHtml(addressText(party.address))}</b></div>` : ''}
+          ${address ? `<div class="wide" data-national-address><span>العنوان الوطني</span><b>${escapeHtml(address)}</b></div>` : ''}
         </div>
       </section>
     `;
@@ -679,10 +875,14 @@ export class PrintTemplatesService {
     payments: Array<{ method: string; amount: string; reference: string }>;
     qr?: string;
     zatcaStatus?: string;
+    /** هل ينطبق رمز الفاتورة الإلكترونية على هذه الوثيقة أصلًا؟ */
+    qrApplicable?: boolean;
   }) {
     const due = new Decimal(totals.total || '0').minus(totals.paid || '0');
     const optional = (label: string, value?: string) =>
-      value && !new Decimal(value || '0').isZero() ? `<tr><th>${escapeHtml(label)}</th><td class="num">${escapeHtml(money(value))}</td></tr>` : '';
+      value && !new Decimal(value || '0').isZero()
+        ? `<tr><th>${escapeHtml(label)}</th><td class="num">${escapeHtml(money(value))}</td></tr>`
+        : '';
 
     return `
       <section class="totals">
@@ -695,7 +895,7 @@ export class PrintTemplatesService {
                  </tbody></table>`
               : ''
           }
-          ${this.qrBlock(totals.qr, totals.zatcaStatus)}
+          ${this.qrBlock(totals.qr, totals.zatcaStatus, totals.qrApplicable)}
         </div>
         <table class="totals-table">
           <tr><th>الإجمالي قبل الضريبة</th><td class="num">${escapeHtml(money(totals.subtotal))}</td></tr>
@@ -717,14 +917,36 @@ export class PrintTemplatesService {
    * been reported yet there is nothing honest to draw, so the space carries a note
    * instead of a decorative square that would fail any scan.
    */
-  private qrBlock(payload?: string, status?: string) {
+  private qrBlock(payload?: string, status?: string, applicable = true) {
+    if (!applicable) return '';
+    // رمزٌ مرسوم من حمولةٍ محليّة = المرحلة الأولى؛ وحالةٌ مسجّلة تتقدّم على ذلك.
+    const label = status ? ZATCA_STATUS_LABELS[status] : null;
+    const drawnLabel = label ?? 'رمز الاستجابة السريعة (المرحلة الأولى)';
     if (!payload) {
-      return '<div class="qr-empty">لم تُصدر بعد بيانات الفاتورة الإلكترونية (QR) لهذا المستند.</div>';
+      // لا حمولة = لا رمز. ولا نُنسب للمستند حالةً لم تُسجَّل له: كان السطر يقول
+      // «لم تُصدر بعد… الحالة: رمز الاستجابة السريعة (المرحلة الأولى)» وهو تناقض.
+      return `<div class="qr-empty">لم تُصدر بعد بيانات الفاتورة الإلكترونية (QR) لهذا المستند.${label ? ` الحالة: ${label}.` : ''}</div>`;
     }
     const qr = qrcode(0, 'M');
     qr.addData(payload);
     qr.make();
-    return `<div class="qr">${qr.createSvgTag({ cellSize: 3, margin: 0, scalable: true })}<span>${escapeHtml(ZATCA_STATUS_LABELS[status ?? ''] ?? 'رمز الاستجابة السريعة')}</span></div>`;
+    return `<div class="qr">${qr.createSvgTag({ cellSize: 3, margin: 0, scalable: true })}<span>${escapeHtml(drawnLabel)}</span></div>`;
+  }
+
+  /**
+   * 🧾 رمز QR داخل جدول تقرير — البند 10.
+   *
+   * الحمولة تأتي من `sales_invoices.zatca_qr` (المرحلة الثانية) أو من حمولةٍ نصّيةٍ بسيطة
+   * يبنيها استعلام التقرير حين لا يكون للفاتورة ربطٌ ضريبي. والرسم هنا بمُرمِّز واحد
+   * (`qrcode-generator`) هو نفسه الذي يرسم رمز وثيقة الفاتورة — فالورق لا يختلف عن الورق.
+   */
+  private reportQr(payload: string): string {
+    const value = payload.trim();
+    if (!value) return '';
+    const qr = qrcode(0, 'M');
+    qr.addData(value);
+    qr.make();
+    return `<div class="rep-qr">${qr.createSvgTag({ cellSize: 2, margin: 0, scalable: true })}</div>`;
   }
 
   private signatures(labels: string[]) {
@@ -748,25 +970,34 @@ export class PrintTemplatesService {
   ) {
     const copies = Math.min(50, Math.max(1, print.printNo));
     const paper = print.printType === 2 ? 'small' : 'a4';
-    const contact = [company.phones.join(' / '), company.email, addressText(company.address)].filter(Boolean).join(' — ');
-    const image = (src: string, alt: string) => (src ? `<img src="${escapeHtml(src)}" alt="${escapeHtml(alt)}" />` : '');
+    const contact = [company.phones.join(' / '), company.email, addressText(company.address)]
+      .filter(Boolean)
+      .join(' — ');
+    const image = (src: string, alt: string) =>
+      src ? `<img src="${escapeHtml(src)}" alt="${escapeHtml(alt)}" />` : '';
     const footer =
       print.printFooter === true
         ? `<div class="doc-foot">${contact ? escapeHtml(contact) : ''}${image(print.footerImageUrl, 'التـذيـيـل')}</div>`
         : '';
-    const stamp = print.printStamp === false ? '' : `<div class="doc-stamp">${image(print.stampImageUrl, 'الختم')}</div>`;
+    const stamp =
+      print.printStamp === false ? '' : `<div class="doc-stamp">${image(print.stampImageUrl, 'الختم')}</div>`;
     const body = `<div class="copy">${page.body}${stamp}${footer}</div>`;
-    const printers = [print.casherPrinter, print.kitchenPrinter].filter(Boolean).map((name) => escapeHtml(name!));
+    const printers = [print.casherPrinter, print.kitchenPrinter]
+      .filter(Boolean)
+      .map((name) => escapeHtml(name!));
     const toolbar = [
       printers.length ? `🖨️ ${printers.join(' · ')}` : '',
       copies > 1 ? `🔢 عدد النسخ: ${copies}` : '',
       paper === 'small' ? '🧾 ورق صغير' : '📄 ورقة A4',
-    ].filter(Boolean).join(' — ');
+    ]
+      .filter(Boolean)
+      .join(' — ');
     return this.page({
       title: page.title,
       landscape: page.landscape,
       paper,
       toolbar,
+      style: printStyle(print, company.brandColor),
       body: copies === 1 ? body : Array.from({ length: copies }, () => body).join(''),
     });
   }
@@ -778,7 +1009,10 @@ export class PrintTemplatesService {
    * «ما اخترعناه»: القيم 2/4/5 ليست في الديسكتوب نصّاً، لكنها ترتيبٌ منطقيّ
    * لنفس الحقل الذي كان بلا أثر (§10.5/5).
    */
-  private sortByPrintItemType(lines: Array<Record<string, unknown>>, printItemType: number): Array<Record<string, unknown>> {
+  private sortByPrintItemType(
+    lines: Array<Record<string, unknown>>,
+    printItemType: number,
+  ): Array<Record<string, unknown>> {
     const type = Number(printItemType) || 1;
     if (type === 1) return lines; // إدخال
     const copy = [...lines];
@@ -821,12 +1055,15 @@ export class PrintTemplatesService {
     landscape,
     paper = 'a4',
     toolbar,
+    style,
   }: {
     title: string;
     body: string;
     landscape?: boolean;
     /** 🖨️ A note beside the print button — the saved printer names, hidden when printing. */
     toolbar?: string;
+    /** 🎨 القالب واللون والخط — غيابها يعني الشكل الكلاسيكي الذي كان. */
+    style?: PrintStyle;
     /**
      * 📄 نوع الورقة — `printType` of `SettingPrint`: 1 «📄 ورقة A4» · 2 «🧾 ورق صغير»,
      * the two radios of `frmInvRptType.xaml` «🖨️ افتراضي طباعة الفواتير».
@@ -842,14 +1079,16 @@ export class PrintTemplatesService {
 <style>
   @page { size: ${paper === 'small' ? '80mm auto' : `A4${landscape ? ' landscape' : ''}`}; margin: ${paper === 'small' ? '3mm' : '12mm'}; }
   * { box-sizing: border-box; }
-  body { font-family: "Segoe UI", Tahoma, "Noto Naskh Arabic", sans-serif; color: #111; margin: 0; padding: 16px; background: #f4f5f7; font-size: 12px; }
+  /* 🔎 كل المقاسات نسبية إلى «--scale» (مصمّم القوالب) — تكبيرُ الخط يكبّر الورقة كلها
+     لا الفقرات وحدها، فلا يختلّ التوازن بين العنوان والجدول والإجماليات. */
+  body { font-family: inherit; color: #111; margin: 0; padding: 16px; background: #f4f5f7; font-size: calc(12px * var(--scale)); }
   .sheet { background: #fff; max-width: ${paper === 'small' ? '80mm' : landscape ? '297mm' : '210mm'}; margin: 0 auto; padding: ${paper === 'small' ? '3mm 4mm' : '16mm 14mm'}; box-shadow: 0 1px 8px rgba(0,0,0,.12); }
   /* 🧾 ورق صغير — 80mm thermal: one column, no shadows, smaller type. */
-  .sheet.small { font-size: 10px; }
-  .sheet.small table.report { font-size: 9px; }
+  .sheet.small { font-size: 0.85em; }
+  .sheet.small table.report { font-size: 0.9em; }
   .sheet.small .doc-head { display: block; }
   .sheet.small .doc { text-align: right; }
-  .sheet.small .totals-strip { flex-direction: column; gap: 4px; font-size: 11px; }
+  .sheet.small .totals-strip { flex-direction: column; gap: 0.3em; font-size: 0.95em; }
   /* 🔢 عدد النسخ — every copy starts on its own sheet, the way Printing() loops. */
   .copy + .copy { page-break-before: always; }
   .brand-logo { max-height: 56px; max-width: 160px; object-fit: contain; display: block; margin-bottom: 6px; }
@@ -857,70 +1096,97 @@ export class PrintTemplatesService {
   .doc-images img { max-height: 90px; max-width: 100%; }
   .doc-stamp { position: relative; display: inline-block; }
   .doc-stamp img { max-height: 110px; max-width: 100%; }
-  .doc-note { margin-top: 10px; border: 1px dashed #bbb; padding: 6px 8px; color: #333; }
-  .doc-foot { margin-top: 10px; border-top: 1px solid #999; padding-top: 6px; color: #444; font-size: 11px; text-align: center; }
+  .doc-note { margin-top: 0.85em; border: 1px dashed #bbb; padding: 0.5em 0.7em; color: #333; }
+  .doc-foot { margin-top: 0.85em; border-top: 1px solid #999; padding-top: 0.5em; color: #444; font-size: 0.92em; text-align: center; }
   .doc-foot img { max-height: 70px; max-width: 100%; display: block; margin: 4px auto 0; }
-  h1 { font-size: 18px; margin: 0 0 2px; }
-  h2 { font-size: 13px; margin: 0 0 6px; }
-  .doc-head { display: flex; justify-content: space-between; gap: 16px; border-bottom: 2px solid #111; padding-bottom: 10px; margin-bottom: 12px; }
-  .company .en { color: #555; font-size: 12px; }
-  .company .meta { margin-top: 4px; color: #333; display: flex; gap: 12px; flex-wrap: wrap; }
-  .doc { text-align: left; min-width: 210px; }
-  .doc-title { font-size: 16px; font-weight: 700; }
-  .doc-title-en { color: #666; font-size: 11px; margin-bottom: 6px; }
+  h1 { font-size: 1.5em; margin: 0 0 0.15em; }
+  h2 { font-size: 1.08em; margin: 0 0 0.5em; }
+  .doc-head { display: flex; justify-content: space-between; gap: 16px; border-bottom: 2px solid var(--accent); padding-bottom: 0.85em; margin-bottom: 1em; }
+  .company .en { color: #555; font-size: 1em; }
+  .company .meta { margin-top: 0.3em; color: #333; display: flex; gap: 12px; flex-wrap: wrap; }
+  /* كتلةُ المستند على يسار الترويسة: نصُّها عربيٌّ فتُحاذى يميناً مع عناوين
+     جدول doc-meta — وكانت left فتنقطع «فاتورة مبيعات» عن سطرها الأوّل. */
+  .doc { text-align: right; min-width: 210px; }
+  .doc-title { font-size: 1.33em; font-weight: 700; }
+  .doc-title-en { color: #666; font-size: 0.92em; margin-bottom: 0.5em; }
   .doc-meta { border-collapse: collapse; width: 100%; }
   .doc-meta th { text-align: right; color: #555; font-weight: 500; padding: 1px 6px 1px 0; white-space: nowrap; }
   .doc-meta td { text-align: left; font-weight: 600; padding: 1px 0; }
-  .party { border: 1px solid #ddd; border-radius: 6px; padding: 8px 10px; margin-bottom: 10px; }
+  .party { border: 1px solid #ddd; border-radius: 6px; padding: 0.7em 0.85em; margin-bottom: 0.85em; }
   .party-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px 12px; }
   .party-grid .wide { grid-column: 1 / -1; }
   .party-grid span { color: #666; margin-inline-end: 6px; }
-  table.lines { width: 100%; border-collapse: collapse; margin-bottom: 10px; }
-  table.lines th, table.lines td { border: 1px solid #ccc; padding: 4px 6px; }
+  table.lines { width: 100%; border-collapse: collapse; margin-bottom: 0.85em; }
+  table.lines th, table.lines td { border: 1px solid #ccc; padding: 0.35em 0.5em; }
   table.lines thead th { background: #f0f1f4; font-weight: 600; }
   table.lines tfoot th { background: #f0f1f4; }
   /* 💰 إجمالي المبيعات — the one number frmRptSalesInPeriod prints under the grid. */
-  .totals-strip { display: flex; gap: 24px; flex-wrap: wrap; margin-top: 8px; padding: 6px 10px; border: 2px solid #111; font-size: 14px; }
+  .totals-strip { display: flex; gap: 24px; flex-wrap: wrap; margin-top: 0.7em; padding: 0.5em 0.85em; border: 2px solid var(--accent); font-size: 1.17em; }
   .totals-strip span { direction: ltr; }
   /* أعده · راجعه · المدير — the signature strip of RptSalesInPeriod1/2.repx. */
-  table.signatures { width: 100%; border-collapse: collapse; margin-top: 18px; page-break-inside: avoid; }
-  table.signatures td { border: 1px solid #ccc; padding: 14px 6px 6px; text-align: center; width: 33%; color: #555; }
+  table.signatures { width: 100%; border-collapse: collapse; margin-top: 1.5em; page-break-inside: avoid; }
+  table.signatures td { border: 1px solid #ccc; padding: 1.2em 0.5em 0.5em; text-align: center; width: 33%; color: #555; }
   .num { text-align: left; font-variant-numeric: tabular-nums; direction: ltr; }
-  .sku { display: block; color: #777; font-size: 10px; }
+  .sku { display: block; color: #777; font-size: 0.9em; }
   .totals { display: flex; gap: 16px; align-items: flex-start; justify-content: space-between; }
   .totals-side { flex: 1; }
   .totals-table { border-collapse: collapse; min-width: 260px; }
   .totals-table th { text-align: right; padding: 3px 8px; color: #333; font-weight: 500; }
   .totals-table td { padding: 3px 8px; border-bottom: 1px solid #eee; }
-  .totals-table .grand th, .totals-table .grand td { font-size: 14px; font-weight: 700; border-top: 2px solid #111; border-bottom: 2px solid #111; }
-  table.pay { border-collapse: collapse; margin-top: 8px; }
+  .totals-table .grand th, .totals-table .grand td { font-size: 1.17em; font-weight: 700; border-top: 2px solid var(--accent); border-bottom: 2px solid var(--accent); }
+  table.pay { border-collapse: collapse; margin-top: 0.7em; }
   table.pay th, table.pay td { border: 1px solid #ddd; padding: 3px 8px; }
-  .words { background: #f6f6f8; border-inline-start: 3px solid #111; padding: 6px 8px; margin: 0 0 8px; }
-  .panel { border: 1px solid #ddd; border-radius: 6px; padding: 10px 12px; margin-bottom: 12px; }
+  .words { background: #f6f6f8; border-inline-start: 3px solid var(--accent); padding: 0.5em 0.7em; margin: 0 0 0.7em; }
+  .panel { border: 1px solid #ddd; border-radius: 6px; padding: 0.85em 1em; margin-bottom: 1em; }
   .panel .kv { display: flex; gap: 8px; padding: 4px 0; border-bottom: 1px dashed #e5e5e5; }
   .panel .kv:last-child { border-bottom: 0; }
   .panel .kv span { color: #666; min-width: 150px; }
-  .qr { margin-top: 10px; display: inline-flex; flex-direction: column; align-items: center; gap: 2px; }
+  .qr { margin-top: 0.85em; display: inline-flex; flex-direction: column; align-items: center; gap: 2px; }
   .qr svg { width: 110px; height: 110px; }
-  .qr span, .qr-empty { font-size: 10px; color: #666; }
-  .qr-empty { display: block; margin-top: 10px; }
+  .qr span, .qr-empty { font-size: 0.9em; color: #666; }
+  .qr-empty { display: block; margin-top: 0.85em; }
   .warn { color: #a4400a; }
-  .empty { color: #666; padding: 12px; border: 1px dashed #ccc; text-align: center; }
-  .signs { display: flex; gap: 24px; margin-top: 28px; }
+  .empty { color: #666; padding: 1em; border: 1px dashed #ccc; text-align: center; }
+  .signs { display: flex; gap: 24px; margin-top: 2em; }
   .signs div { flex: 1; text-align: center; color: #555; }
-  .signs i { display: block; border-top: 1px solid #999; margin-top: 34px; }
+  .signs i { display: block; border-top: 1px solid #999; margin-top: 2.5em; }
   .toolbar { max-width: 210mm; margin: 0 auto 10px; display: flex; gap: 8px; }
   .toolbar button { font: inherit; padding: 6px 14px; border: 1px solid #111; background: #111; color: #fff; border-radius: 6px; cursor: pointer; }
   .toolbar-note { align-self: center; color: #555; }
-  table.report { font-size: 11px; }
+  table.report { font-size: 0.92em; }
   table.report thead { display: table-header-group; }
   table.report tbody tr { page-break-inside: avoid; }
   table.report tbody tr:nth-child(even) { background: #fafafa; }
-  table.report td.empty { text-align: center; color: #666; padding: 18px; border: 1px solid #ccc; }
-  @media print { body { background: #fff; padding: 0; } .sheet { box-shadow: none; padding: 0; max-width: none; } .toolbar { display: none; } }
+  table.report td.empty { text-align: center; color: #666; padding: 1.5em; border: 1px solid #ccc; }
+  .rep-qr svg { width: 46px; height: 46px; }
+  /* ─────────────────────────────────────────── 🎨 القوالب الثلاثة
+     القالب لا يحذف شيئاً ولا يضيف حقلاً: يغيّر الحدود والتعبئة والعناوين فقط. الألوان
+     تأتي من «--accent»، وأي غيابٍ له يسقط إلى أسود الورقة (انظر «printStyle»). */
+  body.tpl-modern .sheet { border-top: 5px solid var(--accent); padding-top: 12mm; }
+  body.tpl-modern .doc-head { border-bottom: 1px solid #e5e7eb; }
+  body.tpl-modern h1, body.tpl-modern .doc-title { color: var(--accent); }
+  body.tpl-modern table.lines th, body.tpl-modern table.lines td { border: 0; border-bottom: 1px solid #e5e7eb; }
+  body.tpl-modern table.lines thead th { background: var(--accent); color: #fff; }
+  body.tpl-modern table.report tbody tr:nth-child(even) { background: #fbfbfd; }
+  body.tpl-modern .party { border-color: #eef0f4; background: #fafbfe; }
+  body.tpl-modern .totals-strip { border: 0; border-top: 2px solid var(--accent); background: #fafbfe; }
+  body.tpl-modern .doc-foot { border-top-color: #e5e7eb; }
+  body.tpl-minimal .sheet { box-shadow: none; border: 1px solid #eee; }
+  body.tpl-minimal .doc-head { border-bottom: 1px solid #111; }
+  body.tpl-minimal table.lines th, body.tpl-minimal table.lines td { border: 0; border-bottom: 1px solid #e5e5e5; }
+  body.tpl-minimal table.lines thead th, body.tpl-minimal table.lines tfoot th { background: #fff; font-weight: 700; }
+  body.tpl-minimal .party { border: 0; border-bottom: 1px solid #e5e5e5; border-radius: 0; padding-inline: 0; }
+  body.tpl-minimal .totals-strip { border: 0; border-top: 2px solid #111; border-bottom: 1px solid #111; padding-inline: 0; }
+  body.tpl-minimal .words, body.tpl-minimal .panel { background: #fff; }
+  body.tpl-minimal .panel { border: 0; border-bottom: 1px solid #eee; border-radius: 0; padding-inline: 0; }
+  body.tpl-minimal table.signatures td { border: 0; border-top: 1px solid #ccc; }
 </style>
 </head>
-<body>
+<body class="tpl-${escapeHtml(style?.template ?? 'classic')}" style="${[
+      `--scale:${(style?.scale ?? 1).toFixed(2)}`,
+      style?.accent ? `--accent:${escapeHtml(style.accent)}` : '--accent:#111',
+      `font-family:${FONT_STACKS[style?.fontFamily ?? 'segoe']}`,
+    ].join(';')}">
   <div class="toolbar"><button type="button" onclick="window.print()">طباعة</button>${toolbar ? `<span class="toolbar-note">${toolbar}</span>` : ''}</div>
   <div class="sheet${paper === 'small' ? ' small' : ''}">${body}</div>
 </body>
@@ -933,7 +1199,9 @@ export class PrintTemplatesService {
 type Tx = Parameters<Parameters<typeof withTenantTx>[2]>[0];
 
 function rows(result: unknown): Array<Record<string, unknown>> {
-  return Array.isArray(result) ? (result as Array<Record<string, unknown>>) : ((result as { rows?: Array<Record<string, unknown>> }).rows ?? []);
+  return Array.isArray(result)
+    ? (result as Array<Record<string, unknown>>)
+    : ((result as { rows?: Array<Record<string, unknown>> }).rows ?? []);
 }
 function first(result: unknown): Record<string, unknown> | undefined {
   return rows(result)[0];
@@ -963,11 +1231,55 @@ function dateTimeText(value: unknown): string {
 function shortId(value: string): string {
   return value ? value.slice(0, 8).toUpperCase() : '—';
 }
+/**
+ * العنوان الوطني — the same `address` jsonb is written by the company card and the party
+ * card, with short keys (`building`, `street`, `postal`…). Older rows carried the long
+ * ZATCA spellings, so both are read: a printed address that silently disappears because
+ * a key was renamed is exactly the defect this function exists to prevent.
+ */
 function addressText(address: unknown): string {
   if (!address || typeof address !== 'object') return '';
-  const parts = ['buildingNumber', 'street', 'additionalStreet', 'district', 'city', 'postalCode', 'country']
-    .map((key) => (address as Record<string, unknown>)[key])
-    .filter((value) => typeof value === 'string' && value.trim() !== '');
+  const record = address as Record<string, unknown>;
+  const keys = [
+    'building',
+    'buildingNumber',
+    'street',
+    'addStreet',
+    'additionalStreet',
+    'district',
+    'city',
+    'postal',
+    'postalCode',
+    'additional',
+    'unit',
+    'country',
+    'countryCode',
+    'plot',
+  ];
+  return keys
+    .map((key) => record[key])
+    .filter((value): value is string => typeof value === 'string' && value.trim() !== '')
+    .join('، ');
+}
+
+/** The labelled form used under the establishment's name — «مبنى ٧٢٣٤، شارع …». */
+function nationalAddressText(address: Record<string, string> | null | undefined): string {
+  if (!address) return '';
+  const value = (key: string): string => (typeof address[key] === 'string' ? address[key]!.trim() : '');
+  const parts: string[] = [];
+  const push = (label: string, key: string) => {
+    const item = value(key);
+    if (item) parts.push(label ? `${label} ${item}` : item);
+  };
+  push('مبنى', 'building');
+  push('شارع', 'street');
+  push('', 'addStreet');
+  push('حي', 'district');
+  push('', 'city');
+  push('الرمز البريدي', 'postal');
+  push('الرقم الإضافي', 'additional');
+  push('الوحدة', 'unit');
+  push('الرقم الفرعي', 'plot');
   return parts.join('، ');
 }
 /** Numbers get thousands separators; text is printed as it came out of the query. */
@@ -977,7 +1289,10 @@ function cellText(value: string, numeric: boolean): string {
 }
 
 export function escapeHtml(value: string): string {
-  return value.replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char] ?? char);
+  return value.replace(
+    /[&<>"']/g,
+    (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char] ?? char,
+  );
 }
 
 /** What the caption under the QR says. A prepared invoice carries a valid phase-1 code. */
@@ -989,8 +1304,40 @@ const ZATCA_STATUS_LABELS: Record<string, string> = {
   failed: 'تعذّر الإرسال للهيئة',
 };
 
-const SALES_KIND_TITLES: Record<string, string> = { sale: 'فاتورة مبيعات', return: 'مردود مبيعات', quotation: 'عرض سعر', contracting: 'فاتورة مقاولات' };
-const SALES_KIND_TITLES_EN: Record<string, string> = { sale: 'Sales Invoice', return: 'Sales Return', quotation: 'Quotation', contracting: 'Contracting Invoice' };
-const STATUS_LABELS: Record<string, string> = { draft: 'مسودة', posted: 'مرحّلة', void: 'ملغاة', voided: 'ملغاة', paid: 'مدفوعة', open: 'مفتوحة', closed: 'مغلقة' };
-const PAYMENT_METHODS: Record<string, string> = { cash: 'نقداً', card: 'شبكة', bank_transfer: 'تحويل بنكي', transfer: 'تحويل بنكي', cheque: 'شيك', credit: 'آجل' };
-const VOUCHER_SUBTYPES: Record<string, string> = { customer: 'دفعة من عميل', supplier: 'دفعة لمورد', expense: 'مصروف', salary: 'رواتب', tax: 'ضريبة', other: 'أخرى' };
+const SALES_KIND_TITLES: Record<string, string> = {
+  sale: 'فاتورة مبيعات',
+  return: 'مردود مبيعات',
+  quotation: 'عرض سعر',
+  contracting: 'فاتورة مقاولات',
+};
+const SALES_KIND_TITLES_EN: Record<string, string> = {
+  sale: 'Sales Invoice',
+  return: 'Sales Return',
+  quotation: 'Quotation',
+  contracting: 'Contracting Invoice',
+};
+const STATUS_LABELS: Record<string, string> = {
+  draft: 'مسودة',
+  posted: 'مرحّلة',
+  void: 'ملغاة',
+  voided: 'ملغاة',
+  paid: 'مدفوعة',
+  open: 'مفتوحة',
+  closed: 'مغلقة',
+};
+const PAYMENT_METHODS: Record<string, string> = {
+  cash: 'نقداً',
+  card: 'شبكة',
+  bank_transfer: 'تحويل بنكي',
+  transfer: 'تحويل بنكي',
+  cheque: 'شيك',
+  credit: 'آجل',
+};
+const VOUCHER_SUBTYPES: Record<string, string> = {
+  customer: 'دفعة من عميل',
+  supplier: 'دفعة لمورد',
+  expense: 'مصروف',
+  salary: 'رواتب',
+  tax: 'ضريبة',
+  other: 'أخرى',
+};

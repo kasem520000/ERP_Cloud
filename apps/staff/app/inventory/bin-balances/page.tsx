@@ -1,8 +1,9 @@
 'use client';
 
+import { Panel } from '@erp/ui';
 import { useState } from 'react';
 
-import { DataTable, Notice } from '../../../components/data-view';
+import { DataTable, Notice, QueryView } from '../../../components/data-view';
 import { Screen } from '../../../components/screen';
 import { ApiError, apiList, apiPost } from '../../../lib/api';
 import { itemLabel, listItems, quantity, type Item } from '../../../lib/lookups';
@@ -47,30 +48,49 @@ export default function BinBalancesPage() {
       crumbs={['المستودعات', 'أرصدة الرفوف']}
     >
       <Notice notice={notice} />
-      <section className="card">
+      <Panel>
         <div className="form-grid">
           <label className="field">
             <span>من رف</span>
-            <select className="input" value={fromBinId} onChange={(event) => setFromBinId(event.target.value)}>
+            <select
+              className="input"
+              value={fromBinId}
+              onChange={(event) => setFromBinId(event.target.value)}
+            >
               <option value="">اختر</option>
-              {binRows.map((row) => <option key={row.id} value={row.id}>{row.code}</option>)}
+              {binRows.map((row) => (
+                <option key={row.id} value={row.id}>
+                  {row.code}
+                </option>
+              ))}
             </select>
           </label>
           <label className="field">
             <span>إلى رف</span>
             <select className="input" value={toBinId} onChange={(event) => setToBinId(event.target.value)}>
               <option value="">اختر</option>
-              {binRows.map((row) => <option key={row.id} value={row.id}>{row.code}</option>)}
+              {binRows.map((row) => (
+                <option key={row.id} value={row.id}>
+                  {row.code}
+                </option>
+              ))}
             </select>
           </label>
           <label className="field">
             <span>المادة</span>
             <select className="input" value={itemId} onChange={(event) => setItemId(event.target.value)}>
               <option value="">اختر</option>
-              {itemRows.map((row) => <option key={row.id} value={row.id}>{itemLabel(row)}</option>)}
+              {itemRows.map((row) => (
+                <option key={row.id} value={row.id}>
+                  {itemLabel(row)}
+                </option>
+              ))}
             </select>
           </label>
-          <label className="field"><span>الكمية</span><input className="input" dir="ltr" value={qty} onChange={(event) => setQty(event.target.value)} /></label>
+          <label className="field">
+            <span>الكمية</span>
+            <input className="input" dir="ltr" value={qty} onChange={(event) => setQty(event.target.value)} />
+          </label>
         </div>
         <button
           className="btn primary"
@@ -84,17 +104,33 @@ export default function BinBalancesPage() {
         >
           نقل
         </button>
-      </section>
-      <section className="card">
+      </Panel>
+      <Panel>
         <div className="form-grid">
           <label className="field">
             <span>رف الجرد</span>
-            <select className="input" value={countBinId} onChange={(event) => setCountBinId(event.target.value)}>
+            <select
+              className="input"
+              value={countBinId}
+              onChange={(event) => setCountBinId(event.target.value)}
+            >
               <option value="">اختر</option>
-              {binRows.map((row) => <option key={row.id} value={row.id}>{row.code}</option>)}
+              {binRows.map((row) => (
+                <option key={row.id} value={row.id}>
+                  {row.code}
+                </option>
+              ))}
             </select>
           </label>
-          <label className="field"><span>الكمية المعدودة</span><input className="input" dir="ltr" value={countedQty} onChange={(event) => setCountedQty(event.target.value)} /></label>
+          <label className="field">
+            <span>الكمية المعدودة</span>
+            <input
+              className="input"
+              dir="ltr"
+              value={countedQty}
+              onChange={(event) => setCountedQty(event.target.value)}
+            />
+          </label>
         </div>
         <button
           className="btn"
@@ -108,16 +144,26 @@ export default function BinBalancesPage() {
         >
           تسجيل الجرد
         </button>
-      </section>
-      <DataTable
-        rows={rows.data ?? []}
-        rowKey={(row) => row.id}
-        columns={[
-          { key: 'bin', header: 'الرف', cell: (row) => row.binCode },
-          { key: 'item', header: 'المادة', cell: (row) => `${row.itemSku} — ${row.itemName}` },
-          { key: 'qty', header: 'الكمية', align: 'num', cell: (row) => quantity(row.quantity) },
-        ]}
-      />
+      </Panel>
+      <QueryView
+        panel="أرصدة الرفوف"
+        panelHint="كمية كل مادة في كل رف حسب آخر جرد أو حركة."
+        query={rows}
+        empty="لا توجد أرصدة رفوف"
+        emptyDetail="سجّل جرداً أو رحّل استلاماً ليظهر الرصيد هنا."
+      >
+        {(data) => (
+          <DataTable
+            rows={data}
+            rowKey={(row) => row.id}
+            columns={[
+              { key: 'bin', header: 'الرف', cell: (row) => row.binCode },
+              { key: 'item', header: 'المادة', cell: (row) => `${row.itemSku} — ${row.itemName}` },
+              { key: 'qty', header: 'الكمية', align: 'num', cell: (row) => quantity(row.quantity) },
+            ]}
+          />
+        )}
+      </QueryView>
     </Screen>
   );
 }

@@ -1,11 +1,13 @@
 'use client';
 
+import { Panel } from '@erp/ui';
+import { Landmark } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
 import { cashLocationLabel, type CashLocation } from '../lib/lookups';
 
 /**
- * 🏦 اختر طريقة الدفع (تحويل بنكي) — `Form_WPF/frmPayBank.xaml`.
+ * اختر طريقة الدفع (تحويل بنكي) — `Form_WPF/frmPayBank.xaml`.
  *
  * The desktop window is a **chooser, not a form**: a header `🏦 اختر طريقة الدفع
  * (تحويل بنكي)`, a `🏦 البنوك المتاحة` panel of tiles built in `LoadBanks()` from
@@ -61,14 +63,18 @@ export function BankChooser({
   }
 
   return (
-    <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label="🏦 اختر طريقة الدفع (تحويل بنكي)">
+    <div
+      className="modal-backdrop"
+      role="dialog"
+      aria-modal="true"
+      aria-label="اختر طريقة الدفع (تحويل بنكي)"
+    >
       <div className="modal-card" style={{ maxWidth: 640 }}>
         <div className="modal-head">
-          <span className="modal-title">🏦 اختر طريقة الدفع (تحويل بنكي)</span>
+          <span className="modal-title">اختر طريقة الدفع (تحويل بنكي)</span>
         </div>
 
-        <div className="card" style={{ margin: 12 }}>
-          <div className="card-head">🏦 البنوك المتاحة</div>
+        <Panel title="البنوك المتاحة" style={{ margin: 12 }} flush>
           <div className="bank-tiles">
             {loading ? <p className="muted small">…</p> : null}
             {!loading && banks.length === 0 ? (
@@ -87,21 +93,27 @@ export function BankChooser({
                   setNotice('');
                 }}
               >
-                <span className="bank-tile-icon">🏦</span>
+                <span className="bank-tile-icon">
+                  <Landmark size={16} />
+                </span>
                 <span className="bank-tile-name">{cashLocationLabel(bank)}</span>
               </button>
             ))}
           </div>
-        </div>
+        </Panel>
 
-        {notice ? <p className="notice danger" style={{ margin: '0 12px' }}>{notice}</p> : null}
+        {notice ? (
+          <p className="notice danger" style={{ margin: '0 12px' }}>
+            {notice}
+          </p>
+        ) : null}
 
         <div className="modal-foot">
           <button type="button" className="btn danger" onClick={onCancel}>
-            ✖ خروج
+            خروج
           </button>
           <button type="button" className="btn primary" onClick={confirm}>
-            ✔ موافق
+            موافق
           </button>
         </div>
       </div>

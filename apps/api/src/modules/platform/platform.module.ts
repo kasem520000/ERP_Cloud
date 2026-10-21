@@ -11,6 +11,7 @@ import { PublicPlansService } from './billing/public-plans.service.js';
 import { AuthService } from './auth/auth.service.js';
 import { MfaController } from './auth/mfa.controller.js';
 import { MfaService } from './auth/mfa.service.js';
+import { PasswordBreachChecker } from './auth/password-breach.js';
 import { PasswordService } from './auth/password.service.js';
 import { TokenService } from './auth/token.service.js';
 import { IdentityController } from './identity/identity.controller.js';
@@ -55,6 +56,7 @@ import { TenantService } from './tenancy/tenant.service.js';
     SettingsService,
     TenantService,
     MfaService,
+    PasswordBreachChecker,
     PasswordService,
     TokenService,
     RateLimiterService,
@@ -64,10 +66,17 @@ import { TenantService } from './tenancy/tenant.service.js';
     IdentityService,
     PlatformRolePermissionsService,
     MfaService,
+    PasswordBreachChecker,
     PasswordService,
     TokenService,
     RateLimiterService,
     BillingService,
+    // Exported for module-level reuse of the *official* membership/role writers: a feature
+    // that has to hand a user a login (van sales reps) must go through the same services
+    // the `/memberships` and `/roles` endpoints use, never through its own SQL — one
+    // invitation flow, one role model, one set of scope rules.
+    MembershipsService,
+    RolesService,
     // P-M4: التسجيل الذاتي يسكن `PlatformAdminModule` (يحتاج التجهيز والتفعيل)، وهو يقرأ
     // الباقات من هنا فلا تُنسخ الخدمة مرّتين ولا تفترق قائمةُ الباقات عن صفحة الأسعار.
     PublicPlansService,

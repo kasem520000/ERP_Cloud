@@ -43,8 +43,9 @@ type Measurement = {
 };
 
 type EffectiveLimit = {
+  /** `plan` — حدٌّ من باقة الاشتراك النشطة، و`tenant` تجاوزٌ صريح فوقه. */
   value: number | null;
-  source: 'tenant' | 'platform' | 'default';
+  source: 'tenant' | 'plan' | 'platform' | 'default';
   enforced: boolean;
 };
 
@@ -327,6 +328,18 @@ export class UsageService {
          AND (tenant_id IS NULL OR tenant_id IN (${uuidList(tenantIds)}))
     `);
 
+    /**
+     * حدود الباقة — القرار الذي ينتظره العميل: باقةٌ مشتراة بحدودٍ معلنة يجب أن تُطبَّق،
+     * وإلا فما معنى أن يبيع المشغّل «5 فروع» ويقبل النظام السادس؟ تُقرأ من ترخيصٍ نشطٍ
+     * (`tenant_subscriptions`) لا من الافتراضي، فالشاشة والباب واحد.
+     */
+    const planRows = await tx.execute(sql`
+      SELECT s.tenant_id, e.key, e.value
+        FROM tenant_subscriptions s
+        JOIN billing_plan_entitlements e ON e.plan_id = s.plan_id AND e.kind = 'limit'
+       WHERE s.status = 'active' AND s.tenant_id IN (${uuidList(tenantIds)})
+    `);
+
     for (const metric of usageMetricRegistry) {
       const tenantRow = rows.rows.find(
         (row) =>
@@ -334,10 +347,23 @@ export class UsageService {
           row.tenant_id !== null &&
           tenantIds.includes(String(row.tenant_id)),
       );
+      const planRow = planRows.rows.find(
+        (row) =>
+          row.key === metric.limitKey &&
+          row.tenant_id !== null &&
+          tenantIds.includes(String(row.tenant_id)),
+      );
       const platformRow = rows.rows.find((row) => row.key === metric.limitKey && row.tenant_id === null);
-      const row = tenantRow ?? platformRow;
+      // الترتيب: تجاوزٌ خاص بالعميل ← باقة الاشتراك ← افتراض المنصّة ← مغلّف الفهرس (يُبلَّغ ولا يُطبَّق).
+      const row = tenantRow ?? planRow ?? platformRow;
       const value = numericValue(row?.value);
-      const source: EffectiveLimit['source'] = tenantRow ? 'tenant' : platformRow ? 'platform' : 'default';
+      const source: EffectiveLimit['source'] = tenantRow
+        ? 'tenant'
+        : planRow
+          ? 'plan'
+          : platformRow
+            ? 'platform'
+            : 'default';
       out.set(metric.key, {
         // صفٌّ بقيمة `null` يعني «لا حدّ» (المشغّل أفرغه) — لا يعني «افتراضي».
         value: row ? value : (defaults.get(metric.key) ?? null),

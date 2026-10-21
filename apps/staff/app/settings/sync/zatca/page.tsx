@@ -1,10 +1,11 @@
 'use client';
 
 import { useState } from 'react';
+import { FilterBand, Panel } from '@erp/ui';
 
 import { DataTable, Notice, QueryView } from '../../../../components/data-view';
 import { Screen } from '../../../../components/screen';
-import { ApiError, apiFetch, apiPost } from '../../../../lib/api';
+import { apiErrorText, apiFetch, apiPost } from '../../../../lib/api';
 import { dateTime } from '../../../../lib/lookups';
 import { useQuery } from '../../../../lib/use-query';
 
@@ -37,7 +38,8 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 const REASON_LABELS: Record<string, string> = {
-  NO_CREDENTIALS: 'لم تُرفع بيانات الاعتماد (شهادة ZATCA) بعد — الفاتورة مُجهَّزة ورمز QR للمرحلة الأولى صالح.',
+  NO_CREDENTIALS:
+    'لم تُرفع بيانات الاعتماد (شهادة ZATCA) بعد — الفاتورة مُجهَّزة ورمز QR للمرحلة الأولى صالح.',
   NO_GATEWAY_CONFIGURED: 'الفاتورة موقّعة، لكن عنوان بوابة الهيئة (ZATCA_API_BASE_URL) غير مضبوط في البيئة.',
 };
 
@@ -56,7 +58,10 @@ function downloadXml(row: Submission) {
 /** Every invoice sent to the authority, with the hash chain and a retry for failures. */
 export default function ZatcaSyncPage() {
   const [status, setStatus] = useState('');
-  const submissions = useQuery<Submission[]>(() => apiFetch<Submission[]>(`/einvoice/submissions${status ? `?status=${status}` : ''}`), [status]);
+  const submissions = useQuery<Submission[]>(
+    () => apiFetch<Submission[]>(`/einvoice/submissions${status ? `?status=${status}` : ''}`),
+    [status],
+  );
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState<{ kind: 'ok' | 'danger' | 'info'; text: string } | undefined>();
 
@@ -68,7 +73,7 @@ export default function ZatcaSyncPage() {
       setNotice({ kind: 'ok', text: 'أُعيد إرسال الفاتورة.' });
       submissions.reload();
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
     } finally {
       setBusy(false);
     }
@@ -80,7 +85,7 @@ export default function ZatcaSyncPage() {
       subtitle="حالة كل فاتورة أُرسلت للهيئة، وسلسلة التجزئة (hash chain) التي تربطها بسابقتها."
       crumbs={['الإعدادات', 'المزامنة']}
     >
-      <div className="card toolbar">
+      <FilterBand>
         <label className="field">
           <span>الحالة</span>
           <select className="input" value={status} onChange={(event) => setStatus(event.target.value)}>
@@ -93,8 +98,10 @@ export default function ZatcaSyncPage() {
             <option value="failed">فشل</option>
           </select>
         </label>
-        <span className="muted small">الإرسال يتم من شاشة الفاتورة بعد ترحيلها؛ هذه الشاشة للمتابعة وإعادة المحاولة.</span>
-      </div>
+        <span className="muted small">
+          الإرسال يتم من شاشة الفاتورة بعد ترحيلها؛ هذه الشاشة للمتابعة وإعادة المحاولة.
+        </span>
+      </FilterBand>
       <Notice notice={notice} />
       <Notice
         notice={{
@@ -103,20 +110,70 @@ export default function ZatcaSyncPage() {
         }}
       />
 
-      <QueryView query={submissions} empty="لا توجد فواتير مُرسَلة" emptyDetail="رحّل فاتورة ثم أرسلها للهيئة لتظهر هنا.">
+      <QueryView
+        wrapEmpty={(node) => (
+          <Panel title="الفواتير المُرسَلة" flush>
+            {node}
+          </Panel>
+        )}
+        query={submissions}
+        empty="لا توجد فواتير مُرسَلة"
+        emptyDetail="رحّل فاتورة ثم أرسلها للهيئة لتظهر هنا."
+      >
         {(rows) => (
-          <div className="card">
+          <Panel title="الإرسالات السابقة" hint="سجل كل إرسال: الحالة، التجزئة، والسبب عند الرفض." flush>
             <DataTable
               columns={[
-                { key: 'created', header: 'التاريخ', cell: (row: Submission) => dateTime(row.submittedAt ?? row.createdAt) },
-                { key: 'environment', header: 'البيئة', cell: (row: Submission) => (row.environment === 'production' ? 'إنتاج' : 'تجريبية') },
-                { key: 'status', header: 'الحالة', cell: (row: Submission) => STATUS_LABELS[row.status] ?? row.status },
-                { key: 'uuid', header: 'UUID', align: 'ltr', cell: (row: Submission) => (row.uuid ? row.uuid.slice(0, 13) + '…' : '—') },
-                { key: 'hash', header: 'التجزئة', align: 'ltr', cell: (row: Submission) => (row.hash ? row.hash.slice(0, 12) + '…' : '—') },
-                { key: 'attempts', header: 'المحاولات', align: 'num', cell: (row: Submission) => row.attempts },
-                { key: 'counter', header: 'العدّاد', align: 'num', cell: (row: Submission) => String(row.requestPayload?.counter ?? '—') },
-                { key: 'profile', header: 'النوع', cell: (row: Submission) => (row.requestPayload?.profile === 'standard' ? 'ضريبية' : 'مبسّطة') },
-                { key: 'error', header: 'الملاحظة', cell: (row: Submission) => row.error ?? REASON_LABELS[row.response?.reason ?? ''] ?? '—' },
+                {
+                  key: 'created',
+                  header: 'التاريخ',
+                  cell: (row: Submission) => dateTime(row.submittedAt ?? row.createdAt),
+                },
+                {
+                  key: 'environment',
+                  header: 'البيئة',
+                  cell: (row: Submission) => (row.environment === 'production' ? 'إنتاج' : 'تجريبية'),
+                },
+                {
+                  key: 'status',
+                  header: 'الحالة',
+                  cell: (row: Submission) => STATUS_LABELS[row.status] ?? row.status,
+                },
+                {
+                  key: 'uuid',
+                  header: 'UUID',
+                  align: 'ltr',
+                  cell: (row: Submission) => (row.uuid ? row.uuid.slice(0, 13) + '…' : '—'),
+                },
+                {
+                  key: 'hash',
+                  header: 'التجزئة',
+                  align: 'ltr',
+                  cell: (row: Submission) => (row.hash ? row.hash.slice(0, 12) + '…' : '—'),
+                },
+                {
+                  key: 'attempts',
+                  header: 'المحاولات',
+                  align: 'num',
+                  cell: (row: Submission) => row.attempts,
+                },
+                {
+                  key: 'counter',
+                  header: 'العدّاد',
+                  align: 'num',
+                  cell: (row: Submission) => String(row.requestPayload?.counter ?? '—'),
+                },
+                {
+                  key: 'profile',
+                  header: 'النوع',
+                  cell: (row: Submission) =>
+                    row.requestPayload?.profile === 'standard' ? 'ضريبية' : 'مبسّطة',
+                },
+                {
+                  key: 'error',
+                  header: 'الملاحظة',
+                  cell: (row: Submission) => row.error ?? REASON_LABELS[row.response?.reason ?? ''] ?? '—',
+                },
                 {
                   key: 'actions',
                   header: '',
@@ -125,7 +182,12 @@ export default function ZatcaSyncPage() {
                       <span className="muted">—</span>
                     ) : (
                       <div className="row">
-                        <button type="button" className="btn sm" disabled={!row.requestPayload?.xml} onClick={() => downloadXml(row)}>
+                        <button
+                          type="button"
+                          className="btn sm"
+                          disabled={!row.requestPayload?.xml}
+                          onClick={() => downloadXml(row)}
+                        >
                           تنزيل XML
                         </button>
                         <button type="button" className="btn sm" disabled={busy} onClick={() => retry(row)}>
@@ -138,7 +200,7 @@ export default function ZatcaSyncPage() {
               rows={rows}
               rowKey={(row) => row.id}
             />
-          </div>
+          </Panel>
         )}
       </QueryView>
     </Screen>

@@ -1,0 +1,964 @@
+'use client';
+
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Button, Card, CardBody, CardHeader, Input, Table } from '@erp/ui';
+import { apiData, apiErrorText, apiList, apiPost } from '@erp/web-core/api';
+import { useSession } from '@erp/web-core/session';
+import { useSubmissionKey } from '@erp/web-core/use-submission-key';
+
+import {
+  accountLabel,
+  cashLocationLabel,
+  numberText,
+  type AccountOption,
+  type CashLocationOption,
+} from '../../lib/lookups';
+import { windowNote } from '../../lib/dashboard-windows';
+import {
+  ageDays,
+  buildCollectionPayload,
+  buildReconciliationPayload,
+  COLLECTION_MESSAGES,
+  COLLECTION_PERMISSION,
+  COLLECTIONS_WINDOW_NOTE,
+  collectionOutcome,
+  collectionVerdict,
+  emptyCollectionDraft,
+  emptyReconciliationDraft,
+  latestCollectionReceipt,
+  movementTypeLabel,
+  RECONCILIATION_BATCH_MAX,
+  RECONCILIATION_BATCH_MIN,
+  RECONCILIATION_PERMISSION,
+  reconciliationHeadline,
+  reconciliationVerdict,
+  receivablesTotal,
+  receivableRows,
+  remainingText,
+  type CollectionDashboard,
+  type CollectionDraft,
+  type ReconciliationDraft,
+  type ReconciliationResult,
+} from '../../lib/collection-screen';
+import {
+  documentRemainingText,
+  invoiceModeLabel,
+  invoiceStatusLabel,
+  paymentMethodLabel,
+  type DocumentRow,
+} from '../../lib/sales-screen';
+
+/** الصلاحيات كما يفرضها الخادم على المسارات الثلاثة التي تستعملها هذه الشاشة. */
+const VIEW_PERMISSION = 'van_sales.view';
+
+const selectClass = 'ui-select';
+
+type Notice = { kind: 'ok' | 'danger' | 'warn'; text: string };
+
+const NOTICE_CLASSES: Record<Notice['kind'], string> = {
+  ok: 'border-ok-line bg-ok-soft text-ok-ink',
+  danger: 'border-danger-line bg-danger-soft text-danger-ink',
+  warn: 'border-warn-line bg-warn-soft text-warn-ink',
+};
+
+/**
+ * شاشة «التحصيل» — قبضُ مديونية عميل الخطّ، وقراءةُ ما إذا كان السند وصل الأستاذ.
+ *
+ * القاعدة المحاسبية التي تحكمها: **تحصيلٌ لا يُرحَّل سندُه ليس مالًا في الدفاتر**. والخادم
+ * نفسه يقول ذلك: يُنشئ سند قبضٍ ويرحّله فقط حين ينحلّ حساب ذمم العملاء (بطاقةُ العميل ثمّ
+ * ملفُّ ترحيل الفرع)، وإلا بقي السند مسودةً وكتب الجملة في سبب الحركة. ولهذا تعرض الشاشة
+ * بعد كلّ سندٍ سببَ الحركة **كما كتبه الخادم** وحالته مقروءةً من كلماته («مُرحَّل» /
+ * «غير مُرحَّل» / «بدون سند خزينة») — لا استنتاجًا من وجود معرّفٍ للسند، فمسودةُ السند لها
+ * معرّفٌ ولم تصل الأستاذ.
+ *
+ * والأرقام: المتبقي على الفاتورة (الإجمالي − المدفوع) يُحسب بـ`decimal.js` ويُسمّى محسوبًا؛
+ * وجملةُ «مبلغ التحصيل يتجاوز الرصيد المتبقي» تُبنى بأرقام الخادم نفسها (`toFixed(2)`)
+ * فتنطبق على رفضه حرفًا؛ وأمّا مجموع القائمة فمجموعُ **نافذة اللوحة** (أحدث ١٢٠ مستندًا)،
+ * وذممُ المنشأة من `summary.totalCreditReceivablesSar` الذي حسبه الخادم — ورقمان لا يُخلطان.
+ *
+ * وأداةُ مطابقة البيانات القديمة (‏`POST /van-sales/legacy-reconciliation`) معاينةٌ (`dry_run`)
+ * ما لم يُطلب التنفيذ صراحةً، وهي محميّة بـ`van_sales.override.approve` على الوضعين معًا؛ وما
+ * لا يُستكمل بأمان يتخطّاه الخادم ولا يحذفه، والتنفيذ يُستأنف من `nextResumeCursor`.
+ *
+ * وما **ليس** هنا: سندات الخزينة الأخرى وتحويلاتُ الصندوق وأرصدتُه والأستاذ وتفصيل القيود
+ * (في `apps/staff`)، وإقفال العهدة وتسوية فرق المخزون (وحدة `/custody`)، وفواتير الخطّ
+ * وإصدارها (وحدة `/sales`).
+ */
+export default function CollectionPage() {
+  const { can } = useSession();
+  const canView = can(VIEW_PERMISSION);
+  const canCollect = can(COLLECTION_PERMISSION);
+  const canOverride = can(RECONCILIATION_PERMISSION);
+
+  const [dashboard, setDashboard] = useState<CollectionDashboard | undefined>();
+  const [cashLocations, setCashLocations] = useState<CashLocationOption[]>([]);
+  const [accounts, setAccounts] = useState<AccountOption[]>([]);
+  const [lookupWarning, setLookupWarning] = useState<string | undefined>();
+  const [loadError, setLoadError] = useState<string | undefined>();
+  const [loading, setLoading] = useState(true);
+
+  const [draft, setDraft] = useState<CollectionDraft>(emptyCollectionDraft);
+  const [busy, setBusy] = useState(false);
+  const [notice, setNotice] = useState<Notice | undefined>();
+  /** نتيجةُ آخر سند: حركةُ `collection_receipt` الأحدث من اللوحة التي أرجعها الخادم. */
+  const [outcomeMovementId, setOutcomeMovementId] = useState<string | undefined>();
+
+  const [reconDraft, setReconDraft] = useState<ReconciliationDraft>(emptyReconciliationDraft);
+  const [reconResult, setReconResult] = useState<ReconciliationResult | null>(null);
+  const [reconBusy, setReconBusy] = useState(false);
+
+  // مفتاحٌ لكلّ نيّة: إعادة الإرسال بعد انقطاع الشبكة ترجع بالسند نفسه (الخادم يفرد
+  // الحركة على `movement_type='collection_receipt'` مع المفتاح) بدل قبضٍ ثانٍ مضاعف.
+  const collectionKey = useSubmissionKey('van-collection');
+
+  const load = useCallback(async (): Promise<CollectionDashboard | undefined> => {
+    setLoading(true);
+    setLoadError(undefined);
+    try {
+      const board = await apiData<CollectionDashboard>('/van-sales/dashboard');
+      setDashboard(board);
+
+      const [cashResult, accountsResult] = await Promise.allSettled([
+        apiList<CashLocationOption>('/cash-locations'),
+        apiList<AccountOption>('/accounts'),
+      ]);
+      const missing: string[] = [];
+      if (cashResult.status === 'fulfilled') setCashLocations(cashResult.value);
+      else missing.push('الصناديق النقدية');
+      if (accountsResult.status === 'fulfilled') setAccounts(accountsResult.value);
+      else missing.push('دليل الحسابات');
+      setLookupWarning(
+        missing.length > 0
+          ? `تعذّر جلب ${missing.join(' و')} — تحتاج صلاحية القراءة أو أنّ الخادم رفض. فيبقى الصندوق غير مُسمًّى (ويأخذ الخادم صندوق الفرع الافتراضيّ)، ولا يُقترح حسابُ مقابلةٍ يدويّ.`
+          : undefined,
+      );
+      return board;
+    } catch (caught) {
+      setLoadError(apiErrorText(caught, 'تعذّر تحميل بيانات التحصيل'));
+      return undefined;
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!canView) {
+      setLoading(false);
+      return;
+    }
+    void load();
+  }, [canView, load]);
+
+  const documents = dashboard?.documents ?? [];
+  const receivables = useMemo(() => receivableRows(documents), [documents]);
+  const listTotal = useMemo(() => receivablesTotal(receivables), [receivables]);
+  const picked = receivables.find((row) => row.id === draft.documentId) ?? null;
+  const verdict = useMemo(
+    () => collectionVerdict(draft, { documents, postingReadiness: dashboard?.postingReadiness }),
+    [draft, documents, dashboard?.postingReadiness],
+  );
+  const outcomeRow = useMemo(
+    () => (dashboard?.movements ?? []).find((row) => row.id === outcomeMovementId) ?? null,
+    [dashboard?.movements, outcomeMovementId],
+  );
+  /**
+   * حالةُ السند من **تلك الحركة بعينها** لا من «أحدث حركة قبض»: فلو حُدِّثت اللوحة وجاءت
+   * بعدها حركةُ قبضٍ أخرى (لمندوبٍ آخر أو شاشةٍ أخرى) لقيل عن سندك ما قيل عن غيره — والبطاقة
+   * عن سندك أنت. وإن سقطت الحركة من نافذة اللوحة (٨٠ حركة) اختفت البطاقة بدل أن تُخمِّن.
+   */
+  const outcome = useMemo(() => collectionOutcome(outcomeRow), [outcomeRow]);
+  const reconVerdict = useMemo(
+    () => reconciliationVerdict(reconDraft, { canOverride, lastResult: reconResult }),
+    [reconDraft, canOverride, reconResult],
+  );
+
+  function pickDocument(row: DocumentRow) {
+    // ‏المبلغ الافتراضيّ هو المتبقي كلُّه — ويُترك قابلًا للتحرير للتحصيل الجزئيّ.
+    setDraft((current) => ({
+      ...current,
+      documentId: row.id,
+      collectedAmount: remainingText(row),
+    }));
+  }
+
+  async function submitCollection() {
+    if (verdict.blocked.length > 0) {
+      setNotice({ kind: 'danger', text: verdict.blocked[0] ?? 'تعذّر تسجيل التحصيل' });
+      return;
+    }
+    setBusy(true);
+    setNotice(undefined);
+    const payload = buildCollectionPayload(draft);
+    try {
+      const next = await apiPost<CollectionDashboard>('/van-sales/collections', {
+        ...payload,
+        idempotencyKey: collectionKey.key(payload),
+      });
+      setDashboard(next);
+      collectionKey.reset();
+      const receipt = latestCollectionReceipt(next.movements ?? []);
+      setOutcomeMovementId(receipt?.id);
+      setDraft(emptyCollectionDraft());
+      const state = collectionOutcome(receipt);
+      setNotice({
+        kind: state?.state === 'posted' ? 'ok' : 'warn',
+        text: state
+          ? `سُجِّل التحصيل (${receipt?.amount ?? '—'} ريال). ${state.label} — ونصُّ الخادم في سبب الحركة: «${state.reason}»`
+          : 'رجعت اللوحة من الخادم بلا حركة سند قبض جديدة في أحدث صفوفها — حدِّث واقرأ ما سُجِّل فعلًا، ولا تُعد الإرسال بلا قراءة.',
+      });
+    } catch (error) {
+      setNotice({ kind: 'danger', text: apiErrorText(error, 'تعذّر تسجيل التحصيل') });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function runReconciliation() {
+    if (reconVerdict.blocked.length > 0) {
+      setNotice({ kind: 'danger', text: reconVerdict.blocked[0] ?? 'تعذّر تشغيل المطابقة' });
+      return;
+    }
+    setReconBusy(true);
+    setNotice(undefined);
+    const payload = buildReconciliationPayload(reconDraft);
+    try {
+      const result = await apiPost<ReconciliationResult>('/van-sales/legacy-reconciliation', payload);
+      setReconResult(result);
+      if (result.execution.nextResumeCursor) {
+        setReconDraft((current) => ({ ...current, resumeFromId: result.execution.nextResumeCursor ?? '' }));
+      }
+      setNotice({
+        kind: result.mode === 'execute' ? 'ok' : 'warn',
+        text:
+          result.mode === 'execute'
+            ? `نفّذت الأداةُ دفعةً: ${result.execution.succeededCount} نجح و${result.execution.failedCount} فشل — واقرأ الفاشل وسببه أدناه قبل الدفعة التالية.`
+            : 'معاينةٌ بلا كتابة: اقرأ التعارضات والخطة أدناه، فما يحتاج مراجعةً يدويةً لا تُصلحه الأداة.',
+      });
+    } catch (error) {
+      setNotice({ kind: 'danger', text: apiErrorText(error, 'تعذّر تشغيل أداة المطابقة') });
+    } finally {
+      setReconBusy(false);
+    }
+  }
+
+  return (
+    <section className="ui-page">
+      <header className="ui-page-head">
+        <div className="ui-page-head-copy">
+          <h1 className="ui-page-title">التحصيل</h1>
+          <p className="ui-page-sub">
+            قبضُ مديونية عملاء الخطّ بسند قبضٍ رسمي. والسؤال المحاسبيّ ليس «هل سُجِّل المبلغ؟» بل{' '}
+            <strong>«هل وصل السند إلى الأستاذ؟»</strong> — فالشاشة تقرأ جواب الخادم من سبب الحركة كما كتبه.
+            وتفصيل القيود وأرصدة الصناديق في <span dir="ltr">staff</span>.
+          </p>
+        </div>
+        <div className="ui-page-actions">
+          <Button disabled={loading || !canView} onClick={() => void load()} size="sm">
+            تحديث
+          </Button>
+        </div>
+      </header>
+      <div className="ui-screen-body">
+        {!canView ? (
+          <Card>
+            <CardBody>
+              <p
+                className={`m-0 rounded-[10px] border px-4 py-2.5 text-[13px] font-semibold ${NOTICE_CLASSES.warn}`}
+              >
+                لا تملك صلاحيةَ هذا القسم — والخادم يرفض قراءة الذمم والحركات. ولم يُرسل هذا التطبيق طلبًا
+                سيُرفض حتمًا، ولا عرض أرقامًا من المتصفّح بدلها.
+              </p>
+            </CardBody>
+          </Card>
+        ) : null}
+
+        {loadError ? (
+          <Card>
+            <CardBody>
+              <p
+                className={`m-0 rounded-[10px] border px-4 py-2.5 text-[13px] font-semibold ${NOTICE_CLASSES.danger}`}
+                role="alert"
+              >
+                تعذّر تحميل بيانات التحصيل: {loadError}
+              </p>
+              <p className="m-0 mt-2 text-[12.5px] text-muted">
+                تحقّق من اتصالك بالشبكة ومن صلاحيتك على التحصيل، ثمّ أعد المحاولة — لا تُعرض هنا أرقامٌ محسوبة
+                في المتصفّح.
+              </p>
+              <Button className="mt-3" onClick={() => void load()} size="sm">
+                إعادة المحاولة
+              </Button>
+            </CardBody>
+          </Card>
+        ) : null}
+
+        {lookupWarning ? (
+          <p
+            className={`m-0 rounded-[10px] border px-4 py-2.5 text-[13px] font-semibold ${NOTICE_CLASSES.warn}`}
+          >
+            {lookupWarning}
+          </p>
+        ) : null}
+
+        {notice ? (
+          <p
+            className={`m-0 rounded-[10px] border px-4 py-2.5 text-[13px] font-semibold ${NOTICE_CLASSES[notice.kind]}`}
+            role={notice.kind === 'danger' ? 'alert' : 'status'}
+          >
+            {notice.text}
+          </p>
+        ) : null}
+
+        {dashboard ? (
+          <Card>
+            <CardHeader
+              subtitle={windowNote(dashboard.windows, 'documents', COLLECTIONS_WINDOW_NOTE)}
+              title="ذمم العملاء"
+            />
+            <CardBody>
+              <dl className="ui-kpi-strip">
+                <div className="ui-kpi-cell">
+                  <dt className="ui-kpi-label">ذمم المنشأة (بعد إشعارات المرتجعات)</dt>
+                  <dd className="m-0 mt-1 text-[18px] font-extrabold text-ink" dir="ltr">
+                    {numberText(dashboard.summary.totalCreditReceivablesSar)}
+                  </dd>
+                </div>
+                <div className="ui-kpi-cell">
+                  <dt className="ui-kpi-label">محصَّل نقدًا (الخادم)</dt>
+                  <dd className="m-0 mt-1 text-[18px] font-extrabold text-ink" dir="ltr">
+                    {numberText(dashboard.summary.totalCollectedCashSar)}
+                  </dd>
+                </div>
+                <div className="ui-kpi-cell">
+                  <dt className="ui-kpi-label">مجموع هذه القائمة (محسوبٌ هنا)</dt>
+                  <dd className="m-0 mt-1 text-[18px] font-extrabold text-ink" dir="ltr">
+                    {listTotal.toFixed(2)}
+                  </dd>
+                  <dd className="m-0 text-xs text-muted">{receivables.length} فاتورة آجلة</dd>
+                </div>
+              </dl>
+              {dashboard.summary.returnDocumentCount > 0 ? (
+                <p className="m-0 mt-3 text-[12.5px] text-muted">
+                  ذممُ الخادم صافيةٌ من المرتجعات: إجماليُّ المبيعات{' '}
+                  <span dir="ltr">{numberText(dashboard.summary.totalSalesGrossSar)}</span> − مرتجعات{' '}
+                  <span dir="ltr">{numberText(dashboard.summary.totalReturnsSar)}</span> وضريبتُها{' '}
+                  <span dir="ltr">{numberText(dashboard.summary.totalReturnsVatSar)}</span> ·{' '}
+                  {numberText(dashboard.summary.returnDocumentCount)} مستند مرتجع
+                  {dashboard.summary.returnsWithoutCostCount > 0
+                    ? `، منها ${numberText(dashboard.summary.returnsWithoutCostCount)} إشعارُه الدائن غير مُرحَّل فتكلفتُه مجهولة`
+                    : ''}
+                  . وأمّا «مجموع هذه القائمة» فجمعُ الفواتير الآجلة المعروضة أدناه وحدها — ورقمان لا يُخلطان.
+                </p>
+              ) : null}
+              {dashboard.postingReadiness.receiptVoucher ? null : (
+                <p
+                  className={`m-0 mt-3 rounded-[10px] border px-4 py-2.5 text-[12.5px] font-semibold ${NOTICE_CLASSES.warn}`}
+                >
+                  ملفُّ ترحيل الفرع لا يغطّي سند القبض: قد يُقبض المال ويبقى السند مسودةً غير مُرحَّلة (يلزم
+                  حساب ذمم العملاء على بطاقة العميل أو في ملف الترحيل) — فيزيد الصندوق ولا يعرف الأستاذ.
+                  {dashboard.postingReadiness.message
+                    ? ` وقولُ الخادم: ${dashboard.postingReadiness.message}`
+                    : ''}
+                </p>
+              )}
+            </CardBody>
+          </Card>
+        ) : null}
+
+        {canView && !canCollect ? (
+          <Card>
+            <CardBody>
+              <p
+                className={`m-0 rounded-[10px] border px-4 py-2.5 text-[13px] font-semibold ${NOTICE_CLASSES.warn}`}
+              >
+                تملك القراءة () لا التحصيل () — فتُعرض الذمم، ولا يُرسل سندٌ سيُرفض 403.
+              </p>
+            </CardBody>
+          </Card>
+        ) : null}
+
+        {canCollect ? (
+          <Card>
+            <CardHeader
+              subtitle="بياناتُ السند: العميل والمبلغ وطريقةُ الدفع. والتنبيهات أدناه تُحسب بالحساب نفسه، ويظلّ الخادم هو من يقبض السند أو يرفضه."
+              title="سند قبض من عميل الخطّ"
+            />
+            <CardBody>
+              <form
+                className="grid gap-3"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  void submitCollection();
+                }}
+              >
+                <div className="grid gap-3 md:grid-cols-2">
+                  <label className="field">
+                    <span>الفاتورة الآجلة</span>
+                    <select
+                      className={selectClass}
+                      onChange={(event) => {
+                        const row = receivables.find((item) => item.id === event.target.value);
+                        if (row) pickDocument(row);
+                        else setDraft((current) => ({ ...current, documentId: event.target.value }));
+                      }}
+                      value={draft.documentId}
+                    >
+                      <option value="">— اختر الفاتورة —</option>
+                      {receivables.map((row) => (
+                        <option key={row.id} value={row.id}>
+                          {row.number} — {row.customerName} · متبقٍّ {remainingText(row)} · {row.docDate}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <Input
+                    dir="ltr"
+                    hint={`بلا مبلغٍ موجب يرفض الخادم: «${COLLECTION_MESSAGES.documentAndAmountRequired}».`}
+                    inputMode="decimal"
+                    label="مبلغ التحصيل"
+                    onChange={(event) =>
+                      setDraft((current) => ({ ...current, collectedAmount: event.target.value }))
+                    }
+                    placeholder="0.00"
+                    value={draft.collectedAmount}
+                  />
+                </div>
+
+                {picked ? (
+                  <p className="m-0 text-[12.5px] text-muted">
+                    الفاتورة المختارة: {picked.number} — {picked.customerName} ·{' '}
+                    {invoiceModeLabel(picked.invoiceMode)} · {paymentMethodLabel(picked.paymentMethod)} ·
+                    الإجمالي <span dir="ltr">{picked.total}</span> والمدفوع{' '}
+                    <span dir="ltr">{picked.paidAmount}</span> والمتبقي{' '}
+                    <strong dir="ltr">{remainingText(picked)}</strong> (محسوبٌ هنا) · المندوب{' '}
+                    {picked.salesmanName} · عمر الدين{' '}
+                    {numberText(ageDays(picked) === null ? null : `${ageDays(picked)} يومًا`)} · الفاتورة
+                    الرسمية <span dir="ltr">{numberText(picked.invoiceNumber)}</span> (
+                    {invoiceStatusLabel(picked.invoiceStatus)}).
+                  </p>
+                ) : null}
+
+                <div className="grid gap-3 md:grid-cols-3">
+                  <label className="field">
+                    <span>الصندوق الذي قُبض فيه المال</span>
+                    <select
+                      className={selectClass}
+                      onChange={(event) =>
+                        setDraft((current) => ({ ...current, cashLocationId: event.target.value }))
+                      }
+                      value={draft.cashLocationId}
+                    >
+                      <option value="">— صندوق الفرع الافتراضيّ —</option>
+                      {cashLocations.map((row) => (
+                        <option key={row.id} value={row.id}>
+                          {cashLocationLabel(row)}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="field">
+                    <span>حسابُ المقابلة (اختياريّ — اتركه فارغًا إلا لقصد)</span>
+                    <select
+                      className={selectClass}
+                      onChange={(event) =>
+                        setDraft((current) => ({ ...current, offsetAccountId: event.target.value }))
+                      }
+                      value={draft.offsetAccountId}
+                    >
+                      <option value="">— ترتيب الخادم: ذمم العميل ثمّ ملفّ الترحيل —</option>
+                      {accounts.map((row) => (
+                        <option key={row.id} value={row.id}>
+                          {accountLabel(row)}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <Input
+                    label="ملاحظات السند"
+                    onChange={(event) => setDraft((current) => ({ ...current, notes: event.target.value }))}
+                    placeholder="تحصيلٌ نقديّ من العميل"
+                    value={draft.notes}
+                  />
+                </div>
+
+                {verdict.blocked.map((line) => (
+                  <p
+                    key={line}
+                    className={`m-0 rounded-[10px] border px-3 py-2 text-[12.5px] font-semibold ${NOTICE_CLASSES.danger}`}
+                  >
+                    {line}
+                  </p>
+                ))}
+                {verdict.warnings.map((line) => (
+                  <p
+                    key={line}
+                    className={`m-0 rounded-[10px] border px-3 py-2 text-[12.5px] font-semibold ${NOTICE_CLASSES.warn}`}
+                  >
+                    {line}
+                  </p>
+                ))}
+
+                <div className="ui-form-actions">
+                  <Button
+                    disabled={busy || verdict.blocked.length > 0}
+                    loading={busy}
+                    type="submit"
+                    variant="primary"
+                  >
+                    تسجيل سند القبض
+                  </Button>
+                  <Button
+                    disabled={busy}
+                    onClick={() => {
+                      setDraft(emptyCollectionDraft());
+                      setNotice(undefined);
+                    }}
+                    size="sm"
+                    type="button"
+                    variant="ghost"
+                  >
+                    تفريغ النموذج
+                  </Button>
+                  <span className="text-[12px] text-muted">
+                    مفتاحُ عدم التكرار يُحسب من الحمولة لحظة الإرسال — فإعادة الإرسال بعد انقطاع الشبكة لا
+                    تُنشئ سند قبضٍ ثانٍ.
+                  </span>
+                </div>
+              </form>
+            </CardBody>
+          </Card>
+        ) : null}
+
+        {outcomeRow ? (
+          <Card>
+            <CardHeader
+              subtitle="سببُ الحركة كما وصل من النظام — الدليلُ لا الاستنتاج. وتصنيفُ الحالة مقروءٌ من نصّه."
+              title="آخر سند قبضٍ سجّلته هذه الشاشة"
+            />
+            <CardBody>
+              <p
+                className={`m-0 rounded-[10px] border px-4 py-2.5 text-[13px] font-semibold ${
+                  outcome?.state === 'posted' ? NOTICE_CLASSES.ok : NOTICE_CLASSES.warn
+                }`}
+              >
+                {outcome?.label ?? '—'}
+              </p>
+              <p className="m-0 mt-2 text-[12.5px] text-ink">«{outcomeRow.reason}»</p>
+              <dl className="m-0 mt-3 grid gap-3 text-[12.5px] sm:grid-cols-3">
+                <div>
+                  <dt className="m-0 font-bold text-muted">الحركة</dt>
+                  <dd className="m-0">
+                    {movementTypeLabel(outcomeRow.movementType)} · <span dir="ltr">{outcomeRow.amount}</span>{' '}
+                    ريال
+                  </dd>
+                </div>
+                <div>
+                  <dt className="m-0 font-bold text-muted">السند والصندوق</dt>
+                  <dd className="m-0" dir="ltr">
+                    voucher: {numberText(outcomeRow.voucherId)}
+                  </dd>
+                  <dd className="m-0 text-[11.5px] text-muted">
+                    الصندوق من القائمة أعلاه؛ ووجودُ معرّفٍ للسند لا يعني ترحيله.
+                  </dd>
+                </div>
+                <div>
+                  <dt className="m-0 font-bold text-muted">من سجّله ومتى</dt>
+                  <dd className="m-0">
+                    {numberText(outcomeRow.actorLabel)} · <span dir="ltr">{outcomeRow.createdAt}</span>
+                  </dd>
+                </div>
+              </dl>
+              <p className="m-0 mt-3 text-[12px] text-muted">
+                {outcome?.state === 'draft'
+                  ? 'المال قُبض والصندوق زاد، لكن الأستاذ لم يعرف بعد: حدّد حساب ذمم العملاء على بطاقة العميل أو في ملف ترحيل الفرع، ثمّ رحّل السند من شاشة الخزينة في staff.'
+                  : outcome?.state === 'none'
+                    ? 'لم يُنشأ سند خزينة لهذه الحركة: التحصيل مسجَّلٌ على المستند وحده — راجع المحاسب قبل أن يُعدَّ المال مقبوضًا محاسبيًّا.'
+                    : outcome?.state === 'posted'
+                      ? 'السند مُرحَّل: الصندوق مدينٌ وذمم العميل دائنة، وتفصيلُ القيد في الأستاذ داخل staff.'
+                      : 'حالةُ السند غير مقروءة من سبب الحركة — اقرأ السبب كما كتبه الخادم أعلاه ولا تُخمّن.'}
+              </p>
+            </CardBody>
+          </Card>
+        ) : null}
+
+        <Card>
+          <CardHeader
+            subtitle="المستندات الآجلة التي بقي عليها شيء، الأقدم أولًا — فالتحصيل يبدأ من أطول دينٍ عمرًا. والمتبقي محسوبٌ هنا (الإجمالي − المدفوع) ويُتحقّق منه الخادم عند السند."
+            title={`ذمم العملاء في نافذة اللوحة (${receivables.length})`}
+          />
+          <CardBody>
+            {loading ? (
+              <p aria-busy="true" className="m-0 text-[13px] text-muted">
+                جارٍ تحميل الذمم…
+              </p>
+            ) : receivables.length === 0 ? (
+              <p className="m-0 text-[13px] text-muted">
+                لا دينَ قائمًا على عملاء الخطّ في نافذة اللوحة — ولا يُعرض هنا رقمٌ تجريبيّ. (وذممُ المنشأة
+                كما يقولها الخادم معروضةٌ أعلاه.)
+              </p>
+            ) : (
+              <div className="bak-table-wrap">
+                <Table
+                  columns={[
+                    {
+                      key: 'c0',
+                      header: 'الفاتورة',
+                      ltr: true,
+                      cell: (row) => row.number,
+                    },
+                    {
+                      key: 'c1',
+                      header: 'التاريخ',
+                      ltr: true,
+                      cell: (row) => row.docDate,
+                    },
+                    {
+                      key: 'c2',
+                      header: 'عمر الدين',
+                      cell: (row) => (ageDays(row) === null ? '—' : `${ageDays(row)} يومًا`),
+                    },
+                    {
+                      key: 'c3',
+                      header: 'العميل',
+                      cell: (row) => numberText(row.customerName),
+                    },
+                    {
+                      key: 'c4',
+                      header: 'المندوب',
+                      cell: (row) => numberText(row.salesmanName),
+                    },
+                    {
+                      key: 'c5',
+                      header: 'الإجمالي',
+                      numeric: true,
+                      ltr: true,
+                      cell: (row) => numberText(row.total),
+                    },
+                    {
+                      key: 'c6',
+                      header: 'المدفوع',
+                      numeric: true,
+                      ltr: true,
+                      cell: (row) => numberText(row.paidAmount),
+                    },
+                    {
+                      key: 'c7',
+                      header: 'المتبقي',
+                      numeric: true,
+                      ltr: true,
+                      cell: (row) => (
+                        <>
+                          <strong>{documentRemainingText(row)}</strong>
+                        </>
+                      ),
+                    },
+                    {
+                      key: 'c8',
+                      header: 'الفاتورة الرسمية',
+                      cell: (row) => (
+                        <>
+                          <span dir="ltr">{numberText(row.invoiceNumber)}</span>
+                          <div className="text-xs text-muted">{invoiceStatusLabel(row.invoiceStatus)}</div>
+                        </>
+                      ),
+                    },
+                    {
+                      key: 'c9',
+                      header: 'سند قبضٍ سابق',
+                      ltr: true,
+                      cell: (row) => numberText(row.receiptVoucherId),
+                    },
+                    {
+                      key: 'c10',
+                      header: 'إجراء',
+                      cell: (row) =>
+                        canCollect ? (
+                          <Button
+                            onClick={() => pickDocument(row)}
+                            size="sm"
+                            type="button"
+                            variant="secondary"
+                          >
+                            تحصيل
+                          </Button>
+                        ) : (
+                          <span className="text-[11.5px] text-muted">بلا صلاحية تحصيل</span>
+                        ),
+                    },
+                  ]}
+                  rows={receivables}
+                  rowKey={(row) => row.id}
+                />
+              </div>
+            )}
+          </CardBody>
+        </Card>
+
+        <Card>
+          <CardHeader
+            subtitle="معاينةٌ للبيانات القديمة قبل ربطها بفواتيرها الرسمية: المعاينة لا تكتب شيئًا، والتنفيذ يبدأ من حيث توقّف ولا يحذف سجلًّا. وما لا يُستكمل بأمان يُتخطّى ويُذكر سببه."
+            title="مطابقة بيانات التوزيع القديمة"
+          />
+          <CardBody>
+            {!canOverride ? (
+              <p
+                className={`m-0 rounded-[10px] border px-4 py-2.5 text-[13px] font-semibold ${NOTICE_CLASSES.warn}`}
+              >
+                المسار محميٌّ بـ على الوضعين معًا (المعاينة والتنفيذ) — فلا تُرسل الشاشة طلبًا مآله 403.
+              </p>
+            ) : (
+              <div className="grid gap-3">
+                <div className="grid gap-3 md:grid-cols-3">
+                  <label className="field">
+                    <span>الوضع</span>
+                    <select
+                      className={selectClass}
+                      onChange={(event) =>
+                        setReconDraft((current) => ({
+                          ...current,
+                          mode: event.target.value === 'execute' ? 'execute' : 'dry_run',
+                        }))
+                      }
+                      value={reconDraft.mode}
+                    >
+                      <option value="dry_run">معاينة (بلا كتابة)</option>
+                      <option value="execute">تنفيذ الدفعة</option>
+                    </select>
+                  </label>
+                  <Input
+                    dir="ltr"
+                    hint={`الخادم يقصّها بين ${RECONCILIATION_BATCH_MIN} و${RECONCILIATION_BATCH_MAX}، وافتراضيُّه ٥٠.`}
+                    inputMode="numeric"
+                    label="حدُّ الدفعة"
+                    onChange={(event) =>
+                      setReconDraft((current) => ({ ...current, batchLimit: event.target.value }))
+                    }
+                    value={reconDraft.batchLimit}
+                  />
+                  <Input
+                    dir="ltr"
+                    hint="يُملأ تلقائيًّا بموضع التوقّف الذي أرجعته الدفعة السابقة."
+                    label="الاستئناف من مستند"
+                    onChange={(event) =>
+                      setReconDraft((current) => ({ ...current, resumeFromId: event.target.value }))
+                    }
+                    value={reconDraft.resumeFromId}
+                  />
+                </div>
+
+                {reconVerdict.blocked.map((line) => (
+                  <p
+                    key={line}
+                    className={`m-0 rounded-[10px] border px-3 py-2 text-[12.5px] font-semibold ${NOTICE_CLASSES.danger}`}
+                  >
+                    {line}
+                  </p>
+                ))}
+                {reconVerdict.warnings.map((line) => (
+                  <p
+                    key={line}
+                    className={`m-0 rounded-[10px] border px-3 py-2 text-[12.5px] font-semibold ${NOTICE_CLASSES.warn}`}
+                  >
+                    {line}
+                  </p>
+                ))}
+
+                <div className="flex flex-wrap items-center gap-2">
+                  <Button
+                    disabled={reconBusy || reconVerdict.blocked.length > 0}
+                    loading={reconBusy}
+                    onClick={() => void runReconciliation()}
+                    type="button"
+                    variant={reconDraft.mode === 'execute' ? 'danger' : 'secondary'}
+                  >
+                    {reconDraft.mode === 'execute' ? 'تنفيذ الدفعة' : 'تشغيل المعاينة'}
+                  </Button>
+                  <span className="text-[12px] text-muted">
+                    المعاينة أولًا دائمًا: فما تُصلحه الأداة ربطُ مستنداتٍ قديمة بفواتيرها، وما تحتاج مراجعتَه
+                    يدويًّا يُعرض ولا يُلمس.
+                  </span>
+                </div>
+
+                {reconResult ? (
+                  <div className="grid gap-3">
+                    <p
+                      className={`m-0 rounded-[10px] border px-4 py-2.5 text-[12.5px] font-semibold ${NOTICE_CLASSES.warn}`}
+                    >
+                      {reconciliationHeadline(reconResult)}
+                    </p>
+                    <dl className="m-0 grid gap-2 text-[12px] sm:grid-cols-2 lg:grid-cols-4">
+                      <div className="rounded-[8px] border border-line bg-surface p-2">
+                        <dt className="m-0 font-bold text-muted">دفعات الإنتاج</dt>
+                        <dd className="m-0" dir="ltr">
+                          {reconResult.counts.linkedProductionBatches}/
+                          {reconResult.counts.totalProductionBatches} مربوطة · غير مربوطة{' '}
+                          {reconResult.counts.unlinkedProductionBatches}
+                        </dd>
+                      </div>
+                      <div className="rounded-[8px] border border-line bg-surface p-2">
+                        <dt className="m-0 font-bold text-muted">أوامر التحميل</dt>
+                        <dd className="m-0" dir="ltr">
+                          {reconResult.counts.linkedLoadOrders}/{reconResult.counts.totalLoadOrders} مربوطة ·
+                          بلا سياسة عجز {reconResult.counts.pendingShortagePolicyOrders}
+                        </dd>
+                      </div>
+                      <div className="rounded-[8px] border border-line bg-surface p-2">
+                        <dt className="m-0 font-bold text-muted">المستندات</dt>
+                        <dd className="m-0" dir="ltr">
+                          {reconResult.counts.linkedDocuments}/{reconResult.counts.totalDocuments} مربوطة ·
+                          تسليم داخليّ {reconResult.counts.internalDeliveryDocuments}
+                        </dd>
+                      </div>
+                      <div className="rounded-[8px] border border-line bg-surface p-2">
+                        <dt className="m-0 font-bold text-muted">أسعار العملاء</dt>
+                        <dd className="m-0" dir="ltr">
+                          بلا تاريخ تدقيق: {reconResult.counts.customerPricesWithoutHistory}
+                        </dd>
+                      </div>
+                    </dl>
+
+                    {reconResult.conflicts.length > 0 ? (
+                      <div className="grid gap-1.5">
+                        <p className="m-0 text-[12.5px] font-bold text-ink">
+                          تعارضاتٌ تحتاج مراجعةً يدوية ({reconResult.conflicts.length}) — لا تُصلحها الأداة:
+                        </p>
+                        {reconResult.conflicts.map((item) => (
+                          <p
+                            key={`${item.entityType}-${item.entityId}-${item.code}`}
+                            className={`m-0 rounded-[8px] border px-3 py-2 text-[12px] ${NOTICE_CLASSES.danger}`}
+                          >
+                            <span dir="ltr">{item.code}</span> · {item.entityType} · {item.detail}
+                          </p>
+                        ))}
+                      </div>
+                    ) : null}
+
+                    {reconResult.plan.length > 0 ? (
+                      /** العنوانُ داخل البطاقة مع جدولها — فالغلافُ `.bak-table-wrap` هو حدودُ
+                       * الجدول وظلّه وتمريره، وتشريحُه مطابقٌ لـ`DataTable` (انظر `globals.css`). */
+                      <div className="bak-table-wrap">
+                        <p className="m-0 p-3 pb-0 text-[12.5px] font-bold text-ink">
+                          خطةُ الأداة ({reconResult.plan.length} بندًا):
+                        </p>
+                        <Table
+                          columns={[
+                            {
+                              key: 'c0',
+                              header: 'الكيان',
+                              cell: (item) => item.entityType,
+                            },
+                            {
+                              key: 'c1',
+                              header: 'الرقم',
+                              ltr: true,
+                              cell: (item) => numberText(item.number),
+                            },
+                            {
+                              key: 'c2',
+                              header: 'الإجراء',
+                              ltr: true,
+                              cell: (item) => item.action,
+                            },
+                            {
+                              key: 'c3',
+                              header: 'يُستكمل بأمان؟',
+                              cell: (item) => (item.canBackfillSafely ? 'نعم' : 'لا — يُتخطّى'),
+                            },
+                            {
+                              key: 'c4',
+                              header: 'مانع',
+                              ltr: true,
+                              cell: (item) => numberText(item.blockingReason),
+                            },
+                          ]}
+                          rows={reconResult.plan}
+                          rowKey={(item) => `${item.entityType}-${item.entityId}-${item.action}`}
+                        />
+                      </div>
+                    ) : null}
+
+                    <p className="m-0 text-[12px] text-muted">
+                      تنفيذُ الدفعة: نجح <span dir="ltr">{reconResult.execution.succeededCount}</span> · فشل{' '}
+                      <span dir="ltr">{reconResult.execution.failedCount}</span> · الاستئناف التالي{' '}
+                      <span dir="ltr">{numberText(reconResult.execution.nextResumeCursor)}</span>
+                      {reconResult.execution.failed.length > 0
+                        ? ` — وأسباب الفشل: ${reconResult.execution.failed
+                            .map((item) => `${item.entityType}/${item.entityId}: ${item.reason}`)
+                            .join(' · ')}`
+                        : ''}
+                    </p>
+                  </div>
+                ) : null}
+              </div>
+            )}
+          </CardBody>
+        </Card>
+
+        {dashboard && dashboard.movements.length > 0 ? (
+          <Card>
+            <CardHeader
+              subtitle="أحدث ٨٠ حركةً للعهدة — ومنها يُقرأ أثرُ كلّ سندٍ في المخزون والنقد، وتفصيلُ القيود في لوحة المحاسبة."
+              title="حركات الخطّ الأخيرة"
+            />
+            <CardBody flush>
+              <div className="bak-table-wrap">
+                <Table
+                  columns={[
+                    {
+                      key: 'c0',
+                      header: 'النوع',
+                      cell: (row) => movementTypeLabel(row.movementType),
+                    },
+                    {
+                      key: 'c1',
+                      header: 'العميل',
+                      cell: (row) => numberText(row.customerName),
+                    },
+                    {
+                      key: 'c2',
+                      header: 'المندوب',
+                      cell: (row) => numberText(row.salesmanName),
+                    },
+                    {
+                      key: 'c3',
+                      header: 'كمية',
+                      numeric: true,
+                      ltr: true,
+                      cell: (row) => numberText(row.qty),
+                    },
+                    {
+                      key: 'c4',
+                      header: 'قيمة',
+                      numeric: true,
+                      ltr: true,
+                      cell: (row) => numberText(row.amount),
+                    },
+                    {
+                      key: 'c5',
+                      header: 'السبب كما كتبه الخادم',
+                      cell: (row) => numberText(row.reason),
+                    },
+                    {
+                      key: 'c6',
+                      header: 'سند',
+                      ltr: true,
+                      cell: (row) => numberText(row.voucherId),
+                    },
+                    {
+                      key: 'c7',
+                      header: 'متى',
+                      ltr: true,
+                      cell: (row) => numberText(row.createdAt),
+                    },
+                  ]}
+                  rows={dashboard.movements.slice(0, 25)}
+                  rowKey={(row) => row.id}
+                />
+              </div>
+            </CardBody>
+          </Card>
+        ) : null}
+      </div>
+    </section>
+  );
+}

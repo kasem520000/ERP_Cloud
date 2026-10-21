@@ -1,5 +1,6 @@
 'use client';
 
+import { Panel } from '@erp/ui';
 import { useEffect, useState } from 'react';
 
 import { Notice } from '../../../components/data-view';
@@ -81,7 +82,10 @@ export default function WhiteLabelPage() {
     setNotice(undefined);
     try {
       const verified = await apiPost<DomainRow>(`/settings/white-label/domains/${id}/verify`, {});
-      setNotice({ kind: 'ok', text: `${verified.domain} أصبح ${verified.status}. ssl: ${verified.sslStatus}.` });
+      setNotice({
+        kind: 'ok',
+        text: `${verified.domain} أصبح ${verified.status}. ssl: ${verified.sslStatus}.`,
+      });
       await reload();
     } catch (error) {
       setNotice({ kind: 'danger', text: messageOf(error) });
@@ -159,12 +163,20 @@ export default function WhiteLabelPage() {
       crumbs={['الإعدادات', 'الدومين والشعار']}
     >
       {notice ? <Notice notice={notice} /> : null}
-      <section className="card" style={{ display: 'grid', gap: 12 }}>
+      <Panel style={{ display: 'grid', gap: 12 }}>
         <strong>الشعار والألوان {brand.nameAr ? `— ${brand.nameAr}` : ''}</strong>
-        {brand.logoUrl ? <img src={brand.logoUrl} alt="شعار المنشأة" style={{ maxHeight: 64, maxWidth: 180, objectFit: 'contain' }} /> : null}
+        {brand.logoUrl ? (
+          <img
+            src={brand.logoUrl}
+            alt="شعار المنشأة"
+            style={{ maxHeight: 64, maxWidth: 180, objectFit: 'contain' }}
+          />
+        ) : null}
         <label className="field">
           <span>ملف الشعار (صورة)</span>
           <input
+            className="input"
+            style={{ blockSize: 'auto', paddingBlock: 6, maxWidth: 320 }}
             type="file"
             accept="image/*"
             onChange={(event) => {
@@ -175,23 +187,49 @@ export default function WhiteLabelPage() {
         </label>
         <label className="field">
           <span>اللون الأساسي</span>
-          <input dir="ltr" value={brand.primaryColor} onChange={(event) => setBrand({ ...brand, primaryColor: event.target.value })} />
+          <input
+            className="input"
+            dir="ltr"
+            value={brand.primaryColor}
+            onChange={(event) => setBrand({ ...brand, primaryColor: event.target.value })}
+          />
         </label>
         <label className="field">
           <span>اللون الثانوي</span>
-          <input dir="ltr" value={brand.secondaryColor} onChange={(event) => setBrand({ ...brand, secondaryColor: event.target.value })} />
+          <input
+            className="input"
+            dir="ltr"
+            value={brand.secondaryColor}
+            onChange={(event) => setBrand({ ...brand, secondaryColor: event.target.value })}
+          />
         </label>
-        <button className="btn primary" type="button" disabled={busy === 'colors'} onClick={() => saveColors()}>
+        <button
+          className="btn primary"
+          type="button"
+          disabled={busy === 'colors'}
+          onClick={() => saveColors()}
+        >
           حفظ الألوان
         </button>
-      </section>
-      <section className="card" style={{ display: 'grid', gap: 12 }}>
+      </Panel>
+      <Panel style={{ display: 'grid', gap: 12 }}>
         <strong>دومين خاص</strong>
         <label className="field wide">
           <span>الدومين</span>
-          <input dir="ltr" value={domain} placeholder="shop.example.com" onChange={(event) => setDomain(event.target.value)} />
+          <input
+            className="input"
+            dir="ltr"
+            value={domain}
+            placeholder="shop.example.com"
+            onChange={(event) => setDomain(event.target.value)}
+          />
         </label>
-        <button className="btn primary" type="button" disabled={busy === 'domain' || !domain.trim()} onClick={() => addDomain()}>
+        <button
+          className="btn primary"
+          type="button"
+          disabled={busy === 'domain' || !domain.trim()}
+          onClick={() => addDomain()}
+        >
           إضافة
         </button>
         {domains.map((row) => (
@@ -214,7 +252,7 @@ export default function WhiteLabelPage() {
             </span>
           </article>
         ))}
-      </section>
+      </Panel>
     </Screen>
   );
 }

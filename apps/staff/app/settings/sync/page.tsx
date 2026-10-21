@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { Panel } from '@erp/ui';
 
 import { DataTable, QueryView } from '../../../components/data-view';
 import { Screen } from '../../../components/screen';
@@ -38,13 +39,26 @@ export default function SyncOverviewPage() {
         {(data) => (
           <>
             <div className="grid cols-2">
-              <section className="card">
-                <h3>المستندات الواردة من الأجهزة</h3>
+              <Panel title="المستندات الواردة من الأجهزة" flush>
                 <DataTable
                   columns={[
-                    { key: 'entity', header: 'النوع', cell: (row: SyncOverview['inbound'][number]) => SYNC_ENTITY_LABELS[row.entity] ?? row.entity },
-                    { key: 'received', header: 'العدد', align: 'num', cell: (row: SyncOverview['inbound'][number]) => String(row.received) },
-                    { key: 'last', header: 'آخر وصول', cell: (row: SyncOverview['inbound'][number]) => dateTime(row.last_at) },
+                    {
+                      key: 'entity',
+                      header: 'النوع',
+                      cell: (row: SyncOverview['inbound'][number]) =>
+                        SYNC_ENTITY_LABELS[row.entity] ?? row.entity,
+                    },
+                    {
+                      key: 'received',
+                      header: 'العدد',
+                      align: 'num',
+                      cell: (row: SyncOverview['inbound'][number]) => String(row.received),
+                    },
+                    {
+                      key: 'last',
+                      header: 'آخر وصول',
+                      cell: (row: SyncOverview['inbound'][number]) => dateTime(row.last_at),
+                    },
                     {
                       key: 'open',
                       header: '',
@@ -58,40 +72,78 @@ export default function SyncOverviewPage() {
                   rows={data.inbound}
                   rowKey={(row) => row.entity}
                 />
-              </section>
-              <section className="card">
-                <h3>البيانات المتاحة للسحب</h3>
+              </Panel>
+              <Panel title="البيانات المتاحة للسحب" flush>
                 <DataTable
                   columns={[
-                    { key: 'entity', header: 'النوع', cell: (row: SyncOverview['master'][number]) => SYNC_ENTITY_LABELS[row.entity] ?? row.entity },
-                    { key: 'available', header: 'العدد', align: 'num', cell: (row: SyncOverview['master'][number]) => String(row.available) },
-                    { key: 'last', header: 'آخر تحديث', cell: (row: SyncOverview['master'][number]) => dateTime(row.last_at) },
+                    {
+                      key: 'entity',
+                      header: 'النوع',
+                      cell: (row: SyncOverview['master'][number]) =>
+                        SYNC_ENTITY_LABELS[row.entity] ?? row.entity,
+                    },
+                    {
+                      key: 'available',
+                      header: 'العدد',
+                      align: 'num',
+                      cell: (row: SyncOverview['master'][number]) => String(row.available),
+                    },
+                    {
+                      key: 'last',
+                      header: 'آخر تحديث',
+                      cell: (row: SyncOverview['master'][number]) => dateTime(row.last_at),
+                    },
                   ]}
                   rows={data.master}
                   rowKey={(row) => row.entity}
                 />
-              </section>
+              </Panel>
             </div>
-            <section className="card">
-              <h3>الأجهزة</h3>
+            <Panel title="الأجهزة" flush>
               {data.devices.length === 0 ? (
                 <p className="muted">
-                  لا يوجد جهاز مرتبط. أنشئ جهازاً من شاشة <Link href="/settings/devices">الأجهزة المرتبطة</Link> واحفظ مفتاح الـ API الظاهر مرة واحدة فقط.
+                  لا يوجد جهاز مرتبط. أنشئ جهازاً من شاشة{' '}
+                  <Link href="/settings/devices">الأجهزة المرتبطة</Link> واحفظ مفتاح الـ API الظاهر مرة واحدة
+                  فقط.
                 </p>
               ) : (
                 <DataTable
                   columns={[
-                    { key: 'name', header: 'الجهاز', cell: (row: SyncOverview['devices'][number]) => row.name },
-                    { key: 'branch', header: 'الفرع', cell: (row: SyncOverview['devices'][number]) => row.branchName ?? '—' },
-                    { key: 'status', header: 'الحالة', cell: (row: SyncOverview['devices'][number]) => (row.status === 'active' ? 'نشط' : 'موقوف') },
-                    { key: 'seen', header: 'آخر اتصال', cell: (row: SyncOverview['devices'][number]) => dateTime(row.lastSeenAt) },
-                    { key: 'cursors', header: 'مؤشرات السحب', cell: (row: SyncOverview['devices'][number]) => Object.keys(row.cursors ?? {}).map((entity) => SYNC_ENTITY_LABELS[entity] ?? entity).join('، ') || '—' },
+                    {
+                      key: 'name',
+                      header: 'الجهاز',
+                      cell: (row: SyncOverview['devices'][number]) => row.name,
+                    },
+                    {
+                      key: 'branch',
+                      header: 'الفرع',
+                      cell: (row: SyncOverview['devices'][number]) => row.branchName ?? '—',
+                    },
+                    {
+                      key: 'status',
+                      header: 'الحالة',
+                      cell: (row: SyncOverview['devices'][number]) =>
+                        row.status === 'active' ? 'نشط' : 'موقوف',
+                    },
+                    {
+                      key: 'seen',
+                      header: 'آخر اتصال',
+                      cell: (row: SyncOverview['devices'][number]) => dateTime(row.lastSeenAt),
+                    },
+                    {
+                      key: 'cursors',
+                      header: 'مؤشرات السحب',
+                      cell: (row: SyncOverview['devices'][number]) =>
+                        Object.keys(row.cursors ?? {})
+                          .map((entity) => SYNC_ENTITY_LABELS[entity] ?? entity)
+                          .join('، ') || '—',
+                    },
                   ]}
                   rows={data.devices}
                   rowKey={(row) => row.id}
                 />
               )}
-            </section>
+            </Panel>
           </>
         )}
       </QueryView>

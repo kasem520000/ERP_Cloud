@@ -38,7 +38,7 @@ export type ChecklistRow = { key: string; labelAr: string; done: boolean; at: st
 
 export type ZatcaView = {
   authority: string;
-  settings: { environment: 'compliance' | 'production'; simulation: boolean; active: boolean; syncManual: boolean; startDate: string; endDate: string };
+  settings: { environment: 'compliance' | 'production'; simulation: boolean; active: boolean; syncManual: boolean; blockSaveWhenLinked: boolean; startDate: string; endDate: string };
   csr: CsrProperties;
   credential: {
     environment: string;
@@ -66,6 +66,8 @@ export type ZatcaView = {
   };
   checklist: ChecklistRow[];
   link: { active: boolean; canToggle: boolean };
+  /** 🚦 إلى أين تذهب الفاتورة القادمة — محاكاة أم ساندبوكس أم الهيئة. */
+  filing: { hasProductionCredential: boolean; goesToAuthority: boolean; warning: string | null };
 };
 
 export type SettingsInput = {
@@ -73,6 +75,8 @@ export type SettingsInput = {
   simulation?: boolean;
   active?: boolean;
   syncManual?: boolean;
+  /** «منع الحفظ عند الربط الضريبي» — يمنع حفظ مسودّات المبيعات ما دام الربط مفعّلاً. */
+  blockSaveWhenLinked?: boolean;
   startDate?: string;
   csr?: Partial<CsrProperties>;
 };

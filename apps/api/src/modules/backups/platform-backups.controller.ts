@@ -11,6 +11,7 @@ import {
 import type { Response } from 'express';
 import {
   platformBackupQuerySchema,
+  platformBackupRestoreSchema,
   platformBackupRunSchema,
   platformDataRequestCreateSchema,
   platformDataRequestDecideSchema,
@@ -20,7 +21,10 @@ import {
   platformRetentionUpdateSchema,
   type ListEnvelope,
   type PlatformBackupDownload,
+  type PlatformBackupPreflight,
   type PlatformBackupQueryDto,
+  type PlatformBackupRestoreInput,
+  type PlatformBackupRestoreRow,
   type PlatformBackupRow,
   type PlatformBackupRunInput,
   type PlatformBackupVerifyResult,
@@ -104,6 +108,59 @@ export class PlatformBackupsController {
     @Body(new ZodValidationPipe(platformBackupRunSchema)) body: PlatformBackupRunInput,
   ): Promise<{ data: PlatformBackupRow }> {
     return { data: await this.backups.runBackup(body, getAuthContext().userId) };
+  }
+
+  /**
+   * `GET /platform/backups/preflight` — فحصُ الأسباب الأربعة التي تُفشل النسخ فعلاً.
+   *
+   * قبل هذا المسار كانت النسخة الفاشلة تصل الشاشة كرسالةٍ واحدة، ويبدأ المشغّل رحلةَ
+   * تخمين بين متغيّرات البيئة والمجلدات والمخزن. الفحص يقول أيّها بالضبط، ولا يكتب شيئاً.
+   */
+  @Get('backups/preflight')
+  @RequiresPlatformRole('console.backups.manage')
+  @ApiOperation({ summary: 'Diagnose the key, the artifact directory, the store and the data size' })
+  @ApiOkResponse({ description: 'Per-check readiness for the next run' })
+  async preflight(): Promise<{ data: PlatformBackupPreflight }> {
+    return { data: await this.backups.preflight() };
+  }
+
+  /** `GET /platform/backups/restores` — محاولات الاستعادة، بما فيها التجريبية. */
+  @Get('backups/restores')
+  @RequiresPlatformRole('console.backups.manage')
+  @ApiQuery({ name: 'limit', required: false })
+  @ApiOperation({ summary: 'Restore attempts (dry runs included), newest first' })
+  @ApiOkResponse({ description: 'Restore history' })
+  async restores(@Query('limit') limit?: string): Promise<{ data: PlatformBackupRestoreRow[] }> {
+    const parsed = Number(limit ?? 20);
+    return { data: await this.backups.listRestores(Number.isFinite(parsed) ? parsed : 20) };
+  }
+
+  /**
+   * `POST /platform/backups/:id/restore` — **كتابةٌ حقيقية**، لا تحقّقاً آخر.
+   *
+   * الافتراضي `dry_run`؛ و`apply` يحتاج أول 12 محرفاً من البصمة وسبباً. والقاعدة التي لا
+   * تتغيّر: إضافية فقط — الموجود يُتخطّى (`ON CONFLICT DO NOTHING`) ولا يُدهس.
+   */
+  @Post('backups/:id/restore')
+  @RequiresPlatformRole('console.backups.manage')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        mode: { type: 'string', enum: ['dry_run', 'apply'] },
+        confirmChecksum: { type: 'string' },
+        reason: { type: 'string' },
+      },
+    },
+  })
+  @ApiOperation({ summary: 'Restore the dump additively — dry run by default, apply needs the checksum' })
+  @ApiOkResponse({ description: 'Per-table counts and a verdict' })
+  @ApiResponse({ status: 422, description: 'Checksum mismatch, cut-short dump, or a missing confirmation' })
+  async restore(
+    @Param('id') id: string,
+    @Body(new ZodValidationPipe(platformBackupRestoreSchema)) body: PlatformBackupRestoreInput,
+  ): Promise<{ data: PlatformBackupRestoreRow }> {
+    return { data: await this.backups.restoreBackup(id, body, getAuthContext().userId) };
   }
 
   @Post('backups/:id/verify')

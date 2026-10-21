@@ -144,6 +144,147 @@ export const platformBackupDownloadSchema = z.object({
 });
 export type PlatformBackupDownload = z.infer<typeof platformBackupDownloadSchema>;
 
+// ─────────────────────────────────────────────────────── الاستعادة الفعلية
+
+/**
+ * الاستعادة — **كتابةٌ حقيقية** من الملف إلى القاعدة، لا تحقّقاً تجريبياً آخر.
+ *
+ * `verify` يقرأ ويقارن، و`restore` يُدخل. والفارق ليس في الاسم: الاستعادة تكتب صفوفاً،
+ * ولذلك تحرسها ثلاث بوّابات لا تُتجاوَز:
+ *
+ *   1. **البصمة**: لا تُستعاد نسخةٌ لا تطابق `checksum` صفَّها — الملف الذي تغيّر بايتٌ فيه
+ *      ليس نسخةً أقدم، بل ملفٌّ آخر.
+ *   2. **الاكتمال**: نسخةٌ بلا سطر ذيل (بُترت) تُرفض، لأن استعادة نصف نسخةٍ أسوأ من
+ *      الامتناع.
+ *   3. **التأكيد**: `apply` يحتاج `confirmChecksum` (أول 12 محرفاً من البصمة) و`reason`
+ *      مكتوباً في التدقيق — الخطأ الذي يقع فيه المشغّل هو اختيار النسخة الخطأ لا كتابة
+ *      كلمة سرّ.
+ *
+ * والوعد الأصغر المقصود: **إضافية فقط** — تُدرَج الصفوف الغائبة ويُتخطّى الموجود
+ * (`ON CONFLICT DO NOTHING`)، فلا تُمحى بيانات السنة الحالية باستعادة نسخة السنة الماضية.
+ */
+export const platformRestoreModes = ['dry_run', 'apply'] as const;
+export type PlatformRestoreMode = (typeof platformRestoreModes)[number];
+
+export const platformBackupRestoreStatuses = ['dry_run', 'succeeded', 'partial', 'failed'] as const;
+export type PlatformBackupRestoreStatus = (typeof platformBackupRestoreStatuses)[number];
+
+export const platformBackupRestoreVerdicts = [
+  'ready',
+  'applied',
+  'partial',
+  'failed',
+  'drifted',
+  'unreadable',
+] as const;
+export type PlatformBackupRestoreVerdict = (typeof platformBackupRestoreVerdicts)[number];
+
+export const platformBackupRestoreSchema = z
+  .object({
+    mode: z.enum(platformRestoreModes).default('dry_run'),
+    /** أول 12 محرفاً من بصمة الملف — يُكتب في الشاشة لا في الذاكرة. */
+    confirmChecksum: z.string().trim().min(4).max(64).optional(),
+    /** سببٌ يُكتب في التدقيق — إلزاميٌّ مع `apply`. */
+    reason: z.string().trim().min(5).max(500).optional(),
+  })
+  .refine((value) => value.mode !== 'apply' || Boolean(value.confirmChecksum), {
+    message: 'confirmChecksum is required when mode is "apply"',
+    path: ['confirmChecksum'],
+  })
+  .refine((value) => value.mode !== 'apply' || Boolean(value.reason && value.reason.length >= 5), {
+    message: 'reason is required when mode is "apply"',
+    path: ['reason'],
+  });
+export type PlatformBackupRestoreInput = z.infer<typeof platformBackupRestoreSchema>;
+
+/** جدولٌ واحد كما نفّذته الاستعادة: كم صفاً قرأ، وكم أُدرج، وكم تُخطّي، وكم فشل. */
+export const platformBackupRestoreTableSchema = z.object({
+  table: z.string(),
+  rows: z.number().int().min(0),
+  /** أُدرجت فعلاً (في `dry_run`: صفر — لا كتابة). */
+  inserted: z.number().int().min(0),
+  /** موجودةٌ سابقاً — الإضافية تتخطّاها ولا تكتب فوقها. */
+  skipped: z.number().int().min(0),
+  failed: z.number().int().min(0),
+  /** ما سيدخل لو نُفِّذت الاستعادة الآن (في `apply` يساوي `inserted`). */
+  wouldInsert: z.number().int().min(0),
+  error: z.string().nullable(),
+});
+export type PlatformBackupRestoreTable = z.infer<typeof platformBackupRestoreTableSchema>;
+
+export const platformBackupRestoreRowSchema = z.object({
+  id: uuidSchema,
+  jobId: uuidSchema,
+  artifactId: uuidSchema.nullable(),
+  mode: z.enum(platformRestoreModes),
+  status: z.enum(platformBackupRestoreStatuses),
+  scope: z.enum(platformBackupScopes),
+  tenantId: uuidSchema.nullable(),
+  checksum: z.string(),
+  verified: z.boolean(),
+  tables: z.array(platformBackupRestoreTableSchema),
+  totals: z.object({
+    rows: z.number().int().min(0),
+    inserted: z.number().int().min(0),
+    skipped: z.number().int().min(0),
+    failed: z.number().int().min(0),
+    wouldInsert: z.number().int().min(0),
+  }),
+  /** جداول في النسخة لم تعد في القاعدة — تُسمّى ولا تُنفَّذ. */
+  missingTables: z.array(z.string()),
+  verdict: z.enum(platformBackupRestoreVerdicts),
+  detail: z.string().nullable(),
+  reason: z.string().nullable(),
+  startedAt: z.string(),
+  finishedAt: z.string().nullable(),
+  durationMs: z.number().int().min(0).nullable(),
+  requestedBy: uuidSchema.nullable(),
+  requestedByLabel: z.string().nullable(),
+});
+export type PlatformBackupRestoreRow = z.infer<typeof platformBackupRestoreRowSchema>;
+
+// ─────────────────────────────────────────────────────────── الفحص المسبق
+
+/**
+ * `GET /platform/backups/preflight` — «لماذا لا تعمل النسخة؟» قبل أن تُشغَّل.
+ *
+ * الشكاوى من نوع «النسخة تفشل» بلا سبب هي في الغالب واحدةٌ من ثلاث: مفتاح تشفيرٍ غائب،
+ * أو مخزنٌ مختارٌ لا يُجيب، أو مجلدٌ لا يُكتب فيه. الفحص يعيد كلَّ ذلك صراحةً في صفوفٍ
+ * صغيرة (`checks`) تقرأها الشاشة بلا تخمين.
+ */
+export const platformBackupKeySources = [
+  'DATA_ENC_KEY',
+  'FILE_URL_SIGNING_SECRET',
+  'BACKUP_KEY_FILE',
+  'missing',
+] as const;
+export type PlatformBackupKeySource = (typeof platformBackupKeySources)[number];
+
+export const platformBackupPreflightSchema = z.object({
+  ready: z.boolean(),
+  /** المخزن الذي ستستخدمه النسخة القادمة فعلاً (`auto` يحسم بنفسه). */
+  store: z.enum(platformBackupStores),
+  storeRequested: z.enum(['auto', 's3', 'filesystem']),
+  keySource: z.enum(platformBackupKeySources),
+  artifactDir: z.string(),
+  artifactDirWritable: z.boolean(),
+  s3Configured: z.boolean(),
+  liveTables: z.number().int().min(0),
+  estimatedRows: z.number().int().min(0),
+  maxRows: z.number().int().min(0),
+  maxBytes: z.number().int().min(0),
+  checks: z.array(
+    z.object({
+      id: z.enum(['store', 'key', 'artifact-dir', 'size', 'db']),
+      ok: z.boolean(),
+      label: z.string(),
+      detail: z.string(),
+    }),
+  ),
+  computedAt: z.string(),
+});
+export type PlatformBackupPreflight = z.infer<typeof platformBackupPreflightSchema>;
+
 // ───────────────────────────────────────────────────────────── الاحتفاظ
 
 export const retentionTargets = ['artifacts', 'idempotency', 'outbox', 'files'] as const;
@@ -347,6 +488,7 @@ export const backupAuditActions = {
   run: 'platform.backup.run',
   verify: 'platform.backup.verify',
   download: 'platform.backup.download',
+  restore: 'platform.backup.restore',
   retentionUpdate: 'platform.retention.update',
   retentionApply: 'platform.retention.apply',
   dataRequestCreate: 'platform.data-request.create',

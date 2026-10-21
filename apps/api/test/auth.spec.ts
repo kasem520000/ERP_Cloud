@@ -76,22 +76,48 @@ describe('auth (API_CONTRACT §1)', () => {
     }
   });
 
-  it('locks the account after repeated failures and answers with RATE_LIMITED', async () => {
+  /**
+   * SH-06 — القفل يوقف التخمين ولا يحجب صاحب الحساب.
+   *
+   * العقد ثلاثة أجزاء، وكل جزء يُقاس بطلبٍ حقيقي:
+   *   1. خمس محاولات خاطئة تفتح القفل: السادسة الخاطئة `429`.
+   *   2. **كلمة المرور الصحيحة تمرّ رغم القفل** — من يعرف بريداً لا يستطيع حجب صاحبه.
+   *   3. النجاح يصفّر العدّاد: بعد الدخول تعود المحاولة الخاطئة `401` لا `429`.
+   *
+   * وهذا هو الفرق الذي كان خطأً: الاختبار السابق كان يتوقّع `429` على كلمة المرور
+   * **الصحيحة**، أي كان يثبّت الحجب كسلاحٍ متاحٍ لأي مجهول.
+   */
+  it('locks repeated failures without locking the account owner out (SH-06)', async () => {
     await actorWithPassword('initech', 'owner@initech.test');
 
-    for (let attempt = 0; attempt < 5; attempt += 1) {
-      const response = await api(ctx.server, 'post', '/api/v1/auth/login', {
-        body: { email: 'owner@initech.test', password: 'WrongPassword123!', tenantCode: 'initech' },
+    const attempt = (password: string) =>
+      api(ctx.server, 'post', '/api/v1/auth/login', {
+        body: { email: 'owner@initech.test', password, tenantCode: 'initech' },
       });
-      expect(response.status, `attempt ${attempt + 1}`).toBe(401);
+
+    for (let attemptNo = 1; attemptNo <= 5; attemptNo += 1) {
+      const response = await attempt('WrongPassword123!');
+      expect(response.status, `failure ${attemptNo}`).toBe(401);
     }
 
-    const locked = await api(ctx.server, 'post', '/api/v1/auth/login', {
-      body: { email: 'owner@initech.test', password: PASSWORD, tenantCode: 'initech' },
-    });
-    expect(locked.status).toBe(429);
-    expect(locked.body.code).toBe('RATE_LIMITED');
-    expect(String(locked.body.detail)).toMatch(/locked/i);
+    const stillWrong = await attempt('WrongPassword123!');
+    expect(stillWrong.status).toBe(429);
+    expect(stillWrong.body.code).toBe('RATE_LIMITED');
+    expect(String(stillWrong.body.detail)).toMatch(/locked/i);
+    // 429 يعرف نافذته: الترويسة القياسية موجودة، ومدّتها معقولة (≤ 15 دقيقة).
+    const retryAfter = Number(stillWrong.headers['retry-after']);
+    expect(Number.isInteger(retryAfter)).toBe(true);
+    expect(retryAfter).toBeGreaterThan(0);
+    expect(retryAfter).toBeLessThanOrEqual(15 * 60);
+
+    // الملكية تُثبت بكلمة المرور وحدها: القفل لا يمنع صاحب الحساب.
+    const owner = await attempt(PASSWORD);
+    expect(owner.status).toBe(200);
+    expect(typeof (owner.body.data as Record<string, unknown>).accessToken).toBe('string');
+
+    // والنجاح صفّر العدّاد: محاولة خاطئة تالية عادت `401` لا `429`.
+    const afterSuccess = await attempt('WrongPassword123!');
+    expect(afterSuccess.status).toBe(401);
   });
 
   it('enforces the 10/min login bucket and returns Retry-After', async () => {
@@ -110,6 +136,27 @@ describe('auth (API_CONTRACT §1)', () => {
     expect(throttled.status).toBe(429);
     expect(throttled.body.code).toBe('RATE_LIMITED');
     expect(throttled.headers['retry-after']).toBeDefined();
+  });
+
+  /**
+   * ‏CGNAT: مندوبو الميدان وتطبيقات المخابز تعمل على شبكات الجوّال، ومئات المشتركين
+   * قد يخرجون من عنوانٍ واحد. الاختبار يثبت السلوك على HTTP نفسه: استهلاك حسابٍ كامل
+   * لا يُغلق باب حسابٍ آخر على العنوان ذاته — وأن الحماية باقية (الحساب الأول ما زال 429).
+   */
+  it('does not let one account exhaust the login bucket of another on the same IP (CGNAT)', async () => {
+    await actorWithPassword('cgnat', 'rep-one@cgnat.test');
+    await actorWithPassword('cgnat', 'rep-two@cgnat.test');
+
+    const attempt = (email: string) =>
+      api(ctx.server, 'post', '/api/v1/auth/login', {
+        body: { email, password: PASSWORD, tenantCode: 'cgnat' },
+      });
+
+    for (let i = 0; i < 10; i += 1) expect((await attempt('rep-one@cgnat.test')).status).toBe(200);
+    expect((await attempt('rep-one@cgnat.test')).status).toBe(429);
+
+    // نفس العنوان، حسابٌ آخر: يُخدم. ولو كان الدلو للعنوان وحده لَرُفض هذا الطلب.
+    expect((await attempt('rep-two@cgnat.test')).status).toBe(200);
   });
 
   it('rotates the refresh token and revokes the whole family on reuse', async () => {

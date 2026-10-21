@@ -1,8 +1,9 @@
 'use client';
 
+import { Panel } from '@erp/ui';
 import { useEffect, useState } from 'react';
 
-import { ApiError } from '../lib/api';
+import { apiErrorText } from '../lib/api';
 import {
   createComment,
   deleteComment,
@@ -37,7 +38,7 @@ export function CommentsPanel({ entityType, entityId }: { entityType: string; en
 
   useEffect(() => {
     if (!entityId || !canRead) return;
-    void reload().catch((error: unknown) => setNotice(error instanceof ApiError ? error.message : String(error)));
+    void reload().catch((error: unknown) => setNotice(apiErrorText(error)));
   }, [entityType, entityId, openOnly, canRead]);
 
   useEffect(() => {
@@ -70,7 +71,7 @@ export function CommentsPanel({ entityType, entityId }: { entityType: string; en
       setEditing(null);
       await reload();
     } catch (error) {
-      setNotice(error instanceof ApiError ? error.message : String(error));
+      setNotice(apiErrorText(error));
     } finally {
       setBusy(false);
     }
@@ -79,14 +80,15 @@ export function CommentsPanel({ entityType, entityId }: { entityType: string; en
   if (!canRead) return null;
 
   return (
-    <section className="card">
-      <div className="toolbar">
-        <h3>تعليقات ({count})</h3>
-        <label className="field inline">
+    <Panel
+      title={`تعليقات (${count})`}
+      actions={
+        <label className="check">
           <input type="checkbox" checked={openOnly} onChange={(event) => setOpenOnly(event.target.checked)} />
           <span>المفتوحة فقط</span>
         </label>
-      </div>
+      }
+    >
       {notice ? <p className="alert danger">{notice}</p> : null}
       {thread.map((comment) => (
         <CommentItem
@@ -104,15 +106,28 @@ export function CommentsPanel({ entityType, entityId }: { entityType: string; en
             setReplyTo(null);
             setBody(text);
           }}
-          onResolve={() => void resolveComment(comment.id).then(reload).catch((error: unknown) => setNotice(error instanceof Error ? error.message : String(error)))}
-          onDelete={() => void deleteComment(comment.id).then(reload).catch((error: unknown) => setNotice(error instanceof Error ? error.message : String(error)))}
+          onResolve={() =>
+            void resolveComment(comment.id)
+              .then(reload)
+              .catch((error: unknown) => setNotice(apiErrorText(error)))
+          }
+          onDelete={() =>
+            void deleteComment(comment.id)
+              .then(reload)
+              .catch((error: unknown) => setNotice(apiErrorText(error)))
+          }
         />
       ))}
       {canWrite ? (
         <div className="grid gap-2">
           {replyTo ? <p className="muted">رد على تعليق</p> : null}
           {editing ? <p className="muted">تعديل تعليقك</p> : null}
-          <textarea value={body} onChange={(event) => setBody(event.target.value)} placeholder="اكتب تعليقاً. @ يفتح الزملاء" />
+          <textarea
+            className="input"
+            value={body}
+            onChange={(event) => setBody(event.target.value)}
+            placeholder="اكتب تعليقاً. @ يفتح الزملاء"
+          />
           {suggestions.length > 0 ? (
             <ul>
               {suggestions.map((person) => (
@@ -124,12 +139,17 @@ export function CommentsPanel({ entityType, entityId }: { entityType: string; en
               ))}
             </ul>
           ) : null}
-          <button className="btn primary" type="button" disabled={busy || !body.trim()} onClick={() => void submit()}>
+          <button
+            className="btn primary"
+            type="button"
+            disabled={busy || !body.trim()}
+            onClick={() => void submit()}
+          >
             حفظ
           </button>
         </div>
       ) : null}
-    </section>
+    </Panel>
   );
 }
 
@@ -154,7 +174,10 @@ function CommentItem({
 }) {
   const mine = userId === comment.authorId;
   return (
-    <article className="border-t py-2" style={comment.isResolved || comment.deleted ? { opacity: 0.55 } : undefined}>
+    <article
+      className="border-t py-2"
+      style={comment.isResolved || comment.deleted ? { opacity: 0.55 } : undefined}
+    >
       <strong>{comment.authorName}</strong>
       {comment.isResolved ? <span className="badge"> تم الحل</span> : null}
       <p>{comment.body}</p>
@@ -172,7 +195,12 @@ function CommentItem({
           ) : null}
           {mine ? (
             <>
-              <button className="btn" type="button" disabled={busy} onClick={() => onEdit(comment.id, comment.body)}>
+              <button
+                className="btn"
+                type="button"
+                disabled={busy}
+                onClick={() => onEdit(comment.id, comment.body)}
+              >
                 تعديل
               </button>
               <button className="btn" type="button" disabled={busy} onClick={() => onDelete(comment.id)}>
@@ -183,12 +211,21 @@ function CommentItem({
         </div>
       ) : null}
       {(comment.replies ?? []).map((reply) => (
-        <div key={reply.id} className="ms-4 border-s ps-3" style={reply.deleted ? { opacity: 0.55 } : undefined}>
+        <div
+          key={reply.id}
+          className="ms-4 border-s ps-3"
+          style={reply.deleted ? { opacity: 0.55 } : undefined}
+        >
           <strong>{reply.authorName}</strong>
           <p>{reply.body}</p>
           {canWrite && reply.authorId === userId && !reply.deleted ? (
             <div className="flex gap-2">
-              <button className="btn" type="button" disabled={busy} onClick={() => onEdit(reply.id, reply.body)}>
+              <button
+                className="btn"
+                type="button"
+                disabled={busy}
+                onClick={() => onEdit(reply.id, reply.body)}
+              >
                 تعديل
               </button>
               <button className="btn" type="button" disabled={busy} onClick={() => onDelete(reply.id)}>

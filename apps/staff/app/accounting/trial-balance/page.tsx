@@ -1,16 +1,17 @@
 'use client';
 
+import { FilterBand, Panel, TableFrame } from '@erp/ui';
 import { useState } from 'react';
 
 import { Empty, ErrorBox, Forbidden, Loading, Screen } from '../../../components/screen';
 import { StatTile, StatTiles } from '../../../components/ui';
 import { apiFetch } from '../../../lib/api';
 import { downloadCsv, type Account } from '../../../lib/accounts';
-import { money } from '../../../lib/lookups';
+import { money, statusLabel } from '../../../lib/lookups';
 import { useQuery } from '../../../lib/use-query';
 
 /**
- * ⚖️ ميزان المراجعة — `Form_WPF/frmRptBalances.xaml` («أرصدة الحسابات»).
+ * ميزان المراجعة — `Form_WPF/frmRptBalances.xaml` («أرصدة الحسابات»).
  *
  * The window is a filter panel beside a grid. The panel is
  * `الفروع — كل الفروع` · `الحساب الرئيسي` · `المندوب` ·
@@ -89,10 +90,19 @@ const COLUMNS = [
 ];
 
 export default function TrialBalancePage() {
-  const accounts = useQuery<Account[]>(() => apiFetch<{ data: Account[] }>('/accounts').then((body) => body.data), []);
-  const branches = useQuery<Branch[]>(() => apiFetch<{ data: Branch[] }>('/branches').then((body) => body.data), []);
+  const accounts = useQuery<Account[]>(
+    () => apiFetch<{ data: Account[] }>('/accounts').then((body) => body.data),
+    [],
+  );
+  const branches = useQuery<Branch[]>(
+    () => apiFetch<{ data: Branch[] }>('/branches').then((body) => body.data),
+    [],
+  );
   const salesmen = useQuery<Salesman[]>(
-    () => apiFetch<{ data: Salesman[] }>('/hrm/employees').then((body) => body.data).catch(() => []),
+    () =>
+      apiFetch<{ data: Salesman[] }>('/hrm/employees')
+        .then((body) => body.data)
+        .catch(() => []),
     [],
   );
 
@@ -117,17 +127,19 @@ export default function TrialBalancePage() {
 
   const rows = trial.data?.data ?? [];
   const totals = trial.data?.totals ?? EMPTY;
-  const mains = (accounts.data ?? []).filter((account) => !(account.isPostable ?? true) || account.parentId == null);
+  const mains = (accounts.data ?? []).filter(
+    (account) => !(account.isPostable ?? true) || account.parentId == null,
+  );
 
   return (
     <Screen
       title="أرصدة الحسابات"
-      subtitle="⚖️ ميزان المراجعة — افتتاحي · خلال الفترة المحددة · ختامي، من القيود المرحّلة فقط."
+      subtitle="ميزان المراجعة — افتتاحي · خلال الفترة المحددة · ختامي، من القيود المرحّلة فقط."
       crumbs={['المحاسبة', 'تقارير محاسبية']}
       actions={
         <>
           <button className="btn" type="button" onClick={() => window.print()} disabled={rows.length === 0}>
-            🖨️ طباعة
+            طباعة
           </button>
           <button
             className="btn"
@@ -152,15 +164,15 @@ export default function TrialBalancePage() {
               )
             }
           >
-            📊 تصدير Excel
+            تصدير Excel
           </button>
           <button className="btn" type="button" onClick={trial.reload}>
-            🔄 تحديث
+            تحديث
           </button>
         </>
       }
     >
-      <div className="card tight no-print">
+      <FilterBand className="no-print">
         <div className="row" style={{ flexWrap: 'wrap', alignItems: 'flex-end' }}>
           <label className="field" style={{ margin: 0, minWidth: 220, flex: 1 }}>
             <span>الحساب الرئيسي</span>
@@ -175,7 +187,12 @@ export default function TrialBalancePage() {
           </label>
           <label className="field" style={{ margin: 0, minWidth: 180 }}>
             <span>الفرع</span>
-            <select className="input" value={branchId} onChange={(event) => setBranchId(event.target.value)} disabled={false}>
+            <select
+              className="input"
+              value={branchId}
+              onChange={(event) => setBranchId(event.target.value)}
+              disabled={false}
+            >
               <option value="">كل الفروع</option>
               {(branches.data ?? []).map((branch) => (
                 <option key={branch.id} value={branch.id}>
@@ -186,7 +203,11 @@ export default function TrialBalancePage() {
           </label>
           <label className="field" style={{ margin: 0, minWidth: 180 }}>
             <span>المندوب</span>
-            <select className="input" value={salesmanId} onChange={(event) => setSalesmanId(event.target.value)}>
+            <select
+              className="input"
+              value={salesmanId}
+              onChange={(event) => setSalesmanId(event.target.value)}
+            >
               <option value="">كل المندوبين</option>
               {(salesmen.data ?? []).map((salesman) => (
                 <option key={salesman.id} value={salesman.id}>
@@ -197,27 +218,51 @@ export default function TrialBalancePage() {
           </label>
           <label className="field" style={{ margin: 0, width: 160 }}>
             <span>من</span>
-            <input className="input" type="date" value={from} onChange={(event) => setFrom(event.target.value)} disabled={allPeriod} />
+            <input
+              className="input"
+              type="date"
+              value={from}
+              onChange={(event) => setFrom(event.target.value)}
+              disabled={allPeriod}
+            />
           </label>
           <label className="field" style={{ margin: 0, width: 160 }}>
             <span>إلى</span>
-            <input className="input" type="date" value={to} onChange={(event) => setTo(event.target.value)} disabled={allPeriod} />
+            <input
+              className="input"
+              type="date"
+              value={to}
+              onChange={(event) => setTo(event.target.value)}
+              disabled={allPeriod}
+            />
           </label>
           <button
             className="btn primary"
             type="button"
-            onClick={() => setApplied({ parentId, branchId, salesmanId, from: allPeriod ? '' : from, to: allPeriod ? '' : to })}
+            onClick={() =>
+              setApplied({
+                parentId,
+                branchId,
+                salesmanId,
+                from: allPeriod ? '' : from,
+                to: allPeriod ? '' : to,
+              })
+            }
           >
             عرض
           </button>
         </div>
         <div className="row" style={{ flexWrap: 'wrap', marginTop: 8 }}>
           <label className="check">
-            <input type="checkbox" checked={allPeriod} onChange={(event) => setAllPeriod(event.target.checked)} />
+            <input
+              type="checkbox"
+              checked={allPeriod}
+              onChange={(event) => setAllPeriod(event.target.checked)}
+            />
             كل الفترة
           </label>
         </div>
-      </div>
+      </FilterBand>
 
       {trial.status === 'loading' && <Loading />}
       {trial.status === 'forbidden' && <Forbidden />}
@@ -240,8 +285,8 @@ export default function TrialBalancePage() {
           {rows.length === 0 ? (
             <Empty title="لا توجد حركة مرحّلة" detail="سجّل قيداً واحداً على الأقل ليظهر ميزان المراجعة." />
           ) : (
-            <div className="table-wrap">
-              <table>
+            <Panel flush title="أرصدة الحسابات">
+              <TableFrame>
                 <thead>
                   <tr>
                     <th rowSpan={2}>الحساب</th>
@@ -285,7 +330,7 @@ export default function TrialBalancePage() {
                       <td className="num">{money(row.balanceCredit)}</td>
                       <td className="num">{money(row.closingDebit)}</td>
                       <td className="num">{money(row.closingCredit)}</td>
-                      <td>{row.status}</td>
+                      <td>{statusLabel(row.status)}</td>
                       <td className="no-print">
                         <a className="btn sm" href={`/accounting/ledger?account=${row.accountId}`}>
                           تفاصيل
@@ -309,8 +354,8 @@ export default function TrialBalancePage() {
                     <th className="no-print" />
                   </tr>
                 </tfoot>
-              </table>
-            </div>
+              </TableFrame>
+            </Panel>
           )}
         </>
       )}

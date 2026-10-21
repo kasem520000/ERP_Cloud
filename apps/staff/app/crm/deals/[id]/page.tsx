@@ -3,10 +3,11 @@
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
+import { Panel } from '@erp/ui';
 
 import { Notice } from '../../../../components/data-view';
 import { Screen } from '../../../../components/screen';
-import { ApiError } from '../../../../lib/api';
+import { apiErrorText } from '../../../../lib/api';
 import {
   addActivity,
   closeDeal,
@@ -44,7 +45,7 @@ export default function CrmDealPage() {
       setDeal(next);
       setTemplates(nextTemplates);
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
     } finally {
       setBusy(false);
     }
@@ -61,7 +62,7 @@ export default function CrmDealPage() {
       setNotice({ kind: 'ok', text: ok });
       setDeal(await getDeal(params.id));
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
     } finally {
       setBusy(false);
     }
@@ -70,17 +71,28 @@ export default function CrmDealPage() {
   return (
     <Screen
       title={deal?.title ?? 'الصفقة'}
-      subtitle={deal ? `${deal.value} · احتمال ${deal.probability}% · ${deal.partyName || 'بدون عميل'}` : undefined}
+      subtitle={
+        deal ? `${deal.value} · احتمال ${deal.probability}% · ${deal.partyName || 'بدون عميل'}` : undefined
+      }
       crumbs={['المبيعات', 'مسار المبيعات', 'الصفقة']}
-      actions={<Link className="btn" href="/crm/pipelines">العودة للمسار</Link>}
+      actions={
+        <Link className="btn" href="/crm/pipelines">
+          العودة للمسار
+        </Link>
+      }
     >
       <Notice notice={notice} />
-      <div className="card">
-        <h3>واتساب</h3>
-        <p className="muted">الرسالة الصادرة تُحفظ نشاطاً من نوع واتساب. لا يوجد إرسال بريد ولا اتصال مباشر.</p>
+      <Panel
+        title="واتساب"
+        hint={<>الرسالة الصادرة تُحفظ نشاطاً من نوع واتساب. لا يوجد إرسال بريد ولا اتصال مباشر.</>}
+      >
         <label className="field">
           <span>قالب</span>
-          <select value={templateId} onChange={(event) => setTemplateId(event.target.value)}>
+          <select
+            className="input"
+            value={templateId}
+            onChange={(event) => setTemplateId(event.target.value)}
+          >
             <option value="">ترحيب افتراضي</option>
             {templates.map((template) => (
               <option key={template.id} value={template.id}>
@@ -91,7 +103,12 @@ export default function CrmDealPage() {
         </label>
         <label className="field">
           <span>نص بديل</span>
-          <textarea value={message} onChange={(event) => setMessage(event.target.value)} placeholder="مرحبا {name} بخصوص {deal}" />
+          <textarea
+            className="input"
+            value={message}
+            onChange={(event) => setMessage(event.target.value)}
+            placeholder="مرحبا {name} بخصوص {deal}"
+          />
         </label>
         <button
           className="btn primary"
@@ -99,20 +116,23 @@ export default function CrmDealPage() {
           disabled={busy}
           onClick={() =>
             void act(
-              () => sendDealWhatsapp(params.id, { templateId: templateId || undefined, message: message || undefined }),
+              () =>
+                sendDealWhatsapp(params.id, {
+                  templateId: templateId || undefined,
+                  message: message || undefined,
+                }),
               'أُرسلت الرسالة وظهرت في الأنشطة.',
             )
           }
         >
           إرسال واتساب
         </button>
-      </div>
-      <div className="card">
-        <h3>نشاط</h3>
+      </Panel>
+      <Panel title="نشاط">
         <div className="grid gap-3 md:grid-cols-2">
           <label className="field">
             <span>النوع</span>
-            <select value={type} onChange={(event) => setType(event.target.value)}>
+            <select className="input" value={type} onChange={(event) => setType(event.target.value)}>
               {types.map((item) => (
                 <option key={item.id} value={item.id}>
                   {item.label}
@@ -122,7 +142,7 @@ export default function CrmDealPage() {
           </label>
           <label className="field">
             <span>الوصف</span>
-            <input value={note} onChange={(event) => setNote(event.target.value)} />
+            <input className="input" value={note} onChange={(event) => setNote(event.target.value)} />
           </label>
         </div>
         <button
@@ -133,32 +153,42 @@ export default function CrmDealPage() {
         >
           حفظ النشاط
         </button>
-      </div>
-      <div className="card">
-        <h3>إغلاق</h3>
+      </Panel>
+      <Panel title="إغلاق">
         <label className="field">
           <span>سبب الخسارة</span>
-          <input value={reason} onChange={(event) => setReason(event.target.value)} />
+          <input className="input" value={reason} onChange={(event) => setReason(event.target.value)} />
         </label>
         <div className="flex gap-2">
-          <button className="btn" type="button" disabled={busy || deal?.status !== 'open'} onClick={() => void act(() => closeDeal(params.id, 'won'), 'رُبحت الصفقة.')}>
+          <button
+            className="btn"
+            type="button"
+            disabled={busy || deal?.status !== 'open'}
+            onClick={() => void act(() => closeDeal(params.id, 'won'), 'رُبحت الصفقة.')}
+          >
             ربح
           </button>
-          <button className="btn" type="button" disabled={busy || deal?.status !== 'open'} onClick={() => void act(() => closeDeal(params.id, 'lost', reason), 'أُغلقت بخسارة.')}>
+          <button
+            className="btn"
+            type="button"
+            disabled={busy || deal?.status !== 'open'}
+            onClick={() => void act(() => closeDeal(params.id, 'lost', reason), 'أُغلقت بخسارة.')}
+          >
             خسارة
           </button>
         </div>
-      </div>
-      <div className="card">
-        <h3>الأنشطة</h3>
+      </Panel>
+      <Panel title="الأنشطة">
         {(deal?.activities ?? []).map((activity: CrmActivity) => (
           <article key={activity.id} className="border-t py-2">
             <strong>{activity.type}</strong>
-            {activity.direction ? <span className="muted"> · {activity.direction === 'out' ? 'صادر' : 'وارد'}</span> : null}
+            {activity.direction ? (
+              <span className="muted"> · {activity.direction === 'out' ? 'صادر' : 'وارد'}</span>
+            ) : null}
             <p>{activity.description}</p>
           </article>
         ))}
-      </div>
+      </Panel>
     </Screen>
   );
 }

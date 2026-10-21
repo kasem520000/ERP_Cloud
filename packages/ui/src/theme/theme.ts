@@ -2,8 +2,10 @@
  * Theme resolution — the one mechanism shared by staff, platform-admin and
  * marketing (Design v3 §2.2.1).
  *
- * Storage: a single `localStorage` key, `erp.theme`, holding
- * `light | dark | system`. There are deliberately **no** per-app or
+ * Storage: a single `localStorage` key, `erp.theme`, holding `light | dark`.
+ * «تتبّع النظام» was removed by product decision (2026-10): the visitor picks an
+ * appearance and gets exactly that. A legacy stored `system` value is resolved
+ * once, at boot, and rewritten as `light` or `dark`. There are deliberately **no** per-app or
  * per-context sub-keys (§8.11) — switching the theme on one surface and
  * opening another must not produce two answers.
  */
@@ -12,7 +14,10 @@
 export const THEME_STORAGE_KEY = 'erp.theme';
 
 /** What the visitor asked for. */
-export type ThemeChoice = 'light' | 'dark' | 'system';
+export type ThemeChoice = 'light' | 'dark';
+
+/** The retired third option. Only ever read, never offered. */
+const LEGACY_SYSTEM = 'system';
 
 /** What the page is actually painted with. */
 export type ResolvedTheme = 'light' | 'dark';
@@ -20,7 +25,7 @@ export type ResolvedTheme = 'light' | 'dark';
 /** Event dispatched on `window` whenever the stored choice changes. */
 export const THEME_EVENT = 'erp:theme-change';
 
-const CHOICES: readonly ThemeChoice[] = ['light', 'dark', 'system'];
+const CHOICES: readonly ThemeChoice[] = ['light', 'dark'];
 
 /** `localStorage` is absent in SSR, in private modes that block it, and in
  *  some embedded webviews — every read below is therefore defensive. */
@@ -37,11 +42,23 @@ export function isThemeChoice(value: unknown): value is ThemeChoice {
   return typeof value === 'string' && (CHOICES as readonly string[]).includes(value);
 }
 
-export function readThemeChoice(fallback: ThemeChoice = 'system'): ThemeChoice {
+export function readThemeChoice(fallback: ThemeChoice = 'light'): ThemeChoice {
   const storage = safeStorage();
   if (!storage) return fallback;
   const stored = storage.getItem(THEME_STORAGE_KEY);
-  return isThemeChoice(stored) ? stored : fallback;
+  if (isThemeChoice(stored)) return stored;
+  // A visitor who chose «تتبّع النظام» before it was retired keeps the appearance
+  // they were already seeing: resolve it once against the OS and store the answer.
+  if (stored === LEGACY_SYSTEM) {
+    const resolved: ThemeChoice = systemPrefersDark() ? 'dark' : 'light';
+    try {
+      storage.setItem(THEME_STORAGE_KEY, resolved);
+    } catch {
+      /* a full or blocked storage must not break the boot */
+    }
+    return resolved;
+  }
+  return fallback;
 }
 
 export function writeThemeChoice(choice: ThemeChoice): void {
@@ -57,9 +74,8 @@ export function writeThemeChoice(choice: ThemeChoice): void {
   }
 }
 
-/** Resolve `system` against the OS preference. */
-export function resolveTheme(choice: ThemeChoice, prefersDark: boolean): ResolvedTheme {
-  if (choice === 'system') return prefersDark ? 'dark' : 'light';
+/** The stored choice *is* the painted theme; nothing is resolved behind it. */
+export function resolveTheme(choice: ThemeChoice): ResolvedTheme {
   return choice;
 }
 
@@ -80,11 +96,9 @@ export function applyTheme(resolved: ResolvedTheme, root?: HTMLElement): void {
   element.dataset.theme = resolved;
 }
 
-/** Cycle light → dark → system → light, for the compact icon toggle. */
+/** Cycle light → dark → light, for the compact icon toggle. */
 export function nextThemeChoice(choice: ThemeChoice): ThemeChoice {
-  const order: ThemeChoice[] = ['light', 'dark', 'system'];
-  const index = order.indexOf(choice);
-  return order[(index + 1) % order.length] ?? 'system';
+  return choice === 'dark' ? 'light' : 'dark';
 }
 
 /**
@@ -94,13 +108,14 @@ export function nextThemeChoice(choice: ThemeChoice): ThemeChoice {
  * white flash. It also removes a `dark` class left over by a previous paint
  * when the stored choice is light.
  */
-export function themeInitScript(fallback: ThemeChoice = 'system'): string {
+export function themeInitScript(fallback: ThemeChoice = 'light'): string {
   return (
     `(function(){try{` +
     `var k=${JSON.stringify(THEME_STORAGE_KEY)};` +
     `var v=null;try{v=window.localStorage.getItem(k)}catch(e){}` +
-    `if(v!=='light'&&v!=='dark'&&v!=='system'){v=${JSON.stringify(fallback)}}` +
-    `var d=v==='dark'||(v==='system'&&window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches);` +
+    `if(v==='system'){v=(window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light';try{window.localStorage.setItem(k,v)}catch(e){}}` +
+    `if(v!=='light'&&v!=='dark'){v=${JSON.stringify(fallback)}}` +
+    `var d=v==='dark';` +
     `var r=document.documentElement;` +
     `r.classList.toggle('dark',d);` +
     `r.style.colorScheme=d?'dark':'light';` +

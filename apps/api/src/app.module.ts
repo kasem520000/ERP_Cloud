@@ -17,9 +17,12 @@ import {
   PermissionsGuard,
   PlatformModule,
   RateLimitGuard,
+  SectorLicenceGuard,
   TenantGuard,
+  TenantRateLimitGuard,
 } from './modules/platform/index.js';
 import { PlatformBackupsModule } from './modules/backups/platform-backups.module.js';
+import { ReleasesModule } from './modules/releases/releases.module.js';
 import { CampaignsModule } from './modules/campaigns/campaigns.module.js';
 import { SiteAnalyticsModule } from './modules/site-analytics/site-analytics.module.js';
 import { StatusModule } from './modules/status/status.module.js';
@@ -68,6 +71,7 @@ import { AiModule } from './modules/ai/ai.module.js';
 import { EmployeeModule } from './modules/employee/employee.module.js';
 import { PaymentsModule } from './modules/payments/payments.module.js';
 import { WhatsappModule } from './modules/integrations/whatsapp/whatsapp.module.js';
+import { VanSalesModule } from './modules/van-sales/van-sales.module.js';
 import { AuditInterceptor, PlatformServicesModule } from './modules/platform-services/index.js';
 import { UsageModule } from './modules/usage/index.js';
 import { MetricsInterceptor } from './ops/metrics.interceptor.js';
@@ -75,7 +79,8 @@ import { OpsModule } from './ops/ops.module.js';
 
 /**
  * Guard order is frozen by API_ARCHITECTURE §2:
- * `rate limit → AuthGuard → TenantGuard (+RLS GUC) → BranchScopeGuard → PermissionsGuard`.
+ * `rate limit → AuthGuard → TenantGuard (+RLS GUC) → BranchScopeGuard → PermissionsGuard →
+ * SectorLicenceGuard`.
  * `APP_GUARD` providers are applied in declaration order, so the array below *is* the
  * pipeline; reordering it is a contract change, not a refactor.
  *
@@ -104,6 +109,7 @@ import { OpsModule } from './ops/ops.module.js';
     DatabaseModule,
     OpsModule,
     PlatformBackupsModule,
+    ReleasesModule,
     DeveloperModule,
     CampaignsModule,
     ContentModule,
@@ -155,6 +161,7 @@ import { OpsModule } from './ops/ops.module.js';
     AiModule,
     EmployeeModule,
     WhatsappModule,
+    VanSalesModule,
   ],
   controllers: [HealthController],
   providers: [
@@ -175,8 +182,13 @@ import { OpsModule } from './ops/ops.module.js';
     // frozen pipeline above keeps its meaning and its cost.
     { provide: APP_GUARD, useClass: ImpersonationGuard },
     { provide: APP_GUARD, useClass: TenantGuard },
+    // 🛡️ دلو المنشأة بعد تثبيت هويّتها: هجومٌ موزّع بعشرات العناوين يسقط كلّه في دلوٍ واحد
+    // (`RATE_LIMIT_TENANT_PER_MINUTE`)، بينما دلو الـIP وحده يرى عنواناً واحداً في كل مرة.
+    { provide: APP_GUARD, useClass: TenantRateLimitGuard },
     { provide: APP_GUARD, useClass: BranchScopeGuard },
     { provide: APP_GUARD, useClass: PermissionsGuard },
+    // 🏪 الترخيص القطاعي بعد الصلاحيات: «هل يجوز لهذا المستخدم» قبل «هل اشترت منشأته السطح».
+    { provide: APP_GUARD, useClass: SectorLicenceGuard },
   ],
 })
 export class AppModule {}

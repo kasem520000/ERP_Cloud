@@ -9,6 +9,8 @@ import {
   payrollRunLines,
   payrollRuns,
   payrollWpsFiles,
+  tenantSettings,
+  tenants,
   withTenantTx,
   type DatabaseHandle,
 } from '@erp/database';
@@ -23,6 +25,7 @@ import {
   renderGosiCsv,
   renderWpsCsv,
   todayInRiyadh,
+  todayInTimezone,
   type WpsEmployee,
 } from './payroll-compliance.js';
 
@@ -75,15 +78,34 @@ export class PayrollComplianceService {
     return this.settings(tenantId);
   }
 
-  async alerts(tenantId: string, withinDays = 30, today = todayInRiyadh()) {
-    const rows = await withTenantTx(this.database.db, tenantId, (tx) =>
-      tx
+  async alerts(tenantId: string, withinDays = 30, today?: string) {
+    const { resolvedToday, rows } = await withTenantTx(this.database.db, tenantId, async (tx) => {
+      let effectiveToday = today;
+      if (!effectiveToday) {
+        const [setting] = await tx
+          .select({ value: tenantSettings.value })
+          .from(tenantSettings)
+          .where(and(eq(tenantSettings.tenantId, tenantId), eq(tenantSettings.key, 'locale.timezone')))
+          .limit(1);
+        const [tenant] = await tx
+          .select({ timezone: tenants.timezone })
+          .from(tenants)
+          .where(eq(tenants.id, tenantId))
+          .limit(1);
+        const tz =
+          typeof setting?.value === 'string' && setting.value.trim()
+            ? setting.value.trim()
+            : (tenant?.timezone?.trim() || 'Asia/Riyadh');
+        effectiveToday = todayInTimezone(tz);
+      }
+      const employeeRows = await tx
         .select()
         .from(employees)
-        .where(and(eq(employees.tenantId, tenantId), eq(employees.status, 'active'), isNull(employees.deletedAt))),
-    );
-    const data = complianceAlerts(rows.map((row) => toWageEmployee(row)), today, withinDays);
-    return { today, withinDays, count: data.length, data };
+        .where(and(eq(employees.tenantId, tenantId), eq(employees.status, 'active'), isNull(employees.deletedAt)));
+      return { resolvedToday: effectiveToday ?? todayInRiyadh(), rows: employeeRows };
+    });
+    const data = complianceAlerts(rows.map((row) => toWageEmployee(row)), resolvedToday, withinDays);
+    return { today: resolvedToday, withinDays, count: data.length, data };
   }
 
   async wpsPreview(tenantId: string, runId: string, input: WpsExportInput = {}) {

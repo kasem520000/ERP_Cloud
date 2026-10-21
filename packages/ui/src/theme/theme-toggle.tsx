@@ -1,6 +1,6 @@
 'use client';
 
-import { Monitor, Moon, Sun } from 'lucide-react';
+import { Moon, Sun } from 'lucide-react';
 
 import { useTheme } from './theme-provider';
 import { nextThemeChoice, type ThemeChoice } from './theme';
@@ -10,11 +10,11 @@ import { nextThemeChoice, type ThemeChoice } from './theme';
  * (Design v3 §5 — "ThemeToggle موحد رمزًا وسلوكًا").
  *
  * Two shapes, identical behaviour:
- *   `variant="segmented"` (default) — three explicit choices, so «تتبع النظام»
- *     is never hidden inside a cycle. This is what a console and a back
- *     office use, where the visitor wants to *know* what will happen.
- *   `variant="icon"` — one button that cycles light → dark → system. Smaller,
- *     for a marketing navbar that already carries a lot.
+ *   `variant="segmented"` (default) — two explicit choices, «الفاتح» and
+ *     «الداكن». «تتبّع النظام» was retired by product decision, so there are
+ *     exactly two appearances and the visitor picks one.
+ *   `variant="icon"` — one button that flips light ⇄ dark. Smaller, for a
+ *     marketing navbar that already carries a lot.
  *
  * Both are real `<button>`s with an Arabic `aria-label`, a visible focus
  * ring, and a `disabled` state that stays on screen instead of disappearing.
@@ -32,10 +32,9 @@ export type ThemeToggleProps = {
 const LABELS: Record<ThemeChoice, { ar: string; en: string }> = {
   light: { ar: 'الوضع الفاتح', en: 'Light' },
   dark: { ar: 'الوضع الداكن', en: 'Dark' },
-  system: { ar: 'تتبّع النظام', en: 'System' },
 };
 
-const ICONS = { light: Sun, dark: Moon, system: Monitor } as const;
+const ICONS = { light: Sun, dark: Moon } as const;
 
 function label(choice: ThemeChoice, lang: 'ar' | 'en'): string {
   return LABELS[choice][lang];
@@ -49,11 +48,15 @@ export function ThemeToggle({
   lang = 'ar',
 }: ThemeToggleProps) {
   const { choice, setChoice, resolved } = useTheme();
+  // There is no third state to guard against any more: the provider paints the same
+  // `choice` on the server and in the browser, and the stored value is applied in a
+  // layout effect before paint.
+  const shownChoice = choice;
 
   if (variant === 'icon') {
-    const current = choice === 'system' ? 'system' : resolved;
+    const current = resolved;
     const Icon = ICONS[current];
-    const text = label(choice, lang);
+    const text = label(shownChoice, lang);
     return (
       <button
         type="button"
@@ -61,7 +64,7 @@ export function ThemeToggle({
         disabled={disabled}
         aria-label={text}
         title={text}
-        data-theme-choice={choice}
+        data-theme-choice={shownChoice}
         className={`grid size-9 place-items-center rounded-[10px] border border-line bg-surface text-muted transition-colors duration-150 ease-out hover:bg-surface-3 hover:text-ink focus-visible:ring-4 focus-visible:ring-brand-600/20 disabled:cursor-not-allowed disabled:opacity-55 ${className}`}
       >
         <Icon size={17} strokeWidth={2} aria-hidden />
@@ -69,12 +72,12 @@ export function ThemeToggle({
     );
   }
 
-  const options: ThemeChoice[] = ['light', 'dark', 'system'];
+  const options: ThemeChoice[] = ['light', 'dark'];
   return (
     <div
       role="radiogroup"
       aria-label={lang === 'ar' ? 'مظهر الواجهة' : 'Appearance'}
-      data-theme-choice={choice}
+      data-theme-choice={shownChoice}
       className={`inline-flex items-center gap-0.5 rounded-[10px] border border-line bg-surface-2 p-0.5 ${className}`}
     >
       {options.map((option) => {

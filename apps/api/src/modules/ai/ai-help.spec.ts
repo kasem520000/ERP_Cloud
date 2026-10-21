@@ -23,7 +23,9 @@ function readNavigation(): string {
 describe('assistant help corpus', () => {
   it('reads ready screens from navigation.ts and keeps the snapshot in step', () => {
     const parsed = navigationArticlesFromSource(readNavigation());
-    expect(parsed.map((article) => article.href)).toContain('/sales/invoices/new');
+    // «فاتورة إخراج» صارت شاشة صرفٍ مخزني (`/inventory/vouchers?kind=issue`)، و«فاتورة
+    // مبيعات» تقود إلى قائمتها حيث زرّ الإنشاء — فالعنوان يطابق ما يُفتح.
+    expect(parsed.map((article) => article.href)).toContain('/inventory/vouchers?kind=issue');
     expect(parsed.map((article) => article.href)).toContain('/accounting/accounts');
     expect(parsed.map((article) => article.href).sort()).toEqual(NAVIGATION_SNAPSHOT.map((article) => article.href).sort());
   });

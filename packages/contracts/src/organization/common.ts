@@ -72,6 +72,10 @@ export const nationalAddressSchema = z
     district: z.string().trim().max(200).optional(),
     city: z.string().trim().max(200).optional(),
     postal: z.string().trim().max(20).optional(),
+    /** الرقم الإضافي — the four digits the Saudi national address adds after the postal code. */
+    additional: z.string().trim().max(20).optional(),
+    /** رقم الوحدة inside the building. */
+    unit: z.string().trim().max(20).optional(),
     countryCode: countryCodeSchema.optional(),
   })
   .strict();

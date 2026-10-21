@@ -88,6 +88,8 @@ export const einvoiceSettings = pgTable('einvoice_settings', {
   active: boolean('active').notNull().default(true),
   /** «Sync manual». */
   syncManual: boolean('sync_manual').notNull().default(false),
+  /** «منع الحفظ عند الربط الضريبي» — no sales drafts while the link is active. */
+  blockSaveWhenLinked: boolean('block_save_when_linked').notNull().default(false),
   /** 📅 التاريخ; the desktop stored an end date one year later. */
   startDate: date('start_date').notNull(),
   endDate: date('end_date').notNull(),

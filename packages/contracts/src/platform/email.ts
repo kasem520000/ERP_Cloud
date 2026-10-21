@@ -68,8 +68,8 @@ export type EmailMessageStatus = (typeof emailMessageStatuses)[number];
 export const emailSuppressionReasons = ['bounce', 'complaint', 'unsubscribe', 'manual'] as const;
 export type EmailSuppressionReason = (typeof emailSuppressionReasons)[number];
 
-/** `console` للتطوير، و`smtp` هو العميل المكتوب على `node:net` القائم منذ PHASE_04. */
-export const emailProviders = ['console', 'smtp'] as const;
+/** `console` للتطوير، و`smtp` لبروتوكول SMTP، و`resend` لخدمة Resend API، و`http` لأي بوابة بريد HTTP/Webhook. */
+export const emailProviders = ['console', 'smtp', 'resend', 'http'] as const;
 export type EmailProvider = (typeof emailProviders)[number];
 
 /** مخططات القيم المفردة — تُستعمل في الاستعلامات (`?locale=ar`) لا في الجسم وحده. */
@@ -812,9 +812,13 @@ export const emailSettingsSchema = z.object({
   sendingDomain: z.string().nullable(),
   dailyLimit: z.number().int().positive().nullable(),
   monthlyLimit: z.number().int().positive().nullable(),
-  /** مُضيف SMTP من البيئة (ليس سرّاً) — تُعرض للتشخيص، ولا تُخزَّن اعتمادات في جدول. */
   smtpHost: z.string().nullable(),
+  smtpPort: z.number().int().nullable().optional(),
+  smtpUser: z.string().nullable().optional(),
+  smtpSecure: z.boolean().optional(),
   smtpConfigured: z.boolean(),
+  apiKeyMasked: z.string().nullable().optional(),
+  apiEndpoint: z.string().nullable().optional(),
   updatedAt: z.string().nullable(),
   updatedBy: z.string().nullable(),
 });
@@ -829,6 +833,13 @@ export const emailSettingsPatchKeys = [
   'sendingDomain',
   'dailyLimit',
   'monthlyLimit',
+  'apiKey',
+  'apiEndpoint',
+  'smtpHost',
+  'smtpPort',
+  'smtpUser',
+  'smtpPassword',
+  'smtpSecure',
 ] as const;
 
 export const emailSettingsUpdateSchema = z
@@ -847,6 +858,13 @@ export const emailSettingsUpdateSchema = z
       .optional(),
     dailyLimit: z.coerce.number().int().min(1).max(100_000).nullable().optional(),
     monthlyLimit: z.coerce.number().int().min(1).max(2_000_000).nullable().optional(),
+    apiKey: z.string().trim().max(500).nullable().optional(),
+    apiEndpoint: z.string().trim().url('رابط API غير صالح').max(500).nullable().optional(),
+    smtpHost: z.string().trim().max(253).nullable().optional(),
+    smtpPort: z.coerce.number().int().min(1).max(65535).nullable().optional(),
+    smtpUser: z.string().trim().max(253).nullable().optional(),
+    smtpPassword: z.string().max(500).nullable().optional(),
+    smtpSecure: z.boolean().optional(),
     /**
      * سبب التعديل — `null` يعني «ارث من المنصة» في الحقول الاختيارية، فالسقف يُرفع بتعديلٍ
      * صريح ويُسجَّل في التدقيق. اختياريّ هنا (الفرق قبل/بعد يقول ما تغيّر)، ومطلوب في تحرير
@@ -902,6 +920,13 @@ export const emailTestResultSchema = z.object({
   status: z.enum(emailMessageStatuses),
   /** إن مُنع الإرسال بالحجر: السبب — إذ لا يُبتلع سبب الفشل في اختبار الاتصال. */
   suppressionReason: z.enum(emailSuppressionReasons).nullable(),
+  /**
+   * سبب الفشل كما قاله المزوّد — يُعرض في شاشة الاختبار.
+   *
+   * كان الاختبار يُعيد `queued` بلا سبب (لأن صفّ المحاولة يُعاد جدولته)، فيرى المشغّل
+   * «لم تخرج الرسالة» ولا يعرف هل الخطأ في المفتاح أو النطاق أو الشبكة.
+   */
+  error: z.string().nullable().optional(),
 });
 export type EmailTestResult = z.infer<typeof emailTestResultSchema>;
 

@@ -9,6 +9,8 @@ import {
 } from '@erp/contracts';
 import { newId, withPlatformAdminTx, withTenantTx } from '@erp/database';
 
+import { OBJECT_STORAGE } from '../src/modules/platform-services/index.js';
+
 import {
   ALL_ORGANIZATION_PERMISSIONS,
   ALL_TENANT_PERMISSIONS,
@@ -16,6 +18,7 @@ import {
   type Actor,
   type ActorOptions,
 } from './fixtures.js';
+import { FakeObjectStorage } from './fakes.js';
 import { api } from './http.js';
 import { createTestApp, type TestApp } from './test-app.js';
 
@@ -93,7 +96,10 @@ describe('platform usage & quotas (P-C5)', () => {
     );
 
   beforeAll(async () => {
-    ctx = await createTestApp('platform-usage');
+    const storage = new FakeObjectStorage();
+    ctx = await createTestApp('platform-usage', (builder) =>
+      builder.overrideProvider(OBJECT_STORAGE).useValue(storage),
+    );
     const { UsageService } = await import('../src/modules/usage/usage.service.js');
     usage = ctx.app.get(UsageService);
 
@@ -343,6 +349,64 @@ describe('platform usage & quotas (P-C5)', () => {
     expect(second.status).toBe(201);
     const after = (await snapshot(owner, customerB.tenantId)).body.data as UsageSnapshot;
     expect(metric(after, 'branches')?.used).toBe(2);
+  });
+
+  /**
+   * الحدّ الذي جاء من **الباقة** — لا من تجاوزٍ يدوي ولا من افتراض الفهرس.
+   *
+   * هذه هي الحال التي يبيعها المشغّل: باقةٌ تكتب «فرعان»، فيجب أن يُرفض الثالث. وكانت
+   * الشاشة تعرض الحدّ من الباقة ولا يطبّقه الحارس، لأن الحارس كان يقرأ `platform_settings`
+   * وحدها — أي أنّ عقد العميل كان زينةً في الشاشة. الاختبار يُثبّت أن المصدر الجديد
+   * (`tenant_subscriptions` ← `billing_plan_entitlements`) يُطبَّق فعلاً، وأن التجديد يوقف
+   * الرفض فوراً.
+   */
+  it('حدّ الباقة يُطبَّق على الفروع، لا يُبلَّغ عنه فقط', async () => {
+    const before = (await snapshot(owner, customerB.tenantId)).body.data as UsageSnapshot;
+    const used = metric(before, 'branches')?.used ?? 0;
+
+    const planId = newId();
+    const code = `usage-plan-${newId().slice(0, 8)}`;
+    await withPlatformAdminTx(ctx.handle.db, async (tx) => {
+      await tx.execute(sql`
+        INSERT INTO billing_plans (id, code, name, interval, amount, currency)
+        VALUES (${planId}, ${code}, 'باقة حدّ الفروع', 'month', 0, 'SAR')
+      `);
+      await tx.execute(sql`
+        INSERT INTO billing_plan_entitlements (id, plan_id, kind, key, value)
+        VALUES (${newId()}, ${planId}, 'limit', 'limits.max_branches', ${used}::jsonb)
+      `);
+      await tx.execute(sql`
+        INSERT INTO tenant_subscriptions (id, tenant_id, plan_id, status, provider, activated_at, current_period_start, current_period_end)
+        VALUES (${newId()}, ${customerB.tenantId}, ${planId}, 'active', 'manual', now(), now(), now() + interval '1 month')
+      `);
+    });
+
+    const planLimit = (await snapshot(owner, customerB.tenantId)).body.data as UsageSnapshot;
+    expect(metric(planLimit, 'branches')).toMatchObject({
+      limitSource: 'plan',
+      limit: used,
+      enforced: true,
+    });
+    expect(metric(planLimit, 'branches')?.state).toBe('hard');
+
+    const refused = await api(ctx.server, 'post', '/api/v1/branches', {
+      token: customerB.token,
+      body: { code: `BP${newId().slice(0, 4)}`, nameAr: 'فرع فوق حدّ الباقة' },
+    });
+    expect(refused.status).toBe(409);
+    expect(refused.body.code).toBe('USAGE_LIMIT_REACHED');
+    expect((refused.body.errors as Array<Record<string, unknown>>)[0]).toMatchObject({
+      metric: 'branches',
+      limit: used,
+    });
+
+    // إلغاء الترخيص يعيد العميل إلى مغلّف الفهرس: الرفض يسقط مع مصدره لا يبقى معلّقاً.
+    await withPlatformAdminTx(ctx.handle.db, (tx) =>
+      tx.execute(sql`UPDATE tenant_subscriptions SET status = 'canceled', canceled_at = now() WHERE plan_id = ${planId}`),
+    );
+    const restored = (await snapshot(owner, customerB.tenantId)).body.data as UsageSnapshot;
+    expect(metric(restored, 'branches')?.limitSource).toBe('default');
+    expect(metric(restored, 'branches')?.enforced).toBe(false);
   });
 
   it('التخزين مقياسٌ محدود: الرفض يقع قبل توقيع الرفع', async () => {

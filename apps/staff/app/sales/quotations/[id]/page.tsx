@@ -2,11 +2,12 @@
 
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
+import { Panel } from '@erp/ui';
 
 import { DataTable, QueryView } from '../../../../components/data-view';
 import { Screen } from '../../../../components/screen';
 import { apiData, apiList } from '../../../../lib/api';
-import { listParties, money, partyLabel, shortDate, type Party } from '../../../../lib/lookups';
+import { listParties, money, partyLabel, quantity, shortDate, type Party } from '../../../../lib/lookups';
 import { useSession } from '../../../../lib/session';
 import { useQuery } from '../../../../lib/use-query';
 
@@ -92,56 +93,107 @@ export default function QuotationDetailPage() {
       <QueryView query={quotation} empty="عرض السعر غير موجود">
         {(document) =>
           document.kind !== 'quotation' ? (
-            <div className="card">
-              <p>هذا المستند ليس عرض سعر.</p>
-              <Link href="/sales/quotations">العودة</Link>
-            </div>
+            <p className="m-0 rounded-[10px] border border-warn-line bg-warn-soft px-4 py-2.5 text-[13px] font-semibold text-warn-ink">
+              هذا المستند ليس عرض سعر. <Link href="/sales/quotations">العودة إلى القائمة</Link>
+            </p>
           ) : (
             <>
-              <section className="card">
-                <p>العميل: {customer}</p>
-                <p>الحالة: {STATUS_LABELS[document.status] ?? document.status}</p>
-                <p>صالح حتى: {document.validUntil ? shortDate(document.validUntil) : 'غير محدّد'}</p>
-                <p>
-                  <strong>الإجمالي {money(document.total, document.currency)}</strong>
-                </p>
-              </section>
-              <div className="card">
+              <Panel title="بيانات العرض" hint="الحالة والصالحية كما رجعت من الخادم.">
+                <div className="ui-kpi-grid">
+                  <div className="ui-kpi-cell">
+                    <span className="ui-kpi-label">العميل</span>
+                    <span className="ui-kpi-value" style={{ fontSize: 15 }}>
+                      {customer}
+                    </span>
+                  </div>
+                  <div className="ui-kpi-cell">
+                    <span className="ui-kpi-label">الحالة</span>
+                    <span className="ui-kpi-value" style={{ fontSize: 15 }}>
+                      {STATUS_LABELS[document.status] ?? document.status}
+                    </span>
+                  </div>
+                  <div className="ui-kpi-cell">
+                    <span className="ui-kpi-label">صالح حتى</span>
+                    <span className="ui-kpi-value" style={{ fontSize: 15 }}>
+                      {document.validUntil ? shortDate(document.validUntil) : 'غير محدّد'}
+                    </span>
+                  </div>
+                  <div className="ui-kpi-cell">
+                    <span className="ui-kpi-label">الإجمالي</span>
+                    <span className="ui-kpi-value num" dir="ltr">
+                      {money(document.total, document.currency)}
+                    </span>
+                  </div>
+                </div>
+              </Panel>
+              <Panel flush title="أسطر العرض" hint="الكمية والسعر والإجمالي لكل سطر.">
                 <DataTable
                   columns={[
                     { key: 'line', header: '#', cell: (line: Line) => line.lineNo },
                     { key: 'description', header: 'البيان', cell: (line: Line) => line.description || '—' },
-                    { key: 'quantity', header: 'الكمية', align: 'num', cell: (line: Line) => line.quantity },
-                    { key: 'unit', header: 'سعر الوحدة', align: 'num', cell: (line: Line) => money(line.unitPrice, document.currency) },
-                    { key: 'lineTotal', header: 'الإجمالي', align: 'num', cell: (line: Line) => money(line.total, document.currency) },
+                    {
+                      key: 'quantity',
+                      header: 'الكمية',
+                      align: 'num',
+                      cell: (line: Line) => quantity(line.quantity),
+                    },
+                    {
+                      key: 'unit',
+                      header: 'سعر الوحدة',
+                      align: 'num',
+                      cell: (line: Line) => money(line.unitPrice, document.currency),
+                    },
+                    {
+                      key: 'lineTotal',
+                      header: 'الإجمالي',
+                      align: 'num',
+                      cell: (line: Line) => money(line.total, document.currency),
+                    },
                   ]}
                   rows={document.lines}
                   rowKey={(line) => line.id}
                 />
-              </div>
+              </Panel>
             </>
           )
         }
       </QueryView>
 
-      {canSign ? <h2>التوقيع الإلكتروني</h2> : null}
-      {canSign ? <QueryView query={requests} empty="لم يُرسل هذا العرض للتوقيع بعد">
-        {(rows) => (
-          <div className="card">
-            <DataTable
-              columns={[
-                { key: 'email', header: 'الموقّع', cell: (entry: SignatureRequest) => entry.signerName || entry.signerEmail },
-                { key: 'mail', header: 'البريد', cell: (entry: SignatureRequest) => entry.signerEmail },
-                { key: 'status', header: 'الحالة', cell: (entry: SignatureRequest) => SIGN_LABELS[entry.status] ?? entry.status },
-                { key: 'signed', header: 'وُقّع في', cell: (entry: SignatureRequest) => (entry.signedAt ? shortDate(entry.signedAt) : '—') },
-                { key: 'expires', header: 'ينتهي', cell: (entry: SignatureRequest) => shortDate(entry.expiresAt) },
-              ]}
-              rows={rows}
-              rowKey={(entry) => entry.id}
-            />
-          </div>
-        )}
-      </QueryView> : null}
+      {canSign ? (
+        <QueryView query={requests} empty="لم يُرسل هذا العرض للتوقيع بعد">
+          {(rows) => (
+            <Panel flush title="التوقيع الإلكتروني" hint="الموقّع وحالته وتاريخ التوقيع من الخادم.">
+              <DataTable
+                columns={[
+                  {
+                    key: 'email',
+                    header: 'الموقّع',
+                    cell: (entry: SignatureRequest) => entry.signerName || entry.signerEmail,
+                  },
+                  { key: 'mail', header: 'البريد', cell: (entry: SignatureRequest) => entry.signerEmail },
+                  {
+                    key: 'status',
+                    header: 'الحالة',
+                    cell: (entry: SignatureRequest) => SIGN_LABELS[entry.status] ?? entry.status,
+                  },
+                  {
+                    key: 'signed',
+                    header: 'وُقّع في',
+                    cell: (entry: SignatureRequest) => (entry.signedAt ? shortDate(entry.signedAt) : '—'),
+                  },
+                  {
+                    key: 'expires',
+                    header: 'ينتهي',
+                    cell: (entry: SignatureRequest) => shortDate(entry.expiresAt),
+                  },
+                ]}
+                rows={rows}
+                rowKey={(entry) => entry.id}
+              />
+            </Panel>
+          )}
+        </QueryView>
+      ) : null}
     </Screen>
   );
 }

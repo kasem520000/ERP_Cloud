@@ -43,6 +43,7 @@ import {
   notFound,
   validationFailed,
   visibleBranchIds,
+  visibleRoleScopeIds,
 } from '../shared/org-support.js';
 
 /**
@@ -68,6 +69,7 @@ export class CashLocationsService {
     const filters = parseFilters(query.filter, CASH_LOCATION_FILTERS);
     const sort = parseSort(query.sort, CASH_LOCATION_SORT_COLUMNS);
     const scoped = visibleBranchIds();
+    const scopedCashLocations = visibleRoleScopeIds('cash_location');
 
     return withTenantTx(this.database.db, tenantId, async (tx) => {
       const conditions: SQL[] = [eq(cashLocations.tenantId, tenantId), isNull(cashLocations.deletedAt)];
@@ -80,6 +82,11 @@ export class CashLocationsService {
       if (filters.kind) conditions.push(eq(cashLocations.kind, filters.kind));
       if (scoped) {
         conditions.push(scoped.length > 0 ? inArray(cashLocations.branchId, scoped) : sql`false`);
+      }
+      if (scopedCashLocations) {
+        conditions.push(
+          scopedCashLocations.length > 0 ? inArray(cashLocations.id, scopedCashLocations) : sql`false`,
+        );
       }
       if (query.q) conditions.push(ilike(cashLocations.name, `%${query.q}%`));
 
@@ -321,6 +328,8 @@ export class CashLocationsService {
 
     const scoped = visibleBranchIds();
     if (scoped && !scoped.includes(row.branchId)) throw notFound('Cash location');
+    const scopedCashLocations = visibleRoleScopeIds('cash_location');
+    if (scopedCashLocations && !scopedCashLocations.includes(row.id)) throw notFound('Cash location');
     return row;
   }
 

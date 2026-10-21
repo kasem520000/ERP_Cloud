@@ -18,13 +18,19 @@ invoice:
    value is base64 SHA-256 of `"0"`) and the next invoice counter (ICV) under `FOR UPDATE`,
    so two invoices filed at the same instant cannot share a counter. Both are embedded in the
    document as `cac:AdditionalDocumentReference` entries.
-3. **Hashes it.** `hashInvoiceXml` — base64 of the SHA-256 digest of the XML.
+3. **Hashes it.** `hashInvoiceXml` — base64 of the SHA-256 digest of the **canonicalised**
+   document (`zatca/canonical.ts`: C14N 1.1 with `UBLExtensions`, `cac:Signature` and the QR
+   reference removed). This is what the authority recomputes, not the raw text.
 4. **Signs it, if it can.** When the tenant has uploaded an EC private key
    (`PUT /einvoice/credentials`), the hash is signed with ECDSA/SHA-256 and the public key is
    exported in DER. A key that is missing, malformed or not EC produces no signature and a
-   logged warning — never a fake one.
+   logged warning — never a fake one. With a real X.509 CSID the same call also builds the
+   `ext:UBLExtensions` XAdES block (`zatca/xades.ts`).
 5. **Builds the QR.** TLV, base64: tags 1–5 (seller name, VAT number, timestamp, total with
-   VAT, VAT amount) always; tags 6–8 (hash, signature, public key) only when step 4 succeeded.
+   VAT, VAT amount) always; tags 6–8 (hash, signature, public key) once the stamp exists; tag
+   9 (the CA's signature over the certificate) once a real CSID is stored.
+6. **Rebuilds the document** with the QR embedded (`cac:AdditionalDocumentReference`,
+   `cbc:ID>QR`) and, when present, the signature block before `cbc:ProfileID`.
 6. **Files it, if the tenant is linked.** The gateway and the credential pair come from the
    link saved in «⚙️ إعدادات الربط الضريبي» (`einvoice_settings`), not from the request: 🧪
    Simulation answers locally, 🔵 Compliance dials the sandbox and 🔴 Production dials the
@@ -52,20 +58,14 @@ records the reason (`LINK_PAUSED`, `NO_GATEWAY_CONFIGURED`, `NO_CREDENTIALS`) on
 An invoice is never marked as accepted by an authority the system never spoke to. This is the
 one thing a compliance feature must not lie about, and it is why `prepared` exists at all.
 
-## What is still missing for full phase-2 certification
+## What is still credential-bound
 
-- **The XAdES enveloped signature and `UBLExtensions` block.** The signature bytes are
-  produced, but wrapping them in the `ds:Signature`/`xades:QualifyingProperties` structure and
-  canonicalising (C14N 1.1, excluding the signature, QR and extension nodes) is not
-  implemented. Our generator never writes those three nodes, so the document as produced *is*
-  its own hashed form; the canonicaliser has to strip them once they exist.
-- **The XAdES signature is not wrapped** (see the bullet above); onboarding, by contrast, is
-  no longer missing — see the next section.
-- **Certificate tag 9** (the CA's signature over the certificate public key) is only available
-  from the issued certificate, so it is emitted once the certificate itself is stored.
-
-Everything above is credential-bound, not code-bound: no ZATCA sandbox account can be created
-from inside this repository's CI.
+The XAdES block, QR tag 9 and the `<cac:AdditionalDocumentReference>` QR are implemented and
+covered by `zatca/xades.spec.ts` (5/5) and `test/einvoicing-zatca-signing.spec.ts` (4/4). What
+no test here can produce is **acceptance by the real authority**: that needs the tenant's own
+production CSID. Everything that used to be missing in code — signature, tag 9, BR-KSA-44,
+the 24-hour retry ticker and the ICV advisory lock — is now in place; see
+`docs/ZATCA_ITEM11_VERDICT.md` for the audit.
 
 ## Phase 11 part one — ⚙️ إعدادات الربط الضريبي (`frmZatcaSetting`)
 

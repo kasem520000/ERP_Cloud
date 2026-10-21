@@ -46,11 +46,11 @@ export function EmptyState({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
       className={cn(
-        'grid place-items-center gap-3 rounded-lg border border-dashed border-line-strong bg-surface-2 px-6 py-12 text-center',
+        'grid place-items-center gap-3 rounded-xl border border-dashed border-line-strong bg-surface-2/70 px-6 py-12 text-center',
         className,
       )}
     >
-      <span className={cn('grid size-14 place-items-center rounded-xl', TONES[tone])} aria-hidden>
+      <span className={cn('grid size-14 place-items-center rounded-2xl shadow-1 ring-1 ring-line/60', TONES[tone])} aria-hidden>
         {icon}
       </span>
       <div>

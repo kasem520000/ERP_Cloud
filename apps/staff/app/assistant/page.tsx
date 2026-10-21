@@ -1,5 +1,6 @@
 'use client';
 
+import { Panel } from '@erp/ui';
 import Link from 'next/link';
 
 import { AssistantChat } from '../../components/assistant-chat';
@@ -13,11 +14,17 @@ export default function AssistantPage() {
       title="المساعد المحاسبي"
       subtitle="يجيب من مجاميع منشأتك ودليل الشاشات. التنبيهات اليومية ومحادثاتك السابقة تظهر هنا. لا يرحّل قيوداً، ولا يرسل رواتب أو أرقام هوية."
       crumbs={['المساعد']}
-      actions={can('ai.settings.manage') ? <Link className="btn" href="/settings/ai">الإعدادات</Link> : undefined}
+      actions={
+        can('ai.settings.manage') ? (
+          <Link className="btn" href="/settings/ai">
+            الإعدادات
+          </Link>
+        ) : undefined
+      }
     >
-      <section className="card">
+      <Panel>
         <AssistantChat />
-      </section>
+      </Panel>
     </Screen>
   );
 }

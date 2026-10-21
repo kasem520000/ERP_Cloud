@@ -127,50 +127,50 @@ export function OnboardingPanel({
     : surfaceHref('staff', '/');
 
   return (
-    <div className="grid">
+ <div className="grid">
       {status ? (
-        <section className="card" aria-label="ملخّص الاشتراك">
-          <h2>أهلاً بك في {status.tenantName}</h2>
-          <p>
-            رمز المنشأة: <b dir="ltr">{status.tenantCode}</b> — احفظه؛ يُطلب مع كل دخول.
-          </p>
-          <p className="muted">
-            البريد: <bdi>{maskSignupEmail(status.ownerEmail)}</bdi> · الحالة:{' '}
-            <span className={`badge ${status.subscriptionStatus === 'active' ? 'paid' : 'pending'}`}>
+ <section className="card" aria-label="ملخّص الاشتراك">
+ <h2>أهلاً بك في {status.tenantName}</h2>
+ <p>
+ رمز المنشأة: <b dir="ltr">{status.tenantCode}</b> — احفظه؛ يُطلب مع كل دخول.
+ </p>
+ <p className="muted">
+ البريد: <bdi>{maskSignupEmail(status.ownerEmail)}</bdi> · الحالة:{' '}
+ <span className={`badge ${status.subscriptionStatus === 'active' ? 'paid' : 'pending'}`}>
               {status.subscriptionStatus === 'active' ? 'اشتراك فعّال' : 'بانتظار اعتماد إدارة المنصة'}
-            </span>
-          </p>
-          <p className="muted">
+ </span>
+ </p>
+ <p className="muted">
             {status.plan
               ? `الباقة المطلوبة: ${status.plan.name} — ${status.plan.amount} ${status.plan.currency} / ${status.plan.interval === 'year' ? 'سنة' : 'شهر'}`
               : 'لم تُختر باقة: تُحدَّد مع اعتماد الاشتراك.'}
             {status.trialDays > 0 ? ` · فترة تجريبية معلَنة: ${status.trialDays} يوماً` : ''}
-          </p>
-          <div className="toolbar">
-            <a className="btn primary" href={staffLogin}>
-              الدخول إلى لوحة الإدارة
-            </a>
-            <a className="btn" href="/pricing">
-              مقارنة الباقات
-            </a>
-          </div>
-          <p className="muted">
-            <small>
-              الرخصة تُفعَّل باعتماد إدارة المنصة، ويمكنك العمل في النظام قبل ذلك — الفرع ودليل الحسابات
-              جاهزان بالفعل.
-            </small>
-          </p>
-        </section>
+ </p>
+ <div className="toolbar">
+ <a className="btn primary" href={staffLogin}>
+ الدخول إلى لوحة الإدارة
+ </a>
+ <a className="btn" href="/pricing">
+ مقارنة الباقات
+ </a>
+ </div>
+ <p className="muted">
+ <small>
+ الرخصة تُفعَّل باعتماد إدارة المنصة، ويمكنك العمل في النظام قبل ذلك — الفرع ودليل الحسابات
+ جاهزان بالفعل.
+ </small>
+ </p>
+ </section>
       ) : null}
 
       {!verified ? (
-        <section className="card" aria-label="تأكيد البريد">
-          <h2>تأكيد البريد الإلكتروني</h2>
-          <p className="muted">
-            أدخل الرمز الذي وصل إلى بريدك. {verification ? `المحاولات المتبقية: ${verification.attemptsRemaining}.` : ''}
-          </p>
-          <div className="form">
-            <input
+ <section className="card" aria-label="تأكيد البريد">
+ <h2>تأكيد البريد الإلكتروني</h2>
+ <p className="muted">
+ أدخل الرمز الذي وصل إلى بريدك. {verification ? `المحاولات المتبقية: ${verification.attemptsRemaining}.` : ''}
+ </p>
+ <div className="form">
+ <input
               className="input"
               dir="ltr"
               inputMode="numeric"
@@ -180,71 +180,71 @@ export function OnboardingPanel({
               onChange={(event) => setCode(event.target.value.replace(/[^\d]/g, '').slice(0, 6))}
               placeholder="الرمز (٦ أرقام)"
             />
-            <div className="toolbar">
-              <button className="btn primary" type="button" disabled={busy || code.length !== 6} onClick={() => void verify()}>
+ <div className="toolbar">
+ <button className="btn primary" type="button" disabled={busy || code.length !== 6} onClick={() => void verify()}>
                 {busy ? 'جارٍ التحقّق…' : 'تأكيد الرمز'}
-              </button>
-              <button className="btn" type="button" disabled={busy} onClick={() => void resend()}>
-                إرسال رمز جديد
-              </button>
-            </div>
-          </div>
-        </section>
+ </button>
+ <button className="btn" type="button" disabled={busy} onClick={() => void resend()}>
+ إرسال رمز جديد
+ </button>
+ </div>
+ </div>
+ </section>
       ) : null}
 
       {error ? (
-        <section className="card">
-          <p role="alert" className="muted">
+ <section className="card">
+ <p role="alert" className="muted">
             {error}
-          </p>
-          <div className="toolbar">
-            <button className="btn" type="button" onClick={() => void load()} disabled={loading}>
+ </p>
+ <div className="toolbar">
+ <button className="btn" type="button" onClick={() => void load()} disabled={loading}>
               {loading ? 'جارٍ المحاولة…' : 'إعادة القراءة'}
-            </button>
-            <a className="btn" href="/onboarding">
-              بدء تسجيل جديد
-            </a>
-          </div>
-        </section>
+ </button>
+ <a className="btn" href="/onboarding">
+ بدء تسجيل جديد
+ </a>
+ </div>
+ </section>
       ) : null}
 
       {status ? (
-        <section className="card" aria-label="مهامّ الإعداد">
-          <h2>مهامّ الإعداد</h2>
-          <p className="muted">
+ <section className="card" aria-label="مهامّ الإعداد">
+ <h2>مهامّ الإعداد</h2>
+ <p className="muted">
             {progress.done} من {progress.total} مكتملة ({progress.percent}%)
-          </p>
-          <ol className="steps">
+ </p>
+ <ol className="steps">
             {tasks.map((task, index) => (
-              <li key={task.key}>
-                <span className="step-number">{task.done ? '✓' : index + 1}</span>
-                <span>
-                  <b>{task.labelAr}</b>
+ <li key={task.key}>
+ <span className="step-number">{task.done ? '✓' : index + 1}</span>
+ <span>
+ <b>{task.labelAr}</b>
                   {task.count ? <span className="pill">{task.count}</span> : null}
-                  <br />
-                  <span className="muted">{task.helpAr}</span>
-                  <br />
+ <br />
+ <span className="muted">{task.helpAr}</span>
+ <br />
                   {task.done ? (
-                    <span className="muted">
-                      <small>تمّ.</small>
-                    </span>
+ <span className="muted">
+ <small>تمّ.</small>
+ </span>
                   ) : (
-                    <a className="text-link" href={surfaceHref('staff', task.href)}>
-                      افتح الخطوة ←
-                    </a>
+ <a className="text-link" href={surfaceHref('staff', task.href)}>
+ افتح الخطوة ←
+ </a>
                   )}
-                </span>
-              </li>
+ </span>
+ </li>
             ))}
-          </ol>
-        </section>
+ </ol>
+ </section>
       ) : null}
 
       {loading && !status ? (
-        <section className="card">
-          <p className="muted">جارٍ قراءة حالة التسجيل…</p>
-        </section>
+ <section className="card">
+ <p className="muted">جارٍ قراءة حالة التسجيل…</p>
+ </section>
       ) : null}
-    </div>
+ </div>
   );
 }

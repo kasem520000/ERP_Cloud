@@ -82,7 +82,7 @@ describe('RBAC and access management', () => {
 
   describe('memberships', () => {
     it('invites a user by e-mail, lists it, patches it and soft-deletes it', async () => {
-      const roleId = admin.roleIds[0] as string;
+      const roleId = viewer.roleIds[0] as string;
 
       const created = await api(ctx.server, 'post', '/api/v1/memberships', {
         token: admin.token,
@@ -142,7 +142,7 @@ describe('RBAC and access management', () => {
     });
 
     it('refuses a second membership for the same user', async () => {
-      const roleId = admin.roleIds[0] as string;
+      const roleId = viewer.roleIds[0] as string;
       const first = await api(ctx.server, 'post', '/api/v1/memberships', {
         token: admin.token,
         body: { email: 'twice@rbac.test', roleIds: [roleId] },

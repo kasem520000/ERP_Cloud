@@ -3,12 +3,13 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "ERPCloud Design System v3 \u2014 tokens, theme and the shared React kit used by staff, platform-admin and marketing.",
+  "description": "ERPCloud Design System v3 — tokens, theme and the shared React kit used by staff, platform-admin and marketing.",
   "exports": {
     ".": "./src/index.ts",
     "./tokens.css": "./src/tokens/tokens.css",
     "./theme": "./src/theme/index.ts",
-    "./package.json": "./package.json"
+    "./package.json": "./package.json",
+    "./controls.css": "./src/tokens/controls.css"
   },
   "dependencies": {
     "decimal.js": "^10.6.0",

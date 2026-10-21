@@ -38,7 +38,15 @@ export type ReportParam = {
   options?: Array<{ value: string; labelAr: string }>;
 };
 
-export type ReportColumnType = 'text' | 'money' | 'qty' | 'int' | 'date' | 'percent';
+/**
+ * `qr` — عمودٌ لا يُقرأ، بل يُمسح.
+ *
+ * البند 10 من قائمة 20 أكتوبر: «الفاتورة والتقارير يجب أن تحمل رمز QR؛ رمزٌ عادي بلا ربط
+ * ضريبي، ورمزُ المرحلة الثانية عند الربط». والقيمة تأتي من الخادم لا من المتصفّح:
+ * `sales_invoices.zatca_qr` (حمولة TLV الموقّعة) إن كانت الفاتورة قد أُرسلت للهيئة، وإلا
+ * حمولةٌ نصّية بسيطة يقرأها أي جهاز: الرقم والتاريخ والإجمالي والعملة.
+ */
+export type ReportColumnType = 'text' | 'money' | 'qty' | 'int' | 'date' | 'percent' | 'qr';
 
 /**
  * A column the report **computes** but never shows — the signed twin of a money column,
@@ -47,6 +55,23 @@ export type ReportColumnType = 'text' | 'money' | 'qty' | 'int' | 'date' | 'perc
  * positive: the hidden column carries the sign, and `grandTotal` sums it.
  */
 export type ReportColumn = { key: string; labelAr: string; type: ReportColumnType; hidden?: boolean };
+
+/**
+ * حمولة رمز QR لفاتورة — المرحلة الثانية إن أُصدرت، وإلا حمولةٌ عادية.
+ *
+ * `zatca_qr` يُكتب عند الإرسال الناجح للهيئة (أو المحاكاة) فقط، أي حين يكون «الربط
+ * الضريبي» قائماً فعلاً. وحين لا يكون، يُبنى رمزٌ نصّي مفهوم بلا ادّعاء توافق: رقم الفاتورة
+ * وتاريخها وإجماليها وعملتها. وهو الفرق الذي طلبه المستخدم بين «رمز عادي» و«رمز المرحلة
+ * الثانية».
+ */
+const invoiceQr = (alias = 'si') => sql`CASE
+  WHEN ${sql.raw(alias)}.zatca_qr IS NOT NULL AND length(${sql.raw(alias)}.zatca_qr) > 0
+    THEN ${sql.raw(alias)}.zatca_qr
+  ELSE 'ERP|' || ${sql.raw(alias)}.number || '|' ||
+       to_char(COALESCE(${sql.raw(alias)}.posted_at, ${sql.raw(alias)}.created_at), 'YYYY-MM-DD') || '|' ||
+       ${sql.raw(alias)}.total || '|SAR'
+END`;
+const qr = (key: string, labelAr: string): ReportColumn => ({ key, labelAr, type: 'qr' });
 
 /** One summary card under the grid: the column it sums and the label it prints. */
 export type ReportGrandTotal = { key: string; labelAr: string };
@@ -1415,12 +1440,12 @@ const definitions: ReportDefinition[] = [
     group: 'sales',
     hintAr: 'الفواتير المرحّلة فقط — المسودات لا تدخل أي تقرير مالي.',
     params: [...PERIOD, BRANCH, PARTY, SALESMAN],
-    columns: [text('number', 'الرقم'), date('day', 'التاريخ'), text('party', 'العميل'), text('branch', 'الفرع'), money('subtotal', 'الصافي قبل الضريبة'), money('tax_total', 'الضريبة'), money('total', 'الإجمالي'), money('paid_total', 'المدفوع'), money('due', 'المتبقي'), text('payment_status', 'حالة السداد')],
+    columns: [text('number', 'الرقم'), date('day', 'التاريخ'), text('party', 'العميل'), text('branch', 'الفرع'), money('subtotal', 'الصافي قبل الضريبة'), money('tax_total', 'الضريبة'), money('total', 'الإجمالي'), money('paid_total', 'المدفوع'), money('due', 'المتبقي'), text('payment_status', 'حالة السداد'), qr('qr', 'رمز الفاتورة')],
     totals: ['subtotal', 'tax_total', 'total', 'paid_total', 'due'],
     build: (tenantId, f) => sql`
       SELECT si.number, si.posted_at::date AS day, ${partyName} AS party, ${branchName} AS branch,
              si.subtotal::text, si.tax_total::text, si.total::text, si.paid_total::text,
-             (si.total - si.paid_total)::text AS due, si.payment_status
+             (si.total - si.paid_total)::text AS due, si.payment_status, ${invoiceQr()} AS qr
       FROM sales_invoices si
       LEFT JOIN parties party ON party.id = si.party_id
       LEFT JOIN branches branch ON branch.id = si.branch_id
@@ -2985,20 +3010,47 @@ const definitions: ReportDefinition[] = [
     key: 'balance-sheet',
     titleAr: 'ميزانية تحليلية',
     group: 'accounting',
+    /*
+     * صافي ربح الفترة (أو خسارتها) سطرٌ في حقوق الملكية، لأن حسابات الإيراد
+     * والمصروف لا تُقفل في هذا النظام: بلا هذا السطر تخرج الميزانية غير
+     * متوازنة بمقدار الربح نفسه (قِيس على منشأة العرض 2026-10-20:
+     * الأصول 250,379.8969 مقابل الخصوم 260 + حقوق الملكية 250,000 والفرق
+     * 119.8969 = صافي الربح الدفتري). والربح هنا **من القيود** لا من قيمة
+     * المخزون التي يضيفها تقرير «أرباح وخسائر» اقتداءً بالديسكتوب.
+     */
+    hintAr: 'الأصول في مقابل الخصوم وحقوق الملكية، ويُضاف إليها صافي ربح الفترة أو خسارتها حتى التاريخ المحدد — فالميزانية لا تُقرأ إلّا متوازنة.',
     params: [{ name: 'to', labelAr: 'حتى تاريخ', kind: 'date' }, BRANCH],
     columns: [text('section', 'القسم'), text('code', 'رقم الحساب'), text('account', 'الحساب'), money('balance', 'الرصيد')],
     totals: ['balance'],
     build: (tenantId, f) => sql`
-      SELECT CASE acc.type WHEN 'asset' THEN 'الأصول' WHEN 'liability' THEN 'الخصوم' ELSE 'حقوق الملكية' END AS section,
-             acc.code, acc.name_ar AS account,
-             CASE acc.type WHEN 'asset' THEN sum(jel.debit) - sum(jel.credit)
-                           ELSE sum(jel.credit) - sum(jel.debit) END::text AS balance
-      FROM journal_entry_lines jel
-      JOIN journal_entries je ON je.id = jel.entry_id
-      JOIN accounts acc ON acc.id = jel.account_id
-      WHERE jel.tenant_id = ${tenantId} AND je.status = 'posted' AND acc.type IN ('asset', 'liability', 'equity')
-        AND ${onDate(sql`je.date`, undefined, f.to)} AND ${eqIf(sql`je.branch_id`, f.branchId)}
-      GROUP BY acc.type, acc.code, acc.name_ar ORDER BY acc.type, acc.code`,
+      SELECT section, code, account, balance
+      FROM (
+        SELECT CASE acc.type WHEN 'asset' THEN 'الأصول' WHEN 'liability' THEN 'الخصوم' ELSE 'حقوق الملكية' END AS section,
+               acc.code, acc.name_ar AS account,
+               CASE acc.type WHEN 'asset' THEN sum(jel.debit) - sum(jel.credit)
+                             ELSE sum(jel.credit) - sum(jel.debit) END::text AS balance,
+               CASE acc.type WHEN 'asset' THEN 1 WHEN 'liability' THEN 2 ELSE 3 END AS ord
+        FROM journal_entry_lines jel
+        JOIN journal_entries je ON je.id = jel.entry_id
+        JOIN accounts acc ON acc.id = jel.account_id
+        WHERE jel.tenant_id = ${tenantId} AND je.status = 'posted' AND acc.type IN ('asset', 'liability', 'equity')
+          AND ${onDate(sql`je.date`, undefined, f.to)} AND ${eqIf(sql`je.branch_id`, f.branchId)}
+        GROUP BY acc.type, acc.code, acc.name_ar
+        UNION ALL
+        SELECT 'حقوق الملكية', '',
+               CASE WHEN result.net >= 0 THEN 'صافي ربح الفترة' ELSE 'صافي خسارة الفترة' END,
+               result.net::text, 4
+        FROM (
+          SELECT coalesce(sum(jel.credit - jel.debit), 0) AS net
+          FROM journal_entry_lines jel
+          JOIN journal_entries je ON je.id = jel.entry_id
+          JOIN accounts acc ON acc.id = jel.account_id
+          WHERE jel.tenant_id = ${tenantId} AND je.status = 'posted' AND acc.type IN ('revenue', 'expense')
+            AND ${onDate(sql`je.date`, undefined, f.to)} AND ${eqIf(sql`je.branch_id`, f.branchId)}
+        ) AS result
+        WHERE result.net <> 0
+      ) AS sheet
+      ORDER BY sheet.ord, sheet.code`,
   },
   {
     key: 'vat-return',
@@ -3121,11 +3173,11 @@ const definitions: ReportDefinition[] = [
     group: 'pos',
     hintAr: 'الفواتير النقدية التي لا يقابلها عميل مسجّل هي مبيعات نقطة البيع.',
     params: [...PERIOD, BRANCH],
-    columns: [text('number', 'الرقم'), date('day', 'التاريخ'), text('customer', 'العميل النقدي'), money('total', 'الإجمالي'), text('payment_status', 'السداد')],
+    columns: [text('number', 'الرقم'), date('day', 'التاريخ'), text('customer', 'العميل النقدي'), money('total', 'الإجمالي'), text('payment_status', 'السداد'), qr('qr', 'رمز الإيصال')],
     totals: ['total'],
     build: (tenantId, f) => sql`
       SELECT si.number, si.posted_at::date AS day, coalesce(si.cash_customer_name, 'نقدي') AS customer,
-             si.total::text, si.payment_status
+             si.total::text, si.payment_status, ${invoiceQr()} AS qr
       FROM sales_invoices si
       WHERE ${salesScope(tenantId, f, 'sale')} AND si.party_id IS NULL
       ORDER BY si.posted_at DESC LIMIT 1000`,

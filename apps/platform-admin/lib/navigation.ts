@@ -65,7 +65,7 @@ export const consoleGroups: readonly ConsoleGroup[] = [
     key: 'customers',
     labelAr: 'العملاء',
     labelEn: 'Customers',
-    icon: '🏢',
+ icon: '',
     items: [
       item('tenants', 'العملاء', 'Customers', '/tenants', 'console.tenants.view', 'GET /platform/tenants'),
       item(
@@ -103,7 +103,7 @@ export const consoleGroups: readonly ConsoleGroup[] = [
     key: 'money',
     labelAr: 'المال',
     labelEn: 'Money',
-    icon: '💳',
+ icon: '',
     items: [
       item(
         'subscriptions',
@@ -149,7 +149,7 @@ export const consoleGroups: readonly ConsoleGroup[] = [
     key: 'operations',
     labelAr: 'التشغيل',
     labelEn: 'Operations',
-    icon: '🛠️',
+ icon: '',
     items: [
       item('audit', 'التدقيق', 'Audit', '/audit', 'console.audit.view', 'GET /platform/audit'),
       // P-C6 — «البريد»: خدمةٌ تُشرَف لا تقريرٌ يُقرأ. موضعها في التشغيل لأنها تُسائل الجواب
@@ -187,6 +187,18 @@ export const consoleGroups: readonly ConsoleGroup[] = [
       // والرمز `console.jobs.manage` (جديد في هذا الجزء) هو ما يفصل من يقرأ الطابور عمّن
       // يشغّله — والمدقّق يحمل `console.jobs.view` وحده فيبقى على الحياد.
       item('jobs', 'المهام والطوابير', 'Jobs', '/jobs', 'console.jobs.view', 'GET /platform/jobs'),
+      // البند 20 — «سجل المشاكل»: شاشةٌ واحدة تُجيب «ما الذي يفشل الآن؟» عبر خمسة مصادر.
+      // ولذلك محلها التشغيل بجانب الصحة لا داخل التدقيق: التدقيق يحكي ما جرى، وهذه تحكي
+      // ما **يزال** يحتاج إصلاحاً — ويقود إليها رمز قراءة الصحة نفسه، فلا يفتحها إلا من
+      // يملك النظر في أعطال المنصة.
+      item(
+        'problems',
+        'سجل المشاكل',
+        'Problem log',
+        '/problems',
+        'console.health.view',
+        'GET /platform/problems',
+      ),
       item('health', 'الصحة', 'Health', '/health', 'console.health.view', 'GET /platform/health/detailed'),
       item('files', 'الملفات', 'Files', '/files', 'console.jobs.view', 'GET /platform/files'),
       // P-C10 — «البيانات والاسترجاع»: نسخةٌ لها حجمٌ وبصمة ومكان، وسياسةُ احتفاظٍ تُنفَّذ،
@@ -208,13 +220,25 @@ export const consoleGroups: readonly ConsoleGroup[] = [
         'console.backups.manage',
         'GET /platform/data-requests',
       ),
+      // 🗜️ P-C13 — «تحديثات المنصة»: حزمةُ إصدارٍ تُرفع وتُقاس ثم تُعلَن. محلها التشغيل
+      // بجانب النسخ لأنها العمل نفسه: ما يُنشر وما يُستعاد. والرمز `console.releases.view`
+      // لقراءة السجلّ (التشغيل والدعم والرقابة) و`console.releases.manage` للإعلان —
+      // والمالك وحده يحمله، لأن الإعلان يغيّر ما يقوله كل حسابٍ عن نفسه.
+      item(
+        'releases',
+        'تحديثات المنصة',
+        'Platform releases',
+        '/releases',
+        'console.releases.view',
+        'GET /platform/releases',
+      ),
     ],
   },
   {
     key: 'platform',
     labelAr: 'المنصة',
     labelEn: 'Platform',
-    icon: '⚙️',
+ icon: '',
     items: [
       item('overview', 'نظرة عامة', 'Overview', '/', 'console.tenants.view', 'GET /platform/overview'),
       // P-C5 — «الاستخدام والحصص»: شبكةٌ تقول من اقترب من حدّه ومن تجاوزه، وتصديرٌ لمن

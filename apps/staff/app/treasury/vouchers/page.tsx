@@ -1,5 +1,6 @@
 'use client';
 
+import { FilterBand, Panel } from '@erp/ui';
 import Link from 'next/link';
 import Decimal from 'decimal.js';
 import { useSearchParams } from 'next/navigation';
@@ -8,17 +9,9 @@ import { Suspense, useMemo, useState } from 'react';
 import { BankChooser } from '../../../components/bank-chooser';
 import { DataTable, Notice, QueryView } from '../../../components/data-view';
 import { Screen } from '../../../components/screen';
-import {
-  ActionBar,
-  DocField,
-  DocHead,
-  StatTile,
-  StatTiles,
-  StatusTrack,
-  Tabs,
-} from '../../../components/ui';
+import { ActionBar, DocField, DocHead, StatTile, StatTiles, StatusTrack, Tabs } from '../../../components/ui';
 import { accountLabel, listAccounts, postableOf, type Account } from '../../../lib/accounts';
-import { ApiError, apiDelete, apiFetch, apiList, apiPost, apiData } from '../../../lib/api';
+import { ApiError, apiData, apiDelete, apiErrorText, apiFetch, apiList, apiPost } from '../../../lib/api';
 import {
   branchOptions,
   cashLocationLabel,
@@ -41,6 +34,7 @@ import {
 } from '../../../lib/lookups';
 import { useSession } from '../../../lib/session';
 import { useQuery } from '../../../lib/use-query';
+import { Table } from '../../../components/ui/table';
 
 /**
  * سند قبض عميل / سند صرف لمورد — and the four siblings the desktop keeps beside them.
@@ -88,7 +82,7 @@ type Voucher = {
   createdBy?: string | null;
 };
 
-/** 📄 سند قبض عميل · 📄 سند صرف لمورد — `frmSandQ` / `frmSandD` titles, verbatim. */
+/** سند قبض عميل · سند صرف لمورد — `frmSandQ` / `frmSandD` titles, verbatim. */
 const SUBTYPES: Array<{ id: string; label: string; kind: 'receipt' | 'payment' | 'both' }> = [
   { id: 'customer', label: 'عميل', kind: 'both' },
   { id: 'supplier', label: 'مورد', kind: 'both' },
@@ -99,15 +93,15 @@ const SUBTYPES: Array<{ id: string; label: string; kind: 'receipt' | 'payment' |
   { id: 'other', label: 'أخرى', kind: 'both' },
 ];
 
-/** 💳 نوع الدفع — `frmSandQ` puts these two on radios: 💵 نقدي and 🏦 بنكي. */
+/** نوع الدفع — `frmSandQ` puts these two on radios: نقدي and بنكي. */
 const METHODS: Array<{ id: string; label: string; group: 'cash' | 'bank' }> = [
-  { id: 'cash', label: '💵 نقدي', group: 'cash' },
-  { id: 'cheque', label: '🏦 شيك', group: 'bank' },
-  { id: 'bank_transfer', label: '🏦 تحويل بنكي', group: 'bank' },
-  { id: 'card', label: '💳 شبكة', group: 'cash' },
+  { id: 'cash', label: 'نقدي', group: 'cash' },
+  { id: 'cheque', label: 'شيك', group: 'bank' },
+  { id: 'bank_transfer', label: 'تحويل بنكي', group: 'bank' },
+  { id: 'card', label: 'شبكة', group: 'cash' },
 ];
 
-/** 📋 حالة الشيك — the three states `frmPaymentVoucher` toggles. */
+/** حالة الشيك — the three states `frmPaymentVoucher` toggles. */
 const CHEQUE_STATES: Record<string, string> = {
   pending: 'تحت التحصيل',
   collected: 'محصّل',
@@ -147,7 +141,7 @@ function VouchersScreen() {
   const [kind, setKind] = useState<'receipt' | 'payment'>(initialKind);
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
-  const [q, setQ] = useState(highlightedId ? '' : '');
+  const [q, setQ] = useState('');
   const [open, setOpen] = useState(false);
   const [form, setForm] = useState(BLANK);
   const [busy, setBusy] = useState(false);
@@ -167,9 +161,14 @@ function VouchersScreen() {
 
   const vouchers = useQuery<Voucher[]>(() => apiList<Voucher>(query), [query]);
   const branches = useQuery<Branch[]>(() => listBranches(), []);
-  // 📎 إرفاق المستندات — `ReceiptOper.insertDocument` يحفظ صورة السند؛ `files` مع entity=voucher
-  const voucherFiles = useQuery<{ data: Array<{ id: string; name: string; mime: string; sizeBytes: number; createdAt: string }> }>(
-    () => (docVoucherId ? apiFetch(`/files?filter[entity]=voucher&filter[entityId]=${docVoucherId}&limit=50`) : Promise.resolve({ data: [] } as any)),
+  // إرفاق المستندات — `ReceiptOper.insertDocument` يحفظ صورة السند؛ `files` مع entity=voucher
+  const voucherFiles = useQuery<{
+    data: Array<{ id: string; name: string; mime: string; sizeBytes: number; createdAt: string }>;
+  }>(
+    () =>
+      docVoucherId
+        ? apiFetch(`/files?filter[entity]=voucher&filter[entityId]=${docVoucherId}&limit=50`)
+        : Promise.resolve({ data: [] } as any),
     [docVoucherId],
   );
   const cashLocations = useQuery<CashLocation[]>(() => listCashLocations(), []);
@@ -194,7 +193,8 @@ function VouchersScreen() {
   const isTransfer = form.method === 'bank_transfer';
   const bankRows = cashRows.filter(
     (row) =>
-      (row.kind ?? 'safe') === 'bank' && (!effectiveBranch || !row.branchId || row.branchId === effectiveBranch),
+      (row.kind ?? 'safe') === 'bank' &&
+      (!effectiveBranch || !row.branchId || row.branchId === effectiveBranch),
   );
 
   const totals = useMemo(() => {
@@ -222,7 +222,7 @@ function VouchersScreen() {
       setNotice({ kind: 'ok', text: okText });
       vouchers.reload();
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
     } finally {
       setBusy(false);
     }
@@ -263,7 +263,11 @@ function VouchersScreen() {
     if (!docVoucherId) return;
     setDocBusy(true);
     try {
-      const presigned = await apiPost<{ fileId: string; uploadUrl: string; requiredHeaders: Record<string, string> }>('/files/presign', {
+      const presigned = await apiPost<{
+        fileId: string;
+        uploadUrl: string;
+        requiredHeaders: Record<string, string>;
+      }>('/files/presign', {
         name: file.name,
         mime: file.type || 'application/octet-stream',
         sizeBytes: file.size,
@@ -278,9 +282,9 @@ function VouchersScreen() {
       if (!put.ok) throw new Error(`فشل رفع المرفق: ${put.status}`);
       await apiPost(`/files/${presigned.fileId}/finalize`, { entity: 'voucher', entityId: docVoucherId });
       voucherFiles.reload();
-      setNotice({ kind: 'ok', text: '✅ تم إرفاق المستند' });
+      setNotice({ kind: 'ok', text: 'تم إرفاق المستند' });
     } catch (error) {
-      setNotice({ kind: 'danger', text: error instanceof ApiError ? error.message : String(error) });
+      setNotice({ kind: 'danger', text: apiErrorText(error) });
     } finally {
       setDocBusy(false);
     }
@@ -288,7 +292,7 @@ function VouchersScreen() {
 
   return (
     <Screen
-      title={kind === 'receipt' ? '📄 سند قبض' : '📄 سند صرف'}
+      title={kind === 'receipt' ? 'سند قبض' : 'سند صرف'}
       subtitle={
         kind === 'receipt'
           ? 'سند قبض عميل — كما في frmSandQ: من، كم، وكيف، ثم التفاصيل.'
@@ -298,57 +302,73 @@ function VouchersScreen() {
       actions={
         can('treasury.voucher.create') ? (
           <button className="btn primary" type="button" onClick={() => setOpen(!open)}>
-            {open ? '✖ إغلاق' : '➕ جديد'}
+            {open ? 'إغلاق' : 'جديد'}
           </button>
         ) : null
       }
     >
       <StatTiles>
-        <StatTile label="📋 السندات" value={totals.count} hint="في الفترة المحددة" />
-        <StatTile label="📝 مسودات" value={totals.drafts} hint="لم تُرحَّل بعد" tone="warn" />
-        <StatTile label="✅ مُرحَّل" value={totals.posted} tone="ok" />
-        <StatTile label="💰 قيمة المُرحَّل" value={money(totals.postedTotal.toFixed(4))} />
-        <StatTile label="🏦 شيكات تحت التحصيل" value={totals.pending} hint="لا تلمس الرصيد قبل التحصيل" />
+        <StatTile label="السندات" value={totals.count} hint="في الفترة المحددة" />
+        <StatTile label="مسودات" value={totals.drafts} hint="لم تُرحَّل بعد" tone="warn" />
+        <StatTile label="مُرحَّل" value={totals.posted} tone="ok" />
+        <StatTile label="قيمة المُرحَّل" value={money(totals.postedTotal.toFixed(4))} />
+        <StatTile label="شيكات تحت التحصيل" value={totals.pending} hint="لا تلمس الرصيد قبل التحصيل" />
       </StatTiles>
 
-      <div className="card toolbar">
-        <Tabs
-          items={[
-            { id: 'receipt' as const, label: '📥 سند قبض' },
-            { id: 'payment' as const, label: '📤 سند صرف' },
-          ]}
-          value={kind}
-          onChange={(next) => {
-            setKind(next);
-            setForm((current) => ({
-              ...current,
-              subtype: next === 'payment' && current.subtype === 'customer' ? 'supplier' : current.subtype,
-            }));
-          }}
-        />
-      </div>
+      <Tabs
+        items={[
+          { id: 'receipt' as const, label: 'سند قبض' },
+          { id: 'payment' as const, label: 'سند صرف' },
+        ]}
+        value={kind}
+        onChange={(next) => {
+          setKind(next);
+          setForm((current) => ({
+            ...current,
+            subtype: next === 'payment' && current.subtype === 'customer' ? 'supplier' : current.subtype,
+          }));
+        }}
+      />
 
-      {/* 🔍 البحث — `frmSandQ`'s panel: من تاريخ / إلى تاريخ, 📋 كل الفترة, and a free search. */}
-      <div className="card toolbar">
+      <StatusTrack
+        steps={['مسودة', 'مُرحَّل', 'مُقيَّد']}
+        current={rows.some((row) => row.status === 'posted') ? 1 : 0}
+        cancelled={rows.some((row) => row.status === 'voided')}
+      />
+
+      {/* البحث — `frmSandQ`'s panel: من تاريخ / إلى تاريخ, كل الفترة, and a free search. */}
+      <FilterBand>
         <label className="field">
-          <span>📅 من تاريخ</span>
-          <input className="input" type="date" dir="ltr" value={from} onChange={(event) => setFrom(event.target.value)} />
+          <span>من تاريخ</span>
+          <input
+            className="input"
+            type="date"
+            dir="ltr"
+            value={from}
+            onChange={(event) => setFrom(event.target.value)}
+          />
         </label>
         <label className="field">
-          <span>📅 إلى تاريخ</span>
-          <input className="input" type="date" dir="ltr" value={to} onChange={(event) => setTo(event.target.value)} />
+          <span>إلى تاريخ</span>
+          <input
+            className="input"
+            type="date"
+            dir="ltr"
+            value={to}
+            onChange={(event) => setTo(event.target.value)}
+          />
         </label>
         <label className="field">
-          <span>🔍 البحث</span>
+          <span>البحث</span>
           <input
             className="input"
             value={q}
-            placeholder="🔢 الرقم · رقم المرجع · رقم الشيك · البيان"
+            placeholder="الرقم · رقم المرجع · رقم الشيك · البيان"
             onChange={(event) => setQ(event.target.value)}
           />
         </label>
         <button
-          className="btn sm"
+          className="btn"
           type="button"
           onClick={() => {
             setFrom('');
@@ -356,257 +376,331 @@ function VouchersScreen() {
             setQ('');
           }}
         >
-          📋 كل الفترة
+          كل الفترة
         </button>
-      </div>
+      </FilterBand>
 
       {open && (
-        <form className="card" onSubmit={create}>
-          <DocHead>
-            <DocField label="🔢 الرقم">
-              <span className="muted">يُرقَّم تلقائياً عند الترحيل</span>
-            </DocField>
-            <DocField label="📅 التاريخ">
-              <input className="input" type="date" dir="ltr" value={form.date} onChange={(event) => set('date', event.target.value)} required />
-            </DocField>
-            <DocField label="⏰ الوقت">
-              <input
-                className="input"
-                dir="ltr"
-                inputMode="numeric"
-                placeholder="09:05"
-                value={form.voucherTime}
-                onChange={(event) => set('voucherTime', event.target.value)}
-              />
-            </DocField>
-            <DocField label="🏢 الفرع">
-              <select className="input" value={effectiveBranch} onChange={(event) => set('branchId', event.target.value)} required>
-                {branchOptions(branchRows).map((option) => (
-                  <option key={option.id} value={option.id}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </DocField>
-            <DocField label={kind === 'receipt' ? '👤 حساب العميل' : '🏭 المورد'}>
-              <select className="input" value={form.partyId} onChange={(event) => set('partyId', event.target.value)}>
-                <option value="">— بدون —</option>
-                {(parties.data ?? []).map((row) => (
-                  <option key={row.id} value={row.id}>
-                    {partyLabel(row)}
-                  </option>
-                ))}
-              </select>
-            </DocField>
-            <DocField label="👤 الجهة">
-              <select className="input" value={form.subtype} onChange={(event) => set('subtype', event.target.value)}>
-                {filteredSubtypes.map((entry) => (
-                  <option key={entry.id} value={entry.id}>
-                    {entry.label}
-                  </option>
-                ))}
-              </select>
-            </DocField>
-          </DocHead>
-
-          <div className="form-grid">
-            <label className="field">
-              <span>💵 قيمة السند *</span>
-              <input
-                className="input"
-                dir="ltr"
-                inputMode="decimal"
-                value={form.amountText}
-                onChange={(event) => set('amountText', event.target.value)}
-                required
-              />
-            </label>
-            <label className="field">
-              <span>💲 العملة</span>
-              <select className="input" value={form.currency} onChange={(event) => set('currency', event.target.value)}>
-                <option value="SAR">ريال سعودي</option>
-                <option value="USD">💲 دولار</option>
-                <option value="YER">ريال يمني</option>
-                <option value="EUR">يورو</option>
-              </select>
-            </label>
-            {form.currency !== 'SAR' && (
-              <label className="field">
-                <span>💲 القيمة بالعملة</span>
+        <form onSubmit={create}>
+          <Panel title="سند جديد">
+            <DocHead>
+              <DocField label="الرقم">
+                <span className="muted">يُرقَّم تلقائياً عند الترحيل</span>
+              </DocField>
+              <DocField label="التاريخ">
+                <input
+                  className="input"
+                  type="date"
+                  dir="ltr"
+                  value={form.date}
+                  onChange={(event) => set('date', event.target.value)}
+                  required
+                />
+              </DocField>
+              <DocField label="الوقت">
                 <input
                   className="input"
                   dir="ltr"
-                  inputMode="decimal"
-                  value={form.foreignAmountText}
-                  onChange={(event) => set('foreignAmountText', event.target.value)}
+                  inputMode="numeric"
+                  placeholder="09:05"
+                  value={form.voucherTime}
+                  onChange={(event) => set('voucherTime', event.target.value)}
                 />
-                <span className="muted small">كما كُتبت في السند؛ المبلغ الأساسي يبقى بالريال.</span>
-              </label>
-            )}
-            {isTransfer ? (
-              /**
-               * 🏦 اختر طريقة الدفع (تحويل بنكي) — the desktop's tile window. A transfer
-               * that lands in "the default bank" is a transfer nobody chose, so the
-               * voucher names the bank before it is saved.
-               */
-              <div className="card tight">
-                <div className="card-head">🏦 البنوك المتاحة</div>
-                <div className="row" style={{ alignItems: 'center', justifyContent: 'space-between' }}>
-                  <span>
-                    {form.cashLocationId
-                      ? cashLocationLabel(cashRows.find((row) => row.id === form.cashLocationId) ?? ({} as CashLocation))
-                      : 'لم يُختر بنك'}
-                  </span>
-                  <button type="button" className="btn primary" onClick={() => setPickingBank(true)}>
-                    🏦 اختر البنك
-                  </button>
-                </div>
-              </div>
-            ) : (
-              <label className="field">
-                <span>{kind === 'receipt' ? '🏧 يودع في حساب *' : '🏧 يصرف من حساب *'}</span>
-                <select className="input" value={form.cashLocationId} onChange={(event) => set('cashLocationId', event.target.value)} required>
-                  <option value="">— اختر —</option>
-                  {cashRows.map((row) => (
-                    <option key={row.id} value={row.id}>
-                      {cashLocationLabel(row)}
+              </DocField>
+              <DocField label="الفرع">
+                <select
+                  className="input"
+                  value={effectiveBranch}
+                  onChange={(event) => set('branchId', event.target.value)}
+                  required
+                >
+                  {branchOptions(branchRows).map((option) => (
+                    <option key={option.id} value={option.id}>
+                      {option.label}
                     </option>
                   ))}
                 </select>
-              </label>
-            )}
-            <label className="field">
-              <span>🏦 دفعة لحساب</span>
-              <select className="input" value={form.counterAccountId} onChange={(event) => set('counterAccountId', event.target.value)}>
-                <option value="">— حساب الطرف —</option>
-                {postable.map((account) => (
-                  <option key={account.id} value={account.id}>
-                    {accountLabel(account)}
-                  </option>
-                ))}
-              </select>
-              <span className="muted small">
-                إن تركته فارغاً استُخدم حساب الطرف، ثم حساب التعيين في إعدادات الترحيل.
-              </span>
-            </label>
-          </div>
-
-          {/* 💼 تفاصيل الدفع — `frmSandQ`'s group box, with the cheque block behind it. */}
-          <div className="card">
-            <h4>💼 تفاصيل الدفع</h4>
-            <div className="form-grid">
-              <label className="field">
-                <span>💳 نوع الدفع</span>
-                <select className="input" value={form.method} onChange={(event) => set('method', event.target.value)}>
-                  {METHODS.map((entry) => (
+              </DocField>
+              <DocField label={kind === 'receipt' ? 'حساب العميل' : 'المورد'}>
+                <select
+                  className="input"
+                  value={form.partyId}
+                  onChange={(event) => set('partyId', event.target.value)}
+                >
+                  <option value="">— بدون —</option>
+                  {(parties.data ?? []).map((row) => (
+                    <option key={row.id} value={row.id}>
+                      {partyLabel(row)}
+                    </option>
+                  ))}
+                </select>
+              </DocField>
+              <DocField label="الجهة">
+                <select
+                  className="input"
+                  value={form.subtype}
+                  onChange={(event) => set('subtype', event.target.value)}
+                >
+                  {filteredSubtypes.map((entry) => (
                     <option key={entry.id} value={entry.id}>
                       {entry.label}
                     </option>
                   ))}
                 </select>
-              </label>
-              {isBank && (
-                <>
-                  <label className="field">
-                    <span>🏦 مسحوب على بنك</span>
-                    <input className="input" value={form.bankName} onChange={(event) => set('bankName', event.target.value)} />
-                  </label>
-                  {form.method === 'cheque' && (
-                    <>
-                      <label className="field">
-                        <span>🔢 رقم الشيك *</span>
-                        <input
-                          className="input"
-                          dir="ltr"
-                          value={form.chequeNo}
-                          onChange={(event) => set('chequeNo', event.target.value)}
-                          required
-                        />
-                      </label>
-                      <label className="field">
-                        <span>📅 تاريخ استحقاق (شيك)</span>
-                        <input
-                          className="input"
-                          type="date"
-                          dir="ltr"
-                          value={form.chequeDate}
-                          onChange={(event) => set('chequeDate', event.target.value)}
-                        />
-                      </label>
-                    </>
-                  )}
-                </>
-              )}
+              </DocField>
+            </DocHead>
+
+            <div className="form-grid">
               <label className="field">
-                <span>📅 تاريخ المرجع</span>
+                <span>قيمة السند *</span>
                 <input
                   className="input"
-                  type="date"
                   dir="ltr"
-                  value={form.referenceDate}
-                  onChange={(event) => set('referenceDate', event.target.value)}
+                  inputMode="decimal"
+                  value={form.amountText}
+                  onChange={(event) => set('amountText', event.target.value)}
+                  required
                 />
               </label>
               <label className="field">
-                <span>🔢 رقم المرجع</span>
-                <input className="input" dir="ltr" value={form.referenceNo} onChange={(event) => set('referenceNo', event.target.value)} />
+                <span>العملة</span>
+                <select
+                  className="input"
+                  value={form.currency}
+                  onChange={(event) => set('currency', event.target.value)}
+                >
+                  <option value="SAR">ريال سعودي</option>
+                  <option value="USD">دولار</option>
+                  <option value="YER">ريال يمني</option>
+                  <option value="EUR">يورو</option>
+                </select>
               </label>
+              {form.currency !== 'SAR' && (
+                <label className="field">
+                  <span>القيمة بالعملة</span>
+                  <input
+                    className="input"
+                    dir="ltr"
+                    inputMode="decimal"
+                    value={form.foreignAmountText}
+                    onChange={(event) => set('foreignAmountText', event.target.value)}
+                  />
+                  <span className="muted small">كما كُتبت في السند؛ المبلغ الأساسي يبقى بالريال.</span>
+                </label>
+              )}
+              {isTransfer ? (
+                /**
+                 * اختر طريقة الدفع (تحويل بنكي) — the desktop's tile window. A transfer
+                 * that lands in "the default bank" is a transfer nobody chose, so the
+                 * voucher names the bank before it is saved.
+                 */
+                <div className="ui-field-group">
+                  <div className="ui-field-group-title">البنوك المتاحة</div>
+                  <div className="row" style={{ alignItems: 'center', justifyContent: 'space-between' }}>
+                    <span>
+                      {form.cashLocationId
+                        ? cashLocationLabel(
+                            cashRows.find((row) => row.id === form.cashLocationId) ?? ({} as CashLocation),
+                          )
+                        : 'لم يُختر بنك'}
+                    </span>
+                    <button type="button" className="btn primary" onClick={() => setPickingBank(true)}>
+                      اختر البنك
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <label className="field">
+                  <span>{kind === 'receipt' ? 'يودع في حساب *' : 'يصرف من حساب *'}</span>
+                  <select
+                    className="input"
+                    value={form.cashLocationId}
+                    onChange={(event) => set('cashLocationId', event.target.value)}
+                    required
+                  >
+                    <option value="">— اختر —</option>
+                    {cashRows.map((row) => (
+                      <option key={row.id} value={row.id}>
+                        {cashLocationLabel(row)}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              )}
               <label className="field">
-                <span>مركز التكلفة</span>
-                <select className="input" value={form.costCenterId} onChange={(event) => set('costCenterId', event.target.value)}>
-                  <option value="">— بدون —</option>
-                  {(costCenters.data ?? []).map((row) => (
-                    <option key={row.id} value={row.id}>
-                      {row.nameAr ?? row.name_ar ?? row.code}
+                <span>دفعة لحساب</span>
+                <select
+                  className="input"
+                  value={form.counterAccountId}
+                  onChange={(event) => set('counterAccountId', event.target.value)}
+                >
+                  <option value="">— حساب الطرف —</option>
+                  {postable.map((account) => (
+                    <option key={account.id} value={account.id}>
+                      {accountLabel(account)}
                     </option>
                   ))}
                 </select>
-              </label>
-              <label className="field">
-                <span>👔 المندوب</span>
-                <select className="input" value={form.salesmanId} onChange={(event) => set('salesmanId', event.target.value)}>
-                  <option value="">— بدون —</option>
-                  {(employees.data ?? []).map((row) => (
-                    <option key={row.id} value={row.id}>
-                      {row.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label className="field">
-                <span>{kind === 'receipt' ? 'المستلم منه' : 'المستلم'}</span>
-                <input className="input" value={form.recipient} onChange={(event) => set('recipient', event.target.value)} />
-              </label>
-              <label className="field">
-                <span>📝 البيان</span>
-                <input className="input" value={form.description} onChange={(event) => set('description', event.target.value)} />
-                <span className="muted small">ينتقل إلى سطر القيد كما فيReceipts.Notes.</span>
+                <span className="muted small">
+                  إن تركته فارغاً استُخدم حساب الطرف، ثم حساب التعيين في إعدادات الترحيل.
+                </span>
               </label>
             </div>
-          </div>
 
-          <Notice notice={notice} />
-          <ActionBar>
-            <button className="btn primary" type="submit" disabled={busy}>
-              {busy ? 'جارٍ الحفظ…' : '💾 حفظ'}
-            </button>
-          </ActionBar>
+            {/* تفاصيل الدفع — `frmSandQ`'s group box, with the cheque block behind it. */}
+            <Panel title="تفاصيل الدفع">
+              <div className="form-grid">
+                <label className="field">
+                  <span>نوع الدفع</span>
+                  <select
+                    className="input"
+                    value={form.method}
+                    onChange={(event) => set('method', event.target.value)}
+                  >
+                    {METHODS.map((entry) => (
+                      <option key={entry.id} value={entry.id}>
+                        {entry.label}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                {isBank && (
+                  <>
+                    <label className="field">
+                      <span>مسحوب على بنك</span>
+                      <input
+                        className="input"
+                        value={form.bankName}
+                        onChange={(event) => set('bankName', event.target.value)}
+                      />
+                    </label>
+                    {form.method === 'cheque' && (
+                      <>
+                        <label className="field">
+                          <span>رقم الشيك *</span>
+                          <input
+                            className="input"
+                            dir="ltr"
+                            value={form.chequeNo}
+                            onChange={(event) => set('chequeNo', event.target.value)}
+                            required
+                          />
+                        </label>
+                        <label className="field">
+                          <span>تاريخ استحقاق (شيك)</span>
+                          <input
+                            className="input"
+                            type="date"
+                            dir="ltr"
+                            value={form.chequeDate}
+                            onChange={(event) => set('chequeDate', event.target.value)}
+                          />
+                        </label>
+                      </>
+                    )}
+                  </>
+                )}
+                <label className="field">
+                  <span>تاريخ المرجع</span>
+                  <input
+                    className="input"
+                    type="date"
+                    dir="ltr"
+                    value={form.referenceDate}
+                    onChange={(event) => set('referenceDate', event.target.value)}
+                  />
+                </label>
+                <label className="field">
+                  <span>رقم المرجع</span>
+                  <input
+                    className="input"
+                    dir="ltr"
+                    value={form.referenceNo}
+                    onChange={(event) => set('referenceNo', event.target.value)}
+                  />
+                </label>
+                <label className="field">
+                  <span>مركز التكلفة</span>
+                  <select
+                    className="input"
+                    value={form.costCenterId}
+                    onChange={(event) => set('costCenterId', event.target.value)}
+                  >
+                    <option value="">— بدون —</option>
+                    {(costCenters.data ?? []).map((row) => (
+                      <option key={row.id} value={row.id}>
+                        {row.nameAr ?? row.name_ar ?? row.code}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="field">
+                  <span>المندوب</span>
+                  <select
+                    className="input"
+                    value={form.salesmanId}
+                    onChange={(event) => set('salesmanId', event.target.value)}
+                  >
+                    <option value="">— بدون —</option>
+                    {(employees.data ?? []).map((row) => (
+                      <option key={row.id} value={row.id}>
+                        {row.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="field">
+                  <span>{kind === 'receipt' ? 'المستلم منه' : 'المستلم'}</span>
+                  <input
+                    className="input"
+                    value={form.recipient}
+                    onChange={(event) => set('recipient', event.target.value)}
+                  />
+                </label>
+                <label className="field">
+                  <span>البيان</span>
+                  <input
+                    className="input"
+                    value={form.description}
+                    onChange={(event) => set('description', event.target.value)}
+                  />
+                  <span className="muted small">ينتقل إلى سطر القيد كما فيReceipts.Notes.</span>
+                </label>
+              </div>
+            </Panel>
+
+            <Notice notice={notice} />
+            <ActionBar>
+              <button className="btn primary" type="submit" disabled={busy}>
+                {busy ? 'جارٍ الحفظ…' : 'حفظ'}
+              </button>
+            </ActionBar>
+          </Panel>
         </form>
       )}
 
       {!open && <Notice notice={notice} />}
       {highlightedId && (
-        <div className="card tight" style={{ background: 'var(--warn-soft)', borderColor: 'var(--warn-line)' }}>
+        <div
+          className="alert warn"
+          style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}
+        >
           <span>
-            🔍 تم فتح السند <code dir="ltr">{highlightedId}</code> من تقرير آخر — الصف المميز أدناه هو المطلوب.
+            تم فتح السند <code dir="ltr">{highlightedId}</code> من تقرير آخر — الصف المميز أدناه هو المطلوب.
           </span>
           <Link className="btn sm" href={`/print/voucher/${highlightedId}`} style={{ marginInlineStart: 12 }}>
-            🖨️ طباعة السند
+            طباعة السند
           </Link>
         </div>
       )}
 
-      <QueryView query={vouchers} isEmpty={() => rows.length === 0} empty="لا توجد سندات" emptyDetail="أنشئ سند قبض أو صرف جديداً.">
+      <QueryView
+        panel="السندات"
+        query={vouchers}
+        isEmpty={() => rows.length === 0}
+        empty="لا توجد سندات"
+        emptyDetail="أنشئ سند قبض أو صرف جديداً."
+      >
         {() => (
           <DataTable
             rows={rows}
@@ -622,21 +716,24 @@ function VouchersScreen() {
               '',
               '',
               money(
-                rows
-                  .reduce((running, row) => running.plus(row.amount ?? '0'), new Decimal('0'))
-                  .toFixed(4),
+                rows.reduce((running, row) => running.plus(row.amount ?? '0'), new Decimal('0')).toFixed(4),
               ),
               '',
               '',
               '',
             ]}
             columns={[
-              { key: 'number', header: '🔢 الرقم', align: 'ltr', cell: (row) => row.number ?? 'مسودة' },
-              { key: 'date', header: '📅 التاريخ', align: 'ltr', cell: (row) => shortDate(row.date) },
-              { key: 'time', header: '⏰ الوقت', align: 'ltr', cell: (row) => row.voucherTime?.slice(0, 5) ?? '—' },
+              { key: 'number', header: 'الرقم', align: 'ltr', cell: (row) => row.number ?? 'مسودة' },
+              { key: 'date', header: 'التاريخ', align: 'ltr', cell: (row) => shortDate(row.date) },
+              {
+                key: 'time',
+                header: 'الوقت',
+                align: 'ltr',
+                cell: (row) => row.voucherTime?.slice(0, 5) ?? '—',
+              },
               {
                 key: 'party',
-                header: kind === 'receipt' ? '👤 العميل' : '🏭 المورد',
+                header: kind === 'receipt' ? 'العميل' : 'المورد',
                 cell: (row) => {
                   const party = partyOf(row.partyId);
                   return party ? partyLabel(party) : (row.recipient ?? '—');
@@ -644,7 +741,7 @@ function VouchersScreen() {
               },
               {
                 key: 'description',
-                header: '📝 البيان',
+                header: 'البيان',
                 cell: (row) => row.description ?? '—',
               },
               {
@@ -654,7 +751,7 @@ function VouchersScreen() {
               },
               {
                 key: 'cash',
-                header: '🏦 الصندوق',
+                header: 'الصندوق',
                 cell: (row) => {
                   const location = cashRows.find((entry) => entry.id === row.cashLocationId);
                   return location ? cashLocationLabel(location) : '—';
@@ -662,22 +759,30 @@ function VouchersScreen() {
               },
               {
                 key: 'method',
-                header: '💳 نوع الدفع',
+                header: 'نوع الدفع',
                 cell: (row) =>
                   row.method === 'cheque'
-                    ? `🏦 شيك ${row.chequeNo ?? ''}`.trim()
+                    ? `شيك ${row.chequeNo ?? ''}`.trim()
                     : (METHODS.find((entry) => entry.id === row.method)?.label ?? row.method),
               },
-              { key: 'amount', header: '💰 المبلغ', align: 'num', cell: (row) => money(row.amount, row.currency) },
+              {
+                key: 'amount',
+                header: 'المبلغ',
+                align: 'num',
+                cell: (row) => money(row.amount, row.currency),
+              },
               {
                 key: 'foreign',
-                header: '💲 أجنبي',
+                header: 'أجنبي',
                 align: 'num',
-                cell: (row) => (row.foreignAmount ? `${money(row.foreignAmount, row.currency)}${row.fxRate ? ` @${Number(row.fxRate).toFixed(4)}` : ''}` : '—'),
+                cell: (row) =>
+                  row.foreignAmount
+                    ? `${money(row.foreignAmount, row.currency)}${row.fxRate ? ` @${Number(row.fxRate).toFixed(4)}` : ''}`
+                    : '—',
               },
               {
                 key: 'status',
-                header: '📋 الحالة',
+                header: 'الحالة',
                 cell: (row) => (
                   <span className="badge">
                     {row.method === 'cheque' && row.chequeState
@@ -692,10 +797,10 @@ function VouchersScreen() {
                 cell: (row) => (
                   <span className="row">
                     <Link className="btn sm" href={`/print/voucher/${row.id}`}>
-                      🖨️ طباعة
+                      طباعة
                     </Link>
                     <button className="btn sm" type="button" onClick={() => setDocVoucherId(row.id)}>
-                      📎 مرفقات
+                      مرفقات
                     </button>
                     {row.status === 'draft' && can('treasury.voucher.post') && (
                       <button
@@ -704,7 +809,7 @@ function VouchersScreen() {
                         disabled={busy}
                         onClick={() => run(() => apiPost(`/vouchers/${row.id}/post`, {}), 'تم ترحيل السند.')}
                       >
-                        ✅ ترحيل
+                        ترحيل
                       </button>
                     )}
                     {row.status === 'posted' && row.method === 'cheque' && row.chequeState === 'pending' && (
@@ -714,20 +819,26 @@ function VouchersScreen() {
                           type="button"
                           disabled={busy}
                           onClick={() =>
-                            run(() => apiPost(`/vouchers/${row.id}/cheque`, { action: 'clear' }), 'تم تحصيل الشيك.')
+                            run(
+                              () => apiPost(`/vouchers/${row.id}/cheque`, { action: 'clear' }),
+                              'تم تحصيل الشيك.',
+                            )
                           }
                         >
-                          💰 تحصيل
+                          تحصيل
                         </button>
                         <button
                           className="btn sm danger"
                           type="button"
                           disabled={busy}
                           onClick={() =>
-                            run(() => apiPost(`/vouchers/${row.id}/cheque`, { action: 'bounce' }), 'أُعيد الدين على الطرف.')
+                            run(
+                              () => apiPost(`/vouchers/${row.id}/cheque`, { action: 'bounce' }),
+                              'أُعيد الدين على الطرف.',
+                            )
                           }
                         >
-                          ↩️ إرجاع
+                          إرجاع
                         </button>
                       </>
                     )}
@@ -737,10 +848,13 @@ function VouchersScreen() {
                         type="button"
                         disabled={busy}
                         onClick={() =>
-                          run(() => apiPost(`/vouchers/${row.id}/void`, { reason: 'إلغاء من شاشة السندات' }), 'تم إلغاء السند.')
+                          run(
+                            () => apiPost(`/vouchers/${row.id}/void`, { reason: 'إلغاء من شاشة السندات' }),
+                            'تم إلغاء السند.',
+                          )
                         }
                       >
-                        🗑️ إلغاء
+                        إلغاء
                       </button>
                     )}
                   </span>
@@ -752,8 +866,7 @@ function VouchersScreen() {
       </QueryView>
 
       {docVoucherId && (
-        <div className="card">
-          <h3>📎 مرفقات السند — `ReceiptOper.insertDocument` — {docVoucherId.slice(0, 8)}…</h3>
+        <Panel title={<>مرفقات السند — `ReceiptOper.insertDocument` — {docVoucherId.slice(0, 8)} …</>} flush>
           <div className="toolbar">
             <input
               className="input"
@@ -764,81 +877,99 @@ function VouchersScreen() {
               }}
               disabled={docBusy}
             />
-            <button className="btn sm" type="button" onClick={() => voucherFiles.reload()} disabled={voucherFiles.status === 'loading'}>
-              🔄 تحديث
+            <button
+              className="btn sm"
+              type="button"
+              onClick={() => voucherFiles.reload()}
+              disabled={voucherFiles.status === 'loading'}
+            >
+              تحديث
             </button>
             <button className="btn sm" type="button" onClick={() => setDocVoucherId(null)}>
-              ✖ إغلاق
+              إغلاق
             </button>
           </div>
           {voucherFiles.status === 'loading' && <p className="hint">جارٍ التحميل…</p>}
-          {voucherFiles.status === 'success' && (voucherFiles.data?.data?.length ?? 0) === 0 && <p className="hint">لا توجد مرفقات — `frmshowdocument.xaml` «لا يوجد وثائق.»</p>}
-          {voucherFiles.status === 'success' && (voucherFiles.data?.data?.length ?? 0) > 0 && (
-            <div className="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>📄 اسم الملف</th>
-                    <th>النوع</th>
-                    <th>الحجم</th>
-                    <th>التاريخ</th>
-                    <th />
-                  </tr>
-                </thead>
-                <tbody>
-                  {(voucherFiles.data?.data ?? []).map((file) => (
-                    <tr key={file.id}>
-                      <td>{file.name}</td>
-                      <td dir="ltr">{file.mime}</td>
-                      <td dir="ltr">{file.sizeBytes}</td>
-                      <td dir="ltr">{shortDate(file.createdAt)}</td>
-                      <td>
-                        <span className="row">
-                          <button
-                            className="btn sm"
-                            type="button"
-                            onClick={async () => {
-                              try {
-                                const link = await apiData<{ url: string }>(`/files/${file.id}/download`);
-                                window.open(link.url, '_blank');
-                              } catch (e) {
-                                setNotice({ kind: 'danger', text: e instanceof ApiError ? e.message : String(e) });
-                              }
-                            }}
-                          >
-                            ⬇️ تنزيل
-                          </button>
-                          <button
-                            className="btn sm danger"
-                            type="button"
-                            onClick={async () => {
-                              if (!window.confirm(`هل أنت متأكد من حذف ${file.name}؟`)) return;
-                              try {
-                                await apiDelete(`/files/${file.id}`);
-                                voucherFiles.reload();
-                              } catch (e) {
-                                setNotice({ kind: 'danger', text: e instanceof ApiError ? e.message : String(e) });
-                              }
-                            }}
-                          >
-                            🗑️ حذف
-                          </button>
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+          {voucherFiles.status === 'success' && (voucherFiles.data?.data?.length ?? 0) === 0 && (
+            <p className="hint">لا توجد مرفقات — `frmshowdocument.xaml` «لا يوجد وثائق.»</p>
           )}
-        </div>
+          {voucherFiles.status === 'success' && (voucherFiles.data?.data?.length ?? 0) > 0 && (
+            <Table
+              bare
+              columns={[
+                {
+                  key: 'c0',
+                  header: 'اسم الملف',
+                  cell: (file) => file.name,
+                },
+                {
+                  key: 'c1',
+                  header: 'النوع',
+                  ltr: true,
+                  cell: (file) => file.mime,
+                },
+                {
+                  key: 'c2',
+                  header: 'الحجم',
+                  ltr: true,
+                  cell: (file) => file.sizeBytes,
+                },
+                {
+                  key: 'c3',
+                  header: 'التاريخ',
+                  ltr: true,
+                  cell: (file) => shortDate(file.createdAt),
+                },
+                {
+                  key: 'c4',
+                  header: '',
+                  cell: (file) => (
+                    <span className="row">
+                      <button
+                        className="btn sm"
+                        type="button"
+                        onClick={async () => {
+                          try {
+                            const link = await apiData<{ url: string }>(`/files/${file.id}/download`);
+                            window.open(link.url, '_blank');
+                          } catch (e) {
+                            setNotice({
+                              kind: 'danger',
+                              text: e instanceof ApiError ? e.message : String(e),
+                            });
+                          }
+                        }}
+                      >
+                        تنزيل
+                      </button>
+                      <button
+                        className="btn sm danger"
+                        type="button"
+                        onClick={async () => {
+                          if (!window.confirm(`هل أنت متأكد من حذف ${file.name}؟`)) return;
+                          try {
+                            await apiDelete(`/files/${file.id}`);
+                            voucherFiles.reload();
+                          } catch (e) {
+                            setNotice({
+                              kind: 'danger',
+                              text: e instanceof ApiError ? e.message : String(e),
+                            });
+                          }
+                        }}
+                      >
+                        حذف
+                      </button>
+                    </span>
+                  ),
+                },
+              ]}
+              rows={voucherFiles.data?.data ?? []}
+              rowKey={(file) => file.id}
+            />
+          )}
+        </Panel>
       )}
-
-      <StatusTrack
-        steps={['مسودة', 'مُرحَّل', 'مُقيَّد']}
-        current={rows.some((row) => row.status === 'posted') ? 1 : 0}
-        cancelled={rows.some((row) => row.status === 'voided')}
-      />
 
       {/**
        * 🏦 `frmPayBank` — the bank is chosen here, not inherited: `SelectedBankId == 0`

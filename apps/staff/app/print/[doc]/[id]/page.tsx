@@ -1,5 +1,6 @@
 'use client';
 
+import { Panel } from '@erp/ui';
 import Link from 'next/link';
 import { use, useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
@@ -17,11 +18,32 @@ import { apiFetch } from '../../../../lib/api';
  * application.
  */
 const DOCS: Record<string, { path: string; title: string; back: string; backLabel: string }> = {
-  'sales-invoice': { path: 'invoices', title: 'طباعة فاتورة المبيعات', back: '/sales/invoices', backLabel: 'فواتير المبيعات' },
-  'purchase-invoice': { path: 'purchase-invoices', title: 'طباعة فاتورة المشتريات', back: '/purchases/invoices', backLabel: 'فواتير المشتريات' },
+  'sales-invoice': {
+    path: 'invoices',
+    title: 'طباعة فاتورة المبيعات',
+    back: '/sales/invoices',
+    backLabel: 'فواتير المبيعات',
+  },
+  'purchase-invoice': {
+    path: 'purchase-invoices',
+    // المستند نفسه يقول نوعه (فاتورة أو مردود)؛ العنوان خارج الورقة لا يجزم بما ليس فيه.
+    title: 'طباعة مستند المشتريات',
+    back: '/purchases/invoices',
+    backLabel: 'فواتير المشتريات',
+  },
   voucher: { path: 'vouchers', title: 'طباعة السند', back: '/treasury/vouchers', backLabel: 'السندات' },
-  'journal-entry': { path: 'journal-entries', title: 'طباعة سند القيد', back: '/accounting/journal-entries', backLabel: 'القيود' },
-  shift: { path: 'shifts', title: 'طباعة إغلاق اليومية', back: '/sales/shifts', backLabel: 'إغلاقات اليومية' },
+  'journal-entry': {
+    path: 'journal-entries',
+    title: 'طباعة سند القيد',
+    back: '/accounting/journal-entries',
+    backLabel: 'القيود',
+  },
+  shift: {
+    path: 'shifts',
+    title: 'طباعة إغلاق اليومية',
+    back: '/sales/shifts',
+    backLabel: 'إغلاقات اليومية',
+  },
 };
 
 export default function PrintPage({ params }: { params: Promise<{ doc: string; id: string }> }) {
@@ -38,6 +60,16 @@ export default function PrintPage({ params }: { params: Promise<{ doc: string; i
   const auto = useSearchParams().get('auto') === '1';
   const printed = useRef(false);
 
+  /**
+   * الورقة تُعرض داخل `iframe` معزول (sandbox) فلا تنفّذ سكربتات. القالب يأتي من
+   * الخادم ومعمولٌ ليُفتح منفرداً أيضاً، وفيه زرّ «طباعة» بمعالجٍ سطري — يعمل
+   * منفرداً، ويُحجب هنا فيلوّث console بخطأ في كل فتح. نزيل شريط أدوات الورقة
+   * عند التضمين: الشاشة نفسها تحمل «طباعة» و«حفظ نسخة».
+   */
+  function embeddable(source: string): string {
+    return source.replace(/<div class="toolbar">[\s\S]*?<\/div>\s*(?=<div class="sheet)/, '');
+  }
+
   useEffect(() => {
     if (!spec) return;
     let alive = true;
@@ -45,7 +77,7 @@ export default function PrintPage({ params }: { params: Promise<{ doc: string; i
     setError(undefined);
     apiFetch<{ html: string }>(`/reports/print/${spec.path}/${id}`)
       .then((payload) => {
-        if (alive) setHtml(payload.html);
+        if (alive) setHtml(embeddable(payload.html));
       })
       .catch((cause: unknown) => {
         if (alive) setError(cause instanceof Error ? cause.message : String(cause));
@@ -115,9 +147,15 @@ export default function PrintPage({ params }: { params: Promise<{ doc: string; i
       {error && <ErrorBox message={error} />}
       {!html && !error && <Loading />}
       {html && (
-        <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-          <iframe ref={frame} title={spec.title} srcDoc={html} sandbox="allow-same-origin allow-modals" style={{ width: '100%', height: '80vh', border: 0, background: 'var(--surface)' }} />
-        </div>
+        <Panel style={{ padding: 0, overflow: 'hidden' }}>
+          <iframe
+            ref={frame}
+            title={spec.title}
+            srcDoc={html}
+            sandbox="allow-same-origin allow-modals"
+            style={{ width: '100%', height: '80vh', border: 0, background: 'var(--surface)' }}
+          />
+        </Panel>
       )}
     </Screen>
   );

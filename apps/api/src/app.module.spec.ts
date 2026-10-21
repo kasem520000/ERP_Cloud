@@ -12,7 +12,9 @@ import {
   BranchScopeGuard,
   PermissionsGuard,
   RateLimitGuard,
+  SectorLicenceGuard,
   TenantGuard,
+  TenantRateLimitGuard,
 } from './modules/platform/index.js';
 import { AuditInterceptor } from './modules/platform-services/index.js';
 import { ImpersonationGuard } from './modules/support/impersonation.guard.js';
@@ -35,17 +37,29 @@ describe('AppModule', () => {
     const providers = providersOf(AppModule);
 
     // rate limit → AuthGuard → TenantGuard (+RLS GUC) → BranchScopeGuard → PermissionsGuard
+    //   → SectorLicenceGuard
     //
     // P-C8: `ImpersonationGuard` sits immediately after `AuthGuard` — the `imp` claim is only
     // readable once authentication has published the context, and a break-glass token must be
     // limited on **every** route it can reach. The five guards above keep their frozen order.
+    //
+    // 🛡️ `TenantRateLimitGuard` sits immediately after `TenantGuard` and **after** the IP
+    // bucket: the tenant is only known once the token is verified, and a flood spread over
+    // many addresses must still land in one bucket. Moving it earlier would bucket anonymous
+    // traffic as "no tenant" — i.e. one shared bucket for every signed-out request.
+    //
+    // 🏪 `SectorLicenceGuard` is appended, never inserted: authorisation («may this user act»)
+    // is settled before licensing («did this tenant buy the surface»), and the licence check
+    // reads `enabledApps` from the context `TenantGuard` published — so it cannot run earlier.
     expect(orderedTokens(providers, APP_GUARD)).toEqual([
       RateLimitGuard,
       AuthGuard,
       ImpersonationGuard,
       TenantGuard,
+      TenantRateLimitGuard,
       BranchScopeGuard,
       PermissionsGuard,
+      SectorLicenceGuard,
     ]);
 
     expect(orderedTokens(providers, APP_FILTER)).toEqual([AllExceptionsFilter]);

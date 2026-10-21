@@ -1,5 +1,6 @@
 'use client';
 
+import { FilterBand, FormSection, Panel } from '@erp/ui';
 import { Suspense, useState } from 'react';
 
 import { Empty, ErrorBox, Forbidden, Loading, Screen } from '../../../components/screen';
@@ -7,22 +8,23 @@ import { apiDelete, apiFetch, apiList, apiPatch, apiPost } from '../../../lib/ap
 import { listParties, money, type Party } from '../../../lib/lookups';
 import { useSession } from '../../../lib/session';
 import { useQuery } from '../../../lib/use-query';
+import { Table } from '../../../components/ui/table';
 
 /**
- * 🧵 إدارة طلبات التفصيل — `Form_WPF/frmOrders.xaml` («إدارة طلبات التفصيل») with the
+ * إدارة طلبات التفصيل — `Form_WPF/frmOrders.xaml` («إدارة طلبات التفصيل») with the
  * card of `Form_WPF/frmOrderDetails.xaml` («إضافة طلب تفصيل») behind «➕ إضافة طلب جديد».
  *
  * `frmOrders` is a filter bar over one grid. Its boxes are `txtSearch` (رقم الطلب or
  * اسم العميل — `LoadOrders` L100), `cmbStatus` (the `OrderStatus` rows with «الكل»
  * prepended at StatusID 0), `dtFrom` and `dtTo`, and «🔍 بحث». The grid «📋 قائمة
- * الطلبات» carries `رقم الطلب · 👤 العميل · 📞 الجوال · القياس · نوع التفصيل · ⚙️ الحالة ·
- * 📅 تاريخ الطلب · 📅 موعد التسليم · 💰 السعر · 💵 المدفوع · ⌛ المتبقي`, and its buttons
- * are `✖ إغلاق · ➕ إضافة طلب جديد · ✏️ تعديل · 🗑️ حذف · 🔄 تغيير الحالة` — a double-click
+ * الطلبات» carries `رقم الطلب · العميل · الجوال · القياس · نوع التفصيل · الحالة ·
+ * تاريخ الطلب · موعد التسليم · السعر · المدفوع · ⌛ المتبقي`, and its buttons
+ * are ` إغلاق · إضافة طلب جديد · تعديل · حذف · تغيير الحالة` — a double-click
  * on a row is the same as «✏️ تعديل» (L339).
  *
  * Two things are the desktop's own, and they are kept:
  *
- *   • ⌛ المتبقي = 💰 السعر − 💵 المدفوع (`CalculateRemaining` L290) and a **negative**
+ *   • ⌛ المتبقي = السعر − المدفوع (`CalculateRemaining` L290) and a **negative**
  *     remaining is allowed — the desktop paints it green, not red, instead of refusing.
  *   • a طلب whose موعد التسليم passed and whose حالة is not final is «متأخّر» and its row
  *     is painted `#FFE4E4` with dark-red text (L146).
@@ -125,7 +127,10 @@ function TailoringOrders() {
 
   const statuses = useQuery<Status[]>(() => apiList<Status>('/tailoring/order-statuses'), []);
   const types = useQuery<Type[]>(() => apiList<Type>('/tailoring/types'), []);
-  const categories = useQuery<OptionCategory[]>(() => apiList<OptionCategory>('/tailoring/option-categories'), []);
+  const categories = useQuery<OptionCategory[]>(
+    () => apiList<OptionCategory>('/tailoring/option-categories'),
+    [],
+  );
   const customers = useQuery<Party[]>(() => listParties('customer'), []);
 
   const orders = useQuery<{ rows: Order[]; total: number }>(() => {
@@ -135,14 +140,17 @@ function TailoringOrders() {
     if (applied.to) params.set('to', applied.to);
     if (applied.search) params.set('search', applied.search);
     const query = params.toString();
-    return apiFetch<{ data: Order[]; meta: { total: number } }>(`/tailoring/orders${query ? `?${query}` : ''}`).then(
-      (body) => ({ rows: body.data ?? [], total: body.meta?.total ?? (body.data ?? []).length }),
-    );
+    return apiFetch<{ data: Order[]; meta: { total: number } }>(
+      `/tailoring/orders${query ? `?${query}` : ''}`,
+    ).then((body) => ({ rows: body.data ?? [], total: body.meta?.total ?? (body.data ?? []).length }));
   }, [applied]);
 
   const draftPartyId = draft?.partyId ?? '';
   const measurements = useQuery<Measurement[]>(
-    () => (draftPartyId ? apiList<Measurement>(`/tailoring/parties/${draftPartyId}/measurements`) : Promise.resolve([])),
+    () =>
+      draftPartyId
+        ? apiList<Measurement>(`/tailoring/parties/${draftPartyId}/measurements`)
+        : Promise.resolve([]),
     [draftPartyId],
   );
 
@@ -150,7 +158,8 @@ function TailoringOrders() {
   const remaining = Number(draft?.price || 0) - Number(draft?.paidAmount || 0);
   const selectedCustomer = (customers.data ?? []).find((party) => party.id === draft?.partyId);
 
-  const setField = (patch: Partial<Draft>) => setDraft((current) => (current ? { ...current, ...patch } : current));
+  const setField = (patch: Partial<Draft>) =>
+    setDraft((current) => (current ? { ...current, ...patch } : current));
 
   async function save() {
     if (!draft) return;
@@ -175,7 +184,10 @@ function TailoringOrders() {
         options: Object.entries(draft.options).map(([categoryId, valueId]) => ({ categoryId, valueId })),
       };
       const saved = draft.id
-        ? await apiPatch<{ number: string }>(`/tailoring/orders/${draft.id}`, { ...payload, ...(draft.version ? { version: draft.version } : {}) })
+        ? await apiPatch<{ number: string }>(`/tailoring/orders/${draft.id}`, {
+            ...payload,
+            ...(draft.version ? { version: draft.version } : {}),
+          })
         : await apiPost<{ number: string }>('/tailoring/orders', payload);
       setNotice(`تم حفظ الطلب بنجاح — رقم الطلب: ${saved.number ?? ''}`.trim());
       setDraft(null);
@@ -189,7 +201,10 @@ function TailoringOrders() {
 
   async function remove(order: Order) {
     // «هل أنت متأكد من حذف هذا الطلب؟\nسيتم حذف جميع البيانات المرتبطة به» (L212).
-    if (!window.confirm(`هل أنت متأكد من حذف هذا الطلب؟\nسيتم حذف جميع البيانات المرتبطة به\n\n${order.number}`)) return;
+    if (
+      !window.confirm(`هل أنت متأكد من حذف هذا الطلب؟\nسيتم حذف جميع البيانات المرتبطة به\n\n${order.number}`)
+    )
+      return;
     setBusy(true);
     setError('');
     setNotice('');
@@ -223,8 +238,7 @@ function TailoringOrders() {
     }
   }
 
-  const openNew = () =>
-    setDraft(emptyDraft((statuses.data ?? [])[0]?.id ?? ''));
+  const openNew = () => setDraft(emptyDraft((statuses.data ?? [])[0]?.id ?? ''));
 
   const openEdit = (order: Order) =>
     setDraft({
@@ -248,13 +262,13 @@ function TailoringOrders() {
 
   return (
     <Screen
-      title="🧵 إدارة طلبات التفصيل"
+      title="إدارة طلبات التفصيل"
       subtitle="طلب التفصيل: العميل وقياسه ونوع التفصيل وموعد التسليم، وحالته من «مستلم» إلى «تم التسليم»، وما دُفع منه وما بقي."
       crumbs={['التفصيل', 'الطلبات']}
       actions={
         canManage ? (
           <button className="btn primary" type="button" onClick={openNew}>
-            ➕ إضافة طلب جديد
+            إضافة طلب جديد
           </button>
         ) : null
       }
@@ -262,144 +276,181 @@ function TailoringOrders() {
       {error && <p className="alert danger">{error}</p>}
       {notice && <p className="alert ok">{notice}</p>}
 
-      <div className="card tight no-print">
-        <div className="row" style={{ flexWrap: 'wrap', alignItems: 'flex-end' }}>
-          <label className="field" style={{ margin: 0, minWidth: 180 }}>
-            <span>الحالة:</span>
-            <select
-              className="input"
-              value={filters.statusId}
-              onChange={(event) => {
-                const next = { ...filters, statusId: event.target.value };
-                setFilters(next);
-                // `cmbStatus_SelectionChanged` reloads on every change, not on «🔍 بحث».
-                setApplied(next);
-              }}
-            >
-              <option value={ALL}>الكل</option>
-              {(statuses.data ?? []).map((status) => (
-                <option key={status.id} value={status.id}>
-                  {status.nameAr}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="field" style={{ margin: 0, width: 160 }}>
-            <span>من:</span>
-            <input
-              className="input"
-              type="date"
-              value={filters.from}
-              onChange={(event) => setFilters({ ...filters, from: event.target.value })}
-            />
-          </label>
-          <label className="field" style={{ margin: 0, width: 160 }}>
-            <span>إلى:</span>
-            <input
-              className="input"
-              type="date"
-              value={filters.to}
-              onChange={(event) => setFilters({ ...filters, to: event.target.value })}
-            />
-          </label>
-          <label className="field" style={{ margin: 0, minWidth: 220, flex: 1 }}>
-            <span>🔍 البحث (رقم/اسم):</span>
-            <input
-              className="input"
-              value={filters.search}
-              onChange={(event) => setFilters({ ...filters, search: event.target.value })}
-              placeholder="رقم الطلب أو اسم العميل"
-            />
-          </label>
-          <button className="btn" type="button" onClick={() => setApplied(filters)}>
-            🔍 بحث
-          </button>
-        </div>
-      </div>
+      <FilterBand>
+        <label className="field">
+          <span>الحالة</span>
+          <select
+            className="input"
+            value={filters.statusId}
+            onChange={(event) => {
+              const next = { ...filters, statusId: event.target.value };
+              setFilters(next);
+              // `cmbStatus_SelectionChanged` reloads on every change, not on «بحث».
+              setApplied(next);
+            }}
+          >
+            <option value={ALL}>الكل</option>
+            {(statuses.data ?? []).map((status) => (
+              <option key={status.id} value={status.id}>
+                {status.nameAr}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="field">
+          <span>من</span>
+          <input
+            className="input"
+            type="date"
+            value={filters.from}
+            onChange={(event) => setFilters({ ...filters, from: event.target.value })}
+          />
+        </label>
+        <label className="field">
+          <span>إلى</span>
+          <input
+            className="input"
+            type="date"
+            value={filters.to}
+            onChange={(event) => setFilters({ ...filters, to: event.target.value })}
+          />
+        </label>
+        <label className="field">
+          <span>البحث (رقم أو اسم)</span>
+          <input
+            className="input"
+            value={filters.search}
+            onChange={(event) => setFilters({ ...filters, search: event.target.value })}
+            placeholder="رقم الطلب أو اسم العميل"
+          />
+        </label>
+        <button className="btn" type="button" onClick={() => setApplied(filters)}>
+          بحث
+        </button>
+      </FilterBand>
 
       {orders.status === 'loading' && <Loading rows={6} />}
       {orders.status === 'forbidden' && <Forbidden />}
       {orders.status === 'error' && <ErrorBox message={orders.error} onRetry={orders.reload} />}
       {orders.status === 'success' && (
         <>
-          <div className="row" style={{ justifyContent: 'space-between', alignItems: 'baseline' }}>
-            <span className="group-label" style={{ margin: 0 }}>📋 قائمة الطلبات</span>
-            <span className="muted">عدد السجلات: {orders.data?.total ?? rows.length}</span>
-          </div>
-          {rows.length === 0 ? (
-            <Empty
-              title="لا توجد طلبات"
-              detail="ابدأ بـ «➕ إضافة طلب جديد»، أو وسّع الفترة، أو اختر «الكل» في الحالة."
-            />
-          ) : (
-            <div className="table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>رقم الطلب</th>
-                    <th>👤 العميل</th>
-                    <th>📞 الجوال</th>
-                    <th>القياس</th>
-                    <th>نوع التفصيل</th>
-                    <th>⚙️ الحالة</th>
-                    <th>📅 تاريخ الطلب</th>
-                    <th>📅 موعد التسليم</th>
-                    <th className="num">💰 السعر</th>
-                    <th className="num">💵 المدفوع</th>
-                    <th className="num">⌛ المتبقي</th>
-                    {canManage && <th>إجراءات</th>}
-                  </tr>
-                </thead>
-                <tbody>
-                  {rows.map((row) => (
-                    <tr
-                      key={row.id}
-                      // ⌛ متأخّر — the desktop paints the row `#FFE4E4` with dark-red text.
-                      style={row.isDelayed ? { background: '#FFE4E4', color: 'var(--danger-ink)' } : undefined}
-                      onDoubleClick={() => canManage && openEdit(row)}
-                    >
-                      <td dir="ltr">{row.number}</td>
-                      <td>{row.customerName}</td>
-                      <td dir="ltr">{row.customerPhone || '—'}</td>
-                      <td>{row.measurementName ?? '—'}</td>
-                      <td>{row.typeName}</td>
-                      <td>
+          <Panel title="قائمة الطلبات" hint={`${orders.data?.total ?? rows.length} سجل`} flush>
+            {rows.length === 0 ? (
+              <Empty
+                title="لا توجد طلبات"
+                detail="ابدأ بـ «إضافة طلب جديد»، أو وسّع الفترة، أو اختر «الكل» في الحالة."
+              />
+            ) : (
+              <Table
+                bare
+                columns={[
+                  {
+                    key: 'c0',
+                    header: 'رقم الطلب',
+                    ltr: true,
+                    cell: (row) => row.number,
+                  },
+                  {
+                    key: 'c1',
+                    header: 'العميل',
+                    cell: (row) => row.customerName,
+                  },
+                  {
+                    key: 'c2',
+                    header: 'الجوال',
+                    ltr: true,
+                    cell: (row) => row.customerPhone || '—',
+                  },
+                  {
+                    key: 'c3',
+                    header: 'القياس',
+                    cell: (row) => row.measurementName ?? '—',
+                  },
+                  {
+                    key: 'c4',
+                    header: 'نوع التفصيل',
+                    cell: (row) => row.typeName,
+                  },
+                  {
+                    key: 'c5',
+                    header: 'الحالة',
+                    cell: (row) => (
+                      <>
                         <span className="badge">{row.statusName}</span>
                         {row.isDelayed && <span className="badge danger"> متأخّر</span>}
-                      </td>
-                      <td dir="ltr">{row.orderDate}</td>
-                      <td dir="ltr">{row.deliveryDate ?? '—'}</td>
-                      <td className="num">{money(row.price)}</td>
-                      <td className="num">{money(row.paidAmount)}</td>
-                      {/* A negative remaining is green in the desktop, never refused. */}
-                      <td className="num" style={{ color: Number(row.remainingAmount) < 0 ? 'var(--ok, #0a7a3d)' : undefined }}>
+                      </>
+                    ),
+                  },
+                  {
+                    key: 'c6',
+                    header: 'تاريخ الطلب',
+                    ltr: true,
+                    cell: (row) => row.orderDate,
+                  },
+                  {
+                    key: 'c7',
+                    header: 'موعد التسليم',
+                    ltr: true,
+                    cell: (row) => row.deliveryDate ?? '—',
+                  },
+                  {
+                    key: 'c8',
+                    header: 'السعر',
+                    numeric: true,
+                    cell: (row) => money(row.price),
+                  },
+                  {
+                    key: 'c9',
+                    header: 'المدفوع',
+                    numeric: true,
+                    cell: (row) => money(row.paidAmount),
+                  },
+                  {
+                    key: 'c10',
+                    header: 'المتبقي',
+                    numeric: true,
+                    cell: (row) => (
+                      <>
+                        {/* A negative remaining is green in the desktop, never refused. */}
                         {money(row.remainingAmount)}
-                      </td>
-                      {canManage && (
-                        <td>
-                          <div className="row" style={{ gap: 4 }}>
-                            <button className="btn sm" type="button" onClick={() => openEdit(row)}>
-                              ✏️ تعديل
-                            </button>
-                            <button
-                              className="btn sm"
-                              type="button"
-                              onClick={() => setStatusOf({ id: row.id, number: row.number, statusId: row.statusId })}
-                            >
-                              🔄 تغيير الحالة
-                            </button>
-                            <button className="btn sm danger" type="button" onClick={() => remove(row)}>
-                              🗑️ حذف
-                            </button>
-                          </div>
-                        </td>
-                      )}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+                      </>
+                    ),
+                  },
+                  ...(canManage
+                    ? [
+                        {
+                          key: 'c11',
+                          header: 'إجراءات',
+                          cell: (row: Order) => (
+                            <>
+                              <div className="row" style={{ gap: 4 }}>
+                                <button className="btn sm" type="button" onClick={() => openEdit(row)}>
+                                  تعديل
+                                </button>
+                                <button
+                                  className="btn sm"
+                                  type="button"
+                                  onClick={() =>
+                                    setStatusOf({ id: row.id, number: row.number, statusId: row.statusId })
+                                  }
+                                >
+                                  تغيير الحالة
+                                </button>
+                                <button className="btn sm danger" type="button" onClick={() => remove(row)}>
+                                  حذف
+                                </button>
+                              </div>
+                            </>
+                          ),
+                        },
+                      ]
+                    : []),
+                ]}
+                rows={rows}
+                rowKey={(row) => row.id}
+              />
+            )}
+          </Panel>
         </>
       )}
 
@@ -407,11 +458,10 @@ function TailoringOrders() {
         <div className="modal-backdrop" role="dialog" aria-modal="true">
           <div className="modal-card" style={{ maxWidth: 860 }}>
             <div className="modal-head">
-              <span className="modal-title">{draft.id ? '✏️ تعديل الطلب' : '👔 إضافة طلب جديد'}</span>
+              <span className="modal-title">{draft.id ? 'تعديل الطلب' : 'إضافة طلب جديد'}</span>
             </div>
             <div style={{ padding: 16, display: 'grid', gap: 12, maxHeight: '70vh', overflowY: 'auto' }}>
-              <fieldset className="card tight" style={{ margin: 0 }}>
-                <legend className="group-label">👤 بيانات العميل</legend>
+              <FormSection title="بيانات العميل">
                 <div className="row" style={{ flexWrap: 'wrap', alignItems: 'flex-end' }}>
                   <label className="field" style={{ margin: 0, minWidth: 260, flex: 1 }}>
                     <span>العميل:</span>
@@ -432,10 +482,9 @@ function TailoringOrders() {
                     الجوال: {selectedCustomer?.phone ?? '—'}
                   </p>
                 </div>
-              </fieldset>
+              </FormSection>
 
-              <fieldset className="card tight" style={{ margin: 0 }}>
-                <legend className="group-label">📋 تفاصيل الطلب</legend>
+              <FormSection title="تفاصيل الطلب">
                 <div className="form-grid">
                   <label className="field">
                     <span>القياس:</span>
@@ -476,8 +525,12 @@ function TailoringOrders() {
                     </select>
                   </label>
                   <label className="field">
-                    <span>⚙️ الحالة</span>
-                    <select className="input" value={draft.statusId} onChange={(event) => setField({ statusId: event.target.value })}>
+                    <span>الحالة</span>
+                    <select
+                      className="input"
+                      value={draft.statusId}
+                      onChange={(event) => setField({ statusId: event.target.value })}
+                    >
                       {(statuses.data ?? []).map((status) => (
                         <option key={status.id} value={status.id}>
                           {status.nameAr}
@@ -486,7 +539,7 @@ function TailoringOrders() {
                     </select>
                   </label>
                   <label className="field">
-                    <span>📅 تاريخ الطلب</span>
+                    <span>تاريخ الطلب</span>
                     <input
                       className="input"
                       type="date"
@@ -545,11 +598,10 @@ function TailoringOrders() {
                     </output>
                   </div>
                 </div>
-              </fieldset>
+              </FormSection>
 
               {(categories.data ?? []).length > 0 && (
-                <fieldset className="card tight" style={{ margin: 0 }}>
-                  <legend className="group-label">🔧 الخيارات</legend>
+                <FormSection title="الخيارات">
                   {(categories.data ?? []).map((category) => (
                     <div key={category.id} style={{ marginBottom: 8 }}>
                       <p className="muted" style={{ margin: '0 0 4px', fontWeight: 700 }}>
@@ -572,11 +624,10 @@ function TailoringOrders() {
                       </div>
                     </div>
                   ))}
-                </fieldset>
+                </FormSection>
               )}
 
-              <fieldset className="card tight" style={{ margin: 0 }}>
-                <legend className="group-label">🧵 تفاصيل القماش والتصميم</legend>
+              <FormSection title="تفاصيل القماش والتصميم">
                 <div className="form-grid">
                   <label className="field">
                     <span>نوع القماش:</span>
@@ -604,14 +655,14 @@ function TailoringOrders() {
                     />
                   </label>
                 </div>
-              </fieldset>
+              </FormSection>
             </div>
             <div className="modal-foot">
               <button className="btn primary" type="button" onClick={save} disabled={busy}>
-                💾 حفظ الطلب
+                حفظ الطلب
               </button>
               <button className="btn danger" type="button" onClick={() => setDraft(null)} disabled={busy}>
-                ✖ إلغاء
+                إلغاء
               </button>
             </div>
           </div>
@@ -649,10 +700,10 @@ function TailoringOrders() {
             </div>
             <div className="modal-foot">
               <button className="btn primary" type="button" onClick={changeStatus} disabled={busy}>
-                ✔ تغيير
+                تغيير
               </button>
               <button className="btn danger" type="button" onClick={() => setStatusOf(null)} disabled={busy}>
-                ✖ إلغاء
+                إلغاء
               </button>
             </div>
           </div>

@@ -26,12 +26,24 @@
  *   PLATFORM_ADMIN_EMAIL / PLATFORM_ADMIN_NAME / PLATFORM_ADMIN_PASSWORD / PLATFORM_TENANT_CODE
  *   DEMO_ACCOUNTANT_EMAIL / DEMO_ACCOUNTANT_NAME / DEMO_ACCOUNTANT_PASSWORD
  *   DEMO_CASHIER_EMAIL / DEMO_CASHIER_NAME / DEMO_CASHIER_PASSWORD
+ *   DEMO_REP_EMAIL / DEMO_REP_NAME / DEMO_REP_PASSWORD / DEMO_REP_EMPLOYEE_NO /
+ *   DEMO_REP_WAREHOUSE_CODE / DEMO_REP_WAREHOUSE_NAME / DEMO_REP_VEHICLE_PLATE
+ *   DEMO_SECTOR_APPS (comma-separated app codes; default `bakery_distribution,reports_pro,email_pro,whatsapp`
+ *   — المنشأة التجريبية تعرض كل سطحٍ في السوق، والمنح في الإنتاج قرارُ منصّةٍ لكل منشأة)
  *   SEED_DEMO_DATA (default true) / DEMO_FISCAL_YEAR / DEMO_PLAN_CODE /
  *   DEMO_SUBSCRIPTION_MONTHS / DEMO_OPENING_ENTRY (default true)
  */
 import { env } from '@erp/config';
-import { type DemoUserSpec, seedDemoData, seedPlatform } from '@erp/database';
+import {
+  type DemoCompanySpec,
+  type DemoRepSpec,
+  type DemoSectorAppSpec,
+  type DemoUserSpec,
+  seedDemoData,
+  seedPlatform,
+} from '@erp/database';
 
+import { ALL_CATALOG_APPS } from '../src/modules/marketplace/marketplace.service.js';
 import { PasswordService } from '../src/modules/platform/auth/password.service.js';
 
 const passwords = new PasswordService();
@@ -47,7 +59,7 @@ async function hashOrSkip(
     console.log(`  ${label}: no password variable set — created as invited (must set a password to sign in).`);
     return undefined;
   }
-  passwords.assertPolicy(password, { email, fullName });
+  await passwords.assertPolicy(password, { email, fullName });
   return passwords.hash(password);
 }
 
@@ -55,6 +67,37 @@ function flag(name: string, fallback: boolean): boolean {
   const raw = process.env[name];
   if (raw === undefined || raw.trim() === '') return fallback;
   return !['0', 'false', 'no', 'off'].includes(raw.trim().toLowerCase());
+}
+
+/**
+ * الباقاتُ القطاعية التي تُفعَّل للمنشأة التجريبية — من كتالوج السوق نفسه
+ * (‏`ALL_CATALOG_APPS`) لا من أسماءٍ مكتوبةٍ هنا: فكودٌ غيرُ موجود في الكتالوج يُعلن
+ * ولا يُخترع، لأنّ `tenant_apps.app_code` مفتاحٌ أجنبيّ إلى `marketplace_apps.code`.
+ */
+function sectorAppsFromEnv(): DemoSectorAppSpec[] {
+  const raw = process.env.DEMO_SECTOR_APPS;
+  const codes = (raw === undefined ? 'bakery_distribution,reports_pro,email_pro,whatsapp' : raw)
+    .split(',')
+    .map((code) => code.trim())
+    .filter(Boolean);
+  const out: DemoSectorAppSpec[] = [];
+  for (const code of codes) {
+    const app = ALL_CATALOG_APPS.find((entry) => entry.code === code);
+    if (!app) {
+      console.log(`  sector app "${code}" is not in the marketplace catalog — skipped (not invented).`);
+      continue;
+    }
+    out.push({
+      code: app.code,
+      nameAr: app.nameAr,
+      nameEn: app.nameEn,
+      descriptionAr: app.descriptionAr,
+      icon: app.icon,
+      version: app.version,
+      monthlyPrice: app.monthlyPrice,
+    });
+  }
+  return out;
 }
 
 function positiveInt(name: string): number | undefined {
@@ -111,6 +154,23 @@ async function main(): Promise<void> {
   const cashierEmail = process.env.DEMO_CASHIER_EMAIL ?? `cashier@${tenantCode}.test`;
   const cashierName = process.env.DEMO_CASHIER_NAME ?? 'أمين الصندوق';
 
+  /**
+   * 🚐 مندوبُ العرض — الحسابُ الذي يُجرَّب به `apps/bakery` على `/rep`. وبلا هذا الحساب
+   * كان المندوبُ يرى «حسابك غير مرتبط ببطاقة مندوب توزيع» لأنّ الخادمَ يصل المندوبَ
+   * بالسلسلة `memberships → employees → salesmen` ولا يخمّن من البريد.
+   */
+  const repEmail = process.env.DEMO_REP_EMAIL ?? `rep@${tenantCode}.test`;
+  const repName = process.env.DEMO_REP_NAME ?? 'مندوب الشركة';
+  const rep: DemoRepSpec = {
+    email: repEmail,
+    fullName: repName,
+    employeeNo: process.env.DEMO_REP_EMPLOYEE_NO?.trim() || undefined,
+    warehouseCode: process.env.DEMO_REP_WAREHOUSE_CODE?.trim() || undefined,
+    warehouseName: process.env.DEMO_REP_WAREHOUSE_NAME?.trim() || undefined,
+    vehiclePlate: process.env.DEMO_REP_VEHICLE_PLATE?.trim() || undefined,
+    passwordHash: await hashOrSkip('rep', repEmail, process.env.DEMO_REP_PASSWORD, repName),
+  };
+
   const users: DemoUserSpec[] = [
     {
       email: accountantEmail,
@@ -126,8 +186,29 @@ async function main(): Promise<void> {
     },
   ];
 
+  /**
+   * 🧾 هويةُ المنشأة — ما يُطبع في الفاتورة وفي مستند ZATCA. وتُقرأ من `.env` لا من
+   * البذرة، وقيمُ العرض القديمة تبقى الافتراضَ كي لا يتغيّر سلوكُ تثبيتٍ قائم — لكنها
+   * تُعلن أدناه بصراحةٍ ما لم تُستبدل.
+   */
+  const company: DemoCompanySpec = {
+    nameAr: process.env.DEMO_COMPANY_NAME_AR?.trim() || undefined,
+    nameEn: process.env.DEMO_COMPANY_NAME_EN?.trim() || undefined,
+    taxNo: process.env.DEMO_COMPANY_TAX_NO?.trim() || undefined,
+    crNo: process.env.DEMO_COMPANY_CR_NO?.trim() || undefined,
+    phones: (process.env.DEMO_COMPANY_PHONES ?? '')
+      .split(',')
+      .map((phone) => phone.trim())
+      .filter(Boolean),
+    email: process.env.DEMO_COMPANY_EMAIL?.trim() || undefined,
+    countryCode: process.env.DEMO_COMPANY_COUNTRY?.trim() || undefined,
+  };
+
   const demo = await seedDemoData(connectionString, {
     tenantCode,
+    company,
+    rep,
+    sectorApps: sectorAppsFromEnv(),
     fiscalYear: positiveInt('DEMO_FISCAL_YEAR'),
     planCode: process.env.DEMO_PLAN_CODE,
     subscriptionMonths: positiveInt('DEMO_SUBSCRIPTION_MONTHS'),
@@ -139,8 +220,22 @@ async function main(): Promise<void> {
   console.log(
     `seed  demo — ${demo.accounts} accounts, ${demo.costCenters} cost centers, ${demo.periods} periods, ` +
       `subscription ${demo.subscription}` +
-      (demo.openingEntryNumber ? `, opening entry ${demo.openingEntryNumber}` : ''),
+      (demo.openingEntryNumber ? `, opening entry ${demo.openingEntryNumber}` : '') +
+      (demo.sectorApps.length ? `, sector apps [${demo.sectorApps.join(', ')}]` : '') +
+      (demo.rep ? `, rep ${demo.rep.email} → ${demo.rep.salesmanName}` : ''),
   );
+
+  if (demo.company.placeholders.length > 0) {
+    console.log('');
+    console.log(
+      `⚠ company identity: ${demo.company.placeholders.join(', ')} still hold demo values ` +
+        `(set DEMO_COMPANY_* in .env). ${
+          demo.company.written
+            ? 'They were written now and will print on every invoice and ZATCA document.'
+            : 'The existing profile was left untouched — edit it in staff → الإعدادات.'
+        }`,
+    );
+  }
 
   printCredentials({
     tenantCode,
@@ -148,6 +243,9 @@ async function main(): Promise<void> {
     adminEmail,
     platformTenantCode: report.platformTenantCode,
     extra: demo.users.map((user) => ({ email: user.email, role: user.role, status: user.status })),
+    rep: demo.rep
+      ? { email: demo.rep.email, salesmanName: demo.rep.salesmanName, status: demo.rep.status }
+      : undefined,
   });
 }
 
@@ -158,6 +256,7 @@ function printCredentials(input: {
   adminEmail?: string;
   platformTenantCode?: string;
   extra: Array<{ email: string; role: string; status: string }>;
+  rep?: { email: string; salesmanName: string; status: string };
 }): void {
   const has = (name: string) => (process.env[name] ? 'set in .env' : 'NOT SET → invited');
 
@@ -178,6 +277,15 @@ function printCredentials(input: {
   console.log(`   password        DEMO_OWNER_PASSWORD (${has('DEMO_OWNER_PASSWORD')})`);
   for (const user of input.extra) {
     console.log(`   ${user.role.padEnd(14)}  ${user.email} (${user.status})`);
+  }
+  if (input.rep) {
+    // المندوبُ يدخل تطبيقَ المخابز لا لوحةَ الطاقم: فرابطُه مختلفٌ وصلاحياتُه أربع.
+    console.log('');
+    console.log(` Bakery app (rep)  http://localhost:${process.env.BAKERY_PORT ?? '3005'}/rep`);
+    console.log(`   tenant code     ${input.tenantCode}`);
+    console.log(`   rep             ${input.rep.email} (${input.rep.status})`);
+    console.log(`   password        DEMO_REP_PASSWORD (${has('DEMO_REP_PASSWORD')})`);
+    console.log(`   salesman card   ${input.rep.salesmanName} — scoped to his own van warehouse`);
   }
   console.log('──────────────────────────────────────────────────────────────');
 }

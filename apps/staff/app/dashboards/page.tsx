@@ -1,11 +1,20 @@
 'use client';
 
+import { Panel } from '@erp/ui';
 import Link from 'next/link';
-import { LayoutDashboard, Plus, Star, Trash2 } from 'lucide-react';
+import { Plus, Star, Trash2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 
-import { createDashboard, deleteDashboard, listDashboards, setDefaultDashboard, type DashboardSummary } from '../../lib/bi-dashboards';
+import { Screen } from '../../components/screen';
+import {
+  createDashboard,
+  deleteDashboard,
+  listDashboards,
+  setDefaultDashboard,
+  type DashboardSummary,
+} from '../../lib/bi-dashboards';
 import { useSession } from '../../lib/session';
+import { Table } from '../../components/ui/table';
 
 export default function DashboardsPage() {
   const { can } = useSession();
@@ -57,67 +66,104 @@ export default function DashboardsPage() {
   }
 
   return (
-    <div className="grid gap-5">
-      <header className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="m-0 flex items-center gap-2 text-[26px] font-bold text-ink">
-            <LayoutDashboard size={24} className="text-brand-600" />
-            لوحات المؤشرات
-          </h1>
-          <p className="m-0 mt-1 text-[13px] text-muted">لوحة شخصية لكل مستخدم. المؤشرات من الكتالوج فقط، بلا SQL.</p>
-        </div>
-      </header>
-
-      {error ? <p className="m-0 rounded-xl border border-danger-line bg-danger-soft px-3 py-2 text-[13px] text-danger-ink">{error}</p> : null}
-
-      {manage ? (
-        <form
-          className="flex flex-wrap items-center gap-2 rounded-2xl border border-line bg-surface p-3 shadow-1"
-          onSubmit={(event) => {
-            event.preventDefault();
-            void create();
-          }}
-        >
-          <input className="h-10 min-w-56 flex-1 rounded-[10px] border border-line-strong px-3 text-[14px]" placeholder="اسم اللوحة" value={name} onChange={(event) => setName(event.target.value)} />
-          <button type="submit" className="inline-flex h-10 items-center gap-2 rounded-[10px] bg-brand-600 px-4 text-[13.5px] font-semibold text-on-accent">
-            <Plus size={16} />
-            لوحة جديدة
-          </button>
-        </form>
+    <Screen
+      title="لوحات المؤشرات"
+      subtitle="لوحة شخصية لكل مستخدم تُبنى من كتالوج المؤشرات، وتُحفظ تلقائياً."
+      crumbs={['لوحات المؤشرات']}
+    >
+      {error ? (
+        <p className="m-0 rounded-xl border border-danger-line bg-danger-soft px-3 py-2 text-[13px] text-danger-ink">
+          {error}
+        </p>
       ) : null}
 
-      {loading ? <p className="text-[13px] text-muted">جاري التحميل…</p> : null}
+      {loading ? (
+        <p className="text-[13px] text-muted">جاري التحميل…</p>
+      ) : boards.length === 0 ? (
+        <Panel title="اللوحات">
+          <p className="m-0 text-sm text-muted">لا توجد لوحات بعد — أنشئ لوحة من الشريط أعلاه.</p>
+        </Panel>
+      ) : (
+        <Panel flush title="لوحاتي" hint={`${boards.length} لوحة`}>
+          <Table
+            bare
+            columns={[
+              {
+                key: 'c0',
+                header: 'اللوحة',
+                cell: (board) => (
+                  <>
+                    <Link className="text-brand-700 hover:underline" href={`/dashboards/${board.id}`}>
+                      {board.name}
+                    </Link>
+                  </>
+                ),
+              },
+              {
+                key: 'c1',
+                header: 'المؤشرات',
+                cell: (board) => board.widgetCount,
+              },
+              {
+                key: 'c2',
+                header: 'الحالة',
+                cell: (board) =>
+                  board.isDefault ? (
+                    <span className="badge ok">افتراضية</span>
+                  ) : (
+                    <span className="text-muted">—</span>
+                  ),
+              },
+              {
+                key: 'c3',
+                header: '',
+                cell: (board) => (
+                  <>
+                    <div className="flex flex-wrap items-center justify-end gap-2">
+                      <Link href={`/dashboards/${board.id}`} className="btn primary">
+                        فتح
+                      </Link>
+                      {manage && !board.isDefault ? (
+                        <button type="button" className="btn" onClick={() => void makeDefault(board.id)}>
+                          <Star size={14} aria-hidden /> اجعلها افتراضية
+                        </button>
+                      ) : null}
+                      {manage && boards.length > 1 ? (
+                        <button type="button" className="btn danger" onClick={() => void remove(board.id)}>
+                          <Trash2 size={14} aria-hidden /> حذف
+                        </button>
+                      ) : null}
+                    </div>
+                  </>
+                ),
+              },
+            ]}
+            rows={boards}
+            rowKey={(board) => board.id}
+          />
+        </Panel>
+      )}
 
-      <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-        {boards.map((board) => (
-          <article key={board.id} className="rounded-2xl border border-line bg-surface p-4 shadow-1">
-            <div className="flex items-start justify-between gap-2">
-              <div>
-                <h2 className="m-0 text-[16px] font-bold text-ink">{board.name}</h2>
-                <p className="m-0 mt-1 text-[12px] text-muted">{board.widgetCount} مؤشرات</p>
-              </div>
-              {board.isDefault ? <span className="rounded-full bg-ok-soft px-2 py-1 text-[11px] font-semibold text-ok-ink">افتراضية</span> : null}
-            </div>
-            <div className="mt-4 flex flex-wrap gap-2">
-              <Link href={`/dashboards/${board.id}`} className="inline-flex h-9 items-center rounded-[10px] bg-brand-600 px-3 text-[13px] font-semibold text-on-accent">
-                فتح
-              </Link>
-              {manage && !board.isDefault ? (
-                <button type="button" className="inline-flex h-9 items-center gap-1 rounded-[10px] border border-line-strong px-3 text-[13px] font-semibold text-ink-2" onClick={() => void makeDefault(board.id)}>
-                  <Star size={14} />
-                  اجعلها افتراضية
-                </button>
-              ) : null}
-              {manage && boards.length > 1 ? (
-                <button type="button" className="inline-flex h-9 items-center gap-1 rounded-[10px] border border-line-strong px-3 text-[13px] text-muted" onClick={() => void remove(board.id)}>
-                  <Trash2 size={14} />
-                  حذف
-                </button>
-              ) : null}
-            </div>
-          </article>
-        ))}
-      </div>
-    </div>
+      {manage ? (
+        <Panel title="لوحة جديدة" hint="تُحفظ اللوحة فارغة ثم تُبنى من كتالوج المؤشرات.">
+          <form
+            className="flex flex-wrap items-end gap-3"
+            onSubmit={(event) => {
+              event.preventDefault();
+              void create();
+            }}
+          >
+            <label className="field" style={{ flex: '1 1 260px' }}>
+              <span>اسم اللوحة</span>
+              <input className="input" value={name} onChange={(event) => setName(event.target.value)} />
+            </label>
+            <button type="submit" className="btn primary">
+              <Plus size={16} aria-hidden />
+              إنشاء
+            </button>
+          </form>
+        </Panel>
+      ) : null}
+    </Screen>
   );
 }

@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
+import { Panel } from '@erp/ui';
 
 import { QueryView } from '../../../components/data-view';
 import { WarehousePicker } from '../../../components/inventory-filters';
@@ -30,18 +31,26 @@ import { useQuery } from '../../../lib/use-query';
  */
 
 type Level = { itemId: string; warehouseId: string; quantity: string; value: string; averageCost: string };
-type ShortRow = { itemId: string; sku: string; nameAr: string; warehouseId: string; quantity: string; minQty: string; shortage: string };
+type ShortRow = {
+  itemId: string;
+  sku: string;
+  nameAr: string;
+  warehouseId: string;
+  quantity: string;
+  minQty: string;
+  shortage: string;
+};
 type Voucher = { id: string; number: string; kind: string; status: string; totalCost: string };
 
 const QUICK = [
-  { href: '/inventory/vouchers?kind=stock_in', icon: '📥', label: 'سند إدخال' },
-  { href: '/inventory/vouchers?kind=stock_out', icon: '📤', label: 'سند إخراج' },
-  { href: '/inventory/transfers', icon: '🔄', label: 'مناقلة' },
-  { href: '/inventory/adjustments', icon: '🧮', label: 'جرد وتسوية' },
-  { href: '/inventory/item-card', icon: '🧾', label: 'بطاقة صنف' },
-  { href: '/inventory/in-transit', icon: '🚚', label: 'بضاعة في الطريق' },
-  { href: '/inventory/below-minimum', icon: '⚠️', label: 'تحت حد الطلب' },
-  { href: '/inventory/expiry', icon: '⏰', label: 'تواريخ الصلاحية' },
+  { href: '/inventory/vouchers?kind=stock_in', icon: '', label: 'سند إدخال' },
+  { href: '/inventory/vouchers?kind=stock_out', icon: '', label: 'سند إخراج' },
+  { href: '/inventory/transfers', icon: '', label: 'مناقلة' },
+  { href: '/inventory/adjustments', icon: '', label: 'جرد وتسوية' },
+  { href: '/inventory/item-card', icon: '', label: 'بطاقة صنف' },
+  { href: '/inventory/in-transit', icon: '', label: 'بضاعة في الطريق' },
+  { href: '/inventory/below-minimum', icon: '', label: 'تحت حد الطلب' },
+  { href: '/inventory/expiry', icon: '', label: 'تواريخ الصلاحية' },
 ];
 
 export default function InventoryOverviewPage() {
@@ -79,13 +88,12 @@ export default function InventoryOverviewPage() {
     >
       <FilterBar
         actions={
-          <span className="small muted">{warehouseId ? (warehouseName ?? 'مستودع محدد') : 'كل المستودعات'}</span>
+          <span className="small muted">
+            {warehouseId ? (warehouseName ?? 'مستودع محدد') : 'كل المستودعات'}
+          </span>
         }
       >
-        <div className="field">
-          <span>المستودع</span>
-          <WarehousePicker value={warehouseId} onChange={setWarehouseId} includeAll />
-        </div>
+        <WarehousePicker value={warehouseId} onChange={setWarehouseId} includeAll />
       </FilterBar>
 
       <StatTiles>
@@ -95,11 +103,7 @@ export default function InventoryOverviewPage() {
           hint={`${quantity(stockQty)} وحدة بمتوسط تكلفة`}
           tone="brand"
         />
-        <StatTile
-          label="أصناف في الأرصدة"
-          value={levelRows.length}
-          hint="صف رصيد لكل صنف ومستودع"
-        />
+        <StatTile label="أصناف في الأرصدة" value={levelRows.length} hint="صف رصيد لكل صنف ومستودع" />
         <StatTile
           label="تحت حد الطلب"
           value={shortRows.length}
@@ -130,21 +134,19 @@ export default function InventoryOverviewPage() {
         />
       </StatTiles>
 
-      <div className="card">
-        <h2>إجراءات سريعة</h2>
+      <Panel title="إجراءات سريعة">
         <div className="grid cols">
           {QUICK.map((item) => (
-            <Link key={item.href} className="card tight" href={item.href}>
+            <Link key={item.href} className="ui-tile" href={item.href}>
               <span style={{ fontSize: 20 }}>{item.icon}</span>
               <strong>{item.label}</strong>
             </Link>
           ))}
         </div>
-      </div>
+      </Panel>
 
       <div className="grid cols-2">
-        <div className="card">
-          <h2>أكبر الأرصدة قيمةً</h2>
+        <Panel title="أكبر الأرصدة قيمةً">
           <QueryView query={levels} empty="لا أرصدة" emptyDetail="لا توجد أرصدة مسجّلة في هذا المستودع.">
             {() => (
               <ol className="grid" style={{ gap: 8, margin: 0, paddingInlineStart: 18 }}>
@@ -152,7 +154,11 @@ export default function InventoryOverviewPage() {
                   .sort((left, right) => Number(right.value) - Number(left.value))
                   .slice(0, 6)
                   .map((row) => (
-                    <li key={`${row.itemId}:${row.warehouseId}`} className="row" style={{ justifyContent: 'space-between' }}>
+                    <li
+                      key={`${row.itemId}:${row.warehouseId}`}
+                      className="row"
+                      style={{ justifyContent: 'space-between' }}
+                    >
                       <span className="muted small" dir="ltr">{`${row.itemId.slice(0, 8)}`}</span>
                       <span dir="ltr">
                         {quantity(row.quantity)} — <strong>{money(row.value)}</strong>
@@ -162,10 +168,9 @@ export default function InventoryOverviewPage() {
               </ol>
             )}
           </QueryView>
-        </div>
+        </Panel>
 
-        <div className="card">
-          <h2>أكبر العجز</h2>
+        <Panel title="أكبر العجز">
           <QueryView query={short} empty="لا عجز" emptyDetail="كل الأصناف أعلى من حد الطلب المعرّف لها.">
             {() => (
               <ol className="grid" style={{ gap: 8, margin: 0, paddingInlineStart: 18 }}>
@@ -173,7 +178,11 @@ export default function InventoryOverviewPage() {
                   .sort((left, right) => Number(right.shortage) - Number(left.shortage))
                   .slice(0, 6)
                   .map((row) => (
-                    <li key={`${row.itemId}:${row.warehouseId}`} className="row" style={{ justifyContent: 'space-between' }}>
+                    <li
+                      key={`${row.itemId}:${row.warehouseId}`}
+                      className="row"
+                      style={{ justifyContent: 'space-between' }}
+                    >
                       <span>
                         {row.sku} — {row.nameAr}
                       </span>
@@ -185,7 +194,7 @@ export default function InventoryOverviewPage() {
               </ol>
             )}
           </QueryView>
-        </div>
+        </Panel>
       </div>
     </Screen>
   );

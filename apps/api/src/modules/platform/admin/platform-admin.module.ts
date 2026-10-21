@@ -22,6 +22,7 @@ import { PlatformConsoleController } from './platform-console.controller.js';
 import { PlatformIdentityController } from './platform-identity.controller.js';
 import { PlatformIdentityService } from './platform-identity.service.js';
 import { PlatformConsoleService } from './platform-console.service.js';
+import { ProblemEventsModule } from './problem-events.module.js';
 import { PlatformTenantsController } from './platform-tenants.controller.js';
 import { PlatformUsageController } from './platform-usage.controller.js';
 import { PlatformTenantsService } from './platform-tenants.service.js';
@@ -33,7 +34,15 @@ import { PlatformTenantsService } from './platform-tenants.service.js';
  * one-directional here avoids a module cycle.
  */
 @Module({
-  imports: [PlatformModule, OrganizationModule, EmailModule, AnnouncementsModule, SupportModule, DeveloperModule],
+  imports: [
+    PlatformModule,
+    OrganizationModule,
+    EmailModule,
+    AnnouncementsModule,
+    SupportModule,
+    DeveloperModule,
+    ProblemEventsModule,
+  ],
   controllers: [
     PlatformAdminController,
     PlatformAnalyticsController,

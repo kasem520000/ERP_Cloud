@@ -2,9 +2,21 @@ import { Body, Controller, Delete, Get, Param, Patch, Post, Put, Query } from '@
 
 import { getTenantContext, tryGetAuthContext } from '../platform/context/tenant-context.js';
 import { RequiresPermission } from '../platform/decorators/requires-permission.decorator.js';
+import { RequiresSectorApp } from '../platform/decorators/requires-sector-app.decorator.js';
 
 import { CustomReportsService } from './custom-reports.service.js';
 
+/**
+ * 📊 سطح التقارير التحليلية — يُرخَّص بباقة `reports_pro` (مركز التقارير والتحليلات).
+ *
+ * الحارس في وضع `observe` لا `enforce`: منشأةٌ تعمل اليوم بتقاريرها المخصّصة لا تُقطع عنها
+ * في منتصف الشهر لأن باقةً جديدة عُرضت في السوق. كلُّ كتابةٍ منها تُترك سطراً في
+ * `audit_log` (`sector_licence.unlicensed_use`) يُظهر حجم الاستعمال الحقيقي، وعلى أساسه
+ * يُتخذ قرار الفرض — نفس مسار `van-sales`.
+ *
+ * والقراءة (`GET`) لا تُقاس عمداً: الحارس يقيس الكتابات وحدها فلا يُغرق التدقيق.
+ */
+@RequiresSectorApp({ apps: ['reports_pro'], mode: 'observe' })
 @Controller('custom-reports')
 export class CustomReportsController {
   constructor(private readonly reports: CustomReportsService) {}

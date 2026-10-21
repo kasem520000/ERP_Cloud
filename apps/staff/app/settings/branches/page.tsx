@@ -31,6 +31,7 @@ export default function BranchesPage() {
 
   return (
     <Directory<Branch>
+      listTitle="الفروع"
       title="بطاقة فرع"
       subtitle="فروع المنشأة. كل مستند يصدر تحت فرع، والترقيم مستقل لكل فرع."
       crumbs={['الإعدادات', 'تعاريف المنشأة']}

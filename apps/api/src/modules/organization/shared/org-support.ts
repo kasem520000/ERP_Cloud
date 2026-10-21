@@ -4,6 +4,7 @@ import type { DrizzleTx } from '@erp/database';
 
 import { getRequestContext } from '../../../request-context/request-context.js';
 import { getBranchScopeFilter } from '../../platform/context/tenant-context.js';
+import { allowedScopeIds, type ScopeType } from '../../platform/scopes/scope-policy.js';
 
 /**
  * Small helpers shared by every organization resource. They exist so the ten services
@@ -90,12 +91,32 @@ export function actorStamp(): ActorStamp {
  * `undefined` means "no restriction".
  */
 export function visibleBranchIds(): string[] | undefined {
-  const scope = getRequestContext().tenant?.branchScope;
+  const tenant = getRequestContext().tenant;
+  const scope = tenant?.branchScope;
   const header = getBranchScopeFilter();
-  const scoped = Array.isArray(scope) ? scope : undefined;
+  let scoped = Array.isArray(scope) ? scope : undefined;
+
+  const roleBranchScope =
+    tenant && !tenant.isOwner && Array.isArray(tenant.roleIds)
+      ? allowedScopeIds(tenant.scopes, tenant.roleIds, 'branch')
+      : undefined;
+
+  if (roleBranchScope) {
+    scoped = scoped ? scoped.filter((id) => roleBranchScope.includes(id)) : roleBranchScope;
+  }
 
   if (header) return scoped ? scoped.filter((id) => id === header) : [header];
   return scoped;
+}
+
+/**
+ * AUD-03 — Allowed resource IDs for a per-role scope (`warehouse` / `cash_location`).
+ * Returns `undefined` when access is unrestricted across the tenant.
+ */
+export function visibleRoleScopeIds(scopeType: Exclude<ScopeType, 'branch'>): string[] | undefined {
+  const tenant = getRequestContext().tenant;
+  if (!tenant || tenant.isOwner || !Array.isArray(tenant.roleIds)) return undefined;
+  return allowedScopeIds(tenant.scopes, tenant.roleIds, scopeType);
 }
 
 /**

@@ -1,8 +1,10 @@
 'use client';
 
+import { Panel } from '@erp/ui';
 import { useState } from 'react';
 
 import { Empty, ErrorBox, Forbidden, Loading, Screen } from '../../components/screen';
+import { Table, type Column } from '../../components/ui/table';
 import { apiData } from '../../lib/api';
 import { useSession } from '../../lib/session';
 import { useQuery } from '../../lib/use-query';
@@ -181,7 +183,7 @@ export default function DataRequestsPage() {
         window.open(outcome.export.downloadUrl, '_blank', 'noopener');
         setNotice({
           kind: 'ok',
-          text: `صُدِّر ${outcome.export.totalRows} صفاً في ملفٍ حجمه ${formatBytes(outcome.export.bytes)} — الرابط صالح حتى ${new Date(outcome.export.expiresAt).toLocaleString('ar-SA')}.`,
+          text: `صُدِّر ${outcome.export.totalRows} صفاً في ملفٍ حجمه ${formatBytes(outcome.export.bytes)} — الرابط صالح حتى ${new Date(outcome.export.expiresAt).toLocaleString('ar-SA-u-ca-gregory-nu-latn')}.`,
         });
       } else if (outcome.erased) {
         setNotice({
@@ -196,6 +198,115 @@ export default function DataRequestsPage() {
       setBusy(null);
     }
   }
+
+  const columns: Array<Column<DataRequestRow>> = [
+    {
+      key: 'created',
+      header: 'فُتح',
+      ltr: true,
+      cell: (row) => new Date(row.createdAt).toLocaleString('ar-SA-u-ca-gregory-nu-latn'),
+    },
+    {
+      key: 'kind',
+      header: 'النوع',
+      cell: (row) => (
+        <span className={`badge ${row.kind === 'erase' ? 'failed' : 'pending'}`}>
+          {KIND_LABEL[row.kind] ?? row.kind}
+        </span>
+      ),
+    },
+    { key: 'tenant', header: 'العميل', ltr: true, cell: (row) => row.tenantCode ?? row.tenantId.slice(0, 8) },
+    {
+      key: 'subject',
+      header: 'صاحب البيانات',
+      ltr: true,
+      cell: (row) => (
+        <>
+          {row.subjectEmail}
+          {row.result?.subjectRef && (
+            <div className="muted small" dir="ltr">
+              {row.result.subjectRef}
+            </div>
+          )}
+        </>
+      ),
+    },
+    {
+      key: 'status',
+      header: 'الحالة',
+      cell: (row) => (
+        <>
+          <span className={`badge ${STATUS_CLASS[row.status] ?? 'pending'}`}>
+            {STATUS_LABEL[row.status] ?? row.status}
+          </span>
+          {row.decisionNote && <div className="muted small">{row.decisionNote}</div>}
+        </>
+      ),
+    },
+    {
+      key: 'result',
+      header: 'النتيجة',
+      cell: (row) =>
+        row.result?.anonymisedUsers ? (
+          <>
+            أُخفي {row.result.anonymisedUsers} مستخدماً ({row.result.anonymisedFields?.length ?? 0} حقلاً)
+            <div className="muted small">
+              سُحبت {row.result.suspendedMemberships ?? 0} عضوية · أُبطلت {row.result.revokedSessions ?? 0}{' '}
+              جلسة · بقي {row.result.retainedAuditRows ?? 0} صفّ تدقيق
+            </div>
+          </>
+        ) : row.result?.rows ? (
+          <>
+            {row.result.rows} صفاً في {row.result.tables ?? 0} جدولاً
+            <div className="muted small" dir="ltr">
+              {row.result.bytes ? formatBytes(row.result.bytes) : ''} · {row.result.checksum?.slice(0, 12)}…
+            </div>
+          </>
+        ) : (
+          '—'
+        ),
+    },
+    {
+      key: 'actions',
+      header: 'إجراء',
+      hideOnPrint: true,
+      cell: (row) => (
+        <div className="row" style={{ gap: 6, flexWrap: 'wrap' }}>
+          {row.status === 'pending' && (
+            <>
+              <button
+                className="btn small"
+                type="button"
+                disabled={!reasonReady || busy === row.id}
+                title={reasonReady ? 'قبول' : 'اكتب سبب القرار أولاً'}
+                onClick={() => void decide(row, 'approve')}
+              >
+                اقبل
+              </button>
+              <button
+                className="btn small danger"
+                type="button"
+                disabled={!reasonReady || busy === row.id}
+                onClick={() => void decide(row, 'reject')}
+              >
+                ارفض
+              </button>
+            </>
+          )}
+          {row.status === 'approved' && (
+            <button
+              className="btn small primary"
+              type="button"
+              disabled={busy === row.id}
+              onClick={() => void execute(row)}
+            >
+              {row.kind === 'erase' ? 'نفّذ المحو' : 'نفّذ التصدير'}
+            </button>
+          )}
+        </div>
+      ),
+    },
+  ];
 
   return (
     <Screen
@@ -212,9 +323,9 @@ export default function DataRequestsPage() {
         <Forbidden />
       ) : (
         <>
-          <div className="card tight no-print">
+          <Panel className="tight no-print">
             <div className="row" style={{ flexWrap: 'wrap', alignItems: 'flex-end' }}>
-              <label className="field" style={{ minWidth: 160 }}>
+              <label className="field" style={{ flex: '0 1 160px', minWidth: 0 }}>
                 <span>نوع الطلب</span>
                 <select
                   className="input"
@@ -225,7 +336,7 @@ export default function DataRequestsPage() {
                   <option value="erase">محو بيانات (إخفاء هوية)</option>
                 </select>
               </label>
-              <label className="field" style={{ minWidth: 320, flex: 1 }}>
+              <label className="field" style={{ flex: '1 1 220px', minWidth: 0 }}>
                 <span>معرّف المستأجر (uuid)</span>
                 <input
                   className="input"
@@ -234,7 +345,7 @@ export default function DataRequestsPage() {
                   onChange={(event) => setTenant(event.target.value)}
                 />
               </label>
-              <label className="field" style={{ minWidth: 260, flex: 1 }}>
+              <label className="field" style={{ flex: '1 1 200px', minWidth: 0 }}>
                 <span>بريد صاحب البيانات</span>
                 <input
                   className="input"
@@ -243,7 +354,7 @@ export default function DataRequestsPage() {
                   onChange={(event) => setEmail(event.target.value)}
                 />
               </label>
-              <label className="field" style={{ minWidth: 220, flex: 1 }}>
+              <label className="field" style={{ flex: '1 1 180px', minWidth: 0 }}>
                 <span>ملاحظة (اختياري)</span>
                 <input className="input" value={note} onChange={(event) => setNote(event.target.value)} />
               </label>
@@ -261,11 +372,11 @@ export default function DataRequestsPage() {
               التدقيق: الأولى دفاتر العميل تحتاج مرجع منشئها، والثانية هي الإيصال. والفرق يُعرض في عمود
               النتيجة.
             </p>
-          </div>
+          </Panel>
 
-          <div className="card tight no-print">
+          <Panel className="tight no-print">
             <div className="row" style={{ flexWrap: 'wrap', alignItems: 'flex-end' }}>
-              <label className="field" style={{ minWidth: 380, flex: 1 }}>
+              <label className="field" style={{ flex: '1 1 260px', minWidth: 0 }}>
                 <span>سبب القرار / سبب التنفيذ (5 محارف على الأقل)</span>
                 <input
                   className="input"
@@ -274,7 +385,7 @@ export default function DataRequestsPage() {
                   placeholder="مثال: طلبٌ موثّق من صاحب البيانات بتاريخ …"
                 />
               </label>
-              <label className="field" style={{ minWidth: 300, flex: 1 }}>
+              <label className="field" style={{ flex: '1 1 240px', minWidth: 0 }}>
                 <span>تأكيد المحو — اكتب البريد كما هو</span>
                 <input
                   className="input"
@@ -285,7 +396,7 @@ export default function DataRequestsPage() {
                 />
               </label>
             </div>
-          </div>
+          </Panel>
 
           {notice && <div className={`alert ${notice.kind === 'ok' ? '' : 'danger'}`}>{notice.text}</div>}
 
@@ -303,106 +414,9 @@ export default function DataRequestsPage() {
                 <p className="muted small">
                   {rows.length} من {requests.data?.meta.total ?? rows.length} طلباً
                 </p>
-                <div className="table-wrap">
-                  <table>
-                    <thead>
-                      <tr>
-                        <th>فُتح</th>
-                        <th>النوع</th>
-                        <th>العميل</th>
-                        <th>صاحب البيانات</th>
-                        <th>الحالة</th>
-                        <th>النتيجة</th>
-                        <th className="no-print">إجراء</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {rows.map((row) => (
-                        <tr key={row.id}>
-                          <td dir="ltr">{new Date(row.createdAt).toLocaleString('ar-SA')}</td>
-                          <td>
-                            <span className={`badge ${row.kind === 'erase' ? 'failed' : 'pending'}`}>
-                              {KIND_LABEL[row.kind] ?? row.kind}
-                            </span>
-                          </td>
-                          <td dir="ltr">{row.tenantCode ?? row.tenantId.slice(0, 8)}</td>
-                          <td dir="ltr">
-                            {row.subjectEmail}
-                            {row.result?.subjectRef && (
-                              <div className="muted small" dir="ltr">
-                                {row.result.subjectRef}
-                              </div>
-                            )}
-                          </td>
-                          <td>
-                            <span className={`badge ${STATUS_CLASS[row.status] ?? 'pending'}`}>
-                              {STATUS_LABEL[row.status] ?? row.status}
-                            </span>
-                            {row.decisionNote && <div className="muted small">{row.decisionNote}</div>}
-                          </td>
-                          <td className="small">
-                            {row.result?.anonymisedUsers ? (
-                              <>
-                                أُخفي {row.result.anonymisedUsers} مستخدماً (
-                                {row.result.anonymisedFields?.length ?? 0} حقلاً)
-                                <div className="muted small">
-                                  سُحبت {row.result.suspendedMemberships ?? 0} عضوية · أُبطلت{' '}
-                                  {row.result.revokedSessions ?? 0} جلسة · بقي{' '}
-                                  {row.result.retainedAuditRows ?? 0} صفّ تدقيق
-                                </div>
-                              </>
-                            ) : row.result?.rows ? (
-                              <>
-                                {row.result.rows} صفاً في {row.result.tables ?? 0} جدولاً
-                                <div className="muted small" dir="ltr">
-                                  {row.result.bytes ? formatBytes(row.result.bytes) : ''} ·{' '}
-                                  {row.result.checksum?.slice(0, 12)}…
-                                </div>
-                              </>
-                            ) : (
-                              '—'
-                            )}
-                          </td>
-                          <td className="no-print">
-                            <div className="row" style={{ gap: 6, flexWrap: 'wrap' }}>
-                              {row.status === 'pending' && (
-                                <>
-                                  <button
-                                    className="btn small"
-                                    type="button"
-                                    disabled={!reasonReady || busy === row.id}
-                                    title={reasonReady ? 'قبول' : 'اكتب سبب القرار أولاً'}
-                                    onClick={() => void decide(row, 'approve')}
-                                  >
-                                    اقبل
-                                  </button>
-                                  <button
-                                    className="btn small danger"
-                                    type="button"
-                                    disabled={!reasonReady || busy === row.id}
-                                    onClick={() => void decide(row, 'reject')}
-                                  >
-                                    ارفض
-                                  </button>
-                                </>
-                              )}
-                              {row.status === 'approved' && (
-                                <button
-                                  className="btn small primary"
-                                  type="button"
-                                  disabled={busy === row.id}
-                                  onClick={() => void execute(row)}
-                                >
-                                  {row.kind === 'erase' ? 'نفّذ المحو' : 'نفّذ التصدير'}
-                                </button>
-                              )}
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
+                <Panel flush title="طلبات البيانات">
+                  <Table bare columns={columns} rows={rows} rowKey={(row) => row.id} />
+                </Panel>
               </>
             ))}
         </>

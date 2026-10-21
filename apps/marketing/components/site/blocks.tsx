@@ -13,6 +13,8 @@ import type { ReactNode } from 'react';
 import { blockFor, type ContentBlock } from '../../lib/content';
 import type { Locale } from '../../lib/i18n';
 
+import { SiteIcon } from './icon';
+
 type Payload = Record<string, unknown>;
 
 const asPayload = (value: unknown): Payload => (value && typeof value === 'object' ? (value as Payload) : {});
@@ -48,7 +50,7 @@ function CardsBlock({ payload }: { payload: Payload }) {
           <article className="card" key={index}>
             {card.icon ? (
               <span className="card-icon" aria-hidden="true">
-                {asString(card.icon)}
+                <SiteIcon glyph={asString(card.icon)} size={24} />
               </span>
             ) : null}
             <h3>{asString(card.title)}</h3>

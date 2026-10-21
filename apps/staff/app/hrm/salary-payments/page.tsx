@@ -95,14 +95,15 @@ export default function SalaryPaymentsPage() {
   const paidSum = (list: SalaryPayment[]) => list.reduce((sum, row) => sum + Number(row.net || 0), 0).toFixed(2);
 
   return (
-    <Directory<SalaryPayment>
+ <Directory<SalaryPayment>
+      listTitle="إذونات صرف الرواتب"
       title="دفع الرواتب"
       subtitle="إذن صرف راتب لكل موظف عن كل شهر — «لقد تم دفع راتب الموظف سابقاً» يحرس التكرار، والمبلغ هو صافي مسيّر الشهر."
       crumbs={['الموظفين والرواتب', 'العمليات']}
       query={view}
       canCreate={manage && employeeRows.length > 0 && locationRows.length > 0 && branchRows.length > 0}
       createLabel="إذن صرف جديد"
-      formTitle="💰 دفع الرواتب"
+ formTitle="دفع الرواتب"
       blocked={
         employeeRows.length === 0
           ? 'أضف موظفاً واحداً على الأقل أولاً.'
@@ -161,7 +162,7 @@ export default function SalaryPaymentsPage() {
           name: 'runId',
           label: 'يصرف من مسيّر',
           type: 'select',
-          hint: '📊 عرض الراتب — يُصرف ما في سطر الموظف من مسيّر الشهر؛ وإن تُرك فارغاً حُسب من بطاقة الموظف والحوافز المعتمدة.',
+ hint: 'عرض الراتب — يُصرف ما في سطر الموظف من مسيّر الشهر؛ وإن تُرك فارغاً حُسب من بطاقة الموظف والحوافز المعتمدة.',
           options: runRows.map((row) => ({ id: row.id, label: `${monthLabel(row.yearMonth)} — ${row.status}` })),
         },
         {
@@ -194,50 +195,50 @@ export default function SalaryPaymentsPage() {
       emptyDetail="سجّل أول إذن صرف راتب من زر «إذن صرف جديد»."
       onDelete={manage ? (row) => apiDelete(`/hrm/salary-payments/${row.id}`) : undefined}
       deleteLabel="حذف"
-      confirmDelete={(row) => `⚠️ هل أنت متأكد من الحذف؟\nإذن صرف رقم ${row.number} للموظف ${row.employeeName ?? ''}`}
+ confirmDelete={(row) => `هل أنت متأكد من الحذف؟\nإذن صرف رقم ${row.number} للموظف ${row.employeeName ?? ''}`}
       rowLabel={(row) => `الإذن ${row.number}`}
       tiles={[
         { label: 'عدد الإذونات', value: String(rows.length), hint: 'بعد البحث' },
         { label: 'إجمالي المصروف', value: money(paidSum(rows)), tone: 'ok' as const },
       ]}
       toolbar={
-        <div className="row wrap">
-          <label className="field inline">
-            <span>رقم الإذن</span>
-            <input className="input sm" dir="ltr" value={filterNumber} onChange={(event) => setFilterNumber(event.target.value)} />
-          </label>
-          <label className="field inline">
-            <span>الموظف</span>
-            <select value={filterEmployee} onChange={(event) => setFilterEmployee(event.target.value)}>
-              <option value="">كل الموظفين</option>
+ <div className="row wrap">
+ <label className="field inline">
+ <span>رقم الإذن</span>
+ <input className="input sm" dir="ltr" value={filterNumber} onChange={(event) => setFilterNumber(event.target.value)} />
+ </label>
+ <label className="field inline">
+ <span>الموظف</span>
+ <select className="input" value={filterEmployee} onChange={(event) => setFilterEmployee(event.target.value)}>
+ <option value="">كل الموظفين</option>
               {employeeRows.map((row) => (
-                <option key={row.id} value={row.id}>
+ <option key={row.id} value={row.id}>
                   {row.employeeNo} — {row.name}
-                </option>
+ </option>
               ))}
-            </select>
-          </label>
-          <label className="field inline">
-            <span>الشهر</span>
-            <input className="input sm" dir="ltr" placeholder={currentMonth()} value={filterMonth} onChange={(event) => setFilterMonth(event.target.value)} />
-          </label>
-          <label className="field inline">
-            <span>طريقة الدفع</span>
-            <select value={filterMethod} onChange={(event) => setFilterMethod(event.target.value)}>
-              <option value="">الكل</option>
-              <option value="cash">نقدي</option>
-              <option value="bank_transfer">تحويل بنكي</option>
-            </select>
-          </label>
-          <label className="field inline">
-            <span>من تاريخ</span>
-            <input type="date" value={filterFrom} onChange={(event) => setFilterFrom(event.target.value)} dir="ltr" />
-          </label>
-          <label className="field inline">
-            <span>إلى تاريخ</span>
-            <input type="date" value={filterTo} onChange={(event) => setFilterTo(event.target.value)} dir="ltr" />
-          </label>
-          <button
+ </select>
+ </label>
+ <label className="field inline">
+ <span>الشهر</span>
+ <input className="input sm" dir="ltr" placeholder={currentMonth()} value={filterMonth} onChange={(event) => setFilterMonth(event.target.value)} />
+ </label>
+ <label className="field inline">
+ <span>طريقة الدفع</span>
+ <select className="input" value={filterMethod} onChange={(event) => setFilterMethod(event.target.value)}>
+ <option value="">الكل</option>
+ <option value="cash">نقدي</option>
+ <option value="bank_transfer">تحويل بنكي</option>
+ </select>
+ </label>
+ <label className="field inline">
+ <span>من تاريخ</span>
+ <input className="input" type="date" value={filterFrom} onChange={(event) => setFilterFrom(event.target.value)} dir="ltr" />
+ </label>
+ <label className="field inline">
+ <span>إلى تاريخ</span>
+ <input className="input" type="date" value={filterTo} onChange={(event) => setFilterTo(event.target.value)} dir="ltr" />
+ </label>
+ <button
             className="btn"
             type="button"
             onClick={() => {
@@ -249,13 +250,13 @@ export default function SalaryPaymentsPage() {
               setFilterTo('');
             }}
           >
-            كل الفترة
-          </button>
-        </div>
+ كل الفترة
+ </button>
+ </div>
       }
       columns={[
         { key: 'number', header: 'رقم الإذن', align: 'ltr', cell: (row) => row.number },
-        { key: 'employee', header: '👤 الموظف', cell: (row) => row.employeeName ?? row.employeeId },
+ { key: 'employee', header: 'الموظف', cell: (row) => row.employeeName ?? row.employeeId },
         { key: 'month', header: 'الشهر', cell: (row) => monthLabel(row.yearMonth) },
         {
           key: 'amounts',
@@ -263,10 +264,10 @@ export default function SalaryPaymentsPage() {
           align: 'num',
           cell: (row) => `${money(row.basic)} · ${money(row.housing)} · ${money(row.transport)}`,
         },
-        { key: 'additions', header: '💰 الحوافز', align: 'num', cell: (row) => money(row.additions) },
-        { key: 'deductions', header: '🔴 الخصومات', align: 'num', cell: (row) => money(row.deductions) },
-        { key: 'net', header: '💵 الصافي', align: 'num', cell: (row) => money(row.net) },
-        { key: 'date', header: '📅 التاريخ', align: 'ltr', cell: (row) => shortDate(row.paymentDate) },
+ { key: 'additions', header: 'الحوافز', align: 'num', cell: (row) => money(row.additions) },
+ { key: 'deductions', header: 'الخصومات', align: 'num', cell: (row) => money(row.deductions) },
+ { key: 'net', header: 'الصافي', align: 'num', cell: (row) => money(row.net) },
+ { key: 'date', header: 'التاريخ', align: 'ltr', cell: (row) => shortDate(row.paymentDate) },
         {
           key: 'method',
           header: 'طريقة الدفع',
@@ -282,9 +283,9 @@ export default function SalaryPaymentsPage() {
         },
       ]}
       footer={(list) => [
-        <strong key="count">{list.length} إذن</strong>,
-        <span key="label">إجمالي المصروف</span>,
-        <strong key="sum">{money(paidSum(list))}</strong>,
+ <strong key="count">{list.length} إذن</strong>,
+ <span key="label">إجمالي المصروف</span>,
+ <strong key="sum">{money(paidSum(list))}</strong>,
       ]}
     />
   );
