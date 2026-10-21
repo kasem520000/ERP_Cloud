@@ -86,6 +86,16 @@ export class AllExceptionsFilter implements ExceptionFilter {
       });
     }
 
+    /**
+     * `Retry-After` من الخطأ نفسه حين يعرف نافذته.
+     *
+     * حارس السقف يضبط الترويسة بنفسه، لكن القفل بعدّاد الحساب يُرمى من الخدمة ولا يملك
+     * استجابة. فبدل أن يعرف العميل المدة من نصّ الخطأ وحده، يحمل كل 429 رقميّته:
+     * `details.retryAfterSeconds` (تُرسل في `errors[]`) تصبح ترويسة قياسية.
+     */
+    const retryAfter = readRetryAfter(problem);
+    if (retryAfter !== null) response.setHeader('Retry-After', String(retryAfter));
+
     response.status(problem.status).type('application/problem+json').send(JSON.stringify(problem));
   }
 
@@ -216,6 +226,18 @@ export function problemFromBodyParserError(exception: unknown, traceId: string):
   }
 
   return null;
+}
+
+/** يقرأ `retryAfterSeconds` من `errors[]` حين تكون 429 — رقمٌ موجب فقط. */
+function readRetryAfter(problem: ProblemDetails): number | null {
+  if (problem.status !== 429) return null;
+  const candidate = (problem.errors ?? []).find(
+    (entry) => typeof (entry as { retryAfterSeconds?: unknown }).retryAfterSeconds === 'number',
+  ) as { retryAfterSeconds?: number } | undefined;
+  const seconds = candidate?.retryAfterSeconds;
+  return typeof seconds === 'number' && Number.isFinite(seconds) && seconds > 0
+    ? Math.ceil(seconds)
+    : null;
 }
 
 /** Maps a Nest `HttpException` status onto the stable registry (API_CONTRACT §0). */

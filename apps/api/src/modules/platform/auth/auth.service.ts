@@ -143,14 +143,28 @@ export class AuthService {
       throw new DomainError(errorCodes.UNAUTHENTICATED, 'Invalid e-mail, tenant or password', 401);
     }
 
-    if (user.lockedUntil && user.lockedUntil.getTime() > Date.now()) {
-      const retryAfterSeconds = Math.ceil((user.lockedUntil.getTime() - Date.now()) / 1000);
-      throw new DomainError(
+    /**
+     * SH-06 — القفل لا يكون سلاحاً على صاحبه.
+     *
+     * كان القفل يُفحص **قبل** التحقق من كلمة المرور، فمن يعرف بريداً يحجب صاحبه ١٥ دقيقة
+     * بخمس محاولات خاطئة، ويعيد ذلك بلا نهاية (حجبٌ متاحٌ لأي مجهول، بلا كلمة مرور).
+     * الآن **التحقق أولاً، والقفل يعني «توقّف عن التخمين» لا «توقّف عن الدخول»**:
+     * المحاولة التي تثبت الملكية (كلمة المرور الصحيحة، والرمز الثاني إن كان مفعّلاً)
+     * تمرّ وتصفّر العدّاد؛ والمحاولة الخاطئة وحدها تُجاب 429. فالتخمين يبقى محدوداً،
+     * وصاحب الحساب لا يُقفل خارج حسابه أبداً.
+     *
+     * وكلفة Argon2 على كل محاولة مقصودة: السقف لكل IP (10/دقيقة) هو ما يحمي المعالج،
+     * لا ترتيب الفحوص.
+     */
+    const lockedForMs = user.lockedUntil ? user.lockedUntil.getTime() - Date.now() : 0;
+    const locked = lockedForMs > 0;
+    const lockedError = () =>
+      new DomainError(
         errorCodes.RATE_LIMITED,
-        `Account temporarily locked after repeated failed logins; retry in ${retryAfterSeconds}s`,
+        `Account temporarily locked after repeated failed logins; retry in ${Math.ceil(lockedForMs / 1000)}s`,
         429,
+        { retryAfterSeconds: Math.max(1, Math.ceil(lockedForMs / 1000)) },
       );
-    }
 
     const membership = await this.findActiveMembership(tenant.id, user.id);
     if (!membership) {
@@ -163,6 +177,8 @@ export class AuthService {
 
     const passwordOk = await this.passwords.verify(user.passwordHash, input.password);
     if (!passwordOk) {
+      // المحاولة الخاطئة أثناء القفل: لا تُمدَّد مدة القفل (وإلا صار الحجب دائماً)، ولا تُحتسب.
+      if (locked) throw lockedError();
       await this.registerFailedLogin(user.id);
       throw new DomainError(errorCodes.UNAUTHENTICATED, 'Invalid e-mail, tenant or password', 401);
     }
@@ -177,6 +193,9 @@ export class AuthService {
       }
       const codeOk = await this.mfa.verifyLogin(user.id, input.mfaCode);
       if (!codeOk) {
+        // كلمة المرور صحيحة والرمز الثاني خاطئ: القفل يوقف تخمين الرمز أيضاً، وإلا صار
+        // تجاوز القفل بكلمة مرور مسروقة طريقاً لتخمين TOTP بلا حدّ.
+        if (locked) throw lockedError();
         await this.registerFailedLogin(user.id);
         throw new DomainError(errorCodes.UNAUTHENTICATED, 'Invalid e-mail, tenant, password or verification code', 401);
       }

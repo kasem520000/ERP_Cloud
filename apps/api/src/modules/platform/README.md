@@ -72,7 +72,10 @@ trusting a claim: the database has to agree with the token.
   deny-list check. Legacy plaintext hashes are never imported; imported users get
   `must_change_password = true`.
 - **Lockout** — `AUTH_LOGIN_MAX_FAILURES` failures ⇒ `locked_until`, surfaced as
-  429 `RATE_LIMITED`.
+  429 `RATE_LIMITED`. The credential is verified **before** the lock is applied, so the
+  lock stops guessing without locking the owner out: a correct password (plus the TOTP
+  code when enabled) still opens the session, and doing so clears the counter. Otherwise
+  anyone who knows an e-mail address could keep its owner out indefinitely.
 
 ## Deliberate decisions (recorded, not accidental)
 
