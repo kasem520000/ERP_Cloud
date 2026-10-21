@@ -19,7 +19,7 @@ export class RateLimitGuard implements CanActivate {
     private readonly limiter: RateLimiterService,
   ) {}
 
-  canActivate(context: ExecutionContext): boolean {
+  async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<Request>();
     const response = context.switchToHttp().getResponse<Response>();
 
@@ -34,7 +34,7 @@ export class RateLimitGuard implements CanActivate {
 
     const clientKey = request.ip ?? request.socket?.remoteAddress ?? 'unknown';
     const key = `${rule.name}:${clientKey}`;
-    const decision = this.limiter.consume(key, rule.limit, rule.windowMs);
+    const decision = await this.limiter.consume(key, rule.limit, rule.windowMs);
 
     response.setHeader('X-RateLimit-Limit', String(rule.limit));
     response.setHeader('X-RateLimit-Remaining', String(decision.remaining));

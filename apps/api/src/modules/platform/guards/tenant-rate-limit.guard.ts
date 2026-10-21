@@ -23,7 +23,7 @@ type GuardedRequest = Request & { tenant?: TenantContextValue };
 export class TenantRateLimitGuard implements CanActivate {
   constructor(private readonly limiter: RateLimiterService) {}
 
-  canActivate(context: ExecutionContext): boolean {
+  async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest<GuardedRequest>();
     const response = context.switchToHttp().getResponse<Response>();
 
@@ -31,7 +31,7 @@ export class TenantRateLimitGuard implements CanActivate {
     if (!tenantId) return true;
 
     const limit = env.RATE_LIMIT_TENANT_PER_MINUTE;
-    const decision = this.limiter.consume(`tenant:${tenantId}`, limit, 60_000);
+    const decision = await this.limiter.consume(`tenant:${tenantId}`, limit, 60_000);
 
     // أسماءٌ مستقلّة عن ترويسات دلو الـIP: استجابةٌ واحدة تحمل الاثنين بلا أن يطمس أحدهما
     // الآخر، فتعرف الواجهة أيّ سقفٍ أوشك على النفاد.

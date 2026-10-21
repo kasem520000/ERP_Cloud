@@ -31,6 +31,7 @@ import {
 import { DATABASE_HANDLE } from '../../database/database.module.js';
 import { MetricsService } from '../../ops/metrics.service.js';
 import { PasswordBreachChecker } from '../platform/auth/password-breach.js';
+import { RateLimiterService } from '../platform/rate-limit/rate-limiter.service.js';
 import { AuditService } from '../platform-services/audit/audit.service.js';
 import { OBJECT_STORAGE, type ObjectStoragePort } from '../platform-services/files/object-storage.js';
 import { VIRUS_SCANNER, type VirusScannerPort } from '../platform-services/files/virus-scanner.js';
@@ -72,6 +73,7 @@ export class PlatformOperationsService {
     private readonly metrics: MetricsService,
     private readonly audit: AuditService,
     private readonly breach: PasswordBreachChecker,
+    private readonly limiter: RateLimiterService,
   ) {}
 
   // ─────────────────────────────────────────────────────────── الطابور
@@ -357,10 +359,11 @@ export class PlatformOperationsService {
       name: 'redis',
       status: !configured ? 'not_configured' : this.queue.isEnabled() ? 'up' : 'degraded',
       detail: !configured
-        ? 'REDIS_URL غير مضبوط — الطابور في الذاكرة والصفوف تبقى معلَّقة'
-        : this.queue.isEnabled()
-          ? `سائق الطابور: ${this.queue.driver}`
-          : 'JOBS_ENABLED=false — الطابور معطَّل بقرار تكوين',
+        ? `REDIS_URL غير مضبوط — الطابور في الذاكرة والصفوف تبقى معلَّقة، وعدّاد الطلبات ${this.limiter.snapshot().shared ? 'مشترك' : 'محليٌّ لهذه العملية'}`
+        : `سائق الطابور: ${this.queue.isEnabled() ? this.queue.driver : 'معطَّل (JOBS_ENABLED=false)'}؛ ` +
+          `عدّاد الطلبات: ${this.limiter.snapshot().shared ? 'مشترك عبر Redis' : 'محليٌّ (احتياط)'}${
+            this.limiter.snapshot().fallbacks > 0 ? ` — حالات السقوط: ${this.limiter.snapshot().fallbacks}` : ''
+          }`,
       latencyMs: null,
     };
   }

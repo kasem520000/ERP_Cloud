@@ -79,6 +79,17 @@ const envSchema = z.object({
   /** بعد ثلاثة إخفاقات متتالية يُفتح القاطع هذه المدة فلا يُنادَى المزوّد في كل تغييرٍ لكلمة. */
   PASSWORD_BREACH_CHECK_CIRCUIT_SECONDS: z.coerce.number().int().positive().max(3_600).default(60),
 
+  /**
+   * مهلة نداء Redis في عدّاد الطلبات. قصيرة عن قصد: هذا مسارٌ يقع في **كل** طلب،
+   * ونداءٌ لخادمٍ ميت يجب ألّا يحوّل حماية السقف إلى تعليقٍ لكل المستأجرين.
+   */
+  RATE_LIMIT_REDIS_TIMEOUT_MS: z.coerce.number().int().positive().max(5_000).default(250),
+  /**
+   * مصدر العدّاد: `auto` يستخدم Redis إن كان `REDIS_URL` مضبوطاً، و`memory` يفرض الدلو
+   * المحلي (نشرٌ بعقدةٍ واحدة، أو اختباراتٌ لا تريد نداء شبكةٍ في كل طلب)، و`redis`
+   * يفرض المشترك ويُسقَط إلى المحلي عند العطل كما في `auto`.
+   */
+  RATE_LIMIT_STORE: z.enum(['auto', 'memory', 'redis']).default('auto'),
   /** SECURITY_ARCHITECTURE §8 — token buckets. */
   RATE_LIMIT_DEFAULT_PER_MINUTE: z.coerce.number().int().positive().default(600),
   RATE_LIMIT_LOGIN_PER_MINUTE: z.coerce.number().int().positive().default(10),
