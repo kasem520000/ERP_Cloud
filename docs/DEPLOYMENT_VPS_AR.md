@@ -54,7 +54,7 @@ sudo dpkg-reconfigure --priority=low unattended-upgrades
 
 # ── أدوات ───────────────────────────────────────────────────────────────
 sudo apt -y install curl git build-essential nginx fail2ban ufw \
-                    postgresql-client-16 jq unzip
+                    postgresql-client-16 jq unzip rclone
 
 # ── Node 22 LTS + pnpm 9.15 (الإصدار المثبّت في packageManager) ─────────
 curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
@@ -217,6 +217,7 @@ sudo -u postgres pgbackrest --stanza=app --type=full backup
 **ثم اسحب النسخة خارج الخادم** — نسخةٌ على القرص نفسه ليست نسخة:
 
 ```bash
+# إعداد الوجهة البعيدة مرة واحدة: `rclone config` ثم اختبارها بـ`rclone lsd remote:`
 # يومياً 02:30 — dump مضغوط إلى تخزين خارجي (S3 / Backblaze / أي وجهة بعيدة)
 30 2 * * * cd /home/erp/ERP_Cloud && pnpm run db:backup && \
   rclone copy backups/ remote:erp-backups/$(date +\%F)/ --include "*.gz"
