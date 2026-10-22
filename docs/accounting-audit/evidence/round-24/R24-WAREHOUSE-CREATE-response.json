@@ -1,0 +1,25 @@
+{
+  "status": 201,
+  "method": "POST",
+  "url": "http://127.0.0.1:3001/api/v1/warehouses",
+  "request": {
+    "code": "WH2",
+    "name": "مستودع الفرع الثاني",
+    "branchId": "01a16521-1e40-73a0-81e1-cb552fb71b7c",
+    "isDefault": false
+  },
+  "body": {
+    "data": {
+      "id": "01a16521-7bb0-700f-aa7d-0bc92c0904b0",
+      "branchId": "01a16521-1e40-73a0-81e1-cb552fb71b7c",
+      "code": "WH2",
+      "name": "مستودع الفرع الثاني",
+      "inventoryAccountId": null,
+      "isDefault": false,
+      "isActive": true,
+      "version": 1,
+      "createdAt": "2026-10-22T19:40:55.596Z",
+      "updatedAt": null
+    }
+  }
+}
