@@ -438,6 +438,15 @@ export class HrmService implements OnModuleInit {
     return { ...(decorated ?? card), branches: branchesList, photoFileId: (row.row as Employee).photoFileId ?? null };
   }
 
+  async ensureEmployeeAccount(tenantId: string, employeeId: string) {
+    await this.ensureEnabled(tenantId);
+    const employee = await this.readEmployee(tenantId, employeeId);
+    if (employee.employeeAccountId) {
+      return this.accounting.readAccount(tenantId, employee.employeeAccountId);
+    }
+    return this.employeeAccount(tenantId, employee.id, employee.name, employee.branchId, undefined, undefined);
+  }
+
   async createEmployee(tenantId: string, input: EmployeeInput) {
     await this.ensureEnabled(tenantId);
     const name = input.name?.trim();

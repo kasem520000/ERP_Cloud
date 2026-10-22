@@ -59,6 +59,7 @@ export async function loadRolesForMembership(tx: DrizzleTx, membershipId: string
 
 export type MembershipRow = {
   id: string;
+  userId?: string;
   tenantId: string;
   tenantCode: string;
   tenantName: string;
@@ -88,6 +89,7 @@ export async function toMembershipDto(tx: DrizzleTx, row: MembershipRow): Promis
   return {
     id: row.id,
     tenantId: row.tenantId,
+    userId: row.userId,
     tenantCode: row.tenantCode,
     tenantName: row.tenantName,
     displayName: row.displayName,

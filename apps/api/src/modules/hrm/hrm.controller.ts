@@ -48,6 +48,7 @@ export class HrmController {
   /** 👤 قائمة الموظفين — `frmEmployees.xaml` «قائمة الموظفين» + «اسم الموظف:» بحث. */
   @Get('employees') @RequiresPermission('hrm.view') employees(@Query('q') q?: string, @Query('status') status?: string, @Query('branch_id') branchId?: string, @Query('department_id') departmentId?: string, @Query('job_id') jobId?: string) { return this.hrm.listEmployees(getTenantContext().tenantId, { q, status, branchId, departmentId, jobId }); }
   @Get('employees/:id') @RequiresPermission('hrm.view') readEmployee(@Param('id') id: string) { return this.hrm.readEmployee(getTenantContext().tenantId, id); }
+  @Post('employees/:id/account') @RequiresPermission('hrm.manage') ensureEmployeeAccount(@Param('id') id: string) { return this.hrm.ensureEmployeeAccount(getTenantContext().tenantId, id); }
   @Post('employees') @RequiresPermission('hrm.manage') createEmployee(@Body() body: EmployeeInput) { return this.hrm.createEmployee(getTenantContext().tenantId, body); }
   @Patch('employees/:id') @RequiresPermission('hrm.manage') updateEmployee(@Param('id') id: string, @Body() body: EmployeePatch) { return this.hrm.updateEmployee(getTenantContext().tenantId, id, body); }
   @Delete('employees/:id') @RequiresPermission('hrm.manage') deleteEmployee(@Param('id') id: string) { return this.hrm.deleteEmployee(getTenantContext().tenantId, id); }

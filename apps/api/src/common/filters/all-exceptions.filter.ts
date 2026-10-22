@@ -3,6 +3,7 @@ import {
   HttpException,
   HttpStatus,
   Logger,
+  Optional,
   type ArgumentsHost,
   type ExceptionFilter,
 } from '@nestjs/common';
@@ -18,9 +19,11 @@ import {
   type ProblemDetails,
 } from '@erp/contracts';
 
-import { getRequestContext, getTraceId } from '../../request-context/request-context.js';
+import { getRequestContext, getTraceId, isRequestAudited, markRequestAudited } from '../../request-context/request-context.js';
 import { recordServerProblem } from '../../modules/platform/admin/problem-recorder.js';
 import { ZodValidationException } from '../pipes/zod-validation.pipe.js';
+import { AuditService } from '../../modules/platform-services/audit/audit.service.js';
+import { describeRoute, actionForMethod } from '../../modules/platform-services/audit/audit.interceptor.js';
 
 /**
  * Global exception filter — API_CONTRACT §0 / API_ARCHITECTURE §3.
@@ -32,6 +35,8 @@ import { ZodValidationException } from '../pipes/zod-validation.pipe.js';
 @Catch()
 export class AllExceptionsFilter implements ExceptionFilter {
   private readonly logger = new Logger(AllExceptionsFilter.name);
+
+  constructor(@Optional() private readonly audit?: AuditService) {}
 
   catch(exception: unknown, host: ArgumentsHost): void {
     const ctx = host.switchToHttp();
@@ -84,6 +89,34 @@ export class AllExceptionsFilter implements ExceptionFilter {
           userAgent: context.userAgent,
         },
       });
+    }
+
+    // ACC-076: تسجيل محاولات العمليات المرفوضة بالصلاحية (403) في سجل التدقيق
+    if (problem.status === 403 && !isRequestAudited()) {
+      markRequestAudited();
+      const context = safeContext();
+      if (this.audit && context.tenantId) {
+        const method = request?.method?.toUpperCase() ?? 'UNKNOWN';
+        const rawUrl = request?.originalUrl ?? request?.url ?? '';
+        const route = describeRoute(rawUrl);
+        const action = `denied.${actionForMethod(method, route)}`;
+        void this.audit.record({
+          tenantId: context.tenantId,
+          actorUserId: context.userId ?? null,
+          membershipId: context.membershipId ?? null,
+          action,
+          entity: route.resource,
+          entityId: route.entityId,
+          meta: {
+            path: rawUrl,
+            method,
+            reason: problem.detail || problem.title || 'Permission denied',
+            code: problem.code,
+            ip: context.clientIp,
+            userAgent: context.userAgent,
+          },
+        });
+      }
     }
 
     /**
@@ -289,15 +322,23 @@ export function isPostgresUuidSyntaxError(exception: unknown): boolean {
 
 
 /** سياق الطلب قد يكون غائباً خارج دورة HTTP (تقرير عطلٍ في الإقلاع مثلاً). */
-function safeContext(): { tenantId: string | null; userId: string | null; userAgent: string | null } {
+function safeContext(): {
+  tenantId: string | null;
+  userId: string | null;
+  membershipId: string | null;
+  userAgent: string | null;
+  clientIp: string | null;
+} {
   try {
     const context = getRequestContext();
     return {
       tenantId: context.tenant?.tenantId ?? null,
       userId: context.auth?.userId ?? null,
+      membershipId: context.tenant?.membershipId ?? null,
       userAgent: context.userAgent ?? null,
+      clientIp: context.clientIp ?? null,
     };
   } catch {
-    return { tenantId: null, userId: null, userAgent: null };
+    return { tenantId: null, userId: null, membershipId: null, userAgent: null, clientIp: null };
   }
 }

@@ -131,6 +131,7 @@ export type MembershipScopeDto = z.infer<typeof membershipScopeDtoSchema>;
 export const membershipDtoSchema = z.object({
   id: uuidSchema,
   tenantId: uuidSchema,
+  userId: uuidSchema.optional(),
   tenantCode: z.string(),
   tenantName: z.string(),
   displayName: z.string(),

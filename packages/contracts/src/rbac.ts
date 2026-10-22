@@ -645,7 +645,6 @@ export const erpFunctionalRoleCatalog: readonly RoleCatalogEntry[] = [
       'catalog.item.view',
       'catalog.taxgroup.view',
       'parties.view',
-      'parties.manage',
       'inventory.view',
       'manufacturing.view',
       'sales.view',

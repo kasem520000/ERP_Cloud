@@ -142,9 +142,15 @@ export default function PurchaseInvoiceDetailPage() {
     setBusy(true);
     setNotice(undefined);
     try {
-      await action();
-      setNotice({ kind: 'ok', text: okText });
+      const result = await action();
+      const resObj = (result && typeof result === 'object' ? result : {}) as Record<string, unknown>;
+      if (resObj.code === 'APPROVAL_REQUIRED' || resObj.status === 'pending' || resObj.requestId) {
+        setNotice({ kind: 'info', text: 'تم تقديم الفاتورة بانتظار الاعتماد قبل الترحيل.' });
+      } else {
+        setNotice({ kind: 'ok', text: okText });
+      }
       invoice.reload();
+      approval.reload();
     } catch (error) {
       setNotice({ kind: 'danger', text: apiErrorText(error) });
     } finally {
@@ -167,7 +173,7 @@ export default function PurchaseInvoiceDetailPage() {
     if (doc.costs.some((entry) => entry.allocationTarget === 'expense' && !entry.accountId)) {
       throw new ApiError(422, 'VALIDATION_FAILED', 'مصروف مباشر بلا حساب — احذفه وأعده مربوطاً بحساب مصروف.');
     }
-    await apiPost(`/purchase-invoices/${doc.id}/post`, {
+    return await apiPost(`/purchase-invoices/${doc.id}/post`, {
       settlement,
       settlementAccountId,
       settlementCashLocationId: settleLocationId || undefined,

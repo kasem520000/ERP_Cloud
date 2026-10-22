@@ -102,6 +102,7 @@ export class MembershipsService {
       const rows = await tx
         .select({
           id: memberships.id,
+          userId: memberships.userId,
           tenantId: memberships.tenantId,
           displayName: memberships.displayName,
           status: memberships.status,
@@ -129,6 +130,7 @@ export class MembershipsService {
         data.push(
           await toMembershipDto(tx, {
             id: row.id,
+            userId: row.userId,
             tenantId: row.tenantId,
             tenantCode: tenantInfo?.code ?? '',
             tenantName: tenantInfo?.name ?? '',

@@ -14,6 +14,7 @@ import {
   invoicePayments,
   items,
   journalEntries,
+  journalEntryLines,
   offers,
   parties,
   paymentAllocations,
@@ -462,6 +463,28 @@ export class SalesService {
       ...input.lines.map((line) => line.costCenterId),
     ]);
     const id = newId();
+    const actorUserId = tryGetAuthContext()?.userId;
+    let resolvedShiftId = input.shiftId ?? null;
+    let resolvedCashierId = input.cashierId ?? null;
+    if (!resolvedShiftId && actorUserId) {
+      const [openShift] = await tx
+        .select({ id: shiftCloses.id, userId: shiftCloses.userId })
+        .from(shiftCloses)
+        .where(
+          and(
+            eq(shiftCloses.tenantId, tenantId),
+            eq(shiftCloses.branchId, input.branchId),
+            eq(shiftCloses.userId, actorUserId),
+            eq(shiftCloses.status, 'open'),
+          ),
+        )
+        .limit(1);
+      if (openShift) {
+        resolvedShiftId = openShift.id;
+        resolvedCashierId = openShift.userId;
+      }
+    }
+
     await tx
       .insert(salesInvoices)
       .values({
@@ -480,9 +503,9 @@ export class SalesService {
         cashCustomerName: input.cashCustomerName,
         cashCustomerMobile: input.cashCustomerMobile,
         orderType: input.orderType,
-        shiftId: input.shiftId ?? null,
-        cashierId: input.cashierId ?? null,
-        createdBy: tryGetAuthContext()?.userId,
+        shiftId: resolvedShiftId,
+        cashierId: resolvedCashierId,
+        createdBy: actorUserId,
         invoiceDiscount: totals.discount,
         extraTax: totals.extraTax,
         withholding: totals.withholding,
@@ -974,10 +997,56 @@ export class SalesService {
     );
     const number = allocated.display;
     const today = new Date().toISOString().slice(0, 10);
+    const needsJournal = Boolean(posting.journalLines?.length || money(locked.total).abs().gt(0));
     const resolvedFiscalPeriodId =
-      posting.fiscalPeriodId ?? (await this.accounting.openPeriodForDateInTx(tx, tenantId, today));
-    // ACC-053: التحقق من قفل فترة المبيعات
-    await this.accounting.assertModuleUnlocked(tx, tenantId, resolvedFiscalPeriodId, 'sales');
+      posting.fiscalPeriodId ??
+      (needsJournal ? await this.accounting.openPeriodForDateInTx(tx, tenantId, today) : null);
+    if (resolvedFiscalPeriodId) {
+      // ACC-053: التحقق من قفل فترة المبيعات
+      await this.accounting.assertModuleUnlocked(tx, tenantId, resolvedFiscalPeriodId, 'sales');
+    }
+
+    // ACC-062: التحقق من حد ائتمان العميل عند ترحيل فاتورة بيع آجلة
+    const isCreditPost =
+      (posting.settlement === undefined || posting.settlement === 'credit') &&
+      locked.kind === 'sale' &&
+      Boolean(locked.partyId);
+    if (isCreditPost) {
+      const [customer] = await tx
+        .select({ creditLimit: parties.creditLimit })
+        .from(parties)
+        .where(and(eq(parties.tenantId, tenantId), eq(parties.id, locked.partyId!), isNull(parties.deletedAt)))
+        .limit(1);
+      if (customer?.creditLimit && Number(customer.creditLimit) > 0) {
+        const rows = await tx
+          .select({
+            debit: journalEntryLines.debit,
+            credit: journalEntryLines.credit,
+          })
+          .from(journalEntryLines)
+          .innerJoin(journalEntries, eq(journalEntryLines.entryId, journalEntries.id))
+          .where(
+            and(
+              eq(journalEntryLines.tenantId, tenantId),
+              eq(journalEntryLines.partyId, locked.partyId!),
+              eq(journalEntries.status, 'posted'),
+            ),
+          );
+        const currentReceivable = rows.reduce(
+          (sum, row) => sum.plus(new Decimal(row.debit).minus(row.credit)),
+          new Decimal(0),
+        );
+        const limit = new Decimal(customer.creditLimit);
+        if (currentReceivable.plus(new Decimal(locked.total)).gt(limit)) {
+          throw new DomainError(
+            'CREDIT_LIMIT_EXCEEDED',
+            `Credit limit exceeded for customer: current balance ${currentReceivable.toFixed(2)}, new amount ${locked.total}, limit ${limit.toFixed(2)}`,
+            422,
+            { currentReceivable: currentReceivable.toFixed(4), newAmount: locked.total, creditLimit: customer.creditLimit },
+          );
+        }
+      }
+    }
 
     if (posting.inventoryLines?.length) {
       await this.inventory.recordInTx(
@@ -1004,7 +1073,7 @@ export class SalesService {
     if (posting.journalLines?.length) {
       await this.accounting.postJournalInTx(tx, tenantId, {
         branchId: locked.branchId,
-        fiscalPeriodId: resolvedFiscalPeriodId,
+        fiscalPeriodId: resolvedFiscalPeriodId!,
         date: today,
         description: `Sales invoice ${number}`,
         lines: posting.journalLines,
@@ -1021,7 +1090,7 @@ export class SalesService {
               ? 'debit_note'
               : 'sales_invoice';
       const profile = await this.profiles.resolvePostProfileInTx(tx, tenantId, locked.branchId, docType);
-      const fiscalPeriodId = resolvedFiscalPeriodId;
+      const fiscalPeriodId = resolvedFiscalPeriodId!;
       /**
        * R9 — سطور الفاتورة بمبالغها ومراكزها: صافي السطر يوزّع الإيراد، وتكلفته توزّع
        * رجلَي التكلفة، و`costCenterId` على السطر يسبق مركز الرأس. وهذا الاستعلام يقرأ
@@ -1245,12 +1314,39 @@ export class SalesService {
     const costTotal = money(headerCost?.totalCost ?? '0').toFixed(4);
     const profit = money(locked.subtotal).minus(costTotal).toFixed(4);
 
+    // ACC-093: ختم الفاتورة بمعرف الوردية المفتوحة والكاشير عند الترحيل
+    let resolvedShiftId = locked.shiftId;
+    let resolvedCashierId = locked.cashierId;
+    if (!resolvedShiftId) {
+      const actorUserId = tryGetAuthContext()?.userId ?? locked.createdBy;
+      if (actorUserId) {
+        const [openShift] = await tx
+          .select({ id: shiftCloses.id, userId: shiftCloses.userId })
+          .from(shiftCloses)
+          .where(
+            and(
+              eq(shiftCloses.tenantId, tenantId),
+              eq(shiftCloses.branchId, locked.branchId),
+              eq(shiftCloses.userId, actorUserId),
+              eq(shiftCloses.status, 'open'),
+            ),
+          )
+          .limit(1);
+        if (openShift) {
+          resolvedShiftId = openShift.id;
+          resolvedCashierId = openShift.userId;
+        }
+      }
+    }
+
     await tx
       .update(salesInvoices)
       .set({
         status: 'posted',
         number,
         postedAt: new Date(),
+        shiftId: resolvedShiftId,
+        cashierId: resolvedCashierId,
         paidTotal: settled || isReturnSettled
           ? locked.total
           : splitTenders.length
@@ -1267,6 +1363,37 @@ export class SalesService {
           eq(salesInvoices.status, 'draft'),
         ),
       );
+
+    // ACC-082: إذا كان المستند مردود مبيعات أو إشعار دائن لفاتورة مرجعية، تحديث حالة سداد الفاتورة الأصلية
+    if ((locked.kind === 'sale_return' || locked.kind === 'credit_note') && locked.referenceInvoiceId) {
+      const [ref] = await tx
+        .select()
+        .from(salesInvoices)
+        .where(and(eq(salesInvoices.tenantId, tenantId), eq(salesInvoices.id, locked.referenceInvoiceId)))
+        .limit(1);
+      if (ref) {
+        const returnRows = await tx
+          .select({ total: salesInvoices.total })
+          .from(salesInvoices)
+          .where(
+            and(
+              eq(salesInvoices.tenantId, tenantId),
+              eq(salesInvoices.referenceInvoiceId, ref.id),
+              inArray(salesInvoices.kind, ['sale_return', 'credit_note']),
+              eq(salesInvoices.status, 'posted'),
+            ),
+          );
+        const totalReturns = returnRows.reduce((sum, r) => sum.plus(r.total), new Decimal(0));
+        const effectiveDue = Decimal.max(0, money(ref.total).minus(totalReturns));
+        const refPaid = money(ref.paidTotal);
+        const newStatus = refPaid.gte(effectiveDue) ? 'paid' : refPaid.gt(0) ? 'partial' : 'unpaid';
+        await tx
+          .update(salesInvoices)
+          .set({ paymentStatus: newStatus, updatedAt: new Date() })
+          .where(and(eq(salesInvoices.tenantId, tenantId), eq(salesInvoices.id, ref.id)));
+      }
+    }
+
     return this.getInTx(tx, tenantId, id);
   }
 
@@ -1365,6 +1492,7 @@ export class SalesService {
           docId: locked.id,
           lineId: line.id,
           costing: 'returnAtOriginalCost',
+          lotId: line.lotId ?? undefined,
         });
       } else {
         movements.push({
@@ -1376,6 +1504,7 @@ export class SalesService {
           docId: locked.id,
           lineId: line.id,
           costing: 'outAtAvg',
+          lotId: line.lotId ?? undefined,
         });
       }
     }
@@ -1940,11 +2069,27 @@ export class SalesService {
         });
       }
 
+      // ACC-082: احتساب مردودات المبيعات وإشعارات الخصم المرتبطة بالفاتورة
+      const returnRows = await tx
+        .select({ total: salesInvoices.total })
+        .from(salesInvoices)
+        .where(
+          and(
+            eq(salesInvoices.tenantId, tenantId),
+            eq(salesInvoices.referenceInvoiceId, invoiceId),
+            inArray(salesInvoices.kind, ['sale_return', 'credit_note']),
+            eq(salesInvoices.status, 'posted'),
+          ),
+        );
+      const returnedTotal = returnRows.reduce((sum, r) => sum.plus(r.total), new Decimal(0));
+      const effectiveDue = Decimal.max(0, money(invoice.total).minus(returnedTotal));
+      const newStatus = paidValue.gte(effectiveDue) ? 'paid' : 'partial';
+
       await tx
         .update(salesInvoices)
         .set({
           paidTotal: paidValue.toFixed(4),
-          paymentStatus: paidValue.gte(money(invoice.total)) ? 'paid' : 'partial',
+          paymentStatus: newStatus,
           updatedAt: new Date(),
         })
         .where(and(eq(salesInvoices.tenantId, tenantId), eq(salesInvoices.id, invoiceId)));
@@ -2033,9 +2178,28 @@ export class SalesService {
           422,
         );
     }
+
+    // ACC-063: اشتقاق حصة خصم الفاتورة لكل سطر مرتجع بنسبة القيمة
+    let returnInvoiceDiscount = input.invoiceDiscount;
+    if (returnInvoiceDiscount === undefined && source.invoiceDiscount && money(source.invoiceDiscount).gt(0)) {
+      const sourceSubtotal = money(source.subtotal ?? '0');
+      if (sourceSubtotal.gt(0)) {
+        const returnLinesNet = input.lines.reduce((sum, line) => {
+          const qty = money(line.quantity ?? '0');
+          const unitPrice = money(line.unitPrice ?? '0');
+          const discRate = money(line.discountRate ?? '0');
+          const gross = qty.mul(unitPrice);
+          const lineNet = discRate.gt(0) ? gross.mul(new Decimal(1).minus(discRate.div(100))) : gross;
+          return sum.plus(lineNet);
+        }, new Decimal(0));
+        returnInvoiceDiscount = money(source.invoiceDiscount).mul(returnLinesNet).div(sourceSubtotal).toFixed(4);
+      }
+    }
+
     return this.create(tenantId, {
       ...input,
       kind: 'sale_return',
+      invoiceDiscount: returnInvoiceDiscount,
       partyId: input.partyId ?? source.partyId ?? undefined,
       referenceInvoiceId: sourceId,
     } as SalesInvoiceInput & { referenceInvoiceId: string });

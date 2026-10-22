@@ -1998,6 +1998,7 @@ export class InventoryService {
       productionDate?: string | null;
       expiryDate?: string | null;
     }>,
+    mode?: 'issue' | 'receive' | 'return' | 'transfer' | 'adjust' | 'receipt',
   ): Promise<
     Map<
       number,
@@ -2078,6 +2079,15 @@ export class InventoryService {
           );
         lot = found;
         if (!lot) {
+          // ACC-066: لا يجوز إنشاء دفعة جديدة تلقائياً عند الصرف أو البيع (issue)
+          if (mode === 'issue') {
+            throw new DomainError(
+              'LOT_NOT_FOUND',
+              `الدفعة ${batchNo} غير مسجلة لهذا الصنف — لا يمكن الصرف من دفعة غير موجودة`,
+              422,
+              { field: 'batchNo', batchNo, itemId: line.itemId },
+            );
+          }
           const [created] = await tx
             .insert(itemLots)
             .values({
@@ -2099,6 +2109,18 @@ export class InventoryService {
         }
       }
       if (!lot) continue;
+
+      // ACC-071: التحقق من عدم انتهاء صلاحية الدفعة عند الصرف
+      const today = new Date().toISOString().slice(0, 10);
+      const effectiveExpiry = lot.expiryDate || expiryDate;
+      if (mode === 'issue' && effectiveExpiry && effectiveExpiry < today) {
+        throw new DomainError(
+          'LOT_EXPIRED',
+          `الدفعة ${lot.lotNo} منتهية الصلاحية (${effectiveExpiry}) — لا يمكن صرفها أو بيعها`,
+          422,
+          { field: 'expiryDate', expiryDate: effectiveExpiry, lotNo: lot.lotNo },
+        );
+      }
 
       // التاريخ المخالف يُرفض؛ والفارغ يُملأ — فالسطر يقول ما على العبوة ولا يناقض ما سُجّل.
       const given = { productionDate, expiryDate };
@@ -2527,7 +2549,7 @@ export class InventoryService {
 
     // الدفعة أولاً: الأرقام التسلسلية تُربط بالدفعة (`item_serials.lot_id`)، فحسمُ الرقم
     // قبل الدفعة يكتب رابطاً فارغاً.
-    const lots = await this.resolveUploadedLots(tx, tenantId, input.lines);
+    const lots = await this.resolveUploadedLots(tx, tenantId, input.lines, input.mode);
 
     for (const [index, line] of input.lines.entries()) {
       let lot = lots.get(index) ?? {
@@ -2587,6 +2609,19 @@ export class InventoryService {
               .where(and(eq(itemSerials.tenantId, tenantId), inArray(itemSerials.id, serialIds)));
           }
         }
+      }
+      if (lot.lotId) {
+        await tx
+          .update(inventoryTransactions)
+          .set({ lotId: lot.lotId })
+          .where(
+            and(
+              eq(inventoryTransactions.tenantId, tenantId),
+              eq(inventoryTransactions.docId, input.docId),
+              eq(inventoryTransactions.itemId, line.itemId),
+              isNull(inventoryTransactions.lotId),
+            ),
+          );
       }
       resolved.set(index, { ...lot, serialIds });
     }
@@ -2693,7 +2728,12 @@ export class InventoryService {
       // 📁 R5: batches are resolved (or created) here, on save — the line keeps what the
       // pack says and the movement reads `lot_id`. Resolved before `assertStockable` so a
       // line that names a batch satisfies the lot requirement the same way a picked lot does.
-      const lots = await this.resolveUploadedLots(tx, tenantId, input.lines);
+      const lots = await this.resolveUploadedLots(
+        tx,
+        tenantId,
+        input.lines,
+        input.kind === 'stock_out' ? 'issue' : 'receive',
+      );
       const catalogue = await this.assertStockable(
         tx,
         tenantId,

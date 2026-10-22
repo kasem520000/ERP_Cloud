@@ -518,7 +518,7 @@ export class PurchasesService {
       const stockable = new Set(itemRows.filter((row) => row.kind === 'stock').map((row) => row.id));
       const stocked = lines.filter((line) => stockable.has(line.itemId) && money(line.quantity).gt(0));
       if (stocked.length && !locked.warehouseId) throw new DomainError('PURCHASE_WAREHOUSE_REQUIRED', 'Posting purchases requires a warehouse', 422);
-      const inventoryLines: InventoryLine[] = stocked.map((line) => { const allocated = byLine.get(line.id); return { itemId: line.itemId, warehouseId: locked.warehouseId ?? '', qty: line.quantity, unitCost: allocated?.effectiveUnitCost ?? line.unitPrice, direction: isReturn ? 'out' : 'in', docType, docId: id, lineId: line.id, costing: isReturn ? 'outAtAvg' : 'inWithCost' }; });
+      const inventoryLines: InventoryLine[] = stocked.map((line) => { const allocated = byLine.get(line.id); return { itemId: line.itemId, warehouseId: locked.warehouseId ?? '', qty: line.quantity, unitCost: allocated?.effectiveUnitCost ?? line.unitPrice, direction: isReturn ? 'out' : 'in', docType, docId: id, lineId: line.id, costing: isReturn ? 'outAtAvg' : 'inWithCost', lotId: line.lotId ?? undefined }; });
       if (inventoryLines.length) await this.inventory.recordInTx(tx, tenantId, inventoryLines);
       /**
        * R8 — الأرقام التسلسلية والدفعات على سطور الفاتورة بعد حركة المخزون: الإدخال

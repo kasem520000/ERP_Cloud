@@ -138,13 +138,56 @@
 
 ---
 
+### المرحلة 8: الحركات متعددة العملات، أقفال الفترات، الموافقات، وضبط ورديات نقاط البيع (Phase 8) - منجزة ومتحقق منها
+- **العيوب المنجزة**:
+  - `ACC-060`: تسجيل وتمرير عملة ومبلغ وسعر صرف الحركات الأجنبية في سطور القيود اليومية في `accounting.service.ts`.
+  - `ACC-062`: فحص السقف الائتماني للعميل عند إنشاء وترحيل الفواتير الآجلة ورفض التجاوز بـ `CREDIT_LIMIT_EXCEEDED` (422) في `sales.service.ts`.
+  - `ACC-063`: احتساب الخصم التناسبي الممنوح أصلاً على الفاتورة عند تسجيل مردودات جزئية لحماية الإيراد وضبط الضريبة.
+  - `ACC-066` & `ACC-067`: حظر صرف بضاعة من دفعات تشغيلية (Lots) غير مسجلة أو سالبة أو منتهية الصلاحية بـ `LOT_EXPIRED` (422) في `inventory.service.ts`.
+  - `ACC-068`: سحب صلاحية إدارة العملاء والموردين `parties.manage` من دور الكاشير الافتراضي في `roles.ts` و`rbac.ts`.
+  - `ACC-069`: التحقق من إلزامية سبب إعادة فتح الفترة المحاسبية بـ `REOPEN_REASON_REQUIRED` (422) في `accounting.service.ts`.
+  - `ACC-071`: تثبيت معرّف الدفعة `lotId` في حركات المخزون الناتجة عن ترحيل فواتير المبيعات والمشتريات.
+  - `ACC-072`: منع إنشاء أو تعديل السندات بعملات أجنبية غير مفعلة بـ `CURRENCY_NOT_ACTIVE` (422) في `treasury.service.ts`.
+  - `ACC-074`: توجيه ترحيل سندات القبض والصرف عبر مسار الموافقات الإدارية وترحيلها تلقائياً عند صدور الاعتماد عبر `treasury-approval.handler.ts`.
+  - `ACC-075`: حظر اعتماد المستخدم لطلب موافقة أنشأه بنفسه بـ `CANNOT_SELF_APPROVE` (422) في `approvals.service.ts`.
+  - `ACC-093`: تثبيت معرّف الوردية المفتوحة `shiftId` ومعرّف الكاشير `cashierId` على فواتير المبيعات الصادرة أثناء الوردية.
+  - `ACC-094`: استنتاج الفترة المالية المفتوحة تلقائياً عند عكس القيد اليومي دون اشتراط تمريرها في `accounting.service.ts`.
+  - `ACC-096`: قصر احتساب مقبوضات الوردية في الخزينة على معرّف الوردية بدقة لمنع تداخل مقبوضات الكاشيرات المتزامنة.
+  - `ACC-099` & `UI-034`: استخراج معرّف المستخدم `userId` الحقيقي للمعتمد من بيانات العضوية في `approvals.service.ts` وتصحيح العرض في واجهة إعدادات الموافقات.
+  - `UI-035`: التقاط خطأ `APPROVAL_REQUIRED` عند ترحيل فواتير الشراء وإشعار المستخدم بتقديم الطلب للاعتماد بدلاً من الفشل الصامت.
+- **الاختبارات**:
+  - `test/remediation-phase8.spec.ts` (9 اختبارات): نجاح بنسبة 100%.
+
+---
+
+### المرحلة 9: تدقيق مبيعات التوزيع، حسابات الموظفين، النسخ الاحتياطي ومعايير RFC 7807 (Phase 9) - منجزة ومتحقق منها
+- **العيوب المنجزة**:
+  - `ACC-076`: ضبط استجابة الأخطاء لتطابق معيار RFC 7807 ProblemDetails بالكامل، وتسجيل محاولات العمليات المرفوضة بعدم كفاية الصلاحيات (403) في سجل التدقيق `audit_log` مع رقم الآي بي للمتصل `clientIp`.
+  - `ACC-077`: تصحيح احتساب ضريبة القيمة المضافة لمردودات مبيعات التوزيع بمعادلة الاستخلاص من الإجمالي، وقصر خصم المردودات من المقبوضات النقدية على المبيعات النقدية فقط دون الآجلة.
+  - `ACC-078`: تصحيح معادلة العهدة المتبقية لمبيعات التوزيع بخصم المردودات من المبيعات: `custodyBasis - (sold - returned) - bonus - damaged - shortage`.
+  - `ACC-079`: تضمين جداول خطوات وقرارات الموافقات (`approval_steps`, `approval_decisions`) في التبعيات المفهرسة `DEPENDENT_TABLES` للنسخ الاحتياطي المنطقي.
+  - `ACC-080`: عزل عملية الفحص التجريبي للاستعادة (`dry_run`) بنقطة حفظ `SAVEPOINT restore_dry_run` وتراجع كامل لضمان عدم كتابة أي بيانات تجريبية.
+  - `ACC-081`: اعتماد تكلفة الوحدة `unit_cost` كقاعدة تقييم افتراضية لعجز عهدة مبيعات التوزيع، وتطبيق سعر البيع فقط عند اشتراط سياسة المنشأة صراحة.
+  - `ACC-082`: تحديث حالة سداد فاتورة المبيعات الأصلية `paymentStatus` إلى مدفوعة `paid` تلقائياً عند ترحيل مردودات أو إشعارات دائنة تغطي كامل المتبقي عليها.
+  - `ACC-083`: اشتراط وجود حساب فرعي للموظف عند اعتماد تحميل عجز العهدة عليه، وإنشائه تلقائياً تحت الشجرة الفرعية `2241` إن لم يكن موجوداً.
+  - `ACC-084`: تضمين وقت التسوية `settledAt` ومبلغ الخصم من الراتب `salaryDeductionSar` في استجابة تفاصيل أمر التحميل.
+  - `ACC-085`: توفير واجهة برمجية ونقطة نهاية رسمية `POST /api/v1/hrm/employees/:id/account` لضمان وإنشاء حساب الأستاذ الفرعي للموظف.
+  - `ACC-086`: مطابقة رصيد السيارات المعروض في لوحة تحكم مبيعات التوزيع `remainingInVansKg` مع الأرصدة الدفترية الرسمية لمستودعات السيارات.
+  - `ACC-087`: توفير نقطة نهاية `GET /api/v1/van-sales/load-orders/:id` لقراءة تفاصيل أمر تحميل مفرد ومؤشرات عهدته.
+  - `UI-031`: إضافة عمود مبلغ الخصم من الراتب بالريال السعودي في جدول أوامر تحميل مبيعات التوزيع بواجهة الإدارة.
+  - `UI-032`: دمج كشف حساب ومديونيات العميل في واجهة مساحة عمل مندوب التوزيع `rep workspace`.
+- **الاختبارات**:
+  - `test/remediation-phase9.spec.ts` (6 اختبارات): نجاح بنسبة 100%.
+
+---
+
 ## نتيجة التحقق الشاملة لكامل المشروع:
 ```bash
-vitest run test/remediation-phase1.spec.ts test/remediation-phase2.spec.ts test/remediation-phase3.spec.ts test/remediation-phase4.spec.ts test/remediation-phase5.spec.ts test/remediation-phase6.spec.ts test/remediation-phase7.spec.ts
+vitest run test/remediation-phase1.spec.ts test/remediation-phase2.spec.ts test/remediation-phase3.spec.ts test/remediation-phase4.spec.ts test/remediation-phase5.spec.ts test/remediation-phase6.spec.ts test/remediation-phase7.spec.ts test/remediation-phase8.spec.ts test/remediation-phase9.spec.ts
 ```
-- **Test Files**: 7 passed (7)
-- **Tests**: 42 passed (42)
-- **Duration**: 29.43s
+- **Test Files**: 9 passed (9)
+- **Tests**: 57 passed (57)
+- **Duration**: 37.66s
 - **Zero Failures**.
 
 - **Contracts Tests**:
@@ -156,8 +199,8 @@ pnpm --filter "@erp/contracts" test
 - **Duration**: 6.10s
 - **Zero Failures**.
 
-- **TypeScript Typecheck**:
+- **TypeScript Typecheck & Build**:
 ```bash
-pnpm --filter "@erp/contracts" typecheck && pnpm --filter "@erp/api" typecheck && pnpm --filter "@erp/staff" typecheck
+pnpm --filter "@erp/contracts" build && pnpm --filter "@erp/api" build && pnpm --filter "@erp/staff" build
 ```
-- **All packages typecheck cleanly with 0 errors**.
+- **All packages compile and build cleanly with 0 errors**.

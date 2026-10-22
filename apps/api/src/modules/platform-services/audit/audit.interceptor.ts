@@ -140,10 +140,10 @@ export class AuditInterceptor implements NestInterceptor {
           void this.onSettled(method, route, authAction, response.statusCode, body, undefined);
         },
         error: (error: unknown) => {
-          // Only auth events are audited on failure; everything else would turn a
-          // validation typo into audit-log noise.
-          if (authAction) {
-            void this.onSettled(method, route, authAction, statusOf(error), undefined, error);
+          // ACC-076: Auth events and 403 Forbidden events are audited on failure
+          const status = statusOf(error);
+          if (authAction || status === 403) {
+            void this.onSettled(method, route, authAction, status, undefined, error);
           }
         },
       }),
@@ -190,6 +190,23 @@ export class AuditInterceptor implements NestInterceptor {
         entity: 'auth',
         entityId: context.auth?.userId ?? identity.userId ?? null,
         meta,
+      });
+      return;
+    }
+
+    // ACC-076: 403 authorization failures are audited as denied actions
+    if (status === 403) {
+      await this.audit.record({
+        tenantId: context.tenant?.tenantId ?? context.auditTenantId ?? null,
+        actorUserId: context.auth?.userId ?? null,
+        membershipId: context.auth?.membershipId ?? null,
+        action: `denied.${actionForMethod(method, route)}`,
+        entity: route.resource,
+        entityId: route.entityId,
+        meta: {
+          ...meta,
+          error: error instanceof Error ? error.message : String(error ?? 'Forbidden'),
+        },
       });
       return;
     }

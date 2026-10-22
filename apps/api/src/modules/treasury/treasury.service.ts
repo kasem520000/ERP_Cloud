@@ -1,5 +1,5 @@
 /* eslint-disable no-restricted-syntax */
-import { Inject, Injectable, type OnModuleInit } from '@nestjs/common';
+import { Inject, Injectable, Optional, type OnModuleInit } from '@nestjs/common';
 import { Decimal } from 'decimal.js';
 import { alias } from 'drizzle-orm/pg-core';
 import { and, asc, desc, eq, gte, ilike, inArray, isNotNull, isNull, lt, lte, ne, or, sql } from 'drizzle-orm';
@@ -38,6 +38,7 @@ import { WebhookPublisher } from '../developer/webhook-publisher.service.js';
 import { PostingProfilesService } from '../organization/posting-profiles/posting-profiles.service.js';
 import { SequencesService } from '../platform-services/index.js';
 import { FileAttachmentRegistry } from '../platform-services/files/file-attachments.js';
+import { ApprovalService } from '../approvals/approvals.service.js';
 
 export type VoucherInput = {
   branchId: string;
@@ -183,6 +184,7 @@ export class TreasuryService implements OnModuleInit {
     // P-C11 — `shift.closed`: من ينتظر تقرير الوردية يعرف بغلاقها بلا أن يسأل.
     private readonly webhooks: WebhookPublisher,
     private readonly attachments: FileAttachmentRegistry,
+    @Optional() private readonly approvals?: ApprovalService,
   ) {}
 
   onModuleInit(): void {
@@ -835,6 +837,26 @@ export class TreasuryService implements OnModuleInit {
   }
 
   async postVoucher(tenantId: string, id: string, input: VoucherPostInput = {}) {
+    const voucher = await this.getVoucher(tenantId, id);
+    if (voucher.status === 'posted') return voucher;
+    if (voucher.status !== 'draft')
+      throw new DomainError('VOUCHER_INVALID_STATUS', 'Only draft vouchers can be posted', 409);
+
+    if (this.approvals) {
+      await this.approvals.ensureApprovalRequired(tenantId, 'voucher', id, {
+        amount: voucher.amount,
+        branchId: voucher.branchId,
+        costCenterId: voucher.costCenterId,
+        posting: input as unknown as Record<string, unknown>,
+      });
+    }
+
+    return withTenantTx(this.database.db, tenantId, (tx) => this.postVoucherInTx(tx, tenantId, id, input)).then(() =>
+      this.getVoucher(tenantId, id),
+    );
+  }
+
+  async postApprovedVoucher(tenantId: string, id: string, input: VoucherPostInput = {}) {
     return withTenantTx(this.database.db, tenantId, (tx) => this.postVoucherInTx(tx, tenantId, id, input)).then(() =>
       this.getVoucher(tenantId, id),
     );
@@ -1652,7 +1674,7 @@ export class TreasuryService implements OnModuleInit {
   private async shiftTakings(
     tx: DrizzleTx,
     tenantId: string,
-    shift: { id: string; branchId: string; openedAt: Date },
+    shift: { id: string; branchId: string; openedAt: Date; userId?: string | null },
   ) {
     const posted = await tx
       .select()
@@ -1664,6 +1686,9 @@ export class TreasuryService implements OnModuleInit {
           eq(vouchers.status, 'posted'),
           eq(vouchers.method, 'cash'),
           sql`${vouchers.postedAt} >= ${shift.openedAt}`,
+          shift.userId
+            ? or(eq(vouchers.createdBy, shift.userId), isNull(vouchers.createdBy))
+            : undefined,
         ),
       );
     const voucherCash = posted.reduce(
@@ -1688,7 +1713,18 @@ export class TreasuryService implements OnModuleInit {
           eq(salesInvoices.branchId, shift.branchId),
           gte(invoicePayments.createdAt, shift.openedAt),
           eq(salesInvoices.status, 'posted'),
-          or(eq(salesInvoices.shiftId, shift.id), isNull(salesInvoices.shiftId)),
+          or(
+            eq(salesInvoices.shiftId, shift.id),
+            and(
+              isNull(salesInvoices.shiftId),
+              shift.userId
+                ? or(
+                    eq(salesInvoices.cashierId, shift.userId),
+                    eq(salesInvoices.createdBy, shift.userId),
+                  )
+                : sql`false`,
+            ),
+          ),
         ),
       );
 
@@ -1755,7 +1791,18 @@ export class TreasuryService implements OnModuleInit {
           eq(salesInvoices.branchId, shift.branchId),
           eq(salesInvoices.status, 'posted'),
           gte(salesInvoices.createdAt, shift.openedAt),
-          or(eq(salesInvoices.shiftId, shift.id), isNull(salesInvoices.shiftId)),
+          or(
+            eq(salesInvoices.shiftId, shift.id),
+            and(
+              isNull(salesInvoices.shiftId),
+              shift.userId
+                ? or(
+                    eq(salesInvoices.cashierId, shift.userId),
+                    eq(salesInvoices.createdBy, shift.userId),
+                  )
+                : sql`false`,
+            ),
+          ),
         ),
       );
 

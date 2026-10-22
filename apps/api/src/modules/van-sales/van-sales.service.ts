@@ -1150,6 +1150,7 @@ export class VanSalesService {
                COALESCE(SUM(l.damaged_qty), 0)::text AS damaged_kg,
                COALESCE(SUM(l.shortage_qty), 0)::text AS shortage_kg,
                COALESCE(SUM(l.shortage_value), 0)::text AS shortage_sar,
+               COALESCE(SUM(CASE WHEN l.salary_deduction_approved = true THEN l.shortage_value ELSE 0 END), 0)::text AS salary_deduction_sar,
                COALESCE(SUM(
                  GREATEST(
                    0,
@@ -1204,6 +1205,7 @@ export class VanSalesService {
       damagedKg: '0.00',
       shortageKg: '0.00',
       shortageSar: '0.00',
+      salaryDeductionSar: '0.00',
       custodyRemainingKg: '0.00',
       revenueSar: '0.00',
       salesGrossSar: '0.00',
@@ -1225,6 +1227,7 @@ export class VanSalesService {
         damagedKg: dec(row.damaged_kg).toFixed(2),
         shortageKg: dec(row.shortage_kg).toFixed(2),
         shortageSar: dec(row.shortage_sar).toFixed(2),
+        salaryDeductionSar: dec(row.salary_deduction_sar).toFixed(2),
         custodyRemainingKg: dec(row.custody_remaining_kg).toFixed(2),
         pendingClosings: Number(row.pending_closings ?? 0),
       });
@@ -1701,15 +1704,8 @@ export class VanSalesService {
         0,
         totalProducedKg.minus(totalLoadedKg).plus(totalReturnedKg),
       );
-      const remainingInVansKg = Decimal.max(
-        0,
-        totalLoadedKg
-          .minus(totalSoldKg)
-          .minus(totalBonusKg)
-          .minus(totalReturnedKg)
-          .minus(totalDamagedKg)
-          .minus(totalShortageKg),
-      );
+      // ACC-086: المتبقي في السيارات يقرأ الرصيد الدفتري الرسمي لسيارات التوزيع
+      const remainingInVansKg = officialVanKg;
 
       /**
        * جاهزية الترحيل — what the accountant still has to configure before each official
@@ -1995,6 +1991,7 @@ export class VanSalesService {
             closingNotes: str(row.closing_notes),
             closingSubmittedAt: row.closing_submitted_at ? iso(row.closing_submitted_at) : null,
             approvedAt: row.approved_at ? iso(row.approved_at) : null,
+            settledAt: row.settled_at ? iso(row.settled_at) : null,
             approvedByLabel: str(row.approved_by_label),
             notes: str(row.notes),
           };
@@ -5039,10 +5036,11 @@ export class VanSalesService {
     if (policy.shortageUnitPrice && dec(policy.shortageUnitPrice).gt(0)) {
       return { price: dec(policy.shortageUnitPrice), basis: 'explicit_policy_price' };
     }
+    // ACC-083: إن حمل أمر التحميل تكلفة وحدة صريحة فيُعتمد كأساس للتكلفة افتراضياً ما لم تنص السياسة على سعر البيع
+    if (policy.shortageValuationBasis !== 'selling_price' && dec(loadOrder.unit_cost).gt(0)) {
+      return { price: dec(loadOrder.unit_cost), basis: 'unit_cost' };
+    }
     if (policy.shortageValuationBasis === 'unit_cost') {
-      if (dec(loadOrder.unit_cost).gt(0)) {
-        return { price: dec(loadOrder.unit_cost), basis: 'unit_cost' };
-      }
       // ⚠️ أمرٌ بلا دفعة إنتاج لا يحمل تكلفةً: `van_load_orders.unit_cost` مصدرها الدفعة وحدها
       // (`plan.batchUnitCost`)، فقرار المالك «التقييم بالتكلفة» كان سينقلب **سعرَ بيع** لو تُركت
       // السلسلة القديمة تكمل: متوسط أسعار مستندات الأمر ثمّ `items.sale_price`. والقياس الحيّ
@@ -5178,6 +5176,18 @@ export class VanSalesService {
   }
 
   /**
+   * ACC-087 — قراءة أمر تحميل واحد بالمُعرّف.
+   */
+  async readLoadOrder(tenantId: string, id: string) {
+    const dash = await this.dashboard(tenantId);
+    const order = dash.loadOrders.find((o) => o.id === id);
+    if (!order) {
+      throw new DomainError('LOAD_ORDER_NOT_FOUND', 'أمر التحميل غير موجود', 404, { field: 'id', id });
+    }
+    return order;
+  }
+
+  /**
    * Pillar 2 (Stage 1 — Phase 3 & 4): Sales Rep submits End-of-Day Shift Closing (`تقديم إغلاق الوردية للمحاسب`).
    */
   async submitClosing(
@@ -5264,7 +5274,8 @@ export class VanSalesService {
         );
       }
 
-      const accountedQty = sold.plus(bonus).plus(returnedQty).plus(damagedQty);
+      const netSold = Decimal.max(0, sold.minus(returnedQty));
+      const accountedQty = netSold.plus(bonus).plus(damagedQty);
       /** المتوقع مقابل الفعلي — what the documents say must still be in the van. يُحسب قبل فحص
        * التجاوز لأنّ عددَ المركبة يحتاجه ليشتقّ منه نصيبَ هذا الأمر. */
       const expectedRemaining = loaded.minus(accountedQty);
@@ -5493,7 +5504,8 @@ export class VanSalesService {
         );
       }
 
-      const accountedQty = sold.plus(bonus).plus(returnedQty).plus(damagedQty);
+      const netSold = Decimal.max(0, sold.minus(returnedQty));
+      const accountedQty = netSold.plus(bonus).plus(damagedQty);
       /** المتوقع مقابل الفعلي — the same arithmetic the rep saw when he submitted. */
       const expectedRemaining = loaded.minus(accountedQty);
 
@@ -5820,6 +5832,16 @@ export class VanSalesService {
         ? dec(loadOrder.shortage_charge_amount).toFixed(4)
         : null;
       if (!shortageJournalEntryId && salaryDeductionApproved && shortageValue.gt(0)) {
+        // ACC-084: التحقق من تهيئة سياسة تقييم العجز قبل الاعتماد بالتحميل على المندوب
+        if (!policy.shortageValuationBasis || policy.shortageValuationBasis === 'unconfigured') {
+          throw new DomainError(
+            'VAN_SHORTAGE_POLICY_UNCONFIGURED',
+            'سياسة تقييم العجز غير مهيأة للمنشأة — يجب تحديد أساس تقييم العجز في سياسة التوزيع قبل تحميل العجز على المندوب',
+            422,
+            { field: 'shortageValuationBasis' },
+          );
+        }
+
         const chargeBranchId = await this.resolveDefaultBranchIdInTx(
           tx,
           tenantId,
@@ -5846,6 +5868,43 @@ export class VanSalesService {
             422,
             { field: 'salaryDeductionApproved' },
           );
+        }
+        if (!chargeEmployee.employee_account_id) {
+          // ACC-085: إنشاء حساب الموظف تلقائياً في دليل الحسابات إن لم يكن موجوداً
+          const rootRow = first(
+            await tx.execute(sql`
+              SELECT id::text, type, normal_balance
+              FROM accounts
+              WHERE tenant_id = ${tenantId}::uuid AND code = '2241' AND deleted_at IS NULL
+              LIMIT 1
+            `),
+          );
+          if (rootRow) {
+            const childRows = rows(
+              await tx.execute(sql`
+                SELECT code FROM accounts
+                WHERE tenant_id = ${tenantId}::uuid AND parent_id = ${str(rootRow.id)}::uuid AND deleted_at IS NULL
+              `),
+            );
+            let maxSuffix = 0;
+            for (const child of childRows) {
+              const suffix = Number(String(child.code).replace(/^2241/, ''));
+              if (!Number.isNaN(suffix) && suffix > maxSuffix) maxSuffix = suffix;
+            }
+            const newCode = `2241${String(maxSuffix + 1).padStart(4, '0')}`;
+            const newAccountId = newId();
+            await tx.execute(sql`
+              INSERT INTO accounts (id, tenant_id, code, name_ar, type, normal_balance, parent_id, is_postable)
+              VALUES (${newAccountId}::uuid, ${tenantId}::uuid, ${newCode}, ${str(chargeEmployee.name)},
+                      ${str(rootRow.type)}, ${str(rootRow.normal_balance || 'credit')}, ${str(rootRow.id)}::uuid, true)
+            `);
+            await tx.execute(sql`
+              UPDATE employees
+              SET employee_account_id = ${newAccountId}::uuid, updated_at = now()
+              WHERE tenant_id = ${tenantId}::uuid AND id = ${str(chargeEmployee.id)}::uuid
+            `);
+            chargeEmployee.employee_account_id = newAccountId;
+          }
         }
         if (!chargeEmployee.employee_account_id) {
           throw new DomainError(
@@ -8124,6 +8183,12 @@ export class VanSalesService {
         if (returnCostQty.gt(0)) returnUnitCost = dec(returnCostRow?.valuation).div(returnCostQty);
       }
 
+      const returnTax =
+        str(source.invoice_mode) === 'zatca_tax'
+          ? returnTotal.mul(dec(source.tax_rate).div(100))
+          : new Decimal(0);
+      const returnGrossTotal = returnTotal.plus(returnTax);
+
       await tx.execute(sql`
         INSERT INTO van_sales_documents (
           id, tenant_id, branch_id, number, document_kind, reference_document_id,
@@ -8145,10 +8210,8 @@ export class VanSalesService {
           ${returnedQty.toFixed(4)}::numeric, 0, ${unitPrice.toFixed(4)}::numeric,
           ${returnTotal.toFixed(4)}::numeric,
           ${str(source.invoice_mode) === 'zatca_tax' ? dec(source.tax_rate).toFixed(2) : '0.00'}::numeric,
-          ${str(source.invoice_mode) === 'zatca_tax'
-            ? returnTotal.mul(dec(source.tax_rate).div(100)).toFixed(4)
-            : '0'}::numeric,
-          ${returnTotal.toFixed(4)}::numeric, 0, ${returnUnitCost.toFixed(4)}::numeric,
+          ${returnTax.toFixed(4)}::numeric,
+          ${returnGrossTotal.toFixed(4)}::numeric, 0, ${returnUnitCost.toFixed(4)}::numeric,
           ${returnInvoiceId}::uuid,
           ${[body.reason?.trim(), body.notes?.trim()].filter(Boolean).join(' — ') || null},
           ${idempotencyKey}, ${userId}::uuid
@@ -8157,10 +8220,12 @@ export class VanSalesService {
 
       /** العهدة — the returned quantity is back in the rep's custody for the shift closing. */
       if (source.load_order_id) {
+        const isCashSale = str(source.payment_method) === 'cash';
+        const cashDeduction = isCashSale ? returnGrossTotal : new Decimal(0);
         await tx.execute(sql`
           UPDATE van_load_orders
           SET returned_qty = returned_qty + ${returnedQty.toFixed(4)}::numeric,
-              expected_cash = GREATEST(0, expected_cash - ${returnTotal.toFixed(4)}::numeric),
+              expected_cash = GREATEST(0, expected_cash - ${cashDeduction.toFixed(4)}::numeric),
               updated_at = now()
           WHERE id = ${str(source.load_order_id)}::uuid AND tenant_id = ${tenantId}::uuid
         `);
