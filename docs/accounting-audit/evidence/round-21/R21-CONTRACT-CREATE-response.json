@@ -1,0 +1,66 @@
+{
+  "status": 201,
+  "method": "POST",
+  "url": "http://127.0.0.1:3001/api/v1/contracting/contracts",
+  "request": {
+    "projectId": "01a1634b-69b1-7763-844b-4581bab51f36",
+    "contractorPartyId": "01a16348-f953-733f-8c92-5167c1b2c70b",
+    "title": "R21 عقد مقاول اختبار معزول",
+    "retentionPct": "10",
+    "advanceAmount": "0",
+    "lines": [
+      {
+        "description": "R21 أعمال مقاول",
+        "qty": "1",
+        "unitValue": "80"
+      }
+    ]
+  },
+  "body": {
+    "data": {
+      "id": "01a1634b-fcbd-7368-8852-2a0fa1122690",
+      "tenantId": "01a16348-f683-7547-9c37-43d45f782fbe",
+      "projectId": "01a1634b-69b1-7763-844b-4581bab51f36",
+      "contractorPartyId": "01a16348-f953-733f-8c92-5167c1b2c70b",
+      "number": "CC-000001",
+      "title": "R21 عقد مقاول اختبار معزول",
+      "scope": null,
+      "status": "draft",
+      "contractValue": "80.0000",
+      "retentionPct": "10.0000",
+      "advanceAmount": "0.0000",
+      "advanceRecovered": "0.0000",
+      "startsOn": null,
+      "endsOn": null,
+      "notes": null,
+      "signedAt": null,
+      "closedAt": null,
+      "createdAt": "2026-10-22T11:08:06.718Z",
+      "createdBy": "01a16348-f68b-75bd-9e47-1aeb036a97cc",
+      "updatedAt": null,
+      "updatedBy": null,
+      "version": 1,
+      "projectBranchId": "01a16348-f949-776a-b3ed-7cfaca4b1ec4",
+      "projectName": "R21 مشروع اختبار معزول",
+      "lines": [
+        {
+          "contractId": "01a1634b-fcbd-7368-8852-2a0fa1122690",
+          "lineNo": 1,
+          "tenantId": "01a16348-f683-7547-9c37-43d45f782fbe",
+          "description": "R21 أعمال مقاول",
+          "qty": "1.0000",
+          "unitValue": "80.0000",
+          "lineValue": "80.0000"
+        }
+      ],
+      "payments": [],
+      "certified": "0.0000",
+      "remainingValue": "80.0000",
+      "advanceIssued": "0.0000",
+      "advanceOutstanding": "0.0000",
+      "retentionHeld": "0.0000",
+      "paidNet": "0.0000",
+      "recoveryPlanned": "0.0000"
+    }
+  }
+}

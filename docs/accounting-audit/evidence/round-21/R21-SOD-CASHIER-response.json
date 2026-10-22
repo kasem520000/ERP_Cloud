@@ -1,0 +1,253 @@
+{
+  "actor": "cashier@demo.test",
+  "loginStatus": 200,
+  "tokenReceived": true,
+  "results": [
+    {
+      "label": "me",
+      "method": "GET",
+      "path": "/me",
+      "status": 200,
+      "body": {
+        "data": {
+          "user": {
+            "id": "01a16348-f9ce-771c-942f-b2eda9b01a52",
+            "email": "cashier@demo.test",
+            "fullName": "أمين الصندوق",
+            "phone": null,
+            "status": "active",
+            "isPlatformAdmin": false,
+            "platformRoles": [],
+            "mustChangePassword": false,
+            "lastLoginAt": "2026-10-22T11:20:09.225Z"
+          },
+          "membership": {
+            "id": "01a16348-f9cf-73d9-8f41-9cdcc612c3b7",
+            "tenantId": "01a16348-f683-7547-9c37-43d45f782fbe",
+            "tenantCode": "demo",
+            "tenantName": "AUDIT-TEST-2026-R21",
+            "displayName": "أمين الصندوق",
+            "status": "active",
+            "isOwner": false,
+            "branchScope": null,
+            "maxDiscountPct": null,
+            "maxDiscountAmount": null,
+            "roles": [
+              {
+                "id": "01a16348-f76c-7528-9efb-48651f14e9c5",
+                "name": "Cashier",
+                "description": "Point-of-sale and treasury operations; read-only catalog and party lookup.",
+                "isSystem": true
+              }
+            ],
+            "kind": "staff",
+            "scopes": [
+              {
+                "roleId": "01a16348-f76c-7528-9efb-48651f14e9c5",
+                "scopeType": "branch",
+                "scopeId": "00000000-0000-0000-0000-000000000000"
+              },
+              {
+                "roleId": "01a16348-f76c-7528-9efb-48651f14e9c5",
+                "scopeType": "warehouse",
+                "scopeId": "00000000-0000-0000-0000-000000000000"
+              },
+              {
+                "roleId": "01a16348-f76c-7528-9efb-48651f14e9c5",
+                "scopeType": "cash_location",
+                "scopeId": "00000000-0000-0000-0000-000000000000"
+              }
+            ]
+          },
+          "permissions": [
+            "ai.assistant.use",
+            "catalog.item.view",
+            "catalog.taxgroup.view",
+            "employee.self.manage",
+            "employee.self.view",
+            "esign.manage",
+            "inventory.view",
+            "manufacturing.view",
+            "organization.branch.view",
+            "organization.cashlocation.view",
+            "parties.manage",
+            "parties.view",
+            "payments.links.manage",
+            "sales.invoice.create",
+            "sales.invoice.pay",
+            "sales.view",
+            "supplier_portal.access",
+            "tenant.view",
+            "treasury.shift.close",
+            "treasury.view",
+            "treasury.voucher.create"
+          ],
+          "platformPermissions": [],
+          "branchScope": null,
+          "enabledApps": [
+            "bakery_distribution",
+            "email_pro",
+            "reports_pro",
+            "whatsapp"
+          ],
+          "impersonation": null
+        }
+      }
+    },
+    {
+      "label": "party-update",
+      "method": "PUT",
+      "path": "/parties/01a16348-f952-70fd-9ba3-eadd1ff9d2f1",
+      "request": {
+        "creditLimit": "88888"
+      },
+      "status": 200,
+      "body": {
+        "id": "01a16348-f952-70fd-9ba3-eadd1ff9d2f1",
+        "tenantId": "01a16348-f683-7547-9c37-43d45f782fbe",
+        "code": "CUST-GEN",
+        "kind": "customer",
+        "name": "عميل عام",
+        "legalName": "عميل عام",
+        "taxNo": null,
+        "nationalId": null,
+        "address": null,
+        "phone": null,
+        "email": null,
+        "receivableAccountId": null,
+        "payableAccountId": null,
+        "creditLimit": "88888.0000",
+        "isOwner": false,
+        "isContractor": false,
+        "branchId": null,
+        "paymentMethodId": null,
+        "createdAt": "2026-10-22T11:04:49.234Z",
+        "createdBy": null,
+        "updatedAt": "2026-10-22T11:20:09.275Z",
+        "updatedBy": null,
+        "version": 2,
+        "deletedAt": null,
+        "deletedBy": null,
+        "customFields": {}
+      }
+    },
+    {
+      "label": "party-after",
+      "method": "GET",
+      "path": "/parties/01a16348-f952-70fd-9ba3-eadd1ff9d2f1",
+      "status": 200,
+      "body": {
+        "id": "01a16348-f952-70fd-9ba3-eadd1ff9d2f1",
+        "tenantId": "01a16348-f683-7547-9c37-43d45f782fbe",
+        "code": "CUST-GEN",
+        "kind": "customer",
+        "name": "عميل عام",
+        "legalName": "عميل عام",
+        "taxNo": null,
+        "nationalId": null,
+        "address": null,
+        "phone": null,
+        "email": null,
+        "receivableAccountId": null,
+        "payableAccountId": null,
+        "creditLimit": "88888.0000",
+        "isOwner": false,
+        "isContractor": false,
+        "branchId": null,
+        "paymentMethodId": null,
+        "createdAt": "2026-10-22T11:04:49.234Z",
+        "createdBy": null,
+        "updatedAt": "2026-10-22T11:20:09.275Z",
+        "updatedBy": null,
+        "version": 2,
+        "deletedAt": null,
+        "deletedBy": null,
+        "customFields": {}
+      }
+    },
+    {
+      "label": "restore-credit-limit",
+      "method": "PUT",
+      "path": "/parties/01a16348-f952-70fd-9ba3-eadd1ff9d2f1",
+      "request": {
+        "creditLimit": "0"
+      },
+      "status": 200,
+      "body": {
+        "id": "01a16348-f952-70fd-9ba3-eadd1ff9d2f1",
+        "tenantId": "01a16348-f683-7547-9c37-43d45f782fbe",
+        "code": "CUST-GEN",
+        "kind": "customer",
+        "name": "عميل عام",
+        "legalName": "عميل عام",
+        "taxNo": null,
+        "nationalId": null,
+        "address": null,
+        "phone": null,
+        "email": null,
+        "receivableAccountId": null,
+        "payableAccountId": null,
+        "creditLimit": "0.0000",
+        "isOwner": false,
+        "isContractor": false,
+        "branchId": null,
+        "paymentMethodId": null,
+        "createdAt": "2026-10-22T11:04:49.234Z",
+        "createdBy": null,
+        "updatedAt": "2026-10-22T11:20:09.319Z",
+        "updatedBy": null,
+        "version": 3,
+        "deletedAt": null,
+        "deletedBy": null,
+        "customFields": {}
+      }
+    },
+    {
+      "label": "currency-manage-denied",
+      "method": "POST",
+      "path": "/currencies",
+      "request": {
+        "code": "EUR",
+        "nameAr": "يورو"
+      },
+      "status": 403,
+      "body": {
+        "type": "about:blank",
+        "title": "Forbidden",
+        "status": 403,
+        "code": "FORBIDDEN",
+        "detail": "permission organization.currency.manage required",
+        "traceId": "01a16357-036f-7189-9988-307bc2d93186",
+        "errors": [
+          {
+            "field": "permission",
+            "message": "organization.currency.manage"
+          }
+        ]
+      }
+    },
+    {
+      "label": "backup-denied",
+      "method": "POST",
+      "path": "/settings/backups",
+      "request": {
+        "note": "R21 SoD"
+      },
+      "status": 403,
+      "body": {
+        "type": "about:blank",
+        "title": "Forbidden",
+        "status": 403,
+        "code": "FORBIDDEN",
+        "detail": "permission settings.backup.manage required",
+        "traceId": "01a16357-037d-747f-988a-0276a1fb582d",
+        "errors": [
+          {
+            "field": "permission",
+            "message": "settings.backup.manage"
+          }
+        ]
+      }
+    }
+  ]
+}
