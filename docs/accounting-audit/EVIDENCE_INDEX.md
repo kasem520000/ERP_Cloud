@@ -405,3 +405,15 @@ R17-manifest.json يفهرس 258 ملفاً (لا يشمل نفسه)، نحو 24
 | F: RV-FX-DRAFT، RV-FX-POST-ALLOC (API)، ALLOC-OVER (API) | … | … | 201 / 201 / 201 (ACC-072/073/089/042/090، UI-033) | DB-042…044 |
 | G/H: REPORTS (API؛ +TB-SCREEN، INCOME-SCREEN، AR-AGING-SCREEN، CASH-LOCATIONS-SCREEN)، BACKUP، RESTORE-APPLY، RESTORE-API (+RESTORE-FINAL) | … | … | 200 ×14 / 201 / 201 / 200 (ACC-091/092/004) | DB-045…048 |
 | مفقود (إعادة التهيئة الخامسة) | `verify/` استعلامات DB لاحقة (عملة أسطر القيود، أرصدة الصناديق، `shift_id`) — لوحظت أثناء الجلسة ولم تُلتزم | — | — | — |
+
+## الجولة 23 — `evidence/round-23/` (242 ملفاً؛ تفصيل المراحل في ROUND_23_RESULTS.md §1)
+| الكتلة | المراحل والأدلة | النتيجة | لقطات DB |
+|---|---|---|---|
+| تجهيز | `R23-SETUP-*` (صنف R23-ITEM، USD، fx 3.75، قيد زائد + عكسه)، `R23-DB-000-BASELINE` | 201 / 409 ثم 201 (ACC-094) | DB-000 |
+| D: مراجع بعينه | WF-PI-USER (شاشة 422 UI-034)، WF-PI-USER-API، PI-DRAFT، PI-GATE (202 + بانر UI-035)، APPR-OWNER-SELF، APPR-OWNER-APPROVE (403)، APPR-CASHIER (403)، APPR-ACCOUNTANT (201 → JE-000004) | ✓ خادم | DB-001…009 |
+| B: إلغاء مخصَّص | SI-CR-DRAFT/POST، RV-ALLOC-DRAFT/POST، RV-VOID (201 بلا حوار UI-036)، VOID-AFTER | **ACC-095** | DB-010…015 |
+| C: وردتان | SHIFT-OPEN-OWNER/CASHIER، SI-CASH-DRAFT/POST، SHIFT-CLOSE-OWNER (رأس 46.00/6.00)، SHIFT-CLOSE-CASHIER (23/0/−23)، SHIFT-POST-OWNER (JE-000008)، SHIFT-POST-CASHIER (JE-000009)، CASH-RECALC (+`-ATTEMPT1-*` 401)، `R23-SHIFTS-SCREEN.png` | **ACC-096**، ACC-098 | DB-016…024، DB-032 |
+| A: عملة بجدول حقيقي | RV-USD-DRAFT/POST، PV-USD-DRAFT/POST، FX-AFTER | ACC-089/073، UI-033/037 | DB-025…029 |
+| E: أقفال الوحدات | MODULE-LOCKS (12 نداء) | **ACC-097** | DB-030 |
+| G: تقارير | REPORTS (9 نداءات)، `R23-TB-SCREEN.png`، `R23-CASH-LOCATIONS-SCREEN.png`، `R23-DAY-CLOSE-FINAL.png` | ACC-042/004 | DB-031 |
+| تحقق | `verify/*.json` (9)، `R23-check-results.json` (45/27 من 72)، `R23-http-events.jsonl` (482)، `R23-memberships.json` (ACC-099) | — | — |
