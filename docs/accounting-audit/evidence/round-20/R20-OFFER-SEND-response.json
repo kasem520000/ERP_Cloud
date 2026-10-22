@@ -1,0 +1,42 @@
+{
+  "status": 201,
+  "method": "POST",
+  "url": "http://127.0.0.1:3001/api/v1/contracting/offers/01a16263-f385-757d-8f7d-4a7a98bcdc51/send",
+  "request": {},
+  "body": {
+    "data": {
+      "id": "01a16263-f385-757d-8f7d-4a7a98bcdc51",
+      "tenantId": "01a16198-e3e0-77af-b843-47c9d7787c03",
+      "branchId": null,
+      "partyId": "01a16198-e584-74ca-9bb2-36d58c4ddfe9",
+      "projectId": null,
+      "number": "OF-000001",
+      "title": "R20 عرض تنفيذ أعمال اختبار معزول",
+      "status": "sent",
+      "offerDate": "2026-10-22",
+      "validUntil": "2026-11-30",
+      "totalValue": "200.0000",
+      "retentionPct": "5.0000",
+      "notes": null,
+      "decidedAt": null,
+      "rejectionReason": null,
+      "createdAt": "2026-10-22T06:54:40.005Z",
+      "createdBy": "01a16198-e3e2-77f7-b5ca-440706cc006a",
+      "updatedAt": "2026-10-22T06:56:17.475Z",
+      "updatedBy": "01a16198-e3e2-77f7-b5ca-440706cc006a",
+      "version": 1,
+      "lines": [
+        {
+          "offerId": "01a16263-f385-757d-8f7d-4a7a98bcdc51",
+          "lineNo": 1,
+          "tenantId": "01a16198-e3e0-77af-b843-47c9d7787c03",
+          "code": "O1",
+          "description": "R20 بند عرض",
+          "qty": "1.0000",
+          "unitValue": "200.0000",
+          "lineValue": "200.0000"
+        }
+      ]
+    }
+  }
+}

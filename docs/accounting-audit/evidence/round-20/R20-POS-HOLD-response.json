@@ -1,0 +1,73 @@
+{
+  "status": 201,
+  "method": "POST",
+  "url": "http://127.0.0.1:3001/api/v1/pos/holds",
+  "request": {
+    "branchId": "01a16198-e579-755c-b4ec-6c027e8efd57",
+    "label": "R20-HOLD",
+    "total": "20",
+    "linesCount": 1,
+    "cart": {
+      "lines": [
+        {
+          "itemId": "01a161a2-e5fa-733f-bb31-e435012a3cb1",
+          "description": "",
+          "quantityText": "1",
+          "unitPriceText": "20.0000",
+          "discountRateText": "",
+          "taxRateText": "15",
+          "taxGroupId": "",
+          "batchNo": "",
+          "serialText": "",
+          "costCenterId": ""
+        }
+      ],
+      "customerMode": "walkin",
+      "customerName": "R20-HOLD",
+      "customerMobile": "",
+      "partyId": "",
+      "invoiceDiscount": ""
+    }
+  },
+  "body": {
+    "data": {
+      "id": "01a1626f-54d8-706f-b605-08d6fde592c9",
+      "tenantId": "01a16198-e3e0-77af-b843-47c9d7787c03",
+      "branchId": "01a16198-e579-755c-b4ec-6c027e8efd57",
+      "userId": "01a16198-e3e2-77f7-b5ca-440706cc006a",
+      "slot": 0,
+      "label": "R20-HOLD",
+      "cart": {
+        "lines": [
+          {
+            "itemId": "01a161a2-e5fa-733f-bb31-e435012a3cb1",
+            "batchNo": "",
+            "serialText": "",
+            "taxGroupId": "",
+            "description": "",
+            "taxRateText": "15",
+            "costCenterId": "",
+            "quantityText": "1",
+            "unitPriceText": "20.0000",
+            "discountRateText": ""
+          }
+        ],
+        "partyId": "",
+        "customerMode": "walkin",
+        "customerName": "R20-HOLD",
+        "customerMobile": "",
+        "invoiceDiscount": ""
+      },
+      "total": "20.0000",
+      "linesCount": 1,
+      "heldAt": "2026-10-22T07:07:05.816Z",
+      "createdAt": "2026-10-22T07:07:05.815Z",
+      "createdBy": "01a16198-e3e2-77f7-b5ca-440706cc006a",
+      "updatedAt": "2026-10-22T07:07:05.816Z",
+      "updatedBy": null,
+      "version": 1,
+      "legacySource": null,
+      "legacyId": null
+    }
+  }
+}

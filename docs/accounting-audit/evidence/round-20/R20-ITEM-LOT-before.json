@@ -1,0 +1,88 @@
+{
+  "at": "2026-10-22T06:57:44.205Z",
+  "url": "http://127.0.0.1:3001/inventory/items",
+  "text": "AUDIT-TEST-2026-R18\n\nدليل المواد وبطاقاتها\nع\nEN\nم\nمالك الحساب\nالمستودعات\n/التعاريف\nدليل المواد\n\nبطاقات الأصناف: الرمز، المجموعة، وحدة القياس، الأسعار والضريبة.\n\nإغلاق\nعدد المواد\n2\nبطاقة صنف مسجّلة\nمواد مخزنية\n2\nتُدار أرصدتها\nخدمات\n0\nبلا مخزون\nأصناف مركبة\n0\nلها مكونات\nبدون باركود\n2\nلن تُقرأ بالقارئ\nبحث\nبحث\n2 مادة\nبطاقة مادة جديدة\nالرمز (SKU) *\nالباركود\nالاسم العربي *\nالاسم الإنجليزي\nالمجموعة *\n— اختر —\nGEN — بضاعة عامة\nSRV — خدمات\nوحدة القياس *\n— اختر —\nBOX — كرتون\nKG — كيلوجرام\nLTR — لتر\nPCS — حبة\nالنوع\nمخزنية\nخدمة\nمركبة\nسعر البيع\nسعر الشراء\nحد الطلب (أدنى رصيد)\nالحد الأقصى\nتتبع بدفعات / تواريخ صلاحية\nلا\nنعم\nتتبع بأرقام تسلسلية\nلا\nنعم\nالمجموعة الضريبية\n— بدون —\nضريبة القيمة المضافة 15%\nمعفاة من الضريبة\nحفظ المادة\nR18 صنف تدقيق معزول\nR18-ITEM\nمخزنية\n20.00\nR18 منتج تام اختبار معزول\nR18-FG\nمخزنية\n50.00\n\nلا توجد مادة محددة\n\nاختر مادة من القائمة لعرض بطاقتها بتبويباتها.",
+  "fields": [
+    {
+      "tag": "INPUT",
+      "type": "text",
+      "value": ""
+    },
+    {
+      "tag": "INPUT",
+      "type": "text",
+      "value": "R20-LOT"
+    },
+    {
+      "tag": "INPUT",
+      "type": "text",
+      "value": ""
+    },
+    {
+      "tag": "INPUT",
+      "type": "text",
+      "value": "R20 صنف بدفعات وصلاحية"
+    },
+    {
+      "tag": "INPUT",
+      "type": "text",
+      "value": ""
+    },
+    {
+      "tag": "SELECT",
+      "type": "select-one",
+      "value": "01a16198-e5d8-724b-ae59-94fe21401665",
+      "selected": "GEN — بضاعة عامة"
+    },
+    {
+      "tag": "SELECT",
+      "type": "select-one",
+      "value": "01a16198-e5d5-752d-8458-0ec8beab4db5",
+      "selected": "PCS — حبة"
+    },
+    {
+      "tag": "SELECT",
+      "type": "select-one",
+      "value": "stock",
+      "selected": "مخزنية"
+    },
+    {
+      "tag": "INPUT",
+      "type": "text",
+      "value": "15"
+    },
+    {
+      "tag": "INPUT",
+      "type": "text",
+      "value": "10"
+    },
+    {
+      "tag": "INPUT",
+      "type": "text",
+      "value": ""
+    },
+    {
+      "tag": "INPUT",
+      "type": "text",
+      "value": ""
+    },
+    {
+      "tag": "SELECT",
+      "type": "select-one",
+      "value": "yes",
+      "selected": "نعم"
+    },
+    {
+      "tag": "SELECT",
+      "type": "select-one",
+      "value": "no",
+      "selected": "لا"
+    },
+    {
+      "tag": "SELECT",
+      "type": "select-one",
+      "value": "",
+      "selected": "— بدون —"
+    }
+  ]
+}
