@@ -1,0 +1,22 @@
+{
+  "sequence": true,
+  "results": [
+    {
+      "label": "owner-approve-not-assigned",
+      "method": "POST",
+      "path": "/approvals/requests/01a162ba-3801-71ad-9b7f-d95fb23c8e5b/approve",
+      "request": {
+        "comment": "R21 المالك ليس المراجع المعيّن — يجب 403"
+      },
+      "status": 403,
+      "body": {
+        "type": "about:blank",
+        "title": "Forbidden",
+        "status": 403,
+        "code": "FORBIDDEN",
+        "detail": "This approval is not assigned to you",
+        "traceId": "01a162bc-5251-72a8-8f3b-22836fe98dcd"
+      }
+    }
+  ]
+}
