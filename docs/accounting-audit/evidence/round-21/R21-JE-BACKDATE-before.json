@@ -1,0 +1,114 @@
+{
+  "at": "2026-10-22T08:24:35.814Z",
+  "url": "http://127.0.0.1:3001/accounting/journal-entries/new",
+  "text": "AUDIT-TEST-2026-R21\n\nقيد إفتتاحي\nع\nEN\nم\nمالك الحساب\nالمحاسبة\n/العمليات\nإنشاء قيد يومية\n\nالقيد المزدوج: كل سطر إما مدين أو دائن، والمجموعان يجب أن يتساويا قبل الترحيل.\n\nطباعة\nبيانات القيد\nالفرع *\n— اختر الفرع\nMAIN — الفرع الرئيسي\nالفترة المحاسبية *\n— اختر الفترة\n2026-12\n2026-11\n2026-10\n2026-08\n2026-07\n2026-06\n2026-05\n2026-04\n2026-03\n2026-02\n2026-01\nرقم القيد\nالتاريخ *\nالوقت\nالرقم العام\nقيد ضريبي\nالملاحظة\nتفاصيل القيد\n#\tرمز الحساب\tاسم الحساب\tمدين\tدائن\tمركز تكلفة\tالشرح\tالمندوب\tحذف\n1\t\n\tمصروفات مدفوعة مقدما\t\n\t\n\t\n—\nADMIN — الإدارة العامة\nSALES — المبيعات\nSTORE — المستودع\n\t\n\t\n—\nEMP-REP-1 — مندوب الشركة\n\t\n\n2\t\n\tأثاث\t\n\t\n\t\n—\nADMIN — الإدارة العامة\nSALES — المبيعات\nSTORE — المستودع\n\t\n\t\n—\nEMP-REP-1 — مندوب الشركة\n\t\n\n\nمجموع المدين:\n1.00\nمجموع الدائن:\n1.00\n\t1.00\t1.00\t\n+ سطر\nالمجموعان يجب أن يتساويا قبل الترحيل — يُولَّد رقم القيد عند الحفظ.\nجديد\nحفظ",
+  "fields": [
+    {
+      "tag": "SELECT",
+      "type": "select-one",
+      "value": "01a162a3-d042-77c9-b0cb-7f0deb28e1fc",
+      "selected": "MAIN — الفرع الرئيسي"
+    },
+    {
+      "tag": "SELECT",
+      "type": "select-one",
+      "value": "01a162a3-d0a7-732e-8116-5e538c67db3a",
+      "selected": "2026-10"
+    },
+    {
+      "tag": "INPUT",
+      "type": "text",
+      "value": ""
+    },
+    {
+      "tag": "INPUT",
+      "type": "date",
+      "value": "2026-09-15"
+    },
+    {
+      "tag": "INPUT",
+      "type": "time",
+      "value": "08:24"
+    },
+    {
+      "tag": "INPUT",
+      "type": "text",
+      "value": ""
+    },
+    {
+      "tag": "INPUT",
+      "type": "checkbox",
+      "value": "on",
+      "checked": false
+    },
+    {
+      "tag": "INPUT",
+      "type": "text",
+      "value": "R21-JE-BACKDATE قيد بتاريخ 2026-09-15 (فترة مغلقة) تحت فترة 2026-10 — يجب رفضه"
+    },
+    {
+      "tag": "INPUT",
+      "type": "text",
+      "value": "1250001"
+    },
+    {
+      "tag": "INPUT",
+      "type": "text",
+      "value": "1.00"
+    },
+    {
+      "tag": "INPUT",
+      "type": "text",
+      "value": "0.00"
+    },
+    {
+      "tag": "SELECT",
+      "type": "select-one",
+      "value": "",
+      "selected": "—"
+    },
+    {
+      "tag": "INPUT",
+      "type": "text",
+      "value": "R21 اختبار تاريخ خارج الفترة"
+    },
+    {
+      "tag": "SELECT",
+      "type": "select-one",
+      "value": "",
+      "selected": "—"
+    },
+    {
+      "tag": "INPUT",
+      "type": "text",
+      "value": "1160001"
+    },
+    {
+      "tag": "INPUT",
+      "type": "text",
+      "value": "0.00"
+    },
+    {
+      "tag": "INPUT",
+      "type": "text",
+      "value": "1.00"
+    },
+    {
+      "tag": "SELECT",
+      "type": "select-one",
+      "value": "",
+      "selected": "—"
+    },
+    {
+      "tag": "INPUT",
+      "type": "text",
+      "value": "R21 اختبار تاريخ خارج الفترة"
+    },
+    {
+      "tag": "SELECT",
+      "type": "select-one",
+      "value": "",
+      "selected": "—"
+    }
+  ]
+}

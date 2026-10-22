@@ -1,0 +1,18 @@
+[
+  {
+    "id": "01a162b1-4879-727c-a78a-40bdca9484cb",
+    "tenantId": "01a162a3-cf0d-7238-9aeb-2e23f58a6b13",
+    "itemId": "01a162b0-9ce8-77fd-863b-340009ff33c9",
+    "lotNo": "R21-EXP",
+    "productionDate": null,
+    "expiryDate": "2026-01-31",
+    "receivedAt": "2026-10-22T00:00:00.000Z",
+    "createdAt": "2026-10-22T08:19:08.025Z",
+    "createdBy": null,
+    "updatedAt": null,
+    "updatedBy": null,
+    "version": 1,
+    "deletedAt": null,
+    "deletedBy": null
+  }
+]
