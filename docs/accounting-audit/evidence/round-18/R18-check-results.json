@@ -1,0 +1,1194 @@
+[
+ {
+  "name": "Baseline 1160001",
+  "actual": "20000.0000",
+  "expected": "20000",
+  "ok": true,
+  "evidence": "DB001",
+  "defect": null
+ },
+ {
+  "name": "Baseline 1211001",
+  "actual": "50000.0000",
+  "expected": "50000",
+  "ok": true,
+  "evidence": "DB001",
+  "defect": null
+ },
+ {
+  "name": "Baseline 1221001",
+  "actual": "180000.0000",
+  "expected": "180000",
+  "ok": true,
+  "evidence": "DB001",
+  "defect": null
+ },
+ {
+  "name": "Baseline 2110001",
+  "actual": "-250000.0000",
+  "expected": "-250000",
+  "ok": true,
+  "evidence": "DB001",
+  "defect": null
+ },
+ {
+  "name": "Baseline 12310001",
+  "actual": "0",
+  "expected": "0",
+  "ok": true,
+  "evidence": "DB001",
+  "defect": null
+ },
+ {
+  "name": "Baseline 22111001",
+  "actual": "0",
+  "expected": "0",
+  "ok": true,
+  "evidence": "DB001",
+  "defect": null
+ },
+ {
+  "name": "Baseline 1270001",
+  "actual": "0",
+  "expected": "0",
+  "ok": true,
+  "evidence": "DB001",
+  "defect": null
+ },
+ {
+  "name": "Baseline: 1 opening journal, no invoices/vouchers/runs/statements",
+  "actual": "(1, 0, 0, 0, 0, 0)",
+  "expected": "(1, 0, 0, 0, 0, 0)",
+  "ok": true,
+  "evidence": "DB001",
+  "defect": null
+ },
+ {
+  "name": "Baseline subledger cash/bank 0/0 (GL opening 50000/180000 never pushed to cash_location_balances)",
+  "actual": "(Decimal('0.0000'), Decimal('0.0000'))",
+  "expected": "(Decimal('50000'), Decimal('180000'))",
+  "ok": false,
+  "evidence": "DB001",
+  "defect": "ACC-023"
+ },
+ {
+  "name": "Item R18-ITEM created, purchase 12 / sale 20",
+  "actual": "(Decimal('12.0000'), Decimal('20.0000'))",
+  "expected": "(Decimal('12'), Decimal('20'))",
+  "ok": true,
+  "evidence": "DB002",
+  "defect": null
+ },
+ {
+  "name": "PI-000001 posted total 138 unpaid",
+  "actual": "('PI-000001', 'posted', Decimal('138.0000'), Decimal('0.0000'), 'unpaid')",
+  "expected": "('PI-000001', 'posted', Decimal('138'), Decimal('0'), 'unpaid')",
+  "ok": true,
+  "evidence": "DB004",
+  "defect": null
+ },
+ {
+  "name": "PI journal Dr inventory 120 / Dr VAT 18 / Cr AP 138",
+  "actual": "[('1270001', Decimal('120.0000'), Decimal('0.0000')), ('22111001', Decimal('0.0000'), Decimal('138.0000')), ('2222001', Decimal('18.0000'), Decimal('0.0000'))]",
+  "expected": "[('1270001', Decimal('120'), Decimal('0')), ('22111001', Decimal('0'), Decimal('138')), ('2222001', Decimal('18'), Decimal('0'))]",
+  "ok": true,
+  "evidence": "DB004",
+  "defect": null
+ },
+ {
+  "name": "Stock after PI 10 @ 12 = 120",
+  "actual": "(Decimal('10.0000'), Decimal('120.0000'))",
+  "expected": "(Decimal('10'), Decimal('120'))",
+  "ok": true,
+  "evidence": "DB004",
+  "defect": null
+ },
+ {
+  "name": "PI journal: party on the AP line only (inventory/VAT lines should carry no party)",
+  "actual": "[('1270001', True), ('22111001', True), ('2222001', True)]",
+  "expected": "[('1270001', False), ('22111001', True), ('2222001', False)]",
+  "ok": false,
+  "evidence": "DB004",
+  "defect": "ACC-004"
+ },
+ {
+  "name": "SI-000001 posted credit total 46 unpaid",
+  "actual": "('SI-000001', 'posted', Decimal('46.0000'), Decimal('0.0000'), 'unpaid')",
+  "expected": "('SI-000001', 'posted', Decimal('46'), Decimal('0'), 'unpaid')",
+  "ok": true,
+  "evidence": "DB006",
+  "defect": null
+ },
+ {
+  "name": "SI journal Dr AR 46 / Cr revenue 40 / Cr VAT 6 / Dr COGS 24 / Cr inventory 24",
+  "actual": "[('12310001', Decimal('46.0000'), Decimal('0.0000')), ('1270001', Decimal('0.0000'), Decimal('24.0000')), ('2222001', Decimal('0.0000'), Decimal('6.0000')), ('3200004', Decimal('24.0000'), Decimal('0.0000')), ('4100001', Decimal('0.0000'), Decimal('40.0000'))]",
+  "expected": "[('12310001', Decimal('46'), Decimal('0')), ('1270001', Decimal('0'), Decimal('24')), ('2222001', Decimal('0'), Decimal('6')), ('3200004', Decimal('24'), Decimal('0')), ('4100001', Decimal('0'), Decimal('40'))]",
+  "ok": true,
+  "evidence": "DB006",
+  "defect": null
+ },
+ {
+  "name": "Stock after SI 8 @ 12 = 96 (moving average)",
+  "actual": "(Decimal('8.0000'), Decimal('96.0000'))",
+  "expected": "(Decimal('8'), Decimal('96'))",
+  "ok": true,
+  "evidence": "DB006",
+  "defect": null
+ },
+ {
+  "name": "GL inventory 96 = stock value",
+  "actual": "96.0000",
+  "expected": "96",
+  "ok": true,
+  "evidence": "DB006",
+  "defect": null
+ },
+ {
+  "name": "SI journal: party on the AR line only",
+  "actual": "[('12310001', True), ('1270001', True), ('2222001', True), ('3200004', True), ('4100001', True)]",
+  "expected": "[('12310001', True), ('1270001', False), ('2222001', False), ('3200004', False), ('4100001', False)]",
+  "ok": false,
+  "evidence": "DB006",
+  "defect": "ACC-004"
+ },
+ {
+  "name": "SI header cost_total/profit populated (24 / 16)",
+  "actual": "(Decimal('0.0000'), Decimal('0.0000'))",
+  "expected": "(Decimal('24'), Decimal('16'))",
+  "ok": false,
+  "evidence": "DB006",
+  "defect": "ACC-001"
+ },
+ {
+  "name": "PV draft changes no balance",
+  "actual": "True",
+  "expected": "True",
+  "ok": true,
+  "evidence": "DB006/DB007",
+  "defect": null
+ },
+ {
+  "name": "PV-000001 posted: Dr AP(SUPP) 38 / Cr cash 38",
+  "actual": "[('1211001', Decimal('0.0000'), Decimal('38.0000')), ('22111001', Decimal('38.0000'), Decimal('0.0000'))]",
+  "expected": "[('1211001', Decimal('0'), Decimal('38')), ('22111001', Decimal('38'), Decimal('0'))]",
+  "ok": true,
+  "evidence": "DB008",
+  "defect": null
+ },
+ {
+  "name": "PV-000001: party on the AP line, none on cash",
+  "actual": "[('1211001', False), ('22111001', True)]",
+  "expected": "[('1211001', False), ('22111001', True)]",
+  "ok": true,
+  "evidence": "DB008",
+  "defect": null
+ },
+ {
+  "name": "Cash subledger after PV -38 vs GL 49962",
+  "actual": "(Decimal('-38.0000'), Decimal('49962.0000'))",
+  "expected": "(Decimal('-38'), Decimal('49962'))",
+  "ok": true,
+  "evidence": "DB008",
+  "defect": null
+ },
+ {
+  "name": "PI-000001 after a 38 supplier voucher: expected paid 38 / partial / 1 allocation, actual",
+  "actual": "(Decimal('0.0000'), 'unpaid', 0)",
+  "expected": "(Decimal('38'), 'partial', 1)",
+  "ok": false,
+  "evidence": "DB008",
+  "defect": "ACC-042"
+ },
+ {
+  "name": "RV-000001 posted: Dr cash 10 / Cr AR(CUST) 10",
+  "actual": "[('1211001', Decimal('10.0000'), Decimal('0.0000')), ('12310001', Decimal('0.0000'), Decimal('10.0000'))]",
+  "expected": "[('1211001', Decimal('10'), Decimal('0')), ('12310001', Decimal('0'), Decimal('10'))]",
+  "ok": true,
+  "evidence": "DB010",
+  "defect": null
+ },
+ {
+  "name": "SI-000001 after a 10 customer voucher: expected paid 10 / partial, actual",
+  "actual": "(Decimal('0.0000'), 'unpaid')",
+  "expected": "(Decimal('10'), 'partial')",
+  "ok": false,
+  "evidence": "DB010",
+  "defect": "ACC-042"
+ },
+ {
+  "name": "AR GL 36 after receipt (46 - 10)",
+  "actual": "36.0000",
+  "expected": "36",
+  "ok": true,
+  "evidence": "DB010",
+  "defect": null
+ },
+ {
+  "name": "AP GL -100 after payment (138 - 38)",
+  "actual": "-100.0000",
+  "expected": "-100",
+  "ok": true,
+  "evidence": "DB010",
+  "defect": null
+ },
+ {
+  "name": "Supplier subledger = AP control after PV (-100)",
+  "actual": "-100.0000",
+  "expected": "-100.0000",
+  "ok": true,
+  "evidence": "DB010",
+  "defect": null
+ },
+ {
+  "name": "SR-000001 posted, kind sale_return, total 23, linked to SI-000001",
+  "actual": "('SR-000001', 'sale_return', 'posted', Decimal('23.0000'), True)",
+  "expected": "('SR-000001', 'sale_return', 'posted', Decimal('23'), True)",
+  "ok": true,
+  "evidence": "DB012",
+  "defect": null
+ },
+ {
+  "name": "SR journal Cr AR 23 / Dr VAT 3 / Dr returns 20 / Dr inventory 12 / Cr COGS 12",
+  "actual": "[('12310001', Decimal('0.0000'), Decimal('23.0000')), ('1270001', Decimal('12.0000'), Decimal('0.0000')), ('2222001', Decimal('3.0000'), Decimal('0.0000')), ('3200004', Decimal('0.0000'), Decimal('12.0000')), ('4100002', Decimal('20.0000'), Decimal('0.0000'))]",
+  "expected": "[('12310001', Decimal('0'), Decimal('23')), ('1270001', Decimal('12'), Decimal('0')), ('2222001', Decimal('3'), Decimal('0')), ('3200004', Decimal('0'), Decimal('12')), ('4100002', Decimal('20'), Decimal('0'))]",
+  "ok": true,
+  "evidence": "DB012",
+  "defect": null
+ },
+ {
+  "name": "Stock after return 9 @ 12 = 108",
+  "actual": "(Decimal('9.0000'), Decimal('108.0000'))",
+  "expected": "(Decimal('9'), Decimal('108'))",
+  "ok": true,
+  "evidence": "DB012",
+  "defect": null
+ },
+ {
+  "name": "AR GL 13 after return (46 - 10 - 23)",
+  "actual": "13.0000",
+  "expected": "13",
+  "ok": true,
+  "evidence": "DB012",
+  "defect": null
+ },
+ {
+  "name": "SI-000001 open amount after return + receipt: expected 13 / partial, invoice shows",
+  "actual": "(Decimal('46.0000'), 'unpaid')",
+  "expected": "(Decimal('13'), 'partial')",
+  "ok": false,
+  "evidence": "DB012",
+  "defect": "ACC-042"
+ },
+ {
+  "name": "Customer subledger = AR control after return (13)",
+  "actual": "13.0000",
+  "expected": "13.0000",
+  "ok": true,
+  "evidence": "DB012",
+  "defect": null
+ },
+ {
+  "name": "RV-000002 bank transfer 5 posted: Dr bank 5 / Cr AR 5",
+  "actual": "[('1221001', Decimal('5.0000'), Decimal('0.0000')), ('12310001', Decimal('0.0000'), Decimal('5.0000'))]",
+  "expected": "[('1221001', Decimal('5'), Decimal('0')), ('12310001', Decimal('0'), Decimal('5'))]",
+  "ok": true,
+  "evidence": "DB014",
+  "defect": null
+ },
+ {
+  "name": "Bank GL 180005 / bank subledger +5",
+  "actual": "(Decimal('180005.0000'), Decimal('5.0000'))",
+  "expected": "(Decimal('180005'), Decimal('5'))",
+  "ok": true,
+  "evidence": "DB014",
+  "defect": null
+ },
+ {
+  "name": "Draft bank voucher 7 stays draft, unnumbered, no journal",
+  "actual": "('draft', Decimal('7.0000'), None, None)",
+  "expected": "('draft', Decimal('7'), None, None)",
+  "ok": true,
+  "evidence": "DB015",
+  "defect": null
+ },
+ {
+  "name": "Draft voucher changes no balance",
+  "actual": "True",
+  "expected": "True",
+  "ok": true,
+  "evidence": "DB014/DB015",
+  "defect": null
+ },
+ {
+  "name": "Bank account R18-ACC-001 opening 180000",
+  "actual": "('R18-ACC-001', Decimal('180000.0000'))",
+  "expected": "('R18-ACC-001', Decimal('180000'))",
+  "ok": true,
+  "evidence": "DB016",
+  "defect": null
+ },
+ {
+  "name": "Statement 1 imported: 6 rows, opening 180000, closing 180027.5 (balance column parsed)",
+  "actual": "('processed', 6, Decimal('180000.0000'), Decimal('180027.5000'))",
+  "expected": "('processed', 6, Decimal('180000'), Decimal('180027.5'))",
+  "ok": true,
+  "evidence": "DB017",
+  "defect": null
+ },
+ {
+  "name": "Statement 1 line balances follow the CSV balance column",
+  "actual": "[Decimal('180005.0000'), Decimal('180012.0000'), Decimal('180009.5000'), Decimal('180055.5000'), Decimal('180017.5000'), Decimal('180027.5000')]",
+  "expected": "[Decimal('180005'), Decimal('180012'), Decimal('180009.5'), Decimal('180055.5'), Decimal('180017.5'), Decimal('180027.5')]",
+  "ok": true,
+  "evidence": "DB017",
+  "defect": null
+ },
+ {
+  "name": "Import changes no GL balance",
+  "actual": "True",
+  "expected": "True",
+  "ok": true,
+  "evidence": "DB016/DB017",
+  "defect": null
+ },
+ {
+  "name": "Duplicate paste of the same statement: expected 409 (already imported), actual status",
+  "actual": "201",
+  "expected": "409",
+  "ok": false,
+  "evidence": "R18-BANK-IMPORT-DUP-response.json",
+  "defect": "ACC-043"
+ },
+ {
+  "name": "Statements after duplicate import: expected 1, actual",
+  "actual": "2",
+  "expected": "1",
+  "ok": false,
+  "evidence": "DB018",
+  "defect": "ACC-043"
+ },
+ {
+  "name": "Auto-match ran on statement 2 (the duplicate)",
+  "actual": "01a161af-65d4-76f7-9698-e69c596df83f",
+  "expected": "01a161af-65d4-76f7-9698-e69c596df83f",
+  "ok": true,
+  "evidence": "R18-BANK-AUTOMATCH-response.json",
+  "defect": null
+ },
+ {
+  "name": "Auto-match: expected only the +5 bank-transfer line (1 matched / 5 pending), actual (matched, pending)",
+  "actual": "(4, 2)",
+  "expected": "(1, 5)",
+  "ok": false,
+  "evidence": "R18-BANK-AUTOMATCH-response.json",
+  "defect": "ACC-035"
+ },
+ {
+  "name": "Auto-match line 1 (+5) -> RV-000002 bank voucher",
+  "actual": "('matched', '01a161ab-7a6b-70cb-936a-c23f7f7ff270')",
+  "expected": "('matched', '01a161ab-7a6b-70cb-936a-c23f7f7ff270')",
+  "ok": true,
+  "evidence": "DB019",
+  "defect": null
+ },
+ {
+  "name": "Auto-match line 2 (+7) stays pending (draft voucher not matched)",
+  "actual": "pending",
+  "expected": "pending",
+  "ok": true,
+  "evidence": "DB019",
+  "defect": null
+ },
+ {
+  "name": "Auto-match line 3 (fee -2.5) stays pending",
+  "actual": "pending",
+  "expected": "pending",
+  "ok": true,
+  "evidence": "DB019",
+  "defect": null
+ },
+ {
+  "name": "Auto-match line 4 (+46): expected pending (credit invoice, nothing banked), actual",
+  "actual": "('matched', '01a161a4-d6b2-7094-9df0-6af4f23871d8')",
+  "expected": "('pending', None)",
+  "ok": false,
+  "evidence": "DB019",
+  "defect": "ACC-035"
+ },
+ {
+  "name": "Auto-match line 5 (-38): expected pending (PV-000001 was CASH from the safe), actual",
+  "actual": "('matched', '01a161a6-69bb-7680-aae0-a3504b5b6736')",
+  "expected": "('pending', None)",
+  "ok": false,
+  "evidence": "DB019",
+  "defect": "ACC-035"
+ },
+ {
+  "name": "Auto-match line 6 (+10): expected pending (RV-000001 was CASH), actual",
+  "actual": "('matched', '01a161a7-ea02-718c-80cc-bf2a9f8a175d')",
+  "expected": "('pending', None)",
+  "ok": false,
+  "evidence": "DB019",
+  "defect": "ACC-035"
+ },
+ {
+  "name": "Manual match of the +46 line to the 38 cash payment voucher: expected 422, actual",
+  "actual": "201",
+  "expected": "422",
+  "ok": false,
+  "evidence": "R18-BANK-MATCH-WRONG-response.json",
+  "defect": "ACC-044"
+ },
+ {
+  "name": "Statement 1 line 4 after the wrong manual match: expected pending, actual",
+  "actual": "('matched', '01a161a6-69bb-7680-aae0-a3504b5b6736', '1.0000')",
+  "expected": "('pending', None, None)",
+  "ok": false,
+  "evidence": "DB020",
+  "defect": "ACC-044"
+ },
+ {
+  "name": "Statement lines pointing at PV-000001: expected at most 1, actual",
+  "actual": "2",
+  "expected": "1",
+  "ok": false,
+  "evidence": "DB020",
+  "defect": "ACC-044"
+ },
+ {
+  "name": "Manual match of the +7 line to a DRAFT voucher: expected 422 (unposted), actual",
+  "actual": "201",
+  "expected": "422",
+  "ok": false,
+  "evidence": "R18-BANK-MATCH-DRAFT-response.json",
+  "defect": "ACC-045"
+ },
+ {
+  "name": "Statement 1 line 2 after the draft match: expected pending, actual",
+  "actual": "('matched', '01a161ad-0b5b-74fe-b730-8f40fa7c0ac6')",
+  "expected": "('pending', None)",
+  "ok": false,
+  "evidence": "DB021",
+  "defect": "ACC-045"
+ },
+ {
+  "name": "Ignore fee line -> status ignored, reason manual",
+  "actual": "('ignored', 'تجاهل يدوي')",
+  "expected": "('ignored', 'تجاهل يدوي')",
+  "ok": true,
+  "evidence": "DB022",
+  "defect": null
+ },
+ {
+  "name": "Matching/ignoring changes no GL balance",
+  "actual": "True",
+  "expected": "True",
+  "ok": true,
+  "evidence": "DB017/DB022",
+  "defect": null
+ },
+ {
+  "name": "MO-000001 draft consuming 50 against stock 9",
+  "actual": "('draft', Decimal('50.0000'))",
+  "expected": "('draft', Decimal('50'))",
+  "ok": true,
+  "evidence": "DB024",
+  "defect": null
+ },
+ {
+  "name": "Complete MO-000001: 422 STOCK_INSUFFICIENT",
+  "actual": "(422, 'STOCK_INSUFFICIENT')",
+  "expected": "(422, 'STOCK_INSUFFICIENT')",
+  "ok": true,
+  "evidence": "R18-PROD-COMPLETE-OVER-response.json",
+  "defect": null
+ },
+ {
+  "name": "Rejected completion moved no stock/GL",
+  "actual": "True",
+  "expected": "True",
+  "ok": true,
+  "evidence": "DB024/DB025",
+  "defect": null
+ },
+ {
+  "name": "MO-000001 cancelled from the UI",
+  "actual": "cancelled",
+  "expected": "cancelled",
+  "ok": true,
+  "evidence": "DB026",
+  "defect": null
+ },
+ {
+  "name": "Cancelling a draft moves no stock/GL",
+  "actual": "True",
+  "expected": "True",
+  "ok": true,
+  "evidence": "DB025/DB026",
+  "defect": null
+ },
+ {
+  "name": "MO-000002 completed, component cost 24 -> unit cost 24",
+  "actual": "('completed', Decimal('24.0000'), Decimal('24.0000'))",
+  "expected": "('completed', Decimal('24'), Decimal('24'))",
+  "ok": true,
+  "evidence": "DB028",
+  "defect": null
+ },
+ {
+  "name": "Stock after MO-000002: R18-ITEM 7 @ 12 = 84, R18-FG 1 @ 24",
+  "actual": "((Decimal('7.0000'), Decimal('84.0000')), (Decimal('1.0000'), Decimal('24.0000')))",
+  "expected": "((Decimal('7'), Decimal('84')), (Decimal('1'), Decimal('24')))",
+  "ok": true,
+  "evidence": "DB028",
+  "defect": null
+ },
+ {
+  "name": "Production is GL-neutral (inventory 108 before and after)",
+  "actual": "(Decimal('108.0000'), Decimal('108.0000'), 0)",
+  "expected": "(Decimal('108'), Decimal('108'), 0)",
+  "ok": true,
+  "evidence": "DB027/DB028",
+  "defect": null
+ },
+ {
+  "name": "Cancel a completed order: 409 PRODUCTION_ORDER_INVALID_STATUS",
+  "actual": "(409, 'PRODUCTION_ORDER_INVALID_STATUS')",
+  "expected": "(409, 'PRODUCTION_ORDER_INVALID_STATUS')",
+  "ok": true,
+  "evidence": "R18-PROD-CANCEL-COMPLETED-response.json",
+  "defect": null
+ },
+ {
+  "name": "Rejected cancel moves nothing",
+  "actual": "True",
+  "expected": "True",
+  "ok": true,
+  "evidence": "DB028/DB029",
+  "defect": null
+ },
+ {
+  "name": "Employee hired 2026-10-16, basic 120, auto employee account",
+  "actual": "('2026-10-16', '120', True)",
+  "expected": "('2026-10-16', '120', True)",
+  "ok": true,
+  "evidence": "DB030",
+  "defect": null
+ },
+ {
+  "name": "Two approved adjustments riding the salary: +30 bonus, -10 deduction",
+  "actual": "[('addition', 'bonus', Decimal('30.0000'), 'approved', True), ('deduction', 'deduction', Decimal('10.0000'), 'approved', True)]",
+  "expected": "[('addition', 'bonus', Decimal('30'), 'approved', True), ('deduction', 'deduction', Decimal('10'), 'approved', True)]",
+  "ok": true,
+  "evidence": "DB034",
+  "defect": null
+ },
+ {
+  "name": "Adjustments create no journal (settled through the run)",
+  "actual": "True",
+  "expected": "True",
+  "ok": true,
+  "evidence": "DB030/DB034",
+  "defect": null
+ },
+ {
+  "name": "Preview 2026-10 for a 2026-10-16 hire: expected prorated gross 16/31 x 120 = 61.94 (or explicit policy), actual (gross, unpaidFactor)",
+  "actual": "(Decimal('120.0000'), Decimal('1.000000'))",
+  "expected": "(Decimal('61.94'), Decimal('0.516129'))",
+  "ok": false,
+  "evidence": "R18-PAYROLL-PREVIEW.json",
+  "defect": "ACC-038"
+ },
+ {
+  "name": "Preview: additions 30 / deductions 10 applied (net - gross = 20)",
+  "actual": "(Decimal('30.0000'), Decimal('10.0000'), Decimal('20.0000'))",
+  "expected": "(Decimal('30'), Decimal('10'), Decimal('20'))",
+  "ok": true,
+  "evidence": "R18-PAYROLL-PREVIEW.json",
+  "defect": null
+ },
+ {
+  "name": "Preview excludes employees without salary components: expected 1 line, actual",
+  "actual": "2",
+  "expected": "1",
+  "ok": false,
+  "evidence": "R18-PAYROLL-PREVIEW.json",
+  "defect": "UI-016"
+ },
+ {
+  "name": "Run 2026-10 created draft, net payable 140",
+  "actual": "('draft', '2026-10', Decimal('140.0000'))",
+  "expected": "('draft', '2026-10', Decimal('140'))",
+  "ok": true,
+  "evidence": "DB035",
+  "defect": null
+ },
+ {
+  "name": "Run post: Dr 3122001 140 / Cr employee 22410002 140",
+  "actual": "[('22410002', Decimal('0.0000'), Decimal('140.0000')), ('3122001', Decimal('140.0000'), Decimal('0.0000'))]",
+  "expected": "[('22410002', Decimal('0'), Decimal('140')), ('3122001', Decimal('140'), Decimal('0'))]",
+  "ok": true,
+  "evidence": "DB036",
+  "defect": null
+ },
+ {
+  "name": "Run posted status + journal linked",
+  "actual": "('posted', True)",
+  "expected": "('posted', True)",
+  "ok": true,
+  "evidence": "DB036",
+  "defect": null
+ },
+ {
+  "name": "Run lines follow the run status after post: expected posted, actual",
+  "actual": "['draft']",
+  "expected": "['posted']",
+  "ok": false,
+  "evidence": "DB036",
+  "defect": "ACC-048"
+ },
+ {
+  "name": "Salary payment record: 140 cash for 2026-10 linked to the run",
+  "actual": "(Decimal('140.0000'), '2026-10', '01a161be-d50e-730a-aada-c032bae5444d', 'cash')",
+  "expected": "(Decimal('140'), '2026-10', '01a161be-d50e-730a-aada-c032bae5444d', 'cash')",
+  "ok": true,
+  "evidence": "DB037",
+  "defect": null
+ },
+ {
+  "name": "Salary payment voucher PV-000002: Dr employee 22410002 140 / Cr cash 140 (correct counter account)",
+  "actual": "[('1211001', Decimal('0.0000'), Decimal('140.0000')), ('22410002', Decimal('140.0000'), Decimal('0.0000'))]",
+  "expected": "[('1211001', Decimal('0'), Decimal('140')), ('22410002', Decimal('140'), Decimal('0'))]",
+  "ok": true,
+  "evidence": "DB037",
+  "defect": null
+ },
+ {
+  "name": "Employee account settled to 0 after the salary payment",
+  "actual": "0.0000",
+  "expected": "0",
+  "ok": true,
+  "evidence": "DB037",
+  "defect": null
+ },
+ {
+  "name": "Cash subledger -168 (-38 +10 -140) consistent with GL 49832",
+  "actual": "(Decimal('-168.0000'), Decimal('-168.0000'))",
+  "expected": "(Decimal('-168'), Decimal('-168'))",
+  "ok": true,
+  "evidence": "DB037",
+  "defect": null
+ },
+ {
+  "name": "Pay the run after the employee was already paid: expected 409/422, actual",
+  "actual": "201",
+  "expected": "409",
+  "ok": false,
+  "evidence": "R18-PAYROLL-PAY-AFTER-response.json",
+  "defect": "ACC-046"
+ },
+ {
+  "name": "No second payroll outflow: journals after the pay-run attempt",
+  "actual": "10",
+  "expected": "9",
+  "ok": false,
+  "evidence": "DB037/DB038",
+  "defect": "ACC-046"
+ },
+ {
+  "name": "Pay-run voucher PV-000003 posting: expected Dr 22410002 / Cr bank, actual",
+  "actual": "[('1221001', Decimal('0.0000'), Decimal('140.0000')), ('22111001', Decimal('140.0000'), Decimal('0.0000'))]",
+  "expected": "[('1221001', Decimal('0'), Decimal('140')), ('22410002', Decimal('140'), Decimal('0'))]",
+  "ok": false,
+  "evidence": "DB038",
+  "defect": "ACC-040"
+ },
+ {
+  "name": "Pay-run voucher carries no party and no counter account",
+  "actual": "(None, None)",
+  "expected": "(None, None)",
+  "ok": true,
+  "evidence": "DB038",
+  "defect": "ACC-040"
+ },
+ {
+  "name": "Supplier GL after the pay-run: expected -100 (owed), actual",
+  "actual": "40.0000",
+  "expected": "-100",
+  "ok": false,
+  "evidence": "DB038",
+  "defect": "ACC-040"
+ },
+ {
+  "name": "Supplier subledger (-100) = AP control: control differs by the payroll voucher",
+  "actual": "140.0000",
+  "expected": "0",
+  "ok": false,
+  "evidence": "DB038",
+  "defect": "ACC-040"
+ },
+ {
+  "name": "Bank GL after the pay-run: expected 180005, actual",
+  "actual": "179865.0000",
+  "expected": "180005",
+  "ok": false,
+  "evidence": "DB038",
+  "defect": "ACC-046"
+ },
+ {
+  "name": "Total cash+bank outflow for a 140 run: expected 140, actual",
+  "actual": "280.0000",
+  "expected": "140",
+  "ok": false,
+  "evidence": "DB036/DB038",
+  "defect": "ACC-046"
+ },
+ {
+  "name": "Reverse a paid run: accepted 201",
+  "actual": "201",
+  "expected": "201",
+  "ok": true,
+  "evidence": "R18-PAYROLL-REVERSE-response.json",
+  "defect": null
+ },
+ {
+  "name": "Run status reversed with reason",
+  "actual": "('reversed', True)",
+  "expected": "('reversed', True)",
+  "ok": true,
+  "evidence": "DB039",
+  "defect": null
+ },
+ {
+  "name": "Reversal journals: expected >=1 reversing JE-000008 (reversal_of set), actual count",
+  "actual": "0",
+  "expected": "1",
+  "ok": false,
+  "evidence": "DB039",
+  "defect": "ACC-047"
+ },
+ {
+  "name": "GL after reversal: expected expense 0 / employee 0, actual (3122001, 22410002)",
+  "actual": "(Decimal('140.0000'), Decimal('0.0000'))",
+  "expected": "(Decimal('0'), Decimal('0'))",
+  "ok": false,
+  "evidence": "DB039",
+  "defect": "ACC-047"
+ },
+ {
+  "name": "Salary vouchers of the reversed run: expected not posted, actual statuses",
+  "actual": "['posted', 'posted']",
+  "expected": "['voided', 'voided']",
+  "ok": false,
+  "evidence": "DB039",
+  "defect": "ACC-047"
+ },
+ {
+  "name": "Reversed run keeps voucher_id/journal_entry_id links",
+  "actual": "(True, True)",
+  "expected": "(True, True)",
+  "ok": true,
+  "evidence": "DB039",
+  "defect": null
+ },
+ {
+  "name": "Re-create 2026-10 after the reversal: expected 409 while the first accrual still stands, actual (status, runs for 2026-10)",
+  "actual": "(201, 2)",
+  "expected": "(409, 1)",
+  "ok": false,
+  "evidence": "DB040",
+  "defect": "ACC-047"
+ },
+ {
+  "name": "Second run previews the same 140 (would double the accrual on post)",
+  "actual": "140.0000",
+  "expected": "140",
+  "ok": true,
+  "evidence": "DB040",
+  "defect": "ACC-047"
+ },
+ {
+  "name": "Period 2026-09 closed from the UI (closed_at set)",
+  "actual": "('closed', True)",
+  "expected": "('closed', True)",
+  "ok": true,
+  "evidence": "DB041",
+  "defect": null
+ },
+ {
+  "name": "Period 2026-10 still open",
+  "actual": "open",
+  "expected": "open",
+  "ok": true,
+  "evidence": "DB041",
+  "defect": null
+ },
+ {
+  "name": "Close response 201",
+  "actual": "201",
+  "expected": "201",
+  "ok": true,
+  "evidence": "R18-PERIOD-CLOSE-SEP-response.json",
+  "defect": null
+ },
+ {
+  "name": "Post a voucher dated 2026-09-15 into the closed period: 409 FISCAL_PERIOD_CLOSED",
+  "actual": "(409, 'FISCAL_PERIOD_CLOSED')",
+  "expected": "(409, 'FISCAL_PERIOD_CLOSED')",
+  "ok": true,
+  "evidence": "R18-RV-BACKDATED-POST-response.json",
+  "defect": null
+ },
+ {
+  "name": "Back-dated voucher stays draft without journal",
+  "actual": "('draft', None, '2026-09-15')",
+  "expected": "('draft', None, '2026-09-15')",
+  "ok": true,
+  "evidence": "DB043",
+  "defect": null
+ },
+ {
+  "name": "Rejected back-dated post moves nothing",
+  "actual": "True",
+  "expected": "True",
+  "ok": true,
+  "evidence": "DB042/DB043",
+  "defect": null
+ },
+ {
+  "name": "Closing GL cash 49832",
+  "actual": "49832.0000",
+  "expected": "49832",
+  "ok": true,
+  "evidence": "DB043",
+  "defect": null
+ },
+ {
+  "name": "Closing GL bank 179865",
+  "actual": "179865.0000",
+  "expected": "179865",
+  "ok": true,
+  "evidence": "DB043",
+  "defect": null
+ },
+ {
+  "name": "Closing bank subledger -135 = GL movement",
+  "actual": "(Decimal('-135.0000'), Decimal('-135.0000'))",
+  "expected": "(Decimal('-135'), Decimal('-135'))",
+  "ok": true,
+  "evidence": "DB043",
+  "defect": null
+ },
+ {
+  "name": "Closing GL AR 8 (46-10-23-5) = customer subledger",
+  "actual": "(Decimal('8.0000'), Decimal('8.0000'))",
+  "expected": "(Decimal('8'), Decimal('8'))",
+  "ok": true,
+  "evidence": "DB043",
+  "defect": null
+ },
+ {
+  "name": "Closing GL inventory 108 = stock value 84 + 24",
+  "actual": "(Decimal('108.0000'), Decimal('108.0000'))",
+  "expected": "(Decimal('108'), Decimal('108'))",
+  "ok": true,
+  "evidence": "DB043",
+  "defect": null
+ },
+ {
+  "name": "Closing VAT 15 (18 in - 6 out + 3 return)",
+  "actual": "15.0000",
+  "expected": "15",
+  "ok": true,
+  "evidence": "DB043",
+  "defect": null
+ },
+ {
+  "name": "Closing P&L: revenue -40, returns 20, COGS 12, salaries 140",
+  "actual": "(Decimal('-40.0000'), Decimal('20.0000'), Decimal('12.0000'), Decimal('140.0000'))",
+  "expected": "(Decimal('-40'), Decimal('20'), Decimal('12'), Decimal('140'))",
+  "ok": true,
+  "evidence": "DB043",
+  "defect": null
+ },
+ {
+  "name": "Trial balance balanced",
+  "actual": "0.0000",
+  "expected": "0",
+  "ok": true,
+  "evidence": "DB043",
+  "defect": null
+ },
+ {
+  "name": "Journal count 10 (opening + PI + SI + PV + RV + SR + RV bank + run + 2 salary vouchers)",
+  "actual": "10",
+  "expected": "10",
+  "ok": true,
+  "evidence": "DB043",
+  "defect": null
+ },
+ {
+  "name": "All journals posted, every voucher with a journal is posted",
+  "actual": "(True, True)",
+  "expected": "(True, True)",
+  "ok": true,
+  "evidence": "DB043",
+  "defect": null
+ },
+ {
+  "name": "Invoice settlement flags at close: expected PI partial 38 / SI partial 10, actual",
+  "actual": "[('PI-000001', 'unpaid', Decimal('0.0000')), ('SI-000001', 'unpaid', Decimal('0.0000'))]",
+  "expected": "[('PI-000001', 'partial', Decimal('38')), ('SI-000001', 'partial', Decimal('10'))]",
+  "ok": false,
+  "evidence": "DB043",
+  "defect": "ACC-042"
+ },
+ {
+  "name": "Trial balance screen = DB043 for all 13 accounts",
+  "actual": "True",
+  "expected": "True",
+  "ok": true,
+  "evidence": "R18-REPORT-TRIAL-BALANCE.json",
+  "defect": null
+ },
+ {
+  "name": "Account balances report = DB043",
+  "actual": "True",
+  "expected": "True",
+  "ok": true,
+  "evidence": "R18-REPORT-ACCOUNT-BALANCES.json",
+  "defect": null
+ },
+ {
+  "name": "Balance sheet: cash/bank/AR/inventory/AP/VAT rows = GL",
+  "actual": "[Decimal('49832.0000'), Decimal('179865.0000'), Decimal('8.0000'), Decimal('108.0000'), Decimal('40.0000'), Decimal('15.0000')]",
+  "expected": "[Decimal('49832.0000'), Decimal('179865.0000'), Decimal('8.0000'), Decimal('108.0000'), Decimal('40.0000'), Decimal('15.0000')]",
+  "ok": true,
+  "evidence": "R18-REPORT-BALANCE-SHEET.json",
+  "defect": null
+ },
+ {
+  "name": "Balance sheet net result row = GL P&L (-132)",
+  "actual": "-132.0000",
+  "expected": "-132.0000",
+  "ok": true,
+  "evidence": "R18-REPORT-BALANCE-SHEET.json",
+  "defect": null
+ },
+ {
+  "name": "Balance sheet totals row: expected assets total 249813 (or A = L+E), actual blind column sum",
+  "actual": "499626.00",
+  "expected": "249813.0000",
+  "ok": false,
+  "evidence": "R18-REPORT-BALANCE-SHEET.json",
+  "defect": "UI-017"
+ },
+ {
+  "name": "Income statement net result: expected loss 132 (GL), actual (loss shown)",
+  "actual": "24.0000",
+  "expected": "-132",
+  "ok": false,
+  "evidence": "R18-REPORT-INCOME-STATEMENT.json",
+  "defect": "ACC-002"
+ },
+ {
+  "name": "Income statement adds closing stock 108 as a credit line although COGS is perpetual",
+  "actual": "True",
+  "expected": "False",
+  "ok": false,
+  "evidence": "R18-REPORT-INCOME-STATEMENT.json",
+  "defect": "ACC-002"
+ },
+ {
+  "name": "VAT return: sales 40/6, returns -20/-3, purchases 120/-18, net -15 = GL 2222001 debit 15",
+  "actual": "((Decimal('40.0000'), Decimal('6.0000')), (Decimal('-20.0000'), Decimal('-3.0000')), (Decimal('120.0000'), Decimal('-18.0000')), Decimal('-15.00'))",
+  "expected": "((Decimal('40'), Decimal('6')), (Decimal('-20'), Decimal('-3')), (Decimal('120'), Decimal('-18')), Decimal('-15.0000'))",
+  "ok": true,
+  "evidence": "R18-REPORT-VAT-RETURN.json",
+  "defect": null
+ },
+ {
+  "name": "VAT return base total: expected net taxable sales 20 and purchases 120 shown apart, actual blind sum",
+  "actual": "140.00",
+  "expected": "20",
+  "ok": false,
+  "evidence": "R18-REPORT-VAT-RETURN.json",
+  "defect": "UI-017"
+ },
+ {
+  "name": "AR aging due: expected GL AR 8 (46 - 10 - 23 - 5), actual",
+  "actual": "46.00",
+  "expected": "8.0000",
+  "ok": false,
+  "evidence": "R18-REPORT-AR-AGING.json",
+  "defect": "ACC-042"
+ },
+ {
+  "name": "AP aging due: expected 100 (138 - 38 paid), actual",
+  "actual": "138.00",
+  "expected": "100",
+  "ok": false,
+  "evidence": "R18-REPORT-AP-AGING.json",
+  "defect": "ACC-042"
+ },
+ {
+  "name": "Customer balances report CUST-GEN: expected 8 debit (GL AR), actual",
+  "actual": "(Decimal('15.00'), 'دائن')",
+  "expected": "(Decimal('8'), 'مدين')",
+  "ok": false,
+  "evidence": "R18-REPORT-CUSTOMER-BALANCES.json",
+  "defect": "ACC-004"
+ },
+ {
+  "name": "Customer balances report lists the supplier SUPP-GEN",
+  "actual": "True",
+  "expected": "False",
+  "ok": false,
+  "evidence": "R18-REPORT-CUSTOMER-BALANCES.json",
+  "defect": "UI-011"
+ },
+ {
+  "name": "Supplier balances report SUPP-GEN: expected -100 (owed), actual",
+  "actual": "-38.0000",
+  "expected": "-100",
+  "ok": false,
+  "evidence": "R18-REPORT-SUPPLIER-BALANCES.json",
+  "defect": "ACC-004"
+ },
+ {
+  "name": "Customer statement receivable: expected 8, actual",
+  "actual": "-15.0000",
+  "expected": "8",
+  "ok": false,
+  "evidence": "R18-REPORT-CUSTOMER.json",
+  "defect": "ACC-004"
+ },
+ {
+  "name": "Supplier statement payable: expected 100 (receivable 0), actual (payable, receivable)",
+  "actual": "(Decimal('0.0000'), Decimal('38.0000'))",
+  "expected": "(Decimal('100'), Decimal('0'))",
+  "ok": false,
+  "evidence": "R18-REPORT-SUPPLIER.json",
+  "defect": "ACC-004"
+ },
+ {
+  "name": "Cash statement report (all safes): expected October movements -38 +10 -140, actual rows/period total",
+  "actual": "(1, Decimal('0.00'))",
+  "expected": "(4, Decimal('-168'))",
+  "ok": false,
+  "evidence": "R18-REPORT-CASH-STATEMENT.json",
+  "defect": "UI-012"
+ },
+ {
+  "name": "Treasury movements screen total = GL for cash",
+  "actual": "49832.0000",
+  "expected": "49832",
+  "ok": true,
+  "evidence": "R18-REPORT-CASH-MOVEMENTS.json",
+  "defect": null
+ },
+ {
+  "name": "Treasury movements screen total = GL for bank",
+  "actual": "179865.0000",
+  "expected": "179865",
+  "ok": true,
+  "evidence": "R18-REPORT-CASH-MOVEMENTS.json",
+  "defect": null
+ },
+ {
+  "name": "Bank reconciliation ledger balance: expected GL 179865, actual",
+  "actual": "359865.0000",
+  "expected": "179865.0000",
+  "ok": false,
+  "evidence": "R18-REPORT-BANK-RECON.json",
+  "defect": "ACC-041"
+ },
+ {
+  "name": "Bank reconciliation statement side: expected 1 statement / 6 lines / movement 27.5, actual",
+  "actual": "(2, 12, Decimal('55.0000'))",
+  "expected": "(1, 6, Decimal('27.5'))",
+  "ok": false,
+  "evidence": "R18-REPORT-BANK-RECON.json",
+  "defect": "ACC-043"
+ },
+ {
+  "name": "Bank reconciliation closing bank balance 180027.5",
+  "actual": "180027.5000",
+  "expected": "180027.5",
+  "ok": true,
+  "evidence": "R18-REPORT-BANK-RECON.json",
+  "defect": null
+ },
+ {
+  "name": "Inventory valuation report total 108 = GL 1270001",
+  "actual": "108.00",
+  "expected": "108.0000",
+  "ok": true,
+  "evidence": "R18-REPORT-INVENTORY-VALUATION.json",
+  "defect": null
+ },
+ {
+  "name": "Production reports: 1 FG @ 24 from 2 components @ 12",
+  "actual": "(Decimal('24.00'), Decimal('24.00'), Decimal('2.00'))",
+  "expected": "(Decimal('24'), Decimal('24'), Decimal('2'))",
+  "ok": true,
+  "evidence": "R18-REPORT-PRODUCED-*.json",
+  "defect": null
+ },
+ {
+  "name": "Payroll payments report: expected only paid runs (1 run / net 140), actual (rows, total net)",
+  "actual": "(2, Decimal('280.00'))",
+  "expected": "(1, Decimal('140'))",
+  "ok": false,
+  "evidence": "R18-REPORT-PAYROLL-PAYMENTS.json",
+  "defect": "UI-018"
+ },
+ {
+  "name": "Salary report row: basic 120 + additions 30 - deductions 10 = net 140, voucher PV-000002",
+  "actual": "(Decimal('140.0000'), 'PV-000002')",
+  "expected": "(Decimal('140'), 'PV-000002')",
+  "ok": true,
+  "evidence": "R18-REPORT-SALARY-REPORT.json",
+  "defect": null
+ },
+ {
+  "name": "Salary statement report net 140 (1 payment)",
+  "actual": "(Decimal('140.00'), 1)",
+  "expected": "(Decimal('140'), 1)",
+  "ok": true,
+  "evidence": "R18-REPORT-SALARY-STATEMENT.json",
+  "defect": null
+ },
+ {
+  "name": "Employee statement (API): accrual 140 credit, payment 140 debit, balance 0 = GL 22410002",
+  "actual": "(Decimal('140.0000'), Decimal('140.0000'), 2)",
+  "expected": "(Decimal('140'), Decimal('140'), 2)",
+  "ok": true,
+  "evidence": "R18-REPORT-EMPLOYEE-STATEMENT-api.json",
+  "defect": null
+ },
+ {
+  "name": "GL report totals balanced 250716/250716",
+  "actual": "(Decimal('250716.00'), Decimal('250716.00'))",
+  "expected": "(Decimal('250716'), Decimal('250716'))",
+  "ok": true,
+  "evidence": "R18-REPORT-GENERAL-LEDGER.json",
+  "defect": null
+ },
+ {
+  "name": "GL report line text for invoice postings: expected the document description, actual default «سداد دفعة من حساب»",
+  "actual": "True",
+  "expected": "False",
+  "ok": false,
+  "evidence": "R18-REPORT-GENERAL-LEDGER.json",
+  "defect": "UI-019"
+ },
+ {
+  "name": "SI-000001 screen header cost/profit: expected 24/16, actual",
+  "actual": "(Decimal('0.0000'), Decimal('0.0000'))",
+  "expected": "(Decimal('24'), Decimal('16'))",
+  "ok": false,
+  "evidence": "R18-REPORT-SI1-DOC.json",
+  "defect": "ACC-001"
+ }
+]

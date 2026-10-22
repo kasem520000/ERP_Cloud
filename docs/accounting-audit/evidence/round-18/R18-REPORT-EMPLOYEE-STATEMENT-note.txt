@@ -1,0 +1,4 @@
+R18-REPORT-EMPLOYEE-STATEMENT.png/.txt show the screen BEFORE an employee was selected: the runner's selector (/^الموظف/) did not
+match the field label «اسم الموظف *», so no statement request was issued from the UI. The statement content was captured instead
+GET-only through the API (same endpoint the screen calls: /hrm/employee-statement?employee_id=<R18-EMP-1>&full_period=1[&detailed=1])
+and saved as R18-REPORT-EMPLOYEE-STATEMENT-api.json. No UI screenshot of the filled statement exists for R18.

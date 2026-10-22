@@ -469,3 +469,21 @@
 | `/hrm/employees` | EMP-CREATE | بطاقة موظف + حساب 22410002 تلقائياً ✓ |
 | `/hrm/payroll` → `[id]` | PAYROLL-PREVIEW، PAYROLL-RUN، PAYROLL-RUN-DUP، PAYROLL-RUN-PREHIRE، PAYROLL-RUN-NOV، PAYROLL-POST، PAYROLL-POST-TAMPER، PAYROLL-POST-EMPTY، PAYROLL-PAY | معاينة/إنشاء ✓؛ مكرر 500 (ACC-037)؛ قبل التعيين 120 (ACC-038)؛ الترحيل يثق بالعميل/يقبل فارغاً (ACC-039)؛ الصرف على ذمم الموردين (ACC-040)؛ موظف بصافٍ 0 (UI-016) |
 | شاشات التقارير | — | لم تُلتقط في R17 (CONTINUITY_R17 §5) |
+
+## تحديث R18 — 2026-10-22
+| المسار | معرّفات R18 | ما ثبت |
+|---|---|---|
+| `/inventory/items` | ITEM، ITEM-FG | بطاقتا صنف مخزني ومنتج تام بلا أثر مالي |
+| `/purchases/invoices/new` → `[id]` | PURCH-DRAFT، PURCH-POST | آجلة → ترحيل (قيد صحيح)؛ تبقى «غير مسدّدة» بعد سند صرف مرحّل (ACC-042) |
+| `/sales/invoices/new` → `[id]` | SALE-DRAFT، SALE-POST، SALE-RETURN-DRAFT، SALE-RETURN-POST | بيع آجل (قيد + COGS ✓)؛ مردود جزئي (عكس COGS بالمتوسط ✓؛ العنوان بلا تمييز UI-008)؛ الرأس بتكلفة/ربح 0 (ACC-001)؛ «غير مسدّدة» بعد سند قبض (ACC-042) |
+| `/treasury/vouchers` | PV-SUPP-*، RV-CUST-*، RV-BANK-*، RV-BANK-DRAFT7، RV-BACKDATED-* | القيود صحيحة؛ لا حقل تخصيص على فواتير (ACC-042)؛ المسودة بلا رقم/قيد ✓؛ ترحيل سند بتاريخ في فترة مغلقة 409 ✓ |
+| `/treasury/bank-accounts` | BANK-ACCOUNT | إنشاء حساب مرتبط بـ1221001 |
+| `/treasury/bank-statements` | BANK-IMPORT، BANK-IMPORT-DUP، BANK-AUTOMATCH | CSV بعمود رصيد ✓؛ المكرر يُقبل (ACC-043)؛ التلقائية 3/4 خاطئة (ACC-035) |
+| `/treasury/bank-reconciliation` | BANK-MATCH-WRONG، BANK-MATCH-DRAFT، BANK-IGNORE، BANK-RECON-VIEW | مطابقة بأي سند/بمسودة (ACC-044/045)؛ التجاهل ✓ (بلا سند رسوم UI-020)؛ رصيد الدفاتر مضاعف (ACC-041) |
+| `/inventory/production` | PROD-ORDER-OVER، PROD-COMPLETE-OVER، PROD-CANCEL، PROD-ORDER، PROD-COMPLETE، PROD-CANCEL-COMPLETED | نفاد 422 ✓؛ إلغاء مسودة ✓؛ تنفيذ 2×12 → 1×24 محايد ✓؛ إلغاء منفَّذ 409 (بالتصميم) |
+| `/hrm/employees` | EMP-CREATE | بطاقة + حساب 22410002 تلقائياً ✓ |
+| `/hrm/adjustments` | ADJ-BONUS، ADJ-BONUS-APPROVE، ADJ-DEDUCTION، ADJ-DEDUCTION-APPROVE | إنشاء/اعتماد تسويات تُخصم من الراتب؛ تدخل المسيّر ✓ |
+| `/hrm/payroll` → `[id]` | PAYROLL-PREVIEW، PAYROLL-RUN، PAYROLL-POST، PAYROLL-PAY-AFTER، PAYROLL-REVERSE، PAYROLL-RUN-AFTER-REVERSE | معاينة بلا تناسب للتعيين (ACC-038)؛ الاستحقاق ✓؛ صرف بعد الصرف الفردي → دفع مزدوج (ACC-046/040)؛ العكس بلا قيد (ACC-047)؛ مسيّر ثانٍ للشهر (ACC-047)؛ سطور المسيّر draft دائماً (ACC-048) |
+| `/hrm/salary-payments` | SALARY-PAYMENT | صرف فردي نقدي بسند صحيح وحساب مقابل = حساب الموظف ✓ |
+| `/accounting/periods` | PERIOD-CLOSE-SEP | إغلاق 2026-09 ✓ |
+| شاشات التقارير (41) | R18-REPORT-* | مطابقة للأستاذ: ميزان، أرصدة الحسابات، الأستاذ العام (نص الأسطر UI-019)، حركة الصندوق/البنك، تقييم المخزون، الإنتاج، صافي الإقرار، كشف الموظف (API)، الميزانية (إجمالي UI-017)؛ مخالفة: قائمة الدخل (ACC-002)، أعمار الذمم (ACC-042)، أرصدة/كشوف الأطراف (ACC-004/UI-011)، كشف الصندوق «الكل» (UI-012)، التسوية (ACC-041/043)، مدفوعات الرواتب (UI-018) |

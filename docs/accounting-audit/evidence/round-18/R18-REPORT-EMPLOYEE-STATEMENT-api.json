@@ -1,0 +1,116 @@
+[
+ {
+  "method": "GET",
+  "url": "http://127.0.0.1:3000/api/v1/hrm/employee-statement?employee_id=01a161bb-3aa3-7149-92ce-21dfe375470e&full_period=1&detailed=1",
+  "status": 200,
+  "body": {
+   "data": {
+    "employee": {
+     "id": "01a161bb-3aa3-7149-92ce-21dfe375470e",
+     "employeeNo": "R18-EMP-1",
+     "name": "R18 موظف اختبار معزول",
+     "accountId": "01a161bb-3ab6-73bb-b25c-ce47546e3382",
+     "accountCode": "22410002",
+     "accountName": "R18 موظف اختبار معزول"
+    },
+    "branchId": null,
+    "from": null,
+    "to": null,
+    "fullPeriod": true,
+    "summary": {
+     "totalDebit": "140.0000",
+     "totalCredit": "140.0000",
+     "balanceDebit": "0.0000",
+     "balanceCredit": "0.0000"
+    },
+    "rows": [
+     {
+      "seq": 1,
+      "date": "2026-10-22",
+      "entryId": "01a161bf-9264-7290-b0e8-6158ae4141e9",
+      "entryNumber": "JE-000008",
+      "description": "رواتب مستحقة 2026-10",
+      "debit": "0.0000",
+      "credit": "140.0000",
+      "employee": "R18 موظف اختبار معزول",
+      "branchName": "الفرع الرئيسي",
+      "entryType": "قيد اليومية",
+      "runningBalance": "140.0000",
+      "balanceStatus": "دائن"
+     },
+     {
+      "seq": 2,
+      "date": "2026-10-22",
+      "entryId": "01a161c1-2062-709b-946c-2691decf32a8",
+      "entryNumber": "JE-000009",
+      "description": "R18-SALARY-PAYMENT اختبار معزول",
+      "debit": "140.0000",
+      "credit": "0.0000",
+      "employee": "R18 موظف اختبار معزول",
+      "branchName": "الفرع الرئيسي",
+      "entryType": "سند صرف",
+      "runningBalance": "0.0000",
+      "balanceStatus": "رصيد متوازن"
+     }
+    ]
+   }
+  }
+ },
+ {
+  "method": "GET",
+  "url": "http://127.0.0.1:3000/api/v1/hrm/employee-statement?employee_id=01a161bb-3aa3-7149-92ce-21dfe375470e&full_period=1",
+  "status": 200,
+  "body": {
+   "data": {
+    "employee": {
+     "id": "01a161bb-3aa3-7149-92ce-21dfe375470e",
+     "employeeNo": "R18-EMP-1",
+     "name": "R18 موظف اختبار معزول",
+     "accountId": "01a161bb-3ab6-73bb-b25c-ce47546e3382",
+     "accountCode": "22410002",
+     "accountName": "R18 موظف اختبار معزول"
+    },
+    "branchId": null,
+    "from": null,
+    "to": null,
+    "fullPeriod": true,
+    "summary": {
+     "totalDebit": "140.0000",
+     "totalCredit": "140.0000",
+     "balanceDebit": "0.0000",
+     "balanceCredit": "0.0000"
+    },
+    "rows": [
+     {
+      "seq": 1,
+      "date": "2026-10-22",
+      "entryId": "01a161bf-9264-7290-b0e8-6158ae4141e9",
+      "entryNumber": "JE-000008",
+      "description": "Payroll 2026-10",
+      "debit": "0.0000",
+      "credit": "140.0000",
+      "employee": "R18 موظف اختبار معزول",
+      "branchName": "الفرع الرئيسي",
+      "entryType": "قيد اليومية",
+      "runningBalance": "140.0000",
+      "balanceStatus": "دائن"
+     },
+     {
+      "seq": 2,
+      "date": "2026-10-22",
+      "entryId": "01a161c1-2062-709b-946c-2691decf32a8",
+      "entryNumber": "JE-000009",
+      "description": "R18-SALARY-PAYMENT اختبار معزول",
+      "debit": "140.0000",
+      "credit": "0.0000",
+      "employee": "R18 موظف اختبار معزول",
+      "branchName": "الفرع الرئيسي",
+      "entryType": "سند صرف",
+      "runningBalance": "0.0000",
+      "balanceStatus": "رصيد متوازن"
+     }
+    ]
+   }
+  }
+ }
+]

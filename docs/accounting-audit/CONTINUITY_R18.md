@@ -1,0 +1,20 @@
+# Continuity R18 — environment, run log and how to resume (2026-10-22)
+
+## 1. Environment (all isolated, nothing real)
+- Tenant `AUDIT-TEST-2026-R18` (`01a16198-e3e0-77af-b843-47c9d7787c03`, login code `demo`, owner from `.env` `DEMO_OWNER_EMAIL/PASSWORD`), local Postgres (`audit-database`, :5432, migrate + seed only), API `:3000` (`JOBS_ENABLED=false`), staff production build `next start :3001`, Chromium headless at `/tmp/chromium` with `LD_LIBRARY_PATH=/tmp/al2023/lib FONTCONFIG_PATH=/tmp/al2023` (set inside the scripts) and Noto Arabic fonts.
+- The `.env`, `node_modules`, `dist`, `.next`, `/tmp/*` and `.scratch/` are not committed; everything under `docs/accounting-audit/` is. After a sandbox reset: `corepack enable && corepack prepare pnpm@9.15.0 --activate`, install, build workspace packages (~15 min), recreate the DB, migrate + seed, start API and staff (`next build` then `next start`), re-fetch chromium/libs, then re-run the stages.
+- SQL that bypasses RLS: use `DATABASE_MIGRATOR_URL` (the app URL returns 0 rows). Schema reminders: `stock_balances(quantity,value,average_cost)`, `bank_statement_lines(line_no,status,matched_voucher_id,matched_invoice_id,match_confidence,match_reason,balance)`, `vouchers` has no `employee_id`/`reference` (use `reference_no`, `counter_account_id`, `party_id`), `payroll_runs(year_month,status,voucher_id,journal_entry_id,reversed_at,reversal_reason)`, `salary_adjustments.value_text`, `production_order_components.qty`.
+
+## 2. Run log (what actually happened)
+- `round18-main.cjs` ran in four resumable segments (`R18_FROM=<stage> R18_PHASE=<last snapshot>`): 1–18, 19–24, 25–37, 38–44. Two patches were needed mid-run (production rows are filtered by `MO-00000N`; the salary-payment form repeats the «طريقة الدفع» label, so the form scope + `.last()` is used). The runner exits 0 even on failure — read `.scratch/r18/main.log` and the last `R18-DB-0NN` snapshot before resuming.
+- Every write stage paused until its before-screenshot was reviewed and `.scratch/r18/<ID>.approve` was touched; API-only stages (BANK-IMPORT-DUP, BANK-MATCH-WRONG, BANK-MATCH-DRAFT, PROD-CANCEL-COMPLETED, PAYROLL-PAY-AFTER, PAYROLL-REVERSE, RV-BACKDATED-POST) still screenshot the relevant screen first and store the full payload in `-response.json`.
+- `round18-reports.cjs` ran in four slices (`0 10`, `10 20`, `20 30`, `30 41`) with a commit after each (`shot()` refuses to overwrite). `EMPLOYEE-STATEMENT` did not get the employee selected (label «اسم الموظف *» vs selector `/^الموظف/`); the content was captured GET-only via the API into `R18-REPORT-EMPLOYEE-STATEMENT-api.json` (see `-note.txt`). `PARTY-BALANCES` is not a real report key.
+- `round18-check.py` reads only committed evidence: **99/149**; each failure is tagged with its defect id (`R18-check-results.json`).
+- Commits: 813862c (scripts) → 42d6c90 (stages 1–9) → 3134093 (10–22) → 4f2a6b0 (23–44) → 41e21d5 / 04c0dff / 08d39b6 / 2cd6776 (report slices) → this documentation commit.
+
+## 3. Key identities (for any follow-up query)
+Periods 2026-09 `01a16198-e5ea-70d8-a307-cdd411256252` (closed), 2026-10 `01a16198-e5ea-70d8-a307-d3f9b2d83384`; branch MAIN `01a16198-e579-755c-b4ec-6c027e8efd57`; cash `01a16198-e57d-7532-b598-3caa8ed1bad2`; bank `01a16198-e57f-77da-abb8-24578558c3e4`; CUST-GEN `01a16198-e584-74ca-9bb2-36d58c4ddfe9`; SUPP-GEN `01a16198-e586-7688-a6d9-e1f0258fb485`; the documents are listed with ids in TEST_DATA.md (R18 table).
+
+## 4. How to resume / what is next
+- The database still exists only inside this sandbox; if it is gone, the evidence in `evidence/round-18/` is sufficient for the checker and the documents (no re-run needed to reproduce the conclusions). To re-run: `node docs/accounting-audit/scripts/round18-main.cjs` from stage 1 on a fresh tenant (about 60–75 minutes with screenshot review), then `round18-reports.cjs` in slices, then `python3 round18-check.py`.
+- Untested paths listed in ROUND_18_RESULTS.md §8 (reverse of an unpaid run, posting the second run, WPS, reconciliation rules, voucher `allocations[]` via API, multi-currency/branch, year-end close) are the candidates for R19.

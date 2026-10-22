@@ -318,3 +318,21 @@ R17-manifest.json يفهرس 258 ملفاً (لا يشمل نفسه)، نحو 24
 | PAYROLL-POST / POST-TAMPER / RUN-NOV / POST-EMPTY | R17-PAYROLL-POST-before.png (3122001 / 22410002)، R17-PAYROLL-POST-TAMPER-before.png، R17-PAYROLL-RUN-NOV-before.png، R17-PAYROLL-POST-EMPTY-before.png | -after.png | 201 / [201] / 201 / [201] | DB-032…035 |
 | PAYROLL-PAY | R17-PAYROLL-PAY-before.png (الحساب البنكي الرئيسي) | -after.png | 201 | DB-036 |
 | التقارير | **لم تُلتقط** (إعادة تهيئة الـsandbox) — السكربت `round17-reports.cjs` جاهز للإعادة | — | — | — |
+
+## تحديث R18 — 2026-10-22
+`evidence/round-18/` (429 ملفاً): لكل مرحلة كتابة `R18-<ID>-before.png` (قبل النقر/الإرسال، بعد مراجعة `-before.json`/`-review.json`) و`-after.png` و`-response.json` (الحمولة والاستجابة)؛ 43 لقطة `R18-DB-0NN-<ID>.json`؛ `R18-http-events.jsonl` (كل طلبات المتصفح)؛ `R18-dialogs.json`؛ 41 عرض تقرير `R18-REPORT-<ID>.png/.txt/.json` (الـjson = استجابات GET الفعلية للشاشة)؛ `R18-REPORT-EMPLOYEE-STATEMENT-api.json` + `-note.txt` (التقاط عبر API بعد فشل اختيار الموظف في الشاشة)؛ `R18-check-results.json` (149 فحصاً). لا صور مولَّدة ولا مقصوصة.
+
+| المرحلة | قبل النقر | بعد الحفظ | الاستجابة | DB |
+|---|---|---|---|---|
+| ITEM، PURCH-DRAFT / POST، SALE-DRAFT / POST | R18-ITEM-before.png، R18-PURCH-*-before.png، R18-SALE-*-before.png | -after.png | 201 | DB-002…006 |
+| PV-SUPP-DRAFT / POST، RV-CUST-DRAFT / POST | R18-PV-SUPP-*-before.png (38 نقدي SUPP-GEN)، R18-RV-CUST-*-before.png (10 نقدي CUST-GEN) | -after.png | 201 | DB-007…010 |
+| SALE-RETURN-DRAFT / POST | R18-SALE-RETURN-*-before.png | -after.png | 201 | DB-011/012 |
+| RV-BANK-DRAFT / POST، RV-BANK-DRAFT7، BANK-ACCOUNT | R18-RV-BANK-*-before.png (منتقي البنك)، R18-RV-BANK-DRAFT7-before.png، R18-BANK-ACCOUNT-before.png | -after.png | 201 | DB-013…016 |
+| BANK-IMPORT / IMPORT-DUP | R18-BANK-IMPORT-before.png (CSV بعمود balance)، R18-BANK-IMPORT-DUP-before.png | -after.png | 201 / **201** (ACC-043) | DB-017/018 |
+| BANK-AUTOMATCH / MATCH-WRONG / MATCH-DRAFT / IGNORE، BANK-RECON-VIEW | R18-BANK-AUTOMATCH-before.png، R18-BANK-MATCH-WRONG-before.png (رصيد الدفاتر 360005)، R18-BANK-MATCH-DRAFT-before.png، R18-BANK-IGNORE-before.png، R18-BANK-RECON-VIEW.png | -after.png | 201 (4/6) / **201** / **201** / 201 | DB-019…022 |
+| ITEM-FG، PROD-ORDER-OVER / COMPLETE-OVER / CANCEL، PROD-ORDER / COMPLETE / CANCEL-COMPLETED | R18-ITEM-FG-before.png، R18-PROD-*-before.png | -after.png | 201 / 201 / **422** / 201 / 201 / 201 / **409** | DB-023…029 |
+| EMP-CREATE، ADJ-BONUS / APPROVE، ADJ-DEDUCTION / APPROVE | R18-EMP-CREATE-before.png (تعيين 2026-10-16)، R18-ADJ-*-before.png | -after.png | 201 | DB-030…034 |
+| PAYROLL-PREVIEW (قراءة)، PAYROLL-RUN / POST | R18-PAYROLL-PREVIEW.png/.txt/.json، R18-PAYROLL-RUN-before.png، R18-PAYROLL-POST-before.png | -after.png | 201 | DB-035/036 |
+| SALARY-PAYMENT، PAYROLL-PAY-AFTER، PAYROLL-REVERSE، PAYROLL-RUN-AFTER-REVERSE | R18-SALARY-PAYMENT-before.png (نقدي، الصندوق الرئيسي)، R18-PAYROLL-PAY-AFTER-before.png، R18-PAYROLL-REVERSE-before.png، R18-PAYROLL-RUN-AFTER-REVERSE-before.png | -after.png | 201 / **201** (ACC-046) / **201** (ACC-047) / **201** | DB-037…040 |
+| PERIOD-CLOSE-SEP، RV-BACKDATED-DRAFT / POST | R18-PERIOD-CLOSE-SEP-before.png، R18-RV-BACKDATED-*-before.png (تاريخ 2026-09-15) | -after.png | 201 / 201 / **409** FISCAL_PERIOD_CLOSED | DB-041…043 |
+| التقارير (41) | R18-REPORT-{TRIAL-BALANCE، BALANCE-SHEET، INCOME-STATEMENT، GENERAL-LEDGER، ACCOUNT-BALANCES، JOURNALS، VAT-RETURN، AR-AGING، AP-AGING، CUSTOMER-BALANCES، SUPPLIER-BALANCES، PARTY-BALANCES (غير موجود)، CUSTOMER، SUPPLIER، SI1-DOC، SR1-DOC، PI1-DOC، CASH-STATEMENT، CASHIER-SHIFT، CASH-MOVEMENTS، DAY-CLOSE، VOUCHERS-PAYMENT، VOUCHERS-RECEIPT، BANK-ACCOUNTS، BANK-STATEMENTS، BANK-RECON، INVENTORY-VALUATION، LEVELS، INVENTORY-MOVEMENTS، PRODUCTION، PRODUCED-ITEMS، PRODUCED-COMPONENTS، PAYROLL-LIST، PAYROLL-RUN-10، PAYROLL-RUN-2، SALARY-PAYMENTS، SALARY-REPORT، EMPLOYEE-STATEMENT (+ -api.json)، PAYROLL-PAYMENTS، SALARY-STATEMENT، EMPLOYEES}.png/.txt/.json | — | 200 | — |
