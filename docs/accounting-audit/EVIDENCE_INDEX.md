@@ -462,7 +462,7 @@ R17-manifest.json يفهرس 258 ملفاً (لا يشمل نفسه)، نحو 24
 | G: قوائم وتقارير | STATEMENTS (23 طلباً في `R26-STATEMENTS-response.json`)، SALES-LIST/PURCHASES-LIST/IN-TRANSIT/CT/INCOME-STATEMENT/COMMISSIONS/LEVELS (صور + نصوص) | **ACC-125/126**؛ ACC-004/042/118/119/120 | DB-019 |
 | تحقق | `R26-check-results.json` (49/33 من 82)، `R26-http-events.jsonl` (425) | — | — |
 
-## الجولة 27 — `evidence/round-27/` (155 ملفاً؛ تفصيل المراحل في ROUND_27_RESULTS.md §1)
+## الجولة 27 — `evidence/round-27/` (151 ملفاً؛ تفصيل المراحل في ROUND_27_RESULTS.md §1)
 | الكتلة | المراحل والأدلة | النتيجة | لقطات DB |
 |---|---|---|---|
 | خط الأساس | `R27-DB-000-BASELINE` (= R26 DB-019؛ يضم جداول التصنيع/الأرفف/التسلسلي) | — | DB-000 |

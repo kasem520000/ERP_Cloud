@@ -9,7 +9,7 @@
 - مسار شاشة التقييم في الرنر كان `/inventory/valuation` (404؛ محفوظ `R27-VALUATION-SCREEN-wrong-path-404.*`)؛ أُعيد الالتقاط من المسار الصحيح `/reports/inventory-valuation` بسكربت قراءة فقط (`round27-readonly-extra.cjs`) مع شاشتي بطاقة الصنف وحركة المادة.
 - مسارا `invoice-maintenance preview`/`maintenance-runs` المجرَّبان 404 → H2 غير متحقَّق (ليس عيباً؛ يُعاد في R28 بالمسار الصحيح من `operations`).
 
-## 1. حجم التنفيذ (`evidence/round-27/`: 155 ملفاً، ~19 MB)
+## 1. حجم التنفيذ (`evidence/round-27/`: 151 ملفاً، ~19 MB)
 - **18 مرحلة + 3 شاشات إضافية**: 10 من الشاشة بمراجعة `-before.png` قبل النقر (PI-RM-DRAFT/POST، BOM-CREATE، MO-CREATE، MO-PRODUCE-1، SI-FG-DRAFT/POST، BIN-CREATE، BIN-RECEIVE، SERIAL-GENERATE) + 7 عبر API من الجلسة المصادَق عليها مع شاشة السياق (ITEMS، PI-SERIAL، BOM-GUARDS، MO-GUARDS، BIN-MOVES، SERIAL-FLOW، REPORTS = 27 طلباً) + 9 شاشات قراءة (MO، BOM، BINS، BIN-BALANCES، SERIALS، LEVELS، TB، ITEMS، VALUATION) + ITEM-CARD وMOVEMENTS.
 - **19 لقطة DB** (`R27-DB-000…018`، كل منها 100+ جدولاً شاملة `boms/bom_lines/manufacturing_orders/manufacturing_moves/warehouse_bins/bin_balances/bin_transfers/item_serials/stock_document_serials`)، `R27-http-events.jsonl` (369 حدثاً)، لوجات الرنر الثلاثة، `R27-check-results.json`.
 - **المستندات المنشأة:** أصناف RM-R27/FG-R27/SN-R27؛ PI-000005 (خام)، PI-000006 (تسلسلي بلا أرقام — عيب)، PI-000007 (SN27-0001/0002)؛ BOM «منتج R27 — قائمة مواد 1» v1؛ MF-000001 (2/2 done)؛ SI-000008 (منتج)؛ أرفف A-01-01، X، A-01-02 (MAIN)، B-01-01 (WH2)؛ نقل رف 2؛ أرقام مولَّدة SN27G-1/2؛ SI-000009 (SN27-0001)، SI-000010 (SN27G-1)، SI-000011 (بلا رقم — عيب)، SR-000003 (SN27-0001). القيود **JE-000033 … JE-000040** (8 قيود؛ لا قيد للتصنيع ولا للأرفف).
