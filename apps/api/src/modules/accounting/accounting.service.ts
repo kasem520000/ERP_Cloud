@@ -1261,9 +1261,27 @@ export class AccountingService {
           reversalId: existing.id,
         });
 
-      const date = input.date?.trim() || original.date;
-      const fiscalPeriodId =
-        input.fiscalPeriodId ?? (await this.openPeriodForDateInTx(tx, tenantId, date));
+      let date = input.date?.trim();
+      let fiscalPeriodId = input.fiscalPeriodId;
+
+      if (!fiscalPeriodId) {
+        if (date) {
+          fiscalPeriodId = await this.openPeriodForDateInTx(tx, tenantId, date);
+        } else {
+          // If neither fiscalPeriodId nor date is explicitly passed, auto-resolve from today's open period
+          const today = new Date().toISOString().slice(0, 10);
+          try {
+            fiscalPeriodId = await this.openPeriodForDateInTx(tx, tenantId, today);
+            date = today;
+          } catch {
+            date = original.date;
+            fiscalPeriodId = await this.openPeriodForDateInTx(tx, tenantId, date);
+          }
+        }
+      } else {
+        if (!date) date = original.date;
+      }
+
       const [period] = await tx
         .select()
         .from(fiscalPeriods)
@@ -1994,18 +2012,18 @@ export class AccountingService {
 
   async openPeriodForDateInTx(tx: DrizzleTx, tenantId: string, date: string): Promise<string> {
     const [period] = await tx
-      .select({ id: fiscalPeriods.id })
+      .select({ id: fiscalPeriods.id, status: fiscalPeriods.status })
       .from(fiscalPeriods)
       .where(
         and(
           eq(fiscalPeriods.tenantId, tenantId),
-          eq(fiscalPeriods.status, 'open'),
           lte(fiscalPeriods.startDate, date),
           gte(fiscalPeriods.endDate, date),
         ),
       )
       .limit(1);
-    if (!period) throw new DomainError('FISCAL_PERIOD_CLOSED', `No open fiscal period contains ${date}`, 409);
+    if (!period) throw new DomainError('FISCAL_PERIOD_NOT_FOUND', `No fiscal period exists covering date ${date}`, 400);
+    if (period.status !== 'open') throw new DomainError('FISCAL_PERIOD_CLOSED', `No open fiscal period contains ${date}`, 409);
     return period.id;
   }
 

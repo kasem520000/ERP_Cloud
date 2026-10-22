@@ -1839,7 +1839,7 @@ export class SalesService {
       await this.assertShiftOpen(tx, tenantId, invoice);
       const today = new Date().toISOString().slice(0, 10);
       const [entry] = await tx
-        .select({ id: journalEntries.id })
+        .select({ id: journalEntries.id, fiscalPeriodId: journalEntries.fiscalPeriodId })
         .from(journalEntries)
         .where(
           and(
@@ -1848,6 +1848,9 @@ export class SalesService {
             eq(journalEntries.sourceId, id),
           ),
         );
+      if (entry?.fiscalPeriodId) {
+        await this.accounting.assertModuleUnlocked(tx, tenantId, entry.fiscalPeriodId, 'sales');
+      }
       if (entry) {
         /**
          * 🔁 العكس الرسمي الموحَّد — `AccountingService.reverseJournalInTx`: المرآة وحدها،

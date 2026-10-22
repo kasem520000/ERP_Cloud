@@ -174,6 +174,7 @@ export type AdjustmentInput = {
   reason?: string;
   /** Post the document's entry at once (the desktop always does); `false` for a draft. */
   postEntry?: boolean;
+  fiscalPeriodId?: string;
 };
 export type AdjustmentQuery = { employeeId?: string; typeCode?: string; status?: string; from?: string; to?: string };
 export type RunInput = { yearMonth: string; periodId?: string; currency?: string; unpaidDaysByEmployee?: Record<string, number> };
@@ -809,8 +810,45 @@ export class HrmService implements OnModuleInit {
     if (subFromSalary || input.postEntry === false || !cashLocation) return this.readAdjustment(tenantId, row.id);
 
     try {
-      const entry = await this.postAdjustmentEntry(tenantId, row.id, value.toFixed(4), kind, employee, cashLocation, reason, input.startsOn);
-      await withTenantTx(this.database.db, tenantId, (tx) => tx.update(salaryAdjustments).set({ journalEntryId: entry.id, status: 'approved', updatedAt: new Date() }).where(and(eq(salaryAdjustments.tenantId, tenantId), eq(salaryAdjustments.id, row.id))));
+      if (!cashLocation.accountId) throw new DomainError('ADJUSTMENT_CASH_ACCOUNT_REQUIRED', 'الصندوق أو البنك بلا حساب في دليل الحسابات', 422);
+      const employeeAccountId = employee.employeeAccountId ?? (await this.employeeAccount(tenantId, employee.id, employee.name, employee.branchId, undefined, undefined))?.id;
+      if (!employeeAccountId) throw new DomainError('ADJUSTMENT_EMPLOYEE_ACCOUNT_REQUIRED', 'لا يوجد حساب للموظف في دليل الحسابات', 422);
+      const expenseAccountId = employee.salaryExpenseAccountId ?? (await this.accountByCode(tenantId, '3122001'))?.id;
+      if (kind === 'addition' && !expenseAccountId) throw new DomainError('ADJUSTMENT_EXPENSE_ACCOUNT_REQUIRED', 'لا يوجد حساب راتب أساسي في دليل الحسابات', 422);
+
+      const counterAccountId = kind === 'addition' ? expenseAccountId! : employeeAccountId;
+
+      const voucher = await this.treasury.createVoucher(tenantId, {
+        branchId: cashLocation.branchId,
+        kind: 'payment',
+        subtype: 'salary',
+        date: input.startsOn,
+        cashLocationId: cashLocation.id,
+        method: cashLocation.kind === 'bank' ? 'bank_transfer' : 'cash',
+        amount: value.toFixed(4),
+        netAmount: value.toFixed(4),
+        recipient: employee.name,
+        counterAccountId,
+        description: reason,
+        idempotencyKey: `salary-adjustment:${row.id}`,
+      });
+      if (!voucher) throw new DomainError('INTERNAL', 'Adjustment payment voucher was not created', 500);
+
+      const posted = await this.treasury.postVoucher(tenantId, voucher.id, {
+        fiscalPeriodId: input.fiscalPeriodId,
+      });
+
+      await withTenantTx(this.database.db, tenantId, (tx) =>
+        tx
+          .update(salaryAdjustments)
+          .set({
+            voucherId: posted.id,
+            journalEntryId: posted.journalEntryId ?? null,
+            status: 'approved',
+            updatedAt: new Date(),
+          })
+          .where(and(eq(salaryAdjustments.tenantId, tenantId), eq(salaryAdjustments.id, row.id))),
+      );
       return this.readAdjustment(tenantId, row.id);
     } catch (error) {
       // Nothing half-done: a document whose money did not move is not a document.
@@ -898,7 +936,7 @@ export class HrmService implements OnModuleInit {
     await this.ensureEnabled(tenantId);
     const [current] = await withTenantTx(this.database.db, tenantId, (tx) => tx.select().from(salaryAdjustments).where(and(eq(salaryAdjustments.tenantId, tenantId), eq(salaryAdjustments.id, id), isNull(salaryAdjustments.deletedAt))).limit(1));
     if (!current) throw new DomainError('NOT_FOUND', 'Adjustment not found', 404);
-    if (current.journalEntryId) throw new DomainError('ADJUSTMENT_POSTED', 'لا يمكن حذف حركة مرحَّلة — يُعكس قيدها أولاً', 409);
+    if (current.voucherId || current.journalEntryId) throw new DomainError('ADJUSTMENT_POSTED', 'لا يمكن حذف حركة مرحَّلة — يُعكس قيدها أولاً', 409);
     if (current.status === 'approved') {
       const counted = await withTenantTx(this.database.db, tenantId, (tx) => tx.select({ id: payrollRuns.id }).from(payrollRuns).where(and(eq(payrollRuns.tenantId, tenantId), eq(payrollRuns.yearMonth, current.startsOn.slice(0, 7)), or(eq(payrollRuns.status, 'posted'), eq(payrollRuns.status, 'paid')))).limit(1));
       if (counted.length) throw new DomainError('ADJUSTMENT_IN_PAYROLL', 'لا يمكن حذف حركة دخلت مسير رواتب مُرحَّل', 409);

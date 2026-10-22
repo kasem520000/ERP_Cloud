@@ -181,13 +181,32 @@
 
 ---
 
+### المرحلة العاشرة (Phase 10) — سلف الموارد البشرية، رقابة تخصيصات الخزينة، استعادة إعدادات المستأجر، وقفل الوحدات (ACC-088..098, UI-033/036/037)
+- **تاريخ التنفيذ**: 2026-10-22
+- **العيوب المستهدفة والمعالجة**:
+  - `ACC-088`: تعديل `createAdjustment` في `hrm.service.ts` لإنشاء وترحيل سند صرف نظامي بالخزينة (`TreasuryService.createVoucher` / `postVoucher`) عند دفع السلفة النقدية الفورية (`!subFromSalary`)، مما يخصم رصيد الصندوق الفعلي في `cash_location_balances`، وربط حقل `voucherId` في جدول `salary_adjustments` (مع ترحيل قاعدة البيانات `0140_salary_adjustment_voucher.sql`).
+  - `ACC-089`: ضمان احتواء قيود سندات العملات الأجنبية في `treasury.service.ts` على العملة وسعر الصرف والمبلغ الأجنبي على كافة السطور.
+  - `ACC-090`: تدقيق المتبقي الفعلي على الفاتورة قبل التخصيص في `postVoucherInTx`، مع توحيد مسميات الفواتير وخصم مردودات المبيعات وإشعارات الخصم، ورفض التجاوز أو التخصيص على فواتير مسددة بالكامل بـ `ALLOCATION_AMOUNT_EXCEEDS_INVOICE_BALANCE` (422).
+  - `ACC-091`: إصلاح استعادة النسخ الاحتياطي في `backup.service.ts` لجدول `tenant_settings` بمعالجة قيم JSONB الأولية (النصية والمنطقية) عبر `JSON.stringify` وتوثيق الجداول غير المعالجة في وضعي `dry_run` و `apply`.
+  - `ACC-094`: تحسين مسار عكس القيود اليومية في `accounting.service.ts` لاستنتاج الفترة المالية المفتوحة تلقائياً عند إغفالها، وإرجاع خطأ التحقق الصريح 400 `FISCAL_PERIOD_NOT_FOUND` بدلاً من 409 المضلل عند غياب الفترة المالية كلياً لتاريخ القيد.
+  - `ACC-095`: تعزيز عملية إبطال السندات `voidVoucherInTx` في الخزينة لتعكس كافة القيود المرتبطة عبر مختلف مسميات المصدر (`voucher`, `treasury_voucher`, etc.)، واسترجاع رصيد الصندوق، وإلغاء تخصيصات الفواتير وإعادة رصيدها غير المسدد.
+  - `ACC-097`: فرض فحص قفل الوحدات `assertModuleUnlocked` لوحدتي `treasury` و `sales` في الفترات المالية عند الترحيل والإلغاء لمنع أي تعديل مالي في الفترات المغلقة لتلك الوحدات.
+  - `ACC-098`: دعم إعادة احتساب أرصدة الصناديق في `recalcCashBalance` للريال السعودي والعملات الأجنبية مباشرة من سطور القيود اليومية المرحلة في الأستاذ العام وتوفير نقطة النهاية `POST /cash-locations/:id/recalc`.
+  - `UI-033`: تحديث واجهة السندات في `apps/staff/app/treasury/vouchers/page.tsx` لفصل عمود المبلغ الأساسي (ر.س) عن عمود العملة الأجنبية وعرض رمز العملة المناسب.
+  - `UI-036`: إضافة حوار تأكيد وطلب سبب الإلغاء قبل تنفيذ إلغاء السند في الواجهة.
+  - `UI-037`: استبعاد السندات الملغاة من إجمالي البطاقات ومجموع الجدول في واجهة السندات.
+- **الاختبارات**:
+  - `test/remediation-phase10.spec.ts` (7 اختبارات): نجاح بنسبة 100%.
+
+---
+
 ## نتيجة التحقق الشاملة لكامل المشروع:
 ```bash
-vitest run test/remediation-phase1.spec.ts test/remediation-phase2.spec.ts test/remediation-phase3.spec.ts test/remediation-phase4.spec.ts test/remediation-phase5.spec.ts test/remediation-phase6.spec.ts test/remediation-phase7.spec.ts test/remediation-phase8.spec.ts test/remediation-phase9.spec.ts
+vitest run test/remediation-phase1.spec.ts test/remediation-phase2.spec.ts test/remediation-phase3.spec.ts test/remediation-phase4.spec.ts test/remediation-phase5.spec.ts test/remediation-phase6.spec.ts test/remediation-phase7.spec.ts test/remediation-phase8.spec.ts test/remediation-phase9.spec.ts test/remediation-phase10.spec.ts
 ```
-- **Test Files**: 9 passed (9)
-- **Tests**: 57 passed (57)
-- **Duration**: 37.66s
+- **Test Files**: 10 passed (10)
+- **Tests**: 64 passed (64)
+- **Duration**: 37.05s
 - **Zero Failures**.
 
 - **Contracts Tests**:
@@ -196,11 +215,11 @@ pnpm --filter "@erp/contracts" test
 ```
 - **Test Files**: 27 passed (27)
 - **Tests**: 245 passed (245)
-- **Duration**: 6.10s
+- **Duration**: 5.77s
 - **Zero Failures**.
 
 - **TypeScript Typecheck & Build**:
 ```bash
-pnpm --filter "@erp/contracts" build && pnpm --filter "@erp/api" build && pnpm --filter "@erp/staff" build
+pnpm --filter "@erp/contracts" build && pnpm --filter "@erp/database" build && pnpm --filter "@erp/api" build && pnpm --filter "@erp/staff" build
 ```
 - **All packages compile and build cleanly with 0 errors**.

@@ -209,7 +209,7 @@ export class TreasuryService implements OnModuleInit {
     validateDayFilters(filters as Record<string, unknown>, FROM_TO_LABELS_AR, 'TREASURY_DATE_INVALID');
 
     const q = filters.q?.trim();
-    const kind = filters.kind?.trim();
+    const kind = (filters.kind || (filters as any).type)?.trim();
     return withTenantTx(this.database.db, tenantId, async (tx) => {
       const rows = await tx
         .select({
@@ -947,16 +947,33 @@ export class TreasuryService implements OnModuleInit {
 
       // ACC-090: التحقق من عدم تجاوز المتبقي على الفاتورة قبل التخصيص
       if (allocation.invoiceId) {
-        if (allocation.invoiceKind === 'purchase') {
+        const normalizedKind = (allocation.invoiceKind ?? '').toLowerCase().trim();
+        const isPurchase = ['purchase', 'purchases', 'purchase_invoice'].includes(normalizedKind);
+        const isSale = ['sale', 'sales', 'sales_invoice'].includes(normalizedKind);
+
+        if (isPurchase) {
           const [pInv] = await tx
-            .select({ total: purchaseInvoices.total, paidTotal: purchaseInvoices.paidTotal })
+            .select({ total: purchaseInvoices.total, paidTotal: purchaseInvoices.paidTotal, id: purchaseInvoices.id })
             .from(purchaseInvoices)
             .where(and(eq(purchaseInvoices.tenantId, tenantId), eq(purchaseInvoices.id, allocation.invoiceId)))
             .for('update');
           if (!pInv) {
             throw new DomainError('INVOICE_NOT_FOUND', 'Purchase invoice not found', 404);
           }
-          const remaining = Decimal.max(0, money(pInv.total).minus(pInv.paidTotal));
+          const returnRows = await tx
+            .select({ total: purchaseInvoices.total })
+            .from(purchaseInvoices)
+            .where(
+              and(
+                eq(purchaseInvoices.tenantId, tenantId),
+                eq(purchaseInvoices.referenceInvoiceId, pInv.id),
+                inArray(purchaseInvoices.kind, ['purchase_return', 'debit_note']),
+                eq(purchaseInvoices.status, 'posted'),
+              ),
+            );
+          const totalReturns = returnRows.reduce((sum, r) => sum.plus(r.total ?? '0'), new Decimal(0));
+          const netTotal = Decimal.max(0, money(pInv.total).minus(totalReturns));
+          const remaining = Decimal.max(0, netTotal.minus(pInv.paidTotal));
           if (remaining.lte(0) || money(allocation.amount).gt(remaining)) {
             throw new DomainError(
               'ALLOCATION_AMOUNT_EXCEEDS_INVOICE_BALANCE',
@@ -969,20 +986,33 @@ export class TreasuryService implements OnModuleInit {
             .update(purchaseInvoices)
             .set({
               paidTotal: newPaid.toFixed(4),
-              paymentStatus: newPaid.gte(money(pInv.total)) ? 'paid' : 'partial',
+              paymentStatus: newPaid.gte(netTotal) ? 'paid' : 'partial',
               updatedAt: new Date(),
             })
             .where(and(eq(purchaseInvoices.tenantId, tenantId), eq(purchaseInvoices.id, allocation.invoiceId)));
-        } else if (allocation.invoiceKind === 'sale') {
+        } else if (isSale) {
           const [sInv] = await tx
-            .select({ total: salesInvoices.total, paidTotal: salesInvoices.paidTotal })
+            .select({ total: salesInvoices.total, paidTotal: salesInvoices.paidTotal, id: salesInvoices.id })
             .from(salesInvoices)
             .where(and(eq(salesInvoices.tenantId, tenantId), eq(salesInvoices.id, allocation.invoiceId)))
             .for('update');
           if (!sInv) {
             throw new DomainError('INVOICE_NOT_FOUND', 'Sales invoice not found', 404);
           }
-          const remaining = Decimal.max(0, money(sInv.total).minus(sInv.paidTotal));
+          const returnRows = await tx
+            .select({ total: salesInvoices.total })
+            .from(salesInvoices)
+            .where(
+              and(
+                eq(salesInvoices.tenantId, tenantId),
+                eq(salesInvoices.referenceInvoiceId, sInv.id),
+                inArray(salesInvoices.kind, ['sale_return', 'credit_note']),
+                eq(salesInvoices.status, 'posted'),
+              ),
+            );
+          const totalReturns = returnRows.reduce((sum, r) => sum.plus(r.total ?? '0'), new Decimal(0));
+          const netTotal = Decimal.max(0, money(sInv.total).minus(totalReturns));
+          const remaining = Decimal.max(0, netTotal.minus(sInv.paidTotal));
           if (remaining.lte(0) || money(allocation.amount).gt(remaining)) {
             throw new DomainError(
               'ALLOCATION_AMOUNT_EXCEEDS_INVOICE_BALANCE',
@@ -995,7 +1025,7 @@ export class TreasuryService implements OnModuleInit {
             .update(salesInvoices)
             .set({
               paidTotal: newPaid.toFixed(4),
-              paymentStatus: newPaid.gte(money(sInv.total)) ? 'paid' : 'partial',
+              paymentStatus: newPaid.gte(netTotal) ? 'paid' : 'partial',
               updatedAt: new Date(),
             })
             .where(and(eq(salesInvoices.tenantId, tenantId), eq(salesInvoices.id, allocation.invoiceId)));
@@ -1107,6 +1137,10 @@ export class TreasuryService implements OnModuleInit {
     if (row.status !== 'posted')
       throw new DomainError('VOUCHER_INVALID_STATUS', 'Only posted vouchers can be voided', 409);
 
+    if (row.fiscalPeriodId) {
+      await this.accounting.assertModuleUnlocked(tx, tenantId, row.fiscalPeriodId, 'treasury');
+    }
+
     // Reverse all posted journal entries linked to this voucher (including original and any duplicates from prior concurrency)
     const linkedEntries = await tx
       .select({ id: journalEntries.id })
@@ -1118,7 +1152,10 @@ export class TreasuryService implements OnModuleInit {
           isNull(journalEntries.reversalOf),
           or(
             row.journalEntryId ? eq(journalEntries.id, row.journalEntryId) : undefined,
-            and(eq(journalEntries.sourceType, 'voucher'), eq(journalEntries.sourceId, id)),
+            and(
+              inArray(journalEntries.sourceType, ['voucher', 'treasury_voucher', 'payment_voucher', 'receipt_voucher']),
+              eq(journalEntries.sourceId, id),
+            ),
           ),
         ),
       );
@@ -1156,7 +1193,11 @@ export class TreasuryService implements OnModuleInit {
       .where(and(eq(paymentAllocations.tenantId, tenantId), eq(paymentAllocations.voucherId, id)));
     for (const alloc of existingAllocations) {
       if (alloc.invoiceId) {
-        if (alloc.invoiceKind === 'purchase') {
+        const normalizedKind = (alloc.invoiceKind ?? '').toLowerCase().trim();
+        const isPurchase = ['purchase', 'purchases', 'purchase_invoice'].includes(normalizedKind);
+        const isSale = ['sale', 'sales', 'sales_invoice'].includes(normalizedKind);
+
+        if (isPurchase) {
           const [pInv] = await tx
             .select({ paidTotal: purchaseInvoices.paidTotal, total: purchaseInvoices.total })
             .from(purchaseInvoices)
@@ -1173,7 +1214,7 @@ export class TreasuryService implements OnModuleInit {
               })
               .where(and(eq(purchaseInvoices.tenantId, tenantId), eq(purchaseInvoices.id, alloc.invoiceId)));
           }
-        } else if (alloc.invoiceKind === 'sale') {
+        } else if (isSale) {
           const [sInv] = await tx
             .select({ paidTotal: salesInvoices.paidTotal, total: salesInvoices.total })
             .from(salesInvoices)
@@ -2779,22 +2820,42 @@ export class TreasuryService implements OnModuleInit {
         .from(cashLocations)
         .where(and(eq(cashLocations.tenantId, tenantId), eq(cashLocations.id, cashLocationId)))
         .limit(1);
-      if (loc?.accountId && currency === 'SAR') {
-        const [glSum] = await tx
-          .select({
-            totalDebit: sql<string>`coalesce(sum(${journalEntryLines.debit}), 0)`,
-            totalCredit: sql<string>`coalesce(sum(${journalEntryLines.credit}), 0)`,
-          })
-          .from(journalEntryLines)
-          .innerJoin(journalEntries, eq(journalEntries.id, journalEntryLines.entryId))
-          .where(
-            and(
-              eq(journalEntryLines.tenantId, tenantId),
-              eq(journalEntryLines.accountId, loc.accountId),
-              eq(journalEntries.status, 'posted'),
-            ),
-          );
-        const computedBalance = money(glSum?.totalDebit ?? '0').minus(glSum?.totalCredit ?? '0').toFixed(4);
+      if (loc?.accountId) {
+        let computedBalance = '0.0000';
+        if (currency === 'SAR') {
+          const [glSum] = await tx
+            .select({
+              totalDebit: sql<string>`coalesce(sum(${journalEntryLines.debit}), 0)`,
+              totalCredit: sql<string>`coalesce(sum(${journalEntryLines.credit}), 0)`,
+            })
+            .from(journalEntryLines)
+            .innerJoin(journalEntries, eq(journalEntries.id, journalEntryLines.entryId))
+            .where(
+              and(
+                eq(journalEntryLines.tenantId, tenantId),
+                eq(journalEntryLines.accountId, loc.accountId),
+                eq(journalEntries.status, 'posted'),
+              ),
+            );
+          computedBalance = money(glSum?.totalDebit ?? '0').minus(glSum?.totalCredit ?? '0').toFixed(4);
+        } else {
+          const [fxSum] = await tx
+            .select({
+              totalDebit: sql<string>`coalesce(sum(case when ${journalEntryLines.debit} > 0 then coalesce(${journalEntryLines.currencyAmount}, 0) else 0 end), 0)`,
+              totalCredit: sql<string>`coalesce(sum(case when ${journalEntryLines.credit} > 0 then coalesce(${journalEntryLines.currencyAmount}, 0) else 0 end), 0)`,
+            })
+            .from(journalEntryLines)
+            .innerJoin(journalEntries, eq(journalEntries.id, journalEntryLines.entryId))
+            .where(
+              and(
+                eq(journalEntryLines.tenantId, tenantId),
+                eq(journalEntryLines.accountId, loc.accountId),
+                eq(journalEntryLines.currencyCode, currency),
+                eq(journalEntries.status, 'posted'),
+              ),
+            );
+          computedBalance = money(fxSum?.totalDebit ?? '0').minus(fxSum?.totalCredit ?? '0').toFixed(4);
+        }
         await tx
           .insert(cashLocationBalances)
           .values({
