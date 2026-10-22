@@ -1,0 +1,24 @@
+[
+ {
+  "number": "CS-000001",
+  "status": "closed",
+  "user_id": "01a164b9-dd89-740b-9144-3e5d91cbd544",
+  "opened_at": "2026-10-22T18:10:23.863Z",
+  "closed_at": "2026-10-22T18:13:16.251Z",
+  "expected_cash": "23.0000",
+  "counted_cash": "23.0000",
+  "diff": "0.0000",
+  "journal_entry_id": "01a164d2-6f49-7432-91d9-808a90b7ecff"
+ },
+ {
+  "number": "CS-000002",
+  "status": "closed",
+  "user_id": "01a164b9-df08-7046-a793-b93d4195afa4",
+  "opened_at": "2026-10-22T18:10:54.248Z",
+  "closed_at": "2026-10-22T18:13:51.674Z",
+  "expected_cash": "23.0000",
+  "counted_cash": "0.0000",
+  "diff": "-23.0000",
+  "journal_entry_id": "01a164d2-f753-7163-b270-ed815e7dc38c"
+ }
+]

@@ -1,0 +1,67 @@
+[
+ {
+  "number": "RV-000001",
+  "kind": "receipt",
+  "status": "voided",
+  "amount": "46.0000",
+  "currency": "SAR",
+  "foreign_amount": null,
+  "fx_rate": null,
+  "voided_at": "2026-10-22T18:08:55.091Z",
+  "journal_entry_id": "01a164cc-a5f3-7659-bdbe-0fd58425a5dc",
+  "allocations": "1",
+  "allocated": "46.0000"
+ },
+ {
+  "number": "RV-000002",
+  "kind": "receipt",
+  "status": "posted",
+  "amount": "37.5000",
+  "currency": "USD",
+  "foreign_amount": "10.0000",
+  "fx_rate": "3.7500000000",
+  "voided_at": null,
+  "journal_entry_id": "01a164d5-2488-7338-abc8-61fd9a442274",
+  "allocations": "0",
+  "allocated": null
+ },
+ {
+  "number": "PV-000001",
+  "kind": "payment",
+  "status": "posted",
+  "amount": "15.0000",
+  "currency": "USD",
+  "foreign_amount": "4.0000",
+  "fx_rate": "3.7500000000",
+  "voided_at": null,
+  "journal_entry_id": "01a164d6-afc8-7799-a6b0-e6f4c4858afe",
+  "allocations": "0",
+  "allocated": null
+ },
+ {
+  "number": "RV-000003",
+  "kind": "receipt",
+  "status": "posted",
+  "amount": "1.0000",
+  "currency": "SAR",
+  "foreign_amount": null,
+  "fx_rate": null,
+  "voided_at": null,
+  "journal_entry_id": "01a164d7-ec14-7218-a6f6-6cfb46051958",
+  "allocations": "0",
+  "allocated": null
+ },
+ {
+  "number": null,
+  "kind": "receipt",
+  "status": "draft",
+  "amount": "1.0000",
+  "currency": "SAR",
+  "foreign_amount": null,
+  "fx_rate": null,
+  "voided_at": null,
+  "journal_entry_id": null,
+  "allocations": "0",
+  "allocated": null
+ }
+]
