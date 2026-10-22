@@ -1,0 +1,1518 @@
+{
+ "passed": 133,
+ "failed": 56,
+ "checks": [
+  {
+   "name": "ALLOC-PV1-PI1 http",
+   "actual": "[201]",
+   "expected": "[201]",
+   "ok": true,
+   "evidence": "R19-ALLOC-PV1-PI1-response.json",
+   "defect": null
+  },
+  {
+   "name": "ALLOC-PV1-PI1 row PV1->PI1 38",
+   "actual": "[Decimal('38.0000')]",
+   "expected": "[Decimal('38')]",
+   "ok": true,
+   "evidence": "R19-DB-001",
+   "defect": null
+  },
+  {
+   "name": "ALLOC-PV1-PI1 PI-000001 paid_total after allocation",
+   "actual": "0.0000",
+   "expected": "38",
+   "ok": false,
+   "evidence": "R19-DB-001",
+   "defect": "ACC-042"
+  },
+  {
+   "name": "ALLOC-PV1-PI1 PI-000001 payment_status partial",
+   "actual": "unpaid",
+   "expected": "partial",
+   "ok": false,
+   "evidence": "R19-DB-001",
+   "defect": "ACC-042"
+  },
+  {
+   "name": "ALLOC-PV1-PI1 no GL/stock/cash change (sub-ledger only)",
+   "actual": "True",
+   "expected": "True",
+   "ok": true,
+   "evidence": "R19-DB-000/001",
+   "defect": null
+  },
+  {
+   "name": "ALLOC-BOGUS non-existent voucher rejected (404/422)",
+   "actual": "False",
+   "expected": "True",
+   "ok": false,
+   "evidence": "R19-ALLOC-BOGUS-response.json",
+   "defect": "ACC-049"
+  },
+  {
+   "name": "ALLOC-BOGUS no orphan allocation row persisted",
+   "actual": "1",
+   "expected": "0",
+   "ok": false,
+   "evidence": "R19-DB-002",
+   "defect": "ACC-049"
+  },
+  {
+   "name": "ALLOC-BOGUS amount 1000 > invoice 46 rejected",
+   "actual": "True",
+   "expected": "False",
+   "ok": false,
+   "evidence": "R19-DB-002",
+   "defect": "ACC-049"
+  },
+  {
+   "name": "ALLOC-BOGUS no GL change",
+   "actual": "True",
+   "expected": "True",
+   "ok": true,
+   "evidence": "R19-DB-001/002",
+   "defect": null
+  },
+  {
+   "name": "SV-IN-DRAFT http",
+   "actual": "[201]",
+   "expected": "[201]",
+   "ok": true,
+   "evidence": "R19-SV-IN-DRAFT-response.json",
+   "defect": null
+  },
+  {
+   "name": "SV-IN-DRAFT status draft, no JE",
+   "actual": "('draft', None)",
+   "expected": "('draft', None)",
+   "ok": true,
+   "evidence": "R19-DB-003",
+   "defect": null
+  },
+  {
+   "name": "SV-IN-DRAFT no stock/GL change",
+   "actual": "True",
+   "expected": "True",
+   "ok": true,
+   "evidence": "R19-DB-002/003",
+   "defect": null
+  },
+  {
+   "name": "SV-IN-POST MAIN R18-ITEM qty +3",
+   "actual": "10.0000",
+   "expected": "10.0000",
+   "ok": true,
+   "evidence": "R19-DB-004",
+   "defect": null
+  },
+  {
+   "name": "SV-IN-POST MAIN R18-ITEM value +45 (3x15)",
+   "actual": "129.0000",
+   "expected": "129.0000",
+   "ok": true,
+   "evidence": "R19-DB-004",
+   "defect": null
+  },
+  {
+   "name": "SV-IN-POST new average 12.9 ((84+45)/10)",
+   "actual": "12.9000",
+   "expected": "12.9",
+   "ok": true,
+   "evidence": "R19-DB-004",
+   "defect": null
+  },
+  {
+   "name": "SV-IN-POST JE-000011 Dr 1270001 45 / Cr 3121004 45",
+   "actual": "[('1270001', Decimal('45.0000'), Decimal('0.0000')), ('3121004', Decimal('0.0000'), Decimal('45.0000'))]",
+   "expected": "[('1270001', Decimal('45'), Decimal('0')), ('3121004', Decimal('0'), Decimal('45'))]",
+   "ok": true,
+   "evidence": "R19-DB-004",
+   "defect": null
+  },
+  {
+   "name": "SV-IN-POST 1270001 +45",
+   "actual": "45.0000",
+   "expected": "45",
+   "ok": true,
+   "evidence": "R19-DB-003/004",
+   "defect": null
+  },
+  {
+   "name": "SV-OUT-DRAFT no change",
+   "actual": "True",
+   "expected": "True",
+   "ok": true,
+   "evidence": "R19-DB-004/005",
+   "defect": null
+  },
+  {
+   "name": "SV-OUT-POST MAIN qty -1",
+   "actual": "9.0000",
+   "expected": "9.0000",
+   "ok": true,
+   "evidence": "R19-DB-006",
+   "defect": null
+  },
+  {
+   "name": "SV-OUT-POST issued at average 12.9 (not list cost 12)",
+   "actual": "12.9000",
+   "expected": "12.9",
+   "ok": true,
+   "evidence": "R19-DB-006",
+   "defect": null
+  },
+  {
+   "name": "SV-OUT-POST JE-000012 Dr 3121004 12.9 / Cr 1270001 12.9",
+   "actual": "[('1270001', Decimal('0.0000'), Decimal('12.9000')), ('3121004', Decimal('12.9000'), Decimal('0.0000'))]",
+   "expected": "[('1270001', Decimal('0'), Decimal('12.9')), ('3121004', Decimal('12.9'), Decimal('0'))]",
+   "ok": true,
+   "evidence": "R19-DB-006",
+   "defect": null
+  },
+  {
+   "name": "SV-OUT-OVER create 201 then post 422 STOCK_INSUFFICIENT",
+   "actual": "([201], [422], 'STOCK_INSUFFICIENT')",
+   "expected": "([201], [422], 'STOCK_INSUFFICIENT')",
+   "ok": true,
+   "evidence": "R19-SV-OUT-OVER-response.json",
+   "defect": null
+  },
+  {
+   "name": "SV-OUT-OVER no stock/GL change",
+   "actual": "True",
+   "expected": "True",
+   "ok": true,
+   "evidence": "R19-DB-006/007",
+   "defect": null
+  },
+  {
+   "name": "SV-OUT-OVER SOU-000002 stays draft",
+   "actual": "draft",
+   "expected": "draft",
+   "ok": true,
+   "evidence": "R19-DB-007",
+   "defect": null
+  },
+  {
+   "name": "SV-OUT-OVER draft total_cost priced at average 12.9 (100x12.9=1290)",
+   "actual": "1200.0000",
+   "expected": "1290",
+   "ok": false,
+   "evidence": "R19-DB-007",
+   "defect": "UI-021"
+  },
+  {
+   "name": "SV-VOID SOU-000001 voided",
+   "actual": "voided",
+   "expected": "voided",
+   "ok": true,
+   "evidence": "R19-DB-008",
+   "defect": null
+  },
+  {
+   "name": "SV-VOID stock restored (+1 / +12.9)",
+   "actual": "(Decimal('1.0000'), Decimal('12.9000'))",
+   "expected": "(Decimal('1'), Decimal('12.9'))",
+   "ok": true,
+   "evidence": "R19-DB-008",
+   "defect": null
+  },
+  {
+   "name": "SV-VOID reversal JE-000013 (reversal_of set)",
+   "actual": "True",
+   "expected": "True",
+   "ok": true,
+   "evidence": "R19-DB-008",
+   "defect": null
+  },
+  {
+   "name": "SV-VOID JE-000013 mirrors JE-000012",
+   "actual": "[('1270001', Decimal('12.9000'), Decimal('0.0000')), ('3121004', Decimal('0.0000'), Decimal('12.9000'))]",
+   "expected": "[('1270001', Decimal('12.9'), Decimal('0')), ('3121004', Decimal('0'), Decimal('12.9'))]",
+   "ok": true,
+   "evidence": "R19-DB-008",
+   "defect": null
+  },
+  {
+   "name": "SV-VOID 3121004 back to -45 (only the stock-in gain remains)",
+   "actual": "-45.0000",
+   "expected": "-45",
+   "ok": true,
+   "evidence": "R19-DB-008",
+   "defect": null
+  },
+  {
+   "name": "TR-DRAFT no change",
+   "actual": "True",
+   "expected": "True",
+   "ok": true,
+   "evidence": "R19-DB-008/009",
+   "defect": null
+  },
+  {
+   "name": "TR-SEND MAIN qty -3 / value -38.7",
+   "actual": "(Decimal('3.0000'), Decimal('38.7000'))",
+   "expected": "(Decimal('3'), Decimal('38.7'))",
+   "ok": true,
+   "evidence": "R19-DB-010",
+   "defect": null
+  },
+  {
+   "name": "TR-SEND JE-000014 Dr 1270003 38.7 / Cr 1270001 38.7",
+   "actual": "[('1270001', Decimal('0.0000'), Decimal('38.7000')), ('1270003', Decimal('38.7000'), Decimal('0.0000'))]",
+   "expected": "[('1270001', Decimal('0'), Decimal('38.7')), ('1270003', Decimal('38.7'), Decimal('0'))]",
+   "ok": true,
+   "evidence": "R19-DB-010",
+   "defect": null
+  },
+  {
+   "name": "TR-SEND in-transit GL 38.7",
+   "actual": "38.7000",
+   "expected": "38.7",
+   "ok": true,
+   "evidence": "R19-DB-010",
+   "defect": null
+  },
+  {
+   "name": "TR-RECEIVE-PARTIAL VAN-1 qty 2 / value 25.8",
+   "actual": "(Decimal('2.0000'), Decimal('25.8000'))",
+   "expected": "(Decimal('2'), Decimal('25.8'))",
+   "ok": true,
+   "evidence": "R19-DB-011",
+   "defect": null
+  },
+  {
+   "name": "TR-RECEIVE-PARTIAL JE-000015 Dr 1270001 25.8 / Cr 1270003 25.8",
+   "actual": "[('1270001', Decimal('25.8000'), Decimal('0.0000')), ('1270003', Decimal('0.0000'), Decimal('25.8000'))]",
+   "expected": "[('1270001', Decimal('25.8'), Decimal('0')), ('1270003', Decimal('0'), Decimal('25.8'))]",
+   "ok": true,
+   "evidence": "R19-DB-011",
+   "defect": null
+  },
+  {
+   "name": "TR-RECEIVE-PARTIAL in-transit 12.9 left",
+   "actual": "12.9000",
+   "expected": "12.9",
+   "ok": true,
+   "evidence": "R19-DB-011",
+   "defect": null
+  },
+  {
+   "name": "TR-CLOSE-SHORTAGE transfer closed, closed_qty 1",
+   "actual": "('closed', Decimal('1.0000'), Decimal('2.0000'))",
+   "expected": "('closed', Decimal('1'), Decimal('2'))",
+   "ok": true,
+   "evidence": "R19-DB-012",
+   "defect": null
+  },
+  {
+   "name": "TR-CLOSE-SHORTAGE JE-000016 Dr 3121004 12.9 / Cr 1270003 12.9",
+   "actual": "[('1270003', Decimal('0.0000'), Decimal('12.9000')), ('3121004', Decimal('12.9000'), Decimal('0.0000'))]",
+   "expected": "[('1270003', Decimal('0'), Decimal('12.9')), ('3121004', Decimal('12.9'), Decimal('0'))]",
+   "ok": true,
+   "evidence": "R19-DB-012",
+   "defect": null
+  },
+  {
+   "name": "TR-CLOSE-SHORTAGE in-transit 0",
+   "actual": "0.0000",
+   "expected": "0",
+   "ok": true,
+   "evidence": "R19-DB-012",
+   "defect": null
+  },
+  {
+   "name": "TR-CLOSE-SHORTAGE stock = GL 1270001 (MAIN+VAN+FG)",
+   "actual": "140.1000",
+   "expected": "140.1000",
+   "ok": true,
+   "evidence": "R19-DB-012",
+   "defect": null
+  },
+  {
+   "name": "SALESMAN-CREATE rates 10/5/20",
+   "actual": "(Decimal('10.0000'), Decimal('5.0000'), Decimal('20.0000'))",
+   "expected": "(Decimal('10'), Decimal('5'), Decimal('20'))",
+   "ok": true,
+   "evidence": "R19-DB-013",
+   "defect": null
+  },
+  {
+   "name": "QUOT-CREATE QT-000001 20+3 = 23",
+   "actual": "(Decimal('20.0000'), Decimal('3.0000'), Decimal('23.0000'))",
+   "expected": "(Decimal('20'), Decimal('3'), Decimal('23'))",
+   "ok": true,
+   "evidence": "R19-DB-014",
+   "defect": null
+  },
+  {
+   "name": "QUOT-CREATE-DISC QT-000002 40-4 = 36 +5.4 = 41.4",
+   "actual": "(Decimal('4.0000'), Decimal('36.0000'), Decimal('5.4000'), Decimal('41.4000'))",
+   "expected": "(Decimal('4'), Decimal('36'), Decimal('5.4'), Decimal('41.4'))",
+   "ok": true,
+   "evidence": "R19-DB-015",
+   "defect": null
+  },
+  {
+   "name": "QUOT-CREATE no GL effect",
+   "actual": "True",
+   "expected": "True",
+   "ok": true,
+   "evidence": "R19-DB-013/015",
+   "defect": null
+  },
+  {
+   "name": "QUOT-CONVERT-DISC invoice created draft referencing QT-000002",
+   "actual": "('draft', '01a16207-6be4-77e4-8186-c72f0dc0074b')",
+   "expected": "('draft', '01a16207-6be4-77e4-8186-c72f0dc0074b')",
+   "ok": true,
+   "evidence": "R19-DB-016",
+   "defect": null
+  },
+  {
+   "name": "QUOT-CONVERT-DISC converted invoice keeps discount: total 41.4",
+   "actual": "46.0000",
+   "expected": "41.4",
+   "ok": false,
+   "evidence": "R19-DB-016",
+   "defect": "ACC-050"
+  },
+  {
+   "name": "QUOT-CONVERT-DISC converted invoice invoice_discount 4",
+   "actual": "0.0000",
+   "expected": "4",
+   "ok": false,
+   "evidence": "R19-DB-016",
+   "defect": "ACC-050"
+  },
+  {
+   "name": "QUOT-CONVERT-DISC QT-000002 status converted",
+   "actual": "converted",
+   "expected": "converted",
+   "ok": true,
+   "evidence": "R19-DB-016",
+   "defect": null
+  },
+  {
+   "name": "QUOT-CONVERT-AGAIN 409 ALREADY_CONVERTED",
+   "actual": "([409], 'SALES_QUOTATION_ALREADY_CONVERTED')",
+   "expected": "([409], 'SALES_QUOTATION_ALREADY_CONVERTED')",
+   "ok": true,
+   "evidence": "R19-QUOT-CONVERT-AGAIN-response.json",
+   "defect": null
+  },
+  {
+   "name": "QUOT-CONVERT-AGAIN no extra invoice",
+   "actual": "5",
+   "expected": "5",
+   "ok": true,
+   "evidence": "R19-DB-016/017",
+   "defect": null
+  },
+  {
+   "name": "QUOT-CONVERT-CONCURRENT exactly one 201 + one 409",
+   "actual": "[201, 201]",
+   "expected": "[201, 409]",
+   "ok": false,
+   "evidence": "R19-QUOT-CONVERT-CONCURRENT-response.json",
+   "defect": "ACC-051"
+  },
+  {
+   "name": "QUOT-CONVERT-CONCURRENT one invoice from QT-000001",
+   "actual": "2",
+   "expected": "1",
+   "ok": false,
+   "evidence": "R19-DB-018",
+   "defect": "ACC-051"
+  },
+  {
+   "name": "SALE-SM-DRAFT draft 20+3 with salesman",
+   "actual": "('draft', Decimal('23.0000'), '01a16206-5b36-729d-923a-8fc812c124ac')",
+   "expected": "('draft', Decimal('23'), '01a16206-5b36-729d-923a-8fc812c124ac')",
+   "ok": true,
+   "evidence": "R19-DB-019",
+   "defect": null
+  },
+  {
+   "name": "SALE-SM-POST JE-000017 AR 23 / revenue 20 / VAT 3 / COGS 12.9",
+   "actual": "[('12310001', Decimal('23.0000'), Decimal('0.0000')), ('1270001', Decimal('0.0000'), Decimal('12.9000')), ('2222001', Decimal('0.0000'), Decimal('3.0000')), ('3200004', Decimal('12.9000'), Decimal('0.0000')), ('4100001', Decimal('0.0000'), Decimal('20.0000'))]",
+   "expected": "[('12310001', Decimal('23'), Decimal('0')), ('1270001', Decimal('0'), Decimal('12.9')), ('2222001', Decimal('0'), Decimal('3')), ('3200004', Decimal('12.9'), Decimal('0')), ('4100001', Decimal('0'), Decimal('20'))]",
+   "ok": true,
+   "evidence": "R19-DB-020",
+   "defect": null
+  },
+  {
+   "name": "SALE-SM-POST AR 8 -> 31",
+   "actual": "31.0000",
+   "expected": "31",
+   "ok": true,
+   "evidence": "R19-DB-020",
+   "defect": null
+  },
+  {
+   "name": "SALE-SM-POST MAIN qty -1",
+   "actual": "6.0000",
+   "expected": "6.0000",
+   "ok": true,
+   "evidence": "R19-DB-020",
+   "defect": null
+  },
+  {
+   "name": "COMMISSIONS sales 10% x 20 = 2",
+   "actual": "2.0000",
+   "expected": "2",
+   "ok": true,
+   "evidence": "R19-COMMISSIONS.json",
+   "defect": null
+  },
+  {
+   "name": "COMMISSIONS profit 20% x (20-12.9) = 1.42",
+   "actual": "1.4200",
+   "expected": "1.42",
+   "ok": true,
+   "evidence": "R19-COMMISSIONS.json",
+   "defect": null
+  },
+  {
+   "name": "COMMISSIONS collection 0 (invoice unpaid)",
+   "actual": "0.0000",
+   "expected": "0",
+   "ok": true,
+   "evidence": "R19-COMMISSIONS.json",
+   "defect": null
+  },
+  {
+   "name": "SHIFT-OPEN one open shift",
+   "actual": "['open']",
+   "expected": "['open']",
+   "ok": true,
+   "evidence": "R19-DB-021",
+   "defect": null
+  },
+  {
+   "name": "POS-CASH-SALE JE-000018 cash 20 / rev 17.3913 / VAT 2.6087 / COGS 12.9",
+   "actual": "[('1211001', Decimal('20.0000'), Decimal('0.0000')), ('1270001', Decimal('0.0000'), Decimal('12.9000')), ('2222001', Decimal('0.0000'), Decimal('2.6087')), ('3200004', Decimal('12.9000'), Decimal('0.0000')), ('4100001', Decimal('0.0000'), Decimal('17.3913'))]",
+   "expected": "[('1211001', Decimal('20'), Decimal('0')), ('1270001', Decimal('0'), Decimal('12.9')), ('2222001', Decimal('0'), Decimal('2.6087')), ('3200004', Decimal('12.9'), Decimal('0')), ('4100001', Decimal('0'), Decimal('17.3913'))]",
+   "ok": true,
+   "evidence": "R19-DB-022",
+   "defect": null
+  },
+  {
+   "name": "POS-CASH-SALE SI-000003 paid 20",
+   "actual": "('paid', Decimal('20.0000'))",
+   "expected": "('paid', Decimal('20'))",
+   "ok": true,
+   "evidence": "R19-DB-022",
+   "defect": null
+  },
+  {
+   "name": "POS-CASH-SALE cash sub-ledger +20",
+   "actual": "0.0000",
+   "expected": "20",
+   "ok": false,
+   "evidence": "R19-DB-021/022",
+   "defect": "ACC-018"
+  },
+  {
+   "name": "POS-SPLIT-SALE JE-000019 cash 8 + bank 12",
+   "actual": "[('1211001', Decimal('8.0000')), ('1221001', Decimal('12.0000'))]",
+   "expected": "[('1211001', Decimal('8')), ('1221001', Decimal('12'))]",
+   "ok": true,
+   "evidence": "R19-DB-023",
+   "defect": null
+  },
+  {
+   "name": "POS-SPLIT-SALE invoice_payments 8 cash + 12 card",
+   "actual": "[Decimal('8.0000'), Decimal('12.0000')]",
+   "expected": "[Decimal('8'), Decimal('12')]",
+   "ok": true,
+   "evidence": "R19-DB-023",
+   "defect": null
+  },
+  {
+   "name": "POS-OFFLINE-SYNC 201, SI-000005 posted, queue synced",
+   "actual": "([201], 'posted', ['synced'])",
+   "expected": "([201], 'posted', ['synced'])",
+   "ok": true,
+   "evidence": "R19-DB-024",
+   "defect": null
+  },
+  {
+   "name": "POS-OFFLINE-SYNC JE-000020 cash 20",
+   "actual": "('1211001', Decimal('20.0000'), Decimal('0.0000'))",
+   "expected": "('1211001', Decimal('20'), Decimal('0'))",
+   "ok": true,
+   "evidence": "R19-DB-024",
+   "defect": null
+  },
+  {
+   "name": "POS-OFFLINE-REPLAY idempotent: 201 and no new invoice",
+   "actual": "([201], 0)",
+   "expected": "([201], 0)",
+   "ok": true,
+   "evidence": "R19-DB-024/025",
+   "defect": null
+  },
+  {
+   "name": "POS-OFFLINE-REPLAY no GL change",
+   "actual": "True",
+   "expected": "True",
+   "ok": true,
+   "evidence": "R19-DB-024/025",
+   "defect": null
+  },
+  {
+   "name": "POS-OFFLINE-CONCURRENT both 201 (second idempotent)",
+   "actual": "[201, 500]",
+   "expected": "[201, 201]",
+   "ok": false,
+   "evidence": "R19-POS-OFFLINE-CONCURRENT-response.json",
+   "defect": "ACC-052"
+  },
+  {
+   "name": "POS-OFFLINE-CONCURRENT exactly one invoice SI-000006",
+   "actual": "1",
+   "expected": "1",
+   "ok": true,
+   "evidence": "R19-DB-025/026",
+   "defect": null
+  },
+  {
+   "name": "POS-OFFLINE-CONCURRENT queue R19-OFF-2 synced once",
+   "actual": "['synced']",
+   "expected": "['synced']",
+   "ok": true,
+   "evidence": "R19-DB-026",
+   "defect": null
+  },
+  {
+   "name": "SHIFT-CLOSE expected cash 20+8+20+20 = 68, counted 68, diff 0",
+   "actual": "(Decimal('68.0000'), Decimal('68.0000'), Decimal('0.0000'), 'closed')",
+   "expected": "(Decimal('68'), Decimal('68'), Decimal('0'), 'closed')",
+   "ok": true,
+   "evidence": "R19-DB-027",
+   "defect": null
+  },
+  {
+   "name": "SHIFT-CLOSE card total 12",
+   "actual": "12.0000",
+   "expected": "12",
+   "ok": true,
+   "evidence": "R19-DB-027",
+   "defect": null
+  },
+  {
+   "name": "SHIFT-POST JE-000022 Dr 1211002 68 / Cr 1211001 68",
+   "actual": "[('1211001', Decimal('0.0000'), Decimal('68.0000')), ('1211002', Decimal('68.0000'), Decimal('0.0000'))]",
+   "expected": "[('1211001', Decimal('0'), Decimal('68')), ('1211002', Decimal('68'), Decimal('0'))]",
+   "ok": true,
+   "evidence": "R19-DB-028",
+   "defect": null
+  },
+  {
+   "name": "SHIFT-POST main cash GL 49832 (50000-38-140+10+68-68)",
+   "actual": "49832.0000",
+   "expected": "49832",
+   "ok": true,
+   "evidence": "R19-DB-028",
+   "defect": null
+  },
+  {
+   "name": "SHIFT-POST cash sub-ledger follows GL movements (+68-68 = unchanged vs POS +68)",
+   "actual": "0.0000",
+   "expected": "0",
+   "ok": true,
+   "evidence": "R19-DB-021/028",
+   "defect": null
+  },
+  {
+   "name": "POS cash sub-ledger equals GL cash minus opening (49832-50000 = -168)",
+   "actual": "-168.0000",
+   "expected": "-168.0000",
+   "ok": true,
+   "evidence": "R19-DB-028",
+   "defect": "ACC-018"
+  },
+  {
+   "name": "CC-CREATE R19-CC exists",
+   "actual": "True",
+   "expected": "True",
+   "ok": true,
+   "evidence": "R19-DB-029",
+   "defect": null
+  },
+  {
+   "name": "JE-CC JE-000023 Dr 3130002 6 / Cr 1250001 6",
+   "actual": "[('1250001', Decimal('0.0000'), Decimal('6.0000')), ('3130002', Decimal('6.0000'), Decimal('0.0000'))]",
+   "expected": "[('1250001', Decimal('0'), Decimal('6')), ('3130002', Decimal('6'), Decimal('0'))]",
+   "ok": true,
+   "evidence": "R19-DB-030",
+   "defect": null
+  },
+  {
+   "name": "JE-CC expense line carries cost center R19-CC",
+   "actual": "[('1250001', None), ('3130002', 'R19-CC')]",
+   "expected": "[('1250001', None), ('3130002', 'R19-CC')]",
+   "ok": true,
+   "evidence": "R19-JE-DIMENSIONS-23-24-27-28.json",
+   "defect": null
+  },
+  {
+   "name": "JE-REVERSE reversal keeps the cost center on the expense line",
+   "actual": "[('1250001', None), ('3130002', 'R19-CC')]",
+   "expected": "[('1250001', None), ('3130002', 'R19-CC')]",
+   "ok": true,
+   "evidence": "R19-JE-DIMENSIONS-23-24-27-28.json",
+   "defect": null
+  },
+  {
+   "name": "PB-POST/RELEASE revenue lines tagged with the project cost center R19-CC",
+   "actual": "['-']",
+   "expected": "['R19-CC']",
+   "ok": false,
+   "evidence": "R19-JE-DIMENSIONS-23-24-27-28.json",
+   "defect": "ACC-059"
+  },
+  {
+   "name": "PB-POST AR lines carry party CUST-GEN",
+   "actual": "True",
+   "expected": "True",
+   "ok": true,
+   "evidence": "R19-JE-DIMENSIONS-23-24-27-28.json",
+   "defect": null
+  },
+  {
+   "name": "CC-STATEMENT closing 6 debit on 3130002",
+   "actual": "(Decimal('6.0000'), '3130002')",
+   "expected": "(Decimal('6'), '3130002')",
+   "ok": true,
+   "evidence": "R19-CC-STATEMENT.json",
+   "defect": null
+  },
+  {
+   "name": "JE-REVERSE JE-000024 reversal_of JE-000023",
+   "actual": "True",
+   "expected": "True",
+   "ok": true,
+   "evidence": "R19-DB-031",
+   "defect": null
+  },
+  {
+   "name": "JE-REVERSE mirrors lines",
+   "actual": "[('1250001', Decimal('6.0000'), Decimal('0.0000')), ('3130002', Decimal('0.0000'), Decimal('6.0000'))]",
+   "expected": "[('1250001', Decimal('6'), Decimal('0')), ('3130002', Decimal('0'), Decimal('6'))]",
+   "ok": true,
+   "evidence": "R19-DB-031",
+   "defect": null
+  },
+  {
+   "name": "JE-REVERSE 1250001 / 3130002 back to 0",
+   "actual": "(Decimal('0.0000'), Decimal('0.0000'))",
+   "expected": "(Decimal('0'), Decimal('0'))",
+   "ok": true,
+   "evidence": "R19-DB-031",
+   "defect": null
+  },
+  {
+   "name": "COST-CENTER-BALANCES R19-CC 6/6/0 after reversal",
+   "actual": "[('R19-CC', Decimal('6.0000'), Decimal('6.0000'), Decimal('0.0000'))]",
+   "expected": "[('R19-CC', Decimal('6'), Decimal('6'), Decimal('0'))]",
+   "ok": true,
+   "evidence": "R19-REPORT-COST-CENTER-BALANCES",
+   "defect": null
+  },
+  {
+   "name": "MODULE-LOCK-SALES lock row sales=true",
+   "actual": "[('sales', True)]",
+   "expected": "[('sales', True)]",
+   "ok": true,
+   "evidence": "R19-DB-032",
+   "defect": null
+  },
+  {
+   "name": "SALE-UNDER-SALES-LOCK posting rejected (409 PERIOD_MODULE_LOCKED)",
+   "actual": "[201]",
+   "expected": "[409]",
+   "ok": false,
+   "evidence": "R19-SALE-UNDER-SALES-LOCK-response.json",
+   "defect": "ACC-053"
+  },
+  {
+   "name": "SALE-UNDER-SALES-LOCK no new JE under sales lock",
+   "actual": "1",
+   "expected": "0",
+   "ok": false,
+   "evidence": "R19-DB-032/033",
+   "defect": "ACC-053"
+  },
+  {
+   "name": "SALE-UNDER-SALES-LOCK invoice stays draft",
+   "actual": "posted",
+   "expected": "draft",
+   "ok": false,
+   "evidence": "R19-DB-033",
+   "defect": "ACC-053"
+  },
+  {
+   "name": "MODULE-LOCK-ACCOUNTING both locks true",
+   "actual": "[('accounting', True), ('sales', True)]",
+   "expected": "[('accounting', True), ('sales', True)]",
+   "ok": true,
+   "evidence": "R19-DB-034",
+   "defect": null
+  },
+  {
+   "name": "POST-UNDER-ACCT-LOCK 409 PERIOD_MODULE_LOCKED",
+   "actual": "([409], 'PERIOD_MODULE_LOCKED')",
+   "expected": "([409], 'PERIOD_MODULE_LOCKED')",
+   "ok": true,
+   "evidence": "R19-POST-UNDER-ACCT-LOCK-response.json",
+   "defect": null
+  },
+  {
+   "name": "POST-UNDER-ACCT-LOCK draft voucher untouched, no JE",
+   "actual": "('draft', 0)",
+   "expected": "('draft', 0)",
+   "ok": true,
+   "evidence": "R19-DB-034/035",
+   "defect": null
+  },
+  {
+   "name": "MODULE-UNLOCK both false",
+   "actual": "[('accounting', False), ('sales', False)]",
+   "expected": "[('accounting', False), ('sales', False)]",
+   "ok": true,
+   "evidence": "R19-DB-036",
+   "defect": null
+  },
+  {
+   "name": "PERIODS view 2026-10 open after unlock",
+   "actual": "open",
+   "expected": "open",
+   "ok": true,
+   "evidence": "R19-REPORT-PERIODS-LOCKS",
+   "defect": null
+  },
+  {
+   "name": "PAYROLL-RUN2-POST rejected: month already has a paid run (409)",
+   "actual": "[201]",
+   "expected": "[409]",
+   "ok": false,
+   "evidence": "R19-PAYROLL-RUN2-POST-response.json",
+   "defect": "ACC-047"
+  },
+  {
+   "name": "PAYROLL-RUN2-POST no second accrual JE",
+   "actual": "1",
+   "expected": "0",
+   "ok": false,
+   "evidence": "R19-DB-036/037",
+   "defect": "ACC-047"
+  },
+  {
+   "name": "PAYROLL-RUN2-POST salary expense stays 140",
+   "actual": "280.0000",
+   "expected": "140",
+   "ok": false,
+   "evidence": "R19-DB-037",
+   "defect": "ACC-047"
+  },
+  {
+   "name": "PAYROLL-RUN2-POST salaries payable stays 0",
+   "actual": "-140.0000",
+   "expected": "0",
+   "ok": false,
+   "evidence": "R19-DB-037",
+   "defect": "ACC-047"
+  },
+  {
+   "name": "GOSI preview expat 2% x 120 = 2.40, not ready (missing ids)",
+   "actual": "(Decimal('2.40'), False)",
+   "expected": "(Decimal('2.40'), False)",
+   "ok": true,
+   "evidence": "R19-GOSI-PREVIEW.json",
+   "defect": null
+  },
+  {
+   "name": "WPS exported files list empty before export",
+   "actual": "[]",
+   "expected": "[]",
+   "ok": true,
+   "evidence": "R19-WPS-PREVIEW.json",
+   "defect": null
+  },
+  {
+   "name": "PAYROLL-RUN2-REVERSE status reversed",
+   "actual": "reversed",
+   "expected": "reversed",
+   "ok": true,
+   "evidence": "R19-DB-038",
+   "defect": null
+  },
+  {
+   "name": "PAYROLL-RUN2-REVERSE reversal JE created",
+   "actual": "0",
+   "expected": "1",
+   "ok": false,
+   "evidence": "R19-DB-037/038",
+   "defect": "ACC-047"
+  },
+  {
+   "name": "PAYROLL-RUN2-REVERSE salary expense back to 140",
+   "actual": "280.0000",
+   "expected": "140",
+   "ok": false,
+   "evidence": "R19-DB-038",
+   "defect": "ACC-047"
+  },
+  {
+   "name": "PAYROLL-RUN2-REVERSE run lines status reversed (not draft)",
+   "actual": "{'draft'}",
+   "expected": "{'reversed'}",
+   "ok": false,
+   "evidence": "R19-DB-038",
+   "defect": "ACC-048"
+  },
+  {
+   "name": "PAYROLL-LIST both 2026-10 runs reversed",
+   "actual": "['reversed', 'reversed']",
+   "expected": "['reversed', 'reversed']",
+   "ok": true,
+   "evidence": "R19-REPORT-PAYROLL-LIST",
+   "defect": null
+  },
+  {
+   "name": "INST-CREATE IC-000001 100 / 2 x 50 active",
+   "actual": "('IC-000001', Decimal('100.0000'), 2, 'active', [Decimal('50.0000'), Decimal('50.0000')])",
+   "expected": "('IC-000001', Decimal('100'), 2, 'active', [Decimal('50'), Decimal('50')])",
+   "ok": true,
+   "evidence": "R19-DB-039",
+   "defect": null
+  },
+  {
+   "name": "INST-CREATE no GL effect (schedule only)",
+   "actual": "True",
+   "expected": "True",
+   "ok": true,
+   "evidence": "R19-DB-038/039",
+   "defect": null
+  },
+  {
+   "name": "INST-COLLECT line 1 paid 50",
+   "actual": "('paid', Decimal('50.0000'))",
+   "expected": "('paid', Decimal('50'))",
+   "ok": true,
+   "evidence": "R19-DB-040",
+   "defect": null
+  },
+  {
+   "name": "INST-COLLECT receipt voucher posted with number",
+   "actual": "('draft', False)",
+   "expected": "('posted', True)",
+   "ok": false,
+   "evidence": "R19-DB-040",
+   "defect": "ACC-054"
+  },
+  {
+   "name": "INST-COLLECT JE Dr cash 50 / Cr AR 50",
+   "actual": "0",
+   "expected": "1",
+   "ok": false,
+   "evidence": "R19-DB-039/040",
+   "defect": "ACC-054"
+  },
+  {
+   "name": "INST-COLLECT cash GL +50",
+   "actual": "0.0000",
+   "expected": "50",
+   "ok": false,
+   "evidence": "R19-DB-039/040",
+   "defect": "ACC-054"
+  },
+  {
+   "name": "INST-OVERCOLLECT 80 on a 50 installment rejected (422)",
+   "actual": "[201]",
+   "expected": "[422]",
+   "ok": false,
+   "evidence": "R19-INST-OVERCOLLECT-response.json",
+   "defect": "ACC-055"
+  },
+  {
+   "name": "INST-OVERCOLLECT schedule paid_value equals voucher amount",
+   "actual": "(Decimal('50.0000'), Decimal('80.0000'))",
+   "expected": "(Decimal('50'), Decimal('50'))",
+   "ok": false,
+   "evidence": "R19-DB-041",
+   "defect": "ACC-055"
+  },
+  {
+   "name": "INST-OVERCOLLECT no draft 80 receipt",
+   "actual": "True",
+   "expected": "False",
+   "ok": false,
+   "evidence": "R19-DB-041",
+   "defect": "ACC-055"
+  },
+  {
+   "name": "PROJ-CREATE R19-PRJ 100 / retention 10% / customer CUST-GEN / cost center R19-CC",
+   "actual": "('R19-PRJ', Decimal('100.0000'), Decimal('10.0000'), '01a16198-e584-74ca-9bb2-36d58c4ddfe9', '01a16212-96e9-751f-b3ac-d988635a8e28')",
+   "expected": "('R19-PRJ', Decimal('100'), Decimal('10'), '01a16198-e584-74ca-9bb2-36d58c4ddfe9', '01a16212-96e9-751f-b3ac-d988635a8e28')",
+   "ok": true,
+   "evidence": "R19-DB-042",
+   "defect": null
+  },
+  {
+   "name": "BOQ-TERM T1 1 x 100",
+   "actual": "('T1', Decimal('1.0000'), Decimal('100.0000'))",
+   "expected": "('T1', Decimal('1'), Decimal('100'))",
+   "ok": true,
+   "evidence": "R19-DB-043",
+   "defect": null
+  },
+  {
+   "name": "PB-CREATE 50% -> work 50 / retention 5 / net 45 draft",
+   "actual": "(Decimal('50.0000'), Decimal('5.0000'), Decimal('45.0000'), 'draft')",
+   "expected": "(Decimal('50'), Decimal('5'), Decimal('45'), 'draft')",
+   "ok": true,
+   "evidence": "R19-DB-044",
+   "defect": null
+  },
+  {
+   "name": "PB-CREATE no GL effect",
+   "actual": "True",
+   "expected": "True",
+   "ok": true,
+   "evidence": "R19-DB-043/044",
+   "defect": null
+  },
+  {
+   "name": "PB-POST SI-000008 posted net 45",
+   "actual": "('posted', Decimal('45.0000'))",
+   "expected": "('posted', Decimal('45'))",
+   "ok": true,
+   "evidence": "R19-DB-045",
+   "defect": null
+  },
+  {
+   "name": "PB-POST VAT 15% on progress bill (6.75) [policy: PB untaxed]",
+   "actual": "0.0000",
+   "expected": "6.75",
+   "ok": false,
+   "evidence": "R19-DB-045",
+   "defect": "POLICY-PB-VAT"
+  },
+  {
+   "name": "PB-POST JE-000027 retention 5 booked to a retention receivable, not AR control",
+   "actual": "['12310001', '12310001']",
+   "expected": "['12310001', '1232xxxx-retention']",
+   "ok": false,
+   "evidence": "R19-DB-045",
+   "defect": "ACC-056"
+  },
+  {
+   "name": "PB-POST revenue +50",
+   "actual": "-50.0000",
+   "expected": "-50",
+   "ok": true,
+   "evidence": "R19-DB-044/045",
+   "defect": null
+  },
+  {
+   "name": "PB-POST AR control +45 (net due only)",
+   "actual": "50.0000",
+   "expected": "45",
+   "ok": false,
+   "evidence": "R19-DB-044/045",
+   "defect": "ACC-056"
+  },
+  {
+   "name": "PB-POST SI-000008 invoice total (45) = AR debited by its JE (50)",
+   "actual": "50.0000",
+   "expected": "45.0000",
+   "ok": false,
+   "evidence": "R19-DB-045",
+   "defect": "ACC-056"
+  },
+  {
+   "name": "PB-POST BOQ previously_billed 50",
+   "actual": "50.0000",
+   "expected": "50",
+   "ok": true,
+   "evidence": "R19-DB-045",
+   "defect": null
+  },
+  {
+   "name": "PB-RELEASE bill released",
+   "actual": "('released', True)",
+   "expected": "('released', True)",
+   "ok": true,
+   "evidence": "R19-DB-046",
+   "defect": null
+  },
+  {
+   "name": "PB-RELEASE creates release invoice 5 (draft)",
+   "actual": "1",
+   "expected": "1",
+   "ok": true,
+   "evidence": "R19-DB-046",
+   "defect": null
+  },
+  {
+   "name": "PB-RELEASE no GL effect while draft",
+   "actual": "True",
+   "expected": "True",
+   "ok": true,
+   "evidence": "R19-DB-045/046",
+   "defect": null
+  },
+  {
+   "name": "PB-RELEASE-POST http 201 posted",
+   "actual": "([201], 'posted')",
+   "expected": "([201], 'posted')",
+   "ok": true,
+   "evidence": "R19-PB-RELEASE-POST-response.json",
+   "defect": null
+  },
+  {
+   "name": "PB-RELEASE-POST JE-000028 credits retention receivable, not revenue",
+   "actual": "['4100001']",
+   "expected": "['1232xxxx-retention']",
+   "ok": false,
+   "evidence": "R19-DB-052",
+   "defect": "ACC-057"
+  },
+  {
+   "name": "PB-RELEASE-POST revenue unchanged (no second recognition)",
+   "actual": "-5.0000",
+   "expected": "0",
+   "ok": false,
+   "evidence": "R19-DB-051/052",
+   "defect": "ACC-057"
+  },
+  {
+   "name": "PB-RELEASE-POST project revenue total 50 (not 55)",
+   "actual": "55.0000",
+   "expected": "50",
+   "ok": false,
+   "evidence": "R19-DB-044/052",
+   "defect": "ACC-057"
+  },
+  {
+   "name": "PB-RELEASE-POST AR total for project 50 (not 55)",
+   "actual": "55.0000",
+   "expected": "50",
+   "ok": false,
+   "evidence": "R19-DB-044/052",
+   "defect": "ACC-057"
+  },
+  {
+   "name": "PROJECT-BILLS report PB-000001 50/5/45 released",
+   "actual": "[('PB-000001', Decimal('50.0000'), Decimal('5.0000'), Decimal('45.0000'), 'released')]",
+   "expected": "[('PB-000001', Decimal('50'), Decimal('5'), Decimal('45'), 'released')]",
+   "ok": true,
+   "evidence": "R19-REPORT-PROJECT-BILLS",
+   "defect": null
+  },
+  {
+   "name": "CONTRACT-CREATE CC-000001 80 / 10% draft with 1 line",
+   "actual": "('CC-000001', Decimal('80.0000'), Decimal('10.0000'), 'draft', 1)",
+   "expected": "('CC-000001', Decimal('80'), Decimal('10'), 'draft', 1)",
+   "ok": true,
+   "evidence": "R19-DB-047",
+   "defect": null
+  },
+  {
+   "name": "CONTRACT-CREATE linked to R19-PRJ",
+   "actual": "01a1621b-a444-75fc-aa69-00f2916da66c",
+   "expected": "01a1621b-a444-75fc-aa69-00f2916da66c",
+   "ok": true,
+   "evidence": "R19-DB-047",
+   "defect": null
+  },
+  {
+   "name": "CONTRACT-ACTIVATE active",
+   "actual": "active",
+   "expected": "active",
+   "ok": true,
+   "evidence": "R19-DB-048",
+   "defect": null
+  },
+  {
+   "name": "CONTRACT-ACTIVATE no GL effect",
+   "actual": "True",
+   "expected": "True",
+   "ok": true,
+   "evidence": "R19-DB-047/048",
+   "defect": null
+  },
+  {
+   "name": "CPAY-CREATE CP-000001 gross 40 / retention 4 / net 36 draft",
+   "actual": "('CP-000001', Decimal('40.0000'), Decimal('4.0000'), Decimal('36.0000'), 'draft')",
+   "expected": "('CP-000001', Decimal('40'), Decimal('4'), Decimal('36'), 'draft')",
+   "ok": true,
+   "evidence": "R19-DB-049",
+   "defect": null
+  },
+  {
+   "name": "CPAY-APPROVE approved",
+   "actual": "approved",
+   "expected": "approved",
+   "ok": true,
+   "evidence": "R19-DB-050",
+   "defect": null
+  },
+  {
+   "name": "CPAY-APPROVE accrual JE (Dr project cost 40 / Cr contractor 36 / Cr retention payable 4) [policy]",
+   "actual": "0",
+   "expected": "1",
+   "ok": false,
+   "evidence": "R19-DB-049/050",
+   "defect": "POLICY-CPAY-ACCRUAL"
+  },
+  {
+   "name": "CPAY-PAY status paid with voucher",
+   "actual": "('paid', '01a16222-08a3-71f3-8147-3311479203d3')",
+   "expected": "('paid', '01a16222-08a3-71f3-8147-3311479203d3')",
+   "ok": true,
+   "evidence": "R19-DB-051",
+   "defect": null
+  },
+  {
+   "name": "CPAY-PAY payment voucher posted (numbered, with JE)",
+   "actual": "('draft', False, False)",
+   "expected": "('posted', True, True)",
+   "ok": false,
+   "evidence": "R19-DB-051",
+   "defect": "ACC-058"
+  },
+  {
+   "name": "CPAY-PAY cash GL -36",
+   "actual": "0.0000",
+   "expected": "-36",
+   "ok": false,
+   "evidence": "R19-DB-050/051",
+   "defect": "ACC-058"
+  },
+  {
+   "name": "CPAY-PAY contractor party on voucher = SUPP-GEN, amount 36, ref CP-000001",
+   "actual": "('01a16198-e586-7688-a6d9-e1f0258fb485', Decimal('36.0000'), 'CP-000001')",
+   "expected": "('01a16198-e586-7688-a6d9-e1f0258fb485', Decimal('36'), 'CP-000001')",
+   "ok": true,
+   "evidence": "R19-DB-051",
+   "defect": null
+  },
+  {
+   "name": "FINAL GL balances = DB-052 expected set (after all defects)",
+   "actual": "{'1160001': '2E+4', '1211001': '49832', '1211002': '68', '1221001': '179877', '12310001': '109', '1250001': '0', '1270001': '62.7', '1270003': '0', '2110001': '-2.5E+5', '22111001': '4E+1', '2222001': '-1.4348', '22410002': '-1.4E+2', '3121004': '-32.1', '3122001': '2.8E+2', '3130002': '0', '3200004': '89.4', '4100001': '-204.5652', '4100002': '2E+1'}",
+   "expected": "{'1160001': '2E+4', '1211001': '49832', '1211002': '68', '1221001': '179877', '12310001': '109', '1250001': '0', '1270001': '62.7', '1270003': '0', '2110001': '-2.5E+5', '22111001': '4E+1', '2222001': '-1.4348', '22410002': '-1.4E+2', '3121004': '-32.1', '3122001': '2.8E+2', '3130002': '0', '3200004': '89.4', '4100001': '-204.5652', '4100002': '2E+1'}",
+   "ok": true,
+   "evidence": "R19-DB-052",
+   "defect": null
+  },
+  {
+   "name": "FINAL GL balanced (sum debit = sum credit)",
+   "actual": "251342.6000",
+   "expected": "251342.6000",
+   "ok": true,
+   "evidence": "R19-DB-052",
+   "defect": null
+  },
+  {
+   "name": "FINAL inventory sub-ledger = 1270001",
+   "actual": "62.7000",
+   "expected": "62.7000",
+   "ok": true,
+   "evidence": "R19-DB-052",
+   "defect": null
+  },
+  {
+   "name": "FINAL cash sub-ledger moved by R19 POS/shift (+68 -68)",
+   "actual": "0.0000",
+   "expected": "0",
+   "ok": true,
+   "evidence": "R19-DB-000/052",
+   "defect": null
+  },
+  {
+   "name": "FINAL AR GL 109 vs invoices open per sub-ledger (46+23+23+45+5-23 return-10-5 = 104 w/o retention)",
+   "actual": "109.0000",
+   "expected": "104",
+   "ok": false,
+   "evidence": "R19-DB-052",
+   "defect": "ACC-056/057"
+  },
+  {
+   "name": "TRIAL-BALANCE balanced",
+   "actual": "True",
+   "expected": "True",
+   "ok": true,
+   "evidence": "R19-REPORT-TRIAL-BALANCE",
+   "defect": null
+  },
+  {
+   "name": "TRIAL-BALANCE closing balances = GL for all 18 accounts",
+   "actual": "True",
+   "expected": "True",
+   "ok": true,
+   "evidence": "R19-REPORT-TRIAL-BALANCE",
+   "defect": null
+  },
+  {
+   "name": "TRIAL-BALANCE period movement 251342.60 both sides",
+   "actual": "(Decimal('251342.6000'), Decimal('251342.6000'))",
+   "expected": "(Decimal('251342.6000'), Decimal('251342.6000'))",
+   "ok": true,
+   "evidence": "R19-REPORT-TRIAL-BALANCE",
+   "defect": null
+  },
+  {
+   "name": "BALANCE-SHEET assets 249948.70 = liabilities+equity",
+   "actual": "(Decimal('249948.7000'), Decimal('249948.7000'))",
+   "expected": "(Decimal('249948.70'), Decimal('249948.70'))",
+   "ok": true,
+   "evidence": "R19-REPORT-BALANCE-SHEET",
+   "defect": null
+  },
+  {
+   "name": "BALANCE-SHEET net loss row = GL -152.7348",
+   "actual": "-152.7348",
+   "expected": "-152.7348",
+   "ok": true,
+   "evidence": "R19-REPORT-BALANCE-SHEET",
+   "defect": null
+  },
+  {
+   "name": "BALANCE-SHEET totals row is not the sum of both sides",
+   "actual": "499897.40",
+   "expected": "249948.7000",
+   "ok": false,
+   "evidence": "R19-REPORT-BALANCE-SHEET",
+   "defect": "UI-017"
+  },
+  {
+   "name": "INCOME-STATEMENT net result = GL -152.7348 (perpetual: no closing-stock add-back)",
+   "actual": "90.0348",
+   "expected": "152.7348",
+   "ok": false,
+   "evidence": "R19-REPORT-INCOME-STATEMENT",
+   "defect": "ACC-002"
+  },
+  {
+   "name": "INCOME-STATEMENT net sales 184.5652 (204.5652 - 20 returns)",
+   "actual": "184.5652",
+   "expected": "184.5652",
+   "ok": true,
+   "evidence": "R19-REPORT-INCOME-STATEMENT",
+   "defect": null
+  },
+  {
+   "name": "VAT-RETURN net 1.4348 = GL 2222001",
+   "actual": "1.4348",
+   "expected": "1.4348",
+   "ok": true,
+   "evidence": "R19-REPORT-VAT-RETURN",
+   "defect": null
+  },
+  {
+   "name": "VAT-RETURN taxable sales base excludes the untaxed progress bills (149.5652)",
+   "actual": "199.5652",
+   "expected": "149.5652",
+   "ok": false,
+   "evidence": "R19-REPORT-VAT-RETURN",
+   "defect": "POLICY-PB-VAT"
+  },
+  {
+   "name": "AR-AGING due = GL AR 109",
+   "actual": "142.00",
+   "expected": "109.0000",
+   "ok": false,
+   "evidence": "R19-REPORT-AR-AGING",
+   "defect": "ACC-042"
+  },
+  {
+   "name": "CUSTOMER-BALANCES CUST-GEN = GL AR 109",
+   "actual": "35.00",
+   "expected": "109.0000",
+   "ok": false,
+   "evidence": "R19-REPORT-CUSTOMER-BALANCES",
+   "defect": "ACC-004"
+  },
+  {
+   "name": "CUSTOMER-BALANCES lists customers only (no SUPP-GEN)",
+   "actual": "['CUST-GEN', 'SUPP-GEN']",
+   "expected": "['CUST-GEN']",
+   "ok": false,
+   "evidence": "R19-REPORT-CUSTOMER-BALANCES",
+   "defect": "UI-011"
+  },
+  {
+   "name": "CUSTOMER statement receivable = GL AR 109",
+   "actual": "35.0000",
+   "expected": "109.0000",
+   "ok": false,
+   "evidence": "R19-REPORT-CUSTOMER",
+   "defect": "ACC-004"
+  },
+  {
+   "name": "INVENTORY-VALUATION 4 units / 62.70 = GL",
+   "actual": "(Decimal('4.00'), Decimal('62.70'))",
+   "expected": "(Decimal('4'), Decimal('62.7000'))",
+   "ok": true,
+   "evidence": "R19-REPORT-INVENTORY-VALUATION",
+   "defect": null
+  },
+  {
+   "name": "ITEM-MOVEMENT rows = inventory_transactions (16)",
+   "actual": "16",
+   "expected": "16",
+   "ok": true,
+   "evidence": "R19-REPORT-ITEM-MOVEMENT",
+   "defect": null
+  },
+  {
+   "name": "ITEM-MOVEMENT net qty (in-out) = 4 on hand",
+   "actual": "4.0000",
+   "expected": "4",
+   "ok": true,
+   "evidence": "R19-REPORT-ITEM-MOVEMENT",
+   "defect": null
+  },
+  {
+   "name": "ITEM-MOVEMENT totals row nets direction (4) instead of summing both (32)",
+   "actual": "32.00",
+   "expected": "4",
+   "ok": false,
+   "evidence": "R19-REPORT-ITEM-MOVEMENT",
+   "defect": "UI-017"
+  },
+  {
+   "name": "INVOICE-PROFIT cost total = COGS 89.4 (not 0)",
+   "actual": "0.00",
+   "expected": "89.4",
+   "ok": false,
+   "evidence": "R19-REPORT-INVOICE-PROFIT",
+   "defect": "ACC-001"
+  },
+  {
+   "name": "INVOICE-PROFIT SI-000002 profit 7.10 (20-12.9) as on commission screen",
+   "actual": "20.0000",
+   "expected": "7.1",
+   "ok": false,
+   "evidence": "R19-REPORT-INVOICE-PROFIT",
+   "defect": "ACC-001"
+  },
+  {
+   "name": "SALES-BY-SALESMAN R19-SM 1 invoice / 23 / profit 7.10",
+   "actual": "[('1', Decimal('23.0000'), Decimal('20.0000'))]",
+   "expected": "[('1', Decimal('23'), Decimal('7.1'))]",
+   "ok": false,
+   "evidence": "R19-REPORT-SALES-BY-SALESMAN",
+   "defect": "ACC-001"
+  },
+  {
+   "name": "POS-SALES 4 invoices / 80",
+   "actual": "(4, Decimal('80.00'))",
+   "expected": "(4, Decimal('80'))",
+   "ok": true,
+   "evidence": "R19-REPORT-POS-SALES",
+   "defect": null
+  },
+  {
+   "name": "CASHIER-SHIFT 68/68/0 closed",
+   "actual": "(Decimal('68.00'), Decimal('68.00'), Decimal('0.00'))",
+   "expected": "(Decimal('68'), Decimal('68'), Decimal('0'))",
+   "ok": true,
+   "evidence": "R19-REPORT-CASHIER-SHIFT",
+   "defect": null
+  },
+  {
+   "name": "CASH-STATEMENT (all locations) shows the cash movements (not 0 / 1 row)",
+   "actual": "(False, Decimal('0.00'))",
+   "expected": "(True, Decimal('229777.0000'))",
+   "ok": false,
+   "evidence": "R19-REPORT-CASH-STATEMENT",
+   "defect": "UI-012"
+  },
+  {
+   "name": "QUOTATIONS both converted; QT-000001 points to the posted SI-000007",
+   "actual": "01a1620a-5c1a-772a-8da1-3792e7ce4fbc",
+   "expected": "01a1620a-5c1d-71e7-8cf6-8a62fbeb61f7",
+   "ok": false,
+   "evidence": "R19-REPORT-QUOTATIONS",
+   "defect": "ACC-051"
+  },
+  {
+   "name": "SALES-INVOICES two orphan drafts (46 / 23) still listed for cleanup",
+   "actual": "[Decimal('23.0000'), Decimal('46.0000')]",
+   "expected": "[Decimal('23'), Decimal('46')]",
+   "ok": true,
+   "evidence": "R19-REPORT-SALES-INVOICES",
+   "defect": null
+  },
+  {
+   "name": "GENERAL-LEDGER year rows = 85 journal lines, totals 251342.60",
+   "actual": "(85, Decimal('251342.60'), Decimal('251342.60'))",
+   "expected": "(85, Decimal('251342.60'), Decimal('251342.60'))",
+   "ok": true,
+   "evidence": "R19-REPORT-GENERAL-LEDGER",
+   "defect": null
+  },
+  {
+   "name": "ACCOUNT-BALANCES 18 accounts, final 250378.10 both sides",
+   "actual": "(18, Decimal('250378.10'), Decimal('250378.10'))",
+   "expected": "(18, Decimal('250378.10'), Decimal('250378.10'))",
+   "ok": true,
+   "evidence": "R19-REPORT-ACCOUNT-BALANCES",
+   "defect": null
+  },
+  {
+   "name": "JOURNALS list October = 27 entries (JE-000002..028)",
+   "actual": "27",
+   "expected": "27",
+   "ok": true,
+   "evidence": "R19-REPORT-JOURNALS",
+   "defect": null
+  },
+  {
+   "name": "SUPPLIER statement = GL 22111001 debit 40 (PV-000003 posted without party)",
+   "actual": "38.0000",
+   "expected": "40.0000",
+   "ok": false,
+   "evidence": "R19-REPORT-SUPPLIER",
+   "defect": "ACC-004/ACC-040"
+  },
+  {
+   "name": "SUPPLIER-BALANCES SUPP-GEN balance = GL 22111001 (40 debit)",
+   "actual": "38.00",
+   "expected": "40.0000",
+   "ok": false,
+   "evidence": "R19-REPORT-SUPPLIER-BALANCES",
+   "defect": "ACC-004/ACC-040"
+  },
+  {
+   "name": "SALARY-STATEMENT one employee row net 140 (120+30-10)",
+   "actual": "(1, Decimal('140.00'))",
+   "expected": "(1, Decimal('140'))",
+   "ok": true,
+   "evidence": "R19-REPORT-SALARY-STATEMENT",
+   "defect": null
+  },
+  {
+   "name": "IN-TRANSIT view empty after shortage close",
+   "actual": "[]",
+   "expected": "[]",
+   "ok": true,
+   "evidence": "R19-REPORT-IN-TRANSIT",
+   "defect": null
+  },
+  {
+   "name": "VOUCHERS list shows the 3 unnumbered drafts left by installments/contracting (50, 80, 36)",
+   "actual": "[Decimal('36.0000'), Decimal('50.0000'), Decimal('80.0000')]",
+   "expected": "[Decimal('36'), Decimal('50'), Decimal('80')]",
+   "ok": true,
+   "evidence": "R19-REPORT-VOUCHERS-RECEIPT",
+   "defect": "ACC-054/055/058"
+  }
+ ]
+}

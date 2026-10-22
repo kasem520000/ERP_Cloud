@@ -1,0 +1,92 @@
+[
+ {
+  "number": "JE-000023",
+  "code": "1250001",
+  "debit": "0.0000",
+  "credit": "6.0000",
+  "cost_center_id": null,
+  "cc_code": null,
+  "party_id": null,
+  "description": "R19 من المدفوع مقدماً"
+ },
+ {
+  "number": "JE-000023",
+  "code": "3130002",
+  "debit": "6.0000",
+  "credit": "0.0000",
+  "cost_center_id": "01a16212-96e9-751f-b3ac-d988635a8e28",
+  "cc_code": "R19-CC",
+  "party_id": null,
+  "description": "R19 كهرباء أكتوبر"
+ },
+ {
+  "number": "JE-000024",
+  "code": "1250001",
+  "debit": "6.0000",
+  "credit": "0.0000",
+  "cost_center_id": null,
+  "cc_code": null,
+  "party_id": null,
+  "description": "R19 من المدفوع مقدماً"
+ },
+ {
+  "number": "JE-000024",
+  "code": "3130002",
+  "debit": "0.0000",
+  "credit": "6.0000",
+  "cost_center_id": "01a16212-96e9-751f-b3ac-d988635a8e28",
+  "cc_code": "R19-CC",
+  "party_id": null,
+  "description": "R19 كهرباء أكتوبر"
+ },
+ {
+  "number": "JE-000027",
+  "code": "12310001",
+  "debit": "5.0000",
+  "credit": "0.0000",
+  "cost_center_id": null,
+  "cc_code": null,
+  "party_id": "01a16198-e584-74ca-9bb2-36d58c4ddfe9",
+  "description": "سند قيد يومية رقم: JE-000027 - سداد دفعة من حساب: عميل عام"
+ },
+ {
+  "number": "JE-000027",
+  "code": "12310001",
+  "debit": "45.0000",
+  "credit": "0.0000",
+  "cost_center_id": null,
+  "cc_code": null,
+  "party_id": "01a16198-e584-74ca-9bb2-36d58c4ddfe9",
+  "description": "سند قيد يومية رقم: JE-000027 - سداد دفعة من حساب: عميل عام"
+ },
+ {
+  "number": "JE-000027",
+  "code": "4100001",
+  "debit": "0.0000",
+  "credit": "50.0000",
+  "cost_center_id": null,
+  "cc_code": null,
+  "party_id": null,
+  "description": "سند قيد يومية رقم: JE-000027 - سداد دفعة من حساب: المبيعات"
+ },
+ {
+  "number": "JE-000028",
+  "code": "12310001",
+  "debit": "5.0000",
+  "credit": "0.0000",
+  "cost_center_id": null,
+  "cc_code": null,
+  "party_id": "01a16198-e584-74ca-9bb2-36d58c4ddfe9",
+  "description": "سند قيد يومية رقم: JE-000028 - سداد دفعة من حساب: عميل عام"
+ },
+ {
+  "number": "JE-000028",
+  "code": "4100001",
+  "debit": "0.0000",
+  "credit": "5.0000",
+  "cost_center_id": null,
+  "cc_code": null,
+  "party_id": "01a16198-e584-74ca-9bb2-36d58c4ddfe9",
+  "description": "سند قيد يومية رقم: JE-000028 - سداد دفعة من حساب: المبيعات"
+ }
+]

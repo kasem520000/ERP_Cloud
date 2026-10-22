@@ -487,3 +487,20 @@
 | `/hrm/salary-payments` | SALARY-PAYMENT | صرف فردي نقدي بسند صحيح وحساب مقابل = حساب الموظف ✓ |
 | `/accounting/periods` | PERIOD-CLOSE-SEP | إغلاق 2026-09 ✓ |
 | شاشات التقارير (41) | R18-REPORT-* | مطابقة للأستاذ: ميزان، أرصدة الحسابات، الأستاذ العام (نص الأسطر UI-019)، حركة الصندوق/البنك، تقييم المخزون، الإنتاج، صافي الإقرار، كشف الموظف (API)، الميزانية (إجمالي UI-017)؛ مخالفة: قائمة الدخل (ACC-002)، أعمار الذمم (ACC-042)، أرصدة/كشوف الأطراف (ACC-004/UI-011)، كشف الصندوق «الكل» (UI-012)، التسوية (ACC-041/043)، مدفوعات الرواتب (UI-018) |
+
+## تحديث R19 — 2026-10-22
+| المسار | معرّفات R19 | ما ثبت |
+|---|---|---|
+| `/inventory/vouchers` (سندات مخزنية) | SV-IN-DRAFT/POST، SV-OUT-DRAFT/POST، SV-VOID | إدخال/إخراج بالمتوسط وقيود صحيحة؛ منع الإخراج بلا رصيد 422 (API)؛ الإلغاء يعكس المخزون والقيد ✓؛ مسودة الإخراج تسعّر بسعر الشراء (UI-021) |
+| `/inventory/transfers` → `/inventory/in-transit` | TR-DRAFT، TR-SEND (+ استلام جزئي/إقفال بعجز عبر API) | بضاعة تحت التحويل 38.7 → 12.9 → 0، العجز إلى تسويات المخزون ✓؛ لا مستند مخزني للعجز (UI-026) |
+| `/sales/salesmen` (+ شاشة العمولات) | SALESMAN-CREATE، COMMISSIONS | بطاقة مندوب؛ عمولات بيع/ربح/تحصيل 2.00/1.42/0 ✓ (تعارض تقارير الربح ACC-001) |
+| `/sales/quotations` | QUOT-CREATE، QUOT-CONVERT-DISC | العرض يحفظ الخصم؛ **التحويل يُسقطه** (ACC-050)؛ التحويل المكرر 409 ✓؛ المتزامن فاتورتان (ACC-051، API) |
+| `/sales/invoices/new` → `[id]` | SALE-SM-DRAFT/POST، SALE-UNDER-SALES-LOCK | فاتورة بمندوب ✓؛ ترحيل تحت قفل sales يُقبل (ACC-053) |
+| `/pos` (+ `/sales/shifts`، `/treasury/day-close`) | SHIFT-OPEN، POS-CASH-SALE، POS-SPLIT-SALE، SHIFT-CLOSE، SHIFT-POST | نقدي/مقسّم بقيود صحيحة؛ offline sync/replay (API) ✓، متزامن 500 (ACC-052)؛ وردية 68/68/0 ✓؛ ترحيلها إلى عهدة الإغلاق (ACC-028)؛ الفرعي لا يتحرك (ACC-018) |
+| `/accounting/cost-centers`، `/accounting/journal-entries/new` → `[id]`، كشف المركز | CC-CREATE، JE-CC، CC-STATEMENT، JE-REVERSE | مركز تكلفة على سطر المصروف ✓؛ كشف 6 ✓؛ زر العكس ينشئ قيداً مرآة `reversal_of` ✓ |
+| `/accounting/periods` | MODULE-LOCK/UNLOCK (API)، POST-UNDER-ACCT-LOCK | الشاشة بلا أقفال وحدات (API فقط)؛ قفل accounting يمنع ترحيل السند 409 ✓؛ قفل sales بلا أثر (ACC-053) |
+| `/hrm/payroll` → `[id]` → حماية الأجور | PAYROLL-RUN2-POST، WPS-PREVIEW، GOSI-PREVIEW، PAYROLL-RUN2-REVERSE (API) | ترحيل مسيّر ثانٍ لشهر مدفوع يُقبل (ACC-047)؛ تأمينات 2 % وغير جاهز ✓؛ WPS فارغ ✓؛ العكس بلا قيد (ACC-047/048) |
+| (لا شاشة) `/installments` | INST-CREATE/COLLECT/OVERCOLLECT (API) | جدول صحيح؛ تحصيل بسند مسودة (ACC-054)؛ تحصيل زائد يُقبل (ACC-055) |
+| `/projects` → `[id]` (+ `/projects/cost`) | PROJ-CREATE، BOQ-TERM، PB-CREATE، PB-POST، PB-RELEASE | 50/5/45 ✓؛ «القيمة —/المستخلص سابقاً —» (UI-022/023)؛ منتقيات حسابات بلا تقييد (UI-025)؛ المحتجز في AR (ACC-056)؛ الإفراج فاتورة بيع عادية (ACC-057)؛ قيود بلا مركز المشروع (ACC-059) |
+| `/projects/contractor-contract`، `/projects/contractor-payment` | CONTRACT-CREATE/ACTIVATE، CPAY-CREATE/APPROVE/PAY | يمنع عقداً بلا بنود ✓؛ شرائح 40/4/36 والمتبقي/المحتجز ✓؛ «المشروع: –» (UI-024)؛ الصرف «مدفوع» بسند مسودة (ACC-058) |
+| شاشات التقارير/المستندات (52) | R19-REPORT-* | مطابقة للأستاذ: ميزان، أرصدة الحسابات، الأستاذ العام (UI-019)، تقييم المخزون، حركة الصنف (إجمالي UI-017)، مستندات المخزون، مبيعات POS، وردية الكاشير، أرصدة مراكز التكلفة، مستخلصات المشاريع، صافي الإقرار؛ مخالفة: قائمة الدخل (ACC-002)، أعمار الذمم (ACC-042)، أرصدة/كشوف الأطراف (ACC-004/UI-011)، ربحية الفواتير/المبيعات حسب المندوب (ACC-001)، كشف الصندوق (UI-012)، إجمالي الميزانية (UI-017)؛ بطاقات SI-000009/المسودتين توثّق ACC-057/050/051 |
