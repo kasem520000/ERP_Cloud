@@ -1,0 +1,772 @@
+{
+  "route": "/treasury/movements",
+  "url": "http://127.0.0.1:3001/treasury/movements",
+  "responses": [
+    {
+      "at": "2026-10-22T07:25:03.364Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/notifications?limit=12",
+      "status": 200,
+      "body": {
+        "data": [],
+        "meta": {
+          "total": 0,
+          "limit": 12,
+          "offset": 0,
+          "unread": 0
+        }
+      }
+    },
+    {
+      "at": "2026-10-22T07:25:03.368Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/cash-locations",
+      "status": 200,
+      "body": {
+        "data": [
+          {
+            "id": "01a16198-e57f-77da-abb8-24578558c3e4",
+            "branchId": "01a16198-e579-755c-b4ec-6c027e8efd57",
+            "kind": "bank",
+            "name": "الحساب البنكي الرئيسي",
+            "accountId": "01a16198-e5b5-726d-8847-fa6b192ae40f",
+            "currencyCode": "SAR",
+            "isDefault": true,
+            "bank": {
+              "iban": "SA00****************0000",
+              "bankName": "البنك الأهلي",
+              "accountNo": "000000000000"
+            },
+            "changeInPos": false,
+            "isActive": true,
+            "notes": null,
+            "custodianIds": [],
+            "version": 1,
+            "createdAt": "2026-10-22T03:12:52.607Z",
+            "updatedAt": "2026-10-22T03:12:52.692Z"
+          },
+          {
+            "id": "01a16198-e57d-7532-b598-3caa8ed1bad2",
+            "branchId": "01a16198-e579-755c-b4ec-6c027e8efd57",
+            "kind": "safe",
+            "name": "الصندوق الرئيسي",
+            "accountId": "01a16198-e5b4-7364-be5f-b5f03375418a",
+            "currencyCode": "SAR",
+            "isDefault": true,
+            "bank": null,
+            "changeInPos": false,
+            "isActive": true,
+            "notes": null,
+            "custodianIds": [],
+            "version": 1,
+            "createdAt": "2026-10-22T03:12:52.605Z",
+            "updatedAt": "2026-10-22T03:12:52.692Z"
+          }
+        ],
+        "meta": {
+          "total": 2,
+          "limit": 50,
+          "offset": 0
+        }
+      }
+    },
+    {
+      "at": "2026-10-22T07:25:03.379Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/settings/white-label/branding",
+      "status": 200,
+      "body": {
+        "data": {
+          "logoFileId": "",
+          "logoUrl": "",
+          "primaryColor": "",
+          "secondaryColor": "",
+          "nameAr": "AUDIT-TEST-2026-R18",
+          "nameEn": "Demo Trading Co."
+        }
+      }
+    },
+    {
+      "at": "2026-10-22T07:25:03.387Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/marketplace/apps",
+      "status": 200,
+      "body": {
+        "data": {
+          "apps": [
+            {
+              "code": "salla",
+              "nameAr": "سلة",
+              "nameEn": "Salla",
+              "descriptionAr": "استيراد طلبات سلة إلى فواتير المبيعات.",
+              "icon": "🛒",
+              "version": "1.0.0",
+              "monthlyPrice": "49.0000",
+              "isCore": false,
+              "isActive": true,
+              "enabled": false,
+              "installedAt": null,
+              "screens": [
+                "/settings/ecommerce",
+                "/sales/ecommerce-orders"
+              ],
+              "category": "integration",
+              "requiresApproval": false,
+              "requestStatus": "none",
+              "requestNote": null,
+              "decisionNote": null
+            },
+            {
+              "code": "zid",
+              "nameAr": "زد",
+              "nameEn": "Zid",
+              "descriptionAr": "استيراد طلبات زد إلى فواتير المبيعات.",
+              "icon": "🛍️",
+              "version": "1.0.0",
+              "monthlyPrice": "49.0000",
+              "isCore": false,
+              "isActive": true,
+              "enabled": false,
+              "installedAt": null,
+              "screens": [
+                "/settings/ecommerce",
+                "/sales/ecommerce-orders"
+              ],
+              "category": "integration",
+              "requiresApproval": false,
+              "requestStatus": "none",
+              "requestNote": null,
+              "decisionNote": null
+            },
+            {
+              "code": "shopify",
+              "nameAr": "شوبيفاي",
+              "nameEn": "Shopify",
+              "descriptionAr": "استيراد طلبات شوبيفاي إلى فواتير المبيعات.",
+              "icon": "🏪",
+              "version": "1.0.0",
+              "monthlyPrice": "49.0000",
+              "isCore": false,
+              "isActive": true,
+              "enabled": false,
+              "installedAt": null,
+              "screens": [
+                "/settings/ecommerce",
+                "/sales/ecommerce-orders"
+              ],
+              "category": "integration",
+              "requiresApproval": false,
+              "requestStatus": "none",
+              "requestNote": null,
+              "decisionNote": null
+            },
+            {
+              "code": "moyasar",
+              "nameAr": "ميسر",
+              "nameEn": "Moyasar",
+              "descriptionAr": "روابط دفع ميسر على فواتير المبيعات.",
+              "icon": "💳",
+              "version": "1.0.0",
+              "monthlyPrice": "29.0000",
+              "isCore": false,
+              "isActive": true,
+              "enabled": false,
+              "installedAt": null,
+              "screens": [],
+              "category": "integration",
+              "requiresApproval": false,
+              "requestStatus": "none",
+              "requestNote": null,
+              "decisionNote": null
+            },
+            {
+              "code": "ocr",
+              "nameAr": "مسح الفواتير",
+              "nameEn": "OCR",
+              "descriptionAr": "قراءة فاتورة الشراء. مشحونة مع النظام ولا تُخفى.",
+              "icon": "📄",
+              "version": "1.0.0",
+              "monthlyPrice": "0.0000",
+              "isCore": true,
+              "isActive": true,
+              "enabled": false,
+              "installedAt": null,
+              "screens": [],
+              "category": "core",
+              "requiresApproval": false,
+              "requestStatus": "none",
+              "requestNote": null,
+              "decisionNote": null
+            },
+            {
+              "code": "esign",
+              "nameAr": "توقيع مرسوم",
+              "nameEn": "E-sign",
+              "descriptionAr": "توقيع مرسوم مع رمز لمرة واحدة. مشحون مع النظام.",
+              "icon": "✍️",
+              "version": "1.0.0",
+              "monthlyPrice": "0.0000",
+              "isCore": true,
+              "isActive": true,
+              "enabled": false,
+              "installedAt": null,
+              "screens": [],
+              "category": "core",
+              "requiresApproval": false,
+              "requestStatus": "none",
+              "requestNote": null,
+              "decisionNote": null
+            },
+            {
+              "code": "wms",
+              "nameAr": "المستودعات",
+              "nameEn": "WMS",
+              "descriptionAr": "الرفوف والتصنيع الخفيف. مشحونان مع النظام.",
+              "icon": "📦",
+              "version": "1.0.0",
+              "monthlyPrice": "0.0000",
+              "isCore": true,
+              "isActive": true,
+              "enabled": false,
+              "installedAt": null,
+              "screens": [],
+              "category": "core",
+              "requiresApproval": false,
+              "requestStatus": "none",
+              "requestNote": null,
+              "decisionNote": null
+            },
+            {
+              "code": "van_sales",
+              "nameAr": "توزيع المناديب والمخابز",
+              "nameEn": "Van Sales & Bakery Distribution",
+              "descriptionAr": "إدارة سيارات ومناديب التوزيع، أوامر التحميل ودفعات الإنتاج اليومية، ضبط البونص المجاني، تعدد أسعار العملاء، والفواتير الضريبية والعادية.",
+              "icon": "🚚",
+              "version": "1.0.0",
+              "monthlyPrice": "129.0000",
+              "isCore": false,
+              "isActive": true,
+              "enabled": false,
+              "installedAt": null,
+              "screens": [
+                "/van-sales"
+              ],
+              "category": "sector",
+              "requiresApproval": true,
+              "requestStatus": "none",
+              "requestNote": null,
+              "decisionNote": null
+            },
+            {
+              "code": "bakery_distribution",
+              "nameAr": "المخابز: الإنتاج والتوزيع",
+              "nameEn": "Bakery Production & Distribution",
+              "descriptionAr": "تطبيق المخابز المستقلّ: دفعات الإنتاج اليومية بموادها الحقيقية ورفض الدفعة بلا مصدر مواد، جولات التوزيع وسياراته والعهدات، المناديب (مستخدمٌ وموظفٌ وصلاحياتٌ يمنحها المدير)، التحصيل والخزينة وإغلاق اليومية — على المحاسبة والمخازن نفسها.",
+              "icon": "🥖",
+              "version": "1.0.0",
+              "monthlyPrice": "149.0000",
+              "isCore": false,
+              "isActive": true,
+              "enabled": true,
+              "installedAt": "2026-10-22 03:12:52.736198+00",
+              "screens": [],
+              "category": "sector",
+              "requiresApproval": true,
+              "requestStatus": "approved",
+              "requestNote": null,
+              "decisionNote": null
+            },
+            {
+              "code": "manufacturing",
+              "nameAr": "التصنيع والإنتاج",
+              "nameEn": "Manufacturing",
+              "descriptionAr": "أوامر التصنيع وقوائم المواد (BOM) وتكاليف الإنتاج للمصانع والمعامل والمخابز.",
+              "icon": "⚙️",
+              "version": "1.0.0",
+              "monthlyPrice": "149.0000",
+              "isCore": false,
+              "isActive": true,
+              "enabled": false,
+              "installedAt": null,
+              "screens": [
+                "/manufacturing/orders",
+                "/inventory/production"
+              ],
+              "category": "sector",
+              "requiresApproval": true,
+              "requestStatus": "none",
+              "requestNote": null,
+              "decisionNote": null
+            },
+            {
+              "code": "tailoring",
+              "nameAr": "التفصيل والخياطة",
+              "nameEn": "Tailoring",
+              "descriptionAr": "إدارة طلبات التفصيل والمقاسات وخيارات الخياطة والأثواب.",
+              "icon": "🧵",
+              "version": "1.0.0",
+              "monthlyPrice": "99.0000",
+              "isCore": false,
+              "isActive": true,
+              "enabled": false,
+              "installedAt": null,
+              "screens": [
+                "/tailoring/orders",
+                "/tailoring/options",
+                "/tailoring/types",
+                "/settings/tailoring"
+              ],
+              "category": "sector",
+              "requiresApproval": true,
+              "requestStatus": "none",
+              "requestNote": null,
+              "decisionNote": null
+            },
+            {
+              "code": "optics",
+              "nameAr": "النظارات والبصريات",
+              "nameEn": "Optics",
+              "descriptionAr": "بيانات فحص النظر والعدسات اليمنى واليسرى وطباعتها في فواتير المبيعات.",
+              "icon": "👓",
+              "version": "1.0.0",
+              "monthlyPrice": "99.0000",
+              "isCore": false,
+              "isActive": true,
+              "enabled": false,
+              "installedAt": null,
+              "screens": [
+                "/optics/glasses",
+                "/settings/optics"
+              ],
+              "category": "sector",
+              "requiresApproval": true,
+              "requestStatus": "none",
+              "requestNote": null,
+              "decisionNote": null
+            },
+            {
+              "code": "marina",
+              "nameAr": "إدارة المراسي والقوارب",
+              "nameEn": "Marina",
+              "descriptionAr": "عقود المراسي والتجهيز والمناوبات وربط الفواتير وإغلاق اليومية البحرية.",
+              "icon": "⚓",
+              "version": "1.0.0",
+              "monthlyPrice": "149.0000",
+              "isCore": false,
+              "isActive": true,
+              "enabled": false,
+              "installedAt": null,
+              "screens": [
+                "/marina/contracts",
+                "/marina/preparation",
+                "/marina/rota",
+                "/marina/link-invoices",
+                "/marina/day-close",
+                "/settings/marina"
+              ],
+              "category": "sector",
+              "requiresApproval": true,
+              "requestStatus": "none",
+              "requestNote": null,
+              "decisionNote": null
+            },
+            {
+              "code": "projects",
+              "nameAr": "إدارة المشاريع والمقاولات",
+              "nameEn": "Projects & Contracting",
+              "descriptionAr": "المشاريع وعقود المقاولين والمستخلصات ومرتجعات المقاولات ومتابعة التنفيذ.",
+              "icon": "🏗️",
+              "version": "1.0.0",
+              "monthlyPrice": "149.0000",
+              "isCore": false,
+              "isActive": true,
+              "enabled": false,
+              "installedAt": null,
+              "screens": [
+                "/projects",
+                "/projects/tasks",
+                "/projects/contractor-contract",
+                "/projects/contractor-payment",
+                "/projects/contracting-return",
+                "/projects/offers",
+                "/projects/followup",
+                "/settings/contracting"
+              ],
+              "category": "sector",
+              "requiresApproval": true,
+              "requestStatus": "none",
+              "requestNote": null,
+              "decisionNote": null
+            },
+            {
+              "code": "reports_pro",
+              "nameAr": "مركز التقارير والتحليلات",
+              "nameEn": "Reports & Analytics",
+              "descriptionAr": "باني التقارير من حقولك الأصلية والمخصّصة، حفظُ التقارير المشتركة وإعادة تشغيلها، مصمّم أعمدة التقارير، والتصدير إلى Excel وCSV وPDF.",
+              "icon": "📊",
+              "version": "1.0.0",
+              "monthlyPrice": "79.0000",
+              "isCore": false,
+              "isActive": true,
+              "enabled": true,
+              "installedAt": "2026-10-22 03:12:52.737483+00",
+              "screens": [
+                "/reports/builder",
+                "/reports/custom",
+                "/support/report-designer"
+              ],
+              "category": "sector",
+              "requiresApproval": true,
+              "requestStatus": "approved",
+              "requestNote": null,
+              "decisionNote": null
+            },
+            {
+              "code": "email_pro",
+              "nameAr": "قناة البريد الإلكتروني",
+              "nameEn": "Email Channel",
+              "descriptionAr": "إرسال الفواتير والكشوف وتنبيهات النظام عبر SMTP الخاصّ بمنشأتك أو مزوّد المنصة، مع قوالب عربية/إنجليزية لكل حدثٍ وسجلٍّ للرسائل.",
+              "icon": "✉️",
+              "version": "1.0.0",
+              "monthlyPrice": "39.0000",
+              "isCore": false,
+              "isActive": true,
+              "enabled": true,
+              "installedAt": "2026-10-22 03:12:52.738131+00",
+              "screens": [],
+              "category": "sector",
+              "requiresApproval": true,
+              "requestStatus": "approved",
+              "requestNote": null,
+              "decisionNote": null
+            },
+            {
+              "code": "whatsapp",
+              "nameAr": "قناة واتساب للأعمال",
+              "nameEn": "WhatsApp Business",
+              "descriptionAr": "إرسال الفواتير وروابط الدفع وتذكيرات التحصيل على واتساب من رقم المنشأة عبر WhatsApp Cloud API، مع سجلّ الرسائل وحالتها.",
+              "icon": "💬",
+              "version": "1.0.0",
+              "monthlyPrice": "49.0000",
+              "isCore": false,
+              "isActive": true,
+              "enabled": true,
+              "installedAt": "2026-10-22 03:12:52.738729+00",
+              "screens": [],
+              "category": "sector",
+              "requiresApproval": true,
+              "requestStatus": "approved",
+              "requestNote": null,
+              "decisionNote": null
+            },
+            {
+              "code": "employee_app",
+              "nameAr": "تطبيق الموظف الذاتي",
+              "nameEn": "Employee Self-Service App",
+              "descriptionAr": "بوابة الجوال للموظفين لتسجيل الحضور والانصراف وطلبات الإجازة والسلفة والعهدة وكشف الراتب.",
+              "icon": "📱",
+              "version": "1.0.0",
+              "monthlyPrice": "79.0000",
+              "isCore": false,
+              "isActive": true,
+              "enabled": false,
+              "installedAt": null,
+              "screens": [
+                "/m",
+                "/m/attendance",
+                "/m/requests/new",
+                "/m/approvals",
+                "/m/profile"
+              ],
+              "category": "sector",
+              "requiresApproval": true,
+              "requestStatus": "none",
+              "requestNote": null,
+              "decisionNote": null
+            }
+          ],
+          "gatedHrefs": [
+            "/settings/ecommerce",
+            "/sales/ecommerce-orders",
+            "/van-sales",
+            "/manufacturing/orders",
+            "/inventory/production",
+            "/tailoring/orders",
+            "/tailoring/options",
+            "/tailoring/types",
+            "/settings/tailoring",
+            "/optics/glasses",
+            "/settings/optics",
+            "/marina/contracts",
+            "/marina/preparation",
+            "/marina/rota",
+            "/marina/link-invoices",
+            "/marina/day-close",
+            "/settings/marina",
+            "/projects",
+            "/projects/tasks",
+            "/projects/contractor-contract",
+            "/projects/contractor-payment",
+            "/projects/contracting-return",
+            "/projects/offers",
+            "/projects/followup",
+            "/settings/contracting",
+            "/reports/builder",
+            "/reports/custom",
+            "/support/report-designer",
+            "/m",
+            "/m/attendance",
+            "/m/requests/new",
+            "/m/approvals",
+            "/m/profile"
+          ],
+          "enabledHrefs": [
+            "/reports/builder",
+            "/reports/custom",
+            "/support/report-designer"
+          ],
+          "enabledCodes": [
+            "bakery_distribution",
+            "reports_pro",
+            "email_pro",
+            "whatsapp"
+          ]
+        }
+      }
+    },
+    {
+      "at": "2026-10-22T07:25:03.419Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/cash-locations/01a16198-e57f-77da-abb8-24578558c3e4/movements?all=1",
+      "status": 200,
+      "body": {
+        "cashLocationId": "01a16198-e57f-77da-abb8-24578558c3e4",
+        "cashLocation": "الحساب البنكي الرئيسي",
+        "currencyCode": "SAR",
+        "accountId": "01a16198-e5b5-726d-8847-fa6b192ae40f",
+        "from": null,
+        "to": null,
+        "fromTime": "00:00",
+        "toTime": "23:59",
+        "all": true,
+        "openingBalance": "0.0000",
+        "totalAll": "179862.0000",
+        "totalPeriod": "179862.0000",
+        "rows": [
+          {
+            "seq": 1,
+            "processType": "قيد يومية",
+            "number": "JE-000001",
+            "date": "2026-01-01",
+            "income": "180000.0000",
+            "outcome": "0.0000",
+            "balance": "180000.0000",
+            "note": "قيد افتتاحي — رأس المال"
+          },
+          {
+            "seq": 2,
+            "processType": "سند قبض",
+            "number": "JE-000007",
+            "date": "2026-10-22",
+            "income": "5.0000",
+            "outcome": "0.0000",
+            "balance": "180005.0000",
+            "note": "R18-RV-BANK تحويل بنكي 5 من عميل عام اختبار محلي فقط"
+          },
+          {
+            "seq": 3,
+            "processType": "سند صرف",
+            "number": "JE-000010",
+            "date": "2026-10-22",
+            "income": "0.0000",
+            "outcome": "140.0000",
+            "balance": "179865.0000",
+            "note": "سند صرف PV-000003"
+          },
+          {
+            "seq": 4,
+            "processType": "فاتورة مبيعات",
+            "number": "JE-000019",
+            "date": "2026-10-22",
+            "income": "12.0000",
+            "outcome": "0.0000",
+            "balance": "179877.0000",
+            "note": "Sales invoice SI-000004"
+          },
+          {
+            "seq": 5,
+            "processType": "قيد يومية",
+            "number": "JE-000030",
+            "date": "2026-10-22",
+            "income": "100.0000",
+            "outcome": "0.0000",
+            "balance": "179977.0000",
+            "note": "استلام مناقلة CT-000001"
+          },
+          {
+            "seq": 6,
+            "processType": "سند صرف",
+            "number": "JE-000042",
+            "date": "2026-10-22",
+            "income": "0.0000",
+            "outcome": "115.0000",
+            "balance": "179862.0000",
+            "note": "سند صرف PV-000005"
+          }
+        ]
+      }
+    },
+    {
+      "at": "2026-10-22T07:25:05.146Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/cash-locations/01a16198-e57d-7532-b598-3caa8ed1bad2/movements?all=1",
+      "status": 200,
+      "body": {
+        "cashLocationId": "01a16198-e57d-7532-b598-3caa8ed1bad2",
+        "cashLocation": "الصندوق الرئيسي",
+        "currencyCode": "SAR",
+        "accountId": "01a16198-e5b4-7364-be5f-b5f03375418a",
+        "from": null,
+        "to": null,
+        "fromTime": "00:00",
+        "toTime": "23:59",
+        "all": true,
+        "openingBalance": "0.0000",
+        "totalAll": "49766.0000",
+        "totalPeriod": "49766.0000",
+        "rows": [
+          {
+            "seq": 1,
+            "processType": "قيد يومية",
+            "number": "JE-000001",
+            "date": "2026-01-01",
+            "income": "50000.0000",
+            "outcome": "0.0000",
+            "balance": "50000.0000",
+            "note": "قيد افتتاحي — رأس المال"
+          },
+          {
+            "seq": 2,
+            "processType": "سند صرف",
+            "number": "JE-000004",
+            "date": "2026-10-22",
+            "income": "0.0000",
+            "outcome": "38.0000",
+            "balance": "49962.0000",
+            "note": "R18-PV-SUPP صرف نقدي 38 لمورد عام مقابل PI-000001 اختبار محلي فقط"
+          },
+          {
+            "seq": 3,
+            "processType": "سند قبض",
+            "number": "JE-000005",
+            "date": "2026-10-22",
+            "income": "10.0000",
+            "outcome": "0.0000",
+            "balance": "49972.0000",
+            "note": "R18-RV-CUST قبض نقدي 10 من عميل عام مقابل SI-000001 اختبار محلي فقط"
+          },
+          {
+            "seq": 4,
+            "processType": "سند صرف",
+            "number": "JE-000009",
+            "date": "2026-10-22",
+            "income": "0.0000",
+            "outcome": "140.0000",
+            "balance": "49832.0000",
+            "note": "R18-SALARY-PAYMENT اختبار معزول"
+          },
+          {
+            "seq": 5,
+            "processType": "فاتورة مبيعات",
+            "number": "JE-000018",
+            "date": "2026-10-22",
+            "income": "20.0000",
+            "outcome": "0.0000",
+            "balance": "49852.0000",
+            "note": "Sales invoice SI-000003"
+          },
+          {
+            "seq": 6,
+            "processType": "فاتورة مبيعات",
+            "number": "JE-000019",
+            "date": "2026-10-22",
+            "income": "8.0000",
+            "outcome": "0.0000",
+            "balance": "49860.0000",
+            "note": "Sales invoice SI-000004"
+          },
+          {
+            "seq": 7,
+            "processType": "فاتورة مبيعات",
+            "number": "JE-000020",
+            "date": "2026-10-22",
+            "income": "20.0000",
+            "outcome": "0.0000",
+            "balance": "49880.0000",
+            "note": "Sales invoice SI-000005"
+          },
+          {
+            "seq": 8,
+            "processType": "فاتورة مبيعات",
+            "number": "JE-000021",
+            "date": "2026-10-22",
+            "income": "20.0000",
+            "outcome": "0.0000",
+            "balance": "49900.0000",
+            "note": "Sales invoice SI-000006"
+          },
+          {
+            "seq": 9,
+            "processType": "قيد يومية",
+            "number": "JE-000022",
+            "date": "2026-10-22",
+            "income": "0.0000",
+            "outcome": "68.0000",
+            "balance": "49832.0000",
+            "note": "اغلاق اليومية خاصة الموظف مالك الحساب رقمCS-000001"
+          },
+          {
+            "seq": 10,
+            "processType": "قيد يومية",
+            "number": "JE-000029",
+            "date": "2026-10-22",
+            "income": "0.0000",
+            "outcome": "100.0000",
+            "balance": "49732.0000",
+            "note": "ارسال مناقلة CT-000001"
+          },
+          {
+            "seq": 11,
+            "processType": "سند صرف",
+            "number": "JE-000031",
+            "date": "2026-10-22",
+            "income": "0.0000",
+            "outcome": "36.0000",
+            "balance": "49696.0000",
+            "note": "سند صرف PV-000004"
+          },
+          {
+            "seq": 12,
+            "processType": "سند قبض",
+            "number": "JE-000032",
+            "date": "2026-10-22",
+            "income": "50.0000",
+            "outcome": "0.0000",
+            "balance": "49746.0000",
+            "note": "سند قبض RV-000003"
+          },
+          {
+            "seq": 13,
+            "processType": "فاتورة مبيعات",
+            "number": "JE-000043",
+            "date": "2026-10-22",
+            "income": "20.0000",
+            "outcome": "0.0000",
+            "balance": "49766.0000",
+            "note": "Sales invoice SI-000013"
+          }
+        ]
+      }
+    }
+  ]
+}
