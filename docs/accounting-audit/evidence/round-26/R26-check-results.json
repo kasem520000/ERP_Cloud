@@ -1,0 +1,582 @@
+{
+ "round": 26,
+ "passed": 49,
+ "failed": 33,
+ "total": 82,
+ "results": [
+  {
+   "id": "A01",
+   "desc": "baseline = R25 DB-024 (cash 49944.3805, inventory 29.5536, transit −0.0001, AR 23, MAIN 0u @ 4.4463 ghost, WH2 3u @ 25.1074, last JE-000021)",
+   "pass": true,
+   "actual": "(Decimal('49944.3805'), {'tenant_id': '01a16504-115a-7723-866c-c1b65778bb8b', 'item_id': '01a1650d-9b90-7711-be44-59856a67c3ed', 'warehouse_id': '01a16504-138f-706f-9d9b-",
+   "tag": ""
+  },
+  {
+   "id": "B01",
+   "desc": "return screen creates a draft sale_return referencing SI-000003 with 1 × 1.03 + 15 %",
+   "pass": true,
+   "actual": "('sale_return', '1.1845')",
+   "tag": ""
+  },
+  {
+   "id": "B02",
+   "desc": "return total collectible in halalas (1.18), not 1.1845",
+   "pass": false,
+   "actual": "1.1845",
+   "tag": "ACC-108"
+  },
+  {
+   "id": "B03",
+   "desc": "SR-000001 posted from the invoice screen (cash refund from the main safe)",
+   "pass": true,
+   "actual": "(201, 'SR-000001')",
+   "tag": ""
+  },
+  {
+   "id": "B04",
+   "desc": "JE-000022 = Dr 4100002 1.03 / Dr 2222001 0.1545 / Cr 1211001 1.1845 + Dr 1270001 7.5536 / Cr 3200004 7.5536 (source cost 15.1072 ÷ 2)",
+   "pass": true,
+   "actual": "[('1211001', Decimal('0.0000'), Decimal('1.1845')), ('1270001', Decimal('7.5536'), Decimal('0.0000')), ('2222001', Decimal('0.1545'), Decimal('0.0000')), ('3200004', Deci",
+   "tag": ""
+  },
+  {
+   "id": "B05",
+   "desc": "returned unit re-enters MAIN at its source cost: 1 unit, value 7.5536 (ghost 4.4463 must not be in it)",
+   "pass": false,
+   "actual": "{'tenant_id': '01a16504-115a-7723-866c-c1b65778bb8b', 'item_id': '01a1650d-9b90-7711-be44-59856a67c3ed', 'warehouse_id': '01a16504-138f-706f-9d9b-06b92fe642a5', 'quantity",
+   "tag": "ACC-116"
+  },
+  {
+   "id": "B06",
+   "desc": "cash refund moves the main-safe sub-ledger by −1.1845",
+   "pass": false,
+   "actual": "[('e716', '-10.0000'), ('16aa', '0.0000'), ('90d4', '10.0000')]",
+   "tag": "ACC-018"
+  },
+  {
+   "id": "B07",
+   "desc": "SR-000001 refunded in cash is not left payment_status=unpaid",
+   "pass": false,
+   "actual": "unpaid",
+   "tag": "ACC-019"
+  },
+  {
+   "id": "C01",
+   "desc": "return of 2 units from SI-000005 (sold 1) → 422 SALES_RETURN_QUANTITY_EXCEEDED",
+   "pass": true,
+   "actual": "(422, 'SALES_RETURN_QUANTITY_EXCEEDED')",
+   "tag": ""
+  },
+  {
+   "id": "C02",
+   "desc": "return of SR-000001 (a return) → 422 SALES_RETURN_SOURCE_INVALID",
+   "pass": true,
+   "actual": "(422, 'SALES_RETURN_SOURCE_INVALID')",
+   "tag": ""
+  },
+  {
+   "id": "C03",
+   "desc": "return of SI-000004 (sold 1 × 20) at unit price 50 is rejected (422)",
+   "pass": false,
+   "actual": "(201, '50.0000')",
+   "tag": "ACC-121"
+  },
+  {
+   "id": "C04",
+   "desc": "over-priced return is not postable; actual SR-000002 posted with Dr 4100002 50 / Cr 12310001 50",
+   "pass": false,
+   "actual": "(201, 'SR-000002', [('12310001', Decimal('0.0000'), Decimal('50.0000')), ('1270001', Decimal('7.5536'), Decimal('0.0000')), ('3200004', Decimal('0.0000'), Decimal('7.5536",
+   "tag": "ACC-121"
+  },
+  {
+   "id": "C05",
+   "desc": "customer receivable after returns: GL 12310001 = 23 − 50 = −27 (credit balance created by the 50 refund of a 20 sale)",
+   "pass": true,
+   "actual": "-27.0000",
+   "tag": ""
+  },
+  {
+   "id": "C06",
+   "desc": "JE-000023 restores stock at the source cost 7.5536 (not at 50)",
+   "pass": true,
+   "actual": "[('12310001', Decimal('0.0000'), Decimal('50.0000')), ('1270001', Decimal('7.5536'), Decimal('0.0000')), ('3200004', Decimal('0.0000'), Decimal('7.5536')), ('4100002', De",
+   "tag": ""
+  },
+  {
+   "id": "D01",
+   "desc": "salesman card saved from the screen with 10 / 5 / 20 %",
+   "pass": true,
+   "actual": "{'id': '01a16596-a24a-70ea-b133-05653b5bc00e', 'tenantId': '01a16504-115a-7723-866c-c1b65778bb8b', 'name': 'مندوب R26', 'employeeRef': None, 'active': True, 'commissionRa",
+   "tag": ""
+  },
+  {
+   "id": "D02",
+   "desc": "sale draft 1 × 20 + 15 % = 23 carries the salesman",
+   "pass": true,
+   "actual": "('23.0000', '01a16596-a24a-70ea-b133-05653b5bc00e')",
+   "tag": ""
+  },
+  {
+   "id": "D03",
+   "desc": "SI-000007 journal: Dr 12310001 23 / Cr 4100001 20 / Cr 2222001 3 / Dr 3200004 cogs / Cr 1270001 cogs",
+   "pass": true,
+   "actual": "[('12310001', Decimal('23.0000'), Decimal('0.0000')), ('1270001', Decimal('0.0000'), Decimal('9.7768')), ('2222001', Decimal('0.0000'), Decimal('3.0000')), ('3200004', De",
+   "tag": ""
+  },
+  {
+   "id": "D04",
+   "desc": "COGS of SI-000007 = true unit cost 7.5536 (returned unit); actual average carries the phantom 4.4463 ÷ 2",
+   "pass": false,
+   "actual": "9.7768",
+   "tag": "ACC-116"
+  },
+  {
+   "id": "D05",
+   "desc": "payment of 1 recorded on SI-000007 (paid 1, partial)",
+   "pass": true,
+   "actual": "(201, '1.0000')",
+   "tag": ""
+  },
+  {
+   "id": "D06",
+   "desc": "payment of 1 from the invoice screen creates a journal (Dr 1211001 1 / Cr 12310001 1)",
+   "pass": false,
+   "actual": "(25, 25)",
+   "tag": "ACC-031"
+  },
+  {
+   "id": "D07",
+   "desc": "sales commission 10 % × 20 = 2.00",
+   "pass": true,
+   "actual": "2.0000",
+   "tag": ""
+  },
+  {
+   "id": "D08",
+   "desc": "collection commission on 1 collected of 23 = 5 % × 0.8696 ≈ 0.04 (or 0 until settled) — not 5 % × full 20",
+   "pass": false,
+   "actual": "1.0000",
+   "tag": "ACC-122"
+  },
+  {
+   "id": "D09",
+   "desc": "profit commission 20 % × (20 − 7.5536 = 12.45) = 2.49; actual uses the phantom-inflated cost 9.7768 → 2.04",
+   "pass": false,
+   "actual": "2.0400",
+   "tag": "ACC-116"
+  },
+  {
+   "id": "D10",
+   "desc": "invoice-profit report and the commission base agree on SI-000007 cost (report cost_total vs 9.7768 used by commissions)",
+   "pass": false,
+   "actual": "('0.0000', Decimal('9.7768'))",
+   "tag": "ACC-118"
+  },
+  {
+   "id": "E01",
+   "desc": "payment 3.55 against PI-000003 (3.5535) accepted from the screen",
+   "pass": true,
+   "actual": "(201, '3.5500')",
+   "tag": ""
+  },
+  {
+   "id": "E02",
+   "desc": "PI-000003 marked paid after the full halala amount (0.0035 residual tolerated / written off)",
+   "pass": false,
+   "actual": "('3.5500', 'partial')",
+   "tag": "ACC-123"
+  },
+  {
+   "id": "E03",
+   "desc": "a further 0.01 is refused (3.56 > 3.5535 + 0.0001) — the residual cannot be settled in halalas",
+   "pass": true,
+   "actual": "(422, 'PAYMENT_EXCEEDS_DUE')",
+   "tag": ""
+  },
+  {
+   "id": "E04",
+   "desc": "only a 0.0035 payment (impossible from a cash drawer) closes the invoice",
+   "pass": false,
+   "actual": "(201, '3.5535', 'paid')",
+   "tag": "ACC-123"
+  },
+  {
+   "id": "E05",
+   "desc": "payment screen/API write no journal (ACC-032): JE count unchanged across the three payments",
+   "pass": true,
+   "actual": "(25, 25)",
+   "tag": ""
+  },
+  {
+   "id": "F01",
+   "desc": "purchase return of 4 units against PI-000003 (bought 3) is rejected at creation",
+   "pass": false,
+   "actual": "(201, '4.7380')",
+   "tag": "ACC-022"
+  },
+  {
+   "id": "F02",
+   "desc": "posting the 4-unit return fails only on stock (WH2 had 2): STOCK_INSUFFICIENT, i.e. no source-quantity guard",
+   "pass": true,
+   "actual": "(422, 'STOCK_INSUFFICIENT')",
+   "tag": ""
+  },
+  {
+   "id": "F03",
+   "desc": "purchase return at 2.00 against a 1.03 purchase is rejected",
+   "pass": false,
+   "actual": "(201, '2.0000')",
+   "tag": "ACC-124"
+  },
+  {
+   "id": "F04",
+   "desc": "over-priced purchase return not postable; actual PR-000001: Dr 22111001 2.30 / Cr 2222001 0.30 / Cr 1270001 8.3691 / Dr 3200004 6.3691",
+   "pass": false,
+   "actual": "(201, 'PR-000001', [('1270001', Decimal('0.0000'), Decimal('8.3691')), ('22111001', Decimal('2.3000'), Decimal('0.0000')), ('2222001', Decimal('0.0000'), Decimal('0.3000'",
+   "tag": "ACC-124"
+  },
+  {
+   "id": "F05",
+   "desc": "PR-000001 journal is balanced and relieves WH2 at its average (8.3691) with the drift to COGS",
+   "pass": true,
+   "actual": "[('1270001', Decimal('0.0000'), Decimal('8.3691')), ('22111001', Decimal('2.3000'), Decimal('0.0000')), ('2222001', Decimal('0.0000'), Decimal('0.3000')), ('3200004', Dec",
+   "tag": ""
+  },
+  {
+   "id": "F06",
+   "desc": "AP after PR-000001: −28.8535 + 2.30 = −26.5535 (supplier credited 2.30 for goods bought at 1.1845)",
+   "pass": true,
+   "actual": "-26.5535",
+   "tag": ""
+  },
+  {
+   "id": "F07",
+   "desc": "WH2 after the 1-unit return: 2 units 16.7383",
+   "pass": true,
+   "actual": "{'tenant_id': '01a16504-115a-7723-866c-c1b65778bb8b', 'item_id': '01a1650d-9b90-7711-be44-59856a67c3ed', 'warehouse_id': '01a16521-7bb0-700f-aa7d-0bc92c0904b0', 'quantity",
+   "tag": ""
+  },
+  {
+   "id": "G01",
+   "desc": "TR-000002 draft WH2 → MAIN 2 units from the screen",
+   "pass": true,
+   "actual": "(201, 'TR-000002')",
+   "tag": ""
+  },
+  {
+   "id": "G02",
+   "desc": "send: Dr 1270003 16.7383 / Cr 1270001 16.7383 (WH2 value exact); WH2 0 units 0 value",
+   "pass": true,
+   "actual": "([('1270001', Decimal('0.0000'), Decimal('16.7383')), ('1270003', Decimal('16.7383'), Decimal('0.0000'))], {'tenant_id': '01a16504-115a-7723-866c-c1b65778bb8b', 'item_id'",
+   "tag": ""
+  },
+  {
+   "id": "G03",
+   "desc": "partial receipt of 1 of 2 → status partially_received",
+   "pass": true,
+   "actual": "(201, 'partially_received')",
+   "tag": ""
+  },
+  {
+   "id": "G04",
+   "desc": "shortage close → status closed; JE-000028 Dr 3121004 / Cr 1270003 for the missing unit",
+   "pass": true,
+   "actual": "(201, 'closed', [('1270003', Decimal('0.0000'), Decimal('8.3692')), ('3121004', Decimal('8.3692'), Decimal('0.0000'))])",
+   "tag": ""
+  },
+  {
+   "id": "G05",
+   "desc": "receipt + shortage legs equal the sent value (8.3692 + 8.3692 = 16.7384 ≠ 16.7383): transit must return to its baseline −0.0001",
+   "pass": false,
+   "actual": "-0.0002",
+   "tag": "ACC-113"
+  },
+  {
+   "id": "G06",
+   "desc": "second close → 409 TRANSFER_ALREADY_CLOSED",
+   "pass": true,
+   "actual": "(409, 'TRANSFER_ALREADY_CLOSED')",
+   "tag": ""
+  },
+  {
+   "id": "G07",
+   "desc": "MAIN after receipt: 2 units 18.1460 (9.7768 + 8.3692)",
+   "pass": true,
+   "actual": "{'tenant_id': '01a16504-115a-7723-866c-c1b65778bb8b', 'item_id': '01a1650d-9b90-7711-be44-59856a67c3ed', 'warehouse_id': '01a16504-138f-706f-9d9b-06b92fe642a5', 'quantity",
+   "tag": ""
+  },
+  {
+   "id": "G08",
+   "desc": "cancel in transit from the screen (with reason) → cancelled; JE-000030 reverses JE-000029 (Dr 1270001 9.073 / Cr 1270003 9.073)",
+   "pass": true,
+   "actual": "(201, 'cancelled', [('1270001', Decimal('9.0730'), Decimal('0.0000')), ('1270003', Decimal('0.0000'), Decimal('9.0730'))])",
+   "tag": ""
+  },
+  {
+   "id": "G09",
+   "desc": "stock back in MAIN after the cancel: 2 units 18.1460",
+   "pass": true,
+   "actual": "{'tenant_id': '01a16504-115a-7723-866c-c1b65778bb8b', 'item_id': '01a1650d-9b90-7711-be44-59856a67c3ed', 'warehouse_id': '01a16504-138f-706f-9d9b-06b92fe642a5', 'quantity",
+   "tag": ""
+  },
+  {
+   "id": "G10",
+   "desc": "cancel reason captured in the reversal description",
+   "pass": true,
+   "actual": "['عكس القيد JE-000029: R26 إلغاء مناقلة في الطريق — اختبار معزول']",
+   "tag": ""
+  },
+  {
+   "id": "H01",
+   "desc": "cancel of a draft transfer → voided (no journal)",
+   "pass": true,
+   "actual": "(201, 'voided')",
+   "tag": ""
+  },
+  {
+   "id": "H02",
+   "desc": "cancel after send → 422 CASH_TRANSFER_INVALID_STATE (cash stays in transit; no send-back path exists)",
+   "pass": true,
+   "actual": "(422, 'CASH_TRANSFER_INVALID_STATE')",
+   "tag": ""
+  },
+  {
+   "id": "H03",
+   "desc": "a sent transfer can be returned to the source safe (reversal or send-back endpoint)",
+   "pass": false,
+   "actual": "no endpoint: only receive at destination (treasury.service.ts L1039–1058)",
+   "tag": "ACC-127"
+  },
+  {
+   "id": "H04",
+   "desc": "cancel of received CT-000001 → 422",
+   "pass": true,
+   "actual": "(422, 'CASH_TRANSFER_INVALID_STATE')",
+   "tag": ""
+  },
+  {
+   "id": "H05",
+   "desc": "CT-000002 journals: JE-000031 Dr 1211003 5 / Cr 1211001 5; JE-000032 Dr 1212001 5 / Cr 1211003 5",
+   "pass": true,
+   "actual": "([('1211001', Decimal('0.0000'), Decimal('5.0000')), ('1211003', Decimal('5.0000'), Decimal('0.0000'))], [('1211003', Decimal('0.0000'), Decimal('5.0000')), ('1212001', D",
+   "tag": ""
+  },
+  {
+   "id": "H06",
+   "desc": "receipt journal of a transfer into branch 2 is posted on branch 2",
+   "pass": false,
+   "actual": "['5daa']",
+   "tag": "ACC-112"
+  },
+  {
+   "id": "H07",
+   "desc": "cash sub-ledgers after CT-000002: main −15 / BR2 +15; GL 1211003 = 0, 1212001 = 15",
+   "pass": true,
+   "actual": "(Decimal('0.0000'), Decimal('15.0000'))",
+   "tag": ""
+  },
+  {
+   "id": "K-1211001",
+   "desc": "closing 1211001 = 49938.196 (CONTINUITY §1 G4, recomputed for the MAIN-warehouse sale and the 1-unit purchase return)",
+   "pass": true,
+   "actual": "49938.1960",
+   "tag": ""
+  },
+  {
+   "id": "K-1211003",
+   "desc": "closing 1211003 = 0 (CONTINUITY §1 G4, recomputed for the MAIN-warehouse sale and the 1-unit purchase return)",
+   "pass": true,
+   "actual": "0.0000",
+   "tag": ""
+  },
+  {
+   "id": "K-1212001",
+   "desc": "closing 1212001 = 15 (CONTINUITY §1 G4, recomputed for the MAIN-warehouse sale and the 1-unit purchase return)",
+   "pass": true,
+   "actual": "15.0000",
+   "tag": ""
+  },
+  {
+   "id": "K-12310001",
+   "desc": "closing 12310001 = -4 (CONTINUITY §1 G4, recomputed for the MAIN-warehouse sale and the 1-unit purchase return)",
+   "pass": true,
+   "actual": "-4.0000",
+   "tag": ""
+  },
+  {
+   "id": "K-1270003",
+   "desc": "closing 1270003 = -0.0001 (CONTINUITY §1 G4, recomputed for the MAIN-warehouse sale and the 1-unit purchase return)",
+   "pass": true,
+   "actual": "-0.0002",
+   "tag": ""
+  },
+  {
+   "id": "K-22111001",
+   "desc": "closing 22111001 = -26.5535 (CONTINUITY §1 G4, recomputed for the MAIN-warehouse sale and the 1-unit purchase return)",
+   "pass": true,
+   "actual": "-26.5535",
+   "tag": ""
+  },
+  {
+   "id": "K-2222001",
+   "desc": "closing 2222001 = 6.3075 (CONTINUITY §1 G4, recomputed for the MAIN-warehouse sale and the 1-unit purchase return)",
+   "pass": true,
+   "actual": "6.3075",
+   "tag": ""
+  },
+  {
+   "id": "K-4100001",
+   "desc": "closing 4100001 = -102.07 (CONTINUITY §1 G4, recomputed for the MAIN-warehouse sale and the 1-unit purchase return)",
+   "pass": true,
+   "actual": "-102.0700",
+   "tag": ""
+  },
+  {
+   "id": "K-4100002",
+   "desc": "closing 4100002 = 51.03 (CONTINUITY §1 G4, recomputed for the MAIN-warehouse sale and the 1-unit purchase return)",
+   "pass": true,
+   "actual": "51.0300",
+   "tag": ""
+  },
+  {
+   "id": "K-INV",
+   "desc": "GL 1270001 = Σ stock_balances value (18.1460)",
+   "pass": false,
+   "actual": "(Decimal('18.1458'), '18.1460')",
+   "tag": "ACC-113"
+  },
+  {
+   "id": "K-TB-BAL",
+   "desc": "trial balance balanced",
+   "pass": true,
+   "actual": "0.0000",
+   "tag": ""
+  },
+  {
+   "id": "K-TB-BR2",
+   "desc": "branch filter: 1212001 (branch-2 safe) appears on BR2, not MAIN",
+   "pass": false,
+   "actual": "(None, Decimal('15.0000'))",
+   "tag": "ACC-112"
+  },
+  {
+   "id": "K-IS0",
+   "desc": "income statement with_stock=0 net = profit-loss net (−52.9044)",
+   "pass": true,
+   "actual": "({'kind': 'profit', 'code': None, 'name': 'صافي خسائر العام', 'debit': '0.0000', 'credit': '52.9044', 'balanceDebit': '0.0000', 'balanceCredit': '52.9044', 'status': 'دائ",
+   "tag": ""
+  },
+  {
+   "id": "K-IS1",
+   "desc": "income statement with_stock=1 (screen default) equals the P&L — must not add closing stock in a perpetual system",
+   "pass": false,
+   "actual": "({'kind': 'account', 'code': '32', 'name': 'صافي المشتريات', 'debit': '73.9141', 'credit': '15.1072', 'balanceDebit': '58.8069', 'balanceCredit': '0.0000', 'status': 'مدي",
+   "tag": "ACC-120"
+  },
+  {
+   "id": "K-VAT-NET",
+   "desc": "vat-return net = GL 2222001 (6.3075 receivable)",
+   "pass": true,
+   "actual": "({'base': '174.13', 'vat': '-6.3075'}, Decimal('6.3075'))",
+   "tag": ""
+  },
+  {
+   "id": "K-VAT-SR",
+   "desc": "sales-return bucket shows the VAT of the returns (−0.1545) and their base (−51.03)",
+   "pass": true,
+   "actual": "{'bucket': 'مردود مبيعات', 'base': '-51.0300', 'vat': '-0.1545'}",
+   "tag": ""
+  },
+  {
+   "id": "K-VAT-PR",
+   "desc": "purchase-return bucket −2.00 / +0.30",
+   "pass": true,
+   "actual": "{'bucket': 'مردود مشتريات', 'base': '-2.0000', 'vat': '0.3000'}",
+   "tag": ""
+  },
+  {
+   "id": "K-VATP-EXEMPT",
+   "desc": "vat-return-period: the 0 %-rate sale (20) and its 50 return are not “exempt sales” (−30.00)",
+   "pass": false,
+   "actual": "{'section': 'ضريبة القيمة المضافة على المبيعات', 'line': 'المبيعات المعفاة', 'net': '-30.00', 'vat': '0.00', 's_net_vat': '0.00'}",
+   "tag": "ACC-119"
+  },
+  {
+   "id": "K-AR",
+   "desc": "AR aging = GL receivable (−4): the credit return SR-000002 (50) must net the aging; actual 45",
+   "pass": false,
+   "actual": "('45.00', Decimal('-4.0000'))",
+   "tag": "ACC-042"
+  },
+  {
+   "id": "K-AP",
+   "desc": "AP aging = GL payable (26.5535): PR-000001 2.30 and the voided PV (115) must net; actual 140.30",
+   "pass": false,
+   "actual": "('140.30', Decimal('-26.5535'))",
+   "tag": "ACC-042"
+  },
+  {
+   "id": "K-CUST",
+   "desc": "customer-balances: CUST-GEN = −4 and no supplier rows",
+   "pass": false,
+   "actual": "[{'seq': '1', 'account_code': 'CUST-GEN', 'party': 'عميل عام', 'debit': '179.84', 'credit': '248.03', 'balance': '68.20', 'status': 'دائن'}, {'seq': '2', 'account_code': ",
+   "tag": "ACC-004"
+  },
+  {
+   "id": "K-SUPP",
+   "desc": "supplier-balances: SUPP-GEN = 26.5535 payable",
+   "pass": false,
+   "actual": "[{'code': 'SUPP-GEN', 'party': 'مورد عام', 'debit': '267.5226', 'credit': '152.5226', 'balance': '-115.0000'}]",
+   "tag": "ACC-004"
+  },
+  {
+   "id": "K-VAL",
+   "desc": "inventory-valuation total 18.1460 = GL 1270001",
+   "pass": false,
+   "actual": "({'quantity': '2.00', 'value': '18.1460'}, Decimal('18.1458'))",
+   "tag": "ACC-113"
+  },
+  {
+   "id": "K-ITEM-PROFIT",
+   "desc": "item-profit nets the returns (revenue 102.07 − 51.03 = 51.04; cost 67.545 − 15.1072 = 52.4378)",
+   "pass": false,
+   "actual": "('102.0700', '67.5450')",
+   "tag": "ACC-125"
+  },
+  {
+   "id": "K-INV-PROFIT",
+   "desc": "invoice-profit lists the two returns (SR-000001/SR-000002) and real line costs",
+   "pass": false,
+   "actual": "(7, {'subtotal': '102.07', 'cost_total': '0.00', 'profit': '102.07'})",
+   "tag": "ACC-118"
+  },
+  {
+   "id": "K-SALES-KPI",
+   "desc": "sales list KPI “قيمة المبيعات” nets returns (115.38 − 51.18 = 64.20); actual adds them (166.57)",
+   "pass": false,
+   "actual": "['166.57', '96.18']",
+   "tag": "ACC-126"
+  },
+  {
+   "id": "K-SALES-UNPAID",
+   "desc": "sales list KPI “غير مسددة” excludes returns (23 + 22 = 45); actual 96.18 counts SR-000001/SR-000002 as receivables",
+   "pass": false,
+   "actual": "96.18 present",
+   "tag": "ACC-126"
+  },
+  {
+   "id": "K-PURCH-KPI",
+   "desc": "purchases list KPI nets PR-000001 (143.85 − 2.30 = 141.55); actual 146.15 adds it (R15 defect reproduced)",
+   "pass": false,
+   "actual": "146.15 present",
+   "tag": "ACC-026"
+  },
+  {
+   "id": "K-IN-TRANSIT",
+   "desc": "in-transit screen shows nothing pending after the close and the cancel (0.00)",
+   "pass": true,
+   "actual": "",
+   "tag": ""
+  }
+ ]
+}
