@@ -1,0 +1,243 @@
+{
+  "actor": "cashier@demo.test",
+  "loginStatus": 200,
+  "tokenReceived": true,
+  "results": [
+    {
+      "label": "voucher-post",
+      "method": "POST",
+      "path": "/treasury/vouchers/01a1621a-e4ed-770c-9161-538dad62e221/post",
+      "request": {},
+      "status": 404,
+      "body": {
+        "type": "about:blank",
+        "title": "Not found",
+        "status": 404,
+        "code": "NOT_FOUND",
+        "detail": "Cannot POST /api/v1/treasury/vouchers/01a1621a-e4ed-770c-9161-538dad62e221/post",
+        "traceId": "01a16271-54a0-70aa-8362-458a8ad85b24"
+      }
+    },
+    {
+      "label": "invoice-post",
+      "method": "POST",
+      "path": "/sales/invoices/01a1620a-5c1a-772a-8da1-3792e7ce4fbc/post",
+      "request": {
+        "paymentMethod": "credit"
+      },
+      "status": 403,
+      "body": {
+        "type": "about:blank",
+        "title": "Forbidden",
+        "status": 403,
+        "code": "FORBIDDEN",
+        "detail": "permission sales.invoice.post required",
+        "traceId": "01a16271-54a6-7759-a9aa-357f500d2a37",
+        "errors": [
+          {
+            "field": "permission",
+            "message": "sales.invoice.post"
+          }
+        ]
+      }
+    },
+    {
+      "label": "journal-create",
+      "method": "POST",
+      "path": "/journal-entries",
+      "request": {
+        "branchId": "01a16198-e579-755c-b4ec-6c027e8efd57",
+        "date": "2026-10-22",
+        "description": "R20 SoD",
+        "lines": []
+      },
+      "status": 403,
+      "body": {
+        "type": "about:blank",
+        "title": "Forbidden",
+        "status": 403,
+        "code": "FORBIDDEN",
+        "detail": "permission accounting.journal.post required",
+        "traceId": "01a16271-54b9-711e-8555-568e76b0d819",
+        "errors": [
+          {
+            "field": "permission",
+            "message": "accounting.journal.post"
+          }
+        ]
+      }
+    },
+    {
+      "label": "period-close",
+      "method": "POST",
+      "path": "/fiscal-periods/01a16198-e5ea-70d8-a307-d3f9b2d83384/close",
+      "request": {},
+      "status": 403,
+      "body": {
+        "type": "about:blank",
+        "title": "Forbidden",
+        "status": 403,
+        "code": "FORBIDDEN",
+        "detail": "permission accounting.period.close required",
+        "traceId": "01a16271-54ca-72fd-8c05-ce7eb83920bc",
+        "errors": [
+          {
+            "field": "permission",
+            "message": "accounting.period.close"
+          }
+        ]
+      }
+    },
+    {
+      "label": "cash-transfer",
+      "method": "POST",
+      "path": "/cash-transfers",
+      "request": {
+        "branchId": "01a16198-e579-755c-b4ec-6c027e8efd57",
+        "fromCashLocationId": "01a16198-e57d-7532-b598-3caa8ed1bad2",
+        "toCashLocationId": "01a16198-e57f-77da-abb8-24578558c3e4",
+        "amount": "1"
+      },
+      "status": 403,
+      "body": {
+        "type": "about:blank",
+        "title": "Forbidden",
+        "status": 403,
+        "code": "FORBIDDEN",
+        "detail": "permission treasury.transfer.manage required",
+        "traceId": "01a16271-54d9-76bc-bb79-aaa2c3aaffa3",
+        "errors": [
+          {
+            "field": "permission",
+            "message": "treasury.transfer.manage"
+          }
+        ]
+      }
+    },
+    {
+      "label": "count-create",
+      "method": "POST",
+      "path": "/inventory/adjustments",
+      "request": {
+        "branchId": "01a16198-e579-755c-b4ec-6c027e8efd57",
+        "warehouseId": "01a16198-e57b-7003-b1d1-4562344efb18",
+        "reason": "R20 SoD",
+        "lines": [
+          {
+            "itemId": "01a161a2-e5fa-733f-bb31-e435012a3cb1",
+            "countedQty": "0"
+          }
+        ]
+      },
+      "status": 403,
+      "body": {
+        "type": "about:blank",
+        "title": "Forbidden",
+        "status": 403,
+        "code": "FORBIDDEN",
+        "detail": "permission inventory.adjust required",
+        "traceId": "01a16271-54e7-75f8-834b-e50a396afd1d",
+        "errors": [
+          {
+            "field": "permission",
+            "message": "inventory.adjust"
+          }
+        ]
+      }
+    },
+    {
+      "label": "payroll-run",
+      "method": "POST",
+      "path": "/hrm/payroll/runs",
+      "request": {
+        "yearMonth": "2026-12"
+      },
+      "status": 403,
+      "body": {
+        "type": "about:blank",
+        "title": "Forbidden",
+        "status": 403,
+        "code": "FORBIDDEN",
+        "detail": "permission hrm.manage required",
+        "traceId": "01a16271-54f5-707f-a0a5-4d11ec92a807",
+        "errors": [
+          {
+            "field": "permission",
+            "message": "hrm.manage"
+          }
+        ]
+      }
+    },
+    {
+      "label": "credit-limit-raise",
+      "method": "PUT",
+      "path": "/parties/01a1625c-09e5-7391-9c7b-745f9754fb62",
+      "request": {
+        "creditLimit": "1000000"
+      },
+      "status": 200,
+      "body": {
+        "id": "01a1625c-09e5-7391-9c7b-745f9754fb62",
+        "tenantId": "01a16198-e3e0-77af-b843-47c9d7787c03",
+        "code": "000001",
+        "kind": "customer",
+        "name": "R20 عميل حد ائتمان 30 اختبار معزول",
+        "legalName": null,
+        "taxNo": null,
+        "nationalId": null,
+        "address": null,
+        "phone": "0500000020",
+        "email": null,
+        "receivableAccountId": null,
+        "payableAccountId": null,
+        "creditLimit": "1000000.0000",
+        "isOwner": false,
+        "isContractor": false,
+        "branchId": null,
+        "paymentMethodId": null,
+        "createdAt": "2026-10-22T06:46:01.447Z",
+        "createdBy": null,
+        "updatedAt": "2026-10-22T07:09:16.941Z",
+        "updatedBy": null,
+        "version": 2,
+        "deletedAt": null,
+        "deletedBy": null,
+        "customFields": {}
+      }
+    },
+    {
+      "label": "party-after",
+      "method": "GET",
+      "path": "/parties/01a1625c-09e5-7391-9c7b-745f9754fb62",
+      "status": 200,
+      "body": {
+        "id": "01a1625c-09e5-7391-9c7b-745f9754fb62",
+        "tenantId": "01a16198-e3e0-77af-b843-47c9d7787c03",
+        "code": "000001",
+        "kind": "customer",
+        "name": "R20 عميل حد ائتمان 30 اختبار معزول",
+        "legalName": null,
+        "taxNo": null,
+        "nationalId": null,
+        "address": null,
+        "phone": "0500000020",
+        "email": null,
+        "receivableAccountId": null,
+        "payableAccountId": null,
+        "creditLimit": "1000000.0000",
+        "isOwner": false,
+        "isContractor": false,
+        "branchId": null,
+        "paymentMethodId": null,
+        "createdAt": "2026-10-22T06:46:01.447Z",
+        "createdBy": null,
+        "updatedAt": "2026-10-22T07:09:16.941Z",
+        "updatedBy": null,
+        "version": 2,
+        "deletedAt": null,
+        "deletedBy": null,
+        "customFields": {}
+      }
+    }
+  ]
+}

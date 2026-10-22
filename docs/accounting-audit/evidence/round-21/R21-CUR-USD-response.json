@@ -1,0 +1,137 @@
+{
+  "sequence": true,
+  "results": [
+    {
+      "label": "currencies-before",
+      "method": "GET",
+      "path": "/currencies",
+      "status": 200,
+      "body": {
+        "data": [
+          {
+            "code": "SAR",
+            "nameAr": "SAR",
+            "nameEn": "SAR",
+            "minorUnits": 2,
+            "isBase": true,
+            "isActive": true,
+            "version": 1,
+            "createdAt": "2026-10-22T08:04:25.280Z",
+            "updatedAt": null
+          }
+        ],
+        "meta": {
+          "total": 1,
+          "limit": 50,
+          "offset": 0
+        }
+      }
+    },
+    {
+      "label": "enable-usd",
+      "method": "POST",
+      "path": "/currencies",
+      "request": {
+        "code": "USD",
+        "nameAr": "دولار أمريكي",
+        "nameEn": "US Dollar",
+        "minorUnits": 2
+      },
+      "status": 201,
+      "body": {
+        "data": {
+          "code": "USD",
+          "nameAr": "دولار أمريكي",
+          "nameEn": "US Dollar",
+          "minorUnits": 2,
+          "isBase": false,
+          "isActive": true,
+          "version": 1,
+          "createdAt": "2026-10-22T08:25:13.624Z",
+          "updatedAt": null
+        }
+      }
+    },
+    {
+      "label": "fx-usd-sar",
+      "method": "POST",
+      "path": "/fx-rates",
+      "request": {
+        "fromCode": "USD",
+        "toCode": "SAR",
+        "rate": "3.75",
+        "effectiveFrom": "2026-10-01"
+      },
+      "status": 201,
+      "body": {
+        "data": {
+          "id": "01a162b6-dcb3-706f-8dd5-88de58791284",
+          "fromCode": "USD",
+          "toCode": "SAR",
+          "rate": "3.7500000000",
+          "effectiveFrom": "2026-10-01",
+          "version": 1,
+          "createdAt": "2026-10-22T08:25:13.650Z",
+          "updatedAt": null
+        }
+      }
+    },
+    {
+      "label": "resolve",
+      "method": "GET",
+      "path": "/fx-rates/resolve?from=USD&to=SAR&on=2026-10-22",
+      "status": 400,
+      "body": {
+        "type": "about:blank",
+        "title": "Validation failed",
+        "status": 400,
+        "code": "VALIDATION_FAILED",
+        "detail": "Request validation failed",
+        "traceId": "01a162b6-dcbd-74c4-bb40-3a42c8f87ec5",
+        "errors": [
+          {
+            "field": "(root)",
+            "message": "Unrecognized key(s) in object: 'on'"
+          }
+        ]
+      }
+    },
+    {
+      "label": "currencies-after",
+      "method": "GET",
+      "path": "/currencies",
+      "status": 200,
+      "body": {
+        "data": [
+          {
+            "code": "SAR",
+            "nameAr": "SAR",
+            "nameEn": "SAR",
+            "minorUnits": 2,
+            "isBase": true,
+            "isActive": true,
+            "version": 1,
+            "createdAt": "2026-10-22T08:04:25.280Z",
+            "updatedAt": null
+          },
+          {
+            "code": "USD",
+            "nameAr": "دولار أمريكي",
+            "nameEn": "US Dollar",
+            "minorUnits": 2,
+            "isBase": false,
+            "isActive": true,
+            "version": 1,
+            "createdAt": "2026-10-22T08:25:13.624Z",
+            "updatedAt": null
+          }
+        ],
+        "meta": {
+          "total": 2,
+          "limit": 50,
+          "offset": 0
+        }
+      }
+    }
+  ]
+}

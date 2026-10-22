@@ -1,0 +1,610 @@
+{
+  "route": "/treasury/transfers",
+  "url": "http://127.0.0.1:3001/treasury/transfers",
+  "responses": [
+    {
+      "at": "2026-10-22T07:25:10.484Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/notifications?limit=12",
+      "status": 200,
+      "body": {
+        "data": [],
+        "meta": {
+          "total": 0,
+          "limit": 12,
+          "offset": 0,
+          "unread": 0
+        }
+      }
+    },
+    {
+      "at": "2026-10-22T07:25:10.496Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/cash-transfers?",
+      "status": 200,
+      "body": [
+        {
+          "id": "01a16255-f35e-7451-9bc6-8e28531ba332",
+          "branchId": "01a16198-e579-755c-b4ec-6c027e8efd57",
+          "fromCashLocationId": "01a16198-e57d-7532-b598-3caa8ed1bad2",
+          "toCashLocationId": "01a16198-e57f-77da-abb8-24578558c3e4",
+          "fromName": "الصندوق الرئيسي",
+          "toName": "الحساب البنكي الرئيسي",
+          "number": null,
+          "amount": "25.0000",
+          "currency": "SAR",
+          "status": "voided",
+          "sentJournalEntryId": null,
+          "receivedJournalEntryId": null,
+          "sentAt": null,
+          "receivedAt": null,
+          "createdAt": "2026-10-22T06:39:22.461Z"
+        },
+        {
+          "id": "01a16255-4f78-712e-95d5-09b207561a50",
+          "branchId": "01a16198-e579-755c-b4ec-6c027e8efd57",
+          "fromCashLocationId": "01a16198-e57d-7532-b598-3caa8ed1bad2",
+          "toCashLocationId": "01a16198-e57f-77da-abb8-24578558c3e4",
+          "fromName": "الصندوق الرئيسي",
+          "toName": "الحساب البنكي الرئيسي",
+          "number": "CT-000001",
+          "amount": "100.0000",
+          "currency": "SAR",
+          "status": "received",
+          "sentJournalEntryId": "01a16255-7cd2-769f-81d7-bd63120b2c6f",
+          "receivedJournalEntryId": "01a16255-abb4-749a-8390-760b8fa72225",
+          "sentAt": "2026-10-22T06:38:52.126Z",
+          "receivedAt": "2026-10-22T06:39:04.119Z",
+          "createdAt": "2026-10-22T06:38:40.504Z"
+        }
+      ]
+    },
+    {
+      "at": "2026-10-22T07:25:10.504Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/branches",
+      "status": 200,
+      "body": {
+        "data": [
+          {
+            "id": "01a16198-e579-755c-b4ec-6c027e8efd57",
+            "code": "MAIN",
+            "nameAr": "الفرع الرئيسي",
+            "nameEn": "Main branch",
+            "address": null,
+            "phone": null,
+            "mobile": null,
+            "email": null,
+            "isDefault": true,
+            "isActive": true,
+            "version": 1,
+            "createdAt": "2026-10-22T03:12:52.602Z",
+            "updatedAt": null
+          }
+        ],
+        "meta": {
+          "total": 1,
+          "limit": 50,
+          "offset": 0
+        }
+      }
+    },
+    {
+      "at": "2026-10-22T07:25:10.507Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/cash-locations",
+      "status": 200,
+      "body": {
+        "data": [
+          {
+            "id": "01a16198-e57f-77da-abb8-24578558c3e4",
+            "branchId": "01a16198-e579-755c-b4ec-6c027e8efd57",
+            "kind": "bank",
+            "name": "الحساب البنكي الرئيسي",
+            "accountId": "01a16198-e5b5-726d-8847-fa6b192ae40f",
+            "currencyCode": "SAR",
+            "isDefault": true,
+            "bank": {
+              "iban": "SA00****************0000",
+              "bankName": "البنك الأهلي",
+              "accountNo": "000000000000"
+            },
+            "changeInPos": false,
+            "isActive": true,
+            "notes": null,
+            "custodianIds": [],
+            "version": 1,
+            "createdAt": "2026-10-22T03:12:52.607Z",
+            "updatedAt": "2026-10-22T03:12:52.692Z"
+          },
+          {
+            "id": "01a16198-e57d-7532-b598-3caa8ed1bad2",
+            "branchId": "01a16198-e579-755c-b4ec-6c027e8efd57",
+            "kind": "safe",
+            "name": "الصندوق الرئيسي",
+            "accountId": "01a16198-e5b4-7364-be5f-b5f03375418a",
+            "currencyCode": "SAR",
+            "isDefault": true,
+            "bank": null,
+            "changeInPos": false,
+            "isActive": true,
+            "notes": null,
+            "custodianIds": [],
+            "version": 1,
+            "createdAt": "2026-10-22T03:12:52.605Z",
+            "updatedAt": "2026-10-22T03:12:52.692Z"
+          }
+        ],
+        "meta": {
+          "total": 2,
+          "limit": 50,
+          "offset": 0
+        }
+      }
+    },
+    {
+      "at": "2026-10-22T07:25:10.509Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/settings/white-label/branding",
+      "status": 200,
+      "body": {
+        "data": {
+          "logoFileId": "",
+          "logoUrl": "",
+          "primaryColor": "",
+          "secondaryColor": "",
+          "nameAr": "AUDIT-TEST-2026-R18",
+          "nameEn": "Demo Trading Co."
+        }
+      }
+    },
+    {
+      "at": "2026-10-22T07:25:10.520Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/marketplace/apps",
+      "status": 200,
+      "body": {
+        "data": {
+          "apps": [
+            {
+              "code": "salla",
+              "nameAr": "سلة",
+              "nameEn": "Salla",
+              "descriptionAr": "استيراد طلبات سلة إلى فواتير المبيعات.",
+              "icon": "🛒",
+              "version": "1.0.0",
+              "monthlyPrice": "49.0000",
+              "isCore": false,
+              "isActive": true,
+              "enabled": false,
+              "installedAt": null,
+              "screens": [
+                "/settings/ecommerce",
+                "/sales/ecommerce-orders"
+              ],
+              "category": "integration",
+              "requiresApproval": false,
+              "requestStatus": "none",
+              "requestNote": null,
+              "decisionNote": null
+            },
+            {
+              "code": "zid",
+              "nameAr": "زد",
+              "nameEn": "Zid",
+              "descriptionAr": "استيراد طلبات زد إلى فواتير المبيعات.",
+              "icon": "🛍️",
+              "version": "1.0.0",
+              "monthlyPrice": "49.0000",
+              "isCore": false,
+              "isActive": true,
+              "enabled": false,
+              "installedAt": null,
+              "screens": [
+                "/settings/ecommerce",
+                "/sales/ecommerce-orders"
+              ],
+              "category": "integration",
+              "requiresApproval": false,
+              "requestStatus": "none",
+              "requestNote": null,
+              "decisionNote": null
+            },
+            {
+              "code": "shopify",
+              "nameAr": "شوبيفاي",
+              "nameEn": "Shopify",
+              "descriptionAr": "استيراد طلبات شوبيفاي إلى فواتير المبيعات.",
+              "icon": "🏪",
+              "version": "1.0.0",
+              "monthlyPrice": "49.0000",
+              "isCore": false,
+              "isActive": true,
+              "enabled": false,
+              "installedAt": null,
+              "screens": [
+                "/settings/ecommerce",
+                "/sales/ecommerce-orders"
+              ],
+              "category": "integration",
+              "requiresApproval": false,
+              "requestStatus": "none",
+              "requestNote": null,
+              "decisionNote": null
+            },
+            {
+              "code": "moyasar",
+              "nameAr": "ميسر",
+              "nameEn": "Moyasar",
+              "descriptionAr": "روابط دفع ميسر على فواتير المبيعات.",
+              "icon": "💳",
+              "version": "1.0.0",
+              "monthlyPrice": "29.0000",
+              "isCore": false,
+              "isActive": true,
+              "enabled": false,
+              "installedAt": null,
+              "screens": [],
+              "category": "integration",
+              "requiresApproval": false,
+              "requestStatus": "none",
+              "requestNote": null,
+              "decisionNote": null
+            },
+            {
+              "code": "ocr",
+              "nameAr": "مسح الفواتير",
+              "nameEn": "OCR",
+              "descriptionAr": "قراءة فاتورة الشراء. مشحونة مع النظام ولا تُخفى.",
+              "icon": "📄",
+              "version": "1.0.0",
+              "monthlyPrice": "0.0000",
+              "isCore": true,
+              "isActive": true,
+              "enabled": false,
+              "installedAt": null,
+              "screens": [],
+              "category": "core",
+              "requiresApproval": false,
+              "requestStatus": "none",
+              "requestNote": null,
+              "decisionNote": null
+            },
+            {
+              "code": "esign",
+              "nameAr": "توقيع مرسوم",
+              "nameEn": "E-sign",
+              "descriptionAr": "توقيع مرسوم مع رمز لمرة واحدة. مشحون مع النظام.",
+              "icon": "✍️",
+              "version": "1.0.0",
+              "monthlyPrice": "0.0000",
+              "isCore": true,
+              "isActive": true,
+              "enabled": false,
+              "installedAt": null,
+              "screens": [],
+              "category": "core",
+              "requiresApproval": false,
+              "requestStatus": "none",
+              "requestNote": null,
+              "decisionNote": null
+            },
+            {
+              "code": "wms",
+              "nameAr": "المستودعات",
+              "nameEn": "WMS",
+              "descriptionAr": "الرفوف والتصنيع الخفيف. مشحونان مع النظام.",
+              "icon": "📦",
+              "version": "1.0.0",
+              "monthlyPrice": "0.0000",
+              "isCore": true,
+              "isActive": true,
+              "enabled": false,
+              "installedAt": null,
+              "screens": [],
+              "category": "core",
+              "requiresApproval": false,
+              "requestStatus": "none",
+              "requestNote": null,
+              "decisionNote": null
+            },
+            {
+              "code": "van_sales",
+              "nameAr": "توزيع المناديب والمخابز",
+              "nameEn": "Van Sales & Bakery Distribution",
+              "descriptionAr": "إدارة سيارات ومناديب التوزيع، أوامر التحميل ودفعات الإنتاج اليومية، ضبط البونص المجاني، تعدد أسعار العملاء، والفواتير الضريبية والعادية.",
+              "icon": "🚚",
+              "version": "1.0.0",
+              "monthlyPrice": "129.0000",
+              "isCore": false,
+              "isActive": true,
+              "enabled": false,
+              "installedAt": null,
+              "screens": [
+                "/van-sales"
+              ],
+              "category": "sector",
+              "requiresApproval": true,
+              "requestStatus": "none",
+              "requestNote": null,
+              "decisionNote": null
+            },
+            {
+              "code": "bakery_distribution",
+              "nameAr": "المخابز: الإنتاج والتوزيع",
+              "nameEn": "Bakery Production & Distribution",
+              "descriptionAr": "تطبيق المخابز المستقلّ: دفعات الإنتاج اليومية بموادها الحقيقية ورفض الدفعة بلا مصدر مواد، جولات التوزيع وسياراته والعهدات، المناديب (مستخدمٌ وموظفٌ وصلاحياتٌ يمنحها المدير)، التحصيل والخزينة وإغلاق اليومية — على المحاسبة والمخازن نفسها.",
+              "icon": "🥖",
+              "version": "1.0.0",
+              "monthlyPrice": "149.0000",
+              "isCore": false,
+              "isActive": true,
+              "enabled": true,
+              "installedAt": "2026-10-22 03:12:52.736198+00",
+              "screens": [],
+              "category": "sector",
+              "requiresApproval": true,
+              "requestStatus": "approved",
+              "requestNote": null,
+              "decisionNote": null
+            },
+            {
+              "code": "manufacturing",
+              "nameAr": "التصنيع والإنتاج",
+              "nameEn": "Manufacturing",
+              "descriptionAr": "أوامر التصنيع وقوائم المواد (BOM) وتكاليف الإنتاج للمصانع والمعامل والمخابز.",
+              "icon": "⚙️",
+              "version": "1.0.0",
+              "monthlyPrice": "149.0000",
+              "isCore": false,
+              "isActive": true,
+              "enabled": false,
+              "installedAt": null,
+              "screens": [
+                "/manufacturing/orders",
+                "/inventory/production"
+              ],
+              "category": "sector",
+              "requiresApproval": true,
+              "requestStatus": "none",
+              "requestNote": null,
+              "decisionNote": null
+            },
+            {
+              "code": "tailoring",
+              "nameAr": "التفصيل والخياطة",
+              "nameEn": "Tailoring",
+              "descriptionAr": "إدارة طلبات التفصيل والمقاسات وخيارات الخياطة والأثواب.",
+              "icon": "🧵",
+              "version": "1.0.0",
+              "monthlyPrice": "99.0000",
+              "isCore": false,
+              "isActive": true,
+              "enabled": false,
+              "installedAt": null,
+              "screens": [
+                "/tailoring/orders",
+                "/tailoring/options",
+                "/tailoring/types",
+                "/settings/tailoring"
+              ],
+              "category": "sector",
+              "requiresApproval": true,
+              "requestStatus": "none",
+              "requestNote": null,
+              "decisionNote": null
+            },
+            {
+              "code": "optics",
+              "nameAr": "النظارات والبصريات",
+              "nameEn": "Optics",
+              "descriptionAr": "بيانات فحص النظر والعدسات اليمنى واليسرى وطباعتها في فواتير المبيعات.",
+              "icon": "👓",
+              "version": "1.0.0",
+              "monthlyPrice": "99.0000",
+              "isCore": false,
+              "isActive": true,
+              "enabled": false,
+              "installedAt": null,
+              "screens": [
+                "/optics/glasses",
+                "/settings/optics"
+              ],
+              "category": "sector",
+              "requiresApproval": true,
+              "requestStatus": "none",
+              "requestNote": null,
+              "decisionNote": null
+            },
+            {
+              "code": "marina",
+              "nameAr": "إدارة المراسي والقوارب",
+              "nameEn": "Marina",
+              "descriptionAr": "عقود المراسي والتجهيز والمناوبات وربط الفواتير وإغلاق اليومية البحرية.",
+              "icon": "⚓",
+              "version": "1.0.0",
+              "monthlyPrice": "149.0000",
+              "isCore": false,
+              "isActive": true,
+              "enabled": false,
+              "installedAt": null,
+              "screens": [
+                "/marina/contracts",
+                "/marina/preparation",
+                "/marina/rota",
+                "/marina/link-invoices",
+                "/marina/day-close",
+                "/settings/marina"
+              ],
+              "category": "sector",
+              "requiresApproval": true,
+              "requestStatus": "none",
+              "requestNote": null,
+              "decisionNote": null
+            },
+            {
+              "code": "projects",
+              "nameAr": "إدارة المشاريع والمقاولات",
+              "nameEn": "Projects & Contracting",
+              "descriptionAr": "المشاريع وعقود المقاولين والمستخلصات ومرتجعات المقاولات ومتابعة التنفيذ.",
+              "icon": "🏗️",
+              "version": "1.0.0",
+              "monthlyPrice": "149.0000",
+              "isCore": false,
+              "isActive": true,
+              "enabled": false,
+              "installedAt": null,
+              "screens": [
+                "/projects",
+                "/projects/tasks",
+                "/projects/contractor-contract",
+                "/projects/contractor-payment",
+                "/projects/contracting-return",
+                "/projects/offers",
+                "/projects/followup",
+                "/settings/contracting"
+              ],
+              "category": "sector",
+              "requiresApproval": true,
+              "requestStatus": "none",
+              "requestNote": null,
+              "decisionNote": null
+            },
+            {
+              "code": "reports_pro",
+              "nameAr": "مركز التقارير والتحليلات",
+              "nameEn": "Reports & Analytics",
+              "descriptionAr": "باني التقارير من حقولك الأصلية والمخصّصة، حفظُ التقارير المشتركة وإعادة تشغيلها، مصمّم أعمدة التقارير، والتصدير إلى Excel وCSV وPDF.",
+              "icon": "📊",
+              "version": "1.0.0",
+              "monthlyPrice": "79.0000",
+              "isCore": false,
+              "isActive": true,
+              "enabled": true,
+              "installedAt": "2026-10-22 03:12:52.737483+00",
+              "screens": [
+                "/reports/builder",
+                "/reports/custom",
+                "/support/report-designer"
+              ],
+              "category": "sector",
+              "requiresApproval": true,
+              "requestStatus": "approved",
+              "requestNote": null,
+              "decisionNote": null
+            },
+            {
+              "code": "email_pro",
+              "nameAr": "قناة البريد الإلكتروني",
+              "nameEn": "Email Channel",
+              "descriptionAr": "إرسال الفواتير والكشوف وتنبيهات النظام عبر SMTP الخاصّ بمنشأتك أو مزوّد المنصة، مع قوالب عربية/إنجليزية لكل حدثٍ وسجلٍّ للرسائل.",
+              "icon": "✉️",
+              "version": "1.0.0",
+              "monthlyPrice": "39.0000",
+              "isCore": false,
+              "isActive": true,
+              "enabled": true,
+              "installedAt": "2026-10-22 03:12:52.738131+00",
+              "screens": [],
+              "category": "sector",
+              "requiresApproval": true,
+              "requestStatus": "approved",
+              "requestNote": null,
+              "decisionNote": null
+            },
+            {
+              "code": "whatsapp",
+              "nameAr": "قناة واتساب للأعمال",
+              "nameEn": "WhatsApp Business",
+              "descriptionAr": "إرسال الفواتير وروابط الدفع وتذكيرات التحصيل على واتساب من رقم المنشأة عبر WhatsApp Cloud API، مع سجلّ الرسائل وحالتها.",
+              "icon": "💬",
+              "version": "1.0.0",
+              "monthlyPrice": "49.0000",
+              "isCore": false,
+              "isActive": true,
+              "enabled": true,
+              "installedAt": "2026-10-22 03:12:52.738729+00",
+              "screens": [],
+              "category": "sector",
+              "requiresApproval": true,
+              "requestStatus": "approved",
+              "requestNote": null,
+              "decisionNote": null
+            },
+            {
+              "code": "employee_app",
+              "nameAr": "تطبيق الموظف الذاتي",
+              "nameEn": "Employee Self-Service App",
+              "descriptionAr": "بوابة الجوال للموظفين لتسجيل الحضور والانصراف وطلبات الإجازة والسلفة والعهدة وكشف الراتب.",
+              "icon": "📱",
+              "version": "1.0.0",
+              "monthlyPrice": "79.0000",
+              "isCore": false,
+              "isActive": true,
+              "enabled": false,
+              "installedAt": null,
+              "screens": [
+                "/m",
+                "/m/attendance",
+                "/m/requests/new",
+                "/m/approvals",
+                "/m/profile"
+              ],
+              "category": "sector",
+              "requiresApproval": true,
+              "requestStatus": "none",
+              "requestNote": null,
+              "decisionNote": null
+            }
+          ],
+          "gatedHrefs": [
+            "/settings/ecommerce",
+            "/sales/ecommerce-orders",
+            "/van-sales",
+            "/manufacturing/orders",
+            "/inventory/production",
+            "/tailoring/orders",
+            "/tailoring/options",
+            "/tailoring/types",
+            "/settings/tailoring",
+            "/optics/glasses",
+            "/settings/optics",
+            "/marina/contracts",
+            "/marina/preparation",
+            "/marina/rota",
+            "/marina/link-invoices",
+            "/marina/day-close",
+            "/settings/marina",
+            "/projects",
+            "/projects/tasks",
+            "/projects/contractor-contract",
+            "/projects/contractor-payment",
+            "/projects/contracting-return",
+            "/projects/offers",
+            "/projects/followup",
+            "/settings/contracting",
+            "/reports/builder",
+            "/reports/custom",
+            "/support/report-designer",
+            "/m",
+            "/m/attendance",
+            "/m/requests/new",
+            "/m/approvals",
+            "/m/profile"
+          ],
+          "enabledHrefs": [
+            "/reports/builder",
+            "/reports/custom",
+            "/support/report-designer"
+          ],
+          "enabledCodes": [
+            "bakery_distribution",
+            "reports_pro",
+            "email_pro",
+            "whatsapp"
+          ]
+        }
+      }
+    }
+  ]
+}

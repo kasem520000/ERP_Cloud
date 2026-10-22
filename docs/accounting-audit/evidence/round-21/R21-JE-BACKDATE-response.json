@@ -1,0 +1,55 @@
+{
+  "status": 201,
+  "method": "POST",
+  "url": "http://127.0.0.1:3001/api/v1/journal-entries",
+  "request": {
+    "branchId": "01a162a3-d042-77c9-b0cb-7f0deb28e1fc",
+    "fiscalPeriodId": "01a162a3-d0a7-732e-8116-5e538c67db3a",
+    "date": "2026-09-15",
+    "time": "08:24",
+    "isVat": false,
+    "description": "R21-JE-BACKDATE قيد بتاريخ 2026-09-15 (فترة مغلقة) تحت فترة 2026-10 — يجب رفضه",
+    "lines": [
+      {
+        "accountId": "01a162a3-d075-760f-8825-a14ccfbf9ef3",
+        "debit": "1.00",
+        "credit": "0.00",
+        "description": "R21 اختبار تاريخ خارج الفترة"
+      },
+      {
+        "accountId": "01a162a3-d072-7548-987e-2944808d03d6",
+        "debit": "0.00",
+        "credit": "1.00",
+        "description": "R21 اختبار تاريخ خارج الفترة"
+      }
+    ]
+  },
+  "body": {
+    "data": {
+      "id": "01a162b6-66aa-777b-bac0-cda8fd60bbcb",
+      "tenantId": "01a162a3-cf0d-7238-9aeb-2e23f58a6b13",
+      "branchId": "01a162a3-d042-77c9-b0cb-7f0deb28e1fc",
+      "fiscalPeriodId": "01a162a3-d0a7-732e-8116-5e538c67db3a",
+      "date": "2026-09-15",
+      "number": "JE-000006",
+      "entryTime": "08:24:00",
+      "isVat": false,
+      "kind": "manual",
+      "status": "posted",
+      "description": "R21-JE-BACKDATE قيد بتاريخ 2026-09-15 (فترة مغلقة) تحت فترة 2026-10 — يجب رفضه",
+      "sourceType": null,
+      "sourceId": null,
+      "reversalOf": null,
+      "idempotencyKey": null,
+      "postedAt": "2026-10-22T08:24:43.435Z",
+      "postedBy": null,
+      "createdAt": "2026-10-22T08:24:43.432Z",
+      "createdBy": null,
+      "updatedAt": null,
+      "updatedBy": null,
+      "version": 1,
+      "legacySource": null,
+      "legacyId": null
+    }
+  }
+}

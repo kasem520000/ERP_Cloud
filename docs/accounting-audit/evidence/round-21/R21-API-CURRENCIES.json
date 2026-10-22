@@ -1,0 +1,24 @@
+{
+  "path": "/currencies",
+  "status": 200,
+  "body": {
+    "data": [
+      {
+        "code": "SAR",
+        "nameAr": "SAR",
+        "nameEn": "SAR",
+        "minorUnits": 2,
+        "isBase": true,
+        "isActive": true,
+        "version": 1,
+        "createdAt": "2026-10-22T13:27:42.005Z",
+        "updatedAt": null
+      }
+    ],
+    "meta": {
+      "total": 1,
+      "limit": 50,
+      "offset": 0
+    }
+  }
+}

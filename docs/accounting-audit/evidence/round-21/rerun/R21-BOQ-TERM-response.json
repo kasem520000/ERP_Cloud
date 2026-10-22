@@ -1,0 +1,32 @@
+{
+  "status": 201,
+  "method": "POST",
+  "url": "http://127.0.0.1:3001/api/v1/projects/01a163cd-ea7a-729f-9426-4ed6c9c23592/boq",
+  "request": {
+    "code": "T1",
+    "description": "R21 أعمال بند واحد",
+    "qty": "1",
+    "unitValue": "100"
+  },
+  "body": {
+    "id": "01a163ce-068a-74da-82f3-04f63c1e5fde",
+    "tenantId": "01a163cb-c73b-741d-93c9-17f1ac98ae25",
+    "projectId": "01a163cd-ea7a-729f-9426-4ed6c9c23592",
+    "code": "T1",
+    "description": "R21 أعمال بند واحد",
+    "qty": "1.0000",
+    "unitValue": "100.0000",
+    "estimatedCost": "0.0000",
+    "executionPeriod": null,
+    "previouslyBilled": "0.0000",
+    "createdAt": "2026-10-22T13:30:08.906Z",
+    "createdBy": null,
+    "updatedAt": null,
+    "updatedBy": null,
+    "version": 1,
+    "deletedAt": null,
+    "deletedBy": null,
+    "legacySource": null,
+    "legacyId": null
+  }
+}

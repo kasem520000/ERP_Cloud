@@ -1,0 +1,27 @@
+{
+  "status": 201,
+  "method": "POST",
+  "url": "http://127.0.0.1:3001/api/v1/expense-types",
+  "request": {
+    "nameAr": "R21 ضيافة ونظافة",
+    "nameEn": "R21 Hospitality",
+    "accountId": "01a16348-f992-7359-88f6-29997ea40e49"
+  },
+  "body": {
+    "id": "01a16357-9c23-711f-8812-06ae23660e96",
+    "tenantId": "01a16348-f683-7547-9c37-43d45f782fbe",
+    "nameAr": "R21 ضيافة ونظافة",
+    "nameEn": "R21 Hospitality",
+    "accountId": "01a16348-f992-7359-88f6-29997ea40e49",
+    "costCenterId": null,
+    "createdAt": "2026-10-22T11:20:48.418Z",
+    "createdBy": null,
+    "updatedAt": null,
+    "updatedBy": null,
+    "version": 1,
+    "deletedAt": null,
+    "deletedBy": null,
+    "legacySource": null,
+    "legacyId": null
+  }
+}

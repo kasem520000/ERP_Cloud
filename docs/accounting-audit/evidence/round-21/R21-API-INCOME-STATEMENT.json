@@ -1,0 +1,67 @@
+{
+  "path": "/statements/income-statement",
+  "status": 200,
+  "body": {
+    "data": [
+      {
+        "kind": "account",
+        "code": "3121",
+        "name": "مصاريف متنوعة",
+        "debit": "10.0000",
+        "credit": "0.0000",
+        "balanceDebit": "10.0000",
+        "balanceCredit": "0.0000",
+        "status": "مدين"
+      },
+      {
+        "kind": "account",
+        "code": "32",
+        "name": "صافي المشتريات",
+        "debit": "50.0000",
+        "credit": "10.0000",
+        "balanceDebit": "40.0000",
+        "balanceCredit": "0.0000",
+        "status": "مدين"
+      },
+      {
+        "kind": "account",
+        "code": "41",
+        "name": "صافي المبيعات",
+        "debit": "20.0000",
+        "credit": "100.0000",
+        "balanceDebit": "0.0000",
+        "balanceCredit": "80.0000",
+        "status": "دائن"
+      },
+      {
+        "kind": "stock",
+        "code": null,
+        "name": "قيمة مخزون بضاعة آخر المدة حتى هذا التاريخ",
+        "debit": "0.0000",
+        "credit": "150.0000",
+        "balanceDebit": "0.0000",
+        "balanceCredit": "150.0000",
+        "status": "مدين"
+      },
+      {
+        "kind": "profit",
+        "code": null,
+        "name": "صافي أرباح العام",
+        "debit": "180.0000",
+        "credit": "0.0000",
+        "balanceDebit": "180.0000",
+        "balanceCredit": "0.0000",
+        "status": "مدين"
+      }
+    ],
+    "totals": {
+      "debit": "230.0000",
+      "credit": "230.0000",
+      "stock": "150.0000",
+      "profit": "180.0000",
+      "profitLabel": "صافي أرباح العام",
+      "balanced": true,
+      "balancedLabel": "✅ الحسابات متوازنة"
+    }
+  }
+}

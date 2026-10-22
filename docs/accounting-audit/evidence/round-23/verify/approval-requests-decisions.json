@@ -1,0 +1,14 @@
+[
+ {
+  "status": "approved",
+  "current_step_order": null,
+  "entity_type": "purchase_invoice",
+  "id": "01a164c9-cca1-7573-9d8c-2a065afd308c",
+  "request_id": "01a164c7-cd45-7244-a7d1-dd4d9b71b020",
+  "step_id": "01a164c6-871f-705c-92ee-bb9ae072442a",
+  "user_id": "01a164b9-df04-7488-aece-ea7306004dd7",
+  "decision": "approved",
+  "comment": "R23 اعتماد المراجع المسمّى",
+  "decided_at": "2026-10-22T18:05:09.149Z"
+ }
+]

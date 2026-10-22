@@ -1,0 +1,897 @@
+{
+  "route": "/sales/statements",
+  "url": "http://127.0.0.1:3001/sales/statements",
+  "responses": [
+    {
+      "at": "2026-10-22T07:21:50.747Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/notifications?limit=12",
+      "status": 200,
+      "body": {
+        "data": [],
+        "meta": {
+          "total": 0,
+          "limit": 12,
+          "offset": 0,
+          "unread": 0
+        }
+      }
+    },
+    {
+      "at": "2026-10-22T07:21:50.804Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/parties?kind=customer",
+      "status": 200,
+      "body": [
+        {
+          "id": "01a1625c-09e5-7391-9c7b-745f9754fb62",
+          "tenantId": "01a16198-e3e0-77af-b843-47c9d7787c03",
+          "code": "000001",
+          "kind": "customer",
+          "name": "R20 عميل حد ائتمان 30 اختبار معزول",
+          "legalName": null,
+          "taxNo": null,
+          "nationalId": null,
+          "address": null,
+          "phone": "0500000020",
+          "email": null,
+          "receivableAccountId": null,
+          "payableAccountId": null,
+          "creditLimit": "30.0000",
+          "isOwner": false,
+          "isContractor": false,
+          "branchId": null,
+          "paymentMethodId": null,
+          "createdAt": "2026-10-22T06:46:01.447Z",
+          "createdBy": null,
+          "updatedAt": "2026-10-22T07:11:38.020Z",
+          "updatedBy": null,
+          "version": 3,
+          "deletedAt": null,
+          "deletedBy": null,
+          "customFields": {}
+        },
+        {
+          "id": "01a16198-e584-74ca-9bb2-36d58c4ddfe9",
+          "tenantId": "01a16198-e3e0-77af-b843-47c9d7787c03",
+          "code": "CUST-GEN",
+          "kind": "customer",
+          "name": "عميل عام",
+          "legalName": "عميل عام",
+          "taxNo": null,
+          "nationalId": null,
+          "address": null,
+          "phone": null,
+          "email": null,
+          "receivableAccountId": null,
+          "payableAccountId": null,
+          "creditLimit": "0.0000",
+          "isOwner": false,
+          "isContractor": false,
+          "branchId": null,
+          "paymentMethodId": null,
+          "createdAt": "2026-10-22T03:12:52.612Z",
+          "createdBy": null,
+          "updatedAt": null,
+          "updatedBy": null,
+          "version": 1,
+          "deletedAt": null,
+          "deletedBy": null,
+          "customFields": {}
+        }
+      ]
+    },
+    {
+      "at": "2026-10-22T07:21:50.816Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/marketplace/apps",
+      "status": 200,
+      "body": {
+        "data": {
+          "apps": [
+            {
+              "code": "salla",
+              "nameAr": "سلة",
+              "nameEn": "Salla",
+              "descriptionAr": "استيراد طلبات سلة إلى فواتير المبيعات.",
+              "icon": "🛒",
+              "version": "1.0.0",
+              "monthlyPrice": "49.0000",
+              "isCore": false,
+              "isActive": true,
+              "enabled": false,
+              "installedAt": null,
+              "screens": [
+                "/settings/ecommerce",
+                "/sales/ecommerce-orders"
+              ],
+              "category": "integration",
+              "requiresApproval": false,
+              "requestStatus": "none",
+              "requestNote": null,
+              "decisionNote": null
+            },
+            {
+              "code": "zid",
+              "nameAr": "زد",
+              "nameEn": "Zid",
+              "descriptionAr": "استيراد طلبات زد إلى فواتير المبيعات.",
+              "icon": "🛍️",
+              "version": "1.0.0",
+              "monthlyPrice": "49.0000",
+              "isCore": false,
+              "isActive": true,
+              "enabled": false,
+              "installedAt": null,
+              "screens": [
+                "/settings/ecommerce",
+                "/sales/ecommerce-orders"
+              ],
+              "category": "integration",
+              "requiresApproval": false,
+              "requestStatus": "none",
+              "requestNote": null,
+              "decisionNote": null
+            },
+            {
+              "code": "shopify",
+              "nameAr": "شوبيفاي",
+              "nameEn": "Shopify",
+              "descriptionAr": "استيراد طلبات شوبيفاي إلى فواتير المبيعات.",
+              "icon": "🏪",
+              "version": "1.0.0",
+              "monthlyPrice": "49.0000",
+              "isCore": false,
+              "isActive": true,
+              "enabled": false,
+              "installedAt": null,
+              "screens": [
+                "/settings/ecommerce",
+                "/sales/ecommerce-orders"
+              ],
+              "category": "integration",
+              "requiresApproval": false,
+              "requestStatus": "none",
+              "requestNote": null,
+              "decisionNote": null
+            },
+            {
+              "code": "moyasar",
+              "nameAr": "ميسر",
+              "nameEn": "Moyasar",
+              "descriptionAr": "روابط دفع ميسر على فواتير المبيعات.",
+              "icon": "💳",
+              "version": "1.0.0",
+              "monthlyPrice": "29.0000",
+              "isCore": false,
+              "isActive": true,
+              "enabled": false,
+              "installedAt": null,
+              "screens": [],
+              "category": "integration",
+              "requiresApproval": false,
+              "requestStatus": "none",
+              "requestNote": null,
+              "decisionNote": null
+            },
+            {
+              "code": "ocr",
+              "nameAr": "مسح الفواتير",
+              "nameEn": "OCR",
+              "descriptionAr": "قراءة فاتورة الشراء. مشحونة مع النظام ولا تُخفى.",
+              "icon": "📄",
+              "version": "1.0.0",
+              "monthlyPrice": "0.0000",
+              "isCore": true,
+              "isActive": true,
+              "enabled": false,
+              "installedAt": null,
+              "screens": [],
+              "category": "core",
+              "requiresApproval": false,
+              "requestStatus": "none",
+              "requestNote": null,
+              "decisionNote": null
+            },
+            {
+              "code": "esign",
+              "nameAr": "توقيع مرسوم",
+              "nameEn": "E-sign",
+              "descriptionAr": "توقيع مرسوم مع رمز لمرة واحدة. مشحون مع النظام.",
+              "icon": "✍️",
+              "version": "1.0.0",
+              "monthlyPrice": "0.0000",
+              "isCore": true,
+              "isActive": true,
+              "enabled": false,
+              "installedAt": null,
+              "screens": [],
+              "category": "core",
+              "requiresApproval": false,
+              "requestStatus": "none",
+              "requestNote": null,
+              "decisionNote": null
+            },
+            {
+              "code": "wms",
+              "nameAr": "المستودعات",
+              "nameEn": "WMS",
+              "descriptionAr": "الرفوف والتصنيع الخفيف. مشحونان مع النظام.",
+              "icon": "📦",
+              "version": "1.0.0",
+              "monthlyPrice": "0.0000",
+              "isCore": true,
+              "isActive": true,
+              "enabled": false,
+              "installedAt": null,
+              "screens": [],
+              "category": "core",
+              "requiresApproval": false,
+              "requestStatus": "none",
+              "requestNote": null,
+              "decisionNote": null
+            },
+            {
+              "code": "van_sales",
+              "nameAr": "توزيع المناديب والمخابز",
+              "nameEn": "Van Sales & Bakery Distribution",
+              "descriptionAr": "إدارة سيارات ومناديب التوزيع، أوامر التحميل ودفعات الإنتاج اليومية، ضبط البونص المجاني، تعدد أسعار العملاء، والفواتير الضريبية والعادية.",
+              "icon": "🚚",
+              "version": "1.0.0",
+              "monthlyPrice": "129.0000",
+              "isCore": false,
+              "isActive": true,
+              "enabled": false,
+              "installedAt": null,
+              "screens": [
+                "/van-sales"
+              ],
+              "category": "sector",
+              "requiresApproval": true,
+              "requestStatus": "none",
+              "requestNote": null,
+              "decisionNote": null
+            },
+            {
+              "code": "bakery_distribution",
+              "nameAr": "المخابز: الإنتاج والتوزيع",
+              "nameEn": "Bakery Production & Distribution",
+              "descriptionAr": "تطبيق المخابز المستقلّ: دفعات الإنتاج اليومية بموادها الحقيقية ورفض الدفعة بلا مصدر مواد، جولات التوزيع وسياراته والعهدات، المناديب (مستخدمٌ وموظفٌ وصلاحياتٌ يمنحها المدير)، التحصيل والخزينة وإغلاق اليومية — على المحاسبة والمخازن نفسها.",
+              "icon": "🥖",
+              "version": "1.0.0",
+              "monthlyPrice": "149.0000",
+              "isCore": false,
+              "isActive": true,
+              "enabled": true,
+              "installedAt": "2026-10-22 03:12:52.736198+00",
+              "screens": [],
+              "category": "sector",
+              "requiresApproval": true,
+              "requestStatus": "approved",
+              "requestNote": null,
+              "decisionNote": null
+            },
+            {
+              "code": "manufacturing",
+              "nameAr": "التصنيع والإنتاج",
+              "nameEn": "Manufacturing",
+              "descriptionAr": "أوامر التصنيع وقوائم المواد (BOM) وتكاليف الإنتاج للمصانع والمعامل والمخابز.",
+              "icon": "⚙️",
+              "version": "1.0.0",
+              "monthlyPrice": "149.0000",
+              "isCore": false,
+              "isActive": true,
+              "enabled": false,
+              "installedAt": null,
+              "screens": [
+                "/manufacturing/orders",
+                "/inventory/production"
+              ],
+              "category": "sector",
+              "requiresApproval": true,
+              "requestStatus": "none",
+              "requestNote": null,
+              "decisionNote": null
+            },
+            {
+              "code": "tailoring",
+              "nameAr": "التفصيل والخياطة",
+              "nameEn": "Tailoring",
+              "descriptionAr": "إدارة طلبات التفصيل والمقاسات وخيارات الخياطة والأثواب.",
+              "icon": "🧵",
+              "version": "1.0.0",
+              "monthlyPrice": "99.0000",
+              "isCore": false,
+              "isActive": true,
+              "enabled": false,
+              "installedAt": null,
+              "screens": [
+                "/tailoring/orders",
+                "/tailoring/options",
+                "/tailoring/types",
+                "/settings/tailoring"
+              ],
+              "category": "sector",
+              "requiresApproval": true,
+              "requestStatus": "none",
+              "requestNote": null,
+              "decisionNote": null
+            },
+            {
+              "code": "optics",
+              "nameAr": "النظارات والبصريات",
+              "nameEn": "Optics",
+              "descriptionAr": "بيانات فحص النظر والعدسات اليمنى واليسرى وطباعتها في فواتير المبيعات.",
+              "icon": "👓",
+              "version": "1.0.0",
+              "monthlyPrice": "99.0000",
+              "isCore": false,
+              "isActive": true,
+              "enabled": false,
+              "installedAt": null,
+              "screens": [
+                "/optics/glasses",
+                "/settings/optics"
+              ],
+              "category": "sector",
+              "requiresApproval": true,
+              "requestStatus": "none",
+              "requestNote": null,
+              "decisionNote": null
+            },
+            {
+              "code": "marina",
+              "nameAr": "إدارة المراسي والقوارب",
+              "nameEn": "Marina",
+              "descriptionAr": "عقود المراسي والتجهيز والمناوبات وربط الفواتير وإغلاق اليومية البحرية.",
+              "icon": "⚓",
+              "version": "1.0.0",
+              "monthlyPrice": "149.0000",
+              "isCore": false,
+              "isActive": true,
+              "enabled": false,
+              "installedAt": null,
+              "screens": [
+                "/marina/contracts",
+                "/marina/preparation",
+                "/marina/rota",
+                "/marina/link-invoices",
+                "/marina/day-close",
+                "/settings/marina"
+              ],
+              "category": "sector",
+              "requiresApproval": true,
+              "requestStatus": "none",
+              "requestNote": null,
+              "decisionNote": null
+            },
+            {
+              "code": "projects",
+              "nameAr": "إدارة المشاريع والمقاولات",
+              "nameEn": "Projects & Contracting",
+              "descriptionAr": "المشاريع وعقود المقاولين والمستخلصات ومرتجعات المقاولات ومتابعة التنفيذ.",
+              "icon": "🏗️",
+              "version": "1.0.0",
+              "monthlyPrice": "149.0000",
+              "isCore": false,
+              "isActive": true,
+              "enabled": false,
+              "installedAt": null,
+              "screens": [
+                "/projects",
+                "/projects/tasks",
+                "/projects/contractor-contract",
+                "/projects/contractor-payment",
+                "/projects/contracting-return",
+                "/projects/offers",
+                "/projects/followup",
+                "/settings/contracting"
+              ],
+              "category": "sector",
+              "requiresApproval": true,
+              "requestStatus": "none",
+              "requestNote": null,
+              "decisionNote": null
+            },
+            {
+              "code": "reports_pro",
+              "nameAr": "مركز التقارير والتحليلات",
+              "nameEn": "Reports & Analytics",
+              "descriptionAr": "باني التقارير من حقولك الأصلية والمخصّصة، حفظُ التقارير المشتركة وإعادة تشغيلها، مصمّم أعمدة التقارير، والتصدير إلى Excel وCSV وPDF.",
+              "icon": "📊",
+              "version": "1.0.0",
+              "monthlyPrice": "79.0000",
+              "isCore": false,
+              "isActive": true,
+              "enabled": true,
+              "installedAt": "2026-10-22 03:12:52.737483+00",
+              "screens": [
+                "/reports/builder",
+                "/reports/custom",
+                "/support/report-designer"
+              ],
+              "category": "sector",
+              "requiresApproval": true,
+              "requestStatus": "approved",
+              "requestNote": null,
+              "decisionNote": null
+            },
+            {
+              "code": "email_pro",
+              "nameAr": "قناة البريد الإلكتروني",
+              "nameEn": "Email Channel",
+              "descriptionAr": "إرسال الفواتير والكشوف وتنبيهات النظام عبر SMTP الخاصّ بمنشأتك أو مزوّد المنصة، مع قوالب عربية/إنجليزية لكل حدثٍ وسجلٍّ للرسائل.",
+              "icon": "✉️",
+              "version": "1.0.0",
+              "monthlyPrice": "39.0000",
+              "isCore": false,
+              "isActive": true,
+              "enabled": true,
+              "installedAt": "2026-10-22 03:12:52.738131+00",
+              "screens": [],
+              "category": "sector",
+              "requiresApproval": true,
+              "requestStatus": "approved",
+              "requestNote": null,
+              "decisionNote": null
+            },
+            {
+              "code": "whatsapp",
+              "nameAr": "قناة واتساب للأعمال",
+              "nameEn": "WhatsApp Business",
+              "descriptionAr": "إرسال الفواتير وروابط الدفع وتذكيرات التحصيل على واتساب من رقم المنشأة عبر WhatsApp Cloud API، مع سجلّ الرسائل وحالتها.",
+              "icon": "💬",
+              "version": "1.0.0",
+              "monthlyPrice": "49.0000",
+              "isCore": false,
+              "isActive": true,
+              "enabled": true,
+              "installedAt": "2026-10-22 03:12:52.738729+00",
+              "screens": [],
+              "category": "sector",
+              "requiresApproval": true,
+              "requestStatus": "approved",
+              "requestNote": null,
+              "decisionNote": null
+            },
+            {
+              "code": "employee_app",
+              "nameAr": "تطبيق الموظف الذاتي",
+              "nameEn": "Employee Self-Service App",
+              "descriptionAr": "بوابة الجوال للموظفين لتسجيل الحضور والانصراف وطلبات الإجازة والسلفة والعهدة وكشف الراتب.",
+              "icon": "📱",
+              "version": "1.0.0",
+              "monthlyPrice": "79.0000",
+              "isCore": false,
+              "isActive": true,
+              "enabled": false,
+              "installedAt": null,
+              "screens": [
+                "/m",
+                "/m/attendance",
+                "/m/requests/new",
+                "/m/approvals",
+                "/m/profile"
+              ],
+              "category": "sector",
+              "requiresApproval": true,
+              "requestStatus": "none",
+              "requestNote": null,
+              "decisionNote": null
+            }
+          ],
+          "gatedHrefs": [
+            "/settings/ecommerce",
+            "/sales/ecommerce-orders",
+            "/van-sales",
+            "/manufacturing/orders",
+            "/inventory/production",
+            "/tailoring/orders",
+            "/tailoring/options",
+            "/tailoring/types",
+            "/settings/tailoring",
+            "/optics/glasses",
+            "/settings/optics",
+            "/marina/contracts",
+            "/marina/preparation",
+            "/marina/rota",
+            "/marina/link-invoices",
+            "/marina/day-close",
+            "/settings/marina",
+            "/projects",
+            "/projects/tasks",
+            "/projects/contractor-contract",
+            "/projects/contractor-payment",
+            "/projects/contracting-return",
+            "/projects/offers",
+            "/projects/followup",
+            "/settings/contracting",
+            "/reports/builder",
+            "/reports/custom",
+            "/support/report-designer",
+            "/m",
+            "/m/attendance",
+            "/m/requests/new",
+            "/m/approvals",
+            "/m/profile"
+          ],
+          "enabledHrefs": [
+            "/reports/builder",
+            "/reports/custom",
+            "/support/report-designer"
+          ],
+          "enabledCodes": [
+            "bakery_distribution",
+            "reports_pro",
+            "email_pro",
+            "whatsapp"
+          ]
+        }
+      }
+    },
+    {
+      "at": "2026-10-22T07:21:50.824Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/settings/white-label/branding",
+      "status": 200,
+      "body": {
+        "data": {
+          "logoFileId": "",
+          "logoUrl": "",
+          "primaryColor": "",
+          "secondaryColor": "",
+          "nameAr": "AUDIT-TEST-2026-R18",
+          "nameEn": "Demo Trading Co."
+        }
+      }
+    },
+    {
+      "at": "2026-10-22T07:21:52.518Z",
+      "method": "GET",
+      "url": "http://127.0.0.1:3001/api/v1/parties/01a16198-e584-74ca-9bb2-36d58c4ddfe9/statement",
+      "status": 200,
+      "body": {
+        "receivable": "-15.0000",
+        "payable": "0.0000",
+        "open": [
+          {
+            "accountId": "01a16198-e5cf-75ca-a1bb-81d4561d1903",
+            "debit": "46.0000",
+            "credit": "0.0000",
+            "date": "2026-10-22",
+            "entryId": "01a161a5-8c12-727f-86d5-a94ba6f467cd",
+            "allocated": "0.0000"
+          },
+          {
+            "accountId": "01a16198-e5cc-776e-8059-d09fecff5dec",
+            "debit": "0.0000",
+            "credit": "40.0000",
+            "date": "2026-10-22",
+            "entryId": "01a161a5-8c12-727f-86d5-a94ba6f467cd",
+            "allocated": "0.0000"
+          },
+          {
+            "accountId": "01a16198-e5ba-751d-ac9e-86be3fd5f75a",
+            "debit": "0.0000",
+            "credit": "6.0000",
+            "date": "2026-10-22",
+            "entryId": "01a161a5-8c12-727f-86d5-a94ba6f467cd",
+            "allocated": "0.0000"
+          },
+          {
+            "accountId": "01a16198-e5d0-72be-9c31-1fd9fe2cb2aa",
+            "debit": "24.0000",
+            "credit": "0.0000",
+            "date": "2026-10-22",
+            "entryId": "01a161a5-8c12-727f-86d5-a94ba6f467cd",
+            "allocated": "0.0000"
+          },
+          {
+            "accountId": "01a16198-e5b8-77b9-aedc-9c12b250115a",
+            "debit": "0.0000",
+            "credit": "24.0000",
+            "date": "2026-10-22",
+            "entryId": "01a161a5-8c12-727f-86d5-a94ba6f467cd",
+            "allocated": "0.0000"
+          },
+          {
+            "accountId": "01a16198-e5cf-75ca-a1bb-81d4561d1903",
+            "debit": "0.0000",
+            "credit": "10.0000",
+            "date": "2026-10-22",
+            "entryId": "01a161a8-9d7c-71cc-a752-945d0e6233e3",
+            "allocated": "0.0000"
+          },
+          {
+            "accountId": "01a16198-e5cf-75ca-a1bb-81d4561d1903",
+            "debit": "0.0000",
+            "credit": "23.0000",
+            "date": "2026-10-22",
+            "entryId": "01a161aa-7f04-71ed-abb9-3bf91e74893e",
+            "allocated": "0.0000"
+          },
+          {
+            "accountId": "01a16198-e5cd-749c-bb5b-07879448af71",
+            "debit": "20.0000",
+            "credit": "0.0000",
+            "date": "2026-10-22",
+            "entryId": "01a161aa-7f04-71ed-abb9-3bf91e74893e",
+            "allocated": "0.0000"
+          },
+          {
+            "accountId": "01a16198-e5ba-751d-ac9e-86be3fd5f75a",
+            "debit": "3.0000",
+            "credit": "0.0000",
+            "date": "2026-10-22",
+            "entryId": "01a161aa-7f04-71ed-abb9-3bf91e74893e",
+            "allocated": "0.0000"
+          },
+          {
+            "accountId": "01a16198-e5b8-77b9-aedc-9c12b250115a",
+            "debit": "12.0000",
+            "credit": "0.0000",
+            "date": "2026-10-22",
+            "entryId": "01a161aa-7f04-71ed-abb9-3bf91e74893e",
+            "allocated": "0.0000"
+          },
+          {
+            "accountId": "01a16198-e5d0-72be-9c31-1fd9fe2cb2aa",
+            "debit": "0.0000",
+            "credit": "12.0000",
+            "date": "2026-10-22",
+            "entryId": "01a161aa-7f04-71ed-abb9-3bf91e74893e",
+            "allocated": "0.0000"
+          },
+          {
+            "accountId": "01a16198-e5cf-75ca-a1bb-81d4561d1903",
+            "debit": "0.0000",
+            "credit": "5.0000",
+            "date": "2026-10-22",
+            "entryId": "01a161ac-2e78-726e-bdf5-67d5d57e1c75",
+            "allocated": "0.0000"
+          },
+          {
+            "accountId": "01a16198-e5cf-75ca-a1bb-81d4561d1903",
+            "debit": "23.0000",
+            "credit": "0.0000",
+            "date": "2026-10-22",
+            "entryId": "01a1620b-681c-7594-a8cf-a244ad71f2a3",
+            "allocated": "0.0000"
+          },
+          {
+            "accountId": "01a16198-e5cc-776e-8059-d09fecff5dec",
+            "debit": "0.0000",
+            "credit": "20.0000",
+            "date": "2026-10-22",
+            "entryId": "01a1620b-681c-7594-a8cf-a244ad71f2a3",
+            "allocated": "0.0000"
+          },
+          {
+            "accountId": "01a16198-e5ba-751d-ac9e-86be3fd5f75a",
+            "debit": "0.0000",
+            "credit": "3.0000",
+            "date": "2026-10-22",
+            "entryId": "01a1620b-681c-7594-a8cf-a244ad71f2a3",
+            "allocated": "0.0000"
+          },
+          {
+            "accountId": "01a16198-e5d0-72be-9c31-1fd9fe2cb2aa",
+            "debit": "12.9000",
+            "credit": "0.0000",
+            "date": "2026-10-22",
+            "entryId": "01a1620b-681c-7594-a8cf-a244ad71f2a3",
+            "allocated": "0.0000"
+          },
+          {
+            "accountId": "01a16198-e5b8-77b9-aedc-9c12b250115a",
+            "debit": "0.0000",
+            "credit": "12.9000",
+            "date": "2026-10-22",
+            "entryId": "01a1620b-681c-7594-a8cf-a244ad71f2a3",
+            "allocated": "0.0000"
+          },
+          {
+            "accountId": "01a16198-e5cf-75ca-a1bb-81d4561d1903",
+            "debit": "23.0000",
+            "credit": "0.0000",
+            "date": "2026-10-22",
+            "entryId": "01a16215-b6cf-7023-a7ed-7d3e03448b3e",
+            "allocated": "0.0000"
+          },
+          {
+            "accountId": "01a16198-e5cc-776e-8059-d09fecff5dec",
+            "debit": "0.0000",
+            "credit": "20.0000",
+            "date": "2026-10-22",
+            "entryId": "01a16215-b6cf-7023-a7ed-7d3e03448b3e",
+            "allocated": "0.0000"
+          },
+          {
+            "accountId": "01a16198-e5ba-751d-ac9e-86be3fd5f75a",
+            "debit": "0.0000",
+            "credit": "3.0000",
+            "date": "2026-10-22",
+            "entryId": "01a16215-b6cf-7023-a7ed-7d3e03448b3e",
+            "allocated": "0.0000"
+          },
+          {
+            "accountId": "01a16198-e5d0-72be-9c31-1fd9fe2cb2aa",
+            "debit": "12.9000",
+            "credit": "0.0000",
+            "date": "2026-10-22",
+            "entryId": "01a16215-b6cf-7023-a7ed-7d3e03448b3e",
+            "allocated": "0.0000"
+          },
+          {
+            "accountId": "01a16198-e5b8-77b9-aedc-9c12b250115a",
+            "debit": "0.0000",
+            "credit": "12.9000",
+            "date": "2026-10-22",
+            "entryId": "01a16215-b6cf-7023-a7ed-7d3e03448b3e",
+            "allocated": "0.0000"
+          },
+          {
+            "accountId": "01a16198-e5cf-75ca-a1bb-81d4561d1903",
+            "debit": "45.0000",
+            "credit": "0.0000",
+            "date": "2026-10-22",
+            "entryId": "01a1621d-c7f5-74f9-93bd-1c70b6c07b28",
+            "allocated": "0.0000"
+          },
+          {
+            "accountId": "01a16198-e5cf-75ca-a1bb-81d4561d1903",
+            "debit": "5.0000",
+            "credit": "0.0000",
+            "date": "2026-10-22",
+            "entryId": "01a1621d-c7f5-74f9-93bd-1c70b6c07b28",
+            "allocated": "0.0000"
+          },
+          {
+            "accountId": "01a16198-e5cf-75ca-a1bb-81d4561d1903",
+            "debit": "5.0000",
+            "credit": "0.0000",
+            "date": "2026-10-22",
+            "entryId": "01a16224-284d-7178-95e0-fc742147c048",
+            "allocated": "0.0000"
+          },
+          {
+            "accountId": "01a16198-e5cc-776e-8059-d09fecff5dec",
+            "debit": "0.0000",
+            "credit": "5.0000",
+            "date": "2026-10-22",
+            "entryId": "01a16224-284d-7178-95e0-fc742147c048",
+            "allocated": "0.0000"
+          },
+          {
+            "accountId": "01a16198-e5cf-75ca-a1bb-81d4561d1903",
+            "debit": "0.0000",
+            "credit": "50.0000",
+            "date": "2026-10-22",
+            "entryId": "01a1625a-51d3-74bd-9733-a3999b777d91",
+            "allocated": "0.0000"
+          },
+          {
+            "accountId": "01a16198-e5cf-75ca-a1bb-81d4561d1903",
+            "debit": "0.0000",
+            "credit": "23.0000",
+            "date": "2026-10-22",
+            "entryId": "01a1625c-ecc2-7252-8429-c0c72aec0b08",
+            "allocated": "0.0000"
+          },
+          {
+            "accountId": "01a16198-e5cc-776e-8059-d09fecff5dec",
+            "debit": "20.0000",
+            "credit": "0.0000",
+            "date": "2026-10-22",
+            "entryId": "01a1625c-ecc2-7252-8429-c0c72aec0b08",
+            "allocated": "0.0000"
+          },
+          {
+            "accountId": "01a16198-e5ba-751d-ac9e-86be3fd5f75a",
+            "debit": "3.0000",
+            "credit": "0.0000",
+            "date": "2026-10-22",
+            "entryId": "01a1625c-ecc2-7252-8429-c0c72aec0b08",
+            "allocated": "0.0000"
+          },
+          {
+            "accountId": "01a16198-e5d0-72be-9c31-1fd9fe2cb2aa",
+            "debit": "0.0000",
+            "credit": "12.9000",
+            "date": "2026-10-22",
+            "entryId": "01a1625c-ecc2-7252-8429-c0c72aec0b08",
+            "allocated": "0.0000"
+          },
+          {
+            "accountId": "01a16198-e5b8-77b9-aedc-9c12b250115a",
+            "debit": "12.9000",
+            "credit": "0.0000",
+            "date": "2026-10-22",
+            "entryId": "01a1625c-ecc2-7252-8429-c0c72aec0b08",
+            "allocated": "0.0000"
+          },
+          {
+            "accountId": "01a16198-e5cf-75ca-a1bb-81d4561d1903",
+            "debit": "17.2500",
+            "credit": "0.0000",
+            "date": "2026-10-22",
+            "entryId": "01a16268-2905-77a6-a129-603119027304",
+            "allocated": "0.0000"
+          },
+          {
+            "accountId": "01a16198-e5cc-776e-8059-d09fecff5dec",
+            "debit": "0.0000",
+            "credit": "15.0000",
+            "date": "2026-10-22",
+            "entryId": "01a16268-2905-77a6-a129-603119027304",
+            "allocated": "0.0000"
+          },
+          {
+            "accountId": "01a16198-e5ba-751d-ac9e-86be3fd5f75a",
+            "debit": "0.0000",
+            "credit": "2.2500",
+            "date": "2026-10-22",
+            "entryId": "01a16268-2905-77a6-a129-603119027304",
+            "allocated": "0.0000"
+          },
+          {
+            "accountId": "01a16198-e5d0-72be-9c31-1fd9fe2cb2aa",
+            "debit": "10.0000",
+            "credit": "0.0000",
+            "date": "2026-10-22",
+            "entryId": "01a16268-2905-77a6-a129-603119027304",
+            "allocated": "0.0000"
+          },
+          {
+            "accountId": "01a16198-e5b8-77b9-aedc-9c12b250115a",
+            "debit": "0.0000",
+            "credit": "10.0000",
+            "date": "2026-10-22",
+            "entryId": "01a16268-2905-77a6-a129-603119027304",
+            "allocated": "0.0000"
+          },
+          {
+            "accountId": "01a16198-e5cf-75ca-a1bb-81d4561d1903",
+            "debit": "17.2500",
+            "credit": "0.0000",
+            "date": "2026-10-22",
+            "entryId": "01a16269-363b-757f-be79-2aa48353a172",
+            "allocated": "0.0000"
+          },
+          {
+            "accountId": "01a16198-e5cc-776e-8059-d09fecff5dec",
+            "debit": "0.0000",
+            "credit": "15.0000",
+            "date": "2026-10-22",
+            "entryId": "01a16269-363b-757f-be79-2aa48353a172",
+            "allocated": "0.0000"
+          },
+          {
+            "accountId": "01a16198-e5ba-751d-ac9e-86be3fd5f75a",
+            "debit": "0.0000",
+            "credit": "2.2500",
+            "date": "2026-10-22",
+            "entryId": "01a16269-363b-757f-be79-2aa48353a172",
+            "allocated": "0.0000"
+          },
+          {
+            "accountId": "01a16198-e5d0-72be-9c31-1fd9fe2cb2aa",
+            "debit": "10.0000",
+            "credit": "0.0000",
+            "date": "2026-10-22",
+            "entryId": "01a16269-363b-757f-be79-2aa48353a172",
+            "allocated": "0.0000"
+          },
+          {
+            "accountId": "01a16198-e5b8-77b9-aedc-9c12b250115a",
+            "debit": "0.0000",
+            "credit": "10.0000",
+            "date": "2026-10-22",
+            "entryId": "01a16269-363b-757f-be79-2aa48353a172",
+            "allocated": "0.0000"
+          }
+        ]
+      }
+    }
+  ]
+}

@@ -1,0 +1,37 @@
+{
+  "status": 201,
+  "method": "POST",
+  "url": "http://127.0.0.1:3001/api/v1/contracting/payments/01a1634c-774e-75dc-8263-baa3efdd32af/pay",
+  "request": {
+    "cashLocationId": "01a16348-f94c-77fa-80e4-42dff043c4b5",
+    "method": "cash"
+  },
+  "body": {
+    "data": {
+      "id": "01a1634c-774e-75dc-8263-baa3efdd32af",
+      "tenantId": "01a16348-f683-7547-9c37-43d45f782fbe",
+      "contractId": "01a1634b-fcbd-7368-8852-2a0fa1122690",
+      "projectId": "01a1634b-69b1-7763-844b-4581bab51f36",
+      "branchId": "01a16348-f949-776a-b3ed-7cfaca4b1ec4",
+      "number": "CP-000001",
+      "kind": "progress",
+      "status": "paid",
+      "paymentDate": "2026-10-22",
+      "grossAmount": "40.0000",
+      "retentionAmount": "4.0000",
+      "advanceRecovery": "0.0000",
+      "netAmount": "36.0000",
+      "voucherId": "01a1634c-f135-74f9-a28e-be05cccd76f6",
+      "notes": "R21 مستخلص مقاول 40 (محتجز 10% = 4، صافي 36) اختبار معزول",
+      "approvedAt": "2026-10-22T11:08:53.556Z",
+      "approvedBy": "01a16348-f68b-75bd-9e47-1aeb036a97cc",
+      "paidAt": "2026-10-22T11:09:09.313Z",
+      "cancelledAt": null,
+      "createdAt": "2026-10-22T11:08:38.095Z",
+      "createdBy": "01a16348-f68b-75bd-9e47-1aeb036a97cc",
+      "updatedAt": "2026-10-22T11:09:09.313Z",
+      "updatedBy": "01a16348-f68b-75bd-9e47-1aeb036a97cc",
+      "version": 1
+    }
+  }
+}

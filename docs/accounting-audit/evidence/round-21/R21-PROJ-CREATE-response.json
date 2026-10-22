@@ -1,0 +1,45 @@
+{
+  "status": 201,
+  "method": "POST",
+  "url": "http://127.0.0.1:3001/api/v1/projects",
+  "request": {
+    "code": "R21-PRJ",
+    "name": "R21 مشروع اختبار معزول",
+    "partyId": "01a16348-f952-70fd-9ba3-eadd1ff9d2f1",
+    "contractorPartyId": "01a16348-f953-733f-8c92-5167c1b2c70b",
+    "branchId": "01a16348-f949-776a-b3ed-7cfaca4b1ec4",
+    "startsOn": "2026-10-01",
+    "contractValue": "100",
+    "retentionPct": "10"
+  },
+  "body": {
+    "data": {
+      "id": "01a1634b-69b1-7763-844b-4581bab51f36",
+      "tenantId": "01a16348-f683-7547-9c37-43d45f782fbe",
+      "branchId": "01a16348-f949-776a-b3ed-7cfaca4b1ec4",
+      "code": "R21-PRJ",
+      "name": "R21 مشروع اختبار معزول",
+      "partyId": "01a16348-f952-70fd-9ba3-eadd1ff9d2f1",
+      "contractorPartyId": "01a16348-f953-733f-8c92-5167c1b2c70b",
+      "status": "active",
+      "startsOn": "2026-10-01",
+      "endsOn": null,
+      "contractValue": "100.0000",
+      "retentionPct": "10.0000",
+      "costCenterId": null,
+      "summary": {},
+      "createdAt": "2026-10-22T11:07:29.073Z",
+      "createdBy": null,
+      "updatedAt": null,
+      "updatedBy": null,
+      "version": 1,
+      "deletedAt": null,
+      "deletedBy": null,
+      "legacySource": null,
+      "legacyId": null,
+      "stages": [],
+      "boq": [],
+      "requirements": []
+    }
+  }
+}

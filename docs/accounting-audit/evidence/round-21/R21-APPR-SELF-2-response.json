@@ -1,0 +1,176 @@
+{
+  "actor": "accountant@demo.test",
+  "loginStatus": 200,
+  "tokenReceived": true,
+  "results": [
+    {
+      "label": "create",
+      "method": "POST",
+      "path": "/purchase-invoices",
+      "request": {
+        "branchId": "01a162a3-d042-77c9-b0cb-7f0deb28e1fc",
+        "warehouseId": "01a162a3-d044-7536-af06-6218cf4b0cdc",
+        "partyId": "01a162a3-d050-772f-8367-d471005419d8",
+        "kind": "purchase",
+        "supplierReferenceNo": "R21-PI3-SELF",
+        "supplierReferenceDate": "2026-10-22",
+        "priceIncludesVat": false,
+        "landedCostAlloc": "value",
+        "autoPost": false,
+        "lines": [
+          {
+            "itemId": "01a162b0-6085-72ac-bf82-824496c2a946",
+            "quantity": "10",
+            "unitPrice": "10",
+            "taxRate": "15"
+          }
+        ]
+      },
+      "status": 201,
+      "body": {
+        "id": "01a162c0-cc37-71ee-adf7-041d3873a5bc",
+        "costCenterId": null,
+        "tenantId": "01a162a3-cf0d-7238-9aeb-2e23f58a6b13",
+        "branchId": "01a162a3-d042-77c9-b0cb-7f0deb28e1fc",
+        "warehouseId": "01a162a3-d044-7536-af06-6218cf4b0cdc",
+        "partyId": "01a162a3-d050-772f-8367-d471005419d8",
+        "referenceInvoiceId": null,
+        "kind": "purchase",
+        "status": "draft",
+        "number": null,
+        "supplierReferenceNo": "R21-PI3-SELF",
+        "supplierReferenceDate": "2026-10-22",
+        "currency": "SAR",
+        "priceIncludesVat": false,
+        "landedCostAlloc": "value",
+        "invoiceDiscount": "0.0000",
+        "extraTax": "0.0000",
+        "withholding": "0.0000",
+        "subtotal": "100.0000",
+        "taxTotal": "15.0000",
+        "additionalCostTotal": "0.0000",
+        "total": "115.0000",
+        "paidTotal": "0.0000",
+        "paymentStatus": "unpaid",
+        "journalEntryId": null,
+        "postedAt": null,
+        "voidedAt": null,
+        "createdAt": "2026-10-22T08:36:04.791Z",
+        "createdBy": "01a162a3-d0b0-744f-b9bd-790831fa34d0",
+        "updatedAt": null,
+        "updatedBy": null,
+        "version": 1,
+        "legacySource": null,
+        "legacyId": null,
+        "lines": [
+          {
+            "id": "01a162c0-cc3b-732d-ae48-87e4ca0c292f",
+            "tenantId": "01a162a3-cf0d-7238-9aeb-2e23f58a6b13",
+            "invoiceId": "01a162c0-cc37-71ee-adf7-041d3873a5bc",
+            "lineNo": 1,
+            "itemId": "01a162b0-6085-72ac-bf82-824496c2a946",
+            "taxGroupId": null,
+            "description": null,
+            "quantity": "10.0000",
+            "unitPrice": "10.0000",
+            "discountRate": "0.0000",
+            "discountAmount": "0.0000",
+            "taxRate": "15.0000",
+            "net": "100.0000",
+            "tax": "15.0000",
+            "total": "115.0000",
+            "allocatedCost": "0.0000",
+            "landedTotal": "0.0000",
+            "unitCostAtPost": null,
+            "costCenterId": null,
+            "serialNos": [],
+            "lotId": null,
+            "batchNo": null,
+            "productionDate": null,
+            "expiryDate": null,
+            "metadata": {},
+            "createdAt": "2026-10-22T08:36:04.791Z",
+            "createdBy": null,
+            "updatedAt": null,
+            "updatedBy": null,
+            "version": 1
+          }
+        ],
+        "costs": [],
+        "payments": [],
+        "customFields": {}
+      }
+    },
+    {
+      "label": "gate",
+      "method": "POST",
+      "path": "/purchase-invoices/MISSING/post",
+      "request": {},
+      "status": 400,
+      "body": {
+        "type": "about:blank",
+        "title": "Identifier is not a valid UUID",
+        "status": 400,
+        "code": "INVALID_ID",
+        "detail": "The identifier \"id\" is not a valid UUID",
+        "traceId": "01a162c0-cc4c-7398-a438-c2a9e11f8f4d",
+        "errors": [
+          {
+            "field": "id",
+            "message": "Expected a UUID"
+          }
+        ]
+      }
+    },
+    {
+      "label": "inbox",
+      "method": "GET",
+      "path": "/approvals/inbox",
+      "status": 200,
+      "body": []
+    },
+    {
+      "label": "selfapprove",
+      "method": "POST",
+      "path": "/approvals/requests/MISSING/approve",
+      "request": {
+        "comment": "R21 اعتماد المحاسب لفاتورته التي أنشأها بنفسه — يجب منعه"
+      },
+      "status": 400,
+      "body": {
+        "type": "about:blank",
+        "title": "Identifier is not a valid UUID",
+        "status": 400,
+        "code": "INVALID_ID",
+        "detail": "The identifier \"id\" is not a valid UUID",
+        "traceId": "01a162c0-cc75-764c-804e-1cad87ec04f8",
+        "errors": [
+          {
+            "field": "id",
+            "message": "Expected a UUID"
+          }
+        ]
+      }
+    },
+    {
+      "label": "after",
+      "method": "GET",
+      "path": "/purchase-invoices/MISSING",
+      "status": 400,
+      "body": {
+        "type": "about:blank",
+        "title": "Identifier is not a valid UUID",
+        "status": 400,
+        "code": "INVALID_ID",
+        "detail": "The identifier \"id\" is not a valid UUID",
+        "traceId": "01a162c0-cc87-750e-8e89-d10598ea7d92",
+        "errors": [
+          {
+            "field": "id",
+            "message": "Expected a UUID"
+          }
+        ]
+      }
+    }
+  ]
+}

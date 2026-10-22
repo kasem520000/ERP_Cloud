@@ -1,0 +1,23 @@
+{
+  "sequence": true,
+  "results": [
+    {
+      "label": "preview",
+      "method": "POST",
+      "path": "/operations/invoice-maintenance",
+      "request": {
+        "mode": "preview",
+        "staleDraftDays": 0
+      },
+      "status": 404,
+      "body": {
+        "type": "about:blank",
+        "title": "Not found",
+        "status": 404,
+        "code": "NOT_FOUND",
+        "detail": "Cannot POST /api/v1/operations/invoice-maintenance",
+        "traceId": "01a16359-2f13-72b4-a4d8-0635e6bab3c9"
+      }
+    }
+  ]
+}

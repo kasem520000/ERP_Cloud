@@ -1,0 +1,71 @@
+AUDIT-TEST-2026-R21
+
+إستعادة البيانات
+ع
+EN
+م
+مالك الحساب
+الإعدادات
+/إعدادات إدارية
+إستعادة البيانات
+
+إعادة السجلات الناقصة من نسخة محفوظة. الإستعادة إضافية فقط: لا تحذف ولا تستبدل أي سجل قائم.
+
+النسخ الإحتياطي
+
+الإستعادة تضيف السجلات المفقودة فقط. إذا كان الهدف بدء سجلات جديدة تماماً فالمطلوب «إنشاء ملف» جديد وليس الإستعادة فوق ملف يعمل.
+
+النسخة
+—
+2026-10-22 13:32 — 217 سجل (R21 نسخة قبل اختبار الاستعادة التجريبي)
+فحص تجريبي
+اكتب رمز الملف للتأكيد
+تنفيذ الإستعادة
+
+فحص تجريبي فقط — لم تُكتب أي بيانات.
+
+تفاصيل الفحص
+الجدول	في النسخة	أُضيف	موجود مسبقاً	ملاحظة
+items	1	0	0	—
+parties	2	0	0	—
+accounts	116	0	0	—
+branches	1	0	0	—
+projects	1	0	0	—
+salesmen	1	0	0	—
+vouchers	2	0	0	—
+boq_terms	1	0	0	—
+employees	1	0	0	—
+currencies	1	0	0	—
+dashboards	1	0	0	—
+tax_groups	2	0	0	—
+warehouses	2	0	0	—
+price_lists	1	0	0	—
+tenant_apps	4	0	0	—
+cost_centers	3	0	0	—
+fiscal_years	1	0	0	—
+expense_types	1	0	0	—
+cash_locations	2	0	0	—
+fiscal_periods	12	0	0	—
+stock_balances	1	0	0	—
+usage_counters	1	0	0	—
+item_categories	2	0	0	—
+journal_entries	3	0	0	—
+tenant_settings	20	0	0	—
+company_profiles	1	0	0	—
+units_of_measure	4	0	0	—
+dashboard_widgets	3	0	0	—
+purchase_invoices	1	0	0	—
+document_sequences	5	0	0	—
+contractor_payments	1	0	0	—
+journal_entry_lines	9	0	0	—
+contractor_contracts	1	0	0	—
+cash_location_balances	2	0	0	—
+inventory_transactions	1	0	0	—
+purchase_invoice_lines	1	0	0	—
+branch_posting_profiles	1	0	0	—
+salary_adjustment_types	3	0	0	—
+contractor_contract_lines	1	0	0	—
+عمليات الاستعادة السابقة
+سجل عمليات الإستعادة
+التاريخ	النوع	أُضيف	تُخطي
+2026-10-22 13:32	فحص تجريبي	0	0

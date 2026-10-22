@@ -1,0 +1,42 @@
+{
+  "path": "/parties/01a163cb-c8c3-732b-99f5-c8071c994b52/balance",
+  "status": 200,
+  "body": {
+    "receivable": "36.0000",
+    "payable": "0.0000",
+    "open": [
+      {
+        "accountId": "01a163cb-c8ee-72ee-bbf2-042851010d36",
+        "debit": "200.0000",
+        "credit": "0.0000",
+        "date": "2026-10-22",
+        "entryId": "01a163cd-c4f6-70dc-b542-c851c8a68c77",
+        "allocated": "0.0000"
+      },
+      {
+        "accountId": "01a163cb-c8f0-7583-87db-f54fe9b274a9",
+        "debit": "30.0000",
+        "credit": "0.0000",
+        "date": "2026-10-22",
+        "entryId": "01a163cd-c4f6-70dc-b542-c851c8a68c77",
+        "allocated": "0.0000"
+      },
+      {
+        "accountId": "01a163cb-c908-75db-be95-5b33a30be545",
+        "debit": "0.0000",
+        "credit": "230.0000",
+        "date": "2026-10-22",
+        "entryId": "01a163cd-c4f6-70dc-b542-c851c8a68c77",
+        "allocated": "0.0000"
+      },
+      {
+        "accountId": "01a163cb-c908-75db-be95-5b33a30be545",
+        "debit": "36.0000",
+        "credit": "0.0000",
+        "date": "2026-10-22",
+        "entryId": "01a163ce-a1bb-7186-ab4f-adb4329538f2",
+        "allocated": "0.0000"
+      }
+    ]
+  }
+}

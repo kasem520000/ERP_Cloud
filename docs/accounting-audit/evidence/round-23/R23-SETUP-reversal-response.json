@@ -1,0 +1,152 @@
+{
+ "results": [
+  {
+   "method": "POST",
+   "path": "/auth/login",
+   "status": 200,
+   "request": {
+    "tenantCode": "demo",
+    "email": "owner@demo.test",
+    "password": "fqY*mega_q?kJ6BF*H4!"
+   },
+   "body": {
+    "data": {
+     "accessToken": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6ImRldi1rZXktMSJ9.eyJzY29wZSI6WyJlcnAiXSwidGlkIjoiMDFhMTY0YjktZGQ4Ny03N2M4LTgxNGMtMGI1ZWM0M2E5MTk3IiwibWlkIjoiMDFhMTY0YjktZGQ4Yi03MmRiLThhNGMtNWZkZTRjOTdkNTQ2Iiwic3ViIjoiMDFhMTY0YjktZGQ4OS03NDBiLTkxNDQtM2U1ZDkxY2JkNTQ0IiwiaWF0IjoxNzkyNjkxNTEyLCJpc3MiOiJlcnAtc2FhcyIsImF1ZCI6ImVycC1zYWFzLWFwaSIsImp0aSI6IjAxYTE2NGJkLWE1YjQtNzE3OS1hNTFjLTUyOGI1ZTYzN2JjMyIsImV4cCI6MTc5MjY5MjQxMiwibmJmIjoxNzkyNjkxNTEyfQ.sPk834I6wSayt9noiw-PZvp3on1C2WIe7G_B2ej6LkmrNJp8kDG_nDxxEfAUYU_Gf3cIAuxIuZJ7MUbNwk3oY-srZX0OyTa30hgvmGpXxbVtoOQtAE0LBA_4chqF-pNCYlpAu8MyNgNK5aNtiXfb8MkR7kH5hoxi-9X7uRfSzesVF1DwslwWIxohMZmn27L_VW0HJqGDtn0zRJBsct9O-tTQqKGbEmzwVl1BP_ue2Ljx0LcfIDCAM6t1Fg1W88zYZd6IpXWWrL04-1mCzcjOTiSQYLaYdy2KbApmkY_RI05c4Xk2BIODE4cDvAaWglpXGdf1EfpgAnUCteq4vfcpKQ",
+     "refreshToken": "iU9n3nL5XbMYg3dWqZUGxR8xfJI-jqYL36Qt-GuFZbM",
+     "tokenType": "Bearer",
+     "expiresIn": 900,
+     "user": {
+      "id": "01a164b9-dd89-740b-9144-3e5d91cbd544",
+      "email": "owner@demo.test",
+      "fullName": "مالك الحساب",
+      "phone": null,
+      "status": "active",
+      "isPlatformAdmin": false,
+      "platformRoles": [],
+      "mustChangePassword": false,
+      "lastLoginAt": "2026-10-22T17:51:10.975Z"
+     },
+     "memberships": [
+      {
+       "id": "01a164b9-dd8b-72db-8a4c-5fde4c97d546",
+       "tenantId": "01a164b9-dd87-77c8-814c-0b5ec43a9197",
+       "tenantCode": "demo",
+       "tenantName": "AUDIT-TEST-2026-R23",
+       "displayName": "مالك الحساب",
+       "status": "active",
+       "isOwner": true,
+       "branchScope": null,
+       "maxDiscountPct": null,
+       "maxDiscountAmount": null,
+       "roles": [
+        {
+         "id": "01a164b9-dd8c-742a-ae7e-0b90bccca29e",
+         "name": "Owner",
+         "description": "Full control of the tenant, including configuration and access management.",
+         "isSystem": true
+        }
+       ],
+       "kind": "staff",
+       "scopes": [
+        {
+         "roleId": "01a164b9-dd8c-742a-ae7e-0b90bccca29e",
+         "scopeType": "branch",
+         "scopeId": "00000000-0000-0000-0000-000000000000"
+        },
+        {
+         "roleId": "01a164b9-dd8c-742a-ae7e-0b90bccca29e",
+         "scopeType": "warehouse",
+         "scopeId": "00000000-0000-0000-0000-000000000000"
+        },
+        {
+         "roleId": "01a164b9-dd8c-742a-ae7e-0b90bccca29e",
+         "scopeType": "cash_location",
+         "scopeId": "00000000-0000-0000-0000-000000000000"
+        }
+       ]
+      }
+     ]
+    }
+   }
+  },
+  {
+   "method": "GET",
+   "path": "/journal-entries?limit=5",
+   "status": 200,
+   "body": {
+    "data": [
+     {
+      "id": "01a164bd-1428-768c-8a43-47e73fda9bad",
+      "number": "JE-000002",
+      "date": "2026-10-01",
+      "kind": "manual",
+      "status": "posted",
+      "description": "R23 رأس مال افتتاحي (تجهيز اختبار)",
+      "branchId": "01a164b9-deaa-75cd-9039-64b894c7ee80",
+      "fiscalPeriodId": "01a164b9-defd-75c4-8b4d-12bacc3e020a",
+      "sourceType": null,
+      "reversalOf": null,
+      "postedAt": "2026-10-22T17:51:15.497Z",
+      "totalDebit": "230000.0000",
+      "totalCredit": "230000.0000",
+      "lineCount": 3
+     },
+     {
+      "id": "01a164b9-deff-77e9-b20c-7c7cfa28f739",
+      "number": "JE-000001",
+      "date": "2026-01-01",
+      "kind": "manual",
+      "status": "posted",
+      "description": "قيد افتتاحي — رأس المال",
+      "branchId": "01a164b9-deaa-75cd-9039-64b894c7ee80",
+      "fiscalPeriodId": "01a164b9-def4-7059-a730-7cd3a06812b0",
+      "sourceType": null,
+      "reversalOf": null,
+      "postedAt": "2026-10-22T17:47:45.280Z",
+      "totalDebit": "250000.0000",
+      "totalCredit": "250000.0000",
+      "lineCount": 4
+     }
+    ]
+   }
+  },
+  {
+   "method": "POST",
+   "path": "/journal-entries/01a164bd-1428-768c-8a43-47e73fda9bad/reverse",
+   "status": 409,
+   "request": {
+    "reason": "R23: قيد تجهيز زائد — البذرة تتضمن أرصدة افتتاحية؛ عكس كامل"
+   },
+   "body": {
+    "type": "about:blank",
+    "title": "Request failed",
+    "status": 409,
+    "code": "FISCAL_PERIOD_CLOSED",
+    "detail": "فترة العكس مغلقة أو غير متاحة — اختر فترة مفتوحة",
+    "traceId": "01a164bd-a86d-766a-b26a-19859ed1cded",
+    "errors": [
+     {
+      "field": "fiscalPeriodId"
+     }
+    ]
+   }
+  },
+  {
+   "method": "POST",
+   "path": "/journal-entries/01a164bd-1428-768c-8a43-47e73fda9bad/reverse",
+   "status": 201,
+   "request": {
+    "branchId": "01a164b9-deaa-75cd-9039-64b894c7ee80",
+    "fiscalPeriodId": "01a164b9-defd-75c4-8b4d-12bacc3e020a",
+    "date": "2026-10-01",
+    "reason": "R23: قيد تجهيز زائد — البذرة تتضمن أرصدة افتتاحية؛ عكس كامل"
+   },
+   "body": {
+    "data": {
+     "id": "01a164bd-f281-75ac-88ae-5ba5fc28be7a",
+     "reversalOf": "01a164bd-1428-768c-8a43-47e73fda9bad"
+    }
+   }
+  }
+ ]
+}

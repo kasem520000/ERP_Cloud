@@ -1,0 +1,161 @@
+{
+  "path": "/memberships",
+  "status": 200,
+  "body": {
+    "data": [
+      {
+        "id": "01a163cb-c73f-70f9-b761-5d8f571b17ad",
+        "tenantId": "01a163cb-c73b-741d-93c9-17f1ac98ae25",
+        "tenantCode": "demo",
+        "tenantName": "AUDIT-TEST-2026-R21",
+        "displayName": "مالك الحساب",
+        "status": "active",
+        "isOwner": true,
+        "branchScope": null,
+        "maxDiscountPct": null,
+        "maxDiscountAmount": null,
+        "roles": [
+          {
+            "id": "01a163cb-c740-75bb-90c0-40c4fd3d581f",
+            "name": "Owner",
+            "description": "Full control of the tenant, including configuration and access management.",
+            "isSystem": true
+          }
+        ],
+        "kind": "staff",
+        "scopes": [
+          {
+            "roleId": "01a163cb-c740-75bb-90c0-40c4fd3d581f",
+            "scopeType": "branch",
+            "scopeId": "00000000-0000-0000-0000-000000000000"
+          },
+          {
+            "roleId": "01a163cb-c740-75bb-90c0-40c4fd3d581f",
+            "scopeType": "warehouse",
+            "scopeId": "00000000-0000-0000-0000-000000000000"
+          },
+          {
+            "roleId": "01a163cb-c740-75bb-90c0-40c4fd3d581f",
+            "scopeType": "cash_location",
+            "scopeId": "00000000-0000-0000-0000-000000000000"
+          }
+        ]
+      },
+      {
+        "id": "01a163cb-c931-74a7-b9b8-5913a7a7ddb2",
+        "tenantId": "01a163cb-c73b-741d-93c9-17f1ac98ae25",
+        "tenantCode": "demo",
+        "tenantName": "AUDIT-TEST-2026-R21",
+        "displayName": "محاسب الشركة",
+        "status": "active",
+        "isOwner": false,
+        "branchScope": null,
+        "maxDiscountPct": null,
+        "maxDiscountAmount": null,
+        "roles": [
+          {
+            "id": "01a163cb-c78e-72cd-9485-8515ac4509c4",
+            "name": "Accountant",
+            "description": "Accounting, parties, inventory and document review without tenant administration.",
+            "isSystem": true
+          }
+        ],
+        "kind": "staff",
+        "scopes": [
+          {
+            "roleId": "01a163cb-c78e-72cd-9485-8515ac4509c4",
+            "scopeType": "branch",
+            "scopeId": "00000000-0000-0000-0000-000000000000"
+          },
+          {
+            "roleId": "01a163cb-c78e-72cd-9485-8515ac4509c4",
+            "scopeType": "warehouse",
+            "scopeId": "00000000-0000-0000-0000-000000000000"
+          },
+          {
+            "roleId": "01a163cb-c78e-72cd-9485-8515ac4509c4",
+            "scopeType": "cash_location",
+            "scopeId": "00000000-0000-0000-0000-000000000000"
+          }
+        ]
+      },
+      {
+        "id": "01a163cb-c937-77ff-8ea8-af164b1195dd",
+        "tenantId": "01a163cb-c73b-741d-93c9-17f1ac98ae25",
+        "tenantCode": "demo",
+        "tenantName": "AUDIT-TEST-2026-R21",
+        "displayName": "أمين الصندوق",
+        "status": "active",
+        "isOwner": false,
+        "branchScope": null,
+        "maxDiscountPct": null,
+        "maxDiscountAmount": null,
+        "roles": [
+          {
+            "id": "01a163cb-c7ac-71b9-8f2c-403f7d4d4a11",
+            "name": "Cashier",
+            "description": "Point-of-sale and treasury operations; read-only catalog and party lookup.",
+            "isSystem": true
+          }
+        ],
+        "kind": "staff",
+        "scopes": [
+          {
+            "roleId": "01a163cb-c7ac-71b9-8f2c-403f7d4d4a11",
+            "scopeType": "branch",
+            "scopeId": "00000000-0000-0000-0000-000000000000"
+          },
+          {
+            "roleId": "01a163cb-c7ac-71b9-8f2c-403f7d4d4a11",
+            "scopeType": "warehouse",
+            "scopeId": "00000000-0000-0000-0000-000000000000"
+          },
+          {
+            "roleId": "01a163cb-c7ac-71b9-8f2c-403f7d4d4a11",
+            "scopeType": "cash_location",
+            "scopeId": "00000000-0000-0000-0000-000000000000"
+          }
+        ]
+      },
+      {
+        "id": "01a163cb-c945-73fe-8835-17e5d0ef4274",
+        "tenantId": "01a163cb-c73b-741d-93c9-17f1ac98ae25",
+        "tenantCode": "demo",
+        "tenantName": "AUDIT-TEST-2026-R21",
+        "displayName": "مندوب الشركة",
+        "status": "active",
+        "isOwner": false,
+        "branchScope": null,
+        "maxDiscountPct": null,
+        "maxDiscountAmount": null,
+        "roles": [
+          {
+            "id": "01a163cf-338a-73ea-9d69-1bc118bdbb79",
+            "name": "R21 أمين صندوق مقيد",
+            "description": null,
+            "isSystem": false
+          },
+          {
+            "id": "01a163cb-c941-7692-b9ec-1f801665909a",
+            "name": "مندوب توزيع",
+            "description": "دور مندوب التوزيع: رؤية عهدته، إصدار فواتيره، تحصيل مديونياته، وتقديم إغلاق ورديته",
+            "isSystem": false
+          }
+        ],
+        "kind": "staff",
+        "scopes": [
+          {
+            "roleId": "01a163cb-c941-7692-b9ec-1f801665909a",
+            "scopeType": "warehouse",
+            "scopeId": "01a163cb-c940-7619-8ab8-604be176ce1e"
+          }
+        ]
+      }
+    ],
+    "meta": {
+      "total": 4,
+      "limit": 50,
+      "offset": 0
+    }
+  }
+}

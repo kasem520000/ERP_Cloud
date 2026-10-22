@@ -1,0 +1,29 @@
+[
+ {
+  "number": "SI-000001",
+  "status": "posted",
+  "total": "46.0000",
+  "paid_total": "0.0000",
+  "payment_status": "unpaid",
+  "shift_id": null,
+  "posted_at": "2026-10-22T18:06:38.952Z"
+ },
+ {
+  "number": "SI-000002",
+  "status": "posted",
+  "total": "23.0000",
+  "paid_total": "23.0000",
+  "payment_status": "paid",
+  "shift_id": null,
+  "posted_at": "2026-10-22T18:12:18.569Z"
+ },
+ {
+  "number": "SI-000003",
+  "status": "posted",
+  "total": "23.0000",
+  "paid_total": "0.0000",
+  "payment_status": "unpaid",
+  "shift_id": null,
+  "posted_at": "2026-10-22T18:20:33.129Z"
+ }
+]

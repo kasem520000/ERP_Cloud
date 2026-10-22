@@ -1,0 +1,214 @@
+{
+  "sequence": true,
+  "results": [
+    {
+      "label": "wps",
+      "method": "POST",
+      "path": "/hrm/payroll/runs/01a1626b-25df-7248-b3f3-f40c68acd93b/wps-export",
+      "request": {},
+      "status": 422,
+      "body": {
+        "type": "about:blank",
+        "title": "Validation failed",
+        "status": 422,
+        "code": "VALIDATION_FAILED",
+        "detail": "ملف حماية الأجور غير مكتمل",
+        "traceId": "01a1626e-5e61-773d-b279-880ac26fe83d",
+        "errors": [
+          {
+            "rows": [
+              {
+                "employeeId": "01a161bb-3aa3-7149-92ce-21dfe375470e",
+                "employeeNo": "R18-EMP-1",
+                "name": "R18 موظف اختبار معزول",
+                "nationalId": "",
+                "bankCode": "",
+                "iban": "",
+                "basic": "120.00",
+                "housing": "0.00",
+                "other": "0.00",
+                "deductions": "5.00",
+                "net": "115.00",
+                "errors": [
+                  "رقم الهوية/الإقامة يجب أن يكون 10 أرقام",
+                  "الآيبان السعودي غير صالح",
+                  "رمز البنك مفقود أو غير صالح"
+                ],
+                "warnings": []
+              },
+              {
+                "employeeId": "01a16198-e60b-702b-a818-8978835290c7",
+                "employeeNo": "EMP-REP-1",
+                "name": "مندوب الشركة",
+                "nationalId": "",
+                "bankCode": "",
+                "iban": "",
+                "basic": "0.00",
+                "housing": "0.00",
+                "other": "0.00",
+                "deductions": "0.00",
+                "net": "0.00",
+                "errors": [
+                  "رقم الهوية/الإقامة يجب أن يكون 10 أرقام",
+                  "الآيبان السعودي غير صالح",
+                  "رمز البنك مفقود أو غير صالح",
+                  "صافي الراتب يجب أن يكون أكبر من صفر"
+                ],
+                "warnings": []
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "label": "gosi",
+      "method": "POST",
+      "path": "/hrm/payroll/runs/01a1626b-25df-7248-b3f3-f40c68acd93b/gosi-export",
+      "request": {},
+      "status": 422,
+      "body": {
+        "type": "about:blank",
+        "title": "Validation failed",
+        "status": 422,
+        "code": "VALIDATION_FAILED",
+        "detail": "ملف التأمينات غير مكتمل",
+        "traceId": "01a1626e-5e8c-7678-884d-64c8bec414ff",
+        "errors": [
+          {
+            "rows": [
+              {
+                "employeeId": "01a161bb-3aa3-7149-92ce-21dfe375470e",
+                "name": "R18 موظف اختبار معزول",
+                "nationalId": "",
+                "nationality": "غير سعودي",
+                "insuranceNo": "",
+                "basic": "120.00",
+                "housing": "0.00",
+                "contributoryWage": "120.00",
+                "employeeShare": "0.00",
+                "employerShare": "2.40",
+                "occupationalHazard": "2.40",
+                "totalContribution": "2.40",
+                "scheme": "expat",
+                "errors": [
+                  "رقم الهوية/الإقامة يجب أن يكون 10 أرقام"
+                ]
+              },
+              {
+                "employeeId": "01a16198-e60b-702b-a818-8978835290c7",
+                "name": "مندوب الشركة",
+                "nationalId": "",
+                "nationality": "غير سعودي",
+                "insuranceNo": "",
+                "basic": "0.00",
+                "housing": "0.00",
+                "contributoryWage": "0.00",
+                "employeeShare": "0.00",
+                "employerShare": "0.00",
+                "occupationalHazard": "0.00",
+                "totalContribution": "0.00",
+                "scheme": "expat",
+                "errors": [
+                  "رقم الهوية/الإقامة يجب أن يكون 10 أرقام"
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "label": "run",
+      "method": "GET",
+      "path": "/hrm/payroll/runs/01a1626b-25df-7248-b3f3-f40c68acd93b",
+      "status": 200,
+      "body": {
+        "data": {
+          "id": "01a1626b-25df-7248-b3f3-f40c68acd93b",
+          "tenantId": "01a16198-e3e0-77af-b843-47c9d7787c03",
+          "periodId": "01a16198-e5eb-700e-9d3b-99a898c7b234",
+          "yearMonth": "2026-11",
+          "status": "posted",
+          "currency": "SAR",
+          "summary": {
+            "preview": {
+              "lines": [
+                {
+                  "net": "115.0000",
+                  "gross": "120.0000",
+                  "additions": "0.0000",
+                  "components": {
+                    "basic": "120"
+                  },
+                  "deductions": "5.0000",
+                  "employeeId": "01a161bb-3aa3-7149-92ce-21dfe375470e",
+                  "employeeName": "R18 موظف اختبار معزول",
+                  "unpaidFactor": "1.000000"
+                },
+                {
+                  "net": "0.0000",
+                  "gross": "0.0000",
+                  "additions": "0.0000",
+                  "components": {},
+                  "deductions": "0.0000",
+                  "employeeId": "01a16198-e60b-702b-a818-8978835290c7",
+                  "employeeName": "مندوب الشركة",
+                  "unpaidFactor": "1.000000"
+                }
+              ],
+              "yearMonth": "2026-11",
+              "netPayable": "115.0000",
+              "employeeCount": 2
+            }
+          },
+          "journalEntryId": "01a1626b-61ab-70cc-bb67-1b9ff9765343",
+          "voucherId": null,
+          "postedAt": "2026-10-22T07:02:46.971Z",
+          "paidAt": null,
+          "reversedAt": null,
+          "reversalReason": null,
+          "createdAt": "2026-10-22T07:02:31.647Z",
+          "createdBy": null,
+          "updatedAt": "2026-10-22T07:02:46.971Z",
+          "updatedBy": null,
+          "version": 1,
+          "legacySource": null,
+          "legacyId": null,
+          "lines": [
+            {
+              "runId": "01a1626b-25df-7248-b3f3-f40c68acd93b",
+              "lineNo": 1,
+              "tenantId": "01a16198-e3e0-77af-b843-47c9d7787c03",
+              "employeeId": "01a161bb-3aa3-7149-92ce-21dfe375470e",
+              "components": {
+                "basic": "120"
+              },
+              "additions": "0.0000",
+              "deductions": "5.0000",
+              "gross": "120.0000",
+              "net": "115.0000",
+              "costCenterId": null,
+              "status": "draft",
+              "payslipHtml": "<!doctype html><html dir=\"rtl\"><body><h1>قسيمة راتب 2026-11</h1><p>R18 موظف اختبار معزول: 115.0000</p></body></html>"
+            },
+            {
+              "runId": "01a1626b-25df-7248-b3f3-f40c68acd93b",
+              "lineNo": 2,
+              "tenantId": "01a16198-e3e0-77af-b843-47c9d7787c03",
+              "employeeId": "01a16198-e60b-702b-a818-8978835290c7",
+              "components": {},
+              "additions": "0.0000",
+              "deductions": "0.0000",
+              "gross": "0.0000",
+              "net": "0.0000",
+              "costCenterId": null,
+              "status": "draft",
+              "payslipHtml": "<!doctype html><html dir=\"rtl\"><body><h1>قسيمة راتب 2026-11</h1><p>مندوب الشركة: 0.0000</p></body></html>"
+            }
+          ]
+        }
+      }
+    }
+  ]
+}

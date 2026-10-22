@@ -1,0 +1,96 @@
+{
+  "path": "/reports/cash-statement?from=2026-01-01&to=2026-12-31",
+  "status": 200,
+  "body": {
+    "key": "cash-statement",
+    "titleAr": "حركة الصندوق",
+    "group": "accounting",
+    "hintAr": "كشفُ الصندوق كما في `frmRptKhzna`: سطر «رصيد سابق» يفتح الفترة، ثم حركةٌ بسطر مع رصيدٍ متحرك، ثم بطاقتا «الرصيد الإجمالي» و«رصيد الفترة المحددة».",
+    "chart": null,
+    "params": {
+      "from": "2026-01-01",
+      "to": "2026-12-31"
+    },
+    "layout": null,
+    "columns": [
+      {
+        "key": "seq",
+        "labelAr": "م",
+        "type": "int"
+      },
+      {
+        "key": "operation",
+        "labelAr": "العملية",
+        "type": "text"
+      },
+      {
+        "key": "doc_no",
+        "labelAr": "الرقم",
+        "type": "text"
+      },
+      {
+        "key": "day",
+        "labelAr": "📅 التاريخ",
+        "type": "date"
+      },
+      {
+        "key": "income",
+        "labelAr": "📥 وارد",
+        "type": "money"
+      },
+      {
+        "key": "outcome",
+        "labelAr": "📤 صادر",
+        "type": "money"
+      },
+      {
+        "key": "balance",
+        "labelAr": "⚖️ الرصيد",
+        "type": "money"
+      },
+      {
+        "key": "note",
+        "labelAr": "📝 البيان",
+        "type": "text"
+      }
+    ],
+    "rows": [
+      {
+        "seq": "1",
+        "operation": "رصيد سابق",
+        "doc_no": "—",
+        "day": "2025-12-31",
+        "income": "0.00",
+        "outcome": "0.00",
+        "balance": "0.00",
+        "note": "",
+        "s_all": "0.00",
+        "s_period": "0.00",
+        "s_count": "1"
+      }
+    ],
+    "totals": {
+      "income": "0.00",
+      "outcome": "0.00"
+    },
+    "grandTotal": [
+      {
+        "key": "s_all",
+        "labelAr": "الرصيد الإجمالي",
+        "amount": "0.00"
+      },
+      {
+        "key": "s_period",
+        "labelAr": "رصيد الفترة المحددة",
+        "amount": "0.00"
+      },
+      {
+        "key": "s_count",
+        "labelAr": "عدد الحركات",
+        "amount": "1.00"
+      }
+    ],
+    "rowCount": 1,
+    "generatedAt": "2026-10-22T13:35:45.911Z"
+  }
+}

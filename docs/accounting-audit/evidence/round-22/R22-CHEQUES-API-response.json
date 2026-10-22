@@ -1,0 +1,1025 @@
+{
+  "sequence": true,
+  "results": [
+    {
+      "label": "vouchers-receipt",
+      "method": "GET",
+      "path": "/vouchers?kind=receipt",
+      "status": 200,
+      "body": [
+        {
+          "id": "01a16403-75d4-717c-afec-e19d6564d43f",
+          "tenantId": "01a163cb-c73b-741d-93c9-17f1ac98ae25",
+          "branchId": "01a163cb-c8b8-759f-acf5-92d467c1ff08",
+          "kind": "receipt",
+          "subtype": "customer",
+          "number": "RV-000003",
+          "date": "2026-10-22",
+          "partyId": "01a163cb-c8c1-767c-b65c-438fce46c573",
+          "counterAccountId": null,
+          "cashLocationId": "01a163cb-c8bd-7782-90dd-3ceea8754f1a",
+          "method": "cheque",
+          "amount": "10.0000",
+          "vatAmount": "0.0000",
+          "netAmount": "10.0000",
+          "currency": "SAR",
+          "fxRate": null,
+          "chequeNo": "R22-CHQ-2",
+          "chequeDate": "2026-11-05",
+          "bankName": "بنك العميل",
+          "chequeState": "bounced",
+          "costCenterId": null,
+          "referenceNo": "R22-RV-CHQ2",
+          "referenceDate": null,
+          "recipient": "R22 اختبار فقط",
+          "description": "R22-RV-CHQ2 شيك 10 دفعة من عميل عام — سيُرتجع (bounce)",
+          "voucherTime": null,
+          "salesmanId": null,
+          "foreignAmount": null,
+          "status": "posted",
+          "journalEntryId": "01a16404-5c4a-752d-90d7-3d659090982f",
+          "fiscalPeriodId": null,
+          "postedAt": "2026-10-22T14:29:29.807Z",
+          "voidedAt": null,
+          "idempotencyKey": "d222c5e7-29f1-425d-95d2-95fdc3fe5d1e",
+          "createdAt": "2026-10-22T14:28:30.802Z",
+          "createdBy": "01a163cb-c73d-71f2-91d1-8a02fd9737cd",
+          "createdByName": "مالك الحساب",
+          "updatedAt": "2026-10-22T14:30:40.624Z",
+          "updatedBy": "01a163cb-c73d-71f2-91d1-8a02fd9737cd",
+          "version": 1
+        },
+        {
+          "id": "01a16400-b6e3-75bf-a89a-ad0a57a2a62a",
+          "tenantId": "01a163cb-c73b-741d-93c9-17f1ac98ae25",
+          "branchId": "01a163cb-c8b8-759f-acf5-92d467c1ff08",
+          "kind": "receipt",
+          "subtype": "customer",
+          "number": "RV-000002",
+          "date": "2026-10-22",
+          "partyId": "01a163cb-c8c1-767c-b65c-438fce46c573",
+          "counterAccountId": null,
+          "cashLocationId": "01a163cb-c8bd-7782-90dd-3ceea8754f1a",
+          "method": "cheque",
+          "amount": "46.0000",
+          "vatAmount": "0.0000",
+          "netAmount": "46.0000",
+          "currency": "SAR",
+          "fxRate": null,
+          "chequeNo": "R22-CHQ-1",
+          "chequeDate": "2026-11-05",
+          "bankName": "بنك العميل",
+          "chequeState": "cleared",
+          "costCenterId": null,
+          "referenceNo": "R22-RV-CHQ1",
+          "referenceDate": null,
+          "recipient": "R22 اختبار فقط",
+          "description": "R22-RV-CHQ1 شيك 46 من عميل عام سداد فاتورة 2 × 20 + ض.ق.م — شيك تحت التحصيل حتى تحصيله",
+          "voucherTime": null,
+          "salesmanId": null,
+          "foreignAmount": null,
+          "status": "posted",
+          "journalEntryId": "01a16401-9f0d-7092-b2f5-e269720d9076",
+          "fiscalPeriodId": null,
+          "postedAt": "2026-10-22T14:26:30.292Z",
+          "voidedAt": null,
+          "idempotencyKey": "c7dd3138-7b2e-4927-b960-d9c5cf9f8ce0",
+          "createdAt": "2026-10-22T14:25:30.850Z",
+          "createdBy": "01a163cb-c73d-71f2-91d1-8a02fd9737cd",
+          "createdByName": "مالك الحساب",
+          "updatedAt": "2026-10-22T14:27:37.301Z",
+          "updatedBy": "01a163cb-c73d-71f2-91d1-8a02fd9737cd",
+          "version": 1
+        },
+        {
+          "id": "01a163d0-d304-75f9-ab77-af347e1a719a",
+          "tenantId": "01a163cb-c73b-741d-93c9-17f1ac98ae25",
+          "branchId": "01a163cb-c8b8-759f-acf5-92d467c1ff08",
+          "kind": "receipt",
+          "subtype": "customer",
+          "number": "RV-000001",
+          "date": "2026-10-22",
+          "partyId": "01a163cb-c8c1-767c-b65c-438fce46c573",
+          "counterAccountId": "01a163cb-c907-7709-812c-535028a6d8f3",
+          "cashLocationId": "01a163cb-c8bc-71ea-88f6-c9f66e215f9b",
+          "method": "cash",
+          "amount": "23.0000",
+          "vatAmount": "0.0000",
+          "netAmount": "23.0000",
+          "currency": "SAR",
+          "fxRate": null,
+          "chequeNo": null,
+          "chequeDate": null,
+          "bankName": null,
+          "chequeState": null,
+          "costCenterId": null,
+          "referenceNo": "VTX-00002",
+          "referenceDate": null,
+          "recipient": null,
+          "description": "سند قبض وتحصيل مديونية للفاتورة VTX-00002",
+          "voucherTime": null,
+          "salesmanId": "01a163cb-c948-704c-b692-895dff9ce1fa",
+          "foreignAmount": null,
+          "status": "posted",
+          "journalEntryId": "01a163d0-d30a-765c-96f4-211f1973d414",
+          "fiscalPeriodId": null,
+          "postedAt": "2026-10-22T13:33:12.333Z",
+          "voidedAt": null,
+          "idempotencyKey": "van-collection-voucher:01a163d0-a355-73c9-ac10-337fee4ff293:23.0000",
+          "createdAt": "2026-10-22T13:33:12.320Z",
+          "createdBy": "01a163cb-c73d-71f2-91d1-8a02fd9737cd",
+          "createdByName": "مالك الحساب",
+          "updatedAt": "2026-10-22T13:33:12.333Z",
+          "updatedBy": "01a163cb-c73d-71f2-91d1-8a02fd9737cd",
+          "version": 1
+        },
+        {
+          "id": "01a163cf-973c-748a-8e4f-b04402e84bee",
+          "tenantId": "01a163cb-c73b-741d-93c9-17f1ac98ae25",
+          "branchId": "01a163cb-c8b8-759f-acf5-92d467c1ff08",
+          "kind": "receipt",
+          "subtype": "customer",
+          "number": null,
+          "date": "2026-10-22",
+          "partyId": "01a163cb-c8c1-767c-b65c-438fce46c573",
+          "counterAccountId": null,
+          "cashLocationId": "01a163cb-c8bc-71ea-88f6-c9f66e215f9b",
+          "method": "cash",
+          "amount": "1.0000",
+          "vatAmount": "0.0000",
+          "netAmount": "1.0000",
+          "currency": "SAR",
+          "fxRate": null,
+          "chequeNo": null,
+          "chequeDate": null,
+          "bankName": null,
+          "chequeState": null,
+          "costCenterId": null,
+          "referenceNo": null,
+          "referenceDate": null,
+          "recipient": null,
+          "description": "R21 SoD سند من الدور المخصص (مسودة فقط)",
+          "voucherTime": null,
+          "salesmanId": null,
+          "foreignAmount": null,
+          "status": "draft",
+          "journalEntryId": null,
+          "fiscalPeriodId": null,
+          "postedAt": null,
+          "voidedAt": null,
+          "idempotencyKey": null,
+          "createdAt": "2026-10-22T13:31:51.483Z",
+          "createdBy": "01a163cb-c944-75a1-8158-8616609db1f1",
+          "createdByName": "مندوب الشركة",
+          "updatedAt": null,
+          "updatedBy": "01a163cb-c944-75a1-8158-8616609db1f1",
+          "version": 1
+        },
+        {
+          "id": "01a163ce-817e-7006-9416-43456fe42936",
+          "tenantId": "01a163cb-c73b-741d-93c9-17f1ac98ae25",
+          "branchId": "01a163cb-c8b8-759f-acf5-92d467c1ff08",
+          "kind": "payment",
+          "subtype": "supplier",
+          "number": "PV-000001",
+          "date": "2026-10-22",
+          "partyId": "01a163cb-c8c3-732b-99f5-c8071c994b52",
+          "counterAccountId": null,
+          "cashLocationId": "01a163cb-c8bc-71ea-88f6-c9f66e215f9b",
+          "method": "cash",
+          "amount": "36.0000",
+          "vatAmount": "0.0000",
+          "netAmount": "36.0000",
+          "currency": "SAR",
+          "fxRate": null,
+          "chequeNo": null,
+          "chequeDate": null,
+          "bankName": null,
+          "chequeState": null,
+          "costCenterId": null,
+          "referenceNo": "CP-000001",
+          "referenceDate": null,
+          "recipient": "R21 عقد مقاول اختبار معزول",
+          "description": null,
+          "voucherTime": null,
+          "salesmanId": null,
+          "foreignAmount": null,
+          "status": "posted",
+          "journalEntryId": "01a163ce-a1bb-7186-ab4f-adb4329538f2",
+          "fiscalPeriodId": null,
+          "postedAt": "2026-10-22T13:30:48.646Z",
+          "voidedAt": null,
+          "idempotencyKey": null,
+          "createdAt": "2026-10-22T13:30:40.375Z",
+          "createdBy": "01a163cb-c73d-71f2-91d1-8a02fd9737cd",
+          "createdByName": "مالك الحساب",
+          "updatedAt": "2026-10-22T13:30:48.646Z",
+          "updatedBy": "01a163cb-c73d-71f2-91d1-8a02fd9737cd",
+          "version": 1
+        }
+      ]
+    },
+    {
+      "label": "bank-balance",
+      "method": "GET",
+      "path": "/cash-locations/01a163cb-c8bd-7782-90dd-3ceea8754f1a/balance",
+      "status": 200,
+      "body": {
+        "tenantId": "01a163cb-c73b-741d-93c9-17f1ac98ae25",
+        "cashLocationId": "01a163cb-c8bd-7782-90dd-3ceea8754f1a",
+        "currencyCode": "SAR",
+        "balance": "46.0000",
+        "updatedAt": "2026-10-22T14:27:37.275Z"
+      }
+    },
+    {
+      "label": "bank-movements",
+      "method": "GET",
+      "path": "/cash-locations/01a163cb-c8bd-7782-90dd-3ceea8754f1a/movements?all=1",
+      "status": 200,
+      "body": {
+        "cashLocationId": "01a163cb-c8bd-7782-90dd-3ceea8754f1a",
+        "cashLocation": "الحساب البنكي الرئيسي",
+        "currencyCode": "SAR",
+        "accountId": "01a163cb-c8eb-705d-9f64-1944d960b898",
+        "from": null,
+        "to": null,
+        "fromTime": "00:00",
+        "toTime": "23:59",
+        "all": true,
+        "openingBalance": "0.0000",
+        "totalAll": "180046.0000",
+        "totalPeriod": "180046.0000",
+        "rows": [
+          {
+            "seq": 1,
+            "processType": "قيد يومية",
+            "number": "JE-000001",
+            "date": "2026-01-01",
+            "income": "180000.0000",
+            "outcome": "0.0000",
+            "balance": "180000.0000",
+            "note": "قيد افتتاحي — رأس المال"
+          },
+          {
+            "seq": 2,
+            "processType": "سند قبض",
+            "number": "JE-000021",
+            "date": "2026-10-22",
+            "income": "46.0000",
+            "outcome": "0.0000",
+            "balance": "180046.0000",
+            "note": "R22-RV-CHQ1 شيك 46 من عميل عام سداد فاتورة 2 × 20 + ض.ق.م — شيك تحت التحصيل حتى تحصيله"
+          },
+          {
+            "seq": 3,
+            "processType": "شيك",
+            "number": "JE-000022",
+            "date": "2026-10-22",
+            "income": "46.0000",
+            "outcome": "46.0000",
+            "balance": "180046.0000",
+            "note": "تحصيل شيك R22-CHQ-1"
+          },
+          {
+            "seq": 4,
+            "processType": "سند قبض",
+            "number": "JE-000023",
+            "date": "2026-10-22",
+            "income": "10.0000",
+            "outcome": "0.0000",
+            "balance": "180056.0000",
+            "note": "R22-RV-CHQ2 شيك 10 دفعة من عميل عام — سيُرتجع (bounce)"
+          },
+          {
+            "seq": 5,
+            "processType": "شيك",
+            "number": "JE-000024",
+            "date": "2026-10-22",
+            "income": "0.0000",
+            "outcome": "10.0000",
+            "balance": "180046.0000",
+            "note": "ارتجاع شيك R22-CHQ-2"
+          }
+        ]
+      }
+    },
+    {
+      "label": "party-balance",
+      "method": "GET",
+      "path": "/parties/01a163cb-c8c1-767c-b65c-438fce46c573/balance",
+      "status": 200,
+      "body": {
+        "receivable": "-171.0000",
+        "payable": "0.0000",
+        "open": [
+          {
+            "accountId": "01a163cb-c904-731e-8f5d-d6ff59574120",
+            "debit": "0.0000",
+            "credit": "40.0000",
+            "date": "2026-10-22",
+            "entryId": "01a163d0-8cb6-7154-be8f-6b1cc04d4de8",
+            "allocated": "0.0000"
+          },
+          {
+            "accountId": "01a163cb-c8f0-7583-87db-f54fe9b274a9",
+            "debit": "0.0000",
+            "credit": "6.0000",
+            "date": "2026-10-22",
+            "entryId": "01a163d0-8cb6-7154-be8f-6b1cc04d4de8",
+            "allocated": "0.0000"
+          },
+          {
+            "accountId": "01a163cb-c90a-72d9-800d-7c8d9ad852fb",
+            "debit": "20.0000",
+            "credit": "0.0000",
+            "date": "2026-10-22",
+            "entryId": "01a163d0-8cb6-7154-be8f-6b1cc04d4de8",
+            "allocated": "0.0000"
+          },
+          {
+            "accountId": "01a163cb-c8ee-72ee-bbf2-042851010d36",
+            "debit": "0.0000",
+            "credit": "20.0000",
+            "date": "2026-10-22",
+            "entryId": "01a163d0-8cb6-7154-be8f-6b1cc04d4de8",
+            "allocated": "0.0000"
+          },
+          {
+            "accountId": "01a163cb-c907-7709-812c-535028a6d8f3",
+            "debit": "46.0000",
+            "credit": "0.0000",
+            "date": "2026-10-22",
+            "entryId": "01a163d0-a36b-7579-9c4d-3bf71b38a4e1",
+            "allocated": "0.0000"
+          },
+          {
+            "accountId": "01a163cb-c904-731e-8f5d-d6ff59574120",
+            "debit": "0.0000",
+            "credit": "40.0000",
+            "date": "2026-10-22",
+            "entryId": "01a163d0-a36b-7579-9c4d-3bf71b38a4e1",
+            "allocated": "0.0000"
+          },
+          {
+            "accountId": "01a163cb-c8f0-7583-87db-f54fe9b274a9",
+            "debit": "0.0000",
+            "credit": "6.0000",
+            "date": "2026-10-22",
+            "entryId": "01a163d0-a36b-7579-9c4d-3bf71b38a4e1",
+            "allocated": "0.0000"
+          },
+          {
+            "accountId": "01a163cb-c90a-72d9-800d-7c8d9ad852fb",
+            "debit": "20.0000",
+            "credit": "0.0000",
+            "date": "2026-10-22",
+            "entryId": "01a163d0-a36b-7579-9c4d-3bf71b38a4e1",
+            "allocated": "0.0000"
+          },
+          {
+            "accountId": "01a163cb-c8ee-72ee-bbf2-042851010d36",
+            "debit": "0.0000",
+            "credit": "20.0000",
+            "date": "2026-10-22",
+            "entryId": "01a163d0-a36b-7579-9c4d-3bf71b38a4e1",
+            "allocated": "0.0000"
+          },
+          {
+            "accountId": "01a163cb-c907-7709-812c-535028a6d8f3",
+            "debit": "0.0000",
+            "credit": "23.0000",
+            "date": "2026-10-22",
+            "entryId": "01a163d0-b968-75db-9df9-f7647f9f2367",
+            "allocated": "0.0000"
+          },
+          {
+            "accountId": "01a163cb-c905-703d-9178-a22fba7a67f0",
+            "debit": "20.0000",
+            "credit": "0.0000",
+            "date": "2026-10-22",
+            "entryId": "01a163d0-b968-75db-9df9-f7647f9f2367",
+            "allocated": "0.0000"
+          },
+          {
+            "accountId": "01a163cb-c8f0-7583-87db-f54fe9b274a9",
+            "debit": "3.0000",
+            "credit": "0.0000",
+            "date": "2026-10-22",
+            "entryId": "01a163d0-b968-75db-9df9-f7647f9f2367",
+            "allocated": "0.0000"
+          },
+          {
+            "accountId": "01a163cb-c8ee-72ee-bbf2-042851010d36",
+            "debit": "10.0000",
+            "credit": "0.0000",
+            "date": "2026-10-22",
+            "entryId": "01a163d0-b968-75db-9df9-f7647f9f2367",
+            "allocated": "0.0000"
+          },
+          {
+            "accountId": "01a163cb-c90a-72d9-800d-7c8d9ad852fb",
+            "debit": "0.0000",
+            "credit": "10.0000",
+            "date": "2026-10-22",
+            "entryId": "01a163d0-b968-75db-9df9-f7647f9f2367",
+            "allocated": "0.0000"
+          },
+          {
+            "accountId": "01a163cb-c907-7709-812c-535028a6d8f3",
+            "debit": "0.0000",
+            "credit": "23.0000",
+            "date": "2026-10-22",
+            "entryId": "01a163d0-d30a-765c-96f4-211f1973d414",
+            "allocated": "0.0000"
+          },
+          {
+            "accountId": "01a163cb-c904-731e-8f5d-d6ff59574120",
+            "debit": "0.0000",
+            "credit": "20.0000",
+            "date": "2026-10-22",
+            "entryId": "01a163d1-d22f-77fe-9c57-5023912a4b34",
+            "allocated": "0.0000"
+          },
+          {
+            "accountId": "01a163cb-c8f0-7583-87db-f54fe9b274a9",
+            "debit": "0.0000",
+            "credit": "3.0000",
+            "date": "2026-10-22",
+            "entryId": "01a163d1-d22f-77fe-9c57-5023912a4b34",
+            "allocated": "0.0000"
+          },
+          {
+            "accountId": "01a163cb-c90a-72d9-800d-7c8d9ad852fb",
+            "debit": "10.0000",
+            "credit": "0.0000",
+            "date": "2026-10-22",
+            "entryId": "01a163d1-d22f-77fe-9c57-5023912a4b34",
+            "allocated": "0.0000"
+          },
+          {
+            "accountId": "01a163cb-c8ee-72ee-bbf2-042851010d36",
+            "debit": "0.0000",
+            "credit": "10.0000",
+            "date": "2026-10-22",
+            "entryId": "01a163d1-d22f-77fe-9c57-5023912a4b34",
+            "allocated": "0.0000"
+          },
+          {
+            "accountId": "01a163cb-c904-731e-8f5d-d6ff59574120",
+            "debit": "0.0000",
+            "credit": "20.0000",
+            "date": "2026-10-22",
+            "entryId": "01a163fc-2de3-740e-b0d6-c64a47d63df5",
+            "allocated": "0.0000"
+          },
+          {
+            "accountId": "01a163cb-c8f0-7583-87db-f54fe9b274a9",
+            "debit": "0.0000",
+            "credit": "3.0000",
+            "date": "2026-10-22",
+            "entryId": "01a163fc-2de3-740e-b0d6-c64a47d63df5",
+            "allocated": "0.0000"
+          },
+          {
+            "accountId": "01a163cb-c90a-72d9-800d-7c8d9ad852fb",
+            "debit": "10.0000",
+            "credit": "0.0000",
+            "date": "2026-10-22",
+            "entryId": "01a163fc-2de3-740e-b0d6-c64a47d63df5",
+            "allocated": "0.0000"
+          },
+          {
+            "accountId": "01a163cb-c8ee-72ee-bbf2-042851010d36",
+            "debit": "0.0000",
+            "credit": "10.0000",
+            "date": "2026-10-22",
+            "entryId": "01a163fc-2de3-740e-b0d6-c64a47d63df5",
+            "allocated": "0.0000"
+          },
+          {
+            "accountId": "01a163cb-c907-7709-812c-535028a6d8f3",
+            "debit": "46.0000",
+            "credit": "0.0000",
+            "date": "2026-10-22",
+            "entryId": "01a163ff-b9ab-715c-b0b5-ef71454b980f",
+            "allocated": "0.0000"
+          },
+          {
+            "accountId": "01a163cb-c904-731e-8f5d-d6ff59574120",
+            "debit": "0.0000",
+            "credit": "40.0000",
+            "date": "2026-10-22",
+            "entryId": "01a163ff-b9ab-715c-b0b5-ef71454b980f",
+            "allocated": "0.0000"
+          },
+          {
+            "accountId": "01a163cb-c8f0-7583-87db-f54fe9b274a9",
+            "debit": "0.0000",
+            "credit": "6.0000",
+            "date": "2026-10-22",
+            "entryId": "01a163ff-b9ab-715c-b0b5-ef71454b980f",
+            "allocated": "0.0000"
+          },
+          {
+            "accountId": "01a163cb-c90a-72d9-800d-7c8d9ad852fb",
+            "debit": "20.0000",
+            "credit": "0.0000",
+            "date": "2026-10-22",
+            "entryId": "01a163ff-b9ab-715c-b0b5-ef71454b980f",
+            "allocated": "0.0000"
+          },
+          {
+            "accountId": "01a163cb-c8ee-72ee-bbf2-042851010d36",
+            "debit": "0.0000",
+            "credit": "20.0000",
+            "date": "2026-10-22",
+            "entryId": "01a163ff-b9ab-715c-b0b5-ef71454b980f",
+            "allocated": "0.0000"
+          },
+          {
+            "accountId": "01a163cb-c907-7709-812c-535028a6d8f3",
+            "debit": "0.0000",
+            "credit": "46.0000",
+            "date": "2026-10-22",
+            "entryId": "01a16401-9f0d-7092-b2f5-e269720d9076",
+            "allocated": "0.0000"
+          },
+          {
+            "accountId": "01a163cb-c907-7709-812c-535028a6d8f3",
+            "debit": "0.0000",
+            "credit": "10.0000",
+            "date": "2026-10-22",
+            "entryId": "01a16404-5c4a-752d-90d7-3d659090982f",
+            "allocated": "0.0000"
+          }
+        ]
+      }
+    },
+    {
+      "label": "party-statement",
+      "method": "GET",
+      "path": "/parties/01a163cb-c8c1-767c-b65c-438fce46c573/statement",
+      "status": 200,
+      "body": {
+        "receivable": "-171.0000",
+        "payable": "0.0000",
+        "open": [
+          {
+            "accountId": "01a163cb-c904-731e-8f5d-d6ff59574120",
+            "debit": "0.0000",
+            "credit": "40.0000",
+            "date": "2026-10-22",
+            "entryId": "01a163d0-8cb6-7154-be8f-6b1cc04d4de8",
+            "allocated": "0.0000"
+          },
+          {
+            "accountId": "01a163cb-c8f0-7583-87db-f54fe9b274a9",
+            "debit": "0.0000",
+            "credit": "6.0000",
+            "date": "2026-10-22",
+            "entryId": "01a163d0-8cb6-7154-be8f-6b1cc04d4de8",
+            "allocated": "0.0000"
+          },
+          {
+            "accountId": "01a163cb-c90a-72d9-800d-7c8d9ad852fb",
+            "debit": "20.0000",
+            "credit": "0.0000",
+            "date": "2026-10-22",
+            "entryId": "01a163d0-8cb6-7154-be8f-6b1cc04d4de8",
+            "allocated": "0.0000"
+          },
+          {
+            "accountId": "01a163cb-c8ee-72ee-bbf2-042851010d36",
+            "debit": "0.0000",
+            "credit": "20.0000",
+            "date": "2026-10-22",
+            "entryId": "01a163d0-8cb6-7154-be8f-6b1cc04d4de8",
+            "allocated": "0.0000"
+          },
+          {
+            "accountId": "01a163cb-c907-7709-812c-535028a6d8f3",
+            "debit": "46.0000",
+            "credit": "0.0000",
+            "date": "2026-10-22",
+            "entryId": "01a163d0-a36b-7579-9c4d-3bf71b38a4e1",
+            "allocated": "0.0000"
+          },
+          {
+            "accountId": "01a163cb-c904-731e-8f5d-d6ff59574120",
+            "debit": "0.0000",
+            "credit": "40.0000",
+            "date": "2026-10-22",
+            "entryId": "01a163d0-a36b-7579-9c4d-3bf71b38a4e1",
+            "allocated": "0.0000"
+          },
+          {
+            "accountId": "01a163cb-c8f0-7583-87db-f54fe9b274a9",
+            "debit": "0.0000",
+            "credit": "6.0000",
+            "date": "2026-10-22",
+            "entryId": "01a163d0-a36b-7579-9c4d-3bf71b38a4e1",
+            "allocated": "0.0000"
+          },
+          {
+            "accountId": "01a163cb-c90a-72d9-800d-7c8d9ad852fb",
+            "debit": "20.0000",
+            "credit": "0.0000",
+            "date": "2026-10-22",
+            "entryId": "01a163d0-a36b-7579-9c4d-3bf71b38a4e1",
+            "allocated": "0.0000"
+          },
+          {
+            "accountId": "01a163cb-c8ee-72ee-bbf2-042851010d36",
+            "debit": "0.0000",
+            "credit": "20.0000",
+            "date": "2026-10-22",
+            "entryId": "01a163d0-a36b-7579-9c4d-3bf71b38a4e1",
+            "allocated": "0.0000"
+          },
+          {
+            "accountId": "01a163cb-c907-7709-812c-535028a6d8f3",
+            "debit": "0.0000",
+            "credit": "23.0000",
+            "date": "2026-10-22",
+            "entryId": "01a163d0-b968-75db-9df9-f7647f9f2367",
+            "allocated": "0.0000"
+          },
+          {
+            "accountId": "01a163cb-c905-703d-9178-a22fba7a67f0",
+            "debit": "20.0000",
+            "credit": "0.0000",
+            "date": "2026-10-22",
+            "entryId": "01a163d0-b968-75db-9df9-f7647f9f2367",
+            "allocated": "0.0000"
+          },
+          {
+            "accountId": "01a163cb-c8f0-7583-87db-f54fe9b274a9",
+            "debit": "3.0000",
+            "credit": "0.0000",
+            "date": "2026-10-22",
+            "entryId": "01a163d0-b968-75db-9df9-f7647f9f2367",
+            "allocated": "0.0000"
+          },
+          {
+            "accountId": "01a163cb-c8ee-72ee-bbf2-042851010d36",
+            "debit": "10.0000",
+            "credit": "0.0000",
+            "date": "2026-10-22",
+            "entryId": "01a163d0-b968-75db-9df9-f7647f9f2367",
+            "allocated": "0.0000"
+          },
+          {
+            "accountId": "01a163cb-c90a-72d9-800d-7c8d9ad852fb",
+            "debit": "0.0000",
+            "credit": "10.0000",
+            "date": "2026-10-22",
+            "entryId": "01a163d0-b968-75db-9df9-f7647f9f2367",
+            "allocated": "0.0000"
+          },
+          {
+            "accountId": "01a163cb-c907-7709-812c-535028a6d8f3",
+            "debit": "0.0000",
+            "credit": "23.0000",
+            "date": "2026-10-22",
+            "entryId": "01a163d0-d30a-765c-96f4-211f1973d414",
+            "allocated": "0.0000"
+          },
+          {
+            "accountId": "01a163cb-c904-731e-8f5d-d6ff59574120",
+            "debit": "0.0000",
+            "credit": "20.0000",
+            "date": "2026-10-22",
+            "entryId": "01a163d1-d22f-77fe-9c57-5023912a4b34",
+            "allocated": "0.0000"
+          },
+          {
+            "accountId": "01a163cb-c8f0-7583-87db-f54fe9b274a9",
+            "debit": "0.0000",
+            "credit": "3.0000",
+            "date": "2026-10-22",
+            "entryId": "01a163d1-d22f-77fe-9c57-5023912a4b34",
+            "allocated": "0.0000"
+          },
+          {
+            "accountId": "01a163cb-c90a-72d9-800d-7c8d9ad852fb",
+            "debit": "10.0000",
+            "credit": "0.0000",
+            "date": "2026-10-22",
+            "entryId": "01a163d1-d22f-77fe-9c57-5023912a4b34",
+            "allocated": "0.0000"
+          },
+          {
+            "accountId": "01a163cb-c8ee-72ee-bbf2-042851010d36",
+            "debit": "0.0000",
+            "credit": "10.0000",
+            "date": "2026-10-22",
+            "entryId": "01a163d1-d22f-77fe-9c57-5023912a4b34",
+            "allocated": "0.0000"
+          },
+          {
+            "accountId": "01a163cb-c904-731e-8f5d-d6ff59574120",
+            "debit": "0.0000",
+            "credit": "20.0000",
+            "date": "2026-10-22",
+            "entryId": "01a163fc-2de3-740e-b0d6-c64a47d63df5",
+            "allocated": "0.0000"
+          },
+          {
+            "accountId": "01a163cb-c8f0-7583-87db-f54fe9b274a9",
+            "debit": "0.0000",
+            "credit": "3.0000",
+            "date": "2026-10-22",
+            "entryId": "01a163fc-2de3-740e-b0d6-c64a47d63df5",
+            "allocated": "0.0000"
+          },
+          {
+            "accountId": "01a163cb-c90a-72d9-800d-7c8d9ad852fb",
+            "debit": "10.0000",
+            "credit": "0.0000",
+            "date": "2026-10-22",
+            "entryId": "01a163fc-2de3-740e-b0d6-c64a47d63df5",
+            "allocated": "0.0000"
+          },
+          {
+            "accountId": "01a163cb-c8ee-72ee-bbf2-042851010d36",
+            "debit": "0.0000",
+            "credit": "10.0000",
+            "date": "2026-10-22",
+            "entryId": "01a163fc-2de3-740e-b0d6-c64a47d63df5",
+            "allocated": "0.0000"
+          },
+          {
+            "accountId": "01a163cb-c907-7709-812c-535028a6d8f3",
+            "debit": "46.0000",
+            "credit": "0.0000",
+            "date": "2026-10-22",
+            "entryId": "01a163ff-b9ab-715c-b0b5-ef71454b980f",
+            "allocated": "0.0000"
+          },
+          {
+            "accountId": "01a163cb-c904-731e-8f5d-d6ff59574120",
+            "debit": "0.0000",
+            "credit": "40.0000",
+            "date": "2026-10-22",
+            "entryId": "01a163ff-b9ab-715c-b0b5-ef71454b980f",
+            "allocated": "0.0000"
+          },
+          {
+            "accountId": "01a163cb-c8f0-7583-87db-f54fe9b274a9",
+            "debit": "0.0000",
+            "credit": "6.0000",
+            "date": "2026-10-22",
+            "entryId": "01a163ff-b9ab-715c-b0b5-ef71454b980f",
+            "allocated": "0.0000"
+          },
+          {
+            "accountId": "01a163cb-c90a-72d9-800d-7c8d9ad852fb",
+            "debit": "20.0000",
+            "credit": "0.0000",
+            "date": "2026-10-22",
+            "entryId": "01a163ff-b9ab-715c-b0b5-ef71454b980f",
+            "allocated": "0.0000"
+          },
+          {
+            "accountId": "01a163cb-c8ee-72ee-bbf2-042851010d36",
+            "debit": "0.0000",
+            "credit": "20.0000",
+            "date": "2026-10-22",
+            "entryId": "01a163ff-b9ab-715c-b0b5-ef71454b980f",
+            "allocated": "0.0000"
+          },
+          {
+            "accountId": "01a163cb-c907-7709-812c-535028a6d8f3",
+            "debit": "0.0000",
+            "credit": "46.0000",
+            "date": "2026-10-22",
+            "entryId": "01a16401-9f0d-7092-b2f5-e269720d9076",
+            "allocated": "0.0000"
+          },
+          {
+            "accountId": "01a163cb-c907-7709-812c-535028a6d8f3",
+            "debit": "0.0000",
+            "credit": "10.0000",
+            "date": "2026-10-22",
+            "entryId": "01a16404-5c4a-752d-90d7-3d659090982f",
+            "allocated": "0.0000"
+          }
+        ]
+      }
+    },
+    {
+      "label": "ar-aging",
+      "method": "GET",
+      "path": "/reports/ar-aging?from=2026-01-01&to=2026-12-31",
+      "status": 200,
+      "body": {
+        "key": "ar-aging",
+        "titleAr": "أعمار ديون العملاء",
+        "group": "accounting",
+        "hintAr": "المتبقي على كل فاتورة مبيعات مرحّلة موزّعاً على شرائح العمر.",
+        "chart": null,
+        "params": {
+          "from": "2026-01-01",
+          "to": "2026-12-31"
+        },
+        "layout": null,
+        "columns": [
+          {
+            "key": "party",
+            "labelAr": "العميل",
+            "type": "text"
+          },
+          {
+            "key": "bucket_0_30",
+            "labelAr": "0-30 يوم",
+            "type": "money"
+          },
+          {
+            "key": "bucket_31_60",
+            "labelAr": "31-60",
+            "type": "money"
+          },
+          {
+            "key": "bucket_61_90",
+            "labelAr": "61-90",
+            "type": "money"
+          },
+          {
+            "key": "bucket_90_plus",
+            "labelAr": "أكثر من 90",
+            "type": "money"
+          },
+          {
+            "key": "due",
+            "labelAr": "الإجمالي",
+            "type": "money"
+          }
+        ],
+        "rows": [
+          {
+            "party": "عميل عام",
+            "bucket_0_30": "69.0000",
+            "bucket_31_60": "0",
+            "bucket_61_90": "0",
+            "bucket_90_plus": "0",
+            "due": "69.0000"
+          }
+        ],
+        "totals": {
+          "bucket_0_30": "69.00",
+          "bucket_31_60": "0.00",
+          "bucket_61_90": "0.00",
+          "bucket_90_plus": "0.00",
+          "due": "69.00"
+        },
+        "grandTotal": [],
+        "rowCount": 1,
+        "generatedAt": "2026-10-22T14:31:36.435Z"
+      }
+    },
+    {
+      "label": "gl-cheques",
+      "method": "GET",
+      "path": "/statements/general-ledger/01a163cb-c8ec-76b9-885e-f8e36cb65cb2",
+      "status": 200,
+      "body": {
+        "data": [],
+        "totals": {
+          "debit": "0.0000",
+          "credit": "0.0000",
+          "periodDebit": "0.0000",
+          "periodCredit": "0.0000",
+          "closing": "0.0000",
+          "closingStatus": "رصيد متوازن"
+        },
+        "account": {
+          "id": "01a163cb-c8ec-76b9-885e-f8e36cb65cb2",
+          "code": "1240001",
+          "nameAr": "أوراق قبض",
+          "type": "asset",
+          "normalBalance": "debit",
+          "openingBalance": "0.0000",
+          "branchId": null
+        }
+      }
+    },
+    {
+      "label": "gl-bank",
+      "method": "GET",
+      "path": "/statements/general-ledger/01a163cb-c8eb-705d-9f64-1944d960b898",
+      "status": 200,
+      "body": {
+        "data": [
+          {
+            "rank": 1,
+            "date": "2026-01-01",
+            "entryId": "01a163cb-c92a-77fc-8143-afda69f515f9",
+            "number": "JE-000001",
+            "branchName": "الفرع الرئيسي",
+            "entryType": "قيد اليومية",
+            "description": "رصيد بنكي",
+            "debit": "180000.0000",
+            "credit": "0.0000",
+            "runningBalance": "180000.0000",
+            "balanceStatus": "مدين",
+            "accountCode": "1221001",
+            "accountName": "شبكة"
+          },
+          {
+            "rank": 2,
+            "date": "2026-10-22",
+            "entryId": "01a16401-9f0d-7092-b2f5-e269720d9076",
+            "number": "JE-000021",
+            "branchName": "الفرع الرئيسي",
+            "entryType": "سند قبض",
+            "description": "R22-RV-CHQ1 شيك 46 من عميل عام سداد فاتورة 2 × 20 + ض.ق.م — شيك تحت التحصيل حتى تحصيله",
+            "debit": "46.0000",
+            "credit": "0.0000",
+            "runningBalance": "180046.0000",
+            "balanceStatus": "مدين",
+            "accountCode": "1221001",
+            "accountName": "شبكة"
+          },
+          {
+            "rank": 3,
+            "date": "2026-10-22",
+            "entryId": "01a16402-a4c6-7148-add7-f13a13ff70ba",
+            "number": "JE-000022",
+            "branchName": "الفرع الرئيسي",
+            "entryType": "قيد اليومية",
+            "description": "R22-RV-CHQ1 شيك 46 من عميل عام سداد فاتورة 2 × 20 + ض.ق.م — شيك تحت التحصيل حتى تحصيله",
+            "debit": "46.0000",
+            "credit": "0.0000",
+            "runningBalance": "180092.0000",
+            "balanceStatus": "مدين",
+            "accountCode": "1221001",
+            "accountName": "شبكة"
+          },
+          {
+            "rank": 4,
+            "date": "2026-10-22",
+            "entryId": "01a16402-a4c6-7148-add7-f13a13ff70ba",
+            "number": "JE-000022",
+            "branchName": "الفرع الرئيسي",
+            "entryType": "قيد اليومية",
+            "description": "R22-RV-CHQ1 شيك 46 من عميل عام سداد فاتورة 2 × 20 + ض.ق.م — شيك تحت التحصيل حتى تحصيله",
+            "debit": "0.0000",
+            "credit": "46.0000",
+            "runningBalance": "180046.0000",
+            "balanceStatus": "مدين",
+            "accountCode": "1221001",
+            "accountName": "شبكة"
+          },
+          {
+            "rank": 5,
+            "date": "2026-10-22",
+            "entryId": "01a16404-5c4a-752d-90d7-3d659090982f",
+            "number": "JE-000023",
+            "branchName": "الفرع الرئيسي",
+            "entryType": "سند قبض",
+            "description": "R22-RV-CHQ2 شيك 10 دفعة من عميل عام — سيُرتجع (bounce)",
+            "debit": "10.0000",
+            "credit": "0.0000",
+            "runningBalance": "180056.0000",
+            "balanceStatus": "مدين",
+            "accountCode": "1221001",
+            "accountName": "شبكة"
+          },
+          {
+            "rank": 6,
+            "date": "2026-10-22",
+            "entryId": "01a16405-70df-7007-a661-d4aaa6ff27c7",
+            "number": "JE-000024",
+            "branchName": "الفرع الرئيسي",
+            "entryType": "قيد اليومية",
+            "description": "R22-RV-CHQ2 شيك 10 دفعة من عميل عام — سيُرتجع (bounce)",
+            "debit": "0.0000",
+            "credit": "10.0000",
+            "runningBalance": "180046.0000",
+            "balanceStatus": "مدين",
+            "accountCode": "1221001",
+            "accountName": "شبكة"
+          }
+        ],
+        "totals": {
+          "debit": "180102.0000",
+          "credit": "56.0000",
+          "periodDebit": "180046.0000",
+          "periodCredit": "0.0000",
+          "closing": "180046.0000",
+          "closingStatus": "مدين"
+        },
+        "account": {
+          "id": "01a163cb-c8eb-705d-9f64-1944d960b898",
+          "code": "1221001",
+          "nameAr": "شبكة",
+          "type": "asset",
+          "normalBalance": "debit",
+          "openingBalance": "0.0000",
+          "branchId": null
+        }
+      }
+    }
+  ]
+}

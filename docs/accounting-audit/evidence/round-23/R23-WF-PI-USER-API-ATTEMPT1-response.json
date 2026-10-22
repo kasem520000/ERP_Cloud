@@ -1,0 +1,56 @@
+{
+  "sequence": true,
+  "results": [
+    {
+      "label": "workflows-before",
+      "method": "GET",
+      "path": "/approval-workflows",
+      "status": 200,
+      "body": []
+    },
+    {
+      "label": "create-with-userId",
+      "method": "POST",
+      "path": "/approval-workflows",
+      "request": {
+        "entity": "purchase_invoice",
+        "name": "R23 مشتريات 100–1000: المحاسب بعينه",
+        "is_active": true,
+        "steps": [
+          {
+            "step_order": 1,
+            "approver_user_id": null,
+            "condition": {
+              "min_amount": "100",
+              "max_amount": "1000"
+            },
+            "action": "approve",
+            "is_required": true
+          }
+        ]
+      },
+      "status": 400,
+      "body": {
+        "type": "about:blank",
+        "title": "Validation failed",
+        "status": 400,
+        "code": "VALIDATION_FAILED",
+        "detail": "Request validation failed",
+        "traceId": "01a164c4-e9c4-763b-bc87-b83e6e87afde",
+        "errors": [
+          {
+            "field": "steps.0.approver_user_id",
+            "message": "Expected string, received null"
+          }
+        ]
+      }
+    },
+    {
+      "label": "workflows-after",
+      "method": "GET",
+      "path": "/approval-workflows",
+      "status": 200,
+      "body": []
+    }
+  ]
+}

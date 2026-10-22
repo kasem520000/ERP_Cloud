@@ -1,0 +1,51 @@
+{
+  "path": "/cash-locations",
+  "status": 200,
+  "body": {
+    "data": [
+      {
+        "id": "01a163cb-c8bd-7782-90dd-3ceea8754f1a",
+        "branchId": "01a163cb-c8b8-759f-acf5-92d467c1ff08",
+        "kind": "bank",
+        "name": "الحساب البنكي الرئيسي",
+        "accountId": "01a163cb-c8eb-705d-9f64-1944d960b898",
+        "currencyCode": "SAR",
+        "isDefault": true,
+        "bank": {
+          "iban": "SA00****************0000",
+          "bankName": "البنك الأهلي",
+          "accountNo": "000000000000"
+        },
+        "changeInPos": false,
+        "isActive": true,
+        "notes": null,
+        "custodianIds": [],
+        "version": 1,
+        "createdAt": "2026-10-22T13:27:42.013Z",
+        "updatedAt": "2026-10-22T13:27:42.096Z"
+      },
+      {
+        "id": "01a163cb-c8bc-71ea-88f6-c9f66e215f9b",
+        "branchId": "01a163cb-c8b8-759f-acf5-92d467c1ff08",
+        "kind": "safe",
+        "name": "الصندوق الرئيسي",
+        "accountId": "01a163cb-c8e9-754b-9229-88c37d44e3ef",
+        "currencyCode": "SAR",
+        "isDefault": true,
+        "bank": null,
+        "changeInPos": false,
+        "isActive": true,
+        "notes": null,
+        "custodianIds": [],
+        "version": 1,
+        "createdAt": "2026-10-22T13:27:42.012Z",
+        "updatedAt": "2026-10-22T13:27:42.095Z"
+      }
+    ],
+    "meta": {
+      "total": 2,
+      "limit": 50,
+      "offset": 0
+    }
+  }
+}

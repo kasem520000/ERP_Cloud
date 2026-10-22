@@ -1,0 +1,70 @@
+{
+  "path": "/cash-locations/01a163cb-c8bc-71ea-88f6-c9f66e215f9b/movements?all=1",
+  "status": 200,
+  "body": {
+    "cashLocationId": "01a163cb-c8bc-71ea-88f6-c9f66e215f9b",
+    "cashLocation": "الصندوق الرئيسي",
+    "currencyCode": "SAR",
+    "accountId": "01a163cb-c8e9-754b-9229-88c37d44e3ef",
+    "from": null,
+    "to": null,
+    "fromTime": "00:00",
+    "toTime": "23:59",
+    "all": true,
+    "openingBalance": "0.0000",
+    "totalAll": "50056.0000",
+    "totalPeriod": "50056.0000",
+    "rows": [
+      {
+        "seq": 1,
+        "processType": "قيد يومية",
+        "number": "JE-000001",
+        "date": "2026-01-01",
+        "income": "50000.0000",
+        "outcome": "0.0000",
+        "balance": "50000.0000",
+        "note": "قيد افتتاحي — رأس المال"
+      },
+      {
+        "seq": 2,
+        "processType": "سند صرف",
+        "number": "JE-000003",
+        "date": "2026-10-22",
+        "income": "0.0000",
+        "outcome": "36.0000",
+        "balance": "49964.0000",
+        "note": "سند صرف PV-000001"
+      },
+      {
+        "seq": 3,
+        "processType": "فاتورة مبيعات",
+        "number": "JE-000006",
+        "date": "2026-10-22",
+        "income": "46.0000",
+        "outcome": "0.0000",
+        "balance": "50010.0000",
+        "note": "Sales invoice SI-000001"
+      },
+      {
+        "seq": 4,
+        "processType": "سند قبض",
+        "number": "JE-000009",
+        "date": "2026-10-22",
+        "income": "23.0000",
+        "outcome": "0.0000",
+        "balance": "50033.0000",
+        "note": "سند قبض وتحصيل مديونية للفاتورة VTX-00002"
+      },
+      {
+        "seq": 5,
+        "processType": "فاتورة مبيعات",
+        "number": "JE-000012",
+        "date": "2026-10-22",
+        "income": "23.0000",
+        "outcome": "0.0000",
+        "balance": "50056.0000",
+        "note": "Sales invoice SI-000003"
+      }
+    ]
+  }
+}

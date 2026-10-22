@@ -1,0 +1,55 @@
+{
+  "balance": {
+    "tenantId": "01a162a3-cf0d-7238-9aeb-2e23f58a6b13",
+    "cashLocationId": "01a162a3-d046-776b-b819-6f9d785de60d",
+    "currencyCode": "SAR",
+    "balance": "0.0000",
+    "updatedAt": null
+  },
+  "movements": {
+    "cashLocationId": "01a162a3-d046-776b-b819-6f9d785de60d",
+    "cashLocation": "الصندوق الرئيسي",
+    "currencyCode": "SAR",
+    "accountId": "01a162a3-d073-764c-ae27-644b0c747731",
+    "from": null,
+    "to": null,
+    "fromTime": "00:00",
+    "toTime": "23:59",
+    "all": true,
+    "openingBalance": "0.0000",
+    "totalAll": "50038.5000",
+    "totalPeriod": "50038.5000",
+    "rows": [
+      {
+        "seq": 1,
+        "processType": "قيد يومية",
+        "number": "JE-000001",
+        "date": "2026-01-01",
+        "income": "50000.0000",
+        "outcome": "0.0000",
+        "balance": "50000.0000",
+        "note": "قيد افتتاحي — رأس المال"
+      },
+      {
+        "seq": 2,
+        "processType": "سند قبض",
+        "number": "JE-000008",
+        "date": "2026-10-22",
+        "income": "37.5000",
+        "outcome": "0.0000",
+        "balance": "50037.5000",
+        "note": "R21-RV-USD قبض 10 دولار = 37.50 ريال من عميل عام (سعر 3.75) اختبار معزول"
+      },
+      {
+        "seq": 3,
+        "processType": "سند قبض",
+        "number": "JE-000009",
+        "date": "2026-10-22",
+        "income": "1.0000",
+        "outcome": "0.0000",
+        "balance": "50038.5000",
+        "note": "R21-RV-YER قبض 100 ريال يمني = 1 ريال سعودي بعملة غير مفعّلة — يجب رفضه"
+      }
+    ]
+  }
+}

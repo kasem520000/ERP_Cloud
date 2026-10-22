@@ -1,0 +1,56 @@
+{
+  "sequence": true,
+  "results": [
+    {
+      "label": "owner-approve-not-named",
+      "method": "POST",
+      "path": "/approvals/requests/01a164c7-cd45-7244-a7d1-dd4d9b71b020/approve",
+      "request": {
+        "comment": "R23 المالك يحاول اعتماد طلب مراجعه المسمّى المحاسب"
+      },
+      "status": 403,
+      "body": {
+        "type": "about:blank",
+        "title": "Forbidden",
+        "status": 403,
+        "code": "FORBIDDEN",
+        "detail": "This approval is not assigned to you",
+        "traceId": "01a164c8-e029-71fe-8823-04608bf26c95"
+      }
+    },
+    {
+      "label": "request-after",
+      "method": "GET",
+      "path": "/approvals/requests/01a164c7-cd45-7244-a7d1-dd4d9b71b020",
+      "status": 200,
+      "body": {
+        "id": "01a164c7-cd45-7244-a7d1-dd4d9b71b020",
+        "tenantId": "01a164b9-dd87-77c8-814c-0b5ec43a9197",
+        "workflowId": "01a164c6-871d-726e-94d5-b7f2436fc515",
+        "entityType": "purchase_invoice",
+        "entityId": "01a164c7-15f2-70cc-9b79-50c86ba3ca39",
+        "status": "pending",
+        "currentStepOrder": 1,
+        "createdBy": "01a164b9-dd89-740b-9144-3e5d91cbd544",
+        "createdAt": "2026-10-22T18:02:58.242Z",
+        "updatedAt": "2026-10-22T18:02:58.246Z",
+        "workflowName": "R23 مشتريات 100–1000: المحاسب بعينه",
+        "currentStep": {
+          "id": "01a164c6-871f-705c-92ee-bb9ae072442a",
+          "workflowId": "01a164c6-871d-726e-94d5-b7f2436fc515",
+          "stepOrder": 1,
+          "approverRole": null,
+          "approverUserId": "01a164b9-df04-7488-aece-ea7306004dd7",
+          "condition": {
+            "min_amount": "100",
+            "max_amount": "1000"
+          },
+          "action": "approve",
+          "isRequired": true
+        },
+        "decisions": [],
+        "canAct": false
+      }
+    }
+  ]
+}

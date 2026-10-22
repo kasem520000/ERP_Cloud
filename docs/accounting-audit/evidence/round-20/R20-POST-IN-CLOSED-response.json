@@ -1,0 +1,21 @@
+{
+  "method": "POST",
+  "path": "/treasury/vouchers/01a1621a-e4ed-770c-9161-538dad62e221/post",
+  "requests": [
+    {}
+  ],
+  "elapsedMs": 10,
+  "results": [
+    {
+      "status": 404,
+      "body": {
+        "type": "about:blank",
+        "title": "Not found",
+        "status": 404,
+        "code": "NOT_FOUND",
+        "detail": "Cannot POST /api/v1/treasury/vouchers/01a1621a-e4ed-770c-9161-538dad62e221/post",
+        "traceId": "01a16270-3ffa-72ac-9e2d-afe753f6bbdd"
+      }
+    }
+  ]
+}

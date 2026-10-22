@@ -1,0 +1,237 @@
+{
+  "actor": "accountant@demo.test",
+  "loginStatus": 200,
+  "tokenReceived": true,
+  "results": [
+    {
+      "label": "cash-transfer",
+      "method": "POST",
+      "path": "/cash-transfers",
+      "request": {
+        "branchId": "01a16198-e579-755c-b4ec-6c027e8efd57",
+        "fromCashLocationId": "01a16198-e57d-7532-b598-3caa8ed1bad2",
+        "toCashLocationId": "01a16198-e57f-77da-abb8-24578558c3e4",
+        "amount": "1"
+      },
+      "status": 403,
+      "body": {
+        "type": "about:blank",
+        "title": "Forbidden",
+        "status": 403,
+        "code": "FORBIDDEN",
+        "detail": "permission treasury.transfer.manage required",
+        "traceId": "01a16272-0216-70e8-8308-6e0144a4abd7",
+        "errors": [
+          {
+            "field": "permission",
+            "message": "treasury.transfer.manage"
+          }
+        ]
+      }
+    },
+    {
+      "label": "payroll-run",
+      "method": "POST",
+      "path": "/hrm/payroll/runs",
+      "request": {
+        "yearMonth": "2026-12"
+      },
+      "status": 403,
+      "body": {
+        "type": "about:blank",
+        "title": "Forbidden",
+        "status": 403,
+        "code": "FORBIDDEN",
+        "detail": "permission hrm.manage required",
+        "traceId": "01a16272-0229-7570-88ba-d5f26bf2f361",
+        "errors": [
+          {
+            "field": "permission",
+            "message": "hrm.manage"
+          }
+        ]
+      }
+    },
+    {
+      "label": "role-create",
+      "method": "POST",
+      "path": "/roles",
+      "request": {
+        "name": "R20 SoD role",
+        "description": "should be refused"
+      },
+      "status": 403,
+      "body": {
+        "type": "about:blank",
+        "title": "Forbidden",
+        "status": 403,
+        "code": "FORBIDDEN",
+        "detail": "permission tenant.role.manage required",
+        "traceId": "01a16272-0237-76cb-8ec4-ad03d9074ed8",
+        "errors": [
+          {
+            "field": "permission",
+            "message": "tenant.role.manage"
+          }
+        ]
+      }
+    },
+    {
+      "label": "membership-create",
+      "method": "POST",
+      "path": "/memberships",
+      "request": {
+        "email": "r20-sod@example.test",
+        "roleIds": []
+      },
+      "status": 403,
+      "body": {
+        "type": "about:blank",
+        "title": "Forbidden",
+        "status": 403,
+        "code": "FORBIDDEN",
+        "detail": "permission tenant.membership.manage required",
+        "traceId": "01a16272-0245-7195-aa69-b68a6e2de48d",
+        "errors": [
+          {
+            "field": "permission",
+            "message": "tenant.membership.manage"
+          }
+        ]
+      }
+    },
+    {
+      "label": "me",
+      "method": "GET",
+      "path": "/me",
+      "status": 200,
+      "body": {
+        "data": {
+          "user": {
+            "id": "01a16198-e5f2-7077-baad-5500d62f5cd7",
+            "email": "accountant@demo.test",
+            "fullName": "محاسب الشركة",
+            "phone": null,
+            "status": "active",
+            "isPlatformAdmin": false,
+            "platformRoles": [],
+            "mustChangePassword": false,
+            "lastLoginAt": "2026-10-22T07:10:01.222Z"
+          },
+          "membership": {
+            "id": "01a16198-e5f3-74fd-a4cc-41dc037d5147",
+            "tenantId": "01a16198-e3e0-77af-b843-47c9d7787c03",
+            "tenantCode": "demo",
+            "tenantName": "AUDIT-TEST-2026-R18",
+            "displayName": "محاسب الشركة",
+            "status": "active",
+            "isOwner": false,
+            "branchScope": null,
+            "maxDiscountPct": null,
+            "maxDiscountAmount": null,
+            "roles": [
+              {
+                "id": "01a16198-e425-7680-a4fd-5949f91bee3a",
+                "name": "Accountant",
+                "description": "Accounting, parties, inventory and document review without tenant administration.",
+                "isSystem": true
+              }
+            ],
+            "kind": "staff",
+            "scopes": [
+              {
+                "roleId": "01a16198-e425-7680-a4fd-5949f91bee3a",
+                "scopeType": "branch",
+                "scopeId": "00000000-0000-0000-0000-000000000000"
+              },
+              {
+                "roleId": "01a16198-e425-7680-a4fd-5949f91bee3a",
+                "scopeType": "warehouse",
+                "scopeId": "00000000-0000-0000-0000-000000000000"
+              },
+              {
+                "roleId": "01a16198-e425-7680-a4fd-5949f91bee3a",
+                "scopeType": "cash_location",
+                "scopeId": "00000000-0000-0000-0000-000000000000"
+              }
+            ]
+          },
+          "permissions": [
+            "accounting.account.manage",
+            "accounting.account.view",
+            "accounting.costcenter.manage",
+            "accounting.journal.create",
+            "accounting.journal.post",
+            "accounting.journal.reverse",
+            "accounting.opening.manage",
+            "accounting.period.close",
+            "accounting.period.reopen",
+            "accounting.period.view",
+            "accounting.reports.view",
+            "ai.assistant.use",
+            "approval.approve",
+            "catalog.category.view",
+            "catalog.item.view",
+            "catalog.taxgroup.view",
+            "catalog.unit.view",
+            "dashboards.manage",
+            "dashboards.view",
+            "einvoice.submit",
+            "einvoice.view",
+            "employee.self.manage",
+            "employee.self.view",
+            "esign.manage",
+            "inventory.adjust",
+            "inventory.adjust.approve",
+            "inventory.bins.manage",
+            "inventory.delivery.manage",
+            "inventory.negative.override",
+            "inventory.request.approve",
+            "inventory.request.manage",
+            "inventory.transfer",
+            "inventory.transfer.receive",
+            "inventory.view",
+            "manufacturing.view",
+            "organization.branch.view",
+            "organization.cashlocation.view",
+            "organization.currency.view",
+            "organization.warehouse.view",
+            "parties.allocate",
+            "parties.manage",
+            "parties.view",
+            "payments.links.manage",
+            "payroll.wps.export",
+            "purchase.adjustment.create",
+            "purchase.invoice.create",
+            "purchase.invoice.post",
+            "purchase.invoice.void",
+            "purchase.view",
+            "reporting.view",
+            "sales.adjustment.create",
+            "sales.invoice.create",
+            "sales.invoice.post",
+            "sales.invoice.void",
+            "sales.view",
+            "supplier_portal.access",
+            "tenant.view",
+            "treasury.cheque.clear",
+            "treasury.shift.close",
+            "treasury.view",
+            "treasury.voucher.create",
+            "treasury.voucher.post",
+            "treasury.voucher.void"
+          ],
+          "platformPermissions": [],
+          "branchScope": null,
+          "enabledApps": [
+            "bakery_distribution",
+            "email_pro",
+            "reports_pro",
+            "whatsapp"
+          ],
+          "impersonation": null
+        }
+      }
+    }
+  ]
+}
