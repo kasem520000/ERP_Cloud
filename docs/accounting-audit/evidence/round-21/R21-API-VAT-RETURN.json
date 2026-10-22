@@ -1,0 +1,62 @@
+{
+  "path": "/reports/vat-return?from=2026-01-01&to=2026-12-31",
+  "status": 200,
+  "body": {
+    "key": "vat-return",
+    "titleAr": "الإقرار الضريبي",
+    "group": "accounting",
+    "hintAr": "ضريبة المخرجات من المبيعات ناقص ضريبة المدخلات من المشتريات.",
+    "chart": null,
+    "params": {
+      "from": "2026-01-01",
+      "to": "2026-12-31"
+    },
+    "layout": null,
+    "columns": [
+      {
+        "key": "bucket",
+        "labelAr": "البند",
+        "type": "text"
+      },
+      {
+        "key": "base",
+        "labelAr": "الوعاء",
+        "type": "money"
+      },
+      {
+        "key": "vat",
+        "labelAr": "الضريبة",
+        "type": "money"
+      }
+    ],
+    "rows": [
+      {
+        "bucket": "مبيعات خاضعة",
+        "base": "100.0000",
+        "vat": "15.0000"
+      },
+      {
+        "bucket": "مردود مبيعات",
+        "base": "-20.0000",
+        "vat": "-3.0000"
+      },
+      {
+        "bucket": "مشتريات خاضعة",
+        "base": "200.0000",
+        "vat": "-30.0000"
+      },
+      {
+        "bucket": "مردود مشتريات",
+        "base": "0",
+        "vat": "0"
+      }
+    ],
+    "totals": {
+      "base": "280.00",
+      "vat": "-18.00"
+    },
+    "grandTotal": [],
+    "rowCount": 4,
+    "generatedAt": "2026-10-22T13:35:45.819Z"
+  }
+}

@@ -1,0 +1,162 @@
+{
+  "path": "/parties/01a163cb-c8c1-767c-b65c-438fce46c573/statement",
+  "status": 200,
+  "body": {
+    "receivable": "-92.0000",
+    "payable": "0.0000",
+    "open": [
+      {
+        "accountId": "01a163cb-c904-731e-8f5d-d6ff59574120",
+        "debit": "0.0000",
+        "credit": "40.0000",
+        "date": "2026-10-22",
+        "entryId": "01a163d0-8cb6-7154-be8f-6b1cc04d4de8",
+        "allocated": "0.0000"
+      },
+      {
+        "accountId": "01a163cb-c8f0-7583-87db-f54fe9b274a9",
+        "debit": "0.0000",
+        "credit": "6.0000",
+        "date": "2026-10-22",
+        "entryId": "01a163d0-8cb6-7154-be8f-6b1cc04d4de8",
+        "allocated": "0.0000"
+      },
+      {
+        "accountId": "01a163cb-c90a-72d9-800d-7c8d9ad852fb",
+        "debit": "20.0000",
+        "credit": "0.0000",
+        "date": "2026-10-22",
+        "entryId": "01a163d0-8cb6-7154-be8f-6b1cc04d4de8",
+        "allocated": "0.0000"
+      },
+      {
+        "accountId": "01a163cb-c8ee-72ee-bbf2-042851010d36",
+        "debit": "0.0000",
+        "credit": "20.0000",
+        "date": "2026-10-22",
+        "entryId": "01a163d0-8cb6-7154-be8f-6b1cc04d4de8",
+        "allocated": "0.0000"
+      },
+      {
+        "accountId": "01a163cb-c907-7709-812c-535028a6d8f3",
+        "debit": "46.0000",
+        "credit": "0.0000",
+        "date": "2026-10-22",
+        "entryId": "01a163d0-a36b-7579-9c4d-3bf71b38a4e1",
+        "allocated": "0.0000"
+      },
+      {
+        "accountId": "01a163cb-c904-731e-8f5d-d6ff59574120",
+        "debit": "0.0000",
+        "credit": "40.0000",
+        "date": "2026-10-22",
+        "entryId": "01a163d0-a36b-7579-9c4d-3bf71b38a4e1",
+        "allocated": "0.0000"
+      },
+      {
+        "accountId": "01a163cb-c8f0-7583-87db-f54fe9b274a9",
+        "debit": "0.0000",
+        "credit": "6.0000",
+        "date": "2026-10-22",
+        "entryId": "01a163d0-a36b-7579-9c4d-3bf71b38a4e1",
+        "allocated": "0.0000"
+      },
+      {
+        "accountId": "01a163cb-c90a-72d9-800d-7c8d9ad852fb",
+        "debit": "20.0000",
+        "credit": "0.0000",
+        "date": "2026-10-22",
+        "entryId": "01a163d0-a36b-7579-9c4d-3bf71b38a4e1",
+        "allocated": "0.0000"
+      },
+      {
+        "accountId": "01a163cb-c8ee-72ee-bbf2-042851010d36",
+        "debit": "0.0000",
+        "credit": "20.0000",
+        "date": "2026-10-22",
+        "entryId": "01a163d0-a36b-7579-9c4d-3bf71b38a4e1",
+        "allocated": "0.0000"
+      },
+      {
+        "accountId": "01a163cb-c907-7709-812c-535028a6d8f3",
+        "debit": "0.0000",
+        "credit": "23.0000",
+        "date": "2026-10-22",
+        "entryId": "01a163d0-b968-75db-9df9-f7647f9f2367",
+        "allocated": "0.0000"
+      },
+      {
+        "accountId": "01a163cb-c905-703d-9178-a22fba7a67f0",
+        "debit": "20.0000",
+        "credit": "0.0000",
+        "date": "2026-10-22",
+        "entryId": "01a163d0-b968-75db-9df9-f7647f9f2367",
+        "allocated": "0.0000"
+      },
+      {
+        "accountId": "01a163cb-c8f0-7583-87db-f54fe9b274a9",
+        "debit": "3.0000",
+        "credit": "0.0000",
+        "date": "2026-10-22",
+        "entryId": "01a163d0-b968-75db-9df9-f7647f9f2367",
+        "allocated": "0.0000"
+      },
+      {
+        "accountId": "01a163cb-c8ee-72ee-bbf2-042851010d36",
+        "debit": "10.0000",
+        "credit": "0.0000",
+        "date": "2026-10-22",
+        "entryId": "01a163d0-b968-75db-9df9-f7647f9f2367",
+        "allocated": "0.0000"
+      },
+      {
+        "accountId": "01a163cb-c90a-72d9-800d-7c8d9ad852fb",
+        "debit": "0.0000",
+        "credit": "10.0000",
+        "date": "2026-10-22",
+        "entryId": "01a163d0-b968-75db-9df9-f7647f9f2367",
+        "allocated": "0.0000"
+      },
+      {
+        "accountId": "01a163cb-c907-7709-812c-535028a6d8f3",
+        "debit": "0.0000",
+        "credit": "23.0000",
+        "date": "2026-10-22",
+        "entryId": "01a163d0-d30a-765c-96f4-211f1973d414",
+        "allocated": "0.0000"
+      },
+      {
+        "accountId": "01a163cb-c904-731e-8f5d-d6ff59574120",
+        "debit": "0.0000",
+        "credit": "20.0000",
+        "date": "2026-10-22",
+        "entryId": "01a163d1-d22f-77fe-9c57-5023912a4b34",
+        "allocated": "0.0000"
+      },
+      {
+        "accountId": "01a163cb-c8f0-7583-87db-f54fe9b274a9",
+        "debit": "0.0000",
+        "credit": "3.0000",
+        "date": "2026-10-22",
+        "entryId": "01a163d1-d22f-77fe-9c57-5023912a4b34",
+        "allocated": "0.0000"
+      },
+      {
+        "accountId": "01a163cb-c90a-72d9-800d-7c8d9ad852fb",
+        "debit": "10.0000",
+        "credit": "0.0000",
+        "date": "2026-10-22",
+        "entryId": "01a163d1-d22f-77fe-9c57-5023912a4b34",
+        "allocated": "0.0000"
+      },
+      {
+        "accountId": "01a163cb-c8ee-72ee-bbf2-042851010d36",
+        "debit": "0.0000",
+        "credit": "10.0000",
+        "date": "2026-10-22",
+        "entryId": "01a163d1-d22f-77fe-9c57-5023912a4b34",
+        "allocated": "0.0000"
+      }
+    ]
+  }
+}

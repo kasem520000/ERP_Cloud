@@ -1,0 +1,73 @@
+{
+  "path": "/reports/inventory-valuation?from=2026-01-01&to=2026-12-31",
+  "status": 200,
+  "body": {
+    "key": "inventory-valuation",
+    "titleAr": "جرد المواد وتقييم المخزون",
+    "group": "inventory",
+    "hintAr": null,
+    "chart": null,
+    "params": {
+      "from": "2026-01-01",
+      "to": "2026-12-31"
+    },
+    "layout": null,
+    "columns": [
+      {
+        "key": "sku",
+        "labelAr": "الرمز",
+        "type": "text"
+      },
+      {
+        "key": "item",
+        "labelAr": "الصنف",
+        "type": "text"
+      },
+      {
+        "key": "warehouse",
+        "labelAr": "المستودع",
+        "type": "text"
+      },
+      {
+        "key": "quantity",
+        "labelAr": "الرصيد",
+        "type": "qty"
+      },
+      {
+        "key": "average_cost",
+        "labelAr": "متوسط التكلفة",
+        "type": "money"
+      },
+      {
+        "key": "value",
+        "labelAr": "القيمة",
+        "type": "money"
+      }
+    ],
+    "rows": [
+      {
+        "sku": "R21-ITEM",
+        "item": "R21 صنف توزيع اختبار معزول (إعادة تهيئة)",
+        "warehouse": "المستودع الرئيسي",
+        "quantity": "15.0000",
+        "average_cost": "10.0000",
+        "value": "150.0000"
+      },
+      {
+        "sku": "R21-ITEM",
+        "item": "R21 صنف توزيع اختبار معزول (إعادة تهيئة)",
+        "warehouse": "مستودع سيارة التوزيع",
+        "quantity": "0.0000",
+        "average_cost": "0.0000",
+        "value": "0.0000"
+      }
+    ],
+    "totals": {
+      "quantity": "15.00",
+      "value": "150.00"
+    },
+    "grandTotal": [],
+    "rowCount": 2,
+    "generatedAt": "2026-10-22T13:35:46.327Z"
+  }
+}

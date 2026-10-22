@@ -1,0 +1,71 @@
+{
+  "path": "/van-sales/salesmen",
+  "status": 200,
+  "body": {
+    "data": [
+      {
+        "id": "01a163cb-c94a-771e-a16a-6158b0df1dee",
+        "name": "مندوب الشركة",
+        "active": true,
+        "employeeRef": null,
+        "commissionRate": "0.0000",
+        "collectionCommissionRate": "0.0000",
+        "profitCommissionRate": "0.0000",
+        "tel": null,
+        "mobile": null,
+        "email": null,
+        "notes": null,
+        "employeeId": "01a163cb-c948-704c-b692-895dff9ce1fa",
+        "employeeNo": "EMP-REP-1",
+        "employeeName": "مندوب الشركة",
+        "employeeStatus": "active",
+        "membershipId": "01a163cb-c945-73fe-8835-17e5d0ef4274",
+        "membershipStatus": "active",
+        "userEmail": "rep@demo.test",
+        "userStatus": "active",
+        "roleCount": 2,
+        "permissions": [
+          "catalog.item.view",
+          "organization.branch.view",
+          "organization.cashlocation.view",
+          "parties.view",
+          "sales.view",
+          "tenant.view",
+          "treasury.view",
+          "treasury.voucher.create",
+          "van_sales.closing.submit",
+          "van_sales.collection.create",
+          "van_sales.invoice.create",
+          "van_sales.view"
+        ],
+        "warehouseId": "01a163cb-c940-7619-8ab8-604be176ce1e",
+        "warehouseName": "مستودع سيارة التوزيع",
+        "warehouseCode": "VAN-1",
+        "vehiclePlate": null,
+        "custody": {
+          "openLoadOrders": 0,
+          "pendingReceipts": 0,
+          "pendingClosings": 0,
+          "custodyQty": "0.0000",
+          "outstandingCash": "0.0000",
+          "items": [
+            {
+              "itemId": "01a163cd-c43f-7549-9c7b-373921a703e8",
+              "itemName": "R21 صنف توزيع اختبار معزول (إعادة تهيئة)",
+              "warehouseName": "مستودع سيارة التوزيع",
+              "quantity": "0.0000",
+              "value": "0.0000"
+            }
+          ]
+        },
+        "readiness": {
+          "hasEmployee": true,
+          "hasLoginAccount": true,
+          "loginActive": true,
+          "hasVanWarehouse": true,
+          "hasVanSalesPermissions": true
+        }
+      }
+    ]
+  }
+}

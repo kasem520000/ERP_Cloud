@@ -1,0 +1,94 @@
+{
+  "path": "/journal-entries/01a163d0-8cb6-7154-be8f-6b1cc04d4de8",
+  "status": 200,
+  "body": {
+    "data": {
+      "id": "01a163d0-8cb6-7154-be8f-6b1cc04d4de8",
+      "tenantId": "01a163cb-c73b-741d-93c9-17f1ac98ae25",
+      "branchId": "01a163cb-c8b8-759f-acf5-92d467c1ff08",
+      "fiscalPeriodId": "01a163cb-c927-75bd-8826-9696559a60ac",
+      "date": "2026-10-22",
+      "number": "JE-000006",
+      "entryTime": null,
+      "isVat": false,
+      "kind": "manual",
+      "status": "posted",
+      "description": "Sales invoice SI-000001",
+      "sourceType": "sales_invoice",
+      "sourceId": "01a163d0-8c99-741c-b87f-2ec0a224f3ac",
+      "reversalOf": null,
+      "idempotencyKey": "sales-post:01a163d0-8c99-741c-b87f-2ec0a224f3ac",
+      "postedAt": "2026-10-22T13:32:54.326Z",
+      "postedBy": null,
+      "createdAt": "2026-10-22T13:32:54.275Z",
+      "createdBy": null,
+      "updatedAt": null,
+      "updatedBy": null,
+      "version": 1,
+      "legacySource": null,
+      "legacyId": null,
+      "lines": [
+        {
+          "lineNo": 1,
+          "accountId": "01a163cb-c8e9-754b-9229-88c37d44e3ef",
+          "accountCode": "1211001",
+          "accountNameAr": "الصندوق الرئيسي",
+          "debit": "46.0000",
+          "credit": "0.0000",
+          "costCenterId": null,
+          "partyId": null,
+          "salesmanId": null,
+          "description": "سند قيد يومية رقم: JE-000006 - سداد دفعة من حساب: الصندوق الرئيسي"
+        },
+        {
+          "lineNo": 2,
+          "accountId": "01a163cb-c904-731e-8f5d-d6ff59574120",
+          "accountCode": "4100001",
+          "accountNameAr": "المبيعات",
+          "debit": "0.0000",
+          "credit": "40.0000",
+          "costCenterId": null,
+          "partyId": "01a163cb-c8c1-767c-b65c-438fce46c573",
+          "salesmanId": null,
+          "description": "سند قيد يومية رقم: JE-000006 - سداد دفعة من حساب: المبيعات"
+        },
+        {
+          "lineNo": 3,
+          "accountId": "01a163cb-c8f0-7583-87db-f54fe9b274a9",
+          "accountCode": "2222001",
+          "accountNameAr": "ضريبة القيمة المضافة",
+          "debit": "0.0000",
+          "credit": "6.0000",
+          "costCenterId": null,
+          "partyId": "01a163cb-c8c1-767c-b65c-438fce46c573",
+          "salesmanId": null,
+          "description": "سند قيد يومية رقم: JE-000006 - سداد دفعة من حساب: ضريبة القيمة المضافة"
+        },
+        {
+          "lineNo": 4,
+          "accountId": "01a163cb-c90a-72d9-800d-7c8d9ad852fb",
+          "accountCode": "3200004",
+          "accountNameAr": "تكلفة المبيعات",
+          "debit": "20.0000",
+          "credit": "0.0000",
+          "costCenterId": null,
+          "partyId": "01a163cb-c8c1-767c-b65c-438fce46c573",
+          "salesmanId": null,
+          "description": "سند قيد يومية رقم: JE-000006 - سداد دفعة من حساب: تكلفة المبيعات"
+        },
+        {
+          "lineNo": 5,
+          "accountId": "01a163cb-c8ee-72ee-bbf2-042851010d36",
+          "accountCode": "1270001",
+          "accountNameAr": "حساب بضاعة آخر المدة",
+          "debit": "0.0000",
+          "credit": "20.0000",
+          "costCenterId": null,
+          "partyId": "01a163cb-c8c1-767c-b65c-438fce46c573",
+          "salesmanId": null,
+          "description": "سند قيد يومية رقم: JE-000006 - سداد دفعة من حساب: حساب بضاعة آخر المدة"
+        }
+      ]
+    }
+  }
+}
