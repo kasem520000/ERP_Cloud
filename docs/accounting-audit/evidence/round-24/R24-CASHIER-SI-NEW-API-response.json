@@ -1,0 +1,163 @@
+{
+  "actor": "cashier@demo.test",
+  "loginStatus": 200,
+  "tokenReceived": true,
+  "results": [
+    {
+      "label": "warehouses",
+      "method": "GET",
+      "path": "/warehouses",
+      "status": 403,
+      "body": {
+        "type": "about:blank",
+        "title": "Forbidden",
+        "status": 403,
+        "code": "FORBIDDEN",
+        "detail": "permission organization.warehouse.view required",
+        "traceId": "01a16530-2162-74ce-a7a9-2a035fe77b7c",
+        "errors": [
+          {
+            "field": "permission",
+            "message": "organization.warehouse.view"
+          }
+        ]
+      }
+    },
+    {
+      "label": "branches",
+      "method": "GET",
+      "path": "/branches",
+      "status": 200,
+      "body": {
+        "data": [
+          {
+            "id": "01a16521-1e40-73a0-81e1-cb552fb71b7c",
+            "code": "BR2",
+            "nameAr": "الفرع الثاني",
+            "nameEn": "Branch 2",
+            "address": null,
+            "phone": null,
+            "mobile": null,
+            "email": null,
+            "isDefault": false,
+            "isActive": true,
+            "version": 1,
+            "createdAt": "2026-10-22T19:40:31.664Z",
+            "updatedAt": null
+          },
+          {
+            "id": "01a16504-138c-70f0-a42e-ac7e89bf5daa",
+            "code": "MAIN",
+            "nameAr": "الفرع الرئيسي",
+            "nameEn": "Main branch",
+            "address": null,
+            "phone": null,
+            "mobile": null,
+            "email": null,
+            "isDefault": true,
+            "isActive": true,
+            "version": 1,
+            "createdAt": "2026-10-22T19:08:48.397Z",
+            "updatedAt": null
+          }
+        ],
+        "meta": {
+          "total": 2,
+          "limit": 50,
+          "offset": 0
+        }
+      }
+    },
+    {
+      "label": "me",
+      "method": "GET",
+      "path": "/me",
+      "status": 200,
+      "body": {
+        "data": {
+          "user": {
+            "id": "01a16504-143c-744d-82a2-3c732a124904",
+            "email": "cashier@demo.test",
+            "fullName": "أمين الصندوق",
+            "phone": null,
+            "status": "active",
+            "isPlatformAdmin": false,
+            "platformRoles": [],
+            "mustChangePassword": false,
+            "lastLoginAt": "2026-10-22T19:56:55.501Z"
+          },
+          "membership": {
+            "id": "01a16504-143d-72cd-afa8-cfb5b976a32e",
+            "tenantId": "01a16504-115a-7723-866c-c1b65778bb8b",
+            "tenantCode": "demo",
+            "tenantName": "AUDIT-TEST-2026-R24",
+            "displayName": "أمين الصندوق",
+            "status": "active",
+            "isOwner": false,
+            "branchScope": null,
+            "maxDiscountPct": null,
+            "maxDiscountAmount": null,
+            "roles": [
+              {
+                "id": "01a16504-11fd-70bf-aec4-159f63fc7c32",
+                "name": "Cashier",
+                "description": "Point-of-sale and treasury operations; read-only catalog and party lookup.",
+                "isSystem": true
+              }
+            ],
+            "kind": "staff",
+            "scopes": [
+              {
+                "roleId": "01a16504-11fd-70bf-aec4-159f63fc7c32",
+                "scopeType": "branch",
+                "scopeId": "00000000-0000-0000-0000-000000000000"
+              },
+              {
+                "roleId": "01a16504-11fd-70bf-aec4-159f63fc7c32",
+                "scopeType": "warehouse",
+                "scopeId": "00000000-0000-0000-0000-000000000000"
+              },
+              {
+                "roleId": "01a16504-11fd-70bf-aec4-159f63fc7c32",
+                "scopeType": "cash_location",
+                "scopeId": "00000000-0000-0000-0000-000000000000"
+              }
+            ]
+          },
+          "permissions": [
+            "ai.assistant.use",
+            "catalog.item.view",
+            "catalog.taxgroup.view",
+            "employee.self.manage",
+            "employee.self.view",
+            "esign.manage",
+            "inventory.view",
+            "manufacturing.view",
+            "organization.branch.view",
+            "organization.cashlocation.view",
+            "parties.manage",
+            "parties.view",
+            "payments.links.manage",
+            "sales.invoice.create",
+            "sales.invoice.pay",
+            "sales.view",
+            "supplier_portal.access",
+            "tenant.view",
+            "treasury.shift.close",
+            "treasury.view",
+            "treasury.voucher.create"
+          ],
+          "platformPermissions": [],
+          "branchScope": null,
+          "enabledApps": [
+            "bakery_distribution",
+            "email_pro",
+            "reports_pro",
+            "whatsapp"
+          ],
+          "impersonation": null
+        }
+      }
+    }
+  ]
+}
