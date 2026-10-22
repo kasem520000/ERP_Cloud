@@ -48,4 +48,26 @@ describe('audit route mapping', () => {
     // `POST /notifications/{id}/read` is audited as `update.read`.
     expect(actionForMethod('POST', sub)).toBe('update.read');
   });
+
+  it('maps multi-segment collections correctly with sub-resources', () => {
+    const postVoucher = describeRoute(
+      '/api/v1/inventory/vouchers/01a16577-19c4-7536-bdc6-c063139f10a3/post',
+    );
+    expect(postVoucher).toEqual({
+      resource: 'inventory/vouchers',
+      entityId: '01a16577-19c4-7536-bdc6-c063139f10a3',
+      subResource: 'post',
+    });
+    expect(actionForMethod('POST', postVoucher)).toBe('update.post');
+
+    const postInvoice = describeRoute(
+      '/api/v1/sales/invoices/01a16575-b3a1-79ba-b485-61266b8801d0/post',
+    );
+    expect(postInvoice).toEqual({
+      resource: 'sales/invoices',
+      entityId: '01a16575-b3a1-79ba-b485-61266b8801d0',
+      subResource: 'post',
+    });
+    expect(actionForMethod('POST', postInvoice)).toBe('update.post');
+  });
 });

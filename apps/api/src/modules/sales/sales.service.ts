@@ -403,6 +403,43 @@ export class SalesService {
       throw new DomainError('SALES_LINES_REQUIRED', 'At least one invoice line is required', 422);
     if (!input.partyId && !input.cashCustomerName)
       throw new DomainError('SALES_CUSTOMER_REQUIRED', 'Party or cash customer name is required', 422);
+
+    for (let i = 0; i < input.lines.length; i++) {
+      const line = input.lines[i]!;
+      const qty = new Decimal(line.quantity ?? 0);
+      if (qty.lte(0)) {
+        throw new DomainError(
+          'SALES_LINE_QUANTITY_INVALID',
+          `Line ${i + 1} quantity must be strictly greater than zero`,
+          422,
+          { lineNo: i + 1, quantity: line.quantity },
+        );
+      }
+      const price = new Decimal(line.unitPrice ?? 0);
+      if (price.lt(0)) {
+        throw new DomainError(
+          'SALES_LINE_PRICE_INVALID',
+          `Line ${i + 1} unit price cannot be negative`,
+          422,
+          { lineNo: i + 1, unitPrice: line.unitPrice },
+        );
+      }
+      if (line.taxRate !== undefined && line.taxRate !== null && line.taxRate !== '') {
+        const rate = new Decimal(line.taxRate);
+        if (rate.lt(0) || rate.gt(100)) {
+          throw new DomainError(
+            'SALES_TAX_RATE_INVALID',
+            `Line ${i + 1} tax rate must be between 0 and 100`,
+            422,
+            { lineNo: i + 1, taxRate: line.taxRate },
+          );
+        }
+      } else {
+        // ACC-109: Default to standard 15% VAT rate when omitted on sales line
+        line.taxRate = '15';
+      }
+    }
+
     const totals = calculateInvoiceTotals({
       lines: input.lines,
       priceIncludesVat: input.priceIncludesVat,
@@ -439,7 +476,7 @@ export class SalesService {
         discountRate: line.discountRate ?? '0',
         discountAmount: calculated.discount,
         taxGroupId: line.taxGroupId,
-        taxRate: line.taxRate ?? '0',
+        taxRate: line.taxRate ?? '15',
         net: calculated.net,
         tax: calculated.tax,
         total: calculated.total,

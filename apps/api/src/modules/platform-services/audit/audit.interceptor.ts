@@ -77,10 +77,28 @@ export type RouteDescriptor = {
   subResource: string | null;
 };
 
+const TWO_SEGMENT_COLLECTIONS = new Set([
+  'inventory/vouchers',
+  'inventory/serials',
+  'inventory/lots',
+  'sales/invoices',
+  'sales/quotations',
+  'sales/offers',
+  'sales/salesmen',
+  'sales/adjustment-notes',
+  'purchase/invoices',
+  'organization/catalog',
+  'organization/company-profile',
+]);
+
 /**
  * `/api/v1/roles/{id}/permissions` → `{ resource: 'roles', entityId: '{id}',
  * subResource: 'permissions' }`. The version prefix is stripped so the audit trail is
  * stable across API versions.
+ *
+ * For two-segment collection paths like `/api/v1/inventory/vouchers/{id}/post`, it resolves
+ * `{ resource: 'inventory/vouchers', entityId: '{id}', subResource: 'post' }` so that
+ * the action is correctly identified as `update.post` instead of treating `{id}` as a sub-resource.
  */
 export function describeRoute(rawPath: string): RouteDescriptor {
   const path = rawPath.split('?')[0] ?? '';
@@ -91,6 +109,22 @@ export function describeRoute(rawPath: string): RouteDescriptor {
 
   if (segments[0] === 'api') segments.shift();
   if (segments[0]?.match(/^v\d+$/)) segments.shift();
+
+  if (segments.length >= 4) {
+    return {
+      resource: `${segments[0]}/${segments[1]}`,
+      entityId: segments[2] ?? null,
+      subResource: segments[3] ?? null,
+    };
+  }
+
+  if (segments.length === 3 && TWO_SEGMENT_COLLECTIONS.has(`${segments[0]}/${segments[1]}`)) {
+    return {
+      resource: `${segments[0]}/${segments[1]}`,
+      entityId: segments[2] ?? null,
+      subResource: null,
+    };
+  }
 
   return {
     resource: segments[0] ?? 'unknown',

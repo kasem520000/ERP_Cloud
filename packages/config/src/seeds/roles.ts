@@ -102,6 +102,7 @@ export const baselineRoles: readonly BaselineRoleSeed[] = [
     permissions: [
       'platform.tenant.view',
       'organization.branch.view',
+      'organization.warehouse.view',
       'organization.cashlocation.view',
       'catalog.item.view',
       'catalog.taxgroup.view',

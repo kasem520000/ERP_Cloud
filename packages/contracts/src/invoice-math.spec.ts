@@ -80,4 +80,16 @@ describe('calculateInvoiceTotals', () => {
     const result = calculateInvoiceTotals({ scale: 2, lines: [{ quantity: '1', unitPrice: '1.005', discountRate: '0', discountAmount: '0', taxRate: '0' }] });
     expect(result.subtotal).toBe('1.01');
   });
+
+  it('ACC-114: includes excise tax (extraTax) in the VAT taxable base under KSA VAT regulations', () => {
+    // 1 x 20 + excise tax 1.00 + 15% VAT => VAT is 15% on (20 + 1) = 3.15, total = 24.15
+    const result = calculateInvoiceTotals({
+      extraTax: '1',
+      lines: [{ quantity: '1', unitPrice: '20', discountRate: '0', discountAmount: '0', taxRate: '15' }],
+    });
+    expect(result.subtotal).toBe('20');
+    expect(result.extraTax).toBe('1');
+    expect(result.tax).toBe('3.15');
+    expect(result.total).toBe('24.15');
+  });
 });

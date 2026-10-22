@@ -35,6 +35,7 @@ import {
 } from '../../common/date-param.js';
 import { DATABASE_HANDLE } from '../../database/database.module.js';
 import { SequencesService } from '../platform-services/index.js';
+import { tryGetAuthContext } from '../platform/context/tenant-context.js';
 
 export type AccountType = 'asset' | 'liability' | 'equity' | 'revenue' | 'expense';
 
@@ -1833,8 +1834,8 @@ export class AccountingService {
         number: journalEntries.number,
         entryDescription: journalEntries.description,
         // In تجميعي mode one row covers many lines, so the note is aggregated; the row
-        // shows the entry's own البيان anyway.
-        lineDescription: sql<string | null>`MIN(${journalEntryLines.description})`,
+        // shows the entry's own البيان anyway. Falls back to entry description if line description is empty.
+        lineDescription: sql<string | null>`COALESCE(MIN(NULLIF(TRIM(${journalEntryLines.description}), '')), ${journalEntries.description})`,
         debit: sql<string>`COALESCE(SUM(${journalEntryLines.debit}), 0)::text`,
         credit: sql<string>`COALESCE(SUM(${journalEntryLines.credit}), 0)::text`,
         accountCode: accounts.code,
@@ -2200,17 +2201,31 @@ export class AccountingService {
     return entry;
   }
 
-  async lockModule(tenantId: string, periodId: string, module: string) {
+  async lockModule(tenantId: string, periodId: string, module: string, actorId?: string) {
+    const lockedBy = actorId ?? tryGetAuthContext()?.userId ?? null;
+    const lockedAt = new Date();
     return withTenantTx(this.database.db, tenantId, async (tx) => {
-      await tx.insert(periodModuleLocks).values({ tenantId, periodId, module, locked: true, lockedAt: new Date() }).onConflictDoUpdate({ target: [periodModuleLocks.periodId, periodModuleLocks.module], set: { locked: true, lockedAt: new Date() } });
-      return { periodId, module, locked: true };
+      await tx
+        .insert(periodModuleLocks)
+        .values({ tenantId, periodId, module, locked: true, lockedAt, lockedBy })
+        .onConflictDoUpdate({
+          target: [periodModuleLocks.periodId, periodModuleLocks.module],
+          set: { locked: true, lockedAt, lockedBy },
+        });
+      return { periodId, module, locked: true, lockedAt, lockedBy };
     });
   }
 
   async unlockModule(tenantId: string, periodId: string, module: string) {
     return withTenantTx(this.database.db, tenantId, async (tx) => {
-      await tx.insert(periodModuleLocks).values({ tenantId, periodId, module, locked: false, lockedAt: null }).onConflictDoUpdate({ target: [periodModuleLocks.periodId, periodModuleLocks.module], set: { locked: false, lockedAt: null, lockedBy: null } });
-      return { periodId, module, locked: false };
+      await tx
+        .insert(periodModuleLocks)
+        .values({ tenantId, periodId, module, locked: false, lockedAt: null, lockedBy: null })
+        .onConflictDoUpdate({
+          target: [periodModuleLocks.periodId, periodModuleLocks.module],
+          set: { locked: false, lockedAt: null, lockedBy: null },
+        });
+      return { periodId, module, locked: false, lockedAt: null, lockedBy: null };
     });
   }
 
@@ -2461,7 +2476,7 @@ export class AccountingService {
         date: journalEntries.date,
         number: journalEntries.number,
         entryDescription: journalEntries.description,
-        lineDescription: sql<string | null>`MIN(${journalEntryLines.description})`,
+        lineDescription: sql<string | null>`COALESCE(MIN(NULLIF(TRIM(${journalEntryLines.description}), '')), ${journalEntries.description})`,
         debit: sql<string>`COALESCE(SUM(${journalEntryLines.debit}), 0)::text`,
         credit: sql<string>`COALESCE(SUM(${journalEntryLines.credit}), 0)::text`,
         accountCode: accounts.code,
@@ -2895,7 +2910,7 @@ export class AccountingService {
           currencyCode: journalEntryLines.currencyCode,
           currencyAmount: journalEntryLines.currencyAmount,
           fxRate: journalEntryLines.fxRate,
-          description: journalEntryLines.description,
+          description: sql<string>`COALESCE(NULLIF(TRIM(${journalEntryLines.description}), ''), ${entry.description})`,
         })
         .from(journalEntryLines)
         .innerJoin(accounts, eq(accounts.id, journalEntryLines.accountId))

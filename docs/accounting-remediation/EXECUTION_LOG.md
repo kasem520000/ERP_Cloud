@@ -246,3 +246,74 @@ pnpm --filter "@erp/contracts" test
 pnpm --filter "@erp/contracts" build && pnpm --filter "@erp/database" build && pnpm --filter "@erp/api" build && pnpm --filter "@erp/staff" build
 ```
 - **All packages compile and build cleanly with 0 errors**.
+
+---
+
+### المرحلة 12: عيوب الجولة 24 — تسلسل القيود، تدقيق القفل، إشارة الفروقات، وصلاحيات الكاشير
+- **الملفات المعدلة**:
+  - `packages/database/migrations/0141_journal_entries_unique_number.sql` & `packages/database/src/schema/accounting.ts`:
+    - `ACC-100`: إضافة قيد فريد `journal_entries_tenant_number_key` على `(tenant_id, number)`.
+  - `apps/api/src/modules/platform-services/sequences/sequences.service.ts`:
+    - `ACC-100`: ضم قيود اليومية (`journal_entry:*`) لمصفوفة الوثائق العامة على المنشأة وتوليد أرقام متسلسلة غير متصادمة.
+  - `apps/staff/lib/posting.ts`:
+    - `ACC-101`: إضافة مفاتيح الحسابات الجديدة (`cashDifferenceAccountId`, `custodyAccountId`, `cashInTransitAccountId`, `exciseTaxAccountId`).
+  - `apps/api/src/modules/accounting/accounting.service.ts` & `accounting.controller.ts`:
+    - `ACC-104`: تسجيل معرّف القافل وتاريخ القفل في `lockModule` وتصفيرهما عند إلغاء القفل.
+  - `apps/api/src/modules/treasury/treasury.service.ts`:
+    - `ACC-106`: توحيد إشارة فرق الوردية وطرفي القيد المحاسبي: الفائض دائن والعجز مدين.
+  - `apps/staff/components/cash-location-master.tsx`:
+    - `UI-038`: إضافة منتقي أمين الصندوق واستبعاد المصفوفات الفارغة عند الحفظ.
+  - `packages/config/src/seeds/roles.ts` & `packages/contracts/src/rbac.ts`:
+    - `UI-039`: إضافة `organization.warehouse.view` لدور الكاشير القياسي.
+- **الاختبارات**:
+  - إنشاء جناح اختبارات متكامل `test/remediation-phase12.spec.ts` (6 اختبارات) بنجاح 100%.
+
+---
+
+### المرحلة 13: عيوب الجولتين 25 و 26 — الرصيد السالب، الوعاء الضريبي للانتقائية، مناقلات الفروع، حرس سطور البيع، تصفير المخزون الشبح، مسودات الإخراج وسجل التدقيق
+- **الملفات المعدلة**:
+  - `packages/contracts/src/invoice-math.ts` & `invoice-math.spec.ts`:
+    - `ACC-114`: توزيع الضريبة الانتقائية تناسبياً على سطور الفاتورة وإدراجها ضمن الوعاء الخاضع لضريبة القيمة المضافة 15% وتحديث دوال `parse` لتقبل الأرقام والنصوص.
+  - `apps/api/src/modules/sales/sales.service.ts`:
+    - `ACC-109` & `ACC-110`: فرض حرس تحقق صارم على سطور المبيعات: منع الكميات الصفرية والسالبة (`SALES_LINE_QUANTITY_INVALID`) ومنع الأسعار السالبة (`SALES_LINE_PRICE_INVALID`) والتحقق من نسبة الضريبة مع استنتاج نسبة 15% تلقائياً عند الإغفال.
+    - `ACC-118`: تحديث إجمالي التكلفة `cost_total` والربح `profit` على رأس الفاتورة عند الترحيل.
+  - `apps/api/src/modules/inventory/inventory.service.ts`:
+    - `ACC-107` & `ACC-108`: التحقق من إعداد المنشأة `inventory.allow_negative_stock` عند حركات الصرف وإرجاع خطأ رمزي صريح `STOCK_INSUFFICIENT` عند المنع.
+    - `ACC-112`: توجيه قيد استلام المناقلة إلى فرع المستودع المستلم `destBranchId` بدلاً من فرع المصدر.
+    - `ACC-115` & `ACC-116`: تصفير القيمة المالية للمخزون فور وصول الكمية إلى الصفر لمنع أرصدة المخزون الشبح، وتقريب متوسط التكلفة وتكلفة الأسطر إلى 4 منازل عشرية.
+    - `UI-042`: تصفير تكلفة مسودة سندات الإخراج المخزنية حتى الترحيل لمنع تضخيم الإجماليات بأسعار الشراء.
+  - `apps/api/src/modules/accounting/accounting.service.ts`:
+    - `UI-041`: استبدال النص الافتراضي لأسطر القيود في كشوفات الحسابات ببيان القيد الأصلي عند خلو سطر القيد.
+  - `apps/api/src/modules/platform-services/audit/audit.interceptor.ts` & `audit.interceptor.spec.ts`:
+    - `UI-040`: تحسين معالجة مسارات الموارد في سجل التدقيق لتمييز المسارات المكونة من جزأين مثل `/inventory/vouchers/:id/post` وتسجيل الإجراء كـ `update.post` بدلاً من اعتبار المعرف إجراءً.
+  - `apps/staff/app/inventory/vouchers/page.tsx` & `apps/staff/lib/navigation.ts`:
+    - `UI-042`: استبعاد مسودات الإخراج من إجمالي القيمة في شاشة سندات المخزون ومزامنة محددات النوع `kind=stock_out` في الرابط والقائمة الجانبية.
+- **الاختبارات**:
+  - إنشاء جناح اختبارات متكامل `test/remediation-phase13.spec.ts` (8 اختبارات) بنجاح 100%.
+
+---
+
+## نتيجة التحقق الشاملة النهائية لجميع مراحل المعالجة (Phases 1..13):
+```bash
+vitest run test/remediation-phase1.spec.ts test/remediation-phase2.spec.ts test/remediation-phase3.spec.ts test/remediation-phase4.spec.ts test/remediation-phase5.spec.ts test/remediation-phase6.spec.ts test/remediation-phase7.spec.ts test/remediation-phase8.spec.ts test/remediation-phase9.spec.ts test/remediation-phase10.spec.ts test/remediation-phase11.spec.ts test/remediation-phase12.spec.ts test/remediation-phase13.spec.ts
+```
+- **Test Files**: 13 passed (13)
+- **Tests**: 85 passed (85)
+- **Duration**: 49.96s
+- **Zero Failures**.
+
+- **Contracts Tests**:
+```bash
+pnpm --filter "@erp/contracts" test
+```
+- **Test Files**: 27 passed (27)
+- **Tests**: 246 passed (246)
+- **Duration**: 8.70s
+- **Zero Failures**.
+
+- **TypeScript Typecheck & Build**:
+```bash
+pnpm --filter "@erp/contracts" build && pnpm --filter "@erp/config" build && pnpm --filter "@erp/database" build && pnpm --filter "@erp/api" build && pnpm --filter "@erp/staff" build
+```
+- **All packages compile and build cleanly with 0 errors** (181 Next.js routes generated).
+

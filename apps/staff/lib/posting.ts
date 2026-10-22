@@ -42,6 +42,10 @@ export type PostingProfile = {
   bankAccountId?: string | null;
   receivableAccountId?: string | null;
   payableAccountId?: string | null;
+  cashDifferenceAccountId?: string | null;
+  custodyAccountId?: string | null;
+  cashInTransitAccountId?: string | null;
+  exciseTaxAccountId?: string | null;
   costCenterId?: string | null;
 };
 
@@ -65,6 +69,10 @@ export const POSTING_ACCOUNT_LABELS: Record<string, string> = {
   bankAccountId: 'البنك',
   receivableAccountId: 'العملاء (ذمم مدينة)',
   payableAccountId: 'الموردون (ذمم دائنة)',
+  cashDifferenceAccountId: 'فروقات الصندوق (عجز / زيادة)',
+  custodyAccountId: 'عهد الموظفين (إغلاق الوردية)',
+  cashInTransitAccountId: 'نقدية تحت التحويل (مناقلة الخزن)',
+  exciseTaxAccountId: 'الضريبة الانتقائية',
 };
 
 /** The open period that contains `date`, which every manual posting call needs. */

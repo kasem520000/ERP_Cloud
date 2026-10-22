@@ -2392,7 +2392,7 @@ export class TreasuryService implements OnModuleInit {
        */
       const counted = money(row.countedCash);
       const expected = money(row.expectedCash);
-      const difference = expected.minus(counted);
+      const diff = money(row.diff ?? counted.minus(expected));
       if (!expected.abs().gt(0) && !counted.abs().gt(0))
         throw new DomainError(
           'SHIFT_BALANCED',
@@ -2442,7 +2442,7 @@ export class TreasuryService implements OnModuleInit {
                 description: `نقدي في الصندوق ${employeeName}`,
               },
         );
-      if (difference.abs().gt(0)) {
+      if (diff.abs().gt(0)) {
         /**
          * 📉 الفرق — and if the tenant named a difference account, it is the one that
          * moves; otherwise the legs above already balance and nothing is invented here.
@@ -2466,19 +2466,21 @@ export class TreasuryService implements OnModuleInit {
             422,
             { field: 'cashDifferenceAccountId' },
           );
+        // ACC-106: توحيد إشارة الفرق بين الإغلاق والترحيل (diff = المعدود - المتوقع)
+        // العجز (diff < 0) يمثل مصروفاً (مدين)، والزيادة (diff > 0) تمثل إيراداً (دائن)
         lines.push(
-          difference.gt(0)
+          diff.lt(0)
             ? {
                 accountId: differenceAccountId,
-                debit: difference.toFixed(4),
+                debit: diff.abs().toFixed(4),
                 credit: '0',
-                description: `فرق بالصندوق ${employeeName}`,
+                description: `فرق بالصندوق (عجز) ${employeeName}`,
               }
             : {
                 accountId: differenceAccountId,
                 debit: '0',
-                credit: difference.abs().toFixed(4),
-                description: `فرق بالصندوق ${employeeName}`,
+                credit: diff.toFixed(4),
+                description: `فرق بالصندوق (زيادة) ${employeeName}`,
               },
         );
       }
@@ -2530,7 +2532,7 @@ export class TreasuryService implements OnModuleInit {
         custodyAccountId,
         custodyAmount: counted.toFixed(4),
         tillAmount: expected.toFixed(4),
-        differenceAmount: difference.toFixed(4),
+        differenceAmount: diff.toFixed(4),
       };
       await tx
         .update(shiftCloses)

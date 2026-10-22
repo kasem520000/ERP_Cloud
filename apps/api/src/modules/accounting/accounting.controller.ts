@@ -138,7 +138,14 @@ export class AccountingController {
   @Post('fiscal-periods/:id/modules/:module/lock')
   @RequiresPermission('accounting.period.close')
   async lockModule(@Param('id') id: string, @Param('module') module: string) {
-    return { data: await this.accounting.lockModule(getTenantContext().tenantId, id, module) };
+    return {
+      data: await this.accounting.lockModule(
+        getTenantContext().tenantId,
+        id,
+        module,
+        tryGetAuthContext()?.userId,
+      ),
+    };
   }
 
   @Post('fiscal-periods/:id/modules/:module/unlock')

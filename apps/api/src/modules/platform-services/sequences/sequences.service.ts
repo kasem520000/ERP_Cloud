@@ -52,6 +52,28 @@ export type SequenceOptions = {
   padding?: number;
 };
 
+const TENANT_WIDE_DOC_TYPES = new Set([
+  'sales_invoice',
+  'sales_return',
+  'sale',
+  'sale_return',
+  'credit_note',
+  'debit_note',
+  'purchase_invoice',
+  'purchase_return',
+  'purchase',
+  'voucher_receipt',
+  'voucher_payment',
+  'stock_voucher',
+  'stock_in',
+  'stock_out',
+  'opening',
+  'stock_transfer',
+  'cash_transfer',
+  'journal_entry',
+  'shift_close',
+]);
+
 /** `bigint` columns come back as strings on some drivers; normalise once, here. */
 function toCount(value: unknown): number {
   const parsed = typeof value === 'number' ? value : Number(value);
@@ -91,13 +113,19 @@ export class SequencesService {
       });
     }
 
+    // ACC-100: المستندات المقيدة بفهرس تفرد على مستوى المستأجر تُرقّم بنطاق عام للمستأجر
+    // لمنع تصادم الترقيم بين الفروع، مع تهيئة العداد من أعلى قيمة حالية لأي فرع
+    const effectiveBranchId = TENANT_WIDE_DOC_TYPES.has(scope.docType) ? null : (scope.branchId ?? null);
+
     // One statement: insert the scope row or bump it, and return the allocated value.
     // The ON CONFLICT arbiter mirrors `document_sequences_scope_key` exactly — see
     // `SEQUENCE_SCOPE_NIL_UUID` in the schema for why COALESCE is involved.
     const result = await tx.execute(sql`
       INSERT INTO document_sequences (id, tenant_id, branch_id, doc_type, fiscal_year_id, prefix, padding, current_value, updated_at)
-      VALUES (${newId()}, ${scope.tenantId}, ${scope.branchId ?? null}, ${scope.docType},
-              ${scope.fiscalYearId ?? null}, ${prefix}, ${padding}, 1, now())
+      VALUES (${newId()}, ${scope.tenantId}, ${effectiveBranchId}, ${scope.docType},
+              ${scope.fiscalYearId ?? null}, ${prefix}, ${padding},
+              COALESCE((SELECT MAX(current_value) FROM document_sequences WHERE tenant_id = ${scope.tenantId} AND doc_type = ${scope.docType}), 0) + 1,
+              now())
       ON CONFLICT (
         tenant_id,
         coalesce(branch_id, ${SEQUENCE_SCOPE_NIL_UUID}::uuid),

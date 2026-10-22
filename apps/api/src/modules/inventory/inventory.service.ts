@@ -254,6 +254,25 @@ export class InventoryService {
   ) {
     if (!lines.length)
       throw new DomainError('INVENTORY_LINES_REQUIRED', 'At least one inventory line is required', 422);
+
+    // ACC-107 & ACC-108: Resolve allowNegative against tenant setting if not explicitly overridden
+    let effectiveAllowNegative = options.allowNegative === true;
+    if (!effectiveAllowNegative) {
+      const settingRows = rowsOf<{ value: unknown }>(
+        await tx.execute(sql`
+          SELECT value FROM tenant_settings
+          WHERE tenant_id = ${tenantId}::uuid AND key IN ('allow_negative_stock', 'inventory.allow_negative_stock')
+          LIMIT 1
+        `),
+      );
+      if (settingRows.length > 0) {
+        const val = settingRows[0]?.value;
+        if (val === true || val === 'true' || val === 1 || val === '1') {
+          effectiveAllowNegative = true;
+        }
+      }
+    }
+
     const created: string[] = [];
     for (const line of lines) {
       const quantity = new Decimal(line.qty);
@@ -297,7 +316,7 @@ export class InventoryService {
       const unitCost = enteredCost.div(factor);
       const nextQty =
         line.direction === 'in' ? currentQty.plus(baseQuantity) : currentQty.minus(baseQuantity);
-      if (nextQty.lt(0) && !options.allowNegative) {
+      if (nextQty.lt(0) && !effectiveAllowNegative) {
         throw new DomainError('STOCK_INSUFFICIENT', 'Stock is insufficient for this movement', 422, {
           field: 'lines',
         });
@@ -1425,14 +1444,14 @@ export class InventoryService {
       const value = await this.valueOfMovements(tx, tenantId, transferId, 'stock_transfer_receipt');
       let receivedJournalEntryId: string | undefined;
       if (value.gt(0)) {
-        const branchId =
-          transfer.branchId ??
-          (
-            await tx
-              .select({ branchId: warehouses.branchId })
-              .from(warehouses)
-              .where(and(eq(warehouses.tenantId, tenantId), eq(warehouses.id, transfer.toWarehouseId)))
-          )[0]?.branchId;
+        // ACC-112: The receive journal entry belongs to the destination branch where stock is received
+        const destBranch = (
+          await tx
+            .select({ branchId: warehouses.branchId })
+            .from(warehouses)
+            .where(and(eq(warehouses.tenantId, tenantId), eq(warehouses.id, transfer.toWarehouseId)))
+        )[0];
+        const branchId = destBranch?.branchId ?? transfer.branchId;
         if (!branchId)
           throw new DomainError(
             'TRANSFER_BRANCH_REQUIRED',
@@ -2760,15 +2779,16 @@ export class InventoryService {
         );
       const avgCostByItem = new Map(balances.map((b) => [b.itemId, b.averageCost]));
 
-      const draftTotalCost = input.lines.reduce((sum, line) => {
-        const itemAvg = avgCostByItem.get(line.itemId);
-        const fallbackPrice = (input.kind === 'stock_out' && itemAvg && Number(itemAvg) > 0)
-          ? itemAvg
-          : (catalogue.get(line.itemId)?.purchasePrice ?? '0');
-        const unitCost = new Decimal(line.unitCost ?? fallbackPrice ?? 0);
-        const qty = new Decimal(line.qty || 0);
-        return sum.plus(qty.mul(unitCost));
-      }, new Decimal(0));
+      // For stock_out vouchers, lines are issued at moving-average cost determined at posting time.
+      // Draft issue vouchers have zero totalCost until posted, consistent with lineCost = 0.
+      const draftTotalCost = input.kind === 'stock_out'
+        ? new Decimal(0)
+        : input.lines.reduce((sum, line) => {
+            const fallbackPrice = catalogue.get(line.itemId)?.purchasePrice ?? '0';
+            const unitCost = new Decimal(line.unitCost ?? fallbackPrice ?? 0);
+            const qty = new Decimal(line.qty || 0);
+            return sum.plus(qty.mul(unitCost));
+          }, new Decimal(0));
       const [voucher] = await tx
         .insert(stockVouchers)
         .values({
